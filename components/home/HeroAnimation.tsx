@@ -294,9 +294,9 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
       const na = document.createElement('div'); na.style.cssText = 'display:flex;flex-direction:column;gap:7px'
       lp.appendChild(na)
       const notifs = [
-        { i: 'TB', name: 'Thomas B.', spec: 'D365 Finance · 7 ans', score: 97, bg: '#bae6fd', tc: '#1d4ed8' },
-        { i: 'CR', name: 'Camille R.', spec: 'Finance · 5 ans', score: 91, bg: '#dcfce7', tc: '#15803d' },
-        { i: 'MA', name: 'Mehdi A.', spec: 'SCM · 6 ans', score: 86, bg: '#fef9c3', tc: '#92400e' },
+        { img: 'https://randomuser.me/api/portraits/men/32.jpg', name: 'Thomas B.', spec: 'D365 Finance · 7 ans', score: 97 },
+        { img: 'https://randomuser.me/api/portraits/women/28.jpg', name: 'Camille R.', spec: 'Finance · 5 ans', score: 91 },
+        { img: 'https://randomuser.me/api/portraits/men/55.jpg', name: 'Mehdi A.', spec: 'SCM · 6 ans', score: 86 },
       ]
       for (let i = 0; i < notifs.length; i++) {
         await sleep(500)
@@ -305,7 +305,7 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
         const n = notifs[i]
         const row = document.createElement('div')
         row.style.cssText = 'display:flex;align-items:center;gap:9px;padding:9px 11px;background:#fff;border-radius:9px;border:1px solid #e5e7eb;animation:sk-notifSlide 0.3s ease both'
-        row.innerHTML = `<div style="width:30px;height:30px;border-radius:50%;background:${n.bg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${n.tc};flex-shrink:0">${n.i}</div><div style="flex:1"><div style="font-size:12px;font-weight:600;color:#111827">${n.name}</div><div style="font-size:11px;color:#6b7280">${n.spec}</div></div><div style="font-size:13px;font-weight:700;color:#6d28d9;margin-right:4px">${n.score}%</div><div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:20px;padding:2px 8px;font-size:11px;color:#6d28d9;font-weight:600;white-space:nowrap">Notifié</div>`
+        row.innerHTML = `<div style="width:30px;height:30px;border-radius:50%;overflow:hidden;border:2px solid #e5e7eb;flex-shrink:0"><img src="${n.img}" style="width:100%;height:100%;object-fit:cover" alt="${n.name}"/></div><div style="flex:1"><div style="font-size:12px;font-weight:600;color:#111827">${n.name}</div><div style="font-size:11px;color:#6b7280">${n.spec}</div></div><div style="font-size:13px;font-weight:700;color:#6d28d9;margin-right:4px">${n.score}%</div><div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:20px;padding:2px 8px;font-size:11px;color:#6d28d9;font-weight:600;white-space:nowrap">Notifié</div>`
         na.appendChild(row)
       }
       await sleep(280)
