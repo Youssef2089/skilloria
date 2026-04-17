@@ -1,0 +1,78 @@
+# Variables d'environnement — NE JAMAIS lire ou modifier
+.env
+.env.local
+.env.development
+.env.development.local
+.env.production
+.env.production.local
+.env.staging
+.env.staging.local
+.env.test
+.env.test.local
+.env.*
+*.env
+
+# Dépendances et builds
+node_modules/
+.next/
+out/
+dist/
+build/
+.turbo/
+.vercel/
+
+# Git — ne jamais toucher à l'historique
+.git/
+.gitignore
+
+# Fichiers potentiellement sensibles (clés API, tokens, secrets)
+**/secrets/
+**/secret/
+**/*secret*
+**/*secrets*
+**/*credentials*
+**/*credential*
+**/*private-key*
+**/*privatekey*
+**/*.pem
+**/*.key
+**/*.cert
+**/*.crt
+**/*.p12
+**/*.pfx
+
+# Clés et tokens spécifiques
+**/*service_role*
+**/*service-role*
+**/*supabase-admin*
+**/*stripe-secret*
+**/*stripe_secret*
+**/*api-key*
+**/*api_key*
+**/*apikey*
+**/*access-token*
+**/*access_token*
+**/*refresh-token*
+**/*refresh_token*
+**/*auth-token*
+**/*auth_token*
+
+# Fichiers de configuration sensibles
+**/config.secret.*
+**/secrets.json
+**/secrets.yaml
+**/secrets.yml
+**/credentials.json
+
+# Logs (peuvent contenir des infos sensibles)
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# IDE et OS
+.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db

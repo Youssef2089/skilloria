@@ -1,0 +1,197 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { useDomain } from '@/context/DomainContext'
+
+export default function ConnexionPage() {
+  const router = useRouter()
+  const domain = useDomain()
+  const [form, setForm] = useState({ email: '', password: '' })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async () => {
+    if (!form.email || !form.password) {
+      setError('Email et mot de passe sont obligatoires.')
+      return
+    }
+
+    setLoading(true)
+    setError('')
+
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
+      email: form.email,
+      password: form.password,
+    })
+
+    if (authError) {
+      setError('Email ou mot de passe incorrect.')
+      setLoading(false)
+      return
+    }
+
+    // Récupérer le profil utilisateur
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('role, domain_id, domains(slug)')
+      .eq('id', data.user.id)
+      .single()
+
+    if (userError || !userData) {
+      setError('Impossible de récupérer votre profil.')
+      setLoading(false)
+      return
+    }
+
+    // Vérifier que le domaine correspond — uniquement pour freelance et CDI
+    const role = userData.role
+    if (role === 'freelance' || role === 'expert' || role === 'cdi') {
+      const userDomainSlug = (userData.domains as any)?.slug
+      if (userDomainSlug && userDomainSlug !== domain.subdomain) {
+        await supabase.auth.signOut()
+        setError(`Votre compte est associé à un autre espace Skilloria. Veuillez vous connecter sur ${userDomainSlug}.skilloria.io`)
+        setLoading(false)
+        return
+      }
+    }
+
+    // Redirection selon le rôle
+    if (role === 'expert') {
+      router.push('/dashboard/freelance')
+    } else if (role === 'cdi') {
+      router.push('/dashboard/cdi')
+    } else if (role === 'entreprise') {
+      router.push('/dashboard/entreprise')
+    } else if (role === 'cabinet') {
+      router.push('/dashboard/cabinet')
+    } else {
+      router.push('/dashboard')
+    }
+  }
+
+  return (
+    <div style={{
+      minHeight: '100vh', background: '#f8fafc',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'flex-start',
+      padding: '24px', fontFamily: 'Inter, sans-serif',
+    }}>
+
+      {/* Logo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 32 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 9, background: domain.primaryColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </div>
+        <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>{domain.name}</span>
+      </div>
+
+      {/* Card */}
+      <div style={{
+        background: '#fff', borderRadius: 24,
+        border: '1px solid #e2e8f0', padding: '40px',
+        width: '100%', maxWidth: 440,
+        boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+      }}>
+
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginBottom: 6 }}>
+          Connectez-vous
+        </h1>
+        <p style={{ fontSize: 14, color: '#64748b', marginBottom: 28 }}>
+          Accédez à votre espace {domain.name}
+        </p>
+
+        {/* Email */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            Email
+          </label>
+          <input
+            type="email"
+            placeholder="vous@email.com"
+            value={form.email}
+            onChange={e => setForm({ ...form, email: e.target.value })}
+            style={{
+              width: '100%', padding: '10px 14px',
+              border: '1.5px solid #e2e8f0', borderRadius: 10,
+              fontSize: 14, color: '#0f172a', outline: 'none',
+            }}
+          />
+        </div>
+
+        {/* Mot de passe */}
+        <div style={{ marginBottom: 8 }}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            Mot de passe
+          </label>
+          <input
+            type="password"
+            placeholder="Votre mot de passe"
+            value={form.password}
+            onChange={e => setForm({ ...form, password: e.target.value })}
+            style={{
+              width: '100%', padding: '10px 14px',
+              border: '1.5px solid #e2e8f0', borderRadius: 10,
+              fontSize: 14, color: '#0f172a', outline: 'none',
+            }}
+          />
+        </div>
+
+        {/* Mot de passe oublié */}
+        <div style={{ textAlign: 'right', marginBottom: 24 }}>
+          <span
+            onClick={() => router.push('/mot-de-passe-oublie')}
+            style={{ fontSize: 12, color: domain.primaryColor, fontWeight: 600, cursor: 'pointer' }}
+          >
+            Mot de passe oublié ?
+          </span>
+        </div>
+
+        {/* Erreur */}
+        {error && (
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#dc2626' }}>
+            {error}
+          </div>
+        )}
+
+        {/* Bouton */}
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          style={{
+            width: '100%', padding: 13,
+            background: loading ? '#7dd3fc' : domain.primaryColor,
+            color: '#fff', border: 'none',
+            borderRadius: 12, fontSize: 15,
+            fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
+            marginBottom: 20,
+          }}
+        >
+          {loading ? 'Connexion en cours...' : 'Se connecter →'}
+        </button>
+
+        {/* Séparateur */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+          <div style={{ flex: 1, height: 1, background: '#e2e8f0' }}></div>
+          <span style={{ fontSize: 12, color: '#94a3b8' }}>ou</span>
+          <div style={{ flex: 1, height: 1, background: '#e2e8f0' }}></div>
+        </div>
+
+        {/* Créer un compte */}
+        <p style={{ textAlign: 'center', fontSize: 13, color: '#64748b' }}>
+          Pas encore de compte ?{' '}
+          <span
+            onClick={() => router.push('/inscription')}
+            style={{ color: domain.primaryColor, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}
+          >
+            Créer mon compte →
+          </span>
+        </p>
+
+      </div>
+    </div>
+  )
+}
