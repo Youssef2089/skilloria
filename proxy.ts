@@ -1,8 +1,7 @@
  import { NextRequest, NextResponse } from 'next/server'
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const hostname = request.headers.get('host') || ''
-  const url = request.nextUrl.clone()
 
   // En local on simule le sous-domaine "microsoft"
   const isLocal = hostname.includes('localhost')
