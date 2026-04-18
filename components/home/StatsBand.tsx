@@ -1,11 +1,17 @@
- const stats = [
-  { number: '8 200+', label: 'Experts Microsoft' },
-  { number: '1 800+', label: 'Missions actives' },
-  { number: '650+', label: 'Cabinets partenaires' },
-  { number: '96%', label: 'Taux de satisfaction' },
-]
+'use client'
+
+import { useDomain } from '@/context/DomainContext'
 
 export default function StatsBand() {
+  const { ecosystemName } = useDomain()
+
+  const stats = [
+    { number: '8 200+', label: `Experts ${ecosystemName}` },
+    { number: '1 800+', label: 'Missions actives' },
+    { number: '650+', label: 'Cabinets partenaires' },
+    { number: '96%', label: 'Taux de satisfaction' },
+  ]
+
   return (
     <div style={{
       background: 'linear-gradient(90deg, #0284C7, #4F46E5, #7C3AED)',
