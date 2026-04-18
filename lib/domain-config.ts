@@ -16,6 +16,7 @@ export type DomainConfig = {
     specialityLabel: string
     domainSearchLabel: string
   }
+  featuredProducts: Array<{ label: string; icon: string }>
 }
 
 export const defaultDomainConfig: DomainConfig = {
@@ -36,4 +37,16 @@ export const defaultDomainConfig: DomainConfig = {
     specialityLabel: 'Spécialité Microsoft principale',
     domainSearchLabel: 'Domaine Microsoft recherché',
   },
+  featuredProducts: [
+    { label: 'Azure', icon: '☁️' },
+    { label: 'Business Central', icon: '📊' },
+    { label: 'Power BI', icon: '📈' },
+    { label: 'Power Platform', icon: '⚡' },
+    { label: 'D365 Finance & Ops', icon: '💼' },
+    { label: 'SharePoint', icon: '🗂️' },
+    { label: 'Copilot Studio', icon: '🤖' },
+    { label: 'Azure DevOps', icon: '🔧' },
+    { label: 'Dynamics CRM', icon: '🤝' },
+    { label: 'Microsoft Fabric', icon: '🧵' },
+  ],
 }
