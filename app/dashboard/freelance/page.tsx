@@ -212,7 +212,7 @@ export default function DashboardFreelance() {
                 </svg>
               )}
             </div>
-            <div style={{ fontSize: 13, color: '#6b7280' }}>Freelance · Microsoft</div>
+            <div style={{ fontSize: 13, color: '#6b7280' }}>Freelance · {domain.ecosystemName}</div>
             <div style={{ fontSize: 12, color: domain.primaryColor, marginTop: 8, cursor: 'pointer' }}>
               {isVerified ? 'Modifier ma photo →' : 'Ajouter une photo →'}
             </div>
@@ -351,7 +351,7 @@ export default function DashboardFreelance() {
               }
             </div>
             <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
-              {isVerified ? 'Complétez votre profil pour que notre IA vous propose des missions adaptées à votre expertise Microsoft.' : 'Disponible après validation de votre profil.'}
+              {isVerified ? `Complétez votre profil pour que notre IA vous propose des missions adaptées à votre expertise ${domain.ecosystemName}.` : 'Disponible après validation de votre profil.'}
             </div>
           </div>
 
