@@ -32,10 +32,10 @@ export default function ConnexionPage() {
       return
     }
 
-    // Récupérer le profil utilisateur
+    // Récupérer le profil utilisateur (user_type = expert_freelance/expert_cdi/client/cabinet)
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('role, domain_id, domains(slug)')
+      .select('user_type, domain_id, domains(slug)')
       .eq('id', data.user.id)
       .single()
 
@@ -45,9 +45,10 @@ export default function ConnexionPage() {
       return
     }
 
-    // Vérifier que le domaine correspond — uniquement pour freelance et CDI
-    const role = userData.role
-    if (role === 'freelance' || role === 'expert' || role === 'cdi') {
+    const userType = userData.user_type as string
+
+    // Vérification du domaine — uniquement pour les experts (freelance + CDI)
+    if (userType === 'expert_freelance' || userType === 'expert_cdi') {
       const userDomainSlug = (userData.domains as any)?.slug
       if (userDomainSlug && userDomainSlug !== domain.subdomain) {
         await supabase.auth.signOut()
@@ -57,17 +58,20 @@ export default function ConnexionPage() {
       }
     }
 
-    // Redirection selon le rôle
-    if (role === 'expert') {
-      router.push('/dashboard/freelance')
-    } else if (role === 'cdi') {
-      router.push('/dashboard/cdi')
-    } else if (role === 'entreprise') {
-      router.push('/dashboard/entreprise')
-    } else if (role === 'cabinet') {
-      router.push('/dashboard/cabinet')
-    } else {
-      router.push('/dashboard')
+    // Redirection selon le type d'utilisateur
+    switch (userType) {
+      case 'expert_freelance':
+        router.push('/dashboard/freelance'); break
+      case 'expert_cdi':
+        router.push('/dashboard/cdi'); break
+      case 'client':
+        router.push('/dashboard/entreprise'); break
+      case 'cabinet':
+        router.push('/dashboard/cabinet'); break
+      case 'admin':
+        router.push('/admin'); break
+      default:
+        router.push('/dashboard')
     }
   }
 
