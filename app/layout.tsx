@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { headers } from "next/headers";
 import "./globals.css";
 import { DomainProvider } from "@/context/DomainContext";
-import { defaultDomainConfig } from "@/lib/domain-config";
+import { getDomainConfig } from "@/lib/get-domain-config";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,25 +14,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Skilloria 365 — La marketplace Microsoft pilotée par l'IA",
-  description: "Trouvez les meilleurs experts Microsoft certifiés. Zéro commission. Matching IA en 24h.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const domain = await getDomainConfig()
+  return {
+    title: `Skilloria 365 — La marketplace ${domain.ecosystemName} pilotée par l'IA`,
+    description: `Trouvez les meilleurs experts ${domain.ecosystemName} certifiés. Zéro commission. Matching IA en 24h.`,
+  }
+}
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headersList = await headers()
-  const subdomain = headersList.get('x-subdomain') || 'microsoft'
-
-  // Pour l'instant on utilise la config par défaut
-  // Plus tard, on ira chercher la config en base selon le subdomain
-  const domainConfig = {
-    ...defaultDomainConfig,
-    subdomain,
-  }
+  const domainConfig = await getDomainConfig()
 
   return (
     <html lang="fr">
