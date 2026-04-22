@@ -23,7 +23,7 @@ export default function Footer() {
               <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{domain.name}</span>
             </div>
             <p style={{ fontSize: 11, color: '#1e3a5f', lineHeight: 1.6, maxWidth: 200 }}>
-              La marketplace premium des experts Microsoft certifiés, pilotée par l'IA Agentique.
+              La marketplace premium des {domain.ecosystemTerms.expertLabel}, pilotée par l'IA Agentique.
             </p>
           </div>
           <div>
@@ -34,7 +34,7 @@ export default function Footer() {
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#0f172a', marginBottom: 10 }}>Domaines</div>
-            {['Azure', 'Power Platform', 'Dynamics 365', 'Microsoft 365'].map(l => (
+            {domain.tags.slice(0, 4).map(l => (
               <div key={l} style={{ fontSize: 11, color: '#1e3a5f', marginBottom: 6, cursor: 'pointer' }}>{l}</div>
             ))}
           </div>
