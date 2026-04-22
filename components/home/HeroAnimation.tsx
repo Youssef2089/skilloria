@@ -92,12 +92,14 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
     const el = container
     const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-    function getC(target: HTMLElement) {
+    function getC(target: HTMLElement | null) {
+      if (!target || !el) return { x: 0, y: 0 }
       const rr = el.getBoundingClientRect()
       const er = target.getBoundingClientRect()
       return { x: er.left - rr.left + er.width / 2, y: er.top - rr.top + er.height / 2 }
     }
-    function moveTo(target: HTMLElement, d = 300): Promise<void> {
+    function moveTo(target: HTMLElement | null, d = 300): Promise<void> {
+      if (!target) return Promise.resolve()
       return new Promise(r => {
         const p = getC(target)
         cur.style.left = (p.x - 10) + 'px'
@@ -105,7 +107,8 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
         setTimeout(r, d)
       })
     }
-    function clickEl(target: HTMLElement, d = 150): Promise<void> {
+    function clickEl(target: HTMLElement | null, d = 150): Promise<void> {
+      if (!target) return Promise.resolve()
       return new Promise(r => {
         const p = getC(target)
         const rp = document.createElement('div')
