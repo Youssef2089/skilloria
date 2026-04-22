@@ -1,4 +1,10 @@
+'use client'
+
+import { useDomain } from '@/context/DomainContext'
+
 export default function AdSection() {
+  const domain = useDomain()
+
   return (
     <div style={{
       display: 'flex', alignItems: 'center',
@@ -17,7 +23,7 @@ export default function AdSection() {
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>Annoncez ici.</div>
           <div style={{ fontSize: 11, color: '#64748b' }}>
-            Atteignez instantanément des milliers d'experts, recruteurs et entreprises de l'écosystème Microsoft.
+            Atteignez instantanément des milliers d'experts, recruteurs et entreprises de l'écosystème {domain.ecosystemName}.
           </div>
         </div>
       </div>
