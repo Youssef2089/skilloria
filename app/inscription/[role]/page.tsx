@@ -5,67 +5,68 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
 
-const config: Record<string, {
-  title: string
-  icon: string
-  color: string
-  fields: { id: string; label: string; type: string; placeholder: string }[]
-}> = {
-  entreprise: {
-    title: 'Créer un compte Entreprise',
-    icon: '🏢',
-    color: '#dbeafe',
-    fields: [
-      { id: 'company', label: 'Raison sociale', type: 'text', placeholder: 'Nom de votre entreprise' },
-      { id: 'firstname', label: 'Prénom', type: 'text', placeholder: 'Votre prénom' },
-      { id: 'lastname', label: 'Nom', type: 'text', placeholder: 'Votre nom' },
-      { id: 'email', label: 'Email professionnel', type: 'email', placeholder: 'vous@entreprise.com' },
-      { id: 'password', label: 'Mot de passe', type: 'password', placeholder: 'Minimum 8 caractères' },
-    ],
-  },
-  expert: {
-    title: 'Créer un profil Expert',
-    icon: '💼',
-    color: '#ede9fe',
-    fields: [
-      { id: 'firstname', label: 'Prénom', type: 'text', placeholder: 'Votre prénom' },
-      { id: 'lastname', label: 'Nom', type: 'text', placeholder: 'Votre nom' },
-      { id: 'email', label: 'Email', type: 'email', placeholder: 'vous@email.com' },
-      { id: 'specialty', label: 'Spécialité Microsoft principale', type: 'text', placeholder: 'Ex: Dynamics 365, Azure, Power BI...' },
-      { id: 'password', label: 'Mot de passe', type: 'password', placeholder: 'Minimum 8 caractères' },
-    ],
-  },
-  cdi: {
-    title: 'Créer un profil CDI',
-    icon: '🎓',
-    color: '#dcfce7',
-    fields: [
-      { id: 'firstname', label: 'Prénom', type: 'text', placeholder: 'Votre prénom' },
-      { id: 'lastname', label: 'Nom', type: 'text', placeholder: 'Votre nom' },
-      { id: 'email', label: 'Email', type: 'email', placeholder: 'vous@email.com' },
-      { id: 'specialty', label: 'Domaine Microsoft recherché', type: 'text', placeholder: 'Ex: Dynamics 365, Azure...' },
-      { id: 'password', label: 'Mot de passe', type: 'password', placeholder: 'Minimum 8 caractères' },
-    ],
-  },
-  cabinet: {
-    title: 'Créer un compte Cabinet / ESN',
-    icon: '🤝',
-    color: '#fef9c3',
-    fields: [
-      { id: 'company', label: 'Nom du cabinet / ESN', type: 'text', placeholder: 'Nom de votre structure' },
-      { id: 'firstname', label: 'Prénom', type: 'text', placeholder: 'Votre prénom' },
-      { id: 'lastname', label: 'Nom', type: 'text', placeholder: 'Votre nom' },
-      { id: 'email', label: 'Email professionnel', type: 'email', placeholder: 'vous@cabinet.com' },
-      { id: 'password', label: 'Mot de passe', type: 'password', placeholder: 'Minimum 8 caractères' },
-    ],
-  },
-}
-
 export default function InscriptionRolePage() {
   const router = useRouter()
   const params = useParams()
   const domain = useDomain()
   const role = params.role as string
+
+  const config: Record<string, {
+    title: string
+    icon: string
+    color: string
+    fields: { id: string; label: string; type: string; placeholder: string }[]
+  }> = {
+    entreprise: {
+      title: 'Créer un compte Entreprise',
+      icon: '🏢',
+      color: '#dbeafe',
+      fields: [
+        { id: 'company', label: 'Raison sociale', type: 'text', placeholder: 'Nom de votre entreprise' },
+        { id: 'firstname', label: 'Prénom', type: 'text', placeholder: 'Votre prénom' },
+        { id: 'lastname', label: 'Nom', type: 'text', placeholder: 'Votre nom' },
+        { id: 'email', label: 'Email professionnel', type: 'email', placeholder: 'vous@entreprise.com' },
+        { id: 'password', label: 'Mot de passe', type: 'password', placeholder: 'Minimum 8 caractères' },
+      ],
+    },
+    expert: {
+      title: 'Créer un profil Expert',
+      icon: '💼',
+      color: '#ede9fe',
+      fields: [
+        { id: 'firstname', label: 'Prénom', type: 'text', placeholder: 'Votre prénom' },
+        { id: 'lastname', label: 'Nom', type: 'text', placeholder: 'Votre nom' },
+        { id: 'email', label: 'Email', type: 'email', placeholder: 'vous@email.com' },
+        { id: 'specialty', label: domain.ecosystemTerms.specialityLabel, type: 'text', placeholder: 'Ex: Dynamics 365, Azure, Power BI...' },
+        { id: 'password', label: 'Mot de passe', type: 'password', placeholder: 'Minimum 8 caractères' },
+      ],
+    },
+    cdi: {
+      title: 'Créer un profil CDI',
+      icon: '🎓',
+      color: '#dcfce7',
+      fields: [
+        { id: 'firstname', label: 'Prénom', type: 'text', placeholder: 'Votre prénom' },
+        { id: 'lastname', label: 'Nom', type: 'text', placeholder: 'Votre nom' },
+        { id: 'email', label: 'Email', type: 'email', placeholder: 'vous@email.com' },
+        { id: 'specialty', label: domain.ecosystemTerms.domainSearchLabel, type: 'text', placeholder: 'Ex: Dynamics 365, Azure...' },
+        { id: 'password', label: 'Mot de passe', type: 'password', placeholder: 'Minimum 8 caractères' },
+      ],
+    },
+    cabinet: {
+      title: 'Créer un compte Cabinet / ESN',
+      icon: '🤝',
+      color: '#fef9c3',
+      fields: [
+        { id: 'company', label: 'Nom du cabinet / ESN', type: 'text', placeholder: 'Nom de votre structure' },
+        { id: 'firstname', label: 'Prénom', type: 'text', placeholder: 'Votre prénom' },
+        { id: 'lastname', label: 'Nom', type: 'text', placeholder: 'Votre nom' },
+        { id: 'email', label: 'Email professionnel', type: 'email', placeholder: 'vous@cabinet.com' },
+        { id: 'password', label: 'Mot de passe', type: 'password', placeholder: 'Minimum 8 caractères' },
+      ],
+    },
+  }
+
   const cfg = config[role]
   const [form, setForm] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
