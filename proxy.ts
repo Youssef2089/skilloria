@@ -1,4 +1,4 @@
- import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export function proxy(request: NextRequest) {
   const hostname = request.headers.get('host') || ''
@@ -16,10 +16,16 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  // On transmet le sous-domaine via un header
-  const response = NextResponse.next()
-  response.headers.set('x-subdomain', subdomain)
-  return response
+  // On transmet le sous-domaine via un header de requête
+  // (lisible par les Server Components via next/headers)
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-subdomain', subdomain)
+
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  })
 }
 
 export const config = {
