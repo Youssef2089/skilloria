@@ -1,40 +1,42 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-
-const roles = [
-  {
-    id: 'entreprise',
-    icon: '🏢',
-    bg: '#dbeafe',
-    title: 'Entreprise',
-    desc: 'Je cherche un expert\nMicrosoft certifié',
-  },
-  {
-    id: 'expert',
-    icon: '💼',
-    bg: '#ede9fe',
-    title: 'Expert / Freelance',
-    desc: 'Je propose mes services\net cherche des missions',
-  },
-  {
-    id: 'cdi',
-    icon: '🎓',
-    bg: '#dcfce7',
-    title: 'CDI',
-    desc: 'Je cherche un poste\nen CDI Microsoft',
-  },
-  {
-    id: 'cabinet',
-    icon: '🤝',
-    bg: '#fef9c3',
-    title: 'Cabinet / ESN',
-    desc: 'Je recrute pour\nmes clients',
-  },
-]
+import { useDomain } from '@/context/DomainContext'
 
 export default function InscriptionPage() {
   const router = useRouter()
+  const domain = useDomain()
+
+  const roles = [
+    {
+      id: 'entreprise',
+      icon: '🏢',
+      bg: '#dbeafe',
+      title: 'Entreprise',
+      desc: `Je cherche un expert\n${domain.ecosystemName} certifié`,
+    },
+    {
+      id: 'expert',
+      icon: '💼',
+      bg: '#ede9fe',
+      title: 'Expert / Freelance',
+      desc: 'Je propose mes services\net cherche des missions',
+    },
+    {
+      id: 'cdi',
+      icon: '🎓',
+      bg: '#dcfce7',
+      title: 'CDI',
+      desc: `Je cherche un poste\nen CDI ${domain.ecosystemName}`,
+    },
+    {
+      id: 'cabinet',
+      icon: '🤝',
+      bg: '#fef9c3',
+      title: 'Cabinet / ESN',
+      desc: 'Je recrute pour\nmes clients',
+    },
+  ]
 
   return (
     <div style={{
