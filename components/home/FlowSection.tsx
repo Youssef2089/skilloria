@@ -1,4 +1,8 @@
- const steps = [
+'use client'
+
+import { useDomain } from '@/context/DomainContext'
+
+const steps = [
   { icon: '📋', title: 'Publiez', desc: 'Mission ou CDI en 2 min', pill: '⏱ 2 min', pillBg: '#E0F2FE', pillColor: '#0284C7', bg: 'linear-gradient(135deg, #E0F7FF, #BAE6FD)' },
   { icon: '🤖', title: 'L\'IA matche', desc: '40+ critères analysés', pill: '🎯 Précis', pillBg: '#EEF2FF', pillColor: '#4F46E5', bg: 'linear-gradient(135deg, #EEF2FF, #C7D2FE)' },
   { icon: '🔔', title: 'Alertes', desc: 'Experts notifiés instantanément', pill: '⚡ Instantané', pillBg: '#FEF3C7', pillColor: '#D97706', bg: 'linear-gradient(135deg, #FFFBEB, #FDE68A)' },
@@ -9,6 +13,8 @@
 ]
 
 export default function FlowSection() {
+  const { ecosystemName } = useDomain()
+
   return (
     <div style={{ background: 'white', padding: '72px 60px' }}>
 
@@ -21,7 +27,7 @@ export default function FlowSection() {
           fontSize: 10, fontWeight: 700, color: '#4F46E5',
           textTransform: 'uppercase', letterSpacing: '0.1em',
         }}>
-          ⚡ La première marketplace Microsoft pilotée par l'IA Agentique
+          ⚡ La première marketplace {ecosystemName} pilotée par l'IA Agentique
         </div>
 
         <h2 style={{ fontSize: 30, fontWeight: 500, color: '#0F172A', lineHeight: 1.2, marginBottom: 22 }}>
