@@ -32,7 +32,7 @@ export const defaultDomainConfig: DomainConfig = {
   isActive: true,
   tags: ['Azure', 'Dynamics 365', 'Power Platform', 'Power BI', 'SharePoint', 'Teams', 'Microsoft 365', 'Copilot', 'Fabric', 'SQL Server'],
   ecosystemTerms: {
-    expertLabel: 'expert Microsoft certifié',
+    expertLabel: 'experts Microsoft certifiés',
     communityLabel: 'écosystème Microsoft',
     specialityLabel: 'Spécialité Microsoft principale',
     domainSearchLabel: 'Domaine Microsoft recherché',
