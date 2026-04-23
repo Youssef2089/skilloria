@@ -184,19 +184,10 @@ const SECTION_COLORS = {
   disponibilite: '#10b981',
   liens: '#06b6d4',
   coordonnees: '#f59e0b',
-  experiences: '#ec4899',
+  parcours: '#ec4899',
+  missions: '#f43f5e',
   formation: '#14b8a6',
 } as const
-
-const subHeaderStyle: React.CSSProperties = {
-  fontSize: 13,
-  fontWeight: 700,
-  color: '#475569',
-  letterSpacing: '0.4px',
-  textTransform: 'uppercase',
-  margin: '8px 0 12px',
-  fontFamily: fontJakarta,
-}
 
 export default function ValiderProfilPage() {
   const router = useRouter()
@@ -1698,25 +1689,21 @@ export default function ValiderProfilPage() {
               </div>
             </div>
 
-            {/* Section 7 — Expériences */}
+            {/* Section 7 — Parcours professionnel (carrière) */}
             <div style={sectionStyle}>
               <SectionHeader
                 n="7"
-                color={SECTION_COLORS.experiences}
+                color={SECTION_COLORS.parcours}
                 title={
                   <>
-                    Expériences professionnelles{' '}
+                    Parcours professionnel{' '}
                     <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: 13 }}>
-                      · {experiences.filter(e => e.role.trim()).length}
-                      {experiences.filter(e => e.role.trim()).length < 1
-                        ? ' (min. 1 pour publier)'
-                        : ''}
+                      · {careerEntries.length}
                     </span>
                   </>
                 }
               />
 
-              <div style={subHeaderStyle}>7A · Historique professionnel</div>
               {careerEntries.length === 0 && (
                 <div
                   style={{
@@ -1739,16 +1726,23 @@ export default function ValiderProfilPage() {
               >
                 + Ajouter un employeur
               </button>
+            </div>
 
-              <div
-                style={{
-                  height: 1,
-                  background: '#e2e8f0',
-                  margin: '24px 0',
-                }}
+            {/* Section 8 — Missions / Projets */}
+            <div style={sectionStyle}>
+              <SectionHeader
+                n="8"
+                color={SECTION_COLORS.missions}
+                title={
+                  <>
+                    Missions / Projets{' '}
+                    <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: 13 }}>
+                      · {projectEntries.length}
+                    </span>
+                  </>
+                }
               />
 
-              <div style={subHeaderStyle}>7B · Missions / Projets</div>
               {projectEntries.length === 0 && (
                 <div
                   style={{
@@ -1773,9 +1767,9 @@ export default function ValiderProfilPage() {
               </button>
             </div>
 
-            {/* Section 8 — Formations */}
+            {/* Section 9 — Formations */}
             <div style={sectionStyle}>
-              <SectionHeader n="8" color={SECTION_COLORS.formation} title="Formation" />
+              <SectionHeader n="9" color={SECTION_COLORS.formation} title="Formation" />
 
               {educations.length === 0 && (
                 <div
