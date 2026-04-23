@@ -60,7 +60,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   const { data: profile, error: profileErr } = await supabaseAdmin
     .from('profiles')
     .select(
-      'id, cv_file_path, cv_hash, cv_parsing_status, cv_parsing_count_24h, cv_parsing_reset_at, ai_consent_at, title, summary, seniority, years_experience, skills, certifications, branch_id, speciality_id, languages, location, tjm_min, tjm_max, linkedin_url, phone, address_line, postal_code, city, country, birth_year, photo_url, years_total_experience',
+      'id, cv_file_path, cv_hash, cv_parsing_status, cv_parsing_count_24h, cv_parsing_reset_at, ai_consent_at, title, summary, seniority, years_experience, skills, certifications, branch_id, speciality_id, languages, location, tjm_min, tjm_max, linkedin_url, phone, address_line, postal_code, city, country, birth_year, photo_url, years_total_experience, work_modes',
     )
     .eq('user_id', user.id)
     .maybeSingle()
@@ -131,6 +131,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         birth_year: profile.birth_year,
         photo_url: profile.photo_url,
         years_total_experience: profile.years_total_experience,
+        work_modes: profile.work_modes ?? [],
         experiences: cachedExp ?? [],
         educations: cachedEdu ?? [],
         languages_structured: cachedLang ?? [],
@@ -281,6 +282,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         profile.years_total_experience,
         parsed.years_total_experience,
       ),
+      work_modes: coalesce(profile.work_modes as any, parsed.work_modes),
     })
     .eq('id', profile.id)
 

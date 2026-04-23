@@ -55,6 +55,7 @@ export type ParsedCV = {
   birth_year: number | null
   photo_url: string | null
   years_total_experience: number | null
+  work_modes: Array<'remote' | 'onsite' | 'hybrid'>
   experiences: ParsedExperience[]
   educations: ParsedEducation[]
   languages_structured: ParsedLanguageStructured[]
@@ -126,6 +127,15 @@ function buildTool(ctx: DomainContext) {
         birth_year: { type: ['number', 'null'] },
         photo_url: { type: ['string', 'null'] },
         years_total_experience: { type: ['number', 'null'] },
+        work_modes: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: ['remote', 'onsite', 'hybrid'],
+          },
+          description:
+            'Modes de travail acceptés (plusieurs possibles). Valeurs : remote, onsite, hybrid.',
+        },
         experiences: {
           type: 'array',
           items: {
@@ -208,7 +218,7 @@ function buildTool(ctx: DomainContext) {
         'languages', 'location', 'tjm_min', 'tjm_max', 'linkedin_url',
         'phone', 'address_line', 'postal_code', 'city', 'country',
         'birth_year', 'photo_url', 'years_total_experience',
-        'experiences', 'educations', 'languages_structured',
+        'work_modes', 'experiences', 'educations', 'languages_structured',
       ],
     },
   }
@@ -253,6 +263,8 @@ function buildSystemPrompt(ctx: DomainContext): string {
     "Pour `birth_year` : déduis depuis l'âge mentionné (année courante − âge) si un âge explicite figure dans le CV, sinon null.",
     '',
     'Pour `country` : code ISO 3166-1 alpha-2 (FR, BE, CH, LU, CA, MA, TN, DZ, GB, US, AE…). Null si non déductible.',
+    '',
+    "Pour `work_modes` : déduis les modes de travail acceptés (remote, onsite, hybrid — plusieurs possibles, par exemple ['remote', 'hybrid']). Si rien n'est mentionné explicitement, retourne [].",
     '',
     "Pour `photo_url` : uniquement si un lien URL externe vers une photo est présent dans le CV (LinkedIn, GitHub…), sinon null. N'essaye pas d'extraire la photo du PDF lui-même.",
   ].join('\n')

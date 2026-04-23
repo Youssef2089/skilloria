@@ -30,7 +30,7 @@ export async function GET(
   const { data: profile, error: profErr } = await supabaseAdmin
     .from('profiles')
     .select(
-      'id, user_id, cv_parsing_status, cv_parsing_error, title, summary, seniority, years_experience, skills, certifications, languages, location, tjm_min, tjm_max, linkedin_url, branch_id, speciality_id',
+      'id, user_id, cv_parsing_status, cv_parsing_error, title, summary, seniority, years_experience, skills, certifications, languages, location, tjm_min, tjm_max, linkedin_url, branch_id, speciality_id, work_modes',
     )
     .eq('id', jobId)
     .maybeSingle()
@@ -62,6 +62,7 @@ export async function GET(
             linkedin_url: profile.linkedin_url,
             branch_id: profile.branch_id,
             speciality_id: profile.speciality_id,
+            work_modes: profile.work_modes ?? [],
           }
         : undefined,
   })

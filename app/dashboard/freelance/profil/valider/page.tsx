@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { useDomain } from '@/context/DomainContext'
@@ -212,7 +212,7 @@ export default function ValiderProfilPage() {
   const [skills, setSkills] = useState<string[]>([])
   const [skillDraft, setSkillDraft] = useState('')
   const [certifications, setCertifications] = useState<Certification[]>([])
-  const [workMode, setWorkMode] = useState<WorkMode | ''>('')
+  const [workModes, setWorkModes] = useState<WorkMode[]>([])
   const [location, setLocation] = useState('')
   const [tjmMin, setTjmMin] = useState('')
   const [tjmMax, setTjmMax] = useState('')
@@ -230,6 +230,15 @@ export default function ValiderProfilPage() {
 
   const [experiences, setExperiences] = useState<ExperienceItem[]>([])
   const [educations, setEducations] = useState<EducationItem[]>([])
+
+  const errorBannerRef = useRef<HTMLDivElement>(null)
+
+  const showError = (msg: string) => {
+    setErrorMsg(msg)
+    setTimeout(() => {
+      errorBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -262,7 +271,7 @@ export default function ValiderProfilPage() {
       const { data: profile, error: profErr } = await supabase
         .from('profiles')
         .select(
-          'id, title, summary, seniority, years_experience, skills, certifications, branch_id, speciality_id, languages, location, work_mode, tjm_min, tjm_max, availability_date, linkedin_url, cv_parsing_status, visible, phone, address_line, postal_code, city, country, birth_year, photo_url, years_total_experience, availability_status',
+          'id, title, summary, seniority, years_experience, skills, certifications, branch_id, speciality_id, languages, location, work_modes, tjm_min, tjm_max, availability_date, linkedin_url, cv_parsing_status, visible, phone, address_line, postal_code, city, country, birth_year, photo_url, years_total_experience, availability_status',
         )
         .eq('user_id', session.user.id)
         .single()
@@ -288,7 +297,9 @@ export default function ValiderProfilPage() {
           ? (profile.certifications as Certification[])
           : [],
       )
-      setWorkMode((profile.work_mode as WorkMode | null) ?? '')
+      setWorkModes(
+        Array.isArray(profile.work_modes) ? (profile.work_modes as WorkMode[]) : [],
+      )
       setLocation(profile.location ?? '')
       setTjmMin(profile.tjm_min != null ? String(profile.tjm_min) : '')
       setTjmMax(profile.tjm_max != null ? String(profile.tjm_max) : '')
@@ -470,6 +481,11 @@ export default function ValiderProfilPage() {
   const removeExperience = (i: number) =>
     setExperiences(experiences.filter((_, idx) => idx !== i))
 
+  const toggleWorkMode = (m: WorkMode) =>
+    setWorkModes(prev =>
+      prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m],
+    )
+
   const addEducation = () => setEducations([...educations, emptyEducation()])
   const updateEducation = (i: number, patch: Partial<EducationItem>) =>
     setEducations(educations.map((e, idx) => (idx === i ? { ...e, ...patch } : e)))
@@ -483,7 +499,7 @@ export default function ValiderProfilPage() {
     if (skills.length < 3) missing.push('skills')
     if (!branchId) missing.push('branch_id')
     if (!specialityId) missing.push('speciality_id')
-    if (!workMode) missing.push('work_mode')
+    if (workModes.length === 0) missing.push('work_modes')
     if (experiences.filter(e => e.role.trim()).length < 1) missing.push('experiences')
     if (languagesStructured.filter(l => l.language.trim()).length < 1)
       missing.push('languages_structured')
@@ -499,7 +515,7 @@ export default function ValiderProfilPage() {
       const missing = validateForPublish()
       if (missing.length) {
         setMissingFields(missing)
-        setErrorMsg(
+        showError(
           'Pour publier votre profil, complétez : titre, résumé (20+ caractères), 3 compétences min, branche, spécialité, mode de travail, au moins 1 expérience et 1 langue.',
         )
         return
@@ -561,7 +577,7 @@ export default function ValiderProfilPage() {
         : null,
       languages: cleanedLanguages.map(l => l.language),
       location: location.trim() || null,
-      work_mode: workMode || null,
+      work_modes: workModes,
       tjm_min: tjmMin.trim() === '' ? null : Number(tjmMin),
       tjm_max: tjmMax.trim() === '' ? null : Number(tjmMax),
       availability_date: availabilityDate || null,
@@ -597,9 +613,9 @@ export default function ValiderProfilPage() {
           Array.isArray(payload?.missing)
         ) {
           setMissingFields(payload.missing)
-          setErrorMsg('Profil incomplet, vérifiez les champs surlignés.')
+          showError('Profil incomplet, vérifiez les champs surlignés.')
         } else {
-          setErrorMsg(payload?.error || 'Erreur lors de la sauvegarde, réessayez.')
+          showError(payload?.error || 'Erreur lors de la sauvegarde, réessayez.')
         }
         setSaving(false)
         return
@@ -608,7 +624,7 @@ export default function ValiderProfilPage() {
       router.push('/dashboard/freelance')
     } catch (err) {
       console.error('[profil valider] patch error', err)
-      setErrorMsg('Erreur lors de la sauvegarde, réessayez.')
+      showError('Erreur lors de la sauvegarde, réessayez.')
       setSaving(false)
     }
   }
@@ -1024,6 +1040,7 @@ export default function ValiderProfilPage() {
 
             {errorMsg && (
               <div
+                ref={errorBannerRef}
                 style={{
                   background: '#fef2f2',
                   border: '1px solid #fecaca',
@@ -1033,6 +1050,7 @@ export default function ValiderProfilPage() {
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: 12,
+                  scrollMarginTop: 80,
                 }}
               >
                 <div
@@ -1385,10 +1403,15 @@ export default function ValiderProfilPage() {
               />
 
               <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Mode de travail</label>
+                <label style={labelStyle}>
+                  Modes de travail{' '}
+                  <span style={{ color: '#94a3b8', fontWeight: 400 }}>
+                    · plusieurs possibles
+                  </span>
+                </label>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   {(Object.keys(WORK_MODE_LABELS) as WorkMode[]).map(m => {
-                    const active = workMode === m
+                    const active = workModes.includes(m)
                     return (
                       <label
                         key={m}
@@ -1400,7 +1423,7 @@ export default function ValiderProfilPage() {
                           border: `1.5px solid ${
                             active
                               ? domain.primaryColor
-                              : isMissing('work_mode')
+                              : isMissing('work_modes')
                                 ? '#dc2626'
                                 : '#e2e8f0'
                           }`,
@@ -1414,10 +1437,9 @@ export default function ValiderProfilPage() {
                         }}
                       >
                         <input
-                          type="radio"
-                          name="work_mode"
+                          type="checkbox"
                           checked={active}
-                          onChange={() => setWorkMode(m)}
+                          onChange={() => toggleWorkMode(m)}
                           style={{ accentColor: domain.primaryColor }}
                         />
                         {WORK_MODE_LABELS[m]}

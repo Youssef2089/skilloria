@@ -97,7 +97,7 @@ Met à jour le profil. Tous les champs sont optionnels.
   "speciality_slug": "string|null",
   "languages": ["string"],
   "location": "string|null",
-  "work_mode": "remote|onsite|hybrid|null",
+  "work_modes": ["remote", "onsite", "hybrid"],
   "tjm_min": "number|null",
   "tjm_max": "number|null",
   "availability_date": "YYYY-MM-DD|null",
@@ -107,7 +107,7 @@ Met à jour le profil. Tous les champs sont optionnels.
 ```
 
 - `branch_slug` / `speciality_slug` sont résolus en `branch_id` / `speciality_id` scopés au `domain_id` du user.
-- Si `visible === true`, validation : `title`, `summary`, `skills (>=3)`, `branch_id`, `speciality_id`, `work_mode` doivent être renseignés, sinon `400 incomplete { missing: [...] }`.
+- Si `visible === true`, validation : `title`, `summary`, `skills (>=3)`, `branch_id`, `speciality_id`, `work_modes (>=1)` doivent être renseignés, sinon `400 incomplete { missing: [...] }`.
 - Si tout est OK avec `visible=true` : `users.status` passe à `in_review`.
 
 **Réponses**

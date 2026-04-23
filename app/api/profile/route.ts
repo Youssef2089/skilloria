@@ -49,7 +49,7 @@ type PatchBody = Partial<{
   speciality_slug: string | null
   languages: string[] | null
   location: string | null
-  work_mode: 'remote' | 'onsite' | 'hybrid' | null
+  work_modes: Array<'remote' | 'onsite' | 'hybrid'>
   tjm_min: number | null
   tjm_max: number | null
   availability_date: string | null
@@ -90,7 +90,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
   const { data: currentProfile, error: fetchErr } = await supabaseAdmin
     .from('profiles')
-    .select('id, title, summary, skills, branch_id, speciality_id, work_mode')
+    .select('id, title, summary, skills, branch_id, speciality_id, work_modes')
     .eq('user_id', user.id)
     .maybeSingle()
   if (fetchErr || !currentProfile) {
@@ -101,7 +101,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   const directFields: Array<keyof PatchBody> = [
     'title', 'summary', 'seniority', 'years_experience',
     'skills', 'certifications',
-    'languages', 'location', 'work_mode', 'tjm_min', 'tjm_max',
+    'languages', 'location', 'work_modes', 'tjm_min', 'tjm_max',
     'availability_date', 'linkedin_url', 'visible',
     'phone', 'address_line', 'postal_code', 'city', 'country',
     'birth_year', 'photo_url', 'years_total_experience', 'availability_status',
@@ -147,7 +147,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       skills: (patch.skills ?? currentProfile.skills) as string[] | null,
       branch_id: (patch.branch_id ?? currentProfile.branch_id) as string | null,
       speciality_id: (patch.speciality_id ?? currentProfile.speciality_id) as string | null,
-      work_mode: (patch.work_mode ?? currentProfile.work_mode) as string | null,
+      work_modes: (patch.work_modes ?? currentProfile.work_modes) as string[] | null,
     }
     const missing: string[] = []
     if (!merged.title) missing.push('title')
@@ -155,7 +155,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     if (!merged.skills || merged.skills.length < 3) missing.push('skills')
     if (!merged.branch_id) missing.push('branch_id')
     if (!merged.speciality_id) missing.push('speciality_id')
-    if (!merged.work_mode) missing.push('work_mode')
+    if (!Array.isArray(merged.work_modes) || merged.work_modes.length === 0)
+      missing.push('work_modes')
 
     // experiences >= 1 (body ou BDD)
     let experiencesCount: number
