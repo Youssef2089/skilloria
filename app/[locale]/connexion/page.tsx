@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
@@ -8,13 +9,14 @@ import { useDomain } from '@/context/DomainContext'
 export default function ConnexionPage() {
   const router = useRouter()
   const domain = useDomain()
+  const t = useTranslations('login')
   const [form, setForm] = useState({ email: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const handleSubmit = async () => {
     if (!form.email || !form.password) {
-      setError('Email et mot de passe sont obligatoires.')
+      setError(t('errors.missing_fields'))
       return
     }
 
@@ -27,7 +29,7 @@ export default function ConnexionPage() {
     })
 
     if (authError) {
-      setError('Email ou mot de passe incorrect.')
+      setError(t('errors.invalid_credentials'))
       setLoading(false)
       return
     }
@@ -40,7 +42,7 @@ export default function ConnexionPage() {
       .single()
 
     if (userError || !userData) {
-      setError('Impossible de récupérer votre profil.')
+      setError(t('errors.profile_not_found'))
       setLoading(false)
       return
     }
@@ -52,7 +54,7 @@ export default function ConnexionPage() {
       const userDomainSlug = (userData.domains as any)?.slug
       if (userDomainSlug && userDomainSlug !== domain.subdomain) {
         await supabase.auth.signOut()
-        setError(`Votre compte est associé à un autre espace Skilloria. Veuillez vous connecter sur ${userDomainSlug}.skilloria.io`)
+        setError(t('errors.wrong_domain', { subdomain: userDomainSlug }))
         setLoading(false)
         return
       }
@@ -102,20 +104,20 @@ export default function ConnexionPage() {
       }}>
 
         <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginBottom: 6 }}>
-          Connectez-vous
+          {t('title')}
         </h1>
         <p style={{ fontSize: 14, color: '#64748b', marginBottom: 28 }}>
-          Accédez à votre espace {domain.name}
+          {t('subtitle', { name: domain.name })}
         </p>
 
         {/* Email */}
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-            Email
+            {t('email_label')}
           </label>
           <input
             type="email"
-            placeholder="vous@email.com"
+            placeholder={t('email_placeholder')}
             value={form.email}
             onChange={e => setForm({ ...form, email: e.target.value })}
             style={{
@@ -129,11 +131,11 @@ export default function ConnexionPage() {
         {/* Mot de passe */}
         <div style={{ marginBottom: 8 }}>
           <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-            Mot de passe
+            {t('password_label')}
           </label>
           <input
             type="password"
-            placeholder="Votre mot de passe"
+            placeholder={t('password_placeholder')}
             value={form.password}
             onChange={e => setForm({ ...form, password: e.target.value })}
             style={{
@@ -150,7 +152,7 @@ export default function ConnexionPage() {
             onClick={() => router.push('/mot-de-passe-oublie')}
             style={{ fontSize: 12, color: domain.primaryColor, fontWeight: 600, cursor: 'pointer' }}
           >
-            Mot de passe oublié ?
+            {t('forgot_password')}
           </span>
         </div>
 
@@ -174,24 +176,24 @@ export default function ConnexionPage() {
             marginBottom: 20,
           }}
         >
-          {loading ? 'Connexion en cours...' : 'Se connecter →'}
+          {loading ? t('submitting') : t('submit')}
         </button>
 
         {/* Séparateur */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <div style={{ flex: 1, height: 1, background: '#e2e8f0' }}></div>
-          <span style={{ fontSize: 12, color: '#94a3b8' }}>ou</span>
+          <span style={{ fontSize: 12, color: '#94a3b8' }}>{t('separator_or')}</span>
           <div style={{ flex: 1, height: 1, background: '#e2e8f0' }}></div>
         </div>
 
         {/* Créer un compte */}
         <p style={{ textAlign: 'center', fontSize: 13, color: '#64748b' }}>
-          Pas encore de compte ?{' '}
+          {t('no_account')}{' '}
           <span
             onClick={() => router.push('/inscription')}
             style={{ color: domain.primaryColor, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}
           >
-            Créer mon compte →
+            {t('create_account')}
           </span>
         </p>
 

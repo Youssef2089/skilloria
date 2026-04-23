@@ -1,5 +1,25 @@
 {
   "app": {
     "name": "Skilloria"
+  },
+  "login": {
+    "title": "Iniciar sesión",
+    "subtitle": "Accede a tu espacio {name}",
+    "email_label": "Correo electrónico",
+    "email_placeholder": "tu@email.com",
+    "password_label": "Contraseña",
+    "password_placeholder": "Tu contraseña",
+    "forgot_password": "¿Olvidaste tu contraseña?",
+    "submit": "Iniciar sesión →",
+    "submitting": "Iniciando sesión...",
+    "separator_or": "o",
+    "no_account": "¿Aún no tienes cuenta?",
+    "create_account": "Crear mi cuenta →",
+    "errors": {
+      "missing_fields": "El correo y la contraseña son obligatorios.",
+      "invalid_credentials": "Correo o contraseña incorrectos.",
+      "profile_not_found": "No se ha podido cargar tu perfil.",
+      "wrong_domain": "Tu cuenta está asociada a otro espacio Skilloria. Por favor inicia sesión en {subdomain}.skilloria.io"
+    }
   }
 }

@@ -1,5 +1,25 @@
 {
   "app": {
     "name": "Skilloria"
+  },
+  "login": {
+    "title": "Anmelden",
+    "subtitle": "Zugang zu Ihrem {name}-Bereich",
+    "email_label": "E-Mail",
+    "email_placeholder": "name@email.de",
+    "password_label": "Passwort",
+    "password_placeholder": "Ihr Passwort",
+    "forgot_password": "Passwort vergessen?",
+    "submit": "Anmelden →",
+    "submitting": "Anmeldung läuft...",
+    "separator_or": "oder",
+    "no_account": "Noch kein Konto?",
+    "create_account": "Konto erstellen →",
+    "errors": {
+      "missing_fields": "E-Mail und Passwort sind erforderlich.",
+      "invalid_credentials": "E-Mail oder Passwort falsch.",
+      "profile_not_found": "Ihr Profil konnte nicht geladen werden.",
+      "wrong_domain": "Ihr Konto gehört zu einem anderen Skilloria-Bereich. Bitte melden Sie sich unter {subdomain}.skilloria.io an."
+    }
   }
 }

@@ -1,5 +1,25 @@
 {
   "app": {
     "name": "Skilloria"
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Access your {name} workspace",
+    "email_label": "Email",
+    "email_placeholder": "you@email.com",
+    "password_label": "Password",
+    "password_placeholder": "Your password",
+    "forgot_password": "Forgot your password?",
+    "submit": "Sign in →",
+    "submitting": "Signing in...",
+    "separator_or": "or",
+    "no_account": "Don't have an account yet?",
+    "create_account": "Create my account →",
+    "errors": {
+      "missing_fields": "Email and password are required.",
+      "invalid_credentials": "Incorrect email or password.",
+      "profile_not_found": "Unable to load your profile.",
+      "wrong_domain": "Your account belongs to another Skilloria workspace. Please sign in at {subdomain}.skilloria.io"
+    }
   }
 }
