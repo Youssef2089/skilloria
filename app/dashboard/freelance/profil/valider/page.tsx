@@ -1694,14 +1694,7 @@ export default function ValiderProfilPage() {
               <SectionHeader
                 n="7"
                 color={SECTION_COLORS.parcours}
-                title={
-                  <>
-                    Parcours professionnel{' '}
-                    <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: 13 }}>
-                      · {careerEntries.length}
-                    </span>
-                  </>
-                }
+                title="Parcours professionnel"
               />
 
               {careerEntries.length === 0 && (
@@ -1733,14 +1726,7 @@ export default function ValiderProfilPage() {
               <SectionHeader
                 n="8"
                 color={SECTION_COLORS.missions}
-                title={
-                  <>
-                    Missions / Projets{' '}
-                    <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: 13 }}>
-                      · {projectEntries.length}
-                    </span>
-                  </>
-                }
+                title="Missions / Projets"
               />
 
               {projectEntries.length === 0 && (
