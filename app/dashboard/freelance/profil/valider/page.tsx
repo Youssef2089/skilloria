@@ -96,6 +96,41 @@ const COUNTRIES: Array<{ code: string; label: string }> = [
   { code: 'AE', label: 'Émirats arabes unis' },
 ]
 
+const FIELD_ORDER = [
+  'title',
+  'summary',
+  'skills',
+  'branch_id',
+  'speciality_id',
+  'work_modes',
+  'experiences',
+  'languages_structured',
+] as const
+
+type FieldKey = (typeof FIELD_ORDER)[number]
+
+const FIELD_LABELS: Record<FieldKey, string> = {
+  title: 'le titre professionnel',
+  summary: 'le résumé (20 caractères minimum)',
+  skills: 'au moins 3 compétences',
+  branch_id: 'la branche principale',
+  speciality_id: 'la spécialité',
+  work_modes: 'au moins un mode de travail',
+  experiences: 'au moins une expérience professionnelle',
+  languages_structured: 'au moins une langue',
+}
+
+const FIELD_INLINE_ERRORS: Record<FieldKey, string> = {
+  title: 'Renseignez votre titre professionnel',
+  summary: 'Minimum 20 caractères pour publier',
+  skills: 'Ajoutez au moins 3 compétences',
+  branch_id: 'Sélectionnez une branche',
+  speciality_id: 'Sélectionnez une spécialité',
+  work_modes: 'Sélectionnez au moins un mode de travail',
+  experiences: 'Ajoutez au moins une expérience (parcours ou mission)',
+  languages_structured: 'Ajoutez au moins une langue',
+}
+
 function emptyExperience(type: ExperienceType): ExperienceItem {
   return {
     experience_type: type,
@@ -231,14 +266,62 @@ export default function ValiderProfilPage() {
   const [experiences, setExperiences] = useState<ExperienceItem[]>([])
   const [educations, setEducations] = useState<EducationItem[]>([])
 
-  const errorBannerRef = useRef<HTMLDivElement>(null)
-
-  const showError = (msg: string) => {
-    setErrorMsg(msg)
-    setTimeout(() => {
-      errorBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 50)
+  const fieldRefs = {
+    title: useRef<HTMLInputElement>(null),
+    summary: useRef<HTMLTextAreaElement>(null),
+    skills: useRef<HTMLDivElement>(null),
+    branch_id: useRef<HTMLSelectElement>(null),
+    speciality_id: useRef<HTMLSelectElement>(null),
+    work_modes: useRef<HTMLDivElement>(null),
+    experiences: useRef<HTMLDivElement>(null),
+    languages_structured: useRef<HTMLDivElement>(null),
   }
+
+  const [focusedField, setFocusedField] = useState<FieldKey | null>(null)
+
+  useEffect(() => {
+    if (!focusedField) return
+    const t = setTimeout(() => setFocusedField(null), 1500)
+    return () => clearTimeout(t)
+  }, [focusedField])
+
+  const showFieldError = (message: string, missing: string[]) => {
+    setErrorMsg(message)
+    setMissingFields(missing)
+
+    const firstMissing = FIELD_ORDER.find(f => missing.includes(f))
+    if (!firstMissing) return
+
+    setTimeout(() => {
+      const el = fieldRefs[firstMissing].current
+      if (!el) return
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setFocusedField(firstMissing)
+      if (typeof (el as HTMLElement).focus === 'function') {
+        setTimeout(() => (el as HTMLElement).focus({ preventScroll: true }), 400)
+      }
+    }, 100)
+  }
+
+  const FieldError = ({ field }: { field: FieldKey }) =>
+    isMissing(field) ? (
+      <div
+        style={{
+          fontSize: 12,
+          color: '#dc2626',
+          marginTop: 6,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          fontFamily: fontJakarta,
+        }}
+      >
+        <span aria-hidden>⚠️</span> {FIELD_INLINE_ERRORS[field]}
+      </div>
+    ) : null
+
+  const focusClass = (field: FieldKey) =>
+    focusedField === field ? 'sk-focus-highlight' : undefined
 
   useEffect(() => {
     let cancelled = false
@@ -514,9 +597,9 @@ export default function ValiderProfilPage() {
     if (visible) {
       const missing = validateForPublish()
       if (missing.length) {
-        setMissingFields(missing)
-        showError(
-          'Pour publier votre profil, complétez : titre, résumé (20+ caractères), 3 compétences min, branche, spécialité, mode de travail, au moins 1 expérience et 1 langue.',
+        showFieldError(
+          'Pour publier votre profil, complétez les champs surlignés ci-dessous.',
+          missing,
         )
         return
       }
@@ -612,10 +695,12 @@ export default function ValiderProfilPage() {
           payload?.code === 'incomplete' &&
           Array.isArray(payload?.missing)
         ) {
-          setMissingFields(payload.missing)
-          showError('Profil incomplet, vérifiez les champs surlignés.')
+          showFieldError(
+            'Profil incomplet, vérifiez les champs surlignés ci-dessous.',
+            payload.missing,
+          )
         } else {
-          showError(payload?.error || 'Erreur lors de la sauvegarde, réessayez.')
+          setErrorMsg(payload?.error || 'Erreur lors de la sauvegarde, réessayez.')
         }
         setSaving(false)
         return
@@ -624,7 +709,7 @@ export default function ValiderProfilPage() {
       router.push('/dashboard/freelance')
     } catch (err) {
       console.error('[profil valider] patch error', err)
-      showError('Erreur lors de la sauvegarde, réessayez.')
+      setErrorMsg('Erreur lors de la sauvegarde, réessayez.')
       setSaving(false)
     }
   }
@@ -900,6 +985,11 @@ export default function ValiderProfilPage() {
     >
       <style>{`
         @keyframes sk-spin { to { transform: rotate(360deg); } }
+        @keyframes sk-focus-ring {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+          50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.25); }
+        }
+        .sk-focus-highlight { animation: sk-focus-ring 0.7s ease-out 2; border-radius: 10px; }
         @media (max-width: 767px) {
           .profil-main { padding: 18px !important; }
           .profil-title { font-size: 26px !important; }
@@ -1040,8 +1130,12 @@ export default function ValiderProfilPage() {
 
             {errorMsg && (
               <div
-                ref={errorBannerRef}
+                role="alert"
+                aria-live="assertive"
                 style={{
+                  position: 'sticky',
+                  top: 16,
+                  zIndex: 50,
                   background: '#fef2f2',
                   border: '1px solid #fecaca',
                   borderRadius: 12,
@@ -1050,7 +1144,7 @@ export default function ValiderProfilPage() {
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: 12,
-                  scrollMarginTop: 80,
+                  boxShadow: '0 6px 24px rgba(220, 38, 38, 0.08)',
                 }}
               >
                 <div
@@ -1062,7 +1156,20 @@ export default function ValiderProfilPage() {
                     fontFamily: fontJakarta,
                   }}
                 >
-                  {errorMsg}
+                  {Array.isArray(missingFields) && missingFields.length > 0 ? (
+                    <>
+                      Pour publier votre profil, complétez {missingFields.length} champ
+                      {missingFields.length > 1 ? 's' : ''} surligné
+                      {missingFields.length > 1 ? 's' : ''} ci-dessous :{' '}
+                      {missingFields
+                        .filter((f): f is FieldKey => f in FIELD_LABELS)
+                        .map(f => FIELD_LABELS[f])
+                        .join(', ')}
+                      .
+                    </>
+                  ) : (
+                    errorMsg
+                  )}
                 </div>
                 <button
                   type="button"
@@ -1154,6 +1261,8 @@ export default function ValiderProfilPage() {
               <div style={{ marginBottom: 14 }}>
                 <label style={labelStyle}>Titre professionnel</label>
                 <input
+                  ref={fieldRefs.title}
+                  className={focusClass('title')}
                   type="text"
                   maxLength={200}
                   value={title}
@@ -1161,11 +1270,14 @@ export default function ValiderProfilPage() {
                   placeholder="Ex: Consultant Dynamics 365 F&O Senior"
                   style={inputStyle('title')}
                 />
+                <FieldError field="title" />
               </div>
 
               <div style={{ marginBottom: 14 }}>
                 <label style={labelStyle}>Résumé</label>
                 <textarea
+                  ref={fieldRefs.summary}
+                  className={focusClass('summary')}
                   rows={4}
                   maxLength={500}
                   value={summary}
@@ -1183,6 +1295,7 @@ export default function ValiderProfilPage() {
                 >
                   {summary.trim().length}/500 · minimum 20 caractères pour publier
                 </div>
+                <FieldError field="summary" />
               </div>
 
               <div
@@ -1229,6 +1342,8 @@ export default function ValiderProfilPage() {
               <div style={{ marginBottom: 14 }}>
                 <label style={labelStyle}>Branche principale</label>
                 <select
+                  ref={fieldRefs.branch_id}
+                  className={focusClass('branch_id')}
                   value={branchId}
                   onChange={e => onBranchChange(e.target.value)}
                   style={inputStyle('branch_id')}
@@ -1240,11 +1355,14 @@ export default function ValiderProfilPage() {
                     </option>
                   ))}
                 </select>
+                <FieldError field="branch_id" />
               </div>
 
               <div style={{ marginBottom: 14 }}>
                 <label style={labelStyle}>Spécialité</label>
                 <select
+                  ref={fieldRefs.speciality_id}
+                  className={focusClass('speciality_id')}
                   value={specialityId}
                   onChange={e => setSpecialityId(e.target.value)}
                   disabled={!branchId}
@@ -1257,9 +1375,14 @@ export default function ValiderProfilPage() {
                     </option>
                   ))}
                 </select>
+                <FieldError field="speciality_id" />
               </div>
 
-              <div>
+              <div
+                ref={fieldRefs.skills}
+                className={focusClass('skills')}
+                style={{ padding: 2 }}
+              >
                 <label style={labelStyle}>
                   Compétences{' '}
                   <span style={{ color: '#94a3b8', fontWeight: 400 }}>
@@ -1307,6 +1430,7 @@ export default function ValiderProfilPage() {
                     </span>
                   ))}
                 </div>
+                <FieldError field="skills" />
               </div>
             </div>
 
@@ -1402,7 +1526,11 @@ export default function ValiderProfilPage() {
                 title="Disponibilité"
               />
 
-              <div style={{ marginBottom: 14 }}>
+              <div
+                ref={fieldRefs.work_modes}
+                className={focusClass('work_modes')}
+                style={{ marginBottom: 14 }}
+              >
                 <label style={labelStyle}>
                   Modes de travail{' '}
                   <span style={{ color: '#94a3b8', fontWeight: 400 }}>
@@ -1447,6 +1575,7 @@ export default function ValiderProfilPage() {
                     )
                   })}
                 </div>
+                <FieldError field="work_modes" />
               </div>
 
               <div style={{ marginBottom: 14 }}>
@@ -1503,7 +1632,11 @@ export default function ValiderProfilPage() {
               </div>
 
               {/* Langues CEFR */}
-              <div>
+              <div
+                ref={fieldRefs.languages_structured}
+                className={focusClass('languages_structured')}
+                style={{ padding: 2 }}
+              >
                 <label style={labelStyle}>
                   Langues{' '}
                   <span style={{ color: '#94a3b8', fontWeight: 400 }}>
@@ -1595,6 +1728,7 @@ export default function ValiderProfilPage() {
                 <button type="button" onClick={addLanguage} style={addBtnStyle}>
                   + Ajouter une langue
                 </button>
+                <FieldError field="languages_structured" />
               </div>
             </div>
 
@@ -1712,12 +1846,17 @@ export default function ValiderProfilPage() {
             </div>
 
             {/* Section 7 — Parcours professionnel (carrière) */}
-            <div style={sectionStyle}>
+            <div
+              ref={fieldRefs.experiences}
+              className={focusClass('experiences')}
+              style={sectionStyle}
+            >
               <SectionHeader
                 n="7"
                 color={SECTION_COLORS.parcours}
                 title="Parcours professionnel"
               />
+              <FieldError field="experiences" />
 
               {careerEntries.length === 0 && (
                 <div
