@@ -55,5 +55,56 @@
     "back_to_home": "Volver al inicio",
     "already_confirmed": "¿Ya confirmado?",
     "sign_in": "Iniciar sesión"
+  },
+  "signup_form": {
+    "roles": {
+      "entreprise": {
+        "form_title": "Crear una cuenta de empresa",
+        "company_label": "Razón social",
+        "company_placeholder": "Nombre de tu empresa",
+        "email_label": "Correo profesional",
+        "email_placeholder": "tu@empresa.com"
+      },
+      "expert": {
+        "form_title": "Crear un perfil de experto",
+        "email_label": "Correo electrónico",
+        "email_placeholder": "tu@email.com",
+        "specialty_label": "Especialidad principal en {ecosystem}",
+        "specialty_placeholder": "Ej: Dynamics 365, Azure, Power BI..."
+      },
+      "cdi": {
+        "form_title": "Crear un perfil de empleo fijo",
+        "email_label": "Correo electrónico",
+        "email_placeholder": "tu@email.com",
+        "specialty_label": "Área de {ecosystem} que buscas",
+        "specialty_placeholder": "Ej: Dynamics 365, Azure..."
+      },
+      "cabinet": {
+        "form_title": "Crear una cuenta de consultora",
+        "company_label": "Nombre de la consultora",
+        "company_placeholder": "Nombre de tu estructura",
+        "email_label": "Correo profesional",
+        "email_placeholder": "tu@consultora.com"
+      }
+    },
+    "fields": {
+      "firstname_label": "Nombre",
+      "firstname_placeholder": "Tu nombre",
+      "lastname_label": "Apellido",
+      "lastname_placeholder": "Tu apellido",
+      "password_label": "Contraseña",
+      "password_placeholder": "Mínimo 8 caracteres"
+    },
+    "change_profile": "← Cambiar de perfil",
+    "cgu": "Acepto las <terms>condiciones de uso</terms> y la <privacy>política de privacidad</privacy>",
+    "submit": "Crear mi cuenta →",
+    "submitting": "Creando cuenta...",
+    "already_account": "¿Ya tienes cuenta?",
+    "sign_in": "Iniciar sesión",
+    "errors": {
+      "cgu_required": "Por favor acepta las condiciones de uso.",
+      "missing_fields": "El correo y la contraseña son obligatorios.",
+      "password_too_short": "La contraseña debe tener al menos 8 caracteres."
+    }
   }
 }

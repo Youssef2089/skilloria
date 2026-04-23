@@ -2,94 +2,109 @@
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
+
+type RoleKey = 'entreprise' | 'expert' | 'cdi' | 'cabinet'
+
+type FieldDef = {
+  id: string
+  label: string
+  type: string
+  placeholder: string
+}
 
 export default function InscriptionRolePage() {
   const router = useRouter()
   const params = useParams()
   const domain = useDomain()
+  const t = useTranslations('signup_form')
   const role = params.role as string
 
-  const config: Record<string, {
-    title: string
-    icon: string
-    color: string
-    fields: { id: string; label: string; type: string; placeholder: string }[]
-  }> = {
-    entreprise: {
-      title: 'Créer un compte Entreprise',
-      icon: '🏢',
-      color: '#dbeafe',
-      fields: [
-        { id: 'company', label: 'Raison sociale', type: 'text', placeholder: 'Nom de votre entreprise' },
-        { id: 'firstname', label: 'Prénom', type: 'text', placeholder: 'Votre prénom' },
-        { id: 'lastname', label: 'Nom', type: 'text', placeholder: 'Votre nom' },
-        { id: 'email', label: 'Email professionnel', type: 'email', placeholder: 'vous@entreprise.com' },
-        { id: 'password', label: 'Mot de passe', type: 'password', placeholder: 'Minimum 8 caractères' },
-      ],
-    },
-    expert: {
-      title: 'Créer un profil Expert',
-      icon: '💼',
-      color: '#ede9fe',
-      fields: [
-        { id: 'firstname', label: 'Prénom', type: 'text', placeholder: 'Votre prénom' },
-        { id: 'lastname', label: 'Nom', type: 'text', placeholder: 'Votre nom' },
-        { id: 'email', label: 'Email', type: 'email', placeholder: 'vous@email.com' },
-        { id: 'specialty', label: domain.ecosystemTerms.specialityLabel, type: 'text', placeholder: 'Ex: Dynamics 365, Azure, Power BI...' },
-        { id: 'password', label: 'Mot de passe', type: 'password', placeholder: 'Minimum 8 caractères' },
-      ],
-    },
-    cdi: {
-      title: 'Créer un profil CDI',
-      icon: '🎓',
-      color: '#dcfce7',
-      fields: [
-        { id: 'firstname', label: 'Prénom', type: 'text', placeholder: 'Votre prénom' },
-        { id: 'lastname', label: 'Nom', type: 'text', placeholder: 'Votre nom' },
-        { id: 'email', label: 'Email', type: 'email', placeholder: 'vous@email.com' },
-        { id: 'specialty', label: domain.ecosystemTerms.domainSearchLabel, type: 'text', placeholder: 'Ex: Dynamics 365, Azure...' },
-        { id: 'password', label: 'Mot de passe', type: 'password', placeholder: 'Minimum 8 caractères' },
-      ],
-    },
-    cabinet: {
-      title: 'Créer un compte Cabinet / ESN',
-      icon: '🤝',
-      color: '#fef9c3',
-      fields: [
-        { id: 'company', label: 'Nom du cabinet / ESN', type: 'text', placeholder: 'Nom de votre structure' },
-        { id: 'firstname', label: 'Prénom', type: 'text', placeholder: 'Votre prénom' },
-        { id: 'lastname', label: 'Nom', type: 'text', placeholder: 'Votre nom' },
-        { id: 'email', label: 'Email professionnel', type: 'email', placeholder: 'vous@cabinet.com' },
-        { id: 'password', label: 'Mot de passe', type: 'password', placeholder: 'Minimum 8 caractères' },
-      ],
-    },
-  }
+  const isKnownRole = (r: string): r is RoleKey =>
+    r === 'entreprise' || r === 'expert' || r === 'cdi' || r === 'cabinet'
 
-  const cfg = config[role]
   const [form, setForm] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [cgu, setCgu] = useState(false)
 
-  if (!cfg) {
+  if (!isKnownRole(role)) {
     router.push('/inscription')
     return null
   }
 
+  const config: Record<RoleKey, {
+    title: string
+    icon: string
+    color: string
+    fields: FieldDef[]
+  }> = {
+    entreprise: {
+      title: t('roles.entreprise.form_title'),
+      icon: '🏢',
+      color: '#dbeafe',
+      fields: [
+        { id: 'company', label: t('roles.entreprise.company_label'), type: 'text', placeholder: t('roles.entreprise.company_placeholder') },
+        { id: 'firstname', label: t('fields.firstname_label'), type: 'text', placeholder: t('fields.firstname_placeholder') },
+        { id: 'lastname', label: t('fields.lastname_label'), type: 'text', placeholder: t('fields.lastname_placeholder') },
+        { id: 'email', label: t('roles.entreprise.email_label'), type: 'email', placeholder: t('roles.entreprise.email_placeholder') },
+        { id: 'password', label: t('fields.password_label'), type: 'password', placeholder: t('fields.password_placeholder') },
+      ],
+    },
+    expert: {
+      title: t('roles.expert.form_title'),
+      icon: '💼',
+      color: '#ede9fe',
+      fields: [
+        { id: 'firstname', label: t('fields.firstname_label'), type: 'text', placeholder: t('fields.firstname_placeholder') },
+        { id: 'lastname', label: t('fields.lastname_label'), type: 'text', placeholder: t('fields.lastname_placeholder') },
+        { id: 'email', label: t('roles.expert.email_label'), type: 'email', placeholder: t('roles.expert.email_placeholder') },
+        { id: 'specialty', label: t('roles.expert.specialty_label', { ecosystem: domain.ecosystemName }), type: 'text', placeholder: t('roles.expert.specialty_placeholder') },
+        { id: 'password', label: t('fields.password_label'), type: 'password', placeholder: t('fields.password_placeholder') },
+      ],
+    },
+    cdi: {
+      title: t('roles.cdi.form_title'),
+      icon: '🎓',
+      color: '#dcfce7',
+      fields: [
+        { id: 'firstname', label: t('fields.firstname_label'), type: 'text', placeholder: t('fields.firstname_placeholder') },
+        { id: 'lastname', label: t('fields.lastname_label'), type: 'text', placeholder: t('fields.lastname_placeholder') },
+        { id: 'email', label: t('roles.cdi.email_label'), type: 'email', placeholder: t('roles.cdi.email_placeholder') },
+        { id: 'specialty', label: t('roles.cdi.specialty_label', { ecosystem: domain.ecosystemName }), type: 'text', placeholder: t('roles.cdi.specialty_placeholder') },
+        { id: 'password', label: t('fields.password_label'), type: 'password', placeholder: t('fields.password_placeholder') },
+      ],
+    },
+    cabinet: {
+      title: t('roles.cabinet.form_title'),
+      icon: '🤝',
+      color: '#fef9c3',
+      fields: [
+        { id: 'company', label: t('roles.cabinet.company_label'), type: 'text', placeholder: t('roles.cabinet.company_placeholder') },
+        { id: 'firstname', label: t('fields.firstname_label'), type: 'text', placeholder: t('fields.firstname_placeholder') },
+        { id: 'lastname', label: t('fields.lastname_label'), type: 'text', placeholder: t('fields.lastname_placeholder') },
+        { id: 'email', label: t('roles.cabinet.email_label'), type: 'email', placeholder: t('roles.cabinet.email_placeholder') },
+        { id: 'password', label: t('fields.password_label'), type: 'password', placeholder: t('fields.password_placeholder') },
+      ],
+    },
+  }
+
+  const cfg = config[role]
+
   const handleSubmit = async () => {
     if (!cgu) {
-      setError('Veuillez accepter les conditions d\'utilisation.')
+      setError(t('errors.cgu_required'))
       return
     }
     if (!form.email || !form.password) {
-      setError('Email et mot de passe sont obligatoires.')
+      setError(t('errors.missing_fields'))
       return
     }
     if (form.password.length < 8) {
-      setError('Le mot de passe doit contenir au moins 8 caractères.')
+      setError(t('errors.password_too_short'))
       return
     }
 
@@ -156,7 +171,7 @@ export default function InscriptionRolePage() {
             <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>{cfg.title}</div>
             <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
               <span onClick={() => router.push('/inscription')} style={{ color: domain.primaryColor, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                ← Changer de profil
+                {t('change_profile')}
               </span>
             </div>
           </div>
@@ -194,7 +209,10 @@ export default function InscriptionRolePage() {
             style={{ marginTop: 2, flexShrink: 0 }}
           />
           <label htmlFor="cgu" style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
-            J'accepte les <span style={{ color: domain.primaryColor, cursor: 'pointer' }}>conditions d'utilisation</span> et la <span style={{ color: domain.primaryColor, cursor: 'pointer' }}>politique de confidentialité</span>
+            {t.rich('cgu', {
+              terms: (chunks) => <span style={{ color: domain.primaryColor, cursor: 'pointer' }}>{chunks}</span>,
+              privacy: (chunks) => <span style={{ color: domain.primaryColor, cursor: 'pointer' }}>{chunks}</span>,
+            })}
           </label>
         </div>
 
@@ -217,14 +235,14 @@ export default function InscriptionRolePage() {
             fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
           }}
         >
-          {loading ? 'Création en cours...' : 'Créer mon compte →'}
+          {loading ? t('submitting') : t('submit')}
         </button>
 
         {/* Déjà un compte */}
         <p style={{ textAlign: 'center', fontSize: 13, color: '#64748b', marginTop: 20 }}>
-          Déjà un compte ?{' '}
+          {t('already_account')}{' '}
           <span onClick={() => router.push('/connexion')} style={{ color: domain.primaryColor, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-            Se connecter
+            {t('sign_in')}
           </span>
         </p>
 

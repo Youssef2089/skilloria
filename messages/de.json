@@ -55,5 +55,56 @@
     "back_to_home": "Zurück zur Startseite",
     "already_confirmed": "Bereits bestätigt?",
     "sign_in": "Anmelden"
+  },
+  "signup_form": {
+    "roles": {
+      "entreprise": {
+        "form_title": "Unternehmenskonto erstellen",
+        "company_label": "Firmenname",
+        "company_placeholder": "Name Ihres Unternehmens",
+        "email_label": "Geschäftliche E-Mail",
+        "email_placeholder": "name@unternehmen.de"
+      },
+      "expert": {
+        "form_title": "Experten-Profil erstellen",
+        "email_label": "E-Mail",
+        "email_placeholder": "name@email.de",
+        "specialty_label": "Hauptspezialisierung in {ecosystem}",
+        "specialty_placeholder": "z.B. Dynamics 365, Azure, Power BI..."
+      },
+      "cdi": {
+        "form_title": "Festanstellungs-Profil erstellen",
+        "email_label": "E-Mail",
+        "email_placeholder": "name@email.de",
+        "specialty_label": "Gesuchter {ecosystem}-Bereich",
+        "specialty_placeholder": "z.B. Dynamics 365, Azure..."
+      },
+      "cabinet": {
+        "form_title": "Beratungs-Konto erstellen",
+        "company_label": "Firmenname",
+        "company_placeholder": "Name Ihrer Firma",
+        "email_label": "Geschäftliche E-Mail",
+        "email_placeholder": "name@firma.de"
+      }
+    },
+    "fields": {
+      "firstname_label": "Vorname",
+      "firstname_placeholder": "Ihr Vorname",
+      "lastname_label": "Nachname",
+      "lastname_placeholder": "Ihr Nachname",
+      "password_label": "Passwort",
+      "password_placeholder": "Mindestens 8 Zeichen"
+    },
+    "change_profile": "← Profil ändern",
+    "cgu": "Ich akzeptiere die <terms>Nutzungsbedingungen</terms> und die <privacy>Datenschutzerklärung</privacy>",
+    "submit": "Konto erstellen →",
+    "submitting": "Konto wird erstellt...",
+    "already_account": "Haben Sie bereits ein Konto?",
+    "sign_in": "Anmelden",
+    "errors": {
+      "cgu_required": "Bitte akzeptieren Sie die Nutzungsbedingungen.",
+      "missing_fields": "E-Mail und Passwort sind erforderlich.",
+      "password_too_short": "Das Passwort muss mindestens 8 Zeichen lang sein."
+    }
   }
 }
