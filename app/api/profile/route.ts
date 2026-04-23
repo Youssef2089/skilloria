@@ -12,15 +12,15 @@ function json(data: unknown, status = 200): Response {
 }
 
 type ExperienceInput = {
+  experience_type: 'career' | 'project'
   role: string
+  employer?: string | null
   client_name?: string | null
   sector?: string | null
   start_date: string
   end_date?: string | null
   is_current?: boolean
   description?: string | null
-  tasks?: string[]
-  skills_used?: string[]
 }
 
 type EducationInput = {
@@ -234,15 +234,15 @@ export async function PATCH(request: NextRequest): Promise<Response> {
           profile_id: currentProfile.id,
           domain_id: user.domain_id,
           sort_order: i,
+          experience_type: e.experience_type,
           role: e.role.trim(),
+          employer: e.employer?.toString().trim() || null,
           client_name: e.client_name?.toString().trim() || null,
           sector: e.sector?.toString().trim() || null,
           start_date: e.start_date,
           end_date: e.is_current ? null : e.end_date ?? null,
           is_current: !!e.is_current,
           description: e.description?.toString().trim() || null,
-          tasks: Array.isArray(e.tasks) ? e.tasks : [],
-          skills_used: Array.isArray(e.skills_used) ? e.skills_used : [],
         }))
       if (rows.length > 0) {
         const { error: insErr } = await supabaseAdmin

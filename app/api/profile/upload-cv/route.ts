@@ -302,15 +302,15 @@ export async function POST(request: NextRequest): Promise<Response> {
         profile_id: profile.id,
         domain_id: user.domain_id,
         sort_order: i,
+        experience_type: e.experience_type,
         role: e.role,
+        employer: e.employer,
         client_name: e.client_name,
         sector: e.sector,
         start_date: e.start_date,
         end_date: e.is_current ? null : e.end_date,
         is_current: e.is_current,
         description: e.description,
-        tasks: e.tasks ?? [],
-        skills_used: e.skills_used ?? [],
       }))
       const { error: insErr } = await supabaseAdmin
         .from('profile_experiences')

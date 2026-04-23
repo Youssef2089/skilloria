@@ -7,15 +7,15 @@ export type DomainContext = {
 }
 
 export type ParsedExperience = {
+  experience_type: 'career' | 'project'
   role: string
+  employer: string | null
   client_name: string | null
   sector: string | null
   start_date: string
   end_date: string | null
   is_current: boolean
   description: string | null
-  tasks: string[]
-  skills_used: string[]
 }
 
 export type ParsedEducation = {
@@ -132,26 +132,39 @@ function buildTool(ctx: DomainContext) {
             type: 'object',
             additionalProperties: false,
             properties: {
+              experience_type: {
+                type: 'string',
+                enum: ['career', 'project'],
+                description:
+                  "'career' pour une entrée d'historique d'emploi (par employeur). 'project' pour une mission / projet concret par client.",
+              },
               role: { type: 'string' },
-              client_name: { type: ['string', 'null'] },
-              sector: { type: ['string', 'null'] },
+              employer: {
+                type: ['string', 'null'],
+                description: "Nom de l'employeur pour une entrée 'career' (ex: 'Prodware'). null pour 'project'.",
+              },
+              client_name: {
+                type: ['string', 'null'],
+                description: "Nom du client pour une entrée 'project' (ou 'Confidentiel'). null pour 'career'.",
+              },
+              sector: {
+                type: ['string', 'null'],
+                description: "Secteur d'activité du client pour 'project'. null pour 'career'.",
+              },
               start_date: {
                 type: 'string',
                 description: 'Format YYYY-MM-DD (1er du mois si jour inconnu).',
               },
               end_date: {
                 type: ['string', 'null'],
-                description: 'Format YYYY-MM-DD, ou null si poste actuel.',
+                description: 'Format YYYY-MM-DD, ou null si en cours.',
               },
               is_current: { type: 'boolean' },
               description: { type: ['string', 'null'] },
-              tasks: { type: 'array', items: { type: 'string' } },
-              skills_used: { type: 'array', items: { type: 'string' } },
             },
             required: [
-              'role', 'client_name', 'sector',
-              'start_date', 'end_date', 'is_current',
-              'description', 'tasks', 'skills_used',
+              'experience_type', 'role', 'employer', 'client_name', 'sector',
+              'start_date', 'end_date', 'is_current', 'description',
             ],
           },
         },
@@ -211,7 +224,25 @@ function buildSystemPrompt(ctx: DomainContext): string {
     `La spécialité doit être l'un des slugs suivants (sinon null) : ${ctx.specialities.join(', ')}.`,
     'Pour les champs inconnus, renvoie null (ou [] pour les listes).',
     '',
-    "Extrais TOUTES les expériences professionnelles avec dates précises au format YYYY-MM-DD (utilise le 1er du mois si le jour est inconnu), client (anonymisé en \"Confidentiel\" si non mentionné), secteur d'activité, rôle exact, description du poste, et liste des tâches/responsabilités (bullet points). `skills_used` liste les technologies/compétences mentionnées pour ce poste spécifique. Si le poste est en cours, `is_current=true` et `end_date=null`.",
+    'Extrais TOUTES les expériences professionnelles du CV en deux catégories :',
+    '',
+    "1. CARRIÈRE (experience_type='career') : l'historique d'emploi par employeur. Cherche dans la section 'Career', 'Carrière', 'Experience' synthétique. Pour chaque ligne d'employeur, crée une entrée avec :",
+    "- role : intitulé du poste (ex: 'Lead supply chain Microsoft Dynamics 365 SCM')",
+    "- employer : nom de l'employeur (ex: 'Prodware', 'SilverProd')",
+    '- client_name : null',
+    '- sector : null',
+    '- dates précises au format YYYY-MM-DD (1er du mois si jour inconnu), end_date null si actuel',
+    '- description : phrase ou paragraphe de synthèse sur le rôle chez cet employeur',
+    '',
+    "2. PROJETS / MISSIONS (experience_type='project') : les missions concrètes par client. Cherche dans 'Main Projects', 'Projects', 'Missions'. Pour chaque mission, crée une entrée avec :",
+    "- role : rôle exact sur la mission (ex: 'Solution Architect')",
+    '- employer : null',
+    "- client_name : nom du client si mentionné, sinon 'Confidentiel'",
+    "- sector : secteur d'activité du client (ex: 'Agri-food', 'Automotive')",
+    '- dates précises au format YYYY-MM-DD',
+    "- description : PARAGRAPHE RICHE ET DÉTAILLÉ qui regroupe TOUT le contenu de la mission : périmètre fonctionnel (Area:), responsabilités, tâches réalisées, livrables, technologies utilisées, contexte du projet. Synthétise en 3-8 phrases lisibles, en français, en évitant les listes à puces. Le texte doit être suffisamment riche pour que le matching IA puisse comprendre la nature exacte de la mission.",
+    '',
+    'Règle commune : `is_current=true` si et seulement si `end_date` est null.',
     '',
     'Extrais TOUTES les formations : école, diplôme, domaine/spécialité, année de début, année de fin, lieu.',
     '',
