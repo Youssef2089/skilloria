@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, type RefObject } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
 

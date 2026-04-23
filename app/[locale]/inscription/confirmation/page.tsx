@@ -1,6 +1,6 @@
  'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/navigation'
 
 export default function ConfirmationPage() {
   const router = useRouter()

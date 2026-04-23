@@ -1,6 +1,7 @@
 'use client'
 
 import { useDomain } from '@/context/DomainContext'
+import { useRouter } from '@/i18n/navigation'
 import Topbar from '@/components/layout/Topbar'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
@@ -28,6 +29,7 @@ export default function Home() {
 
 function HeroSection() {
   const domain = useDomain()
+  const router = useRouter()
 
   return (
     <section style={{ background: '#fff', padding: '72px 48px 64px', borderBottom: '1px solid #f1f5f9' }}>
@@ -86,7 +88,7 @@ function HeroSection() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
             <button
-              onClick={() => window.location.href = '/inscription?role=entreprise'}
+              onClick={() => router.push({ pathname: '/inscription', query: { role: 'entreprise' } })}
               style={{
                 background: domain.primaryColor,
                 color: '#fff', border: 'none',
@@ -103,7 +105,7 @@ function HeroSection() {
               <span>→</span>
             </button>
             <button
-              onClick={() => window.location.href = '/inscription?role=freelance'}
+              onClick={() => router.push({ pathname: '/inscription', query: { role: 'freelance' } })}
               style={{
                 background: '#fff',
                 color: domain.primaryColor,
@@ -153,6 +155,7 @@ function HeroSection() {
 
 function CardsSection() {
   const domain = useDomain()
+  const router = useRouter()
 
   return (
     <div style={{
@@ -212,7 +215,7 @@ function CardsSection() {
 
       <div style={{ textAlign: 'center' }}>
         <button
-          onClick={() => window.location.href = '/inscription'}
+          onClick={() => router.push('/inscription')}
           style={{
             background: domain.primaryColor,
             color: '#fff', border: 'none',
