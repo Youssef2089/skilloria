@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 
 type Seniority = 'junior' | 'confirmed' | 'senior' | 'expert'
 type WorkMode = 'remote' | 'onsite' | 'hybrid'
+type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'native'
 
 type Certification = {
   name: string
@@ -16,6 +17,33 @@ type Certification = {
 
 type Branch = { id: string; name: string; slug: string }
 type Speciality = { id: string; name: string; slug: string; branch_id: string }
+
+type ExperienceItem = {
+  role: string
+  client_name: string
+  sector: string
+  start_date: string
+  end_date: string
+  is_current: boolean
+  description: string
+  tasks: string[]
+  skills_used: string[]
+}
+
+type EducationItem = {
+  school: string
+  degree: string
+  field: string
+  start_year: string
+  end_year: string
+  location: string
+}
+
+type LanguageItem = {
+  language: string
+  level: CefrLevel
+  is_primary: boolean
+}
 
 const SENIORITY_LABELS: Record<Seniority, string> = {
   junior: 'Junior',
@@ -28,6 +56,61 @@ const WORK_MODE_LABELS: Record<WorkMode, string> = {
   remote: 'Distanciel',
   onsite: 'Sur site',
   hybrid: 'Hybride',
+}
+
+const CEFR_LEVELS: CefrLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'native']
+
+const CEFR_LABELS: Record<CefrLevel, string> = {
+  A1: 'A1 — Débutant',
+  A2: 'A2 — Élémentaire',
+  B1: 'B1 — Intermédiaire',
+  B2: 'B2 — Indépendant',
+  C1: 'C1 — Autonome',
+  C2: 'C2 — Maîtrise',
+  native: 'Langue maternelle',
+}
+
+const COUNTRIES: Array<{ code: string; label: string }> = [
+  { code: 'FR', label: 'France' },
+  { code: 'BE', label: 'Belgique' },
+  { code: 'CH', label: 'Suisse' },
+  { code: 'LU', label: 'Luxembourg' },
+  { code: 'CA', label: 'Canada' },
+  { code: 'MA', label: 'Maroc' },
+  { code: 'TN', label: 'Tunisie' },
+  { code: 'DZ', label: 'Algérie' },
+  { code: 'GB', label: 'Royaume-Uni' },
+  { code: 'US', label: 'États-Unis' },
+  { code: 'AE', label: 'Émirats arabes unis' },
+]
+
+function emptyExperience(): ExperienceItem {
+  return {
+    role: '',
+    client_name: '',
+    sector: '',
+    start_date: '',
+    end_date: '',
+    is_current: false,
+    description: '',
+    tasks: [],
+    skills_used: [],
+  }
+}
+
+function emptyEducation(): EducationItem {
+  return {
+    school: '',
+    degree: '',
+    field: '',
+    start_year: '',
+    end_year: '',
+    location: '',
+  }
+}
+
+function emptyLanguage(): LanguageItem {
+  return { language: '', level: 'B2', is_primary: false }
 }
 
 export default function ValiderProfilPage() {
@@ -58,9 +141,25 @@ export default function ValiderProfilPage() {
   const [tjmMin, setTjmMin] = useState('')
   const [tjmMax, setTjmMax] = useState('')
   const [availabilityDate, setAvailabilityDate] = useState('')
-  const [languages, setLanguages] = useState<string[]>([])
-  const [langDraft, setLangDraft] = useState('')
   const [linkedinUrl, setLinkedinUrl] = useState('')
+
+  // Section 4 — langues structurées (remplace tags simples)
+  const [languagesStructured, setLanguagesStructured] = useState<LanguageItem[]>([])
+
+  // Section 6 — Coordonnées
+  const [phone, setPhone] = useState('')
+  const [birthYear, setBirthYear] = useState('')
+  const [addressLine, setAddressLine] = useState('')
+  const [postalCode, setPostalCode] = useState('')
+  const [city, setCity] = useState('')
+  const [country, setCountry] = useState('FR')
+
+  // Section 7 — Expériences
+  const [experiences, setExperiences] = useState<ExperienceItem[]>([])
+  const [expDrafts, setExpDrafts] = useState<Array<{ task: string; skill: string }>>([])
+
+  // Section 8 — Formations
+  const [educations, setEducations] = useState<EducationItem[]>([])
 
   useEffect(() => {
     let cancelled = false
@@ -93,7 +192,7 @@ export default function ValiderProfilPage() {
       const { data: profile, error: profErr } = await supabase
         .from('profiles')
         .select(
-          'id, title, summary, seniority, years_experience, skills, certifications, branch_id, speciality_id, languages, location, work_mode, tjm_min, tjm_max, availability_date, linkedin_url, cv_parsing_status, visible',
+          'id, title, summary, seniority, years_experience, skills, certifications, branch_id, speciality_id, languages, location, work_mode, tjm_min, tjm_max, availability_date, linkedin_url, cv_parsing_status, visible, phone, address_line, postal_code, city, country, birth_year, photo_url, years_total_experience, availability_status',
         )
         .eq('user_id', session.user.id)
         .single()
@@ -124,26 +223,83 @@ export default function ValiderProfilPage() {
       setTjmMin(profile.tjm_min != null ? String(profile.tjm_min) : '')
       setTjmMax(profile.tjm_max != null ? String(profile.tjm_max) : '')
       setAvailabilityDate(profile.availability_date ?? '')
-      setLanguages(Array.isArray(profile.languages) ? (profile.languages as string[]) : [])
       setLinkedinUrl(profile.linkedin_url ?? '')
 
-      const [{ data: brs }, { data: sps }] = await Promise.all([
-        supabase
-          .from('branches')
-          .select('id, name, slug')
-          .eq('domain_id', domainId)
-          .eq('active', true)
-          .order('sort_order', { ascending: true }),
-        supabase
-          .from('specialities')
-          .select('id, name, slug, branch_id')
-          .eq('domain_id', domainId)
-          .eq('active', true)
-          .order('sort_order', { ascending: true }),
-      ])
+      setPhone(profile.phone ?? '')
+      setBirthYear(profile.birth_year != null ? String(profile.birth_year) : '')
+      setAddressLine(profile.address_line ?? '')
+      setPostalCode(profile.postal_code ?? '')
+      setCity(profile.city ?? '')
+      setCountry(profile.country ?? 'FR')
+
+      const [{ data: brs }, { data: sps }, { data: exps }, { data: edus }, { data: langs }] =
+        await Promise.all([
+          supabase
+            .from('branches')
+            .select('id, name, slug')
+            .eq('domain_id', domainId)
+            .eq('active', true)
+            .order('sort_order', { ascending: true }),
+          supabase
+            .from('specialities')
+            .select('id, name, slug, branch_id')
+            .eq('domain_id', domainId)
+            .eq('active', true)
+            .order('sort_order', { ascending: true }),
+          supabase
+            .from('profile_experiences')
+            .select(
+              'role, client_name, sector, start_date, end_date, is_current, description, tasks, skills_used, sort_order',
+            )
+            .eq('profile_id', profile.id)
+            .order('sort_order', { ascending: true }),
+          supabase
+            .from('profile_educations')
+            .select('school, degree, field, start_year, end_year, location')
+            .eq('profile_id', profile.id)
+            .order('end_year', { ascending: false, nullsFirst: true }),
+          supabase
+            .from('profile_languages')
+            .select('language, level, is_primary')
+            .eq('profile_id', profile.id),
+        ])
       if (cancelled) return
+
       setBranches((brs ?? []) as Branch[])
       setSpecialities((sps ?? []) as Speciality[])
+
+      const expItems: ExperienceItem[] = (exps ?? []).map((e: any) => ({
+        role: e.role ?? '',
+        client_name: e.client_name ?? '',
+        sector: e.sector ?? '',
+        start_date: e.start_date ?? '',
+        end_date: e.end_date ?? '',
+        is_current: !!e.is_current,
+        description: e.description ?? '',
+        tasks: Array.isArray(e.tasks) ? e.tasks : [],
+        skills_used: Array.isArray(e.skills_used) ? e.skills_used : [],
+      }))
+      setExperiences(expItems)
+      setExpDrafts(expItems.map(() => ({ task: '', skill: '' })))
+
+      setEducations(
+        (edus ?? []).map((e: any) => ({
+          school: e.school ?? '',
+          degree: e.degree ?? '',
+          field: e.field ?? '',
+          start_year: e.start_year != null ? String(e.start_year) : '',
+          end_year: e.end_year != null ? String(e.end_year) : '',
+          location: e.location ?? '',
+        })),
+      )
+
+      setLanguagesStructured(
+        (langs ?? []).map((l: any) => ({
+          language: l.language ?? '',
+          level: (l.level ?? 'B2') as CefrLevel,
+          is_primary: !!l.is_primary,
+        })),
+      )
 
       setLoading(false)
     }
@@ -183,14 +339,6 @@ export default function ValiderProfilPage() {
   }
   const removeSkill = (s: string) => setSkills(skills.filter(x => x !== s))
 
-  const addLang = () => {
-    const s = langDraft.trim()
-    if (!s) return
-    if (!languages.includes(s)) setLanguages([...languages, s])
-    setLangDraft('')
-  }
-  const removeLang = (s: string) => setLanguages(languages.filter(x => x !== s))
-
   const addCert = () =>
     setCertifications([...certifications, { name: '', issuer: null, year: null }])
   const updateCert = (i: number, patch: Partial<Certification>) =>
@@ -200,6 +348,69 @@ export default function ValiderProfilPage() {
   const removeCert = (i: number) =>
     setCertifications(certifications.filter((_, idx) => idx !== i))
 
+  // ---------- Langues structurées ----------
+  const addLanguage = () =>
+    setLanguagesStructured([...languagesStructured, emptyLanguage()])
+  const updateLanguage = (i: number, patch: Partial<LanguageItem>) =>
+    setLanguagesStructured(
+      languagesStructured.map((l, idx) => (idx === i ? { ...l, ...patch } : l)),
+    )
+  const removeLanguage = (i: number) =>
+    setLanguagesStructured(languagesStructured.filter((_, idx) => idx !== i))
+  const setLanguagePrimary = (i: number) =>
+    setLanguagesStructured(
+      languagesStructured.map((l, idx) => ({ ...l, is_primary: idx === i })),
+    )
+
+  // ---------- Expériences ----------
+  const addExperience = () => {
+    setExperiences([...experiences, emptyExperience()])
+    setExpDrafts([...expDrafts, { task: '', skill: '' }])
+  }
+  const updateExperience = (i: number, patch: Partial<ExperienceItem>) =>
+    setExperiences(experiences.map((e, idx) => (idx === i ? { ...e, ...patch } : e)))
+  const removeExperience = (i: number) => {
+    setExperiences(experiences.filter((_, idx) => idx !== i))
+    setExpDrafts(expDrafts.filter((_, idx) => idx !== i))
+  }
+  const setExpDraft = (i: number, field: 'task' | 'skill', value: string) =>
+    setExpDrafts(
+      expDrafts.map((d, idx) => (idx === i ? { ...d, [field]: value } : d)),
+    )
+  const addExpTask = (i: number) => {
+    const draft = expDrafts[i]?.task.trim() ?? ''
+    if (!draft) return
+    const exp = experiences[i]
+    if (!exp.tasks.includes(draft)) {
+      updateExperience(i, { tasks: [...exp.tasks, draft] })
+    }
+    setExpDraft(i, 'task', '')
+  }
+  const removeExpTask = (i: number, t: string) =>
+    updateExperience(i, {
+      tasks: experiences[i].tasks.filter(x => x !== t),
+    })
+  const addExpSkill = (i: number) => {
+    const draft = expDrafts[i]?.skill.trim() ?? ''
+    if (!draft) return
+    const exp = experiences[i]
+    if (!exp.skills_used.includes(draft)) {
+      updateExperience(i, { skills_used: [...exp.skills_used, draft] })
+    }
+    setExpDraft(i, 'skill', '')
+  }
+  const removeExpSkill = (i: number, s: string) =>
+    updateExperience(i, {
+      skills_used: experiences[i].skills_used.filter(x => x !== s),
+    })
+
+  // ---------- Formations ----------
+  const addEducation = () => setEducations([...educations, emptyEducation()])
+  const updateEducation = (i: number, patch: Partial<EducationItem>) =>
+    setEducations(educations.map((e, idx) => (idx === i ? { ...e, ...patch } : e)))
+  const removeEducation = (i: number) =>
+    setEducations(educations.filter((_, idx) => idx !== i))
+
   const validateForPublish = (): string[] => {
     const missing: string[] = []
     if (!title.trim()) missing.push('title')
@@ -208,6 +419,9 @@ export default function ValiderProfilPage() {
     if (!branchId) missing.push('branch_id')
     if (!specialityId) missing.push('speciality_id')
     if (!workMode) missing.push('work_mode')
+    if (experiences.filter(e => e.role.trim()).length < 1) missing.push('experiences')
+    if (languagesStructured.filter(l => l.language.trim()).length < 1)
+      missing.push('languages_structured')
     return missing
   }
 
@@ -221,13 +435,46 @@ export default function ValiderProfilPage() {
       if (missing.length) {
         setMissingFields(missing)
         setErrorMsg(
-          'Pour publier votre profil, complétez : titre, résumé (20+ caractères), 3 compétences min, branche, spécialité, mode de travail.',
+          'Pour publier votre profil, complétez : titre, résumé (20+ caractères), 3 compétences min, branche, spécialité, mode de travail, au moins 1 expérience et 1 langue.',
         )
         return
       }
     }
 
     setSaving(true)
+
+    const cleanedExperiences = experiences
+      .filter(e => e.role.trim())
+      .map(e => ({
+        role: e.role.trim(),
+        client_name: e.client_name.trim() || null,
+        sector: e.sector.trim() || null,
+        start_date: e.start_date || '',
+        end_date: e.is_current ? null : e.end_date || null,
+        is_current: e.is_current,
+        description: e.description.trim() || null,
+        tasks: e.tasks,
+        skills_used: e.skills_used,
+      }))
+
+    const cleanedEducations = educations
+      .filter(e => e.school.trim() && e.degree.trim())
+      .map(e => ({
+        school: e.school.trim(),
+        degree: e.degree.trim(),
+        field: e.field.trim() || null,
+        start_year: e.start_year === '' ? null : Number(e.start_year),
+        end_year: e.end_year === '' ? null : Number(e.end_year),
+        location: e.location.trim() || null,
+      }))
+
+    const cleanedLanguages = languagesStructured
+      .filter(l => l.language.trim())
+      .map(l => ({
+        language: l.language.trim(),
+        level: l.level,
+        is_primary: l.is_primary,
+      }))
 
     const body: Record<string, unknown> = {
       title: title.trim() || null,
@@ -247,13 +494,22 @@ export default function ValiderProfilPage() {
       speciality_slug: specialityId
         ? specialitiesById.get(specialityId)?.slug ?? null
         : null,
-      languages,
+      languages: cleanedLanguages.map(l => l.language),
       location: location.trim() || null,
       work_mode: workMode || null,
       tjm_min: tjmMin.trim() === '' ? null : Number(tjmMin),
       tjm_max: tjmMax.trim() === '' ? null : Number(tjmMax),
       availability_date: availabilityDate || null,
       linkedin_url: linkedinUrl.trim() || null,
+      phone: phone.trim() || null,
+      address_line: addressLine.trim() || null,
+      postal_code: postalCode.trim() || null,
+      city: city.trim() || null,
+      country: country || null,
+      birth_year: birthYear.trim() === '' ? null : Number(birthYear),
+      experiences: cleanedExperiences,
+      educations: cleanedEducations,
+      languages_structured: cleanedLanguages,
       visible,
     }
 
@@ -329,6 +585,18 @@ export default function ValiderProfilPage() {
     color: '#0f172a',
     marginBottom: 16,
     letterSpacing: '-0.2px',
+  }
+
+  const removeBtnStyle: React.CSSProperties = {
+    background: '#fef2f2',
+    color: '#dc2626',
+    border: '1.5px solid #fecaca',
+    borderRadius: 10,
+    padding: '10px 12px',
+    fontSize: 14,
+    cursor: 'pointer',
+    height: 42,
+    flexShrink: 0,
   }
 
   return (
@@ -799,16 +1067,7 @@ export default function ValiderProfilPage() {
                     type="button"
                     onClick={() => removeCert(i)}
                     aria-label="Supprimer"
-                    style={{
-                      background: '#fef2f2',
-                      color: '#dc2626',
-                      border: '1.5px solid #fecaca',
-                      borderRadius: 10,
-                      padding: '10px 12px',
-                      fontSize: 14,
-                      cursor: 'pointer',
-                      height: 42,
-                    }}
+                    style={removeBtnStyle}
                   >
                     ×
                   </button>
@@ -933,76 +1192,113 @@ export default function ValiderProfilPage() {
                 />
               </div>
 
+              {/* Langues — éditeur structuré CEFR */}
               <div>
-                <label style={labelStyle}>Langues</label>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                  <input
-                    type="text"
-                    value={langDraft}
-                    onChange={e => setLangDraft(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        addLang()
-                      }
-                    }}
-                    placeholder="Français, Anglais..."
-                    style={{ ...inputStyle(), flex: 1 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={addLang}
+                <label style={labelStyle}>
+                  Langues{' '}
+                  <span style={{ color: '#94a3b8', fontWeight: 400 }}>
+                    · {languagesStructured.filter(l => l.language.trim()).length}
+                    {languagesStructured.filter(l => l.language.trim()).length < 1
+                      ? ' (min. 1 pour publier)'
+                      : ''}
+                  </span>
+                </label>
+
+                {languagesStructured.length === 0 && (
+                  <div
                     style={{
-                      background: domain.primaryColor,
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 10,
-                      padding: '10px 18px',
                       fontSize: 13,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      flexShrink: 0,
+                      color: '#94a3b8',
+                      padding: '4px 0 10px',
                     }}
                   >
-                    Ajouter
-                  </button>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {languages.map(s => (
-                    <span
-                      key={s}
+                    Aucune langue renseignée.
+                  </div>
+                )}
+
+                {languagesStructured.map((l, i) => (
+                  <div
+                    key={i}
+                    className="profil-row"
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '2fr 1.5fr auto auto',
+                      gap: 10,
+                      alignItems: 'center',
+                      marginBottom: 8,
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={l.language}
+                      onChange={e => updateLanguage(i, { language: e.target.value })}
+                      placeholder="Français, Anglais..."
+                      style={{
+                        ...inputStyle('languages_structured'),
+                      }}
+                    />
+                    <select
+                      value={l.level}
+                      onChange={e =>
+                        updateLanguage(i, { level: e.target.value as CefrLevel })
+                      }
+                      style={inputStyle()}
+                    >
+                      {CEFR_LEVELS.map(lv => (
+                        <option key={lv} value={lv}>
+                          {CEFR_LABELS[lv]}
+                        </option>
+                      ))}
+                    </select>
+                    <label
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 6,
-                        background: `${domain.primaryColor}15`,
-                        color: domain.primaryColor,
-                        padding: '4px 10px',
-                        borderRadius: 999,
                         fontSize: 12,
                         fontWeight: 600,
+                        color: l.is_primary ? domain.primaryColor : '#64748b',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      {s}
-                      <button
-                        type="button"
-                        onClick={() => removeLang(s)}
-                        aria-label={`Retirer ${s}`}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: domain.primaryColor,
-                          cursor: 'pointer',
-                          fontSize: 14,
-                          lineHeight: 1,
-                          padding: 0,
-                        }}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
+                      <input
+                        type="radio"
+                        name="language_primary"
+                        checked={l.is_primary}
+                        onChange={() => setLanguagePrimary(i)}
+                        style={{ accentColor: domain.primaryColor }}
+                      />
+                      Principale
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => removeLanguage(i)}
+                      aria-label="Supprimer la langue"
+                      style={removeBtnStyle}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={addLanguage}
+                  style={{
+                    background: 'transparent',
+                    color: domain.primaryColor,
+                    border: `1.5px dashed ${domain.primaryColor}66`,
+                    borderRadius: 10,
+                    padding: '10px 16px',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    marginTop: 6,
+                  }}
+                >
+                  + Ajouter une langue
+                </button>
               </div>
             </div>
 
@@ -1018,6 +1314,589 @@ export default function ValiderProfilPage() {
                 placeholder="https://linkedin.com/in/..."
                 style={inputStyle()}
               />
+            </div>
+
+            {/* Section 6 — Coordonnées */}
+            <div style={sectionStyle}>
+              <div style={sectionTitleStyle}>6. Coordonnées</div>
+
+              <div
+                className="profil-row"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 12,
+                  marginBottom: 14,
+                }}
+              >
+                <div>
+                  <label style={labelStyle}>Téléphone</label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    placeholder="+33 6 12 34 56 78"
+                    style={inputStyle()}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Année de naissance</label>
+                  <input
+                    type="number"
+                    min={1900}
+                    max={new Date().getFullYear()}
+                    value={birthYear}
+                    onChange={e => setBirthYear(e.target.value)}
+                    placeholder="1990"
+                    style={inputStyle()}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>Adresse</label>
+                <input
+                  type="text"
+                  value={addressLine}
+                  onChange={e => setAddressLine(e.target.value)}
+                  placeholder="12 rue de la Paix"
+                  style={inputStyle()}
+                />
+              </div>
+
+              <div
+                className="profil-row"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 2fr',
+                  gap: 12,
+                  marginBottom: 14,
+                }}
+              >
+                <div>
+                  <label style={labelStyle}>Code postal</label>
+                  <input
+                    type="text"
+                    value={postalCode}
+                    onChange={e => setPostalCode(e.target.value)}
+                    placeholder="75001"
+                    style={inputStyle()}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Ville</label>
+                  <input
+                    type="text"
+                    value={city}
+                    onChange={e => setCity(e.target.value)}
+                    placeholder="Paris"
+                    style={inputStyle()}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={labelStyle}>Pays</label>
+                <select
+                  value={country}
+                  onChange={e => setCountry(e.target.value)}
+                  style={inputStyle()}
+                >
+                  {COUNTRIES.map(c => (
+                    <option key={c.code} value={c.code}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Section 7 — Expériences */}
+            <div style={sectionStyle}>
+              <div style={sectionTitleStyle}>
+                7. Expériences professionnelles{' '}
+                <span style={{ fontWeight: 400, color: '#94a3b8' }}>
+                  · {experiences.filter(e => e.role.trim()).length}
+                  {experiences.filter(e => e.role.trim()).length < 1
+                    ? ' (min. 1 pour publier)'
+                    : ''}
+                </span>
+              </div>
+
+              {experiences.length === 0 && (
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: '#94a3b8',
+                    padding: '4px 0 14px',
+                  }}
+                >
+                  Aucune expérience renseignée.
+                </div>
+              )}
+
+              {experiences.map((exp, i) => (
+                <div
+                  key={i}
+                  style={{
+                    background: '#fff',
+                    border: `1.5px solid ${
+                      isMissing('experiences') && i === 0 ? '#dc2626' : '#e2e8f0'
+                    }`,
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 12,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={labelStyle}>Rôle</label>
+                      <input
+                        type="text"
+                        value={exp.role}
+                        onChange={e => updateExperience(i, { role: e.target.value })}
+                        placeholder="Consultant D365 Finance Senior"
+                        style={inputStyle()}
+                      />
+                    </div>
+                    <div style={{ marginTop: 22 }}>
+                      <button
+                        type="button"
+                        onClick={() => removeExperience(i)}
+                        aria-label="Retirer cette expérience"
+                        style={removeBtnStyle}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    className="profil-row"
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 12,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <div>
+                      <label style={labelStyle}>Client</label>
+                      <input
+                        type="text"
+                        value={exp.client_name}
+                        onChange={e => updateExperience(i, { client_name: e.target.value })}
+                        placeholder="BNP Paribas — ou Confidentiel"
+                        style={inputStyle()}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Secteur</label>
+                      <input
+                        type="text"
+                        value={exp.sector}
+                        onChange={e => updateExperience(i, { sector: e.target.value })}
+                        placeholder="Banque, Industrie..."
+                        style={inputStyle()}
+                      />
+                    </div>
+                  </div>
+
+                  <div
+                    className="profil-row"
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 12,
+                      marginBottom: 8,
+                    }}
+                  >
+                    <div>
+                      <label style={labelStyle}>Date de début</label>
+                      <input
+                        type="date"
+                        value={exp.start_date}
+                        onChange={e => updateExperience(i, { start_date: e.target.value })}
+                        style={inputStyle()}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Date de fin</label>
+                      <input
+                        type="date"
+                        value={exp.is_current ? '' : exp.end_date}
+                        disabled={exp.is_current}
+                        onChange={e => updateExperience(i, { end_date: e.target.value })}
+                        style={{ ...inputStyle(), opacity: exp.is_current ? 0.55 : 1 }}
+                      />
+                    </div>
+                  </div>
+
+                  <label
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      marginBottom: 12,
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      color: '#374151',
+                      fontWeight: 500,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={exp.is_current}
+                      onChange={e =>
+                        updateExperience(i, {
+                          is_current: e.target.checked,
+                          end_date: e.target.checked ? '' : exp.end_date,
+                        })
+                      }
+                      style={{ accentColor: domain.primaryColor }}
+                    />
+                    Poste actuel
+                  </label>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={labelStyle}>Description</label>
+                    <textarea
+                      rows={3}
+                      value={exp.description}
+                      onChange={e => updateExperience(i, { description: e.target.value })}
+                      placeholder="Contexte, missions principales, résultats..."
+                      style={{ ...inputStyle(), resize: 'vertical', minHeight: 80 }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={labelStyle}>
+                      Tâches / responsabilités{' '}
+                      <span style={{ color: '#94a3b8', fontWeight: 400 }}>
+                        · {exp.tasks.length}
+                      </span>
+                    </label>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                      <input
+                        type="text"
+                        value={expDrafts[i]?.task ?? ''}
+                        onChange={e => setExpDraft(i, 'task', e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            addExpTask(i)
+                          }
+                        }}
+                        placeholder="Ex: Pilotage de clôtures mensuelles"
+                        style={{ ...inputStyle(), flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addExpTask(i)}
+                        style={{
+                          background: domain.primaryColor,
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 10,
+                          padding: '10px 18px',
+                          fontSize: 13,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                        }}
+                      >
+                        Ajouter
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {exp.tasks.map(t => (
+                        <span
+                          key={t}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            background: `${domain.primaryColor}15`,
+                            color: domain.primaryColor,
+                            padding: '4px 10px',
+                            borderRadius: 999,
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {t}
+                          <button
+                            type="button"
+                            onClick={() => removeExpTask(i, t)}
+                            aria-label={`Retirer ${t}`}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: domain.primaryColor,
+                              cursor: 'pointer',
+                              fontSize: 14,
+                              lineHeight: 1,
+                              padding: 0,
+                            }}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>
+                      Compétences utilisées{' '}
+                      <span style={{ color: '#94a3b8', fontWeight: 400 }}>
+                        · {exp.skills_used.length}
+                      </span>
+                    </label>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                      <input
+                        type="text"
+                        value={expDrafts[i]?.skill ?? ''}
+                        onChange={e => setExpDraft(i, 'skill', e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            addExpSkill(i)
+                          }
+                        }}
+                        placeholder={
+                          skills.length > 0
+                            ? `Ex: ${skills.slice(0, 2).join(', ')}...`
+                            : 'Ex: D365 Finance, Power BI...'
+                        }
+                        style={{ ...inputStyle(), flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addExpSkill(i)}
+                        style={{
+                          background: domain.primaryColor,
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 10,
+                          padding: '10px 18px',
+                          fontSize: 13,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                        }}
+                      >
+                        Ajouter
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {exp.skills_used.map(s => (
+                        <span
+                          key={s}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            background: `${domain.primaryColor}15`,
+                            color: domain.primaryColor,
+                            padding: '4px 10px',
+                            borderRadius: 999,
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {s}
+                          <button
+                            type="button"
+                            onClick={() => removeExpSkill(i, s)}
+                            aria-label={`Retirer ${s}`}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: domain.primaryColor,
+                              cursor: 'pointer',
+                              fontSize: 14,
+                              lineHeight: 1,
+                              padding: 0,
+                            }}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={addExperience}
+                style={{
+                  background: 'transparent',
+                  color: domain.primaryColor,
+                  border: `1.5px dashed ${domain.primaryColor}66`,
+                  borderRadius: 10,
+                  padding: '10px 16px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginTop: 4,
+                }}
+              >
+                + Ajouter une expérience
+              </button>
+            </div>
+
+            {/* Section 8 — Formations */}
+            <div style={sectionStyle}>
+              <div style={sectionTitleStyle}>8. Formation</div>
+
+              {educations.length === 0 && (
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: '#94a3b8',
+                    padding: '4px 0 14px',
+                  }}
+                >
+                  Aucune formation renseignée.
+                </div>
+              )}
+
+              {educations.map((edu, i) => (
+                <div
+                  key={i}
+                  style={{
+                    background: '#fff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 12,
+                  }}
+                >
+                  <div
+                    className="profil-row"
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 12,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <div>
+                      <label style={labelStyle}>École</label>
+                      <input
+                        type="text"
+                        value={edu.school}
+                        onChange={e => updateEducation(i, { school: e.target.value })}
+                        placeholder="Université Paris-Dauphine"
+                        style={inputStyle()}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Diplôme</label>
+                      <input
+                        type="text"
+                        value={edu.degree}
+                        onChange={e => updateEducation(i, { degree: e.target.value })}
+                        placeholder="Master, BAC+5, MBA..."
+                        style={inputStyle()}
+                      />
+                    </div>
+                  </div>
+
+                  <div
+                    className="profil-row"
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 12,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <div>
+                      <label style={labelStyle}>Domaine / Spécialisation</label>
+                      <input
+                        type="text"
+                        value={edu.field}
+                        onChange={e => updateEducation(i, { field: e.target.value })}
+                        placeholder="Finance, Informatique..."
+                        style={inputStyle()}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Lieu</label>
+                      <input
+                        type="text"
+                        value={edu.location}
+                        onChange={e => updateEducation(i, { location: e.target.value })}
+                        placeholder="Paris, Lyon..."
+                        style={inputStyle()}
+                      />
+                    </div>
+                  </div>
+
+                  <div
+                    className="profil-row"
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr auto',
+                      gap: 12,
+                      alignItems: 'flex-end',
+                    }}
+                  >
+                    <div>
+                      <label style={labelStyle}>Année début</label>
+                      <input
+                        type="number"
+                        min={1900}
+                        max={new Date().getFullYear() + 1}
+                        value={edu.start_year}
+                        onChange={e => updateEducation(i, { start_year: e.target.value })}
+                        style={inputStyle()}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Année fin</label>
+                      <input
+                        type="number"
+                        min={1900}
+                        max={new Date().getFullYear() + 10}
+                        value={edu.end_year}
+                        onChange={e => updateEducation(i, { end_year: e.target.value })}
+                        style={inputStyle()}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeEducation(i)}
+                      aria-label="Retirer cette formation"
+                      style={removeBtnStyle}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={addEducation}
+                style={{
+                  background: 'transparent',
+                  color: domain.primaryColor,
+                  border: `1.5px dashed ${domain.primaryColor}66`,
+                  borderRadius: 10,
+                  padding: '10px 16px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginTop: 4,
+                }}
+              >
+                + Ajouter une formation
+              </button>
             </div>
 
             {/* Actions */}

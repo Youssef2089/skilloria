@@ -6,6 +6,33 @@ export type DomainContext = {
   specialities: string[]
 }
 
+export type ParsedExperience = {
+  role: string
+  client_name: string | null
+  sector: string | null
+  start_date: string
+  end_date: string | null
+  is_current: boolean
+  description: string | null
+  tasks: string[]
+  skills_used: string[]
+}
+
+export type ParsedEducation = {
+  school: string
+  degree: string
+  field: string | null
+  start_year: number | null
+  end_year: number | null
+  location: string | null
+}
+
+export type ParsedLanguageStructured = {
+  language: string
+  level: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'native'
+  is_primary: boolean
+}
+
 export type ParsedCV = {
   title: string | null
   summary: string | null
@@ -20,6 +47,17 @@ export type ParsedCV = {
   tjm_min: number | null
   tjm_max: number | null
   linkedin_url: string | null
+  phone: string | null
+  address_line: string | null
+  postal_code: string | null
+  city: string | null
+  country: string | null
+  birth_year: number | null
+  photo_url: string | null
+  years_total_experience: number | null
+  experiences: ParsedExperience[]
+  educations: ParsedEducation[]
+  languages_structured: ParsedLanguageStructured[]
 }
 
 export type ParseResult =
@@ -28,7 +66,7 @@ export type ParseResult =
 
 const MODEL = 'claude-haiku-4-5-20251001'
 const TIMEOUT_MS = 30_000
-const MAX_TOKENS = 4096
+const MAX_TOKENS = 8192
 
 function buildTool(ctx: DomainContext) {
   return {
@@ -77,12 +115,87 @@ function buildTool(ctx: DomainContext) {
         tjm_min: { type: ['number', 'null'] },
         tjm_max: { type: ['number', 'null'] },
         linkedin_url: { type: ['string', 'null'] },
+        phone: { type: ['string', 'null'] },
+        address_line: { type: ['string', 'null'] },
+        postal_code: { type: ['string', 'null'] },
+        city: { type: ['string', 'null'] },
+        country: {
+          type: ['string', 'null'],
+          description: 'Code ISO 3166-1 alpha-2 (FR, BE, CH, LU, GB, US, CA, MA, TN, DZ, AE…).',
+        },
+        birth_year: { type: ['number', 'null'] },
+        photo_url: { type: ['string', 'null'] },
+        years_total_experience: { type: ['number', 'null'] },
+        experiences: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              role: { type: 'string' },
+              client_name: { type: ['string', 'null'] },
+              sector: { type: ['string', 'null'] },
+              start_date: {
+                type: 'string',
+                description: 'Format YYYY-MM-DD (1er du mois si jour inconnu).',
+              },
+              end_date: {
+                type: ['string', 'null'],
+                description: 'Format YYYY-MM-DD, ou null si poste actuel.',
+              },
+              is_current: { type: 'boolean' },
+              description: { type: ['string', 'null'] },
+              tasks: { type: 'array', items: { type: 'string' } },
+              skills_used: { type: 'array', items: { type: 'string' } },
+            },
+            required: [
+              'role', 'client_name', 'sector',
+              'start_date', 'end_date', 'is_current',
+              'description', 'tasks', 'skills_used',
+            ],
+          },
+        },
+        educations: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              school: { type: 'string' },
+              degree: { type: 'string' },
+              field: { type: ['string', 'null'] },
+              start_year: { type: ['number', 'null'] },
+              end_year: { type: ['number', 'null'] },
+              location: { type: ['string', 'null'] },
+            },
+            required: ['school', 'degree', 'field', 'start_year', 'end_year', 'location'],
+          },
+        },
+        languages_structured: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              language: { type: 'string' },
+              level: {
+                type: 'string',
+                enum: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'native'],
+              },
+              is_primary: { type: 'boolean' },
+            },
+            required: ['language', 'level', 'is_primary'],
+          },
+        },
       },
       required: [
         'title', 'summary', 'seniority', 'years_experience',
         'skills', 'certifications',
         'branch_slug', 'speciality_slug',
         'languages', 'location', 'tjm_min', 'tjm_max', 'linkedin_url',
+        'phone', 'address_line', 'postal_code', 'city', 'country',
+        'birth_year', 'photo_url', 'years_total_experience',
+        'experiences', 'educations', 'languages_structured',
       ],
     },
   }
@@ -97,6 +210,20 @@ function buildSystemPrompt(ctx: DomainContext): string {
     `La branche doit être l'un des slugs suivants (sinon null) : ${ctx.branches.join(', ')}.`,
     `La spécialité doit être l'un des slugs suivants (sinon null) : ${ctx.specialities.join(', ')}.`,
     'Pour les champs inconnus, renvoie null (ou [] pour les listes).',
+    '',
+    "Extrais TOUTES les expériences professionnelles avec dates précises au format YYYY-MM-DD (utilise le 1er du mois si le jour est inconnu), client (anonymisé en \"Confidentiel\" si non mentionné), secteur d'activité, rôle exact, description du poste, et liste des tâches/responsabilités (bullet points). `skills_used` liste les technologies/compétences mentionnées pour ce poste spécifique. Si le poste est en cours, `is_current=true` et `end_date=null`.",
+    '',
+    'Extrais TOUTES les formations : école, diplôme, domaine/spécialité, année de début, année de fin, lieu.',
+    '',
+    'Pour les langues, déduis le niveau CEFR ("A1", "A2", "B1", "B2", "C1", "C2") ou "native" pour la langue maternelle. `is_primary=true` pour la langue maternelle si déductible (une seule langue principale au maximum).',
+    '',
+    "Pour `years_total_experience`, somme intelligente des durées d'expériences professionnelles en ignorant les chevauchements (si deux expériences se recouvrent, ne compte pas deux fois).",
+    '',
+    "Pour `birth_year` : déduis depuis l'âge mentionné (année courante − âge) si un âge explicite figure dans le CV, sinon null.",
+    '',
+    'Pour `country` : code ISO 3166-1 alpha-2 (FR, BE, CH, LU, CA, MA, TN, DZ, GB, US, AE…). Null si non déductible.',
+    '',
+    "Pour `photo_url` : uniquement si un lien URL externe vers une photo est présent dans le CV (LinkedIn, GitHub…), sinon null. N'essaye pas d'extraire la photo du PDF lui-même.",
   ].join('\n')
 }
 

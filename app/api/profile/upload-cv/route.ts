@@ -60,7 +60,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   const { data: profile, error: profileErr } = await supabaseAdmin
     .from('profiles')
     .select(
-      'id, cv_file_path, cv_hash, cv_parsing_status, cv_parsing_count_24h, cv_parsing_reset_at, ai_consent_at, title, summary, seniority, years_experience, skills, certifications, branch_id, speciality_id, languages, location, tjm_min, tjm_max, linkedin_url',
+      'id, cv_file_path, cv_hash, cv_parsing_status, cv_parsing_count_24h, cv_parsing_reset_at, ai_consent_at, title, summary, seniority, years_experience, skills, certifications, branch_id, speciality_id, languages, location, tjm_min, tjm_max, linkedin_url, phone, address_line, postal_code, city, country, birth_year, photo_url, years_total_experience',
     )
     .eq('user_id', user.id)
     .maybeSingle()
@@ -92,6 +92,21 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   if (profile.cv_hash === hash && profile.cv_parsing_status === 'done') {
+    const [{ data: cachedExp }, { data: cachedEdu }, { data: cachedLang }] =
+      await Promise.all([
+        supabaseAdmin
+          .from('profile_experiences')
+          .select('*')
+          .eq('profile_id', profile.id)
+          .order('sort_order', { ascending: true }),
+        supabaseAdmin
+          .from('profile_educations')
+          .select('*')
+          .eq('profile_id', profile.id)
+          .order('end_year', { ascending: false, nullsFirst: true }),
+        supabaseAdmin.from('profile_languages').select('*').eq('profile_id', profile.id),
+      ])
+
     return json({
       jobId: profile.id,
       status: 'done',
@@ -108,6 +123,17 @@ export async function POST(request: NextRequest): Promise<Response> {
         tjm_min: profile.tjm_min,
         tjm_max: profile.tjm_max,
         linkedin_url: profile.linkedin_url,
+        phone: profile.phone,
+        address_line: profile.address_line,
+        postal_code: profile.postal_code,
+        city: profile.city,
+        country: profile.country,
+        birth_year: profile.birth_year,
+        photo_url: profile.photo_url,
+        years_total_experience: profile.years_total_experience,
+        experiences: cachedExp ?? [],
+        educations: cachedEdu ?? [],
+        languages_structured: cachedLang ?? [],
       },
     })
   }
@@ -244,11 +270,120 @@ export async function POST(request: NextRequest): Promise<Response> {
       tjm_min: coalesce(profile.tjm_min, parsed.tjm_min),
       tjm_max: coalesce(profile.tjm_max, parsed.tjm_max),
       linkedin_url: coalesce(profile.linkedin_url, parsed.linkedin_url),
+      phone: coalesce(profile.phone, parsed.phone),
+      address_line: coalesce(profile.address_line, parsed.address_line),
+      postal_code: coalesce(profile.postal_code, parsed.postal_code),
+      city: coalesce(profile.city, parsed.city),
+      country: coalesce(profile.country, parsed.country),
+      birth_year: coalesce(profile.birth_year, parsed.birth_year),
+      photo_url: coalesce(profile.photo_url, parsed.photo_url),
+      years_total_experience: coalesce(
+        profile.years_total_experience,
+        parsed.years_total_experience,
+      ),
     })
     .eq('id', profile.id)
 
   if (finalErr) {
     console.error('[upload-cv] final update failed', finalErr)
+  }
+
+  // ---- Blocs enrichis : DELETE + INSERT uniquement si des données sont fournies ----
+
+  if (Array.isArray(parsed.experiences) && parsed.experiences.length > 0) {
+    const { error: delErr } = await supabaseAdmin
+      .from('profile_experiences')
+      .delete()
+      .eq('profile_id', profile.id)
+    if (delErr) {
+      console.error('[upload-cv] experiences delete failed', delErr)
+    } else {
+      const rows = parsed.experiences.map((e, i) => ({
+        profile_id: profile.id,
+        domain_id: user.domain_id,
+        sort_order: i,
+        role: e.role,
+        client_name: e.client_name,
+        sector: e.sector,
+        start_date: e.start_date,
+        end_date: e.is_current ? null : e.end_date,
+        is_current: e.is_current,
+        description: e.description,
+        tasks: e.tasks ?? [],
+        skills_used: e.skills_used ?? [],
+      }))
+      const { error: insErr } = await supabaseAdmin
+        .from('profile_experiences')
+        .insert(rows)
+      if (insErr) console.error('[upload-cv] experiences insert failed', insErr)
+    }
+  }
+
+  if (Array.isArray(parsed.educations) && parsed.educations.length > 0) {
+    const { error: delErr } = await supabaseAdmin
+      .from('profile_educations')
+      .delete()
+      .eq('profile_id', profile.id)
+    if (delErr) {
+      console.error('[upload-cv] educations delete failed', delErr)
+    } else {
+      const rows = parsed.educations.map(e => ({
+        profile_id: profile.id,
+        domain_id: user.domain_id,
+        school: e.school,
+        degree: e.degree,
+        field: e.field,
+        start_year: e.start_year,
+        end_year: e.end_year,
+        location: e.location,
+      }))
+      const { error: insErr } = await supabaseAdmin
+        .from('profile_educations')
+        .insert(rows)
+      if (insErr) console.error('[upload-cv] educations insert failed', insErr)
+    }
+  }
+
+  if (
+    Array.isArray(parsed.languages_structured) &&
+    parsed.languages_structured.length > 0
+  ) {
+    const seen = new Set<string>()
+    const deduped = parsed.languages_structured.filter(l => {
+      const key = l.language?.trim().toLowerCase()
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+
+    // Une seule langue principale max
+    let primaryKept = false
+    const normalised = deduped.map(l => {
+      if (l.is_primary && !primaryKept) {
+        primaryKept = true
+        return { ...l, is_primary: true }
+      }
+      return { ...l, is_primary: false }
+    })
+
+    const { error: delErr } = await supabaseAdmin
+      .from('profile_languages')
+      .delete()
+      .eq('profile_id', profile.id)
+    if (delErr) {
+      console.error('[upload-cv] languages delete failed', delErr)
+    } else {
+      const rows = normalised.map(l => ({
+        profile_id: profile.id,
+        language: l.language.trim(),
+        level: l.level,
+        is_primary: l.is_primary,
+      }))
+      const { error: insErr } = await supabaseAdmin
+        .from('profile_languages')
+        .insert(rows)
+      if (insErr) console.error('[upload-cv] languages insert failed', insErr)
+    }
   }
 
   await supabaseAdmin.from('audit_logs').insert({
@@ -257,8 +392,26 @@ export async function POST(request: NextRequest): Promise<Response> {
     action: 'cv_upload',
     entity_type: 'profile',
     entity_id: profile.id,
-    detail: { status: 'done', hash, bytes: buffer.length },
+    detail: {
+      status: 'done',
+      hash,
+      bytes: buffer.length,
+      blocks: {
+        experiences: parsed.experiences?.length ?? 0,
+        educations: parsed.educations?.length ?? 0,
+        languages_structured: parsed.languages_structured?.length ?? 0,
+      },
+    },
   })
 
-  return json({ jobId: profile.id, status: 'done', data: parsed })
+  return json({
+    jobId: profile.id,
+    status: 'done',
+    data: {
+      ...parsed,
+      experiences: parsed.experiences ?? [],
+      educations: parsed.educations ?? [],
+      languages_structured: parsed.languages_structured ?? [],
+    },
+  })
 }
