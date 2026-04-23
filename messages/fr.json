@@ -21,5 +21,39 @@
       "profile_not_found": "Impossible de récupérer votre profil.",
       "wrong_domain": "Votre compte est associé à un autre espace Skilloria. Veuillez vous connecter sur {subdomain}.skilloria.io"
     }
+  },
+  "signup": {
+    "welcome_badge": "BIENVENUE 👋",
+    "title": "Choisissez votre profil",
+    "subtitle": "On personnalise votre expérience.",
+    "roles": {
+      "entreprise": {
+        "title": "Entreprise",
+        "description": "Je cherche un expert\n{ecosystem} certifié"
+      },
+      "expert": {
+        "title": "Expert / Freelance",
+        "description": "Je propose mes services\net cherche des missions"
+      },
+      "cdi": {
+        "title": "CDI",
+        "description": "Je cherche un poste\nen CDI {ecosystem}"
+      },
+      "cabinet": {
+        "title": "Cabinet / ESN",
+        "description": "Je recrute pour\nmes clients"
+      }
+    },
+    "already_account": "Vous avez déjà un compte\u00A0?",
+    "sign_in": "Se connecter"
+  },
+  "signup_confirmation": {
+    "title": "Compte créé avec succès\u00A0!",
+    "message_line1": "Un email de confirmation a été envoyé à votre adresse.",
+    "message_line2": "Cliquez sur le lien dans l'email pour activer votre compte et accéder à la plateforme.",
+    "spam_notice": "💡 Pensez à vérifier votre dossier <strong>spam</strong> si vous ne recevez pas l'email dans les 2 minutes.",
+    "back_to_home": "Retour à l'accueil",
+    "already_confirmed": "Déjà confirmé\u00A0?",
+    "sign_in": "Se connecter"
   }
 }

@@ -21,5 +21,39 @@
       "profile_not_found": "Ihr Profil konnte nicht geladen werden.",
       "wrong_domain": "Ihr Konto gehört zu einem anderen Skilloria-Bereich. Bitte melden Sie sich unter {subdomain}.skilloria.io an."
     }
+  },
+  "signup": {
+    "welcome_badge": "WILLKOMMEN 👋",
+    "title": "Wählen Sie Ihr Profil",
+    "subtitle": "Wir personalisieren Ihr Erlebnis.",
+    "roles": {
+      "entreprise": {
+        "title": "Unternehmen",
+        "description": "Ich suche einen zertifizierten\n{ecosystem}-Experten"
+      },
+      "expert": {
+        "title": "Experte / Freelancer",
+        "description": "Ich biete meine Dienste\nund suche Aufträge"
+      },
+      "cdi": {
+        "title": "Festanstellung",
+        "description": "Ich suche eine Festanstellung\nin {ecosystem}"
+      },
+      "cabinet": {
+        "title": "Agentur / Beratung",
+        "description": "Ich rekrutiere für\nmeine Kunden"
+      }
+    },
+    "already_account": "Haben Sie bereits ein Konto?",
+    "sign_in": "Anmelden"
+  },
+  "signup_confirmation": {
+    "title": "Konto erfolgreich erstellt!",
+    "message_line1": "Eine Bestätigungs-E-Mail wurde an Ihre Adresse gesendet.",
+    "message_line2": "Klicken Sie auf den Link in der E-Mail, um Ihr Konto zu aktivieren und auf die Plattform zuzugreifen.",
+    "spam_notice": "💡 Bitte überprüfen Sie Ihren <strong>Spam</strong>-Ordner, falls Sie die E-Mail nicht innerhalb von 2 Minuten erhalten.",
+    "back_to_home": "Zurück zur Startseite",
+    "already_confirmed": "Bereits bestätigt?",
+    "sign_in": "Anmelden"
   }
 }

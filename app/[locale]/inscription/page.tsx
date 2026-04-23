@@ -1,40 +1,42 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 
 export default function InscriptionPage() {
   const router = useRouter()
   const domain = useDomain()
+  const t = useTranslations('signup')
 
   const roles = [
     {
       id: 'entreprise',
       icon: '🏢',
       bg: '#dbeafe',
-      title: 'Entreprise',
-      desc: `Je cherche un expert\n${domain.ecosystemName} certifié`,
+      title: t('roles.entreprise.title'),
+      desc: t('roles.entreprise.description', { ecosystem: domain.ecosystemName }),
     },
     {
       id: 'expert',
       icon: '💼',
       bg: '#ede9fe',
-      title: 'Expert / Freelance',
-      desc: 'Je propose mes services\net cherche des missions',
+      title: t('roles.expert.title'),
+      desc: t('roles.expert.description'),
     },
     {
       id: 'cdi',
       icon: '🎓',
       bg: '#dcfce7',
-      title: 'CDI',
-      desc: `Je cherche un poste\nen CDI ${domain.ecosystemName}`,
+      title: t('roles.cdi.title'),
+      desc: t('roles.cdi.description', { ecosystem: domain.ecosystemName }),
     },
     {
       id: 'cabinet',
       icon: '🤝',
       bg: '#fef9c3',
-      title: 'Cabinet / ESN',
-      desc: 'Je recrute pour\nmes clients',
+      title: t('roles.cabinet.title'),
+      desc: t('roles.cabinet.description'),
     },
   ]
 
@@ -48,24 +50,24 @@ export default function InscriptionPage() {
 
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 9, background: '#0ea5e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 36, height: 36, borderRadius: 9, background: domain.primaryColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2" strokeLinecap="round"/>
           </svg>
         </div>
-        <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>Skilloria 365</span>
+        <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>{domain.name}</span>
       </div>
 
       {/* Titre */}
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
-        <div style={{ display: 'inline-block', background: '#0ea5e9', color: '#fff', fontSize: 16, fontWeight: 700, padding: '7px 20px', borderRadius: 100, marginBottom: 14, letterSpacing: '.05em' }}>
-          BIENVENUE 👋
+        <div style={{ display: 'inline-block', background: domain.primaryColor, color: '#fff', fontSize: 16, fontWeight: 700, padding: '7px 20px', borderRadius: 100, marginBottom: 14, letterSpacing: '.05em' }}>
+          {t('welcome_badge')}
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', lineHeight: 1.2, marginBottom: 8 }}>
-          Choisissez votre profil
+          {t('title')}
         </h1>
         <p style={{ fontSize: 14, color: '#64748b' }}>
-          On personnalise votre expérience.
+          {t('subtitle')}
         </p>
       </div>
 
@@ -84,9 +86,9 @@ export default function InscriptionPage() {
             }}
             onMouseEnter={e => {
               const el = e.currentTarget
-              el.style.borderColor = '#0ea5e9'
+              el.style.borderColor = domain.primaryColor
               el.style.transform = 'translateY(-4px)'
-              el.style.boxShadow = '0 12px 32px rgba(14,165,233,.15)'
+              el.style.boxShadow = `0 12px 32px ${domain.primaryColor}26`
             }}
             onMouseLeave={e => {
               const el = e.currentTarget
@@ -115,12 +117,12 @@ export default function InscriptionPage() {
 
       {/* Déjà un compte */}
       <p style={{ fontSize: 13, color: '#64748b' }}>
-        Vous avez déjà un compte ?{' '}
+        {t('already_account')}{' '}
         <span
           onClick={() => router.push('/connexion')}
-          style={{ color: '#0ea5e9', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}
+          style={{ color: domain.primaryColor, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}
         >
-          Se connecter
+          {t('sign_in')}
         </span>
       </p>
 

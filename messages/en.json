@@ -21,5 +21,39 @@
       "profile_not_found": "Unable to load your profile.",
       "wrong_domain": "Your account belongs to another Skilloria workspace. Please sign in at {subdomain}.skilloria.io"
     }
+  },
+  "signup": {
+    "welcome_badge": "WELCOME 👋",
+    "title": "Choose your profile",
+    "subtitle": "We'll personalize your experience.",
+    "roles": {
+      "entreprise": {
+        "title": "Company",
+        "description": "Looking for a certified\n{ecosystem} expert"
+      },
+      "expert": {
+        "title": "Expert / Freelancer",
+        "description": "I offer my services\nand look for assignments"
+      },
+      "cdi": {
+        "title": "Full-time",
+        "description": "Looking for a full-time\n{ecosystem} position"
+      },
+      "cabinet": {
+        "title": "Consultancy / Staffing firm",
+        "description": "Recruiting for\nmy clients"
+      }
+    },
+    "already_account": "Already have an account?",
+    "sign_in": "Sign in"
+  },
+  "signup_confirmation": {
+    "title": "Account created successfully!",
+    "message_line1": "A confirmation email has been sent to your address.",
+    "message_line2": "Click the link in the email to activate your account and access the platform.",
+    "spam_notice": "💡 Remember to check your <strong>spam</strong> folder if you don't receive the email within 2 minutes.",
+    "back_to_home": "Back to home",
+    "already_confirmed": "Already confirmed?",
+    "sign_in": "Sign in"
   }
 }

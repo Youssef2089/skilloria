@@ -1,9 +1,13 @@
- 'use client'
+'use client'
 
+import { useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
+import { useDomain } from '@/context/DomainContext'
 
 export default function ConfirmationPage() {
   const router = useRouter()
+  const domain = useDomain()
+  const t = useTranslations('signup_confirmation')
 
   return (
     <div style={{
@@ -19,12 +23,12 @@ export default function ConfirmationPage() {
 
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 40 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 9, background: '#0ea5e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 36, height: 36, borderRadius: 9, background: domain.primaryColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2" strokeLinecap="round"/>
           </svg>
         </div>
-        <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>Skilloria 365</span>
+        <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>{domain.name}</span>
       </div>
 
       {/* Card */}
@@ -55,12 +59,12 @@ export default function ConfirmationPage() {
         </div>
 
         <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>
-          Compte créé avec succès !
+          {t('title')}
         </h1>
 
         <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, marginBottom: 32 }}>
-          Un email de confirmation a été envoyé à votre adresse.<br/>
-          Cliquez sur le lien dans l'email pour activer votre compte et accéder à la plateforme.
+          {t('message_line1')}<br/>
+          {t('message_line2')}
         </p>
 
         {/* Info */}
@@ -75,7 +79,9 @@ export default function ConfirmationPage() {
           textAlign: 'left',
           lineHeight: 1.6,
         }}>
-          💡 Pensez à vérifier votre dossier <strong>spam</strong> si vous ne recevez pas l'email dans les 2 minutes.
+          {t.rich('spam_notice', {
+            strong: (chunks) => <strong>{chunks}</strong>,
+          })}
         </div>
 
         {/* Bouton retour */}
@@ -84,7 +90,7 @@ export default function ConfirmationPage() {
           style={{
             width: '100%',
             padding: 13,
-            background: '#0ea5e9',
+            background: domain.primaryColor,
             color: '#fff',
             border: 'none',
             borderRadius: 12,
@@ -93,16 +99,16 @@ export default function ConfirmationPage() {
             cursor: 'pointer',
           }}
         >
-          Retour à l'accueil
+          {t('back_to_home')}
         </button>
 
         <p style={{ fontSize: 13, color: '#64748b', marginTop: 16 }}>
-          Déjà confirmé ?{' '}
+          {t('already_confirmed')}{' '}
           <span
             onClick={() => router.push('/connexion')}
-            style={{ color: '#0ea5e9', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}
+            style={{ color: domain.primaryColor, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}
           >
-            Se connecter
+            {t('sign_in')}
           </span>
         </p>
 
