@@ -2,8 +2,19 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Plus_Jakarta_Sans } from 'next/font/google'
 import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['500', '600', '700', '800'],
+  variable: '--font-jakarta',
+  display: 'swap',
+})
+
+const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
+const fontInter = 'Inter, system-ui, sans-serif'
 
 type Seniority = 'junior' | 'confirmed' | 'senior' | 'expert'
 type WorkMode = 'remote' | 'onsite' | 'hybrid'
@@ -112,6 +123,79 @@ function emptyEducation(): EducationItem {
 
 function emptyLanguage(): LanguageItem {
   return { language: '', level: 'B2', is_primary: false }
+}
+
+function SectionHeader({
+  n,
+  color,
+  title,
+}: {
+  n: string
+  color: string
+  title: React.ReactNode
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 18,
+      }}
+    >
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minWidth: 28,
+          height: 28,
+          padding: '0 9px',
+          borderRadius: 999,
+          fontSize: 12,
+          fontWeight: 800,
+          color: '#fff',
+          background: color,
+          fontFamily: fontJakarta,
+          flexShrink: 0,
+        }}
+      >
+        {n}
+      </span>
+      <div
+        style={{
+          fontSize: 16,
+          fontWeight: 700,
+          color: '#0f172a',
+          letterSpacing: '-0.2px',
+          fontFamily: fontJakarta,
+        }}
+      >
+        {title}
+      </div>
+    </div>
+  )
+}
+
+const SECTION_COLORS = {
+  identite: '',
+  expertise: '#6366f1',
+  certifications: '#a855f7',
+  disponibilite: '#10b981',
+  liens: '#06b6d4',
+  coordonnees: '#f59e0b',
+  experiences: '#ec4899',
+  formation: '#14b8a6',
+} as const
+
+const subHeaderStyle: React.CSSProperties = {
+  fontSize: 13,
+  fontWeight: 700,
+  color: '#475569',
+  letterSpacing: '0.4px',
+  textTransform: 'uppercase',
+  margin: '8px 0 12px',
+  fontFamily: fontJakarta,
 }
 
 export default function ValiderProfilPage() {
@@ -375,7 +459,6 @@ export default function ValiderProfilPage() {
   const removeCert = (i: number) =>
     setCertifications(certifications.filter((_, idx) => idx !== i))
 
-  // Langues structurées
   const addLanguage = () =>
     setLanguagesStructured([...languagesStructured, emptyLanguage()])
   const updateLanguage = (i: number, patch: Partial<LanguageItem>) =>
@@ -389,7 +472,6 @@ export default function ValiderProfilPage() {
       languagesStructured.map((l, idx) => ({ ...l, is_primary: idx === i })),
     )
 
-  // Expériences
   const addExperience = (type: ExperienceType) =>
     setExperiences([...experiences, emptyExperience(type)])
   const updateExperience = (i: number, patch: Partial<ExperienceItem>) =>
@@ -397,7 +479,6 @@ export default function ValiderProfilPage() {
   const removeExperience = (i: number) =>
     setExperiences(experiences.filter((_, idx) => idx !== i))
 
-  // Formations
   const addEducation = () => setEducations([...educations, emptyEducation()])
   const updateEducation = (i: number, patch: Partial<EducationItem>) =>
     setEducations(educations.map((e, idx) => (idx === i ? { ...e, ...patch } : e)))
@@ -562,6 +643,7 @@ export default function ValiderProfilPage() {
     fontWeight: 600,
     color: '#374151',
     marginBottom: 6,
+    fontFamily: fontJakarta,
   }
 
   const sectionStyle: React.CSSProperties = {
@@ -570,22 +652,6 @@ export default function ValiderProfilPage() {
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
-  }
-
-  const sectionTitleStyle: React.CSSProperties = {
-    fontSize: 16,
-    fontWeight: 700,
-    color: '#0f172a',
-    marginBottom: 16,
-    letterSpacing: '-0.2px',
-  }
-
-  const subSectionTitleStyle: React.CSSProperties = {
-    fontSize: 14,
-    fontWeight: 700,
-    color: '#0f172a',
-    margin: '0 0 12px',
-    letterSpacing: '-0.1px',
   }
 
   const removeBtnStyle: React.CSSProperties = {
@@ -598,6 +664,7 @@ export default function ValiderProfilPage() {
     cursor: 'pointer',
     height: 42,
     flexShrink: 0,
+    fontFamily: fontJakarta,
   }
 
   const addBtnStyle: React.CSSProperties = {
@@ -610,6 +677,33 @@ export default function ValiderProfilPage() {
     fontWeight: 600,
     cursor: 'pointer',
     marginTop: 4,
+    fontFamily: fontJakarta,
+  }
+
+  const primaryAddBtnStyle: React.CSSProperties = {
+    background: domain.primaryColor,
+    color: '#fff',
+    border: 'none',
+    borderRadius: 10,
+    padding: '10px 18px',
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: 'pointer',
+    flexShrink: 0,
+    fontFamily: fontJakarta,
+  }
+
+  const tagStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    background: `${domain.primaryColor}15`,
+    color: domain.primaryColor,
+    padding: '4px 10px',
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: 600,
+    fontFamily: fontJakarta,
   }
 
   const renderExperienceCard = (
@@ -753,6 +847,7 @@ export default function ValiderProfilPage() {
             fontSize: 13,
             color: '#374151',
             fontWeight: 500,
+            fontFamily: fontJakarta,
           }}
         >
           <input
@@ -792,7 +887,10 @@ export default function ValiderProfilPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'Inter, sans-serif' }}>
+    <div
+      className={jakarta.variable}
+      style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: fontInter }}
+    >
       <style>{`
         @keyframes sk-spin { to { transform: rotate(360deg); } }
         @media (max-width: 767px) {
@@ -847,7 +945,16 @@ export default function ValiderProfilPage() {
               </svg>
             )}
           </div>
-          <span style={{ fontSize: 17, fontWeight: 700, color: '#111827' }}>{domain.name}</span>
+          <span
+            style={{
+              fontSize: 17,
+              fontWeight: 700,
+              color: '#111827',
+              fontFamily: fontJakarta,
+            }}
+          >
+            {domain.name}
+          </span>
         </div>
 
         <div
@@ -862,7 +969,15 @@ export default function ValiderProfilPage() {
           }}
         >
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#eab308' }} />
-          <span style={{ fontSize: 13, fontWeight: 500, color: '#92400e', whiteSpace: 'nowrap' }}>
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 500,
+              color: '#92400e',
+              whiteSpace: 'nowrap',
+              fontFamily: fontJakarta,
+            }}
+          >
             En attente de vérification
           </span>
         </div>
@@ -880,6 +995,7 @@ export default function ValiderProfilPage() {
               padding: 80,
               color: '#64748b',
               fontSize: 14,
+              fontFamily: fontJakarta,
             }}
           >
             <div
@@ -909,6 +1025,7 @@ export default function ValiderProfilPage() {
                 cursor: 'pointer',
                 padding: 0,
                 marginBottom: 24,
+                fontFamily: fontJakarta,
               }}
             >
               ← Retour
@@ -927,7 +1044,15 @@ export default function ValiderProfilPage() {
                   gap: 12,
                 }}
               >
-                <div style={{ color: '#dc2626', fontSize: 13, flex: 1, lineHeight: 1.55 }}>
+                <div
+                  style={{
+                    color: '#dc2626',
+                    fontSize: 13,
+                    flex: 1,
+                    lineHeight: 1.55,
+                    fontFamily: fontJakarta,
+                  }}
+                >
                   {errorMsg}
                 </div>
                 <button
@@ -963,6 +1088,7 @@ export default function ValiderProfilPage() {
                   fontSize: 13,
                   color: '#9a3412',
                   lineHeight: 1.55,
+                  fontFamily: fontJakarta,
                 }}
               >
                 ⚠️ Le parsing IA a échoué, complétez votre profil manuellement.
@@ -977,6 +1103,7 @@ export default function ValiderProfilPage() {
                 color: '#0f172a',
                 letterSpacing: '-0.3px',
                 marginBottom: 8,
+                fontFamily: fontJakarta,
               }}
             >
               Validez votre profil
@@ -988,6 +1115,7 @@ export default function ValiderProfilPage() {
                 lineHeight: 1.6,
                 marginBottom: 20,
                 maxWidth: 640,
+                fontFamily: fontJakarta,
               }}
             >
               Vérifiez les informations extraites de votre document. Vous pouvez tout corriger
@@ -1004,6 +1132,7 @@ export default function ValiderProfilPage() {
                 fontSize: 13,
                 color: domain.primaryColor,
                 fontWeight: 500,
+                fontFamily: fontJakarta,
               }}
             >
               💡 Notre IA a pré-rempli ces champs. Modifiez si nécessaire avant de publier.
@@ -1011,7 +1140,7 @@ export default function ValiderProfilPage() {
 
             {/* Section 1 — Identité pro */}
             <div style={sectionStyle}>
-              <div style={sectionTitleStyle}>1. Identité professionnelle</div>
+              <SectionHeader n="1" color={domain.primaryColor} title="Identité professionnelle" />
 
               <div style={{ marginBottom: 14 }}>
                 <label style={labelStyle}>Titre professionnel</label>
@@ -1035,7 +1164,14 @@ export default function ValiderProfilPage() {
                   placeholder="10 ans d'expérience sur..."
                   style={{ ...inputStyle('summary'), resize: 'vertical', minHeight: 100 }}
                 />
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: '#94a3b8',
+                    marginTop: 4,
+                    fontFamily: fontJakarta,
+                  }}
+                >
                   {summary.trim().length}/500 · minimum 20 caractères pour publier
                 </div>
               </div>
@@ -1079,7 +1215,7 @@ export default function ValiderProfilPage() {
 
             {/* Section 2 — Expertise */}
             <div style={sectionStyle}>
-              <div style={sectionTitleStyle}>2. Expertise</div>
+              <SectionHeader n="2" color={SECTION_COLORS.expertise} title="Expertise" />
 
               <div style={{ marginBottom: 14 }}>
                 <label style={labelStyle}>Branche principale</label>
@@ -1135,40 +1271,13 @@ export default function ValiderProfilPage() {
                     placeholder="Ex: Azure, Power BI, D365..."
                     style={{ ...inputStyle('skills'), flex: 1 }}
                   />
-                  <button
-                    type="button"
-                    onClick={addSkill}
-                    style={{
-                      background: domain.primaryColor,
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 10,
-                      padding: '10px 18px',
-                      fontSize: 13,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                    }}
-                  >
+                  <button type="button" onClick={addSkill} style={primaryAddBtnStyle}>
                     Ajouter
                   </button>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {skills.map(s => (
-                    <span
-                      key={s}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        background: `${domain.primaryColor}15`,
-                        color: domain.primaryColor,
-                        padding: '4px 10px',
-                        borderRadius: 999,
-                        fontSize: 12,
-                        fontWeight: 600,
-                      }}
-                    >
+                    <span key={s} style={tagStyle}>
                       {s}
                       <button
                         type="button"
@@ -1194,7 +1303,11 @@ export default function ValiderProfilPage() {
 
             {/* Section 3 — Certifications */}
             <div style={sectionStyle}>
-              <div style={sectionTitleStyle}>3. Certifications</div>
+              <SectionHeader
+                n="3"
+                color={SECTION_COLORS.certifications}
+                title="Certifications"
+              />
 
               {certifications.length === 0 && (
                 <div
@@ -1202,6 +1315,7 @@ export default function ValiderProfilPage() {
                     fontSize: 13,
                     color: '#94a3b8',
                     padding: '10px 0 14px',
+                    fontFamily: fontJakarta,
                   }}
                 >
                   Aucune certification pour l'instant.
@@ -1273,7 +1387,11 @@ export default function ValiderProfilPage() {
 
             {/* Section 4 — Disponibilité */}
             <div style={sectionStyle}>
-              <div style={sectionTitleStyle}>4. Disponibilité</div>
+              <SectionHeader
+                n="4"
+                color={SECTION_COLORS.disponibilite}
+                title="Disponibilité"
+              />
 
               <div style={{ marginBottom: 14 }}>
                 <label style={labelStyle}>Mode de travail</label>
@@ -1301,6 +1419,7 @@ export default function ValiderProfilPage() {
                           fontSize: 13,
                           fontWeight: 600,
                           color: active ? domain.primaryColor : '#374151',
+                          fontFamily: fontJakarta,
                         }}
                       >
                         <input
@@ -1388,6 +1507,7 @@ export default function ValiderProfilPage() {
                       fontSize: 13,
                       color: '#94a3b8',
                       padding: '4px 0 10px',
+                      fontFamily: fontJakarta,
                     }}
                   >
                     Aucune langue renseignée.
@@ -1436,6 +1556,7 @@ export default function ValiderProfilPage() {
                         color: l.is_primary ? domain.primaryColor : '#64748b',
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
+                        fontFamily: fontJakarta,
                       }}
                     >
                       <input
@@ -1466,7 +1587,7 @@ export default function ValiderProfilPage() {
 
             {/* Section 5 — Liens */}
             <div style={sectionStyle}>
-              <div style={sectionTitleStyle}>5. Liens</div>
+              <SectionHeader n="5" color={SECTION_COLORS.liens} title="Liens" />
               <label style={labelStyle}>URL LinkedIn</label>
               <input
                 type="url"
@@ -1480,7 +1601,11 @@ export default function ValiderProfilPage() {
 
             {/* Section 6 — Coordonnées */}
             <div style={sectionStyle}>
-              <div style={sectionTitleStyle}>6. Coordonnées</div>
+              <SectionHeader
+                n="6"
+                color={SECTION_COLORS.coordonnees}
+                title="Coordonnées"
+              />
 
               <div
                 className="profil-row"
@@ -1575,24 +1700,30 @@ export default function ValiderProfilPage() {
 
             {/* Section 7 — Expériences */}
             <div style={sectionStyle}>
-              <div style={sectionTitleStyle}>
-                7. Expériences professionnelles{' '}
-                <span style={{ fontWeight: 400, color: '#94a3b8' }}>
-                  · {experiences.filter(e => e.role.trim()).length}
-                  {experiences.filter(e => e.role.trim()).length < 1
-                    ? ' (min. 1 pour publier)'
-                    : ''}
-                </span>
-              </div>
+              <SectionHeader
+                n="7"
+                color={SECTION_COLORS.experiences}
+                title={
+                  <>
+                    Expériences professionnelles{' '}
+                    <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: 13 }}>
+                      · {experiences.filter(e => e.role.trim()).length}
+                      {experiences.filter(e => e.role.trim()).length < 1
+                        ? ' (min. 1 pour publier)'
+                        : ''}
+                    </span>
+                  </>
+                }
+              />
 
-              {/* 7A — Historique professionnel */}
-              <h3 style={subSectionTitleStyle}>Historique professionnel</h3>
+              <div style={subHeaderStyle}>7A · Historique professionnel</div>
               {careerEntries.length === 0 && (
                 <div
                   style={{
                     fontSize: 13,
                     color: '#94a3b8',
                     padding: '4px 0 12px',
+                    fontFamily: fontJakarta,
                   }}
                 >
                   Aucun employeur renseigné.
@@ -1617,14 +1748,14 @@ export default function ValiderProfilPage() {
                 }}
               />
 
-              {/* 7B — Missions / Projets */}
-              <h3 style={subSectionTitleStyle}>Missions / Projets</h3>
+              <div style={subHeaderStyle}>7B · Missions / Projets</div>
               {projectEntries.length === 0 && (
                 <div
                   style={{
                     fontSize: 13,
                     color: '#94a3b8',
                     padding: '4px 0 12px',
+                    fontFamily: fontJakarta,
                   }}
                 >
                   Aucune mission renseignée.
@@ -1644,7 +1775,7 @@ export default function ValiderProfilPage() {
 
             {/* Section 8 — Formations */}
             <div style={sectionStyle}>
-              <div style={sectionTitleStyle}>8. Formation</div>
+              <SectionHeader n="8" color={SECTION_COLORS.formation} title="Formation" />
 
               {educations.length === 0 && (
                 <div
@@ -1652,6 +1783,7 @@ export default function ValiderProfilPage() {
                     fontSize: 13,
                     color: '#94a3b8',
                     padding: '4px 0 14px',
+                    fontFamily: fontJakarta,
                   }}
                 >
                   Aucune formation renseignée.
@@ -1806,6 +1938,7 @@ export default function ValiderProfilPage() {
                   fontWeight: 700,
                   cursor: saving ? 'not-allowed' : 'pointer',
                   opacity: saving ? 0.6 : 1,
+                  fontFamily: fontJakarta,
                 }}
               >
                 Enregistrer comme brouillon
@@ -1825,6 +1958,7 @@ export default function ValiderProfilPage() {
                   fontWeight: 700,
                   cursor: saving ? 'not-allowed' : 'pointer',
                   opacity: saving ? 0.6 : 1,
+                  fontFamily: fontJakarta,
                 }}
               >
                 {saving ? 'Envoi...' : 'Publier mon profil →'}
