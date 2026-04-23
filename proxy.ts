@@ -1,4 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import createMiddleware from 'next-intl/middleware'
+import { NextRequest } from 'next/server'
+import { routing } from './i18n/routing'
+
+const handleI18n = createMiddleware(routing)
 
 export function proxy(request: NextRequest) {
   const hostname = request.headers.get('host') || ''
@@ -16,20 +20,18 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  // On transmet le sous-domaine via un header de requête
-  // (lisible par les Server Components via next/headers)
-  const requestHeaders = new Headers(request.headers)
-  requestHeaders.set('x-subdomain', subdomain)
+  // Injecte x-subdomain sur les headers de requête AVANT next-intl.
+  // next-intl copie request.headers via `new Headers(request.headers)` dans son
+  // NextResponse.next({ request: { headers } }), donc x-subdomain est transmis
+  // aux Server Components (lecture via next/headers) avec la locale.
+  request.headers.set('x-subdomain', subdomain)
 
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  })
+  return handleI18n(request)
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    // Toutes les routes sauf assets, favicon et /api
+    '/((?!_next/static|_next/image|favicon.ico|api).*)',
   ],
 }
