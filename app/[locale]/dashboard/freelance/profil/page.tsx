@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 type UploadStatus = 'idle' | 'uploading' | 'success' | 'error'
 
@@ -220,21 +221,24 @@ export default function ProfilUploadPage() {
           <span style={{ fontSize: 17, fontWeight: 700, color: '#111827' }}>{domain.name}</span>
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            background: '#fef9c3',
-            border: '1px solid #fde68a',
-            padding: '7px 14px',
-            borderRadius: 20,
-          }}
-        >
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#eab308' }} />
-          <span style={{ fontSize: 13, fontWeight: 500, color: '#92400e', whiteSpace: 'nowrap' }}>
-            {t('status_badge.pending')}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <LanguageSwitcher />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              background: '#fef9c3',
+              border: '1px solid #fde68a',
+              padding: '7px 14px',
+              borderRadius: 20,
+            }}
+          >
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#eab308' }} />
+            <span style={{ fontSize: 13, fontWeight: 500, color: '#92400e', whiteSpace: 'nowrap' }}>
+              {t('status_badge.pending')}
+            </span>
+          </div>
         </div>
       </div>
 
