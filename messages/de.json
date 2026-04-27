@@ -204,7 +204,21 @@
       "applications": "Bewerbungen",
       "messages": "Nachrichten",
       "daily_rate": "Mein Tagessatz",
-      "daily_rate_set": "Festlegen →"
+      "daily_rate_set": "Festlegen →",
+      "daily_rate_range": "{min} € — {max} €"
+    },
+    "tjm_modal": {
+      "title": "Tagessatz festlegen",
+      "subtitle": "Ihr Tagessatz in Euro",
+      "min_label": "Mindesttagessatz",
+      "max_label": "Höchsttagessatz",
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "saving": "Wird gespeichert...",
+      "error_invalid": "Mindesttagessatz muss kleiner als Höchsttagessatz sein",
+      "error_save": "Speichern fehlgeschlagen, bitte erneut versuchen",
+      "success": "Tagessatz aktualisiert",
+      "close_aria": "Schließen"
     },
     "completion": {
       "title": "Profil zu {percent} % abgeschlossen",

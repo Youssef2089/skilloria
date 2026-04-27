@@ -204,7 +204,21 @@
       "applications": "Applications",
       "messages": "Messages",
       "daily_rate": "My day rate",
-      "daily_rate_set": "Set →"
+      "daily_rate_set": "Set →",
+      "daily_rate_range": "{min} € — {max} €"
+    },
+    "tjm_modal": {
+      "title": "Set my day rate",
+      "subtitle": "Your daily rate in euros",
+      "min_label": "Minimum day rate",
+      "max_label": "Maximum day rate",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "error_invalid": "Minimum rate must be lower than maximum",
+      "error_save": "Save failed, please try again",
+      "success": "Day rate updated",
+      "close_aria": "Close"
     },
     "completion": {
       "title": "Profile {percent}% complete",

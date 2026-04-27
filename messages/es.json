@@ -204,7 +204,21 @@
       "applications": "Candidaturas",
       "messages": "Mensajes",
       "daily_rate": "Mi tarifa diaria",
-      "daily_rate_set": "Definir →"
+      "daily_rate_set": "Definir →",
+      "daily_rate_range": "{min} € — {max} €"
+    },
+    "tjm_modal": {
+      "title": "Definir mi tarifa diaria",
+      "subtitle": "Tu tarifa diaria en euros",
+      "min_label": "Tarifa mínima",
+      "max_label": "Tarifa máxima",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "saving": "Guardando...",
+      "error_invalid": "La tarifa mínima debe ser menor que la máxima",
+      "error_save": "Error al guardar, vuelve a intentarlo",
+      "success": "Tarifa actualizada",
+      "close_aria": "Cerrar"
     },
     "completion": {
       "title": "Perfil completado al {percent} %",

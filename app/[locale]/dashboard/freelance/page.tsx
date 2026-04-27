@@ -6,13 +6,19 @@ import { Link, useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import TJMQuickEditModal from '@/components/TJMQuickEditModal'
+
+type ProfileTjm = { tjm_min: number | null; tjm_max: number | null }
 
 export default function DashboardFreelance() {
   const t = useTranslations('dashboard_freelance')
   const router = useRouter()
   const domain = useDomain()
   const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<ProfileTjm | null>(null)
   const [loading, setLoading] = useState(true)
+  const [tjmModalOpen, setTjmModalOpen] = useState(false)
+  const [tjmToast, setTjmToast] = useState<string | null>(null)
 
   useEffect(() => {
     const getUser = async () => {
@@ -21,16 +27,30 @@ export default function DashboardFreelance() {
         router.push('/connexion')
         return
       }
-      const { data } = await supabase
-        .from('users')
-        .select('*, domains(slug, name)')
-        .eq('id', session.user.id)
-        .single()
-      setUser(data)
+      const [{ data: userData }, { data: profileData }] = await Promise.all([
+        supabase
+          .from('users')
+          .select('*, domains(slug, name)')
+          .eq('id', session.user.id)
+          .single(),
+        supabase
+          .from('profiles')
+          .select('tjm_min, tjm_max')
+          .eq('user_id', session.user.id)
+          .maybeSingle(),
+      ])
+      setUser(userData)
+      setProfile(profileData ?? { tjm_min: null, tjm_max: null })
       setLoading(false)
     }
     getUser()
   }, [])
+
+  useEffect(() => {
+    if (!tjmToast) return
+    const id = window.setTimeout(() => setTjmToast(null), 3000)
+    return () => window.clearTimeout(id)
+  }, [tjmToast])
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontSize: 16, color: '#6b7280' }}>
@@ -329,8 +349,18 @@ export default function DashboardFreelance() {
             ))}
             <div className="stat-card" style={{ background: '#fff', border: `1px solid ${domain.primaryColor}55`, animationDelay: '0.25s' }}>
               <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>{t('stats.daily_rate')}</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: domain.primaryColor }}>— €</div>
-              <div style={{ fontSize: 12, color: domain.primaryColor, cursor: 'pointer', marginTop: 6 }}>{t('stats.daily_rate_set')}</div>
+              <div style={{ fontSize: profile?.tjm_min != null && profile?.tjm_max != null ? 18 : 24, fontWeight: 700, color: domain.primaryColor }}>
+                {profile?.tjm_min != null && profile?.tjm_max != null
+                  ? t('stats.daily_rate_range', { min: profile.tjm_min, max: profile.tjm_max })
+                  : '— €'}
+              </div>
+              <button
+                type="button"
+                onClick={() => setTjmModalOpen(true)}
+                style={{ background: 'transparent', border: 'none', padding: 0, fontSize: 12, color: domain.primaryColor, cursor: 'pointer', marginTop: 6, fontFamily: 'inherit', fontWeight: 500 }}
+              >
+                {t('stats.daily_rate_set')}
+              </button>
             </div>
           </div>
 
@@ -384,6 +414,45 @@ export default function DashboardFreelance() {
 
         </div>
       </div>
+
+      <TJMQuickEditModal
+        open={tjmModalOpen}
+        initialMin={profile?.tjm_min ?? null}
+        initialMax={profile?.tjm_max ?? null}
+        onClose={() => setTjmModalOpen(false)}
+        onSaved={(newMin, newMax) => {
+          setProfile(prev => ({ ...(prev ?? { tjm_min: null, tjm_max: null }), tjm_min: newMin, tjm_max: newMax }))
+          setTjmToast(t('tjm_modal.success'))
+        }}
+      />
+
+      {tjmToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: 'fixed',
+            top: 76,
+            right: 24,
+            zIndex: 1001,
+            background: '#dcfce7',
+            border: '1px solid #bbf7d0',
+            color: '#15803d',
+            padding: '12px 18px',
+            borderRadius: 12,
+            fontSize: 14,
+            fontWeight: 600,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
+            animation: 'fadeInUp 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <span>✓</span>
+          <span>{tjmToast}</span>
+        </div>
+      )}
     </div>
   )
 }

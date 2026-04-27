@@ -204,7 +204,21 @@
       "applications": "Candidatures",
       "messages": "Messages",
       "daily_rate": "Mon TJM",
-      "daily_rate_set": "Définir →"
+      "daily_rate_set": "Définir →",
+      "daily_rate_range": "{min} € — {max} €"
+    },
+    "tjm_modal": {
+      "title": "Définir mon TJM",
+      "subtitle": "Votre tarif journalier en euros",
+      "min_label": "TJM minimum",
+      "max_label": "TJM maximum",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
+      "error_invalid": "Le TJM minimum doit être inférieur au maximum",
+      "error_save": "Erreur lors de l'enregistrement",
+      "success": "TJM mis à jour",
+      "close_aria": "Fermer"
     },
     "completion": {
       "title": "Profil complété à {percent} %",
