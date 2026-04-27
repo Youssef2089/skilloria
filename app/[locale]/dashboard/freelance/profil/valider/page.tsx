@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { useDomain } from '@/context/DomainContext'
@@ -174,6 +174,7 @@ export default function ValiderProfilPage() {
   const router = useRouter()
   const domain = useDomain()
   const tProfile = useTranslations('profile_validation')
+  const locale = useLocale()
 
   const SENIORITY_LABELS: Record<Seniority, string> = {
     junior: tProfile('sections.identity.seniority_options.junior'),
@@ -384,20 +385,16 @@ export default function ValiderProfilPage() {
       setCity(profile.city ?? '')
       setCountry(profile.country ?? 'FR')
 
-      const [{ data: brs }, { data: sps }, { data: exps }, { data: edus }, { data: langs }] =
+      const taxonomyPromise = fetch(
+        `/api/taxonomy?locale=${encodeURIComponent(locale)}&domain_id=${encodeURIComponent(domainId)}`,
+        { cache: 'no-store' },
+      )
+        .then(r => (r.ok ? r.json() : { branches: [], specialities: [] }))
+        .catch(() => ({ branches: [], specialities: [] }))
+
+      const [taxonomy, { data: exps }, { data: edus }, { data: langs }] =
         await Promise.all([
-          supabase
-            .from('branches')
-            .select('id, name, slug')
-            .eq('domain_id', domainId)
-            .eq('active', true)
-            .order('sort_order', { ascending: true }),
-          supabase
-            .from('specialities')
-            .select('id, name, slug, branch_id')
-            .eq('domain_id', domainId)
-            .eq('active', true)
-            .order('sort_order', { ascending: true }),
+          taxonomyPromise,
           supabase
             .from('profile_experiences')
             .select(
@@ -415,6 +412,8 @@ export default function ValiderProfilPage() {
             .select('language, level, is_primary')
             .eq('profile_id', profile.id),
         ])
+      const brs = taxonomy.branches as Branch[] | undefined
+      const sps = taxonomy.specialities as Speciality[] | undefined
       if (cancelled) return
 
       setBranches((brs ?? []) as Branch[])

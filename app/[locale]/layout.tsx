@@ -18,8 +18,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export async function generateMetadata(): Promise<Metadata> {
-  const domain = await getDomainConfig();
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const domain = await getDomainConfig(locale);
   return {
     title: `Skilloria 365 — La marketplace ${domain.ecosystemName} pilotée par l'IA`,
     description: `Trouvez les meilleurs experts ${domain.ecosystemName} certifiés. Zéro commission. Matching IA en 24h.`,
@@ -39,7 +44,7 @@ export default async function LocaleLayout({
   }
 
   const [domainConfig, messages] = await Promise.all([
-    getDomainConfig(),
+    getDomainConfig(locale),
     getMessages(),
   ]);
 
