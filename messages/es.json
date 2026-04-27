@@ -40,6 +40,86 @@
       "title": "Anúnciate aquí.",
       "description": "Llega al instante a miles de expertos, reclutadores y empresas del ecosistema {ecosystem}.",
       "cta": "Contáctanos →"
+    },
+    "hero_animation": {
+      "progression_label": "Progreso",
+      "workflow": {
+        "step_1": "Publicar el proyecto",
+        "step_2": "IA notifica a expertos",
+        "step_3": "El experto aplica",
+        "step_4": "Reclutador elige",
+        "step_5": "Chat abierto"
+      },
+      "persona_recruiter": {
+        "name": "María L.",
+        "first_name": "María",
+        "role": "Responsable de selección",
+        "action_post": "Publica un proyecto",
+        "action_select": "Elige el mejor perfil"
+      },
+      "persona_freelance": {
+        "name": "Carlos D.",
+        "first_name": "Carlos",
+        "role_short": "Experto Senior D365",
+        "spec_short": "D365 Finance · 7 años",
+        "spec_long": "D365 Finance · 7 años · Madrid",
+        "tjm": "920€/d",
+        "dispo": "Inmediata"
+      },
+      "candidate_2": {
+        "name": "Lucía F.",
+        "spec_short": "Finanzas · 5 años",
+        "spec_long": "Finanzas · 5 años · Remote",
+        "tjm": "850€/d",
+        "dispo": "15 mayo"
+      },
+      "candidate_3": {
+        "name": "Pablo M.",
+        "spec_short": "SCM · 6 años",
+        "spec_long": "SCM · 6 años · Madrid",
+        "tjm": "880€/d",
+        "dispo": "1 mayo"
+      },
+      "mission": {
+        "title_label": "Título",
+        "title_value": "Experto en D365 Finance & Ops",
+        "tjm_label": "Tarifa diaria",
+        "tjm_value": "850€ — 1000€ / día",
+        "duration_label": "Duración y lugar",
+        "duration_value": "6 meses · Madrid · Remote",
+        "duration_short": "6 meses · Madrid",
+        "description_label": "Descripción",
+        "description_value": "Migración a D365 Finance — configuración contable, cierres mensuales y formación de usuarios.",
+        "publish_button": "Publicar el proyecto →"
+      },
+      "tags": {
+        "d365": "D365",
+        "finance": "Finanzas",
+        "remote_ok": "Remote OK",
+        "tjm_compact": "850€—1000€/d"
+      },
+      "matching": {
+        "badge": "Skilloria AI",
+        "status": "Matching en curso · 847 perfiles analizados",
+        "criteria": "Analizando más de 40 criterios",
+        "notified_badge": "Notificado"
+      },
+      "candidates": {
+        "received_title": "Candidaturas recibidas",
+        "dispo_label": "Disponible: {dispo}",
+        "match_label": "match IA"
+      },
+      "selection": {
+        "confirmation": "{name} seleccionado · Abriendo chat…"
+      },
+      "chat": {
+        "title": "Chat · {recruiter} ↔ {freelance}",
+        "online_label": "En línea",
+        "match_score": "Match {score}%",
+        "shared_mission_label": "Proyecto compartido",
+        "message_recruiter": "Hola {name}, ¿disponible desde el 1 de mayo? Tarifa 950€ confirmada.",
+        "message_freelance": "¡Confirmado para el 1 de mayo, 950€/día! Envío CV y referencias esta noche."
+      }
     }
   },
   "navbar": {

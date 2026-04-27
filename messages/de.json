@@ -40,6 +40,86 @@
       "title": "Hier werben.",
       "description": "Erreichen Sie sofort Tausende von Experten, Recruitern und Unternehmen im {ecosystem}-Ökosystem.",
       "cta": "Kontakt aufnehmen →"
+    },
+    "hero_animation": {
+      "progression_label": "Fortschritt",
+      "workflow": {
+        "step_1": "Auftrag veröffentlichen",
+        "step_2": "KI benachrichtigt Experten",
+        "step_3": "Experte bewirbt sich",
+        "step_4": "Recruiter wählt",
+        "step_5": "Chat eröffnet"
+      },
+      "persona_recruiter": {
+        "name": "Stefanie K.",
+        "first_name": "Stefanie",
+        "role": "Personalleiterin",
+        "action_post": "Veröffentlicht einen Auftrag",
+        "action_select": "Wählt das beste Profil"
+      },
+      "persona_freelance": {
+        "name": "Lukas H.",
+        "first_name": "Lukas",
+        "role_short": "Senior D365 Experte",
+        "spec_short": "D365 Finance · 7 Jahre",
+        "spec_long": "D365 Finance · 7 Jahre · Berlin",
+        "tjm": "920 €/Tag",
+        "dispo": "Sofort"
+      },
+      "candidate_2": {
+        "name": "Anna B.",
+        "spec_short": "Finanzen · 5 Jahre",
+        "spec_long": "Finanzen · 5 Jahre · Remote",
+        "tjm": "850 €/Tag",
+        "dispo": "15. Mai"
+      },
+      "candidate_3": {
+        "name": "Lukas S.",
+        "spec_short": "SCM · 6 Jahre",
+        "spec_long": "SCM · 6 Jahre · Berlin",
+        "tjm": "880 €/Tag",
+        "dispo": "1. Mai"
+      },
+      "mission": {
+        "title_label": "Titel",
+        "title_value": "D365 Finance & Ops Experte",
+        "tjm_label": "Tagessatz",
+        "tjm_value": "850 € — 1000 € / Tag",
+        "duration_label": "Dauer & Ort",
+        "duration_value": "6 Monate · Berlin · Remote",
+        "duration_short": "6 Monate · Berlin",
+        "description_label": "Beschreibung",
+        "description_value": "D365-Finance-Migration — Buchhaltungseinrichtung, monatliche Abschlüsse und Schulung der Anwender.",
+        "publish_button": "Auftrag veröffentlichen →"
+      },
+      "tags": {
+        "d365": "D365",
+        "finance": "Finanzen",
+        "remote_ok": "Remote OK",
+        "tjm_compact": "850—1000 €/Tag"
+      },
+      "matching": {
+        "badge": "Skilloria AI",
+        "status": "Matching läuft · 847 Profile analysiert",
+        "criteria": "Über 40 Kriterien werden geprüft",
+        "notified_badge": "Benachrichtigt"
+      },
+      "candidates": {
+        "received_title": "Bewerbungen erhalten",
+        "dispo_label": "Verfügbar: {dispo}",
+        "match_label": "KI-Match"
+      },
+      "selection": {
+        "confirmation": "{name} ausgewählt · Chat wird geöffnet…"
+      },
+      "chat": {
+        "title": "Chat · {recruiter} ↔ {freelance}",
+        "online_label": "Online",
+        "match_score": "Match {score}%",
+        "shared_mission_label": "Geteilter Auftrag",
+        "message_recruiter": "Hallo {name}, ab dem 1. Mai verfügbar? Tagessatz 950 € bestätigt.",
+        "message_freelance": "Bestätigt für den 1. Mai, 950 €/Tag. Lebenslauf und Referenzen sende ich heute Abend."
+      }
     }
   },
   "navbar": {

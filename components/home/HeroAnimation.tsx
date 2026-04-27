@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 
 interface HeroAnimationProps {
   primaryColor: string
@@ -9,11 +10,98 @@ interface HeroAnimationProps {
 
 export default function HeroAnimation({ primaryColor, domainName }: HeroAnimationProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const t = useTranslations('homepage.hero_animation')
 
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
     container.innerHTML = ''
+
+    // Pre-resolve all i18n strings used inside the imperative animation code.
+    const i18n = {
+      progressionLabel: t('progression_label'),
+      workflow: {
+        s1: t('workflow.step_1'),
+        s2: t('workflow.step_2'),
+        s3: t('workflow.step_3'),
+        s4: t('workflow.step_4'),
+        s5: t('workflow.step_5'),
+      },
+      recruiter: {
+        name: t('persona_recruiter.name'),
+        firstName: t('persona_recruiter.first_name'),
+        role: t('persona_recruiter.role'),
+        actionPost: t('persona_recruiter.action_post'),
+        actionSelect: t('persona_recruiter.action_select'),
+      },
+      freelance: {
+        name: t('persona_freelance.name'),
+        firstName: t('persona_freelance.first_name'),
+        roleShort: t('persona_freelance.role_short'),
+        specShort: t('persona_freelance.spec_short'),
+        specLong: t('persona_freelance.spec_long'),
+        tjm: t('persona_freelance.tjm'),
+        dispo: t('persona_freelance.dispo'),
+      },
+      cand2: {
+        name: t('candidate_2.name'),
+        specShort: t('candidate_2.spec_short'),
+        specLong: t('candidate_2.spec_long'),
+        tjm: t('candidate_2.tjm'),
+        dispo: t('candidate_2.dispo'),
+      },
+      cand3: {
+        name: t('candidate_3.name'),
+        specShort: t('candidate_3.spec_short'),
+        specLong: t('candidate_3.spec_long'),
+        tjm: t('candidate_3.tjm'),
+        dispo: t('candidate_3.dispo'),
+      },
+      mission: {
+        titleLabel: t('mission.title_label'),
+        titleValue: t('mission.title_value'),
+        tjmLabel: t('mission.tjm_label'),
+        tjmValue: t('mission.tjm_value'),
+        durationLabel: t('mission.duration_label'),
+        durationValue: t('mission.duration_value'),
+        durationShort: t('mission.duration_short'),
+        descriptionLabel: t('mission.description_label'),
+        descriptionValue: t('mission.description_value'),
+        publishButton: t('mission.publish_button'),
+      },
+      tags: {
+        d365: t('tags.d365'),
+        finance: t('tags.finance'),
+        remoteOk: t('tags.remote_ok'),
+        tjmCompact: t('tags.tjm_compact'),
+      },
+      matching: {
+        badge: t('matching.badge'),
+        status: t('matching.status'),
+        criteria: t('matching.criteria'),
+        notifiedBadge: t('matching.notified_badge'),
+      },
+      candidates: {
+        receivedTitle: t('candidates.received_title'),
+        matchLabel: t('candidates.match_label'),
+      },
+      chat: {
+        title: t('chat.title', {
+          recruiter: t('persona_recruiter.first_name'),
+          freelance: t('persona_freelance.name'),
+        }),
+        onlineLabel: t('chat.online_label'),
+        sharedMissionLabel: t('chat.shared_mission_label'),
+        messageRecruiter: t('chat.message_recruiter', {
+          name: t('persona_freelance.first_name'),
+        }),
+        messageFreelance: t('chat.message_freelance'),
+      },
+    }
+
+    const dispoLabel = (dispo: string) => t('candidates.dispo_label', { dispo })
+    const matchScore = (score: number) => t('chat.match_score', { score: String(score) })
+    const selectionConfirmation = (name: string) => t('selection.confirmation', { name })
 
     const style = document.createElement('style')
     style.textContent = `
@@ -64,13 +152,13 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
     const rp = document.createElement('div')
     rp.style.cssText = 'background:#fff;border-radius:14px;border:1px solid #e5e7eb;padding:12px'
     rp.innerHTML = `
-      <div style="font-size:13px;font-weight:600;color:#111827;margin-bottom:10px">Progression</div>
+      <div style="font-size:13px;font-weight:600;color:#111827;margin-bottom:10px">${i18n.progressionLabel}</div>
       <div>
-        <div class="sk-step" id="sk-s1"><div class="sk-snum" id="sk-n1" style="background:#f3f4f6;color:#d1d5db">1</div><div class="sk-slbl" id="sk-l1" style="color:#d1d5db">Publier la mission</div></div>
-        <div class="sk-step" id="sk-s2"><div class="sk-snum" id="sk-n2" style="background:#f3f4f6;color:#d1d5db">2</div><div class="sk-slbl" id="sk-l2" style="color:#d1d5db">IA notifie experts</div></div>
-        <div class="sk-step" id="sk-s3"><div class="sk-snum" id="sk-n3" style="background:#f3f4f6;color:#d1d5db">3</div><div class="sk-slbl" id="sk-l3" style="color:#d1d5db">L'expert postule</div></div>
-        <div class="sk-step" id="sk-s4"><div class="sk-snum" id="sk-n4" style="background:#f3f4f6;color:#d1d5db">4</div><div class="sk-slbl" id="sk-l4" style="color:#d1d5db">Recruteur choisit</div></div>
-        <div class="sk-step" id="sk-s5"><div class="sk-snum" id="sk-n5" style="background:#f3f4f6;color:#d1d5db">5</div><div class="sk-slbl" id="sk-l5" style="color:#d1d5db">Chat ouvert</div></div>
+        <div class="sk-step" id="sk-s1"><div class="sk-snum" id="sk-n1" style="background:#f3f4f6;color:#d1d5db">1</div><div class="sk-slbl" id="sk-l1" style="color:#d1d5db">${i18n.workflow.s1}</div></div>
+        <div class="sk-step" id="sk-s2"><div class="sk-snum" id="sk-n2" style="background:#f3f4f6;color:#d1d5db">2</div><div class="sk-slbl" id="sk-l2" style="color:#d1d5db">${i18n.workflow.s2}</div></div>
+        <div class="sk-step" id="sk-s3"><div class="sk-snum" id="sk-n3" style="background:#f3f4f6;color:#d1d5db">3</div><div class="sk-slbl" id="sk-l3" style="color:#d1d5db">${i18n.workflow.s3}</div></div>
+        <div class="sk-step" id="sk-s4"><div class="sk-snum" id="sk-n4" style="background:#f3f4f6;color:#d1d5db">4</div><div class="sk-slbl" id="sk-l4" style="color:#d1d5db">${i18n.workflow.s4}</div></div>
+        <div class="sk-step" id="sk-s5"><div class="sk-snum" id="sk-n5" style="background:#f3f4f6;color:#d1d5db">5</div><div class="sk-slbl" id="sk-l5" style="color:#d1d5db">${i18n.workflow.s5}</div></div>
       </div>`
     rpWrap.appendChild(rp)
     layout.appendChild(rpWrap)
@@ -192,18 +280,18 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
       header.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:14px;animation:sk-fadeIn 0.3s ease both'
       header.innerHTML = `
         <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;border:2px solid #bae6fd;flex-shrink:0">
-          <img src="https://randomuser.me/api/portraits/women/44.jpg" style="width:100%;height:100%;object-fit:cover" alt="Stéphanie M."/>
+          <img src="https://randomuser.me/api/portraits/women/44.jpg" style="width:100%;height:100%;object-fit:cover" alt="${i18n.recruiter.name}"/>
         </div>
         <div>
-          <div style="font-size:13px;font-weight:600;color:#111827">Stéphanie M.</div>
-          <div style="font-size:11px;color:#1d4ed8;font-weight:500">Responsable recrutement · Publie une mission</div>
+          <div style="font-size:13px;font-weight:600;color:#111827">${i18n.recruiter.name}</div>
+          <div style="font-size:11px;color:#1d4ed8;font-weight:500">${i18n.recruiter.role} · ${i18n.recruiter.actionPost}</div>
         </div>`
       lp.appendChild(header)
 
       const sf = [
-        { label: 'Titre', id: 'sk-f1', text: 'Expert D365 Finance & Ops' },
-        { label: 'TJM', id: 'sk-f2', text: '850€ — 1000€ / jour' },
-        { label: 'Durée & lieu', id: 'sk-f3', text: '6 mois · Paris · Remote' },
+        { label: i18n.mission.titleLabel, id: 'sk-f1', text: i18n.mission.titleValue },
+        { label: i18n.mission.tjmLabel, id: 'sk-f2', text: i18n.mission.tjmValue },
+        { label: i18n.mission.durationLabel, id: 'sk-f3', text: i18n.mission.durationValue },
       ]
       for (const f of sf) {
         const w = document.createElement('div'); w.style.cssText = 'margin-bottom:10px'
@@ -212,7 +300,7 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
         w.appendChild(inp); lp.appendChild(w)
       }
       const dw = document.createElement('div'); dw.style.cssText = 'margin-bottom:10px'
-      dw.innerHTML = '<div style="font-size:11px;color:#9ca3af;margin-bottom:3px">Description</div>'
+      dw.innerHTML = `<div style="font-size:11px;color:#9ca3af;margin-bottom:3px">${i18n.mission.descriptionLabel}</div>`
       const di = document.createElement('div'); di.id = 'sk-fdesc'; di.className = 'sk-desc'
       dw.appendChild(di); lp.appendChild(dw)
       const tw = document.createElement('div'); tw.id = 'sk-tw'
@@ -220,7 +308,7 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
       lp.appendChild(tw)
       const btn = document.createElement('div'); btn.id = 'sk-pbtn'
       btn.style.cssText = `padding:10px;background:#1d4ed8;color:#fff;border-radius:9px;font-size:13px;font-weight:600;text-align:center;cursor:pointer;opacity:0.3;transition:opacity 0.3s`
-      btn.textContent = 'Publier la mission →'; lp.appendChild(btn)
+      btn.textContent = i18n.mission.publishButton; lp.appendChild(btn)
 
       await sleep(200)
       for (const f of sf) {
@@ -232,13 +320,13 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
       const desc = document.getElementById('sk-fdesc') as HTMLElement
       await moveTo(desc, 260); desc.style.borderColor = '#1d4ed8'; desc.style.background = '#fff'
       await clickEl(desc, 120)
-      await typeIn(desc, 'Migration D365 Finance — paramétrage comptabilité, clôtures mensuelles et formation des utilisateurs.', 26)
+      await typeIn(desc, i18n.mission.descriptionValue, 26)
       desc.style.borderColor = '#e5e7eb'; desc.style.background = '#f9fafb'; await sleep(80)
 
       const tagDefs = [
-        { t: 'D365', bg: '#dbeafe', tc: '#1d4ed8' },
-        { t: 'Finance', bg: '#dcfce7', tc: '#15803d' },
-        { t: 'Remote OK', bg: '#ede9fe', tc: '#6d28d9' },
+        { t: i18n.tags.d365, bg: '#dbeafe', tc: '#1d4ed8' },
+        { t: i18n.tags.finance, bg: '#dcfce7', tc: '#15803d' },
+        { t: i18n.tags.remoteOk, bg: '#ede9fe', tc: '#6d28d9' },
       ]
       for (let i = 0; i < tagDefs.length; i++) {
         await sleep(120)
@@ -257,7 +345,6 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
     async function phase2() {
       await fadeTransition(); activateStep(2); setBar(40, 3500)
 
-      // Header avec ROBOT SVG au lieu de photo
       const header = document.createElement('div')
       header.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:14px;animation:sk-fadeIn 0.3s ease both'
       header.innerHTML = `
@@ -275,8 +362,8 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
           <div style="position:absolute;left:0;right:0;height:1.5px;background:${primaryColor};opacity:0.5;animation:sk-robotScan 2s ease-in-out infinite"></div>
         </div>
         <div>
-          <div style="font-size:13px;font-weight:600;color:#4c1d95">Skilloria AI</div>
-          <div style="font-size:11px;color:${primaryColor};font-weight:500">Matching en cours · 847 profils analysés</div>
+          <div style="font-size:13px;font-weight:600;color:#4c1d95">${i18n.matching.badge}</div>
+          <div style="font-size:11px;color:${primaryColor};font-weight:500">${i18n.matching.status}</div>
         </div>`
       lp.appendChild(header)
 
@@ -287,7 +374,7 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="animation:sk-spin 1.2s linear infinite;flex-shrink:0">
             <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="#6d28d9" stroke-width="2" stroke-linecap="round"/>
           </svg>
-          <div style="font-size:12px;font-weight:600;color:#4c1d95">Analyse des 40+ critères</div>
+          <div style="font-size:12px;font-weight:600;color:#4c1d95">${i18n.matching.criteria}</div>
         </div>
         <div style="height:5px;background:#e9d5ff;border-radius:10px;overflow:hidden">
           <div id="sk-ib" style="height:100%;background:#6d28d9;width:0;border-radius:10px;transition:width 0.3s ease"></div>
@@ -297,9 +384,9 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
       const na = document.createElement('div'); na.style.cssText = 'display:flex;flex-direction:column;gap:7px'
       lp.appendChild(na)
       const notifs = [
-        { img: 'https://randomuser.me/api/portraits/men/32.jpg', name: 'Thomas B.', spec: 'D365 Finance · 7 ans', score: 97 },
-        { img: 'https://randomuser.me/api/portraits/women/28.jpg', name: 'Camille R.', spec: 'Finance · 5 ans', score: 91 },
-        { img: 'https://randomuser.me/api/portraits/men/55.jpg', name: 'Mehdi A.', spec: 'SCM · 6 ans', score: 86 },
+        { img: 'https://randomuser.me/api/portraits/men/32.jpg', name: i18n.freelance.name, spec: i18n.freelance.specShort, score: 97 },
+        { img: 'https://randomuser.me/api/portraits/women/28.jpg', name: i18n.cand2.name, spec: i18n.cand2.specShort, score: 91 },
+        { img: 'https://randomuser.me/api/portraits/men/55.jpg', name: i18n.cand3.name, spec: i18n.cand3.specShort, score: 86 },
       ]
       for (let i = 0; i < notifs.length; i++) {
         await sleep(500)
@@ -308,7 +395,7 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
         const n = notifs[i]
         const row = document.createElement('div')
         row.style.cssText = 'display:flex;align-items:center;gap:9px;padding:9px 11px;background:#fff;border-radius:9px;border:1px solid #e5e7eb;animation:sk-notifSlide 0.3s ease both'
-        row.innerHTML = `<div style="width:30px;height:30px;border-radius:50%;overflow:hidden;border:2px solid #e5e7eb;flex-shrink:0"><img src="${n.img}" style="width:100%;height:100%;object-fit:cover" alt="${n.name}"/></div><div style="flex:1"><div style="font-size:12px;font-weight:600;color:#111827">${n.name}</div><div style="font-size:11px;color:#6b7280">${n.spec}</div></div><div style="font-size:13px;font-weight:700;color:#6d28d9;margin-right:4px">${n.score}%</div><div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:20px;padding:2px 8px;font-size:11px;color:#6d28d9;font-weight:600;white-space:nowrap">Notifié</div>`
+        row.innerHTML = `<div style="width:30px;height:30px;border-radius:50%;overflow:hidden;border:2px solid #e5e7eb;flex-shrink:0"><img src="${n.img}" style="width:100%;height:100%;object-fit:cover" alt="${n.name}"/></div><div style="flex:1"><div style="font-size:12px;font-weight:600;color:#111827">${n.name}</div><div style="font-size:11px;color:#6b7280">${n.spec}</div></div><div style="font-size:13px;font-weight:700;color:#6d28d9;margin-right:4px">${n.score}%</div><div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:20px;padding:2px 8px;font-size:11px;color:#6d28d9;font-weight:600;white-space:nowrap">${i18n.matching.notifiedBadge}</div>`
         na.appendChild(row)
       }
       await sleep(280)
@@ -319,7 +406,7 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
       const header = document.createElement('div')
       header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;animation:sk-fadeIn 0.3s ease both'
       header.innerHTML = `
-        <div style="font-size:13px;font-weight:600;color:#111827">Candidatures reçues</div>
+        <div style="font-size:13px;font-weight:600;color:#111827">${i18n.candidates.receivedTitle}</div>
         <div style="display:flex">
           <div style="width:28px;height:28px;border-radius:50%;overflow:hidden;border:2px solid #fff"><img src="https://randomuser.me/api/portraits/men/32.jpg" style="width:100%;height:100%;object-fit:cover" alt=""/></div>
           <div style="width:28px;height:28px;border-radius:50%;overflow:hidden;border:2px solid #fff;margin-left:-8px"><img src="https://randomuser.me/api/portraits/women/28.jpg" style="width:100%;height:100%;object-fit:cover" alt=""/></div>
@@ -328,9 +415,9 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
       lp.appendChild(header)
 
       const candidates = [
-        { img: 'https://randomuser.me/api/portraits/men/32.jpg', name: 'Thomas B.', spec: 'D365 Finance · 7 ans · Paris', tjm: '920€/j', dispo: 'Immédiate', score: 97, feat: true },
-        { img: 'https://randomuser.me/api/portraits/women/28.jpg', name: 'Camille R.', spec: 'Finance · 5 ans · Remote', tjm: '850€/j', dispo: '15 mai', score: 91, feat: false },
-        { img: 'https://randomuser.me/api/portraits/men/55.jpg', name: 'Mehdi A.', spec: 'SCM · 6 ans · Paris', tjm: '880€/j', dispo: '1er mai', score: 86, feat: false },
+        { img: 'https://randomuser.me/api/portraits/men/32.jpg', name: i18n.freelance.name, spec: i18n.freelance.specLong, tjm: i18n.freelance.tjm, dispo: i18n.freelance.dispo, score: 97, feat: true },
+        { img: 'https://randomuser.me/api/portraits/women/28.jpg', name: i18n.cand2.name, spec: i18n.cand2.specLong, tjm: i18n.cand2.tjm, dispo: i18n.cand2.dispo, score: 91, feat: false },
+        { img: 'https://randomuser.me/api/portraits/men/55.jpg', name: i18n.cand3.name, spec: i18n.cand3.specLong, tjm: i18n.cand3.tjm, dispo: i18n.cand3.dispo, score: 86, feat: false },
       ]
       const cards: HTMLElement[] = []
       for (let i = 0; i < candidates.length; i++) {
@@ -349,12 +436,12 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
             <div style="font-size:11px;color:#6b7280">${c.spec}</div>
             <div style="display:flex;gap:9px;margin-top:2px">
               <span style="font-size:11px;font-weight:500;color:#374151">${c.tjm}</span>
-              <span style="font-size:11px;color:#6b7280">Dispo : ${c.dispo}</span>
+              <span style="font-size:11px;color:#6b7280">${dispoLabel(c.dispo)}</span>
             </div>
           </div>
           <div style="text-align:right;flex-shrink:0">
             <div style="font-size:15px;font-weight:700;color:#15803d">${c.score}%</div>
-            <div style="font-size:10px;color:#9ca3af">match IA</div>
+            <div style="font-size:10px;color:#9ca3af">${i18n.candidates.matchLabel}</div>
           </div>`
         lp.appendChild(card); cards.push(card)
       }
@@ -367,11 +454,11 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
       header.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:12px;animation:sk-fadeIn 0.3s ease both'
       header.innerHTML = `
         <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;border:2px solid #fde68a;flex-shrink:0">
-          <img src="https://randomuser.me/api/portraits/women/44.jpg" style="width:100%;height:100%;object-fit:cover" alt="Stéphanie M."/>
+          <img src="https://randomuser.me/api/portraits/women/44.jpg" style="width:100%;height:100%;object-fit:cover" alt="${i18n.recruiter.name}"/>
         </div>
         <div>
-          <div style="font-size:13px;font-weight:600;color:#111827">Stéphanie M.</div>
-          <div style="font-size:11px;color:#92400e;font-weight:500">Sélectionne le meilleur profil</div>
+          <div style="font-size:13px;font-weight:600;color:#111827">${i18n.recruiter.name}</div>
+          <div style="font-size:11px;color:#92400e;font-weight:500">${i18n.recruiter.actionSelect}</div>
         </div>`
       lp.insertBefore(header, lp.firstChild)
       await sleep(240)
@@ -381,9 +468,9 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
       badge.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 13px;background:#fef9c3;border:1px solid #fde68a;border-radius:9px;margin-top:11px;animation:sk-fadeInUp 0.3s ease both'
       badge.innerHTML = `
         <div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid #fde68a">
-          <img src="https://randomuser.me/api/portraits/men/32.jpg" style="width:100%;height:100%;object-fit:cover" alt="Thomas B."/>
+          <img src="https://randomuser.me/api/portraits/men/32.jpg" style="width:100%;height:100%;object-fit:cover" alt="${i18n.freelance.name}"/>
         </div>
-        <span style="font-size:13px;font-weight:600;color:#92400e">Thomas B. choisi · Chat en cours d'ouverture…</span>`
+        <span style="font-size:13px;font-weight:600;color:#92400e">${selectionConfirmation(i18n.freelance.name)}</span>`
       lp.appendChild(badge); await sleep(380)
     }
 
@@ -391,31 +478,31 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
       await fadeTransition(); activateStep(5); setBar(100, 5000)
       const h = document.createElement('div')
       h.style.cssText = 'font-size:11px;color:#9d174d;font-weight:600;margin-bottom:9px;text-transform:uppercase;letter-spacing:.04em'
-      h.textContent = 'Chat · Stéphanie ↔ Thomas B.'; lp.appendChild(h)
+      h.textContent = i18n.chat.title; lp.appendChild(h)
       const cw = document.createElement('div')
       cw.style.cssText = 'background:#f8fafc;border-radius:11px;border:1px solid #e5e7eb;overflow:hidden;animation:sk-popIn 0.3s ease both'
       cw.innerHTML = `
         <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:10px 13px;display:flex;align-items:center;gap:9px">
           <div style="width:32px;height:32px;border-radius:50%;overflow:hidden;border:2px solid #fbcfe8;flex-shrink:0">
-            <img src="https://randomuser.me/api/portraits/men/32.jpg" style="width:100%;height:100%;object-fit:cover" alt="Thomas B."/>
+            <img src="https://randomuser.me/api/portraits/men/32.jpg" style="width:100%;height:100%;object-fit:cover" alt="${i18n.freelance.name}"/>
           </div>
           <div style="flex:1">
-            <div style="font-size:13px;font-weight:600;color:#111827">Thomas B.</div>
+            <div style="font-size:13px;font-weight:600;color:#111827">${i18n.freelance.name}</div>
             <div style="display:flex;align-items:center;gap:4px">
               <div style="width:7px;height:7px;border-radius:50%;background:#22c55e;animation:sk-pulseGreen 2s infinite;flex-shrink:0"></div>
-              <span style="font-size:11px;color:#6b7280">En ligne · Expert D365 Finance</span>
+              <span style="font-size:11px;color:#6b7280">${i18n.chat.onlineLabel} · ${i18n.freelance.roleShort}</span>
             </div>
           </div>
-          <div style="background:#fce7f3;border:1px solid #fbcfe8;border-radius:6px;padding:3px 9px;font-size:11px;color:#9d174d;font-weight:600">Match 97%</div>
+          <div style="background:#fce7f3;border:1px solid #fbcfe8;border-radius:6px;padding:3px 9px;font-size:11px;color:#9d174d;font-weight:600">${matchScore(97)}</div>
         </div>
         <div style="margin:9px 11px;background:#fff;border-radius:9px;border:1px solid #e5e7eb;padding:10px 12px">
-          <div style="font-size:11px;color:#9d174d;font-weight:600;margin-bottom:4px">Mission partagée</div>
-          <div style="font-size:12px;font-weight:600;color:#111827;margin-bottom:3px">Expert D365 Finance & Ops · 6 mois · Paris</div>
-          <div style="font-size:11px;color:#6b7280;line-height:1.5;margin-bottom:5px">Migration D365 Finance — paramétrage comptabilité, clôtures mensuelles, formation utilisateurs.</div>
+          <div style="font-size:11px;color:#9d174d;font-weight:600;margin-bottom:4px">${i18n.chat.sharedMissionLabel}</div>
+          <div style="font-size:12px;font-weight:600;color:#111827;margin-bottom:3px">${i18n.mission.titleValue} · ${i18n.mission.durationShort}</div>
+          <div style="font-size:11px;color:#6b7280;line-height:1.5;margin-bottom:5px">${i18n.mission.descriptionValue}</div>
           <div style="display:flex;gap:5px;flex-wrap:wrap">
-            <span class="sk-tag" style="background:#dbeafe;color:#1d4ed8">D365</span>
-            <span class="sk-tag" style="background:#dcfce7;color:#15803d">Finance</span>
-            <span class="sk-tag" style="background:#f3f4f6;color:#374151">850€—1000€/j</span>
+            <span class="sk-tag" style="background:#dbeafe;color:#1d4ed8">${i18n.tags.d365}</span>
+            <span class="sk-tag" style="background:#dcfce7;color:#15803d">${i18n.tags.finance}</span>
+            <span class="sk-tag" style="background:#f3f4f6;color:#374151">${i18n.tags.tjmCompact}</span>
           </div>
         </div>`
       const ma = document.createElement('div'); ma.id = 'sk-ma'
@@ -424,7 +511,7 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
       ir.style.cssText = 'padding:9px 11px;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;background:#fff'
       ir.innerHTML = `
         <div style="width:26px;height:26px;border-radius:50%;overflow:hidden;flex-shrink:0">
-          <img src="https://randomuser.me/api/portraits/women/44.jpg" style="width:100%;height:100%;object-fit:cover" alt="Stéphanie M."/>
+          <img src="https://randomuser.me/api/portraits/women/44.jpg" style="width:100%;height:100%;object-fit:cover" alt="${i18n.recruiter.name}"/>
         </div>
         <div id="sk-ci" style="flex:1;background:#f9fafb;border:1px solid #e5e7eb;border-radius:20px;padding:7px 12px;font-size:12px;color:#111827;min-height:30px;transition:border-color 0.2s;white-space:pre-wrap;word-break:break-word"></div>
         <div id="sk-sb" style="width:28px;height:28px;border-radius:50%;background:#9d174d;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;opacity:0.35;transition:opacity 0.3s">
@@ -436,13 +523,13 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
       const sb = document.getElementById('sk-sb') as HTMLElement
       await moveTo(ci, 300); ci.style.borderColor = '#9d174d'
       await clickEl(ci, 120)
-      await typeIn(ci, 'Bonjour Thomas, disponible dès le 1er mai ? TJM 950€ confirmé.', 30)
+      await typeIn(ci, i18n.chat.messageRecruiter, 30)
       await sleep(130); sb.style.opacity = '1'
       await moveTo(sb, 250); await clickEl(sb, 150)
       ci.innerHTML = ''; ci.style.borderColor = '#e5e7eb'; sb.style.opacity = '0.35'
       const m1 = document.createElement('div'); m1.className = 'sk-msg'
       m1.style.cssText = 'display:flex;justify-content:flex-end;margin-bottom:7px'
-      m1.innerHTML = `<div style="max-width:82%;padding:9px 11px;border-radius:11px 11px 2px 11px;background:#9d174d;color:#fff;font-size:12px;line-height:1.55">Bonjour Thomas, disponible dès le 1er mai ? TJM 950€ confirmé.</div>`
+      m1.innerHTML = `<div style="max-width:82%;padding:9px 11px;border-radius:11px 11px 2px 11px;background:#9d174d;color:#fff;font-size:12px;line-height:1.55">${i18n.chat.messageRecruiter}</div>`
       ma.appendChild(m1); await sleep(250)
       const tw = document.createElement('div'); tw.style.cssText = 'display:flex;justify-content:flex-start;margin-bottom:7px'
       const tb = document.createElement('div'); tb.style.cssText = 'display:flex;align-items:center;gap:3px;padding:7px 11px;background:#f3f4f6;border-radius:11px 11px 11px 2px'
@@ -450,7 +537,7 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
       tw.appendChild(tb); ma.appendChild(tw); await sleep(800); tw.remove()
       const m2 = document.createElement('div'); m2.className = 'sk-msg'
       m2.style.cssText = 'display:flex;justify-content:flex-start;margin-bottom:7px'
-      m2.innerHTML = `<div style="max-width:82%;padding:9px 11px;border-radius:11px 11px 11px 2px;background:#f3f4f6;color:#374151;font-size:12px;line-height:1.55">Confirmé pour le 1er mai, 950€/j. J'envoie CV et références ce soir !</div>`
+      m2.innerHTML = `<div style="max-width:82%;padding:9px 11px;border-radius:11px 11px 11px 2px;background:#f3f4f6;color:#374151;font-size:12px;line-height:1.55">${i18n.chat.messageFreelance}</div>`
       ma.appendChild(m2); await sleep(350)
     }
 
@@ -467,7 +554,7 @@ export default function HeroAnimation({ primaryColor, domainName }: HeroAnimatio
     }
     loop()
     return () => { running = false; container.innerHTML = '' }
-  }, [primaryColor, domainName])
+  }, [primaryColor, domainName, t])
 
   return (
     <div

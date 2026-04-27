@@ -40,6 +40,86 @@
       "title": "Annoncez ici.",
       "description": "Atteignez instantanément des milliers d'experts, recruteurs et entreprises de l'écosystème {ecosystem}.",
       "cta": "Nous contacter →"
+    },
+    "hero_animation": {
+      "progression_label": "Progression",
+      "workflow": {
+        "step_1": "Publier la mission",
+        "step_2": "IA notifie experts",
+        "step_3": "L'expert postule",
+        "step_4": "Recruteur choisit",
+        "step_5": "Chat ouvert"
+      },
+      "persona_recruiter": {
+        "name": "Stéphanie M.",
+        "first_name": "Stéphanie",
+        "role": "Responsable recrutement",
+        "action_post": "Publie une mission",
+        "action_select": "Sélectionne le meilleur profil"
+      },
+      "persona_freelance": {
+        "name": "Thomas R.",
+        "first_name": "Thomas",
+        "role_short": "Expert D365 Senior",
+        "spec_short": "D365 Finance · 7 ans",
+        "spec_long": "D365 Finance · 7 ans · Paris",
+        "tjm": "920€/j",
+        "dispo": "Immédiate"
+      },
+      "candidate_2": {
+        "name": "Camille R.",
+        "spec_short": "Finance · 5 ans",
+        "spec_long": "Finance · 5 ans · Remote",
+        "tjm": "850€/j",
+        "dispo": "15 mai"
+      },
+      "candidate_3": {
+        "name": "Mehdi A.",
+        "spec_short": "SCM · 6 ans",
+        "spec_long": "SCM · 6 ans · Paris",
+        "tjm": "880€/j",
+        "dispo": "1er mai"
+      },
+      "mission": {
+        "title_label": "Titre",
+        "title_value": "Expert D365 Finance & Ops",
+        "tjm_label": "TJM",
+        "tjm_value": "850€ — 1000€ / jour",
+        "duration_label": "Durée & lieu",
+        "duration_value": "6 mois · Paris · Remote",
+        "duration_short": "6 mois · Paris",
+        "description_label": "Description",
+        "description_value": "Migration D365 Finance — paramétrage comptabilité, clôtures mensuelles et formation des utilisateurs.",
+        "publish_button": "Publier la mission →"
+      },
+      "tags": {
+        "d365": "D365",
+        "finance": "Finance",
+        "remote_ok": "Remote OK",
+        "tjm_compact": "850€—1000€/j"
+      },
+      "matching": {
+        "badge": "Skilloria AI",
+        "status": "Matching en cours · 847 profils analysés",
+        "criteria": "Analyse des 40+ critères",
+        "notified_badge": "Notifié"
+      },
+      "candidates": {
+        "received_title": "Candidatures reçues",
+        "dispo_label": "Dispo\u00A0: {dispo}",
+        "match_label": "match IA"
+      },
+      "selection": {
+        "confirmation": "{name} choisi · Chat en cours d'ouverture…"
+      },
+      "chat": {
+        "title": "Chat · {recruiter} ↔ {freelance}",
+        "online_label": "En ligne",
+        "match_score": "Match {score}%",
+        "shared_mission_label": "Mission partagée",
+        "message_recruiter": "Bonjour {name}, disponible dès le 1er mai\u00A0? TJM 950€ confirmé.",
+        "message_freelance": "Confirmé pour le 1er mai, 950€/j. J'envoie CV et références ce soir\u00A0!"
+      }
     }
   },
   "navbar": {
