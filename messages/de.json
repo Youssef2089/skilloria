@@ -155,6 +155,78 @@
       "imprint": "Impressum"
     }
   },
+  "dashboard_freelance": {
+    "loading": "Wird geladen...",
+    "greeting": "Hallo 👋",
+    "verified_badge": "Verifiziertes Profil",
+    "topbar": {
+      "available": "Verfügbar",
+      "pending": "Verifizierung ausstehend"
+    },
+    "sidebar": {
+      "role_freelance": "Freelancer",
+      "add_photo": "Foto hinzufügen →",
+      "edit_photo": "Foto bearbeiten →",
+      "sections": {
+        "main": "Hauptbereich",
+        "publish": "Veröffentlichen",
+        "account": "Konto"
+      },
+      "nav": {
+        "dashboard": "Dashboard",
+        "profile": "Mein Profil",
+        "missions": "Missionen",
+        "applications": "Bewerbungen",
+        "messages": "Nachrichten",
+        "availability_alert": "Verfügbarkeitswarnung erstellen",
+        "subcontracting": "Bedarf / Unterauftrag",
+        "payments": "Zahlungen",
+        "settings": "Einstellungen",
+        "logout": "Abmelden"
+      }
+    },
+    "ai_score": {
+      "label": "KI-Score",
+      "empty": "noch ausfüllen"
+    },
+    "verification_banner": {
+      "title": "Profil wartet auf Verifizierung",
+      "description": "Unsere KI analysiert Ihr Profil. Nach der Validierung erhalten Sie das <strong>Verifiziertes Profil</strong>-Abzeichen und werden im Matching und der Veröffentlichung sichtbar.",
+      "steps": {
+        "account_created": "Konto erstellt",
+        "ai_analysis": "KI-Analyse",
+        "verified_badge": "Verifiziert-Abzeichen"
+      },
+      "cta": "Profil vervollständigen →"
+    },
+    "stats": {
+      "available_missions": "Verfügbare Missionen",
+      "applications": "Bewerbungen",
+      "messages": "Nachrichten",
+      "daily_rate": "Mein Tagessatz",
+      "daily_rate_set": "Festlegen →"
+    },
+    "completion": {
+      "title": "Profil zu {percent} % abgeschlossen",
+      "cta": "Vervollständigen →",
+      "hint": "Ein vollständiges Profil generiert 5-mal mehr Missionsangebote."
+    },
+    "cards": {
+      "see_all": "Alle anzeigen →",
+      "locked_chip": "🔒 Nicht verifiziert",
+      "empty_unverified": "Verfügbar nach Validierung Ihres Profils.",
+      "recommended_missions": {
+        "title": "Empfohlene Missionen",
+        "ai_badge": "KI",
+        "empty_verified": "Vervollständigen Sie Ihr Profil, damit unsere KI Ihnen Missionen passend zu Ihrer {ecosystem}-Expertise vorschlagen kann."
+      },
+      "expert_collaboration": {
+        "title": "Experten-Zusammenarbeit",
+        "new_badge": "Neu",
+        "empty_verified": "Derzeit sind keine Kooperationsmöglichkeiten verfügbar."
+      }
+    }
+  },
   "profile_upload": {
     "page_title": "Erstellen Sie Ihr Profil",
     "page_subtitle": "Unsere KI analysiert Ihr Dokument und füllt Ihr Profil vor. Sie prüfen, fertig.",

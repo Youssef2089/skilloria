@@ -155,6 +155,78 @@
       "imprint": "Aviso legal"
     }
   },
+  "dashboard_freelance": {
+    "loading": "Cargando...",
+    "greeting": "Hola 👋",
+    "verified_badge": "Perfil Verificado",
+    "topbar": {
+      "available": "Disponible",
+      "pending": "Pendiente de verificación"
+    },
+    "sidebar": {
+      "role_freelance": "Autónomo",
+      "add_photo": "Añadir una foto →",
+      "edit_photo": "Editar mi foto →",
+      "sections": {
+        "main": "Principal",
+        "publish": "Publicar",
+        "account": "Cuenta"
+      },
+      "nav": {
+        "dashboard": "Panel",
+        "profile": "Mi perfil",
+        "missions": "Misiones",
+        "applications": "Candidaturas",
+        "messages": "Mensajes",
+        "availability_alert": "Lanzar una alerta de disponibilidad",
+        "subcontracting": "Necesidad / Subcontratación",
+        "payments": "Pagos",
+        "settings": "Ajustes",
+        "logout": "Cerrar sesión"
+      }
+    },
+    "ai_score": {
+      "label": "Puntuación IA",
+      "empty": "por completar"
+    },
+    "verification_banner": {
+      "title": "Perfil pendiente de verificación",
+      "description": "Nuestra IA está analizando tu perfil. Una vez validado, obtendrás la insignia <strong>Perfil Verificado</strong> y podrás aparecer en el matching y publicar.",
+      "steps": {
+        "account_created": "Cuenta creada",
+        "ai_analysis": "Análisis IA",
+        "verified_badge": "Insignia Verificada"
+      },
+      "cta": "Completar mi perfil →"
+    },
+    "stats": {
+      "available_missions": "Misiones disponibles",
+      "applications": "Candidaturas",
+      "messages": "Mensajes",
+      "daily_rate": "Mi tarifa diaria",
+      "daily_rate_set": "Definir →"
+    },
+    "completion": {
+      "title": "Perfil completado al {percent} %",
+      "cta": "Completar →",
+      "hint": "Un perfil completo genera 5 veces más propuestas de misiones."
+    },
+    "cards": {
+      "see_all": "Ver todo →",
+      "locked_chip": "🔒 No verificado",
+      "empty_unverified": "Disponible tras la validación de tu perfil.",
+      "recommended_missions": {
+        "title": "Misiones recomendadas",
+        "ai_badge": "IA",
+        "empty_verified": "Completa tu perfil para que nuestra IA te proponga misiones adaptadas a tu experiencia en {ecosystem}."
+      },
+      "expert_collaboration": {
+        "title": "Colaboración entre expertos",
+        "new_badge": "Nuevo",
+        "empty_verified": "Por ahora no hay oportunidades de colaboración disponibles."
+      }
+    }
+  },
   "profile_upload": {
     "page_title": "Crea tu perfil",
     "page_subtitle": "Nuestra IA analiza tu documento y rellena tu perfil. Tú validas, y listo.",

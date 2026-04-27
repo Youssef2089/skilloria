@@ -155,6 +155,78 @@
       "imprint": "Legal notice"
     }
   },
+  "dashboard_freelance": {
+    "loading": "Loading...",
+    "greeting": "Hello 👋",
+    "verified_badge": "Verified Profile",
+    "topbar": {
+      "available": "Available",
+      "pending": "Pending verification"
+    },
+    "sidebar": {
+      "role_freelance": "Freelance",
+      "add_photo": "Add a photo →",
+      "edit_photo": "Edit my photo →",
+      "sections": {
+        "main": "Main",
+        "publish": "Publish",
+        "account": "Account"
+      },
+      "nav": {
+        "dashboard": "Dashboard",
+        "profile": "My profile",
+        "missions": "Missions",
+        "applications": "Applications",
+        "messages": "Messages",
+        "availability_alert": "Set an availability alert",
+        "subcontracting": "Need / Subcontracting",
+        "payments": "Payments",
+        "settings": "Settings",
+        "logout": "Log out"
+      }
+    },
+    "ai_score": {
+      "label": "AI Score",
+      "empty": "to complete"
+    },
+    "verification_banner": {
+      "title": "Profile pending verification",
+      "description": "Our AI is analysing your profile. Once validated, you'll receive the <strong>Verified Profile</strong> badge and become discoverable in matching and publishing.",
+      "steps": {
+        "account_created": "Account created",
+        "ai_analysis": "AI analysis",
+        "verified_badge": "Verified badge"
+      },
+      "cta": "Complete my profile →"
+    },
+    "stats": {
+      "available_missions": "Available missions",
+      "applications": "Applications",
+      "messages": "Messages",
+      "daily_rate": "My day rate",
+      "daily_rate_set": "Set →"
+    },
+    "completion": {
+      "title": "Profile {percent}% complete",
+      "cta": "Complete →",
+      "hint": "A complete profile generates 5x more mission opportunities."
+    },
+    "cards": {
+      "see_all": "See all →",
+      "locked_chip": "🔒 Not verified",
+      "empty_unverified": "Available once your profile is validated.",
+      "recommended_missions": {
+        "title": "Recommended missions",
+        "ai_badge": "AI",
+        "empty_verified": "Complete your profile so our AI can suggest missions tailored to your {ecosystem} expertise."
+      },
+      "expert_collaboration": {
+        "title": "Expert collaboration",
+        "new_badge": "New",
+        "empty_verified": "No collaboration opportunities available at the moment."
+      }
+    }
+  },
   "profile_upload": {
     "page_title": "Create your profile",
     "page_subtitle": "Our AI analyses your document and pre-fills your profile. You review, and you're set.",

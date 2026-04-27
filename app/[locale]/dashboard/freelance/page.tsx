@@ -1,11 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export default function DashboardFreelance() {
+  const t = useTranslations('dashboard_freelance')
   const router = useRouter()
   const domain = useDomain()
   const [user, setUser] = useState<any>(null)
@@ -31,7 +34,7 @@ export default function DashboardFreelance() {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontSize: 16, color: '#6b7280' }}>
-      Chargement...
+      {t('loading')}
     </div>
   )
 
@@ -178,17 +181,20 @@ export default function DashboardFreelance() {
           </div>
           <span style={{ fontSize: 17, fontWeight: 700, color: '#111827' }}>{domain.name}</span>
         </div>
-        {isVerified ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#dcfce7', border: '1px solid #bbf7d0', padding: '7px 16px', borderRadius: 20 }}>
-            <div className="pulse-dot" style={{ background: '#22c55e' }}></div>
-            <span style={{ fontSize: 13, fontWeight: 500, color: '#15803d', whiteSpace: 'nowrap' }}>Disponible</span>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fef9c3', border: '1px solid #fde68a', padding: '7px 16px', borderRadius: 20 }}>
-            <div className="pulse-dot" style={{ background: '#eab308' }}></div>
-            <span style={{ fontSize: 13, fontWeight: 500, color: '#92400e', whiteSpace: 'nowrap' }}>En attente de vérification</span>
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <LanguageSwitcher />
+          {isVerified ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#dcfce7', border: '1px solid #bbf7d0', padding: '7px 16px', borderRadius: 20 }}>
+              <div className="pulse-dot" style={{ background: '#22c55e' }}></div>
+              <span style={{ fontSize: 13, fontWeight: 500, color: '#15803d', whiteSpace: 'nowrap' }}>{t('topbar.available')}</span>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fef9c3', border: '1px solid #fde68a', padding: '7px 16px', borderRadius: 20 }}>
+              <div className="pulse-dot" style={{ background: '#eab308' }}></div>
+              <span style={{ fontSize: 13, fontWeight: 500, color: '#92400e', whiteSpace: 'nowrap' }}>{t('topbar.pending')}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="dashboard-layout" style={{ display: 'flex', minHeight: 'calc(100vh - 58px)' }}>
@@ -212,19 +218,19 @@ export default function DashboardFreelance() {
                 </svg>
               )}
             </div>
-            <div style={{ fontSize: 13, color: '#6b7280' }}>Freelance · {domain.ecosystemName}</div>
+            <div style={{ fontSize: 13, color: '#6b7280' }}>{t('sidebar.role_freelance')} · {domain.ecosystemName}</div>
             <div style={{ fontSize: 12, color: domain.primaryColor, marginTop: 8, cursor: 'pointer' }}>
-              {isVerified ? 'Modifier ma photo →' : 'Ajouter une photo →'}
+              {isVerified ? t('sidebar.edit_photo') : t('sidebar.add_photo')}
             </div>
           </div>
 
-          <div style={{ fontSize: 11, color: '#9ca3af', padding: '8px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>Principal</div>
-          <div className="nav-item-active">Tableau de bord</div>
+          <div style={{ fontSize: 11, color: '#9ca3af', padding: '8px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>{t('sidebar.sections.main')}</div>
+          <div className="nav-item-active">{t('sidebar.nav.dashboard')}</div>
           {[
-            { label: 'Mon profil', locked: false },
-            { label: 'Missions', locked: !isVerified },
-            { label: 'Candidatures', locked: !isVerified },
-            { label: 'Messages', locked: false },
+            { label: t('sidebar.nav.profile'), locked: false },
+            { label: t('sidebar.nav.missions'), locked: !isVerified },
+            { label: t('sidebar.nav.applications'), locked: !isVerified },
+            { label: t('sidebar.nav.messages'), locked: false },
           ].map((item, i) => (
             <div key={item.label} className="nav-item" style={{ animationDelay: `${(i + 1) * 0.05}s`, color: item.locked ? '#d1d5db' : '#4b5563', cursor: item.locked ? 'not-allowed' : 'pointer' }}>
               {item.label}
@@ -232,21 +238,21 @@ export default function DashboardFreelance() {
             </div>
           ))}
 
-          <div style={{ fontSize: 11, color: '#9ca3af', padding: '16px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>Publier</div>
+          <div style={{ fontSize: 11, color: '#9ca3af', padding: '16px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>{t('sidebar.sections.publish')}</div>
           <div className="nav-item" style={{ color: isVerified ? domain.primaryColor : '#d1d5db', cursor: isVerified ? 'pointer' : 'not-allowed', animationDelay: '0.3s' }}>
-            Lancer une alerte dispo {!isVerified && <span style={{ fontSize: 12 }}>🔒</span>}
+            {t('sidebar.nav.availability_alert')} {!isVerified && <span style={{ fontSize: 12 }}>🔒</span>}
           </div>
           <div className="nav-item" style={{ color: isVerified ? domain.primaryColor : '#d1d5db', cursor: isVerified ? 'pointer' : 'not-allowed', animationDelay: '0.35s' }}>
-            Besoin / Sous-traitance {!isVerified && <span style={{ fontSize: 12 }}>🔒</span>}
+            {t('sidebar.nav.subcontracting')} {!isVerified && <span style={{ fontSize: 12 }}>🔒</span>}
           </div>
 
-          <div style={{ fontSize: 11, color: '#9ca3af', padding: '16px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>Compte</div>
-          <div className="nav-item" style={{ animationDelay: '0.4s' }}>Paiements</div>
-          <div className="nav-item" style={{ animationDelay: '0.45s' }}>Paramètres</div>
+          <div style={{ fontSize: 11, color: '#9ca3af', padding: '16px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>{t('sidebar.sections.account')}</div>
+          <div className="nav-item" style={{ animationDelay: '0.4s' }}>{t('sidebar.nav.payments')}</div>
+          <div className="nav-item" style={{ animationDelay: '0.45s' }}>{t('sidebar.nav.settings')}</div>
 
           <div style={{ marginTop: 'auto', padding: '16px 8px 0', borderTop: '1px solid #e5e7eb' }}>
             <div className="nav-item" style={{ color: '#ef4444' }} onClick={async () => { await supabase.auth.signOut(); router.push('/') }}>
-              Déconnexion
+              {t('sidebar.nav.logout')}
             </div>
           </div>
         </div>
@@ -257,21 +263,21 @@ export default function DashboardFreelance() {
           {/* Titre + Score IA */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 26, animation: 'fadeInUp 0.4s ease' }}>
             <div>
-              <h1 style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginBottom: 8 }}>Bonjour 👋</h1>
+              <h1 style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginBottom: 8 }}>{t('greeting')}</h1>
               {isVerified && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'fadeIn 0.6s ease 0.3s both' }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                     <circle cx="12" cy="12" r="10" fill={domain.primaryColor}/>
                     <path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  <span style={{ fontSize: 13, color: domain.primaryColor, fontWeight: 500 }}>Profil Vérifié</span>
+                  <span style={{ fontSize: 13, color: domain.primaryColor, fontWeight: 500 }}>{t('verified_badge')}</span>
                 </div>
               )}
             </div>
             <div className="score-box">
-              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>Score IA</div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>{t('ai_score.label')}</div>
               <div style={{ fontSize: 28, fontWeight: 700, color: domain.primaryColor }}>—</div>
-              <div style={{ fontSize: 11, color: '#9ca3af' }}>à compléter</div>
+              <div style={{ fontSize: 11, color: '#9ca3af' }}>{t('ai_score.empty')}</div>
             </div>
           </div>
 
@@ -281,15 +287,17 @@ export default function DashboardFreelance() {
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                 <div style={{ fontSize: 22, flexShrink: 0 }}>⏳</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#92400e', marginBottom: 6 }}>Profil en attente de vérification</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: '#92400e', marginBottom: 6 }}>{t('verification_banner.title')}</div>
                   <div style={{ fontSize: 13, color: '#92400e', opacity: .8, lineHeight: 1.7, marginBottom: 12 }}>
-                    Notre IA analyse votre profil. Une fois validé, vous obtiendrez le badge <strong>Profil Vérifié</strong> et pourrez apparaître dans le matching et publier.
+                    {t.rich('verification_banner.description', {
+                      strong: chunks => <strong>{chunks}</strong>,
+                    })}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     {[
-                      { label: 'Compte créé', done: true },
-                      { label: 'Analyse IA', active: true },
-                      { label: 'Badge Vérifié', done: false },
+                      { label: t('verification_banner.steps.account_created'), done: true },
+                      { label: t('verification_banner.steps.ai_analysis'), active: true },
+                      { label: t('verification_banner.steps.verified_badge'), done: false },
                     ].map((step, i) => (
                       <div key={step.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         {i > 0 && <span style={{ color: '#d1d5db', fontSize: 13 }}>→</span>}
@@ -302,7 +310,7 @@ export default function DashboardFreelance() {
                 </div>
               </div>
               <button onClick={() => router.push('/dashboard/freelance/profil')} style={{ marginTop: 14, fontSize: 13, fontWeight: 600, padding: '9px 16px', borderRadius: 8, background: '#fff', border: '1px solid #fde68a', color: '#92400e', cursor: 'pointer', width: '100%' }}>
-                Compléter mon profil →
+                {t('verification_banner.cta')}
               </button>
             </div>
           )}
@@ -310,9 +318,9 @@ export default function DashboardFreelance() {
           {/* 4 stats */}
           <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 22 }}>
             {[
-              { label: 'Missions dispo', value: isVerified ? '0' : '—', delay: '0.1s' },
-              { label: 'Candidatures', value: isVerified ? '0' : '—', delay: '0.15s' },
-              { label: 'Messages', value: '0', delay: '0.2s' },
+              { label: t('stats.available_missions'), value: isVerified ? '0' : '—', delay: '0.1s' },
+              { label: t('stats.applications'), value: isVerified ? '0' : '—', delay: '0.15s' },
+              { label: t('stats.messages'), value: '0', delay: '0.2s' },
             ].map((stat) => (
               <div key={stat.label} className="stat-card" style={{ background: '#f3f4f6', animationDelay: stat.delay }}>
                 <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>{stat.label}</div>
@@ -320,38 +328,40 @@ export default function DashboardFreelance() {
               </div>
             ))}
             <div className="stat-card" style={{ background: '#fff', border: `1px solid ${domain.primaryColor}55`, animationDelay: '0.25s' }}>
-              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>Mon TJM</div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>{t('stats.daily_rate')}</div>
               <div style={{ fontSize: 24, fontWeight: 700, color: domain.primaryColor }}>— €</div>
-              <div style={{ fontSize: 12, color: domain.primaryColor, cursor: 'pointer', marginTop: 6 }}>Définir →</div>
+              <div style={{ fontSize: 12, color: domain.primaryColor, cursor: 'pointer', marginTop: 6 }}>{t('stats.daily_rate_set')}</div>
             </div>
           </div>
 
           {/* Complétion profil */}
           <div className="main-card" style={{ borderColor: `${domain.primaryColor}55`, animationDelay: '0.3s' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>Profil complété à 0%</div>
-              <span className="voir-tout" style={{ color: domain.primaryColor }}>Compléter →</span>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>{t('completion.title', { percent: 0 })}</div>
+              <span className="voir-tout" style={{ color: domain.primaryColor }}>{t('completion.cta')}</span>
             </div>
             <div className="progress-bar">
               <div className="progress-fill" style={{ background: `linear-gradient(90deg, ${domain.primaryColor}, ${domain.secondaryColor})`, width: '0%' }}></div>
             </div>
-            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 10, lineHeight: 1.6 }}>Un profil complet génère 5x plus de propositions de missions.</div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 10, lineHeight: 1.6 }}>{t('completion.hint')}</div>
           </div>
 
           {/* Missions recommandées */}
           <div className="main-card" style={{ opacity: isVerified ? 1 : 0.6, animationDelay: '0.35s' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>Missions recommandées</span>
-                <span style={{ background: '#ede9fe', color: '#6d28d9', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 20 }}>IA</span>
+                <span style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>{t('cards.recommended_missions.title')}</span>
+                <span style={{ background: '#ede9fe', color: '#6d28d9', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 20 }}>{t('cards.recommended_missions.ai_badge')}</span>
               </div>
               {!isVerified
-                ? <span style={{ background: '#f3f4f6', color: '#9ca3af', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>🔒 Non vérifié</span>
-                : <span className="voir-tout" style={{ color: domain.primaryColor }}>Voir tout →</span>
+                ? <span style={{ background: '#f3f4f6', color: '#9ca3af', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('cards.locked_chip')}</span>
+                : <span className="voir-tout" style={{ color: domain.primaryColor }}>{t('cards.see_all')}</span>
               }
             </div>
             <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
-              {isVerified ? `Complétez votre profil pour que notre IA vous propose des missions adaptées à votre expertise ${domain.ecosystemName}.` : 'Disponible après validation de votre profil.'}
+              {isVerified
+                ? t('cards.recommended_missions.empty_verified', { ecosystem: domain.ecosystemName })
+                : t('cards.empty_unverified')}
             </div>
           </div>
 
@@ -359,16 +369,16 @@ export default function DashboardFreelance() {
           <div className="main-card" style={{ opacity: isVerified ? 1 : 0.6, marginBottom: 0, animationDelay: '0.4s' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>Collaboration experts</span>
-                <span style={{ background: '#dcfce7', color: '#15803d', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 20 }}>Nouveau</span>
+                <span style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>{t('cards.expert_collaboration.title')}</span>
+                <span style={{ background: '#dcfce7', color: '#15803d', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 20 }}>{t('cards.expert_collaboration.new_badge')}</span>
               </div>
               {!isVerified
-                ? <span style={{ background: '#f3f4f6', color: '#9ca3af', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>🔒 Non vérifié</span>
-                : <span className="voir-tout" style={{ color: domain.primaryColor }}>Voir tout →</span>
+                ? <span style={{ background: '#f3f4f6', color: '#9ca3af', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('cards.locked_chip')}</span>
+                : <span className="voir-tout" style={{ color: domain.primaryColor }}>{t('cards.see_all')}</span>
               }
             </div>
             <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
-              {isVerified ? "Aucune opportunité de collaboration disponible pour l'instant." : 'Disponible après validation de votre profil.'}
+              {isVerified ? t('cards.expert_collaboration.empty_verified') : t('cards.empty_unverified')}
             </div>
           </div>
 
