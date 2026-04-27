@@ -166,7 +166,7 @@
     "sidebar": {
       "role_freelance": "Autónomo",
       "add_photo": "Añadir una foto →",
-      "edit_photo": "Editar mi foto →",
+      "edit_photo": "Editar foto →",
       "sections": {
         "main": "Principal",
         "publish": "Publicar",
@@ -206,6 +206,20 @@
       "daily_rate": "Mi tarifa diaria",
       "daily_rate_set": "Definir →",
       "daily_rate_range": "{min} € — {max} €"
+    },
+    "avatar_modal": {
+      "title": "Foto de perfil",
+      "subtitle": "Elige una foto nítida y profesional",
+      "choose_file": "Elegir una foto",
+      "zoom_label": "Zoom",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "saving": "Subiendo...",
+      "error_size": "Archivo demasiado grande (máx. 2 MB)",
+      "error_format": "Formato no admitido (solo JPG, PNG, WebP)",
+      "error_save": "Error al guardar, vuelve a intentarlo",
+      "success": "Foto actualizada",
+      "close_aria": "Cerrar"
     },
     "tjm_modal": {
       "title": "Definir mi tarifa diaria",

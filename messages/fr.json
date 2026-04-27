@@ -166,7 +166,7 @@
     "sidebar": {
       "role_freelance": "Freelance",
       "add_photo": "Ajouter une photo →",
-      "edit_photo": "Modifier ma photo →",
+      "edit_photo": "Modifier la photo →",
       "sections": {
         "main": "Principal",
         "publish": "Publier",
@@ -206,6 +206,20 @@
       "daily_rate": "Mon TJM",
       "daily_rate_set": "Définir →",
       "daily_rate_range": "{min} € — {max} €"
+    },
+    "avatar_modal": {
+      "title": "Photo de profil",
+      "subtitle": "Choisissez une photo nette et professionnelle",
+      "choose_file": "Choisir une photo",
+      "zoom_label": "Zoom",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "saving": "Téléversement...",
+      "error_size": "Fichier trop volumineux (max 2 Mo)",
+      "error_format": "Format non supporté (JPG, PNG, WebP uniquement)",
+      "error_save": "Erreur lors de l'enregistrement",
+      "success": "Photo mise à jour",
+      "close_aria": "Fermer"
     },
     "tjm_modal": {
       "title": "Définir mon TJM",

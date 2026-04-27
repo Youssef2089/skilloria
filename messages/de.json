@@ -207,6 +207,20 @@
       "daily_rate_set": "Festlegen →",
       "daily_rate_range": "{min} € — {max} €"
     },
+    "avatar_modal": {
+      "title": "Profilfoto",
+      "subtitle": "Wählen Sie ein scharfes, professionelles Foto",
+      "choose_file": "Foto auswählen",
+      "zoom_label": "Zoom",
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "saving": "Wird hochgeladen...",
+      "error_size": "Datei zu groß (max. 2 MB)",
+      "error_format": "Format nicht unterstützt (nur JPG, PNG, WebP)",
+      "error_save": "Speichern fehlgeschlagen, bitte erneut versuchen",
+      "success": "Foto aktualisiert",
+      "close_aria": "Schließen"
+    },
     "tjm_modal": {
       "title": "Tagessatz festlegen",
       "subtitle": "Ihr Tagessatz in Euro",

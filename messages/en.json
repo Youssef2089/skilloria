@@ -166,7 +166,7 @@
     "sidebar": {
       "role_freelance": "Freelance",
       "add_photo": "Add a photo →",
-      "edit_photo": "Edit my photo →",
+      "edit_photo": "Edit photo →",
       "sections": {
         "main": "Main",
         "publish": "Publish",
@@ -206,6 +206,20 @@
       "daily_rate": "My day rate",
       "daily_rate_set": "Set →",
       "daily_rate_range": "{min} € — {max} €"
+    },
+    "avatar_modal": {
+      "title": "Profile photo",
+      "subtitle": "Choose a clear, professional photo",
+      "choose_file": "Choose a photo",
+      "zoom_label": "Zoom",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Uploading...",
+      "error_size": "File too large (max 2 MB)",
+      "error_format": "Unsupported format (JPG, PNG, WebP only)",
+      "error_save": "Save failed, please try again",
+      "success": "Photo updated",
+      "close_aria": "Close"
     },
     "tjm_modal": {
       "title": "Set my day rate",

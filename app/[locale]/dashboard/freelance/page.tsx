@@ -7,18 +7,20 @@ import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import TJMQuickEditModal from '@/components/TJMQuickEditModal'
+import AvatarUploadModal from '@/components/AvatarUploadModal'
 
-type ProfileTjm = { tjm_min: number | null; tjm_max: number | null }
+type ProfileData = { tjm_min: number | null; tjm_max: number | null; photo_url: string | null }
 
 export default function DashboardFreelance() {
   const t = useTranslations('dashboard_freelance')
   const router = useRouter()
   const domain = useDomain()
   const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<ProfileTjm | null>(null)
+  const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [tjmModalOpen, setTjmModalOpen] = useState(false)
-  const [tjmToast, setTjmToast] = useState<string | null>(null)
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
     const getUser = async () => {
@@ -35,22 +37,22 @@ export default function DashboardFreelance() {
           .single(),
         supabase
           .from('profiles')
-          .select('tjm_min, tjm_max')
+          .select('tjm_min, tjm_max, photo_url')
           .eq('user_id', session.user.id)
           .maybeSingle(),
       ])
       setUser(userData)
-      setProfile(profileData ?? { tjm_min: null, tjm_max: null })
+      setProfile(profileData ?? { tjm_min: null, tjm_max: null, photo_url: null })
       setLoading(false)
     }
     getUser()
   }, [])
 
   useEffect(() => {
-    if (!tjmToast) return
-    const id = window.setTimeout(() => setTjmToast(null), 3000)
+    if (!toast) return
+    const id = window.setTimeout(() => setToast(null), 3000)
     return () => window.clearTimeout(id)
-  }, [tjmToast])
+  }, [toast])
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontSize: 16, color: '#6b7280' }}>
@@ -224,9 +226,18 @@ export default function DashboardFreelance() {
 
           <div style={{ padding: '0 20px 20px', marginBottom: 14, borderBottom: '1px solid #e5e7eb', textAlign: 'center' }}>
             <div style={{ position: 'relative', display: 'inline-block', marginBottom: 14 }}>
-              <div className="avatar" style={{ background: `linear-gradient(135deg, ${domain.primaryColor}44, ${domain.secondaryColor}44)`, color: domain.primaryColor }}>
-                {initials}
-              </div>
+              {profile?.photo_url ? (
+                <img
+                  src={profile.photo_url}
+                  alt={username}
+                  className="avatar"
+                  style={{ objectFit: 'cover' }}
+                />
+              ) : (
+                <div className="avatar" style={{ background: `linear-gradient(135deg, ${domain.primaryColor}44, ${domain.secondaryColor}44)`, color: domain.primaryColor }}>
+                  {initials}
+                </div>
+              )}
               <div className="pulse-dot" style={{ position: 'absolute', bottom: 3, right: 3, width: 14, height: 14, background: isVerified ? '#22c55e' : '#eab308', border: '2px solid #fff' }}></div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginBottom: 5 }}>
@@ -239,9 +250,13 @@ export default function DashboardFreelance() {
               )}
             </div>
             <div style={{ fontSize: 13, color: '#6b7280' }}>{t('sidebar.role_freelance')} · {domain.ecosystemName}</div>
-            <div style={{ fontSize: 12, color: domain.primaryColor, marginTop: 8, cursor: 'pointer' }}>
-              {isVerified ? t('sidebar.edit_photo') : t('sidebar.add_photo')}
-            </div>
+            <button
+              type="button"
+              onClick={() => setAvatarModalOpen(true)}
+              style={{ background: 'transparent', border: 'none', padding: 0, fontSize: 12, color: domain.primaryColor, cursor: 'pointer', marginTop: 8, fontFamily: 'inherit', fontWeight: 500 }}
+            >
+              {profile?.photo_url ? t('sidebar.edit_photo') : t('sidebar.add_photo')}
+            </button>
           </div>
 
           <div style={{ fontSize: 11, color: '#9ca3af', padding: '8px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>{t('sidebar.sections.main')}</div>
@@ -421,12 +436,29 @@ export default function DashboardFreelance() {
         initialMax={profile?.tjm_max ?? null}
         onClose={() => setTjmModalOpen(false)}
         onSaved={(newMin, newMax) => {
-          setProfile(prev => ({ ...(prev ?? { tjm_min: null, tjm_max: null }), tjm_min: newMin, tjm_max: newMax }))
-          setTjmToast(t('tjm_modal.success'))
+          setProfile(prev => ({
+            ...(prev ?? { tjm_min: null, tjm_max: null, photo_url: null }),
+            tjm_min: newMin,
+            tjm_max: newMax,
+          }))
+          setToast(t('tjm_modal.success'))
         }}
       />
 
-      {tjmToast && (
+      <AvatarUploadModal
+        open={avatarModalOpen}
+        currentPhotoUrl={profile?.photo_url ?? null}
+        onClose={() => setAvatarModalOpen(false)}
+        onSaved={newUrl => {
+          setProfile(prev => ({
+            ...(prev ?? { tjm_min: null, tjm_max: null, photo_url: null }),
+            photo_url: newUrl,
+          }))
+          setToast(t('avatar_modal.success'))
+        }}
+      />
+
+      {toast && (
         <div
           role="status"
           aria-live="polite"
@@ -450,7 +482,7 @@ export default function DashboardFreelance() {
           }}
         >
           <span>✓</span>
-          <span>{tjmToast}</span>
+          <span>{toast}</span>
         </div>
       )}
     </div>
