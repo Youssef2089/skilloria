@@ -7,11 +7,187 @@
     "language_switcher_current": "Aktuelle Sprache: {locale}"
   },
   "profile_validation": {
-    "country_label": "Wohnsitzland",
-    "country_placeholder": "Land auswählen",
-    "country_search_placeholder": "Land suchen...",
-    "country_loading": "Länder werden geladen...",
-    "country_empty": "Kein Land gefunden"
+    "page_title": "Validieren Sie Ihr Profil",
+    "page_subtitle": "Überprüfen Sie die aus Ihrem Dokument extrahierten Informationen. Sie können alles vor dem Veröffentlichen bearbeiten.",
+    "ai_banner": "💡 Unsere KI hat diese Felder vorausgefüllt. Bearbeiten Sie sie bei Bedarf vor dem Veröffentlichen.",
+    "back_link": "← Zurück",
+    "loading": "Ihr Profil wird geladen...",
+    "parsing_failed_message": "⚠️ Die KI-Auswertung ist fehlgeschlagen, vervollständigen Sie Ihr Profil manuell.",
+    "topbar_pending": "Wartet auf Verifizierung",
+    "close_aria": "Schließen",
+    "banner_error": "{count, plural, one {Um Ihr Profil zu veröffentlichen, vervollständigen Sie das unten markierte Feld: {fields}.} other {Um Ihr Profil zu veröffentlichen, vervollständigen Sie die # unten markierten Felder: {fields}.}}",
+    "errors": {
+      "account_load_failed": "Ihr Konto konnte nicht geladen werden.",
+      "incomplete_check_below": "Profil unvollständig, überprüfen Sie die unten markierten Felder.",
+      "save_failed": "Fehler beim Speichern, bitte erneut versuchen."
+    },
+    "field_labels_short": {
+      "title": "den beruflichen Titel",
+      "summary": "die Zusammenfassung (mindestens 20 Zeichen)",
+      "skills": "mindestens 3 Kompetenzen",
+      "branch_id": "den Hauptbereich",
+      "speciality_id": "die Spezialisierung",
+      "work_modes": "mindestens einen Arbeitsmodus",
+      "experiences": "mindestens eine Berufserfahrung",
+      "languages_structured": "mindestens eine Sprache"
+    },
+    "field_errors": {
+      "title": "Geben Sie Ihren beruflichen Titel an",
+      "summary": "Mindestens 20 Zeichen zum Veröffentlichen",
+      "skills": "Fügen Sie mindestens 3 Kompetenzen hinzu",
+      "branch_id": "Wählen Sie einen Bereich",
+      "speciality_id": "Wählen Sie eine Spezialisierung",
+      "work_modes": "Wählen Sie mindestens einen Arbeitsmodus",
+      "experiences": "Fügen Sie mindestens eine Erfahrung hinzu (Werdegang oder Einsatz)",
+      "languages_structured": "Fügen Sie mindestens eine Sprache hinzu"
+    },
+    "sections": {
+      "identity": {
+        "title": "Berufliche Identität",
+        "title_label": "Berufstitel",
+        "title_placeholder": "z.B. Senior Dynamics 365 F&O Consultant",
+        "summary_label": "Zusammenfassung",
+        "summary_placeholder": "10 Jahre Erfahrung in...",
+        "summary_counter": "{count}/500 · mindestens 20 Zeichen zum Veröffentlichen",
+        "seniority_label": "Seniorität",
+        "seniority_placeholder": "— Auswählen —",
+        "seniority_options": {
+          "junior": "Junior",
+          "confirmed": "Erfahren",
+          "senior": "Senior",
+          "expert": "Experte"
+        },
+        "years_label": "Jahre Erfahrung"
+      },
+      "expertise": {
+        "title": "Expertise",
+        "branch_label": "Hauptbereich",
+        "branch_placeholder": "— Bereich auswählen —",
+        "speciality_label": "Spezialisierung",
+        "speciality_placeholder": "— Spezialisierung auswählen —",
+        "skills_label": "Kompetenzen",
+        "skills_min_hint": "(mind. 3 zum Veröffentlichen)",
+        "skills_placeholder": "z.B. Azure, Power BI, D365...",
+        "skills_add_button": "Hinzufügen",
+        "skill_remove_aria": "{name} entfernen"
+      },
+      "certifications": {
+        "title": "Zertifizierungen",
+        "empty": "Noch keine Zertifizierungen.",
+        "name_label": "Name",
+        "name_placeholder": "PL-300, MB-700...",
+        "issuer_label": "Aussteller",
+        "issuer_placeholder": "Microsoft",
+        "year_label": "Jahr",
+        "remove_aria": "Entfernen",
+        "add_button": "+ Zertifizierung hinzufügen"
+      },
+      "availability": {
+        "title": "Verfügbarkeit",
+        "work_modes_label": "Arbeitsmodi",
+        "work_modes_hint": "mehrere möglich",
+        "work_mode_remote": "Remote",
+        "work_mode_onsite": "Vor Ort",
+        "work_mode_hybrid": "Hybrid",
+        "location_label": "Standort",
+        "location_placeholder": "Berlin, München, Remote...",
+        "tjm_min_label": "Tagessatz min. (€ / Tag)",
+        "tjm_max_label": "Tagessatz max. (€ / Tag)",
+        "available_from_label": "Verfügbar ab",
+        "languages_label": "Sprachen",
+        "languages_min_hint": "(mind. 1 zum Veröffentlichen)",
+        "languages_empty": "Keine Sprache hinzugefügt.",
+        "language_placeholder": "Deutsch, Englisch...",
+        "level_options": {
+          "A1": "A1 — Anfänger",
+          "A2": "A2 — Grundkenntnisse",
+          "B1": "B1 — Fortgeschritten",
+          "B2": "B2 — Selbstständig",
+          "C1": "C1 — Fachkundig",
+          "C2": "C2 — Annähernd muttersprachlich",
+          "native": "Muttersprache"
+        },
+        "primary_label": "Hauptsprache",
+        "language_remove_aria": "Sprache entfernen",
+        "language_add_button": "+ Sprache hinzufügen"
+      },
+      "links": {
+        "title": "Links",
+        "linkedin_label": "LinkedIn-URL",
+        "linkedin_placeholder": "https://linkedin.com/in/..."
+      },
+      "contact": {
+        "title": "Kontaktdaten",
+        "phone_label": "Telefon",
+        "phone_placeholder": "+49 30 1234 5678",
+        "birth_year_label": "Geburtsjahr",
+        "birth_year_placeholder": "1990",
+        "address_label": "Adresse",
+        "address_placeholder": "Hauptstraße 12",
+        "postal_code_label": "Postleitzahl",
+        "postal_code_placeholder": "10115",
+        "city_label": "Stadt",
+        "city_placeholder": "Berlin",
+        "country_label": "Wohnsitzland",
+        "country_placeholder": "Land auswählen",
+        "country_search_placeholder": "Land suchen...",
+        "country_loading": "Länder werden geladen...",
+        "country_empty": "Kein Land gefunden"
+      },
+      "career": {
+        "title": "Werdegang",
+        "empty": "Noch kein Arbeitgeber hinzugefügt.",
+        "role_label": "Position",
+        "role_placeholder": "Lead Supply Chain D365 SCM",
+        "employer_label": "Arbeitgeber",
+        "employer_placeholder": "Prodware, SilverProd...",
+        "is_current_label": "Aktuelle Position",
+        "description_placeholder": "Überblick über die Rolle, Verantwortlichkeiten, Kontext...",
+        "add_button": "+ Arbeitgeber hinzufügen",
+        "remove_aria": "Diese Position entfernen"
+      },
+      "missions": {
+        "title": "Einsätze / Projekte",
+        "empty": "Noch kein Einsatz hinzugefügt.",
+        "role_label": "Rolle",
+        "role_placeholder": "Solution Architect",
+        "client_label": "Kunde",
+        "client_placeholder": "Vertraulich",
+        "sector_label": "Branche",
+        "sector_placeholder": "Agrar- und Lebensmittel, Automobilindustrie...",
+        "is_current_label": "Laufender Einsatz",
+        "description_placeholder": "Umfang, Aufgaben, Liefergegenstände, Technologien, Projektkontext...",
+        "add_button": "+ Einsatz hinzufügen",
+        "remove_aria": "Diesen Einsatz entfernen"
+      },
+      "experience_card": {
+        "start_date_label": "Startdatum",
+        "end_date_label": "Enddatum",
+        "description_label": "Beschreibung"
+      },
+      "education": {
+        "title": "Ausbildung",
+        "empty": "Noch keine Ausbildung hinzugefügt.",
+        "school_label": "Bildungseinrichtung",
+        "school_placeholder": "Technische Universität Berlin",
+        "degree_label": "Abschluss",
+        "degree_placeholder": "Master, Bachelor, MBA...",
+        "field_label": "Fachgebiet / Spezialisierung",
+        "field_placeholder": "Finanzen, Informatik...",
+        "location_label": "Ort",
+        "location_placeholder": "Berlin, München...",
+        "start_year_label": "Startjahr",
+        "end_year_label": "Endjahr",
+        "remove_aria": "Diese Ausbildung entfernen",
+        "add_button": "+ Ausbildung hinzufügen"
+      }
+    },
+    "actions": {
+      "save_draft": "Als Entwurf speichern",
+      "publish": "Mein Profil veröffentlichen →",
+      "saving": "Wird gespeichert...",
+      "publishing": "Wird veröffentlicht..."
+    }
   },
   "login": {
     "title": "Anmelden",

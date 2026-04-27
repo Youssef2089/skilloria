@@ -7,11 +7,187 @@
     "language_switcher_current": "Current language: {locale}"
   },
   "profile_validation": {
-    "country_label": "Country of residence",
-    "country_placeholder": "Select a country",
-    "country_search_placeholder": "Search for a country...",
-    "country_loading": "Loading countries...",
-    "country_empty": "No country found"
+    "page_title": "Validate your profile",
+    "page_subtitle": "Check the information extracted from your document. You can edit anything before publishing.",
+    "ai_banner": "💡 Our AI pre-filled these fields. Edit if needed before publishing.",
+    "back_link": "← Back",
+    "loading": "Loading your profile...",
+    "parsing_failed_message": "⚠️ AI parsing failed, please complete your profile manually.",
+    "topbar_pending": "Pending verification",
+    "close_aria": "Close",
+    "banner_error": "{count, plural, one {To publish your profile, complete the highlighted field below: {fields}.} other {To publish your profile, complete the # highlighted fields below: {fields}.}}",
+    "errors": {
+      "account_load_failed": "Unable to load your account.",
+      "incomplete_check_below": "Profile incomplete, please check the highlighted fields below.",
+      "save_failed": "Error while saving, please try again."
+    },
+    "field_labels_short": {
+      "title": "your professional title",
+      "summary": "the summary (20 characters minimum)",
+      "skills": "at least 3 skills",
+      "branch_id": "the main branch",
+      "speciality_id": "the speciality",
+      "work_modes": "at least one work mode",
+      "experiences": "at least one professional experience",
+      "languages_structured": "at least one language"
+    },
+    "field_errors": {
+      "title": "Enter your professional title",
+      "summary": "Minimum 20 characters to publish",
+      "skills": "Add at least 3 skills",
+      "branch_id": "Select a branch",
+      "speciality_id": "Select a speciality",
+      "work_modes": "Select at least one work mode",
+      "experiences": "Add at least one experience (career or assignment)",
+      "languages_structured": "Add at least one language"
+    },
+    "sections": {
+      "identity": {
+        "title": "Professional identity",
+        "title_label": "Professional title",
+        "title_placeholder": "e.g. Senior Dynamics 365 F&O Consultant",
+        "summary_label": "Summary",
+        "summary_placeholder": "10 years of experience on...",
+        "summary_counter": "{count}/500 · minimum 20 characters to publish",
+        "seniority_label": "Seniority",
+        "seniority_placeholder": "— Select —",
+        "seniority_options": {
+          "junior": "Junior",
+          "confirmed": "Confirmed",
+          "senior": "Senior",
+          "expert": "Expert"
+        },
+        "years_label": "Years of experience"
+      },
+      "expertise": {
+        "title": "Expertise",
+        "branch_label": "Main branch",
+        "branch_placeholder": "— Select a branch —",
+        "speciality_label": "Speciality",
+        "speciality_placeholder": "— Select a speciality —",
+        "skills_label": "Skills",
+        "skills_min_hint": "(min. 3 to publish)",
+        "skills_placeholder": "e.g. Azure, Power BI, D365...",
+        "skills_add_button": "Add",
+        "skill_remove_aria": "Remove {name}"
+      },
+      "certifications": {
+        "title": "Certifications",
+        "empty": "No certifications yet.",
+        "name_label": "Name",
+        "name_placeholder": "PL-300, MB-700...",
+        "issuer_label": "Issuer",
+        "issuer_placeholder": "Microsoft",
+        "year_label": "Year",
+        "remove_aria": "Remove",
+        "add_button": "+ Add a certification"
+      },
+      "availability": {
+        "title": "Availability",
+        "work_modes_label": "Work modes",
+        "work_modes_hint": "multiple allowed",
+        "work_mode_remote": "Remote",
+        "work_mode_onsite": "On site",
+        "work_mode_hybrid": "Hybrid",
+        "location_label": "Location",
+        "location_placeholder": "Paris, London, Remote...",
+        "tjm_min_label": "Daily rate min (€ / day)",
+        "tjm_max_label": "Daily rate max (€ / day)",
+        "available_from_label": "Available from",
+        "languages_label": "Languages",
+        "languages_min_hint": "(min. 1 to publish)",
+        "languages_empty": "No language added.",
+        "language_placeholder": "French, English...",
+        "level_options": {
+          "A1": "A1 — Beginner",
+          "A2": "A2 — Elementary",
+          "B1": "B1 — Intermediate",
+          "B2": "B2 — Upper intermediate",
+          "C1": "C1 — Advanced",
+          "C2": "C2 — Mastery",
+          "native": "Native speaker"
+        },
+        "primary_label": "Primary",
+        "language_remove_aria": "Remove language",
+        "language_add_button": "+ Add a language"
+      },
+      "links": {
+        "title": "Links",
+        "linkedin_label": "LinkedIn URL",
+        "linkedin_placeholder": "https://linkedin.com/in/..."
+      },
+      "contact": {
+        "title": "Contact",
+        "phone_label": "Phone",
+        "phone_placeholder": "+33 6 12 34 56 78",
+        "birth_year_label": "Year of birth",
+        "birth_year_placeholder": "1990",
+        "address_label": "Address",
+        "address_placeholder": "12 Rue de la Paix",
+        "postal_code_label": "Postal code",
+        "postal_code_placeholder": "75001",
+        "city_label": "City",
+        "city_placeholder": "Paris",
+        "country_label": "Country of residence",
+        "country_placeholder": "Select a country",
+        "country_search_placeholder": "Search for a country...",
+        "country_loading": "Loading countries...",
+        "country_empty": "No country found"
+      },
+      "career": {
+        "title": "Career history",
+        "empty": "No employer added.",
+        "role_label": "Position",
+        "role_placeholder": "Lead Supply Chain D365 SCM",
+        "employer_label": "Employer",
+        "employer_placeholder": "Prodware, SilverProd...",
+        "is_current_label": "Current position",
+        "description_placeholder": "Overview of the role, responsibilities, context...",
+        "add_button": "+ Add an employer",
+        "remove_aria": "Remove this position"
+      },
+      "missions": {
+        "title": "Assignments / Projects",
+        "empty": "No assignment added.",
+        "role_label": "Role",
+        "role_placeholder": "Solution Architect",
+        "client_label": "Client",
+        "client_placeholder": "Confidential",
+        "sector_label": "Sector",
+        "sector_placeholder": "Agri-food, Automotive...",
+        "is_current_label": "Ongoing assignment",
+        "description_placeholder": "Scope, tasks, deliverables, technologies, project context...",
+        "add_button": "+ Add an assignment",
+        "remove_aria": "Remove this assignment"
+      },
+      "experience_card": {
+        "start_date_label": "Start date",
+        "end_date_label": "End date",
+        "description_label": "Description"
+      },
+      "education": {
+        "title": "Education",
+        "empty": "No education added.",
+        "school_label": "School",
+        "school_placeholder": "Université Paris-Dauphine",
+        "degree_label": "Degree",
+        "degree_placeholder": "Master's, MBA, BSc...",
+        "field_label": "Field / Specialization",
+        "field_placeholder": "Finance, Computer Science...",
+        "location_label": "Location",
+        "location_placeholder": "Paris, Lyon...",
+        "start_year_label": "Start year",
+        "end_year_label": "End year",
+        "remove_aria": "Remove this education",
+        "add_button": "+ Add an education"
+      }
+    },
+    "actions": {
+      "save_draft": "Save as draft",
+      "publish": "Publish my profile →",
+      "saving": "Saving...",
+      "publishing": "Publishing..."
+    }
   },
   "login": {
     "title": "Sign in",

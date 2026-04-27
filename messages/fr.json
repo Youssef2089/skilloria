@@ -7,11 +7,187 @@
     "language_switcher_current": "Langue actuelle\u00A0: {locale}"
   },
   "profile_validation": {
-    "country_label": "Pays de résidence",
-    "country_placeholder": "Sélectionnez un pays",
-    "country_search_placeholder": "Rechercher un pays...",
-    "country_loading": "Chargement des pays...",
-    "country_empty": "Aucun pays trouvé"
+    "page_title": "Validez votre profil",
+    "page_subtitle": "Vérifiez les informations extraites de votre document. Vous pouvez tout corriger avant de publier.",
+    "ai_banner": "💡 Notre IA a pré-rempli ces champs. Modifiez si nécessaire avant de publier.",
+    "back_link": "← Retour",
+    "loading": "Chargement de votre profil...",
+    "parsing_failed_message": "⚠️ Le parsing IA a échoué, complétez votre profil manuellement.",
+    "topbar_pending": "En attente de vérification",
+    "close_aria": "Fermer",
+    "banner_error": "{count, plural, one {Pour publier votre profil, complétez le champ surligné ci-dessous\u00A0: {fields}.} other {Pour publier votre profil, complétez les # champs surlignés ci-dessous\u00A0: {fields}.}}",
+    "errors": {
+      "account_load_failed": "Impossible de charger votre compte.",
+      "incomplete_check_below": "Profil incomplet, vérifiez les champs surlignés ci-dessous.",
+      "save_failed": "Erreur lors de la sauvegarde, réessayez."
+    },
+    "field_labels_short": {
+      "title": "le titre professionnel",
+      "summary": "le résumé (20 caractères minimum)",
+      "skills": "au moins 3 compétences",
+      "branch_id": "la branche principale",
+      "speciality_id": "la spécialité",
+      "work_modes": "au moins un mode de travail",
+      "experiences": "au moins une expérience professionnelle",
+      "languages_structured": "au moins une langue"
+    },
+    "field_errors": {
+      "title": "Renseignez votre titre professionnel",
+      "summary": "Minimum 20 caractères pour publier",
+      "skills": "Ajoutez au moins 3 compétences",
+      "branch_id": "Sélectionnez une branche",
+      "speciality_id": "Sélectionnez une spécialité",
+      "work_modes": "Sélectionnez au moins un mode de travail",
+      "experiences": "Ajoutez au moins une expérience (parcours ou mission)",
+      "languages_structured": "Ajoutez au moins une langue"
+    },
+    "sections": {
+      "identity": {
+        "title": "Identité professionnelle",
+        "title_label": "Titre professionnel",
+        "title_placeholder": "Ex: Consultant Dynamics 365 F&O Senior",
+        "summary_label": "Résumé",
+        "summary_placeholder": "10 ans d'expérience sur...",
+        "summary_counter": "{count}/500 · minimum 20 caractères pour publier",
+        "seniority_label": "Séniorité",
+        "seniority_placeholder": "— Sélectionner —",
+        "seniority_options": {
+          "junior": "Junior",
+          "confirmed": "Confirmé",
+          "senior": "Senior",
+          "expert": "Expert"
+        },
+        "years_label": "Années d'expérience"
+      },
+      "expertise": {
+        "title": "Expertise",
+        "branch_label": "Branche principale",
+        "branch_placeholder": "— Sélectionner une branche —",
+        "speciality_label": "Spécialité",
+        "speciality_placeholder": "— Sélectionner une spécialité —",
+        "skills_label": "Compétences",
+        "skills_min_hint": "(min. 3 pour publier)",
+        "skills_placeholder": "Ex: Azure, Power BI, D365...",
+        "skills_add_button": "Ajouter",
+        "skill_remove_aria": "Retirer {name}"
+      },
+      "certifications": {
+        "title": "Certifications",
+        "empty": "Aucune certification pour l'instant.",
+        "name_label": "Nom",
+        "name_placeholder": "PL-300, MB-700...",
+        "issuer_label": "Émetteur",
+        "issuer_placeholder": "Microsoft",
+        "year_label": "Année",
+        "remove_aria": "Supprimer",
+        "add_button": "+ Ajouter une certification"
+      },
+      "availability": {
+        "title": "Disponibilité",
+        "work_modes_label": "Modes de travail",
+        "work_modes_hint": "plusieurs possibles",
+        "work_mode_remote": "Distanciel",
+        "work_mode_onsite": "Sur site",
+        "work_mode_hybrid": "Hybride",
+        "location_label": "Localisation",
+        "location_placeholder": "Paris, Lyon, Remote...",
+        "tjm_min_label": "TJM min (€ / jour)",
+        "tjm_max_label": "TJM max (€ / jour)",
+        "available_from_label": "Date de disponibilité",
+        "languages_label": "Langues",
+        "languages_min_hint": "(min. 1 pour publier)",
+        "languages_empty": "Aucune langue renseignée.",
+        "language_placeholder": "Français, Anglais...",
+        "level_options": {
+          "A1": "A1 — Débutant",
+          "A2": "A2 — Élémentaire",
+          "B1": "B1 — Intermédiaire",
+          "B2": "B2 — Indépendant",
+          "C1": "C1 — Autonome",
+          "C2": "C2 — Maîtrise",
+          "native": "Langue maternelle"
+        },
+        "primary_label": "Principale",
+        "language_remove_aria": "Supprimer la langue",
+        "language_add_button": "+ Ajouter une langue"
+      },
+      "links": {
+        "title": "Liens",
+        "linkedin_label": "URL LinkedIn",
+        "linkedin_placeholder": "https://linkedin.com/in/..."
+      },
+      "contact": {
+        "title": "Coordonnées",
+        "phone_label": "Téléphone",
+        "phone_placeholder": "+33 6 12 34 56 78",
+        "birth_year_label": "Année de naissance",
+        "birth_year_placeholder": "1990",
+        "address_label": "Adresse",
+        "address_placeholder": "12 rue de la Paix",
+        "postal_code_label": "Code postal",
+        "postal_code_placeholder": "75001",
+        "city_label": "Ville",
+        "city_placeholder": "Paris",
+        "country_label": "Pays de résidence",
+        "country_placeholder": "Sélectionnez un pays",
+        "country_search_placeholder": "Rechercher un pays...",
+        "country_loading": "Chargement des pays...",
+        "country_empty": "Aucun pays trouvé"
+      },
+      "career": {
+        "title": "Parcours professionnel",
+        "empty": "Aucun employeur renseigné.",
+        "role_label": "Poste",
+        "role_placeholder": "Lead Supply Chain D365 SCM",
+        "employer_label": "Employeur",
+        "employer_placeholder": "Prodware, SilverProd...",
+        "is_current_label": "Poste actuel",
+        "description_placeholder": "Vue d'ensemble du poste, responsabilités, contexte...",
+        "add_button": "+ Ajouter un employeur",
+        "remove_aria": "Retirer cet emploi"
+      },
+      "missions": {
+        "title": "Missions / Projets",
+        "empty": "Aucune mission renseignée.",
+        "role_label": "Rôle",
+        "role_placeholder": "Solution Architect",
+        "client_label": "Client",
+        "client_placeholder": "Confidentiel",
+        "sector_label": "Secteur",
+        "sector_placeholder": "Agri-food, Automotive...",
+        "is_current_label": "Mission en cours",
+        "description_placeholder": "Périmètre, tâches, livrables, technologies, contexte du projet...",
+        "add_button": "+ Ajouter une mission",
+        "remove_aria": "Retirer cette mission"
+      },
+      "experience_card": {
+        "start_date_label": "Date de début",
+        "end_date_label": "Date de fin",
+        "description_label": "Description"
+      },
+      "education": {
+        "title": "Formation",
+        "empty": "Aucune formation renseignée.",
+        "school_label": "École",
+        "school_placeholder": "Université Paris-Dauphine",
+        "degree_label": "Diplôme",
+        "degree_placeholder": "Master, BAC+5, MBA...",
+        "field_label": "Domaine / Spécialisation",
+        "field_placeholder": "Finance, Informatique...",
+        "location_label": "Lieu",
+        "location_placeholder": "Paris, Lyon...",
+        "start_year_label": "Année début",
+        "end_year_label": "Année fin",
+        "remove_aria": "Retirer cette formation",
+        "add_button": "+ Ajouter une formation"
+      }
+    },
+    "actions": {
+      "save_draft": "Enregistrer comme brouillon",
+      "publish": "Publier mon profil →",
+      "saving": "Enregistrement...",
+      "publishing": "Publication..."
+    }
   },
   "login": {
     "title": "Connectez-vous",

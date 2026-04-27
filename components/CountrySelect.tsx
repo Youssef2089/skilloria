@@ -60,7 +60,7 @@ export default function CountrySelect({
   primaryColor,
   hasError,
 }: Props) {
-  const t = useTranslations('profile_validation')
+  const t = useTranslations('profile_validation.sections.contact')
   const locale = useLocale()
 
   const [open, setOpen] = useState(false)

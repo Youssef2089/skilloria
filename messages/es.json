@@ -7,11 +7,187 @@
     "language_switcher_current": "Idioma actual: {locale}"
   },
   "profile_validation": {
-    "country_label": "País de residencia",
-    "country_placeholder": "Selecciona un país",
-    "country_search_placeholder": "Buscar un país...",
-    "country_loading": "Cargando países...",
-    "country_empty": "No se encontró ningún país"
+    "page_title": "Valida tu perfil",
+    "page_subtitle": "Comprueba la información extraída de tu documento. Puedes editar todo antes de publicar.",
+    "ai_banner": "💡 Nuestra IA ha pre-rellenado estos campos. Edita si es necesario antes de publicar.",
+    "back_link": "← Volver",
+    "loading": "Cargando tu perfil...",
+    "parsing_failed_message": "⚠️ El análisis IA ha fallado, completa tu perfil manualmente.",
+    "topbar_pending": "Pendiente de verificación",
+    "close_aria": "Cerrar",
+    "banner_error": "{count, plural, one {Para publicar tu perfil, completa el campo destacado de abajo: {fields}.} other {Para publicar tu perfil, completa los # campos destacados de abajo: {fields}.}}",
+    "errors": {
+      "account_load_failed": "No se ha podido cargar tu cuenta.",
+      "incomplete_check_below": "Perfil incompleto, comprueba los campos destacados de abajo.",
+      "save_failed": "Error al guardar, inténtalo de nuevo."
+    },
+    "field_labels_short": {
+      "title": "tu título profesional",
+      "summary": "el resumen (20 caracteres mínimo)",
+      "skills": "al menos 3 competencias",
+      "branch_id": "la rama principal",
+      "speciality_id": "la especialidad",
+      "work_modes": "al menos un modo de trabajo",
+      "experiences": "al menos una experiencia profesional",
+      "languages_structured": "al menos un idioma"
+    },
+    "field_errors": {
+      "title": "Indica tu título profesional",
+      "summary": "Mínimo 20 caracteres para publicar",
+      "skills": "Añade al menos 3 competencias",
+      "branch_id": "Selecciona una rama",
+      "speciality_id": "Selecciona una especialidad",
+      "work_modes": "Selecciona al menos un modo de trabajo",
+      "experiences": "Añade al menos una experiencia (carrera o proyecto)",
+      "languages_structured": "Añade al menos un idioma"
+    },
+    "sections": {
+      "identity": {
+        "title": "Identidad profesional",
+        "title_label": "Título profesional",
+        "title_placeholder": "Ej: Consultor sénior Dynamics 365 F&O",
+        "summary_label": "Resumen",
+        "summary_placeholder": "10 años de experiencia en...",
+        "summary_counter": "{count}/500 · mínimo 20 caracteres para publicar",
+        "seniority_label": "Nivel de experiencia",
+        "seniority_placeholder": "— Seleccionar —",
+        "seniority_options": {
+          "junior": "Junior",
+          "confirmed": "Confirmado",
+          "senior": "Senior",
+          "expert": "Experto"
+        },
+        "years_label": "Años de experiencia"
+      },
+      "expertise": {
+        "title": "Especialización",
+        "branch_label": "Rama principal",
+        "branch_placeholder": "— Selecciona una rama —",
+        "speciality_label": "Especialidad",
+        "speciality_placeholder": "— Selecciona una especialidad —",
+        "skills_label": "Competencias",
+        "skills_min_hint": "(mín. 3 para publicar)",
+        "skills_placeholder": "Ej: Azure, Power BI, D365...",
+        "skills_add_button": "Añadir",
+        "skill_remove_aria": "Quitar {name}"
+      },
+      "certifications": {
+        "title": "Certificaciones",
+        "empty": "Aún no hay certificaciones.",
+        "name_label": "Nombre",
+        "name_placeholder": "PL-300, MB-700...",
+        "issuer_label": "Emisor",
+        "issuer_placeholder": "Microsoft",
+        "year_label": "Año",
+        "remove_aria": "Eliminar",
+        "add_button": "+ Añadir una certificación"
+      },
+      "availability": {
+        "title": "Disponibilidad",
+        "work_modes_label": "Modos de trabajo",
+        "work_modes_hint": "varios posibles",
+        "work_mode_remote": "Remoto",
+        "work_mode_onsite": "Presencial",
+        "work_mode_hybrid": "Híbrido",
+        "location_label": "Ubicación",
+        "location_placeholder": "Madrid, Barcelona, Remoto...",
+        "tjm_min_label": "Tarifa diaria mín. (€ / día)",
+        "tjm_max_label": "Tarifa diaria máx. (€ / día)",
+        "available_from_label": "Disponible desde",
+        "languages_label": "Idiomas",
+        "languages_min_hint": "(mín. 1 para publicar)",
+        "languages_empty": "Ningún idioma añadido.",
+        "language_placeholder": "Español, Inglés...",
+        "level_options": {
+          "A1": "A1 — Principiante",
+          "A2": "A2 — Elemental",
+          "B1": "B1 — Intermedio",
+          "B2": "B2 — Intermedio alto",
+          "C1": "C1 — Avanzado",
+          "C2": "C2 — Maestría",
+          "native": "Lengua materna"
+        },
+        "primary_label": "Principal",
+        "language_remove_aria": "Eliminar idioma",
+        "language_add_button": "+ Añadir un idioma"
+      },
+      "links": {
+        "title": "Enlaces",
+        "linkedin_label": "URL de LinkedIn",
+        "linkedin_placeholder": "https://linkedin.com/in/..."
+      },
+      "contact": {
+        "title": "Datos de contacto",
+        "phone_label": "Teléfono",
+        "phone_placeholder": "+34 600 12 34 56",
+        "birth_year_label": "Año de nacimiento",
+        "birth_year_placeholder": "1990",
+        "address_label": "Dirección",
+        "address_placeholder": "Calle de Alcalá 12",
+        "postal_code_label": "Código postal",
+        "postal_code_placeholder": "28001",
+        "city_label": "Ciudad",
+        "city_placeholder": "Madrid",
+        "country_label": "País de residencia",
+        "country_placeholder": "Selecciona un país",
+        "country_search_placeholder": "Buscar un país...",
+        "country_loading": "Cargando países...",
+        "country_empty": "No se encontró ningún país"
+      },
+      "career": {
+        "title": "Trayectoria profesional",
+        "empty": "Ningún empleador añadido.",
+        "role_label": "Puesto",
+        "role_placeholder": "Lead Supply Chain D365 SCM",
+        "employer_label": "Empleador",
+        "employer_placeholder": "Prodware, SilverProd...",
+        "is_current_label": "Puesto actual",
+        "description_placeholder": "Visión general del puesto, responsabilidades, contexto...",
+        "add_button": "+ Añadir un empleador",
+        "remove_aria": "Eliminar este puesto"
+      },
+      "missions": {
+        "title": "Proyectos / Misiones",
+        "empty": "Ningún proyecto añadido.",
+        "role_label": "Rol",
+        "role_placeholder": "Solution Architect",
+        "client_label": "Cliente",
+        "client_placeholder": "Confidencial",
+        "sector_label": "Sector",
+        "sector_placeholder": "Agroalimentario, Automoción...",
+        "is_current_label": "Proyecto en curso",
+        "description_placeholder": "Alcance, tareas, entregables, tecnologías, contexto del proyecto...",
+        "add_button": "+ Añadir un proyecto",
+        "remove_aria": "Eliminar este proyecto"
+      },
+      "experience_card": {
+        "start_date_label": "Fecha de inicio",
+        "end_date_label": "Fecha de fin",
+        "description_label": "Descripción"
+      },
+      "education": {
+        "title": "Formación",
+        "empty": "Ninguna formación añadida.",
+        "school_label": "Centro educativo",
+        "school_placeholder": "Universidad Complutense de Madrid",
+        "degree_label": "Título",
+        "degree_placeholder": "Máster, Grado, MBA...",
+        "field_label": "Área / Especialización",
+        "field_placeholder": "Finanzas, Informática...",
+        "location_label": "Ubicación",
+        "location_placeholder": "Madrid, Barcelona...",
+        "start_year_label": "Año de inicio",
+        "end_year_label": "Año de fin",
+        "remove_aria": "Eliminar esta formación",
+        "add_button": "+ Añadir una formación"
+      }
+    },
+    "actions": {
+      "save_draft": "Guardar como borrador",
+      "publish": "Publicar mi perfil →",
+      "saving": "Guardando...",
+      "publishing": "Publicando..."
+    }
   },
   "login": {
     "title": "Iniciar sesión",

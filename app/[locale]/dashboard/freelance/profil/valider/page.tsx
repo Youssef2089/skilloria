@@ -60,30 +60,9 @@ type LanguageItem = {
   is_primary: boolean
 }
 
-const SENIORITY_LABELS: Record<Seniority, string> = {
-  junior: 'Junior',
-  confirmed: 'Confirmé',
-  senior: 'Senior',
-  expert: 'Expert',
-}
-
-const WORK_MODE_LABELS: Record<WorkMode, string> = {
-  remote: 'Distanciel',
-  onsite: 'Sur site',
-  hybrid: 'Hybride',
-}
-
+const SENIORITY_VALUES: Seniority[] = ['junior', 'confirmed', 'senior', 'expert']
+const WORK_MODE_VALUES: WorkMode[] = ['remote', 'onsite', 'hybrid']
 const CEFR_LEVELS: CefrLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'native']
-
-const CEFR_LABELS: Record<CefrLevel, string> = {
-  A1: 'A1 — Débutant',
-  A2: 'A2 — Élémentaire',
-  B1: 'B1 — Intermédiaire',
-  B2: 'B2 — Indépendant',
-  C1: 'C1 — Autonome',
-  C2: 'C2 — Maîtrise',
-  native: 'Langue maternelle',
-}
 
 const FIELD_ORDER = [
   'title',
@@ -97,28 +76,6 @@ const FIELD_ORDER = [
 ] as const
 
 type FieldKey = (typeof FIELD_ORDER)[number]
-
-const FIELD_LABELS: Record<FieldKey, string> = {
-  title: 'le titre professionnel',
-  summary: 'le résumé (20 caractères minimum)',
-  skills: 'au moins 3 compétences',
-  branch_id: 'la branche principale',
-  speciality_id: 'la spécialité',
-  work_modes: 'au moins un mode de travail',
-  experiences: 'au moins une expérience professionnelle',
-  languages_structured: 'au moins une langue',
-}
-
-const FIELD_INLINE_ERRORS: Record<FieldKey, string> = {
-  title: 'Renseignez votre titre professionnel',
-  summary: 'Minimum 20 caractères pour publier',
-  skills: 'Ajoutez au moins 3 compétences',
-  branch_id: 'Sélectionnez une branche',
-  speciality_id: 'Sélectionnez une spécialité',
-  work_modes: 'Sélectionnez au moins un mode de travail',
-  experiences: 'Ajoutez au moins une expérience (parcours ou mission)',
-  languages_structured: 'Ajoutez au moins une langue',
-}
 
 function emptyExperience(type: ExperienceType): ExperienceItem {
   return {
@@ -218,6 +175,47 @@ export default function ValiderProfilPage() {
   const domain = useDomain()
   const tProfile = useTranslations('profile_validation')
 
+  const SENIORITY_LABELS: Record<Seniority, string> = {
+    junior: tProfile('sections.identity.seniority_options.junior'),
+    confirmed: tProfile('sections.identity.seniority_options.confirmed'),
+    senior: tProfile('sections.identity.seniority_options.senior'),
+    expert: tProfile('sections.identity.seniority_options.expert'),
+  }
+  const WORK_MODE_LABELS: Record<WorkMode, string> = {
+    remote: tProfile('sections.availability.work_mode_remote'),
+    onsite: tProfile('sections.availability.work_mode_onsite'),
+    hybrid: tProfile('sections.availability.work_mode_hybrid'),
+  }
+  const CEFR_LABELS: Record<CefrLevel, string> = {
+    A1: tProfile('sections.availability.level_options.A1'),
+    A2: tProfile('sections.availability.level_options.A2'),
+    B1: tProfile('sections.availability.level_options.B1'),
+    B2: tProfile('sections.availability.level_options.B2'),
+    C1: tProfile('sections.availability.level_options.C1'),
+    C2: tProfile('sections.availability.level_options.C2'),
+    native: tProfile('sections.availability.level_options.native'),
+  }
+  const FIELD_LABELS: Record<FieldKey, string> = {
+    title: tProfile('field_labels_short.title'),
+    summary: tProfile('field_labels_short.summary'),
+    skills: tProfile('field_labels_short.skills'),
+    branch_id: tProfile('field_labels_short.branch_id'),
+    speciality_id: tProfile('field_labels_short.speciality_id'),
+    work_modes: tProfile('field_labels_short.work_modes'),
+    experiences: tProfile('field_labels_short.experiences'),
+    languages_structured: tProfile('field_labels_short.languages_structured'),
+  }
+  const FIELD_INLINE_ERRORS: Record<FieldKey, string> = {
+    title: tProfile('field_errors.title'),
+    summary: tProfile('field_errors.summary'),
+    skills: tProfile('field_errors.skills'),
+    branch_id: tProfile('field_errors.branch_id'),
+    speciality_id: tProfile('field_errors.speciality_id'),
+    work_modes: tProfile('field_errors.work_modes'),
+    experiences: tProfile('field_errors.experiences'),
+    languages_structured: tProfile('field_errors.languages_structured'),
+  }
+
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -275,8 +273,8 @@ export default function ValiderProfilPage() {
     return () => clearTimeout(t)
   }, [focusedField])
 
-  const showFieldError = (message: string, missing: string[]) => {
-    setErrorMsg(message)
+  const showFieldError = (missing: string[]) => {
+    setErrorMsg(tProfile('errors.incomplete_check_below'))
     setMissingFields(missing)
 
     const firstMissing = FIELD_ORDER.find(f => missing.includes(f))
@@ -334,7 +332,7 @@ export default function ValiderProfilPage() {
         .single()
       if (userErr || !userRow) {
         if (!cancelled) {
-          setErrorMsg('Impossible de charger votre compte.')
+          setErrorMsg(tProfile('errors.account_load_failed'))
           setLoading(false)
         }
         return
@@ -587,10 +585,7 @@ export default function ValiderProfilPage() {
     if (visible) {
       const missing = validateForPublish()
       if (missing.length) {
-        showFieldError(
-          'Pour publier votre profil, complétez les champs surlignés ci-dessous.',
-          missing,
-        )
+        showFieldError(missing)
         return
       }
     }
@@ -685,12 +680,9 @@ export default function ValiderProfilPage() {
           payload?.code === 'incomplete' &&
           Array.isArray(payload?.missing)
         ) {
-          showFieldError(
-            'Profil incomplet, vérifiez les champs surlignés ci-dessous.',
-            payload.missing,
-          )
+          showFieldError(payload.missing)
         } else {
-          setErrorMsg(payload?.error || 'Erreur lors de la sauvegarde, réessayez.')
+          setErrorMsg(payload?.error || tProfile('errors.save_failed'))
         }
         setSaving(false)
         return
@@ -699,7 +691,7 @@ export default function ValiderProfilPage() {
       router.push('/dashboard/freelance')
     } catch (err) {
       console.error('[profil valider] patch error', err)
-      setErrorMsg('Erreur lors de la sauvegarde, réessayez.')
+      setErrorMsg(tProfile('errors.save_failed'))
       setSaving(false)
     }
   }
@@ -816,15 +808,19 @@ export default function ValiderProfilPage() {
           }}
         >
           <div style={{ flex: 1 }}>
-            <label style={labelStyle}>{isCareer ? 'Poste' : 'Rôle'}</label>
+            <label style={labelStyle}>
+              {isCareer
+                ? tProfile('sections.career.role_label')
+                : tProfile('sections.missions.role_label')}
+            </label>
             <input
               type="text"
               value={exp.role}
               onChange={e => updateExperience(idx, { role: e.target.value })}
               placeholder={
                 isCareer
-                  ? 'Lead Supply Chain D365 SCM'
-                  : 'Solution Architect'
+                  ? tProfile('sections.career.role_placeholder')
+                  : tProfile('sections.missions.role_placeholder')
               }
               style={inputStyle()}
             />
@@ -834,7 +830,9 @@ export default function ValiderProfilPage() {
               type="button"
               onClick={() => removeExperience(idx)}
               aria-label={
-                isCareer ? 'Retirer cet emploi' : 'Retirer cette mission'
+                isCareer
+                  ? tProfile('sections.career.remove_aria')
+                  : tProfile('sections.missions.remove_aria')
               }
               style={removeBtnStyle}
             >
@@ -845,12 +843,12 @@ export default function ValiderProfilPage() {
 
         {isCareer ? (
           <div style={{ marginBottom: 12 }}>
-            <label style={labelStyle}>Employeur</label>
+            <label style={labelStyle}>{tProfile('sections.career.employer_label')}</label>
             <input
               type="text"
               value={exp.employer}
               onChange={e => updateExperience(idx, { employer: e.target.value })}
-              placeholder="Prodware, SilverProd..."
+              placeholder={tProfile('sections.career.employer_placeholder')}
               style={inputStyle()}
             />
           </div>
@@ -865,24 +863,24 @@ export default function ValiderProfilPage() {
             }}
           >
             <div>
-              <label style={labelStyle}>Client</label>
+              <label style={labelStyle}>{tProfile('sections.missions.client_label')}</label>
               <input
                 type="text"
                 value={exp.client_name}
                 onChange={e =>
                   updateExperience(idx, { client_name: e.target.value })
                 }
-                placeholder="Confidentiel"
+                placeholder={tProfile('sections.missions.client_placeholder')}
                 style={inputStyle()}
               />
             </div>
             <div>
-              <label style={labelStyle}>Secteur</label>
+              <label style={labelStyle}>{tProfile('sections.missions.sector_label')}</label>
               <input
                 type="text"
                 value={exp.sector}
                 onChange={e => updateExperience(idx, { sector: e.target.value })}
-                placeholder="Agri-food, Automotive..."
+                placeholder={tProfile('sections.missions.sector_placeholder')}
                 style={inputStyle()}
               />
             </div>
@@ -899,7 +897,7 @@ export default function ValiderProfilPage() {
           }}
         >
           <div>
-            <label style={labelStyle}>Date de début</label>
+            <label style={labelStyle}>{tProfile('sections.experience_card.start_date_label')}</label>
             <input
               type="date"
               value={exp.start_date}
@@ -908,7 +906,7 @@ export default function ValiderProfilPage() {
             />
           </div>
           <div>
-            <label style={labelStyle}>Date de fin</label>
+            <label style={labelStyle}>{tProfile('sections.experience_card.end_date_label')}</label>
             <input
               type="date"
               value={exp.is_current ? '' : exp.end_date}
@@ -943,19 +941,21 @@ export default function ValiderProfilPage() {
             }
             style={{ accentColor: domain.primaryColor }}
           />
-          {isCareer ? 'Poste actuel' : 'Mission en cours'}
+          {isCareer
+            ? tProfile('sections.career.is_current_label')
+            : tProfile('sections.missions.is_current_label')}
         </label>
 
         <div>
-          <label style={labelStyle}>Description</label>
+          <label style={labelStyle}>{tProfile('sections.experience_card.description_label')}</label>
           <textarea
             rows={isCareer ? 4 : 6}
             value={exp.description}
             onChange={e => updateExperience(idx, { description: e.target.value })}
             placeholder={
               isCareer
-                ? "Vue d'ensemble du poste, responsabilités, contexte..."
-                : 'Périmètre, tâches, livrables, technologies, contexte du projet...'
+                ? tProfile('sections.career.description_placeholder')
+                : tProfile('sections.missions.description_placeholder')
             }
             style={{
               ...inputStyle(),
@@ -1067,7 +1067,7 @@ export default function ValiderProfilPage() {
                 fontFamily: fontJakarta,
               }}
             >
-              En attente de vérification
+              {tProfile('topbar_pending')}
             </span>
           </div>
         </div>
@@ -1099,7 +1099,7 @@ export default function ValiderProfilPage() {
                 animation: 'sk-spin 0.9s linear infinite',
               }}
             />
-            Chargement de votre profil...
+            {tProfile('loading')}
           </div>
         ) : (
           <>
@@ -1118,7 +1118,7 @@ export default function ValiderProfilPage() {
                 fontFamily: fontJakarta,
               }}
             >
-              ← Retour
+              {tProfile('back_link')}
             </button>
 
             {errorMsg && (
@@ -1149,20 +1149,15 @@ export default function ValiderProfilPage() {
                     fontFamily: fontJakarta,
                   }}
                 >
-                  {Array.isArray(missingFields) && missingFields.length > 0 ? (
-                    <>
-                      Pour publier votre profil, complétez {missingFields.length} champ
-                      {missingFields.length > 1 ? 's' : ''} surligné
-                      {missingFields.length > 1 ? 's' : ''} ci-dessous :{' '}
-                      {missingFields
-                        .filter((f): f is FieldKey => f in FIELD_LABELS)
-                        .map(f => FIELD_LABELS[f])
-                        .join(', ')}
-                      .
-                    </>
-                  ) : (
-                    errorMsg
-                  )}
+                  {Array.isArray(missingFields) && missingFields.length > 0
+                    ? tProfile('banner_error', {
+                        count: missingFields.length,
+                        fields: missingFields
+                          .filter((f): f is FieldKey => f in FIELD_LABELS)
+                          .map(f => FIELD_LABELS[f])
+                          .join(', '),
+                      })
+                    : errorMsg}
                 </div>
                 <button
                   type="button"
@@ -1170,7 +1165,7 @@ export default function ValiderProfilPage() {
                     setErrorMsg(null)
                     setMissingFields(null)
                   }}
-                  aria-label="Fermer"
+                  aria-label={tProfile('close_aria')}
                   style={{
                     background: 'transparent',
                     border: 'none',
@@ -1200,7 +1195,7 @@ export default function ValiderProfilPage() {
                   fontFamily: fontJakarta,
                 }}
               >
-                ⚠️ Le parsing IA a échoué, complétez votre profil manuellement.
+                {tProfile('parsing_failed_message')}
               </div>
             )}
 
@@ -1215,7 +1210,7 @@ export default function ValiderProfilPage() {
                 fontFamily: fontJakarta,
               }}
             >
-              Validez votre profil
+              {tProfile('page_title')}
             </h1>
             <p
               style={{
@@ -1227,8 +1222,7 @@ export default function ValiderProfilPage() {
                 fontFamily: fontJakarta,
               }}
             >
-              Vérifiez les informations extraites de votre document. Vous pouvez tout corriger
-              avant de publier.
+              {tProfile('page_subtitle')}
             </p>
 
             <div
@@ -1244,15 +1238,15 @@ export default function ValiderProfilPage() {
                 fontFamily: fontJakarta,
               }}
             >
-              💡 Notre IA a pré-rempli ces champs. Modifiez si nécessaire avant de publier.
+              {tProfile('ai_banner')}
             </div>
 
             {/* Section 1 — Identité pro */}
             <div style={sectionStyle}>
-              <SectionHeader n="1" color={domain.primaryColor} title="Identité professionnelle" />
+              <SectionHeader n="1" color={domain.primaryColor} title={tProfile('sections.identity.title')} />
 
               <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Titre professionnel</label>
+                <label style={labelStyle}>{tProfile('sections.identity.title_label')}</label>
                 <input
                   ref={fieldRefs.title}
                   className={focusClass('title')}
@@ -1260,14 +1254,14 @@ export default function ValiderProfilPage() {
                   maxLength={200}
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  placeholder="Ex: Consultant Dynamics 365 F&O Senior"
+                  placeholder={tProfile('sections.identity.title_placeholder')}
                   style={inputStyle('title')}
                 />
                 <FieldError field="title" />
               </div>
 
               <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Résumé</label>
+                <label style={labelStyle}>{tProfile('sections.identity.summary_label')}</label>
                 <textarea
                   ref={fieldRefs.summary}
                   className={focusClass('summary')}
@@ -1275,7 +1269,7 @@ export default function ValiderProfilPage() {
                   maxLength={500}
                   value={summary}
                   onChange={e => setSummary(e.target.value)}
-                  placeholder="10 ans d'expérience sur..."
+                  placeholder={tProfile('sections.identity.summary_placeholder')}
                   style={{ ...inputStyle('summary'), resize: 'vertical', minHeight: 100 }}
                 />
                 <div
@@ -1286,7 +1280,7 @@ export default function ValiderProfilPage() {
                     fontFamily: fontJakarta,
                   }}
                 >
-                  {summary.trim().length}/500 · minimum 20 caractères pour publier
+                  {tProfile('sections.identity.summary_counter', { count: summary.trim().length })}
                 </div>
                 <FieldError field="summary" />
               </div>
@@ -1300,14 +1294,14 @@ export default function ValiderProfilPage() {
                 }}
               >
                 <div>
-                  <label style={labelStyle}>Séniorité</label>
+                  <label style={labelStyle}>{tProfile('sections.identity.seniority_label')}</label>
                   <select
                     value={seniority}
                     onChange={e => setSeniority(e.target.value as Seniority | '')}
                     style={inputStyle()}
                   >
-                    <option value="">— Sélectionner —</option>
-                    {(Object.keys(SENIORITY_LABELS) as Seniority[]).map(s => (
+                    <option value="">{tProfile('sections.identity.seniority_placeholder')}</option>
+                    {SENIORITY_VALUES.map(s => (
                       <option key={s} value={s}>
                         {SENIORITY_LABELS[s]}
                       </option>
@@ -1315,7 +1309,7 @@ export default function ValiderProfilPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>Années d'expérience</label>
+                  <label style={labelStyle}>{tProfile('sections.identity.years_label')}</label>
                   <input
                     type="number"
                     min={0}
@@ -1330,10 +1324,10 @@ export default function ValiderProfilPage() {
 
             {/* Section 2 — Expertise */}
             <div style={sectionStyle}>
-              <SectionHeader n="2" color={SECTION_COLORS.expertise} title="Expertise" />
+              <SectionHeader n="2" color={SECTION_COLORS.expertise} title={tProfile('sections.expertise.title')} />
 
               <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Branche principale</label>
+                <label style={labelStyle}>{tProfile('sections.expertise.branch_label')}</label>
                 <select
                   ref={fieldRefs.branch_id}
                   className={focusClass('branch_id')}
@@ -1341,7 +1335,7 @@ export default function ValiderProfilPage() {
                   onChange={e => onBranchChange(e.target.value)}
                   style={inputStyle('branch_id')}
                 >
-                  <option value="">— Sélectionner une branche —</option>
+                  <option value="">{tProfile('sections.expertise.branch_placeholder')}</option>
                   {branches.map(b => (
                     <option key={b.id} value={b.id}>
                       {b.name}
@@ -1352,7 +1346,7 @@ export default function ValiderProfilPage() {
               </div>
 
               <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Spécialité</label>
+                <label style={labelStyle}>{tProfile('sections.expertise.speciality_label')}</label>
                 <select
                   ref={fieldRefs.speciality_id}
                   className={focusClass('speciality_id')}
@@ -1361,7 +1355,7 @@ export default function ValiderProfilPage() {
                   disabled={!branchId}
                   style={{ ...inputStyle('speciality_id'), opacity: branchId ? 1 : 0.55 }}
                 >
-                  <option value="">— Sélectionner une spécialité —</option>
+                  <option value="">{tProfile('sections.expertise.speciality_placeholder')}</option>
                   {filteredSpecialities.map(s => (
                     <option key={s.id} value={s.id}>
                       {s.name}
@@ -1377,9 +1371,10 @@ export default function ValiderProfilPage() {
                 style={{ padding: 2 }}
               >
                 <label style={labelStyle}>
-                  Compétences{' '}
+                  {tProfile('sections.expertise.skills_label')}{' '}
                   <span style={{ color: '#94a3b8', fontWeight: 400 }}>
-                    · {skills.length} {skills.length < 3 ? '(min. 3 pour publier)' : ''}
+                    · {skills.length}{' '}
+                    {skills.length < 3 ? tProfile('sections.expertise.skills_min_hint') : ''}
                   </span>
                 </label>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
@@ -1393,11 +1388,11 @@ export default function ValiderProfilPage() {
                         addSkill()
                       }
                     }}
-                    placeholder="Ex: Azure, Power BI, D365..."
+                    placeholder={tProfile('sections.expertise.skills_placeholder')}
                     style={{ ...inputStyle('skills'), flex: 1 }}
                   />
                   <button type="button" onClick={addSkill} style={primaryAddBtnStyle}>
-                    Ajouter
+                    {tProfile('sections.expertise.skills_add_button')}
                   </button>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -1407,7 +1402,7 @@ export default function ValiderProfilPage() {
                       <button
                         type="button"
                         onClick={() => removeSkill(s)}
-                        aria-label={`Retirer ${s}`}
+                        aria-label={tProfile('sections.expertise.skill_remove_aria', { name: s })}
                         style={{
                           background: 'transparent',
                           border: 'none',
@@ -1432,7 +1427,7 @@ export default function ValiderProfilPage() {
               <SectionHeader
                 n="3"
                 color={SECTION_COLORS.certifications}
-                title="Certifications"
+                title={tProfile('sections.certifications.title')}
               />
 
               {certifications.length === 0 && (
@@ -1444,7 +1439,7 @@ export default function ValiderProfilPage() {
                     fontFamily: fontJakarta,
                   }}
                 >
-                  Aucune certification pour l'instant.
+                  {tProfile('sections.certifications.empty')}
                 </div>
               )}
 
@@ -1461,27 +1456,27 @@ export default function ValiderProfilPage() {
                   }}
                 >
                   <div>
-                    <label style={labelStyle}>Nom</label>
+                    <label style={labelStyle}>{tProfile('sections.certifications.name_label')}</label>
                     <input
                       type="text"
                       value={c.name}
                       onChange={e => updateCert(i, { name: e.target.value })}
-                      placeholder="PL-300, MB-700..."
+                      placeholder={tProfile('sections.certifications.name_placeholder')}
                       style={inputStyle()}
                     />
                   </div>
                   <div>
-                    <label style={labelStyle}>Émetteur</label>
+                    <label style={labelStyle}>{tProfile('sections.certifications.issuer_label')}</label>
                     <input
                       type="text"
                       value={c.issuer ?? ''}
                       onChange={e => updateCert(i, { issuer: e.target.value || null })}
-                      placeholder="Microsoft"
+                      placeholder={tProfile('sections.certifications.issuer_placeholder')}
                       style={inputStyle()}
                     />
                   </div>
                   <div>
-                    <label style={labelStyle}>Année</label>
+                    <label style={labelStyle}>{tProfile('sections.certifications.year_label')}</label>
                     <input
                       type="number"
                       min={1990}
@@ -1498,7 +1493,7 @@ export default function ValiderProfilPage() {
                   <button
                     type="button"
                     onClick={() => removeCert(i)}
-                    aria-label="Supprimer"
+                    aria-label={tProfile('sections.certifications.remove_aria')}
                     style={removeBtnStyle}
                   >
                     ×
@@ -1507,7 +1502,7 @@ export default function ValiderProfilPage() {
               ))}
 
               <button type="button" onClick={addCert} style={addBtnStyle}>
-                + Ajouter une certification
+                {tProfile('sections.certifications.add_button')}
               </button>
             </div>
 
@@ -1516,7 +1511,7 @@ export default function ValiderProfilPage() {
               <SectionHeader
                 n="4"
                 color={SECTION_COLORS.disponibilite}
-                title="Disponibilité"
+                title={tProfile('sections.availability.title')}
               />
 
               <div
@@ -1525,13 +1520,13 @@ export default function ValiderProfilPage() {
                 style={{ marginBottom: 14 }}
               >
                 <label style={labelStyle}>
-                  Modes de travail{' '}
+                  {tProfile('sections.availability.work_modes_label')}{' '}
                   <span style={{ color: '#94a3b8', fontWeight: 400 }}>
-                    · plusieurs possibles
+                    · {tProfile('sections.availability.work_modes_hint')}
                   </span>
                 </label>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  {(Object.keys(WORK_MODE_LABELS) as WorkMode[]).map(m => {
+                  {WORK_MODE_VALUES.map(m => {
                     const active = workModes.includes(m)
                     return (
                       <label
@@ -1572,13 +1567,13 @@ export default function ValiderProfilPage() {
               </div>
 
               <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Localisation</label>
+                <label style={labelStyle}>{tProfile('sections.availability.location_label')}</label>
                 <input
                   type="text"
                   maxLength={100}
                   value={location}
                   onChange={e => setLocation(e.target.value)}
-                  placeholder="Paris, Lyon, Remote..."
+                  placeholder={tProfile('sections.availability.location_placeholder')}
                   style={inputStyle()}
                 />
               </div>
@@ -1593,7 +1588,7 @@ export default function ValiderProfilPage() {
                 }}
               >
                 <div>
-                  <label style={labelStyle}>TJM min (€ / jour)</label>
+                  <label style={labelStyle}>{tProfile('sections.availability.tjm_min_label')}</label>
                   <input
                     type="number"
                     min={0}
@@ -1603,7 +1598,7 @@ export default function ValiderProfilPage() {
                   />
                 </div>
                 <div>
-                  <label style={labelStyle}>TJM max (€ / jour)</label>
+                  <label style={labelStyle}>{tProfile('sections.availability.tjm_max_label')}</label>
                   <input
                     type="number"
                     min={0}
@@ -1615,7 +1610,7 @@ export default function ValiderProfilPage() {
               </div>
 
               <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Date de disponibilité</label>
+                <label style={labelStyle}>{tProfile('sections.availability.available_from_label')}</label>
                 <input
                   type="date"
                   value={availabilityDate}
@@ -1631,11 +1626,11 @@ export default function ValiderProfilPage() {
                 style={{ padding: 2 }}
               >
                 <label style={labelStyle}>
-                  Langues{' '}
+                  {tProfile('sections.availability.languages_label')}{' '}
                   <span style={{ color: '#94a3b8', fontWeight: 400 }}>
                     · {languagesStructured.filter(l => l.language.trim()).length}
                     {languagesStructured.filter(l => l.language.trim()).length < 1
-                      ? ' (min. 1 pour publier)'
+                      ? ' ' + tProfile('sections.availability.languages_min_hint')
                       : ''}
                   </span>
                 </label>
@@ -1649,7 +1644,7 @@ export default function ValiderProfilPage() {
                       fontFamily: fontJakarta,
                     }}
                   >
-                    Aucune langue renseignée.
+                    {tProfile('sections.availability.languages_empty')}
                   </div>
                 )}
 
@@ -1669,7 +1664,7 @@ export default function ValiderProfilPage() {
                       type="text"
                       value={l.language}
                       onChange={e => updateLanguage(i, { language: e.target.value })}
-                      placeholder="Français, Anglais..."
+                      placeholder={tProfile('sections.availability.language_placeholder')}
                       style={inputStyle('languages_structured')}
                     />
                     <select
@@ -1705,12 +1700,12 @@ export default function ValiderProfilPage() {
                         onChange={() => setLanguagePrimary(i)}
                         style={{ accentColor: domain.primaryColor }}
                       />
-                      Principale
+                      {tProfile('sections.availability.primary_label')}
                     </label>
                     <button
                       type="button"
                       onClick={() => removeLanguage(i)}
-                      aria-label="Supprimer la langue"
+                      aria-label={tProfile('sections.availability.language_remove_aria')}
                       style={removeBtnStyle}
                     >
                       ×
@@ -1719,7 +1714,7 @@ export default function ValiderProfilPage() {
                 ))}
 
                 <button type="button" onClick={addLanguage} style={addBtnStyle}>
-                  + Ajouter une langue
+                  {tProfile('sections.availability.language_add_button')}
                 </button>
                 <FieldError field="languages_structured" />
               </div>
@@ -1727,14 +1722,14 @@ export default function ValiderProfilPage() {
 
             {/* Section 5 — Liens */}
             <div style={sectionStyle}>
-              <SectionHeader n="5" color={SECTION_COLORS.liens} title="Liens" />
-              <label style={labelStyle}>URL LinkedIn</label>
+              <SectionHeader n="5" color={SECTION_COLORS.liens} title={tProfile('sections.links.title')} />
+              <label style={labelStyle}>{tProfile('sections.links.linkedin_label')}</label>
               <input
                 type="url"
                 maxLength={500}
                 value={linkedinUrl}
                 onChange={e => setLinkedinUrl(e.target.value)}
-                placeholder="https://linkedin.com/in/..."
+                placeholder={tProfile('sections.links.linkedin_placeholder')}
                 style={inputStyle()}
               />
             </div>
@@ -1744,7 +1739,7 @@ export default function ValiderProfilPage() {
               <SectionHeader
                 n="6"
                 color={SECTION_COLORS.coordonnees}
-                title="Coordonnées"
+                title={tProfile('sections.contact.title')}
               />
 
               <div
@@ -1757,36 +1752,36 @@ export default function ValiderProfilPage() {
                 }}
               >
                 <div>
-                  <label style={labelStyle}>Téléphone</label>
+                  <label style={labelStyle}>{tProfile('sections.contact.phone_label')}</label>
                   <input
                     type="tel"
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
-                    placeholder="+33 6 12 34 56 78"
+                    placeholder={tProfile('sections.contact.phone_placeholder')}
                     style={inputStyle()}
                   />
                 </div>
                 <div>
-                  <label style={labelStyle}>Année de naissance</label>
+                  <label style={labelStyle}>{tProfile('sections.contact.birth_year_label')}</label>
                   <input
                     type="number"
                     min={1900}
                     max={new Date().getFullYear()}
                     value={birthYear}
                     onChange={e => setBirthYear(e.target.value)}
-                    placeholder="1990"
+                    placeholder={tProfile('sections.contact.birth_year_placeholder')}
                     style={inputStyle()}
                   />
                 </div>
               </div>
 
               <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Adresse</label>
+                <label style={labelStyle}>{tProfile('sections.contact.address_label')}</label>
                 <input
                   type="text"
                   value={addressLine}
                   onChange={e => setAddressLine(e.target.value)}
-                  placeholder="12 rue de la Paix"
+                  placeholder={tProfile('sections.contact.address_placeholder')}
                   style={inputStyle()}
                 />
               </div>
@@ -1801,29 +1796,29 @@ export default function ValiderProfilPage() {
                 }}
               >
                 <div>
-                  <label style={labelStyle}>Code postal</label>
+                  <label style={labelStyle}>{tProfile('sections.contact.postal_code_label')}</label>
                   <input
                     type="text"
                     value={postalCode}
                     onChange={e => setPostalCode(e.target.value)}
-                    placeholder="75001"
+                    placeholder={tProfile('sections.contact.postal_code_placeholder')}
                     style={inputStyle()}
                   />
                 </div>
                 <div>
-                  <label style={labelStyle}>Ville</label>
+                  <label style={labelStyle}>{tProfile('sections.contact.city_label')}</label>
                   <input
                     type="text"
                     value={city}
                     onChange={e => setCity(e.target.value)}
-                    placeholder="Paris"
+                    placeholder={tProfile('sections.contact.city_placeholder')}
                     style={inputStyle()}
                   />
                 </div>
               </div>
 
               <div>
-                <label style={labelStyle}>{tProfile('country_label')}</label>
+                <label style={labelStyle}>{tProfile('sections.contact.country_label')}</label>
                 <CountrySelect
                   value={country}
                   onChange={setCountry}
@@ -1841,7 +1836,7 @@ export default function ValiderProfilPage() {
               <SectionHeader
                 n="7"
                 color={SECTION_COLORS.parcours}
-                title="Parcours professionnel"
+                title={tProfile('sections.career.title')}
               />
               <FieldError field="experiences" />
 
@@ -1854,7 +1849,7 @@ export default function ValiderProfilPage() {
                     fontFamily: fontJakarta,
                   }}
                 >
-                  Aucun employeur renseigné.
+                  {tProfile('sections.career.empty')}
                 </div>
               )}
               {careerEntries.map(entry =>
@@ -1865,7 +1860,7 @@ export default function ValiderProfilPage() {
                 onClick={() => addExperience('career')}
                 style={addBtnStyle}
               >
-                + Ajouter un employeur
+                {tProfile('sections.career.add_button')}
               </button>
             </div>
 
@@ -1874,7 +1869,7 @@ export default function ValiderProfilPage() {
               <SectionHeader
                 n="8"
                 color={SECTION_COLORS.missions}
-                title="Missions / Projets"
+                title={tProfile('sections.missions.title')}
               />
 
               {projectEntries.length === 0 && (
@@ -1886,7 +1881,7 @@ export default function ValiderProfilPage() {
                     fontFamily: fontJakarta,
                   }}
                 >
-                  Aucune mission renseignée.
+                  {tProfile('sections.missions.empty')}
                 </div>
               )}
               {projectEntries.map(entry =>
@@ -1897,13 +1892,13 @@ export default function ValiderProfilPage() {
                 onClick={() => addExperience('project')}
                 style={addBtnStyle}
               >
-                + Ajouter une mission
+                {tProfile('sections.missions.add_button')}
               </button>
             </div>
 
             {/* Section 9 — Formations */}
             <div style={sectionStyle}>
-              <SectionHeader n="9" color={SECTION_COLORS.formation} title="Formation" />
+              <SectionHeader n="9" color={SECTION_COLORS.formation} title={tProfile('sections.education.title')} />
 
               {educations.length === 0 && (
                 <div
@@ -1914,7 +1909,7 @@ export default function ValiderProfilPage() {
                     fontFamily: fontJakarta,
                   }}
                 >
-                  Aucune formation renseignée.
+                  {tProfile('sections.education.empty')}
                 </div>
               )}
 
@@ -1939,22 +1934,22 @@ export default function ValiderProfilPage() {
                     }}
                   >
                     <div>
-                      <label style={labelStyle}>École</label>
+                      <label style={labelStyle}>{tProfile('sections.education.school_label')}</label>
                       <input
                         type="text"
                         value={edu.school}
                         onChange={e => updateEducation(i, { school: e.target.value })}
-                        placeholder="Université Paris-Dauphine"
+                        placeholder={tProfile('sections.education.school_placeholder')}
                         style={inputStyle()}
                       />
                     </div>
                     <div>
-                      <label style={labelStyle}>Diplôme</label>
+                      <label style={labelStyle}>{tProfile('sections.education.degree_label')}</label>
                       <input
                         type="text"
                         value={edu.degree}
                         onChange={e => updateEducation(i, { degree: e.target.value })}
-                        placeholder="Master, BAC+5, MBA..."
+                        placeholder={tProfile('sections.education.degree_placeholder')}
                         style={inputStyle()}
                       />
                     </div>
@@ -1970,22 +1965,22 @@ export default function ValiderProfilPage() {
                     }}
                   >
                     <div>
-                      <label style={labelStyle}>Domaine / Spécialisation</label>
+                      <label style={labelStyle}>{tProfile('sections.education.field_label')}</label>
                       <input
                         type="text"
                         value={edu.field}
                         onChange={e => updateEducation(i, { field: e.target.value })}
-                        placeholder="Finance, Informatique..."
+                        placeholder={tProfile('sections.education.field_placeholder')}
                         style={inputStyle()}
                       />
                     </div>
                     <div>
-                      <label style={labelStyle}>Lieu</label>
+                      <label style={labelStyle}>{tProfile('sections.education.location_label')}</label>
                       <input
                         type="text"
                         value={edu.location}
                         onChange={e => updateEducation(i, { location: e.target.value })}
-                        placeholder="Paris, Lyon..."
+                        placeholder={tProfile('sections.education.location_placeholder')}
                         style={inputStyle()}
                       />
                     </div>
@@ -2001,7 +1996,7 @@ export default function ValiderProfilPage() {
                     }}
                   >
                     <div>
-                      <label style={labelStyle}>Année début</label>
+                      <label style={labelStyle}>{tProfile('sections.education.start_year_label')}</label>
                       <input
                         type="number"
                         min={1900}
@@ -2012,7 +2007,7 @@ export default function ValiderProfilPage() {
                       />
                     </div>
                     <div>
-                      <label style={labelStyle}>Année fin</label>
+                      <label style={labelStyle}>{tProfile('sections.education.end_year_label')}</label>
                       <input
                         type="number"
                         min={1900}
@@ -2025,7 +2020,7 @@ export default function ValiderProfilPage() {
                     <button
                       type="button"
                       onClick={() => removeEducation(i)}
-                      aria-label="Retirer cette formation"
+                      aria-label={tProfile('sections.education.remove_aria')}
                       style={removeBtnStyle}
                     >
                       ×
@@ -2035,7 +2030,7 @@ export default function ValiderProfilPage() {
               ))}
 
               <button type="button" onClick={addEducation} style={addBtnStyle}>
-                + Ajouter une formation
+                {tProfile('sections.education.add_button')}
               </button>
             </div>
 
@@ -2069,7 +2064,7 @@ export default function ValiderProfilPage() {
                   fontFamily: fontJakarta,
                 }}
               >
-                Enregistrer comme brouillon
+                {saving ? tProfile('actions.saving') : tProfile('actions.save_draft')}
               </button>
               <button
                 type="button"
@@ -2089,7 +2084,7 @@ export default function ValiderProfilPage() {
                   fontFamily: fontJakarta,
                 }}
               >
-                {saving ? 'Envoi...' : 'Publier mon profil →'}
+                {saving ? tProfile('actions.publishing') : tProfile('actions.publish')}
               </button>
             </div>
           </>
