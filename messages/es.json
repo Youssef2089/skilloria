@@ -155,6 +155,54 @@
       "imprint": "Aviso legal"
     }
   },
+  "profile_upload": {
+    "page_title": "Crea tu perfil",
+    "page_subtitle": "Nuestra IA analiza tu documento y rellena tu perfil. Tú validas, y listo.",
+    "back_link": "← Volver al panel",
+    "error_close_aria": "Cerrar",
+    "status_badge": {
+      "pending": "Pendiente de verificación"
+    },
+    "card_cv": {
+      "recommended_badge": "RECOMENDADO",
+      "title": "Subir mi CV",
+      "subtitle": "Sube tu CV en formato PDF. Nuestra IA extrae tus competencias, experiencias y certificaciones.",
+      "dropzone_label": "Suelta o haz clic para seleccionar",
+      "dropzone_hint": "PDF · 5 MB máx."
+    },
+    "card_linkedin": {
+      "title": "Desde LinkedIn",
+      "subtitle": "¿Sin CV? Descarga tu perfil de LinkedIn en PDF y súbelo aquí.",
+      "step_1": "Abre tu perfil de LinkedIn",
+      "step_2": "Haz clic en <strong>Recursos</strong>",
+      "step_3": "Selecciona <strong>Guardar como PDF</strong>",
+      "dropzone_label": "Suelta o haz clic para seleccionar",
+      "dropzone_hint": "PDF · 5 MB máx."
+    },
+    "consent": {
+      "text": "Acepto que mi CV sea analizado por Anthropic Claude (Estados Unidos, con garantías contractuales SCC) para rellenar mi perfil. El PDF se almacena de forma privada y se elimina automáticamente tras 90 días. <highlight>Más información sobre el tratamiento de mis datos →</highlight>"
+    },
+    "locked_banner": "<strong>Perfil pendiente de completar.</strong> Las funciones Misiones, Candidaturas, Mensajería y Publicación permanecen bloqueadas hasta que tu perfil esté completo y validado por la IA.",
+    "parsing_overlay": {
+      "title": "Analizando...",
+      "duration": "5 a 30 segundos",
+      "success": "✅ Análisis completado, redirigiendo..."
+    },
+    "errors": {
+      "consent_required": "Acepta el tratamiento de tus datos para continuar.",
+      "file_too_large": "Archivo demasiado grande (máx. 5 MB).",
+      "invalid_format": "Formato no admitido, sube un PDF.",
+      "session_expired": "Sesión caducada, vuelve a iniciar sesión.",
+      "ai_disabled": "El análisis de IA no está disponible temporalmente, inténtalo más tarde.",
+      "rate_limit": "Has alcanzado el límite de 3 análisis por 24 h. Inténtalo de nuevo después de {reset}.",
+      "rate_limit_later": "más tarde",
+      "generic": "Se produjo un error, vuelve a intentarlo.",
+      "parsing_failed": "El análisis ha fallado: {reason}. Puedes reintentarlo o completarlo manualmente.",
+      "unknown_reason": "error desconocido",
+      "parsing_default": "Análisis fallido",
+      "timeout": "Tiempo agotado, vuelve a intentarlo."
+    }
+  },
   "profile_validation": {
     "page_title": "Valida tu perfil",
     "page_subtitle": "Comprueba la información extraída de tu documento. Puedes editar todo antes de publicar.",

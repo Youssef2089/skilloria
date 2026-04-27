@@ -155,6 +155,54 @@
       "imprint": "Legal notice"
     }
   },
+  "profile_upload": {
+    "page_title": "Create your profile",
+    "page_subtitle": "Our AI analyses your document and pre-fills your profile. You review, and you're set.",
+    "back_link": "← Back to dashboard",
+    "error_close_aria": "Close",
+    "status_badge": {
+      "pending": "Pending verification"
+    },
+    "card_cv": {
+      "recommended_badge": "RECOMMENDED",
+      "title": "Upload my CV",
+      "subtitle": "Drop your CV as a PDF. Our AI extracts your skills, experience and certifications.",
+      "dropzone_label": "Drop or click to select",
+      "dropzone_hint": "PDF · 5 MB max"
+    },
+    "card_linkedin": {
+      "title": "From LinkedIn",
+      "subtitle": "No CV? Download your LinkedIn profile as a PDF, then drop it here.",
+      "step_1": "Open your LinkedIn profile",
+      "step_2": "Click on <strong>Resources</strong>",
+      "step_3": "Choose <strong>Save to PDF</strong>",
+      "dropzone_label": "Drop or click to select",
+      "dropzone_hint": "PDF · 5 MB max"
+    },
+    "consent": {
+      "text": "I consent to my CV being analysed by Anthropic Claude (United States, with SCC contractual safeguards) to pre-fill my profile. The PDF is stored privately and automatically deleted after 90 days. <highlight>Learn more about how my data is processed →</highlight>"
+    },
+    "locked_banner": "<strong>Profile pending completion.</strong> Missions, Applications, Messaging and Publishing features remain locked until your profile is completed and validated by the AI.",
+    "parsing_overlay": {
+      "title": "Analysing...",
+      "duration": "5 to 30 seconds",
+      "success": "✅ Analysis complete, redirecting..."
+    },
+    "errors": {
+      "consent_required": "Please accept the processing of your data to continue.",
+      "file_too_large": "File too large (max 5 MB).",
+      "invalid_format": "Unsupported format, please upload a PDF.",
+      "session_expired": "Session expired, please log in again.",
+      "ai_disabled": "AI analysis is temporarily unavailable, please try again later.",
+      "rate_limit": "You have reached the limit of 3 analyses per 24 h. Please try again after {reset}.",
+      "rate_limit_later": "later",
+      "generic": "An error occurred, please try again.",
+      "parsing_failed": "Analysis failed: {reason}. You can retry or fill in manually.",
+      "unknown_reason": "unknown error",
+      "parsing_default": "Analysis failed",
+      "timeout": "Timed out, please try again."
+    }
+  },
   "profile_validation": {
     "page_title": "Validate your profile",
     "page_subtitle": "Check the information extracted from your document. You can edit anything before publishing.",

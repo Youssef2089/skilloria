@@ -155,6 +155,54 @@
       "imprint": "Impressum"
     }
   },
+  "profile_upload": {
+    "page_title": "Erstellen Sie Ihr Profil",
+    "page_subtitle": "Unsere KI analysiert Ihr Dokument und füllt Ihr Profil vor. Sie prüfen, fertig.",
+    "back_link": "← Zurück zum Dashboard",
+    "error_close_aria": "Schließen",
+    "status_badge": {
+      "pending": "Verifizierung ausstehend"
+    },
+    "card_cv": {
+      "recommended_badge": "EMPFOHLEN",
+      "title": "Lebenslauf hochladen",
+      "subtitle": "Laden Sie Ihren Lebenslauf als PDF hoch. Unsere KI extrahiert Ihre Kompetenzen, Erfahrungen und Zertifizierungen.",
+      "dropzone_label": "Ablegen oder klicken zum Auswählen",
+      "dropzone_hint": "PDF · max. 5 MB"
+    },
+    "card_linkedin": {
+      "title": "Aus LinkedIn",
+      "subtitle": "Kein Lebenslauf? Laden Sie Ihr LinkedIn-Profil als PDF herunter und ziehen Sie es hierher.",
+      "step_1": "Öffnen Sie Ihr LinkedIn-Profil",
+      "step_2": "Klicken Sie auf <strong>Mehr</strong>",
+      "step_3": "Wählen Sie <strong>Als PDF speichern</strong>",
+      "dropzone_label": "Ablegen oder klicken zum Auswählen",
+      "dropzone_hint": "PDF · max. 5 MB"
+    },
+    "consent": {
+      "text": "Ich willige ein, dass mein Lebenslauf von Anthropic Claude (USA, mit SCC-Standardvertragsklauseln) analysiert wird, um mein Profil vorauszufüllen. Die PDF-Datei wird privat gespeichert und nach 90 Tagen automatisch gelöscht. <highlight>Mehr über die Verarbeitung meiner Daten erfahren →</highlight>"
+    },
+    "locked_banner": "<strong>Profil noch zu vervollständigen.</strong> Die Funktionen Missionen, Bewerbungen, Nachrichten und Veröffentlichung bleiben gesperrt, bis Ihr Profil vervollständigt und von der KI validiert wurde.",
+    "parsing_overlay": {
+      "title": "Analyse läuft...",
+      "duration": "5 bis 30 Sekunden",
+      "success": "✅ Analyse abgeschlossen, Weiterleitung..."
+    },
+    "errors": {
+      "consent_required": "Bitte stimmen Sie der Verarbeitung Ihrer Daten zu, um fortzufahren.",
+      "file_too_large": "Datei zu groß (max. 5 MB).",
+      "invalid_format": "Format nicht unterstützt, bitte laden Sie ein PDF hoch.",
+      "session_expired": "Sitzung abgelaufen, bitte erneut anmelden.",
+      "ai_disabled": "Die KI-Analyse ist vorübergehend nicht verfügbar, bitte versuchen Sie es später erneut.",
+      "rate_limit": "Sie haben das Limit von 3 Analysen pro 24 h erreicht. Bitte versuchen Sie es nach {reset} erneut.",
+      "rate_limit_later": "später",
+      "generic": "Ein Fehler ist aufgetreten, bitte versuchen Sie es erneut.",
+      "parsing_failed": "Analyse fehlgeschlagen: {reason}. Sie können es erneut versuchen oder manuell ausfüllen.",
+      "unknown_reason": "unbekannter Fehler",
+      "parsing_default": "Analyse fehlgeschlagen",
+      "timeout": "Zeitüberschreitung, bitte versuchen Sie es erneut."
+    }
+  },
   "profile_validation": {
     "page_title": "Validieren Sie Ihr Profil",
     "page_subtitle": "Überprüfen Sie die aus Ihrem Dokument extrahierten Informationen. Sie können alles vor dem Veröffentlichen bearbeiten.",

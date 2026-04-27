@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState, type RefObject } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
@@ -11,7 +12,16 @@ const MAX_SIZE = 5 * 1024 * 1024
 const POLL_INTERVAL_MS = 2000
 const POLL_TIMEOUT_MS = 60_000
 
+const LOCALE_DATE_MAP: Record<string, string> = {
+  fr: 'fr-FR',
+  en: 'en-GB',
+  es: 'es-ES',
+  de: 'de-DE',
+}
+
 export default function ProfilUploadPage() {
+  const t = useTranslations('profile_upload')
+  const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
 
@@ -28,7 +38,7 @@ export default function ProfilUploadPage() {
   const requestFile = (ref: RefObject<HTMLInputElement | null>) => {
     setErrorMsg(null)
     if (!consent) {
-      setErrorMsg('Veuillez accepter le traitement de vos données pour continuer.')
+      setErrorMsg(t('errors.consent_required'))
       return
     }
     ref.current?.click()
@@ -51,10 +61,10 @@ export default function ProfilUploadPage() {
       const payload = await res.json().catch(() => ({} as any))
       if (payload?.status === 'done') return { ok: true }
       if (payload?.status === 'failed') {
-        return { ok: false, error: payload?.error ?? 'Analyse échouée' }
+        return { ok: false, error: payload?.error ?? t('errors.parsing_default') }
       }
     }
-    return { ok: false, error: 'Délai dépassé, réessayez.' }
+    return { ok: false, error: t('errors.timeout') }
   }
 
   const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,15 +73,15 @@ export default function ProfilUploadPage() {
     if (!file) return
 
     if (!consent) {
-      setErrorMsg('Veuillez accepter le traitement de vos données pour continuer.')
+      setErrorMsg(t('errors.consent_required'))
       return
     }
     if (file.size > MAX_SIZE) {
-      setErrorMsg('Fichier trop volumineux (max 5 Mo).')
+      setErrorMsg(t('errors.file_too_large'))
       return
     }
     if (file.type !== 'application/pdf') {
-      setErrorMsg('Format non supporté, déposez un PDF.')
+      setErrorMsg(t('errors.invalid_format'))
       return
     }
 
@@ -85,7 +95,7 @@ export default function ProfilUploadPage() {
       } = await supabase.auth.getSession()
       if (!session) {
         setStatus('error')
-        setErrorMsg('Session expirée, reconnectez-vous.')
+        setErrorMsg(t('errors.session_expired'))
         return
       }
 
@@ -106,22 +116,20 @@ export default function ProfilUploadPage() {
       if (!res.ok) {
         const code = payload?.code
         if (res.status === 503 && code === 'ai_disabled') {
-          setErrorMsg("L'analyse IA est temporairement indisponible, réessayez plus tard.")
+          setErrorMsg(t('errors.ai_disabled'))
         } else if (res.status === 429) {
           const reset = payload?.reset_at
-            ? new Date(payload.reset_at).toLocaleString('fr-FR')
-            : 'plus tard'
-          setErrorMsg(
-            `Vous avez atteint la limite de 3 analyses par 24h. Réessayez après ${reset}.`,
-          )
+            ? new Date(payload.reset_at).toLocaleString(LOCALE_DATE_MAP[locale] ?? locale)
+            : t('errors.rate_limit_later')
+          setErrorMsg(t('errors.rate_limit', { reset }))
         } else if (code === 'file_too_large') {
-          setErrorMsg('Fichier trop volumineux (max 5 Mo).')
+          setErrorMsg(t('errors.file_too_large'))
         } else if (code === 'bad_mime') {
-          setErrorMsg('Format non supporté, déposez un PDF.')
+          setErrorMsg(t('errors.invalid_format'))
         } else if (code === 'consent_missing') {
-          setErrorMsg('Veuillez accepter le traitement de vos données pour continuer.')
+          setErrorMsg(t('errors.consent_required'))
         } else {
-          setErrorMsg(payload?.error || 'Une erreur est survenue, veuillez réessayer.')
+          setErrorMsg(payload?.error || t('errors.generic'))
         }
         setStatus('error')
         return
@@ -129,7 +137,9 @@ export default function ProfilUploadPage() {
 
       if (payload?.status === 'failed') {
         setErrorMsg(
-          `L'analyse a échoué : ${payload.error ?? 'erreur inconnue'}. Vous pouvez réessayer ou compléter manuellement.`,
+          t('errors.parsing_failed', {
+            reason: payload.error ?? t('errors.unknown_reason'),
+          }),
         )
         setStatus('error')
         return
@@ -138,24 +148,22 @@ export default function ProfilUploadPage() {
       if (payload?.status === 'processing' && payload?.jobId) {
         const poll = await pollStatus(payload.jobId, session.access_token)
         if (!poll.ok) {
-          setErrorMsg(
-            `L'analyse a échoué : ${poll.error}. Vous pouvez réessayer ou compléter manuellement.`,
-          )
+          setErrorMsg(t('errors.parsing_failed', { reason: poll.error }))
           setStatus('error')
           return
         }
       } else if (payload?.status !== 'done') {
-        setErrorMsg('Une erreur est survenue, veuillez réessayer.')
+        setErrorMsg(t('errors.generic'))
         setStatus('error')
         return
       }
 
       setStatus('success')
-      setStatusMsg('✅ Analyse terminée, redirection...')
+      setStatusMsg(t('parsing_overlay.success'))
       router.push('/dashboard/freelance/profil/valider')
     } catch (err) {
       console.error('[profil upload] unexpected error', err)
-      setErrorMsg('Une erreur est survenue, veuillez réessayer.')
+      setErrorMsg(t('errors.generic'))
       setStatus('error')
     }
   }
@@ -225,7 +233,7 @@ export default function ProfilUploadPage() {
         >
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#eab308' }} />
           <span style={{ fontSize: 13, fontWeight: 500, color: '#92400e', whiteSpace: 'nowrap' }}>
-            En attente de vérification
+            {t('status_badge.pending')}
           </span>
         </div>
       </div>
@@ -246,7 +254,7 @@ export default function ProfilUploadPage() {
             marginBottom: 24,
           }}
         >
-          ← Retour au tableau de bord
+          {t('back_link')}
         </button>
 
         {errorMsg && (
@@ -268,7 +276,7 @@ export default function ProfilUploadPage() {
             <button
               type="button"
               onClick={() => setErrorMsg(null)}
-              aria-label="Fermer"
+              aria-label={t('error_close_aria')}
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -294,10 +302,10 @@ export default function ProfilUploadPage() {
             marginBottom: 8,
           }}
         >
-          Créez votre profil
+          {t('page_title')}
         </h1>
         <p style={{ fontSize: 15, color: '#64748b', lineHeight: 1.6, marginBottom: 32, maxWidth: 640 }}>
-          Notre IA analyse votre document et pré-remplit votre profil. Vous validez, c'est prêt.
+          {t('page_subtitle')}
         </p>
 
         <div
@@ -336,7 +344,7 @@ export default function ProfilUploadPage() {
                 borderRadius: 100,
               }}
             >
-              RECOMMANDÉ
+              {t('card_cv.recommended_badge')}
             </span>
 
             <div
@@ -379,11 +387,10 @@ export default function ProfilUploadPage() {
                 letterSpacing: '-0.3px',
               }}
             >
-              Importer mon CV
+              {t('card_cv.title')}
             </h2>
             <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.55, marginBottom: 18 }}>
-              Déposez votre CV au format PDF. Notre IA extrait vos compétences, expériences et
-              certifications.
+              {t('card_cv.subtitle')}
             </p>
 
             <button
@@ -402,9 +409,11 @@ export default function ProfilUploadPage() {
               }}
             >
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
-                Déposez ou cliquez pour sélectionner
+                {t('card_cv.dropzone_label')}
               </div>
-              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 500 }}>PDF · 5 Mo max</div>
+              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 500 }}>
+                {t('card_cv.dropzone_hint')}
+              </div>
             </button>
             <input
               ref={cvInputRef}
@@ -453,10 +462,10 @@ export default function ProfilUploadPage() {
                 letterSpacing: '-0.3px',
               }}
             >
-              Depuis LinkedIn
+              {t('card_linkedin.title')}
             </h2>
             <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.55, marginBottom: 14 }}>
-              Pas de CV ? Téléchargez votre profil LinkedIn en PDF puis déposez-le ici.
+              {t('card_linkedin.subtitle')}
             </p>
 
             <ol
@@ -468,12 +477,16 @@ export default function ProfilUploadPage() {
                 marginBottom: 18,
               }}
             >
-              <li>Ouvrez votre profil LinkedIn</li>
+              <li>{t('card_linkedin.step_1')}</li>
               <li>
-                Cliquez sur <strong>Ressources</strong>
+                {t.rich('card_linkedin.step_2', {
+                  strong: chunks => <strong>{chunks}</strong>,
+                })}
               </li>
               <li>
-                Choisissez <strong>Enregistrer au format PDF</strong>
+                {t.rich('card_linkedin.step_3', {
+                  strong: chunks => <strong>{chunks}</strong>,
+                })}
               </li>
             </ol>
 
@@ -493,9 +506,11 @@ export default function ProfilUploadPage() {
               }}
             >
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
-                Déposez ou cliquez pour sélectionner
+                {t('card_linkedin.dropzone_label')}
               </div>
-              <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>PDF · 5 Mo max</div>
+              <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
+                {t('card_linkedin.dropzone_hint')}
+              </div>
             </button>
             <input
               ref={liInputRef}
@@ -528,12 +543,11 @@ export default function ProfilUploadPage() {
             style={{ marginTop: 3, flexShrink: 0, accentColor: domain.primaryColor }}
           />
           <span style={{ fontSize: 12, color: '#475569', lineHeight: 1.6 }}>
-            J'accepte que mon CV soit analysé par Anthropic Claude (États-Unis, garanties
-            contractuelles SCC) pour pré-remplir mon profil. Le PDF est stocké de manière privée et
-            supprimé automatiquement après 90 jours.{' '}
-            <span style={{ color: domain.primaryColor, fontWeight: 600 }}>
-              En savoir plus sur le traitement de mes données →
-            </span>
+            {t.rich('consent.text', {
+              highlight: chunks => (
+                <span style={{ color: domain.primaryColor, fontWeight: 600 }}>{chunks}</span>
+              ),
+            })}
           </span>
         </label>
 
@@ -572,9 +586,9 @@ export default function ProfilUploadPage() {
             </svg>
           </div>
           <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
-            <strong>Profil en attente de complétion.</strong> Les fonctionnalités Missions,
-            Candidatures, Messagerie et Publication restent verrouillées tant que votre profil
-            n'est pas complété et validé par l'IA.
+            {t.rich('locked_banner', {
+              strong: chunks => <strong>{chunks}</strong>,
+            })}
           </div>
         </div>
       </div>
@@ -615,9 +629,9 @@ export default function ProfilUploadPage() {
               }}
             />
             <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
-              Analyse en cours...
+              {t('parsing_overlay.title')}
             </div>
-            <div style={{ fontSize: 13, color: '#64748b' }}>5 à 30 secondes</div>
+            <div style={{ fontSize: 13, color: '#64748b' }}>{t('parsing_overlay.duration')}</div>
           </div>
         </div>
       )}
