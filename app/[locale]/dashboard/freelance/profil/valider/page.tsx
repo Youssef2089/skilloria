@@ -297,13 +297,24 @@ export default function ValiderProfilPage() {
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
-  const dragSourceRef = useRef<{ uid: string; type: 'cert' | 'lang' | 'edu' | 'career' | 'project' } | null>(null)
+
+  type SectionKey = 'cert' | 'lang' | 'career' | 'project' | 'edu'
+  const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(new Set())
+  const SHOW_MORE_THRESHOLD = 3
 
   const toggleExpand = (id: string) =>
     setExpandedIds(prev => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
+      return next
+    })
+
+  const toggleSection = (key: SectionKey) =>
+    setExpandedSections(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
 
@@ -617,76 +628,6 @@ export default function ValiderProfilPage() {
   const removeEducation = (i: number) =>
     setEducations(educations.filter((_, idx) => idx !== i))
 
-  // ── Move helpers (swap voisin) ──
-  function swapAt<T>(arr: T[], a: number, b: number): T[] {
-    if (a < 0 || b < 0 || a >= arr.length || b >= arr.length) return arr
-    const next = [...arr]
-    ;[next[a], next[b]] = [next[b], next[a]]
-    return next
-  }
-
-  const moveCert = (i: number, dir: -1 | 1) =>
-    setCertifications(prev => swapAt(prev, i, i + dir))
-  const moveLanguage = (i: number, dir: -1 | 1) =>
-    setLanguagesStructured(prev => swapAt(prev, i, i + dir))
-  const moveEducation = (i: number, dir: -1 | 1) =>
-    setEducations(prev => swapAt(prev, i, i + dir))
-
-  // Pour les expériences, swap uniquement avec un voisin du MÊME type
-  const moveExperience = (globalIdx: number, dir: -1 | 1) =>
-    setExperiences(prev => {
-      const item = prev[globalIdx]
-      if (!item) return prev
-      const sameType = prev
-        .map((e, idx) => ({ e, idx }))
-        .filter(x => x.e.experience_type === item.experience_type)
-      const localIdx = sameType.findIndex(x => x.idx === globalIdx)
-      const targetLocal = localIdx + dir
-      if (targetLocal < 0 || targetLocal >= sameType.length) return prev
-      const targetGlobal = sameType[targetLocal].idx
-      return swapAt(prev, globalIdx, targetGlobal)
-    })
-
-  // ── Drag & drop helpers ──
-  type DragKind = 'cert' | 'lang' | 'edu' | 'career' | 'project'
-  const onDragStart = (uidStr: string, kind: DragKind) => () => {
-    dragSourceRef.current = { uid: uidStr, type: kind }
-  }
-  const onDragOver = (e: React.DragEvent) => e.preventDefault()
-  const onDropFor = (kind: DragKind, targetUid: string) => () => {
-    const src = dragSourceRef.current
-    dragSourceRef.current = null
-    if (!src || src.type !== kind || src.uid === targetUid) return
-    if (kind === 'cert') {
-      setCertifications(prev => {
-        const a = prev.findIndex(x => x._uid === src.uid)
-        const b = prev.findIndex(x => x._uid === targetUid)
-        return a < 0 || b < 0 ? prev : swapAt(prev, a, b)
-      })
-    } else if (kind === 'lang') {
-      setLanguagesStructured(prev => {
-        const a = prev.findIndex(x => x._uid === src.uid)
-        const b = prev.findIndex(x => x._uid === targetUid)
-        return a < 0 || b < 0 ? prev : swapAt(prev, a, b)
-      })
-    } else if (kind === 'edu') {
-      setEducations(prev => {
-        const a = prev.findIndex(x => x._uid === src.uid)
-        const b = prev.findIndex(x => x._uid === targetUid)
-        return a < 0 || b < 0 ? prev : swapAt(prev, a, b)
-      })
-    } else {
-      // career / project — swap dans experiences (même type seulement)
-      setExperiences(prev => {
-        const a = prev.findIndex(x => x._uid === src.uid)
-        const b = prev.findIndex(x => x._uid === targetUid)
-        if (a < 0 || b < 0) return prev
-        if (prev[a].experience_type !== prev[b].experience_type) return prev
-        return swapAt(prev, a, b)
-      })
-    }
-  }
-
   // ── Confirm delete helpers ──
   const requestDelete = (id: string) => setConfirmingDeleteId(id)
   const cancelDelete = () => setConfirmingDeleteId(null)
@@ -928,6 +869,47 @@ export default function ValiderProfilPage() {
     fontFamily: fontJakarta,
   }
 
+  const ShowMoreToggle = ({
+    sectionKey,
+    total,
+    labelKey,
+  }: {
+    sectionKey: SectionKey
+    total: number
+    labelKey:
+      | 'show_more_certifications'
+      | 'show_more_career'
+      | 'show_more_missions'
+      | 'show_more_education'
+      | 'show_more_languages'
+  }) => {
+    if (total <= SHOW_MORE_THRESHOLD) return null
+    const isOpen = expandedSections.has(sectionKey)
+    return (
+      <button
+        type="button"
+        onClick={() => toggleSection(sectionKey)}
+        className="show-more-btn"
+        style={{
+          display: 'block',
+          margin: '12px auto 0',
+          background: 'transparent',
+          color: domain.primaryColor,
+          border: `1px solid ${domain.primaryColor}33`,
+          borderRadius: 999,
+          padding: '8px 18px',
+          fontSize: 14,
+          fontWeight: 600,
+          cursor: 'pointer',
+          fontFamily: fontJakarta,
+          transition: 'transform 150ms ease, background 150ms ease',
+        }}
+      >
+        {isOpen ? tProfile('show_less') : tProfile(labelKey, { count: total })}
+      </button>
+    )
+  }
+
   const renderExperienceFields = (
     exp: ExperienceItem,
     idx: number,
@@ -1094,6 +1076,12 @@ export default function ValiderProfilPage() {
           50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.25); }
         }
         .sk-focus-highlight { animation: sk-focus-ring 0.7s ease-out 2; border-radius: 10px; }
+        @keyframes sk-fade-in {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .compact-extra { animation: sk-fade-in 200ms ease-out both; }
+        .show-more-btn:hover { transform: translateY(-1px); background: ${domain.primaryColor}10; }
         @media (max-width: 767px) {
           .profil-main { padding: 18px !important; }
           .profil-title { font-size: 26px !important; }
@@ -1630,12 +1618,16 @@ export default function ValiderProfilPage() {
                 </div>
               )}
 
-              {certifications.map((c, i) => (
-                <CompactListItem
+              {(expandedSections.has('cert')
+                ? certifications
+                : certifications.slice(0, SHOW_MORE_THRESHOLD)
+              ).map((c, i) => (
+                <div
                   key={c._uid}
+                  className={i >= SHOW_MORE_THRESHOLD ? 'compact-extra' : undefined}
+                >
+                <CompactListItem
                   id={c._uid!}
-                  index={i}
-                  total={certifications.length}
                   title={c.name || tProfile('sections.certifications.name_placeholder')}
                   subtitle={[c.issuer, c.year].filter(Boolean).join(' · ')}
                   isExpanded={expandedIds.has(c._uid!)}
@@ -1644,10 +1636,6 @@ export default function ValiderProfilPage() {
                   onRequestDelete={() => requestDelete(c._uid!)}
                   onConfirmDelete={confirmDeleteAndRun(c._uid!, () => removeCert(i))}
                   onCancelDelete={cancelDelete}
-                  onMove={dir => moveCert(i, dir)}
-                  onDragStart={onDragStart(c._uid!, 'cert')}
-                  onDragOver={onDragOver}
-                  onDrop={onDropFor('cert', c._uid!)}
                   accentColor={SECTION_COLORS.certifications}
                 >
                   <div
@@ -1691,7 +1679,14 @@ export default function ValiderProfilPage() {
                     </div>
                   </div>
                 </CompactListItem>
+                </div>
               ))}
+
+              <ShowMoreToggle
+                sectionKey="cert"
+                total={certifications.length}
+                labelKey="show_more_certifications"
+              />
             </div>
 
             {/* Section 4 — Disponibilité */}
@@ -1841,12 +1836,16 @@ export default function ValiderProfilPage() {
                   </div>
                 )}
 
-                {languagesStructured.map((l, i) => (
-                  <CompactListItem
+                {(expandedSections.has('lang')
+                  ? languagesStructured
+                  : languagesStructured.slice(0, SHOW_MORE_THRESHOLD)
+                ).map((l, i) => (
+                  <div
                     key={l._uid}
+                    className={i >= SHOW_MORE_THRESHOLD ? 'compact-extra' : undefined}
+                  >
+                  <CompactListItem
                     id={l._uid!}
-                    index={i}
-                    total={languagesStructured.length}
                     title={
                       <>
                         {l.language || tProfile('sections.availability.language_placeholder')}
@@ -1862,10 +1861,6 @@ export default function ValiderProfilPage() {
                     onRequestDelete={() => requestDelete(l._uid!)}
                     onConfirmDelete={confirmDeleteAndRun(l._uid!, () => removeLanguage(i))}
                     onCancelDelete={cancelDelete}
-                    onMove={dir => moveLanguage(i, dir)}
-                    onDragStart={onDragStart(l._uid!, 'lang')}
-                    onDragOver={onDragOver}
-                    onDrop={onDropFor('lang', l._uid!)}
                     accentColor={domain.primaryColor}
                   >
                     <div
@@ -1916,7 +1911,14 @@ export default function ValiderProfilPage() {
                       </label>
                     </div>
                   </CompactListItem>
+                  </div>
                 ))}
+
+                <ShowMoreToggle
+                  sectionKey="lang"
+                  total={languagesStructured.length}
+                  labelKey="show_more_languages"
+                />
 
                 <FieldError field="languages_structured" />
               </div>
@@ -2063,35 +2065,42 @@ export default function ValiderProfilPage() {
                   {tProfile('sections.career.empty')}
                 </div>
               )}
-              {careerEntries.map((entry, localIdx) => (
-                <CompactListItem
+              {(expandedSections.has('career')
+                ? careerEntries
+                : careerEntries.slice(0, SHOW_MORE_THRESHOLD)
+              ).map((entry, localIdx) => (
+                <div
                   key={entry._uid}
-                  id={entry._uid!}
-                  index={localIdx}
-                  total={careerEntries.length}
-                  title={
-                    entry.role
-                      ? entry.employer
-                        ? `${entry.role} @ ${entry.employer}`
-                        : entry.role
-                      : tProfile('sections.career.role_placeholder')
-                  }
-                  subtitle={formatExperienceSubtitle(entry)}
-                  isExpanded={expandedIds.has(entry._uid!)}
-                  onToggleExpand={() => toggleExpand(entry._uid!)}
-                  confirmingDelete={confirmingDeleteId === entry._uid}
-                  onRequestDelete={() => requestDelete(entry._uid!)}
-                  onConfirmDelete={confirmDeleteAndRun(entry._uid!, () => removeExperience(entry._idx))}
-                  onCancelDelete={cancelDelete}
-                  onMove={dir => moveExperience(entry._idx, dir)}
-                  onDragStart={onDragStart(entry._uid!, 'career')}
-                  onDragOver={onDragOver}
-                  onDrop={onDropFor('career', entry._uid!)}
-                  accentColor={SECTION_COLORS.parcours}
+                  className={localIdx >= SHOW_MORE_THRESHOLD ? 'compact-extra' : undefined}
                 >
-                  {renderExperienceFields(entry, entry._idx, 'career')}
-                </CompactListItem>
+                  <CompactListItem
+                    id={entry._uid!}
+                    title={
+                      entry.role
+                        ? entry.employer
+                          ? `${entry.role} @ ${entry.employer}`
+                          : entry.role
+                        : tProfile('sections.career.role_placeholder')
+                    }
+                    subtitle={formatExperienceSubtitle(entry)}
+                    isExpanded={expandedIds.has(entry._uid!)}
+                    onToggleExpand={() => toggleExpand(entry._uid!)}
+                    confirmingDelete={confirmingDeleteId === entry._uid}
+                    onRequestDelete={() => requestDelete(entry._uid!)}
+                    onConfirmDelete={confirmDeleteAndRun(entry._uid!, () => removeExperience(entry._idx))}
+                    onCancelDelete={cancelDelete}
+                    accentColor={SECTION_COLORS.parcours}
+                  >
+                    {renderExperienceFields(entry, entry._idx, 'career')}
+                  </CompactListItem>
+                </div>
               ))}
+
+              <ShowMoreToggle
+                sectionKey="career"
+                total={careerEntries.length}
+                labelKey="show_more_career"
+              />
             </div>
 
             {/* Section 8 — Missions / Projets */}
@@ -2123,35 +2132,42 @@ export default function ValiderProfilPage() {
                   {tProfile('sections.missions.empty')}
                 </div>
               )}
-              {projectEntries.map((entry, localIdx) => (
-                <CompactListItem
+              {(expandedSections.has('project')
+                ? projectEntries
+                : projectEntries.slice(0, SHOW_MORE_THRESHOLD)
+              ).map((entry, localIdx) => (
+                <div
                   key={entry._uid}
-                  id={entry._uid!}
-                  index={localIdx}
-                  total={projectEntries.length}
-                  title={
-                    entry.role
-                      ? entry.client_name
-                        ? `${entry.role} · ${entry.client_name}`
-                        : entry.role
-                      : tProfile('sections.missions.role_placeholder')
-                  }
-                  subtitle={formatExperienceSubtitle(entry)}
-                  isExpanded={expandedIds.has(entry._uid!)}
-                  onToggleExpand={() => toggleExpand(entry._uid!)}
-                  confirmingDelete={confirmingDeleteId === entry._uid}
-                  onRequestDelete={() => requestDelete(entry._uid!)}
-                  onConfirmDelete={confirmDeleteAndRun(entry._uid!, () => removeExperience(entry._idx))}
-                  onCancelDelete={cancelDelete}
-                  onMove={dir => moveExperience(entry._idx, dir)}
-                  onDragStart={onDragStart(entry._uid!, 'project')}
-                  onDragOver={onDragOver}
-                  onDrop={onDropFor('project', entry._uid!)}
-                  accentColor={SECTION_COLORS.missions}
+                  className={localIdx >= SHOW_MORE_THRESHOLD ? 'compact-extra' : undefined}
                 >
-                  {renderExperienceFields(entry, entry._idx, 'project')}
-                </CompactListItem>
+                  <CompactListItem
+                    id={entry._uid!}
+                    title={
+                      entry.role
+                        ? entry.client_name
+                          ? `${entry.role} · ${entry.client_name}`
+                          : entry.role
+                        : tProfile('sections.missions.role_placeholder')
+                    }
+                    subtitle={formatExperienceSubtitle(entry)}
+                    isExpanded={expandedIds.has(entry._uid!)}
+                    onToggleExpand={() => toggleExpand(entry._uid!)}
+                    confirmingDelete={confirmingDeleteId === entry._uid}
+                    onRequestDelete={() => requestDelete(entry._uid!)}
+                    onConfirmDelete={confirmDeleteAndRun(entry._uid!, () => removeExperience(entry._idx))}
+                    onCancelDelete={cancelDelete}
+                    accentColor={SECTION_COLORS.missions}
+                  >
+                    {renderExperienceFields(entry, entry._idx, 'project')}
+                  </CompactListItem>
+                </div>
               ))}
+
+              <ShowMoreToggle
+                sectionKey="project"
+                total={projectEntries.length}
+                labelKey="show_more_missions"
+              />
             </div>
 
             {/* Section 9 — Formations */}
@@ -2180,12 +2196,16 @@ export default function ValiderProfilPage() {
                 </div>
               )}
 
-              {educations.map((edu, i) => (
-                <CompactListItem
+              {(expandedSections.has('edu')
+                ? educations
+                : educations.slice(0, SHOW_MORE_THRESHOLD)
+              ).map((edu, i) => (
+                <div
                   key={edu._uid}
+                  className={i >= SHOW_MORE_THRESHOLD ? 'compact-extra' : undefined}
+                >
+                <CompactListItem
                   id={edu._uid!}
-                  index={i}
-                  total={educations.length}
                   title={
                     edu.degree
                       ? edu.school
@@ -2200,10 +2220,6 @@ export default function ValiderProfilPage() {
                   onRequestDelete={() => requestDelete(edu._uid!)}
                   onConfirmDelete={confirmDeleteAndRun(edu._uid!, () => removeEducation(i))}
                   onCancelDelete={cancelDelete}
-                  onMove={dir => moveEducation(i, dir)}
-                  onDragStart={onDragStart(edu._uid!, 'edu')}
-                  onDragOver={onDragOver}
-                  onDrop={onDropFor('edu', edu._uid!)}
                   accentColor={SECTION_COLORS.formation}
                 >
                   <div
@@ -2300,7 +2316,14 @@ export default function ValiderProfilPage() {
                     </div>
                   </div>
                 </CompactListItem>
+                </div>
               ))}
+
+              <ShowMoreToggle
+                sectionKey="edu"
+                total={educations.length}
+                labelKey="show_more_education"
+              />
             </div>
 
             {/* Actions */}

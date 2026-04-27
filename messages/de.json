@@ -322,6 +322,12 @@
       "draft_saved": "Entwurf gespeichert. Sie können weiter bearbeiten oder zum Dashboard zurückkehren.",
       "back_to_dashboard": "Dashboard →"
     },
+    "show_more_certifications": "Alle {count} Zertifizierungen anzeigen ▼",
+    "show_more_career": "Alle {count} Erfahrungen anzeigen ▼",
+    "show_more_missions": "Alle {count} Aufträge anzeigen ▼",
+    "show_more_education": "Alle {count} Ausbildungen anzeigen ▼",
+    "show_more_languages": "Alle {count} Sprachen anzeigen ▼",
+    "show_less": "Weniger anzeigen ▲",
     "field_labels_short": {
       "title": "den beruflichen Titel",
       "summary": "die Zusammenfassung (mindestens 20 Zeichen)",

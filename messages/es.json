@@ -322,6 +322,12 @@
       "draft_saved": "Borrador guardado. Puedes seguir editando o volver al panel.",
       "back_to_dashboard": "Panel →"
     },
+    "show_more_certifications": "Mostrar las {count} certificaciones ▼",
+    "show_more_career": "Mostrar las {count} experiencias ▼",
+    "show_more_missions": "Mostrar las {count} misiones ▼",
+    "show_more_education": "Mostrar las {count} formaciones ▼",
+    "show_more_languages": "Mostrar los {count} idiomas ▼",
+    "show_less": "Mostrar menos ▲",
     "field_labels_short": {
       "title": "tu título profesional",
       "summary": "el resumen (20 caracteres mínimo)",

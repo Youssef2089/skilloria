@@ -322,6 +322,12 @@
       "draft_saved": "Brouillon enregistré. Vous pouvez continuer à modifier ou retourner au tableau de bord.",
       "back_to_dashboard": "Tableau de bord →"
     },
+    "show_more_certifications": "Afficher les {count} certifications ▼",
+    "show_more_career": "Afficher les {count} expériences ▼",
+    "show_more_missions": "Afficher les {count} missions ▼",
+    "show_more_education": "Afficher les {count} formations ▼",
+    "show_more_languages": "Afficher les {count} langues ▼",
+    "show_less": "Réduire ▲",
     "field_labels_short": {
       "title": "le titre professionnel",
       "summary": "le résumé (20 caractères minimum)",

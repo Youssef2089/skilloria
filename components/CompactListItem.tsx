@@ -5,8 +5,6 @@ import { useTranslations } from 'next-intl'
 
 type Props = {
   id: string
-  index: number
-  total: number
   title: React.ReactNode
   subtitle?: React.ReactNode
   isExpanded: boolean
@@ -15,10 +13,6 @@ type Props = {
   onRequestDelete: () => void
   onConfirmDelete: () => void
   onCancelDelete: () => void
-  onMove: (direction: -1 | 1) => void
-  onDragStart: () => void
-  onDragOver: (e: React.DragEvent) => void
-  onDrop: () => void
   accentColor: string
   children: React.ReactNode
 }
@@ -27,8 +21,6 @@ const AUTO_CANCEL_DELETE_MS = 5000
 
 export default function CompactListItem({
   id,
-  index,
-  total,
   title,
   subtitle,
   isExpanded,
@@ -37,10 +29,6 @@ export default function CompactListItem({
   onRequestDelete,
   onConfirmDelete,
   onCancelDelete,
-  onMove,
-  onDragStart,
-  onDragOver,
-  onDrop,
   accentColor,
   children,
 }: Props) {
@@ -58,16 +46,9 @@ export default function CompactListItem({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirmingDelete])
 
-  const isFirst = index === 0
-  const isLast = index === total - 1
-
   return (
     <div
       data-compact-item-id={id}
-      draggable={!confirmingDelete}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
       className="compact-card"
       style={{
         position: 'relative',
@@ -113,13 +94,6 @@ export default function CompactListItem({
         .compact-icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
         .compact-icon-btn-active { color: var(--compact-accent) !important; background: var(--compact-accent-soft); }
         .compact-icon-btn-danger:hover:not(:disabled) { color: #dc2626 !important; background: #fef2f2; }
-        .compact-drag-handle { cursor: grab; }
-        .compact-drag-handle:active { cursor: grabbing; }
-        .compact-arrows-mobile { display: none; }
-        @media (max-width: 767px) {
-          .compact-drag-handle { display: none !important; }
-          .compact-arrows-mobile { display: inline-flex !important; gap: 2px; }
-        }
       `}</style>
 
       <div
@@ -152,46 +126,6 @@ export default function CompactListItem({
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-          <button
-            type="button"
-            className="compact-icon-btn compact-drag-handle"
-            aria-label={t('drag_handle')}
-            title={t('drag_handle')}
-            onMouseDown={e => e.stopPropagation()}
-            tabIndex={-1}
-            disabled={total <= 1 || confirmingDelete}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="9" cy="6" r="1.5" fill="currentColor" />
-              <circle cx="15" cy="6" r="1.5" fill="currentColor" />
-              <circle cx="9" cy="12" r="1.5" fill="currentColor" />
-              <circle cx="15" cy="12" r="1.5" fill="currentColor" />
-              <circle cx="9" cy="18" r="1.5" fill="currentColor" />
-              <circle cx="15" cy="18" r="1.5" fill="currentColor" />
-            </svg>
-          </button>
-          <span className="compact-arrows-mobile">
-            <button
-              type="button"
-              className="compact-icon-btn"
-              aria-label={t('move_up')}
-              title={t('move_up')}
-              onClick={() => onMove(-1)}
-              disabled={isFirst || confirmingDelete}
-            >
-              ↑
-            </button>
-            <button
-              type="button"
-              className="compact-icon-btn"
-              aria-label={t('move_down')}
-              title={t('move_down')}
-              onClick={() => onMove(1)}
-              disabled={isLast || confirmingDelete}
-            >
-              ↓
-            </button>
-          </span>
           <button
             type="button"
             className={`compact-icon-btn ${isExpanded ? 'compact-icon-btn-active' : ''}`}

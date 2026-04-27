@@ -262,16 +262,31 @@ export default function DashboardFreelance() {
           <div style={{ fontSize: 11, color: '#9ca3af', padding: '8px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>{t('sidebar.sections.main')}</div>
           <div className="nav-item-active">{t('sidebar.nav.dashboard')}</div>
           {[
-            { label: t('sidebar.nav.profile'), locked: false },
-            { label: t('sidebar.nav.missions'), locked: !isVerified },
-            { label: t('sidebar.nav.applications'), locked: !isVerified },
-            { label: t('sidebar.nav.messages'), locked: false },
-          ].map((item, i) => (
-            <div key={item.label} className="nav-item" style={{ animationDelay: `${(i + 1) * 0.05}s`, color: item.locked ? '#d1d5db' : '#4b5563', cursor: item.locked ? 'not-allowed' : 'pointer' }}>
-              {item.label}
-              {item.locked && <span style={{ fontSize: 12 }}>🔒</span>}
-            </div>
-          ))}
+            { label: t('sidebar.nav.profile'), locked: false, href: '/dashboard/freelance/profil/valider' },
+            { label: t('sidebar.nav.missions'), locked: !isVerified, href: null },
+            { label: t('sidebar.nav.applications'), locked: !isVerified, href: null },
+            { label: t('sidebar.nav.messages'), locked: false, href: null },
+          ].map((item, i) => {
+            const sharedStyle: React.CSSProperties = {
+              animationDelay: `${(i + 1) * 0.05}s`,
+              color: item.locked ? '#d1d5db' : '#4b5563',
+              cursor: item.locked ? 'not-allowed' : 'pointer',
+              textDecoration: 'none',
+            }
+            if (item.href && !item.locked) {
+              return (
+                <Link key={item.label} href={item.href} className="nav-item" style={sharedStyle}>
+                  {item.label}
+                </Link>
+              )
+            }
+            return (
+              <div key={item.label} className="nav-item" style={sharedStyle}>
+                {item.label}
+                {item.locked && <span style={{ fontSize: 12 }}>🔒</span>}
+              </div>
+            )
+          })}
 
           <div style={{ fontSize: 11, color: '#9ca3af', padding: '16px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>{t('sidebar.sections.publish')}</div>
           <div className="nav-item" style={{ color: isVerified ? domain.primaryColor : '#d1d5db', cursor: isVerified ? 'pointer' : 'not-allowed', animationDelay: '0.3s' }}>

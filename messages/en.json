@@ -322,6 +322,12 @@
       "draft_saved": "Draft saved. You can keep editing or go back to your dashboard.",
       "back_to_dashboard": "Dashboard →"
     },
+    "show_more_certifications": "Show all {count} certifications ▼",
+    "show_more_career": "Show all {count} experiences ▼",
+    "show_more_missions": "Show all {count} missions ▼",
+    "show_more_education": "Show all {count} education entries ▼",
+    "show_more_languages": "Show all {count} languages ▼",
+    "show_less": "Show less ▲",
     "field_labels_short": {
       "title": "your professional title",
       "summary": "the summary (20 characters minimum)",
