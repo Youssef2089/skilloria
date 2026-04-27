@@ -1,6 +1,7 @@
 'use client'
 
 import { useDomain } from '@/context/DomainContext'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export default function Topbar() {
   const domain = useDomain()
@@ -11,6 +12,9 @@ export default function Topbar() {
       padding: '6px 40px',
       display: 'flex',
       alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 16,
+      flexWrap: 'wrap',
       borderBottom: '1px solid #eee',
       fontSize: '12px',
     }}>
@@ -21,6 +25,7 @@ export default function Topbar() {
         <div style={{ width: 7, height: 7, background: '#22c55e', borderRadius: '50%' }} />
         {domain.name} — {domain.tagline}
       </div>
+      <LanguageSwitcher />
     </div>
   )
 }

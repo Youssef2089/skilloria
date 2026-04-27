@@ -7,6 +7,7 @@ import { Plus_Jakarta_Sans } from 'next/font/google'
 import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
 import CountrySelect from '@/components/CountrySelect'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -1043,29 +1044,32 @@ export default function ValiderProfilPage() {
           </span>
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            background: '#fef9c3',
-            border: '1px solid #fde68a',
-            padding: '7px 14px',
-            borderRadius: 20,
-          }}
-        >
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#eab308' }} />
-          <span
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <LanguageSwitcher />
+          <div
             style={{
-              fontSize: 13,
-              fontWeight: 500,
-              color: '#92400e',
-              whiteSpace: 'nowrap',
-              fontFamily: fontJakarta,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              background: '#fef9c3',
+              border: '1px solid #fde68a',
+              padding: '7px 14px',
+              borderRadius: 20,
             }}
           >
-            En attente de vérification
-          </span>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#eab308' }} />
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: '#92400e',
+                whiteSpace: 'nowrap',
+                fontFamily: fontJakarta,
+              }}
+            >
+              En attente de vérification
+            </span>
+          </div>
         </div>
       </div>
 

@@ -6,7 +6,6 @@ import { getMessages } from "next-intl/server";
 import { DomainProvider } from "@/context/DomainContext";
 import { getDomainConfig } from "@/lib/get-domain-config";
 import { routing } from "@/i18n/routing";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
 import "../globals.css";
 
 const geistSans = Geist({
@@ -49,9 +48,6 @@ export default async function LocaleLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} min-h-full flex flex-col`}>
         <NextIntlClientProvider messages={messages} locale={locale}>
           <DomainProvider config={domainConfig}>
-            <div style={{ position: "fixed", top: 12, right: 12, zIndex: 100 }}>
-              <LanguageSwitcher />
-            </div>
             {children}
           </DomainProvider>
         </NextIntlClientProvider>
