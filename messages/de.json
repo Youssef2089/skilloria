@@ -318,6 +318,10 @@
       "incomplete_check_below": "Profil unvollständig, überprüfen Sie die unten markierten Felder.",
       "save_failed": "Fehler beim Speichern, bitte erneut versuchen."
     },
+    "success": {
+      "draft_saved": "Entwurf gespeichert. Sie können weiter bearbeiten oder zum Dashboard zurückkehren.",
+      "back_to_dashboard": "Dashboard →"
+    },
     "field_labels_short": {
       "title": "den beruflichen Titel",
       "summary": "die Zusammenfassung (mindestens 20 Zeichen)",
@@ -337,6 +341,17 @@
       "work_modes": "Wählen Sie mindestens einen Arbeitsmodus",
       "experiences": "Fügen Sie mindestens eine Erfahrung hinzu (Werdegang oder Einsatz)",
       "languages_structured": "Fügen Sie mindestens eine Sprache hinzu"
+    },
+    "compact_actions": {
+      "expand": "Bearbeiten",
+      "collapse": "Einklappen",
+      "delete": "Löschen",
+      "drag_handle": "Neu anordnen",
+      "confirm_delete_question": "Diesen Eintrag löschen?",
+      "confirm_delete_button": "Endgültig löschen",
+      "cancel": "Abbrechen",
+      "move_up": "Nach oben",
+      "move_down": "Nach unten"
     },
     "sections": {
       "identity": {

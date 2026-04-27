@@ -318,6 +318,10 @@
       "incomplete_check_below": "Profil incomplet, vérifiez les champs surlignés ci-dessous.",
       "save_failed": "Erreur lors de la sauvegarde, réessayez."
     },
+    "success": {
+      "draft_saved": "Brouillon enregistré. Vous pouvez continuer à modifier ou retourner au tableau de bord.",
+      "back_to_dashboard": "Tableau de bord →"
+    },
     "field_labels_short": {
       "title": "le titre professionnel",
       "summary": "le résumé (20 caractères minimum)",
@@ -337,6 +341,17 @@
       "work_modes": "Sélectionnez au moins un mode de travail",
       "experiences": "Ajoutez au moins une expérience (parcours ou mission)",
       "languages_structured": "Ajoutez au moins une langue"
+    },
+    "compact_actions": {
+      "expand": "Modifier",
+      "collapse": "Réduire",
+      "delete": "Supprimer",
+      "drag_handle": "Réordonner",
+      "confirm_delete_question": "Supprimer cette entrée ?",
+      "confirm_delete_button": "Supprimer définitivement",
+      "cancel": "Annuler",
+      "move_up": "Déplacer vers le haut",
+      "move_down": "Déplacer vers le bas"
     },
     "sections": {
       "identity": {

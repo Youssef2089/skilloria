@@ -8,6 +8,7 @@ import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
 import CountrySelect from '@/components/CountrySelect'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import CompactListItem from '@/components/CompactListItem'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -25,6 +26,7 @@ type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'native'
 type ExperienceType = 'career' | 'project'
 
 type Certification = {
+  _uid?: string
   name: string
   issuer: string | null
   year: number | null
@@ -34,6 +36,7 @@ type Branch = { id: string; name: string; slug: string }
 type Speciality = { id: string; name: string; slug: string; branch_id: string }
 
 type ExperienceItem = {
+  _uid?: string
   experience_type: ExperienceType
   role: string
   employer: string
@@ -46,6 +49,7 @@ type ExperienceItem = {
 }
 
 type EducationItem = {
+  _uid?: string
   school: string
   degree: string
   field: string
@@ -55,9 +59,21 @@ type EducationItem = {
 }
 
 type LanguageItem = {
+  _uid?: string
   language: string
   level: CefrLevel
   is_primary: boolean
+}
+
+function uid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `_${Math.random().toString(36).slice(2, 11)}_${Date.now()}`
+}
+
+function ensureUid<T extends { _uid?: string }>(item: T): T {
+  return item._uid ? item : { ...item, _uid: uid() }
 }
 
 const SENIORITY_VALUES: Seniority[] = ['junior', 'confirmed', 'senior', 'expert']
@@ -79,6 +95,7 @@ type FieldKey = (typeof FIELD_ORDER)[number]
 
 function emptyExperience(type: ExperienceType): ExperienceItem {
   return {
+    _uid: uid(),
     experience_type: type,
     role: '',
     employer: '',
@@ -93,6 +110,7 @@ function emptyExperience(type: ExperienceType): ExperienceItem {
 
 function emptyEducation(): EducationItem {
   return {
+    _uid: uid(),
     school: '',
     degree: '',
     field: '',
@@ -103,17 +121,23 @@ function emptyEducation(): EducationItem {
 }
 
 function emptyLanguage(): LanguageItem {
-  return { language: '', level: 'B2', is_primary: false }
+  return { _uid: uid(), language: '', level: 'B2', is_primary: false }
+}
+
+function emptyCertification(): Certification {
+  return { _uid: uid(), name: '', issuer: null, year: null }
 }
 
 function SectionHeader({
   n,
   color,
   title,
+  action,
 }: {
   n: string
   color: string
   title: React.ReactNode
+  action?: React.ReactNode
 }) {
   return (
     <div
@@ -145,6 +169,7 @@ function SectionHeader({
       </span>
       <div
         style={{
+          flex: 1,
           fontSize: 16,
           fontWeight: 700,
           color: '#0f172a',
@@ -154,6 +179,7 @@ function SectionHeader({
       >
         {title}
       </div>
+      {action}
     </div>
   )
 }
@@ -220,6 +246,7 @@ export default function ValiderProfilPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [missingFields, setMissingFields] = useState<string[] | null>(null)
   const [parsingFailed, setParsingFailed] = useState(false)
 
@@ -267,6 +294,18 @@ export default function ValiderProfilPage() {
   }
 
   const [focusedField, setFocusedField] = useState<FieldKey | null>(null)
+
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
+  const dragSourceRef = useRef<{ uid: string; type: 'cert' | 'lang' | 'edu' | 'career' | 'project' } | null>(null)
+
+  const toggleExpand = (id: string) =>
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
 
   useEffect(() => {
     if (!focusedField) return
@@ -366,7 +405,7 @@ export default function ValiderProfilPage() {
       setSkills(Array.isArray(profile.skills) ? (profile.skills as string[]) : [])
       setCertifications(
         Array.isArray(profile.certifications)
-          ? (profile.certifications as Certification[])
+          ? (profile.certifications as Certification[]).map(ensureUid)
           : [],
       )
       setWorkModes(
@@ -421,6 +460,7 @@ export default function ValiderProfilPage() {
 
       const raw: Array<ExperienceItem & { _so: number }> = (exps ?? []).map(
         (e: any) => ({
+          _uid: uid(),
           experience_type: (e.experience_type ?? 'career') as ExperienceType,
           role: e.role ?? '',
           employer: e.employer ?? '',
@@ -452,6 +492,7 @@ export default function ValiderProfilPage() {
 
       setEducations(
         (edus ?? []).map((e: any) => ({
+          _uid: uid(),
           school: e.school ?? '',
           degree: e.degree ?? '',
           field: e.field ?? '',
@@ -463,6 +504,7 @@ export default function ValiderProfilPage() {
 
       setLanguagesStructured(
         (langs ?? []).map((l: any) => ({
+          _uid: uid(),
           language: l.language ?? '',
           level: (l.level ?? 'B2') as CefrLevel,
           is_primary: !!l.is_primary,
@@ -522,8 +564,11 @@ export default function ValiderProfilPage() {
   }
   const removeSkill = (s: string) => setSkills(skills.filter(x => x !== s))
 
-  const addCert = () =>
-    setCertifications([...certifications, { name: '', issuer: null, year: null }])
+  const addCert = () => {
+    const item = emptyCertification()
+    setCertifications([...certifications, item])
+    setExpandedIds(prev => new Set(prev).add(item._uid!))
+  }
   const updateCert = (i: number, patch: Partial<Certification>) =>
     setCertifications(
       certifications.map((c, idx) => (idx === i ? { ...c, ...patch } : c)),
@@ -531,8 +576,11 @@ export default function ValiderProfilPage() {
   const removeCert = (i: number) =>
     setCertifications(certifications.filter((_, idx) => idx !== i))
 
-  const addLanguage = () =>
-    setLanguagesStructured([...languagesStructured, emptyLanguage()])
+  const addLanguage = () => {
+    const item = emptyLanguage()
+    setLanguagesStructured([...languagesStructured, item])
+    setExpandedIds(prev => new Set(prev).add(item._uid!))
+  }
   const updateLanguage = (i: number, patch: Partial<LanguageItem>) =>
     setLanguagesStructured(
       languagesStructured.map((l, idx) => (idx === i ? { ...l, ...patch } : l)),
@@ -544,8 +592,11 @@ export default function ValiderProfilPage() {
       languagesStructured.map((l, idx) => ({ ...l, is_primary: idx === i })),
     )
 
-  const addExperience = (type: ExperienceType) =>
-    setExperiences([...experiences, emptyExperience(type)])
+  const addExperience = (type: ExperienceType) => {
+    const item = emptyExperience(type)
+    setExperiences([...experiences, item])
+    setExpandedIds(prev => new Set(prev).add(item._uid!))
+  }
   const updateExperience = (i: number, patch: Partial<ExperienceItem>) =>
     setExperiences(experiences.map((e, idx) => (idx === i ? { ...e, ...patch } : e)))
   const removeExperience = (i: number) =>
@@ -556,11 +607,98 @@ export default function ValiderProfilPage() {
       prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m],
     )
 
-  const addEducation = () => setEducations([...educations, emptyEducation()])
+  const addEducation = () => {
+    const item = emptyEducation()
+    setEducations([...educations, item])
+    setExpandedIds(prev => new Set(prev).add(item._uid!))
+  }
   const updateEducation = (i: number, patch: Partial<EducationItem>) =>
     setEducations(educations.map((e, idx) => (idx === i ? { ...e, ...patch } : e)))
   const removeEducation = (i: number) =>
     setEducations(educations.filter((_, idx) => idx !== i))
+
+  // ── Move helpers (swap voisin) ──
+  function swapAt<T>(arr: T[], a: number, b: number): T[] {
+    if (a < 0 || b < 0 || a >= arr.length || b >= arr.length) return arr
+    const next = [...arr]
+    ;[next[a], next[b]] = [next[b], next[a]]
+    return next
+  }
+
+  const moveCert = (i: number, dir: -1 | 1) =>
+    setCertifications(prev => swapAt(prev, i, i + dir))
+  const moveLanguage = (i: number, dir: -1 | 1) =>
+    setLanguagesStructured(prev => swapAt(prev, i, i + dir))
+  const moveEducation = (i: number, dir: -1 | 1) =>
+    setEducations(prev => swapAt(prev, i, i + dir))
+
+  // Pour les expériences, swap uniquement avec un voisin du MÊME type
+  const moveExperience = (globalIdx: number, dir: -1 | 1) =>
+    setExperiences(prev => {
+      const item = prev[globalIdx]
+      if (!item) return prev
+      const sameType = prev
+        .map((e, idx) => ({ e, idx }))
+        .filter(x => x.e.experience_type === item.experience_type)
+      const localIdx = sameType.findIndex(x => x.idx === globalIdx)
+      const targetLocal = localIdx + dir
+      if (targetLocal < 0 || targetLocal >= sameType.length) return prev
+      const targetGlobal = sameType[targetLocal].idx
+      return swapAt(prev, globalIdx, targetGlobal)
+    })
+
+  // ── Drag & drop helpers ──
+  type DragKind = 'cert' | 'lang' | 'edu' | 'career' | 'project'
+  const onDragStart = (uidStr: string, kind: DragKind) => () => {
+    dragSourceRef.current = { uid: uidStr, type: kind }
+  }
+  const onDragOver = (e: React.DragEvent) => e.preventDefault()
+  const onDropFor = (kind: DragKind, targetUid: string) => () => {
+    const src = dragSourceRef.current
+    dragSourceRef.current = null
+    if (!src || src.type !== kind || src.uid === targetUid) return
+    if (kind === 'cert') {
+      setCertifications(prev => {
+        const a = prev.findIndex(x => x._uid === src.uid)
+        const b = prev.findIndex(x => x._uid === targetUid)
+        return a < 0 || b < 0 ? prev : swapAt(prev, a, b)
+      })
+    } else if (kind === 'lang') {
+      setLanguagesStructured(prev => {
+        const a = prev.findIndex(x => x._uid === src.uid)
+        const b = prev.findIndex(x => x._uid === targetUid)
+        return a < 0 || b < 0 ? prev : swapAt(prev, a, b)
+      })
+    } else if (kind === 'edu') {
+      setEducations(prev => {
+        const a = prev.findIndex(x => x._uid === src.uid)
+        const b = prev.findIndex(x => x._uid === targetUid)
+        return a < 0 || b < 0 ? prev : swapAt(prev, a, b)
+      })
+    } else {
+      // career / project — swap dans experiences (même type seulement)
+      setExperiences(prev => {
+        const a = prev.findIndex(x => x._uid === src.uid)
+        const b = prev.findIndex(x => x._uid === targetUid)
+        if (a < 0 || b < 0) return prev
+        if (prev[a].experience_type !== prev[b].experience_type) return prev
+        return swapAt(prev, a, b)
+      })
+    }
+  }
+
+  // ── Confirm delete helpers ──
+  const requestDelete = (id: string) => setConfirmingDeleteId(id)
+  const cancelDelete = () => setConfirmingDeleteId(null)
+  const confirmDeleteAndRun = (id: string, runDelete: () => void) => () => {
+    runDelete()
+    setConfirmingDeleteId(null)
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+  }
 
   const validateForPublish = (): string[] => {
     const missing: string[] = []
@@ -579,6 +717,7 @@ export default function ValiderProfilPage() {
   const save = async (visible: boolean) => {
     if (!accessToken || saving) return
     setErrorMsg(null)
+    setSuccessMsg(null)
     setMissingFields(null)
 
     if (visible) {
@@ -687,7 +826,14 @@ export default function ValiderProfilPage() {
         return
       }
 
-      router.push('/dashboard/freelance')
+      if (visible) {
+        router.push('/dashboard/freelance')
+        return
+      }
+
+      setSuccessMsg(tProfile('success.draft_saved'))
+      setSaving(false)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       console.error('[profil valider] patch error', err)
       setErrorMsg(tProfile('errors.save_failed'))
@@ -727,32 +873,6 @@ export default function ValiderProfilPage() {
     marginBottom: 20,
   }
 
-  const removeBtnStyle: React.CSSProperties = {
-    background: '#fef2f2',
-    color: '#dc2626',
-    border: '1.5px solid #fecaca',
-    borderRadius: 10,
-    padding: '10px 12px',
-    fontSize: 14,
-    cursor: 'pointer',
-    height: 42,
-    flexShrink: 0,
-    fontFamily: fontJakarta,
-  }
-
-  const addBtnStyle: React.CSSProperties = {
-    background: 'transparent',
-    color: domain.primaryColor,
-    border: `1.5px dashed ${domain.primaryColor}66`,
-    borderRadius: 10,
-    padding: '10px 16px',
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: 'pointer',
-    marginTop: 4,
-    fontFamily: fontJakarta,
-  }
-
   const primaryAddBtnStyle: React.CSSProperties = {
     background: domain.primaryColor,
     color: '#fff',
@@ -764,6 +884,35 @@ export default function ValiderProfilPage() {
     cursor: 'pointer',
     flexShrink: 0,
     fontFamily: fontJakarta,
+  }
+
+  const inlineAddBtnStyle: React.CSSProperties = {
+    background: `${domain.primaryColor}14`,
+    color: domain.primaryColor,
+    border: `1px solid ${domain.primaryColor}33`,
+    borderRadius: 8,
+    padding: '6px 12px',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: fontJakarta,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+  }
+
+  // Formatters pour le titre compact des cards
+  const formatDate = (s: string) => {
+    if (!s) return ''
+    const m = s.match(/^(\d{4})-(\d{2})/)
+    if (!m) return s
+    return `${m[2]}/${m[1]}`
+  }
+  const formatExperienceSubtitle = (e: ExperienceItem) => {
+    const start = formatDate(e.start_date)
+    const end = e.is_current ? '…' : formatDate(e.end_date)
+    if (!start && !end) return ''
+    return `${start || '—'} → ${end || '—'}`
   }
 
   const tagStyle: React.CSSProperties = {
@@ -779,65 +928,31 @@ export default function ValiderProfilPage() {
     fontFamily: fontJakarta,
   }
 
-  const renderExperienceCard = (
+  const renderExperienceFields = (
     exp: ExperienceItem,
     idx: number,
     type: ExperienceType,
   ) => {
     const isCareer = type === 'career'
     return (
-      <div
-        key={`${type}-${idx}`}
-        style={{
-          background: '#fff',
-          border: `1.5px solid ${
-            isMissing('experiences') && idx === 0 ? '#dc2626' : '#e2e8f0'
-          }`,
-          borderRadius: 12,
-          padding: 16,
-          marginBottom: 12,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 10,
-            marginBottom: 12,
-          }}
-        >
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>
-              {isCareer
-                ? tProfile('sections.career.role_label')
-                : tProfile('sections.missions.role_label')}
-            </label>
-            <input
-              type="text"
-              value={exp.role}
-              onChange={e => updateExperience(idx, { role: e.target.value })}
-              placeholder={
-                isCareer
-                  ? tProfile('sections.career.role_placeholder')
-                  : tProfile('sections.missions.role_placeholder')
-              }
-              style={inputStyle()}
-            />
-          </div>
-          <div style={{ marginTop: 22 }}>
-            <button
-              type="button"
-              onClick={() => removeExperience(idx)}
-              aria-label={
-                isCareer
-                  ? tProfile('sections.career.remove_aria')
-                  : tProfile('sections.missions.remove_aria')
-              }
-              style={removeBtnStyle}
-            >
-              ×
-            </button>
-          </div>
+      <>
+        <div style={{ marginBottom: 12 }}>
+          <label style={labelStyle}>
+            {isCareer
+              ? tProfile('sections.career.role_label')
+              : tProfile('sections.missions.role_label')}
+          </label>
+          <input
+            type="text"
+            value={exp.role}
+            onChange={e => updateExperience(idx, { role: e.target.value })}
+            placeholder={
+              isCareer
+                ? tProfile('sections.career.role_placeholder')
+                : tProfile('sections.missions.role_placeholder')
+            }
+            style={inputStyle()}
+          />
         </div>
 
         {isCareer ? (
@@ -963,7 +1078,7 @@ export default function ValiderProfilPage() {
             }}
           />
         </div>
-      </div>
+      </>
     )
   }
 
@@ -1180,7 +1295,75 @@ export default function ValiderProfilPage() {
               </div>
             )}
 
-            {parsingFailed && !errorMsg && (
+            {successMsg && !errorMsg && (
+              <div
+                role="status"
+                aria-live="polite"
+                style={{
+                  position: 'sticky',
+                  top: 16,
+                  zIndex: 50,
+                  background: '#ecfdf5',
+                  border: '1px solid #a7f3d0',
+                  borderRadius: 12,
+                  padding: '12px 16px',
+                  marginBottom: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  boxShadow: '0 6px 24px rgba(16, 185, 129, 0.10)',
+                }}
+              >
+                <div
+                  style={{
+                    color: '#065f46',
+                    fontSize: 13,
+                    flex: 1,
+                    lineHeight: 1.55,
+                    fontFamily: fontJakarta,
+                    fontWeight: 600,
+                  }}
+                >
+                  ✅ {successMsg}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push('/dashboard/freelance')}
+                  style={{
+                    background: '#10b981',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '8px 14px',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontFamily: fontJakarta,
+                    flexShrink: 0,
+                  }}
+                >
+                  {tProfile('success.back_to_dashboard')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSuccessMsg(null)}
+                  aria-label={tProfile('close_aria')}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#065f46',
+                    fontSize: 20,
+                    cursor: 'pointer',
+                    lineHeight: 1,
+                    padding: 0,
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            {parsingFailed && !errorMsg && !successMsg && (
               <div
                 style={{
                   background: '#fff7ed',
@@ -1427,6 +1610,11 @@ export default function ValiderProfilPage() {
                 n="3"
                 color={SECTION_COLORS.certifications}
                 title={tProfile('sections.certifications.title')}
+                action={
+                  <button type="button" onClick={addCert} style={inlineAddBtnStyle}>
+                    {tProfile('sections.certifications.add_button')}
+                  </button>
+                }
               />
 
               {certifications.length === 0 && (
@@ -1443,66 +1631,67 @@ export default function ValiderProfilPage() {
               )}
 
               {certifications.map((c, i) => (
-                <div
-                  key={i}
-                  className="profil-row"
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '2fr 1.3fr 0.7fr auto',
-                    gap: 10,
-                    alignItems: 'flex-end',
-                    marginBottom: 10,
-                  }}
+                <CompactListItem
+                  key={c._uid}
+                  id={c._uid!}
+                  index={i}
+                  total={certifications.length}
+                  title={c.name || tProfile('sections.certifications.name_placeholder')}
+                  subtitle={[c.issuer, c.year].filter(Boolean).join(' · ')}
+                  isExpanded={expandedIds.has(c._uid!)}
+                  onToggleExpand={() => toggleExpand(c._uid!)}
+                  confirmingDelete={confirmingDeleteId === c._uid}
+                  onRequestDelete={() => requestDelete(c._uid!)}
+                  onConfirmDelete={confirmDeleteAndRun(c._uid!, () => removeCert(i))}
+                  onCancelDelete={cancelDelete}
+                  onMove={dir => moveCert(i, dir)}
+                  onDragStart={onDragStart(c._uid!, 'cert')}
+                  onDragOver={onDragOver}
+                  onDrop={onDropFor('cert', c._uid!)}
+                  accentColor={SECTION_COLORS.certifications}
                 >
-                  <div>
-                    <label style={labelStyle}>{tProfile('sections.certifications.name_label')}</label>
-                    <input
-                      type="text"
-                      value={c.name}
-                      onChange={e => updateCert(i, { name: e.target.value })}
-                      placeholder={tProfile('sections.certifications.name_placeholder')}
-                      style={inputStyle()}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>{tProfile('sections.certifications.issuer_label')}</label>
-                    <input
-                      type="text"
-                      value={c.issuer ?? ''}
-                      onChange={e => updateCert(i, { issuer: e.target.value || null })}
-                      placeholder={tProfile('sections.certifications.issuer_placeholder')}
-                      style={inputStyle()}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>{tProfile('sections.certifications.year_label')}</label>
-                    <input
-                      type="number"
-                      min={1990}
-                      max={new Date().getFullYear() + 1}
-                      value={c.year ?? ''}
-                      onChange={e =>
-                        updateCert(i, {
-                          year: e.target.value ? Number(e.target.value) : null,
-                        })
-                      }
-                      style={inputStyle()}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeCert(i)}
-                    aria-label={tProfile('sections.certifications.remove_aria')}
-                    style={removeBtnStyle}
+                  <div
+                    className="profil-row"
+                    style={{ display: 'grid', gridTemplateColumns: '2fr 1.3fr 0.7fr', gap: 10 }}
                   >
-                    ×
-                  </button>
-                </div>
+                    <div>
+                      <label style={labelStyle}>{tProfile('sections.certifications.name_label')}</label>
+                      <input
+                        type="text"
+                        value={c.name}
+                        onChange={e => updateCert(i, { name: e.target.value })}
+                        placeholder={tProfile('sections.certifications.name_placeholder')}
+                        style={inputStyle()}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>{tProfile('sections.certifications.issuer_label')}</label>
+                      <input
+                        type="text"
+                        value={c.issuer ?? ''}
+                        onChange={e => updateCert(i, { issuer: e.target.value || null })}
+                        placeholder={tProfile('sections.certifications.issuer_placeholder')}
+                        style={inputStyle()}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>{tProfile('sections.certifications.year_label')}</label>
+                      <input
+                        type="number"
+                        min={1990}
+                        max={new Date().getFullYear() + 1}
+                        value={c.year ?? ''}
+                        onChange={e =>
+                          updateCert(i, {
+                            year: e.target.value ? Number(e.target.value) : null,
+                          })
+                        }
+                        style={inputStyle()}
+                      />
+                    </div>
+                  </div>
+                </CompactListItem>
               ))}
-
-              <button type="button" onClick={addCert} style={addBtnStyle}>
-                {tProfile('sections.certifications.add_button')}
-              </button>
             </div>
 
             {/* Section 4 — Disponibilité */}
@@ -1624,15 +1813,20 @@ export default function ValiderProfilPage() {
                 className={focusClass('languages_structured')}
                 style={{ padding: 2 }}
               >
-                <label style={labelStyle}>
-                  {tProfile('sections.availability.languages_label')}{' '}
-                  <span style={{ color: '#94a3b8', fontWeight: 400 }}>
-                    · {languagesStructured.filter(l => l.language.trim()).length}
-                    {languagesStructured.filter(l => l.language.trim()).length < 1
-                      ? ' ' + tProfile('sections.availability.languages_min_hint')
-                      : ''}
-                  </span>
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <label style={{ ...labelStyle, marginBottom: 0 }}>
+                    {tProfile('sections.availability.languages_label')}{' '}
+                    <span style={{ color: '#94a3b8', fontWeight: 400 }}>
+                      · {languagesStructured.filter(l => l.language.trim()).length}
+                      {languagesStructured.filter(l => l.language.trim()).length < 1
+                        ? ' ' + tProfile('sections.availability.languages_min_hint')
+                        : ''}
+                    </span>
+                  </label>
+                  <button type="button" onClick={addLanguage} style={inlineAddBtnStyle}>
+                    {tProfile('sections.availability.language_add_button')}
+                  </button>
+                </div>
 
                 {languagesStructured.length === 0 && (
                   <div
@@ -1648,73 +1842,82 @@ export default function ValiderProfilPage() {
                 )}
 
                 {languagesStructured.map((l, i) => (
-                  <div
-                    key={i}
-                    className="profil-row"
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '2fr 1.5fr auto auto',
-                      gap: 10,
-                      alignItems: 'center',
-                      marginBottom: 8,
-                    }}
+                  <CompactListItem
+                    key={l._uid}
+                    id={l._uid!}
+                    index={i}
+                    total={languagesStructured.length}
+                    title={
+                      <>
+                        {l.language || tProfile('sections.availability.language_placeholder')}
+                        {l.is_primary && (
+                          <span style={{ marginLeft: 8, fontSize: 11, color: domain.primaryColor, fontWeight: 700 }}>★</span>
+                        )}
+                      </>
+                    }
+                    subtitle={CEFR_LABELS[l.level]}
+                    isExpanded={expandedIds.has(l._uid!)}
+                    onToggleExpand={() => toggleExpand(l._uid!)}
+                    confirmingDelete={confirmingDeleteId === l._uid}
+                    onRequestDelete={() => requestDelete(l._uid!)}
+                    onConfirmDelete={confirmDeleteAndRun(l._uid!, () => removeLanguage(i))}
+                    onCancelDelete={cancelDelete}
+                    onMove={dir => moveLanguage(i, dir)}
+                    onDragStart={onDragStart(l._uid!, 'lang')}
+                    onDragOver={onDragOver}
+                    onDrop={onDropFor('lang', l._uid!)}
+                    accentColor={domain.primaryColor}
                   >
-                    <input
-                      type="text"
-                      value={l.language}
-                      onChange={e => updateLanguage(i, { language: e.target.value })}
-                      placeholder={tProfile('sections.availability.language_placeholder')}
-                      style={inputStyle('languages_structured')}
-                    />
-                    <select
-                      value={l.level}
-                      onChange={e =>
-                        updateLanguage(i, { level: e.target.value as CefrLevel })
-                      }
-                      style={inputStyle()}
-                    >
-                      {CEFR_LEVELS.map(lv => (
-                        <option key={lv} value={lv}>
-                          {CEFR_LABELS[lv]}
-                        </option>
-                      ))}
-                    </select>
-                    <label
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: l.is_primary ? domain.primaryColor : '#64748b',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        fontFamily: fontJakarta,
-                      }}
+                    <div
+                      className="profil-row"
+                      style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr auto', gap: 10, alignItems: 'center' }}
                     >
                       <input
-                        type="radio"
-                        name="language_primary"
-                        checked={l.is_primary}
-                        onChange={() => setLanguagePrimary(i)}
-                        style={{ accentColor: domain.primaryColor }}
+                        type="text"
+                        value={l.language}
+                        onChange={e => updateLanguage(i, { language: e.target.value })}
+                        placeholder={tProfile('sections.availability.language_placeholder')}
+                        style={inputStyle('languages_structured')}
                       />
-                      {tProfile('sections.availability.primary_label')}
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => removeLanguage(i)}
-                      aria-label={tProfile('sections.availability.language_remove_aria')}
-                      style={removeBtnStyle}
-                    >
-                      ×
-                    </button>
-                  </div>
+                      <select
+                        value={l.level}
+                        onChange={e =>
+                          updateLanguage(i, { level: e.target.value as CefrLevel })
+                        }
+                        style={inputStyle()}
+                      >
+                        {CEFR_LEVELS.map(lv => (
+                          <option key={lv} value={lv}>
+                            {CEFR_LABELS[lv]}
+                          </option>
+                        ))}
+                      </select>
+                      <label
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: l.is_primary ? domain.primaryColor : '#64748b',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          fontFamily: fontJakarta,
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="language_primary"
+                          checked={l.is_primary}
+                          onChange={() => setLanguagePrimary(i)}
+                          style={{ accentColor: domain.primaryColor }}
+                        />
+                        {tProfile('sections.availability.primary_label')}
+                      </label>
+                    </div>
+                  </CompactListItem>
                 ))}
 
-                <button type="button" onClick={addLanguage} style={addBtnStyle}>
-                  {tProfile('sections.availability.language_add_button')}
-                </button>
                 <FieldError field="languages_structured" />
               </div>
             </div>
@@ -1836,6 +2039,15 @@ export default function ValiderProfilPage() {
                 n="7"
                 color={SECTION_COLORS.parcours}
                 title={tProfile('sections.career.title')}
+                action={
+                  <button
+                    type="button"
+                    onClick={() => addExperience('career')}
+                    style={inlineAddBtnStyle}
+                  >
+                    {tProfile('sections.career.add_button')}
+                  </button>
+                }
               />
               <FieldError field="experiences" />
 
@@ -1851,16 +2063,35 @@ export default function ValiderProfilPage() {
                   {tProfile('sections.career.empty')}
                 </div>
               )}
-              {careerEntries.map(entry =>
-                renderExperienceCard(entry, entry._idx, 'career'),
-              )}
-              <button
-                type="button"
-                onClick={() => addExperience('career')}
-                style={addBtnStyle}
-              >
-                {tProfile('sections.career.add_button')}
-              </button>
+              {careerEntries.map((entry, localIdx) => (
+                <CompactListItem
+                  key={entry._uid}
+                  id={entry._uid!}
+                  index={localIdx}
+                  total={careerEntries.length}
+                  title={
+                    entry.role
+                      ? entry.employer
+                        ? `${entry.role} @ ${entry.employer}`
+                        : entry.role
+                      : tProfile('sections.career.role_placeholder')
+                  }
+                  subtitle={formatExperienceSubtitle(entry)}
+                  isExpanded={expandedIds.has(entry._uid!)}
+                  onToggleExpand={() => toggleExpand(entry._uid!)}
+                  confirmingDelete={confirmingDeleteId === entry._uid}
+                  onRequestDelete={() => requestDelete(entry._uid!)}
+                  onConfirmDelete={confirmDeleteAndRun(entry._uid!, () => removeExperience(entry._idx))}
+                  onCancelDelete={cancelDelete}
+                  onMove={dir => moveExperience(entry._idx, dir)}
+                  onDragStart={onDragStart(entry._uid!, 'career')}
+                  onDragOver={onDragOver}
+                  onDrop={onDropFor('career', entry._uid!)}
+                  accentColor={SECTION_COLORS.parcours}
+                >
+                  {renderExperienceFields(entry, entry._idx, 'career')}
+                </CompactListItem>
+              ))}
             </div>
 
             {/* Section 8 — Missions / Projets */}
@@ -1869,6 +2100,15 @@ export default function ValiderProfilPage() {
                 n="8"
                 color={SECTION_COLORS.missions}
                 title={tProfile('sections.missions.title')}
+                action={
+                  <button
+                    type="button"
+                    onClick={() => addExperience('project')}
+                    style={inlineAddBtnStyle}
+                  >
+                    {tProfile('sections.missions.add_button')}
+                  </button>
+                }
               />
 
               {projectEntries.length === 0 && (
@@ -1883,21 +2123,49 @@ export default function ValiderProfilPage() {
                   {tProfile('sections.missions.empty')}
                 </div>
               )}
-              {projectEntries.map(entry =>
-                renderExperienceCard(entry, entry._idx, 'project'),
-              )}
-              <button
-                type="button"
-                onClick={() => addExperience('project')}
-                style={addBtnStyle}
-              >
-                {tProfile('sections.missions.add_button')}
-              </button>
+              {projectEntries.map((entry, localIdx) => (
+                <CompactListItem
+                  key={entry._uid}
+                  id={entry._uid!}
+                  index={localIdx}
+                  total={projectEntries.length}
+                  title={
+                    entry.role
+                      ? entry.client_name
+                        ? `${entry.role} · ${entry.client_name}`
+                        : entry.role
+                      : tProfile('sections.missions.role_placeholder')
+                  }
+                  subtitle={formatExperienceSubtitle(entry)}
+                  isExpanded={expandedIds.has(entry._uid!)}
+                  onToggleExpand={() => toggleExpand(entry._uid!)}
+                  confirmingDelete={confirmingDeleteId === entry._uid}
+                  onRequestDelete={() => requestDelete(entry._uid!)}
+                  onConfirmDelete={confirmDeleteAndRun(entry._uid!, () => removeExperience(entry._idx))}
+                  onCancelDelete={cancelDelete}
+                  onMove={dir => moveExperience(entry._idx, dir)}
+                  onDragStart={onDragStart(entry._uid!, 'project')}
+                  onDragOver={onDragOver}
+                  onDrop={onDropFor('project', entry._uid!)}
+                  accentColor={SECTION_COLORS.missions}
+                >
+                  {renderExperienceFields(entry, entry._idx, 'project')}
+                </CompactListItem>
+              ))}
             </div>
 
             {/* Section 9 — Formations */}
             <div style={sectionStyle}>
-              <SectionHeader n="9" color={SECTION_COLORS.formation} title={tProfile('sections.education.title')} />
+              <SectionHeader
+                n="9"
+                color={SECTION_COLORS.formation}
+                title={tProfile('sections.education.title')}
+                action={
+                  <button type="button" onClick={addEducation} style={inlineAddBtnStyle}>
+                    {tProfile('sections.education.add_button')}
+                  </button>
+                }
+              />
 
               {educations.length === 0 && (
                 <div
@@ -1913,15 +2181,30 @@ export default function ValiderProfilPage() {
               )}
 
               {educations.map((edu, i) => (
-                <div
-                  key={i}
-                  style={{
-                    background: '#fff',
-                    border: '1.5px solid #e2e8f0',
-                    borderRadius: 12,
-                    padding: 16,
-                    marginBottom: 12,
-                  }}
+                <CompactListItem
+                  key={edu._uid}
+                  id={edu._uid!}
+                  index={i}
+                  total={educations.length}
+                  title={
+                    edu.degree
+                      ? edu.school
+                        ? `${edu.degree} · ${edu.school}`
+                        : edu.degree
+                      : edu.school || tProfile('sections.education.school_placeholder')
+                  }
+                  subtitle={[edu.field, [edu.start_year, edu.end_year].filter(Boolean).join(' — ')].filter(Boolean).join(' · ')}
+                  isExpanded={expandedIds.has(edu._uid!)}
+                  onToggleExpand={() => toggleExpand(edu._uid!)}
+                  confirmingDelete={confirmingDeleteId === edu._uid}
+                  onRequestDelete={() => requestDelete(edu._uid!)}
+                  onConfirmDelete={confirmDeleteAndRun(edu._uid!, () => removeEducation(i))}
+                  onCancelDelete={cancelDelete}
+                  onMove={dir => moveEducation(i, dir)}
+                  onDragStart={onDragStart(edu._uid!, 'edu')}
+                  onDragOver={onDragOver}
+                  onDrop={onDropFor('edu', edu._uid!)}
+                  accentColor={SECTION_COLORS.formation}
                 >
                   <div
                     className="profil-row"
@@ -1989,9 +2272,8 @@ export default function ValiderProfilPage() {
                     className="profil-row"
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 1fr auto',
+                      gridTemplateColumns: '1fr 1fr',
                       gap: 12,
-                      alignItems: 'flex-end',
                     }}
                   >
                     <div>
@@ -2016,21 +2298,9 @@ export default function ValiderProfilPage() {
                         style={inputStyle()}
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeEducation(i)}
-                      aria-label={tProfile('sections.education.remove_aria')}
-                      style={removeBtnStyle}
-                    >
-                      ×
-                    </button>
                   </div>
-                </div>
+                </CompactListItem>
               ))}
-
-              <button type="button" onClick={addEducation} style={addBtnStyle}>
-                {tProfile('sections.education.add_button')}
-              </button>
             </div>
 
             {/* Actions */}

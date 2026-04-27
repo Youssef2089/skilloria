@@ -318,6 +318,10 @@
       "incomplete_check_below": "Profile incomplete, please check the highlighted fields below.",
       "save_failed": "Error while saving, please try again."
     },
+    "success": {
+      "draft_saved": "Draft saved. You can keep editing or go back to your dashboard.",
+      "back_to_dashboard": "Dashboard →"
+    },
     "field_labels_short": {
       "title": "your professional title",
       "summary": "the summary (20 characters minimum)",
@@ -337,6 +341,17 @@
       "work_modes": "Select at least one work mode",
       "experiences": "Add at least one experience (career or assignment)",
       "languages_structured": "Add at least one language"
+    },
+    "compact_actions": {
+      "expand": "Edit",
+      "collapse": "Collapse",
+      "delete": "Delete",
+      "drag_handle": "Reorder",
+      "confirm_delete_question": "Delete this entry?",
+      "confirm_delete_button": "Delete permanently",
+      "cancel": "Cancel",
+      "move_up": "Move up",
+      "move_down": "Move down"
     },
     "sections": {
       "identity": {

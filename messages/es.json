@@ -318,6 +318,10 @@
       "incomplete_check_below": "Perfil incompleto, comprueba los campos destacados de abajo.",
       "save_failed": "Error al guardar, inténtalo de nuevo."
     },
+    "success": {
+      "draft_saved": "Borrador guardado. Puedes seguir editando o volver al panel.",
+      "back_to_dashboard": "Panel →"
+    },
     "field_labels_short": {
       "title": "tu título profesional",
       "summary": "el resumen (20 caracteres mínimo)",
@@ -337,6 +341,17 @@
       "work_modes": "Selecciona al menos un modo de trabajo",
       "experiences": "Añade al menos una experiencia (carrera o proyecto)",
       "languages_structured": "Añade al menos un idioma"
+    },
+    "compact_actions": {
+      "expand": "Editar",
+      "collapse": "Contraer",
+      "delete": "Eliminar",
+      "drag_handle": "Reordenar",
+      "confirm_delete_question": "¿Eliminar esta entrada?",
+      "confirm_delete_button": "Eliminar definitivamente",
+      "cancel": "Cancelar",
+      "move_up": "Mover arriba",
+      "move_down": "Mover abajo"
     },
     "sections": {
       "identity": {
