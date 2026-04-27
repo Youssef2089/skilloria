@@ -6,6 +6,75 @@
     "language_switcher_aria": "Changer la langue",
     "language_switcher_current": "Langue actuelle\u00A0: {locale}"
   },
+  "homepage": {
+    "meta": {
+      "title": "{name} — Trouvez l'expert {ecosystem} qu'il vous faut",
+      "description": "{name} connecte les entreprises aux meilleurs experts {ecosystem} certifiés via un matching IA. Publiez votre mission en 2 minutes."
+    },
+    "hero": {
+      "badge": "Piloté par l'IA · {name}",
+      "title": "Trouvez l'expert <highlight>{ecosystem}</highlight> qu'il vous faut.",
+      "subtitle": "Publiez votre besoin, l'IA analyse 40+ critères et vous connecte aux meilleurs experts certifiés de l'écosystème {ecosystem}.",
+      "cta_company": "Publier une mission/offre",
+      "cta_expert": "Créer mon profil expert",
+      "feature_free": "✓ Gratuit",
+      "feature_zero_commission": "✓ 0% commission",
+      "feature_ai": "✓ Piloté par l'IA"
+    },
+    "cards": {
+      "collaborate": {
+        "title": "Experts, collaborez entre vous\u00A0!",
+        "description": "Sous-traitez, formez des équipes entre experts certifiés."
+      },
+      "experts": {
+        "title": "Expert / Freelance / CDI\u00A0?",
+        "description": "Déclarez votre dispo, recevez des alertes missions."
+      },
+      "cta_join": "Rejoindre {name} →"
+    },
+    "profiles": {
+      "more_domains": "+ Autres domaines {ecosystem} couverts →"
+    },
+    "ad": {
+      "sponsored_label": "SPONSORISÉ",
+      "title": "Annoncez ici.",
+      "description": "Atteignez instantanément des milliers d'experts, recruteurs et entreprises de l'écosystème {ecosystem}.",
+      "cta": "Nous contacter →"
+    }
+  },
+  "navbar": {
+    "menu": {
+      "company": "Entreprise",
+      "freelance": "Freelance",
+      "permanent": "CDI",
+      "pricing": "Tarifs"
+    },
+    "cta_signup": "Créer mon compte",
+    "cta_signin": "Me connecter"
+  },
+  "footer": {
+    "tagline": "La marketplace premium des experts {ecosystem} certifiés, pilotée par l'IA Agentique.",
+    "col_platform": "Plateforme",
+    "col_domains": "Domaines",
+    "col_company": "Entreprise",
+    "links": {
+      "post_offer": "Publier une offre",
+      "company": "Entreprise",
+      "freelance": "Freelance",
+      "permanent": "CDI",
+      "pricing": "Tarifs",
+      "about": "À propos",
+      "blog": "Blog",
+      "contact": "Contact",
+      "partners": "Partenaires"
+    },
+    "copyright": "© {year} {name}. Tous droits réservés.",
+    "legal": {
+      "privacy": "Confidentialité",
+      "terms": "CGU",
+      "imprint": "Mentions légales"
+    }
+  },
   "profile_validation": {
     "page_title": "Validez votre profil",
     "page_subtitle": "Vérifiez les informations extraites de votre document. Vous pouvez tout corriger avant de publier.",

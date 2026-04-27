@@ -6,6 +6,75 @@
     "language_switcher_aria": "Sprache ändern",
     "language_switcher_current": "Aktuelle Sprache: {locale}"
   },
+  "homepage": {
+    "meta": {
+      "title": "{name} — Finden Sie den {ecosystem}-Experten, den Sie brauchen",
+      "description": "{name} verbindet Unternehmen mit den besten zertifizierten {ecosystem}-Experten via KI-Matching. Veröffentlichen Sie Ihren Auftrag in 2 Minuten."
+    },
+    "hero": {
+      "badge": "KI-gestützt · {name}",
+      "title": "Finden Sie den <highlight>{ecosystem}</highlight>-Experten, den Sie brauchen.",
+      "subtitle": "Veröffentlichen Sie Ihren Bedarf: unsere KI analysiert über 40 Kriterien und verbindet Sie mit den besten zertifizierten Experten im {ecosystem}-Ökosystem.",
+      "cta_company": "Auftrag veröffentlichen",
+      "cta_expert": "Mein Experten-Profil erstellen",
+      "feature_free": "✓ Kostenlos",
+      "feature_zero_commission": "✓ 0% Provision",
+      "feature_ai": "✓ KI-gestützt"
+    },
+    "cards": {
+      "collaborate": {
+        "title": "Experten, arbeiten Sie zusammen!",
+        "description": "Vergeben Sie Aufträge weiter, bilden Sie Teams unter zertifizierten Experten."
+      },
+      "experts": {
+        "title": "Experte / Freelancer / Festanstellung?",
+        "description": "Geben Sie Ihre Verfügbarkeit an, erhalten Sie Auftragsbenachrichtigungen."
+      },
+      "cta_join": "{name} beitreten →"
+    },
+    "profiles": {
+      "more_domains": "+ Weitere {ecosystem}-Bereiche abgedeckt →"
+    },
+    "ad": {
+      "sponsored_label": "GESPONSERT",
+      "title": "Hier werben.",
+      "description": "Erreichen Sie sofort Tausende von Experten, Recruitern und Unternehmen im {ecosystem}-Ökosystem.",
+      "cta": "Kontakt aufnehmen →"
+    }
+  },
+  "navbar": {
+    "menu": {
+      "company": "Unternehmen",
+      "freelance": "Freelancer",
+      "permanent": "Festanstellung",
+      "pricing": "Preise"
+    },
+    "cta_signup": "Konto erstellen",
+    "cta_signin": "Anmelden"
+  },
+  "footer": {
+    "tagline": "Der Premium-Marktplatz für zertifizierte {ecosystem}-Experten, betrieben mit agentischer KI.",
+    "col_platform": "Plattform",
+    "col_domains": "Bereiche",
+    "col_company": "Unternehmen",
+    "links": {
+      "post_offer": "Auftrag veröffentlichen",
+      "company": "Unternehmen",
+      "freelance": "Freelancer",
+      "permanent": "Festanstellung",
+      "pricing": "Preise",
+      "about": "Über uns",
+      "blog": "Blog",
+      "contact": "Kontakt",
+      "partners": "Partner"
+    },
+    "copyright": "© {year} {name}. Alle Rechte vorbehalten.",
+    "legal": {
+      "privacy": "Datenschutz",
+      "terms": "AGB",
+      "imprint": "Impressum"
+    }
+  },
   "profile_validation": {
     "page_title": "Validieren Sie Ihr Profil",
     "page_subtitle": "Überprüfen Sie die aus Ihrem Dokument extrahierten Informationen. Sie können alles vor dem Veröffentlichen bearbeiten.",

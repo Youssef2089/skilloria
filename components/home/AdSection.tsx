@@ -1,9 +1,11 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useDomain } from '@/context/DomainContext'
 
 export default function AdSection() {
   const domain = useDomain()
+  const t = useTranslations('homepage.ad')
 
   return (
     <div style={{
@@ -19,11 +21,11 @@ export default function AdSection() {
           border: '1px solid #e2e8f0',
           padding: '2px 8px', borderRadius: 4,
           whiteSpace: 'nowrap',
-        }}>SPONSORISÉ</span>
+        }}>{t('sponsored_label')}</span>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>Annoncez ici.</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{t('title')}</div>
           <div style={{ fontSize: 11, color: '#64748b' }}>
-            Atteignez instantanément des milliers d'experts, recruteurs et entreprises de l'écosystème {domain.ecosystemName}.
+            {t('description', { ecosystem: domain.ecosystemName })}
           </div>
         </div>
       </div>
@@ -33,7 +35,7 @@ export default function AdSection() {
         padding: '9px 18px', fontSize: 12,
         fontWeight: 700, cursor: 'pointer',
         whiteSpace: 'nowrap', marginLeft: 16,
-      }}>Nous contacter →</button>
+      }}>{t('cta')}</button>
     </div>
   )
 }

@@ -1,11 +1,22 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
+import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
+
+type MenuKey = 'company' | 'freelance' | 'permanent' | 'pricing'
 
 export default function Navbar() {
   const router = useRouter()
   const domain = useDomain()
+  const t = useTranslations('navbar')
+
+  const menuItems: Array<{ key: MenuKey; dropdown: boolean }> = [
+    { key: 'company', dropdown: true },
+    { key: 'freelance', dropdown: true },
+    { key: 'permanent', dropdown: false },
+    { key: 'pricing', dropdown: false },
+  ]
 
   return (
     <nav style={{
@@ -37,19 +48,14 @@ export default function Navbar() {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-        {[
-          { label: 'Entreprise', dropdown: true },
-          { label: 'Freelance', dropdown: true },
-          { label: 'CDI', dropdown: false },
-          { label: 'Tarifs', dropdown: false },
-        ].map((item) => (
-          <div key={item.label} style={{
+        {menuItems.map((item) => (
+          <div key={item.key} style={{
             padding: '0 12px', height: 48,
             fontSize: 12, fontWeight: 500, color: '#1a1a1a',
             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
             whiteSpace: 'nowrap',
           }}>
-            {item.label}
+            {t(`menu.${item.key}`)}
             {item.dropdown && (
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2.5">
                 <polyline points="6 9 12 15 18 9"/>
@@ -69,7 +75,7 @@ export default function Navbar() {
             cursor: 'pointer', whiteSpace: 'nowrap',
           }}
         >
-          Créer mon compte
+          {t('cta_signup')}
         </button>
 
         <button
@@ -81,16 +87,8 @@ export default function Navbar() {
             textUnderlineOffset: 3, whiteSpace: 'nowrap',
           }}
         >
-          Me connecter
+          {t('cta_signin')}
         </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="1.8">
-            <circle cx="12" cy="12" r="9"/>
-            <path d="M12 3a15 15 0 0 1 0 18M3 12h18M3.6 7.5h16.8M3.6 16.5h16.8"/>
-          </svg>
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a' }}>FR</span>
-        </div>
       </div>
     </nav>
   )

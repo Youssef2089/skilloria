@@ -6,6 +6,75 @@
     "language_switcher_aria": "Cambiar idioma",
     "language_switcher_current": "Idioma actual: {locale}"
   },
+  "homepage": {
+    "meta": {
+      "title": "{name} — Encuentra el experto {ecosystem} que necesitas",
+      "description": "{name} conecta a las empresas con los mejores expertos {ecosystem} certificados mediante matching IA. Publica tu proyecto en 2 minutos."
+    },
+    "hero": {
+      "badge": "Impulsado por IA · {name}",
+      "title": "Encuentra el experto <highlight>{ecosystem}</highlight> que necesitas.",
+      "subtitle": "Publica tu necesidad: nuestra IA analiza más de 40 criterios y te conecta con los mejores expertos certificados del ecosistema {ecosystem}.",
+      "cta_company": "Publicar un proyecto",
+      "cta_expert": "Crear mi perfil de experto",
+      "feature_free": "✓ Gratis",
+      "feature_zero_commission": "✓ 0% comisión",
+      "feature_ai": "✓ Impulsado por IA"
+    },
+    "cards": {
+      "collaborate": {
+        "title": "Colabora con otros expertos",
+        "description": "Subcontrata, forma equipos entre expertos certificados."
+      },
+      "experts": {
+        "title": "¿Experto / Freelance / Indefinido?",
+        "description": "Indica tu disponibilidad, recibe alertas de proyectos."
+      },
+      "cta_join": "Únete a {name} →"
+    },
+    "profiles": {
+      "more_domains": "+ Otras áreas {ecosystem} cubiertas →"
+    },
+    "ad": {
+      "sponsored_label": "PATROCINADO",
+      "title": "Anúnciate aquí.",
+      "description": "Llega al instante a miles de expertos, reclutadores y empresas del ecosistema {ecosystem}.",
+      "cta": "Contáctanos →"
+    }
+  },
+  "navbar": {
+    "menu": {
+      "company": "Empresa",
+      "freelance": "Freelance",
+      "permanent": "Indefinido",
+      "pricing": "Precios"
+    },
+    "cta_signup": "Crear cuenta",
+    "cta_signin": "Iniciar sesión"
+  },
+  "footer": {
+    "tagline": "El marketplace premium de expertos {ecosystem} certificados, impulsado por IA Agéntica.",
+    "col_platform": "Plataforma",
+    "col_domains": "Áreas",
+    "col_company": "Empresa",
+    "links": {
+      "post_offer": "Publicar un proyecto",
+      "company": "Empresa",
+      "freelance": "Freelance",
+      "permanent": "Indefinido",
+      "pricing": "Precios",
+      "about": "Sobre nosotros",
+      "blog": "Blog",
+      "contact": "Contacto",
+      "partners": "Partners"
+    },
+    "copyright": "© {year} {name}. Todos los derechos reservados.",
+    "legal": {
+      "privacy": "Privacidad",
+      "terms": "Términos",
+      "imprint": "Aviso legal"
+    }
+  },
   "profile_validation": {
     "page_title": "Valida tu perfil",
     "page_subtitle": "Comprueba la información extraída de tu documento. Puedes editar todo antes de publicar.",

@@ -1,9 +1,20 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useDomain } from '@/context/DomainContext'
+
+type PlatformLinkKey = 'post_offer' | 'company' | 'freelance' | 'permanent' | 'pricing'
+type CompanyLinkKey = 'about' | 'blog' | 'contact' | 'partners'
+type LegalLinkKey = 'privacy' | 'terms' | 'imprint'
+
+const PLATFORM_LINKS: PlatformLinkKey[] = ['post_offer', 'company', 'freelance', 'permanent', 'pricing']
+const COMPANY_LINKS: CompanyLinkKey[] = ['about', 'blog', 'contact', 'partners']
+const LEGAL_LINKS: LegalLinkKey[] = ['privacy', 'terms', 'imprint']
 
 export default function Footer() {
   const domain = useDomain()
+  const t = useTranslations('footer')
+  const year = new Date().getFullYear()
 
   return (
     <footer style={{ background: 'linear-gradient(160deg, #e0f2fe, #bae6fd 40%, #93c5fd 80%, #a5b4fc)' }}>
@@ -23,33 +34,41 @@ export default function Footer() {
               <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{domain.name}</span>
             </div>
             <p style={{ fontSize: 11, color: '#1e3a5f', lineHeight: 1.6, maxWidth: 200 }}>
-              La marketplace premium des {domain.ecosystemTerms.expertLabel}, pilotée par l'IA Agentique.
+              {t('tagline', { ecosystem: domain.ecosystemName })}
             </p>
           </div>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#0f172a', marginBottom: 10 }}>Plateforme</div>
-            {['Publier une offre', 'Entreprise', 'Freelance', 'CDI', 'Tarifs'].map(l => (
-              <div key={l} style={{ fontSize: 11, color: '#1e3a5f', marginBottom: 6, cursor: 'pointer' }}>{l}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#0f172a', marginBottom: 10 }}>{t('col_platform')}</div>
+            {PLATFORM_LINKS.map(k => (
+              <div key={k} style={{ fontSize: 11, color: '#1e3a5f', marginBottom: 6, cursor: 'pointer' }}>
+                {t(`links.${k}`)}
+              </div>
             ))}
           </div>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#0f172a', marginBottom: 10 }}>Domaines</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#0f172a', marginBottom: 10 }}>{t('col_domains')}</div>
             {domain.tags.slice(0, 4).map(l => (
               <div key={l} style={{ fontSize: 11, color: '#1e3a5f', marginBottom: 6, cursor: 'pointer' }}>{l}</div>
             ))}
           </div>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#0f172a', marginBottom: 10 }}>Entreprise</div>
-            {['À propos', 'Blog', 'Contact', 'Partenaires'].map(l => (
-              <div key={l} style={{ fontSize: 11, color: '#1e3a5f', marginBottom: 6, cursor: 'pointer' }}>{l}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#0f172a', marginBottom: 10 }}>{t('col_company')}</div>
+            {COMPANY_LINKS.map(k => (
+              <div key={k} style={{ fontSize: 11, color: '#1e3a5f', marginBottom: 6, cursor: 'pointer' }}>
+                {t(`links.${k}`)}
+              </div>
             ))}
           </div>
         </div>
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.5)', paddingTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 10, color: '#1e3a5f' }}>© 2025 {domain.name}. Tous droits réservés.</span>
+          <span style={{ fontSize: 10, color: '#1e3a5f' }}>
+            {t('copyright', { year, name: domain.name })}
+          </span>
           <div style={{ display: 'flex', gap: 14 }}>
-            {['Confidentialité', 'CGU', 'Mentions légales'].map(l => (
-              <span key={l} style={{ fontSize: 10, color: '#1e3a5f', cursor: 'pointer' }}>{l}</span>
+            {LEGAL_LINKS.map(k => (
+              <span key={k} style={{ fontSize: 10, color: '#1e3a5f', cursor: 'pointer' }}>
+                {t(`legal.${k}`)}
+              </span>
             ))}
           </div>
         </div>

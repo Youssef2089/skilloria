@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useDomain } from '@/context/DomainContext'
 import { useRouter } from '@/i18n/navigation'
 import Topbar from '@/components/layout/Topbar'
@@ -30,12 +31,15 @@ export default function Home() {
 function HeroSection() {
   const domain = useDomain()
   const router = useRouter()
+  const t = useTranslations('homepage')
+  const tMeta = useTranslations('homepage.meta')
+  const tHero = useTranslations('homepage.hero')
 
   return (
     <section style={{ background: '#fff', padding: '72px 48px 64px', borderBottom: '1px solid #f1f5f9' }}>
 
-      <title>{`${domain.name} — Trouvez l'expert ${domain.ecosystemName} qu'il vous faut`}</title>
-      <meta name="description" content={`${domain.name} connecte les entreprises aux meilleurs experts ${domain.ecosystemName} certifiés via un matching IA. Publiez votre mission en 2 minutes.`} />
+      <title>{tMeta('title', { name: domain.name, ecosystem: domain.ecosystemName })}</title>
+      <meta name="description" content={tMeta('description', { name: domain.name, ecosystem: domain.ecosystemName })} />
 
       <div style={{
         maxWidth: 1200,
@@ -62,7 +66,7 @@ function HeroSection() {
               animation: 'pulse 2s infinite',
             }} />
             <span style={{ fontSize: 12, fontWeight: 600, color: domain.primaryColor }}>
-              Piloté par l'IA · {domain.name}
+              {tHero('badge', { name: domain.name })}
             </span>
           </div>
 
@@ -71,19 +75,19 @@ function HeroSection() {
             color: '#0f172a', lineHeight: 1.1,
             letterSpacing: '-1.5px', marginBottom: 20,
           }}>
-            Trouvez l'expert<br />
-            <span style={{ color: domain.primaryColor }}>
-              {domain.ecosystemName}
-            </span><br />
-            qu'il vous faut.
+            {tHero.rich('title', {
+              ecosystem: domain.ecosystemName,
+              highlight: (chunks) => (
+                <span style={{ color: domain.primaryColor }}>{chunks}</span>
+              ),
+            })}
           </h1>
 
           <p style={{
             fontSize: 17, color: '#64748b',
             lineHeight: 1.75, marginBottom: 36, maxWidth: 400,
           }}>
-            Publiez votre besoin, l'IA analyse 40+ critères et vous connecte
-            aux meilleurs experts certifiés de l'écosystème {domain.ecosystemName}.
+            {tHero('subtitle', { ecosystem: domain.ecosystemName })}
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
@@ -101,7 +105,7 @@ function HeroSection() {
               onMouseOver={e => (e.currentTarget.style.opacity = '0.88')}
               onMouseOut={e => (e.currentTarget.style.opacity = '1')}
             >
-              <span>Publier une mission/offre</span>
+              <span>{tHero('cta_company')}</span>
               <span>→</span>
             </button>
             <button
@@ -119,15 +123,15 @@ function HeroSection() {
               onMouseOver={e => (e.currentTarget.style.opacity = '0.75')}
               onMouseOut={e => (e.currentTarget.style.opacity = '1')}
             >
-              <span>Créer mon profil expert</span>
+              <span>{tHero('cta_expert')}</span>
               <span>→</span>
             </button>
           </div>
 
           <div style={{ display: 'flex', gap: 20, fontSize: 12, color: '#94a3b8' }}>
-            <span>✓ Gratuit</span>
-            <span>✓ 0% commission</span>
-            <span>✓ Piloté par l'IA</span>
+            <span>{tHero('feature_free')}</span>
+            <span>{tHero('feature_zero_commission')}</span>
+            <span>{tHero('feature_ai')}</span>
           </div>
         </div>
 
@@ -156,6 +160,7 @@ function HeroSection() {
 function CardsSection() {
   const domain = useDomain()
   const router = useRouter()
+  const tCards = useTranslations('homepage.cards')
 
   return (
     <div style={{
@@ -183,10 +188,10 @@ function CardsSection() {
           }}>💬</div>
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>
-              Experts, collaborez entre vous !
+              {tCards('collaborate.title')}
             </div>
             <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.4 }}>
-              Sous-traitez, formez des équipes entre experts certifiés.
+              {tCards('collaborate.description')}
             </div>
           </div>
         </div>
@@ -204,10 +209,10 @@ function CardsSection() {
           }}>💼</div>
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>
-              Expert / Freelance / CDI ?
+              {tCards('experts.title')}
             </div>
             <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.4 }}>
-              Déclarez votre dispo, recevez des alertes missions.
+              {tCards('experts.description')}
             </div>
           </div>
         </div>
@@ -223,7 +228,7 @@ function CardsSection() {
             fontSize: 13, fontWeight: 700, cursor: 'pointer',
           }}
         >
-          Rejoindre {domain.name} →
+          {tCards('cta_join', { name: domain.name })}
         </button>
       </div>
     </div>

@@ -6,6 +6,75 @@
     "language_switcher_aria": "Change language",
     "language_switcher_current": "Current language: {locale}"
   },
+  "homepage": {
+    "meta": {
+      "title": "{name} — Find the {ecosystem} expert you need",
+      "description": "{name} connects companies with the best certified {ecosystem} experts through AI matching. Post your assignment in 2 minutes."
+    },
+    "hero": {
+      "badge": "AI-powered · {name}",
+      "title": "Find the <highlight>{ecosystem}</highlight> expert you need.",
+      "subtitle": "Post your need — our AI analyzes 40+ criteria and connects you with the best certified experts in the {ecosystem} ecosystem.",
+      "cta_company": "Post an assignment",
+      "cta_expert": "Create my expert profile",
+      "feature_free": "✓ Free",
+      "feature_zero_commission": "✓ 0% commission",
+      "feature_ai": "✓ AI-powered"
+    },
+    "cards": {
+      "collaborate": {
+        "title": "Experts, collaborate together!",
+        "description": "Subcontract, build teams between certified experts."
+      },
+      "experts": {
+        "title": "Expert / Freelancer / Full-time?",
+        "description": "Set your availability, get assignment alerts."
+      },
+      "cta_join": "Join {name} →"
+    },
+    "profiles": {
+      "more_domains": "+ Other {ecosystem} domains covered →"
+    },
+    "ad": {
+      "sponsored_label": "SPONSORED",
+      "title": "Advertise here.",
+      "description": "Instantly reach thousands of experts, recruiters and companies in the {ecosystem} ecosystem.",
+      "cta": "Contact us →"
+    }
+  },
+  "navbar": {
+    "menu": {
+      "company": "Company",
+      "freelance": "Freelancer",
+      "permanent": "Full-time",
+      "pricing": "Pricing"
+    },
+    "cta_signup": "Create account",
+    "cta_signin": "Sign in"
+  },
+  "footer": {
+    "tagline": "The premium marketplace for certified {ecosystem} experts, powered by Agentic AI.",
+    "col_platform": "Platform",
+    "col_domains": "Domains",
+    "col_company": "Company",
+    "links": {
+      "post_offer": "Post an assignment",
+      "company": "Company",
+      "freelance": "Freelancer",
+      "permanent": "Full-time",
+      "pricing": "Pricing",
+      "about": "About",
+      "blog": "Blog",
+      "contact": "Contact",
+      "partners": "Partners"
+    },
+    "copyright": "© {year} {name}. All rights reserved.",
+    "legal": {
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "imprint": "Legal notice"
+    }
+  },
   "profile_validation": {
     "page_title": "Validate your profile",
     "page_subtitle": "Check the information extracted from your document. You can edit anything before publishing.",

@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useDomain } from '@/context/DomainContext'
 
 const palette = [
@@ -17,6 +18,7 @@ const palette = [
 
 export default function ProfilesSection() {
   const domain = useDomain()
+  const t = useTranslations('homepage.profiles')
 
   return (
     <div style={{ borderBottom: '1px solid #f0f0f0', padding: '12px 32px', background: '#fff' }}>
@@ -32,7 +34,7 @@ export default function ProfilesSection() {
       </div>
       <div style={{ textAlign: 'center' }}>
         <span style={{ fontSize: 11, color: '#0ea5e9', fontWeight: 600, cursor: 'pointer', borderBottom: '1px dashed #7dd3fc' }}>
-          + Autres domaines {domain.ecosystemName} couverts →
+          {t('more_domains', { ecosystem: domain.ecosystemName })}
         </span>
       </div>
     </div>
