@@ -2,6 +2,17 @@
   "app": {
     "name": "Skilloria"
   },
+  "common": {
+    "language_switcher_aria": "Cambiar idioma",
+    "language_switcher_current": "Idioma actual: {locale}"
+  },
+  "profile_validation": {
+    "country_label": "País de residencia",
+    "country_placeholder": "Selecciona un país",
+    "country_search_placeholder": "Buscar un país...",
+    "country_loading": "Cargando países...",
+    "country_empty": "No se encontró ningún país"
+  },
   "login": {
     "title": "Iniciar sesión",
     "subtitle": "Accede a tu espacio {name}",

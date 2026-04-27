@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
+import CountrySelect from '@/components/CountrySelect'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -81,20 +83,6 @@ const CEFR_LABELS: Record<CefrLevel, string> = {
   C2: 'C2 — Maîtrise',
   native: 'Langue maternelle',
 }
-
-const COUNTRIES: Array<{ code: string; label: string }> = [
-  { code: 'FR', label: 'France' },
-  { code: 'BE', label: 'Belgique' },
-  { code: 'CH', label: 'Suisse' },
-  { code: 'LU', label: 'Luxembourg' },
-  { code: 'CA', label: 'Canada' },
-  { code: 'MA', label: 'Maroc' },
-  { code: 'TN', label: 'Tunisie' },
-  { code: 'DZ', label: 'Algérie' },
-  { code: 'GB', label: 'Royaume-Uni' },
-  { code: 'US', label: 'États-Unis' },
-  { code: 'AE', label: 'Émirats arabes unis' },
-]
 
 const FIELD_ORDER = [
   'title',
@@ -227,6 +215,7 @@ const SECTION_COLORS = {
 export default function ValiderProfilPage() {
   const router = useRouter()
   const domain = useDomain()
+  const tProfile = useTranslations('profile_validation')
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -1830,18 +1819,12 @@ export default function ValiderProfilPage() {
               </div>
 
               <div>
-                <label style={labelStyle}>Pays</label>
-                <select
+                <label style={labelStyle}>{tProfile('country_label')}</label>
+                <CountrySelect
                   value={country}
-                  onChange={e => setCountry(e.target.value)}
-                  style={inputStyle()}
-                >
-                  {COUNTRIES.map(c => (
-                    <option key={c.code} value={c.code}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setCountry}
+                  primaryColor={domain.primaryColor}
+                />
               </div>
             </div>
 

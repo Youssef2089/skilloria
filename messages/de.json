@@ -2,6 +2,17 @@
   "app": {
     "name": "Skilloria"
   },
+  "common": {
+    "language_switcher_aria": "Sprache ändern",
+    "language_switcher_current": "Aktuelle Sprache: {locale}"
+  },
+  "profile_validation": {
+    "country_label": "Wohnsitzland",
+    "country_placeholder": "Land auswählen",
+    "country_search_placeholder": "Land suchen...",
+    "country_loading": "Länder werden geladen...",
+    "country_empty": "Kein Land gefunden"
+  },
   "login": {
     "title": "Anmelden",
     "subtitle": "Zugang zu Ihrem {name}-Bereich",
