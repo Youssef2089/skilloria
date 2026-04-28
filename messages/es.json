@@ -945,7 +945,8 @@
         "salary_max_placeholder": "80000",
         "variable_pct_label": "Variable / bonus (% del fijo)",
         "variable_pct_placeholder": "10",
-        "variable_pct_hint": "Opcional — entre 0 y 100"
+        "variable_pct_hint": "Opcional — entre 0 y 100",
+        "salary_range_error": "El salario mín. debe ser menor o igual al salario máx."
       },
       "preferences": {
         "title": "Preferencias de búsqueda",

@@ -945,7 +945,8 @@
         "salary_max_placeholder": "80000",
         "variable_pct_label": "Variable / Bonus (% des Festgehalts)",
         "variable_pct_placeholder": "10",
-        "variable_pct_hint": "Optional — zwischen 0 und 100"
+        "variable_pct_hint": "Optional — zwischen 0 und 100",
+        "salary_range_error": "Das Mindestgehalt muss kleiner oder gleich dem Höchstgehalt sein."
       },
       "preferences": {
         "title": "Suchpräferenzen",

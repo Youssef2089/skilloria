@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import CountrySelect from '@/components/CountrySelect'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import CompactListItem from '@/components/CompactListItem'
+import CdiStatusToggle, { type CdiStatus } from '@/components/cdi/CdiStatusToggle'
 
 // =============================================================================
 // Page de validation profil CDI — phase 4a (sections COMMUNES + placeholders)
@@ -42,6 +43,18 @@ type Seniority = 'junior' | 'confirmed' | 'senior' | 'expert'
 type WorkMode = 'remote' | 'onsite' | 'hybrid'
 type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'native'
 type ExperienceType = 'career' | 'project'
+
+// CDI-specific enums (alignés sur les CHECK constraints SQL phase 2)
+type NoticePeriod = 'immediate' | '1_month' | '2_months' | '3_months' | 'negotiable'
+type GeoMobility = 'local' | 'regional' | 'national' | 'international'
+type ContractType = 'cdi' | 'cdd' | 'alternance'
+type CompanySize = 'startup' | 'pme' | 'eti' | 'grand_groupe'
+type SectorKey =
+  | 'banque' | 'retail' | 'industrie' | 'public' | 'sante'
+  | 'education' | 'tech' | 'consulting' | 'energie' | 'transport'
+type BenefitKey =
+  | 'remote_full' | 'remote_partial' | 'health_insurance' | 'rtt'
+  | 'training_budget' | 'stock_options' | 'meal_vouchers' | 'transport' | 'gym'
 
 type Certification = {
   _uid?: string
@@ -96,6 +109,19 @@ function ensureUid<T extends { _uid?: string }>(item: T): T {
 
 const SENIORITY_VALUES: Seniority[] = ['junior', 'confirmed', 'senior', 'expert']
 const CEFR_LEVELS: CefrLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'native']
+const WORK_MODE_VALUES: WorkMode[] = ['remote', 'onsite', 'hybrid']
+const NOTICE_PERIOD_VALUES: NoticePeriod[] = ['immediate', '1_month', '2_months', '3_months', 'negotiable']
+const GEO_MOBILITY_VALUES: GeoMobility[] = ['local', 'regional', 'national', 'international']
+const CONTRACT_TYPE_VALUES: ContractType[] = ['cdi', 'cdd', 'alternance']
+const COMPANY_SIZE_VALUES: CompanySize[] = ['startup', 'pme', 'eti', 'grand_groupe']
+const SECTOR_VALUES: SectorKey[] = [
+  'banque', 'retail', 'industrie', 'public', 'sante',
+  'education', 'tech', 'consulting', 'energie', 'transport',
+]
+const BENEFIT_VALUES: BenefitKey[] = [
+  'remote_full', 'remote_partial', 'health_insurance', 'rtt',
+  'training_budget', 'stock_options', 'meal_vouchers', 'transport', 'gym',
+]
 
 // Ordre des champs essentiels pour CDI (11 critères côté serveur).
 // Les CDI-specific n'ont pas de ref dans cette phase 4a (UI viendra en 4b),
@@ -216,14 +242,21 @@ const SECTION_COLORS = {
   parcours: '#ec4899',
   missions: '#f43f5e',
   formation: '#14b8a6',
-  // Placeholders CDI (gris neutre — phase 4b les remplacera)
-  placeholder: '#94a3b8',
+  // Sections CDI (phase 4b)
+  status: '#f97316',
+  compensation: '#eab308',
+  preferences: '#8b5cf6',
+  motivations: '#db2777',
 } as const
 
 export default function CdiValiderProfilPage() {
   const router = useRouter()
   const domain = useDomain()
   const tProfile = useTranslations('cdi_profile_validation')
+  // tView : on réutilise les options déjà i18n-isées dans le namespace
+  // cdi_profile_view (notice_period_options, geo_mobility_options, etc.).
+  // Évite la duplication des 30+ libellés d'options.
+  const tView = useTranslations('cdi_profile_view')
   const locale = useLocale()
 
   const SENIORITY_LABELS: Record<Seniority, string> = {
@@ -304,6 +337,37 @@ export default function CdiValiderProfilPage() {
 
   const [experiences, setExperiences] = useState<ExperienceItem[]>([])
   const [educations, setEducations] = useState<EducationItem[]>([])
+
+  // ─── États CDI (phase 4b) ───────────────────────────────────────────────
+  const [cdiStatus, setCdiStatus] = useState<CdiStatus | null>(null)
+  const [cdiNoticePeriod, setCdiNoticePeriod] = useState<NoticePeriod | ''>('')
+  const [cdiAvailabilityDate, setCdiAvailabilityDate] = useState('')
+  const [cdiConfidentialMode, setCdiConfidentialMode] = useState(false)
+  const [cdiSalaryMin, setCdiSalaryMin] = useState('')
+  const [cdiSalaryMax, setCdiSalaryMax] = useState('')
+  const [cdiVariablePct, setCdiVariablePct] = useState('')
+  const [cdiBenefits, setCdiBenefits] = useState<BenefitKey[]>([])
+  const [cdiCompanySize, setCdiCompanySize] = useState<CompanySize[]>([])
+  const [cdiSectors, setCdiSectors] = useState<SectorKey[]>([])
+  const [cdiGeoMobility, setCdiGeoMobility] = useState<GeoMobility | ''>('')
+  const [cdiContractTypes, setCdiContractTypes] = useState<ContractType[]>([])
+  const [cdiMotivations, setCdiMotivations] = useState('')
+  const [cdiCareerGoals, setCdiCareerGoals] = useState('')
+  const [workModes, setWorkModes] = useState<WorkMode[]>([])
+
+  // Erreur cohérence salaires (inline, dès que les deux sont renseignés)
+  const salaryMinNum = cdiSalaryMin === '' ? null : Number(cdiSalaryMin)
+  const salaryMaxNum = cdiSalaryMax === '' ? null : Number(cdiSalaryMax)
+  const salaryRangeError =
+    salaryMinNum != null &&
+    salaryMaxNum != null &&
+    !Number.isNaN(salaryMinNum) &&
+    !Number.isNaN(salaryMaxNum) &&
+    salaryMinNum > salaryMaxNum
+
+  // Helper : toggle d'un item dans un tableau (multi-select chips)
+  const toggleArrayItem = <T extends string>(arr: T[], item: T): T[] =>
+    arr.includes(item) ? arr.filter(x => x !== item) : [...arr, item]
 
   const fieldRefs: Record<FieldKey, RefObject<HTMLElement | null>> = {
     title: useRef<HTMLInputElement>(null),
@@ -430,7 +494,19 @@ export default function CdiValiderProfilPage() {
       const { data: profile, error: profErr } = await supabase
         .from('profiles')
         .select(
-          'id, title, summary, seniority, years_experience, skills, certifications, branch_id, speciality_id, languages, location, linkedin_url, cv_parsing_status, visible, phone, address_line, postal_code, city, country, birth_year, photo_url',
+          [
+            'id', 'title', 'summary', 'seniority', 'years_experience',
+            'skills', 'certifications', 'branch_id', 'speciality_id',
+            'languages', 'location', 'linkedin_url', 'cv_parsing_status',
+            'visible', 'phone', 'address_line', 'postal_code', 'city',
+            'country', 'birth_year', 'photo_url', 'work_modes',
+            // 14 colonnes CDI (phase 4b)
+            'cdi_status', 'cdi_notice_period', 'cdi_availability_date',
+            'cdi_confidential_mode', 'cdi_salary_min', 'cdi_salary_max',
+            'cdi_variable_pct', 'cdi_benefits', 'cdi_company_size',
+            'cdi_sectors', 'cdi_geo_mobility', 'cdi_contract_types',
+            'cdi_motivations', 'cdi_career_goals',
+          ].join(', '),
         )
         .eq('user_id', session.user.id)
         .single()
@@ -467,6 +543,27 @@ export default function CdiValiderProfilPage() {
       setPostalCode(p.postal_code ?? '')
       setCity(p.city ?? '')
       setCountry(p.country ?? 'FR')
+
+      // ── États CDI (phase 4b) — populate from fetched profile ──
+      setCdiStatus((p.cdi_status as CdiStatus | null) ?? null)
+      setCdiNoticePeriod((p.cdi_notice_period as NoticePeriod | null) ?? '')
+      setCdiAvailabilityDate(p.cdi_availability_date ?? '')
+      setCdiConfidentialMode(!!p.cdi_confidential_mode)
+      setCdiSalaryMin(p.cdi_salary_min != null ? String(p.cdi_salary_min) : '')
+      setCdiSalaryMax(p.cdi_salary_max != null ? String(p.cdi_salary_max) : '')
+      setCdiVariablePct(p.cdi_variable_pct != null ? String(p.cdi_variable_pct) : '')
+      setCdiBenefits(Array.isArray(p.cdi_benefits) ? (p.cdi_benefits as BenefitKey[]) : [])
+      setCdiCompanySize(
+        Array.isArray(p.cdi_company_size) ? (p.cdi_company_size as CompanySize[]) : [],
+      )
+      setCdiSectors(Array.isArray(p.cdi_sectors) ? (p.cdi_sectors as SectorKey[]) : [])
+      setCdiGeoMobility((p.cdi_geo_mobility as GeoMobility | null) ?? '')
+      setCdiContractTypes(
+        Array.isArray(p.cdi_contract_types) ? (p.cdi_contract_types as ContractType[]) : [],
+      )
+      setCdiMotivations(p.cdi_motivations ?? '')
+      setCdiCareerGoals(p.cdi_career_goals ?? '')
+      setWorkModes(Array.isArray(p.work_modes) ? (p.work_modes as WorkMode[]) : [])
 
       const taxonomyPromise = fetch(
         `/api/taxonomy?locale=${encodeURIComponent(locale)}&domain_id=${encodeURIComponent(domainId)}`,
@@ -662,17 +759,20 @@ export default function CdiValiderProfilPage() {
     })
   }
 
-  // Validation client : on vérifie SEULEMENT les critères "communs".
-  // Les champs CDI (cdi_status, cdi_salary_*, cdi_notice_period) sont
-  // validés par le serveur — leur absence en phase 4a fera échouer
-  // "Publier" avec un message d'erreur listant les champs manquants.
-  const validateCommonForPublish = (): string[] => {
+  // Validation client : strictement équivalente aux 11 critères du serveur
+  // (cf. app/api/profile/route.ts branche `if (isCdi)`). Garantit qu'un
+  // formulaire complet côté UI passe TOUJOURS la validation serveur.
+  const validateForPublish = (): string[] => {
     const missing: string[] = []
     if (!title.trim()) missing.push('title')
     if (!summary.trim() || summary.trim().length < 20) missing.push('summary')
     if (skills.length < 3) missing.push('skills')
     if (!branchId) missing.push('branch_id')
     if (!specialityId) missing.push('speciality_id')
+    if (!cdiStatus) missing.push('cdi_status')
+    if (cdiSalaryMin === '' || Number(cdiSalaryMin) <= 0) missing.push('cdi_salary_min')
+    if (cdiSalaryMax === '' || Number(cdiSalaryMax) <= 0) missing.push('cdi_salary_max')
+    if (!cdiNoticePeriod) missing.push('cdi_notice_period')
     if (experiences.filter(e => e.role.trim()).length < 1) missing.push('experiences')
     if (languagesStructured.filter(l => l.language.trim()).length < 1)
       missing.push('languages_structured')
@@ -685,8 +785,15 @@ export default function CdiValiderProfilPage() {
     setSuccessMsg(null)
     setMissingFields(null)
 
+    // Garde inline cohérence salaires (bloque même en mode brouillon —
+    // le CHECK constraint serveur rejetterait la ligne sinon).
+    if (salaryRangeError) {
+      setErrorMsg(tProfile('sections.compensation.salary_range_error'))
+      return
+    }
+
     if (visible) {
-      const missing = validateCommonForPublish()
+      const missing = validateForPublish()
       if (missing.length) {
         showFieldError(missing)
         return
@@ -728,7 +835,7 @@ export default function CdiValiderProfilPage() {
         is_primary: l.is_primary,
       }))
 
-    // PATCH body : commun uniquement (cdi_* viennent en phase 4b).
+    // PATCH body : commun + 14 colonnes cdi_* + work_modes (informatif)
     const body: Record<string, unknown> = {
       title: title.trim() || null,
       summary: summary.trim() || null,
@@ -759,6 +866,22 @@ export default function CdiValiderProfilPage() {
       experiences: cleanedExperiences,
       educations: cleanedEducations,
       languages_structured: cleanedLanguages,
+      // CDI fields — 14 colonnes + work_modes informatif
+      cdi_status: cdiStatus,
+      cdi_notice_period: cdiNoticePeriod || null,
+      cdi_availability_date: cdiAvailabilityDate || null,
+      cdi_confidential_mode: cdiConfidentialMode,
+      cdi_salary_min: cdiSalaryMin === '' ? null : Number(cdiSalaryMin),
+      cdi_salary_max: cdiSalaryMax === '' ? null : Number(cdiSalaryMax),
+      cdi_variable_pct: cdiVariablePct === '' ? null : Number(cdiVariablePct),
+      cdi_benefits: cdiBenefits,
+      cdi_company_size: cdiCompanySize,
+      cdi_sectors: cdiSectors,
+      cdi_geo_mobility: cdiGeoMobility || null,
+      cdi_contract_types: cdiContractTypes,
+      cdi_motivations: cdiMotivations.trim() || null,
+      cdi_career_goals: cdiCareerGoals.trim() || null,
+      work_modes: workModes,
       visible,
     }
 
@@ -827,14 +950,6 @@ export default function CdiValiderProfilPage() {
   const sectionStyle: React.CSSProperties = {
     background: '#fff',
     border: '1px solid #e2e8f0',
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 20,
-  }
-
-  const placeholderSectionStyle: React.CSSProperties = {
-    background: '#f8fafc',
-    border: '1px dashed #cbd5e1',
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
@@ -1095,31 +1210,47 @@ export default function CdiValiderProfilPage() {
     )
   }
 
-  // ── PlaceholderSection (sections 3-6 phase 4a) ─────────────────────────
-  const PlaceholderSection = ({
-    n,
-    title,
-    refEl,
+  // ── ChipMultiSelect : pills cliquables pour multi-select ─────────────
+  // Réutilisé en section 5 (préférences) pour contracts/companies/sectors/
+  // benefits/work_modes.
+  const ChipMultiSelect = <T extends string>({
+    values,
+    options,
+    onToggle,
+    getLabel,
+    primaryColor,
   }: {
-    n: string
-    title: string
-    refEl?: RefObject<HTMLDivElement | null>
+    values: T[]
+    options: readonly T[]
+    onToggle: (v: T) => void
+    getLabel: (v: T) => string
+    primaryColor: string
   }) => (
-    <div ref={refEl} style={placeholderSectionStyle}>
-      <SectionHeader n={n} color={SECTION_COLORS.placeholder} title={title} />
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          fontSize: 13,
-          color: '#64748b',
-          fontFamily: fontJakarta,
-        }}
-      >
-        <span aria-hidden style={{ fontSize: 18 }}>🚧</span>
-        <span>Bientôt disponible — phase 4b</span>
-      </div>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      {options.map(opt => {
+        const active = values.includes(opt)
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onToggle(opt)}
+            style={{
+              padding: '8px 14px',
+              border: `1.5px solid ${active ? primaryColor : '#e2e8f0'}`,
+              borderRadius: 999,
+              background: active ? `${primaryColor}10` : '#fff',
+              fontSize: 13,
+              fontWeight: 600,
+              color: active ? primaryColor : '#374151',
+              cursor: 'pointer',
+              fontFamily: fontJakarta,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {getLabel(opt)}
+          </button>
+        )
+      })}
     </div>
   )
 
@@ -1752,25 +1883,385 @@ export default function CdiValiderProfilPage() {
               </div>
             </div>
 
-            {/* Sections 3-6 : PLACEHOLDERS phase 4b ─────────────────────── */}
-            <PlaceholderSection
-              n="3"
-              title={tProfile('sections.status_availability.title')}
-              refEl={fieldRefs.cdi_status as RefObject<HTMLDivElement>}
-            />
-            <PlaceholderSection
-              n="4"
-              title={tProfile('sections.compensation.title')}
-              refEl={fieldRefs.cdi_salary_min as RefObject<HTMLDivElement>}
-            />
-            <PlaceholderSection
-              n="5"
-              title={tProfile('sections.preferences.title')}
-            />
-            <PlaceholderSection
-              n="6"
-              title={tProfile('sections.motivations.title')}
-            />
+            {/* Section 3 — Statut & disponibilité CDI ───────────────────── */}
+            <div
+              ref={fieldRefs.cdi_status as RefObject<HTMLDivElement>}
+              className={focusClass('cdi_status')}
+              style={sectionStyle}
+            >
+              <SectionHeader
+                n="3"
+                color={SECTION_COLORS.status}
+                title={tProfile('sections.status_availability.title')}
+              />
+
+              <div style={{ marginBottom: 18 }}>
+                <label style={labelStyle}>
+                  {tProfile('sections.status_availability.cdi_status_label')}
+                </label>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: '#64748b',
+                    marginBottom: 10,
+                    fontFamily: fontJakarta,
+                  }}
+                >
+                  {tProfile('sections.status_availability.cdi_status_hint')}
+                </div>
+                <CdiStatusToggle value={cdiStatus} onChange={next => setCdiStatus(next)} />
+                <FieldError field="cdi_status" />
+              </div>
+
+              <div
+                className="profil-row"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 12,
+                  marginBottom: 14,
+                }}
+              >
+                <div>
+                  <label style={labelStyle}>
+                    {tProfile('sections.status_availability.cdi_notice_period_label')}
+                  </label>
+                  <select
+                    ref={fieldRefs.cdi_notice_period as RefObject<HTMLSelectElement>}
+                    className={focusClass('cdi_notice_period')}
+                    value={cdiNoticePeriod}
+                    onChange={e =>
+                      setCdiNoticePeriod(e.target.value as NoticePeriod | '')
+                    }
+                    style={inputStyle('cdi_notice_period')}
+                  >
+                    <option value="">
+                      {tProfile('sections.status_availability.cdi_notice_period_placeholder')}
+                    </option>
+                    {NOTICE_PERIOD_VALUES.map(np => (
+                      <option key={np} value={np}>
+                        {tView(`notice_period_options.${np}`)}
+                      </option>
+                    ))}
+                  </select>
+                  <FieldError field="cdi_notice_period" />
+                </div>
+                <div>
+                  <label style={labelStyle}>
+                    {tProfile('sections.status_availability.cdi_availability_date_label')}
+                  </label>
+                  <input
+                    type="date"
+                    value={cdiAvailabilityDate}
+                    onChange={e => setCdiAvailabilityDate(e.target.value)}
+                    style={inputStyle()}
+                  />
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: '#94a3b8',
+                      marginTop: 4,
+                      fontFamily: fontJakarta,
+                    }}
+                  >
+                    {tProfile('sections.status_availability.cdi_availability_date_hint')}
+                  </div>
+                </div>
+              </div>
+
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 12,
+                  padding: '12px 14px',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  background: cdiConfidentialMode ? '#fef9c3' : '#fff',
+                  transition: 'background 0.18s',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={cdiConfidentialMode}
+                  onChange={e => setCdiConfidentialMode(e.target.checked)}
+                  style={{
+                    marginTop: 3,
+                    flexShrink: 0,
+                    accentColor: domain.primaryColor,
+                  }}
+                />
+                <div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      fontFamily: fontJakarta,
+                    }}
+                  >
+                    {tProfile('sections.status_availability.cdi_confidential_mode_label')}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: '#64748b',
+                      marginTop: 4,
+                      lineHeight: 1.55,
+                      fontFamily: fontJakarta,
+                    }}
+                  >
+                    {tProfile('sections.status_availability.cdi_confidential_mode_hint')}
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            {/* Section 4 — Rémunération ─────────────────────────────────── */}
+            <div style={sectionStyle}>
+              <SectionHeader
+                n="4"
+                color={SECTION_COLORS.compensation}
+                title={tProfile('sections.compensation.title')}
+              />
+
+              <div
+                className="profil-row"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 12,
+                  marginBottom: 8,
+                }}
+              >
+                <div>
+                  <label style={labelStyle}>
+                    {tProfile('sections.compensation.salary_min_label')}
+                  </label>
+                  <input
+                    ref={fieldRefs.cdi_salary_min as RefObject<HTMLInputElement>}
+                    className={focusClass('cdi_salary_min')}
+                    type="number"
+                    min={0}
+                    value={cdiSalaryMin}
+                    onChange={e => setCdiSalaryMin(e.target.value)}
+                    placeholder={tProfile('sections.compensation.salary_min_placeholder')}
+                    style={{
+                      ...inputStyle('cdi_salary_min'),
+                      borderColor: salaryRangeError
+                        ? '#dc2626'
+                        : isMissing('cdi_salary_min')
+                          ? '#dc2626'
+                          : '#e2e8f0',
+                    }}
+                  />
+                  <FieldError field="cdi_salary_min" />
+                </div>
+                <div>
+                  <label style={labelStyle}>
+                    {tProfile('sections.compensation.salary_max_label')}
+                  </label>
+                  <input
+                    ref={fieldRefs.cdi_salary_max as RefObject<HTMLInputElement>}
+                    className={focusClass('cdi_salary_max')}
+                    type="number"
+                    min={0}
+                    value={cdiSalaryMax}
+                    onChange={e => setCdiSalaryMax(e.target.value)}
+                    placeholder={tProfile('sections.compensation.salary_max_placeholder')}
+                    style={{
+                      ...inputStyle('cdi_salary_max'),
+                      borderColor: salaryRangeError
+                        ? '#dc2626'
+                        : isMissing('cdi_salary_max')
+                          ? '#dc2626'
+                          : '#e2e8f0',
+                    }}
+                  />
+                  <FieldError field="cdi_salary_max" />
+                </div>
+              </div>
+
+              {salaryRangeError && (
+                <div
+                  role="alert"
+                  style={{
+                    fontSize: 12,
+                    color: '#dc2626',
+                    marginBottom: 14,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontFamily: fontJakarta,
+                  }}
+                >
+                  <span aria-hidden>⚠️</span>
+                  {tProfile('sections.compensation.salary_range_error')}
+                </div>
+              )}
+
+              <div>
+                <label style={labelStyle}>
+                  {tProfile('sections.compensation.variable_pct_label')}
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={cdiVariablePct}
+                  onChange={e => setCdiVariablePct(e.target.value)}
+                  placeholder={tProfile('sections.compensation.variable_pct_placeholder')}
+                  style={inputStyle()}
+                />
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: '#94a3b8',
+                    marginTop: 4,
+                    fontFamily: fontJakarta,
+                  }}
+                >
+                  {tProfile('sections.compensation.variable_pct_hint')}
+                </div>
+              </div>
+            </div>
+
+            {/* Section 5 — Préférences ──────────────────────────────────── */}
+            <div style={sectionStyle}>
+              <SectionHeader
+                n="5"
+                color={SECTION_COLORS.preferences}
+                title={tProfile('sections.preferences.title')}
+              />
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>
+                  {tProfile('sections.preferences.contract_types_label')}
+                </label>
+                <ChipMultiSelect
+                  values={cdiContractTypes}
+                  options={CONTRACT_TYPE_VALUES}
+                  onToggle={v =>
+                    setCdiContractTypes(toggleArrayItem(cdiContractTypes, v))
+                  }
+                  getLabel={v => tView(`contract_types_options.${v}`)}
+                  primaryColor={domain.primaryColor}
+                />
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>
+                  {tProfile('sections.preferences.geo_mobility_label')}
+                </label>
+                <select
+                  value={cdiGeoMobility}
+                  onChange={e => setCdiGeoMobility(e.target.value as GeoMobility | '')}
+                  style={inputStyle()}
+                >
+                  <option value="">
+                    {tProfile('sections.preferences.geo_mobility_placeholder')}
+                  </option>
+                  {GEO_MOBILITY_VALUES.map(g => (
+                    <option key={g} value={g}>
+                      {tView(`geo_mobility_options.${g}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>
+                  {tProfile('sections.preferences.company_size_label')}
+                </label>
+                <ChipMultiSelect
+                  values={cdiCompanySize}
+                  options={COMPANY_SIZE_VALUES}
+                  onToggle={v => setCdiCompanySize(toggleArrayItem(cdiCompanySize, v))}
+                  getLabel={v => tView(`company_size_options.${v}`)}
+                  primaryColor={domain.primaryColor}
+                />
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>
+                  {tProfile('sections.preferences.sectors_label')}
+                </label>
+                <ChipMultiSelect
+                  values={cdiSectors}
+                  options={SECTOR_VALUES}
+                  onToggle={v => setCdiSectors(toggleArrayItem(cdiSectors, v))}
+                  getLabel={v => tView(`sectors_options.${v}`)}
+                  primaryColor={domain.primaryColor}
+                />
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>
+                  {tProfile('sections.preferences.benefits_label')}
+                </label>
+                <ChipMultiSelect
+                  values={cdiBenefits}
+                  options={BENEFIT_VALUES}
+                  onToggle={v => setCdiBenefits(toggleArrayItem(cdiBenefits, v))}
+                  getLabel={v => tView(`benefits_options.${v}`)}
+                  primaryColor={domain.primaryColor}
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>
+                  {tProfile('sections.preferences.work_modes_label')}{' '}
+                  <span style={{ color: '#94a3b8', fontWeight: 400 }}>
+                    · {tProfile('sections.preferences.work_modes_hint')}
+                  </span>
+                </label>
+                <ChipMultiSelect
+                  values={workModes}
+                  options={WORK_MODE_VALUES}
+                  onToggle={v => setWorkModes(toggleArrayItem(workModes, v))}
+                  getLabel={v => tProfile(`sections.preferences.work_mode_${v}`)}
+                  primaryColor={domain.primaryColor}
+                />
+              </div>
+            </div>
+
+            {/* Section 6 — Motivations & objectifs ─────────────────────── */}
+            <div style={sectionStyle}>
+              <SectionHeader
+                n="6"
+                color={SECTION_COLORS.motivations}
+                title={tProfile('sections.motivations.title')}
+              />
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>
+                  {tProfile('sections.motivations.career_goals_label')}
+                </label>
+                <textarea
+                  rows={4}
+                  maxLength={500}
+                  value={cdiCareerGoals}
+                  onChange={e => setCdiCareerGoals(e.target.value)}
+                  placeholder={tProfile('sections.motivations.career_goals_placeholder')}
+                  style={{ ...inputStyle(), resize: 'vertical', minHeight: 100 }}
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>
+                  {tProfile('sections.motivations.motivations_label')}
+                </label>
+                <textarea
+                  rows={4}
+                  maxLength={500}
+                  value={cdiMotivations}
+                  onChange={e => setCdiMotivations(e.target.value)}
+                  placeholder={tProfile('sections.motivations.motivations_placeholder')}
+                  style={{ ...inputStyle(), resize: 'vertical', minHeight: 100 }}
+                />
+              </div>
+            </div>
 
             {/* Section 7 — Certifications */}
             <div style={sectionStyle}>

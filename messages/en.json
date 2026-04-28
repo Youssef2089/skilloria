@@ -945,7 +945,8 @@
         "salary_max_placeholder": "80000",
         "variable_pct_label": "Variable / bonus (% of base)",
         "variable_pct_placeholder": "10",
-        "variable_pct_hint": "Optional — between 0 and 100"
+        "variable_pct_hint": "Optional — between 0 and 100",
+        "salary_range_error": "Min salary must be less than or equal to max salary."
       },
       "preferences": {
         "title": "Search preferences",
