@@ -611,5 +611,176 @@
       "missing_fields": "El correo y la contraseña son obligatorios.",
       "password_too_short": "La contraseña debe tener al menos 8 caracteres."
     }
+  },
+  "dashboard_cdi": {
+    "loading": "Cargando…",
+    "page_title": "Panel",
+    "hello": "Hola {firstName} 👋",
+    "topbar": {
+      "role_label": "Perfil indefinido"
+    },
+    "sidebar": {
+      "sections": {
+        "main": "Principal",
+        "account": "Cuenta"
+      },
+      "nav": {
+        "dashboard": "Panel",
+        "profile": "Mi perfil",
+        "applications": "Mis candidaturas",
+        "alerts": "Alertas de oportunidades",
+        "messages": "Mensajes",
+        "settings": "Ajustes",
+        "logout": "Cerrar sesión"
+      },
+      "edit_photo": "Cambiar foto",
+      "add_photo": "Añadir foto"
+    },
+    "market_status_card": {
+      "title": "Tu disposición al mercado",
+      "description": "Indica si estás abierto a nuevas oportunidades. Avisaremos solo a los reclutadores adecuados según tus preferencias.",
+      "employed_label": "En activo",
+      "employed_hint": "No estás en búsqueda. No te llegará ningún contacto.",
+      "open_to_work_label": "Abierto a oportunidades",
+      "open_to_work_hint": "Valoras propuestas interesantes sin buscar activamente. Visible solo para reclutadores verificados.",
+      "actively_searching_label": "Búsqueda activa",
+      "actively_searching_hint": "Estás buscando un nuevo puesto activamente. Tu perfil se destaca ante los reclutadores."
+    },
+    "kpis": {
+      "profile_views": "Vistas del perfil",
+      "recruiter_contacts": "Contactos recibidos",
+      "applications_sent": "Candidaturas enviadas"
+    },
+    "applications_section": {
+      "title": "Mis candidaturas",
+      "empty_state": "Aún no tienes candidaturas.",
+      "view_opportunities_cta": "Ver oportunidades →"
+    },
+    "suggestions_section": {
+      "title": "Sugerencias para ti",
+      "coming_soon": "Próximamente — nuestro matching IA te recomendará puestos alineados con tu perfil."
+    },
+    "profile_completion": {
+      "title": "Perfil completado al {percent}%",
+      "cta": "Completar mi perfil →",
+      "hint": "Un perfil completo atrae 3× más reclutadores."
+    },
+    "toast": {
+      "status_updated": "Estado actualizado",
+      "status_error": "No se pudo actualizar el estado. Vuelve a intentarlo."
+    }
+  },
+  "cdi_profile_view": {
+    "loading": "Cargando tu perfil…",
+    "error_loading": "No se pudo cargar tu perfil. Vuelve a intentarlo.",
+    "empty_profile": "Aún no has creado tu perfil.",
+    "page_title": "Mi perfil",
+    "back_to_dashboard": "← Volver al panel",
+    "edit_button": "Editar mi perfil →",
+    "verified_badge": "Perfil verificado",
+    "status_badges": {
+      "employed": "En activo",
+      "open_to_work": "Abierto a oportunidades",
+      "actively_searching": "Búsqueda activa"
+    },
+    "sections": {
+      "summary": "Resumen",
+      "expertise": "Especialidad",
+      "search_preferences": "Búsqueda",
+      "compensation": "Remuneración",
+      "certifications": "Certificaciones",
+      "career": "Trayectoria profesional",
+      "missions": "Misiones / proyectos",
+      "education": "Formación",
+      "languages": "Idiomas",
+      "career_goals": "Objetivos profesionales",
+      "confidentiality": "Confidencialidad",
+      "links": "Enlaces"
+    },
+    "labels": {
+      "branch": "Rama",
+      "specialty": "Especialidad",
+      "skills": "Competencias",
+      "seniority": "Senioridad",
+      "years_experience": "Años de experiencia",
+      "salary_range": "{min} € — {max} €/año",
+      "salary_range_min_only": "Desde {min} €/año",
+      "salary_range_max_only": "Hasta {max} €/año",
+      "variable_pct": "+ {pct} % de variable",
+      "notice_period": "Preaviso",
+      "available_from": "Disponible desde el {date}",
+      "contract_types": "Tipos de contrato aceptados",
+      "work_mode": "Modalidad de trabajo",
+      "geo_mobility": "Movilidad geográfica",
+      "company_size": "Tamaño de empresa preferido",
+      "sectors": "Sectores preferidos",
+      "benefits": "Beneficios buscados",
+      "career_goals_label": "Lo que busco",
+      "confidential_mode_active": "Modo confidencial activado"
+    },
+    "contract_types_options": {
+      "cdi": "Indefinido",
+      "cdd": "Temporal",
+      "alternance": "Prácticas / formación dual"
+    },
+    "notice_period_options": {
+      "immediate": "Inmediato",
+      "1_month": "1 mes",
+      "2_months": "2 meses",
+      "3_months": "3 meses",
+      "negotiable": "Negociable"
+    },
+    "geo_mobility_options": {
+      "local": "Local",
+      "regional": "Regional",
+      "national": "Nacional",
+      "international": "Internacional"
+    },
+    "company_size_options": {
+      "startup": "Startup",
+      "pme": "Pyme",
+      "eti": "Mediana empresa",
+      "grand_groupe": "Gran empresa"
+    },
+    "sectors_options": {
+      "banque": "Banca / Finanzas",
+      "retail": "Retail / Distribución",
+      "industrie": "Industria",
+      "public": "Sector público",
+      "sante": "Salud",
+      "education": "Educación",
+      "tech": "Tech / SaaS",
+      "consulting": "Consultoría",
+      "energie": "Energía",
+      "transport": "Transporte / Logística"
+    },
+    "benefits_options": {
+      "remote_full": "Teletrabajo total",
+      "remote_partial": "Teletrabajo parcial",
+      "health_insurance": "Seguro médico",
+      "rtt": "Días libres adicionales",
+      "training_budget": "Presupuesto de formación",
+      "stock_options": "Stock options",
+      "meal_vouchers": "Vales de comida",
+      "transport": "Transporte",
+      "gym": "Gimnasio"
+    },
+    "cdi_status_options": {
+      "employed": "En activo",
+      "open_to_work": "Abierto a oportunidades",
+      "actively_searching": "Búsqueda activa"
+    },
+    "empty_states": {
+      "no_summary": "Aún no has añadido un resumen.",
+      "no_skills": "Aún no has añadido competencias.",
+      "no_certifications": "Aún no has añadido certificaciones.",
+      "no_career": "Aún no has añadido experiencia.",
+      "no_education": "Aún no has añadido formación.",
+      "no_languages": "Aún no has añadido idiomas.",
+      "no_links": "Aún no has añadido enlaces.",
+      "no_career_goals": "Aún no has añadido objetivos.",
+      "no_search_preferences": "Aún no has añadido preferencias de búsqueda.",
+      "no_compensation": "Aún no has añadido datos de remuneración."
+    }
   }
 }

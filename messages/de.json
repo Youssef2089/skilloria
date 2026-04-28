@@ -611,5 +611,176 @@
       "missing_fields": "E-Mail und Passwort sind erforderlich.",
       "password_too_short": "Das Passwort muss mindestens 8 Zeichen lang sein."
     }
+  },
+  "dashboard_cdi": {
+    "loading": "Wird geladen…",
+    "page_title": "Dashboard",
+    "hello": "Hallo {firstName} 👋",
+    "topbar": {
+      "role_label": "Festanstellungsprofil"
+    },
+    "sidebar": {
+      "sections": {
+        "main": "Hauptbereich",
+        "account": "Konto"
+      },
+      "nav": {
+        "dashboard": "Dashboard",
+        "profile": "Mein Profil",
+        "applications": "Meine Bewerbungen",
+        "alerts": "Job-Alerts",
+        "messages": "Nachrichten",
+        "settings": "Einstellungen",
+        "logout": "Abmelden"
+      },
+      "edit_photo": "Foto ändern",
+      "add_photo": "Foto hinzufügen"
+    },
+    "market_status_card": {
+      "title": "Ihre Marktoffenheit",
+      "description": "Teilen Sie mit, ob Sie für neue Möglichkeiten offen sind. Nur ausgewählte Recruiter werden gemäss Ihren Präferenzen benachrichtigt.",
+      "employed_label": "Festangestellt",
+      "employed_hint": "Sie suchen nicht. Es werden Ihnen keine Anfragen zugestellt.",
+      "open_to_work_label": "Offen für Angebote",
+      "open_to_work_hint": "Sie prüfen interessante Angebote, ohne aktiv zu suchen. Sichtbar nur für verifizierte Recruiter.",
+      "actively_searching_label": "Aktiv auf der Suche",
+      "actively_searching_hint": "Sie suchen aktiv eine neue Position. Ihr Profil wird Recruitern hervorgehoben."
+    },
+    "kpis": {
+      "profile_views": "Profilaufrufe",
+      "recruiter_contacts": "Recruiter-Anfragen",
+      "applications_sent": "Gesendete Bewerbungen"
+    },
+    "applications_section": {
+      "title": "Meine Bewerbungen",
+      "empty_state": "Noch keine Bewerbungen.",
+      "view_opportunities_cta": "Stellen ansehen →"
+    },
+    "suggestions_section": {
+      "title": "Vorschläge für Sie",
+      "coming_soon": "Bald verfügbar — unser KI-Matching schlägt Ihnen passende Stellen vor."
+    },
+    "profile_completion": {
+      "title": "Profil zu {percent}% vollständig",
+      "cta": "Profil vervollständigen →",
+      "hint": "Ein vollständiges Profil zieht 3× mehr Recruiter an."
+    },
+    "toast": {
+      "status_updated": "Status aktualisiert",
+      "status_error": "Status konnte nicht aktualisiert werden. Bitte erneut versuchen."
+    }
+  },
+  "cdi_profile_view": {
+    "loading": "Ihr Profil wird geladen…",
+    "error_loading": "Ihr Profil konnte nicht geladen werden. Bitte erneut versuchen.",
+    "empty_profile": "Sie haben noch kein Profil erstellt.",
+    "page_title": "Mein Profil",
+    "back_to_dashboard": "← Zurück zum Dashboard",
+    "edit_button": "Mein Profil bearbeiten →",
+    "verified_badge": "Verifiziertes Profil",
+    "status_badges": {
+      "employed": "Festangestellt",
+      "open_to_work": "Offen für Angebote",
+      "actively_searching": "Aktiv auf der Suche"
+    },
+    "sections": {
+      "summary": "Zusammenfassung",
+      "expertise": "Expertise",
+      "search_preferences": "Stellensuche",
+      "compensation": "Vergütung",
+      "certifications": "Zertifizierungen",
+      "career": "Berufserfahrung",
+      "missions": "Projekte / Einsätze",
+      "education": "Ausbildung",
+      "languages": "Sprachen",
+      "career_goals": "Karriereziele",
+      "confidentiality": "Vertraulichkeit",
+      "links": "Links"
+    },
+    "labels": {
+      "branch": "Bereich",
+      "specialty": "Spezialisierung",
+      "skills": "Fähigkeiten",
+      "seniority": "Senioritätslevel",
+      "years_experience": "Berufserfahrung in Jahren",
+      "salary_range": "{min} € — {max} €/Jahr",
+      "salary_range_min_only": "Ab {min} €/Jahr",
+      "salary_range_max_only": "Bis zu {max} €/Jahr",
+      "variable_pct": "+ {pct} % variable Vergütung",
+      "notice_period": "Kündigungsfrist",
+      "available_from": "Verfügbar ab dem {date}",
+      "contract_types": "Akzeptierte Vertragsarten",
+      "work_mode": "Arbeitsmodell",
+      "geo_mobility": "Geografische Mobilität",
+      "company_size": "Bevorzugte Unternehmensgrösse",
+      "sectors": "Bevorzugte Branchen",
+      "benefits": "Gewünschte Zusatzleistungen",
+      "career_goals_label": "Was ich suche",
+      "confidential_mode_active": "Vertraulicher Modus aktiv"
+    },
+    "contract_types_options": {
+      "cdi": "Festanstellung",
+      "cdd": "Befristete Anstellung",
+      "alternance": "Duale Ausbildung"
+    },
+    "notice_period_options": {
+      "immediate": "Sofort",
+      "1_month": "1 Monat",
+      "2_months": "2 Monate",
+      "3_months": "3 Monate",
+      "negotiable": "Verhandelbar"
+    },
+    "geo_mobility_options": {
+      "local": "Lokal",
+      "regional": "Regional",
+      "national": "National",
+      "international": "International"
+    },
+    "company_size_options": {
+      "startup": "Startup",
+      "pme": "KMU",
+      "eti": "Mittelstand",
+      "grand_groupe": "Grossunternehmen"
+    },
+    "sectors_options": {
+      "banque": "Banken / Finanzen",
+      "retail": "Handel",
+      "industrie": "Industrie",
+      "public": "Öffentlicher Sektor",
+      "sante": "Gesundheitswesen",
+      "education": "Bildung",
+      "tech": "Tech / SaaS",
+      "consulting": "Beratung",
+      "energie": "Energie",
+      "transport": "Transport / Logistik"
+    },
+    "benefits_options": {
+      "remote_full": "Vollständig remote",
+      "remote_partial": "Hybrid remote",
+      "health_insurance": "Krankenversicherung",
+      "rtt": "Zusatzurlaub",
+      "training_budget": "Weiterbildungsbudget",
+      "stock_options": "Aktienoptionen",
+      "meal_vouchers": "Essensgutscheine",
+      "transport": "Fahrtkostenzuschuss",
+      "gym": "Fitnessstudio-Mitgliedschaft"
+    },
+    "cdi_status_options": {
+      "employed": "Festangestellt",
+      "open_to_work": "Offen für Angebote",
+      "actively_searching": "Aktiv auf der Suche"
+    },
+    "empty_states": {
+      "no_summary": "Noch keine Zusammenfassung hinterlegt.",
+      "no_skills": "Noch keine Fähigkeiten hinterlegt.",
+      "no_certifications": "Noch keine Zertifizierungen hinterlegt.",
+      "no_career": "Noch keine Berufserfahrung hinterlegt.",
+      "no_education": "Noch keine Ausbildung hinterlegt.",
+      "no_languages": "Noch keine Sprachen hinterlegt.",
+      "no_links": "Noch keine Links hinterlegt.",
+      "no_career_goals": "Noch keine Karriereziele hinterlegt.",
+      "no_search_preferences": "Noch keine Suchpräferenzen hinterlegt.",
+      "no_compensation": "Noch keine Vergütungsdetails hinterlegt."
+    }
   }
 }

@@ -611,5 +611,176 @@
       "missing_fields": "Email and password are required.",
       "password_too_short": "Password must be at least 8 characters."
     }
+  },
+  "dashboard_cdi": {
+    "loading": "Loading…",
+    "page_title": "Dashboard",
+    "hello": "Hi {firstName} 👋",
+    "topbar": {
+      "role_label": "Permanent profile"
+    },
+    "sidebar": {
+      "sections": {
+        "main": "Main",
+        "account": "Account"
+      },
+      "nav": {
+        "dashboard": "Dashboard",
+        "profile": "My profile",
+        "applications": "My applications",
+        "alerts": "Job alerts",
+        "messages": "Messages",
+        "settings": "Settings",
+        "logout": "Sign out"
+      },
+      "edit_photo": "Change photo",
+      "add_photo": "Add photo"
+    },
+    "market_status_card": {
+      "title": "Your job-search status",
+      "description": "Let recruiters know whether you're open to new opportunities. Targeted recruiters are notified based on your preferences.",
+      "employed_label": "Employed",
+      "employed_hint": "You're not looking. No outreach will be sent your way.",
+      "open_to_work_label": "Open to work",
+      "open_to_work_hint": "You'll consider compelling opportunities without actively searching. Visible only to verified recruiters.",
+      "actively_searching_label": "Actively searching",
+      "actively_searching_hint": "You're actively looking for a new role. Your profile is highlighted to recruiters."
+    },
+    "kpis": {
+      "profile_views": "Profile views",
+      "recruiter_contacts": "Recruiter messages",
+      "applications_sent": "Applications sent"
+    },
+    "applications_section": {
+      "title": "My applications",
+      "empty_state": "No applications yet.",
+      "view_opportunities_cta": "View opportunities →"
+    },
+    "suggestions_section": {
+      "title": "Suggestions for you",
+      "coming_soon": "Coming soon — our AI matching will recommend roles aligned with your profile."
+    },
+    "profile_completion": {
+      "title": "Profile {percent}% complete",
+      "cta": "Complete my profile →",
+      "hint": "A complete profile attracts 3× more recruiters."
+    },
+    "toast": {
+      "status_updated": "Status updated",
+      "status_error": "Could not update status. Please retry."
+    }
+  },
+  "cdi_profile_view": {
+    "loading": "Loading your profile…",
+    "error_loading": "Could not load your profile. Please retry.",
+    "empty_profile": "You haven't created a profile yet.",
+    "page_title": "My profile",
+    "back_to_dashboard": "← Back to dashboard",
+    "edit_button": "Edit my profile →",
+    "verified_badge": "Verified profile",
+    "status_badges": {
+      "employed": "Employed",
+      "open_to_work": "Open to work",
+      "actively_searching": "Actively searching"
+    },
+    "sections": {
+      "summary": "Summary",
+      "expertise": "Expertise",
+      "search_preferences": "Job-search preferences",
+      "compensation": "Compensation",
+      "certifications": "Certifications",
+      "career": "Career history",
+      "missions": "Projects",
+      "education": "Education",
+      "languages": "Languages",
+      "career_goals": "Career goals",
+      "confidentiality": "Confidentiality",
+      "links": "Links"
+    },
+    "labels": {
+      "branch": "Branch",
+      "specialty": "Specialty",
+      "skills": "Skills",
+      "seniority": "Seniority",
+      "years_experience": "Years of experience",
+      "salary_range": "€{min} — €{max}/year",
+      "salary_range_min_only": "From €{min}/year",
+      "salary_range_max_only": "Up to €{max}/year",
+      "variable_pct": "+ {pct}% variable",
+      "notice_period": "Notice period",
+      "available_from": "Available from {date}",
+      "contract_types": "Contract types accepted",
+      "work_mode": "Work mode",
+      "geo_mobility": "Geographic mobility",
+      "company_size": "Preferred company size",
+      "sectors": "Preferred sectors",
+      "benefits": "Desired benefits",
+      "career_goals_label": "What I'm looking for",
+      "confidential_mode_active": "Confidential mode on"
+    },
+    "contract_types_options": {
+      "cdi": "Permanent",
+      "cdd": "Fixed-term",
+      "alternance": "Apprenticeship"
+    },
+    "notice_period_options": {
+      "immediate": "Immediate",
+      "1_month": "1 month",
+      "2_months": "2 months",
+      "3_months": "3 months",
+      "negotiable": "Negotiable"
+    },
+    "geo_mobility_options": {
+      "local": "Local",
+      "regional": "Regional",
+      "national": "National",
+      "international": "International"
+    },
+    "company_size_options": {
+      "startup": "Startup",
+      "pme": "Small / Medium",
+      "eti": "Mid-cap",
+      "grand_groupe": "Large enterprise"
+    },
+    "sectors_options": {
+      "banque": "Banking / Finance",
+      "retail": "Retail",
+      "industrie": "Industry",
+      "public": "Public sector",
+      "sante": "Healthcare",
+      "education": "Education",
+      "tech": "Tech / SaaS",
+      "consulting": "Consulting",
+      "energie": "Energy",
+      "transport": "Transport / Logistics"
+    },
+    "benefits_options": {
+      "remote_full": "Full remote",
+      "remote_partial": "Hybrid remote",
+      "health_insurance": "Health insurance",
+      "rtt": "Extra leave (RTT)",
+      "training_budget": "Training budget",
+      "stock_options": "Stock options",
+      "meal_vouchers": "Meal vouchers",
+      "transport": "Transport allowance",
+      "gym": "Gym membership"
+    },
+    "cdi_status_options": {
+      "employed": "Employed",
+      "open_to_work": "Open to work",
+      "actively_searching": "Actively searching"
+    },
+    "empty_states": {
+      "no_summary": "No summary yet.",
+      "no_skills": "No skills listed yet.",
+      "no_certifications": "No certifications listed yet.",
+      "no_career": "No experience listed yet.",
+      "no_education": "No education listed yet.",
+      "no_languages": "No languages listed yet.",
+      "no_links": "No links yet.",
+      "no_career_goals": "No career goals yet.",
+      "no_search_preferences": "No job-search preferences yet.",
+      "no_compensation": "No compensation details yet."
+    }
   }
 }
