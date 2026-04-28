@@ -783,5 +783,296 @@
       "no_search_preferences": "Aucune préférence de recherche renseignée.",
       "no_compensation": "Aucune rémunération renseignée."
     }
+  },
+  "cdi_profile_upload": {
+    "page_title": "Créez votre profil CDI",
+    "page_subtitle": "Notre IA analyse votre document et pré-remplit votre profil candidat. Vous validez, c'est prêt.",
+    "back_link": "← Retour au tableau de bord",
+    "error_close_aria": "Fermer",
+    "status_badge": {
+      "pending": "En attente de vérification"
+    },
+    "card_cv": {
+      "recommended_badge": "RECOMMANDÉ",
+      "title": "Importer mon CV",
+      "subtitle": "Déposez votre CV au format PDF. Notre IA extrait vos compétences, expériences, certifications et préférences CDI.",
+      "dropzone_label": "Déposez ou cliquez pour sélectionner",
+      "dropzone_hint": "PDF · 5 Mo max"
+    },
+    "card_linkedin": {
+      "title": "Depuis LinkedIn",
+      "subtitle": "Pas de CV ? Téléchargez votre profil LinkedIn en PDF puis déposez-le ici.",
+      "step_1": "Ouvrez votre profil LinkedIn",
+      "step_2": "Cliquez sur <strong>Ressources</strong>",
+      "step_3": "Choisissez <strong>Enregistrer au format PDF</strong>",
+      "dropzone_label": "Déposez ou cliquez pour sélectionner",
+      "dropzone_hint": "PDF · 5 Mo max"
+    },
+    "consent": {
+      "text": "J'accepte que mon CV soit analysé par Anthropic Claude (États-Unis, garanties contractuelles SCC) pour pré-remplir mon profil. Le PDF est stocké de manière privée et supprimé automatiquement après 90 jours. <highlight>En savoir plus sur le traitement de mes données →</highlight>"
+    },
+    "locked_banner": "<strong>Profil en attente de complétion.</strong> Les fonctionnalités Opportunités, Candidatures, Messagerie et Publication restent verrouillées tant que votre profil CDI n'est pas complété et validé.",
+    "parsing_overlay": {
+      "title": "Analyse en cours...",
+      "duration": "5 à 30 secondes",
+      "success": "✅ Analyse terminée, redirection..."
+    },
+    "errors": {
+      "consent_required": "Veuillez accepter le traitement de vos données pour continuer.",
+      "file_too_large": "Fichier trop volumineux (max 5 Mo).",
+      "invalid_format": "Format non supporté, déposez un PDF.",
+      "session_expired": "Session expirée, reconnectez-vous.",
+      "ai_disabled": "L'analyse IA est temporairement indisponible, réessayez plus tard.",
+      "rate_limit": "Vous avez atteint la limite de 3 analyses par 24 h. Réessayez après {reset}.",
+      "rate_limit_later": "plus tard",
+      "generic": "Une erreur est survenue, veuillez réessayer.",
+      "parsing_failed": "L'analyse a échoué : {reason}. Vous pouvez réessayer ou compléter manuellement.",
+      "unknown_reason": "erreur inconnue",
+      "parsing_default": "Analyse échouée",
+      "timeout": "Délai dépassé, réessayez."
+    }
+  },
+  "cdi_profile_validation": {
+    "page_title": "Validez votre profil CDI",
+    "page_subtitle": "Vérifiez les informations extraites de votre document. Vous pouvez tout corriger avant de publier.",
+    "ai_banner": "💡 Notre IA a pré-rempli ces champs. Modifiez si nécessaire avant de publier.",
+    "back_link": "← Retour",
+    "loading": "Chargement de votre profil...",
+    "parsing_failed_message": "⚠️ Le parsing IA a échoué, complétez votre profil manuellement.",
+    "topbar_pending": "En attente de vérification",
+    "close_aria": "Fermer",
+    "banner_error": "{count, plural, one {Pour publier votre profil, complétez le champ surligné ci-dessous : {fields}.} other {Pour publier votre profil, complétez les # champs surlignés ci-dessous : {fields}.}}",
+    "errors": {
+      "account_load_failed": "Impossible de charger votre compte.",
+      "incomplete_check_below": "Profil incomplet, vérifiez les champs surlignés ci-dessous.",
+      "save_failed": "Erreur lors de la sauvegarde, réessayez."
+    },
+    "success": {
+      "draft_saved": "Brouillon enregistré. Vous pouvez continuer à modifier ou retourner au tableau de bord.",
+      "back_to_dashboard": "Tableau de bord →"
+    },
+    "show_more_certifications": "Afficher les {count} certifications ▼",
+    "show_more_career": "Afficher les {count} expériences ▼",
+    "show_more_missions": "Afficher les {count} missions ▼",
+    "show_more_education": "Afficher les {count} formations ▼",
+    "show_more_languages": "Afficher les {count} langues ▼",
+    "show_less": "Réduire ▲",
+    "field_labels_short": {
+      "title": "le titre professionnel",
+      "summary": "le résumé (20 caractères minimum)",
+      "skills": "au moins 3 compétences",
+      "branch_id": "la branche principale",
+      "speciality_id": "la spécialité",
+      "cdi_status": "votre statut écoute marché",
+      "cdi_salary_min": "le salaire annuel brut min",
+      "cdi_salary_max": "le salaire annuel brut max",
+      "cdi_notice_period": "votre délai de préavis",
+      "experiences": "au moins une expérience professionnelle",
+      "languages_structured": "au moins une langue"
+    },
+    "field_errors": {
+      "title": "Renseignez votre titre professionnel",
+      "summary": "Minimum 20 caractères pour publier",
+      "skills": "Ajoutez au moins 3 compétences",
+      "branch_id": "Sélectionnez une branche",
+      "speciality_id": "Sélectionnez une spécialité",
+      "cdi_status": "Choisissez votre statut écoute marché",
+      "cdi_salary_min": "Renseignez le salaire annuel brut min",
+      "cdi_salary_max": "Renseignez le salaire annuel brut max",
+      "cdi_notice_period": "Indiquez votre délai de préavis",
+      "experiences": "Ajoutez au moins une expérience (parcours ou mission)",
+      "languages_structured": "Ajoutez au moins une langue"
+    },
+    "compact_actions": {
+      "expand": "Modifier",
+      "collapse": "Réduire",
+      "delete": "Supprimer",
+      "drag_handle": "Réordonner",
+      "confirm_delete_question": "Supprimer cette entrée ?",
+      "confirm_delete_button": "Supprimer définitivement",
+      "cancel": "Annuler",
+      "move_up": "Déplacer vers le haut",
+      "move_down": "Déplacer vers le bas"
+    },
+    "sections": {
+      "identity": {
+        "title": "Identité professionnelle",
+        "title_label": "Titre professionnel",
+        "title_placeholder": "Ex: Consultant Dynamics 365 F&O Senior",
+        "summary_label": "Résumé",
+        "summary_placeholder": "10 ans d'expérience sur...",
+        "summary_counter": "{count}/500 · minimum 20 caractères pour publier",
+        "seniority_label": "Séniorité",
+        "seniority_placeholder": "— Sélectionner —",
+        "seniority_options": {
+          "junior": "Junior",
+          "confirmed": "Confirmé",
+          "senior": "Senior",
+          "expert": "Expert"
+        },
+        "years_label": "Années d'expérience",
+        "location_label": "Localisation",
+        "location_placeholder": "Paris, Lyon, Remote..."
+      },
+      "expertise": {
+        "title": "Expertise",
+        "branch_label": "Branche principale",
+        "branch_placeholder": "— Sélectionner une branche —",
+        "speciality_label": "Spécialité",
+        "speciality_placeholder": "— Sélectionner une spécialité —",
+        "skills_label": "Compétences",
+        "skills_min_hint": "(min. 3 pour publier)",
+        "skills_placeholder": "Ex: Azure, Power BI, D365...",
+        "skills_add_button": "Ajouter",
+        "skill_remove_aria": "Retirer {name}"
+      },
+      "status_availability": {
+        "title": "Statut & disponibilité",
+        "cdi_status_label": "Statut écoute marché",
+        "cdi_status_hint": "Pilote la visibilité de votre profil auprès des recruteurs.",
+        "cdi_notice_period_label": "Délai de préavis",
+        "cdi_notice_period_placeholder": "— Sélectionner —",
+        "cdi_availability_date_label": "Date probable de prise de poste",
+        "cdi_availability_date_hint": "Après votre préavis. Optionnel.",
+        "cdi_confidential_mode_label": "Mode confidentiel",
+        "cdi_confidential_mode_hint": "Cache votre profil de votre employeur actuel."
+      },
+      "compensation": {
+        "title": "Rémunération recherchée",
+        "salary_min_label": "Salaire annuel brut min (€)",
+        "salary_min_placeholder": "60000",
+        "salary_max_label": "Salaire annuel brut max (€)",
+        "salary_max_placeholder": "80000",
+        "variable_pct_label": "Variable / bonus (% du fixe)",
+        "variable_pct_placeholder": "10",
+        "variable_pct_hint": "Optionnel — entre 0 et 100"
+      },
+      "preferences": {
+        "title": "Préférences de recherche",
+        "contract_types_label": "Types de contrat acceptés",
+        "geo_mobility_label": "Mobilité géographique",
+        "geo_mobility_placeholder": "— Sélectionner —",
+        "company_size_label": "Taille d'entreprise préférée",
+        "sectors_label": "Secteurs préférés",
+        "benefits_label": "Avantages recherchés",
+        "work_modes_label": "Modes de travail acceptés",
+        "work_modes_hint": "Plusieurs possibles — informatif, non bloquant pour publier",
+        "work_mode_remote": "Distanciel",
+        "work_mode_onsite": "Sur site",
+        "work_mode_hybrid": "Hybride"
+      },
+      "motivations": {
+        "title": "Motivations & objectifs",
+        "career_goals_label": "Ce que je recherche (public)",
+        "career_goals_placeholder": "Décrivez en quelques phrases vos objectifs de carrière. Visible publiquement par les recruteurs.",
+        "motivations_label": "Motivations privées",
+        "motivations_placeholder": "Pourquoi je change de poste. Visible uniquement après candidature."
+      },
+      "certifications": {
+        "title": "Certifications",
+        "empty": "Aucune certification pour l'instant.",
+        "name_label": "Nom",
+        "name_placeholder": "PL-300, MB-700...",
+        "issuer_label": "Émetteur",
+        "issuer_placeholder": "Microsoft",
+        "year_label": "Année",
+        "remove_aria": "Supprimer",
+        "add_button": "+ Ajouter une certification"
+      },
+      "career": {
+        "title": "Parcours professionnel",
+        "empty": "Aucun employeur renseigné.",
+        "role_label": "Poste",
+        "role_placeholder": "Lead Supply Chain D365 SCM",
+        "employer_label": "Employeur",
+        "employer_placeholder": "Prodware, SilverProd...",
+        "is_current_label": "Poste actuel",
+        "description_placeholder": "Vue d'ensemble du poste, responsabilités, contexte...",
+        "add_button": "+ Ajouter un employeur",
+        "remove_aria": "Retirer cet emploi"
+      },
+      "missions": {
+        "title": "Missions / Projets",
+        "empty": "Aucune mission renseignée.",
+        "role_label": "Rôle",
+        "role_placeholder": "Solution Architect",
+        "client_label": "Client",
+        "client_placeholder": "Confidentiel",
+        "sector_label": "Secteur",
+        "sector_placeholder": "Agri-food, Automotive...",
+        "is_current_label": "Mission en cours",
+        "description_placeholder": "Périmètre, tâches, livrables, technologies, contexte du projet...",
+        "add_button": "+ Ajouter une mission",
+        "remove_aria": "Retirer cette mission"
+      },
+      "experience_card": {
+        "start_date_label": "Date de début",
+        "end_date_label": "Date de fin",
+        "description_label": "Description"
+      },
+      "education": {
+        "title": "Formation",
+        "empty": "Aucune formation renseignée.",
+        "school_label": "École",
+        "school_placeholder": "Université Paris-Dauphine",
+        "degree_label": "Diplôme",
+        "degree_placeholder": "Master, BAC+5, MBA...",
+        "field_label": "Domaine / Spécialisation",
+        "field_placeholder": "Finance, Informatique...",
+        "location_label": "Lieu",
+        "location_placeholder": "Paris, Lyon...",
+        "start_year_label": "Année début",
+        "end_year_label": "Année fin",
+        "remove_aria": "Retirer cette formation",
+        "add_button": "+ Ajouter une formation"
+      },
+      "languages": {
+        "title": "Langues",
+        "languages_min_hint": "(min. 1 pour publier)",
+        "empty": "Aucune langue renseignée.",
+        "language_placeholder": "Français, Anglais...",
+        "level_options": {
+          "A1": "A1 — Débutant",
+          "A2": "A2 — Élémentaire",
+          "B1": "B1 — Intermédiaire",
+          "B2": "B2 — Indépendant",
+          "C1": "C1 — Autonome",
+          "C2": "C2 — Maîtrise",
+          "native": "Langue maternelle"
+        },
+        "primary_label": "Principale",
+        "language_remove_aria": "Supprimer la langue",
+        "language_add_button": "+ Ajouter une langue"
+      },
+      "links": {
+        "title": "Liens",
+        "linkedin_label": "URL LinkedIn",
+        "linkedin_placeholder": "https://linkedin.com/in/..."
+      },
+      "contact": {
+        "title": "Coordonnées",
+        "phone_label": "Téléphone",
+        "phone_placeholder": "+33 6 12 34 56 78",
+        "birth_year_label": "Année de naissance",
+        "birth_year_placeholder": "1990",
+        "address_label": "Adresse",
+        "address_placeholder": "12 rue de la Paix",
+        "postal_code_label": "Code postal",
+        "postal_code_placeholder": "75001",
+        "city_label": "Ville",
+        "city_placeholder": "Paris",
+        "country_label": "Pays de résidence",
+        "country_placeholder": "Sélectionnez un pays",
+        "country_search_placeholder": "Rechercher un pays...",
+        "country_loading": "Chargement des pays...",
+        "country_empty": "Aucun pays trouvé"
+      }
+    },
+    "actions": {
+      "save_draft": "Enregistrer comme brouillon",
+      "publish": "Publier mon profil →",
+      "saving": "Enregistrement...",
+      "publishing": "Publication..."
+    }
   }
 }

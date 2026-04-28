@@ -783,5 +783,296 @@
       "no_search_preferences": "Noch keine Suchpräferenzen hinterlegt.",
       "no_compensation": "Noch keine Vergütungsdetails hinterlegt."
     }
+  },
+  "cdi_profile_upload": {
+    "page_title": "Erstellen Sie Ihr Festanstellungsprofil",
+    "page_subtitle": "Unsere KI analysiert Ihr Dokument und füllt Ihr Bewerberprofil vor. Sie prüfen, fertig.",
+    "back_link": "← Zurück zum Dashboard",
+    "error_close_aria": "Schliessen",
+    "status_badge": {
+      "pending": "Verifizierung ausstehend"
+    },
+    "card_cv": {
+      "recommended_badge": "EMPFOHLEN",
+      "title": "Lebenslauf hochladen",
+      "subtitle": "Legen Sie Ihren Lebenslauf als PDF ab. Unsere KI extrahiert Fähigkeiten, Erfahrung, Zertifizierungen und Festanstellungs-Präferenzen.",
+      "dropzone_label": "Ablegen oder klicken zum Auswählen",
+      "dropzone_hint": "PDF · max. 5 MB"
+    },
+    "card_linkedin": {
+      "title": "Aus LinkedIn",
+      "subtitle": "Kein Lebenslauf zur Hand? Exportieren Sie Ihr LinkedIn-Profil als PDF und legen Sie es hier ab.",
+      "step_1": "Öffnen Sie Ihr LinkedIn-Profil",
+      "step_2": "Klicken Sie auf <strong>Ressourcen</strong>",
+      "step_3": "Wählen Sie <strong>Als PDF speichern</strong>",
+      "dropzone_label": "Ablegen oder klicken zum Auswählen",
+      "dropzone_hint": "PDF · max. 5 MB"
+    },
+    "consent": {
+      "text": "Ich willige ein, dass mein Lebenslauf von Anthropic Claude (USA, vertragliche SCC-Garantien) analysiert wird, um mein Profil vorzubereiten. Das PDF wird privat gespeichert und nach 90 Tagen automatisch gelöscht. <highlight>Mehr über die Verarbeitung meiner Daten →</highlight>"
+    },
+    "locked_banner": "<strong>Profil noch nicht vollständig.</strong> Die Funktionen Stellen, Bewerbungen, Nachrichten und Veröffentlichung bleiben gesperrt, bis Ihr Festanstellungsprofil vollständig und validiert ist.",
+    "parsing_overlay": {
+      "title": "Analyse läuft...",
+      "duration": "5 bis 30 Sekunden",
+      "success": "✅ Analyse abgeschlossen, Weiterleitung..."
+    },
+    "errors": {
+      "consent_required": "Bitte stimmen Sie der Datenverarbeitung zu, um fortzufahren.",
+      "file_too_large": "Datei zu gross (max. 5 MB).",
+      "invalid_format": "Format nicht unterstützt, legen Sie ein PDF ab.",
+      "session_expired": "Sitzung abgelaufen, bitte erneut anmelden.",
+      "ai_disabled": "Die KI-Analyse ist vorübergehend nicht verfügbar, bitte später erneut versuchen.",
+      "rate_limit": "Sie haben das Limit von 3 Analysen pro 24 h erreicht. Bitte versuchen Sie es nach {reset} erneut.",
+      "rate_limit_later": "später",
+      "generic": "Ein Fehler ist aufgetreten, bitte erneut versuchen.",
+      "parsing_failed": "Analyse fehlgeschlagen: {reason}. Sie können erneut versuchen oder manuell ausfüllen.",
+      "unknown_reason": "unbekannter Fehler",
+      "parsing_default": "Analyse fehlgeschlagen",
+      "timeout": "Zeitüberschreitung, bitte erneut versuchen."
+    }
+  },
+  "cdi_profile_validation": {
+    "page_title": "Validieren Sie Ihr Festanstellungsprofil",
+    "page_subtitle": "Prüfen Sie die aus Ihrem Dokument extrahierten Informationen. Sie können alles vor der Veröffentlichung anpassen.",
+    "ai_banner": "💡 Unsere KI hat diese Felder vorausgefüllt. Passen Sie sie bei Bedarf vor der Veröffentlichung an.",
+    "back_link": "← Zurück",
+    "loading": "Ihr Profil wird geladen...",
+    "parsing_failed_message": "⚠️ KI-Analyse fehlgeschlagen, bitte vervollständigen Sie Ihr Profil manuell.",
+    "topbar_pending": "Verifizierung ausstehend",
+    "close_aria": "Schliessen",
+    "banner_error": "{count, plural, one {Um Ihr Profil zu veröffentlichen, vervollständigen Sie das hervorgehobene Feld unten: {fields}.} other {Um Ihr Profil zu veröffentlichen, vervollständigen Sie die # hervorgehobenen Felder unten: {fields}.}}",
+    "errors": {
+      "account_load_failed": "Ihr Konto konnte nicht geladen werden.",
+      "incomplete_check_below": "Profil unvollständig, prüfen Sie die hervorgehobenen Felder unten.",
+      "save_failed": "Speichern fehlgeschlagen, bitte erneut versuchen."
+    },
+    "success": {
+      "draft_saved": "Entwurf gespeichert. Sie können weiter bearbeiten oder zum Dashboard zurückkehren.",
+      "back_to_dashboard": "Dashboard →"
+    },
+    "show_more_certifications": "{count} Zertifizierungen anzeigen ▼",
+    "show_more_career": "{count} Erfahrungen anzeigen ▼",
+    "show_more_missions": "{count} Projekte anzeigen ▼",
+    "show_more_education": "{count} Ausbildungen anzeigen ▼",
+    "show_more_languages": "{count} Sprachen anzeigen ▼",
+    "show_less": "Weniger anzeigen ▲",
+    "field_labels_short": {
+      "title": "die Berufsbezeichnung",
+      "summary": "die Zusammenfassung (mindestens 20 Zeichen)",
+      "skills": "mindestens 3 Fähigkeiten",
+      "branch_id": "den Hauptbereich",
+      "speciality_id": "die Spezialisierung",
+      "cdi_status": "Ihren Suchstatus",
+      "cdi_salary_min": "das Mindestgehalt",
+      "cdi_salary_max": "das Höchstgehalt",
+      "cdi_notice_period": "Ihre Kündigungsfrist",
+      "experiences": "mindestens eine Berufserfahrung",
+      "languages_structured": "mindestens eine Sprache"
+    },
+    "field_errors": {
+      "title": "Geben Sie Ihre Berufsbezeichnung ein",
+      "summary": "Mindestens 20 Zeichen zum Veröffentlichen",
+      "skills": "Fügen Sie mindestens 3 Fähigkeiten hinzu",
+      "branch_id": "Wählen Sie einen Bereich",
+      "speciality_id": "Wählen Sie eine Spezialisierung",
+      "cdi_status": "Wählen Sie Ihren Suchstatus",
+      "cdi_salary_min": "Geben Sie das Mindestbruttogehalt pro Jahr an",
+      "cdi_salary_max": "Geben Sie das Höchstbruttogehalt pro Jahr an",
+      "cdi_notice_period": "Geben Sie Ihre Kündigungsfrist an",
+      "experiences": "Fügen Sie mindestens eine Erfahrung hinzu (Karriere oder Projekt)",
+      "languages_structured": "Fügen Sie mindestens eine Sprache hinzu"
+    },
+    "compact_actions": {
+      "expand": "Bearbeiten",
+      "collapse": "Einklappen",
+      "delete": "Löschen",
+      "drag_handle": "Neu anordnen",
+      "confirm_delete_question": "Diesen Eintrag löschen?",
+      "confirm_delete_button": "Endgültig löschen",
+      "cancel": "Abbrechen",
+      "move_up": "Nach oben",
+      "move_down": "Nach unten"
+    },
+    "sections": {
+      "identity": {
+        "title": "Berufliche Identität",
+        "title_label": "Berufsbezeichnung",
+        "title_placeholder": "z. B. Senior Dynamics 365 F&O Consultant",
+        "summary_label": "Zusammenfassung",
+        "summary_placeholder": "10 Jahre Erfahrung in...",
+        "summary_counter": "{count}/500 · mindestens 20 Zeichen zum Veröffentlichen",
+        "seniority_label": "Senioritätslevel",
+        "seniority_placeholder": "— Auswählen —",
+        "seniority_options": {
+          "junior": "Junior",
+          "confirmed": "Erfahren",
+          "senior": "Senior",
+          "expert": "Experte"
+        },
+        "years_label": "Berufserfahrung in Jahren",
+        "location_label": "Standort",
+        "location_placeholder": "Berlin, Zürich, Remote..."
+      },
+      "expertise": {
+        "title": "Expertise",
+        "branch_label": "Hauptbereich",
+        "branch_placeholder": "— Bereich auswählen —",
+        "speciality_label": "Spezialisierung",
+        "speciality_placeholder": "— Spezialisierung auswählen —",
+        "skills_label": "Fähigkeiten",
+        "skills_min_hint": "(mind. 3 zum Veröffentlichen)",
+        "skills_placeholder": "z. B. Azure, Power BI, D365...",
+        "skills_add_button": "Hinzufügen",
+        "skill_remove_aria": "{name} entfernen"
+      },
+      "status_availability": {
+        "title": "Status & Verfügbarkeit",
+        "cdi_status_label": "Suchstatus",
+        "cdi_status_hint": "Steuert die Sichtbarkeit Ihres Profils gegenüber Recruitern.",
+        "cdi_notice_period_label": "Kündigungsfrist",
+        "cdi_notice_period_placeholder": "— Auswählen —",
+        "cdi_availability_date_label": "Voraussichtliches Eintrittsdatum",
+        "cdi_availability_date_hint": "Nach Ihrer Kündigungsfrist. Optional.",
+        "cdi_confidential_mode_label": "Vertraulicher Modus",
+        "cdi_confidential_mode_hint": "Versteckt Ihr Profil vor Ihrem aktuellen Arbeitgeber."
+      },
+      "compensation": {
+        "title": "Gewünschte Vergütung",
+        "salary_min_label": "Jahresbruttogehalt min. (€)",
+        "salary_min_placeholder": "60000",
+        "salary_max_label": "Jahresbruttogehalt max. (€)",
+        "salary_max_placeholder": "80000",
+        "variable_pct_label": "Variable / Bonus (% des Festgehalts)",
+        "variable_pct_placeholder": "10",
+        "variable_pct_hint": "Optional — zwischen 0 und 100"
+      },
+      "preferences": {
+        "title": "Suchpräferenzen",
+        "contract_types_label": "Akzeptierte Vertragsarten",
+        "geo_mobility_label": "Geografische Mobilität",
+        "geo_mobility_placeholder": "— Auswählen —",
+        "company_size_label": "Bevorzugte Unternehmensgrösse",
+        "sectors_label": "Bevorzugte Branchen",
+        "benefits_label": "Gewünschte Zusatzleistungen",
+        "work_modes_label": "Akzeptierte Arbeitsmodelle",
+        "work_modes_hint": "Mehrere möglich — informativ, nicht zwingend zum Veröffentlichen",
+        "work_mode_remote": "Remote",
+        "work_mode_onsite": "Vor Ort",
+        "work_mode_hybrid": "Hybrid"
+      },
+      "motivations": {
+        "title": "Motivation & Ziele",
+        "career_goals_label": "Was ich suche (öffentlich)",
+        "career_goals_placeholder": "Beschreiben Sie in wenigen Sätzen Ihre Karriereziele. Öffentlich für Recruiter sichtbar.",
+        "motivations_label": "Private Motivation",
+        "motivations_placeholder": "Warum ich wechseln möchte. Nur nach Bewerbung sichtbar."
+      },
+      "certifications": {
+        "title": "Zertifizierungen",
+        "empty": "Noch keine Zertifizierungen.",
+        "name_label": "Name",
+        "name_placeholder": "PL-300, MB-700...",
+        "issuer_label": "Aussteller",
+        "issuer_placeholder": "Microsoft",
+        "year_label": "Jahr",
+        "remove_aria": "Entfernen",
+        "add_button": "+ Zertifizierung hinzufügen"
+      },
+      "career": {
+        "title": "Berufserfahrung",
+        "empty": "Noch keine Arbeitgeber hinterlegt.",
+        "role_label": "Position",
+        "role_placeholder": "Lead Supply Chain D365 SCM",
+        "employer_label": "Arbeitgeber",
+        "employer_placeholder": "Prodware, SilverProd...",
+        "is_current_label": "Aktuelle Stelle",
+        "description_placeholder": "Überblick zur Stelle, Verantwortlichkeiten, Kontext...",
+        "add_button": "+ Arbeitgeber hinzufügen",
+        "remove_aria": "Diese Stelle entfernen"
+      },
+      "missions": {
+        "title": "Projekte / Einsätze",
+        "empty": "Noch keine Projekte hinterlegt.",
+        "role_label": "Rolle",
+        "role_placeholder": "Solution Architect",
+        "client_label": "Kunde",
+        "client_placeholder": "Vertraulich",
+        "sector_label": "Branche",
+        "sector_placeholder": "Lebensmittel, Automobil...",
+        "is_current_label": "Projekt läuft",
+        "description_placeholder": "Umfang, Aufgaben, Ergebnisse, Technologien, Projektkontext...",
+        "add_button": "+ Projekt hinzufügen",
+        "remove_aria": "Dieses Projekt entfernen"
+      },
+      "experience_card": {
+        "start_date_label": "Startdatum",
+        "end_date_label": "Enddatum",
+        "description_label": "Beschreibung"
+      },
+      "education": {
+        "title": "Ausbildung",
+        "empty": "Noch keine Ausbildung hinterlegt.",
+        "school_label": "Schule",
+        "school_placeholder": "Universität Zürich",
+        "degree_label": "Abschluss",
+        "degree_placeholder": "Master, MSc, MBA...",
+        "field_label": "Fachgebiet / Spezialisierung",
+        "field_placeholder": "Finanzen, Informatik...",
+        "location_label": "Ort",
+        "location_placeholder": "Berlin, Zürich...",
+        "start_year_label": "Beginn",
+        "end_year_label": "Ende",
+        "remove_aria": "Diese Ausbildung entfernen",
+        "add_button": "+ Ausbildung hinzufügen"
+      },
+      "languages": {
+        "title": "Sprachen",
+        "languages_min_hint": "(mind. 1 zum Veröffentlichen)",
+        "empty": "Noch keine Sprachen hinterlegt.",
+        "language_placeholder": "Deutsch, Englisch...",
+        "level_options": {
+          "A1": "A1 — Anfänger",
+          "A2": "A2 — Grundkenntnisse",
+          "B1": "B1 — Mittelstufe",
+          "B2": "B2 — Fortgeschritten",
+          "C1": "C1 — Gehoben",
+          "C2": "C2 — Beherrschung",
+          "native": "Muttersprache"
+        },
+        "primary_label": "Hauptsprache",
+        "language_remove_aria": "Sprache entfernen",
+        "language_add_button": "+ Sprache hinzufügen"
+      },
+      "links": {
+        "title": "Links",
+        "linkedin_label": "LinkedIn-URL",
+        "linkedin_placeholder": "https://linkedin.com/in/..."
+      },
+      "contact": {
+        "title": "Kontaktdaten",
+        "phone_label": "Telefon",
+        "phone_placeholder": "+49 30 1234567",
+        "birth_year_label": "Geburtsjahr",
+        "birth_year_placeholder": "1990",
+        "address_label": "Adresse",
+        "address_placeholder": "Hauptstrasse 12",
+        "postal_code_label": "Postleitzahl",
+        "postal_code_placeholder": "10115",
+        "city_label": "Stadt",
+        "city_placeholder": "Berlin",
+        "country_label": "Wohnsitzland",
+        "country_placeholder": "Land auswählen",
+        "country_search_placeholder": "Land suchen...",
+        "country_loading": "Länder werden geladen...",
+        "country_empty": "Kein Land gefunden"
+      }
+    },
+    "actions": {
+      "save_draft": "Als Entwurf speichern",
+      "publish": "Profil veröffentlichen →",
+      "saving": "Speichern...",
+      "publishing": "Veröffentlichen..."
+    }
   }
 }

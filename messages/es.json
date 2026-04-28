@@ -783,5 +783,296 @@
       "no_search_preferences": "Aún no has añadido preferencias de búsqueda.",
       "no_compensation": "Aún no has añadido datos de remuneración."
     }
+  },
+  "cdi_profile_upload": {
+    "page_title": "Crea tu perfil de candidato",
+    "page_subtitle": "Nuestra IA analiza tu documento y rellena tu perfil. Tú lo validas, listo.",
+    "back_link": "← Volver al panel",
+    "error_close_aria": "Cerrar",
+    "status_badge": {
+      "pending": "Pendiente de verificación"
+    },
+    "card_cv": {
+      "recommended_badge": "RECOMENDADO",
+      "title": "Subir mi CV",
+      "subtitle": "Suelta tu CV en PDF. Nuestra IA extrae tus competencias, experiencias, certificaciones y preferencias.",
+      "dropzone_label": "Suelta o haz clic para seleccionar",
+      "dropzone_hint": "PDF · 5 MB máx."
+    },
+    "card_linkedin": {
+      "title": "Desde LinkedIn",
+      "subtitle": "¿No tienes CV? Exporta tu perfil de LinkedIn en PDF y suéltalo aquí.",
+      "step_1": "Abre tu perfil de LinkedIn",
+      "step_2": "Haz clic en <strong>Recursos</strong>",
+      "step_3": "Selecciona <strong>Guardar en PDF</strong>",
+      "dropzone_label": "Suelta o haz clic para seleccionar",
+      "dropzone_hint": "PDF · 5 MB máx."
+    },
+    "consent": {
+      "text": "Acepto que mi CV sea analizado por Anthropic Claude (EE. UU., garantías contractuales SCC) para rellenar mi perfil. El PDF se guarda de forma privada y se elimina automáticamente tras 90 días. <highlight>Saber más sobre el tratamiento de mis datos →</highlight>"
+    },
+    "locked_banner": "<strong>Perfil pendiente de completar.</strong> Las funciones Oportunidades, Candidaturas, Mensajería y Publicación quedan bloqueadas hasta que tu perfil esté completo y validado.",
+    "parsing_overlay": {
+      "title": "Analizando...",
+      "duration": "5 a 30 segundos",
+      "success": "✅ Análisis completado, redirigiendo..."
+    },
+    "errors": {
+      "consent_required": "Acepta el tratamiento de tus datos para continuar.",
+      "file_too_large": "Archivo demasiado grande (máx. 5 MB).",
+      "invalid_format": "Formato no compatible, suelta un PDF.",
+      "session_expired": "Sesión expirada, vuelve a iniciar sesión.",
+      "ai_disabled": "El análisis IA no está disponible, inténtalo más tarde.",
+      "rate_limit": "Has alcanzado el límite de 3 análisis cada 24 h. Vuelve a intentarlo después de {reset}.",
+      "rate_limit_later": "más tarde",
+      "generic": "Se ha producido un error, vuelve a intentarlo.",
+      "parsing_failed": "El análisis falló: {reason}. Puedes reintentar o completar manualmente.",
+      "unknown_reason": "error desconocido",
+      "parsing_default": "Análisis fallido",
+      "timeout": "Tiempo agotado, vuelve a intentarlo."
+    }
+  },
+  "cdi_profile_validation": {
+    "page_title": "Valida tu perfil de candidato",
+    "page_subtitle": "Revisa la información extraída del documento. Puedes corregir todo antes de publicar.",
+    "ai_banner": "💡 Nuestra IA ha rellenado estos campos. Modifícalos si lo necesitas antes de publicar.",
+    "back_link": "← Volver",
+    "loading": "Cargando tu perfil...",
+    "parsing_failed_message": "⚠️ El análisis IA falló, completa tu perfil manualmente.",
+    "topbar_pending": "Pendiente de verificación",
+    "close_aria": "Cerrar",
+    "banner_error": "{count, plural, one {Para publicar tu perfil, completa el campo destacado abajo: {fields}.} other {Para publicar tu perfil, completa los # campos destacados abajo: {fields}.}}",
+    "errors": {
+      "account_load_failed": "No se pudo cargar tu cuenta.",
+      "incomplete_check_below": "Perfil incompleto, revisa los campos destacados abajo.",
+      "save_failed": "Error al guardar, vuelve a intentarlo."
+    },
+    "success": {
+      "draft_saved": "Borrador guardado. Puedes seguir editando o volver al panel.",
+      "back_to_dashboard": "Panel →"
+    },
+    "show_more_certifications": "Mostrar las {count} certificaciones ▼",
+    "show_more_career": "Mostrar las {count} experiencias ▼",
+    "show_more_missions": "Mostrar las {count} misiones ▼",
+    "show_more_education": "Mostrar las {count} formaciones ▼",
+    "show_more_languages": "Mostrar los {count} idiomas ▼",
+    "show_less": "Mostrar menos ▲",
+    "field_labels_short": {
+      "title": "el título profesional",
+      "summary": "el resumen (mínimo 20 caracteres)",
+      "skills": "al menos 3 competencias",
+      "branch_id": "la rama principal",
+      "speciality_id": "la especialidad",
+      "cdi_status": "tu estado de búsqueda",
+      "cdi_salary_min": "el salario mínimo objetivo",
+      "cdi_salary_max": "el salario máximo objetivo",
+      "cdi_notice_period": "tu plazo de preaviso",
+      "experiences": "al menos una experiencia profesional",
+      "languages_structured": "al menos un idioma"
+    },
+    "field_errors": {
+      "title": "Indica tu título profesional",
+      "summary": "Mínimo 20 caracteres para publicar",
+      "skills": "Añade al menos 3 competencias",
+      "branch_id": "Selecciona una rama",
+      "speciality_id": "Selecciona una especialidad",
+      "cdi_status": "Elige tu estado de búsqueda",
+      "cdi_salary_min": "Indica el salario anual bruto mínimo",
+      "cdi_salary_max": "Indica el salario anual bruto máximo",
+      "cdi_notice_period": "Indica tu plazo de preaviso",
+      "experiences": "Añade al menos una experiencia (carrera o misión)",
+      "languages_structured": "Añade al menos un idioma"
+    },
+    "compact_actions": {
+      "expand": "Editar",
+      "collapse": "Contraer",
+      "delete": "Eliminar",
+      "drag_handle": "Reordenar",
+      "confirm_delete_question": "¿Eliminar esta entrada?",
+      "confirm_delete_button": "Eliminar definitivamente",
+      "cancel": "Cancelar",
+      "move_up": "Subir",
+      "move_down": "Bajar"
+    },
+    "sections": {
+      "identity": {
+        "title": "Identidad profesional",
+        "title_label": "Título profesional",
+        "title_placeholder": "Ej: Consultor Dynamics 365 F&O Senior",
+        "summary_label": "Resumen",
+        "summary_placeholder": "10 años de experiencia en...",
+        "summary_counter": "{count}/500 · mínimo 20 caracteres para publicar",
+        "seniority_label": "Senioridad",
+        "seniority_placeholder": "— Seleccionar —",
+        "seniority_options": {
+          "junior": "Junior",
+          "confirmed": "Confirmado",
+          "senior": "Senior",
+          "expert": "Experto"
+        },
+        "years_label": "Años de experiencia",
+        "location_label": "Ubicación",
+        "location_placeholder": "Madrid, Barcelona, Remoto..."
+      },
+      "expertise": {
+        "title": "Especialidad",
+        "branch_label": "Rama principal",
+        "branch_placeholder": "— Seleccionar una rama —",
+        "speciality_label": "Especialidad",
+        "speciality_placeholder": "— Seleccionar una especialidad —",
+        "skills_label": "Competencias",
+        "skills_min_hint": "(mín. 3 para publicar)",
+        "skills_placeholder": "Ej: Azure, Power BI, D365...",
+        "skills_add_button": "Añadir",
+        "skill_remove_aria": "Quitar {name}"
+      },
+      "status_availability": {
+        "title": "Estado y disponibilidad",
+        "cdi_status_label": "Estado de búsqueda",
+        "cdi_status_hint": "Controla la visibilidad de tu perfil ante los reclutadores.",
+        "cdi_notice_period_label": "Plazo de preaviso",
+        "cdi_notice_period_placeholder": "— Seleccionar —",
+        "cdi_availability_date_label": "Fecha probable de incorporación",
+        "cdi_availability_date_hint": "Tras tu preaviso. Opcional.",
+        "cdi_confidential_mode_label": "Modo confidencial",
+        "cdi_confidential_mode_hint": "Oculta tu perfil de tu empleador actual."
+      },
+      "compensation": {
+        "title": "Remuneración objetivo",
+        "salary_min_label": "Salario anual bruto mín. (€)",
+        "salary_min_placeholder": "60000",
+        "salary_max_label": "Salario anual bruto máx. (€)",
+        "salary_max_placeholder": "80000",
+        "variable_pct_label": "Variable / bonus (% del fijo)",
+        "variable_pct_placeholder": "10",
+        "variable_pct_hint": "Opcional — entre 0 y 100"
+      },
+      "preferences": {
+        "title": "Preferencias de búsqueda",
+        "contract_types_label": "Tipos de contrato aceptados",
+        "geo_mobility_label": "Movilidad geográfica",
+        "geo_mobility_placeholder": "— Seleccionar —",
+        "company_size_label": "Tamaño de empresa preferido",
+        "sectors_label": "Sectores preferidos",
+        "benefits_label": "Beneficios buscados",
+        "work_modes_label": "Modalidades de trabajo aceptadas",
+        "work_modes_hint": "Varias posibles — informativo, no obligatorio para publicar",
+        "work_mode_remote": "Remoto",
+        "work_mode_onsite": "Presencial",
+        "work_mode_hybrid": "Híbrido"
+      },
+      "motivations": {
+        "title": "Motivaciones y objetivos",
+        "career_goals_label": "Lo que busco (público)",
+        "career_goals_placeholder": "Describe en pocas frases tus objetivos profesionales. Visible públicamente para los reclutadores.",
+        "motivations_label": "Motivaciones privadas",
+        "motivations_placeholder": "Por qué cambio de puesto. Visible solo tras presentar candidatura."
+      },
+      "certifications": {
+        "title": "Certificaciones",
+        "empty": "Aún no hay certificaciones.",
+        "name_label": "Nombre",
+        "name_placeholder": "PL-300, MB-700...",
+        "issuer_label": "Emisor",
+        "issuer_placeholder": "Microsoft",
+        "year_label": "Año",
+        "remove_aria": "Eliminar",
+        "add_button": "+ Añadir una certificación"
+      },
+      "career": {
+        "title": "Trayectoria profesional",
+        "empty": "Aún no hay empleadores.",
+        "role_label": "Puesto",
+        "role_placeholder": "Lead Supply Chain D365 SCM",
+        "employer_label": "Empleador",
+        "employer_placeholder": "Prodware, SilverProd...",
+        "is_current_label": "Puesto actual",
+        "description_placeholder": "Visión general del puesto, responsabilidades, contexto...",
+        "add_button": "+ Añadir un empleador",
+        "remove_aria": "Quitar este empleo"
+      },
+      "missions": {
+        "title": "Misiones / Proyectos",
+        "empty": "Aún no hay misiones.",
+        "role_label": "Rol",
+        "role_placeholder": "Solution Architect",
+        "client_label": "Cliente",
+        "client_placeholder": "Confidencial",
+        "sector_label": "Sector",
+        "sector_placeholder": "Agroalimentario, Automoción...",
+        "is_current_label": "Misión en curso",
+        "description_placeholder": "Alcance, tareas, entregables, tecnologías, contexto del proyecto...",
+        "add_button": "+ Añadir una misión",
+        "remove_aria": "Quitar esta misión"
+      },
+      "experience_card": {
+        "start_date_label": "Fecha de inicio",
+        "end_date_label": "Fecha de fin",
+        "description_label": "Descripción"
+      },
+      "education": {
+        "title": "Formación",
+        "empty": "Aún no hay formación.",
+        "school_label": "Centro",
+        "school_placeholder": "Universidad Complutense",
+        "degree_label": "Titulación",
+        "degree_placeholder": "Máster, BAC+5, MBA...",
+        "field_label": "Área / Especialización",
+        "field_placeholder": "Finanzas, Informática...",
+        "location_label": "Lugar",
+        "location_placeholder": "Madrid, Barcelona...",
+        "start_year_label": "Año inicio",
+        "end_year_label": "Año fin",
+        "remove_aria": "Quitar esta formación",
+        "add_button": "+ Añadir una formación"
+      },
+      "languages": {
+        "title": "Idiomas",
+        "languages_min_hint": "(mín. 1 para publicar)",
+        "empty": "Aún no hay idiomas.",
+        "language_placeholder": "Español, Inglés...",
+        "level_options": {
+          "A1": "A1 — Principiante",
+          "A2": "A2 — Elemental",
+          "B1": "B1 — Intermedio",
+          "B2": "B2 — Intermedio alto",
+          "C1": "C1 — Avanzado",
+          "C2": "C2 — Dominio",
+          "native": "Nativo"
+        },
+        "primary_label": "Principal",
+        "language_remove_aria": "Eliminar idioma",
+        "language_add_button": "+ Añadir un idioma"
+      },
+      "links": {
+        "title": "Enlaces",
+        "linkedin_label": "URL de LinkedIn",
+        "linkedin_placeholder": "https://linkedin.com/in/..."
+      },
+      "contact": {
+        "title": "Datos de contacto",
+        "phone_label": "Teléfono",
+        "phone_placeholder": "+34 612 345 678",
+        "birth_year_label": "Año de nacimiento",
+        "birth_year_placeholder": "1990",
+        "address_label": "Dirección",
+        "address_placeholder": "Calle Mayor 12",
+        "postal_code_label": "Código postal",
+        "postal_code_placeholder": "28001",
+        "city_label": "Ciudad",
+        "city_placeholder": "Madrid",
+        "country_label": "País de residencia",
+        "country_placeholder": "Selecciona un país",
+        "country_search_placeholder": "Buscar un país...",
+        "country_loading": "Cargando países...",
+        "country_empty": "Ningún país encontrado"
+      }
+    },
+    "actions": {
+      "save_draft": "Guardar como borrador",
+      "publish": "Publicar mi perfil →",
+      "saving": "Guardando...",
+      "publishing": "Publicando..."
+    }
   }
 }

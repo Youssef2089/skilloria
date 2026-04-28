@@ -67,6 +67,21 @@ type PatchBody = Partial<{
   experiences: ExperienceInput[]
   educations: EducationInput[]
   languages_structured: LanguageInput[]
+  // ── CDI-specific (acceptés UNIQUEMENT si users.user_type === 'expert_cdi') ──
+  cdi_status: 'employed' | 'open_to_work' | 'actively_searching' | null
+  cdi_notice_period: 'immediate' | '1_month' | '2_months' | '3_months' | 'negotiable' | null
+  cdi_availability_date: string | null
+  cdi_confidential_mode: boolean | null
+  cdi_salary_min: number | null
+  cdi_salary_max: number | null
+  cdi_variable_pct: number | null
+  cdi_benefits: string[] | null
+  cdi_company_size: string[] | null
+  cdi_sectors: string[] | null
+  cdi_geo_mobility: 'local' | 'regional' | 'national' | 'international' | null
+  cdi_contract_types: Array<'cdi' | 'cdd' | 'alternance'> | null
+  cdi_motivations: string | null
+  cdi_career_goals: string | null
 }>
 
 export async function PATCH(request: NextRequest): Promise<Response> {
@@ -88,14 +103,34 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
   const { supabaseAdmin, user } = auth
 
+  // ── Branchement user_type pour valider/whitelister selon le rôle ──
+  // (Lecture isolée : ne touche pas requireAuth() pour rester chirurgical.)
+  const { data: userMetaRow } = await supabaseAdmin
+    .from('users')
+    .select('user_type')
+    .eq('id', user.id)
+    .maybeSingle()
+  const userType = (userMetaRow?.user_type as string | null) ?? null
+  const isCdi = userType === 'expert_cdi'
+
+  // currentProfile : on étend le select avec les colonnes nécessaires à la
+  // validation CDI uniquement si isCdi (pas de surcoût pour le freelance).
+  const baseSelect = 'id, title, summary, skills, branch_id, speciality_id, work_modes'
+  const cdiSelectExtra =
+    ', cdi_status, cdi_salary_min, cdi_salary_max, cdi_notice_period'
+  const profileSelect = isCdi ? baseSelect + cdiSelectExtra : baseSelect
+
   const { data: currentProfile, error: fetchErr } = await supabaseAdmin
     .from('profiles')
-    .select('id, title, summary, skills, branch_id, speciality_id, work_modes')
+    .select(profileSelect)
     .eq('user_id', user.id)
     .maybeSingle()
   if (fetchErr || !currentProfile) {
     return json({ error: 'Profile not found', code: 'profile_missing' }, 404)
   }
+  // Cast nécessaire car `profileSelect` est une chaîne dynamique
+  // (supabase-js ne peut typer le retour qu'avec un littéral statique).
+  const cp = currentProfile as unknown as Record<string, any> & { id: string }
 
   const patch: Record<string, unknown> = {}
   const directFields: Array<keyof PatchBody> = [
@@ -108,6 +143,31 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   ]
   for (const k of directFields) {
     if (k in body) patch[k] = body[k] as unknown
+  }
+
+  // ── Whitelist additionnelle pour les expert_cdi : 14 colonnes cdi_* ──
+  // Si l'utilisateur n'est PAS expert_cdi, ces champs sont ignorés
+  // silencieusement (backward-compatible : aucune régression freelance).
+  if (isCdi) {
+    const cdiFields: Array<keyof PatchBody> = [
+      'cdi_status',
+      'cdi_notice_period',
+      'cdi_availability_date',
+      'cdi_confidential_mode',
+      'cdi_salary_min',
+      'cdi_salary_max',
+      'cdi_variable_pct',
+      'cdi_benefits',
+      'cdi_company_size',
+      'cdi_sectors',
+      'cdi_geo_mobility',
+      'cdi_contract_types',
+      'cdi_motivations',
+      'cdi_career_goals',
+    ]
+    for (const k of cdiFields) {
+      if (k in body) patch[k] = body[k] as unknown
+    }
   }
 
   if ('branch_slug' in body) {
@@ -140,25 +200,17 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   }
 
   // Validation pour publication
+  // ─────────────────────────────────────────────────────────────────────
+  // Branchement strict : freelance vs CDI.
+  // - Freelance (default) : règles INCHANGÉES (backward-compat)
+  // - CDI : règles spécifiques (cdi_status, cdi_salary_*, cdi_notice_period,
+  //   summary>=20, ET pas de validation work_modes — informatif seulement)
+  // ─────────────────────────────────────────────────────────────────────
   if (body.visible === true) {
-    const merged = {
-      title: (patch.title ?? currentProfile.title) as string | null,
-      summary: (patch.summary ?? currentProfile.summary) as string | null,
-      skills: (patch.skills ?? currentProfile.skills) as string[] | null,
-      branch_id: (patch.branch_id ?? currentProfile.branch_id) as string | null,
-      speciality_id: (patch.speciality_id ?? currentProfile.speciality_id) as string | null,
-      work_modes: (patch.work_modes ?? currentProfile.work_modes) as string[] | null,
-    }
+    const cur = cp
     const missing: string[] = []
-    if (!merged.title) missing.push('title')
-    if (!merged.summary) missing.push('summary')
-    if (!merged.skills || merged.skills.length < 3) missing.push('skills')
-    if (!merged.branch_id) missing.push('branch_id')
-    if (!merged.speciality_id) missing.push('speciality_id')
-    if (!Array.isArray(merged.work_modes) || merged.work_modes.length === 0)
-      missing.push('work_modes')
 
-    // experiences >= 1 (body ou BDD)
+    // experiences >= 1 (body ou BDD) — commun
     let experiencesCount: number
     if ('experiences' in body) {
       experiencesCount = Array.isArray(body.experiences)
@@ -168,12 +220,11 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       const { count } = await supabaseAdmin
         .from('profile_experiences')
         .select('id', { count: 'exact', head: true })
-        .eq('profile_id', currentProfile.id)
+        .eq('profile_id', cur.id)
       experiencesCount = count ?? 0
     }
-    if (experiencesCount < 1) missing.push('experiences')
 
-    // languages_structured >= 1 (body ou BDD)
+    // languages_structured >= 1 (body ou BDD) — commun
     let languagesCount: number
     if ('languages_structured' in body) {
       languagesCount = Array.isArray(body.languages_structured)
@@ -183,10 +234,62 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       const { count } = await supabaseAdmin
         .from('profile_languages')
         .select('id', { count: 'exact', head: true })
-        .eq('profile_id', currentProfile.id)
+        .eq('profile_id', cur.id)
       languagesCount = count ?? 0
     }
-    if (languagesCount < 1) missing.push('languages_structured')
+
+    if (isCdi) {
+      // ── Règles CDI : 11 critères ─────────────────────────────────────
+      const merged = {
+        title: (patch.title ?? cur.title) as string | null,
+        summary: (patch.summary ?? cur.summary) as string | null,
+        skills: (patch.skills ?? cur.skills) as string[] | null,
+        branch_id: (patch.branch_id ?? cur.branch_id) as string | null,
+        speciality_id: (patch.speciality_id ?? cur.speciality_id) as string | null,
+        cdi_status: (patch.cdi_status ?? cur.cdi_status) as string | null,
+        cdi_salary_min: (patch.cdi_salary_min ?? cur.cdi_salary_min) as
+          | number
+          | null,
+        cdi_salary_max: (patch.cdi_salary_max ?? cur.cdi_salary_max) as
+          | number
+          | null,
+        cdi_notice_period: (patch.cdi_notice_period ?? cur.cdi_notice_period) as
+          | string
+          | null,
+      }
+      if (!merged.title) missing.push('title')
+      if (!merged.summary || merged.summary.trim().length < 20) missing.push('summary')
+      if (!merged.skills || merged.skills.length < 3) missing.push('skills')
+      if (!merged.branch_id) missing.push('branch_id')
+      if (!merged.speciality_id) missing.push('speciality_id')
+      if (!merged.cdi_status) missing.push('cdi_status')
+      if (merged.cdi_salary_min == null || merged.cdi_salary_min <= 0)
+        missing.push('cdi_salary_min')
+      if (merged.cdi_salary_max == null || merged.cdi_salary_max <= 0)
+        missing.push('cdi_salary_max')
+      if (!merged.cdi_notice_period) missing.push('cdi_notice_period')
+      if (experiencesCount < 1) missing.push('experiences')
+      if (languagesCount < 1) missing.push('languages_structured')
+    } else {
+      // ── Règles freelance : INCHANGÉES (backward-compat) ──────────────
+      const merged = {
+        title: (patch.title ?? cur.title) as string | null,
+        summary: (patch.summary ?? cur.summary) as string | null,
+        skills: (patch.skills ?? cur.skills) as string[] | null,
+        branch_id: (patch.branch_id ?? cur.branch_id) as string | null,
+        speciality_id: (patch.speciality_id ?? cur.speciality_id) as string | null,
+        work_modes: (patch.work_modes ?? cur.work_modes) as string[] | null,
+      }
+      if (!merged.title) missing.push('title')
+      if (!merged.summary) missing.push('summary')
+      if (!merged.skills || merged.skills.length < 3) missing.push('skills')
+      if (!merged.branch_id) missing.push('branch_id')
+      if (!merged.speciality_id) missing.push('speciality_id')
+      if (!Array.isArray(merged.work_modes) || merged.work_modes.length === 0)
+        missing.push('work_modes')
+      if (experiencesCount < 1) missing.push('experiences')
+      if (languagesCount < 1) missing.push('languages_structured')
+    }
 
     if (missing.length) {
       return json({ error: 'Profile incomplete', code: 'incomplete', missing }, 400)
@@ -208,7 +311,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     const { data: updated, error: updateErr } = await supabaseAdmin
       .from('profiles')
       .update(patch)
-      .eq('id', currentProfile.id)
+      .eq('id', cp.id)
       .select('*')
       .single()
 
@@ -225,14 +328,14 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     const { error: delErr } = await supabaseAdmin
       .from('profile_experiences')
       .delete()
-      .eq('profile_id', currentProfile.id)
+      .eq('profile_id', cp.id)
     if (delErr) {
       console.error('[profile PATCH] experiences delete failed', delErr)
     } else if (list.length > 0) {
       const rows = list
         .filter(e => e.role?.trim())
         .map((e, i) => ({
-          profile_id: currentProfile.id,
+          profile_id: cp.id,
           domain_id: user.domain_id,
           sort_order: i,
           experience_type: e.experience_type,
@@ -261,14 +364,14 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     const { error: delErr } = await supabaseAdmin
       .from('profile_educations')
       .delete()
-      .eq('profile_id', currentProfile.id)
+      .eq('profile_id', cp.id)
     if (delErr) {
       console.error('[profile PATCH] educations delete failed', delErr)
     } else if (list.length > 0) {
       const rows = list
         .filter(e => e.school?.trim() && e.degree?.trim())
         .map(e => ({
-          profile_id: currentProfile.id,
+          profile_id: cp.id,
           domain_id: user.domain_id,
           school: e.school.trim(),
           degree: e.degree.trim(),
@@ -308,12 +411,12 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     const { error: delErr } = await supabaseAdmin
       .from('profile_languages')
       .delete()
-      .eq('profile_id', currentProfile.id)
+      .eq('profile_id', cp.id)
     if (delErr) {
       console.error('[profile PATCH] languages delete failed', delErr)
     } else if (normalised.length > 0) {
       const rows = normalised.map(l => ({
-        profile_id: currentProfile.id,
+        profile_id: cp.id,
         language: l.language.trim(),
         level: l.level,
         is_primary: l.is_primary,
@@ -342,7 +445,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     domain_id: user.domain_id,
     action: 'profile_update',
     entity_type: 'profile',
-    entity_id: currentProfile.id,
+    entity_id: cp.id,
     detail: { keys: Object.keys(patch), blocks: touchedBlocks },
   })
 
