@@ -13,6 +13,7 @@ type ProfileData = { tjm_min: number | null; tjm_max: number | null; photo_url: 
 
 export default function DashboardFreelance() {
   const t = useTranslations('dashboard_freelance')
+  const tCommon = useTranslations('common')
   const router = useRouter()
   const domain = useDomain()
   const [user, setUser] = useState<any>(null)
@@ -60,9 +61,14 @@ export default function DashboardFreelance() {
     </div>
   )
 
-  const initials = user?.email?.substring(0, 2).toUpperCase() || '??'
   const isVerified = user?.is_verified === true
-  const username = user?.email?.split('@')[0] || ''
+  const firstName = (user?.first_name ?? '').trim()
+  const lastName = (user?.last_name ?? '').trim()
+  const fullName = `${firstName} ${lastName}`.trim() || tCommon('user_fallback')
+  const initials =
+    ((firstName[0] ?? '') + (lastName[0] ?? '')).toUpperCase() ||
+    fullName.substring(0, 2).toUpperCase() ||
+    '??'
 
   return (
     <div style={{ minHeight: '100vh', background: '#f9fafb', fontFamily: 'Inter, sans-serif' }}>
@@ -229,7 +235,7 @@ export default function DashboardFreelance() {
               {profile?.photo_url ? (
                 <img
                   src={profile.photo_url}
-                  alt={username}
+                  alt={fullName}
                   className="avatar"
                   style={{ objectFit: 'cover' }}
                 />
@@ -241,7 +247,7 @@ export default function DashboardFreelance() {
               <div className="pulse-dot" style={{ position: 'absolute', bottom: 3, right: 3, width: 14, height: 14, background: isVerified ? '#22c55e' : '#eab308', border: '2px solid #fff' }}></div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginBottom: 5 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>{username}</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>{fullName}</div>
               {isVerified && (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <circle cx="12" cy="12" r="10" fill={domain.primaryColor}/>

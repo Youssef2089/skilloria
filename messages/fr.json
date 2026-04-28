@@ -4,7 +4,8 @@
   },
   "common": {
     "language_switcher_aria": "Changer la langue",
-    "language_switcher_current": "Langue actuelle\u00A0: {locale}"
+    "language_switcher_current": "Langue actuelle\u00A0: {locale}",
+    "user_fallback": "Utilisateur"
   },
   "homepage": {
     "meta": {

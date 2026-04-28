@@ -95,6 +95,8 @@ type Profile = {
 type UserData = {
   id: string
   email: string
+  first_name: string | null
+  last_name: string | null
   is_verified: boolean | null
   user_type: string | null
   domain_id: string | null
@@ -276,6 +278,7 @@ function ExpandableDescription({
 export default function MonProfilPage() {
   const t = useTranslations('profile_view')
   const tDash = useTranslations('dashboard_freelance')
+  const tCommon = useTranslations('common')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -311,7 +314,7 @@ export default function MonProfilPage() {
 
       const { data: userRow, error: userErr } = await supabase
         .from('users')
-        .select('id, email, is_verified, user_type, domain_id')
+        .select('id, email, first_name, last_name, is_verified, user_type, domain_id')
         .eq('id', session.user.id)
         .single()
 
@@ -489,8 +492,13 @@ export default function MonProfilPage() {
     })
   }
 
-  const username = (user?.email ?? '').split('@')[0] || ''
-  const initials = username.substring(0, 2).toUpperCase() || '??'
+  const firstName = (user?.first_name ?? '').trim()
+  const lastName = (user?.last_name ?? '').trim()
+  const fullName = `${firstName} ${lastName}`.trim() || tCommon('user_fallback')
+  const initials =
+    ((firstName[0] ?? '') + (lastName[0] ?? '')).toUpperCase() ||
+    fullName.substring(0, 2).toUpperCase() ||
+    '??'
   const isVerified = user?.is_verified === true
   const isVisible = profile?.visible === true
   const headline = profile?.title?.trim() || null
@@ -812,7 +820,7 @@ export default function MonProfilPage() {
               {profile.photo_url ? (
                 <img
                   src={profile.photo_url}
-                  alt={username}
+                  alt={fullName}
                   style={{
                     width: 76,
                     height: 76,
@@ -841,7 +849,7 @@ export default function MonProfilPage() {
               <div className="pulse-dot" style={{ position: 'absolute', bottom: 3, right: 3, width: 14, height: 14, background: isVerified ? '#22c55e' : '#eab308', border: '2px solid #fff' }} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginBottom: 5 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>{username}</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>{fullName}</div>
               {isVerified && (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <circle cx="12" cy="12" r="10" fill={domain.primaryColor} />
@@ -972,7 +980,7 @@ export default function MonProfilPage() {
               {profile.photo_url ? (
                 <img
                   src={profile.photo_url}
-                  alt={username}
+                  alt={fullName}
                   className="profile-hero-avatar"
                   style={{
                     width: 120,
@@ -1008,7 +1016,7 @@ export default function MonProfilPage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
                   <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.4px' }}>
-                    {username}
+                    {fullName}
                   </h2>
                   {isVerified && (
                     <span
