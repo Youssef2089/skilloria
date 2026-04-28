@@ -676,6 +676,7 @@
     "empty_profile": "Aucun profil n'a encore été créé.",
     "page_title": "Mon profil",
     "back_to_dashboard": "← Retour au tableau de bord",
+    "fallback_user_name": "Utilisateur",
     "edit_button": "Modifier mon profil →",
     "verified_badge": "Profil vérifié",
     "status_badges": {

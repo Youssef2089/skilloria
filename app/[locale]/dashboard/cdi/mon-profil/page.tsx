@@ -61,24 +61,18 @@ const LOCALE_DATE_MAP: Record<string, string> = {
   de: 'de-DE',
 }
 
-function displayName(user: CdiUser | null): string {
-  if (!user) return ''
-  const fn = user.first_name?.trim()
-  const ln = user.last_name?.trim()
-  if (fn && ln) return `${fn} ${ln}`
-  if (fn) return fn
-  if (ln) return ln
-  return user.email?.split('@')[0] ?? ''
+function displayName(user: CdiUser | null, fallback: string): string {
+  if (!user) return fallback
+  const full = `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim()
+  return full || fallback
 }
 
 function initialsOf(user: CdiUser | null): string {
-  if (!user) return '??'
-  const fn = user.first_name?.trim()
-  const ln = user.last_name?.trim()
-  if (fn || ln) {
-    return `${(fn ?? '').charAt(0)}${(ln ?? '').charAt(0)}`.toUpperCase() || '??'
-  }
-  return user.email?.substring(0, 2).toUpperCase() ?? '??'
+  if (!user) return '?'
+  const fn = (user.first_name ?? '').trim().charAt(0)
+  const ln = (user.last_name ?? '').trim().charAt(0)
+  const initials = (fn + ln).toUpperCase()
+  return initials || '?'
 }
 
 function formatDate(dateStr: string | null, locale: string): string | null {
@@ -797,7 +791,7 @@ function ProfileHero({
   domainColor: string
   t: ReturnType<typeof useTranslations<'cdi_profile_view'>>
 }) {
-  const name = displayName(user)
+  const name = displayName(user, t('fallback_user_name'))
   const initials = initialsOf(user)
   const noticeKey = profile.cdi_notice_period
   const noticeLabel = noticeKey ? t(`notice_period_options.${noticeKey}`) : null

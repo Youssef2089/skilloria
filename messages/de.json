@@ -676,6 +676,7 @@
     "empty_profile": "Sie haben noch kein Profil erstellt.",
     "page_title": "Mein Profil",
     "back_to_dashboard": "← Zurück zum Dashboard",
+    "fallback_user_name": "Benutzer",
     "edit_button": "Mein Profil bearbeiten →",
     "verified_badge": "Verifiziertes Profil",
     "status_badges": {

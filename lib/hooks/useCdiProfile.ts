@@ -24,8 +24,8 @@ export type CdiUser = {
   is_verified: boolean
   user_type: string | null
   domain_id: string | null
-  first_name?: string | null
-  last_name?: string | null
+  first_name: string | null
+  last_name: string | null
 }
 
 export type CdiProfile = {
@@ -179,11 +179,9 @@ export function useCdiProfile(): UseCdiProfileState {
           return
         }
 
-        // select('*') — `first_name`/`last_name` peuvent ne pas exister dans la table.
-        // On déballe ensuite via cast sécurisé.
         const { data: userRow, error: userErr } = await supabase
           .from('users')
-          .select('*')
+          .select('id, email, is_verified, user_type, domain_id, first_name, last_name')
           .eq('id', session.user.id)
           .single()
 
@@ -198,16 +196,7 @@ export function useCdiProfile(): UseCdiProfileState {
           return
         }
 
-        const userRaw = userRow as Record<string, any>
-        const userTyped: CdiUser = {
-          id: String(userRaw.id ?? ''),
-          email: (userRaw.email ?? null) as string | null,
-          is_verified: !!userRaw.is_verified,
-          user_type: (userRaw.user_type ?? null) as string | null,
-          domain_id: (userRaw.domain_id ?? null) as string | null,
-          first_name: (userRaw.first_name ?? null) as string | null,
-          last_name: (userRaw.last_name ?? null) as string | null,
-        }
+        const userTyped = userRow as unknown as CdiUser
         if (userTyped.user_type !== 'expert_cdi') {
           setState({
             ...initialState,
