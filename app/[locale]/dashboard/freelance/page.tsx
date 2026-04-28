@@ -262,7 +262,7 @@ export default function DashboardFreelance() {
           <div style={{ fontSize: 11, color: '#9ca3af', padding: '8px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>{t('sidebar.sections.main')}</div>
           <div className="nav-item-active">{t('sidebar.nav.dashboard')}</div>
           {[
-            { label: t('sidebar.nav.profile'), locked: false, href: '/dashboard/freelance/profil/valider' },
+            { label: t('sidebar.nav.profile'), locked: false, href: '/dashboard/freelance/mon-profil' },
             { label: t('sidebar.nav.missions'), locked: !isVerified, href: null },
             { label: t('sidebar.nav.applications'), locked: !isVerified, href: null },
             { label: t('sidebar.nav.messages'), locked: false, href: null },
