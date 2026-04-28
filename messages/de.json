@@ -507,6 +507,88 @@
       "publishing": "Wird veröffentlicht..."
     }
   },
+  "profile_view": {
+    "page_title": "Mein Profil",
+    "page_subtitle": "Schreibgeschützte Ansicht Ihres Profils, wie Kunden es sehen.",
+    "back_to_dashboard": "← Dashboard",
+    "edit_button": "Profil bearbeiten →",
+    "loading": "Ihr Profil wird geladen…",
+    "error": "Ihr Profil konnte nicht geladen werden.",
+    "error_retry": "Erneut versuchen",
+    "not_freelance": "Diese Seite ist Freelance-Experten vorbehalten.",
+    "publication_status": {
+      "draft_banner_title": "Profil nicht veröffentlicht",
+      "draft_banner_text": "Vervollständigen Sie Ihr Profil, um für Kunden im Matching sichtbar zu werden.",
+      "draft_banner_cta": "Profil vervollständigen →",
+      "published_banner_title": "Profil veröffentlicht",
+      "published_banner_text": "Ihr Profil ist für Kunden im Matching sichtbar."
+    },
+    "header": {
+      "verified_badge": "Verifiziertes Profil",
+      "tjm_range": "{min} € — {max} €/Tag",
+      "tjm_not_set": "Tagessatz nicht angegeben",
+      "years_experience": "{count, plural, one {# Jahr Erfahrung} other {# Jahre Erfahrung}}",
+      "location_unknown": "Standort nicht angegeben",
+      "no_title": "Berufsbezeichnung nicht angegeben"
+    },
+    "availability_status": {
+      "available": "Verfügbar",
+      "busy_soon": "Bald verfügbar",
+      "unavailable": "Nicht verfügbar"
+    },
+    "sections": {
+      "summary": "Über mich",
+      "expertise": "Expertise",
+      "certifications": "Zertifizierungen",
+      "career": "Berufserfahrung",
+      "missions": "Einsätze / Projekte",
+      "education": "Ausbildung",
+      "languages": "Sprachen",
+      "availability": "Verfügbarkeit",
+      "links": "Links"
+    },
+    "labels": {
+      "branch": "Bereich",
+      "specialty": "Fachgebiet",
+      "skills": "Kompetenzen",
+      "current_position": "Aktuelle Position",
+      "current_mission": "Aktueller Einsatz",
+      "work_modes": "Arbeitsmodelle",
+      "available_from": "Verfügbar ab {date}",
+      "since": "seit {year}",
+      "year_range": "{from} — {to}",
+      "year_range_present": "{from} — Heute",
+      "work_mode_remote": "Remote",
+      "work_mode_hybrid": "Hybrid",
+      "work_mode_onsite": "Vor Ort",
+      "client": "Kunde",
+      "sector": "Branche",
+      "see_more": "Mehr anzeigen ▼",
+      "see_less": "Weniger anzeigen ▲",
+      "level_A1": "A1",
+      "level_A2": "A2",
+      "level_B1": "B1",
+      "level_B2": "B2",
+      "level_C1": "C1",
+      "level_C2": "C2",
+      "level_native": "Muttersprache",
+      "linkedin": "LinkedIn"
+    },
+    "empty_states": {
+      "no_summary": "Noch keine Zusammenfassung. Fügen Sie eine hinzu, um sich vorzustellen.",
+      "no_certifications": "Noch keine Zertifizierungen.",
+      "no_career": "Noch keine Berufserfahrung.",
+      "no_missions": "Noch keine Einsätze oder Projekte.",
+      "no_education": "Noch keine Ausbildung.",
+      "no_languages": "Noch keine Sprachen.",
+      "no_links": "Noch keine Links.",
+      "no_tjm": "Tagessatz nicht angegeben.",
+      "no_availability": "Verfügbarkeit nicht angegeben.",
+      "no_branch": "Bereich nicht angegeben.",
+      "no_specialty": "Fachgebiet nicht angegeben.",
+      "no_skills": "Noch keine Kompetenzen."
+    }
+  },
   "login": {
     "title": "Anmelden",
     "subtitle": "Zugang zu Ihrem {name}-Bereich",

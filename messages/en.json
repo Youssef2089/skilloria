@@ -507,6 +507,88 @@
       "publishing": "Publishing..."
     }
   },
+  "profile_view": {
+    "page_title": "My profile",
+    "page_subtitle": "Read-only view of your profile as clients will see it.",
+    "back_to_dashboard": "← Dashboard",
+    "edit_button": "Edit my profile →",
+    "loading": "Loading your profile…",
+    "error": "Unable to load your profile.",
+    "error_retry": "Retry",
+    "not_freelance": "This page is reserved for freelance experts.",
+    "publication_status": {
+      "draft_banner_title": "Profile not published",
+      "draft_banner_text": "Complete your profile to become visible to clients in matching.",
+      "draft_banner_cta": "Complete my profile →",
+      "published_banner_title": "Profile published",
+      "published_banner_text": "Your profile is visible to clients in matching."
+    },
+    "header": {
+      "verified_badge": "Verified profile",
+      "tjm_range": "€{min} — €{max}/day",
+      "tjm_not_set": "Daily rate not set",
+      "years_experience": "{count, plural, one {# year of experience} other {# years of experience}}",
+      "location_unknown": "Location not specified",
+      "no_title": "Job title not specified"
+    },
+    "availability_status": {
+      "available": "Available",
+      "busy_soon": "Available soon",
+      "unavailable": "Unavailable"
+    },
+    "sections": {
+      "summary": "About",
+      "expertise": "Expertise",
+      "certifications": "Certifications",
+      "career": "Professional experience",
+      "missions": "Missions / Projects",
+      "education": "Education",
+      "languages": "Languages",
+      "availability": "Availability",
+      "links": "Links"
+    },
+    "labels": {
+      "branch": "Branch",
+      "specialty": "Specialty",
+      "skills": "Skills",
+      "current_position": "Current position",
+      "current_mission": "Current mission",
+      "work_modes": "Work modes",
+      "available_from": "Available from {date}",
+      "since": "since {year}",
+      "year_range": "{from} — {to}",
+      "year_range_present": "{from} — Present",
+      "work_mode_remote": "Remote",
+      "work_mode_hybrid": "Hybrid",
+      "work_mode_onsite": "On-site",
+      "client": "Client",
+      "sector": "Sector",
+      "see_more": "See more ▼",
+      "see_less": "Show less ▲",
+      "level_A1": "A1",
+      "level_A2": "A2",
+      "level_B1": "B1",
+      "level_B2": "B2",
+      "level_C1": "C1",
+      "level_C2": "C2",
+      "level_native": "Native",
+      "linkedin": "LinkedIn"
+    },
+    "empty_states": {
+      "no_summary": "No summary yet. Add one to introduce yourself.",
+      "no_certifications": "No certifications yet.",
+      "no_career": "No professional experience yet.",
+      "no_missions": "No missions or projects yet.",
+      "no_education": "No education yet.",
+      "no_languages": "No languages yet.",
+      "no_links": "No links yet.",
+      "no_tjm": "Daily rate not set.",
+      "no_availability": "Availability not set.",
+      "no_branch": "Branch not set.",
+      "no_specialty": "Specialty not set.",
+      "no_skills": "No skills yet."
+    }
+  },
   "login": {
     "title": "Sign in",
     "subtitle": "Access your {name} workspace",
