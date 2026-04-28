@@ -382,24 +382,25 @@ export default function CdiMonProfilPage() {
               <div style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
                 {t('empty_profile')}
               </div>
-              <button
-                type="button"
-                disabled
+              <Link
+                href="/dashboard/cdi/profil/valider"
                 style={{
                   marginTop: 12,
-                  background: '#f1f5f9',
-                  color: '#94a3b8',
-                  border: '1px solid #e2e8f0',
+                  background: domain.primaryColor,
+                  color: '#fff',
+                  border: 'none',
                   borderRadius: 10,
                   padding: '10px 18px',
                   fontSize: 14,
                   fontWeight: 600,
-                  cursor: 'not-allowed',
+                  cursor: 'pointer',
                   fontFamily: 'inherit',
+                  textDecoration: 'none',
+                  display: 'inline-block',
                 }}
               >
                 {t('edit_button')}
-              </button>
+              </Link>
             </div>
           </Card>
         </div>
@@ -460,24 +461,26 @@ export default function CdiMonProfilPage() {
           >
             {t('back_to_dashboard')}
           </Link>
-          <button
-            type="button"
-            disabled
-            title="V1 — édition à venir"
+          <Link
+            href="/dashboard/cdi/profil/valider"
             style={{
-              background: '#fff',
-              color: '#94a3b8',
-              border: '1px solid #e2e8f0',
+              background: domain.primaryColor,
+              color: '#fff',
+              border: 'none',
               borderRadius: 10,
               padding: '8px 14px',
               fontSize: 13,
               fontWeight: 600,
-              cursor: 'not-allowed',
+              cursor: 'pointer',
               fontFamily: 'inherit',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
             }}
           >
             {t('edit_button')}
-          </button>
+          </Link>
         </div>
 
         {/* HEADER PROFIL (hero, sans numéro) */}

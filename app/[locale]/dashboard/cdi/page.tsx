@@ -211,6 +211,11 @@ export default function DashboardCDI() {
 
   const isVerified = !!user?.is_verified
   const greetingName = getGreetingName(user, tProfile('fallback_user_name'))
+  const fullName = (() => {
+    if (!user) return tProfile('fallback_user_name')
+    const full = `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim()
+    return full || tProfile('fallback_user_name')
+  })()
   const initials = initialsOf(user)
   const currentStatus = status
   const statusBadgeColor = currentStatus ? STATUS_BADGE_COLORS[currentStatus] : null
@@ -447,7 +452,7 @@ export default function DashboardCDI() {
               }}
             >
               <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', fontFamily: fontJakarta }}>
-                {greetingName}
+                {fullName}
               </div>
               {isVerified && (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -455,9 +460,6 @@ export default function DashboardCDI() {
                   <path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               )}
-            </div>
-            <div style={{ fontSize: 12, color: '#64748b' }}>
-              {t('topbar.role_label')} · {domain.ecosystemName}
             </div>
           </div>
 
