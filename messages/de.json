@@ -617,7 +617,8 @@
     "page_title": "Dashboard",
     "hello": "Hallo {firstName} 👋",
     "topbar": {
-      "role_label": "Festanstellungsprofil"
+      "pending": "Verifizierung ausstehend",
+      "verified": "Verifiziertes Profil"
     },
     "sidebar": {
       "sections": {
@@ -633,8 +634,8 @@
         "settings": "Einstellungen",
         "logout": "Abmelden"
       },
-      "edit_photo": "Foto ändern",
-      "add_photo": "Foto hinzufügen"
+      "edit_photo": "Foto ändern →",
+      "add_photo": "Foto hinzufügen →"
     },
     "market_status_card": {
       "title": "Ihre Marktoffenheit",
@@ -667,7 +668,8 @@
     },
     "toast": {
       "status_updated": "Status aktualisiert",
-      "status_error": "Status konnte nicht aktualisiert werden. Bitte erneut versuchen."
+      "status_error": "Status konnte nicht aktualisiert werden. Bitte erneut versuchen.",
+      "photo_updated": "Foto aktualisiert"
     }
   },
   "cdi_profile_view": {

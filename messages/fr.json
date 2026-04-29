@@ -617,7 +617,8 @@
     "page_title": "Tableau de bord",
     "hello": "Bonjour {firstName} 👋",
     "topbar": {
-      "role_label": "Profil CDI"
+      "pending": "En attente de vérification",
+      "verified": "Profil Vérifié"
     },
     "sidebar": {
       "sections": {
@@ -633,8 +634,8 @@
         "settings": "Paramètres",
         "logout": "Déconnexion"
       },
-      "edit_photo": "Modifier la photo",
-      "add_photo": "Ajouter une photo"
+      "edit_photo": "Modifier la photo →",
+      "add_photo": "Ajouter une photo →"
     },
     "market_status_card": {
       "title": "Votre écoute du marché",
@@ -667,7 +668,8 @@
     },
     "toast": {
       "status_updated": "Statut mis à jour",
-      "status_error": "Impossible de mettre à jour le statut. Réessayez."
+      "status_error": "Impossible de mettre à jour le statut. Réessayez.",
+      "photo_updated": "Photo mise à jour"
     }
   },
   "cdi_profile_view": {

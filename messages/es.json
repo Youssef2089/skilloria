@@ -617,7 +617,8 @@
     "page_title": "Panel",
     "hello": "Hola {firstName} 👋",
     "topbar": {
-      "role_label": "Perfil indefinido"
+      "pending": "Pendiente de verificación",
+      "verified": "Perfil Verificado"
     },
     "sidebar": {
       "sections": {
@@ -633,8 +634,8 @@
         "settings": "Ajustes",
         "logout": "Cerrar sesión"
       },
-      "edit_photo": "Cambiar foto",
-      "add_photo": "Añadir foto"
+      "edit_photo": "Cambiar foto →",
+      "add_photo": "Añadir foto →"
     },
     "market_status_card": {
       "title": "Tu disposición al mercado",
@@ -667,7 +668,8 @@
     },
     "toast": {
       "status_updated": "Estado actualizado",
-      "status_error": "No se pudo actualizar el estado. Vuelve a intentarlo."
+      "status_error": "No se pudo actualizar el estado. Vuelve a intentarlo.",
+      "photo_updated": "Foto actualizada"
     }
   },
   "cdi_profile_view": {

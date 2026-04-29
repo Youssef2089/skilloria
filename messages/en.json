@@ -617,7 +617,8 @@
     "page_title": "Dashboard",
     "hello": "Hi {firstName} 👋",
     "topbar": {
-      "role_label": "Permanent profile"
+      "pending": "Pending verification",
+      "verified": "Verified Profile"
     },
     "sidebar": {
       "sections": {
@@ -633,8 +634,8 @@
         "settings": "Settings",
         "logout": "Sign out"
       },
-      "edit_photo": "Change photo",
-      "add_photo": "Add photo"
+      "edit_photo": "Change photo →",
+      "add_photo": "Add photo →"
     },
     "market_status_card": {
       "title": "Your job-search status",
@@ -667,7 +668,8 @@
     },
     "toast": {
       "status_updated": "Status updated",
-      "status_error": "Could not update status. Please retry."
+      "status_error": "Could not update status. Please retry.",
+      "photo_updated": "Photo updated"
     }
   },
   "cdi_profile_view": {

@@ -15,6 +15,7 @@ import {
 } from '@/lib/hooks/useCdiProfile'
 import { useCdiApplications } from '@/lib/hooks/useCdiApplications'
 import CdiStatusToggle from '@/components/cdi/CdiStatusToggle'
+import AvatarUploadModal from '@/components/AvatarUploadModal'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -76,11 +77,20 @@ export default function DashboardCDI() {
   const [status, setStatus] = useState<CdiStatus | null>(null)
   const [statusUpdating, setStatusUpdating] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false)
+  // Mirror local de profile.photo_url pour permettre l'update optimiste
+  // post-upload sans refetch (le hook useCdiProfile n'expose pas de setter).
+  const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null)
 
   // Sync local status from server
   useEffect(() => {
     setStatus(profile?.cdi_status ?? null)
   }, [profile?.cdi_status])
+
+  // Sync localPhotoUrl from server profile (et reset si profile change)
+  useEffect(() => {
+    setLocalPhotoUrl(profile?.photo_url ?? null)
+  }, [profile?.photo_url])
 
   // Redirect non-auth → /connexion
   useEffect(() => {
@@ -357,7 +367,7 @@ export default function DashboardCDI() {
               }}
             >
               <div className="pulse-dot" style={{ background: '#22c55e' }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#15803d' }}>{t('topbar.role_label')}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#15803d' }}>{t('topbar.verified')}</span>
             </div>
           ) : (
             <div
@@ -372,7 +382,7 @@ export default function DashboardCDI() {
               }}
             >
               <div className="pulse-dot" style={{ background: '#eab308' }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#92400e' }}>{t('topbar.role_label')}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#92400e' }}>{t('topbar.pending')}</span>
             </div>
           )}
         </div>
@@ -396,9 +406,9 @@ export default function DashboardCDI() {
           {/* Avatar block */}
           <div style={{ padding: '0 20px 20px', marginBottom: 12, borderBottom: '1px solid #e2e8f0', textAlign: 'center' }}>
             <div style={{ position: 'relative', display: 'inline-block', marginBottom: 12 }}>
-              {profile?.photo_url ? (
+              {localPhotoUrl ? (
                 <img
-                  src={profile.photo_url}
+                  src={localPhotoUrl}
                   alt={greetingName}
                   style={{
                     width: 72,
@@ -461,6 +471,23 @@ export default function DashboardCDI() {
                 </svg>
               )}
             </div>
+            <button
+              type="button"
+              onClick={() => setAvatarModalOpen(true)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                marginTop: 8,
+                fontSize: 12,
+                color: domain.primaryColor,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontWeight: 500,
+              }}
+            >
+              {localPhotoUrl ? t('sidebar.edit_photo') : t('sidebar.add_photo')}
+            </button>
           </div>
 
           {/* MAIN section */}
@@ -856,6 +883,20 @@ export default function DashboardCDI() {
           </div>
         </main>
       </div>
+
+      {/* Avatar upload modal — réutilise le composant freelance.
+          NOTE: AvatarUploadModal utilise en interne useTranslations
+          ('dashboard_freelance.avatar_modal') — cross-namespace accepté
+          pour V1. À factoriser au merge V1+V3 (namespace en prop). */}
+      <AvatarUploadModal
+        open={avatarModalOpen}
+        currentPhotoUrl={localPhotoUrl}
+        onClose={() => setAvatarModalOpen(false)}
+        onSaved={newUrl => {
+          setLocalPhotoUrl(newUrl)
+          setToast({ type: 'success', text: t('toast.photo_updated') })
+        }}
+      />
 
       {/* TOAST top-right */}
       {toast && (
