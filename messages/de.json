@@ -670,6 +670,21 @@
       "status_updated": "Status aktualisiert",
       "status_error": "Status konnte nicht aktualisiert werden. Bitte erneut versuchen.",
       "photo_updated": "Foto aktualisiert"
+    },
+    "verified_badge": "Verifiziertes Profil",
+    "ai_score": {
+      "label": "KI-Score",
+      "empty": "zu vervollständigen"
+    },
+    "verification_banner": {
+      "title": "Profil wartet auf Verifizierung",
+      "description": "Unsere KI analysiert Ihr Profil. Nach erfolgreicher Validierung erhalten Sie das <strong>Verifiziertes Profil</strong>-Abzeichen und können im Matching erscheinen und veröffentlichen.",
+      "steps": {
+        "account_created": "Konto erstellt",
+        "ai_analysis": "KI-Analyse",
+        "verified_badge": "Verifiziert-Abzeichen"
+      },
+      "cta": "Profil vervollständigen →"
     }
   },
   "cdi_profile_view": {

@@ -670,6 +670,21 @@
       "status_updated": "Estado actualizado",
       "status_error": "No se pudo actualizar el estado. Vuelve a intentarlo.",
       "photo_updated": "Foto actualizada"
+    },
+    "verified_badge": "Perfil Verificado",
+    "ai_score": {
+      "label": "Puntuación IA",
+      "empty": "por completar"
+    },
+    "verification_banner": {
+      "title": "Perfil pendiente de verificación",
+      "description": "Nuestra IA está analizando tu perfil. Una vez validado, obtendrás el distintivo <strong>Perfil Verificado</strong> y podrás aparecer en el matching y publicar.",
+      "steps": {
+        "account_created": "Cuenta creada",
+        "ai_analysis": "Análisis IA",
+        "verified_badge": "Distintivo Verificado"
+      },
+      "cta": "Completar mi perfil →"
     }
   },
   "cdi_profile_view": {

@@ -304,12 +304,25 @@ export default function DashboardCDI() {
           border-radius: 999px;
           transition: width 1s ease;
         }
+        .score-box {
+          background: #fff;
+          border: 1px solid #e5e7eb;
+          border-radius: 14px;
+          padding: 16px 22px;
+          text-align: center;
+          min-width: 104px;
+          animation: fadeIn 0.5s ease 0.1s both;
+          transition: box-shadow 0.2s, transform 0.2s;
+        }
+        .score-box:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
         @media (max-width: 767px) {
           .dashboard-layout { flex-direction: column !important; }
           .dashboard-sidebar { display: none !important; }
           .dashboard-main { padding: 18px !important; }
           .stats-grid { grid-template-columns: 1fr !important; }
           .greeting-row { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+          .score-box { width: 100%; }
+          .verif-steps { flex-wrap: wrap !important; }
         }
         @media (min-width: 768px) {
           .stats-grid { grid-template-columns: repeat(3, 1fr) !important; }
@@ -590,14 +603,15 @@ export default function DashboardCDI() {
             </div>
           )}
 
-          {/* SECTION 1 — Hello */}
+          {/* SECTION 1 — Hello + verified badge inline + Score IA */}
           <div
             className="greeting-row"
             style={{
               display: 'flex',
-              alignItems: 'flex-end',
+              alignItems: 'flex-start',
               justifyContent: 'space-between',
               marginBottom: 22,
+              gap: 16,
               animation: 'fadeInUp 0.4s ease',
             }}
           >
@@ -609,11 +623,42 @@ export default function DashboardCDI() {
                   color: '#0f172a',
                   letterSpacing: '-0.4px',
                   fontFamily: fontJakarta,
-                  marginBottom: 4,
+                  marginBottom: 8,
                 }}
               >
                 {t('hello', { firstName: greetingName })}
               </h1>
+
+              {/* Verified badge inline (parité freelance) */}
+              {isVerified && (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    marginRight: 8,
+                    animation: 'fadeIn 0.6s ease 0.3s both',
+                  }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <circle cx="12" cy="12" r="10" fill={domain.primaryColor} />
+                    <path
+                      d="M8 12l3 3 5-5"
+                      stroke="white"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span
+                    style={{ fontSize: 13, color: domain.primaryColor, fontWeight: 500 }}
+                  >
+                    {t('verified_badge')}
+                  </span>
+                </div>
+              )}
+
+              {/* Status écoute marché badge (existant) */}
               {currentStatus && statusBadgeColor && (
                 <div
                   style={{
@@ -642,7 +687,142 @@ export default function DashboardCDI() {
                 </div>
               )}
             </div>
+
+            {/* Score IA box (parité freelance) */}
+            <div className="score-box">
+              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>
+                {t('ai_score.label')}
+              </div>
+              <div
+                style={{
+                  fontSize: 28,
+                  fontWeight: 700,
+                  color: domain.primaryColor,
+                  fontFamily: fontJakarta,
+                }}
+              >
+                —
+              </div>
+              <div style={{ fontSize: 11, color: '#9ca3af' }}>
+                {t('ai_score.empty')}
+              </div>
+            </div>
           </div>
+
+          {/* Bandeau de vérification jaune si !isVerified (parité freelance) */}
+          {!isVerified && (
+            <div
+              style={{
+                background: '#fffbeb',
+                border: '1px solid #fde68a',
+                borderRadius: 12,
+                padding: 20,
+                marginBottom: 20,
+                animation: 'fadeInUp 0.4s ease',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                <div style={{ fontSize: 22, flexShrink: 0 }} aria-hidden>
+                  ⏳
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 600,
+                      color: '#92400e',
+                      marginBottom: 6,
+                      fontFamily: fontJakarta,
+                    }}
+                  >
+                    {t('verification_banner.title')}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: '#92400e',
+                      opacity: 0.8,
+                      lineHeight: 1.7,
+                      marginBottom: 12,
+                    }}
+                  >
+                    {t.rich('verification_banner.description', {
+                      strong: chunks => <strong>{chunks}</strong>,
+                    })}
+                  </div>
+                  <div
+                    className="verif-steps"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    {[
+                      {
+                        label: t('verification_banner.steps.account_created'),
+                        done: true,
+                        active: false,
+                      },
+                      {
+                        label: t('verification_banner.steps.ai_analysis'),
+                        done: false,
+                        active: true,
+                      },
+                      {
+                        label: t('verification_banner.steps.verified_badge'),
+                        done: false,
+                        active: false,
+                      },
+                    ].map((step, i) => (
+                      <div
+                        key={step.label}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                      >
+                        {i > 0 && (
+                          <span style={{ color: '#d1d5db', fontSize: 13 }}>→</span>
+                        )}
+                        <span
+                          style={{
+                            fontSize: 13,
+                            color: step.active
+                              ? domain.primaryColor
+                              : step.done
+                                ? '#92400e'
+                                : '#9ca3af',
+                            fontWeight: step.active ? 500 : 400,
+                          }}
+                        >
+                          {step.done ? '✓ ' : step.active ? '⏳ ' : '🔒 '}
+                          {step.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push('/dashboard/cdi/profil/valider')}
+                style={{
+                  marginTop: 14,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  padding: '9px 16px',
+                  borderRadius: 8,
+                  background: '#fff',
+                  border: '1px solid #fde68a',
+                  color: '#92400e',
+                  cursor: 'pointer',
+                  width: '100%',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {t('verification_banner.cta')}
+              </button>
+            </div>
+          )}
 
           {/* SECTION 2 — Hero "Statut écoute marché" */}
           <div className="main-card" style={{ animationDelay: '0.05s' }}>

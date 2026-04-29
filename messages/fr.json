@@ -670,6 +670,21 @@
       "status_updated": "Statut mis à jour",
       "status_error": "Impossible de mettre à jour le statut. Réessayez.",
       "photo_updated": "Photo mise à jour"
+    },
+    "verified_badge": "Profil Vérifié",
+    "ai_score": {
+      "label": "Score IA",
+      "empty": "à compléter"
+    },
+    "verification_banner": {
+      "title": "Profil en attente de vérification",
+      "description": "Notre IA analyse votre profil. Une fois validé, vous obtiendrez le badge <strong>Profil Vérifié</strong> et pourrez apparaître dans le matching et publier.",
+      "steps": {
+        "account_created": "Compte créé",
+        "ai_analysis": "Analyse IA",
+        "verified_badge": "Badge Vérifié"
+      },
+      "cta": "Compléter mon profil →"
     }
   },
   "cdi_profile_view": {

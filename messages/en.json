@@ -670,6 +670,21 @@
       "status_updated": "Status updated",
       "status_error": "Could not update status. Please retry.",
       "photo_updated": "Photo updated"
+    },
+    "verified_badge": "Verified Profile",
+    "ai_score": {
+      "label": "AI Score",
+      "empty": "to complete"
+    },
+    "verification_banner": {
+      "title": "Profile pending verification",
+      "description": "Our AI is analysing your profile. Once validated, you'll receive the <strong>Verified Profile</strong> badge and become eligible for matching and publication.",
+      "steps": {
+        "account_created": "Account created",
+        "ai_analysis": "AI analysis",
+        "verified_badge": "Verified badge"
+      },
+      "cta": "Complete my profile →"
     }
   },
   "cdi_profile_view": {
