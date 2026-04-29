@@ -4,7 +4,8 @@
   },
   "common": {
     "language_switcher_aria": "Cambiar idioma",
-    "language_switcher_current": "Idioma actual: {locale}"
+    "language_switcher_current": "Idioma actual: {locale}",
+    "user_fallback": "Usuario"
   },
   "homepage": {
     "meta": {
@@ -505,6 +506,88 @@
       "publish": "Publicar mi perfil →",
       "saving": "Guardando...",
       "publishing": "Publicando..."
+    }
+  },
+  "profile_view": {
+    "page_title": "Mi perfil",
+    "page_subtitle": "Vista de solo lectura de tu perfil tal como lo verán los clientes.",
+    "back_to_dashboard": "← Panel de control",
+    "edit_button": "Editar mi perfil →",
+    "loading": "Cargando tu perfil…",
+    "error": "No se pudo cargar tu perfil.",
+    "error_retry": "Reintentar",
+    "not_freelance": "Esta página está reservada para expertos freelance.",
+    "publication_status": {
+      "draft_banner_title": "Perfil no publicado",
+      "draft_banner_text": "Completa tu perfil para ser visible para los clientes en el matching.",
+      "draft_banner_cta": "Completar mi perfil →",
+      "published_banner_title": "Perfil publicado",
+      "published_banner_text": "Tu perfil es visible para los clientes en el matching."
+    },
+    "header": {
+      "verified_badge": "Perfil verificado",
+      "tjm_range": "{min} € — {max} €/día",
+      "tjm_not_set": "Tarifa diaria no especificada",
+      "years_experience": "{count, plural, one {# año de experiencia} other {# años de experiencia}}",
+      "location_unknown": "Ubicación no especificada",
+      "no_title": "Título profesional no especificado"
+    },
+    "availability_status": {
+      "available": "Disponible",
+      "busy_soon": "Disponible pronto",
+      "unavailable": "No disponible"
+    },
+    "sections": {
+      "summary": "Acerca de",
+      "expertise": "Especialización",
+      "certifications": "Certificaciones",
+      "career": "Trayectoria profesional",
+      "missions": "Misiones / Proyectos",
+      "education": "Formación",
+      "languages": "Idiomas",
+      "availability": "Disponibilidad",
+      "links": "Enlaces"
+    },
+    "labels": {
+      "branch": "Rama",
+      "specialty": "Especialidad",
+      "skills": "Competencias",
+      "current_position": "Puesto actual",
+      "current_mission": "Misión en curso",
+      "work_modes": "Modalidades de trabajo",
+      "available_from": "Disponible desde el {date}",
+      "since": "desde {year}",
+      "year_range": "{from} — {to}",
+      "year_range_present": "{from} — Actualidad",
+      "work_mode_remote": "Remoto",
+      "work_mode_hybrid": "Híbrido",
+      "work_mode_onsite": "Presencial",
+      "client": "Cliente",
+      "sector": "Sector",
+      "see_more": "Ver más ▼",
+      "see_less": "Ver menos ▲",
+      "level_A1": "A1",
+      "level_A2": "A2",
+      "level_B1": "B1",
+      "level_B2": "B2",
+      "level_C1": "C1",
+      "level_C2": "C2",
+      "level_native": "Lengua materna",
+      "linkedin": "LinkedIn"
+    },
+    "empty_states": {
+      "no_summary": "Aún no hay resumen. Añade uno para presentarte.",
+      "no_certifications": "Aún no hay certificaciones.",
+      "no_career": "Aún no hay experiencia profesional.",
+      "no_missions": "Aún no hay misiones ni proyectos.",
+      "no_education": "Aún no hay formación.",
+      "no_languages": "Aún no hay idiomas.",
+      "no_links": "Aún no hay enlaces.",
+      "no_tjm": "Tarifa diaria no especificada.",
+      "no_availability": "Disponibilidad no especificada.",
+      "no_branch": "Rama no especificada.",
+      "no_specialty": "Especialidad no especificada.",
+      "no_skills": "Aún no hay competencias."
     }
   },
   "login": {
