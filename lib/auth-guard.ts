@@ -13,9 +13,38 @@ export type AuthDomain = {
   slug: string
 }
 
+/**
+ * Contexte organisation attaché à un user authentifié.
+ *
+ * V1 : un user n'appartient qu'à 1 seule organisation. Si jamais il en a
+ * plusieurs (cas théorique futur), on prend la 1ère par `joined_at ASC`.
+ *
+ * `null` (et non `undefined`) signifie explicitement "user sans organisation".
+ */
+export type AuthOrganization = {
+  id: string
+  role_in_org: 'admin' | 'editor' | 'viewer'
+  verification_status:
+    | 'pending_provider_check'
+    | 'pending_admin_review'
+    | 'approved'
+    | 'rejected'
+    | 'requires_more_info'
+    | null
+}
+
+/**
+ * Retour de `requireAuth()`.
+ *
+ * Backward-compat : les call-sites qui font
+ *   const { user, domain, supabaseAdmin } = await requireAuth(req)
+ * continuent de fonctionner sans modification — le champ `organization`
+ * est simplement ignoré.
+ */
 export type AuthContext = {
   user: AuthUser
   domain: AuthDomain
+  organization: AuthOrganization | null
   supabaseAdmin: SupabaseClient
 }
 
@@ -45,6 +74,59 @@ function getSupabaseAdmin(): SupabaseClient {
   return createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
+}
+
+const VALID_ORG_ROLES = ['admin', 'editor', 'viewer'] as const
+const VALID_VERIFICATION_STATUS = [
+  'pending_provider_check',
+  'pending_admin_review',
+  'approved',
+  'rejected',
+  'requires_more_info',
+] as const
+
+async function loadOrganizationContext(
+  supabaseAdmin: SupabaseClient,
+  userId: string,
+): Promise<AuthOrganization | null> {
+  // V1 : 1 user = 1 org. On prend la 1ère ligne active par joined_at ASC.
+  const { data: memberRow, error: memberErr } = await supabaseAdmin
+    .from('organization_members')
+    .select('organization_id, role_in_org, organizations(id, verification_status)')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .order('joined_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (memberErr) {
+    console.error('[auth-guard] organization_members lookup error', {
+      userId,
+      msg: memberErr.message,
+    })
+    return null
+  }
+  if (!memberRow) return null
+
+  const orgRow = Array.isArray(memberRow.organizations)
+    ? memberRow.organizations[0]
+    : memberRow.organizations
+
+  const role = memberRow.role_in_org as string
+  const status = (orgRow as { verification_status?: string | null } | null)
+    ?.verification_status ?? null
+
+  return {
+    id: memberRow.organization_id as string,
+    role_in_org: (VALID_ORG_ROLES as readonly string[]).includes(role)
+      ? (role as AuthOrganization['role_in_org'])
+      : 'viewer',
+    verification_status: status === null
+      ? null
+      : (VALID_VERIFICATION_STATUS as readonly string[]).includes(status)
+        ? (status as AuthOrganization['verification_status'])
+        : null,
+  }
 }
 
 export async function requireAuth(request: NextRequest): Promise<AuthContext> {
@@ -97,9 +179,11 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
   const domainRow = Array.isArray(userRow.domains)
     ? userRow.domains[0]
     : userRow.domains
-  if (!domainRow || (domainRow as any).slug !== headerSubdomain) {
+  if (!domainRow || (domainRow as { slug?: string } | null)?.slug !== headerSubdomain) {
     throw new AuthError(403, { error: 'Domain mismatch', code: 'domain_mismatch' })
   }
+
+  const organization = await loadOrganizationContext(supabaseAdmin, userRow.id)
 
   return {
     user: {
@@ -109,9 +193,37 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
       status: (userRow.status ?? null) as string | null,
     },
     domain: {
-      id: (domainRow as any).id,
-      slug: (domainRow as any).slug,
+      id: (domainRow as { id: string }).id,
+      slug: (domainRow as { slug: string }).slug,
     },
+    organization,
     supabaseAdmin,
+  }
+}
+
+/**
+ * Garde appelable depuis n'importe quelle route métier qui exige
+ * que l'organisation du user soit déjà validée.
+ *
+ * Throw `AuthError(403, 'org_not_approved')` si :
+ *   - le user n'a pas d'organisation (`null`)
+ *   - le verification_status est différent de 'approved'
+ *
+ * Non appliquée aux routes existantes (qui ne touchent pas aux orgs).
+ * Sera utilisée à partir du Lot B5 sur les routes mission/payment/match.
+ */
+export function requireOrgApproved(authResult: AuthContext): void {
+  const org = authResult.organization
+  if (!org) {
+    throw new AuthError(403, {
+      error: 'Organization required',
+      code: 'org_required',
+    })
+  }
+  if (org.verification_status !== 'approved') {
+    throw new AuthError(403, {
+      error: 'Organization not approved yet',
+      code: 'org_not_approved',
+    })
   }
 }
