@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Claude Code (local config, logs, scheduled tasks)
 .claude/
+
+# Supabase CLI cache (link metadata, version stamps)
+supabase/.temp/

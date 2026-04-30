@@ -152,7 +152,61 @@ Supprime le CV du user (Storage + colonnes `cv_*` dans `profiles`).
 
 ## Pré-requis côté ops
 
-- `.env.local` : `ANTHROPIC_API_KEY`, `ENABLE_AI_CV_PARSING=true`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- `.env.local` : `ANTHROPIC_API_KEY`, `ENABLE_AI_CV_PARSING=true`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`
+- Variables sprint archi-orga (à ajouter en B2/B3) : `VONAGE_API_KEY`, `VONAGE_API_SECRET`, `SIRENE_API_TOKEN`
 - Storage bucket **`cv`** créé (privé, accessible uniquement via service_role)
 - Tables attendues : `profiles`, `users`, `domains`, `domain_configs`, `branches`, `specialities`, `audit_logs`
 - `audit_logs` : colonne `detail` en `jsonb` (pas `metadata`)
+
+---
+
+## Schema 2026-04 — Sprint archi orga (Phase 2 / Lot B1)
+
+Migration : [`supabase/migrations/20260430120000_archi_orga_b1.sql`](../supabase/migrations/20260430120000_archi_orga_b1.sql) — **idempotente**, à exécuter **manuellement** dans Supabase SQL Editor.
+
+### ENUMs créés
+
+- `organization_role` — `admin | editor | viewer`
+- `package_scope` — `organization | user | organization_per_seat`
+- `verification_status_enum` — `pending_provider_check | pending_admin_review | approved | rejected | requires_more_info`
+
+> Note : les colonnes `verification_status` / `verification_method` / `role_in_org` / `scope` restent typées `varchar` côté tables (avec `CHECK`) plutôt qu'`USING ENUM`, pour éviter les ALTER COLUMN destructifs ; les ENUMs sont disponibles si on veut les caster plus tard.
+
+### Tables modifiées
+
+**`organizations`** — ajout de `email_domain` (UNIQUE partiel ci-bas), `verification_status`, `verification_method`, `verification_data` (jsonb), `verified_at`, `verified_by` (FK → `users.id`, ON DELETE SET NULL), `verification_notes`. Indexes : `organizations_siren_unique_idx` partiel `WHERE siren IS NOT NULL`, `organizations_email_domain_unique_idx` partiel `WHERE email_domain IS NOT NULL`, `organizations_verification_status_idx`. Les colonnes legacy `user_id` et `domain_id` ne sont **pas** droppées — elles seront retirées dans une future migration `B6_MIGRATION_2` après refacto applicatif.
+
+**`users`** — ajout de `phone_verified` (boolean NOT NULL DEFAULT false).
+
+**`packages`** — ajout de `scope` (varchar NOT NULL DEFAULT `'user'`, CHECK enum), `included_domain_ids` (uuid[]), `max_seats` (int, CHECK > 0).
+
+### Tables créées
+
+| Table | Rôle | Clés |
+|---|---|---|
+| `organization_members` | Liaison user ↔ org avec `role_in_org` | UNIQUE `(user_id, organization_id)` ; CHECK roles `admin/editor/viewer` ; CHECK status `active/pending/suspended/removed` |
+| `organization_invitations` | Tokens d'invitation par email avec validation domaine | `token` UNIQUE ; CHECK status `pending/accepted/expired/revoked` ; expires_at default `now() + 7 days` |
+| `organization_domains` | Multi-domaines par org (Microsoft + SAP + …) avec package par domaine | UNIQUE `(organization_id, domain_id)` ; FK → `packages.id` (ON DELETE SET NULL) |
+| `verification_providers` | Fournisseurs de vérif entreprise par pays (API officielle / IA / manuel) | UNIQUE `(country_code, provider_name)` ; CHECK type `official_api/ai_web_search/manual_only` ; `confidence_threshold` 0..10 |
+| `verification_attempts` | Audit trail de chaque tentative de vérification | INDEX `(organization_id, attempt_at DESC)` ; CHECK result `approved/rejected/inconclusive/error` |
+| `blocked_email_domains` | Liste noire de domaines email | UNIQUE `lower(email_domain)` ; INDEX partiel `WHERE active = true` |
+| `session_logs` | Logs IP + user-agent à chaque connexion (anti-partage / forensic) | INDEX `(user_id, login_at DESC)` |
+
+### RLS
+
+Activée sur les 7 nouvelles tables. Stratégie :
+- `service_role` bypass automatique (les routes API utilisent `supabaseAdmin`).
+- `authenticated` :
+  - **Lecture** : un membre actif lit son org (members, invitations, domains, verification_attempts admin-only).
+  - **Écriture** : un admin actif écrit pour son org (members, invitations, domains).
+  - `verification_providers` : lecture authentifiée si `is_active`, écriture admin BO via service_role.
+  - `verification_attempts`, `blocked_email_domains`, `session_logs` : écriture **service_role uniquement**.
+  - `session_logs` : un user lit ses propres logs.
+
+### Seed initial
+
+`verification_providers` reçoit deux entrées FR : `sirene_insee` (priority 10, official_api) et `claude_web_fallback` (priority 100, ai_web_search). Idempotent via `ON CONFLICT (country_code, provider_name) DO NOTHING`.
+
+### Helper SQL
+
+`public.set_updated_at()` (re-créée via `CREATE OR REPLACE`) — attachée en `BEFORE UPDATE` sur les tables qui ont un `updated_at` créé par cette migration : `organization_members`, `organization_invitations`, `organization_domains`, `verification_providers`, `blocked_email_domains`.
