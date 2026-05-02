@@ -28,6 +28,8 @@ type RegisterOrgBody = {
   org_type?: unknown
 }
 
+type OrgType = 'client' | 'cabinet' | 'esn'
+
 type ValidatedInput = {
   country_code: string
   company_name: string
@@ -39,8 +41,24 @@ type ValidatedInput = {
   last_name: string
   phone: string | null
   domain_slug: string
-  org_type: 'entreprise' | 'cabinet'
+  org_type: OrgType
   email_domain: string
+}
+
+/**
+ * Mapping `org_type` (code BDD anglais, valeur de `organizations.org_type`)
+ * vers `user_metadata.role` que consomme le trigger `handle_new_user` pour
+ * poser `users.user_type`.
+ *
+ * Le trigger n'accepte que 'entreprise' / 'cabinet' dans `raw_user_meta_data.role` :
+ *   - 'entreprise' → users.user_type='client'
+ *   - 'cabinet'    → users.user_type='cabinet'
+ *
+ * V1 — ESN traité comme cabinet côté users.user_type (à affiner en V2 si besoin).
+ */
+function metadataRoleFromOrgType(org_type: OrgType): 'entreprise' | 'cabinet' {
+  if (org_type === 'client') return 'entreprise'
+  return 'cabinet' // 'cabinet' OR 'esn'
 }
 
 function asString(v: unknown): string | null {
@@ -80,7 +98,7 @@ function validate(body: RegisterOrgBody): { ok: true; input: ValidatedInput } | 
     return { ok: false, error: 'invalid_domain_slug' }
   }
   const org_type_raw = asString(body.org_type)
-  if (org_type_raw !== 'entreprise' && org_type_raw !== 'cabinet') {
+  if (org_type_raw !== 'client' && org_type_raw !== 'cabinet' && org_type_raw !== 'esn') {
     return { ok: false, error: 'invalid_org_type' }
   }
   const siren = asString(body.siren)
@@ -108,7 +126,7 @@ function validate(body: RegisterOrgBody): { ok: true; input: ValidatedInput } | 
       last_name,
       phone,
       domain_slug,
-      org_type: org_type_raw as 'entreprise' | 'cabinet',
+      org_type: org_type_raw as OrgType,
       email_domain,
     },
   }
@@ -189,6 +207,9 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   // ── 1. Création auth.users (trigger handle_new_user crée public.users) ──
+  // ⚠️ Le trigger lit raw_user_meta_data.role pour poser users.user_type.
+  //    Il n'accepte que 'entreprise'/'cabinet' (mots français) — on mappe
+  //    org_type ('client'|'cabinet'|'esn') -> role ('entreprise'|'cabinet').
   const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
     email: input.email,
     password: input.password,
@@ -196,7 +217,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     user_metadata: {
       firstname: input.first_name,
       lastname: input.last_name,
-      role: input.org_type,
+      role: metadataRoleFromOrgType(input.org_type),
       domain_slug: input.domain_slug,
     },
   })

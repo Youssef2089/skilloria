@@ -177,7 +177,7 @@ Si une étape échoue après `createUser`, le user auth est supprimé (`auth.adm
 | `last_name` | string | 1-100 chars |
 | `phone` | string \| null | E.164 (`+[1-9]\d{6,14}`) — vérification OTP séparée |
 | `domain_slug` | string | slug du sous-domaine cible (ex. `microsoft`) |
-| `org_type` | `'entreprise' \| 'cabinet'` | mappé via trigger sur `users.user_type` |
+| `org_type` | `'client' \| 'cabinet' \| 'esn'` | code BDD aligné sur `organizations.org_type CHECK`. La page B3 affichera "Entreprise cliente" / "Cabinet de recrutement" / "ESN" et enverra le code anglais. Mapping interne vers `user_metadata.role` ('entreprise'/'cabinet') consommé par le trigger `handle_new_user` qui pose `users.user_type` ; V1 : `esn` → `user_type='cabinet'` (à affiner en V2). |
 
 **Réponses**
 
