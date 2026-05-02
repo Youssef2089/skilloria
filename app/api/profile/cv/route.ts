@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
+import { logAudit } from '@/lib/audit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -60,7 +61,8 @@ export async function DELETE(request: NextRequest): Promise<Response> {
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
 
-  await supabaseAdmin.from('audit_logs').insert({
+  await logAudit({
+    supabaseAdmin,
     user_id: user.id,
     domain_id: user.domain_id,
     action: 'cv_delete',

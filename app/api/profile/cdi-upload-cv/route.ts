@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import crypto from 'node:crypto'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
+import { logAudit } from '@/lib/audit'
 import { parseCdiCV } from '@/lib/cv-parser-cdi'
 
 export const runtime = 'nodejs'
@@ -298,7 +299,8 @@ export async function POST(request: NextRequest): Promise<Response> {
       })
       .eq('id', prof.id)
 
-    await supabaseAdmin.from('audit_logs').insert({
+    await logAudit({
+      supabaseAdmin,
       user_id: user.id,
       domain_id: user.domain_id,
       action: 'cv_upload',
@@ -490,7 +492,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
   }
 
-  await supabaseAdmin.from('audit_logs').insert({
+  await logAudit({
+    supabaseAdmin,
     user_id: user.id,
     domain_id: user.domain_id,
     action: 'cv_upload',

@@ -144,9 +144,150 @@ Supprime le CV du user (Storage + colonnes `cv_*` dans `profiles`).
 | 403 | `user_missing` / `user_lookup_failed` | Auth OK mais aucune ligne dans `public.users` |
 | 403 | `session_token_mismatch` | `x-session-token ≠ users.last_session_token` |
 | 403 | `domain_mismatch` | `x-subdomain` ≠ slug du domaine du user |
+| 403 | `org_required` / `org_not_approved` | Route protégée par `requireOrgApproved()` (Lot B5+) |
 | 500 | `missing_env` | `SUPABASE_SERVICE_ROLE_KEY` ou URL manquante |
 | 500 | `db_error` / `storage_error` / `auth_error` | Erreur Supabase ou serveur |
 | 503 | `ai_disabled` | `ENABLE_AI_CV_PARSING !== 'true'` |
+
+---
+
+## POST `/api/auth/register-org`
+
+**Public** (pas de `requireAuth`). Inscription d'un compte **client** (`org_type='entreprise'`) ou **cabinet** (`org_type='cabinet'`) avec création atomique :
+
+1. `auth.users` (Supabase Auth) — déclenche le trigger `handle_new_user` qui crée `public.users` (avec `user_type='client'` ou `'cabinet'` selon `role`)
+2. `organizations` (initial `verification_status='pending_provider_check'`)
+3. `organization_members` (admin de l'org créée)
+4. `organization_domains` (1 seul domaine V1, `package_id=null`)
+5. Vérification entreprise via `runVerification()` (Sirene → fallback IA Claude) → update `organizations.verification_status` final.
+
+Si une étape échoue après `createUser`, le user auth est supprimé (`auth.admin.deleteUser`) pour éviter un état incohérent.
+
+**Body JSON** :
+
+| Champ | Type | Contrainte |
+|---|---|---|
+| `country_code` | string | 2 lettres majuscules ISO-3166 |
+| `company_name` | string | 2-200 chars |
+| `siren` | string \| null | 9 chiffres (si fourni, requis pour la vérif Sirene FR) |
+| `vat_number` | string \| null | ≤ 30 chars |
+| `email` | string | RFC simple, ≤ 200 chars |
+| `password` | string | 8-200 chars |
+| `first_name` | string | 1-100 chars |
+| `last_name` | string | 1-100 chars |
+| `phone` | string \| null | E.164 (`+[1-9]\d{6,14}`) — vérification OTP séparée |
+| `domain_slug` | string | slug du sous-domaine cible (ex. `microsoft`) |
+| `org_type` | `'entreprise' \| 'cabinet'` | mappé via trigger sur `users.user_type` |
+
+**Réponses**
+
+- `200 { user_id, organization_id, verification_status, verification_method }` — création OK (status peut être `approved`, `pending_admin_review`, ou `rejected` selon résultat de la vérif)
+- `400` codes : `invalid_json`, `invalid_country_code`, `invalid_company_name`, `invalid_email`, `invalid_password`, `invalid_first_name`, `invalid_last_name`, `invalid_domain_slug`, `invalid_org_type`, `invalid_siren`, `invalid_vat_number`, `invalid_phone`, `email_domain_blocked`
+- `404 domain_not_found` — `domain_slug` inexistant ou inactif
+- `409 email_domain_taken` — un autre `organizations.email_domain` matche déjà
+- `409 siren_taken` — un autre `organizations.siren` matche déjà
+- `500 missing_env` — Supabase env vars absentes
+- `500 create_user_failed` — `auth.admin.createUser` a échoué
+- `500 org_insert_failed` / `member_insert_failed` / `org_domain_insert_failed`
+
+**Effets** :
+- `audit_logs` : `action='org_register', entity_type='organization', entity_id=<org.id>, detail={ method, status, score, attempts_count }`
+- `session_logs` : 1 ligne (IP + user-agent)
+- `verification_attempts` : 1 ligne par provider essayé (best-effort)
+- Si `verification_status='approved'` automatique : `organizations.verified_at = now()`, `verified_by = NULL` (distinguable de la validation admin qui pose un `verified_by`).
+
+---
+
+## POST `/api/auth/send-phone-otp`
+
+Demande l'envoi d'un code OTP par SMS via **Vonage Verify v2**. **Authentification requise** (`requireAuth`) — le user déclenche la vérification de son propre téléphone.
+
+**Body JSON** :
+
+| Champ | Type | Contrainte |
+|---|---|---|
+| `phone` | string | E.164 (`+[1-9]\d{6,14}`) |
+
+**Effet** : POST `https://api.nexmo.com/v2/verify` avec `{ brand: 'Skilloria', workflow: [{ channel: 'sms', to: <phone sans +> }] }`. Auth Basic `VONAGE_API_KEY:VONAGE_API_SECRET`.
+
+**Réponses**
+
+- `200 { request_id }` — à réutiliser dans `/api/auth/verify-phone-otp`
+- `400 invalid_json` / `invalid_phone` / `vonage_invalid_request`
+- `429 rate_limited` — Vonage a refusé le tarif d'envoi
+- `500 missing_env` — `VONAGE_API_KEY` ou `VONAGE_API_SECRET` absent
+- `502 vonage_error` — provider injoignable ou répond non-OK
+
+---
+
+## POST `/api/auth/verify-phone-otp`
+
+Vérifie le code OTP saisi par le user et flip `users.phone_verified=true` côté BDD. **Authentification requise**.
+
+**Body JSON** :
+
+| Champ | Type | Contrainte |
+|---|---|---|
+| `request_id` | string | reçu de `send-phone-otp` |
+| `code` | string | 4-6 chiffres |
+| `phone` | string | E.164 — copié dans `users.phone` côté BDD |
+
+**Effet** : POST `https://api.nexmo.com/v2/verify/{request_id}` body `{ code }`. Si Vonage retourne 200, on update `users SET phone_verified=true, phone=<phone>` puis on log `action='phone_verified'`.
+
+**Réponses**
+
+- `200 { phone_verified: true }`
+- `400 invalid_json` / `invalid_input` / `invalid_phone` / `invalid_code`
+- `410 expired` — Vonage a retourné 404/410 (OTP périmé ou déjà utilisé)
+- `500 missing_env` / `db_error`
+- `502 vonage_error`
+
+**Effets** : `audit_logs` `action='phone_verified'`, `entity_type='user'`, `entity_id=<user.id>`, `detail={ phone_e164: <phone> }`.
+
+---
+
+## Helpers serveur
+
+Tous exportés depuis `lib/`. Utilisés par les routes API ; pas exposés au client.
+
+### `requireAuth(request)` — `lib/auth-guard.ts`
+
+Garde principale. Lit `Authorization: Bearer <token>`, valide la session Supabase, charge la ligne `users`, vérifie `last_session_token` et le sous-domaine.
+
+Retour : `{ user, domain, organization, supabaseAdmin }`.
+
+- `user` : `{ id, last_session_token, domain_id, status }`
+- `domain` : `{ id, slug }`
+- **`organization`** (V1, ajout sprint archi-orga) : `{ id, role_in_org, verification_status }` ou `null` si le user n'a pas de membership active. V1 = 1 user dans 1 org (1ère ligne `organization_members status='active'` par `joined_at ASC` si plusieurs).
+- `supabaseAdmin` : client Supabase service-role.
+
+**Backward-compat** : les routes existantes qui font `const { user, domain, supabaseAdmin } = await requireAuth(req)` continuent de fonctionner — `organization` est ignoré silencieusement.
+
+### `requireOrgApproved(authResult)` — `lib/auth-guard.ts`
+
+Helper appelable depuis n'importe quelle route métier qui exige que l'org du user soit déjà approuvée.
+
+Throws `AuthError(403)` :
+- `org_required` si `authResult.organization === null`
+- `org_not_approved` si `verification_status !== 'approved'`
+
+**Pas appliqué aux routes existantes** (qui ne touchent pas aux orgs). Sera utilisé à partir du Lot B5 sur les routes mission/payment/match/messagerie.
+
+### `logAudit({ supabaseAdmin, user_id, domain_id, action, entity_type?, entity_id?, detail? })` — `lib/audit.ts`
+
+Helper centralisé pour insérer dans `audit_logs`. Best-effort : si l'insert échoue, log un `console.error` mais ne propage jamais (l'audit ne doit pas casser la requête métier).
+
+Schéma : `audit_logs(user_id, domain_id, action, entity_type, entity_id, detail jsonb)`.
+
+### `logSession({ supabaseAdmin, user_id, request, session_token? })` — `lib/session-log.ts`
+
+Insère une ligne dans `session_logs` à chaque login (anti-partage / forensic).
+
+- IP extraite via `x-forwarded-for` (1er segment) avec fallback `x-real-ip`
+- User-agent tronqué à 1000 chars
+- Best-effort, ne propage pas l'erreur
+
+Appelé par `/api/auth/register-org`. Sera étendu aux flows login Supabase Auth en B3/B5 si besoin.
 
 ---
 
