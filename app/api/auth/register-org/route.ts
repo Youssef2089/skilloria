@@ -234,11 +234,13 @@ export async function POST(request: NextRequest): Promise<Response> {
   const user_id = created.user.id
 
   // ── 2. Création organizations ───────────────────────────────────────────
+  // Note : les colonnes legacy `user_id` et `domain_id` ont été droppées
+  // par la migration B6_MIGRATION_2 (20260502_archi_orga_b6_migration_2_drop_legacy.sql).
+  // La liaison user↔org passe par `organization_members`, et la liaison
+  // org↔domain par `organization_domains` (inserts plus bas).
   const { data: orgRow, error: orgErr } = await supabaseAdmin
     .from('organizations')
     .insert({
-      user_id,
-      domain_id: domainRow.id,
       org_type: input.org_type,
       company_name: input.company_name,
       country: input.country_code,
