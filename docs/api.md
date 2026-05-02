@@ -291,6 +291,50 @@ Appelé par `/api/auth/register-org`. Sera étendu aux flows login Supabase Auth
 
 ---
 
+## Quotas & packages — `lib/packages.ts`
+
+Helper pour gérer les packages flexibles (Lot B6 du sprint archi-orga). **Non appelé par les routes existantes** (freelance/CDI ne consomment pas encore de quota). Sera branché en B5 sur les routes mission/payment/match (Session 2).
+
+### Scope d'un package
+
+Colonne `packages.scope` (CHECK enum, default `'user'`) :
+
+| Scope | Compteur | Cas d'usage |
+|---|---|---|
+| `user` | individuel par user | freelance/CDI, abonnements personnels |
+| `organization` | partagé entre tous les membres de l'org | starter cabinet/entreprise |
+| `organization_per_seat` | `limit × max_seats` | tarification per-seat (10 missions × 5 sièges = 50 missions/mois) |
+
+### `loadOrgPackage(supabaseAdmin, organization_id, domain_id?)`
+
+Retourne le `package` actif lié au couple (org, domain) via `organization_domains.package_id`. Si `domain_id` est omis, prend le 1er domaine actif de l'org. Renvoie `null` si pas de package attaché (ex. juste après `register-org` en V1).
+
+### `consumeQuota({ supabaseAdmin, user, organization, feature_code, domain_id? })`
+
+Retourne `QuotaDecision { allowed, scope, limit, unlimited, reason? }` :
+
+- **`allowed: true`** si la consommation est autorisée
+- **`unlimited: true`** si la feature est `'unlimited'`/`'true'`/`'-1'` dans `package_features.value`
+- **`scope`** repris du package
+- **`limit`** : valeur déclarée ou `limit × max_seats` pour `organization_per_seat`
+
+Codes d'erreur `reason` :
+- `'no_package'` — l'org n'a pas de package attaché
+- `'feature_missing'` — pas de ligne `package_features` pour ce `feature_code`
+- `'limit_reached_TODO_B5'` — V1 stub : autorise tant que la limite est > 0. Le compteur réel (table `quota_consumption` ou dérivation depuis `audit_logs`) sera implémenté en B5 sur les routes qui créent les entités quotables.
+
+V1 — freelance/CDI sans organisation : retourne toujours `{ allowed: true, unlimited: true }` (pas de quota appliqué tant que le pricing user n'est pas activé).
+
+### `checkSeatsAvailable({ supabaseAdmin, organization_id, max_seats })`
+
+Throws `AuthError(403, 'seats_exhausted')` si le nombre de `organization_members` avec `status='active'` atteint déjà `max_seats`. Sinon ne fait rien.
+
+Appelé typiquement avant l'envoi/acceptation d'une invitation (B4). V1 = blocage strict + CTA UI "Ajouter un siège" (Q7). L'achat additionnel inline est V2.
+
+`max_seats=null` → pas de limite, no-op. `max_seats<=0` → throw immédiat.
+
+---
+
 ## Pré-requis côté ops
 
 - `.env.local` : `ANTHROPIC_API_KEY`, `ENABLE_AI_CV_PARSING=true`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`
