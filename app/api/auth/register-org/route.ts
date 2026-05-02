@@ -61,6 +61,23 @@ function metadataRoleFromOrgType(org_type: OrgType): 'entreprise' | 'cabinet' {
   return 'cabinet' // 'cabinet' OR 'esn'
 }
 
+/**
+ * Erreur typée levée pendant les inserts métier post-createUser.
+ * Permet de propager `code` + `statusCode` vers le client après
+ * exécution du cleanup atomique.
+ */
+class RegisterOrgError extends Error {
+  constructor(
+    public readonly code: string,
+    public readonly userMessage: string,
+    public readonly statusCode: number,
+    public readonly cause?: unknown,
+  ) {
+    super(userMessage)
+    this.name = 'RegisterOrgError'
+  }
+}
+
 function asString(v: unknown): string | null {
   if (typeof v !== 'string') return null
   const t = v.trim()
@@ -233,112 +250,177 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   const user_id = created.user.id
 
-  // ── 2. Création organizations ───────────────────────────────────────────
-  // Note : les colonnes legacy `user_id` et `domain_id` ont été droppées
-  // par la migration B6_MIGRATION_2 (20260502_archi_orga_b6_migration_2_drop_legacy.sql).
-  // La liaison user↔org passe par `organization_members`, et la liaison
-  // org↔domain par `organization_domains` (inserts plus bas).
-  const { data: orgRow, error: orgErr } = await supabaseAdmin
-    .from('organizations')
-    .insert({
-      org_type: input.org_type,
-      company_name: input.company_name,
-      country: input.country_code,
-      siren: input.siren,
-      vat_number: input.vat_number,
-      email_domain: input.email_domain,
-      verification_status: 'pending_provider_check',
-    })
-    .select('id')
-    .single()
-  if (orgErr || !orgRow) {
-    console.error('[register-org] organizations insert failed', orgErr?.message)
-    // Cleanup : on supprime le user créé pour éviter un état incohérent
-    await supabaseAdmin.auth.admin.deleteUser(user_id)
-    return json({ error: 'Could not create organization', code: 'org_insert_failed' }, 500)
-  }
-  const organization_id = orgRow.id as string
+  // ── À partir d'ici, tout fail doit déclencher un CLEANUP ATOMIQUE ───────
+  // 1. Le trigger `handle_new_user` a déjà créé `public.users` (et le cas
+  //    échéant `public.profiles` pour freelance/cdi — pas pour client/cabinet).
+  // 2. `auth.admin.deleteUser` ne supprime QUE `auth.users` ; les lignes
+  //    `public.users` orphelines persistent et bloquent les futures
+  //    inscriptions (UNIQUE constraint users_email_key).
+  // 3. Le cleanup doit donc supprimer EN PREMIER `public.users`
+  //    (pour éviter une violation FK si profiles existe), puis `auth.users`.
+  // ────────────────────────────────────────────────────────────────────────
+  try {
+    // ── 2. Création organizations ─────────────────────────────────────────
+    // Colonnes legacy `user_id` et `domain_id` droppées par B6_MIGRATION_2
+    // (20260502_archi_orga_b6_migration_2_drop_legacy.sql). La liaison
+    // user↔org passe par `organization_members`, org↔domain par
+    // `organization_domains` (inserts plus bas).
+    const { data: orgRow, error: orgErr } = await supabaseAdmin
+      .from('organizations')
+      .insert({
+        org_type: input.org_type,
+        company_name: input.company_name,
+        country: input.country_code,
+        siren: input.siren,
+        vat_number: input.vat_number,
+        email_domain: input.email_domain,
+        verification_status: 'pending_provider_check',
+      })
+      .select('id')
+      .single()
+    if (orgErr || !orgRow) {
+      throw new RegisterOrgError(
+        'org_insert_failed',
+        'Could not create organization',
+        500,
+        orgErr,
+      )
+    }
+    const organization_id = orgRow.id as string
 
-  // ── 3. organization_members (admin du nouvel org) ───────────────────────
-  const { error: memberErr } = await supabaseAdmin.from('organization_members').insert({
-    user_id,
-    organization_id,
-    role_in_org: 'admin',
-    status: 'active',
-    invited_by: null,
-  })
-  if (memberErr) {
-    console.error('[register-org] organization_members insert failed', memberErr.message)
-    return json({ error: 'Could not link member', code: 'member_insert_failed' }, 500)
-  }
+    // ── 3. organization_members (admin du nouvel org) ─────────────────────
+    const { error: memberErr } = await supabaseAdmin
+      .from('organization_members')
+      .insert({
+        user_id,
+        organization_id,
+        role_in_org: 'admin',
+        status: 'active',
+        invited_by: null,
+      })
+    if (memberErr) {
+      throw new RegisterOrgError(
+        'member_insert_failed',
+        'Could not link member',
+        500,
+        memberErr,
+      )
+    }
 
-  // ── 4. organization_domains (1 seul domaine V1, package_id=null) ────────
-  const { error: orgDomErr } = await supabaseAdmin.from('organization_domains').insert({
-    organization_id,
-    domain_id: domainRow.id,
-    active: true,
-    package_id: null,
-  })
-  if (orgDomErr) {
-    console.error('[register-org] organization_domains insert failed', orgDomErr.message)
-    return json({ error: 'Could not link domain', code: 'org_domain_insert_failed' }, 500)
-  }
+    // ── 4. organization_domains (1 seul domaine V1, package_id=null) ──────
+    const { error: orgDomErr } = await supabaseAdmin
+      .from('organization_domains')
+      .insert({
+        organization_id,
+        domain_id: domainRow.id,
+        active: true,
+        package_id: null,
+      })
+    if (orgDomErr) {
+      throw new RegisterOrgError(
+        'org_domain_insert_failed',
+        'Could not link domain',
+        500,
+        orgDomErr,
+      )
+    }
 
-  // ── 5. Vérification entreprise ──────────────────────────────────────────
-  const verdict = await runVerification({
-    supabaseAdmin,
-    organization_id,
-    input: {
-      country_code: input.country_code,
-      company_name: input.company_name,
-      email_domain: input.email_domain,
-      siren: input.siren,
-      vat_number: input.vat_number,
-    },
-  })
-
-  const updates: Record<string, unknown> = {
-    verification_status: verdict.verification_status,
-    verification_method: verdict.verification_method,
-    verification_data: verdict.verification_data,
-  }
-  if (verdict.verification_status === 'approved') {
-    updates.verified_at = new Date().toISOString()
-    // verified_by laissé à null = approval automatique (Q-B2.c.6)
-  }
-  const { error: updErr } = await supabaseAdmin
-    .from('organizations')
-    .update(updates)
-    .eq('id', organization_id)
-  if (updErr) {
-    console.error('[register-org] organizations update post-verify failed', updErr.message)
-    // Non bloquant : la ligne org existe avec status initial
-  }
-
-  // ── 6. Side effects best-effort ─────────────────────────────────────────
-  await logAudit({
-    supabaseAdmin,
-    user_id,
-    domain_id: domainRow.id,
-    action: 'org_register',
-    entity_type: 'organization',
-    entity_id: organization_id,
-    detail: {
-      method: verdict.verification_method,
-      status: verdict.verification_status,
-      score: verdict.verification_data.score,
-      attempts_count: verdict.verification_data.attempts_count,
-    },
-  })
-  await logSession({ supabaseAdmin, user_id, request })
-
-  return json(
-    {
-      user_id,
+    // ── 5. Vérification entreprise ────────────────────────────────────────
+    const verdict = await runVerification({
+      supabaseAdmin,
       organization_id,
+      input: {
+        country_code: input.country_code,
+        company_name: input.company_name,
+        email_domain: input.email_domain,
+        siren: input.siren,
+        vat_number: input.vat_number,
+      },
+    })
+
+    const updates: Record<string, unknown> = {
       verification_status: verdict.verification_status,
       verification_method: verdict.verification_method,
-    },
-    200,
-  )
+      verification_data: verdict.verification_data,
+    }
+    if (verdict.verification_status === 'approved') {
+      updates.verified_at = new Date().toISOString()
+      // verified_by laissé à null = approval automatique (Q-B2.c.6)
+    }
+    const { error: updErr } = await supabaseAdmin
+      .from('organizations')
+      .update(updates)
+      .eq('id', organization_id)
+    if (updErr) {
+      console.error('[register-org] organizations update post-verify failed', updErr.message)
+      // Non bloquant : la ligne org existe déjà avec le status initial.
+      // On ne rollback pas pour ne pas perdre les verification_attempts insérés.
+    }
+
+    // ── 6. Side effects best-effort ───────────────────────────────────────
+    await logAudit({
+      supabaseAdmin,
+      user_id,
+      domain_id: domainRow.id,
+      action: 'org_register',
+      entity_type: 'organization',
+      entity_id: organization_id,
+      detail: {
+        method: verdict.verification_method,
+        status: verdict.verification_status,
+        score: verdict.verification_data.score,
+        attempts_count: verdict.verification_data.attempts_count,
+      },
+    })
+    await logSession({ supabaseAdmin, user_id, request })
+
+    return json(
+      {
+        user_id,
+        organization_id,
+        verification_status: verdict.verification_status,
+        verification_method: verdict.verification_method,
+      },
+      200,
+    )
+  } catch (err) {
+    // ── CLEANUP ATOMIQUE À 2 ÉTAPES ─────────────────────────────────────
+    const errMsg = err instanceof Error ? err.message : String(err)
+    console.error(`[register-org] rollback déclenché: ${errMsg}`)
+
+    // Étape 1 : supprimer public.users (créé par trigger handle_new_user)
+    //           AVANT public.profiles si présent (FK profile.user_id ->
+    //           users.id avec ON DELETE CASCADE attendue côté schema).
+    try {
+      const { error: pubDelErr } = await supabaseAdmin
+        .from('users')
+        .delete()
+        .eq('id', user_id)
+      if (pubDelErr) {
+        console.error('[register-org] cleanup public.users failed', pubDelErr.message)
+      }
+    } catch (cleanupPublicErr) {
+      const m = cleanupPublicErr instanceof Error ? cleanupPublicErr.message : String(cleanupPublicErr)
+      console.error('[register-org] cleanup public.users threw', m)
+    }
+
+    // Étape 2 : supprimer auth.users (cleanup Supabase Auth)
+    try {
+      const { error: authDelErr } = await supabaseAdmin.auth.admin.deleteUser(user_id)
+      if (authDelErr) {
+        console.error('[register-org] cleanup auth.users failed', authDelErr.message)
+      }
+    } catch (cleanupAuthErr) {
+      const m = cleanupAuthErr instanceof Error ? cleanupAuthErr.message : String(cleanupAuthErr)
+      console.error('[register-org] cleanup auth.users threw', m)
+    }
+
+    // Étape 3 : retourner l'erreur originale au client
+    if (err instanceof RegisterOrgError) {
+      return json({ error: err.userMessage, code: err.code }, err.statusCode)
+    }
+    // Erreur inattendue : on ne re-throw pas (sinon Next renvoie un 500
+    // sans corps JSON typé). On retourne un 500 générique.
+    return json({ error: 'Internal error', code: 'internal_error' }, 500)
+  }
 }
