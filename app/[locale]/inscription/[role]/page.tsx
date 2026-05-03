@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
@@ -32,8 +32,16 @@ export default function InscriptionRolePage() {
   const [error, setError] = useState('')
   const [cgu, setCgu] = useState(false)
 
+  // Redirection des URLs invalides (ex: /inscription/cabinet, /inscription/entreprise)
+  // déplacée dans useEffect pour ne pas appeler router.push() pendant le render
+  // (évite le warning React "Cannot update a component while rendering").
+  useEffect(() => {
+    if (!isKnownRole(role)) {
+      router.push('/inscription')
+    }
+  }, [role, router])
+
   if (!isKnownRole(role)) {
-    router.push('/inscription')
     return null
   }
 
