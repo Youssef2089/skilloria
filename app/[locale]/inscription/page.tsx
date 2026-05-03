@@ -10,34 +10,35 @@ export default function InscriptionPage() {
   const domain = useDomain()
   const t = useTranslations('signup')
 
-  const roles = [
+  const roles: Array<{
+    id: string
+    href: string
+    icon: string
+    bg: string
+    title: string
+    subtitle?: string
+  }> = [
     {
       id: 'entreprise',
+      href: '/inscription/organisation',
       icon: '🏢',
       bg: '#dbeafe',
       title: t('roles.entreprise.title'),
-      desc: t('roles.entreprise.description', { ecosystem: domain.ecosystemName }),
+      subtitle: t('roles.entreprise.subtitle'),
     },
     {
       id: 'expert',
+      href: '/inscription/expert',
       icon: '💼',
       bg: '#ede9fe',
       title: t('roles.expert.title'),
-      desc: t('roles.expert.description'),
     },
     {
       id: 'cdi',
+      href: '/inscription/cdi',
       icon: '🎓',
       bg: '#dcfce7',
       title: t('roles.cdi.title'),
-      desc: t('roles.cdi.description', { ecosystem: domain.ecosystemName }),
-    },
-    {
-      id: 'cabinet',
-      icon: '🤝',
-      bg: '#fef9c3',
-      title: t('roles.cabinet.title'),
-      desc: t('roles.cabinet.description'),
     },
   ]
 
@@ -80,7 +81,7 @@ export default function InscriptionPage() {
         {roles.map((role) => (
           <div
             key={role.id}
-            onClick={() => router.push(`/inscription/${role.id}`)}
+            onClick={() => router.push(role.href)}
             style={{
               background: '#fff', border: '2px solid #e2e8f0',
               borderRadius: 20, padding: '32px 24px',
@@ -109,12 +110,14 @@ export default function InscriptionPage() {
             }}>
               {role.icon}
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', marginBottom: role.subtitle ? 6 : 0 }}>
               {role.title}
             </div>
-            <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
-              {role.desc}
-            </div>
+            {role.subtitle && (
+              <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
+                {role.subtitle}
+              </div>
+            )}
           </div>
         ))}
       </div>

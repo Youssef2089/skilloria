@@ -617,19 +617,13 @@
     "roles": {
       "entreprise": {
         "title": "Unternehmen",
-        "description": "Ich suche einen zertifizierten\n{ecosystem}-Experten"
+        "subtitle": "Personalvermittlung · IT-Dienstleister · Endkunde"
       },
       "expert": {
-        "title": "Experte / Freelancer",
-        "description": "Ich biete meine Dienste\nund suche Aufträge"
+        "title": "Experte / Freelancer"
       },
       "cdi": {
-        "title": "Festanstellung",
-        "description": "Ich suche eine Festanstellung\nin {ecosystem}"
-      },
-      "cabinet": {
-        "title": "Agentur / Beratung",
-        "description": "Ich rekrutiere für\nmeine Kunden"
+        "title": "Festanstellung"
       }
     },
     "already_account": "Haben Sie bereits ein Konto?",
@@ -646,13 +640,6 @@
   },
   "signup_form": {
     "roles": {
-      "entreprise": {
-        "form_title": "Unternehmenskonto erstellen",
-        "company_label": "Firmenname",
-        "company_placeholder": "Name Ihres Unternehmens",
-        "email_label": "Geschäftliche E-Mail",
-        "email_placeholder": "name@unternehmen.de"
-      },
       "expert": {
         "form_title": "Experten-Profil erstellen",
         "email_label": "E-Mail",
@@ -666,13 +653,6 @@
         "email_placeholder": "name@email.de",
         "specialty_label": "Gesuchter {ecosystem}-Bereich",
         "specialty_placeholder": "z.B. Dynamics 365, Azure..."
-      },
-      "cabinet": {
-        "form_title": "Beratungs-Konto erstellen",
-        "company_label": "Firmenname",
-        "company_placeholder": "Name Ihrer Firma",
-        "email_label": "Geschäftliche E-Mail",
-        "email_placeholder": "name@firma.de"
       }
     },
     "fields": {

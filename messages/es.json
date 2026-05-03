@@ -617,19 +617,13 @@
     "roles": {
       "entreprise": {
         "title": "Empresa",
-        "description": "Busco un experto\n{ecosystem} certificado"
+        "subtitle": "Agencia de selección · ESN · Cliente final"
       },
       "expert": {
-        "title": "Experto / Freelance",
-        "description": "Ofrezco mis servicios\ny busco misiones"
+        "title": "Experto / Freelance"
       },
       "cdi": {
-        "title": "Contrato indefinido",
-        "description": "Busco un puesto indefinido\nen {ecosystem}"
-      },
-      "cabinet": {
-        "title": "Consultora / Agencia",
-        "description": "Recluto para\nmis clientes"
+        "title": "Contrato indefinido"
       }
     },
     "already_account": "¿Ya tienes cuenta?",
@@ -646,13 +640,6 @@
   },
   "signup_form": {
     "roles": {
-      "entreprise": {
-        "form_title": "Crear una cuenta de empresa",
-        "company_label": "Razón social",
-        "company_placeholder": "Nombre de tu empresa",
-        "email_label": "Correo profesional",
-        "email_placeholder": "tu@empresa.com"
-      },
       "expert": {
         "form_title": "Crear un perfil de experto",
         "email_label": "Correo electrónico",
@@ -666,13 +653,6 @@
         "email_placeholder": "tu@email.com",
         "specialty_label": "Área de {ecosystem} que buscas",
         "specialty_placeholder": "Ej: Dynamics 365, Azure..."
-      },
-      "cabinet": {
-        "form_title": "Crear una cuenta de consultora",
-        "company_label": "Nombre de la consultora",
-        "company_placeholder": "Nombre de tu estructura",
-        "email_label": "Correo profesional",
-        "email_placeholder": "tu@consultora.com"
       }
     },
     "fields": {

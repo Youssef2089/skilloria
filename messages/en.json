@@ -617,19 +617,13 @@
     "roles": {
       "entreprise": {
         "title": "Company",
-        "description": "Looking for a certified\n{ecosystem} expert"
+        "subtitle": "Recruitment agency · IT services company · End client"
       },
       "expert": {
-        "title": "Expert / Freelancer",
-        "description": "I offer my services\nand look for assignments"
+        "title": "Expert / Freelancer"
       },
       "cdi": {
-        "title": "Full-time",
-        "description": "Looking for a full-time\n{ecosystem} position"
-      },
-      "cabinet": {
-        "title": "Consultancy / Staffing firm",
-        "description": "Recruiting for\nmy clients"
+        "title": "Full-time"
       }
     },
     "already_account": "Already have an account?",
@@ -646,13 +640,6 @@
   },
   "signup_form": {
     "roles": {
-      "entreprise": {
-        "form_title": "Create a Company account",
-        "company_label": "Company name",
-        "company_placeholder": "Your company name",
-        "email_label": "Work email",
-        "email_placeholder": "you@company.com"
-      },
       "expert": {
         "form_title": "Create an Expert profile",
         "email_label": "Email",
@@ -666,13 +653,6 @@
         "email_placeholder": "you@email.com",
         "specialty_label": "{ecosystem} field you're looking for",
         "specialty_placeholder": "e.g. Dynamics 365, Azure..."
-      },
-      "cabinet": {
-        "form_title": "Create a Consultancy account",
-        "company_label": "Firm name",
-        "company_placeholder": "Your firm name",
-        "email_label": "Work email",
-        "email_placeholder": "you@firm.com"
       }
     },
     "fields": {

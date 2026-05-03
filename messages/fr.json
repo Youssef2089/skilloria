@@ -617,19 +617,13 @@
     "roles": {
       "entreprise": {
         "title": "Entreprise",
-        "description": "Je cherche un expert\n{ecosystem} certifié"
+        "subtitle": "Cabinet de recrutement · ESN · Client final"
       },
       "expert": {
-        "title": "Expert / Freelance",
-        "description": "Je propose mes services\net cherche des missions"
+        "title": "Expert / Freelance"
       },
       "cdi": {
-        "title": "CDI",
-        "description": "Je cherche un poste\nen CDI {ecosystem}"
-      },
-      "cabinet": {
-        "title": "Cabinet / ESN",
-        "description": "Je recrute pour\nmes clients"
+        "title": "CDI"
       }
     },
     "already_account": "Vous avez déjà un compte\u00A0?",
@@ -646,13 +640,6 @@
   },
   "signup_form": {
     "roles": {
-      "entreprise": {
-        "form_title": "Créer un compte Entreprise",
-        "company_label": "Raison sociale",
-        "company_placeholder": "Nom de votre entreprise",
-        "email_label": "Email professionnel",
-        "email_placeholder": "vous@entreprise.com"
-      },
       "expert": {
         "form_title": "Créer un profil Expert",
         "email_label": "Email",
@@ -666,13 +653,6 @@
         "email_placeholder": "vous@email.com",
         "specialty_label": "Domaine {ecosystem} recherché",
         "specialty_placeholder": "Ex: Dynamics 365, Azure..."
-      },
-      "cabinet": {
-        "form_title": "Créer un compte Cabinet / ESN",
-        "company_label": "Nom du cabinet / ESN",
-        "company_placeholder": "Nom de votre structure",
-        "email_label": "Email professionnel",
-        "email_placeholder": "vous@cabinet.com"
       }
     },
     "fields": {

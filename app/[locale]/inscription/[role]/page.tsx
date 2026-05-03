@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
-type RoleKey = 'entreprise' | 'expert' | 'cdi' | 'cabinet'
+type RoleKey = 'expert' | 'cdi'
 
 type FieldDef = {
   id: string
@@ -25,7 +25,7 @@ export default function InscriptionRolePage() {
   const role = params.role as string
 
   const isKnownRole = (r: string): r is RoleKey =>
-    r === 'entreprise' || r === 'expert' || r === 'cdi' || r === 'cabinet'
+    r === 'expert' || r === 'cdi'
 
   const [form, setForm] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
@@ -43,18 +43,6 @@ export default function InscriptionRolePage() {
     color: string
     fields: FieldDef[]
   }> = {
-    entreprise: {
-      title: t('roles.entreprise.form_title'),
-      icon: '🏢',
-      color: '#dbeafe',
-      fields: [
-        { id: 'company', label: t('roles.entreprise.company_label'), type: 'text', placeholder: t('roles.entreprise.company_placeholder') },
-        { id: 'firstname', label: t('fields.firstname_label'), type: 'text', placeholder: t('fields.firstname_placeholder') },
-        { id: 'lastname', label: t('fields.lastname_label'), type: 'text', placeholder: t('fields.lastname_placeholder') },
-        { id: 'email', label: t('roles.entreprise.email_label'), type: 'email', placeholder: t('roles.entreprise.email_placeholder') },
-        { id: 'password', label: t('fields.password_label'), type: 'password', placeholder: t('fields.password_placeholder') },
-      ],
-    },
     expert: {
       title: t('roles.expert.form_title'),
       icon: '💼',
@@ -76,18 +64,6 @@ export default function InscriptionRolePage() {
         { id: 'lastname', label: t('fields.lastname_label'), type: 'text', placeholder: t('fields.lastname_placeholder') },
         { id: 'email', label: t('roles.cdi.email_label'), type: 'email', placeholder: t('roles.cdi.email_placeholder') },
         { id: 'specialty', label: t('roles.cdi.specialty_label', { ecosystem: domain.ecosystemName }), type: 'text', placeholder: t('roles.cdi.specialty_placeholder') },
-        { id: 'password', label: t('fields.password_label'), type: 'password', placeholder: t('fields.password_placeholder') },
-      ],
-    },
-    cabinet: {
-      title: t('roles.cabinet.form_title'),
-      icon: '🤝',
-      color: '#fef9c3',
-      fields: [
-        { id: 'company', label: t('roles.cabinet.company_label'), type: 'text', placeholder: t('roles.cabinet.company_placeholder') },
-        { id: 'firstname', label: t('fields.firstname_label'), type: 'text', placeholder: t('fields.firstname_placeholder') },
-        { id: 'lastname', label: t('fields.lastname_label'), type: 'text', placeholder: t('fields.lastname_placeholder') },
-        { id: 'email', label: t('roles.cabinet.email_label'), type: 'email', placeholder: t('roles.cabinet.email_placeholder') },
         { id: 'password', label: t('fields.password_label'), type: 'password', placeholder: t('fields.password_placeholder') },
       ],
     },
