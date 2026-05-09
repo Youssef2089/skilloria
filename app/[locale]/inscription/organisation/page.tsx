@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
@@ -32,6 +32,7 @@ const OTP_LENGTH = 6
 export default function InscriptionOrganisationPage() {
   const router = useRouter()
   const domain = useDomain()
+  const locale = useLocale()
   const t = useTranslations('inscription_org')
 
   const [form, setForm] = useState<FormState>(initialForm)
@@ -268,6 +269,10 @@ export default function InscriptionOrganisationPage() {
 
     setSubmitting(true)
     try {
+      // URL absolue vers /[locale]/auth/callback — Supabase l'inclura dans
+      // le lien de confirmation email pour ramener l'user sur cette page
+      // après validation (B3.3.fix2). `window` dispo car 'use client'.
+      const emailRedirectTo = `${window.location.origin}/${locale}/auth/callback`
       const res = await fetch('/api/auth/register-org', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -282,6 +287,7 @@ export default function InscriptionOrganisationPage() {
           phone_otp_token: otpToken,
           domain_slug: domain.subdomain,
           org_type: 'client',
+          email_redirect_to: emailRedirectTo,
         }),
       })
       const json = (await res.json().catch(() => ({}))) as { code?: string; error?: string }

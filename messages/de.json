@@ -669,6 +669,14 @@
       "email_domain_blocked": "Diese E-Mail-Domain ist für die Unternehmensregistrierung nicht zugelassen.",
       "vonage_error": "SMS-Dienst vorübergehend nicht verfügbar. Bitte erneut versuchen.",
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen."
+    },
+    "callback": {
+      "verifying_title": "Überprüfung läuft…",
+      "verifying_subtitle": "Wir validieren Ihre E-Mail.",
+      "error_title": "Überprüfungsfehler",
+      "error_subtitle": "Der Link scheint ungültig oder abgelaufen zu sein.",
+      "back_to_signup": "Zurück zur Registrierung",
+      "back_to_signin": "Anmelden"
     }
   },
   "signup_confirmation": {

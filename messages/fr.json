@@ -669,6 +669,14 @@
       "email_domain_blocked": "Ce domaine d'e-mail n'est pas autorisé pour une inscription entreprise.",
       "vonage_error": "Service SMS temporairement indisponible. Veuillez réessayer.",
       "generic": "Une erreur est survenue. Veuillez réessayer."
+    },
+    "callback": {
+      "verifying_title": "Vérification en cours…",
+      "verifying_subtitle": "Nous validons votre email.",
+      "error_title": "Erreur de vérification",
+      "error_subtitle": "Le lien semble invalide ou expiré.",
+      "back_to_signup": "Retour à l'inscription",
+      "back_to_signin": "Se connecter"
     }
   },
   "signup_confirmation": {

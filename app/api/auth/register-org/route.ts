@@ -28,6 +28,7 @@ type RegisterOrgBody = {
   phone_otp_token?: unknown
   domain_slug?: unknown
   org_type?: unknown
+  email_redirect_to?: unknown
 }
 
 type OrgType = 'client' | 'cabinet' | 'esn'
@@ -46,6 +47,7 @@ type ValidatedInput = {
   domain_slug: string
   org_type: OrgType
   email_domain: string
+  email_redirect_to: string | null
 }
 
 /**
@@ -137,6 +139,15 @@ function validate(body: RegisterOrgBody): { ok: true; input: ValidatedInput } | 
   if (!phone_otp_token) {
     return { ok: false, error: 'phone_otp_required' }
   }
+  // email_redirect_to optionnel : front passe l'URL absolue vers /auth/callback
+  // après confirmation du mail Supabase. On valide strictement pour éviter
+  // toute redirection arbitraire (open redirect via Supabase email).
+  const email_redirect_to_raw = asString(body.email_redirect_to)
+  const email_redirect_to =
+    email_redirect_to_raw &&
+    /^https?:\/\/[^\s/]{1,200}\/[a-z]{2}\/auth\/callback$/.test(email_redirect_to_raw)
+      ? email_redirect_to_raw
+      : null
   return {
     ok: true,
     input: {
@@ -153,6 +164,7 @@ function validate(body: RegisterOrgBody): { ok: true; input: ValidatedInput } | 
       domain_slug,
       org_type: org_type_raw as OrgType,
       email_domain,
+      email_redirect_to,
     },
   }
 }
@@ -293,6 +305,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     email: input.email,
     password: input.password,
     options: {
+      // Si fourni et valide : Supabase posera ce redirect_to dans le lien
+      // de confirmation. Sinon (null) : Supabase utilisera Site URL par défaut.
+      ...(input.email_redirect_to ? { emailRedirectTo: input.email_redirect_to } : {}),
       data: {
         firstname: input.first_name,
         lastname: input.last_name,

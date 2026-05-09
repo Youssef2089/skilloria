@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
+import { dashboardUrlForUserType } from '@/lib/auth-routing'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export default function ConnexionPage() {
@@ -61,21 +62,9 @@ export default function ConnexionPage() {
       }
     }
 
-    // Redirection selon le type d'utilisateur
-    switch (userType) {
-      case 'expert_freelance':
-        router.push('/dashboard/freelance'); break
-      case 'expert_cdi':
-        router.push('/dashboard/cdi'); break
-      case 'client':
-        router.push('/dashboard/entreprise'); break
-      case 'cabinet':
-        router.push('/dashboard/cabinet'); break
-      case 'admin':
-        router.push('/admin'); break
-      default:
-        router.push('/dashboard')
-    }
+    // Redirection selon le type d'utilisateur — mapping mutualisé
+    // dans lib/auth-routing.ts, partagé avec /auth/callback (B3.3.fix2).
+    router.push(dashboardUrlForUserType(userType))
   }
 
   return (

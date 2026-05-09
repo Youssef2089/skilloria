@@ -669,6 +669,14 @@
       "email_domain_blocked": "This email domain is not allowed for business registration.",
       "vonage_error": "SMS service temporarily unavailable. Please try again.",
       "generic": "An error occurred. Please try again."
+    },
+    "callback": {
+      "verifying_title": "Verifying…",
+      "verifying_subtitle": "We are validating your email.",
+      "error_title": "Verification error",
+      "error_subtitle": "The link looks invalid or expired.",
+      "back_to_signup": "Back to sign up",
+      "back_to_signin": "Sign in"
     }
   },
   "signup_confirmation": {

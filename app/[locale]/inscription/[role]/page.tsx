@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
@@ -21,6 +21,7 @@ export default function InscriptionRolePage() {
   const router = useRouter()
   const params = useParams()
   const domain = useDomain()
+  const locale = useLocale()
   const t = useTranslations('signup_form')
   const role = params.role as string
 
@@ -100,6 +101,10 @@ export default function InscriptionRolePage() {
       email: form.email,
       password: form.password,
       options: {
+        // Renvoie l'user sur /auth/callback après confirm email pour
+        // qu'il atterrisse directement sur son dashboard (B3.3.fix2)
+        // au lieu de la home publique avec un token en hash URL.
+        emailRedirectTo: `${window.location.origin}/${locale}/auth/callback`,
         data: {
           firstname: form.firstname || '',
           lastname: form.lastname || '',

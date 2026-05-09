@@ -669,6 +669,14 @@
       "email_domain_blocked": "Este dominio de correo no está permitido para registro de empresa.",
       "vonage_error": "Servicio SMS temporalmente no disponible. Inténtalo de nuevo.",
       "generic": "Ha ocurrido un error. Inténtalo de nuevo."
+    },
+    "callback": {
+      "verifying_title": "Verificando…",
+      "verifying_subtitle": "Estamos validando tu correo.",
+      "error_title": "Error de verificación",
+      "error_subtitle": "El enlace parece no válido o ha caducado.",
+      "back_to_signup": "Volver al registro",
+      "back_to_signin": "Iniciar sesión"
     }
   },
   "signup_confirmation": {
