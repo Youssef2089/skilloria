@@ -677,6 +677,40 @@
       "error_subtitle": "The link looks invalid or expired.",
       "back_to_signup": "Back to sign up",
       "back_to_signin": "Sign in"
+    },
+    "modal_setup": {
+      "title": "Welcome to Skilloria!",
+      "subtitle": "To continue, please complete your registration.",
+      "section_personal": "Your information",
+      "section_company": "About your company",
+      "civility_label": "Title",
+      "civility_mr": "Mr.",
+      "civility_mrs": "Mrs.",
+      "civility_mx": "Mx.",
+      "job_title_label": "Job title",
+      "job_title_placeholder": "e.g. Head of Human Resources",
+      "linkedin_label": "LinkedIn URL (optional)",
+      "linkedin_placeholder": "https://www.linkedin.com/in/your-profile",
+      "siren_label": "SIREN",
+      "siren_placeholder": "123456789",
+      "siren_hint": "9 digits",
+      "org_sub_type_label": "Company type",
+      "org_sub_type_client": "End client",
+      "org_sub_type_esn": "Consulting firm (ESN)",
+      "org_sub_type_cabinet": "Recruitment agency",
+      "website_label": "Website (optional)",
+      "website_placeholder": "https://www.company.com",
+      "submit_button": "Save",
+      "submitting": "Saving…",
+      "security_notice": "For security reasons, this step is mandatory.",
+      "sign_out": "Sign out",
+      "errors": {
+        "missing_fields": "Please fill in all required fields.",
+        "invalid_siren": "Invalid SIREN (9 digits expected).",
+        "invalid_linkedin": "Invalid LinkedIn URL.",
+        "invalid_website": "Invalid website URL.",
+        "generic": "An error occurred. Please try again."
+      }
     }
   },
   "signup_confirmation": {

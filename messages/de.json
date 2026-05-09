@@ -677,6 +677,40 @@
       "error_subtitle": "Der Link scheint ungültig oder abgelaufen zu sein.",
       "back_to_signup": "Zurück zur Registrierung",
       "back_to_signin": "Anmelden"
+    },
+    "modal_setup": {
+      "title": "Willkommen bei Skilloria!",
+      "subtitle": "Bitte vervollständigen Sie Ihre Registrierung.",
+      "section_personal": "Ihre Informationen",
+      "section_company": "Über Ihr Unternehmen",
+      "civility_label": "Anrede",
+      "civility_mr": "Herr",
+      "civility_mrs": "Frau",
+      "civility_mx": "Mx.",
+      "job_title_label": "Position",
+      "job_title_placeholder": "z. B. Leiter Personalwesen",
+      "linkedin_label": "LinkedIn-URL (optional)",
+      "linkedin_placeholder": "https://www.linkedin.com/in/ihr-profil",
+      "siren_label": "SIREN",
+      "siren_placeholder": "123456789",
+      "siren_hint": "9 Ziffern",
+      "org_sub_type_label": "Unternehmensart",
+      "org_sub_type_client": "Endkunde",
+      "org_sub_type_esn": "Beratungsunternehmen (ESN)",
+      "org_sub_type_cabinet": "Personalvermittlung",
+      "website_label": "Website (optional)",
+      "website_placeholder": "https://www.unternehmen.com",
+      "submit_button": "Speichern",
+      "submitting": "Wird gespeichert…",
+      "security_notice": "Aus Sicherheitsgründen ist dieser Schritt erforderlich.",
+      "sign_out": "Abmelden",
+      "errors": {
+        "missing_fields": "Bitte füllen Sie alle Pflichtfelder aus.",
+        "invalid_siren": "Ungültige SIREN (9 Ziffern erwartet).",
+        "invalid_linkedin": "Ungültige LinkedIn-URL.",
+        "invalid_website": "Ungültige Website-URL.",
+        "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen."
+      }
     }
   },
   "signup_confirmation": {

@@ -677,6 +677,40 @@
       "error_subtitle": "El enlace parece no válido o ha caducado.",
       "back_to_signup": "Volver al registro",
       "back_to_signin": "Iniciar sesión"
+    },
+    "modal_setup": {
+      "title": "¡Bienvenido a Skilloria!",
+      "subtitle": "Para continuar, finaliza tu registro.",
+      "section_personal": "Tu información",
+      "section_company": "Sobre tu empresa",
+      "civility_label": "Tratamiento",
+      "civility_mr": "Sr.",
+      "civility_mrs": "Sra.",
+      "civility_mx": "Mx.",
+      "job_title_label": "Cargo",
+      "job_title_placeholder": "Ej.: Responsable de Recursos Humanos",
+      "linkedin_label": "URL de LinkedIn (opcional)",
+      "linkedin_placeholder": "https://www.linkedin.com/in/tu-perfil",
+      "siren_label": "SIREN",
+      "siren_placeholder": "123456789",
+      "siren_hint": "9 dígitos",
+      "org_sub_type_label": "Tipo de empresa",
+      "org_sub_type_client": "Cliente final",
+      "org_sub_type_esn": "Consultora (ESN)",
+      "org_sub_type_cabinet": "Agencia de reclutamiento",
+      "website_label": "Sitio web (opcional)",
+      "website_placeholder": "https://www.empresa.com",
+      "submit_button": "Guardar",
+      "submitting": "Guardando…",
+      "security_notice": "Por motivos de seguridad, este paso es obligatorio.",
+      "sign_out": "Cerrar sesión",
+      "errors": {
+        "missing_fields": "Por favor, rellena todos los campos obligatorios.",
+        "invalid_siren": "SIREN no válido (se esperan 9 dígitos).",
+        "invalid_linkedin": "URL de LinkedIn no válida.",
+        "invalid_website": "URL de sitio web no válida.",
+        "generic": "Ha ocurrido un error. Inténtalo de nuevo."
+      }
     }
   },
   "signup_confirmation": {
