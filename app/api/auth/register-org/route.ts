@@ -254,19 +254,28 @@ export async function POST(request: NextRequest): Promise<Response> {
   // ⚠️ Le trigger lit raw_user_meta_data.role pour poser users.user_type.
   //    Il n'accepte que 'entreprise'/'cabinet' (mots français) — on mappe
   //    org_type ('client'|'cabinet'|'esn') -> role ('entreprise'|'cabinet').
-  const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+  //
+  // Pattern alignement Expert/CDI (B3.3) : on utilise `generateLink({type:'signup'})`
+  // au lieu de `createUser({email_confirm:true})`. Effets :
+  //   - Crée l'user en mode non confirmé (email_confirmed_at = null)
+  //   - DÉCLENCHE l'envoi du mail de confirmation par Supabase (SMTP projet)
+  //   - Réplique pixel-perfect ce que fait `auth.signUp` côté client
+  // À la différence de createUser, generateLink envoie l'email automatiquement.
+  const { data: generated, error: createErr } = await supabaseAdmin.auth.admin.generateLink({
+    type: 'signup',
     email: input.email,
     password: input.password,
-    email_confirm: true,
-    user_metadata: {
-      firstname: input.first_name,
-      lastname: input.last_name,
-      role: metadataRoleFromOrgType(input.org_type),
-      domain_slug: input.domain_slug,
+    options: {
+      data: {
+        firstname: input.first_name,
+        lastname: input.last_name,
+        role: metadataRoleFromOrgType(input.org_type),
+        domain_slug: input.domain_slug,
+      },
     },
   })
-  if (createErr || !created?.user) {
-    console.error('[register-org] createUser failed', createErr?.message)
+  if (createErr || !generated?.user) {
+    console.error('[register-org] generateLink(signup) failed', createErr?.message)
     return json(
       {
         error: createErr?.message ?? 'Could not create user',
@@ -275,7 +284,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       500,
     )
   }
-  const user_id = created.user.id
+  const user_id = generated.user.id
 
   // ── À partir d'ici, tout fail doit déclencher un CLEANUP ATOMIQUE ───────
   // 1. Le trigger `handle_new_user` a déjà créé `public.users` (et le cas
