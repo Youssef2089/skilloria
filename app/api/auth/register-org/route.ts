@@ -168,6 +168,29 @@ function getSupabaseAdmin(): SupabaseClient {
   })
 }
 
+/**
+ * Client Supabase ANON côté serveur — utilisé uniquement pour `auth.signUp`.
+ *
+ * Pourquoi : `admin.createUser` et `admin.generateLink` n'envoient PAS
+ * d'email (par design GoTrue, admin endpoints silencieux). Pour déclencher
+ * l'envoi SMTP du mail de confirmation comme le fait Expert/CDI côté client,
+ * on doit passer par `auth.signUp` — qui ne marche que sur un client anon.
+ *
+ * `persistSession: false` car on est côté serveur stateless (pas de session
+ * locale à conserver — le cookie sera posé par Supabase quand l'user
+ * cliquera sur le lien de confirmation).
+ */
+function getSupabaseAnon(): SupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !anonKey) {
+    throw new Error('missing_env')
+  }
+  return createClient(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+}
+
 export async function POST(request: NextRequest): Promise<Response> {
   let body: RegisterOrgBody
   try {
@@ -255,14 +278,18 @@ export async function POST(request: NextRequest): Promise<Response> {
   //    Il n'accepte que 'entreprise'/'cabinet' (mots français) — on mappe
   //    org_type ('client'|'cabinet'|'esn') -> role ('entreprise'|'cabinet').
   //
-  // Pattern alignement Expert/CDI (B3.3) : on utilise `generateLink({type:'signup'})`
-  // au lieu de `createUser({email_confirm:true})`. Effets :
-  //   - Crée l'user en mode non confirmé (email_confirmed_at = null)
-  //   - DÉCLENCHE l'envoi du mail de confirmation par Supabase (SMTP projet)
-  //   - Réplique pixel-perfect ce que fait `auth.signUp` côté client
-  // À la différence de createUser, generateLink envoie l'email automatiquement.
-  const { data: generated, error: createErr } = await supabaseAdmin.auth.admin.generateLink({
-    type: 'signup',
+  // Alignement pixel-perfect Expert/CDI (B3.3.fix) : on utilise
+  // `auth.signUp` via un client ANON côté serveur. `signUp` est le SEUL
+  // endpoint Supabase qui déclenche l'envoi automatique du mail de
+  // confirmation (SMTP projet) — `admin.createUser` et `admin.generateLink`
+  // sont silencieux par design GoTrue.
+  let supabaseAnon: SupabaseClient
+  try {
+    supabaseAnon = getSupabaseAnon()
+  } catch {
+    return json({ error: 'Server misconfigured', code: 'missing_env' }, 500)
+  }
+  const { data: created, error: createErr } = await supabaseAnon.auth.signUp({
     email: input.email,
     password: input.password,
     options: {
@@ -274,8 +301,8 @@ export async function POST(request: NextRequest): Promise<Response> {
       },
     },
   })
-  if (createErr || !generated?.user) {
-    console.error('[register-org] generateLink(signup) failed', createErr?.message)
+  if (createErr || !created?.user) {
+    console.error('[register-org] signUp failed', createErr?.message)
     return json(
       {
         error: createErr?.message ?? 'Could not create user',
@@ -284,7 +311,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       500,
     )
   }
-  const user_id = generated.user.id
+  const user_id = created.user.id
 
   // ── À partir d'ici, tout fail doit déclencher un CLEANUP ATOMIQUE ───────
   // 1. Le trigger `handle_new_user` a déjà créé `public.users` (et le cas
