@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { logAudit } from '@/lib/audit'
 import { logSession } from '@/lib/session-log'
 import { runVerification } from '@/lib/verification'
+import { verifyPhoneOtpToken } from '@/lib/phone-otp-token'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,6 +25,7 @@ type RegisterOrgBody = {
   first_name?: unknown
   last_name?: unknown
   phone?: unknown
+  phone_otp_token?: unknown
   domain_slug?: unknown
   org_type?: unknown
 }
@@ -39,7 +41,8 @@ type ValidatedInput = {
   password: string
   first_name: string
   last_name: string
-  phone: string | null
+  phone: string
+  phone_otp_token: string
   domain_slug: string
   org_type: OrgType
   email_domain: string
@@ -127,8 +130,12 @@ function validate(body: RegisterOrgBody): { ok: true; input: ValidatedInput } | 
     return { ok: false, error: 'invalid_vat_number' }
   }
   const phone = asString(body.phone)
-  if (phone && !/^\+[1-9]\d{6,14}$/.test(phone)) {
+  if (!phone || !/^\+[1-9]\d{6,14}$/.test(phone)) {
     return { ok: false, error: 'invalid_phone' }
+  }
+  const phone_otp_token = asString(body.phone_otp_token)
+  if (!phone_otp_token) {
+    return { ok: false, error: 'phone_otp_required' }
   }
   return {
     ok: true,
@@ -142,6 +149,7 @@ function validate(body: RegisterOrgBody): { ok: true; input: ValidatedInput } | 
       first_name,
       last_name,
       phone,
+      phone_otp_token,
       domain_slug,
       org_type: org_type_raw as OrgType,
       email_domain,
@@ -173,6 +181,25 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Invalid input', code: validation.error }, 400)
   }
   const input = validation.input
+
+  // ── Vérif HMAC du phone_otp_token (B3.2) ─────────────────────────────────
+  // Vonage Verify v2 ne propose pas de "GET status" post-completion : on
+  // s'appuie donc sur un token signé HMAC-SHA256 émis par
+  // /api/auth/public/verify-phone-otp lors du verify SMS réussi.
+  // Cf. lib/phone-otp-token.ts.
+  let otpVerify: ReturnType<typeof verifyPhoneOtpToken>
+  try {
+    otpVerify = verifyPhoneOtpToken(input.phone_otp_token, input.phone)
+  } catch (err) {
+    console.error('[register-org] verifyPhoneOtpToken threw', err)
+    return json({ error: 'Server misconfigured', code: 'missing_env' }, 500)
+  }
+  if (!otpVerify.ok) {
+    return json(
+      { error: 'Phone OTP not verified', code: 'phone_otp_required' },
+      400,
+    )
+  }
 
   let supabaseAdmin: SupabaseClient
   try {
@@ -260,6 +287,19 @@ export async function POST(request: NextRequest): Promise<Response> {
   //    (pour éviter une violation FK si profiles existe), puis `auth.users`.
   // ────────────────────────────────────────────────────────────────────────
   try {
+    // ── 1.b Flag phone_verified=true sur public.users (B3.2) ──────────────
+    // Le trigger `handle_new_user` a créé public.users sans téléphone ;
+    // on injecte le numéro vérifié OTP + le flag. Non bloquant si erreur,
+    // mais loggé — le user pourra re-vérifier via le flow privé en V2.
+    const { error: phoneUpdErr } = await supabaseAdmin
+      .from('users')
+      .update({ phone: input.phone, phone_verified: true })
+      .eq('id', user_id)
+    if (phoneUpdErr) {
+      console.error('[register-org] users.phone update failed', phoneUpdErr.message)
+      // Non bloquant : on continue le flow.
+    }
+
     // ── 2. Création organizations ─────────────────────────────────────────
     // Colonnes legacy `user_id` et `domain_id` droppées par B6_MIGRATION_2
     // (20260502_archi_orga_b6_migration_2_drop_legacy.sql). La liaison
