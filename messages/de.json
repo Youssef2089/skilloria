@@ -647,7 +647,7 @@
     "resend_sms_label": "Erneut senden ({seconds}s)",
     "code_label": "Bestätigungscode",
     "code_placeholder": "Per SMS erhaltener Code",
-    "code_invalid": "Ungültiger Code. Bitte erneut versuchen.",
+    "code_invalid": "Ungültiger Code. Klicken Sie auf Erneut senden, um einen neuen Code zu erhalten.",
     "phone_verified": "Telefon verifiziert",
     "section_account": "Ihr Konto",
     "password_label": "Passwort",

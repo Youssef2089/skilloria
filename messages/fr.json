@@ -647,7 +647,7 @@
     "resend_sms_label": "Renvoyer ({seconds}s)",
     "code_label": "Code de vérification",
     "code_placeholder": "Code reçu par SMS",
-    "code_invalid": "Code invalide. Veuillez réessayer.",
+    "code_invalid": "Code invalide. Cliquez sur Renvoyer pour recevoir un nouveau code.",
     "phone_verified": "Téléphone vérifié",
     "section_account": "Votre compte",
     "password_label": "Mot de passe",

@@ -152,15 +152,26 @@ export default function InscriptionOrganisationPage() {
         code?: string
       }
       if (!res.ok || !json.phone_verified || !json.phone_otp_token) {
-        setOtpError(t('code_invalid'))
+        // Vonage v2 consomme le request_id à la 1ère soumission de code :
+        // qu'il soit invalide ou que la session ait expiré, le request_id
+        // n'est plus utilisable. On invalide l'état côté front pour forcer
+        // un nouveau "Envoyer SMS" et on casse le cooldown.
+        // L'erreur passe via phoneError (le bloc OTP est rendu conditionnellement
+        // sur otpRequestId, donc otpError disparaîtrait avec lui).
+        setPhoneError(t('code_invalid'))
         setOtpDigits(Array(OTP_LENGTH).fill(''))
-        setTimeout(() => otpInputRefs.current[0]?.focus(), 50)
+        setOtpRequestId(null)
+        setCooldownLeft(0)
         return
       }
       setOtpToken(json.phone_otp_token)
     } catch {
-      setOtpError(t('code_invalid'))
+      // Erreur réseau : on ne sait pas si Vonage a consommé ou non le
+      // request_id. Par sécurité, on invalide aussi (UX retry > faux espoir).
+      setPhoneError(t('code_invalid'))
       setOtpDigits(Array(OTP_LENGTH).fill(''))
+      setOtpRequestId(null)
+      setCooldownLeft(0)
     } finally {
       setOtpVerifying(false)
     }

@@ -92,6 +92,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       },
       body: JSON.stringify({
         brand: BRAND_NAME,
+        // Vonage Verify v2 : par défaut 4 chiffres, on force 6 pour
+        // correspondre aux 6 cases du front (cf. inscription/organisation/page.tsx).
+        // Doc : https://developer.vonage.com/en/api/verify.v2 — placement racine.
+        code_length: 6,
         workflow: [{ channel: 'sms', to: phoneVonage }],
       }),
       signal: controller.signal,
