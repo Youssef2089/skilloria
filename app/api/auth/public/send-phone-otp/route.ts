@@ -16,11 +16,16 @@ export const dynamic = 'force-dynamic'
  * sera scellé par HMAC après vérif réussie (cf. verify-phone-otp + lib/phone-otp-token.ts).
  */
 
-const VONAGE_VERIFY_V2_ENDPOINT = 'https://api.nexmo.com/v2/verify'
+const VONAGE_VERIFY_V2_BASE = 'https://api.nexmo.com/v2/verify'
 const REQUEST_TIMEOUT_MS = 10_000
 const BRAND_NAME = 'Skilloria'
 const RATE_LIMIT_WINDOW_MS = 60_000
 const RATE_LIMIT_MAX = 3 // 3 SMS / minute / IP
+
+// Vonage request_id : UUIDv4 sans tirets selon doc, mais on tolère un peu
+// plus large pour être robuste. On exige uniquement des caractères safe-URL
+// pour éviter toute tentative d'injection dans le path DELETE.
+const VONAGE_REQUEST_ID_REGEX = /^[A-Za-z0-9_-]{8,80}$/
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 
@@ -49,7 +54,7 @@ function json(data: unknown, status = 200): Response {
   })
 }
 
-type Body = { phone?: unknown }
+type Body = { phone?: unknown; previous_request_id?: unknown }
 
 export async function POST(request: NextRequest): Promise<Response> {
   const apiKey = process.env.VONAGE_API_KEY
@@ -77,13 +82,57 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   const phoneVonage = phone.slice(1)
 
+  const previousRequestIdRaw = typeof body.previous_request_id === 'string'
+    ? body.previous_request_id.trim()
+    : ''
+  const previousRequestId = VONAGE_REQUEST_ID_REGEX.test(previousRequestIdRaw)
+    ? previousRequestIdRaw
+    : null
+
   const basic = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')
+
+  // Annulation silencieuse de la session précédente (B3.2.fix2).
+  //
+  // Vonage Verify v2 garde une session active ~5 min sur un numéro après un
+  // POST /v2/verify (même si l'user a saisi un mauvais code). Sans annulation,
+  // un nouveau POST /v2/verify retourne 409 "Concurrent verifications to the
+  // same number are not allowed" → l'user voit "Service SMS indisponible".
+  //
+  // DELETE /v2/verify/{request_id} :
+  //   - 204 : annulé
+  //   - 404 : session déjà expirée → on continue
+  //   - 4xx (notamment <30s post-création) : on log + on continue
+  //
+  // Doc : https://developer.vonage.com/en/api/verify.v2
+  if (previousRequestId) {
+    try {
+      const cancelCtrl = new AbortController()
+      const cancelTimeout = setTimeout(() => cancelCtrl.abort(), REQUEST_TIMEOUT_MS)
+      const cancelRes = await fetch(
+        `${VONAGE_VERIFY_V2_BASE}/${encodeURIComponent(previousRequestId)}`,
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Basic ${basic}` },
+          signal: cancelCtrl.signal,
+        },
+      )
+      clearTimeout(cancelTimeout)
+      if (!cancelRes.ok && cancelRes.status !== 404) {
+        console.warn(
+          '[public/send-phone-otp] cancel previous request failed',
+          cancelRes.status,
+        )
+      }
+    } catch (err) {
+      console.warn('[public/send-phone-otp] cancel previous request threw', err)
+    }
+  }
 
   let res: Response
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
-    res = await fetch(VONAGE_VERIFY_V2_ENDPOINT, {
+    res = await fetch(VONAGE_VERIFY_V2_BASE, {
       method: 'POST',
       headers: {
         Authorization: `Basic ${basic}`,

@@ -39,6 +39,10 @@ export default function InscriptionOrganisationPage() {
 
   // OTP state
   const [otpRequestId, setOtpRequestId] = useState<string | null>(null)
+  // Survit au reset de otpRequestId (cas mauvais code OTP) afin que le prochain
+  // "Envoyer SMS" puisse demander à l'API d'annuler la session Vonage active
+  // (sinon Vonage retourne 409 "Concurrent verifications", cf. B3.2.fix2).
+  const [previousRequestId, setPreviousRequestId] = useState<string | null>(null)
   const [otpToken, setOtpToken] = useState<string | null>(null)
   const [otpDigits, setOtpDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''))
   const [otpError, setOtpError] = useState<string | null>(null)
@@ -107,12 +111,22 @@ export default function InscriptionOrganisationPage() {
       setPhoneError(t('errors.invalid_phone'))
       return
     }
+    // Snapshot de la dernière session Vonage connue (issue de l'envoi
+    // précédent OU du dernier verify échoué) — passé au backend qui DELETE
+    // côté Vonage avant le nouveau POST /v2/verify.
+    const prev = previousRequestId
+    setPreviousRequestId(null)
+    setOtpRequestId(null)
+    setOtpDigits(Array(OTP_LENGTH).fill(''))
     setOtpSending(true)
     try {
       const res = await fetch('/api/auth/public/send-phone-otp', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ phone: form.phone }),
+        body: JSON.stringify({
+          phone: form.phone,
+          ...(prev ? { previous_request_id: prev } : {}),
+        }),
       })
       const json = (await res.json().catch(() => ({}))) as { request_id?: string; code?: string }
       if (!res.ok || !json.request_id) {
@@ -120,7 +134,7 @@ export default function InscriptionOrganisationPage() {
         return
       }
       setOtpRequestId(json.request_id)
-      setOtpDigits(Array(OTP_LENGTH).fill(''))
+      setPreviousRequestId(json.request_id)
       setCooldownLeft(COOLDOWN_SECONDS)
       // focus first OTP input
       setTimeout(() => otpInputRefs.current[0]?.focus(), 50)
@@ -158,6 +172,9 @@ export default function InscriptionOrganisationPage() {
         // un nouveau "Envoyer SMS" et on casse le cooldown.
         // L'erreur passe via phoneError (le bloc OTP est rendu conditionnellement
         // sur otpRequestId, donc otpError disparaîtrait avec lui).
+        // On mémorise previousRequestId AVANT le reset pour que le prochain
+        // "Envoyer SMS" puisse demander un DELETE côté Vonage (B3.2.fix2).
+        if (otpRequestId) setPreviousRequestId(otpRequestId)
         setPhoneError(t('code_invalid'))
         setOtpDigits(Array(OTP_LENGTH).fill(''))
         setOtpRequestId(null)
@@ -168,6 +185,7 @@ export default function InscriptionOrganisationPage() {
     } catch {
       // Erreur réseau : on ne sait pas si Vonage a consommé ou non le
       // request_id. Par sécurité, on invalide aussi (UX retry > faux espoir).
+      if (otpRequestId) setPreviousRequestId(otpRequestId)
       setPhoneError(t('code_invalid'))
       setOtpDigits(Array(OTP_LENGTH).fill(''))
       setOtpRequestId(null)
