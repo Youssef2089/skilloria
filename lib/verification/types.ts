@@ -63,5 +63,13 @@ export type VerificationVerdict = {
     notes?: string
     last_provider?: string
     attempts_count: number
+    /**
+     * Drapeau diagnostic : au moins 1 provider a voté 'rejected' pendant la
+     * chaîne, mais le verdict final n'est jamais 'rejected' automatique (cf.
+     * règle métier figée). Info admin uniquement.
+     */
+    had_rejection?: boolean
+    /** Liste des provider_name qui ont voté 'rejected' (info admin). */
+    rejected_by?: string[]
   }
 }

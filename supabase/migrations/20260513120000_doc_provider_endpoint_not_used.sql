@@ -1,0 +1,51 @@
+-- =============================================================================
+-- Migration : Documentation — verification_providers.api_endpoint NON utilisé
+-- Sprint 11E — Fix Verification Sirene (Bug 1/2/3)
+-- Date : 2026-05-13
+-- =============================================================================
+--
+-- ╔═══════════════════════════════════════════════════════════════════════════╗
+-- ║  ⚠️  À COPIER DANS SUPABASE SQL EDITOR MANUELLEMENT ⚠️                    ║
+-- ║                                                                           ║
+-- ║  NE PAS APPLIQUER VIA `supabase db push`.                                 ║
+-- ║                                                                           ║
+-- ║  Étapes :                                                                 ║
+-- ║    1. Ouvrir Supabase Dashboard → Project → SQL Editor                    ║
+-- ║    2. New query → coller TOUT le contenu ci-dessous                       ║
+-- ║    3. Run → vérifier "Success. No rows returned"                          ║
+-- ║                                                                           ║
+-- ║  Migration IDEMPOTENTE — ré-exécution safe (COMMENT ON est idempotent).   ║
+-- ╚═══════════════════════════════════════════════════════════════════════════╝
+--
+-- CONTEXTE :
+--   Lors du fix Sirene v3.11 → api-sirene/3.11 (mai 2026), il a été constaté
+--   que la colonne `verification_providers.api_endpoint` N'EST PAS LUE par
+--   le code applicatif. Les providers (sirene, companies_house, ai_fallback)
+--   utilisent chacun une const locale `XXX_BASE_URL` codée en dur.
+--
+--   Sans documentation, un futur dev (ou notre futur nous) pourrait croire
+--   qu'il suffit de mettre à jour cette colonne en BDD pour changer l'endpoint
+--   d'un provider — ce serait FAUX et silencieusement no-op.
+--
+--   On documente la situation via COMMENT ON COLUMN pour pré-empter cette
+--   confusion. TODO V2 : refactor de `ProviderFn` pour accepter
+--   `provider.api_endpoint` en argument et rendre cette colonne effective.
+-- =============================================================================
+
+COMMENT ON COLUMN public.verification_providers.api_endpoint IS
+  'TODO V2 : actuellement NON UTILISÉ par le code. L''endpoint est en dur dans lib/verification/sirene.ts (const SIRENE_BASE_URL) et autres providers. À utiliser dans une future refacto pour permettre changement d''endpoint sans redéploiement.';
+
+-- =============================================================================
+-- VÉRIFICATION POST-EXÉCUTION
+-- =============================================================================
+--
+-- SELECT col_description(
+--   'public.verification_providers'::regclass,
+--   ordinal_position
+-- ) AS comment
+-- FROM information_schema.columns
+-- WHERE table_schema = 'public'
+--   AND table_name = 'verification_providers'
+--   AND column_name = 'api_endpoint';
+-- → 1 ligne avec le commentaire ci-dessus
+-- =============================================================================

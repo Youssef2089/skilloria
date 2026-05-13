@@ -16,15 +16,18 @@ import { verifyWithAiFallback } from './ai-fallback'
  * Lit `verification_providers WHERE country_code=X AND is_active`
  * triés par `priority ASC`, itère séquentiellement, insère un row dans
  * `verification_attempts` à chaque tentative, et retourne un verdict final
- * que `register-org` écrira dans `organizations`.
+ * que `register-org` / `finalize-org-registration` écrira dans `organizations`.
  *
- * Logique du verdict :
+ * Logique du verdict (règle métier figée — JAMAIS de rejected automatique) :
  *   - 1er provider qui retourne `approved` ET confidence ≥ threshold
- *     → verdict='approved', method=type du provider
- *   - 1er provider qui retourne `rejected` (peu importe confidence)
- *     → verdict='rejected', method=type du provider
- *   - Sinon (tous inconclusive/error) → verdict='pending_admin_review'
- *     et la dernière tentative est marquée `triggered_admin_review=true`
+ *     → verdict='approved'. Short-circuit ici.
+ *   - Sinon, on enchaîne TOUS les providers (Sirene → IA, etc.) — un
+ *     `rejected` d'un provider n'arrête PAS la chaîne, il est juste tracké
+ *     dans `had_rejection` + `rejected_by[]` pour info admin.
+ *   - À la fin : si aucun provider n'a `approved`, verdict est
+ *     `pending_admin_review` (l'admin tranche en dernier ressort).
+ *
+ * → Aucun verdict final ne peut JAMAIS être `rejected` automatiquement.
  */
 
 type ProviderFn = (input: VerificationInput) => Promise<VerificationOutput>
@@ -79,6 +82,11 @@ export async function runVerification(args: {
   let attempts_count = 0
   let lastOutput: VerificationOutput | null = null
   let lastProvider: VerificationProviderRow | null = null
+  // Tracking diagnostic : provider(s) qui ont voté 'rejected' pendant la
+  // chaîne (info admin uniquement — n'influe plus sur le verdict final
+  // depuis B3.4-fix, cf. règle "JAMAIS de rejected automatique").
+  let had_rejection = false
+  const rejected_by: string[] = []
 
   for (const provider of list) {
     const fn = PROVIDER_REGISTRY[provider.provider_name]
@@ -116,16 +124,10 @@ export async function runVerification(args: {
     }
 
     if (output.result === 'rejected') {
-      return {
-        verification_status: 'rejected',
-        verification_method: methodFromProviderType(provider.provider_type),
-        verification_data: {
-          score: output.confidence_score,
-          notes: output.notes,
-          last_provider: output.provider_name,
-          attempts_count,
-        },
-      }
+      // Tracking pour info admin. Ne short-circuite plus la chaîne — on
+      // continue jusqu'au provider IA qui pourrait sauver le verdict.
+      had_rejection = true
+      rejected_by.push(output.provider_name)
     }
 
     if (
@@ -140,10 +142,11 @@ export async function runVerification(args: {
           notes: output.notes,
           last_provider: output.provider_name,
           attempts_count,
+          ...(had_rejection ? { had_rejection, rejected_by } : {}),
         },
       }
     }
-    // Sinon (inconclusive ou error ou approved-mais-sous-threshold) :
+    // Sinon (rejected, inconclusive, error, ou approved-mais-sous-threshold) :
     // on enchaîne sur le provider suivant.
   }
 
@@ -157,6 +160,7 @@ export async function runVerification(args: {
       notes: lastOutput?.notes ?? 'Aucun provider concluant',
       last_provider: lastOutput?.provider_name,
       attempts_count,
+      ...(had_rejection ? { had_rejection, rejected_by } : {}),
     },
   }
 }
