@@ -11,8 +11,13 @@ import AnnonceCard from '@/components/dashboard/AnnonceCard'
 import type { Annonce, AnnonceStatus } from '@/types/annonce'
 
 /**
- * Dashboard organisation partagé entre /dashboard/entreprise et
- * /dashboard/cabinet (B3.5). Différencié uniquement par la prop `basePath`.
+ * Dashboard organisation (B3.5 + B3.5.fix).
+ *
+ * UNIFICATION B3.5.fix : il n'existe qu'un seul dashboard organisation,
+ * routé sur `/dashboard/entreprise`. `/dashboard/cabinet` redirige vers
+ * cette URL. La prop `basePath` reste pour usage interne (construction
+ * des liens sidebar / annonces) — vaut toujours '/dashboard/entreprise'
+ * en V1, mais on garde la possibilité d'autres préfixes futurs.
  *
  * Couleurs primaires depuis `useDomain()` (multi-tenant — pas de hardcode).
  *
@@ -24,16 +29,28 @@ import type { Annonce, AnnonceStatus } from '@/types/annonce'
  *
  * Bouton "Publier une annonce" désactivé tant que
  * `organization.verification_status !== 'approved'`.
+ *
+ * `organization.org_type` ('client' | 'cabinet' | 'esn') est disponible
+ * en prop pour différenciation future des fonctionnalités par sous-type
+ * (B4+). Non utilisé dans le rendu V1.
  */
 
 export type OrganisationFull = OrganisationLite & {
   verification_status: string | null
   setup_completed_at: string | null
+  /** Sous-type métier : 'client' | 'cabinet' | 'esn'. Disponible pour
+   *  différenciation future des fonctionnalités (B4+). Non utilisé en V1. */
+  org_type: string | null
 }
 
 type Props = {
   organization: OrganisationFull
-  basePath: '/dashboard/entreprise' | '/dashboard/cabinet'
+  /**
+   * Préfixe URL utilisé pour construire les liens internes (sidebar,
+   * annonces). B3.5.fix : vaut toujours '/dashboard/entreprise' en V1
+   * (un seul dashboard org). Conservé en prop pour flexibilité future.
+   */
+  basePath: '/dashboard/entreprise'
   annonces: Annonce[]
   unreadMessagesCount?: number
 }

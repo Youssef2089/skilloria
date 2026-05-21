@@ -5,11 +5,11 @@ import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 
 /**
- * Sidebar du dashboard organisation (B3.5).
+ * Sidebar du dashboard organisation (B3.5 + B3.5.fix).
  *
- * Réutilisable entreprise + cabinet via la prop `basePath` :
- *   - basePath='/dashboard/entreprise'
- *   - basePath='/dashboard/cabinet'
+ * UNIFICATION B3.5.fix : il n'existe qu'un seul dashboard organisation
+ * (`/dashboard/entreprise`). La prop `basePath` est typée en conséquence
+ * pour interdire toute régression vers une seconde URL.
  *
  * Tous les hrefs construits via `<Link>` next-intl (préfixe de locale géré
  * automatiquement — fonctionne FR/EN/ES/DE). Aucun href en dur.
@@ -38,7 +38,7 @@ type Props = {
   organization: OrganisationLite
   unreadMessagesCount?: number
   activeItem: OrgSidebarNavItem
-  basePath: '/dashboard/entreprise' | '/dashboard/cabinet'
+  basePath: '/dashboard/entreprise'
 }
 
 function initialsOf(name: string | null | undefined): string {

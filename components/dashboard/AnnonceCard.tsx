@@ -20,7 +20,9 @@ import type { Annonce, AnnonceStatus } from '@/types/annonce'
 
 type Props = {
   annonce: Annonce
-  basePath: '/dashboard/entreprise' | '/dashboard/cabinet'
+  // B3.5.fix : un seul dashboard org. basePath restreint pour interdire
+  // toute régression vers une URL secondaire.
+  basePath: '/dashboard/entreprise'
 }
 
 const STATUS_STYLES: Record<

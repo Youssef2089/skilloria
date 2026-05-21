@@ -10,15 +10,23 @@ import OrganisationDashboard, {
 import type { Annonce } from '@/types/annonce'
 
 /**
- * Dashboard entreprise (B3.5).
+ * Dashboard entreprise (B3.5 + B3.5.fix).
  *
  * Préserve la logique B3.4 :
  *   1. Charge l'org via RLS organization_members
  *   2. Si setup_completed_at IS NULL → affiche OrgSetupModal (bloquant)
  *   3. Fallback redirect /connexion si pas de session ou requête échoue
  *
- * Une fois setup OK, délègue le rendu à <OrganisationDashboard>
- * (composant partagé avec /dashboard/cabinet via prop `basePath`).
+ * Une fois setup OK, délègue le rendu à <OrganisationDashboard>.
+ *
+ * UNIFICATION DASHBOARD ORG (B3.5.fix) :
+ *   `/dashboard/entreprise` est désormais l'unique dashboard organisation
+ *   pour les 3 sous-types (client / esn / cabinet). `/dashboard/cabinet`
+ *   redirige vers ici. La prop `basePath` du composant reste utile (les
+ *   liens internes en dépendent), mais vaut toujours '/dashboard/entreprise'.
+ *
+ * `org_type` est sélectionné et transmis pour permettre la différenciation
+ * future des fonctionnalités par sous-type dans OrganisationDashboard.
  *
  * Source des annonces (V1) : aucune table dédiée — voir types/annonce.ts.
  * On passe `annonces=[]` constant. La vraie table sera créée en B4+.
@@ -48,7 +56,7 @@ export default function DashboardEntreprise() {
     const { data: memberRow, error } = await supabase
       .from('organization_members')
       .select(
-        'organizations(id, company_name, logo_url, verification_status, setup_completed_at)',
+        'organizations(id, company_name, logo_url, verification_status, setup_completed_at, org_type)',
       )
       .eq('user_id', session.user.id)
       .eq('status', 'active')
@@ -76,6 +84,7 @@ export default function DashboardEntreprise() {
         (orgRow as { verification_status: string | null }).verification_status ?? null,
       setup_completed_at:
         (orgRow as { setup_completed_at: string | null }).setup_completed_at ?? null,
+      org_type: (orgRow as { org_type: string | null }).org_type ?? null,
     }
     setState(
       organization.setup_completed_at
