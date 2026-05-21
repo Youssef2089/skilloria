@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
 import { dashboardUrlForUserType, FALLBACK_DASHBOARD_URL } from '@/lib/auth-routing'
+import { initSession } from '@/lib/secure-fetch'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 /**
@@ -47,6 +48,12 @@ export default function AuthCallbackPage() {
         }
 
         const userId = sessionData.session.user.id
+        const accessToken = sessionData.session.access_token
+
+        // Session unique (11F) : on pose le token+cookie AVANT le redirect.
+        // Best-effort, ne bloque pas le flow d'arrivée sur le dashboard.
+        await initSession({ accessToken, subdomain: domain.subdomain })
+
         const { data: userRow, error: userErr } = await supabase
           .from('users')
           .select('user_type')

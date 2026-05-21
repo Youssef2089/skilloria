@@ -6,6 +6,7 @@ import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Link, useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
+import { useSecureLogout } from '@/lib/secure-fetch'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import {
   useCdiProfile,
@@ -70,6 +71,7 @@ export default function DashboardCDI() {
   const tProfile = useTranslations('cdi_profile_view')
   const router = useRouter()
   const domain = useDomain()
+  const secureLogout = useSecureLogout()
   const state = useCdiProfile()
   const { loading, authenticated, forbidden, error, user, profile } = state
   const apps = useCdiApplications()
@@ -131,8 +133,7 @@ export default function DashboardCDI() {
   }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
+    await secureLogout({ redirectTo: '/' })
   }
 
   const completionPercent = useMemo(() => calculateCompletion(profile), [profile])

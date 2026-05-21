@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useRouter } from '@/i18n/navigation'
-import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
+import { useSecureFetch, useSecureLogout } from '@/lib/secure-fetch'
 
 /**
  * Modale BLOQUANTE post-login pour finaliser l'inscription organisation (B3.4).
@@ -63,8 +62,9 @@ export default function OrgSetupModal({
 }: {
   onComplete: () => void
 }) {
-  const router = useRouter()
   const domain = useDomain()
+  const secureFetch = useSecureFetch()
+  const secureLogout = useSecureLogout()
   const t = useTranslations('inscription_org.modal_setup')
 
   const [form, setForm] = useState<FormState>(initialForm)
@@ -143,20 +143,9 @@ export default function OrgSetupModal({
 
     setSubmitting(true)
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      if (!session) {
-        setError(t('errors.generic'))
-        return
-      }
-      const res = await fetch('/api/auth/finalize-org-registration', {
+      const res = await secureFetch('/api/auth/finalize-org-registration', {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-          'x-subdomain': domain.subdomain,
-        },
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           civility: form.civility,
           job_title: form.job_title.trim(),
@@ -184,8 +173,9 @@ export default function OrgSetupModal({
   }
 
   async function handleSignOut() {
-    await supabase.auth.signOut()
-    router.replace('/')
+    // secureLogout : POST /api/auth/logout (vide last_session_token + cookie)
+    // PUIS supabase.auth.signOut() + router.push. Cf. lib/secure-fetch.ts.
+    await secureLogout({ redirectTo: '/' })
   }
 
   // ── Styles ───────────────────────────────────────────────────────────────

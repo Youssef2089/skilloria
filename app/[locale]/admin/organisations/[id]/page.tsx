@@ -4,8 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { Link, useRouter } from '@/i18n/navigation'
-import { supabase } from '@/lib/supabase'
-import { useDomain } from '@/context/DomainContext'
+import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
  * /admin/organisations/[id] — fiche détail d'une organisation (B5c).
@@ -88,7 +87,7 @@ export default function AdminOrgDetailPage() {
   const locale = useLocale()
   const params = useParams()
   const router = useRouter()
-  const domain = useDomain()
+  const secureFetch = useSecureFetch()
 
   const orgId = (params?.id as string | undefined) ?? ''
 
@@ -104,20 +103,8 @@ export default function AdminOrgDetailPage() {
     setLoading(true)
     setError(null)
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      if (!session) {
-        setError(t('errors.forbidden'))
-        setLoading(false)
-        return
-      }
-      const res = await fetch(`/api/admin/get-org/${orgId}`, {
+      const res = await secureFetch(`/api/admin/get-org/${orgId}`, {
         method: 'GET',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'x-subdomain': domain.subdomain,
-        },
       })
       if (res.status === 404) {
         setError('not_found')
@@ -141,7 +128,7 @@ export default function AdminOrgDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [orgId, t, domain.subdomain])
+  }, [orgId, t, secureFetch])
 
   useEffect(() => {
     if (orgId) void load()
@@ -151,26 +138,15 @@ export default function AdminOrgDetailPage() {
     setSubmitting(true)
     setSubmitError(null)
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      if (!session) {
-        setSubmitError(t('errors.forbidden'))
-        return
-      }
       const url = action === 'approve' ? '/api/admin/approve-org' : '/api/admin/reject-org'
       const body: { organization_id: string; reason?: string } = { organization_id: orgId }
       if (action === 'reject') {
         const trimmed = rejectReason.trim()
         if (trimmed.length > 0) body.reason = trimmed
       }
-      const res = await fetch(url, {
+      const res = await secureFetch(url, {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-          'x-subdomain': domain.subdomain,
-        },
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
       })
       const payload = (await res.json().catch(() => ({}))) as { code?: string }

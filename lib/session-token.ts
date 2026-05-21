@@ -23,8 +23,32 @@ import { randomUUID } from 'node:crypto'
  * auth-guard sans erreur — il aura son token au prochain login.
  */
 
-export const SESSION_COOKIE_NAME = 'ss_token'
+const SESSION_COOKIE_BASE_NAME = 'ss_token'
 const SESSION_COOKIE_MAX_AGE_S = 30 * 24 * 60 * 60 // 30 jours
+
+/**
+ * Nom du cookie de session — suffixé sur staging pour éviter la collision
+ * avec prod sur le domaine parent `.skilloria.io`.
+ *
+ * Problème évité (11F F2) :
+ *   prod (app.skilloria.io) et staging (staging.skilloria.io) partagent
+ *   Domain=.skilloria.io. Sans suffixe, un login staging écraserait le
+ *   cookie prod côté navigateur → l'user se ferait déconnecter de prod
+ *   à tort (mismatch BDD prod ≠ cookie issu de staging).
+ *
+ *   Solution : staging utilise `ss_token_staging`. Prod garde `ss_token`.
+ *
+ * NB : le nom du cookie est dérivé du host pour rester zero-config —
+ * même règle côté pose (init-session) et lecture (auth-guard).
+ */
+export function getSessionCookieName(request: NextRequest): string {
+  const host = (request.headers.get('host') ?? '').toLowerCase().split(':')[0]
+  if (host === 'staging.skilloria.io') return `${SESSION_COOKIE_BASE_NAME}_staging`
+  return SESSION_COOKIE_BASE_NAME
+}
+
+/** Re-export pour compat éventuelle (utilisé nulle part actuellement). */
+export const SESSION_COOKIE_NAME = SESSION_COOKIE_BASE_NAME
 
 /** Génère un nouveau session token cryptographiquement aléatoire. */
 export function generateSessionToken(): string {
@@ -109,7 +133,8 @@ export function buildSessionCookieOptions(request: NextRequest): {
 /** Sérialise les options en string `Set-Cookie` compatible RFC 6265. */
 export function serializeSessionCookie(value: string, request: NextRequest): string {
   const opts = buildSessionCookieOptions(request)
-  const parts: string[] = [`${SESSION_COOKIE_NAME}=${encodeURIComponent(value)}`]
+  const name = getSessionCookieName(request)
+  const parts: string[] = [`${name}=${encodeURIComponent(value)}`]
   if (opts.domain) parts.push(`Domain=${opts.domain}`)
   parts.push(`Path=${opts.path}`)
   parts.push(`Max-Age=${opts.maxAge}`)
@@ -122,7 +147,8 @@ export function serializeSessionCookie(value: string, request: NextRequest): str
 /** Sérialise un `Set-Cookie` qui INVALIDE le cookie (logout). */
 export function serializeClearedSessionCookie(request: NextRequest): string {
   const opts = buildSessionCookieOptions(request)
-  const parts: string[] = [`${SESSION_COOKIE_NAME}=`]
+  const name = getSessionCookieName(request)
+  const parts: string[] = [`${name}=`]
   if (opts.domain) parts.push(`Domain=${opts.domain}`)
   parts.push(`Path=${opts.path}`)
   parts.push(`Max-Age=0`)
@@ -132,8 +158,9 @@ export function serializeClearedSessionCookie(request: NextRequest): string {
   return parts.join('; ')
 }
 
-/** Lecture du cookie ss_token depuis une NextRequest. */
+/** Lecture du cookie de session (nom suffixé selon env) depuis NextRequest. */
 export function readSessionCookieToken(request: NextRequest): string | null {
-  const cookie = request.cookies.get(SESSION_COOKIE_NAME)?.value
+  const name = getSessionCookieName(request)
+  const cookie = request.cookies.get(name)?.value
   return cookie && cookie.length > 0 ? cookie : null
 }

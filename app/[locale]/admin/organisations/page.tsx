@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
-import { supabase } from '@/lib/supabase'
-import { useDomain } from '@/context/DomainContext'
+import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
  * /admin/organisations — liste des organisations à valider (B5c).
@@ -60,7 +59,7 @@ function scoreColor(score: number | null | undefined): string {
 export default function AdminOrgsListPage() {
   const t = useTranslations('admin_back_office')
   const locale = useLocale()
-  const domain = useDomain()
+  const secureFetch = useSecureFetch()
 
   const [activeTab, setActiveTab] = useState<TabKey>('pending')
   const [loading, setLoading] = useState(true)
@@ -74,20 +73,8 @@ export default function AdminOrgsListPage() {
     setLoading(true)
     setError(null)
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      if (!session) {
-        setError(t('errors.forbidden'))
-        setLoading(false)
-        return
-      }
-      const res = await fetch('/api/admin/list-orgs?status=all', {
+      const res = await secureFetch('/api/admin/list-orgs?status=all', {
         method: 'GET',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'x-subdomain': domain.subdomain,
-        },
       })
       if (res.status === 403) {
         setError(t('errors.forbidden'))
@@ -106,7 +93,7 @@ export default function AdminOrgsListPage() {
     } finally {
       setLoading(false)
     }
-  }, [t, domain.subdomain])
+  }, [t, secureFetch])
 
   useEffect(() => {
     void load()

@@ -6,6 +6,7 @@ import { Link, useRouter } from '@/i18n/navigation'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
+import { useSecureLogout } from '@/lib/secure-fetch'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 const jakarta = Plus_Jakarta_Sans({
@@ -282,6 +283,7 @@ export default function MonProfilPage() {
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
+  const secureLogout = useSecureLogout()
 
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -903,10 +905,7 @@ export default function MonProfilPage() {
             <div
               className="nav-item"
               style={{ color: '#ef4444' }}
-              onClick={async () => {
-                await supabase.auth.signOut()
-                router.push('/')
-              }}
+              onClick={() => void secureLogout({ redirectTo: '/' })}
             >
               {tDash('sidebar.nav.logout')}
             </div>

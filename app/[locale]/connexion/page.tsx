@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
+import { initSession } from '@/lib/secure-fetch'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export default function ConnexionPage() {
@@ -61,6 +62,14 @@ export default function ConnexionPage() {
         return
       }
     }
+
+    // Session unique (11F) : on pose le last_session_token + cookie httpOnly
+    // AVANT le redirect. Effet voulu : invalide les sessions actives du
+    // même compte sur d'autres appareils/onglets (D2). Best-effort.
+    await initSession({
+      accessToken: data.session.access_token,
+      subdomain: domain.subdomain,
+    })
 
     // Redirection selon le type d'utilisateur — mapping mutualisé
     // dans lib/auth-routing.ts, partagé avec /auth/callback (B3.3.fix2).

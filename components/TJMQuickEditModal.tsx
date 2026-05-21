@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslations } from 'next-intl'
 import { useDomain } from '@/context/DomainContext'
-import { supabase } from '@/lib/supabase'
+import { useSecureFetch } from '@/lib/secure-fetch'
 
 type Props = {
   open: boolean
@@ -25,6 +25,7 @@ export default function TJMQuickEditModal({
 }: Props) {
   const t = useTranslations('dashboard_freelance.tjm_modal')
   const domain = useDomain()
+  const secureFetch = useSecureFetch()
   const [mounted, setMounted] = useState(false)
   const [show, setShow] = useState(false)
   const [min, setMin] = useState<string>('')
@@ -124,21 +125,9 @@ export default function TJMQuickEditModal({
 
     setSaving(true)
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      if (!session) {
-        setError(t('error_save'))
-        setSaving(false)
-        return
-      }
-      const res = await fetch('/api/profile', {
+      const res = await secureFetch('/api/profile', {
         method: 'PATCH',
-        headers: {
-          'content-type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-          'x-subdomain': domain.subdomain,
-        },
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ tjm_min: minNum, tjm_max: maxNum }),
       })
       if (!res.ok) {

@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/navigation'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
+import { useSecureFetch } from '@/lib/secure-fetch'
 import CountrySelect from '@/components/CountrySelect'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import CompactListItem from '@/components/CompactListItem'
@@ -199,6 +200,7 @@ const SECTION_COLORS = {
 export default function ValiderProfilPage() {
   const router = useRouter()
   const domain = useDomain()
+  const secureFetch = useSecureFetch()
   const tProfile = useTranslations('profile_validation')
   const locale = useLocale()
 
@@ -742,13 +744,11 @@ export default function ValiderProfilPage() {
     }
 
     try {
-      const res = await fetch('/api/profile', {
+      // accessToken state reste comme guard "session prête" — secureFetch
+      // s'occupe d'injecter Authorization + cookie + interception 403 (11F).
+      const res = await secureFetch('/api/profile', {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-          'x-subdomain': domain.subdomain,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
       const payload = await res.json().catch(() => ({} as any))

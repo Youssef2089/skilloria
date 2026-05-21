@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
+import { useSecureFetch } from '@/lib/secure-fetch'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 // =============================================================================
@@ -38,6 +39,8 @@ export default function CdiProfilUploadPage() {
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
+  const secureFetch = useSecureFetch()
+
 
   const [authChecked, setAuthChecked] = useState(false)
   const [forbidden, setForbidden] = useState(false)
@@ -91,18 +94,11 @@ export default function CdiProfilUploadPage() {
 
   const pollStatus = async (
     jobId: string,
-    accessToken: string,
   ): Promise<{ ok: true } | { ok: false; error: string }> => {
     const start = Date.now()
     while (Date.now() - start < POLL_TIMEOUT_MS) {
       await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
-      const res = await fetch(`/api/profile/cv-status/${jobId}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'x-subdomain': domain.subdomain,
-        },
-      })
+      const res = await secureFetch(`/api/profile/cv-status/${jobId}`, { method: 'GET' })
       const payload = await res.json().catch(() => ({} as any))
       if (payload?.status === 'done') return { ok: true }
       if (payload?.status === 'failed') {
@@ -135,25 +131,12 @@ export default function CdiProfilUploadPage() {
     setStatusMsg(null)
 
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      if (!session) {
-        setStatus('error')
-        setErrorMsg(t('errors.session_expired'))
-        return
-      }
-
       const form = new FormData()
       form.append('file', file)
       form.append('consent', 'true')
 
-      const res = await fetch('/api/profile/cdi-upload-cv', {
+      const res = await secureFetch('/api/profile/cdi-upload-cv', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'x-subdomain': domain.subdomain,
-        },
         body: form,
       })
       const payload = await res.json().catch(() => ({} as any))
@@ -191,7 +174,7 @@ export default function CdiProfilUploadPage() {
       }
 
       if (payload?.status === 'processing' && payload?.jobId) {
-        const poll = await pollStatus(payload.jobId, session.access_token)
+        const poll = await pollStatus(payload.jobId)
         if (!poll.ok) {
           setErrorMsg(t('errors.parsing_failed', { reason: poll.error }))
           setStatus('error')

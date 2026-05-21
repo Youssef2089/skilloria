@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Link, useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
+import { useSecureLogout } from '@/lib/secure-fetch'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import TJMQuickEditModal from '@/components/TJMQuickEditModal'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
@@ -16,6 +17,7 @@ export default function DashboardFreelance() {
   const tCommon = useTranslations('common')
   const router = useRouter()
   const domain = useDomain()
+  const secureLogout = useSecureLogout()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -307,7 +309,7 @@ export default function DashboardFreelance() {
           <div className="nav-item" style={{ animationDelay: '0.45s' }}>{t('sidebar.nav.settings')}</div>
 
           <div style={{ marginTop: 'auto', padding: '16px 8px 0', borderTop: '1px solid #e5e7eb' }}>
-            <div className="nav-item" style={{ color: '#ef4444' }} onClick={async () => { await supabase.auth.signOut(); router.push('/') }}>
+            <div className="nav-item" style={{ color: '#ef4444' }} onClick={() => void secureLogout({ redirectTo: '/' })}>
               {t('sidebar.nav.logout')}
             </div>
           </div>

@@ -6,6 +6,7 @@ import Cropper, { type Area } from 'react-easy-crop'
 import { useTranslations } from 'next-intl'
 import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
+import { useSecureFetch } from '@/lib/secure-fetch'
 
 type Props = {
   open: boolean
@@ -52,6 +53,7 @@ async function getCroppedBlob(imageSrc: string, area: Area): Promise<Blob> {
 export default function AvatarUploadModal({ open, currentPhotoUrl, onClose, onSaved }: Props) {
   const t = useTranslations('dashboard_freelance.avatar_modal')
   const domain = useDomain()
+  const secureFetch = useSecureFetch()
   const [mounted, setMounted] = useState(false)
   const [show, setShow] = useState(false)
   const [imageSrc, setImageSrc] = useState<string | null>(null)
@@ -176,13 +178,9 @@ export default function AvatarUploadModal({ open, currentPhotoUrl, onClose, onSa
       const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)
       const url = `${pub.publicUrl}?v=${Date.now()}`
 
-      const res = await fetch('/api/profile', {
+      const res = await secureFetch('/api/profile', {
         method: 'PATCH',
-        headers: {
-          'content-type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-          'x-subdomain': domain.subdomain,
-        },
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ photo_url: url }),
       })
       if (!res.ok) {
