@@ -1277,5 +1277,98 @@
     "empty_subtitle": "No listings yet.",
     "empty_cta": "Create a listing",
     "empty_filtered": "No listings in this filter"
+  },
+  "admin_back_office": {
+    "sidebar": {
+      "title": "Skilloria back-office",
+      "section_validation": "Validation",
+      "nav_organisations": "Organisations",
+      "nav_experts": "Experts",
+      "nav_experts_soon": "soon"
+    },
+    "orgs": {
+      "page_title": "Organisations to review",
+      "tab_pending": "Pending",
+      "tab_approved": "Approved",
+      "tab_rejected": "Rejected",
+      "tab_all": "All"
+    },
+    "table": {
+      "col_company": "Company",
+      "col_siren": "SIREN",
+      "col_type": "Type",
+      "col_score": "AI score",
+      "col_registered": "Registered on",
+      "col_decided": "Decided on"
+    },
+    "detail": {
+      "back": "← Back to list",
+      "section_company": "Company",
+      "section_contact": "Contact",
+      "section_verification": "Verification result",
+      "field_siren": "SIREN",
+      "field_type": "Organisation type",
+      "field_website": "Website",
+      "field_name": "Name",
+      "field_role": "Role",
+      "field_email": "Email",
+      "field_linkedin": "LinkedIn",
+      "field_method": "Method",
+      "field_score": "Score",
+      "field_reject_provider": "Rejecting provider",
+      "ai_note_label": "AI note"
+    },
+    "status_pending": "Pending",
+    "status_approved": "Approved",
+    "status_rejected": "Rejected",
+    "action_approve": "Approve",
+    "action_reject": "Reject",
+    "confirm_approve_title": "Approve this organisation?",
+    "confirm_approve_text": "The organisation will be able to post listings and the contact will receive a welcome email.",
+    "confirm_reject_title": "Reject this organisation?",
+    "confirm_reject_text": "The organisation will be marked as rejected and the contact will receive an explanatory email.",
+    "reject_reason_label": "Rejection reason (optional)",
+    "reject_reason_placeholder": "e.g. SIREN not found in INSEE registry, inconsistent provider signals…",
+    "confirm_yes": "Confirm",
+    "confirm_cancel": "Cancel",
+    "decided_on": "Decided on {date}",
+    "decision_manual": "Manual decision by an admin",
+    "decision_auto": "Automatic decision (AI + Sirene)",
+    "review_reason_label": "Reason",
+    "empty_pending": "No pending organisation.",
+    "empty_approved": "No approved organisation yet.",
+    "empty_rejected": "No rejected organisation yet.",
+    "loading": "Loading…",
+    "not_found_title": "Organisation not found",
+    "not_found_subtitle": "This organisation does not exist or has been deleted.",
+    "errors": {
+      "generic": "An error occurred. Please try again.",
+      "already_processed": "This organisation has already been processed.",
+      "forbidden": "Admin access only."
+    }
+  },
+  "emails": {
+    "common_footer": "The Skilloria team",
+    "common_signature": "See you soon,",
+    "common_login_cta": "Sign in",
+    "welcome": {
+      "subject": "Your company has been verified ✓",
+      "preheader": "You can now post on Skilloria.",
+      "title": "Welcome to Skilloria!",
+      "hello": "Hi {firstName},",
+      "body_p1": "Your company <strong>{companyName}</strong> has been verified by our team. You can now access all Skilloria features and post your first listings.",
+      "body_p2": "We are delighted to have you as a partner.",
+      "cta_label": "Go to my dashboard"
+    },
+    "reject": {
+      "subject": "About your Skilloria registration",
+      "preheader": "Your registration could not be approved.",
+      "title": "Registration not approved",
+      "hello": "Hi {firstName},",
+      "body_p1": "After review, we are unable to approve the registration of <strong>{companyName}</strong> on Skilloria at this time.",
+      "body_with_reason_p2": "Reason: {reason}",
+      "body_p3": "If you believe this is a mistake, please reply directly to this email.",
+      "cta_label": "Contact us"
+    }
   }
 }

@@ -1277,5 +1277,98 @@
     "empty_subtitle": "Aucune annonce pour le moment.",
     "empty_cta": "Créer une annonce",
     "empty_filtered": "Aucune annonce dans ce filtre"
+  },
+  "admin_back_office": {
+    "sidebar": {
+      "title": "Back-office Skilloria",
+      "section_validation": "Validation",
+      "nav_organisations": "Organisations",
+      "nav_experts": "Experts",
+      "nav_experts_soon": "bientôt"
+    },
+    "orgs": {
+      "page_title": "Organisations à valider",
+      "tab_pending": "En attente",
+      "tab_approved": "Validées",
+      "tab_rejected": "Refusées",
+      "tab_all": "Toutes"
+    },
+    "table": {
+      "col_company": "Entreprise",
+      "col_siren": "SIREN",
+      "col_type": "Type",
+      "col_score": "Score IA",
+      "col_registered": "Inscrite le",
+      "col_decided": "Décidé le"
+    },
+    "detail": {
+      "back": "← Retour à la liste",
+      "section_company": "Entreprise",
+      "section_contact": "Contact",
+      "section_verification": "Résultat de vérification",
+      "field_siren": "SIREN",
+      "field_type": "Type d'organisation",
+      "field_website": "Site web",
+      "field_name": "Nom",
+      "field_role": "Poste",
+      "field_email": "E-mail",
+      "field_linkedin": "LinkedIn",
+      "field_method": "Méthode",
+      "field_score": "Score",
+      "field_reject_provider": "Provider ayant rejeté",
+      "ai_note_label": "Note IA"
+    },
+    "status_pending": "En attente",
+    "status_approved": "Validée",
+    "status_rejected": "Refusée",
+    "action_approve": "Valider",
+    "action_reject": "Refuser",
+    "confirm_approve_title": "Valider cette organisation ?",
+    "confirm_approve_text": "L'organisation pourra publier des annonces et le contact recevra un e-mail de bienvenue.",
+    "confirm_reject_title": "Refuser cette organisation ?",
+    "confirm_reject_text": "L'organisation sera marquée comme refusée et le contact recevra un e-mail explicatif.",
+    "reject_reason_label": "Motif du refus (optionnel)",
+    "reject_reason_placeholder": "Ex. : SIREN absent du registre INSEE, signaux fournisseurs incohérents…",
+    "confirm_yes": "Confirmer",
+    "confirm_cancel": "Annuler",
+    "decided_on": "Décidé le {date}",
+    "decision_manual": "Décision manuelle d'un admin",
+    "decision_auto": "Décision automatique (IA + Sirene)",
+    "review_reason_label": "Motif",
+    "empty_pending": "Aucune organisation en attente.",
+    "empty_approved": "Aucune organisation validée pour le moment.",
+    "empty_rejected": "Aucune organisation refusée pour le moment.",
+    "loading": "Chargement…",
+    "not_found_title": "Organisation introuvable",
+    "not_found_subtitle": "Cette organisation n'existe pas ou a été supprimée.",
+    "errors": {
+      "generic": "Une erreur est survenue. Veuillez réessayer.",
+      "already_processed": "Cette organisation a déjà été traitée.",
+      "forbidden": "Accès réservé aux administrateurs."
+    }
+  },
+  "emails": {
+    "common_footer": "L'équipe Skilloria",
+    "common_signature": "À très vite,",
+    "common_login_cta": "Se connecter",
+    "welcome": {
+      "subject": "Votre entreprise est vérifiée ✓",
+      "preheader": "Vous pouvez désormais publier sur Skilloria.",
+      "title": "Bienvenue sur Skilloria !",
+      "hello": "Bonjour {firstName},",
+      "body_p1": "Votre entreprise <strong>{companyName}</strong> a été vérifiée par notre équipe. Vous pouvez maintenant accéder à toutes les fonctionnalités de Skilloria et publier vos premières annonces.",
+      "body_p2": "Nous sommes ravis de vous compter parmi nos partenaires.",
+      "cta_label": "Accéder à mon tableau de bord"
+    },
+    "reject": {
+      "subject": "Concernant votre inscription sur Skilloria",
+      "preheader": "Votre inscription n'a pas pu être validée.",
+      "title": "Inscription non validée",
+      "hello": "Bonjour {firstName},",
+      "body_p1": "Après examen, nous ne sommes pas en mesure de valider l'inscription de <strong>{companyName}</strong> sur Skilloria pour le moment.",
+      "body_with_reason_p2": "Motif : {reason}",
+      "body_p3": "Si vous pensez qu'il s'agit d'une erreur, vous pouvez nous répondre directement à ce mail.",
+      "cta_label": "Nous contacter"
+    }
   }
 }

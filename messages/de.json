@@ -1277,5 +1277,98 @@
     "empty_subtitle": "Noch keine Anzeigen.",
     "empty_cta": "Anzeige erstellen",
     "empty_filtered": "Keine Anzeigen in diesem Filter"
+  },
+  "admin_back_office": {
+    "sidebar": {
+      "title": "Skilloria-Backoffice",
+      "section_validation": "Validierung",
+      "nav_organisations": "Organisationen",
+      "nav_experts": "Experten",
+      "nav_experts_soon": "demnächst"
+    },
+    "orgs": {
+      "page_title": "Zu prüfende Organisationen",
+      "tab_pending": "Ausstehend",
+      "tab_approved": "Validiert",
+      "tab_rejected": "Abgelehnt",
+      "tab_all": "Alle"
+    },
+    "table": {
+      "col_company": "Unternehmen",
+      "col_siren": "SIREN",
+      "col_type": "Typ",
+      "col_score": "KI-Score",
+      "col_registered": "Registriert am",
+      "col_decided": "Entschieden am"
+    },
+    "detail": {
+      "back": "← Zurück zur Liste",
+      "section_company": "Unternehmen",
+      "section_contact": "Kontakt",
+      "section_verification": "Verifizierungsergebnis",
+      "field_siren": "SIREN",
+      "field_type": "Organisationstyp",
+      "field_website": "Website",
+      "field_name": "Name",
+      "field_role": "Position",
+      "field_email": "E-Mail",
+      "field_linkedin": "LinkedIn",
+      "field_method": "Methode",
+      "field_score": "Score",
+      "field_reject_provider": "Ablehnender Anbieter",
+      "ai_note_label": "KI-Notiz"
+    },
+    "status_pending": "Ausstehend",
+    "status_approved": "Validiert",
+    "status_rejected": "Abgelehnt",
+    "action_approve": "Validieren",
+    "action_reject": "Ablehnen",
+    "confirm_approve_title": "Diese Organisation validieren?",
+    "confirm_approve_text": "Die Organisation kann Anzeigen veröffentlichen und der Kontakt erhält eine Willkommens-E-Mail.",
+    "confirm_reject_title": "Diese Organisation ablehnen?",
+    "confirm_reject_text": "Die Organisation wird als abgelehnt markiert und der Kontakt erhält eine erläuternde E-Mail.",
+    "reject_reason_label": "Ablehnungsgrund (optional)",
+    "reject_reason_placeholder": "z. B. SIREN nicht im INSEE-Register, inkonsistente Anbietersignale…",
+    "confirm_yes": "Bestätigen",
+    "confirm_cancel": "Abbrechen",
+    "decided_on": "Entschieden am {date}",
+    "decision_manual": "Manuelle Entscheidung durch einen Administrator",
+    "decision_auto": "Automatische Entscheidung (KI + Sirene)",
+    "review_reason_label": "Grund",
+    "empty_pending": "Keine ausstehenden Organisationen.",
+    "empty_approved": "Noch keine validierten Organisationen.",
+    "empty_rejected": "Noch keine abgelehnten Organisationen.",
+    "loading": "Wird geladen…",
+    "not_found_title": "Organisation nicht gefunden",
+    "not_found_subtitle": "Diese Organisation existiert nicht oder wurde gelöscht.",
+    "errors": {
+      "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
+      "already_processed": "Diese Organisation wurde bereits bearbeitet.",
+      "forbidden": "Nur für Administratoren zugänglich."
+    }
+  },
+  "emails": {
+    "common_footer": "Das Skilloria-Team",
+    "common_signature": "Bis bald,",
+    "common_login_cta": "Anmelden",
+    "welcome": {
+      "subject": "Ihr Unternehmen ist verifiziert ✓",
+      "preheader": "Sie können jetzt auf Skilloria veröffentlichen.",
+      "title": "Willkommen bei Skilloria!",
+      "hello": "Hallo {firstName},",
+      "body_p1": "Ihr Unternehmen <strong>{companyName}</strong> wurde von unserem Team verifiziert. Sie haben jetzt Zugang zu allen Skilloria-Funktionen und können Ihre ersten Anzeigen veröffentlichen.",
+      "body_p2": "Wir freuen uns, Sie als Partner zu haben.",
+      "cta_label": "Zum Dashboard"
+    },
+    "reject": {
+      "subject": "Zu Ihrer Skilloria-Registrierung",
+      "preheader": "Ihre Registrierung konnte nicht bestätigt werden.",
+      "title": "Registrierung nicht bestätigt",
+      "hello": "Hallo {firstName},",
+      "body_p1": "Nach Prüfung können wir die Registrierung von <strong>{companyName}</strong> auf Skilloria derzeit nicht bestätigen.",
+      "body_with_reason_p2": "Grund: {reason}",
+      "body_p3": "Falls Sie der Meinung sind, dass es sich um einen Irrtum handelt, antworten Sie direkt auf diese E-Mail.",
+      "cta_label": "Kontakt aufnehmen"
+    }
   }
 }
