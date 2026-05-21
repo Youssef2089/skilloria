@@ -1239,5 +1239,43 @@
       "saving": "Guardando...",
       "publishing": "Publicando..."
     }
+  },
+  "dashboard_entreprise": {
+    "nav": {
+      "dashboard": "Panel",
+      "messages": "Mensajes",
+      "organisation": "Mi empresa",
+      "members": "Miembros del equipo",
+      "invoices": "Facturas y pagos",
+      "settings": "Ajustes"
+    },
+    "add_logo": "Añadir un logo →",
+    "greeting": "Hola",
+    "publish_annonce": "Publicar un anuncio",
+    "publish_disabled_tooltip": "Disponible una vez verificada tu empresa",
+    "verification_pending": "Verificación pendiente",
+    "my_annonces": "Mis anuncios",
+    "search_placeholder": "Buscar por título…",
+    "tab_published": "Publicados",
+    "tab_in_discussion": "En conversación",
+    "tab_closed": "Cerrados",
+    "tab_all": "Todos",
+    "status_published": "Publicado",
+    "status_in_discussion": "En conversación",
+    "status_closed": "Cerrado",
+    "candidatures_label": "Candidaturas",
+    "counter_recues": "Recibidas",
+    "counter_nouvelles": "Nuevas",
+    "counter_en_discussion": "En conversación",
+    "counter_retenues": "Seleccionadas",
+    "counter_refusees": "Rechazadas",
+    "manage_annonce": "Gestionar este anuncio →",
+    "view_detail": "Ver detalle →",
+    "published_ago": "Publicado hace {time}",
+    "closed_on": "Cerrado el {date}",
+    "empty_title": "Publica tu primer anuncio",
+    "empty_subtitle": "Aún no hay anuncios.",
+    "empty_cta": "Crear un anuncio",
+    "empty_filtered": "Ningún anuncio en este filtro"
   }
 }

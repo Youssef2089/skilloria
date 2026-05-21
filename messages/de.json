@@ -1239,5 +1239,43 @@
       "saving": "Speichern...",
       "publishing": "Veröffentlichen..."
     }
+  },
+  "dashboard_entreprise": {
+    "nav": {
+      "dashboard": "Übersicht",
+      "messages": "Nachrichten",
+      "organisation": "Mein Unternehmen",
+      "members": "Teammitglieder",
+      "invoices": "Rechnungen und Zahlungen",
+      "settings": "Einstellungen"
+    },
+    "add_logo": "Logo hinzufügen →",
+    "greeting": "Hallo",
+    "publish_annonce": "Anzeige veröffentlichen",
+    "publish_disabled_tooltip": "Verfügbar sobald Ihr Unternehmen verifiziert ist",
+    "verification_pending": "Verifizierung ausstehend",
+    "my_annonces": "Meine Anzeigen",
+    "search_placeholder": "Nach Titel suchen…",
+    "tab_published": "Veröffentlicht",
+    "tab_in_discussion": "In Bearbeitung",
+    "tab_closed": "Geschlossen",
+    "tab_all": "Alle",
+    "status_published": "Veröffentlicht",
+    "status_in_discussion": "In Bearbeitung",
+    "status_closed": "Geschlossen",
+    "candidatures_label": "Bewerbungen",
+    "counter_recues": "Eingegangen",
+    "counter_nouvelles": "Neu",
+    "counter_en_discussion": "In Bearbeitung",
+    "counter_retenues": "Ausgewählt",
+    "counter_refusees": "Abgelehnt",
+    "manage_annonce": "Anzeige verwalten →",
+    "view_detail": "Details ansehen →",
+    "published_ago": "Veröffentlicht vor {time}",
+    "closed_on": "Geschlossen am {date}",
+    "empty_title": "Veröffentlichen Sie Ihre erste Anzeige",
+    "empty_subtitle": "Noch keine Anzeigen.",
+    "empty_cta": "Anzeige erstellen",
+    "empty_filtered": "Keine Anzeigen in diesem Filter"
   }
 }

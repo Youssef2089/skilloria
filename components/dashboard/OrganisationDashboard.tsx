@@ -1,0 +1,487 @@
+'use client'
+
+import { useMemo, useState } from 'react'
+import { useTranslations } from 'next-intl'
+import { Link } from '@/i18n/navigation'
+import { useDomain } from '@/context/DomainContext'
+import OrganisationSidebar, {
+  type OrganisationLite,
+} from '@/components/dashboard/OrganisationSidebar'
+import AnnonceCard from '@/components/dashboard/AnnonceCard'
+import type { Annonce, AnnonceStatus } from '@/types/annonce'
+
+/**
+ * Dashboard organisation partagé entre /dashboard/entreprise et
+ * /dashboard/cabinet (B3.5). Différencié uniquement par la prop `basePath`.
+ *
+ * Couleurs primaires depuis `useDomain()` (multi-tenant — pas de hardcode).
+ *
+ * Section "Mes annonces" :
+ *   - Recherche par titre (state local `searchQuery`)
+ *   - Onglets filtres (state local `activeTab`) : Publiées (par défaut),
+ *     En discussion, Clôturées, Toutes
+ *   - Empty states selon contexte
+ *
+ * Bouton "Publier une annonce" désactivé tant que
+ * `organization.verification_status !== 'approved'`.
+ */
+
+export type OrganisationFull = OrganisationLite & {
+  verification_status: string | null
+  setup_completed_at: string | null
+}
+
+type Props = {
+  organization: OrganisationFull
+  basePath: '/dashboard/entreprise' | '/dashboard/cabinet'
+  annonces: Annonce[]
+  unreadMessagesCount?: number
+}
+
+type TabKey = 'published' | 'in_discussion' | 'closed' | 'all'
+
+function IconPlus({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+function IconSearch({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3" />
+    </svg>
+  )
+}
+function IconBriefcase({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M3 13h18" />
+    </svg>
+  )
+}
+
+export default function OrganisationDashboard({
+  organization,
+  basePath,
+  annonces,
+  unreadMessagesCount = 0,
+}: Props) {
+  const t = useTranslations('dashboard_entreprise')
+  const domain = useDomain()
+
+  const [activeTab, setActiveTab] = useState<TabKey>('published')
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const isApproved = organization.verification_status === 'approved'
+  const publishHref = `${basePath}/annonces/nouvelle`
+
+  // Compteurs par statut (utilisés pour les badges d'onglets)
+  const counts = useMemo(() => {
+    const result = { published: 0, in_discussion: 0, closed: 0, all: annonces.length }
+    for (const a of annonces) {
+      if (a.status === 'published') result.published++
+      else if (a.status === 'in_discussion') result.in_discussion++
+      else if (a.status === 'closed') result.closed++
+    }
+    return result
+  }, [annonces])
+
+  // Liste filtrée par onglet + recherche
+  const filteredAnnonces = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
+    return annonces.filter((a) => {
+      if (activeTab !== 'all') {
+        const want: AnnonceStatus =
+          activeTab === 'published'
+            ? 'published'
+            : activeTab === 'in_discussion'
+              ? 'in_discussion'
+              : 'closed'
+        if (a.status !== want) return false
+      }
+      if (query && !a.title.toLowerCase().includes(query)) return false
+      return true
+    })
+  }, [annonces, activeTab, searchQuery])
+
+  const tabs: Array<{ key: TabKey; label: string; count: number; dot: string }> = [
+    { key: 'published', label: t('tab_published'), count: counts.published, dot: '#1E40AF' },
+    { key: 'in_discussion', label: t('tab_in_discussion'), count: counts.in_discussion, dot: '#16A34A' },
+    { key: 'closed', label: t('tab_closed'), count: counts.closed, dot: '#94a3b8' },
+    { key: 'all', label: t('tab_all'), count: counts.all, dot: domain.primaryColor },
+  ]
+
+  const showEmptyZeroState =
+    annonces.length === 0 && (activeTab === 'all' || activeTab === 'published')
+
+  return (
+    <div
+      className="org-dashboard"
+      style={{
+        minHeight: '100vh',
+        display: 'grid',
+        gridTemplateColumns: '200px 1fr',
+        background: 'var(--color-background-secondary, #f8fafc)',
+        fontFamily: 'Inter, system-ui, sans-serif',
+      }}
+    >
+      <style>{`
+        @media (max-width: 767px) {
+          .org-dashboard {
+            grid-template-columns: 1fr !important;
+          }
+          .org-sidebar {
+            width: 100% !important;
+            border-right: none !important;
+            border-bottom: 0.5px solid var(--color-border-tertiary, #e5e7eb) !important;
+          }
+          .org-main {
+            padding: 20px !important;
+          }
+          .org-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 14px !important;
+          }
+          .org-annonces-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 12px !important;
+          }
+          .org-search {
+            width: 100% !important;
+          }
+        }
+      `}</style>
+
+      <OrganisationSidebar
+        organization={organization}
+        unreadMessagesCount={unreadMessagesCount}
+        activeItem="dashboard"
+        basePath={basePath}
+      />
+
+      <main
+        className="org-main"
+        style={{
+          padding: '32px 40px',
+          minWidth: 0,
+        }}
+      >
+        {/* Pastille vérif en attente */}
+        {!isApproved && (
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '6px 14px',
+              background: '#FEF9C3',
+              border: '1px solid #FDE047',
+              borderRadius: 16,
+              color: '#713F12',
+              fontSize: 12,
+              fontWeight: 500,
+              marginBottom: 20,
+            }}
+          >
+            <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: '#CA8A04' }} />
+            {t('verification_pending')}
+          </div>
+        )}
+
+        {/* Header : Bonjour + Publier */}
+        <div
+          className="org-header"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 32,
+          }}
+        >
+          <h1 style={{ fontSize: 28, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: 0 }}>
+            {t('greeting')} 👋
+          </h1>
+
+          {isApproved ? (
+            <Link
+              href={publishHref}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 18px',
+                background: '#00B9FF',
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 500,
+                borderRadius: 10,
+                textDecoration: 'none',
+                transition: 'background .15s, transform .15s',
+              }}
+            >
+              <IconPlus size={14} />
+              {t('publish_annonce')}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              disabled
+              title={t('publish_disabled_tooltip')}
+              aria-disabled
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 18px',
+                background: '#00B9FF',
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 500,
+                borderRadius: 10,
+                border: 'none',
+                opacity: 0.45,
+                cursor: 'not-allowed',
+                fontFamily: 'inherit',
+              }}
+            >
+              <IconPlus size={14} />
+              {t('publish_annonce')}
+            </button>
+          )}
+        </div>
+
+        {/* Section "Mes annonces" */}
+        <section
+          style={{
+            background: 'var(--color-background-primary, #fff)',
+            border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+            borderRadius: 14,
+            padding: '20px 24px',
+          }}
+        >
+          <div
+            className="org-annonces-header"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 16,
+            }}
+          >
+            <h2 style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: 0 }}>
+              {t('my_annonces')}
+            </h2>
+            <div
+              className="org-search"
+              style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  left: 10,
+                  color: 'var(--color-text-tertiary, #94a3b8)',
+                  display: 'flex',
+                  pointerEvents: 'none',
+                }}
+              >
+                <IconSearch size={14} />
+              </span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('search_placeholder')}
+                aria-label={t('search_placeholder')}
+                style={{
+                  width: 240,
+                  padding: '8px 12px 8px 32px',
+                  fontSize: 13,
+                  border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+                  borderRadius: 8,
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                  background: 'var(--color-background-secondary, #f8fafc)',
+                  color: 'var(--color-text-primary, #0f172a)',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Barre d'onglets filtres */}
+          <div
+            role="tablist"
+            style={{
+              display: 'flex',
+              gap: 4,
+              borderBottom: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+              marginBottom: 20,
+              overflowX: 'auto',
+            }}
+          >
+            {tabs.map((tab) => {
+              const active = tab.key === activeTab
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setActiveTab(tab.key)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 14px 10px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderBottom: active ? '2px solid #00B9FF' : '2px solid transparent',
+                    color: active
+                      ? 'var(--color-text-primary, #0f172a)'
+                      : 'var(--color-text-secondary, #64748b)',
+                    fontSize: 13,
+                    fontWeight: active ? 500 : 400,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    whiteSpace: 'nowrap',
+                    transition: 'color .15s, border-color .15s',
+                  }}
+                >
+                  <span
+                    aria-hidden
+                    style={{ width: 6, height: 6, borderRadius: '50%', background: tab.dot }}
+                  />
+                  {tab.label} ({Math.round(tab.count)})
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Liste / Empty states */}
+          {filteredAnnonces.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {filteredAnnonces.map((a) => (
+                <AnnonceCard key={a.id} annonce={a} basePath={basePath} />
+              ))}
+            </div>
+          ) : showEmptyZeroState ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                padding: '40px 20px',
+              }}
+            >
+              <div
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: '50%',
+                  background: '#DBEAFE',
+                  color: '#00B9FF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 16,
+                }}
+              >
+                <IconBriefcase size={28} />
+              </div>
+              <h3
+                style={{
+                  fontSize: 16,
+                  fontWeight: 500,
+                  color: 'var(--color-text-primary, #0f172a)',
+                  marginBottom: 6,
+                }}
+              >
+                {t('empty_title')}
+              </h3>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: 'var(--color-text-secondary, #64748b)',
+                  marginBottom: 20,
+                  maxWidth: 320,
+                  lineHeight: 1.5,
+                }}
+              >
+                {t('empty_subtitle')}
+              </p>
+              {isApproved ? (
+                <Link
+                  href={publishHref}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '10px 18px',
+                    background: '#00B9FF',
+                    color: '#fff',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    borderRadius: 10,
+                    textDecoration: 'none',
+                  }}
+                >
+                  <IconPlus size={14} />
+                  {t('empty_cta')}
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  title={t('publish_disabled_tooltip')}
+                  aria-disabled
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '10px 18px',
+                    background: '#00B9FF',
+                    color: '#fff',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    borderRadius: 10,
+                    border: 'none',
+                    opacity: 0.45,
+                    cursor: 'not-allowed',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  <IconPlus size={14} />
+                  {t('empty_cta')}
+                </button>
+              )}
+            </div>
+          ) : (
+            <div
+              style={{
+                padding: '32px 20px',
+                textAlign: 'center',
+                fontSize: 13,
+                color: 'var(--color-text-secondary, #64748b)',
+              }}
+            >
+              {t('empty_filtered')}
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
+  )
+}

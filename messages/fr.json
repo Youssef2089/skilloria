@@ -4,7 +4,7 @@
   },
   "common": {
     "language_switcher_aria": "Changer la langue",
-    "language_switcher_current": "Langue actuelle\u00A0: {locale}",
+    "language_switcher_current": "Langue actuelle : {locale}",
     "user_fallback": "Utilisateur"
   },
   "homepage": {
@@ -24,11 +24,11 @@
     },
     "cards": {
       "collaborate": {
-        "title": "Experts, collaborez entre vous\u00A0!",
+        "title": "Experts, collaborez entre vous !",
         "description": "Sous-traitez, formez des équipes entre experts certifiés."
       },
       "experts": {
-        "title": "Expert / Freelance / CDI\u00A0?",
+        "title": "Expert / Freelance / CDI ?",
         "description": "Déclarez votre dispo, recevez des alertes missions."
       },
       "cta_join": "Rejoindre {name} →"
@@ -107,7 +107,7 @@
       },
       "candidates": {
         "received_title": "Candidatures reçues",
-        "dispo_label": "Dispo\u00A0: {dispo}",
+        "dispo_label": "Dispo : {dispo}",
         "match_label": "match IA"
       },
       "selection": {
@@ -118,8 +118,8 @@
         "online_label": "En ligne",
         "match_score": "Match {score}%",
         "shared_mission_label": "Mission partagée",
-        "message_recruiter": "Bonjour {name}, disponible dès le 1er mai\u00A0? TJM 950€ confirmé.",
-        "message_freelance": "Confirmé pour le 1er mai, 950€/j. J'envoie CV et références ce soir\u00A0!"
+        "message_recruiter": "Bonjour {name}, disponible dès le 1er mai ? TJM 950€ confirmé.",
+        "message_freelance": "Confirmé pour le 1er mai, 950€/j. J'envoie CV et références ce soir !"
       }
     }
   },
@@ -313,7 +313,7 @@
     "parsing_failed_message": "⚠️ Le parsing IA a échoué, complétez votre profil manuellement.",
     "topbar_pending": "En attente de vérification",
     "close_aria": "Fermer",
-    "banner_error": "{count, plural, one {Pour publier votre profil, complétez le champ surligné ci-dessous\u00A0: {fields}.} other {Pour publier votre profil, complétez les # champs surlignés ci-dessous\u00A0: {fields}.}}",
+    "banner_error": "{count, plural, one {Pour publier votre profil, complétez le champ surligné ci-dessous : {fields}.} other {Pour publier votre profil, complétez les # champs surlignés ci-dessous : {fields}.}}",
     "errors": {
       "account_load_failed": "Impossible de charger votre compte.",
       "incomplete_check_below": "Profil incomplet, vérifiez les champs surlignés ci-dessous.",
@@ -597,11 +597,11 @@
     "email_placeholder": "vous@email.com",
     "password_label": "Mot de passe",
     "password_placeholder": "Votre mot de passe",
-    "forgot_password": "Mot de passe oublié\u00A0?",
+    "forgot_password": "Mot de passe oublié ?",
     "submit": "Se connecter →",
     "submitting": "Connexion en cours...",
     "separator_or": "ou",
-    "no_account": "Pas encore de compte\u00A0?",
+    "no_account": "Pas encore de compte ?",
     "create_account": "Créer mon compte →",
     "errors": {
       "missing_fields": "Email et mot de passe sont obligatoires.",
@@ -626,7 +626,7 @@
         "title": "CDI"
       }
     },
-    "already_account": "Vous avez déjà un compte\u00A0?",
+    "already_account": "Vous avez déjà un compte ?",
     "sign_in": "Se connecter"
   },
   "inscription_org": {
@@ -714,12 +714,12 @@
     }
   },
   "signup_confirmation": {
-    "title": "Compte créé avec succès\u00A0!",
+    "title": "Compte créé avec succès !",
     "message_line1": "Un email de confirmation a été envoyé à votre adresse.",
     "message_line2": "Cliquez sur le lien dans l'email pour activer votre compte et accéder à la plateforme.",
     "spam_notice": "💡 Pensez à vérifier votre dossier <strong>spam</strong> si vous ne recevez pas l'email dans les 2 minutes.",
     "back_to_home": "Retour à l'accueil",
-    "already_confirmed": "Déjà confirmé\u00A0?",
+    "already_confirmed": "Déjà confirmé ?",
     "sign_in": "Se connecter"
   },
   "signup_form": {
@@ -751,7 +751,7 @@
     "cgu": "J'accepte les <terms>conditions d'utilisation</terms> et la <privacy>politique de confidentialité</privacy>",
     "submit": "Créer mon compte →",
     "submitting": "Création en cours...",
-    "already_account": "Déjà un compte\u00A0?",
+    "already_account": "Déjà un compte ?",
     "sign_in": "Se connecter",
     "errors": {
       "cgu_required": "Veuillez accepter les conditions d'utilisation.",
@@ -1239,5 +1239,43 @@
       "saving": "Enregistrement...",
       "publishing": "Publication..."
     }
+  },
+  "dashboard_entreprise": {
+    "nav": {
+      "dashboard": "Tableau de bord",
+      "messages": "Messages",
+      "organisation": "Mon entreprise",
+      "members": "Membres équipe",
+      "invoices": "Factures et paiements",
+      "settings": "Paramètres"
+    },
+    "add_logo": "Ajouter un logo →",
+    "greeting": "Bonjour",
+    "publish_annonce": "Publier une annonce",
+    "publish_disabled_tooltip": "Disponible une fois votre entreprise vérifiée",
+    "verification_pending": "En attente de vérification",
+    "my_annonces": "Mes annonces",
+    "search_placeholder": "Rechercher par titre…",
+    "tab_published": "Publiées",
+    "tab_in_discussion": "En discussion",
+    "tab_closed": "Clôturées",
+    "tab_all": "Toutes",
+    "status_published": "Publiée",
+    "status_in_discussion": "En discussion",
+    "status_closed": "Clôturée",
+    "candidatures_label": "Candidatures",
+    "counter_recues": "Reçues",
+    "counter_nouvelles": "Nouvelles",
+    "counter_en_discussion": "En discussion",
+    "counter_retenues": "Retenues",
+    "counter_refusees": "Refusées",
+    "manage_annonce": "Gérer cette annonce →",
+    "view_detail": "Voir le détail →",
+    "published_ago": "Publiée il y a {time}",
+    "closed_on": "Clôturée le {date}",
+    "empty_title": "Publiez votre première annonce",
+    "empty_subtitle": "Aucune annonce pour le moment.",
+    "empty_cta": "Créer une annonce",
+    "empty_filtered": "Aucune annonce dans ce filtre"
   }
 }

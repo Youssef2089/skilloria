@@ -4,12 +4,33 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import OrgSetupModal from '@/components/OrgSetupModal'
+import OrganisationDashboard, {
+  type OrganisationFull,
+} from '@/components/dashboard/OrganisationDashboard'
+import type { Annonce } from '@/types/annonce'
+
+/**
+ * Dashboard entreprise (B3.5).
+ *
+ * Préserve la logique B3.4 :
+ *   1. Charge l'org via RLS organization_members
+ *   2. Si setup_completed_at IS NULL → affiche OrgSetupModal (bloquant)
+ *   3. Fallback redirect /connexion si pas de session ou requête échoue
+ *
+ * Une fois setup OK, délègue le rendu à <OrganisationDashboard>
+ * (composant partagé avec /dashboard/cabinet via prop `basePath`).
+ *
+ * Source des annonces (V1) : aucune table dédiée — voir types/annonce.ts.
+ * On passe `annonces=[]` constant. La vraie table sera créée en B4+.
+ */
 
 type SetupState =
   | { kind: 'loading' }
-  | { kind: 'needs_setup' }
-  | { kind: 'ready' }
+  | { kind: 'needs_setup'; organization: OrganisationFull }
+  | { kind: 'ready'; organization: OrganisationFull }
   | { kind: 'error' }
+
+const ANNONCES_V1: Annonce[] = []
 
 export default function DashboardEntreprise() {
   const router = useRouter()
@@ -24,10 +45,11 @@ export default function DashboardEntreprise() {
       setNeedsRedirect(true)
       return
     }
-    // RLS organization_member_read autorise la lecture pour les membres actifs.
     const { data: memberRow, error } = await supabase
       .from('organization_members')
-      .select('organizations(id, setup_completed_at)')
+      .select(
+        'organizations(id, company_name, logo_url, verification_status, setup_completed_at)',
+      )
       .eq('user_id', session.user.id)
       .eq('status', 'active')
       .order('joined_at', { ascending: true })
@@ -46,10 +68,19 @@ export default function DashboardEntreprise() {
       setState({ kind: 'error' })
       return
     }
+    const organization: OrganisationFull = {
+      id: (orgRow as { id: string }).id,
+      company_name: (orgRow as { company_name: string | null }).company_name ?? null,
+      logo_url: (orgRow as { logo_url: string | null }).logo_url ?? null,
+      verification_status:
+        (orgRow as { verification_status: string | null }).verification_status ?? null,
+      setup_completed_at:
+        (orgRow as { setup_completed_at: string | null }).setup_completed_at ?? null,
+    }
     setState(
-      (orgRow as { setup_completed_at: string | null }).setup_completed_at
-        ? { kind: 'ready' }
-        : { kind: 'needs_setup' },
+      organization.setup_completed_at
+        ? { kind: 'ready', organization }
+        : { kind: 'needs_setup', organization },
     )
   }, [])
 
@@ -57,8 +88,6 @@ export default function DashboardEntreprise() {
     void refresh()
   }, [refresh])
 
-  // Redirection /connexion si pas de session — separée pour ne pas appeler
-  // router.replace pendant le render (leçon B3.1).
   useEffect(() => {
     if (needsRedirect) {
       router.replace('/connexion')
@@ -98,20 +127,11 @@ export default function DashboardEntreprise() {
 
   return (
     <>
-      <div
-        style={{
-          padding: 48,
-          textAlign: 'center',
-          fontFamily: 'Inter, system-ui, sans-serif',
-        }}
-      >
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#0f172a', marginBottom: 16 }}>
-          Dashboard Entreprise
-        </h1>
-        <p style={{ fontSize: 15, color: '#64748b' }}>
-          Cette section est en cours de construction.
-        </p>
-      </div>
+      <OrganisationDashboard
+        organization={state.organization}
+        basePath="/dashboard/entreprise"
+        annonces={ANNONCES_V1}
+      />
       {state.kind === 'needs_setup' && (
         <OrgSetupModal onComplete={() => void refresh()} />
       )}

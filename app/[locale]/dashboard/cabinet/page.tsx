@@ -4,12 +4,28 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import OrgSetupModal from '@/components/OrgSetupModal'
+import OrganisationDashboard, {
+  type OrganisationFull,
+} from '@/components/dashboard/OrganisationDashboard'
+import type { Annonce } from '@/types/annonce'
+
+/**
+ * Dashboard cabinet (B3.5).
+ *
+ * Mêmes patterns que /dashboard/entreprise — voir entreprise/page.tsx pour
+ * les détails. Différencié uniquement par la prop `basePath` transmise à
+ * <OrganisationDashboard>.
+ *
+ * V1 : annonces=[] constant (aucune table dédiée — cf. types/annonce.ts).
+ */
 
 type SetupState =
   | { kind: 'loading' }
-  | { kind: 'needs_setup' }
-  | { kind: 'ready' }
+  | { kind: 'needs_setup'; organization: OrganisationFull }
+  | { kind: 'ready'; organization: OrganisationFull }
   | { kind: 'error' }
+
+const ANNONCES_V1: Annonce[] = []
 
 export default function DashboardCabinet() {
   const router = useRouter()
@@ -26,7 +42,9 @@ export default function DashboardCabinet() {
     }
     const { data: memberRow, error } = await supabase
       .from('organization_members')
-      .select('organizations(id, setup_completed_at)')
+      .select(
+        'organizations(id, company_name, logo_url, verification_status, setup_completed_at)',
+      )
       .eq('user_id', session.user.id)
       .eq('status', 'active')
       .order('joined_at', { ascending: true })
@@ -45,10 +63,19 @@ export default function DashboardCabinet() {
       setState({ kind: 'error' })
       return
     }
+    const organization: OrganisationFull = {
+      id: (orgRow as { id: string }).id,
+      company_name: (orgRow as { company_name: string | null }).company_name ?? null,
+      logo_url: (orgRow as { logo_url: string | null }).logo_url ?? null,
+      verification_status:
+        (orgRow as { verification_status: string | null }).verification_status ?? null,
+      setup_completed_at:
+        (orgRow as { setup_completed_at: string | null }).setup_completed_at ?? null,
+    }
     setState(
-      (orgRow as { setup_completed_at: string | null }).setup_completed_at
-        ? { kind: 'ready' }
-        : { kind: 'needs_setup' },
+      organization.setup_completed_at
+        ? { kind: 'ready', organization }
+        : { kind: 'needs_setup', organization },
     )
   }, [])
 
@@ -95,20 +122,11 @@ export default function DashboardCabinet() {
 
   return (
     <>
-      <div
-        style={{
-          padding: 48,
-          textAlign: 'center',
-          fontFamily: 'Inter, system-ui, sans-serif',
-        }}
-      >
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#0f172a', marginBottom: 16 }}>
-          Dashboard Cabinet
-        </h1>
-        <p style={{ fontSize: 15, color: '#64748b' }}>
-          Cette section est en cours de construction.
-        </p>
-      </div>
+      <OrganisationDashboard
+        organization={state.organization}
+        basePath="/dashboard/cabinet"
+        annonces={ANNONCES_V1}
+      />
       {state.kind === 'needs_setup' && (
         <OrgSetupModal onComplete={() => void refresh()} />
       )}

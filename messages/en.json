@@ -1239,5 +1239,43 @@
       "saving": "Saving...",
       "publishing": "Publishing..."
     }
+  },
+  "dashboard_entreprise": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "messages": "Messages",
+      "organisation": "My company",
+      "members": "Team members",
+      "invoices": "Invoices and payments",
+      "settings": "Settings"
+    },
+    "add_logo": "Add a logo →",
+    "greeting": "Hello",
+    "publish_annonce": "Post a listing",
+    "publish_disabled_tooltip": "Available once your company is verified",
+    "verification_pending": "Verification pending",
+    "my_annonces": "My listings",
+    "search_placeholder": "Search by title…",
+    "tab_published": "Published",
+    "tab_in_discussion": "In discussion",
+    "tab_closed": "Closed",
+    "tab_all": "All",
+    "status_published": "Published",
+    "status_in_discussion": "In discussion",
+    "status_closed": "Closed",
+    "candidatures_label": "Applications",
+    "counter_recues": "Received",
+    "counter_nouvelles": "New",
+    "counter_en_discussion": "In discussion",
+    "counter_retenues": "Shortlisted",
+    "counter_refusees": "Declined",
+    "manage_annonce": "Manage this listing →",
+    "view_detail": "View details →",
+    "published_ago": "Published {time} ago",
+    "closed_on": "Closed on {date}",
+    "empty_title": "Post your first listing",
+    "empty_subtitle": "No listings yet.",
+    "empty_cta": "Create a listing",
+    "empty_filtered": "No listings in this filter"
   }
 }
