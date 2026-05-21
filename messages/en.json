@@ -1316,7 +1316,8 @@
       "field_method": "Method",
       "field_score": "Score",
       "field_reject_provider": "Rejecting provider",
-      "ai_note_label": "AI note"
+      "ai_note_label": "AI note",
+      "discrepancies_label": "Discrepancies detected"
     },
     "status_pending": "Pending",
     "status_approved": "Approved",

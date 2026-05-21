@@ -229,6 +229,9 @@ export async function POST(request: NextRequest): Promise<Response> {
         email_domain: (orgRow.email_domain as string | null) ?? '',
         siren: input.siren,
         vat_number: (orgRow.vat_number as string | null) ?? null,
+        // 11G : champs additionnels comparés par l'IA contre les données INSEE.
+        website_url: input.website_url,
+        org_type: input.org_sub_type,
       },
     })
   } catch (err) {

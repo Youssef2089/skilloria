@@ -1316,7 +1316,8 @@
       "field_method": "Método",
       "field_score": "Puntuación",
       "field_reject_provider": "Proveedor que rechazó",
-      "ai_note_label": "Nota IA"
+      "ai_note_label": "Nota IA",
+      "discrepancies_label": "Discrepancias detectadas"
     },
     "status_pending": "Pendiente",
     "status_approved": "Validada",

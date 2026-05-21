@@ -1,26 +1,28 @@
-import type { VerificationInput, VerificationOutput } from './types'
+import type { SireneData, VerificationInput, VerificationOutput } from './types'
 
 /**
- * Provider INSEE Sirene v3.11 — nouveau portail (mai 2026).
+ * Provider INSEE Sirene v3.11 — fournisseur de données (11G).
+ *
+ * ⚠️ 11G — RÔLE NOUVEAU : Sirene est désormais un FOURNISSEUR DE DONNÉES,
+ * pas un décideur. Il extrait les champs INSEE structurés (raison sociale,
+ * forme juridique, APE, adresse, etc.) et les transmet à l'IA via
+ * `VerificationOutput.structured_data`. Sirene retourne TOUJOURS
+ * `result='inconclusive'` (il ne tranche jamais).
+ *
+ * La décision de cohérence (approved / pending_admin_review) est prise
+ * par l'IA en aval, qui compare les données saisies aux données INSEE.
  *
  * Endpoint : `https://api.insee.fr/api-sirene/3.11/siret?q=siren:<siren>`
- *   (l'ancien `api.insee.fr/entreprises/sirene/V3.11` est déprécié depuis
- *    février 2025)
  * Auth     : `X-INSEE-Api-Key-Integration: <SIRENE_API_TOKEN>`
- *   (l'ancien `Authorization: Bearer` n'est plus accepté sur le nouveau portail)
  *
- * Mapping `etatAdministratifUniteLegale` (aligné règle métier figée
- * "JAMAIS de rejected automatique") :
- *   - 'A' (Active)        → result='approved', confidence=10
- *   - 'C' (Cessée)        → result='inconclusive' (fallback IA + admin tranchent)
- *   - autre / absent      → result='inconclusive', confidence=0
+ * Mapping `etatAdministratifUniteLegale` → seulement informatif (transmis à
+ * l'IA) :
+ *   - 'A' (Active)   : entreprise active à l'INSEE
+ *   - 'C' (Cessée)   : entreprise dissoute (signal négatif fort à pondérer par l'IA)
+ *   - autre / absent : statut non standard
  *
- * HTTP 404 (SIREN non trouvé) → result='inconclusive' (PAS rejected) — laisse
- * place au fallback IA. Le dispatcher (lib/verification/index.ts) ne shorte
- * plus sur un 'rejected' provider.
- *
- * Erreurs réseau / 4xx (sauf 404) / 5xx → result='error', confidence=0
- * (jamais throw, pour ne pas faire crasher `register-org`).
+ * HTTP 404 / erreur réseau / 5xx → result='inconclusive' avec
+ * structured_data=null. L'IA en aval tournera sur les données saisies seules.
  */
 
 // TODO V2 : lire provider.api_endpoint depuis verification_providers au lieu
@@ -30,16 +32,69 @@ const SIRENE_BASE_URL = 'https://api.insee.fr/api-sirene/3.11'
 const PROVIDER_NAME = 'sirene_insee'
 const REQUEST_TIMEOUT_MS = 8_000
 
+type SireneAdresse = {
+  numeroVoieEtablissement?: string | null
+  typeVoieEtablissement?: string | null
+  libelleVoieEtablissement?: string | null
+  codePostalEtablissement?: string | null
+  libelleCommuneEtablissement?: string | null
+}
+
+type SireneUniteLegale = {
+  etatAdministratifUniteLegale?: string | null
+  denominationUniteLegale?: string | null
+  sigleUniteLegale?: string | null
+  prenom1UniteLegale?: string | null
+  nomUniteLegale?: string | null
+  categorieJuridiqueUniteLegale?: string | null
+  activitePrincipaleUniteLegale?: string | null
+  dateCreationUniteLegale?: string | null
+  trancheEffectifsUniteLegale?: string | null
+}
+
 type SireneRow = {
-  uniteLegale?: {
-    etatAdministratifUniteLegale?: string
-    denominationUniteLegale?: string | null
-    sigleUniteLegale?: string | null
-  }
+  uniteLegale?: SireneUniteLegale
+  adresseEtablissement?: SireneAdresse
 }
 
 type SireneResponse = {
   etablissements?: SireneRow[]
+}
+
+function buildAdresseComplete(a: SireneAdresse | undefined): string | null {
+  if (!a) return null
+  const parts = [
+    a.numeroVoieEtablissement,
+    a.typeVoieEtablissement,
+    a.libelleVoieEtablissement,
+    a.codePostalEtablissement,
+    a.libelleCommuneEtablissement,
+  ]
+    .map((p) => (p ?? '').trim())
+    .filter((p) => p.length > 0)
+  if (parts.length === 0) return null
+  return parts.join(' ').replace(/\s+/g, ' ').trim()
+}
+
+function extractSireneData(json: SireneResponse | null): SireneData | null {
+  const etab = json?.etablissements?.[0]
+  if (!etab) return null
+  const u = etab.uniteLegale ?? {}
+  const denomination = u.denominationUniteLegale ?? null
+  const prenom = (u.prenom1UniteLegale ?? '').trim()
+  const nom = (u.nomUniteLegale ?? '').trim()
+  const prenomNom = prenom || nom ? `${prenom} ${nom}`.trim() : null
+  return {
+    denomination,
+    sigle: u.sigleUniteLegale ?? null,
+    prenom_nom: prenomNom,
+    etat_administratif: u.etatAdministratifUniteLegale ?? null,
+    categorie_juridique: u.categorieJuridiqueUniteLegale ?? null,
+    activite_principale: u.activitePrincipaleUniteLegale ?? null,
+    date_creation: u.dateCreationUniteLegale ?? null,
+    tranche_effectifs: u.trancheEffectifsUniteLegale ?? null,
+    adresse_complete: buildAdresseComplete(etab.adresseEtablissement),
+  }
 }
 
 export async function verifyWithSirene(
@@ -52,6 +107,7 @@ export async function verifyWithSirene(
       confidence_score: 0,
       raw_response: { skipped: 'country_code_not_FR', country: input.country_code },
       notes: 'Sirene applicable uniquement pour FR',
+      structured_data: null,
     }
   }
 
@@ -63,6 +119,7 @@ export async function verifyWithSirene(
       confidence_score: 0,
       raw_response: { skipped: 'invalid_siren', siren },
       notes: 'SIREN absent ou format invalide (9 chiffres attendus)',
+      structured_data: null,
     }
   }
 
@@ -75,6 +132,7 @@ export async function verifyWithSirene(
       confidence_score: 0,
       raw_response: { error: 'SIRENE_API_TOKEN missing' },
       notes: 'Token API non configuré',
+      structured_data: null,
     }
   }
 
@@ -87,8 +145,6 @@ export async function verifyWithSirene(
     res = await fetch(url, {
       method: 'GET',
       headers: {
-        // Nouveau portail Sirene (mai 2026) : header X-INSEE-Api-Key-Integration
-        // remplace Bearer token. Cf. doc INSEE api-sirene/3.11.
         'X-INSEE-Api-Key-Integration': token,
         Accept: 'application/json',
       },
@@ -103,13 +159,11 @@ export async function verifyWithSirene(
       confidence_score: 0,
       raw_response: { error: err instanceof Error ? err.message : String(err) },
       notes: 'Erreur réseau Sirene',
+      structured_data: null,
     }
   }
 
   if (res.status === 404) {
-    // 404 INSEE = SIREN non trouvé. Règle métier figée : JAMAIS de rejected
-    // automatique → on remonte 'inconclusive' pour laisser place au fallback IA
-    // (le dispatcher continuera la chaîne de providers).
     const text = await res.text().catch(() => '')
     console.warn('[verification:sirene] 404 (SIREN unknown)', {
       siren,
@@ -120,7 +174,8 @@ export async function verifyWithSirene(
       result: 'inconclusive',
       confidence_score: 0,
       raw_response: { http_status: 404, body: text.slice(0, 1000) },
-      notes: 'SIREN inconnu chez l’INSEE — fallback IA requis',
+      notes: 'SIREN inconnu chez l’INSEE — l’IA analysera les seules données saisies',
+      structured_data: null,
     }
   }
   if (!res.ok) {
@@ -136,40 +191,42 @@ export async function verifyWithSirene(
       confidence_score: 0,
       raw_response: { http_status: res.status, body: text.slice(0, 1000) },
       notes: `Erreur INSEE HTTP ${res.status}`,
+      structured_data: null,
     }
   }
 
   const json = (await res.json().catch(() => null)) as SireneResponse | null
-  const etab = json?.etablissements?.[0]
-  const etat = etab?.uniteLegale?.etatAdministratifUniteLegale
+  const sireneData = extractSireneData(json)
 
-  if (etat === 'A') {
-    return {
-      provider_name: PROVIDER_NAME,
-      result: 'approved',
-      confidence_score: 10,
-      raw_response: json,
-      notes: 'Entreprise active à l’INSEE',
-    }
-  }
-  if (etat === 'C') {
-    // Entreprise marquée cessée à l'INSEE. Règle métier figée : JAMAIS de
-    // rejected automatique → on remonte 'inconclusive' pour laisser IA + admin
-    // trancher (l'admin verra le drapeau et la note pour décider).
+  if (!sireneData) {
     return {
       provider_name: PROVIDER_NAME,
       result: 'inconclusive',
       confidence_score: 0,
-      raw_response: json,
-      notes: 'Sirene signale entreprise dissoute — IA + admin tranchent',
+      raw_response: json ?? {},
+      notes: 'Réponse Sirene vide ou inattendue',
+      structured_data: null,
     }
   }
+
+  // 11G : Sirene NE TRANCHE PLUS — toujours 'inconclusive', juste enrichi
+  // de structured_data pour que l'IA compare en aval. Le statut INSEE
+  // (Active / Cessée / autre) est dans sireneData.etat_administratif et
+  // sera évalué par l'IA.
+  const etat = sireneData.etat_administratif
+  const notes =
+    etat === 'A'
+      ? 'Données INSEE récupérées — entreprise active. L’IA va comparer avec les données saisies.'
+      : etat === 'C'
+        ? 'Données INSEE récupérées — entreprise marquée cessée. À pondérer par l’IA et l’admin.'
+        : `Données INSEE récupérées (statut: ${etat ?? 'inconnu'}). À évaluer par l’IA.`
 
   return {
     provider_name: PROVIDER_NAME,
     result: 'inconclusive',
     confidence_score: 0,
-    raw_response: json ?? {},
-    notes: `Statut Sirene non standard : ${etat ?? 'absent'}`,
+    raw_response: json,
+    notes,
+    structured_data: sireneData,
   }
 }

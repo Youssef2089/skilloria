@@ -426,6 +426,12 @@ export async function POST(request: NextRequest): Promise<Response> {
         email_domain: input.email_domain,
         siren: input.siren,
         vat_number: input.vat_number,
+        // 11G : alignement avec finalize-org pour ne pas avoir 2 flows divergents.
+        // register-org legacy ne reçoit pas website/org_type côté body (modale B3.4
+        // les collecte ultérieurement) → on passe null. L'IA évaluera la cohérence
+        // sur les champs disponibles.
+        website_url: null,
+        org_type: input.org_type,
       },
     })
 

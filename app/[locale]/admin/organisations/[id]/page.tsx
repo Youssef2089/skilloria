@@ -61,6 +61,8 @@ type Verification = {
   attempts_count: number | null
   had_rejection: boolean
   rejected_by: string[]
+  /** 11G — écarts détectés par l'IA entre données saisies et INSEE. */
+  discrepancies: string[]
 }
 
 type LoadedData = { org: Org; contact: Contact | null; verification: Verification }
@@ -521,6 +523,42 @@ export default function AdminOrgDetailPage() {
               >
                 {verification.notes}
               </div>
+            </div>
+          )}
+          {verification.discrepancies.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 500,
+                  textTransform: 'uppercase',
+                  letterSpacing: '.05em',
+                  color: 'var(--color-text-secondary, #64748b)',
+                  marginBottom: 6,
+                }}
+              >
+                {t('detail.discrepancies_label')}
+              </div>
+              <ul
+                style={{
+                  margin: 0,
+                  paddingLeft: 18,
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  color: 'var(--color-text-primary, #0f172a)',
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  padding: '10px 12px 10px 28px',
+                  borderRadius: 8,
+                  listStyle: 'disc',
+                }}
+              >
+                {verification.discrepancies.map((d, i) => (
+                  <li key={i} style={{ marginBottom: 2 }}>
+                    {d}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </section>

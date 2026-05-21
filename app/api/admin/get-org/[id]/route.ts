@@ -104,6 +104,8 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
           attempts_count?: number
           had_rejection?: boolean
           rejected_by?: string[]
+          discrepancies?: string[]
+          sirene_data?: Record<string, unknown> | null
         }
       | null) ?? null
 
@@ -116,6 +118,12 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     attempts_count: vd?.attempts_count ?? null,
     had_rejection: vd?.had_rejection ?? false,
     rejected_by: vd?.rejected_by ?? [],
+    // 11G : écarts détectés par l'IA entre données saisies et INSEE,
+    // affichés dans la fiche admin (organisations/[id]/page.tsx).
+    discrepancies: Array.isArray(vd?.discrepancies) ? vd.discrepancies : [],
+    // 11G : snapshot INSEE comparé (disponible pour usage admin futur,
+    // non rendu en V1 — seuls les écarts sont mis en avant côté UI).
+    sirene_data: vd?.sirene_data ?? null,
   }
 
   return json({ org, contact, verification }, 200)

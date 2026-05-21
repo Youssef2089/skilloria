@@ -1316,7 +1316,8 @@
       "field_method": "Méthode",
       "field_score": "Score",
       "field_reject_provider": "Provider ayant rejeté",
-      "ai_note_label": "Note IA"
+      "ai_note_label": "Note IA",
+      "discrepancies_label": "Écarts détectés"
     },
     "status_pending": "En attente",
     "status_approved": "Validée",
