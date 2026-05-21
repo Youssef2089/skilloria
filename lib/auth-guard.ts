@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { readSessionCookieToken } from '@/lib/session-token'
 
 export type AuthUser = {
   id: string
@@ -165,12 +166,24 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
     throw new AuthError(403, { error: 'User not found', code: 'user_missing' })
   }
 
+  // ── Session unique (11F) ────────────────────────────────────────────────
+  // Backward-compat D4 : si l'user n'a jamais été (re)connecté depuis le
+  // déploiement de 11F, `last_session_token` est NULL → on skip le check
+  // (il se peuplera à son prochain login via /api/auth/init-session).
+  //
+  // Sinon : compare avec le token client. Source primaire = cookie
+  // httpOnly `ss_token` (D5, posé par init-session). Fallback header
+  // `x-session-token` pour tests Postman / périodes de transition.
+  // Mismatch → 403 `session_superseded` (D2, code distinct de
+  // `forbidden`/`no_token`/`invalid_token`).
   if (userRow.last_session_token) {
+    const cookieToken = readSessionCookieToken(request)
     const headerToken = request.headers.get('x-session-token')
-    if (headerToken !== userRow.last_session_token) {
+    const clientToken = cookieToken ?? headerToken
+    if (clientToken !== userRow.last_session_token) {
       throw new AuthError(403, {
-        error: 'Session invalidated',
-        code: 'session_token_mismatch',
+        error: 'Session superseded by another login',
+        code: 'session_superseded',
       })
     }
   }
