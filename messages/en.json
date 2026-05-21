@@ -1370,5 +1370,10 @@
       "body_p3": "If you believe this is a mistake, please reply directly to this email.",
       "cta_label": "Contact us"
     }
+  },
+  "session": {
+    "superseded_title": "Session disconnected",
+    "superseded_message": "Your account was opened on another device. For security reasons, you have been signed out.",
+    "superseded_signin": "Sign in again"
   }
 }

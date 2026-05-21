@@ -1370,5 +1370,10 @@
       "body_p3": "Si crees que es un error, puedes responder directamente a este correo.",
       "cta_label": "Contactar"
     }
+  },
+  "session": {
+    "superseded_title": "Sesión cerrada",
+    "superseded_message": "Tu cuenta se ha abierto en otro dispositivo. Por motivos de seguridad, se ha cerrado tu sesión.",
+    "superseded_signin": "Volver a iniciar sesión"
   }
 }

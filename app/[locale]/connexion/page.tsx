@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
@@ -13,6 +14,11 @@ export default function ConnexionPage() {
   const router = useRouter()
   const domain = useDomain()
   const t = useTranslations('login')
+  const tSession = useTranslations('session')
+  const searchParams = useSearchParams()
+  // Bandeau "Session déconnectée" si arrivée via 11F mismatch
+  // (?reason=session_superseded posé par secureFetch.onSuperseded).
+  const showSupersededBanner = searchParams.get('reason') === 'session_superseded'
   const [form, setForm] = useState({ email: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -96,6 +102,32 @@ export default function ConnexionPage() {
         </div>
         <LanguageSwitcher />
       </div>
+
+      {/* Bandeau session superseded (11F D2) */}
+      {showSupersededBanner && (
+        <div
+          role="alert"
+          style={{
+            width: '100%',
+            maxWidth: 440,
+            marginBottom: 16,
+            padding: '14px 18px',
+            background: '#FEF9C3',
+            border: '1px solid #FDE047',
+            color: '#713F12',
+            borderRadius: 12,
+            fontSize: 13,
+            lineHeight: 1.55,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: '#CA8A04' }} />
+            <strong style={{ fontWeight: 600 }}>{tSession('superseded_title')}</strong>
+          </div>
+          <div>{tSession('superseded_message')}</div>
+        </div>
+      )}
 
       {/* Card */}
       <div style={{

@@ -1370,5 +1370,10 @@
       "body_p3": "Falls Sie der Meinung sind, dass es sich um einen Irrtum handelt, antworten Sie direkt auf diese E-Mail.",
       "cta_label": "Kontakt aufnehmen"
     }
+  },
+  "session": {
+    "superseded_title": "Sitzung beendet",
+    "superseded_message": "Ihr Konto wurde auf einem anderen Gerät geöffnet. Aus Sicherheitsgründen wurden Sie abgemeldet.",
+    "superseded_signin": "Erneut anmelden"
   }
 }

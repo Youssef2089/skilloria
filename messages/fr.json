@@ -1370,5 +1370,10 @@
       "body_p3": "Si vous pensez qu'il s'agit d'une erreur, vous pouvez nous répondre directement à ce mail.",
       "cta_label": "Nous contacter"
     }
+  },
+  "session": {
+    "superseded_title": "Session déconnectée",
+    "superseded_message": "Votre compte a été ouvert sur un autre appareil. Pour des raisons de sécurité, vous avez été déconnecté.",
+    "superseded_signin": "Se reconnecter"
   }
 }
