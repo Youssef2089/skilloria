@@ -38,7 +38,11 @@ import { verifyAiCoherence } from './ai-fallback'
  * last_provider, attempts_count.
  */
 
-const FALLBACK_DECISION_THRESHOLD = 9
+// 11G.2 : seuil de décision aligné sur la valeur configurée en BDD pour le
+// row ai_coherence_check (provider_type='ai_web_search'). Cette constante
+// n'est utilisée QUE si aucun row n'est trouvé (cas edge — config BDD vide
+// pour le pays). Source de vérité : verification_providers.confidence_threshold.
+const FALLBACK_DECISION_THRESHOLD = 7
 
 function findDecisionProvider(
   providers: VerificationProviderRow[],
