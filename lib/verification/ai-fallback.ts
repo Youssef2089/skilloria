@@ -52,9 +52,23 @@ function sanitize(value: string | null | undefined, maxLen: number): string {
   return (value ?? '').replace(/[\r\n\t]/g, ' ').trim().slice(0, maxLen)
 }
 
-function formatSireneBlock(s: SireneData | null): string {
+type SireneStatusForPrompt = 'ok' | 'not_found' | 'error' | 'skipped' | null
+
+function formatSireneBlock(
+  s: SireneData | null,
+  status: SireneStatusForPrompt,
+): string {
   if (!s) {
-    return 'Données INSEE : NON DISPONIBLES (Sirene n’a pas trouvé le SIREN ou n’a pas pu être interrogé). Utilise la recherche web pour combler.'
+    if (status === 'error') {
+      return 'Données INSEE : INDISPONIBLES PAR DÉFAILLANCE TECHNIQUE (timeout ou erreur réseau côté INSEE après retry). La confirmation officielle du nom et du statut n\'a PAS pu être obtenue cette fois. ⚠️ Voir D4 dans la section "ÉCARTS DISQUALIFIANTS" ci-dessous.'
+    }
+    if (status === 'not_found') {
+      return 'Données INSEE : SIREN non trouvé via l\'endpoint INSEE consulté (possible cas légitime, possible cas edge de l\'endpoint). Utilise la recherche web pour creuser via un autre registre.'
+    }
+    if (status === 'skipped') {
+      return 'Données INSEE : NON APPLICABLES (pays ≠ FR ou SIREN absent). Recherche le registre équivalent du pays via web_search (Companies House UK, Handelsregister DE, Registro Mercantil ES, etc.).'
+    }
+    return 'Données INSEE : NON DISPONIBLES. Utilise la recherche web pour combler.'
   }
   const lines: string[] = ['Données INSEE récupérées (source officielle FR) :']
   if (s.denomination) lines.push(`- Raison sociale officielle (denomination) : ${sanitize(s.denomination, 300)}`)
@@ -77,7 +91,11 @@ function formatSireneBlock(s: SireneData | null): string {
   return lines.join('\n')
 }
 
-function buildPrompt(input: VerificationInput, sireneData: SireneData | null): string {
+function buildPrompt(
+  input: VerificationInput,
+  sireneData: SireneData | null,
+  sireneStatus: SireneStatusForPrompt,
+): string {
   const company = sanitize(input.company_name, 200)
   const country = sanitize(input.country_code, 2)
   const emailDomain = sanitize(input.email_domain, 200)
@@ -104,7 +122,7 @@ DONNÉES SAISIES PAR L’UTILISATEUR (à vérifier)
 ═══════════════════════════════════════════════════════════════
 DONNÉES OFFICIELLES INSEE (référence, FR uniquement)
 ═══════════════════════════════════════════════════════════════
-${formatSireneBlock(sireneData)}
+${formatSireneBlock(sireneData, sireneStatus)}
 
 ═══════════════════════════════════════════════════════════════
 HIÉRARCHIE DES SOURCES (IMPÉRATIVE)
@@ -167,28 +185,99 @@ TA MISSION
    confirmé par registre, etc.
 
 ═══════════════════════════════════════════════════════════════
-BARÈME DU SCORE (0-10) — sans plafond a priori
+ÉCARTS DISQUALIFIANTS (plafonnent le score à 5 max)
+═══════════════════════════════════════════════════════════════
+Certains écarts NE FONT PAS qu'enlever quelques points : ils
+PLAFONNENT le score à **5 maximum**, peu importe le reste. Une org
+dans ce cas doit ABSOLUMENT passer en review admin manuel — c'est
+la signature des scénarios de fraude type (usage du SIREN d'une
+autre entreprise, organisation dissoute, défaillance de vérification).
+
+Sont DISQUALIFIANTS :
+
+**D1. NOM ≠ RAISON SOCIALE OFFICIELLE**
+    Le \`company_name\` saisi ne correspond PAS à la raison sociale
+    officielle retournée par Sirene/INSEE (ou registre équivalent
+    par pays) pour le SIREN fourni.
+
+    ✅ NE SONT PAS DISQUALIFIANTS (tolérances) :
+      - Différences de casse ("Acme" vs "ACME")
+      - Accents / ponctuation ("Café SAS" vs "Cafe SAS")
+      - Forme juridique en suffixe ("Acme" vs "Acme SAS")
+      - Nom commercial vs dénomination si l'enseigne est
+        documentée par une source officielle (marque déposée, etc.)
+
+    ❌ EXEMPLES DISQUALIFIANTS :
+      - "SAS" vs "WINOPS" (nom totalement différent)
+      - "Acme" vs "Tesla Inc."
+      - Sigle ≠ entreprise réelle du SIREN
+
+**D2. ÉTAT ADMINISTRATIF CESSÉ / FERMÉ confirmé par registre.**
+    Une org dissoute ne doit pas être auto-approuvée.
+
+**D3. 3+ écarts simultanés** portant sur des champs identifiants
+    (nom + adresse + type d'activité par exemple).
+
+**D4. CONFIRMATION OFFICIELLE INDISPONIBLE PAR DÉFAILLANCE TECHNIQUE**
+    Si \`sirene_status = 'error'\` (timeout INSEE, erreur réseau après
+    retry — voir le bloc DONNÉES INSEE ci-dessus) : tu n'as AUCUNE
+    confirmation officielle du nom et du statut. Tu ne peux PAS
+    valider l'org sur la seule base du déclaratif + recherche web.
+    L'admin doit trancher manuellement.
+
+    Logique : un fraudeur ne doit pas pouvoir profiter d'un timeout
+    INSEE ponctuel pour faire passer une org sans contrôle.
+
+    NB : ce D4 ne s'applique PAS quand \`sirene_status\` est :
+      - 'ok'        → données récupérées, applique D1 normalement
+      - 'not_found' → SIREN absent du registre (cas légitime possible) → score modéré
+      - 'skipped'   → pays ≠ FR, registre étranger peut confirmer via web
+
+═══════════════════════════════════════════════════════════════
+ÉCARTS MINEURS (pas de plafond, perte de points modérée)
+═══════════════════════════════════════════════════════════════
+- **Domaine email GÉNÉRIQUE grand public** (gmail.com, outlook.com,
+  yahoo.com, hotmail.com, free.fr, orange.fr, etc.) : EXPLICITEMENT
+  AUTORISÉ par la décision produit. N'enlève pas de points significatifs,
+  ne plafonne JAMAIS le score.
+  ≠ domaine JETABLE (mailinator, tempmail, 10minutemail, guerrillamail,
+  yopmail, etc.) : CELA reste un signal suspect (mais pas disqualifiant
+  à lui seul).
+- Absence de site web fourni : information manquante, pas contradictoire.
+- Absence de TVA fournie : idem.
+- Variations mineures du nom (cf. tolérances D1).
+
+═══════════════════════════════════════════════════════════════
+BARÈME DU SCORE (0-10)
 ═══════════════════════════════════════════════════════════════
 Le score reflète la **confiance globale** : cohérence + vérifiabilité.
-- **9-10** : Entreprise confirmée par registre officiel ET données saisies
-  parfaitement cohérentes. Aucun signal suspect. Tu peux donner ce score
-  même sans INSEE (org étrangère) si une source de niveau 1 le confirme.
-- **7-8** : Entreprise vraisemblablement réelle (sources niveau 1 ou 2),
-  mais ≥ 1 écart mineur OU vérification partielle. Auto-approbation
-  possible si le seuil produit l'autorise.
-- **4-6** : Plusieurs écarts détectés, OU aucune source de niveau 1 n'a
-  confirmé l'entreprise, OU données suspectes.
-- **0-3** : Données manifestement incohérentes entre elles (ex : nom et
-  domaine email totalement déconnectés), OU état CESSÉE confirmé par
-  registre, OU signaux frauduleux clairs (domaine jetable, nom factice
-  évident). PAS uniquement parce que la recherche n'a rien trouvé.
+
+⚠️ **AVANT de poser un score ≥ 6**, vérifie qu'AUCUN écart
+disqualifiant (D1/D2/D3/D4) n'est présent. Si écart disqualifiant
+détecté → **score MAX = 5**, quelles que soient les autres données.
+
+- **9-10** : Entreprise confirmée par registre officiel (niveau 1),
+  données saisies parfaitement cohérentes (au sens des tolérances),
+  AUCUN écart disqualifiant, aucun signal suspect. Tu peux donner
+  ce score même sans INSEE (org étrangère) si une source de niveau 1
+  le confirme.
+- **7-8** : Entreprise vraisemblablement réelle, AUCUN écart
+  disqualifiant, ≥ 1 écart mineur OU vérification partielle.
+- **4-6** : Plusieurs écarts mineurs OU aucune source de niveau 1
+  n'a confirmé OU données suspectes sans certitude. **Plafond 5
+  si écart disqualifiant détecté** (D1/D2/D3/D4).
+- **0-3** : Données manifestement incohérentes entre elles
+  (ex : nom + email + champs totalement déconnectés) OU plusieurs
+  écarts disqualifiants simultanés OU signaux frauduleux clairs
+  (domaine jetable + nom factice + SIREN bidon). PAS uniquement
+  parce que la recherche n'a rien trouvé.
 
 ═══════════════════════════════════════════════════════════════
 FORMAT DE RÉPONSE (JSON STRICT, sans markdown, sans texte autour)
 ═══════════════════════════════════════════════════════════════
 {
   "score": <entier 0..10>,
-  "notes": "<2 à 4 phrases en français : conclusion + raison principale + indication des sources principales utilisées. Respecte la RÈGLE ABSOLUE ci-dessus pour formuler les absences.>",
+  "notes": "<2 à 4 phrases en français : conclusion + raison principale + indication des sources principales utilisées. Respecte la RÈGLE ABSOLUE ci-dessus pour formuler les absences. Si écart disqualifiant détecté, le mentionner explicitement : 'Écart disqualifiant détecté : <type D1/D2/D3/D4> → score plafonné à 5.'>",
   "discrepancies": [
     "<écart 1 : champ + valeur saisie + valeur officielle + URL source>",
     "<écart 2 : ...>"
@@ -196,6 +285,8 @@ FORMAT DE RÉPONSE (JSON STRICT, sans markdown, sans texte autour)
 }
 
 Pour chaque entrée de "discrepancies" :
+- **Si écart DISQUALIFIANT** (D1/D2/D3/D4) : préfixer par "[DISQUALIFIANT] "
+  Exemple : "[DISQUALIFIANT] D1 — company_name saisi 'SAS' ne correspond pas à la raison sociale officielle INSEE 'WINOPS' (source: annuaire-entreprises.data.gouv.fr/etablissement/...)"
 - Si tu as une source officielle qui contredit la saisie : "<champ> saisi '<valeur>' ne correspond pas à <valeur officielle> selon <URL/registre>".
 - Si tu n'as PAS pu confirmer un champ : "<champ> saisi '<valeur>' : non confirmé via <sources consultées>" (formulation prudente, jamais "inexistant").
 
@@ -258,6 +349,14 @@ function extractFinalText(response: Anthropic.Messages.Message): string {
 export async function verifyAiCoherence(
   input: VerificationInput,
   sireneData: SireneData | null,
+  /**
+   * État du provider Sirene après ses tentatives (cf. lib/verification/index.ts).
+   * Détermine notamment l'application du disqualifiant D4 (Sirene indisponible
+   * par défaillance technique → plafond 5).
+   * `undefined` = compat ascendante : le prompt verra "Données INSEE non
+   * disponibles" sans pouvoir distinguer error/not_found/skipped.
+   */
+  sireneStatus: 'ok' | 'not_found' | 'error' | 'skipped' | null = null,
 ): Promise<VerificationOutput> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
@@ -272,7 +371,7 @@ export async function verifyAiCoherence(
     }
   }
 
-  const prompt = buildPrompt(input, sireneData)
+  const prompt = buildPrompt(input, sireneData, sireneStatus)
 
   // ── Tentatives d'appel Claude avec dégradation gracieuse ────────────────
   // 1. Haiku 4.5 + web_search (cas nominal — recherche web active)

@@ -166,7 +166,10 @@ export async function runVerification(args: {
     }
   }
 
-  const aiOutput = await verifyAiCoherence(input, sireneData)
+  // Passe sireneStatus à l'IA pour qu'elle puisse appliquer le disqualifiant
+  // D4 (Sirene indisponible par défaillance technique → score plafonné à 5).
+  // Cf. lib/verification/ai-fallback.ts.
+  const aiOutput = await verifyAiCoherence(input, sireneData, sireneStatus)
   attempts_count++
   await logAttempt({ supabaseAdmin, organization_id, output: aiOutput })
 
