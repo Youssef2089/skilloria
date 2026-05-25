@@ -1317,7 +1317,9 @@
       "field_score": "Score",
       "field_reject_provider": "Provider ayant rejeté",
       "ai_note_label": "Note IA",
-      "discrepancies_label": "Écarts détectés"
+      "discrepancies_label": "Écarts détectés",
+      "sirene_unavailable_title": "Sirene indisponible",
+      "sirene_unavailable_hint": "L'IA a tourné sans données officielles INSEE. Vérifier manuellement les informations de l'entreprise avant de décider."
     },
     "status_pending": "En attente",
     "status_approved": "Validée",

@@ -130,5 +130,19 @@ export type VerificationVerdict = {
     sirene_data?: SireneData | null
     /** 11G — liste textuelle des écarts détectés par l'IA (affichée fiche admin). */
     discrepancies?: string[]
+    /**
+     * Fix Sirene (D4) — état du provider Sirene après ses tentatives :
+     *   'ok'         : Sirene a renvoyé des données INSEE structurées
+     *   'not_found'  : 404 légitime (SIREN absent du répertoire INSEE)
+     *   'error'      : timeout / réseau / HTTP non-OK après retry
+     *   'skipped'    : Sirene non interrogé (country ≠ FR, SIREN absent, etc.)
+     *   null         : Sirene non concerné par cette vérif (cas edge)
+     * Utilisé par la fiche admin pour afficher un bandeau d'avertissement
+     * quand Sirene a échoué — pour que l'admin comprenne pourquoi l'org
+     * est en review sans données officielles.
+     */
+    sirene_status?: 'ok' | 'not_found' | 'error' | 'skipped' | null
+    /** Fix Sirene (D4) — message court d'erreur Sirene si sirene_status='error'. */
+    sirene_error_note?: string | null
   }
 }

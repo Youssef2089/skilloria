@@ -1317,7 +1317,9 @@
       "field_score": "Puntuación",
       "field_reject_provider": "Proveedor que rechazó",
       "ai_note_label": "Nota IA",
-      "discrepancies_label": "Discrepancias detectadas"
+      "discrepancies_label": "Discrepancias detectadas",
+      "sirene_unavailable_title": "Sirene no disponible",
+      "sirene_unavailable_hint": "La IA se ejecutó sin datos oficiales INSEE. Verifica manualmente la información de la empresa antes de decidir."
     },
     "status_pending": "Pendiente",
     "status_approved": "Validada",

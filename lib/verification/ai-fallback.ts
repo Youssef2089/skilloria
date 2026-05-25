@@ -126,22 +126,45 @@ Si tu ne trouves aucune source de niveau 1 (ni INSEE ni registre équivalent),
 le score plafonne naturellement (cohérence interne seulement).
 
 ═══════════════════════════════════════════════════════════════
+RÈGLE ABSOLUE — Formulation de l'absence
+═══════════════════════════════════════════════════════════════
+Tu n'as JAMAIS la certitude qu'une entreprise n'existe pas. Une absence
+de trace dans tes recherches n'est PAS une preuve d'inexistence. Les
+registres en ligne peuvent être incomplets, à jour avec délai, ou tu as
+pu rater la bonne requête.
+
+❌ FORMULATIONS INTERDITES (sur-confiance dangereuse) :
+   "inexistant", "introuvable", "n'existe pas", "le SIREN n'existe pas",
+   "absent du registre", "n'a jamais existé", "n'est pas immatriculé"
+
+✅ FORMULATIONS AUTORISÉES (prudence factuelle) :
+   "non confirmé via les sources consultées",
+   "aucune trace trouvée dans <sources listées>",
+   "n'a pas été retrouvé via <sources listées>",
+   "la recherche n'a pas permis de confirmer <champ>"
+
+Un score bas doit s'appuyer sur : (a) données manifestement incohérentes
+entre elles, (b) état CESSÉE confirmé, (c) signaux frauduleux clairs
+(domaine jetable, nom évidemment factice), OU (d) absence de confirmation
+par des sources de niveau 1. PAS sur une affirmation d'inexistence.
+
+═══════════════════════════════════════════════════════════════
 TA MISSION
 ═══════════════════════════════════════════════════════════════
 1. **Recoupe activement avec le web** (web_search) :
-   - Si le SIREN n’est pas fourni OU si Sirene n’a rien renvoyé : cherche
+   - Si le SIREN n'est pas fourni OU si Sirene n'a rien renvoyé : cherche
      "<nom entreprise> <pays> SIREN" ou équivalent registre du pays.
-   - Trouve le site officiel de l’entreprise et vérifie qu’il correspond au
-     website_url saisi (s’il est fourni).
-   - Recoupe la raison sociale, le secteur d’activité, l’adresse, l’état.
+   - Trouve le site officiel de l'entreprise et vérifie qu'il correspond au
+     website_url saisi (s'il est fourni).
+   - Recoupe la raison sociale, le secteur d'activité, l'adresse, l'état.
 
 2. **Compare** les données saisies (et INSEE le cas échéant) aux sources
    trouvées en ligne. Liste précisément chaque écart (champ + valeur saisie +
    valeur officielle + URL source).
 
 3. **Détecte les signaux suspects** : nom générique ("test", "société", "SAS"
-   seul), domaine email jetable, format SIREN/TVA invalide, état CESSÉE,
-   absence totale de présence en ligne, etc.
+   seul), domaine email jetable, format SIREN/TVA invalide, état CESSÉE
+   confirmé par registre, etc.
 
 ═══════════════════════════════════════════════════════════════
 BARÈME DU SCORE (0-10) — sans plafond a priori
@@ -152,27 +175,35 @@ Le score reflète la **confiance globale** : cohérence + vérifiabilité.
   même sans INSEE (org étrangère) si une source de niveau 1 le confirme.
 - **7-8** : Entreprise vraisemblablement réelle (sources niveau 1 ou 2),
   mais ≥ 1 écart mineur OU vérification partielle. Auto-approbation
-  possible si le seuil produit l’autorise.
-- **4-6** : Plusieurs écarts détectés, OU absence de sources de niveau 1,
-  OU données suspectes.
-- **0-3** : Données manifestement incohérentes OU entreprise introuvable
-  en ligne OU signaux frauduleux clairs.
+  possible si le seuil produit l'autorise.
+- **4-6** : Plusieurs écarts détectés, OU aucune source de niveau 1 n'a
+  confirmé l'entreprise, OU données suspectes.
+- **0-3** : Données manifestement incohérentes entre elles (ex : nom et
+  domaine email totalement déconnectés), OU état CESSÉE confirmé par
+  registre, OU signaux frauduleux clairs (domaine jetable, nom factice
+  évident). PAS uniquement parce que la recherche n'a rien trouvé.
 
 ═══════════════════════════════════════════════════════════════
 FORMAT DE RÉPONSE (JSON STRICT, sans markdown, sans texte autour)
 ═══════════════════════════════════════════════════════════════
 {
   "score": <entier 0..10>,
-  "notes": "<2 à 4 phrases en français : conclusion + raison principale + indication des sources principales utilisées>",
+  "notes": "<2 à 4 phrases en français : conclusion + raison principale + indication des sources principales utilisées. Respecte la RÈGLE ABSOLUE ci-dessus pour formuler les absences.>",
   "discrepancies": [
     "<écart 1 : champ + valeur saisie + valeur officielle + URL source>",
     "<écart 2 : ...>"
   ]
 }
 
+Pour chaque entrée de "discrepancies" :
+- Si tu as une source officielle qui contredit la saisie : "<champ> saisi '<valeur>' ne correspond pas à <valeur officielle> selon <URL/registre>".
+- Si tu n'as PAS pu confirmer un champ : "<champ> saisi '<valeur>' : non confirmé via <sources consultées>" (formulation prudente, jamais "inexistant").
+
 Si AUCUN écart détecté, "discrepancies" doit être un tableau vide [].
-Si tu n’as pas pu vérifier (web search indisponible, aucune source trouvée),
-explique-le dans "notes" et donne un score reflétant cette incertitude.`
+Si tu n'as pas pu vérifier (web search indisponible, aucune source trouvée),
+explique-le dans "notes" avec la formulation prudente et donne un score
+reflétant cette incertitude (typiquement 4-6, jamais 0-1 sur la seule
+absence de trace).`
 }
 
 type WebSearchToolParam = {

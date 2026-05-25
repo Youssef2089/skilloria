@@ -63,6 +63,10 @@ type Verification = {
   rejected_by: string[]
   /** 11G — écarts détectés par l'IA entre données saisies et INSEE. */
   discrepancies: string[]
+  /** Fix Sirene (D4) — état du provider Sirene après ses tentatives. */
+  sirene_status: 'ok' | 'not_found' | 'error' | 'skipped' | null
+  /** Fix Sirene (D4) — message court d'erreur Sirene si sirene_status='error'. */
+  sirene_error_note: string | null
 }
 
 type LoadedData = { org: Org; contact: Contact | null; verification: Verification }
@@ -476,6 +480,32 @@ export default function AdminOrgDetailPage() {
           >
             {t('detail.section_verification')}
           </h2>
+          {verification.sirene_status === 'error' && (
+            <div
+              role="alert"
+              style={{
+                display: 'flex',
+                gap: 10,
+                alignItems: 'flex-start',
+                padding: '10px 12px',
+                marginBottom: 12,
+                background: '#FEF9C3',
+                border: '1px solid #FDE047',
+                borderRadius: 8,
+                fontSize: 12,
+                color: '#713F12',
+                lineHeight: 1.5,
+              }}
+            >
+              <span aria-hidden style={{ flexShrink: 0, marginTop: 2, width: 6, height: 6, borderRadius: '50%', background: '#CA8A04' }} />
+              <span>
+                <strong style={{ fontWeight: 500 }}>{t('detail.sirene_unavailable_title')}</strong>
+                <br />
+                {t('detail.sirene_unavailable_hint')}
+                {verification.sirene_error_note ? ` (${verification.sirene_error_note})` : ''}
+              </span>
+            </div>
+          )}
           <Row label={t('detail.field_method')} value={verification.method ?? verification.last_provider ?? null} />
           <div
             style={{

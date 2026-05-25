@@ -106,6 +106,8 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
           rejected_by?: string[]
           discrepancies?: string[]
           sirene_data?: Record<string, unknown> | null
+          sirene_status?: 'ok' | 'not_found' | 'error' | 'skipped' | null
+          sirene_error_note?: string | null
         }
       | null) ?? null
 
@@ -124,6 +126,10 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     // 11G : snapshot INSEE comparé (disponible pour usage admin futur,
     // non rendu en V1 — seuls les écarts sont mis en avant côté UI).
     sirene_data: vd?.sirene_data ?? null,
+    // Fix Sirene (D4) — état du provider Sirene, exposé pour affichage
+    // d'un bandeau "Sirene indisponible" dans la fiche admin si error.
+    sirene_status: vd?.sirene_status ?? null,
+    sirene_error_note: vd?.sirene_error_note ?? null,
   }
 
   return json({ org, contact, verification }, 200)

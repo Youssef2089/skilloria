@@ -1,36 +1,33 @@
 import type { SireneData, VerificationInput, VerificationOutput } from './types'
 
 /**
- * Provider INSEE Sirene v3.11 — fournisseur de données (11G).
+ * Provider INSEE Sirene v3.11 — fournisseur de données (11G + fix retry).
  *
- * ⚠️ 11G — RÔLE NOUVEAU : Sirene est désormais un FOURNISSEUR DE DONNÉES,
- * pas un décideur. Il extrait les champs INSEE structurés (raison sociale,
- * forme juridique, APE, adresse, etc.) et les transmet à l'IA via
- * `VerificationOutput.structured_data`. Sirene retourne TOUJOURS
- * `result='inconclusive'` (il ne tranche jamais).
+ * ⚠️ 11G — RÔLE : Sirene est un FOURNISSEUR DE DONNÉES, pas un décideur.
+ * Il extrait les champs INSEE structurés et les transmet à l'IA via
+ * `VerificationOutput.structured_data`. `result` est TOUJOURS
+ * `'inconclusive'` ou `'error'` selon que l'appel a réussi ou non.
  *
- * La décision de cohérence (approved / pending_admin_review) est prise
- * par l'IA en aval, qui compare les données saisies aux données INSEE.
+ * Fix Sirene (D1/D2) — robustesse :
+ *   - Timeout passé à 25s (l'API INSEE est lente, runVerification est
+ *     asynchrone → pas de pression sur l'user)
+ *   - 1 retry automatique sur cas TRANSIENT (timeout/abort, réseau,
+ *     HTTP 5xx, 429) avec pause adaptée (800ms pour le réseau, 2000ms
+ *     pour 429 pour respecter le rate limit)
+ *   - PAS de retry sur 401/403 (auth KO) ni 404 (cas légitime)
+ *   - `raw_response.attempts[]` trace chaque tentative pour audit
  *
- * Endpoint : `https://api.insee.fr/api-sirene/3.11/siret?q=siren:<siren>`
- * Auth     : `X-INSEE-Api-Key-Integration: <SIRENE_API_TOKEN>`
- *
- * Mapping `etatAdministratifUniteLegale` → seulement informatif (transmis à
- * l'IA) :
- *   - 'A' (Active)   : entreprise active à l'INSEE
- *   - 'C' (Cessée)   : entreprise dissoute (signal négatif fort à pondérer par l'IA)
- *   - autre / absent : statut non standard
- *
- * HTTP 404 / erreur réseau / 5xx → result='inconclusive' avec
- * structured_data=null. L'IA en aval tournera sur les données saisies seules.
+ * Le dispatcher (lib/verification/index.ts) ne logue qu'UN seul row
+ * dans `verification_attempts` par appel à `verifyWithSirene` — le détail
+ * des sous-tentatives est dans `raw_response.attempts`.
  */
 
-// TODO V2 : lire provider.api_endpoint depuis verification_providers au lieu
-// de cette const locale. Nécessite refacto de la signature ProviderFn pour
-// accepter le provider row. Cf. migration doc 20260513120000_doc_provider_endpoint_not_used.sql.
 const SIRENE_BASE_URL = 'https://api.insee.fr/api-sirene/3.11'
 const PROVIDER_NAME = 'sirene_insee'
-const REQUEST_TIMEOUT_MS = 8_000
+const REQUEST_TIMEOUT_MS = 25_000
+const MAX_ATTEMPTS = 2 // 1 + 1 retry
+const RETRY_PAUSE_NETWORK_MS = 800
+const RETRY_PAUSE_RATE_LIMIT_MS = 2_000
 
 type SireneAdresse = {
   numeroVoieEtablissement?: string | null
@@ -59,6 +56,25 @@ type SireneRow = {
 
 type SireneResponse = {
   etablissements?: SireneRow[]
+}
+
+/** Trace d'une tentative HTTP — versée dans raw_response.attempts[]. */
+type AttemptTrace = {
+  attempt: number
+  outcome: 'ok' | 'not_found' | 'aborted' | 'network_error' | 'http_error'
+  http_status?: number
+  error_message?: string
+  duration_ms: number
+}
+
+/** Décision finale du provider après toutes les tentatives. */
+type SireneFetchResult =
+  | { kind: 'ok'; json: SireneResponse | null; attempts: AttemptTrace[] }
+  | { kind: 'not_found'; body: string; attempts: AttemptTrace[] }
+  | { kind: 'error'; reason: string; attempts: AttemptTrace[] }
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 function buildAdresseComplete(a: SireneAdresse | undefined): string | null {
@@ -94,6 +110,169 @@ function extractSireneData(json: SireneResponse | null): SireneData | null {
     date_creation: u.dateCreationUniteLegale ?? null,
     tranche_effectifs: u.trancheEffectifsUniteLegale ?? null,
     adresse_complete: buildAdresseComplete(etab.adresseEtablissement),
+  }
+}
+
+/**
+ * Effectue les tentatives HTTP avec retry sur transient errors.
+ * Retry sur : AbortError (timeout), erreurs réseau, HTTP 5xx, 429.
+ * PAS de retry sur : 401/403 (auth KO), 404 (légitime), 200 OK.
+ */
+async function fetchSireneWithRetry(
+  url: string,
+  token: string,
+): Promise<SireneFetchResult> {
+  const attempts: AttemptTrace[] = []
+
+  for (let attemptNum = 1; attemptNum <= MAX_ATTEMPTS; attemptNum++) {
+    const start = Date.now()
+    let res: Response | null = null
+    let networkErrMsg: string | null = null
+
+    try {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+      res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-INSEE-Api-Key-Integration': token,
+          Accept: 'application/json',
+        },
+        signal: controller.signal,
+      })
+      clearTimeout(timeout)
+    } catch (err) {
+      networkErrMsg = err instanceof Error ? err.message : String(err)
+    }
+
+    const duration_ms = Date.now() - start
+
+    // ── Cas 1 : abort/network error ───────────────────────────────────────
+    if (networkErrMsg !== null) {
+      const isAbort = /abort|aborted/i.test(networkErrMsg)
+      attempts.push({
+        attempt: attemptNum,
+        outcome: isAbort ? 'aborted' : 'network_error',
+        error_message: networkErrMsg.slice(0, 500),
+        duration_ms,
+      })
+      if (attemptNum < MAX_ATTEMPTS) {
+        await sleep(RETRY_PAUSE_NETWORK_MS)
+        continue
+      }
+      return {
+        kind: 'error',
+        reason: isAbort
+          ? `Timeout après ${MAX_ATTEMPTS} tentative(s) (${REQUEST_TIMEOUT_MS / 1000}s chacune)`
+          : `Erreur réseau Sirene après ${MAX_ATTEMPTS} tentative(s) — ${networkErrMsg.slice(0, 200)}`,
+        attempts,
+      }
+    }
+
+    // ── Cas 2 : 404 légitime (jamais de retry) ────────────────────────────
+    if (res!.status === 404) {
+      const body = await res!.text().catch(() => '')
+      attempts.push({
+        attempt: attemptNum,
+        outcome: 'not_found',
+        http_status: 404,
+        duration_ms,
+      })
+      return { kind: 'not_found', body: body.slice(0, 1000), attempts }
+    }
+
+    // ── Cas 3 : 401 / 403 (auth — jamais de retry) ────────────────────────
+    if (res!.status === 401 || res!.status === 403) {
+      const body = await res!.text().catch(() => '')
+      attempts.push({
+        attempt: attemptNum,
+        outcome: 'http_error',
+        http_status: res!.status,
+        error_message: body.slice(0, 200),
+        duration_ms,
+      })
+      return {
+        kind: 'error',
+        reason: `Auth Sirene refusée (HTTP ${res!.status}) — vérifier SIRENE_API_TOKEN`,
+        attempts,
+      }
+    }
+
+    // ── Cas 4 : 429 (rate limit — retry avec pause longue) ────────────────
+    if (res!.status === 429) {
+      const body = await res!.text().catch(() => '')
+      attempts.push({
+        attempt: attemptNum,
+        outcome: 'http_error',
+        http_status: 429,
+        error_message: body.slice(0, 200),
+        duration_ms,
+      })
+      if (attemptNum < MAX_ATTEMPTS) {
+        await sleep(RETRY_PAUSE_RATE_LIMIT_MS)
+        continue
+      }
+      return {
+        kind: 'error',
+        reason: `Rate limit Sirene (HTTP 429) après ${MAX_ATTEMPTS} tentative(s)`,
+        attempts,
+      }
+    }
+
+    // ── Cas 5 : 5xx (indispo INSEE — retry avec pause courte) ─────────────
+    if (res!.status >= 500 && res!.status < 600) {
+      const body = await res!.text().catch(() => '')
+      attempts.push({
+        attempt: attemptNum,
+        outcome: 'http_error',
+        http_status: res!.status,
+        error_message: body.slice(0, 200),
+        duration_ms,
+      })
+      if (attemptNum < MAX_ATTEMPTS) {
+        await sleep(RETRY_PAUSE_NETWORK_MS)
+        continue
+      }
+      return {
+        kind: 'error',
+        reason: `Indisponibilité Sirene (HTTP ${res!.status}) après ${MAX_ATTEMPTS} tentative(s)`,
+        attempts,
+      }
+    }
+
+    // ── Cas 6 : autres HTTP non-OK (jamais de retry) ──────────────────────
+    if (!res!.ok) {
+      const body = await res!.text().catch(() => '')
+      attempts.push({
+        attempt: attemptNum,
+        outcome: 'http_error',
+        http_status: res!.status,
+        error_message: body.slice(0, 200),
+        duration_ms,
+      })
+      return {
+        kind: 'error',
+        reason: `Erreur INSEE HTTP ${res!.status}`,
+        attempts,
+      }
+    }
+
+    // ── Cas 7 : 200 OK ────────────────────────────────────────────────────
+    const json = (await res!.json().catch(() => null)) as SireneResponse | null
+    attempts.push({
+      attempt: attemptNum,
+      outcome: 'ok',
+      http_status: 200,
+      duration_ms,
+    })
+    return { kind: 'ok', json, attempts }
+  }
+
+  // Boucle terminée sans return — ne devrait pas arriver, fallback safe
+  return {
+    kind: 'error',
+    reason: 'Boucle de retry terminée sans verdict (incohérent)',
+    attempts,
   }
 }
 
@@ -137,82 +316,52 @@ export async function verifyWithSirene(
   }
 
   const url = `${SIRENE_BASE_URL}/siret?q=siren:${siren}&nombre=1`
+  const fetchResult = await fetchSireneWithRetry(url, token)
 
-  let res: Response
-  try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
-    res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'X-INSEE-Api-Key-Integration': token,
-        Accept: 'application/json',
-      },
-      signal: controller.signal,
-    })
-    clearTimeout(timeout)
-  } catch (err) {
-    console.error('[verification:sirene] fetch threw', { siren, err })
-    return {
-      provider_name: PROVIDER_NAME,
-      result: 'error',
-      confidence_score: 0,
-      raw_response: { error: err instanceof Error ? err.message : String(err) },
-      notes: 'Erreur réseau Sirene',
-      structured_data: null,
-    }
-  }
-
-  if (res.status === 404) {
-    const text = await res.text().catch(() => '')
+  if (fetchResult.kind === 'not_found') {
     console.warn('[verification:sirene] 404 (SIREN unknown)', {
       siren,
-      body: text.slice(0, 1000),
+      attempts: fetchResult.attempts,
     })
     return {
       provider_name: PROVIDER_NAME,
       result: 'inconclusive',
       confidence_score: 0,
-      raw_response: { http_status: 404, body: text.slice(0, 1000) },
-      notes: 'SIREN inconnu chez l’INSEE — l’IA analysera les seules données saisies',
+      raw_response: { http_status: 404, body: fetchResult.body, attempts: fetchResult.attempts },
+      notes: 'SIREN non trouvé via l’endpoint INSEE consulté — non confirmé',
       structured_data: null,
     }
   }
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    console.warn('[verification:sirene] HTTP error', {
+
+  if (fetchResult.kind === 'error') {
+    console.warn('[verification:sirene] fetch failed', {
       siren,
-      status: res.status,
-      body: text.slice(0, 1000),
+      reason: fetchResult.reason,
+      attempts: fetchResult.attempts,
     })
     return {
       provider_name: PROVIDER_NAME,
       result: 'error',
       confidence_score: 0,
-      raw_response: { http_status: res.status, body: text.slice(0, 1000) },
-      notes: `Erreur INSEE HTTP ${res.status}`,
+      raw_response: { error: fetchResult.reason, attempts: fetchResult.attempts },
+      notes: fetchResult.reason,
       structured_data: null,
     }
   }
 
-  const json = (await res.json().catch(() => null)) as SireneResponse | null
-  const sireneData = extractSireneData(json)
-
+  // ── fetchResult.kind === 'ok' ───────────────────────────────────────────
+  const sireneData = extractSireneData(fetchResult.json)
   if (!sireneData) {
     return {
       provider_name: PROVIDER_NAME,
       result: 'inconclusive',
       confidence_score: 0,
-      raw_response: json ?? {},
+      raw_response: { json: fetchResult.json ?? {}, attempts: fetchResult.attempts },
       notes: 'Réponse Sirene vide ou inattendue',
       structured_data: null,
     }
   }
 
-  // 11G : Sirene NE TRANCHE PLUS — toujours 'inconclusive', juste enrichi
-  // de structured_data pour que l'IA compare en aval. Le statut INSEE
-  // (Active / Cessée / autre) est dans sireneData.etat_administratif et
-  // sera évalué par l'IA.
   const etat = sireneData.etat_administratif
   const notes =
     etat === 'A'
@@ -225,7 +374,7 @@ export async function verifyWithSirene(
     provider_name: PROVIDER_NAME,
     result: 'inconclusive',
     confidence_score: 0,
-    raw_response: json,
+    raw_response: { json: fetchResult.json, attempts: fetchResult.attempts },
     notes,
     structured_data: sireneData,
   }

@@ -1317,7 +1317,9 @@
       "field_score": "Score",
       "field_reject_provider": "Ablehnender Anbieter",
       "ai_note_label": "KI-Notiz",
-      "discrepancies_label": "Erkannte Abweichungen"
+      "discrepancies_label": "Erkannte Abweichungen",
+      "sirene_unavailable_title": "Sirene nicht verfügbar",
+      "sirene_unavailable_hint": "Die KI lief ohne offizielle INSEE-Daten. Überprüfen Sie die Unternehmensinformationen manuell, bevor Sie entscheiden."
     },
     "status_pending": "Ausstehend",
     "status_approved": "Validiert",

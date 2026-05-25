@@ -122,6 +122,11 @@ export async function runVerification(args: {
 
   let attempts_count = 0
   let sireneData: SireneData | null = null
+  // Fix Sirene (D4) — exposer le résultat Sirene au verdict pour visibilité
+  // admin. 'skipped' par défaut (cas où Sirene n'est pas appelé : country ≠ FR
+  // ou pas de SIREN ou pas de row sirene actif).
+  let sireneStatus: 'ok' | 'not_found' | 'error' | 'skipped' = 'skipped'
+  let sireneErrorNote: string | null = null
 
   // ── 1. Sirene (fournisseur de données) ──────────────────────────────────
   if (sireneProvider) {
@@ -129,6 +134,18 @@ export async function runVerification(args: {
     attempts_count++
     await logAttempt({ supabaseAdmin, organization_id, output: sireneOutput })
     sireneData = sireneOutput.structured_data ?? null
+
+    // Mapping Sirene result → sirene_status pour le verdict (D4).
+    if (sireneOutput.result === 'error') {
+      sireneStatus = 'error'
+      sireneErrorNote = sireneOutput.notes ?? 'Sirene en erreur'
+    } else if (sireneData) {
+      sireneStatus = 'ok'
+    } else {
+      // result='inconclusive' + structured_data null = 404 légitime ou
+      // réponse vide. Pour la fiche admin, c'est "not_found".
+      sireneStatus = 'not_found'
+    }
   }
 
   // ── 2. IA Claude (DÉCIDEUR systématique) ────────────────────────────────
@@ -143,6 +160,8 @@ export async function runVerification(args: {
         notes: `Aucun analyseur de cohérence IA configuré pour le pays ${input.country_code}`,
         attempts_count,
         sirene_data: sireneData,
+        sirene_status: sireneStatus,
+        ...(sireneErrorNote ? { sirene_error_note: sireneErrorNote } : {}),
       },
     }
   }
@@ -173,6 +192,8 @@ export async function runVerification(args: {
       attempts_count,
       sirene_data: sireneData,
       discrepancies: aiOutput.discrepancies ?? [],
+      sirene_status: sireneStatus,
+      ...(sireneErrorNote ? { sirene_error_note: sireneErrorNote } : {}),
     },
   }
 }

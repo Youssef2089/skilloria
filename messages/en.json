@@ -1317,7 +1317,9 @@
       "field_score": "Score",
       "field_reject_provider": "Rejecting provider",
       "ai_note_label": "AI note",
-      "discrepancies_label": "Discrepancies detected"
+      "discrepancies_label": "Discrepancies detected",
+      "sirene_unavailable_title": "Sirene unavailable",
+      "sirene_unavailable_hint": "The AI ran without official INSEE data. Verify the company information manually before deciding."
     },
     "status_pending": "Pending",
     "status_approved": "Approved",
