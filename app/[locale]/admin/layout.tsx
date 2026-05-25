@@ -6,6 +6,7 @@ import { Link, useRouter, usePathname } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import SessionHeartbeat from '@/components/SessionHeartbeat'
 
 /**
  * Layout du back-office /admin (B5c).
@@ -133,7 +134,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isOrgsActive = pathname.startsWith('/admin/organisations') || pathname === '/admin'
 
   return (
-    <div
+    <>
+      <SessionHeartbeat />
+      <div
       className="admin-layout"
       style={{
         minHeight: '100vh',
@@ -299,6 +302,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <main className="admin-main" style={{ padding: '32px 40px', minWidth: 0 }}>
         {children}
       </main>
-    </div>
+      </div>
+    </>
   )
 }

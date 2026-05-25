@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
 import { dashboardUrlForUserType, FALLBACK_DASHBOARD_URL } from '@/lib/auth-routing'
 import { initSession } from '@/lib/secure-fetch'
+import SessionHeartbeat from '@/components/SessionHeartbeat'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 /**
@@ -91,7 +92,13 @@ export default function AuthCallbackPage() {
   }, [redirectUrl, router])
 
   return (
-    <div
+    <>
+      {/* Couverture session unique 11F même sur ce sas de transition.
+          Stricte exigence du cahier des charges : tout écran connecté
+          doit être couvert. L'user a posé son token via initSession
+          quelques ms avant ce rendu. */}
+      <SessionHeartbeat />
+      <div
       style={{
         minHeight: '100vh',
         background: '#f8fafc',
@@ -263,5 +270,6 @@ export default function AuthCallbackPage() {
         )}
       </div>
     </div>
+    </>
   )
 }
