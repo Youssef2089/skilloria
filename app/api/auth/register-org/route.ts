@@ -254,13 +254,27 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Email domain blocked', code: 'email_domain_blocked' }, 400)
   }
 
-  const { data: existingDomain } = await supabaseAdmin
-    .from('organizations')
+  // Domaines PUBLICS (gmail.com, outlook.com, …) : autorisés mais ne réservent
+  // pas le domaine. L'org est créée avec email_domain=NULL pour ne pas bloquer
+  // les futurs inscrits du même domaine (index unique partiel ignore NULL).
+  // Liste gérée en back-office via public.public_email_domains.
+  const { data: publicDomain } = await supabaseAdmin
+    .from('public_email_domains')
     .select('id')
     .ilike('email_domain', input.email_domain)
+    .eq('active', true)
     .maybeSingle()
-  if (existingDomain) {
-    return json({ error: 'Email domain already used', code: 'email_domain_taken' }, 409)
+  const isPublicDomain = !!publicDomain
+
+  if (!isPublicDomain) {
+    const { data: existingDomain } = await supabaseAdmin
+      .from('organizations')
+      .select('id')
+      .ilike('email_domain', input.email_domain)
+      .maybeSingle()
+    if (existingDomain) {
+      return json({ error: 'Email domain already used', code: 'email_domain_taken' }, 409)
+    }
   }
 
   if (input.siren) {
@@ -364,7 +378,9 @@ export async function POST(request: NextRequest): Promise<Response> {
         country: input.country_code,
         siren: input.siren,
         vat_number: input.vat_number,
-        email_domain: input.email_domain,
+        // Domaine public → NULL (cohabitation libre, index unique partiel
+        // ignore NULL et B4 ne doit jamais auto-rattacher sur NULL).
+        email_domain: isPublicDomain ? null : input.email_domain,
         verification_status: 'pending_provider_check',
       })
       .select('id')
@@ -423,7 +439,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       input: {
         country_code: input.country_code,
         company_name: input.company_name,
-        email_domain: input.email_domain,
+        // VerificationInput.email_domain est non-nullable : on passe '' pour
+        // les domaines publics (équivalent au fallback `?? ''` de
+        // finalize-org-registration). L'IA tolère le champ vide.
+        email_domain: isPublicDomain ? '' : input.email_domain,
         siren: input.siren,
         vat_number: input.vat_number,
         // 11G : alignement avec finalize-org pour ne pas avoir 2 flows divergents.
