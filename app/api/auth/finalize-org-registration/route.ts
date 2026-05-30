@@ -247,6 +247,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       verification_status: verdict.verification_status,
       verification_method: verdict.verification_method,
       verification_data: verdict.verification_data,
+      // Invariant : is_verified === (verification_status === 'approved').
+      // Couvre l'auto-approbation IA (score ≥ threshold → verdict approved
+      // → is_verified true sans intervention admin). Sinon reste false.
+      is_verified: verdict.verification_status === 'approved',
     }
     if (verdict.verification_status === 'approved') {
       verifUpdates.verified_at = nowIso

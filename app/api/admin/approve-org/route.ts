@@ -93,6 +93,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     .from('organizations')
     .update({
       verification_status: 'approved',
+      // Invariant : is_verified === (verification_status === 'approved').
+      // C'est is_verified qui sert de flag de blocage côté guards (publications,
+      // achats) — sans ce sync, l'admin "approuve" mais l'org reste bloquée.
+      is_verified: true,
       verified_at: nowIso,
       verified_by: auth.user.id,
     })

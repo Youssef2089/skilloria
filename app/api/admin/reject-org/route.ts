@@ -94,6 +94,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     .from('organizations')
     .update({
       verification_status: 'rejected',
+      // Invariant : is_verified === (verification_status === 'approved').
+      // Reset défensif idempotent — au cas où un statut precedent aurait
+      // mis is_verified à true (re-rejet, scénario de récupération admin).
+      is_verified: false,
       verified_at: nowIso,
       verified_by: auth.user.id,
       review_reason: reason,
