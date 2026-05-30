@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { logAudit } from '@/lib/audit'
 import { logSession } from '@/lib/session-log'
-import { runVerification } from '@/lib/verification'
 import { verifyPhoneOtpToken } from '@/lib/phone-otp-token'
 
 export const runtime = 'nodejs'
@@ -437,60 +436,21 @@ export async function POST(request: NextRequest): Promise<Response> {
       )
     }
 
-    // ── 5. Vérification entreprise ────────────────────────────────────────
-    const verdict = await runVerification({
-      supabaseAdmin,
-      organization_id,
-      input: {
-        country_code: input.country_code,
-        company_name: input.company_name,
-        // VerificationInput.email_domain est non-nullable : on passe '' pour
-        // les domaines publics (équivalent au fallback `?? ''` de
-        // finalize-org-registration). L'IA tolère le champ vide.
-        email_domain: isPublicDomain ? '' : input.email_domain,
-        siren: input.siren,
-        vat_number: input.vat_number,
-        // 11G : alignement avec finalize-org pour ne pas avoir 2 flows divergents.
-        // register-org legacy ne reçoit pas website/org_type côté body (modale B3.4
-        // les collecte ultérieurement) → on passe null. L'IA évaluera la cohérence
-        // sur les champs disponibles.
-        website_url: null,
-        org_type: input.org_type,
-      },
-    })
-
-    const updates: Record<string, unknown> = {
-      verification_status: verdict.verification_status,
-      verification_method: verdict.verification_method,
-      verification_data: verdict.verification_data,
-    }
-    if (verdict.verification_status === 'approved') {
-      updates.verified_at = new Date().toISOString()
-      // verified_by laissé à null = approval automatique (Q-B2.c.6)
-    }
-    const { error: updErr } = await supabaseAdmin
-      .from('organizations')
-      .update(updates)
-      .eq('id', organization_id)
-    if (updErr) {
-      console.error('[register-org] organizations update post-verify failed', updErr.message)
-      // Non bloquant : la ligne org existe déjà avec le status initial.
-      // On ne rollback pas pour ne pas perdre les verification_attempts insérés.
-    }
-
-    // ── 6. Side effects best-effort ───────────────────────────────────────
+    // ── 5. Side effects best-effort ──────────────────────────────────────
+    // La vérification entreprise (Sirene + IA) tourne à l'étape 2 dans
+    // finalize-org-registration, qui reçoit SIREN + website + org_sub_type
+    // via la modale post-login. Ici on laisse l'org en
+    // verification_status='pending_provider_check' (posé à l'INSERT).
     await logAudit({
       supabaseAdmin,
       user_id,
       domain_id: domainRow.id,
-      action: 'org_register',
+      action: 'org_pre_registered',
       entity_type: 'organization',
       entity_id: organization_id,
       detail: {
-        method: verdict.verification_method,
-        status: verdict.verification_status,
-        score: verdict.verification_data.score,
-        attempts_count: verdict.verification_data.attempts_count,
+        org_type: input.org_type,
+        is_public_domain: isPublicDomain,
       },
     })
     await logSession({ supabaseAdmin, user_id, request })
@@ -499,8 +459,6 @@ export async function POST(request: NextRequest): Promise<Response> {
       {
         user_id,
         organization_id,
-        verification_status: verdict.verification_status,
-        verification_method: verdict.verification_method,
       },
       200,
     )
