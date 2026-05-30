@@ -348,9 +348,14 @@ export async function POST(request: NextRequest): Promise<Response> {
   // 2. `auth.admin.deleteUser` ne supprime QUE `auth.users` ; les lignes
   //    `public.users` orphelines persistent et bloquent les futures
   //    inscriptions (UNIQUE constraint users_email_key).
-  // 3. Le cleanup doit donc supprimer EN PREMIER `public.users`
-  //    (pour éviter une violation FK si profiles existe), puis `auth.users`.
+  // 3. Le cleanup doit donc supprimer EN PREMIER l'organization (cascade ON
+  //    DELETE → organization_members + organization_domains + verification_attempts),
+  //    PUIS `public.users` (cascade → session_logs), PUIS `auth.users`.
+  //
+  // `organization_id` est hissé ici pour rester accessible depuis le catch
+  // (sinon TS le considère hors scope si l'INSERT throw avant assignation).
   // ────────────────────────────────────────────────────────────────────────
+  let organization_id: string | null = null
   try {
     // ── 1.b Flag phone_verified=true sur public.users (B3.2) ──────────────
     // Le trigger `handle_new_user` a créé public.users sans téléphone ;
@@ -393,7 +398,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         orgErr,
       )
     }
-    const organization_id = orgRow.id as string
+    organization_id = orgRow.id as string
 
     // ── 3. organization_members (admin du nouvel org) ─────────────────────
     const { error: memberErr } = await supabaseAdmin
@@ -500,13 +505,36 @@ export async function POST(request: NextRequest): Promise<Response> {
       200,
     )
   } catch (err) {
-    // ── CLEANUP ATOMIQUE À 2 ÉTAPES ─────────────────────────────────────
+    // ── CLEANUP ATOMIQUE À 3 ÉTAPES ─────────────────────────────────────
+    // Ordre : org -> public.users -> auth.users. Les FK ON DELETE CASCADE
+    // posées en B1 (organization_members, organization_domains,
+    // verification_attempts -> organizations ; session_logs -> users)
+    // assurent que les enfants partent avec le parent à chaque étape.
     const errMsg = err instanceof Error ? err.message : String(err)
     console.error(`[register-org] rollback déclenché: ${errMsg}`)
 
-    // Étape 1 : supprimer public.users (créé par trigger handle_new_user)
-    //           AVANT public.profiles si présent (FK profile.user_id ->
-    //           users.id avec ON DELETE CASCADE attendue côté schema).
+    // Étape 1 : supprimer l'organization si elle a été créée. CASCADE
+    // emporte organization_members + organization_domains +
+    // verification_attempts. Sans ça, des SAS fantômes restent en BDD.
+    if (organization_id) {
+      try {
+        const { error: orgDelErr } = await supabaseAdmin
+          .from('organizations')
+          .delete()
+          .eq('id', organization_id)
+        if (orgDelErr) {
+          console.error('[register-org] cleanup organizations failed', orgDelErr.message)
+        }
+      } catch (cleanupOrgErr) {
+        const m = cleanupOrgErr instanceof Error ? cleanupOrgErr.message : String(cleanupOrgErr)
+        console.error('[register-org] cleanup organizations threw', m)
+      }
+    }
+
+    // Étape 2 : supprimer public.users (créé par trigger handle_new_user).
+    // organization_members.user_id ON DELETE CASCADE → les liaisons partent
+    // avec. session_logs.user_id ON DELETE CASCADE idem. Les FK SET NULL
+    // (invited_by, verified_by) n'empêchent jamais la suppression.
     try {
       const { error: pubDelErr } = await supabaseAdmin
         .from('users')
@@ -520,7 +548,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       console.error('[register-org] cleanup public.users threw', m)
     }
 
-    // Étape 2 : supprimer auth.users (cleanup Supabase Auth)
+    // Étape 3 : supprimer auth.users (cleanup Supabase Auth)
     try {
       const { error: authDelErr } = await supabaseAdmin.auth.admin.deleteUser(user_id)
       if (authDelErr) {
@@ -531,7 +559,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       console.error('[register-org] cleanup auth.users threw', m)
     }
 
-    // Étape 3 : retourner l'erreur originale au client
+    // Étape 4 : retourner l'erreur originale au client
     if (err instanceof RegisterOrgError) {
       return json({ error: err.userMessage, code: err.code }, err.statusCode)
     }
