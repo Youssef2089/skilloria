@@ -1,6 +1,14 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
+import { loadTranslations, tBDD } from '@/lib/translations'
+import { routing, type Locale } from '@/i18n/routing'
+import type {
+  Annonce,
+  AnnonceBudgetUnit,
+  AnnonceStatus,
+  AnnonceType,
+} from '@/types/annonce'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -217,4 +225,145 @@ export async function POST(request: NextRequest): Promise<Response> {
   })
 
   return json({ id: row.id, status: row.status }, 201)
+}
+
+
+// ============================================================================
+// GET /api/publications — liste les publications de l'organisation de l'auth.
+// ============================================================================
+//
+// Retourne `{ publications: Annonce[] }` — DTO Annonce sans aucun champ
+// sensible (verification_data / verification_method / review_reason /
+// description / skills_required ne sont JAMAIS exposés ici).
+//
+// branch_label / speciality_label localisés via tBDD (table public.translations,
+// même pattern que /api/taxonomy). Locale lue depuis ?locale=, fallback FR.
+//
+// Compteurs candidatures = 0 pour l'instant (Lot 2 branchera la vraie agg).
+//
+// Tri : updated_at DESC (modifications récentes en haut).
+
+const VALID_STATUSES: readonly AnnonceStatus[] = [
+  'draft',
+  'pending_review',
+  'published',
+  'suspended',
+  'expired',
+  'archived',
+  'rejected',
+]
+const VALID_TYPES: readonly AnnonceType[] = ['mission', 'offre']
+
+const EMPTY_CANDIDATURES = {
+  recues: 0,
+  nouvelles: 0,
+  en_discussion: 0,
+  retenues: 0,
+  refusees: 0,
+} as const
+
+function normalizeLocale(raw: string | null): Locale {
+  return (routing.locales as readonly string[]).includes(raw ?? '')
+    ? (raw as Locale)
+    : routing.defaultLocale
+}
+
+function budgetUnitForType(t: AnnonceType): AnnonceBudgetUnit {
+  // V1 : pas de colonne budget_unit en BDD. Convention dérivée :
+  //   mission (freelance) → tarif par jour
+  //   offre (CDI)         → salaire annuel
+  return t === 'mission' ? 'day' : 'year'
+}
+
+type PublicationRow = {
+  id: string
+  type: string
+  title: string
+  status: string
+  branch_id: string | null
+  speciality_id: string | null
+  budget_min: number | null
+  budget_max: number | null
+  verification_score: number | null
+  created_at: string
+  published_at: string | null
+  branches: { id: string; name: string } | { id: string; name: string }[] | null
+  specialities: { id: string; name: string } | { id: string; name: string }[] | null
+}
+
+function pickRel<T>(value: T | T[] | null): T | null {
+  if (!value) return null
+  return Array.isArray(value) ? (value[0] ?? null) : value
+}
+
+export async function GET(request: NextRequest): Promise<Response> {
+  // ── Auth + appartenance org active ──────────────────────────────────────
+  let auth: AuthContext
+  try {
+    auth = await requireAuth(request)
+  } catch (err) {
+    if (err instanceof AuthError) return err.toResponse()
+    throw err
+  }
+  const orgId = auth.organization?.id
+  if (!orgId) {
+    return json({ error: 'No organization', code: 'org_required' }, 403)
+  }
+
+  const locale = normalizeLocale(new URL(request.url).searchParams.get('locale'))
+
+  // ── SELECT + jointure noms branch/speciality + chargement traductions ──
+  const [pubsResult, translations] = await Promise.all([
+    auth.supabaseAdmin
+      .from('publications')
+      .select(
+        'id, type, title, status, branch_id, speciality_id, budget_min, budget_max, ' +
+          'verification_score, created_at, published_at, ' +
+          'branches(id, name), specialities(id, name)',
+      )
+      .eq('organization_id', orgId)
+      .order('updated_at', { ascending: false })
+      .limit(500),
+    loadTranslations(locale),
+  ])
+
+  if (pubsResult.error) {
+    console.error('[publications:GET] query failed', pubsResult.error.message)
+    return json({ error: 'Query failed', code: 'db_error' }, 500)
+  }
+
+  const rows = (pubsResult.data ?? []) as unknown as PublicationRow[]
+
+  const publications: Annonce[] = rows.map((row) => {
+    const safeType: AnnonceType = (VALID_TYPES as readonly string[]).includes(row.type)
+      ? (row.type as AnnonceType)
+      : 'mission'
+    const safeStatus: AnnonceStatus = (VALID_STATUSES as readonly string[]).includes(row.status)
+      ? (row.status as AnnonceStatus)
+      : 'draft'
+    const branch = pickRel(row.branches)
+    const speciality = pickRel(row.specialities)
+
+    return {
+      id: row.id,
+      type: safeType,
+      title: row.title,
+      status: safeStatus,
+      branch_label: branch
+        ? tBDD(translations, 'branches', branch.id, 'name', branch.name)
+        : null,
+      speciality_label: speciality
+        ? tBDD(translations, 'specialities', speciality.id, 'name', speciality.name)
+        : null,
+      budget_min: row.budget_min,
+      budget_max: row.budget_max,
+      budget_unit: budgetUnitForType(safeType),
+      verification_score: row.verification_score,
+      created_at: row.created_at,
+      published_at: row.published_at,
+      candidatures: { ...EMPTY_CANDIDATURES },
+    }
+  })
+
+  return json({ publications }, 200)
 }

@@ -1288,6 +1288,39 @@
       "archived": "Archivée",
       "rejected": "Refusée"
     },
+    "type": {
+      "mission": "Mission",
+      "offre": "Offre"
+    },
+    "budget_unit": {
+      "day": "/jour",
+      "month": "/mois",
+      "year": "/an",
+      "mission": "/mission"
+    },
+    "badges": {
+      "ai_score": "Score IA {score}/10",
+      "ai_score_tooltip": "Score qualité attribué par l'analyseur IA"
+    },
+    "dates": {
+      "created_ago": "Créée il y a {time}",
+      "published_ago": "Publiée il y a {time}",
+      "updated_ago": "Mise à jour il y a {time}"
+    },
+    "list": {
+      "tab_drafts": "Brouillons",
+      "tab_review": "En revue",
+      "tab_published": "Publiées",
+      "tab_closed": "Clôturées",
+      "empty_title_drafts": "Aucun brouillon",
+      "empty_subtitle_drafts": "Vos brouillons d'annonces apparaîtront ici.",
+      "empty_title_review": "Aucune annonce en revue",
+      "empty_subtitle_review": "Vos annonces en attente de modération apparaîtront ici.",
+      "empty_title_published": "Aucune annonce en ligne",
+      "empty_subtitle_published": "Publiez votre première annonce pour qu'elle apparaisse ici.",
+      "empty_title_closed": "Aucune annonce clôturée",
+      "empty_subtitle_closed": "Vos annonces suspendues, expirées ou archivées apparaîtront ici."
+    },
     "errors": {
       "invalid_json": "Requête invalide.",
       "org_required": "Vous devez être membre actif d'une organisation.",

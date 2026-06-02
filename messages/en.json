@@ -1288,6 +1288,39 @@
       "archived": "Archived",
       "rejected": "Rejected"
     },
+    "type": {
+      "mission": "Mission",
+      "offre": "Job offer"
+    },
+    "budget_unit": {
+      "day": "/day",
+      "month": "/month",
+      "year": "/year",
+      "mission": "/project"
+    },
+    "badges": {
+      "ai_score": "AI score {score}/10",
+      "ai_score_tooltip": "Quality score attributed by the AI checker"
+    },
+    "dates": {
+      "created_ago": "Created {time} ago",
+      "published_ago": "Published {time} ago",
+      "updated_ago": "Updated {time} ago"
+    },
+    "list": {
+      "tab_drafts": "Drafts",
+      "tab_review": "In review",
+      "tab_published": "Published",
+      "tab_closed": "Closed",
+      "empty_title_drafts": "No drafts",
+      "empty_subtitle_drafts": "Your draft listings will appear here.",
+      "empty_title_review": "No listings in review",
+      "empty_subtitle_review": "Your listings waiting for moderation will appear here.",
+      "empty_title_published": "No live listings",
+      "empty_subtitle_published": "Publish your first listing for it to appear here.",
+      "empty_title_closed": "No closed listings",
+      "empty_subtitle_closed": "Your suspended, expired or archived listings will appear here."
+    },
     "errors": {
       "invalid_json": "Invalid request.",
       "org_required": "You must be an active member of an organization.",

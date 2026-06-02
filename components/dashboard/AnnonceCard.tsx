@@ -1,42 +1,62 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import type { Annonce, AnnonceStatus } from '@/types/annonce'
 
 /**
- * Carte d'annonce du dashboard organisation (B3.5).
+ * Carte d'annonce du dashboard organisation.
  *
- * Affiche : titre, sous-titre (publication/clôture + budget), badge statut,
- * 5 compteurs candidatures, lien d'action selon le statut.
+ * Lot 1b.1 :
+ *   - Couvre les 7 statuts BDD via un STATUS_STYLES exhaustif
+ *   - Badge "Score IA {score}/10" si verification_score non nul
+ *   - Affiche type (Mission/Offre), branch · speciality, budget avec unité
+ *     dérivée du type (mission → /jour, offre → /an) côté DTO server-side
  *
- * Réutilise le type partagé `Annonce` (types/annonce.ts).
- *
- * Le lien d'action est un `<Link>` next-intl (préfixe locale automatique).
- *
- * TODO B4+ : le titre d'annonce (annonce.title) sera multilingue et nécessitera
- * tBDD() — cf. types/annonce.ts pour la stratégie (route API ou Server Component).
+ * Les compteurs candidatures sont à 0 tant que le Lot 2 n'a pas branché
+ * l'agrégat depuis la table `candidatures`.
  */
 
 type Props = {
   annonce: Annonce
-  // B3.5.fix : un seul dashboard org. basePath restreint pour interdire
-  // toute régression vers une URL secondaire.
   basePath: '/dashboard/entreprise'
 }
 
-const STATUS_STYLES: Record<
-  AnnonceStatus,
-  { bg: string; color: string; dot: string }
-> = {
-  published: { bg: '#DBEAFE', color: '#1E40AF', dot: '#1E40AF' },
-  in_discussion: { bg: '#DCFCE7', color: '#166534', dot: '#16A34A' },
-  closed: {
+type StatusVisual = { bg: string; color: string; dot: string }
+
+const STATUS_STYLES: Record<AnnonceStatus, StatusVisual> = {
+  // Brouillon : neutre
+  draft: {
     bg: 'var(--color-background-secondary, #f1f5f9)',
-    color: 'var(--color-text-secondary, #64748b)',
+    color: 'var(--color-text-secondary, #475569)',
     dot: 'var(--color-text-tertiary, #94a3b8)',
   },
+  // En revue : amber warning
+  pending_review: { bg: '#FEF9C3', color: '#854D0E', dot: '#CA8A04' },
+  // Publiée : vert succès
+  published: { bg: '#DCFCE7', color: '#166534', dot: '#16A34A' },
+  // Suspendue / expirée / archivée : neutre
+  suspended: {
+    bg: 'var(--color-background-secondary, #f1f5f9)',
+    color: 'var(--color-text-secondary, #475569)',
+    dot: 'var(--color-text-tertiary, #94a3b8)',
+  },
+  expired: {
+    bg: 'var(--color-background-secondary, #f1f5f9)',
+    color: 'var(--color-text-secondary, #475569)',
+    dot: 'var(--color-text-tertiary, #94a3b8)',
+  },
+  archived: {
+    bg: 'var(--color-background-secondary, #f1f5f9)',
+    color: 'var(--color-text-secondary, #475569)',
+    dot: 'var(--color-text-tertiary, #94a3b8)',
+  },
+  // Refusée : rouge danger
+  rejected: { bg: '#FEE2E2', color: '#991B1B', dot: '#DC2626' },
 }
+
+const FADED_STATUSES: readonly AnnonceStatus[] = ['suspended', 'expired', 'archived', 'rejected']
+const ACTIONABLE_STATUSES: readonly AnnonceStatus[] = ['draft', 'pending_review', 'published']
 
 function IconUsers({ size = 14 }: { size?: number }) {
   return (
@@ -49,20 +69,20 @@ function IconUsers({ size = 14 }: { size?: number }) {
   )
 }
 
-function formatBudget(min: number | null, max: number | null, unit: Annonce['budget_unit']): string {
+function formatBudget(
+  min: number | null,
+  max: number | null,
+  unit: Annonce['budget_unit'],
+  unitSuffixes: { day: string; month: string; year: string; mission: string },
+): string {
   if (min == null && max == null) return ''
-  const unitSuffix =
-    unit === 'day' ? '/j' : unit === 'month' ? '/mois' : unit === 'year' ? '/an' : ''
-  if (min != null && max != null) return `${Math.round(min)}-${Math.round(max)}€${unitSuffix}`
-  if (min != null) return `${Math.round(min)}€${unitSuffix}`
-  if (max != null) return `${Math.round(max)}€${unitSuffix}`
+  const suffix = unitSuffixes[unit] ?? ''
+  if (min != null && max != null) return `${Math.round(min)}-${Math.round(max)}€${suffix}`
+  if (min != null) return `${Math.round(min)}€${suffix}`
+  if (max != null) return `${Math.round(max)}€${suffix}`
   return ''
 }
 
-/**
- * Distance approximative en "il y a X" (FR uniquement V1).
- * Format simple sans dépendance externe (pas de dayjs/date-fns).
- */
 function relativeFromNow(iso: string | null, locale: string): string {
   if (!iso) return ''
   const then = new Date(iso).getTime()
@@ -86,37 +106,41 @@ function relativeFromNow(iso: string | null, locale: string): string {
   return locale === 'fr' ? "à l'instant" : 'just now'
 }
 
-function formatDate(iso: string | null, locale: string): string {
-  if (!iso) return ''
-  try {
-    return new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })
-  } catch {
-    return iso.slice(0, 10)
-  }
-}
-
 export default function AnnonceCard({ annonce, basePath }: Props) {
   const t = useTranslations('dashboard_entreprise')
+  const tPub = useTranslations('publications')
+  const locale = useLocale()
 
   const statusStyle = STATUS_STYLES[annonce.status]
-  const isClosed = annonce.status === 'closed'
+  const faded = (FADED_STATUSES as readonly string[]).includes(annonce.status)
+  const actionable = (ACTIONABLE_STATUSES as readonly string[]).includes(annonce.status)
 
-  const budgetText = formatBudget(annonce.budget_min, annonce.budget_max, annonce.budget_unit)
+  const unitSuffixes = {
+    day: tPub('budget_unit.day'),
+    month: tPub('budget_unit.month'),
+    year: tPub('budget_unit.year'),
+    mission: tPub('budget_unit.mission'),
+  }
+  const budgetText = formatBudget(annonce.budget_min, annonce.budget_max, annonce.budget_unit, unitSuffixes)
 
-  // Sous-titre : "Publiée il y a X · YYY-ZZZ€/j" ou "Clôturée le X · ..."
-  // On lit la locale courante via document (pas d'access serveur ici).
-  const locale =
-    typeof document !== 'undefined' ? document.documentElement.lang || 'fr' : 'fr'
-  const subtitle = isClosed
-    ? `${t('closed_on', { date: formatDate(annonce.closed_at, locale) })}${budgetText ? ' · ' + budgetText : ''}`
-    : `${t('published_ago', { time: relativeFromNow(annonce.published_at, locale) })}${budgetText ? ' · ' + budgetText : ''}`
-
-  const statusLabel =
+  // Sous-titre : date relative selon le statut.
+  // - 'published'      → date de publication
+  // - 'draft'/autres   → date de création
+  const dateIso = annonce.status === 'published' ? annonce.published_at : annonce.created_at
+  const dateLabel =
     annonce.status === 'published'
-      ? t('status_published')
-      : annonce.status === 'in_discussion'
-        ? t('status_in_discussion')
-        : t('status_closed')
+      ? tPub('dates.published_ago', { time: relativeFromNow(dateIso, locale) })
+      : tPub('dates.created_ago', { time: relativeFromNow(dateIso, locale) })
+  const subtitle = budgetText ? `${dateLabel} · ${budgetText}` : dateLabel
+
+  const statusLabel = tPub(`status.${annonce.status}`)
+  const typeLabel = tPub(`type.${annonce.type}`)
+
+  // Ligne meta : Type · Branch · Speciality (jointe au "·")
+  const metaParts: string[] = [typeLabel]
+  if (annonce.branch_label) metaParts.push(annonce.branch_label)
+  if (annonce.speciality_label) metaParts.push(annonce.speciality_label)
+  const metaLine = metaParts.join(' · ')
 
   const c = annonce.candidatures
   const counters: Array<{ key: string; label: string; value: number; color?: string }> = [
@@ -134,12 +158,12 @@ export default function AnnonceCard({ annonce, basePath }: Props) {
         border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
         borderRadius: 12,
         padding: '14px 18px',
-        opacity: isClosed ? 0.7 : 1,
+        opacity: faded ? 0.7 : 1,
         transition: 'opacity .15s, box-shadow .2s',
       }}
     >
-      {/* Header : titre + sous-titre + badge statut */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 14 }}>
+      {/* Header : titre + sous-titre + badges (statut + score IA) */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 10 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
           <h3
             style={{
@@ -158,26 +182,59 @@ export default function AnnonceCard({ annonce, basePath }: Props) {
             {subtitle}
           </div>
         </div>
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '4px 10px',
-            background: statusStyle.bg,
-            color: statusStyle.color,
-            fontSize: 11,
-            fontWeight: 500,
-            borderRadius: 12,
-            flexShrink: 0,
-          }}
-        >
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          {annonce.verification_score != null && (
+            <span
+              title={tPub('badges.ai_score_tooltip')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '4px 10px',
+                background: 'var(--color-background-secondary, #f1f5f9)',
+                color: 'var(--color-text-secondary, #475569)',
+                fontSize: 11,
+                fontWeight: 500,
+                borderRadius: 12,
+              }}
+            >
+              {tPub('badges.ai_score', { score: Math.round(annonce.verification_score) })}
+            </span>
+          )}
           <span
-            aria-hidden
-            style={{ width: 6, height: 6, borderRadius: '50%', background: statusStyle.dot }}
-          />
-          {statusLabel}
-        </span>
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '4px 10px',
+              background: statusStyle.bg,
+              color: statusStyle.color,
+              fontSize: 11,
+              fontWeight: 500,
+              borderRadius: 12,
+            }}
+          >
+            <span
+              aria-hidden
+              style={{ width: 6, height: 6, borderRadius: '50%', background: statusStyle.dot }}
+            />
+            {statusLabel}
+          </span>
+        </div>
+      </div>
+
+      {/* Ligne meta : Type · Branch · Speciality */}
+      <div
+        style={{
+          fontSize: 12,
+          color: 'var(--color-text-tertiary, #94a3b8)',
+          marginBottom: 14,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {metaLine}
       </div>
 
       {/* Section candidatures */}
@@ -220,12 +277,12 @@ export default function AnnonceCard({ annonce, basePath }: Props) {
           href={`${basePath}/annonces/${annonce.id}`}
           style={{
             fontSize: 12,
-            color: '#00B9FF',
+            color: 'var(--color-text-secondary, #475569)',
             fontWeight: 500,
             textDecoration: 'none',
           }}
         >
-          {isClosed ? t('view_detail') : t('manage_annonce')}
+          {actionable ? t('manage_annonce') : t('view_detail')}
         </Link>
       </div>
     </article>

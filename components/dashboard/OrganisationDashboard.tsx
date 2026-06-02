@@ -10,6 +10,14 @@ import OrganisationSidebar, {
 import AnnonceCard from '@/components/dashboard/AnnonceCard'
 import type { Annonce, AnnonceStatus } from '@/types/annonce'
 
+// Regroupement des 7 statuts BDD en 4 onglets dashboard.
+const TAB_STATUS_MAP: Record<TabKey, readonly AnnonceStatus[]> = {
+  drafts: ['draft'],
+  review: ['pending_review', 'rejected'],
+  published: ['published'],
+  closed: ['suspended', 'expired', 'archived'],
+}
+
 /**
  * Dashboard organisation (B3.5 + B3.5.fix).
  *
@@ -55,7 +63,7 @@ type Props = {
   unreadMessagesCount?: number
 }
 
-type TabKey = 'published' | 'in_discussion' | 'closed' | 'all'
+type TabKey = 'drafts' | 'review' | 'published' | 'closed'
 
 function IconPlus({ size = 14 }: { size?: number }) {
   return (
@@ -89,6 +97,7 @@ export default function OrganisationDashboard({
   unreadMessagesCount = 0,
 }: Props) {
   const t = useTranslations('dashboard_entreprise')
+  const tPub = useTranslations('publications')
   const domain = useDomain()
 
   const [activeTab, setActiveTab] = useState<TabKey>('published')
@@ -97,13 +106,21 @@ export default function OrganisationDashboard({
   const isApproved = organization.verification_status === 'approved'
   const publishHref = `${basePath}/annonces/nouvelle`
 
-  // Compteurs par statut (utilisés pour les badges d'onglets)
+  // Compteurs par onglet (regroupement de 1..3 statuts BDD chacun).
   const counts = useMemo(() => {
-    const result = { published: 0, in_discussion: 0, closed: 0, all: annonces.length }
+    const result: Record<TabKey, number> = {
+      drafts: 0,
+      review: 0,
+      published: 0,
+      closed: 0,
+    }
     for (const a of annonces) {
-      if (a.status === 'published') result.published++
-      else if (a.status === 'in_discussion') result.in_discussion++
-      else if (a.status === 'closed') result.closed++
+      for (const tab of Object.keys(TAB_STATUS_MAP) as TabKey[]) {
+        if ((TAB_STATUS_MAP[tab] as readonly string[]).includes(a.status)) {
+          result[tab]++
+          break
+        }
+      }
     }
     return result
   }, [annonces])
@@ -111,30 +128,26 @@ export default function OrganisationDashboard({
   // Liste filtrée par onglet + recherche
   const filteredAnnonces = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
+    const wanted = TAB_STATUS_MAP[activeTab] as readonly string[]
     return annonces.filter((a) => {
-      if (activeTab !== 'all') {
-        const want: AnnonceStatus =
-          activeTab === 'published'
-            ? 'published'
-            : activeTab === 'in_discussion'
-              ? 'in_discussion'
-              : 'closed'
-        if (a.status !== want) return false
-      }
+      if (!wanted.includes(a.status)) return false
       if (query && !a.title.toLowerCase().includes(query)) return false
       return true
     })
   }, [annonces, activeTab, searchQuery])
 
+  // Dots sémantiques par onglet (statuts groupés).
   const tabs: Array<{ key: TabKey; label: string; count: number; dot: string }> = [
-    { key: 'published', label: t('tab_published'), count: counts.published, dot: '#1E40AF' },
-    { key: 'in_discussion', label: t('tab_in_discussion'), count: counts.in_discussion, dot: '#16A34A' },
-    { key: 'closed', label: t('tab_closed'), count: counts.closed, dot: '#94a3b8' },
-    { key: 'all', label: t('tab_all'), count: counts.all, dot: domain.primaryColor },
+    { key: 'drafts',    label: tPub('list.tab_drafts'),    count: counts.drafts,    dot: '#94a3b8' },
+    { key: 'review',    label: tPub('list.tab_review'),    count: counts.review,    dot: '#CA8A04' },
+    { key: 'published', label: tPub('list.tab_published'), count: counts.published, dot: '#16A34A' },
+    { key: 'closed',    label: tPub('list.tab_closed'),    count: counts.closed,    dot: '#94a3b8' },
   ]
 
   const showEmptyZeroState =
-    annonces.length === 0 && (activeTab === 'all' || activeTab === 'published')
+    annonces.length === 0 && (activeTab === 'drafts' || activeTab === 'published')
+
+  const emptyStateKey: 'drafts' | 'review' | 'published' | 'closed' = activeTab
 
   return (
     <div
@@ -234,7 +247,7 @@ export default function OrganisationDashboard({
                 alignItems: 'center',
                 gap: 8,
                 padding: '10px 18px',
-                background: '#00B9FF',
+                background: domain.primaryColor,
                 color: '#fff',
                 fontSize: 13,
                 fontWeight: 500,
@@ -257,7 +270,7 @@ export default function OrganisationDashboard({
                 alignItems: 'center',
                 gap: 8,
                 padding: '10px 18px',
-                background: '#00B9FF',
+                background: domain.primaryColor,
                 color: '#fff',
                 fontSize: 13,
                 fontWeight: 500,
@@ -364,7 +377,9 @@ export default function OrganisationDashboard({
                     padding: '8px 14px 10px',
                     background: 'transparent',
                     border: 'none',
-                    borderBottom: active ? '2px solid #00B9FF' : '2px solid transparent',
+                    borderBottom: active
+                      ? `2px solid ${domain.primaryColor}`
+                      : '2px solid transparent',
                     color: active
                       ? 'var(--color-text-primary, #0f172a)'
                       : 'var(--color-text-secondary, #64748b)',
@@ -409,7 +424,7 @@ export default function OrganisationDashboard({
                   height: 72,
                   borderRadius: '50%',
                   background: '#DBEAFE',
-                  color: '#00B9FF',
+                  color: domain.primaryColor,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -426,7 +441,7 @@ export default function OrganisationDashboard({
                   marginBottom: 6,
                 }}
               >
-                {t('empty_title')}
+                {tPub(`list.empty_title_${emptyStateKey}`)}
               </h3>
               <p
                 style={{
@@ -437,7 +452,7 @@ export default function OrganisationDashboard({
                   lineHeight: 1.5,
                 }}
               >
-                {t('empty_subtitle')}
+                {tPub(`list.empty_subtitle_${emptyStateKey}`)}
               </p>
               {isApproved ? (
                 <Link
@@ -447,7 +462,7 @@ export default function OrganisationDashboard({
                     alignItems: 'center',
                     gap: 8,
                     padding: '10px 18px',
-                    background: '#00B9FF',
+                    background: domain.primaryColor,
                     color: '#fff',
                     fontSize: 13,
                     fontWeight: 500,
@@ -469,7 +484,7 @@ export default function OrganisationDashboard({
                     alignItems: 'center',
                     gap: 8,
                     padding: '10px 18px',
-                    background: '#00B9FF',
+                    background: domain.primaryColor,
                     color: '#fff',
                     fontSize: 13,
                     fontWeight: 500,
@@ -494,7 +509,7 @@ export default function OrganisationDashboard({
                 color: 'var(--color-text-secondary, #64748b)',
               }}
             >
-              {t('empty_filtered')}
+              {tPub(`list.empty_subtitle_${emptyStateKey}`)}
             </div>
           )}
         </section>

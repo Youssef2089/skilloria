@@ -1,23 +1,39 @@
 /**
  * Type partagé pour les annonces affichées dans le dashboard organisation.
  *
- * Source de vérité unique (réutilisé par AnnonceCard + OrganisationDashboard).
+ * Lot 1b.1 : alignement strict sur les 7 valeurs de `publications.status` en BDD.
+ * Le statut UI = statut BDD (pas de mapping). Les onglets dashboard regroupent
+ * plusieurs statuts (cf. OrganisationDashboard.tsx).
  *
- * V1 (B3.5) : aucune table d'annonces n'existe en BDD (la table `opportunities`
- * existante est un héritage incompatible : owner_id sur users, pas de relation
- * candidatures, statut libre). Le dashboard charge donc `annonces: []` —
- * empty state permanent. Quand la vraie table sera créée (B4+), ce type
- * devra rester compatible (ou évoluer ici en 1 seul endroit).
+ * Le DTO est servi par GET /api/publications après projection serveur :
+ *   - branch_label / speciality_label = nom localisé (via tBDD, fallback nom BDD)
+ *   - verification_score = score IA si déjà gate-é (publish gate du Lot 1a)
+ *   - candidatures = compteurs agrégés depuis la table candidatures
+ *     (V1 : tous à 0 — Lot 2 branchera le vrai calcul)
+ *   - JAMAIS de verification_data / verification_method / review_reason
+ *     (fuite admin → on les expose dans /admin/* uniquement)
  *
- * TODO B4+ : le contenu d'annonce multilingue ne pourra PAS appeler tBDD()
- * directement depuis ce composant client (loadTranslations instancie un
- * client admin serveur-only). Deux options : (a) route API
- * /api/taxonomy?locale=, ou (b) rendu des annonces via un Server Component
- * parent.
+ * Champs sensibles NON exposés ici : verification_data, verification_method,
+ * review_reason, verified_by, verified_at, expires_at, description complète,
+ * skills_required (réservés à la vue détail si pertinents).
  */
 
-export type AnnonceStatus = 'published' | 'in_discussion' | 'closed'
+export type AnnonceStatus =
+  | 'draft'
+  | 'pending_review'
+  | 'published'
+  | 'suspended'
+  | 'expired'
+  | 'archived'
+  | 'rejected'
 
+export type AnnonceType = 'mission' | 'offre'
+
+/**
+ * Unité de budget. V1 sans colonne `budget_unit` en BDD : dérivée du type
+ * côté serveur dans le DTO (mission → 'day', offre → 'year'). Le client
+ * n'a pas à recalculer.
+ */
 export type AnnonceBudgetUnit = 'day' | 'month' | 'year' | 'mission'
 
 export type AnnonceCandidatures = {
@@ -30,14 +46,19 @@ export type AnnonceCandidatures = {
 
 export type Annonce = {
   id: string
+  type: AnnonceType
   title: string
   status: AnnonceStatus
-  /** ISO string. Null si jamais publiée (V1 : non utilisé). */
-  published_at: string | null
-  /** ISO string. Non null uniquement si status='closed'. */
-  closed_at: string | null
+  branch_label: string | null
+  speciality_label: string | null
   budget_min: number | null
   budget_max: number | null
   budget_unit: AnnonceBudgetUnit
+  /** Score IA 0..10 si la publi a déjà été soumise au gate. Null sinon. */
+  verification_score: number | null
+  /** ISO. Toujours présent. */
+  created_at: string
+  /** ISO. Null si la publi n'a jamais été passée en 'published'. */
+  published_at: string | null
   candidatures: AnnonceCandidatures
 }

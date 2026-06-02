@@ -1,8 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useLocale } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
+import { useSecureFetch } from '@/lib/secure-fetch'
 import OrgSetupModal from '@/components/OrgSetupModal'
 import OrganisationDashboard, {
   type OrganisationFull,
@@ -28,8 +30,10 @@ import type { Annonce } from '@/types/annonce'
  * `org_type` est sélectionné et transmis pour permettre la différenciation
  * future des fonctionnalités par sous-type dans OrganisationDashboard.
  *
- * Source des annonces (V1) : aucune table dédiée — voir types/annonce.ts.
- * On passe `annonces=[]` constant. La vraie table sera créée en B4+.
+ * Source des annonces (Lot 1b.1) : GET /api/publications via useSecureFetch.
+ * La route applique RLS publications_member_read côté service_role + projection
+ * DTO Annonce sans aucun champ sensible. Comptages candidatures = 0 V1
+ * (Lot 2 branchera l'agrégat).
  */
 
 type SetupState =
@@ -38,11 +42,18 @@ type SetupState =
   | { kind: 'ready'; organization: OrganisationFull }
   | { kind: 'error' }
 
-const ANNONCES_V1: Annonce[] = []
+type AnnoncesState =
+  | { kind: 'idle' }
+  | { kind: 'loading' }
+  | { kind: 'ready'; annonces: Annonce[] }
+  | { kind: 'error' }
 
 export default function DashboardEntreprise() {
   const router = useRouter()
+  const locale = useLocale()
+  const secureFetch = useSecureFetch()
   const [state, setState] = useState<SetupState>({ kind: 'loading' })
+  const [annoncesState, setAnnoncesState] = useState<AnnoncesState>({ kind: 'idle' })
   const [needsRedirect, setNeedsRedirect] = useState(false)
 
   const refresh = useCallback(async () => {
@@ -103,6 +114,33 @@ export default function DashboardEntreprise() {
     }
   }, [needsRedirect, router])
 
+  // ── Chargement annonces — uniquement quand l'org est prête ─────────────
+  const loadAnnonces = useCallback(async () => {
+    setAnnoncesState({ kind: 'loading' })
+    try {
+      const res = await secureFetch(`/api/publications?locale=${encodeURIComponent(locale)}`, {
+        method: 'GET',
+      })
+      if (!res.ok) {
+        console.error('[dashboard/entreprise] publications fetch failed', res.status)
+        setAnnoncesState({ kind: 'error' })
+        return
+      }
+      const payload = (await res.json().catch(() => ({}))) as {
+        publications?: Annonce[]
+      }
+      setAnnoncesState({ kind: 'ready', annonces: payload.publications ?? [] })
+    } catch (err) {
+      console.error('[dashboard/entreprise] publications fetch threw', err)
+      setAnnoncesState({ kind: 'error' })
+    }
+  }, [secureFetch, locale])
+
+  useEffect(() => {
+    if (state.kind !== 'ready') return
+    void loadAnnonces()
+  }, [state.kind, loadAnnonces])
+
   if (state.kind === 'loading' || needsRedirect) {
     return (
       <div
@@ -134,12 +172,15 @@ export default function DashboardEntreprise() {
     )
   }
 
+  const annonces: Annonce[] =
+    annoncesState.kind === 'ready' ? annoncesState.annonces : []
+
   return (
     <>
       <OrganisationDashboard
         organization={state.organization}
         basePath="/dashboard/entreprise"
-        annonces={ANNONCES_V1}
+        annonces={annonces}
       />
       {state.kind === 'needs_setup' && (
         <OrgSetupModal onComplete={() => void refresh()} />

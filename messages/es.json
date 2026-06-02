@@ -1288,6 +1288,39 @@
       "archived": "Archivada",
       "rejected": "Rechazada"
     },
+    "type": {
+      "mission": "Misión",
+      "offre": "Oferta"
+    },
+    "budget_unit": {
+      "day": "/día",
+      "month": "/mes",
+      "year": "/año",
+      "mission": "/misión"
+    },
+    "badges": {
+      "ai_score": "Puntuación IA {score}/10",
+      "ai_score_tooltip": "Puntuación de calidad asignada por el analizador IA"
+    },
+    "dates": {
+      "created_ago": "Creada hace {time}",
+      "published_ago": "Publicada hace {time}",
+      "updated_ago": "Actualizada hace {time}"
+    },
+    "list": {
+      "tab_drafts": "Borradores",
+      "tab_review": "En revisión",
+      "tab_published": "Publicadas",
+      "tab_closed": "Cerradas",
+      "empty_title_drafts": "Ningún borrador",
+      "empty_subtitle_drafts": "Tus borradores de anuncios aparecerán aquí.",
+      "empty_title_review": "Ningún anuncio en revisión",
+      "empty_subtitle_review": "Tus anuncios pendientes de moderación aparecerán aquí.",
+      "empty_title_published": "Ningún anuncio en línea",
+      "empty_subtitle_published": "Publica tu primer anuncio para que aparezca aquí.",
+      "empty_title_closed": "Ningún anuncio cerrado",
+      "empty_subtitle_closed": "Tus anuncios suspendidos, expirados o archivados aparecerán aquí."
+    },
     "errors": {
       "invalid_json": "Solicitud no válida.",
       "org_required": "Debes ser miembro activo de una organización.",

@@ -1288,6 +1288,39 @@
       "archived": "Archiviert",
       "rejected": "Abgelehnt"
     },
+    "type": {
+      "mission": "Mission",
+      "offre": "Stellenangebot"
+    },
+    "budget_unit": {
+      "day": "/Tag",
+      "month": "/Monat",
+      "year": "/Jahr",
+      "mission": "/Projekt"
+    },
+    "badges": {
+      "ai_score": "KI-Score {score}/10",
+      "ai_score_tooltip": "Qualitätsscore von der KI-Prüfung"
+    },
+    "dates": {
+      "created_ago": "Vor {time} erstellt",
+      "published_ago": "Vor {time} veröffentlicht",
+      "updated_ago": "Vor {time} aktualisiert"
+    },
+    "list": {
+      "tab_drafts": "Entwürfe",
+      "tab_review": "In Prüfung",
+      "tab_published": "Veröffentlicht",
+      "tab_closed": "Geschlossen",
+      "empty_title_drafts": "Keine Entwürfe",
+      "empty_subtitle_drafts": "Ihre Anzeigen-Entwürfe erscheinen hier.",
+      "empty_title_review": "Keine Anzeigen in Prüfung",
+      "empty_subtitle_review": "Ihre Anzeigen in Moderation erscheinen hier.",
+      "empty_title_published": "Keine aktiven Anzeigen",
+      "empty_subtitle_published": "Veröffentlichen Sie Ihre erste Anzeige, damit sie hier erscheint.",
+      "empty_title_closed": "Keine geschlossenen Anzeigen",
+      "empty_subtitle_closed": "Ihre ausgesetzten, abgelaufenen oder archivierten Anzeigen erscheinen hier."
+    },
     "errors": {
       "invalid_json": "Ungültige Anfrage.",
       "org_required": "Sie müssen aktives Mitglied einer Organisation sein.",
