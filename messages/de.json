@@ -1278,6 +1278,32 @@
     "empty_cta": "Anzeige erstellen",
     "empty_filtered": "Keine Anzeigen in diesem Filter"
   },
+  "publications": {
+    "status": {
+      "draft": "Entwurf",
+      "pending_review": "Wartet auf Prüfung",
+      "published": "Veröffentlicht",
+      "suspended": "Ausgesetzt",
+      "expired": "Abgelaufen",
+      "archived": "Archiviert",
+      "rejected": "Abgelehnt"
+    },
+    "errors": {
+      "invalid_json": "Ungültige Anfrage.",
+      "org_required": "Sie müssen aktives Mitglied einer Organisation sein.",
+      "not_found": "Anzeige nicht gefunden.",
+      "forbidden": "Sie haben keinen Zugriff auf diese Anzeige.",
+      "wrong_status": "Aktion im aktuellen Status nicht möglich.",
+      "invalid_type": "Ungültiger Anzeigentyp.",
+      "invalid_title": "Ungültiger Titel (5 bis 200 Zeichen).",
+      "invalid_description": "Ungültige Beschreibung (20 bis 10.000 Zeichen).",
+      "invalid_budget": "Ungültiges Budget.",
+      "budget_inverted": "Das Mindestbudget darf das Höchstbudget nicht überschreiten.",
+      "verification_failed": "Die automatische Prüfung ist fehlgeschlagen. Bitte erneut versuchen.",
+      "db_error": "Technischer Fehler. Bitte erneut versuchen.",
+      "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen."
+    }
+  },
   "admin_back_office": {
     "sidebar": {
       "title": "Skilloria-Backoffice",

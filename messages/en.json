@@ -1278,6 +1278,32 @@
     "empty_cta": "Create a listing",
     "empty_filtered": "No listings in this filter"
   },
+  "publications": {
+    "status": {
+      "draft": "Draft",
+      "pending_review": "Pending review",
+      "published": "Published",
+      "suspended": "Suspended",
+      "expired": "Expired",
+      "archived": "Archived",
+      "rejected": "Rejected"
+    },
+    "errors": {
+      "invalid_json": "Invalid request.",
+      "org_required": "You must be an active member of an organization.",
+      "not_found": "Publication not found.",
+      "forbidden": "You do not have access to this publication.",
+      "wrong_status": "Action not allowed in the current status.",
+      "invalid_type": "Invalid publication type.",
+      "invalid_title": "Invalid title (5 to 200 characters).",
+      "invalid_description": "Invalid description (20 to 10,000 characters).",
+      "invalid_budget": "Invalid budget.",
+      "budget_inverted": "Minimum budget cannot be greater than maximum.",
+      "verification_failed": "Automated check failed. Please try again.",
+      "db_error": "Technical error. Please try again.",
+      "generic": "An error occurred. Please try again."
+    }
+  },
   "admin_back_office": {
     "sidebar": {
       "title": "Skilloria back-office",

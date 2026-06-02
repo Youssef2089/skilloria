@@ -1278,6 +1278,32 @@
     "empty_cta": "Créer une annonce",
     "empty_filtered": "Aucune annonce dans ce filtre"
   },
+  "publications": {
+    "status": {
+      "draft": "Brouillon",
+      "pending_review": "En attente de validation",
+      "published": "Publiée",
+      "suspended": "Suspendue",
+      "expired": "Expirée",
+      "archived": "Archivée",
+      "rejected": "Refusée"
+    },
+    "errors": {
+      "invalid_json": "Requête invalide.",
+      "org_required": "Vous devez être membre actif d'une organisation.",
+      "not_found": "Annonce introuvable.",
+      "forbidden": "Vous n'avez pas accès à cette annonce.",
+      "wrong_status": "Action impossible dans le statut actuel.",
+      "invalid_type": "Type d'annonce invalide.",
+      "invalid_title": "Titre invalide (5 à 200 caractères).",
+      "invalid_description": "Description invalide (20 à 10 000 caractères).",
+      "invalid_budget": "Budget invalide.",
+      "budget_inverted": "Le budget minimum ne peut pas être supérieur au maximum.",
+      "verification_failed": "La vérification automatique a échoué. Veuillez réessayer.",
+      "db_error": "Erreur technique. Veuillez réessayer.",
+      "generic": "Une erreur est survenue. Veuillez réessayer."
+    }
+  },
   "admin_back_office": {
     "sidebar": {
       "title": "Back-office Skilloria",
