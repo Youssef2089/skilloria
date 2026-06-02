@@ -50,15 +50,23 @@ export default function ProfilUploadPage() {
     jobId: string,
   ): Promise<{ ok: true } | { ok: false; error: string }> => {
     const start = Date.now()
+    let pollNum = 0
     while (Date.now() - start < POLL_TIMEOUT_MS) {
       await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
+      pollNum++
       const res = await secureFetch(`/api/profile/cv-status/${jobId}`, { method: 'GET' })
       const payload = await res.json().catch(() => ({} as any))
-      if (payload?.status === 'done') return { ok: true }
+      console.log('[cv-debug] poll', pollNum, { httpStatus: res.status, payloadStatus: payload?.status, hasError: !!payload?.error })
+      if (payload?.status === 'done') {
+        console.log('[cv-debug] poll → DONE détecté, sortie boucle (ok:true)')
+        return { ok: true }
+      }
       if (payload?.status === 'failed') {
+        console.log('[cv-debug] poll → FAILED détecté', { error: payload?.error })
         return { ok: false, error: payload?.error ?? t('errors.parsing_default') }
       }
     }
+    console.log('[cv-debug] poll → TIMEOUT après', pollNum, 'polls')
     return { ok: false, error: t('errors.timeout') }
   }
 
@@ -94,6 +102,14 @@ export default function ProfilUploadPage() {
         body: form,
       })
       const payload = await res.json().catch(() => ({} as any))
+      console.log('[cv-debug] upload réponse REÇUE', {
+        httpOk: res.ok,
+        httpStatus: res.status,
+        payloadStatus: payload?.status,
+        payloadJobId: payload?.jobId,
+        payloadCode: payload?.code,
+        payloadError: payload?.error,
+      })
 
       if (!res.ok) {
         const code = payload?.code
@@ -118,6 +134,7 @@ export default function ProfilUploadPage() {
       }
 
       if (payload?.status === 'failed') {
+        console.log('[cv-debug] branche FAILED — affichage erreur, pas de redirect')
         setErrorMsg(
           t('errors.parsing_failed', {
             reason: payload.error ?? t('errors.unknown_reason'),
@@ -128,21 +145,28 @@ export default function ProfilUploadPage() {
       }
 
       if (payload?.status === 'processing' && payload?.jobId) {
+        console.log('[cv-debug] branche PROCESSING — démarrage polling')
         const poll = await pollStatus(payload.jobId)
+        console.log('[cv-debug] polling terminé', { ok: poll.ok, error: !poll.ok ? (poll as { error: string }).error : null })
         if (!poll.ok) {
           setErrorMsg(t('errors.parsing_failed', { reason: poll.error }))
           setStatus('error')
           return
         }
       } else if (payload?.status !== 'done') {
+        console.log('[cv-debug] branche INCONNUE (status ni done ni failed ni processing) → erreur générique', { payloadStatus: payload?.status })
         setErrorMsg(t('errors.generic'))
         setStatus('error')
         return
+      } else {
+        console.log('[cv-debug] branche DONE directe (status=done sans polling)')
       }
 
+      console.log('[cv-debug] AVANT redirect → /dashboard/freelance/profil/valider')
       setStatus('success')
       setStatusMsg(t('parsing_overlay.success'))
       router.push('/dashboard/freelance/profil/valider')
+      console.log('[cv-debug] router.push appelé (côté React, peut être async)')
     } catch (err) {
       console.error('[profil upload] unexpected error', err)
       setErrorMsg(t('errors.generic'))

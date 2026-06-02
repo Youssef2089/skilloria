@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import { readSessionCookieToken } from '@/lib/session-token'
+import { readSessionCookieToken, getSessionCookieName } from '@/lib/session-token'
 
 export type AuthUser = {
   id: string
@@ -131,6 +131,29 @@ async function loadOrganizationContext(
 }
 
 export async function requireAuth(request: NextRequest): Promise<AuthContext> {
+  // ── [auth-debug] TEMPORAIRE — À RETIRER après diagnostic ────────────────
+  const _dbgCookieName = getSessionCookieName(request)
+  const _dbgRawCookie = request.cookies.get(_dbgCookieName)?.value
+  console.log('[auth-debug] requireAuth ENTRY', {
+    host: request.headers.get('host'),
+    url: request.url,
+    method: request.method,
+    hasAuthHeader: !!(
+      request.headers.get('authorization') ?? request.headers.get('Authorization')
+    ),
+    authHeaderLen: (
+      request.headers.get('authorization') ??
+      request.headers.get('Authorization') ??
+      ''
+    ).length,
+    cookieName: _dbgCookieName,
+    hasSsTokenCookie: !!_dbgRawCookie,
+    ssTokenCookieLen: _dbgRawCookie?.length ?? 0,
+    xSubdomain: request.headers.get('x-subdomain'),
+    xSessionToken: !!request.headers.get('x-session-token'),
+  })
+  // ── /[auth-debug] ──────────────────────────────────────────────────────
+
   const authHeader =
     request.headers.get('authorization') ?? request.headers.get('Authorization')
   const accessToken = authHeader?.toLowerCase().startsWith('bearer ')
@@ -138,6 +161,7 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
     : null
 
   if (!accessToken) {
+    console.log('[auth-debug] THROW no_token — pas de Bearer dans Authorization header')
     throw new AuthError(401, { error: 'Not authenticated', code: 'no_token' })
   }
 
@@ -146,6 +170,11 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
   const { data: userInfo, error: sessionError } =
     await supabaseAdmin.auth.getUser(accessToken)
   if (sessionError || !userInfo?.user) {
+    console.log('[auth-debug] THROW invalid_token — Supabase getUser rejette le Bearer', {
+      sessionErrorMsg: sessionError?.message,
+      hasUserInfo: !!userInfo,
+      hasUser: !!userInfo?.user,
+    })
     throw new AuthError(401, { error: 'Not authenticated', code: 'invalid_token' })
   }
 
@@ -160,9 +189,11 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
       userId: userInfo.user.id,
       msg: userErr.message,
     })
+    console.log('[auth-debug] THROW user_lookup_failed', { msg: userErr.message })
     throw new AuthError(403, { error: 'User not found', code: 'user_lookup_failed' })
   }
   if (!userRow) {
+    console.log('[auth-debug] THROW user_missing — auth.users.id absent de public.users')
     throw new AuthError(403, { error: 'User not found', code: 'user_missing' })
   }
 
@@ -181,11 +212,20 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
     const headerToken = request.headers.get('x-session-token')
     const clientToken = cookieToken ?? headerToken
     if (clientToken !== userRow.last_session_token) {
+      console.log('[auth-debug] THROW session_superseded', {
+        hasCookieToken: !!cookieToken,
+        hasHeaderToken: !!headerToken,
+        bddTokenLen: userRow.last_session_token.length,
+        clientTokenLen: clientToken?.length ?? 0,
+        cookieMatchesBdd: cookieToken === userRow.last_session_token,
+      })
       throw new AuthError(403, {
         error: 'Session superseded by another login',
         code: 'session_superseded',
       })
     }
+  } else {
+    console.log('[auth-debug] last_session_token = NULL → skip check (backward compat D4)')
   }
 
   const headerSubdomain = request.headers.get('x-subdomain') ?? 'microsoft'
@@ -193,8 +233,14 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
     ? userRow.domains[0]
     : userRow.domains
   if (!domainRow || (domainRow as { slug?: string } | null)?.slug !== headerSubdomain) {
+    console.log('[auth-debug] THROW domain_mismatch', {
+      headerSubdomain,
+      userDomainSlug: (domainRow as { slug?: string } | null)?.slug ?? null,
+      domainRowFound: !!domainRow,
+    })
     throw new AuthError(403, { error: 'Domain mismatch', code: 'domain_mismatch' })
   }
+  console.log('[auth-debug] requireAuth OK', { userId: userRow.id, domainSlug: (domainRow as { slug: string }).slug })
 
   const organization = await loadOrganizationContext(supabaseAdmin, userRow.id)
 
