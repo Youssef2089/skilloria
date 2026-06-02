@@ -57,7 +57,6 @@ export async function POST(request: NextRequest): Promise<Response> {
   const buffer = Buffer.from(await file.arrayBuffer())
   const hash = crypto.createHash('sha256').update(buffer).digest('hex')
   const { supabaseAdmin, user } = ctx
-  console.log('[cv-debug] upload-cv ENTRY', { userId: user.id, bytes: buffer.length, hashPrefix: hash.slice(0, 8) })
 
   const { data: profile, error: profileErr } = await supabaseAdmin
     .from('profiles')
@@ -93,14 +92,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     )
   }
 
-  console.log('[cv-debug] profile loaded', {
-    profileId: profile.id,
-    cv_hash_match: profile.cv_hash === hash,
-    cv_parsing_status: profile.cv_parsing_status,
-    count24h: profile.cv_parsing_count_24h,
-  })
   if (profile.cv_hash === hash && profile.cv_parsing_status === 'done') {
-    console.log('[cv-debug] CACHE HIT — renvoi status=done immédiat sans re-parse')
     const [{ data: cachedExp }, { data: cachedEdu }, { data: cachedLang }] =
       await Promise.all([
         supabaseAdmin
@@ -206,10 +198,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     specialities: (specialityRows ?? []).map((s: any) => s.slug as string),
   }
 
-  console.log('[cv-debug] avant parseCV(Claude)', { domain_id: user.domain_id, branchesCount: domainCtx.branches.length, specialitiesCount: domainCtx.specialities.length })
-  const t0Parse = Date.now()
   const result = await parseCV(buffer, domainCtx)
-  console.log('[cv-debug] après parseCV', { success: result.success, error: !result.success ? (result as { error: string }).error : null, durationMs: Date.now() - t0Parse })
 
   if (!result.success) {
     await supabaseAdmin
@@ -230,7 +219,6 @@ export async function POST(request: NextRequest): Promise<Response> {
       detail: { status: 'failed', error: result.error, hash },
     })
 
-    console.log('[cv-debug] RETURN status=failed', { jobId: profile.id, error: result.error })
     return json({ jobId: profile.id, status: 'failed', error: result.error })
   }
 
@@ -421,7 +409,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     },
   })
 
-  console.log('[cv-debug] RETURN status=done', { jobId: profile.id, title: parsed.title, skillsCount: parsed.skills?.length ?? 0 })
   return json({
     jobId: profile.id,
     status: 'done',

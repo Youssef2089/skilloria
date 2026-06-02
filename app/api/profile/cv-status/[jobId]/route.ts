@@ -43,12 +43,6 @@ export async function GET(
     return json({ error: 'Forbidden', code: 'not_owner' }, 403)
   }
 
-  console.log('[cv-debug] cv-status POLL', {
-    jobId,
-    status: profile.cv_parsing_status ?? 'idle',
-    hasError: !!profile.cv_parsing_error,
-    error: profile.cv_parsing_error ?? null,
-  })
   return json({
     status: profile.cv_parsing_status ?? 'idle',
     error: profile.cv_parsing_error ?? undefined,
