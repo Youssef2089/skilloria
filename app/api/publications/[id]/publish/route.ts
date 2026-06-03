@@ -11,6 +11,11 @@ import { runMatching } from '@/lib/matching'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+// Vercel function timeout : la séquence verif IA publication (~20s) + matching
+// IA (~15s) tourne synchrone dans cette route. 60s = max Hobby ; Pro/Enterprise
+// peuvent monter plus haut (cf. https://vercel.com/docs/functions/runtimes#max-duration).
+export const maxDuration = 60
+
 /**
  * POST /api/publications/[id]/publish — LE GATE IA.
  *

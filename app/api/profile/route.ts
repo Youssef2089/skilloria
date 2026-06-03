@@ -5,6 +5,12 @@ import { logAudit } from '@/lib/audit'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+// Vercel function timeout : la vérification expert (Lot vérif expert) appelle
+// Claude inline avec web_search natif, qui peut prendre 20-30s. On lève
+// maxDuration au max compatible Hobby (60s) ; Pro/Enterprise peuvent monter
+// plus haut sans risque (cf. https://vercel.com/docs/functions/runtimes#max-duration).
+export const maxDuration = 60
+
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
