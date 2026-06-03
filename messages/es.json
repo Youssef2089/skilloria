@@ -1413,6 +1413,54 @@
       "generic": "Se produjo un error. Inténtalo de nuevo."
     }
   },
+  "missions": {
+    "card": {
+      "confidential_org": "Empresa confidencial",
+      "confidential_tooltip": "El nombre de la empresa se revela tras aceptar tu candidatura.",
+      "ai_score": "Puntuación {score}/10",
+      "ai_score_tooltip": "Puntuación de IA según tu perfil.",
+      "new_label": "Nuevo",
+      "why_match_label": "Por qué te conviene"
+    },
+    "feed": {
+      "back": "← Panel",
+      "title": "Tus oportunidades",
+      "subtitle": "Misiones y puestos seleccionados para ti, por relevancia.",
+      "loading": "Cargando tus oportunidades…",
+      "error_generic": "No se pudieron cargar tus oportunidades. Inténtalo de nuevo.",
+      "empty_title": "Aún no hay oportunidades",
+      "empty_subtitle": "Te avisaremos en cuanto una publicación coincida con tu perfil."
+    },
+    "detail": {
+      "back_to_feed": "← Volver a oportunidades",
+      "loading": "Cargando oportunidad…",
+      "error_generic": "No se pudo cargar esta oportunidad.",
+      "error_not_found": "Esta oportunidad ya no existe o no está disponible para ti.",
+      "confidential_org": "Empresa confidencial",
+      "confidential_tooltip": "El nombre de la empresa se revela tras aceptar tu candidatura.",
+      "ai_score_label": "Puntuación IA {score}/10",
+      "ai_score_tooltip": "Puntuación de IA según tu perfil.",
+      "why_match_label": "Por qué te conviene",
+      "section_description": "Descripción",
+      "section_details": "Detalles",
+      "budget_label": "Presupuesto",
+      "button_apply": "Postular",
+      "button_dismiss": "Descartar",
+      "button_dismissing": "Descartando…",
+      "already_applied": "Candidatura enviada",
+      "cover_title": "Tu mensaje (opcional)",
+      "cover_subtitle": "Una nota de motivación aumenta mucho tus posibilidades. Máx. 2000 caracteres.",
+      "cover_placeholder": "Explica en pocas líneas por qué eres la persona indicada…",
+      "cover_cancel": "Cancelar",
+      "cover_submit": "Enviar candidatura",
+      "cover_submitting": "Enviando…",
+      "success_applied": "Tu candidatura ha sido enviada. La empresa responderá pronto.",
+      "error_already_applied": "Ya has postulado a esta oportunidad.",
+      "error_not_matched": "Esta oportunidad no está en tus sugerencias.",
+      "error_not_published": "Esta oportunidad ya no está disponible.",
+      "error_cover_too_long": "Tu mensaje supera los 2000 caracteres."
+    }
+  },
   "admin_back_office": {
     "sidebar": {
       "title": "Back-office Skilloria",

@@ -1413,6 +1413,54 @@
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen."
     }
   },
+  "missions": {
+    "card": {
+      "confidential_org": "Vertrauliches Unternehmen",
+      "confidential_tooltip": "Der Firmenname wird nach Annahme Ihrer Bewerbung enthüllt.",
+      "ai_score": "Bewertung {score}/10",
+      "ai_score_tooltip": "KI-Bewertung basierend auf Ihrem Profil.",
+      "new_label": "Neu",
+      "why_match_label": "Warum es zu Ihnen passt"
+    },
+    "feed": {
+      "back": "← Dashboard",
+      "title": "Ihre Möglichkeiten",
+      "subtitle": "Aufträge und Stellen, die für Sie ausgewählt wurden, nach Relevanz.",
+      "loading": "Möglichkeiten werden geladen…",
+      "error_generic": "Möglichkeiten konnten nicht geladen werden. Bitte erneut versuchen.",
+      "empty_title": "Noch keine Möglichkeiten",
+      "empty_subtitle": "Sie werden benachrichtigt, sobald eine Veröffentlichung zu Ihrem Profil passt."
+    },
+    "detail": {
+      "back_to_feed": "← Zurück zu den Möglichkeiten",
+      "loading": "Möglichkeit wird geladen…",
+      "error_generic": "Diese Möglichkeit konnte nicht geladen werden.",
+      "error_not_found": "Diese Möglichkeit existiert nicht mehr oder ist für Sie nicht mehr verfügbar.",
+      "confidential_org": "Vertrauliches Unternehmen",
+      "confidential_tooltip": "Der Firmenname wird nach Annahme Ihrer Bewerbung enthüllt.",
+      "ai_score_label": "KI-Bewertung {score}/10",
+      "ai_score_tooltip": "KI-Bewertung basierend auf Ihrem Profil.",
+      "why_match_label": "Warum es zu Ihnen passt",
+      "section_description": "Beschreibung",
+      "section_details": "Details",
+      "budget_label": "Budget",
+      "button_apply": "Bewerben",
+      "button_dismiss": "Ablehnen",
+      "button_dismissing": "Wird abgelehnt…",
+      "already_applied": "Bewerbung gesendet",
+      "cover_title": "Ihre Nachricht (optional)",
+      "cover_subtitle": "Ein Motivationsschreiben erhöht Ihre Chancen erheblich. Max. 2000 Zeichen.",
+      "cover_placeholder": "Erklären Sie in wenigen Zeilen, warum Sie die richtige Person sind…",
+      "cover_cancel": "Abbrechen",
+      "cover_submit": "Bewerbung senden",
+      "cover_submitting": "Wird gesendet…",
+      "success_applied": "Ihre Bewerbung wurde gesendet. Das Unternehmen antwortet in Kürze.",
+      "error_already_applied": "Sie haben sich bereits beworben.",
+      "error_not_matched": "Diese Möglichkeit ist nicht in Ihren Vorschlägen.",
+      "error_not_published": "Diese Möglichkeit ist nicht mehr verfügbar.",
+      "error_cover_too_long": "Ihre Nachricht überschreitet 2000 Zeichen."
+    }
+  },
   "admin_back_office": {
     "sidebar": {
       "title": "Skilloria-Backoffice",

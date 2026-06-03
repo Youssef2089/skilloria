@@ -271,7 +271,7 @@ export default function DashboardFreelance() {
           <div className="nav-item-active">{t('sidebar.nav.dashboard')}</div>
           {[
             { label: t('sidebar.nav.profile'), locked: false, href: '/dashboard/freelance/mon-profil' },
-            { label: t('sidebar.nav.missions'), locked: !isVerified, href: null },
+            { label: t('sidebar.nav.missions'), locked: false, href: '/dashboard/freelance/missions' },
             { label: t('sidebar.nav.applications'), locked: !isVerified, href: null },
             { label: t('sidebar.nav.messages'), locked: false, href: null },
           ].map((item, i) => {

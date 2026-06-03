@@ -1413,6 +1413,54 @@
       "generic": "An error occurred. Please try again."
     }
   },
+  "missions": {
+    "card": {
+      "confidential_org": "Confidential company",
+      "confidential_tooltip": "The company name is revealed after your application is accepted.",
+      "ai_score": "Score {score}/10",
+      "ai_score_tooltip": "AI match score against your profile.",
+      "new_label": "New",
+      "why_match_label": "Why this matches you"
+    },
+    "feed": {
+      "back": "← Dashboard",
+      "title": "Your opportunities",
+      "subtitle": "Missions and positions selected for you, by relevance.",
+      "loading": "Loading your opportunities…",
+      "error_generic": "Could not load your opportunities. Please try again.",
+      "empty_title": "No opportunities yet",
+      "empty_subtitle": "You'll be notified as soon as a posting matches your profile."
+    },
+    "detail": {
+      "back_to_feed": "← Back to opportunities",
+      "loading": "Loading opportunity…",
+      "error_generic": "Could not load this opportunity.",
+      "error_not_found": "This opportunity no longer exists or is no longer available to you.",
+      "confidential_org": "Confidential company",
+      "confidential_tooltip": "The company name is revealed after your application is accepted.",
+      "ai_score_label": "AI Score {score}/10",
+      "ai_score_tooltip": "AI match score against your profile.",
+      "why_match_label": "Why this matches you",
+      "section_description": "Description",
+      "section_details": "Details",
+      "budget_label": "Budget",
+      "button_apply": "Apply",
+      "button_dismiss": "Dismiss",
+      "button_dismissing": "Dismissing…",
+      "already_applied": "Application sent",
+      "cover_title": "Your message (optional)",
+      "cover_subtitle": "A cover note significantly increases your chances. Max 2000 characters.",
+      "cover_placeholder": "Explain in a few lines why you're the right fit…",
+      "cover_cancel": "Cancel",
+      "cover_submit": "Send application",
+      "cover_submitting": "Sending…",
+      "success_applied": "Your application has been sent. The company will respond shortly.",
+      "error_already_applied": "You've already applied to this opportunity.",
+      "error_not_matched": "This opportunity is not in your suggestions.",
+      "error_not_published": "This opportunity is no longer available.",
+      "error_cover_too_long": "Your message exceeds 2000 characters."
+    }
+  },
   "admin_back_office": {
     "sidebar": {
       "title": "Skilloria back-office",
