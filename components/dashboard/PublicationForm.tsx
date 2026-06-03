@@ -831,7 +831,7 @@ export default function PublicationForm(props: Props) {
         {/* Section avancé */}
         <div style={sectionStyle}>
           <div style={sectionTitleStyle}>{t('form.section_advanced')}</div>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer', marginBottom: 14 }}>
             <input
               type="checkbox"
               checked={form.confidential}
@@ -845,6 +845,9 @@ export default function PublicationForm(props: Props) {
               </span>
             </span>
           </label>
+          <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
+            {t('form.completion_hint')}
+          </div>
         </div>
 
         {/* Boutons */}

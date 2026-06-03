@@ -1360,6 +1360,7 @@
       "field_budget_help_offre": "Bruttojahresgehalt in Euro. Indikativ — für Experten sichtbar.",
       "field_confidential": "Vertrauliche Anzeige",
       "field_confidential_help": "Experten sehen die Anzeige ohne Ihren Organisationsnamen bis zur Kontaktaufnahme.",
+      "completion_hint": "Je vollständiger Ihre Anzeige, desto besser das Matching — aber für die Veröffentlichung nicht erforderlich.",
       "seniority_options": {
         "junior": "Junior",
         "confirmed": "Confirmed",

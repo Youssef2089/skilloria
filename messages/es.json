@@ -1360,6 +1360,7 @@
       "field_budget_help_offre": "Salario bruto anual en euros. Indicativo — visible para los expertos.",
       "field_confidential": "Anuncio confidencial",
       "field_confidential_help": "Los expertos verán el anuncio sin el nombre de tu organización hasta el contacto.",
+      "completion_hint": "Cuanto más completo sea tu anuncio, mejor el matching — pero no es obligatorio para publicar.",
       "seniority_options": {
         "junior": "Junior",
         "confirmed": "Confirmado",

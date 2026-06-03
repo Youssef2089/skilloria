@@ -90,11 +90,26 @@ function sanitizeArray(values: string[] | null | undefined, maxItems: number, ma
     .join(', ') || '(aucune)'
 }
 
-function formatBudget(min: number | null | undefined, max: number | null | undefined): string {
+/**
+ * Format budget avec unité dérivée du type :
+ *   mission (freelance)  → tarif journalier → "€/jour"
+ *   offre   (CDI)        → salaire annuel  → "€/an"
+ *
+ * L'unité est INDISPENSABLE pour que l'IA n'ait pas à deviner et ne
+ * descende pas le score pour "budget sans unité". Convention rappelée
+ * en plus dans le prompt (cf. ligne "Le budget est exprimé par JOUR
+ * pour une mission, par AN pour une offre.").
+ */
+function formatBudget(
+  min: number | null | undefined,
+  max: number | null | undefined,
+  type: 'mission' | 'offre',
+): string {
   if (min == null && max == null) return '(non précisé)'
-  if (min != null && max != null) return `${min} – ${max}`
-  if (min != null) return `min ${min}`
-  return `max ${max as number}`
+  const unitSuffix = type === 'mission' ? '€/jour' : '€/an'
+  if (min != null && max != null) return `${min} – ${max} ${unitSuffix}`
+  if (min != null) return `à partir de ${min} ${unitSuffix}`
+  return `jusqu'à ${max as number} ${unitSuffix}`
 }
 
 function languageName(locale: PublicationLocale): string {
@@ -115,11 +130,37 @@ function buildPrompt(input: PublicationQualityInput): string {
   const workMode = sanitize(input.work_mode, 50) || '(non précisé)'
   const location = sanitize(input.location, 200) || '(non précisé)'
   const duration = sanitize(input.duration, 100) || '(non précisé)'
-  const budget = formatBudget(input.budget_min, input.budget_max)
+  const budget = formatBudget(input.budget_min, input.budget_max, input.type)
   const langName = languageName(input.locale)
   const flagsList = PUBLICATION_QUALITY_FLAGS.map((f) => `'${f}'`).join(', ')
 
-  return `Tu es l'analyseur qualité de la marketplace B2B Skilloria, qui publie des annonces de missions freelance ('mission') et de postes CDI ('offre'). Tu reçois une annonce et tu dois en évaluer la QUALITÉ et la CONFORMITÉ avant publication automatique.
+  return `Tu es l'analyseur qualité de la marketplace B2B Skilloria, qui publie des annonces de missions freelance ('mission') et de postes CDI ('offre'). Tu reçois une annonce et tu dois en évaluer la CLARTÉ, la LÉGITIMITÉ et la CONFORMITÉ avant publication automatique.
+
+═══════════════════════════════════════════════════════════════
+PRINCIPE DIRECTEUR
+═══════════════════════════════════════════════════════════════
+Skilloria veut faciliter la mise en relation. Une annonce CLAIRE et LÉGITIME
+doit passer la gate automatique, MÊME SI plusieurs champs optionnels sont vides.
+
+La COMPLÉTUDE n'est PAS un critère de score. Une annonce avec titre clair,
+description compréhensible, branche et compétences cohérentes DOIT scorer ≥ 7,
+même si séniorité / mode / localisation / durée / budget sont marqués
+'(non précisé)'.
+
+L'incomplétude peut donner lieu à une remarque BIENVEILLANTE dans \`notes\`
+("préciser le budget améliorerait le matching"), mais JAMAIS à une baisse de score.
+
+La gate reste STRICTE sur 3 axes uniquement : spam/sabotage, contournement de
+plateforme (coordonnées personnelles), et discrimination/illégalité.
+
+═══════════════════════════════════════════════════════════════
+CONVENTIONS DE LECTURE
+═══════════════════════════════════════════════════════════════
+- Champs marqués '(non précisé)' = champs optionnels laissés vides par l'auteur.
+  N'INVENTE PAS d'incohérence à leur sujet.
+- Le budget est exprimé par JOUR pour une mission (tarif journalier freelance),
+  par AN pour une offre (salaire brut annuel CDI). L'unité est intégrée à la
+  valeur affichée ; aucune unité manquante.
 
 ═══════════════════════════════════════════════════════════════
 ANNONCE À ÉVALUER
@@ -141,14 +182,13 @@ Budget : ${budget}
 TA MISSION — ÉVALUER SUR 4 AXES
 ═══════════════════════════════════════════════════════════════
 
-1. COHÉRENCE & COMPLÉTUDE
-   - Le titre annonce-t-il clairement le rôle / la mission ?
-   - La description est-elle suffisamment détaillée (mission claire, livrables,
-     contexte, attendus) ?
-   - Les compétences requises sont cohérentes avec le titre et la séniorité ?
-   - Le budget est cohérent avec la séniorité et la durée déclarées ?
-   → Si plusieurs incohérences franches OU description manifestement insuffisante
-     → flag 'incoherent'.
+1. COHÉRENCE & CLARTÉ
+   - Le titre annonce-t-il clairement le rôle ou la mission ?
+   - La description est-elle compréhensible ?
+   - Les compétences requises sont-elles cohérentes avec le titre ?
+   → flag 'incoherent' UNIQUEMENT si le texte est réellement incohérent,
+     hors-sujet, ou du charabia. JAMAIS pour de l'incomplétude (champ vide
+     ou description courte mais compréhensible).
 
 2. SPAM / SABOTAGE
    - Texte de test ("test", "essai", "lorem ipsum", "aaa", contenu absurde) ?
@@ -182,25 +222,34 @@ TA MISSION — ÉVALUER SUR 4 AXES
 ═══════════════════════════════════════════════════════════════
 BARÈME DU SCORE (0–10)
 ═══════════════════════════════════════════════════════════════
-Le score reflète la QUALITÉ GLOBALE (clarté + complétude + conformité).
+Le score reflète CLARTÉ + LÉGITIMITÉ + CONFORMITÉ. La complétude N'EST PAS
+un critère.
 
-- 9–10 : Annonce de très bonne qualité, claire, détaillée, cohérente. Aucun signal négatif.
-- 7–8  : Annonce correcte avec au plus 1 défaut mineur (description un peu courte,
-          budget non précisé, etc.). Aucun flag bloquant.
-- 4–6  : Plusieurs défauts (description vague, incohérences mineures) OU flag
-          non-bloquant détecté ('incoherent' ou 'spam' léger).
-- 0–3  : Annonce inutilisable (test, vide, absurde) OU AU MOINS UN FLAG
+⚠️ RÈGLE D'OR : une annonce CLAIRE et LÉGITIME, même avec des champs
+optionnels vides, doit scorer ≥ 7.
+
+- 9–10 : Annonce claire, légitime, cohérente, lisible. Aucun signal négatif.
+- 7–8  : Annonce correcte, intelligible, sans signal négatif. Les éventuels
+          champs '(non précisé)' n'impactent PAS le score à ce niveau.
+- 4–6  : Description vague ou confuse au point de gêner la compréhension ;
+          OU doute sérieux sur la légitimité (l'annonce ressemble à autre
+          chose qu'une vraie offre).
+- 0–3  : Charabia, spam, hors-sujet, contenu de test ; OU au moins un flag
           BLOQUANT détecté ('contact_info' / 'discriminatory' / 'illegal').
 
-⚠️ RÈGLE ABSOLUE : si UN flag bloquant est détecté, le score DOIT être ≤ 3,
-quelle que soit la qualité par ailleurs.
+⚠️ RÈGLES STRICTES :
+- Si UN flag bloquant est détecté, le score DOIT être ≤ 3, quelle que soit
+  la qualité par ailleurs.
+- Les champs '(non précisé)' ne JUSTIFIENT JAMAIS un score < 7. Ils peuvent
+  inspirer une remarque douce dans \`notes\` ("préciser X améliorerait le
+  matching") sans aucune pénalité.
 
 ═══════════════════════════════════════════════════════════════
 FORMAT DE RÉPONSE (JSON STRICT, sans markdown, sans texte autour)
 ═══════════════════════════════════════════════════════════════
 {
   "score": <entier 0..10>,
-  "notes": "<2 à 4 phrases EN ${langName.toUpperCase()} : conclusion + raisons principales + flags détectés s'il y en a>",
+  "notes": "<2 à 4 phrases EN ${langName.toUpperCase()} : conclusion + raisons principales + flags détectés s'il y en a. Les remarques sur des champs '(non précisé)' sont bienvenues mais doivent rester des SUGGESTIONS, jamais des reproches.>",
   "flags": [<sous-ensemble de ${flagsList} ; tableau vide [] si aucun flag>]
 }
 

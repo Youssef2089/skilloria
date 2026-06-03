@@ -1360,6 +1360,7 @@
       "field_budget_help_offre": "Gross annual salary in euros. Indicative — visible to experts.",
       "field_confidential": "Confidential listing",
       "field_confidential_help": "Experts will see the listing without your organization's name until match.",
+      "completion_hint": "The more complete your listing, the better the matching — but it is not required to publish.",
       "seniority_options": {
         "junior": "Junior",
         "confirmed": "Confirmed",
