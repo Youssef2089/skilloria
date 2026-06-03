@@ -116,7 +116,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
   // currentProfile : on étend le select avec les colonnes nécessaires à la
   // validation CDI uniquement si isCdi (pas de surcoût pour le freelance).
-  const baseSelect = 'id, title, summary, skills, branch_id, speciality_id, work_modes'
+  const baseSelect = 'id, title, summary, skills, branch_id, speciality_id, work_modes, verification_status'
   const cdiSelectExtra =
     ', cdi_status, cdi_salary_min, cdi_salary_max, cdi_notice_period'
   const profileSelect = isCdi ? baseSelect + cdiSelectExtra : baseSelect
@@ -438,6 +438,32 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       .eq('id', user.id)
     if (userUpdErr) {
       console.error('[profile PATCH] user status update failed', userUpdErr)
+    }
+
+    // ── Vérification expert (Lot vérif expert) ────────────────────────────
+    //  Déclencheur AUTO (D1) : 1re soumission visible=true && pas encore vérifié.
+    //  Idempotent : si déjà 'approved' ou 'pending_admin_review', on ne re-vérifie
+    //  pas automatiquement (re-vérif sur changement majeur = différée).
+    //  Inline : web_search rend l'appel lent (30-60s) ; l'UI affiche un loading
+    //  pendant ce temps. Cf. lib/verification/expert-verification.ts.
+    const currentVerifStatus = (cp as { verification_status?: string | null }).verification_status ?? null
+    const shouldVerify = currentVerifStatus === null || currentVerifStatus === 'pending'
+    if (shouldVerify) {
+      try {
+        const { runExpertVerification } = await import('@/lib/verification/expert-verification')
+        await runExpertVerification({ supabaseAdmin, profile_id: cp.id })
+      } catch (err) {
+        console.error('[profile PATCH] expert verification threw', err)
+        // Fail-safe : marquer pending_admin_review explicitement si rien n'a été écrit
+        await supabaseAdmin
+          .from('profiles')
+          .update({
+            verification_status: 'pending_admin_review',
+            verification_method: 'manual_only',
+            verification_data: { notes: 'Erreur technique pendant la vérif IA — décision déférée à l\'admin.' },
+          })
+          .eq('id', cp.id)
+      }
     }
   }
 

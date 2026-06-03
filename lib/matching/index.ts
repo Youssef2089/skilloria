@@ -219,12 +219,13 @@ async function loadEligibleProfiles(
         'cdi_sectors, cdi_geo_mobility, cdi_contract_types, ' +
         'city, country, ' +
         'branches(name), specialities(name), ' +
-        'users!inner(user_type, locale)',
+        'users!profiles_user_id_fkey!inner(user_type, locale)',
     )
     .eq('domain_id', domainId)
     .eq('cv_parsing_status', 'done')
     .eq('visible', true)
     .not('ai_consent_at', 'is', null)
+    .eq('verification_status', 'approved')   // Lot vérif expert : gate is_verified rebranché
     .eq('users.user_type', expectedUserType)
     .limit(maxCandidates + 1)  // +1 pour détecter dépassement
   if (error) {
@@ -499,7 +500,7 @@ export async function runMatching(args: {
   // On les re-fetch en bornée — query small, indexed.
   const { data: pUsers, error: pUsersErr } = await supabaseAdmin
     .from('profiles')
-    .select('id, user_id, users!inner(locale)')
+    .select('id, user_id, users!profiles_user_id_fkey!inner(locale)')
     .in('id', proposals.map((p) => p.profile_id))
   if (pUsersErr) {
     console.error('[matching] target users lookup failed', pUsersErr.message)

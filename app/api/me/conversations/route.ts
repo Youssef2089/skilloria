@@ -139,7 +139,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     .select(
       'id, candidature_id, status, last_message_at, expires_at, created_at, ' +
         'candidatures!inner(id, status, profile_id, publication_id, ' +
-          'profiles!inner(id, user_id, photo_url, users(id, first_name, last_name)), ' +
+          'profiles!inner(id, user_id, photo_url, users!profiles_user_id_fkey(id, first_name, last_name)), ' +
           'publications!inner(id, type, title, organization_id, organizations(id, company_name, logo_url)))',
     )
     .in('candidature_id', candIds)

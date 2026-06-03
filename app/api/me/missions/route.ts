@@ -73,9 +73,11 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   // ── Profile expert courant ─────────────────────────────────────────────
+  //  Lot vérif expert : defense-in-depth — exige verification_status='approved'.
+  //  Si non vérifié → 403 not_verified. La nav freelance gate déjà côté UI.
   const { data: profile, error: pErr } = await auth.supabaseAdmin
     .from('profiles')
-    .select('id, user_id, domain_id')
+    .select('id, user_id, domain_id, verification_status')
     .eq('user_id', auth.user.id)
     .maybeSingle()
   if (pErr) {
@@ -85,6 +87,9 @@ export async function GET(request: NextRequest): Promise<Response> {
   if (!profile) {
     // L'utilisateur n'a pas de profile (expert pas encore inscrit). Feed vide.
     return json({ missions: [] }, 200)
+  }
+  if ((profile as { verification_status?: string | null }).verification_status !== 'approved') {
+    return json({ error: 'Profile not verified', code: 'not_verified' }, 403)
   }
 
   const locale = normalizeLocale(new URL(request.url).searchParams.get('locale'))

@@ -9,8 +9,16 @@ import { useSecureLogout } from '@/lib/secure-fetch'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import TJMQuickEditModal from '@/components/TJMQuickEditModal'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
+import VerificationBanner from '@/components/dashboard/VerificationBanner'
 
-type ProfileData = { tjm_min: number | null; tjm_max: number | null; photo_url: string | null }
+type ProfileData = {
+  tjm_min: number | null
+  tjm_max: number | null
+  photo_url: string | null
+  verification_status?: string | null
+  review_reason?: string | null
+  verification_data?: Record<string, unknown> | null
+}
 
 export default function DashboardFreelance() {
   const t = useTranslations('dashboard_freelance')
@@ -40,7 +48,7 @@ export default function DashboardFreelance() {
           .single(),
         supabase
           .from('profiles')
-          .select('tjm_min, tjm_max, photo_url')
+          .select('tjm_min, tjm_max, photo_url, verification_status, review_reason, verification_data')
           .eq('user_id', session.user.id)
           .maybeSingle(),
       ])
@@ -271,7 +279,7 @@ export default function DashboardFreelance() {
           <div className="nav-item-active">{t('sidebar.nav.dashboard')}</div>
           {[
             { label: t('sidebar.nav.profile'), locked: false, href: '/dashboard/freelance/mon-profil' },
-            { label: t('sidebar.nav.missions'), locked: false, href: '/dashboard/freelance/missions' },
+            { label: t('sidebar.nav.missions'), locked: !isVerified, href: isVerified ? '/dashboard/freelance/missions' : null },
             { label: t('sidebar.nav.applications'), locked: !isVerified, href: null },
             { label: t('sidebar.nav.messages'), locked: false, href: '/dashboard/freelance/messages' },
           ].map((item, i) => {
@@ -317,6 +325,12 @@ export default function DashboardFreelance() {
 
         {/* Main */}
         <div className="dashboard-main" style={{ flex: 1, padding: 30, overflow: 'hidden' }}>
+
+          {/* Bandeau statut vérification expert (Lot vérif expert) */}
+          <VerificationBanner
+            status={(profile?.verification_status ?? null) as string | null}
+            reviewReason={(profile?.review_reason ?? null) as string | null}
+          />
 
           {/* Titre + Score IA */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 26, animation: 'fadeInUp 0.4s ease' }}>

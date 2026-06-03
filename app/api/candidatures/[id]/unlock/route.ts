@@ -196,7 +196,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   if (didFlip) {
     const { data: profileWithUser } = await auth.supabaseAdmin
       .from('profiles')
-      .select('id, user_id, users!inner(id, locale)')
+      .select('id, user_id, users!profiles_user_id_fkey!inner(id, locale)')
       .eq('id', candRow.profile_id)
       .maybeSingle()
     type ProfUser = { id: string; user_id: string; users: { id: string; locale: string | null } | { id: string; locale: string | null }[] }

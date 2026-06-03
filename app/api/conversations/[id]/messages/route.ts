@@ -132,7 +132,7 @@ async function loadConvAsParticipant(
     .select(
       'id, candidature_id, status, expires_at, last_message_at, ' +
         'candidatures!inner(id, profile_id, status, publication_id, domain_id, ' +
-          'profiles!inner(id, user_id, photo_url, users(id, first_name, last_name, locale)), ' +
+          'profiles!inner(id, user_id, photo_url, users!profiles_user_id_fkey(id, first_name, last_name, locale)), ' +
           'publications!inner(id, type, title, organization_id, organizations(id, company_name, logo_url)))',
     )
     .eq('id', convId)

@@ -132,6 +132,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   // state.kind === 'ok'
   const isOrgsActive = pathname.startsWith('/admin/organisations') || pathname === '/admin'
+  const isExpertsActive = pathname.startsWith('/admin/experts')
 
   return (
     <>
@@ -254,44 +255,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {t('sidebar.nav_organisations')}
         </Link>
 
-        {/* Experts désactivé */}
-        <div
-          aria-disabled
+        {/* Experts — activé Lot vérif expert */}
+        <Link
+          href="/admin/experts"
           style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
             gap: 10,
             padding: '9px 12px',
             fontSize: 13,
-            color: 'var(--color-text-tertiary, #94a3b8)',
+            fontWeight: isExpertsActive ? 500 : 400,
+            color: isExpertsActive
+              ? 'var(--color-text-primary, #0f172a)'
+              : 'var(--color-text-secondary, #64748b)',
+            background: isExpertsActive
+              ? 'var(--color-background-secondary, #f1f5f9)'
+              : 'transparent',
             borderRadius: 8,
-            cursor: 'not-allowed',
-            userSelect: 'none',
+            textDecoration: 'none',
+            transition: 'background .15s, color .15s',
           }}
         >
-          <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2" />
-            </svg>
-            {t('sidebar.nav_experts')}
-          </span>
-          <span
-            style={{
-              fontSize: 9,
-              fontWeight: 500,
-              padding: '2px 7px',
-              background: 'var(--color-background-secondary, #f1f5f9)',
-              color: 'var(--color-text-tertiary, #94a3b8)',
-              borderRadius: 10,
-              textTransform: 'uppercase',
-              letterSpacing: '.05em',
-            }}
-          >
-            {t('sidebar.nav_experts_soon')}
-          </span>
-        </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2" />
+          </svg>
+          {t('sidebar.nav_experts')}
+        </Link>
 
         {/* Switcher locale en bas */}
         <div style={{ marginTop: 'auto', paddingTop: 14 }}>

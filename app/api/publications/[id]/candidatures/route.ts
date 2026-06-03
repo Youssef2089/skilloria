@@ -183,7 +183,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
           'work_modes, languages, country, city, address_line, postal_code, ' +
           'availability_status, availability_date, profile_score, cv_url, ' +
           'linkedin_url, photo_url, birth_year, branch_id, speciality_id, ' +
-          'users!inner(id, first_name, last_name, email, phone, civility, job_title, linkedin_url)',
+          'users!profiles_user_id_fkey!inner(id, first_name, last_name, email, phone, civility, job_title, linkedin_url)',
       )
       .in('id', Array.from(unlockedProfileIds))
     for (const p of ((profRows ?? []) as unknown as FullProfile[])) {
