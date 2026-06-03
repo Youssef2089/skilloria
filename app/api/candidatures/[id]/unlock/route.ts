@@ -139,13 +139,18 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   }
 
   // ── (1) INSERT conversation — idempotent via UNIQUE candidature_id ─────
+  //  Fenêtre de validité 15 j (Lot 3) : expires_at posé à la création.
+  //  NULL = "non expirée" (compat conv legacy Lot 2c) ; après 15j, la route
+  //  d'envoi de message renvoie 409 expired et l'UI passe en lecture seule.
+  const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000
+  const expiresAtIso = new Date(Date.now() + fifteenDaysMs).toISOString()
   const { data: convInserted, error: convInsertErr } = await auth.supabaseAdmin
     .from('conversations')
     .insert({
       candidature_id: candidatureId,
       domain_id: candRow.domain_id,
       status: 'open',
-      // expires_at NULL en V1 (politique 15 j applicative à brancher Lot 3)
+      expires_at: expiresAtIso,
     })
     .select('id')
     .single()

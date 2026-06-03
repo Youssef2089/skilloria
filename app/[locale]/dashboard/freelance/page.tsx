@@ -273,7 +273,7 @@ export default function DashboardFreelance() {
             { label: t('sidebar.nav.profile'), locked: false, href: '/dashboard/freelance/mon-profil' },
             { label: t('sidebar.nav.missions'), locked: false, href: '/dashboard/freelance/missions' },
             { label: t('sidebar.nav.applications'), locked: !isVerified, href: null },
-            { label: t('sidebar.nav.messages'), locked: false, href: null },
+            { label: t('sidebar.nav.messages'), locked: false, href: '/dashboard/freelance/messages' },
           ].map((item, i) => {
             const sharedStyle: React.CSSProperties = {
               animationDelay: `${(i + 1) * 0.05}s`,

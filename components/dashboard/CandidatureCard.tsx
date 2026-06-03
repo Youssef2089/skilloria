@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from 'next-intl'
 import { useState } from 'react'
+import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
@@ -90,6 +91,7 @@ export type CandidatureData = {
   cover_message: string | null
   ai_match_score: number | null
   created_at: string
+  conversation_id: string | null
   preview: CandidaturePreview
   unlocked_profile: CandidatureUnlockedProfile | null
 }
@@ -355,24 +357,45 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
             )}
           </div>
           <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid #86EFAC' }}>
-            <button
-              type="button"
-              disabled
-              title={t('conversation_lot3_tooltip')}
-              style={{
-                padding: '8px 14px',
-                background: '#fff',
-                color: '#94a3b8',
-                border: '1px solid #cbd5e1',
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'not-allowed',
-                fontFamily: 'inherit',
-              }}
-            >
-              💬 {t('conversation_lot3_button')}
-            </button>
+            {candidature.conversation_id ? (
+              <Link
+                href={`/dashboard/entreprise/messages/${candidature.conversation_id}`}
+                style={{
+                  display: 'inline-block',
+                  padding: '8px 14px',
+                  background: domain.primaryColor,
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  textDecoration: 'none',
+                }}
+              >
+                💬 {t('conversation_button')}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                disabled
+                title={t('conversation_unavailable_tooltip')}
+                style={{
+                  padding: '8px 14px',
+                  background: '#fff',
+                  color: '#94a3b8',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'not-allowed',
+                  fontFamily: 'inherit',
+                }}
+              >
+                💬 {t('conversation_button')}
+              </button>
+            )}
           </div>
         </div>
       )}

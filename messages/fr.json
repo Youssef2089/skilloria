@@ -1446,8 +1446,8 @@
       "address": "Adresse",
       "view_profile": "Voir le profil",
       "download_cv": "Télécharger le CV",
-      "conversation_lot3_button": "Ouvrir la conversation",
-      "conversation_lot3_tooltip": "La messagerie sera disponible prochainement.",
+      "conversation_button": "Ouvrir la conversation",
+      "conversation_unavailable_tooltip": "Conversation indisponible pour cette candidature.",
       "button_unlock": "Accepter l'échange",
       "button_unlocking": "Acceptation…",
       "button_reject": "Refuser",
@@ -1478,6 +1478,43 @@
       "error_not_found": "Cette candidature n'existe plus.",
       "error_reason_too_long": "Le motif dépasse 2000 caractères.",
       "error_generic": "Une erreur est survenue. Réessayez dans un instant."
+    }
+  },
+  "messages": {
+    "inbox": {
+      "back_to_dashboard": "← Tableau de bord",
+      "title": "Messages",
+      "subtitle": "Vos échanges avec les entreprises ou les experts après acceptation.",
+      "loading": "Chargement…",
+      "error_generic": "Impossible de charger les conversations. Réessayez.",
+      "empty_title": "Aucune conversation pour le moment",
+      "empty_subtitle": "Quand une candidature sera acceptée (échange ouvert), elle apparaîtra ici.",
+      "sender_me": "Vous :",
+      "no_messages_yet": "Pas encore de message — commencez la conversation.",
+      "expired_badge": "Expiré",
+      "unknown_correspondant": "(correspondant inconnu)"
+    },
+    "view": {
+      "back_to_inbox": "← Messages",
+      "loading": "Chargement de la conversation…",
+      "error_generic": "Impossible de charger la conversation.",
+      "error_not_found": "Cette conversation n'existe pas ou ne vous est plus accessible.",
+      "unknown_correspondant": "(correspondant inconnu)",
+      "banner_expired": "Cet échange est clôturé (fenêtre de 15 jours dépassée). Lecture seule.",
+      "banner_closed": "Cet échange est fermé. Lecture seule.",
+      "empty_no_messages": "Pas encore de message. Présentez-vous pour démarrer.",
+      "input_placeholder": "Écrivez votre message…",
+      "input_disabled_placeholder": "Échange clôturé — envoi impossible.",
+      "input_hint": "Ctrl/Cmd + Entrée pour envoyer",
+      "send": "Envoyer",
+      "sending": "Envoi…",
+      "read_at_tooltip": "Lu",
+      "sent_tooltip": "Envoyé",
+      "error_expired": "L'échange est clôturé (15 jours dépassés). Envoi impossible.",
+      "error_closed": "L'échange est fermé. Envoi impossible.",
+      "error_invalid_content": "Le message est vide ou trop long (5000 caractères max).",
+      "error_too_long": "Le message dépasse 5000 caractères.",
+      "error_generic": "Une erreur est survenue. Réessayez."
     }
   },
   "missions": {

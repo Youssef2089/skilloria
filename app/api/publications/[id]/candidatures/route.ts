@@ -120,6 +120,20 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
 
   const rows = (candResult.data ?? []) as unknown as CandidatureRow[]
 
+  // ── Conversation_id pour les candidatures unlocked (Lot 3) ─────────────
+  //    Batch query : on récupère l'id de conv pour chaque candidature unlocked.
+  const unlockedCandIds = rows.filter((r) => r.status === 'unlocked').map((r) => r.id)
+  const convIdByCand = new Map<string, string>()
+  if (unlockedCandIds.length > 0) {
+    const { data: convs } = await auth.supabaseAdmin
+      .from('conversations')
+      .select('id, candidature_id')
+      .in('candidature_id', unlockedCandIds)
+    for (const c of ((convs ?? []) as { id: string; candidature_id: string }[])) {
+      convIdByCand.set(c.candidature_id, c.id)
+    }
+  }
+
   // ── Profil COMPLET pour les candidatures unlocked (payoff Lot 2c) ──────
   //    On lit profiles + users uniquement pour les profile_ids des candidatures
   //    déjà unlocked. RLS profiles_org_unlocked_read est en place côté
@@ -265,6 +279,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
       cover_message: row.cover_message,
       ai_match_score: row.ai_match_score,
       created_at: row.created_at,
+      conversation_id: row.status === 'unlocked' ? convIdByCand.get(row.id) ?? null : null,
       unlocked_profile: unlockedProfile,
       preview: {
         title:                preview.title ?? null,
