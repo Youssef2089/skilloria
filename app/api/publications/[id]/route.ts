@@ -252,3 +252,113 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
 
   return json({ id: updated.id, status: updated.status }, 200)
 }
+
+
+// ============================================================================
+// GET /api/publications/[id] — détail d'UNE publication owner-scoped.
+// ============================================================================
+//
+// Sert à pré-remplir le formulaire d'édition côté front.
+//
+// Garde : ownership stricte. Si la ligne existe mais appartient à une autre
+// org → 403 forbidden (PAS 404, pour ne pas révéler l'existence). Si la
+// ligne n'existe pas → 404.
+//
+// DTO COMPLET (champs éditables + métadonnées status/score) — pas de masquage,
+// c'est la propre publi de l'org. JAMAIS de verification_data, verified_*,
+// review_reason, expires_at (réservés à la fiche admin).
+
+export async function GET(request: NextRequest, ctx: RouteContext): Promise<Response> {
+  let auth: AuthContext
+  try {
+    auth = await requireAuth(request)
+  } catch (err) {
+    if (err instanceof AuthError) return err.toResponse()
+    throw err
+  }
+  const orgId = auth.organization?.id
+  if (!orgId) {
+    return json({ error: 'No organization', code: 'org_required' }, 403)
+  }
+
+  const { id } = await ctx.params
+  if (!id || !UUID_REGEX.test(id)) {
+    return json({ error: 'Invalid id', code: 'not_found' }, 404)
+  }
+
+  type PublicationDetailRow = {
+    id: string
+    organization_id: string
+    type: string
+    title: string
+    description: string
+    branch_id: string | null
+    speciality_id: string | null
+    skills_required: string[] | null
+    seniority: string | null
+    work_mode: string | null
+    location: string | null
+    duration: string | null
+    start_date: string | null
+    budget_min: number | null
+    budget_max: number | null
+    confidential: boolean
+    status: string
+    verification_score: number | null
+    created_at: string
+    updated_at: string
+    published_at: string | null
+  }
+
+  const fetchResult = await auth.supabaseAdmin
+    .from('publications')
+    .select(
+      'id, organization_id, type, title, description, branch_id, speciality_id, ' +
+        'skills_required, seniority, work_mode, location, duration, start_date, ' +
+        'budget_min, budget_max, confidential, status, verification_score, ' +
+        'created_at, updated_at, published_at',
+    )
+    .eq('id', id)
+    .maybeSingle()
+
+  if (fetchResult.error) {
+    console.error('[publications:GET id] fetch failed', fetchResult.error.message)
+    return json({ error: 'Query failed', code: 'db_error' }, 500)
+  }
+  const pub = fetchResult.data as unknown as PublicationDetailRow | null
+  if (!pub) {
+    return json({ error: 'Not found', code: 'not_found' }, 404)
+  }
+  if (pub.organization_id !== orgId) {
+    return json({ error: 'Forbidden', code: 'forbidden' }, 403)
+  }
+
+  // DTO retourné — strip organization_id (déduit du contexte, inutile au client).
+  return json(
+    {
+      publication: {
+        id: pub.id,
+        type: pub.type,
+        title: pub.title,
+        description: pub.description,
+        branch_id: pub.branch_id,
+        speciality_id: pub.speciality_id,
+        skills_required: pub.skills_required ?? [],
+        seniority: pub.seniority,
+        work_mode: pub.work_mode,
+        location: pub.location,
+        duration: pub.duration,
+        start_date: pub.start_date,
+        budget_min: pub.budget_min,
+        budget_max: pub.budget_max,
+        confidential: pub.confidential,
+        status: pub.status,
+        verification_score: pub.verification_score,
+        created_at: pub.created_at,
+        updated_at: pub.updated_at,
+        published_at: pub.published_at,
+      },
+    },
+    200,
+  )
+}

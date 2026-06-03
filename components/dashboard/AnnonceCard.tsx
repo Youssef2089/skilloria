@@ -57,6 +57,9 @@ const STATUS_STYLES: Record<AnnonceStatus, StatusVisual> = {
 
 const FADED_STATUSES: readonly AnnonceStatus[] = ['suspended', 'expired', 'archived', 'rejected']
 const ACTIONABLE_STATUSES: readonly AnnonceStatus[] = ['draft', 'pending_review', 'published']
+// Statuts pour lesquels le lien pointe vers le formulaire d'édition.
+// Aligné sur EDITABLE_STATUSES de PATCH /api/publications/[id].
+const EDITABLE_STATUSES: readonly AnnonceStatus[] = ['draft', 'suspended', 'archived']
 
 function IconUsers({ size = 14 }: { size?: number }) {
   return (
@@ -271,10 +274,17 @@ export default function AnnonceCard({ annonce, basePath }: Props) {
         })}
       </div>
 
-      {/* Footer : lien d'action */}
+      {/* Footer : lien d'action.
+          Statuts éditables → page d'édition (formulaire pré-rempli).
+          Autres → page détail (lecture, à construire dans un lot futur — pour
+          l'instant pointe vers le même chemin générique). */}
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <Link
-          href={`${basePath}/annonces/${annonce.id}`}
+          href={
+            (EDITABLE_STATUSES as readonly string[]).includes(annonce.status)
+              ? `${basePath}/annonces/${annonce.id}/modifier`
+              : `${basePath}/annonces/${annonce.id}`
+          }
           style={{
             fontSize: 12,
             color: 'var(--color-text-secondary, #475569)',
