@@ -1413,6 +1413,73 @@
       "generic": "Une erreur est survenue. Veuillez réessayer."
     }
   },
+  "candidatures": {
+    "feed": {
+      "back_to_dashboard": "← Tableau de bord",
+      "header_kicker": "Candidatures",
+      "untitled_publication": "(annonce sans titre)",
+      "header_subtitle": "Les candidatures reçues sur cette annonce. Le profil complet n'est révélé qu'après acceptation de l'échange.",
+      "loading": "Chargement des candidatures…",
+      "error_generic": "Impossible de charger les candidatures. Réessayez dans un instant.",
+      "error_not_found": "Cette annonce n'existe pas ou ne vous est plus accessible.",
+      "filter_all": "Toutes",
+      "filter_received": "À traiter",
+      "filter_unlocked": "Échanges ouverts",
+      "filter_rejected": "Refusées",
+      "empty_all_title": "Aucune candidature reçue",
+      "empty_all_subtitle": "Les experts notifiés par notre IA n'ont pas encore postulé. Vous serez prévenu à la 1re candidature.",
+      "empty_filtered_title": "Aucune candidature dans ce filtre",
+      "empty_filtered_subtitle": "Essayez un autre filtre pour voir l'ensemble des candidatures."
+    },
+    "card": {
+      "anonymous_candidate": "Candidat anonyme",
+      "candidate_label": "Candidat",
+      "ai_score": "Score {score}/10",
+      "ai_score_tooltip": "Note IA de pertinence par rapport à votre annonce.",
+      "years_experience": "{years} an(s) d'expérience",
+      "candidated_ago": "Candidaté il y a {time}",
+      "cover_message_label": "Message de motivation",
+      "unlocked_section_label": "Profil complet débloqué",
+      "rejection_reason_label": "Motif du refus",
+      "email": "E-mail",
+      "phone": "Téléphone",
+      "address": "Adresse",
+      "view_profile": "Voir le profil",
+      "download_cv": "Télécharger le CV",
+      "conversation_lot3_button": "Ouvrir la conversation",
+      "conversation_lot3_tooltip": "La messagerie sera disponible prochainement.",
+      "button_unlock": "Accepter l'échange",
+      "button_unlocking": "Acceptation…",
+      "button_reject": "Refuser",
+      "button_rejecting": "Refus…",
+      "reject_confirm_title": "Confirmer le refus",
+      "reject_reason_placeholder": "Motif optionnel (visible uniquement en interne)…",
+      "reject_cancel": "Annuler",
+      "reject_confirm": "Confirmer le refus",
+      "status": {
+        "received": "Nouveau",
+        "in_review": "En revue",
+        "shortlisted": "Présélectionné",
+        "unlocked": "Échange ouvert",
+        "rejected": "Refusé",
+        "withdrawn": "Retiré",
+        "archived": "Archivé"
+      },
+      "availability": {
+        "immediate": "Disponible",
+        "available_now": "Disponible",
+        "soon": "Bientôt disponible",
+        "in_3_months": "Sous 3 mois",
+        "in_6_months": "Sous 6 mois",
+        "not_available": "Indisponible",
+        "open_to_opportunities": "Ouvert aux opportunités"
+      },
+      "error_invalid_transition": "Action impossible dans l'état actuel de la candidature.",
+      "error_not_found": "Cette candidature n'existe plus.",
+      "error_reason_too_long": "Le motif dépasse 2000 caractères.",
+      "error_generic": "Une erreur est survenue. Réessayez dans un instant."
+    }
+  },
   "missions": {
     "card": {
       "confidential_org": "Entreprise confidentielle",

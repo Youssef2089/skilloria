@@ -178,6 +178,66 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   const row = inserted as unknown as { id: string; status: string; created_at: string }
 
+  // ── Notif ORG : nouvelle candidature (best-effort, n'invalide pas le 201) ─
+  //  Lot 2c — D3 : on notifie chaque membre actif de l'org propriétaire de la
+  //  publication. La locale de chaque membre est lue depuis users.locale.
+  //  channel='inapp', type='new_candidature_received', entity_id=candidature.id,
+  //  link_url → vue candidatures de l'annonce.
+  try {
+    const { data: pubOrg } = await auth.supabaseAdmin
+      .from('publications')
+      .select('id, organization_id, title')
+      .eq('id', publicationId)
+      .maybeSingle()
+    const pubInfo = pubOrg as { id: string; organization_id: string; title: string } | null
+    if (pubInfo) {
+      const { data: members } = await auth.supabaseAdmin
+        .from('organization_members')
+        .select('user_id, users!organization_members_user_id_fkey(id, locale)')
+        .eq('organization_id', pubInfo.organization_id)
+        .eq('status', 'active')
+      type Member = { user_id: string; users: { id: string; locale: string | null } | { id: string; locale: string | null }[] }
+      const membersTyped = (members ?? []) as unknown as Member[]
+      const linkUrl = `/dashboard/entreprise/annonces/${publicationId}/candidatures`
+      const titlesByLocale: Record<string, string> = {
+        fr: 'Nouvelle candidature reçue',
+        en: 'New application received',
+        es: 'Nueva candidatura recibida',
+        de: 'Neue Bewerbung erhalten',
+      }
+      const bodiesByLocale: Record<string, (t: string) => string> = {
+        fr: (t) => `Un expert a candidaté à votre annonce « ${t} ».`,
+        en: (t) => `An expert has applied to your posting "${t}".`,
+        es: (t) => `Un experto se ha postulado a tu publicación «${t}».`,
+        de: (t) => `Eine Fachkraft hat sich auf Ihre Veröffentlichung „${t}" beworben.`,
+      }
+      const VALID_LOCALES = ['fr', 'en', 'es', 'de']
+      const rows = membersTyped.map((m) => {
+        const u = Array.isArray(m.users) ? m.users[0] : m.users
+        const loc = u?.locale && VALID_LOCALES.includes(u.locale) ? u.locale : 'fr'
+        return {
+          user_id: m.user_id,
+          domain_id: profileRow.domain_id,
+          type: 'new_candidature_received',
+          channel: 'inapp',
+          title: titlesByLocale[loc],
+          body: bodiesByLocale[loc](pubInfo.title),
+          link_url: linkUrl,
+          status: 'pending',
+          entity_id: row.id,
+        }
+      })
+      if (rows.length > 0) {
+        const { error: notifErr } = await auth.supabaseAdmin.from('notifications').insert(rows)
+        if (notifErr) {
+          console.error('[candidatures:POST] org notif insert failed', notifErr.message)
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[candidatures:POST] org notif threw', err)
+  }
+
   // ── Audit best-effort ──────────────────────────────────────────────────
   await logAudit({
     supabaseAdmin: auth.supabaseAdmin,

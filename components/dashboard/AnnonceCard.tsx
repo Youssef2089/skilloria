@@ -275,15 +275,19 @@ export default function AnnonceCard({ annonce, basePath }: Props) {
       </div>
 
       {/* Footer : lien d'action.
-          Statuts éditables → page d'édition (formulaire pré-rempli).
-          Autres → page détail (lecture, à construire dans un lot futur — pour
-          l'instant pointe vers le même chemin générique). */}
+          - Statuts éditables (draft / suspended / archived) → page d'édition.
+          - Statut 'published'                             → vue candidatures
+            (Lot 2c) — c'est l'écran de gestion des candidatures reçues.
+          - Autres (pending_review / expired / rejected)   → page détail
+            (lecture, à construire — pointe vers chemin générique). */}
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <Link
           href={
             (EDITABLE_STATUSES as readonly string[]).includes(annonce.status)
               ? `${basePath}/annonces/${annonce.id}/modifier`
-              : `${basePath}/annonces/${annonce.id}`
+              : annonce.status === 'published'
+                ? `${basePath}/annonces/${annonce.id}/candidatures`
+                : `${basePath}/annonces/${annonce.id}`
           }
           style={{
             fontSize: 12,

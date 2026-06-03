@@ -1413,6 +1413,73 @@
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen."
     }
   },
+  "candidatures": {
+    "feed": {
+      "back_to_dashboard": "← Dashboard",
+      "header_kicker": "Bewerbungen",
+      "untitled_publication": "(Veröffentlichung ohne Titel)",
+      "header_subtitle": "Bewerbungen auf diese Veröffentlichung. Das vollständige Profil wird erst nach Annahme des Austauschs sichtbar.",
+      "loading": "Bewerbungen werden geladen…",
+      "error_generic": "Bewerbungen konnten nicht geladen werden. Bitte erneut versuchen.",
+      "error_not_found": "Diese Veröffentlichung existiert nicht mehr oder ist nicht verfügbar.",
+      "filter_all": "Alle",
+      "filter_received": "Zu prüfen",
+      "filter_unlocked": "Offene Austausche",
+      "filter_rejected": "Abgelehnt",
+      "empty_all_title": "Noch keine Bewerbungen",
+      "empty_all_subtitle": "Die von unserer KI benachrichtigten Experten haben sich noch nicht beworben. Sie werden bei der ersten Bewerbung informiert.",
+      "empty_filtered_title": "Keine Bewerbungen in diesem Filter",
+      "empty_filtered_subtitle": "Versuchen Sie einen anderen Filter, um alle Bewerbungen zu sehen."
+    },
+    "card": {
+      "anonymous_candidate": "Anonyme/r Bewerber/in",
+      "candidate_label": "Bewerber/in",
+      "ai_score": "Bewertung {score}/10",
+      "ai_score_tooltip": "KI-Bewertung der Passung zu Ihrer Veröffentlichung.",
+      "years_experience": "{years} Jahr(e) Erfahrung",
+      "candidated_ago": "Beworben vor {time}",
+      "cover_message_label": "Motivationsschreiben",
+      "unlocked_section_label": "Vollständiges Profil freigeschaltet",
+      "rejection_reason_label": "Ablehnungsgrund",
+      "email": "E-Mail",
+      "phone": "Telefon",
+      "address": "Adresse",
+      "view_profile": "Profil ansehen",
+      "download_cv": "Lebenslauf herunterladen",
+      "conversation_lot3_button": "Konversation öffnen",
+      "conversation_lot3_tooltip": "Die Messaging-Funktion wird in Kürze verfügbar sein.",
+      "button_unlock": "Austausch annehmen",
+      "button_unlocking": "Wird angenommen…",
+      "button_reject": "Ablehnen",
+      "button_rejecting": "Wird abgelehnt…",
+      "reject_confirm_title": "Ablehnung bestätigen",
+      "reject_reason_placeholder": "Optionaler Grund (nur intern sichtbar)…",
+      "reject_cancel": "Abbrechen",
+      "reject_confirm": "Ablehnung bestätigen",
+      "status": {
+        "received": "Neu",
+        "in_review": "In Prüfung",
+        "shortlisted": "Vorausgewählt",
+        "unlocked": "Austausch offen",
+        "rejected": "Abgelehnt",
+        "withdrawn": "Zurückgezogen",
+        "archived": "Archiviert"
+      },
+      "availability": {
+        "immediate": "Verfügbar",
+        "available_now": "Verfügbar",
+        "soon": "Bald verfügbar",
+        "in_3_months": "In 3 Monaten",
+        "in_6_months": "In 6 Monaten",
+        "not_available": "Nicht verfügbar",
+        "open_to_opportunities": "Offen für Möglichkeiten"
+      },
+      "error_invalid_transition": "Aktion im aktuellen Status nicht erlaubt.",
+      "error_not_found": "Diese Bewerbung existiert nicht mehr.",
+      "error_reason_too_long": "Der Grund überschreitet 2000 Zeichen.",
+      "error_generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen."
+    }
+  },
   "missions": {
     "card": {
       "confidential_org": "Vertrauliches Unternehmen",

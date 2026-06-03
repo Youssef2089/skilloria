@@ -1413,6 +1413,73 @@
       "generic": "An error occurred. Please try again."
     }
   },
+  "candidatures": {
+    "feed": {
+      "back_to_dashboard": "← Dashboard",
+      "header_kicker": "Applications",
+      "untitled_publication": "(untitled posting)",
+      "header_subtitle": "Applications received on this posting. The full profile is revealed only after you accept the exchange.",
+      "loading": "Loading applications…",
+      "error_generic": "Could not load applications. Please try again.",
+      "error_not_found": "This posting no longer exists or is no longer available.",
+      "filter_all": "All",
+      "filter_received": "To review",
+      "filter_unlocked": "Open exchanges",
+      "filter_rejected": "Rejected",
+      "empty_all_title": "No applications yet",
+      "empty_all_subtitle": "Experts notified by our AI haven't applied yet. You'll be notified on the first application.",
+      "empty_filtered_title": "No applications in this filter",
+      "empty_filtered_subtitle": "Try another filter to see all applications."
+    },
+    "card": {
+      "anonymous_candidate": "Anonymous candidate",
+      "candidate_label": "Candidate",
+      "ai_score": "Score {score}/10",
+      "ai_score_tooltip": "AI relevance score against your posting.",
+      "years_experience": "{years} year(s) of experience",
+      "candidated_ago": "Applied {time} ago",
+      "cover_message_label": "Cover message",
+      "unlocked_section_label": "Full profile unlocked",
+      "rejection_reason_label": "Rejection reason",
+      "email": "Email",
+      "phone": "Phone",
+      "address": "Address",
+      "view_profile": "View profile",
+      "download_cv": "Download CV",
+      "conversation_lot3_button": "Open conversation",
+      "conversation_lot3_tooltip": "Messaging will be available soon.",
+      "button_unlock": "Accept exchange",
+      "button_unlocking": "Accepting…",
+      "button_reject": "Reject",
+      "button_rejecting": "Rejecting…",
+      "reject_confirm_title": "Confirm rejection",
+      "reject_reason_placeholder": "Optional reason (visible internally only)…",
+      "reject_cancel": "Cancel",
+      "reject_confirm": "Confirm rejection",
+      "status": {
+        "received": "New",
+        "in_review": "In review",
+        "shortlisted": "Shortlisted",
+        "unlocked": "Exchange open",
+        "rejected": "Rejected",
+        "withdrawn": "Withdrawn",
+        "archived": "Archived"
+      },
+      "availability": {
+        "immediate": "Available",
+        "available_now": "Available",
+        "soon": "Soon available",
+        "in_3_months": "Within 3 months",
+        "in_6_months": "Within 6 months",
+        "not_available": "Unavailable",
+        "open_to_opportunities": "Open to opportunities"
+      },
+      "error_invalid_transition": "Action not allowed in the current candidature state.",
+      "error_not_found": "This application no longer exists.",
+      "error_reason_too_long": "Reason exceeds 2000 characters.",
+      "error_generic": "An error occurred. Please try again."
+    }
+  },
   "missions": {
     "card": {
       "confidential_org": "Confidential company",

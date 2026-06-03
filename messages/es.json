@@ -1413,6 +1413,73 @@
       "generic": "Se produjo un error. Inténtalo de nuevo."
     }
   },
+  "candidatures": {
+    "feed": {
+      "back_to_dashboard": "← Panel",
+      "header_kicker": "Candidaturas",
+      "untitled_publication": "(publicación sin título)",
+      "header_subtitle": "Candidaturas recibidas en esta publicación. El perfil completo se revela solo tras aceptar el intercambio.",
+      "loading": "Cargando candidaturas…",
+      "error_generic": "No se pudieron cargar las candidaturas. Inténtalo de nuevo.",
+      "error_not_found": "Esta publicación ya no existe o no está disponible.",
+      "filter_all": "Todas",
+      "filter_received": "Por tratar",
+      "filter_unlocked": "Intercambios abiertos",
+      "filter_rejected": "Rechazadas",
+      "empty_all_title": "Aún no hay candidaturas",
+      "empty_all_subtitle": "Los expertos notificados por nuestra IA aún no se han postulado. Te avisaremos en la primera candidatura.",
+      "empty_filtered_title": "Sin candidaturas en este filtro",
+      "empty_filtered_subtitle": "Prueba otro filtro para ver todas las candidaturas."
+    },
+    "card": {
+      "anonymous_candidate": "Candidato anónimo",
+      "candidate_label": "Candidato",
+      "ai_score": "Puntuación {score}/10",
+      "ai_score_tooltip": "Puntuación IA respecto a tu publicación.",
+      "years_experience": "{years} año(s) de experiencia",
+      "candidated_ago": "Postuló hace {time}",
+      "cover_message_label": "Carta de motivación",
+      "unlocked_section_label": "Perfil completo desbloqueado",
+      "rejection_reason_label": "Motivo del rechazo",
+      "email": "Correo",
+      "phone": "Teléfono",
+      "address": "Dirección",
+      "view_profile": "Ver perfil",
+      "download_cv": "Descargar CV",
+      "conversation_lot3_button": "Abrir conversación",
+      "conversation_lot3_tooltip": "La mensajería estará disponible pronto.",
+      "button_unlock": "Aceptar intercambio",
+      "button_unlocking": "Aceptando…",
+      "button_reject": "Rechazar",
+      "button_rejecting": "Rechazando…",
+      "reject_confirm_title": "Confirmar rechazo",
+      "reject_reason_placeholder": "Motivo opcional (visible solo internamente)…",
+      "reject_cancel": "Cancelar",
+      "reject_confirm": "Confirmar rechazo",
+      "status": {
+        "received": "Nuevo",
+        "in_review": "En revisión",
+        "shortlisted": "Preseleccionado",
+        "unlocked": "Intercambio abierto",
+        "rejected": "Rechazado",
+        "withdrawn": "Retirado",
+        "archived": "Archivado"
+      },
+      "availability": {
+        "immediate": "Disponible",
+        "available_now": "Disponible",
+        "soon": "Pronto disponible",
+        "in_3_months": "En 3 meses",
+        "in_6_months": "En 6 meses",
+        "not_available": "No disponible",
+        "open_to_opportunities": "Abierto a oportunidades"
+      },
+      "error_invalid_transition": "Acción no permitida en el estado actual.",
+      "error_not_found": "Esta candidatura ya no existe.",
+      "error_reason_too_long": "El motivo supera los 2000 caracteres.",
+      "error_generic": "Se produjo un error. Inténtalo de nuevo."
+    }
+  },
   "missions": {
     "card": {
       "confidential_org": "Empresa confidencial",

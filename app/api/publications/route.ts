@@ -262,6 +262,27 @@ const EMPTY_CANDIDATURES = {
   refusees: 0,
 } as const
 
+/**
+ * Mapping logique compteurs UI ↔ candidatures.status :
+ *   recues        = total (toutes lignes)
+ *   nouvelles     = 'received'    (jamais ouverte)
+ *   en_discussion = 'in_review' + 'shortlisted'
+ *   retenues      = 'unlocked'    (échange ouvert / payoff)
+ *   refusees      = 'rejected'
+ *   ('withdrawn' et 'archived' ne comptent dans aucune case visible côté org)
+ */
+type CounterAgg = { recues: number; nouvelles: number; en_discussion: number; retenues: number; refusees: number }
+function makeEmptyAgg(): CounterAgg {
+  return { recues: 0, nouvelles: 0, en_discussion: 0, retenues: 0, refusees: 0 }
+}
+function bumpAgg(agg: CounterAgg, status: string): void {
+  agg.recues += 1
+  if (status === 'received') agg.nouvelles += 1
+  else if (status === 'in_review' || status === 'shortlisted') agg.en_discussion += 1
+  else if (status === 'unlocked') agg.retenues += 1
+  else if (status === 'rejected') agg.refusees += 1
+}
+
 function normalizeLocale(raw: string | null): Locale {
   return (routing.locales as readonly string[]).includes(raw ?? '')
     ? (raw as Locale)
@@ -334,6 +355,27 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   const rows = (pubsResult.data ?? []) as unknown as PublicationRow[]
 
+  // ── Agrégat candidatures par publication (Lot 2c) ─────────────────────
+  //  Une seule query batch sur l'ensemble des ids ; mapping en mémoire ensuite.
+  const pubIds = rows.map((r) => r.id)
+  const aggByPub = new Map<string, CounterAgg>()
+  if (pubIds.length > 0) {
+    const { data: candRows, error: candErr } = await auth.supabaseAdmin
+      .from('candidatures')
+      .select('publication_id, status')
+      .in('publication_id', pubIds)
+    if (candErr) {
+      console.error('[publications:GET] candidatures agg failed', candErr.message)
+      // best-effort : on continue avec EMPTY_CANDIDATURES
+    } else {
+      for (const c of (candRows ?? []) as { publication_id: string; status: string }[]) {
+        let agg = aggByPub.get(c.publication_id)
+        if (!agg) { agg = makeEmptyAgg(); aggByPub.set(c.publication_id, agg) }
+        bumpAgg(agg, c.status)
+      }
+    }
+  }
+
   const publications: Annonce[] = rows.map((row) => {
     const safeType: AnnonceType = (VALID_TYPES as readonly string[]).includes(row.type)
       ? (row.type as AnnonceType)
@@ -361,7 +403,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       verification_score: row.verification_score,
       created_at: row.created_at,
       published_at: row.published_at,
-      candidatures: { ...EMPTY_CANDIDATURES },
+      candidatures: aggByPub.get(row.id) ?? { ...EMPTY_CANDIDATURES },
     }
   })
 
