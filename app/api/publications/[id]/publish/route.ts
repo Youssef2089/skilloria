@@ -6,6 +6,7 @@ import type {
   PublicationLocale,
   PublicationQualityInput,
 } from '@/lib/verification/ai-publication-quality'
+import { runMatching } from '@/lib/matching'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -155,6 +156,30 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   if (updateErr) {
     console.error('[publications:publish] update failed', updateErr.message)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
+  }
+
+  // ── Matching IA — synchrone, isolé, FAIL-SAFE ──────────────────────────
+  // Lance le moteur de matching profils ↔ publication APRÈS que la publi est
+  // effectivement passée en 'published'. Un échec ici n'impacte JAMAIS la
+  // publication (la ligne reste publiée, matching re-jouable via un futur
+  // endpoint admin appelant runMatching directement).
+  if (verdict.status === 'published') {
+    try {
+      const matchingVerdict = await runMatching({
+        supabaseAdmin: auth.supabaseAdmin,
+        publicationId: id,
+        locale: aiInput.locale,
+      })
+      console.log('[publications:publish] matching done', {
+        publicationId: id,
+        status: matchingVerdict.status,
+        proposalsCount: matchingVerdict.proposals.length,
+        model: matchingVerdict.model,
+      })
+    } catch (err) {
+      // Best-effort : tout échec matching est non-bloquant.
+      console.error('[publications:publish] matching threw (non-blocking)', err)
+    }
   }
 
   // ── Audit ──────────────────────────────────────────────────────────────
