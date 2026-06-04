@@ -1487,7 +1487,32 @@
       "rejected": "Rejected",
       "withdrawn": "Withdrawn",
       "archived": "Archived"
-    }
+    },
+    "filters": {
+      "all": "All",
+      "open": "Exchange open",
+      "wait": "Pending",
+      "refused": "Rejected"
+    },
+    "stats": {
+      "total": "Applications",
+      "open": "Open exchanges",
+      "wait": "Pending",
+      "avg_score": "Average AI score"
+    },
+    "section_timeline": "Tracking",
+    "section_cover_message": "Your cover note",
+    "timeline": {
+      "sent": "Application sent",
+      "ai_proposed": "Proposed by AI — score {score}/10",
+      "unlocked": "Exchange opened by company",
+      "rejected": "Application rejected",
+      "waiting": "Awaiting response"
+    },
+    "empty_filter_title": "No applications in this filter",
+    "empty_filter_body": "Try another filter to see all your applications.",
+    "detail_empty_title": "Select an application",
+    "detail_empty_subtitle": "Click an application on the left to see its tracking and available actions."
   },
   "candidatures": {
     "feed": {
@@ -1560,6 +1585,14 @@
   "messages": {
     "topbar": {
       "aria_label": "Messaging"
+    },
+    "context": {
+      "about_label": "About the mission",
+      "no_publication": "Mission unavailable.",
+      "exchange_open_expert": "Profile unlocked",
+      "exchange_open_org": "Exchange open",
+      "view_mission": "View mission",
+      "view_annonce": "View posting"
     },
     "inbox": {
       "back_to_dashboard": "← Dashboard",

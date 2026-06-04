@@ -6,6 +6,7 @@ import { Link, useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import ConversationView from '@/components/dashboard/ConversationView'
+import MessageContextPanel from '@/components/dashboard/MessageContextPanel'
 
 /**
  * Inbox messagerie LAYOUT 2 PANNEAUX (Point 6 finitions UX).
@@ -142,39 +143,41 @@ export default function MessagesInbox({ side, selectedConvId }: { side: 'freelan
 
   const groups = useMemo(() => state.kind === 'ready' ? groupByPublication(state.conversations) : [], [state])
 
-  // ── Render ────────────────────────────────────────────────────────────────
-  return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 24px 40px', fontFamily: 'Inter, sans-serif' }}>
-      <button
-        type="button"
-        onClick={() => router.push(basePath)}
-        style={{ background: 'transparent', border: 'none', color: domain.primaryColor, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 14 }}
-      >
-        {t('back_to_dashboard')}
-      </button>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', lineHeight: 1.3, letterSpacing: '-0.2px', marginBottom: 4 }}>
-        {t('title')}
-      </h1>
-      <p style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>{t('subtitle')}</p>
+  // Conv sélectionnée (pour panneau ctx mission)
+  const selectedConv = state.kind === 'ready' && selectedConvId
+    ? state.conversations.find((c) => c.id === selectedConvId) ?? null
+    : null
 
-      {/* Layout 2 panneaux */}
+  // ── Render ────────────────────────────────────────────────────────────────
+  //  Lot refonte UX commit B/C : 3 zones (liste + fil + ctx mission).
+  //  Si pas de conv sélectionnée → liste seule + empty state à droite.
+  void router; void domain
+  return (
+    <div style={{ padding: '0', fontFamily: 'inherit', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      {/* Layout 3 zones */}
       <div
         style={{
+          flex: 1,
           display: 'grid',
-          gridTemplateColumns: 'minmax(280px, 360px) 1fr',
-          gap: 18,
-          minHeight: 480,
+          gridTemplateColumns: selectedConvId
+            ? 'minmax(280px, 320px) 1fr minmax(260px, 320px)'
+            : 'minmax(280px, 360px) 1fr',
+          minHeight: 0,
           alignItems: 'stretch',
         }}
-        className="messages-2col"
+        className="messages-cols"
         data-conv-selected={selectedConvId ? 'true' : 'false'}
       >
-        {/* Inline responsive : sur mobile, on cache la colonne non-active */}
+        {/* Responsive : tablette → 2 zones (cache ctx), mobile → 1 zone */}
         <style>{`
+          @media (max-width: 1279px) {
+            .messages-cols[data-conv-selected="true"] { grid-template-columns: minmax(280px, 320px) 1fr !important; }
+            .messages-cols .inbox-ctx-col { display: none !important; }
+          }
           @media (max-width: 768px) {
-            .messages-2col { grid-template-columns: 1fr !important; }
-            .messages-2col[data-conv-selected="true"] .inbox-list-col { display: none; }
-            .messages-2col[data-conv-selected="false"] .inbox-detail-col { display: none; }
+            .messages-cols { grid-template-columns: 1fr !important; }
+            .messages-cols[data-conv-selected="true"] .inbox-list-col { display: none; }
+            .messages-cols[data-conv-selected="false"] .inbox-detail-col { display: none; }
           }
         `}</style>
 
@@ -182,12 +185,11 @@ export default function MessagesInbox({ side, selectedConvId }: { side: 'freelan
         <div
           className="inbox-list-col"
           style={{
-            background: '#fff',
-            border: '0.5px solid #e5e7eb',
-            borderRadius: 12,
-            overflow: 'hidden',
+            background: 'var(--sk-surface)',
+            borderRight: '1px solid var(--sk-border)',
             display: 'flex',
             flexDirection: 'column',
+            minHeight: 0,
           }}
         >
           {state.kind === 'loading' && (
@@ -282,17 +284,14 @@ export default function MessagesInbox({ side, selectedConvId }: { side: 'freelan
           )}
         </div>
 
-        {/* Colonne droite : fil sélectionné ou empty state */}
+        {/* Colonne milieu : fil sélectionné ou empty state */}
         <div
           className="inbox-detail-col"
           style={{
-            background: '#fff',
-            border: '0.5px solid #e5e7eb',
-            borderRadius: 12,
-            overflow: 'hidden',
+            background: 'var(--sk-bg)',
             display: 'flex',
             flexDirection: 'column',
-            minHeight: 480,
+            minHeight: 0,
           }}
         >
           {selectedConvId ? (
@@ -300,14 +299,18 @@ export default function MessagesInbox({ side, selectedConvId }: { side: 'freelan
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: 40, textAlign: 'center' }}>
               <div style={{ fontSize: 36, marginBottom: 10 }} aria-hidden>💬</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>{t('detail_empty_title')}</div>
-              <div style={{ fontSize: 13, color: '#64748b', maxWidth: 340, lineHeight: 1.55 }}>{t('detail_empty_subtitle')}</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>{t('detail_empty_title')}</div>
+              <div style={{ fontSize: 13, color: 'var(--sk-muted)', maxWidth: 340, lineHeight: 1.55 }}>{t('detail_empty_subtitle')}</div>
             </div>
           )}
         </div>
 
-        {/* Indicateur pour le CSS responsive : conv sélectionnée OU pas */}
-        <style>{`.messages-2col { }`}</style>
+        {/* Colonne droite : ctx mission (3ᵉ zone — n'apparaît que si conv sélectionnée) */}
+        {selectedConvId && (
+          <div className="inbox-ctx-col" style={{ minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <MessageContextPanel publication={selectedConv?.publication ?? null} side={side} />
+          </div>
+        )}
       </div>
     </div>
   )

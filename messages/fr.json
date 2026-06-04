@@ -1487,7 +1487,32 @@
       "rejected": "Refusée",
       "withdrawn": "Retirée",
       "archived": "Archivée"
-    }
+    },
+    "filters": {
+      "all": "Toutes",
+      "open": "Échange ouvert",
+      "wait": "En attente",
+      "refused": "Refusées"
+    },
+    "stats": {
+      "total": "Candidatures",
+      "open": "Échanges ouverts",
+      "wait": "En attente",
+      "avg_score": "Score moyen IA"
+    },
+    "section_timeline": "Suivi",
+    "section_cover_message": "Votre message de motivation",
+    "timeline": {
+      "sent": "Candidature envoyée",
+      "ai_proposed": "Proposé par l'IA — score {score}/10",
+      "unlocked": "Échange ouvert par l'entreprise",
+      "rejected": "Candidature refusée",
+      "waiting": "En attente de réponse"
+    },
+    "empty_filter_title": "Aucune candidature dans ce filtre",
+    "empty_filter_body": "Essayez un autre filtre pour voir l'ensemble de vos candidatures.",
+    "detail_empty_title": "Sélectionnez une candidature",
+    "detail_empty_subtitle": "Cliquez sur une candidature à gauche pour voir son suivi et les actions disponibles."
   },
   "candidatures": {
     "feed": {
@@ -1560,6 +1585,14 @@
   "messages": {
     "topbar": {
       "aria_label": "Messagerie"
+    },
+    "context": {
+      "about_label": "À propos de la mission",
+      "no_publication": "Mission non disponible.",
+      "exchange_open_expert": "Profil débloqué",
+      "exchange_open_org": "Échange ouvert",
+      "view_mission": "Voir la mission",
+      "view_annonce": "Voir l'annonce"
     },
     "inbox": {
       "back_to_dashboard": "← Tableau de bord",

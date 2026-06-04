@@ -1,22 +1,34 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { Link, useRouter } from '@/i18n/navigation'
+import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import {
+  IconSend,
+  IconSparkles,
+  IconLockOpen,
+  IconClock,
+  IconX,
+  IconBuilding,
+  IconMessage2,
+  IconExternalLink,
+} from '@tabler/icons-react'
+import PageHeader from '@/components/ui/PageHeader'
+import StatsStrip, { type Stat } from '@/components/ui/StatsStrip'
+import StatusPill from '@/components/ui/StatusPill'
+import MasterDetail from '@/components/ui/MasterDetail'
+import EmptyState from '@/components/ui/EmptyState'
+import TimelineStep from '@/components/ui/TimelineStep'
 
 /**
- * /dashboard/freelance/candidatures — suivi par mission (Point 3 finitions UX).
+ * /dashboard/freelance/candidatures — Lot refonte UX commit B
  *
- * Liste les candidatures de l'expert courant via GET /api/me/candidatures.
- * Chaque carte = 1 mission + statut humain + actions contextuelles selon
- * l'état :
- *   - received / in_review / shortlisted → "En attente de réponse"
- *   - unlocked                            → bouton "Ouvrir la conversation"
- *   - rejected                            → motif (review_reason) si présent
- *
- * Polling 30s + revalidate-on-focus + écoute 'skilloria:notif-bump'.
+ * Layout : PageHeader + StatsStrip + MasterDetail (filtres chips + cartes
+ * liste à gauche + détail à droite avec timeline + meta + actions).
+ * Tous les wirings (fetch, polling 30s + focus + bump, scope) préservés
+ * tels quels — pas de changement de comportement.
  */
 
 type Candidature = {
@@ -36,6 +48,8 @@ type State =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
   | { kind: 'ready'; candidatures: Candidature[] }
+
+type FilterKey = 'all' | 'open' | 'wait' | 'refused'
 
 function relativeFromNow(iso: string | null, locale: string): string {
   if (!iso) return ''
@@ -57,25 +71,30 @@ function relativeFromNow(iso: string | null, locale: string): string {
   return locale === 'fr' ? "à l'instant" : 'just now'
 }
 
-function statusColor(status: string, domainPrimary: string): { bg: string; fg: string } {
-  switch (status) {
-    case 'unlocked':    return { bg: '#DCFCE7', fg: '#166534' }
-    case 'rejected':    return { bg: '#FEE2E2', fg: '#991B1B' }
-    case 'shortlisted': return { bg: `${domainPrimary}1A`, fg: domainPrimary }
-    case 'in_review':   return { bg: '#FEF9C3', fg: '#854D0E' }
-    case 'received':    return { bg: '#DBEAFE', fg: '#1E40AF' }
-    default:            return { bg: '#f1f5f9', fg: '#475569' }
-  }
+function statusToPillKind(status: string): 'open' | 'wait' | 'refused' | 'neutral' {
+  if (status === 'unlocked') return 'open'
+  if (status === 'rejected') return 'refused'
+  if (status === 'received' || status === 'in_review' || status === 'shortlisted') return 'wait'
+  return 'neutral'
+}
+
+function matchesFilter(status: string, f: FilterKey): boolean {
+  if (f === 'all') return true
+  if (f === 'open') return status === 'unlocked'
+  if (f === 'wait') return status === 'received' || status === 'in_review' || status === 'shortlisted'
+  if (f === 'refused') return status === 'rejected'
+  return true
 }
 
 export default function FreelanceCandidaturesPage() {
   const t = useTranslations('candidatures_tracking')
   const tPub = useTranslations('publications')
   const locale = useLocale()
-  const router = useRouter()
   const domain = useDomain()
   const secureFetch = useSecureFetch()
   const [state, setState] = useState<State>({ kind: 'loading' })
+  const [filter, setFilter] = useState<FilterKey>('all')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const load = useCallback(async (silent: boolean) => {
     if (!silent) setState({ kind: 'loading' })
@@ -109,132 +128,311 @@ export default function FreelanceCandidaturesPage() {
     }
   }, [load])
 
+  // Auto-sélection : 1ʳᵉ candidature si rien de sélectionné
+  const list = state.kind === 'ready' ? state.candidatures : []
+  const filtered = useMemo(() => list.filter((c) => matchesFilter(c.status, filter)), [list, filter])
+  useEffect(() => {
+    if (!selectedId && filtered.length > 0) setSelectedId(filtered[0].id)
+    if (selectedId && !filtered.some((c) => c.id === selectedId) && filtered.length > 0) {
+      setSelectedId(filtered[0].id)
+    }
+  }, [selectedId, filtered])
+  const selected = selectedId ? list.find((c) => c.id === selectedId) ?? null : null
+
+  // Stats : Candidatures / Échanges ouverts / En attente / Score moyen IA
+  const counts = useMemo(() => {
+    let open = 0, wait = 0, scoreSum = 0, scoreN = 0
+    for (const c of list) {
+      if (c.status === 'unlocked') open++
+      else if (c.status === 'received' || c.status === 'in_review' || c.status === 'shortlisted') wait++
+      if (c.ai_match_score != null) { scoreSum += c.ai_match_score; scoreN++ }
+    }
+    const avgPct = scoreN > 0 ? Math.round((scoreSum / scoreN) * 10) : null
+    return { total: list.length, open, wait, avgPct }
+  }, [list])
+
+  const stats: Stat[] = [
+    { value: counts.total, label: t('stats.total') },
+    { value: counts.open,  label: t('stats.open'),  emphasis: 'success' },
+    { value: counts.wait,  label: t('stats.wait') },
+    { value: counts.avgPct == null ? '—' : `${counts.avgPct}%`, label: t('stats.avg_score') },
+  ]
+
+  // ── Render ───────────────────────────────────────────────────────────────
   if (state.kind === 'loading') {
-    return <div style={{ padding: 48, textAlign: 'center', color: '#64748b', fontFamily: 'Inter, sans-serif' }}>{t('loading')}</div>
+    return (
+      <div style={{ padding: '24px 26px' }}>
+        <PageHeader title={t('title')} subtitle={t('subtitle')} />
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--sk-muted)' }}>{t('loading')}</div>
+      </div>
+    )
   }
   if (state.kind === 'error') {
     return (
-      <div style={{ maxWidth: 560, margin: '60px auto', padding: '0 24px', textAlign: 'center', fontFamily: 'Inter, sans-serif' }}>
-        <p style={{ fontSize: 14, color: '#b91c1c', marginBottom: 18 }}>{state.message}</p>
-        <button
-          type="button"
-          onClick={() => router.push('/dashboard/freelance')}
-          style={{ padding: '10px 18px', background: domain.primaryColor, color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
-        >
-          {t('back_to_dashboard')}
-        </button>
+      <div style={{ padding: '24px 26px' }}>
+        <PageHeader title={t('title')} subtitle={t('subtitle')} />
+        <EmptyState icon="⚠️" title={state.message} surface="card" />
       </div>
     )
   }
 
-  const { candidatures } = state
+  const filters: Array<{ key: FilterKey; label: string }> = [
+    { key: 'all',     label: t('filters.all') },
+    { key: 'open',    label: t('filters.open') },
+    { key: 'wait',    label: t('filters.wait') },
+    { key: 'refused', label: t('filters.refused') },
+  ]
 
   return (
-    <div style={{ maxWidth: 880, margin: '0 auto', padding: '32px 24px 60px', fontFamily: 'Inter, sans-serif' }}>
-      <button
-        type="button"
-        onClick={() => router.push('/dashboard/freelance')}
-        style={{ background: 'transparent', border: 'none', color: domain.primaryColor, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 18 }}
-      >
-        {t('back_to_dashboard')}
-      </button>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
+      <StatsStrip stats={stats} />
 
-      <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', marginBottom: 6, letterSpacing: '-0.3px' }}>{t('title')}</h1>
-      <p style={{ fontSize: 14, color: '#64748b', marginBottom: 24, lineHeight: 1.55 }}>{t('subtitle')}</p>
-
-      {candidatures.length === 0 ? (
-        <div
-          style={{
-            background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 14,
-            padding: '40px 24px', textAlign: 'center', color: '#64748b', fontSize: 14, lineHeight: 1.6,
-          }}
-        >
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>{t('empty_title')}</div>
-          <div>{t('empty_subtitle')}</div>
+      {list.length === 0 ? (
+        <div style={{ padding: '0 26px 22px' }}>
+          <EmptyState
+            icon={<IconSend size={32} />}
+            title={t('empty_title')}
+            body={t('empty_subtitle')}
+          />
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {candidatures.map((c) => {
-            const colors = statusColor(c.status, domain.primaryColor)
-            const isUnlocked = c.status === 'unlocked'
-            const isRejected = c.status === 'rejected'
-            return (
-              <article
-                key={c.id}
-                style={{
-                  background: '#fff',
-                  border: isUnlocked ? `1.5px solid ${domain.primaryColor}` : '0.5px solid #e5e7eb',
-                  borderRadius: 14,
-                  padding: '18px 20px',
-                  opacity: isRejected ? 0.7 : 1,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 10 }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', marginBottom: 4, lineHeight: 1.35 }}>
-                      {c.publication?.title ?? '—'}
-                    </h3>
-                    <div style={{ fontSize: 12, color: '#64748b', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                      {c.publication?.type && <span style={{ fontWeight: 500 }}>{tPub(`type.${c.publication.type}`)}</span>}
-                      <span aria-hidden>·</span>
-                      <span>{t('candidated_ago', { time: relativeFromNow(c.created_at, locale) })}</span>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
-                    {c.ai_match_score != null && (
-                      <span style={{ padding: '3px 9px', background: `${domain.primaryColor}1A`, color: domain.primaryColor, fontSize: 11, fontWeight: 700, borderRadius: 10 }}>
-                        {Math.round(c.ai_match_score)}/10
-                      </span>
-                    )}
-                    <span style={{ padding: '3px 10px', background: colors.bg, color: colors.fg, fontSize: 11, fontWeight: 600, borderRadius: 10, textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                      {t(`status.${c.status}` as 'status.received')}
-                    </span>
-                  </div>
-                </div>
-
-                {/* État contextualisé */}
-                {!isUnlocked && !isRejected && (
-                  <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.55, margin: '8px 0 0' }}>
-                    {t('waiting_for_org')}
-                  </p>
-                )}
-
-                {isUnlocked && c.unlocked_at && (
-                  <p style={{ fontSize: 13, color: '#166534', lineHeight: 1.55, margin: '8px 0 0' }}>
-                    {t('unlocked_since', { time: relativeFromNow(c.unlocked_at, locale) })}
-                  </p>
-                )}
-
-                {isRejected && c.status_reason && (
-                  <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '8px 12px', fontSize: 12, color: '#991B1B', lineHeight: 1.5, marginTop: 10 }}>
-                    <strong>{t('rejection_reason_label')}</strong> {c.status_reason}
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 14, flexWrap: 'wrap' }}>
-                  {c.publication?.id && (
-                    <Link
-                      href={`/dashboard/freelance/missions/${c.publication.id}`}
-                      style={{ padding: '8px 14px', background: 'transparent', color: '#475569', border: '1px solid #cbd5e1', borderRadius: 9, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
+        <MasterDetail
+          listWidth={392}
+          detailVisible={selected !== null}
+          list={
+            <>
+              {/* Filtres chips */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                {filters.map((f) => {
+                  const on = filter === f.key
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => setFilter(f.key)}
+                      style={{
+                        fontSize: 12.5, fontWeight: 600, padding: '6px 13px',
+                        borderRadius: 999,
+                        color: on ? 'var(--sk-accent-ink)' : 'var(--sk-muted)',
+                        background: on ? 'var(--sk-accent-soft)' : 'var(--sk-surface)',
+                        border: on ? '1px solid transparent' : '1px solid var(--sk-border)',
+                        cursor: 'pointer', fontFamily: 'inherit',
+                      }}
                     >
-                      {t('view_mission')}
-                    </Link>
-                  )}
-                  {isUnlocked && c.conversation_id && (
-                    <Link
-                      href={`/dashboard/freelance/messages/${c.conversation_id}`}
-                      style={{ padding: '8px 18px', background: domain.primaryColor, color: '#fff', border: 'none', borderRadius: 9, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
-                    >
-                      💬 {t('open_conversation')}
-                    </Link>
-                  )}
+                      {f.label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Cards liste */}
+              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 11, paddingRight: 2 }}>
+                {filtered.length === 0 ? (
+                  <EmptyState icon="🔍" title={t('empty_filter_title')} body={t('empty_filter_body')} surface="card" />
+                ) : (
+                  filtered.map((c) => {
+                    const on = c.id === selectedId
+                    const pk = statusToPillKind(c.status)
+                    const PIcon = pk === 'open' ? IconLockOpen : pk === 'refused' ? IconX : IconClock
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setSelectedId(c.id)}
+                        style={{
+                          background: 'var(--sk-surface)',
+                          border: on ? `1px solid var(--sk-accent)` : '1px solid var(--sk-border)',
+                          boxShadow: on ? `0 0 0 3px var(--sk-accent-soft)` : undefined,
+                          borderRadius: 'var(--sk-r-lg)',
+                          padding: '15px 16px',
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          textAlign: 'left',
+                          width: '100%',
+                          transition: 'border-color .12s, box-shadow .12s',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                          <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--sk-text)', lineHeight: 1.3, letterSpacing: '-0.2px', minWidth: 0 }}>
+                            {c.publication?.title ?? '—'}
+                          </div>
+                          {c.ai_match_score != null && (
+                            <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: 'var(--sk-accent-ink)', background: 'var(--sk-accent-soft)', padding: '3px 9px', borderRadius: 8 }}>
+                              {Math.round(c.ai_match_score)}/10
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ color: 'var(--sk-muted)', fontSize: 12.5, marginTop: 4, display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <IconBuilding size={15} stroke={1.8} />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {c.publication?.type === 'mission' ? tPub('type.mission') : c.publication?.type === 'offre' ? tPub('type.offre') : '—'}
+                          </span>
+                        </div>
+                        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                          <StatusPill kind={pk} icon={<PIcon size={14} />} size="sm">
+                            {t(`status.${c.status}` as 'status.received')}
+                          </StatusPill>
+                          <span style={{ color: 'var(--sk-faint)', fontSize: 12 }}>{t('candidated_ago', { time: relativeFromNow(c.created_at, locale) })}</span>
+                        </div>
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+            </>
+          }
+          detail={
+            selected ? (
+              <CandidatureDetail
+                candidature={selected}
+                tPub={tPub}
+                t={t}
+                locale={locale}
+                domainAccent={domain.primaryColor}
+              />
+            ) : (
+              <div style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', borderRadius: 'var(--sk-r-lg)', padding: '40px 24px', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center', color: 'var(--sk-muted)' }}>
+                  <div style={{ fontSize: 32, marginBottom: 10 }} aria-hidden>📨</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--sk-text)' }}>{t('detail_empty_title')}</div>
+                  <div style={{ fontSize: 13, marginTop: 4 }}>{t('detail_empty_subtitle')}</div>
                 </div>
-              </article>
+              </div>
             )
-          })}
-        </div>
+          }
+        />
       )}
+    </div>
+  )
+}
+
+// ─── Detail panel ──────────────────────────────────────────────────────────
+
+function CandidatureDetail({
+  candidature: c,
+  tPub,
+  t,
+  locale,
+  domainAccent,
+}: {
+  candidature: Candidature
+  tPub: ReturnType<typeof useTranslations<'publications'>>
+  t: ReturnType<typeof useTranslations<'candidatures_tracking'>>
+  locale: string
+  domainAccent: string
+}) {
+  void domainAccent
+  const pk = statusToPillKind(c.status)
+  const PIcon = pk === 'open' ? IconLockOpen : pk === 'refused' ? IconX : IconClock
+  return (
+    <div style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', borderRadius: 'var(--sk-r-lg)', padding: '24px 26px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.3px', lineHeight: 1.25, color: 'var(--sk-text)' }}>
+            {c.publication?.title ?? '—'}
+          </div>
+          <div style={{ color: 'var(--sk-muted)', fontSize: 13, marginTop: 5 }}>
+            {c.publication ? tPub(`type.${c.publication.type}`) : '—'}
+          </div>
+        </div>
+        <StatusPill kind={pk} icon={<PIcon size={14} />}>
+          {t(`status.${c.status}` as 'status.received')}
+        </StatusPill>
+      </div>
+
+      {/* Timeline */}
+      <div style={{ color: 'var(--sk-faint)', fontSize: 11, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '24px 0 12px' }}>
+        {t('section_timeline')}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <TimelineStep
+          icon={<IconSend size={16} />}
+          label={t('timeline.sent')}
+          sub={t('candidated_ago', { time: relativeFromNow(c.created_at, locale) })}
+          state="done"
+        />
+        {c.ai_match_score != null && (
+          <TimelineStep
+            icon={<IconSparkles size={16} />}
+            label={t('timeline.ai_proposed', { score: Math.round(c.ai_match_score) })}
+            state="done"
+          />
+        )}
+        {c.status === 'unlocked' && c.unlocked_at && (
+          <TimelineStep
+            icon={<IconLockOpen size={16} />}
+            label={t('timeline.unlocked')}
+            sub={t('unlocked_since', { time: relativeFromNow(c.unlocked_at, locale) })}
+            state="done"
+            isLast
+          />
+        )}
+        {c.status === 'rejected' && (
+          <TimelineStep
+            icon={<IconX size={16} />}
+            label={t('timeline.rejected')}
+            sub={c.status_reason ?? undefined}
+            state="failed"
+            isLast
+          />
+        )}
+        {c.status !== 'unlocked' && c.status !== 'rejected' && (
+          <TimelineStep
+            icon={<IconClock size={16} />}
+            label={t('timeline.waiting')}
+            sub={t('waiting_for_org')}
+            state="pending"
+            isLast
+          />
+        )}
+      </div>
+
+      {/* Message motivation */}
+      {c.cover_message && (
+        <>
+          <div style={{ color: 'var(--sk-faint)', fontSize: 11, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '24px 0 12px' }}>
+            {t('section_cover_message')}
+          </div>
+          <div style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border-soft)', borderRadius: 'var(--sk-r-lg)', padding: '14px 16px', fontSize: 14, lineHeight: 1.6, color: '#2B3543', whiteSpace: 'pre-wrap' }}>
+            {c.cover_message}
+          </div>
+        </>
+      )}
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 11, marginTop: 26, paddingTop: 20, borderTop: '1px solid var(--sk-border-soft)' }}>
+        {c.status === 'unlocked' && c.conversation_id && (
+          <Link
+            href={`/dashboard/freelance/messages/${c.conversation_id}`}
+            style={{
+              padding: '11px 20px', borderRadius: 11,
+              background: 'var(--sk-accent)', color: '#fff',
+              border: 'none', fontWeight: 600, fontSize: 14,
+              cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8,
+              textDecoration: 'none',
+            }}
+          >
+            <IconMessage2 size={16} stroke={2} />
+            {t('open_conversation')}
+          </Link>
+        )}
+        {c.publication?.id && (
+          <Link
+            href={`/dashboard/freelance/missions/${c.publication.id}`}
+            style={{
+              padding: '11px 20px', borderRadius: 11,
+              background: 'var(--sk-surface)', color: 'var(--sk-text)',
+              border: '1px solid var(--sk-border)', fontWeight: 600, fontSize: 14,
+              cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8,
+              textDecoration: 'none',
+            }}
+          >
+            <IconExternalLink size={16} stroke={2} />
+            {t('view_mission')}
+          </Link>
+        )}
+      </div>
     </div>
   )
 }

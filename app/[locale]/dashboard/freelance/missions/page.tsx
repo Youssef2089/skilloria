@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { useRouter } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import MissionCard, { type MissionCardData } from '@/components/dashboard/MissionCard'
+import PageHeader from '@/components/ui/PageHeader'
+import EmptyState from '@/components/ui/EmptyState'
 
 /**
  * /dashboard/freelance/missions — feed des opportunités MATCHÉES.
@@ -25,8 +25,6 @@ type FeedState =
 export default function MissionsFeedPage() {
   const t = useTranslations('missions.feed')
   const locale = useLocale()
-  const router = useRouter()
-  const domain = useDomain()
   const secureFetch = useSecureFetch()
   const [state, setState] = useState<FeedState>({ kind: 'loading' })
 
@@ -53,68 +51,36 @@ export default function MissionsFeedPage() {
   }, [load])
 
   return (
-    <div style={{ maxWidth: 880, margin: '0 auto', padding: '32px 24px', fontFamily: 'Inter, sans-serif' }}>
-      <button
-        type="button"
-        onClick={() => router.push('/dashboard/freelance')}
-        style={{
-          background: 'transparent',
-          border: 'none',
-          color: domain.primaryColor,
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: 'pointer',
-          padding: 0,
-          marginBottom: 18,
-        }}
-      >
-        {t('back')}
-      </button>
+    <div style={{ padding: '24px 26px' }}>
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
-      <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', marginBottom: 6, letterSpacing: '-0.3px' }}>
-        {t('title')}
-      </h1>
-      <p style={{ fontSize: 14, color: '#64748b', marginBottom: 24, lineHeight: 1.55 }}>
-        {t('subtitle')}
-      </p>
+      <div style={{ padding: '14px 0 0' }}>
+        {state.kind === 'loading' && (
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14 }}>{t('loading')}</div>
+        )}
 
-      {state.kind === 'loading' && (
-        <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 14 }}>{t('loading')}</div>
-      )}
-
-      {state.kind === 'error' && (
-        <div role="alert" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '14px 18px', borderRadius: 12, fontSize: 13 }}>
-          {state.message}
-        </div>
-      )}
-
-      {state.kind === 'ready' && state.missions.length === 0 && (
-        <div
-          style={{
-            background: '#fff',
-            border: '0.5px solid #e5e7eb',
-            borderRadius: 14,
-            padding: '40px 24px',
-            textAlign: 'center',
-            color: '#64748b',
-            fontSize: 14,
-            lineHeight: 1.6,
-          }}
-        >
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>
-            {t('empty_title')}
+        {state.kind === 'error' && (
+          <div role="alert" style={{ background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red)', color: 'var(--sk-red)', padding: '14px 18px', borderRadius: 'var(--sk-r-lg)', fontSize: 13 }}>
+            {state.message}
           </div>
-          <div>{t('empty_subtitle')}</div>
-        </div>
-      )}
+        )}
 
-      {state.kind === 'ready' && state.missions.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {state.missions.map((m) => (
-            <MissionCard key={m.match_id} mission={m} />
-          ))}
-        </div>
-      )}
+        {state.kind === 'ready' && state.missions.length === 0 && (
+          <EmptyState
+            icon="🎯"
+            title={t('empty_title')}
+            body={t('empty_subtitle')}
+          />
+        )}
+
+        {state.kind === 'ready' && state.missions.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {state.missions.map((m) => (
+              <MissionCard key={m.match_id} mission={m} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -227,7 +227,7 @@ export default function MissionDetailPage({ params }: Props) {
   const alreadyApplied = !!candidature
 
   return (
-    <div style={{ maxWidth: 880, margin: '0 auto', padding: '32px 24px', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ maxWidth: 980, padding: '24px 26px' }}>
       <button
         type="button"
         onClick={() => router.push('/dashboard/freelance/missions')}

@@ -1487,7 +1487,32 @@
       "rejected": "Abgelehnt",
       "withdrawn": "Zurückgezogen",
       "archived": "Archiviert"
-    }
+    },
+    "filters": {
+      "all": "Alle",
+      "open": "Austausch offen",
+      "wait": "Ausstehend",
+      "refused": "Abgelehnt"
+    },
+    "stats": {
+      "total": "Bewerbungen",
+      "open": "Offene Austausche",
+      "wait": "Ausstehend",
+      "avg_score": "Durchschnittliche KI-Bewertung"
+    },
+    "section_timeline": "Verfolgung",
+    "section_cover_message": "Ihr Motivationsschreiben",
+    "timeline": {
+      "sent": "Bewerbung gesendet",
+      "ai_proposed": "Von der KI vorgeschlagen — Bewertung {score}/10",
+      "unlocked": "Austausch vom Unternehmen geöffnet",
+      "rejected": "Bewerbung abgelehnt",
+      "waiting": "Auf Antwort wartend"
+    },
+    "empty_filter_title": "Keine Bewerbungen in diesem Filter",
+    "empty_filter_body": "Versuchen Sie einen anderen Filter, um alle Bewerbungen zu sehen.",
+    "detail_empty_title": "Wählen Sie eine Bewerbung",
+    "detail_empty_subtitle": "Klicken Sie links auf eine Bewerbung, um deren Verfolgung und verfügbare Aktionen zu sehen."
   },
   "candidatures": {
     "feed": {
@@ -1560,6 +1585,14 @@
   "messages": {
     "topbar": {
       "aria_label": "Messaging"
+    },
+    "context": {
+      "about_label": "Über den Auftrag",
+      "no_publication": "Auftrag nicht verfügbar.",
+      "exchange_open_expert": "Profil freigeschaltet",
+      "exchange_open_org": "Austausch offen",
+      "view_mission": "Auftrag ansehen",
+      "view_annonce": "Veröffentlichung ansehen"
     },
     "inbox": {
       "back_to_dashboard": "← Dashboard",
