@@ -48,7 +48,18 @@ export default function MissionsFeedPage() {
 
   useEffect(() => {
     void load()
-  }, [load])
+    // SC5 — auto-vidant du badge "Missions" : à l'ouverture du feed, on flippe
+    // tous les matches 'notified' du profile courant vers 'viewed'. Idempotent.
+    // Bump custom event pour refresh immédiat de la sidebar.
+    void (async () => {
+      try {
+        const r = await secureFetch('/api/me/missions/mark-viewed', { method: 'POST' })
+        if (r.ok) window.dispatchEvent(new CustomEvent('skilloria:notif-bump'))
+      } catch (err) {
+        console.error('[missions feed] mark-viewed threw', err)
+      }
+    })()
+  }, [load, secureFetch])
 
   return (
     <div style={{ padding: '24px 26px' }}>

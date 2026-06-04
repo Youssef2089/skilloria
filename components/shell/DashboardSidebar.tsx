@@ -42,7 +42,7 @@ type NavItem = {
   key: string
   href: string
   iconKey: string
-  badgeSource?: 'messages' | 'candidatures'
+  badgeSource?: 'messages' | 'candidatures' | 'missions'
   locked?: boolean
   variant?: 'default' | 'link'
 }
@@ -113,7 +113,7 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
           items: [
             { key: 'dashboard',    href: `/dashboard/${side}`,                                 iconKey: 'dashboard' },
             { key: 'profile',      href: `/dashboard/${side}/mon-profil`,                      iconKey: 'profile' },
-            { key: 'missions',     href: `/dashboard/${side}/missions`,                        iconKey: 'missions',    locked: !userIsVerified },
+            { key: 'missions',     href: `/dashboard/${side}/missions`,                        iconKey: 'missions',    badgeSource: 'missions', locked: !userIsVerified },
             { key: 'applications', href: `/dashboard/${side}/candidatures`,                    iconKey: 'applications', badgeSource: 'candidatures', locked: !userIsVerified },
             { key: 'messages',     href: `/dashboard/${side}/messages`,                        iconKey: 'messages',    badgeSource: 'messages' },
           ],
@@ -199,6 +199,7 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
               const badge =
                 item.badgeSource === 'messages' ? (badges.messages_unread ?? 0)
                 : item.badgeSource === 'candidatures' ? (badges.candidatures_unread ?? 0)
+                : item.badgeSource === 'missions' ? (badges.missions_unread ?? 0)
                 : 0
               const isLink = item.variant === 'link'
               return (
