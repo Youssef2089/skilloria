@@ -1,8 +1,48 @@
 @import "tailwindcss";
 
+/* ===========================================================================
+   Skilloria — Design tokens (Lot refonte UX/layout dashboard)
+   ---------------------------------------------------------------------------
+   Tokens partagés par le shell + primitives UI. Couleurs neutres / surfaces /
+   radii / texte. L'accent est multi-tenant (useDomain().primaryColor) —
+   --accent est défini DYNAMIQUEMENT au runtime par <DashboardShell> via
+   un style inline sur le root du shell, puis --accent-soft / --accent-ink
+   sont DÉRIVÉS via color-mix(in srgb, var(--accent) X%, white/black).
+   Cela préserve le multi-tenant : un domaine non-bleu reste cohérent.
+   =========================================================================== */
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Surfaces neutres alignées maquettes (skilloria-*-apercu.html) */
+  --sk-bg:           #F6F7F9;
+  --sk-surface:      #FFFFFF;
+  --sk-surface-2:    #F8FAFC;
+  --sk-border:       #E7E9ED;
+  --sk-border-soft:  #EEF0F3;
+  --sk-text:         #161A20;
+  --sk-muted:        #697586;
+  --sk-faint:        #9AA3B0;
+
+  /* Statuts sémantiques (StatusPill : open / wait / refused) */
+  --sk-success:      #0F9D6B;
+  --sk-success-soft: #E6F6EF;
+  --sk-success-ink:  #0B7A53;
+  --sk-amber:        #B7791F;
+  --sk-amber-soft:   #FBF1DF;
+  --sk-red:          #C0392B;
+  --sk-red-soft:     #FBEBE9;
+
+  /* Accent multi-tenant — fallback si <DashboardShell> n'a pas encore monté.
+     ⚠ Ne pas dépendre de ce fallback dans les pages : le shell le surcharge
+     via un style inline en fonction de useDomain().primaryColor. */
+  --sk-accent:       #2F6BF0;
+  --sk-accent-soft:  color-mix(in srgb, var(--sk-accent) 12%, white);
+  --sk-accent-ink:   color-mix(in srgb, var(--sk-accent) 78%, black);
+
+  /* Rayons */
+  --sk-r:    10px;
+  --sk-r-lg: 14px;
 }
 
 @theme inline {
@@ -12,15 +52,11 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Pas de dark mode en V1 — pin sur le mode clair, tous les écrans sont conçus
+   pour des fonds clairs (skilloria-*-apercu.html). Préviens les surprises sur
+   les laptops en dark system. */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-plus-jakarta), 'Plus Jakarta Sans', Inter, system-ui, -apple-system, sans-serif;
 }

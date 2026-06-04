@@ -4,12 +4,8 @@ import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
-import OrganisationSidebar, {
-  type OrganisationLite,
-} from '@/components/dashboard/OrganisationSidebar'
+import { type OrganisationLite } from '@/components/dashboard/OrganisationSidebar'
 import AnnonceCard from '@/components/dashboard/AnnonceCard'
-import NotificationBell from '@/components/NotificationBell'
-import MessagesTopbarIcon from '@/components/MessagesTopbarIcon'
 import { useNavBadges } from '@/hooks/useNavBadges'
 import type { Annonce, AnnonceStatus } from '@/types/annonce'
 
@@ -157,30 +153,22 @@ export default function OrganisationDashboard({
 
   const emptyStateKey: 'drafts' | 'review' | 'published' | 'closed' = activeTab
 
+  // Lot refonte UX : la sidebar + topbar sont fournies par DashboardShell
+  // (parent sub-layout). Ce composant ne rend plus que le CONTENU central
+  // (pastille verif + header + grille annonces). Le marker effectiveUnread
+  // n'est plus utilisé ici — la sidebar shared gère le badge messages.
+  void effectiveUnread
+
   return (
     <div
-      className="org-dashboard"
+      className="org-dashboard-content"
       style={{
-        minHeight: '100vh',
-        display: 'grid',
-        gridTemplateColumns: '200px 1fr',
-        background: 'var(--color-background-secondary, #f8fafc)',
-        fontFamily: 'Inter, system-ui, sans-serif',
+        fontFamily: 'inherit',
       }}
     >
       <style>{`
         @media (max-width: 767px) {
-          .org-dashboard {
-            grid-template-columns: 1fr !important;
-          }
-          .org-sidebar {
-            width: 100% !important;
-            border-right: none !important;
-            border-bottom: 0.5px solid var(--color-border-tertiary, #e5e7eb) !important;
-          }
-          .org-main {
-            padding: 20px !important;
-          }
+          .org-main { padding: 20px !important; }
           .org-header {
             flex-direction: column !important;
             align-items: flex-start !important;
@@ -191,32 +179,17 @@ export default function OrganisationDashboard({
             align-items: stretch !important;
             gap: 12px !important;
           }
-          .org-search {
-            width: 100% !important;
-          }
+          .org-search { width: 100% !important; }
         }
       `}</style>
-
-      <OrganisationSidebar
-        organization={organization}
-        unreadMessagesCount={effectiveUnread}
-        activeItem="dashboard"
-        basePath={basePath}
-      />
 
       <main
         className="org-main"
         style={{
-          padding: '32px 40px',
+          padding: '24px 26px',
           minWidth: 0,
         }}
       >
-        {/* Mini topbar org : icône messagerie + cloche notif */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 4, marginBottom: 18 }}>
-          <MessagesTopbarIcon side="entreprise" />
-          <NotificationBell />
-        </div>
-
         {/* Pastille vérif en attente */}
         {!isApproved && (
           <div

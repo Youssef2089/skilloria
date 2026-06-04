@@ -2,6 +2,48 @@
   "app": {
     "name": "Skilloria"
   },
+  "shell": {
+    "user_fallback": "Usuario",
+    "user_subtitle": {
+      "freelance": "Freelance · {ecosystem}",
+      "cdi": "Indefinido · {ecosystem}",
+      "entreprise": "Empresa · {ecosystem}"
+    },
+    "sections": {
+      "main": "Principal",
+      "publish": "Publicar",
+      "account": "Cuenta"
+    },
+    "nav": {
+      "dashboard": "Panel",
+      "profile": "Mi perfil",
+      "missions": "Misiones",
+      "applications": "Candidaturas",
+      "messages": "Mensajes",
+      "alert": "Alerta de disponibilidad",
+      "subcontract": "Necesidad / Subcontratación",
+      "payments": "Pagos",
+      "settings": "Ajustes",
+      "organisation": "Mi empresa",
+      "members": "Miembros del equipo",
+      "invoices": "Facturas y pagos",
+      "annonces": "Mis publicaciones",
+      "logout": "Cerrar sesión"
+    },
+    "page_titles": {
+      "dashboard": "Panel",
+      "missions": "Misiones",
+      "candidatures": "Mis candidaturas",
+      "messages": "Mensajería",
+      "mon_profil": "Mi perfil",
+      "profil": "Mi perfil",
+      "profil_valider": "Completar mi perfil",
+      "annonces": "Mis publicaciones"
+    },
+    "topbar": {
+      "status_available": "Disponible"
+    }
+  },
   "common": {
     "language_switcher_aria": "Cambiar idioma",
     "language_switcher_current": "Idioma actual: {locale}",

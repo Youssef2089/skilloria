@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skilloria — Mes candidatures (aperçu)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/iconfont/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F6F7F9;--surface:#FFFFFF;--surface-2:#F8FAFC;
+    --border:#E7E9ED;--border-soft:#EEF0F3;
+    --text:#161A20;--muted:#697586;--faint:#9AA3B0;
+    --accent:#2F6BF0;--accent-ink:#1E4FBF;--accent-soft:#E9F0FE;
+    --success:#0F9D6B;--success-soft:#E6F6EF;--success-ink:#0B7A53;
+    --amber:#B7791F;--amber-soft:#FBF1DF;--red:#C0392B;--red-soft:#FBEBE9;
+    --r:10px;--r-lg:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;-webkit-font-smoothing:antialiased}
+  .app{display:flex;height:100vh;overflow:hidden}
+  .av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;flex:none}
+
+  .side{width:248px;flex:none;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:16px 14px}
+  .brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px}
+  .brand .logo{width:30px;height:30px;border-radius:8px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px}
+  .brand b{font-weight:700;font-size:16px;letter-spacing:-.2px}
+  .me{display:flex;align-items:center;gap:11px;padding:12px 8px;border-bottom:1px solid var(--border-soft);margin-bottom:12px}
+  .me .av{width:40px;height:40px;background:#DBE6FB;color:var(--accent-ink);font-size:14px}
+  .me .nm{font-weight:600;font-size:14px;display:flex;align-items:center;gap:5px}
+  .me .nm i{color:var(--accent);font-size:15px}
+  .me .sub{color:var(--muted);font-size:12px;margin-top:1px}
+  .sect{color:var(--faint);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:14px 10px 6px}
+  .nav a{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:9px;color:#33414F;text-decoration:none;font-size:14px;font-weight:500}
+  .nav a i{font-size:18px;color:var(--faint)}
+  .nav a:hover{background:var(--surface-2)}
+  .nav a.on{background:var(--accent-soft);color:var(--accent-ink)}
+  .nav a.on i{color:var(--accent)}
+  .nav a .cnt{margin-left:auto;background:#EF4D58;color:#fff;font-size:11px;font-weight:600;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 5px}
+  .nav a.link{color:var(--accent)} .nav a.link i{color:var(--accent)}
+
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .top{height:60px;flex:none;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 22px}
+  .top .ttl{font-weight:700;font-size:18px;letter-spacing:-.3px}
+  .top .right{margin-left:auto;display:flex;align-items:center;gap:16px}
+  .icbtn{position:relative;width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#46505E;font-size:20px}
+  .icbtn:hover{background:var(--surface-2)}
+  .dot{position:absolute;top:7px;right:8px;width:8px;height:8px;border-radius:50%;background:#EF4D58;border:2px solid var(--surface)}
+  .badge{position:absolute;top:3px;right:4px;background:#EF4D58;color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--surface)}
+  .dispo{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--success);background:var(--success-soft);padding:7px 13px;border-radius:999px}
+  .dispo .pulse{width:8px;height:8px;border-radius:50%;background:var(--success)}
+  .langp{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#46505E;padding:7px 11px;border:1px solid var(--border);border-radius:9px}
+
+  /* candidatures master-detail */
+  .wrap{flex:1;display:flex;flex-direction:column;min-height:0}
+  .phead{padding:20px 26px 6px}
+  .phead h1{font-size:22px;font-weight:700;letter-spacing:-.4px}
+  .phead p{color:var(--muted);font-size:13.5px;margin-top:4px}
+  .stats{display:flex;gap:12px;padding:14px 26px 16px}
+  .stat{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:13px 16px}
+  .stat .n{font-size:22px;font-weight:700;letter-spacing:-.5px}
+  .stat .l{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .stat .n.g{color:var(--success)}
+
+  .md{flex:1;display:flex;min-height:0;padding:0 26px 22px;gap:18px}
+  .clist{width:392px;flex:none;display:flex;flex-direction:column;min-height:0}
+  .filters{display:flex;gap:8px;margin-bottom:12px}
+  .chip{font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:999px;color:var(--muted);background:var(--surface);border:1px solid var(--border);cursor:pointer}
+  .chip.on{background:var(--accent-soft);color:var(--accent-ink);border-color:transparent}
+  .cards{flex:1;overflow:auto;display:flex;flex-direction:column;gap:11px;padding-right:2px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:15px 16px;cursor:pointer}
+  .card:hover{border-color:#C9D3E0}
+  .card.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .card .r1{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .card .tt{font-weight:600;font-size:15px;line-height:1.3;letter-spacing:-.2px}
+  .card .score{flex:none;font-size:12px;font-weight:700;color:var(--accent-ink);background:var(--accent-soft);padding:3px 9px;border-radius:8px}
+  .card .org{color:var(--muted);font-size:12.5px;margin-top:4px;display:flex;align-items:center;gap:7px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:999px}
+  .p-open{color:var(--success-ink);background:var(--success-soft)}
+  .p-wait{color:var(--amber);background:var(--amber-soft)}
+  .p-no{color:var(--red);background:var(--red-soft)}
+  .card .foot{margin-top:12px;display:flex;align-items:center;justify-content:space-between}
+  .card .when{color:var(--faint);font-size:12px}
+
+  .detail{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px 26px;overflow:auto;min-width:0}
+  .dh{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+  .dh .tt{font-size:20px;font-weight:700;letter-spacing:-.3px;line-height:1.25}
+  .dh .meta{color:var(--muted);font-size:13px;margin-top:5px}
+  .secl{color:var(--faint);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin:24px 0 12px}
+  .timeline{display:flex;flex-direction:column;gap:0}
+  .step{display:flex;gap:13px;position:relative;padding-bottom:18px}
+  .step:last-child{padding-bottom:0}
+  .step .ic{width:30px;height:30px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:16px;z-index:1}
+  .step.done .ic{background:var(--success-soft);color:var(--success)}
+  .step.done:not(:last-child)::before{content:"";position:absolute;left:14.5px;top:30px;bottom:0;width:2px;background:var(--success-soft)}
+  .step .lb{font-weight:600;font-size:14px}
+  .step .sb{color:var(--muted);font-size:12.5px;margin-top:1px}
+  .quote{background:var(--surface-2);border:1px solid var(--border-soft);border-radius:var(--r-lg);padding:14px 16px;font-size:14px;line-height:1.6;color:#2B3543}
+  .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .mkv{background:var(--surface-2);border:1px solid var(--border-soft);border-radius:var(--r);padding:11px 13px}
+  .mkv .k{color:var(--muted);font-size:12px}
+  .mkv .v{font-weight:600;font-size:14px;margin-top:2px}
+  .skills{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+  .sk{font-size:12px;font-weight:500;padding:5px 11px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border-soft);color:#46505E}
+  .acts{display:flex;gap:11px;margin-top:26px;padding-top:20px;border-top:1px solid var(--border-soft)}
+  .btn{padding:11px 20px;border-radius:11px;font-weight:600;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+  .btn.pri{background:var(--accent);color:#fff;border:none}
+  .btn.sec{background:var(--surface);border:1px solid var(--border);color:#33414F}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><span class="logo"><i class="ti ti-asterisk"></i></span><b>Skilloria&nbsp;365</b></div>
+    <div class="me"><span class="av">YC</span><div><div class="nm">Youssef Cherif <i class="ti ti-rosette-discount-check"></i></div><div class="sub">Freelance · Microsoft</div></div></div>
+    <div class="sect">Principal</div>
+    <nav class="nav">
+      <a href="#"><i class="ti ti-layout-dashboard"></i> Tableau de bord</a>
+      <a href="#"><i class="ti ti-user"></i> Mon profil</a>
+      <a href="#"><i class="ti ti-briefcase"></i> Missions</a>
+      <a href="#" class="on"><i class="ti ti-send"></i> Candidatures</a>
+      <a href="#"><i class="ti ti-message-2"></i> Messages <span class="cnt">2</span></a>
+    </nav>
+    <div class="sect">Publier</div>
+    <nav class="nav">
+      <a href="#" class="link"><i class="ti ti-bell-plus"></i> Lancer une alerte dispo</a>
+      <a href="#" class="link"><i class="ti ti-users-group"></i> Besoin / Sous-traitance</a>
+    </nav>
+    <div class="sect">Compte</div>
+    <nav class="nav">
+      <a href="#"><i class="ti ti-credit-card"></i> Paiements</a>
+      <a href="#"><i class="ti ti-settings"></i> Paramètres</a>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <span class="ttl">Mes candidatures</span>
+      <div class="right">
+        <span class="langp"><i class="ti ti-world"></i> FR <i class="ti ti-chevron-down" style="font-size:15px"></i></span>
+        <span class="icbtn"><i class="ti ti-bell"></i><span class="dot"></span></span>
+        <span class="icbtn"><i class="ti ti-message-2"></i><span class="badge">2</span></span>
+        <span class="dispo"><span class="pulse"></span> Disponible</span>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <div class="phead">
+        <h1>Mes candidatures</h1>
+        <p>Suivi par mission : statut, échanges ouverts et messages associés.</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="n">3</div><div class="l">Candidatures</div></div>
+        <div class="stat"><div class="n g">1</div><div class="l">Échanges ouverts</div></div>
+        <div class="stat"><div class="n">1</div><div class="l">En attente</div></div>
+        <div class="stat"><div class="n">87%</div><div class="l">Score moyen IA</div></div>
+      </div>
+
+      <div class="md">
+        <div class="clist">
+          <div class="filters"><span class="chip on">Toutes</span><span class="chip">Échange ouvert</span><span class="chip">En attente</span><span class="chip">Refusées</span></div>
+          <div class="cards">
+            <div class="card on">
+              <div class="r1"><div class="tt">Consultant Dynamics 365 supply chain</div><span class="score">9/10</span></div>
+              <div class="org"><i class="ti ti-building" style="font-size:15px"></i> SAS · Mission</div>
+              <div class="foot"><span class="pill p-open"><i class="ti ti-lock-open" style="font-size:14px"></i> Échange ouvert</span><span class="when">il y a 2 h</span></div>
+            </div>
+            <div class="card">
+              <div class="r1"><div class="tt">Architecte D365 Finance &amp; Operations</div><span class="score">8/10</span></div>
+              <div class="org"><i class="ti ti-building" style="font-size:15px"></i> WINOPS · Mission</div>
+              <div class="foot"><span class="pill p-wait"><i class="ti ti-clock" style="font-size:14px"></i> En attente</span><span class="when">il y a 1 j</span></div>
+            </div>
+            <div class="card">
+              <div class="r1"><div class="tt">Lead Tech Power Platform</div><span class="score">7/10</span></div>
+              <div class="org"><i class="ti ti-building" style="font-size:15px"></i> Adveris · Mission</div>
+              <div class="foot"><span class="pill p-no"><i class="ti ti-x" style="font-size:14px"></i> Refusée</span><span class="when">il y a 3 j</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail">
+          <div class="dh">
+            <div>
+              <div class="tt">Consultant Dynamics 365 supply chain</div>
+              <div class="meta">SAS · Mission · Business Applications · D365 F&amp;O</div>
+            </div>
+            <span class="pill p-open"><i class="ti ti-lock-open" style="font-size:14px"></i> Échange ouvert</span>
+          </div>
+
+          <div class="secl">Suivi</div>
+          <div class="timeline">
+            <div class="step done"><span class="ic"><i class="ti ti-send"></i></span><div><div class="lb">Candidature envoyée</div><div class="sb">il y a 2 h</div></div></div>
+            <div class="step done"><span class="ic"><i class="ti ti-sparkles"></i></span><div><div class="lb">Proposé par l'IA — score 9/10</div><div class="sb">Fit fort sur D365 SCM, Warehouse, Manufacturing</div></div></div>
+            <div class="step done"><span class="ic"><i class="ti ti-lock-open"></i></span><div><div class="lb">Échange ouvert par l'entreprise</div><div class="sb">Vous pouvez communiquer directement · expire dans 14 j</div></div></div>
+          </div>
+
+          <div class="secl">Votre message de motivation</div>
+          <div class="quote">Bonjour, votre besoin de référent Supply D365 correspond exactement à mon profil — 12 ans sur AX / D365 SCM, Warehouse, Manufacturing et Procurement. Disponible pour échanger cette semaine.</div>
+
+          <div class="secl">À propos de la mission</div>
+          <div class="mgrid">
+            <div class="mkv"><div class="k">TJM</div><div class="v">700 – 950 €/j</div></div>
+            <div class="mkv"><div class="k">Démarrage</div><div class="v">24 juin 2026</div></div>
+            <div class="mkv"><div class="k">Lieu</div><div class="v">Paris · Hybride</div></div>
+            <div class="mkv"><div class="k">Durée</div><div class="v">6 mois</div></div>
+          </div>
+          <div class="skills"><span class="sk">Dynamics 365</span><span class="sk">Supply Chain</span><span class="sk">Warehouse</span><span class="sk">Manufacturing</span><span class="sk">Procurement</span></div>
+
+          <div class="acts">
+            <button class="btn pri"><i class="ti ti-message-2"></i> Ouvrir la conversation</button>
+            <button class="btn sec"><i class="ti ti-external-link"></i> Voir la mission</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

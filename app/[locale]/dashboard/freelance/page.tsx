@@ -5,14 +5,10 @@ import { useTranslations, useLocale } from 'next-intl'
 import { Link, useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
-import { useSecureLogout, useSecureFetch } from '@/lib/secure-fetch'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { useSecureFetch } from '@/lib/secure-fetch'
 import TJMQuickEditModal from '@/components/TJMQuickEditModal'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import VerificationBanner from '@/components/dashboard/VerificationBanner'
-import NotificationBell from '@/components/NotificationBell'
-import MessagesTopbarIcon from '@/components/MessagesTopbarIcon'
-import { useNavBadges } from '@/hooks/useNavBadges'
 
 type ProfileData = {
   tjm_min: number | null
@@ -52,9 +48,7 @@ export default function DashboardFreelance() {
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
-  const secureLogout = useSecureLogout()
   const secureFetch = useSecureFetch()
-  const navBadges = useNavBadges()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -192,7 +186,7 @@ export default function DashboardFreelance() {
     '??'
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f9fafb', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ fontFamily: 'inherit' }}>
 
       <style>{`
         @keyframes fadeInUp {
@@ -318,139 +312,11 @@ export default function DashboardFreelance() {
         }
       `}</style>
 
-      {/* Header */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '0 28px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between', animation: 'fadeIn 0.3s ease' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 9, background: domain.primaryColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {domain.logoUrl ? (
-              <img src={domain.logoUrl} alt={domain.name} width={18} height={18} />
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2.5" strokeLinecap="round"/></svg>
-            )}
-          </div>
-          <span style={{ fontSize: 17, fontWeight: 700, color: '#111827' }}>{domain.name}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <LanguageSwitcher />
-          <MessagesTopbarIcon side="freelance" />
-          <NotificationBell />
-          {isVerified ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#dcfce7', border: '1px solid #bbf7d0', padding: '7px 16px', borderRadius: 20 }}>
-              <div className="pulse-dot" style={{ background: '#22c55e' }}></div>
-              <span style={{ fontSize: 13, fontWeight: 500, color: '#15803d', whiteSpace: 'nowrap' }}>{t('topbar.available')}</span>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fef9c3', border: '1px solid #fde68a', padding: '7px 16px', borderRadius: 20 }}>
-              <div className="pulse-dot" style={{ background: '#eab308' }}></div>
-              <span style={{ fontSize: 13, fontWeight: 500, color: '#92400e', whiteSpace: 'nowrap' }}>{t('topbar.pending')}</span>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Lot refonte UX : sidebar + topbar centralisées dans DashboardShell
+          (sub-layout parent freelance/layout.tsx). Cette page ne rend plus
+          que le CONTENU central. */}
 
-      <div className="dashboard-layout" style={{ display: 'flex', minHeight: 'calc(100vh - 58px)' }}>
-
-        {/* Sidebar */}
-        <div className="dashboard-sidebar" style={{ width: 248, background: '#fff', borderRight: '1px solid #e5e7eb', padding: '22px 0', flexDirection: 'column', flexShrink: 0 }}>
-
-          <div style={{ padding: '0 20px 20px', marginBottom: 14, borderBottom: '1px solid #e5e7eb', textAlign: 'center' }}>
-            <div style={{ position: 'relative', display: 'inline-block', marginBottom: 14 }}>
-              {profile?.photo_url ? (
-                <img
-                  src={profile.photo_url}
-                  alt={fullName}
-                  className="avatar"
-                  style={{ objectFit: 'cover' }}
-                />
-              ) : (
-                <div className="avatar" style={{ background: `linear-gradient(135deg, ${domain.primaryColor}44, ${domain.secondaryColor}44)`, color: domain.primaryColor }}>
-                  {initials}
-                </div>
-              )}
-              <div className="pulse-dot" style={{ position: 'absolute', bottom: 3, right: 3, width: 14, height: 14, background: isVerified ? '#22c55e' : '#eab308', border: '2px solid #fff' }}></div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginBottom: 5 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>{fullName}</div>
-              {isVerified && (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" fill={domain.primaryColor}/>
-                  <path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-            </div>
-            <div style={{ fontSize: 13, color: '#6b7280' }}>{t('sidebar.role_freelance')} · {domain.ecosystemName}</div>
-            <button
-              type="button"
-              onClick={() => setAvatarModalOpen(true)}
-              style={{ background: 'transparent', border: 'none', padding: 0, fontSize: 12, color: domain.primaryColor, cursor: 'pointer', marginTop: 8, fontFamily: 'inherit', fontWeight: 500 }}
-            >
-              {profile?.photo_url ? t('sidebar.edit_photo') : t('sidebar.add_photo')}
-            </button>
-          </div>
-
-          <div style={{ fontSize: 11, color: '#9ca3af', padding: '8px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>{t('sidebar.sections.main')}</div>
-          <div className="nav-item-active">{t('sidebar.nav.dashboard')}</div>
-          {[
-            { label: t('sidebar.nav.profile'), locked: false, href: '/dashboard/freelance/mon-profil', badge: null as number | null },
-            { label: t('sidebar.nav.missions'), locked: !isVerified, href: isVerified ? '/dashboard/freelance/missions' : null, badge: null as number | null },
-            { label: t('sidebar.nav.applications'), locked: !isVerified, href: isVerified ? '/dashboard/freelance/candidatures' : null, badge: isVerified ? navBadges.candidatures_unread : null },
-            { label: t('sidebar.nav.messages'), locked: false, href: '/dashboard/freelance/messages', badge: navBadges.messages_unread },
-          ].map((item, i) => {
-            const sharedStyle: React.CSSProperties = {
-              animationDelay: `${(i + 1) * 0.05}s`,
-              color: item.locked ? '#d1d5db' : '#4b5563',
-              cursor: item.locked ? 'not-allowed' : 'pointer',
-              textDecoration: 'none',
-            }
-            const labelWithBadge = (
-              <>
-                <span>{item.label}</span>
-                {item.badge != null && item.badge > 0 && (
-                  <span
-                    aria-label={`${item.badge} non lus`}
-                    style={{ marginLeft: 8, minWidth: 18, height: 18, padding: '0 6px', background: '#DC2626', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 9, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
-                  >
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </span>
-                )}
-              </>
-            )
-            if (item.href && !item.locked) {
-              return (
-                <Link key={item.label} href={item.href} className="nav-item" style={sharedStyle}>
-                  {labelWithBadge}
-                </Link>
-              )
-            }
-            return (
-              <div key={item.label} className="nav-item" style={sharedStyle}>
-                {labelWithBadge}
-                {item.locked && <span style={{ fontSize: 12 }}>🔒</span>}
-              </div>
-            )
-          })}
-
-          <div style={{ fontSize: 11, color: '#9ca3af', padding: '16px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>{t('sidebar.sections.publish')}</div>
-          <div className="nav-item" style={{ color: isVerified ? domain.primaryColor : '#d1d5db', cursor: isVerified ? 'pointer' : 'not-allowed', animationDelay: '0.3s' }}>
-            {t('sidebar.nav.availability_alert')} {!isVerified && <span style={{ fontSize: 12 }}>🔒</span>}
-          </div>
-          <div className="nav-item" style={{ color: isVerified ? domain.primaryColor : '#d1d5db', cursor: isVerified ? 'pointer' : 'not-allowed', animationDelay: '0.35s' }}>
-            {t('sidebar.nav.subcontracting')} {!isVerified && <span style={{ fontSize: 12 }}>🔒</span>}
-          </div>
-
-          <div style={{ fontSize: 11, color: '#9ca3af', padding: '16px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>{t('sidebar.sections.account')}</div>
-          <div className="nav-item" style={{ animationDelay: '0.4s' }}>{t('sidebar.nav.payments')}</div>
-          <div className="nav-item" style={{ animationDelay: '0.45s' }}>{t('sidebar.nav.settings')}</div>
-
-          <div style={{ marginTop: 'auto', padding: '16px 8px 0', borderTop: '1px solid #e5e7eb' }}>
-            <div className="nav-item" style={{ color: '#ef4444' }} onClick={() => void secureLogout({ redirectTo: '/' })}>
-              {t('sidebar.nav.logout')}
-            </div>
-          </div>
-        </div>
-
-        {/* Main */}
-        <div className="dashboard-main" style={{ flex: 1, padding: 30, overflow: 'hidden' }}>
+        <div style={{ padding: '24px 26px', minWidth: 0 }}>
 
           {/* Bandeau statut vérification expert (Lot vérif expert) */}
           <VerificationBanner
@@ -629,7 +495,6 @@ export default function DashboardFreelance() {
           </div>
 
         </div>
-      </div>
 
       <TJMQuickEditModal
         open={tjmModalOpen}
