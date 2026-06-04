@@ -73,7 +73,14 @@ function scoreColor(score: number, domainPrimary: string): string {
   return '#94a3b8'
 }
 
-export default function MissionCard({ mission }: { mission: MissionCardData }) {
+export default function MissionCard({
+  mission,
+  side = 'freelance',
+}: {
+  mission: MissionCardData
+  /** SC7b Lot UX Finitions 2 : 'cdi' utilise /dashboard/cdi/missions/[id] */
+  side?: 'freelance' | 'cdi'
+}) {
   const t = useTranslations('missions.card')
   const tPub = useTranslations('publications')
   const locale = useLocale()
@@ -86,7 +93,7 @@ export default function MissionCard({ mission }: { mission: MissionCardData }) {
 
   return (
     <Link
-      href={`/dashboard/freelance/missions/${pub.id}`}
+      href={`/dashboard/${side}/missions/${pub.id}`}
       style={{
         display: 'block',
         background: '#fff',

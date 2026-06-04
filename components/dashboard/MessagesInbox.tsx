@@ -114,7 +114,15 @@ function groupByPublication(convs: Conversation[]): Group[] {
   return groups
 }
 
-export default function MessagesInbox({ side, selectedConvId }: { side: 'freelance' | 'entreprise'; selectedConvId?: string | null }) {
+export default function MessagesInbox({
+  side,
+  selectedConvId,
+}: {
+  /** SC7b : 'cdi' utilise les mêmes endpoints que freelance — l'expert
+   *  est unique côté DB ; seule la base path d'URL diffère. */
+  side: 'freelance' | 'entreprise' | 'cdi'
+  selectedConvId?: string | null
+}) {
   const t = useTranslations('messages.inbox')
   const tPub = useTranslations('publications')
   const locale = useLocale()
@@ -123,7 +131,7 @@ export default function MessagesInbox({ side, selectedConvId }: { side: 'freelan
   const secureFetch = useSecureFetch()
   const [state, setState] = useState<State>({ kind: 'loading' })
 
-  const basePath = side === 'freelance' ? '/dashboard/freelance' : '/dashboard/entreprise'
+  const basePath = side === 'entreprise' ? '/dashboard/entreprise' : `/dashboard/${side}`
 
   const load = useCallback(async () => {
     try {

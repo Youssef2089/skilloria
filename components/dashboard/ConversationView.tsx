@@ -63,7 +63,7 @@ function formatDate(iso: string, locale: string): string {
  *                  • pas de bouton "Retour à l'inbox" (la liste est à gauche)
  *                Par défaut false → comportement Lot 3 (plein écran).
  */
-export default function ConversationView({ convId, side, embedded = false }: { convId: string; side: 'freelance' | 'entreprise'; embedded?: boolean }) {
+export default function ConversationView({ convId, side, embedded = false }: { convId: string; side: 'freelance' | 'entreprise' | 'cdi'; embedded?: boolean }) {
   const t = useTranslations('messages.view')
   const tPub = useTranslations('publications')
   const locale = useLocale()
@@ -78,7 +78,8 @@ export default function ConversationView({ convId, side, embedded = false }: { c
   const listRef = useRef<HTMLDivElement | null>(null)
   const lastMsgCountRef = useRef<number>(0)
 
-  const basePath = side === 'freelance' ? '/dashboard/freelance' : '/dashboard/entreprise'
+  // SC7b : 'cdi' partage la même base path pattern que 'freelance' (just /dashboard/{side}).
+  const basePath = side === 'entreprise' ? '/dashboard/entreprise' : `/dashboard/${side}`
 
   const load = useCallback(async (silent: boolean) => {
     if (!silent) setState({ kind: 'loading' })

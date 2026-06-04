@@ -16,12 +16,13 @@ import { useNavBadges } from '@/hooks/useNavBadges'
  * Clic → /dashboard/{freelance,entreprise}/messages (layout 2 panneaux).
  */
 
-export default function MessagesTopbarIcon({ side }: { side: 'freelance' | 'entreprise' }) {
+export default function MessagesTopbarIcon({ side }: { side: 'freelance' | 'entreprise' | 'cdi' }) {
   const t = useTranslations('messages.topbar')
   const domain = useDomain()
   const badges = useNavBadges()
   const unread = badges.messages_unread ?? 0
-  const basePath = side === 'freelance' ? '/dashboard/freelance' : '/dashboard/entreprise'
+  // SC7b : 'cdi' partage la même base path pattern que 'freelance'.
+  const basePath = side === 'entreprise' ? '/dashboard/entreprise' : `/dashboard/${side}`
 
   return (
     <Link

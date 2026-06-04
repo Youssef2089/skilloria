@@ -4,14 +4,15 @@ import { useEffect, useState } from 'react'
 import MissionDetailView from '@/components/dashboard/MissionDetailView'
 
 /**
- * /dashboard/freelance/missions/[id] — wrapper thin (SC7b Lot UX Finitions 2).
- * Toute la logique vit dans MissionDetailView ; ce wrapper passe juste
- * side='freelance' et le pubId résolu depuis params.
+ * /dashboard/cdi/missions/[id] — wrapper thin (SC7b Lot UX Finitions 2,
+ * miroir freelance). MissionDetailView avec side='cdi' rebase les liens vers
+ * /dashboard/cdi/missions. CandidatureModal et POST /api/candidatures restent
+ * intacts (un seul endpoint pour mission et offre).
  */
 
 type Props = { params: Promise<{ id: string }> }
 
-export default function MissionDetailPage({ params }: Props) {
+export default function CdiMissionDetailPage({ params }: Props) {
   const [pubId, setPubId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -24,5 +25,5 @@ export default function MissionDetailPage({ params }: Props) {
     return () => { cancelled = true }
   }, [params])
 
-  return <MissionDetailView pubId={pubId} side="freelance" />
+  return <MissionDetailView pubId={pubId} side="cdi" />
 }

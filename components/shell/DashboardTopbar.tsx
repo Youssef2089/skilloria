@@ -25,7 +25,8 @@ export default function DashboardTopbar({
   /** Pill statut à droite (ex. "Disponible" expert vérifié). Optionnel. */
   statusPill?: React.ReactNode
 }) {
-  const messagesSide = side === 'entreprise' ? 'entreprise' : 'freelance'
+  // SC7b : 'cdi' passe son propre side à l'icône messages → base path /dashboard/cdi/messages.
+  const messagesSide: 'freelance' | 'entreprise' | 'cdi' = side
   return (
     <header
       style={{
