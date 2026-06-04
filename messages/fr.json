@@ -1360,6 +1360,7 @@
       "updated_ago": "Mise à jour il y a {time}"
     },
     "list": {
+      "tab_all": "Toutes",
       "tab_drafts": "Brouillons",
       "tab_review": "En revue",
       "tab_published": "Publiées",

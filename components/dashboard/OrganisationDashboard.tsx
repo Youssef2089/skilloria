@@ -11,6 +11,7 @@ import type { Annonce, AnnonceStatus } from '@/types/annonce'
 
 // Regroupement des 7 statuts BDD en 4 onglets dashboard.
 const TAB_STATUS_MAP: Record<TabKey, readonly AnnonceStatus[]> = {
+  all: ['draft', 'pending_review', 'rejected', 'published', 'suspended', 'expired', 'archived'],
   drafts: ['draft'],
   review: ['pending_review', 'rejected'],
   published: ['published'],
@@ -62,7 +63,7 @@ type Props = {
   unreadMessagesCount?: number
 }
 
-type TabKey = 'drafts' | 'review' | 'published' | 'closed'
+type TabKey = 'all' | 'drafts' | 'review' | 'published' | 'closed'
 
 function IconPlus({ size = 14 }: { size?: number }) {
   return (
@@ -111,15 +112,18 @@ export default function OrganisationDashboard({
   const publishHref = `${basePath}/annonces/nouvelle`
 
   // Compteurs par onglet (regroupement de 1..3 statuts BDD chacun).
+  // 'all' = total des annonces (sans bucket — chevauche les 4 autres tabs).
   const counts = useMemo(() => {
     const result: Record<TabKey, number> = {
+      all: annonces.length,
       drafts: 0,
       review: 0,
       published: 0,
       closed: 0,
     }
     for (const a of annonces) {
-      for (const tab of Object.keys(TAB_STATUS_MAP) as TabKey[]) {
+      // Itération ciblée sur les buckets exclusifs (pas 'all' qui chevauche).
+      for (const tab of ['drafts', 'review', 'published', 'closed'] as TabKey[]) {
         if ((TAB_STATUS_MAP[tab] as readonly string[]).includes(a.status)) {
           result[tab]++
           break
@@ -140,8 +144,9 @@ export default function OrganisationDashboard({
     })
   }, [annonces, activeTab, searchQuery])
 
-  // Dots sémantiques par onglet (statuts groupés).
+  // Dots sémantiques par onglet (statuts groupés). 'all' en première position.
   const tabs: Array<{ key: TabKey; label: string; count: number; dot: string }> = [
+    { key: 'all',       label: tPub('list.tab_all'),       count: counts.all,       dot: '#94a3b8' },
     { key: 'drafts',    label: tPub('list.tab_drafts'),    count: counts.drafts,    dot: '#94a3b8' },
     { key: 'review',    label: tPub('list.tab_review'),    count: counts.review,    dot: '#CA8A04' },
     { key: 'published', label: tPub('list.tab_published'), count: counts.published, dot: '#16A34A' },
@@ -151,7 +156,10 @@ export default function OrganisationDashboard({
   const showEmptyZeroState =
     annonces.length === 0 && (activeTab === 'drafts' || activeTab === 'published')
 
-  const emptyStateKey: 'drafts' | 'review' | 'published' | 'closed' = activeTab
+  // 'all' n'a pas d'empty state spécifique → fallback sur 'published' (cas le
+  //  plus représentatif quand "Toutes" est vide pour l'org).
+  const emptyStateKey: 'drafts' | 'review' | 'published' | 'closed' =
+    activeTab === 'all' ? 'published' : activeTab
 
   // Lot refonte UX : la sidebar + topbar sont fournies par DashboardShell
   // (parent sub-layout). Ce composant ne rend plus que le CONTENU central

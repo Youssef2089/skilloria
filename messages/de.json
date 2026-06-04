@@ -1360,6 +1360,7 @@
       "updated_ago": "Vor {time} aktualisiert"
     },
     "list": {
+      "tab_all": "Alle",
       "tab_drafts": "Entwürfe",
       "tab_review": "In Prüfung",
       "tab_published": "Veröffentlicht",

@@ -6,7 +6,14 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 /**
  * useNavBadges — compteurs de non-lus pour la nav (Point 5 finitions UX).
  *
- *   - messages_unread : somme des unread_count par conversation (côté user courant)
+ *   - messages_unread : somme des unread_count par conversation (côté user
+ *     courant). Source : /api/me/conversations, qui pour chaque conv compte
+ *     les messages WHERE sender_id != me AND read_at IS NULL (cf. route.ts).
+ *     Quand l'expert OUVRE une conv, /api/conversations/[id]/messages flippe
+ *     read_at sur tous les messages REÇUS → l'unread tombe à 0 (sémantique
+ *     correcte, pas un bug si le badge n'apparaît pas alors que des messages
+ *     existent : il faut qu'au moins un soit non-lu).
+ *
  *   - candidatures_unread : notifications NON LUES dont type ∈ {
  *       'new_candidature_received' (org : nouvelle candidature),
  *       'candidature_unlocked'     (expert : votre candidature acceptée)

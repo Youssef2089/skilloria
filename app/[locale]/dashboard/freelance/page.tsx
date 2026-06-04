@@ -380,11 +380,10 @@ export default function DashboardFreelance() {
           )}
 
           {/* 4 stats */}
-          <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 22 }}>
+          <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 22 }}>
             {[
               { label: t('stats.available_missions'), value: !isVerified ? '—' : (stats.missions_count ?? '…').toString(), delay: '0.1s' },
               { label: t('stats.applications'), value: !isVerified ? '—' : (stats.candidatures_count ?? '…').toString(), delay: '0.15s' },
-              { label: t('stats.messages'), value: (stats.messages_unread ?? '…').toString(), delay: '0.2s' },
             ].map((stat) => (
               <div key={stat.label} className="stat-card" style={{ background: '#f3f4f6', animationDelay: stat.delay }}>
                 <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>{stat.label}</div>

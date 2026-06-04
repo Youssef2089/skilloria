@@ -1360,6 +1360,7 @@
       "updated_ago": "Actualizada hace {time}"
     },
     "list": {
+      "tab_all": "Todas",
       "tab_drafts": "Borradores",
       "tab_review": "En revisión",
       "tab_published": "Publicadas",
