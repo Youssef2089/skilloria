@@ -6,8 +6,6 @@ import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Link, useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
-import { useSecureLogout } from '@/lib/secure-fetch'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
 import {
   useCdiProfile,
   type CdiProfile,
@@ -17,6 +15,15 @@ import {
 import { useCdiApplications } from '@/lib/hooks/useCdiApplications'
 import CdiStatusToggle from '@/components/cdi/CdiStatusToggle'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
+
+/**
+ * Dashboard CDI — page content (SC7a Lot UX Finitions 2).
+ *
+ * Le shell (sidebar + topbar) est désormais monté par cdi/layout.tsx via
+ * DashboardShell side='cdi'. Cette page ne contient plus que le contenu
+ * principal : greeting, status écoute marché, KPIs, complétion profil,
+ * candidatures, suggestions.
+ */
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -71,7 +78,6 @@ export default function DashboardCDI() {
   const tProfile = useTranslations('cdi_profile_view')
   const router = useRouter()
   const domain = useDomain()
-  const secureLogout = useSecureLogout()
   const state = useCdiProfile()
   const { loading, authenticated, forbidden, error, user, profile } = state
   const apps = useCdiApplications()
@@ -132,40 +138,22 @@ export default function DashboardCDI() {
     }
   }
 
-  const handleLogout = async () => {
-    await secureLogout({ redirectTo: '/' })
-  }
-
   const completionPercent = useMemo(() => calculateCompletion(profile), [profile])
 
   // ----- LOADING / waiting auth ---------------------------------------------
   if (loading || (!authenticated && !error && !forbidden)) {
     return (
-      <div
-        className={jakarta.variable}
-        style={{
-          minHeight: '100vh',
-          background: '#f8fafc',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: 'Inter, system-ui, sans-serif',
-        }}
-      >
+      <div className={jakarta.variable} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, minHeight: 360 }}>
         <style>{`@keyframes sk-spin { to { transform: rotate(360deg); } }`}</style>
         <div style={{ textAlign: 'center' }}>
           <div
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: '50%',
-              border: `3px solid ${domain.primaryColor}22`,
-              borderTopColor: domain.primaryColor,
-              margin: '0 auto 12px',
-              animation: 'sk-spin 0.9s linear infinite',
+              width: 40, height: 40, borderRadius: '50%',
+              border: `3px solid ${domain.primaryColor}22`, borderTopColor: domain.primaryColor,
+              margin: '0 auto 12px', animation: 'sk-spin 0.9s linear infinite',
             }}
           />
-          <div style={{ fontSize: 14, color: '#64748b' }}>{t('loading')}</div>
+          <div style={{ fontSize: 14, color: 'var(--sk-muted)' }}>{t('loading')}</div>
         </div>
       </div>
     )
@@ -174,43 +162,17 @@ export default function DashboardCDI() {
   // ----- FORBIDDEN ----------------------------------------------------------
   if (forbidden) {
     return (
-      <div
-        className={jakarta.variable}
-        style={{
-          minHeight: '100vh',
-          background: '#f8fafc',
-          fontFamily: 'Inter, system-ui, sans-serif',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-        }}
-      >
-        <div
-          style={{
-            background: '#fff',
-            border: '1px solid #e2e8f0',
-            borderRadius: 16,
-            padding: 32,
-            maxWidth: 440,
-            textAlign: 'center',
-          }}
-        >
+      <div className={jakarta.variable} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, flex: 1, minHeight: 360 }}>
+        <div style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', borderRadius: 16, padding: 32, maxWidth: 440, textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }} aria-hidden>🔒</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>403</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 8 }}>403</div>
           <button
             type="button"
             onClick={() => router.push('/')}
             style={{
-              background: domain.primaryColor,
-              color: '#fff',
-              border: 'none',
-              borderRadius: 10,
-              padding: '10px 18px',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
+              background: domain.primaryColor, color: '#fff', border: 'none',
+              borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
             ←
@@ -222,55 +184,16 @@ export default function DashboardCDI() {
 
   const isVerified = !!user?.is_verified
   const greetingName = getGreetingName(user, tProfile('fallback_user_name'))
-  const fullName = (() => {
-    if (!user) return tProfile('fallback_user_name')
-    const full = `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim()
-    return full || tProfile('fallback_user_name')
-  })()
-  const initials = initialsOf(user)
   const currentStatus = status
   const statusBadgeColor = currentStatus ? STATUS_BADGE_COLORS[currentStatus] : null
 
   return (
-    <div
-      className={jakarta.variable}
-      style={{
-        minHeight: '100vh',
-        background: '#f8fafc',
-        fontFamily: 'Inter, system-ui, sans-serif',
-      }}
-    >
+    <div className={jakarta.variable} style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       <style>{`
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
-        @keyframes slideInLeft { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes sk-spin { to { transform: rotate(360deg); } }
-        .nav-item {
-          padding: 11px 16px;
-          font-size: 14px;
-          color: #4b5563;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          border-radius: 8px;
-          margin: 2px 8px;
-          text-decoration: none;
-          transition: background 0.18s, transform 0.18s;
-          animation: slideInLeft 0.35s ease both;
-        }
-        .nav-item:hover { background: #f1f5f9; transform: translateX(3px); }
-        .nav-item-active {
-          background: #f1f5f9;
-          font-weight: 600;
-          color: #0f172a;
-        }
-        .nav-item-locked {
-          color: #cbd5e1;
-          cursor: not-allowed;
-        }
-        .nav-item-locked:hover { background: transparent; transform: none; }
         .stat-card {
           border-radius: 14px;
           padding: 18px 20px;
@@ -317,9 +240,6 @@ export default function DashboardCDI() {
         }
         .score-box:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
         @media (max-width: 767px) {
-          .dashboard-layout { flex-direction: column !important; }
-          .dashboard-sidebar { display: none !important; }
-          .dashboard-main { padding: 18px !important; }
           .stats-grid { grid-template-columns: 1fr !important; }
           .greeting-row { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
           .score-box { width: 100%; }
@@ -330,261 +250,7 @@ export default function DashboardCDI() {
         }
       `}</style>
 
-      {/* HEADER */}
-      <div
-        style={{
-          background: '#fff',
-          borderBottom: '1px solid #e2e8f0',
-          padding: '0 24px',
-          height: 58,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          animation: 'fadeIn 0.3s ease',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 9,
-              background: domain.primaryColor,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            {domain.logoUrl ? (
-              <img src={domain.logoUrl} alt={domain.name} width={18} height={18} />
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-              </svg>
-            )}
-          </div>
-          <span style={{ fontSize: 17, fontWeight: 700, color: '#0f172a' }}>{domain.name}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <LanguageSwitcher />
-          {isVerified ? (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                background: '#dcfce7',
-                border: '1px solid #bbf7d0',
-                padding: '5px 12px',
-                borderRadius: 999,
-              }}
-            >
-              <div className="pulse-dot" style={{ background: '#22c55e' }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#15803d' }}>{t('topbar.verified')}</span>
-            </div>
-          ) : (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                background: '#fef9c3',
-                border: '1px solid #fde68a',
-                padding: '5px 12px',
-                borderRadius: 999,
-              }}
-            >
-              <div className="pulse-dot" style={{ background: '#eab308' }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#92400e' }}>{t('topbar.pending')}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="dashboard-layout" style={{ display: 'flex', minHeight: 'calc(100vh - 58px)' }}>
-
-        {/* SIDEBAR */}
-        <aside
-          className="dashboard-sidebar"
-          style={{
-            width: 248,
-            background: '#fff',
-            borderRight: '1px solid #e2e8f0',
-            padding: '22px 0',
-            display: 'flex',
-            flexDirection: 'column',
-            flexShrink: 0,
-          }}
-        >
-          {/* Avatar block */}
-          <div style={{ padding: '0 20px 20px', marginBottom: 12, borderBottom: '1px solid #e2e8f0', textAlign: 'center' }}>
-            <div style={{ position: 'relative', display: 'inline-block', marginBottom: 12 }}>
-              {localPhotoUrl ? (
-                <img
-                  src={localPhotoUrl}
-                  alt={greetingName}
-                  style={{
-                    width: 72,
-                    height: 72,
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    border: `2px solid ${domain.primaryColor}33`,
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 72,
-                    height: 72,
-                    borderRadius: '50%',
-                    background: `linear-gradient(135deg, ${domain.primaryColor}33, ${domain.secondaryColor}33)`,
-                    color: domain.primaryColor,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 24,
-                    fontWeight: 700,
-                    fontFamily: fontJakarta,
-                    margin: '0 auto',
-                  }}
-                >
-                  {initials}
-                </div>
-              )}
-              <div
-                className="pulse-dot"
-                style={{
-                  position: 'absolute',
-                  bottom: 2,
-                  right: 2,
-                  width: 12,
-                  height: 12,
-                  background: isVerified ? '#22c55e' : '#eab308',
-                  border: '2px solid #fff',
-                }}
-                aria-hidden
-              />
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                marginBottom: 4,
-              }}
-            >
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', fontFamily: fontJakarta }}>
-                {fullName}
-              </div>
-              {isVerified && (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <circle cx="12" cy="12" r="10" fill={domain.primaryColor} />
-                  <path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => setAvatarModalOpen(true)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                padding: 0,
-                marginTop: 8,
-                fontSize: 12,
-                color: domain.primaryColor,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                fontWeight: 500,
-              }}
-            >
-              {localPhotoUrl ? t('sidebar.edit_photo') : t('sidebar.add_photo')}
-            </button>
-          </div>
-
-          {/* MAIN section */}
-          <div
-            style={{
-              fontSize: 11,
-              color: '#94a3b8',
-              padding: '6px 20px',
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              fontWeight: 700,
-            }}
-          >
-            {t('sidebar.sections.main')}
-          </div>
-          <div className="nav-item nav-item-active">{t('sidebar.nav.dashboard')}</div>
-          <Link
-            href="/dashboard/cdi/mon-profil"
-            className="nav-item"
-            style={{ animationDelay: '0.05s' }}
-          >
-            {t('sidebar.nav.profile')}
-          </Link>
-          <div
-            className={`nav-item ${isVerified ? '' : 'nav-item-locked'}`}
-            style={{ animationDelay: '0.1s' }}
-          >
-            <span>{t('sidebar.nav.applications')}</span>
-            {!isVerified && <span aria-hidden>🔒</span>}
-          </div>
-          <div
-            className={`nav-item ${isVerified ? '' : 'nav-item-locked'}`}
-            style={{ animationDelay: '0.15s' }}
-          >
-            <span>{t('sidebar.nav.alerts')}</span>
-            {!isVerified && <span aria-hidden>🔒</span>}
-          </div>
-          <div
-            className={`nav-item ${isVerified ? '' : 'nav-item-locked'}`}
-            style={{ animationDelay: '0.2s' }}
-          >
-            <span>{t('sidebar.nav.messages')}</span>
-            {!isVerified && <span aria-hidden>🔒</span>}
-          </div>
-
-          {/* ACCOUNT section */}
-          <div
-            style={{
-              fontSize: 11,
-              color: '#94a3b8',
-              padding: '14px 20px 6px',
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              fontWeight: 700,
-            }}
-          >
-            {t('sidebar.sections.account')}
-          </div>
-          <div className="nav-item" style={{ animationDelay: '0.25s' }}>
-            {t('sidebar.nav.settings')}
-          </div>
-
-          <div style={{ marginTop: 'auto', padding: '16px 8px 0', borderTop: '1px solid #e2e8f0' }}>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="nav-item"
-              style={{
-                width: 'calc(100% - 16px)',
-                background: 'transparent',
-                border: 'none',
-                color: '#ef4444',
-                fontFamily: 'inherit',
-                textAlign: 'left',
-              }}
-            >
-              {t('sidebar.nav.logout')}
-            </button>
-          </div>
-        </aside>
-
-        {/* MAIN */}
-        <main className="dashboard-main" style={{ flex: 1, padding: 28, overflow: 'hidden' }}>
+      <div style={{ padding: 28 }}>
 
           {error && (
             <div
@@ -1086,7 +752,6 @@ export default function DashboardCDI() {
               {t('suggestions_section.coming_soon')}
             </div>
           </div>
-        </main>
       </div>
 
       {/* Avatar upload modal — réutilise le composant freelance.
