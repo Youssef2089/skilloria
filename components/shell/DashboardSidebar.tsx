@@ -83,7 +83,9 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
   const pathname = usePathname()
   const badges = useNavBadges()
   const secureLogout = useSecureLogout()
-  const t = useTranslations('shell.sidebar')
+  // Namespace 'shell' (pas 'shell.sidebar' — les clés vivent directement sous
+  //  shell.nav.* / shell.sections.* / shell.user_fallback, cf. messages/*.json).
+  const t = useTranslations('shell')
 
   const sections: Section[] = side === 'entreprise'
     ? [
