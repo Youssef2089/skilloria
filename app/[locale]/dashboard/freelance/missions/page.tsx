@@ -48,18 +48,12 @@ export default function MissionsFeedPage() {
 
   useEffect(() => {
     void load()
-    // SC5 — auto-vidant du badge "Missions" : à l'ouverture du feed, on flippe
-    // tous les matches 'notified' du profile courant vers 'viewed'. Idempotent.
-    // Bump custom event pour refresh immédiat de la sidebar.
-    void (async () => {
-      try {
-        const r = await secureFetch('/api/me/missions/mark-viewed', { method: 'POST' })
-        if (r.ok) window.dispatchEvent(new CustomEvent('skilloria:notif-bump'))
-      } catch (err) {
-        console.error('[missions feed] mark-viewed threw', err)
-      }
-    })()
-  }, [load, secureFetch])
+    // SC5 (correctif) — pas de POST mark-viewed ici. Le badge "Missions"
+    // (matchées-non-candidatées) se vide naturellement à la création de
+    // candidature côté POST /api/candidatures. Le badge "Nouveau" per-card
+    // continue à se vider individuellement à l'ouverture du détail de
+    // chaque mission (GET /api/me/missions/[id] flippe notified→viewed).
+  }, [load])
 
   return (
     <div style={{ padding: '24px 26px' }}>

@@ -228,7 +228,12 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
                 >
                   <Icon size={18} stroke={1.8} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {t(`nav.${item.key}` as 'nav.dashboard')}
+                    {/* SC5 correctif — libellé CDI : "missions" devient "Offres"
+                        côté cdi. Route /dashboard/cdi/missions, key item.key
+                        et badgeSource INCHANGÉS — seul le label change. */}
+                    {item.key === 'missions' && side === 'cdi'
+                      ? t('nav.offres')
+                      : t(`nav.${item.key}` as 'nav.dashboard')}
                   </span>
                   {item.locked && <span aria-hidden style={{ fontSize: 11 }}>🔒</span>}
                   {!item.locked && badge > 0 && (

@@ -18,6 +18,7 @@
       "dashboard": "Dashboard",
       "profile": "My profile",
       "missions": "Missions",
+      "offres": "Job offers",
       "applications": "Applications",
       "messages": "Messages",
       "alert": "Set availability alert",
@@ -34,6 +35,7 @@
     "page_titles": {
       "dashboard": "Dashboard",
       "missions": "Missions",
+      "offres": "Job offers",
       "candidatures": "My applications",
       "messages": "Messaging",
       "mon_profil": "My profile",

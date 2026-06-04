@@ -117,7 +117,8 @@ export default function DashboardShell({
     const section = segs[2] ?? null
     let key = 'dashboard'
     if (!section) key = 'dashboard'
-    else if (section === 'missions')     key = 'missions'
+    // SC5 correctif libellé CDI : /dashboard/cdi/missions affiche "Offres".
+    else if (section === 'missions')     key = side === 'cdi' ? 'offres' : 'missions'
     else if (section === 'candidatures') key = 'candidatures'
     else if (section === 'messages')     key = 'messages'
     else if (section === 'mon-profil')   key = 'mon_profil'

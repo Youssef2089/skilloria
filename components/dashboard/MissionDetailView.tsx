@@ -172,6 +172,10 @@ export default function MissionDetailView({
       setCoverOpen(false)
       setCoverMessage('')
       await load(pubId)
+      // SC5 (correctif) : la candidature vient de créer la publi → elle sort
+      // du set matched-non-candidaté. Bump pour refresh immédiat du badge
+      // sidebar "Missions/Offres" (sinon décrément attend le poll 30s).
+      window.dispatchEvent(new CustomEvent('skilloria:notif-bump'))
     } catch (err) {
       console.error('[candidatures POST] threw', err)
       setErrorBanner(t('error_generic'))

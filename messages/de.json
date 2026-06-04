@@ -18,6 +18,7 @@
       "dashboard": "Dashboard",
       "profile": "Mein Profil",
       "missions": "Aufträge",
+      "offres": "Stellenangebote",
       "applications": "Bewerbungen",
       "messages": "Nachrichten",
       "alert": "Verfügbarkeitsbenachrichtigung",
@@ -34,6 +35,7 @@
     "page_titles": {
       "dashboard": "Dashboard",
       "missions": "Aufträge",
+      "offres": "Stellenangebote",
       "candidatures": "Meine Bewerbungen",
       "messages": "Messaging",
       "mon_profil": "Mein Profil",

@@ -18,6 +18,7 @@
       "dashboard": "Panel",
       "profile": "Mi perfil",
       "missions": "Misiones",
+      "offres": "Ofertas",
       "applications": "Candidaturas",
       "messages": "Mensajes",
       "alert": "Alerta de disponibilidad",
@@ -34,6 +35,7 @@
     "page_titles": {
       "dashboard": "Panel",
       "missions": "Misiones",
+      "offres": "Ofertas",
       "candidatures": "Mis candidaturas",
       "messages": "Mensajería",
       "mon_profil": "Mi perfil",

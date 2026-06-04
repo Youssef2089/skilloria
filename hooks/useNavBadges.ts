@@ -20,12 +20,15 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  *       'candidature_unlocked'     (expert : votre candidature acceptée)
  *     }
  *
- *   - missions_unread (expert only) : COUNT(matches.status='notified') du
- *     profile courant. Option A SC5 — pas de nouvelle colonne, on réutilise
- *     l'état "notified" existant. Auto-vidant : ouverture du feed missions →
- *     POST /api/me/missions/mark-viewed → tous notified → viewed → 0.
- *     Côté org, l'endpoint /api/me/missions/summary renvoie 0 (pas de profile
- *     expert) → badge inerte sans casser.
+ *   - missions_unread (expert only) : COUNT(matches du profile courant)
+ *     MINUS COUNT(candidatures du même profile) — alias "matchées-non-
+ *     candidatées" (SC5 sémantique verrouillée). Pas de migration, pas de
+ *     flip de matches.status. Auto-vidant naturel : à chaque candidature
+ *     POST /api/candidatures, la publication sort du set → badge décrémente.
+ *     Le badge "Nouveau" per-mission de MissionCard reste piloté par
+ *     match_status='notified'|'pending' (sémantique existante, intacte).
+ *     Côté org, /api/me/missions/summary renvoie 0 (pas de profile expert) →
+ *     badge inerte sans casser.
  *
  * Polling 30s, écoute 'skilloria:notif-bump' (émis par NotificationBell quand
  * unread_count global augmente) pour refresh immédiat. Cleanup propre au démontage.
@@ -73,8 +76,8 @@ export function useNavBadges(): NavBadges {
       }
       let missions = 0
       if (missionsRes.ok) {
-        const p = (await missionsRes.json()) as { notified_count?: number }
-        missions = p.notified_count ?? 0
+        const p = (await missionsRes.json()) as { pending_count?: number }
+        missions = p.pending_count ?? 0
       }
       setBadges({ messages_unread: messages, candidatures_unread: candidatures, missions_unread: missions })
     } catch (err) {

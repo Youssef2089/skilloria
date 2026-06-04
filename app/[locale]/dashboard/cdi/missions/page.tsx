@@ -47,16 +47,10 @@ export default function CdiMissionsFeedPage() {
 
   useEffect(() => {
     void load()
-    // SC5 — auto-vidant du badge "Missions" (partagé avec freelance).
-    void (async () => {
-      try {
-        const r = await secureFetch('/api/me/missions/mark-viewed', { method: 'POST' })
-        if (r.ok) window.dispatchEvent(new CustomEvent('skilloria:notif-bump'))
-      } catch (err) {
-        console.error('[cdi missions feed] mark-viewed threw', err)
-      }
-    })()
-  }, [load, secureFetch])
+    // SC5 (correctif) — partagé avec freelance : pas de POST mark-viewed.
+    // Le badge "Offres" se vide quand l'expert candidate. Le badge per-card
+    // "Nouveau" reste piloté par match_status (sémantique existante).
+  }, [load])
 
   return (
     <div style={{ padding: '24px 26px' }}>
