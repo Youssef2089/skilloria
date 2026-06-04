@@ -861,23 +861,27 @@ export default function DashboardCDI() {
               marginBottom: 16,
             }}
           >
+            {/* SC2 — vision EXPERT : Postulées / En discussion / Refusées
+                (parité avec freelance). Les anciennes KPI profile_views /
+                recruiter_contacts (placeholders V1) ont été remplacées. */}
             <KpiCard
-              label={t('kpis.profile_views')}
-              value={isVerified ? '0' : '—'}
+              label={t('kpis.posted')}
+              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.postulees)}
               delay="0.1s"
+              accentColor={domain.primaryColor}
               isPlaceholder={!isVerified}
             />
             <KpiCard
-              label={t('kpis.recruiter_contacts')}
-              value={isVerified ? '0' : '—'}
+              label={t('kpis.in_discussion')}
+              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.en_discussion)}
               delay="0.15s"
               isPlaceholder={!isVerified}
             />
             <KpiCard
-              label={t('kpis.applications_sent')}
-              value={apps.loading ? '…' : String(apps.count)}
+              label={t('kpis.refused')}
+              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.refusees)}
               delay="0.2s"
-              accentColor={domain.primaryColor}
+              isPlaceholder={!isVerified}
             />
           </div>
 
@@ -995,40 +999,60 @@ export default function DashboardCDI() {
                 {t('applications_section.empty_state')}
               </div>
             ) : (
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {apps.items.slice(0, 5).map(item => (
-                  <li
-                    key={item.id}
-                    style={{
-                      border: '1px solid #f1f5f9',
-                      borderRadius: 10,
-                      padding: '10px 14px',
-                      background: '#fafafa',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: 12,
-                    }}
-                  >
-                    <div style={{ fontSize: 13, color: '#475569' }}>
-                      {item.created_at?.substring(0, 10) ?? '—'}
-                    </div>
-                    {item.status && (
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: domain.primaryColor,
-                          background: `${domain.primaryColor}14`,
-                          padding: '3px 10px',
-                          borderRadius: 999,
-                        }}
-                      >
-                        {item.status}
-                      </span>
-                    )}
-                  </li>
-                ))}
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {apps.items.slice(0, 5).map(item => {
+                  // SC2 — sémantique parité expert : Échange ouvert (vert) /
+                  // Refusée (rouge) / En attente (ambre). Status sémantique via i18n.
+                  const sk = item.status === 'unlocked' ? 'open'
+                           : item.status === 'rejected' ? 'refused'
+                           : 'wait'
+                  const bg = sk === 'open' ? '#DCFCE7' : sk === 'refused' ? '#FEE2E2' : '#FEF9C3'
+                  const fg = sk === 'open' ? '#166534' : sk === 'refused' ? '#991B1B' : '#854D0E'
+                  return (
+                    <li
+                      key={item.id}
+                      style={{
+                        border: '1px solid #f1f5f9',
+                        borderRadius: 10,
+                        padding: '12px 14px',
+                        background: '#fafafa',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: 12,
+                      }}
+                    >
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.publication_title ?? '—'}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                          {item.created_at?.substring(0, 10) ?? '—'}
+                          {item.ai_match_score != null && (
+                            <> · {t('applications_section.ai_score', { score: Math.round(item.ai_match_score) })}</>
+                          )}
+                        </div>
+                      </div>
+                      {item.status && (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: fg,
+                            background: bg,
+                            padding: '3px 10px',
+                            borderRadius: 999,
+                            textTransform: 'uppercase',
+                            letterSpacing: '.04em',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {t(`applications_section.status.${item.status}` as 'applications_section.status.received')}
+                        </span>
+                      )}
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </div>

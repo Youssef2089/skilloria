@@ -57,12 +57,29 @@ export default function DashboardFreelance() {
   const [toast, setToast] = useState<string | null>(null)
 
   // Stats home + missions recommandées (Lot nettoyage : câblage compteurs)
+  // Lot UX Finitions 2 (SC2) : vision EXPERT — postulees / en_discussion /
+  // refusees calculés depuis /api/me/candidatures[].status (différent du
+  // funnel org). missions_count = matches actifs (disponibles à postuler).
   const [stats, setStats] = useState<{
     missions_count: number | null
-    candidatures_count: number | null
+    candidatures_count: number | null            // = total postulees (legacy)
+    postulees: number | null
+    en_discussion: number | null
+    refusees: number | null
     messages_unread: number | null
     completion_pct: number | null
-  }>({ missions_count: null, candidatures_count: null, messages_unread: null, completion_pct: null })
+  }>({ missions_count: null, candidatures_count: null, postulees: null, en_discussion: null, refusees: null, messages_unread: null, completion_pct: null })
+  // Type minimal pour la section "Vos candidatures" (3 dernières)
+  type CandidatureLite = {
+    id: string
+    publication_id: string
+    publication: { id: string; type: string; title: string; status: string } | null
+    status: string
+    ai_match_score: number | null
+    conversation_id: string | null
+    created_at: string
+  }
+  const [recentCandidatures, setRecentCandidatures] = useState<CandidatureLite[] | null>(null)
   type RecommendedMission = {
     match_id: string
     ai_score: number
@@ -129,9 +146,19 @@ export default function DashboardFreelance() {
           missions = p.missions ?? []
         }
         let candCount = 0
+        let postulees = 0, enDiscussion = 0, refusees = 0
+        let recentCands: CandidatureLite[] = []
         if (candRes.ok) {
-          const p = (await candRes.json()) as { candidatures?: { id: string }[] }
-          candCount = (p.candidatures ?? []).length
+          const p = (await candRes.json()) as { candidatures?: CandidatureLite[] }
+          const all = p.candidatures ?? []
+          candCount = all.length
+          postulees = all.length
+          for (const c of all) {
+            if (c.status === 'unlocked' || c.status === 'in_review' || c.status === 'shortlisted') enDiscussion++
+            else if (c.status === 'rejected') refusees++
+          }
+          // Les 3 plus récentes (déjà triées created_at DESC par la route)
+          recentCands = all.slice(0, 3)
         }
         let unread = 0
         if (convsRes.ok) {
@@ -148,10 +175,14 @@ export default function DashboardFreelance() {
         setStats({
           missions_count: missions.length,
           candidatures_count: candCount,
+          postulees,
+          en_discussion: enDiscussion,
+          refusees,
           messages_unread: unread,
           completion_pct: completion,
         })
         setRecommendedMissions(missions.slice(0, 3))
+        setRecentCandidatures(recentCands)
       } catch (err) {
         console.error('[home expert] load stats threw', err)
       }
@@ -380,10 +411,11 @@ export default function DashboardFreelance() {
           )}
 
           {/* 4 stats */}
-          <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 22 }}>
+          <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 22 }}>
             {[
-              { label: t('stats.available_missions'), value: !isVerified ? '—' : (stats.missions_count ?? '…').toString(), delay: '0.1s' },
-              { label: t('stats.applications'), value: !isVerified ? '—' : (stats.candidatures_count ?? '…').toString(), delay: '0.15s' },
+              { label: t('stats.posted'),        value: !isVerified ? '—' : (stats.postulees ?? '…').toString(),      delay: '0.1s' },
+              { label: t('stats.in_discussion'), value: !isVerified ? '—' : (stats.en_discussion ?? '…').toString(), delay: '0.13s' },
+              { label: t('stats.refused'),       value: !isVerified ? '—' : (stats.refusees ?? '…').toString(),       delay: '0.16s' },
             ].map((stat) => (
               <div key={stat.label} className="stat-card" style={{ background: '#f3f4f6', animationDelay: stat.delay }}>
                 <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>{stat.label}</div>
@@ -475,6 +507,57 @@ export default function DashboardFreelance() {
               </div>
             )}
           </div>
+
+          {/* SC2 — Section "Vos candidatures" (3 dernières) */}
+          {isVerified && (
+            <div className="main-card" style={{ animationDelay: '0.38s' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <span style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>{t('cards.your_candidatures.title')}</span>
+                <Link href="/dashboard/freelance/candidatures" className="voir-tout" style={{ color: domain.primaryColor }}>{t('cards.see_all')}</Link>
+              </div>
+              {recentCandidatures === null ? (
+                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af' }}>
+                  {t('loading')}
+                </div>
+              ) : recentCandidatures.length === 0 ? (
+                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
+                  {t('cards.your_candidatures.empty')}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {recentCandidatures.map((c) => {
+                    const statusKey = c.status === 'unlocked' ? 'open' : c.status === 'rejected' ? 'refused' : 'wait'
+                    const statusBg = statusKey === 'open' ? '#DCFCE7' : statusKey === 'refused' ? '#FEE2E2' : '#FEF9C3'
+                    const statusFg = statusKey === 'open' ? '#166534' : statusKey === 'refused' ? '#991B1B' : '#854D0E'
+                    const detailHref = c.status === 'unlocked' && c.conversation_id
+                      ? `/dashboard/freelance/messages/${c.conversation_id}`
+                      : `/dashboard/freelance/candidatures`
+                    return (
+                      <Link
+                        key={c.id}
+                        href={detailHref}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 10, padding: '12px 14px', textDecoration: 'none', color: 'inherit' }}
+                      >
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {c.publication?.title ?? '—'}
+                          </div>
+                          {c.ai_match_score != null && (
+                            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                              {t('cards.your_candidatures.ai_score', { score: Math.round(c.ai_match_score) })}
+                            </div>
+                          )}
+                        </div>
+                        <span style={{ flexShrink: 0, padding: '3px 10px', background: statusBg, color: statusFg, fontSize: 11, fontWeight: 600, borderRadius: 10, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                          {t(`cards.your_candidatures.status.${c.status}` as 'cards.your_candidatures.status.received')}
+                        </span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Collaboration experts */}
           <div className="main-card" style={{ opacity: isVerified ? 1 : 0.6, marginBottom: 0, animationDelay: '0.4s' }}>

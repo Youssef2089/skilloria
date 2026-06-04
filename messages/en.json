@@ -248,6 +248,9 @@
       "available_missions": "Available missions",
       "applications": "Applications",
       "messages": "Messages",
+      "posted": "Posted",
+      "in_discussion": "In discussion",
+      "refused": "Rejected",
       "daily_rate": "My day rate",
       "daily_rate_set": "Set →",
       "daily_rate_range": "{min} € — {max} €"
@@ -298,6 +301,20 @@
         "title": "Expert collaboration",
         "new_badge": "New",
         "empty_verified": "No collaboration opportunities available at the moment."
+      },
+      "your_candidatures": {
+        "title": "Your applications",
+        "empty": "Your applications will appear here as soon as you apply to a mission.",
+        "ai_score": "AI score {score}/10",
+        "status": {
+          "received": "Received",
+          "in_review": "In review",
+          "shortlisted": "Shortlisted",
+          "unlocked": "Exchange open",
+          "rejected": "Rejected",
+          "withdrawn": "Withdrawn",
+          "archived": "Archived"
+        }
       }
     }
   },
@@ -842,12 +859,25 @@
     "kpis": {
       "profile_views": "Profile views",
       "recruiter_contacts": "Recruiter messages",
-      "applications_sent": "Applications sent"
+      "applications_sent": "Applications sent",
+      "posted": "Posted",
+      "in_discussion": "In discussion",
+      "refused": "Rejected"
     },
     "applications_section": {
       "title": "My applications",
       "empty_state": "No applications yet.",
-      "view_opportunities_cta": "View opportunities →"
+      "view_opportunities_cta": "View opportunities →",
+      "ai_score": "AI score {score}/10",
+      "status": {
+        "received": "Received",
+        "in_review": "In review",
+        "shortlisted": "Shortlisted",
+        "unlocked": "Exchange open",
+        "rejected": "Rejected",
+        "withdrawn": "Withdrawn",
+        "archived": "Archived"
+      }
     },
     "suggestions_section": {
       "title": "Suggestions for you",

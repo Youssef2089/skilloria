@@ -248,6 +248,9 @@
       "available_missions": "Missions dispo",
       "applications": "Candidatures",
       "messages": "Messages",
+      "posted": "Postulées",
+      "in_discussion": "En discussion",
+      "refused": "Refusées",
       "daily_rate": "Mon TJM",
       "daily_rate_set": "Définir →",
       "daily_rate_range": "{min} € — {max} €"
@@ -298,6 +301,20 @@
         "title": "Collaboration experts",
         "new_badge": "Nouveau",
         "empty_verified": "Aucune opportunité de collaboration disponible pour l'instant."
+      },
+      "your_candidatures": {
+        "title": "Vos candidatures",
+        "empty": "Vos candidatures apparaîtront ici dès que vous postulez à une mission.",
+        "ai_score": "Score IA {score}/10",
+        "status": {
+          "received": "Reçue",
+          "in_review": "En revue",
+          "shortlisted": "Présélectionnée",
+          "unlocked": "Échange ouvert",
+          "rejected": "Refusée",
+          "withdrawn": "Retirée",
+          "archived": "Archivée"
+        }
       }
     }
   },
@@ -842,12 +859,25 @@
     "kpis": {
       "profile_views": "Vues du profil",
       "recruiter_contacts": "Sollicitations reçues",
-      "applications_sent": "Candidatures envoyées"
+      "applications_sent": "Candidatures envoyées",
+      "posted": "Postulées",
+      "in_discussion": "En discussion",
+      "refused": "Refusées"
     },
     "applications_section": {
       "title": "Mes candidatures",
       "empty_state": "Aucune candidature pour l'instant.",
-      "view_opportunities_cta": "Voir les opportunités →"
+      "view_opportunities_cta": "Voir les opportunités →",
+      "ai_score": "Score IA {score}/10",
+      "status": {
+        "received": "Reçue",
+        "in_review": "En revue",
+        "shortlisted": "Présélectionnée",
+        "unlocked": "Échange ouvert",
+        "rejected": "Refusée",
+        "withdrawn": "Retirée",
+        "archived": "Archivée"
+      }
     },
     "suggestions_section": {
       "title": "Suggestions pour vous",

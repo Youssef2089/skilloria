@@ -248,6 +248,9 @@
       "available_missions": "Misiones disponibles",
       "applications": "Candidaturas",
       "messages": "Mensajes",
+      "posted": "Postuladas",
+      "in_discussion": "En conversación",
+      "refused": "Rechazadas",
       "daily_rate": "Mi tarifa diaria",
       "daily_rate_set": "Definir →",
       "daily_rate_range": "{min} € — {max} €"
@@ -298,6 +301,20 @@
         "title": "Colaboración entre expertos",
         "new_badge": "Nuevo",
         "empty_verified": "Por ahora no hay oportunidades de colaboración disponibles."
+      },
+      "your_candidatures": {
+        "title": "Tus candidaturas",
+        "empty": "Tus candidaturas aparecerán aquí en cuanto te postules a una misión.",
+        "ai_score": "Puntuación IA {score}/10",
+        "status": {
+          "received": "Recibida",
+          "in_review": "En revisión",
+          "shortlisted": "Preseleccionada",
+          "unlocked": "Intercambio abierto",
+          "rejected": "Rechazada",
+          "withdrawn": "Retirada",
+          "archived": "Archivada"
+        }
       }
     }
   },
@@ -842,12 +859,25 @@
     "kpis": {
       "profile_views": "Vistas del perfil",
       "recruiter_contacts": "Contactos recibidos",
-      "applications_sent": "Candidaturas enviadas"
+      "applications_sent": "Candidaturas enviadas",
+      "posted": "Postuladas",
+      "in_discussion": "En conversación",
+      "refused": "Rechazadas"
     },
     "applications_section": {
       "title": "Mis candidaturas",
       "empty_state": "Aún no tienes candidaturas.",
-      "view_opportunities_cta": "Ver oportunidades →"
+      "view_opportunities_cta": "Ver oportunidades →",
+      "ai_score": "Puntuación IA {score}/10",
+      "status": {
+        "received": "Recibida",
+        "in_review": "En revisión",
+        "shortlisted": "Preseleccionada",
+        "unlocked": "Intercambio abierto",
+        "rejected": "Rechazada",
+        "withdrawn": "Retirada",
+        "archived": "Archivada"
+      }
     },
     "suggestions_section": {
       "title": "Sugerencias para ti",

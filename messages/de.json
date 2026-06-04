@@ -248,6 +248,9 @@
       "available_missions": "Verfügbare Missionen",
       "applications": "Bewerbungen",
       "messages": "Nachrichten",
+      "posted": "Beworben",
+      "in_discussion": "Im Austausch",
+      "refused": "Abgelehnt",
       "daily_rate": "Mein Tagessatz",
       "daily_rate_set": "Festlegen →",
       "daily_rate_range": "{min} € — {max} €"
@@ -298,6 +301,20 @@
         "title": "Experten-Zusammenarbeit",
         "new_badge": "Neu",
         "empty_verified": "Derzeit sind keine Kooperationsmöglichkeiten verfügbar."
+      },
+      "your_candidatures": {
+        "title": "Ihre Bewerbungen",
+        "empty": "Ihre Bewerbungen erscheinen hier, sobald Sie sich auf einen Auftrag bewerben.",
+        "ai_score": "KI-Bewertung {score}/10",
+        "status": {
+          "received": "Erhalten",
+          "in_review": "In Prüfung",
+          "shortlisted": "Vorausgewählt",
+          "unlocked": "Austausch offen",
+          "rejected": "Abgelehnt",
+          "withdrawn": "Zurückgezogen",
+          "archived": "Archiviert"
+        }
       }
     }
   },
@@ -842,12 +859,25 @@
     "kpis": {
       "profile_views": "Profilaufrufe",
       "recruiter_contacts": "Recruiter-Anfragen",
-      "applications_sent": "Gesendete Bewerbungen"
+      "applications_sent": "Gesendete Bewerbungen",
+      "posted": "Beworben",
+      "in_discussion": "Im Austausch",
+      "refused": "Abgelehnt"
     },
     "applications_section": {
       "title": "Meine Bewerbungen",
       "empty_state": "Noch keine Bewerbungen.",
-      "view_opportunities_cta": "Stellen ansehen →"
+      "view_opportunities_cta": "Stellen ansehen →",
+      "ai_score": "KI-Bewertung {score}/10",
+      "status": {
+        "received": "Erhalten",
+        "in_review": "In Prüfung",
+        "shortlisted": "Vorausgewählt",
+        "unlocked": "Austausch offen",
+        "rejected": "Abgelehnt",
+        "withdrawn": "Zurückgezogen",
+        "archived": "Archiviert"
+      }
     },
     "suggestions_section": {
       "title": "Vorschläge für Sie",
