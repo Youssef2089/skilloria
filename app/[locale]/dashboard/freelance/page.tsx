@@ -1,15 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { Link, useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
-import { useSecureLogout } from '@/lib/secure-fetch'
+import { useSecureLogout, useSecureFetch } from '@/lib/secure-fetch'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import TJMQuickEditModal from '@/components/TJMQuickEditModal'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import VerificationBanner from '@/components/dashboard/VerificationBanner'
+import NotificationBell from '@/components/NotificationBell'
 
 type ProfileData = {
   tjm_min: number | null
@@ -20,18 +21,59 @@ type ProfileData = {
   verification_data?: Record<string, unknown> | null
 }
 
+/**
+ * Calcul léger de complétude profil (Lot nettoyage).
+ *
+ *  Règle :
+ *   - Si verification_status='approved' (côté caller) → 100% (le profil est
+ *     déjà passé par la gate IA, garanti complet).
+ *   - Sinon : signal pragmatique basé sur les champs critiques côté user/profile.
+ *
+ *  À l'avenir on pourra le brancher sur `profiles.profile_score` (déjà existant
+ *  en BDD). Pour V1 c'est un placeholder lisible plutôt que 0% systématique.
+ */
+function computeCompletionPct(user: any, profile: ProfileData | null): number {
+  if (!user || !profile) return 0
+  const fields: Array<unknown> = [
+    user.first_name, user.last_name, user.email, user.phone,
+    profile.tjm_min ?? profile.tjm_max,
+    profile.photo_url,
+  ]
+  const filled = fields.filter(v => v != null && String(v).trim() !== '').length
+  const pct = Math.round((filled / fields.length) * 100)
+  return Math.max(0, Math.min(100, pct))
+}
+
 export default function DashboardFreelance() {
   const t = useTranslations('dashboard_freelance')
   const tCommon = useTranslations('common')
+  const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
   const secureLogout = useSecureLogout()
+  const secureFetch = useSecureFetch()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [tjmModalOpen, setTjmModalOpen] = useState(false)
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+
+  // Stats home + missions recommandées (Lot nettoyage : câblage compteurs)
+  const [stats, setStats] = useState<{
+    missions_count: number | null
+    candidatures_count: number | null
+    messages_unread: number | null
+    completion_pct: number | null
+  }>({ missions_count: null, candidatures_count: null, messages_unread: null, completion_pct: null })
+  type RecommendedMission = {
+    match_id: string
+    ai_score: number
+    ai_reason: string | null
+    publication: { id: string; type: string; title: string; branch_label: string | null; speciality_label: string | null; budget_min: number | null; budget_max: number | null; confidential: boolean }
+    org: { name: string | null; logo_url: string | null } | null
+  }
+  const [recommendedMissions, setRecommendedMissions] = useState<RecommendedMission[] | null>(null)
 
   useEffect(() => {
     const getUser = async () => {
@@ -64,6 +106,58 @@ export default function DashboardFreelance() {
     const id = window.setTimeout(() => setToast(null), 3000)
     return () => window.clearTimeout(id)
   }, [toast])
+
+  // ── Câblage compteurs home + Missions recommandées (Lot nettoyage) ────────
+  //  Charge missions matchées (3 meilleures), candidatures (count), conversations
+  //  (unread). Si non vérifié → la route /api/me/missions renvoie 403 → on
+  //  affiche 0/— et l'utilisateur voit pourquoi via la bannière vérif.
+  useEffect(() => {
+    if (loading) return
+    let cancelled = false
+    const load = async () => {
+      try {
+        const [missionsRes, candRes, convsRes] = await Promise.all([
+          secureFetch('/api/me/missions?locale=' + encodeURIComponent(locale), { method: 'GET' }),
+          secureFetch('/api/me/candidatures', { method: 'GET' }),
+          secureFetch('/api/me/conversations', { method: 'GET' }),
+        ])
+        if (cancelled) return
+        let missions: RecommendedMission[] = []
+        if (missionsRes.ok) {
+          const p = (await missionsRes.json()) as { missions?: RecommendedMission[] }
+          missions = p.missions ?? []
+        }
+        let candCount = 0
+        if (candRes.ok) {
+          const p = (await candRes.json()) as { candidatures?: { id: string }[] }
+          candCount = (p.candidatures ?? []).length
+        }
+        let unread = 0
+        if (convsRes.ok) {
+          const p = (await convsRes.json()) as { conversations?: { unread_count: number }[] }
+          unread = (p.conversations ?? []).reduce((acc, c) => acc + (c.unread_count ?? 0), 0)
+        }
+        // Complétude : règle simple — profil 'approved' = 100 %, sinon
+        // estimation pondérée. La complétude affichée doit refléter l'usabilité,
+        // pas un calcul cassé qui afficherait 0 % alors que le profil est vérifié.
+        const isApproved = (profile?.verification_status ?? null) === 'approved'
+        const completion = isApproved
+          ? 100
+          : computeCompletionPct(user, profile)
+        setStats({
+          missions_count: missions.length,
+          candidatures_count: candCount,
+          messages_unread: unread,
+          completion_pct: completion,
+        })
+        setRecommendedMissions(missions.slice(0, 3))
+      } catch (err) {
+        console.error('[home expert] load stats threw', err)
+      }
+    }
+    void load()
+    return () => { cancelled = true }
+  }, [loading, secureFetch, locale, user, profile])
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontSize: 16, color: '#6b7280' }}>
@@ -221,6 +315,7 @@ export default function DashboardFreelance() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <LanguageSwitcher />
+          <NotificationBell />
           {isVerified ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#dcfce7', border: '1px solid #bbf7d0', padding: '7px 16px', borderRadius: 20 }}>
               <div className="pulse-dot" style={{ background: '#22c55e' }}></div>
@@ -390,9 +485,9 @@ export default function DashboardFreelance() {
           {/* 4 stats */}
           <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 22 }}>
             {[
-              { label: t('stats.available_missions'), value: isVerified ? '0' : '—', delay: '0.1s' },
-              { label: t('stats.applications'), value: isVerified ? '0' : '—', delay: '0.15s' },
-              { label: t('stats.messages'), value: '0', delay: '0.2s' },
+              { label: t('stats.available_missions'), value: !isVerified ? '—' : (stats.missions_count ?? '…').toString(), delay: '0.1s' },
+              { label: t('stats.applications'), value: !isVerified ? '—' : (stats.candidatures_count ?? '…').toString(), delay: '0.15s' },
+              { label: t('stats.messages'), value: (stats.messages_unread ?? '…').toString(), delay: '0.2s' },
             ].map((stat) => (
               <div key={stat.label} className="stat-card" style={{ background: '#f3f4f6', animationDelay: stat.delay }}>
                 <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>{stat.label}</div>
@@ -419,11 +514,13 @@ export default function DashboardFreelance() {
           {/* Complétion profil */}
           <div className="main-card" style={{ borderColor: `${domain.primaryColor}55`, animationDelay: '0.3s' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>{t('completion.title', { percent: 0 })}</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>
+                {t('completion.title', { percent: stats.completion_pct ?? 0 })}
+              </div>
               <Link href="/dashboard/freelance/profil/valider" className="voir-tout" style={{ color: domain.primaryColor }}>{t('completion.cta')}</Link>
             </div>
             <div className="progress-bar">
-              <div className="progress-fill" style={{ background: `linear-gradient(90deg, ${domain.primaryColor}, ${domain.secondaryColor})`, width: '0%' }}></div>
+              <div className="progress-fill" style={{ background: `linear-gradient(90deg, ${domain.primaryColor}, ${domain.secondaryColor})`, width: `${stats.completion_pct ?? 0}%` }}></div>
             </div>
             <div style={{ fontSize: 13, color: '#6b7280', marginTop: 10, lineHeight: 1.6 }}>{t('completion.hint')}</div>
           </div>
@@ -437,14 +534,50 @@ export default function DashboardFreelance() {
               </div>
               {!isVerified
                 ? <span style={{ background: '#f3f4f6', color: '#9ca3af', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('cards.locked_chip')}</span>
-                : <span className="voir-tout" style={{ color: domain.primaryColor }}>{t('cards.see_all')}</span>
+                : <Link href="/dashboard/freelance/missions" className="voir-tout" style={{ color: domain.primaryColor }}>{t('cards.see_all')}</Link>
               }
             </div>
-            <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
-              {isVerified
-                ? t('cards.recommended_missions.empty_verified', { ecosystem: domain.ecosystemName })
-                : t('cards.empty_unverified')}
-            </div>
+            {!isVerified ? (
+              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
+                {t('cards.empty_unverified')}
+              </div>
+            ) : (recommendedMissions === null) ? (
+              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af' }}>
+                {t('loading')}
+              </div>
+            ) : recommendedMissions.length === 0 ? (
+              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
+                {t('cards.recommended_missions.empty_verified', { ecosystem: domain.ecosystemName })}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {recommendedMissions.map((m) => (
+                  <Link
+                    key={m.match_id}
+                    href={`/dashboard/freelance/missions/${m.publication.id}`}
+                    style={{
+                      display: 'block', background: '#fff',
+                      border: '0.5px solid #e5e7eb', borderRadius: 10,
+                      padding: '12px 14px', textDecoration: 'none', color: 'inherit',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {m.publication.title}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {[m.publication.confidential ? t('cards.confidential_org') : (m.org?.name ?? null), m.publication.branch_label, m.publication.speciality_label].filter(Boolean).join(' · ')}
+                        </div>
+                      </div>
+                      <span style={{ flexShrink: 0, padding: '3px 9px', background: `${domain.primaryColor}1A`, color: domain.primaryColor, fontSize: 11, fontWeight: 700, borderRadius: 10 }}>
+                        {Math.round(m.ai_score)}/10
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Collaboration experts */}

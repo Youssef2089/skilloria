@@ -1,4 +1,10 @@
 // Test isolé runMatching — Lot 2a.
+//
+// ⚠ DONNÉES OBSOLÈTES depuis le cleanup (cf. scripts/cleanup-test-data.mjs).
+// Les IDs hardcodés ci-dessous (PUBLICATION_ID etc.) ont été supprimés en BDD.
+// Pour relancer ce diag, utiliser le helper jeu éphémère :
+//   import { withEphemeralPublication } from './_diag-utils.mjs'
+// qui crée une publi de test puis CASCADE supprime tout en fin (try/finally).
 // Charge .env.local, instancie un client service_role, lance runMatching sur
 // une publi existante, montre matches + notifications.
 import { readFileSync } from 'node:fs'

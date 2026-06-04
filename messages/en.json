@@ -5,7 +5,9 @@
   "common": {
     "language_switcher_aria": "Change language",
     "language_switcher_current": "Current language: {locale}",
-    "user_fallback": "User"
+    "user_fallback": "User",
+    "retry": "Retry",
+    "cancel": "Cancel"
   },
   "homepage": {
     "meta": {
@@ -244,6 +246,7 @@
       "see_all": "See all →",
       "locked_chip": "🔒 Not verified",
       "empty_unverified": "Available once your profile is validated.",
+      "confidential_org": "Confidential company",
       "recommended_missions": {
         "title": "Recommended missions",
         "ai_badge": "AI",
@@ -1249,6 +1252,13 @@
       "invoices": "Invoices and payments",
       "settings": "Settings"
     },
+    "errors": {
+      "session_expired_title": "Session expired",
+      "session_expired_body": "Your session has expired. Please sign in again to access your dashboard.",
+      "reconnect_cta": "Sign in again",
+      "technical_title": "An error occurred",
+      "technical_body": "Could not load your dashboard. Please try again in a moment."
+    },
     "add_logo": "Add a logo →",
     "greeting": "Hello",
     "publish_annonce": "Post a listing",
@@ -1695,6 +1705,14 @@
       "rejected_reason_label": "Reason:",
       "rejected_body": "You can adjust your profile and submit again."
     }
+  },
+  "notifications": {
+    "aria_label_bell": "Notifications center",
+    "title": "Notifications",
+    "read_all": "Mark all read",
+    "loading": "Loading…",
+    "empty_title": "No notifications",
+    "empty_body": "You'll be notified here whenever something new happens."
   },
   "emails": {
     "common_footer": "The Skilloria team",

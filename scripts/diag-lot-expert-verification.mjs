@@ -1,5 +1,11 @@
 // Diagnostique Lot — Vérification expert.
 //
+// ✓ Ce diag est PROPRE : snapshot+restore final du profil expert ce6b8369.
+//   Mais le `users.is_verified` n'est pas restauré par le script. Le profil
+//   expert reste `verification_status=approved` + `is_verified=true` après run
+//   (état désiré pour le matching à blanc). À adapter si besoin de tester le
+//   cycle complet en démarrant à NULL.
+//
 // Couvre :
 //   (a) profil Microsoft COHÉRENT (ce6b8369) → vrai appel IA → score ≥ 9 →
 //       approved auto + users.is_verified=true

@@ -1,5 +1,9 @@
 // Diagnostique Lot 2c — côté ORG.
 //
+// ⚠ DONNÉES OBSOLÈTES depuis le cleanup (cf. scripts/cleanup-test-data.mjs).
+// Les IDs hardcodés (PUBLI_D365, CAND_ID etc.) ont été supprimés en BDD. Pour
+// relancer, utiliser le pattern « jeu éphémère » via scripts/_diag-utils.mjs.
+//
 // Couvre :
 //   (a) GET candidatures côté org : preview masquée (skills, etc.), AUCUNE identité
 //   (b) PREUVE masquage : profil complet inaccessible AVANT unlock

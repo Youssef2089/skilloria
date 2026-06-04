@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useLocale } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
@@ -40,7 +40,9 @@ type SetupState =
   | { kind: 'loading' }
   | { kind: 'needs_setup'; organization: OrganisationFull }
   | { kind: 'ready'; organization: OrganisationFull }
-  | { kind: 'error' }
+  | { kind: 'session_expired' }
+  | { kind: 'no_org' }
+  | { kind: 'error'; message?: string }
 
 type AnnoncesState =
   | { kind: 'idle' }
@@ -51,10 +53,36 @@ type AnnoncesState =
 export default function DashboardEntreprise() {
   const router = useRouter()
   const locale = useLocale()
+  const t = useTranslations('dashboard_entreprise')
+  const tCommon = useTranslations('common')
   const secureFetch = useSecureFetch()
   const [state, setState] = useState<SetupState>({ kind: 'loading' })
   const [annoncesState, setAnnoncesState] = useState<AnnoncesState>({ kind: 'idle' })
   const [needsRedirect, setNeedsRedirect] = useState(false)
+
+  /**
+   * Distingue les 3 branches d'erreur après la query org :
+   *   1. JWT/session expirée → kind: 'session_expired' (bouton 'se reconnecter')
+   *   2. User n'a pas d'org → redirect par user_type (expert → /freelance,
+   *      admin → /admin, autres → /)
+   *   3. Vraie erreur technique → kind: 'error' avec message
+   */
+  function classifyError(errorMessage: string | null | undefined): 'session_expired' | 'error' {
+    if (!errorMessage) return 'error'
+    const m = errorMessage.toLowerCase()
+    if (m.includes('jwt') || m.includes('expired') || m.includes('invalid_token') || m.includes('unauthorized')) {
+      return 'session_expired'
+    }
+    return 'error'
+  }
+
+  async function redirectByUserType(userId: string): Promise<void> {
+    const { data: u } = await supabase.from('users').select('user_type').eq('id', userId).maybeSingle()
+    const userType = (u as { user_type?: string | null } | null)?.user_type ?? null
+    if (userType === 'expert_freelance' || userType === 'expert_cdi') router.replace('/dashboard/freelance')
+    else if (userType === 'admin') router.replace('/admin')
+    else router.replace('/')
+  }
 
   const refresh = useCallback(async () => {
     const {
@@ -77,14 +105,18 @@ export default function DashboardEntreprise() {
 
     if (error) {
       console.error('[dashboard/entreprise] org lookup error', error.message)
-      setState({ kind: 'error' })
+      const kind = classifyError(error.message)
+      setState(kind === 'session_expired' ? { kind: 'session_expired' } : { kind: 'error', message: error.message })
       return
     }
     const orgRow = Array.isArray(memberRow?.organizations)
       ? memberRow.organizations[0]
       : memberRow?.organizations
     if (!orgRow) {
-      setState({ kind: 'error' })
+      // Branche no_org : user authentifié mais sans organisation. Redirect par
+      // user_type (expert_* → /dashboard/freelance, admin → /admin, autres → /).
+      setState({ kind: 'no_org' })
+      void redirectByUserType(session.user.id)
       return
     }
     const organization: OrganisationFull = {
@@ -141,7 +173,7 @@ export default function DashboardEntreprise() {
     void loadAnnonces()
   }, [state.kind, loadAnnonces])
 
-  if (state.kind === 'loading' || needsRedirect) {
+  if (state.kind === 'loading' || state.kind === 'no_org' || needsRedirect) {
     return (
       <div
         style={{
@@ -156,18 +188,36 @@ export default function DashboardEntreprise() {
     )
   }
 
+  if (state.kind === 'session_expired') {
+    return (
+      <div style={{ padding: 48, textAlign: 'center', fontFamily: 'Inter, system-ui, sans-serif', maxWidth: 480, margin: '0 auto' }}>
+        <div style={{ fontSize: 32, marginBottom: 14 }} aria-hidden>🔒</div>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>{t('errors.session_expired_title')}</h1>
+        <p style={{ fontSize: 14, color: '#64748b', marginBottom: 20, lineHeight: 1.6 }}>{t('errors.session_expired_body')}</p>
+        <button
+          type="button"
+          onClick={async () => { await supabase.auth.signOut(); router.replace('/connexion') }}
+          style={{ padding: '10px 20px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          {t('errors.reconnect_cta')}
+        </button>
+      </div>
+    )
+  }
+
   if (state.kind === 'error') {
     return (
-      <div
-        style={{
-          padding: 48,
-          textAlign: 'center',
-          fontFamily: 'Inter, system-ui, sans-serif',
-        }}
-      >
-        <p style={{ fontSize: 14, color: '#b91c1c' }}>
-          Une erreur est survenue. Veuillez vous reconnecter.
-        </p>
+      <div style={{ padding: 48, textAlign: 'center', fontFamily: 'Inter, system-ui, sans-serif', maxWidth: 480, margin: '0 auto' }}>
+        <div style={{ fontSize: 32, marginBottom: 14 }} aria-hidden>⚠️</div>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>{t('errors.technical_title')}</h1>
+        <p style={{ fontSize: 14, color: '#64748b', marginBottom: 20, lineHeight: 1.6 }}>{t('errors.technical_body')}</p>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          style={{ padding: '10px 20px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          {tCommon('retry')}
+        </button>
       </div>
     )
   }

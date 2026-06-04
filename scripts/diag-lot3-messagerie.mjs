@@ -1,5 +1,9 @@
 // Diagnostique Lot 3 — messagerie contrôlée.
 //
+// ⚠ DONNÉES OBSOLÈTES depuis le cleanup (cf. scripts/cleanup-test-data.mjs).
+// Les IDs hardcodés (CONV_ID, CAND_ID etc.) ont été supprimés en BDD. Pour
+// relancer, utiliser le pattern « jeu éphémère » via scripts/_diag-utils.mjs.
+//
 // Couvre :
 //   (a) Org envoie un message → expert le voit + reçoit notif 'new_message'
 //   (b) Expert répond → org le voit ; read_at posé UNIQUEMENT sur messages reçus

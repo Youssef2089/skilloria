@@ -5,7 +5,9 @@
   "common": {
     "language_switcher_aria": "Cambiar idioma",
     "language_switcher_current": "Idioma actual: {locale}",
-    "user_fallback": "Usuario"
+    "user_fallback": "Usuario",
+    "retry": "Reintentar",
+    "cancel": "Cancelar"
   },
   "homepage": {
     "meta": {
@@ -244,6 +246,7 @@
       "see_all": "Ver todo →",
       "locked_chip": "🔒 No verificado",
       "empty_unverified": "Disponible tras la validación de tu perfil.",
+      "confidential_org": "Empresa confidencial",
       "recommended_missions": {
         "title": "Misiones recomendadas",
         "ai_badge": "IA",
@@ -1249,6 +1252,13 @@
       "invoices": "Facturas y pagos",
       "settings": "Ajustes"
     },
+    "errors": {
+      "session_expired_title": "Sesión expirada",
+      "session_expired_body": "Tu sesión ha expirado. Inicia sesión de nuevo para acceder al panel.",
+      "reconnect_cta": "Volver a iniciar sesión",
+      "technical_title": "Se produjo un error",
+      "technical_body": "No se pudo cargar tu panel. Inténtalo de nuevo en un momento."
+    },
     "add_logo": "Añadir un logo →",
     "greeting": "Hola",
     "publish_annonce": "Publicar un anuncio",
@@ -1695,6 +1705,14 @@
       "rejected_reason_label": "Motivo:",
       "rejected_body": "Puedes ajustar tu perfil y volver a enviarlo."
     }
+  },
+  "notifications": {
+    "aria_label_bell": "Centro de notificaciones",
+    "title": "Notificaciones",
+    "read_all": "Marcar todo como leído",
+    "loading": "Cargando…",
+    "empty_title": "Sin notificaciones",
+    "empty_body": "Te avisaremos aquí cuando haya novedades."
   },
   "emails": {
     "common_footer": "El equipo de Skilloria",

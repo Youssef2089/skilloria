@@ -8,6 +8,7 @@ import OrganisationSidebar, {
   type OrganisationLite,
 } from '@/components/dashboard/OrganisationSidebar'
 import AnnonceCard from '@/components/dashboard/AnnonceCard'
+import NotificationBell from '@/components/NotificationBell'
 import type { Annonce, AnnonceStatus } from '@/types/annonce'
 
 // Regroupement des 7 statuts BDD en 4 onglets dashboard.
@@ -203,6 +204,11 @@ export default function OrganisationDashboard({
           minWidth: 0,
         }}
       >
+        {/* Mini topbar org : cloche notif (Lot nettoyage) */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 18 }}>
+          <NotificationBell />
+        </div>
+
         {/* Pastille vérif en attente */}
         {!isApproved && (
           <div

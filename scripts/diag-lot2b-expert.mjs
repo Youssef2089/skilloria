@@ -1,5 +1,9 @@
 // Diagnostique Lot 2b — côté expert.
 //
+// ⚠ DONNÉES OBSOLÈTES depuis le cleanup (cf. scripts/cleanup-test-data.mjs).
+// Les IDs hardcodés (PUBLI_D365 etc.) ont été supprimés en BDD. Pour relancer
+// proprement, utiliser le pattern « jeu éphémère » via scripts/_diag-utils.mjs.
+//
 // Couvre :
 //   (a) Feed via service_role : montre le match D365 / score 9 / reason
 //   (b) Détail + flip notif read + match notified→viewed (atomic)
