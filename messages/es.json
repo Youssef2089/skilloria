@@ -1623,7 +1623,13 @@
       "exchange_open_expert": "Perfil desbloqueado",
       "exchange_open_org": "Intercambio abierto",
       "view_mission": "Ver misión",
-      "view_annonce": "Ver publicación"
+      "view_annonce": "Ver publicación",
+      "tjm_label": "Tarifa diaria",
+      "budget_label": "Remuneración",
+      "location_label": "Ubicación",
+      "duration_label": "Duración",
+      "start_label": "Inicio",
+      "skills_label": "Competencias"
     },
     "inbox": {
       "back_to_dashboard": "← Panel",

@@ -1623,7 +1623,13 @@
       "exchange_open_expert": "Profil freigeschaltet",
       "exchange_open_org": "Austausch offen",
       "view_mission": "Auftrag ansehen",
-      "view_annonce": "Veröffentlichung ansehen"
+      "view_annonce": "Veröffentlichung ansehen",
+      "tjm_label": "Tagessatz",
+      "budget_label": "Vergütung",
+      "location_label": "Ort",
+      "duration_label": "Dauer",
+      "start_label": "Beginn",
+      "skills_label": "Fähigkeiten"
     },
     "inbox": {
       "back_to_dashboard": "← Dashboard",

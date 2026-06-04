@@ -1623,7 +1623,13 @@
       "exchange_open_expert": "Profil débloqué",
       "exchange_open_org": "Échange ouvert",
       "view_mission": "Voir la mission",
-      "view_annonce": "Voir l'annonce"
+      "view_annonce": "Voir l'annonce",
+      "tjm_label": "TJM",
+      "budget_label": "Rémunération",
+      "location_label": "Lieu",
+      "duration_label": "Durée",
+      "start_label": "Démarrage",
+      "skills_label": "Compétences"
     },
     "inbox": {
       "back_to_dashboard": "← Tableau de bord",

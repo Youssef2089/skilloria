@@ -36,6 +36,19 @@ import MessageContextPanel from '@/components/dashboard/MessageContextPanel'
  */
 
 type Correspondant = { kind: 'expert' | 'org'; name: string | null; avatar_url: string | null }
+// SC4 Lot UX Finitions 2 : publication enrichie (budget/lieu/durée/début/skills)
+// pour affichage inline dans MessageContextPanel.
+type ConvPublication = {
+  id: string
+  type: string
+  title: string
+  budget_min: number | null
+  budget_max: number | null
+  location: string | null
+  duration: string | null
+  start_date: string | null
+  skills_required: string[] | null
+}
 type Conversation = {
   id: string
   candidature_id: string
@@ -43,7 +56,7 @@ type Conversation = {
   last_message_at: string | null
   expires_at: string | null
   is_expired: boolean
-  publication: { id: string; type: string; title: string } | null
+  publication: ConvPublication | null
   correspondant: Correspondant
   last_message: { content: string; created_at: string; sender_is_me: boolean } | null
   unread_count: number
@@ -74,7 +87,7 @@ function relativeFromNow(iso: string | null, locale: string): string {
   return locale === 'fr' ? "à l'instant" : 'just now'
 }
 
-type Group = { publication: { id: string; type: string; title: string } | null; conversations: Conversation[] }
+type Group = { publication: ConvPublication | null; conversations: Conversation[] }
 
 function groupByPublication(convs: Conversation[]): Group[] {
   const map = new Map<string, Group>()
@@ -308,7 +321,7 @@ export default function MessagesInbox({ side, selectedConvId }: { side: 'freelan
         {/* Colonne droite : ctx mission (3ᵉ zone — n'apparaît que si conv sélectionnée) */}
         {selectedConvId && (
           <div className="inbox-ctx-col" style={{ minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <MessageContextPanel publication={selectedConv?.publication ?? null} side={side} />
+            <MessageContextPanel publication={selectedConv?.publication ?? null} side={side} locale={locale} />
           </div>
         )}
       </div>

@@ -1623,7 +1623,13 @@
       "exchange_open_expert": "Profile unlocked",
       "exchange_open_org": "Exchange open",
       "view_mission": "View mission",
-      "view_annonce": "View posting"
+      "view_annonce": "View posting",
+      "tjm_label": "Day rate",
+      "budget_label": "Compensation",
+      "location_label": "Location",
+      "duration_label": "Duration",
+      "start_label": "Start date",
+      "skills_label": "Skills"
     },
     "inbox": {
       "back_to_dashboard": "← Dashboard",
