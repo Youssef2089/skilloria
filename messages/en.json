@@ -28,6 +28,7 @@
       "members": "Team members",
       "invoices": "Invoices and payments",
       "annonces": "My postings",
+      "candidatures_org": "Applications",
       "logout": "Sign out"
     },
     "page_titles": {
@@ -1546,6 +1547,24 @@
     "detail_empty_subtitle": "Click an application on the left to see its tracking and available actions."
   },
   "candidatures": {
+    "feed_global": {
+      "back_to_dashboard": "← Dashboard",
+      "header_kicker": "Applications",
+      "header_title": "All your applications",
+      "header_subtitle": "Aggregated view of applications received across all your postings. The full profile is revealed only after you accept the exchange.",
+      "loading": "Loading applications…",
+      "error_generic": "Couldn't load applications. Please try again.",
+      "filter_all": "All",
+      "filter_received": "To review",
+      "filter_unlocked": "Open exchanges",
+      "filter_rejected": "Declined",
+      "empty_all_title": "No applications received",
+      "empty_all_subtitle": "Experts notified by our AI have not applied yet. You'll be alerted on the first application.",
+      "empty_filtered_title": "No applications in this filter",
+      "empty_filtered_subtitle": "Try another filter to see all applications.",
+      "group_count": "{count, plural, =0 {No applications} =1 {1 application} other {# applications}}",
+      "view_pub": "View posting"
+    },
     "feed": {
       "back_to_dashboard": "← Dashboard",
       "header_kicker": "Applications",

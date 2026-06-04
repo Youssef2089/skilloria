@@ -28,6 +28,7 @@
       "members": "Membres équipe",
       "invoices": "Factures et paiements",
       "annonces": "Mes annonces",
+      "candidatures_org": "Candidatures",
       "logout": "Se déconnecter"
     },
     "page_titles": {
@@ -1546,6 +1547,24 @@
     "detail_empty_subtitle": "Cliquez sur une candidature à gauche pour voir son suivi et les actions disponibles."
   },
   "candidatures": {
+    "feed_global": {
+      "back_to_dashboard": "← Tableau de bord",
+      "header_kicker": "Candidatures",
+      "header_title": "Toutes vos candidatures",
+      "header_subtitle": "Vue agrégée des candidatures reçues sur l'ensemble de vos annonces. Le profil complet n'est révélé qu'après acceptation de l'échange.",
+      "loading": "Chargement des candidatures…",
+      "error_generic": "Impossible de charger les candidatures. Réessayez dans un instant.",
+      "filter_all": "Toutes",
+      "filter_received": "À traiter",
+      "filter_unlocked": "Échanges ouverts",
+      "filter_rejected": "Refusées",
+      "empty_all_title": "Aucune candidature reçue",
+      "empty_all_subtitle": "Les experts notifiés par notre IA n'ont pas encore postulé. Vous serez prévenu à la 1re candidature.",
+      "empty_filtered_title": "Aucune candidature dans ce filtre",
+      "empty_filtered_subtitle": "Essayez un autre filtre pour voir l'ensemble des candidatures.",
+      "group_count": "{count, plural, =0 {Aucune candidature} =1 {1 candidature} other {# candidatures}}",
+      "view_pub": "Voir l'annonce"
+    },
     "feed": {
       "back_to_dashboard": "← Tableau de bord",
       "header_kicker": "Candidatures",

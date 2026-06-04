@@ -1,0 +1,97 @@
+import { NextRequest } from 'next/server'
+import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
+import { loadTranslations } from '@/lib/translations'
+import { routing, type Locale } from '@/i18n/routing'
+import { buildOrgCandidatureDTOs } from '@/lib/candidature-org-dto'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+/**
+ * GET /api/me/candidatures-org — vue GLOBALE des candidatures reçues par
+ * l'organisation courante, toutes annonces confondues (SC6 Lot UX Finitions 2).
+ *
+ * Garde (service_role) :
+ *  - requireAuth + auth.organization?.id présent (membre actif d'une org).
+ *  - Le SELECT publications est filtré sur organization_id == auth.org.id —
+ *    ownership stricte côté code, en plus de la RLS.
+ *
+ * Masquage / unlock : RIGOUREUSEMENT identiques à
+ * /api/publications/[id]/candidatures (les deux routes appellent
+ * buildOrgCandidatureDTOs). Un set de invariants vit dans le helper, pas
+ * dans la route — pas de divergence possible.
+ *
+ * Tri : ai_match_score DESC NULLS LAST, created_at DESC (héritage helper).
+ * Le DTO inclut publication_id pour permettre le regroupement côté UI.
+ *
+ * On joint un mini-DTO publication { id, type, title, status } pour chaque
+ * publication référencée par les candidatures retournées.
+ */
+
+function json(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  })
+}
+
+function normalizeLocale(raw: string | null): Locale {
+  return (routing.locales as readonly string[]).includes(raw ?? '')
+    ? (raw as Locale)
+    : routing.defaultLocale
+}
+
+export async function GET(request: NextRequest): Promise<Response> {
+  let auth: AuthContext
+  try {
+    auth = await requireAuth(request)
+  } catch (err) {
+    if (err instanceof AuthError) return err.toResponse()
+    throw err
+  }
+  const orgId = auth.organization?.id
+  if (!orgId) {
+    return json({ error: 'No organization', code: 'org_required' }, 403)
+  }
+
+  // ── Charger TOUTES les publications de l'org (ownership stricte) ────────
+  //    On filtre côté code par organization_id — RLS publications applique
+  //    déjà la contrainte, on re-vérifie pour defense-in-depth.
+  const { data: pubsRaw, error: pErr } = await auth.supabaseAdmin
+    .from('publications')
+    .select('id, type, title, status, organization_id')
+    .eq('organization_id', orgId)
+  if (pErr) {
+    console.error('[me/candidatures-org:GET] pubs lookup failed', pErr.message)
+    return json({ error: 'Query failed', code: 'db_error' }, 500)
+  }
+  const pubs = (pubsRaw ?? []) as { id: string; type: string; title: string; status: string; organization_id: string }[]
+  // Filtre defense-in-depth : on garde uniquement les publications dont l'org
+  // correspond à celle du user courant (au cas où RLS échouerait silencieusement).
+  const ownedPubs = pubs.filter((p) => p.organization_id === orgId)
+  const publicationIds = ownedPubs.map((p) => p.id)
+
+  if (publicationIds.length === 0) {
+    return json({ candidatures: [], publications: [] }, 200)
+  }
+
+  // ── Délégation au helper partagé (même masquage que vue per-pub) ────────
+  const locale = normalizeLocale(new URL(request.url).searchParams.get('locale'))
+  const translations = await loadTranslations(locale)
+  let candidatures: Awaited<ReturnType<typeof buildOrgCandidatureDTOs>>
+  try {
+    candidatures = await buildOrgCandidatureDTOs(auth, publicationIds, translations)
+  } catch {
+    return json({ error: 'Query failed', code: 'db_error' }, 500)
+  }
+
+  // Mini-DTO publication pour permettre le regroupement / labels côté UI.
+  // On ne renvoie QUE les publications qui ont au moins une candidature, pour
+  // alléger la payload.
+  const refPubIds = new Set(candidatures.map((c) => c.publication_id))
+  const publications = ownedPubs
+    .filter((p) => refPubIds.has(p.id))
+    .map((p) => ({ id: p.id, type: p.type, title: p.title, status: p.status }))
+
+  return json({ candidatures, publications }, 200)
+}

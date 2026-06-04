@@ -92,9 +92,10 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
         {
           sectionKey: 'main',
           items: [
-            { key: 'dashboard',    href: '/dashboard/entreprise',          iconKey: 'dashboard' },
-            { key: 'annonces',     href: '/dashboard/entreprise',          iconKey: 'annonces' },
-            { key: 'messages',     href: '/dashboard/entreprise/messages', iconKey: 'messages', badgeSource: 'messages' },
+            { key: 'dashboard',         href: '/dashboard/entreprise',              iconKey: 'dashboard' },
+            { key: 'annonces',          href: '/dashboard/entreprise',              iconKey: 'annonces' },
+            { key: 'candidatures_org',  href: '/dashboard/entreprise/candidatures', iconKey: 'applications', badgeSource: 'candidatures' },
+            { key: 'messages',          href: '/dashboard/entreprise/messages',     iconKey: 'messages', badgeSource: 'messages' },
           ],
         },
         {

@@ -28,6 +28,7 @@
       "members": "Teammitglieder",
       "invoices": "Rechnungen und Zahlungen",
       "annonces": "Meine Veröffentlichungen",
+      "candidatures_org": "Bewerbungen",
       "logout": "Abmelden"
     },
     "page_titles": {
@@ -1546,6 +1547,24 @@
     "detail_empty_subtitle": "Klicken Sie links auf eine Bewerbung, um deren Verfolgung und verfügbare Aktionen zu sehen."
   },
   "candidatures": {
+    "feed_global": {
+      "back_to_dashboard": "← Dashboard",
+      "header_kicker": "Bewerbungen",
+      "header_title": "Alle Ihre Bewerbungen",
+      "header_subtitle": "Gesammelte Übersicht der Bewerbungen, die auf all Ihren Veröffentlichungen eingegangen sind. Das vollständige Profil wird erst nach Annahme des Austauschs angezeigt.",
+      "loading": "Bewerbungen werden geladen…",
+      "error_generic": "Bewerbungen konnten nicht geladen werden. Bitte erneut versuchen.",
+      "filter_all": "Alle",
+      "filter_received": "Zu prüfen",
+      "filter_unlocked": "Offene Austausche",
+      "filter_rejected": "Abgelehnt",
+      "empty_all_title": "Keine Bewerbungen erhalten",
+      "empty_all_subtitle": "Die von unserer KI benachrichtigten Experten haben sich noch nicht beworben. Sie werden bei der ersten Bewerbung benachrichtigt.",
+      "empty_filtered_title": "Keine Bewerbungen in diesem Filter",
+      "empty_filtered_subtitle": "Versuchen Sie einen anderen Filter, um alle Bewerbungen zu sehen.",
+      "group_count": "{count, plural, =0 {Keine Bewerbungen} =1 {1 Bewerbung} other {# Bewerbungen}}",
+      "view_pub": "Veröffentlichung ansehen"
+    },
     "feed": {
       "back_to_dashboard": "← Dashboard",
       "header_kicker": "Bewerbungen",

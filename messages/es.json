@@ -28,6 +28,7 @@
       "members": "Miembros del equipo",
       "invoices": "Facturas y pagos",
       "annonces": "Mis publicaciones",
+      "candidatures_org": "Candidaturas",
       "logout": "Cerrar sesión"
     },
     "page_titles": {
@@ -1546,6 +1547,24 @@
     "detail_empty_subtitle": "Haz clic en una candidatura a la izquierda para ver su seguimiento y las acciones disponibles."
   },
   "candidatures": {
+    "feed_global": {
+      "back_to_dashboard": "← Panel",
+      "header_kicker": "Candidaturas",
+      "header_title": "Todas tus candidaturas",
+      "header_subtitle": "Vista agregada de las candidaturas recibidas en todas tus publicaciones. El perfil completo solo se revela tras aceptar el intercambio.",
+      "loading": "Cargando candidaturas…",
+      "error_generic": "No se pudieron cargar las candidaturas. Vuelve a intentarlo.",
+      "filter_all": "Todas",
+      "filter_received": "Por revisar",
+      "filter_unlocked": "Intercambios abiertos",
+      "filter_rejected": "Rechazadas",
+      "empty_all_title": "Sin candidaturas recibidas",
+      "empty_all_subtitle": "Los expertos notificados por nuestra IA aún no han aplicado. Te avisaremos en cuanto llegue la primera candidatura.",
+      "empty_filtered_title": "Sin candidaturas en este filtro",
+      "empty_filtered_subtitle": "Prueba con otro filtro para ver todas las candidaturas.",
+      "group_count": "{count, plural, =0 {Sin candidaturas} =1 {1 candidatura} other {# candidaturas}}",
+      "view_pub": "Ver publicación"
+    },
     "feed": {
       "back_to_dashboard": "← Panel",
       "header_kicker": "Candidaturas",
