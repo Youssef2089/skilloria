@@ -168,9 +168,21 @@ export default function DashboardEntreprise() {
     }
   }, [secureFetch, locale])
 
+  // Point 1 (temps réel) : polling 30s aligné cloche + revalidate-on-focus +
+  // écoute 'skilloria:notif-bump' (émis par NotificationBell). Cleanup propre.
   useEffect(() => {
     if (state.kind !== 'ready') return
     void loadAnnonces()
+    const intervalId = window.setInterval(() => { void loadAnnonces() }, 30_000)
+    const onFocus = () => { void loadAnnonces() }
+    const onNotifBump = () => { void loadAnnonces() }
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('skilloria:notif-bump', onNotifBump)
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('skilloria:notif-bump', onNotifBump)
+    }
   }, [state.kind, loadAnnonces])
 
   if (state.kind === 'loading' || state.kind === 'no_org' || needsRedirect) {

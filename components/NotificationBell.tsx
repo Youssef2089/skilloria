@@ -74,6 +74,7 @@ export default function NotificationBell({ ariaLabel }: { ariaLabel?: string }) 
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<Notification[] | null>(null)
   const [unread, setUnread] = useState(0)
+  const previousUnreadRef = useRef<number>(0)
   const dropdownRef = useRef<HTMLDivElement | null>(null)
   const buttonRef = useRef<HTMLButtonElement | null>(null)
 
@@ -82,8 +83,16 @@ export default function NotificationBell({ ariaLabel }: { ariaLabel?: string }) 
       const res = await secureFetch('/api/me/notifications', { method: 'GET' })
       if (!res.ok) return
       const payload = (await res.json()) as { notifications?: Notification[]; unread_count?: number }
+      const newUnread = payload.unread_count ?? 0
       setItems(payload.notifications ?? [])
-      setUnread(payload.unread_count ?? 0)
+      setUnread(newUnread)
+      // Point 1 (temps réel) : émet un event quand unread_count AUGMENTE.
+      // Les dashboards expert/org l'écoutent pour re-fetch leurs stats sans attendre
+      // leur propre cycle de polling. UI quasi-instantanée à 30s.
+      if (typeof window !== 'undefined' && newUnread > previousUnreadRef.current) {
+        window.dispatchEvent(new CustomEvent('skilloria:notif-bump', { detail: { unread: newUnread } }))
+      }
+      previousUnreadRef.current = newUnread
     } catch (err) {
       if (!silent) console.error('[NotificationBell] load threw', err)
     }

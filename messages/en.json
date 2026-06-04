@@ -1423,6 +1423,30 @@
       "generic": "An error occurred. Please try again."
     }
   },
+  "candidatures_tracking": {
+    "back_to_dashboard": "← Dashboard",
+    "title": "My applications",
+    "subtitle": "Mission tracking: status, open exchanges, and related messages.",
+    "loading": "Loading…",
+    "error_generic": "Could not load your applications.",
+    "empty_title": "No applications yet",
+    "empty_subtitle": "Your applications will appear here as soon as you apply to a mission.",
+    "candidated_ago": "Applied {time} ago",
+    "waiting_for_org": "The company hasn't responded yet. You'll be notified as soon as they process your application.",
+    "unlocked_since": "Exchange opened {time} ago — you can communicate directly.",
+    "rejection_reason_label": "Reason:",
+    "view_mission": "View mission",
+    "open_conversation": "Open conversation",
+    "status": {
+      "received": "Received",
+      "in_review": "In review",
+      "shortlisted": "Shortlisted",
+      "unlocked": "Exchange open",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn",
+      "archived": "Archived"
+    }
+  },
   "candidatures": {
     "feed": {
       "back_to_dashboard": "← Dashboard",

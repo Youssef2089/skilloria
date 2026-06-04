@@ -265,9 +265,12 @@ const EMPTY_CANDIDATURES = {
 /**
  * Mapping logique compteurs UI ↔ candidatures.status :
  *   recues        = total (toutes lignes)
- *   nouvelles     = 'received'    (jamais ouverte)
- *   en_discussion = 'in_review' + 'shortlisted'
- *   retenues      = 'unlocked'    (échange ouvert / payoff)
+ *   nouvelles     = 'received'                                  (jamais ouverte)
+ *   en_discussion = 'in_review' + 'shortlisted' + 'unlocked'    (toute candidature
+ *                   active : en revue, présélectionnée, OU échange ouvert)
+ *   retenues      = (vide V1)                                   (réservé Lot 2d :
+ *                   sélection délibérée de l'org via action "Retenir" — pas
+ *                   encore d'action UI, le compteur reste à 0)
  *   refusees      = 'rejected'
  *   ('withdrawn' et 'archived' ne comptent dans aucune case visible côté org)
  */
@@ -278,9 +281,9 @@ function makeEmptyAgg(): CounterAgg {
 function bumpAgg(agg: CounterAgg, status: string): void {
   agg.recues += 1
   if (status === 'received') agg.nouvelles += 1
-  else if (status === 'in_review' || status === 'shortlisted') agg.en_discussion += 1
-  else if (status === 'unlocked') agg.retenues += 1
+  else if (status === 'in_review' || status === 'shortlisted' || status === 'unlocked') agg.en_discussion += 1
   else if (status === 'rejected') agg.refusees += 1
+  // 'retenues' reste à 0 jusqu'au Lot 2d (action "Retenir" côté org)
 }
 
 function normalizeLocale(raw: string | null): Locale {

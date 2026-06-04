@@ -1423,6 +1423,30 @@
       "generic": "Une erreur est survenue. Veuillez réessayer."
     }
   },
+  "candidatures_tracking": {
+    "back_to_dashboard": "← Tableau de bord",
+    "title": "Mes candidatures",
+    "subtitle": "Suivi par mission : statut, échanges ouverts, et messages associés.",
+    "loading": "Chargement…",
+    "error_generic": "Impossible de charger vos candidatures.",
+    "empty_title": "Aucune candidature pour l'instant",
+    "empty_subtitle": "Vos candidatures apparaîtront ici dès que vous postulez à une mission.",
+    "candidated_ago": "Candidaté il y a {time}",
+    "waiting_for_org": "L'entreprise n'a pas encore répondu. Vous serez notifié dès qu'elle traite votre candidature.",
+    "unlocked_since": "Échange ouvert il y a {time} — vous pouvez communiquer directement.",
+    "rejection_reason_label": "Motif :",
+    "view_mission": "Voir la mission",
+    "open_conversation": "Ouvrir la conversation",
+    "status": {
+      "received": "Reçue",
+      "in_review": "En revue",
+      "shortlisted": "Présélectionnée",
+      "unlocked": "Échange ouvert",
+      "rejected": "Refusée",
+      "withdrawn": "Retirée",
+      "archived": "Archivée"
+    }
+  },
   "candidatures": {
     "feed": {
       "back_to_dashboard": "← Tableau de bord",

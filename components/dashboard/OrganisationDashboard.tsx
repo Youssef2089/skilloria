@@ -9,6 +9,7 @@ import OrganisationSidebar, {
 } from '@/components/dashboard/OrganisationSidebar'
 import AnnonceCard from '@/components/dashboard/AnnonceCard'
 import NotificationBell from '@/components/NotificationBell'
+import { useNavBadges } from '@/hooks/useNavBadges'
 import type { Annonce, AnnonceStatus } from '@/types/annonce'
 
 // Regroupement des 7 statuts BDD en 4 onglets dashboard.
@@ -95,11 +96,16 @@ export default function OrganisationDashboard({
   organization,
   basePath,
   annonces,
-  unreadMessagesCount = 0,
+  unreadMessagesCount,
 }: Props) {
   const t = useTranslations('dashboard_entreprise')
   const tPub = useTranslations('publications')
   const domain = useDomain()
+  // Point 5 (finitions UX) : compteur de messages non lus côté nav, branché
+  // sur /api/me/conversations. La prop `unreadMessagesCount` (legacy) reste
+  // utilisée si fournie explicitement (override) ; sinon → hook live.
+  const badges = useNavBadges()
+  const effectiveUnread = unreadMessagesCount ?? badges.messages_unread ?? 0
 
   const [activeTab, setActiveTab] = useState<TabKey>('published')
   const [searchQuery, setSearchQuery] = useState('')
@@ -192,7 +198,7 @@ export default function OrganisationDashboard({
 
       <OrganisationSidebar
         organization={organization}
-        unreadMessagesCount={unreadMessagesCount}
+        unreadMessagesCount={effectiveUnread}
         activeItem="dashboard"
         basePath={basePath}
       />

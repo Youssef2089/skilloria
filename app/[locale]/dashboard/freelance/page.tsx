@@ -11,6 +11,7 @@ import TJMQuickEditModal from '@/components/TJMQuickEditModal'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import VerificationBanner from '@/components/dashboard/VerificationBanner'
 import NotificationBell from '@/components/NotificationBell'
+import { useNavBadges } from '@/hooks/useNavBadges'
 
 type ProfileData = {
   tjm_min: number | null
@@ -52,6 +53,7 @@ export default function DashboardFreelance() {
   const domain = useDomain()
   const secureLogout = useSecureLogout()
   const secureFetch = useSecureFetch()
+  const navBadges = useNavBadges()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -107,10 +109,14 @@ export default function DashboardFreelance() {
     return () => window.clearTimeout(id)
   }, [toast])
 
-  // ── Câblage compteurs home + Missions recommandées (Lot nettoyage) ────────
+  // ── Câblage compteurs home + Missions recommandées + temps réel ────────────
   //  Charge missions matchées (3 meilleures), candidatures (count), conversations
   //  (unread). Si non vérifié → la route /api/me/missions renvoie 403 → on
   //  affiche 0/— et l'utilisateur voit pourquoi via la bannière vérif.
+  //
+  //  Point 1 (temps réel) : polling 30s (aligné cloche) + revalidate-on-focus
+  //  (retour d'onglet) + écoute 'skilloria:notif-bump' (émis par NotificationBell
+  //  quand unread_count augmente → refetch immédiat). Cleanup propre au démontage.
   useEffect(() => {
     if (loading) return
     let cancelled = false
@@ -156,7 +162,17 @@ export default function DashboardFreelance() {
       }
     }
     void load()
-    return () => { cancelled = true }
+    const intervalId = window.setInterval(() => { void load() }, 30_000)
+    const onFocus = () => { void load() }
+    const onNotifBump = () => { void load() }
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('skilloria:notif-bump', onNotifBump)
+    return () => {
+      cancelled = true
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('skilloria:notif-bump', onNotifBump)
+    }
   }, [loading, secureFetch, locale, user, profile])
 
   if (loading) return (
@@ -373,10 +389,10 @@ export default function DashboardFreelance() {
           <div style={{ fontSize: 11, color: '#9ca3af', padding: '8px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>{t('sidebar.sections.main')}</div>
           <div className="nav-item-active">{t('sidebar.nav.dashboard')}</div>
           {[
-            { label: t('sidebar.nav.profile'), locked: false, href: '/dashboard/freelance/mon-profil' },
-            { label: t('sidebar.nav.missions'), locked: !isVerified, href: isVerified ? '/dashboard/freelance/missions' : null },
-            { label: t('sidebar.nav.applications'), locked: !isVerified, href: null },
-            { label: t('sidebar.nav.messages'), locked: false, href: '/dashboard/freelance/messages' },
+            { label: t('sidebar.nav.profile'), locked: false, href: '/dashboard/freelance/mon-profil', badge: null as number | null },
+            { label: t('sidebar.nav.missions'), locked: !isVerified, href: isVerified ? '/dashboard/freelance/missions' : null, badge: null as number | null },
+            { label: t('sidebar.nav.applications'), locked: !isVerified, href: isVerified ? '/dashboard/freelance/candidatures' : null, badge: isVerified ? navBadges.candidatures_unread : null },
+            { label: t('sidebar.nav.messages'), locked: false, href: '/dashboard/freelance/messages', badge: navBadges.messages_unread },
           ].map((item, i) => {
             const sharedStyle: React.CSSProperties = {
               animationDelay: `${(i + 1) * 0.05}s`,
@@ -384,16 +400,29 @@ export default function DashboardFreelance() {
               cursor: item.locked ? 'not-allowed' : 'pointer',
               textDecoration: 'none',
             }
+            const labelWithBadge = (
+              <>
+                <span>{item.label}</span>
+                {item.badge != null && item.badge > 0 && (
+                  <span
+                    aria-label={`${item.badge} non lus`}
+                    style={{ marginLeft: 8, minWidth: 18, height: 18, padding: '0 6px', background: '#DC2626', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 9, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                  >
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
+              </>
+            )
             if (item.href && !item.locked) {
               return (
                 <Link key={item.label} href={item.href} className="nav-item" style={sharedStyle}>
-                  {item.label}
+                  {labelWithBadge}
                 </Link>
               )
             }
             return (
               <div key={item.label} className="nav-item" style={sharedStyle}>
-                {item.label}
+                {labelWithBadge}
                 {item.locked && <span style={{ fontSize: 12 }}>🔒</span>}
               </div>
             )
