@@ -9,6 +9,7 @@ import OrganisationSidebar, {
 } from '@/components/dashboard/OrganisationSidebar'
 import AnnonceCard from '@/components/dashboard/AnnonceCard'
 import NotificationBell from '@/components/NotificationBell'
+import MessagesTopbarIcon from '@/components/MessagesTopbarIcon'
 import { useNavBadges } from '@/hooks/useNavBadges'
 import type { Annonce, AnnonceStatus } from '@/types/annonce'
 
@@ -210,8 +211,9 @@ export default function OrganisationDashboard({
           minWidth: 0,
         }}
       >
-        {/* Mini topbar org : cloche notif (Lot nettoyage) */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 18 }}>
+        {/* Mini topbar org : icône messagerie + cloche notif */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 4, marginBottom: 18 }}>
+          <MessagesTopbarIcon side="entreprise" />
           <NotificationBell />
         </div>
 

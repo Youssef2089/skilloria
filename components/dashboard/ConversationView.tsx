@@ -53,7 +53,17 @@ function formatDate(iso: string, locale: string): string {
   }
 }
 
-export default function ConversationView({ convId, side }: { convId: string; side: 'freelance' | 'entreprise' }) {
+/**
+ * Props :
+ *   - convId   : id de la conversation à afficher
+ *   - side     : freelance | entreprise (pour les URLs back)
+ *   - embedded : true quand le composant est intégré dans le layout 2 panneaux
+ *                de MessagesInbox (Point 6 finitions UX). Dans ce mode :
+ *                  • pas de wrapper plein écran (maxWidth/padding réduits)
+ *                  • pas de bouton "Retour à l'inbox" (la liste est à gauche)
+ *                Par défaut false → comportement Lot 3 (plein écran).
+ */
+export default function ConversationView({ convId, side, embedded = false }: { convId: string; side: 'freelance' | 'entreprise'; embedded?: boolean }) {
   const t = useTranslations('messages.view')
   const tPub = useTranslations('publications')
   const locale = useLocale()
@@ -176,14 +186,22 @@ export default function ConversationView({ convId, side }: { convId: string; sid
   }
 
   return (
-    <div style={{ maxWidth: 880, margin: '0 auto', padding: '20px 24px 60px', fontFamily: 'Inter, sans-serif', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 40px)' }}>
-      <button
-        type="button"
-        onClick={() => router.push(`${basePath}/messages`)}
-        style={{ background: 'transparent', border: 'none', color: domain.primaryColor, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 12 }}
-      >
-        {t('back_to_inbox')}
-      </button>
+    <div
+      style={
+        embedded
+          ? { padding: '14px 16px', fontFamily: 'Inter, sans-serif', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }
+          : { maxWidth: 880, margin: '0 auto', padding: '20px 24px 60px', fontFamily: 'Inter, sans-serif', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 40px)' }
+      }
+    >
+      {!embedded && (
+        <button
+          type="button"
+          onClick={() => router.push(`${basePath}/messages`)}
+          style={{ background: 'transparent', border: 'none', color: domain.primaryColor, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 12 }}
+        >
+          {t('back_to_inbox')}
+        </button>
+      )}
 
       {/* Header conv : correspondant + publication */}
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, paddingBottom: 14, borderBottom: '0.5px solid #e5e7eb', marginBottom: 14 }}>

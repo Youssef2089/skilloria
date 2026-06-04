@@ -11,6 +11,7 @@ import TJMQuickEditModal from '@/components/TJMQuickEditModal'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import VerificationBanner from '@/components/dashboard/VerificationBanner'
 import NotificationBell from '@/components/NotificationBell'
+import MessagesTopbarIcon from '@/components/MessagesTopbarIcon'
 import { useNavBadges } from '@/hooks/useNavBadges'
 
 type ProfileData = {
@@ -331,6 +332,7 @@ export default function DashboardFreelance() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <LanguageSwitcher />
+          <MessagesTopbarIcon side="freelance" />
           <NotificationBell />
           {isVerified ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#dcfce7', border: '1px solid #bbf7d0', padding: '7px 16px', borderRadius: 20 }}>

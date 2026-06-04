@@ -1473,6 +1473,7 @@
       "years_experience": "{years} year(s) of experience",
       "candidated_ago": "Applied {time} ago",
       "cover_message_label": "Cover message",
+      "ai_pitch_label": "Why this candidate fits your mission",
       "unlocked_section_label": "Full profile unlocked",
       "rejection_reason_label": "Rejection reason",
       "email": "Email",
@@ -1515,6 +1516,9 @@
     }
   },
   "messages": {
+    "topbar": {
+      "aria_label": "Messaging"
+    },
     "inbox": {
       "back_to_dashboard": "← Dashboard",
       "title": "Messages",
@@ -1526,7 +1530,11 @@
       "sender_me": "You:",
       "no_messages_yet": "No messages yet — start the conversation.",
       "expired_badge": "Expired",
-      "unknown_correspondant": "(unknown correspondent)"
+      "unknown_correspondant": "(unknown correspondent)",
+      "group_no_publication": "No mission",
+      "group_no_publication_title": "Conversations without associated mission",
+      "detail_empty_title": "Pick a conversation",
+      "detail_empty_subtitle": "Select an exchange on the left to view the message thread."
     },
     "view": {
       "back_to_inbox": "← Messages",

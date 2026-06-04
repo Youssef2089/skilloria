@@ -1473,6 +1473,7 @@
       "years_experience": "{years} año(s) de experiencia",
       "candidated_ago": "Postuló hace {time}",
       "cover_message_label": "Carta de motivación",
+      "ai_pitch_label": "Por qué este candidato encaja con tu misión",
       "unlocked_section_label": "Perfil completo desbloqueado",
       "rejection_reason_label": "Motivo del rechazo",
       "email": "Correo",
@@ -1515,6 +1516,9 @@
     }
   },
   "messages": {
+    "topbar": {
+      "aria_label": "Mensajería"
+    },
     "inbox": {
       "back_to_dashboard": "← Panel",
       "title": "Mensajes",
@@ -1526,7 +1530,11 @@
       "sender_me": "Tú:",
       "no_messages_yet": "Aún no hay mensajes — inicia la conversación.",
       "expired_badge": "Expirado",
-      "unknown_correspondant": "(corresponsal desconocido)"
+      "unknown_correspondant": "(corresponsal desconocido)",
+      "group_no_publication": "Sin misión",
+      "group_no_publication_title": "Conversaciones sin misión asociada",
+      "detail_empty_title": "Elige una conversación",
+      "detail_empty_subtitle": "Selecciona un intercambio a la izquierda para ver el hilo de mensajes."
     },
     "view": {
       "back_to_inbox": "← Mensajes",

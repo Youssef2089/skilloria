@@ -77,11 +77,22 @@ export type PublicationForMatching = {
 
 /**
  * Sortie IA pour UN match. `profile_id` doit appartenir au set candidates fourni.
+ *
+ * - reason     : pitch neutre/factuel, affiché côté expert ("Pourquoi ça vous
+ *                correspond").
+ * - pitch_org  : pitch orienté chasse/recruteur, affiché côté org dans la card
+ *                de candidature ("Pourquoi ce candidat colle à votre mission").
+ *                ⚠ Généré dans la même langue que reason (locale de l'annonce =
+ *                locale de l'org au moment du publish). Pas de PII (prompt
+ *                strictement whitelist ProfileCandidate).
+ *                Optionnel pour compat legacy : si absent, le DTO org tombe en
+ *                fallback sur `reason`.
  */
 export type AiMatchProposal = {
   profile_id: string
   score: number  // 0..10
   reason: string
+  pitch_org?: string
 }
 
 export type MatchingVerdict = {

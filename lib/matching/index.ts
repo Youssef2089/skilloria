@@ -282,7 +282,7 @@ async function upsertMatches(args: {
   supabaseAdmin: SupabaseClient
   publicationId: string
   domainId: string
-  proposals: { profile_id: string; score: number; reason: string }[]
+  proposals: { profile_id: string; score: number; reason: string; pitch_org?: string }[]
   model: string
 }): Promise<{ ok: boolean }> {
   const { supabaseAdmin, publicationId, domainId, proposals, model } = args
@@ -293,7 +293,11 @@ async function upsertMatches(args: {
     profile_id: p.profile_id,
     domain_id: domainId,
     score: p.score,
-    explanation: { reason: p.reason, model, evaluated_at: nowIso },
+    // Lot finitions UX (Point 2) : on stocke aussi le pitch_org (orienté
+    // chasse) à côté de reason (orienté candidat). pitch_org optionnel :
+    // les matchs legacy (avant ce lot) n'ont que reason ; le DTO org tombe en
+    // fallback sur reason si pitch_org est absent.
+    explanation: { reason: p.reason, pitch_org: p.pitch_org ?? null, model, evaluated_at: nowIso },
     status: 'pending',
   }))
   const { error } = await supabaseAdmin

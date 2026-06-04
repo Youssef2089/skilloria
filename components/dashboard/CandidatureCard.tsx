@@ -92,6 +92,7 @@ export type CandidatureData = {
   ai_match_score: number | null
   created_at: string
   conversation_id: string | null
+  ai_pitch: string | null
   preview: CandidaturePreview
   unlocked_profile: CandidatureUnlockedProfile | null
 }
@@ -147,7 +148,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
   const [confirmReject, setConfirmReject] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
 
-  const { status, preview, unlocked_profile, ai_match_score, cover_message, created_at, status_reason } = candidature
+  const { status, preview, unlocked_profile, ai_match_score, cover_message, created_at, status_reason, ai_pitch } = candidature
   const isUnlocked = status === 'unlocked'
   const isRejected = status === 'rejected'
   const isClosed = isRejected || status === 'withdrawn' || status === 'archived'
@@ -313,8 +314,28 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
         </div>
       )}
 
-      {/* Summary preview (clip 220 char) */}
-      {preview.summary && (
+      {/* Pitch IA orienté org (Lot finitions UX Point 2) — affiché en haut
+          comme accroche. Si absent (matchs legacy), fallback discret sur
+          preview.summary tronqué. Toujours sans PII (whitelist côté IA). */}
+      {ai_pitch ? (
+        <div
+          style={{
+            background: `${domain.primaryColor}0F`,
+            border: `1px solid ${domain.primaryColor}33`,
+            borderRadius: 10,
+            padding: '11px 14px',
+            fontSize: 13,
+            color: '#0f172a',
+            lineHeight: 1.55,
+            marginBottom: 12,
+          }}
+        >
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: domain.primaryColor, marginBottom: 5 }}>
+            ✨ {t('ai_pitch_label')}
+          </div>
+          {ai_pitch}
+        </div>
+      ) : preview.summary && (
         <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, margin: '0 0 12px 0' }}>
           {preview.summary.length > 220 ? `${preview.summary.slice(0, 220)}…` : preview.summary}
         </p>

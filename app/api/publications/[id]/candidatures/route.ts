@@ -120,6 +120,25 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
 
   const rows = (candResult.data ?? []) as unknown as CandidatureRow[]
 
+  // ── Pitch IA orienté org (Lot finitions UX Point 2) ──────────────────────
+  //    Charge matches.explanation pour chaque match_id présent. On en extrait
+  //    pitch_org (orienté chasse) ; fallback sur reason si pitch_org absent
+  //    (matchs legacy d'avant ce lot). Aucune PII ne transite : matches.explanation
+  //    contient uniquement les textes générés par l'IA depuis ProfileCandidate
+  //    (whitelist, voir lib/matching/ai-profile-matching.ts).
+  const matchIds = Array.from(new Set(rows.map((r) => r.match_id).filter((id): id is string => !!id)))
+  const pitchByMatch = new Map<string, string>()
+  if (matchIds.length > 0) {
+    const { data: matchRows } = await auth.supabaseAdmin
+      .from('matches')
+      .select('id, explanation')
+      .in('id', matchIds)
+    for (const m of ((matchRows ?? []) as { id: string; explanation: { pitch_org?: string | null; reason?: string | null } | null }[])) {
+      const pitch = m.explanation?.pitch_org?.trim() || m.explanation?.reason?.trim() || ''
+      if (pitch) pitchByMatch.set(m.id, pitch)
+    }
+  }
+
   // ── Conversation_id pour les candidatures unlocked (Lot 3) ─────────────
   //    Batch query : on récupère l'id de conv pour chaque candidature unlocked.
   const unlockedCandIds = rows.filter((r) => r.status === 'unlocked').map((r) => r.id)
@@ -280,6 +299,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
       ai_match_score: row.ai_match_score,
       created_at: row.created_at,
       conversation_id: row.status === 'unlocked' ? convIdByCand.get(row.id) ?? null : null,
+      ai_pitch: row.match_id ? (pitchByMatch.get(row.match_id) ?? null) : null,
       unlocked_profile: unlockedProfile,
       preview: {
         title:                preview.title ?? null,

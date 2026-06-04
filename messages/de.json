@@ -1473,6 +1473,7 @@
       "years_experience": "{years} Jahr(e) Erfahrung",
       "candidated_ago": "Beworben vor {time}",
       "cover_message_label": "Motivationsschreiben",
+      "ai_pitch_label": "Warum dieser Kandidat zu Ihrem Auftrag passt",
       "unlocked_section_label": "Vollständiges Profil freigeschaltet",
       "rejection_reason_label": "Ablehnungsgrund",
       "email": "E-Mail",
@@ -1515,6 +1516,9 @@
     }
   },
   "messages": {
+    "topbar": {
+      "aria_label": "Messaging"
+    },
     "inbox": {
       "back_to_dashboard": "← Dashboard",
       "title": "Nachrichten",
@@ -1526,7 +1530,11 @@
       "sender_me": "Sie:",
       "no_messages_yet": "Noch keine Nachricht — starten Sie das Gespräch.",
       "expired_badge": "Abgelaufen",
-      "unknown_correspondant": "(unbekannte/r Korrespondent/in)"
+      "unknown_correspondant": "(unbekannte/r Korrespondent/in)",
+      "group_no_publication": "Ohne Auftrag",
+      "group_no_publication_title": "Konversationen ohne zugehörigen Auftrag",
+      "detail_empty_title": "Wählen Sie eine Konversation",
+      "detail_empty_subtitle": "Wählen Sie links einen Austausch aus, um den Nachrichtenverlauf anzuzeigen."
     },
     "view": {
       "back_to_inbox": "← Nachrichten",

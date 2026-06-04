@@ -38,6 +38,7 @@ type ClaudeMatch = {
   profile_id?: unknown
   score?: unknown
   reason?: unknown
+  pitch_org?: unknown
 }
 
 type ClaudeOutput = {
@@ -152,11 +153,24 @@ TA MISSION
 2. Identifie ceux dont le profil "fit" raisonnablement (compétences proches,
    expérience adaptée, dispo/budget compatibles, mobilité ok…).
 3. CLASSE-les par pertinence DÉCROISSANTE.
-4. Pour chacun, attribue un score 0–10 et une justification brève (1–2 phrases)
-   indiquant les points-clés du fit (compétences, expérience, dispo, budget, …).
-5. NE retourne QUE les candidats que tu juges pertinents (typiquement 3 à 20).
+4. Pour chacun, produis DEUX textes complémentaires :
+   • "reason" : justification NEUTRE/FACTUELLE (1–2 phrases) destinée au
+     CANDIDAT lui-même ("Vous correspondez bien — vos N ans X…"). Points-clés
+     du fit (compétences, expérience, dispo, budget).
+   • "pitch_org" : pitch ORIENTÉ CHASSE/RECRUTEUR (1–2 phrases) destiné à
+     l'ENTREPRISE qui a publié ("Ce candidat couvre votre besoin X et apporte
+     Y", "Profil senior aligné sur vos exigences en Z"). Ton premium mais
+     toujours FACTUEL — pas de superlatifs creux, pas de "parfait", pas de
+     promesses commerciales. Sert d'accroche dans la fiche candidature côté org.
+5. Pour chacun, attribue aussi un score 0–10.
+6. NE retourne QUE les candidats que tu juges pertinents (typiquement 3 à 20).
    Pas besoin de retourner tous les candidats — ceux qui n'ont rien à voir
    restent en dehors de ta liste.
+
+⚠ CONTRAINTE PII GRAVÉE : le pool de candidats ci-dessus est strictement
+anonymisé (whitelist : pas de nom, e-mail, téléphone, contact). Le texte que
+tu produis NE DOIT JAMAIS contenir d'identité supposée, d'invention de nom,
+ou de référence à une personne nominale. Reste sur les compétences/parcours.
 
 ÉCHELLE DE SCORE :
 - 9–10 : fit excellent (compétences-clés couvertes, séniorité OK, dispo + budget OK).
@@ -182,7 +196,8 @@ FORMAT DE RÉPONSE (JSON STRICT, sans markdown, sans texte autour)
     {
       "profile_id": "<UUID exact d'un candidat ci-dessus>",
       "score": <entier 0..10, >= 5>,
-      "reason": "<1–2 phrases factuelles EN ${langName.toUpperCase()}>"
+      "reason": "<1–2 phrases factuelles ADRESSÉES AU CANDIDAT, en ${langName.toUpperCase()}>",
+      "pitch_org": "<1–2 phrases factuelles ADRESSÉES À L'ENTREPRISE, en ${langName.toUpperCase()}>"
     },
     ...
   ]
@@ -209,11 +224,14 @@ function normalizeProposal(item: unknown, candidateIds: Set<string>): AiMatchPro
   const profileId = typeof m.profile_id === 'string' ? m.profile_id.trim() : ''
   const rawScore = typeof m.score === 'number' ? m.score : Number(m.score)
   const reason = typeof m.reason === 'string' ? m.reason.trim().slice(0, 800) : ''
+  const pitchOrg = typeof m.pitch_org === 'string' ? m.pitch_org.trim().slice(0, 800) : ''
   if (!profileId || !candidateIds.has(profileId)) return null
   if (!Number.isFinite(rawScore)) return null
   const score = Math.max(0, Math.min(10, Math.round(rawScore)))
   if (!reason) return null
-  return { profile_id: profileId, score, reason }
+  // pitch_org optionnel : si absent (modèle ancien / parse partiel), on accepte
+  // la proposition sans bloquer — le dispatcher orgazon utilisera le fallback reason.
+  return pitchOrg ? { profile_id: profileId, score, reason, pitch_org: pitchOrg } : { profile_id: profileId, score, reason }
 }
 
 export type ProfileMatchingResult =
