@@ -517,7 +517,7 @@ export default function PublicationForm(props: Props) {
 
   // ── Form principal ─────────────────────────────────────────────────────
   return (
-    <div style={{ maxWidth: 880, margin: '0 auto', padding: '32px 24px', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ maxWidth: 880, padding: '24px 26px 40px', fontFamily: 'inherit' }}>
       <button
         type="button"
         onClick={() => router.push('/dashboard/entreprise')}

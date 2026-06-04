@@ -140,7 +140,7 @@ export default function CandidaturesPage({ params }: Props) {
   ]
 
   return (
-    <div style={{ maxWidth: 980, margin: '0 auto', padding: '28px 24px 60px', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit' }}>
       <button
         type="button"
         onClick={() => router.push('/dashboard/entreprise')}
