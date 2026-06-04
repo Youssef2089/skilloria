@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import CandidatureModal from '@/components/dashboard/CandidatureModal'
 
 /**
  * /dashboard/freelance/missions/[id] — détail d'une opportunité matchée.
@@ -137,11 +138,15 @@ export default function MissionDetailPage({ params }: Props) {
   }, [params, load])
 
   // ── Actions ─────────────────────────────────────────────────────────────
-  const handleSubmitCandidature = async () => {
+  // SC3 : handleSubmitCandidature accepte le cover_message en paramètre
+  //  (envoyé par CandidatureModal via onSubmit). Le state local coverMessage
+  //  reste pour rétrocompat mais n'est plus la source de vérité.
+  const handleSubmitCandidature = async (coverFromModal?: string | null) => {
     if (!pubId) return
     setErrorBanner(null)
     setSuccessBanner(null)
-    if (coverMessage.length > 2000) {
+    const cover = coverFromModal !== undefined ? coverFromModal : (coverMessage.trim() || null)
+    if (cover && cover.length > 2000) {
       setErrorBanner(t('error_cover_too_long'))
       return
     }
@@ -152,7 +157,7 @@ export default function MissionDetailPage({ params }: Props) {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           publication_id: pubId,
-          cover_message: coverMessage.trim() || null,
+          cover_message: cover,
         }),
       })
       const payload = (await res.json().catch(() => ({} as { code?: string }))) as { code?: string; status?: string }
@@ -407,77 +412,17 @@ export default function MissionDetailPage({ params }: Props) {
         ) : null}
       </div>
 
-      {/* Cover message form (inline) */}
-      {coverOpen && !alreadyApplied && (
-        <div style={{ background: '#fff', border: `1.5px solid ${domain.primaryColor}`, borderRadius: 14, padding: '22px 24px', marginTop: 18 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>{t('cover_title')}</h2>
-          <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.55, marginBottom: 14 }}>
-            {t('cover_subtitle')}
-          </p>
-          <textarea
-            value={coverMessage}
-            onChange={(e) => setCoverMessage(e.target.value)}
-            placeholder={t('cover_placeholder')}
-            maxLength={2000}
-            rows={6}
-            style={{
-              width: '100%',
-              padding: '11px 14px',
-              fontSize: 14,
-              border: '1px solid #cbd5e1',
-              borderRadius: 10,
-              outline: 'none',
-              fontFamily: 'inherit',
-              resize: 'vertical',
-              boxSizing: 'border-box',
-              lineHeight: 1.55,
-              marginBottom: 6,
-            }}
-          />
-          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 14 }}>
-            {coverMessage.length} / 2000
-          </div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={() => { setCoverOpen(false); setCoverMessage('') }}
-              disabled={submitting}
-              style={{
-                padding: '10px 18px',
-                background: 'transparent',
-                color: '#64748b',
-                border: '1px solid #cbd5e1',
-                borderRadius: 10,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: submitting ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit',
-              }}
-            >
-              {t('cover_cancel')}
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmitCandidature}
-              disabled={submitting}
-              style={{
-                padding: '10px 18px',
-                background: domain.primaryColor,
-                color: '#fff',
-                border: 'none',
-                borderRadius: 10,
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: submitting ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit',
-                opacity: submitting ? 0.6 : 1,
-              }}
-            >
-              {submitting ? t('cover_submitting') : t('cover_submit')}
-            </button>
-          </div>
-        </div>
-      )}
+      {/* SC3 — Modal réutilisable (remplace l'inline form). Logique POST
+          inchangée : handleSubmitCandidature accepte le cover_message du modal
+          et appelle /api/candidatures comme avant. */}
+      <CandidatureModal
+        open={coverOpen && !alreadyApplied}
+        publicationTitle={pub.title}
+        onClose={() => { setCoverOpen(false); setCoverMessage(''); setErrorBanner(null) }}
+        onSubmit={async (cm) => { await handleSubmitCandidature(cm) }}
+        busy={submitting}
+        error={errorBanner}
+      />
     </div>
   )
 }
