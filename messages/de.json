@@ -1659,7 +1659,9 @@
       "location_label": "Ort",
       "duration_label": "Dauer",
       "start_label": "Beginn",
-      "skills_label": "Fähigkeiten"
+      "skills_label": "Fähigkeiten",
+      "description_label": "Beschreibung",
+      "expires_at_label": "Austausch geöffnet bis {date}"
     },
     "inbox": {
       "back_to_dashboard": "← Dashboard",

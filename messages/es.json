@@ -1659,7 +1659,9 @@
       "location_label": "Ubicación",
       "duration_label": "Duración",
       "start_label": "Inicio",
-      "skills_label": "Competencias"
+      "skills_label": "Competencias",
+      "description_label": "Descripción",
+      "expires_at_label": "Intercambio abierto hasta el {date}"
     },
     "inbox": {
       "back_to_dashboard": "← Panel",

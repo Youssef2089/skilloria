@@ -36,18 +36,27 @@ import MessageContextPanel from '@/components/dashboard/MessageContextPanel'
  */
 
 type Correspondant = { kind: 'expert' | 'org'; name: string | null; avatar_url: string | null }
-// SC4 Lot UX Finitions 2 : publication enrichie (budget/lieu/durée/début/skills)
-// pour affichage inline dans MessageContextPanel.
+// SC4 Lot synthèse parlante : publication = PublicationSynthesis + champs
+// supplémentaires consommés par MessageContextPanel inline complet
+// (description, skills_required, expires_at).
 type ConvPublication = {
   id: string
-  type: string
+  type: 'mission' | 'offre'
   title: string
   budget_min: number | null
   budget_max: number | null
+  budget_unit: 'day' | 'year'
   location: string | null
+  work_mode: string | null
   duration: string | null
   start_date: string | null
+  seniority: string | null
+  branch_label: string | null
+  speciality_label: string | null
+  confidential: boolean
+  description: string | null
   skills_required: string[] | null
+  expires_at: string | null
 }
 type Conversation = {
   id: string
@@ -135,7 +144,7 @@ export default function MessagesInbox({
 
   const load = useCallback(async () => {
     try {
-      const res = await secureFetch('/api/me/conversations', { method: 'GET' })
+      const res = await secureFetch(`/api/me/conversations?locale=${encodeURIComponent(locale)}`, { method: 'GET' })
       if (!res.ok) {
         setState({ kind: 'error', message: t('error_generic') })
         return
@@ -146,7 +155,7 @@ export default function MessagesInbox({
       console.error('[inbox] fetch threw', err)
       setState({ kind: 'error', message: t('error_generic') })
     }
-  }, [secureFetch, t])
+  }, [secureFetch, t, locale])
 
   useEffect(() => {
     void load()

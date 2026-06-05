@@ -1659,7 +1659,9 @@
       "location_label": "Lieu",
       "duration_label": "Durée",
       "start_label": "Démarrage",
-      "skills_label": "Compétences"
+      "skills_label": "Compétences",
+      "description_label": "Description",
+      "expires_at_label": "Échange ouvert jusqu'au {date}"
     },
     "inbox": {
       "back_to_dashboard": "← Tableau de bord",

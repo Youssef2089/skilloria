@@ -1659,7 +1659,9 @@
       "location_label": "Location",
       "duration_label": "Duration",
       "start_label": "Start date",
-      "skills_label": "Skills"
+      "skills_label": "Skills",
+      "description_label": "Description",
+      "expires_at_label": "Exchange open until {date}"
     },
     "inbox": {
       "back_to_dashboard": "← Dashboard",

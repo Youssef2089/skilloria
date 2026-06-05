@@ -1,8 +1,17 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
+import { loadTranslations } from '@/lib/translations'
+import { routing, type Locale } from '@/i18n/routing'
+import { buildPublicationSynthesis } from '@/lib/publication-synthesis'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+function normalizeLocale(raw: string | null): Locale {
+  return (routing.locales as readonly string[]).includes(raw ?? '')
+    ? (raw as Locale)
+    : routing.defaultLocale
+}
 
 /**
  * GET /api/me/conversations — inbox du user courant (expert OU membre org).
@@ -55,19 +64,7 @@ type ConversationRow = {
       users: { id: string; first_name: string | null; last_name: string | null } | { id: string; first_name: string | null; last_name: string | null }[]
       photo_url?: string | null
     } | { id: string; user_id: string; users: { id: string; first_name: string | null; last_name: string | null } | { id: string; first_name: string | null; last_name: string | null }[]; photo_url?: string | null }[]
-    publications: {
-      id: string
-      type: string
-      title: string
-      budget_min: number | null
-      budget_max: number | null
-      location: string | null
-      duration: string | null
-      start_date: string | null
-      skills_required: string[] | null
-      organization_id: string
-      organizations: { id: string; company_name: string | null; logo_url: string | null } | { id: string; company_name: string | null; logo_url: string | null }[]
-    } | { id: string; type: string; title: string; budget_min: number | null; budget_max: number | null; location: string | null; duration: string | null; start_date: string | null; skills_required: string[] | null; organization_id: string; organizations: { id: string; company_name: string | null; logo_url: string | null } | { id: string; company_name: string | null; logo_url: string | null }[] }[]
+    publications: unknown
   } | { id: string; status: string; profile_id: string; publication_id: string; profiles: unknown; publications: unknown }[]
 }
 
@@ -91,6 +88,8 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   const userId = auth.user.id
+  const locale = normalizeLocale(new URL(request.url).searchParams.get('locale'))
+  const translations = await loadTranslations(locale)
 
   // ── Résoudre les conversations où l'user est participant ────────────────
   //  Plus simple en 2 queries jointes : on prend candidatures.status='unlocked'
@@ -140,8 +139,9 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   // (3) Charger les conversations + chaîne d'identité
-  //  Lot UX Finitions 2 SC4 : publication enrichie avec budget/location/
-  //  duration/start_date/skills pour le panneau ctx mission inline.
+  //  Lot synthèse parlante SC4 : publication enrichie avec
+  //  description/seniority/work_mode/expires_at + branches/specialities pour
+  //  les labels traduits — alimenter MessageContextPanel inline complet.
   //  Aucun champ PII ajouté (juste des méta publication publiques).
   const { data: convs, error: convErr } = await auth.supabaseAdmin
     .from('conversations')
@@ -149,7 +149,11 @@ export async function GET(request: NextRequest): Promise<Response> {
       'id, candidature_id, status, last_message_at, expires_at, created_at, ' +
         'candidatures!inner(id, status, profile_id, publication_id, ' +
           'profiles!inner(id, user_id, photo_url, users!profiles_user_id_fkey(id, first_name, last_name)), ' +
-          'publications!inner(id, type, title, budget_min, budget_max, location, duration, start_date, skills_required, organization_id, organizations(id, company_name, logo_url)))',
+          'publications!inner(id, type, title, description, budget_min, budget_max, ' +
+            'location, work_mode, duration, start_date, seniority, skills_required, ' +
+            'confidential, branch_id, speciality_id, expires_at, organization_id, ' +
+            'branches(id, name), specialities(id, name), ' +
+            'organizations(id, company_name, logo_url)))',
     )
     .in('candidature_id', candIds)
     .order('last_message_at', { ascending: false, nullsFirst: false })
@@ -194,7 +198,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     } | null
     const profile = pickRel(cand?.profiles as { id: string; user_id: string; photo_url: string | null; users: unknown } | { id: string; user_id: string; photo_url: string | null; users: unknown }[] | null)
     const u = pickRel(profile?.users as { id: string; first_name: string | null; last_name: string | null } | { id: string; first_name: string | null; last_name: string | null }[] | null)
-    const pub = pickRel(cand?.publications as { id: string; type: string; title: string; budget_min: number | null; budget_max: number | null; location: string | null; duration: string | null; start_date: string | null; skills_required: string[] | null; organization_id: string; organizations: unknown } | { id: string; type: string; title: string; budget_min: number | null; budget_max: number | null; location: string | null; duration: string | null; start_date: string | null; skills_required: string[] | null; organization_id: string; organizations: unknown }[] | null)
+    const pub = pickRel(cand?.publications as Record<string, unknown> | Record<string, unknown>[] | null)
     const org = pickRel(pub?.organizations as { id: string; company_name: string | null; logo_url: string | null } | { id: string; company_name: string | null; logo_url: string | null }[] | null)
 
     // L'user courant est-il l'expert ou l'org ?
@@ -230,15 +234,11 @@ export async function GET(request: NextRequest): Promise<Response> {
       created_at: conv.created_at,
       publication: pub
         ? {
-            id: pub.id,
-            type: pub.type,
-            title: pub.title,
-            budget_min: pub.budget_min ?? null,
-            budget_max: pub.budget_max ?? null,
-            location: pub.location ?? null,
-            duration: pub.duration ?? null,
-            start_date: pub.start_date ?? null,
-            skills_required: pub.skills_required ?? null,
+            ...buildPublicationSynthesis(pub as Parameters<typeof buildPublicationSynthesis>[0], translations),
+            // Champs supplémentaires demandés par MessageContextPanel inline complet :
+            description: (pub.description as string | null | undefined) ?? null,
+            skills_required: Array.isArray(pub.skills_required) ? (pub.skills_required as string[]) : null,
+            expires_at: (pub.expires_at as string | null | undefined) ?? null,
           }
         : null,
       correspondant,

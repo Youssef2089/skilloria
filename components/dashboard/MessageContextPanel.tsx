@@ -1,48 +1,26 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { Link } from '@/i18n/navigation'
-import {
-  IconCircleCheck,
-  IconExternalLink,
-  IconCoin,
-  IconMapPin,
-  IconClock,
-  IconCalendarEvent,
-} from '@tabler/icons-react'
+import { IconCircleCheck } from '@tabler/icons-react'
+import PublicationSynthesisLine, { type PublicationSynthesisData } from './PublicationSynthesisLine'
 
 /**
  * MessageContextPanel — 3ᵉ zone de la messagerie (Lot refonte UX commit B/C,
- * enrichi SC4 du Lot UX Finitions 2 avec méta inline budget/lieu/durée/début/
- * compétences).
+ * enrichi SC4 du Lot synthèse parlante : la mission/offre s'affiche EN
+ * ENTIER inline dans le panneau — description complète + chips de synthèse +
+ * skills + indicateur "Profil débloqué". Plus de bouton "Voir la mission" :
+ * tout est consultable sans quitter la messagerie).
  *
- * Affiche les méta de la mission/annonce associée à la conversation
- * sélectionnée + lien "Voir la mission" / "Voir l'annonce". Reçoit la
- * publication enrichie en prop depuis MessagesInbox (qui dispose des champs
- * via /api/me/conversations).
+ * Composant partagé entre les 3 sides (freelance / cdi / entreprise).
  *
  * Scope strict : la conv est forcément unlocked + non expirée (RLS +
  * /api/me/conversations filtre). Aucune fuite de messagerie libre.
  */
 
-export type MessageContextPublication = {
-  id: string
-  type: string
-  title: string
-  budget_min: number | null
-  budget_max: number | null
-  location: string | null
-  duration: string | null
-  start_date: string | null
+export type MessageContextPublication = PublicationSynthesisData & {
+  description: string | null
   skills_required: string[] | null
-}
-
-function formatBudget(min: number | null, max: number | null, unit: string): string | null {
-  if (min == null && max == null) return null
-  const fmt = (v: number) => `${v.toLocaleString('fr-FR')} €`
-  if (min != null && max != null && min !== max) return `${fmt(min)} – ${fmt(max)}${unit}`
-  const v = (min ?? max) as number
-  return `${fmt(v)}${unit}`
+  expires_at: string | null
 }
 
 function formatDate(iso: string | null, locale: string): string | null {
@@ -76,31 +54,8 @@ export default function MessageContextPanel({
     )
   }
 
-  const isCdi = publication.type === 'offre'
-  const budgetUnit = isCdi ? tPub('budget_unit.year') : tPub('budget_unit.day')
-  const budgetText = formatBudget(publication.budget_min, publication.budget_max, ` ${budgetUnit}`)
-  const startText = formatDate(publication.start_date, locale ?? 'fr-FR')
-  const skills = (publication.skills_required ?? []).filter((s) => typeof s === 'string' && s.trim().length > 0).slice(0, 8)
-
-  const missionHref = side === 'freelance'
-    ? `/dashboard/freelance/missions/${publication.id}`
-    : side === 'cdi'
-      ? `/dashboard/cdi/missions/${publication.id}`
-      : `/dashboard/entreprise/annonces/${publication.id}/candidatures`
-
-  const ctaLabel = side === 'entreprise' ? t('view_annonce') : t('view_mission')
-
-  const metaRow = (icon: React.ReactNode, label: string, value: string) => (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', borderTop: '1px solid var(--sk-border)' }}>
-      <span style={{ color: 'var(--sk-faint)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-        {icon}
-      </span>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 11, color: 'var(--sk-faint)', fontWeight: 600, letterSpacing: '0.3px', textTransform: 'uppercase' }}>{label}</div>
-        <div style={{ fontSize: 13, color: 'var(--sk-text)', marginTop: 2, lineHeight: 1.4, overflowWrap: 'anywhere' }}>{value}</div>
-      </div>
-    </div>
-  )
+  const skills = (publication.skills_required ?? []).filter((s) => typeof s === 'string' && s.trim().length > 0)
+  const expiresText = formatDate(publication.expires_at, locale ?? 'fr-FR')
 
   return (
     <aside style={{ background: 'var(--sk-surface)', borderLeft: '1px solid var(--sk-border)', padding: '20px 18px', overflowY: 'auto', minWidth: 0 }}>
@@ -108,23 +63,38 @@ export default function MessageContextPanel({
         {t('about_label')}
       </div>
 
-      <div style={{ border: '1px solid var(--sk-border)', borderRadius: 'var(--sk-r-lg)', padding: 16, background: 'var(--sk-surface)' }}>
-        <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.35, letterSpacing: '-0.2px', color: 'var(--sk-text)' }}>
+      <div style={{ border: '1px solid var(--sk-border)', borderRadius: 'var(--sk-r-lg)', padding: 18, background: 'var(--sk-surface)' }}>
+        {/* Header : titre + type */}
+        <div style={{ fontWeight: 700, fontSize: 17, lineHeight: 1.3, letterSpacing: '-0.2px', color: 'var(--sk-text)' }}>
           {publication.title}
         </div>
         <div style={{ color: 'var(--sk-muted)', fontSize: 12.5, marginTop: 5 }}>
           {tPub(`type.${publication.type}`)}
+          {(publication.branch_label || publication.speciality_label) && (
+            <> · {[publication.branch_label, publication.speciality_label].filter(Boolean).join(' · ')}</>
+          )}
         </div>
 
+        {/* Chips synthèse (budget, contrat, lieu, mode, durée, démarrage, séniorité) */}
         <div style={{ marginTop: 14 }}>
-          {budgetText && metaRow(<IconCoin size={15} stroke={1.8} />, isCdi ? t('budget_label') : t('tjm_label'), budgetText)}
-          {publication.location && metaRow(<IconMapPin size={15} stroke={1.8} />, t('location_label'), publication.location)}
-          {publication.duration && metaRow(<IconClock size={15} stroke={1.8} />, t('duration_label'), publication.duration)}
-          {startText && metaRow(<IconCalendarEvent size={15} stroke={1.8} />, t('start_label'), startText)}
+          <PublicationSynthesisLine pub={publication} size="md" />
         </div>
 
+        {/* Description complète (mission/offre inline) */}
+        {publication.description && (
+          <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--sk-border)' }}>
+            <div style={{ fontSize: 11, color: 'var(--sk-faint)', fontWeight: 600, letterSpacing: '0.3px', textTransform: 'uppercase', marginBottom: 8 }}>
+              {t('description_label')}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--sk-text)', lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+              {publication.description}
+            </div>
+          </div>
+        )}
+
+        {/* Compétences requises */}
         {skills.length > 0 && (
-          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--sk-border)' }}>
+          <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--sk-border)' }}>
             <div style={{ fontSize: 11, color: 'var(--sk-faint)', fontWeight: 600, letterSpacing: '0.3px', textTransform: 'uppercase', marginBottom: 8 }}>
               {t('skills_label')}
             </div>
@@ -149,26 +119,19 @@ export default function MessageContextPanel({
           </div>
         )}
 
+        {/* Échéance (expires_at) — utile pour rappeler la fenêtre d'échange */}
+        {expiresText && (
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--sk-border)', fontSize: 12, color: 'var(--sk-muted)' }}>
+            {t('expires_at_label', { date: expiresText })}
+          </div>
+        )}
+
         {/* Indicateur "Profil débloqué" — toute conv visible ici est forcément
             issue d'une candidature unlocked (RLS scope strict). */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16, fontSize: 13, fontWeight: 600, color: 'var(--sk-success)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--sk-border)', fontSize: 13, fontWeight: 600, color: 'var(--sk-success)' }}>
           <IconCircleCheck size={16} stroke={2} />
           {side === 'entreprise' ? t('exchange_open_org') : t('exchange_open_expert')}
         </div>
-
-        <Link
-          href={missionHref}
-          style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            marginTop: 14, width: '100%', textAlign: 'center',
-            padding: '11px 0', borderRadius: 11,
-            background: 'var(--sk-accent)', color: '#fff', textDecoration: 'none',
-            fontSize: 13.5, fontWeight: 600,
-          }}
-        >
-          <IconExternalLink size={15} stroke={2} />
-          {ctaLabel}
-        </Link>
       </div>
     </aside>
   )
