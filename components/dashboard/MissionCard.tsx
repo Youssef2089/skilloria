@@ -3,13 +3,18 @@
 import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
+import PublicationSynthesisLine, { type PublicationSynthesisData } from './PublicationSynthesisLine'
 
 /**
- * Carte d'opportunité côté EXPERT (Lot 2b).
+ * Carte d'opportunité côté EXPERT (Lot 2b + Lot synthèse parlante).
  *
  * Diffère de l'AnnonceCard côté org : pas de compteurs candidatures, mais
  * affichage du score IA + reason ("pourquoi ça vous correspond"), masquage
  * de l'org si confidential, lien vers le détail.
+ *
+ * La synthèse publication (budget, lieu, work_mode, durée, démarrage,
+ * séniorité, contrat) est rendue via <PublicationSynthesisLine> — source
+ * de vérité unique partagée avec AnnonceCard et candidature expert inline.
  */
 
 export type MissionCardData = {
@@ -18,17 +23,8 @@ export type MissionCardData = {
   ai_score: number
   ai_reason: string | null
   matched_at: string
-  publication: {
-    id: string
-    type: string
-    title: string
-    budget_min: number | null
-    budget_max: number | null
-    branch_label: string | null
-    speciality_label: string | null
-    confidential: boolean
-    published_at: string | null
-  }
+  /** PublicationSynthesis enrichi par /api/me/missions + published_at. */
+  publication: PublicationSynthesisData & { published_at: string | null }
   org: { name: string | null; logo_url: string | null } | null
 }
 
@@ -87,7 +83,7 @@ export default function MissionCard({
   const domain = useDomain()
 
   const { publication: pub, org, ai_score, ai_reason, match_status } = mission
-  const budgetText = formatBudget(pub.budget_min, pub.budget_max, pub.type, locale)
+  void formatBudget
   const orgName = pub.confidential ? t('confidential_org') : org?.name ?? t('confidential_org')
   const isUnread = match_status === 'notified' || match_status === 'pending'
 
@@ -153,9 +149,17 @@ export default function MissionCard({
         </div>
       </div>
 
-      {/* Meta : branch · spec · budget */}
-      <div style={{ fontSize: 12, color: '#475569', marginBottom: 12 }}>
-        {[pub.branch_label, pub.speciality_label, budgetText].filter(Boolean).join(' · ')}
+      {/* Meta : branch · spec */}
+      {(pub.branch_label || pub.speciality_label) && (
+        <div style={{ fontSize: 12, color: '#475569', marginBottom: 10 }}>
+          {[pub.branch_label, pub.speciality_label].filter(Boolean).join(' · ')}
+        </div>
+      )}
+
+      {/* Synthèse parlante via composant partagé (budget/lieu/work_mode/
+          durée/démarrage/séniorité/contrat). */}
+      <div style={{ marginBottom: 12 }}>
+        <PublicationSynthesisLine pub={pub} size="sm" />
       </div>
 
       {/* AI reason — "Pourquoi ça vous correspond" */}

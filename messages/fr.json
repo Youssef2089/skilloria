@@ -1388,6 +1388,9 @@
       "year": "/an",
       "mission": "/mission"
     },
+    "synthesis": {
+      "contract_label_cdi": "CDI"
+    },
     "badges": {
       "ai_score": "Score IA {score}/10",
       "ai_score_tooltip": "Score qualité attribué par l'analyseur IA"

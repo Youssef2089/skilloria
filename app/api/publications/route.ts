@@ -308,6 +308,12 @@ type PublicationRow = {
   speciality_id: string | null
   budget_min: number | null
   budget_max: number | null
+  location: string | null
+  work_mode: string | null
+  duration: string | null
+  start_date: string | null
+  seniority: string | null
+  confidential: boolean | null
   verification_score: number | null
   created_at: string
   published_at: string | null
@@ -341,7 +347,11 @@ export async function GET(request: NextRequest): Promise<Response> {
     auth.supabaseAdmin
       .from('publications')
       .select(
+        // Lot synthèse parlante : étendu avec location, work_mode, duration,
+        // start_date, seniority, confidential — consommé par
+        // buildPublicationSynthesis pour la carte AnnonceCard.
         'id, type, title, status, branch_id, speciality_id, budget_min, budget_max, ' +
+          'location, work_mode, duration, start_date, seniority, confidential, ' +
           'verification_score, created_at, published_at, ' +
           'branches(id, name), specialities(id, name)',
       )
@@ -407,6 +417,13 @@ export async function GET(request: NextRequest): Promise<Response> {
       created_at: row.created_at,
       published_at: row.published_at,
       candidatures: aggByPub.get(row.id) ?? { ...EMPTY_CANDIDATURES },
+      // Lot synthèse parlante
+      location: row.location,
+      work_mode: row.work_mode,
+      duration: row.duration,
+      start_date: row.start_date,
+      seniority: row.seniority,
+      confidential: !!row.confidential,
     }
   })
 

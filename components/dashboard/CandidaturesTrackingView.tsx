@@ -21,6 +21,7 @@ import StatusPill from '@/components/ui/StatusPill'
 import MasterDetail from '@/components/ui/MasterDetail'
 import EmptyState from '@/components/ui/EmptyState'
 import TimelineStep from '@/components/ui/TimelineStep'
+import PublicationSynthesisLine, { type PublicationSynthesisData } from '@/components/dashboard/PublicationSynthesisLine'
 
 /**
  * CandidaturesTrackingView — vue tracking des candidatures côté expert
@@ -36,7 +37,8 @@ import TimelineStep from '@/components/ui/TimelineStep'
 type Candidature = {
   id: string
   publication_id: string
-  publication: { id: string; type: string; title: string; status: string } | null
+  /** Lot synthèse parlante : publication enrichie via helper serveur. */
+  publication: (PublicationSynthesisData & { status: string | null }) | null
   status: string
   status_reason: string | null
   ai_match_score: number | null
@@ -101,7 +103,7 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
   const load = useCallback(async (silent: boolean) => {
     if (!silent) setState({ kind: 'loading' })
     try {
-      const res = await secureFetch('/api/me/candidatures', { method: 'GET' })
+      const res = await secureFetch(`/api/me/candidatures?locale=${encodeURIComponent(locale)}`, { method: 'GET' })
       if (!res.ok) {
         if (!silent) setState({ kind: 'error', message: t('error_generic') })
         return
@@ -114,7 +116,7 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
         setState({ kind: 'error', message: t('error_generic') })
       }
     }
-  }, [secureFetch, t])
+  }, [secureFetch, t, locale])
 
   useEffect(() => {
     void load(false)
@@ -338,6 +340,13 @@ function CandidatureDetail({
           {t(`status.${c.status}` as 'status.received')}
         </StatusPill>
       </div>
+
+      {/* Lot synthèse parlante : chips publication inline. */}
+      {c.publication && (
+        <div style={{ marginTop: 14 }}>
+          <PublicationSynthesisLine pub={c.publication} size="md" />
+        </div>
+      )}
 
       <div style={{ color: 'var(--sk-faint)', fontSize: 11, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '24px 0 12px' }}>
         {t('section_timeline')}

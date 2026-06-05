@@ -1388,6 +1388,9 @@
       "year": "/Jahr",
       "mission": "/Projekt"
     },
+    "synthesis": {
+      "contract_label_cdi": "Festanstellung"
+    },
     "badges": {
       "ai_score": "KI-Score {score}/10",
       "ai_score_tooltip": "Qualitätsscore von der KI-Prüfung"

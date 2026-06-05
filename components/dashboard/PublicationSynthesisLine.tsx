@@ -1,0 +1,153 @@
+'use client'
+
+import { useLocale, useTranslations } from 'next-intl'
+import {
+  IconCoin,
+  IconMapPin,
+  IconClock,
+  IconCalendarEvent,
+  IconBriefcase,
+  IconHomeBolt,
+  IconBuildingSkyscraper,
+  IconArrowsExchange,
+  IconFileCertificate,
+} from '@tabler/icons-react'
+
+/**
+ * <PublicationSynthesisLine> — chips de synthèse cohérents pour les surfaces
+ * cartes (MissionCard, AnnonceCard, candidature expert inline) et pour le
+ * panneau messagerie. Source de vérité visuelle unique.
+ *
+ * Reçoit le DTO bâti par buildPublicationSynthesis(). Affiche un chip par
+ * champ non-null, dans cet ordre :
+ *   1. Budget (TJM €/jour ou €/an dérivé du type)
+ *   2. Lieu
+ *   3. Mode de travail (remote / sur site / hybride)
+ *   4. Durée (mission)
+ *   5. Démarrage (date)
+ *   6. Séniorité
+ *   7. Label contrat (pour offre CDI : "CDI" — dérivé du type, pas de colonne)
+ *
+ * Aucune couleur en dur — utilise var(--sk-*) et useDomain via le parent.
+ * Mobile-first : flex-wrap natif.
+ */
+
+export type PublicationSynthesisData = {
+  id: string
+  type: 'mission' | 'offre'
+  title: string
+  budget_min: number | null
+  budget_max: number | null
+  budget_unit: 'day' | 'year'
+  location: string | null
+  work_mode: string | null
+  duration: string | null
+  start_date: string | null
+  seniority: string | null
+  branch_label: string | null
+  speciality_label: string | null
+  confidential: boolean
+}
+
+function formatBudget(min: number | null, max: number | null, unit: string): string | null {
+  if (min == null && max == null) return null
+  const fmt = (v: number) => `${Math.round(v).toLocaleString('fr-FR')} €`
+  if (min != null && max != null && min !== max) return `${fmt(min)}–${fmt(max)}${unit}`
+  const v = (min ?? max) as number
+  return `${fmt(v)}${unit}`
+}
+
+function formatDate(iso: string | null, locale: string): string | null {
+  if (!iso) return null
+  try {
+    return new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
+  } catch {
+    return iso
+  }
+}
+
+export default function PublicationSynthesisLine({
+  pub,
+  size = 'md',
+}: {
+  pub: PublicationSynthesisData
+  /** 'sm' réduit la taille des chips pour les listes denses. */
+  size?: 'sm' | 'md'
+}) {
+  const tPub = useTranslations('publications')
+  const tSyn = useTranslations('publications.synthesis')
+  const locale = useLocale()
+
+  const isCdi = pub.type === 'offre'
+  const budgetUnitLabel = isCdi ? tPub('budget_unit.year') : tPub('budget_unit.day')
+  const budgetText = formatBudget(pub.budget_min, pub.budget_max, ` ${budgetUnitLabel}`)
+  const startText = formatDate(pub.start_date, locale)
+
+  const workModeLabel = (() => {
+    if (!pub.work_mode) return null
+    const key = pub.work_mode.toLowerCase()
+    try { return tPub(`form.work_mode_options.${key}` as 'form.work_mode_options.remote') }
+    catch { return pub.work_mode }
+  })()
+  const workModeIcon = (() => {
+    if (!pub.work_mode) return <IconBriefcase size={13} stroke={1.8} />
+    const key = pub.work_mode.toLowerCase()
+    if (key === 'remote') return <IconHomeBolt size={13} stroke={1.8} />
+    if (key === 'onsite') return <IconBuildingSkyscraper size={13} stroke={1.8} />
+    if (key === 'hybrid') return <IconArrowsExchange size={13} stroke={1.8} />
+    return <IconBriefcase size={13} stroke={1.8} />
+  })()
+
+  const seniorityLabel = (() => {
+    if (!pub.seniority) return null
+    const key = pub.seniority.toLowerCase()
+    try { return tPub(`form.seniority_options.${key}` as 'form.seniority_options.junior') }
+    catch { return pub.seniority }
+  })()
+
+  // Contrat dérivé : 'offre' → "CDI" (pas de colonne contract_type, décision
+  // produit — l'i18n cdi sert d'étiquette unique).
+  const contractLabel = isCdi ? tSyn('contract_label_cdi') : null
+
+  const chipPad = size === 'sm' ? '3px 8px' : '4px 10px'
+  const chipFont = size === 'sm' ? 11 : 12
+  const iconSize = size === 'sm' ? 12 : 13
+
+  const chips: Array<{ key: string; icon: React.ReactNode; label: string }> = []
+  if (budgetText) chips.push({ key: 'budget', icon: <IconCoin size={iconSize} stroke={1.8} />, label: budgetText })
+  if (contractLabel) chips.push({ key: 'contract', icon: <IconFileCertificate size={iconSize} stroke={1.8} />, label: contractLabel })
+  if (pub.location) chips.push({ key: 'location', icon: <IconMapPin size={iconSize} stroke={1.8} />, label: pub.location })
+  if (workModeLabel) chips.push({ key: 'work_mode', icon: workModeIcon, label: workModeLabel })
+  if (pub.duration) chips.push({ key: 'duration', icon: <IconClock size={iconSize} stroke={1.8} />, label: pub.duration })
+  if (startText) chips.push({ key: 'start', icon: <IconCalendarEvent size={iconSize} stroke={1.8} />, label: startText })
+  if (seniorityLabel) chips.push({ key: 'seniority', icon: <IconBriefcase size={iconSize} stroke={1.8} />, label: seniorityLabel })
+
+  if (chips.length === 0) return null
+
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+      {chips.map((c) => (
+        <span
+          key={c.key}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: chipPad,
+            borderRadius: 999,
+            background: 'var(--sk-surface-2)',
+            color: 'var(--sk-text)',
+            border: '1px solid var(--sk-border)',
+            fontSize: chipFont,
+            fontWeight: 500,
+            lineHeight: 1.2,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <span style={{ color: 'var(--sk-faint)', display: 'inline-flex' }}>{c.icon}</span>
+          {c.label}
+        </span>
+      ))}
+    </div>
+  )
+}

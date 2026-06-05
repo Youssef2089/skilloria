@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import type { Annonce, AnnonceStatus } from '@/types/annonce'
+import PublicationSynthesisLine, { type PublicationSynthesisData } from './PublicationSynthesisLine'
 
 /**
  * Carte d'annonce du dashboard organisation.
@@ -231,7 +232,7 @@ export default function AnnonceCard({ annonce, basePath }: Props) {
         style={{
           fontSize: 12,
           color: 'var(--color-text-tertiary, #94a3b8)',
-          marginBottom: 14,
+          marginBottom: 10,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -239,6 +240,31 @@ export default function AnnonceCard({ annonce, basePath }: Props) {
       >
         {metaLine}
       </div>
+
+      {/* Lot synthèse parlante — chips (budget/lieu/work_mode/durée/début/séniorité/contrat). */}
+      {(() => {
+        const synthData: PublicationSynthesisData = {
+          id: annonce.id,
+          type: annonce.type,
+          title: annonce.title,
+          budget_min: annonce.budget_min,
+          budget_max: annonce.budget_max,
+          budget_unit: annonce.type === 'offre' ? 'year' : 'day',
+          location: annonce.location,
+          work_mode: annonce.work_mode,
+          duration: annonce.duration,
+          start_date: annonce.start_date,
+          seniority: annonce.seniority,
+          branch_label: annonce.branch_label,
+          speciality_label: annonce.speciality_label,
+          confidential: annonce.confidential,
+        }
+        return (
+          <div style={{ marginBottom: 14 }}>
+            <PublicationSynthesisLine pub={synthData} size="sm" />
+          </div>
+        )
+      })()}
 
       {/* Section candidatures */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, color: 'var(--color-text-secondary, #64748b)' }}>

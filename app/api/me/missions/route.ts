@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
-import { loadTranslations, tBDD } from '@/lib/translations'
+import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
+import { buildPublicationSynthesis } from '@/lib/publication-synthesis'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -95,6 +96,10 @@ export async function GET(request: NextRequest): Promise<Response> {
   const locale = normalizeLocale(new URL(request.url).searchParams.get('locale'))
 
   // ── Matches de l'expert + jointures, statut hors 'dismissed' ───────────
+  //  Lot synthèse : on étend le select publications avec les champs requis
+  //  par buildPublicationSynthesis (location, work_mode, duration, start_date,
+  //  seniority). Branches/specialities passent par la même jointure pour
+  //  obtenir les labels traduits via tBDD.
   const [matchesResult, translations] = await Promise.all([
     auth.supabaseAdmin
       .from('matches')
@@ -102,6 +107,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         'id, publication_id, score, status, explanation, created_at, ' +
           'publications!inner(' +
           'id, type, title, branch_id, speciality_id, budget_min, budget_max, ' +
+          'location, work_mode, duration, start_date, seniority, ' +
           'confidential, status, published_at, organization_id, ' +
           'branches(id, name), specialities(id, name), ' +
           'organizations!inner(id, company_name, logo_url)' +
@@ -124,18 +130,12 @@ export async function GET(request: NextRequest): Promise<Response> {
   const missions = rows.map((row) => {
     const pub = pickRel(row.publications)
     if (!pub) return null
-    const branch = pickRel((pub as { branches: unknown }).branches as never)
-    const speciality = pickRel((pub as { specialities: unknown }).specialities as never)
     const orgRaw = pickRel((pub as { organizations: unknown }).organizations as never) as
       | { id: string; company_name: string | null; logo_url: string | null }
       | null
 
-    const branchLabel = branch
-      ? tBDD(translations, 'branches', (branch as { id: string }).id, 'name', (branch as { name: string }).name)
-      : null
-    const specialityLabel = speciality
-      ? tBDD(translations, 'specialities', (speciality as { id: string }).id, 'name', (speciality as { name: string }).name)
-      : null
+    // Synthèse publication via le helper partagé (source unique).
+    const synthesis = buildPublicationSynthesis(pub as Parameters<typeof buildPublicationSynthesis>[0], translations)
 
     return {
       // Match (côté expert)
@@ -144,16 +144,9 @@ export async function GET(request: NextRequest): Promise<Response> {
       ai_score: Number(row.score),
       ai_reason: row.explanation?.reason ?? null,
       matched_at: row.created_at,
-      // Publication (DTO masqué)
+      // Publication (DTO masqué + synthèse parlante via helper partagé)
       publication: {
-        id: (pub as { id: string }).id,
-        type: (pub as { type: string }).type,
-        title: (pub as { title: string }).title,
-        budget_min: (pub as { budget_min: number | null }).budget_min,
-        budget_max: (pub as { budget_max: number | null }).budget_max,
-        branch_label: branchLabel,
-        speciality_label: specialityLabel,
-        confidential: (pub as { confidential: boolean }).confidential,
+        ...synthesis,
         published_at: (pub as { published_at: string | null }).published_at,
       },
       // Org : masqué si confidential

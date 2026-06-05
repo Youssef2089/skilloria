@@ -1388,6 +1388,9 @@
       "year": "/year",
       "mission": "/project"
     },
+    "synthesis": {
+      "contract_label_cdi": "Permanent contract"
+    },
     "badges": {
       "ai_score": "AI score {score}/10",
       "ai_score_tooltip": "Quality score attributed by the AI checker"

@@ -61,4 +61,11 @@ export type Annonce = {
   /** ISO. Null si la publi n'a jamais été passée en 'published'. */
   published_at: string | null
   candidatures: AnnonceCandidatures
+  /** Lot synthèse parlante — champs publi enrichis pour <PublicationSynthesisLine>. */
+  location: string | null
+  work_mode: string | null
+  duration: string | null
+  start_date: string | null
+  seniority: string | null
+  confidential: boolean
 }

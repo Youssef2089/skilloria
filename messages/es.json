@@ -1388,6 +1388,9 @@
       "year": "/año",
       "mission": "/misión"
     },
+    "synthesis": {
+      "contract_label_cdi": "Contrato indefinido"
+    },
     "badges": {
       "ai_score": "Puntuación IA {score}/10",
       "ai_score_tooltip": "Puntuación de calidad asignada por el analizador IA"
