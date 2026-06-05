@@ -1667,7 +1667,9 @@
       "start_label": "Démarrage",
       "skills_label": "Compétences",
       "description_label": "Description",
-      "expires_at_label": "Échange ouvert jusqu'au {date}"
+      "expires_at_label": "Échange ouvert jusqu'au {date}",
+      "show_more_details": "Afficher les détails",
+      "show_less_details": "Réduire"
     },
     "inbox": {
       "back_to_dashboard": "← Tableau de bord",

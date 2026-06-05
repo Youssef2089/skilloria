@@ -1667,7 +1667,9 @@
       "start_label": "Start date",
       "skills_label": "Skills",
       "description_label": "Description",
-      "expires_at_label": "Exchange open until {date}"
+      "expires_at_label": "Exchange open until {date}",
+      "show_more_details": "Show details",
+      "show_less_details": "Show less"
     },
     "inbox": {
       "back_to_dashboard": "← Dashboard",

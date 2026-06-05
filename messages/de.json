@@ -1667,7 +1667,9 @@
       "start_label": "Beginn",
       "skills_label": "Fähigkeiten",
       "description_label": "Beschreibung",
-      "expires_at_label": "Austausch geöffnet bis {date}"
+      "expires_at_label": "Austausch geöffnet bis {date}",
+      "show_more_details": "Details anzeigen",
+      "show_less_details": "Weniger anzeigen"
     },
     "inbox": {
       "back_to_dashboard": "← Dashboard",

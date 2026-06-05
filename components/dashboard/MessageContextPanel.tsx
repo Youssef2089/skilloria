@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { IconCircleCheck } from '@tabler/icons-react'
+import { IconCircleCheck, IconChevronDown, IconChevronUp } from '@tabler/icons-react'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from './PublicationSynthesisLine'
 
 /**
@@ -43,6 +44,7 @@ export default function MessageContextPanel({
 }) {
   const t = useTranslations('messages.context')
   const tPub = useTranslations('publications')
+  const [descExpanded, setDescExpanded] = useState(false)
 
   if (!publication) {
     return (
@@ -80,17 +82,58 @@ export default function MessageContextPanel({
           <PublicationSynthesisLine pub={publication} size="md" />
         </div>
 
-        {/* Description complète (mission/offre inline) */}
-        {publication.description && (
-          <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--sk-border)' }}>
-            <div style={{ fontSize: 11, color: 'var(--sk-faint)', fontWeight: 600, letterSpacing: '0.3px', textTransform: 'uppercase', marginBottom: 8 }}>
-              {t('description_label')}
+        {/* Description (mission/offre inline) — accordéon line-clamp 3 +
+            bouton "Afficher les détails / Réduire". AUCUNE navigation. */}
+        {publication.description && (() => {
+          const isLong = publication.description.length > 220
+          return (
+            <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--sk-border)' }}>
+              <div style={{ fontSize: 11, color: 'var(--sk-faint)', fontWeight: 600, letterSpacing: '0.3px', textTransform: 'uppercase', marginBottom: 8 }}>
+                {t('description_label')}
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  color: 'var(--sk-text)',
+                  lineHeight: 1.65,
+                  whiteSpace: 'pre-wrap',
+                  overflowWrap: 'anywhere',
+                  display: '-webkit-box',
+                  WebkitBoxOrient: 'vertical' as const,
+                  WebkitLineClamp: descExpanded ? 'unset' : (3 as unknown as string),
+                  overflow: descExpanded ? 'visible' : 'hidden',
+                }}
+              >
+                {publication.description}
+              </div>
+              {isLong && (
+                <button
+                  type="button"
+                  onClick={() => setDescExpanded((v) => !v)}
+                  aria-expanded={descExpanded}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    marginTop: 8,
+                    padding: '5px 0',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--sk-accent-ink)',
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    letterSpacing: '-0.1px',
+                  }}
+                >
+                  {descExpanded ? t('show_less_details') : t('show_more_details')}
+                  {descExpanded ? <IconChevronUp size={14} stroke={2} /> : <IconChevronDown size={14} stroke={2} />}
+                </button>
+              )}
             </div>
-            <div style={{ fontSize: 13, color: 'var(--sk-text)', lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
-              {publication.description}
-            </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* Compétences requises */}
         {skills.length > 0 && (

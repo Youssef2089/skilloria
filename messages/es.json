@@ -1667,7 +1667,9 @@
       "start_label": "Inicio",
       "skills_label": "Competencias",
       "description_label": "Descripción",
-      "expires_at_label": "Intercambio abierto hasta el {date}"
+      "expires_at_label": "Intercambio abierto hasta el {date}",
+      "show_more_details": "Mostrar detalles",
+      "show_less_details": "Mostrar menos"
     },
     "inbox": {
       "back_to_dashboard": "← Panel",
