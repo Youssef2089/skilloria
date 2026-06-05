@@ -27,29 +27,39 @@ export default function CdiMissionsFeedPage() {
   const secureFetch = useSecureFetch()
   const [state, setState] = useState<FeedState>({ kind: 'loading' })
 
-  const load = useCallback(async () => {
-    setState({ kind: 'loading' })
+  const load = useCallback(async (silent: boolean) => {
+    if (!silent) setState({ kind: 'loading' })
     try {
       const res = await secureFetch(`/api/me/missions?locale=${encodeURIComponent(locale)}`, {
         method: 'GET',
       })
       if (!res.ok) {
-        setState({ kind: 'error', message: t('error_generic') })
+        if (!silent) setState({ kind: 'error', message: t('error_generic') })
         return
       }
       const payload = (await res.json().catch(() => ({}))) as { missions?: MissionCardData[] }
       setState({ kind: 'ready', missions: payload.missions ?? [] })
     } catch (err) {
       console.error('[cdi missions feed] fetch threw', err)
-      setState({ kind: 'error', message: t('error_generic') })
+      if (!silent) setState({ kind: 'error', message: t('error_generic') })
     }
   }, [locale, secureFetch, t])
 
   useEffect(() => {
-    void load()
-    // SC5 (correctif) — partagé avec freelance : pas de POST mark-viewed.
-    // Le badge "Offres" se vide quand l'expert candidate. Le badge per-card
-    // "Nouveau" reste piloté par match_status (sémantique existante).
+    void load(false)
+    // Fraîcheur feed (parité freelance + MessagesInbox / CandidaturesTrackingView) :
+    // polling 30s + focus + 'skilloria:notif-bump' (émis par NotificationBell
+    // quand une notif new_match_opportunity arrive après runMatching).
+    const intervalId = window.setInterval(() => { void load(true) }, 30_000)
+    const onFocus = () => { void load(true) }
+    const onNotifBump = () => { void load(true) }
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('skilloria:notif-bump', onNotifBump)
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('skilloria:notif-bump', onNotifBump)
+    }
   }, [load])
 
   return (

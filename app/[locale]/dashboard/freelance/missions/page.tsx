@@ -28,31 +28,40 @@ export default function MissionsFeedPage() {
   const secureFetch = useSecureFetch()
   const [state, setState] = useState<FeedState>({ kind: 'loading' })
 
-  const load = useCallback(async () => {
-    setState({ kind: 'loading' })
+  const load = useCallback(async (silent: boolean) => {
+    if (!silent) setState({ kind: 'loading' })
     try {
       const res = await secureFetch(`/api/me/missions?locale=${encodeURIComponent(locale)}`, {
         method: 'GET',
       })
       if (!res.ok) {
-        setState({ kind: 'error', message: t('error_generic') })
+        if (!silent) setState({ kind: 'error', message: t('error_generic') })
         return
       }
       const payload = (await res.json().catch(() => ({}))) as { missions?: MissionCardData[] }
       setState({ kind: 'ready', missions: payload.missions ?? [] })
     } catch (err) {
       console.error('[missions feed] fetch threw', err)
-      setState({ kind: 'error', message: t('error_generic') })
+      if (!silent) setState({ kind: 'error', message: t('error_generic') })
     }
   }, [locale, secureFetch, t])
 
   useEffect(() => {
-    void load()
-    // SC5 (correctif) — pas de POST mark-viewed ici. Le badge "Missions"
-    // (matchées-non-candidatées) se vide naturellement à la création de
-    // candidature côté POST /api/candidatures. Le badge "Nouveau" per-card
-    // continue à se vider individuellement à l'ouverture du détail de
-    // chaque mission (GET /api/me/missions/[id] flippe notified→viewed).
+    void load(false)
+    // Fraîcheur feed (parité MessagesInbox / CandidaturesTrackingView) :
+    // polling 30s + revalidation au focus + listener 'skilloria:notif-bump'
+    // émis par NotificationBell quand une nouvelle notif apparaît
+    // (e.g. new_match_opportunity créée par runMatching à la publication).
+    const intervalId = window.setInterval(() => { void load(true) }, 30_000)
+    const onFocus = () => { void load(true) }
+    const onNotifBump = () => { void load(true) }
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('skilloria:notif-bump', onNotifBump)
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('skilloria:notif-bump', onNotifBump)
+    }
   }, [load])
 
   return (
