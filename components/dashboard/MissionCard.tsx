@@ -102,23 +102,23 @@ export default function MissionCard({
         transition: 'box-shadow .15s, transform .15s',
       }}
     >
-      {/* Header : title + score badge + unread dot */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 10 }}>
+      {/* Header : title + score badge + unread dot.
+          Hiérarchie polish UX : title → ENTREPRISE (gros) → chips prioritaires
+          → branche/spécialité reléguées en chip discret en fin. */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 8 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', marginBottom: 4, lineHeight: 1.35 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 4, lineHeight: 1.35 }}>
             {pub.title}
           </h3>
-          <div style={{ fontSize: 12, color: '#64748b', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 500 }}>{tPub(`type.${pub.type}`)}</span>
-            <span aria-hidden>·</span>
-            <span>{orgName}</span>
+          <div style={{ fontSize: 13, color: 'var(--sk-muted)', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 600, color: 'var(--sk-text)' }}>{orgName}</span>
             {pub.confidential && (
-              <span title={t('confidential_tooltip')} aria-hidden>🔒</span>
+              <span title={t('confidential_tooltip')} aria-hidden style={{ opacity: 0.7 }}>🔒</span>
             )}
             {pub.published_at && (
               <>
-                <span aria-hidden>·</span>
-                <span>{tPub('dates.published_ago', { time: relativeFromNow(pub.published_at, locale) })}</span>
+                <span aria-hidden style={{ color: 'var(--sk-faint)' }}>·</span>
+                <span style={{ color: 'var(--sk-faint)' }}>{tPub('dates.published_ago', { time: relativeFromNow(pub.published_at, locale) })}</span>
               </>
             )}
           </div>
@@ -149,18 +149,19 @@ export default function MissionCard({
         </div>
       </div>
 
-      {/* Meta : branch · spec */}
+      {/* Synthèse parlante prioritaire (budget/contrat/lieu/work_mode/
+          durée/démarrage/séniorité). */}
+      <div style={{ marginBottom: 10 }}>
+        <PublicationSynthesisLine pub={pub} size="sm" />
+      </div>
+
+      {/* Branche · spécialité — reléguées en ligne discrète bottom.
+          Utiles pour le matching IA mais visuellement secondaires. */}
       {(pub.branch_label || pub.speciality_label) && (
-        <div style={{ fontSize: 12, color: '#475569', marginBottom: 10 }}>
+        <div style={{ fontSize: 11, color: 'var(--sk-faint)', marginBottom: 10 }}>
           {[pub.branch_label, pub.speciality_label].filter(Boolean).join(' · ')}
         </div>
       )}
-
-      {/* Synthèse parlante via composant partagé (budget/lieu/work_mode/
-          durée/démarrage/séniorité/contrat). */}
-      <div style={{ marginBottom: 12 }}>
-        <PublicationSynthesisLine pub={pub} size="sm" />
-      </div>
 
       {/* AI reason — "Pourquoi ça vous correspond" */}
       {ai_reason && (

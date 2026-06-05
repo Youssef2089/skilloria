@@ -9,6 +9,9 @@ import TJMQuickEditModal from '@/components/TJMQuickEditModal'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import VerificationBanner from '@/components/dashboard/VerificationBanner'
 import { useLiveResource } from '@/hooks/useLiveResource'
+import MissionMiniCard from '@/components/dashboard/MissionMiniCard'
+import CandidatureMiniCard from '@/components/dashboard/CandidatureMiniCard'
+import type { MissionCardData } from '@/components/dashboard/MissionCard'
 
 type ProfileData = {
   tjm_min: number | null
@@ -65,13 +68,9 @@ export default function DashboardFreelance() {
     conversation_id: string | null
     created_at: string
   }
-  type RecommendedMission = {
-    match_id: string
-    ai_score: number
-    ai_reason: string | null
-    publication: { id: string; type: string; title: string; branch_label: string | null; speciality_label: string | null; budget_min: number | null; budget_max: number | null; confidential: boolean }
-    org: { name: string | null; logo_url: string | null } | null
-  }
+  // Lot polish UX SC5 : on utilise MissionCardData (déjà aligné sur la
+  // PublicationSynthesis renvoyée par /api/me/missions).
+  type RecommendedMission = MissionCardData
 
   // Lot polish UX — useLiveResource × 3 (missions, candidatures, conversations).
   // - Loading affiché UNIQUEMENT au 1er mount (data en cache préservée pendant
@@ -458,29 +457,7 @@ export default function DashboardFreelance() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {recommendedMissions.map((m) => (
-                  <Link
-                    key={m.match_id}
-                    href={`/dashboard/freelance/missions/${m.publication.id}`}
-                    style={{
-                      display: 'block', background: '#fff',
-                      border: '0.5px solid #e5e7eb', borderRadius: 10,
-                      padding: '12px 14px', textDecoration: 'none', color: 'inherit',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {m.publication.title}
-                        </div>
-                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {[m.publication.confidential ? t('cards.confidential_org') : (m.org?.name ?? null), m.publication.branch_label, m.publication.speciality_label].filter(Boolean).join(' · ')}
-                        </div>
-                      </div>
-                      <span style={{ flexShrink: 0, padding: '3px 9px', background: `${domain.primaryColor}1A`, color: domain.primaryColor, fontSize: 11, fontWeight: 700, borderRadius: 10 }}>
-                        {Math.round(m.ai_score)}/10
-                      </span>
-                    </div>
-                  </Link>
+                  <MissionMiniCard key={m.match_id} mission={m} side="freelance" />
                 ))}
               </div>
             )}
@@ -503,35 +480,9 @@ export default function DashboardFreelance() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {recentCandidatures.map((c) => {
-                    const statusKey = c.status === 'unlocked' ? 'open' : c.status === 'rejected' ? 'refused' : 'wait'
-                    const statusBg = statusKey === 'open' ? '#DCFCE7' : statusKey === 'refused' ? '#FEE2E2' : '#FEF9C3'
-                    const statusFg = statusKey === 'open' ? '#166534' : statusKey === 'refused' ? '#991B1B' : '#854D0E'
-                    const detailHref = c.status === 'unlocked' && c.conversation_id
-                      ? `/dashboard/freelance/messages/${c.conversation_id}`
-                      : `/dashboard/freelance/candidatures`
-                    return (
-                      <Link
-                        key={c.id}
-                        href={detailHref}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 10, padding: '12px 14px', textDecoration: 'none', color: 'inherit' }}
-                      >
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {c.publication?.title ?? '—'}
-                          </div>
-                          {c.ai_match_score != null && (
-                            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                              {t('cards.your_candidatures.ai_score', { score: Math.round(c.ai_match_score) })}
-                            </div>
-                          )}
-                        </div>
-                        <span style={{ flexShrink: 0, padding: '3px 10px', background: statusBg, color: statusFg, fontSize: 11, fontWeight: 600, borderRadius: 10, textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                          {t(`cards.your_candidatures.status.${c.status}` as 'cards.your_candidatures.status.received')}
-                        </span>
-                      </Link>
-                    )
-                  })}
+                  {recentCandidatures.map((c) => (
+                    <CandidatureMiniCard key={c.id} candidature={c} side="freelance" />
+                  ))}
                 </div>
               )}
             </div>
