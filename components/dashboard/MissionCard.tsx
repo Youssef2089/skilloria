@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from './PublicationSynthesisLine'
+import { isMatchNew } from '@/lib/match-freshness'
 
 /**
  * Carte d'opportunité côté EXPERT (Lot 2b + Lot synthèse parlante).
@@ -82,10 +83,12 @@ export default function MissionCard({
   const locale = useLocale()
   const domain = useDomain()
 
-  const { publication: pub, org, ai_score, ai_reason, match_status } = mission
+  const { publication: pub, org, ai_score, ai_reason, match_status, matched_at } = mission
   void formatBudget
   const orgName = pub.confidential ? t('confidential_org') : org?.name ?? t('confidential_org')
-  const isUnread = match_status === 'notified' || match_status === 'pending'
+  // Lot F : badge "Nouveau" unifié — status notified/pending ET créé < 48h.
+  // Re-évalué à chaque render (le polling SWR 30s déclenche la réévaluation).
+  const isUnread = isMatchNew(match_status, matched_at)
 
   return (
     <Link

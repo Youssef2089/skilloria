@@ -5,6 +5,7 @@ import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import type { MissionCardData } from './MissionCard'
 import PublicationSynthesisLine from './PublicationSynthesisLine'
+import { isMatchNew } from '@/lib/match-freshness'
 
 /**
  * MissionMiniCard — variante compacte de MissionCard pour les sections
@@ -31,8 +32,12 @@ export default function MissionMiniCard({
   const tCard = useTranslations('missions.card')
   const domain = useDomain()
 
-  const { publication: pub, org, ai_score } = mission
+  const { publication: pub, org, ai_score, match_status, matched_at } = mission
   const orgName = pub.confidential ? tCard('confidential_org') : org?.name ?? tCard('confidential_org')
+  // Lot F : badge "Nouveau" unifié — même sémantique que MissionCard
+  // (status notified/pending ET créé < 48h). Cohérence cartes plein écran
+  // + mini-cards home.
+  const isFresh = isMatchNew(match_status, matched_at)
 
   return (
     <Link
@@ -40,7 +45,7 @@ export default function MissionMiniCard({
       style={{
         display: 'block',
         background: 'var(--sk-surface)',
-        border: '0.5px solid var(--sk-border)',
+        border: isFresh ? `1.5px solid ${domain.primaryColor}` : '0.5px solid var(--sk-border)',
         borderRadius: 12,
         padding: '12px 14px',
         textDecoration: 'none',
@@ -61,20 +66,26 @@ export default function MissionMiniCard({
             )}
           </div>
         </div>
-        <span
-          style={{
-            flexShrink: 0,
-            padding: '3px 9px',
-            background: `${domain.primaryColor}1A`,
-            color: domain.primaryColor,
-            fontSize: 11,
-            fontWeight: 700,
-            borderRadius: 10,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {Math.round(ai_score)}/10
-        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+          <span
+            style={{
+              padding: '3px 9px',
+              background: `${domain.primaryColor}1A`,
+              color: domain.primaryColor,
+              fontSize: 11,
+              fontWeight: 700,
+              borderRadius: 10,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {Math.round(ai_score)}/10
+          </span>
+          {isFresh && (
+            <span style={{ fontSize: 10, fontWeight: 600, color: domain.primaryColor, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+              {tCard('new_label')}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Synthèse parlante (chips compactes). Le composant filtre les nulls
