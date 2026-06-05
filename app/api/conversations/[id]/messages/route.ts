@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
+import { dashboardUrlForUserType } from '@/lib/auth-routing'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -81,8 +82,8 @@ type ConvJoin = {
       id: string
       user_id: string
       photo_url: string | null
-      users: { id: string; first_name: string | null; last_name: string | null; locale: string | null }
-        | { id: string; first_name: string | null; last_name: string | null; locale: string | null }[]
+      users: { id: string; first_name: string | null; last_name: string | null; locale: string | null; user_type: string | null }
+        | { id: string; first_name: string | null; last_name: string | null; locale: string | null; user_type: string | null }[]
     } | { id: string; user_id: string; photo_url: string | null; users: unknown }[]
     publications: {
       id: string
@@ -122,6 +123,9 @@ async function loadConvAsParticipant(
       role: 'expert' | 'org'
       otherUserId: string | null
       otherUserLocale: string
+      /** user_type de l'EXPERT (jamais l'org) — utilisé pour router le lien
+       *  de notif côté expert (parité freelance/cdi). */
+      expertUserType: string | null
       candTitle: string
       senderFirstLast: string
     }
@@ -132,7 +136,7 @@ async function loadConvAsParticipant(
     .select(
       'id, candidature_id, status, expires_at, last_message_at, ' +
         'candidatures!inner(id, profile_id, status, publication_id, domain_id, ' +
-          'profiles!inner(id, user_id, photo_url, users!profiles_user_id_fkey(id, first_name, last_name, locale)), ' +
+          'profiles!inner(id, user_id, photo_url, users!profiles_user_id_fkey(id, first_name, last_name, locale, user_type)), ' +
           'publications!inner(id, type, title, organization_id, organizations(id, company_name, logo_url)))',
     )
     .eq('id', convId)
@@ -155,7 +159,7 @@ async function loadConvAsParticipant(
   const profile = pickRel(cand.profiles as { id: string; user_id: string; photo_url: string | null; users: unknown } | { id: string; user_id: string; photo_url: string | null; users: unknown }[] | null)
   const pub = pickRel(cand.publications as { id: string; type: string; title: string; organization_id: string; organizations: unknown } | { id: string; type: string; title: string; organization_id: string; organizations: unknown }[] | null)
   if (!profile || !pub) return { ok: false, status: 404, code: 'not_found' }
-  const expertUser = pickRel(profile.users as { id: string; first_name: string | null; last_name: string | null; locale: string | null } | { id: string; first_name: string | null; last_name: string | null; locale: string | null }[] | null)
+  const expertUser = pickRel(profile.users as { id: string; first_name: string | null; last_name: string | null; locale: string | null; user_type: string | null } | { id: string; first_name: string | null; last_name: string | null; locale: string | null; user_type: string | null }[] | null)
 
   // ── Participant check ──────────────────────────────────────────────────
   const isExpert = profile.user_id === userId
@@ -216,6 +220,7 @@ async function loadConvAsParticipant(
     role,
     otherUserId,
     otherUserLocale,
+    expertUserType: expertUser?.user_type ?? null,
     candTitle: pub.title,
     senderFirstLast,
   }
@@ -356,7 +361,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
 
   const loaded = await loadConvAsParticipant(auth.supabaseAdmin, convId, auth.user.id, auth.organization?.id ?? null)
   if (!loaded.ok) return json({ error: loaded.code, code: loaded.code }, loaded.status)
-  const { conv, otherUserId, otherUserLocale, candTitle, senderFirstLast, role } = loaded
+  const { conv, otherUserId, otherUserLocale, expertUserType, candTitle, senderFirstLast, role } = loaded
 
   // ── Garde envoi : non expirée + status 'open' ──────────────────────────
   if (isExpired(conv.expires_at)) {
@@ -395,9 +400,12 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
 
   // ── Notif autre participant (best-effort) ──────────────────────────────
   if (otherUserId) {
+    // Parité CDI : si le destinataire est l'expert (role==='org' = expéditeur
+    // org → destinataire expert), router le lien selon le user_type de
+    // l'expert (expert_cdi → /dashboard/cdi, sinon /dashboard/freelance).
     const link = role === 'expert'
       ? `/dashboard/entreprise/messages/${convId}`
-      : `/dashboard/freelance/messages/${convId}`
+      : `${dashboardUrlForUserType(expertUserType)}/messages/${convId}`
     const { error: notifErr } = await auth.supabaseAdmin.from('notifications').insert({
       user_id: otherUserId,
       domain_id: cand.domain_id,

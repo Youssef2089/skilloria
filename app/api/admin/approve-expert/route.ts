@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { dashboardUrlForUserType } from '@/lib/auth-routing'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   // Vérifier le profile
   const { data: prof, error: fetchErr } = await auth.supabaseAdmin
     .from('profiles')
-    .select('id, user_id, domain_id, verification_status, users!profiles_user_id_fkey(id, locale)')
+    .select('id, user_id, domain_id, verification_status, users!profiles_user_id_fkey(id, locale, user_type)')
     .eq('id', profileId)
     .maybeSingle()
   if (fetchErr) {
@@ -90,7 +91,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     user_id: string
     domain_id: string
     verification_status: string | null
-    users: { id: string; locale: string | null } | { id: string; locale: string | null }[] | null
+    users:
+      | { id: string; locale: string | null; user_type: string | null }
+      | { id: string; locale: string | null; user_type: string | null }[]
+      | null
   }
   if (row.verification_status !== 'pending_admin_review') {
     return json(
@@ -132,7 +136,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       channel: 'inapp',
       title: NOTIF_TITLE[locale] ?? NOTIF_TITLE.fr,
       body: NOTIF_BODY[locale] ?? NOTIF_BODY.fr,
-      link_url: '/dashboard/freelance',
+      link_url: dashboardUrlForUserType(u?.user_type ?? null),
       status: 'pending',
       entity_id: null,
     })

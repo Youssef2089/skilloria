@@ -5,6 +5,7 @@ import {
   type ExpertVerificationInput,
   type ExpertVerificationOutput,
 } from './ai-expert-verification'
+import { dashboardUrlForUserType } from '@/lib/auth-routing'
 
 /**
  * Dispatcher VÉRIFICATION EXPERT — fonction AUTONOME + IDEMPOTENTE.
@@ -167,11 +168,12 @@ async function notifyExpertResult(args: {
   supabaseAdmin: SupabaseClient
   user_id: string
   domain_id: string
+  user_type: string | null
   locale: Locale
   verification_status: 'approved' | 'pending_admin_review' | 'rejected'
   reason: string | null
 }): Promise<void> {
-  const { supabaseAdmin, user_id, domain_id, locale, verification_status, reason } = args
+  const { supabaseAdmin, user_id, domain_id, user_type, locale, verification_status, reason } = args
   const titles: Record<Locale, Record<string, string>> = {
     fr: {
       approved: 'Votre profil est vérifié ✓',
@@ -216,7 +218,9 @@ async function notifyExpertResult(args: {
       rejected: reason ? `Grund: ${reason}` : 'Sie können Ihr Profil anpassen und erneut einreichen.',
     },
   }
-  const linkUrl = '/dashboard/freelance'
+  // Lien notif conditionné user_type (parité freelance/CDI). Source de
+  // vérité partagée : dashboardUrlForUserType (lib/auth-routing.ts).
+  const linkUrl = dashboardUrlForUserType(user_type)
   try {
     await supabaseAdmin.from('notifications').insert({
       user_id, domain_id,
@@ -393,12 +397,14 @@ export async function runExpertVerification(args: {
     if (uErr) console.error('[expert-verification] users.is_verified flip failed', uErr.message)
   }
 
-  // 11. Notif expert (best-effort)
+  // 11. Notif expert (best-effort) — user_type passé pour router le lien
+  //     vers /dashboard/cdi vs /dashboard/freelance.
   if (user?.id) {
     await notifyExpertResult({
       supabaseAdmin,
       user_id: user.id,
       domain_id: row.domain_id,
+      user_type: user.user_type ?? null,
       locale,
       verification_status: finalStatus,
       reason: null,

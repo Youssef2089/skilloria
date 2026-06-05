@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
+import { dashboardUrlForUserType } from '@/lib/auth-routing'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -196,15 +197,17 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   if (didFlip) {
     const { data: profileWithUser } = await auth.supabaseAdmin
       .from('profiles')
-      .select('id, user_id, users!profiles_user_id_fkey!inner(id, locale)')
+      .select('id, user_id, users!profiles_user_id_fkey!inner(id, locale, user_type)')
       .eq('id', candRow.profile_id)
       .maybeSingle()
-    type ProfUser = { id: string; user_id: string; users: { id: string; locale: string | null } | { id: string; locale: string | null }[] }
+    type ProfUser = { id: string; user_id: string; users: { id: string; locale: string | null; user_type: string | null } | { id: string; locale: string | null; user_type: string | null }[] }
     const pwu = profileWithUser as unknown as ProfUser | null
     if (pwu) {
       const u = Array.isArray(pwu.users) ? pwu.users[0] : pwu.users
       const loc = normalizeNotifLocale(u?.locale ?? null)
-      const linkUrl = `/dashboard/freelance/missions/${candRow.publication_id}`
+      // Parité CDI : route le lien vers /dashboard/cdi/missions/[id] si
+      // l'expert est expert_cdi, sinon /dashboard/freelance/missions/[id].
+      const linkUrl = `${dashboardUrlForUserType(u?.user_type ?? null)}/missions/${candRow.publication_id}`
       const { error: notifErr } = await auth.supabaseAdmin.from('notifications').insert({
         user_id: pwu.user_id,
         domain_id: candRow.domain_id,
