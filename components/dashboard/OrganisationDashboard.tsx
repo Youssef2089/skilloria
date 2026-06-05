@@ -8,6 +8,7 @@ import { type OrganisationLite } from '@/components/dashboard/OrganisationSideba
 import AnnonceCard from '@/components/dashboard/AnnonceCard'
 import { useNavBadges } from '@/hooks/useNavBadges'
 import type { Annonce, AnnonceStatus } from '@/types/annonce'
+import BoundedScrollList from '@/components/ui/BoundedScrollList'
 
 // Regroupement des 7 statuts BDD en 4 onglets dashboard.
 const TAB_STATUS_MAP: Record<TabKey, readonly AnnonceStatus[]> = {
@@ -172,6 +173,12 @@ export default function OrganisationDashboard({
       className="org-dashboard-content"
       style={{
         fontFamily: 'inherit',
+        // Lot F : chaîne flex column pour permettre au BoundedScrollList
+        // de la liste annonces de s'auto-borner (flex-fill du <main> shell).
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        minHeight: 0,
       }}
     >
       <style>{`
@@ -196,6 +203,12 @@ export default function OrganisationDashboard({
         style={{
           padding: '24px 26px',
           minWidth: 0,
+          // Lot F : flex column qui remplit le wrapper org-dashboard-content
+          // → la section annonces interne peut prendre flex:1.
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         {/* Pastille vérif en attente */}
@@ -282,13 +295,18 @@ export default function OrganisationDashboard({
           )}
         </div>
 
-        {/* Section "Mes annonces" */}
+        {/* Section "Mes annonces" — Lot F : flex column pour que
+            BoundedScrollList interne prenne la hauteur restante. */}
         <section
           style={{
             background: 'var(--color-background-primary, #fff)',
             border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
             borderRadius: 14,
             padding: '20px 24px',
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
           <div
@@ -396,13 +414,13 @@ export default function OrganisationDashboard({
             })}
           </div>
 
-          {/* Liste / Empty states */}
+          {/* Liste / Empty states — Lot F : liste bornée à hauteur interne. */}
           {filteredAnnonces.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <BoundedScrollList innerGap={12}>
               {filteredAnnonces.map((a) => (
                 <AnnonceCard key={a.id} annonce={a} basePath={basePath} />
               ))}
-            </div>
+            </BoundedScrollList>
           ) : showEmptyZeroState ? (
             <div
               style={{

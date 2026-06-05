@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import CandidatureCard, { type CandidatureData } from '@/components/dashboard/CandidatureCard'
+import BoundedScrollList from '@/components/ui/BoundedScrollList'
 
 /**
  * /dashboard/entreprise/annonces/[id]/candidatures — vue org des candidatures
@@ -140,7 +141,7 @@ export default function CandidaturesPage({ params }: Props) {
   ]
 
   return (
-    <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit' }}>
+    <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
       <button
         type="button"
         onClick={() => router.push('/dashboard/entreprise')}
@@ -221,7 +222,7 @@ export default function CandidaturesPage({ params }: Props) {
           <div>{filter === 'all' ? t('empty_all_subtitle') : t('empty_filtered_subtitle')}</div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <BoundedScrollList innerGap={14}>
           {filtered.map((c) => (
             <CandidatureCard
               key={c.id}
@@ -230,7 +231,7 @@ export default function CandidaturesPage({ params }: Props) {
               onMutated={refresh}
             />
           ))}
-        </div>
+        </BoundedScrollList>
       )}
     </div>
   )

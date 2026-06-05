@@ -7,6 +7,7 @@ import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import CandidatureCard, { type CandidatureData } from '@/components/dashboard/CandidatureCard'
 import { IconExternalLink } from '@tabler/icons-react'
+import BoundedScrollList from '@/components/ui/BoundedScrollList'
 
 /**
  * /dashboard/entreprise/candidatures — vue GLOBALE des candidatures reçues
@@ -137,7 +138,7 @@ export default function GlobalCandidaturesPage() {
   ]
 
   return (
-    <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit' }}>
+    <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
       <header style={{ marginBottom: 18 }}>
         <div style={{ fontSize: 12, color: 'var(--sk-faint)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600, marginBottom: 4 }}>
           {t('header_kicker')}
@@ -188,14 +189,20 @@ export default function GlobalCandidaturesPage() {
           <div>{filter === 'all' ? t('empty_all_subtitle') : t('empty_filtered_subtitle')}</div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
+        <BoundedScrollList innerGap={26}>
           {groups.map((g) => (
             <section key={g.pub.id}>
+              {/* Header de groupe — sticky top du conteneur scrollable
+                  (pattern Stripe/Linear pour listes groupées). */}
               <header
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   gap: 12, marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid var(--sk-border)',
                   flexWrap: 'wrap',
+                  position: 'sticky',
+                  top: 0,
+                  background: 'var(--sk-bg)',
+                  zIndex: 4,
                 }}
               >
                 <div style={{ minWidth: 0, flex: 1 }}>
@@ -236,7 +243,7 @@ export default function GlobalCandidaturesPage() {
               </div>
             </section>
           ))}
-        </div>
+        </BoundedScrollList>
       )}
     </div>
   )
