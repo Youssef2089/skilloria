@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { Link, useRouter } from '@/i18n/navigation'
+import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import ConversationView from '@/components/dashboard/ConversationView'
 import MessageContextPanel from '@/components/dashboard/MessageContextPanel'
@@ -126,6 +126,7 @@ export default function MessagesInbox({
   /** SC7b : 'cdi' utilise les mêmes endpoints que freelance — l'expert
    *  est unique côté DB ; seule la base path d'URL diffère. */
   side: 'freelance' | 'entreprise' | 'cdi'
+  /** Pré-sélection au mount (deep-link /messages/[id] ou nav notif). */
   selectedConvId?: string | null
 }) {
   const t = useTranslations('messages.inbox')
@@ -135,6 +136,37 @@ export default function MessagesInbox({
   const domain = useDomain()
 
   const basePath = side === 'entreprise' ? '/dashboard/entreprise' : `/dashboard/${side}`
+
+  // Lot polish UX SC3 — sélection sans remount :
+  //  La conv sélectionnée est state LOCAL. Le clic sur une conv ne navigue
+  //  PAS (le <Link> précédent forçait un remount complet de la page
+  //  /messages → /messages/[id], re-fetchant tout). À la place :
+  //    1. setLocalSelectedConvId(id) → seul <ConversationView> change de
+  //       convId. La liste, le panneau et la topbar ne ré-mountent pas.
+  //    2. window.history.replaceState met à jour l'URL → deep-link et
+  //       partage URL toujours fonctionnels, mais sans navigation.
+  //  Le prop selectedConvId reste lu au mount (initial state) pour
+  //  préserver la chaîne notif → /messages/[id].
+  const [localSelectedConvId, setLocalSelectedConvId] = useState<string | null>(selectedConvId ?? null)
+
+  useEffect(() => {
+    if (selectedConvId !== undefined && selectedConvId !== null) {
+      setLocalSelectedConvId(selectedConvId)
+    }
+  }, [selectedConvId])
+
+  const handleSelectConv = (convId: string) => {
+    if (convId === localSelectedConvId) return
+    setLocalSelectedConvId(convId)
+    if (typeof window !== 'undefined') {
+      // Synchronise l'URL sans naviguer (deep-link OK, retour navigateur sain).
+      const target = `${basePath}/messages/${convId}`
+      // useRouter().push provoquerait un nouveau render serveur ; replaceState
+      // garde le history propre.
+      const localePrefix = window.location.pathname.startsWith(`/${locale}/`) ? `/${locale}` : ''
+      window.history.replaceState(null, '', `${localePrefix}${target}`)
+    }
+  }
 
   // useLiveResource : SWR + hold new items. Pour les conversations on
   // retient les NOUVELLES convs (pastille "N nouvelle(s)") pour ne pas
@@ -153,8 +185,8 @@ export default function MessagesInbox({
   const groups = useMemo(() => groupByPublication(conversations), [conversations])
 
   // Conv sélectionnée (pour panneau ctx mission)
-  const selectedConv = selectedConvId
-    ? conversations.find((c) => c.id === selectedConvId) ?? null
+  const selectedConv = localSelectedConvId
+    ? conversations.find((c) => c.id === localSelectedConvId) ?? null
     : null
 
   // Force le suivi de l'état dérivé pour state-based rendering ci-dessous.
@@ -171,14 +203,14 @@ export default function MessagesInbox({
         style={{
           flex: 1,
           display: 'grid',
-          gridTemplateColumns: selectedConvId
+          gridTemplateColumns: localSelectedConvId
             ? 'minmax(280px, 320px) 1fr minmax(260px, 320px)'
             : 'minmax(280px, 360px) 1fr',
           minHeight: 0,
           alignItems: 'stretch',
         }}
         className="messages-cols"
-        data-conv-selected={selectedConvId ? 'true' : 'false'}
+        data-conv-selected={localSelectedConvId ? 'true' : 'false'}
       >
         {/* Responsive : tablette → 2 zones (cache ctx), mobile → 1 zone */}
         <style>{`
@@ -237,19 +269,25 @@ export default function MessagesInbox({
                   </div>
                   {/* Conversations du groupe */}
                   {g.conversations.map((c) => {
-                    const active = selectedConvId === c.id
+                    const active = localSelectedConvId === c.id
                     return (
-                      <Link
+                      <button
                         key={c.id}
-                        href={`${basePath}/messages/${c.id}`}
+                        type="button"
+                        onClick={() => handleSelectConv(c.id)}
                         style={{
                           display: 'flex', alignItems: 'flex-start', gap: 10,
                           padding: '12px 14px',
+                          width: '100%',
                           background: active ? `${domain.primaryColor}0F` : 'transparent',
+                          borderTop: 'none', borderRight: 'none',
                           borderBottom: '0.5px solid #f1f5f9',
                           borderLeft: active ? `3px solid ${domain.primaryColor}` : '3px solid transparent',
                           textDecoration: 'none', color: 'inherit',
+                          textAlign: 'left',
+                          fontFamily: 'inherit',
                           opacity: c.is_expired ? 0.7 : 1,
+                          cursor: 'pointer',
                           transition: 'background .15s',
                         }}
                       >
@@ -293,7 +331,7 @@ export default function MessagesInbox({
                             </span>
                           )}
                         </div>
-                      </Link>
+                      </button>
                     )
                   })}
                 </div>
@@ -312,8 +350,8 @@ export default function MessagesInbox({
             minHeight: 0,
           }}
         >
-          {selectedConvId ? (
-            <ConversationView convId={selectedConvId} side={side} embedded />
+          {localSelectedConvId ? (
+            <ConversationView convId={localSelectedConvId} side={side} embedded />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: 40, textAlign: 'center' }}>
               <div style={{ fontSize: 36, marginBottom: 10 }} aria-hidden>💬</div>
@@ -324,7 +362,7 @@ export default function MessagesInbox({
         </div>
 
         {/* Colonne droite : ctx mission (3ᵉ zone — n'apparaît que si conv sélectionnée) */}
-        {selectedConvId && (
+        {localSelectedConvId && (
           <div className="inbox-ctx-col" style={{ minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <MessageContextPanel publication={selectedConv?.publication ?? null} side={side} locale={locale} />
           </div>
