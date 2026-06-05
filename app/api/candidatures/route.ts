@@ -47,12 +47,17 @@ function asString(v: unknown): string | null {
  * Whitelist de construction de `candidatures.preview` — strictement les
  * champs NON-SENSIBLES (cf. migration boucle cœur §4).
  *
- * AUTORISÉS : title, summary, skills, seniority, expert_type, tjm_min/max,
- *   salary_min/max, years_experience, work_modes, languages, country, city,
- *   availability_status, profile_score, branch_id, speciality_id.
+ * AUTORISÉS (24) : title, summary, skills, seniority, expert_type, tjm_min/max,
+ *   salary_min/max, years_experience, years_total_experience, work_modes,
+ *   languages, country, city, availability_status, availability_date,
+ *   profile_score, branch_id, speciality_id, + 6 signaux CDI non-PII :
+ *   cdi_status, cdi_notice_period, cdi_geo_mobility, cdi_contract_types,
+ *   cdi_company_size, cdi_sectors.
  *
  * JAMAIS : phone, email, first_name, last_name, cv_url, cv_file_path,
- *   linkedin_url, address_line, postal_code, photo_url, birth_year, user_id.
+ *   linkedin_url, address_line, postal_code, photo_url, birth_year, user_id,
+ *   cdi_salary_min/max (déjà couverts par salary_min/max), cdi_motivations,
+ *   cdi_career_goals (textes libres — réservés post-unlock).
  */
 function buildPreview(profile: Record<string, unknown>): Record<string, unknown> {
   return {
@@ -76,6 +81,15 @@ function buildPreview(profile: Record<string, unknown>): Record<string, unknown>
     profile_score: profile.profile_score ?? null,
     branch_id: profile.branch_id ?? null,
     speciality_id: profile.speciality_id ?? null,
+    // Lot synthèse candidat CDI — 6 signaux non-PII pour les candidatures
+    // sur publications de type 'offre'. Affichés uniquement quand
+    // publicationType==='offre' côté UI.
+    cdi_status: profile.cdi_status ?? null,
+    cdi_notice_period: profile.cdi_notice_period ?? null,
+    cdi_geo_mobility: profile.cdi_geo_mobility ?? null,
+    cdi_contract_types: Array.isArray(profile.cdi_contract_types) ? profile.cdi_contract_types : [],
+    cdi_company_size: Array.isArray(profile.cdi_company_size) ? profile.cdi_company_size : [],
+    cdi_sectors: Array.isArray(profile.cdi_sectors) ? profile.cdi_sectors : [],
   }
 }
 
@@ -107,13 +121,17 @@ export async function POST(request: NextRequest): Promise<Response> {
   const coverMessage = coverRaw
 
   // ── Profile expert ──────────────────────────────────────────────────────
+  //  Lot synthèse candidat CDI : on charge aussi les 6 signaux non-PII
+  //  cdi_* pour les inclure dans le snapshot preview (Lot UX synthèse).
   const { data: profile, error: pErr } = await auth.supabaseAdmin
     .from('profiles')
     .select(
       'id, user_id, domain_id, title, summary, skills, seniority, expert_type, ' +
         'years_experience, years_total_experience, tjm_min, tjm_max, salary_min, salary_max, ' +
         'work_modes, languages, country, city, availability_status, availability_date, ' +
-        'profile_score, branch_id, speciality_id',
+        'profile_score, branch_id, speciality_id, ' +
+        'cdi_status, cdi_notice_period, cdi_geo_mobility, cdi_contract_types, ' +
+        'cdi_company_size, cdi_sectors',
     )
     .eq('user_id', auth.user.id)
     .maybeSingle()

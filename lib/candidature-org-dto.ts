@@ -60,6 +60,13 @@ export type OrgCandidatureDTO = {
     profile_score: unknown
     branch_label: string | null
     speciality_label: string | null
+    /** Lot synthèse candidat CDI — 6 signaux non-PII. */
+    cdi_status: string | null
+    cdi_notice_period: string | null
+    cdi_geo_mobility: string | null
+    cdi_contract_types: string[]
+    cdi_company_size: string[]
+    cdi_sectors: string[]
   }
 }
 
@@ -301,6 +308,14 @@ export async function buildOrgCandidatureDTOs(
         speciality_label: specialityId
           ? tBDD(translations, 'specialities', specialityId, 'name', specNameById.get(specialityId) ?? '')
           : null,
+        // Lot synthèse candidat CDI — 6 signaux non-PII (null/[] pour
+        // candidatures legacy avant le lot tant que pas backfillées).
+        cdi_status: typeof preview.cdi_status === 'string' ? preview.cdi_status : null,
+        cdi_notice_period: typeof preview.cdi_notice_period === 'string' ? preview.cdi_notice_period : null,
+        cdi_geo_mobility: typeof preview.cdi_geo_mobility === 'string' ? preview.cdi_geo_mobility : null,
+        cdi_contract_types: Array.isArray(preview.cdi_contract_types) ? (preview.cdi_contract_types as string[]) : [],
+        cdi_company_size: Array.isArray(preview.cdi_company_size) ? (preview.cdi_company_size as string[]) : [],
+        cdi_sectors: Array.isArray(preview.cdi_sectors) ? (preview.cdi_sectors as string[]) : [],
       },
     }
   })

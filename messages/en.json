@@ -1601,6 +1601,7 @@
       "candidated_ago": "Applied {time} ago",
       "cover_message_label": "Cover message",
       "ai_pitch_label": "Why this candidate fits your mission",
+      "cdi_preferences_label": "Candidate's permanent role preferences",
       "unlocked_section_label": "Full profile unlocked",
       "rejection_reason_label": "Rejection reason",
       "email": "Email",

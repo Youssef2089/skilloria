@@ -1601,6 +1601,7 @@
       "candidated_ago": "Beworben vor {time}",
       "cover_message_label": "Motivationsschreiben",
       "ai_pitch_label": "Warum dieser Kandidat zu Ihrem Auftrag passt",
+      "cdi_preferences_label": "Festanstellungspräferenzen des Kandidaten",
       "unlocked_section_label": "Vollständiges Profil freigeschaltet",
       "rejection_reason_label": "Ablehnungsgrund",
       "email": "E-Mail",

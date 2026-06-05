@@ -80,6 +80,15 @@ export type CandidaturePreview = {
   profile_score: number | null
   branch_label: string | null
   speciality_label: string | null
+  /** Lot synthèse candidat CDI — 6 signaux non-PII. Affichés uniquement
+   *  quand publicationType === 'offre'. Null/[] pour les candidatures
+   *  legacy (avant le lot — cf. backfill). */
+  cdi_status: string | null
+  cdi_notice_period: string | null
+  cdi_geo_mobility: string | null
+  cdi_contract_types: string[]
+  cdi_company_size: string[]
+  cdi_sectors: string[]
 }
 
 export type CandidatureData = {
@@ -139,6 +148,10 @@ function scoreColor(score: number, domainPrimary: string): string {
 
 export default function CandidatureCard({ candidature, publicationType, onMutated }: Props) {
   const t = useTranslations('candidatures.card')
+  // Lot synthèse candidat CDI : on réutilise les libellés cdi_profile_view
+  // (cdi_status_options, contract_types_options, notice_period_options,
+  // geo_mobility_options) pour ne pas dupliquer les valeurs en i18n.
+  const tCdi = useTranslations('cdi_profile_view')
   const locale = useLocale()
   const domain = useDomain()
   const secureFetch = useSecureFetch()
@@ -312,6 +325,64 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
             <span style={{ color: '#94a3b8', fontSize: 11 }}>+{preview.skills.length - 12}</span>
           )}
         </div>
+      )}
+
+      {/* Lot synthèse candidat CDI — bloc "Préférences CDI" affiché UNIQUEMENT
+          quand l'annonce est une offre CDI (publicationType==='offre'). Données
+          non-PII issues du snapshot preview (cf. whitelist server-side). */}
+      {publicationType === 'offre' && (
+        (preview.cdi_status ||
+          preview.cdi_notice_period ||
+          preview.cdi_geo_mobility ||
+          (preview.cdi_contract_types?.length ?? 0) > 0 ||
+          (preview.cdi_company_size?.length ?? 0) > 0 ||
+          (preview.cdi_sectors?.length ?? 0) > 0) && (
+          <div
+            style={{
+              background: 'var(--sk-surface-2)',
+              border: '1px solid var(--sk-border)',
+              borderRadius: 10,
+              padding: '10px 12px',
+              marginBottom: 12,
+            }}
+          >
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-faint)', marginBottom: 6 }}>
+              {t('cdi_preferences_label')}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+              {preview.cdi_status && (
+                <span style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', color: 'var(--sk-text)', padding: '3px 9px', borderRadius: 999, fontSize: 11.5, fontWeight: 500 }}>
+                  {(() => { try { return tCdi(`cdi_status_options.${preview.cdi_status}` as 'cdi_status_options.open_to_work') } catch { return preview.cdi_status } })()}
+                </span>
+              )}
+              {preview.cdi_notice_period && (
+                <span style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', color: 'var(--sk-text)', padding: '3px 9px', borderRadius: 999, fontSize: 11.5, fontWeight: 500 }}>
+                  {(() => { try { return tCdi(`notice_period_options.${preview.cdi_notice_period}` as 'notice_period_options.immediate') } catch { return preview.cdi_notice_period } })()}
+                </span>
+              )}
+              {preview.cdi_geo_mobility && (
+                <span style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', color: 'var(--sk-text)', padding: '3px 9px', borderRadius: 999, fontSize: 11.5, fontWeight: 500 }}>
+                  {(() => { try { return tCdi(`geo_mobility_options.${preview.cdi_geo_mobility}` as 'geo_mobility_options.local') } catch { return preview.cdi_geo_mobility } })()}
+                </span>
+              )}
+              {(preview.cdi_contract_types ?? []).map((ct) => (
+                <span key={`ct-${ct}`} style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', color: 'var(--sk-text)', padding: '3px 9px', borderRadius: 999, fontSize: 11.5, fontWeight: 500 }}>
+                  {(() => { try { return tCdi(`contract_types_options.${ct}` as 'contract_types_options.cdi') } catch { return ct } })()}
+                </span>
+              ))}
+              {(preview.cdi_company_size ?? []).map((cs) => (
+                <span key={`cs-${cs}`} style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', color: 'var(--sk-muted)', padding: '3px 9px', borderRadius: 999, fontSize: 11.5, fontWeight: 500 }}>
+                  {cs}
+                </span>
+              ))}
+              {(preview.cdi_sectors ?? []).map((s) => (
+                <span key={`sec-${s}`} style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', color: 'var(--sk-muted)', padding: '3px 9px', borderRadius: 999, fontSize: 11.5, fontWeight: 500 }}>
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        )
       )}
 
       {/* Pitch IA orienté org (Lot finitions UX Point 2) — affiché en haut

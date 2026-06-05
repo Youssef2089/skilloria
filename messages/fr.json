@@ -1601,6 +1601,7 @@
       "candidated_ago": "Candidaté il y a {time}",
       "cover_message_label": "Message de motivation",
       "ai_pitch_label": "Pourquoi ce candidat colle à votre mission",
+      "cdi_preferences_label": "Préférences CDI du candidat",
       "unlocked_section_label": "Profil complet débloqué",
       "rejection_reason_label": "Motif du refus",
       "email": "E-mail",
