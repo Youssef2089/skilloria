@@ -52,7 +52,13 @@
     "language_switcher_current": "Idioma actual: {locale}",
     "user_fallback": "Usuario",
     "retry": "Reintentar",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "new_items_pill": {
+      "conversations_label": "{count, plural, =1 {1 nueva conversación — Mostrar} other {# nuevas conversaciones — Mostrar}}",
+      "missions_label": "{count, plural, =1 {1 nueva misión — Mostrar} other {# nuevas misiones — Mostrar}}",
+      "offres_label": "{count, plural, =1 {1 nueva oferta — Mostrar} other {# nuevas ofertas — Mostrar}}",
+      "generic_label": "{count, plural, =1 {1 nuevo — Mostrar} other {# nuevos — Mostrar}}"
+    }
   },
   "homepage": {
     "meta": {
