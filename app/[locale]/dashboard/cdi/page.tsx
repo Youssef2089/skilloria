@@ -471,7 +471,7 @@ export default function DashboardCDI() {
               </div>
               <button
                 type="button"
-                onClick={() => router.push('/dashboard/cdi/profil/valider')}
+                onClick={() => router.push('/dashboard/cdi/profil')}
                 style={{
                   marginTop: 14,
                   fontSize: 13,

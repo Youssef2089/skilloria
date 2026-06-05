@@ -235,6 +235,16 @@ export default function CdiMonProfilPage() {
     }
   }, [loading, authenticated, router])
 
+  // Pas de profile → upload CV (parité freelance/mon-profil:355-358). Le
+  // flux complétion CDI passe TOUJOURS par l'upload CV d'abord ; la page
+  // /profil/valider (champs + déclencheur vérif IA via PATCH /api/profile)
+  // n'est atteinte qu'après parsing OK.
+  useEffect(() => {
+    if (!loading && authenticated && !forbidden && !error && !profile) {
+      router.push('/dashboard/cdi/profil')
+    }
+  }, [loading, authenticated, forbidden, error, profile, router])
+
   // ----- LOADING ------------------------------------------------------------
   if (loading || (!authenticated && !error && !forbidden)) {
     return (
@@ -383,7 +393,7 @@ export default function CdiMonProfilPage() {
                 {t('empty_profile')}
               </div>
               <Link
-                href="/dashboard/cdi/profil/valider"
+                href="/dashboard/cdi/profil"
                 style={{
                   marginTop: 12,
                   background: domain.primaryColor,
