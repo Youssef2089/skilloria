@@ -1,12 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { Link, useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
-import { useSecureFetch } from '@/lib/secure-fetch'
 import ConversationView from '@/components/dashboard/ConversationView'
 import MessageContextPanel from '@/components/dashboard/MessageContextPanel'
+import { useLiveResource } from '@/hooks/useLiveResource'
+import NewItemsPill from '@/components/ui/NewItemsPill'
 
 /**
  * Inbox messagerie LAYOUT 2 PANNEAUX (Point 6 finitions UX).
@@ -71,11 +72,6 @@ type Conversation = {
   unread_count: number
 }
 
-type State =
-  | { kind: 'loading' }
-  | { kind: 'error'; message: string }
-  | { kind: 'ready'; conversations: Conversation[] }
-
 function relativeFromNow(iso: string | null, locale: string): string {
   if (!iso) return ''
   const then = new Date(iso).getTime()
@@ -137,46 +133,32 @@ export default function MessagesInbox({
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
-  const secureFetch = useSecureFetch()
-  const [state, setState] = useState<State>({ kind: 'loading' })
 
   const basePath = side === 'entreprise' ? '/dashboard/entreprise' : `/dashboard/${side}`
 
-  const load = useCallback(async () => {
-    try {
-      const res = await secureFetch(`/api/me/conversations?locale=${encodeURIComponent(locale)}`, { method: 'GET' })
-      if (!res.ok) {
-        setState({ kind: 'error', message: t('error_generic') })
-        return
-      }
-      const payload = (await res.json().catch(() => ({}))) as { conversations?: Conversation[] }
-      setState({ kind: 'ready', conversations: payload.conversations ?? [] })
-    } catch (err) {
-      console.error('[inbox] fetch threw', err)
-      setState({ kind: 'error', message: t('error_generic') })
-    }
-  }, [secureFetch, t, locale])
+  // useLiveResource : SWR + hold new items. Pour les conversations on
+  // retient les NOUVELLES convs (pastille "N nouvelle(s)") pour ne pas
+  // faire bouger la liste pendant que l'user lit. Les updates en place
+  // (last_message_at, unread_count) sont appliqués directement (clés
+  // stables = conv.id).
+  const live = useLiveResource<{ conversations: Conversation[] }, Conversation>({
+    url: `/api/me/conversations?locale=${encodeURIComponent(locale)}`,
+    itemsOf: (d) => d.conversations ?? [],
+    identityOf: (c) => c.id,
+    versionOf: (c) => `${c.last_message_at ?? ''}|${c.unread_count}|${c.status}`,
+    holdNewItems: true,
+  })
 
-  useEffect(() => {
-    void load()
-    const intervalId = window.setInterval(() => { void load() }, 30_000)
-    const onFocus = () => { void load() }
-    const onNotifBump = () => { void load() }
-    window.addEventListener('focus', onFocus)
-    window.addEventListener('skilloria:notif-bump', onNotifBump)
-    return () => {
-      window.clearInterval(intervalId)
-      window.removeEventListener('focus', onFocus)
-      window.removeEventListener('skilloria:notif-bump', onNotifBump)
-    }
-  }, [load])
-
-  const groups = useMemo(() => state.kind === 'ready' ? groupByPublication(state.conversations) : [], [state])
+  const conversations: Conversation[] = live.data?.conversations ?? []
+  const groups = useMemo(() => groupByPublication(conversations), [conversations])
 
   // Conv sélectionnée (pour panneau ctx mission)
-  const selectedConv = state.kind === 'ready' && selectedConvId
-    ? state.conversations.find((c) => c.id === selectedConvId) ?? null
+  const selectedConv = selectedConvId
+    ? conversations.find((c) => c.id === selectedConvId) ?? null
     : null
+
+  // Force le suivi de l'état dérivé pour state-based rendering ci-dessous.
+  const state = live.state
 
   // ── Render ────────────────────────────────────────────────────────────────
   //  Lot refonte UX commit B/C : 3 zones (liste + fil + ctx mission).
@@ -236,6 +218,12 @@ export default function MessagesInbox({
           )}
           {state.kind === 'ready' && groups.length > 0 && (
             <div style={{ overflowY: 'auto', flex: 1 }}>
+              {/* Pastille "N nouvelles conversations" si holdNewItems a retenu des nouveautés. */}
+              <NewItemsPill
+                count={live.pendingCount}
+                onApply={live.applyPending}
+                variant="conversations"
+              />
               {groups.map((g) => (
                 <div key={g.publication?.id ?? '__no_pub__'}>
                   {/* En-tête groupe : titre de la mission/annonce */}

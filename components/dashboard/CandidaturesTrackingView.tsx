@@ -1,10 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
-import { useSecureFetch } from '@/lib/secure-fetch'
+import { useLiveResource } from '@/hooks/useLiveResource'
 import {
   IconSend,
   IconSparkles,
@@ -95,44 +95,20 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
   const tPub = useTranslations('publications')
   const locale = useLocale()
   const domain = useDomain()
-  const secureFetch = useSecureFetch()
-  const [state, setState] = useState<State>({ kind: 'loading' })
   const [filter, setFilter] = useState<FilterKey>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const load = useCallback(async (silent: boolean) => {
-    if (!silent) setState({ kind: 'loading' })
-    try {
-      const res = await secureFetch(`/api/me/candidatures?locale=${encodeURIComponent(locale)}`, { method: 'GET' })
-      if (!res.ok) {
-        if (!silent) setState({ kind: 'error', message: t('error_generic') })
-        return
-      }
-      const payload = (await res.json()) as { candidatures?: Candidature[] }
-      setState({ kind: 'ready', candidatures: payload.candidatures ?? [] })
-    } catch (err) {
-      if (!silent) {
-        console.error('[candidatures tracking] load threw', err)
-        setState({ kind: 'error', message: t('error_generic') })
-      }
-    }
-  }, [secureFetch, t, locale])
-
-  useEffect(() => {
-    void load(false)
-    const intervalId = window.setInterval(() => { void load(true) }, 30_000)
-    const onFocus = () => { void load(true) }
-    const onNotifBump = () => { void load(true) }
-    window.addEventListener('focus', onFocus)
-    window.addEventListener('skilloria:notif-bump', onNotifBump)
-    return () => {
-      window.clearInterval(intervalId)
-      window.removeEventListener('focus', onFocus)
-      window.removeEventListener('skilloria:notif-bump', onNotifBump)
-    }
-  }, [load])
-
-  const list = state.kind === 'ready' ? state.candidatures : []
+  // useLiveResource : holdNewItems=false ici, les changements de status
+  // (unlocked/rejected) doivent apparaître instantanément.
+  const live = useLiveResource<{ candidatures: Candidature[] }, Candidature>({
+    url: `/api/me/candidatures?locale=${encodeURIComponent(locale)}`,
+    itemsOf: (d) => d.candidatures ?? [],
+    identityOf: (c) => c.id,
+    versionOf: (c) => `${c.status}|${c.unlocked_at ?? ''}|${c.conversation_id ?? ''}`,
+    holdNewItems: false,
+  })
+  const state = live.state
+  const list = live.data?.candidatures ?? []
   const filtered = useMemo(() => list.filter((c) => matchesFilter(c.status, filter)), [list, filter])
   useEffect(() => {
     if (!selectedId && filtered.length > 0) setSelectedId(filtered[0].id)

@@ -4,12 +4,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
-import { useSecureFetch } from '@/lib/secure-fetch'
 import OrgSetupModal from '@/components/OrgSetupModal'
 import OrganisationDashboard, {
   type OrganisationFull,
 } from '@/components/dashboard/OrganisationDashboard'
 import type { Annonce } from '@/types/annonce'
+import { useLiveResource } from '@/hooks/useLiveResource'
 
 /**
  * Dashboard entreprise (B3.5 + B3.5.fix).
@@ -44,20 +44,12 @@ type SetupState =
   | { kind: 'no_org' }
   | { kind: 'error'; message?: string }
 
-type AnnoncesState =
-  | { kind: 'idle' }
-  | { kind: 'loading' }
-  | { kind: 'ready'; annonces: Annonce[] }
-  | { kind: 'error' }
-
 export default function DashboardEntreprise() {
   const router = useRouter()
   const locale = useLocale()
   const t = useTranslations('dashboard_entreprise')
   const tCommon = useTranslations('common')
-  const secureFetch = useSecureFetch()
   const [state, setState] = useState<SetupState>({ kind: 'loading' })
-  const [annoncesState, setAnnoncesState] = useState<AnnoncesState>({ kind: 'idle' })
   const [needsRedirect, setNeedsRedirect] = useState(false)
 
   /**
@@ -146,44 +138,21 @@ export default function DashboardEntreprise() {
     }
   }, [needsRedirect, router])
 
-  // ── Chargement annonces — uniquement quand l'org est prête ─────────────
-  const loadAnnonces = useCallback(async () => {
-    setAnnoncesState({ kind: 'loading' })
-    try {
-      const res = await secureFetch(`/api/publications?locale=${encodeURIComponent(locale)}`, {
-        method: 'GET',
-      })
-      if (!res.ok) {
-        console.error('[dashboard/entreprise] publications fetch failed', res.status)
-        setAnnoncesState({ kind: 'error' })
-        return
-      }
-      const payload = (await res.json().catch(() => ({}))) as {
-        publications?: Annonce[]
-      }
-      setAnnoncesState({ kind: 'ready', annonces: payload.publications ?? [] })
-    } catch (err) {
-      console.error('[dashboard/entreprise] publications fetch threw', err)
-      setAnnoncesState({ kind: 'error' })
-    }
-  }, [secureFetch, locale])
-
-  // Point 1 (temps réel) : polling 30s aligné cloche + revalidate-on-focus +
-  // écoute 'skilloria:notif-bump' (émis par NotificationBell). Cleanup propre.
-  useEffect(() => {
-    if (state.kind !== 'ready') return
-    void loadAnnonces()
-    const intervalId = window.setInterval(() => { void loadAnnonces() }, 30_000)
-    const onFocus = () => { void loadAnnonces() }
-    const onNotifBump = () => { void loadAnnonces() }
-    window.addEventListener('focus', onFocus)
-    window.addEventListener('skilloria:notif-bump', onNotifBump)
-    return () => {
-      window.clearInterval(intervalId)
-      window.removeEventListener('focus', onFocus)
-      window.removeEventListener('skilloria:notif-bump', onNotifBump)
-    }
-  }, [state.kind, loadAnnonces])
+  // Chargement annonces via useLiveResource (SWR + diff). Plus de reset
+  // 'loading' au poll : data précédente reste affichée pendant la revalidation
+  // → fin du flicker dashboard entreprise.
+  // holdNewItems=false : pas pertinent ici (les status changes doivent
+  // apparaître direct, et la liste annonces est déjà compacte).
+  const annoncesUrl = state.kind === 'ready'
+    ? `/api/publications?locale=${encodeURIComponent(locale)}`
+    : null
+  const annoncesLive = useLiveResource<{ publications: Annonce[] }, Annonce>({
+    url: annoncesUrl,
+    itemsOf: (d) => d.publications ?? [],
+    identityOf: (a) => a.id,
+    versionOf: (a) => a.published_at ?? a.created_at,
+    holdNewItems: false,
+  })
 
   if (state.kind === 'loading' || state.kind === 'no_org' || needsRedirect) {
     return (
@@ -234,8 +203,7 @@ export default function DashboardEntreprise() {
     )
   }
 
-  const annonces: Annonce[] =
-    annoncesState.kind === 'ready' ? annoncesState.annonces : []
+  const annonces: Annonce[] = annoncesLive.data?.publications ?? []
 
   return (
     <>

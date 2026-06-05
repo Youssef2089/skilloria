@@ -1,14 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Link, useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
-import { useSecureFetch } from '@/lib/secure-fetch'
 import TJMQuickEditModal from '@/components/TJMQuickEditModal'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import VerificationBanner from '@/components/dashboard/VerificationBanner'
+import { useLiveResource } from '@/hooks/useLiveResource'
 
 type ProfileData = {
   tjm_min: number | null
@@ -48,7 +48,6 @@ export default function DashboardFreelance() {
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
-  const secureFetch = useSecureFetch()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -56,20 +55,7 @@ export default function DashboardFreelance() {
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
-  // Stats home + missions recommandées (Lot nettoyage : câblage compteurs)
-  // Lot UX Finitions 2 (SC2) : vision EXPERT — postulees / en_discussion /
-  // refusees calculés depuis /api/me/candidatures[].status (différent du
-  // funnel org). missions_count = matches actifs (disponibles à postuler).
-  const [stats, setStats] = useState<{
-    missions_count: number | null
-    candidatures_count: number | null            // = total postulees (legacy)
-    postulees: number | null
-    en_discussion: number | null
-    refusees: number | null
-    messages_unread: number | null
-    completion_pct: number | null
-  }>({ missions_count: null, candidatures_count: null, postulees: null, en_discussion: null, refusees: null, messages_unread: null, completion_pct: null })
-  // Type minimal pour la section "Vos candidatures" (3 dernières)
+  // Types minimaux pour les ressources live.
   type CandidatureLite = {
     id: string
     publication_id: string
@@ -79,7 +65,6 @@ export default function DashboardFreelance() {
     conversation_id: string | null
     created_at: string
   }
-  const [recentCandidatures, setRecentCandidatures] = useState<CandidatureLite[] | null>(null)
   type RecommendedMission = {
     match_id: string
     ai_score: number
@@ -87,7 +72,74 @@ export default function DashboardFreelance() {
     publication: { id: string; type: string; title: string; branch_label: string | null; speciality_label: string | null; budget_min: number | null; budget_max: number | null; confidential: boolean }
     org: { name: string | null; logo_url: string | null } | null
   }
-  const [recommendedMissions, setRecommendedMissions] = useState<RecommendedMission[] | null>(null)
+
+  // Lot polish UX — useLiveResource × 3 (missions, candidatures, conversations).
+  // - Loading affiché UNIQUEMENT au 1er mount (data en cache préservée pendant
+  //   les revalidations → fin du flicker home).
+  // - holdNewItems=false ici : la home doit refléter en direct (compteurs,
+  //   missions recommandées top 3).
+  // - Le calcul des stats est ensuite dérivé via useMemo : pas de nouvelle
+  //   réf si data inchangée.
+  const liveEnabled = !loading
+  const missionsLive = useLiveResource<{ missions: RecommendedMission[] }, RecommendedMission>({
+    url: liveEnabled ? `/api/me/missions?locale=${encodeURIComponent(locale)}` : null,
+    itemsOf: (d) => d.missions ?? [],
+    identityOf: (m) => m.match_id,
+    versionOf: (m) => `${m.ai_score}`,
+    enabled: liveEnabled,
+    holdNewItems: false,
+  })
+  const candidaturesLive = useLiveResource<{ candidatures: CandidatureLite[] }, CandidatureLite>({
+    url: liveEnabled ? '/api/me/candidatures' : null,
+    itemsOf: (d) => d.candidatures ?? [],
+    identityOf: (c) => c.id,
+    versionOf: (c) => `${c.status}|${c.conversation_id ?? ''}`,
+    enabled: liveEnabled,
+    holdNewItems: false,
+  })
+  const conversationsLive = useLiveResource<{ conversations: { unread_count: number }[] }, { unread_count: number }>({
+    url: liveEnabled ? '/api/me/conversations' : null,
+    itemsOf: () => null,    // pas de diff par item — on lit l'agrégat unread
+    identityOf: () => '',
+    enabled: liveEnabled,
+  })
+
+  // Dérivation memo : stats / recentCandidatures / recommendedMissions.
+  const missions = missionsLive.data?.missions ?? null
+  const candidaturesAll = candidaturesLive.data?.candidatures ?? null
+  const conversations = conversationsLive.data?.conversations ?? null
+
+  const recommendedMissions = useMemo(() => missions === null ? null : missions.slice(0, 3), [missions])
+  const recentCandidatures = useMemo(() => candidaturesAll === null ? null : candidaturesAll.slice(0, 3), [candidaturesAll])
+  const stats = useMemo(() => {
+    if (missions === null && candidaturesAll === null && conversations === null) {
+      return {
+        missions_count: null, candidatures_count: null, postulees: null,
+        en_discussion: null, refusees: null, messages_unread: null,
+        completion_pct: null,
+      } as const
+    }
+    let postulees = 0, enDiscussion = 0, refusees = 0
+    if (candidaturesAll) {
+      postulees = candidaturesAll.length
+      for (const c of candidaturesAll) {
+        if (c.status === 'unlocked' || c.status === 'in_review' || c.status === 'shortlisted') enDiscussion++
+        else if (c.status === 'rejected') refusees++
+      }
+    }
+    const unread = (conversations ?? []).reduce((acc, c) => acc + (c.unread_count ?? 0), 0)
+    const isApproved = (profile?.verification_status ?? null) === 'approved'
+    const completion = isApproved ? 100 : computeCompletionPct(user, profile)
+    return {
+      missions_count: missions?.length ?? null,
+      candidatures_count: candidaturesAll?.length ?? null,
+      postulees: candidaturesAll === null ? null : postulees,
+      en_discussion: candidaturesAll === null ? null : enDiscussion,
+      refusees: candidaturesAll === null ? null : refusees,
+      messages_unread: conversations === null ? null : unread,
+      completion_pct: completion,
+    } as const
+  }, [missions, candidaturesAll, conversations, user, profile])
 
   useEffect(() => {
     const getUser = async () => {
@@ -121,85 +173,11 @@ export default function DashboardFreelance() {
     return () => window.clearTimeout(id)
   }, [toast])
 
-  // ── Câblage compteurs home + Missions recommandées + temps réel ────────────
-  //  Charge missions matchées (3 meilleures), candidatures (count), conversations
-  //  (unread). Si non vérifié → la route /api/me/missions renvoie 403 → on
-  //  affiche 0/— et l'utilisateur voit pourquoi via la bannière vérif.
-  //
-  //  Point 1 (temps réel) : polling 30s (aligné cloche) + revalidate-on-focus
-  //  (retour d'onglet) + écoute 'skilloria:notif-bump' (émis par NotificationBell
-  //  quand unread_count augmente → refetch immédiat). Cleanup propre au démontage.
-  useEffect(() => {
-    if (loading) return
-    let cancelled = false
-    const load = async () => {
-      try {
-        const [missionsRes, candRes, convsRes] = await Promise.all([
-          secureFetch('/api/me/missions?locale=' + encodeURIComponent(locale), { method: 'GET' }),
-          secureFetch('/api/me/candidatures', { method: 'GET' }),
-          secureFetch('/api/me/conversations', { method: 'GET' }),
-        ])
-        if (cancelled) return
-        let missions: RecommendedMission[] = []
-        if (missionsRes.ok) {
-          const p = (await missionsRes.json()) as { missions?: RecommendedMission[] }
-          missions = p.missions ?? []
-        }
-        let candCount = 0
-        let postulees = 0, enDiscussion = 0, refusees = 0
-        let recentCands: CandidatureLite[] = []
-        if (candRes.ok) {
-          const p = (await candRes.json()) as { candidatures?: CandidatureLite[] }
-          const all = p.candidatures ?? []
-          candCount = all.length
-          postulees = all.length
-          for (const c of all) {
-            if (c.status === 'unlocked' || c.status === 'in_review' || c.status === 'shortlisted') enDiscussion++
-            else if (c.status === 'rejected') refusees++
-          }
-          // Les 3 plus récentes (déjà triées created_at DESC par la route)
-          recentCands = all.slice(0, 3)
-        }
-        let unread = 0
-        if (convsRes.ok) {
-          const p = (await convsRes.json()) as { conversations?: { unread_count: number }[] }
-          unread = (p.conversations ?? []).reduce((acc, c) => acc + (c.unread_count ?? 0), 0)
-        }
-        // Complétude : règle simple — profil 'approved' = 100 %, sinon
-        // estimation pondérée. La complétude affichée doit refléter l'usabilité,
-        // pas un calcul cassé qui afficherait 0 % alors que le profil est vérifié.
-        const isApproved = (profile?.verification_status ?? null) === 'approved'
-        const completion = isApproved
-          ? 100
-          : computeCompletionPct(user, profile)
-        setStats({
-          missions_count: missions.length,
-          candidatures_count: candCount,
-          postulees,
-          en_discussion: enDiscussion,
-          refusees,
-          messages_unread: unread,
-          completion_pct: completion,
-        })
-        setRecommendedMissions(missions.slice(0, 3))
-        setRecentCandidatures(recentCands)
-      } catch (err) {
-        console.error('[home expert] load stats threw', err)
-      }
-    }
-    void load()
-    const intervalId = window.setInterval(() => { void load() }, 30_000)
-    const onFocus = () => { void load() }
-    const onNotifBump = () => { void load() }
-    window.addEventListener('focus', onFocus)
-    window.addEventListener('skilloria:notif-bump', onNotifBump)
-    return () => {
-      cancelled = true
-      window.clearInterval(intervalId)
-      window.removeEventListener('focus', onFocus)
-      window.removeEventListener('skilloria:notif-bump', onNotifBump)
-    }
-  }, [loading, secureFetch, locale, user, profile])
+  // Câblage compteurs home + Missions recommandées — Lot polish UX.
+  //  Les 3 ressources (missions/candidatures/conversations) sont gérées par
+  //  useLiveResource × 3 (SWR + dedup + revalidate focus + bump). Les stats
+  //  sont dérivées via useMemo : aucune nouvelle référence si data inchangée.
+  //  Plus de useEffect manuel.
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontSize: 16, color: '#6b7280' }}>

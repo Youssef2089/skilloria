@@ -1,66 +1,30 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { useSecureFetch } from '@/lib/secure-fetch'
 import MissionCard, { type MissionCardData } from '@/components/dashboard/MissionCard'
 import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
+import NewItemsPill from '@/components/ui/NewItemsPill'
+import { useLiveResource } from '@/hooks/useLiveResource'
 
 /**
- * /dashboard/cdi/missions — feed des opportunités MATCHÉES (SC7b Lot UX
- * Finitions 2, miroir freelance avec side='cdi'). MissionCard gère le href
- * /dashboard/cdi/missions/[id]. Backend /api/me/missions partagé : les
- * matches n'ont pas de notion de "side", l'expert est unique côté DB.
- *
- * Tri serveur : score IA décroissant. Auto-vidant SC5 partagé.
+ * /dashboard/cdi/missions — feed des offres CDI MATCHÉES (parité freelance).
+ * Live revalidation SWR + pastille "N nouvelle offre" (holdNewItems=true).
  */
-
-type FeedState =
-  | { kind: 'loading' }
-  | { kind: 'error'; message: string }
-  | { kind: 'ready'; missions: MissionCardData[] }
 
 export default function CdiMissionsFeedPage() {
   const t = useTranslations('missions.feed')
   const locale = useLocale()
-  const secureFetch = useSecureFetch()
-  const [state, setState] = useState<FeedState>({ kind: 'loading' })
 
-  const load = useCallback(async (silent: boolean) => {
-    if (!silent) setState({ kind: 'loading' })
-    try {
-      const res = await secureFetch(`/api/me/missions?locale=${encodeURIComponent(locale)}`, {
-        method: 'GET',
-      })
-      if (!res.ok) {
-        if (!silent) setState({ kind: 'error', message: t('error_generic') })
-        return
-      }
-      const payload = (await res.json().catch(() => ({}))) as { missions?: MissionCardData[] }
-      setState({ kind: 'ready', missions: payload.missions ?? [] })
-    } catch (err) {
-      console.error('[cdi missions feed] fetch threw', err)
-      if (!silent) setState({ kind: 'error', message: t('error_generic') })
-    }
-  }, [locale, secureFetch, t])
-
-  useEffect(() => {
-    void load(false)
-    // Fraîcheur feed (parité freelance + MessagesInbox / CandidaturesTrackingView) :
-    // polling 30s + focus + 'skilloria:notif-bump' (émis par NotificationBell
-    // quand une notif new_match_opportunity arrive après runMatching).
-    const intervalId = window.setInterval(() => { void load(true) }, 30_000)
-    const onFocus = () => { void load(true) }
-    const onNotifBump = () => { void load(true) }
-    window.addEventListener('focus', onFocus)
-    window.addEventListener('skilloria:notif-bump', onNotifBump)
-    return () => {
-      window.clearInterval(intervalId)
-      window.removeEventListener('focus', onFocus)
-      window.removeEventListener('skilloria:notif-bump', onNotifBump)
-    }
-  }, [load])
+  const live = useLiveResource<{ missions: MissionCardData[] }, MissionCardData>({
+    url: `/api/me/missions?locale=${encodeURIComponent(locale)}`,
+    itemsOf: (d) => d.missions ?? [],
+    identityOf: (m) => m.match_id,
+    versionOf: (m) => `${m.match_status}|${m.ai_score}`,
+    holdNewItems: true,
+  })
+  const state = live.state
+  const missions = live.data?.missions ?? []
 
   return (
     <div style={{ padding: '24px 26px' }}>
@@ -77,7 +41,7 @@ export default function CdiMissionsFeedPage() {
           </div>
         )}
 
-        {state.kind === 'ready' && state.missions.length === 0 && (
+        {state.kind === 'ready' && missions.length === 0 && (
           <EmptyState
             icon="🎯"
             title={t('empty_title')}
@@ -85,9 +49,14 @@ export default function CdiMissionsFeedPage() {
           />
         )}
 
-        {state.kind === 'ready' && state.missions.length > 0 && (
+        {state.kind === 'ready' && missions.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {state.missions.map((m) => (
+            <NewItemsPill
+              count={live.pendingCount}
+              onApply={live.applyPending}
+              variant="offres"
+            />
+            {missions.map((m) => (
               <MissionCard key={m.match_id} mission={m} side="cdi" />
             ))}
           </div>
