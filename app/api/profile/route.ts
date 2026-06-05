@@ -246,7 +246,13 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     }
 
     if (isCdi) {
-      // ── Règles CDI : 11 critères ─────────────────────────────────────
+      // ── Règles CDI : 8 critères (parité freelance — Fix C Lot CDI publish) ──
+      //  Décision cahier : cdi_salary_min/max + cdi_notice_period ne sont
+      //  PAS lus par runExpertVerification (qui vérifie l'expertise, pas la
+      //  compensation). Freelance ne bloque pas non plus sur tjm_min/max.
+      //  → On retire ces 3 champs des bloquants Publish ; ils restent
+      //  optionnels (recommandés pour la qualité du matching), via l'encart
+      //  conseil côté UI. cdi_status reste requis (signal écoute marché).
       const merged = {
         title: (patch.title ?? cur.title) as string | null,
         summary: (patch.summary ?? cur.summary) as string | null,
@@ -254,15 +260,6 @@ export async function PATCH(request: NextRequest): Promise<Response> {
         branch_id: (patch.branch_id ?? cur.branch_id) as string | null,
         speciality_id: (patch.speciality_id ?? cur.speciality_id) as string | null,
         cdi_status: (patch.cdi_status ?? cur.cdi_status) as string | null,
-        cdi_salary_min: (patch.cdi_salary_min ?? cur.cdi_salary_min) as
-          | number
-          | null,
-        cdi_salary_max: (patch.cdi_salary_max ?? cur.cdi_salary_max) as
-          | number
-          | null,
-        cdi_notice_period: (patch.cdi_notice_period ?? cur.cdi_notice_period) as
-          | string
-          | null,
       }
       if (!merged.title) missing.push('title')
       if (!merged.summary || merged.summary.trim().length < 20) missing.push('summary')
@@ -270,11 +267,6 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       if (!merged.branch_id) missing.push('branch_id')
       if (!merged.speciality_id) missing.push('speciality_id')
       if (!merged.cdi_status) missing.push('cdi_status')
-      if (merged.cdi_salary_min == null || merged.cdi_salary_min <= 0)
-        missing.push('cdi_salary_min')
-      if (merged.cdi_salary_max == null || merged.cdi_salary_max <= 0)
-        missing.push('cdi_salary_max')
-      if (!merged.cdi_notice_period) missing.push('cdi_notice_period')
       if (experiencesCount < 1) missing.push('experiences')
       if (languagesCount < 1) missing.push('languages_structured')
     } else {

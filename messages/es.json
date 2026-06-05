@@ -570,7 +570,9 @@
       "save_draft": "Guardar como borrador",
       "publish": "Publicar mi perfil →",
       "saving": "Guardando...",
-      "publishing": "Publicando..."
+      "publishing": "Publicando...",
+      "publish_disabled_tooltip": "Completa los campos requeridos a continuación para publicar tu perfil.",
+      "publish_blocked_title": "{count, plural, =1 {Queda 1 campo requerido por completar} other {Quedan # campos requeridos por completar}}"
     }
   },
   "profile_view": {
@@ -1181,6 +1183,7 @@
       },
       "compensation": {
         "title": "Remuneración objetivo",
+        "optional_hint": "Indica tu franja salarial y tu preaviso para mejorar la relevancia del matching. Estos campos no son obligatorios para publicar tu perfil.",
         "salary_min_label": "Salario anual bruto mín. (€)",
         "salary_min_placeholder": "60000",
         "salary_max_label": "Salario anual bruto máx. (€)",
@@ -1315,7 +1318,9 @@
       "save_draft": "Guardar como borrador",
       "publish": "Publicar mi perfil →",
       "saving": "Guardando...",
-      "publishing": "Publicando..."
+      "publishing": "Publicando...",
+      "publish_disabled_tooltip": "Completa los campos requeridos a continuación para publicar tu perfil.",
+      "publish_blocked_title": "{count, plural, =1 {Queda 1 campo requerido por completar} other {Quedan # campos requeridos por completar}}"
     }
   },
   "dashboard_entreprise": {

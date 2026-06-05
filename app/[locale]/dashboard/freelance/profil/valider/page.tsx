@@ -2327,58 +2327,100 @@ export default function ValiderProfilPage() {
             </div>
 
             {/* Actions */}
-            <div
-              className="profil-actions"
-              style={{
-                display: 'flex',
-                gap: 12,
-                background: '#fff',
-                border: '1px solid #e2e8f0',
-                borderRadius: 16,
-                padding: '16px 20px',
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => save(false)}
-                disabled={saving}
-                style={{
-                  flex: 1,
-                  background: '#fff',
-                  color: domain.primaryColor,
-                  border: `1.5px solid ${domain.primaryColor}`,
-                  borderRadius: 12,
-                  padding: 13,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  opacity: saving ? 0.6 : 1,
-                  fontFamily: fontJakarta,
-                }}
-              >
-                {saving ? tProfile('actions.saving') : tProfile('actions.save_draft')}
-              </button>
-              <button
-                type="button"
-                onClick={() => save(true)}
-                disabled={saving}
-                style={{
-                  flex: 1,
-                  background: domain.primaryColor,
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 12,
-                  padding: 13,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  opacity: saving ? 0.6 : 1,
-                  fontFamily: fontJakarta,
-                }}
-              >
-                {saving ? tProfile('actions.publishing') : tProfile('actions.publish')}
-              </button>
-            </div>
+            {/* Actions sticky — Fix C parité CDI : Publier non silencieux.
+                Le bouton est désactivé tant que validateForPublish() retourne
+                des manquants, avec affichage clair de la liste sous le bouton.
+                Le banner d'erreur global reste en fallback. */}
+            {(() => {
+              const publishMissing = validateForPublish()
+              const canPublish = publishMissing.length === 0
+              return (
+                <div
+                  className="profil-actions"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                    background: 'var(--sk-surface)',
+                    border: '1px solid var(--sk-border)',
+                    borderRadius: 16,
+                    padding: '16px 20px',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => save(false)}
+                      disabled={saving}
+                      style={{
+                        flex: 1,
+                        background: 'var(--sk-surface)',
+                        color: domain.primaryColor,
+                        border: `1.5px solid ${domain.primaryColor}`,
+                        borderRadius: 12,
+                        padding: 13,
+                        fontSize: 14,
+                        fontWeight: 700,
+                        cursor: saving ? 'not-allowed' : 'pointer',
+                        opacity: saving ? 0.6 : 1,
+                        fontFamily: fontJakarta,
+                      }}
+                    >
+                      {saving ? tProfile('actions.saving') : tProfile('actions.save_draft')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => save(true)}
+                      disabled={saving || !canPublish}
+                      aria-disabled={saving || !canPublish}
+                      title={!canPublish ? tProfile('actions.publish_disabled_tooltip') : undefined}
+                      style={{
+                        flex: 1,
+                        background: canPublish ? domain.primaryColor : 'var(--sk-surface-2)',
+                        color: canPublish ? '#fff' : 'var(--sk-faint)',
+                        border: canPublish ? 'none' : '1px solid var(--sk-border)',
+                        borderRadius: 12,
+                        padding: 13,
+                        fontSize: 14,
+                        fontWeight: 700,
+                        cursor: (saving || !canPublish) ? 'not-allowed' : 'pointer',
+                        opacity: saving ? 0.6 : 1,
+                        fontFamily: fontJakarta,
+                      }}
+                    >
+                      {saving ? tProfile('actions.publishing') : tProfile('actions.publish')}
+                    </button>
+                  </div>
+                  {!canPublish && (
+                    <div
+                      role="status"
+                      style={{
+                        fontSize: 12.5,
+                        color: 'var(--sk-muted)',
+                        lineHeight: 1.5,
+                        background: 'var(--sk-amber-soft)',
+                        border: '1px solid var(--sk-amber)',
+                        borderRadius: 10,
+                        padding: '10px 12px',
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, color: 'var(--sk-text)', marginBottom: 4 }}>
+                        {tProfile('actions.publish_blocked_title', { count: publishMissing.length })}
+                      </div>
+                      <ul style={{ margin: 0, paddingInlineStart: 18 }}>
+                        {publishMissing.map((m) => {
+                          const fieldLabel = (() => {
+                            try { return tProfile(`field_labels_short.${m}` as 'field_labels_short.title') }
+                            catch { return m }
+                          })()
+                          return <li key={m}>{fieldLabel}</li>
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </>
         )}
       </div>

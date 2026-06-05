@@ -570,7 +570,9 @@
       "save_draft": "Als Entwurf speichern",
       "publish": "Mein Profil veröffentlichen →",
       "saving": "Wird gespeichert...",
-      "publishing": "Wird veröffentlicht..."
+      "publishing": "Wird veröffentlicht...",
+      "publish_disabled_tooltip": "Füllen Sie die unten markierten Pflichtfelder aus, um Ihr Profil zu veröffentlichen.",
+      "publish_blocked_title": "{count, plural, =1 {1 Pflichtfeld muss noch ausgefüllt werden} other {# Pflichtfelder müssen noch ausgefüllt werden}}"
     }
   },
   "profile_view": {
@@ -1181,6 +1183,7 @@
       },
       "compensation": {
         "title": "Gewünschte Vergütung",
+        "optional_hint": "Geben Sie Ihren Gehaltsrahmen und Ihre Kündigungsfrist an, um die Matching-Relevanz zu verbessern. Diese Felder sind für die Veröffentlichung Ihres Profils nicht erforderlich.",
         "salary_min_label": "Jahresbruttogehalt min. (€)",
         "salary_min_placeholder": "60000",
         "salary_max_label": "Jahresbruttogehalt max. (€)",
@@ -1315,7 +1318,9 @@
       "save_draft": "Als Entwurf speichern",
       "publish": "Profil veröffentlichen →",
       "saving": "Speichern...",
-      "publishing": "Veröffentlichen..."
+      "publishing": "Veröffentlichen...",
+      "publish_disabled_tooltip": "Füllen Sie die unten markierten Pflichtfelder aus, um Ihr Profil zu veröffentlichen.",
+      "publish_blocked_title": "{count, plural, =1 {1 Pflichtfeld muss noch ausgefüllt werden} other {# Pflichtfelder müssen noch ausgefüllt werden}}"
     }
   },
   "dashboard_entreprise": {

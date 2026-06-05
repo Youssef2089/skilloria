@@ -570,7 +570,9 @@
       "save_draft": "Enregistrer comme brouillon",
       "publish": "Publier mon profil →",
       "saving": "Enregistrement...",
-      "publishing": "Publication..."
+      "publishing": "Publication...",
+      "publish_disabled_tooltip": "Complétez les champs requis ci-dessous pour publier votre profil.",
+      "publish_blocked_title": "{count, plural, =1 {Il reste 1 champ requis à remplir} other {Il reste # champs requis à remplir}}"
     }
   },
   "profile_view": {
@@ -1181,6 +1183,7 @@
       },
       "compensation": {
         "title": "Rémunération recherchée",
+        "optional_hint": "Renseignez votre fourchette salariale et votre préavis pour optimiser la pertinence du matching. Ces champs ne sont pas requis pour publier votre profil.",
         "salary_min_label": "Salaire annuel brut min (€)",
         "salary_min_placeholder": "60000",
         "salary_max_label": "Salaire annuel brut max (€)",
@@ -1315,7 +1318,9 @@
       "save_draft": "Enregistrer comme brouillon",
       "publish": "Publier mon profil →",
       "saving": "Enregistrement...",
-      "publishing": "Publication..."
+      "publishing": "Publication...",
+      "publish_disabled_tooltip": "Complétez les champs requis ci-dessous pour publier votre profil.",
+      "publish_blocked_title": "{count, plural, =1 {Il reste 1 champ requis à remplir} other {Il reste # champs requis à remplir}}"
     }
   },
   "dashboard_entreprise": {

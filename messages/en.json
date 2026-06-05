@@ -570,7 +570,9 @@
       "save_draft": "Save as draft",
       "publish": "Publish my profile →",
       "saving": "Saving...",
-      "publishing": "Publishing..."
+      "publishing": "Publishing...",
+      "publish_disabled_tooltip": "Complete the required fields below to publish your profile.",
+      "publish_blocked_title": "{count, plural, =1 {1 required field still to fill in} other {# required fields still to fill in}}"
     }
   },
   "profile_view": {
@@ -1181,6 +1183,7 @@
       },
       "compensation": {
         "title": "Target compensation",
+        "optional_hint": "Add your salary range and notice period to improve matching relevance. These fields are not required to publish your profile.",
         "salary_min_label": "Annual gross min (€)",
         "salary_min_placeholder": "60000",
         "salary_max_label": "Annual gross max (€)",
@@ -1315,7 +1318,9 @@
       "save_draft": "Save as draft",
       "publish": "Publish my profile →",
       "saving": "Saving...",
-      "publishing": "Publishing..."
+      "publishing": "Publishing...",
+      "publish_disabled_tooltip": "Complete the required fields below to publish your profile.",
+      "publish_blocked_title": "{count, plural, =1 {1 required field still to fill in} other {# required fields still to fill in}}"
     }
   },
   "dashboard_entreprise": {

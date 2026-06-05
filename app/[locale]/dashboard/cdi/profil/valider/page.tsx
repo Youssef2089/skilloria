@@ -761,9 +761,13 @@ export default function CdiValiderProfilPage() {
     })
   }
 
-  // Validation client : strictement équivalente aux 11 critères du serveur
-  // (cf. app/api/profile/route.ts branche `if (isCdi)`). Garantit qu'un
-  // formulaire complet côté UI passe TOUJOURS la validation serveur.
+  // Validation client : strictement équivalente aux 8 critères du serveur
+  // (cf. app/api/profile/route.ts branche `if (isCdi)`). Fix C Lot CDI
+  // publish — alignement parité freelance : cdi_salary_min/max et
+  // cdi_notice_period sont OPTIONNELS (la vérif IA ne les lit pas, et
+  // freelance n'exige pas non plus tjm_min/max). cdi_status reste requis
+  // (signal écoute marché). Encart conseil ailleurs dans la page incite à
+  // les remplir pour optimiser le matching.
   const validateForPublish = (): string[] => {
     const missing: string[] = []
     if (!title.trim()) missing.push('title')
@@ -772,9 +776,6 @@ export default function CdiValiderProfilPage() {
     if (!branchId) missing.push('branch_id')
     if (!specialityId) missing.push('speciality_id')
     if (!cdiStatus) missing.push('cdi_status')
-    if (cdiSalaryMin === '' || Number(cdiSalaryMin) <= 0) missing.push('cdi_salary_min')
-    if (cdiSalaryMax === '' || Number(cdiSalaryMax) <= 0) missing.push('cdi_salary_max')
-    if (!cdiNoticePeriod) missing.push('cdi_notice_period')
     if (experiences.filter(e => e.role.trim()).length < 1) missing.push('experiences')
     if (languagesStructured.filter(l => l.language.trim()).length < 1)
       missing.push('languages_structured')
@@ -2026,6 +2027,30 @@ export default function CdiValiderProfilPage() {
                 title={tProfile('sections.compensation.title')}
               />
 
+              {/* Fix C — encart conseil : compensation OPTIONNELLE pour publier,
+                  mais fortement recommandée pour optimiser la pertinence du
+                  matching. La vérif IA ne lit pas ces champs ; le matching
+                  IA si. */}
+              <div
+                role="note"
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  fontSize: 12.5,
+                  lineHeight: 1.55,
+                  color: 'var(--sk-text)',
+                  background: 'var(--sk-accent-soft)',
+                  border: '1px solid var(--sk-accent)',
+                  borderRadius: 10,
+                  padding: '10px 12px',
+                  marginBottom: 14,
+                }}
+              >
+                <span aria-hidden style={{ fontSize: 15, lineHeight: 1, marginTop: 1 }}>💡</span>
+                <span>{tProfile('sections.compensation.optional_hint')}</span>
+              </div>
+
               <div
                 className="profil-row"
                 style={{
@@ -2933,59 +2958,101 @@ export default function CdiValiderProfilPage() {
               </div>
             </div>
 
-            {/* Actions sticky */}
-            <div
-              className="profil-actions"
-              style={{
-                display: 'flex',
-                gap: 12,
-                background: '#fff',
-                border: '1px solid #e2e8f0',
-                borderRadius: 16,
-                padding: '16px 20px',
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => save(false)}
-                disabled={saving}
-                style={{
-                  flex: 1,
-                  background: '#fff',
-                  color: domain.primaryColor,
-                  border: `1.5px solid ${domain.primaryColor}`,
-                  borderRadius: 12,
-                  padding: 13,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  opacity: saving ? 0.6 : 1,
-                  fontFamily: fontJakarta,
-                }}
-              >
-                {saving ? tProfile('actions.saving') : tProfile('actions.save_draft')}
-              </button>
-              <button
-                type="button"
-                onClick={() => save(true)}
-                disabled={saving}
-                style={{
-                  flex: 1,
-                  background: domain.primaryColor,
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 12,
-                  padding: 13,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  opacity: saving ? 0.6 : 1,
-                  fontFamily: fontJakarta,
-                }}
-              >
-                {saving ? tProfile('actions.publishing') : tProfile('actions.publish')}
-              </button>
-            </div>
+            {/* Actions sticky — Fix C : Publier non silencieux. Le bouton
+                Publier est désactivé tant que la liste validateForPublish()
+                n'est pas vide, avec affichage clair sous le bouton des
+                champs requis manquants. Le banner d'erreur global reste en
+                fallback (si l'utilisateur force le clic via raccourci). */}
+            {(() => {
+              const publishMissing = validateForPublish()
+              const canPublish = publishMissing.length === 0
+              return (
+                <div
+                  className="profil-actions"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                    background: 'var(--sk-surface)',
+                    border: '1px solid var(--sk-border)',
+                    borderRadius: 16,
+                    padding: '16px 20px',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => save(false)}
+                      disabled={saving}
+                      style={{
+                        flex: 1,
+                        background: 'var(--sk-surface)',
+                        color: domain.primaryColor,
+                        border: `1.5px solid ${domain.primaryColor}`,
+                        borderRadius: 12,
+                        padding: 13,
+                        fontSize: 14,
+                        fontWeight: 700,
+                        cursor: saving ? 'not-allowed' : 'pointer',
+                        opacity: saving ? 0.6 : 1,
+                        fontFamily: fontJakarta,
+                      }}
+                    >
+                      {saving ? tProfile('actions.saving') : tProfile('actions.save_draft')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => save(true)}
+                      disabled={saving || !canPublish}
+                      aria-disabled={saving || !canPublish}
+                      title={!canPublish ? tProfile('actions.publish_disabled_tooltip') : undefined}
+                      style={{
+                        flex: 1,
+                        background: canPublish ? domain.primaryColor : 'var(--sk-surface-2)',
+                        color: canPublish ? '#fff' : 'var(--sk-faint)',
+                        border: canPublish ? 'none' : '1px solid var(--sk-border)',
+                        borderRadius: 12,
+                        padding: 13,
+                        fontSize: 14,
+                        fontWeight: 700,
+                        cursor: (saving || !canPublish) ? 'not-allowed' : 'pointer',
+                        opacity: saving ? 0.6 : 1,
+                        fontFamily: fontJakarta,
+                      }}
+                    >
+                      {saving ? tProfile('actions.publishing') : tProfile('actions.publish')}
+                    </button>
+                  </div>
+                  {!canPublish && (
+                    <div
+                      role="status"
+                      style={{
+                        fontSize: 12.5,
+                        color: 'var(--sk-muted)',
+                        lineHeight: 1.5,
+                        background: 'var(--sk-amber-soft)',
+                        border: '1px solid var(--sk-amber)',
+                        borderRadius: 10,
+                        padding: '10px 12px',
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, color: 'var(--sk-text)', marginBottom: 4 }}>
+                        {tProfile('actions.publish_blocked_title', { count: publishMissing.length })}
+                      </div>
+                      <ul style={{ margin: 0, paddingInlineStart: 18 }}>
+                        {publishMissing.map((m) => {
+                          const fieldLabel = (() => {
+                            try { return tProfile(`field_labels_short.${m}` as 'field_labels_short.title') }
+                            catch { return m }
+                          })()
+                          return <li key={m}>{fieldLabel}</li>
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </>
         )}
       </div>
