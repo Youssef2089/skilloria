@@ -26,13 +26,10 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  */
 
 export type CandidatureUnlockedProfile = {
-  first_name: string | null
-  last_name: string | null
-  civility: string | null
-  email: string | null
-  phone: string | null
-  job_title: string | null
-  user_linkedin_url: string | null
+  /** Pseudonyme : "Prénom + dernière lettre majuscule" (lot masquage RGPD).
+   *  Construit côté serveur via maskExpertNameForOrg. Le navigateur de l'org
+   *  ne reçoit JAMAIS le nom complet ni les coordonnées personnelles. */
+  display_name: string
   title: string | null
   summary: string | null
   skills: string[]
@@ -48,15 +45,9 @@ export type CandidatureUnlockedProfile = {
   languages: string[]
   country: string | null
   city: string | null
-  address_line: string | null
-  postal_code: string | null
   availability_status: string | null
   availability_date: string | null
   profile_score: number | null
-  cv_url: string | null
-  linkedin_url: string | null
-  photo_url: string | null
-  birth_year: number | null
 }
 
 export type CandidaturePreview = {
@@ -225,9 +216,13 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
     }
   }
 
-  // ── Display name : masqué avant unlock, complet après ───────────────────
+  // ── Display name : anonyme avant unlock, pseudo serveur après ──────────
+  // Lot masquage : post-unlock, le serveur fournit `display_name` déjà
+  // pseudonymisé ("Prénom + dernière lettre maj"). Le navigateur ne reçoit
+  // plus first_name/last_name/civility/email/phone : aucune reconstruction
+  // possible côté FE.
   const displayName = isUnlocked && unlocked_profile
-    ? [unlocked_profile.civility, unlocked_profile.first_name, unlocked_profile.last_name].filter(Boolean).join(' ').trim() || t('candidate_label')
+    ? unlocked_profile.display_name || t('candidate_label')
     : t('anonymous_candidate')
 
   return (
@@ -241,17 +236,14 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
         transition: 'opacity .15s, box-shadow .2s',
       }}
     >
-      {/* Header : avatar + nom (ou anonyme) + score + status badge */}
+      {/* Header : avatar (initiale du pseudo) + nom + score + status badge.
+          Lot masquage : JAMAIS de photo de l'expert côté org. L'avatar est
+          toujours l'initiale (du pseudo post-unlock, '?' avant). */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-          {isUnlocked && unlocked_profile?.photo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={unlocked_profile.photo_url} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-          ) : (
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#f1f5f9', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 600, flexShrink: 0 }}>
-              {isUnlocked && unlocked_profile?.first_name ? unlocked_profile.first_name[0]?.toUpperCase() ?? '?' : '?'}
-            </div>
-          )}
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#f1f5f9', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 600, flexShrink: 0 }}>
+            {isUnlocked && unlocked_profile?.display_name ? unlocked_profile.display_name[0]?.toUpperCase() ?? '?' : '?'}
+          </div>
           <div style={{ minWidth: 0, flex: 1 }}>
             <h3 style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', marginBottom: 2, lineHeight: 1.35 }}>
               {displayName}
@@ -428,27 +420,11 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#166534', marginBottom: 10 }}>
             ✓ {t('unlocked_section_label')}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, fontSize: 13 }}>
-            {unlocked_profile.email && (
-              <div><div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 2 }}>{t('email')}</div><div><a href={`mailto:${unlocked_profile.email}`} style={{ color: domain.primaryColor, textDecoration: 'none' }}>{unlocked_profile.email}</a></div></div>
-            )}
-            {unlocked_profile.phone && (
-              <div><div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 2 }}>{t('phone')}</div><div><a href={`tel:${unlocked_profile.phone}`} style={{ color: domain.primaryColor, textDecoration: 'none' }}>{unlocked_profile.phone}</a></div></div>
-            )}
-            {(unlocked_profile.user_linkedin_url ?? unlocked_profile.linkedin_url) && (
-              <div><div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 2 }}>LinkedIn</div><div><a href={(unlocked_profile.user_linkedin_url ?? unlocked_profile.linkedin_url) ?? '#'} target="_blank" rel="noreferrer" style={{ color: domain.primaryColor, textDecoration: 'none' }}>{t('view_profile')} ↗</a></div></div>
-            )}
-            {unlocked_profile.cv_url && (
-              <div><div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 2 }}>CV</div><div><a href={unlocked_profile.cv_url} target="_blank" rel="noreferrer" style={{ color: domain.primaryColor, textDecoration: 'none' }}>{t('download_cv')} ↗</a></div></div>
-            )}
-            {unlocked_profile.address_line && (
-              <div style={{ gridColumn: 'span 2' }}>
-                <div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 2 }}>{t('address')}</div>
-                <div>{[unlocked_profile.address_line, unlocked_profile.postal_code, unlocked_profile.city, unlocked_profile.country].filter(Boolean).join(', ')}</div>
-              </div>
-            )}
-          </div>
-          <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid #86EFAC' }}>
+          {/* Lot masquage : aucune coordonnée personnelle. Le seul canal de
+              contact est la conversation interne. Email/téléphone/CV/LinkedIn/
+              adresse NE PARTENT PLUS dans le payload serveur (cf.
+              lib/candidature-org-dto.ts). */}
+          <div>
             {candidature.conversation_id ? (
               <Link
                 href={`/dashboard/entreprise/messages/${candidature.conversation_id}`}

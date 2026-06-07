@@ -3,6 +3,7 @@ import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { buildPublicationSynthesis } from '@/lib/publication-synthesis'
+import { maskExpertNameForOrg } from '@/lib/expert-name-masking'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -210,9 +211,11 @@ export async function GET(request: NextRequest): Promise<Response> {
           avatar_url: org?.logo_url ?? null,
         }
       : {
+          // Lot masquage : l'user courant est l'ORG → le correspondant est
+          // l'expert → nom masqué + JAMAIS de photo (la photo identifie).
           kind: 'expert' as const,
-          name: [u?.first_name, u?.last_name].filter(Boolean).join(' ').trim() || null,
-          avatar_url: profile?.photo_url ?? null,
+          name: maskExpertNameForOrg(u?.first_name ?? null, u?.last_name ?? null),
+          avatar_url: null,
         }
 
     const lastMsg = lastMsgByConv.get(conv.id) ?? null

@@ -1,5 +1,6 @@
 import type { AuthContext } from '@/lib/auth-guard'
 import { tBDD, type TranslationsMap } from '@/lib/translations'
+import { maskExpertNameForOrg } from '@/lib/expert-name-masking'
 
 /**
  * lib/candidature-org-dto.ts — helper partagé qui construit les DTOs
@@ -103,20 +104,17 @@ type FullProfile = {
   languages: string[] | null
   country: string | null
   city: string | null
-  address_line: string | null
-  postal_code: string | null
+  // Lot masquage : address_line/postal_code/birth_year/photo_url/cv_url/
+  // linkedin_url NE PARTENT PLUS dans le payload org → on les retire aussi
+  // du SELECT (économie réseau + defense-in-depth, on ne charge même pas).
   availability_status: string | null
   availability_date: string | null
   profile_score: number | null
-  cv_url: string | null
-  linkedin_url: string | null
-  photo_url: string | null
-  birth_year: number | null
   branch_id: string | null
   speciality_id: string | null
   users:
-    | { id: string; first_name: string | null; last_name: string | null; email: string | null; phone: string | null; civility: string | null; job_title: string | null; linkedin_url: string | null }
-    | { id: string; first_name: string | null; last_name: string | null; email: string | null; phone: string | null; civility: string | null; job_title: string | null; linkedin_url: string | null }[]
+    | { id: string; first_name: string | null; last_name: string | null }
+    | { id: string; first_name: string | null; last_name: string | null }[]
 }
 
 export async function buildOrgCandidatureDTOs(
@@ -178,15 +176,20 @@ export async function buildOrgCandidatureDTOs(
   )
   const fullProfileById = new Map<string, FullProfile>()
   if (unlockedProfileIds.size > 0) {
+    // Lot masquage : SELECT retire les colonnes PII (address_line, postal_code,
+    // birth_year, photo_url, cv_url, linkedin_url) ET les colonnes user
+    // (email, phone, civility, job_title, linkedin_url). Seuls first_name +
+    // last_name sont chargés pour calculer display_name côté serveur. Le
+    // navigateur de l'org ne recevra JAMAIS ces données.
     const { data: profRows } = await auth.supabaseAdmin
       .from('profiles')
       .select(
         'id, user_id, title, summary, skills, seniority, expert_type, ' +
           'years_experience, years_total_experience, tjm_min, tjm_max, salary_min, salary_max, ' +
-          'work_modes, languages, country, city, address_line, postal_code, ' +
-          'availability_status, availability_date, profile_score, cv_url, ' +
-          'linkedin_url, photo_url, birth_year, branch_id, speciality_id, ' +
-          'users!profiles_user_id_fkey!inner(id, first_name, last_name, email, phone, civility, job_title, linkedin_url)',
+          'work_modes, languages, country, city, ' +
+          'availability_status, availability_date, profile_score, ' +
+          'branch_id, speciality_id, ' +
+          'users!profiles_user_id_fkey!inner(id, first_name, last_name)',
       )
       .in('id', Array.from(unlockedProfileIds))
     for (const p of (profRows ?? []) as unknown as FullProfile[]) {
@@ -233,14 +236,14 @@ export async function buildOrgCandidatureDTOs(
       const fp = fullProfileById.get(row.profile_id)
       if (fp) {
         const u = Array.isArray(fp.users) ? fp.users[0] : fp.users
+        // Lot masquage : ZERO PII coordonnées (email/phone/cv/linkedin/
+        // address/birth_year/photo). Nom transformé en "Prénom + dernière
+        // lettre maj" via maskExpertNameForOrg. Le payload ne contient que
+        // des champs métier non-identifiants (skills, séniorité, etc.) +
+        // un display_name pseudonyme. Seul canal de contact : conversation
+        // interne.
         unlockedProfile = {
-          first_name: u?.first_name ?? null,
-          last_name: u?.last_name ?? null,
-          civility: u?.civility ?? null,
-          email: u?.email ?? null,
-          phone: u?.phone ?? null,
-          job_title: u?.job_title ?? null,
-          user_linkedin_url: u?.linkedin_url ?? null,
+          display_name: maskExpertNameForOrg(u?.first_name ?? null, u?.last_name ?? null),
           title: fp.title,
           summary: fp.summary,
           skills: fp.skills ?? [],
@@ -256,15 +259,9 @@ export async function buildOrgCandidatureDTOs(
           languages: fp.languages ?? [],
           country: fp.country,
           city: fp.city,
-          address_line: fp.address_line,
-          postal_code: fp.postal_code,
           availability_status: fp.availability_status,
           availability_date: fp.availability_date,
           profile_score: fp.profile_score,
-          cv_url: fp.cv_url,
-          linkedin_url: fp.linkedin_url,
-          photo_url: fp.photo_url,
-          birth_year: fp.birth_year,
         }
       }
     }

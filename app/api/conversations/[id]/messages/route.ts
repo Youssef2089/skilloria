@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
+import { maskExpertNameForOrg } from '@/lib/expert-name-masking'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -206,9 +207,16 @@ async function loadConvAsParticipant(
   }
 
   // ── Identité de l'émetteur (pour body notif) ──────────────────────────
+  // Lot masquage : si l'émetteur est l'expert, on persiste le NOM MASQUÉ
+  // dans la notif → l'org ne verra "Youssef F" dans son centre de notifs,
+  // pas le nom complet. Notifs déjà persistées (pré-lot) restent telles
+  // quelles — décision séparée pour un éventuel backfill.
   let senderFirstLast = ''
   if (role === 'expert') {
-    senderFirstLast = [expertUser?.first_name, expertUser?.last_name].filter(Boolean).join(' ').trim() || 'L\'expert'
+    senderFirstLast = maskExpertNameForOrg(
+      expertUser?.first_name ?? null,
+      expertUser?.last_name ?? null,
+    )
   } else {
     const orgRaw = pickRel(pub.organizations as { id: string; company_name: string | null; logo_url: string | null } | { id: string; company_name: string | null; logo_url: string | null }[] | null)
     senderFirstLast = orgRaw?.company_name?.trim() || 'L\'entreprise'
@@ -287,6 +295,9 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   }
 
   // ── Correspondant (identité MUTUELLE post-unlock) ──────────────────────
+  // Lot masquage : si l'user courant est l'ORG (role==='org'), le
+  // correspondant est l'expert → nom masqué + JAMAIS de photo. L'expert
+  // (role==='expert') voit l'org normalement (company_name + logo).
   const correspondant = role === 'expert'
     ? {
         kind: 'org' as const,
@@ -295,8 +306,11 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
       }
     : {
         kind: 'expert' as const,
-        name: [expertUser?.first_name, expertUser?.last_name].filter(Boolean).join(' ').trim() || null,
-        avatar_url: profile?.photo_url ?? null,
+        name: maskExpertNameForOrg(
+          expertUser?.first_name ?? null,
+          expertUser?.last_name ?? null,
+        ),
+        avatar_url: null,
       }
 
   return json(
