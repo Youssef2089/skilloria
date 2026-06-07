@@ -147,16 +147,23 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
   const domain = useDomain()
   const secureFetch = useSecureFetch()
 
-  const [busy, setBusy] = useState<'unlock' | 'reject' | null>(null)
+  const [busy, setBusy] = useState<'unlock' | 'reject' | 'select' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmReject, setConfirmReject] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
+  // Lot état 'selected' : confirmation explicite avant l'action irréversible.
+  const [confirmSelect, setConfirmSelect] = useState(false)
 
   const { status, preview, unlocked_profile, ai_match_score, cover_message, created_at, status_reason, ai_pitch } = candidature
   const isUnlocked = status === 'unlocked'
+  const isSelected = status === 'selected'
   const isRejected = status === 'rejected'
   const isClosed = isRejected || status === 'withdrawn' || status === 'archived'
   const canAct = status === 'received' || status === 'in_review' || status === 'shortlisted'
+  // Bouton "Retenir" : visible UNIQUEMENT en 'unlocked' (l'org a déjà débloqué
+  // le profil et discuté). Côté serveur, la transition autorisée est aussi
+  // restreinte à ['unlocked'] (lib/.. /api/candidatures/[id]/select/route.ts).
+  const canSelect = isUnlocked && !isClosed
 
   const rateUnit = publicationType === 'mission'
     ? (locale === 'fr' ? '/jour' : locale === 'es' ? '/día' : locale === 'de' ? '/Tag' : '/day')
@@ -183,6 +190,28 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
       setError(t('error_generic'))
     } finally {
       setBusy(null)
+    }
+  }
+
+  const handleSelect = async () => {
+    setBusy('select')
+    setError(null)
+    try {
+      const res = await secureFetch(`/api/candidatures/${candidature.id}/select`, { method: 'POST' })
+      const payload = (await res.json().catch(() => ({} as { code?: string }))) as { code?: string }
+      if (!res.ok) {
+        if (payload.code === 'invalid_transition') setError(t('error_invalid_transition'))
+        else if (payload.code === 'not_found') setError(t('error_not_found'))
+        else setError(t('error_generic'))
+        return
+      }
+      onMutated()
+    } catch (err) {
+      console.error('[candidature select] threw', err)
+      setError(t('error_generic'))
+    } finally {
+      setBusy(null)
+      setConfirmSelect(false)
     }
   }
 
@@ -280,8 +309,12 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
           <span
             style={{
               padding: '3px 9px',
-              background: isUnlocked ? '#DCFCE7' : isRejected ? '#FEE2E2' : '#f1f5f9',
-              color: isUnlocked ? '#166534' : isRejected ? '#991B1B' : '#475569',
+              background: isSelected
+                ? '#FEF3C7'
+                : isUnlocked ? '#DCFCE7' : isRejected ? '#FEE2E2' : '#f1f5f9',
+              color: isSelected
+                ? '#92400E'
+                : isUnlocked ? '#166534' : isRejected ? '#991B1B' : '#475569',
               fontSize: 10,
               fontWeight: 600,
               borderRadius: 10,
@@ -414,17 +447,37 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
         </div>
       )}
 
-      {/* PROFIL COMPLET (post-unlock) */}
-      {isUnlocked && unlocked_profile && (
-        <div style={{ background: '#DCFCE730', border: '1px solid #86EFAC', borderRadius: 12, padding: '14px 16px', marginBottom: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#166534', marginBottom: 10 }}>
-            ✓ {t('unlocked_section_label')}
+      {/* PROFIL COMPLET (post-unlock) — affiché aussi en 'selected' (l'org
+          conserve l'accès au profil débloqué après avoir retenu le candidat). */}
+      {(isUnlocked || isSelected) && unlocked_profile && (
+        <div
+          style={{
+            background: isSelected ? '#FEF3C730' : '#DCFCE730',
+            border: `1px solid ${isSelected ? '#FCD34D' : '#86EFAC'}`,
+            borderRadius: 12,
+            padding: '14px 16px',
+            marginBottom: 12,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '.06em',
+              color: isSelected ? '#92400E' : '#166534',
+              marginBottom: 10,
+            }}
+          >
+            {isSelected
+              ? `🏆 ${t(publicationType === 'mission' ? 'selected_section_label_mission' : 'selected_section_label_offre')}`
+              : `✓ ${t('unlocked_section_label')}`}
           </div>
           {/* Lot masquage : aucune coordonnée personnelle. Le seul canal de
               contact est la conversation interne. Email/téléphone/CV/LinkedIn/
               adresse NE PARTENT PLUS dans le payload serveur (cf.
               lib/candidature-org-dto.ts). */}
-          <div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             {candidature.conversation_id ? (
               <Link
                 href={`/dashboard/entreprise/messages/${candidature.conversation_id}`}
@@ -464,7 +517,81 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
                 💬 {t('conversation_button')}
               </button>
             )}
+
+            {/* Bouton "Retenir ce candidat" — UNIQUEMENT en 'unlocked'.
+                Action IRRÉVERSIBLE → demande de confirmation explicite. */}
+            {canSelect && !confirmSelect && (
+              <button
+                type="button"
+                onClick={() => setConfirmSelect(true)}
+                disabled={busy !== null}
+                style={{
+                  padding: '8px 14px',
+                  background: '#fff',
+                  color: '#92400E',
+                  border: '1.5px solid #F59E0B',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: busy ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                🏆 {t('button_select')}
+              </button>
+            )}
           </div>
+
+          {/* Bandeau de confirmation "Retenir" — explicite que c'est définitif. */}
+          {canSelect && confirmSelect && (
+            <div
+              role="alertdialog"
+              aria-label={t('select_confirm_title')}
+              style={{
+                marginTop: 12,
+                background: '#FEF3C7',
+                border: '1.5px solid #F59E0B',
+                borderRadius: 10,
+                padding: '12px 14px',
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#92400E', marginBottom: 6 }}>
+                {t('select_confirm_title')}
+              </div>
+              <div style={{ fontSize: 12, color: '#92400E', lineHeight: 1.55, marginBottom: 12 }}>
+                {t(publicationType === 'mission' ? 'select_confirm_body_mission' : 'select_confirm_body_offre')}
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => { setConfirmSelect(false); setError(null) }}
+                  disabled={busy !== null}
+                  style={{ padding: '8px 14px', background: 'transparent', color: '#92400E', border: '1px solid #FCD34D', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+                >
+                  {t('select_cancel')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSelect}
+                  disabled={busy !== null}
+                  style={{
+                    padding: '8px 14px',
+                    background: '#D97706',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: busy ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit',
+                    opacity: busy === 'select' ? 0.6 : 1,
+                  }}
+                >
+                  {busy === 'select' ? t('button_selecting') : t('select_confirm')}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

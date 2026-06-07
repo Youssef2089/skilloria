@@ -41,6 +41,8 @@ type CandRow = {
   status_reason: string | null
   ai_match_score: number | null
   unlocked_at: string | null
+  // Lot état 'selected' : timestamp posé par la transition unlocked → selected.
+  selected_at: string | null
   cover_message: string | null
   created_at: string
   publications: unknown
@@ -82,7 +84,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     auth.supabaseAdmin
       .from('candidatures')
       .select(
-        'id, publication_id, status, status_reason, ai_match_score, unlocked_at, ' +
+        'id, publication_id, status, status_reason, ai_match_score, unlocked_at, selected_at, ' +
           'cover_message, created_at, ' +
           'publications!inner(' +
           'id, type, title, branch_id, speciality_id, budget_min, budget_max, ' +
@@ -103,14 +105,17 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
   const rows = (candResult.data ?? []) as unknown as CandRow[]
 
-  // Conversation_id pour les unlocked (batch query)
-  const unlockedCandIds = rows.filter((r) => r.status === 'unlocked').map((r) => r.id)
+  // Conversation_id pour les unlocked OU selected (batch query).
+  //  Lot 'selected' : la conversation reste accessible côté expert après
+  //  avoir été retenu (caler date / contrat).
+  const accessibleStatuses = new Set(['unlocked', 'selected'])
+  const accessibleCandIds = rows.filter((r) => accessibleStatuses.has(r.status)).map((r) => r.id)
   const convByCand = new Map<string, string>()
-  if (unlockedCandIds.length > 0) {
+  if (accessibleCandIds.length > 0) {
     const { data: convs } = await auth.supabaseAdmin
       .from('conversations')
       .select('id, candidature_id')
-      .in('candidature_id', unlockedCandIds)
+      .in('candidature_id', accessibleCandIds)
     for (const c of ((convs ?? []) as { id: string; candidature_id: string }[])) {
       convByCand.set(c.candidature_id, c.id)
     }
@@ -132,9 +137,10 @@ export async function GET(request: NextRequest): Promise<Response> {
       status_reason: r.status_reason,
       ai_match_score: r.ai_match_score,
       unlocked_at: r.unlocked_at,
+      selected_at: r.selected_at,
       cover_message: r.cover_message,
       created_at: r.created_at,
-      conversation_id: r.status === 'unlocked' ? convByCand.get(r.id) ?? null : null,
+      conversation_id: accessibleStatuses.has(r.status) ? convByCand.get(r.id) ?? null : null,
     }
   })
 

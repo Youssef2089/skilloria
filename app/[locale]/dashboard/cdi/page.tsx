@@ -270,13 +270,14 @@ export default function DashboardCDI() {
         }
         .score-box:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
         @media (max-width: 767px) {
-          .stats-grid { grid-template-columns: 1fr !important; }
+          /* Lot état 'selected' : 4 KPI — 2 colonnes en mobile. */
+          .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .greeting-row { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
           .score-box { width: 100%; }
           .verif-steps { flex-wrap: wrap !important; }
         }
         @media (min-width: 768px) {
-          .stats-grid { grid-template-columns: repeat(3, 1fr) !important; }
+          .stats-grid { grid-template-columns: repeat(4, 1fr) !important; }
         }
       `}</style>
 
@@ -547,19 +548,18 @@ export default function DashboardCDI() {
             />
           </div>
 
-          {/* SECTION 3 — KPIs */}
+          {/* SECTION 3 — KPIs (parité freelance, Lot état 'selected').
+                Postulées / En discussion / Retenues / Refusées.
+                en_discussion = unlocked uniquement, retenues = selected. */}
           <div
             className="stats-grid"
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
+              gridTemplateColumns: 'repeat(4, 1fr)',
               gap: 14,
               marginBottom: 16,
             }}
           >
-            {/* SC2 — vision EXPERT : Postulées / En discussion / Refusées
-                (parité avec freelance). Les anciennes KPI profile_views /
-                recruiter_contacts (placeholders V1) ont été remplacées. */}
             <KpiCard
               label={t('kpis.posted')}
               value={!isVerified ? '—' : apps.loading ? '…' : String(apps.postulees)}
@@ -570,7 +570,14 @@ export default function DashboardCDI() {
             <KpiCard
               label={t('kpis.in_discussion')}
               value={!isVerified ? '—' : apps.loading ? '…' : String(apps.en_discussion)}
-              delay="0.15s"
+              delay="0.13s"
+              isPlaceholder={!isVerified}
+            />
+            <KpiCard
+              label={t('kpis.retained')}
+              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.retenues)}
+              delay="0.16s"
+              accentColor="#D97706"
               isPlaceholder={!isVerified}
             />
             <KpiCard

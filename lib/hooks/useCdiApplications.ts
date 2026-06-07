@@ -29,6 +29,8 @@ export type UseCdiApplicationsState = {
   count: number
   postulees: number
   en_discussion: number
+  /** Lot état 'selected' : candidat retenu par l'org ("Poste décroché" pour CDI). */
+  retenues: number
   refusees: number
   items: ApplicationItem[]
 }
@@ -54,10 +56,15 @@ export function useCdiApplications(): UseCdiApplicationsState {
 
   return useMemo<UseCdiApplicationsState>(() => {
     const all = live.data?.candidatures ?? []
-    let postulees = 0, enDiscussion = 0, refusees = 0
+    // Lot état 'selected' :
+    //   en_discussion = UNLOCKED uniquement (parité freelance).
+    //   retenues      = SELECTED uniquement.
+    //   refusees      = REJECTED.
+    let postulees = 0, enDiscussion = 0, retenues = 0, refusees = 0
     for (const c of all) {
       postulees++
-      if (c.status === 'unlocked' || c.status === 'in_review' || c.status === 'shortlisted') enDiscussion++
+      if (c.status === 'unlocked') enDiscussion++
+      else if (c.status === 'selected') retenues++
       else if (c.status === 'rejected') refusees++
     }
     const items: ApplicationItem[] = all.map((c) => ({
@@ -75,6 +82,7 @@ export function useCdiApplications(): UseCdiApplicationsState {
       count: items.length,
       postulees,
       en_discussion: enDiscussion,
+      retenues,
       refusees,
       items,
     }

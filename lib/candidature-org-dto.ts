@@ -157,22 +157,27 @@ export async function buildOrgCandidatureDTOs(
     }
   }
 
-  // Conversation_id pour les candidatures unlocked.
-  const unlockedCandIds = rows.filter((r) => r.status === 'unlocked').map((r) => r.id)
+  // Conversation_id pour les candidatures unlocked OU selected.
+  //  Lot 'selected' : une fois le candidat retenu, la conversation reste
+  //  active pour caler les détails (date, contrat...). L'org doit toujours
+  //  pouvoir y accéder.
+  const accessibleStatuses = new Set(['unlocked', 'selected'])
+  const accessibleCandIds = rows.filter((r) => accessibleStatuses.has(r.status)).map((r) => r.id)
   const convIdByCand = new Map<string, string>()
-  if (unlockedCandIds.length > 0) {
+  if (accessibleCandIds.length > 0) {
     const { data: convs } = await auth.supabaseAdmin
       .from('conversations')
       .select('id, candidature_id')
-      .in('candidature_id', unlockedCandIds)
+      .in('candidature_id', accessibleCandIds)
     for (const c of (convs ?? []) as { id: string; candidature_id: string }[]) {
       convIdByCand.set(c.candidature_id, c.id)
     }
   }
 
-  // Profil complet UNIQUEMENT pour candidatures unlocked.
+  // Profil complet pour candidatures unlocked OU selected (idem : l'accès
+  // au profil débloqué est conservé une fois le candidat retenu).
   const unlockedProfileIds = new Set(
-    rows.filter((r) => r.status === 'unlocked').map((r) => r.profile_id),
+    rows.filter((r) => accessibleStatuses.has(r.status)).map((r) => r.profile_id),
   )
   const fullProfileById = new Map<string, FullProfile>()
   if (unlockedProfileIds.size > 0) {
@@ -232,7 +237,7 @@ export async function buildOrgCandidatureDTOs(
     const specialityId = typeof preview.speciality_id === 'string' ? preview.speciality_id : null
 
     let unlockedProfile: Record<string, unknown> | null = null
-    if (row.status === 'unlocked') {
+    if (accessibleStatuses.has(row.status)) {
       const fp = fullProfileById.get(row.profile_id)
       if (fp) {
         const u = Array.isArray(fp.users) ? fp.users[0] : fp.users
@@ -277,7 +282,7 @@ export async function buildOrgCandidatureDTOs(
       cover_message: row.cover_message,
       ai_match_score: row.ai_match_score,
       created_at: row.created_at,
-      conversation_id: row.status === 'unlocked' ? convIdByCand.get(row.id) ?? null : null,
+      conversation_id: accessibleStatuses.has(row.status) ? convIdByCand.get(row.id) ?? null : null,
       ai_pitch: row.match_id ? pitchByMatch.get(row.match_id) ?? null : null,
       unlocked_profile: unlockedProfile,
       preview: {

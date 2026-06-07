@@ -25,6 +25,8 @@ export type CandidatureMiniItem = {
 }
 
 function statusVisual(status: string, accent: string): { bg: string; color: string } {
+  // Lot état 'selected' : palette dorée (cf. StatusPill.won).
+  if (status === 'selected') return { bg: '#FEF3C7', color: '#92400E' }
   if (status === 'unlocked') return { bg: 'var(--sk-success-soft)', color: 'var(--sk-success)' }
   if (status === 'rejected') return { bg: 'var(--sk-red-soft)', color: 'var(--sk-red)' }
   return { bg: 'var(--sk-amber-soft)', color: accent }
@@ -84,7 +86,16 @@ export default function CandidatureMiniCard({
                 letterSpacing: '.04em',
               }}
             >
-              {(() => { try { return t(`status.${candidature.status}` as 'status.received') } catch { return candidature.status } })()}
+              {(() => {
+                try {
+                  // Label conditionnel par type publication pour 'selected'.
+                  if (candidature.status === 'selected') {
+                    const pubType = candidature.publication?.type
+                    return t(pubType === 'mission' ? 'status_selected_mission' : 'status_selected_offre')
+                  }
+                  return t(`status.${candidature.status}` as 'status.received')
+                } catch { return candidature.status }
+              })()}
             </span>
             {candidature.ai_match_score != null && (
               <span style={{ fontSize: 11.5, color: 'var(--sk-muted)' }}>

@@ -125,15 +125,22 @@ export default function DashboardFreelance() {
     if (missions === null && candidaturesAll === null && conversations === null) {
       return {
         missions_count: null, candidatures_count: null, postulees: null,
-        en_discussion: null, refusees: null, messages_unread: null,
+        en_discussion: null, retenues: null, refusees: null, messages_unread: null,
         completion_pct: null,
       } as const
     }
-    let postulees = 0, enDiscussion = 0, refusees = 0
+    // Lot état 'selected' :
+    //   en_discussion = UNLOCKED uniquement (l'expert et l'org échangent).
+    //                   in_review / shortlisted = encore "en attente côté org"
+    //                   → ne comptent plus comme "en discussion" V1.
+    //   retenues      = SELECTED uniquement (l'expert a été retenu).
+    //   refusees      = REJECTED (inchangé).
+    let postulees = 0, enDiscussion = 0, retenues = 0, refusees = 0
     if (candidaturesAll) {
       postulees = candidaturesAll.length
       for (const c of candidaturesAll) {
-        if (c.status === 'unlocked' || c.status === 'in_review' || c.status === 'shortlisted') enDiscussion++
+        if (c.status === 'unlocked') enDiscussion++
+        else if (c.status === 'selected') retenues++
         else if (c.status === 'rejected') refusees++
       }
     }
@@ -145,6 +152,7 @@ export default function DashboardFreelance() {
       candidatures_count: candidaturesAll?.length ?? null,
       postulees: candidaturesAll === null ? null : postulees,
       en_discussion: candidaturesAll === null ? null : enDiscussion,
+      retenues: candidaturesAll === null ? null : retenues,
       refusees: candidaturesAll === null ? null : refusees,
       messages_unread: conversations === null ? null : unread,
       completion_pct: completion,
@@ -356,7 +364,12 @@ export default function DashboardFreelance() {
           .dashboard-layout { flex-direction: column !important; }
           .dashboard-sidebar { display: none !important; }
           .dashboard-main { padding: 20px !important; }
+          /* Lot état 'selected' : 5 tuiles (4 KPI + TJM) — 2 colonnes en mobile. */
           .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (min-width: 768px) and (max-width: 1099px) {
+          /* Tablette : 3 colonnes pour éviter l'écrasement à 5×~150px. */
+          .stats-grid { grid-template-columns: repeat(3, 1fr) !important; }
         }
         @media (min-width: 768px) {
           .dashboard-layout { flex-direction: row !important; }
@@ -431,16 +444,20 @@ export default function DashboardFreelance() {
             </div>
           )}
 
-          {/* 4 stats */}
-          <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 22 }}>
+          {/* Lot état 'selected' : 4 stat-cards de comptage (Postulées, En
+              discussion, Retenues, Refusées) + TJM card = 5 tuiles total. La
+              media query .stats-grid bascule en grid auto-fit min 140 sur
+              mobile pour rester lisible (cf. styles ci-dessous). */}
+          <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 22 }}>
             {[
-              { label: t('stats.posted'),        value: !isVerified ? '—' : (stats.postulees ?? '…').toString(),      delay: '0.1s' },
+              { label: t('stats.posted'),        value: !isVerified ? '—' : (stats.postulees ?? '…').toString(),      delay: '0.1s'  },
               { label: t('stats.in_discussion'), value: !isVerified ? '—' : (stats.en_discussion ?? '…').toString(), delay: '0.13s' },
-              { label: t('stats.refused'),       value: !isVerified ? '—' : (stats.refusees ?? '…').toString(),       delay: '0.16s' },
+              { label: t('stats.retained'),      value: !isVerified ? '—' : (stats.retenues ?? '…').toString(),      delay: '0.15s', accent: '#D97706' },
+              { label: t('stats.refused'),       value: !isVerified ? '—' : (stats.refusees ?? '…').toString(),       delay: '0.17s' },
             ].map((stat) => (
               <div key={stat.label} className="stat-card" style={{ background: '#f3f4f6', animationDelay: stat.delay }}>
                 <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>{stat.label}</div>
-                <div style={{ fontSize: 28, fontWeight: 700, color: isVerified ? '#111827' : '#d1d5db', animation: `countUp 0.5s ease ${stat.delay} both` }}>{stat.value}</div>
+                <div style={{ fontSize: 28, fontWeight: 700, color: !isVerified ? '#d1d5db' : (stat.accent ?? '#111827'), animation: `countUp 0.5s ease ${stat.delay} both` }}>{stat.value}</div>
               </div>
             ))}
             <div className="stat-card" style={{ background: '#fff', border: `1px solid ${domain.primaryColor}55`, animationDelay: '0.25s' }}>

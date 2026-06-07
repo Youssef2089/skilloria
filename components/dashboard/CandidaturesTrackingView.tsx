@@ -14,6 +14,7 @@ import {
   IconBuilding,
   IconMessage2,
   IconExternalLink,
+  IconTrophy,
 } from '@tabler/icons-react'
 import PageHeader from '@/components/ui/PageHeader'
 import StatsStrip, { type Stat } from '@/components/ui/StatsStrip'
@@ -43,6 +44,8 @@ type Candidature = {
   status_reason: string | null
   ai_match_score: number | null
   unlocked_at: string | null
+  /** Lot état 'selected' : timestamp pose à la transition unlocked → selected. */
+  selected_at: string | null
   cover_message: string | null
   created_at: string
   conversation_id: string | null
@@ -53,7 +56,8 @@ type State =
   | { kind: 'error'; message: string }
   | { kind: 'ready'; candidatures: Candidature[] }
 
-type FilterKey = 'all' | 'open' | 'wait' | 'refused'
+// Lot état 'selected' : nouveau filtre 'won' (Mission remportée / Poste décroché).
+type FilterKey = 'all' | 'open' | 'won' | 'wait' | 'refused'
 
 function relativeFromNow(iso: string | null, locale: string): string {
   if (!iso) return ''
@@ -75,7 +79,8 @@ function relativeFromNow(iso: string | null, locale: string): string {
   return locale === 'fr' ? "à l'instant" : 'just now'
 }
 
-function statusToPillKind(status: string): 'open' | 'wait' | 'refused' | 'neutral' {
+function statusToPillKind(status: string): 'open' | 'won' | 'wait' | 'refused' | 'neutral' {
+  if (status === 'selected') return 'won'
   if (status === 'unlocked') return 'open'
   if (status === 'rejected') return 'refused'
   if (status === 'received' || status === 'in_review' || status === 'shortlisted') return 'wait'
@@ -85,6 +90,7 @@ function statusToPillKind(status: string): 'open' | 'wait' | 'refused' | 'neutra
 function matchesFilter(status: string, f: FilterKey): boolean {
   if (f === 'all') return true
   if (f === 'open') return status === 'unlocked'
+  if (f === 'won') return status === 'selected'
   if (f === 'wait') return status === 'received' || status === 'in_review' || status === 'shortlisted'
   if (f === 'refused') return status === 'rejected'
   return true
@@ -119,14 +125,15 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
   const selected = selectedId ? list.find((c) => c.id === selectedId) ?? null : null
 
   const counts = useMemo(() => {
-    let open = 0, wait = 0, scoreSum = 0, scoreN = 0
+    let open = 0, won = 0, wait = 0, scoreSum = 0, scoreN = 0
     for (const c of list) {
-      if (c.status === 'unlocked') open++
+      if (c.status === 'selected') won++
+      else if (c.status === 'unlocked') open++
       else if (c.status === 'received' || c.status === 'in_review' || c.status === 'shortlisted') wait++
       if (c.ai_match_score != null) { scoreSum += c.ai_match_score; scoreN++ }
     }
     const avgPct = scoreN > 0 ? Math.round((scoreSum / scoreN) * 10) : null
-    return { total: list.length, open, wait, avgPct }
+    return { total: list.length, open, won, wait, avgPct }
   }, [list])
 
   const stats: Stat[] = [
@@ -153,8 +160,13 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
     )
   }
 
+  // Filtre 'won' insere entre 'open' et 'wait' (ordre de funnel naturel :
+  // retenu → en cours → en attente → refuse). Le label se differencie par
+  // type de publication via i18n (won_mission / won_offre sont identiques
+  // au niveau du filtre — le distingo n'apparait que dans le détail).
   const filters: Array<{ key: FilterKey; label: string }> = [
     { key: 'all',     label: t('filters.all') },
+    { key: 'won',     label: t('filters.won') },
     { key: 'open',    label: t('filters.open') },
     { key: 'wait',    label: t('filters.wait') },
     { key: 'refused', label: t('filters.refused') },
@@ -209,7 +221,7 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
                   filtered.map((c) => {
                     const on = c.id === selectedId
                     const pk = statusToPillKind(c.status)
-                    const PIcon = pk === 'open' ? IconLockOpen : pk === 'refused' ? IconX : IconClock
+                    const PIcon = pk === 'won' ? IconTrophy : pk === 'open' ? IconLockOpen : pk === 'refused' ? IconX : IconClock
                     return (
                       <button
                         key={c.id}
@@ -246,7 +258,9 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
                         </div>
                         <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                           <StatusPill kind={pk} icon={<PIcon size={14} />} size="sm">
-                            {t(`status.${c.status}` as 'status.received')}
+                            {c.status === 'selected'
+                              ? t(c.publication?.type === 'mission' ? 'status_selected_mission' : 'status_selected_offre')
+                              : t(`status.${c.status}` as 'status.received')}
                           </StatusPill>
                           <span style={{ color: 'var(--sk-faint)', fontSize: 12 }}>{t('candidated_ago', { time: relativeFromNow(c.created_at, locale) })}</span>
                         </div>
@@ -300,7 +314,9 @@ function CandidatureDetail({
 }) {
   void domainAccent
   const pk = statusToPillKind(c.status)
-  const PIcon = pk === 'open' ? IconLockOpen : pk === 'refused' ? IconX : IconClock
+  const PIcon = pk === 'won' ? IconTrophy : pk === 'open' ? IconLockOpen : pk === 'refused' ? IconX : IconClock
+  const isSelected = c.status === 'selected'
+  const isMission = c.publication?.type === 'mission'
   return (
     <div style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', borderRadius: 'var(--sk-r-lg)', padding: '24px 26px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14 }}>
@@ -313,9 +329,40 @@ function CandidatureDetail({
           </div>
         </div>
         <StatusPill kind={pk} icon={<PIcon size={14} />}>
-          {t(`status.${c.status}` as 'status.received')}
+          {isSelected
+            ? t(isMission ? 'status_selected_mission' : 'status_selected_offre')
+            : t(`status.${c.status}` as 'status.received')}
         </StatusPill>
       </div>
+
+      {/* Lot état 'selected' : bandeau triomphal côté expert. Affiché en tête
+          du detail pour matérialiser le résultat positif. */}
+      {isSelected && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            marginTop: 16,
+            background: '#FEF3C7',
+            border: '1.5px solid #F59E0B',
+            borderRadius: 'var(--sk-r-lg)',
+            padding: '14px 16px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: 24, lineHeight: 1 }} aria-hidden>🏆</div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#92400E', letterSpacing: '-0.2px' }}>
+              {t(isMission ? 'selected_banner_title_mission' : 'selected_banner_title_offre')}
+            </div>
+            <div style={{ fontSize: 13, color: '#92400E', marginTop: 4, lineHeight: 1.55 }}>
+              {t(isMission ? 'selected_banner_body_mission' : 'selected_banner_body_offre')}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lot synthèse parlante : chips publication inline. */}
       {c.publication && (
@@ -341,11 +388,20 @@ function CandidatureDetail({
             state="done"
           />
         )}
-        {c.status === 'unlocked' && c.unlocked_at && (
+        {(c.status === 'unlocked' || c.status === 'selected') && c.unlocked_at && (
           <TimelineStep
             icon={<IconLockOpen size={16} />}
             label={t('timeline.unlocked')}
             sub={t('unlocked_since', { time: relativeFromNow(c.unlocked_at, locale) })}
+            state="done"
+            isLast={c.status === 'unlocked'}
+          />
+        )}
+        {c.status === 'selected' && c.selected_at && (
+          <TimelineStep
+            icon={<IconTrophy size={16} />}
+            label={t(isMission ? 'timeline.selected_mission' : 'timeline.selected_offre')}
+            sub={t('selected_since', { time: relativeFromNow(c.selected_at, locale) })}
             state="done"
             isLast
           />
@@ -359,7 +415,7 @@ function CandidatureDetail({
             isLast
           />
         )}
-        {c.status !== 'unlocked' && c.status !== 'rejected' && (
+        {c.status !== 'unlocked' && c.status !== 'rejected' && c.status !== 'selected' && (
           <TimelineStep
             icon={<IconClock size={16} />}
             label={t('timeline.waiting')}
@@ -382,7 +438,7 @@ function CandidatureDetail({
       )}
 
       <div style={{ display: 'flex', gap: 11, marginTop: 26, paddingTop: 20, borderTop: '1px solid var(--sk-border-soft)' }}>
-        {c.status === 'unlocked' && c.conversation_id && (
+        {(c.status === 'unlocked' || c.status === 'selected') && c.conversation_id && (
           <Link
             href={`/dashboard/${side}/messages/${c.conversation_id}`}
             style={{

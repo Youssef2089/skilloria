@@ -29,7 +29,7 @@ type State =
   | { kind: 'error'; message: string }
   | { kind: 'ready'; candidatures: GlobalCandidature[]; publications: PublicationInfo[] }
 
-type Filter = 'all' | 'received' | 'unlocked' | 'rejected'
+type Filter = 'all' | 'received' | 'unlocked' | 'selected' | 'rejected'
 
 export default function GlobalCandidaturesPage() {
   const t = useTranslations('candidatures.feed_global')
@@ -77,6 +77,7 @@ export default function GlobalCandidaturesPage() {
       if (filter === 'all') return true
       if (filter === 'received') return c.status === 'received' || c.status === 'in_review' || c.status === 'shortlisted'
       if (filter === 'unlocked') return c.status === 'unlocked'
+      if (filter === 'selected') return c.status === 'selected'
       if (filter === 'rejected') return c.status === 'rejected'
       return true
     })
@@ -98,12 +99,13 @@ export default function GlobalCandidaturesPage() {
   }, [state, filtered])
 
   const counts = useMemo(() => {
-    if (state.kind !== 'ready') return { all: 0, received: 0, unlocked: 0, rejected: 0 }
+    if (state.kind !== 'ready') return { all: 0, received: 0, unlocked: 0, selected: 0, rejected: 0 }
     const c = state.candidatures
     return {
       all: c.length,
       received: c.filter((x) => x.status === 'received' || x.status === 'in_review' || x.status === 'shortlisted').length,
       unlocked: c.filter((x) => x.status === 'unlocked').length,
+      selected: c.filter((x) => x.status === 'selected').length,
       rejected: c.filter((x) => x.status === 'rejected').length,
     }
   }, [state])
@@ -134,6 +136,7 @@ export default function GlobalCandidaturesPage() {
     { key: 'all',      label: t('filter_all'),      count: counts.all,      dot: 'var(--sk-faint)' },
     { key: 'received', label: t('filter_received'), count: counts.received, dot: domain.primaryColor },
     { key: 'unlocked', label: t('filter_unlocked'), count: counts.unlocked, dot: 'var(--sk-success)' },
+    { key: 'selected', label: t('filter_selected'), count: counts.selected, dot: '#D97706' },
     { key: 'rejected', label: t('filter_rejected'), count: counts.rejected, dot: 'var(--sk-red)' },
   ]
 

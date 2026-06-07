@@ -4,18 +4,23 @@ import type { ReactNode } from 'react'
 
 /**
  * StatusPill — pill sémantique (échange ouvert / en attente / refusée /
- * neutre). Couleur dérive de tokens, jamais d'inline color.
+ * neutre / retenu). Couleur dérive de tokens, jamais d'inline color.
  *
  * Sémantique alignée Lot finitions UX (Point 4) :
- *   open   → unlocked + status='open'                → vert
+ *   open   → unlocked                                 → vert
+ *   won    → selected (Lot état retenu)               → doré
  *   wait   → received / in_review / shortlisted      → ambre
  *   refused→ rejected / withdrawn                    → rouge
  *   neutral→ archived / autres états neutres         → gris
  */
-export type StatusPillKind = 'open' | 'wait' | 'refused' | 'neutral' | 'accent'
+export type StatusPillKind = 'open' | 'won' | 'wait' | 'refused' | 'neutral' | 'accent'
 
 const styleMap: Record<StatusPillKind, { bg: string; color: string }> = {
   open:    { bg: 'var(--sk-success-soft)', color: 'var(--sk-success-ink)' },
+  // Lot état 'selected' : palette dorée. Pas de token dédié en V1 → on
+  // inline les hex (amber 100 / amber 800) plutôt que de polluer le
+  // theming. Si le token --sk-gold-* est introduit plus tard, basculer ici.
+  won:     { bg: '#FEF3C7',                 color: '#92400E' },
   wait:    { bg: 'var(--sk-amber-soft)',   color: 'var(--sk-amber)' },
   refused: { bg: 'var(--sk-red-soft)',     color: 'var(--sk-red)' },
   neutral: { bg: 'var(--sk-surface-2)',    color: 'var(--sk-muted)' },
