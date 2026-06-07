@@ -10,6 +10,7 @@ import OrganisationDashboard, {
 } from '@/components/dashboard/OrganisationDashboard'
 import type { Annonce } from '@/types/annonce'
 import { useLiveResource } from '@/hooks/useLiveResource'
+import { dashboardUrlForUserType } from '@/lib/auth-routing'
 
 /**
  * Dashboard entreprise (B3.5 + B3.5.fix).
@@ -71,9 +72,15 @@ export default function DashboardEntreprise() {
   async function redirectByUserType(userId: string): Promise<void> {
     const { data: u } = await supabase.from('users').select('user_type').eq('id', userId).maybeSingle()
     const userType = (u as { user_type?: string | null } | null)?.user_type ?? null
-    if (userType === 'expert_freelance' || userType === 'expert_cdi') router.replace('/dashboard/freelance')
-    else if (userType === 'admin') router.replace('/admin')
-    else router.replace('/')
+    // Source unique de routage par rôle (lib/auth-routing.ts).
+    // expert_cdi → /dashboard/cdi (avant fix : /dashboard/freelance par erreur).
+    if (userType === 'expert_freelance' || userType === 'expert_cdi') {
+      router.replace(dashboardUrlForUserType(userType))
+    } else if (userType === 'admin') {
+      router.replace('/admin')
+    } else {
+      router.replace('/')
+    }
   }
 
   const refresh = useCallback(async () => {

@@ -25,6 +25,11 @@ export function proxy(request: NextRequest) {
   // NextResponse.next({ request: { headers } }), donc x-subdomain est transmis
   // aux Server Components (lecture via next/headers) avec la locale.
   request.headers.set('x-subdomain', subdomain)
+  // Injecte x-pathname pour la garde routing par rôle du dashboard
+  // (cf. app/[locale]/dashboard/layout.tsx). Le pathname n'est pas
+  // exposé nativement aux Server Components — middleware = seule façon
+  // propre de le passer en aval.
+  request.headers.set('x-pathname', request.nextUrl.pathname)
 
   return handleI18n(request)
 }

@@ -43,3 +43,31 @@ export function dashboardUrlForUserType(userType: string | null | undefined): st
       return FALLBACK_DASHBOARD_URL
   }
 }
+
+/**
+ * Inverse de dashboardUrlForUserType : à partir d'un pathname `/dashboard/<seg>/...`,
+ * retourne les user_type AUTORISÉS pour ce segment, ou `null` si le segment
+ * n'est pas un dashboard role-specific (ex. `/dashboard/cabinet` = redirect).
+ *
+ * Utilisé par la garde routing serveur (app/[locale]/dashboard/layout.tsx).
+ * Source unique de vérité — toute évolution du mapping segment↔user_type
+ * passe ici.
+ */
+export function allowedUserTypesForDashboardSegment(
+  segment: string | null | undefined,
+): readonly string[] | null {
+  switch (segment) {
+    case 'freelance':
+      return ['expert_freelance'] as const
+    case 'cdi':
+      return ['expert_cdi'] as const
+    case 'entreprise':
+      return ['client', 'cabinet'] as const
+    case 'cabinet':
+      // Page redirect (any role lands → redirige côté client vers /entreprise).
+      // On laisse passer tous les rôles pour ne pas casser le redirect.
+      return null
+    default:
+      return null
+  }
+}

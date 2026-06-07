@@ -1,30 +1,31 @@
-'use client'
-
 import SessionHeartbeat from '@/components/SessionHeartbeat'
+import { assertDashboardRoleGuard } from '@/lib/dashboard-routing-guard'
 
 /**
- * Layout commun à TOUTES les routes /dashboard/* (entreprise, freelance,
- * cdi + leurs sous-pages profil / mon-profil / valider).
+ * Layout commun à TOUTES les routes /dashboard/*.
  *
- * Rôle UNIQUE en V1 : monter `<SessionHeartbeat />` qui déclenche la
- * vérification 11F (session unique) toutes les 60s via
- * `GET /api/auth/check-session`. Sans ce heartbeat, les dashboards
- * (qui consomment leurs données via Supabase RLS direct, pas d'appel
- * /api/* protégé) restent un angle mort de la session unique.
+ * Server component (Lot routing) : effectue la GARDE ROUTING serveur :
+ *  - lit x-pathname (injecté par proxy.ts middleware)
+ *  - parse le segment dashboard (freelance/cdi/entreprise/cabinet)
+ *  - lit le ss_token cookie + résout users.user_type via service_role
+ *  - si user_type ≠ segment attendu → redirect(dashboardUrlForUserType(userType))
+ *  - sinon → pass-through (rendu normal)
  *
- * Toute nouvelle page ajoutée sous `dashboard/*` héritera automatiquement
- * de ce layout → couverture session unique automatique, zéro risque
- * d'oubli pour les futures pages.
+ * Garde non contournable côté client. Source unique de vérité du mapping
+ * segment ↔ user_type : lib/auth-routing.ts (allowedUserTypesForDashboardSegment).
  *
- * Pas de wrapper visuel : on rend `{children}` directement pour ne pas
- * impacter le layout actuel des dashboards (chacun gère son propre
- * sidebar / header).
+ * SessionHeartbeat reste monté (client) : couvre la session unique 11F
+ * pour TOUTES les pages dashboard (RLS direct, pas d'appel /api/* sinon).
+ *
+ * Pas de wrapper visuel — chaque sub-layout (freelance/cdi/entreprise) gère
+ * son propre DashboardShell.
  */
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  await assertDashboardRoleGuard()
   return (
     <>
       <SessionHeartbeat />
