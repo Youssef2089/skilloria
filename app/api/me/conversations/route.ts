@@ -63,8 +63,7 @@ type ConversationRow = {
       id: string
       user_id: string
       users: { id: string; first_name: string | null; last_name: string | null } | { id: string; first_name: string | null; last_name: string | null }[]
-      photo_url?: string | null
-    } | { id: string; user_id: string; users: { id: string; first_name: string | null; last_name: string | null } | { id: string; first_name: string | null; last_name: string | null }[]; photo_url?: string | null }[]
+    } | { id: string; user_id: string; users: { id: string; first_name: string | null; last_name: string | null } | { id: string; first_name: string | null; last_name: string | null }[] }[]
     publications: unknown
   } | { id: string; status: string; profile_id: string; publication_id: string; profiles: unknown; publications: unknown }[]
 }
@@ -148,8 +147,13 @@ export async function GET(request: NextRequest): Promise<Response> {
     .from('conversations')
     .select(
       'id, candidature_id, status, last_message_at, expires_at, created_at, ' +
+        // Lot global C3 defense-in-depth : `photo_url` retiré du SELECT.
+        // L'org reçoit déjà `avatar_url: null` côté correspondant=expert
+        // (cf. correspondant kind === 'expert' ci-dessous) mais ne pas
+        // charger la colonne supprime tout risque de leak accidentel via
+        // un futur ajout de champ au DTO.
         'candidatures!inner(id, status, profile_id, publication_id, ' +
-          'profiles!inner(id, user_id, photo_url, users!profiles_user_id_fkey(id, first_name, last_name)), ' +
+          'profiles!inner(id, user_id, users!profiles_user_id_fkey(id, first_name, last_name)), ' +
           'publications!inner(id, type, title, description, budget_min, budget_max, ' +
             'location, work_mode, duration, start_date, seniority, skills_required, ' +
             'confidential, branch_id, speciality_id, expires_at, organization_id, ' +
@@ -197,7 +201,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       id: string; status: string; profile_id: string; publication_id: string;
       profiles: unknown; publications: unknown;
     } | null
-    const profile = pickRel(cand?.profiles as { id: string; user_id: string; photo_url: string | null; users: unknown } | { id: string; user_id: string; photo_url: string | null; users: unknown }[] | null)
+    const profile = pickRel(cand?.profiles as { id: string; user_id: string; users: unknown } | { id: string; user_id: string; users: unknown }[] | null)
     const u = pickRel(profile?.users as { id: string; first_name: string | null; last_name: string | null } | { id: string; first_name: string | null; last_name: string | null }[] | null)
     const pub = pickRel(cand?.publications as Record<string, unknown> | Record<string, unknown>[] | null)
     const org = pickRel(pub?.organizations as { id: string; company_name: string | null; logo_url: string | null } | { id: string; company_name: string | null; logo_url: string | null }[] | null)

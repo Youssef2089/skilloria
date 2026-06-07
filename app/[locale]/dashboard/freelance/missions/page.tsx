@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import MissionCard, { type MissionCardData } from '@/components/dashboard/MissionCard'
 import PageHeader from '@/components/ui/PageHeader'
@@ -8,6 +9,7 @@ import NewItemsPill from '@/components/ui/NewItemsPill'
 import BoundedScrollList from '@/components/ui/BoundedScrollList'
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
 import { useLiveResource } from '@/hooks/useLiveResource'
+import { markSectionVisited } from '@/lib/section-visit-client'
 
 /**
  * /dashboard/freelance/missions — feed des opportunités MATCHÉES.
@@ -16,19 +18,21 @@ import { useLiveResource } from '@/hooks/useLiveResource'
  * disponible du <main> shell (qui est lui-même flex:1; overflow:auto).
  * Sur mobile <768px, la borne se désactive et la page scrolle naturellement.
  *
- * <NewItemsPill> est rendue dans stickyHeader du BoundedScrollList → reste
- * collée en haut pendant le scroll interne.
+ * Lot A : empty-state ROUGE conditionnel quand l'expert est en DND
+ * (via expert_status.is_dnd côté serveur).
  *
- * Lot A : la réponse /api/me/missions inclut désormais
- * `expert_status: { is_dnd }`. Si l'expert est en "Ne pas déranger",
- * la liste est forcément vide côté serveur (barrière feed) et on affiche
- * l'empty-state ROUGE [<DndEmptyState>] avec bouton "Repasser À l'écoute".
- * Sinon (à l'écoute mais 0 match), on garde l'empty-state gris neutre.
+ * Lot global C2 : pill "Nouveau" sur chaque carte = matched_at > snapshot
+ * du last_visited_at capturé à la 1re réponse. Pattern "freeze pendant la
+ * session" : la pill reste visible le temps qu'on consulte, et s'efface à
+ * la prochaine ouverture de la section (POST /api/me/section-visit advances
+ * la DB → snapshot suivant ≥ matched_at).
  */
 
 type MissionsPayload = {
   missions: MissionCardData[]
   expert_status?: { is_dnd: boolean }
+  /** Lot global C2 : snapshot du last_visited_at AVANT POST section-visit. */
+  last_visited_at?: string | null
 }
 
 export default function MissionsFeedPage() {
@@ -41,10 +45,32 @@ export default function MissionsFeedPage() {
     identityOf: (m) => m.match_id,
     versionOf: (m) => `${m.match_status}|${m.ai_score}`,
     holdNewItems: true,
+    // Lot global C1 : si is_dnd change (Réactiver → false, ou DND → true),
+    // on force l'update de `displayed` sans passer par le "hold". Sinon le
+    // passage DND→À l'écoute ne propagerait jamais les missions à la liste.
+    metadataHash: (d) => String(d.expert_status?.is_dnd ?? false),
   })
   const state = live.state
   const missions = live.data?.missions ?? []
   const isDnd = !!live.data?.expert_status?.is_dnd
+
+  // Lot global C2 : snapshot du last_visited_at figé à la 1re réponse.
+  //   - 1re fetch : on capture la valeur DB AVANT que markSectionVisited ne
+  //     l'avance. Tous les matches avec matched_at > snapshot sont "Nouveau".
+  //   - Polls suivants : on IGNORE la nouvelle valeur (le ref reste figé) →
+  //     les pills ne disparaissent pas en cours de session.
+  const snapshotRef = useRef<string | null | undefined>(undefined)
+  if (snapshotRef.current === undefined && live.data?.last_visited_at !== undefined) {
+    snapshotRef.current = live.data.last_visited_at
+  }
+
+  // Lot global C2 : mark section visited au mount.
+  // POST async best-effort, on n'attend pas. Le snapshot est déjà figé
+  // avant ; cet appel n'affecte QUE le badge nav (passe à 0 immédiatement)
+  // et le snapshot de la PROCHAINE visite.
+  useEffect(() => {
+    void markSectionVisited('missions')
+  }, [])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px 26px' }}>
@@ -85,10 +111,27 @@ export default function MissionsFeedPage() {
           }
         >
           {missions.map((m) => (
-            <MissionCard key={m.match_id} mission={m} />
+            <MissionCard
+              key={m.match_id}
+              mission={m}
+              isNew={isMatchNewerThanSnapshot(m.matched_at, snapshotRef.current ?? null)}
+            />
           ))}
         </BoundedScrollList>
       )}
     </div>
   )
+}
+
+/**
+ * is_new = matched_at > snapshot_last_visited_at. Si snapshot null
+ * (l'utilisateur n'a JAMAIS ouvert la section), TOUS les matches comptent
+ * comme nouveaux (défaut produit cohérent avec /api/me/badges).
+ */
+function isMatchNewerThanSnapshot(matchedAt: string, snapshot: string | null): boolean {
+  if (!snapshot) return true
+  const m = new Date(matchedAt).getTime()
+  const s = new Date(snapshot).getTime()
+  if (Number.isNaN(m) || Number.isNaN(s)) return false
+  return m > s
 }

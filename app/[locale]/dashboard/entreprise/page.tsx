@@ -11,6 +11,7 @@ import OrganisationDashboard, {
 import type { Annonce } from '@/types/annonce'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
+import { markSectionVisited } from '@/lib/section-visit-client'
 
 /**
  * Dashboard entreprise (B3.5 + B3.5.fix).
@@ -138,6 +139,13 @@ export default function DashboardEntreprise() {
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  // Lot global C2 : marquer la home org comme vue → badge "Mes annonces"
+  // (annonces_org) passe à 0 immédiatement. Mécanique unifiée — même
+  // pattern que /missions, /candidatures, etc.
+  useEffect(() => {
+    void markSectionVisited('annonces_org')
+  }, [])
 
   useEffect(() => {
     if (needsRedirect) {

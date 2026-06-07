@@ -285,7 +285,8 @@
       "error_format": "Format non supporté (JPG, PNG, WebP uniquement)",
       "error_save": "Erreur lors de l'enregistrement",
       "success": "Photo mise à jour",
-      "close_aria": "Fermer"
+      "close_aria": "Fermer",
+      "edit_overlay_cta": "Modifier la photo"
     },
     "tjm_modal": {
       "title": "Définir mon TJM",
@@ -1759,7 +1760,9 @@
       "ai_score": "Score {score}/10",
       "ai_score_tooltip": "Note IA de pertinence par rapport à votre profil.",
       "new_label": "Nouveau",
-      "why_match_label": "Pourquoi ça vous correspond"
+      "why_match_label": "Pourquoi ça vous correspond",
+      "cta_consult_mission": "Consulter la mission",
+      "cta_consult_offre": "Consulter l'offre"
     },
     "feed": {
       "back": "← Tableau de bord",

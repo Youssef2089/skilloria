@@ -5,7 +5,6 @@ import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import type { MissionCardData } from './MissionCard'
 import PublicationSynthesisLine from './PublicationSynthesisLine'
-import { isMatchNew } from '@/lib/match-freshness'
 
 /**
  * MissionMiniCard — variante compacte de MissionCard pour les sections
@@ -19,25 +18,29 @@ import { isMatchNew } from '@/lib/match-freshness'
  *   4. Badge score IA flottant à droite
  * Branche/spécialité retirées (pas pertinentes en mini).
  *
+ * Pill "Nouveau" : prop `isNew` calculée par le parent (Lot global C2)
+ * à partir du snapshot figé de `last_visited_at` de la section 'missions'.
+ * Source unique alignée sur MissionCard.
+ *
  * useDomain — aucune couleur en dur, var(--sk-*).
  */
 
 export default function MissionMiniCard({
   mission,
   side = 'freelance',
+  isNew = false,
 }: {
   mission: MissionCardData
   side?: 'freelance' | 'cdi'
+  /** Lot global C2 : voir MissionCard. */
+  isNew?: boolean
 }) {
   const tCard = useTranslations('missions.card')
   const domain = useDomain()
 
-  const { publication: pub, org, ai_score, match_status, matched_at } = mission
+  const { publication: pub, org, ai_score } = mission
   const orgName = pub.confidential ? tCard('confidential_org') : org?.name ?? tCard('confidential_org')
-  // Lot F : badge "Nouveau" unifié — même sémantique que MissionCard
-  // (status notified/pending ET créé < 48h). Cohérence cartes plein écran
-  // + mini-cards home.
-  const isFresh = isMatchNew(match_status, matched_at)
+  const isFresh = isNew
 
   return (
     <Link

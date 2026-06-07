@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Link, useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import AvatarUploadModal from '@/components/AvatarUploadModal'
+import AvatarEditOverlay from '@/components/dashboard/AvatarEditOverlay'
 import {
   useCdiProfile,
   type CdiProfile,
@@ -227,6 +229,15 @@ export default function CdiMonProfilPage() {
     branches,
     specialities,
   } = state
+  // Lot global C3 : modal upload photo (entry-point unique côté CDI).
+  // useCdiProfile ne renvoie pas de setter — au succès on patch un mirror
+  // local et on l'utilise pour rendre l'avatar tant que le hook ne refetch
+  // pas (un focus/reload re-synchronisera depuis la DB).
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false)
+  const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null)
+  useEffect(() => {
+    setLocalPhotoUrl(profile?.photo_url ?? null)
+  }, [profile?.photo_url])
 
   // Redirection pas authentifié → /connexion (RLS-friendly)
   useEffect(() => {
@@ -497,9 +508,11 @@ export default function CdiMonProfilPage() {
         <ProfileHero
           user={user}
           profile={profile}
+          localPhotoUrl={localPhotoUrl}
           locale={locale}
           domainColor={domain.primaryColor}
           t={t}
+          onEditPhoto={() => setAvatarModalOpen(true)}
         />
 
         {/* 1. RÉSUMÉ */}
@@ -664,6 +677,16 @@ export default function CdiMonProfilPage() {
           </Card>
         </div>
       </main>
+
+      {/* Lot global C3 : modal upload photo (entry-point unique côté CDI).
+          AvatarUploadModal écrit Supabase Storage + PATCH /api/profile, on
+          patch localPhotoUrl côté client au succès. */}
+      <AvatarUploadModal
+        open={avatarModalOpen}
+        currentPhotoUrl={localPhotoUrl}
+        onClose={() => setAvatarModalOpen(false)}
+        onSaved={(newUrl) => setLocalPhotoUrl(newUrl)}
+      />
     </div>
   )
 }
@@ -794,21 +817,28 @@ function Header({
 function ProfileHero({
   user,
   profile,
+  localPhotoUrl,
   locale,
   domainColor,
   t,
+  onEditPhoto,
 }: {
   user: CdiUser | null
   profile: CdiProfile
+  /** Lot global C3 : mirror local de profile.photo_url pour update optimiste
+   *  post-upload (le hook useCdiProfile n'expose pas de setter). */
+  localPhotoUrl: string | null
   locale: string
   domainColor: string
   t: ReturnType<typeof useTranslations<'cdi_profile_view'>>
+  onEditPhoto: () => void
 }) {
   const name = displayName(user, t('fallback_user_name'))
   const initials = initialsOf(user)
   const noticeKey = profile.cdi_notice_period
   const noticeLabel = noticeKey ? t(`notice_period_options.${noticeKey}`) : null
   const availabilityFormatted = formatDate(profile.cdi_availability_date, locale)
+  const effectivePhotoUrl = localPhotoUrl ?? profile.photo_url ?? null
 
   return (
     <div className="sk-card">
@@ -822,11 +852,11 @@ function ProfileHero({
             alignItems: 'center',
           }}
         >
-          {/* Avatar */}
-          <div>
-            {profile.photo_url ? (
+          {/* Avatar wrappé pour overlay "Modifier la photo" (Lot global C3). */}
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            {effectivePhotoUrl ? (
               <img
-                src={profile.photo_url}
+                src={effectivePhotoUrl}
                 alt={name || 'avatar'}
                 style={{
                   width: 88,
@@ -855,6 +885,7 @@ function ProfileHero({
                 {initials}
               </div>
             )}
+            <AvatarEditOverlay onClick={onEditPhoto} />
           </div>
 
           {/* Identité */}

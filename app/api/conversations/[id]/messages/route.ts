@@ -82,10 +82,9 @@ type ConvJoin = {
     profiles: {
       id: string
       user_id: string
-      photo_url: string | null
       users: { id: string; first_name: string | null; last_name: string | null; locale: string | null; user_type: string | null }
         | { id: string; first_name: string | null; last_name: string | null; locale: string | null; user_type: string | null }[]
-    } | { id: string; user_id: string; photo_url: string | null; users: unknown }[]
+    } | { id: string; user_id: string; users: unknown }[]
     publications: {
       id: string
       type: string
@@ -136,8 +135,10 @@ async function loadConvAsParticipant(
     .from('conversations')
     .select(
       'id, candidature_id, status, expires_at, last_message_at, ' +
+        // Lot global C3 defense-in-depth : `photo_url` retiré du SELECT
+        // (l'org reçoit déjà `avatar_url: null` quand correspondant=expert).
         'candidatures!inner(id, profile_id, status, publication_id, domain_id, ' +
-          'profiles!inner(id, user_id, photo_url, users!profiles_user_id_fkey(id, first_name, last_name, locale, user_type)), ' +
+          'profiles!inner(id, user_id, users!profiles_user_id_fkey(id, first_name, last_name, locale, user_type)), ' +
           'publications!inner(id, type, title, organization_id, organizations(id, company_name, logo_url)))',
     )
     .eq('id', convId)
@@ -157,7 +158,7 @@ async function loadConvAsParticipant(
   // Sécurité : la conv n'est lisible que si candidature.status='unlocked'
   if (cand.status !== 'unlocked') return { ok: false, status: 404, code: 'not_found' }
 
-  const profile = pickRel(cand.profiles as { id: string; user_id: string; photo_url: string | null; users: unknown } | { id: string; user_id: string; photo_url: string | null; users: unknown }[] | null)
+  const profile = pickRel(cand.profiles as { id: string; user_id: string; users: unknown } | { id: string; user_id: string; users: unknown }[] | null)
   const pub = pickRel(cand.publications as { id: string; type: string; title: string; organization_id: string; organizations: unknown } | { id: string; type: string; title: string; organization_id: string; organizations: unknown }[] | null)
   if (!profile || !pub) return { ok: false, status: 404, code: 'not_found' }
   const expertUser = pickRel(profile.users as { id: string; first_name: string | null; last_name: string | null; locale: string | null; user_type: string | null } | { id: string; first_name: string | null; last_name: string | null; locale: string | null; user_type: string | null }[] | null)
@@ -257,7 +258,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   const { conv, role } = loaded
 
   const cand = pickRel(conv.candidatures) as { id: string; profile_id: string; status: string; publication_id: string; profiles: unknown; publications: unknown }
-  const profile = pickRel(cand.profiles as { id: string; user_id: string; photo_url: string | null; users: unknown } | { id: string; user_id: string; photo_url: string | null; users: unknown }[] | null)
+  const profile = pickRel(cand.profiles as { id: string; user_id: string; users: unknown } | { id: string; user_id: string; users: unknown }[] | null)
   const expertUser = pickRel(profile?.users as { id: string; first_name: string | null; last_name: string | null; locale: string | null } | { id: string; first_name: string | null; last_name: string | null; locale: string | null }[] | null)
   const pub = pickRel(cand.publications as { id: string; type: string; title: string; organization_id: string; organizations: unknown } | { id: string; type: string; title: string; organization_id: string; organizations: unknown }[] | null)
   const orgRaw = pickRel(pub?.organizations as { id: string; company_name: string | null; logo_url: string | null } | { id: string; company_name: string | null; logo_url: string | null }[] | null)

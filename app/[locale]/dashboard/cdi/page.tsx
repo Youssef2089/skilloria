@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Link, useRouter } from '@/i18n/navigation'
@@ -81,6 +81,15 @@ function initialsOf(user: CdiUser | null): string {
   return (fn + ln).toUpperCase() || '?'
 }
 
+/** Lot global C2 : pill "Nouveau" si matched_at > snapshot. */
+function isNewAgainstSnapshot(matchedAt: string, snapshot: string | null): boolean {
+  if (!snapshot) return true
+  const m = new Date(matchedAt).getTime()
+  const s = new Date(snapshot).getTime()
+  if (Number.isNaN(m) || Number.isNaN(s)) return false
+  return m > s
+}
+
 export default function DashboardCDI() {
   const t = useTranslations('dashboard_cdi')
   const tProfile = useTranslations('cdi_profile_view')
@@ -97,10 +106,15 @@ export default function DashboardCDI() {
   // matches QUE pour le user_type cohérent (expert_cdi → type='offre').
   // Donc cette home reçoit les offres CDI matchées de l'expert.
   const isVerified = !!user?.is_verified
-  // Lot A : la réponse inclut désormais `expert_status.is_dnd` pour permettre
-  // d'afficher l'empty-state rouge conditionnel sans nouvelle requête.
+  // Lot A : la réponse inclut `expert_status.is_dnd` pour l'empty-state rouge.
+  // Lot global C2 : la réponse inclut `last_visited_at` (section 'missions')
+  // pour figer la pill "Nouveau".
   const missionsLive = useLiveResource<
-    { missions: MissionCardData[]; expert_status?: { is_dnd: boolean } },
+    {
+      missions: MissionCardData[]
+      expert_status?: { is_dnd: boolean }
+      last_visited_at?: string | null
+    },
     MissionCardData
   >({
     url: isVerified ? `/api/me/missions?locale=${encodeURIComponent(locale)}` : null,
@@ -115,6 +129,13 @@ export default function DashboardCDI() {
     [missionsLive.data],
   )
 
+  // Lot global C2 : snapshot du last_visited_at de la section 'missions'
+  // figé à la 1re réponse (cf. variante freelance pour le pattern complet).
+  const missionsSnapshotRef = useRef<string | null | undefined>(undefined)
+  if (missionsSnapshotRef.current === undefined && missionsLive.data?.last_visited_at !== undefined) {
+    missionsSnapshotRef.current = missionsLive.data.last_visited_at
+  }
+
   const [status, setStatus] = useState<CdiStatus | null>(null)
   const [statusUpdating, setStatusUpdating] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -127,6 +148,28 @@ export default function DashboardCDI() {
   useEffect(() => {
     setStatus(profile?.cdi_status ?? null)
   }, [profile?.cdi_status])
+
+  // Lot global C1 : resync `status` quand le statut d'écoute change depuis
+  // n'importe quelle surface (toggle, bouton "Réactiver" du DndEmptyState).
+  // useCdiProfile ne refetch pas seul après une UPDATE supabase ; sans ce
+  // listener, le toggle visuel resterait figé sur 'employed' jusqu'au reload.
+  // On lit DIRECTEMENT cdi_status pour éviter de réécrire le hook entier.
+  useEffect(() => {
+    const refetchCdiStatus = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const { data } = await supabase
+        .from('profiles')
+        .select('cdi_status')
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+      const raw = (data as { cdi_status?: string | null } | null)?.cdi_status ?? null
+      if (raw === 'employed' || raw === 'open_to_work') setStatus(raw)
+    }
+    const onAvailChanged = () => { void refetchCdiStatus() }
+    window.addEventListener('sk:availability-changed', onAvailChanged)
+    return () => { window.removeEventListener('sk:availability-changed', onAvailChanged) }
+  }, [])
 
   // Sync localPhotoUrl from server profile (et reset si profile change)
   useEffect(() => {
@@ -660,7 +703,12 @@ export default function DashboardCDI() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {recommendedOffres.map((m) => (
-                  <MissionMiniCard key={m.match_id} mission={m} side="cdi" />
+                  <MissionMiniCard
+                    key={m.match_id}
+                    mission={m}
+                    side="cdi"
+                    isNew={isNewAgainstSnapshot(m.matched_at, missionsSnapshotRef.current ?? null)}
+                  />
                 ))}
               </div>
             )}

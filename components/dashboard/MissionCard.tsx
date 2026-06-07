@@ -4,14 +4,19 @@ import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from './PublicationSynthesisLine'
-import { isMatchNew } from '@/lib/match-freshness'
 
 /**
- * Carte d'opportunité côté EXPERT (Lot 2b + Lot synthèse parlante).
+ * Carte d'opportunité côté EXPERT (Lot 2b + Lot synthèse parlante + Lot
+ * global C2 : pill "Nouveau" unifiée sur dernière visite).
  *
  * Diffère de l'AnnonceCard côté org : pas de compteurs candidatures, mais
  * affichage du score IA + reason ("pourquoi ça vous correspond"), masquage
  * de l'org si confidential, lien vers le détail.
+ *
+ * Pill "Nouveau" : passée en prop `isNew` calculée par le parent à partir
+ * d'un SNAPSHOT figé du `last_visited_at` (retourné par /api/me/missions au
+ * mount). L'ancien `isMatchNew` 48h est ABANDONNÉ — une seule notion de
+ * "nouveau" : "depuis la dernière fois que tu as ouvert la section".
  *
  * La synthèse publication (budget, lieu, work_mode, durée, démarrage,
  * séniorité, contrat) est rendue via <PublicationSynthesisLine> — source
@@ -73,22 +78,30 @@ function scoreColor(score: number, domainPrimary: string): string {
 export default function MissionCard({
   mission,
   side = 'freelance',
+  isNew = false,
 }: {
   mission: MissionCardData
   /** SC7b Lot UX Finitions 2 : 'cdi' utilise /dashboard/cdi/missions/[id] */
   side?: 'freelance' | 'cdi'
+  /**
+   * Lot global C2 : pill "Nouveau" calculée par le parent à partir d'un
+   * SNAPSHOT figé du `last_visited_at` (matched_at > snapshot). Stable
+   * pendant la session ; s'efface à la prochaine ouverture de la section.
+   * Défaut false : si le parent n'a pas (encore) le snapshot, on n'affiche
+   * pas la pill plutôt que de risquer un faux-positif.
+   */
+  isNew?: boolean
 }) {
   const t = useTranslations('missions.card')
   const tPub = useTranslations('publications')
   const locale = useLocale()
   const domain = useDomain()
 
-  const { publication: pub, org, ai_score, ai_reason, match_status, matched_at } = mission
+  const { publication: pub, org, ai_score, ai_reason, matched_at } = mission
   void formatBudget
+  void matched_at
   const orgName = pub.confidential ? t('confidential_org') : org?.name ?? t('confidential_org')
-  // Lot F : badge "Nouveau" unifié — status notified/pending ET créé < 48h.
-  // Re-évalué à chaque render (le polling SWR 30s déclenche la réévaluation).
-  const isUnread = isMatchNew(match_status, matched_at)
+  const isUnread = isNew
 
   return (
     <Link
@@ -177,6 +190,7 @@ export default function MissionCard({
             fontSize: 12,
             color: '#334155',
             lineHeight: 1.5,
+            marginBottom: 12,
           }}
         >
           <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: '#64748b', marginBottom: 4 }}>
@@ -185,6 +199,30 @@ export default function MissionCard({
           <div>{ai_reason}</div>
         </div>
       )}
+
+      {/* Lot global C4 : CTA explicite "Consulter la mission" / "Consulter
+          l'offre". La carte entière reste cliquable (parent Link), le bouton
+          est visuellement aligné à droite pour donner un point d'ancrage
+          UX (Stripe/Linear). Libellé conditionnel par `side`. */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '8px 14px',
+            background: domain.primaryColor,
+            color: '#fff',
+            fontSize: 12.5,
+            fontWeight: 700,
+            borderRadius: 10,
+            letterSpacing: '-0.1px',
+          }}
+        >
+          {t(side === 'cdi' ? 'cta_consult_offre' : 'cta_consult_mission')}
+          <span aria-hidden style={{ fontSize: 13, lineHeight: 1 }}>→</span>
+        </span>
+      </div>
     </Link>
   )
 }

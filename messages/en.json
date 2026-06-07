@@ -285,7 +285,8 @@
       "error_format": "Unsupported format (JPG, PNG, WebP only)",
       "error_save": "Save failed, please try again",
       "success": "Photo updated",
-      "close_aria": "Close"
+      "close_aria": "Close",
+      "edit_overlay_cta": "Edit photo"
     },
     "tjm_modal": {
       "title": "Set my day rate",
@@ -1759,7 +1760,9 @@
       "ai_score": "Score {score}/10",
       "ai_score_tooltip": "AI match score against your profile.",
       "new_label": "New",
-      "why_match_label": "Why this matches you"
+      "why_match_label": "Why this matches you",
+      "cta_consult_mission": "View mission",
+      "cta_consult_offre": "View job offer"
     },
     "feed": {
       "back": "← Dashboard",

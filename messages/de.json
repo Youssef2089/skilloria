@@ -285,7 +285,8 @@
       "error_format": "Format nicht unterstützt (nur JPG, PNG, WebP)",
       "error_save": "Speichern fehlgeschlagen, bitte erneut versuchen",
       "success": "Foto aktualisiert",
-      "close_aria": "Schließen"
+      "close_aria": "Schließen",
+      "edit_overlay_cta": "Foto bearbeiten"
     },
     "tjm_modal": {
       "title": "Tagessatz festlegen",
@@ -1759,7 +1760,9 @@
       "ai_score": "Bewertung {score}/10",
       "ai_score_tooltip": "KI-Bewertung basierend auf Ihrem Profil.",
       "new_label": "Neu",
-      "why_match_label": "Warum es zu Ihnen passt"
+      "why_match_label": "Warum es zu Ihnen passt",
+      "cta_consult_mission": "Mission anzeigen",
+      "cta_consult_offre": "Stelle anzeigen"
     },
     "feed": {
       "back": "← Dashboard",

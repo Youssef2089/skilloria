@@ -23,6 +23,7 @@ import MasterDetail from '@/components/ui/MasterDetail'
 import EmptyState from '@/components/ui/EmptyState'
 import TimelineStep from '@/components/ui/TimelineStep'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from '@/components/dashboard/PublicationSynthesisLine'
+import { markSectionVisited } from '@/lib/section-visit-client'
 
 /**
  * CandidaturesTrackingView — vue tracking des candidatures côté expert
@@ -122,6 +123,11 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
       setSelectedId(filtered[0].id)
     }
   }, [selectedId, filtered])
+  // Lot global C2 : ouvrir la page = marquer la section comme vue → badge nav
+  // passe à 0 immédiatement (skilloria:notif-bump → useNavBadges.mutate).
+  useEffect(() => {
+    void markSectionVisited('candidatures_expert')
+  }, [])
   const selected = selectedId ? list.find((c) => c.id === selectedId) ?? null : null
 
   const counts = useMemo(() => {

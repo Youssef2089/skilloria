@@ -8,6 +8,8 @@ import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
 import { useSecureLogout } from '@/lib/secure-fetch'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import AvatarUploadModal from '@/components/AvatarUploadModal'
+import AvatarEditOverlay from '@/components/dashboard/AvatarEditOverlay'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -301,6 +303,10 @@ export default function MonProfilPage() {
   const [specialities, setSpecialities] = useState<Speciality[]>([])
   const [countries, setCountries] = useState<Country[]>([])
   const [expandedDesc, setExpandedDesc] = useState<Set<string>>(new Set())
+  // Lot global C3 : modal upload photo profil. Le modal écrit dans Supabase
+  // Storage (bucket avatars, path <user_id>/avatar.jpg) puis PATCH /api/profile.
+  // À l'upload réussi, on patch localement `profile.photo_url` (optimiste).
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -980,41 +986,45 @@ export default function MonProfilPage() {
           {/* Profile hero card */}
           <Card style={{ padding: '24px 26px' }}>
             <div className="profile-hero" style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
-              {profile.photo_url ? (
-                <img
-                  src={profile.photo_url}
-                  alt={fullName}
-                  className="profile-hero-avatar"
-                  style={{
-                    width: 120,
-                    height: 120,
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    flexShrink: 0,
-                    border: `3px solid ${domain.primaryColor}22`,
-                  }}
-                />
-              ) : (
-                <div
-                  className="profile-hero-avatar"
-                  style={{
-                    width: 120,
-                    height: 120,
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 40,
-                    fontWeight: 700,
-                    background: `linear-gradient(135deg, ${domain.primaryColor}44, ${domain.secondaryColor}44)`,
-                    color: domain.primaryColor,
-                    flexShrink: 0,
-                    border: `3px solid ${domain.primaryColor}22`,
-                  }}
-                >
-                  {initials}
-                </div>
-              )}
+              {/* Lot global C3 : avatar wrappé dans un conteneur relative pour
+                  recevoir le bouton overlay "Modifier la photo" (entry-point
+                  du AvatarUploadModal — qui était jusque-là monté mais inatteignable). */}
+              <div style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
+                {profile.photo_url ? (
+                  <img
+                    src={profile.photo_url}
+                    alt={fullName}
+                    className="profile-hero-avatar"
+                    style={{
+                      width: 120,
+                      height: 120,
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: `3px solid ${domain.primaryColor}22`,
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="profile-hero-avatar"
+                    style={{
+                      width: 120,
+                      height: 120,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 40,
+                      fontWeight: 700,
+                      background: `linear-gradient(135deg, ${domain.primaryColor}44, ${domain.secondaryColor}44)`,
+                      color: domain.primaryColor,
+                      border: `3px solid ${domain.primaryColor}22`,
+                    }}
+                  >
+                    {initials}
+                  </div>
+                )}
+                <AvatarEditOverlay onClick={() => setAvatarModalOpen(true)} />
+              </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
@@ -1521,6 +1531,18 @@ export default function MonProfilPage() {
           </div>
         </div>
       </div>
+
+      {/* Lot global C3 : modal d'upload photo (entry-point unique).
+          Le modal s'occupe lui-même de l'upload Storage + PATCH /api/profile.
+          On patch optimistiquement le state local au succès. */}
+      <AvatarUploadModal
+        open={avatarModalOpen}
+        currentPhotoUrl={profile.photo_url ?? null}
+        onClose={() => setAvatarModalOpen(false)}
+        onSaved={(newUrl) => {
+          setProfile((prev) => (prev ? { ...prev, photo_url: newUrl } : prev))
+        }}
+      />
     </div>
   )
 }

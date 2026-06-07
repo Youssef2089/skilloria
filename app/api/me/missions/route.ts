@@ -111,8 +111,24 @@ export async function GET(request: NextRequest): Promise<Response> {
   const availStatus = (profile as { availability_status?: string | null }).availability_status ?? null
   const cdiStatus = (profile as { cdi_status?: string | null }).cdi_status ?? null
   const isDnd = availStatus === 'do_not_disturb' || cdiStatus === 'employed'
+
+  // Lot global C2 : snapshot du `last_visited_at` pour la section 'missions'.
+  // Renvoyé au client pour qu'il fige la pill "Nouveau" pendant la session
+  // (matched_at > snapshot). Le client appelle markSectionVisited au mount
+  // de la page Offres → advance DB → la pill ne reviendra pas après reload.
+  const { data: visitRow } = await auth.supabaseAdmin
+    .from('user_section_visits')
+    .select('last_visited_at')
+    .eq('user_id', auth.user.id)
+    .eq('section', 'missions')
+    .maybeSingle()
+  const lastVisitedAt = (visitRow as { last_visited_at?: string } | null)?.last_visited_at ?? null
+
   if (isDnd) {
-    return json({ missions: [], expert_status: { is_dnd: true } }, 200)
+    return json(
+      { missions: [], expert_status: { is_dnd: true }, last_visited_at: lastVisitedAt },
+      200,
+    )
   }
 
   const locale = normalizeLocale(new URL(request.url).searchParams.get('locale'))
@@ -180,5 +196,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
   }).filter((x): x is NonNullable<typeof x> => x !== null)
 
-  return json({ missions, expert_status: { is_dnd: false } }, 200)
+  return json(
+    { missions, expert_status: { is_dnd: false }, last_visited_at: lastVisitedAt },
+    200,
+  )
 }

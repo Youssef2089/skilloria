@@ -4,82 +4,88 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
- * useNavBadges — compteurs de non-lus pour la nav (Point 5 finitions UX +
- * SC5 Lot UX Finitions 2 : missions_unread).
+ * useNavBadges — compteurs pour les badges rouges de la nav (Lot global C2).
  *
- *   - messages_unread : somme des unread_count par conversation (côté user
- *     courant). Source : /api/me/conversations, qui pour chaque conv compte
- *     les messages WHERE sender_id != me AND read_at IS NULL (cf. route.ts).
- *     Quand l'expert OUVRE une conv, /api/conversations/[id]/messages flippe
- *     read_at sur tous les messages REÇUS → l'unread tombe à 0 (sémantique
- *     correcte, pas un bug si le badge n'apparaît pas alors que des messages
- *     existent : il faut qu'au moins un soit non-lu).
+ * Mécanique unifiée "dernière visite par section" (cf. lib/section-visits.ts) :
+ *   - badges côté listing (missions / candidatures_expert / candidatures_org
+ *     / annonces_org) lus depuis /api/me/badges. Le badge représente le nombre
+ *     d'items nouveaux DEPUIS la dernière visite ; il passe à 0 quand l'user
+ *     ouvre la section (POST /api/me/section-visit côté pages listing).
  *
- *   - candidatures_unread : notifications NON LUES dont type ∈ {
- *       'new_candidature_received' (org : nouvelle candidature),
- *       'candidature_unlocked'     (expert : votre candidature acceptée)
- *     }
+ * Exception (arbitrage user) :
+ *   - messages_unread garde sa logique conversation-par-conversation via
+ *     /api/me/conversations.unread_count. NE PAS basculer sur "dernière
+ *     visite de section" (sinon on perdrait le suivi des convs non-lues).
  *
- *   - missions_unread (expert only) : COUNT(matches du profile courant)
- *     MINUS COUNT(candidatures du même profile) — alias "matchées-non-
- *     candidatées" (SC5 sémantique verrouillée). Pas de migration, pas de
- *     flip de matches.status. Auto-vidant naturel : à chaque candidature
- *     POST /api/candidatures, la publication sort du set → badge décrémente.
- *     Le badge "Nouveau" per-mission de MissionCard reste piloté par
- *     match_status='notified'|'pending' (sémantique existante, intacte).
- *     Côté org, /api/me/missions/summary renvoie 0 (pas de profile expert) →
- *     badge inerte sans casser.
+ * Polling 30s + revalidation sur 'skilloria:notif-bump' (cloche, toggle,
+ * markSectionVisited). Cleanup propre au démontage.
  *
- * Polling 30s, écoute 'skilloria:notif-bump' (émis par NotificationBell quand
- * unread_count global augmente) pour refresh immédiat. Cleanup propre au démontage.
- *
- * Retourne null pour chaque compteur tant que le 1er fetch n'a pas répondu —
- * permet à l'UI d'afficher un état "vide" plutôt qu'un 0 qui clignote à 0→N.
+ * Surface : ce hook fournit la valeur pour les badges nav UNIQUEMENT. Le
+ * badge de la cloche est géré par <NotificationBell> (unread notifications).
  */
 
 const POLL_MS = 30_000
 
-const APPLICATION_NOTIF_TYPES = ['new_candidature_received', 'candidature_unlocked'] as const
-
 export type NavBadges = {
   messages_unread: number | null
-  candidatures_unread: number | null
   missions_unread: number | null
+  candidatures_unread: number | null
+  /** Côté org : badge "Mes annonces" — compte des nouvelles candidatures
+   *  reçues sur les pubs de l'org depuis la dernière visite de la home org.
+   *  Retourne 0 côté expert (l'API ne calcule cette section que pour les
+   *  membres d'org). Non-câblé sur la sidebar expert (pas de badgeSource
+   *  correspondant), exposé ici pour consommation future si besoin. */
+  annonces_unread: number | null
+}
+
+const INITIAL: NavBadges = {
+  messages_unread: null,
+  missions_unread: null,
+  candidatures_unread: null,
+  annonces_unread: null,
+}
+
+type BadgesPayload = {
+  badges?: {
+    missions?: number
+    candidatures_expert?: number
+    candidatures_org?: number
+    annonces_org?: number
+  }
 }
 
 export function useNavBadges(): NavBadges {
   const secureFetch = useSecureFetch()
-  const [badges, setBadges] = useState<NavBadges>({
-    messages_unread: null,
-    candidatures_unread: null,
-    missions_unread: null,
-  })
+  const [badges, setBadges] = useState<NavBadges>(INITIAL)
 
   const load = useCallback(async () => {
     try {
-      const [convsRes, notifsRes, missionsRes] = await Promise.all([
+      const [convsRes, badgesRes] = await Promise.all([
         secureFetch('/api/me/conversations', { method: 'GET' }),
-        secureFetch('/api/me/notifications', { method: 'GET' }),
-        secureFetch('/api/me/missions/summary', { method: 'GET' }),
+        secureFetch('/api/me/badges', { method: 'GET' }),
       ])
       let messages = 0
       if (convsRes.ok) {
         const p = (await convsRes.json()) as { conversations?: Array<{ unread_count?: number }> }
         messages = (p.conversations ?? []).reduce((acc, c) => acc + (c.unread_count ?? 0), 0)
       }
-      let candidatures = 0
-      if (notifsRes.ok) {
-        const p = (await notifsRes.json()) as { notifications?: Array<{ type: string; read_at: string | null }> }
-        candidatures = (p.notifications ?? []).filter(
-          (n) => n.read_at === null && (APPLICATION_NOTIF_TYPES as readonly string[]).includes(n.type),
-        ).length
+      let missions = 0, candidatures = 0, annonces = 0
+      if (badgesRes.ok) {
+        const p = (await badgesRes.json()) as BadgesPayload
+        const b = p.badges ?? {}
+        missions = b.missions ?? 0
+        // candidatures_unread = somme expert + org (chaque user n'a qu'UN
+        // des deux côtés non-nul : un expert n'a pas d'org, un membre d'org
+        // n'a pas de profile vérifié — l'API renvoie 0 pour l'autre côté).
+        candidatures = (b.candidatures_expert ?? 0) + (b.candidatures_org ?? 0)
+        annonces = b.annonces_org ?? 0
       }
-      let missions = 0
-      if (missionsRes.ok) {
-        const p = (await missionsRes.json()) as { pending_count?: number }
-        missions = p.pending_count ?? 0
-      }
-      setBadges({ messages_unread: messages, candidatures_unread: candidatures, missions_unread: missions })
+      setBadges({
+        messages_unread: messages,
+        missions_unread: missions,
+        candidatures_unread: candidatures,
+        annonces_unread: annonces,
+      })
     } catch (err) {
       console.error('[useNavBadges] load threw', err)
     }

@@ -47,6 +47,21 @@ export type UseLiveResourceOptions<T, Item> = {
   versionOf?: (item: Item) => string | number | null
   /** Si true : les nouveaux items entrants sont retenus en pendingItems. */
   holdNewItems?: boolean
+  /**
+   * Hash des MÉTADONNÉES hors-items (Lot global C1).
+   *
+   *  `holdNewItems: true` retient les nouveaux items en pendingItems et NE
+   *  met PAS à jour `displayed`. C'est correct quand seul le LISTING change.
+   *  Mais quand une MÉTADONNÉE de la réponse change (ex. `expert_status.is_dnd`
+   *  → false après "Réactiver"), on doit propager l'update IMMÉDIATEMENT à
+   *  `displayed`, sinon l'UI lit toujours l'ancienne metadata (empty-state
+   *  rouge bloqué).
+   *
+   *  Si défini : à chaque revalidation, on calcule le hash de serverData ;
+   *  s'il diffère du hash précédent, on force `setDisplayed(serverData)` et
+   *  on vide `pendingItems`. Indépendant de holdNewItems.
+   */
+  metadataHash?: (data: T) => string
   /** Transform optionnel après fetch (avant exposition). */
   transform?: (raw: unknown) => T
   /** Désactive complètement le hook (passe les data en undefined). */
@@ -80,6 +95,7 @@ export function useLiveResource<T, Item>(opts: UseLiveResourceOptions<T, Item>):
     identityOf,
     versionOf,
     holdNewItems = false,
+    metadataHash,
     transform,
     enabled = true,
   } = opts
@@ -139,6 +155,19 @@ export function useLiveResource<T, Item>(opts: UseLiveResourceOptions<T, Item>):
   useEffect(() => {
     if (serverData === undefined) return
     if (displayed === null) return  // sera traité par l'effet d'init
+    // Lot global C1 : si une métadonnée hors-items change (ex.
+    // expert_status.is_dnd), on applique en place IMMÉDIATEMENT et on vide
+    // les pending. Indépendant de holdNewItems. Court-circuit avant tout
+    // calcul de diff items.
+    if (metadataHash) {
+      const oldHash = metadataHash(displayed)
+      const newHash = metadataHash(serverData)
+      if (oldHash !== newHash) {
+        setDisplayed(serverData)
+        setPendingItems([])
+        return
+      }
+    }
     const newItems = itemsOf(serverData)
     const oldItems = itemsOf(displayed)
     if (newItems === null || oldItems === null) {
