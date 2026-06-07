@@ -241,10 +241,6 @@
         "logout": "Log out"
       }
     },
-    "ai_score": {
-      "label": "AI Score",
-      "empty": "to complete"
-    },
     "availability_card": {
       "title": "Your availability",
       "description": "Indicate whether you're open to new missions. Companies will only see available experts.",
@@ -926,10 +922,6 @@
       "photo_updated": "Photo updated"
     },
     "verified_badge": "Verified Profile",
-    "ai_score": {
-      "label": "AI Score",
-      "empty": "to complete"
-    },
     "verification_banner": {
       "title": "Profile pending verification",
       "description": "Our AI is analysing your profile. Once validated, you'll receive the <strong>Verified Profile</strong> badge and become eligible for matching and publication.",
@@ -1752,6 +1744,13 @@
       "error_too_long": "Message exceeds 5000 characters.",
       "error_generic": "An error occurred. Please try again."
     }
+  },
+  "expert_dnd_empty": {
+    "title": "You're set to « Do not disturb »",
+    "body": "No offers are shown. Switch back to « Open to opportunities » to receive matches.",
+    "cta_resume": "Switch back to listening",
+    "cta_resuming": "Activating…",
+    "error_generic": "Could not update your availability. Please retry."
   },
   "missions": {
     "card": {

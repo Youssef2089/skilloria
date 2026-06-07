@@ -241,10 +241,6 @@
         "logout": "Abmelden"
       }
     },
-    "ai_score": {
-      "label": "KI-Score",
-      "empty": "noch ausfüllen"
-    },
     "availability_card": {
       "title": "Ihre Verfügbarkeit",
       "description": "Geben Sie an, ob Sie offen für neue Missionen sind. Unternehmen sehen nur verfügbare Experten.",
@@ -926,10 +922,6 @@
       "photo_updated": "Foto aktualisiert"
     },
     "verified_badge": "Verifiziertes Profil",
-    "ai_score": {
-      "label": "KI-Score",
-      "empty": "zu vervollständigen"
-    },
     "verification_banner": {
       "title": "Profil wartet auf Verifizierung",
       "description": "Unsere KI analysiert Ihr Profil. Nach erfolgreicher Validierung erhalten Sie das <strong>Verifiziertes Profil</strong>-Abzeichen und können im Matching erscheinen und veröffentlichen.",
@@ -1752,6 +1744,13 @@
       "error_too_long": "Nachricht überschreitet 5000 Zeichen.",
       "error_generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen."
     }
+  },
+  "expert_dnd_empty": {
+    "title": "Du bist auf « Nicht stören »",
+    "body": "Es werden keine Angebote angezeigt. Wechsle zurück zu « Offen für Angebote », um Vorschläge zu erhalten.",
+    "cta_resume": "Wieder Angebote empfangen",
+    "cta_resuming": "Aktivierung…",
+    "error_generic": "Verfügbarkeit konnte nicht aktualisiert werden. Bitte erneut versuchen."
   },
   "missions": {
     "card": {

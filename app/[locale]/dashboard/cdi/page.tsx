@@ -15,6 +15,8 @@ import {
 import { useCdiApplications } from '@/lib/hooks/useCdiApplications'
 import CdiStatusToggle from '@/components/cdi/CdiStatusToggle'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
+import DndEmptyState from '@/components/dashboard/DndEmptyState'
+import { emitAvailabilityChanged } from '@/lib/availability-actions'
 import CandidatureMiniCard from '@/components/dashboard/CandidatureMiniCard'
 import MissionMiniCard from '@/components/dashboard/MissionMiniCard'
 import type { MissionCardData } from '@/components/dashboard/MissionCard'
@@ -95,7 +97,12 @@ export default function DashboardCDI() {
   // matches QUE pour le user_type cohérent (expert_cdi → type='offre').
   // Donc cette home reçoit les offres CDI matchées de l'expert.
   const isVerified = !!user?.is_verified
-  const missionsLive = useLiveResource<{ missions: MissionCardData[] }, MissionCardData>({
+  // Lot A : la réponse inclut désormais `expert_status.is_dnd` pour permettre
+  // d'afficher l'empty-state rouge conditionnel sans nouvelle requête.
+  const missionsLive = useLiveResource<
+    { missions: MissionCardData[]; expert_status?: { is_dnd: boolean } },
+    MissionCardData
+  >({
     url: isVerified ? `/api/me/missions?locale=${encodeURIComponent(locale)}` : null,
     itemsOf: (d) => d.missions ?? [],
     identityOf: (m) => m.match_id,
@@ -155,10 +162,10 @@ export default function DashboardCDI() {
         setToast({ type: 'error', text: t('toast.status_error') })
       } else {
         setToast({ type: 'success', text: t('toast.status_updated') })
-        // Notifie DashboardShell pour rafraîchir la pill topbar.
-        try {
-          window.dispatchEvent(new CustomEvent('sk:availability-changed'))
-        } catch { /* SSR-safe noop */ }
+        // Lot A : notifie la pill topbar ET les useLiveResource (mutate
+        // /api/me/missions → home Suggestions + page Offres se mettent à
+        // jour SANS reload. Toggle ↔ liste vidée/repeuplée, instantané).
+        emitAvailabilityChanged()
       }
     } catch {
       setStatus(previous)
@@ -258,22 +265,10 @@ export default function DashboardCDI() {
           border-radius: 999px;
           transition: width 1s ease;
         }
-        .score-box {
-          background: #fff;
-          border: 1px solid #e5e7eb;
-          border-radius: 14px;
-          padding: 16px 22px;
-          text-align: center;
-          min-width: 104px;
-          animation: fadeIn 0.5s ease 0.1s both;
-          transition: box-shadow 0.2s, transform 0.2s;
-        }
-        .score-box:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
         @media (max-width: 767px) {
           /* Lot état 'selected' : 4 KPI — 2 colonnes en mobile. */
           .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .greeting-row { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
-          .score-box { width: 100%; }
           .verif-steps { flex-wrap: wrap !important; }
         }
         @media (min-width: 768px) {
@@ -301,13 +296,15 @@ export default function DashboardCDI() {
             </div>
           )}
 
-          {/* SECTION 1 — Hello + verified badge inline + Score IA */}
+          {/* SECTION 1 — Hello + verified badge inline + status badge.
+              Lot A : tuile "Score IA" retirée (UI placeholder vide qui
+              n'alimentait rien). On garde le layout greeting-row mais
+              la colonne droite (score-box) n'existe plus. */}
           <div
             className="greeting-row"
             style={{
               display: 'flex',
               alignItems: 'flex-start',
-              justifyContent: 'space-between',
               marginBottom: 22,
               gap: 16,
               animation: 'fadeInUp 0.4s ease',
@@ -386,25 +383,8 @@ export default function DashboardCDI() {
               )}
             </div>
 
-            {/* Score IA box (parité freelance) */}
-            <div className="score-box">
-              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>
-                {t('ai_score.label')}
-              </div>
-              <div
-                style={{
-                  fontSize: 28,
-                  fontWeight: 700,
-                  color: domain.primaryColor,
-                  fontFamily: fontJakarta,
-                }}
-              >
-                —
-              </div>
-              <div style={{ fontSize: 11, color: '#9ca3af' }}>
-                {t('ai_score.empty')}
-              </div>
-            </div>
+            {/* Lot A : tuile "Score IA" supprimée — voir commentaire en
+                tête de SECTION 1. */}
           </div>
 
           {/* Bandeau de vérification jaune si !isVerified (parité freelance) */}
@@ -667,9 +647,16 @@ export default function DashboardCDI() {
                 {t('loading')}
               </div>
             ) : recommendedOffres.length === 0 ? (
-              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
-                {t('suggestions_section.empty_verified')}
-              </div>
+              // Lot A : 2 empty-states distincts.
+              //   DND ('employed') → ROUGE + bouton "Repasser À l'écoute".
+              //   À l'écoute mais 0 match → GRIS neutre.
+              missionsLive.data?.expert_status?.is_dnd && user?.id ? (
+                <DndEmptyState side="cdi" userId={user.id} />
+              ) : (
+                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
+                  {t('suggestions_section.empty_verified')}
+                </div>
+              )
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {recommendedOffres.map((m) => (

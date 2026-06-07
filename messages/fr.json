@@ -241,10 +241,6 @@
         "logout": "Déconnexion"
       }
     },
-    "ai_score": {
-      "label": "Score IA",
-      "empty": "à compléter"
-    },
     "availability_card": {
       "title": "Votre disponibilité",
       "description": "Indiquez si vous êtes prêt(e) à recevoir de nouvelles missions. Les entreprises ne verront que les experts disponibles.",
@@ -926,10 +922,6 @@
       "photo_updated": "Photo mise à jour"
     },
     "verified_badge": "Profil Vérifié",
-    "ai_score": {
-      "label": "Score IA",
-      "empty": "à compléter"
-    },
     "verification_banner": {
       "title": "Profil en attente de vérification",
       "description": "Notre IA analyse votre profil. Une fois validé, vous obtiendrez le badge <strong>Profil Vérifié</strong> et pourrez apparaître dans le matching et publier.",
@@ -1752,6 +1744,13 @@
       "error_too_long": "Le message dépasse 5000 caractères.",
       "error_generic": "Une erreur est survenue. Réessayez."
     }
+  },
+  "expert_dnd_empty": {
+    "title": "Vous êtes en « Ne pas déranger »",
+    "body": "Aucune offre ne vous est proposée. Repassez « À l'écoute » pour recevoir des opportunités.",
+    "cta_resume": "Repasser À l'écoute",
+    "cta_resuming": "Activation…",
+    "error_generic": "Impossible de mettre à jour votre disponibilité. Réessayez."
   },
   "missions": {
     "card": {

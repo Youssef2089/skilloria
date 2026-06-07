@@ -103,10 +103,16 @@ export async function GET(request: NextRequest): Promise<Response> {
   //   Freelance : availability_status = 'do_not_disturb' → feed vide.
   //   CDI       : cdi_status          = 'employed'       → feed vide.
   //   NULL est considéré disponible (défaut produit).
+  //
+  // Lot A : on expose `expert_status.is_dnd` dans la réponse pour que les
+  // pages clientes affichent l'empty-state ROUGE conditionnel + le bouton
+  // "Repasser À l'écoute". Le side (freelance/cdi) est connu côté page
+  // appelante — pas besoin de le faire transiter par l'API.
   const availStatus = (profile as { availability_status?: string | null }).availability_status ?? null
   const cdiStatus = (profile as { cdi_status?: string | null }).cdi_status ?? null
-  if (availStatus === 'do_not_disturb' || cdiStatus === 'employed') {
-    return json({ missions: [] }, 200)
+  const isDnd = availStatus === 'do_not_disturb' || cdiStatus === 'employed'
+  if (isDnd) {
+    return json({ missions: [], expert_status: { is_dnd: true } }, 200)
   }
 
   const locale = normalizeLocale(new URL(request.url).searchParams.get('locale'))
@@ -174,5 +180,5 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
   }).filter((x): x is NonNullable<typeof x> => x !== null)
 
-  return json({ missions }, 200)
+  return json({ missions, expert_status: { is_dnd: false } }, 200)
 }

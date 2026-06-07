@@ -241,10 +241,6 @@
         "logout": "Cerrar sesión"
       }
     },
-    "ai_score": {
-      "label": "Puntuación IA",
-      "empty": "por completar"
-    },
     "availability_card": {
       "title": "Tu disponibilidad",
       "description": "Indica si estás abierto/a a nuevas misiones. Las empresas solo verán a los expertos disponibles.",
@@ -926,10 +922,6 @@
       "photo_updated": "Foto actualizada"
     },
     "verified_badge": "Perfil Verificado",
-    "ai_score": {
-      "label": "Puntuación IA",
-      "empty": "por completar"
-    },
     "verification_banner": {
       "title": "Perfil pendiente de verificación",
       "description": "Nuestra IA está analizando tu perfil. Una vez validado, obtendrás el distintivo <strong>Perfil Verificado</strong> y podrás aparecer en el matching y publicar.",
@@ -1751,6 +1743,13 @@
       "error_too_long": "El mensaje supera los 5000 caracteres.",
       "error_generic": "Se produjo un error. Inténtalo de nuevo."
     }
+  },
+  "expert_dnd_empty": {
+    "title": "Estás en « No molestar »",
+    "body": "No se muestra ninguna oferta. Vuelve a « Disponible » para recibir oportunidades.",
+    "cta_resume": "Volver a estar disponible",
+    "cta_resuming": "Activando…",
+    "error_generic": "No se pudo actualizar tu disponibilidad. Vuelve a intentarlo."
   },
   "missions": {
     "card": {

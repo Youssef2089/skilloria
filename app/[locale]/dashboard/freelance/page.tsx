@@ -15,6 +15,8 @@ import type { MissionCardData } from '@/components/dashboard/MissionCard'
 import AvailabilityToggle, {
   type AvailabilityStatus,
 } from '@/components/freelance/AvailabilityToggle'
+import DndEmptyState from '@/components/dashboard/DndEmptyState'
+import { emitAvailabilityChanged } from '@/lib/availability-actions'
 
 type ProfileData = {
   tjm_min: number | null
@@ -91,7 +93,12 @@ export default function DashboardFreelance() {
   // - Le calcul des stats est ensuite dérivé via useMemo : pas de nouvelle
   //   réf si data inchangée.
   const liveEnabled = !loading
-  const missionsLive = useLiveResource<{ missions: RecommendedMission[] }, RecommendedMission>({
+  // Lot A : la réponse inclut désormais `expert_status.is_dnd` pour permettre
+  // d'afficher l'empty-state rouge conditionnel sans nouvelle requête.
+  const missionsLive = useLiveResource<
+    { missions: RecommendedMission[]; expert_status?: { is_dnd: boolean } },
+    RecommendedMission
+  >({
     url: liveEnabled ? `/api/me/missions?locale=${encodeURIComponent(locale)}` : null,
     itemsOf: (d) => d.missions ?? [],
     identityOf: (m) => m.match_id,
@@ -211,10 +218,10 @@ export default function DashboardFreelance() {
         setToast(t('availability_card.toast_error'))
       } else {
         setToast(t('availability_card.toast_updated'))
-        // Notifie DashboardShell pour rafraîchir la pill topbar.
-        try {
-          window.dispatchEvent(new CustomEvent('sk:availability-changed'))
-        } catch { /* SSR-safe noop */ }
+        // Lot A : notifie la pill topbar ET les useLiveResource (mutate
+        // /api/me/missions → home Suggestions + page Offres se mettent à
+        // jour SANS reload. Toggle ↔ liste vidée/repeuplée, instantané).
+        emitAvailabilityChanged()
       }
     } catch {
       setAvailability(previous)
@@ -343,17 +350,6 @@ export default function DashboardFreelance() {
           animation: fadeIn 0.5s ease;
         }
         .avatar:hover { transform: scale(1.06); }
-        .score-box {
-          background: #fff;
-          border: 1px solid #e5e7eb;
-          border-radius: 14px;
-          padding: 16px 22px;
-          text-align: center;
-          min-width: 104px;
-          animation: fadeIn 0.5s ease 0.1s both;
-          transition: box-shadow 0.2s, transform 0.2s;
-        }
-        .score-box:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
         .progress-bar { height: 7px; background: #f3f4f6; border-radius: 10px; overflow: hidden; }
         .progress-fill {
           height: 100%;
@@ -389,25 +385,19 @@ export default function DashboardFreelance() {
             reviewReason={(profile?.review_reason ?? null) as string | null}
           />
 
-          {/* Titre + Score IA */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 26, animation: 'fadeInUp 0.4s ease' }}>
-            <div>
-              <h1 style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginBottom: 8 }}>{t('greeting')}</h1>
-              {isVerified && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'fadeIn 0.6s ease 0.3s both' }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" fill={domain.primaryColor}/>
-                    <path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  <span style={{ fontSize: 13, color: domain.primaryColor, fontWeight: 500 }}>{t('verified_badge')}</span>
-                </div>
-              )}
-            </div>
-            <div className="score-box">
-              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>{t('ai_score.label')}</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: domain.primaryColor }}>—</div>
-              <div style={{ fontSize: 11, color: '#9ca3af' }}>{t('ai_score.empty')}</div>
-            </div>
+          {/* Lot A : tuile "Score IA" retirée (UI placeholder vide qui
+              n'alimentait rien). Le titre garde le même bloc d'en-tête. */}
+          <div style={{ marginBottom: 26, animation: 'fadeInUp 0.4s ease' }}>
+            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginBottom: 8 }}>{t('greeting')}</h1>
+            {isVerified && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'fadeIn 0.6s ease 0.3s both' }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" fill={domain.primaryColor}/>
+                  <path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span style={{ fontSize: 13, color: domain.primaryColor, fontWeight: 500 }}>{t('verified_badge')}</span>
+              </div>
+            )}
           </div>
 
           {/* Bannière vérification */}
@@ -531,9 +521,16 @@ export default function DashboardFreelance() {
                 {t('loading')}
               </div>
             ) : recommendedMissions.length === 0 ? (
-              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
-                {t('cards.recommended_missions.empty_verified', { ecosystem: domain.ecosystemName })}
-              </div>
+              // Lot A : 2 empty-states distincts.
+              //   DND → ROUGE explicite + bouton "Repasser À l'écoute".
+              //   À l'écoute mais 0 match → GRIS neutre (état "rien de neuf").
+              missionsLive.data?.expert_status?.is_dnd && user?.id ? (
+                <DndEmptyState side="freelance" userId={user.id} />
+              ) : (
+                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
+                  {t('cards.recommended_missions.empty_verified', { ecosystem: domain.ecosystemName })}
+                </div>
+              )
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {recommendedMissions.map((m) => (

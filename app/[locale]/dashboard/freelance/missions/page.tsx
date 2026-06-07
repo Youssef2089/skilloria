@@ -6,6 +6,7 @@ import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
 import NewItemsPill from '@/components/ui/NewItemsPill'
 import BoundedScrollList from '@/components/ui/BoundedScrollList'
+import DndEmptyState from '@/components/dashboard/DndEmptyState'
 import { useLiveResource } from '@/hooks/useLiveResource'
 
 /**
@@ -17,13 +18,24 @@ import { useLiveResource } from '@/hooks/useLiveResource'
  *
  * <NewItemsPill> est rendue dans stickyHeader du BoundedScrollList → reste
  * collée en haut pendant le scroll interne.
+ *
+ * Lot A : la réponse /api/me/missions inclut désormais
+ * `expert_status: { is_dnd }`. Si l'expert est en "Ne pas déranger",
+ * la liste est forcément vide côté serveur (barrière feed) et on affiche
+ * l'empty-state ROUGE [<DndEmptyState>] avec bouton "Repasser À l'écoute".
+ * Sinon (à l'écoute mais 0 match), on garde l'empty-state gris neutre.
  */
+
+type MissionsPayload = {
+  missions: MissionCardData[]
+  expert_status?: { is_dnd: boolean }
+}
 
 export default function MissionsFeedPage() {
   const t = useTranslations('missions.feed')
   const locale = useLocale()
 
-  const live = useLiveResource<{ missions: MissionCardData[] }, MissionCardData>({
+  const live = useLiveResource<MissionsPayload, MissionCardData>({
     url: `/api/me/missions?locale=${encodeURIComponent(locale)}`,
     itemsOf: (d) => d.missions ?? [],
     identityOf: (m) => m.match_id,
@@ -32,6 +44,7 @@ export default function MissionsFeedPage() {
   })
   const state = live.state
   const missions = live.data?.missions ?? []
+  const isDnd = !!live.data?.expert_status?.is_dnd
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px 26px' }}>
@@ -49,11 +62,15 @@ export default function MissionsFeedPage() {
 
       {state.kind === 'ready' && missions.length === 0 && (
         <div style={{ marginTop: 14 }}>
-          <EmptyState
-            icon="🎯"
-            title={t('empty_title')}
-            body={t('empty_subtitle')}
-          />
+          {isDnd ? (
+            <DndEmptyState side="freelance" />
+          ) : (
+            <EmptyState
+              icon="🎯"
+              title={t('empty_title')}
+              body={t('empty_subtitle')}
+            />
+          )}
         </div>
       )}
 
