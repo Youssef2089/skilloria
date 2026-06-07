@@ -18,9 +18,9 @@ import PublicationSynthesisLine from './PublicationSynthesisLine'
  *   4. Badge score IA flottant à droite
  * Branche/spécialité retirées (pas pertinentes en mini).
  *
- * Pill "Nouveau" : prop `isNew` calculée par le parent (Lot global C2)
- * à partir du snapshot figé de `last_visited_at` de la section 'missions'.
- * Source unique alignée sur MissionCard.
+ * Pill "Nouveau" : dérivée du champ `match_status` (pending/notified =
+ * jamais ouvert ; viewed/dismissed = consulté ou décliné). Source unique
+ * alignée sur MissionCard, modèle "consulté par item" (Lot bascule).
  *
  * useDomain — aucune couleur en dur, var(--sk-*).
  */
@@ -28,19 +28,18 @@ import PublicationSynthesisLine from './PublicationSynthesisLine'
 export default function MissionMiniCard({
   mission,
   side = 'freelance',
-  isNew = false,
 }: {
   mission: MissionCardData
   side?: 'freelance' | 'cdi'
-  /** Lot global C2 : voir MissionCard. */
-  isNew?: boolean
 }) {
   const tCard = useTranslations('missions.card')
   const domain = useDomain()
 
-  const { publication: pub, org, ai_score } = mission
+  const { publication: pub, org, ai_score, match_status } = mission
   const orgName = pub.confidential ? tCard('confidential_org') : org?.name ?? tCard('confidential_org')
-  const isFresh = isNew
+  // Lot bascule badges par item : "Nouveau" = match_status ∈ pending/notified
+  // (cf. MissionCard pour le rationale).
+  const isFresh = match_status === 'pending' || match_status === 'notified'
 
   return (
     <Link

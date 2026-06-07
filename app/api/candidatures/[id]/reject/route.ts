@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
+import { markCandidatureViewedServerSide } from '@/lib/candidature-views'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -139,6 +140,9 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
       has_reason: reason !== null,
     },
   })
+
+  // Lot badges par item : agir = vu (best-effort, idempotent).
+  await markCandidatureViewedServerSide(auth.supabaseAdmin, auth.user.id, candidatureId)
 
   return json(
     {

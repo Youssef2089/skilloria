@@ -1,46 +1,37 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
-import { SECTION_KEYS, type SectionKey } from '@/lib/section-visits'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
- * GET /api/me/badges
+ * GET /api/me/badges — source UNIQUE pour les badges nav (Lot bascule
+ * "badge = items NOUVEAUX non consultés par item").
  *
- * Source UNIQUE pour les badges rouges de la nav (Lot global C2, règle unique).
- * Pour chaque section couverte, retourne le nombre d'items NOUVEAUX depuis la
- * dernière visite enregistrée dans `user_section_visits`.
+ * Modèle :
+ *   - missions             = matches dont status ∈ ('pending','notified')
+ *                            pour le profil expert courant.
+ *                            (Le flip 'viewed' se fait à l'ouverture du
+ *                            détail mission, cf. /api/me/missions/[id].)
+ *   - candidatures_expert  = candidatures de l'expert NON consultées par lui
+ *                            (NOT EXISTS candidature_views.viewed_at >= updated_at).
+ *   - candidatures_org     = candidatures sur les pubs de l'org NON
+ *                            consultées par l'user org courant.
+ *   - annonces_org         = ALIAS V1 de candidatures_org (la home org n'a
+ *                            pas de notion "annonce non vue" — l'org est
+ *                            créatrice de ses annonces ; le badge signale
+ *                            les candidatures fraîches à traiter).
  *
- * Surfaces couvertes :
- *   - missions             (expert) : matches du profil créés > last_visited
- *   - candidatures_expert  (expert) : candidatures du profil dont updated_at
- *                                     > last_visited (status flipped par l'org)
- *   - candidatures_org     (org)    : candidatures sur les pubs de l'org dont
- *                                     created_at > last_visited (nouvelles
- *                                     candidatures reçues)
- *   - annonces_org         (org)    : alias de candidatures_org en V1 — la
- *                                     home org listant les annonces n'a pas
- *                                     de notion d'item nouveau distincte ;
- *                                     on remonte le compteur de candidatures
- *                                     reçues (cohérent UX).
+ * Surfaces NON gérées ici (modèles propres déjà par-item) :
+ *   - messages : /api/me/conversations → unread_count par conv.
+ *   - cloche   : /api/me/notifications → unread_count.
  *
- * Surfaces NON gérées ici (conserveent leur propre source) :
- *   - messages : `/api/me/conversations` → somme unread_count.
- *   - cloche   : `/api/me/notifications` → unread_count.
+ * Sécurité : requireAuth + service_role. Ne fuite aucun count d'autres orgs
+ * (le filtrage org passe par auth.organization?.id, idem expert via son
+ * profile_id). Section inactive pour le user courant → 0 (pas d'erreur).
  *
- * Règle "jamais de last_visited" : si la ligne est absente pour une section
- * donnée, on considère qu'AUCUN item n'a été vu — TOUS les items existants
- * comptent comme nouveaux. C'est le bon défaut produit (l'expert qui n'a
- * jamais ouvert /missions voit le badge plein).
- *
- * Performance : 1 SELECT user_section_visits + 1 SELECT par section concernée
- * (limit côté DB via filtre + count={ exact, head: true }). O(constant)
- * requêtes par appel. Polling 30s côté useNavBadges.
- *
- * Retour : { missions, candidatures_expert, candidatures_org, annonces_org }
- *  où chaque valeur ∈ ℕ. Les sections inactives pour le user courant
- *  (expert sans profile, org sans pubs) retournent 0 — pas d'info fuitée.
+ * Polling 30s côté useNavBadges. Décrément INSTANTANÉ après une action via
+ * dispatch 'skilloria:notif-bump' côté client → useNavBadges.mutate().
  */
 
 function json(data: unknown, status = 200): Response {
@@ -50,11 +41,12 @@ function json(data: unknown, status = 200): Response {
   })
 }
 
-type BadgeCounts = Record<SectionKey, number>
-
-// Date "epoch" comme défaut quand aucune visite n'a jamais été enregistrée :
-//   tout item existant compte comme nouveau (sémantique "rien n'a été vu").
-const EPOCH_ISO = '1970-01-01T00:00:00Z'
+type BadgeCounts = {
+  missions: number
+  candidatures_expert: number
+  candidatures_org: number
+  annonces_org: number
+}
 
 export async function GET(request: NextRequest): Promise<Response> {
   let auth: AuthContext
@@ -65,26 +57,6 @@ export async function GET(request: NextRequest): Promise<Response> {
     throw err
   }
 
-  // Lecture parallèle : visites + (profile expert) + (membre org) en une passe.
-  const [visitsRes, profileRes, orgRes] = await Promise.all([
-    auth.supabaseAdmin
-      .from('user_section_visits')
-      .select('section, last_visited_at')
-      .eq('user_id', auth.user.id),
-    auth.supabaseAdmin
-      .from('profiles')
-      .select('id, verification_status')
-      .eq('user_id', auth.user.id)
-      .maybeSingle(),
-    // auth.organization.id si dispo (membre actif d'une org). On évite un
-    // appel direct si requireAuth a déjà résolu l'org.
-    Promise.resolve(auth.organization?.id ?? null),
-  ])
-
-  const lastVisited: Record<string, string> = {}
-  for (const v of (visitsRes.data ?? []) as { section: string; last_visited_at: string }[]) {
-    lastVisited[v.section] = v.last_visited_at
-  }
   const counts: BadgeCounts = {
     missions: 0,
     candidatures_expert: 0,
@@ -92,83 +64,133 @@ export async function GET(request: NextRequest): Promise<Response> {
     annonces_org: 0,
   }
 
-  // ── Section EXPERT : missions + candidatures_expert ─────────────────────
-  const profile = profileRes.data as { id: string; verification_status?: string | null } | null
-  if (profile && profile.verification_status === 'approved') {
-    const profileId = profile.id
+  // ── Profile expert (peut être absent côté membres d'org pur) ────────────
+  const { data: profile } = await auth.supabaseAdmin
+    .from('profiles')
+    .select('id, verification_status')
+    .eq('user_id', auth.user.id)
+    .maybeSingle()
+  const expertProfile = profile as { id: string; verification_status?: string | null } | null
 
-    // missions = matches du profil créés > last_visited (exclus 'dismissed'
-    // pour rester cohérent avec /api/me/missions et la page Offres).
-    const sinceMissions = lastVisited.missions ?? EPOCH_ISO
-    const { count: missionsCount, error: mErr } = await auth.supabaseAdmin
+  // ── missions (expert) ───────────────────────────────────────────────────
+  // = matches "à voir" : status ∈ ('pending','notified'). Le flip 'viewed'
+  // arrive à l'ouverture du détail (/api/me/missions/[id]) → décrément.
+  if (expertProfile && expertProfile.verification_status === 'approved') {
+    const { count, error } = await auth.supabaseAdmin
       .from('matches')
       .select('id', { count: 'exact', head: true })
-      .eq('profile_id', profileId)
-      .neq('status', 'dismissed')
-      .gt('created_at', sinceMissions)
-    if (mErr) {
-      console.error('[me/badges:GET] missions count failed', mErr.message)
+      .eq('profile_id', expertProfile.id)
+      .in('status', ['pending', 'notified'])
+    if (error) {
+      console.error('[me/badges:GET] missions count failed', error.message)
     } else {
-      counts.missions = missionsCount ?? 0
-    }
-
-    // candidatures_expert = candidatures du profil dont updated_at > last_visited.
-    // Le status change (unlock/select/reject) bump updated_at via trg_candidatures_updated_at.
-    const sinceCandExpert = lastVisited.candidatures_expert ?? EPOCH_ISO
-    const { count: cExpertCount, error: cErr } = await auth.supabaseAdmin
-      .from('candidatures')
-      .select('id', { count: 'exact', head: true })
-      .eq('profile_id', profileId)
-      .gt('updated_at', sinceCandExpert)
-    if (cErr) {
-      console.error('[me/badges:GET] candidatures_expert count failed', cErr.message)
-    } else {
-      counts.candidatures_expert = cExpertCount ?? 0
+      counts.missions = count ?? 0
     }
   }
 
-  // ── Section ORG : candidatures_org + annonces_org ───────────────────────
-  const orgId = orgRes
+  // ── candidatures_expert ─────────────────────────────────────────────────
+  // Candidatures du profil NON consultées par l'user (la vue "consultée"
+  // expire dès que candidatures.updated_at avance, ex. après un unlock/select
+  // /reject côté org → la candidature redevient "à reconsulter").
+  //
+  // Supabase JS ne sait pas exprimer "NOT EXISTS join LATERAL" trivialement.
+  // Pattern : 2 SELECT batch + diff client-side. O(N + M) où N=candidatures
+  // du profile, M=views du user. Volumes faibles (centaines max V1).
+  if (expertProfile) {
+    counts.candidatures_expert = await countUnviewedCandidaturesForUser(
+      auth,
+      { kind: 'expert', profileId: expertProfile.id },
+    )
+  }
+
+  // ── candidatures_org + annonces_org (org members) ───────────────────────
+  const orgId = auth.organization?.id ?? null
   if (orgId) {
-    // 1. Récupère les pub.id de l'org (limité aux pubs en cours, status =
-    //    'published' ou 'review' — exclut 'archived' pour ne pas compter
-    //    sur des annonces tombées).
+    const orgUnviewed = await countUnviewedCandidaturesForUser(auth, {
+      kind: 'org',
+      orgId,
+    })
+    counts.candidatures_org = orgUnviewed
+    counts.annonces_org = orgUnviewed  // alias V1 (cf. en-tête)
+  }
+
+  return json({ badges: counts }, 200)
+}
+
+/**
+ * Compte les candidatures NON consultées par le user courant pour le scope
+ * demandé (expert = ses propres candidatures, org = candidatures sur les
+ * pubs de l'org).
+ *
+ * Sémantique "non consultée" :
+ *   - aucune ligne dans candidature_views (user_id, candidature_id), OU
+ *   - candidature_views.viewed_at < candidatures.updated_at (statut a
+ *     bougé depuis la dernière consultation → la candidature revient
+ *     dans le compteur).
+ *
+ * Best-effort : si le sous-SELECT scope échoue, on retourne 0 plutôt que
+ * de propager une 500 (le badge nav doit rester silencieux en cas de pépin
+ * non-bloquant).
+ */
+async function countUnviewedCandidaturesForUser(
+  auth: AuthContext,
+  scope:
+    | { kind: 'expert'; profileId: string }
+    | { kind: 'org'; orgId: string },
+): Promise<number> {
+  // 1. Liste des candidatures du scope (id + updated_at)
+  let candQuery = auth.supabaseAdmin
+    .from('candidatures')
+    .select('id, updated_at')
+    .limit(2000)
+
+  if (scope.kind === 'expert') {
+    candQuery = candQuery.eq('profile_id', scope.profileId)
+  } else {
     const { data: pubsRaw } = await auth.supabaseAdmin
       .from('publications')
       .select('id')
-      .eq('organization_id', orgId)
+      .eq('organization_id', scope.orgId)
     const pubIds = ((pubsRaw ?? []) as { id: string }[]).map((p) => p.id)
-    if (pubIds.length > 0) {
-      const sinceCandOrg = lastVisited.candidatures_org ?? EPOCH_ISO
-      const { count: cOrgCount, error: oErr } = await auth.supabaseAdmin
-        .from('candidatures')
-        .select('id', { count: 'exact', head: true })
-        .in('publication_id', pubIds)
-        .gt('created_at', sinceCandOrg)
-      if (oErr) {
-        console.error('[me/badges:GET] candidatures_org count failed', oErr.message)
-      } else {
-        counts.candidatures_org = cOrgCount ?? 0
-      }
-      // annonces_org : V1 alias = nouvelles candidatures reçues depuis la
-      // dernière visite de la home org. Mécanique simple + cohérente avec
-      // l'usage observé (le badge sur "Mes annonces" doit signaler les
-      // candidatures fraîches sur n'importe quelle annonce).
-      const sinceAnnonces = lastVisited.annonces_org ?? EPOCH_ISO
-      const { count: aCount, error: aErr } = await auth.supabaseAdmin
-        .from('candidatures')
-        .select('id', { count: 'exact', head: true })
-        .in('publication_id', pubIds)
-        .gt('created_at', sinceAnnonces)
-      if (aErr) {
-        console.error('[me/badges:GET] annonces_org count failed', aErr.message)
-      } else {
-        counts.annonces_org = aCount ?? 0
-      }
-    }
+    if (pubIds.length === 0) return 0
+    candQuery = candQuery.in('publication_id', pubIds)
   }
 
-  void SECTION_KEYS  // exporté pour assertion de complétude des clés.
+  const { data: candRowsRaw, error: cErr } = await candQuery
+  if (cErr) {
+    console.error('[me/badges] candidatures scope query failed', cErr.message)
+    return 0
+  }
+  const candRows = (candRowsRaw ?? []) as { id: string; updated_at: string }[]
+  if (candRows.length === 0) return 0
 
-  return json({ badges: counts, last_visited: lastVisited }, 200)
+  // 2. Vues de l'user courant pour ces candidatures
+  const candIds = candRows.map((c) => c.id)
+  const { data: viewsRaw, error: vErr } = await auth.supabaseAdmin
+    .from('candidature_views')
+    .select('candidature_id, viewed_at')
+    .eq('user_id', auth.user.id)
+    .in('candidature_id', candIds)
+  if (vErr) {
+    console.error('[me/badges] candidature_views query failed', vErr.message)
+    return 0
+  }
+  const viewedAtByCand = new Map<string, string>()
+  for (const v of (viewsRaw ?? []) as { candidature_id: string; viewed_at: string }[]) {
+    viewedAtByCand.set(v.candidature_id, v.viewed_at)
+  }
+
+  // 3. Diff : "non consultée" si pas de view, OU viewed_at < updated_at
+  let unviewed = 0
+  for (const c of candRows) {
+    const v = viewedAtByCand.get(c.id)
+    if (!v) {
+      unviewed++
+      continue
+    }
+    if (new Date(v).getTime() < new Date(c.updated_at).getTime()) {
+      unviewed++
+    }
+  }
+  return unviewed
 }

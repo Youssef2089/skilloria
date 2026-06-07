@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
+import { markCandidatureViewedServerSide } from '@/lib/candidature-views'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -241,6 +242,11 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
       },
     })
   }
+
+  // Lot badges par item : agir sur une candidature = l'avoir vue (best-effort,
+  // ne bloque pas l'action métier). Idempotent — un re-run du flux unlock
+  // re-marque sans erreur.
+  await markCandidatureViewedServerSide(auth.supabaseAdmin, auth.user.id, candidatureId)
 
   return json(
     {

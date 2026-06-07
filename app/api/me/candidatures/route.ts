@@ -45,6 +45,7 @@ type CandRow = {
   selected_at: string | null
   cover_message: string | null
   created_at: string
+  updated_at: string
   publications: unknown
 }
 
@@ -85,7 +86,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       .from('candidatures')
       .select(
         'id, publication_id, status, status_reason, ai_match_score, unlocked_at, selected_at, ' +
-          'cover_message, created_at, ' +
+          'cover_message, created_at, updated_at, ' +
           'publications!inner(' +
           'id, type, title, branch_id, speciality_id, budget_min, budget_max, ' +
           'location, work_mode, duration, start_date, seniority, ' +
@@ -121,6 +122,22 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
   }
 
+  // Lot bascule badges par item : viewed_by_me pour chaque candidature.
+  // "Consultée" = candidature_views.viewed_at >= candidatures.updated_at
+  // (un changement de statut côté org bump updated_at → re-marquage requis).
+  const allCandIds = rows.map((r) => r.id)
+  const viewedAtByCand = new Map<string, string>()
+  if (allCandIds.length > 0) {
+    const { data: viewsRaw } = await auth.supabaseAdmin
+      .from('candidature_views')
+      .select('candidature_id, viewed_at')
+      .eq('user_id', auth.user.id)
+      .in('candidature_id', allCandIds)
+    for (const v of ((viewsRaw ?? []) as { candidature_id: string; viewed_at: string }[])) {
+      viewedAtByCand.set(v.candidature_id, v.viewed_at)
+    }
+  }
+
   const candidatures = rows.map((r) => {
     const pubRaw = pickRel(r.publications as Parameters<typeof buildPublicationSynthesis>[0] | Parameters<typeof buildPublicationSynthesis>[0][] | null)
     const publication = pubRaw
@@ -129,6 +146,8 @@ export async function GET(request: NextRequest): Promise<Response> {
           status: (pubRaw as { status?: string }).status ?? null,
         }
       : null
+    const v = viewedAtByCand.get(r.id)
+    const viewedByMe = !!v && new Date(v).getTime() >= new Date(r.updated_at).getTime()
     return {
       id: r.id,
       publication_id: r.publication_id,
@@ -141,6 +160,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       cover_message: r.cover_message,
       created_at: r.created_at,
       conversation_id: accessibleStatuses.has(r.status) ? convByCand.get(r.id) ?? null : null,
+      viewed_by_me: viewedByMe,
     }
   })
 

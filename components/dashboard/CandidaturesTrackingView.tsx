@@ -23,7 +23,7 @@ import MasterDetail from '@/components/ui/MasterDetail'
 import EmptyState from '@/components/ui/EmptyState'
 import TimelineStep from '@/components/ui/TimelineStep'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from '@/components/dashboard/PublicationSynthesisLine'
-import { useMarkSectionVisited } from '@/lib/section-visit-client'
+import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
 
 /**
  * CandidaturesTrackingView — vue tracking des candidatures côté expert
@@ -50,6 +50,8 @@ type Candidature = {
   cover_message: string | null
   created_at: string
   conversation_id: string | null
+  /** Lot bascule badges par item : true si déjà consultée par cet user. */
+  viewed_by_me?: boolean
 }
 
 type State =
@@ -100,6 +102,8 @@ function matchesFilter(status: string, f: FilterKey): boolean {
 export default function CandidaturesTrackingView({ side = 'freelance' }: { side?: 'freelance' | 'cdi' }) {
   const t = useTranslations('candidatures_tracking')
   const tPub = useTranslations('publications')
+  // Pour la pill "Nouveau" cohérente avec MissionCard.
+  const tMissionsCard = useTranslations('missions.card')
   const locale = useLocale()
   const domain = useDomain()
   const [filter, setFilter] = useState<FilterKey>('all')
@@ -123,13 +127,16 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
       setSelectedId(filtered[0].id)
     }
   }, [selectedId, filtered])
-  // Lot global C2 : ouvrir la page = marquer la section comme vue → badge nav
-  // passe à 0 immédiatement (skilloria:notif-bump → useNavBadges.mutate).
-  // Passe par useSecureFetch (Authorization: Bearer) — fix bug 401 silencieux.
-  const markVisited = useMarkSectionVisited()
+  // Lot bascule badges par item : ouvrir le DÉTAIL d'une candidature (clic
+  // sur l'item du MasterDetail) la marque comme consultée pour cet user.
+  // Le serveur upsert candidature_views ; useNavBadges revalide via
+  // 'skilloria:notif-bump' dispatché dans le hook → badge -1 instantané.
+  const markCandidatureViewed = useMarkCandidatureViewed()
   useEffect(() => {
-    void markVisited('candidatures_expert')
-  }, [markVisited])
+    if (selectedId) {
+      void markCandidatureViewed(selectedId)
+    }
+  }, [selectedId, markCandidatureViewed])
   const selected = selectedId ? list.find((c) => c.id === selectedId) ?? null : null
 
   const counts = useMemo(() => {
@@ -230,6 +237,10 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
                     const on = c.id === selectedId
                     const pk = statusToPillKind(c.status)
                     const PIcon = pk === 'won' ? IconTrophy : pk === 'open' ? IconLockOpen : pk === 'refused' ? IconX : IconClock
+                    // Lot bascule badges par item : "Nouveau" si pas encore
+                    // consulté (et pas l'item actuellement sélectionné, qui
+                    // sera marqué consulté à l'instant du clic via le useEffect).
+                    const isUnviewed = c.viewed_by_me === false && !on
                     return (
                       <button
                         key={c.id}
@@ -237,7 +248,11 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
                         onClick={() => setSelectedId(c.id)}
                         style={{
                           background: 'var(--sk-surface)',
-                          border: on ? `1px solid var(--sk-accent)` : '1px solid var(--sk-border)',
+                          border: on
+                            ? `1px solid var(--sk-accent)`
+                            : isUnviewed
+                              ? `1.5px solid var(--sk-accent)`
+                              : '1px solid var(--sk-border)',
                           boxShadow: on ? `0 0 0 3px var(--sk-accent-soft)` : undefined,
                           borderRadius: 'var(--sk-r-lg)',
                           padding: '15px 16px',
@@ -252,11 +267,18 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
                           <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--sk-text)', lineHeight: 1.3, letterSpacing: '-0.2px', minWidth: 0 }}>
                             {c.publication?.title ?? '—'}
                           </div>
-                          {c.ai_match_score != null && (
-                            <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: 'var(--sk-accent-ink)', background: 'var(--sk-accent-soft)', padding: '3px 9px', borderRadius: 8 }}>
-                              {Math.round(c.ai_match_score)}/10
-                            </span>
-                          )}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                            {c.ai_match_score != null && (
+                              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sk-accent-ink)', background: 'var(--sk-accent-soft)', padding: '3px 9px', borderRadius: 8 }}>
+                                {Math.round(c.ai_match_score)}/10
+                              </span>
+                            )}
+                            {isUnviewed && (
+                              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--sk-accent-ink)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                                {tMissionsCard('new_label')}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div style={{ color: 'var(--sk-muted)', fontSize: 12.5, marginTop: 4, display: 'flex', alignItems: 'center', gap: 7 }}>
                           <IconBuilding size={15} stroke={1.8} />

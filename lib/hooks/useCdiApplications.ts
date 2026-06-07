@@ -22,6 +22,8 @@ export type ApplicationItem = {
   publication_type: string | null
   ai_match_score: number | null
   conversation_id: string | null
+  /** Lot bascule badges par item : true si déjà consultée par cet user. */
+  viewed_by_me: boolean
 }
 
 export type UseCdiApplicationsState = {
@@ -43,6 +45,7 @@ type ApiCandidature = {
   ai_match_score: number | null
   conversation_id: string | null
   created_at: string
+  viewed_by_me?: boolean
 }
 
 export function useCdiApplications(): UseCdiApplicationsState {
@@ -76,6 +79,7 @@ export function useCdiApplications(): UseCdiApplicationsState {
       publication_type: c.publication?.type ?? null,
       ai_match_score: c.ai_match_score,
       conversation_id: c.conversation_id,
+      viewed_by_me: c.viewed_by_me === true,
     }))
     return {
       loading: live.state.kind === 'loading',

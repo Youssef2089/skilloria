@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
 
 /**
  * Carte de candidature côté ORG (Lot 2c).
@@ -95,6 +96,12 @@ export type CandidatureData = {
   ai_pitch: string | null
   preview: CandidaturePreview
   unlocked_profile: CandidatureUnlockedProfile | null
+  /**
+   * Lot bascule badges par item : true si cet user org a déjà consulté la
+   * candidature (candidature_views.viewed_at >= candidatures.updated_at).
+   * Optionnel pour rétro-compat avec call-sites qui ne le passent pas encore.
+   */
+  viewed_by_me?: boolean
 }
 
 type Props = {
@@ -147,14 +154,22 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
   const domain = useDomain()
   const secureFetch = useSecureFetch()
 
-  const [busy, setBusy] = useState<'unlock' | 'reject' | 'select' | null>(null)
+  const [busy, setBusy] = useState<'unlock' | 'reject' | 'select' | 'view' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmReject, setConfirmReject] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   // Lot état 'selected' : confirmation explicite avant l'action irréversible.
   const [confirmSelect, setConfirmSelect] = useState(false)
+  // Lot bascule badges par item (micro-fix) : override OPTIMISTE de
+  // `viewed_by_me`. Posé à true au succès de handleMarkViewed / unlock /
+  // reject / select → la pill "Nouveau" + la bordure accent disparaissent
+  // INSTANTANÉMENT sans attendre un re-fetch global. Quand le parent
+  // reload finira par renvoyer viewed_by_me=true, le merge ci-dessous
+  // converge (override OU prop). Pas de désync possible : on n'autorise
+  // jamais le passage true → false côté optimiste.
+  const [viewedOptimistic, setViewedOptimistic] = useState(false)
 
-  const { status, preview, unlocked_profile, ai_match_score, cover_message, created_at, status_reason, ai_pitch } = candidature
+  const { status, preview, unlocked_profile, ai_match_score, cover_message, created_at, status_reason, ai_pitch, viewed_by_me } = candidature
   const isUnlocked = status === 'unlocked'
   const isSelected = status === 'selected'
   const isRejected = status === 'rejected'
@@ -164,6 +179,13 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
   // le profil et discuté). Côté serveur, la transition autorisée est aussi
   // restreinte à ['unlocked'] (lib/.. /api/candidatures/[id]/select/route.ts).
   const canSelect = isUnlocked && !isClosed
+  // Lot bascule badges par item : pill + bouton "Marquer comme vue" tant
+  // que l'org n'a pas (a) consulté explicitement via le bouton, OU (b) agi
+  // via unlock/reject/select (auto-mark serveur).
+  // Merge override optimiste ↑ avec prop serveur — true gagne toujours.
+  const isViewed = viewedOptimistic || viewed_by_me === true
+  const isUnviewed = !isViewed && viewed_by_me === false
+  const markCandidatureViewed = useMarkCandidatureViewed()
 
   const rateUnit = publicationType === 'mission'
     ? (locale === 'fr' ? '/jour' : locale === 'es' ? '/día' : locale === 'de' ? '/Tag' : '/day')
@@ -184,10 +206,28 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
         else setError(t('error_generic'))
         return
       }
+      // Auto-mark vu côté serveur (route unlock) + optimiste côté UI :
+      // pill + bordure accent disparaissent instantanément.
+      setViewedOptimistic(true)
       onMutated()
     } catch (err) {
       console.error('[candidature unlock] threw', err)
       setError(t('error_generic'))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const handleMarkViewed = async () => {
+    if (busy) return
+    setBusy('view')
+    setError(null)
+    try {
+      await markCandidatureViewed(candidature.id)
+      // Pas de onMutated() : on évite un re-fetch global juste pour ça.
+      // Le badge se décrémente via skilloria:notif-bump dispatché par le hook.
+      // Override local optimiste → pill + bordure accent disparaissent instantanément.
+      setViewedOptimistic(true)
     } finally {
       setBusy(null)
     }
@@ -205,6 +245,8 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
         else setError(t('error_generic'))
         return
       }
+      // Auto-mark vu côté serveur (route select) + optimiste côté UI.
+      setViewedOptimistic(true)
       onMutated()
     } catch (err) {
       console.error('[candidature select] threw', err)
@@ -235,6 +277,8 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
         else setError(t('error_generic'))
         return
       }
+      // Auto-mark vu côté serveur (route reject) + optimiste côté UI.
+      setViewedOptimistic(true)
       onMutated()
     } catch (err) {
       console.error('[candidature reject] threw', err)
@@ -258,7 +302,11 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
     <article
       style={{
         background: '#fff',
-        border: isUnlocked ? `1.5px solid ${domain.primaryColor}` : '0.5px solid #e5e7eb',
+        // Lot bascule badges par item : accent border si non consultée
+        // (et pas fermée). Cohérent avec MissionCard.
+        border: isUnlocked || (isUnviewed && !isClosed)
+          ? `1.5px solid ${domain.primaryColor}`
+          : '0.5px solid #e5e7eb',
         borderRadius: 14,
         padding: '18px 20px',
         opacity: isClosed ? 0.65 : 1,
@@ -324,6 +372,21 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
           >
             {t(`status.${status}`)}
           </span>
+          {/* Lot bascule badges par item : pill "Nouveau" + bouton "Marquer
+              comme vue" pour les candidatures non consultées par cet user. */}
+          {isUnviewed && !isClosed && (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: domain.primaryColor,
+                textTransform: 'uppercase',
+                letterSpacing: '.05em',
+              }}
+            >
+              {t('new_label')}
+            </span>
+          )}
         </div>
       </div>
 
@@ -613,6 +676,36 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
       )}
 
       {/* Actions */}
+      {/* Lot bascule badges par item : bouton "Marquer comme vue" — ghost
+          style, visible UNIQUEMENT si la candidature n'a pas encore été
+          consultée par cet user ET qu'elle n'est pas dans un état terminal.
+          Les actions métier (Accepter/Refuser/Retenir) auto-marquent côté
+          serveur via markCandidatureViewedServerSide → ce bouton sert au
+          cas où l'org veut acquitter SANS prendre de décision tout de suite. */}
+      {isUnviewed && !isClosed && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: canAct || canSelect ? 8 : 0 }}>
+          <button
+            type="button"
+            onClick={() => void handleMarkViewed()}
+            disabled={busy !== null}
+            style={{
+              padding: '6px 12px',
+              background: 'transparent',
+              color: '#64748b',
+              border: '1px solid #e2e8f0',
+              borderRadius: 8,
+              fontSize: 11.5,
+              fontWeight: 600,
+              cursor: busy ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+              opacity: busy === 'view' ? 0.6 : 1,
+            }}
+          >
+            {busy === 'view' ? t('mark_viewed_busy') : `✓ ${t('mark_viewed_cta')}`}
+          </button>
+        </div>
+      )}
+
       {canAct && !confirmReject && (
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button

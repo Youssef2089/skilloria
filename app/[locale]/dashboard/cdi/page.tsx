@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Link, useRouter } from '@/i18n/navigation'
@@ -81,15 +81,6 @@ function initialsOf(user: CdiUser | null): string {
   return (fn + ln).toUpperCase() || '?'
 }
 
-/** Lot global C2 : pill "Nouveau" si matched_at > snapshot. */
-function isNewAgainstSnapshot(matchedAt: string, snapshot: string | null): boolean {
-  if (!snapshot) return true
-  const m = new Date(matchedAt).getTime()
-  const s = new Date(snapshot).getTime()
-  if (Number.isNaN(m) || Number.isNaN(s)) return false
-  return m > s
-}
-
 export default function DashboardCDI() {
   const t = useTranslations('dashboard_cdi')
   const tProfile = useTranslations('cdi_profile_view')
@@ -106,14 +97,11 @@ export default function DashboardCDI() {
   // matches QUE pour le user_type cohérent (expert_cdi → type='offre').
   // Donc cette home reçoit les offres CDI matchées de l'expert.
   const isVerified = !!user?.is_verified
-  // Lot A : la réponse inclut `expert_status.is_dnd` pour l'empty-state rouge.
-  // Lot global C2 : la réponse inclut `last_visited_at` (section 'missions')
-  // pour figer la pill "Nouveau".
+  // Lot A : `expert_status.is_dnd` pour l'empty-state rouge.
   const missionsLive = useLiveResource<
     {
       missions: MissionCardData[]
       expert_status?: { is_dnd: boolean }
-      last_visited_at?: string | null
     },
     MissionCardData
   >({
@@ -128,13 +116,6 @@ export default function DashboardCDI() {
     () => missionsLive.data?.missions?.slice(0, 3) ?? null,
     [missionsLive.data],
   )
-
-  // Lot global C2 : snapshot du last_visited_at de la section 'missions'
-  // figé à la 1re réponse (cf. variante freelance pour le pattern complet).
-  const missionsSnapshotRef = useRef<string | null | undefined>(undefined)
-  if (missionsSnapshotRef.current === undefined && missionsLive.data?.last_visited_at !== undefined) {
-    missionsSnapshotRef.current = missionsLive.data.last_visited_at
-  }
 
   const [status, setStatus] = useState<CdiStatus | null>(null)
   const [statusUpdating, setStatusUpdating] = useState(false)
@@ -703,12 +684,7 @@ export default function DashboardCDI() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {recommendedOffres.map((m) => (
-                  <MissionMiniCard
-                    key={m.match_id}
-                    mission={m}
-                    side="cdi"
-                    isNew={isNewAgainstSnapshot(m.matched_at, missionsSnapshotRef.current ?? null)}
-                  />
+                  <MissionMiniCard key={m.match_id} mission={m} side="cdi" />
                 ))}
               </div>
             )}
@@ -795,6 +771,7 @@ export default function DashboardCDI() {
                       ai_match_score: item.ai_match_score,
                       conversation_id: item.conversation_id,
                       created_at: item.created_at ?? '',
+                      viewed_by_me: item.viewed_by_me,
                     }}
                   />
                 ))}

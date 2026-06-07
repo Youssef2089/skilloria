@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import MissionCard, { type MissionCardData } from '@/components/dashboard/MissionCard'
 import PageHeader from '@/components/ui/PageHeader'
@@ -9,23 +8,22 @@ import NewItemsPill from '@/components/ui/NewItemsPill'
 import BoundedScrollList from '@/components/ui/BoundedScrollList'
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
 import { useLiveResource } from '@/hooks/useLiveResource'
-import { useMarkSectionVisited } from '@/lib/section-visit-client'
 
 /**
  * /dashboard/cdi/missions — feed des offres CDI MATCHÉES (parité freelance).
- * Layout flex column + BoundedScrollList (Lot F). Mobile <768px : scroll natif.
+ * Layout flex column + BoundedScrollList. Mobile <768px : scroll natif.
  *
  * Lot A : empty-state ROUGE conditionnel quand l'expert est en DND
  * (cdi_status='employed').
  *
- * Lot global C2 : pill "Nouveau" via snapshot last_visited_at (cf. variante
- * freelance pour le pattern complet).
+ * Lot bascule badges par item : la pill "Nouveau" est dérivée de
+ * `match.status` côté MissionCard. L'ouverture du détail flippe vers
+ * 'viewed' → la pill disparaît et le badge nav décrémente.
  */
 
 type MissionsPayload = {
   missions: MissionCardData[]
   expert_status?: { is_dnd: boolean }
-  last_visited_at?: string | null
 }
 
 export default function CdiMissionsFeedPage() {
@@ -38,27 +36,11 @@ export default function CdiMissionsFeedPage() {
     identityOf: (m) => m.match_id,
     versionOf: (m) => `${m.match_status}|${m.ai_score}`,
     holdNewItems: true,
-    // Lot global C1 : si is_dnd change (Réactiver → false, ou DND → true),
-    // on force l'update de `displayed` sans passer par le "hold". Sinon le
-    // passage DND→À l'écoute ne propagerait jamais les missions à la liste.
     metadataHash: (d) => String(d.expert_status?.is_dnd ?? false),
   })
   const state = live.state
   const missions = live.data?.missions ?? []
   const isDnd = !!live.data?.expert_status?.is_dnd
-
-  // Lot global C2 : snapshot du last_visited_at figé à la 1re réponse.
-  const snapshotRef = useRef<string | null | undefined>(undefined)
-  if (snapshotRef.current === undefined && live.data?.last_visited_at !== undefined) {
-    snapshotRef.current = live.data.last_visited_at
-  }
-
-  // Lot global C2 : mark section visited au mount via useSecureFetch
-  // (Authorization: Bearer requis — fix bug initial du POST silencieux).
-  const markVisited = useMarkSectionVisited()
-  useEffect(() => {
-    void markVisited('missions')
-  }, [markVisited])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px 26px' }}>
@@ -99,23 +81,10 @@ export default function CdiMissionsFeedPage() {
           }
         >
           {missions.map((m) => (
-            <MissionCard
-              key={m.match_id}
-              mission={m}
-              side="cdi"
-              isNew={isMatchNewerThanSnapshot(m.matched_at, snapshotRef.current ?? null)}
-            />
+            <MissionCard key={m.match_id} mission={m} side="cdi" />
           ))}
         </BoundedScrollList>
       )}
     </div>
   )
-}
-
-function isMatchNewerThanSnapshot(matchedAt: string, snapshot: string | null): boolean {
-  if (!snapshot) return true
-  const m = new Date(matchedAt).getTime()
-  const s = new Date(snapshot).getTime()
-  if (Number.isNaN(m) || Number.isNaN(s)) return false
-  return m > s
 }

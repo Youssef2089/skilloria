@@ -4,21 +4,27 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
- * useNavBadges — compteurs pour les badges rouges de la nav (Lot global C2).
+ * useNavBadges — compteurs pour les badges rouges de la nav (Lot bascule
+ * "badges par item consulté").
  *
- * Mécanique unifiée "dernière visite par section" (cf. lib/section-visits.ts) :
- *   - badges côté listing (missions / candidatures_expert / candidatures_org
- *     / annonces_org) lus depuis /api/me/badges. Le badge représente le nombre
- *     d'items nouveaux DEPUIS la dernière visite ; il passe à 0 quand l'user
- *     ouvre la section (POST /api/me/section-visit côté pages listing).
+ * Mécanique unifiée "items NON consultés" :
+ *   - missions             : count(matches WHERE status ∈ pending|notified)
+ *                            → l'ouverture du détail flippe vers 'viewed'
+ *                              (cf. /api/me/missions/[id]) → décrément.
+ *   - candidatures_expert  : count(candidatures NOT EXISTS candidature_views
+ *                            for current user with viewed_at >= updated_at)
+ *                            → l'ouverture du master-detail POST view → -1.
+ *   - candidatures_org     : idem côté org. La carte org auto-mark via
+ *                            bouton "Marquer comme vue" OU via une action
+ *                            métier (unlock/reject/select).
+ *   - annonces_org         : alias V1 de candidatures_org (cf. /api/me/badges).
  *
- * Exception (arbitrage user) :
- *   - messages_unread garde sa logique conversation-par-conversation via
- *     /api/me/conversations.unread_count. NE PAS basculer sur "dernière
- *     visite de section" (sinon on perdrait le suivi des convs non-lues).
+ * Exceptions (modèles déjà par-item, intacts) :
+ *   - messages_unread : /api/me/conversations.unread_count (par conv).
+ *   - cloche          : /api/me/notifications.unread_count (par notif).
  *
- * Polling 30s + revalidation sur 'skilloria:notif-bump' (cloche, toggle,
- * markSectionVisited). Cleanup propre au démontage.
+ * Polling 30s + revalidation sur 'skilloria:notif-bump' (cloche, toggle DND,
+ * useMarkCandidatureViewed, route /view). Cleanup propre au démontage.
  *
  * Surface : ce hook fournit la valeur pour les badges nav UNIQUEMENT. Le
  * badge de la cloche est géré par <NotificationBell> (unread notifications).

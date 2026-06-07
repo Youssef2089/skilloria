@@ -174,6 +174,23 @@ export async function buildOrgCandidatureDTOs(
     }
   }
 
+  // Lot bascule badges par item : viewed_by_me par candidature pour l'user
+  // ORG courant. Sémantique "fresh" = candidature_views.viewed_at >=
+  // candidatures.updated_at (un nouveau message ou changement de statut
+  // bump updated_at → la candidature redevient "non consultée").
+  const allCandIds = rows.map((r) => r.id)
+  const viewedAtByCand = new Map<string, string>()
+  if (allCandIds.length > 0) {
+    const { data: viewsRaw } = await auth.supabaseAdmin
+      .from('candidature_views')
+      .select('candidature_id, viewed_at')
+      .eq('user_id', auth.user.id)
+      .in('candidature_id', allCandIds)
+    for (const v of (viewsRaw ?? []) as { candidature_id: string; viewed_at: string }[]) {
+      viewedAtByCand.set(v.candidature_id, v.viewed_at)
+    }
+  }
+
   // Profil complet pour candidatures unlocked OU selected (idem : l'accès
   // au profil débloqué est conservé une fois le candidat retenu).
   const unlockedProfileIds = new Set(
@@ -271,6 +288,8 @@ export async function buildOrgCandidatureDTOs(
       }
     }
 
+    const v = viewedAtByCand.get(row.id)
+    const viewedByMe = !!v && new Date(v).getTime() >= new Date(row.updated_at).getTime()
     return {
       id: row.id,
       publication_id: row.publication_id,
@@ -285,6 +304,7 @@ export async function buildOrgCandidatureDTOs(
       conversation_id: accessibleStatuses.has(row.status) ? convIdByCand.get(row.id) ?? null : null,
       ai_pitch: row.match_id ? pitchByMatch.get(row.match_id) ?? null : null,
       unlocked_profile: unlockedProfile,
+      viewed_by_me: viewedByMe,
       preview: {
         title: preview.title ?? null,
         summary: preview.summary ?? null,

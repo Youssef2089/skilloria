@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Link, useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
@@ -51,15 +51,6 @@ function computeCompletionPct(user: any, profile: ProfileData | null): number {
   return Math.max(0, Math.min(100, pct))
 }
 
-/** Lot global C2 : pill "Nouveau" si matched_at > snapshot. */
-function isNewAgainstSnapshot(matchedAt: string, snapshot: string | null): boolean {
-  if (!snapshot) return true
-  const m = new Date(matchedAt).getTime()
-  const s = new Date(snapshot).getTime()
-  if (Number.isNaN(m) || Number.isNaN(s)) return false
-  return m > s
-}
-
 export default function DashboardFreelance() {
   const t = useTranslations('dashboard_freelance')
   const tCommon = useTranslations('common')
@@ -89,6 +80,7 @@ export default function DashboardFreelance() {
     ai_match_score: number | null
     conversation_id: string | null
     created_at: string
+    viewed_by_me?: boolean
   }
   // Lot polish UX SC5 : on utilise MissionCardData (déjà aligné sur la
   // PublicationSynthesis renvoyée par /api/me/missions).
@@ -102,14 +94,11 @@ export default function DashboardFreelance() {
   // - Le calcul des stats est ensuite dérivé via useMemo : pas de nouvelle
   //   réf si data inchangée.
   const liveEnabled = !loading
-  // Lot A : la réponse inclut `expert_status.is_dnd` pour l'empty-state rouge.
-  // Lot global C2 : la réponse inclut `last_visited_at` (section 'missions')
-  // qui sert à figer la pill "Nouveau" sur les MissionMiniCard.
+  // Lot A : `expert_status.is_dnd` pour l'empty-state rouge.
   const missionsLive = useLiveResource<
     {
       missions: RecommendedMission[]
       expert_status?: { is_dnd: boolean }
-      last_visited_at?: string | null
     },
     RecommendedMission
   >({
@@ -134,15 +123,6 @@ export default function DashboardFreelance() {
     identityOf: () => '',
     enabled: liveEnabled,
   })
-
-  // Lot global C2 : snapshot du last_visited_at de la section 'missions'
-  // figé à la 1re réponse. La home NE call PAS markSectionVisited (opening
-  // home != opening /missions). On utilise juste la valeur courante de la
-  // DB pour décider quels matches sont "nouveaux".
-  const missionsSnapshotRef = useRef<string | null | undefined>(undefined)
-  if (missionsSnapshotRef.current === undefined && missionsLive.data?.last_visited_at !== undefined) {
-    missionsSnapshotRef.current = missionsLive.data.last_visited_at
-  }
 
   // Dérivation memo : stats / recentCandidatures / recommendedMissions.
   const missions = missionsLive.data?.missions ?? null
@@ -567,12 +547,7 @@ export default function DashboardFreelance() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {recommendedMissions.map((m) => (
-                  <MissionMiniCard
-                    key={m.match_id}
-                    mission={m}
-                    side="freelance"
-                    isNew={isNewAgainstSnapshot(m.matched_at, missionsSnapshotRef.current ?? null)}
-                  />
+                  <MissionMiniCard key={m.match_id} mission={m} side="freelance" />
                 ))}
               </div>
             )}

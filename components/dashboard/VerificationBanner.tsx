@@ -5,14 +5,19 @@ import { useTranslations } from 'next-intl'
 /**
  * Bandeau statut vérification expert (Lot vérif expert).
  *
- * 4 états :
- *   - approved             → vert "Profil vérifié" (peut être masqué côté UI
- *                            puisque la nav reflète déjà l'état)
+ * États affichés :
  *   - pending              → bleu "Vérification en cours"
  *   - pending_admin_review → amber "En cours de validation par notre équipe"
  *   - rejected             → rouge "Votre demande de vérification n'a pas
  *                            abouti" + motif (review_reason)
  *   - null                 → gris "Soumettez votre profil pour le vérifier"
+ *
+ * État NON affiché :
+ *   - approved             → return null. Le statut "vérifié" est déjà
+ *                            reflété par le badge "Profil Vérifié" sous
+ *                            le "Bonjour" et par la pastille à côté du
+ *                            nom dans la sidebar. Un bandeau redondant
+ *                            ajoutait du bruit visuel (Lot cosmétique).
  *
  * Le bandeau est conçu pour s'afficher SOUS le menu top et avant le contenu
  * principal du dashboard freelance.
@@ -26,16 +31,10 @@ type Props = {
 export default function VerificationBanner({ status, reviewReason }: Props) {
   const t = useTranslations('expert_verification.banner')
 
+  // Lot cosmétique : profil approuvé → pas de bandeau (redondant avec le
+  // badge "Profil Vérifié" et la pastille sidebar).
   if (status === 'approved') {
-    return (
-      <div role="status" style={{ background: '#DCFCE7', border: '1px solid #86EFAC', color: '#166534', padding: '12px 18px', borderRadius: 10, fontSize: 13, marginBottom: 18, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span aria-hidden style={{ fontSize: 16 }}>✓</span>
-        <div>
-          <div style={{ fontWeight: 700 }}>{t('approved_title')}</div>
-          <div style={{ fontSize: 12, opacity: 0.85 }}>{t('approved_body')}</div>
-        </div>
-      </div>
-    )
+    return null
   }
 
   if (status === 'pending') {

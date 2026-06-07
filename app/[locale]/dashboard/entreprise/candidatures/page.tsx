@@ -8,7 +8,6 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 import CandidatureCard, { type CandidatureData } from '@/components/dashboard/CandidatureCard'
 import { IconExternalLink } from '@tabler/icons-react'
 import BoundedScrollList from '@/components/ui/BoundedScrollList'
-import { useMarkSectionVisited } from '@/lib/section-visit-client'
 
 /**
  * /dashboard/entreprise/candidatures — vue GLOBALE des candidatures reçues
@@ -71,13 +70,10 @@ export default function GlobalCandidaturesPage() {
   }, [locale, secureFetch, t])
 
   useEffect(() => { void load() }, [load])
-  // Lot global C2 : marquer la section comme vue à l'ouverture → badge nav
-  // "Candidatures" passe à 0 immédiatement (skilloria:notif-bump).
-  // useSecureFetch obligatoire (Authorization: Bearer) — fix 401 silencieux.
-  const markVisited = useMarkSectionVisited()
-  useEffect(() => {
-    void markVisited('candidatures_org')
-  }, [markVisited])
+  // Lot bascule badges par item : plus de markSectionVisited. Le badge nav
+  // "Candidatures" est piloté côté serveur par candidature_views (chaque
+  // CandidatureCard auto-mark via le bouton "Marquer comme vue" ou via les
+  // actions métier unlock/reject/select).
 
   const filtered = useMemo(() => {
     if (state.kind !== 'ready') return [] as GlobalCandidature[]

@@ -6,17 +6,18 @@ import { useDomain } from '@/context/DomainContext'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from './PublicationSynthesisLine'
 
 /**
- * Carte d'opportunité côté EXPERT (Lot 2b + Lot synthèse parlante + Lot
- * global C2 : pill "Nouveau" unifiée sur dernière visite).
+ * Carte d'opportunité côté EXPERT.
  *
  * Diffère de l'AnnonceCard côté org : pas de compteurs candidatures, mais
  * affichage du score IA + reason ("pourquoi ça vous correspond"), masquage
  * de l'org si confidential, lien vers le détail.
  *
- * Pill "Nouveau" : passée en prop `isNew` calculée par le parent à partir
- * d'un SNAPSHOT figé du `last_visited_at` (retourné par /api/me/missions au
- * mount). L'ancien `isMatchNew` 48h est ABANDONNÉ — une seule notion de
- * "nouveau" : "depuis la dernière fois que tu as ouvert la section".
+ * Pill "Nouveau" (Lot bascule "badges par item") : dérivée du champ
+ * `match_status` ∈ {pending, notified, viewed, dismissed}. La pill apparaît
+ * pour pending/notified (= match jamais ouvert) et disparaît dès que
+ * l'expert ouvre le détail (flip vers 'viewed' côté serveur dans
+ * /api/me/missions/[id]). Source unique côté DB — pas de logique 48h
+ * ou last_visited.
  *
  * La synthèse publication (budget, lieu, work_mode, durée, démarrage,
  * séniorité, contrat) est rendue via <PublicationSynthesisLine> — source
@@ -78,30 +79,24 @@ function scoreColor(score: number, domainPrimary: string): string {
 export default function MissionCard({
   mission,
   side = 'freelance',
-  isNew = false,
 }: {
   mission: MissionCardData
   /** SC7b Lot UX Finitions 2 : 'cdi' utilise /dashboard/cdi/missions/[id] */
   side?: 'freelance' | 'cdi'
-  /**
-   * Lot global C2 : pill "Nouveau" calculée par le parent à partir d'un
-   * SNAPSHOT figé du `last_visited_at` (matched_at > snapshot). Stable
-   * pendant la session ; s'efface à la prochaine ouverture de la section.
-   * Défaut false : si le parent n'a pas (encore) le snapshot, on n'affiche
-   * pas la pill plutôt que de risquer un faux-positif.
-   */
-  isNew?: boolean
 }) {
   const t = useTranslations('missions.card')
   const tPub = useTranslations('publications')
   const locale = useLocale()
   const domain = useDomain()
 
-  const { publication: pub, org, ai_score, ai_reason, matched_at } = mission
+  const { publication: pub, org, ai_score, ai_reason, match_status, matched_at } = mission
   void formatBudget
   void matched_at
   const orgName = pub.confidential ? t('confidential_org') : org?.name ?? t('confidential_org')
-  const isUnread = isNew
+  // Lot bascule badges par item : "Nouveau" = match jamais ouvert par l'expert.
+  // L'ouverture du détail flippe match.status → 'viewed' (cf. /api/me/missions/[id]),
+  // donc la pill disparaît dès le retour sur la liste après consultation.
+  const isUnread = match_status === 'pending' || match_status === 'notified'
 
   return (
     <Link
