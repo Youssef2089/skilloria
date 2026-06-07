@@ -22,7 +22,12 @@ type Seniority = 'junior' | 'confirmed' | 'senior' | 'expert'
 type WorkMode = 'remote' | 'onsite' | 'hybrid'
 type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'native'
 type ExperienceType = 'career' | 'project'
-type AvailabilityStatus = 'available' | 'busy_soon' | 'unavailable'
+// Lot disponibilité (V1) : 2 états seulement.
+//   available       — l'expert reçoit les matchs (défaut).
+//   do_not_disturb  — barrière serveur (exclu matching + feed).
+// 'busy_soon' a été supprimé (V1 binaire) ; les anciens 'busy_soon' sont
+// migrés vers 'available' et 'unavailable' vers 'do_not_disturb' via SQL.
+type AvailabilityStatus = 'available' | 'do_not_disturb'
 
 type Branch = { id: string; name: string; slug: string }
 type Speciality = { id: string; name: string; slug: string; branch_id: string }
@@ -124,8 +129,7 @@ const SECTION_PALETTE = {
 
 const AVAILABILITY_COLOR: Record<AvailabilityStatus, string> = {
   available: '#22c55e',
-  busy_soon: '#f59e0b',
-  unavailable: '#9ca3af',
+  do_not_disturb: '#ef4444',
 }
 
 const TRUNCATE_DESC = 220
@@ -518,7 +522,7 @@ export default function MonProfilPage() {
 
   const availabilityKey: AvailabilityStatus | null = (() => {
     const v = profile?.availability_status
-    if (v === 'available' || v === 'busy_soon' || v === 'unavailable') return v
+    if (v === 'available' || v === 'do_not_disturb') return v
     return null
   })()
 

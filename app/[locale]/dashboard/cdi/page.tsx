@@ -38,10 +38,12 @@ const jakarta = Plus_Jakarta_Sans({
 
 const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
 
+// Lot disponibilité : 2 statuts uniquement.
+// 'employed' = "Ne pas déranger" (rouge — barrière matching + feed).
+// 'open_to_work' = "À l'écoute du marché" (vert).
 const STATUS_BADGE_COLORS: Record<CdiStatus, string> = {
-  employed: '#94a3b8',
+  employed: '#ef4444',
   open_to_work: '#10b981',
-  actively_searching: '#f97316',
 }
 
 // Champs essentiels pour le calcul de complétion (9 critères)
@@ -153,6 +155,10 @@ export default function DashboardCDI() {
         setToast({ type: 'error', text: t('toast.status_error') })
       } else {
         setToast({ type: 'success', text: t('toast.status_updated') })
+        // Notifie DashboardShell pour rafraîchir la pill topbar.
+        try {
+          window.dispatchEvent(new CustomEvent('sk:availability-changed'))
+        } catch { /* SSR-safe noop */ }
       }
     } catch {
       setStatus(previous)

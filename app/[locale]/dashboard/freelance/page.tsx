@@ -12,6 +12,9 @@ import { useLiveResource } from '@/hooks/useLiveResource'
 import MissionMiniCard from '@/components/dashboard/MissionMiniCard'
 import CandidatureMiniCard from '@/components/dashboard/CandidatureMiniCard'
 import type { MissionCardData } from '@/components/dashboard/MissionCard'
+import AvailabilityToggle, {
+  type AvailabilityStatus,
+} from '@/components/freelance/AvailabilityToggle'
 
 type ProfileData = {
   tjm_min: number | null
@@ -20,6 +23,7 @@ type ProfileData = {
   verification_status?: string | null
   review_reason?: string | null
   verification_data?: Record<string, unknown> | null
+  availability_status?: string | null
 }
 
 /**
@@ -57,6 +61,13 @@ export default function DashboardFreelance() {
   const [tjmModalOpen, setTjmModalOpen] = useState(false)
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  // Lot disponibilité : mirror local de profiles.availability_status pour
+  // l'update optimiste depuis AvailabilityToggle. Réécrit serveur via
+  // supabase.from('profiles').update() (RLS — l'expert n'écrit que son
+  // propre profil). La barrière matching/feed est appliquée côté serveur
+  // (lib/matching/index.ts + /api/me/missions).
+  const [availability, setAvailability] = useState<AvailabilityStatus | null>(null)
+  const [availabilityUpdating, setAvailabilityUpdating] = useState(false)
 
   // Types minimaux pour les ressources live.
   type CandidatureLite = {
@@ -155,12 +166,17 @@ export default function DashboardFreelance() {
           .single(),
         supabase
           .from('profiles')
-          .select('tjm_min, tjm_max, photo_url, verification_status, review_reason, verification_data')
+          .select('tjm_min, tjm_max, photo_url, verification_status, review_reason, verification_data, availability_status')
           .eq('user_id', session.user.id)
           .maybeSingle(),
       ])
       setUser(userData)
       setProfile(profileData ?? { tjm_min: null, tjm_max: null, photo_url: null })
+      // Init local availability — coalesce vers 'available' (défaut produit).
+      const rawAvail = (profileData as { availability_status?: string | null } | null)?.availability_status ?? null
+      const safeAvail: AvailabilityStatus =
+        rawAvail === 'do_not_disturb' ? 'do_not_disturb' : 'available'
+      setAvailability(safeAvail)
       setLoading(false)
     }
     getUser()
@@ -171,6 +187,34 @@ export default function DashboardFreelance() {
     const id = window.setTimeout(() => setToast(null), 3000)
     return () => window.clearTimeout(id)
   }, [toast])
+
+  const handleAvailabilityChange = async (next: AvailabilityStatus) => {
+    if (!user || availabilityUpdating || next === availability) return
+    const previous = availability
+    setAvailability(next) // optimistic
+    setAvailabilityUpdating(true)
+    try {
+      const { error: upErr } = await supabase
+        .from('profiles')
+        .update({ availability_status: next })
+        .eq('user_id', user.id)
+      if (upErr) {
+        setAvailability(previous) // rollback
+        setToast(t('availability_card.toast_error'))
+      } else {
+        setToast(t('availability_card.toast_updated'))
+        // Notifie DashboardShell pour rafraîchir la pill topbar.
+        try {
+          window.dispatchEvent(new CustomEvent('sk:availability-changed'))
+        } catch { /* SSR-safe noop */ }
+      }
+    } catch {
+      setAvailability(previous)
+      setToast(t('availability_card.toast_error'))
+    } finally {
+      setAvailabilityUpdating(false)
+    }
+  }
 
   // Câblage compteurs home + Missions recommandées — Lot polish UX.
   //  Les 3 ressources (missions/candidatures/conversations) sont gérées par
@@ -414,6 +458,25 @@ export default function DashboardFreelance() {
                 {t('stats.daily_rate_set')}
               </button>
             </div>
+          </div>
+
+          {/* Lot disponibilité — Hero "Disponibilité" (miroir CDI market_status_card).
+              Écrit profiles.availability_status. La barrière matching/feed est
+              appliquée côté serveur (lib/matching/index.ts + /api/me/missions). */}
+          <div className="main-card" style={{ animationDelay: '0.28s' }}>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 16, fontWeight: 600, color: '#111827', marginBottom: 6 }}>
+                {t('availability_card.title')}
+              </div>
+              <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.55 }}>
+                {t('availability_card.description')}
+              </div>
+            </div>
+            <AvailabilityToggle
+              value={availability}
+              onChange={handleAvailabilityChange}
+              disabled={availabilityUpdating || !user}
+            />
           </div>
 
           {/* Complétion profil */}

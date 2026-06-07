@@ -40,6 +40,8 @@ type UserInfo = {
 type ProfileInfo = {
   photo_url: string | null
   verification_status: string | null
+  availability_status: string | null
+  cdi_status: string | null
 }
 
 export default function DashboardShell({
@@ -66,14 +68,24 @@ export default function DashboardShell({
       if (!session?.user) return
       const [{ data: uRow }, { data: pRow }] = await Promise.all([
         supabase.from('users').select('id, first_name, last_name, is_verified, user_type').eq('id', session.user.id).maybeSingle(),
-        supabase.from('profiles').select('photo_url, verification_status').eq('user_id', session.user.id).maybeSingle(),
+        supabase.from('profiles').select('photo_url, verification_status, availability_status, cdi_status').eq('user_id', session.user.id).maybeSingle(),
       ])
       if (cancelled) return
       setUser((uRow as UserInfo | null) ?? null)
       setProfile((pRow as ProfileInfo | null) ?? null)
     }
     void load()
-    return () => { cancelled = true }
+    // Lot disponibilité — la pill topbar doit refléter en LIVE le statut
+    // après changement via AvailabilityToggle (freelance) ou CdiStatusToggle
+    // (CDI), tous deux situés dans les pages enfants. Custom event
+    // `sk:availability-changed` dispatché par les handlers de toggle :
+    // on refetch alors le profile pour mettre à jour la pill.
+    const onAvailChanged = () => { void load() }
+    window.addEventListener('sk:availability-changed', onAvailChanged)
+    return () => {
+      cancelled = true
+      window.removeEventListener('sk:availability-changed', onAvailChanged)
+    }
   }, [])
 
   // Multi-tenant : pose --sk-accent dynamiquement. color-mix() dans globals.css
@@ -127,22 +139,52 @@ export default function DashboardShell({
     resolvedTitle = tShell(`page_titles.${key}` as 'page_titles.dashboard')
   }
 
-  // StatusPill côté topbar (expert uniquement) — "Disponible" si vérifié.
-  // Côté org : laisse vide V1 (pourra accueillir un autre indicateur futur).
-  const statusPill = side !== 'entreprise' && isVerified ? (
-    <span
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 7,
-        fontSize: 13, fontWeight: 600,
-        color: 'var(--sk-success)',
-        background: 'var(--sk-success-soft)',
-        padding: '7px 13px', borderRadius: 999, whiteSpace: 'nowrap',
-      }}
-    >
-      <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--sk-success)' }} />
-      {tShell('topbar.status_available')}
-    </span>
-  ) : undefined
+  // StatusPill côté topbar (expert uniquement) — DYNAMIQUE selon le statut
+  // d'écoute (Lot disponibilité).
+  //   Freelance : profiles.availability_status
+  //     - 'do_not_disturb' → rouge "🔕 Ne pas déranger"
+  //     - sinon (incl. NULL = défaut) → vert "Disponible"
+  //   CDI : profiles.cdi_status
+  //     - 'employed' → rouge "🔕 Ne pas déranger"
+  //     - sinon (incl. NULL = défaut) → vert "À l'écoute"
+  // Pas de libellé en dur. Côté org : laisse vide V1.
+  const statusPill = (() => {
+    if (side === 'entreprise' || !isVerified) return undefined
+    const isFreelance = side === 'freelance'
+    const dnd = isFreelance
+      ? profile?.availability_status === 'do_not_disturb'
+      : profile?.cdi_status === 'employed'
+    if (dnd) {
+      return (
+        <span
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+            fontSize: 13, fontWeight: 600,
+            color: '#b91c1c',
+            background: '#fee2e2',
+            padding: '7px 13px', borderRadius: 999, whiteSpace: 'nowrap',
+          }}
+        >
+          <span aria-hidden>🔕</span>
+          {tShell('topbar.status_do_not_disturb')}
+        </span>
+      )
+    }
+    return (
+      <span
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7,
+          fontSize: 13, fontWeight: 600,
+          color: 'var(--sk-success)',
+          background: 'var(--sk-success-soft)',
+          padding: '7px 13px', borderRadius: 999, whiteSpace: 'nowrap',
+        }}
+      >
+        <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--sk-success)' }} />
+        {tShell(isFreelance ? 'topbar.status_available' : 'topbar.status_open_to_work')}
+      </span>
+    )
+  })()
 
   return (
     <div style={shellRootStyle}>

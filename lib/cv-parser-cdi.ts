@@ -61,7 +61,7 @@ export type ParsedCdiCV = {
   languages: string[]
   location: string | null
   // CDI-specific (instead of TJM)
-  cdi_status: 'employed' | 'open_to_work' | 'actively_searching' | null
+  cdi_status: 'employed' | 'open_to_work' | null
   cdi_notice_period: 'immediate' | '1_month' | '2_months' | '3_months' | 'negotiable' | null
   cdi_salary_min: number | null
   cdi_salary_max: number | null
@@ -139,9 +139,9 @@ function buildToolCdi(ctx: DomainContext) {
         // CDI-specific fields
         cdi_status: {
           type: ['string', 'null'],
-          enum: ['employed', 'open_to_work', 'actively_searching', null],
+          enum: ['employed', 'open_to_work', null],
           description:
-            'Disposition du candidat. employed = en poste, open_to_work = à l\'écoute du marché, actively_searching = en recherche active. Déduis depuis "Looking for", "Cherche un CDI", "Open to opportunities", "Currently employed", etc. null si non déductible.',
+            'Disposition du candidat. employed = Ne pas déranger (en poste, ne cherche pas), open_to_work = à l\'écoute / en recherche. Déduis depuis "Looking for", "Cherche un CDI", "Open to opportunities", "Currently employed", "Actively seeking", etc. null si non déductible. Si le candidat est clairement en recherche active, mapper sur open_to_work (V1 : 2 états seulement).',
         },
         cdi_notice_period: {
           type: ['string', 'null'],

@@ -44,7 +44,9 @@
       "annonces": "My postings"
     },
     "topbar": {
-      "status_available": "Available"
+      "status_available": "Available",
+      "status_open_to_work": "Open to work",
+      "status_do_not_disturb": "Do not disturb"
     }
   },
   "common": {
@@ -242,6 +244,16 @@
     "ai_score": {
       "label": "AI Score",
       "empty": "to complete"
+    },
+    "availability_card": {
+      "title": "Your availability",
+      "description": "Indicate whether you're open to new missions. Companies will only see available experts.",
+      "available_label": "Available",
+      "available_hint": "You'll receive new missions matching your profile.",
+      "do_not_disturb_label": "Do not disturb",
+      "do_not_disturb_hint": "You no longer appear in matching and won't receive new missions.",
+      "toast_updated": "Availability updated",
+      "toast_error": "Could not update your availability"
     },
     "verification_banner": {
       "title": "Profile pending verification",
@@ -607,8 +619,7 @@
     },
     "availability_status": {
       "available": "Available",
-      "busy_soon": "Available soon",
-      "unavailable": "Unavailable"
+      "do_not_disturb": "Do not disturb"
     },
     "sections": {
       "summary": "About",
@@ -860,12 +871,10 @@
     "market_status_card": {
       "title": "Your job-search status",
       "description": "Let recruiters know whether you're open to new opportunities. Targeted recruiters are notified based on your preferences.",
-      "employed_label": "Employed",
-      "employed_hint": "You're not looking. No outreach will be sent your way.",
+      "employed_label": "Do not disturb",
+      "employed_hint": "You're not looking. No outreach will be sent your way and you no longer appear in matching.",
       "open_to_work_label": "Open to work",
-      "open_to_work_hint": "You'll consider compelling opportunities without actively searching. Visible only to verified recruiters.",
-      "actively_searching_label": "Actively searching",
-      "actively_searching_hint": "You're actively looking for a new role. Your profile is highlighted to recruiters."
+      "open_to_work_hint": "You'll consider compelling opportunities. Visible only to verified recruiters."
     },
     "kpis": {
       "profile_views": "Profile views",
@@ -934,9 +943,8 @@
     "edit_button": "Edit my profile →",
     "verified_badge": "Verified profile",
     "status_badges": {
-      "employed": "Employed",
-      "open_to_work": "Open to work",
-      "actively_searching": "Actively searching"
+      "employed": "Do not disturb",
+      "open_to_work": "Open to work"
     },
     "sections": {
       "summary": "Summary",
@@ -1021,9 +1029,8 @@
       "gym": "Gym membership"
     },
     "cdi_status_options": {
-      "employed": "Employed",
-      "open_to_work": "Open to work",
-      "actively_searching": "Actively searching"
+      "employed": "Do not disturb",
+      "open_to_work": "Open to work"
     },
     "empty_states": {
       "no_summary": "No summary yet.",

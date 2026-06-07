@@ -208,7 +208,7 @@ async function loadEligibleProfiles(
 ): Promise<ProfileCandidate[]> {
   // Frontière D + E : domaine + actif + consentement.
   // user_type filtré via la jointure users (point C).
-  const { data, error } = await supabaseAdmin
+  let query = supabaseAdmin
     .from('profiles')
     .select(
       'id, user_id, expert_type, title, summary, seniority, years_experience, ' +
@@ -227,7 +227,24 @@ async function loadEligibleProfiles(
     .not('ai_consent_at', 'is', null)
     .eq('verification_status', 'approved')   // Lot vérif expert : gate is_verified rebranché
     .eq('users.user_type', expectedUserType)
-    .limit(maxCandidates + 1)  // +1 pour détecter dépassement
+
+  // Lot disponibilité — BARRIÈRE SERVEUR non contournable.
+  //   Freelance : exclure les 'do_not_disturb' (ne pas déranger). Les
+  //               valeurs NULL sont CONSIDÉRÉES disponibles (défaut produit).
+  //   CDI       : exclure les 'employed' (ne pas déranger). Les NULL sont
+  //               considérés open_to_work (défaut produit).
+  //
+  // .or('CHAMP.is.null,CHAMP.neq.VALEUR') : équivalent SQL
+  //   "WHERE availability_status IS NULL OR availability_status <> 'do_not_disturb'".
+  //   Sans ce .or, un .neq('availability_status','do_not_disturb') seul
+  //   exclurait également les NULL — non désiré.
+  if (expectedUserType === 'expert_freelance') {
+    query = query.or('availability_status.is.null,availability_status.neq.do_not_disturb')
+  } else {
+    query = query.or('cdi_status.is.null,cdi_status.neq.employed')
+  }
+
+  const { data, error } = await query.limit(maxCandidates + 1)  // +1 pour détecter dépassement
   if (error) {
     console.error('[matching] profiles load failed', error.message)
     return []

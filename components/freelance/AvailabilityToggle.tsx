@@ -3,41 +3,46 @@
 import { useTranslations } from 'next-intl'
 
 /**
- * CdiStatusToggle — sélecteur statut écoute marché CDI.
+ * AvailabilityToggle — sélecteur disponibilité FREELANCE (home dashboard).
  *
- * Lot disponibilité : 2 états seulement.
- *  - 'employed'     : "Ne pas déranger 🔕" — l'expert n'apparaît PAS dans
- *                     le matching ni dans son propre feed (barrière
- *                     serveur). Valeur DB `employed` conservée pour
- *                     compat (relabel UI uniquement).
- *  - 'open_to_work' : "À l'écoute du marché" — matché + reçoit propositions.
+ * Miroir exact de [components/cdi/CdiStatusToggle.tsx](../cdi/CdiStatusToggle.tsx)
+ * pour le côté freelance.
  *
- * 'actively_searching' retiré (V1) : valeur migrée vers 'open_to_work'
- * via SQL (cf. récap commit). Le type TS exclut désormais cette valeur.
+ * V1 : 2 états seulement.
+ *  - 'available'      : "Disponible 🟢" — l'expert reçoit les matchs.
+ *  - 'do_not_disturb' : "Ne pas déranger 🔕" — barrière SERVEUR :
+ *                        exclu du matching (loadEligibleProfiles) et de
+ *                        son propre feed (/api/me/missions). Non
+ *                        contournable côté client.
+ *
+ * Les anciens 'busy_soon' / 'unavailable' sont migrés via SQL et le type
+ * TS ne les accepte plus.
+ *
+ * i18n : namespace `dashboard_freelance.availability_card`.
  */
 
-export type CdiStatus = 'employed' | 'open_to_work'
+export type AvailabilityStatus = 'available' | 'do_not_disturb'
 
-const STATUS_COLORS: Record<CdiStatus, string> = {
-  employed: '#ef4444',
-  open_to_work: '#10b981',
+const STATUS_COLORS: Record<AvailabilityStatus, string> = {
+  available: '#22c55e',
+  do_not_disturb: '#ef4444',
 }
 
-const STATUS_ICONS: Record<CdiStatus, string> = {
-  employed: '🔕',
-  open_to_work: '👀',
+const STATUS_ICONS: Record<AvailabilityStatus, string> = {
+  available: '🟢',
+  do_not_disturb: '🔕',
 }
 
-const OPTIONS: CdiStatus[] = ['open_to_work', 'employed']
+const OPTIONS: AvailabilityStatus[] = ['available', 'do_not_disturb']
 
 type Props = {
-  value: CdiStatus | null
-  onChange: (next: CdiStatus) => void | Promise<void>
+  value: AvailabilityStatus | null
+  onChange: (next: AvailabilityStatus) => void | Promise<void>
   disabled?: boolean
 }
 
-export default function CdiStatusToggle({ value, onChange, disabled }: Props) {
-  const t = useTranslations('dashboard_cdi.market_status_card')
+export default function AvailabilityToggle({ value, onChange, disabled }: Props) {
+  const t = useTranslations('dashboard_freelance.availability_card')
 
   return (
     <div
@@ -86,10 +91,10 @@ export default function CdiStatusToggle({ value, onChange, disabled }: Props) {
                 letterSpacing: '-0.2px',
               }}
             >
-              {t(`${opt}_label` as 'employed_label' | 'open_to_work_label')}
+              {t(`${opt}_label` as 'available_label' | 'do_not_disturb_label')}
             </div>
             <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
-              {t(`${opt}_hint` as 'employed_hint' | 'open_to_work_hint')}
+              {t(`${opt}_hint` as 'available_hint' | 'do_not_disturb_hint')}
             </div>
           </button>
         )

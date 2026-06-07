@@ -75,7 +75,7 @@ type PatchBody = Partial<{
   educations: EducationInput[]
   languages_structured: LanguageInput[]
   // ── CDI-specific (acceptés UNIQUEMENT si users.user_type === 'expert_cdi') ──
-  cdi_status: 'employed' | 'open_to_work' | 'actively_searching' | null
+  cdi_status: 'employed' | 'open_to_work' | null
   cdi_notice_period: 'immediate' | '1_month' | '2_months' | '3_months' | 'negotiable' | null
   cdi_availability_date: string | null
   cdi_confidential_mode: boolean | null

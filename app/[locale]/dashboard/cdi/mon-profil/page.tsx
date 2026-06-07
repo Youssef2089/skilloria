@@ -33,10 +33,10 @@ const jakarta = Plus_Jakarta_Sans({
 
 const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
 
+// Lot disponibilité : 2 statuts uniquement (cf. components/cdi/CdiStatusToggle).
 const STATUS_BADGE_COLORS: Record<CdiStatus, string> = {
-  employed: '#94a3b8',
+  employed: '#ef4444',
   open_to_work: '#10b981',
-  actively_searching: '#f97316',
 }
 
 const SECTION_COLORS = [

@@ -44,7 +44,9 @@
       "annonces": "Mis publicaciones"
     },
     "topbar": {
-      "status_available": "Disponible"
+      "status_available": "Disponible",
+      "status_open_to_work": "Abierto a oportunidades",
+      "status_do_not_disturb": "No molestar"
     }
   },
   "common": {
@@ -242,6 +244,16 @@
     "ai_score": {
       "label": "Puntuación IA",
       "empty": "por completar"
+    },
+    "availability_card": {
+      "title": "Tu disponibilidad",
+      "description": "Indica si estás abierto/a a nuevas misiones. Las empresas solo verán a los expertos disponibles.",
+      "available_label": "Disponible",
+      "available_hint": "Recibirás nuevas misiones que se ajusten a tu perfil.",
+      "do_not_disturb_label": "No molestar",
+      "do_not_disturb_hint": "Ya no apareces en el matching ni recibes nuevas misiones.",
+      "toast_updated": "Disponibilidad actualizada",
+      "toast_error": "No se pudo actualizar tu disponibilidad"
     },
     "verification_banner": {
       "title": "Perfil pendiente de verificación",
@@ -607,8 +619,7 @@
     },
     "availability_status": {
       "available": "Disponible",
-      "busy_soon": "Disponible pronto",
-      "unavailable": "No disponible"
+      "do_not_disturb": "No molestar"
     },
     "sections": {
       "summary": "Acerca de",
@@ -860,12 +871,10 @@
     "market_status_card": {
       "title": "Tu disposición al mercado",
       "description": "Indica si estás abierto a nuevas oportunidades. Avisaremos solo a los reclutadores adecuados según tus preferencias.",
-      "employed_label": "En activo",
-      "employed_hint": "No estás en búsqueda. No te llegará ningún contacto.",
+      "employed_label": "No molestar",
+      "employed_hint": "No estás en búsqueda. No te llegará ningún contacto y ya no apareces en el matching.",
       "open_to_work_label": "Abierto a oportunidades",
-      "open_to_work_hint": "Valoras propuestas interesantes sin buscar activamente. Visible solo para reclutadores verificados.",
-      "actively_searching_label": "Búsqueda activa",
-      "actively_searching_hint": "Estás buscando un nuevo puesto activamente. Tu perfil se destaca ante los reclutadores."
+      "open_to_work_hint": "Valoras propuestas interesantes. Visible solo para reclutadores verificados."
     },
     "kpis": {
       "profile_views": "Vistas del perfil",
@@ -934,9 +943,8 @@
     "edit_button": "Editar mi perfil →",
     "verified_badge": "Perfil verificado",
     "status_badges": {
-      "employed": "En activo",
-      "open_to_work": "Abierto a oportunidades",
-      "actively_searching": "Búsqueda activa"
+      "employed": "No molestar",
+      "open_to_work": "Abierto a oportunidades"
     },
     "sections": {
       "summary": "Resumen",
@@ -1021,9 +1029,8 @@
       "gym": "Gimnasio"
     },
     "cdi_status_options": {
-      "employed": "En activo",
-      "open_to_work": "Abierto a oportunidades",
-      "actively_searching": "Búsqueda activa"
+      "employed": "No molestar",
+      "open_to_work": "Abierto a oportunidades"
     },
     "empty_states": {
       "no_summary": "Aún no has añadido un resumen.",

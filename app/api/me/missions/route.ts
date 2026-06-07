@@ -76,9 +76,11 @@ export async function GET(request: NextRequest): Promise<Response> {
   // ── Profile expert courant ─────────────────────────────────────────────
   //  Lot vérif expert : defense-in-depth — exige verification_status='approved'.
   //  Si non vérifié → 403 not_verified. La nav freelance gate déjà côté UI.
+  //  Lot disponibilité : on lit aussi availability_status / cdi_status pour
+  //  le short-circuit "Ne pas déranger" (barrière feed serveur).
   const { data: profile, error: pErr } = await auth.supabaseAdmin
     .from('profiles')
-    .select('id, user_id, domain_id, verification_status')
+    .select('id, user_id, domain_id, verification_status, availability_status, cdi_status')
     .eq('user_id', auth.user.id)
     .maybeSingle()
   if (pErr) {
@@ -91,6 +93,20 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
   if ((profile as { verification_status?: string | null }).verification_status !== 'approved') {
     return json({ error: 'Profile not verified', code: 'not_verified' }, 403)
+  }
+
+  // Lot disponibilité — BARRIÈRE FEED non contournable côté serveur.
+  // Un expert en "Ne pas déranger" ne reçoit AUCUNE mission dans son feed,
+  // peu importe les matches déjà calculés. Symétrique côté entreprise via
+  // loadEligibleProfiles (lib/matching/index.ts).
+  //
+  //   Freelance : availability_status = 'do_not_disturb' → feed vide.
+  //   CDI       : cdi_status          = 'employed'       → feed vide.
+  //   NULL est considéré disponible (défaut produit).
+  const availStatus = (profile as { availability_status?: string | null }).availability_status ?? null
+  const cdiStatus = (profile as { cdi_status?: string | null }).cdi_status ?? null
+  if (availStatus === 'do_not_disturb' || cdiStatus === 'employed') {
+    return json({ missions: [] }, 200)
   }
 
   const locale = normalizeLocale(new URL(request.url).searchParams.get('locale'))

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useLocale } from 'next-intl'
 import { supabase } from '@/lib/supabase'
 
-export type CdiStatus = 'employed' | 'open_to_work' | 'actively_searching'
+export type CdiStatus = 'employed' | 'open_to_work'
 export type NoticePeriod = 'immediate' | '1_month' | '2_months' | '3_months' | 'negotiable'
 export type GeoMobility = 'local' | 'regional' | 'national' | 'international'
 export type ContractType = 'cdi' | 'cdd' | 'alternance'

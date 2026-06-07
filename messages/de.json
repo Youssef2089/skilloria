@@ -44,7 +44,9 @@
       "annonces": "Meine Veröffentlichungen"
     },
     "topbar": {
-      "status_available": "Verfügbar"
+      "status_available": "Verfügbar",
+      "status_open_to_work": "Offen für Angebote",
+      "status_do_not_disturb": "Nicht stören"
     }
   },
   "common": {
@@ -242,6 +244,16 @@
     "ai_score": {
       "label": "KI-Score",
       "empty": "noch ausfüllen"
+    },
+    "availability_card": {
+      "title": "Ihre Verfügbarkeit",
+      "description": "Geben Sie an, ob Sie offen für neue Missionen sind. Unternehmen sehen nur verfügbare Experten.",
+      "available_label": "Verfügbar",
+      "available_hint": "Sie erhalten neue Missionen, die zu Ihrem Profil passen.",
+      "do_not_disturb_label": "Nicht stören",
+      "do_not_disturb_hint": "Sie erscheinen nicht mehr im Matching und erhalten keine neuen Missionen.",
+      "toast_updated": "Verfügbarkeit aktualisiert",
+      "toast_error": "Verfügbarkeit konnte nicht aktualisiert werden"
     },
     "verification_banner": {
       "title": "Profil wartet auf Verifizierung",
@@ -607,8 +619,7 @@
     },
     "availability_status": {
       "available": "Verfügbar",
-      "busy_soon": "Bald verfügbar",
-      "unavailable": "Nicht verfügbar"
+      "do_not_disturb": "Nicht stören"
     },
     "sections": {
       "summary": "Über mich",
@@ -860,12 +871,10 @@
     "market_status_card": {
       "title": "Ihre Marktoffenheit",
       "description": "Teilen Sie mit, ob Sie für neue Möglichkeiten offen sind. Nur ausgewählte Recruiter werden gemäss Ihren Präferenzen benachrichtigt.",
-      "employed_label": "Festangestellt",
-      "employed_hint": "Sie suchen nicht. Es werden Ihnen keine Anfragen zugestellt.",
+      "employed_label": "Nicht stören",
+      "employed_hint": "Sie suchen nicht. Es werden Ihnen keine Anfragen zugestellt und Sie erscheinen nicht mehr im Matching.",
       "open_to_work_label": "Offen für Angebote",
-      "open_to_work_hint": "Sie prüfen interessante Angebote, ohne aktiv zu suchen. Sichtbar nur für verifizierte Recruiter.",
-      "actively_searching_label": "Aktiv auf der Suche",
-      "actively_searching_hint": "Sie suchen aktiv eine neue Position. Ihr Profil wird Recruitern hervorgehoben."
+      "open_to_work_hint": "Sie prüfen interessante Angebote. Sichtbar nur für verifizierte Recruiter."
     },
     "kpis": {
       "profile_views": "Profilaufrufe",
@@ -934,9 +943,8 @@
     "edit_button": "Mein Profil bearbeiten →",
     "verified_badge": "Verifiziertes Profil",
     "status_badges": {
-      "employed": "Festangestellt",
-      "open_to_work": "Offen für Angebote",
-      "actively_searching": "Aktiv auf der Suche"
+      "employed": "Nicht stören",
+      "open_to_work": "Offen für Angebote"
     },
     "sections": {
       "summary": "Zusammenfassung",
@@ -1021,9 +1029,8 @@
       "gym": "Fitnessstudio-Mitgliedschaft"
     },
     "cdi_status_options": {
-      "employed": "Festangestellt",
-      "open_to_work": "Offen für Angebote",
-      "actively_searching": "Aktiv auf der Suche"
+      "employed": "Nicht stören",
+      "open_to_work": "Offen für Angebote"
     },
     "empty_states": {
       "no_summary": "Noch keine Zusammenfassung hinterlegt.",

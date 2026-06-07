@@ -44,7 +44,9 @@
       "annonces": "Mes annonces"
     },
     "topbar": {
-      "status_available": "Disponible"
+      "status_available": "Disponible",
+      "status_open_to_work": "À l'écoute",
+      "status_do_not_disturb": "Ne pas déranger"
     }
   },
   "common": {
@@ -242,6 +244,16 @@
     "ai_score": {
       "label": "Score IA",
       "empty": "à compléter"
+    },
+    "availability_card": {
+      "title": "Votre disponibilité",
+      "description": "Indiquez si vous êtes prêt(e) à recevoir de nouvelles missions. Les entreprises ne verront que les experts disponibles.",
+      "available_label": "Disponible",
+      "available_hint": "Vous recevez les nouvelles missions correspondant à votre profil.",
+      "do_not_disturb_label": "Ne pas déranger",
+      "do_not_disturb_hint": "Vous n'apparaissez plus dans le matching et ne recevez plus de nouvelles missions.",
+      "toast_updated": "Disponibilité mise à jour",
+      "toast_error": "Impossible de mettre à jour votre disponibilité"
     },
     "verification_banner": {
       "title": "Profil en attente de vérification",
@@ -607,8 +619,7 @@
     },
     "availability_status": {
       "available": "Disponible",
-      "busy_soon": "Bientôt disponible",
-      "unavailable": "Indisponible"
+      "do_not_disturb": "Ne pas déranger"
     },
     "sections": {
       "summary": "À propos",
@@ -860,12 +871,10 @@
     "market_status_card": {
       "title": "Votre écoute du marché",
       "description": "Indiquez votre disposition à étudier de nouvelles opportunités. Les recruteurs ciblés en seront informés selon vos préférences.",
-      "employed_label": "En poste",
-      "employed_hint": "Vous n'êtes pas à l'écoute. Aucune sollicitation ne vous sera envoyée.",
+      "employed_label": "Ne pas déranger",
+      "employed_hint": "Vous n'êtes pas à l'écoute. Aucune sollicitation ne vous sera envoyée et vous n'apparaissez plus dans le matching.",
       "open_to_work_label": "À l'écoute du marché",
-      "open_to_work_hint": "Vous étudiez les opportunités intéressantes sans recherche active. Visible uniquement par les recruteurs vérifiés.",
-      "actively_searching_label": "En recherche active",
-      "actively_searching_hint": "Vous recherchez activement un nouveau poste. Votre profil est mis en avant auprès des recruteurs."
+      "open_to_work_hint": "Vous étudiez les opportunités intéressantes. Visible uniquement par les recruteurs vérifiés."
     },
     "kpis": {
       "profile_views": "Vues du profil",
@@ -934,9 +943,8 @@
     "edit_button": "Modifier mon profil →",
     "verified_badge": "Profil vérifié",
     "status_badges": {
-      "employed": "En poste",
-      "open_to_work": "À l'écoute du marché",
-      "actively_searching": "En recherche active"
+      "employed": "Ne pas déranger",
+      "open_to_work": "À l'écoute du marché"
     },
     "sections": {
       "summary": "Résumé",
@@ -1021,9 +1029,8 @@
       "gym": "Salle de sport"
     },
     "cdi_status_options": {
-      "employed": "En poste",
-      "open_to_work": "À l'écoute du marché",
-      "actively_searching": "En recherche active"
+      "employed": "Ne pas déranger",
+      "open_to_work": "À l'écoute du marché"
     },
     "empty_states": {
       "no_summary": "Aucun résumé renseigné.",
