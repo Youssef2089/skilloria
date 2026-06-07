@@ -1747,8 +1747,8 @@
   },
   "expert_dnd_empty": {
     "title": "Du bist auf « Nicht stören »",
-    "body": "Es werden keine Angebote angezeigt. Wechsle zurück zu « Offen für Angebote », um Vorschläge zu erhalten.",
-    "cta_resume": "Wieder Angebote empfangen",
+    "body": "Solange dieser Modus aktiv ist, erhältst du keine Vorschläge. Aktiviere deine Verfügbarkeit wieder, um Angebote zu erhalten.",
+    "cta_resume": "Verfügbarkeit wieder aktivieren",
     "cta_resuming": "Aktivierung…",
     "error_generic": "Verfügbarkeit konnte nicht aktualisiert werden. Bitte erneut versuchen."
   },

@@ -1747,8 +1747,8 @@
   },
   "expert_dnd_empty": {
     "title": "Vous êtes en « Ne pas déranger »",
-    "body": "Aucune offre ne vous est proposée. Repassez « À l'écoute » pour recevoir des opportunités.",
-    "cta_resume": "Repasser À l'écoute",
+    "body": "Aucune proposition ne vous est envoyée tant que ce mode est actif. Réactivez votre disponibilité pour recevoir des opportunités.",
+    "cta_resume": "Réactiver ma disponibilité",
     "cta_resuming": "Activation…",
     "error_generic": "Impossible de mettre à jour votre disponibilité. Réessayez."
   },

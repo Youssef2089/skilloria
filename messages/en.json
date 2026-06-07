@@ -1747,8 +1747,8 @@
   },
   "expert_dnd_empty": {
     "title": "You're set to « Do not disturb »",
-    "body": "No offers are shown. Switch back to « Open to opportunities » to receive matches.",
-    "cta_resume": "Switch back to listening",
+    "body": "No matches are sent to you while this mode is on. Turn your availability back on to receive opportunities.",
+    "cta_resume": "Turn availability back on",
     "cta_resuming": "Activating…",
     "error_generic": "Could not update your availability. Please retry."
   },

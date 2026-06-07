@@ -1746,8 +1746,8 @@
   },
   "expert_dnd_empty": {
     "title": "Estás en « No molestar »",
-    "body": "No se muestra ninguna oferta. Vuelve a « Disponible » para recibir oportunidades.",
-    "cta_resume": "Volver a estar disponible",
+    "body": "No recibirás ninguna propuesta mientras este modo esté activo. Reactiva tu disponibilidad para recibir oportunidades.",
+    "cta_resume": "Reactivar mi disponibilidad",
     "cta_resuming": "Activando…",
     "error_generic": "No se pudo actualizar tu disponibilidad. Vuelve a intentarlo."
   },
