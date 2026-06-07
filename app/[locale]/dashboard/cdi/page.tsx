@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Link, useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
@@ -16,6 +16,9 @@ import { useCdiApplications } from '@/lib/hooks/useCdiApplications'
 import CdiStatusToggle from '@/components/cdi/CdiStatusToggle'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import CandidatureMiniCard from '@/components/dashboard/CandidatureMiniCard'
+import MissionMiniCard from '@/components/dashboard/MissionMiniCard'
+import type { MissionCardData } from '@/components/dashboard/MissionCard'
+import { useLiveResource } from '@/hooks/useLiveResource'
 
 /**
  * Dashboard CDI — page content (SC7a Lot UX Finitions 2).
@@ -79,9 +82,29 @@ export default function DashboardCDI() {
   const tProfile = useTranslations('cdi_profile_view')
   const router = useRouter()
   const domain = useDomain()
+  const locale = useLocale()
   const state = useCdiProfile()
   const { loading, authenticated, forbidden, error, user, profile } = state
   const apps = useCdiApplications()
+
+  // Suggestions pour vous — mirror EXACT du freelance home (useLiveResource
+  // + slice(0,3) + holdNewItems=false). La route /api/me/missions est
+  // user_type-agnostic au niveau du contrat : runMatching ne crée des
+  // matches QUE pour le user_type cohérent (expert_cdi → type='offre').
+  // Donc cette home reçoit les offres CDI matchées de l'expert.
+  const isVerified = !!user?.is_verified
+  const missionsLive = useLiveResource<{ missions: MissionCardData[] }, MissionCardData>({
+    url: isVerified ? `/api/me/missions?locale=${encodeURIComponent(locale)}` : null,
+    itemsOf: (d) => d.missions ?? [],
+    identityOf: (m) => m.match_id,
+    versionOf: (m) => `${m.ai_score}`,
+    enabled: isVerified,
+    holdNewItems: false,
+  })
+  const recommendedOffres = useMemo(
+    () => missionsLive.data?.missions?.slice(0, 3) ?? null,
+    [missionsLive.data],
+  )
 
   const [status, setStatus] = useState<CdiStatus | null>(null)
   const [statusUpdating, setStatusUpdating] = useState(false)
@@ -183,7 +206,7 @@ export default function DashboardCDI() {
     )
   }
 
-  const isVerified = !!user?.is_verified
+  // isVerified déjà défini en début de fonction (utilisé par le hook live).
   const greetingName = getGreetingName(user, tProfile('fallback_user_name'))
   const currentStatus = status
   const statusBadgeColor = currentStatus ? STATUS_BADGE_COLORS[currentStatus] : null
@@ -600,8 +623,51 @@ export default function DashboardCDI() {
             </div>
           </div>
 
-          {/* SECTION 4 — Mes candidatures */}
-          <div className="main-card" style={{ animationDelay: '0.3s' }}>
+          {/* SECTION — Suggestions pour vous (REORDONNEE : au-dessus de
+              Mes candidatures, parite home freelance). Cablée sur
+              /api/me/missions via useLiveResource (mirror exact freelance).
+              CHECK : MissionMiniCard side='cdi' route ses liens vers
+              /dashboard/cdi/missions/[id] (cf. dashboardUrlForUserType
+              implicit via side prop). Le 'Voir tout' pointe vers
+              /dashboard/cdi/missions (page "Offres" du CDI). */}
+          <div className="main-card" style={{ opacity: isVerified ? 1 : 0.6, animationDelay: '0.3s' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.2px', fontFamily: fontJakarta }}>
+                  {t('suggestions_section.title')}
+                </span>
+                <span style={{ background: '#ede9fe', color: '#6d28d9', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 20 }}>
+                  {t('suggestions_section.ai_badge')}
+                </span>
+              </div>
+              {!isVerified
+                ? <span style={{ background: '#f3f4f6', color: '#9ca3af', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('suggestions_section.locked_chip')}</span>
+                : <Link href="/dashboard/cdi/missions" style={{ color: domain.primaryColor, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>{t('suggestions_section.see_all')}</Link>
+              }
+            </div>
+            {!isVerified ? (
+              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
+                {t('suggestions_section.empty_unverified')}
+              </div>
+            ) : (recommendedOffres === null) ? (
+              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af' }}>
+                {t('loading')}
+              </div>
+            ) : recommendedOffres.length === 0 ? (
+              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
+                {t('suggestions_section.empty_verified')}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {recommendedOffres.map((m) => (
+                  <MissionMiniCard key={m.match_id} mission={m} side="cdi" />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* SECTION — Mes candidatures (apres Suggestions, parite freelance). */}
+          <div className="main-card" style={{ animationDelay: '0.35s' }}>
             <div
               style={{
                 display: 'flex',
@@ -686,36 +752,6 @@ export default function DashboardCDI() {
                 ))}
               </div>
             )}
-          </div>
-
-          {/* SECTION 5 — Suggestions */}
-          <div className="main-card" style={{ animationDelay: '0.35s', marginBottom: 0 }}>
-            <div
-              style={{
-                fontSize: 16,
-                fontWeight: 700,
-                color: '#0f172a',
-                letterSpacing: '-0.2px',
-                fontFamily: fontJakarta,
-                marginBottom: 14,
-              }}
-            >
-              {t('suggestions_section.title')}
-            </div>
-            <div
-              style={{
-                background: '#f8fafc',
-                border: '1px dashed #cbd5e1',
-                borderRadius: 10,
-                padding: 22,
-                textAlign: 'center',
-                fontSize: 14,
-                color: '#64748b',
-                lineHeight: 1.6,
-              }}
-            >
-              {t('suggestions_section.coming_soon')}
-            </div>
           </div>
       </div>
 

@@ -892,7 +892,11 @@
     },
     "suggestions_section": {
       "title": "Suggestions for you",
-      "coming_soon": "Coming soon — our AI matching will recommend roles aligned with your profile."
+      "ai_badge": "AI",
+      "see_all": "See all →",
+      "locked_chip": "Profile not verified",
+      "empty_unverified": "Your suggestions will appear here once your profile is verified.",
+      "empty_verified": "No recommended job offers for now."
     },
     "profile_completion": {
       "title": "Profile {percent}% complete",

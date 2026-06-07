@@ -892,7 +892,11 @@
     },
     "suggestions_section": {
       "title": "Vorschläge für Sie",
-      "coming_soon": "Bald verfügbar — unser KI-Matching schlägt Ihnen passende Stellen vor."
+      "ai_badge": "KI",
+      "see_all": "Alle anzeigen →",
+      "locked_chip": "Profil nicht verifiziert",
+      "empty_unverified": "Ihre Vorschläge erscheinen hier, sobald Ihr Profil verifiziert ist.",
+      "empty_verified": "Keine empfohlenen Stellenangebote im Moment."
     },
     "profile_completion": {
       "title": "Profil zu {percent}% vollständig",

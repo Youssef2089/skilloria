@@ -892,7 +892,11 @@
     },
     "suggestions_section": {
       "title": "Suggestions pour vous",
-      "coming_soon": "Bientôt disponible — notre matching IA vous proposera des postes alignés à votre profil."
+      "ai_badge": "IA",
+      "see_all": "Tout voir →",
+      "locked_chip": "Profil non vérifié",
+      "empty_unverified": "Vos suggestions apparaîtront ici une fois votre profil vérifié.",
+      "empty_verified": "Aucune offre recommandée pour le moment."
     },
     "profile_completion": {
       "title": "Profil {percent}% complet",
