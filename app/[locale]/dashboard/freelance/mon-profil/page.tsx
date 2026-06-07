@@ -1534,13 +1534,18 @@ export default function MonProfilPage() {
 
       {/* Lot global C3 : modal d'upload photo (entry-point unique).
           Le modal s'occupe lui-même de l'upload Storage + PATCH /api/profile.
-          On patch optimistiquement le state local au succès. */}
+          On patch optimistiquement le state local au succès.
+          Lot global C3 (micro-ajout) : émet `sk:profile-changed` →
+          DashboardShell refetch le profil → avatar sidebar INSTANTANÉ. */}
       <AvatarUploadModal
         open={avatarModalOpen}
         currentPhotoUrl={profile.photo_url ?? null}
         onClose={() => setAvatarModalOpen(false)}
         onSaved={(newUrl) => {
           setProfile((prev) => (prev ? { ...prev, photo_url: newUrl } : prev))
+          try {
+            window.dispatchEvent(new CustomEvent('sk:profile-changed'))
+          } catch { /* SSR-safe noop */ }
         }}
       />
     </div>

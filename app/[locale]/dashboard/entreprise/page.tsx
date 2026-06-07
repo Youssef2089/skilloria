@@ -11,7 +11,7 @@ import OrganisationDashboard, {
 import type { Annonce } from '@/types/annonce'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
-import { markSectionVisited } from '@/lib/section-visit-client'
+import { useMarkSectionVisited } from '@/lib/section-visit-client'
 
 /**
  * Dashboard entreprise (B3.5 + B3.5.fix).
@@ -143,9 +143,11 @@ export default function DashboardEntreprise() {
   // Lot global C2 : marquer la home org comme vue → badge "Mes annonces"
   // (annonces_org) passe à 0 immédiatement. Mécanique unifiée — même
   // pattern que /missions, /candidatures, etc.
+  // useSecureFetch obligatoire (Authorization: Bearer) — fix 401 silencieux.
+  const markVisited = useMarkSectionVisited()
   useEffect(() => {
-    void markSectionVisited('annonces_org')
-  }, [])
+    void markVisited('annonces_org')
+  }, [markVisited])
 
   useEffect(() => {
     if (needsRedirect) {

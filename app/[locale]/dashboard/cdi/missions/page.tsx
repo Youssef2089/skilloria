@@ -9,7 +9,7 @@ import NewItemsPill from '@/components/ui/NewItemsPill'
 import BoundedScrollList from '@/components/ui/BoundedScrollList'
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
 import { useLiveResource } from '@/hooks/useLiveResource'
-import { markSectionVisited } from '@/lib/section-visit-client'
+import { useMarkSectionVisited } from '@/lib/section-visit-client'
 
 /**
  * /dashboard/cdi/missions — feed des offres CDI MATCHÉES (parité freelance).
@@ -53,9 +53,12 @@ export default function CdiMissionsFeedPage() {
     snapshotRef.current = live.data.last_visited_at
   }
 
+  // Lot global C2 : mark section visited au mount via useSecureFetch
+  // (Authorization: Bearer requis — fix bug initial du POST silencieux).
+  const markVisited = useMarkSectionVisited()
   useEffect(() => {
-    void markSectionVisited('missions')
-  }, [])
+    void markVisited('missions')
+  }, [markVisited])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px 26px' }}>

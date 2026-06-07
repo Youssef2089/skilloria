@@ -80,11 +80,19 @@ export default function DashboardShell({
     // (CDI), tous deux situés dans les pages enfants. Custom event
     // `sk:availability-changed` dispatché par les handlers de toggle :
     // on refetch alors le profile pour mettre à jour la pill.
-    const onAvailChanged = () => { void load() }
-    window.addEventListener('sk:availability-changed', onAvailChanged)
+    //
+    // Lot global C3 (micro-ajout) : MÊME refetch quand la photo de profil
+    // change (event `sk:profile-changed` dispatché par AvatarUploadModal
+    // onSaved côté freelance + CDI mon-profil). L'avatar de la sidebar se
+    // met à jour INSTANTANÉMENT sans reload — zéro duplication, on relance
+    // exactement le même `load()`.
+    const onProfileLikeChanged = () => { void load() }
+    window.addEventListener('sk:availability-changed', onProfileLikeChanged)
+    window.addEventListener('sk:profile-changed', onProfileLikeChanged)
     return () => {
       cancelled = true
-      window.removeEventListener('sk:availability-changed', onAvailChanged)
+      window.removeEventListener('sk:availability-changed', onProfileLikeChanged)
+      window.removeEventListener('sk:profile-changed', onProfileLikeChanged)
     }
   }, [])
 

@@ -9,7 +9,7 @@ import NewItemsPill from '@/components/ui/NewItemsPill'
 import BoundedScrollList from '@/components/ui/BoundedScrollList'
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
 import { useLiveResource } from '@/hooks/useLiveResource'
-import { markSectionVisited } from '@/lib/section-visit-client'
+import { useMarkSectionVisited } from '@/lib/section-visit-client'
 
 /**
  * /dashboard/freelance/missions — feed des opportunités MATCHÉES.
@@ -65,12 +65,14 @@ export default function MissionsFeedPage() {
   }
 
   // Lot global C2 : mark section visited au mount.
-  // POST async best-effort, on n'attend pas. Le snapshot est déjà figé
-  // avant ; cet appel n'affecte QUE le badge nav (passe à 0 immédiatement)
-  // et le snapshot de la PROCHAINE visite.
+  // POST via useSecureFetch (Authorization: Bearer requis par requireAuth)
+  // — sinon 401 silencieux et la ligne user_section_visits n'est pas créée.
+  // Le snapshot est déjà figé avant ; cet appel n'affecte QUE le badge nav
+  // (passe à 0 immédiatement) et le snapshot de la PROCHAINE visite.
+  const markVisited = useMarkSectionVisited()
   useEffect(() => {
-    void markSectionVisited('missions')
-  }, [])
+    void markVisited('missions')
+  }, [markVisited])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px 26px' }}>

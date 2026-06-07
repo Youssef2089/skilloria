@@ -680,12 +680,19 @@ export default function CdiMonProfilPage() {
 
       {/* Lot global C3 : modal upload photo (entry-point unique côté CDI).
           AvatarUploadModal écrit Supabase Storage + PATCH /api/profile, on
-          patch localPhotoUrl côté client au succès. */}
+          patch localPhotoUrl côté client au succès.
+          Lot global C3 (micro-ajout) : émet `sk:profile-changed` →
+          DashboardShell refetch le profil → avatar sidebar INSTANTANÉ. */}
       <AvatarUploadModal
         open={avatarModalOpen}
         currentPhotoUrl={localPhotoUrl}
         onClose={() => setAvatarModalOpen(false)}
-        onSaved={(newUrl) => setLocalPhotoUrl(newUrl)}
+        onSaved={(newUrl) => {
+          setLocalPhotoUrl(newUrl)
+          try {
+            window.dispatchEvent(new CustomEvent('sk:profile-changed'))
+          } catch { /* SSR-safe noop */ }
+        }}
       />
     </div>
   )
