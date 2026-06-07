@@ -27,10 +27,24 @@ import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
  */
 
 export type CandidatureUnlockedProfile = {
-  /** Pseudonyme : "Prénom + dernière lettre majuscule" (lot masquage RGPD).
-   *  Construit côté serveur via maskExpertNameForOrg. Le navigateur de l'org
-   *  ne reçoit JAMAIS le nom complet ni les coordonnées personnelles. */
+  /**
+   * Nom à afficher côté ORG.
+   *  - Pré-unlock (rappel : ce type n'est PAS utilisé pré-unlock — `unlocked_profile`
+   *    est `null` à ce stade).
+   *  - Post-unlock (status ∈ unlocked|selected) : nom COMPLET `{first_name} {last_name}`
+   *    selon DisclosurePolicy.reveal_full_name (V1 = true en post-unlock).
+   *
+   * Le navigateur de l'org ne reçoit jamais email / phone / cv / linkedin
+   * (`reveal_contact: false` en V1, jamais branché). Le canal de contact
+   * reste la messagerie interne.
+   */
   display_name: string
+  /**
+   * URL publique de la photo de profil expert (Lot grille photo-forward).
+   * Servie UNIQUEMENT si DisclosurePolicy.reveal_photo === true côté serveur,
+   * sinon `null`. La grille front affichera un placeholder cadenas si null.
+   */
+  photo_url: string | null
   title: string | null
   summary: string | null
   skills: string[]

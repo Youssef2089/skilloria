@@ -1657,6 +1657,8 @@
       "new_label": "Nuevo",
       "mark_viewed_cta": "Marcar como vista",
       "mark_viewed_busy": "Guardando…",
+      "locked_profile_label": "Perfil bloqueado",
+      "skill_matched_tooltip": "Habilidad requerida por tu publicación",
       "reject_confirm_title": "Confirmar rechazo",
       "reject_reason_placeholder": "Motivo opcional (visible solo internamente)…",
       "reject_cancel": "Cancelar",

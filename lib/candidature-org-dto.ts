@@ -1,6 +1,7 @@
 import type { AuthContext } from '@/lib/auth-guard'
 import { tBDD, type TranslationsMap } from '@/lib/translations'
 import { maskExpertNameForOrg } from '@/lib/expert-name-masking'
+import { disclosurePolicyForCandidatureStatus } from '@/lib/expert-disclosure'
 
 /**
  * lib/candidature-org-dto.ts — helper partagé qui construit les DTOs
@@ -104,9 +105,12 @@ type FullProfile = {
   languages: string[] | null
   country: string | null
   city: string | null
-  // Lot masquage : address_line/postal_code/birth_year/photo_url/cv_url/
-  // linkedin_url NE PARTENT PLUS dans le payload org → on les retire aussi
-  // du SELECT (économie réseau + defense-in-depth, on ne charge même pas).
+  // Lot grille photo-forward : photo_url RE-INTRODUIT au SELECT, mais
+  // n'est projeté dans le DTO QUE si DisclosurePolicy.reveal_photo === true
+  // (cf. disclosurePolicyForCandidatureStatus → unlocked/selected uniquement).
+  // address_line/postal_code/birth_year/cv_url/linkedin_url/email/phone
+  // restent strippés à jamais — reveal_contact: false en V1.
+  photo_url: string | null
   availability_status: string | null
   availability_date: string | null
   profile_score: number | null
@@ -198,17 +202,20 @@ export async function buildOrgCandidatureDTOs(
   )
   const fullProfileById = new Map<string, FullProfile>()
   if (unlockedProfileIds.size > 0) {
-    // Lot masquage : SELECT retire les colonnes PII (address_line, postal_code,
-    // birth_year, photo_url, cv_url, linkedin_url) ET les colonnes user
-    // (email, phone, civility, job_title, linkedin_url). Seuls first_name +
-    // last_name sont chargés pour calculer display_name côté serveur. Le
-    // navigateur de l'org ne recevra JAMAIS ces données.
+    // Lot grille photo-forward :
+    //   - photo_url RÉINTRODUIT au SELECT (projeté dans le DTO seulement si
+    //     la policy l'autorise, cf. disclosurePolicyForCandidatureStatus).
+    //   - first_name + last_name chargés pour le nom complet post-unlock
+    //     ET pour le fallback pseudonyme si on en a besoin ailleurs.
+    //   - address_line, postal_code, birth_year, cv_url, linkedin_url, email,
+    //     phone : strippés à jamais (reveal_contact: false en V1, jamais
+    //     branché tant que le packaging commerce n'aura pas été conçu).
     const { data: profRows } = await auth.supabaseAdmin
       .from('profiles')
       .select(
         'id, user_id, title, summary, skills, seniority, expert_type, ' +
           'years_experience, years_total_experience, tjm_min, tjm_max, salary_min, salary_max, ' +
-          'work_modes, languages, country, city, ' +
+          'work_modes, languages, country, city, photo_url, ' +
           'availability_status, availability_date, profile_score, ' +
           'branch_id, speciality_id, ' +
           'users!profiles_user_id_fkey!inner(id, first_name, last_name)',
@@ -258,14 +265,21 @@ export async function buildOrgCandidatureDTOs(
       const fp = fullProfileById.get(row.profile_id)
       if (fp) {
         const u = Array.isArray(fp.users) ? fp.users[0] : fp.users
-        // Lot masquage : ZERO PII coordonnées (email/phone/cv/linkedin/
-        // address/birth_year/photo). Nom transformé en "Prénom + dernière
-        // lettre maj" via maskExpertNameForOrg. Le payload ne contient que
-        // des champs métier non-identifiants (skills, séniorité, etc.) +
-        // un display_name pseudonyme. Seul canal de contact : conversation
-        // interne.
+        // Lot grille photo-forward : politique de divulgation appliquée
+        // CÔTÉ SERVEUR (sécurité non contournable). Status 'unlocked' ou
+        // 'selected' → reveal_photo + reveal_full_name à true ; contact
+        // (email/phone) hors périmètre V1 (reveal_contact: false toujours).
+        const policy = disclosurePolicyForCandidatureStatus(row.status)
+        const firstName = u?.first_name ?? null
+        const lastName = u?.last_name ?? null
+        const displayName = policy.reveal_full_name
+          ? [firstName, lastName].filter(Boolean).join(' ').trim() ||
+            maskExpertNameForOrg(firstName, lastName)
+          : maskExpertNameForOrg(firstName, lastName)
+
         unlockedProfile = {
-          display_name: maskExpertNameForOrg(u?.first_name ?? null, u?.last_name ?? null),
+          display_name: displayName,
+          photo_url: policy.reveal_photo ? (fp.photo_url ?? null) : null,
           title: fp.title,
           summary: fp.summary,
           skills: fp.skills ?? [],

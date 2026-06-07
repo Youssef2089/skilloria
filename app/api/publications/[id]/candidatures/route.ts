@@ -65,9 +65,11 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   }
 
   // ── Ownership : la publication appartient à cette org ──────────────────
+  // Lot grille photo-forward : on charge aussi `skills_required` pour le
+  // client (surlignage compétences matchées). 1 entrée par pub.
   const { data: pub, error: pubErr } = await auth.supabaseAdmin
     .from('publications')
-    .select('id, organization_id, type, title, confidential, status')
+    .select('id, organization_id, type, title, confidential, status, skills_required')
     .eq('id', publicationId)
     .maybeSingle()
   if (pubErr) {
@@ -77,7 +79,15 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   if (!pub) {
     return json({ error: 'Not found', code: 'not_found' }, 404)
   }
-  const pubRow = pub as { id: string; organization_id: string; type: string; title: string; confidential: boolean; status: string }
+  const pubRow = pub as {
+    id: string
+    organization_id: string
+    type: string
+    title: string
+    confidential: boolean
+    status: string
+    skills_required: string[] | null
+  }
   if (pubRow.organization_id !== orgId) {
     // 404 plutôt que 403 — ne pas leak l'existence d'une publi d'une autre org.
     return json({ error: 'Not found', code: 'not_found' }, 404)
@@ -103,6 +113,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         type: pubRow.type,
         title: pubRow.title,
         status: pubRow.status,
+        skills_required: pubRow.skills_required ?? [],
       },
       candidatures,
     },

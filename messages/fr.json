@@ -1658,6 +1658,8 @@
       "new_label": "Nouveau",
       "mark_viewed_cta": "Marquer comme vue",
       "mark_viewed_busy": "Validation…",
+      "locked_profile_label": "Profil masqué",
+      "skill_matched_tooltip": "Compétence demandée par votre annonce",
       "reject_confirm_title": "Confirmer le refus",
       "reject_reason_placeholder": "Motif optionnel (visible uniquement en interne)…",
       "reject_cancel": "Annuler",

@@ -5,7 +5,8 @@ import { useLocale, useTranslations } from 'next-intl'
 import { Link, useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
-import CandidatureCard, { type CandidatureData } from '@/components/dashboard/CandidatureCard'
+import { type CandidatureData } from '@/components/dashboard/CandidatureCard'
+import OrgCandidateGridCard from '@/components/dashboard/OrgCandidateGridCard'
 import { IconExternalLink } from '@tabler/icons-react'
 import BoundedScrollList from '@/components/ui/BoundedScrollList'
 
@@ -22,7 +23,7 @@ import BoundedScrollList from '@/components/ui/BoundedScrollList'
  * serveur à l'intérieur de chaque groupe).
  */
 
-type PublicationInfo = { id: string; type: string; title: string; status: string }
+type PublicationInfo = { id: string; type: string; title: string; status: string; skills_required?: string[] }
 type GlobalCandidature = CandidatureData & { publication_id: string }
 type State =
   | { kind: 'loading' }
@@ -238,12 +239,24 @@ export default function GlobalCandidaturesPage() {
                   {t('view_pub')}
                 </Link>
               </header>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Lot grille photo-forward : grille responsive
+                  (auto-fill minmax 240px → 1 col mobile, 2-4 col desktop).
+                  Tri ai_match_score DESC déjà appliqué côté serveur.
+                  pub_skills_required permet à chaque card de surligner
+                  les compétences matchées. */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                  gap: 16,
+                }}
+              >
                 {g.items.map((c) => (
-                  <CandidatureCard
+                  <OrgCandidateGridCard
                     key={c.id}
                     candidature={c}
                     publicationType={g.pub.type}
+                    pubSkillsRequired={g.pub.skills_required ?? []}
                     onMutated={() => { void load() }}
                   />
                 ))}

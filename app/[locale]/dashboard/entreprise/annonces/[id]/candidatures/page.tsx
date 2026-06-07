@@ -5,7 +5,8 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
-import CandidatureCard, { type CandidatureData } from '@/components/dashboard/CandidatureCard'
+import { type CandidatureData } from '@/components/dashboard/CandidatureCard'
+import OrgCandidateGridCard from '@/components/dashboard/OrgCandidateGridCard'
 import BoundedScrollList from '@/components/ui/BoundedScrollList'
 
 /**
@@ -24,7 +25,7 @@ import BoundedScrollList from '@/components/ui/BoundedScrollList'
 
 type Props = { params: Promise<{ id: string }> }
 
-type PublicationInfo = { id: string; type: string; title: string; status: string }
+type PublicationInfo = { id: string; type: string; title: string; status: string; skills_required?: string[] }
 type State =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
@@ -222,15 +223,28 @@ export default function CandidaturesPage({ params }: Props) {
           <div>{filter === 'all' ? t('empty_all_subtitle') : t('empty_filtered_subtitle')}</div>
         </div>
       ) : (
-        <BoundedScrollList innerGap={14}>
-          {filtered.map((c) => (
-            <CandidatureCard
-              key={c.id}
-              candidature={c}
-              publicationType={publication.type}
-              onMutated={refresh}
-            />
-          ))}
+        <BoundedScrollList innerGap={0}>
+          {/* Lot grille photo-forward : même composant que la vue globale,
+              scopé à une publication. Grille responsive — 1 col mobile,
+              2-4 col desktop. Compétences matchées surlignées via
+              publication.skills_required. */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+              gap: 16,
+            }}
+          >
+            {filtered.map((c) => (
+              <OrgCandidateGridCard
+                key={c.id}
+                candidature={c}
+                publicationType={publication.type}
+                pubSkillsRequired={publication.skills_required ?? []}
+                onMutated={refresh}
+              />
+            ))}
+          </div>
         </BoundedScrollList>
       )}
     </div>

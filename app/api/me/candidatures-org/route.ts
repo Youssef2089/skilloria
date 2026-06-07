@@ -57,15 +57,18 @@ export async function GET(request: NextRequest): Promise<Response> {
   // ── Charger TOUTES les publications de l'org (ownership stricte) ────────
   //    On filtre côté code par organization_id — RLS publications applique
   //    déjà la contrainte, on re-vérifie pour defense-in-depth.
+  //    Lot grille photo-forward : on charge aussi `skills_required` pour
+  //    permettre au client de surligner les compétences matchées
+  //    (intersection avec preview.skills de chaque candidature).
   const { data: pubsRaw, error: pErr } = await auth.supabaseAdmin
     .from('publications')
-    .select('id, type, title, status, organization_id')
+    .select('id, type, title, status, organization_id, skills_required')
     .eq('organization_id', orgId)
   if (pErr) {
     console.error('[me/candidatures-org:GET] pubs lookup failed', pErr.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
-  const pubs = (pubsRaw ?? []) as { id: string; type: string; title: string; status: string; organization_id: string }[]
+  const pubs = (pubsRaw ?? []) as { id: string; type: string; title: string; status: string; organization_id: string; skills_required: string[] | null }[]
   // Filtre defense-in-depth : on garde uniquement les publications dont l'org
   // correspond à celle du user courant (au cas où RLS échouerait silencieusement).
   const ownedPubs = pubs.filter((p) => p.organization_id === orgId)
@@ -88,10 +91,20 @@ export async function GET(request: NextRequest): Promise<Response> {
   // Mini-DTO publication pour permettre le regroupement / labels côté UI.
   // On ne renvoie QUE les publications qui ont au moins une candidature, pour
   // alléger la payload.
+  // Lot grille photo-forward : on expose aussi `skills_required` au niveau
+  // publication (1 entrée par pub) plutôt que dupliqué sur chaque candidature.
+  // Le client calcule l'intersection avec preview.skills pour surligner les
+  // compétences matchées sur la card.
   const refPubIds = new Set(candidatures.map((c) => c.publication_id))
   const publications = ownedPubs
     .filter((p) => refPubIds.has(p.id))
-    .map((p) => ({ id: p.id, type: p.type, title: p.title, status: p.status }))
+    .map((p) => ({
+      id: p.id,
+      type: p.type,
+      title: p.title,
+      status: p.status,
+      skills_required: p.skills_required ?? [],
+    }))
 
   return json({ candidatures, publications }, 200)
 }
