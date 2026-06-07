@@ -1390,7 +1390,7 @@
     },
     "type": {
       "mission": "Mission",
-      "offre": "Offre"
+      "offre": "Offre CDI"
     },
     "budget_unit": {
       "day": "/jour",
