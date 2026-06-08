@@ -63,6 +63,9 @@ export type CdiProfile = {
   cdi_contract_types: ContractType[] | null
   cdi_motivations: string | null
   cdi_career_goals: string | null
+  /** ISO timestamp d'approbation profil. Sert au flag "Analyse en cours"
+   *  sur la home CDI (Lot UX refetch auto post-matching). */
+  verified_at: string | null
 }
 
 export type ExperienceItem = {
@@ -145,6 +148,9 @@ const PROFILE_COLUMNS = [
   'cdi_contract_types',
   'cdi_motivations',
   'cdi_career_goals',
+  // Lot UX refetch auto post-matching : sert au flag "Analyse en cours"
+  // sur la home CDI (fenêtre <120s post-approbation).
+  'verified_at',
 ].join(', ')
 
 const initialState: UseCdiProfileState = {

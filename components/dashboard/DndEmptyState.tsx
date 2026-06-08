@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { supabase } from '@/lib/supabase'
 import { setExpertListening, type ExpertSide } from '@/lib/availability-actions'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { markMatchingTriggered } from '@/lib/matching-resync-hint'
 
 /**
  * DndEmptyState — bloc rouge affiché quand l'expert est en "Ne pas déranger"
@@ -68,8 +69,11 @@ export default function DndEmptyState({ side, userId }: Props) {
     }
     // Sortie du DND → ré-entrée pool : ping /api/me/sync-matching pour
     // réconcilier les matches côté serveur. Fire-and-forget : le serveur
-    // accuse réception et le matching IA tourne en BG ; useLiveResource
-    // revalide /api/me/missions au prochain tick et la liste apparaît.
+    // accuse réception et le matching IA tourne en BG via `after()` ;
+    // useLiveResource revalide /api/me/missions au prochain tick et la
+    // liste apparaît. On marque aussi le hint client pour que la home
+    // affiche l'état transitoire "Analyse en cours…" + fast-poll 3s.
+    markMatchingTriggered(effectiveUserId)
     void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
       console.warn('[DndEmptyState] sync-matching ping failed (non-blocking)', err)
     })

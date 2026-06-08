@@ -314,7 +314,8 @@
       "recommended_missions": {
         "title": "Missions recommandées",
         "ai_badge": "IA",
-        "empty_verified": "Aucune mission ne correspond à votre profil pour le moment. Dès qu'une mission {ecosystem} correspondra, elle apparaîtra ici."
+        "empty_verified": "Aucune mission ne correspond à votre profil pour le moment. Dès qu'une mission {ecosystem} correspondra, elle apparaîtra ici.",
+        "analyzing": "Analyse de votre profil en cours… vos missions {ecosystem} arrivent dans quelques instants."
       },
       "expert_collaboration": {
         "title": "Collaboration experts",
@@ -912,7 +913,8 @@
       "see_all": "Tout voir →",
       "locked_chip": "Profil non vérifié",
       "empty_unverified": "Vos suggestions apparaîtront ici une fois votre profil vérifié.",
-      "empty_verified": "Aucune offre recommandée pour le moment."
+      "empty_verified": "Aucune offre recommandée pour le moment.",
+      "analyzing": "Analyse de votre profil en cours… vos offres {ecosystem} arrivent dans quelques instants."
     },
     "profile_completion": {
       "title": "Profil {percent}% complet",

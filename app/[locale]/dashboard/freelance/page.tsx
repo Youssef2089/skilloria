@@ -18,6 +18,14 @@ import AvailabilityToggle, {
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
 import { emitAvailabilityChanged } from '@/lib/availability-actions'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import {
+  MATCHING_TRIGGER_FAST_POLL_MS,
+  MATCHING_TRIGGER_NORMAL_POLL_MS,
+  clearMatchingTrigger,
+  isWithinMatchingWindow,
+  markMatchingTriggered,
+  readMatchingTrigger,
+} from '@/lib/matching-resync-hint'
 
 type ProfileData = {
   tjm_min: number | null
@@ -27,6 +35,10 @@ type ProfileData = {
   review_reason?: string | null
   verification_data?: Record<string, unknown> | null
   availability_status?: string | null
+  /** ISO timestamp d'approbation (auto-approve inline OU admin). Sert au
+   *  flag "matching en cours" pendant la fenêtre post-approbation (Lot
+   *  UX refetch auto). */
+  verified_at?: string | null
 }
 
 /**
@@ -96,6 +108,22 @@ export default function DashboardFreelance() {
   // - Le calcul des stats est ensuite dérivé via useMemo : pas de nouvelle
   //   réf si data inchangée.
   const liveEnabled = !loading
+  // Lot UX refetch auto post-matching : dérive "matching en cours" depuis
+  //  - profile.verified_at récent (< 120s) → cas approbation auto/admin
+  //  - sessionStorage trigger récent (< 120s) → cas toggle DND, save profil
+  // Pendant cette fenêtre on poll vite (3s) ET on affiche un état transitoire
+  // "Analyse en cours". Hors fenêtre = poll normal 30s + empty-state classique.
+  const [matchingTick, setMatchingTick] = useState<number>(() => Date.now())
+  const lastTriggerMs = readMatchingTrigger(user?.id ?? null)
+  const matchingInWindow = isWithinMatchingWindow({
+    now: matchingTick,
+    verifiedAt: profile?.verified_at ?? null,
+    lastTriggerMs,
+  })
+  const missionsPollMs = matchingInWindow
+    ? MATCHING_TRIGGER_FAST_POLL_MS
+    : MATCHING_TRIGGER_NORMAL_POLL_MS
+
   // Lot A : `expert_status.is_dnd` pour l'empty-state rouge.
   const missionsLive = useLiveResource<
     {
@@ -105,6 +133,7 @@ export default function DashboardFreelance() {
     RecommendedMission
   >({
     url: liveEnabled ? `/api/me/missions?locale=${encodeURIComponent(locale)}` : null,
+    pollMs: missionsPollMs,
     itemsOf: (d) => d.missions ?? [],
     identityOf: (m) => m.match_id,
     versionOf: (m) => `${m.ai_score}`,
@@ -186,7 +215,7 @@ export default function DashboardFreelance() {
           .single(),
         supabase
           .from('profiles')
-          .select('tjm_min, tjm_max, photo_url, verification_status, review_reason, verification_data, availability_status')
+          .select('tjm_min, tjm_max, photo_url, verification_status, review_reason, verification_data, availability_status, verified_at')
           .eq('user_id', session.user.id)
           .maybeSingle(),
       ])
@@ -218,6 +247,29 @@ export default function DashboardFreelance() {
     return () => window.clearTimeout(id)
   }, [toast])
 
+  // Lot UX refetch auto post-matching : pendant la fenêtre d'analyse, on
+  // re-render toutes les 3s pour ré-évaluer isWithinMatchingWindow. Quand
+  // missions arrivent (length > 0) ou que la fenêtre est écoulée, on stoppe
+  // le tick et on purge le hint sessionStorage.
+  useEffect(() => {
+    if (!matchingInWindow) {
+      if (user?.id) clearMatchingTrigger(user.id)
+      return
+    }
+    const id = window.setInterval(() => setMatchingTick(Date.now()), MATCHING_TRIGGER_FAST_POLL_MS)
+    return () => window.clearInterval(id)
+  }, [matchingInWindow, user?.id])
+
+  // Si des missions arrivent → on purge immédiatement le hint et on reprend
+  // un poll normal au prochain render.
+  const recommendedMissionsLength = missionsLive.data?.missions?.length ?? 0
+  useEffect(() => {
+    if (recommendedMissionsLength > 0 && user?.id) {
+      clearMatchingTrigger(user.id)
+      setMatchingTick(Date.now())
+    }
+  }, [recommendedMissionsLength, user?.id])
+
   const handleAvailabilityChange = async (next: AvailabilityStatus) => {
     if (!user || availabilityUpdating || next === availability) return
     const previous = availability
@@ -241,6 +293,8 @@ export default function DashboardFreelance() {
         // côté serveur pour aligner les matches avec les publis publiées.
         // Fire-and-forget, non-bloquant.
         if (next === 'available' && previous === 'do_not_disturb') {
+          if (user?.id) markMatchingTriggered(user.id)
+          setMatchingTick(Date.now())
           void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
             console.warn('[dashboard:freelance] sync-matching ping failed', err)
           })
@@ -544,11 +598,46 @@ export default function DashboardFreelance() {
                 {t('loading')}
               </div>
             ) : recommendedMissions.length === 0 ? (
-              // Lot A : 2 empty-states distincts.
-              //   DND → ROUGE explicite + bouton "Repasser À l'écoute".
-              //   À l'écoute mais 0 match → GRIS neutre (état "rien de neuf").
+              // 3 empty-states distincts (priorité explicite) :
+              //   DND          → ROUGE + bouton "Repasser À l'écoute" (Lot A).
+              //   matching IA en cours (fenêtre <120s post-trigger) → état
+              //     TRANSITOIRE "Analyse en cours…" (Lot UX refetch auto).
+              //   sinon 0 match → GRIS neutre "Aucune mission ne correspond…".
               missionsLive.data?.expert_status?.is_dnd && user?.id ? (
                 <DndEmptyState side="freelance" userId={user.id} />
+              ) : matchingInWindow ? (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  style={{
+                    background: '#f9fafb',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 10,
+                    padding: 22,
+                    textAlign: 'center',
+                    fontSize: 14,
+                    color: '#475569',
+                    lineHeight: 1.8,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 10,
+                  }}
+                >
+                  <span
+                    aria-hidden
+                    style={{
+                      width: 18,
+                      height: 18,
+                      border: `2px solid ${domain.primaryColor}44`,
+                      borderTopColor: domain.primaryColor,
+                      borderRadius: '50%',
+                      animation: 'sk-spin 0.8s linear infinite',
+                    }}
+                  />
+                  <span>{t('cards.recommended_missions.analyzing', { ecosystem: domain.ecosystemName })}</span>
+                  <style>{`@keyframes sk-spin { to { transform: rotate(360deg) } }`}</style>
+                </div>
               ) : (
                 <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
                   {t('cards.recommended_missions.empty_verified', { ecosystem: domain.ecosystemName })}

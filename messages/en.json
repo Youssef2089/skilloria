@@ -314,7 +314,8 @@
       "recommended_missions": {
         "title": "Recommended missions",
         "ai_badge": "AI",
-        "empty_verified": "No missions match your profile yet. As soon as a {ecosystem} mission matches, it will appear here."
+        "empty_verified": "No missions match your profile yet. As soon as a {ecosystem} mission matches, it will appear here.",
+        "analyzing": "Analyzing your profile… your {ecosystem} missions will appear in a moment."
       },
       "expert_collaboration": {
         "title": "Expert collaboration",
@@ -912,7 +913,8 @@
       "see_all": "See all →",
       "locked_chip": "Profile not verified",
       "empty_unverified": "Your suggestions will appear here once your profile is verified.",
-      "empty_verified": "No recommended job offers for now."
+      "empty_verified": "No recommended job offers for now.",
+      "analyzing": "Analyzing your profile… your {ecosystem} offers will appear in a moment."
     },
     "profile_completion": {
       "title": "Profile {percent}% complete",

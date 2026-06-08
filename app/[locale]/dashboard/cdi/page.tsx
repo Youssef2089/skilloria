@@ -18,6 +18,14 @@ import AvatarUploadModal from '@/components/AvatarUploadModal'
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
 import { emitAvailabilityChanged } from '@/lib/availability-actions'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import {
+  MATCHING_TRIGGER_FAST_POLL_MS,
+  MATCHING_TRIGGER_NORMAL_POLL_MS,
+  clearMatchingTrigger,
+  isWithinMatchingWindow,
+  markMatchingTriggered,
+  readMatchingTrigger,
+} from '@/lib/matching-resync-hint'
 import CandidatureMiniCard from '@/components/dashboard/CandidatureMiniCard'
 import MissionMiniCard from '@/components/dashboard/MissionMiniCard'
 import type { MissionCardData } from '@/components/dashboard/MissionCard'
@@ -98,6 +106,20 @@ export default function DashboardCDI() {
   // matches QUE pour le user_type cohérent (expert_cdi → type='offre').
   // Donc cette home reçoit les offres CDI matchées de l'expert.
   const isVerified = !!user?.is_verified
+  // Lot UX refetch auto post-matching (parité freelance) : pendant la fenêtre
+  // d'analyse (verified_at récent OU trigger client récent), on poll vite (3s)
+  // et on affiche un état transitoire "Analyse en cours". Hors fenêtre = 30s.
+  const [matchingTick, setMatchingTick] = useState<number>(() => Date.now())
+  const lastTriggerMs = readMatchingTrigger(user?.id ?? null)
+  const matchingInWindow = isWithinMatchingWindow({
+    now: matchingTick,
+    verifiedAt: (profile as { verified_at?: string | null } | null)?.verified_at ?? null,
+    lastTriggerMs,
+  })
+  const missionsPollMs = matchingInWindow
+    ? MATCHING_TRIGGER_FAST_POLL_MS
+    : MATCHING_TRIGGER_NORMAL_POLL_MS
+
   // Lot A : `expert_status.is_dnd` pour l'empty-state rouge.
   const missionsLive = useLiveResource<
     {
@@ -107,6 +129,7 @@ export default function DashboardCDI() {
     MissionCardData
   >({
     url: isVerified ? `/api/me/missions?locale=${encodeURIComponent(locale)}` : null,
+    pollMs: missionsPollMs,
     itemsOf: (d) => d.missions ?? [],
     identityOf: (m) => m.match_id,
     versionOf: (m) => `${m.ai_score}`,
@@ -173,6 +196,26 @@ export default function DashboardCDI() {
     return () => window.clearTimeout(id)
   }, [toast])
 
+  // Lot UX refetch auto post-matching : tick 3s pendant la fenêtre d'analyse
+  // (re-évaluation de isWithinMatchingWindow), clear quand missions arrivent
+  // ou que la fenêtre est écoulée.
+  useEffect(() => {
+    if (!matchingInWindow) {
+      if (user?.id) clearMatchingTrigger(user.id)
+      return
+    }
+    const id = window.setInterval(() => setMatchingTick(Date.now()), MATCHING_TRIGGER_FAST_POLL_MS)
+    return () => window.clearInterval(id)
+  }, [matchingInWindow, user?.id])
+
+  const recommendedOffresLength = missionsLive.data?.missions?.length ?? 0
+  useEffect(() => {
+    if (recommendedOffresLength > 0 && user?.id) {
+      clearMatchingTrigger(user.id)
+      setMatchingTick(Date.now())
+    }
+  }, [recommendedOffresLength, user?.id])
+
   const handleStatusChange = async (next: CdiStatus) => {
     if (!user || !profile || statusUpdating || next === status) return
     const previous = status
@@ -195,6 +238,8 @@ export default function DashboardCDI() {
         // Lot matching réconcilié : sortie du DND → ping sync-matching
         // côté serveur pour aligner les matches avec les offres publiées.
         if (next === 'open_to_work' && previous === 'employed') {
+          if (user?.id) markMatchingTriggered(user.id)
+          setMatchingTick(Date.now())
           void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
             console.warn('[dashboard:cdi] sync-matching ping failed', err)
           })
@@ -680,11 +725,46 @@ export default function DashboardCDI() {
                 {t('loading')}
               </div>
             ) : recommendedOffres.length === 0 ? (
-              // Lot A : 2 empty-states distincts.
-              //   DND ('employed') → ROUGE + bouton "Repasser À l'écoute".
-              //   À l'écoute mais 0 match → GRIS neutre.
+              // 3 empty-states distincts (priorité explicite, parité freelance) :
+              //   DND ('employed') → ROUGE + bouton "Repasser À l'écoute" (Lot A).
+              //   matching IA en cours (fenêtre <120s) → état TRANSITOIRE
+              //     "Analyse en cours…" (Lot UX refetch auto).
+              //   sinon 0 match → GRIS neutre.
               missionsLive.data?.expert_status?.is_dnd && user?.id ? (
                 <DndEmptyState side="cdi" userId={user.id} />
+              ) : matchingInWindow ? (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  style={{
+                    background: '#f9fafb',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 10,
+                    padding: 22,
+                    textAlign: 'center',
+                    fontSize: 14,
+                    color: '#475569',
+                    lineHeight: 1.8,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 10,
+                  }}
+                >
+                  <span
+                    aria-hidden
+                    style={{
+                      width: 18,
+                      height: 18,
+                      border: `2px solid ${domain.primaryColor}44`,
+                      borderTopColor: domain.primaryColor,
+                      borderRadius: '50%',
+                      animation: 'sk-spin 0.8s linear infinite',
+                    }}
+                  />
+                  <span>{t('suggestions_section.analyzing', { ecosystem: domain.ecosystemName })}</span>
+                  <style>{`@keyframes sk-spin { to { transform: rotate(360deg) } }`}</style>
+                </div>
               ) : (
                 <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
                   {t('suggestions_section.empty_verified')}

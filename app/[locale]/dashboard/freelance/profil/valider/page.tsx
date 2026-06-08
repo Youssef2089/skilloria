@@ -7,6 +7,7 @@ import { Plus_Jakarta_Sans } from 'next/font/google'
 import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { markMatchingTriggered } from '@/lib/matching-resync-hint'
 import CountrySelect from '@/components/CountrySelect'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import CompactListItem from '@/components/CompactListItem'
@@ -766,6 +767,16 @@ export default function ValiderProfilPage() {
         setSaving(false)
         return
       }
+
+      // Lot UX refetch auto post-matching : tout PATCH /api/profile réussi
+      // peut déclencher un runMatchingForExpert en `after()` côté serveur
+      // (visible=true → auto-approve, OU expert déjà approuvé+actif).
+      // On pose le hint sessionStorage pour que la home affiche "Analyse
+      // en cours…" et passe en fast-poll dès l'arrivée sur le dashboard.
+      try {
+        const { data: { session: postSession } } = await supabase.auth.getSession()
+        if (postSession?.user?.id) markMatchingTriggered(postSession.user.id)
+      } catch { /* SSR-safe / privacy noop */ }
 
       if (visible) {
         router.push('/dashboard/freelance')
