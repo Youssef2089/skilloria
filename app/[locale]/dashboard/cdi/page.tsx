@@ -26,8 +26,8 @@ import {
   markMatchingTriggered,
   readMatchingTrigger,
 } from '@/lib/matching-resync-hint'
-import CandidatureMiniCard, { type CandidatureMiniItem } from '@/components/dashboard/CandidatureMiniCard'
-import MissionMiniCard from '@/components/dashboard/MissionMiniCard'
+import MissionCastingCard from '@/components/dashboard/MissionCastingCard'
+import CandidatureCastingCard from '@/components/dashboard/CandidatureCastingCard'
 import SpotlightCarousel from '@/components/dashboard/SpotlightCarousel'
 import type { MissionCardData } from '@/components/dashboard/MissionCard'
 import { useLiveResource } from '@/hooks/useLiveResource'
@@ -701,7 +701,7 @@ export default function DashboardCDI() {
           {/* SECTION — Suggestions pour vous (REORDONNEE : au-dessus de
               Mes candidatures, parite home freelance). Cablée sur
               /api/me/missions via useLiveResource (mirror exact freelance).
-              CHECK : MissionMiniCard side='cdi' route ses liens vers
+              CHECK : MissionCastingCard side='cdi' route ses liens vers
               /dashboard/cdi/missions/[id] (cf. dashboardUrlForUserType
               implicit via side prop). Le 'Voir tout' pointe vers
               /dashboard/cdi/missions (page "Offres" du CDI). */}
@@ -778,8 +778,11 @@ export default function DashboardCDI() {
               <SpotlightCarousel<MissionCardData>
                 items={recommendedOffres}
                 getKey={(m) => m.match_id}
-                minHeight={210}
-                minHeightMobile={200}
+                minHeight={280}
+                minHeightMobile={300}
+                sceneMaxWidth={760}
+                sideMaxWidth={200}
+                sidePeek="6%"
                 labels={{
                   formatCounter: (current, total) => tc('counter', { current, total }),
                   sortedByScore: tc('sorted_by_score'),
@@ -790,8 +793,8 @@ export default function DashboardCDI() {
                   empty: tc('empty'),
                 }}
                 renderItem={(m, { isCenter }) => (
-                  <div style={{ width: isCenter ? 'min(420px, 92vw)' : '100%' }}>
-                    <MissionMiniCard mission={m} side="cdi" />
+                  <div style={{ width: isCenter ? 'min(440px, 92vw)' : '100%' }}>
+                    <MissionCastingCard mission={m} side="cdi" />
                   </div>
                 )}
               />
@@ -867,8 +870,11 @@ export default function DashboardCDI() {
               <SpotlightCarousel
                 items={apps.items}
                 getKey={(item) => item.id}
-                minHeight={170}
-                minHeightMobile={160}
+                minHeight={280}
+                minHeightMobile={300}
+                sceneMaxWidth={760}
+                sideMaxWidth={200}
+                sidePeek="6%"
                 labels={{
                   formatCounter: (current, total) => tc('counter', { current, total }),
                   prevAria: tc('prev_aria'),
@@ -877,25 +883,21 @@ export default function DashboardCDI() {
                   gotoAria: (index) => tc('goto_aria', { index }),
                   empty: tc('empty'),
                 }}
-                renderItem={(item, { isCenter }) => {
-                  const cand: CandidatureMiniItem = {
-                    id: item.id,
-                    publication_id: item.publication_id ?? '',
-                    publication: item.publication_id
-                      ? { id: item.publication_id, type: item.publication_type ?? 'offre', title: item.publication_title ?? '—', status: 'published' }
-                      : null,
-                    status: item.status ?? '',
-                    ai_match_score: item.ai_match_score,
-                    conversation_id: item.conversation_id,
-                    created_at: item.created_at ?? '',
-                    viewed_by_me: item.viewed_by_me,
-                  }
-                  return (
-                    <div style={{ width: isCenter ? 'min(420px, 92vw)' : '100%' }}>
-                      <CandidatureMiniCard candidature={cand} side="cdi" />
-                    </div>
-                  )
-                }}
+                renderItem={(item, { isCenter }) => (
+                  <div style={{ width: isCenter ? 'min(440px, 92vw)' : '100%' }}>
+                    <CandidatureCastingCard
+                      side="cdi"
+                      candidature={{
+                        id: item.id,
+                        publication: item.publication,
+                        org: item.org,
+                        skills_required: item.skills_required,
+                        status: item.status ?? '',
+                        viewed_by_me: item.viewed_by_me,
+                      }}
+                    />
+                  </div>
+                )}
               />
             )}
           </div>

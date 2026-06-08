@@ -9,10 +9,11 @@ import TJMQuickEditModal from '@/components/TJMQuickEditModal'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import VerificationBanner from '@/components/dashboard/VerificationBanner'
 import { useLiveResource } from '@/hooks/useLiveResource'
-import MissionMiniCard from '@/components/dashboard/MissionMiniCard'
-import CandidatureMiniCard from '@/components/dashboard/CandidatureMiniCard'
+import MissionCastingCard from '@/components/dashboard/MissionCastingCard'
+import CandidatureCastingCard from '@/components/dashboard/CandidatureCastingCard'
 import SpotlightCarousel from '@/components/dashboard/SpotlightCarousel'
 import type { MissionCardData } from '@/components/dashboard/MissionCard'
+import type { PublicationSynthesisData } from '@/components/dashboard/PublicationSynthesisLine'
 import AvailabilityToggle, {
   type AvailabilityStatus,
 } from '@/components/freelance/AvailabilityToggle'
@@ -91,7 +92,11 @@ export default function DashboardFreelance() {
   type CandidatureLite = {
     id: string
     publication_id: string
-    publication: { id: string; type: string; title: string; status: string } | null
+    // Refonte casting home : publication = synthèse parlante complète (+ org +
+    // compétences) renvoyée par /api/me/candidatures. Alimente la carte riche.
+    publication: (PublicationSynthesisData & { status: string | null; published_at?: string | null }) | null
+    org: MissionCardData['org']
+    skills_required: string[]
     status: string
     ai_match_score: number | null
     conversation_id: string | null
@@ -651,8 +656,11 @@ export default function DashboardFreelance() {
               <SpotlightCarousel<MissionCardData>
                 items={recommendedMissions}
                 getKey={(m) => m.match_id}
-                minHeight={210}
-                minHeightMobile={200}
+                minHeight={280}
+                minHeightMobile={300}
+                sceneMaxWidth={760}
+                sideMaxWidth={200}
+                sidePeek="6%"
                 labels={{
                   formatCounter: (current, total) => tc('counter', { current, total }),
                   sortedByScore: tc('sorted_by_score'),
@@ -663,8 +671,8 @@ export default function DashboardFreelance() {
                   empty: tc('empty'),
                 }}
                 renderItem={(m, { isCenter }) => (
-                  <div style={{ width: isCenter ? 'min(420px, 92vw)' : '100%' }}>
-                    <MissionMiniCard mission={m} side="freelance" />
+                  <div style={{ width: isCenter ? 'min(440px, 92vw)' : '100%' }}>
+                    <MissionCastingCard mission={m} side="freelance" />
                   </div>
                 )}
               />
@@ -690,8 +698,11 @@ export default function DashboardFreelance() {
                 <SpotlightCarousel<CandidatureLite>
                   items={recentCandidatures}
                   getKey={(c) => c.id}
-                  minHeight={170}
-                  minHeightMobile={160}
+                  minHeight={280}
+                  minHeightMobile={300}
+                  sceneMaxWidth={760}
+                  sideMaxWidth={200}
+                  sidePeek="6%"
                   labels={{
                     formatCounter: (current, total) => tc('counter', { current, total }),
                     prevAria: tc('prev_aria'),
@@ -701,8 +712,8 @@ export default function DashboardFreelance() {
                     empty: tc('empty'),
                   }}
                   renderItem={(c, { isCenter }) => (
-                    <div style={{ width: isCenter ? 'min(420px, 92vw)' : '100%' }}>
-                      <CandidatureMiniCard candidature={c} side="freelance" />
+                    <div style={{ width: isCenter ? 'min(440px, 92vw)' : '100%' }}>
+                      <CandidatureCastingCard candidature={c} side="freelance" />
                     </div>
                   )}
                 />

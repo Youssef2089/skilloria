@@ -1836,7 +1836,11 @@
       "next_aria": "Next opportunity",
       "pagination_aria": "Opportunities pagination",
       "goto_aria": "View opportunity {index}",
-      "empty": "No opportunity to display."
+      "empty": "No opportunity to display.",
+      "see_mission": "View mission",
+      "see_offre": "View position",
+      "see_application": "View application",
+      "more_skills": "+{count}"
     },
     "detail": {
       "back_to_feed": "← Back to opportunities",

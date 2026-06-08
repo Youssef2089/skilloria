@@ -33,6 +33,8 @@ export type MissionCardData = {
   /** PublicationSynthesis enrichi par /api/me/missions + published_at. */
   publication: PublicationSynthesisData & { published_at: string | null }
   org: { name: string | null; logo_url: string | null } | null
+  /** Compétences requises (chips carte casting home). Additif — ignoré ici. */
+  skills_required?: string[]
 }
 
 function formatBudget(min: number | null, max: number | null, type: string, locale: string): string {

@@ -57,6 +57,18 @@ function formatBudget(min: number | null, max: number | null, unit: string): str
   return `${fmt(v)}${unit}`
 }
 
+/**
+ * Formate le budget d'une publication avec son unité (€/jour ou €/an déjà
+ * fournie). Source unique partagée — réutilisée par les cartes casting pour
+ * un pied de carte budget cohérent avec les chips de synthèse.
+ */
+export function formatPublicationBudget(
+  pub: Pick<PublicationSynthesisData, 'budget_min' | 'budget_max'>,
+  budgetUnitLabel: string,
+): string | null {
+  return formatBudget(pub.budget_min, pub.budget_max, ` ${budgetUnitLabel}`)
+}
+
 function formatDate(iso: string | null, locale: string): string | null {
   if (!iso) return null
   try {
@@ -69,10 +81,17 @@ function formatDate(iso: string | null, locale: string): string | null {
 export default function PublicationSynthesisLine({
   pub,
   size = 'md',
+  omit = [],
 }: {
   pub: PublicationSynthesisData
   /** 'sm' réduit la taille des chips pour les listes denses. */
   size?: 'sm' | 'md'
+  /**
+   * Clés de chips à ne pas afficher (ex. ['budget'] pour reléguer le budget
+   * ailleurs). Défaut [] → comportement inchangé (pages dédiées non impactées).
+   * Clés : budget | contract | location | work_mode | duration | start | seniority.
+   */
+  omit?: string[]
 }) {
   const tPub = useTranslations('publications')
   const tSyn = useTranslations('publications.synthesis')
@@ -122,11 +141,12 @@ export default function PublicationSynthesisLine({
   if (startText) chips.push({ key: 'start', icon: <IconCalendarEvent size={iconSize} stroke={1.8} />, label: startText })
   if (seniorityLabel) chips.push({ key: 'seniority', icon: <IconBriefcase size={iconSize} stroke={1.8} />, label: seniorityLabel })
 
-  if (chips.length === 0) return null
+  const visibleChips = omit.length > 0 ? chips.filter((c) => !omit.includes(c.key)) : chips
+  if (visibleChips.length === 0) return null
 
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-      {chips.map((c) => (
+      {visibleChips.map((c) => (
         <span
           key={c.key}
           style={{

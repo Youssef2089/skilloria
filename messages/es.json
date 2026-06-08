@@ -1836,7 +1836,11 @@
       "next_aria": "Oportunidad siguiente",
       "pagination_aria": "Paginación de oportunidades",
       "goto_aria": "Ver la oportunidad {index}",
-      "empty": "Ninguna oportunidad para mostrar."
+      "empty": "Ninguna oportunidad para mostrar.",
+      "see_mission": "Ver la misión",
+      "see_offre": "Ver el puesto",
+      "see_application": "Ver la candidatura",
+      "more_skills": "+{count}"
     },
     "detail": {
       "back_to_feed": "← Volver a oportunidades",

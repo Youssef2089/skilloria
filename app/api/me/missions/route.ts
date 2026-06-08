@@ -130,7 +130,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         'id, publication_id, score, status, explanation, created_at, ' +
           'publications!inner(' +
           'id, type, title, branch_id, speciality_id, budget_min, budget_max, ' +
-          'location, work_mode, duration, start_date, seniority, ' +
+          'location, work_mode, duration, start_date, seniority, skills_required, ' +
           'confidential, status, published_at, organization_id, ' +
           'branches(id, name), specialities(id, name), ' +
           'organizations!inner(id, company_name, logo_url)' +
@@ -172,6 +172,9 @@ export async function GET(request: NextRequest): Promise<Response> {
         ...synthesis,
         published_at: (pub as { published_at: string | null }).published_at,
       },
+      // Compétences requises (chips carte casting). Additif : ignoré par
+      // MissionCard / la page dédiée /missions.
+      skills_required: ((pub as { skills_required?: string[] | null }).skills_required ?? []),
       // Org : masqué si confidential
       org: (pub as { confidential: boolean }).confidential
         ? null

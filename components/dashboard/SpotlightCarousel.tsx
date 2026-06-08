@@ -63,6 +63,16 @@ type Props<T> = {
   minHeight?: number | string
   /** Hauteur min de la scène <640px (défaut 540 — org pixel-identique). */
   minHeightMobile?: number | string
+  /**
+   * Borne la largeur du stage et le centre (défaut `undefined` → 100% = org).
+   * En la bornant, les voisines ancrées aux bords se rapprochent du centre.
+   */
+  sceneMaxWidth?: number | string
+  /**
+   * Décalage horizontal des voisines (magnitude positive ; gauche = -valeur,
+   * droite = +valeur). Défaut '12%' — org pixel-identique.
+   */
+  sidePeek?: string
 }
 
 function cssLen(v: number | string): string {
@@ -79,6 +89,8 @@ export default function SpotlightCarousel<T>({
   sideMaxWidth = 360,
   minHeight = 580,
   minHeightMobile = 540,
+  sceneMaxWidth,
+  sidePeek = '12%',
 }: Props<T>) {
   const domain = useDomain()
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -175,6 +187,9 @@ export default function SpotlightCarousel<T>({
           gap: 0;
           padding: 18px 0 28px;
           min-height: ${cssLen(minHeight)};
+          max-width: ${sceneMaxWidth != null ? cssLen(sceneMaxWidth) : 'none'};
+          margin-left: auto;
+          margin-right: auto;
         }
         .sk-spotlight-slot {
           flex-shrink: 0;
@@ -194,8 +209,8 @@ export default function SpotlightCarousel<T>({
           z-index: 1;
           width: min(${sideMaxWidth}px, 70vw);
         }
-        .sk-spotlight-slot-side.left  { left: 0; transform: translate(-12%, -50%) scale(0.78); }
-        .sk-spotlight-slot-side.right { right: 0; transform: translate(12%, -50%) scale(0.78); }
+        .sk-spotlight-slot-side.left  { left: 0; transform: translate(calc(-1 * ${sidePeek}), -50%) scale(0.78); }
+        .sk-spotlight-slot-side.right { right: 0; transform: translate(${sidePeek}, -50%) scale(0.78); }
         .sk-spotlight-arrow {
           position: absolute;
           top: 50%;

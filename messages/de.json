@@ -1836,7 +1836,11 @@
       "next_aria": "Nächste Gelegenheit",
       "pagination_aria": "Paginierung der Gelegenheiten",
       "goto_aria": "Gelegenheit {index} ansehen",
-      "empty": "Keine Gelegenheit anzuzeigen."
+      "empty": "Keine Gelegenheit anzuzeigen.",
+      "see_mission": "Mission ansehen",
+      "see_offre": "Stelle ansehen",
+      "see_application": "Bewerbung ansehen",
+      "more_skills": "+{count}"
     },
     "detail": {
       "back_to_feed": "← Zurück zu den Möglichkeiten",

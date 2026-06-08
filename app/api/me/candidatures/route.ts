@@ -89,9 +89,10 @@ export async function GET(request: NextRequest): Promise<Response> {
           'cover_message, created_at, updated_at, ' +
           'publications!inner(' +
           'id, type, title, branch_id, speciality_id, budget_min, budget_max, ' +
-          'location, work_mode, duration, start_date, seniority, ' +
-          'confidential, status, ' +
-          'branches(id, name), specialities(id, name)' +
+          'location, work_mode, duration, start_date, seniority, skills_required, ' +
+          'confidential, status, organization_id, ' +
+          'branches(id, name), specialities(id, name), ' +
+          'organizations(id, company_name, logo_url)' +
           ')',
       )
       .eq('profile_id', (profile as { id: string }).id)
@@ -146,12 +147,27 @@ export async function GET(request: NextRequest): Promise<Response> {
           status: (pubRaw as { status?: string }).status ?? null,
         }
       : null
+    // Org + compétences pour la carte casting du home (additif ; la page
+    // dédiée /candidatures et useCdiApplications ignorent ces champs).
+    // Masquage confidential STRICTEMENT identique à /api/me/missions.
+    const isConfidential = !!(pubRaw as { confidential?: boolean } | null)?.confidential
+    const orgRaw = pubRaw
+      ? (pickRel((pubRaw as { organizations?: unknown }).organizations as never) as
+          | { company_name: string | null; logo_url: string | null }
+          | null)
+      : null
+    const org = !isConfidential && orgRaw
+      ? { name: orgRaw.company_name ?? null, logo_url: orgRaw.logo_url ?? null }
+      : null
+    const skills_required = ((pubRaw as { skills_required?: string[] | null } | null)?.skills_required ?? [])
     const v = viewedAtByCand.get(r.id)
     const viewedByMe = !!v && new Date(v).getTime() >= new Date(r.updated_at).getTime()
     return {
       id: r.id,
       publication_id: r.publication_id,
       publication,
+      org,
+      skills_required,
       status: r.status,
       status_reason: r.status_reason,
       ai_match_score: r.ai_match_score,

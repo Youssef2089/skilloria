@@ -2,6 +2,12 @@
 
 import { useMemo } from 'react'
 import { useLiveResource } from '@/hooks/useLiveResource'
+import type { PublicationSynthesisData } from '@/components/dashboard/PublicationSynthesisLine'
+
+/** Publication enrichie renvoyée par /api/me/candidatures (synthèse parlante). */
+type CandidaturePublication = PublicationSynthesisData & { status: string | null; published_at?: string | null }
+/** Org de l'annonce (masquée si confidentielle), pour la carte casting home. */
+type CandidatureOrg = { name: string | null; logo_url: string | null } | null
 
 /**
  * useCdiApplications — candidatures de l'expert CDI courant.
@@ -24,6 +30,10 @@ export type ApplicationItem = {
   conversation_id: string | null
   /** Lot bascule badges par item : true si déjà consultée par cet user. */
   viewed_by_me: boolean
+  /** Refonte casting home (additif) : synthèse + org + compétences. */
+  publication: CandidaturePublication | null
+  org: CandidatureOrg
+  skills_required: string[]
 }
 
 export type UseCdiApplicationsState = {
@@ -40,7 +50,9 @@ export type UseCdiApplicationsState = {
 type ApiCandidature = {
   id: string
   publication_id: string
-  publication: { id: string; type: string; title: string; status: string } | null
+  publication: CandidaturePublication | null
+  org?: CandidatureOrg
+  skills_required?: string[]
   status: string
   ai_match_score: number | null
   conversation_id: string | null
@@ -80,6 +92,9 @@ export function useCdiApplications(): UseCdiApplicationsState {
       ai_match_score: c.ai_match_score,
       conversation_id: c.conversation_id,
       viewed_by_me: c.viewed_by_me === true,
+      publication: c.publication ?? null,
+      org: c.org ?? null,
+      skills_required: c.skills_required ?? [],
     }))
     return {
       loading: live.state.kind === 'loading',
