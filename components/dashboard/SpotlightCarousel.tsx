@@ -59,6 +59,14 @@ type Props<T> = {
   onCenterChange?: (item: T, index: number) => void
   /** Largeur max des voisins (défaut 360). */
   sideMaxWidth?: number
+  /** Hauteur min de la scène (défaut 580 — org pixel-identique). number → px. */
+  minHeight?: number | string
+  /** Hauteur min de la scène <640px (défaut 540 — org pixel-identique). */
+  minHeightMobile?: number | string
+}
+
+function cssLen(v: number | string): string {
+  return typeof v === 'number' ? `${v}px` : v
 }
 
 export default function SpotlightCarousel<T>({
@@ -69,6 +77,8 @@ export default function SpotlightCarousel<T>({
   initialIndex = 0,
   onCenterChange,
   sideMaxWidth = 360,
+  minHeight = 580,
+  minHeightMobile = 540,
 }: Props<T>) {
   const domain = useDomain()
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -164,7 +174,7 @@ export default function SpotlightCarousel<T>({
           justify-content: center;
           gap: 0;
           padding: 18px 0 28px;
-          min-height: 580px;
+          min-height: ${cssLen(minHeight)};
         }
         .sk-spotlight-slot {
           flex-shrink: 0;
@@ -210,7 +220,7 @@ export default function SpotlightCarousel<T>({
           .sk-spotlight-slot-side { display: none; }
         }
         @media (max-width: 640px) {
-          .sk-spotlight-stage { min-height: 540px; padding: 12px 0 22px; }
+          .sk-spotlight-stage { min-height: ${cssLen(minHeightMobile)}; padding: 12px 0 22px; }
           .sk-spotlight-arrow { width: 38px; height: 38px; font-size: 16px; }
           .sk-spotlight-arrow.left { left: 4px; }
           .sk-spotlight-arrow.right { right: 4px; }

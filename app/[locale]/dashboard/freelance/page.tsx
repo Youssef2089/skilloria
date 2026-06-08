@@ -11,6 +11,7 @@ import VerificationBanner from '@/components/dashboard/VerificationBanner'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import MissionMiniCard from '@/components/dashboard/MissionMiniCard'
 import CandidatureMiniCard from '@/components/dashboard/CandidatureMiniCard'
+import SpotlightCarousel from '@/components/dashboard/SpotlightCarousel'
 import type { MissionCardData } from '@/components/dashboard/MissionCard'
 import AvailabilityToggle, {
   type AvailabilityStatus,
@@ -67,6 +68,7 @@ function computeCompletionPct(user: any, profile: ProfileData | null): number {
 export default function DashboardFreelance() {
   const t = useTranslations('dashboard_freelance')
   const tCommon = useTranslations('common')
+  const tc = useTranslations('missions.casting')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -160,8 +162,10 @@ export default function DashboardFreelance() {
   const candidaturesAll = candidaturesLive.data?.candidatures ?? null
   const conversations = conversationsLive.data?.conversations ?? null
 
-  const recommendedMissions = useMemo(() => missions === null ? null : missions.slice(0, 3), [missions])
-  const recentCandidatures = useMemo(() => candidaturesAll === null ? null : candidaturesAll.slice(0, 3), [candidaturesAll])
+  // Casting home : on parcourt TOUTES les recommandations / candidatures
+  // (carrousel sous projecteur → ne rallonge pas le home). Plus de slice top-N.
+  const recommendedMissions = useMemo(() => missions === null ? null : missions, [missions])
+  const recentCandidatures = useMemo(() => candidaturesAll === null ? null : candidaturesAll, [candidaturesAll])
   const stats = useMemo(() => {
     if (missions === null && candidaturesAll === null && conversations === null) {
       return {
@@ -644,15 +648,30 @@ export default function DashboardFreelance() {
                 </div>
               )
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {recommendedMissions.map((m) => (
-                  <MissionMiniCard key={m.match_id} mission={m} side="freelance" />
-                ))}
-              </div>
+              <SpotlightCarousel<MissionCardData>
+                items={recommendedMissions}
+                getKey={(m) => m.match_id}
+                minHeight={210}
+                minHeightMobile={200}
+                labels={{
+                  formatCounter: (current, total) => tc('counter', { current, total }),
+                  sortedByScore: tc('sorted_by_score'),
+                  prevAria: tc('prev_aria'),
+                  nextAria: tc('next_aria'),
+                  paginationAria: tc('pagination_aria'),
+                  gotoAria: (index) => tc('goto_aria', { index }),
+                  empty: tc('empty'),
+                }}
+                renderItem={(m, { isCenter }) => (
+                  <div style={{ width: isCenter ? 'min(420px, 92vw)' : '100%' }}>
+                    <MissionMiniCard mission={m} side="freelance" />
+                  </div>
+                )}
+              />
             )}
           </div>
 
-          {/* SC2 — Section "Vos candidatures" (3 dernières) */}
+          {/* SC2 — Section "Vos candidatures" */}
           {isVerified && (
             <div className="main-card" style={{ animationDelay: '0.38s' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -668,11 +687,25 @@ export default function DashboardFreelance() {
                   {t('cards.your_candidatures.empty')}
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {recentCandidatures.map((c) => (
-                    <CandidatureMiniCard key={c.id} candidature={c} side="freelance" />
-                  ))}
-                </div>
+                <SpotlightCarousel<CandidatureLite>
+                  items={recentCandidatures}
+                  getKey={(c) => c.id}
+                  minHeight={170}
+                  minHeightMobile={160}
+                  labels={{
+                    formatCounter: (current, total) => tc('counter', { current, total }),
+                    prevAria: tc('prev_aria'),
+                    nextAria: tc('next_aria'),
+                    paginationAria: tc('pagination_aria'),
+                    gotoAria: (index) => tc('goto_aria', { index }),
+                    empty: tc('empty'),
+                  }}
+                  renderItem={(c, { isCenter }) => (
+                    <div style={{ width: isCenter ? 'min(420px, 92vw)' : '100%' }}>
+                      <CandidatureMiniCard candidature={c} side="freelance" />
+                    </div>
+                  )}
+                />
               )}
             </div>
           )}

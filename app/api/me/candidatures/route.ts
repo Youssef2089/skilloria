@@ -90,9 +90,8 @@ export async function GET(request: NextRequest): Promise<Response> {
           'publications!inner(' +
           'id, type, title, branch_id, speciality_id, budget_min, budget_max, ' +
           'location, work_mode, duration, start_date, seniority, ' +
-          'confidential, status, published_at, organization_id, ' +
-          'branches(id, name), specialities(id, name), ' +
-          'organizations(id, company_name, logo_url)' +
+          'confidential, status, ' +
+          'branches(id, name), specialities(id, name)' +
           ')',
       )
       .eq('profile_id', (profile as { id: string }).id)
@@ -145,19 +144,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       ? {
           ...buildPublicationSynthesis(pubRaw, translations),
           status: (pubRaw as { status?: string }).status ?? null,
-          published_at: (pubRaw as { published_at?: string | null }).published_at ?? null,
         }
-      : null
-    // Org de l'annonce à laquelle l'expert a postulé. Masquée si l'annonce est
-    // confidentielle (parité avec /api/me/missions). L'expert est légitime à
-    // voir l'org d'une publication à laquelle il a candidaté (lecture seule).
-    const orgRaw = pubRaw
-      ? (pickRel((pubRaw as { organizations?: unknown }).organizations as never) as
-          | { company_name: string | null; logo_url: string | null }
-          | null)
-      : null
-    const org = pubRaw && !(pubRaw as { confidential?: boolean }).confidential
-      ? (orgRaw ? { name: orgRaw.company_name ?? null, logo_url: orgRaw.logo_url ?? null } : null)
       : null
     const v = viewedAtByCand.get(r.id)
     const viewedByMe = !!v && new Date(v).getTime() >= new Date(r.updated_at).getTime()
@@ -165,7 +152,6 @@ export async function GET(request: NextRequest): Promise<Response> {
       id: r.id,
       publication_id: r.publication_id,
       publication,
-      org,
       status: r.status,
       status_reason: r.status_reason,
       ai_match_score: r.ai_match_score,

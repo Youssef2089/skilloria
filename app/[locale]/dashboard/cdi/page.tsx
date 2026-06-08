@@ -26,8 +26,9 @@ import {
   markMatchingTriggered,
   readMatchingTrigger,
 } from '@/lib/matching-resync-hint'
-import CandidatureMiniCard from '@/components/dashboard/CandidatureMiniCard'
+import CandidatureMiniCard, { type CandidatureMiniItem } from '@/components/dashboard/CandidatureMiniCard'
 import MissionMiniCard from '@/components/dashboard/MissionMiniCard'
+import SpotlightCarousel from '@/components/dashboard/SpotlightCarousel'
 import type { MissionCardData } from '@/components/dashboard/MissionCard'
 import { useLiveResource } from '@/hooks/useLiveResource'
 
@@ -92,6 +93,7 @@ function initialsOf(user: CdiUser | null): string {
 
 export default function DashboardCDI() {
   const t = useTranslations('dashboard_cdi')
+  const tc = useTranslations('missions.casting')
   const tProfile = useTranslations('cdi_profile_view')
   const router = useRouter()
   const domain = useDomain()
@@ -136,8 +138,10 @@ export default function DashboardCDI() {
     enabled: isVerified,
     holdNewItems: false,
   })
+  // Casting home : on parcourt TOUTES les suggestions (carrousel sous
+  // projecteur → ne rallonge pas le home). Plus de slice top-N.
   const recommendedOffres = useMemo(
-    () => missionsLive.data?.missions?.slice(0, 3) ?? null,
+    () => missionsLive.data?.missions ?? null,
     [missionsLive.data],
   )
 
@@ -771,11 +775,26 @@ export default function DashboardCDI() {
                 </div>
               )
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {recommendedOffres.map((m) => (
-                  <MissionMiniCard key={m.match_id} mission={m} side="cdi" />
-                ))}
-              </div>
+              <SpotlightCarousel<MissionCardData>
+                items={recommendedOffres}
+                getKey={(m) => m.match_id}
+                minHeight={210}
+                minHeightMobile={200}
+                labels={{
+                  formatCounter: (current, total) => tc('counter', { current, total }),
+                  sortedByScore: tc('sorted_by_score'),
+                  prevAria: tc('prev_aria'),
+                  nextAria: tc('next_aria'),
+                  paginationAria: tc('pagination_aria'),
+                  gotoAria: (index) => tc('goto_aria', { index }),
+                  empty: tc('empty'),
+                }}
+                renderItem={(m, { isCenter }) => (
+                  <div style={{ width: isCenter ? 'min(420px, 92vw)' : '100%' }}>
+                    <MissionMiniCard mission={m} side="cdi" />
+                  </div>
+                )}
+              />
             )}
           </div>
 
@@ -845,26 +864,39 @@ export default function DashboardCDI() {
                 {t('applications_section.empty_state')}
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {apps.items.slice(0, 5).map((item) => (
-                  <CandidatureMiniCard
-                    key={item.id}
-                    side="cdi"
-                    candidature={{
-                      id: item.id,
-                      publication_id: item.publication_id ?? '',
-                      publication: item.publication_id
-                        ? { id: item.publication_id, type: item.publication_type ?? 'offre', title: item.publication_title ?? '—', status: 'published' }
-                        : null,
-                      status: item.status ?? '',
-                      ai_match_score: item.ai_match_score,
-                      conversation_id: item.conversation_id,
-                      created_at: item.created_at ?? '',
-                      viewed_by_me: item.viewed_by_me,
-                    }}
-                  />
-                ))}
-              </div>
+              <SpotlightCarousel
+                items={apps.items}
+                getKey={(item) => item.id}
+                minHeight={170}
+                minHeightMobile={160}
+                labels={{
+                  formatCounter: (current, total) => tc('counter', { current, total }),
+                  prevAria: tc('prev_aria'),
+                  nextAria: tc('next_aria'),
+                  paginationAria: tc('pagination_aria'),
+                  gotoAria: (index) => tc('goto_aria', { index }),
+                  empty: tc('empty'),
+                }}
+                renderItem={(item, { isCenter }) => {
+                  const cand: CandidatureMiniItem = {
+                    id: item.id,
+                    publication_id: item.publication_id ?? '',
+                    publication: item.publication_id
+                      ? { id: item.publication_id, type: item.publication_type ?? 'offre', title: item.publication_title ?? '—', status: 'published' }
+                      : null,
+                    status: item.status ?? '',
+                    ai_match_score: item.ai_match_score,
+                    conversation_id: item.conversation_id,
+                    created_at: item.created_at ?? '',
+                    viewed_by_me: item.viewed_by_me,
+                  }
+                  return (
+                    <div style={{ width: isCenter ? 'min(420px, 92vw)' : '100%' }}>
+                      <CandidatureMiniCard candidature={cand} side="cdi" />
+                    </div>
+                  )
+                }}
+              />
             )}
           </div>
       </div>
