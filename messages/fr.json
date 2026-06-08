@@ -267,7 +267,7 @@
       "messages": "Messages",
       "posted": "Postulées",
       "in_discussion": "Échanges en cours",
-      "retained": "Retenues",
+      "retained": "Acceptées",
       "refused": "Refusées",
       "daily_rate": "Mon TJM",
       "daily_rate_set": "Définir →",
@@ -334,7 +334,7 @@
           "in_review": "En revue",
           "shortlisted": "Présélectionnée",
           "unlocked": "Échange ouvert",
-          "selected": "Retenue",
+          "selected": "Acceptée",
           "rejected": "Refusée",
           "withdrawn": "Retirée",
           "archived": "Archivée"
@@ -885,7 +885,7 @@
       "applications_sent": "Candidatures envoyées",
       "posted": "Postulées",
       "in_discussion": "Échanges en cours",
-      "retained": "Retenues",
+      "retained": "Acceptées",
       "refused": "Refusées"
     },
     "applications_section": {
@@ -901,7 +901,7 @@
         "in_review": "En revue",
         "shortlisted": "Présélectionnée",
         "unlocked": "Échange ouvert",
-        "selected": "Retenue",
+        "selected": "Acceptée",
         "rejected": "Refusée",
         "withdrawn": "Retirée",
         "archived": "Archivée"
@@ -1588,7 +1588,7 @@
       "in_review": "En revue",
       "shortlisted": "Présélectionnée",
       "unlocked": "Échange ouvert",
-      "selected": "Retenue",
+      "selected": "Acceptée",
       "rejected": "Refusée",
       "withdrawn": "Retirée",
       "archived": "Archivée"
@@ -1596,7 +1596,7 @@
     "filters": {
       "all": "Toutes",
       "open": "Échange ouvert",
-      "won": "Retenues",
+      "won": "Acceptées",
       "wait": "En attente",
       "refused": "Refusées"
     },

@@ -512,7 +512,7 @@ export default function DashboardFreelance() {
           )}
 
           {/* Lot état 'selected' : 4 stat-cards de comptage (Postulées, En
-              discussion, Retenues, Refusées) + TJM card = 5 tuiles total. La
+              discussion, Acceptées, Refusées) + TJM card = 5 tuiles total. La
               media query .stats-grid bascule en grid auto-fit min 140 sur
               mobile pour rester lisible (cf. styles ci-dessous). */}
           <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 22 }}>

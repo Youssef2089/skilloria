@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic'
  * Modèle V1 (validation Youssef) :
  *  - Transition UNIQUEMENT depuis 'unlocked' (l'org a déjà accepté l'échange).
  *  - 'selected' est FINAL (pas de retour arrière en V1).
- *  - Côté UI org : bouton "Retenir ce candidat" avec CONFIRMATION explicite
+ *  - Côté UI org : bouton "Accepter ce candidat" avec CONFIRMATION explicite
  *    (l'action est irréversible).
  *
  * Garde (service_role) :

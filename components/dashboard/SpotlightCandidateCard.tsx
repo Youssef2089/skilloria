@@ -18,7 +18,7 @@ import type { CandidatureData } from '@/components/dashboard/CandidatureCard'
  * États :
  *   - VERROUILLÉE (status pré-unlock) : cadenas + teaser + bouton "Débloquer".
  *   - DÉBLOQUÉE  (status unlocked|selected) : photo + nom complet + actions
- *     Message / Retenir / Refuser.
+ *     Message / Accepter / Refuser.
  *   - FERMÉE (rejected/withdrawn/archived) : carte fanée, pas d'actions.
  *
  * Surimpression photo : pastille disponibilité (haut-gauche, namespace

@@ -267,7 +267,7 @@
       "messages": "Messages",
       "posted": "Posted",
       "in_discussion": "In progress",
-      "retained": "Selected",
+      "retained": "Accepted",
       "refused": "Rejected",
       "daily_rate": "My day rate",
       "daily_rate_set": "Set →",
@@ -334,7 +334,7 @@
           "in_review": "In review",
           "shortlisted": "Shortlisted",
           "unlocked": "Exchange open",
-          "selected": "Selected",
+          "selected": "Accepted",
           "rejected": "Rejected",
           "withdrawn": "Withdrawn",
           "archived": "Archived"
@@ -885,7 +885,7 @@
       "applications_sent": "Applications sent",
       "posted": "Posted",
       "in_discussion": "In progress",
-      "retained": "Selected",
+      "retained": "Accepted",
       "refused": "Rejected"
     },
     "applications_section": {
@@ -901,7 +901,7 @@
         "in_review": "In review",
         "shortlisted": "Shortlisted",
         "unlocked": "Exchange open",
-        "selected": "Selected",
+        "selected": "Accepted",
         "rejected": "Rejected",
         "withdrawn": "Withdrawn",
         "archived": "Archived"
@@ -1588,7 +1588,7 @@
       "in_review": "In review",
       "shortlisted": "Shortlisted",
       "unlocked": "Exchange open",
-      "selected": "Selected",
+      "selected": "Accepted",
       "rejected": "Rejected",
       "withdrawn": "Withdrawn",
       "archived": "Archived"
@@ -1596,7 +1596,7 @@
     "filters": {
       "all": "All",
       "open": "Exchange open",
-      "won": "Selected",
+      "won": "Accepted",
       "wait": "Pending",
       "refused": "Rejected"
     },

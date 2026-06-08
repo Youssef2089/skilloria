@@ -267,7 +267,7 @@
       "messages": "Mensajes",
       "posted": "Postuladas",
       "in_discussion": "En curso",
-      "retained": "Seleccionadas",
+      "retained": "Aceptadas",
       "refused": "Rechazadas",
       "daily_rate": "Mi tarifa diaria",
       "daily_rate_set": "Definir →",
@@ -334,7 +334,7 @@
           "in_review": "En revisión",
           "shortlisted": "Preseleccionada",
           "unlocked": "Intercambio abierto",
-          "selected": "Seleccionada",
+          "selected": "Aceptada",
           "rejected": "Rechazada",
           "withdrawn": "Retirada",
           "archived": "Archivada"
@@ -885,7 +885,7 @@
       "applications_sent": "Candidaturas enviadas",
       "posted": "Postuladas",
       "in_discussion": "En curso",
-      "retained": "Seleccionadas",
+      "retained": "Aceptadas",
       "refused": "Rechazadas"
     },
     "applications_section": {
@@ -901,7 +901,7 @@
         "in_review": "En revisión",
         "shortlisted": "Preseleccionada",
         "unlocked": "Intercambio abierto",
-        "selected": "Seleccionada",
+        "selected": "Aceptada",
         "rejected": "Rechazada",
         "withdrawn": "Retirada",
         "archived": "Archivada"
@@ -1588,7 +1588,7 @@
       "in_review": "En revisión",
       "shortlisted": "Preseleccionada",
       "unlocked": "Intercambio abierto",
-      "selected": "Seleccionada",
+      "selected": "Aceptada",
       "rejected": "Rechazada",
       "withdrawn": "Retirada",
       "archived": "Archivada"
@@ -1596,7 +1596,7 @@
     "filters": {
       "all": "Todas",
       "open": "Intercambio abierto",
-      "won": "Seleccionadas",
+      "won": "Aceptadas",
       "wait": "Pendiente",
       "refused": "Rechazadas"
     },

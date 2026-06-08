@@ -607,8 +607,8 @@ export default function DashboardCDI() {
           </div>
 
           {/* SECTION 3 — KPIs (parité freelance, Lot état 'selected').
-                Postulées / En discussion / Retenues / Refusées.
-                en_discussion = unlocked uniquement, retenues = selected. */}
+                Postulées / En discussion / Acceptées / Refusées.
+                en_discussion = unlocked uniquement, retenues (label DB) = selected. */}
           <div
             className="stats-grid"
             style={{

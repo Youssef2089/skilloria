@@ -189,9 +189,9 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
   const isRejected = status === 'rejected'
   const isClosed = isRejected || status === 'withdrawn' || status === 'archived'
   const canAct = status === 'received' || status === 'in_review' || status === 'shortlisted'
-  // Bouton "Retenir" : visible UNIQUEMENT en 'unlocked' (l'org a déjà débloqué
-  // le profil et discuté). Côté serveur, la transition autorisée est aussi
-  // restreinte à ['unlocked'] (lib/.. /api/candidatures/[id]/select/route.ts).
+  // Bouton "Accepter" : visible UNIQUEMENT en 'unlocked' (l'org a déjà
+  // débloqué le profil et discuté). Côté serveur, la transition autorisée
+  // est aussi restreinte à ['unlocked'] (cf. /api/candidatures/[id]/select).
   const canSelect = isUnlocked && !isClosed
   // Lot bascule badges par item : pill + bouton "Marquer comme vue" tant
   // que l'org n'a pas (a) consulté explicitement via le bouton, OU (b) agi
@@ -595,7 +595,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
               </button>
             )}
 
-            {/* Bouton "Retenir ce candidat" — UNIQUEMENT en 'unlocked'.
+            {/* Bouton "Accepter ce candidat" — UNIQUEMENT en 'unlocked'.
                 Action IRRÉVERSIBLE → demande de confirmation explicite. */}
             {canSelect && !confirmSelect && (
               <button
@@ -619,7 +619,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
             )}
           </div>
 
-          {/* Bandeau de confirmation "Retenir" — explicite que c'est définitif. */}
+          {/* Bandeau de confirmation "Accepter" — explicite que c'est définitif. */}
           {canSelect && confirmSelect && (
             <div
               role="alertdialog"
@@ -693,7 +693,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
       {/* Lot bascule badges par item : bouton "Marquer comme vue" — ghost
           style, visible UNIQUEMENT si la candidature n'a pas encore été
           consultée par cet user ET qu'elle n'est pas dans un état terminal.
-          Les actions métier (Accepter/Refuser/Retenir) auto-marquent côté
+          Les actions métier (Accepter/Refuser) auto-marquent côté
           serveur via markCandidatureViewedServerSide → ce bouton sert au
           cas où l'org veut acquitter SANS prendre de décision tout de suite. */}
       {isUnviewed && !isClosed && (

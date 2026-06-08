@@ -267,7 +267,7 @@
       "messages": "Nachrichten",
       "posted": "Beworben",
       "in_discussion": "Im Austausch",
-      "retained": "Ausgewählt",
+      "retained": "Angenommen",
       "refused": "Abgelehnt",
       "daily_rate": "Mein Tagessatz",
       "daily_rate_set": "Festlegen →",
@@ -334,7 +334,7 @@
           "in_review": "In Prüfung",
           "shortlisted": "Vorausgewählt",
           "unlocked": "Austausch offen",
-          "selected": "Ausgewählt",
+          "selected": "Angenommen",
           "rejected": "Abgelehnt",
           "withdrawn": "Zurückgezogen",
           "archived": "Archiviert"
@@ -885,7 +885,7 @@
       "applications_sent": "Gesendete Bewerbungen",
       "posted": "Beworben",
       "in_discussion": "Im Austausch",
-      "retained": "Ausgewählt",
+      "retained": "Angenommen",
       "refused": "Abgelehnt"
     },
     "applications_section": {
@@ -901,7 +901,7 @@
         "in_review": "In Prüfung",
         "shortlisted": "Vorausgewählt",
         "unlocked": "Austausch offen",
-        "selected": "Ausgewählt",
+        "selected": "Angenommen",
         "rejected": "Abgelehnt",
         "withdrawn": "Zurückgezogen",
         "archived": "Archiviert"
@@ -1588,7 +1588,7 @@
       "in_review": "In Prüfung",
       "shortlisted": "Vorausgewählt",
       "unlocked": "Austausch offen",
-      "selected": "Ausgewählt",
+      "selected": "Angenommen",
       "rejected": "Abgelehnt",
       "withdrawn": "Zurückgezogen",
       "archived": "Archiviert"
@@ -1596,7 +1596,7 @@
     "filters": {
       "all": "Alle",
       "open": "Austausch offen",
-      "won": "Ausgewählte",
+      "won": "Angenommen",
       "wait": "Ausstehend",
       "refused": "Abgelehnt"
     },
