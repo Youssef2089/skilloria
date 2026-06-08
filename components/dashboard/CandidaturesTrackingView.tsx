@@ -11,7 +11,6 @@ import {
   IconLockOpen,
   IconClock,
   IconX,
-  IconBuilding,
   IconMessage2,
   IconExternalLink,
   IconTrophy,
@@ -19,10 +18,11 @@ import {
 import PageHeader from '@/components/ui/PageHeader'
 import StatsStrip, { type Stat } from '@/components/ui/StatsStrip'
 import StatusPill from '@/components/ui/StatusPill'
-import MasterDetail from '@/components/ui/MasterDetail'
 import EmptyState from '@/components/ui/EmptyState'
 import TimelineStep from '@/components/ui/TimelineStep'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from '@/components/dashboard/PublicationSynthesisLine'
+import MissionCard, { type MissionCardData } from '@/components/dashboard/MissionCard'
+import SpotlightCarousel from '@/components/dashboard/SpotlightCarousel'
 import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
 
 /**
@@ -40,7 +40,9 @@ type Candidature = {
   id: string
   publication_id: string
   /** Lot synthèse parlante : publication enrichie via helper serveur. */
-  publication: (PublicationSynthesisData & { status: string | null }) | null
+  publication: (PublicationSynthesisData & { status: string | null; published_at?: string | null }) | null
+  /** Org de l'annonce (masquée si confidentielle). Alimente MissionCard. */
+  org: { name: string | null; logo_url: string | null } | null
   status: string
   status_reason: string | null
   ai_match_score: number | null
@@ -99,11 +101,32 @@ function matchesFilter(status: string, f: FilterKey): boolean {
   return true
 }
 
+/**
+ * Adapte une candidature expert vers le contrat MissionCardData, pour la
+ * réutiliser telle quelle dans le casting (carte centrée). La pill "Nouveau"
+ * de MissionCard est pilotée par viewed_by_me (source DB candidature_views),
+ * cohérent avec le marquage « vu » au focus du casting.
+ */
+function candidatureToMissionCard(
+  c: Candidature,
+  pub: PublicationSynthesisData & { status: string | null; published_at?: string | null },
+): MissionCardData {
+  return {
+    match_id: c.id,
+    match_status: c.viewed_by_me === false ? 'notified' : 'viewed',
+    ai_score: c.ai_match_score ?? 0,
+    ai_reason: null,
+    matched_at: c.created_at,
+    publication: { ...pub, published_at: pub.published_at ?? null },
+    org: c.org,
+  }
+}
+
 export default function CandidaturesTrackingView({ side = 'freelance' }: { side?: 'freelance' | 'cdi' }) {
   const t = useTranslations('candidatures_tracking')
   const tPub = useTranslations('publications')
-  // Pour la pill "Nouveau" cohérente avec MissionCard.
-  const tMissionsCard = useTranslations('missions.card')
+  // Libellés du casting (shell partagé, namespace neutre).
+  const tc = useTranslations('missions.casting')
   const locale = useLocale()
   const domain = useDomain()
   const [filter, setFilter] = useState<FilterKey>('all')
@@ -201,127 +224,86 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
           />
         </div>
       ) : (
-        <MasterDetail
-          listWidth={392}
-          detailVisible={selected !== null}
-          list={
-            <>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-                {filters.map((f) => {
-                  const on = filter === f.key
-                  return (
-                    <button
-                      key={f.key}
-                      type="button"
-                      onClick={() => setFilter(f.key)}
-                      style={{
-                        fontSize: 12.5, fontWeight: 600, padding: '6px 13px',
-                        borderRadius: 999,
-                        color: on ? 'var(--sk-accent-ink)' : 'var(--sk-muted)',
-                        background: on ? 'var(--sk-accent-soft)' : 'var(--sk-surface)',
-                        border: on ? '1px solid transparent' : '1px solid var(--sk-border)',
-                        cursor: 'pointer', fontFamily: 'inherit',
-                      }}
-                    >
-                      {f.label}
-                    </button>
-                  )
-                })}
-              </div>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 26px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Filtres (conservés) */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {filters.map((f) => {
+              const on = filter === f.key
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setFilter(f.key)}
+                  style={{
+                    fontSize: 12.5, fontWeight: 600, padding: '6px 13px',
+                    borderRadius: 999,
+                    color: on ? 'var(--sk-accent-ink)' : 'var(--sk-muted)',
+                    background: on ? 'var(--sk-accent-soft)' : 'var(--sk-surface)',
+                    border: on ? '1px solid transparent' : '1px solid var(--sk-border)',
+                    cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  {f.label}
+                </button>
+              )
+            })}
+          </div>
 
-              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 11, paddingRight: 2 }}>
-                {filtered.length === 0 ? (
-                  <EmptyState icon="🔍" title={t('empty_filter_title')} body={t('empty_filter_body')} surface="card" />
-                ) : (
-                  filtered.map((c) => {
-                    const on = c.id === selectedId
-                    const pk = statusToPillKind(c.status)
-                    const PIcon = pk === 'won' ? IconTrophy : pk === 'open' ? IconLockOpen : pk === 'refused' ? IconX : IconClock
-                    // Lot bascule badges par item : "Nouveau" si pas encore
-                    // consulté (et pas l'item actuellement sélectionné, qui
-                    // sera marqué consulté à l'instant du clic via le useEffect).
-                    const isUnviewed = c.viewed_by_me === false && !on
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => setSelectedId(c.id)}
-                        style={{
-                          background: 'var(--sk-surface)',
-                          border: on
-                            ? `1px solid var(--sk-accent)`
-                            : isUnviewed
-                              ? `1.5px solid var(--sk-accent)`
-                              : '1px solid var(--sk-border)',
-                          boxShadow: on ? `0 0 0 3px var(--sk-accent-soft)` : undefined,
-                          borderRadius: 'var(--sk-r-lg)',
-                          padding: '15px 16px',
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                          textAlign: 'left',
-                          width: '100%',
-                          transition: 'border-color .12s, box-shadow .12s',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                          <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--sk-text)', lineHeight: 1.3, letterSpacing: '-0.2px', minWidth: 0 }}>
-                            {c.publication?.title ?? '—'}
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-                            {c.ai_match_score != null && (
-                              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sk-accent-ink)', background: 'var(--sk-accent-soft)', padding: '3px 9px', borderRadius: 8 }}>
-                                {Math.round(c.ai_match_score)}/10
-                              </span>
-                            )}
-                            {isUnviewed && (
-                              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--sk-accent-ink)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
-                                {tMissionsCard('new_label')}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div style={{ color: 'var(--sk-muted)', fontSize: 12.5, marginTop: 4, display: 'flex', alignItems: 'center', gap: 7 }}>
-                          <IconBuilding size={15} stroke={1.8} />
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {c.publication?.type === 'mission' ? tPub('type.mission') : c.publication?.type === 'offre' ? tPub('type.offre') : '—'}
-                          </span>
-                        </div>
-                        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                          <StatusPill kind={pk} icon={<PIcon size={14} />} size="sm">
-                            {c.status === 'selected'
-                              ? t(c.publication?.type === 'mission' ? 'status_selected_mission' : 'status_selected_offre')
-                              : t(`status.${c.status}` as 'status.received')}
-                          </StatusPill>
-                          <span style={{ color: 'var(--sk-faint)', fontSize: 12 }}>{t('candidated_ago', { time: relativeFromNow(c.created_at, locale) })}</span>
-                        </div>
-                      </button>
-                    )
-                  })
-                )}
-              </div>
-            </>
-          }
-          detail={
-            selected ? (
-              <CandidatureDetail
-                candidature={selected}
-                tPub={tPub}
-                t={t}
-                locale={locale}
-                domainAccent={domain.primaryColor}
-                side={side}
+          {filtered.length === 0 ? (
+            <EmptyState icon="🔍" title={t('empty_filter_title')} body={t('empty_filter_body')} surface="card" />
+          ) : (
+            <>
+              {/* Casting sous projecteur : MissionCard (réutilisée) + pastille
+                  de statut. Vocabulaire expert PRÉSERVÉ : « Mission remportée »
+                  / « Poste décroché » via candidatures_tracking, jamais
+                  « Acceptée ». Le centre pilote selectedId → marquage « vu » au
+                  focus (comportement existant) + détail synchronisé ci-dessous.
+                  PAS de légende « trié par score » : les candidatures sont
+                  triées par récence, pas par score. */}
+              <SpotlightCarousel<Candidature>
+                items={filtered.filter((c) => c.publication != null)}
+                getKey={(c) => c.id}
+                onCenterChange={(c) => setSelectedId(c.id)}
+                labels={{
+                  formatCounter: (current, total) => tc('counter', { current, total }),
+                  prevAria: tc('prev_aria'),
+                  nextAria: tc('next_aria'),
+                  paginationAria: tc('pagination_aria'),
+                  gotoAria: (index) => tc('goto_aria', { index }),
+                  empty: tc('empty'),
+                }}
+                renderItem={(c, { isCenter }) => {
+                  const pub = c.publication
+                  if (!pub) return null
+                  const pk = statusToPillKind(c.status)
+                  const PIcon = pk === 'won' ? IconTrophy : pk === 'open' ? IconLockOpen : pk === 'refused' ? IconX : IconClock
+                  const statusLabel = c.status === 'selected'
+                    ? t(pub.type === 'mission' ? 'status_selected_mission' : 'status_selected_offre')
+                    : t(`status.${c.status}` as 'status.received')
+                  return (
+                    <div style={{ width: isCenter ? 'min(480px, 92vw)' : '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <StatusPill kind={pk} icon={<PIcon size={14} />} size="sm">{statusLabel}</StatusPill>
+                      </div>
+                      <MissionCard mission={candidatureToMissionCard(c, pub)} side={side} />
+                    </div>
+                  )
+                }}
               />
-            ) : (
-              <div style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', borderRadius: 'var(--sk-r-lg)', padding: '40px 24px', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ textAlign: 'center', color: 'var(--sk-muted)' }}>
-                  <div style={{ fontSize: 32, marginBottom: 10 }} aria-hidden>📨</div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--sk-text)' }}>{t('detail_empty_title')}</div>
-                  <div style={{ fontSize: 13, marginTop: 4 }}>{t('detail_empty_subtitle')}</div>
-                </div>
-              </div>
-            )
-          }
-        />
+
+              {selected && (
+                <CandidatureDetail
+                  candidature={selected}
+                  tPub={tPub}
+                  t={t}
+                  locale={locale}
+                  domainAccent={domain.primaryColor}
+                  side={side}
+                />
+              )}
+            </>
+          )}
+        </div>
       )}
     </div>
   )

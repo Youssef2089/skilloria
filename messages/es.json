@@ -1667,6 +1667,7 @@
       "filter_all": "Todas",
       "filter_received": "Por tratar",
       "filter_unlocked": "Intercambios abiertos",
+      "filter_selected": "Aceptadas",
       "filter_rejected": "Rechazadas",
       "empty_all_title": "Aún no hay candidaturas",
       "empty_all_subtitle": "Los expertos notificados por nuestra IA aún no se han postulado. Te avisaremos en la primera candidatura.",
@@ -1827,6 +1828,15 @@
       "error_generic": "No se pudieron cargar tus oportunidades. Inténtalo de nuevo.",
       "empty_title": "Aún no hay oportunidades",
       "empty_subtitle": "Te avisaremos en cuanto una publicación coincida con tu perfil."
+    },
+    "casting": {
+      "counter": "{current} / {total}",
+      "sorted_by_score": "Ordenado por puntuación",
+      "prev_aria": "Oportunidad anterior",
+      "next_aria": "Oportunidad siguiente",
+      "pagination_aria": "Paginación de oportunidades",
+      "goto_aria": "Ver la oportunidad {index}",
+      "empty": "Ninguna oportunidad para mostrar."
     },
     "detail": {
       "back_to_feed": "← Volver a oportunidades",

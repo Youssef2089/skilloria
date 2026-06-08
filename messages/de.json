@@ -1829,6 +1829,15 @@
       "empty_title": "Noch keine Möglichkeiten",
       "empty_subtitle": "Sie werden benachrichtigt, sobald eine Veröffentlichung zu Ihrem Profil passt."
     },
+    "casting": {
+      "counter": "{current} / {total}",
+      "sorted_by_score": "Nach Score sortiert",
+      "prev_aria": "Vorherige Gelegenheit",
+      "next_aria": "Nächste Gelegenheit",
+      "pagination_aria": "Paginierung der Gelegenheiten",
+      "goto_aria": "Gelegenheit {index} ansehen",
+      "empty": "Keine Gelegenheit anzuzeigen."
+    },
     "detail": {
       "back_to_feed": "← Zurück zu den Möglichkeiten",
       "loading": "Möglichkeit wird geladen…",

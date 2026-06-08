@@ -5,20 +5,25 @@ import MissionCard, { type MissionCardData } from '@/components/dashboard/Missio
 import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
 import NewItemsPill from '@/components/ui/NewItemsPill'
-import BoundedScrollList from '@/components/ui/BoundedScrollList'
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
+import SpotlightCarousel from '@/components/dashboard/SpotlightCarousel'
 import { useLiveResource } from '@/hooks/useLiveResource'
 
 /**
  * /dashboard/cdi/missions — feed des offres CDI MATCHÉES (parité freelance).
- * Layout flex column + BoundedScrollList. Mobile <768px : scroll natif.
+ *
+ * Vue « casting sous projecteur » (shell partagé SpotlightCarousel) : une
+ * carte offre centrée, les voisines en retrait/atténuées, navigation
+ * flèches/clavier/swipe + compteur "X / N · Trié par score". Les offres
+ * arrivent déjà triées par score DESC côté /api/me/missions.
  *
  * Lot A : empty-state ROUGE conditionnel quand l'expert est en DND
  * (cdi_status='employed').
  *
  * Lot bascule badges par item : la pill "Nouveau" est dérivée de
  * `match.status` côté MissionCard. L'ouverture du détail flippe vers
- * 'viewed' → la pill disparaît et le badge nav décrémente.
+ * 'viewed' → la pill disparaît et le badge nav décrémente. Le défilement du
+ * casting NE marque RIEN comme vu.
  */
 
 type MissionsPayload = {
@@ -28,6 +33,7 @@ type MissionsPayload = {
 
 export default function CdiMissionsFeedPage() {
   const t = useTranslations('missions.feed')
+  const tc = useTranslations('missions.casting')
   const locale = useLocale()
 
   const live = useLiveResource<MissionsPayload, MissionCardData>({
@@ -71,19 +77,31 @@ export default function CdiMissionsFeedPage() {
       )}
 
       {state.kind === 'ready' && missions.length > 0 && (
-        <BoundedScrollList
-          stickyHeader={
-            <NewItemsPill
-              count={live.pendingCount}
-              onApply={live.applyPending}
-              variant="offres"
-            />
-          }
-        >
-          {missions.map((m) => (
-            <MissionCard key={m.match_id} mission={m} side="cdi" />
-          ))}
-        </BoundedScrollList>
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
+          <NewItemsPill
+            count={live.pendingCount}
+            onApply={live.applyPending}
+            variant="offres"
+          />
+          <SpotlightCarousel<MissionCardData>
+            items={missions}
+            getKey={(m) => m.match_id}
+            labels={{
+              formatCounter: (current, total) => tc('counter', { current, total }),
+              sortedByScore: tc('sorted_by_score'),
+              prevAria: tc('prev_aria'),
+              nextAria: tc('next_aria'),
+              paginationAria: tc('pagination_aria'),
+              gotoAria: (index) => tc('goto_aria', { index }),
+              empty: tc('empty'),
+            }}
+            renderItem={(m, { isCenter }) => (
+              <div style={{ width: isCenter ? 'min(480px, 92vw)' : '100%' }}>
+                <MissionCard mission={m} side="cdi" />
+              </div>
+            )}
+          />
+        </div>
       )}
     </div>
   )

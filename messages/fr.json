@@ -1829,6 +1829,15 @@
       "empty_title": "Aucune opportunité pour le moment",
       "empty_subtitle": "Vous serez notifié dès qu'une publication correspond à votre profil."
     },
+    "casting": {
+      "counter": "{current} / {total}",
+      "sorted_by_score": "Trié par score",
+      "prev_aria": "Opportunité précédente",
+      "next_aria": "Opportunité suivante",
+      "pagination_aria": "Pagination des opportunités",
+      "goto_aria": "Voir l'opportunité {index}",
+      "empty": "Aucune opportunité à afficher."
+    },
     "detail": {
       "back_to_feed": "← Retour aux opportunités",
       "loading": "Chargement de l'opportunité…",
