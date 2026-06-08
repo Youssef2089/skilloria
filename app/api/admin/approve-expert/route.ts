@@ -5,6 +5,7 @@ import { logAudit } from '@/lib/audit'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
 import { renderExpertWelcomeEmail } from '@/lib/emails/templates'
 import { sendEmail } from '@/lib/emails/resend'
+import { expertSiteOrigin } from '@/lib/emails/domain-url'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -181,7 +182,19 @@ export async function POST(request: NextRequest): Promise<Response> {
     try {
       const contactEmail = u?.email ?? null
       if (contactEmail) {
-        const loginUrl = `${siteOrigin}/${normalizeLocale(u?.locale ?? null)}/connexion`
+        // Base URL dérivée du domaine de l'EXPERT (slug), pas de l'origin admin.
+        // Lookup best-effort hors chemin de décision ; échec → fallback origin.
+        let expertSlug: string | null = null
+        if (row.domain_id) {
+          const { data: dom } = await auth.supabaseAdmin
+            .from('domains')
+            .select('slug')
+            .eq('id', row.domain_id)
+            .maybeSingle()
+          expertSlug = (dom?.slug as string | null) ?? null
+        }
+        const baseOrigin = expertSiteOrigin({ origin: siteOrigin, slug: expertSlug })
+        const loginUrl = `${baseOrigin}/${normalizeLocale(u?.locale ?? null)}/connexion`
         const rendered = renderExpertWelcomeEmail({
           locale: u?.locale ?? null,
           firstName: (u?.first_name ?? '').trim() || (contactEmail.split('@')[0] ?? ''),

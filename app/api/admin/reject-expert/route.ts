@@ -5,6 +5,7 @@ import { logAudit } from '@/lib/audit'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
 import { renderExpertRejectEmail } from '@/lib/emails/templates'
 import { sendEmail } from '@/lib/emails/resend'
+import { expertSiteOrigin } from '@/lib/emails/domain-url'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -176,9 +177,24 @@ export async function POST(request: NextRequest): Promise<Response> {
         console.warn('[admin:reject-expert] no contact email — reject email skipped', { profileId })
         return
       }
-      const contactUrl = process.env.RESEND_FROM_EMAIL
-        ? `mailto:${process.env.RESEND_FROM_EMAIL}`
-        : `${siteOrigin}/${locale}`
+      let contactUrl: string
+      if (process.env.RESEND_FROM_EMAIL) {
+        contactUrl = `mailto:${process.env.RESEND_FROM_EMAIL}`
+      } else {
+        // Fallback page : base dérivée du domaine de l'EXPERT (slug), pas de
+        // l'origin admin. Lookup best-effort ; échec → fallback origin.
+        let expertSlug: string | null = null
+        if (row.domain_id) {
+          const { data: dom } = await auth.supabaseAdmin
+            .from('domains')
+            .select('slug')
+            .eq('id', row.domain_id)
+            .maybeSingle()
+          expertSlug = (dom?.slug as string | null) ?? null
+        }
+        const baseOrigin = expertSiteOrigin({ origin: siteOrigin, slug: expertSlug })
+        contactUrl = `${baseOrigin}/${locale}`
+      }
       const rendered = renderExpertRejectEmail({
         locale: u?.locale ?? null,
         firstName: (u?.first_name ?? '').trim() || (contactEmail.split('@')[0] ?? ''),
