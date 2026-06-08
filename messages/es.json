@@ -1595,7 +1595,10 @@
       "empty": "No hay candidatos que mostrar.",
       "count_candidates": "{count, plural, =0 {0 candidatos} =1 {1 candidato} other {# candidatos}}",
       "best_score": "Mejor puntuación {score}/10",
-      "switch_pub_label": "Publicación:"
+      "best_score_inline": "mejor {score}/10",
+      "switch_pub_label": "Publicación:",
+      "master_title": "Tus publicaciones",
+      "master_aria_label": "Lista de tus publicaciones con candidaturas"
     },
     "feed_global": {
       "back_to_dashboard": "← Panel",

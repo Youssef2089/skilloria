@@ -10,21 +10,28 @@ import CastingCarousel from '@/components/dashboard/CastingCarousel'
 import { IconExternalLink } from '@tabler/icons-react'
 
 /**
- * /dashboard/entreprise/candidatures — vue GLOBALE des candidatures reçues
- * par l'organisation (Lot vue casting).
+ * /dashboard/entreprise/candidatures — vue GLOBALE master-detail.
  *
- * Présentation : sélecteur d'annonce + carrousel "casting" pour l'annonce
- * sélectionnée. Plus de grille fragmentée. L'org regarde UNE annonce à la
- * fois sous projecteur, défile entre les candidats par flèches / clavier.
+ * Layout :
+ *   - MASTER (gauche, ~260px desktop) : liste des annonces ayant ≥1 candidature,
+ *     chaque item cliquable (badge type + titre + "N candidats · meilleur X/10").
+ *   - DETAIL (droite, flex)            : en-tête slim (titre + N candidats +
+ *     "Voir l'annonce") + CastingCarousel.
  *
- * Tri : ai_match_score DESC côté serveur (déjà dans buildOrgCandidatureDTOs).
- * Le meilleur score arrive en premier (centerIdx=0 par défaut).
+ * Mobile (<1024px) : la liste passe AU-DESSUS sous forme de chips horizontales
+ * scrollables (plus compact qu'une liste empilée verticale, et garde toutes
+ * les annonces accessibles en un swipe). Le casting reste en dessous.
  *
- * Auto-mark viewed : le centre du carrousel devient "consulté" → badge -1.
+ * Cliquer une annonce → MAJ du detail (state local, pas de reload). Par défaut
+ * la 1re annonce de la liste est sélectionnée.
  *
- * Sécurité : la révélation photo+nom post-unlock est appliquée CÔTÉ SERVEUR
- * via lib/expert-disclosure.ts. Cette page ne fait qu'afficher ce que le DTO
- * autorise.
+ * Tri serveur ai_match_score DESC dans buildOrgCandidatureDTOs → meilleur
+ * score au centre du carrousel par défaut.
+ *
+ * Auto-mark viewed : géré par CastingCarousel (le centre devient consulté).
+ *
+ * Sécurité (révélation post-unlock photo+nom) : appliquée CÔTÉ SERVEUR via
+ * lib/expert-disclosure.ts. Cette page n'affiche que ce que le DTO autorise.
  */
 
 type PublicationInfo = {
@@ -93,13 +100,20 @@ export default function GlobalCandidaturesPage() {
     return m
   }, [state])
 
-  // Liste des publications ayant au moins une candidature (= entrées du sélecteur).
+  // Liste des publications ayant ≥1 candidature (entrées du master). Triées
+  // par "meilleur score décroissant" pour que les annonces les plus prometteuses
+  // remontent en haut de la liste.
   const pubOptions = useMemo(() => {
     if (state.kind !== 'ready') return [] as PublicationInfo[]
-    return state.publications.filter((p) => (byPub.get(p.id)?.length ?? 0) > 0)
+    const opts = state.publications.filter((p) => (byPub.get(p.id)?.length ?? 0) > 0)
+    return opts.sort((a, b) => {
+      const sa = byPub.get(a.id)?.[0]?.ai_match_score ?? -1
+      const sb = byPub.get(b.id)?.[0]?.ai_match_score ?? -1
+      return sb - sa
+    })
   }, [state, byPub])
 
-  // Pub sélectionnée : par défaut la 1re qui a un candidat. Réagit au load.
+  // Pub sélectionnée : par défaut la 1re. Réagit aux loads.
   useEffect(() => {
     if (state.kind !== 'ready') return
     if (selectedPubId && pubOptions.some((p) => p.id === selectedPubId)) return
@@ -111,7 +125,6 @@ export default function GlobalCandidaturesPage() {
     [pubOptions, selectedPubId],
   )
   const selectedItems = selectedPubId ? (byPub.get(selectedPubId) ?? []) : []
-  const bestScore = selectedItems[0]?.ai_match_score ?? null
 
   if (state.kind === 'loading') {
     return <div style={{ padding: 48, textAlign: 'center', color: 'var(--sk-muted)', fontFamily: 'inherit' }}>{t('loading')}</div>
@@ -137,6 +150,54 @@ export default function GlobalCandidaturesPage() {
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+      <style>{`
+        /* Layout master-detail responsive */
+        .sk-cand-layout {
+          display: grid;
+          grid-template-columns: 260px 1fr;
+          gap: 18px;
+          align-items: start;
+        }
+        .sk-cand-master { display: flex; flex-direction: column; gap: 8px; }
+        .sk-cand-master-items { display: flex; flex-direction: column; gap: 8px; }
+        .sk-cand-master-item {
+          display: flex; flex-direction: column; gap: 4px;
+          padding: 12px 14px;
+          background: var(--sk-surface);
+          border: 1px solid var(--sk-border);
+          border-radius: 12px;
+          cursor: pointer;
+          text-align: left;
+          font-family: inherit;
+          transition: border-color .12s, box-shadow .12s, background .12s;
+        }
+        .sk-cand-master-item:hover { border-color: var(--sk-accent); }
+        .sk-cand-master-item.is-active {
+          border-color: var(--sk-accent);
+          background: var(--sk-accent-soft);
+          box-shadow: 0 0 0 3px var(--sk-accent-soft);
+        }
+        @media (max-width: 1023px) {
+          .sk-cand-layout {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          /* Mobile : chips horizontales scrollables */
+          .sk-cand-master-items {
+            flex-direction: row;
+            overflow-x: auto;
+            scrollbar-width: thin;
+            padding-bottom: 8px;
+            margin: 0 -4px;
+          }
+          .sk-cand-master-item {
+            flex-shrink: 0;
+            min-width: 220px;
+            max-width: 280px;
+          }
+        }
+      `}</style>
+
       <header style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 12, color: 'var(--sk-faint)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600, marginBottom: 4 }}>
           {t('header_kicker')}
@@ -162,115 +223,124 @@ export default function GlobalCandidaturesPage() {
           </div>
           <div>{t('empty_all_subtitle')}</div>
         </div>
-      ) : selectedPub ? (
-        <>
-          {/* En-tête annonce + sélecteur d'annonce + lien Voir l'annonce */}
-          <div
-            style={{
-              background: 'var(--sk-surface)',
-              border: '1px solid var(--sk-border)',
-              borderRadius: 14,
-              padding: '16px 18px',
-              marginBottom: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 14,
-              flexWrap: 'wrap',
-            }}
-          >
-            <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              {/* Badge type */}
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '5px 11px',
-                  borderRadius: 999,
-                  background: `${domain.primaryColor}14`,
-                  color: domain.primaryColor,
-                  fontSize: 11.5,
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '.06em',
-                  flexShrink: 0,
-                }}
-              >
-                {tPub((selectedPub.type === 'offre' ? 'offre' : 'mission') as 'mission')}
-              </span>
-              {/* Titre annonce */}
-              <div style={{ minWidth: 0, fontSize: 16, fontWeight: 700, color: 'var(--sk-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.2px' }}>
-                {selectedPub.title}
-              </div>
-              {/* Compteur candidats */}
-              <span style={{ fontSize: 12.5, color: 'var(--sk-muted)', flexShrink: 0 }}>
-                {tCasting('count_candidates', { count: selectedItems.length })}
-              </span>
-              {/* Meilleur score */}
-              {bestScore != null && (
-                <span style={{ fontSize: 12.5, color: 'var(--sk-muted)', flexShrink: 0 }}>
-                  {tCasting('best_score', { score: Math.round(bestScore) })}
-                </span>
-              )}
+      ) : (
+        <div className="sk-cand-layout">
+          {/* ── MASTER : liste d'annonces ─────────────────────────────────── */}
+          <aside className="sk-cand-master" aria-label={tCasting('master_aria_label')}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--sk-faint)', textTransform: 'uppercase', letterSpacing: '.08em', padding: '0 4px 4px' }}>
+              {tCasting('master_title')}
             </div>
+            <div className="sk-cand-master-items" role="listbox" aria-label={tCasting('master_aria_label')}>
+              {pubOptions.map((p) => {
+                const items = byPub.get(p.id) ?? []
+                const best = items[0]?.ai_match_score ?? null
+                const active = p.id === selectedPubId
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    role="option"
+                    aria-selected={active}
+                    className={`sk-cand-master-item${active ? ' is-active' : ''}`}
+                    onClick={() => setSelectedPubId(p.id)}
+                  >
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignSelf: 'flex-start',
+                        padding: '3px 8px',
+                        borderRadius: 999,
+                        background: `${domain.primaryColor}14`,
+                        color: domain.primaryColor,
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '.06em',
+                      }}
+                    >
+                      {tPub((p.type === 'offre' ? 'offre' : 'mission') as 'mission')}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: 'var(--sk-text)',
+                        lineHeight: 1.35,
+                        letterSpacing: '-0.2px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                      }}
+                    >
+                      {p.title}
+                    </span>
+                    <span style={{ fontSize: 11.5, color: 'var(--sk-muted)' }}>
+                      {tCasting('count_candidates', { count: items.length })}
+                      {best != null && (
+                        <>
+                          {' · '}
+                          {tCasting('best_score_inline', { score: Math.round(best) })}
+                        </>
+                      )}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </aside>
 
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-              {/* Sélecteur d'annonce (uniquement si >1 pub avec candidatures) */}
-              {pubOptions.length > 1 && (
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 12, color: 'var(--sk-muted)', fontWeight: 500 }}>
-                    {tCasting('switch_pub_label')}
+          {/* ── DETAIL : en-tête slim + casting ─────────────────────────── */}
+          <section style={{ minWidth: 0 }}>
+            {selectedPub && (
+              <>
+                <div
+                  style={{
+                    background: 'var(--sk-surface)',
+                    border: '1px solid var(--sk-border)',
+                    borderRadius: 14,
+                    padding: '14px 16px',
+                    marginBottom: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ minWidth: 0, flex: 1, fontSize: 15, fontWeight: 700, color: 'var(--sk-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.2px' }}>
+                    {selectedPub.title}
+                  </div>
+                  <span style={{ fontSize: 12.5, color: 'var(--sk-muted)', flexShrink: 0 }}>
+                    {tCasting('count_candidates', { count: selectedItems.length })}
                   </span>
-                  <select
-                    value={selectedPubId ?? ''}
-                    onChange={(e) => setSelectedPubId(e.target.value)}
+                  <Link
+                    href={`/dashboard/entreprise/annonces/${selectedPub.id}/candidatures`}
                     style={{
-                      padding: '8px 12px',
-                      borderRadius: 9,
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '7px 11px', borderRadius: 9,
                       border: '1px solid var(--sk-border)',
+                      color: 'var(--sk-text)', textDecoration: 'none',
+                      fontSize: 12, fontWeight: 600,
                       background: 'var(--sk-surface)',
-                      color: 'var(--sk-text)',
-                      fontSize: 12.5,
-                      fontWeight: 600,
-                      fontFamily: 'inherit',
-                      cursor: 'pointer',
-                      maxWidth: 280,
                     }}
                   >
-                    {pubOptions.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.title} ({byPub.get(p.id)?.length ?? 0})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              <Link
-                href={`/dashboard/entreprise/annonces/${selectedPub.id}/candidatures`}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  padding: '8px 12px', borderRadius: 9,
-                  border: '1px solid var(--sk-border)',
-                  color: 'var(--sk-text)', textDecoration: 'none',
-                  fontSize: 12.5, fontWeight: 600,
-                  background: 'var(--sk-surface)',
-                }}
-              >
-                <IconExternalLink size={14} stroke={1.8} />
-                {t('view_pub')}
-              </Link>
-            </div>
-          </div>
+                    <IconExternalLink size={13} stroke={1.8} />
+                    {t('view_pub')}
+                  </Link>
+                </div>
 
-          {/* Carrousel casting de l'annonce sélectionnée */}
-          <CastingCarousel
-            items={selectedItems}
-            publicationType={selectedPub.type}
-            pubSkillsRequired={selectedPub.skills_required ?? []}
-            onMutated={() => { void load() }}
-          />
-        </>
-      ) : null}
+                <CastingCarousel
+                  items={selectedItems}
+                  publicationType={selectedPub.type}
+                  pubSkillsRequired={selectedPub.skills_required ?? []}
+                  onMutated={() => { void load() }}
+                />
+              </>
+            )}
+          </section>
+        </div>
+      )}
     </div>
   )
 }

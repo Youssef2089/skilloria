@@ -1595,7 +1595,10 @@
       "empty": "Aucun candidat à afficher.",
       "count_candidates": "{count, plural, =0 {0 candidat} =1 {1 candidat} other {# candidats}}",
       "best_score": "Meilleur score {score}/10",
-      "switch_pub_label": "Annonce :"
+      "best_score_inline": "meilleur {score}/10",
+      "switch_pub_label": "Annonce :",
+      "master_title": "Vos annonces",
+      "master_aria_label": "Liste de vos annonces avec candidatures"
     },
     "feed_global": {
       "back_to_dashboard": "← Tableau de bord",

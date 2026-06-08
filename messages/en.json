@@ -1595,7 +1595,10 @@
       "empty": "No candidate to display.",
       "count_candidates": "{count, plural, =0 {0 candidates} =1 {1 candidate} other {# candidates}}",
       "best_score": "Top score {score}/10",
-      "switch_pub_label": "Posting:"
+      "best_score_inline": "top {score}/10",
+      "switch_pub_label": "Posting:",
+      "master_title": "Your postings",
+      "master_aria_label": "List of your postings with applications"
     },
     "feed_global": {
       "back_to_dashboard": "← Dashboard",

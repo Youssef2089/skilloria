@@ -1595,7 +1595,10 @@
       "empty": "Keine Kandidaten anzuzeigen.",
       "count_candidates": "{count, plural, =0 {0 Kandidaten} =1 {1 Kandidat} other {# Kandidaten}}",
       "best_score": "Beste Bewertung {score}/10",
-      "switch_pub_label": "Veröffentlichung:"
+      "best_score_inline": "Beste {score}/10",
+      "switch_pub_label": "Veröffentlichung:",
+      "master_title": "Ihre Veröffentlichungen",
+      "master_aria_label": "Liste Ihrer Veröffentlichungen mit Bewerbungen"
     },
     "feed_global": {
       "back_to_dashboard": "← Dashboard",
