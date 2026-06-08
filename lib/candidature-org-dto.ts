@@ -1,6 +1,6 @@
 import type { AuthContext } from '@/lib/auth-guard'
 import { tBDD, type TranslationsMap } from '@/lib/translations'
-import { maskExpertNameForOrg } from '@/lib/expert-name-masking'
+import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name-masking'
 import { disclosurePolicyForCandidatureStatus } from '@/lib/expert-disclosure'
 
 /**
@@ -218,7 +218,7 @@ export async function buildOrgCandidatureDTOs(
           'work_modes, languages, country, city, photo_url, ' +
           'availability_status, availability_date, profile_score, ' +
           'branch_id, speciality_id, ' +
-          'users!profiles_user_id_fkey!inner(id, first_name, last_name)',
+          'users!profiles_user_id_fkey!inner(id, first_name, last_name, deletion_scheduled_at, anonymized_at)',
       )
       .in('id', Array.from(unlockedProfileIds))
     for (const p of (profRows ?? []) as unknown as FullProfile[]) {
@@ -272,10 +272,16 @@ export async function buildOrgCandidatureDTOs(
         const policy = disclosurePolicyForCandidatureStatus(row.status)
         const firstName = u?.first_name ?? null
         const lastName = u?.last_name ?? null
-        const displayName = policy.reveal_full_name
-          ? [firstName, lastName].filter(Boolean).join(' ').trim() ||
-            maskExpertNameForOrg(firstName, lastName)
-          : maskExpertNameForOrg(firstName, lastName)
+        // Mission S3 : si l'expert est en grâce/purge, le placeholder prime sur
+        // la policy de divulgation (jamais le vrai nom d'un compte en suppression).
+        const accountState = (u ?? undefined) as ExpertAccountState | undefined
+        const inDeletion = !!(accountState?.deletion_scheduled_at || accountState?.anonymized_at)
+        const displayName = inDeletion
+          ? maskExpertNameForOrg(firstName, lastName, accountState)
+          : policy.reveal_full_name
+            ? [firstName, lastName].filter(Boolean).join(' ').trim() ||
+              maskExpertNameForOrg(firstName, lastName)
+            : maskExpertNameForOrg(firstName, lastName)
 
         unlockedProfile = {
           display_name: displayName,

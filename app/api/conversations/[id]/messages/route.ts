@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
-import { maskExpertNameForOrg } from '@/lib/expert-name-masking'
+import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name-masking'
 import { disclosurePolicyForConversationOrgSide } from '@/lib/expert-disclosure'
 
 export const runtime = 'nodejs'
@@ -142,7 +142,7 @@ async function loadConvAsParticipant(
         // → DisclosurePolicy reveal_photo: true). Email/phone toujours hors
         // périmètre (reveal_contact: false en V1).
         'candidatures!inner(id, profile_id, status, publication_id, domain_id, ' +
-          'profiles!inner(id, user_id, photo_url, users!profiles_user_id_fkey(id, first_name, last_name, locale, user_type)), ' +
+          'profiles!inner(id, user_id, photo_url, users!profiles_user_id_fkey(id, first_name, last_name, locale, user_type, deletion_scheduled_at, anonymized_at)), ' +
           'publications!inner(id, type, title, organization_id, organizations(id, company_name, logo_url)))',
     )
     .eq('id', convId)
@@ -221,6 +221,7 @@ async function loadConvAsParticipant(
     senderFirstLast = maskExpertNameForOrg(
       expertUser?.first_name ?? null,
       expertUser?.last_name ?? null,
+      (expertUser ?? undefined) as ExpertAccountState | undefined,
     )
   } else {
     const orgRaw = pickRel(pub.organizations as { id: string; company_name: string | null; logo_url: string | null } | { id: string; company_name: string | null; logo_url: string | null }[] | null)
@@ -316,12 +317,17 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         const fn = expertUser?.first_name ?? null
         const ln = expertUser?.last_name ?? null
         const fullName = [fn, ln].filter(Boolean).join(' ').trim()
+        // Mission S3 : expert en grâce/purge → placeholder prioritaire.
+        const accountState = (expertUser ?? undefined) as ExpertAccountState | undefined
+        const inDeletion = !!(accountState?.deletion_scheduled_at || accountState?.anonymized_at)
         return {
           kind: 'expert' as const,
-          name: policy.reveal_full_name && fullName
-            ? fullName
-            : maskExpertNameForOrg(fn, ln),
-          avatar_url: policy.reveal_photo ? (profile?.photo_url ?? null) : null,
+          name: inDeletion
+            ? maskExpertNameForOrg(fn, ln, accountState)
+            : policy.reveal_full_name && fullName
+              ? fullName
+              : maskExpertNameForOrg(fn, ln),
+          avatar_url: inDeletion ? null : policy.reveal_photo ? (profile?.photo_url ?? null) : null,
         }
       })()
 

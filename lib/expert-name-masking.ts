@@ -36,10 +36,27 @@ function lastAlphaChar(s: string): string | null {
   return null
 }
 
+/**
+ * État du cycle de vie suppression de l'expert (mission S3). Quand il est
+ * fourni et non-actif, le nom est REMPLACÉ par un placeholder côté ORG :
+ *   - anonymized_at posé (purgé)         → « Utilisateur supprimé »
+ *   - deletion_scheduled_at posé (grâce) → « Interlocuteur indisponible »
+ * Sinon comportement inchangé (masquage prénom + lettre). Garde-fou C : le
+ * placeholder vit UNIQUEMENT ici, jamais dans les pages org.
+ */
+export type ExpertAccountState = {
+  deletion_scheduled_at?: string | null
+  anonymized_at?: string | null
+}
+
 export function maskExpertNameForOrg(
   first_name: string | null | undefined,
   last_name: string | null | undefined,
+  state?: ExpertAccountState | null,
 ): string {
+  if (state?.anonymized_at) return 'Utilisateur supprimé'
+  if (state?.deletion_scheduled_at) return 'Interlocuteur indisponible'
+
   const first = (first_name ?? '').trim()
   const last = (last_name ?? '').trim()
 

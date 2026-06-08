@@ -86,6 +86,19 @@ const VALID_VERIFICATION_STATUS = [
   'requires_more_info',
 ] as const
 
+// ── Cycle de vie suppression S3 (ADDITIF) ───────────────────────────────────
+// Paths joignables PENDANT la grâce (suppression programmée, non purgé) :
+// réactivation, statut, logout. Tout le reste → 403 account_deletion_scheduled
+// (le client redirige vers /reactivation). NB : check-session N'EST PAS
+// allowlistée volontairement → le heartbeat 403 et déclenche la redirection.
+const DELETION_GRACE_ALLOWLIST = new Set<string>([
+  '/api/me/account/reactivate',
+  '/api/me/account/status',
+  '/api/auth/logout',
+])
+// Paths joignables même APRÈS purge (compte anonymisé) : uniquement logout.
+const DELETION_ANONYMIZED_ALLOWLIST = new Set<string>(['/api/auth/logout'])
+
 async function loadOrganizationContext(
   supabaseAdmin: SupabaseClient,
   userId: string,
@@ -151,7 +164,9 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
 
   const { data: userRow, error: userErr } = await supabaseAdmin
     .from('users')
-    .select('id, last_session_token, domain_id, status, domains(id, slug)')
+    .select(
+      'id, last_session_token, domain_id, status, deletion_scheduled_at, anonymized_at, domains(id, slug)',
+    )
     .eq('id', userInfo.user.id)
     .maybeSingle()
 
@@ -194,6 +209,30 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
     : userRow.domains
   if (!domainRow || (domainRow as { slug?: string } | null)?.slug !== headerSubdomain) {
     throw new AuthError(403, { error: 'Domain mismatch', code: 'domain_mismatch' })
+  }
+
+  // ── Gate cycle de vie suppression S3 (ADDITIF, APRÈS session+domaine) ─────
+  // Compte NORMAL (deletion_scheduled_at ET anonymized_at NULL) → aucun impact.
+  // Compte PURGÉ (anonymized_at) → bloqué partout sauf logout (defense-in-depth ;
+  //   en pratique l'auth Supabase est déjà bannie → getUser échoue plus haut).
+  // Compte EN GRÂCE (suppression programmée, non purgé) → seul l'allowlist passe ;
+  //   le reste 403 account_deletion_scheduled → le client va vers /reactivation.
+  const userDeletionScheduledAt =
+    (userRow as { deletion_scheduled_at?: string | null }).deletion_scheduled_at ?? null
+  const userAnonymizedAt =
+    (userRow as { anonymized_at?: string | null }).anonymized_at ?? null
+  if (userDeletionScheduledAt || userAnonymizedAt) {
+    const pathname = request.nextUrl.pathname
+    if (userAnonymizedAt) {
+      if (!DELETION_ANONYMIZED_ALLOWLIST.has(pathname)) {
+        throw new AuthError(403, { error: 'Account anonymized', code: 'account_anonymized' })
+      }
+    } else if (!DELETION_GRACE_ALLOWLIST.has(pathname)) {
+      throw new AuthError(403, {
+        error: 'Account deletion scheduled',
+        code: 'account_deletion_scheduled',
+      })
+    }
   }
 
   const organization = await loadOrganizationContext(supabaseAdmin, userRow.id)
