@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, after } from 'next/server'
 import crypto from 'node:crypto'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
@@ -6,6 +6,8 @@ import { parseCdiCV } from '@/lib/cv-parser-cdi'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+// CV parsing IA + matching IA via `after()` cumulent dans le budget d'exécution.
+export const maxDuration = 60
 
 // =============================================================================
 // API : POST /api/profile/cdi-upload-cv
@@ -513,27 +515,28 @@ export async function POST(request: NextRequest): Promise<Response> {
   })
 
   // ── Matching réconcilié — déclencheur EXPERT CDI (cv_parsing_status='done') ──
-  // Best-effort. Mêmes garanties que la variante freelance.
-  try {
-    const { data: postUpd } = await supabaseAdmin
-      .from('profiles')
-      .select('verification_status, visible, ai_consent_at, cv_parsing_status')
-      .eq('id', prof.id)
-      .maybeSingle()
-    if (
-      postUpd?.verification_status === 'approved' &&
-      postUpd?.visible === true &&
-      postUpd?.ai_consent_at != null &&
-      postUpd?.cv_parsing_status === 'done'
-    ) {
+  // Non-bloquant POUR LE USER : exécution via `after()`. Cf. variante freelance
+  // upload-cv pour la justification du switch fire-and-forget → after().
+  after(async () => {
+    try {
+      const { data: postUpd } = await supabaseAdmin
+        .from('profiles')
+        .select('verification_status, visible, ai_consent_at, cv_parsing_status')
+        .eq('id', prof.id)
+        .maybeSingle()
+      if (
+        postUpd?.verification_status !== 'approved' ||
+        postUpd?.visible !== true ||
+        postUpd?.ai_consent_at == null ||
+        postUpd?.cv_parsing_status !== 'done'
+      ) return
       const { runMatchingForExpert } = await import('@/lib/matching')
-      void runMatchingForExpert({ supabaseAdmin, profileId: prof.id })
-        .then((v) => console.log('[cdi-upload-cv] matching done', { profileId: prof.id, status: v.status, proposals: v.proposals.length }))
-        .catch((err) => console.error('[cdi-upload-cv] matching threw (non-blocking)', err))
+      const v = await runMatchingForExpert({ supabaseAdmin, profileId: prof.id })
+      console.log('[cdi-upload-cv] matching done', { profileId: prof.id, status: v.status, proposals: v.proposals.length })
+    } catch (err) {
+      console.error('[cdi-upload-cv] matching threw (after)', err)
     }
-  } catch (err) {
-    console.error('[cdi-upload-cv] matching import threw (non-blocking)', err)
-  }
+  })
 
   return json({
     jobId: prof.id,

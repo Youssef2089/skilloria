@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, after } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
@@ -6,6 +6,8 @@ import { dashboardUrlForUserType } from '@/lib/auth-routing'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+// Matching IA via `after()` (~10-15s) après l'envoi de la response.
+export const maxDuration = 60
 
 /**
  * POST /api/admin/approve-expert { profile_id }
@@ -155,29 +157,26 @@ export async function POST(request: NextRequest): Promise<Response> {
   })
 
   // ── Matching réconcilié — déclencheur EXPERT (post-approbation) ─────────
-  // Best-effort, non-bloquant : on aligne les matches de l'expert avec les
-  // publications déjà publiées qui correspondent à son domaine + son
-  // user_type. Sans ce trigger, un expert approuvé APRÈS la publication de
-  // missions n'aurait jamais de matches (bug racine résolu — cf. lot
-  // "matching symétrique réconcilié").
-  try {
-    const { runMatchingForExpert } = await import('@/lib/matching')
-    void runMatchingForExpert({
-      supabaseAdmin: auth.supabaseAdmin,
-      profileId,
-      locale: u?.locale ?? 'fr',
-    }).then((v) => {
+  // Non-bloquant POUR L'ADMIN : exécution via `after()` après l'envoi de la
+  // response. Un `void promise` serait tué par Vercel — `after()` garantit
+  // l'exécution de bout en bout (cf. bug racine fire-and-forget).
+  after(async () => {
+    try {
+      const { runMatchingForExpert } = await import('@/lib/matching')
+      const v = await runMatchingForExpert({
+        supabaseAdmin: auth.supabaseAdmin,
+        profileId,
+        locale: u?.locale ?? 'fr',
+      })
       console.log('[admin:approve-expert] matching done', {
         profileId,
         status: v.status,
         proposals: v.proposals.length,
       })
-    }).catch((err) => {
-      console.error('[admin:approve-expert] matching threw (non-blocking)', err)
-    })
-  } catch (err) {
-    console.error('[admin:approve-expert] matching import threw (non-blocking)', err)
-  }
+    } catch (err) {
+      console.error('[admin:approve-expert] matching threw (after)', err)
+    }
+  })
 
   return json(
     {

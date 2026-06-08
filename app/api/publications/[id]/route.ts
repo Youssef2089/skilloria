@@ -1,9 +1,12 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+// Matching IA via `after()` (~10-15s) après l'envoi de la response, dans le
+// cas (dormant) où le PATCH cible une publication déjà 'published'.
+export const maxDuration = 60
 
 /**
  * PATCH /api/publications/[id] — édite un brouillon (ou une publi
@@ -251,24 +254,25 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   })
 
   // ── Matching réconcilié — déclencheur ANNONCE (post-édition) ─────────────
-  // Best-effort, non-bloquant. On déclenche la réconciliation UNIQUEMENT si
-  // la publi est en statut 'published' (édition d'un draft/suspended/archivé
-  // n'a aucun effet sur le feed expert — le feed ne lit que published). Côté
-  // EDITABLE_STATUSES actuel = draft/suspended/archived ; cette branche est
-  // donc dormante aujourd'hui mais wirée pour le jour où l'édition d'un
-  // 'published' deviendra possible.
+  // Non-bloquant POUR L'ORG : exécution via `after()`. On déclenche la
+  // réconciliation UNIQUEMENT si la publi est en statut 'published' (édition
+  // d'un draft/suspended/archivé n'a aucun effet sur le feed expert). Côté
+  // EDITABLE_STATUSES actuel = draft/suspended/archived ; branche dormante
+  // aujourd'hui mais wirée pour le jour où l'édition d'un 'published'
+  // deviendra possible.
   if (updated.status === 'published') {
-    try {
-      const { runMatchingForPublication } = await import('@/lib/matching')
-      void runMatchingForPublication({
-        supabaseAdmin: auth.supabaseAdmin,
-        publicationId: id,
-      })
-        .then((v) => console.log('[publications:PATCH] matching done', { id, status: v.status, proposals: v.proposals.length }))
-        .catch((err) => console.error('[publications:PATCH] matching threw (non-blocking)', err))
-    } catch (err) {
-      console.error('[publications:PATCH] matching import threw (non-blocking)', err)
-    }
+    after(async () => {
+      try {
+        const { runMatchingForPublication } = await import('@/lib/matching')
+        const v = await runMatchingForPublication({
+          supabaseAdmin: auth.supabaseAdmin,
+          publicationId: id,
+        })
+        console.log('[publications:PATCH] matching done', { id, status: v.status, proposals: v.proposals.length })
+      } catch (err) {
+        console.error('[publications:PATCH] matching threw (after)', err)
+      }
+    })
   }
 
   return json({ id: updated.id, status: updated.status }, 200)

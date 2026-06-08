@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 
 export const runtime = 'nodejs'
@@ -50,15 +50,19 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ ok: false, code: 'profile_not_found' }, 404)
   }
 
-  // Fire-and-forget — on retourne immédiatement, le matching tourne en BG.
-  try {
-    const { runMatchingForExpert } = await import('@/lib/matching')
-    void runMatchingForExpert({ supabaseAdmin, profileId: profile.id })
-      .then((v) => console.log('[me/sync-matching] done', { profileId: profile.id, status: v.status, proposals: v.proposals.length }))
-      .catch((err) => console.error('[me/sync-matching] threw (non-blocking)', err))
-  } catch (err) {
-    console.error('[me/sync-matching] import threw (non-blocking)', err)
-  }
+  // Exécution via `after()` — on retourne immédiatement, le matching IA
+  // (~10-15s) tourne après l'envoi de la response mais AVANT que le runtime
+  // serverless ne soit suspendu. Sans `after()`, un `void promise` serait
+  // tué par Vercel quand la response part.
+  after(async () => {
+    try {
+      const { runMatchingForExpert } = await import('@/lib/matching')
+      const v = await runMatchingForExpert({ supabaseAdmin, profileId: profile.id })
+      console.log('[me/sync-matching] done', { profileId: profile.id, status: v.status, proposals: v.proposals.length })
+    } catch (err) {
+      console.error('[me/sync-matching] threw (after)', err)
+    }
+  })
 
   return json({ ok: true, profile_id: profile.id, queued: true }, 200)
 }

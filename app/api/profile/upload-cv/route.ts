@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, after } from 'next/server'
 import crypto from 'node:crypto'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
@@ -6,6 +6,9 @@ import { parseCV } from '@/lib/cv-parser'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+// CV parsing IA (~30s) + matching IA via `after()` (~10-15s) cumulent dans
+// le budget d'exécution. 60s = max Hobby ; Pro/Enterprise peuvent monter.
+export const maxDuration = 60
 
 const MAX_SIZE = 5 * 1024 * 1024
 const RATE_LIMIT = 3
@@ -410,29 +413,29 @@ export async function POST(request: NextRequest): Promise<Response> {
   })
 
   // ── Matching réconcilié — déclencheur EXPERT (cv_parsing_status='done') ──
-  // Best-effort. La transition vers 'done' débloque l'éligibilité matching.
-  // On ne déclenche que si tous les autres critères sont déjà OK (approuvé +
-  // visible + consent). Non-bloquant : l'utilisateur ne l'attend pas.
-  try {
-    const { data: postUpd } = await supabaseAdmin
-      .from('profiles')
-      .select('verification_status, visible, ai_consent_at, cv_parsing_status')
-      .eq('id', profile.id)
-      .maybeSingle()
-    if (
-      postUpd?.verification_status === 'approved' &&
-      postUpd?.visible === true &&
-      postUpd?.ai_consent_at != null &&
-      postUpd?.cv_parsing_status === 'done'
-    ) {
+  // Non-bloquant POUR LE USER : exécution via `after()` (cf. profile PATCH).
+  // Un simple `void promise` est tué par Vercel quand la response part — il
+  // faut after() pour garantir l'exécution de bout en bout.
+  after(async () => {
+    try {
+      const { data: postUpd } = await supabaseAdmin
+        .from('profiles')
+        .select('verification_status, visible, ai_consent_at, cv_parsing_status')
+        .eq('id', profile.id)
+        .maybeSingle()
+      if (
+        postUpd?.verification_status !== 'approved' ||
+        postUpd?.visible !== true ||
+        postUpd?.ai_consent_at == null ||
+        postUpd?.cv_parsing_status !== 'done'
+      ) return
       const { runMatchingForExpert } = await import('@/lib/matching')
-      void runMatchingForExpert({ supabaseAdmin, profileId: profile.id })
-        .then((v) => console.log('[upload-cv] matching done', { profileId: profile.id, status: v.status, proposals: v.proposals.length }))
-        .catch((err) => console.error('[upload-cv] matching threw (non-blocking)', err))
+      const v = await runMatchingForExpert({ supabaseAdmin, profileId: profile.id })
+      console.log('[upload-cv] matching done', { profileId: profile.id, status: v.status, proposals: v.proposals.length })
+    } catch (err) {
+      console.error('[upload-cv] matching threw (after)', err)
     }
-  } catch (err) {
-    console.error('[upload-cv] matching import threw (non-blocking)', err)
-  }
+  })
 
   return json({
     jobId: profile.id,
