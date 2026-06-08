@@ -17,6 +17,7 @@ import CdiStatusToggle from '@/components/cdi/CdiStatusToggle'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
 import { emitAvailabilityChanged } from '@/lib/availability-actions'
+import { useSecureFetch } from '@/lib/secure-fetch'
 import CandidatureMiniCard from '@/components/dashboard/CandidatureMiniCard'
 import MissionMiniCard from '@/components/dashboard/MissionMiniCard'
 import type { MissionCardData } from '@/components/dashboard/MissionCard'
@@ -119,6 +120,7 @@ export default function DashboardCDI() {
 
   const [status, setStatus] = useState<CdiStatus | null>(null)
   const [statusUpdating, setStatusUpdating] = useState(false)
+  const secureFetch = useSecureFetch()
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
   // Mirror local de profile.photo_url pour permettre l'update optimiste
@@ -190,6 +192,13 @@ export default function DashboardCDI() {
         // /api/me/missions → home Suggestions + page Offres se mettent à
         // jour SANS reload. Toggle ↔ liste vidée/repeuplée, instantané).
         emitAvailabilityChanged()
+        // Lot matching réconcilié : sortie du DND → ping sync-matching
+        // côté serveur pour aligner les matches avec les offres publiées.
+        if (next === 'open_to_work' && previous === 'employed') {
+          void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
+            console.warn('[dashboard:cdi] sync-matching ping failed', err)
+          })
+        }
       }
     } catch {
       setStatus(previous)

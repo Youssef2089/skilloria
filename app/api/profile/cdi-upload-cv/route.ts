@@ -512,6 +512,29 @@ export async function POST(request: NextRequest): Promise<Response> {
     },
   })
 
+  // ── Matching réconcilié — déclencheur EXPERT CDI (cv_parsing_status='done') ──
+  // Best-effort. Mêmes garanties que la variante freelance.
+  try {
+    const { data: postUpd } = await supabaseAdmin
+      .from('profiles')
+      .select('verification_status, visible, ai_consent_at, cv_parsing_status')
+      .eq('id', prof.id)
+      .maybeSingle()
+    if (
+      postUpd?.verification_status === 'approved' &&
+      postUpd?.visible === true &&
+      postUpd?.ai_consent_at != null &&
+      postUpd?.cv_parsing_status === 'done'
+    ) {
+      const { runMatchingForExpert } = await import('@/lib/matching')
+      void runMatchingForExpert({ supabaseAdmin, profileId: prof.id })
+        .then((v) => console.log('[cdi-upload-cv] matching done', { profileId: prof.id, status: v.status, proposals: v.proposals.length }))
+        .catch((err) => console.error('[cdi-upload-cv] matching threw (non-blocking)', err))
+    }
+  } catch (err) {
+    console.error('[cdi-upload-cv] matching import threw (non-blocking)', err)
+  }
+
   return json({
     jobId: prof.id,
     status: 'done',

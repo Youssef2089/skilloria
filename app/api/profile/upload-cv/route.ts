@@ -409,6 +409,31 @@ export async function POST(request: NextRequest): Promise<Response> {
     },
   })
 
+  // ── Matching réconcilié — déclencheur EXPERT (cv_parsing_status='done') ──
+  // Best-effort. La transition vers 'done' débloque l'éligibilité matching.
+  // On ne déclenche que si tous les autres critères sont déjà OK (approuvé +
+  // visible + consent). Non-bloquant : l'utilisateur ne l'attend pas.
+  try {
+    const { data: postUpd } = await supabaseAdmin
+      .from('profiles')
+      .select('verification_status, visible, ai_consent_at, cv_parsing_status')
+      .eq('id', profile.id)
+      .maybeSingle()
+    if (
+      postUpd?.verification_status === 'approved' &&
+      postUpd?.visible === true &&
+      postUpd?.ai_consent_at != null &&
+      postUpd?.cv_parsing_status === 'done'
+    ) {
+      const { runMatchingForExpert } = await import('@/lib/matching')
+      void runMatchingForExpert({ supabaseAdmin, profileId: profile.id })
+        .then((v) => console.log('[upload-cv] matching done', { profileId: profile.id, status: v.status, proposals: v.proposals.length }))
+        .catch((err) => console.error('[upload-cv] matching threw (non-blocking)', err))
+    }
+  } catch (err) {
+    console.error('[upload-cv] matching import threw (non-blocking)', err)
+  }
+
   return json({
     jobId: profile.id,
     status: 'done',

@@ -475,5 +475,43 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     detail: { keys: Object.keys(patch), blocks: touchedBlocks },
   })
 
+  // ── Matching réconcilié — déclencheur EXPERT (post-PATCH profile) ────────
+  // Best-effort, non-bloquant. On déclenche la réconciliation si l'expert est
+  // (ou vient d'être) approuvé+actif — pour aligner les matches sur les
+  // critères mis à jour. Une mission qui ne fitte plus disparaît (sauf
+  // candidature/dismissed) ; une mission qui matche maintenant apparaît.
+  //
+  // On relit verification_status post-update (l'auto-approve inline ci-dessus
+  // a pu basculer le statut). Coût IA : 1 appel batché par enregistrement
+  // (pas par frappe).
+  try {
+    const { data: postUpd } = await supabaseAdmin
+      .from('profiles')
+      .select('verification_status, visible, ai_consent_at, cv_parsing_status')
+      .eq('id', cp.id)
+      .maybeSingle()
+    const ready =
+      postUpd?.verification_status === 'approved' &&
+      postUpd?.visible === true &&
+      postUpd?.ai_consent_at != null &&
+      postUpd?.cv_parsing_status === 'done'
+    if (ready) {
+      const { runMatchingForExpert } = await import('@/lib/matching')
+      void runMatchingForExpert({ supabaseAdmin, profileId: cp.id })
+        .then((v) => {
+          console.log('[profile:PATCH] matching done', {
+            profileId: cp.id,
+            status: v.status,
+            proposals: v.proposals.length,
+          })
+        })
+        .catch((err) => {
+          console.error('[profile:PATCH] matching threw (non-blocking)', err)
+        })
+    }
+  } catch (err) {
+    console.error('[profile:PATCH] matching import threw (non-blocking)', err)
+  }
+
   return json({ profile: updatedProfile })
 }

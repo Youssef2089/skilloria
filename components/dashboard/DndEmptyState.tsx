@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { supabase } from '@/lib/supabase'
 import { setExpertListening, type ExpertSide } from '@/lib/availability-actions'
+import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
  * DndEmptyState — bloc rouge affiché quand l'expert est en "Ne pas déranger"
@@ -38,6 +39,7 @@ type Props = {
 
 export default function DndEmptyState({ side, userId }: Props) {
   const t = useTranslations('expert_dnd_empty')
+  const secureFetch = useSecureFetch()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -64,6 +66,13 @@ export default function DndEmptyState({ side, userId }: Props) {
       setBusy(false)
       return
     }
+    // Sortie du DND → ré-entrée pool : ping /api/me/sync-matching pour
+    // réconcilier les matches côté serveur. Fire-and-forget : le serveur
+    // accuse réception et le matching IA tourne en BG ; useLiveResource
+    // revalide /api/me/missions au prochain tick et la liste apparaît.
+    void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
+      console.warn('[DndEmptyState] sync-matching ping failed (non-blocking)', err)
+    })
     // Pas de setBusy(false) : useLiveResource va revalider et le composant
     // va se démonter (missions non vides → autre branche du parent). Si
     // l'utilisateur tombe sur un vrai "0 match", le parent affichera

@@ -314,7 +314,7 @@
       "recommended_missions": {
         "title": "Misiones recomendadas",
         "ai_badge": "IA",
-        "empty_verified": "Completa tu perfil para que nuestra IA te proponga misiones adaptadas a tu experiencia en {ecosystem}."
+        "empty_verified": "Aún no hay misiones que coincidan con tu perfil. En cuanto una misión {ecosystem} coincida, aparecerá aquí."
       },
       "expert_collaboration": {
         "title": "Colaboración entre expertos",

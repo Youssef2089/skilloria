@@ -154,6 +154,31 @@ export async function POST(request: NextRequest): Promise<Response> {
     detail: {},
   })
 
+  // ── Matching réconcilié — déclencheur EXPERT (post-approbation) ─────────
+  // Best-effort, non-bloquant : on aligne les matches de l'expert avec les
+  // publications déjà publiées qui correspondent à son domaine + son
+  // user_type. Sans ce trigger, un expert approuvé APRÈS la publication de
+  // missions n'aurait jamais de matches (bug racine résolu — cf. lot
+  // "matching symétrique réconcilié").
+  try {
+    const { runMatchingForExpert } = await import('@/lib/matching')
+    void runMatchingForExpert({
+      supabaseAdmin: auth.supabaseAdmin,
+      profileId,
+      locale: u?.locale ?? 'fr',
+    }).then((v) => {
+      console.log('[admin:approve-expert] matching done', {
+        profileId,
+        status: v.status,
+        proposals: v.proposals.length,
+      })
+    }).catch((err) => {
+      console.error('[admin:approve-expert] matching threw (non-blocking)', err)
+    })
+  } catch (err) {
+    console.error('[admin:approve-expert] matching import threw (non-blocking)', err)
+  }
+
   return json(
     {
       ok: true,

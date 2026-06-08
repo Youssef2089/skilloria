@@ -250,6 +250,27 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
     detail: { fields: Object.keys(u.updates) },
   })
 
+  // ── Matching réconcilié — déclencheur ANNONCE (post-édition) ─────────────
+  // Best-effort, non-bloquant. On déclenche la réconciliation UNIQUEMENT si
+  // la publi est en statut 'published' (édition d'un draft/suspended/archivé
+  // n'a aucun effet sur le feed expert — le feed ne lit que published). Côté
+  // EDITABLE_STATUSES actuel = draft/suspended/archived ; cette branche est
+  // donc dormante aujourd'hui mais wirée pour le jour où l'édition d'un
+  // 'published' deviendra possible.
+  if (updated.status === 'published') {
+    try {
+      const { runMatchingForPublication } = await import('@/lib/matching')
+      void runMatchingForPublication({
+        supabaseAdmin: auth.supabaseAdmin,
+        publicationId: id,
+      })
+        .then((v) => console.log('[publications:PATCH] matching done', { id, status: v.status, proposals: v.proposals.length }))
+        .catch((err) => console.error('[publications:PATCH] matching threw (non-blocking)', err))
+    } catch (err) {
+      console.error('[publications:PATCH] matching import threw (non-blocking)', err)
+    }
+  }
+
   return json({ id: updated.id, status: updated.status }, 200)
 }
 

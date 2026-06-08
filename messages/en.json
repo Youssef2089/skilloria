@@ -314,7 +314,7 @@
       "recommended_missions": {
         "title": "Recommended missions",
         "ai_badge": "AI",
-        "empty_verified": "Complete your profile so our AI can suggest missions tailored to your {ecosystem} expertise."
+        "empty_verified": "No missions match your profile yet. As soon as a {ecosystem} mission matches, it will appear here."
       },
       "expert_collaboration": {
         "title": "Expert collaboration",

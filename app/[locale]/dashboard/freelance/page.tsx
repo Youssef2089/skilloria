@@ -17,6 +17,7 @@ import AvailabilityToggle, {
 } from '@/components/freelance/AvailabilityToggle'
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
 import { emitAvailabilityChanged } from '@/lib/availability-actions'
+import { useSecureFetch } from '@/lib/secure-fetch'
 
 type ProfileData = {
   tjm_min: number | null
@@ -70,6 +71,7 @@ export default function DashboardFreelance() {
   // (lib/matching/index.ts + /api/me/missions).
   const [availability, setAvailability] = useState<AvailabilityStatus | null>(null)
   const [availabilityUpdating, setAvailabilityUpdating] = useState(false)
+  const secureFetch = useSecureFetch()
 
   // Types minimaux pour les ressources live.
   type CandidatureLite = {
@@ -235,6 +237,14 @@ export default function DashboardFreelance() {
         // /api/me/missions → home Suggestions + page Offres se mettent à
         // jour SANS reload. Toggle ↔ liste vidée/repeuplée, instantané).
         emitAvailabilityChanged()
+        // Lot matching réconcilié : sortie du DND → ping sync-matching
+        // côté serveur pour aligner les matches avec les publis publiées.
+        // Fire-and-forget, non-bloquant.
+        if (next === 'available' && previous === 'do_not_disturb') {
+          void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
+            console.warn('[dashboard:freelance] sync-matching ping failed', err)
+          })
+        }
       }
     } catch {
       setAvailability(previous)
