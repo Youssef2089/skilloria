@@ -2023,5 +2023,126 @@
     "superseded_title": "Sesión cerrada",
     "superseded_message": "Tu cuenta se ha abierto en otro dispositivo. Por motivos de seguridad, se ha cerrado tu sesión.",
     "superseded_signin": "Volver a iniciar sesión"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "subtitle": "Gestiona tu cuenta y tus preferencias.",
+    "nav": {
+      "identity": "Identidad",
+      "email": "Correo",
+      "phone": "Teléfono",
+      "password": "Contraseña",
+      "language": "Idioma",
+      "security": "Seguridad",
+      "deletion": "Eliminar cuenta"
+    },
+    "common": {
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "edit": "Editar",
+      "saving": "Guardando…",
+      "success_generic": "Cambios guardados.",
+      "error_generic": "Algo salió mal. Inténtalo de nuevo.",
+      "required": "Campo obligatorio"
+    },
+    "identity": {
+      "title": "Identidad",
+      "description": "Tu nombre y apellidos.",
+      "first_name": "Nombre",
+      "last_name": "Apellidos",
+      "save": "Guardar",
+      "success": "Identidad actualizada."
+    },
+    "email": {
+      "title": "Correo",
+      "description": "Cambia tu dirección de correo. Se envía un correo de confirmación a la nueva dirección antes del cambio.",
+      "current_label": "Correo actual",
+      "new_label": "Nuevo correo",
+      "new_placeholder": "nuevo@direccion.com",
+      "confirmation_info": "Se enviará un correo de confirmación. El cambio solo se aplica tras hacer clic en el enlace.",
+      "submit": "Enviar confirmación",
+      "success": "Correo de confirmación enviado. Revisa tu bandeja.",
+      "error_taken": "Esta dirección de correo ya está en uso.",
+      "error_failed": "No se pudo cambiar el correo."
+    },
+    "phone": {
+      "title": "Teléfono",
+      "description": "Cambia tu número de teléfono. Se enviará un código de verificación por SMS.",
+      "current_label": "Número actual",
+      "new_label": "Nuevo número",
+      "new_placeholder": "+34 612 34 56 78",
+      "send_code": "Enviar código",
+      "code_label": "Código de verificación",
+      "code_placeholder": "123456",
+      "verify": "Verificar",
+      "resend": "Reenviar código",
+      "otp_info": "Introduce el código de 6 dígitos recibido por SMS. Caduca a los 5 minutos.",
+      "success": "Número de teléfono actualizado.",
+      "error_invalid_code": "Código no válido.",
+      "error_expired": "El código ha caducado. Solicita uno nuevo.",
+      "error_failed": "No se pudo cambiar el número."
+    },
+    "password": {
+      "title": "Contraseña",
+      "description": "Cambia tu contraseña.",
+      "new_label": "Nueva contraseña",
+      "new_placeholder": "Al menos 8 caracteres",
+      "confirm_label": "Confirma la contraseña",
+      "confirm_placeholder": "Vuelve a escribir la contraseña",
+      "submit": "Cambiar contraseña",
+      "success": "Contraseña cambiada.",
+      "error_mismatch": "Las contraseñas no coinciden.",
+      "error_weak": "La contraseña debe tener al menos 8 caracteres.",
+      "error_same": "La nueva contraseña debe ser distinta de la anterior.",
+      "error_failed": "No se pudo cambiar la contraseña."
+    },
+    "language": {
+      "title": "Idioma",
+      "description": "Tu idioma preferido para toda la plataforma y los correos.",
+      "label": "Idioma",
+      "success": "Idioma actualizado."
+    },
+    "security": {
+      "title": "Seguridad",
+      "description": "Gestiona tus sesiones activas.",
+      "revoke_title": "Cerrar sesión en los demás dispositivos",
+      "revoke_desc": "Cierra todas las demás sesiones. Este dispositivo permanece conectado.",
+      "revoke_button": "Cerrar sesión en otros dispositivos",
+      "revoke_success": "Se ha cerrado la sesión en los demás dispositivos."
+    },
+    "deletion": {
+      "title": "Eliminar cuenta",
+      "description": "Elimina tu cuenta de forma permanente. Tienes 90 días para revertirlo.",
+      "warning_title": "Irreversible tras el periodo de gracia",
+      "warning_body": "Tu cuenta se desactivará de inmediato y desaparecerás del matching. Podrás reactivarla durante 90 días iniciando sesión. Pasado ese plazo, tus datos personales se anonimizarán de forma permanente.",
+      "grace_info": "Podrás reactivar tu cuenta hasta el {date}.",
+      "confirm_instruction": "Para confirmar, escribe {word} abajo.",
+      "confirm_word": "ELIMINAR",
+      "confirm_placeholder": "Escribe {word}",
+      "button": "Eliminar mi cuenta",
+      "success": "Eliminación programada. Tu cuenta se eliminará el {date}.",
+      "already_scheduled": "Ya hay una eliminación programada.",
+      "error_failed": "No se pudo programar la eliminación."
+    },
+    "reauth": {
+      "title": "Confirma tu identidad",
+      "description": "Por seguridad, vuelve a introducir tu contraseña.",
+      "password_label": "Contraseña",
+      "password_placeholder": "Tu contraseña actual",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar",
+      "error_invalid": "Contraseña incorrecta.",
+      "error_required": "Contraseña obligatoria."
+    },
+    "reactivation": {
+      "title": "Tu cuenta está programada para eliminarse",
+      "body": "Programaste la eliminación de tu cuenta. Se eliminará de forma permanente el {date}. Puedes reactivarla ahora.",
+      "scheduled_for": "Eliminación permanente el {date}",
+      "reactivate_button": "Reactivar mi cuenta",
+      "reactivate_success": "Cuenta reactivada. ¡Bienvenido de nuevo!",
+      "logout": "Cerrar sesión",
+      "purged_title": "Cuenta eliminada",
+      "purged_body": "Esta cuenta se ha eliminado de forma permanente y ya no se puede usar."
+    }
   }
 }

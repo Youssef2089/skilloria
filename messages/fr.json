@@ -2024,5 +2024,126 @@
     "superseded_title": "Session déconnectée",
     "superseded_message": "Votre compte a été ouvert sur un autre appareil. Pour des raisons de sécurité, vous avez été déconnecté.",
     "superseded_signin": "Se reconnecter"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Gère ton compte et tes préférences.",
+    "nav": {
+      "identity": "Identité",
+      "email": "Email",
+      "phone": "Téléphone",
+      "password": "Mot de passe",
+      "language": "Langue",
+      "security": "Sécurité",
+      "deletion": "Suppression du compte"
+    },
+    "common": {
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "edit": "Modifier",
+      "saving": "Enregistrement…",
+      "success_generic": "Modifications enregistrées.",
+      "error_generic": "Une erreur est survenue. Réessaie.",
+      "required": "Champ requis"
+    },
+    "identity": {
+      "title": "Identité",
+      "description": "Ton prénom et ton nom.",
+      "first_name": "Prénom",
+      "last_name": "Nom",
+      "save": "Enregistrer",
+      "success": "Identité mise à jour."
+    },
+    "email": {
+      "title": "Email",
+      "description": "Change ton adresse email. Un email de confirmation est envoyé à la nouvelle adresse avant la bascule.",
+      "current_label": "Email actuel",
+      "new_label": "Nouvel email",
+      "new_placeholder": "nouvelle@adresse.com",
+      "confirmation_info": "Un email de confirmation va être envoyé. Le changement ne sera effectif qu’après validation du lien.",
+      "submit": "Envoyer la confirmation",
+      "success": "Email de confirmation envoyé. Vérifie ta boîte mail.",
+      "error_taken": "Cette adresse email est déjà utilisée.",
+      "error_failed": "Impossible de changer l’email."
+    },
+    "phone": {
+      "title": "Téléphone",
+      "description": "Change ton numéro de téléphone. Un code de vérification te sera envoyé par SMS.",
+      "current_label": "Numéro actuel",
+      "new_label": "Nouveau numéro",
+      "new_placeholder": "+33 6 12 34 56 78",
+      "send_code": "Envoyer le code",
+      "code_label": "Code de vérification",
+      "code_placeholder": "123456",
+      "verify": "Vérifier",
+      "resend": "Renvoyer un code",
+      "otp_info": "Saisis le code à 6 chiffres reçu par SMS. Il expire au bout de 5 minutes.",
+      "success": "Numéro de téléphone mis à jour.",
+      "error_invalid_code": "Code invalide.",
+      "error_expired": "Le code a expiré. Renvoie un nouveau code.",
+      "error_failed": "Impossible de changer le numéro."
+    },
+    "password": {
+      "title": "Mot de passe",
+      "description": "Change ton mot de passe.",
+      "new_label": "Nouveau mot de passe",
+      "new_placeholder": "Au moins 8 caractères",
+      "confirm_label": "Confirme le mot de passe",
+      "confirm_placeholder": "Ressaisis le mot de passe",
+      "submit": "Changer le mot de passe",
+      "success": "Mot de passe modifié.",
+      "error_mismatch": "Les mots de passe ne correspondent pas.",
+      "error_weak": "Le mot de passe doit faire au moins 8 caractères.",
+      "error_same": "Le nouveau mot de passe doit être différent de l’ancien.",
+      "error_failed": "Impossible de changer le mot de passe."
+    },
+    "language": {
+      "title": "Langue",
+      "description": "Ta langue préférée pour toute la plateforme et les emails.",
+      "label": "Langue",
+      "success": "Langue mise à jour."
+    },
+    "security": {
+      "title": "Sécurité",
+      "description": "Gère tes sessions actives.",
+      "revoke_title": "Se déconnecter de tous les autres appareils",
+      "revoke_desc": "Déconnecte toutes les autres sessions. Cet appareil reste connecté.",
+      "revoke_button": "Déconnecter les autres appareils",
+      "revoke_success": "Les autres appareils ont été déconnectés."
+    },
+    "deletion": {
+      "title": "Suppression du compte",
+      "description": "Supprime définitivement ton compte. Tu disposes de 90 jours pour revenir en arrière.",
+      "warning_title": "Action irréversible après le délai",
+      "warning_body": "Ton compte sera désactivé immédiatement et tu disparaîtras du matching. Tu pourras le réactiver pendant 90 jours en te reconnectant. Passé ce délai, tes données personnelles seront définitivement anonymisées.",
+      "grace_info": "Tu pourras réactiver ton compte jusqu’au {date}.",
+      "confirm_instruction": "Pour confirmer, tape {word} ci-dessous.",
+      "confirm_word": "SUPPRIMER",
+      "confirm_placeholder": "Tape {word}",
+      "button": "Supprimer mon compte",
+      "success": "Suppression programmée. Ton compte sera supprimé le {date}.",
+      "already_scheduled": "Une suppression est déjà programmée.",
+      "error_failed": "Impossible de programmer la suppression."
+    },
+    "reauth": {
+      "title": "Confirme ton identité",
+      "description": "Pour des raisons de sécurité, ressaisis ton mot de passe.",
+      "password_label": "Mot de passe",
+      "password_placeholder": "Ton mot de passe actuel",
+      "confirm": "Confirmer",
+      "cancel": "Annuler",
+      "error_invalid": "Mot de passe incorrect.",
+      "error_required": "Mot de passe requis."
+    },
+    "reactivation": {
+      "title": "Ton compte va être supprimé",
+      "body": "Tu as programmé la suppression de ton compte. Il sera définitivement supprimé le {date}. Tu peux le réactiver dès maintenant.",
+      "scheduled_for": "Suppression définitive le {date}",
+      "reactivate_button": "Réactiver mon compte",
+      "reactivate_success": "Compte réactivé. Bon retour !",
+      "logout": "Se déconnecter",
+      "purged_title": "Compte supprimé",
+      "purged_body": "Ce compte a été supprimé définitivement et ne peut plus être utilisé."
+    }
   }
 }
