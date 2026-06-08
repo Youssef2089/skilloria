@@ -276,6 +276,7 @@ function LanguageSection({ secureFetch, notify }: {
   secureFetch: SecureFetch; notify: Notify
 }) {
   const t = useTranslations('settings.language')
+  const tc = useTranslations('settings.common')
   const current = useLocale() as Locale
   const router = useRouter()
   const pathname = usePathname()
@@ -291,7 +292,7 @@ function LanguageSection({ secureFetch, notify }: {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ locale: loc }),
       })
-      if (!res.ok) { notify(t('success'), 'error'); setBusy(false); return }
+      if (!res.ok) { notify(tc('error_generic'), 'error'); setBusy(false); return }
       notify(t('success'))
       router.replace(pathname, { locale: loc })
     } catch { setBusy(false) }
@@ -332,13 +333,14 @@ function SecuritySection({ secureFetch, notify }: {
   secureFetch: SecureFetch; notify: Notify
 }) {
   const t = useTranslations('settings.security')
+  const tc = useTranslations('settings.common')
   const [busy, setBusy] = useState(false)
 
   const revoke = async () => {
     setBusy(true)
     try {
       const res = await secureFetch('/api/me/sessions/revoke-others', { method: 'POST' })
-      if (!res.ok) { notify(t('revoke_success'), 'error'); setBusy(false); return }
+      if (!res.ok) { notify(tc('error_generic'), 'error'); setBusy(false); return }
       notify(t('revoke_success'))
     } catch { setBusy(false) }
     setBusy(false)
