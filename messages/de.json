@@ -1586,6 +1586,17 @@
     "detail_empty_subtitle": "Klicken Sie links auf eine Bewerbung, um deren Verfolgung und verfügbare Aktionen zu sehen."
   },
   "candidatures": {
+    "casting": {
+      "counter": "{current} / {total}",
+      "pagination_aria": "Bewerbungs-Paginierung",
+      "goto_aria": "Bewerbung {index} ansehen",
+      "prev_aria": "Vorheriger Kandidat",
+      "next_aria": "Nächster Kandidat",
+      "empty": "Keine Kandidaten anzuzeigen.",
+      "count_candidates": "{count, plural, =0 {0 Kandidaten} =1 {1 Kandidat} other {# Kandidaten}}",
+      "best_score": "Beste Bewertung {score}/10",
+      "switch_pub_label": "Veröffentlichung:"
+    },
     "feed_global": {
       "back_to_dashboard": "← Dashboard",
       "header_kicker": "Bewerbungen",

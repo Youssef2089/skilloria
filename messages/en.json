@@ -1586,6 +1586,17 @@
     "detail_empty_subtitle": "Click an application on the left to see its tracking and available actions."
   },
   "candidatures": {
+    "casting": {
+      "counter": "{current} / {total}",
+      "pagination_aria": "Candidates pagination",
+      "goto_aria": "View candidate {index}",
+      "prev_aria": "Previous candidate",
+      "next_aria": "Next candidate",
+      "empty": "No candidate to display.",
+      "count_candidates": "{count, plural, =0 {0 candidates} =1 {1 candidate} other {# candidates}}",
+      "best_score": "Top score {score}/10",
+      "switch_pub_label": "Posting:"
+    },
     "feed_global": {
       "back_to_dashboard": "← Dashboard",
       "header_kicker": "Applications",

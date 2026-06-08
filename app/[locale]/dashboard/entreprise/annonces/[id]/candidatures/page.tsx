@@ -1,31 +1,31 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { type CandidatureData } from '@/components/dashboard/CandidatureCard'
-import OrgCandidateGridCard from '@/components/dashboard/OrgCandidateGridCard'
-import BoundedScrollList from '@/components/ui/BoundedScrollList'
+import CastingCarousel from '@/components/dashboard/CastingCarousel'
 
 /**
- * /dashboard/entreprise/annonces/[id]/candidatures — vue org des candidatures
- * sur une publication (Lot 2c).
+ * /dashboard/entreprise/annonces/[id]/candidatures — vue casting per-annonce.
  *
- * Garde serveur :
- *   GET /api/publications/[id]/candidatures vérifie ownership (publication →
- *   organization_members) ; renvoie 404 si la publi n'appartient pas à l'org.
+ * Même composant que la page globale, mais scopé à une publication
+ * (donc pas de sélecteur d'annonce). En-tête simplifié + carrousel.
  *
- * Masquage :
- *   Avant unlock, chaque carte affiche uniquement la preview (whitelist).
- *   Après unlock, la carte affiche le profil complet (identité, contact, CV).
- *   La transition se fait via re-fetch (onMutated() → load()).
+ * Tri ai_match_score DESC côté serveur, auto-mark viewed sur le centre.
  */
 
 type Props = { params: Promise<{ id: string }> }
 
-type PublicationInfo = { id: string; type: string; title: string; status: string; skills_required?: string[] }
+type PublicationInfo = {
+  id: string
+  type: string
+  title: string
+  status: string
+  skills_required?: string[]
+}
 type State =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
@@ -33,6 +33,8 @@ type State =
 
 export default function CandidaturesPage({ params }: Props) {
   const t = useTranslations('candidatures.feed')
+  const tCasting = useTranslations('candidatures.casting')
+  const tPub = useTranslations('publications.type')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -40,7 +42,6 @@ export default function CandidaturesPage({ params }: Props) {
 
   const [pubId, setPubId] = useState<string | null>(null)
   const [state, setState] = useState<State>({ kind: 'loading' })
-  const [filter, setFilter] = useState<'all' | 'received' | 'unlocked' | 'rejected'>('all')
 
   const load = useCallback(async (id: string) => {
     setState({ kind: 'loading' })
@@ -87,7 +88,11 @@ export default function CandidaturesPage({ params }: Props) {
     if (pubId) void load(pubId)
   }, [pubId, load])
 
-  // ── Render ──────────────────────────────────────────────────────────────
+  const bestScore = useMemo(() => {
+    if (state.kind !== 'ready') return null
+    return state.candidatures[0]?.ai_match_score ?? null
+  }, [state])
+
   if (state.kind === 'loading') {
     return <div style={{ padding: 48, textAlign: 'center', color: '#64748b', fontFamily: 'Inter, sans-serif' }}>{t('loading')}</div>
   }
@@ -119,92 +124,66 @@ export default function CandidaturesPage({ params }: Props) {
 
   const { publication, candidatures } = state
 
-  const counts = {
-    all: candidatures.length,
-    received: candidatures.filter((c) => c.status === 'received' || c.status === 'in_review' || c.status === 'shortlisted').length,
-    unlocked: candidatures.filter((c) => c.status === 'unlocked').length,
-    rejected: candidatures.filter((c) => c.status === 'rejected').length,
-  }
-
-  const filtered = candidatures.filter((c) => {
-    if (filter === 'all') return true
-    if (filter === 'received') return c.status === 'received' || c.status === 'in_review' || c.status === 'shortlisted'
-    if (filter === 'unlocked') return c.status === 'unlocked'
-    if (filter === 'rejected') return c.status === 'rejected'
-    return true
-  })
-
-  const tabs: Array<{ key: typeof filter; label: string; count: number; dot: string }> = [
-    { key: 'all', label: t('filter_all'), count: counts.all, dot: '#94a3b8' },
-    { key: 'received', label: t('filter_received'), count: counts.received, dot: domain.primaryColor },
-    { key: 'unlocked', label: t('filter_unlocked'), count: counts.unlocked, dot: '#16A34A' },
-    { key: 'rejected', label: t('filter_rejected'), count: counts.rejected, dot: '#DC2626' },
-  ]
-
   return (
-    <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <button
         type="button"
         onClick={() => router.push('/dashboard/entreprise')}
         style={{
-          background: 'transparent',
-          border: 'none',
-          color: domain.primaryColor,
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: 'pointer',
-          padding: 0,
-          marginBottom: 16,
+          background: 'transparent', border: 'none', color: domain.primaryColor,
+          fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 14,
+          alignSelf: 'flex-start',
         }}
       >
         {t('back_to_dashboard')}
       </button>
 
-      <header style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600, marginBottom: 4 }}>
-          {t('header_kicker')}
-        </div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', lineHeight: 1.3, letterSpacing: '-0.2px', marginBottom: 4 }}>
+      {/* En-tête annonce */}
+      <div
+        style={{
+          background: 'var(--sk-surface)',
+          border: '1px solid var(--sk-border)',
+          borderRadius: 14,
+          padding: '16px 18px',
+          marginBottom: 8,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          flexWrap: 'wrap',
+        }}
+      >
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '5px 11px',
+            borderRadius: 999,
+            background: `${domain.primaryColor}14`,
+            color: domain.primaryColor,
+            fontSize: 11.5,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '.06em',
+            flexShrink: 0,
+          }}
+        >
+          {tPub((publication.type === 'offre' ? 'offre' : 'mission') as 'mission')}
+        </span>
+        <div style={{ minWidth: 0, flex: 1, fontSize: 16, fontWeight: 700, color: 'var(--sk-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.2px' }}>
           {publication.title || t('untitled_publication')}
-        </h1>
-        <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
-          {t('header_subtitle')}
-        </p>
-      </header>
-
-      {/* Tabs filtres */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 18, borderBottom: '1px solid #e5e7eb', paddingBottom: 0, flexWrap: 'wrap' }}>
-        {tabs.map((tab) => {
-          const active = filter === tab.key
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setFilter(tab.key)}
-              style={{
-                padding: '10px 14px',
-                background: 'transparent',
-                border: 'none',
-                borderBottom: active ? `2px solid ${domain.primaryColor}` : '2px solid transparent',
-                color: active ? '#0f172a' : '#64748b',
-                fontSize: 13,
-                fontWeight: active ? 600 : 500,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                marginBottom: -1,
-              }}
-            >
-              <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: tab.dot }} />
-              {tab.label} ({tab.count})
-            </button>
-          )
-        })}
+        </div>
+        <span style={{ fontSize: 12.5, color: 'var(--sk-muted)', flexShrink: 0 }}>
+          {tCasting('count_candidates', { count: candidatures.length })}
+        </span>
+        {bestScore != null && (
+          <span style={{ fontSize: 12.5, color: 'var(--sk-muted)', flexShrink: 0 }}>
+            {tCasting('best_score', { score: Math.round(bestScore) })}
+          </span>
+        )}
       </div>
 
-      {filtered.length === 0 ? (
+      {/* Carrousel casting */}
+      {candidatures.length === 0 ? (
         <div
           style={{
             background: '#fff',
@@ -215,37 +194,21 @@ export default function CandidaturesPage({ params }: Props) {
             color: '#64748b',
             fontSize: 14,
             lineHeight: 1.6,
+            marginTop: 16,
           }}
         >
           <div style={{ fontSize: 16, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>
-            {filter === 'all' ? t('empty_all_title') : t('empty_filtered_title')}
+            {t('empty_all_title')}
           </div>
-          <div>{filter === 'all' ? t('empty_all_subtitle') : t('empty_filtered_subtitle')}</div>
+          <div>{t('empty_all_subtitle')}</div>
         </div>
       ) : (
-        <BoundedScrollList innerGap={0}>
-          {/* Lot grille photo-forward : même composant que la vue globale,
-              scopé à une publication. Grille responsive — 1 col mobile,
-              2-4 col desktop. Compétences matchées surlignées via
-              publication.skills_required. */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-              gap: 16,
-            }}
-          >
-            {filtered.map((c) => (
-              <OrgCandidateGridCard
-                key={c.id}
-                candidature={c}
-                publicationType={publication.type}
-                pubSkillsRequired={publication.skills_required ?? []}
-                onMutated={refresh}
-              />
-            ))}
-          </div>
-        </BoundedScrollList>
+        <CastingCarousel
+          items={candidatures}
+          publicationType={publication.type}
+          pubSkillsRequired={publication.skills_required ?? []}
+          onMutated={refresh}
+        />
       )}
     </div>
   )

@@ -1586,6 +1586,17 @@
     "detail_empty_subtitle": "Cliquez sur une candidature à gauche pour voir son suivi et les actions disponibles."
   },
   "candidatures": {
+    "casting": {
+      "counter": "{current} / {total}",
+      "pagination_aria": "Pagination des candidatures",
+      "goto_aria": "Voir candidature {index}",
+      "prev_aria": "Candidat précédent",
+      "next_aria": "Candidat suivant",
+      "empty": "Aucun candidat à afficher.",
+      "count_candidates": "{count, plural, =0 {0 candidat} =1 {1 candidat} other {# candidats}}",
+      "best_score": "Meilleur score {score}/10",
+      "switch_pub_label": "Annonce :"
+    },
     "feed_global": {
       "back_to_dashboard": "← Tableau de bord",
       "header_kicker": "Candidatures",
