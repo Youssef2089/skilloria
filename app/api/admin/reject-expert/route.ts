@@ -1,11 +1,16 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, after } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
+import { renderExpertRejectEmail } from '@/lib/emails/templates'
+import { sendEmail } from '@/lib/emails/resend'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+// Email de refus via `after()` après l'envoi de la response (jamais un void
+// fire-and-forget — tué sur Vercel serverless).
+export const maxDuration = 30
 
 /**
  * POST /api/admin/reject-expert { profile_id, reason }
@@ -24,7 +29,17 @@ function json(data: unknown, status = 200): Response {
 
 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 
-type Body = { profile_id?: unknown; reason?: unknown }
+type Body = { profile_id?: unknown; reason?: unknown; site_url?: unknown }
+
+function siteOriginFromRequest(request: NextRequest, body: Body): string {
+  if (typeof body.site_url === 'string' && /^https?:\/\/[^\s/]{1,200}$/.test(body.site_url)) {
+    return body.site_url
+  }
+  const origin = request.headers.get('origin')
+  if (origin && /^https?:\/\//.test(origin)) return origin
+  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+}
+
 function asString(v: unknown): string | null {
   if (typeof v !== 'string') return null
   const t = v.trim()
@@ -75,7 +90,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const { data: prof, error: fetchErr } = await auth.supabaseAdmin
     .from('profiles')
-    .select('id, user_id, domain_id, verification_status, users!profiles_user_id_fkey(id, locale, user_type)')
+    .select('id, user_id, domain_id, verification_status, users!profiles_user_id_fkey(id, email, first_name, locale, user_type)')
     .eq('id', profileId)
     .maybeSingle()
   if (fetchErr) {
@@ -83,15 +98,13 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
   if (!prof) return json({ error: 'Not found', code: 'not_found' }, 404)
+  type ExpertUser = { id: string; email: string | null; first_name: string | null; locale: string | null; user_type: string | null }
   const row = prof as unknown as {
     id: string
     user_id: string
     domain_id: string
     verification_status: string | null
-    users:
-      | { id: string; locale: string | null; user_type: string | null }
-      | { id: string; locale: string | null; user_type: string | null }[]
-      | null
+    users: ExpertUser | ExpertUser[] | null
   }
   if (row.verification_status !== 'pending_admin_review') {
     return json(
@@ -149,6 +162,41 @@ export async function POST(request: NextRequest): Promise<Response> {
     entity_type: 'profile',
     entity_id: profileId,
     detail: { reason },
+  })
+
+  // ── Email de refus (Resend) via after() — locale = users.locale ──────────
+  // En PLUS de la notif in-app déjà insérée. Awaité dans after() (best-effort,
+  // jamais un void fire-and-forget tué par Vercel). Un échec n'altère pas la
+  // décision déjà persistée.
+  const siteOrigin = siteOriginFromRequest(request, body)
+  after(async () => {
+    try {
+      const contactEmail = u?.email ?? null
+      if (!contactEmail) {
+        console.warn('[admin:reject-expert] no contact email — reject email skipped', { profileId })
+        return
+      }
+      const contactUrl = process.env.RESEND_FROM_EMAIL
+        ? `mailto:${process.env.RESEND_FROM_EMAIL}`
+        : `${siteOrigin}/${locale}`
+      const rendered = renderExpertRejectEmail({
+        locale: u?.locale ?? null,
+        firstName: (u?.first_name ?? '').trim() || (contactEmail.split('@')[0] ?? ''),
+        reason,
+        contactUrl,
+      })
+      const res = await sendEmail({
+        to: contactEmail,
+        subject: rendered.subject,
+        html: rendered.html,
+        text: rendered.text,
+        preheader: rendered.preheader,
+        tag: rendered.tag,
+      })
+      console.log('[admin:reject-expert] email', { profileId, ok: res.ok, code: res.ok ? null : res.code })
+    } catch (err) {
+      console.error('[admin:reject-expert] reject email threw (after)', err)
+    }
   })
 
   return json(

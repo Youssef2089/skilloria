@@ -2018,6 +2018,25 @@
       "body_with_reason_p2": "Grund: {reason}",
       "body_p3": "Falls Sie der Meinung sind, dass es sich um einen Irrtum handelt, antworten Sie direkt auf diese E-Mail.",
       "cta_label": "Kontakt aufnehmen"
+    },
+    "expert_welcome": {
+      "subject": "Ihr Profil ist verifiziert ✓",
+      "preheader": "Sie sind jetzt für Unternehmen auf Skilloria sichtbar.",
+      "title": "Ihr Profil ist verifiziert!",
+      "hello": "Hallo {firstName},",
+      "body_p1": "Gute Nachrichten: Ihr Profil wurde von unserem Team verifiziert. Es ist jetzt für Unternehmen sichtbar und Sie erscheinen in den KI-Empfehlungen.",
+      "body_p2": "Wir wünschen Ihnen großartige Möglichkeiten auf Skilloria.",
+      "cta_label": "Zum Dashboard"
+    },
+    "expert_reject": {
+      "subject": "Zur Verifizierung Ihres Skilloria-Profils",
+      "preheader": "Ihr Profil konnte nicht verifiziert werden.",
+      "title": "Verifizierung nicht abgeschlossen",
+      "hello": "Hallo {firstName},",
+      "body_p1": "Nach Prüfung können wir Ihr Profil auf Skilloria derzeit nicht verifizieren.",
+      "body_with_reason_p2": "Grund: {reason}",
+      "body_p3": "Sie können Ihr Profil anpassen und erneut einreichen. Falls Sie der Meinung sind, dass es sich um einen Irrtum handelt, antworten Sie direkt auf diese E-Mail.",
+      "cta_label": "Kontakt aufnehmen"
     }
   },
   "session": {

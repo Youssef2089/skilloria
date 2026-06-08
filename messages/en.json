@@ -2018,6 +2018,25 @@
       "body_with_reason_p2": "Reason: {reason}",
       "body_p3": "If you believe this is a mistake, please reply directly to this email.",
       "cta_label": "Contact us"
+    },
+    "expert_welcome": {
+      "subject": "Your profile is verified ✓",
+      "preheader": "You are now visible to companies on Skilloria.",
+      "title": "Your profile is verified!",
+      "hello": "Hi {firstName},",
+      "body_p1": "Good news: your profile has been verified by our team. It is now visible to companies and you appear in AI recommendations.",
+      "body_p2": "We wish you great opportunities on Skilloria.",
+      "cta_label": "Go to my dashboard"
+    },
+    "expert_reject": {
+      "subject": "About the verification of your Skilloria profile",
+      "preheader": "Your profile could not be verified.",
+      "title": "Verification not completed",
+      "hello": "Hi {firstName},",
+      "body_p1": "After review, we are unable to verify your profile on Skilloria at this time.",
+      "body_with_reason_p2": "Reason: {reason}",
+      "body_p3": "You can adjust your profile and submit it again. If you believe this is a mistake, please reply directly to this email.",
+      "cta_label": "Contact us"
     }
   },
   "session": {

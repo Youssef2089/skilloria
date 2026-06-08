@@ -2017,6 +2017,25 @@
       "body_with_reason_p2": "Motivo: {reason}",
       "body_p3": "Si crees que es un error, puedes responder directamente a este correo.",
       "cta_label": "Contactar"
+    },
+    "expert_welcome": {
+      "subject": "Tu perfil está verificado ✓",
+      "preheader": "Ya eres visible para las empresas en Skilloria.",
+      "title": "¡Tu perfil está verificado!",
+      "hello": "Hola {firstName},",
+      "body_p1": "Buenas noticias: tu perfil ha sido verificado por nuestro equipo. Ahora es visible para las empresas y apareces en las recomendaciones IA.",
+      "body_p2": "Te deseamos grandes oportunidades en Skilloria.",
+      "cta_label": "Acceder a mi panel"
+    },
+    "expert_reject": {
+      "subject": "Acerca de la verificación de tu perfil de Skilloria",
+      "preheader": "Tu perfil no ha podido ser verificado.",
+      "title": "Verificación no completada",
+      "hello": "Hola {firstName},",
+      "body_p1": "Tras revisarlo, por el momento no podemos verificar tu perfil en Skilloria.",
+      "body_with_reason_p2": "Motivo: {reason}",
+      "body_p3": "Puedes ajustar tu perfil y volver a enviarlo. Si crees que es un error, responde directamente a este correo.",
+      "cta_label": "Contactar"
     }
   },
   "session": {
