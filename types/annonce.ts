@@ -36,12 +36,28 @@ export type AnnonceType = 'mission' | 'offre'
  */
 export type AnnonceBudgetUnit = 'day' | 'month' | 'year' | 'mission'
 
+/**
+ * Compteurs entonnoir candidatures par annonce (Lot refonte dashboard org).
+ *
+ * 4 buckets EXCLUSIFS qui s'additionnent au total :
+ *   - to_review   : 'received' + 'in_review' + 'shortlisted'  (à consulter)
+ *   - in_progress : 'unlocked'                                (échanges en cours)
+ *   - accepted    : 'selected'                                (candidature acceptée)
+ *   - rejected    : 'rejected'                                (candidature refusée)
+ *   - total       = to_review + in_progress + accepted + rejected
+ *
+ * 'withdrawn' / 'archived' = hors-funnel V1, ne sont comptés nulle part.
+ *
+ * Codes ANGLAIS pour cohérence avec les statuts DB ; les libellés FR
+ * ("À consulter", "Échanges en cours", "Acceptées", "Refusées") vivent
+ * dans messages/{fr,en,es,de}.json — clés dashboard_entreprise.funnel.*.
+ */
 export type AnnonceCandidatures = {
-  recues: number
-  nouvelles: number
-  en_discussion: number
-  retenues: number
-  refusees: number
+  total: number
+  to_review: number
+  in_progress: number
+  accepted: number
+  rejected: number
 }
 
 export type Annonce = {

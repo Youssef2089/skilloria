@@ -315,7 +315,7 @@ export default function GlobalCandidaturesPage() {
                     {tCasting('count_candidates', { count: selectedItems.length })}
                   </span>
                   <Link
-                    href={`/dashboard/entreprise/annonces/${selectedPub.id}/candidatures`}
+                    href={`/dashboard/entreprise/annonces/${selectedPub.id}`}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6,
                       padding: '7px 11px', borderRadius: 9,

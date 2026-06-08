@@ -255,35 +255,57 @@ const VALID_STATUSES: readonly AnnonceStatus[] = [
 const VALID_TYPES: readonly AnnonceType[] = ['mission', 'offre']
 
 const EMPTY_CANDIDATURES = {
-  recues: 0,
-  nouvelles: 0,
-  en_discussion: 0,
-  retenues: 0,
-  refusees: 0,
+  total: 0,
+  to_review: 0,
+  in_progress: 0,
+  accepted: 0,
+  rejected: 0,
 } as const
 
 /**
- * Mapping logique compteurs UI ↔ candidatures.status :
- *   recues        = total (toutes lignes)
- *   nouvelles     = 'received'                                  (jamais ouverte)
- *   en_discussion = 'in_review' + 'shortlisted' + 'unlocked'    (toute candidature
- *                   active : en revue, présélectionnée, OU échange ouvert)
- *   retenues      = (vide V1)                                   (réservé Lot 2d :
- *                   sélection délibérée de l'org via action "Retenir" — pas
- *                   encore d'action UI, le compteur reste à 0)
- *   refusees      = 'rejected'
- *   ('withdrawn' et 'archived' ne comptent dans aucune case visible côté org)
+ * Mapping logique compteurs UI ↔ candidatures.status (Lot refonte dashboard
+ * org + clarification entonnoir).
+ *
+ * 4 buckets EXCLUSIFS qui s'additionnent au TOTAL :
+ *   to_review   = 'received' + 'in_review' + 'shortlisted'  (à consulter,
+ *                 actions org pas encore prises)
+ *   in_progress = 'unlocked'                                (échanges en cours,
+ *                 messagerie ouverte)
+ *   accepted    = 'selected'                                (candidature acceptée)
+ *   rejected    = 'rejected'                                (candidature refusée)
+ *   total       = somme des 4 (ne compte ni withdrawn ni archived,
+ *                 qui sont hors-funnel produit V1)
+ *
+ * Codes DB INCHANGÉS (selected, unlocked, …). Renommage uniquement display.
+ *
+ * Le badge nav "Candidatures" reste indépendant — basé sur `candidature_views`
+ * (par item non consulté). Ces deux compteurs cohabitent volontairement.
  */
-type CounterAgg = { recues: number; nouvelles: number; en_discussion: number; retenues: number; refusees: number }
+type CounterAgg = {
+  total: number
+  to_review: number
+  in_progress: number
+  accepted: number
+  rejected: number
+}
 function makeEmptyAgg(): CounterAgg {
-  return { recues: 0, nouvelles: 0, en_discussion: 0, retenues: 0, refusees: 0 }
+  return { total: 0, to_review: 0, in_progress: 0, accepted: 0, rejected: 0 }
 }
 function bumpAgg(agg: CounterAgg, status: string): void {
-  agg.recues += 1
-  if (status === 'received') agg.nouvelles += 1
-  else if (status === 'in_review' || status === 'shortlisted' || status === 'unlocked') agg.en_discussion += 1
-  else if (status === 'rejected') agg.refusees += 1
-  // 'retenues' reste à 0 jusqu'au Lot 2d (action "Retenir" côté org)
+  if (status === 'received' || status === 'in_review' || status === 'shortlisted') {
+    agg.to_review += 1
+    agg.total += 1
+  } else if (status === 'unlocked') {
+    agg.in_progress += 1
+    agg.total += 1
+  } else if (status === 'selected') {
+    agg.accepted += 1
+    agg.total += 1
+  } else if (status === 'rejected') {
+    agg.rejected += 1
+    agg.total += 1
+  }
+  // 'withdrawn' & 'archived' : hors-funnel (ne comptent pas dans total).
 }
 
 function normalizeLocale(raw: string | null): Locale {

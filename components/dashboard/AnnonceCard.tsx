@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
+import { useDomain } from '@/context/DomainContext'
 import type { Annonce, AnnonceStatus } from '@/types/annonce'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from './PublicationSynthesisLine'
 
@@ -114,6 +115,7 @@ export default function AnnonceCard({ annonce, basePath }: Props) {
   const t = useTranslations('dashboard_entreprise')
   const tPub = useTranslations('publications')
   const locale = useLocale()
+  const domain = useDomain()
 
   const statusStyle = STATUS_STYLES[annonce.status]
   const faded = (FADED_STATUSES as readonly string[]).includes(annonce.status)
@@ -146,13 +148,17 @@ export default function AnnonceCard({ annonce, basePath }: Props) {
   if (annonce.speciality_label) metaParts.push(annonce.speciality_label)
   const metaLine = metaParts.join(' · ')
 
+  // Lot refonte entonnoir : 4 buckets EXCLUSIFS qui s'additionnent au total.
+  // - À consulter en accent useDomain (action requise côté org)
+  // - Acceptées en vert succès
+  // - Refusées en rouge tertiaire (faible visibilité, c'est un état clos)
+  // Codes DB intacts ; libellés via i18n dashboard_entreprise.funnel.*.
   const c = annonce.candidatures
   const counters: Array<{ key: string; label: string; value: number; color?: string }> = [
-    { key: 'recues', label: t('counter_recues'), value: Math.round(c.recues) },
-    { key: 'nouvelles', label: t('counter_nouvelles'), value: Math.round(c.nouvelles), color: '#00B9FF' },
-    { key: 'en_discussion', label: t('counter_en_discussion'), value: Math.round(c.en_discussion) },
-    { key: 'retenues', label: t('counter_retenues'), value: Math.round(c.retenues), color: '#16A34A' },
-    { key: 'refusees', label: t('counter_refusees'), value: Math.round(c.refusees) },
+    { key: 'to_review', label: t('funnel.to_review'), value: Math.round(c.to_review), color: domain.primaryColor },
+    { key: 'in_progress', label: t('funnel.in_progress'), value: Math.round(c.in_progress) },
+    { key: 'accepted', label: t('funnel.accepted'), value: Math.round(c.accepted), color: '#16A34A' },
+    { key: 'rejected', label: t('funnel.rejected'), value: Math.round(c.rejected) },
   ]
 
   return (
@@ -266,7 +272,7 @@ export default function AnnonceCard({ annonce, basePath }: Props) {
         )
       })()}
 
-      {/* Section candidatures */}
+      {/* Section candidatures — chiffre lead (total) + 4 buckets exclusifs */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, color: 'var(--color-text-secondary, #64748b)' }}>
         <IconUsers size={12} />
         <span
@@ -281,31 +287,44 @@ export default function AnnonceCard({ annonce, basePath }: Props) {
         </span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 14 }}>
-        {counters.map((cnt) => {
-          const isZero = cnt.value === 0
-          const valueColor = isZero
-            ? 'var(--color-text-tertiary, #94a3b8)'
-            : cnt.color ?? 'var(--color-text-primary, #0f172a)'
-          return (
-            <div key={cnt.key} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 18, fontWeight: 500, color: valueColor, lineHeight: 1 }}>
-                {cnt.value}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14, flexWrap: 'wrap' }}>
+        {/* Total en lead */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexShrink: 0 }}>
+          <span style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-text-primary, #0f172a)', lineHeight: 1, letterSpacing: '-0.5px' }}>
+            {Math.round(c.total)}
+          </span>
+          <span style={{ fontSize: 11, color: 'var(--color-text-secondary, #64748b)', fontWeight: 500 }}>
+            {t('funnel.total_suffix')}
+          </span>
+        </div>
+
+        {/* 4 buckets */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, flex: 1, minWidth: 220 }}>
+          {counters.map((cnt) => {
+            const isZero = cnt.value === 0
+            const valueColor = isZero
+              ? 'var(--color-text-tertiary, #94a3b8)'
+              : cnt.color ?? 'var(--color-text-primary, #0f172a)'
+            return (
+              <div key={cnt.key} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 16, fontWeight: 600, color: valueColor, lineHeight: 1 }}>
+                  {cnt.value}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--color-text-secondary, #64748b)', marginTop: 4 }}>
+                  {cnt.label}
+                </div>
               </div>
-              <div style={{ fontSize: 10, color: 'var(--color-text-secondary, #64748b)', marginTop: 4 }}>
-                {cnt.label}
-              </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
 
       {/* Footer : lien d'action.
           - Statuts éditables (draft / suspended / archived) → page d'édition.
-          - Statut 'published'                             → vue candidatures
-            (Lot 2c) — c'est l'écran de gestion des candidatures reçues.
-          - Autres (pending_review / expired / rejected)   → page détail
-            (lecture, à construire — pointe vers chemin générique). */}
+          - Statut 'published'                              → vue candidatures
+            (casting) — c'est l'écran de gestion des candidatures reçues.
+          - Autres (pending_review / expired / rejected)    → fiche détail
+            (lecture seule de l'annonce, page créée au Lot refonte dashboard). */}
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <Link
           href={

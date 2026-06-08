@@ -1,65 +1,68 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { useRouter } from '@/i18n/navigation'
+import { Link, useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import OrgSetupModal from '@/components/OrgSetupModal'
-import OrganisationDashboard, {
-  type OrganisationFull,
-} from '@/components/dashboard/OrganisationDashboard'
-import type { Annonce } from '@/types/annonce'
+import { useDomain } from '@/context/DomainContext'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
+import type { Annonce, AnnonceStatus, AnnonceCandidatures } from '@/types/annonce'
 
 /**
- * Dashboard entreprise (B3.5 + B3.5.fix).
+ * Dashboard entreprise (Lot refonte tableau de bord).
  *
- * Préserve la logique B3.4 :
- *   1. Charge l'org via RLS organization_members
- *   2. Si setup_completed_at IS NULL → affiche OrgSetupModal (bloquant)
- *   3. Fallback redirect /connexion si pas de session ou requête échoue
+ * Refonte 2026 : le dashboard ne LISTE PLUS les annonces (rôle dévolu à
+ * `/dashboard/entreprise/annonces`). À la place, deux blocs de SUIVI :
  *
- * Une fois setup OK, délègue le rendu à <OrganisationDashboard>.
+ *   1. Suivi des publications  — 4 tuiles par statut PUBLICATION
+ *      (Publiées / En revue / Brouillons / Clôturées) + lien Mes annonces.
+ *   2. Suivi des candidatures — total + 4 tuiles ENTONNOIR exclusives
+ *      (À consulter / Échanges en cours / Acceptées / Refusées)
+ *      qui s'additionnent au total + lien Candidatures.
  *
- * UNIFICATION DASHBOARD ORG (B3.5.fix) :
- *   `/dashboard/entreprise` est désormais l'unique dashboard organisation
- *   pour les 3 sous-types (client / esn / cabinet). `/dashboard/cabinet`
- *   redirige vers ici. La prop `basePath` du composant reste utile (les
- *   liens internes en dépendent), mais vaut toujours '/dashboard/entreprise'.
+ * Sources :
+ *   - GET /api/publications (DTO Annonce[] avec compteurs entonnoir agg
+ *     par pub). On agrège côté client pour les chiffres globaux.
+ *   - Le statut publication est lu sur `annonce.status` (enum 7 valeurs).
  *
- * `org_type` est sélectionné et transmis pour permettre la différenciation
- * future des fonctionnalités par sous-type dans OrganisationDashboard.
+ * Cohérence :
+ *   - L'entonnoir candidatures est STATUS-BASED (received/in_review/...
+ *     → 4 buckets). Distinct du badge nav Candidatures qui reste basé sur
+ *     `candidature_views` (par item non consulté). Les deux cohabitent
+ *     volontairement.
+ *   - Codes DB intacts (selected, unlocked, …) ; renommage purement display.
  *
- * Source des annonces (Lot 1b.1) : GET /api/publications via useSecureFetch.
- * La route applique RLS publications_member_read côté service_role + projection
- * DTO Annonce sans aucun champ sensible. Comptages candidatures = 0 V1
- * (Lot 2 branchera l'agrégat).
+ * Mobile-first : grid auto-fit minmax → 1 colonne sur mobile.
  */
 
 type SetupState =
   | { kind: 'loading' }
-  | { kind: 'needs_setup'; organization: OrganisationFull }
-  | { kind: 'ready'; organization: OrganisationFull }
+  | { kind: 'needs_setup'; organizationId: string }
+  | { kind: 'ready'; organizationVerified: boolean; companyName: string | null }
   | { kind: 'session_expired' }
   | { kind: 'no_org' }
   | { kind: 'error'; message?: string }
+
+// Regroupement des 7 statuts publication en 4 buckets dashboard.
+const PUB_TAB_STATUSES: Record<'published' | 'review' | 'drafts' | 'closed', readonly AnnonceStatus[]> = {
+  published: ['published'],
+  review: ['pending_review', 'rejected'],
+  drafts: ['draft'],
+  closed: ['suspended', 'expired', 'archived'],
+}
 
 export default function DashboardEntreprise() {
   const router = useRouter()
   const locale = useLocale()
   const t = useTranslations('dashboard_entreprise')
   const tCommon = useTranslations('common')
+  const domain = useDomain()
+
   const [state, setState] = useState<SetupState>({ kind: 'loading' })
   const [needsRedirect, setNeedsRedirect] = useState(false)
 
-  /**
-   * Distingue les 3 branches d'erreur après la query org :
-   *   1. JWT/session expirée → kind: 'session_expired' (bouton 'se reconnecter')
-   *   2. User n'a pas d'org → redirect par user_type (expert → /freelance,
-   *      admin → /admin, autres → /)
-   *   3. Vraie erreur technique → kind: 'error' avec message
-   */
   function classifyError(errorMessage: string | null | undefined): 'session_expired' | 'error' {
     if (!errorMessage) return 'error'
     const m = errorMessage.toLowerCase()
@@ -72,8 +75,6 @@ export default function DashboardEntreprise() {
   async function redirectByUserType(userId: string): Promise<void> {
     const { data: u } = await supabase.from('users').select('user_type').eq('id', userId).maybeSingle()
     const userType = (u as { user_type?: string | null } | null)?.user_type ?? null
-    // Source unique de routage par rôle (lib/auth-routing.ts).
-    // expert_cdi → /dashboard/cdi (avant fix : /dashboard/freelance par erreur).
     if (userType === 'expert_freelance' || userType === 'expert_cdi') {
       router.replace(dashboardUrlForUserType(userType))
     } else if (userType === 'admin') {
@@ -84,18 +85,14 @@ export default function DashboardEntreprise() {
   }
 
   const refresh = useCallback(async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+    const { data: { session } } = await supabase.auth.getSession()
     if (!session?.user) {
       setNeedsRedirect(true)
       return
     }
     const { data: memberRow, error } = await supabase
       .from('organization_members')
-      .select(
-        'organizations(id, company_name, logo_url, verification_status, setup_completed_at, org_type)',
-      )
+      .select('organizations(id, company_name, verification_status, setup_completed_at)')
       .eq('user_id', session.user.id)
       .eq('status', 'active')
       .order('joined_at', { ascending: true })
@@ -112,48 +109,28 @@ export default function DashboardEntreprise() {
       ? memberRow.organizations[0]
       : memberRow?.organizations
     if (!orgRow) {
-      // Branche no_org : user authentifié mais sans organisation. Redirect par
-      // user_type (expert_* → /dashboard/freelance, admin → /admin, autres → /).
       setState({ kind: 'no_org' })
       void redirectByUserType(session.user.id)
       return
     }
-    const organization: OrganisationFull = {
-      id: (orgRow as { id: string }).id,
-      company_name: (orgRow as { company_name: string | null }).company_name ?? null,
-      logo_url: (orgRow as { logo_url: string | null }).logo_url ?? null,
-      verification_status:
-        (orgRow as { verification_status: string | null }).verification_status ?? null,
-      setup_completed_at:
-        (orgRow as { setup_completed_at: string | null }).setup_completed_at ?? null,
-      org_type: (orgRow as { org_type: string | null }).org_type ?? null,
+    const row = orgRow as { id: string; company_name: string | null; verification_status: string | null; setup_completed_at: string | null }
+    if (!row.setup_completed_at) {
+      setState({ kind: 'needs_setup', organizationId: row.id })
+      return
     }
-    setState(
-      organization.setup_completed_at
-        ? { kind: 'ready', organization }
-        : { kind: 'needs_setup', organization },
-    )
-  }, [])
+    setState({
+      kind: 'ready',
+      organizationVerified: row.verification_status === 'approved',
+      companyName: row.company_name,
+    })
+  }, [router])
 
+  useEffect(() => { void refresh() }, [refresh])
   useEffect(() => {
-    void refresh()
-  }, [refresh])
-
-  // Lot bascule badges par item : plus de markSectionVisited. annonces_org
-  // = alias de candidatures_org côté /api/me/badges → décrément automatique
-  // quand l'org consulte/marque ses candidatures sur la page candidatures.
-
-  useEffect(() => {
-    if (needsRedirect) {
-      router.replace('/connexion')
-    }
+    if (needsRedirect) router.replace('/connexion')
   }, [needsRedirect, router])
 
-  // Chargement annonces via useLiveResource (SWR + diff). Plus de reset
-  // 'loading' au poll : data précédente reste affichée pendant la revalidation
-  // → fin du flicker dashboard entreprise.
-  // holdNewItems=false : pas pertinent ici (les status changes doivent
-  // apparaître direct, et la liste annonces est déjà compacte).
+  // Annonces de l'org (pour calcul agrégat des 2 blocs).
   const annoncesUrl = state.kind === 'ready'
     ? `/api/publications?locale=${encodeURIComponent(locale)}`
     : null
@@ -161,52 +138,71 @@ export default function DashboardEntreprise() {
     url: annoncesUrl,
     itemsOf: (d) => d.publications ?? [],
     identityOf: (a) => a.id,
-    versionOf: (a) => a.published_at ?? a.created_at,
+    versionOf: (a) => `${a.status}|${a.published_at ?? a.created_at}`,
     holdNewItems: false,
   })
 
-  if (state.kind === 'loading' || state.kind === 'no_org' || needsRedirect) {
-    return (
-      <div
-        style={{
-          padding: 48,
-          textAlign: 'center',
-          fontFamily: 'Inter, system-ui, sans-serif',
-          color: '#64748b',
-        }}
-      >
-        …
-      </div>
-    )
-  }
+  // Agrégats globaux.
+  //   - pubCounts : nombre d'annonces par bucket statut (4 buckets).
+  //   - candCounts : somme des entonnoirs candidatures sur TOUTES les pubs.
+  const annonces = annoncesLive.data?.publications ?? []
+  const pubCounts = useMemo(() => {
+    const r = { published: 0, review: 0, drafts: 0, closed: 0 }
+    for (const a of annonces) {
+      if ((PUB_TAB_STATUSES.published as readonly string[]).includes(a.status)) r.published++
+      else if ((PUB_TAB_STATUSES.review as readonly string[]).includes(a.status)) r.review++
+      else if ((PUB_TAB_STATUSES.drafts as readonly string[]).includes(a.status)) r.drafts++
+      else if ((PUB_TAB_STATUSES.closed as readonly string[]).includes(a.status)) r.closed++
+    }
+    return r
+  }, [annonces])
 
+  const candCounts: AnnonceCandidatures = useMemo(() => {
+    const acc: AnnonceCandidatures = { total: 0, to_review: 0, in_progress: 0, accepted: 0, rejected: 0 }
+    for (const a of annonces) {
+      const c = a.candidatures
+      acc.total += c.total
+      acc.to_review += c.to_review
+      acc.in_progress += c.in_progress
+      acc.accepted += c.accepted
+      acc.rejected += c.rejected
+    }
+    return acc
+  }, [annonces])
+
+  if (state.kind === 'loading' || state.kind === 'no_org' || needsRedirect) {
+    return <div style={{ padding: 48, textAlign: 'center', color: '#64748b' }}>…</div>
+  }
+  // Setup non terminé : bloque l'écran avec le modal de setup, comme avant.
+  if (state.kind === 'needs_setup') {
+    return <OrgSetupModal onComplete={() => void refresh()} />
+  }
   if (state.kind === 'session_expired') {
     return (
-      <div style={{ padding: 48, textAlign: 'center', fontFamily: 'Inter, system-ui, sans-serif', maxWidth: 480, margin: '0 auto' }}>
+      <div style={{ padding: 48, textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
         <div style={{ fontSize: 32, marginBottom: 14 }} aria-hidden>🔒</div>
         <h1 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>{t('errors.session_expired_title')}</h1>
         <p style={{ fontSize: 14, color: '#64748b', marginBottom: 20, lineHeight: 1.6 }}>{t('errors.session_expired_body')}</p>
         <button
           type="button"
           onClick={async () => { await supabase.auth.signOut(); router.replace('/connexion') }}
-          style={{ padding: '10px 20px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+          style={{ padding: '10px 20px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
         >
           {t('errors.reconnect_cta')}
         </button>
       </div>
     )
   }
-
   if (state.kind === 'error') {
     return (
-      <div style={{ padding: 48, textAlign: 'center', fontFamily: 'Inter, system-ui, sans-serif', maxWidth: 480, margin: '0 auto' }}>
+      <div style={{ padding: 48, textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
         <div style={{ fontSize: 32, marginBottom: 14 }} aria-hidden>⚠️</div>
         <h1 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>{t('errors.technical_title')}</h1>
         <p style={{ fontSize: 14, color: '#64748b', marginBottom: 20, lineHeight: 1.6 }}>{t('errors.technical_body')}</p>
         <button
           type="button"
           onClick={() => void refresh()}
-          style={{ padding: '10px 20px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+          style={{ padding: '10px 20px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
         >
           {tCommon('retry')}
         </button>
@@ -214,18 +210,273 @@ export default function DashboardEntreprise() {
     )
   }
 
-  const annonces: Annonce[] = annoncesLive.data?.publications ?? []
+  const isApproved = state.organizationVerified
+  const publishHref = `/dashboard/entreprise/annonces/nouvelle`
+  const isLoadingData = annoncesLive.state.kind === 'loading'
 
   return (
-    <>
-      <OrganisationDashboard
-        organization={state.organization}
-        basePath="/dashboard/entreprise"
-        annonces={annonces}
-      />
-      {state.kind === 'needs_setup' && (
-        <OrgSetupModal onComplete={() => void refresh()} />
+    <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+      <style>{`
+        .sk-dash-tile {
+          background: var(--sk-surface);
+          border: 1px solid var(--sk-border);
+          border-radius: 12px;
+          padding: 16px 18px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          transition: border-color .12s, box-shadow .12s;
+        }
+        .sk-dash-tile.is-accent {
+          border-color: var(--sk-accent);
+          background: var(--sk-accent-soft);
+        }
+        @media (max-width: 767px) {
+          .sk-dash-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+      `}</style>
+
+      {/* Pastille verif si non approved */}
+      {!isApproved && (
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '6px 14px',
+            background: '#FEF9C3',
+            border: '1px solid #FDE047',
+            borderRadius: 16,
+            color: '#713F12',
+            fontSize: 12,
+            fontWeight: 500,
+            marginBottom: 16,
+            alignSelf: 'flex-start',
+          }}
+        >
+          <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: '#CA8A04' }} />
+          {t('verification_pending')}
+        </div>
       )}
-    </>
+
+      {/* Header : greeting + bouton Publier */}
+      <header
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 26,
+          flexWrap: 'wrap',
+          gap: 14,
+        }}
+      >
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--sk-text)', margin: 0, letterSpacing: '-0.3px' }}>
+          {t('greeting')} 👋
+        </h1>
+        {isApproved ? (
+          <Link
+            href={publishHref}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 18px',
+              background: domain.primaryColor,
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: 600,
+              borderRadius: 10,
+              textDecoration: 'none',
+            }}
+          >
+            + {t('publish_annonce')}
+          </Link>
+        ) : (
+          <button
+            type="button"
+            disabled
+            title={t('publish_disabled_tooltip')}
+            aria-disabled
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 18px',
+              background: domain.primaryColor,
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: 600,
+              borderRadius: 10,
+              border: 'none',
+              opacity: 0.45,
+              cursor: 'not-allowed',
+              fontFamily: 'inherit',
+            }}
+          >
+            + {t('publish_annonce')}
+          </button>
+        )}
+      </header>
+
+      {/* ──────────────── BLOC 1 — Suivi des publications ──────────────── */}
+      <section
+        style={{
+          background: 'var(--sk-surface)',
+          border: '1px solid var(--sk-border)',
+          borderRadius: 14,
+          padding: '20px 22px',
+          marginBottom: 18,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sk-text)', letterSpacing: '-0.2px' }}>
+            {t('overview.publications_title')}
+          </div>
+          <Link
+            href="/dashboard/entreprise/annonces"
+            style={{ fontSize: 13, fontWeight: 600, color: domain.primaryColor, textDecoration: 'none' }}
+          >
+            {t('overview.see_annonces')} →
+          </Link>
+        </div>
+
+        <div
+          className="sk-dash-grid"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}
+        >
+          <PubTile label={t('overview.pub_published')} value={pubCounts.published} dot="#16A34A" loading={isLoadingData} />
+          <PubTile label={t('overview.pub_review')} value={pubCounts.review} dot="#CA8A04" loading={isLoadingData} />
+          <PubTile label={t('overview.pub_drafts')} value={pubCounts.drafts} dot="#94a3b8" loading={isLoadingData} />
+          <PubTile label={t('overview.pub_closed')} value={pubCounts.closed} dot="#94a3b8" loading={isLoadingData} />
+        </div>
+      </section>
+
+      {/* ──────────────── BLOC 2 — Suivi des candidatures ──────────────── */}
+      <section
+        style={{
+          background: 'var(--sk-surface)',
+          border: '1px solid var(--sk-border)',
+          borderRadius: 14,
+          padding: '20px 22px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sk-text)', letterSpacing: '-0.2px' }}>
+            {t('overview.candidatures_title')}
+          </div>
+          <Link
+            href="/dashboard/entreprise/candidatures"
+            style={{ fontSize: 13, fontWeight: 600, color: domain.primaryColor, textDecoration: 'none' }}
+          >
+            {t('overview.see_candidatures')} →
+          </Link>
+        </div>
+
+        {/* Total en lead */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+          <span style={{ fontSize: 38, fontWeight: 800, color: 'var(--sk-text)', lineHeight: 1, letterSpacing: '-1px' }}>
+            {isLoadingData ? '…' : candCounts.total}
+          </span>
+          <span style={{ fontSize: 13, color: 'var(--sk-muted)', fontWeight: 500 }}>
+            {t('funnel.total_suffix')}
+          </span>
+        </div>
+
+        {/* 4 buckets entonnoir */}
+        <div
+          className="sk-dash-grid"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}
+        >
+          <FunnelTile
+            label={t('funnel.to_review')}
+            value={candCounts.to_review}
+            accent
+            loading={isLoadingData}
+          />
+          <FunnelTile
+            label={t('funnel.in_progress')}
+            value={candCounts.in_progress}
+            color="var(--sk-text)"
+            loading={isLoadingData}
+          />
+          <FunnelTile
+            label={t('funnel.accepted')}
+            value={candCounts.accepted}
+            color="#16A34A"
+            loading={isLoadingData}
+          />
+          <FunnelTile
+            label={t('funnel.rejected')}
+            value={candCounts.rejected}
+            color="var(--sk-muted)"
+            loading={isLoadingData}
+          />
+        </div>
+      </section>
+
+      {!isApproved && annonces.length === 0 && (
+        <p style={{ fontSize: 12, color: 'var(--sk-faint)', marginTop: 18, textAlign: 'center' }}>
+          {t('publish_disabled_tooltip')}
+        </p>
+      )}
+    </div>
   )
 }
+
+function PubTile({
+  label,
+  value,
+  dot,
+  loading,
+}: {
+  label: string
+  value: number
+  dot: string
+  loading: boolean
+}) {
+  return (
+    <div className="sk-dash-tile">
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--sk-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+        <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: dot }} />
+        {label}
+      </div>
+      <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--sk-text)', lineHeight: 1.1, letterSpacing: '-0.5px' }}>
+        {loading ? '…' : value}
+      </div>
+    </div>
+  )
+}
+
+function FunnelTile({
+  label,
+  value,
+  color,
+  accent,
+  loading,
+}: {
+  label: string
+  value: number
+  color?: string
+  accent?: boolean
+  loading: boolean
+}) {
+  return (
+    <div className={`sk-dash-tile${accent ? ' is-accent' : ''}`}>
+      <div style={{ fontSize: 11, color: accent ? 'var(--sk-accent-ink)' : 'var(--sk-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: 26,
+          fontWeight: 700,
+          color: accent ? 'var(--sk-accent-ink)' : (color ?? 'var(--sk-text)'),
+          lineHeight: 1.1,
+          letterSpacing: '-0.5px',
+        }}
+      >
+        {loading ? '…' : value}
+      </div>
+    </div>
+  )
+}
+
