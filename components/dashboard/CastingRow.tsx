@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { castingTheme } from '@/lib/casting-theme'
 
 /**
  * CastingRow — rangée HORIZONTALE de cartes commerciales (home uniquement).
@@ -12,8 +13,9 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
  * Navigation : flèches prev/next (overlay, masquées aux extrémités et en
  * mobile), clavier ← / → quand la rangée a le focus, swipe = scroll tactile
  * natif, ET une scrollbar horizontale custom (curseur draggable) affichée
- * quand le contenu déborde. Scrollbar fine, arrondie, discrète, à l'accent
- * du domaine (var(--sk-accent)). AGNOSTIQUE du contenu : carte = `renderItem`.
+ * quand le contenu déborde. Scrollbar fine, arrondie, discrète, lavande
+ * (castingTheme.accent — couleur décorative casting). AGNOSTIQUE du
+ * contenu : carte = `renderItem`.
  *
  * Distinct de SpotlightCarousel (qui est du « une-carte-projecteur » pour
  * l'org). Ici pas de notion de centre/voisines.
@@ -190,7 +192,7 @@ export default function CastingRow<T>({ items, getKey, renderItem, labels, cardW
           top: 0; bottom: 0;
           min-width: 28px;
           border-radius: 999px;
-          background: var(--sk-accent);
+          background: ${castingTheme.accent};
           opacity: 0.55;
           cursor: grab;
           touch-action: none;

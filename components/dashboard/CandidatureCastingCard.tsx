@@ -5,6 +5,7 @@ import { Link } from '@/i18n/navigation'
 import { IconTrophy, IconLockOpen, IconClock, IconX } from '@tabler/icons-react'
 import Avatar from '@/components/ui/Avatar'
 import StatusPill, { type StatusPillKind } from '@/components/ui/StatusPill'
+import { castingTheme } from '@/lib/casting-theme'
 import { formatPublicationBudget, type PublicationSynthesisData } from './PublicationSynthesisLine'
 import type { MissionCardData } from './MissionCard'
 
@@ -19,10 +20,11 @@ import type { MissionCardData } from './MissionCard'
  * décrément à l'ouverture du détail, pas au scroll. Confidential : Avatar
  * initiales + 🔒, nom masqué (bandeau reste teinté).
  *
- * Couleur UNIQUE = accent du domaine (var(--sk-accent), posé par
- * DashboardShell). Bandeau (--sk-accent-soft) + CTA + pill « Nouveau » à
- * l'accent ; la pastille de statut garde ses couleurs sémantiques
- * (StatusPill : vert « Échange ouvert » / ambre / rouge). Rien en dur.
+ * Couleur DÉCORATIVE FIXE = lavande (castingTheme, ≠ accent useDomain).
+ * En-tête pastel + CTA lavande plein + pill « Nouveau » douce ; la pastille
+ * de STATUT garde ses couleurs sémantiques (StatusPill : vert « Échange
+ * ouvert » / ambre / rouge — NON touchée). Tokens centralisés dans
+ * lib/casting-theme — rien en dur ici.
  */
 
 export type CandidatureCastingData = {
@@ -111,9 +113,9 @@ export default function CandidatureCastingCard({
         transition: 'box-shadow .15s, transform .15s',
       }}
     >
-      {/* Bandeau teinté accent : logo + pastille statut (sémantique) */}
-      <div style={{ background: 'var(--sk-accent-soft)', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <span style={{ display: 'inline-flex', padding: 4, background: '#fff', borderRadius: 11, boxShadow: '0 1px 3px rgba(15,23,42,0.12)' }}>
+      {/* Bandeau lavande pastel : logo + pastille statut (sémantique) */}
+      <div style={{ background: castingTheme.accentSoft, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <span style={{ display: 'inline-flex', padding: 4, background: '#fff', border: `1px solid ${castingTheme.logoBorder}`, borderRadius: 11, boxShadow: '0 1px 3px rgba(15,23,42,0.12)' }}>
           <Avatar src={logoUrl} name={orgName} size={34} variant="neutral" />
         </span>
         <StatusPill kind={pillKind} icon={<PillIcon size={13} />} size="sm">{statusLabel}</StatusPill>
@@ -122,7 +124,7 @@ export default function CandidatureCastingCard({
       {/* Corps */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7, padding: '12px 14px', flex: 1 }}>
         {isFresh && (
-          <span style={{ alignSelf: 'flex-start', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: '#fff', background: 'var(--sk-accent)', padding: '3px 8px', borderRadius: 999 }}>
+          <span style={{ alignSelf: 'flex-start', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: castingTheme.pillSoftText, background: castingTheme.pillSoftBg, padding: '3px 8px', borderRadius: 999 }}>
             {tCard('new_label')}
           </span>
         )}
@@ -157,7 +159,7 @@ export default function CandidatureCastingCard({
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 6 }}>
           <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--sk-text)' }}>{budgetText ?? '—'}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: 'var(--sk-accent)', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 10, letterSpacing: '-0.1px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: castingTheme.accent, color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 10, letterSpacing: '-0.1px' }}>
             {tc('see_application')}
             <span aria-hidden style={{ fontSize: 13, lineHeight: 1 }}>→</span>
           </span>

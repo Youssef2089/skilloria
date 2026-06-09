@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import Avatar from '@/components/ui/Avatar'
+import { castingTheme } from '@/lib/casting-theme'
 import { relativeTimeFromNow } from '@/lib/relative-time'
 import { formatPublicationBudget } from './PublicationSynthesisLine'
 import type { MissionCardData } from './MissionCard'
@@ -19,12 +20,12 @@ import type { MissionCardData } from './MissionCard'
  * reste teinté). Pill « Nouveau » dérivée de match_status, décrément à
  * l'ouverture du détail (route [id]) — jamais au scroll.
  *
- * Couleur UNIQUE = accent du domaine (var(--sk-accent), posé par
- * DashboardShell via useDomain). Bandeau + CTA + pill accroche à l'accent ;
- * la pastille score reste VERTE (signal sémantique, V1). Rien en dur.
+ * Couleur DÉCORATIVE FIXE = lavande (castingTheme, ≠ accent useDomain qui
+ * reste pour le chrome). En-tête pastel + CTA lavande plein + pill accroche
+ * douce ; la pastille score reste VERTE (signal sémantique, V1). Tokens
+ * centralisés dans lib/casting-theme — rien en dur ici.
  */
 
-const SCORE_GREEN = '#16A34A'
 const TOP_MATCH_THRESHOLD = 9
 
 export default function MissionCastingCard({
@@ -78,13 +79,13 @@ export default function MissionCastingCard({
         transition: 'box-shadow .15s, transform .15s',
       }}
     >
-      {/* Bandeau teinté accent : logo + pastille score */}
-      <div style={{ background: 'var(--sk-accent-soft)', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <span style={{ display: 'inline-flex', padding: 4, background: '#fff', borderRadius: 11, boxShadow: '0 1px 3px rgba(15,23,42,0.12)' }}>
+      {/* Bandeau lavande pastel : logo + pastille score */}
+      <div style={{ background: castingTheme.accentSoft, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <span style={{ display: 'inline-flex', padding: 4, background: '#fff', border: `1px solid ${castingTheme.logoBorder}`, borderRadius: 11, boxShadow: '0 1px 3px rgba(15,23,42,0.12)' }}>
           <Avatar src={logoUrl} name={orgName} size={34} variant="neutral" />
         </span>
         <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 1, background: '#fff', padding: '4px 10px', borderRadius: 999, boxShadow: '0 1px 3px rgba(15,23,42,0.12)' }}>
-          <span style={{ fontSize: 14, fontWeight: 800, color: SCORE_GREEN }}>{Math.round(ai_score)}</span>
+          <span style={{ fontSize: 14, fontWeight: 800, color: castingTheme.scoreGreen }}>{Math.round(ai_score)}</span>
           <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--sk-faint)' }}>/10</span>
         </span>
       </div>
@@ -92,7 +93,7 @@ export default function MissionCastingCard({
       {/* Corps */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7, padding: '12px 14px', flex: 1 }}>
         {(isFresh || isTopMatch) && (
-          <span style={{ alignSelf: 'flex-start', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: '#fff', background: 'var(--sk-accent)', padding: '3px 8px', borderRadius: 999 }}>
+          <span style={{ alignSelf: 'flex-start', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: castingTheme.pillSoftText, background: castingTheme.pillSoftBg, padding: '3px 8px', borderRadius: 999 }}>
             {isFresh ? tCard('new_label') : tc('top_match')}
           </span>
         )}
@@ -127,7 +128,7 @@ export default function MissionCastingCard({
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 6 }}>
           <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--sk-text)' }}>{budgetText ?? '—'}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: 'var(--sk-accent)', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 10, letterSpacing: '-0.1px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: castingTheme.accent, color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 10, letterSpacing: '-0.1px' }}>
             {tc(pub.type === 'offre' ? 'see_offre' : 'see_mission')}
             <span aria-hidden style={{ fontSize: 13, lineHeight: 1 }}>→</span>
           </span>
