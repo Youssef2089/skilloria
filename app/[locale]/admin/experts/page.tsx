@@ -95,7 +95,7 @@ export default function AdminExpertsListPage() {
   ], [t])
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 32px 60px', fontFamily: 'Inter, sans-serif' }}>
+    <div>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>{t('page_title')}</h1>
       <p style={{ fontSize: 13, color: '#64748b', marginBottom: 22 }}>{t('page_subtitle')}</p>
 
