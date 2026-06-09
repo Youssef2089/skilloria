@@ -5,7 +5,6 @@ import { Link } from '@/i18n/navigation'
 import { IconTrophy, IconLockOpen, IconClock, IconX } from '@tabler/icons-react'
 import Avatar from '@/components/ui/Avatar'
 import StatusPill, { type StatusPillKind } from '@/components/ui/StatusPill'
-import { paletteFor } from '@/lib/casting-palette'
 import { formatPublicationBudget, type PublicationSynthesisData } from './PublicationSynthesisLine'
 import type { MissionCardData } from './MissionCard'
 
@@ -18,7 +17,12 @@ import type { MissionCardData } from './MissionCard'
  * remportée » / « Poste décroché » pour 'selected' (jamais « Acceptée »).
  * Lien → page candidatures (nav existante). Pill « Nouveau » via viewed_by_me,
  * décrément à l'ouverture du détail, pas au scroll. Confidential : Avatar
- * initiales + 🔒, nom masqué (bandeau reste coloré).
+ * initiales + 🔒, nom masqué (bandeau reste teinté).
+ *
+ * Couleur UNIQUE = accent du domaine (var(--sk-accent), posé par
+ * DashboardShell). Bandeau (--sk-accent-soft) + CTA + pill « Nouveau » à
+ * l'accent ; la pastille de statut garde ses couleurs sémantiques
+ * (StatusPill : vert « Échange ouvert » / ambre / rouge). Rien en dur.
  */
 
 export type CandidatureCastingData = {
@@ -57,7 +61,6 @@ export default function CandidatureCastingCard({
   const { publication: pub, org, status, skills_required = [], viewed_by_me } = candidature
   if (!pub) return null
 
-  const palette = paletteFor(pub.id)
   const orgName = pub.confidential ? tCard('confidential_org') : org?.name ?? tCard('confidential_org')
   const logoUrl = pub.confidential ? null : org?.logo_url ?? null
 
@@ -108,8 +111,8 @@ export default function CandidatureCastingCard({
         transition: 'box-shadow .15s, transform .15s',
       }}
     >
-      {/* Bandeau coloré : logo + pastille statut */}
-      <div style={{ background: palette.banner, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+      {/* Bandeau teinté accent : logo + pastille statut (sémantique) */}
+      <div style={{ background: 'var(--sk-accent-soft)', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
         <span style={{ display: 'inline-flex', padding: 4, background: '#fff', borderRadius: 11, boxShadow: '0 1px 3px rgba(15,23,42,0.12)' }}>
           <Avatar src={logoUrl} name={orgName} size={34} variant="neutral" />
         </span>
@@ -119,7 +122,7 @@ export default function CandidatureCastingCard({
       {/* Corps */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7, padding: '12px 14px', flex: 1 }}>
         {isFresh && (
-          <span style={{ alignSelf: 'flex-start', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: palette.onSolid, background: palette.solid, padding: '3px 8px', borderRadius: 999 }}>
+          <span style={{ alignSelf: 'flex-start', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: '#fff', background: 'var(--sk-accent)', padding: '3px 8px', borderRadius: 999 }}>
             {tCard('new_label')}
           </span>
         )}
@@ -154,7 +157,7 @@ export default function CandidatureCastingCard({
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 6 }}>
           <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--sk-text)' }}>{budgetText ?? '—'}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: palette.solid, color: palette.onSolid, fontSize: 12, fontWeight: 700, borderRadius: 10, letterSpacing: '-0.1px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: 'var(--sk-accent)', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 10, letterSpacing: '-0.1px' }}>
             {tc('see_application')}
             <span aria-hidden style={{ fontSize: 13, lineHeight: 1 }}>→</span>
           </span>

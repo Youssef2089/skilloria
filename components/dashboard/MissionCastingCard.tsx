@@ -3,24 +3,25 @@
 import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import Avatar from '@/components/ui/Avatar'
-import { paletteFor } from '@/lib/casting-palette'
 import { relativeTimeFromNow } from '@/lib/relative-time'
 import { formatPublicationBudget } from './PublicationSynthesisLine'
 import type { MissionCardData } from './MissionCard'
 
 /**
  * MissionCastingCard — carte commerciale (rangée home « Missions
- * recommandées »). Bandeau coloré (palette décorative stable par pub.id) +
- * tuile logo (Avatar, repli initiales) + pastille score ; corps : accroche
+ * recommandées »). Bandeau teinté accent (--sk-accent-soft) + tuile logo
+ * (Avatar, repli initiales) + pastille score ; corps : accroche
  * (« Nouveau » / « Top match » score≥9) · titre · entreprise · meta
  * (lieu · remote · fraîcheur) · chips compétences (max 3 + « +N ») · budget
- * + CTA thémé palette.
+ * + CTA accent plein.
  *
  * Confidential : org masquée → Avatar initiales + 🔒, nom masqué (bandeau
- * reste coloré). Pill « Nouveau » dérivée de match_status, décrément à
+ * reste teinté). Pill « Nouveau » dérivée de match_status, décrément à
  * l'ouverture du détail (route [id]) — jamais au scroll.
  *
- * Palette = décor séparé de useDomain (chrome). Vert success = score (V1).
+ * Couleur UNIQUE = accent du domaine (var(--sk-accent), posé par
+ * DashboardShell via useDomain). Bandeau + CTA + pill accroche à l'accent ;
+ * la pastille score reste VERTE (signal sémantique, V1). Rien en dur.
  */
 
 const SCORE_GREEN = '#16A34A'
@@ -39,7 +40,6 @@ export default function MissionCastingCard({
   const locale = useLocale()
 
   const { publication: pub, org, ai_score, match_status, skills_required = [] } = mission
-  const palette = paletteFor(pub.id)
 
   const orgName = pub.confidential ? tCard('confidential_org') : org?.name ?? tCard('confidential_org')
   const logoUrl = pub.confidential ? null : org?.logo_url ?? null
@@ -78,8 +78,8 @@ export default function MissionCastingCard({
         transition: 'box-shadow .15s, transform .15s',
       }}
     >
-      {/* Bandeau coloré : logo + pastille score */}
-      <div style={{ background: palette.banner, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+      {/* Bandeau teinté accent : logo + pastille score */}
+      <div style={{ background: 'var(--sk-accent-soft)', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
         <span style={{ display: 'inline-flex', padding: 4, background: '#fff', borderRadius: 11, boxShadow: '0 1px 3px rgba(15,23,42,0.12)' }}>
           <Avatar src={logoUrl} name={orgName} size={34} variant="neutral" />
         </span>
@@ -92,7 +92,7 @@ export default function MissionCastingCard({
       {/* Corps */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7, padding: '12px 14px', flex: 1 }}>
         {(isFresh || isTopMatch) && (
-          <span style={{ alignSelf: 'flex-start', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: palette.onSolid, background: palette.solid, padding: '3px 8px', borderRadius: 999 }}>
+          <span style={{ alignSelf: 'flex-start', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: '#fff', background: 'var(--sk-accent)', padding: '3px 8px', borderRadius: 999 }}>
             {isFresh ? tCard('new_label') : tc('top_match')}
           </span>
         )}
@@ -127,7 +127,7 @@ export default function MissionCastingCard({
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 6 }}>
           <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--sk-text)' }}>{budgetText ?? '—'}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: palette.solid, color: palette.onSolid, fontSize: 12, fontWeight: 700, borderRadius: 10, letterSpacing: '-0.1px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: 'var(--sk-accent)', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 10, letterSpacing: '-0.1px' }}>
             {tc(pub.type === 'offre' ? 'see_offre' : 'see_mission')}
             <span aria-hidden style={{ fontSize: 13, lineHeight: 1 }}>→</span>
           </span>
