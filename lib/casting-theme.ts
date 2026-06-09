@@ -9,8 +9,12 @@
  * vert/ambre/rouge) ni au texte de contenu (titre/entreprise/budget = neutres).
  */
 export const castingTheme = {
-  /** Lavande plein : CTA + scrollbar. */
+  /** Lavande plein : scrollbar. */
   accent: '#8B5CF6',
+  /** Bouton CTA — version douce/claire (fond pâle + texte foncé + bordure). */
+  ctaBg: '#EDE9FE',
+  ctaText: '#6D28D9',
+  ctaBorder: '#DDD6FE',
   /** En-tête de carte (zone logo + score) : lavande très clair. */
   accentSoft: '#F5F3FF',
   /** Bordure fine de la tuile logo. */

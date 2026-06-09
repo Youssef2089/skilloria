@@ -128,7 +128,7 @@ export default function MissionCastingCard({
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 6 }}>
           <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--sk-text)' }}>{budgetText ?? '—'}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: castingTheme.accent, color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 10, letterSpacing: '-0.1px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: castingTheme.ctaBg, color: castingTheme.ctaText, border: `1px solid ${castingTheme.ctaBorder}`, fontSize: 12, fontWeight: 700, borderRadius: 10, letterSpacing: '-0.1px' }}>
             {tc(pub.type === 'offre' ? 'see_offre' : 'see_mission')}
             <span aria-hidden style={{ fontSize: 13, lineHeight: 1 }}>→</span>
           </span>
