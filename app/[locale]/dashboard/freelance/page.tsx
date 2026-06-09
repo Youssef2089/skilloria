@@ -11,7 +11,7 @@ import VerificationBanner from '@/components/dashboard/VerificationBanner'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import MissionCastingCard from '@/components/dashboard/MissionCastingCard'
 import CandidatureCastingCard from '@/components/dashboard/CandidatureCastingCard'
-import SpotlightCarousel from '@/components/dashboard/SpotlightCarousel'
+import CastingRow from '@/components/dashboard/CastingRow'
 import type { MissionCardData } from '@/components/dashboard/MissionCard'
 import type { PublicationSynthesisData } from '@/components/dashboard/PublicationSynthesisLine'
 import AvailabilityToggle, {
@@ -653,28 +653,11 @@ export default function DashboardFreelance() {
                 </div>
               )
             ) : (
-              <SpotlightCarousel<MissionCardData>
+              <CastingRow<MissionCardData>
                 items={recommendedMissions}
                 getKey={(m) => m.match_id}
-                minHeight={280}
-                minHeightMobile={300}
-                sceneMaxWidth={760}
-                sideMaxWidth={200}
-                sidePeek="6%"
-                labels={{
-                  formatCounter: (current, total) => tc('counter', { current, total }),
-                  sortedByScore: tc('sorted_by_score'),
-                  prevAria: tc('prev_aria'),
-                  nextAria: tc('next_aria'),
-                  paginationAria: tc('pagination_aria'),
-                  gotoAria: (index) => tc('goto_aria', { index }),
-                  empty: tc('empty'),
-                }}
-                renderItem={(m, { isCenter }) => (
-                  <div style={{ width: isCenter ? 'min(440px, 92vw)' : '100%' }}>
-                    <MissionCastingCard mission={m} side="freelance" />
-                  </div>
-                )}
+                labels={{ prevAria: tc('prev_aria'), nextAria: tc('next_aria'), empty: tc('empty') }}
+                renderItem={(m) => <MissionCastingCard mission={m} side="freelance" />}
               />
             )}
           </div>
@@ -695,27 +678,11 @@ export default function DashboardFreelance() {
                   {t('cards.your_candidatures.empty')}
                 </div>
               ) : (
-                <SpotlightCarousel<CandidatureLite>
+                <CastingRow<CandidatureLite>
                   items={recentCandidatures}
                   getKey={(c) => c.id}
-                  minHeight={280}
-                  minHeightMobile={300}
-                  sceneMaxWidth={760}
-                  sideMaxWidth={200}
-                  sidePeek="6%"
-                  labels={{
-                    formatCounter: (current, total) => tc('counter', { current, total }),
-                    prevAria: tc('prev_aria'),
-                    nextAria: tc('next_aria'),
-                    paginationAria: tc('pagination_aria'),
-                    gotoAria: (index) => tc('goto_aria', { index }),
-                    empty: tc('empty'),
-                  }}
-                  renderItem={(c, { isCenter }) => (
-                    <div style={{ width: isCenter ? 'min(440px, 92vw)' : '100%' }}>
-                      <CandidatureCastingCard candidature={c} side="freelance" />
-                    </div>
-                  )}
+                  labels={{ prevAria: tc('prev_aria'), nextAria: tc('next_aria'), empty: tc('empty') }}
+                  renderItem={(c) => <CandidatureCastingCard candidature={c} side="freelance" />}
                 />
               )}
             </div>

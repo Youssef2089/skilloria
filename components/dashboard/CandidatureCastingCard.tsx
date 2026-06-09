@@ -2,25 +2,23 @@
 
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import { IconTrophy, IconLockOpen, IconClock, IconX } from '@tabler/icons-react'
 import Avatar from '@/components/ui/Avatar'
 import StatusPill, { type StatusPillKind } from '@/components/ui/StatusPill'
-import PublicationSynthesisLine, { formatPublicationBudget, type PublicationSynthesisData } from './PublicationSynthesisLine'
+import { paletteFor } from '@/lib/casting-palette'
+import { formatPublicationBudget, type PublicationSynthesisData } from './PublicationSynthesisLine'
 import type { MissionCardData } from './MissionCard'
 
 /**
- * CandidatureCastingCard — variante candidatures de la carte casting « direction
- * B » pour le home (Vos candidatures / Mes candidatures).
+ * CandidatureCastingCard — carte commerciale candidatures (rangée home).
+ * Identique à MissionCastingCard MAIS la pastille score est remplacée par la
+ * PASTILLE DE STATUT (le statut est le signal principal — pas de date d'âge).
  *
- * Identique à MissionCastingCard MAIS l'anneau score est remplacé par la
- * PASTILLE DE STATUT. Vocabulaire expert PRÉSERVÉ via les namespaces
- * dashboard_{freelance,cdi} : « Mission remportée » / « Poste décroché » pour
- * 'selected' (jamais « Acceptée »).
- *
- * Lien → page candidatures (navigation existante). Pill « Nouveau » dérivée de
- * viewed_by_me ; décrément à l'ouverture du détail (page candidatures), pas au
- * scroll. Confidential : org masquée → Avatar initiales + 🔒.
+ * Vocabulaire expert PRÉSERVÉ via dashboard_{freelance,cdi} : « Mission
+ * remportée » / « Poste décroché » pour 'selected' (jamais « Acceptée »).
+ * Lien → page candidatures (nav existante). Pill « Nouveau » via viewed_by_me,
+ * décrément à l'ouverture du détail, pas au scroll. Confidential : Avatar
+ * initiales + 🔒, nom masqué (bandeau reste coloré).
  */
 
 export type CandidatureCastingData = {
@@ -50,7 +48,6 @@ export default function CandidatureCastingCard({
   const tCard = useTranslations('missions.card')
   const tc = useTranslations('missions.casting')
   const tPub = useTranslations('publications')
-  const domain = useDomain()
   // Vocabulaire expert : labels de statut sous dashboard_{freelance,cdi}
   // (« Mission remportée » / « Poste décroché », jamais « Acceptée »).
   const tStatus = useTranslations(
@@ -60,6 +57,7 @@ export default function CandidatureCastingCard({
   const { publication: pub, org, status, skills_required = [], viewed_by_me } = candidature
   if (!pub) return null
 
+  const palette = paletteFor(pub.id)
   const orgName = pub.confidential ? tCard('confidential_org') : org?.name ?? tCard('confidential_org')
   const logoUrl = pub.confidential ? null : org?.logo_url ?? null
 
@@ -79,6 +77,14 @@ export default function CandidatureCastingCard({
     }
   })()
 
+  const workModeLabel = (() => {
+    if (!pub.work_mode) return null
+    const key = pub.work_mode.toLowerCase()
+    try { return tPub(`form.work_mode_options.${key}` as 'form.work_mode_options.remote') }
+    catch { return pub.work_mode }
+  })()
+  const metaParts = [pub.location, workModeLabel].filter(Boolean) as string[]
+
   const budgetUnit = pub.type === 'offre' ? tPub('budget_unit.year') : tPub('budget_unit.day')
   const budgetText = formatPublicationBudget(pub, budgetUnit)
 
@@ -89,70 +95,70 @@ export default function CandidatureCastingCard({
     <Link
       href={`/dashboard/${side}/candidatures`}
       style={{
-        display: 'block',
-        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
         background: 'var(--sk-surface)',
-        border: isFresh ? `1.5px solid ${domain.primaryColor}` : '0.5px solid var(--sk-border)',
+        border: '1px solid var(--sk-border)',
         borderRadius: 16,
-        padding: '16px 18px',
+        overflow: 'hidden',
         textDecoration: 'none',
         color: 'inherit',
-        boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
-        transition: 'box-shadow .15s, border-color .15s',
+        boxShadow: '0 1px 2px rgba(15,23,42,0.05)',
+        transition: 'box-shadow .15s, transform .15s',
       }}
     >
-      {/* Header : logo + titre/org + pastille statut */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        <Avatar src={logoUrl} name={orgName} size={44} variant="neutral" />
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--sk-text)', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-            {pub.title}
+      {/* Bandeau coloré : logo + pastille statut */}
+      <div style={{ background: palette.banner, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <span style={{ display: 'inline-flex', padding: 4, background: '#fff', borderRadius: 11, boxShadow: '0 1px 3px rgba(15,23,42,0.12)' }}>
+          <Avatar src={logoUrl} name={orgName} size={34} variant="neutral" />
+        </span>
+        <StatusPill kind={pillKind} icon={<PillIcon size={13} />} size="sm">{statusLabel}</StatusPill>
+      </div>
+
+      {/* Corps */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, padding: '12px 14px', flex: 1 }}>
+        {isFresh && (
+          <span style={{ alignSelf: 'flex-start', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: palette.onSolid, background: palette.solid, padding: '3px 8px', borderRadius: 999 }}>
+            {tCard('new_label')}
+          </span>
+        )}
+
+        <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--sk-text)', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          {pub.title}
+        </div>
+
+        <div style={{ fontSize: 12.5, color: 'var(--sk-muted)', display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orgName}</span>
+          {pub.confidential && <span title={tCard('confidential_tooltip')} aria-hidden style={{ opacity: 0.7, flexShrink: 0 }}>🔒</span>}
+        </div>
+
+        {metaParts.length > 0 && (
+          <div style={{ fontSize: 11.5, color: 'var(--sk-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {metaParts.join(' · ')}
           </div>
-          <div style={{ fontSize: 12.5, color: 'var(--sk-muted)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orgName}</span>
-            {pub.confidential && (
-              <span title={tCard('confidential_tooltip')} aria-hidden style={{ opacity: 0.7, flexShrink: 0 }}>🔒</span>
+        )}
+
+        {visibleSkills.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 1 }}>
+            {visibleSkills.map((s) => (
+              <span key={s} style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--sk-text)', background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap' }}>{s}</span>
+            ))}
+            {extraSkills > 0 && (
+              <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--sk-muted)', padding: '2px 6px' }}>{tc('more_skills', { count: extraSkills })}</span>
             )}
           </div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-          <StatusPill kind={pillKind} icon={<PillIcon size={14} />} size="sm">{statusLabel}</StatusPill>
-          {isFresh && (
-            <span style={{ fontSize: 10, fontWeight: 700, color: domain.primaryColor, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-              {tCard('new_label')}
-            </span>
-          )}
-        </div>
-      </div>
+        )}
 
-      {/* Synthèse : lieu · remote · durée (budget exclu → relégué au pied) */}
-      <div style={{ marginTop: 12 }}>
-        <PublicationSynthesisLine pub={pub} size="sm" omit={['budget', 'contract', 'seniority', 'start']} />
-      </div>
+        <div style={{ flex: 1 }} />
 
-      {/* Compétences (max 3 + « +N ») */}
-      {visibleSkills.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
-          {visibleSkills.map((s) => (
-            <span key={s} style={{ fontSize: 11, fontWeight: 600, color: 'var(--sk-accent-ink)', background: 'var(--sk-accent-soft)', padding: '3px 9px', borderRadius: 999, whiteSpace: 'nowrap' }}>
-              {s}
-            </span>
-          ))}
-          {extraSkills > 0 && (
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sk-muted)', background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', padding: '3px 9px', borderRadius: 999 }}>
-              {tc('more_skills', { count: extraSkills })}
-            </span>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 6 }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--sk-text)' }}>{budgetText ?? '—'}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: palette.solid, color: palette.onSolid, fontSize: 12, fontWeight: 700, borderRadius: 10, letterSpacing: '-0.1px' }}>
+            {tc('see_application')}
+            <span aria-hidden style={{ fontSize: 13, lineHeight: 1 }}>→</span>
+          </span>
         </div>
-      )}
-
-      {/* Pied : budget + CTA */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--sk-border-soft)' }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--sk-text)' }}>{budgetText ?? '—'}</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 13px', background: domain.primaryColor, color: '#fff', fontSize: 12.5, fontWeight: 700, borderRadius: 10, letterSpacing: '-0.1px' }}>
-          {tc('see_application')}
-          <span aria-hidden style={{ fontSize: 13, lineHeight: 1 }}>→</span>
-        </span>
       </div>
     </Link>
   )

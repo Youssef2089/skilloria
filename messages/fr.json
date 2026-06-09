@@ -1830,17 +1830,14 @@
       "empty_subtitle": "Vous serez notifié dès qu'une publication correspond à votre profil."
     },
     "casting": {
-      "counter": "{current} / {total}",
-      "sorted_by_score": "Trié par score",
       "prev_aria": "Opportunité précédente",
       "next_aria": "Opportunité suivante",
-      "pagination_aria": "Pagination des opportunités",
-      "goto_aria": "Voir l'opportunité {index}",
       "empty": "Aucune opportunité à afficher.",
       "see_mission": "Voir la mission",
       "see_offre": "Voir l'offre",
       "see_application": "Voir la candidature",
-      "more_skills": "+{count}"
+      "more_skills": "+{count}",
+      "top_match": "Top match"
     },
     "detail": {
       "back_to_feed": "← Retour aux opportunités",

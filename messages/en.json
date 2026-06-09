@@ -1830,17 +1830,14 @@
       "empty_subtitle": "You'll be notified as soon as a posting matches your profile."
     },
     "casting": {
-      "counter": "{current} / {total}",
-      "sorted_by_score": "Sorted by score",
       "prev_aria": "Previous opportunity",
       "next_aria": "Next opportunity",
-      "pagination_aria": "Opportunities pagination",
-      "goto_aria": "View opportunity {index}",
       "empty": "No opportunity to display.",
       "see_mission": "View mission",
       "see_offre": "View position",
       "see_application": "View application",
-      "more_skills": "+{count}"
+      "more_skills": "+{count}",
+      "top_match": "Top match"
     },
     "detail": {
       "back_to_feed": "← Back to opportunities",

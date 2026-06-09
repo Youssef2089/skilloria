@@ -1830,17 +1830,14 @@
       "empty_subtitle": "Te avisaremos en cuanto una publicación coincida con tu perfil."
     },
     "casting": {
-      "counter": "{current} / {total}",
-      "sorted_by_score": "Ordenado por puntuación",
       "prev_aria": "Oportunidad anterior",
       "next_aria": "Oportunidad siguiente",
-      "pagination_aria": "Paginación de oportunidades",
-      "goto_aria": "Ver la oportunidad {index}",
       "empty": "Ninguna oportunidad para mostrar.",
       "see_mission": "Ver la misión",
       "see_offre": "Ver el puesto",
       "see_application": "Ver la candidatura",
-      "more_skills": "+{count}"
+      "more_skills": "+{count}",
+      "top_match": "Top match"
     },
     "detail": {
       "back_to_feed": "← Volver a oportunidades",
