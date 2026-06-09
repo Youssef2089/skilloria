@@ -6,6 +6,7 @@ import { usePathname, useRouter } from '@/i18n/navigation'
 import { routing, type Locale } from '@/i18n/routing'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import PageHeader from '@/components/ui/PageHeader'
 import ReauthModal from './ReauthModal'
 
 const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
@@ -469,13 +470,10 @@ export default function SettingsView({ side: _side }: { side: 'freelance' | 'cdi
   }, [active, user, secureFetch, requestReauth, notify, loadUser])
 
   return (
-    <div style={{ fontFamily: fontJakarta, padding: '28px clamp(16px, 4vw, 40px)', maxWidth: 1100, margin: '0 auto' }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: '#0f172a' }}>{t('title')}</h1>
-        <p style={{ margin: '6px 0 0', fontSize: 14.5, color: '#64748b' }}>{t('subtitle')}</p>
-      </div>
+    <div style={{ fontFamily: fontJakarta, display: 'flex', flexDirection: 'column', width: '100%' }}>
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
-      <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start', flexWrap: 'wrap', padding: '12px 26px 28px' }}>
         {/* Sous-navigation gauche (style Malt) */}
         <nav
           aria-label={t('title')}
