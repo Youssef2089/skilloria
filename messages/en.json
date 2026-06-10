@@ -401,6 +401,7 @@
     "close_aria": "Close",
     "banner_error": "{count, plural, one {To publish your profile, complete the highlighted field below: {fields}.} other {To publish your profile, complete the # highlighted fields below: {fields}.}}",
     "errors": {
+      "cv_not_ready": "Upload your CV and accept the AI verification before publishing your profile.",
       "account_load_failed": "Unable to load your account.",
       "incomplete_check_below": "Profile incomplete, please check the highlighted fields below.",
       "save_failed": "Error while saving, please try again."
@@ -416,6 +417,7 @@
     "show_more_languages": "Show all {count} languages ▼",
     "show_less": "Show less ▲",
     "field_labels_short": {
+      "cv_ready": "CV uploaded and AI verification accepted",
       "title": "your professional title",
       "summary": "the summary (20 characters minimum)",
       "skills": "at least 3 skills",
@@ -597,6 +599,19 @@
     }
   },
   "profile_view": {
+    "cv_required": {
+      "title": "Upload your CV to access your profile",
+      "body": "Please upload your CV by clicking Complete your profile.",
+      "cta": "Complete your profile"
+    },
+    "publish": {
+      "button": "Publish my profile",
+      "publishing": "Publishing…",
+      "success": "Profile published, verification in progress.",
+      "error_cv": "Upload your CV and accept the AI verification before publishing your profile.",
+      "error_incomplete": "Complete your profile before publishing it.",
+      "error_generic": "Publishing failed. Please try again."
+    },
     "page_title": "My profile",
     "page_subtitle": "Read-only view of your profile as clients will see it.",
     "back_to_dashboard": "← Dashboard",
@@ -939,6 +954,19 @@
     }
   },
   "cdi_profile_view": {
+    "cv_required": {
+      "title": "Upload your CV to access your profile",
+      "body": "Please upload your CV by clicking Complete your profile.",
+      "cta": "Complete your profile"
+    },
+    "publish": {
+      "button": "Publish my profile",
+      "publishing": "Publishing…",
+      "success": "Profile published, verification in progress.",
+      "error_cv": "Upload your CV and accept the AI verification before publishing your profile.",
+      "error_incomplete": "Complete your profile before publishing it.",
+      "error_generic": "Publishing failed. Please try again."
+    },
     "loading": "Loading your profile…",
     "error_loading": "Could not load your profile. Please retry.",
     "empty_profile": "You haven't created a profile yet.",
@@ -1109,6 +1137,7 @@
     "close_aria": "Close",
     "banner_error": "{count, plural, one {To publish your profile, complete the highlighted field below: {fields}.} other {To publish your profile, complete the # highlighted fields below: {fields}.}}",
     "errors": {
+      "cv_not_ready": "Upload your CV and accept the AI verification before publishing your profile.",
       "account_load_failed": "Could not load your account.",
       "incomplete_check_below": "Profile incomplete, check the highlighted fields below.",
       "save_failed": "Save failed, please retry."
@@ -1124,6 +1153,7 @@
     "show_more_languages": "Show {count} languages ▼",
     "show_less": "Show less ▲",
     "field_labels_short": {
+      "cv_ready": "CV uploaded and AI verification accepted",
       "title": "your professional title",
       "summary": "your summary (20 characters minimum)",
       "skills": "at least 3 skills",

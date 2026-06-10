@@ -401,6 +401,7 @@
     "close_aria": "Schließen",
     "banner_error": "{count, plural, one {Um Ihr Profil zu veröffentlichen, vervollständigen Sie das unten markierte Feld: {fields}.} other {Um Ihr Profil zu veröffentlichen, vervollständigen Sie die # unten markierten Felder: {fields}.}}",
     "errors": {
+      "cv_not_ready": "Laden Sie Ihren Lebenslauf hoch und akzeptieren Sie die KI-Überprüfung, bevor Sie Ihr Profil veröffentlichen.",
       "account_load_failed": "Ihr Konto konnte nicht geladen werden.",
       "incomplete_check_below": "Profil unvollständig, überprüfen Sie die unten markierten Felder.",
       "save_failed": "Fehler beim Speichern, bitte erneut versuchen."
@@ -416,6 +417,7 @@
     "show_more_languages": "Alle {count} Sprachen anzeigen ▼",
     "show_less": "Weniger anzeigen ▲",
     "field_labels_short": {
+      "cv_ready": "Lebenslauf hochgeladen und KI-Überprüfung akzeptiert",
       "title": "den beruflichen Titel",
       "summary": "die Zusammenfassung (mindestens 20 Zeichen)",
       "skills": "mindestens 3 Kompetenzen",
@@ -597,6 +599,19 @@
     }
   },
   "profile_view": {
+    "cv_required": {
+      "title": "Laden Sie Ihren Lebenslauf hoch, um auf Ihr Profil zuzugreifen",
+      "body": "Bitte laden Sie Ihren Lebenslauf hoch, indem Sie auf „Profil vervollständigen“ klicken.",
+      "cta": "Profil vervollständigen"
+    },
+    "publish": {
+      "button": "Mein Profil veröffentlichen",
+      "publishing": "Wird veröffentlicht…",
+      "success": "Profil veröffentlicht, Überprüfung läuft.",
+      "error_cv": "Laden Sie Ihren Lebenslauf hoch und akzeptieren Sie die KI-Überprüfung, bevor Sie Ihr Profil veröffentlichen.",
+      "error_incomplete": "Vervollständigen Sie Ihr Profil, bevor Sie es veröffentlichen.",
+      "error_generic": "Veröffentlichung fehlgeschlagen. Bitte erneut versuchen."
+    },
     "page_title": "Mein Profil",
     "page_subtitle": "Schreibgeschützte Ansicht Ihres Profils, wie Kunden es sehen.",
     "back_to_dashboard": "← Dashboard",
@@ -939,6 +954,19 @@
     }
   },
   "cdi_profile_view": {
+    "cv_required": {
+      "title": "Laden Sie Ihren Lebenslauf hoch, um auf Ihr Profil zuzugreifen",
+      "body": "Bitte laden Sie Ihren Lebenslauf hoch, indem Sie auf „Profil vervollständigen“ klicken.",
+      "cta": "Profil vervollständigen"
+    },
+    "publish": {
+      "button": "Mein Profil veröffentlichen",
+      "publishing": "Wird veröffentlicht…",
+      "success": "Profil veröffentlicht, Überprüfung läuft.",
+      "error_cv": "Laden Sie Ihren Lebenslauf hoch und akzeptieren Sie die KI-Überprüfung, bevor Sie Ihr Profil veröffentlichen.",
+      "error_incomplete": "Vervollständigen Sie Ihr Profil, bevor Sie es veröffentlichen.",
+      "error_generic": "Veröffentlichung fehlgeschlagen. Bitte erneut versuchen."
+    },
     "loading": "Ihr Profil wird geladen…",
     "error_loading": "Ihr Profil konnte nicht geladen werden. Bitte erneut versuchen.",
     "empty_profile": "Sie haben noch kein Profil erstellt.",
@@ -1109,6 +1137,7 @@
     "close_aria": "Schliessen",
     "banner_error": "{count, plural, one {Um Ihr Profil zu veröffentlichen, vervollständigen Sie das hervorgehobene Feld unten: {fields}.} other {Um Ihr Profil zu veröffentlichen, vervollständigen Sie die # hervorgehobenen Felder unten: {fields}.}}",
     "errors": {
+      "cv_not_ready": "Laden Sie Ihren Lebenslauf hoch und akzeptieren Sie die KI-Überprüfung, bevor Sie Ihr Profil veröffentlichen.",
       "account_load_failed": "Ihr Konto konnte nicht geladen werden.",
       "incomplete_check_below": "Profil unvollständig, prüfen Sie die hervorgehobenen Felder unten.",
       "save_failed": "Speichern fehlgeschlagen, bitte erneut versuchen."
@@ -1124,6 +1153,7 @@
     "show_more_languages": "{count} Sprachen anzeigen ▼",
     "show_less": "Weniger anzeigen ▲",
     "field_labels_short": {
+      "cv_ready": "Lebenslauf hochgeladen und KI-Überprüfung akzeptiert",
       "title": "die Berufsbezeichnung",
       "summary": "die Zusammenfassung (mindestens 20 Zeichen)",
       "skills": "mindestens 3 Fähigkeiten",

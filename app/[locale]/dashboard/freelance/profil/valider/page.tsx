@@ -252,6 +252,9 @@ export default function ValiderProfilPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [missingFields, setMissingFields] = useState<string[] | null>(null)
   const [parsingFailed, setParsingFailed] = useState(false)
+  // Lot CV obligatoire : "CV prêt" = parsé (done) ET consentement IA donné.
+  const [cvParsingStatus, setCvParsingStatus] = useState<string | null>(null)
+  const [aiConsentAt, setAiConsentAt] = useState<string | null>(null)
 
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [branches, setBranches] = useState<Branch[]>([])
@@ -396,7 +399,7 @@ export default function ValiderProfilPage() {
       const { data: profile, error: profErr } = await supabase
         .from('profiles')
         .select(
-          'id, title, summary, seniority, years_experience, skills, certifications, branch_id, speciality_id, languages, location, work_modes, tjm_min, tjm_max, availability_date, linkedin_url, cv_parsing_status, visible, phone, address_line, postal_code, city, country, birth_year, photo_url, years_total_experience, availability_status',
+          'id, title, summary, seniority, years_experience, skills, certifications, branch_id, speciality_id, languages, location, work_modes, tjm_min, tjm_max, availability_date, linkedin_url, cv_parsing_status, ai_consent_at, visible, phone, address_line, postal_code, city, country, birth_year, photo_url, years_total_experience, availability_status',
         )
         .eq('user_id', session.user.id)
         .single()
@@ -408,6 +411,8 @@ export default function ValiderProfilPage() {
       if (cancelled) return
 
       setParsingFailed(profile.cv_parsing_status === 'failed')
+      setCvParsingStatus((profile as { cv_parsing_status?: string | null }).cv_parsing_status ?? null)
+      setAiConsentAt((profile as { ai_consent_at?: string | null }).ai_consent_at ?? null)
       setTitle(profile.title ?? '')
       setSummary(profile.summary ?? '')
       setSeniority((profile.seniority as Seniority | null) ?? '')
@@ -655,6 +660,9 @@ export default function ValiderProfilPage() {
     if (experiences.filter(e => e.role.trim()).length < 1) missing.push('experiences')
     if (languagesStructured.filter(l => l.language.trim()).length < 1)
       missing.push('languages_structured')
+    // Lot CV obligatoire : CV parsé + consentement IA exigés pour publier.
+    // L'API reste la barrière non contournable (cf. app/api/profile/route.ts).
+    if (!(cvParsingStatus === 'done' && aiConsentAt != null)) missing.push('cv_ready')
     return missing
   }
 
@@ -761,6 +769,8 @@ export default function ValiderProfilPage() {
           Array.isArray(payload?.missing)
         ) {
           showFieldError(payload.missing)
+        } else if (res.status === 400 && payload?.code === 'cv_not_ready') {
+          setErrorMsg(tProfile('errors.cv_not_ready'))
         } else {
           setErrorMsg(payload?.error || tProfile('errors.save_failed'))
         }

@@ -401,6 +401,7 @@
     "close_aria": "Fermer",
     "banner_error": "{count, plural, one {Pour publier votre profil, complétez le champ surligné ci-dessous : {fields}.} other {Pour publier votre profil, complétez les # champs surlignés ci-dessous : {fields}.}}",
     "errors": {
+      "cv_not_ready": "Dépose ton CV et accepte la vérification IA avant de publier ton profil.",
       "account_load_failed": "Impossible de charger votre compte.",
       "incomplete_check_below": "Profil incomplet, vérifiez les champs surlignés ci-dessous.",
       "save_failed": "Erreur lors de la sauvegarde, réessayez."
@@ -416,6 +417,7 @@
     "show_more_languages": "Afficher les {count} langues ▼",
     "show_less": "Réduire ▲",
     "field_labels_short": {
+      "cv_ready": "CV déposé et vérification IA acceptée",
       "title": "le titre professionnel",
       "summary": "le résumé (20 caractères minimum)",
       "skills": "au moins 3 compétences",
@@ -597,6 +599,19 @@
     }
   },
   "profile_view": {
+    "cv_required": {
+      "title": "Téléchargez votre CV pour accéder à votre profil",
+      "body": "Veuillez télécharger votre CV en cliquant sur Compléter votre profil.",
+      "cta": "Compléter votre profil"
+    },
+    "publish": {
+      "button": "Publier mon profil",
+      "publishing": "Publication en cours…",
+      "success": "Profil publié, vérification en cours.",
+      "error_cv": "Dépose ton CV et accepte la vérification IA avant de publier ton profil.",
+      "error_incomplete": "Complète ton profil avant de le publier.",
+      "error_generic": "La publication a échoué. Réessaie."
+    },
     "page_title": "Mon profil",
     "page_subtitle": "Aperçu en lecture seule de votre profil tel qu'il apparaîtra aux clients.",
     "back_to_dashboard": "← Tableau de bord",
@@ -939,6 +954,19 @@
     }
   },
   "cdi_profile_view": {
+    "cv_required": {
+      "title": "Téléchargez votre CV pour accéder à votre profil",
+      "body": "Veuillez télécharger votre CV en cliquant sur Compléter votre profil.",
+      "cta": "Compléter votre profil"
+    },
+    "publish": {
+      "button": "Publier mon profil",
+      "publishing": "Publication en cours…",
+      "success": "Profil publié, vérification en cours.",
+      "error_cv": "Dépose ton CV et accepte la vérification IA avant de publier ton profil.",
+      "error_incomplete": "Complète ton profil avant de le publier.",
+      "error_generic": "La publication a échoué. Réessaie."
+    },
     "loading": "Chargement de votre profil…",
     "error_loading": "Impossible de charger votre profil. Réessayez.",
     "empty_profile": "Aucun profil n'a encore été créé.",
@@ -1109,6 +1137,7 @@
     "close_aria": "Fermer",
     "banner_error": "{count, plural, one {Pour publier votre profil, complétez le champ surligné ci-dessous : {fields}.} other {Pour publier votre profil, complétez les # champs surlignés ci-dessous : {fields}.}}",
     "errors": {
+      "cv_not_ready": "Dépose ton CV et accepte la vérification IA avant de publier ton profil.",
       "account_load_failed": "Impossible de charger votre compte.",
       "incomplete_check_below": "Profil incomplet, vérifiez les champs surlignés ci-dessous.",
       "save_failed": "Erreur lors de la sauvegarde, réessayez."
@@ -1124,6 +1153,7 @@
     "show_more_languages": "Afficher les {count} langues ▼",
     "show_less": "Réduire ▲",
     "field_labels_short": {
+      "cv_ready": "CV déposé et vérification IA acceptée",
       "title": "le titre professionnel",
       "summary": "le résumé (20 caractères minimum)",
       "skills": "au moins 3 compétences",

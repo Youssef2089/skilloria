@@ -5,6 +5,8 @@ import { useTranslations, useLocale } from 'next-intl'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Link, useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
+import { useSecureFetch } from '@/lib/secure-fetch'
+import EmptyState from '@/components/ui/EmptyState'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import AvatarEditOverlay from '@/components/dashboard/AvatarEditOverlay'
@@ -235,6 +237,45 @@ export default function CdiMonProfilPage() {
   // pas (un focus/reload re-synchronisera depuis la DB).
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
   const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null)
+  // Lot CV obligatoire — bouton "Publier mon profil" depuis Mon Profil.
+  // L'API (PATCH /api/profile {visible:true}) reste la barrière de validation :
+  // on relaie son message d'erreur (profil incomplet ou CV manquant) tel quel.
+  const secureFetch = useSecureFetch()
+  const [publishing, setPublishing] = useState(false)
+  const [publishMsg, setPublishMsg] = useState<
+    { kind: 'success' | 'error'; text: string } | null
+  >(null)
+
+  const handlePublish = async () => {
+    if (publishing) return
+    setPublishMsg(null)
+    setPublishing(true)
+    try {
+      const res = await secureFetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visible: true }),
+      })
+      const payload = await res.json().catch(() => ({} as Record<string, unknown>))
+      if (!res.ok) {
+        const code = (payload as { code?: string }).code
+        const text =
+          code === 'cv_not_ready'
+            ? t('publish.error_cv')
+            : code === 'incomplete'
+              ? t('publish.error_incomplete')
+              : ((payload as { error?: string }).error || t('publish.error_generic'))
+        setPublishMsg({ kind: 'error', text })
+        setPublishing(false)
+        return
+      }
+      setPublishMsg({ kind: 'success', text: t('publish.success') })
+    } catch {
+      setPublishMsg({ kind: 'error', text: t('publish.error_generic') })
+    } finally {
+      setPublishing(false)
+    }
+  }
   useEffect(() => {
     setLocalPhotoUrl(profile?.photo_url ?? null)
   }, [profile?.photo_url])
@@ -246,15 +287,9 @@ export default function CdiMonProfilPage() {
     }
   }, [loading, authenticated, router])
 
-  // Pas de profile → upload CV (parité freelance/mon-profil:355-358). Le
-  // flux complétion CDI passe TOUJOURS par l'upload CV d'abord ; la page
-  // /profil/valider (champs + déclencheur vérif IA via PATCH /api/profile)
-  // n'est atteinte qu'après parsing OK.
-  useEffect(() => {
-    if (!loading && authenticated && !forbidden && !error && !profile) {
-      router.push('/dashboard/cdi/profil')
-    }
-  }, [loading, authenticated, forbidden, error, profile, router])
+  // Lot CV obligatoire : on ne redirige plus en silence vers l'upload quand
+  // il n'y a pas de profil / pas de CV. À la place, le rendu affiche un écran
+  // de blocage PLEINE LARGEUR avec lien vers l'upload (cf. verrou ci-dessous).
 
   // ----- LOADING ------------------------------------------------------------
   if (loading || (!authenticated && !error && !forbidden)) {
@@ -378,8 +413,12 @@ export default function CdiMonProfilPage() {
     )
   }
 
-  // ----- EMPTY (auth OK + role OK mais pas encore de profil) ----------------
-  if (!profile) {
+  // ----- VERROU CV (Lot CV obligatoire) -------------------------------------
+  // Pas de profil OU pas de CV déposé (cv_file_path nul) → écran de blocage
+  // PLEINE LARGEUR (primitive EmptyState partagée), avec lien vers l'upload.
+  // Plus de redirection silencieuse ni de profil vide affiché.
+  // (Le `|| !profile` narrow `profile` à non-null pour le rendu chargé.)
+  if (!profile || !profile.cv_file_path) {
     return (
       <div
         className={jakarta.variable}
@@ -390,23 +429,15 @@ export default function CdiMonProfilPage() {
         }}
       >
         <Header user={user} profile={null} domainName={domain.name} domainColor={domain.primaryColor} domainLogo={domain.logoUrl} t={t} />
-        <div
-          style={{
-            maxWidth: 720,
-            margin: '32px auto',
-            padding: '0 20px',
-          }}
-        >
-          <Card>
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }} aria-hidden>📝</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
-                {t('empty_profile')}
-              </div>
+        <div style={{ padding: 24 }}>
+          <EmptyState
+            icon="📄"
+            title={t('cv_required.title')}
+            body={t('cv_required.body')}
+            action={
               <Link
                 href="/dashboard/cdi/profil"
                 style={{
-                  marginTop: 12,
                   background: domain.primaryColor,
                   color: '#fff',
                   border: 'none',
@@ -420,10 +451,10 @@ export default function CdiMonProfilPage() {
                   display: 'inline-block',
                 }}
               >
-                {t('edit_button')}
+                {t('cv_required.cta')}
               </Link>
-            </div>
-          </Card>
+            }
+          />
         </div>
       </div>
     )
@@ -482,27 +513,71 @@ export default function CdiMonProfilPage() {
           >
             {t('back_to_dashboard')}
           </Link>
-          <Link
-            href="/dashboard/cdi/profil/valider"
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Édition — secondaire (outline) ; garde le lien existant. */}
+            <Link
+              href="/dashboard/cdi/profil/valider"
+              style={{
+                background: '#fff',
+                color: domain.primaryColor,
+                border: `1.5px solid ${domain.primaryColor}`,
+                borderRadius: 10,
+                padding: '8px 14px',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              {t('edit_button')}
+            </Link>
+            {/* Publier mon profil — primaire. Validation (8 critères + CV prêt)
+                faite par l'API ; on relaie son verdict. */}
+            <button
+              type="button"
+              onClick={handlePublish}
+              disabled={publishing}
+              style={{
+                background: domain.primaryColor,
+                color: '#fff',
+                border: 'none',
+                borderRadius: 10,
+                padding: '8px 16px',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: publishing ? 'not-allowed' : 'pointer',
+                opacity: publishing ? 0.6 : 1,
+                fontFamily: 'inherit',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              {publishing ? t('publish.publishing') : t('publish.button')}
+            </button>
+          </div>
+        </div>
+        {publishMsg && (
+          <div
+            role="status"
             style={{
-              background: domain.primaryColor,
-              color: '#fff',
-              border: 'none',
+              marginBottom: 20,
+              padding: '12px 16px',
               borderRadius: 10,
-              padding: '8px 14px',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
+              fontSize: 13.5,
+              lineHeight: 1.5,
+              background: publishMsg.kind === 'success' ? '#dcfce7' : '#fef2f2',
+              border: `1px solid ${publishMsg.kind === 'success' ? '#bbf7d0' : '#fecaca'}`,
+              color: publishMsg.kind === 'success' ? '#166534' : '#991b1b',
             }}
           >
-            {t('edit_button')}
-          </Link>
-        </div>
+            {publishMsg.text}
+          </div>
+        )}
 
         {/* HEADER PROFIL (hero, sans numéro) */}
         <ProfileHero

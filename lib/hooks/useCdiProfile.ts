@@ -66,6 +66,10 @@ export type CdiProfile = {
   /** ISO timestamp d'approbation profil. Sert au flag "Analyse en cours"
    *  sur la home CDI (Lot UX refetch auto post-matching). */
   verified_at: string | null
+  /** Lot CV obligatoire : verrou Mon Profil + barrière publication. */
+  cv_file_path: string | null
+  cv_parsing_status: string | null
+  ai_consent_at: string | null
 }
 
 export type ExperienceItem = {
@@ -151,6 +155,11 @@ const PROFILE_COLUMNS = [
   // Lot UX refetch auto post-matching : sert au flag "Analyse en cours"
   // sur la home CDI (fenêtre <120s post-approbation).
   'verified_at',
+  // Lot CV obligatoire : verrou Mon Profil (cv_file_path) + barrière publish
+  // (cv_parsing_status='done' && ai_consent_at non nul).
+  'cv_file_path',
+  'cv_parsing_status',
+  'ai_consent_at',
 ].join(', ')
 
 const initialState: UseCdiProfileState = {

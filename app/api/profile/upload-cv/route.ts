@@ -34,6 +34,26 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'AI parsing disabled', code: 'ai_disabled' }, 503)
   }
 
+  // ── Garde type d'utilisateur (parité sécurité avec cdi-upload-cv) ────────
+  //  Cette route est réservée aux freelances : un expert_cdi doit passer par
+  //  /api/profile/cdi-upload-cv (parser + champs cdi_* dédiés).
+  {
+    const { data: userMeta, error: userMetaErr } = await ctx.supabaseAdmin
+      .from('users')
+      .select('user_type')
+      .eq('id', ctx.user.id)
+      .maybeSingle()
+    if (userMetaErr || !userMeta) {
+      return json({ error: 'User not found', code: 'user_lookup_failed' }, 403)
+    }
+    if (userMeta.user_type !== 'expert_freelance') {
+      return json(
+        { error: 'This route is reserved for freelance experts', code: 'wrong_user_type' },
+        403,
+      )
+    }
+  }
+
   let formData: FormData
   try {
     formData = await request.formData()

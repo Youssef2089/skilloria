@@ -6,7 +6,8 @@ import { Link, useRouter } from '@/i18n/navigation'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
-import { useSecureLogout } from '@/lib/secure-fetch'
+import { useSecureLogout, useSecureFetch } from '@/lib/secure-fetch'
+import EmptyState from '@/components/ui/EmptyState'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import AvatarEditOverlay from '@/components/dashboard/AvatarEditOverlay'
@@ -98,6 +99,9 @@ type Profile = {
   city: string | null
   country: string | null
   photo_url: string | null
+  cv_file_path: string | null
+  cv_parsing_status: string | null
+  ai_consent_at: string | null
 }
 
 type UserData = {
@@ -290,10 +294,23 @@ export default function MonProfilPage() {
   const router = useRouter()
   const domain = useDomain()
   const secureLogout = useSecureLogout()
+  const secureFetch = useSecureFetch()
+
+  // Lot CV obligatoire — bouton "Publier mon profil" depuis Mon Profil.
+  // L'API (PATCH /api/profile {visible:true}) reste la barrière de validation :
+  // on relaie son message d'erreur (profil incomplet ou CV manquant) tel quel.
+  const [publishing, setPublishing] = useState(false)
+  const [publishMsg, setPublishMsg] = useState<
+    { kind: 'success' | 'error'; text: string } | null
+  >(null)
 
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [forbidden, setForbidden] = useState(false)
+  // Lot CV obligatoire : verrou Mon Profil tant qu'aucun CV n'a été déposé
+  // (cv_file_path nul). On n'affiche plus un profil vide ni ne redirige en
+  // silence : on montre un écran de blocage avec lien vers l'upload CV.
+  const [needsCv, setNeedsCv] = useState(false)
   const [user, setUser] = useState<UserData | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [experiences, setExperiences] = useState<Experience[]>([])
@@ -349,7 +366,7 @@ export default function MonProfilPage() {
       const { data: profileData, error: profileErr } = await supabase
         .from('profiles')
         .select(
-          'id, title, summary, seniority, years_experience, years_total_experience, skills, certifications, branch_id, speciality_id, work_modes, tjm_min, tjm_max, availability_date, availability_status, linkedin_url, visible, city, country, photo_url',
+          'id, title, summary, seniority, years_experience, years_total_experience, skills, certifications, branch_id, speciality_id, work_modes, tjm_min, tjm_max, availability_date, availability_status, linkedin_url, visible, city, country, photo_url, cv_file_path, cv_parsing_status, ai_consent_at',
         )
         .eq('user_id', session.user.id)
         .maybeSingle()
@@ -362,8 +379,12 @@ export default function MonProfilPage() {
         return
       }
 
-      if (!profileData) {
-        router.push('/dashboard/freelance/profil')
+      // Verrou CV (Lot CV obligatoire) : pas de ligne profil OU pas de CV
+      // déposé (cv_file_path nul) → écran de blocage, pas de redirection
+      // silencieuse ni de profil vide affiché.
+      if (!profileData || !(profileData as { cv_file_path?: string | null }).cv_file_path) {
+        setNeedsCv(true)
+        setLoading(false)
         return
       }
 
@@ -532,6 +553,41 @@ export default function MonProfilPage() {
     return null
   })()
 
+  // Lot CV obligatoire — publication depuis Mon Profil. La validation (8
+  // critères + CV prêt) est faite par l'API ; on relaie son verdict.
+  const handlePublish = async () => {
+    if (publishing) return
+    setPublishMsg(null)
+    setPublishing(true)
+    try {
+      const res = await secureFetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visible: true }),
+      })
+      const payload = await res.json().catch(() => ({} as Record<string, unknown>))
+      if (!res.ok) {
+        const code = (payload as { code?: string }).code
+        const text =
+          code === 'cv_not_ready'
+            ? t('publish.error_cv')
+            : code === 'incomplete'
+              ? t('publish.error_incomplete')
+              : ((payload as { error?: string }).error || t('publish.error_generic'))
+        setPublishMsg({ kind: 'error', text })
+        setPublishing(false)
+        return
+      }
+      // Succès : profil visible (vérif IA déjà lancée côté serveur, inline).
+      setProfile(prev => (prev ? { ...prev, visible: true } : prev))
+      setPublishMsg({ kind: 'success', text: t('publish.success') })
+    } catch {
+      setPublishMsg({ kind: 'error', text: t('publish.error_generic') })
+    } finally {
+      setPublishing(false)
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────────────────────────────
@@ -692,6 +748,43 @@ export default function MonProfilPage() {
             {t('error_retry')}
           </button>
         </div>
+      </div>
+    )
+  }
+
+  // ── Verrou CV (Lot CV obligatoire) ──
+  // Aucun CV déposé → écran de blocage PLEINE LARGEUR (primitive EmptyState
+  // partagée), avec lien vers la page d'upload. Pas de profil vide affiché.
+  if (needsCv) {
+    return (
+      <div
+        className={jakarta.variable}
+        style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: fontJakarta, padding: 24 }}
+      >
+        {sharedStyles}
+        <EmptyState
+          icon="📄"
+          title={t('cv_required.title')}
+          body={t('cv_required.body')}
+          action={
+            <Link
+              href="/dashboard/freelance/profil"
+              style={{
+                display: 'inline-block',
+                background: domain.primaryColor,
+                color: '#fff',
+                borderRadius: 10,
+                padding: '10px 18px',
+                fontSize: 14,
+                fontWeight: 600,
+                textDecoration: 'none',
+                fontFamily: fontJakarta,
+              }}
+            >
+              {t('cv_required.cta')}
+            </Link>
+          }
+        />
       </div>
     )
   }
@@ -943,34 +1036,70 @@ export default function MonProfilPage() {
             <Link href="/dashboard/freelance" className="icon-btn">
               {t('back_to_dashboard')}
             </Link>
-            <Link
-              href="/dashboard/freelance/profil/valider"
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {/* Édition — secondaire (outline) ; garde le lien existant. */}
+              <Link
+                href="/dashboard/freelance/profil/valider"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '10px 18px',
+                  borderRadius: 10,
+                  background: '#fff',
+                  color: domain.primaryColor,
+                  border: `1.5px solid ${domain.primaryColor}`,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                {t('edit_button')}
+              </Link>
+              {/* Publier mon profil — primaire. La validation (8 critères +
+                  CV prêt) est faite par l'API ; on relaie son verdict. */}
+              <button
+                type="button"
+                onClick={handlePublish}
+                disabled={publishing}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '10px 18px',
+                  borderRadius: 10,
+                  background: domain.primaryColor,
+                  color: '#fff',
+                  border: 'none',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: publishing ? 'not-allowed' : 'pointer',
+                  opacity: publishing ? 0.6 : 1,
+                  fontFamily: fontJakarta,
+                  boxShadow: `0 6px 20px ${domain.primaryColor}33`,
+                }}
+              >
+                {publishing ? t('publish.publishing') : t('publish.button')}
+              </button>
+            </div>
+          </div>
+          {publishMsg && (
+            <div
+              role="status"
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '10px 18px',
+                marginBottom: 12,
+                padding: '12px 16px',
                 borderRadius: 10,
-                background: domain.primaryColor,
-                color: '#fff',
-                fontSize: 14,
-                fontWeight: 600,
-                textDecoration: 'none',
-                boxShadow: `0 6px 20px ${domain.primaryColor}33`,
-                transition: 'transform 0.18s ease, box-shadow 0.18s ease',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = 'translateY(-1px)'
-                e.currentTarget.style.boxShadow = `0 8px 24px ${domain.primaryColor}55`
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = `0 6px 20px ${domain.primaryColor}33`
+                fontSize: 13.5,
+                lineHeight: 1.5,
+                background: publishMsg.kind === 'success' ? '#dcfce7' : '#fef2f2',
+                border: `1px solid ${publishMsg.kind === 'success' ? '#bbf7d0' : '#fecaca'}`,
+                color: publishMsg.kind === 'success' ? '#166534' : '#991b1b',
               }}
             >
-              {t('edit_button')}
-            </Link>
-          </div>
+              {publishMsg.text}
+            </div>
+          )}
 
           {/* Page title */}
           <div style={{ marginBottom: 16, animation: 'fadeInUp 0.4s ease both' }}>

@@ -401,6 +401,7 @@
     "close_aria": "Cerrar",
     "banner_error": "{count, plural, one {Para publicar tu perfil, completa el campo destacado de abajo: {fields}.} other {Para publicar tu perfil, completa los # campos destacados de abajo: {fields}.}}",
     "errors": {
+      "cv_not_ready": "Sube tu CV y acepta la verificación por IA antes de publicar tu perfil.",
       "account_load_failed": "No se ha podido cargar tu cuenta.",
       "incomplete_check_below": "Perfil incompleto, comprueba los campos destacados de abajo.",
       "save_failed": "Error al guardar, inténtalo de nuevo."
@@ -416,6 +417,7 @@
     "show_more_languages": "Mostrar los {count} idiomas ▼",
     "show_less": "Mostrar menos ▲",
     "field_labels_short": {
+      "cv_ready": "CV subido y verificación por IA aceptada",
       "title": "tu título profesional",
       "summary": "el resumen (20 caracteres mínimo)",
       "skills": "al menos 3 competencias",
@@ -597,6 +599,19 @@
     }
   },
   "profile_view": {
+    "cv_required": {
+      "title": "Sube tu CV para acceder a tu perfil",
+      "body": "Sube tu CV haciendo clic en Completa tu perfil.",
+      "cta": "Completa tu perfil"
+    },
+    "publish": {
+      "button": "Publicar mi perfil",
+      "publishing": "Publicando…",
+      "success": "Perfil publicado, verificación en curso.",
+      "error_cv": "Sube tu CV y acepta la verificación por IA antes de publicar tu perfil.",
+      "error_incomplete": "Completa tu perfil antes de publicarlo.",
+      "error_generic": "La publicación falló. Inténtalo de nuevo."
+    },
     "page_title": "Mi perfil",
     "page_subtitle": "Vista de solo lectura de tu perfil tal como lo verán los clientes.",
     "back_to_dashboard": "← Panel de control",
@@ -939,6 +954,19 @@
     }
   },
   "cdi_profile_view": {
+    "cv_required": {
+      "title": "Sube tu CV para acceder a tu perfil",
+      "body": "Sube tu CV haciendo clic en Completa tu perfil.",
+      "cta": "Completa tu perfil"
+    },
+    "publish": {
+      "button": "Publicar mi perfil",
+      "publishing": "Publicando…",
+      "success": "Perfil publicado, verificación en curso.",
+      "error_cv": "Sube tu CV y acepta la verificación por IA antes de publicar tu perfil.",
+      "error_incomplete": "Completa tu perfil antes de publicarlo.",
+      "error_generic": "La publicación falló. Inténtalo de nuevo."
+    },
     "loading": "Cargando tu perfil…",
     "error_loading": "No se pudo cargar tu perfil. Vuelve a intentarlo.",
     "empty_profile": "Aún no has creado tu perfil.",
@@ -1109,6 +1137,7 @@
     "close_aria": "Cerrar",
     "banner_error": "{count, plural, one {Para publicar tu perfil, completa el campo destacado abajo: {fields}.} other {Para publicar tu perfil, completa los # campos destacados abajo: {fields}.}}",
     "errors": {
+      "cv_not_ready": "Sube tu CV y acepta la verificación por IA antes de publicar tu perfil.",
       "account_load_failed": "No se pudo cargar tu cuenta.",
       "incomplete_check_below": "Perfil incompleto, revisa los campos destacados abajo.",
       "save_failed": "Error al guardar, vuelve a intentarlo."
@@ -1124,6 +1153,7 @@
     "show_more_languages": "Mostrar los {count} idiomas ▼",
     "show_less": "Mostrar menos ▲",
     "field_labels_short": {
+      "cv_ready": "CV subido y verificación por IA aceptada",
       "title": "el título profesional",
       "summary": "el resumen (mínimo 20 caracteres)",
       "skills": "al menos 3 competencias",
@@ -1667,6 +1697,7 @@
       "filter_all": "Todas",
       "filter_received": "Por tratar",
       "filter_unlocked": "Intercambios abiertos",
+      "filter_selected": "Aceptados",
       "filter_rejected": "Rechazadas",
       "empty_all_title": "Aún no hay candidaturas",
       "empty_all_subtitle": "Los expertos notificados por nuestra IA aún no se han postulado. Te avisaremos en la primera candidatura.",
