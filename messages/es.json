@@ -401,6 +401,7 @@
     "close_aria": "Cerrar",
     "banner_error": "{count, plural, one {Para publicar tu perfil, completa el campo destacado de abajo: {fields}.} other {Para publicar tu perfil, completa los # campos destacados de abajo: {fields}.}}",
     "errors": {
+      "reset_failed": "El restablecimiento del CV falló. Inténtalo de nuevo.",
       "cv_not_ready": "Sube tu CV y acepta la verificación por IA antes de publicar tu perfil.",
       "account_load_failed": "No se ha podido cargar tu cuenta.",
       "incomplete_check_below": "Perfil incompleto, comprueba los campos destacados de abajo.",
@@ -590,6 +591,11 @@
       }
     },
     "actions": {
+      "reset_cv": "Cancelar y volver a subir el CV",
+      "reset_cv_confirm": "Esto borrará todos los datos de tu perfil extraídos del CV. ¿Continuar?",
+      "reset_cv_cancel": "Cancelar",
+      "reset_cv_confirm_btn": "Sí, borrar todo",
+      "reset_cv_loading": "Borrando…",
       "save_draft": "Guardar como borrador",
       "publish": "Publicar mi perfil →",
       "saving": "Guardando...",
@@ -1137,6 +1143,7 @@
     "close_aria": "Cerrar",
     "banner_error": "{count, plural, one {Para publicar tu perfil, completa el campo destacado abajo: {fields}.} other {Para publicar tu perfil, completa los # campos destacados abajo: {fields}.}}",
     "errors": {
+      "reset_failed": "El restablecimiento del CV falló. Inténtalo de nuevo.",
       "cv_not_ready": "Sube tu CV y acepta la verificación por IA antes de publicar tu perfil.",
       "account_load_failed": "No se pudo cargar tu cuenta.",
       "incomplete_check_below": "Perfil incompleto, revisa los campos destacados abajo.",
@@ -1367,6 +1374,11 @@
       }
     },
     "actions": {
+      "reset_cv": "Cancelar y volver a subir el CV",
+      "reset_cv_confirm": "Esto borrará todos los datos de tu perfil extraídos del CV. ¿Continuar?",
+      "reset_cv_cancel": "Cancelar",
+      "reset_cv_confirm_btn": "Sí, borrar todo",
+      "reset_cv_loading": "Borrando…",
       "save_draft": "Guardar como borrador",
       "publish": "Publicar mi perfil →",
       "saving": "Guardando...",
@@ -2006,7 +2018,18 @@
     }
   },
   "expert_verification": {
+    "badge": {
+      "draft": "Borrador",
+      "pending": "Verificación en curso",
+      "admin_review": "Pendiente de validación",
+      "approved": "Verificado",
+      "rejected": "Rechazado"
+    },
     "banner": {
+      "draft_title": "Perfil en borrador",
+      "draft_body": "Publica tu perfil para iniciar la verificación.",
+      "approved_title": "Perfil verificado",
+      "approved_body": "Tu perfil ha sido verificado.",
       "none_title": "Envía tu perfil para verificación",
       "none_body": "Una vez completado, envía tu perfil: nuestra IA evalúa la coherencia en segundos.",
       "pending_title": "Verificación en curso…",

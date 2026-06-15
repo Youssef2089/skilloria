@@ -70,6 +70,9 @@ export type CdiProfile = {
   cv_file_path: string | null
   cv_parsing_status: string | null
   ai_consent_at: string | null
+  /** Lot bandeau vérif : état réel + motif de refus. */
+  verification_status: string | null
+  review_reason: string | null
 }
 
 export type ExperienceItem = {
@@ -160,6 +163,9 @@ const PROFILE_COLUMNS = [
   'cv_file_path',
   'cv_parsing_status',
   'ai_consent_at',
+  // Lot bandeau vérif : état réel (helper deriveVerificationUiState) + motif.
+  'verification_status',
+  'review_reason',
 ].join(', ')
 
 const initialState: UseCdiProfileState = {

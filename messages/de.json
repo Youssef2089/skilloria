@@ -401,6 +401,7 @@
     "close_aria": "Schließen",
     "banner_error": "{count, plural, one {Um Ihr Profil zu veröffentlichen, vervollständigen Sie das unten markierte Feld: {fields}.} other {Um Ihr Profil zu veröffentlichen, vervollständigen Sie die # unten markierten Felder: {fields}.}}",
     "errors": {
+      "reset_failed": "Das Zurücksetzen des Lebenslaufs ist fehlgeschlagen. Bitte erneut versuchen.",
       "cv_not_ready": "Laden Sie Ihren Lebenslauf hoch und akzeptieren Sie die KI-Überprüfung, bevor Sie Ihr Profil veröffentlichen.",
       "account_load_failed": "Ihr Konto konnte nicht geladen werden.",
       "incomplete_check_below": "Profil unvollständig, überprüfen Sie die unten markierten Felder.",
@@ -590,6 +591,11 @@
       }
     },
     "actions": {
+      "reset_cv": "Abbrechen und Lebenslauf erneut hochladen",
+      "reset_cv_confirm": "Dadurch werden alle aus Ihrem Lebenslauf extrahierten Profildaten gelöscht. Fortfahren?",
+      "reset_cv_cancel": "Abbrechen",
+      "reset_cv_confirm_btn": "Ja, alles löschen",
+      "reset_cv_loading": "Wird gelöscht…",
       "save_draft": "Als Entwurf speichern",
       "publish": "Mein Profil veröffentlichen →",
       "saving": "Wird gespeichert...",
@@ -1137,6 +1143,7 @@
     "close_aria": "Schliessen",
     "banner_error": "{count, plural, one {Um Ihr Profil zu veröffentlichen, vervollständigen Sie das hervorgehobene Feld unten: {fields}.} other {Um Ihr Profil zu veröffentlichen, vervollständigen Sie die # hervorgehobenen Felder unten: {fields}.}}",
     "errors": {
+      "reset_failed": "Das Zurücksetzen des Lebenslaufs ist fehlgeschlagen. Bitte erneut versuchen.",
       "cv_not_ready": "Laden Sie Ihren Lebenslauf hoch und akzeptieren Sie die KI-Überprüfung, bevor Sie Ihr Profil veröffentlichen.",
       "account_load_failed": "Ihr Konto konnte nicht geladen werden.",
       "incomplete_check_below": "Profil unvollständig, prüfen Sie die hervorgehobenen Felder unten.",
@@ -1367,6 +1374,11 @@
       }
     },
     "actions": {
+      "reset_cv": "Abbrechen und Lebenslauf erneut hochladen",
+      "reset_cv_confirm": "Dadurch werden alle aus Ihrem Lebenslauf extrahierten Profildaten gelöscht. Fortfahren?",
+      "reset_cv_cancel": "Abbrechen",
+      "reset_cv_confirm_btn": "Ja, alles löschen",
+      "reset_cv_loading": "Wird gelöscht…",
       "save_draft": "Als Entwurf speichern",
       "publish": "Profil veröffentlichen →",
       "saving": "Speichern...",
@@ -2006,7 +2018,18 @@
     }
   },
   "expert_verification": {
+    "badge": {
+      "draft": "Entwurf",
+      "pending": "Überprüfung läuft",
+      "admin_review": "Validierung ausstehend",
+      "approved": "Verifiziert",
+      "rejected": "Abgelehnt"
+    },
     "banner": {
+      "draft_title": "Profilentwurf",
+      "draft_body": "Veröffentlichen Sie Ihr Profil, um die Überprüfung zu starten.",
+      "approved_title": "Profil verifiziert",
+      "approved_body": "Ihr Profil wurde verifiziert.",
       "none_title": "Reichen Sie Ihr Profil zur Verifizierung ein",
       "none_body": "Sobald Ihr Profil vollständig ist, reichen Sie es ein: Unsere KI prüft die Kohärenz in Sekunden.",
       "pending_title": "Verifizierung läuft…",

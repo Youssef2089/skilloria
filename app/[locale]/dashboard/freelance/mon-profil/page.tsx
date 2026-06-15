@@ -8,6 +8,7 @@ import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
 import { useSecureLogout, useSecureFetch } from '@/lib/secure-fetch'
 import EmptyState from '@/components/ui/EmptyState'
+import { deriveVerificationUiState, verificationChipColors } from '@/lib/verification-state'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import AvatarEditOverlay from '@/components/dashboard/AvatarEditOverlay'
@@ -102,6 +103,8 @@ type Profile = {
   cv_file_path: string | null
   cv_parsing_status: string | null
   ai_consent_at: string | null
+  verification_status: string | null
+  review_reason: string | null
 }
 
 type UserData = {
@@ -288,6 +291,7 @@ function ExpandableDescription({
 
 export default function MonProfilPage() {
   const t = useTranslations('profile_view')
+  const tVerifBadge = useTranslations('expert_verification.badge')
   const tDash = useTranslations('dashboard_freelance')
   const tCommon = useTranslations('common')
   const locale = useLocale()
@@ -366,7 +370,7 @@ export default function MonProfilPage() {
       const { data: profileData, error: profileErr } = await supabase
         .from('profiles')
         .select(
-          'id, title, summary, seniority, years_experience, years_total_experience, skills, certifications, branch_id, speciality_id, work_modes, tjm_min, tjm_max, availability_date, availability_status, linkedin_url, visible, city, country, photo_url, cv_file_path, cv_parsing_status, ai_consent_at',
+          'id, title, summary, seniority, years_experience, years_total_experience, skills, certifications, branch_id, speciality_id, work_modes, tjm_min, tjm_max, availability_date, availability_status, linkedin_url, visible, city, country, photo_url, cv_file_path, cv_parsing_status, ai_consent_at, verification_status, review_reason',
         )
         .eq('user_id', session.user.id)
         .maybeSingle()
@@ -533,6 +537,12 @@ export default function MonProfilPage() {
     fullName.substring(0, 2).toUpperCase() ||
     '??'
   const isVerified = user?.is_verified === true
+  // Lot bandeau vérif : badge piloté par l'état réel (plus de vert affiché
+  // à tort quand pending_admin_review).
+  const verifState = deriveVerificationUiState({
+    visible: profile?.visible ?? null,
+    verificationStatus: profile?.verification_status ?? null,
+  })
   const isVisible = profile?.visible === true
   const headline = profile?.title?.trim() || null
   const cityCountry = (() => {
@@ -951,11 +961,11 @@ export default function MonProfilPage() {
                   {initials}
                 </div>
               )}
-              <div className="pulse-dot" style={{ position: 'absolute', bottom: 3, right: 3, width: 14, height: 14, background: isVerified ? '#22c55e' : '#eab308', border: '2px solid #fff' }} />
+              <div className="pulse-dot" style={{ position: 'absolute', bottom: 3, right: 3, width: 14, height: 14, background: verifState === 'approved' ? '#22c55e' : '#eab308', border: '2px solid #fff' }} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginBottom: 5 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>{fullName}</div>
-              {isVerified && (
+              {verifState === 'approved' && (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <circle cx="12" cy="12" r="10" fill={domain.primaryColor} />
                   <path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -1160,7 +1170,7 @@ export default function MonProfilPage() {
                   <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.4px' }}>
                     {fullName}
                   </h2>
-                  {isVerified && (
+                  {verifState === 'approved' ? (
                     <span
                       style={{
                         display: 'inline-flex',
@@ -1181,6 +1191,28 @@ export default function MonProfilPage() {
                       </svg>
                       {t('header.verified_badge')}
                     </span>
+                  ) : (
+                    (() => {
+                      const c = verificationChipColors(verifState)
+                      return (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            background: c.bg,
+                            color: c.fg,
+                            border: `1px solid ${c.border}`,
+                            borderRadius: 999,
+                            padding: '3px 10px',
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {tVerifBadge(verifState)}
+                        </span>
+                      )
+                    })()
                   )}
                 </div>
                 <div style={{ fontSize: 15, color: '#475569', fontWeight: 500, marginBottom: 8 }}>

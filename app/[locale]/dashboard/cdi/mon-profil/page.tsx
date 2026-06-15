@@ -7,6 +7,7 @@ import { Link, useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import EmptyState from '@/components/ui/EmptyState'
+import { deriveVerificationUiState, verificationChipColors } from '@/lib/verification-state'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import AvatarEditOverlay from '@/components/dashboard/AvatarEditOverlay'
@@ -793,7 +794,13 @@ function Header({
 }) {
   const status: CdiStatus | null = profile?.cdi_status ?? null
   const statusColor = status ? STATUS_BADGE_COLORS[status] : null
-  const isVerified = !!user?.is_verified
+  // Lot bandeau vérif : badge piloté par l'état réel (plus de vert affiché à
+  // tort quand pending_admin_review). Le badge "marché" cdi_status est distinct.
+  const tVerifBadge = useTranslations('expert_verification.badge')
+  const verifState = deriveVerificationUiState({
+    visible: profile?.visible ?? null,
+    verificationStatus: profile?.verification_status ?? null,
+  })
 
   return (
     <div
@@ -839,7 +846,7 @@ function Header({
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <LanguageSwitcher />
-        {isVerified && (
+        {verifState === 'approved' ? (
           <div
             style={{
               display: 'flex',
@@ -860,6 +867,28 @@ function Header({
             </svg>
             <span>{t('verified_badge')}</span>
           </div>
+        ) : (
+          (() => {
+            const c = verificationChipColors(verifState)
+            return (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: c.bg,
+                  border: `1px solid ${c.border}`,
+                  padding: '5px 12px',
+                  borderRadius: 999,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: c.fg,
+                }}
+              >
+                <span>{tVerifBadge(verifState)}</span>
+              </div>
+            )
+          })()
         )}
         {status && statusColor && (
           <div

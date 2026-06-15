@@ -401,6 +401,7 @@
     "close_aria": "Close",
     "banner_error": "{count, plural, one {To publish your profile, complete the highlighted field below: {fields}.} other {To publish your profile, complete the # highlighted fields below: {fields}.}}",
     "errors": {
+      "reset_failed": "Resetting the CV failed. Please try again.",
       "cv_not_ready": "Upload your CV and accept the AI verification before publishing your profile.",
       "account_load_failed": "Unable to load your account.",
       "incomplete_check_below": "Profile incomplete, please check the highlighted fields below.",
@@ -590,6 +591,11 @@
       }
     },
     "actions": {
+      "reset_cv": "Cancel and re-upload CV",
+      "reset_cv_confirm": "This will erase all profile data extracted from your CV. Continue?",
+      "reset_cv_cancel": "Cancel",
+      "reset_cv_confirm_btn": "Yes, erase everything",
+      "reset_cv_loading": "Erasing…",
       "save_draft": "Save as draft",
       "publish": "Publish my profile →",
       "saving": "Saving...",
@@ -1137,6 +1143,7 @@
     "close_aria": "Close",
     "banner_error": "{count, plural, one {To publish your profile, complete the highlighted field below: {fields}.} other {To publish your profile, complete the # highlighted fields below: {fields}.}}",
     "errors": {
+      "reset_failed": "Resetting the CV failed. Please try again.",
       "cv_not_ready": "Upload your CV and accept the AI verification before publishing your profile.",
       "account_load_failed": "Could not load your account.",
       "incomplete_check_below": "Profile incomplete, check the highlighted fields below.",
@@ -1367,6 +1374,11 @@
       }
     },
     "actions": {
+      "reset_cv": "Cancel and re-upload CV",
+      "reset_cv_confirm": "This will erase all profile data extracted from your CV. Continue?",
+      "reset_cv_cancel": "Cancel",
+      "reset_cv_confirm_btn": "Yes, erase everything",
+      "reset_cv_loading": "Erasing…",
       "save_draft": "Save as draft",
       "publish": "Publish my profile →",
       "saving": "Saving...",
@@ -2006,7 +2018,18 @@
     }
   },
   "expert_verification": {
+    "badge": {
+      "draft": "Draft",
+      "pending": "Verification in progress",
+      "admin_review": "Pending validation",
+      "approved": "Verified",
+      "rejected": "Rejected"
+    },
     "banner": {
+      "draft_title": "Draft profile",
+      "draft_body": "Publish your profile to start the verification.",
+      "approved_title": "Verified profile",
+      "approved_body": "Your profile has been verified.",
       "none_title": "Submit your profile for verification",
       "none_body": "Once your profile is complete, submit it: our AI evaluates coherence in seconds.",
       "pending_title": "Verification in progress…",

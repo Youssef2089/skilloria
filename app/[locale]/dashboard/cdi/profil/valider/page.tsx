@@ -315,6 +315,9 @@ export default function CdiValiderProfilPage() {
   // Lot CV obligatoire : "CV prêt" = parsé (done) ET consentement IA donné.
   const [cvParsingStatus, setCvParsingStatus] = useState<string | null>(null)
   const [aiConsentAt, setAiConsentAt] = useState<string | null>(null)
+  // Lot reset CV : annuler/retélécharger (remise à zéro complète serveur).
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [resetting, setResetting] = useState(false)
 
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [branches, setBranches] = useState<Branch[]>([])
@@ -774,6 +777,27 @@ export default function CdiValiderProfilPage() {
   // freelance n'exige pas non plus tjm_min/max). cdi_status reste requis
   // (signal écoute marché). Encart conseil ailleurs dans la page incite à
   // les remplir pour optimiser le matching.
+  // Lot reset CV : appelle la route serveur de remise à zéro complète puis
+  // redirige vers l'upload pour déposer un nouveau CV.
+  const handleResetCv = async () => {
+    if (resetting) return
+    setResetting(true)
+    setErrorMsg(null)
+    try {
+      const res = await secureFetch('/api/profile/cv/reset', { method: 'POST' })
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({} as { error?: string }))
+        setErrorMsg(payload?.error || tProfile('errors.reset_failed'))
+        setResetting(false)
+        return
+      }
+      router.push('/dashboard/cdi/profil')
+    } catch {
+      setErrorMsg(tProfile('errors.reset_failed'))
+      setResetting(false)
+    }
+  }
+
   const validateForPublish = (): string[] => {
     const missing: string[] = []
     if (!title.trim()) missing.push('title')
@@ -3070,6 +3094,85 @@ export default function CdiValiderProfilPage() {
                       </ul>
                     </div>
                   )}
+                  {/* Lot reset CV : annuler/retélécharger (action destructive). */}
+                  <div style={{ borderTop: '1px solid var(--sk-border)', marginTop: 4, paddingTop: 12 }}>
+                    {!showResetConfirm ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowResetConfirm(true)}
+                        disabled={saving || resetting}
+                        style={{
+                          width: '100%',
+                          background: 'transparent',
+                          color: 'var(--sk-muted)',
+                          border: 'none',
+                          padding: '4px 0',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          textDecoration: 'underline',
+                          cursor: (saving || resetting) ? 'not-allowed' : 'pointer',
+                          fontFamily: fontJakarta,
+                        }}
+                      >
+                        {tProfile('actions.reset_cv')}
+                      </button>
+                    ) : (
+                      <div
+                        role="alertdialog"
+                        style={{
+                          background: 'var(--sk-surface-2)',
+                          border: '1px solid var(--sk-border)',
+                          borderRadius: 12,
+                          padding: '12px 14px',
+                        }}
+                      >
+                        <div style={{ fontSize: 13, color: 'var(--sk-text)', lineHeight: 1.5, marginBottom: 10 }}>
+                          {tProfile('actions.reset_cv_confirm')}
+                        </div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                          <button
+                            type="button"
+                            onClick={() => setShowResetConfirm(false)}
+                            disabled={resetting}
+                            style={{
+                              flex: 1,
+                              background: 'var(--sk-surface)',
+                              color: 'var(--sk-text)',
+                              border: '1px solid var(--sk-border)',
+                              borderRadius: 10,
+                              padding: 11,
+                              fontSize: 13,
+                              fontWeight: 600,
+                              cursor: resetting ? 'not-allowed' : 'pointer',
+                              fontFamily: fontJakarta,
+                            }}
+                          >
+                            {tProfile('actions.reset_cv_cancel')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleResetCv}
+                            disabled={resetting}
+                            style={{
+                              flex: 1,
+                              background: '#991b1b',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: 10,
+                              padding: 11,
+                              fontSize: 13,
+                              fontWeight: 700,
+                              cursor: resetting ? 'not-allowed' : 'pointer',
+                              opacity: resetting ? 0.6 : 1,
+                              fontFamily: fontJakarta,
+                            }}
+                          >
+                            {resetting ? tProfile('actions.reset_cv_loading') : tProfile('actions.reset_cv_confirm_btn')}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )
             })()}
