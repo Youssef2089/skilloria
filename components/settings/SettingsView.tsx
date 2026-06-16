@@ -6,10 +6,25 @@ import { usePathname, useRouter } from '@/i18n/navigation'
 import { routing, type Locale } from '@/i18n/routing'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
-import PageHeader from '@/components/ui/PageHeader'
 import ReauthModal from './ReauthModal'
 
 const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
+
+/**
+ * Normalise un numéro saisi vers le format E.164 (+33…) avant l'appel Vonage.
+ *   - retire espaces et séparateurs courants
+ *   - `+…`        → conservé tel quel (déjà international)
+ *   - `00…`       → préfixe international ISO → `+…`
+ *   - `0XXXXXXXXX`→ numéro national : défaut FR → `+33XXXXXXXXX`
+ *   - sinon       → laissé tel quel (la validation E.164 tranchera)
+ */
+function toE164(raw: string): string {
+  const s = raw.replace(/[\s().\-]/g, '')
+  if (s.startsWith('+')) return s
+  if (s.startsWith('00')) return '+' + s.slice(2)
+  if (s.startsWith('0')) return '+33' + s.slice(1)
+  return s
+}
 
 type SectionId = 'identity' | 'email' | 'phone' | 'password' | 'language' | 'security' | 'deletion'
 const SECTIONS: SectionId[] = ['identity', 'email', 'phone', 'password', 'language', 'security', 'deletion']
@@ -163,7 +178,7 @@ function PhoneSection({ user, secureFetch, requestReauth, notify, reload }: {
   const [busy, setBusy] = useState(false)
 
   const sendCode = async () => {
-    const e164 = phone.replace(/[\s().-]/g, '')
+    const e164 = toE164(phone)
     if (!/^\+[1-9]\d{6,14}$/.test(e164)) { notify(tc('error_generic'), 'error'); return }
     const token = await requestReauth()
     if (!token) return
@@ -182,7 +197,7 @@ function PhoneSection({ user, secureFetch, requestReauth, notify, reload }: {
   }
 
   const verify = async () => {
-    const e164 = phone.replace(/[\s().-]/g, '')
+    const e164 = toE164(phone)
     if (!/^\d{4,6}$/.test(code) || !requestId) { notify(t('error_invalid_code'), 'error'); return }
     setBusy(true)
     try {
@@ -471,9 +486,10 @@ export default function SettingsView({ side: _side }: { side: 'freelance' | 'cdi
 
   return (
     <div style={{ fontFamily: fontJakarta, display: 'flex', flexDirection: 'column', width: '100%' }}>
-      <PageHeader title={t('title')} subtitle={t('subtitle')} />
-
-      <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start', flexWrap: 'wrap', padding: '12px 26px 28px' }}>
+      {/* Pas de PageHeader ici : le titre « Paramètres » est porté par la topbar
+          du DashboardShell (résolution pathname → shell.page_titles.settings).
+          On évite ainsi le doublon de titre. */}
+      <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start', flexWrap: 'wrap', padding: '24px 26px 28px' }}>
         {/* Sous-navigation gauche (style Malt) */}
         <nav
           aria-label={t('title')}

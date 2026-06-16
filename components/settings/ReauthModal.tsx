@@ -50,13 +50,16 @@ export default function ReauthModal({
         body: JSON.stringify({ password }),
       })
       if (!res.ok) {
-        setError(t('error_invalid'))
+        // 401 = mot de passe réellement incorrect. Tout autre statut (500
+        // `reauth_server_error`, etc.) est une erreur serveur : on NE la masque
+        // PAS en « mot de passe incorrect ».
+        setError(res.status === 401 ? t('error_invalid') : t('error_server'))
         setLoading(false)
         return
       }
       const data = (await res.json()) as { reauth_token?: string }
       if (!data.reauth_token) {
-        setError(t('error_invalid'))
+        setError(t('error_server'))
         setLoading(false)
         return
       }

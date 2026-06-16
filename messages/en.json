@@ -41,7 +41,8 @@
       "mon_profil": "My profile",
       "profil": "My profile",
       "profil_valider": "Complete my profile",
-      "annonces": "My postings"
+      "annonces": "My postings",
+      "settings": "Settings"
     },
     "topbar": {
       "status_available": "Available",
@@ -2133,7 +2134,8 @@
       "confirm": "Confirm",
       "cancel": "Cancel",
       "error_invalid": "Incorrect password.",
-      "error_required": "Password required."
+      "error_required": "Password required.",
+      "error_server": "A server error occurred. Please try again in a moment."
     },
     "reactivation": {
       "title": "Your account is scheduled for deletion",

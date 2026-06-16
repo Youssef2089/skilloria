@@ -41,7 +41,8 @@
       "mon_profil": "Mein Profil",
       "profil": "Mein Profil",
       "profil_valider": "Mein Profil vervollständigen",
-      "annonces": "Meine Veröffentlichungen"
+      "annonces": "Meine Veröffentlichungen",
+      "settings": "Einstellungen"
     },
     "topbar": {
       "status_available": "Verfügbar",
@@ -2133,7 +2134,8 @@
       "confirm": "Bestätigen",
       "cancel": "Abbrechen",
       "error_invalid": "Falsches Passwort.",
-      "error_required": "Passwort erforderlich."
+      "error_required": "Passwort erforderlich.",
+      "error_server": "Ein Serverfehler ist aufgetreten. Bitte versuche es gleich noch einmal."
     },
     "reactivation": {
       "title": "Dein Konto wird gelöscht",

@@ -41,7 +41,8 @@
       "mon_profil": "Mon profil",
       "profil": "Mon profil",
       "profil_valider": "Valider mon profil",
-      "annonces": "Mes annonces"
+      "annonces": "Mes annonces",
+      "settings": "Paramètres"
     },
     "topbar": {
       "status_available": "Disponible",
@@ -2133,7 +2134,8 @@
       "confirm": "Confirmer",
       "cancel": "Annuler",
       "error_invalid": "Mot de passe incorrect.",
-      "error_required": "Mot de passe requis."
+      "error_required": "Mot de passe requis.",
+      "error_server": "Une erreur serveur est survenue. Réessaie dans un instant."
     },
     "reactivation": {
       "title": "Ton compte va être supprimé",

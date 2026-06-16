@@ -41,7 +41,8 @@
       "mon_profil": "Mi perfil",
       "profil": "Mi perfil",
       "profil_valider": "Completar mi perfil",
-      "annonces": "Mis publicaciones"
+      "annonces": "Mis publicaciones",
+      "settings": "Configuración"
     },
     "topbar": {
       "status_available": "Disponible",
@@ -1667,6 +1668,7 @@
       "filter_all": "Todas",
       "filter_received": "Por tratar",
       "filter_unlocked": "Intercambios abiertos",
+      "filter_selected": "Aceptadas",
       "filter_rejected": "Rechazadas",
       "empty_all_title": "Aún no hay candidaturas",
       "empty_all_subtitle": "Los expertos notificados por nuestra IA aún no se han postulado. Te avisaremos en la primera candidatura.",
@@ -2132,7 +2134,8 @@
       "confirm": "Confirmar",
       "cancel": "Cancelar",
       "error_invalid": "Contraseña incorrecta.",
-      "error_required": "Contraseña obligatoria."
+      "error_required": "Contraseña obligatoria.",
+      "error_server": "Se produjo un error del servidor. Inténtalo de nuevo en un momento."
     },
     "reactivation": {
       "title": "Tu cuenta está programada para eliminarse",

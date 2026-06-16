@@ -144,6 +144,7 @@ export default function DashboardShell({
     else if (section === 'mon-profil')   key = 'mon_profil'
     else if (section === 'profil')       key = segs[3] === 'valider' ? 'profil_valider' : 'profil'
     else if (section === 'annonces')     key = 'annonces'
+    else if (section === 'parametres')   key = 'settings'
     resolvedTitle = tShell(`page_titles.${key}` as 'page_titles.dashboard')
   }
 
