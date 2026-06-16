@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   runExpertCoherenceCheck,
   type ExpertVerificationConfig,
+  type ExpertVerificationFlag,
   type ExpertVerificationInput,
   type ExpertVerificationOutput,
 } from './ai-expert-verification'
@@ -76,6 +77,26 @@ type RawConfig = {
   auto_approve_threshold?: unknown
   web_search_max_uses?: unknown
   domain_mismatch_cap?: unknown
+  blocking_flags?: unknown
+}
+
+// Flags de cohérence qui bloquent l'auto-approbation si la config n'en fournit
+// pas (defense in depth). LINKEDIN_UNVERIFIABLE volontairement exclu.
+const DEFAULT_BLOCKING_FLAGS: ExpertVerificationFlag[] = ['CV_PROFILE_INCOHERENT', 'SUSPICIOUS_CONTENT', 'DOMAIN_MISMATCH']
+
+const KNOWN_FLAGS: readonly ExpertVerificationFlag[] = ['DOMAIN_MISMATCH', 'CV_PROFILE_INCOHERENT', 'LINKEDIN_UNVERIFIABLE', 'SUSPICIOUS_CONTENT']
+
+function parseBlockingFlags(raw: unknown): ExpertVerificationFlag[] {
+  if (!Array.isArray(raw)) return DEFAULT_BLOCKING_FLAGS
+  const out: ExpertVerificationFlag[] = []
+  for (const v of raw) {
+    if (typeof v === 'string' && (KNOWN_FLAGS as readonly string[]).includes(v) && !out.includes(v as ExpertVerificationFlag)) {
+      out.push(v as ExpertVerificationFlag)
+    }
+  }
+  // Tableau vide explicite ou que des valeurs inconnues → on retombe sur le
+  // défaut plutôt que de désactiver tout garde-flag par mégarde.
+  return out.length > 0 ? out : DEFAULT_BLOCKING_FLAGS
 }
 
 function pickRel<T>(value: T | T[] | null | undefined): T | null {
@@ -111,11 +132,12 @@ async function loadConfig(supabaseAdmin: SupabaseClient): Promise<ExpertVerifica
   const auto_approve = typeof cfg.auto_approve_threshold === 'number' ? Math.max(0, Math.min(10, cfg.auto_approve_threshold)) : null
   const web_search_max_uses = typeof cfg.web_search_max_uses === 'number' && cfg.web_search_max_uses > 0 ? Math.min(cfg.web_search_max_uses, 10) : 4
   const domain_mismatch_cap = typeof cfg.domain_mismatch_cap === 'number' ? Math.max(0, Math.min(10, cfg.domain_mismatch_cap)) : 5
+  const blocking_flags = parseBlockingFlags(cfg.blocking_flags)
   if (!model || !fallback_model || !max_tokens || auto_approve == null) {
     console.error('[expert-verification] config incomplete', { model, fallback_model, max_tokens, auto_approve })
     return null
   }
-  return { model, fallback_model, max_tokens, request_timeout_ms, auto_approve_threshold: auto_approve, web_search_max_uses, domain_mismatch_cap }
+  return { model, fallback_model, max_tokens, request_timeout_ms, auto_approve_threshold: auto_approve, web_search_max_uses, domain_mismatch_cap, blocking_flags }
 }
 
 async function loadProfileForVerification(
@@ -331,7 +353,13 @@ export async function runExpertVerification(args: {
   }
 
   // 7. Décision (PAS d'auto-reject V1)
-  const hasDisqualifyingFlag = aiOut.flags.includes('DOMAIN_MISMATCH')
+  //   Un flag BLOQUANT (liste config.blocking_flags) interdit l'auto-approbation
+  //   QUEL QUE SOIT le score → pending_admin_review. C'est le vrai filet de
+  //   sécurité : un profil incohérent (CV_PROFILE_INCOHERENT) ne passe plus
+  //   "vérifié" même s'il atteint le seuil. DOMAIN_MISMATCH garde EN PLUS son
+  //   cap de score spécifique appliqué côté ai-expert-verification (shapeOutput).
+  const blockingFlagsHit = aiOut.flags.filter((f) => config.blocking_flags.includes(f))
+  const hasDisqualifyingFlag = blockingFlagsHit.length > 0
   const isApproved =
     aiOut.result === 'ok' &&
     aiOut.confidence_score >= config.auto_approve_threshold &&
@@ -362,6 +390,7 @@ export async function runExpertVerification(args: {
     notes: aiOut.notes,
     discrepancies: aiOut.discrepancies,
     flags: aiOut.flags,
+    blocking_flags_hit: blockingFlagsHit,   // flags qui ont forcé pending_admin_review (si non vide)
     web_search_used: aiOut.web_search_used,
     model_used: aiOut.model_used,
     provider_name: aiOut.provider_name,

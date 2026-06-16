@@ -104,6 +104,11 @@ export type ExpertVerificationConfig = {
   auto_approve_threshold: number
   web_search_max_uses: number
   domain_mismatch_cap: number
+  // Flags de cohérence qui INTERDISENT l'auto-approbation, quel que soit le
+  // score. Configurable via verification_providers.config.blocking_flags.
+  // LINKEDIN_UNVERIFIABLE reste volontairement HORS de cette liste (signal
+  // secondaire, axe 3 — une absence de trace n'est pas disqualifiante).
+  blocking_flags: ExpertVerificationFlag[]
 }
 
 const PROVIDER_NAME = 'claude_expert_coherence_check'
