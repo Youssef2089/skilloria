@@ -130,7 +130,7 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
           sectionKey: 'account',
           items: [
             { key: 'payments',     href: `/dashboard/${side}`, iconKey: 'payments' },
-            { key: 'settings',     href: `/dashboard/${side}`, iconKey: 'settings' },
+            { key: 'settings',     href: `/dashboard/${side}/parametres`, iconKey: 'settings' },
           ],
         },
       ]

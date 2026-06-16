@@ -3,7 +3,7 @@ import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { buildPublicationSynthesis } from '@/lib/publication-synthesis'
-import { maskExpertNameForOrg } from '@/lib/expert-name-masking'
+import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name-masking'
 import { disclosurePolicyForConversationOrgSide } from '@/lib/expert-disclosure'
 
 export const runtime = 'nodejs'
@@ -155,7 +155,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         // Servi côté EXPERT : avatar org logo_url comme avant (inchangé).
         // Contact (email/phone) jamais chargé / jamais servi.
         'candidatures!inner(id, status, profile_id, publication_id, ' +
-          'profiles!inner(id, user_id, photo_url, users!profiles_user_id_fkey(id, first_name, last_name)), ' +
+          'profiles!inner(id, user_id, photo_url, users!profiles_user_id_fkey(id, first_name, last_name, deletion_scheduled_at, anonymized_at)), ' +
           'publications!inner(id, type, title, description, budget_min, budget_max, ' +
             'location, work_mode, duration, start_date, seniority, skills_required, ' +
             'confidential, branch_id, speciality_id, expires_at, organization_id, ' +
@@ -226,12 +226,17 @@ export async function GET(request: NextRequest): Promise<Response> {
           const fn = u?.first_name ?? null
           const ln = u?.last_name ?? null
           const fullName = [fn, ln].filter(Boolean).join(' ').trim()
+          // Mission S3 : expert en grâce/purge → placeholder prioritaire.
+          const accountState = (u ?? undefined) as ExpertAccountState | undefined
+          const inDeletion = !!(accountState?.deletion_scheduled_at || accountState?.anonymized_at)
           return {
             kind: 'expert' as const,
-            name: policy.reveal_full_name && fullName
-              ? fullName
-              : maskExpertNameForOrg(fn, ln),
-            avatar_url: policy.reveal_photo ? (profile?.photo_url ?? null) : null,
+            name: inDeletion
+              ? maskExpertNameForOrg(fn, ln, accountState)
+              : policy.reveal_full_name && fullName
+                ? fullName
+                : maskExpertNameForOrg(fn, ln),
+            avatar_url: inDeletion ? null : policy.reveal_photo ? (profile?.photo_url ?? null) : null,
           }
         })()
 

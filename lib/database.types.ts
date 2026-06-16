@@ -2700,10 +2700,12 @@ export type Database = {
           cv_parsing_status: string | null
           cv_uploaded_at: string | null
           cv_url: string | null
+          deletion_scheduled_at: string | null
           domain_id: string
           expert_type: string | null
           id: string
           languages: string[]
+          pre_deletion_visible: boolean | null
           linkedin_url: string | null
           location: string | null
           mobility: string | null
@@ -2761,6 +2763,7 @@ export type Database = {
           cv_parsing_status?: string | null
           cv_uploaded_at?: string | null
           cv_url?: string | null
+          deletion_scheduled_at?: string | null
           domain_id: string
           expert_type?: string | null
           id?: string
@@ -2771,6 +2774,7 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           postal_code?: string | null
+          pre_deletion_visible?: boolean | null
           profile_score?: number
           salary_max?: number | null
           salary_min?: number | null
@@ -2822,6 +2826,7 @@ export type Database = {
           cv_parsing_status?: string | null
           cv_uploaded_at?: string | null
           cv_url?: string | null
+          deletion_scheduled_at?: string | null
           domain_id?: string
           expert_type?: string | null
           id?: string
@@ -2832,6 +2837,7 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           postal_code?: string | null
+          pre_deletion_visible?: boolean | null
           profile_score?: number
           salary_max?: number | null
           salary_min?: number | null
@@ -3537,8 +3543,10 @@ export type Database = {
       }
       users: {
         Row: {
+          anonymized_at: string | null
           civility: string | null
           created_at: string
+          deletion_scheduled_at: string | null
           domain_id: string
           email: string
           email_verified: boolean
@@ -3559,8 +3567,10 @@ export type Database = {
           user_type: string
         }
         Insert: {
+          anonymized_at?: string | null
           civility?: string | null
           created_at?: string
+          deletion_scheduled_at?: string | null
           domain_id: string
           email: string
           email_verified?: boolean
@@ -3581,8 +3591,10 @@ export type Database = {
           user_type: string
         }
         Update: {
+          anonymized_at?: string | null
           civility?: string | null
           created_at?: string
+          deletion_scheduled_at?: string | null
           domain_id?: string
           email?: string
           email_verified?: boolean

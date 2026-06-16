@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
-import { AuthError, requireAuth } from '@/lib/auth-guard'
+import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
+import { requireReauth } from '@/lib/reauth-token'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -18,12 +19,20 @@ function json(data: unknown, status = 200): Response {
 type Body = { phone?: unknown }
 
 export async function POST(request: NextRequest): Promise<Response> {
+  let auth: AuthContext
   try {
-    await requireAuth(request)
+    auth = await requireAuth(request)
   } catch (err) {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+
+  // Mission S3 — changement de téléphone en Paramètres : ré-auth EXIGÉE sur le
+  // déclencheur (envoi du SMS). Le verify est ensuite protégé par la possession
+  // de l'OTP + le request_id issu de CE send ré-authentifié. Additif : aucune
+  // autre route n'appelle ce endpoint, l'inscription utilise /public/*.
+  const reauthFail = requireReauth(request, auth.user.id)
+  if (reauthFail) return reauthFail
 
   const apiKey = process.env.VONAGE_API_KEY
   const apiSecret = process.env.VONAGE_API_SECRET

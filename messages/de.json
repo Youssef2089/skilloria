@@ -41,7 +41,8 @@
       "mon_profil": "Mein Profil",
       "profil": "Mein Profil",
       "profil_valider": "Mein Profil vervollständigen",
-      "annonces": "Meine Veröffentlichungen"
+      "annonces": "Meine Veröffentlichungen",
+      "settings": "Einstellungen"
     },
     "topbar": {
       "status_available": "Verfügbar",
@@ -2106,5 +2107,127 @@
     "superseded_title": "Sitzung beendet",
     "superseded_message": "Ihr Konto wurde auf einem anderen Gerät geöffnet. Aus Sicherheitsgründen wurden Sie abgemeldet.",
     "superseded_signin": "Erneut anmelden"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "subtitle": "Verwalte dein Konto und deine Einstellungen.",
+    "nav": {
+      "identity": "Identität",
+      "email": "E-Mail",
+      "phone": "Telefon",
+      "password": "Passwort",
+      "language": "Sprache",
+      "security": "Sicherheit",
+      "deletion": "Konto löschen"
+    },
+    "common": {
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "edit": "Bearbeiten",
+      "saving": "Speichern…",
+      "success_generic": "Änderungen gespeichert.",
+      "error_generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+      "required": "Pflichtfeld"
+    },
+    "identity": {
+      "title": "Identität",
+      "description": "Dein Vor- und Nachname.",
+      "first_name": "Vorname",
+      "last_name": "Nachname",
+      "save": "Speichern",
+      "success": "Identität aktualisiert."
+    },
+    "email": {
+      "title": "E-Mail",
+      "description": "Ändere deine E-Mail-Adresse. Vor der Umstellung wird eine Bestätigungs-E-Mail an die neue Adresse gesendet.",
+      "current_label": "Aktuelle E-Mail",
+      "new_label": "Neue E-Mail",
+      "new_placeholder": "neue@adresse.com",
+      "confirmation_info": "Eine Bestätigungs-E-Mail wird gesendet. Die Änderung wird erst nach dem Klick auf den Link wirksam.",
+      "submit": "Bestätigung senden",
+      "success": "Bestätigungs-E-Mail gesendet. Prüfe dein Postfach.",
+      "error_taken": "Diese E-Mail-Adresse wird bereits verwendet.",
+      "error_failed": "E-Mail konnte nicht geändert werden."
+    },
+    "phone": {
+      "title": "Telefon",
+      "description": "Ändere deine Telefonnummer. Ein Bestätigungscode wird per SMS gesendet.",
+      "current_label": "Aktuelle Nummer",
+      "new_label": "Neue Nummer",
+      "new_placeholder": "+49 151 23456789",
+      "send_code": "Code senden",
+      "code_label": "Bestätigungscode",
+      "code_placeholder": "123456",
+      "verify": "Bestätigen",
+      "resend": "Code erneut senden",
+      "otp_info": "Gib den 6-stelligen Code aus der SMS ein. Er läuft nach 5 Minuten ab.",
+      "success": "Telefonnummer aktualisiert.",
+      "error_invalid_code": "Ungültiger Code.",
+      "error_expired": "Der Code ist abgelaufen. Fordere einen neuen an.",
+      "error_failed": "Nummer konnte nicht geändert werden."
+    },
+    "password": {
+      "title": "Passwort",
+      "description": "Ändere dein Passwort.",
+      "new_label": "Neues Passwort",
+      "new_placeholder": "Mindestens 8 Zeichen",
+      "confirm_label": "Passwort bestätigen",
+      "confirm_placeholder": "Passwort erneut eingeben",
+      "submit": "Passwort ändern",
+      "success": "Passwort geändert.",
+      "error_mismatch": "Die Passwörter stimmen nicht überein.",
+      "error_weak": "Das Passwort muss mindestens 8 Zeichen haben.",
+      "error_same": "Das neue Passwort muss sich vom alten unterscheiden.",
+      "error_failed": "Passwort konnte nicht geändert werden."
+    },
+    "language": {
+      "title": "Sprache",
+      "description": "Deine bevorzugte Sprache für die gesamte Plattform und E-Mails.",
+      "label": "Sprache",
+      "success": "Sprache aktualisiert."
+    },
+    "security": {
+      "title": "Sicherheit",
+      "description": "Verwalte deine aktiven Sitzungen.",
+      "revoke_title": "Von allen anderen Geräten abmelden",
+      "revoke_desc": "Melde alle anderen Sitzungen ab. Dieses Gerät bleibt angemeldet.",
+      "revoke_button": "Andere Geräte abmelden",
+      "revoke_success": "Andere Geräte wurden abgemeldet."
+    },
+    "deletion": {
+      "title": "Konto löschen",
+      "description": "Lösche dein Konto endgültig. Du hast 90 Tage, um dies rückgängig zu machen.",
+      "warning_title": "Nach der Frist unwiderruflich",
+      "warning_body": "Dein Konto wird sofort deaktiviert und du verschwindest aus dem Matching. Du kannst es innerhalb von 90 Tagen durch erneutes Anmelden reaktivieren. Danach werden deine personenbezogenen Daten endgültig anonymisiert.",
+      "grace_info": "Du kannst dein Konto bis zum {date} reaktivieren.",
+      "confirm_instruction": "Zur Bestätigung tippe {word} unten ein.",
+      "confirm_word": "LÖSCHEN",
+      "confirm_placeholder": "Tippe {word}",
+      "button": "Mein Konto löschen",
+      "success": "Löschung geplant. Dein Konto wird am {date} gelöscht.",
+      "already_scheduled": "Eine Löschung ist bereits geplant.",
+      "error_failed": "Löschung konnte nicht geplant werden."
+    },
+    "reauth": {
+      "title": "Bestätige deine Identität",
+      "description": "Gib aus Sicherheitsgründen dein Passwort erneut ein.",
+      "password_label": "Passwort",
+      "password_placeholder": "Dein aktuelles Passwort",
+      "confirm": "Bestätigen",
+      "cancel": "Abbrechen",
+      "error_invalid": "Falsches Passwort.",
+      "error_required": "Passwort erforderlich.",
+      "error_server": "Ein Serverfehler ist aufgetreten. Bitte versuche es gleich noch einmal."
+    },
+    "reactivation": {
+      "title": "Dein Konto wird gelöscht",
+      "body": "Du hast die Löschung deines Kontos geplant. Es wird am {date} endgültig gelöscht. Du kannst es jetzt reaktivieren.",
+      "scheduled_for": "Endgültige Löschung am {date}",
+      "reactivate_button": "Mein Konto reaktivieren",
+      "reactivate_success": "Konto reaktiviert. Willkommen zurück!",
+      "logout": "Abmelden",
+      "purged_title": "Konto gelöscht",
+      "purged_body": "Dieses Konto wurde endgültig gelöscht und kann nicht mehr verwendet werden."
+    }
   }
 }

@@ -41,7 +41,8 @@
       "mon_profil": "My profile",
       "profil": "My profile",
       "profil_valider": "Complete my profile",
-      "annonces": "My postings"
+      "annonces": "My postings",
+      "settings": "Settings"
     },
     "topbar": {
       "status_available": "Available",
@@ -2106,5 +2107,127 @@
     "superseded_title": "Session disconnected",
     "superseded_message": "Your account was opened on another device. For security reasons, you have been signed out.",
     "superseded_signin": "Sign in again"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account and preferences.",
+    "nav": {
+      "identity": "Identity",
+      "email": "Email",
+      "phone": "Phone",
+      "password": "Password",
+      "language": "Language",
+      "security": "Security",
+      "deletion": "Delete account"
+    },
+    "common": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "edit": "Edit",
+      "saving": "Saving…",
+      "success_generic": "Changes saved.",
+      "error_generic": "Something went wrong. Please try again.",
+      "required": "Required field"
+    },
+    "identity": {
+      "title": "Identity",
+      "description": "Your first and last name.",
+      "first_name": "First name",
+      "last_name": "Last name",
+      "save": "Save",
+      "success": "Identity updated."
+    },
+    "email": {
+      "title": "Email",
+      "description": "Change your email address. A confirmation email is sent to the new address before the switch.",
+      "current_label": "Current email",
+      "new_label": "New email",
+      "new_placeholder": "new@address.com",
+      "confirmation_info": "A confirmation email will be sent. The change takes effect only after you click the link.",
+      "submit": "Send confirmation",
+      "success": "Confirmation email sent. Check your inbox.",
+      "error_taken": "This email address is already in use.",
+      "error_failed": "Could not change email."
+    },
+    "phone": {
+      "title": "Phone",
+      "description": "Change your phone number. A verification code will be sent by SMS.",
+      "current_label": "Current number",
+      "new_label": "New number",
+      "new_placeholder": "+1 555 123 4567",
+      "send_code": "Send code",
+      "code_label": "Verification code",
+      "code_placeholder": "123456",
+      "verify": "Verify",
+      "resend": "Resend code",
+      "otp_info": "Enter the 6-digit code received by SMS. It expires after 5 minutes.",
+      "success": "Phone number updated.",
+      "error_invalid_code": "Invalid code.",
+      "error_expired": "The code has expired. Request a new one.",
+      "error_failed": "Could not change the number."
+    },
+    "password": {
+      "title": "Password",
+      "description": "Change your password.",
+      "new_label": "New password",
+      "new_placeholder": "At least 8 characters",
+      "confirm_label": "Confirm password",
+      "confirm_placeholder": "Re-enter the password",
+      "submit": "Change password",
+      "success": "Password changed.",
+      "error_mismatch": "Passwords do not match.",
+      "error_weak": "Password must be at least 8 characters.",
+      "error_same": "The new password must differ from the old one.",
+      "error_failed": "Could not change password."
+    },
+    "language": {
+      "title": "Language",
+      "description": "Your preferred language for the whole platform and emails.",
+      "label": "Language",
+      "success": "Language updated."
+    },
+    "security": {
+      "title": "Security",
+      "description": "Manage your active sessions.",
+      "revoke_title": "Log out of all other devices",
+      "revoke_desc": "Sign out of every other session. This device stays signed in.",
+      "revoke_button": "Log out other devices",
+      "revoke_success": "Other devices have been signed out."
+    },
+    "deletion": {
+      "title": "Delete account",
+      "description": "Permanently delete your account. You have 90 days to undo this.",
+      "warning_title": "Irreversible after the grace period",
+      "warning_body": "Your account will be deactivated immediately and you will disappear from matching. You can reactivate it within 90 days by logging back in. After that, your personal data will be permanently anonymized.",
+      "grace_info": "You can reactivate your account until {date}.",
+      "confirm_instruction": "To confirm, type {word} below.",
+      "confirm_word": "DELETE",
+      "confirm_placeholder": "Type {word}",
+      "button": "Delete my account",
+      "success": "Deletion scheduled. Your account will be deleted on {date}.",
+      "already_scheduled": "A deletion is already scheduled.",
+      "error_failed": "Could not schedule deletion."
+    },
+    "reauth": {
+      "title": "Confirm your identity",
+      "description": "For security, please re-enter your password.",
+      "password_label": "Password",
+      "password_placeholder": "Your current password",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "error_invalid": "Incorrect password.",
+      "error_required": "Password required.",
+      "error_server": "A server error occurred. Please try again in a moment."
+    },
+    "reactivation": {
+      "title": "Your account is scheduled for deletion",
+      "body": "You scheduled your account for deletion. It will be permanently deleted on {date}. You can reactivate it now.",
+      "scheduled_for": "Permanent deletion on {date}",
+      "reactivate_button": "Reactivate my account",
+      "reactivate_success": "Account reactivated. Welcome back!",
+      "logout": "Log out",
+      "purged_title": "Account deleted",
+      "purged_body": "This account has been permanently deleted and can no longer be used."
+    }
   }
 }
