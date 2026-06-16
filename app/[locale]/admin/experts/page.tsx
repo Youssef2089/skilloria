@@ -78,14 +78,27 @@ export default function AdminExpertsListPage() {
       }
       const payload = (await res.json()) as { experts: ExpertRow[] }
       setRows(payload.experts ?? [])
-      setCounts((c) => ({ ...c, [filter]: payload.experts.length }))
     } catch (err) {
       console.error('[admin/experts] load threw', err)
       setError(t('error_load'))
     }
   }, [secureFetch, t])
 
+  // Compteurs exacts des 4 onglets (count BDD par verification_status),
+  // indépendants de l'onglet actif — fetchés une fois au montage.
+  const loadCounts = useCallback(async () => {
+    try {
+      const res = await secureFetch('/api/admin/list-experts?counts=1', { method: 'GET' })
+      if (!res.ok) return
+      const payload = (await res.json()) as { counts: Record<TabKey, number> }
+      if (payload.counts) setCounts(payload.counts)
+    } catch (err) {
+      console.error('[admin/experts] loadCounts threw', err)
+    }
+  }, [secureFetch])
+
   useEffect(() => { void load(tab) }, [tab, load])
+  useEffect(() => { void loadCounts() }, [loadCounts])
 
   const tabs: Array<{ key: TabKey; label: string; dot: string }> = useMemo(() => [
     { key: 'pending', label: t('tab_pending'), dot: '#d97706' },
