@@ -29,11 +29,17 @@ type Body = { password?: unknown }
  * jetable, persistSession:false) — seule la validité du mot de passe compte.
  */
 export async function POST(request: NextRequest): Promise<Response> {
+  // MOUCHARD TEMP — présence des secrets (jamais la valeur)
+  console.log('[MOUCHARD reauth] secret present:', Boolean(process.env.REAUTH_HMAC_SECRET), 'len:', (process.env.REAUTH_HMAC_SECRET || '').length, '| jwt fallback:', Boolean(process.env.SUPABASE_JWT_SECRET))
+
   let auth: AuthContext
   try {
     auth = await requireAuth(request)
   } catch (err) {
-    if (err instanceof AuthError) return err.toResponse()
+    if (err instanceof AuthError) {
+      console.log('[MOUCHARD reauth] requireAuth a échoué → status:', err.status, 'code:', err.body.code) // MOUCHARD TEMP
+      return err.toResponse()
+    }
     throw err
   }
 
@@ -62,11 +68,15 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'User not found', code: 'user_missing' }, 404)
   }
 
+  console.log('[MOUCHARD reauth] email utilisé pour signInWithPassword:', email) // MOUCHARD TEMP
+
   const anon = getAnonClient()
   const { error: signErr } = await anon.auth.signInWithPassword({
     email,
     password,
   })
+  // MOUCHARD TEMP — résultat de la vérif mot de passe (jamais le mot de passe)
+  console.log('[MOUCHARD reauth] signInWithPassword:', signErr ? `ÉCHEC → ${signErr.message}` : 'SUCCÈS')
   if (signErr) {
     await logAudit({
       supabaseAdmin: auth.supabaseAdmin,
@@ -76,9 +86,21 @@ export async function POST(request: NextRequest): Promise<Response> {
       entity_type: 'user',
       entity_id: auth.user.id,
     })
+    console.log('[MOUCHARD reauth] sortie → status: 401 code: invalid_password') // MOUCHARD TEMP
     return json({ error: 'Invalid password', code: 'invalid_password' }, 401)
   }
 
-  const reauth_token = signReauthToken({ uid: auth.user.id })
+  // MOUCHARD TEMP — signReauthToken peut throw si secret absent/trop court
+  let reauth_token: string
+  try {
+    reauth_token = signReauthToken({ uid: auth.user.id })
+    console.log('[MOUCHARD reauth] signReauthToken: SUCCÈS') // MOUCHARD TEMP
+  } catch (signTokenErr) {
+    // MOUCHARD TEMP — on logge le message du throw puis on re-throw (comportement INCHANGÉ → 500)
+    console.log('[MOUCHARD reauth] signReauthToken: THROW →', signTokenErr instanceof Error ? signTokenErr.message : String(signTokenErr))
+    console.log('[MOUCHARD reauth] sortie → status: 500 (throw non capturé par la route, géré par Next)') // MOUCHARD TEMP
+    throw signTokenErr
+  }
+  console.log('[MOUCHARD reauth] sortie → status: 200 (token émis)') // MOUCHARD TEMP
   return json({ reauth_token, expires_in: 300 }, 200)
 }
