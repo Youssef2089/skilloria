@@ -122,7 +122,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
   // currentProfile : on étend le select avec les colonnes nécessaires à la
   // validation CDI uniquement si isCdi (pas de surcoût pour le freelance).
-  const baseSelect = 'id, title, summary, skills, branch_id, speciality_id, work_modes, verification_status'
+  const baseSelect = 'id, title, summary, skills, branch_id, speciality_id, work_modes, verification_status, cv_parsing_status, ai_consent_at'
   const cdiSelectExtra =
     ', cdi_status, cdi_salary_min, cdi_salary_max, cdi_notice_period'
   const profileSelect = isCdi ? baseSelect + cdiSelectExtra : baseSelect
@@ -215,6 +215,20 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   // ─────────────────────────────────────────────────────────────────────
   if (body.visible === true) {
     const cur = cp
+
+    // ── Barrière CV obligatoire (Lot CV) — SÉCURITÉ SERVEUR ────────────────
+    //  Règle métier non contournable : impossible de publier sans un CV
+    //  déposé ET parsé, et sans avoir accepté la vérification IA. Mêmes
+    //  critères que ceux exigés en interne par runExpertVerification et par
+    //  le déclencheur de matching (cf. after() plus bas).
+    //  S'applique aux DEUX flows (freelance + CDI) — la condition est commune.
+    const cvReady =
+      (cur as { cv_parsing_status?: string | null }).cv_parsing_status === 'done' &&
+      (cur as { ai_consent_at?: string | null }).ai_consent_at != null
+    if (!cvReady) {
+      return json({ error: 'CV not ready for publication', code: 'cv_not_ready' }, 400)
+    }
+
     const missing: string[] = []
 
     // experiences >= 1 (body ou BDD) — commun
@@ -438,30 +452,28 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       console.error('[profile PATCH] user status update failed', userUpdErr)
     }
 
-    // ── Vérification expert (Lot vérif expert) ────────────────────────────
-    //  Déclencheur AUTO (D1) : 1re soumission visible=true && pas encore vérifié.
-    //  Idempotent : si déjà 'approved' ou 'pending_admin_review', on ne re-vérifie
-    //  pas automatiquement (re-vérif sur changement majeur = différée).
+    // ── Vérification expert (Lot vérif expert / Lot CV) ───────────────────
+    //  Déclencheur : TOUTE (re)publication (visible=true) relance la vérif IA,
+    //  quel que soit verification_status actuel. Le moteur est idempotent : il
+    //  réécrit la décision. Conséquence voulue : un profil déjà 'approved',
+    //  republié après modif, repasse par la vérif et peut redevenir
+    //  'pending_admin_review' si une incohérence apparaît.
     //  Inline : web_search rend l'appel lent (30-60s) ; l'UI affiche un loading
     //  pendant ce temps. Cf. lib/verification/expert-verification.ts.
-    const currentVerifStatus = (cp as { verification_status?: string | null }).verification_status ?? null
-    const shouldVerify = currentVerifStatus === null || currentVerifStatus === 'pending'
-    if (shouldVerify) {
-      try {
-        const { runExpertVerification } = await import('@/lib/verification/expert-verification')
-        await runExpertVerification({ supabaseAdmin, profile_id: cp.id })
-      } catch (err) {
-        console.error('[profile PATCH] expert verification threw', err)
-        // Fail-safe : marquer pending_admin_review explicitement si rien n'a été écrit
-        await supabaseAdmin
-          .from('profiles')
-          .update({
-            verification_status: 'pending_admin_review',
-            verification_method: 'manual_only',
-            verification_data: { notes: 'Erreur technique pendant la vérif IA — décision déférée à l\'admin.' },
-          })
-          .eq('id', cp.id)
-      }
+    try {
+      const { runExpertVerification } = await import('@/lib/verification/expert-verification')
+      await runExpertVerification({ supabaseAdmin, profile_id: cp.id })
+    } catch (err) {
+      console.error('[profile PATCH] expert verification threw', err)
+      // Fail-safe : marquer pending_admin_review explicitement si rien n'a été écrit
+      await supabaseAdmin
+        .from('profiles')
+        .update({
+          verification_status: 'pending_admin_review',
+          verification_method: 'manual_only',
+          verification_data: { notes: 'Erreur technique pendant la vérif IA — décision déférée à l\'admin.' },
+        })
+        .eq('id', cp.id)
     }
   }
 

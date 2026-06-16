@@ -143,3 +143,122 @@ ${reasonP2Html}
     tag: 'org_rejected',
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Templates EXPERT (lot vérif expert) — miroir des templates org ci-dessus,
+ * mais SANS `companyName` (un expert est un seul utilisateur). Locale résolue
+ * depuis users.locale du destinataire avec fallback 'fr'. Namespace i18n
+ * dédié : emails.expert_welcome / emails.expert_reject.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+export type ExpertWelcomeEmailParams = {
+  locale: string | null | undefined
+  firstName: string
+  /** URL absolue vers le tableau de bord / la page de connexion. */
+  loginUrl: string
+}
+
+export function renderExpertWelcomeEmail(params: ExpertWelcomeEmailParams): RenderedEmail {
+  const locale: Locale = resolveLocale(params.locale)
+  const m = getEmailMessages(locale).expert_welcome
+  const common = getEmailMessages(locale)
+  const variables = { firstName: params.firstName }
+
+  const helloLine = interpolate(m.hello, variables)
+  const bodyP1Html = m.body_p1
+  const bodyP2Html = m.body_p2
+
+  const bodyHtml = `<p style="margin:0 0 12px;">${helloLine}</p>
+<p style="margin:0 0 12px;">${bodyP1Html}</p>
+<p style="margin:0;">${bodyP2Html}</p>`
+
+  const bodyText = [helloLine, '', stripHtml(bodyP1Html), '', bodyP2Html].join('\n')
+
+  const html = renderEmailHtml({
+    title: m.title,
+    bodyHtml,
+    ctaLabel: m.cta_label,
+    ctaUrl: params.loginUrl,
+    signature: common.common_signature,
+    footer: common.common_footer,
+  })
+  const text = renderEmailText({
+    title: m.title,
+    bodyText,
+    ctaLabel: m.cta_label,
+    ctaUrl: params.loginUrl,
+    signature: common.common_signature,
+    footer: common.common_footer,
+  })
+
+  return {
+    subject: m.subject,
+    html,
+    text,
+    preheader: m.preheader,
+    tag: 'expert_approved',
+  }
+}
+
+export type ExpertRejectEmailParams = {
+  locale: string | null | undefined
+  firstName: string
+  /** Motif de refus (obligatoire côté route expert, mais robuste si null). */
+  reason: string | null
+  /** URL absolue de contact (mailto: ou page). */
+  contactUrl: string
+}
+
+export function renderExpertRejectEmail(params: ExpertRejectEmailParams): RenderedEmail {
+  const locale: Locale = resolveLocale(params.locale)
+  const m = getEmailMessages(locale).expert_reject
+  const common = getEmailMessages(locale)
+  const variables = {
+    firstName: params.firstName,
+    reason: params.reason ?? '',
+  }
+
+  const helloLine = interpolate(m.hello, variables)
+  const bodyP1Html = m.body_p1
+  const reasonP2Html = params.reason
+    ? `<p style="margin:0 0 12px;color:#475569;">${interpolate(m.body_with_reason_p2, variables)}</p>`
+    : ''
+  const bodyP3Html = m.body_p3
+
+  const bodyHtml = `<p style="margin:0 0 12px;">${helloLine}</p>
+<p style="margin:0 0 12px;">${bodyP1Html}</p>
+${reasonP2Html}
+<p style="margin:0;">${bodyP3Html}</p>`
+
+  const bodyTextParts = [helloLine, '', stripHtml(bodyP1Html)]
+  if (params.reason) {
+    bodyTextParts.push('', stripHtml(interpolate(m.body_with_reason_p2, variables)))
+  }
+  bodyTextParts.push('', bodyP3Html)
+  const bodyText = bodyTextParts.join('\n')
+
+  const html = renderEmailHtml({
+    title: m.title,
+    bodyHtml,
+    ctaLabel: m.cta_label,
+    ctaUrl: params.contactUrl,
+    signature: common.common_signature,
+    footer: common.common_footer,
+  })
+  const text = renderEmailText({
+    title: m.title,
+    bodyText,
+    ctaLabel: m.cta_label,
+    ctaUrl: params.contactUrl,
+    signature: common.common_signature,
+    footer: common.common_footer,
+  })
+
+  return {
+    subject: m.subject,
+    html,
+    text,
+    preheader: m.preheader,
+    tag: 'expert_rejected',
+  }
+}

@@ -401,6 +401,8 @@
     "close_aria": "Schließen",
     "banner_error": "{count, plural, one {Um Ihr Profil zu veröffentlichen, vervollständigen Sie das unten markierte Feld: {fields}.} other {Um Ihr Profil zu veröffentlichen, vervollständigen Sie die # unten markierten Felder: {fields}.}}",
     "errors": {
+      "reset_failed": "Das Zurücksetzen des Lebenslaufs ist fehlgeschlagen. Bitte erneut versuchen.",
+      "cv_not_ready": "Laden Sie Ihren Lebenslauf hoch und akzeptieren Sie die KI-Überprüfung, bevor Sie Ihr Profil veröffentlichen.",
       "account_load_failed": "Ihr Konto konnte nicht geladen werden.",
       "incomplete_check_below": "Profil unvollständig, überprüfen Sie die unten markierten Felder.",
       "save_failed": "Fehler beim Speichern, bitte erneut versuchen."
@@ -416,6 +418,7 @@
     "show_more_languages": "Alle {count} Sprachen anzeigen ▼",
     "show_less": "Weniger anzeigen ▲",
     "field_labels_short": {
+      "cv_ready": "Lebenslauf hochgeladen und KI-Überprüfung akzeptiert",
       "title": "den beruflichen Titel",
       "summary": "die Zusammenfassung (mindestens 20 Zeichen)",
       "skills": "mindestens 3 Kompetenzen",
@@ -588,6 +591,11 @@
       }
     },
     "actions": {
+      "reset_cv": "Abbrechen und Lebenslauf erneut hochladen",
+      "reset_cv_confirm": "Dadurch werden alle aus Ihrem Lebenslauf extrahierten Profildaten gelöscht. Fortfahren?",
+      "reset_cv_cancel": "Abbrechen",
+      "reset_cv_confirm_btn": "Ja, alles löschen",
+      "reset_cv_loading": "Wird gelöscht…",
       "save_draft": "Als Entwurf speichern",
       "publish": "Mein Profil veröffentlichen →",
       "saving": "Wird gespeichert...",
@@ -597,6 +605,19 @@
     }
   },
   "profile_view": {
+    "cv_required": {
+      "title": "Laden Sie Ihren Lebenslauf hoch, um auf Ihr Profil zuzugreifen",
+      "body": "Bitte laden Sie Ihren Lebenslauf hoch, indem Sie auf „Profil vervollständigen“ klicken.",
+      "cta": "Profil vervollständigen"
+    },
+    "publish": {
+      "button": "Mein Profil veröffentlichen",
+      "publishing": "Wird veröffentlicht…",
+      "success": "Profil veröffentlicht, Überprüfung läuft.",
+      "error_cv": "Laden Sie Ihren Lebenslauf hoch und akzeptieren Sie die KI-Überprüfung, bevor Sie Ihr Profil veröffentlichen.",
+      "error_incomplete": "Vervollständigen Sie Ihr Profil, bevor Sie es veröffentlichen.",
+      "error_generic": "Veröffentlichung fehlgeschlagen. Bitte erneut versuchen."
+    },
     "page_title": "Mein Profil",
     "page_subtitle": "Schreibgeschützte Ansicht Ihres Profils, wie Kunden es sehen.",
     "back_to_dashboard": "← Dashboard",
@@ -939,6 +960,19 @@
     }
   },
   "cdi_profile_view": {
+    "cv_required": {
+      "title": "Laden Sie Ihren Lebenslauf hoch, um auf Ihr Profil zuzugreifen",
+      "body": "Bitte laden Sie Ihren Lebenslauf hoch, indem Sie auf „Profil vervollständigen“ klicken.",
+      "cta": "Profil vervollständigen"
+    },
+    "publish": {
+      "button": "Mein Profil veröffentlichen",
+      "publishing": "Wird veröffentlicht…",
+      "success": "Profil veröffentlicht, Überprüfung läuft.",
+      "error_cv": "Laden Sie Ihren Lebenslauf hoch und akzeptieren Sie die KI-Überprüfung, bevor Sie Ihr Profil veröffentlichen.",
+      "error_incomplete": "Vervollständigen Sie Ihr Profil, bevor Sie es veröffentlichen.",
+      "error_generic": "Veröffentlichung fehlgeschlagen. Bitte erneut versuchen."
+    },
     "loading": "Ihr Profil wird geladen…",
     "error_loading": "Ihr Profil konnte nicht geladen werden. Bitte erneut versuchen.",
     "empty_profile": "Sie haben noch kein Profil erstellt.",
@@ -1109,6 +1143,8 @@
     "close_aria": "Schliessen",
     "banner_error": "{count, plural, one {Um Ihr Profil zu veröffentlichen, vervollständigen Sie das hervorgehobene Feld unten: {fields}.} other {Um Ihr Profil zu veröffentlichen, vervollständigen Sie die # hervorgehobenen Felder unten: {fields}.}}",
     "errors": {
+      "reset_failed": "Das Zurücksetzen des Lebenslaufs ist fehlgeschlagen. Bitte erneut versuchen.",
+      "cv_not_ready": "Laden Sie Ihren Lebenslauf hoch und akzeptieren Sie die KI-Überprüfung, bevor Sie Ihr Profil veröffentlichen.",
       "account_load_failed": "Ihr Konto konnte nicht geladen werden.",
       "incomplete_check_below": "Profil unvollständig, prüfen Sie die hervorgehobenen Felder unten.",
       "save_failed": "Speichern fehlgeschlagen, bitte erneut versuchen."
@@ -1124,6 +1160,7 @@
     "show_more_languages": "{count} Sprachen anzeigen ▼",
     "show_less": "Weniger anzeigen ▲",
     "field_labels_short": {
+      "cv_ready": "Lebenslauf hochgeladen und KI-Überprüfung akzeptiert",
       "title": "die Berufsbezeichnung",
       "summary": "die Zusammenfassung (mindestens 20 Zeichen)",
       "skills": "mindestens 3 Fähigkeiten",
@@ -1337,6 +1374,11 @@
       }
     },
     "actions": {
+      "reset_cv": "Abbrechen und Lebenslauf erneut hochladen",
+      "reset_cv_confirm": "Dadurch werden alle aus Ihrem Lebenslauf extrahierten Profildaten gelöscht. Fortfahren?",
+      "reset_cv_cancel": "Abbrechen",
+      "reset_cv_confirm_btn": "Ja, alles löschen",
+      "reset_cv_loading": "Wird gelöscht…",
       "save_draft": "Als Entwurf speichern",
       "publish": "Profil veröffentlichen →",
       "saving": "Speichern...",
@@ -1986,7 +2028,18 @@
     }
   },
   "expert_verification": {
+    "badge": {
+      "draft": "Entwurf",
+      "pending": "Überprüfung läuft",
+      "admin_review": "Validierung ausstehend",
+      "approved": "Verifiziert",
+      "rejected": "Abgelehnt"
+    },
     "banner": {
+      "draft_title": "Profilentwurf",
+      "draft_body": "Veröffentlichen Sie Ihr Profil, um die Überprüfung zu starten.",
+      "approved_title": "Profil verifiziert",
+      "approved_body": "Ihr Profil wurde verifiziert.",
       "none_title": "Reichen Sie Ihr Profil zur Verifizierung ein",
       "none_body": "Sobald Ihr Profil vollständig ist, reichen Sie es ein: Unsere KI prüft die Kohärenz in Sekunden.",
       "pending_title": "Verifizierung läuft…",
@@ -2027,6 +2080,25 @@
       "body_p1": "Nach Prüfung können wir die Registrierung von <strong>{companyName}</strong> auf Skilloria derzeit nicht bestätigen.",
       "body_with_reason_p2": "Grund: {reason}",
       "body_p3": "Falls Sie der Meinung sind, dass es sich um einen Irrtum handelt, antworten Sie direkt auf diese E-Mail.",
+      "cta_label": "Kontakt aufnehmen"
+    },
+    "expert_welcome": {
+      "subject": "Ihr Profil ist verifiziert ✓",
+      "preheader": "Sie sind jetzt für Unternehmen auf Skilloria sichtbar.",
+      "title": "Ihr Profil ist verifiziert!",
+      "hello": "Hallo {firstName},",
+      "body_p1": "Gute Nachrichten: Ihr Profil wurde von unserem Team verifiziert. Es ist jetzt für Unternehmen sichtbar und Sie erscheinen in den KI-Empfehlungen.",
+      "body_p2": "Wir wünschen Ihnen großartige Möglichkeiten auf Skilloria.",
+      "cta_label": "Zum Dashboard"
+    },
+    "expert_reject": {
+      "subject": "Zur Verifizierung Ihres Skilloria-Profils",
+      "preheader": "Ihr Profil konnte nicht verifiziert werden.",
+      "title": "Verifizierung nicht abgeschlossen",
+      "hello": "Hallo {firstName},",
+      "body_p1": "Nach Prüfung können wir Ihr Profil auf Skilloria derzeit nicht verifizieren.",
+      "body_with_reason_p2": "Grund: {reason}",
+      "body_p3": "Sie können Ihr Profil anpassen und erneut einreichen. Falls Sie der Meinung sind, dass es sich um einen Irrtum handelt, antworten Sie direkt auf diese E-Mail.",
       "cta_label": "Kontakt aufnehmen"
     }
   },

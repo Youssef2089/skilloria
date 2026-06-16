@@ -154,7 +154,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
   }
   if (error && !data) {
     return (
-      <div style={{ maxWidth: 560, margin: '60px auto', padding: '0 24px', textAlign: 'center', fontFamily: 'Inter, sans-serif' }}>
+      <div>
         <p style={{ color: '#b91c1c', marginBottom: 18 }}>{error}</p>
         <button type="button" onClick={() => router.push('/admin/experts')} style={{ padding: '10px 18px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{t('back')}</button>
       </div>
@@ -169,7 +169,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
   const aiData = e.verification_data ?? null
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto', padding: '24px 28px 80px', fontFamily: 'Inter, sans-serif' }}>
+    <div>
       <button type="button" onClick={() => router.push('/admin/experts')} style={{ background: 'transparent', border: 'none', color: '#475569', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 14 }}>← {t('back')}</button>
 
       {error && (

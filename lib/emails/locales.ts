@@ -37,6 +37,25 @@ type EmailsRoot = {
     body_p3: string
     cta_label: string
   }
+  expert_welcome: {
+    subject: string
+    preheader: string
+    title: string
+    hello: string
+    body_p1: string
+    body_p2: string
+    cta_label: string
+  }
+  expert_reject: {
+    subject: string
+    preheader: string
+    title: string
+    hello: string
+    body_p1: string
+    body_with_reason_p2: string
+    body_p3: string
+    cta_label: string
+  }
 }
 
 const MESSAGES: Record<Locale, { emails: EmailsRoot }> = {

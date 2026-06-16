@@ -289,7 +289,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      <main className="admin-main" style={{ padding: '32px 40px', minWidth: 0 }}>
+      <main className="admin-main" style={{ padding: '24px 26px', minWidth: 0 }}>
         {children}
       </main>
       </div>

@@ -401,6 +401,8 @@
     "close_aria": "Cerrar",
     "banner_error": "{count, plural, one {Para publicar tu perfil, completa el campo destacado de abajo: {fields}.} other {Para publicar tu perfil, completa los # campos destacados de abajo: {fields}.}}",
     "errors": {
+      "reset_failed": "El restablecimiento del CV falló. Inténtalo de nuevo.",
+      "cv_not_ready": "Sube tu CV y acepta la verificación por IA antes de publicar tu perfil.",
       "account_load_failed": "No se ha podido cargar tu cuenta.",
       "incomplete_check_below": "Perfil incompleto, comprueba los campos destacados de abajo.",
       "save_failed": "Error al guardar, inténtalo de nuevo."
@@ -416,6 +418,7 @@
     "show_more_languages": "Mostrar los {count} idiomas ▼",
     "show_less": "Mostrar menos ▲",
     "field_labels_short": {
+      "cv_ready": "CV subido y verificación por IA aceptada",
       "title": "tu título profesional",
       "summary": "el resumen (20 caracteres mínimo)",
       "skills": "al menos 3 competencias",
@@ -588,6 +591,11 @@
       }
     },
     "actions": {
+      "reset_cv": "Cancelar y volver a subir el CV",
+      "reset_cv_confirm": "Esto borrará todos los datos de tu perfil extraídos del CV. ¿Continuar?",
+      "reset_cv_cancel": "Cancelar",
+      "reset_cv_confirm_btn": "Sí, borrar todo",
+      "reset_cv_loading": "Borrando…",
       "save_draft": "Guardar como borrador",
       "publish": "Publicar mi perfil →",
       "saving": "Guardando...",
@@ -597,6 +605,19 @@
     }
   },
   "profile_view": {
+    "cv_required": {
+      "title": "Sube tu CV para acceder a tu perfil",
+      "body": "Sube tu CV haciendo clic en Completa tu perfil.",
+      "cta": "Completa tu perfil"
+    },
+    "publish": {
+      "button": "Publicar mi perfil",
+      "publishing": "Publicando…",
+      "success": "Perfil publicado, verificación en curso.",
+      "error_cv": "Sube tu CV y acepta la verificación por IA antes de publicar tu perfil.",
+      "error_incomplete": "Completa tu perfil antes de publicarlo.",
+      "error_generic": "La publicación falló. Inténtalo de nuevo."
+    },
     "page_title": "Mi perfil",
     "page_subtitle": "Vista de solo lectura de tu perfil tal como lo verán los clientes.",
     "back_to_dashboard": "← Panel de control",
@@ -939,6 +960,19 @@
     }
   },
   "cdi_profile_view": {
+    "cv_required": {
+      "title": "Sube tu CV para acceder a tu perfil",
+      "body": "Sube tu CV haciendo clic en Completa tu perfil.",
+      "cta": "Completa tu perfil"
+    },
+    "publish": {
+      "button": "Publicar mi perfil",
+      "publishing": "Publicando…",
+      "success": "Perfil publicado, verificación en curso.",
+      "error_cv": "Sube tu CV y acepta la verificación por IA antes de publicar tu perfil.",
+      "error_incomplete": "Completa tu perfil antes de publicarlo.",
+      "error_generic": "La publicación falló. Inténtalo de nuevo."
+    },
     "loading": "Cargando tu perfil…",
     "error_loading": "No se pudo cargar tu perfil. Vuelve a intentarlo.",
     "empty_profile": "Aún no has creado tu perfil.",
@@ -1109,6 +1143,8 @@
     "close_aria": "Cerrar",
     "banner_error": "{count, plural, one {Para publicar tu perfil, completa el campo destacado abajo: {fields}.} other {Para publicar tu perfil, completa los # campos destacados abajo: {fields}.}}",
     "errors": {
+      "reset_failed": "El restablecimiento del CV falló. Inténtalo de nuevo.",
+      "cv_not_ready": "Sube tu CV y acepta la verificación por IA antes de publicar tu perfil.",
       "account_load_failed": "No se pudo cargar tu cuenta.",
       "incomplete_check_below": "Perfil incompleto, revisa los campos destacados abajo.",
       "save_failed": "Error al guardar, vuelve a intentarlo."
@@ -1124,6 +1160,7 @@
     "show_more_languages": "Mostrar los {count} idiomas ▼",
     "show_less": "Mostrar menos ▲",
     "field_labels_short": {
+      "cv_ready": "CV subido y verificación por IA aceptada",
       "title": "el título profesional",
       "summary": "el resumen (mínimo 20 caracteres)",
       "skills": "al menos 3 competencias",
@@ -1337,6 +1374,11 @@
       }
     },
     "actions": {
+      "reset_cv": "Cancelar y volver a subir el CV",
+      "reset_cv_confirm": "Esto borrará todos los datos de tu perfil extraídos del CV. ¿Continuar?",
+      "reset_cv_cancel": "Cancelar",
+      "reset_cv_confirm_btn": "Sí, borrar todo",
+      "reset_cv_loading": "Borrando…",
       "save_draft": "Guardar como borrador",
       "publish": "Publicar mi perfil →",
       "saving": "Guardando...",
@@ -1986,7 +2028,18 @@
     }
   },
   "expert_verification": {
+    "badge": {
+      "draft": "Borrador",
+      "pending": "Verificación en curso",
+      "admin_review": "Pendiente de validación",
+      "approved": "Verificado",
+      "rejected": "Rechazado"
+    },
     "banner": {
+      "draft_title": "Perfil en borrador",
+      "draft_body": "Publica tu perfil para iniciar la verificación.",
+      "approved_title": "Perfil verificado",
+      "approved_body": "Tu perfil ha sido verificado.",
       "none_title": "Envía tu perfil para verificación",
       "none_body": "Una vez completado, envía tu perfil: nuestra IA evalúa la coherencia en segundos.",
       "pending_title": "Verificación en curso…",
@@ -2027,6 +2080,25 @@
       "body_p1": "Tras revisarlo, por el momento no podemos aprobar el registro de <strong>{companyName}</strong> en Skilloria.",
       "body_with_reason_p2": "Motivo: {reason}",
       "body_p3": "Si crees que es un error, puedes responder directamente a este correo.",
+      "cta_label": "Contactar"
+    },
+    "expert_welcome": {
+      "subject": "Tu perfil está verificado ✓",
+      "preheader": "Ya eres visible para las empresas en Skilloria.",
+      "title": "¡Tu perfil está verificado!",
+      "hello": "Hola {firstName},",
+      "body_p1": "Buenas noticias: tu perfil ha sido verificado por nuestro equipo. Ahora es visible para las empresas y apareces en las recomendaciones IA.",
+      "body_p2": "Te deseamos grandes oportunidades en Skilloria.",
+      "cta_label": "Acceder a mi panel"
+    },
+    "expert_reject": {
+      "subject": "Acerca de la verificación de tu perfil de Skilloria",
+      "preheader": "Tu perfil no ha podido ser verificado.",
+      "title": "Verificación no completada",
+      "hello": "Hola {firstName},",
+      "body_p1": "Tras revisarlo, por el momento no podemos verificar tu perfil en Skilloria.",
+      "body_with_reason_p2": "Motivo: {reason}",
+      "body_p3": "Puedes ajustar tu perfil y volver a enviarlo. Si crees que es un error, responde directamente a este correo.",
       "cta_label": "Contactar"
     }
   },

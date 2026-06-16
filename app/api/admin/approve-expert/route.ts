@@ -3,6 +3,9 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
+import { renderExpertWelcomeEmail } from '@/lib/emails/templates'
+import { sendEmail } from '@/lib/emails/resend'
+import { expertSiteOrigin } from '@/lib/emails/domain-url'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -34,7 +37,16 @@ function json(data: unknown, status = 200): Response {
 
 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 
-type Body = { profile_id?: unknown }
+type Body = { profile_id?: unknown; site_url?: unknown }
+
+function siteOriginFromRequest(request: NextRequest, body: Body): string {
+  if (typeof body.site_url === 'string' && /^https?:\/\/[^\s/]{1,200}$/.test(body.site_url)) {
+    return body.site_url
+  }
+  const origin = request.headers.get('origin')
+  if (origin && /^https?:\/\//.test(origin)) return origin
+  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+}
 
 const VALID_LOCALES = ['fr', 'en', 'es', 'de'] as const
 function normalizeLocale(raw: string | null | undefined): string {
@@ -78,7 +90,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   // Vérifier le profile
   const { data: prof, error: fetchErr } = await auth.supabaseAdmin
     .from('profiles')
-    .select('id, user_id, domain_id, verification_status, users!profiles_user_id_fkey(id, locale, user_type)')
+    .select('id, user_id, domain_id, verification_status, users!profiles_user_id_fkey(id, email, first_name, locale, user_type)')
     .eq('id', profileId)
     .maybeSingle()
   if (fetchErr) {
@@ -88,15 +100,13 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!prof) {
     return json({ error: 'Not found', code: 'not_found' }, 404)
   }
+  type ExpertUser = { id: string; email: string | null; first_name: string | null; locale: string | null; user_type: string | null }
   const row = prof as unknown as {
     id: string
     user_id: string
     domain_id: string
     verification_status: string | null
-    users:
-      | { id: string; locale: string | null; user_type: string | null }
-      | { id: string; locale: string | null; user_type: string | null }[]
-      | null
+    users: ExpertUser | ExpertUser[] | null
   }
   if (row.verification_status !== 'pending_admin_review') {
     return json(
@@ -156,11 +166,57 @@ export async function POST(request: NextRequest): Promise<Response> {
     detail: {},
   })
 
-  // ── Matching réconcilié — déclencheur EXPERT (post-approbation) ─────────
+  // Origin résolu dans le scope du handler (request lisible ici), capturé par
+  // la closure after() pour construire le lien CTA de l'email.
+  const siteOrigin = siteOriginFromRequest(request, body)
+
+  // ── Travaux post-réponse — déclencheur EXPERT (post-approbation) ────────
   // Non-bloquant POUR L'ADMIN : exécution via `after()` après l'envoi de la
   // response. Un `void promise` serait tué par Vercel — `after()` garantit
-  // l'exécution de bout en bout (cf. bug racine fire-and-forget).
+  // l'exécution de bout en bout (cf. bug racine fire-and-forget). On y place
+  // aussi l'envoi de l'email (awaité, best-effort) pour la même raison.
   after(async () => {
+    // 1. Email de bienvenue (Resend) — locale = users.locale de l'expert.
+    //    En PLUS de la notif in-app déjà insérée ci-dessus. Best-effort :
+    //    awaité dans after(), un échec ne casse jamais la décision admin.
+    try {
+      const contactEmail = u?.email ?? null
+      if (contactEmail) {
+        // Base URL dérivée du domaine de l'EXPERT (slug), pas de l'origin admin.
+        // Lookup best-effort hors chemin de décision ; échec → fallback origin.
+        let expertSlug: string | null = null
+        if (row.domain_id) {
+          const { data: dom } = await auth.supabaseAdmin
+            .from('domains')
+            .select('slug')
+            .eq('id', row.domain_id)
+            .maybeSingle()
+          expertSlug = (dom?.slug as string | null) ?? null
+        }
+        const baseOrigin = expertSiteOrigin({ origin: siteOrigin, slug: expertSlug })
+        const loginUrl = `${baseOrigin}/${normalizeLocale(u?.locale ?? null)}/connexion`
+        const rendered = renderExpertWelcomeEmail({
+          locale: u?.locale ?? null,
+          firstName: (u?.first_name ?? '').trim() || (contactEmail.split('@')[0] ?? ''),
+          loginUrl,
+        })
+        const res = await sendEmail({
+          to: contactEmail,
+          subject: rendered.subject,
+          html: rendered.html,
+          text: rendered.text,
+          preheader: rendered.preheader,
+          tag: rendered.tag,
+        })
+        console.log('[admin:approve-expert] email', { profileId, ok: res.ok, code: res.ok ? null : res.code })
+      } else {
+        console.warn('[admin:approve-expert] no contact email — welcome email skipped', { profileId })
+      }
+    } catch (err) {
+      console.error('[admin:approve-expert] welcome email threw (after)', err)
+    }
+
+    // 2. Matching réconcilié — direction EXPERT → publications publiées.
     try {
       const { runMatchingForExpert } = await import('@/lib/matching')
       const v = await runMatchingForExpert({

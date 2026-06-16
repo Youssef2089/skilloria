@@ -39,6 +39,39 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   const url = new URL(request.url)
+
+  // Mode comptes : renvoie le nombre exact de profils par statut (head count,
+  // pas de limite de lignes), pour alimenter les compteurs des 4 onglets.
+  // Sémantique alignée sur le filtrage de la liste ci-dessous :
+  //   pending = 'pending_admin_review', approved/rejected idem,
+  //   all = verification_status NON nul (mêmes profils que l'onglet "Tous").
+  if (url.searchParams.get('counts') === '1') {
+    const base = () =>
+      auth.supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true })
+    const [pending, approved, rejected, all] = await Promise.all([
+      base().eq('verification_status', 'pending_admin_review'),
+      base().eq('verification_status', 'approved'),
+      base().eq('verification_status', 'rejected'),
+      base().not('verification_status', 'is', null),
+    ])
+    const firstErr = pending.error || approved.error || rejected.error || all.error
+    if (firstErr) {
+      console.error('[admin:list-experts] counts failed', firstErr.message)
+      return json({ error: 'Query failed', code: 'db_error' }, 500)
+    }
+    return json(
+      {
+        counts: {
+          pending: pending.count ?? 0,
+          approved: approved.count ?? 0,
+          rejected: rejected.count ?? 0,
+          all: all.count ?? 0,
+        },
+      },
+      200,
+    )
+  }
+
   const statusRaw = url.searchParams.get('status') ?? 'pending'
   const status: StatusFilter = (VALID_STATUSES as readonly string[]).includes(statusRaw)
     ? (statusRaw as StatusFilter)

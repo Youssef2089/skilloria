@@ -16,6 +16,8 @@ import { useCdiApplications } from '@/lib/hooks/useCdiApplications'
 import CdiStatusToggle from '@/components/cdi/CdiStatusToggle'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
+import VerificationBanner from '@/components/dashboard/VerificationBanner'
+import { deriveVerificationUiState } from '@/lib/verification-state'
 import { emitAvailabilityChanged } from '@/lib/availability-actions'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import {
@@ -108,6 +110,13 @@ export default function DashboardCDI() {
   // matches QUE pour le user_type cohérent (expert_cdi → type='offre').
   // Donc cette home reçoit les offres CDI matchées de l'expert.
   const isVerified = !!user?.is_verified
+  // Lot bandeau vérif : état réel pour le badge greeting (plus de "vérifié"
+  // affiché à tort quand en attente de validation admin).
+  const isApprovedState =
+    deriveVerificationUiState({
+      visible: (profile?.visible ?? null) as boolean | null,
+      verificationStatus: (profile?.verification_status ?? null) as string | null,
+    }) === 'approved'
   // Lot UX refetch auto post-matching (parité freelance) : pendant la fenêtre
   // d'analyse (verified_at récent OU trigger client récent), on poll vite (3s)
   // et on affiche un état transitoire "Analyse en cours". Hors fenêtre = 30s.
@@ -406,8 +415,8 @@ export default function DashboardCDI() {
                 {t('hello', { firstName: greetingName })}
               </h1>
 
-              {/* Verified badge inline (parité freelance) */}
-              {isVerified && (
+              {/* Verified badge inline (parité freelance) — état réel */}
+              {isApprovedState && (
                 <div
                   style={{
                     display: 'inline-flex',
@@ -469,120 +478,15 @@ export default function DashboardCDI() {
                 tête de SECTION 1. */}
           </div>
 
-          {/* Bandeau de vérification jaune si !isVerified (parité freelance) */}
-          {!isVerified && (
-            <div
-              style={{
-                background: '#fffbeb',
-                border: '1px solid #fde68a',
-                borderRadius: 12,
-                padding: 20,
-                marginBottom: 20,
-                animation: 'fadeInUp 0.4s ease',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                <div style={{ fontSize: 22, flexShrink: 0 }} aria-hidden>
-                  ⏳
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 600,
-                      color: '#92400e',
-                      marginBottom: 6,
-                      fontFamily: fontJakarta,
-                    }}
-                  >
-                    {t('verification_banner.title')}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: '#92400e',
-                      opacity: 0.8,
-                      lineHeight: 1.7,
-                      marginBottom: 12,
-                    }}
-                  >
-                    {t.rich('verification_banner.description', {
-                      strong: chunks => <strong>{chunks}</strong>,
-                    })}
-                  </div>
-                  <div
-                    className="verif-steps"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    {[
-                      {
-                        label: t('verification_banner.steps.account_created'),
-                        done: true,
-                        active: false,
-                      },
-                      {
-                        label: t('verification_banner.steps.ai_analysis'),
-                        done: false,
-                        active: true,
-                      },
-                      {
-                        label: t('verification_banner.steps.verified_badge'),
-                        done: false,
-                        active: false,
-                      },
-                    ].map((step, i) => (
-                      <div
-                        key={step.label}
-                        style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                      >
-                        {i > 0 && (
-                          <span style={{ color: '#d1d5db', fontSize: 13 }}>→</span>
-                        )}
-                        <span
-                          style={{
-                            fontSize: 13,
-                            color: step.active
-                              ? domain.primaryColor
-                              : step.done
-                                ? '#92400e'
-                                : '#9ca3af',
-                            fontWeight: step.active ? 500 : 400,
-                          }}
-                        >
-                          {step.done ? '✓ ' : step.active ? '⏳ ' : '🔒 '}
-                          {step.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => router.push('/dashboard/cdi/profil')}
-                style={{
-                  marginTop: 14,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  padding: '9px 16px',
-                  borderRadius: 8,
-                  background: '#fff',
-                  border: '1px solid #fde68a',
-                  color: '#92400e',
-                  cursor: 'pointer',
-                  width: '100%',
-                  fontFamily: 'inherit',
-                }}
-              >
-                {t('verification_banner.cta')}
-              </button>
-            </div>
-          )}
+          {/* Lot bandeau vérif : bandeau figé "analyse IA en cours" remplacé
+              par le composant partagé piloté par l'état réel (parité freelance). */}
+          <VerificationBanner
+            visible={(profile?.visible ?? null) as boolean | null}
+            status={(profile?.verification_status ?? null) as string | null}
+            reviewReason={(profile?.review_reason ?? null) as string | null}
+            ctaLabel={t('verification_banner.cta')}
+            onCta={() => router.push('/dashboard/cdi/profil')}
+          />
 
           {/* SECTION 2 — Hero "Statut écoute marché" */}
           <div className="main-card" style={{ animationDelay: '0.05s' }}>

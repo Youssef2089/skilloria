@@ -401,6 +401,8 @@
     "close_aria": "Fermer",
     "banner_error": "{count, plural, one {Pour publier votre profil, complétez le champ surligné ci-dessous : {fields}.} other {Pour publier votre profil, complétez les # champs surlignés ci-dessous : {fields}.}}",
     "errors": {
+      "reset_failed": "La remise à zéro du CV a échoué. Réessaie.",
+      "cv_not_ready": "Dépose ton CV et accepte la vérification IA avant de publier ton profil.",
       "account_load_failed": "Impossible de charger votre compte.",
       "incomplete_check_below": "Profil incomplet, vérifiez les champs surlignés ci-dessous.",
       "save_failed": "Erreur lors de la sauvegarde, réessayez."
@@ -416,6 +418,7 @@
     "show_more_languages": "Afficher les {count} langues ▼",
     "show_less": "Réduire ▲",
     "field_labels_short": {
+      "cv_ready": "CV déposé et vérification IA acceptée",
       "title": "le titre professionnel",
       "summary": "le résumé (20 caractères minimum)",
       "skills": "au moins 3 compétences",
@@ -588,6 +591,11 @@
       }
     },
     "actions": {
+      "reset_cv": "Annuler et retélécharger le CV",
+      "reset_cv_confirm": "Cela efface toutes les données de ton profil issues du CV. Continuer ?",
+      "reset_cv_cancel": "Annuler",
+      "reset_cv_confirm_btn": "Oui, tout effacer",
+      "reset_cv_loading": "Suppression…",
       "save_draft": "Enregistrer comme brouillon",
       "publish": "Publier mon profil →",
       "saving": "Enregistrement...",
@@ -597,6 +605,19 @@
     }
   },
   "profile_view": {
+    "cv_required": {
+      "title": "Téléchargez votre CV pour accéder à votre profil",
+      "body": "Veuillez télécharger votre CV en cliquant sur Compléter votre profil.",
+      "cta": "Compléter votre profil"
+    },
+    "publish": {
+      "button": "Publier mon profil",
+      "publishing": "Publication en cours…",
+      "success": "Profil publié, vérification en cours.",
+      "error_cv": "Dépose ton CV et accepte la vérification IA avant de publier ton profil.",
+      "error_incomplete": "Complète ton profil avant de le publier.",
+      "error_generic": "La publication a échoué. Réessaie."
+    },
     "page_title": "Mon profil",
     "page_subtitle": "Aperçu en lecture seule de votre profil tel qu'il apparaîtra aux clients.",
     "back_to_dashboard": "← Tableau de bord",
@@ -939,6 +960,19 @@
     }
   },
   "cdi_profile_view": {
+    "cv_required": {
+      "title": "Téléchargez votre CV pour accéder à votre profil",
+      "body": "Veuillez télécharger votre CV en cliquant sur Compléter votre profil.",
+      "cta": "Compléter votre profil"
+    },
+    "publish": {
+      "button": "Publier mon profil",
+      "publishing": "Publication en cours…",
+      "success": "Profil publié, vérification en cours.",
+      "error_cv": "Dépose ton CV et accepte la vérification IA avant de publier ton profil.",
+      "error_incomplete": "Complète ton profil avant de le publier.",
+      "error_generic": "La publication a échoué. Réessaie."
+    },
     "loading": "Chargement de votre profil…",
     "error_loading": "Impossible de charger votre profil. Réessayez.",
     "empty_profile": "Aucun profil n'a encore été créé.",
@@ -1109,6 +1143,8 @@
     "close_aria": "Fermer",
     "banner_error": "{count, plural, one {Pour publier votre profil, complétez le champ surligné ci-dessous : {fields}.} other {Pour publier votre profil, complétez les # champs surlignés ci-dessous : {fields}.}}",
     "errors": {
+      "reset_failed": "La remise à zéro du CV a échoué. Réessaie.",
+      "cv_not_ready": "Dépose ton CV et accepte la vérification IA avant de publier ton profil.",
       "account_load_failed": "Impossible de charger votre compte.",
       "incomplete_check_below": "Profil incomplet, vérifiez les champs surlignés ci-dessous.",
       "save_failed": "Erreur lors de la sauvegarde, réessayez."
@@ -1124,6 +1160,7 @@
     "show_more_languages": "Afficher les {count} langues ▼",
     "show_less": "Réduire ▲",
     "field_labels_short": {
+      "cv_ready": "CV déposé et vérification IA acceptée",
       "title": "le titre professionnel",
       "summary": "le résumé (20 caractères minimum)",
       "skills": "au moins 3 compétences",
@@ -1337,6 +1374,11 @@
       }
     },
     "actions": {
+      "reset_cv": "Annuler et retélécharger le CV",
+      "reset_cv_confirm": "Cela efface toutes les données de ton profil issues du CV. Continuer ?",
+      "reset_cv_cancel": "Annuler",
+      "reset_cv_confirm_btn": "Oui, tout effacer",
+      "reset_cv_loading": "Suppression…",
       "save_draft": "Enregistrer comme brouillon",
       "publish": "Publier mon profil →",
       "saving": "Enregistrement...",
@@ -1986,7 +2028,18 @@
     }
   },
   "expert_verification": {
+    "badge": {
+      "draft": "Brouillon",
+      "pending": "Vérification en cours",
+      "admin_review": "En attente de validation",
+      "approved": "Vérifié",
+      "rejected": "Refusé"
+    },
     "banner": {
+      "draft_title": "Profil en brouillon",
+      "draft_body": "Publiez votre profil pour lancer la vérification.",
+      "approved_title": "Profil vérifié",
+      "approved_body": "Votre profil a été vérifié.",
       "none_title": "Soumettez votre profil pour vérification",
       "none_body": "Une fois votre profil complété, soumettez-le : notre IA évalue la cohérence en quelques secondes.",
       "pending_title": "Vérification en cours…",
@@ -2027,6 +2080,25 @@
       "body_p1": "Après examen, nous ne sommes pas en mesure de valider l'inscription de <strong>{companyName}</strong> sur Skilloria pour le moment.",
       "body_with_reason_p2": "Motif : {reason}",
       "body_p3": "Si vous pensez qu'il s'agit d'une erreur, vous pouvez nous répondre directement à ce mail.",
+      "cta_label": "Nous contacter"
+    },
+    "expert_welcome": {
+      "subject": "Votre profil est vérifié ✓",
+      "preheader": "Vous êtes désormais visible des entreprises sur Skilloria.",
+      "title": "Votre profil est vérifié !",
+      "hello": "Bonjour {firstName},",
+      "body_p1": "Bonne nouvelle : votre profil a été vérifié par notre équipe. Il est désormais visible des entreprises et vous apparaissez dans les recommandations IA.",
+      "body_p2": "Nous vous souhaitons de belles opportunités sur Skilloria.",
+      "cta_label": "Accéder à mon tableau de bord"
+    },
+    "expert_reject": {
+      "subject": "Concernant la vérification de votre profil Skilloria",
+      "preheader": "Votre profil n'a pas pu être vérifié.",
+      "title": "Vérification non aboutie",
+      "hello": "Bonjour {firstName},",
+      "body_p1": "Après examen, nous ne sommes pas en mesure de vérifier votre profil sur Skilloria pour le moment.",
+      "body_with_reason_p2": "Motif : {reason}",
+      "body_p3": "Vous pouvez ajuster votre profil et le soumettre à nouveau. Si vous pensez qu'il s'agit d'une erreur, répondez directement à ce mail.",
       "cta_label": "Nous contacter"
     }
   },

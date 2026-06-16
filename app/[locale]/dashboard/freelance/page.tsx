@@ -8,6 +8,7 @@ import { useDomain } from '@/context/DomainContext'
 import TJMQuickEditModal from '@/components/TJMQuickEditModal'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import VerificationBanner from '@/components/dashboard/VerificationBanner'
+import { deriveVerificationUiState } from '@/lib/verification-state'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import MissionCastingCard from '@/components/dashboard/MissionCastingCard'
 import CandidatureCastingCard from '@/components/dashboard/CandidatureCastingCard'
@@ -33,6 +34,7 @@ type ProfileData = {
   tjm_min: number | null
   tjm_max: number | null
   photo_url: string | null
+  visible?: boolean | null
   verification_status?: string | null
   review_reason?: string | null
   verification_data?: Record<string, unknown> | null
@@ -224,7 +226,7 @@ export default function DashboardFreelance() {
           .single(),
         supabase
           .from('profiles')
-          .select('tjm_min, tjm_max, photo_url, verification_status, review_reason, verification_data, availability_status, verified_at')
+          .select('tjm_min, tjm_max, photo_url, visible, verification_status, review_reason, verification_data, availability_status, verified_at')
           .eq('user_id', session.user.id)
           .maybeSingle(),
       ])
@@ -330,6 +332,13 @@ export default function DashboardFreelance() {
   )
 
   const isVerified = user?.is_verified === true
+  // Lot bandeau vérif : état réel (badge greeting fidèle, plus de "vérifié"
+  // affiché à tort quand le profil est en attente de validation admin).
+  const verifState = deriveVerificationUiState({
+    visible: (profile?.visible ?? null) as boolean | null,
+    verificationStatus: (profile?.verification_status ?? null) as string | null,
+  })
+  const isApprovedState = verifState === 'approved'
   const firstName = (user?.first_name ?? '').trim()
   const lastName = (user?.last_name ?? '').trim()
   const fullName = `${firstName} ${lastName}`.trim() || tCommon('user_fallback')
@@ -465,17 +474,20 @@ export default function DashboardFreelance() {
 
         <div style={{ padding: '24px 26px', minWidth: 0 }}>
 
-          {/* Bandeau statut vérification expert (Lot vérif expert) */}
+          {/* Bandeau statut vérification expert — état réel (helper partagé). */}
           <VerificationBanner
+            visible={(profile?.visible ?? null) as boolean | null}
             status={(profile?.verification_status ?? null) as string | null}
             reviewReason={(profile?.review_reason ?? null) as string | null}
+            ctaLabel={t('verification_banner.cta')}
+            onCta={() => router.push('/dashboard/freelance/profil')}
           />
 
           {/* Lot A : tuile "Score IA" retirée (UI placeholder vide qui
               n'alimentait rien). Le titre garde le même bloc d'en-tête. */}
           <div style={{ marginBottom: 26, animation: 'fadeInUp 0.4s ease' }}>
             <h1 style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginBottom: 8 }}>{t('greeting')}</h1>
-            {isVerified && (
+            {isApprovedState && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'fadeIn 0.6s ease 0.3s both' }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                   <circle cx="12" cy="12" r="10" fill={domain.primaryColor}/>
@@ -486,39 +498,9 @@ export default function DashboardFreelance() {
             )}
           </div>
 
-          {/* Bannière vérification */}
-          {!isVerified && (
-            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: 20, marginBottom: 20, animation: 'fadeInUp 0.4s ease' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                <div style={{ fontSize: 22, flexShrink: 0 }}>⏳</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#92400e', marginBottom: 6 }}>{t('verification_banner.title')}</div>
-                  <div style={{ fontSize: 13, color: '#92400e', opacity: .8, lineHeight: 1.7, marginBottom: 12 }}>
-                    {t.rich('verification_banner.description', {
-                      strong: chunks => <strong>{chunks}</strong>,
-                    })}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    {[
-                      { label: t('verification_banner.steps.account_created'), done: true },
-                      { label: t('verification_banner.steps.ai_analysis'), active: true },
-                      { label: t('verification_banner.steps.verified_badge'), done: false },
-                    ].map((step, i) => (
-                      <div key={step.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        {i > 0 && <span style={{ color: '#d1d5db', fontSize: 13 }}>→</span>}
-                        <span style={{ fontSize: 13, color: step.active ? domain.primaryColor : step.done ? '#92400e' : '#9ca3af', fontWeight: step.active ? 500 : 400 }}>
-                          {step.done ? '✓ ' : step.active ? '⏳ ' : ''}{step.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <button onClick={() => router.push('/dashboard/freelance/profil')} style={{ marginTop: 14, fontSize: 13, fontWeight: 600, padding: '9px 16px', borderRadius: 8, background: '#fff', border: '1px solid #fde68a', color: '#92400e', cursor: 'pointer', width: '100%' }}>
-                {t('verification_banner.cta')}
-              </button>
-            </div>
-          )}
+          {/* Lot bandeau vérif : l'ancien bloc statique "étapes" figé sur
+              "analyse IA en cours" est supprimé. Le <VerificationBanner/>
+              ci-dessus reflète désormais l'état réel pour tous les cas. */}
 
           {/* Lot état 'selected' : 4 stat-cards de comptage (Postulées, En
               discussion, Acceptées, Refusées) + TJM card = 5 tuiles total. La
