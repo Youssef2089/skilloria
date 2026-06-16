@@ -62,8 +62,10 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   // Flux natif : déclenche l'email de confirmation Supabase. La bascule réelle
   // se fait quand l'user clique le lien reçu (gérée par /auth/callback existant).
-  const userClient = getUserScopedClient(accessToken)
+  const userClient = await getUserScopedClient(accessToken)
   const { error: updErr } = await userClient.auth.updateUser({ email: new_email })
+  // MOUCHARD TEMP — résultat EXACT de updateUser({email}) (message Supabase brut)
+  console.log('[MOUCHARD email] updateUser({email}):', updErr ? `ÉCHEC → ${updErr.message}` : 'SUCCÈS (confirmation envoyée)')
   if (updErr) {
     // Email déjà pris / identique / rate-limit : message générique, pas de leak.
     console.error('[me/email] updateUser failed', updErr.message)

@@ -65,7 +65,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Not authenticated', code: 'no_token' }, 401)
   }
 
-  const userClient = getUserScopedClient(accessToken)
+  const userClient = await getUserScopedClient(accessToken)
   const { error: updErr } = await userClient.auth.updateUser({ password: new_password })
   // MOUCHARD TEMP — résultat EXACT de updateUser({password}) (message Supabase brut)
   console.log('[MOUCHARD password] updateUser({password}):', updErr ? `ÉCHEC → ${updErr.message}` : 'SUCCÈS')
