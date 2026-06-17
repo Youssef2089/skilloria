@@ -229,5 +229,5 @@ export async function runMatchingForPublication(args: {
 // l'API pour ne pas casser, mais le moteur est désormais le réconcilié.
 export const runMatching = runMatchingForPublication
 
-export { runMatchingForExpert } from './run-for-expert'
+export { runMatchingForExpert, clearExpertRecommendations } from './run-for-expert'
 export type { MatchingVerdict, MatchingLocale } from './types'

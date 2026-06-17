@@ -117,6 +117,11 @@ export default function DashboardFreelance() {
   // - Le calcul des stats est ensuite dérivé via useMemo : pas de nouvelle
   //   réf si data inchangée.
   const liveEnabled = !loading
+  // Verrou missions : la section "Missions recommandées" (fetch + affichage)
+  // suit STRICTEMENT verification_status === 'approved' (source de vérité
+  // unique partagée avec la home CDI). Évite d'afficher des missions en cache
+  // périmé quand l'expert repasse "à valider" après une re-publication.
+  const isApproved = (profile?.verification_status ?? null) === 'approved'
   // Lot UX refetch auto post-matching : dérive "matching en cours" depuis
   //  - profile.verified_at récent (< 120s) → cas approbation auto/admin
   //  - sessionStorage trigger récent (< 120s) → cas toggle DND, save profil
@@ -141,12 +146,12 @@ export default function DashboardFreelance() {
     },
     RecommendedMission
   >({
-    url: liveEnabled ? `/api/me/missions?locale=${encodeURIComponent(locale)}` : null,
+    url: liveEnabled && isApproved ? `/api/me/missions?locale=${encodeURIComponent(locale)}` : null,
     pollMs: missionsPollMs,
     itemsOf: (d) => d.missions ?? [],
     identityOf: (m) => m.match_id,
     versionOf: (m) => `${m.ai_score}`,
-    enabled: liveEnabled,
+    enabled: liveEnabled && isApproved,
     holdNewItems: false,
   })
   const candidaturesLive = useLiveResource<{ candidatures: CandidatureLite[] }, CandidatureLite>({
@@ -568,23 +573,20 @@ export default function DashboardFreelance() {
             <div style={{ fontSize: 13, color: '#6b7280', marginTop: 10, lineHeight: 1.6 }}>{t('completion.hint')}</div>
           </div>
 
-          {/* Missions recommandées */}
-          <div className="main-card" style={{ opacity: isVerified ? 1 : 0.6, animationDelay: '0.35s' }}>
+          {/* Missions recommandées — affichées UNIQUEMENT si approuvé
+              (verification_status === 'approved'). Non approuvé : section
+              masquée (le VerificationBanner ci-dessus informe déjà l'expert de
+              son état "à valider"/refusé). */}
+          {isApproved && (
+          <div className="main-card" style={{ animationDelay: '0.35s' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>{t('cards.recommended_missions.title')}</span>
                 <span style={{ background: '#ede9fe', color: '#6d28d9', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 20 }}>{t('cards.recommended_missions.ai_badge')}</span>
               </div>
-              {!isVerified
-                ? <span style={{ background: '#f3f4f6', color: '#9ca3af', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('cards.locked_chip')}</span>
-                : <Link href="/dashboard/freelance/missions" className="voir-tout" style={{ color: domain.primaryColor }}>{t('cards.see_all')}</Link>
-              }
+              <Link href="/dashboard/freelance/missions" className="voir-tout" style={{ color: domain.primaryColor }}>{t('cards.see_all')}</Link>
             </div>
-            {!isVerified ? (
-              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
-                {t('cards.empty_unverified')}
-              </div>
-            ) : (recommendedMissions === null) ? (
+            {(recommendedMissions === null) ? (
               <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af' }}>
                 {t('loading')}
               </div>
@@ -643,6 +645,7 @@ export default function DashboardFreelance() {
               />
             )}
           </div>
+          )}
 
           {/* SC2 — Section "Vos candidatures" */}
           {isVerified && (

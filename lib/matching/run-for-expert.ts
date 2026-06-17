@@ -355,3 +355,55 @@ export async function runMatchingForExpert(args: {
     model: aiResult.model,
   }
 }
+
+/**
+ * Retire les RECOMMANDATIONS de missions d'un expert — DÉMOTION.
+ *
+ * Appelé quand l'expert n'est plus 'approved' (re-publication qui repasse en
+ * pending_admin_review/rejected, ou refus admin). Les missions recommandées
+ * doivent suivre STRICTEMENT le statut de vérif : un expert non approuvé ne
+ * doit plus rien voir/recevoir.
+ *
+ * N'introduit AUCUNE logique nouvelle : réutilise le primitif idempotent
+ * `reconcileMatches({ desired: [] })`, qui supprime les recommandations pures
+ * (status pending/notified/viewed SANS candidature) tout en PRÉSERVANT :
+ *   - les matches 'dismissed' (décision active de l'expert),
+ *   - les matches liés à une candidature (acte engagé — candidatures/
+ *     conversations restent intactes ; matches.id → candidatures.match_id est
+ *     ON DELETE SET NULL côté schéma de toute façon).
+ *
+ * Best-effort : tout échec est non-bloquant côté caller (loggé).
+ */
+export async function clearExpertRecommendations(args: {
+  supabaseAdmin: SupabaseClient
+  profileId: string
+}): Promise<{ ok: boolean; deleted: number }> {
+  const { supabaseAdmin, profileId } = args
+
+  // domain_id requis par reconcileMatches (utilisé uniquement pour les INSERT ;
+  // ici desired=[] → aucun insert, mais on respecte le contrat de la fonction).
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .select('domain_id')
+    .eq('id', profileId)
+    .maybeSingle()
+  if (error || !data) {
+    console.error('[matching-expert] clear: profile lookup failed', error?.message ?? 'not found')
+    return { ok: false, deleted: 0 }
+  }
+  const domainId = (data as { domain_id: string }).domain_id
+
+  try {
+    const stats = await reconcileMatches({
+      supabaseAdmin,
+      scope: { byProfileId: profileId },
+      domainId,
+      desired: [],
+      model: 'demotion-cleanup',
+    })
+    return { ok: true, deleted: stats.deleted }
+  } catch (err) {
+    console.error('[matching-expert] clear reconcile threw', err)
+    return { ok: false, deleted: 0 }
+  }
+}

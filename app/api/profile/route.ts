@@ -503,8 +503,35 @@ export async function PATCH(request: NextRequest): Promise<Response> {
         .select('verification_status, visible, ai_consent_at, cv_parsing_status')
         .eq('id', cp.id)
         .maybeSingle()
+      const status = postUpd?.verification_status ?? null
+
+      if (status !== 'approved') {
+        // ── DÉMOTION ───────────────────────────────────────────────────────
+        // Re-publication non approuvée (pending_admin_review / rejected /
+        // pending) : les missions recommandées suivent STRICTEMENT le statut.
+        //  → on retire les recommandations (préserve dismissed + candidaturés)
+        //    ET on remet users.is_verified=false (badge "vérifié" + gating home).
+        // L'expert n'est plus matchable tant qu'il n'est pas ré-approuvé.
+        const { clearExpertRecommendations } = await import('@/lib/matching')
+        const cleared = await clearExpertRecommendations({ supabaseAdmin, profileId: cp.id })
+        const { error: vErr } = await supabaseAdmin
+          .from('users')
+          .update({ is_verified: false })
+          .eq('id', user.id)
+        if (vErr) console.error('[profile:PATCH] is_verified=false failed', vErr.message)
+        console.log('[profile:PATCH] demotion cleanup', {
+          profileId: cp.id,
+          status,
+          matches_removed: cleared.deleted,
+        })
+        return
+      }
+
+      // ── APPROUVÉ : (re)matching réconcilié ────────────────────────────────
+      // reconcile efface d'abord les matches obsolètes puis insère les frais
+      // (sans doublon — contrainte UNIQUE — ni re-spam de notif). Garde les
+      // mêmes pré-conditions de "vraiment live" (visible + consent + CV parsé).
       const ready =
-        postUpd?.verification_status === 'approved' &&
         postUpd?.visible === true &&
         postUpd?.ai_consent_at != null &&
         postUpd?.cv_parsing_status === 'done'

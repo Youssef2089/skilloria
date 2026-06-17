@@ -171,6 +171,18 @@ export async function POST(request: NextRequest): Promise<Response> {
   // décision déjà persistée.
   const siteOrigin = siteOriginFromRequest(request, body)
   after(async () => {
+    // Defense-in-depth : un expert refusé ne doit plus avoir de missions
+    // recommandées. Normalement déjà nettoyées au passage en pending_admin_review
+    // (chaîne de publication), mais on garantit ici aussi que les recommandations
+    // suivent le statut. Préserve dismissed + candidaturés (acte engagé).
+    try {
+      const { clearExpertRecommendations } = await import('@/lib/matching')
+      const cleared = await clearExpertRecommendations({ supabaseAdmin: auth.supabaseAdmin, profileId })
+      console.log('[admin:reject-expert] recommendations cleared', { profileId, matches_removed: cleared.deleted })
+    } catch (err) {
+      console.error('[admin:reject-expert] clear recommendations threw (after)', err)
+    }
+
     try {
       const contactEmail = u?.email ?? null
       if (!contactEmail) {

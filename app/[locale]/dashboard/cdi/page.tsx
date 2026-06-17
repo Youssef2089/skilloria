@@ -139,12 +139,12 @@ export default function DashboardCDI() {
     },
     MissionCardData
   >({
-    url: isVerified ? `/api/me/missions?locale=${encodeURIComponent(locale)}` : null,
+    url: isApprovedState ? `/api/me/missions?locale=${encodeURIComponent(locale)}` : null,
     pollMs: missionsPollMs,
     itemsOf: (d) => d.missions ?? [],
     identityOf: (m) => m.match_id,
     versionOf: (m) => `${m.ai_score}`,
-    enabled: isVerified,
+    enabled: isApprovedState,
     holdNewItems: false,
   })
   // Casting home : on parcourt TOUTES les suggestions (carrousel sous
@@ -609,7 +609,12 @@ export default function DashboardCDI() {
               /dashboard/cdi/missions/[id] (cf. dashboardUrlForUserType
               implicit via side prop). Le 'Voir tout' pointe vers
               /dashboard/cdi/missions (page "Offres" du CDI). */}
-          <div className="main-card" style={{ opacity: isVerified ? 1 : 0.6, animationDelay: '0.3s' }}>
+          {/* Suggestions affichées UNIQUEMENT si approuvé (verification_status
+              === 'approved'), source de vérité unique partagée avec la home
+              freelance. Non approuvé : section masquée (le VerificationBanner
+              ci-dessus informe déjà l'expert de son état "à valider"/refusé). */}
+          {isApprovedState && (
+          <div className="main-card" style={{ animationDelay: '0.3s' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.2px', fontFamily: fontJakarta }}>
@@ -619,16 +624,9 @@ export default function DashboardCDI() {
                   {t('suggestions_section.ai_badge')}
                 </span>
               </div>
-              {!isVerified
-                ? <span style={{ background: '#f3f4f6', color: '#9ca3af', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('suggestions_section.locked_chip')}</span>
-                : <Link href="/dashboard/cdi/missions" style={{ color: domain.primaryColor, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>{t('suggestions_section.see_all')}</Link>
-              }
+              <Link href="/dashboard/cdi/missions" style={{ color: domain.primaryColor, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>{t('suggestions_section.see_all')}</Link>
             </div>
-            {!isVerified ? (
-              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
-                {t('suggestions_section.empty_unverified')}
-              </div>
-            ) : (recommendedOffres === null) ? (
+            {(recommendedOffres === null) ? (
               <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af' }}>
                 {t('loading')}
               </div>
@@ -687,6 +685,7 @@ export default function DashboardCDI() {
               />
             )}
           </div>
+          )}
 
           {/* SECTION — Mes candidatures (apres Suggestions, parite freelance). */}
           <div className="main-card" style={{ animationDelay: '0.35s' }}>
