@@ -315,6 +315,8 @@ export default function CdiValiderProfilPage() {
   // Lot CV obligatoire : "CV prêt" = parsé (done) ET consentement IA donné.
   const [cvParsingStatus, setCvParsingStatus] = useState<string | null>(null)
   const [aiConsentAt, setAiConsentAt] = useState<string | null>(null)
+  // Statut de publication : décide la cible du lien "Retour" (édition vs onboarding).
+  const [isPublished, setIsPublished] = useState(false)
   // Lot reset CV : annuler/retélécharger (remise à zéro complète serveur).
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [resetting, setResetting] = useState(false)
@@ -531,6 +533,7 @@ export default function CdiValiderProfilPage() {
       setParsingFailed(p.cv_parsing_status === 'failed')
       setCvParsingStatus(p.cv_parsing_status ?? null)
       setAiConsentAt(p.ai_consent_at ?? null)
+      setIsPublished(p.visible === true)
       setTitle(p.title ?? '')
       setSummary(p.summary ?? '')
       setSeniority((p.seniority as Seniority | null) ?? '')
@@ -1502,7 +1505,7 @@ export default function CdiValiderProfilPage() {
           <>
             <button
               type="button"
-              onClick={() => router.push('/dashboard/cdi/profil')}
+              onClick={() => router.push(isPublished ? '/dashboard/cdi/mon-profil' : '/dashboard/cdi/profil')}
               style={{
                 background: 'transparent',
                 border: 'none',

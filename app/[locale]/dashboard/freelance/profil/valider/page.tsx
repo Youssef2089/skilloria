@@ -255,6 +255,8 @@ export default function ValiderProfilPage() {
   // Lot CV obligatoire : "CV prêt" = parsé (done) ET consentement IA donné.
   const [cvParsingStatus, setCvParsingStatus] = useState<string | null>(null)
   const [aiConsentAt, setAiConsentAt] = useState<string | null>(null)
+  // Statut de publication : décide la cible du lien "Retour" (édition vs onboarding).
+  const [isPublished, setIsPublished] = useState(false)
   // Lot reset CV : annuler/retélécharger (remise à zéro complète serveur).
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [resetting, setResetting] = useState(false)
@@ -416,6 +418,7 @@ export default function ValiderProfilPage() {
       setParsingFailed(profile.cv_parsing_status === 'failed')
       setCvParsingStatus((profile as { cv_parsing_status?: string | null }).cv_parsing_status ?? null)
       setAiConsentAt((profile as { ai_consent_at?: string | null }).ai_consent_at ?? null)
+      setIsPublished((profile as { visible?: boolean | null }).visible === true)
       setTitle(profile.title ?? '')
       setSummary(profile.summary ?? '')
       setSeniority((profile.seniority as Seniority | null) ?? '')
@@ -1254,7 +1257,7 @@ export default function ValiderProfilPage() {
           <>
             <button
               type="button"
-              onClick={() => router.push('/dashboard/freelance/profil')}
+              onClick={() => router.push(isPublished ? '/dashboard/freelance/mon-profil' : '/dashboard/freelance/profil')}
               style={{
                 background: 'transparent',
                 border: 'none',
