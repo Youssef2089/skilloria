@@ -811,10 +811,11 @@ export default function MonProfilPage() {
   const hasAvailability = !!profile.availability_date || !!profile.availability_status || workModes.length > 0
   const hasExpertise = !!branchName || !!specialityName || skills.length > 0
 
-  // Banner publication — le bandeau vert "Profil publié / visible aux clients
-  // dans le matching" n'est VRAI que si le profil est approuvé. Tant que la
-  // vérification n'est pas 'approved', le profil n'est pas visible : on retombe
-  // sur le bandeau d'attente (jaune), cohérent avec le badge "En attente".
+  // Banner publication — 3 états :
+  //   • visible && approuvé        → bandeau vert "Profil publié / visible".
+  //   • non visible                → bandeau jaune "Profil non publié / complétez".
+  //   • visible && non approuvé    → AUCUN bandeau (le profil EST publié, il est
+  //     juste en attente de validation : ni "publié/visible" ni "non publié").
   const banner = isVisible && verifState === 'approved' ? (
     <div
       style={{
@@ -839,7 +840,7 @@ export default function MonProfilPage() {
         </div>
       </div>
     </div>
-  ) : (
+  ) : !isVisible ? (
     <div
       style={{
         background: '#fffbeb',
@@ -880,7 +881,7 @@ export default function MonProfilPage() {
         </Link>
       </div>
     </div>
-  )
+  ) : null
 
   return (
     <div className={jakarta.variable} style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: fontJakarta }}>
@@ -1167,7 +1168,9 @@ export default function MonProfilPage() {
                 <span aria-hidden>💶</span>
                 {tjmText ?? t('header.tjm_not_set')}
               </div>
-              {availabilityKey && (
+              {/* Pastille dispo de la carte profil : masquée tant que le profil
+                  n'est pas approuvé (non visible aux clients → pas de "Disponible"). */}
+              {availabilityKey && verifState === 'approved' && (
                 <div
                   style={{
                     display: 'inline-flex',
