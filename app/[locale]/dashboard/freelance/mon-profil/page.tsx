@@ -811,8 +811,11 @@ export default function MonProfilPage() {
   const hasAvailability = !!profile.availability_date || !!profile.availability_status || workModes.length > 0
   const hasExpertise = !!branchName || !!specialityName || skills.length > 0
 
-  // Banner publication
-  const banner = isVisible ? (
+  // Banner publication — le bandeau vert "Profil publié / visible aux clients
+  // dans le matching" n'est VRAI que si le profil est approuvé. Tant que la
+  // vérification n'est pas 'approved', le profil n'est pas visible : on retombe
+  // sur le bandeau d'attente (jaune), cohérent avec le badge "En attente".
+  const banner = isVisible && verifState === 'approved' ? (
     <div
       style={{
         background: '#dcfce7',
@@ -903,7 +906,10 @@ export default function MonProfilPage() {
         <div />
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <LanguageSwitcher />
-          {isVerified ? (
+          {/* Pastille "Disponible" : n'est VRAIE qu'une fois le profil approuvé
+              (un profil non validé n'est pas visible aux clients dans le
+              matching). Sinon → pastille "En attente", cohérente avec le badge. */}
+          {verifState === 'approved' ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#dcfce7', border: '1px solid #bbf7d0', padding: '7px 16px', borderRadius: 20 }}>
               <div className="pulse-dot" style={{ background: '#22c55e' }} />
               <span style={{ fontSize: 13, fontWeight: 500, color: '#15803d', whiteSpace: 'nowrap' }}>
