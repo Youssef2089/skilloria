@@ -6,12 +6,13 @@ import { Link, useRouter } from '@/i18n/navigation'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
-import { useSecureLogout, useSecureFetch } from '@/lib/secure-fetch'
+import { useSecureFetch } from '@/lib/secure-fetch'
 import EmptyState from '@/components/ui/EmptyState'
 import { deriveVerificationUiState, verificationChipColors } from '@/lib/verification-state'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import AvatarEditOverlay from '@/components/dashboard/AvatarEditOverlay'
+import DashboardSidebar from '@/components/shell/DashboardSidebar'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -293,11 +294,11 @@ export default function MonProfilPage() {
   const t = useTranslations('profile_view')
   const tVerifBadge = useTranslations('expert_verification.badge')
   const tDash = useTranslations('dashboard_freelance')
+  const tShell = useTranslations('shell')
   const tCommon = useTranslations('common')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
-  const secureLogout = useSecureLogout()
   const secureFetch = useSecureFetch()
 
   // Lot CV obligatoire — bouton "Publier mon profil" depuis Mon Profil.
@@ -686,6 +687,7 @@ export default function MonProfilPage() {
       @media (max-width: 767px) {
         .ds-layout { flex-direction: column !important; }
         .ds-sidebar { display: none !important; }
+        .sk-sidebar { display: none !important; }
         .ds-main { padding: 16px !important; }
         .ds-header-pad { padding: 0 16px !important; }
         .profile-hero { flex-direction: column !important; align-items: flex-start !important; gap: 16px !important; }
@@ -895,18 +897,10 @@ export default function MonProfilPage() {
           animation: 'fadeIn 0.3s ease',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 9, background: domain.primaryColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {domain.logoUrl ? (
-              <img src={domain.logoUrl} alt={domain.name} width={18} height={18} />
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-              </svg>
-            )}
-          </div>
-          <span style={{ fontSize: 17, fontWeight: 700, color: '#111827' }}>{domain.name}</span>
-        </div>
+        {/* Brand retiré : la sidebar partagée (<DashboardSidebar/>) rend déjà
+            le logo en haut → on évite le double logo. Spacer pour garder les
+            actions (langue + badge) alignées à droite via space-between. */}
+        <div />
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <LanguageSwitcher />
           {isVerified ? (
@@ -928,102 +922,16 @@ export default function MonProfilPage() {
       </div>
 
       <div className="ds-layout" style={{ display: 'flex', minHeight: 'calc(100vh - 58px)' }}>
-        {/* ─── Sidebar (duplicated from dashboard, with "Mon profil" active) ─── */}
-        <div className="ds-sidebar" style={{ width: 248, background: '#fff', borderRight: '1px solid #e2e8f0', padding: '22px 0', flexDirection: 'column', flexShrink: 0 }}>
-          <div style={{ padding: '0 20px 20px', marginBottom: 14, borderBottom: '1px solid #e2e8f0', textAlign: 'center' }}>
-            <div style={{ position: 'relative', display: 'inline-block', marginBottom: 14 }}>
-              {profile.photo_url ? (
-                <img
-                  src={profile.photo_url}
-                  alt={fullName}
-                  style={{
-                    width: 76,
-                    height: 76,
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 76,
-                    height: 76,
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 26,
-                    fontWeight: 600,
-                    background: `linear-gradient(135deg, ${domain.primaryColor}44, ${domain.secondaryColor}44)`,
-                    color: domain.primaryColor,
-                  }}
-                >
-                  {initials}
-                </div>
-              )}
-              <div className="pulse-dot" style={{ position: 'absolute', bottom: 3, right: 3, width: 14, height: 14, background: verifState === 'approved' ? '#22c55e' : '#eab308', border: '2px solid #fff' }} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginBottom: 5 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>{fullName}</div>
-              {verifState === 'approved' && (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" fill={domain.primaryColor} />
-                  <path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </div>
-            <div style={{ fontSize: 13, color: '#6b7280' }}>
-              {tDash('sidebar.role_freelance')} · {domain.ecosystemName}
-            </div>
-          </div>
-
-          <div style={{ fontSize: 11, color: '#9ca3af', padding: '8px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>
-            {tDash('sidebar.sections.main')}
-          </div>
-          <Link href="/dashboard/freelance" className="nav-item">
-            {tDash('sidebar.nav.dashboard')}
-          </Link>
-          <Link href="/dashboard/freelance/mon-profil" className="nav-item-active">
-            {tDash('sidebar.nav.profile')}
-          </Link>
-          <div className="nav-item" style={{ color: isVerified ? '#4b5563' : '#d1d5db', cursor: isVerified ? 'pointer' : 'not-allowed' }}>
-            {tDash('sidebar.nav.missions')}
-            {!isVerified && <span style={{ fontSize: 12 }}>🔒</span>}
-          </div>
-          <div className="nav-item" style={{ color: isVerified ? '#4b5563' : '#d1d5db', cursor: isVerified ? 'pointer' : 'not-allowed' }}>
-            {tDash('sidebar.nav.applications')}
-            {!isVerified && <span style={{ fontSize: 12 }}>🔒</span>}
-          </div>
-          <div className="nav-item">{tDash('sidebar.nav.messages')}</div>
-
-          <div style={{ fontSize: 11, color: '#9ca3af', padding: '16px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>
-            {tDash('sidebar.sections.publish')}
-          </div>
-          <div className="nav-item" style={{ color: isVerified ? domain.primaryColor : '#d1d5db', cursor: isVerified ? 'pointer' : 'not-allowed' }}>
-            {tDash('sidebar.nav.availability_alert')}
-            {!isVerified && <span style={{ fontSize: 12 }}>🔒</span>}
-          </div>
-          <div className="nav-item" style={{ color: isVerified ? domain.primaryColor : '#d1d5db', cursor: isVerified ? 'pointer' : 'not-allowed' }}>
-            {tDash('sidebar.nav.subcontracting')}
-            {!isVerified && <span style={{ fontSize: 12 }}>🔒</span>}
-          </div>
-
-          <div style={{ fontSize: 11, color: '#9ca3af', padding: '16px 20px 6px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>
-            {tDash('sidebar.sections.account')}
-          </div>
-          <div className="nav-item">{tDash('sidebar.nav.payments')}</div>
-          <div className="nav-item">{tDash('sidebar.nav.settings')}</div>
-
-          <div style={{ marginTop: 'auto', padding: '16px 8px 0', borderTop: '1px solid #e2e8f0' }}>
-            <div
-              className="nav-item"
-              style={{ color: '#ef4444' }}
-              onClick={() => void secureLogout({ redirectTo: '/' })}
-            >
-              {tDash('sidebar.nav.logout')}
-            </div>
-          </div>
-        </div>
+        {/* ─── Sidebar partagée (source unique de vérité, alignée sur le
+            tableau de bord : Missions/Candidatures déverrouillées, vrais
+            liens, alert/sous-traitance lockées si non vérifié). ─── */}
+        <DashboardSidebar
+          side="freelance"
+          userName={fullName}
+          userPhotoUrl={profile.photo_url ?? null}
+          userIsVerified={isVerified}
+          userSubtitle={tShell('user_subtitle.freelance', { ecosystem: domain.ecosystemName })}
+        />
 
         {/* ─── Main ─── */}
         <div className="ds-main" style={{ flex: 1, padding: 24, width: '100%' }}>
