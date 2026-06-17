@@ -857,6 +857,7 @@ export default function ValiderProfilPage() {
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
+    breakInside: 'avoid',
   }
 
   const primaryAddBtnStyle: React.CSSProperties = {
@@ -1131,6 +1132,7 @@ export default function ValiderProfilPage() {
           .profil-main { padding: 18px !important; }
           .profil-title { font-size: 26px !important; }
           .profil-row { grid-template-columns: 1fr !important; }
+          .profil-sections { column-count: 1 !important; }
           .profil-actions {
             position: sticky; bottom: 0; z-index: 20;
             margin-left: -18px; margin-right: -18px;
@@ -1221,7 +1223,7 @@ export default function ValiderProfilPage() {
       </div>
 
       {/* Main */}
-      <div className="profil-main" style={{ maxWidth: 860, margin: '0 auto', padding: 32 }}>
+      <div className="profil-main" style={{ width: '100%', padding: 24 }}>
         {loading ? (
           <div
             style={{
@@ -1456,6 +1458,8 @@ export default function ValiderProfilPage() {
               {tProfile('ai_banner')}
             </div>
 
+            {/* Sections en grille 2 colonnes (pleine largeur, aligné à gauche) */}
+            <div className="profil-sections" style={{ columnCount: 2, columnGap: 24 }}>
             {/* Section 1 — Identité pro */}
             <div style={sectionStyle}>
               <SectionHeader n="1" color={domain.primaryColor} title={tProfile('sections.identity.title')} />
@@ -2370,6 +2374,7 @@ export default function ValiderProfilPage() {
                 labelKey="show_more_education"
               />
             </div>
+            </div>{/* fin .profil-sections */}
 
             {/* Actions */}
             {/* Actions sticky — Fix C parité CDI : Publier non silencieux.
