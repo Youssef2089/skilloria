@@ -491,18 +491,9 @@ export default function CdiMonProfilPage() {
         t={t}
       />
 
-      <main className="sk-page-main" style={{ maxWidth: 920, margin: '0 auto', padding: '24px 24px 56px' }}>
-        {/* Action bar */}
-        <div
-          className="sk-action-bar"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 20,
-            gap: 12,
-          }}
-        >
+      <main className="sk-page-main" style={{ width: '100%', padding: '24px 24px 56px' }}>
+        {/* Back link */}
+        <div style={{ marginBottom: 14 }}>
           <Link
             href="/dashboard/cdi"
             style={{
@@ -514,7 +505,22 @@ export default function CdiMonProfilPage() {
           >
             {t('back_to_dashboard')}
           </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        </div>
+        {/* En-tête : titre à gauche, actions à droite sur la même rangée */}
+        <div
+          className="sk-action-bar"
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            marginBottom: 20,
+            gap: 16,
+          }}
+        >
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.4px' }}>
+            {t('page_title')}
+          </h1>
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
             {/* Édition — secondaire (outline) ; garde le lien existant. */}
             <Link
               href="/dashboard/cdi/profil/valider"

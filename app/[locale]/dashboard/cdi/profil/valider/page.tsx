@@ -315,6 +315,8 @@ export default function CdiValiderProfilPage() {
   // Lot CV obligatoire : "CV prêt" = parsé (done) ET consentement IA donné.
   const [cvParsingStatus, setCvParsingStatus] = useState<string | null>(null)
   const [aiConsentAt, setAiConsentAt] = useState<string | null>(null)
+  // Statut de publication : décide la cible du lien "Retour" (édition vs onboarding).
+  const [isPublished, setIsPublished] = useState(false)
   // Lot reset CV : annuler/retélécharger (remise à zéro complète serveur).
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [resetting, setResetting] = useState(false)
@@ -531,6 +533,7 @@ export default function CdiValiderProfilPage() {
       setParsingFailed(p.cv_parsing_status === 'failed')
       setCvParsingStatus(p.cv_parsing_status ?? null)
       setAiConsentAt(p.ai_consent_at ?? null)
+      setIsPublished(p.visible === true)
       setTitle(p.title ?? '')
       setSummary(p.summary ?? '')
       setSeniority((p.seniority as Seniority | null) ?? '')
@@ -998,6 +1001,7 @@ export default function CdiValiderProfilPage() {
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
+    breakInside: 'avoid',
   }
 
   const primaryAddBtnStyle: React.CSSProperties = {
@@ -1378,6 +1382,7 @@ export default function CdiValiderProfilPage() {
           .profil-main { padding: 18px !important; }
           .profil-title { font-size: 26px !important; }
           .profil-row { grid-template-columns: 1fr !important; }
+          .profil-sections { column-count: 1 !important; }
           .profil-actions {
             position: sticky; bottom: 0; z-index: 20;
             margin-left: -18px; margin-right: -18px;
@@ -1469,7 +1474,7 @@ export default function CdiValiderProfilPage() {
         </div>
       </div>
 
-      <div className="profil-main" style={{ maxWidth: 860, margin: '0 auto', padding: 32 }}>
+      <div className="profil-main" style={{ width: '100%', padding: 24 }}>
         {(!authChecked || loading) ? (
           <div
             style={{
@@ -1500,7 +1505,7 @@ export default function CdiValiderProfilPage() {
           <>
             <button
               type="button"
-              onClick={() => router.push('/dashboard/cdi/profil')}
+              onClick={() => router.push(isPublished ? '/dashboard/cdi/mon-profil' : '/dashboard/cdi/profil')}
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -1704,6 +1709,8 @@ export default function CdiValiderProfilPage() {
               {tProfile('ai_banner')}
             </div>
 
+            {/* Sections en grille 2 colonnes (pleine largeur, aligné à gauche) */}
+            <div className="profil-sections" style={{ columnCount: 2, columnGap: 24 }}>
             {/* Section 1 — Identité */}
             <div style={sectionStyle}>
               <SectionHeader
@@ -3001,6 +3008,7 @@ export default function CdiValiderProfilPage() {
                 />
               </div>
             </div>
+            </div>{/* fin .profil-sections */}
 
             {/* Actions sticky — Fix C : Publier non silencieux. Le bouton
                 Publier est désactivé tant que la liste validateForPublish()

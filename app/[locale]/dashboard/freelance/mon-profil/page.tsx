@@ -714,7 +714,7 @@ export default function MonProfilPage() {
               <div key={i} className="skel" style={{ height: 36, marginBottom: 8 }} />
             ))}
           </div>
-          <div className="ds-main" style={{ flex: 1, padding: 30 }}>
+          <div className="ds-main" style={{ flex: 1, padding: 24 }}>
             <div className="skel" style={{ height: 56, marginBottom: 16 }} />
             <div className="skel" style={{ height: 180, marginBottom: 16 }} />
             <div className="skel" style={{ height: 140, marginBottom: 16 }} />
@@ -1026,8 +1026,14 @@ export default function MonProfilPage() {
         </div>
 
         {/* ─── Main ─── */}
-        <div className="ds-main" style={{ flex: 1, padding: 30, maxWidth: 960, width: '100%' }}>
-          {/* Sticky action bar */}
+        <div className="ds-main" style={{ flex: 1, padding: 24, width: '100%' }}>
+          {/* Back link */}
+          <div style={{ paddingTop: 4, marginBottom: 10 }}>
+            <Link href="/dashboard/freelance" className="icon-btn">
+              {t('back_to_dashboard')}
+            </Link>
+          </div>
+          {/* En-tête : titre à gauche, actions à droite sur la même rangée */}
           <div
             className="top-actions"
             style={{
@@ -1038,14 +1044,17 @@ export default function MonProfilPage() {
               padding: '12px 0',
               marginBottom: 12,
               display: 'flex',
-              alignItems: 'center',
+              alignItems: 'flex-start',
               justifyContent: 'space-between',
-              gap: 12,
+              gap: 16,
             }}
           >
-            <Link href="/dashboard/freelance" className="icon-btn">
-              {t('back_to_dashboard')}
-            </Link>
+            <div style={{ minWidth: 0 }}>
+              <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', margin: 0, marginBottom: 6, letterSpacing: '-0.4px' }}>
+                {t('page_title')}
+              </h1>
+              <p style={{ fontSize: 14, color: '#64748b', margin: 0 }}>{t('page_subtitle')}</p>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               {/* Édition — secondaire (outline) ; garde le lien existant. */}
               <Link
@@ -1110,14 +1119,6 @@ export default function MonProfilPage() {
               {publishMsg.text}
             </div>
           )}
-
-          {/* Page title */}
-          <div style={{ marginBottom: 16, animation: 'fadeInUp 0.4s ease both' }}>
-            <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', margin: 0, marginBottom: 6, letterSpacing: '-0.4px' }}>
-              {t('page_title')}
-            </h1>
-            <p style={{ fontSize: 14, color: '#64748b', margin: 0 }}>{t('page_subtitle')}</p>
-          </div>
 
           {/* Banner publication */}
           {banner}
