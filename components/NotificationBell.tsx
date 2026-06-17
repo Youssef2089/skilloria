@@ -139,7 +139,16 @@ export default function NotificationBell({ ariaLabel }: { ariaLabel?: string }) 
       <button
         ref={buttonRef}
         type="button"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => {
+          // Ouvrir la cloche marque tout comme lu (compteur rouge effacé +
+          // pastilles « non lu »), comme LinkedIn/FB — même action que le
+          // bouton « Tout marquer lu » (conservé). Les notifs RESTENT listées
+          // (handleReadAll ne flippe que read_at, ne supprime rien). N'affecte
+          // PAS les badges nav Missions/Candidatures (système séparé).
+          const next = !open
+          setOpen(next)
+          if (next && unread > 0) void handleReadAll()
+        }}
         aria-label={ariaLabel ?? t('aria_label_bell')}
         aria-expanded={open}
         style={{
