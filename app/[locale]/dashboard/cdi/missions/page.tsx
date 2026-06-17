@@ -28,6 +28,9 @@ type MissionsPayload = {
 
 export default function CdiMissionsFeedPage() {
   const t = useTranslations('missions.feed')
+  // Réutilise la clé i18n existante du tableau de bord CDI pour l'état "profil
+  // pas encore validé" (message cohérent avec la section "Suggestions").
+  const tDash = useTranslations('dashboard_cdi')
   const locale = useLocale()
 
   const live = useLiveResource<MissionsPayload, MissionCardData>({
@@ -50,7 +53,15 @@ export default function CdiMissionsFeedPage() {
         <div style={{ padding: 40, textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14 }}>{t('loading')}</div>
       )}
 
-      {state.kind === 'error' && (
+      {/* Profil pas encore validé (403 not_verified) : état vide propre, jamais
+          une erreur — message cohérent avec le tableau de bord. */}
+      {state.kind === 'error' && state.status === 403 && (
+        <div style={{ marginTop: 14 }}>
+          <EmptyState icon="🔒" title={tDash('suggestions_section.empty_unverified')} />
+        </div>
+      )}
+
+      {state.kind === 'error' && state.status !== 403 && (
         <div role="alert" style={{ background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red)', color: 'var(--sk-red)', padding: '14px 18px', borderRadius: 'var(--sk-r-lg)', fontSize: 13, marginTop: 14 }}>
           {state.message}
         </div>

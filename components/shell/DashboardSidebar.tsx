@@ -114,8 +114,12 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
           items: [
             { key: 'dashboard',    href: `/dashboard/${side}`,                                 iconKey: 'dashboard' },
             { key: 'profile',      href: `/dashboard/${side}/mon-profil`,                      iconKey: 'profile' },
-            { key: 'missions',     href: `/dashboard/${side}/missions`,                        iconKey: 'missions',    badgeSource: 'missions', locked: !userIsVerified },
-            { key: 'applications', href: `/dashboard/${side}/candidatures`,                    iconKey: 'applications', badgeSource: 'candidatures', locked: !userIsVerified },
+            // Missions & Candidatures : ACCESSIBLES même profil non validé.
+            //  - Candidatures = données propres de l'expert.
+            //  - Missions = état vide propre tant que non validé (cf. page).
+            // Seules les actions marché (alert/subcontract) restent lockées.
+            { key: 'missions',     href: `/dashboard/${side}/missions`,                        iconKey: 'missions',    badgeSource: 'missions' },
+            { key: 'applications', href: `/dashboard/${side}/candidatures`,                    iconKey: 'applications', badgeSource: 'candidatures' },
             { key: 'messages',     href: `/dashboard/${side}/messages`,                        iconKey: 'messages',    badgeSource: 'messages' },
           ],
         },

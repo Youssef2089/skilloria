@@ -27,7 +27,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 
 export type UseLiveResourceState =
   | { kind: 'loading' }
-  | { kind: 'error'; message: string }
+  | { kind: 'error'; message: string; status?: number }
   | { kind: 'ready' }
 
 export type UseLiveResourceOptions<T, Item> = {
@@ -108,7 +108,11 @@ export function useLiveResource<T, Item>(opts: UseLiveResourceOptions<T, Item>):
     const res = await secureFetchRef.current(u, { method: 'GET' })
     if (!res.ok) {
       const payload = (await res.json().catch(() => ({} as { error?: string }))) as { error?: string }
-      throw new Error(payload.error ?? `HTTP ${res.status}`)
+      // On expose le status HTTP sur l'erreur pour que les pages distinguent
+      // un état attendu (ex. 403 not_verified → empty-state) d'une vraie panne.
+      const err = new Error(payload.error ?? `HTTP ${res.status}`) as Error & { status?: number }
+      err.status = res.status
+      throw err
     }
     const raw = await res.json()
     return (transform ? transform(raw) : (raw as T))
@@ -236,7 +240,7 @@ export function useLiveResource<T, Item>(opts: UseLiveResourceOptions<T, Item>):
 
   const state: UseLiveResourceState = useMemo(() => {
     if (displayed !== null) return { kind: 'ready' }
-    if (error) return { kind: 'error', message: error.message ?? 'Network error' }
+    if (error) return { kind: 'error', message: error.message ?? 'Network error', status: (error as Error & { status?: number }).status }
     return { kind: 'loading' }
   }, [displayed, error])
 
