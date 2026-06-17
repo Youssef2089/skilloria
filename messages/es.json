@@ -247,7 +247,7 @@
       "description": "Indica si estás abierto/a a nuevas misiones. Las empresas solo verán a los expertos disponibles.",
       "available_label": "Disponible",
       "available_hint": "Recibirás nuevas misiones que se ajusten a tu perfil.",
-      "do_not_disturb_label": "No molestar",
+      "do_not_disturb_label": "Ocupado",
       "do_not_disturb_hint": "Ya no apareces en el matching ni recibes nuevas misiones.",
       "toast_updated": "Disponibilidad actualizada",
       "toast_error": "No se pudo actualizar tu disponibilidad"
@@ -897,7 +897,7 @@
     "market_status_card": {
       "title": "Tu disposición al mercado",
       "description": "Indica si estás abierto a nuevas oportunidades. Avisaremos solo a los reclutadores adecuados según tus preferencias.",
-      "employed_label": "No molestar",
+      "employed_label": "Ocupado",
       "employed_hint": "No estás en búsqueda. No te llegará ningún contacto y ya no apareces en el matching.",
       "open_to_work_label": "Abierto a oportunidades",
       "open_to_work_hint": "Valoras propuestas interesantes. Visible solo para reclutadores verificados."

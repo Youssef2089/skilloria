@@ -555,7 +555,7 @@ export default function DashboardFreelance() {
             <AvailabilityToggle
               value={availability}
               onChange={handleAvailabilityChange}
-              disabled={availabilityUpdating || !user}
+              disabled={availabilityUpdating || !user || !isApproved}
             />
           </div>
 

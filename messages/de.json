@@ -247,7 +247,7 @@
       "description": "Geben Sie an, ob Sie offen für neue Missionen sind. Unternehmen sehen nur verfügbare Experten.",
       "available_label": "Verfügbar",
       "available_hint": "Sie erhalten neue Missionen, die zu Ihrem Profil passen.",
-      "do_not_disturb_label": "Nicht stören",
+      "do_not_disturb_label": "Beschäftigt",
       "do_not_disturb_hint": "Sie erscheinen nicht mehr im Matching und erhalten keine neuen Missionen.",
       "toast_updated": "Verfügbarkeit aktualisiert",
       "toast_error": "Verfügbarkeit konnte nicht aktualisiert werden"
@@ -897,7 +897,7 @@
     "market_status_card": {
       "title": "Ihre Marktoffenheit",
       "description": "Teilen Sie mit, ob Sie für neue Möglichkeiten offen sind. Nur ausgewählte Recruiter werden gemäss Ihren Präferenzen benachrichtigt.",
-      "employed_label": "Nicht stören",
+      "employed_label": "Beschäftigt",
       "employed_hint": "Sie suchen nicht. Es werden Ihnen keine Anfragen zugestellt und Sie erscheinen nicht mehr im Matching.",
       "open_to_work_label": "Offen für Angebote",
       "open_to_work_hint": "Sie prüfen interessante Angebote. Sichtbar nur für verifizierte Recruiter."

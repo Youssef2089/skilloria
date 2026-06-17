@@ -247,7 +247,7 @@
       "description": "Indicate whether you're open to new missions. Companies will only see available experts.",
       "available_label": "Available",
       "available_hint": "You'll receive new missions matching your profile.",
-      "do_not_disturb_label": "Do not disturb",
+      "do_not_disturb_label": "Busy",
       "do_not_disturb_hint": "You no longer appear in matching and won't receive new missions.",
       "toast_updated": "Availability updated",
       "toast_error": "Could not update your availability"
@@ -897,7 +897,7 @@
     "market_status_card": {
       "title": "Your job-search status",
       "description": "Let recruiters know whether you're open to new opportunities. Targeted recruiters are notified based on your preferences.",
-      "employed_label": "Do not disturb",
+      "employed_label": "Busy",
       "employed_hint": "You're not looking. No outreach will be sent your way and you no longer appear in matching.",
       "open_to_work_label": "Open to work",
       "open_to_work_hint": "You'll consider compelling opportunities. Visible only to verified recruiters."

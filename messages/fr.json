@@ -247,7 +247,7 @@
       "description": "Indiquez si vous êtes prêt(e) à recevoir de nouvelles missions. Les entreprises ne verront que les experts disponibles.",
       "available_label": "Disponible",
       "available_hint": "Vous recevez les nouvelles missions correspondant à votre profil.",
-      "do_not_disturb_label": "Ne pas déranger",
+      "do_not_disturb_label": "Occupé",
       "do_not_disturb_hint": "Vous n'apparaissez plus dans le matching et ne recevez plus de nouvelles missions.",
       "toast_updated": "Disponibilité mise à jour",
       "toast_error": "Impossible de mettre à jour votre disponibilité"
@@ -897,7 +897,7 @@
     "market_status_card": {
       "title": "Votre écoute du marché",
       "description": "Indiquez votre disposition à étudier de nouvelles opportunités. Les recruteurs ciblés en seront informés selon vos préférences.",
-      "employed_label": "Ne pas déranger",
+      "employed_label": "Occupé",
       "employed_hint": "Vous n'êtes pas à l'écoute. Aucune sollicitation ne vous sera envoyée et vous n'apparaissez plus dans le matching.",
       "open_to_work_label": "À l'écoute du marché",
       "open_to_work_hint": "Vous étudiez les opportunités intéressantes. Visible uniquement par les recruteurs vérifiés."

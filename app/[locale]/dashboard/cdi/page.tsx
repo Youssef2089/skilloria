@@ -510,7 +510,7 @@ export default function DashboardCDI() {
             <CdiStatusToggle
               value={currentStatus}
               onChange={handleStatusChange}
-              disabled={statusUpdating || !profile}
+              disabled={statusUpdating || !profile || !isApprovedState}
             />
           </div>
 
