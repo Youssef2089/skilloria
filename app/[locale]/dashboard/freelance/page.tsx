@@ -649,8 +649,11 @@ export default function DashboardFreelance() {
             )}
           </div>
 
-          {/* SC2 — Section "Vos candidatures" */}
-          {isVerified && (
+          {/* SC2 — Section "Vos candidatures" — TOUJOURS visible (parité avec la
+              section Missions et avec la home CDI où "Mes candidatures" est déjà
+              toujours rendue). État vide tant qu'aucune candidature, y compris
+              profil non validé. Le fetch /api/me/candidatures ne gate pas la
+              vérif → renvoie [] et l'état vide s'affiche proprement. */}
             <div className="main-card" style={{ animationDelay: '0.38s' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <span style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>{t('cards.your_candidatures.title')}</span>
@@ -673,7 +676,6 @@ export default function DashboardFreelance() {
                 />
               )}
             </div>
-          )}
 
           {/* Collaboration experts */}
           <div className="main-card" style={{ opacity: isVerified ? 1 : 0.6, marginBottom: 0, animationDelay: '0.4s' }}>
