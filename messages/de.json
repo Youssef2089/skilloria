@@ -316,6 +316,7 @@
         "title": "Empfohlene Missionen",
         "ai_badge": "KI",
         "empty_verified": "Aktuell passt noch keine Mission zu Ihrem Profil. Sobald eine {ecosystem}-Mission passt, erscheint sie hier.",
+        "empty_unverified": "Ihre empfohlenen Missionen erscheinen hier, sobald Ihr Profil validiert ist.",
         "analyzing": "Ihr Profil wird analysiert… Ihre {ecosystem}-Missionen erscheinen in Kürze."
       },
       "expert_collaboration": {
@@ -934,7 +935,7 @@
       "ai_badge": "KI",
       "see_all": "Alle anzeigen →",
       "locked_chip": "Profil nicht verifiziert",
-      "empty_unverified": "Ihre Vorschläge erscheinen hier, sobald Ihr Profil verifiziert ist.",
+      "empty_unverified": "Ihre empfohlenen Missionen erscheinen hier, sobald Ihr Profil validiert ist.",
       "empty_verified": "Keine empfohlenen Stellenangebote im Moment.",
       "analyzing": "Ihr Profil wird analysiert… Ihre {ecosystem}-Angebote erscheinen in Kürze."
     },

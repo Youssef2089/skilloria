@@ -316,6 +316,7 @@
         "title": "Misiones recomendadas",
         "ai_badge": "IA",
         "empty_verified": "Aún no hay misiones que coincidan con tu perfil. En cuanto una misión {ecosystem} coincida, aparecerá aquí.",
+        "empty_unverified": "Tus misiones recomendadas aparecerán aquí en cuanto se valide tu perfil.",
         "analyzing": "Analizando tu perfil… tus misiones {ecosystem} aparecerán en unos instantes."
       },
       "expert_collaboration": {
@@ -934,7 +935,7 @@
       "ai_badge": "IA",
       "see_all": "Ver todo →",
       "locked_chip": "Perfil no verificado",
-      "empty_unverified": "Tus sugerencias aparecerán aquí una vez verificado tu perfil.",
+      "empty_unverified": "Tus misiones recomendadas aparecerán aquí en cuanto se valide tu perfil.",
       "empty_verified": "Sin ofertas recomendadas por ahora.",
       "analyzing": "Analizando tu perfil… tus ofertas {ecosystem} aparecerán en unos instantes."
     },

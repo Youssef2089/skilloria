@@ -609,11 +609,10 @@ export default function DashboardCDI() {
               /dashboard/cdi/missions/[id] (cf. dashboardUrlForUserType
               implicit via side prop). Le 'Voir tout' pointe vers
               /dashboard/cdi/missions (page "Offres" du CDI). */}
-          {/* Suggestions affichées UNIQUEMENT si approuvé (verification_status
-              === 'approved'), source de vérité unique partagée avec la home
-              freelance. Non approuvé : section masquée (le VerificationBanner
-              ci-dessus informe déjà l'expert de son état "à valider"/refusé). */}
-          {isApprovedState && (
+          {/* Suggestions — section TOUJOURS visible (parité avec les autres
+              cartes ET avec la home freelance). Si non approuvé : état vide
+              "profil pas encore validé", JAMAIS le cache périmé (le fetch reste
+              gated sur isApprovedState = verification_status === 'approved'). */}
           <div className="main-card" style={{ animationDelay: '0.3s' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -626,7 +625,11 @@ export default function DashboardCDI() {
               </div>
               <Link href="/dashboard/cdi/missions" style={{ color: domain.primaryColor, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>{t('suggestions_section.see_all')}</Link>
             </div>
-            {(recommendedOffres === null) ? (
+            {!isApprovedState ? (
+              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
+                {t('suggestions_section.empty_unverified')}
+              </div>
+            ) : (recommendedOffres === null) ? (
               <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af' }}>
                 {t('loading')}
               </div>
@@ -685,7 +688,6 @@ export default function DashboardCDI() {
               />
             )}
           </div>
-          )}
 
           {/* SECTION — Mes candidatures (apres Suggestions, parite freelance). */}
           <div className="main-card" style={{ animationDelay: '0.35s' }}>

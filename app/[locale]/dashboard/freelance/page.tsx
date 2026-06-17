@@ -573,11 +573,10 @@ export default function DashboardFreelance() {
             <div style={{ fontSize: 13, color: '#6b7280', marginTop: 10, lineHeight: 1.6 }}>{t('completion.hint')}</div>
           </div>
 
-          {/* Missions recommandées — affichées UNIQUEMENT si approuvé
-              (verification_status === 'approved'). Non approuvé : section
-              masquée (le VerificationBanner ci-dessus informe déjà l'expert de
-              son état "à valider"/refusé). */}
-          {isApproved && (
+          {/* Missions recommandées — section TOUJOURS visible (parité avec les
+              autres cartes). Si non approuvé : état vide "profil pas encore
+              validé" via la même primitive empty-state que les autres sections,
+              JAMAIS le cache périmé (le fetch reste gated sur isApproved). */}
           <div className="main-card" style={{ animationDelay: '0.35s' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -586,7 +585,11 @@ export default function DashboardFreelance() {
               </div>
               <Link href="/dashboard/freelance/missions" className="voir-tout" style={{ color: domain.primaryColor }}>{t('cards.see_all')}</Link>
             </div>
-            {(recommendedMissions === null) ? (
+            {!isApproved ? (
+              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
+                {t('cards.recommended_missions.empty_unverified')}
+              </div>
+            ) : (recommendedMissions === null) ? (
               <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af' }}>
                 {t('loading')}
               </div>
@@ -645,7 +648,6 @@ export default function DashboardFreelance() {
               />
             )}
           </div>
-          )}
 
           {/* SC2 — Section "Vos candidatures" */}
           {isVerified && (
