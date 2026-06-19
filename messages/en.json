@@ -1886,6 +1886,8 @@
     "detail": {
       "back_to_feed": "← Back to opportunities",
       "back_to_dashboard": "← Back to dashboard",
+      "back_to_candidatures": "← Back to applications",
+      "back_to_messages": "← Back to messages",
       "loading": "Loading opportunity…",
       "error_generic": "Could not load this opportunity.",
       "error_not_found": "This opportunity no longer exists or is no longer available to you.",

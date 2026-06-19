@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { useRouter } from '@/i18n/navigation'
-import { dashboardUrlForUserType } from '@/lib/auth-routing'
+import { resolveBackNav } from '@/lib/auth-routing'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import CandidatureModal from '@/components/dashboard/CandidatureModal'
@@ -115,15 +115,13 @@ export default function MissionDetailView({
 
   const feedPath = `/dashboard/${side}/missions`
 
-  // Retour contextuel selon la provenance (?from=dashboard transmis par les
-  // cartes "Missions recommandées" du tableau de bord). Défaut sûr =
-  // comportement historique (retour à la liste opportunités). URL du dashboard
-  // via dashboardUrlForUserType (source unique), jamais en dur.
-  const fromDashboard = searchParams.get('from') === 'dashboard'
-  const backPath = fromDashboard
-    ? dashboardUrlForUserType(side === 'cdi' ? 'expert_cdi' : 'expert_freelance')
-    : feedPath
-  const backLabel = fromDashboard ? t('back_to_dashboard') : t('back_to_feed')
+  // Retour contextuel selon la provenance (?from=… transmis par chaque point
+  // d'entrée : dashboard, missions, candidatures, messages). Mécanisme central
+  // partagé via resolveBackNav (cf. lib/auth-routing) — défaut sûr = retour à
+  // la liste opportunités (comportement historique). Cibles jamais en dur ici.
+  const back = resolveBackNav(searchParams.get('from'), side)
+  const backPath = back.path
+  const backLabel = t(back.labelKey as 'back_to_feed')
 
   const load = useCallback(async (id: string) => {
     setState({ kind: 'loading' })

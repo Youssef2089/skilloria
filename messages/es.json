@@ -1886,6 +1886,8 @@
     "detail": {
       "back_to_feed": "← Volver a oportunidades",
       "back_to_dashboard": "← Volver al panel",
+      "back_to_candidatures": "← Volver a las candidaturas",
+      "back_to_messages": "← Volver a los mensajes",
       "loading": "Cargando oportunidad…",
       "error_generic": "No se pudo cargar esta oportunidad.",
       "error_not_found": "Esta oportunidad ya no existe o no está disponible para ti.",

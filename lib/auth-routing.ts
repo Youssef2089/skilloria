@@ -45,6 +45,46 @@ export function dashboardUrlForUserType(userType: string | null | undefined): st
 }
 
 /**
+ * Retour contextuel GÉNÉRIQUE des vues de détail côté expert (freelance + cdi).
+ *
+ * Mécanisme central : chaque point d'entrée (carte "Voir…", bouton "Ouvrir…")
+ * transmet sa provenance via le query param `?from=…` sur l'URL du détail ; la
+ * vue de détail calcule alors la cible + le libellé de son bouton "Retour" via
+ * ce resolver. Source unique de vérité pour cette table — aucune cible en dur
+ * ailleurs (dashboard via dashboardUrlForUserType, sections via leur chemin).
+ *
+ * Table :
+ *   - 'dashboard'    → dashboard de l'expert (via dashboardUrlForUserType)
+ *   - 'missions'     → /dashboard/{side}/missions       (liste opportunités)
+ *   - 'candidatures' → /dashboard/{side}/candidatures   (suivi candidatures)
+ *   - 'messages'     → /dashboard/{side}/messages       (messagerie)
+ *   - défaut (param absent/inconnu) → liste opportunités, libellé back_to_feed
+ *     (= comportement historique, défaut sûr).
+ *
+ * `labelKey` est une clé RELATIVE du namespace i18n `missions.detail`
+ * (le consommateur fait `t(labelKey)` avec `useTranslations('missions.detail')`).
+ */
+export function resolveBackNav(
+  from: string | null | undefined,
+  side: 'freelance' | 'cdi',
+): { path: string; labelKey: string } {
+  switch (from) {
+    case 'dashboard':
+      return {
+        path: dashboardUrlForUserType(side === 'cdi' ? 'expert_cdi' : 'expert_freelance'),
+        labelKey: 'back_to_dashboard',
+      }
+    case 'candidatures':
+      return { path: `/dashboard/${side}/candidatures`, labelKey: 'back_to_candidatures' }
+    case 'messages':
+      return { path: `/dashboard/${side}/messages`, labelKey: 'back_to_messages' }
+    case 'missions':
+    default:
+      return { path: `/dashboard/${side}/missions`, labelKey: 'back_to_feed' }
+  }
+}
+
+/**
  * Inverse de dashboardUrlForUserType : à partir d'un pathname `/dashboard/<seg>/...`,
  * retourne les user_type AUTORISÉS pour ce segment, ou `null` si le segment
  * n'est pas un dashboard role-specific (ex. `/dashboard/cabinet` = redirect).

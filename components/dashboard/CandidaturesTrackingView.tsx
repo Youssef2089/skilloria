@@ -485,7 +485,7 @@ function CandidatureDetail({
         )}
         {c.publication?.id && (
           <Link
-            href={`/dashboard/${side}/missions/${c.publication.id}`}
+            href={`/dashboard/${side}/missions/${c.publication.id}?from=candidatures`}
             style={{
               padding: '11px 20px', borderRadius: 11,
               background: 'var(--sk-surface)', color: 'var(--sk-text)',

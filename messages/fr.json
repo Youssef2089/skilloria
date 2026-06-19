@@ -1886,6 +1886,8 @@
     "detail": {
       "back_to_feed": "← Retour aux opportunités",
       "back_to_dashboard": "← Retour au tableau de bord",
+      "back_to_candidatures": "← Retour aux candidatures",
+      "back_to_messages": "← Retour aux messages",
       "loading": "Chargement de l'opportunité…",
       "error_generic": "Impossible de charger cette opportunité.",
       "error_not_found": "Cette opportunité n'existe pas ou ne vous est plus accessible.",
