@@ -1,7 +1,7 @@
 'use client'
 
 import { useLocale, useTranslations } from 'next-intl'
-import { Link } from '@/i18n/navigation'
+import { Link, usePathname } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import type { Annonce, AnnonceStatus } from '@/types/annonce'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from './PublicationSynthesisLine'
@@ -116,6 +116,9 @@ export default function AnnonceCard({ annonce, basePath }: Props) {
   const tPub = useTranslations('publications')
   const locale = useLocale()
   const domain = useDomain()
+  // Retour universel : on transmet la page courante comme provenance.
+  const pathname = usePathname()
+  const fromParam = `?from=${encodeURIComponent(pathname)}`
 
   const statusStyle = STATUS_STYLES[annonce.status]
   const faded = (FADED_STATUSES as readonly string[]).includes(annonce.status)
@@ -329,10 +332,10 @@ export default function AnnonceCard({ annonce, basePath }: Props) {
         <Link
           href={
             (EDITABLE_STATUSES as readonly string[]).includes(annonce.status)
-              ? `${basePath}/annonces/${annonce.id}/modifier`
+              ? `${basePath}/annonces/${annonce.id}/modifier${fromParam}`
               : annonce.status === 'published'
-                ? `${basePath}/annonces/${annonce.id}/candidatures`
-                : `${basePath}/annonces/${annonce.id}`
+                ? `${basePath}/annonces/${annonce.id}/candidatures${fromParam}`
+                : `${basePath}/annonces/${annonce.id}${fromParam}`
           }
           style={{
             fontSize: 12,

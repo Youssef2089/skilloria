@@ -97,6 +97,7 @@ export default function MissionDetailView({
   side?: 'freelance' | 'cdi'
 }) {
   const t = useTranslations('missions.detail')
+  const tBack = useTranslations('back_nav')
   const tPub = useTranslations('publications')
   const tForm = useTranslations('publications.form')
   const locale = useLocale()
@@ -115,13 +116,12 @@ export default function MissionDetailView({
 
   const feedPath = `/dashboard/${side}/missions`
 
-  // Retour contextuel selon la provenance (?from=… transmis par chaque point
-  // d'entrée : dashboard, missions, candidatures, messages). Mécanisme central
-  // partagé via resolveBackNav (cf. lib/auth-routing) — défaut sûr = retour à
-  // la liste opportunités (comportement historique). Cibles jamais en dur ici.
-  const back = resolveBackNav(searchParams.get('from'), side)
+  // Retour UNIVERSEL : ?from = chemin réel de la page d'origine (cf.
+  // resolveBackNav, lib/auth-routing). Fallback (deep-link sans from) = parent
+  // naturel = liste opportunités. Libellé via le namespace partagé back_nav.
+  const back = resolveBackNav(searchParams.get('from'), feedPath)
   const backPath = back.path
-  const backLabel = t(back.labelKey as 'back_to_feed')
+  const backLabel = tBack(back.labelKey as 'back')
 
   const load = useCallback(async (id: string) => {
     setState({ kind: 'loading' })

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { Link, useRouter } from '@/i18n/navigation'
+import { Link, useRouter, usePathname } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import OrgSetupModal from '@/components/OrgSetupModal'
 import { useDomain } from '@/context/DomainContext'
@@ -55,6 +55,7 @@ const PUB_TAB_STATUSES: Record<'published' | 'review' | 'drafts' | 'closed', rea
 
 export default function DashboardEntreprise() {
   const router = useRouter()
+  const pathname = usePathname()
   const locale = useLocale()
   const t = useTranslations('dashboard_entreprise')
   const tCommon = useTranslations('common')
@@ -211,7 +212,7 @@ export default function DashboardEntreprise() {
   }
 
   const isApproved = state.organizationVerified
-  const publishHref = `/dashboard/entreprise/annonces/nouvelle`
+  const publishHref = `/dashboard/entreprise/annonces/nouvelle?from=${encodeURIComponent(pathname)}`
   const isLoadingData = annoncesLive.state.kind === 'loading'
 
   return (
@@ -365,7 +366,7 @@ export default function DashboardEntreprise() {
             {t('overview.candidatures_title')}
           </div>
           <Link
-            href="/dashboard/entreprise/candidatures"
+            href={`/dashboard/entreprise/candidatures?from=${encodeURIComponent(pathname)}`}
             style={{ fontSize: 13, fontWeight: 600, color: domain.primaryColor, textDecoration: 'none' }}
           >
             {t('overview.see_candidatures')} →

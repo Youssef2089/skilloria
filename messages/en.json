@@ -1,4 +1,13 @@
 {
+  "back_nav": {
+    "back_to_dashboard": "← Back to dashboard",
+    "back_to_feed": "← Back to opportunities",
+    "back_to_candidatures": "← Back to applications",
+    "back_to_messages": "← Back to messages",
+    "back_to_annonces": "← Back to listings",
+    "back_to_experts": "← Back to experts",
+    "back": "← Back"
+  },
   "app": {
     "name": "Skilloria"
   },

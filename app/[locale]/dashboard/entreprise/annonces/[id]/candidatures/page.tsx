@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { useSearchParams } from 'next/navigation'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { resolveBackNav } from '@/lib/auth-routing'
 import { type CandidatureData } from '@/components/dashboard/CandidatureCard'
 import CastingCarousel from '@/components/dashboard/CastingCarousel'
 
@@ -33,12 +35,17 @@ type State =
 
 export default function CandidaturesPage({ params }: Props) {
   const t = useTranslations('candidatures.feed')
+  const tBack = useTranslations('back_nav')
   const tCasting = useTranslations('candidatures.casting')
   const tPub = useTranslations('publications.type')
   const locale = useLocale()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const domain = useDomain()
   const secureFetch = useSecureFetch()
+
+  // Retour universel : ?from = page réelle d'origine ; fallback = liste annonces.
+  const back = resolveBackNav(searchParams.get('from'), '/dashboard/entreprise/annonces')
 
   const [pubId, setPubId] = useState<string | null>(null)
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -103,7 +110,7 @@ export default function CandidaturesPage({ params }: Props) {
         <p style={{ fontSize: 14, color: '#b91c1c', marginBottom: 18 }}>{state.message}</p>
         <button
           type="button"
-          onClick={() => router.push('/dashboard/entreprise')}
+          onClick={() => router.push(back.path)}
           style={{
             padding: '10px 18px',
             background: domain.primaryColor,
@@ -116,7 +123,7 @@ export default function CandidaturesPage({ params }: Props) {
             fontFamily: 'inherit',
           }}
         >
-          {t('back_to_dashboard')}
+          {tBack(back.labelKey as 'back')}
         </button>
       </div>
     )
@@ -128,14 +135,14 @@ export default function CandidaturesPage({ params }: Props) {
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <button
         type="button"
-        onClick={() => router.push('/dashboard/entreprise')}
+        onClick={() => router.push(back.path)}
         style={{
           background: 'transparent', border: 'none', color: domain.primaryColor,
           fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 14,
           alignSelf: 'flex-start',
         }}
       >
-        {t('back_to_dashboard')}
+        {tBack(back.labelKey as 'back')}
       </button>
 
       {/* En-tête annonce */}

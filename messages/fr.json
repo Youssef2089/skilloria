@@ -1,4 +1,13 @@
 {
+  "back_nav": {
+    "back_to_dashboard": "← Retour au tableau de bord",
+    "back_to_feed": "← Retour aux opportunités",
+    "back_to_candidatures": "← Retour aux candidatures",
+    "back_to_messages": "← Retour aux messages",
+    "back_to_annonces": "← Retour aux annonces",
+    "back_to_experts": "← Retour aux experts",
+    "back": "← Retour"
+  },
   "app": {
     "name": "Skilloria"
   },

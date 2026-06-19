@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { Link } from '@/i18n/navigation'
+import { Link, usePathname } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
@@ -61,6 +61,7 @@ function formatDate(iso: string | null, locale: string): string {
 export default function AdminExpertsListPage() {
   const t = useTranslations('admin_back_office.experts')
   const locale = useLocale()
+  const pathname = usePathname()
   const secureFetch = useSecureFetch()
   const [tab, setTab] = useState<TabKey>('pending')
   const [counts, setCounts] = useState<Record<TabKey, number | null>>({ pending: null, approved: null, rejected: null, all: null })
@@ -160,7 +161,7 @@ export default function AdminExpertsListPage() {
             return (
               <Link
                 key={r.id}
-                href={`/admin/experts/${r.id}`}
+                href={`/admin/experts/${r.id}?from=${encodeURIComponent(pathname)}`}
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '44px 1fr 100px 90px 120px',

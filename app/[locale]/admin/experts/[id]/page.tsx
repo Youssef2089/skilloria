@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { use } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { useSearchParams } from 'next/navigation'
 import { useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { resolveBackNav } from '@/lib/auth-routing'
 
 /**
  * /admin/experts/[id] — fiche détaillée + actions Approve/Reject.
@@ -76,9 +78,14 @@ export default function AdminExpertDetailPage({ params }: Props) {
   const { id } = use(params)
   const t = useTranslations('admin_back_office.experts')
   const tCommon = useTranslations('common')
+  const tBack = useTranslations('back_nav')
   const locale = useLocale()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const secureFetch = useSecureFetch()
+
+  // Retour universel : ?from = page réelle d'origine ; fallback = liste experts.
+  const back = resolveBackNav(searchParams.get('from'), '/admin/experts')
   const [data, setData] = useState<Payload | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<'approve' | 'reject' | null>(null)
@@ -156,7 +163,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
     return (
       <div>
         <p style={{ color: '#b91c1c', marginBottom: 18 }}>{error}</p>
-        <button type="button" onClick={() => router.push('/admin/experts')} style={{ padding: '10px 18px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{t('back')}</button>
+        <button type="button" onClick={() => router.push(back.path)} style={{ padding: '10px 18px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{tBack(back.labelKey as 'back')}</button>
       </div>
     )
   }
@@ -170,7 +177,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
 
   return (
     <div>
-      <button type="button" onClick={() => router.push('/admin/experts')} style={{ background: 'transparent', border: 'none', color: '#475569', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 14 }}>← {t('back')}</button>
+      <button type="button" onClick={() => router.push(back.path)} style={{ background: 'transparent', border: 'none', color: '#475569', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 14 }}>{tBack(back.labelKey as 'back')}</button>
 
       {error && (
         <div role="alert" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 14px', borderRadius: 10, fontSize: 12, marginBottom: 16 }}>{error}</div>

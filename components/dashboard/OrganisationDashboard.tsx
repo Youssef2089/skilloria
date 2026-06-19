@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Link } from '@/i18n/navigation'
+import { Link, usePathname } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { type OrganisationLite } from '@/components/dashboard/OrganisationSidebar'
 import AnnonceCard from '@/components/dashboard/AnnonceCard'
@@ -110,7 +110,9 @@ export default function OrganisationDashboard({
   const [searchQuery, setSearchQuery] = useState('')
 
   const isApproved = organization.verification_status === 'approved'
-  const publishHref = `${basePath}/annonces/nouvelle`
+  // Retour universel : on transmet la page courante comme provenance.
+  const pathname = usePathname()
+  const publishHref = `${basePath}/annonces/nouvelle?from=${encodeURIComponent(pathname)}`
 
   // Compteurs par onglet (regroupement de 1..3 statuts BDD chacun).
   // 'all' = total des annonces (sans bucket — chevauche les 4 autres tabs).

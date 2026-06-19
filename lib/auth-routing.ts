@@ -45,43 +45,65 @@ export function dashboardUrlForUserType(userType: string | null | undefined): st
 }
 
 /**
- * Retour contextuel GÉNÉRIQUE des vues de détail côté expert (freelance + cdi).
+ * Retour UNIVERSEL des vues de détail (toute la plateforme : expert, entreprise,
+ * admin). Mécanisme unique : chaque point d'entrée transmet la PAGE RÉELLE
+ * d'origine via `?from=<encodeURIComponent(usePathname())>` ; la vue de détail
+ * calcule cible + libellé via `resolveBackNav`. La cible EST le chemin réel
+ * transmis (pas une étiquette figée) ; le libellé s'adapte à la destination.
  *
- * Mécanisme central : chaque point d'entrée (carte "Voir…", bouton "Ouvrir…")
- * transmet sa provenance via le query param `?from=…` sur l'URL du détail ; la
- * vue de détail calcule alors la cible + le libellé de son bouton "Retour" via
- * ce resolver. Source unique de vérité pour cette table — aucune cible en dur
- * ailleurs (dashboard via dashboardUrlForUserType, sections via leur chemin).
- *
- * Table :
- *   - 'dashboard'    → dashboard de l'expert (via dashboardUrlForUserType)
- *   - 'missions'     → /dashboard/{side}/missions       (liste opportunités)
- *   - 'candidatures' → /dashboard/{side}/candidatures   (suivi candidatures)
- *   - 'messages'     → /dashboard/{side}/messages       (messagerie)
- *   - défaut (param absent/inconnu) → liste opportunités, libellé back_to_feed
- *     (= comportement historique, défaut sûr).
- *
- * `labelKey` est une clé RELATIVE du namespace i18n `missions.detail`
- * (le consommateur fait `t(labelKey)` avec `useTranslations('missions.detail')`).
+ * Sécurité (anti open-redirect) : `from` n'est honoré que si c'est un chemin
+ * interne valide (commence par "/", pas de "//" ni d'URL/protocole externe) —
+ * sinon on retombe sur `fallback` (le parent naturel fourni par chaque vue).
  */
+export function isSafeInternalPath(p: string | null | undefined): p is string {
+  return (
+    typeof p === 'string' &&
+    p.length > 0 &&
+    p.startsWith('/') &&
+    !p.startsWith('//') &&
+    !p.includes('://') &&
+    !p.includes('\\') &&
+    !p.includes('\n') &&
+    !p.includes('\t')
+  )
+}
+
+/**
+ * Dérive la clé i18n du libellé "Retour" depuis le chemin de destination.
+ * Clés RELATIVES du namespace partagé `back_nav` (le consommateur fait
+ * `tBack(labelKey)` avec `useTranslations('back_nav')`).
+ *
+ * Basé sur le dernier segment réel du chemin :
+ *   - racine dashboard (freelance | cdi | entreprise | admin) → back_to_dashboard
+ *   - …/missions     → back_to_feed
+ *   - …/candidatures → back_to_candidatures
+ *   - …/messages     → back_to_messages
+ *   - …/annonces     → back_to_annonces
+ *   - …/experts      → back_to_experts
+ *   - sinon          → back (générique « Retour »)
+ */
+export function deriveBackLabel(path: string): string {
+  const seg = path.replace(/[?#].*$/, '').replace(/\/+$/, '').split('/').pop() ?? ''
+  switch (seg) {
+    case 'missions':     return 'back_to_feed'
+    case 'candidatures': return 'back_to_candidatures'
+    case 'messages':     return 'back_to_messages'
+    case 'annonces':     return 'back_to_annonces'
+    case 'experts':      return 'back_to_experts'
+    case 'freelance':
+    case 'cdi':
+    case 'entreprise':
+    case 'admin':        return 'back_to_dashboard'
+    default:             return 'back'
+  }
+}
+
 export function resolveBackNav(
   from: string | null | undefined,
-  side: 'freelance' | 'cdi',
+  fallback: string,
 ): { path: string; labelKey: string } {
-  switch (from) {
-    case 'dashboard':
-      return {
-        path: dashboardUrlForUserType(side === 'cdi' ? 'expert_cdi' : 'expert_freelance'),
-        labelKey: 'back_to_dashboard',
-      }
-    case 'candidatures':
-      return { path: `/dashboard/${side}/candidatures`, labelKey: 'back_to_candidatures' }
-    case 'messages':
-      return { path: `/dashboard/${side}/messages`, labelKey: 'back_to_messages' }
-    case 'missions':
-    default:
-      return { path: `/dashboard/${side}/missions`, labelKey: 'back_to_feed' }
-  }
+  const path = isSafeInternalPath(from) ? from : fallback
+  return { path, labelKey: deriveBackLabel(path) }
 }
 
 /**
