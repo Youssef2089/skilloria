@@ -64,7 +64,7 @@ export default function MissionCastingCard({
 
   return (
     <Link
-      href={`/dashboard/${side}/missions/${pub.id}`}
+      href={`/dashboard/${side}/missions/${pub.id}?from=dashboard`}
       style={{
         display: 'flex',
         flexDirection: 'column',

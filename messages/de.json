@@ -1885,6 +1885,7 @@
     },
     "detail": {
       "back_to_feed": "← Zurück zu den Möglichkeiten",
+      "back_to_dashboard": "← Zurück zum Dashboard",
       "loading": "Möglichkeit wird geladen…",
       "error_generic": "Diese Möglichkeit konnte nicht geladen werden.",
       "error_not_found": "Diese Möglichkeit existiert nicht mehr oder ist für Sie nicht mehr verfügbar.",

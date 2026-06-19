@@ -1885,6 +1885,7 @@
     },
     "detail": {
       "back_to_feed": "← Back to opportunities",
+      "back_to_dashboard": "← Back to dashboard",
       "loading": "Loading opportunity…",
       "error_generic": "Could not load this opportunity.",
       "error_not_found": "This opportunity no longer exists or is no longer available to you.",

@@ -102,7 +102,7 @@ export default function MissionCard({
 
   return (
     <Link
-      href={`/dashboard/${side}/missions/${pub.id}`}
+      href={`/dashboard/${side}/missions/${pub.id}?from=missions`}
       style={{
         display: 'block',
         background: '#fff',
