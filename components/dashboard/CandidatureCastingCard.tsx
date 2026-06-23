@@ -16,7 +16,8 @@ import type { MissionCardData } from './MissionCard'
  *
  * Vocabulaire expert PRÉSERVÉ via dashboard_{freelance,cdi} : « Mission
  * remportée » / « Poste décroché » pour 'selected' (jamais « Acceptée »).
- * Lien → page candidatures (nav existante). Pill « Nouveau » via viewed_by_me,
+ * Lien → page de DÉTAIL de la candidature (/candidatures/[id], Retour global).
+ * Pill « Nouveau » via viewed_by_me,
  * décrément à l'ouverture du détail, pas au scroll. Confidential : Avatar
  * initiales + 🔒, nom masqué (bandeau reste teinté).
  *
@@ -98,7 +99,7 @@ export default function CandidatureCastingCard({
 
   return (
     <Link
-      href={`/dashboard/${side}/candidatures`}
+      href={`/dashboard/${side}/candidatures/${candidature.id}`}
       style={{
         display: 'flex',
         flexDirection: 'column',

@@ -1673,7 +1673,9 @@
     "empty_filter_title": "Keine Bewerbungen in diesem Filter",
     "empty_filter_body": "Versuchen Sie einen anderen Filter, um alle Bewerbungen zu sehen.",
     "detail_empty_title": "Wählen Sie eine Bewerbung",
-    "detail_empty_subtitle": "Klicken Sie links auf eine Bewerbung, um deren Verfolgung und verfügbare Aktionen zu sehen."
+    "detail_empty_subtitle": "Klicken Sie links auf eine Bewerbung, um deren Verfolgung und verfügbare Aktionen zu sehen.",
+    "detail_not_found_title": "Bewerbung nicht gefunden",
+    "detail_not_found_body": "Diese Bewerbung existiert nicht oder ist nicht mehr verfügbar."
   },
   "candidatures": {
     "casting": {

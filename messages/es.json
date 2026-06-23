@@ -1673,7 +1673,9 @@
     "empty_filter_title": "Sin candidaturas en este filtro",
     "empty_filter_body": "Prueba otro filtro para ver todas tus candidaturas.",
     "detail_empty_title": "Selecciona una candidatura",
-    "detail_empty_subtitle": "Haz clic en una candidatura a la izquierda para ver su seguimiento y las acciones disponibles."
+    "detail_empty_subtitle": "Haz clic en una candidatura a la izquierda para ver su seguimiento y las acciones disponibles.",
+    "detail_not_found_title": "Candidatura no encontrada",
+    "detail_not_found_body": "Esta candidatura no existe o ya no está disponible."
   },
   "candidatures": {
     "casting": {

@@ -1673,7 +1673,9 @@
     "empty_filter_title": "No applications in this filter",
     "empty_filter_body": "Try another filter to see all your applications.",
     "detail_empty_title": "Select an application",
-    "detail_empty_subtitle": "Click an application on the left to see its tracking and available actions."
+    "detail_empty_subtitle": "Click an application on the left to see its tracking and available actions.",
+    "detail_not_found_title": "Application not found",
+    "detail_not_found_body": "This application doesn't exist or is no longer available."
   },
   "candidatures": {
     "casting": {
