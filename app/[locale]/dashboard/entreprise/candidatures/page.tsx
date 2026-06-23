@@ -2,11 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { useSearchParams } from 'next/navigation'
-import { Link, useRouter, usePathname } from '@/i18n/navigation'
+import { Link, useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
-import { resolveBackNav } from '@/lib/auth-routing'
 import { type CandidatureData } from '@/components/dashboard/CandidatureCard'
 import CastingCarousel from '@/components/dashboard/CastingCarousel'
 import { IconExternalLink } from '@tabler/icons-react'
@@ -51,18 +49,12 @@ type State =
 
 export default function GlobalCandidaturesPage() {
   const t = useTranslations('candidatures.feed_global')
-  const tBack = useTranslations('back_nav')
   const tCasting = useTranslations('candidatures.casting')
   const tPub = useTranslations('publications.type')
   const locale = useLocale()
   const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
   const domain = useDomain()
   const secureFetch = useSecureFetch()
-
-  // Retour universel : ?from = page réelle d'origine ; fallback = tableau de bord.
-  const back = resolveBackNav(searchParams.get('from'), '/dashboard/entreprise')
 
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [selectedPubId, setSelectedPubId] = useState<string | null>(null)
@@ -143,14 +135,14 @@ export default function GlobalCandidaturesPage() {
         <p style={{ fontSize: 14, color: 'var(--sk-red)', marginBottom: 18 }}>{state.message}</p>
         <button
           type="button"
-          onClick={() => router.push(back.path)}
+          onClick={() => router.push('/dashboard/entreprise')}
           style={{
             padding: '10px 18px', background: domain.primaryColor, color: '#fff',
             border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer',
             fontFamily: 'inherit',
           }}
         >
-          {tBack(back.labelKey as 'back')}
+          {t('back_to_dashboard')}
         </button>
       </div>
     )
@@ -323,7 +315,7 @@ export default function GlobalCandidaturesPage() {
                     {tCasting('count_candidates', { count: selectedItems.length })}
                   </span>
                   <Link
-                    href={`/dashboard/entreprise/annonces/${selectedPub.id}?from=${encodeURIComponent(pathname)}`}
+                    href={`/dashboard/entreprise/annonces/${selectedPub.id}`}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6,
                       padding: '7px 11px', borderRadius: 9,

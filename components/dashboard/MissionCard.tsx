@@ -1,7 +1,7 @@
 'use client'
 
 import { useLocale, useTranslations } from 'next-intl'
-import { Link, usePathname } from '@/i18n/navigation'
+import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from './PublicationSynthesisLine'
 
@@ -90,8 +90,6 @@ export default function MissionCard({
   const tPub = useTranslations('publications')
   const locale = useLocale()
   const domain = useDomain()
-  // Retour universel : on transmet la page courante comme provenance.
-  const pathname = usePathname()
 
   const { publication: pub, org, ai_score, ai_reason, match_status, matched_at } = mission
   void formatBudget
@@ -104,7 +102,7 @@ export default function MissionCard({
 
   return (
     <Link
-      href={`/dashboard/${side}/missions/${pub.id}?from=${encodeURIComponent(pathname)}`}
+      href={`/dashboard/${side}/missions/${pub.id}`}
       style={{
         display: 'block',
         background: '#fff',

@@ -2,11 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { useSearchParams } from 'next/navigation'
-import { Link, useRouter, usePathname } from '@/i18n/navigation'
+import { Link, useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
-import { resolveBackNav } from '@/lib/auth-routing'
 
 /**
  * /dashboard/entreprise/annonces/[id] — fiche détail annonce (lecture seule).
@@ -59,17 +57,11 @@ const EDITABLE_STATUSES = ['draft', 'suspended', 'archived']
 
 export default function AnnonceDetailPage({ params }: Props) {
   const t = useTranslations('publications.detail_org')
-  const tBack = useTranslations('back_nav')
   const tPub = useTranslations('publications')
   const locale = useLocale()
   const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
   const domain = useDomain()
   const secureFetch = useSecureFetch()
-
-  // Retour universel : ?from = page réelle d'origine ; fallback = liste annonces.
-  const back = resolveBackNav(searchParams.get('from'), '/dashboard/entreprise/annonces')
 
   const [pubId, setPubId] = useState<string | null>(null)
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -116,14 +108,14 @@ export default function AnnonceDetailPage({ params }: Props) {
         <p style={{ fontSize: 14, color: 'var(--sk-red)', marginBottom: 18 }}>{state.message}</p>
         <button
           type="button"
-          onClick={() => router.push(back.path)}
+          onClick={() => router.push('/dashboard/entreprise/annonces')}
           style={{
             padding: '10px 18px', background: domain.primaryColor, color: '#fff',
             border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer',
             fontFamily: 'inherit',
           }}
         >
-          {tBack(back.labelKey as 'back')}
+          {t('back_to_annonces')}
         </button>
       </div>
     )
@@ -150,14 +142,14 @@ export default function AnnonceDetailPage({ params }: Props) {
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <button
         type="button"
-        onClick={() => router.push(back.path)}
+        onClick={() => router.push('/dashboard/entreprise/annonces')}
         style={{
           background: 'transparent', border: 'none', color: domain.primaryColor,
           fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 14,
           alignSelf: 'flex-start',
         }}
       >
-        {tBack(back.labelKey as 'back')}
+        {t('back_to_annonces')}
       </button>
 
       {/* En-tête : badge type + titre + statut + actions */}
@@ -215,7 +207,7 @@ export default function AnnonceDetailPage({ params }: Props) {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           {isEditable && (
             <Link
-              href={`/dashboard/entreprise/annonces/${pub.id}/modifier?from=${encodeURIComponent(pathname)}`}
+              href={`/dashboard/entreprise/annonces/${pub.id}/modifier`}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '9px 14px', borderRadius: 9,
@@ -230,7 +222,7 @@ export default function AnnonceDetailPage({ params }: Props) {
           )}
           {isPublished && (
             <Link
-              href={`/dashboard/entreprise/annonces/${pub.id}/candidatures?from=${encodeURIComponent(pathname)}`}
+              href={`/dashboard/entreprise/annonces/${pub.id}/candidatures`}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '9px 14px', borderRadius: 9,

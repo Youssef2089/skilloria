@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import SessionHeartbeat from '@/components/SessionHeartbeat'
+import GlobalBackButton from '@/components/shell/GlobalBackButton'
 
 /**
  * Layout du back-office /admin (B5c).
@@ -290,6 +291,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       <main className="admin-main" style={{ padding: '24px 26px', minWidth: 0 }}>
+        <GlobalBackButton />
         {children}
       </main>
       </div>

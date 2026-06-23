@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
 import DashboardSidebar from './DashboardSidebar'
 import DashboardTopbar from './DashboardTopbar'
+import GlobalBackButton from './GlobalBackButton'
 
 /**
  * DashboardShell — shell pleine largeur partagé (Lot refonte UX).
@@ -207,6 +208,7 @@ export default function DashboardShell({
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <DashboardTopbar side={side} title={resolvedTitle} statusPill={statusPill} />
         <main style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          <GlobalBackButton />
           {children}
         </main>
       </div>

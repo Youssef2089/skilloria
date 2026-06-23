@@ -2,11 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { useSearchParams } from 'next/navigation'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
-import { resolveBackNav } from '@/lib/auth-routing'
 import {
   SENIORITY_CODES,
   WORK_MODE_CODES,
@@ -137,15 +135,10 @@ const EMPTY_STATE: FormState = {
 export default function PublicationForm(props: Props) {
   const t = useTranslations('publications')
   const tStatus = useTranslations('publications.status')
-  const tBack = useTranslations('back_nav')
   const locale = useLocale()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const domain = useDomain()
   const secureFetch = useSecureFetch()
-
-  // Retour universel : ?from = page réelle d'origine ; fallback = liste annonces.
-  const back = resolveBackNav(searchParams.get('from'), '/dashboard/entreprise/annonces')
 
   const isEdit = props.mode === 'edit'
   const initialState = isEdit ? initialFromDraft(props.initial) : EMPTY_STATE
@@ -503,7 +496,7 @@ export default function PublicationForm(props: Props) {
         </div>
         <button
           type="button"
-          onClick={() => router.push(back.path)}
+          onClick={() => router.push('/dashboard/entreprise')}
           style={{
             padding: '12px 22px',
             background: domain.primaryColor,
@@ -516,7 +509,7 @@ export default function PublicationForm(props: Props) {
             fontFamily: 'inherit',
           }}
         >
-          {tBack(back.labelKey as 'back')}
+          {t('form.button_back_to_list')}
         </button>
       </div>
     )
@@ -527,7 +520,7 @@ export default function PublicationForm(props: Props) {
     <div style={{ maxWidth: 880, padding: '24px 26px 40px', fontFamily: 'inherit' }}>
       <button
         type="button"
-        onClick={() => router.push(back.path)}
+        onClick={() => router.push('/dashboard/entreprise')}
         style={{
           background: 'transparent',
           border: 'none',
@@ -539,7 +532,7 @@ export default function PublicationForm(props: Props) {
           marginBottom: 18,
         }}
       >
-        {tBack(back.labelKey as 'back')}
+        {t('form.button_back_to_list')}
       </button>
 
       <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', marginBottom: 6, letterSpacing: '-0.3px' }}>

@@ -2,11 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useSearchParams } from 'next/navigation'
 import { useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { useDomain } from '@/context/DomainContext'
-import { resolveBackNav } from '@/lib/auth-routing'
 import PublicationForm from '@/components/dashboard/PublicationForm'
 import type { PublicationDraft } from '@/types/publication'
 
@@ -29,15 +27,10 @@ type LoadState =
 
 export default function ModifierAnnoncePage({ params }: Props) {
   const t = useTranslations('publications')
-  const tBack = useTranslations('back_nav')
   const router = useRouter()
-  const searchParams = useSearchParams()
   const secureFetch = useSecureFetch()
   const domain = useDomain()
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
-
-  // Retour universel : ?from = page réelle d'origine ; fallback = liste annonces.
-  const back = resolveBackNav(searchParams.get('from'), '/dashboard/entreprise/annonces')
 
   const load = useCallback(async () => {
     const { id } = await params
@@ -86,7 +79,7 @@ export default function ModifierAnnoncePage({ params }: Props) {
         <p style={{ fontSize: 14, color: '#b91c1c', marginBottom: 18 }}>{state.message}</p>
         <button
           type="button"
-          onClick={() => router.push(back.path)}
+          onClick={() => router.push('/dashboard/entreprise')}
           style={{
             padding: '10px 18px',
             background: domain.primaryColor,
@@ -99,7 +92,7 @@ export default function ModifierAnnoncePage({ params }: Props) {
             fontFamily: 'inherit',
           }}
         >
-          {tBack(back.labelKey as 'back')}
+          {t('form.button_back_to_list')}
         </button>
       </div>
     )

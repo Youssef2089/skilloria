@@ -2,9 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { useSearchParams } from 'next/navigation'
 import { useRouter } from '@/i18n/navigation'
-import { resolveBackNav } from '@/lib/auth-routing'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import CandidatureModal from '@/components/dashboard/CandidatureModal'
@@ -97,12 +95,10 @@ export default function MissionDetailView({
   side?: 'freelance' | 'cdi'
 }) {
   const t = useTranslations('missions.detail')
-  const tBack = useTranslations('back_nav')
   const tPub = useTranslations('publications')
   const tForm = useTranslations('publications.form')
   const locale = useLocale()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const domain = useDomain()
   const secureFetch = useSecureFetch()
 
@@ -115,13 +111,6 @@ export default function MissionDetailView({
   const [dismissing, setDismissing] = useState(false)
 
   const feedPath = `/dashboard/${side}/missions`
-
-  // Retour UNIVERSEL : ?from = chemin réel de la page d'origine (cf.
-  // resolveBackNav, lib/auth-routing). Fallback (deep-link sans from) = parent
-  // naturel = liste opportunités. Libellé via le namespace partagé back_nav.
-  const back = resolveBackNav(searchParams.get('from'), feedPath)
-  const backPath = back.path
-  const backLabel = tBack(back.labelKey as 'back')
 
   const load = useCallback(async (id: string) => {
     setState({ kind: 'loading' })
@@ -220,13 +209,13 @@ export default function MissionDetailView({
         <p style={{ fontSize: 14, color: 'var(--sk-red)', marginBottom: 18 }}>{state.message}</p>
         <button
           type="button"
-          onClick={() => router.push(backPath)}
+          onClick={() => router.push(feedPath)}
           style={{
             padding: '10px 18px', background: domain.primaryColor, color: '#fff',
             border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
-          {backLabel}
+          {t('back_to_feed')}
         </button>
       </div>
     )
@@ -239,17 +228,6 @@ export default function MissionDetailView({
 
   return (
     <div style={{ maxWidth: 980, padding: '24px 26px' }}>
-      <button
-        type="button"
-        onClick={() => router.push(backPath)}
-        style={{
-          background: 'transparent', border: 'none', color: domain.primaryColor,
-          fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 18,
-        }}
-      >
-        {backLabel}
-      </button>
-
       {errorBanner && (
         <div role="alert" style={{ background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red)', color: 'var(--sk-red)', padding: '12px 16px', borderRadius: 10, fontSize: 13, marginBottom: 18 }}>
           {errorBanner}

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { DomainProvider } from "@/context/DomainContext";
+import NavHistoryProvider from "@/components/shell/NavHistoryProvider";
 import { getDomainConfig } from "@/lib/get-domain-config";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
@@ -63,7 +64,9 @@ export default async function LocaleLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} ${plusJakarta.variable} min-h-full flex flex-col`}>
         <NextIntlClientProvider messages={messages} locale={locale}>
           <DomainProvider config={domainConfig}>
-            {children}
+            <NavHistoryProvider>
+              {children}
+            </NavHistoryProvider>
           </DomainProvider>
         </NextIntlClientProvider>
       </body>

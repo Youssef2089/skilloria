@@ -1,7 +1,7 @@
 'use client'
 
 import { useLocale, useTranslations } from 'next-intl'
-import { Link, usePathname } from '@/i18n/navigation'
+import { Link } from '@/i18n/navigation'
 import Avatar from '@/components/ui/Avatar'
 import { castingTheme } from '@/lib/casting-theme'
 import { relativeTimeFromNow } from '@/lib/relative-time'
@@ -39,8 +39,6 @@ export default function MissionCastingCard({
   const tc = useTranslations('missions.casting')
   const tPub = useTranslations('publications')
   const locale = useLocale()
-  // Retour universel : on transmet la page courante comme provenance.
-  const pathname = usePathname()
 
   const { publication: pub, org, ai_score, match_status, skills_required = [] } = mission
 
@@ -66,7 +64,7 @@ export default function MissionCastingCard({
 
   return (
     <Link
-      href={`/dashboard/${side}/missions/${pub.id}?from=${encodeURIComponent(pathname)}`}
+      href={`/dashboard/${side}/missions/${pub.id}`}
       style={{
         display: 'flex',
         flexDirection: 'column',

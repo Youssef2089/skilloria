@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { Link, usePathname } from '@/i18n/navigation'
+import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import {
@@ -343,8 +343,6 @@ function CandidatureDetail({
   side: 'freelance' | 'cdi'
 }) {
   void domainAccent
-  // Retour universel : provenance = page courante (suivi des candidatures).
-  const pathname = usePathname()
   const pk = statusToPillKind(c.status)
   const PIcon = pk === 'won' ? IconTrophy : pk === 'open' ? IconLockOpen : pk === 'refused' ? IconX : IconClock
   const isSelected = c.status === 'selected'
@@ -487,7 +485,7 @@ function CandidatureDetail({
         )}
         {c.publication?.id && (
           <Link
-            href={`/dashboard/${side}/missions/${c.publication.id}?from=${encodeURIComponent(pathname)}`}
+            href={`/dashboard/${side}/missions/${c.publication.id}`}
             style={{
               padding: '11px 20px', borderRadius: 11,
               background: 'var(--sk-surface)', color: 'var(--sk-text)',
