@@ -57,6 +57,24 @@ const MENU_ROUTES: ReadonlySet<string> = new Set<string>([
   ...ADMIN_MENU_ROUTES,
 ])
 
+/**
+ * Bases de la MESSAGERIE (tous rôles). La messagerie est un inbox MASTER-DETAIL
+ * (liste de conversations + conversation ouverte dans le même écran). Ouvrir une
+ * conversation passe l'URL à `…/messages/[id]` (replaceState, sans navigation) :
+ * ce n'est PAS un drill-in « liste → détail », c'est toujours la page de menu
+ * Messages. On considère donc TOUTE la section `…/messages[/…]` comme une route
+ * de menu → pas de bouton Retour, ni sur la liste ni sur une conversation.
+ */
+const MESSAGING_BASES = [
+  '/dashboard/freelance/messages',
+  '/dashboard/cdi/messages',
+  '/dashboard/entreprise/messages',
+] as const
+
+function isMessagingRoute(path: string): boolean {
+  return MESSAGING_BASES.some((base) => path === base || path.startsWith(base + '/'))
+}
+
 /** Normalise un pathname : retire la query/hash et le slash final (sauf racine). */
 function normalize(pathname: string): string {
   const clean = pathname.replace(/[?#].*$/, '')
@@ -69,5 +87,6 @@ function normalize(pathname: string): string {
  */
 export function isMenuRoute(pathname: string | null | undefined): boolean {
   if (!pathname) return false
-  return MENU_ROUTES.has(normalize(pathname))
+  const path = normalize(pathname)
+  return MENU_ROUTES.has(path) || isMessagingRoute(path)
 }
