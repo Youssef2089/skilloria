@@ -518,23 +518,6 @@ export default function PublicationForm(props: Props) {
   // ── Form principal ─────────────────────────────────────────────────────
   return (
     <div style={{ maxWidth: 880, padding: '24px 26px 40px', fontFamily: 'inherit' }}>
-      <button
-        type="button"
-        onClick={() => router.push('/dashboard/entreprise')}
-        style={{
-          background: 'transparent',
-          border: 'none',
-          color: domain.primaryColor,
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: 'pointer',
-          padding: 0,
-          marginBottom: 18,
-        }}
-      >
-        {t('form.button_back_to_list')}
-      </button>
-
       <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', marginBottom: 6, letterSpacing: '-0.3px' }}>
         {headerTitle}
       </h1>

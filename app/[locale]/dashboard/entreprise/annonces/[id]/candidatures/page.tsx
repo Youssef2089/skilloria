@@ -126,18 +126,6 @@ export default function CandidaturesPage({ params }: Props) {
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-      <button
-        type="button"
-        onClick={() => router.push('/dashboard/entreprise')}
-        style={{
-          background: 'transparent', border: 'none', color: domain.primaryColor,
-          fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 14,
-          alignSelf: 'flex-start',
-        }}
-      >
-        {t('back_to_dashboard')}
-      </button>
-
       {/* En-tête annonce */}
       <div
         style={{

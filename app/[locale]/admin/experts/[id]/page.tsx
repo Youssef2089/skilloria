@@ -171,8 +171,6 @@ export default function AdminExpertDetailPage({ params }: Props) {
 
   return (
     <div>
-      <button type="button" onClick={() => router.push('/admin/experts')} style={{ background: 'transparent', border: 'none', color: '#475569', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 14 }}>← {t('back')}</button>
-
       {error && (
         <div role="alert" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 14px', borderRadius: 10, fontSize: 12, marginBottom: 16 }}>{error}</div>
       )}
