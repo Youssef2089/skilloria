@@ -1,8 +1,9 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useRouter } from '@/i18n/navigation'
+import { useRouter, usePathname } from '@/i18n/navigation'
 import { deriveBackLabel, isSafeInternalPath } from '@/lib/auth-routing'
+import { isMenuRoute } from '@/lib/menu-routes'
 import { useNavHistory } from './NavHistoryProvider'
 
 /**
@@ -12,6 +13,10 @@ import { useNavHistory } from './NavHistoryProvider'
  * FL/CDI/entreprise + leurs pages de détail) ET en tête du <main> admin. Même
  * composant, même pile (NavHistoryProvider).
  *
+ *  - ne s'affiche QUE sur une page de DÉTAIL : si la page COURANTE est une
+ *    page de MENU (entrée de sidebar, cf. isMenuRoute) → n'affiche RIEN. Fini
+ *    le « Retour aux opportunités » planté sur le tableau de bord quand on
+ *    bascule entre menus ;
  *  - cible = pile[len-2] (exposée via useNavHistory().backTarget) ;
  *  - si pas de cible (pile < 2 : arrivée directe, rechargement, lien profond,
  *    page d'origine) → n'affiche RIEN ;
@@ -27,8 +32,11 @@ import { useNavHistory } from './NavHistoryProvider'
 export default function GlobalBackButton() {
   const { backTarget } = useNavHistory()
   const router = useRouter()
+  const pathname = usePathname()
   const t = useTranslations('back_nav')
 
+  // Jamais de Retour sur une page de MENU (sidebar) : uniquement sur un détail.
+  if (isMenuRoute(pathname)) return null
   if (!backTarget || !isSafeInternalPath(backTarget)) return null
 
   const label = t(deriveBackLabel(backTarget) as 'back')
