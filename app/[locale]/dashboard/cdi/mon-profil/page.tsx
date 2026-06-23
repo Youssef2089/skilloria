@@ -492,20 +492,6 @@ export default function CdiMonProfilPage() {
       />
 
       <main className="sk-page-main" style={{ width: '100%', padding: '24px 24px 56px' }}>
-        {/* Back link */}
-        <div style={{ marginBottom: 14 }}>
-          <Link
-            href="/dashboard/cdi"
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: domain.primaryColor,
-              textDecoration: 'none',
-            }}
-          >
-            {t('back_to_dashboard')}
-          </Link>
-        </div>
         {/* En-tête : titre à gauche, actions à droite sur la même rangée */}
         <div
           className="sk-action-bar"

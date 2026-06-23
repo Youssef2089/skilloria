@@ -362,23 +362,6 @@ export default function CdiProfilUploadPage() {
 
       {/* Main */}
       <div className="profil-main" style={{ maxWidth: 1040, margin: '0 auto', padding: 32 }}>
-        <button
-          type="button"
-          onClick={() => router.push('/dashboard/cdi')}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: domain.primaryColor,
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-            padding: 0,
-            marginBottom: 24,
-          }}
-        >
-          {t('back_link')}
-        </button>
-
         {errorMsg && (
           <div
             role="alert"

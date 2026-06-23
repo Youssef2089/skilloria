@@ -942,12 +942,6 @@ export default function MonProfilPage() {
 
         {/* ─── Main ─── */}
         <div className="ds-main" style={{ flex: 1, padding: 24, width: '100%' }}>
-          {/* Back link */}
-          <div style={{ paddingTop: 4, marginBottom: 10 }}>
-            <Link href="/dashboard/freelance" className="icon-btn">
-              {t('back_to_dashboard')}
-            </Link>
-          </div>
           {/* En-tête : titre à gauche, actions à droite sur la même rangée */}
           <div
             className="top-actions"
