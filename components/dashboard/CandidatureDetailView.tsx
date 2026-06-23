@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import EmptyState from '@/components/ui/EmptyState'
 import CandidatureDetailPanel, { type Candidature } from '@/components/dashboard/CandidatureDetailPanel'
 import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
+import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
  * CandidatureDetailView — page de DÉTAIL d'une candidature (route dédiée
@@ -36,6 +37,7 @@ export default function CandidatureDetailView({
 }) {
   const t = useTranslations('candidatures_tracking')
   const locale = useLocale()
+  const secureFetch = useSecureFetch()
   const markCandidatureViewed = useMarkCandidatureViewed()
   const [state, setState] = useState<State>({ kind: 'loading' })
 
@@ -45,7 +47,7 @@ export default function CandidatureDetailView({
     setState({ kind: 'loading' })
     void (async () => {
       try {
-        const res = await fetch(`/api/me/candidatures?locale=${encodeURIComponent(locale)}`, { cache: 'no-store' })
+        const res = await secureFetch(`/api/me/candidatures?locale=${encodeURIComponent(locale)}`, { method: 'GET' })
         if (!res.ok) { if (!cancelled) setState({ kind: 'error' }); return }
         const data = await res.json()
         const list: Candidature[] = data.candidatures ?? []
@@ -57,7 +59,7 @@ export default function CandidatureDetailView({
       }
     })()
     return () => { cancelled = true }
-  }, [candidatureId, locale])
+  }, [candidatureId, locale, secureFetch])
 
   // Ouvrir le détail marque la candidature comme consultée (badge -1), comme
   // le clic sur un item du master-detail.
