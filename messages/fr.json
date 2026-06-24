@@ -729,6 +729,38 @@
       "wrong_domain": "Votre compte est associé à un autre espace Skilloria. Veuillez vous connecter sur {subdomain}.skilloria.io"
     }
   },
+  "forgot_password": {
+    "title": "Mot de passe oublié",
+    "subtitle": "Saisissez votre email : nous vous enverrons un lien de réinitialisation.",
+    "submit": "Envoyer le lien",
+    "submitting": "Envoi en cours…",
+    "sent_title": "Vérifiez votre boîte mail",
+    "sent_message": "Si un compte existe pour cette adresse, un lien de réinitialisation vient d'être envoyé.",
+    "back_to_login": "← Retour à la connexion",
+    "errors": {
+      "missing_email": "Veuillez saisir votre email.",
+      "generic": "Une erreur est survenue. Veuillez réessayer."
+    }
+  },
+  "reset_password": {
+    "loading": "Vérification du lien…",
+    "title": "Nouveau mot de passe",
+    "subtitle": "Choisissez un nouveau mot de passe pour votre compte.",
+    "new_password_label": "Nouveau mot de passe",
+    "new_password_placeholder": "Au moins 8 caractères",
+    "confirm_label": "Confirmer le mot de passe",
+    "confirm_placeholder": "Retapez votre mot de passe",
+    "submit": "Réinitialiser le mot de passe",
+    "submitting": "Réinitialisation…",
+    "invalid_title": "Lien invalide ou expiré",
+    "invalid_message": "Ce lien de réinitialisation n'est plus valide. Veuillez en demander un nouveau.",
+    "request_new_link": "Demander un nouveau lien",
+    "errors": {
+      "too_short": "Le mot de passe doit contenir au moins 8 caractères.",
+      "mismatch": "Les deux mots de passe ne correspondent pas.",
+      "generic": "Impossible de réinitialiser le mot de passe. Veuillez réessayer."
+    }
+  },
   "signup": {
     "welcome_badge": "BIENVENUE 👋",
     "title": "Choisissez votre profil",

@@ -729,6 +729,38 @@
       "wrong_domain": "Tu cuenta está asociada a otro espacio Skilloria. Por favor inicia sesión en {subdomain}.skilloria.io"
     }
   },
+  "forgot_password": {
+    "title": "Contraseña olvidada",
+    "subtitle": "Introduce tu correo: te enviaremos un enlace para restablecerla.",
+    "submit": "Enviar el enlace",
+    "submitting": "Enviando…",
+    "sent_title": "Revisa tu correo",
+    "sent_message": "Si existe una cuenta para esta dirección, acabamos de enviar un enlace para restablecer la contraseña.",
+    "back_to_login": "← Volver al inicio de sesión",
+    "errors": {
+      "missing_email": "Introduce tu correo.",
+      "generic": "Se ha producido un error. Inténtalo de nuevo."
+    }
+  },
+  "reset_password": {
+    "loading": "Verificando el enlace…",
+    "title": "Nueva contraseña",
+    "subtitle": "Elige una nueva contraseña para tu cuenta.",
+    "new_password_label": "Nueva contraseña",
+    "new_password_placeholder": "Al menos 8 caracteres",
+    "confirm_label": "Confirmar contraseña",
+    "confirm_placeholder": "Vuelve a escribir tu contraseña",
+    "submit": "Restablecer la contraseña",
+    "submitting": "Restableciendo…",
+    "invalid_title": "Enlace no válido o caducado",
+    "invalid_message": "Este enlace para restablecer ya no es válido. Solicita uno nuevo.",
+    "request_new_link": "Solicitar un nuevo enlace",
+    "errors": {
+      "too_short": "La contraseña debe tener al menos 8 caracteres.",
+      "mismatch": "Las dos contraseñas no coinciden.",
+      "generic": "No se ha podido restablecer la contraseña. Inténtalo de nuevo."
+    }
+  },
   "signup": {
     "welcome_badge": "BIENVENIDO 👋",
     "title": "Elige tu perfil",

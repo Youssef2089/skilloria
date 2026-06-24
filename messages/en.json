@@ -729,6 +729,38 @@
       "wrong_domain": "Your account belongs to another Skilloria workspace. Please sign in at {subdomain}.skilloria.io"
     }
   },
+  "forgot_password": {
+    "title": "Forgot your password",
+    "subtitle": "Enter your email: we'll send you a reset link.",
+    "submit": "Send the link",
+    "submitting": "Sending…",
+    "sent_title": "Check your inbox",
+    "sent_message": "If an account exists for this address, a reset link has just been sent.",
+    "back_to_login": "← Back to sign in",
+    "errors": {
+      "missing_email": "Please enter your email.",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "reset_password": {
+    "loading": "Verifying the link…",
+    "title": "New password",
+    "subtitle": "Choose a new password for your account.",
+    "new_password_label": "New password",
+    "new_password_placeholder": "At least 8 characters",
+    "confirm_label": "Confirm password",
+    "confirm_placeholder": "Re-enter your password",
+    "submit": "Reset password",
+    "submitting": "Resetting…",
+    "invalid_title": "Invalid or expired link",
+    "invalid_message": "This reset link is no longer valid. Please request a new one.",
+    "request_new_link": "Request a new link",
+    "errors": {
+      "too_short": "Password must be at least 8 characters.",
+      "mismatch": "The two passwords do not match.",
+      "generic": "Could not reset the password. Please try again."
+    }
+  },
   "signup": {
     "welcome_badge": "WELCOME 👋",
     "title": "Choose your profile",
