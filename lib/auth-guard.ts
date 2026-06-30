@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import { readSessionCookieToken } from '@/lib/session-token'
+import { readSessionCookieToken, hashSessionToken } from '@/lib/session-token'
 
 export type AuthUser = {
   id: string
@@ -195,7 +195,11 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
     const cookieToken = readSessionCookieToken(request)
     const headerToken = request.headers.get('x-session-token')
     const clientToken = cookieToken ?? headerToken
-    if (clientToken !== userRow.last_session_token) {
+    // C2 : la BDD stocke le sha256 du token, le client envoie le brut (cookie
+    // ss_token). On hashe l'entrée client avant comparaison. clientToken null
+    // → hash impossible → mismatch (403), comme avant.
+    const clientHash = clientToken ? hashSessionToken(clientToken) : null
+    if (clientHash !== userRow.last_session_token) {
       throw new AuthError(403, {
         error: 'Session superseded by another login',
         code: 'session_superseded',

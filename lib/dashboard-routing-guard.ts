@@ -24,6 +24,7 @@ import {
   allowedUserTypesForDashboardSegment,
   dashboardUrlForUserType,
 } from '@/lib/auth-routing'
+import { hashSessionToken } from '@/lib/session-token'
 
 function getSupabaseAdmin(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -83,10 +84,13 @@ export async function assertDashboardRoleGuard(): Promise<void> {
   const supabaseAdmin = getSupabaseAdmin()
   if (!supabaseAdmin) return
 
+  // C2 : la BDD stocke le sha256 du token ; le cookie ss_token contient le
+  // brut. On hashe la valeur du cookie avant le lookup, sinon le WHERE ne
+  // matche jamais et ce garde casse (redirect dashboard rompu).
   const { data, error } = await supabaseAdmin
     .from('users')
     .select('id, user_type')
-    .eq('last_session_token', sessionToken)
+    .eq('last_session_token', hashSessionToken(sessionToken))
     .maybeSingle()
 
   if (error) {

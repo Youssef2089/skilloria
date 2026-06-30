@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { randomUUID } from 'node:crypto'
+import { randomUUID, createHash } from 'node:crypto'
 
 /**
  * Helpers de gestion du token de session unique (11F).
@@ -55,7 +55,34 @@ export function generateSessionToken(): string {
   return randomUUID()
 }
 
-/** UPDATE users SET last_session_token = <token>. Service-role obligatoire. */
+/**
+ * Hash sha256 (hex) du token de session (C2).
+ *
+ * Modèle de stockage : le COOKIE `ss_token` garde le token BRUT (il est déjà
+ * HttpOnly/Secure, donc inaccessible au JS et hors-HTTPS) ; seule la valeur
+ * stockée EN BASE (`users.last_session_token`) devient ce hash. Ainsi la
+ * colonne est inexploitable même si elle est lue (l'event trigger
+ * `ensure_rls` re-GRANT SELECT → un REVOKE ne tient pas ; le hash, lui, ne
+ * permet pas de forger le cookie sans inverser sha256).
+ *
+ * sha256 NON salé est suffisant : le token est un `crypto.randomUUID()`
+ * (~122 bits d'entropie), donc non brute-forçable / non dictionnable. NE PAS
+ * utiliser bcrypt/argon2 ici (lents, inutiles pour un secret haute entropie,
+ * et exécutés à chaque requête authentifiée).
+ *
+ * Source UNIQUE de vérité : écriture (setSessionToken), comparaison
+ * (auth-guard) et lookup inversé (dashboard-routing-guard) passent tous par
+ * cette fonction pour hasher l'entrée avant de toucher la BDD.
+ */
+export function hashSessionToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex')
+}
+
+/**
+ * UPDATE users SET last_session_token = sha256(<token>). Service-role
+ * obligatoire. On reçoit le token BRUT et on stocke son HASH (cf.
+ * hashSessionToken) : le cookie conserve le brut, la BDD le hash.
+ */
 export async function setSessionToken(args: {
   supabaseAdmin: SupabaseClient
   userId: string
@@ -64,7 +91,7 @@ export async function setSessionToken(args: {
   const { supabaseAdmin, userId, token } = args
   const { error } = await supabaseAdmin
     .from('users')
-    .update({ last_session_token: token })
+    .update({ last_session_token: hashSessionToken(token) })
     .eq('id', userId)
   if (error) {
     console.error('[session-token] setSessionToken update failed', {
