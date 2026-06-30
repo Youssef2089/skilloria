@@ -1,0 +1,20 @@
+# Supabase CLI config — VERSIONNÉ (ce fichier doit être committé).
+# Référence : https://supabase.com/docs/guides/cli/config
+#
+# Écrit à la main (pas de `supabase init`) pour ne RIEN écraser dans
+# supabase/migrations/ (17 migrations existantes préservées).
+#
+# `project_id` = label LOCAL stable du projet pour la CLI (nommage de la
+# stack de dev). Volontairement générique (« skilloria ») pour un workflow
+# MULTI-ENV : le ciblage réel d'un projet distant (staging OU prod) se fait
+# via `supabase link <ref>`, dont le ref est stocké dans supabase/.temp/
+# (gitignoré). Versionner ce fichier ne se connecte à aucune base.
+#   - staging : ref wnayuerhakekxccgimeg (eu-central-1)
+#   - prod    : ref à renseigner le moment venu
+project_id = "skilloria"
+
+[db]
+# Version majeure Postgres de la base locale shadow/dev générée par la CLI.
+# Calée sur la prod/staging distante (captée par la CLI : 17.6) pour que la
+# reproduction locale et les `db diff` soient fidèles.
+major_version = 17
