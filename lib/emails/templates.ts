@@ -46,7 +46,7 @@ export function renderWelcomeEmail(params: WelcomeEmailParams): RenderedEmail {
 <p style="margin:0;">${bodyP2Html}</p>`
 
   const bodyText = [
-    helloLine,
+    stripHtml(helloLine),
     '',
     stripHtml(bodyP1Html),
     '',
@@ -111,7 +111,7 @@ export function renderRejectEmail(params: RejectEmailParams): RenderedEmail {
 ${reasonP2Html}
 <p style="margin:0;">${bodyP3Html}</p>`
 
-  const bodyTextParts = [helloLine, '', stripHtml(bodyP1Html)]
+  const bodyTextParts = [stripHtml(helloLine), '', stripHtml(bodyP1Html)]
   if (params.reason) {
     bodyTextParts.push('', stripHtml(interpolate(m.body_with_reason_p2, variables)))
   }
@@ -172,7 +172,7 @@ export function renderExpertWelcomeEmail(params: ExpertWelcomeEmailParams): Rend
 <p style="margin:0 0 12px;">${bodyP1Html}</p>
 <p style="margin:0;">${bodyP2Html}</p>`
 
-  const bodyText = [helloLine, '', stripHtml(bodyP1Html), '', bodyP2Html].join('\n')
+  const bodyText = [stripHtml(helloLine), '', stripHtml(bodyP1Html), '', bodyP2Html].join('\n')
 
   const html = renderEmailHtml({
     title: m.title,
@@ -230,7 +230,7 @@ export function renderExpertRejectEmail(params: ExpertRejectEmailParams): Render
 ${reasonP2Html}
 <p style="margin:0;">${bodyP3Html}</p>`
 
-  const bodyTextParts = [helloLine, '', stripHtml(bodyP1Html)]
+  const bodyTextParts = [stripHtml(helloLine), '', stripHtml(bodyP1Html)]
   if (params.reason) {
     bodyTextParts.push('', stripHtml(interpolate(m.body_with_reason_p2, variables)))
   }

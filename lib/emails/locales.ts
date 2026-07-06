@@ -1,4 +1,5 @@
 import type { Locale } from '@/i18n/routing'
+import { escapeHtml } from './escape'
 
 import fr from '@/messages/fr.json'
 import en from '@/messages/en.json'
@@ -76,9 +77,17 @@ export function getEmailMessages(locale: Locale): EmailsRoot {
   return MESSAGES[locale].emails
 }
 
-/** Substitution simple `{key}` par params[key]. Aucune dépendance ICU pour les emails. */
+/**
+ * Substitution simple `{key}` par params[key]. Aucune dépendance ICU pour les emails.
+ *
+ * Sécurité (E1) : chaque VALEUR injectée est échappée via `escapeHtml` (point
+ * unique, non contournable). Le TEMPLATE n'est jamais échappé — il contient du
+ * HTML légitime (ex. `<strong>{companyName}</strong>`) qui doit rester intact.
+ * Seule la valeur substituée l'est. La version texte des emails reste correcte
+ * car `stripHtml` redécode le même jeu d'entités.
+ */
 export function interpolate(template: string, params: Record<string, string>): string {
-  return template.replace(/\{(\w+)\}/g, (_, key) => params[key] ?? '')
+  return template.replace(/\{(\w+)\}/g, (_, key) => escapeHtml(params[key] ?? ''))
 }
 
 export type { EmailsRoot, Locale }

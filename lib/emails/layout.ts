@@ -7,6 +7,12 @@
  * envisager react-email.
  */
 
+import { escapeHtml } from './escape'
+
+// Ré-export pour la découvrabilité : l'échappement des valeurs d'emails vit
+// dans ./escape (source unique). Voir interpolate() dans ./locales.
+export { escapeHtml } from './escape'
+
 const PRIMARY = '#00B9FF'
 const TEXT_PRIMARY = '#0f172a'
 const TEXT_SECONDARY = '#64748b'
@@ -27,7 +33,7 @@ export function renderEmailHtml(params: EmailLayoutParams): string {
     params.ctaLabel && params.ctaUrl
       ? `<tr>
           <td align="center" style="padding:24px 0 8px;">
-            <a href="${escapeAttr(params.ctaUrl)}"
+            <a href="${escapeHtml(params.ctaUrl)}"
                style="display:inline-block;padding:12px 24px;background:${PRIMARY};color:#fff;font-weight:500;border-radius:8px;text-decoration:none;font-size:14px;">
               ${escapeText(params.ctaLabel)}
             </a>
@@ -116,10 +122,6 @@ function escapeText(s: string): string {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-}
-
-function escapeAttr(s: string): string {
-  return s.replace(/"/g, '&quot;')
 }
 
 /** Strip HTML tags (pour générer le pendant texte du body) — simpliste, suffisant
