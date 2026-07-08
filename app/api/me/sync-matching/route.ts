@@ -1,5 +1,6 @@
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -39,6 +40,13 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   const { supabaseAdmin, user } = auth
+
+  // Cooldown M2 : plafonne le coût des appels Claude. Check AVANT le after()
+  // -> un refus ne programme jamais de travail IA. checkRateLimit est fail-open.
+  const allowed60 = await checkRateLimit(supabaseAdmin, 'matching_sync_60s', user.id, 60, 1)
+  if (!allowed60) return json({ ok: false, code: 'rate_limited', retry_after_seconds: 60 }, 429)
+  const allowedHour = await checkRateLimit(supabaseAdmin, 'matching_sync_1h', user.id, 3600, 10)
+  if (!allowedHour) return json({ ok: false, code: 'rate_limited', retry_after_seconds: 3600 }, 429)
 
   // Récupère le profile_id de l'expert courant
   const { data: profile, error: pErr } = await supabaseAdmin
