@@ -2,6 +2,9 @@
 -- La cle est hachee par l'appelant (jamais de donnee personnelle en clair ici).
 -- RLS activee sans policy : seul le service-role (qui bypass RLS) accede a cette table.
 
+-- pg_cron : necessaire a la purge planifiee ci-dessous. Idempotent.
+create extension if not exists pg_cron;
+
 create table if not exists public.rate_limit_hits (
   bucket      text        not null,
   key_hash    text        not null,
@@ -50,3 +53,20 @@ $$;
 
 revoke all on function public.rate_limit_check(text,text,integer,integer) from public, anon, authenticated;
 grant execute on function public.rate_limit_check(text,text,integer,integer) to service_role;
+
+-- Purge globale quotidienne : filet de securite pour les cles jamais re-sollicitees
+-- (la purge dans la fonction ne nettoie que les cles reactivees). Tout hit de plus
+-- de 24h est efface (fenetre max utilisee = 1h, marge tres large). Idempotent via unschedule prealable.
+do $$
+begin
+  perform cron.unschedule('rate_limit_hits_purge');
+exception when others then
+  null; -- le job n'existait pas encore : ignore
+end
+$$;
+
+select cron.schedule(
+  'rate_limit_hits_purge',
+  '0 4 * * *',
+  $$delete from public.rate_limit_hits where hit_at < now() - interval '24 hours'$$
+);
