@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -8,43 +10,34 @@ export const dynamic = 'force-dynamic'
  * organisation (B3.2). Pas de `requireAuth` car l'utilisateur n'existe
  * pas encore.
  *
- * Anti-abus :
- *   - rate limit best-effort par IP (Map en mémoire process, fenêtre 60s)
- *   - le cooldown 60s côté UI sert également de filet
+ * Anti-abus (M1) :
+ *   - rate limit serveur/DB atomique par téléphone (non contournable) :
+ *     1 SMS / 60s ET 5 SMS / 3600s (cf. lib/rate-limit.ts + migration rate_limiter).
+ *   - le cooldown 60s côté UI sert de filet complémentaire.
  *
- * NB : on ne stocke aucun état serveur — le couple (request_id, phone)
+ * NB : on ne stocke aucun état de session — le couple (request_id, phone)
  * sera scellé par HMAC après vérif réussie (cf. verify-phone-otp + lib/phone-otp-token.ts).
  */
 
 const VONAGE_VERIFY_V2_BASE = 'https://api.nexmo.com/v2/verify'
 const REQUEST_TIMEOUT_MS = 10_000
 const BRAND_NAME = 'Skilloria'
-const RATE_LIMIT_WINDOW_MS = 60_000
-const RATE_LIMIT_MAX = 3 // 3 SMS / minute / IP
 
 // Vonage request_id : UUIDv4 sans tirets selon doc, mais on tolère un peu
 // plus large pour être robuste. On exige uniquement des caractères safe-URL
 // pour éviter toute tentative d'injection dans le path DELETE.
 const VONAGE_REQUEST_ID_REGEX = /^[A-Za-z0-9_-]{8,80}$/
 
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-
-function rateLimitOk(ip: string): boolean {
-  const now = Date.now()
-  const rec = rateLimitMap.get(ip)
-  if (!rec || rec.resetAt < now) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
-    return true
-  }
-  if (rec.count >= RATE_LIMIT_MAX) return false
-  rec.count += 1
-  return true
-}
-
-function clientIp(request: NextRequest): string {
-  const xff = request.headers.get('x-forwarded-for')
-  if (xff) return xff.split(',')[0].trim()
-  return request.headers.get('x-real-ip') ?? 'unknown'
+// Client service-role (pattern getSupabaseAdmin) — requis pour le limiteur DB.
+// Cette route est publique (pré-auth), elle n'a pas de contexte auth.supabaseAdmin.
+// Retourne null si l'env manque -> le limiteur est ignoré (fail-open, cf. POST).
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !serviceKey) return null
+  return createClient(url, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
 }
 
 function json(data: unknown, status = 200): Response {
@@ -64,11 +57,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Server misconfigured', code: 'missing_env' }, 500)
   }
 
-  const ip = clientIp(request)
-  if (!rateLimitOk(ip)) {
-    return json({ error: 'Too many requests', code: 'rate_limited' }, 429)
-  }
-
   let body: Body
   try {
     body = (await request.json()) as Body
@@ -81,6 +69,21 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Invalid phone (E.164 expected)', code: 'invalid_phone' }, 400)
   }
   const phoneVonage = phone.slice(1)
+
+  // Rate-limit serveur/DB par téléphone (clé principale, hachée), AVANT tout
+  // envoi Vonage : anti SMS-pumping. 1/60s ET 5/3600s. Fail-open si le limiteur
+  // est indisponible (cf. lib/rate-limit.ts + getSupabaseAdmin null ci-dessus).
+  const admin = getSupabaseAdmin()
+  if (admin) {
+    if (!(await checkRateLimit(admin, 'otp_send_60s', phone, 60, 1))) {
+      return json({ error: 'Too many requests', code: 'rate_limited', retry_after_seconds: 60 }, 429)
+    }
+    if (!(await checkRateLimit(admin, 'otp_send_1h', phone, 3600, 5))) {
+      return json({ error: 'Too many requests', code: 'rate_limited', retry_after_seconds: 3600 }, 429)
+    }
+  } else {
+    console.warn('[public/send-phone-otp] service-role indisponible — rate-limit ignoré (fail-open)')
+  }
 
   const previousRequestIdRaw = typeof body.previous_request_id === 'string'
     ? body.previous_request_id.trim()

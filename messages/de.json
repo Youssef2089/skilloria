@@ -819,6 +819,7 @@
       "email_domain_taken": "Ein Unternehmen verwendet diese E-Mail-Domain bereits.",
       "email_domain_blocked": "Diese E-Mail-Domain ist für die Unternehmensregistrierung nicht zugelassen.",
       "vonage_error": "SMS-Dienst vorübergehend nicht verfügbar. Bitte erneut versuchen.",
+      "rate_limited": "Zu viele Versuche. Bitte versuche es gleich erneut.",
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen."
     },
     "callback": {
@@ -2211,7 +2212,8 @@
       "success": "Telefonnummer aktualisiert.",
       "error_invalid_code": "Ungültiger Code.",
       "error_expired": "Der Code ist abgelaufen. Fordere einen neuen an.",
-      "error_failed": "Nummer konnte nicht geändert werden."
+      "error_failed": "Nummer konnte nicht geändert werden.",
+      "error_rate_limited": "Zu viele Versuche. Bitte versuche es gleich erneut."
     },
     "password": {
       "title": "Passwort",

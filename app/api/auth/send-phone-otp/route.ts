@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { requireReauth } from '@/lib/reauth-token'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -54,6 +55,15 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   // Vonage attend le numéro SANS le `+` (E.164 sans le préfixe)
   const phoneVonage = phone.slice(1)
+
+  // Rate-limit serveur/DB par téléphone (clé principale, hachée), AVANT l'envoi
+  // Vonage : anti SMS-pumping. 1/60s ET 5/3600s. Fail-open (cf. lib/rate-limit.ts).
+  if (!(await checkRateLimit(auth.supabaseAdmin, 'otp_send_60s', phone, 60, 1))) {
+    return json({ error: 'Too many requests', code: 'rate_limited', retry_after_seconds: 60 }, 429)
+  }
+  if (!(await checkRateLimit(auth.supabaseAdmin, 'otp_send_1h', phone, 3600, 5))) {
+    return json({ error: 'Too many requests', code: 'rate_limited', retry_after_seconds: 3600 }, 429)
+  }
 
   const basic = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')
 

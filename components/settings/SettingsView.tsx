@@ -189,7 +189,11 @@ function PhoneSection({ user, secureFetch, requestReauth, notify, reload }: {
         headers: { 'content-type': 'application/json', 'x-reauth-token': token },
         body: JSON.stringify({ phone: e164 }),
       })
-      if (!res.ok) { notify(tc('error_generic'), 'error'); setBusy(false); return }
+      if (!res.ok) {
+        const e = (await res.json().catch(() => null)) as { code?: string } | null
+        notify(e?.code === 'rate_limited' ? t('error_rate_limited') : tc('error_generic'), 'error')
+        setBusy(false); return
+      }
       const d = (await res.json()) as { request_id?: string }
       setRequestId(d.request_id ?? null)
     } catch { notify(tc('error_generic'), 'error') }
@@ -208,7 +212,7 @@ function PhoneSection({ user, secureFetch, requestReauth, notify, reload }: {
       })
       if (!res.ok) {
         const d = (await res.json().catch(() => null)) as { code?: string } | null
-        notify(d?.code === 'expired' ? t('error_expired') : t('error_invalid_code'), 'error')
+        notify(d?.code === 'rate_limited' ? t('error_rate_limited') : d?.code === 'expired' ? t('error_expired') : t('error_invalid_code'), 'error')
         setBusy(false)
         return
       }

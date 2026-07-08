@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { signPhoneOtpToken } from '@/lib/phone-otp-token'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -19,6 +21,18 @@ export const dynamic = 'force-dynamic'
 
 const VONAGE_VERIFY_V2_BASE = 'https://api.nexmo.com/v2/verify'
 const REQUEST_TIMEOUT_MS = 10_000
+
+// Client service-role (pattern getSupabaseAdmin) — requis pour le limiteur DB.
+// Route publique (pré-auth) : pas de contexte auth.supabaseAdmin.
+// Retourne null si l'env manque -> limiteur ignoré (fail-open, cf. POST).
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !serviceKey) return null
+  return createClient(url, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+}
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -56,6 +70,17 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   if (!/^\+[1-9]\d{6,14}$/.test(phone)) {
     return json({ error: 'Invalid phone (E.164 expected)', code: 'invalid_phone' }, 400)
+  }
+
+  // Rate-limit serveur/DB anti brute-force du code, AVANT l'appel Vonage "check" :
+  // 5 tentatives / 900s par (request_id + téléphone). Fail-open si indisponible.
+  const admin = getSupabaseAdmin()
+  if (admin) {
+    if (!(await checkRateLimit(admin, 'otp_verify', `${request_id}:${phone}`, 900, 5))) {
+      return json({ error: 'Too many requests', code: 'rate_limited', retry_after_seconds: 900 }, 429)
+    }
+  } else {
+    console.warn('[public/verify-phone-otp] service-role indisponible — rate-limit ignoré (fail-open)')
   }
 
   const basic = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')

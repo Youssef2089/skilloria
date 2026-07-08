@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -52,6 +53,12 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   if (!/^\+[1-9]\d{6,14}$/.test(phone)) {
     return json({ error: 'Invalid phone (E.164 expected)', code: 'invalid_phone' }, 400)
+  }
+
+  // Rate-limit serveur/DB anti brute-force du code, AVANT l'appel Vonage "check" :
+  // 5 tentatives / 900s par (request_id + téléphone). Fail-open (cf. lib/rate-limit.ts).
+  if (!(await checkRateLimit(auth.supabaseAdmin, 'otp_verify', `${request_id}:${phone}`, 900, 5))) {
+    return json({ error: 'Too many requests', code: 'rate_limited', retry_after_seconds: 900 }, 429)
   }
 
   const basic = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')

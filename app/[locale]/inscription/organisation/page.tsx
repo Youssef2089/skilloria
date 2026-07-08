@@ -131,7 +131,7 @@ export default function InscriptionOrganisationPage() {
       })
       const json = (await res.json().catch(() => ({}))) as { request_id?: string; code?: string }
       if (!res.ok || !json.request_id) {
-        setPhoneError(t('errors.vonage_error'))
+        setPhoneError(t(json.code === 'rate_limited' ? 'errors.rate_limited' : 'errors.vonage_error'))
         return
       }
       setOtpRequestId(json.request_id)
@@ -167,6 +167,13 @@ export default function InscriptionOrganisationPage() {
         code?: string
       }
       if (!res.ok || !json.phone_verified || !json.phone_otp_token) {
+        // M1 : rate-limit (Vonage PAS appelé) → le request_id reste valide. On
+        // garde l'état OTP et on invite juste à réessayer sous peu.
+        if (json.code === 'rate_limited') {
+          setPhoneError(t('errors.rate_limited'))
+          setOtpDigits(Array(OTP_LENGTH).fill(''))
+          return
+        }
         // Vonage v2 consomme le request_id à la 1ère soumission de code :
         // qu'il soit invalide ou que la session ait expiré, le request_id
         // n'est plus utilisable. On invalide l'état côté front pour forcer

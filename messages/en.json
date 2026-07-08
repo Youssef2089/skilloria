@@ -819,6 +819,7 @@
       "email_domain_taken": "A company is already using this email domain.",
       "email_domain_blocked": "This email domain is not allowed for business registration.",
       "vonage_error": "SMS service temporarily unavailable. Please try again.",
+      "rate_limited": "Too many attempts. Please try again shortly.",
       "generic": "An error occurred. Please try again."
     },
     "callback": {
@@ -2211,7 +2212,8 @@
       "success": "Phone number updated.",
       "error_invalid_code": "Invalid code.",
       "error_expired": "The code has expired. Request a new one.",
-      "error_failed": "Could not change the number."
+      "error_failed": "Could not change the number.",
+      "error_rate_limited": "Too many attempts. Please try again shortly."
     },
     "password": {
       "title": "Password",

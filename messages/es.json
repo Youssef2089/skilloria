@@ -819,6 +819,7 @@
       "email_domain_taken": "Una empresa ya utiliza este dominio de correo.",
       "email_domain_blocked": "Este dominio de correo no está permitido para registro de empresa.",
       "vonage_error": "Servicio SMS temporalmente no disponible. Inténtalo de nuevo.",
+      "rate_limited": "Demasiados intentos. Intentalo de nuevo en un momento.",
       "generic": "Ha ocurrido un error. Inténtalo de nuevo."
     },
     "callback": {
@@ -2211,7 +2212,8 @@
       "success": "Número de teléfono actualizado.",
       "error_invalid_code": "Código no válido.",
       "error_expired": "El código ha caducado. Solicita uno nuevo.",
-      "error_failed": "No se pudo cambiar el número."
+      "error_failed": "No se pudo cambiar el número.",
+      "error_rate_limited": "Demasiados intentos. Intentalo de nuevo en un momento."
     },
     "password": {
       "title": "Contraseña",
