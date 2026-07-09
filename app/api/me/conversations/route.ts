@@ -5,6 +5,7 @@ import { routing, type Locale } from '@/i18n/routing'
 import { buildPublicationSynthesis } from '@/lib/publication-synthesis'
 import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name-masking'
 import { disclosurePolicyForConversationOrgSide } from '@/lib/expert-disclosure'
+import { signAvatarUrl } from '@/lib/avatar'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -197,7 +198,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   // ── DTO : projection correspondant + last_message + unread ──────────────
-  const conversations = convRows.map((conv) => {
+  const conversations = await Promise.all(convRows.map(async (conv) => {
     const c = pickRel(conv.candidatures) as ConversationRow['candidatures'] extends (infer X)[] | infer Y ? Y : never
     const cand = c as unknown as {
       id: string; status: string; profile_id: string; publication_id: string;
@@ -216,7 +217,7 @@ export async function GET(request: NextRequest): Promise<Response> {
           name: org?.company_name ?? null,
           avatar_url: org?.logo_url ?? null,
         }
-      : (() => {
+      : await (async () => {
           // Lot grille photo-forward : l'user courant est l'ORG → le
           // correspondant est l'expert. Une conversation n'existe QUE
           // post-unlock, donc DisclosurePolicy reveal_photo + reveal_full_name
@@ -236,7 +237,12 @@ export async function GET(request: NextRequest): Promise<Response> {
               : policy.reveal_full_name && fullName
                 ? fullName
                 : maskExpertNameForOrg(fn, ln),
-            avatar_url: inDeletion ? null : policy.reveal_photo ? (profile?.photo_url ?? null) : null,
+            // M3 : URL signée (300s). CONDITION inchangée (reveal_photo + photo présente),
+            // seule la VALEUR passe en signée (avant : profile.photo_url public).
+            avatar_url:
+              inDeletion || !policy.reveal_photo || !profile?.photo_url
+                ? null
+                : await signAvatarUrl(auth.supabaseAdmin, profile.user_id),
           }
         })()
 
@@ -270,7 +276,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       last_message: lastMsgPreview,
       unread_count: unreadByConv.get(conv.id) ?? 0,
     }
-  })
+  }))
 
   return json({ conversations }, 200)
 }

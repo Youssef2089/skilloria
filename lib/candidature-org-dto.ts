@@ -2,6 +2,7 @@ import type { AuthContext } from '@/lib/auth-guard'
 import { tBDD, type TranslationsMap } from '@/lib/translations'
 import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name-masking'
 import { disclosurePolicyForCandidatureStatus } from '@/lib/expert-disclosure'
+import { signAvatarUrl } from '@/lib/avatar'
 
 /**
  * lib/candidature-org-dto.ts — helper partagé qui construit les DTOs
@@ -255,7 +256,7 @@ export async function buildOrgCandidatureDTOs(
     }
   }
 
-  return rows.map((row) => {
+  return Promise.all(rows.map(async (row) => {
     const preview = row.preview ?? {}
     const branchId = typeof preview.branch_id === 'string' ? preview.branch_id : null
     const specialityId = typeof preview.speciality_id === 'string' ? preview.speciality_id : null
@@ -285,7 +286,9 @@ export async function buildOrgCandidatureDTOs(
 
         unlockedProfile = {
           display_name: displayName,
-          photo_url: policy.reveal_photo ? (fp.photo_url ?? null) : null,
+          // M3 : URL signée (300s) au lieu de l'URL publique. CONDITION inchangée
+          // (policy.reveal_photo) — seule la VALEUR passe en signée.
+          photo_url: policy.reveal_photo ? await signAvatarUrl(auth.supabaseAdmin, fp.user_id) : null,
           title: fp.title,
           summary: fp.summary,
           skills: fp.skills ?? [],
@@ -360,5 +363,5 @@ export async function buildOrgCandidatureDTOs(
         cdi_sectors: Array.isArray(preview.cdi_sectors) ? (preview.cdi_sectors as string[]) : [],
       },
     }
-  })
+  }))
 }

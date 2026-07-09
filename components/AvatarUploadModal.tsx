@@ -175,13 +175,16 @@ export default function AvatarUploadModal({ open, currentPhotoUrl, onClose, onSa
         return
       }
 
-      const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)
-      const url = `${pub.publicUrl}?v=${Date.now()}`
-
+      // M3 : bucket 'avatars' PRIVÉ. On ne génère plus d'URL publique — on
+      // stocke le CHEMIN storage ('<uid>/avatar.jpg', flag de présence).
+      // L'affichage passe désormais par une URL signée serveur (endpoint
+      // /api/me/avatar-url + DTO org/admin). NB : l'aperçu immédiat post-upload
+      // via `onSaved(path)` cassera tant que le Temps 2 (affichage client) n'est
+      // pas branché — comportement attendu, pas de contournement ici.
       const res = await secureFetch('/api/profile', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ photo_url: url }),
+        body: JSON.stringify({ photo_url: path }),
       })
       if (!res.ok) {
         setError(t('error_save'))
@@ -189,7 +192,7 @@ export default function AvatarUploadModal({ open, currentPhotoUrl, onClose, onSa
         return
       }
 
-      onSaved(url)
+      onSaved(path)
       setShow(false)
       window.setTimeout(onClose, ANIM_MS)
     } catch (err) {

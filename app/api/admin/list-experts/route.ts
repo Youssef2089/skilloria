@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
+import { signAvatarUrl } from '@/lib/avatar'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -102,5 +103,16 @@ export async function GET(request: NextRequest): Promise<Response> {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
 
-  return json({ experts: data ?? [] }, 200)
+  // M3 : photo_url est un chemin storage. Admin voit tout -> on signe
+  // systématiquement (URL signée 300s) quand une photo est présente. Seule la
+  // VALEUR change ; les autres champs et la condition d'accès restent identiques.
+  const rows = (data ?? []) as unknown as Array<Record<string, unknown> & { user_id: string; photo_url: string | null }>
+  const experts = await Promise.all(
+    rows.map(async (r) => ({
+      ...r,
+      photo_url: r.photo_url ? await signAvatarUrl(auth.supabaseAdmin, r.user_id) : null,
+    })),
+  )
+
+  return json({ experts }, 200)
 }

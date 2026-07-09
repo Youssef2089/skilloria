@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
+import { signAvatarUrl } from '@/lib/avatar'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -66,9 +67,17 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     auth.supabaseAdmin.from('profile_languages').select('language, level, is_primary').eq('profile_id', id).limit(15),
   ])
 
+  // M3 : photo_url est un chemin storage. Admin voit tout -> URL signée (300s)
+  // systématique quand une photo est présente. Seule la VALEUR change.
+  const prof = profile as unknown as Record<string, unknown> & { user_id: string; photo_url: string | null }
+  const expert = {
+    ...prof,
+    photo_url: prof.photo_url ? await signAvatarUrl(auth.supabaseAdmin, prof.user_id) : null,
+  }
+
   return json(
     {
-      expert: profile,
+      expert,
       experiences: expRes.data ?? [],
       educations: eduRes.data ?? [],
       languages_structured: langRes.data ?? [],

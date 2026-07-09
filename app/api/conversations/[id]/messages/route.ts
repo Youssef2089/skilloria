@@ -4,6 +4,7 @@ import { logAudit } from '@/lib/audit'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
 import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name-masking'
 import { disclosurePolicyForConversationOrgSide } from '@/lib/expert-disclosure'
+import { signAvatarUrl } from '@/lib/avatar'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -312,7 +313,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         name: orgRaw?.company_name ?? null,
         avatar_url: orgRaw?.logo_url ?? null,
       }
-    : (() => {
+    : await (async () => {
         const policy = disclosurePolicyForConversationOrgSide()
         const fn = expertUser?.first_name ?? null
         const ln = expertUser?.last_name ?? null
@@ -327,7 +328,12 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
             : policy.reveal_full_name && fullName
               ? fullName
               : maskExpertNameForOrg(fn, ln),
-          avatar_url: inDeletion ? null : policy.reveal_photo ? (profile?.photo_url ?? null) : null,
+          // M3 : URL signée (300s). CONDITION inchangée (reveal_photo + photo présente),
+          // seule la VALEUR passe en signée (avant : profile.photo_url public).
+          avatar_url:
+            inDeletion || !policy.reveal_photo || !profile?.photo_url
+              ? null
+              : await signAvatarUrl(auth.supabaseAdmin, profile.user_id),
         }
       })()
 
