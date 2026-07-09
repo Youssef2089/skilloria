@@ -10,9 +10,10 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 
 type Props = {
   open: boolean
-  currentPhotoUrl: string | null
   onClose: () => void
-  onSaved: (newUrl: string) => void
+  /** Notifie le parent d'un upload réussi (ex. toast). L'affichage de la photo
+   *  passe désormais par le hook useAvatarUrl (rafraîchi via `sk:profile-changed`). */
+  onSaved?: () => void
 }
 
 const ANIM_MS = 200
@@ -50,7 +51,7 @@ async function getCroppedBlob(imageSrc: string, area: Area): Promise<Blob> {
   })
 }
 
-export default function AvatarUploadModal({ open, currentPhotoUrl, onClose, onSaved }: Props) {
+export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
   const t = useTranslations('dashboard_freelance.avatar_modal')
   const domain = useDomain()
   const secureFetch = useSecureFetch()
@@ -192,7 +193,14 @@ export default function AvatarUploadModal({ open, currentPhotoUrl, onClose, onSa
         return
       }
 
-      onSaved(path)
+      // M3 : signale le changement -> tous les useAvatarUrl (sidebar, hero…)
+      // re-signent et affichent la nouvelle photo. Aucune URL manipulée ici.
+      try {
+        window.dispatchEvent(new CustomEvent('sk:profile-changed'))
+      } catch {
+        /* SSR-safe noop */
+      }
+      onSaved?.()
       setShow(false)
       window.setTimeout(onClose, ANIM_MS)
     } catch (err) {

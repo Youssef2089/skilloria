@@ -10,6 +10,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import { deriveVerificationUiState, verificationChipColors } from '@/lib/verification-state'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
+import { useAvatarUrl } from '@/hooks/useAvatarUrl'
 import AvatarEditOverlay from '@/components/dashboard/AvatarEditOverlay'
 import {
   useCdiProfile,
@@ -237,7 +238,8 @@ export default function CdiMonProfilPage() {
   // local et on l'utilise pour rendre l'avatar tant que le hook ne refetch
   // pas (un focus/reload re-synchronisera depuis la DB).
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
-  const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null)
+  // M3 : photo propre via URL signée serveur (le hook re-signe après upload).
+  const { url: ownAvatarUrl } = useAvatarUrl()
   // Lot CV obligatoire — bouton "Publier mon profil" depuis Mon Profil.
   // L'API (PATCH /api/profile {visible:true}) reste la barrière de validation :
   // on relaie son message d'erreur (profil incomplet ou CV manquant) tel quel.
@@ -277,9 +279,6 @@ export default function CdiMonProfilPage() {
       setPublishing(false)
     }
   }
-  useEffect(() => {
-    setLocalPhotoUrl(profile?.photo_url ?? null)
-  }, [profile?.photo_url])
 
   // Redirection pas authentifié → /connexion (RLS-friendly)
   useEffect(() => {
@@ -576,7 +575,7 @@ export default function CdiMonProfilPage() {
         <ProfileHero
           user={user}
           profile={profile}
-          localPhotoUrl={localPhotoUrl}
+          localPhotoUrl={ownAvatarUrl}
           locale={locale}
           domainColor={domain.primaryColor}
           t={t}
@@ -753,14 +752,7 @@ export default function CdiMonProfilPage() {
           DashboardShell refetch le profil → avatar sidebar INSTANTANÉ. */}
       <AvatarUploadModal
         open={avatarModalOpen}
-        currentPhotoUrl={localPhotoUrl}
         onClose={() => setAvatarModalOpen(false)}
-        onSaved={(newUrl) => {
-          setLocalPhotoUrl(newUrl)
-          try {
-            window.dispatchEvent(new CustomEvent('sk:profile-changed'))
-          } catch { /* SSR-safe noop */ }
-        }}
       />
     </div>
   )
@@ -941,7 +933,9 @@ function ProfileHero({
   const noticeKey = profile.cdi_notice_period
   const noticeLabel = noticeKey ? t(`notice_period_options.${noticeKey}`) : null
   const availabilityFormatted = formatDate(profile.cdi_availability_date, locale)
-  const effectivePhotoUrl = localPhotoUrl ?? profile.photo_url ?? null
+  // M3 : URL signée fournie par le parent (hook useAvatarUrl). Plus de fallback
+  // sur profile.photo_url (qui n'est plus qu'un chemin storage, non affichable).
+  const effectivePhotoUrl = localPhotoUrl
 
   return (
     <div className="sk-card">

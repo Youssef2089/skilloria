@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { usePathname } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
+import { useAvatarUrl } from '@/hooks/useAvatarUrl'
 import DashboardSidebar from './DashboardSidebar'
 import DashboardTopbar from './DashboardTopbar'
 import GlobalBackButton from './GlobalBackButton'
@@ -39,7 +40,6 @@ type UserInfo = {
   user_type: string | null
 }
 type ProfileInfo = {
-  photo_url: string | null
   verification_status: string | null
   availability_status: string | null
   cdi_status: string | null
@@ -56,6 +56,8 @@ export default function DashboardShell({
   children: React.ReactNode
 }) {
   const domain = useDomain()
+  // M3 : photo propre via URL signée serveur (plus de lecture publique directe).
+  const { url: ownAvatarUrl } = useAvatarUrl()
   const tCommon = useTranslations('common')
   const tShell = useTranslations('shell')
   const pathname = usePathname()
@@ -69,7 +71,7 @@ export default function DashboardShell({
       if (!session?.user) return
       const [{ data: uRow }, { data: pRow }] = await Promise.all([
         supabase.from('users').select('id, first_name, last_name, is_verified, user_type').eq('id', session.user.id).maybeSingle(),
-        supabase.from('profiles').select('photo_url, verification_status, availability_status, cdi_status').eq('user_id', session.user.id).maybeSingle(),
+        supabase.from('profiles').select('verification_status, availability_status, cdi_status').eq('user_id', session.user.id).maybeSingle(),
       ])
       if (cancelled) return
       setUser((uRow as UserInfo | null) ?? null)
@@ -201,7 +203,7 @@ export default function DashboardShell({
       <DashboardSidebar
         side={side}
         userName={fullName}
-        userPhotoUrl={profile?.photo_url ?? null}
+        userPhotoUrl={ownAvatarUrl}
         userIsVerified={isVerified}
         userSubtitle={subtitleByType}
       />

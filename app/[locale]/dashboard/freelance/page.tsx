@@ -713,15 +713,8 @@ export default function DashboardFreelance() {
 
       <AvatarUploadModal
         open={avatarModalOpen}
-        currentPhotoUrl={profile?.photo_url ?? null}
         onClose={() => setAvatarModalOpen(false)}
-        onSaved={newUrl => {
-          setProfile(prev => ({
-            ...(prev ?? { tjm_min: null, tjm_max: null, photo_url: null }),
-            photo_url: newUrl,
-          }))
-          setToast(t('avatar_modal.success'))
-        }}
+        onSaved={() => setToast(t('avatar_modal.success'))}
       />
 
       {toast && (

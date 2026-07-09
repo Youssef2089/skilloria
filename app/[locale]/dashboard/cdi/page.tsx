@@ -159,9 +159,6 @@ export default function DashboardCDI() {
   const secureFetch = useSecureFetch()
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
-  // Mirror local de profile.photo_url pour permettre l'update optimiste
-  // post-upload sans refetch (le hook useCdiProfile n'expose pas de setter).
-  const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null)
 
   // Sync local status from server
   useEffect(() => {
@@ -190,10 +187,6 @@ export default function DashboardCDI() {
     return () => { window.removeEventListener('sk:availability-changed', onAvailChanged) }
   }, [])
 
-  // Sync localPhotoUrl from server profile (et reset si profile change)
-  useEffect(() => {
-    setLocalPhotoUrl(profile?.photo_url ?? null)
-  }, [profile?.photo_url])
 
   // Redirect non-auth → /connexion
   useEffect(() => {
@@ -783,12 +776,8 @@ export default function DashboardCDI() {
           pour V1. À factoriser au merge V1+V3 (namespace en prop). */}
       <AvatarUploadModal
         open={avatarModalOpen}
-        currentPhotoUrl={localPhotoUrl}
         onClose={() => setAvatarModalOpen(false)}
-        onSaved={newUrl => {
-          setLocalPhotoUrl(newUrl)
-          setToast({ type: 'success', text: t('toast.photo_updated') })
-        }}
+        onSaved={() => setToast({ type: 'success', text: t('toast.photo_updated') })}
       />
 
       {/* TOAST top-right */}

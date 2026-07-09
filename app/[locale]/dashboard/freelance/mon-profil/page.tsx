@@ -13,6 +13,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import AvatarEditOverlay from '@/components/dashboard/AvatarEditOverlay'
 import DashboardSidebar from '@/components/shell/DashboardSidebar'
+import { useAvatarUrl } from '@/hooks/useAvatarUrl'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -299,6 +300,8 @@ export default function MonProfilPage() {
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
+  // M3 : photo propre via URL signée serveur (le hook re-signe après upload).
+  const { url: ownAvatarUrl } = useAvatarUrl()
   const secureFetch = useSecureFetch()
 
   // Lot CV obligatoire — bouton "Publier mon profil" depuis Mon Profil.
@@ -935,7 +938,7 @@ export default function MonProfilPage() {
         <DashboardSidebar
           side="freelance"
           userName={fullName}
-          userPhotoUrl={profile.photo_url ?? null}
+          userPhotoUrl={ownAvatarUrl}
           userIsVerified={isVerified}
           userSubtitle={tShell('user_subtitle.freelance', { ecosystem: domain.ecosystemName })}
         />
@@ -1039,9 +1042,9 @@ export default function MonProfilPage() {
                   recevoir le bouton overlay "Modifier la photo" (entry-point
                   du AvatarUploadModal — qui était jusque-là monté mais inatteignable). */}
               <div style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
-                {profile.photo_url ? (
+                {ownAvatarUrl ? (
                   <img
-                    src={profile.photo_url}
+                    src={ownAvatarUrl}
                     alt={fullName}
                     className="profile-hero-avatar"
                     style={{
@@ -1612,14 +1615,7 @@ export default function MonProfilPage() {
           DashboardShell refetch le profil → avatar sidebar INSTANTANÉ. */}
       <AvatarUploadModal
         open={avatarModalOpen}
-        currentPhotoUrl={profile.photo_url ?? null}
         onClose={() => setAvatarModalOpen(false)}
-        onSaved={(newUrl) => {
-          setProfile((prev) => (prev ? { ...prev, photo_url: newUrl } : prev))
-          try {
-            window.dispatchEvent(new CustomEvent('sk:profile-changed'))
-          } catch { /* SSR-safe noop */ }
-        }}
       />
     </div>
   )
