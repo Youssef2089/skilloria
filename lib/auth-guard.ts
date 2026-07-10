@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { readSessionCookieToken, hashSessionToken } from '@/lib/session-token'
+import { isProduction } from '@/lib/env'
 
 export type AuthUser = {
   id: string
@@ -188,12 +189,14 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
   //
   // Sinon : compare avec le token client. Source primaire = cookie
   // httpOnly `ss_token` (D5, posé par init-session). Fallback header
-  // `x-session-token` pour tests Postman / périodes de transition.
+  // `x-session-token` réservé au NON-PRODUCTION (Postman/dev, scripts diag sur
+  // staging) : en production, seul le cookie httpOnly fait foi — on ne lit pas
+  // ce header (surface non-httpOnly inutile en prod).
   // Mismatch → 403 `session_superseded` (D2, code distinct de
   // `forbidden`/`no_token`/`invalid_token`).
   if (userRow.last_session_token) {
     const cookieToken = readSessionCookieToken(request)
-    const headerToken = request.headers.get('x-session-token')
+    const headerToken = isProduction() ? null : request.headers.get('x-session-token')
     const clientToken = cookieToken ?? headerToken
     // C2 : la BDD stocke le sha256 du token, le client envoie le brut (cookie
     // ss_token). On hashe l'entrée client avant comparaison. clientToken null
