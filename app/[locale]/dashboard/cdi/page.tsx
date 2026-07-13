@@ -16,7 +16,6 @@ import { useCdiApplications } from '@/lib/hooks/useCdiApplications'
 import CdiStatusToggle from '@/components/cdi/CdiStatusToggle'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
-import VerificationBanner from '@/components/dashboard/VerificationBanner'
 import { deriveVerificationUiState } from '@/lib/verification-state'
 import { emitAvailabilityChanged } from '@/lib/availability-actions'
 import { useSecureFetch } from '@/lib/secure-fetch'
@@ -470,16 +469,6 @@ export default function DashboardCDI() {
             {/* Lot A : tuile "Score IA" supprimée — voir commentaire en
                 tête de SECTION 1. */}
           </div>
-
-          {/* Lot bandeau vérif : bandeau figé "analyse IA en cours" remplacé
-              par le composant partagé piloté par l'état réel (parité freelance). */}
-          <VerificationBanner
-            visible={(profile?.visible ?? null) as boolean | null}
-            status={(profile?.verification_status ?? null) as string | null}
-            reviewReason={(profile?.review_reason ?? null) as string | null}
-            ctaLabel={t('verification_banner.cta')}
-            onCta={() => router.push('/dashboard/cdi/profil')}
-          />
 
           {/* SECTION 2 — Hero "Statut écoute marché" */}
           <div className="main-card" style={{ animationDelay: '0.05s' }}>

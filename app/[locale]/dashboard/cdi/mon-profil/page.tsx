@@ -216,6 +216,7 @@ function Pill({ children, color }: { children: React.ReactNode; color: string })
 
 export default function CdiMonProfilPage() {
   const t = useTranslations('cdi_profile_view')
+  const tRejected = useTranslations('expert_verification.rejected_details')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -233,6 +234,11 @@ export default function CdiMonProfilPage() {
     branches,
     specialities,
   } = state
+  // Parité freelance : état de vérif dérivé (pour le bloc « refusé » ci-dessous).
+  const verifState = deriveVerificationUiState({
+    visible: profile?.visible ?? null,
+    verificationStatus: profile?.verification_status ?? null,
+  })
   // Lot global C3 : modal upload photo (entry-point unique côté CDI).
   // useCdiProfile ne renvoie pas de setter — au succès on patch un mirror
   // local et on l'utilise pour rendre l'avatar tant que le hook ne refetch
@@ -581,6 +587,37 @@ export default function CdiMonProfilPage() {
           t={t}
           onEditPhoto={() => setAvatarModalOpen(true)}
         />
+
+        {/* Bloc « refusé » : motif de refus (review_reason) + CTA re-soumission.
+            Seul endroit où l'expert voit le motif (bandeaux redondants retirés).
+            Parité stricte avec freelance/mon-profil. */}
+        {verifState === 'rejected' && profile?.review_reason && (
+          <div
+            role="alert"
+            style={{
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              color: '#991B1B',
+              borderRadius: 10,
+              padding: '10px 14px',
+              marginBottom: 20,
+              fontSize: 13,
+              lineHeight: 1.55,
+              maxWidth: 560,
+            }}
+          >
+            <span style={{ fontWeight: 700 }}>{tRejected('reason_label')} </span>
+            <span style={{ whiteSpace: 'pre-wrap' }}>{profile.review_reason}</span>
+            <div style={{ marginTop: 8 }}>
+              <Link
+                href="/dashboard/cdi/profil/valider"
+                style={{ fontSize: 13, fontWeight: 600, color: '#991B1B', textDecoration: 'underline' }}
+              >
+                {tRejected('cta')}
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* 1. RÉSUMÉ */}
         <div className="sk-card">

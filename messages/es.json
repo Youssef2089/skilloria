@@ -261,16 +261,6 @@
       "toast_updated": "Disponibilidad actualizada",
       "toast_error": "No se pudo actualizar tu disponibilidad"
     },
-    "verification_banner": {
-      "title": "Perfil pendiente de verificación",
-      "description": "Nuestra IA está analizando tu perfil. Una vez validado, obtendrás la insignia <strong>Perfil Verificado</strong> y podrás aparecer en el matching y publicar.",
-      "steps": {
-        "account_created": "Cuenta creada",
-        "ai_analysis": "Análisis IA",
-        "verified_badge": "Insignia Verificada"
-      },
-      "cta": "Completar mi perfil →"
-    },
     "stats": {
       "available_missions": "Misiones disponibles",
       "applications": "Candidaturas",
@@ -637,13 +627,6 @@
     "error": "No se pudo cargar tu perfil.",
     "error_retry": "Reintentar",
     "not_freelance": "Esta página está reservada para expertos freelance.",
-    "publication_status": {
-      "draft_banner_title": "Perfil no publicado",
-      "draft_banner_text": "Completa tu perfil para ser visible para los clientes en el matching.",
-      "draft_banner_cta": "Completar mi perfil →",
-      "published_banner_title": "Perfil publicado",
-      "published_banner_text": "Tu perfil es visible para los clientes en el matching."
-    },
     "header": {
       "verified_badge": "Perfil verificado",
       "tjm_range": "{min} € — {max} €/día",
@@ -991,17 +974,7 @@
       "status_error": "No se pudo actualizar el estado. Vuelve a intentarlo.",
       "photo_updated": "Foto actualizada"
     },
-    "verified_badge": "Perfil Verificado",
-    "verification_banner": {
-      "title": "Perfil pendiente de verificación",
-      "description": "Nuestra IA está analizando tu perfil. Una vez validado, obtendrás el distintivo <strong>Perfil Verificado</strong> y podrás aparecer en el matching y publicar.",
-      "steps": {
-        "account_created": "Cuenta creada",
-        "ai_analysis": "Análisis IA",
-        "verified_badge": "Distintivo Verificado"
-      },
-      "cta": "Completar mi perfil →"
-    }
+    "verified_badge": "Perfil Verificado"
   },
   "cdi_profile_view": {
     "cv_required": {
@@ -2084,20 +2057,9 @@
       "approved": "Verificado",
       "rejected": "Rechazado"
     },
-    "banner": {
-      "draft_title": "Perfil en borrador",
-      "draft_body": "Publica tu perfil para iniciar la verificación.",
-      "approved_title": "Perfil verificado",
-      "approved_body": "Tu perfil ha sido verificado.",
-      "none_title": "Envía tu perfil para verificación",
-      "none_body": "Una vez completado, envía tu perfil: nuestra IA evalúa la coherencia en segundos.",
-      "pending_title": "Verificación en curso…",
-      "pending_body": "Nuestra IA analiza la coherencia de tu perfil (CV, dominio, huella pública). Tarda unos instantes.",
-      "admin_review_title": "Perfil en validación por nuestro equipo",
-      "admin_review_body": "Algunos puntos requieren verificación humana. Te avisaremos de la decisión.",
-      "rejected_title": "Tu solicitud de verificación no fue aprobada",
-      "rejected_reason_label": "Motivo:",
-      "rejected_body": "Puedes ajustar tu perfil y volver a enviarlo."
+    "rejected_details": {
+      "reason_label": "Motivo:",
+      "cta": "Completar mi perfil →"
     }
   },
   "notifications": {

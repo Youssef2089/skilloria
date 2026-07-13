@@ -261,16 +261,6 @@
       "toast_updated": "Verfügbarkeit aktualisiert",
       "toast_error": "Verfügbarkeit konnte nicht aktualisiert werden"
     },
-    "verification_banner": {
-      "title": "Profil wartet auf Verifizierung",
-      "description": "Unsere KI analysiert Ihr Profil. Nach der Validierung erhalten Sie das <strong>Verifiziertes Profil</strong>-Abzeichen und werden im Matching und der Veröffentlichung sichtbar.",
-      "steps": {
-        "account_created": "Konto erstellt",
-        "ai_analysis": "KI-Analyse",
-        "verified_badge": "Verifiziert-Abzeichen"
-      },
-      "cta": "Profil vervollständigen →"
-    },
     "stats": {
       "available_missions": "Verfügbare Missionen",
       "applications": "Bewerbungen",
@@ -637,13 +627,6 @@
     "error": "Ihr Profil konnte nicht geladen werden.",
     "error_retry": "Erneut versuchen",
     "not_freelance": "Diese Seite ist Freelance-Experten vorbehalten.",
-    "publication_status": {
-      "draft_banner_title": "Profil nicht veröffentlicht",
-      "draft_banner_text": "Vervollständigen Sie Ihr Profil, um für Kunden im Matching sichtbar zu werden.",
-      "draft_banner_cta": "Profil vervollständigen →",
-      "published_banner_title": "Profil veröffentlicht",
-      "published_banner_text": "Ihr Profil ist für Kunden im Matching sichtbar."
-    },
     "header": {
       "verified_badge": "Verifiziertes Profil",
       "tjm_range": "{min} € — {max} €/Tag",
@@ -991,17 +974,7 @@
       "status_error": "Status konnte nicht aktualisiert werden. Bitte erneut versuchen.",
       "photo_updated": "Foto aktualisiert"
     },
-    "verified_badge": "Verifiziertes Profil",
-    "verification_banner": {
-      "title": "Profil wartet auf Verifizierung",
-      "description": "Unsere KI analysiert Ihr Profil. Nach erfolgreicher Validierung erhalten Sie das <strong>Verifiziertes Profil</strong>-Abzeichen und können im Matching erscheinen und veröffentlichen.",
-      "steps": {
-        "account_created": "Konto erstellt",
-        "ai_analysis": "KI-Analyse",
-        "verified_badge": "Verifiziert-Abzeichen"
-      },
-      "cta": "Profil vervollständigen →"
-    }
+    "verified_badge": "Verifiziertes Profil"
   },
   "cdi_profile_view": {
     "cv_required": {
@@ -2084,20 +2057,9 @@
       "approved": "Verifiziert",
       "rejected": "Abgelehnt"
     },
-    "banner": {
-      "draft_title": "Profilentwurf",
-      "draft_body": "Veröffentlichen Sie Ihr Profil, um die Überprüfung zu starten.",
-      "approved_title": "Profil verifiziert",
-      "approved_body": "Ihr Profil wurde verifiziert.",
-      "none_title": "Reichen Sie Ihr Profil zur Verifizierung ein",
-      "none_body": "Sobald Ihr Profil vollständig ist, reichen Sie es ein: Unsere KI prüft die Kohärenz in Sekunden.",
-      "pending_title": "Verifizierung läuft…",
-      "pending_body": "Unsere KI analysiert die Kohärenz Ihres Profils (Lebenslauf, Domäne, öffentliche Spur). Dauert nur einen Moment.",
-      "admin_review_title": "Profil wird von unserem Team geprüft",
-      "admin_review_body": "Einige Punkte erfordern eine menschliche Prüfung. Sie werden über die Entscheidung benachrichtigt.",
-      "rejected_title": "Ihre Verifizierungsanfrage wurde nicht genehmigt",
-      "rejected_reason_label": "Grund:",
-      "rejected_body": "Sie können Ihr Profil anpassen und erneut einreichen."
+    "rejected_details": {
+      "reason_label": "Grund:",
+      "cta": "Profil vervollständigen →"
     }
   },
   "notifications": {

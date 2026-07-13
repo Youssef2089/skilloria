@@ -294,6 +294,7 @@ function ExpandableDescription({
 export default function MonProfilPage() {
   const t = useTranslations('profile_view')
   const tVerifBadge = useTranslations('expert_verification.badge')
+  const tRejected = useTranslations('expert_verification.rejected_details')
   const tDash = useTranslations('dashboard_freelance')
   const tShell = useTranslations('shell')
   const tCommon = useTranslations('common')
@@ -547,7 +548,6 @@ export default function MonProfilPage() {
     visible: profile?.visible ?? null,
     verificationStatus: profile?.verification_status ?? null,
   })
-  const isVisible = profile?.visible === true
   const headline = profile?.title?.trim() || null
   const cityCountry = (() => {
     const parts: string[] = []
@@ -814,73 +814,32 @@ export default function MonProfilPage() {
   const hasAvailability = !!profile.availability_date || !!profile.availability_status || workModes.length > 0
   const hasExpertise = !!branchName || !!specialityName || skills.length > 0
 
-  // Banner publication — 3 états :
-  //   • visible && approuvé        → bandeau vert "Profil publié / visible".
-  //   • non visible                → bandeau jaune "Profil non publié / complétez".
-  //   • visible && non approuvé    → AUCUN bandeau (le profil EST publié, il est
-  //     juste en attente de validation : ni "publié/visible" ni "non publié").
-  const banner = isVisible && verifState === 'approved' ? (
+  // Bloc « refusé » : affiche le motif de refus (review_reason) + CTA de
+  // re-soumission. Seul endroit où l'expert voit désormais le motif (bandeaux
+  // de statut redondants retirés). Parité stricte avec cdi/mon-profil.
+  const banner = verifState === 'rejected' && profile?.review_reason ? (
     <div
+      role="alert"
       style={{
-        background: '#dcfce7',
-        border: '1px solid #bbf7d0',
-        borderRadius: 12,
-        padding: '14px 18px',
+        background: '#FEF2F2',
+        border: '1px solid #FECACA',
+        color: '#991B1B',
+        borderRadius: 10,
+        padding: '10px 14px',
         marginBottom: 20,
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 12,
-        animation: 'fadeInUp 0.4s ease both',
+        fontSize: 13,
+        lineHeight: 1.55,
+        maxWidth: 560,
       }}
     >
-      <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>✓</span>
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#15803d', marginBottom: 2 }}>
-          {t('publication_status.published_banner_title')}
-        </div>
-        <div style={{ fontSize: 13, color: '#166534', lineHeight: 1.5 }}>
-          {t('publication_status.published_banner_text')}
-        </div>
-      </div>
-    </div>
-  ) : !isVisible ? (
-    <div
-      style={{
-        background: '#fffbeb',
-        border: '1px solid #fde68a',
-        borderRadius: 12,
-        padding: '14px 18px',
-        marginBottom: 20,
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 12,
-        animation: 'fadeInUp 0.4s ease both',
-      }}
-    >
-      <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>⏳</span>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 2 }}>
-          {t('publication_status.draft_banner_title')}
-        </div>
-        <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.5, marginBottom: 10 }}>
-          {t('publication_status.draft_banner_text')}
-        </div>
+      <span style={{ fontWeight: 700 }}>{tRejected('reason_label')} </span>
+      <span style={{ whiteSpace: 'pre-wrap' }}>{profile.review_reason}</span>
+      <div style={{ marginTop: 8 }}>
         <Link
           href="/dashboard/freelance/profil/valider"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            fontSize: 13,
-            fontWeight: 600,
-            color: '#92400e',
-            background: '#fff',
-            border: '1px solid #fde68a',
-            borderRadius: 8,
-            padding: '8px 14px',
-            textDecoration: 'none',
-          }}
+          style={{ fontSize: 13, fontWeight: 600, color: '#991B1B', textDecoration: 'underline' }}
         >
-          {t('publication_status.draft_banner_cta')}
+          {tRejected('cta')}
         </Link>
       </div>
     </div>
@@ -1032,7 +991,7 @@ export default function MonProfilPage() {
             </div>
           )}
 
-          {/* Banner publication */}
+          {/* Bloc « refusé » (motif de refus) — sinon rien */}
           {banner}
 
           {/* Profile hero card */}

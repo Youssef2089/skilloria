@@ -7,7 +7,6 @@ import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
 import TJMQuickEditModal from '@/components/TJMQuickEditModal'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
-import VerificationBanner from '@/components/dashboard/VerificationBanner'
 import { deriveVerificationUiState } from '@/lib/verification-state'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import MissionCastingCard from '@/components/dashboard/MissionCastingCard'
@@ -36,7 +35,6 @@ type ProfileData = {
   photo_url: string | null
   visible?: boolean | null
   verification_status?: string | null
-  review_reason?: string | null
   verification_data?: Record<string, unknown> | null
   availability_status?: string | null
   /** ISO timestamp d'approbation (auto-approve inline OU admin). Sert au
@@ -231,7 +229,7 @@ export default function DashboardFreelance() {
           .single(),
         supabase
           .from('profiles')
-          .select('tjm_min, tjm_max, photo_url, visible, verification_status, review_reason, verification_data, availability_status, verified_at')
+          .select('tjm_min, tjm_max, photo_url, visible, verification_status, verification_data, availability_status, verified_at')
           .eq('user_id', session.user.id)
           .maybeSingle(),
       ])
@@ -479,15 +477,6 @@ export default function DashboardFreelance() {
 
         <div style={{ padding: '24px 26px', minWidth: 0 }}>
 
-          {/* Bandeau statut vérification expert — état réel (helper partagé). */}
-          <VerificationBanner
-            visible={(profile?.visible ?? null) as boolean | null}
-            status={(profile?.verification_status ?? null) as string | null}
-            reviewReason={(profile?.review_reason ?? null) as string | null}
-            ctaLabel={t('verification_banner.cta')}
-            onCta={() => router.push('/dashboard/freelance/profil')}
-          />
-
           {/* Lot A : tuile "Score IA" retirée (UI placeholder vide qui
               n'alimentait rien). Le titre garde le même bloc d'en-tête. */}
           <div style={{ marginBottom: 26, animation: 'fadeInUp 0.4s ease' }}>
@@ -502,10 +491,6 @@ export default function DashboardFreelance() {
               </div>
             )}
           </div>
-
-          {/* Lot bandeau vérif : l'ancien bloc statique "étapes" figé sur
-              "analyse IA en cours" est supprimé. Le <VerificationBanner/>
-              ci-dessus reflète désormais l'état réel pour tous les cas. */}
 
           {/* Lot état 'selected' : 4 stat-cards de comptage (Postulées, En
               discussion, Acceptées, Refusées) + TJM card = 5 tuiles total. La

@@ -261,16 +261,6 @@
       "toast_updated": "Availability updated",
       "toast_error": "Could not update your availability"
     },
-    "verification_banner": {
-      "title": "Profile pending verification",
-      "description": "Our AI is analysing your profile. Once validated, you'll receive the <strong>Verified Profile</strong> badge and become discoverable in matching and publishing.",
-      "steps": {
-        "account_created": "Account created",
-        "ai_analysis": "AI analysis",
-        "verified_badge": "Verified badge"
-      },
-      "cta": "Complete my profile →"
-    },
     "stats": {
       "available_missions": "Available missions",
       "applications": "Applications",
@@ -637,13 +627,6 @@
     "error": "Unable to load your profile.",
     "error_retry": "Retry",
     "not_freelance": "This page is reserved for freelance experts.",
-    "publication_status": {
-      "draft_banner_title": "Profile not published",
-      "draft_banner_text": "Complete your profile to become visible to clients in matching.",
-      "draft_banner_cta": "Complete my profile →",
-      "published_banner_title": "Profile published",
-      "published_banner_text": "Your profile is visible to clients in matching."
-    },
     "header": {
       "verified_badge": "Verified profile",
       "tjm_range": "€{min} — €{max}/day",
@@ -991,17 +974,7 @@
       "status_error": "Could not update status. Please retry.",
       "photo_updated": "Photo updated"
     },
-    "verified_badge": "Verified Profile",
-    "verification_banner": {
-      "title": "Profile pending verification",
-      "description": "Our AI is analysing your profile. Once validated, you'll receive the <strong>Verified Profile</strong> badge and become eligible for matching and publication.",
-      "steps": {
-        "account_created": "Account created",
-        "ai_analysis": "AI analysis",
-        "verified_badge": "Verified badge"
-      },
-      "cta": "Complete my profile →"
-    }
+    "verified_badge": "Verified Profile"
   },
   "cdi_profile_view": {
     "cv_required": {
@@ -2084,20 +2057,9 @@
       "approved": "Verified",
       "rejected": "Rejected"
     },
-    "banner": {
-      "draft_title": "Draft profile",
-      "draft_body": "Publish your profile to start the verification.",
-      "approved_title": "Verified profile",
-      "approved_body": "Your profile has been verified.",
-      "none_title": "Submit your profile for verification",
-      "none_body": "Once your profile is complete, submit it: our AI evaluates coherence in seconds.",
-      "pending_title": "Verification in progress…",
-      "pending_body": "Our AI is analyzing your profile (CV, domain, public footprint). This takes a few moments.",
-      "admin_review_title": "Profile under review by our team",
-      "admin_review_body": "A few points need human verification. You will be notified of the decision.",
-      "rejected_title": "Your verification request was not approved",
-      "rejected_reason_label": "Reason:",
-      "rejected_body": "You can adjust your profile and submit again."
+    "rejected_details": {
+      "reason_label": "Reason:",
+      "cta": "Complete my profile →"
     }
   },
   "notifications": {
