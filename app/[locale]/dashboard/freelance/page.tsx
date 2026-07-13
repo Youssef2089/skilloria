@@ -18,6 +18,7 @@ import AvailabilityToggle, {
   type AvailabilityStatus,
 } from '@/components/freelance/AvailabilityToggle'
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
+import CrossOpenToggle from '@/components/dashboard/CrossOpenToggle'
 import { emitAvailabilityChanged } from '@/lib/availability-actions'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import {
@@ -37,6 +38,8 @@ type ProfileData = {
   verification_status?: string | null
   verification_data?: Record<string, unknown> | null
   availability_status?: string | null
+  /** Ouverture croisée : voir aussi les offres CDI matchées (opt-in, défaut false). */
+  open_to_cdi?: boolean | null
   /** ISO timestamp d'approbation (auto-approve inline OU admin). Sert au
    *  flag "matching en cours" pendant la fenêtre post-approbation (Lot
    *  UX refetch auto). */
@@ -86,6 +89,9 @@ export default function DashboardFreelance() {
   // (lib/matching/index.ts + /api/me/missions).
   const [availability, setAvailability] = useState<AvailabilityStatus | null>(null)
   const [availabilityUpdating, setAvailabilityUpdating] = useState(false)
+  // Ouverture croisée : voir aussi les offres CDI matchées (opt-in, défaut false).
+  const [openToCdi, setOpenToCdi] = useState(false)
+  const [crossOpenUpdating, setCrossOpenUpdating] = useState(false)
   const secureFetch = useSecureFetch()
 
   // Types minimaux pour les ressources live.
@@ -229,7 +235,7 @@ export default function DashboardFreelance() {
           .single(),
         supabase
           .from('profiles')
-          .select('tjm_min, tjm_max, photo_url, visible, verification_status, verification_data, availability_status, verified_at')
+          .select('tjm_min, tjm_max, photo_url, visible, verification_status, verification_data, availability_status, verified_at, open_to_cdi')
           .eq('user_id', session.user.id)
           .maybeSingle(),
       ])
@@ -242,6 +248,7 @@ export default function DashboardFreelance() {
       const safeAvail: AvailabilityStatus =
         rawAvail === 'do_not_disturb' ? 'do_not_disturb' : 'available'
       setAvailability(safeAvail)
+      setOpenToCdi((profileData as { open_to_cdi?: boolean | null } | null)?.open_to_cdi === true)
       setLoading(false)
     }
     void loadUserAndProfile()
@@ -319,6 +326,39 @@ export default function DashboardFreelance() {
       setToast(t('availability_card.toast_error'))
     } finally {
       setAvailabilityUpdating(false)
+    }
+  }
+
+  // Ouverture croisée : même pattern que la dispo (write client-direct RLS +
+  // relance matching, cooldown M2 hérité). Déclenché à CHAQUE bascule (on/off).
+  const handleCrossOpenChange = async (next: boolean) => {
+    if (!user || crossOpenUpdating || next === openToCdi) return
+    const previous = openToCdi
+    setOpenToCdi(next) // optimistic
+    setCrossOpenUpdating(true)
+    try {
+      const { error: upErr } = await supabase
+        .from('profiles')
+        .update({ open_to_cdi: next })
+        .eq('user_id', user.id)
+      if (upErr) {
+        setOpenToCdi(previous) // rollback
+        setToast(t('availability_card.toast_error'))
+      } else {
+        setToast(t('availability_card.toast_updated'))
+        // Le pool matching change → on relance et on rafraîchit le feed.
+        emitAvailabilityChanged()
+        markMatchingTriggered(user.id)
+        setMatchingTick(Date.now())
+        void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
+          console.warn('[dashboard:freelance] sync-matching ping failed (cross-open)', err)
+        })
+      }
+    } catch {
+      setOpenToCdi(previous)
+      setToast(t('availability_card.toast_error'))
+    } finally {
+      setCrossOpenUpdating(false)
     }
   }
 
@@ -541,6 +581,14 @@ export default function DashboardFreelance() {
               value={availability}
               onChange={handleAvailabilityChange}
               disabled={availabilityUpdating || !user || !isApproved}
+            />
+            <CrossOpenToggle
+              checked={openToCdi}
+              onChange={handleCrossOpenChange}
+              label={t('availability_card.cross_open_label')}
+              hint={t('availability_card.cross_open_hint')}
+              disabled={crossOpenUpdating || !user || !isApproved}
+              accentColor={domain.primaryColor}
             />
           </div>
 

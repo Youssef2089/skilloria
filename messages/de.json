@@ -259,7 +259,9 @@
       "do_not_disturb_label": "Beschäftigt",
       "do_not_disturb_hint": "Sie erscheinen nicht mehr im Matching und erhalten keine neuen Missionen.",
       "toast_updated": "Verfügbarkeit aktualisiert",
-      "toast_error": "Verfügbarkeit konnte nicht aktualisiert werden"
+      "toast_error": "Verfügbarkeit konnte nicht aktualisiert werden",
+      "cross_open_label": "CDI-Angebote einschließen",
+      "cross_open_hint": "Auch CDI-Angebote sehen, die zu Ihrem Profil passen."
     },
     "stats": {
       "available_missions": "Verfügbare Missionen",
@@ -925,7 +927,9 @@
       "employed_label": "Beschäftigt",
       "employed_hint": "Sie suchen nicht. Es werden Ihnen keine Anfragen zugestellt und Sie erscheinen nicht mehr im Matching.",
       "open_to_work_label": "Offen für Angebote",
-      "open_to_work_hint": "Sie prüfen interessante Angebote. Sichtbar nur für verifizierte Recruiter."
+      "open_to_work_hint": "Sie prüfen interessante Angebote. Sichtbar nur für verifizierte Recruiter.",
+      "cross_open_label": "Freelance-Aufträge einschließen",
+      "cross_open_hint": "Auch Freelance-Aufträge sehen, die zu Ihrem Profil passen."
     },
     "kpis": {
       "profile_views": "Profilaufrufe",

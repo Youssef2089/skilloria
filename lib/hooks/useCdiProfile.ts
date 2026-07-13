@@ -44,6 +44,8 @@ export type CdiProfile = {
   work_modes: WorkMode[] | null
   linkedin_url: string | null
   visible: boolean | null
+  /** Ouverture croisée : voir aussi les missions freelance matchées (opt-in, défaut false). */
+  open_to_freelance: boolean | null
   phone: string | null
   city: string | null
   country: string | null
@@ -166,6 +168,7 @@ const PROFILE_COLUMNS = [
   // Lot bandeau vérif : état réel (helper deriveVerificationUiState) + motif.
   'verification_status',
   'review_reason',
+  'open_to_freelance',
 ].join(', ')
 
 const initialState: UseCdiProfileState = {

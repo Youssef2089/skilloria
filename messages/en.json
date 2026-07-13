@@ -259,7 +259,9 @@
       "do_not_disturb_label": "Busy",
       "do_not_disturb_hint": "You no longer appear in matching and won't receive new missions.",
       "toast_updated": "Availability updated",
-      "toast_error": "Could not update your availability"
+      "toast_error": "Could not update your availability",
+      "cross_open_label": "Include CDI offers",
+      "cross_open_hint": "Also see CDI offers that match your profile."
     },
     "stats": {
       "available_missions": "Available missions",
@@ -925,7 +927,9 @@
       "employed_label": "Busy",
       "employed_hint": "You're not looking. No outreach will be sent your way and you no longer appear in matching.",
       "open_to_work_label": "Open to work",
-      "open_to_work_hint": "You'll consider compelling opportunities. Visible only to verified recruiters."
+      "open_to_work_hint": "You'll consider compelling opportunities. Visible only to verified recruiters.",
+      "cross_open_label": "Include freelance missions",
+      "cross_open_hint": "Also see freelance missions that match your profile."
     },
     "kpis": {
       "profile_views": "Profile views",

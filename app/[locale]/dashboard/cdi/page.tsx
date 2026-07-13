@@ -14,6 +14,7 @@ import {
 } from '@/lib/hooks/useCdiProfile'
 import { useCdiApplications } from '@/lib/hooks/useCdiApplications'
 import CdiStatusToggle from '@/components/cdi/CdiStatusToggle'
+import CrossOpenToggle from '@/components/dashboard/CrossOpenToggle'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
 import { deriveVerificationUiState } from '@/lib/verification-state'
@@ -155,6 +156,9 @@ export default function DashboardCDI() {
 
   const [status, setStatus] = useState<CdiStatus | null>(null)
   const [statusUpdating, setStatusUpdating] = useState(false)
+  // Ouverture croisée : voir aussi les missions freelance matchées (opt-in, défaut false).
+  const [openToFreelance, setOpenToFreelance] = useState(false)
+  const [crossOpenUpdating, setCrossOpenUpdating] = useState(false)
   const secureFetch = useSecureFetch()
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
@@ -163,6 +167,11 @@ export default function DashboardCDI() {
   useEffect(() => {
     setStatus(profile?.cdi_status ?? null)
   }, [profile?.cdi_status])
+
+  // Sync ouverture croisée depuis le profil (défaut false).
+  useEffect(() => {
+    setOpenToFreelance(profile?.open_to_freelance === true)
+  }, [profile?.open_to_freelance])
 
   // Lot global C1 : resync `status` quand le statut d'écoute change depuis
   // n'importe quelle surface (toggle, bouton "Réactiver" du DndEmptyState).
@@ -255,6 +264,39 @@ export default function DashboardCDI() {
       setToast({ type: 'error', text: t('toast.status_error') })
     } finally {
       setStatusUpdating(false)
+    }
+  }
+
+  // Ouverture croisée : même pattern que le statut (write client-direct RLS +
+  // relance matching, cooldown M2 hérité). Déclenché à CHAQUE bascule (on/off).
+  const handleCrossOpenChange = async (next: boolean) => {
+    if (!user || !profile || crossOpenUpdating || next === openToFreelance) return
+    const previous = openToFreelance
+    setOpenToFreelance(next) // optimistic
+    setCrossOpenUpdating(true)
+    try {
+      const { error: upErr } = await supabase
+        .from('profiles')
+        .update({ open_to_freelance: next })
+        .eq('user_id', user.id)
+      if (upErr) {
+        setOpenToFreelance(previous) // rollback
+        setToast({ type: 'error', text: t('toast.status_error') })
+      } else {
+        setToast({ type: 'success', text: t('toast.status_updated') })
+        // Le pool matching change → on relance et on rafraîchit le feed.
+        emitAvailabilityChanged()
+        markMatchingTriggered(user.id)
+        setMatchingTick(Date.now())
+        void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
+          console.warn('[dashboard:cdi] sync-matching ping failed (cross-open)', err)
+        })
+      }
+    } catch {
+      setOpenToFreelance(previous)
+      setToast({ type: 'error', text: t('toast.status_error') })
+    } finally {
+      setCrossOpenUpdating(false)
     }
   }
 
@@ -493,6 +535,14 @@ export default function DashboardCDI() {
               value={currentStatus}
               onChange={handleStatusChange}
               disabled={statusUpdating || !profile || !isApprovedState}
+            />
+            <CrossOpenToggle
+              checked={openToFreelance}
+              onChange={handleCrossOpenChange}
+              label={t('market_status_card.cross_open_label')}
+              hint={t('market_status_card.cross_open_hint')}
+              disabled={crossOpenUpdating || !profile || !isApprovedState}
+              accentColor={domain.primaryColor}
             />
           </div>
 

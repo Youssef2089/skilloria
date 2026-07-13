@@ -259,7 +259,9 @@
       "do_not_disturb_label": "Ocupado",
       "do_not_disturb_hint": "Ya no apareces en el matching ni recibes nuevas misiones.",
       "toast_updated": "Disponibilidad actualizada",
-      "toast_error": "No se pudo actualizar tu disponibilidad"
+      "toast_error": "No se pudo actualizar tu disponibilidad",
+      "cross_open_label": "Incluir ofertas CDI",
+      "cross_open_hint": "Ver también las ofertas CDI que coinciden con tu perfil."
     },
     "stats": {
       "available_missions": "Misiones disponibles",
@@ -925,7 +927,9 @@
       "employed_label": "Ocupado",
       "employed_hint": "No estás en búsqueda. No te llegará ningún contacto y ya no apareces en el matching.",
       "open_to_work_label": "Abierto a oportunidades",
-      "open_to_work_hint": "Valoras propuestas interesantes. Visible solo para reclutadores verificados."
+      "open_to_work_hint": "Valoras propuestas interesantes. Visible solo para reclutadores verificados.",
+      "cross_open_label": "Incluir misiones freelance",
+      "cross_open_hint": "Ver también las misiones freelance que coinciden con tu perfil."
     },
     "kpis": {
       "profile_views": "Vistas del perfil",
