@@ -134,6 +134,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // state.kind === 'ok'
   const isOrgsActive = pathname.startsWith('/admin/organisations') || pathname === '/admin'
   const isExpertsActive = pathname.startsWith('/admin/experts')
+  const isPackagesActive = pathname.startsWith('/admin/packages')
 
   return (
     <>
@@ -282,6 +283,47 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2" />
           </svg>
           {t('sidebar.nav_experts')}
+        </Link>
+
+        {/* Section Commerce */}
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 500,
+            textTransform: 'uppercase',
+            letterSpacing: '.08em',
+            color: 'var(--color-text-tertiary, #94a3b8)',
+            padding: '14px 12px 6px',
+          }}
+        >
+          {t('sidebar.section_commerce')}
+        </div>
+
+        <Link
+          href="/admin/packages"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '9px 12px',
+            fontSize: 13,
+            fontWeight: isPackagesActive ? 500 : 400,
+            color: isPackagesActive
+              ? 'var(--color-text-primary, #0f172a)'
+              : 'var(--color-text-secondary, #64748b)',
+            background: isPackagesActive
+              ? 'var(--color-background-secondary, #f1f5f9)'
+              : 'transparent',
+            borderRadius: 8,
+            textDecoration: 'none',
+            transition: 'background .15s, color .15s',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            <path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12" />
+          </svg>
+          {t('sidebar.nav_packages')}
         </Link>
 
         {/* Switcher locale en bas */}

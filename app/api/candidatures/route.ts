@@ -2,10 +2,9 @@ import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { getOrgEntitlements } from '@/lib/entitlements'
-// performUnlock est factorisé dans la route unlock (contrainte Lot 2 : pas de
-// nouveau fichier hors lib/entitlements.ts + les 3 routes). Import inter-route
-// volontaire pour garantir un chemin de dévoilement STRICTEMENT identique.
-import { performUnlock } from '@/app/api/candidatures/[id]/unlock/route'
+// performUnlock est factorisé dans lib/unlock.ts (Lot 3), partagé avec la route
+// unlock — garantit un chemin de dévoilement STRICTEMENT identique.
+import { performUnlock } from '@/lib/unlock'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
