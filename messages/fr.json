@@ -318,6 +318,7 @@
         "ai_badge": "IA",
         "empty_verified": "Aucune mission ne correspond à votre profil pour le moment. Dès qu'une mission {ecosystem} correspondra, elle apparaîtra ici.",
         "empty_unverified": "Vos missions recommandées apparaîtront ici dès que votre profil sera validé.",
+        "analyzing_update": "Analyse en cours — vos recommandations se mettent à jour…",
         "analyzing": "Analyse de votre profil en cours… vos missions {ecosystem} arrivent dans quelques instants."
       },
       "expert_collaboration": {
@@ -966,6 +967,7 @@
       "locked_chip": "Profil non vérifié",
       "empty_unverified": "Vos missions recommandées apparaîtront ici dès que votre profil sera validé.",
       "empty_verified": "Aucune offre recommandée pour le moment.",
+      "analyzing_update": "Analyse en cours — vos recommandations se mettent à jour…",
       "analyzing": "Analyse de votre profil en cours… vos offres {ecosystem} arrivent dans quelques instants."
     },
     "profile_completion": {

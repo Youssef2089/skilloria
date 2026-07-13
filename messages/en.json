@@ -318,6 +318,7 @@
         "ai_badge": "AI",
         "empty_verified": "No missions match your profile yet. As soon as a {ecosystem} mission matches, it will appear here.",
         "empty_unverified": "Your recommended missions will appear here as soon as your profile is approved.",
+        "analyzing_update": "Analyzing — your recommendations are updating…",
         "analyzing": "Analyzing your profile… your {ecosystem} missions will appear in a moment."
       },
       "expert_collaboration": {
@@ -966,6 +967,7 @@
       "locked_chip": "Profile not verified",
       "empty_unverified": "Your recommended missions will appear here as soon as your profile is approved.",
       "empty_verified": "No recommended job offers for now.",
+      "analyzing_update": "Analyzing — your recommendations are updating…",
       "analyzing": "Analyzing your profile… your {ecosystem} offers will appear in a moment."
     },
     "profile_completion": {

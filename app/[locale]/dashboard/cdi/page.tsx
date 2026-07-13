@@ -156,7 +156,31 @@ export default function DashboardCDI() {
   )
   // État "analyse en cours" visible même quand la liste est déjà non vide.
   const offresSignature = (recommendedOffres ?? []).map((m) => m.match_id).join('|')
-  const { analyzing, startAnalyzing } = useMatchingAnalyzing(offresSignature)
+  const { analyzing, startAnalyzing, scheduleRetry } = useMatchingAnalyzing(offresSignature)
+
+  // Relance matching serveur AVEC lecture de la réponse (F2) — remplace le
+  // fire-and-forget aveugle. `analyzing` est déjà démarré par l'appelant.
+  //   - 2xx           → rien à faire, le poll révèlera la nouvelle liste.
+  //   - 429           → lit retry_after_seconds (fallback 60) et programme UN
+  //                     retry unique du POST après ce délai (allowRetry=false).
+  //   - autre / réseau → warn, on laisse le timeout du hook finir silencieusement.
+  // JAMAIS de boucle : le retry est appelé avec allowRetry=false.
+  const runSyncMatching = (allowRetry: boolean): void => {
+    void secureFetch('/api/me/sync-matching', { method: 'POST' })
+      .then(async (res) => {
+        if (res.ok) return
+        if (res.status === 429 && allowRetry) {
+          const body = (await res.json().catch(() => null)) as { retry_after_seconds?: number } | null
+          const delaySec = typeof body?.retry_after_seconds === 'number' ? body.retry_after_seconds : 60
+          scheduleRetry(() => runSyncMatching(false), delaySec * 1000)
+          return
+        }
+        console.warn('[dashboard:cdi] sync-matching non-ok', res.status)
+      })
+      .catch((err) => {
+        console.warn('[dashboard:cdi] sync-matching ping failed', err)
+      })
+  }
 
   const [status, setStatus] = useState<CdiStatus | null>(null)
   const [statusUpdating, setStatusUpdating] = useState(false)
@@ -248,13 +272,12 @@ export default function DashboardCDI() {
         emitAvailabilityChanged()
         // Lot matching réconcilié : sortie du DND → ping sync-matching
         // côté serveur pour aligner les matches avec les offres publiées.
+        // Lecture de la réponse + retry unique sur 429 (F2).
         if (next === 'open_to_work' && previous === 'employed') {
           if (user?.id) markMatchingTriggered(user.id)
           startAnalyzing()
           setMatchingTick(Date.now())
-          void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
-            console.warn('[dashboard:cdi] sync-matching ping failed', err)
-          })
+          runSyncMatching(true)
         }
       }
     } catch {
@@ -283,13 +306,13 @@ export default function DashboardCDI() {
       } else {
         setToast({ type: 'success', text: t('toast.status_updated') })
         // Le pool matching change → on relance et on rafraîchit le feed.
+        // Lecture de la réponse + retry unique sur 429 (F2) : c'est LE cas du
+        // décochage rapide qui heurtait le cooldown M2 et restait sans élagage.
         emitAvailabilityChanged()
         markMatchingTriggered(user.id)
         startAnalyzing()
         setMatchingTick(Date.now())
-        void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
-          console.warn('[dashboard:cdi] sync-matching ping failed (cross-open)', err)
-        })
+        runSyncMatching(true)
       }
     } catch {
       setOpenToFreelance(previous)
@@ -533,14 +556,14 @@ export default function DashboardCDI() {
             <CdiStatusToggle
               value={currentStatus}
               onChange={handleStatusChange}
-              disabled={statusUpdating || !profile || !isApprovedState}
+              disabled={statusUpdating || analyzing || !profile || !isApprovedState}
             />
             <CrossOpenToggle
               checked={openToFreelance}
               onChange={handleCrossOpenChange}
               label={t('market_status_card.cross_open_label')}
               hint={t('market_status_card.cross_open_hint')}
-              disabled={crossOpenUpdating || !profile || !isApprovedState}
+              disabled={crossOpenUpdating || analyzing || !profile || !isApprovedState}
               accentColor={domain.primaryColor}
             />
           </div>
@@ -711,8 +734,9 @@ export default function DashboardCDI() {
                 </div>
               )
             ) : (
-              // Liste non vide : bandeau discret "Analyse en cours…" pendant le
-              // matching (toggle croisé/dispo), cartes atténuées, jamais vidées.
+              // Liste non vide : bandeau "Analyse en cours…" en tête de section
+              // pendant le matching (toggle croisé/dispo), cartes atténuées à
+              // 0.35, jamais vidées. L'empty-state, lui, reste inchangé.
               <>
                 {analyzing && (
                   <div
@@ -724,11 +748,11 @@ export default function DashboardCDI() {
                       aria-hidden
                       style={{ width: 15, height: 15, border: `2px solid ${domain.primaryColor}44`, borderTopColor: domain.primaryColor, borderRadius: '50%', animation: 'sk-spin 0.8s linear infinite' }}
                     />
-                    <span>{t('suggestions_section.analyzing', { ecosystem: domain.ecosystemName })}</span>
+                    <span>{t('suggestions_section.analyzing_update')}</span>
                     <style>{`@keyframes sk-spin { to { transform: rotate(360deg) } }`}</style>
                   </div>
                 )}
-                <div style={{ opacity: analyzing ? 0.5 : 1, transition: 'opacity .2s ease' }}>
+                <div style={{ opacity: analyzing ? 0.35 : 1, transition: 'opacity .2s ease' }}>
                   <CastingRow<MissionCardData>
                     items={recommendedOffres}
                     getKey={(m) => m.match_id}
