@@ -15,6 +15,7 @@ import {
 import { useCdiApplications } from '@/lib/hooks/useCdiApplications'
 import CdiStatusToggle from '@/components/cdi/CdiStatusToggle'
 import CrossOpenToggle from '@/components/dashboard/CrossOpenToggle'
+import { useMatchingAnalyzing } from '@/hooks/useMatchingAnalyzing'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
 import { deriveVerificationUiState } from '@/lib/verification-state'
@@ -153,6 +154,9 @@ export default function DashboardCDI() {
     () => missionsLive.data?.missions ?? null,
     [missionsLive.data],
   )
+  // État "analyse en cours" visible même quand la liste est déjà non vide.
+  const offresSignature = (recommendedOffres ?? []).map((m) => m.match_id).join('|')
+  const { analyzing, startAnalyzing } = useMatchingAnalyzing(offresSignature)
 
   const [status, setStatus] = useState<CdiStatus | null>(null)
   const [statusUpdating, setStatusUpdating] = useState(false)
@@ -222,13 +226,6 @@ export default function DashboardCDI() {
     return () => window.clearInterval(id)
   }, [matchingInWindow, user?.id])
 
-  const recommendedOffresLength = missionsLive.data?.missions?.length ?? 0
-  useEffect(() => {
-    if (recommendedOffresLength > 0 && user?.id) {
-      clearMatchingTrigger(user.id)
-      setMatchingTick(Date.now())
-    }
-  }, [recommendedOffresLength, user?.id])
 
   const handleStatusChange = async (next: CdiStatus) => {
     if (!user || !profile || statusUpdating || next === status) return
@@ -253,6 +250,7 @@ export default function DashboardCDI() {
         // côté serveur pour aligner les matches avec les offres publiées.
         if (next === 'open_to_work' && previous === 'employed') {
           if (user?.id) markMatchingTriggered(user.id)
+          startAnalyzing()
           setMatchingTick(Date.now())
           void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
             console.warn('[dashboard:cdi] sync-matching ping failed', err)
@@ -287,6 +285,7 @@ export default function DashboardCDI() {
         // Le pool matching change → on relance et on rafraîchit le feed.
         emitAvailabilityChanged()
         markMatchingTriggered(user.id)
+        startAnalyzing()
         setMatchingTick(Date.now())
         void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
           console.warn('[dashboard:cdi] sync-matching ping failed (cross-open)', err)
@@ -712,12 +711,32 @@ export default function DashboardCDI() {
                 </div>
               )
             ) : (
-              <CastingRow<MissionCardData>
-                items={recommendedOffres}
-                getKey={(m) => m.match_id}
-                labels={{ prevAria: tc('prev_aria'), nextAria: tc('next_aria'), empty: tc('empty') }}
-                renderItem={(m) => <MissionCastingCard mission={m} side="cdi" />}
-              />
+              // Liste non vide : bandeau discret "Analyse en cours…" pendant le
+              // matching (toggle croisé/dispo), cartes atténuées, jamais vidées.
+              <>
+                {analyzing && (
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, color: '#475569' }}
+                  >
+                    <span
+                      aria-hidden
+                      style={{ width: 15, height: 15, border: `2px solid ${domain.primaryColor}44`, borderTopColor: domain.primaryColor, borderRadius: '50%', animation: 'sk-spin 0.8s linear infinite' }}
+                    />
+                    <span>{t('suggestions_section.analyzing', { ecosystem: domain.ecosystemName })}</span>
+                    <style>{`@keyframes sk-spin { to { transform: rotate(360deg) } }`}</style>
+                  </div>
+                )}
+                <div style={{ opacity: analyzing ? 0.5 : 1, transition: 'opacity .2s ease' }}>
+                  <CastingRow<MissionCardData>
+                    items={recommendedOffres}
+                    getKey={(m) => m.match_id}
+                    labels={{ prevAria: tc('prev_aria'), nextAria: tc('next_aria'), empty: tc('empty') }}
+                    renderItem={(m) => <MissionCastingCard mission={m} side="cdi" />}
+                  />
+                </div>
+              </>
             )}
           </div>
 

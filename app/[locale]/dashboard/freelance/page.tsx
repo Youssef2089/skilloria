@@ -19,6 +19,7 @@ import AvailabilityToggle, {
 } from '@/components/freelance/AvailabilityToggle'
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
 import CrossOpenToggle from '@/components/dashboard/CrossOpenToggle'
+import { useMatchingAnalyzing } from '@/hooks/useMatchingAnalyzing'
 import { emitAvailabilityChanged } from '@/lib/availability-actions'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import {
@@ -181,6 +182,9 @@ export default function DashboardFreelance() {
   // Casting home : on parcourt TOUTES les recommandations / candidatures
   // (carrousel sous projecteur → ne rallonge pas le home). Plus de slice top-N.
   const recommendedMissions = useMemo(() => missions === null ? null : missions, [missions])
+  // État "analyse en cours" visible même quand la liste est déjà non vide.
+  const missionsSignature = (recommendedMissions ?? []).map((m) => m.match_id).join('|')
+  const { analyzing, startAnalyzing } = useMatchingAnalyzing(missionsSignature)
   const recentCandidatures = useMemo(() => candidaturesAll === null ? null : candidaturesAll, [candidaturesAll])
   const stats = useMemo(() => {
     if (missions === null && candidaturesAll === null && conversations === null) {
@@ -283,13 +287,6 @@ export default function DashboardFreelance() {
 
   // Si des missions arrivent → on purge immédiatement le hint et on reprend
   // un poll normal au prochain render.
-  const recommendedMissionsLength = missionsLive.data?.missions?.length ?? 0
-  useEffect(() => {
-    if (recommendedMissionsLength > 0 && user?.id) {
-      clearMatchingTrigger(user.id)
-      setMatchingTick(Date.now())
-    }
-  }, [recommendedMissionsLength, user?.id])
 
   const handleAvailabilityChange = async (next: AvailabilityStatus) => {
     if (!user || availabilityUpdating || next === availability) return
@@ -315,6 +312,7 @@ export default function DashboardFreelance() {
         // Fire-and-forget, non-bloquant.
         if (next === 'available' && previous === 'do_not_disturb') {
           if (user?.id) markMatchingTriggered(user.id)
+          startAnalyzing()
           setMatchingTick(Date.now())
           void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
             console.warn('[dashboard:freelance] sync-matching ping failed', err)
@@ -349,6 +347,7 @@ export default function DashboardFreelance() {
         // Le pool matching change → on relance et on rafraîchit le feed.
         emitAvailabilityChanged()
         markMatchingTriggered(user.id)
+        startAnalyzing()
         setMatchingTick(Date.now())
         void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
           console.warn('[dashboard:freelance] sync-matching ping failed (cross-open)', err)
@@ -673,12 +672,32 @@ export default function DashboardFreelance() {
                 </div>
               )
             ) : (
-              <CastingRow<MissionCardData>
-                items={recommendedMissions}
-                getKey={(m) => m.match_id}
-                labels={{ prevAria: tc('prev_aria'), nextAria: tc('next_aria'), empty: tc('empty') }}
-                renderItem={(m) => <MissionCastingCard mission={m} side="freelance" />}
-              />
+              // Liste non vide : bandeau discret "Analyse en cours…" pendant le
+              // matching (toggle croisé/dispo), cartes atténuées, jamais vidées.
+              <>
+                {analyzing && (
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, color: '#475569' }}
+                  >
+                    <span
+                      aria-hidden
+                      style={{ width: 15, height: 15, border: `2px solid ${domain.primaryColor}44`, borderTopColor: domain.primaryColor, borderRadius: '50%', animation: 'sk-spin 0.8s linear infinite' }}
+                    />
+                    <span>{t('cards.recommended_missions.analyzing', { ecosystem: domain.ecosystemName })}</span>
+                    <style>{`@keyframes sk-spin { to { transform: rotate(360deg) } }`}</style>
+                  </div>
+                )}
+                <div style={{ opacity: analyzing ? 0.5 : 1, transition: 'opacity .2s ease' }}>
+                  <CastingRow<MissionCardData>
+                    items={recommendedMissions}
+                    getKey={(m) => m.match_id}
+                    labels={{ prevAria: tc('prev_aria'), nextAria: tc('next_aria'), empty: tc('empty') }}
+                    renderItem={(m) => <MissionCastingCard mission={m} side="freelance" />}
+                  />
+                </div>
+              </>
             )}
           </div>
 
