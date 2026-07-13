@@ -110,38 +110,70 @@ export async function loadEligibleProfiles(
   expectedUserType: 'expert_freelance' | 'expert_cdi',
   maxCandidates: number,
 ): Promise<ProfileCandidate[]> {
-  let query = supabaseAdmin
-    .from('profiles')
-    .select(
-      'id, user_id, expert_type, title, summary, seniority, years_experience, ' +
-        'years_total_experience, skills, languages, certifications, ' +
-        'tjm_min, tjm_max, work_modes, mobility, ' +
-        'availability_status, availability_date, ' +
-        'cdi_status, cdi_notice_period, cdi_salary_min, cdi_salary_max, ' +
-        'cdi_sectors, cdi_geo_mobility, cdi_contract_types, ' +
-        'city, country, ' +
-        'branches(name), specialities(name), ' +
-        'users!profiles_user_id_fkey!inner(user_type, locale)',
-    )
-    .eq('domain_id', domainId)
-    .eq('cv_parsing_status', 'done')
-    .eq('visible', true)
-    .not('ai_consent_at', 'is', null)
-    .eq('verification_status', 'approved')
-    .eq('users.user_type', expectedUserType)
+  const SELECT =
+    'id, user_id, expert_type, title, summary, seniority, years_experience, ' +
+    'years_total_experience, skills, languages, certifications, ' +
+    'tjm_min, tjm_max, work_modes, mobility, ' +
+    'availability_status, availability_date, ' +
+    'cdi_status, cdi_notice_period, cdi_salary_min, cdi_salary_max, ' +
+    'cdi_sectors, cdi_geo_mobility, cdi_contract_types, ' +
+    'city, country, ' +
+    'branches(name), specialities(name), ' +
+    'users!profiles_user_id_fkey!inner(user_type, locale)'
 
-  if (expectedUserType === 'expert_freelance') {
-    query = query.or('availability_status.is.null,availability_status.neq.do_not_disturb')
-  } else {
-    query = query.or('cdi_status.is.null,cdi_status.neq.employed')
-  }
+  // Filtres d'éligibilité communs aux deux groupes (approved, visible, consent, cv, domain).
+  const baseQuery = () =>
+    supabaseAdmin
+      .from('profiles')
+      .select(SELECT)
+      .eq('domain_id', domainId)
+      .eq('cv_parsing_status', 'done')
+      .eq('visible', true)
+      .not('ai_consent_at', 'is', null)
+      .eq('verification_status', 'approved')
 
-  const { data, error } = await query.limit(maxCandidates + 1)
-  if (error) {
-    console.error('[matching] profiles load failed', error.message)
-    return []
+  // Garde de DISPONIBILITÉ propre au type de l'EXPERT (jamais celui de la publication).
+  const withAvailabilityGuard = (
+    q: ReturnType<typeof baseQuery>,
+    userType: 'expert_freelance' | 'expert_cdi',
+  ) =>
+    userType === 'expert_freelance'
+      ? q.or('availability_status.is.null,availability_status.neq.do_not_disturb')
+      : q.or('cdi_status.is.null,cdi_status.neq.employed')
+
+  // Groupe NATIF : experts du type attendu par la publication.
+  const nativeQuery = withAvailabilityGuard(
+    baseQuery().eq('users.user_type', expectedUserType),
+    expectedUserType,
+  ).limit(maxCandidates + 1)
+
+  // Groupe CROISÉ (ouverture croisée opt-in) : experts de l'AUTRE type ayant coché
+  // l'option, avec LEUR PROPRE garde de dispo. mission (attend freelance) → CDI ayant
+  // open_to_freelance ; offre (attend cdi) → freelance ayant open_to_cdi.
+  const otherUserType: 'expert_freelance' | 'expert_cdi' =
+    expectedUserType === 'expert_freelance' ? 'expert_cdi' : 'expert_freelance'
+  const optInFlag = expectedUserType === 'expert_freelance' ? 'open_to_freelance' : 'open_to_cdi'
+  const crossQuery = withAvailabilityGuard(
+    baseQuery().eq('users.user_type', otherUserType).eq(optInFlag, true),
+    otherUserType,
+  ).limit(maxCandidates + 1)
+
+  const [nativeRes, crossRes] = await Promise.all([nativeQuery, crossQuery])
+  if (nativeRes.error) console.error('[matching] profiles load failed (native)', nativeRes.error.message)
+  if (crossRes.error) console.error('[matching] profiles load failed (cross)', crossRes.error.message)
+
+  // Merge natif d'abord + croisé, dédoublonnage défensif par id (groupes disjoints
+  // par user_type), plafonné à max_candidates.
+  const seen = new Set<string>()
+  const rows: ProfileRow[] = []
+  for (const r of [
+    ...((nativeRes.data ?? []) as unknown as ProfileRow[]),
+    ...((crossRes.data ?? []) as unknown as ProfileRow[]),
+  ]) {
+    if (seen.has(r.id)) continue
+    seen.add(r.id)
+    rows.push(r)
   }
-  const rows = (data ?? []) as unknown as ProfileRow[]
   if (rows.length > maxCandidates) {
     console.warn('[matching] pool exceeds max_candidates — truncated', {
       domainId,
@@ -207,6 +239,8 @@ export type NotifySpec = {
   publication_id: string
   publication_title: string
   publication_type: AnnonceType
+  /** Type de l'EXPERT matché — segment du deep-link dashboard (ouverture croisée). */
+  user_type: 'expert_freelance' | 'expert_cdi'
   domain_id: string
   locale: string
 }
@@ -251,7 +285,9 @@ export async function notifyAndFlip(args: {
     flips.push({ profile_id: s.profile_id, publication_id: s.publication_id })
     if (alreadyKey.has(key)) continue
     const loc = normalizeMatchingLocale(s.locale)
-    const dashboardSegment = s.publication_type === 'mission' ? 'freelance' : 'cdi'
+    // Ouverture croisée : le segment suit le type de l'EXPERT (son dashboard),
+    // pas le type de la publication (un CDI matché sur une mission reste sur /cdi).
+    const dashboardSegment = s.user_type === 'expert_cdi' ? 'cdi' : 'freelance'
     rows.push({
       user_id: s.user_id,
       domain_id: s.domain_id,

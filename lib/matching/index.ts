@@ -191,12 +191,20 @@ export async function runMatchingForPublication(args: {
       const profileIds = freshInserts.map((p) => p.profile_id)
       const { data: pUsers } = await supabaseAdmin
         .from('profiles')
-        .select('id, user_id, users!profiles_user_id_fkey!inner(locale)')
+        .select('id, user_id, users!profiles_user_id_fkey!inner(locale, user_type)')
         .in('id', profileIds)
-      const targetMap = new Map<string, { user_id: string; locale: string }>()
-      for (const row of (pUsers ?? []) as Array<{ id: string; user_id: string; users: { locale: string } | { locale: string }[] }>) {
+      // Ouverture croisée : le pool peut mêler les 2 types → on capte le vrai
+      // user_type de CHAQUE profil matché (pas expectedUserType) pour le deep-link.
+      const targetMap = new Map<string, { user_id: string; locale: string; user_type: 'expert_freelance' | 'expert_cdi' }>()
+      for (const row of (pUsers ?? []) as Array<{ id: string; user_id: string; users: { locale: string; user_type: string } | { locale: string; user_type: string }[] }>) {
         const u = pickRel(row.users)
-        if (u) targetMap.set(row.id, { user_id: row.user_id, locale: u.locale })
+        if (u) {
+          targetMap.set(row.id, {
+            user_id: row.user_id,
+            locale: u.locale,
+            user_type: u.user_type === 'expert_cdi' ? 'expert_cdi' : 'expert_freelance',
+          })
+        }
       }
       const specs: NotifySpec[] = []
       for (const f of freshInserts) {
@@ -208,6 +216,7 @@ export async function runMatchingForPublication(args: {
           publication_id: f.publication_id,
           publication_title: pub.title,
           publication_type: pub.type,
+          user_type: t.user_type,
           domain_id,
           locale: t.locale,
         })

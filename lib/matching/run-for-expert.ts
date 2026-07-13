@@ -77,6 +77,8 @@ type ProfileFullRow = {
   visible: boolean | null
   ai_consent_at: string | null
   cv_parsing_status: string | null
+  open_to_cdi: boolean | null
+  open_to_freelance: boolean | null
   branches: { name: string } | { name: string }[] | null
   specialities: { name: string } | { name: string }[] | null
   users: { user_type: string | null; locale: string | null } | { user_type: string | null; locale: string | null }[] | null
@@ -199,6 +201,7 @@ export async function runMatchingForExpert(args: {
         'cdi_status, cdi_notice_period, cdi_salary_min, cdi_salary_max, ' +
         'cdi_sectors, cdi_geo_mobility, cdi_contract_types, city, country, ' +
         'verification_status, visible, ai_consent_at, cv_parsing_status, ' +
+        'open_to_cdi, open_to_freelance, ' +
         'branches(name), specialities(name), ' +
         'users!profiles_user_id_fkey!inner(user_type, locale)',
     )
@@ -233,8 +236,15 @@ export async function runMatchingForExpert(args: {
   const locale = normalizeMatchingLocale(localeRaw)
   const targetPubType = publicationTypeForUserType(userType)
 
+  // Ouverture croisée (opt-in) : un freelance qui a coché open_to_cdi voit AUSSI
+  // les offres CDI ; un CDI qui a coché open_to_freelance voit AUSSI les missions.
+  // Dans ce cas le pool couvre les deux types ; sinon il reste sur le type natif.
+  const crossOpen =
+    (userType === 'expert_freelance' && profile.open_to_cdi === true) ||
+    (userType === 'expert_cdi' && profile.open_to_freelance === true)
+
   // 3. Pool de publications éligibles (domain + type + published)
-  const { data: pubData, error: pubErr } = await supabaseAdmin
+  let pubQuery = supabaseAdmin
     .from('publications')
     .select(
       'id, domain_id, type, title, description, branch_id, speciality_id, ' +
@@ -244,7 +254,10 @@ export async function runMatchingForExpert(args: {
     )
     .eq('domain_id', profile.domain_id)
     .eq('status', 'published')
-    .eq('type', targetPubType)
+  pubQuery = crossOpen
+    ? pubQuery.in('type', ['mission', 'offre'])
+    : pubQuery.eq('type', targetPubType)
+  const { data: pubData, error: pubErr } = await pubQuery
     .order('published_at', { ascending: false })
     .limit(config.max_candidates)
 
@@ -334,6 +347,7 @@ export async function runMatchingForExpert(args: {
           publication_id: f.publication_id,
           publication_title: meta.title,
           publication_type: meta.type === 'offre' ? 'offre' : 'mission',
+          user_type: userType,
           domain_id: profile.domain_id,
           locale: u.locale ?? locale,
         })
