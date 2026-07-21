@@ -41,22 +41,71 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const { supabaseAdmin, user } = auth
 
+  // Hint client OPTIONNEL { reason } : lu en TÉLÉMÉTRIE uniquement, JAMAIS pour
+  // décider (le client n'est pas autoritaire — cf. audit sécurité). Best-effort.
+  let clientReason: string | null = null
+  try {
+    const body = (await request.json().catch(() => null)) as { reason?: unknown } | null
+    if (body && typeof body.reason === 'string') clientReason = body.reason
+  } catch {
+    /* body vide/non-JSON → ignoré */
+  }
+
+  // Profil courant : id + flags d'ouverture croisée ACTUELS + trace du dernier
+  // run. La trace permet de DÉRIVER le sens du changement de scope côté serveur.
+  const { data: profile, error: pErr } = await supabaseAdmin
+    .from('profiles')
+    .select('id, open_to_cdi, open_to_freelance, last_matching_scope, users!profiles_user_id_fkey!inner(user_type)')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (pErr || !profile) {
+    return json({ ok: false, code: 'profile_not_found' }, 404)
+  }
+  const prof = profile as unknown as {
+    id: string
+    open_to_cdi: boolean | null
+    open_to_freelance: boolean | null
+    last_matching_scope: { crossOpen?: boolean } | null
+    users: { user_type: string | null } | { user_type: string | null }[] | null
+  }
+  const uRel = Array.isArray(prof.users) ? prof.users[0] : prof.users
+  const userType = uRel?.user_type === 'expert_cdi' ? 'expert_cdi' : 'expert_freelance'
+  const currentCrossOpen =
+    (userType === 'expert_freelance' && prof.open_to_cdi === true) ||
+    (userType === 'expert_cdi' && prof.open_to_freelance === true)
+  const traceCrossOpen = prof.last_matching_scope?.crossOpen === true
+
+  // ── SENS DÉRIVÉ SERVEUR ────────────────────────────────────────────────
+  //  RÉTRÉCI (crossOpen true → false) : le pool n'a fait que se réduire → un
+  //  simple élagage SQL suffit (ZÉRO Claude). On le sort du cooldown IA et on
+  //  lui applique un rate-limit PERMISSIF (10/min) : le coût est purement DB.
+  //  La trace DOIT exister et valoir true, l'état courant DOIT être false.
+  if (traceCrossOpen && !currentCrossOpen) {
+    const allowedPrune = await checkRateLimit(supabaseAdmin, 'matching_prune_60s', user.id, 60, 10)
+    if (!allowedPrune) return json({ ok: false, code: 'rate_limited', retry_after_seconds: 60 }, 429)
+
+    after(async () => {
+      try {
+        const { runPruneForExpert } = await import('@/lib/matching')
+        const r = await runPruneForExpert({ supabaseAdmin, profileId: prof.id })
+        console.log('[me/sync-matching] prune done', { profileId: prof.id, ok: r.ok, deleted: r.deleted, kept: r.kept, hint: clientReason })
+      } catch (err) {
+        console.error('[me/sync-matching] prune threw (after)', err)
+      }
+    })
+
+    return json({ ok: true, profile_id: prof.id, queued: true, mode: 'prune' }, 200)
+  }
+
+  // ── CHEMIN IA COMPLET — STRICTEMENT INCHANGÉ ───────────────────────────
+  //  ÉLARGI (false → true), trace absente/null, OU scope inchangé (ex. retour
+  //  de DND) : il faut (re)scorer → run IA complet sous cooldown M2 STRICT.
   // Cooldown M2 : plafonne le coût des appels Claude. Check AVANT le after()
   // -> un refus ne programme jamais de travail IA. checkRateLimit est fail-open.
   const allowed60 = await checkRateLimit(supabaseAdmin, 'matching_sync_60s', user.id, 60, 1)
   if (!allowed60) return json({ ok: false, code: 'rate_limited', retry_after_seconds: 60 }, 429)
   const allowedHour = await checkRateLimit(supabaseAdmin, 'matching_sync_1h', user.id, 3600, 10)
   if (!allowedHour) return json({ ok: false, code: 'rate_limited', retry_after_seconds: 3600 }, 429)
-
-  // Récupère le profile_id de l'expert courant
-  const { data: profile, error: pErr } = await supabaseAdmin
-    .from('profiles')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle()
-  if (pErr || !profile) {
-    return json({ ok: false, code: 'profile_not_found' }, 404)
-  }
 
   // Exécution via `after()` — on retourne immédiatement, le matching IA
   // (~10-15s) tourne après l'envoi de la response mais AVANT que le runtime
@@ -65,12 +114,12 @@ export async function POST(request: NextRequest): Promise<Response> {
   after(async () => {
     try {
       const { runMatchingForExpert } = await import('@/lib/matching')
-      const v = await runMatchingForExpert({ supabaseAdmin, profileId: profile.id })
-      console.log('[me/sync-matching] done', { profileId: profile.id, status: v.status, proposals: v.proposals.length })
+      const v = await runMatchingForExpert({ supabaseAdmin, profileId: prof.id })
+      console.log('[me/sync-matching] done', { profileId: prof.id, status: v.status, proposals: v.proposals.length })
     } catch (err) {
       console.error('[me/sync-matching] threw (after)', err)
     }
   })
 
-  return json({ ok: true, profile_id: profile.id, queued: true }, 200)
+  return json({ ok: true, profile_id: prof.id, queued: true, mode: 'full' }, 200)
 }

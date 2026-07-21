@@ -177,6 +177,27 @@ function pubToForMatching(row: PublicationRow, locale: MatchingLocale): Publicat
   }
 }
 
+/**
+ * Écrit la TRACE du scope du dernier run (cf. migration 20260708000009 —
+ * profiles.last_matching_scope jsonb). Le routeur /api/me/sync-matching s'en
+ * sert pour DÉRIVER le sens d'un changement de scope côté serveur :
+ *   - crossOpen true → false (rétréci) : prune-only SQL, hors cooldown IA.
+ *   - crossOpen false → true (élargi)   : run IA complet, cooldown strict.
+ *
+ * Best-effort : non-bloquant (un échec d'écriture ne casse pas le run).
+ */
+async function writeMatchingScopeTrace(
+  supabaseAdmin: SupabaseClient,
+  profileId: string,
+  crossOpen: boolean,
+): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from('profiles')
+    .update({ last_matching_scope: { crossOpen, evaluated_at: new Date().toISOString() } })
+    .eq('id', profileId)
+  if (error) console.warn('[matching-expert] scope trace write failed', error.message)
+}
+
 export async function runMatchingForExpert(args: {
   supabaseAdmin: SupabaseClient
   profileId: string
@@ -281,6 +302,8 @@ export async function runMatchingForExpert(args: {
     } catch (err) {
       console.error('[matching-expert] reconcile (empty_pool) threw', err)
     }
+    // Le pool vide constitue un run : on trace le scope courant.
+    await writeMatchingScopeTrace(supabaseAdmin, profileId, crossOpen)
     return { status: 'empty_pool', proposals: [], notes: `Pool publications vide (domain=${profile.domain_id}, type=${targetPubType}).`, model: config.model }
   }
 
@@ -356,6 +379,9 @@ export async function runMatchingForExpert(args: {
     }
   }
 
+  // Fin de run complet : on trace le scope courant (sens dérivable côté serveur).
+  await writeMatchingScopeTrace(supabaseAdmin, profileId, crossOpen)
+
   // Adapter la sortie au type MatchingVerdict (legacy : `profile_id, score, reason`).
   return {
     status: 'ok',
@@ -420,4 +446,118 @@ export async function clearExpertRecommendations(args: {
     console.error('[matching-expert] clear reconcile threw', err)
     return { ok: false, deleted: 0 }
   }
+}
+
+/**
+ * PRUNE-ONLY — élagage des matches devenus hors-scope, SANS aucun appel Claude.
+ *
+ * Cas d'usage : DÉCOCHAGE de l'ouverture croisée (rétrécissement du pool). Le
+ * seul travail nécessaire est de retirer les matches vers des publications
+ * sorties du scope (ex. offres CDI après décochage) — pur SQL, donc exécutable
+ * HORS du cooldown IA (cf. routage /api/me/sync-matching). Latence ~secondes.
+ *
+ * Principe :
+ *   1. Lire le profil : domaine + user_type + flags open_to_* ACTUELS.
+ *   2. Types de publication encore en scope (crossOpen courant lu du profil).
+ *   3. desired = matches EXISTANTS dont la publication est encore `published`,
+ *      du bon type et du bon domaine — en RÉUTILISANT leurs score/explanation
+ *      actuels (ZÉRO re-scoring, aucun callExpertMatchingAi).
+ *   4. reconcileMatches → supprime les matches hors-desired (pending/notified/
+ *      viewed sans candidature), PRÉSERVE dismissed + candidatures (garde-fous
+ *      identiques au run complet — reconcile n'est PAS modifié).
+ *   5. Écrit la trace de scope (un prune constitue un run).
+ *
+ * Best-effort : tout échec est non-bloquant côté caller.
+ */
+export async function runPruneForExpert(args: {
+  supabaseAdmin: SupabaseClient
+  profileId: string
+}): Promise<{ ok: boolean; deleted: number; kept: number; crossOpen: boolean }> {
+  const { supabaseAdmin, profileId } = args
+
+  // 1. Profil : domaine + user_type + flags d'ouverture croisée COURANTS.
+  const { data: profileData, error: pErr } = await supabaseAdmin
+    .from('profiles')
+    .select('id, domain_id, open_to_cdi, open_to_freelance, users!profiles_user_id_fkey!inner(user_type)')
+    .eq('id', profileId)
+    .maybeSingle()
+  if (pErr || !profileData) {
+    console.error('[matching-prune] profile lookup failed', pErr?.message ?? 'not found')
+    return { ok: false, deleted: 0, kept: 0, crossOpen: false }
+  }
+  const profile = profileData as unknown as {
+    id: string
+    domain_id: string
+    open_to_cdi: boolean | null
+    open_to_freelance: boolean | null
+    users: { user_type: string | null } | { user_type: string | null }[] | null
+  }
+  const u = pickRel(profile.users) as { user_type: string | null } | null
+  const userType = u?.user_type === 'expert_cdi' ? 'expert_cdi' : 'expert_freelance'
+  const crossOpen =
+    (userType === 'expert_freelance' && profile.open_to_cdi === true) ||
+    (userType === 'expert_cdi' && profile.open_to_freelance === true)
+  const nativeType = publicationTypeForUserType(userType)
+  const allowedTypes: string[] = crossOpen ? ['mission', 'offre'] : [nativeType]
+
+  // 2. Matches existants + type/statut/domaine de leur publication (jointure SQL).
+  const { data: existData, error: exErr } = await supabaseAdmin
+    .from('matches')
+    .select('id, publication_id, score, explanation, publications!inner(type, status, domain_id)')
+    .eq('profile_id', profileId)
+  if (exErr) {
+    console.error('[matching-prune] existing matches load failed', exErr.message)
+    return { ok: false, deleted: 0, kept: 0, crossOpen }
+  }
+  const existRows = (existData ?? []) as unknown as Array<{
+    id: string
+    publication_id: string
+    score: number
+    explanation: { reason?: string; pitch_org?: string | null } | null
+    publications:
+      | { type: string; status: string; domain_id: string }
+      | { type: string; status: string; domain_id: string }[]
+      | null
+  }>
+
+  // 3. desired = matches ENCORE en scope (published + bon type + bon domaine),
+  //    score/explanation RÉUTILISÉS tels quels. Les hors-scope (offres après
+  //    décochage) sont volontairement ABSENTS → reconcile les élaguera.
+  const desired: ReconcileDesired[] = []
+  for (const r of existRows) {
+    const pub = pickRel(r.publications) as { type: string; status: string; domain_id: string } | null
+    if (!pub) continue
+    if (pub.status !== 'published') continue
+    if (pub.domain_id !== profile.domain_id) continue
+    if (!allowedTypes.includes(pub.type)) continue
+    desired.push({
+      profile_id: profileId,
+      publication_id: r.publication_id,
+      score: Number(r.score),
+      reason: r.explanation?.reason ?? '',
+      pitch_org: r.explanation?.pitch_org ?? null,
+    })
+  }
+
+  // 4. reconcile (SQL pur) : supprime les hors-desired, préserve dismissed +
+  //    candidatures. Modèle sentinelle 'prune-no-rescore' (aucun scoring IA).
+  let deleted = 0
+  try {
+    const stats = await reconcileMatches({
+      supabaseAdmin,
+      scope: { byProfileId: profileId },
+      domainId: profile.domain_id,
+      desired,
+      model: 'prune-no-rescore',
+    })
+    deleted = stats.deleted
+  } catch (err) {
+    console.error('[matching-prune] reconcile threw', err)
+    return { ok: false, deleted: 0, kept: desired.length, crossOpen }
+  }
+
+  // 5. Trace de scope — le prune constitue un run.
+  await writeMatchingScopeTrace(supabaseAdmin, profileId, crossOpen)
+
+  return { ok: true, deleted, kept: desired.length, crossOpen }
 }
