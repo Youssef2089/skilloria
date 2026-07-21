@@ -19,7 +19,17 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  *      • candidature existante pour la paire      → PAS TOUCHÉ (acte engagé :
  *                                                   l'expert a postulé, l'org
  *                                                   travaille déjà dessus).
- *      • status ∈ ('pending','notified','viewed') ET PAS de candidature → DELETE.
+ *      • axe libre ENCORE en scope (inScopeFreeAxisIds) → PAS TOUCHÉ
+ *                                                   (preserved_in_scope) : une
+ *                                                   suppression ne peut venir
+ *                                                   QUE d'une raison OBJECTIVE
+ *                                                   (publi non-published, hors
+ *                                                   type/domaine), JAMAIS de la
+ *                                                   variance de re-proposition
+ *                                                   IA. Score/explanation
+ *                                                   strictement intacts.
+ *      • status ∈ ('pending','notified','viewed') ET PAS de candidature ET
+ *        HORS scope → DELETE.
  *
  * Le caller passe l'ensemble DÉSIRÉ (issu d'un appel IA borné à un scope), la
  * fonction se charge de comparer à l'existant et d'appliquer la diff. Retourne
@@ -48,6 +58,7 @@ export type ReconcileStats = {
   deleted: number
   preserved_dismissed: number
   preserved_with_candidature: number
+  preserved_in_scope: number
 }
 
 type ExistingMatchRow = {
@@ -69,8 +80,20 @@ export async function reconcileMatches(args: {
   domainId: string
   desired: ReconcileDesired[]
   model: string
+  /**
+   * Ids de l'axe LIBRE (celui non fixé par `scope`) encore DANS LE SCOPE au
+   * moment du run : publications du pool pour un scope `byProfileId`, profils
+   * éligibles pour un scope `byPublicationId`. Un existant absent de `desired`
+   * mais dont l'axe libre ∈ cet ensemble est PRÉSERVÉ (preserved_in_scope),
+   * sans aucun UPDATE.
+   *
+   * OBLIGATOIRE pour tout run IA (la variance de re-proposition ne doit jamais
+   * supprimer un match encore en scope) ; optionnel uniquement pour les chemins
+   * SANS IA (prune) dont le `desired` contient déjà tout l'in-scope.
+   */
+  inScopeFreeAxisIds?: string[]
 }): Promise<ReconcileStats> {
-  const { supabaseAdmin, scope, domainId, desired, model } = args
+  const { supabaseAdmin, scope, domainId, desired, model, inScopeFreeAxisIds } = args
   const nowIso = new Date().toISOString()
 
   const stats: ReconcileStats = {
@@ -79,7 +102,15 @@ export async function reconcileMatches(args: {
     deleted: 0,
     preserved_dismissed: 0,
     preserved_with_candidature: 0,
+    preserved_in_scope: 0,
   }
+
+  // Ensemble des ids d'axe LIBRE encore en scope. L'axe libre est celui NON
+  // fixé par `scope` : publication_id si scope byProfileId, profile_id sinon.
+  const fixedOnProfile = 'byProfileId' in scope && !!scope.byProfileId
+  const inScopeSet = new Set(inScopeFreeAxisIds ?? [])
+  const freeAxisIdOf = (m: { profile_id: string; publication_id: string }): string =>
+    fixedOnProfile ? m.publication_id : m.profile_id
 
   // ── 1. Charger l'existant pour le scope (axe fixé) ────────────────────────
   const existingQuery = supabaseAdmin
@@ -186,6 +217,15 @@ export async function reconcileMatches(args: {
     }
     if (candidatureKeys.has(key)) {
       stats.preserved_with_candidature++
+      continue
+    }
+    // STABILITÉ : l'axe libre est TOUJOURS en scope mais l'IA ne l'a pas
+    // re-proposé ce run (variance non-déterministe) → on PRÉSERVE tel quel,
+    // aucun UPDATE (score/explanation intacts). Une suppression ne peut venir
+    // que d'une raison OBJECTIVE (publi hors-scope/non-published), donc d'un
+    // axe libre ABSENT de inScopeSet.
+    if (inScopeSet.has(freeAxisIdOf(ex))) {
+      stats.preserved_in_scope++
       continue
     }
     if (ex.status === 'pending' || ex.status === 'notified' || ex.status === 'viewed') {

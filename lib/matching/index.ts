@@ -172,6 +172,10 @@ export async function runMatchingForPublication(args: {
       domainId: domain_id,
       desired,
       model: aiResult.model,
+      // STABILITÉ : les profils éligibles in-scope protègent de la variance IA —
+      // un match vers un expert encore éligible mais non re-proposé ce run est
+      // préservé (preserved_in_scope), jamais supprimé.
+      inScopeFreeAxisIds: candidates.map((c) => c.profile_id),
     })
   } catch (err) {
     console.error('[matching] reconcile threw', err)
@@ -228,7 +232,7 @@ export async function runMatchingForPublication(args: {
   return {
     status: 'ok',
     proposals,
-    notes: `Reconcile publi ${publicationId}: +${stats.inserted.length} ~${stats.updated} -${stats.deleted} (préservés: dismissed=${stats.preserved_dismissed}, candidatures=${stats.preserved_with_candidature}).`,
+    notes: `Reconcile publi ${publicationId}: +${stats.inserted.length} ~${stats.updated} -${stats.deleted} (préservés: dismissed=${stats.preserved_dismissed}, candidatures=${stats.preserved_with_candidature}, in_scope=${stats.preserved_in_scope}).`,
     model: aiResult.model,
   }
 }

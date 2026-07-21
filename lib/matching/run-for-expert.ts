@@ -338,6 +338,10 @@ export async function runMatchingForExpert(args: {
       domainId: profile.domain_id,
       desired,
       model: aiResult.model,
+      // STABILITÉ : le pool in-scope (publications) protège de la variance IA —
+      // un match vers une publi encore dans le pool mais non re-proposée ce run
+      // est préservé (preserved_in_scope), jamais supprimé.
+      inScopeFreeAxisIds: pubRows.map((r) => r.id),
     })
   } catch (err) {
     console.error('[matching-expert] reconcile threw', err)
@@ -391,7 +395,7 @@ export async function runMatchingForExpert(args: {
       reason: p.reason,
       pitch_org: p.pitch_org,
     })),
-    notes: `Reconcile expert ${profileId}: +${stats.inserted.length} ~${stats.updated} -${stats.deleted} (préservés: dismissed=${stats.preserved_dismissed}, candidatures=${stats.preserved_with_candidature}).`,
+    notes: `Reconcile expert ${profileId}: +${stats.inserted.length} ~${stats.updated} -${stats.deleted} (préservés: dismissed=${stats.preserved_dismissed}, candidatures=${stats.preserved_with_candidature}, in_scope=${stats.preserved_in_scope}).`,
     model: aiResult.model,
   }
 }
