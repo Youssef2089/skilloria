@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
@@ -99,6 +100,8 @@ export default function AdminPackageEditPage() {
   const [pkg, setPkg] = useState<Pkg | null>(null)
   const [features, setFeatures] = useState<Feature[]>([])
   const [name, setName] = useState('')
+  const [targetRole, setTargetRole] = useState('client')
+  const [orgCount, setOrgCount] = useState(0)
   const [priceMonthly, setPriceMonthly] = useState('')
   const [priceYearly, setPriceYearly] = useState('')
   const [active, setActive] = useState(true)
@@ -137,9 +140,11 @@ export default function AdminPackageEditPage() {
         setError(t('errors.generic'))
         return
       }
-      const json = (await res.json()) as { package: Pkg; features: Feature[] }
+      const json = (await res.json()) as { package: Pkg; features: Feature[]; org_count?: number }
       setPkg(json.package)
       setName(json.package.name)
+      setTargetRole(json.package.target_role)
+      setOrgCount(json.org_count ?? 0)
       setFeatures(json.features ?? [])
       setPriceMonthly(json.package.price_monthly == null ? '' : String(json.package.price_monthly))
       setPriceYearly(json.package.price_yearly == null ? '' : String(json.package.price_yearly))
@@ -205,6 +210,7 @@ export default function AdminPackageEditPage() {
       const body = {
         package_id: packageId,
         name: name.trim(),
+        target_role: targetRole,
         price_monthly: priceMonthly.trim() === '' ? null : priceMonthly.trim(),
         price_yearly: priceYearly.trim() === '' ? null : priceYearly.trim(),
         active,
@@ -216,7 +222,13 @@ export default function AdminPackageEditPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
       })
-      const payload = (await res.json().catch(() => ({}))) as { code?: string; feature_code?: string }
+      const payload = (await res.json().catch(() => ({}))) as {
+        code?: string
+        feature_code?: string
+        count?: number
+        org_type?: string
+        uncovered?: string[]
+      }
       if (!res.ok) {
         if (payload.code === 'invalid_feature_value') {
           setSaveError(t('packages.err_invalid_feature_value', { code: payload.feature_code ?? '' }))
@@ -226,6 +238,25 @@ export default function AdminPackageEditPage() {
           setSaveError(t('packages.err_invalid_price'))
         } else if (payload.code === 'invalid_name') {
           setSaveError(t('packages.err_invalid_name'))
+        } else if (payload.code === 'orgs_would_be_orphaned') {
+          // Rétrécissement de cible refusé : on nomme le volume et le type
+          // concernés pour que l'admin sache quoi migrer.
+          setSaveError(
+            t('packages.err_orgs_would_be_orphaned', {
+              count: payload.count ?? 0,
+              type: payload.org_type ?? '',
+            }),
+          )
+        } else if (payload.code === 'target_uncovered') {
+          setSaveError(
+            t('packages.err_target_uncovered', {
+              targets: (payload.uncovered ?? [])
+                .map((r) => (r === 'cabinet' ? t('packages.target_cabinet') : t('packages.target_client')))
+                .join(', '),
+            }),
+          )
+        } else if (payload.code === 'default_requires_active') {
+          setSaveError(t('packages.default_cannot_deactivate'))
         } else {
           setSaveError(t('errors.generic'))
         }
@@ -304,6 +335,9 @@ export default function AdminPackageEditPage() {
   }
 
   if (!pkg) return null
+
+  // L'admin s'apprête à retirer de la vente une offre actuellement active.
+  const willDeactivate = pkg.active && !active
 
   const targetRoleLabel =
     pkg.target_role === 'all'
@@ -439,19 +473,23 @@ export default function AdminPackageEditPage() {
               {t('packages.slug_readonly_hint')}
             </p>
           </div>
+          {/* Cible : MODIFIABLE. Le serveur refuse tout rétrécissement qui
+              laisserait des organisations rattachées hors de la cible, ou qui
+              priverait une cible d'offre par défaut. */}
           <div>
-            <span style={labelStyle}>{t('packages.field_target')}</span>
-            <div
-              style={{
-                ...inputStyle,
-                background: 'var(--color-background-secondary, #f8fafc)',
-                color: 'var(--color-text-secondary, #64748b)',
-              }}
+            <label htmlFor="target" style={labelStyle}>{t('packages.field_target')}</label>
+            <select
+              id="target"
+              value={targetRole}
+              onChange={(e) => setTargetRole(e.target.value)}
+              style={inputStyle}
             >
-              {targetRoleLabel}
-            </div>
+              <option value="client">{t('packages.target_client')}</option>
+              <option value="cabinet">{t('packages.target_cabinet')}</option>
+              <option value="all">{t('packages.target_all')}</option>
+            </select>
             <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '6px 0 0' }}>
-              {t('packages.target_help')}
+              {t('packages.target_editable_help')}
             </p>
           </div>
         </div>
@@ -472,15 +510,53 @@ export default function AdminPackageEditPage() {
             </div>
           </div>
         </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-text-primary, #0f172a)', cursor: 'pointer' }}>
-          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: 13,
+            color: 'var(--color-text-primary, #0f172a)',
+            cursor: pkg.is_default ? 'not-allowed' : 'pointer',
+            opacity: pkg.is_default ? 0.6 : 1,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={active}
+            disabled={pkg.is_default}
+            onChange={(e) => setActive(e.target.checked)}
+          />
           {t('packages.field_active')}
         </label>
         {/* Décocher remplace la suppression : retire de la vente sans casser
-            les organisations rattachées. */}
+            les organisations rattachées. L'offre PAR DÉFAUT fait exception —
+            la désactiver priverait les inscriptions d'offre (refus serveur). */}
         <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '6px 0 0 24px' }}>
-          {t('packages.active_help')}
+          {pkg.is_default ? t('packages.default_cannot_deactivate') : t('packages.active_help')}
         </p>
+
+        {/* Avertissement AVANT enregistrement : combien d'organisations restent
+            sur une offre qu'on s'apprête à retirer de la vente. */}
+        {willDeactivate && orgCount > 0 && (
+          <div
+            role="alert"
+            style={{
+              marginTop: 12,
+              padding: '10px 14px',
+              background: '#FEF3C7',
+              border: '1px solid #fde68a',
+              color: '#92400e',
+              fontSize: 12,
+              borderRadius: 8,
+            }}
+          >
+            {t('packages.deactivate_warning', { count: orgCount })}{' '}
+            <Link href="/admin/packages#migrate" style={{ color: '#92400e', fontWeight: 500 }}>
+              {t('packages.deactivate_warning_link')}
+            </Link>
+          </div>
+        )}
       </section>
 
       {/* Limites */}

@@ -44,6 +44,18 @@ export type TransferPlan =
   | { ok: false; code: 'target_uncovered'; uncovered: CoverageTarget[] }
 
 /**
+ * Cibles MAL couvertes par un jeu d'offres par défaut : ni couvertes zéro fois,
+ * ni deux fois. Implémentation unique de la règle « exactement un défaut actif
+ * par cible » — réutilisée par le transfert (planDefaultTransfer) ET par le
+ * changement de cible en édition (update-package).
+ */
+export function uncoveredTargets(defaults: DefaultRow[]): CoverageTarget[] {
+  return COVERAGE_TARGETS.filter(
+    (t) => defaults.filter((r) => covers(r.target_role, t)).length !== 1,
+  )
+}
+
+/**
  * Calcule le plan de transfert SANS écrire : quelles lignes perdent le statut
  * par défaut, et l'état résultant est-il valide ?
  *
@@ -64,9 +76,7 @@ export function planDefaultTransfer(next: DefaultRow, currentDefaults: DefaultRo
   const resulting: DefaultRow[] = [...others.filter((r) => !unsetIds.has(r.id)), next]
 
   // Chaque cible doit être couverte exactement une fois.
-  const uncovered = COVERAGE_TARGETS.filter(
-    (t) => resulting.filter((r) => covers(r.target_role, t)).length !== 1,
-  )
+  const uncovered = uncoveredTargets(resulting)
   if (uncovered.length > 0) return { ok: false, code: 'target_uncovered', uncovered }
 
   return { ok: true, unsetIds: [...unsetIds] }

@@ -86,5 +86,12 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     }),
   )
 
-  return json({ package: pkg, features }, 200)
+  // Nombre d'organisations rattachées : alimente l'avertissement affiché avant
+  // désactivation de l'offre et le refus anti-orphelins sur la cible.
+  const { count: orgCount } = await auth.supabaseAdmin
+    .from('organization_domains')
+    .select('organization_id', { count: 'exact', head: true })
+    .eq('package_id', id)
+
+  return json({ package: pkg, features, org_count: orgCount ?? 0 }, 200)
 }

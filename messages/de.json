@@ -2047,7 +2047,12 @@
       "org_package_default": "Standard",
       "org_package_expired": "abgelaufen",
       "migrate_subtitle": "Nützlich, um eine neue Preisstruktur auf alle bestehenden Unternehmen anzuwenden.",
-      "slug_readonly_hint": "Technische Kennung, nach der Erstellung nicht änderbar (Stripe-Referenzen und Protokolle)."
+      "slug_readonly_hint": "Technische Kennung, nach der Erstellung nicht änderbar (Stripe-Referenzen und Protokolle).",
+      "target_editable_help": "Das Einschränken der Zielgruppe wird abgelehnt, wenn Organisationen eines ausgeschlossenen Typs zugeordnet sind.",
+      "err_orgs_would_be_orphaned": "{count, plural, one {# Organisation vom Typ {type} ist} other {# Organisationen vom Typ {type} sind}} diesem Angebot zugeordnet. Migrieren Sie sie zu einem anderen Angebot, bevor Sie die Zielgruppe einschränken.",
+      "deactivate_warning": "{count, plural, one {# Organisation bleibt} other {# Organisationen bleiben}} bei diesem Angebot. Ihre Rechte bleiben erhalten, aber das Angebot ist nicht mehr zuweisbar oder anbietbar.",
+      "deactivate_warning_link": "Organisationen migrieren",
+      "default_cannot_deactivate": "Das Standardangebot kann nicht deaktiviert werden: Eine Registrierung muss immer ein Angebot finden. Legen Sie zuerst ein anderes Standardangebot fest."
     },
     "pilot": {
       "section_title": "Paket",

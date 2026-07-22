@@ -2047,7 +2047,12 @@
       "org_package_default": "default",
       "org_package_expired": "expired",
       "migrate_subtitle": "Useful for applying a new pricing structure to all your existing companies.",
-      "slug_readonly_hint": "Technical identifier, not editable after creation (Stripe references and logs)."
+      "slug_readonly_hint": "Technical identifier, not editable after creation (Stripe references and logs).",
+      "target_editable_help": "Narrowing the audience is refused if organizations of an excluded type are attached to it.",
+      "err_orgs_would_be_orphaned": "{count, plural, one {# organization of type {type} is attached} other {# organizations of type {type} are attached}} to this plan. Migrate them to another plan before narrowing the audience.",
+      "deactivate_warning": "{count, plural, one {# organization will remain} other {# organizations will remain}} on this plan. They keep their entitlements, but the plan will no longer be assignable or offered.",
+      "deactivate_warning_link": "Migrate organizations",
+      "default_cannot_deactivate": "The default plan cannot be deactivated: a sign-up must always find a plan. Designate another default plan first."
     },
     "pilot": {
       "section_title": "Package",

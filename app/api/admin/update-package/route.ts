@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { covers, isTargetRole, uncoveredTargets, type DefaultRow } from '@/lib/package-default'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -11,6 +12,7 @@ export const dynamic = 'force-dynamic'
  * Body : {
  *   package_id: uuid,
  *   name?: string,                        // non vide, <= 100 car.
+ *   target_role?: 'client'|'cabinet'|'all',
  *   price_monthly?: number|null|string,   // numeric >= 0 ou null
  *   price_yearly?:  number|null|string,
  *   active?: boolean,
@@ -23,6 +25,17 @@ export const dynamic = 'force-dynamic'
  *    (aucun insert implicite).
  *  - Value : entier >= 0 OU la chaîne 'unlimited' — rien d'autre → 400 'invalid_feature_value'.
  *  - Prix : numeric >= 0 ou null → sinon 400 'invalid_price'.
+ *
+ * GARDES FONCTIONNELLES (rien n'est écrit si l'une refuse) :
+ *  - CIBLE modifiable, mais un RÉTRÉCISSEMENT est refusé s'il laisse des
+ *    organisations rattachées hors de la nouvelle cible
+ *    → 400 'orgs_would_be_orphaned' { count, org_type }.
+ *    Élargir (client → all) est toujours autorisé.
+ *  - Si l'offre est le DÉFAUT, rétrécir sa cible ne doit pas laisser une cible
+ *    sans défaut → 400 'target_uncovered' (même sémantique que la RPC ;
+ *    calcul délégué à lib/package-default).
+ *  - DÉSACTIVER l'offre par défaut est refusé → 400 'default_requires_active'
+ *    (une inscription doit toujours trouver une offre).
  *
  * ORDRE : (1) requireAdmin → (2) charge package + features actuels → (3) valide
  * → (4) SNAPSHOT complet dans package_history AVANT toute modif → (5) applique.
@@ -41,6 +54,7 @@ const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}
 type Body = {
   package_id?: unknown
   name?: unknown
+  target_role?: unknown
   price_monthly?: unknown
   price_yearly?: unknown
   active?: unknown
@@ -150,7 +164,100 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (typeof body.active !== 'boolean') {
       return json({ error: 'Invalid active', code: 'invalid_active' }, 400)
     }
+    // DÉSACTIVER L'OFFRE PAR DÉFAUT EST REFUSÉ : une inscription doit toujours
+    // trouver une offre. L'admin désigne d'abord un autre défaut (transfert),
+    // ce qui libère celle-ci.
+    if (body.active === false && (pkg as { is_default: boolean }).is_default) {
+      return json(
+        { error: 'The default package must stay active', code: 'default_requires_active' },
+        400,
+      )
+    }
     packageUpdates.active = body.active
+  }
+
+  // ── CIBLE : modifiable, mais jamais au prix d'organisations orphelines ─────
+  if (has('target_role')) {
+    if (!isTargetRole(body.target_role)) {
+      return json({ error: 'Invalid target_role', code: 'invalid_target_role' }, 400)
+    }
+    const currentTarget = (pkg as { target_role: string }).target_role
+    const nextTarget = body.target_role
+
+    if (nextTarget !== currentTarget) {
+      // (a) Organisations RATTACHÉES que la nouvelle cible ne couvrirait plus.
+      //     Élargir (client → all) ne retire jamais personne : le calcul le
+      //     constate de lui-même, aucun cas particulier à coder.
+      const { data: links, error: linkErr } = await auth.supabaseAdmin
+        .from('organization_domains')
+        .select('organization_id')
+        .eq('package_id', packageId)
+      if (linkErr) {
+        console.error('[admin:update-package] org links lookup failed', linkErr.message)
+        return json({ error: 'Query failed', code: 'db_error' }, 500)
+      }
+      const orgIds = ((links ?? []) as { organization_id: string }[]).map((l) => l.organization_id)
+
+      if (orgIds.length > 0) {
+        const { data: orgs, error: orgErr } = await auth.supabaseAdmin
+          .from('organizations')
+          .select('id, org_type')
+          .in('id', orgIds)
+        if (orgErr) {
+          console.error('[admin:update-package] orgs lookup failed', orgErr.message)
+          return json({ error: 'Query failed', code: 'db_error' }, 500)
+        }
+
+        // Mapping org_type → cible commerciale (identique à lib/entitlements).
+        const orphansByType = new Map<string, number>()
+        for (const o of (orgs ?? []) as { org_type: string | null }[]) {
+          const mapped = o.org_type === 'cabinet' || o.org_type === 'esn' ? 'cabinet' : 'client'
+          if (!covers(nextTarget, mapped)) {
+            orphansByType.set(o.org_type ?? mapped, (orphansByType.get(o.org_type ?? mapped) ?? 0) + 1)
+          }
+        }
+        const orphanCount = [...orphansByType.values()].reduce((a, b) => a + b, 0)
+        if (orphanCount > 0) {
+          return json(
+            {
+              error: 'Organizations would be orphaned by this target change',
+              code: 'orgs_would_be_orphaned',
+              count: orphanCount,
+              org_type: [...orphansByType.keys()].join(', '),
+            },
+            400,
+          )
+        }
+      }
+
+      // (b) COUVERTURE DU DÉFAUT : si CETTE offre est le défaut, rétrécir sa
+      //     cible peut laisser l'autre cible orpheline. Même règle que la RPC,
+      //     calculée par lib/package-default (aucune duplication).
+      if ((pkg as { is_default: boolean }).is_default) {
+        const { data: defRows, error: defErr } = await auth.supabaseAdmin
+          .from('packages')
+          .select('id, target_role')
+          .eq('is_default', true)
+          .eq('active', true)
+        if (defErr) {
+          console.error('[admin:update-package] defaults lookup failed', defErr.message)
+          return json({ error: 'Query failed', code: 'db_error' }, 500)
+        }
+        // État résultant : cette ligne porte déjà la NOUVELLE cible.
+        const resulting = ((defRows ?? []) as DefaultRow[]).map((r) =>
+          r.id === packageId ? { ...r, target_role: nextTarget } : r,
+        )
+        const uncovered = uncoveredTargets(resulting)
+        if (uncovered.length > 0) {
+          return json(
+            { error: 'Target change would leave an audience uncovered', code: 'target_uncovered', uncovered },
+            400,
+          )
+        }
+      }
+
+      packageUpdates.target_role = nextTarget
+    }
   }
 
   const featureUpdates: { feature_code: string; value: string }[] = []

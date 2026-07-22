@@ -526,7 +526,9 @@ export default function AdminPackagesPage() {
           rien à déplacer et n'ajouterait que du bruit au catalogue initial. */}
       {hasAttachedOrgs && (
       <section
+        id="migrate"
         style={{
+          scrollMarginTop: 24,
           background: 'var(--color-background-primary, #fff)',
           border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
           borderRadius: 12,

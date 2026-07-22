@@ -2047,7 +2047,12 @@
       "org_package_default": "predeterminada",
       "org_package_expired": "expirada",
       "migrate_subtitle": "Útil para aplicar una nueva estructura de precios a todas sus empresas existentes.",
-      "slug_readonly_hint": "Identificador técnico, no modificable tras la creación (referencias de Stripe y registros)."
+      "slug_readonly_hint": "Identificador técnico, no modificable tras la creación (referencias de Stripe y registros).",
+      "target_editable_help": "Reducir el público se rechaza si hay organizaciones de un tipo excluido vinculadas.",
+      "err_orgs_would_be_orphaned": "{count, plural, one {# organización de tipo {type} está vinculada} other {# organizaciones de tipo {type} están vinculadas}} a esta oferta. Migre esas organizaciones a otra oferta antes de restringir el público.",
+      "deactivate_warning": "{count, plural, one {# organización permanecerá} other {# organizaciones permanecerán}} en esta oferta. Conservan sus derechos, pero la oferta ya no será asignable ni ofrecible.",
+      "deactivate_warning_link": "Migrar las organizaciones",
+      "default_cannot_deactivate": "La oferta predeterminada no puede desactivarse: un registro siempre debe encontrar una oferta. Designe primero otra oferta predeterminada."
     },
     "pilot": {
       "section_title": "Paquete",

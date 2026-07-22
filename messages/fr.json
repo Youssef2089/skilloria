@@ -2047,7 +2047,12 @@
       "org_package_default": "par défaut",
       "org_package_expired": "expiré",
       "migrate_subtitle": "Utile pour appliquer une nouvelle grille tarifaire à toutes vos entreprises existantes.",
-      "slug_readonly_hint": "Identifiant technique, non modifiable après création (références Stripe et journaux)."
+      "slug_readonly_hint": "Identifiant technique, non modifiable après création (références Stripe et journaux).",
+      "target_editable_help": "Rétrécir la cible est refusé si des organisations d’un type exclu y sont rattachées.",
+      "err_orgs_would_be_orphaned": "{count, plural, one {# organisation de type {type} est rattachée} other {# organisations de type {type} sont rattachées}} à cette offre. Migrez-les vers une autre offre avant de restreindre la cible.",
+      "deactivate_warning": "{count, plural, one {# organisation restera} other {# organisations resteront}} sur cette offre. Elles conservent leurs droits, mais l’offre ne sera plus attribuable ni proposable.",
+      "deactivate_warning_link": "Migrer les organisations",
+      "default_cannot_deactivate": "L’offre par défaut ne peut pas être désactivée : une inscription doit toujours trouver une offre. Désignez d’abord une autre offre par défaut."
     },
     "pilot": {
       "section_title": "Package",
