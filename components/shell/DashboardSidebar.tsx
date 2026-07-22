@@ -23,6 +23,7 @@ import { useDomain } from '@/context/DomainContext'
 import Avatar from '@/components/ui/Avatar'
 import { useNavBadges } from '@/hooks/useNavBadges'
 import { useSecureLogout } from '@/lib/secure-fetch'
+import { dashboardNavSections } from '@/lib/nav-config'
 
 /**
  * DashboardSidebar — sidebar unifiée multi-side (Lot refonte UX).
@@ -37,20 +38,6 @@ import { useSecureLogout } from '@/lib/secure-fetch'
  * Items lockés selon `isVerified` (freelance) ou `verification_status`
  * (entreprise). Badges live via useNavBadges (messages / candidatures).
  */
-
-type NavItem = {
-  key: string
-  href: string
-  iconKey: string
-  badgeSource?: 'messages' | 'candidatures' | 'missions'
-  locked?: boolean
-  variant?: 'default' | 'link'
-}
-
-type Section = {
-  sectionKey: string
-  items: NavItem[]
-}
 
 const ICONS: Record<string, React.ComponentType<{ size?: number; stroke?: number }>> = {
   dashboard: IconLayoutDashboard,
@@ -87,57 +74,7 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
   //  shell.nav.* / shell.sections.* / shell.user_fallback, cf. messages/*.json).
   const t = useTranslations('shell')
 
-  const sections: Section[] = side === 'entreprise'
-    ? [
-        {
-          sectionKey: 'main',
-          items: [
-            { key: 'dashboard',         href: '/dashboard/entreprise',              iconKey: 'dashboard' },
-            { key: 'annonces',          href: '/dashboard/entreprise/annonces',     iconKey: 'annonces' },
-            { key: 'candidatures_org',  href: '/dashboard/entreprise/candidatures', iconKey: 'applications', badgeSource: 'candidatures' },
-            { key: 'messages',          href: '/dashboard/entreprise/messages',     iconKey: 'messages', badgeSource: 'messages' },
-          ],
-        },
-        {
-          sectionKey: 'account',
-          items: [
-            { key: 'organisation', href: '/dashboard/entreprise/organisation', iconKey: 'organisation' },
-            { key: 'members',      href: '/dashboard/entreprise/membres',      iconKey: 'members' },
-            { key: 'invoices',     href: '/dashboard/entreprise/factures',     iconKey: 'invoices' },
-            { key: 'settings',     href: '/dashboard/entreprise/parametres',   iconKey: 'settings' },
-          ],
-        },
-      ]
-    : [
-        {
-          sectionKey: 'main',
-          items: [
-            { key: 'dashboard',    href: `/dashboard/${side}`,                                 iconKey: 'dashboard' },
-            { key: 'profile',      href: `/dashboard/${side}/mon-profil`,                      iconKey: 'profile' },
-            // Missions & Candidatures : ACCESSIBLES même profil non validé.
-            //  - Candidatures = données propres de l'expert.
-            //  - Missions = état vide propre tant que non validé (cf. page).
-            // Seules les actions marché (alert/subcontract) restent lockées.
-            { key: 'missions',     href: `/dashboard/${side}/missions`,                        iconKey: 'missions',    badgeSource: 'missions' },
-            { key: 'applications', href: `/dashboard/${side}/candidatures`,                    iconKey: 'applications', badgeSource: 'candidatures' },
-            { key: 'messages',     href: `/dashboard/${side}/messages`,                        iconKey: 'messages',    badgeSource: 'messages' },
-          ],
-        },
-        {
-          sectionKey: 'publish',
-          items: [
-            { key: 'alert',        href: `/dashboard/${side}`, iconKey: 'alert',        variant: 'link', locked: !userIsVerified },
-            { key: 'subcontract',  href: `/dashboard/${side}`, iconKey: 'subcontract',  variant: 'link', locked: !userIsVerified },
-          ],
-        },
-        {
-          sectionKey: 'account',
-          items: [
-            { key: 'payments',     href: `/dashboard/${side}`, iconKey: 'payments' },
-            { key: 'settings',     href: `/dashboard/${side}/parametres`, iconKey: 'settings' },
-          ],
-        },
-      ]
+  const sections = dashboardNavSections(side, { userIsVerified })
 
   const accent = domain.primaryColor
   const isItemActive = (href: string): boolean => {

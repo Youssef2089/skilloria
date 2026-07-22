@@ -8,6 +8,30 @@ import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import SessionHeartbeat from '@/components/SessionHeartbeat'
 import GlobalBackButton from '@/components/shell/GlobalBackButton'
+import { ADMIN_NAV_SECTIONS } from '@/lib/nav-config'
+
+/** Icônes de la sidebar admin, indexées par `iconKey` de ADMIN_NAV_SECTIONS. */
+const ADMIN_NAV_ICONS: Record<string, React.ReactNode> = {
+  building: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="3" width="16" height="18" rx="1" />
+      <path d="M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01" />
+      <path d="M10 21v-4h4v4" />
+    </svg>
+  ),
+  user: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2" />
+    </svg>
+  ),
+  package: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      <path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12" />
+    </svg>
+  ),
+}
 
 /**
  * Layout du back-office /admin (B5c).
@@ -132,9 +156,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   // state.kind === 'ok'
-  const isOrgsActive = pathname.startsWith('/admin/organisations') || pathname === '/admin'
-  const isExpertsActive = pathname.startsWith('/admin/experts')
-  const isPackagesActive = pathname.startsWith('/admin/packages')
 
   return (
     <>
@@ -215,116 +236,57 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </span>
         </div>
 
-        {/* Section Validation */}
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 500,
-            textTransform: 'uppercase',
-            letterSpacing: '.08em',
-            color: 'var(--color-text-tertiary, #94a3b8)',
-            padding: '6px 12px',
-          }}
-        >
-          {t('sidebar.section_validation')}
-        </div>
+        {/* Nav — rendue depuis ADMIN_NAV_SECTIONS (lib/nav-config), la MEME
+            structure dont lib/menu-routes derive les routes de menu. Ajouter une
+            entree la-bas suffit : lien + absence de bouton Retour. */}
+        {ADMIN_NAV_SECTIONS.map((sec) => (
+          <div key={sec.sectionKey}>
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 500,
+                textTransform: 'uppercase',
+                letterSpacing: '.08em',
+                color: 'var(--color-text-tertiary, #94a3b8)',
+                padding: '14px 12px 6px',
+              }}
+            >
+              {t(`sidebar.${sec.sectionKey}` as 'sidebar.section_validation')}
+            </div>
 
-        <Link
-          href="/admin/organisations"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '9px 12px',
-            fontSize: 13,
-            fontWeight: isOrgsActive ? 500 : 400,
-            color: isOrgsActive
-              ? 'var(--color-text-primary, #0f172a)'
-              : 'var(--color-text-secondary, #64748b)',
-            background: isOrgsActive
-              ? 'var(--color-background-secondary, #f1f5f9)'
-              : 'transparent',
-            borderRadius: 8,
-            textDecoration: 'none',
-            transition: 'background .15s, color .15s',
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="4" y="3" width="16" height="18" rx="1" />
-            <path d="M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01" />
-            <path d="M10 21v-4h4v4" />
-          </svg>
-          {t('sidebar.nav_organisations')}
-        </Link>
-
-        {/* Experts — activé Lot vérif expert */}
-        <Link
-          href="/admin/experts"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '9px 12px',
-            fontSize: 13,
-            fontWeight: isExpertsActive ? 500 : 400,
-            color: isExpertsActive
-              ? 'var(--color-text-primary, #0f172a)'
-              : 'var(--color-text-secondary, #64748b)',
-            background: isExpertsActive
-              ? 'var(--color-background-secondary, #f1f5f9)'
-              : 'transparent',
-            borderRadius: 8,
-            textDecoration: 'none',
-            transition: 'background .15s, color .15s',
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="8" r="4" />
-            <path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2" />
-          </svg>
-          {t('sidebar.nav_experts')}
-        </Link>
-
-        {/* Section Commerce */}
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 500,
-            textTransform: 'uppercase',
-            letterSpacing: '.08em',
-            color: 'var(--color-text-tertiary, #94a3b8)',
-            padding: '14px 12px 6px',
-          }}
-        >
-          {t('sidebar.section_commerce')}
-        </div>
-
-        <Link
-          href="/admin/packages"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '9px 12px',
-            fontSize: 13,
-            fontWeight: isPackagesActive ? 500 : 400,
-            color: isPackagesActive
-              ? 'var(--color-text-primary, #0f172a)'
-              : 'var(--color-text-secondary, #64748b)',
-            background: isPackagesActive
-              ? 'var(--color-background-secondary, #f1f5f9)'
-              : 'transparent',
-            borderRadius: 8,
-            textDecoration: 'none',
-            transition: 'background .15s, color .15s',
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-            <path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12" />
-          </svg>
-          {t('sidebar.nav_packages')}
-        </Link>
+            {sec.items.map((item) => {
+              const active =
+                pathname.startsWith(item.href) ||
+                (item.extraActivePaths ?? []).includes(pathname)
+              return (
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '9px 12px',
+                    fontSize: 13,
+                    fontWeight: active ? 500 : 400,
+                    color: active
+                      ? 'var(--color-text-primary, #0f172a)'
+                      : 'var(--color-text-secondary, #64748b)',
+                    background: active
+                      ? 'var(--color-background-secondary, #f1f5f9)'
+                      : 'transparent',
+                    borderRadius: 8,
+                    textDecoration: 'none',
+                    transition: 'background .15s, color .15s',
+                  }}
+                >
+                  {ADMIN_NAV_ICONS[item.iconKey]}
+                  {t(`sidebar.${item.labelKey}` as 'sidebar.nav_organisations')}
+                </Link>
+              )
+            })}
+          </div>
+        ))}
 
         {/* Switcher locale en bas */}
         <div style={{ marginTop: 'auto', paddingTop: 14 }}>
