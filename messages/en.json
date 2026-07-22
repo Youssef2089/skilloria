@@ -1854,7 +1854,7 @@
     "view": {
       "back_to_inbox": "← Messages",
       "loading": "Loading conversation…",
-      "error_generic": "Could not load conversation.",
+      "error_generic": "An error occurred. Please try again.",
       "error_not_found": "This conversation no longer exists or is no longer available.",
       "unknown_correspondant": "(unknown correspondent)",
       "banner_expired": "This exchange is closed (15-day window exceeded). Read only.",
@@ -1870,8 +1870,7 @@
       "error_expired": "Exchange closed (15 days exceeded). Cannot send.",
       "error_closed": "Exchange closed. Cannot send.",
       "error_invalid_content": "Message is empty or too long (5000 characters max).",
-      "error_too_long": "Message exceeds 5000 characters.",
-      "error_generic": "An error occurred. Please try again."
+      "error_too_long": "Message exceeds 5000 characters."
     }
   },
   "expert_dnd_empty": {
@@ -1993,15 +1992,23 @@
       "feature_label_publications_per_month": "Publications per month",
       "feature_label_active_publications_max": "Maximum active publications",
       "feature_label_revealed_candidates_per_publication": "Revealed candidates per publication",
-      "feature_label_manual_unlocks_per_month": "Manual unlocks per month",
+      "feature_label_manual_unlocks_per_month": "Additional reveals per month",
       "feature_label_seats_max": "Maximum seats",
       "summary_all_unlimited": "Everything unlimited",
       "summary_rest_unlimited": "rest unlimited",
       "summary_publications": "{count, plural, one {# publication/mo} other {# publications/mo}}",
       "summary_active": "{count, plural, one {# active} other {# active}}",
       "summary_revealed": "{count, plural, one {# revealed candidate} other {# revealed candidates}}",
-      "summary_unlocks": "{count, plural, one {# unlock/mo} other {# unlocks/mo}}",
-      "summary_seats": "{count, plural, one {# seat} other {# seats}}"
+      "summary_unlocks": "{count, plural, one {# extra reveal/mo} other {# extra reveals/mo}}",
+      "summary_seats": "{count, plural, one {# seat} other {# seats}}",
+      "action_set_default": "Set as default",
+      "confirm_set_default": "New {target} sign-ups will be attached to this plan. The plan {previous} will no longer be the default.",
+      "confirm_set_default_none": "New {target} sign-ups will be attached to this plan.",
+      "default_set": "Default package updated.",
+      "default_explain": "New {target} sign-ups are attached to this plan.",
+      "err_already_default": "This plan is already the default package.",
+      "err_package_inactive": "An inactive package cannot become the default package.",
+      "section_default": "Default package"
     },
     "pilot": {
       "section_title": "Package",

@@ -1854,7 +1854,7 @@
     "view": {
       "back_to_inbox": "← Messages",
       "loading": "Chargement de la conversation…",
-      "error_generic": "Impossible de charger la conversation.",
+      "error_generic": "Une erreur est survenue. Réessayez.",
       "error_not_found": "Cette conversation n'existe pas ou ne vous est plus accessible.",
       "unknown_correspondant": "(correspondant inconnu)",
       "banner_expired": "Cet échange est clôturé (fenêtre de 15 jours dépassée). Lecture seule.",
@@ -1870,8 +1870,7 @@
       "error_expired": "L'échange est clôturé (15 jours dépassés). Envoi impossible.",
       "error_closed": "L'échange est fermé. Envoi impossible.",
       "error_invalid_content": "Le message est vide ou trop long (5000 caractères max).",
-      "error_too_long": "Le message dépasse 5000 caractères.",
-      "error_generic": "Une erreur est survenue. Réessayez."
+      "error_too_long": "Le message dépasse 5000 caractères."
     }
   },
   "expert_dnd_empty": {
@@ -1993,15 +1992,23 @@
       "feature_label_publications_per_month": "Publications par mois",
       "feature_label_active_publications_max": "Publications actives maximum",
       "feature_label_revealed_candidates_per_publication": "Candidats dévoilés par publication",
-      "feature_label_manual_unlocks_per_month": "Déblocages manuels par mois",
+      "feature_label_manual_unlocks_per_month": "Dévoilements supplémentaires par mois",
       "feature_label_seats_max": "Sièges maximum",
       "summary_all_unlimited": "Tout illimité",
       "summary_rest_unlimited": "reste illimité",
       "summary_publications": "{count, plural, one {# publication/mois} other {# publications/mois}}",
       "summary_active": "{count, plural, one {# active} other {# actives}}",
       "summary_revealed": "{count, plural, one {# candidat dévoilé} other {# candidats dévoilés}}",
-      "summary_unlocks": "{count, plural, one {# déblocage/mois} other {# déblocages/mois}}",
-      "summary_seats": "{count, plural, one {# siège} other {# sièges}}"
+      "summary_unlocks": "{count, plural, one {# dévoilement suppl./mois} other {# dévoilements suppl./mois}}",
+      "summary_seats": "{count, plural, one {# siège} other {# sièges}}",
+      "action_set_default": "Définir par défaut",
+      "confirm_set_default": "Les nouvelles inscriptions {target} seront rattachées à cette offre. L’offre {previous} ne sera plus le défaut.",
+      "confirm_set_default_none": "Les nouvelles inscriptions {target} seront rattachées à cette offre.",
+      "default_set": "Package par défaut mis à jour.",
+      "default_explain": "Les nouvelles inscriptions {target} sont rattachées à cette offre.",
+      "err_already_default": "Cette offre est déjà le package par défaut.",
+      "err_package_inactive": "Un package inactif ne peut pas devenir le package par défaut.",
+      "section_default": "Package par défaut"
     },
     "pilot": {
       "section_title": "Package",

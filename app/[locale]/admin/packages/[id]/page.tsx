@@ -15,6 +15,11 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  * Refonte UX : formulaire structuré en 2 sections (Tarification / Limites),
  * LIBELLÉS HUMAINS par feature (jamais le code), case « Illimité » par limite,
  * confirmation inline avant enregistrement. Aucun snake_case à l'écran.
+ *
+ * Statut « par défaut » : en LECTURE (badge + explication). Le seul geste
+ * possible est le TRANSFERT via POST /api/admin/set-default-package — jamais
+ * une case à cocher libre, l'invariant (un défaut actif par cible) étant tenu
+ * par le serveur.
  */
 
 type Pkg = {
@@ -105,6 +110,14 @@ export default function AdminPackageEditPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
+  // Transfert du défaut : nom de l'offre qui perdrait le statut (même cible),
+  // confirmation inline, envoi, erreur/succès.
+  const [previousDefaultName, setPreviousDefaultName] = useState<string | null>(null)
+  const [confirmingDefault, setConfirmingDefault] = useState(false)
+  const [settingDefault, setSettingDefault] = useState(false)
+  const [defaultError, setDefaultError] = useState<string | null>(null)
+  const [defaultDone, setDefaultDone] = useState(false)
+
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -131,6 +144,27 @@ export default function AdminPackageEditPage() {
       const fv: Record<string, string> = {}
       for (const f of json.features ?? []) fv[f.feature_code] = f.value
       setFeatureValues(fv)
+
+      // Défaut actuel de la MÊME cible — sert à nommer l'offre qui perdrait le
+      // statut dans la confirmation. Best-effort : la confirmation reste
+      // affichable (variante sans nom) si la lecture échoue.
+      setPreviousDefaultName(null)
+      if (!json.package.is_default) {
+        try {
+          const listRes = await secureFetch('/api/admin/list-packages', { method: 'GET' })
+          if (listRes.ok) {
+            const listJson = (await listRes.json()) as {
+              packages: { id: string; name: string; target_role: string; is_default: boolean }[]
+            }
+            const prev = (listJson.packages ?? []).find(
+              (x) => x.target_role === json.package.target_role && x.is_default && x.id !== json.package.id,
+            )
+            setPreviousDefaultName(prev?.name ?? null)
+          }
+        } catch {
+          /* best-effort — non bloquant */
+        }
+      }
     } catch {
       setError(t('errors.generic'))
     } finally {
@@ -202,6 +236,35 @@ export default function AdminPackageEditPage() {
     }
   }
 
+  // TRANSFERT du défaut vers CE package. Invariant appliqué côté serveur.
+  async function setAsDefault() {
+    setSettingDefault(true)
+    setDefaultError(null)
+    setDefaultDone(false)
+    try {
+      const res = await secureFetch('/api/admin/set-default-package', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ package_id: packageId }),
+      })
+      const payload = (await res.json().catch(() => ({}))) as { code?: string }
+      if (!res.ok) {
+        if (payload.code === 'already_default') setDefaultError(t('packages.err_already_default'))
+        else if (payload.code === 'package_inactive') setDefaultError(t('packages.err_package_inactive'))
+        else if (res.status === 403) setDefaultError(t('errors.forbidden'))
+        else setDefaultError(t('errors.generic'))
+        return
+      }
+      setConfirmingDefault(false)
+      setDefaultDone(true)
+      await load()
+    } catch {
+      setDefaultError(t('errors.generic'))
+    } finally {
+      setSettingDefault(false)
+    }
+  }
+
   if (loading) {
     return <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 14 }}>{t('loading')}</div>
   }
@@ -234,6 +297,9 @@ export default function AdminPackageEditPage() {
 
   if (!pkg) return null
 
+  const targetRoleLabel =
+    pkg.target_role === 'cabinet' ? t('packages.target_cabinet') : t('packages.target_client')
+
   return (
     <div>
       <Link href="/admin/packages" style={{ fontSize: 13, color: '#00B9FF', textDecoration: 'none', marginBottom: 16, display: 'inline-block' }}>
@@ -251,6 +317,74 @@ export default function AdminPackageEditPage() {
           </span>
         )}
       </div>
+
+      {/* Package par défaut — LECTURE seule + transfert. Jamais de décoche :
+          on ne peut que désigner une autre offre de la même cible. */}
+      <section style={cardStyle}>
+        <h2 style={sectionTitle}>{t('packages.section_default')}</h2>
+        {pkg.is_default ? (
+          <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: 0 }}>
+            {t('packages.default_explain', { target: targetRoleLabel })}
+          </p>
+        ) : (
+          <>
+            <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 12px' }}>
+              {previousDefaultName
+                ? t('packages.confirm_set_default', { target: targetRoleLabel, previous: previousDefaultName })
+                : t('packages.confirm_set_default_none', { target: targetRoleLabel })}
+            </p>
+
+            {defaultError && (
+              <div role="alert" style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
+                {defaultError}
+              </div>
+            )}
+            {defaultDone && (
+              <div style={{ padding: '8px 12px', background: '#DCFCE7', border: '1px solid #bbf7d0', color: '#166534', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
+                {t('packages.default_set')}
+              </div>
+            )}
+
+            {!pkg.active ? (
+              // Un défaut doit être actif : on explique plutôt que d'exposer un
+              // bouton que le serveur refuserait.
+              <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: 0 }}>
+                {t('packages.err_package_inactive')}
+              </p>
+            ) : confirmingDefault ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>
+                  {t('packages.confirm_save')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void setAsDefault()}
+                  disabled={settingDefault}
+                  style={{ padding: '9px 16px', background: '#00B9FF', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: settingDefault ? 'not-allowed' : 'pointer', opacity: settingDefault ? 0.6 : 1, fontFamily: 'inherit' }}
+                >
+                  {settingDefault ? t('loading') : t('packages.confirm_yes')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDefault(false)}
+                  disabled={settingDefault}
+                  style={{ padding: '9px 16px', background: 'transparent', color: 'var(--color-text-secondary, #64748b)', border: '0.5px solid var(--color-border-tertiary, #e5e7eb)', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  {t('packages.confirm_cancel')}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setDefaultDone(false); setDefaultError(null); setConfirmingDefault(true) }}
+                style={{ padding: '9px 16px', background: 'transparent', color: '#00B9FF', border: '0.5px solid #00B9FF', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                {t('packages.action_set_default')}
+              </button>
+            )}
+          </>
+        )}
+      </section>
 
       {/* Tarification */}
       <section style={cardStyle}>

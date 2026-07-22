@@ -1854,7 +1854,7 @@
     "view": {
       "back_to_inbox": "← Mensajes",
       "loading": "Cargando conversación…",
-      "error_generic": "No se pudo cargar la conversación.",
+      "error_generic": "Se produjo un error. Inténtalo de nuevo.",
       "error_not_found": "Esta conversación ya no existe o no está disponible.",
       "unknown_correspondant": "(corresponsal desconocido)",
       "banner_expired": "Este intercambio está cerrado (ventana de 15 días superada). Solo lectura.",
@@ -1870,8 +1870,7 @@
       "error_expired": "Intercambio cerrado (15 días superados). No se puede enviar.",
       "error_closed": "Intercambio cerrado. No se puede enviar.",
       "error_invalid_content": "Mensaje vacío o demasiado largo (máx. 5000 caracteres).",
-      "error_too_long": "El mensaje supera los 5000 caracteres.",
-      "error_generic": "Se produjo un error. Inténtalo de nuevo."
+      "error_too_long": "El mensaje supera los 5000 caracteres."
     }
   },
   "expert_dnd_empty": {
@@ -1993,15 +1992,23 @@
       "feature_label_publications_per_month": "Publicaciones por mes",
       "feature_label_active_publications_max": "Publicaciones activas máximo",
       "feature_label_revealed_candidates_per_publication": "Candidatos revelados por publicación",
-      "feature_label_manual_unlocks_per_month": "Desbloqueos manuales por mes",
+      "feature_label_manual_unlocks_per_month": "Revelaciones adicionales por mes",
       "feature_label_seats_max": "Asientos máximo",
       "summary_all_unlimited": "Todo ilimitado",
       "summary_rest_unlimited": "resto ilimitado",
       "summary_publications": "{count, plural, one {# publicación/mes} other {# publicaciones/mes}}",
       "summary_active": "{count, plural, one {# activa} other {# activas}}",
       "summary_revealed": "{count, plural, one {# candidato revelado} other {# candidatos revelados}}",
-      "summary_unlocks": "{count, plural, one {# desbloqueo/mes} other {# desbloqueos/mes}}",
-      "summary_seats": "{count, plural, one {# asiento} other {# asientos}}"
+      "summary_unlocks": "{count, plural, one {# revelación adic./mes} other {# revelaciones adic./mes}}",
+      "summary_seats": "{count, plural, one {# asiento} other {# asientos}}",
+      "action_set_default": "Definir como predeterminado",
+      "confirm_set_default": "Los nuevos registros {target} se vincularán a esta oferta. La oferta {previous} dejará de ser la predeterminada.",
+      "confirm_set_default_none": "Los nuevos registros {target} se vincularán a esta oferta.",
+      "default_set": "Paquete predeterminado actualizado.",
+      "default_explain": "Los nuevos registros {target} se vinculan a esta oferta.",
+      "err_already_default": "Esta oferta ya es el paquete predeterminado.",
+      "err_package_inactive": "Un paquete inactivo no puede convertirse en el paquete predeterminado.",
+      "section_default": "Paquete predeterminado"
     },
     "pilot": {
       "section_title": "Paquete",

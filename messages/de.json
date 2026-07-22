@@ -1854,7 +1854,7 @@
     "view": {
       "back_to_inbox": "← Nachrichten",
       "loading": "Konversation wird geladen…",
-      "error_generic": "Konversation konnte nicht geladen werden.",
+      "error_generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
       "error_not_found": "Diese Konversation existiert nicht mehr oder ist nicht verfügbar.",
       "unknown_correspondant": "(unbekannte/r Korrespondent/in)",
       "banner_expired": "Dieser Austausch ist beendet (15-Tage-Fenster überschritten). Nur Lesezugriff.",
@@ -1870,8 +1870,7 @@
       "error_expired": "Austausch beendet (15 Tage überschritten). Senden nicht möglich.",
       "error_closed": "Austausch geschlossen. Senden nicht möglich.",
       "error_invalid_content": "Nachricht ist leer oder zu lang (max. 5000 Zeichen).",
-      "error_too_long": "Nachricht überschreitet 5000 Zeichen.",
-      "error_generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen."
+      "error_too_long": "Nachricht überschreitet 5000 Zeichen."
     }
   },
   "expert_dnd_empty": {
@@ -1993,15 +1992,23 @@
       "feature_label_publications_per_month": "Veröffentlichungen pro Monat",
       "feature_label_active_publications_max": "Maximale aktive Veröffentlichungen",
       "feature_label_revealed_candidates_per_publication": "Freigeschaltete Kandidaten pro Veröffentlichung",
-      "feature_label_manual_unlocks_per_month": "Manuelle Freischaltungen pro Monat",
+      "feature_label_manual_unlocks_per_month": "Zusätzliche Freischaltungen pro Monat",
       "feature_label_seats_max": "Maximale Sitze",
       "summary_all_unlimited": "Alles unbegrenzt",
       "summary_rest_unlimited": "Rest unbegrenzt",
       "summary_publications": "{count, plural, one {# Veröffentlichung/Monat} other {# Veröffentlichungen/Monat}}",
       "summary_active": "{count, plural, one {# aktiv} other {# aktive}}",
       "summary_revealed": "{count, plural, one {# freigeschalteter Kandidat} other {# freigeschaltete Kandidaten}}",
-      "summary_unlocks": "{count, plural, one {# Freischaltung/Monat} other {# Freischaltungen/Monat}}",
-      "summary_seats": "{count, plural, one {# Sitz} other {# Sitze}}"
+      "summary_unlocks": "{count, plural, one {# zusätzl. Freischaltung/Monat} other {# zusätzl. Freischaltungen/Monat}}",
+      "summary_seats": "{count, plural, one {# Sitz} other {# Sitze}}",
+      "action_set_default": "Als Standard festlegen",
+      "confirm_set_default": "Neue {target}-Registrierungen werden diesem Angebot zugeordnet. Das Angebot {previous} ist dann nicht mehr der Standard.",
+      "confirm_set_default_none": "Neue {target}-Registrierungen werden diesem Angebot zugeordnet.",
+      "default_set": "Standardpaket aktualisiert.",
+      "default_explain": "Neue {target}-Registrierungen werden diesem Angebot zugeordnet.",
+      "err_already_default": "Dieses Angebot ist bereits das Standardpaket.",
+      "err_package_inactive": "Ein inaktives Paket kann nicht zum Standardpaket werden.",
+      "section_default": "Standardpaket"
     },
     "pilot": {
       "section_title": "Paket",
