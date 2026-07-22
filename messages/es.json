@@ -11,6 +11,11 @@
   "app": {
     "name": "Skilloria"
   },
+  "not_found": {
+    "title": "Página no encontrada",
+    "description": "La página que buscas no existe o se ha movido.",
+    "back_home": "Volver al inicio"
+  },
   "shell": {
     "user_fallback": "Usuario",
     "user_subtitle": {
@@ -1969,7 +1974,34 @@
       "saved": "Cambios guardados.",
       "err_invalid_feature_value": "Valor no válido para {code} (entero ≥ 0 o «unlimited»).",
       "err_unknown_feature": "Feature desconocida para este paquete: {code}.",
-      "err_invalid_price": "Precio no válido (número ≥ 0 o vacío)."
+      "err_invalid_price": "Precio no válido (número ≥ 0 o vacío).",
+      "col_offer": "Oferta",
+      "col_target": "Destino",
+      "col_price": "Precio",
+      "col_status": "Estado",
+      "col_limits": "Límites",
+      "action_edit": "Editar",
+      "target_client": "Cliente",
+      "target_cabinet": "Agencia",
+      "price_monthly_format": "{price} {currency}/mes",
+      "section_limits": "Límites",
+      "field_unlimited": "Ilimitado",
+      "limits_hint": "Activa Ilimitado para quitar el límite; de lo contrario, introduce un número entero ≥ 0.",
+      "confirm_save": "¿Confirmar los cambios?",
+      "confirm_yes": "Confirmar",
+      "confirm_cancel": "Cancelar",
+      "feature_label_publications_per_month": "Publicaciones por mes",
+      "feature_label_active_publications_max": "Publicaciones activas máximo",
+      "feature_label_revealed_candidates_per_publication": "Candidatos revelados por publicación",
+      "feature_label_manual_unlocks_per_month": "Desbloqueos manuales por mes",
+      "feature_label_seats_max": "Asientos máximo",
+      "summary_all_unlimited": "Todo ilimitado",
+      "summary_rest_unlimited": "resto ilimitado",
+      "summary_publications": "{count, plural, one {# publicación/mes} other {# publicaciones/mes}}",
+      "summary_active": "{count, plural, one {# activa} other {# activas}}",
+      "summary_revealed": "{count, plural, one {# candidato revelado} other {# candidatos revelados}}",
+      "summary_unlocks": "{count, plural, one {# desbloqueo/mes} other {# desbloqueos/mes}}",
+      "summary_seats": "{count, plural, one {# asiento} other {# asientos}}"
     },
     "pilot": {
       "section_title": "Paquete",

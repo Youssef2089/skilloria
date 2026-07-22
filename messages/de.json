@@ -11,6 +11,11 @@
   "app": {
     "name": "Skilloria"
   },
+  "not_found": {
+    "title": "Seite nicht gefunden",
+    "description": "Die gesuchte Seite existiert nicht oder wurde verschoben.",
+    "back_home": "Zurück zur Startseite"
+  },
   "shell": {
     "user_fallback": "Benutzer",
     "user_subtitle": {
@@ -1969,7 +1974,34 @@
       "saved": "Änderungen gespeichert.",
       "err_invalid_feature_value": "Ungültiger Wert für {code} (Ganzzahl ≥ 0 oder „unlimited“).",
       "err_unknown_feature": "Unbekanntes Feature für dieses Paket: {code}.",
-      "err_invalid_price": "Ungültiger Preis (Zahl ≥ 0 oder leer)."
+      "err_invalid_price": "Ungültiger Preis (Zahl ≥ 0 oder leer).",
+      "col_offer": "Angebot",
+      "col_target": "Zielgruppe",
+      "col_price": "Preis",
+      "col_status": "Status",
+      "col_limits": "Limits",
+      "action_edit": "Bearbeiten",
+      "target_client": "Kunde",
+      "target_cabinet": "Agentur",
+      "price_monthly_format": "{price} {currency}/Monat",
+      "section_limits": "Limits",
+      "field_unlimited": "Unbegrenzt",
+      "limits_hint": "Aktivieren Sie Unbegrenzt, um das Limit zu entfernen, andernfalls geben Sie eine ganze Zahl ≥ 0 ein.",
+      "confirm_save": "Änderungen bestätigen?",
+      "confirm_yes": "Bestätigen",
+      "confirm_cancel": "Abbrechen",
+      "feature_label_publications_per_month": "Veröffentlichungen pro Monat",
+      "feature_label_active_publications_max": "Maximale aktive Veröffentlichungen",
+      "feature_label_revealed_candidates_per_publication": "Freigeschaltete Kandidaten pro Veröffentlichung",
+      "feature_label_manual_unlocks_per_month": "Manuelle Freischaltungen pro Monat",
+      "feature_label_seats_max": "Maximale Sitze",
+      "summary_all_unlimited": "Alles unbegrenzt",
+      "summary_rest_unlimited": "Rest unbegrenzt",
+      "summary_publications": "{count, plural, one {# Veröffentlichung/Monat} other {# Veröffentlichungen/Monat}}",
+      "summary_active": "{count, plural, one {# aktiv} other {# aktive}}",
+      "summary_revealed": "{count, plural, one {# freigeschalteter Kandidat} other {# freigeschaltete Kandidaten}}",
+      "summary_unlocks": "{count, plural, one {# Freischaltung/Monat} other {# Freischaltungen/Monat}}",
+      "summary_seats": "{count, plural, one {# Sitz} other {# Sitze}}"
     },
     "pilot": {
       "section_title": "Paket",

@@ -11,6 +11,11 @@
   "app": {
     "name": "Skilloria"
   },
+  "not_found": {
+    "title": "Page not found",
+    "description": "The page you're looking for doesn't exist or has moved.",
+    "back_home": "Back to home"
+  },
   "shell": {
     "user_fallback": "User",
     "user_subtitle": {
@@ -1969,7 +1974,34 @@
       "saved": "Changes saved.",
       "err_invalid_feature_value": "Invalid value for {code} (integer ≥ 0 or “unlimited”).",
       "err_unknown_feature": "Unknown feature for this package: {code}.",
-      "err_invalid_price": "Invalid price (number ≥ 0 or empty)."
+      "err_invalid_price": "Invalid price (number ≥ 0 or empty).",
+      "col_offer": "Offer",
+      "col_target": "Target",
+      "col_price": "Price",
+      "col_status": "Status",
+      "col_limits": "Limits",
+      "action_edit": "Edit",
+      "target_client": "Client",
+      "target_cabinet": "Agency",
+      "price_monthly_format": "{price} {currency}/mo",
+      "section_limits": "Limits",
+      "field_unlimited": "Unlimited",
+      "limits_hint": "Enable Unlimited to remove the cap, otherwise enter a whole number ≥ 0.",
+      "confirm_save": "Confirm changes?",
+      "confirm_yes": "Confirm",
+      "confirm_cancel": "Cancel",
+      "feature_label_publications_per_month": "Publications per month",
+      "feature_label_active_publications_max": "Maximum active publications",
+      "feature_label_revealed_candidates_per_publication": "Revealed candidates per publication",
+      "feature_label_manual_unlocks_per_month": "Manual unlocks per month",
+      "feature_label_seats_max": "Maximum seats",
+      "summary_all_unlimited": "Everything unlimited",
+      "summary_rest_unlimited": "rest unlimited",
+      "summary_publications": "{count, plural, one {# publication/mo} other {# publications/mo}}",
+      "summary_active": "{count, plural, one {# active} other {# active}}",
+      "summary_revealed": "{count, plural, one {# revealed candidate} other {# revealed candidates}}",
+      "summary_unlocks": "{count, plural, one {# unlock/mo} other {# unlocks/mo}}",
+      "summary_seats": "{count, plural, one {# seat} other {# seats}}"
     },
     "pilot": {
       "section_title": "Package",

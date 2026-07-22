@@ -8,7 +8,9 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 /**
  * /admin/packages — catalogue commerce (liste). Édition seule via [id].
  * Source : GET /api/admin/list-packages (service-role).
- * Pattern admin existant (RSC-like client + useSecureFetch + cartes sobres).
+ *
+ * Refonte UX : tableau lisible (pattern listes admin), libellés HUMAINS —
+ * aucun feature_code snake_case à l'écran. Résumé des limites en langage clair.
  */
 
 type Feature = { feature_code: string; value: string; reset_period: string | null }
@@ -25,6 +27,15 @@ type Package = {
   scope: string
   features: Feature[]
 }
+
+// Ordre d'affichage stable des limites dans le résumé + clé i18n plurielle.
+const SUMMARY_ORDER: { code: string; key: string }[] = [
+  { code: 'publications_per_month', key: 'summary_publications' },
+  { code: 'active_publications_max', key: 'summary_active' },
+  { code: 'revealed_candidates_per_publication', key: 'summary_revealed' },
+  { code: 'manual_unlocks_per_month', key: 'summary_unlocks' },
+  { code: 'seats_max', key: 'summary_seats' },
+]
 
 export default function AdminPackagesPage() {
   const t = useTranslations('admin_back_office')
@@ -62,7 +73,34 @@ export default function AdminPackagesPage() {
 
   function formatPrice(p: Package): string {
     if (p.price_monthly == null || p.price_monthly === 0) return t('packages.price_free')
-    return `${p.price_monthly} ${p.currency}`
+    return t('packages.price_monthly_format', { price: p.price_monthly, currency: p.currency })
+  }
+
+  function targetLabel(role: string): string {
+    return role === 'cabinet' ? t('packages.target_cabinet') : t('packages.target_client')
+  }
+
+  // Résumé COURT en langage clair : les limites finies listées ("2 publications/mois
+  // · 1 candidat dévoilé…"), puis « reste illimité » si au moins une limite l'est.
+  // Tout illimité → un seul libellé.
+  function summarizeLimits(features: Feature[]): string {
+    const byCode = new Map(features.map((f) => [f.feature_code, f.value]))
+    const parts: string[] = []
+    let anyUnlimited = false
+    for (const { code, key } of SUMMARY_ORDER) {
+      const raw = byCode.get(code)
+      if (raw == null) continue
+      if (raw.trim().toLowerCase() === 'unlimited') {
+        anyUnlimited = true
+        continue
+      }
+      const n = parseInt(raw, 10)
+      if (!Number.isFinite(n)) continue
+      parts.push(t(`packages.${key}`, { count: n }))
+    }
+    if (parts.length === 0) return t('packages.summary_all_unlimited')
+    if (anyUnlimited) parts.push(t('packages.summary_rest_unlimited'))
+    return parts.join(' · ')
   }
 
   if (loading) {
@@ -81,6 +119,24 @@ export default function AdminPackagesPage() {
     )
   }
 
+  const thStyle: React.CSSProperties = {
+    textAlign: 'left',
+    fontSize: 11,
+    fontWeight: 500,
+    textTransform: 'uppercase',
+    letterSpacing: '.06em',
+    color: 'var(--color-text-tertiary, #94a3b8)',
+    padding: '14px 14px 10px',
+    whiteSpace: 'nowrap',
+  }
+  const tdStyle: React.CSSProperties = {
+    fontSize: 13,
+    color: 'var(--color-text-primary, #0f172a)',
+    padding: '14px',
+    borderTop: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+    verticalAlign: 'middle',
+  }
+
   return (
     <div>
       <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: '0 0 4px' }}>
@@ -90,64 +146,80 @@ export default function AdminPackagesPage() {
         {t('packages.subtitle')}
       </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {(packages ?? []).map((p) => (
-          <Link
-            key={p.id}
-            href={`/admin/packages/${p.id}`}
-            style={{
-              display: 'block',
-              textDecoration: 'none',
-              background: 'var(--color-background-primary, #fff)',
-              border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
-              borderRadius: 12,
-              padding: '16px 20px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
-              <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)' }}>
-                {p.name}
-              </span>
-              <span style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)' }}>{p.slug}</span>
-              <span style={{ fontSize: 12, color: 'var(--color-text-secondary, #64748b)' }}>· {p.target_role}</span>
-              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)' }}>
-                {formatPrice(p)}
-              </span>
-              {p.is_default && (
-                <span style={{ fontSize: 11, padding: '2px 8px', background: '#DBEAFE', color: '#1e40af', borderRadius: 10 }}>
-                  {t('packages.default_badge')}
-                </span>
-              )}
-              <span
-                style={{
-                  fontSize: 11,
-                  padding: '2px 8px',
-                  borderRadius: 10,
-                  background: p.active ? '#DCFCE7' : '#F1F5F9',
-                  color: p.active ? '#166534' : '#64748b',
-                }}
-              >
-                {p.active ? t('packages.active_yes') : t('packages.active_no')}
-              </span>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {p.features.map((f) => (
-                <span
-                  key={f.feature_code}
-                  style={{
-                    fontSize: 11,
-                    padding: '2px 8px',
-                    background: 'var(--color-background-secondary, #f8fafc)',
-                    color: 'var(--color-text-secondary, #64748b)',
-                    borderRadius: 8,
-                  }}
-                >
-                  {f.feature_code}: <strong style={{ fontWeight: 500 }}>{f.value}</strong>
-                </span>
-              ))}
-            </div>
-          </Link>
-        ))}
+      <div
+        style={{
+          background: 'var(--color-background-primary, #fff)',
+          border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+          borderRadius: 12,
+          overflowX: 'auto',
+        }}
+      >
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>{t('packages.col_offer')}</th>
+              <th style={thStyle}>{t('packages.col_target')}</th>
+              <th style={thStyle}>{t('packages.col_price')}</th>
+              <th style={thStyle}>{t('packages.col_status')}</th>
+              <th style={thStyle}>{t('packages.col_limits')}</th>
+              <th style={thStyle} aria-label={t('packages.action_edit')} />
+            </tr>
+          </thead>
+          <tbody>
+            {(packages ?? []).map((p) => (
+              <tr key={p.id}>
+                <td style={tdStyle}>
+                  <span style={{ fontWeight: 500 }}>{p.name}</span>
+                </td>
+                <td style={{ ...tdStyle, color: 'var(--color-text-secondary, #64748b)' }}>
+                  {targetLabel(p.target_role)}
+                </td>
+                <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>{formatPrice(p)}</td>
+                <td style={tdStyle}>
+                  <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        padding: '2px 8px',
+                        borderRadius: 10,
+                        background: p.active ? '#DCFCE7' : '#F1F5F9',
+                        color: p.active ? '#166534' : '#64748b',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {p.active ? t('packages.active_yes') : t('packages.active_no')}
+                    </span>
+                    {p.is_default && (
+                      <span style={{ fontSize: 11, padding: '2px 8px', background: '#DBEAFE', color: '#1e40af', borderRadius: 10, whiteSpace: 'nowrap' }}>
+                        {t('packages.default_badge')}
+                      </span>
+                    )}
+                  </span>
+                </td>
+                <td style={{ ...tdStyle, color: 'var(--color-text-secondary, #64748b)', minWidth: 240 }}>
+                  {summarizeLimits(p.features)}
+                </td>
+                <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <Link
+                    href={`/admin/packages/${p.id}`}
+                    style={{
+                      display: 'inline-block',
+                      padding: '7px 14px',
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: '#00B9FF',
+                      border: '0.5px solid #00B9FF',
+                      borderRadius: 8,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    {t('packages.action_edit')}
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )

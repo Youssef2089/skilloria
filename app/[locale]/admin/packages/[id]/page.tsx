@@ -8,9 +8,13 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
  * /admin/packages/[id] — édition d'un package (prix mensuel/annuel, actif) et
- * de la VALEUR de chaque package_feature existante (entier >= 0 ou 'unlimited').
+ * de la VALEUR de chaque package_feature (entier >= 0 ou 'unlimited').
  * Mutation via POST /api/admin/update-package (snapshot package_history + valid.
  * serveur). Édition seule : pas de création/suppression ce lot.
+ *
+ * Refonte UX : formulaire structuré en 2 sections (Tarification / Limites),
+ * LIBELLÉS HUMAINS par feature (jamais le code), case « Illimité » par limite,
+ * confirmation inline avant enregistrement. Aucun snake_case à l'écran.
  */
 
 type Pkg = {
@@ -34,6 +38,18 @@ type Feature = {
   name: string
   value_type: string | null
 }
+
+// Mapping feature_code → clé i18n de libellé HUMAIN. Un code absent retombe sur
+// le nom BDD (jamais le code brut).
+const FEATURE_LABEL_KEYS: Record<string, string> = {
+  publications_per_month: 'feature_label_publications_per_month',
+  active_publications_max: 'feature_label_active_publications_max',
+  revealed_candidates_per_publication: 'feature_label_revealed_candidates_per_publication',
+  manual_unlocks_per_month: 'feature_label_manual_unlocks_per_month',
+  seats_max: 'feature_label_seats_max',
+}
+
+const UNLIMITED = 'unlimited'
 
 const cardStyle: React.CSSProperties = {
   background: 'var(--color-background-primary, #fff)',
@@ -84,6 +100,7 @@ export default function AdminPackageEditPage() {
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [confirming, setConfirming] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -125,6 +142,24 @@ export default function AdminPackageEditPage() {
     if (packageId) void load()
   }, [packageId, load])
 
+  // Libellé HUMAIN d'une feature (jamais le code snake_case).
+  function featureLabel(f: Feature): string {
+    const key = FEATURE_LABEL_KEYS[f.feature_code]
+    return key ? t(`packages.${key}`) : f.name
+  }
+
+  function isUnlimited(code: string): boolean {
+    return (featureValues[code] ?? '').trim().toLowerCase() === UNLIMITED
+  }
+
+  function toggleUnlimited(code: string, next: boolean) {
+    setFeatureValues((prev) => ({ ...prev, [code]: next ? UNLIMITED : '' }))
+  }
+
+  function setNumeric(code: string, raw: string) {
+    setFeatureValues((prev) => ({ ...prev, [code]: raw }))
+  }
+
   async function save() {
     setSaving(true)
     setSaveError(null)
@@ -157,6 +192,7 @@ export default function AdminPackageEditPage() {
         return
       }
       setSaved(true)
+      setConfirming(false)
       setChangeReason('')
       await load()
     } catch {
@@ -206,8 +242,9 @@ export default function AdminPackageEditPage() {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: 0 }}>{pkg.name}</h1>
-        <span style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)' }}>{pkg.slug}</span>
-        <span style={{ fontSize: 12, color: 'var(--color-text-secondary, #64748b)' }}>· {pkg.target_role}</span>
+        <span style={{ fontSize: 12, color: 'var(--color-text-secondary, #64748b)' }}>
+          {pkg.target_role === 'cabinet' ? t('packages.target_cabinet') : t('packages.target_client')}
+        </span>
         {pkg.is_default && (
           <span style={{ fontSize: 11, padding: '2px 8px', background: '#DBEAFE', color: '#1e40af', borderRadius: 10 }}>
             {t('packages.default_badge')}
@@ -215,17 +252,23 @@ export default function AdminPackageEditPage() {
         )}
       </div>
 
-      {/* Pricing */}
+      {/* Tarification */}
       <section style={cardStyle}>
         <h2 style={sectionTitle}>{t('packages.section_pricing')}</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
           <div>
-            <label htmlFor="pm" style={labelStyle}>{t('packages.field_price_monthly')} ({pkg.currency})</label>
-            <input id="pm" type="text" inputMode="decimal" value={priceMonthly} onChange={(e) => setPriceMonthly(e.target.value)} placeholder={t('packages.price_free')} style={inputStyle} />
+            <label htmlFor="pm" style={labelStyle}>{t('packages.field_price_monthly')}</label>
+            <div style={{ position: 'relative' }}>
+              <input id="pm" type="number" min={0} step={1} inputMode="decimal" value={priceMonthly} onChange={(e) => setPriceMonthly(e.target.value)} placeholder={t('packages.price_free')} style={{ ...inputStyle, paddingRight: 46 }} />
+              <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', pointerEvents: 'none' }}>{pkg.currency}</span>
+            </div>
           </div>
           <div>
-            <label htmlFor="py" style={labelStyle}>{t('packages.field_price_yearly')} ({pkg.currency})</label>
-            <input id="py" type="text" inputMode="decimal" value={priceYearly} onChange={(e) => setPriceYearly(e.target.value)} placeholder={t('packages.price_free')} style={inputStyle} />
+            <label htmlFor="py" style={labelStyle}>{t('packages.field_price_yearly')}</label>
+            <div style={{ position: 'relative' }}>
+              <input id="py" type="number" min={0} step={1} inputMode="decimal" value={priceYearly} onChange={(e) => setPriceYearly(e.target.value)} placeholder={t('packages.price_free')} style={{ ...inputStyle, paddingRight: 46 }} />
+              <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', pointerEvents: 'none' }}>{pkg.currency}</span>
+            </div>
           </div>
         </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-text-primary, #0f172a)', cursor: 'pointer' }}>
@@ -234,31 +277,41 @@ export default function AdminPackageEditPage() {
         </label>
       </section>
 
-      {/* Features */}
+      {/* Limites */}
       <section style={cardStyle}>
-        <h2 style={sectionTitle}>{t('packages.section_features')}</h2>
-        <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '0 0 14px' }}>{t('packages.feature_value_hint')}</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {features.map((f) => (
-            <div key={f.feature_code} style={{ display: 'grid', gridTemplateColumns: '1fr 160px', gap: 12, alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>{f.name}</div>
-                <div style={{ fontSize: 11, color: 'var(--color-text-tertiary, #94a3b8)' }}>
-                  {f.feature_code}{f.reset_period ? ` · ${f.reset_period}` : ''}
-                </div>
+        <h2 style={sectionTitle}>{t('packages.section_limits')}</h2>
+        <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '0 0 14px' }}>{t('packages.limits_hint')}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {features.map((f) => {
+            const unlimited = isUnlimited(f.feature_code)
+            return (
+              <div key={f.feature_code} style={{ display: 'grid', gridTemplateColumns: '1fr 130px auto', gap: 12, alignItems: 'center' }}>
+                <label htmlFor={`f_${f.feature_code}`} style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>
+                  {featureLabel(f)}
+                </label>
+                <input
+                  id={`f_${f.feature_code}`}
+                  type="number"
+                  min={0}
+                  step={1}
+                  inputMode="numeric"
+                  value={unlimited ? '' : (featureValues[f.feature_code] ?? '')}
+                  onChange={(e) => setNumeric(f.feature_code, e.target.value)}
+                  disabled={unlimited}
+                  placeholder={unlimited ? '∞' : '0'}
+                  style={{ ...inputStyle, background: unlimited ? 'var(--color-background-secondary, #f8fafc)' : '#fff', color: unlimited ? 'var(--color-text-tertiary, #94a3b8)' : 'inherit' }}
+                />
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--color-text-secondary, #64748b)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  <input type="checkbox" checked={unlimited} onChange={(e) => toggleUnlimited(f.feature_code, e.target.checked)} />
+                  {t('packages.field_unlimited')}
+                </label>
               </div>
-              <input
-                type="text"
-                value={featureValues[f.feature_code] ?? ''}
-                onChange={(e) => setFeatureValues((prev) => ({ ...prev, [f.feature_code]: e.target.value }))}
-                style={inputStyle}
-              />
-            </div>
-          ))}
+            )
+          })}
         </div>
       </section>
 
-      {/* Save */}
+      {/* Enregistrement */}
       <section style={cardStyle}>
         <label htmlFor="reason" style={labelStyle}>{t('packages.change_reason_label')}</label>
         <textarea id="reason" value={changeReason} onChange={(e) => setChangeReason(e.target.value)} placeholder={t('packages.change_reason_placeholder')} maxLength={200} rows={2} style={{ ...inputStyle, resize: 'vertical', marginBottom: 12 }} />
@@ -274,25 +327,35 @@ export default function AdminPackageEditPage() {
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={() => void save()}
-          disabled={saving}
-          style={{
-            padding: '10px 18px',
-            background: '#00B9FF',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 10,
-            fontSize: 13,
-            fontWeight: 500,
-            cursor: saving ? 'not-allowed' : 'pointer',
-            opacity: saving ? 0.6 : 1,
-            fontFamily: 'inherit',
-          }}
-        >
-          {saving ? t('loading') : t('packages.save')}
-        </button>
+        {confirming ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>{t('packages.confirm_save')}</span>
+            <button
+              type="button"
+              onClick={() => void save()}
+              disabled={saving}
+              style={{ padding: '9px 16px', background: '#00B9FF', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1, fontFamily: 'inherit' }}
+            >
+              {saving ? t('loading') : t('packages.confirm_yes')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              disabled={saving}
+              style={{ padding: '9px 16px', background: 'transparent', color: 'var(--color-text-secondary, #64748b)', border: '0.5px solid var(--color-border-tertiary, #e5e7eb)', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              {t('packages.confirm_cancel')}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => { setSaved(false); setSaveError(null); setConfirming(true) }}
+            style={{ padding: '10px 18px', background: '#00B9FF', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            {t('packages.save')}
+          </button>
+        )}
       </section>
     </div>
   )
