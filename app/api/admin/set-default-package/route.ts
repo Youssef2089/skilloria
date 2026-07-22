@@ -13,8 +13,13 @@ export const dynamic = 'force-dynamic'
  *
  * TRANSFERT du statut « offre par défaut » (jamais une décoche).
  *
- * INVARIANT DE COUVERTURE (implémenté dans lib/package-default.ts, partagé avec
- * create-package) : chaque cible (client, cabinet) doit être couverte à tout
+ * L'ÉCRITURE est atomique : lib/package-default.ts délègue à la RPC Postgres
+ * set_default_package (migration 20260709000005), qui joue retrait + pose dans
+ * une seule transaction. Le snapshot package_history et le logAudit restent
+ * ici : seule la route connaît l'admin à l'origine du geste.
+ *
+ * INVARIANT DE COUVERTURE (partagé avec create-package, et réappliqué en base
+ * par la RPC) : chaque cible (client, cabinet) doit être couverte à tout
  * moment par exactement UNE offre par défaut ACTIVE — via sa ligne spécifique
  * OU via une ligne 'all'.
  *  - Désigner une offre 'all'      → retire le défaut de TOUTES les lignes.

@@ -27,7 +27,8 @@ export const dynamic = 'force-dynamic'
  * ORDRE : (1) requireAdmin → (2) valide TOUT (rien n'est écrit avant) →
  * (3) slug unique par cible → (4) insert package → (5) insert features →
  * (6) snapshot package_history (création) → (7) transfert du défaut si demandé
- * (invariant partagé lib/package-default) → (8) logAudit 'package_created'.
+ * — via la RPC atomique set_default_package (lib/package-default) → (8)
+ * logAudit 'package_created'.
  *
  * COHÉRENCE : is_default exige active — une offre par défaut inactive laisserait
  * une cible sans offre à l'inscription → 400 'default_requires_active'.

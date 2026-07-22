@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
@@ -287,9 +286,6 @@ export default function AdminPackageEditPage() {
   if (error === 'not_found') {
     return (
       <div>
-        <Link href="/admin/packages" style={{ fontSize: 13, color: '#00B9FF', textDecoration: 'none', marginBottom: 16, display: 'inline-block' }}>
-          {t('packages.back')}
-        </Link>
         <div style={{ ...cardStyle, textAlign: 'center' }}>
           <h2 style={{ fontSize: 18, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)' }}>{t('not_found_title')}</h2>
         </div>
@@ -300,9 +296,6 @@ export default function AdminPackageEditPage() {
   if (error) {
     return (
       <div>
-        <Link href="/admin/packages" style={{ fontSize: 13, color: '#00B9FF', textDecoration: 'none', marginBottom: 16, display: 'inline-block' }}>
-          {t('packages.back')}
-        </Link>
         <div role="alert" style={{ padding: 16, background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13, borderRadius: 10 }}>
           {error}
         </div>
@@ -321,10 +314,6 @@ export default function AdminPackageEditPage() {
 
   return (
     <div>
-      <Link href="/admin/packages" style={{ fontSize: 13, color: '#00B9FF', textDecoration: 'none', marginBottom: 16, display: 'inline-block' }}>
-        {t('packages.back')}
-      </Link>
-
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: 0 }}>{pkg.name}</h1>
         <span style={{ fontSize: 12, color: 'var(--color-text-secondary, #64748b)' }}>
@@ -432,6 +421,23 @@ export default function AdminPackageEditPage() {
               maxLength={100}
               style={inputStyle}
             />
+          </div>
+          {/* Slug : LECTURE SEULE — il sert de référence externe (Stripe,
+              journaux), le renommer casserait les rapprochements. */}
+          <div>
+            <span style={labelStyle}>{t('packages.field_slug')}</span>
+            <div
+              style={{
+                ...inputStyle,
+                background: 'var(--color-background-secondary, #f8fafc)',
+                color: 'var(--color-text-secondary, #64748b)',
+              }}
+            >
+              {pkg.slug}
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '6px 0 0' }}>
+              {t('packages.slug_readonly_hint')}
+            </p>
           </div>
           <div>
             <span style={labelStyle}>{t('packages.field_target')}</span>

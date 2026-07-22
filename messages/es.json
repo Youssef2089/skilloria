@@ -1960,12 +1960,11 @@
       "active_yes": "Activo",
       "active_no": "Inactivo",
       "price_free": "Gratis",
-      "back": "← Volver al catálogo",
       "section_pricing": "Precios",
       "section_features": "Features",
       "field_price_monthly": "Precio mensual",
       "field_price_yearly": "Precio anual",
-      "field_active": "Paquete activo",
+      "field_active": "Oferta activa",
       "feature_value_hint": "Valor: un entero ≥ 0 o «unlimited».",
       "change_reason_label": "Motivo del cambio (opcional)",
       "change_reason_placeholder": "Ej. tarifa 2026",
@@ -2046,7 +2045,9 @@
       "err_incompatible_target": "Oferta de destino incompatible: no cubre el público {targets}.",
       "select_placeholder": "Elegir una oferta",
       "org_package_default": "predeterminada",
-      "org_package_expired": "expirada"
+      "org_package_expired": "expirada",
+      "migrate_subtitle": "Útil para aplicar una nueva estructura de precios a todas sus empresas existentes.",
+      "slug_readonly_hint": "Identificador técnico, no modificable tras la creación (referencias de Stripe y registros)."
     },
     "pilot": {
       "section_title": "Paquete",

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Link, useRouter } from '@/i18n/navigation'
+import { useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
@@ -242,10 +242,6 @@ export default function AdminPackageNewPage() {
 
   return (
     <div>
-      <Link href="/admin/packages" style={{ fontSize: 13, color: '#00B9FF', textDecoration: 'none', marginBottom: 16, display: 'inline-block' }}>
-        {t('packages.back')}
-      </Link>
-
       <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: '0 0 4px' }}>
         {t('packages.new_title')}
       </h1>

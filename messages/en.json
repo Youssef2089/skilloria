@@ -1960,12 +1960,11 @@
       "active_yes": "Active",
       "active_no": "Inactive",
       "price_free": "Free",
-      "back": "← Back to catalog",
       "section_pricing": "Pricing",
       "section_features": "Features",
       "field_price_monthly": "Monthly price",
       "field_price_yearly": "Yearly price",
-      "field_active": "Package active",
+      "field_active": "Plan active",
       "feature_value_hint": "Value: an integer ≥ 0 or “unlimited”.",
       "change_reason_label": "Change reason (optional)",
       "change_reason_placeholder": "e.g. 2026 pricing update",
@@ -2046,7 +2045,9 @@
       "err_incompatible_target": "Incompatible target plan: it does not cover audience {targets}.",
       "select_placeholder": "Choose a plan",
       "org_package_default": "default",
-      "org_package_expired": "expired"
+      "org_package_expired": "expired",
+      "migrate_subtitle": "Useful for applying a new pricing structure to all your existing companies.",
+      "slug_readonly_hint": "Technical identifier, not editable after creation (Stripe references and logs)."
     },
     "pilot": {
       "section_title": "Package",

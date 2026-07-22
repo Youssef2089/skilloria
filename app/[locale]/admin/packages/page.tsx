@@ -280,6 +280,10 @@ export default function AdminPackagesPage() {
     borderTop: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
     verticalAlign: 'middle',
   }
+  // Le bloc de migration n'a de sens que si au moins une organisation est
+  // rattachée à une offre : sinon il n'y a rien à déplacer.
+  const hasAttachedOrgs = (packages ?? []).some((p) => p.org_count > 0)
+
   const selectStyle: React.CSSProperties = {
     width: '100%',
     padding: '9px 12px',
@@ -363,7 +367,12 @@ export default function AdminPackagesPage() {
               <Fragment key={p.id}>
               <tr>
                 <td style={tdStyle}>
-                  <span style={{ fontWeight: 500 }}>{p.name}</span>
+                  <span style={{ display: 'block', fontWeight: 500 }}>{p.name}</span>
+                  {/* Identifiant technique, en retrait : utile pour rapprocher
+                      une ligne des journaux/Stripe sans encombrer la lecture. */}
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary, #94a3b8)', marginTop: 2 }}>
+                    {p.slug}
+                  </span>
                 </td>
                 <td style={{ ...tdStyle, color: 'var(--color-text-secondary, #64748b)' }}>
                   {targetLabel(p.target_role)}
@@ -512,7 +521,10 @@ export default function AdminPackagesPage() {
 
       {/* ── Migration de masse ────────────────────────────────────────────────
           Déplace toutes les organisations d'une offre vers une autre. Aperçu
-          OBLIGATOIRE (nombre exact) avant confirmation. Réversible. */}
+          OBLIGATOIRE (nombre exact) avant confirmation. Réversible.
+          MASQUÉ tant qu'aucune organisation n'est rattachée : le bloc n'aurait
+          rien à déplacer et n'ajouterait que du bruit au catalogue initial. */}
+      {hasAttachedOrgs && (
       <section
         style={{
           background: 'var(--color-background-primary, #fff)',
@@ -522,9 +534,12 @@ export default function AdminPackagesPage() {
           marginTop: 20,
         }}
       >
-        <h2 style={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--color-text-secondary, #64748b)', marginBottom: 8 }}>
+        <h2 style={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--color-text-secondary, #64748b)', marginBottom: 6 }}>
           {t('packages.section_migrate')}
         </h2>
+        <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 6px' }}>
+          {t('packages.migrate_subtitle')}
+        </p>
         <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '0 0 14px' }}>
           {t('packages.migrate_intro')}
         </p>
@@ -651,6 +666,7 @@ export default function AdminPackagesPage() {
           </div>
         )}
       </section>
+      )}
     </div>
   )
 }

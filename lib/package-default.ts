@@ -79,11 +79,17 @@ export type TransferResult =
 /**
  * Applique le transfert du statut par défaut vers `packageId`.
  *
- * ORDRE : (1) lit les défauts actifs courants → (2) planifie et valide
- * l'invariant → (3) SNAPSHOT dans package_history de TOUTES les offres touchées
- * AVANT modif → (4) retire les anciens défauts PUIS pose le nouveau → (5)
- * vérification post-état (rollback impossible sans transaction : on remonte une
- * erreur explicite plutôt que de laisser un état muet).
+ * L'ÉCRITURE est déléguée à la RPC Postgres `set_default_package` (migration
+ * 20260709000005) : retrait des anciens défauts + pose du nouveau se jouent
+ * dans UNE SEULE TRANSACTION, donc aucune fenêtre pendant laquelle une cible
+ * serait sans offre par défaut. La RPC réapplique l'invariant côté base et
+ * refuse d'elle-même ('target_uncovered') — les vérifications faites ici sont
+ * un pré-contrôle, pas la garantie.
+ *
+ * ORDRE : (1) lit les défauts actifs courants → (2) pré-valide l'invariant (on
+ * évite d'écrire un snapshot pour une opération qui sera refusée) → (3)
+ * SNAPSHOT dans package_history de TOUTES les offres touchées AVANT modif →
+ * (4) appel de la RPC (atomique) → (5) mapping des exceptions.
  *
  * L'appelant reste responsable de logAudit (l'action diffère selon le contexte :
  * package_default_changed vs package_created).
@@ -147,68 +153,38 @@ export async function applyDefaultTransfer(
     }
   }
 
-  // ── (4) Retrait des anciens PUIS pose du nouveau ────────────────────────────
-  // Ordre volontaire : un instant sans défaut est préférable à deux défauts
-  // concurrents sur une même cible (entitlements retomberait sur un choix
-  // arbitraire).
-  const now = new Date().toISOString()
-  if (plan.unsetIds.length > 0) {
-    const { error: unsetErr } = await admin
-      .from('packages')
-      .update({ is_default: false, updated_at: now })
-      .in('id', plan.unsetIds)
-    if (unsetErr) {
-      console.error('[package-default] unset previous failed', unsetErr.message)
-      return { ok: false, status: 500, code: 'db_error' }
-    }
-  }
+  // ── (4) Transfert ATOMIQUE côté base (une seule transaction) ────────────────
+  const { error: rpcErr } = await admin.rpc('set_default_package', {
+    p_package_id: packageId,
+  })
 
-  const { error: setErr } = await admin
-    .from('packages')
-    .update({ is_default: true, updated_at: now })
-    .eq('id', packageId)
-  if (setErr) {
-    console.error('[package-default] set new default failed', setErr.message)
-    // Rollback best-effort : sans transaction multi-requêtes, on restaure les
-    // anciens défauts pour ne pas laisser une cible orpheline.
-    if (plan.unsetIds.length > 0) {
-      await admin
-        .from('packages')
-        .update({ is_default: true, updated_at: now })
-        .in('id', plan.unsetIds)
+  // ── (5) Mapping des exceptions levées par la RPC ────────────────────────────
+  if (rpcErr) {
+    const msg = `${rpcErr.message ?? ''} ${rpcErr.details ?? ''}`
+    if (msg.includes('target_uncovered')) {
+      // La base a refusé : on recalcule les cibles orphelines pour le message.
+      const replay = planDefaultTransfer({ id: packageId, target_role: targetRole }, current)
+      return {
+        ok: false,
+        status: 400,
+        code: 'target_uncovered',
+        uncovered: replay.ok ? [...COVERAGE_TARGETS] : replay.uncovered,
+      }
     }
+    if (msg.includes('package_inactive')) {
+      return { ok: false, status: 400, code: 'package_inactive' }
+    }
+    if (msg.includes('package_not_found')) {
+      return { ok: false, status: 404, code: 'not_found' }
+    }
+    if (msg.includes('invariant_broken')) {
+      console.error('[package-default] INVARIANT BROKEN — transaction annulée', rpcErr.message)
+      return { ok: false, status: 500, code: 'invariant_broken' }
+    }
+    console.error('[package-default] set_default_package rpc failed', rpcErr.message)
     return { ok: false, status: 500, code: 'db_error' }
-  }
-
-  // ── (5) Vérification post-état : chaque cible couverte exactement une fois ──
-  const check = await assertCoverage(admin)
-  if (!check.ok) {
-    console.error('[package-default] INVARIANT BROKEN after transfer', check)
-    return { ok: false, status: 500, code: 'invariant_broken' }
   }
 
   return { ok: true, unsetIds: plan.unsetIds }
 }
 
-/**
- * Contrôle de couverture sur l'état réel en base : chaque cible doit être
- * couverte par exactement une offre par défaut active.
- */
-export async function assertCoverage(
-  admin: SupabaseClient,
-): Promise<{ ok: true } | { ok: false; counts: Record<string, number> }> {
-  const { data, error } = await admin
-    .from('packages')
-    .select('id, target_role')
-    .eq('is_default', true)
-    .eq('active', true)
-  if (error) return { ok: false, counts: {} }
-
-  const rows = (data ?? []) as DefaultRow[]
-  const counts: Record<string, number> = {}
-  for (const t of COVERAGE_TARGETS) {
-    counts[t] = rows.filter((r) => covers(r.target_role, t)).length
-  }
-  const ok = COVERAGE_TARGETS.every((t) => counts[t] === 1)
-  return ok ? { ok: true } : { ok: false, counts }
-}

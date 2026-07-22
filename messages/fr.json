@@ -1960,12 +1960,11 @@
       "active_yes": "Actif",
       "active_no": "Inactif",
       "price_free": "Gratuit",
-      "back": "← Retour au catalogue",
       "section_pricing": "Tarification",
       "section_features": "Features",
       "field_price_monthly": "Prix mensuel",
       "field_price_yearly": "Prix annuel",
-      "field_active": "Package actif",
+      "field_active": "Offre active",
       "feature_value_hint": "Valeur : un entier ≥ 0 ou « unlimited ».",
       "change_reason_label": "Motif de la modification (optionnel)",
       "change_reason_placeholder": "Ex. passage tarif 2026",
@@ -2046,7 +2045,9 @@
       "err_incompatible_target": "Offre cible incompatible : elle ne couvre pas la cible {targets}.",
       "select_placeholder": "Choisir une offre",
       "org_package_default": "par défaut",
-      "org_package_expired": "expiré"
+      "org_package_expired": "expiré",
+      "migrate_subtitle": "Utile pour appliquer une nouvelle grille tarifaire à toutes vos entreprises existantes.",
+      "slug_readonly_hint": "Identifiant technique, non modifiable après création (références Stripe et journaux)."
     },
     "pilot": {
       "section_title": "Package",

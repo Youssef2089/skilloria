@@ -1960,12 +1960,11 @@
       "active_yes": "Aktiv",
       "active_no": "Inaktiv",
       "price_free": "Kostenlos",
-      "back": "← Zurück zum Katalog",
       "section_pricing": "Preise",
       "section_features": "Features",
       "field_price_monthly": "Monatspreis",
       "field_price_yearly": "Jahrespreis",
-      "field_active": "Paket aktiv",
+      "field_active": "Angebot aktiv",
       "feature_value_hint": "Wert: eine Ganzzahl ≥ 0 oder „unlimited“.",
       "change_reason_label": "Änderungsgrund (optional)",
       "change_reason_placeholder": "z. B. Tarif 2026",
@@ -2046,7 +2045,9 @@
       "err_incompatible_target": "Unvereinbares Zielangebot: Es deckt die Zielgruppe {targets} nicht ab.",
       "select_placeholder": "Angebot auswählen",
       "org_package_default": "Standard",
-      "org_package_expired": "abgelaufen"
+      "org_package_expired": "abgelaufen",
+      "migrate_subtitle": "Nützlich, um eine neue Preisstruktur auf alle bestehenden Unternehmen anzuwenden.",
+      "slug_readonly_hint": "Technische Kennung, nach der Erstellung nicht änderbar (Stripe-Referenzen und Protokolle)."
     },
     "pilot": {
       "section_title": "Paket",
