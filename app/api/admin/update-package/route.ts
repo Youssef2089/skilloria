@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic'
  * POST /api/admin/update-package
  * Body : {
  *   package_id: uuid,
+ *   name?: string,                        // non vide, <= 100 car.
  *   price_monthly?: number|null|string,   // numeric >= 0 ou null
  *   price_yearly?:  number|null|string,
  *   active?: boolean,
@@ -39,6 +40,7 @@ const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}
 
 type Body = {
   package_id?: unknown
+  name?: unknown
   price_monthly?: unknown
   price_yearly?: unknown
   active?: unknown
@@ -126,6 +128,14 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const packageUpdates: Record<string, unknown> = {}
 
+  // Le NOM est éditable (l'admin renomme une offre sans la recréer). La CIBLE
+  // ne l'est pas : la changer retirerait leurs droits aux organisations déjà
+  // rattachées — l'admin crée une nouvelle offre puis migre les organisations.
+  if (has('name')) {
+    const n = typeof body.name === 'string' ? body.name.trim() : ''
+    if (!n || n.length > 100) return json({ error: 'Invalid name', code: 'invalid_name' }, 400)
+    packageUpdates.name = n
+  }
   if (has('price_monthly')) {
     const r = validatePrice(body.price_monthly)
     if (!r.ok) return json({ error: 'Invalid price_monthly', code: 'invalid_price' }, 400)

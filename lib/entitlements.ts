@@ -91,8 +91,9 @@ export function monthlyPeriodStart(): Date {
  *
  * Package effectif = organization_domains(org, domaine) :
  *   - package_id non nul ET (package_valid_until null OU dans le futur) → ce package ;
- *   - sinon → package is_default actif du catalogue (domain_id NULL) pour le
- *     target_role de l'org (mapping esn→cabinet).
+ *   - sinon → package is_default actif du catalogue (domain_id NULL) couvrant le
+ *     target_role de l'org (mapping esn→cabinet) : ligne spécifique OU ligne
+ *     'all' (offre unique couvrant les deux cibles), la spécifique primant.
  * 'unlimited' → limite null. Feature absente → null (illimité) + warn.
  *
  * FAIL-OPEN : toute erreur (lecture, package introuvable) → entitlements « tout
@@ -144,17 +145,25 @@ export async function getOrgEntitlements(
         .eq('id', organizationId)
         .maybeSingle()
       const targetRole = targetRoleForOrgType((org?.org_type as string | null) ?? null)
-      const { data: def } = await admin
+      // La cible 'all' est une offre UNIQUE couvrant client ET cabinet (pas de
+      // doublon au catalogue). On accepte donc la ligne spécifique OU la ligne
+      // 'all' ; si les deux existent, la ligne spécifique l'emporte (réglage
+      // fin d'une cible > réglage commun).
+      const { data: defs } = await admin
         .from('packages')
-        .select('id, slug')
+        .select('id, slug, target_role')
         .is('domain_id', null)
-        .eq('target_role', targetRole)
+        .in('target_role', [targetRole, 'all'])
         .eq('is_default', true)
         .eq('active', true)
-        .maybeSingle()
+      const candidates = (defs ?? []) as { id: string; slug: string; target_role: string }[]
+      const def =
+        candidates.find((c) => c.target_role === targetRole) ??
+        candidates.find((c) => c.target_role === 'all') ??
+        null
       if (def) {
-        pkgId = def.id as string
-        pkgSlug = def.slug as string
+        pkgId = def.id
+        pkgSlug = def.slug
       }
     }
 

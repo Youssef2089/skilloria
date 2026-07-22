@@ -39,6 +39,8 @@ type OrgRow = {
   verified_at: string | null
   verified_by: string | null
   review_reason: string | null
+  /** Offre effective resolue cote serveur (list-orgs). */
+  package: { name: string; expired: boolean; fallback: boolean } | null
 }
 
 function initialsOf(name: string | null | undefined): string {
@@ -265,7 +267,7 @@ export default function AdminOrgsListPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'minmax(220px, 2fr) 130px 130px 100px 120px',
+              gridTemplateColumns: 'minmax(200px, 2fr) 120px 110px minmax(130px, 1fr) 80px 110px',
               gap: 0,
               padding: '10px 18px',
               borderBottom: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
@@ -280,6 +282,7 @@ export default function AdminOrgsListPage() {
             <span>{t('table.col_company')}</span>
             <span>{t('table.col_siren')}</span>
             <span>{t('table.col_type')}</span>
+            <span>{t('packages.col_offer')}</span>
             <span>{t('table.col_score')}</span>
             <span>{showDecidedColumn ? t('table.col_decided') : t('table.col_registered')}</span>
           </div>
@@ -293,7 +296,7 @@ export default function AdminOrgsListPage() {
                 href={`/admin/organisations/${org.id}`}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'minmax(220px, 2fr) 130px 130px 100px 120px',
+                  gridTemplateColumns: 'minmax(200px, 2fr) 120px 110px minmax(130px, 1fr) 80px 110px',
                   gap: 0,
                   padding: '14px 18px',
                   borderBottom: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
@@ -353,6 +356,31 @@ export default function AdminOrgsListPage() {
 
                 <span style={{ color: 'var(--color-text-secondary, #64748b)' }}>
                   {org.org_type ?? '—'}
+                </span>
+
+                {/* Offre effective : nom + mention « expiré » (échéance dépassée)
+                    ou « par défaut » (aucun rattachement explicite). */}
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                  <span
+                    style={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      color: 'var(--color-text-secondary, #64748b)',
+                    }}
+                  >
+                    {org.package?.name ?? '—'}
+                  </span>
+                  {org.package?.expired && (
+                    <span style={{ fontSize: 10, padding: '1px 6px', background: '#FEF3C7', color: '#92400e', borderRadius: 8, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      {t('packages.org_package_expired')}
+                    </span>
+                  )}
+                  {org.package?.fallback && !org.package.expired && (
+                    <span style={{ fontSize: 10, padding: '1px 6px', background: '#F1F5F9', color: '#64748b', borderRadius: 8, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      {t('packages.org_package_default')}
+                    </span>
+                  )}
                 </span>
 
                 <span style={{ color: scoreColor(score), fontWeight: 500 }}>

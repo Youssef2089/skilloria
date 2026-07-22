@@ -31,6 +31,7 @@ type Package = {
   active: boolean
   scope: string
   features: Feature[]
+  org_count: number
 }
 
 // Ordre d'affichage stable des limites dans le résumé + clé i18n plurielle.
@@ -56,6 +57,15 @@ export default function AdminPackagesPage() {
   const [settingId, setSettingId] = useState<string | null>(null)
   const [defaultError, setDefaultError] = useState<string | null>(null)
   const [defaultDone, setDefaultDone] = useState<string | null>(null)
+
+  // Migration de masse : offre source, offre cible, nombre prévisualisé
+  // (null = pas encore prévisualisé → confirmation impossible).
+  const [migFrom, setMigFrom] = useState('')
+  const [migTo, setMigTo] = useState('')
+  const [migPreview, setMigPreview] = useState<number | null>(null)
+  const [migBusy, setMigBusy] = useState(false)
+  const [migError, setMigError] = useState<string | null>(null)
+  const [migDone, setMigDone] = useState<string | null>(null)
 
   // silent : rafraîchissement après action (pas de spinner plein écran, la
   // liste reste à l'écran — on évite le flash après « Définir par défaut »).
@@ -91,6 +101,7 @@ export default function AdminPackagesPage() {
   }
 
   function targetLabel(role: string): string {
+    if (role === 'all') return t('packages.target_all')
     return role === 'cabinet' ? t('packages.target_cabinet') : t('packages.target_client')
   }
 
@@ -117,10 +128,12 @@ export default function AdminPackagesPage() {
     return parts.join(' · ')
   }
 
-  // Défaut actuel de la MÊME cible — sert à nommer l'offre qui perdra le statut
-  // dans la confirmation inline (impact explicite avant clic).
+  // Défaut actuel COUVRANT la même cible — sert à nommer l'offre qui perdra le
+  // statut dans la confirmation inline (impact explicite avant clic). Une offre
+  // 'all' couvre client ET cabinet.
   function currentDefaultFor(role: string): Package | null {
-    return (packages ?? []).find((x) => x.target_role === role && x.is_default) ?? null
+    const coversRole = (r: string) => r === role || r === 'all' || role === 'all'
+    return (packages ?? []).find((x) => x.is_default && coversRole(x.target_role)) ?? null
   }
 
   // TRANSFERT du défaut. Le serveur applique l'invariant (un seul défaut actif
@@ -135,11 +148,14 @@ export default function AdminPackagesPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ package_id: p.id }),
       })
-      const payload = (await res.json().catch(() => ({}))) as { code?: string }
+      const payload = (await res.json().catch(() => ({}))) as { code?: string; uncovered?: string[] }
       if (!res.ok) {
         if (payload.code === 'already_default') setDefaultError(t('packages.err_already_default'))
         else if (payload.code === 'package_inactive') setDefaultError(t('packages.err_package_inactive'))
-        else if (res.status === 403) setDefaultError(t('errors.forbidden'))
+        else if (payload.code === 'target_uncovered') {
+          // Cibles qui se retrouveraient sans offre par défaut.
+          setDefaultError(t('packages.err_target_uncovered', { targets: (payload.uncovered ?? []).map(targetLabel).join(', ') }))
+        } else if (res.status === 403) setDefaultError(t('errors.forbidden'))
         else setDefaultError(t('errors.generic'))
         return
       }
@@ -150,6 +166,84 @@ export default function AdminPackagesPage() {
       setDefaultError(t('errors.generic'))
     } finally {
       setSettingId(null)
+    }
+  }
+
+  // ── Migration de masse ─────────────────────────────────────────────────────
+  function nameOf(id: string): string {
+    return (packages ?? []).find((p) => p.id === id)?.name ?? ''
+  }
+
+  /** Une offre cible est éligible si elle couvre la cible de la source. */
+  function migTargetCompatible(candidate: Package): boolean {
+    const from = (packages ?? []).find((p) => p.id === migFrom)
+    if (!from) return true
+    if (candidate.target_role === 'all') return true
+    return candidate.target_role === from.target_role
+  }
+
+  function migErrorFor(code: string | undefined, uncovered?: string[]): string {
+    if (code === 'same_package') return t('packages.err_same_package')
+    if (code === 'target_inactive') return t('packages.err_target_inactive')
+    if (code === 'incompatible_target') {
+      return t('packages.err_incompatible_target', { targets: (uncovered ?? []).map(targetLabel).join(', ') })
+    }
+    return t('errors.generic')
+  }
+
+  /** Aperçu : ne modifie RIEN, retourne le nombre exact d'orgs concernées. */
+  async function previewMigration() {
+    setMigBusy(true)
+    setMigError(null)
+    setMigDone(null)
+    try {
+      const res = await secureFetch('/api/admin/migrate-org-packages', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ from_package_id: migFrom, to_package_id: migTo, preview: true }),
+      })
+      const payload = (await res.json().catch(() => ({}))) as {
+        code?: string
+        count?: number
+        uncovered?: string[]
+      }
+      if (!res.ok) {
+        setMigError(res.status === 403 ? t('errors.forbidden') : migErrorFor(payload.code, payload.uncovered))
+        return
+      }
+      setMigPreview(payload.count ?? 0)
+    } catch {
+      setMigError(t('errors.generic'))
+    } finally {
+      setMigBusy(false)
+    }
+  }
+
+  async function runMigration() {
+    setMigBusy(true)
+    setMigError(null)
+    try {
+      const res = await secureFetch('/api/admin/migrate-org-packages', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ from_package_id: migFrom, to_package_id: migTo }),
+      })
+      const payload = (await res.json().catch(() => ({}))) as {
+        code?: string
+        migrated?: number
+        uncovered?: string[]
+      }
+      if (!res.ok) {
+        setMigError(res.status === 403 ? t('errors.forbidden') : migErrorFor(payload.code, payload.uncovered))
+        return
+      }
+      setMigDone(t('packages.migrate_done', { count: payload.migrated ?? 0 }))
+      setMigPreview(null)
+      await load(true)
+    } catch {
+      setMigError(t('errors.generic'))
+    } finally {
+      setMigBusy(false)
     }
   }
 
@@ -186,15 +280,46 @@ export default function AdminPackagesPage() {
     borderTop: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
     verticalAlign: 'middle',
   }
+  const selectStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '9px 12px',
+    fontSize: 13,
+    border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+    borderRadius: 8,
+    outline: 'none',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box',
+    background: 'var(--color-background-primary, #fff)',
+    color: 'var(--color-text-primary, #0f172a)',
+  }
 
   return (
     <div>
-      <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: '0 0 4px' }}>
-        {t('packages.page_title')}
-      </h1>
-      <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 20px' }}>
-        {t('packages.subtitle')}
-      </p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: '0 0 4px' }}>
+            {t('packages.page_title')}
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: 0 }}>
+            {t('packages.subtitle')}
+          </p>
+        </div>
+        <Link
+          href="/admin/packages/new"
+          style={{
+            padding: '9px 16px',
+            background: '#00B9FF',
+            color: '#fff',
+            borderRadius: 10,
+            fontSize: 13,
+            fontWeight: 500,
+            textDecoration: 'none',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {t('packages.action_new')}
+        </Link>
+      </div>
 
       {defaultDone && (
         <div style={{ padding: '9px 14px', background: '#DCFCE7', border: '1px solid #bbf7d0', color: '#166534', fontSize: 13, borderRadius: 10, marginBottom: 16 }}>
@@ -223,6 +348,7 @@ export default function AdminPackagesPage() {
               <th style={thStyle}>{t('packages.col_target')}</th>
               <th style={thStyle}>{t('packages.col_price')}</th>
               <th style={thStyle}>{t('packages.col_status')}</th>
+              <th style={thStyle}>{t('packages.col_orgs')}</th>
               <th style={thStyle}>{t('packages.col_limits')}</th>
               <th style={thStyle} aria-label={t('packages.action_edit')} />
             </tr>
@@ -263,6 +389,10 @@ export default function AdminPackagesPage() {
                       </span>
                     )}
                   </span>
+                </td>
+                {/* Compteur d'organisations rattachées (vue d'ensemble). */}
+                <td style={{ ...tdStyle, color: 'var(--color-text-secondary, #64748b)', whiteSpace: 'nowrap' }}>
+                  {t('packages.org_count', { count: p.org_count })}
                 </td>
                 <td style={{ ...tdStyle, color: 'var(--color-text-secondary, #64748b)', minWidth: 240 }}>
                   {summarizeLimits(p.features)}
@@ -317,7 +447,7 @@ export default function AdminPackagesPage() {
                   statut) avant tout transfert. */}
               {confirmingId === p.id && (
                 <tr>
-                  <td colSpan={6} style={{ padding: '0 14px 14px', background: 'var(--color-background-secondary, #f8fafc)' }}>
+                  <td colSpan={7} style={{ padding: '0 14px 14px', background: 'var(--color-background-secondary, #f8fafc)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', paddingTop: 12 }}>
                       <span style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>
                         {previous
@@ -379,6 +509,148 @@ export default function AdminPackagesPage() {
           </tbody>
         </table>
       </div>
+
+      {/* ── Migration de masse ────────────────────────────────────────────────
+          Déplace toutes les organisations d'une offre vers une autre. Aperçu
+          OBLIGATOIRE (nombre exact) avant confirmation. Réversible. */}
+      <section
+        style={{
+          background: 'var(--color-background-primary, #fff)',
+          border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+          borderRadius: 12,
+          padding: '18px 22px',
+          marginTop: 20,
+        }}
+      >
+        <h2 style={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--color-text-secondary, #64748b)', marginBottom: 8 }}>
+          {t('packages.section_migrate')}
+        </h2>
+        <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '0 0 14px' }}>
+          {t('packages.migrate_intro')}
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
+          <div>
+            <label htmlFor="mig_from" style={{ display: 'block', fontSize: 12, color: 'var(--color-text-secondary, #64748b)', fontWeight: 500, marginBottom: 6 }}>
+              {t('packages.field_migrate_from')}
+            </label>
+            <select
+              id="mig_from"
+              value={migFrom}
+              onChange={(e) => { setMigFrom(e.target.value); setMigPreview(null); setMigError(null); setMigDone(null) }}
+              style={selectStyle}
+            >
+              <option value="">{t('packages.select_placeholder')}</option>
+              {(packages ?? []).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} — {targetLabel(p.target_role)} ({t('packages.org_count', { count: p.org_count })})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="mig_to" style={{ display: 'block', fontSize: 12, color: 'var(--color-text-secondary, #64748b)', fontWeight: 500, marginBottom: 6 }}>
+              {t('packages.field_migrate_to')}
+            </label>
+            <select
+              id="mig_to"
+              value={migTo}
+              onChange={(e) => { setMigTo(e.target.value); setMigPreview(null); setMigError(null); setMigDone(null) }}
+              style={selectStyle}
+            >
+              <option value="">{t('packages.select_placeholder')}</option>
+              {/* Cibles éligibles : actives, différentes de la source, et
+                  couvrant la cible de la source (une offre 'all' couvre tout). */}
+              {(packages ?? [])
+                .filter((p) => p.active && p.id !== migFrom && migTargetCompatible(p))
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} — {targetLabel(p.target_role)}
+                  </option>
+                ))}
+            </select>
+          </div>
+        </div>
+
+        {migError && (
+          <div role="alert" style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
+            {migError}
+          </div>
+        )}
+        {migDone && (
+          <div style={{ padding: '8px 12px', background: '#DCFCE7', border: '1px solid #bbf7d0', color: '#166534', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
+            {migDone}
+          </div>
+        )}
+
+        {migPreview === null ? (
+          <button
+            type="button"
+            onClick={() => void previewMigration()}
+            disabled={!migFrom || !migTo || migBusy}
+            style={{
+              padding: '9px 16px',
+              background: 'transparent',
+              color: !migFrom || !migTo ? 'var(--color-text-tertiary, #94a3b8)' : '#00B9FF',
+              border: `0.5px solid ${!migFrom || !migTo ? 'var(--color-border-tertiary, #e5e7eb)' : '#00B9FF'}`,
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: !migFrom || !migTo || migBusy ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            {migBusy ? t('loading') : t('packages.migrate_preview')}
+          </button>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>
+              {t('packages.migrate_preview_result', {
+                count: migPreview,
+                from: nameOf(migFrom),
+                to: nameOf(migTo),
+              })}
+            </span>
+            <button
+              type="button"
+              onClick={() => void runMigration()}
+              disabled={migBusy || migPreview === 0}
+              style={{
+                padding: '9px 16px',
+                background: '#00B9FF',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: migBusy || migPreview === 0 ? 'not-allowed' : 'pointer',
+                opacity: migBusy || migPreview === 0 ? 0.6 : 1,
+                fontFamily: 'inherit',
+              }}
+            >
+              {migBusy ? t('loading') : t('packages.migrate_confirm')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMigPreview(null)}
+              disabled={migBusy}
+              style={{
+                padding: '9px 16px',
+                background: 'transparent',
+                color: 'var(--color-text-secondary, #64748b)',
+                border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              {t('packages.confirm_cancel')}
+            </button>
+          </div>
+        )}
+      </section>
     </div>
   )
 }

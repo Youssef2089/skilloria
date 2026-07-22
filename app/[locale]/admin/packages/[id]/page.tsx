@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
@@ -92,11 +92,14 @@ const sectionTitle: React.CSSProperties = {
 export default function AdminPackageEditPage() {
   const t = useTranslations('admin_back_office')
   const params = useParams()
+  const searchParams = useSearchParams()
   const secureFetch = useSecureFetch()
   const packageId = (params?.id as string | undefined) ?? ''
+  const defaultRefusedOnCreate = searchParams?.get('default_refused') === '1'
 
   const [pkg, setPkg] = useState<Pkg | null>(null)
   const [features, setFeatures] = useState<Feature[]>([])
+  const [name, setName] = useState('')
   const [priceMonthly, setPriceMonthly] = useState('')
   const [priceYearly, setPriceYearly] = useState('')
   const [active, setActive] = useState(true)
@@ -137,6 +140,7 @@ export default function AdminPackageEditPage() {
       }
       const json = (await res.json()) as { package: Pkg; features: Feature[] }
       setPkg(json.package)
+      setName(json.package.name)
       setFeatures(json.features ?? [])
       setPriceMonthly(json.package.price_monthly == null ? '' : String(json.package.price_monthly))
       setPriceYearly(json.package.price_yearly == null ? '' : String(json.package.price_yearly))
@@ -201,6 +205,7 @@ export default function AdminPackageEditPage() {
     try {
       const body = {
         package_id: packageId,
+        name: name.trim(),
         price_monthly: priceMonthly.trim() === '' ? null : priceMonthly.trim(),
         price_yearly: priceYearly.trim() === '' ? null : priceYearly.trim(),
         active,
@@ -220,6 +225,8 @@ export default function AdminPackageEditPage() {
           setSaveError(t('packages.err_unknown_feature', { code: payload.feature_code ?? '' }))
         } else if (payload.code === 'invalid_price') {
           setSaveError(t('packages.err_invalid_price'))
+        } else if (payload.code === 'invalid_name') {
+          setSaveError(t('packages.err_invalid_name'))
         } else {
           setSaveError(t('errors.generic'))
         }
@@ -247,11 +254,19 @@ export default function AdminPackageEditPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ package_id: packageId }),
       })
-      const payload = (await res.json().catch(() => ({}))) as { code?: string }
+      const payload = (await res.json().catch(() => ({}))) as { code?: string; uncovered?: string[] }
       if (!res.ok) {
         if (payload.code === 'already_default') setDefaultError(t('packages.err_already_default'))
         else if (payload.code === 'package_inactive') setDefaultError(t('packages.err_package_inactive'))
-        else if (res.status === 403) setDefaultError(t('errors.forbidden'))
+        else if (payload.code === 'target_uncovered') {
+          setDefaultError(
+            t('packages.err_target_uncovered', {
+              targets: (payload.uncovered ?? [])
+                .map((r) => (r === 'cabinet' ? t('packages.target_cabinet') : t('packages.target_client')))
+                .join(', '),
+            }),
+          )
+        } else if (res.status === 403) setDefaultError(t('errors.forbidden'))
         else setDefaultError(t('errors.generic'))
         return
       }
@@ -298,7 +313,11 @@ export default function AdminPackageEditPage() {
   if (!pkg) return null
 
   const targetRoleLabel =
-    pkg.target_role === 'cabinet' ? t('packages.target_cabinet') : t('packages.target_client')
+    pkg.target_role === 'all'
+      ? t('packages.target_all')
+      : pkg.target_role === 'cabinet'
+        ? t('packages.target_cabinet')
+        : t('packages.target_client')
 
   return (
     <div>
@@ -317,6 +336,17 @@ export default function AdminPackageEditPage() {
           </span>
         )}
       </div>
+
+      {/* Créée depuis /admin/packages/new avec un statut « par défaut » refusé
+          (couverture rompue) : l'offre existe, le statut n'a pas été appliqué. */}
+      {defaultRefusedOnCreate && (
+        <div
+          role="alert"
+          style={{ padding: '10px 14px', background: '#FEF3C7', border: '1px solid #fde68a', color: '#92400e', fontSize: 13, borderRadius: 10, marginBottom: 16 }}
+        >
+          {t('packages.created_default_refused', { targets: targetRoleLabel })}
+        </div>
+      )}
 
       {/* Package par défaut — LECTURE seule + transfert. Jamais de décoche :
           on ne peut que désigner une autre offre de la même cible. */}
@@ -389,6 +419,37 @@ export default function AdminPackageEditPage() {
       {/* Tarification */}
       <section style={cardStyle}>
         <h2 style={sectionTitle}>{t('packages.section_pricing')}</h2>
+
+        {/* NOM : éditable. CIBLE : lecture seule (la changer retirerait leurs
+            droits aux organisations déjà rattachées). */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 14 }}>
+          <div>
+            <label htmlFor="pkgname" style={labelStyle}>{t('packages.field_name')}</label>
+            <input
+              id="pkgname"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={100}
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <span style={labelStyle}>{t('packages.field_target')}</span>
+            <div
+              style={{
+                ...inputStyle,
+                background: 'var(--color-background-secondary, #f8fafc)',
+                color: 'var(--color-text-secondary, #64748b)',
+              }}
+            >
+              {targetRoleLabel}
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '6px 0 0' }}>
+              {t('packages.target_help')}
+            </p>
+          </div>
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
           <div>
             <label htmlFor="pm" style={labelStyle}>{t('packages.field_price_monthly')}</label>
@@ -409,6 +470,11 @@ export default function AdminPackageEditPage() {
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
           {t('packages.field_active')}
         </label>
+        {/* Décocher remplace la suppression : retire de la vente sans casser
+            les organisations rattachées. */}
+        <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '6px 0 0 24px' }}>
+          {t('packages.active_help')}
+        </p>
       </section>
 
       {/* Limites */}

@@ -9,7 +9,9 @@ export const dynamic = 'force-dynamic'
  * GET /api/admin/list-packages
  *
  * Catalogue complet (actifs ET inactifs) pour le back-office commerce, avec les
- * features de chaque package. Garde admin per-route via requireAdmin. service_role.
+ * features de chaque package et le NOMBRE D'ORGANISATIONS rattachées (vue
+ * d'ensemble + garde-fou avant migration de masse).
+ * Garde admin per-route via requireAdmin. service_role.
  */
 
 function json(data: unknown, status = 200): Response {
@@ -67,6 +69,28 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
   }
 
-  const result = pkgRows.map((p) => ({ ...p, features: featByPkg.get(p.id) ?? [] }))
+  // Compteur d'organisations rattachées, par package (group by côté serveur :
+  // une seule lecture, agrégée en mémoire — le volume reste celui des orgs).
+  const orgCountByPkg = new Map<string, number>()
+  if (ids.length > 0) {
+    const { data: links, error: linkErr } = await auth.supabaseAdmin
+      .from('organization_domains')
+      .select('package_id')
+      .in('package_id', ids)
+    if (linkErr) {
+      console.error('[admin:list-packages] org links query failed', linkErr.message)
+      return json({ error: 'Query failed', code: 'db_error' }, 500)
+    }
+    for (const l of (links ?? []) as { package_id: string | null }[]) {
+      if (!l.package_id) continue
+      orgCountByPkg.set(l.package_id, (orgCountByPkg.get(l.package_id) ?? 0) + 1)
+    }
+  }
+
+  const result = pkgRows.map((p) => ({
+    ...p,
+    features: featByPkg.get(p.id) ?? [],
+    org_count: orgCountByPkg.get(p.id) ?? 0,
+  }))
   return json({ packages: result }, 200)
 }

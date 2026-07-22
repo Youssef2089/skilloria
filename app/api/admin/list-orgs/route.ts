@@ -75,5 +75,82 @@ export async function GET(request: NextRequest): Promise<Response> {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
 
-  return json({ orgs: data ?? [] }, 200)
+  const orgs = (data ?? []) as { id: string; org_type: string | null }[]
+
+  // ── Offre EFFECTIVE de chaque organisation (vue d'ensemble) ────────────────
+  // Même résolution que lib/entitlements.ts : rattachement explicite non expiré,
+  // sinon offre par défaut couvrant la cible de l'org (spécifique ou 'all').
+  // Best-effort : une erreur ici ne doit pas casser la liste des organisations.
+  const packageByOrg = new Map<string, { name: string; expired: boolean; fallback: boolean }>()
+  try {
+    const orgIds = orgs.map((o) => o.id)
+
+    // Offres du catalogue (nom + cible + statut par défaut), en une lecture.
+    const { data: pkgRows } = await auth.supabaseAdmin
+      .from('packages')
+      .select('id, name, target_role, is_default, active')
+    const pkgs = (pkgRows ?? []) as {
+      id: string
+      name: string
+      target_role: string
+      is_default: boolean
+      active: boolean
+    }[]
+    const pkgById = new Map(pkgs.map((p) => [p.id, p]))
+
+    /** Offre par défaut couvrant une cible : ligne spécifique, sinon 'all'. */
+    const defaultFor = (target: string) =>
+      pkgs.find((p) => p.is_default && p.active && p.target_role === target) ??
+      pkgs.find((p) => p.is_default && p.active && p.target_role === 'all') ??
+      null
+
+    const linkByOrg = new Map<string, { package_id: string | null; package_valid_until: string | null }>()
+    if (orgIds.length > 0) {
+      const { data: links } = await auth.supabaseAdmin
+        .from('organization_domains')
+        .select('organization_id, package_id, package_valid_until')
+        .eq('domain_id', auth.domain.id)
+        .in('organization_id', orgIds)
+      for (const l of (links ?? []) as {
+        organization_id: string
+        package_id: string | null
+        package_valid_until: string | null
+      }[]) {
+        linkByOrg.set(l.organization_id, {
+          package_id: l.package_id,
+          package_valid_until: l.package_valid_until,
+        })
+      }
+    }
+
+    for (const o of orgs) {
+      const link = linkByOrg.get(o.id)
+      const linked = link?.package_id ? pkgById.get(link.package_id) : undefined
+      const expired =
+        !!link?.package_valid_until && new Date(link.package_valid_until).getTime() <= Date.now()
+
+      if (linked && !expired && linked.active) {
+        packageByOrg.set(o.id, { name: linked.name, expired: false, fallback: false })
+        continue
+      }
+      // Rattachement expiré : on affiche l'offre échue (mention « expiré » côté
+      // UI) — l'admin doit voir ce qui a expiré, pas seulement le repli.
+      if (linked && expired) {
+        packageByOrg.set(o.id, { name: linked.name, expired: true, fallback: false })
+        continue
+      }
+      // Repli sur l'offre par défaut (mapping esn→cabinet, cf. entitlements).
+      const target = o.org_type === 'cabinet' || o.org_type === 'esn' ? 'cabinet' : 'client'
+      const def = defaultFor(target)
+      if (def) packageByOrg.set(o.id, { name: def.name, expired: false, fallback: true })
+    }
+  } catch (err) {
+    console.warn(
+      '[admin:list-orgs] package resolution failed — liste servie sans la colonne Offre',
+      err instanceof Error ? err.message : String(err),
+    )
+  }
+
+  const result = orgs.map((o) => ({ ...o, package: packageByOrg.get(o.id) ?? null }))
+  return json({ orgs: result }, 200)
 }
