@@ -185,9 +185,15 @@ export async function loadEligibleProfiles(
     const branch = pickRel(r.branches)
     const speciality = pickRel(r.specialities)
     const certs = Array.isArray(r.certifications) ? r.certifications.length : 0
+    // OUVERTURE CROISÉE : le candidat vient du groupe `crossQuery` (user_type
+    // différent de celui attendu par l'annonce) — donc il a coché l'opt-in,
+    // c'est la condition même de sa présence dans ce groupe.
+    const u = pickRel(r.users) as { user_type: string } | null
+    const crossTypeOptIn = !!u && u.user_type !== expectedUserType
     return {
       profile_id: r.id,
       expert_type: r.expert_type,
+      cross_type_opt_in: crossTypeOptIn,
       title: r.title,
       summary: r.summary,
       seniority: r.seniority,

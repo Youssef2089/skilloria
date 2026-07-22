@@ -91,6 +91,10 @@ async function loadPublication(
     pub: {
       id: row.id,
       type: safeType,
+      // Sens publication→experts : l'annonce est le PIVOT, pas un élément du
+      // pool. Le marquage croisé porte ici sur chaque CANDIDAT
+      // (ProfileCandidate.cross_type_opt_in, cf. loadEligibleProfiles).
+      cross_type_opt_in: false,
       title: row.title,
       description: row.description,
       branch_name: branch?.name ?? null,

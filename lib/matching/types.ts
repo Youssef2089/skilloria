@@ -25,6 +25,14 @@ export type MatchingConfig = {
 export type ProfileCandidate = {
   profile_id: string
   expert_type: string | null
+  /**
+   * OUVERTURE CROISÉE — ce candidat n'est pas du type natif attendu par
+   * l'annonce, mais il a EXPLICITEMENT opté pour recevoir ce type de contrat
+   * (open_to_cdi / open_to_freelance). Transmis à l'IA pour qu'elle n'utilise
+   * JAMAIS le type de contrat comme critère négatif le concernant.
+   * Marquage NEUTRE : le même champ sert les deux sens de l'ouverture.
+   */
+  cross_type_opt_in: boolean
   title: string | null
   summary: string | null
   seniority: string | null
@@ -61,6 +69,14 @@ export type ProfileCandidate = {
 export type PublicationForMatching = {
   id: string
   type: AnnonceType
+  /**
+   * OUVERTURE CROISÉE — cette annonce n'est pas du type natif de l'expert à qui
+   * on la propose, mais il a EXPLICITEMENT opté pour la recevoir. Même
+   * sémantique que ProfileCandidate.cross_type_opt_in, dans l'autre sens.
+   * Toujours `false` côté publication→experts (l'annonce y est le pivot, pas
+   * un élément du pool).
+   */
+  cross_type_opt_in: boolean
   title: string
   description: string
   branch_name: string | null

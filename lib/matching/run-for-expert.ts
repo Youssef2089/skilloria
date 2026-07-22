@@ -127,6 +127,9 @@ function profileToCandidate(p: ProfileFullRow): ProfileCandidate {
   return {
     profile_id: p.id,
     expert_type: p.expert_type,
+    // Sens expert→publications : l'expert est le PIVOT, pas un élément du pool.
+    // Le marquage croisé porte ici sur chaque PUBLICATION (cf. pubToForMatching).
+    cross_type_opt_in: false,
     title: p.title,
     summary: p.summary,
     seniority: p.seniority,
@@ -155,13 +158,21 @@ function profileToCandidate(p: ProfileFullRow): ProfileCandidate {
   }
 }
 
-function pubToForMatching(row: PublicationRow, locale: MatchingLocale): PublicationForMatching {
+function pubToForMatching(
+  row: PublicationRow,
+  locale: MatchingLocale,
+  /** Type d'annonce NATIF de l'expert — tout autre type est un croisé opt-in. */
+  nativeType: AnnonceType,
+): PublicationForMatching {
   const branch = pickRel(row.branches)
   const speciality = pickRel(row.specialities)
   const safeType: AnnonceType = row.type === 'mission' || row.type === 'offre' ? row.type : 'mission'
   return {
     id: row.id,
     type: safeType,
+    // OUVERTURE CROISÉE : cette annonce est dans le pool UNIQUEMENT parce que
+    // l'expert a coché l'opt-in (le pool est restreint au type natif sinon).
+    cross_type_opt_in: safeType !== nativeType,
     title: row.title,
     description: row.description,
     branch_name: branch?.name ?? null,
@@ -309,7 +320,7 @@ export async function runMatchingForExpert(args: {
 
   // 4. AI call inverse — 1 expert vs N publications
   const expertCandidate = profileToCandidate(profile)
-  const publications = pubRows.map((r) => pubToForMatching(r, locale))
+  const publications = pubRows.map((r) => pubToForMatching(r, locale, targetPubType))
   const aiResult = await callExpertMatchingAi({
     config,
     expert: expertCandidate,

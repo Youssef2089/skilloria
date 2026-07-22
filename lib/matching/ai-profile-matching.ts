@@ -79,6 +79,8 @@ function formatBudget(min: number | null | undefined, max: number | null | undef
 function describeCandidate(c: ProfileCandidate, isMission: boolean): string {
   const lines: string[] = []
   lines.push(`profile_id: ${c.profile_id}`)
+  // Marquage NEUTRE de l'ouverture croisée (même champ dans les deux sens).
+  if (c.cross_type_opt_in) lines.push(`- cross_type_opt_in : true`)
   if (c.title) lines.push(`- Titre déclaré : ${sanitize(c.title, 200)}`)
   if (c.summary) lines.push(`- Résumé : ${sanitize(c.summary, 500)}`)
   if (c.seniority) lines.push(`- Séniorité : ${sanitize(c.seniority, 50)}`)
@@ -187,6 +189,30 @@ CONTRAINTES STRICTES :
   (langue de l'annonce). Pas de jargon marketing, pas de promesses.
 - Évite la redondance — si plusieurs candidats partagent un fit similaire,
   différencie-les en pointant ce qui les distingue.
+
+⚠ RÈGLE 1 — TYPE DE CONTRAT OPT-IN (cross_type_opt_in)
+Certains candidats sont marqués "cross_type_opt_in : true" : cet expert a
+EXPLICITEMENT demandé à recevoir ce type de contrat. N'utilise JAMAIS le type
+de contrat (mission freelance vs offre CDI) comme critère négatif de score pour
+ces candidats, et ne mentionne aucune inadéquation liée à leur statut, ni dans
+"reason" (destiné au candidat), ni dans "pitch_org" (destiné à l'organisation).
+Formulations INTERDITES (et toutes leurs variantes, dans les deux sens) :
+« profil orienté missions », « moins aligné avec une démarche CDI »,
+« meilleur fit sur missions courtes », « profil salarié », « peu adapté à une
+mission courte », « manque d'expérience du freelancing », « préfère la
+stabilité ». Un candidat croisé s'est porté volontaire : il ne doit jamais être
+déprécié pour son statut auprès de l'organisation.
+
+⚠ RÈGLE 2 — FORMATS DE RÉMUNÉRATION NON COMPARABLES
+Ne convertis JAMAIS un salaire annuel en TJM, ni un TJM en équivalent annuel,
+pour comparer des rémunérations : ces formats ne sont pas comparables (un CDI
+inclut congés, protection sociale et stabilité ; un TJM freelance couvre
+l'intercontrat, les charges et l'absence de congés). Si les formats diffèrent,
+n'en tire AUCUNE pénalité de score et n'en fais pas un point d'attention ; tu
+peux mentionner la rémunération en INFORMATION factuelle.
+
+CE QUE TU DOIS SCORER : adéquation des compétences, séniorité, secteur/
+industrie, technologies, localisation/remote, disponibilité.
 
 ═══════════════════════════════════════════════════════════════
 FORMAT DE RÉPONSE (JSON STRICT, sans markdown, sans texte autour)

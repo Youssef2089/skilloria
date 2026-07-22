@@ -116,6 +116,8 @@ function describePublication(p: PublicationForMatching): string {
   const lines: string[] = []
   lines.push(`publication_id: ${p.id}`)
   lines.push(`- Type : ${p.type}`)
+  // Marquage NEUTRE de l'ouverture croisée (même champ dans les deux sens).
+  if (p.cross_type_opt_in) lines.push(`- cross_type_opt_in : true`)
   lines.push(`- Titre : ${sanitize(p.title, 250)}`)
   if (p.branch_name) lines.push(`- Branche : ${sanitize(p.branch_name, 100)}`)
   if (p.speciality_name) lines.push(`- Spécialité : ${sanitize(p.speciality_name, 100)}`)
@@ -183,6 +185,31 @@ CONTRAINTES STRICTES :
   pool. N'invente JAMAIS un publication_id.
 - Aucun élément hors du pool fourni.
 - Le ton est PROFESSIONNEL et FACTUEL, en ${langName.toUpperCase()}.
+
+⚠ RÈGLE 1 — TYPE DE CONTRAT OPT-IN (cross_type_opt_in)
+Certaines opportunités sont marquées "cross_type_opt_in : true" : l'expert a
+EXPLICITEMENT demandé à recevoir ce type de contrat. N'utilise JAMAIS le type
+de contrat (mission freelance vs offre CDI) comme critère négatif de score pour
+ces opportunités, et ne mentionne aucune inadéquation liée au statut de
+l'expert, ni dans "reason" (destiné à l'expert), ni dans "pitch_org" (destiné à
+l'organisation).
+Formulations INTERDITES (et toutes leurs variantes, dans les deux sens) :
+« profil orienté missions », « moins aligné avec une démarche CDI »,
+« meilleur fit sur missions courtes », « profil salarié », « peu adapté à une
+mission courte », « manque d'expérience du freelancing », « préfère la
+stabilité ». Un expert croisé s'est porté volontaire : il ne doit jamais être
+déprécié pour son statut.
+
+⚠ RÈGLE 2 — FORMATS DE RÉMUNÉRATION NON COMPARABLES
+Ne convertis JAMAIS un salaire annuel en TJM, ni un TJM en équivalent annuel,
+pour comparer des rémunérations : ces formats ne sont pas comparables (un CDI
+inclut congés, protection sociale et stabilité ; un TJM freelance couvre
+l'intercontrat, les charges et l'absence de congés). Si les formats diffèrent,
+n'en tire AUCUNE pénalité de score et n'en fais pas un point d'attention ; tu
+peux mentionner la rémunération en INFORMATION factuelle.
+
+CE QUE TU DOIS SCORER : adéquation des compétences, séniorité, secteur/
+industrie, technologies, localisation/remote, disponibilité.
 
 ═══════════════════════════════════════════════════════════════
 FORMAT DE RÉPONSE (JSON STRICT, sans markdown, sans texte autour)
