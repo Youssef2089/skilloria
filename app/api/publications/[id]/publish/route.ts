@@ -7,6 +7,7 @@ import type {
   PublicationQualityInput,
 } from '@/lib/verification/ai-publication-quality'
 import { runMatching } from '@/lib/matching'
+import { getOrgEntitlements, consumeQuota, monthlyPeriodStart } from '@/lib/entitlements'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -110,6 +111,43 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
       { error: 'Cannot publish', code: 'wrong_status', current_status: currentStatus },
       409,
     )
+  }
+
+  // ── GATE COMMERCE (Lot 2) : plafond de publications actives + quota mensuel ─
+  //  Placée AVANT la vérif IA (coûteuse) : on refuse tôt. Ordre des gardes :
+  //  1) plafond d'actives (SANS consommation) ; 2) compteur mensuel (consomme).
+  //  On ne consomme JAMAIS le compteur mensuel si on refuse sur le plafond actif.
+  //  getOrgEntitlements/consumeQuota sont fail-open (une panne moteur ne bloque pas).
+  const ents = await getOrgEntitlements(auth.supabaseAdmin, orgId, auth.domain.id)
+
+  if (ents.limits.activePublicationsMax !== null) {
+    const { count: activeCount, error: countErr } = await auth.supabaseAdmin
+      .from('publications')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', orgId)
+      .eq('status', 'published')
+    if (countErr) {
+      // Fail-open : on ne bloque pas sur une erreur de comptage.
+      console.warn('[publications:publish] active count error — fail-open', countErr.message)
+    } else if ((activeCount ?? 0) + 1 > ents.limits.activePublicationsMax) {
+      return json(
+        { error: 'Active publications limit reached', code: 'active_publications_limit_reached' },
+        402,
+      )
+    }
+  }
+
+  if (ents.limits.publicationsPerMonth !== null) {
+    const allowed = await consumeQuota(
+      auth.supabaseAdmin,
+      orgId,
+      'publications',
+      ents.limits.publicationsPerMonth,
+      monthlyPeriodStart(),
+    )
+    if (!allowed) {
+      return json({ error: 'Monthly publications quota reached', code: 'quota_publications_reached' }, 402)
+    }
   }
 
   // ── Build input IA depuis la ligne ──────────────────────────────────────

@@ -1,0 +1,242 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+/**
+ * lib/entitlements.ts — couche DROITS du moteur commerce (Lot 2).
+ *
+ * Traduit la config DB (packages / package_features / organization_domains)
+ * en limites exploitables par les gates (publish / unlock / auto-dévoilement),
+ * et encapsule la consommation atomique des compteurs (usage_increment).
+ *
+ * ┌─ PRINCIPE FIGÉ : FAIL-OPEN ────────────────────────────────────────────┐
+ * │ Un moteur commercial en panne ne doit JAMAIS bloquer l'usage produit.  │
+ * │ Toute erreur de lecture de config/package OU d'appel RPC compteur se   │
+ * │ résout en « on laisse passer » (limite null = illimité / quota=true),  │
+ * │ avec un console.warn. NE PAS « corriger » ce comportement en           │
+ * │ fail-closed : c'est un choix délibéré, pas un oubli.                    │
+ * └────────────────────────────────────────────────────────────────────────┘
+ *
+ * Aucune valeur de prix/quota n'est codée ici : tout est lu depuis la config.
+ * Les seuls littéraux sont les CODES de features (contrat avec le seed Lot 1)
+ * et le mapping org_type → target_role (contrat avec les CHECK de la baseline).
+ */
+
+// null = illimité partout dans ce module.
+export type OrgEntitlements = {
+  packageSlug: string
+  limits: {
+    publicationsPerMonth: number | null
+    activePublicationsMax: number | null
+    revealedCandidatesPerPublication: number | null
+    manualUnlocksPerMonth: number | null
+  }
+}
+
+// Codes features — contrat avec 20260709000001_commerce_seed.sql.
+const FEATURE_PUBLICATIONS_PER_MONTH = 'publications_per_month'
+const FEATURE_ACTIVE_PUBLICATIONS_MAX = 'active_publications_max'
+const FEATURE_REVEALED_CANDIDATES_PER_PUBLICATION = 'revealed_candidates_per_publication'
+const FEATURE_MANUAL_UNLOCKS_PER_MONTH = 'manual_unlocks_per_month'
+
+// period_start des compteurs 'never' (cf. Lot 1). Exporté pour les futurs
+// compteurs non-mensuels ; les gates monthly utilisent monthlyPeriodStart().
+export const NEVER_PERIOD = '1970-01-01'
+
+/** Entitlements « tout illimité » — valeur de repli fail-open. */
+function unlimitedEntitlements(slug: string): OrgEntitlements {
+  return {
+    packageSlug: slug,
+    limits: {
+      publicationsPerMonth: null,
+      activePublicationsMax: null,
+      revealedCandidatesPerPublication: null,
+      manualUnlocksPerMonth: null,
+    },
+  }
+}
+
+/**
+ * Parse une `package_features.value` (varchar) en limite numérique.
+ *  - 'unlimited' (ou vide / non-parseable) → null (illimité) : fail-open.
+ *  - sinon parseInt base 10.
+ */
+function parseLimit(raw: string | null | undefined): number | null {
+  if (raw == null) return null
+  const t = raw.trim().toLowerCase()
+  if (t === 'unlimited' || t === '') return null
+  const n = parseInt(t, 10)
+  return Number.isFinite(n) ? n : null
+}
+
+/**
+ * Mappe organizations.org_type → packages.target_role.
+ * CHECK org_type = client | cabinet | esn ; CHECK target_role = client | cabinet.
+ * En V1, 'esn' (prestataire) accède à la même offre que 'cabinet'.
+ */
+function targetRoleForOrgType(orgType: string | null | undefined): string {
+  if (orgType === 'cabinet' || orgType === 'esn') return 'cabinet'
+  return 'client' // 'client' + défaut prudent
+}
+
+/**
+ * Premier jour du mois civil courant, en UTC (period_start des compteurs monthly).
+ * date_trunc('month') côté TS via Date.UTC(y, m, 1).
+ */
+export function monthlyPeriodStart(): Date {
+  const now = new Date()
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+}
+
+/**
+ * Résout le package effectif d'une org (sur un domaine) et retourne ses limites.
+ *
+ * Package effectif = organization_domains(org, domaine) :
+ *   - package_id non nul ET (package_valid_until null OU dans le futur) → ce package ;
+ *   - sinon → package is_default actif du catalogue (domain_id NULL) pour le
+ *     target_role de l'org (mapping esn→cabinet).
+ * 'unlimited' → limite null. Feature absente → null (illimité) + warn.
+ *
+ * FAIL-OPEN : toute erreur (lecture, package introuvable) → entitlements « tout
+ * illimité » + console.warn. JAMAIS de throw vers l'appelant.
+ */
+export async function getOrgEntitlements(
+  admin: SupabaseClient,
+  organizationId: string,
+  domainId: string,
+): Promise<OrgEntitlements> {
+  try {
+    // 1. Lien org↔domaine → package_id + échéance éventuelle.
+    const { data: link, error: linkErr } = await admin
+      .from('organization_domains')
+      .select('package_id, package_valid_until')
+      .eq('organization_id', organizationId)
+      .eq('domain_id', domainId)
+      .maybeSingle()
+    if (linkErr) {
+      console.warn('[entitlements] organization_domains read error — fail-open', linkErr.message)
+      return unlimitedEntitlements('free')
+    }
+
+    // 2. Package effectif.
+    let pkgId: string | null = null
+    let pkgSlug = 'free'
+
+    const validUntil = link?.package_valid_until as string | null | undefined
+    const linkActive =
+      !!link?.package_id && (validUntil == null || new Date(validUntil).getTime() > Date.now())
+
+    if (linkActive) {
+      const { data: pkg } = await admin
+        .from('packages')
+        .select('id, slug, active')
+        .eq('id', link!.package_id as string)
+        .maybeSingle()
+      if (pkg && (pkg.active as boolean)) {
+        pkgId = pkg.id as string
+        pkgSlug = pkg.slug as string
+      }
+    }
+
+    // Fallback : package is_default du catalogue pour le target_role de l'org.
+    if (!pkgId) {
+      const { data: org } = await admin
+        .from('organizations')
+        .select('org_type')
+        .eq('id', organizationId)
+        .maybeSingle()
+      const targetRole = targetRoleForOrgType((org?.org_type as string | null) ?? null)
+      const { data: def } = await admin
+        .from('packages')
+        .select('id, slug')
+        .is('domain_id', null)
+        .eq('target_role', targetRole)
+        .eq('is_default', true)
+        .eq('active', true)
+        .maybeSingle()
+      if (def) {
+        pkgId = def.id as string
+        pkgSlug = def.slug as string
+      }
+    }
+
+    // Aucun package résoluble (catalogue non seedé ?) → fail-open illimité.
+    if (!pkgId) {
+      console.warn(
+        `[entitlements] no effective package for org ${organizationId} on domain ${domainId} — fail-open (unlimited)`,
+      )
+      return unlimitedEntitlements(pkgSlug)
+    }
+
+    // 3. Limites depuis package_features.
+    const { data: feats, error: featErr } = await admin
+      .from('package_features')
+      .select('feature_code, value')
+      .eq('package_id', pkgId)
+    if (featErr) {
+      console.warn('[entitlements] package_features read error — fail-open', featErr.message)
+      return unlimitedEntitlements(pkgSlug)
+    }
+    const byCode = new Map<string, string>()
+    for (const f of (feats ?? []) as { feature_code: string; value: string }[]) {
+      byCode.set(f.feature_code, f.value)
+    }
+
+    const limitFor = (code: string): number | null => {
+      if (!byCode.has(code)) {
+        // Config incomplète = on ne bloque pas (fail-open).
+        console.warn(
+          `[entitlements] feature '${code}' missing for package '${pkgSlug}' — treating as unlimited`,
+        )
+        return null
+      }
+      return parseLimit(byCode.get(code))
+    }
+
+    return {
+      packageSlug: pkgSlug,
+      limits: {
+        publicationsPerMonth: limitFor(FEATURE_PUBLICATIONS_PER_MONTH),
+        activePublicationsMax: limitFor(FEATURE_ACTIVE_PUBLICATIONS_MAX),
+        revealedCandidatesPerPublication: limitFor(FEATURE_REVEALED_CANDIDATES_PER_PUBLICATION),
+        manualUnlocksPerMonth: limitFor(FEATURE_MANUAL_UNLOCKS_PER_MONTH),
+      },
+    }
+  } catch (err) {
+    // FAIL-OPEN global : toute exception inattendue → illimité.
+    console.warn('[entitlements] getOrgEntitlements threw — fail-open (unlimited)', err)
+    return unlimitedEntitlements('free')
+  }
+}
+
+/**
+ * Consomme atomiquement 1 unité du compteur (org, counterKey, period) sous la
+ * limite `limit` via la fonction SQL usage_increment (service-role, atomique).
+ *  - retourne true si consommé (AUTORISÉ), false si limite atteinte (REFUSÉ) ;
+ *  - `limit` null = illimité : usage_increment incrémente et retourne true.
+ *
+ * FAIL-OPEN : toute erreur RPC/exception → true (on laisse passer) + warn.
+ */
+export async function consumeQuota(
+  admin: SupabaseClient,
+  orgId: string,
+  counterKey: string,
+  limit: number | null,
+  period: Date,
+): Promise<boolean> {
+  try {
+    const p_period = period.toISOString().slice(0, 10) // 'YYYY-MM-DD' UTC
+    const { data, error } = await admin.rpc('usage_increment', {
+      p_org: orgId,
+      p_key: counterKey,
+      p_period,
+      p_limit: limit,
+    })
+    if (error) {
+      console.warn('[entitlements] usage_increment RPC error — fail-open (allowing)', error.message)
+      return true
+    }
+    return data === true
+  } catch (err) {
+    console.warn('[entitlements] consumeQuota threw — fail-open (allowing)', err)
+    return true
+  }
+}

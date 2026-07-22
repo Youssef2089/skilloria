@@ -1,6 +1,10 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
+import { getOrgEntitlements } from '@/lib/entitlements'
+// performUnlock est factorisé dans lib/unlock.ts (Lot 3), partagé avec la route
+// unlock — garantit un chemin de dévoilement STRICTEMENT identique.
+import { performUnlock } from '@/lib/unlock'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -271,6 +275,68 @@ export async function POST(request: NextRequest): Promise<Response> {
       has_cover_message: coverMessage !== null,
     },
   })
+
+  // ── AUTO-DÉVOILEMENT TOP-1 (Lot 2) — règle « 1 candidat dévoilé » du free ─
+  //  Si le package de l'org donne revealed_candidates_per_publication = N (non
+  //  illimité) et qu'il reste des places (déjà dévoilées < N), on dévoile
+  //  AUTOMATIQUEMENT la candidature qui a le MEILLEUR ai_match_score de la
+  //  publication — via le MÊME chemin que l'unlock manuel (performUnlock), mais
+  //  SANS consommer manual_unlocks (c'est le dévoilement inclus).
+  //
+  //  V1 assumée — on ne « rétrograde » JAMAIS un dévoilé : si un meilleur score
+  //  arrive après que la place est prise (déjà dévoilées >= N), il ne remplace
+  //  pas le dévoilé en place (premier meilleur servi).
+  //
+  //  Entièrement NON-BLOQUANT : toute erreur ici n'invalide pas la création de
+  //  candidature (la candidature reste créée ; l'org pourra dévoiler manuellement).
+  try {
+    const { data: pubForEnts } = await auth.supabaseAdmin
+      .from('publications')
+      .select('organization_id, domain_id')
+      .eq('id', publicationId)
+      .maybeSingle()
+    const pubEnts = pubForEnts as { organization_id: string; domain_id: string } | null
+    if (pubEnts) {
+      const ents = await getOrgEntitlements(
+        auth.supabaseAdmin,
+        pubEnts.organization_id,
+        pubEnts.domain_id,
+      )
+      const revealN = ents.limits.revealedCandidatesPerPublication
+      // null = illimité → aucun auto : l'org dévoile manuellement sans limite.
+      if (revealN !== null) {
+        const { count: revealedCount } = await auth.supabaseAdmin
+          .from('candidatures')
+          .select('id', { count: 'exact', head: true })
+          .eq('publication_id', publicationId)
+          .in('status', ['unlocked', 'selected'])
+        if ((revealedCount ?? 0) < revealN) {
+          // La candidature qui vient d'être créée est-elle le meilleur score de
+          // la publication ? (égalité de score → la plus ancienne l'emporte.)
+          const { data: topRow } = await auth.supabaseAdmin
+            .from('candidatures')
+            .select('id')
+            .eq('publication_id', publicationId)
+            .order('ai_match_score', { ascending: false, nullsFirst: false })
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle()
+          const top = topRow as { id: string } | null
+          if (top && top.id === row.id) {
+            const res = await performUnlock(auth.supabaseAdmin, row.id, {
+              auto: true,
+              actorUserId: auth.user.id,
+            })
+            if (!res.ok) {
+              console.warn('[candidatures:POST] auto-reveal performUnlock failed', res.code)
+            }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[candidatures:POST] auto-reveal block threw (non-blocking)', err)
+  }
 
   return json(
     {

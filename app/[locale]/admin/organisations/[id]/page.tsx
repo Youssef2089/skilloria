@@ -594,6 +594,9 @@ export default function AdminOrgDetailPage() {
         </section>
       </div>
 
+      {/* Section Package (Lot 3 commerce) — package effectif, compteurs, pilote */}
+      <OrgPackageSection orgId={orgId} orgType={org.org_type} />
+
       {/* Actions admin */}
       {isPending && (
         <div
@@ -795,6 +798,295 @@ export default function AdminOrgDetailPage() {
             </div>
           )}
         </div>
+      )}
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Section « Package » (Lot 3 commerce) — lecture du package effectif + conso du
+ * mois (GET /api/admin/org-usage) et attribution manuelle d'un package pilote
+ * (POST /api/admin/assign-org-package). Lecture seule pour les compteurs.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+type UsageAvailable = {
+  available: true
+  domain_id: string
+  assignment: { package_id: string | null; package_started_at: string | null; package_valid_until: string | null }
+  package_slug: string
+  limits: {
+    publicationsPerMonth: number | null
+    activePublicationsMax: number | null
+    revealedCandidatesPerPublication: number | null
+    manualUnlocksPerMonth: number | null
+  }
+  usage: { publications: number; manual_unlocks: number }
+  period_start: string
+}
+type UsageData = UsageAvailable | { available: false; reason: string }
+type PkgOption = { id: string; name: string; slug: string; target_role: string; active: boolean; scope: string }
+
+function OrgPackageSection({ orgId, orgType }: { orgId: string; orgType: string | null }) {
+  const t = useTranslations('admin_back_office')
+  const locale = useLocale()
+  const secureFetch = useSecureFetch()
+
+  const [usage, setUsage] = useState<UsageData | null>(null)
+  const [packages, setPackages] = useState<PkgOption[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedPkg, setSelectedPkg] = useState('')
+  const [validUntil, setValidUntil] = useState('')
+  const [confirm, setConfirm] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [uRes, pRes] = await Promise.all([
+        secureFetch(`/api/admin/org-usage?organization_id=${orgId}`, { method: 'GET' }),
+        secureFetch('/api/admin/list-packages', { method: 'GET' }),
+      ])
+      if (uRes.ok) setUsage((await uRes.json()) as UsageData)
+      else setUsage(null)
+      if (pRes.ok) {
+        const pj = (await pRes.json()) as { packages: PkgOption[] }
+        setPackages(pj.packages ?? [])
+      }
+    } catch {
+      setUsage(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [orgId, secureFetch])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const targetRole = orgType === 'cabinet' || orgType === 'esn' ? 'cabinet' : 'client'
+  const assignable = packages.filter(
+    (p) => p.active && p.scope === 'organization' && p.target_role === targetRole,
+  )
+
+  function fmtLimit(used: number, limit: number | null): string {
+    return limit == null ? `${used} / ${t('pilot.unlimited')}` : `${used} / ${limit}`
+  }
+  function fmtDate(iso: string | null): string {
+    if (!iso) return '—'
+    try {
+      return new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })
+    } catch {
+      return iso.slice(0, 10)
+    }
+  }
+
+  async function assign() {
+    setSubmitting(true)
+    setMsg(null)
+    try {
+      const res = await secureFetch('/api/admin/assign-org-package', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          organization_id: orgId,
+          package_id: selectedPkg,
+          package_valid_until: validUntil.trim() || null,
+        }),
+      })
+      const payload = (await res.json().catch(() => ({}))) as { code?: string }
+      if (!res.ok) {
+        const key =
+          payload.code === 'no_active_domain'
+            ? 'pilot.err_no_active_domain'
+            : payload.code === 'multiple_active_domains'
+              ? 'pilot.err_multiple_active_domains'
+              : payload.code === 'invalid_package'
+                ? 'pilot.err_invalid_package'
+                : 'errors.generic'
+        setMsg({ kind: 'err', text: t(key) })
+        return
+      }
+      setMsg({ kind: 'ok', text: t('pilot.assigned') })
+      setConfirm(false)
+      setSelectedPkg('')
+      setValidUntil('')
+      await load()
+    } catch {
+      setMsg({ kind: 'err', text: t('errors.generic') })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const cardStyle: React.CSSProperties = {
+    background: 'var(--color-background-primary, #fff)',
+    border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+    borderRadius: 12,
+    padding: '18px 22px',
+    marginBottom: 20,
+  }
+  const titleStyle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 500,
+    textTransform: 'uppercase',
+    letterSpacing: '.08em',
+    color: 'var(--color-text-secondary, #64748b)',
+    marginBottom: 12,
+  }
+
+  if (loading) {
+    return (
+      <div style={cardStyle}>
+        <h2 style={titleStyle}>{t('pilot.section_title')}</h2>
+        <div style={{ fontSize: 13, color: '#64748b' }}>{t('loading')}</div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={cardStyle}>
+      <h2 style={titleStyle}>{t('pilot.section_title')}</h2>
+
+      {!usage || usage.available === false ? (
+        <div style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)' }}>
+          {usage && usage.available === false && usage.reason === 'no_active_domain'
+            ? t('pilot.err_no_active_domain')
+            : usage && usage.available === false && usage.reason === 'multiple_active_domains'
+              ? t('pilot.err_multiple_active_domains')
+              : t('errors.generic')}
+        </div>
+      ) : (
+        <>
+          {/* Package effectif + compteurs */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--color-text-tertiary, #94a3b8)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                {t('pilot.effective_label')}
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)' }}>{usage.package_slug}</div>
+              <div style={{ fontSize: 12, color: 'var(--color-text-secondary, #64748b)' }}>
+                {t('pilot.valid_until_label')}: {usage.assignment.package_valid_until ? fmtDate(usage.assignment.package_valid_until) : t('pilot.no_expiry')}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--color-text-tertiary, #94a3b8)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                {t('pilot.usage_publications')}
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)' }}>
+                {fmtLimit(usage.usage.publications, usage.limits.publicationsPerMonth)}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--color-text-tertiary, #94a3b8)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                {t('pilot.usage_unlocks')}
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)' }}>
+                {fmtLimit(usage.usage.manual_unlocks, usage.limits.manualUnlocksPerMonth)}
+              </div>
+            </div>
+          </div>
+
+          {msg && (
+            <div
+              role={msg.kind === 'err' ? 'alert' : undefined}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 8,
+                fontSize: 12,
+                marginBottom: 12,
+                background: msg.kind === 'err' ? '#fef2f2' : '#DCFCE7',
+                border: `1px solid ${msg.kind === 'err' ? '#fecaca' : '#bbf7d0'}`,
+                color: msg.kind === 'err' ? '#b91c1c' : '#166534',
+              }}
+            >
+              {msg.text}
+            </div>
+          )}
+
+          {/* Attribution manuelle (pilote) */}
+          <div style={{ borderTop: '0.5px solid var(--color-border-tertiary, #e5e7eb)', paddingTop: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', marginBottom: 10 }}>
+              {t('pilot.assign_title')}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 12 }}>
+              <div>
+                <label htmlFor="assign_pkg" style={{ display: 'block', fontSize: 12, color: 'var(--color-text-secondary, #64748b)', fontWeight: 500, marginBottom: 6 }}>
+                  {t('pilot.assign_package_label')}
+                </label>
+                <select
+                  id="assign_pkg"
+                  value={selectedPkg}
+                  onChange={(e) => setSelectedPkg(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', fontSize: 13, border: '0.5px solid var(--color-border-tertiary, #e5e7eb)', borderRadius: 8, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff' }}
+                >
+                  <option value="">—</option>
+                  {assignable.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.slug})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="assign_until" style={{ display: 'block', fontSize: 12, color: 'var(--color-text-secondary, #64748b)', fontWeight: 500, marginBottom: 6 }}>
+                  {t('pilot.assign_valid_until_label')}
+                </label>
+                <input
+                  id="assign_until"
+                  type="datetime-local"
+                  value={validUntil}
+                  onChange={(e) => setValidUntil(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', fontSize: 13, border: '0.5px solid var(--color-border-tertiary, #e5e7eb)', borderRadius: 8, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+                <div style={{ fontSize: 11, color: 'var(--color-text-tertiary, #94a3b8)', marginTop: 4 }}>{t('pilot.assign_valid_until_hint')}</div>
+              </div>
+            </div>
+
+            {!confirm ? (
+              <button
+                type="button"
+                onClick={() => setConfirm(true)}
+                disabled={!selectedPkg}
+                style={{
+                  padding: '10px 18px',
+                  background: selectedPkg ? '#00B9FF' : '#e5e7eb',
+                  color: selectedPkg ? '#fff' : '#94a3b8',
+                  border: 'none',
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: selectedPkg ? 'pointer' : 'not-allowed',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {t('pilot.assign_button')}
+              </button>
+            ) : (
+              <div>
+                <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', marginBottom: 12 }}>{t('pilot.assign_confirm')}</p>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => void assign()}
+                    disabled={submitting}
+                    style={{ padding: '10px 18px', background: '#00B9FF', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.6 : 1, fontFamily: 'inherit' }}
+                  >
+                    {submitting ? t('loading') : t('confirm_yes')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirm(false)}
+                    disabled={submitting}
+                    style={{ padding: '10px 18px', background: 'transparent', color: 'var(--color-text-secondary, #64748b)', border: '1px solid var(--color-border-tertiary, #e5e7eb)', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    {t('confirm_cancel')}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   )
