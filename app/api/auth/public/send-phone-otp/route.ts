@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { normalizeE164 } from '@/lib/phone'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -64,8 +65,11 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Invalid JSON body', code: 'invalid_json' }, 400)
   }
 
-  const phone = typeof body.phone === 'string' ? body.phone.trim() : ''
-  if (!/^\+[1-9]\d{6,14}$/.test(phone)) {
+  // Normalisation E.164 STRICTE (lib/phone) : le rate-limit et Vonage doivent
+  // voir la forme canonique, sinon deux formats du même numéro contournent le
+  // limiteur ET l'unicité aval.
+  const phone = normalizeE164(body.phone)
+  if (!phone) {
     return json({ error: 'Invalid phone (E.164 expected)', code: 'invalid_phone' }, 400)
   }
   const phoneVonage = phone.slice(1)

@@ -814,7 +814,8 @@
       "email_domain_blocked": "Este dominio de correo no está permitido para registro de empresa.",
       "vonage_error": "Servicio SMS temporalmente no disponible. Inténtalo de nuevo.",
       "rate_limited": "Demasiados intentos. Intentalo de nuevo en un momento.",
-      "generic": "Ha ocurrido un error. Inténtalo de nuevo."
+      "generic": "Ha ocurrido un error. Inténtalo de nuevo.",
+      "phone_already_used": "Este número ya está siendo utilizado por otra cuenta."
     },
     "callback": {
       "verifying_title": "Verificando…",
@@ -895,7 +896,9 @@
       "lastname_label": "Apellido",
       "lastname_placeholder": "Tu apellido",
       "password_label": "Contraseña",
-      "password_placeholder": "Mínimo 8 caracteres"
+      "password_placeholder": "Mínimo 8 caracteres",
+      "phone_label": "Teléfono",
+      "phone_placeholder": "+34 600 12 34 56"
     },
     "change_profile": "← Cambiar de perfil",
     "cgu": "Acepto las <terms>condiciones de uso</terms> y la <privacy>política de privacidad</privacy>",
@@ -906,7 +909,22 @@
     "errors": {
       "cgu_required": "Por favor acepta las condiciones de uso.",
       "missing_fields": "El correo y la contraseña son obligatorios.",
-      "password_too_short": "La contraseña debe tener al menos 8 caracteres."
+      "password_too_short": "La contraseña debe tener al menos 8 caracteres.",
+      "rate_limited": "Demasiados intentos. Intentalo de nuevo en un momento.",
+      "vonage_error": "Servicio SMS temporalmente no disponible. Inténtalo de nuevo.",
+      "phone_not_verified": "Verifica tu teléfono por SMS.",
+      "email_taken": "Ya existe una cuenta con esta dirección de correo.",
+      "invalid_phone": "Número de teléfono no válido (formato esperado: +34XXXXXXXXX).",
+      "generic": "Ha ocurrido un error. Inténtalo de nuevo.",
+      "phone_already_used": "Este número ya está siendo utilizado por otra cuenta.",
+      "otp_expired": "Su verificación ha caducado. Vuelva a enviar un SMS e introduzca el código de nuevo."
+    },
+    "otp": {
+      "send_sms_button": "Enviar SMS",
+      "resend_sms_label": "Reenviar ({seconds}s)",
+      "code_label": "Código de verificación",
+      "code_invalid": "Código inválido. Haz clic en Reenviar para recibir un nuevo código.",
+      "phone_verified": "Teléfono verificado"
     }
   },
   "dashboard_cdi": {
@@ -2370,7 +2388,8 @@
       "error_invalid_code": "Código no válido.",
       "error_expired": "El código ha caducado. Solicita uno nuevo.",
       "error_failed": "No se pudo cambiar el número.",
-      "error_rate_limited": "Demasiados intentos. Intentalo de nuevo en un momento."
+      "error_rate_limited": "Demasiados intentos. Intentalo de nuevo en un momento.",
+      "error_phone_already_used": "Este número ya está siendo utilizado por otra cuenta."
     },
     "password": {
       "title": "Contraseña",

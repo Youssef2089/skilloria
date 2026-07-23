@@ -814,7 +814,8 @@
       "email_domain_blocked": "This email domain is not allowed for business registration.",
       "vonage_error": "SMS service temporarily unavailable. Please try again.",
       "rate_limited": "Too many attempts. Please try again shortly.",
-      "generic": "An error occurred. Please try again."
+      "generic": "An error occurred. Please try again.",
+      "phone_already_used": "This phone number is already used by another account."
     },
     "callback": {
       "verifying_title": "Verifying…",
@@ -895,7 +896,9 @@
       "lastname_label": "Last name",
       "lastname_placeholder": "Your last name",
       "password_label": "Password",
-      "password_placeholder": "Minimum 8 characters"
+      "password_placeholder": "Minimum 8 characters",
+      "phone_label": "Phone",
+      "phone_placeholder": "+33 6 12 34 56 78"
     },
     "change_profile": "← Change profile",
     "cgu": "I agree to the <terms>terms of service</terms> and the <privacy>privacy policy</privacy>",
@@ -906,7 +909,22 @@
     "errors": {
       "cgu_required": "Please accept the terms of service.",
       "missing_fields": "Email and password are required.",
-      "password_too_short": "Password must be at least 8 characters."
+      "password_too_short": "Password must be at least 8 characters.",
+      "rate_limited": "Too many attempts. Please try again shortly.",
+      "vonage_error": "SMS service temporarily unavailable. Please try again.",
+      "phone_not_verified": "Please verify your phone via SMS.",
+      "email_taken": "An account already exists with this email address.",
+      "invalid_phone": "Invalid phone number (expected format: +33XXXXXXXXX).",
+      "generic": "An error occurred. Please try again.",
+      "phone_already_used": "This phone number is already used by another account.",
+      "otp_expired": "Your verification has expired. Please resend an SMS and re-enter the code."
+    },
+    "otp": {
+      "send_sms_button": "Send SMS",
+      "resend_sms_label": "Resend ({seconds}s)",
+      "code_label": "Verification code",
+      "code_invalid": "Invalid code. Click Resend to receive a new code.",
+      "phone_verified": "Phone verified"
     }
   },
   "dashboard_cdi": {
@@ -2370,7 +2388,8 @@
       "error_invalid_code": "Invalid code.",
       "error_expired": "The code has expired. Request a new one.",
       "error_failed": "Could not change the number.",
-      "error_rate_limited": "Too many attempts. Please try again shortly."
+      "error_rate_limited": "Too many attempts. Please try again shortly.",
+      "error_phone_already_used": "This phone number is already used by another account."
     },
     "password": {
       "title": "Password",

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { signPhoneOtpToken } from '@/lib/phone-otp-token'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { normalizeE164 } from '@/lib/phone'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -60,7 +61,9 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const request_id = typeof body.request_id === 'string' ? body.request_id.trim() : ''
   const code = typeof body.code === 'string' ? body.code.trim() : ''
-  const phone = typeof body.phone === 'string' ? body.phone.trim() : ''
+  // Normalisation E.164 STRICTE : le jeton HMAC est signé sur la forme
+  // canonique — register-org/register-expert re-vérifieront ce même canonique.
+  const phone = normalizeE164(body.phone)
 
   if (!request_id || request_id.length > 200) {
     return json({ error: 'Invalid request_id', code: 'invalid_input' }, 400)
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!/^\d{4,6}$/.test(code)) {
     return json({ error: 'Invalid OTP code', code: 'invalid_input' }, 400)
   }
-  if (!/^\+[1-9]\d{6,14}$/.test(phone)) {
+  if (!phone) {
     return json({ error: 'Invalid phone (E.164 expected)', code: 'invalid_phone' }, 400)
   }
 

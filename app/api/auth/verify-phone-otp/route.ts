@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { normalizeE164 } from '@/lib/phone'
+import { isUniqueViolation } from '@/lib/auth-signup'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -43,7 +45,9 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const request_id = typeof body.request_id === 'string' ? body.request_id.trim() : ''
   const code = typeof body.code === 'string' ? body.code.trim() : ''
-  const phone = typeof body.phone === 'string' ? body.phone.trim() : ''
+  // Normalisation E.164 STRICTE avant stockage sur users.phone : cohérent avec
+  // l'index unique partiel `users(phone) where phone_verified`.
+  const phone = normalizeE164(body.phone)
 
   if (!request_id || request_id.length > 200) {
     return json({ error: 'Invalid request_id', code: 'invalid_input' }, 400)
@@ -51,8 +55,22 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!/^\d{4,6}$/.test(code)) {
     return json({ error: 'Invalid OTP code', code: 'invalid_input' }, 400)
   }
-  if (!/^\+[1-9]\d{6,14}$/.test(phone)) {
+  if (!phone) {
     return json({ error: 'Invalid phone (E.164 expected)', code: 'invalid_phone' }, 400)
+  }
+
+  // ── Pré-check UNICITÉ (D2) : ce numéro vérifié appartient-il à un AUTRE compte ?
+  //  Refus PROPRE et PRÉCOCE (avant de consommer un OTP Vonage). `id <> user`
+  //  autorise l'utilisateur à re-vérifier SON propre numéro courant.
+  const { data: phoneOwner } = await auth.supabaseAdmin
+    .from('users')
+    .select('id')
+    .eq('phone', phone)
+    .eq('phone_verified', true)
+    .neq('id', auth.user.id)
+    .maybeSingle()
+  if (phoneOwner) {
+    return json({ error: 'Phone already used', code: 'phone_already_used' }, 409)
   }
 
   // Rate-limit serveur/DB anti brute-force du code, AVANT l'appel Vonage "check" :
@@ -96,12 +114,17 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'OTP provider error', code: 'vonage_error' }, 502)
   }
 
-  // Succès : on flip phone_verified et on stocke le phone (Q-B2.c.4)
+  // Succès : on flip phone_verified et on stocke le phone (canonique E.164).
   const { error: updErr } = await auth.supabaseAdmin
     .from('users')
     .update({ phone_verified: true, phone })
     .eq('id', auth.user.id)
   if (updErr) {
+    // Filet en cas de course avec un autre compte gagnant l'index entre le
+    // pré-check et l'update : refus propre plutôt qu'un 500 brut.
+    if (isUniqueViolation(updErr)) {
+      return json({ error: 'Phone already used', code: 'phone_already_used' }, 409)
+    }
     console.error('[verify-phone-otp] users update failed', updErr.message)
     return json({ error: 'Could not update user', code: 'db_error' }, 500)
   }

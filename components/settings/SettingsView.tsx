@@ -212,7 +212,16 @@ function PhoneSection({ user, secureFetch, requestReauth, notify, reload }: {
       })
       if (!res.ok) {
         const d = (await res.json().catch(() => null)) as { code?: string } | null
-        notify(d?.code === 'rate_limited' ? t('error_rate_limited') : d?.code === 'expired' ? t('error_expired') : t('error_invalid_code'), 'error')
+        notify(
+          d?.code === 'rate_limited'
+            ? t('error_rate_limited')
+            : d?.code === 'expired'
+              ? t('error_expired')
+              : d?.code === 'phone_already_used'
+                ? t('error_phone_already_used')
+                : t('error_invalid_code'),
+          'error',
+        )
         setBusy(false)
         return
       }

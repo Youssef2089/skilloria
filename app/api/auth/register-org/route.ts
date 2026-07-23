@@ -3,6 +3,8 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { logAudit } from '@/lib/audit'
 import { logSession } from '@/lib/session-log'
 import { verifyPhoneOtpToken } from '@/lib/phone-otp-token'
+import { normalizeE164 } from '@/lib/phone'
+import { signUpWithConfirmation, atomicCleanup, isUniqueViolation } from '@/lib/auth-signup'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -130,8 +132,12 @@ function validate(body: RegisterOrgBody): { ok: true; input: ValidatedInput } | 
   if (vat_number && vat_number.length > 30) {
     return { ok: false, error: 'invalid_vat_number' }
   }
-  const phone = asString(body.phone)
-  if (!phone || !/^\+[1-9]\d{6,14}$/.test(phone)) {
+  // Normalisation E.164 STRICTE (lib/phone) : la forme canonique est celle sur
+  // laquelle le jeton HMAC a été signé (verify-phone-otp), celle stockée sur
+  // users.phone, et celle indexée par l'unique partiel. Sans ça, un format
+  // divergent ferait échouer le match du jeton OU troerait l'unicité.
+  const phone = normalizeE164(body.phone)
+  if (!phone) {
     return { ok: false, error: 'invalid_phone' }
   }
   const phone_otp_token = asString(body.phone_otp_token)
@@ -178,29 +184,8 @@ function getSupabaseAdmin(): SupabaseClient {
     auth: { persistSession: false, autoRefreshToken: false },
   })
 }
-
-/**
- * Client Supabase ANON côté serveur — utilisé uniquement pour `auth.signUp`.
- *
- * Pourquoi : `admin.createUser` et `admin.generateLink` n'envoient PAS
- * d'email (par design GoTrue, admin endpoints silencieux). Pour déclencher
- * l'envoi SMTP du mail de confirmation comme le fait Expert/CDI côté client,
- * on doit passer par `auth.signUp` — qui ne marche que sur un client anon.
- *
- * `persistSession: false` car on est côté serveur stateless (pas de session
- * locale à conserver — le cookie sera posé par Supabase quand l'user
- * cliquera sur le lien de confirmation).
- */
-function getSupabaseAnon(): SupabaseClient {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !anonKey) {
-    throw new Error('missing_env')
-  }
-  return createClient(url, anonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
-}
+// Le client ANON serveur (auth.signUp) vit désormais dans lib/auth-signup.ts
+// (signUpWithConfirmation) — partagé avec register-expert.
 
 export async function POST(request: NextRequest): Promise<Response> {
   let body: RegisterOrgBody
@@ -240,6 +225,19 @@ export async function POST(request: NextRequest): Promise<Response> {
     supabaseAdmin = getSupabaseAdmin()
   } catch {
     return json({ error: 'Server misconfigured', code: 'missing_env' }, 500)
+  }
+
+  // ── Pré-check UNICITÉ TÉLÉPHONE (D2 : 1 numéro vérifié = 1 compte) ────────
+  //  Refus PROPRE avant toute écriture. L'interception du 23505 plus bas reste
+  //  le filet en cas de course. `input.phone` est déjà canonicalisé E.164.
+  const { data: phoneOwner } = await supabaseAdmin
+    .from('users')
+    .select('id')
+    .eq('phone', input.phone)
+    .eq('phone_verified', true)
+    .maybeSingle()
+  if (phoneOwner) {
+    return json({ error: 'Phone already used', code: 'phone_already_used' }, 409)
   }
 
   // ── Pré-checks BDD ───────────────────────────────────────────────────────
@@ -303,43 +301,30 @@ export async function POST(request: NextRequest): Promise<Response> {
   //    Il n'accepte que 'entreprise'/'cabinet' (mots français) — on mappe
   //    org_type ('client'|'cabinet'|'esn') -> role ('entreprise'|'cabinet').
   //
-  // Alignement pixel-perfect Expert/CDI (B3.3.fix) : on utilise
-  // `auth.signUp` via un client ANON côté serveur. `signUp` est le SEUL
-  // endpoint Supabase qui déclenche l'envoi automatique du mail de
-  // confirmation (SMTP projet) — `admin.createUser` et `admin.generateLink`
-  // sont silencieux par design GoTrue.
-  let supabaseAnon: SupabaseClient
-  try {
-    supabaseAnon = getSupabaseAnon()
-  } catch {
-    return json({ error: 'Server misconfigured', code: 'missing_env' }, 500)
-  }
-  const { data: created, error: createErr } = await supabaseAnon.auth.signUp({
+  // Création auth.users via helper partagé (P1 : signUp anon serveur = seul
+  // chemin qui déclenche le SMTP de confirmation). Cf. lib/auth-signup.ts.
+  const signup = await signUpWithConfirmation({
     email: input.email,
     password: input.password,
-    options: {
-      // Si fourni et valide : Supabase posera ce redirect_to dans le lien
-      // de confirmation. Sinon (null) : Supabase utilisera Site URL par défaut.
-      ...(input.email_redirect_to ? { emailRedirectTo: input.email_redirect_to } : {}),
-      data: {
-        firstname: input.first_name,
-        lastname: input.last_name,
-        role: metadataRoleFromOrgType(input.org_type),
-        domain_slug: input.domain_slug,
-      },
+    emailRedirectTo: input.email_redirect_to,
+    metadata: {
+      firstname: input.first_name,
+      lastname: input.last_name,
+      role: metadataRoleFromOrgType(input.org_type),
+      domain_slug: input.domain_slug,
     },
   })
-  if (createErr || !created?.user) {
-    console.error('[register-org] signUp failed', createErr?.message)
-    return json(
-      {
-        error: createErr?.message ?? 'Could not create user',
-        code: 'create_user_failed',
-      },
-      500,
-    )
+  if (!signup.ok) {
+    console.error('[register-org] signUp failed', signup.message)
+    if (signup.code === 'missing_env') {
+      return json({ error: 'Server misconfigured', code: 'missing_env' }, 500)
+    }
+    if (signup.code === 'email_taken') {
+      return json({ error: 'Email already used', code: 'email_taken' }, 409)
+    }
+    return json({ error: signup.message, code: 'create_user_failed' }, 500)
   }
-  const user_id = created.user.id
+  const user_id = signup.userId
 
   // ── À partir d'ici, tout fail doit déclencher un CLEANUP ATOMIQUE ───────
   // 1. Le trigger `handle_new_user` a déjà créé `public.users` (et le cas
@@ -356,17 +341,21 @@ export async function POST(request: NextRequest): Promise<Response> {
   // ────────────────────────────────────────────────────────────────────────
   let organization_id: string | null = null
   try {
-    // ── 1.b Flag phone_verified=true sur public.users (B3.2) ──────────────
-    // Le trigger `handle_new_user` a créé public.users sans téléphone ;
-    // on injecte le numéro vérifié OTP + le flag. Non bloquant si erreur,
-    // mais loggé — le user pourra re-vérifier via le flow privé en V2.
+    // ── 1.b Flag phone_verified=true sur public.users ─────────────────────
+    // Le trigger `handle_new_user` a créé public.users sans téléphone ; on
+    // injecte le numéro vérifié OTP (canonique E.164) + le flag. BLOQUANT :
+    // le téléphone vérifié est la barrière anti-multicompte, un échec silencieux
+    // ruinerait le but. Un 23505 sur l'index unique partiel = course perdue avec
+    // un autre inscrit → refus propre 'phone_already_used'.
     const { error: phoneUpdErr } = await supabaseAdmin
       .from('users')
       .update({ phone: input.phone, phone_verified: true })
       .eq('id', user_id)
     if (phoneUpdErr) {
-      console.error('[register-org] users.phone update failed', phoneUpdErr.message)
-      // Non bloquant : on continue le flow.
+      if (isUniqueViolation(phoneUpdErr)) {
+        throw new RegisterOrgError('phone_already_used', 'Phone already used', 409, phoneUpdErr)
+      }
+      throw new RegisterOrgError('phone_update_failed', 'Could not set verified phone', 500, phoneUpdErr)
     }
 
     // ── 2. Création organizations ─────────────────────────────────────────
@@ -463,61 +452,26 @@ export async function POST(request: NextRequest): Promise<Response> {
       200,
     )
   } catch (err) {
-    // ── CLEANUP ATOMIQUE À 3 ÉTAPES ─────────────────────────────────────
-    // Ordre : org -> public.users -> auth.users. Les FK ON DELETE CASCADE
-    // posées en B1 (organization_members, organization_domains,
-    // verification_attempts -> organizations ; session_logs -> users)
-    // assurent que les enfants partent avec le parent à chaque étape.
+    // ── CLEANUP ATOMIQUE (helper partagé, P3) ───────────────────────────
+    // Ordre : org -> public.users -> auth.users. `organization_id` (hissé hors
+    // du try) est passé en extraDelete parent-first : sa CASCADE B1 emporte
+    // organization_members + organization_domains + verification_attempts.
     const errMsg = err instanceof Error ? err.message : String(err)
     console.error(`[register-org] rollback déclenché: ${errMsg}`)
 
-    // Étape 1 : supprimer l'organization si elle a été créée. CASCADE
-    // emporte organization_members + organization_domains +
-    // verification_attempts. Sans ça, des SAS fantômes restent en BDD.
-    if (organization_id) {
-      try {
-        const { error: orgDelErr } = await supabaseAdmin
-          .from('organizations')
-          .delete()
-          .eq('id', organization_id)
-        if (orgDelErr) {
-          console.error('[register-org] cleanup organizations failed', orgDelErr.message)
-        }
-      } catch (cleanupOrgErr) {
-        const m = cleanupOrgErr instanceof Error ? cleanupOrgErr.message : String(cleanupOrgErr)
-        console.error('[register-org] cleanup organizations threw', m)
-      }
-    }
+    await atomicCleanup(supabaseAdmin, {
+      userId: user_id,
+      extraDeletes: organization_id
+        ? [
+            {
+              label: 'organizations',
+              run: async () => await supabaseAdmin.from('organizations').delete().eq('id', organization_id as string),
+            },
+          ]
+        : [],
+    })
 
-    // Étape 2 : supprimer public.users (créé par trigger handle_new_user).
-    // organization_members.user_id ON DELETE CASCADE → les liaisons partent
-    // avec. session_logs.user_id ON DELETE CASCADE idem. Les FK SET NULL
-    // (invited_by, verified_by) n'empêchent jamais la suppression.
-    try {
-      const { error: pubDelErr } = await supabaseAdmin
-        .from('users')
-        .delete()
-        .eq('id', user_id)
-      if (pubDelErr) {
-        console.error('[register-org] cleanup public.users failed', pubDelErr.message)
-      }
-    } catch (cleanupPublicErr) {
-      const m = cleanupPublicErr instanceof Error ? cleanupPublicErr.message : String(cleanupPublicErr)
-      console.error('[register-org] cleanup public.users threw', m)
-    }
-
-    // Étape 3 : supprimer auth.users (cleanup Supabase Auth)
-    try {
-      const { error: authDelErr } = await supabaseAdmin.auth.admin.deleteUser(user_id)
-      if (authDelErr) {
-        console.error('[register-org] cleanup auth.users failed', authDelErr.message)
-      }
-    } catch (cleanupAuthErr) {
-      const m = cleanupAuthErr instanceof Error ? cleanupAuthErr.message : String(cleanupAuthErr)
-      console.error('[register-org] cleanup auth.users threw', m)
-    }
-
-    // Étape 4 : retourner l'erreur originale au client
+    // Retourner l'erreur originale au client
     if (err instanceof RegisterOrgError) {
       return json({ error: err.userMessage, code: err.code }, err.statusCode)
     }

@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
-import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import PhoneOtpField, { type PhoneOtpLabels } from '@/components/PhoneOtpField'
 
 type RoleKey = 'expert' | 'cdi'
 
@@ -32,6 +32,24 @@ export default function InscriptionRolePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [cgu, setCgu] = useState(false)
+
+  // Téléphone + OTP obligatoire (D1) — le token HMAC prouve la vérification.
+  const [phone, setPhone] = useState('+33')
+  const [otpToken, setOtpToken] = useState<string | null>(null)
+  const phoneVerified = otpToken !== null
+
+  // Libellés OTP tirés du namespace signup_form (copiés d'inscription_org).
+  const otpLabels: PhoneOtpLabels = {
+    phone_label: t('fields.phone_label'),
+    phone_placeholder: t('fields.phone_placeholder'),
+    send_sms_button: t('otp.send_sms_button'),
+    resend_sms_label: (seconds: number) => t('otp.resend_sms_label', { seconds }),
+    code_label: t('otp.code_label'),
+    code_invalid: t('otp.code_invalid'),
+    phone_verified: t('otp.phone_verified'),
+    rate_limited: t('errors.rate_limited'),
+    vonage_error: t('errors.vonage_error'),
+  }
 
   // Redirection des URLs invalides (ex: /inscription/cabinet, /inscription/entreprise)
   // déplacée dans useEffect pour ne pas appeler router.push() pendant le render
@@ -93,37 +111,55 @@ export default function InscriptionRolePage() {
       setError(t('errors.password_too_short'))
       return
     }
+    // OTP obligatoire (D1) : sans token vérifié, on ne crée pas le compte.
+    if (!phoneVerified || !otpToken) {
+      setError(t('errors.phone_not_verified'))
+      return
+    }
 
     setLoading(true)
     setError('')
 
-    const { error: authError } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: {
-        // Renvoie l'user sur /auth/callback après confirm email pour
-        // qu'il atterrisse directement sur son dashboard (B3.3.fix2)
-        // au lieu de la home publique avec un token en hash URL.
-        emailRedirectTo: `${window.location.origin}/${locale}/auth/callback`,
-        data: {
+    try {
+      // URL absolue vers /[locale]/auth/callback (anti-désorientation post-confirm).
+      const emailRedirectTo = `${window.location.origin}/${locale}/auth/callback`
+      const res = await fetch('/api/auth/public/register-expert', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
           firstname: form.firstname || '',
           lastname: form.lastname || '',
-          company: form.company || '',
+          email: form.email.trim().toLowerCase(),
+          password: form.password,
           specialty: form.specialty || '',
-          role: role,
+          role, // 'expert' | 'cdi'
           domain_slug: domain.subdomain,
-        }
+          phone,
+          phone_otp_token: otpToken,
+          email_redirect_to: emailRedirectTo,
+        }),
+      })
+      const json = (await res.json().catch(() => ({}))) as { code?: string; error?: string }
+      if (!res.ok) {
+        const c = json.code
+        if (c === 'phone_already_used') setError(t('errors.phone_already_used'))
+        else if (c === 'email_taken') setError(t('errors.email_taken'))
+        else if (c === 'phone_otp_required') {
+          // Le jeton HMAC (TTL 15 min) a expiré pendant le remplissage :
+          // on réinitialise la vérif et on invite l'utilisateur à recommencer.
+          setOtpToken(null)
+          setError(t('errors.otp_expired'))
+        } else if (c === 'invalid_phone') setError(t('errors.invalid_phone'))
+        else if (c === 'invalid_password') setError(t('errors.password_too_short'))
+        else setError(t('errors.generic'))
+        return
       }
-    })
-
-    if (authError) {
-      setError(authError.message)
+      router.push('/inscription/confirmation')
+    } catch {
+      setError(t('errors.generic'))
+    } finally {
       setLoading(false)
-      return
     }
-
-    setLoading(false)
-    router.push('/inscription/confirmation')
   }
 
   return (
@@ -190,6 +226,20 @@ export default function InscriptionRolePage() {
               />
             </div>
           ))}
+
+          {/* Téléphone + OTP obligatoire (D1) — même bloc que l'org. */}
+          <PhoneOtpField
+            phone={phone}
+            onPhoneChange={(v) => {
+              setPhone(v)
+              // Éditer le numéro invalide la vérification précédente.
+              if (otpToken) setOtpToken(null)
+            }}
+            onVerified={(token) => setOtpToken(token)}
+            verified={phoneVerified}
+            primaryColor={domain.primaryColor}
+            labels={otpLabels}
+          />
         </div>
 
         {/* CGU */}
@@ -219,13 +269,13 @@ export default function InscriptionRolePage() {
         {/* Bouton */}
         <button
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={loading || !phoneVerified}
           style={{
             width: '100%', padding: 13,
-            background: loading ? '#7dd3fc' : domain.primaryColor,
+            background: loading || !phoneVerified ? '#94a3b8' : domain.primaryColor,
             color: '#fff', border: 'none',
             borderRadius: 12, fontSize: 15,
-            fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
+            fontWeight: 700, cursor: loading || !phoneVerified ? 'not-allowed' : 'pointer',
           }}
         >
           {loading ? t('submitting') : t('submit')}
