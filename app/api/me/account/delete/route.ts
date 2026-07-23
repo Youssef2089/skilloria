@@ -2,14 +2,15 @@ import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { requireReauth } from '@/lib/reauth-token'
 import { logAudit } from '@/lib/audit'
+import { clearSessionToken, serializeClearedSessionCookie } from '@/lib/session-token'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-function json(data: unknown, status = 200): Response {
+function json(data: unknown, status = 200, headers?: Record<string, string>): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...(headers ?? {}) },
   })
 }
 
@@ -25,7 +26,16 @@ const GRACE_DAYS = 90
  *      profiles.visible = false (lu par lib/matching/shared.ts — on ne
  *      touche PAS la logique de matching). Snapshot dans pre_deletion_visible
  *      pour restaurer fidèlement à la réactivation.
- *   La connexion reste possible pour réactiver tant que la grâce court.
+ *   3. RÉVOCATION DE SESSION (C1) : la promesse « désactivé immédiatement »
+ *      exigeait de couper l'accès, pas seulement les mutations. On :
+ *        - révoque les sessions Supabase (admin.signOut scope 'global') →
+ *          plus de refresh possible ; le JWT résiduel meurt à son expiration ;
+ *        - vide users.last_session_token ;
+ *        - efface le cookie httpOnly ss_token (Set-Cookie Max-Age=0).
+ *      L'utilisateur est donc déconnecté : pour réactiver pendant la grâce,
+ *      il devra SE RECONNECTER (la connexion d'un compte en grâce mène à
+ *      /reactivation, cf. connexion + secure-fetch). La grâce ne bannit PAS
+ *      le compte Supabase (≠ purge) → le re-login reste possible 90 jours.
  *   La purge effective (anonymisation) est faite plus tard par le cron.
  * Borné à auth.uid().
  */
@@ -110,5 +120,31 @@ export async function POST(request: NextRequest): Promise<Response> {
     detail: { deletion_scheduled_at: scheduledAt, grace_days: GRACE_DAYS },
   })
 
-  return json({ ok: true, deletion_scheduled_at: scheduledAt }, 200)
+  // 3. RÉVOCATION DE SESSION (C1). Best-effort, non bloquant : la suppression
+  //    est déjà programmée en base, un échec de révocation ne doit pas la
+  //    faire échouer (l'utilisateur serait dans un état incohérent).
+  const authHeader = request.headers.get('authorization') ?? request.headers.get('Authorization')
+  const accessToken = authHeader?.toLowerCase().startsWith('bearer ')
+    ? authHeader.slice(7).trim()
+    : null
+  if (accessToken) {
+    try {
+      // scope 'global' : révoque TOUTES les sessions Supabase de l'user
+      // (refresh tokens invalidés). Le JWT d'accès déjà émis reste valide
+      // jusqu'à son expiration (stateless) — le client est signOut côté UI
+      // pour couper l'accès en lecture immédiatement.
+      await auth.supabaseAdmin.auth.admin.signOut(accessToken, 'global')
+    } catch (err) {
+      console.error('[account/delete] supabase admin signOut failed', err instanceof Error ? err.message : String(err))
+    }
+  }
+  // Vide users.last_session_token (session unique 11F).
+  await clearSessionToken({ supabaseAdmin: auth.supabaseAdmin, userId: auth.user.id })
+
+  // Efface le cookie httpOnly ss_token dans la réponse.
+  return json(
+    { ok: true, deletion_scheduled_at: scheduledAt },
+    200,
+    { 'Set-Cookie': serializeClearedSessionCookie(request) },
+  )
 }

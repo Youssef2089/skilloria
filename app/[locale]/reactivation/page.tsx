@@ -8,7 +8,7 @@ import { useSecureFetch, useSecureLogout } from '@/lib/secure-fetch'
 
 const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
 
-type View = 'loading' | 'grace' | 'purged' | 'active'
+type View = 'loading' | 'grace' | 'purged' | 'active' | 'need_login'
 
 /**
  * Écran de réactivation (mission S3, section 7).
@@ -34,10 +34,15 @@ export default function ReactivationPage() {
     const load = async () => {
       // user_type (pour rediriger vers le bon dashboard après réactivation)
       const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        const { data: u } = await supabase.from('users').select('user_type').eq('id', session.user.id).maybeSingle()
-        if (!cancelled) setUserType((u as { user_type?: string } | null)?.user_type ?? null)
+      // C1 : après suppression la session est révoquée. Sans session, on ne
+      // peut PAS lire le statut (requireAuth exige un Bearer) → on invite à se
+      // reconnecter pour réactiver (le compte n'est PAS banni pendant la grâce).
+      if (!session?.user) {
+        if (!cancelled) setView('need_login')
+        return
       }
+      const { data: u } = await supabase.from('users').select('user_type').eq('id', session.user.id).maybeSingle()
+      if (!cancelled) setUserType((u as { user_type?: string } | null)?.user_type ?? null)
       try {
         const res = await secureFetch('/api/me/account/status', { method: 'GET' })
         if (cancelled) return
@@ -104,6 +109,23 @@ export default function ReactivationPage() {
           style={{ padding: '12px 20px', borderRadius: 12, border: '1.5px solid #e2e8f0', background: '#fff', color: '#0f172a', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: fontJakarta }}
         >
           {t('logout')}
+        </button>
+      </>,
+    )
+  }
+
+  if (view === 'need_login') {
+    return shell(
+      <>
+        <div style={{ fontSize: 36, marginBottom: 8 }} aria-hidden>🔒</div>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#0f172a' }}>{t('need_login_title')}</h1>
+        <p style={{ margin: '10px 0 24px', fontSize: 14.5, color: '#64748b', lineHeight: 1.6 }}>{t('need_login_body')}</p>
+        <button
+          type="button"
+          onClick={() => router.replace('/connexion')}
+          style={{ width: '100%', padding: '13px 20px', borderRadius: 12, border: 'none', background: 'var(--sk-accent, #0ea5e9)', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: fontJakarta }}
+        >
+          {t('need_login_button')}
         </button>
       </>,
     )

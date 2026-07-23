@@ -1,4 +1,5 @@
 import SessionHeartbeat from '@/components/SessionHeartbeat'
+import DeletionGate from '@/components/DeletionGate'
 import { assertDashboardRoleGuard } from '@/lib/dashboard-routing-guard'
 
 /**
@@ -17,6 +18,12 @@ import { assertDashboardRoleGuard } from '@/lib/dashboard-routing-guard'
  * SessionHeartbeat reste monté (client) : couvre la session unique 11F
  * pour TOUTES les pages dashboard (RLS direct, pas d'appel /api/* sinon).
  *
+ * DeletionGate (C3) monté ICI = couverture UNIVERSELLE des dashboards
+ * (freelance, cdi, entreprise — routes legacy incluses) : si le compte est en
+ * grâce, redirection vers /reactivation dès un changement de route. Avant C3 il
+ * n'était que dans freelance/cdi. /reactivation vit HORS de /dashboard → aucune
+ * boucle. (Admin a son propre montage dans app/[locale]/admin/layout.tsx.)
+ *
  * Pas de wrapper visuel — chaque sub-layout (freelance/cdi/entreprise) gère
  * son propre DashboardShell.
  */
@@ -29,6 +36,7 @@ export default async function DashboardLayout({
   return (
     <>
       <SessionHeartbeat />
+      <DeletionGate />
       {children}
     </>
   )

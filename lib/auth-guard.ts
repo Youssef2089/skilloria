@@ -89,9 +89,11 @@ const VALID_VERIFICATION_STATUS = [
 
 // ── Cycle de vie suppression S3 (ADDITIF) ───────────────────────────────────
 // Paths joignables PENDANT la grâce (suppression programmée, non purgé) :
-// réactivation, statut, logout. Tout le reste → 403 account_deletion_scheduled
-// (le client redirige vers /reactivation). NB : check-session N'EST PAS
-// allowlistée volontairement → le heartbeat 403 et déclenche la redirection.
+// réactivation, statut, logout. Tout le reste → 403 account_deletion_scheduled.
+// check-session N'EST PAS allowlistée volontairement → le heartbeat reçoit le
+// 403 ; c'est lib/secure-fetch (onDeletionScheduled, C2) qui redirige alors
+// vers /reactivation. (Avant C2, secure-fetch n'interceptait QUE
+// session_superseded : le 403 suppression était avalé et ne redirigeait pas.)
 const DELETION_GRACE_ALLOWLIST = new Set<string>([
   '/api/me/account/reactivate',
   '/api/me/account/status',

@@ -2431,7 +2431,8 @@
       "button": "Supprimer mon compte",
       "success": "Suppression programmée. Ton compte sera supprimé le {date}.",
       "already_scheduled": "Une suppression est déjà programmée.",
-      "error_failed": "Impossible de programmer la suppression."
+      "error_failed": "Impossible de programmer la suppression.",
+      "reconnect_notice": "Vous serez déconnecté immédiatement. Pour réactiver votre compte pendant les 90 jours, il vous suffira de vous reconnecter."
     },
     "reauth": {
       "title": "Confirme ton identité",
@@ -2452,7 +2453,10 @@
       "reactivate_success": "Compte réactivé. Bon retour !",
       "logout": "Se déconnecter",
       "purged_title": "Compte supprimé",
-      "purged_body": "Ce compte a été supprimé définitivement et ne peut plus être utilisé."
+      "purged_body": "Ce compte a été supprimé définitivement et ne peut plus être utilisé.",
+      "need_login_title": "Compte désactivé",
+      "need_login_body": "Votre compte est désactivé et sera supprimé définitivement à l’échéance. Reconnectez-vous pour le réactiver pendant la période de grâce.",
+      "need_login_button": "Se reconnecter"
     }
   }
 }

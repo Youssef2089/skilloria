@@ -413,7 +413,12 @@ function DeletionSection({ secureFetch, requestReauth, notify }: {
         setBusy(false)
         return
       }
-      // Suppression programmée → redirige vers l'écran de réactivation.
+      // C1 : la route delete a révoqué la session serveur (signOut global +
+      // last_session_token vidé + cookie effacé). On coupe AUSSI la session
+      // locale supabase-js — sans jeton local, plus aucune lecture directe
+      // Supabase possible immédiatement. L'écran /reactivation détecte
+      // l'absence de session et invite à se reconnecter pour réactiver.
+      await supabase.auth.signOut()
       router.replace('/reactivation')
     } catch { notify(t('error_failed'), 'error'); setBusy(false) }
   }
@@ -423,7 +428,10 @@ function DeletionSection({ secureFetch, requestReauth, notify }: {
       <SectionHeader title={t('title')} description={t('description')} />
       <div style={{ maxWidth: 560, padding: 18, border: '1.5px solid #fecaca', background: '#fef2f2', borderRadius: 14 }}>
         <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#b91c1c' }}>{t('warning_title')}</h3>
-        <p style={{ margin: '8px 0 16px', fontSize: 13.5, color: '#7f1d1d', lineHeight: 1.55 }}>{t('warning_body')}</p>
+        <p style={{ margin: '8px 0 10px', fontSize: 13.5, color: '#7f1d1d', lineHeight: 1.55 }}>{t('warning_body')}</p>
+        {/* C1 : la session est révoquée à la suppression → l'utilisateur est
+            déconnecté et devra se reconnecter pour réactiver pendant la grâce. */}
+        <p style={{ margin: '0 0 16px', fontSize: 12.5, color: '#7f1d1d', lineHeight: 1.5, fontStyle: 'italic' }}>{t('reconnect_notice')}</p>
         <Label>{t('confirm_instruction', { word })}</Label>
         <Input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t('confirm_placeholder', { word })} style={{ maxWidth: 280, marginBottom: 14 }} />
         <div>

@@ -2431,7 +2431,8 @@
       "button": "Mein Konto löschen",
       "success": "Löschung geplant. Dein Konto wird am {date} gelöscht.",
       "already_scheduled": "Eine Löschung ist bereits geplant.",
-      "error_failed": "Löschung konnte nicht geplant werden."
+      "error_failed": "Löschung konnte nicht geplant werden.",
+      "reconnect_notice": "Sie werden sofort abgemeldet. Um Ihr Konto innerhalb der 90 Tage zu reaktivieren, melden Sie sich einfach erneut an."
     },
     "reauth": {
       "title": "Bestätige deine Identität",
@@ -2452,7 +2453,10 @@
       "reactivate_success": "Konto reaktiviert. Willkommen zurück!",
       "logout": "Abmelden",
       "purged_title": "Konto gelöscht",
-      "purged_body": "Dieses Konto wurde endgültig gelöscht und kann nicht mehr verwendet werden."
+      "purged_body": "Dieses Konto wurde endgültig gelöscht und kann nicht mehr verwendet werden.",
+      "need_login_title": "Konto deaktiviert",
+      "need_login_body": "Ihr Konto ist deaktiviert und wird zum Stichtag endgültig gelöscht. Melden Sie sich erneut an, um es während der Kulanzfrist zu reaktivieren.",
+      "need_login_button": "Erneut anmelden"
     }
   }
 }

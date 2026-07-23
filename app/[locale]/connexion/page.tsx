@@ -46,13 +46,22 @@ export default function ConnexionPage() {
     // Récupérer le profil utilisateur (user_type = expert_freelance/expert_cdi/client/cabinet)
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('user_type, domain_id, domains(slug)')
+      .select('user_type, domain_id, domains(slug), deletion_scheduled_at, anonymized_at')
       .eq('id', data.user.id)
       .single()
 
     if (userError || !userData) {
       setError(t('errors.profile_not_found'))
       setLoading(false)
+      return
+    }
+
+    // Compte en GRÂCE (suppression programmée, non purgé) : la session vient
+    // d'être ré-établie → on établit le cookie puis on mène droit à
+    // /reactivation (évite un flash de dashboard avant le redirect du gate).
+    if (userData.deletion_scheduled_at && !userData.anonymized_at) {
+      await initSession({ accessToken: data.session.access_token, subdomain: domain.subdomain })
+      router.push('/reactivation')
       return
     }
 

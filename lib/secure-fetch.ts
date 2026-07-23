@@ -32,6 +32,12 @@ export type SecureFetchContext = {
   subdomain: string
   /** Callback appelé après 403 session_superseded — pour redirect UI. */
   onSuperseded: () => void
+  /**
+   * Callback appelé après 403 account_deletion_scheduled (C2) — redirige vers
+   * /reactivation. Permet au SessionHeartbeat (ping 60s) de capter réellement
+   * l'état « suppression programmée » sur les écrans sans appel /api/* protégé.
+   */
+  onDeletionScheduled: () => void
 }
 
 /**
@@ -66,6 +72,8 @@ export async function secureFetch(
         | null
       if (payload?.code === 'session_superseded') {
         ctx.onSuperseded()
+      } else if (payload?.code === 'account_deletion_scheduled') {
+        ctx.onDeletionScheduled()
       }
     } catch {
       /* swallow — le caller verra le 403 brut */
@@ -91,6 +99,11 @@ export function useSecureFetch(): (input: RequestInfo | URL, init?: RequestInit)
         onSuperseded: () => {
           void supabase.auth.signOut()
           router.replace('/connexion?reason=session_superseded')
+        },
+        // C2 : suppression programmée détectée sur une route protégée (dont le
+        // heartbeat check-session) → on redirige vers l'écran de réactivation.
+        onDeletionScheduled: () => {
+          router.replace('/reactivation')
         },
       }),
     [domain.subdomain, router],

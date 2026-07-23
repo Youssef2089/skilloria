@@ -2,7 +2,6 @@
 
 import { usePathname } from '@/i18n/navigation'
 import DashboardShell from '@/components/shell/DashboardShell'
-import DeletionGate from '@/components/DeletionGate'
 
 /**
  * Sub-layout freelance — Lot refonte UX.
@@ -27,6 +26,8 @@ const LEGACY_SHELL_ROUTES = [
 export default function FreelanceLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isLegacy = LEGACY_SHELL_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'))
-  if (isLegacy) return <><DeletionGate />{children}</>
-  return <DashboardShell side="freelance"><DeletionGate />{children}</DashboardShell>
+  // DeletionGate est monté au layout parent commun (/dashboard) → couverture
+  // universelle, y compris ces routes legacy. Plus besoin ici (C3).
+  if (isLegacy) return <>{children}</>
+  return <DashboardShell side="freelance">{children}</DashboardShell>
 }

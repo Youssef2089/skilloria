@@ -2431,7 +2431,8 @@
       "button": "Delete my account",
       "success": "Deletion scheduled. Your account will be deleted on {date}.",
       "already_scheduled": "A deletion is already scheduled.",
-      "error_failed": "Could not schedule deletion."
+      "error_failed": "Could not schedule deletion.",
+      "reconnect_notice": "You will be signed out immediately. To reactivate your account during the 90-day window, simply sign back in."
     },
     "reauth": {
       "title": "Confirm your identity",
@@ -2452,7 +2453,10 @@
       "reactivate_success": "Account reactivated. Welcome back!",
       "logout": "Log out",
       "purged_title": "Account deleted",
-      "purged_body": "This account has been permanently deleted and can no longer be used."
+      "purged_body": "This account has been permanently deleted and can no longer be used.",
+      "need_login_title": "Account deactivated",
+      "need_login_body": "Your account is deactivated and will be permanently deleted at the deadline. Sign back in to reactivate it during the grace period.",
+      "need_login_button": "Sign back in"
     }
   }
 }

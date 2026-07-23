@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import SessionHeartbeat from '@/components/SessionHeartbeat'
+import DeletionGate from '@/components/DeletionGate'
 import GlobalBackButton from '@/components/shell/GlobalBackButton'
 import { ADMIN_NAV_SECTIONS } from '@/lib/nav-config'
 
@@ -160,6 +161,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <>
       <SessionHeartbeat />
+      {/* C3 : couverture de l'admin (hors /dashboard) par le gate de suppression. */}
+      <DeletionGate />
       <div
       className="admin-layout"
       style={{
