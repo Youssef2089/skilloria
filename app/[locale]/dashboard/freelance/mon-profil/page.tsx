@@ -767,40 +767,62 @@ export default function MonProfilPage() {
     )
   }
 
-  // ── Verrou CV (Lot CV obligatoire) ──
-  // Aucun CV déposé → écran de blocage PLEINE LARGEUR (primitive EmptyState
-  // partagée), avec lien vers la page d'upload. Pas de profil vide affiché.
-  if (needsCv) {
-    return (
+  // ── Coquille inline (header + sidebar + main) réutilisable pour les écrans
+  // de blocage (CV manquant) : c'est une page de MENU, elle doit garder la
+  // sidebar et le header — jamais un plein-écran orphelin qui piège l'user.
+  const renderWithShell = (main: React.ReactNode) => (
+    <div className={jakarta.variable} style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: fontJakarta }}>
+      {sharedStyles}
       <div
-        className={jakarta.variable}
-        style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: fontJakarta, padding: 24 }}
+        className="ds-header-pad"
+        style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '0 28px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
       >
-        {sharedStyles}
-        <EmptyState
-          icon="📄"
-          title={t('cv_required.title')}
-          body={t('cv_required.body')}
-          action={
-            <Link
-              href="/dashboard/freelance/profil"
-              style={{
-                display: 'inline-block',
-                background: domain.primaryColor,
-                color: '#fff',
-                borderRadius: 10,
-                padding: '10px 18px',
-                fontSize: 14,
-                fontWeight: 600,
-                textDecoration: 'none',
-                fontFamily: fontJakarta,
-              }}
-            >
-              {t('cv_required.cta')}
-            </Link>
-          }
-        />
+        <div />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <LanguageSwitcher />
+        </div>
       </div>
+      <div className="ds-layout" style={{ display: 'flex', minHeight: 'calc(100vh - 58px)' }}>
+        <DashboardSidebar
+          side="freelance"
+          userName={fullName}
+          userPhotoUrl={ownAvatarUrl}
+          userIsVerified={isVerified}
+          userSubtitle={tShell('user_subtitle.freelance', { ecosystem: domain.ecosystemName })}
+        />
+        <div className="ds-main" style={{ flex: 1, padding: 24, width: '100%' }}>{main}</div>
+      </div>
+    </div>
+  )
+
+  // ── Verrou CV (Lot CV obligatoire) ──
+  // Aucun CV déposé → écran de blocage RENDU DANS LA COQUILLE (sidebar + header
+  // présents, navigation possible), avec lien vers la page d'upload.
+  if (needsCv) {
+    return renderWithShell(
+      <EmptyState
+        icon="📄"
+        title={t('cv_required.title')}
+        body={t('cv_required.body')}
+        action={
+          <Link
+            href="/dashboard/freelance/profil"
+            style={{
+              display: 'inline-block',
+              background: domain.primaryColor,
+              color: '#fff',
+              borderRadius: 10,
+              padding: '10px 18px',
+              fontSize: 14,
+              fontWeight: 600,
+              textDecoration: 'none',
+              fontFamily: fontJakarta,
+            }}
+          >
+            {t('cv_required.cta')}
+          </Link>
+        }
+      />,
     )
   }
 

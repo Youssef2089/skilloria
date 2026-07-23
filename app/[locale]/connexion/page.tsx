@@ -43,14 +43,41 @@ export default function ConnexionPage() {
       return
     }
 
-    // Récupérer le profil utilisateur (user_type = expert_freelance/expert_cdi/client/cabinet)
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('user_type, domain_id, domains(slug), deletion_scheduled_at, anonymized_at')
-      .eq('id', data.user.id)
-      .single()
+    // Routage via la fonction SECURITY DEFINER my_account_routing() (C4) plutôt
+    // qu'un SELECT direct sur `users` : ce dernier est désormais verrouillé par
+    // RLS pour un compte EN GRÂCE (verrou de lecture des données perso). La
+    // fonction n'expose QUE le routage (user_type, domain_slug + 2 dates de
+    // suppression) et reste accessible en grâce → la réactivation fonctionne.
+    let userData: {
+      user_type?: string | null
+      domain_slug?: string | null
+      deletion_scheduled_at?: string | null
+      anonymized_at?: string | null
+    } | null = null
+    const { data: routingRows, error: rpcErr } = await supabase.rpc('my_account_routing')
+    if (!rpcErr) {
+      userData = (Array.isArray(routingRows) ? routingRows[0] : routingRows) ?? null
+    } else {
+      // Filet indépendant de l'ORDRE de déploiement : si la fonction n'existe
+      // pas encore (migration C4 pas appliquée), on retombe sur le SELECT direct
+      // — non verrouillé tant que la migration n'est pas là. Une fois la
+      // migration poussée, la RPC répond et ce fallback n'est plus atteint.
+      const { data: row } = await supabase
+        .from('users')
+        .select('user_type, domains(slug), deletion_scheduled_at, anonymized_at')
+        .eq('id', data.user.id)
+        .maybeSingle()
+      if (row) {
+        userData = {
+          user_type: row.user_type as string | null,
+          domain_slug: (row.domains as { slug?: string } | null)?.slug ?? null,
+          deletion_scheduled_at: (row as { deletion_scheduled_at?: string | null }).deletion_scheduled_at ?? null,
+          anonymized_at: (row as { anonymized_at?: string | null }).anonymized_at ?? null,
+        }
+      }
+    }
 
-    if (userError || !userData) {
+    if (!userData) {
       setError(t('errors.profile_not_found'))
       setLoading(false)
       return
@@ -69,7 +96,7 @@ export default function ConnexionPage() {
 
     // Vérification du domaine — uniquement pour les experts (freelance + CDI)
     if (userType === 'expert_freelance' || userType === 'expert_cdi') {
-      const userDomainSlug = (userData.domains as any)?.slug
+      const userDomainSlug = userData.domain_slug as string | null
       if (userDomainSlug && userDomainSlug !== domain.subdomain) {
         await supabase.auth.signOut()
         setError(t('errors.wrong_domain', { subdomain: userDomainSlug }))

@@ -428,10 +428,15 @@ function DeletionSection({ secureFetch, requestReauth, notify }: {
       <SectionHeader title={t('title')} description={t('description')} />
       <div style={{ maxWidth: 560, padding: 18, border: '1.5px solid #fecaca', background: '#fef2f2', borderRadius: 14 }}>
         <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#b91c1c' }}>{t('warning_title')}</h3>
-        <p style={{ margin: '8px 0 10px', fontSize: 13.5, color: '#7f1d1d', lineHeight: 1.55 }}>{t('warning_body')}</p>
-        {/* C1 : la session est révoquée à la suppression → l'utilisateur est
-            déconnecté et devra se reconnecter pour réactiver pendant la grâce. */}
-        <p style={{ margin: '0 0 16px', fontSize: 12.5, color: '#7f1d1d', lineHeight: 1.5, fontStyle: 'italic' }}>{t('reconnect_notice')}</p>
+        {/* C5 : deux temporalités SÉPARÉES — immédiat vs 90 jours. */}
+        <div style={{ margin: '10px 0 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <p style={{ margin: 0, fontSize: 13.5, color: '#7f1d1d', lineHeight: 1.55 }}>
+            <strong>{t('warning_immediate_label')} </strong>{t('warning_immediate')}
+          </p>
+          <p style={{ margin: 0, fontSize: 13.5, color: '#7f1d1d', lineHeight: 1.55 }}>
+            <strong>{t('warning_delayed_label')} </strong>{t('warning_delayed')}
+          </p>
+        </div>
         <Label>{t('confirm_instruction', { word })}</Label>
         <Input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t('confirm_placeholder', { word })} style={{ maxWidth: 280, marginBottom: 14 }} />
         <div>

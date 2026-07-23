@@ -41,7 +41,12 @@ export default function ReactivationPage() {
         if (!cancelled) setView('need_login')
         return
       }
-      const { data: u } = await supabase.from('users').select('user_type').eq('id', session.user.id).maybeSingle()
+      // C4 : le SELECT direct sur `users` est verrouillé par RLS en état de
+      // grâce → on lit le type via la fonction SECURITY DEFINER my_account_routing()
+      // (accessible en grâce, n'expose que le routage). Sert au redirect
+      // post-réactivation vers le bon dashboard.
+      const { data: routingRows } = await supabase.rpc('my_account_routing')
+      const u = Array.isArray(routingRows) ? routingRows[0] : routingRows
       if (!cancelled) setUserType((u as { user_type?: string } | null)?.user_type ?? null)
       try {
         const res = await secureFetch('/api/me/account/status', { method: 'GET' })

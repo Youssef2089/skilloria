@@ -45,29 +45,40 @@ type ProfileData = {
    *  flag "matching en cours" pendant la fenêtre post-approbation (Lot
    *  UX refetch auto). */
   verified_at?: string | null
+  // Champs de CONTENU pour le calcul de complétion (C2). Optionnels : les
+  // fallbacks partiels ({tjm_min,tjm_max,photo_url}) restent valides.
+  cv_parsing_status?: string | null
+  title?: string | null
+  summary?: string | null
+  branch_id?: string | null
+  speciality_id?: string | null
+  skills?: string[] | null
+  languages?: string[] | null
 }
 
 /**
- * Calcul léger de complétude profil (Lot nettoyage).
+ * Complétude RÉELLE du profil (C2). Recalibrée : ne compte QUE les blocs de
+ * CONTENU nécessaires à la publication — jamais les champs d'identité remplis
+ * à l'inscription (nom, email, téléphone) qui gonflaient le score à 67 % sur un
+ * profil vide. Parité STRICTE avec la home CDI (mêmes 8 critères, compensation
+ * spécifique au format). Un compte neuf → 0 % ; 100 % quand tout est prêt.
  *
- *  Règle :
- *   - Si verification_status='approved' (côté caller) → 100% (le profil est
- *     déjà passé par la gate IA, garanti complet).
- *   - Sinon : signal pragmatique basé sur les champs critiques côté user/profile.
- *
- *  À l'avenir on pourra le brancher sur `profiles.profile_score` (déjà existant
- *  en BDD). Pour V1 c'est un placeholder lisible plutôt que 0% systématique.
+ *  Règle caller : si verification_status='approved' → 100 % (déjà passé la gate).
  */
-function computeCompletionPct(user: any, profile: ProfileData | null): number {
-  if (!user || !profile) return 0
-  const fields: Array<unknown> = [
-    user.first_name, user.last_name, user.email, user.phone,
-    profile.tjm_min ?? profile.tjm_max,
-    profile.photo_url,
+function computeCompletionPct(profile: ProfileData | null): number {
+  if (!profile) return 0
+  const fields = [
+    profile.cv_parsing_status === 'done',                 // CV parsé
+    !!profile.title?.trim(),                              // Titre
+    !!profile.summary?.trim(),                            // Résumé
+    !!profile.branch_id,                                  // Branche
+    !!profile.speciality_id,                              // Spécialité
+    (profile.skills?.length ?? 0) >= 3,                   // Compétences
+    (profile.languages?.length ?? 0) >= 1,                // Langues
+    profile.tjm_min != null && profile.tjm_max != null,   // Compensation (TJM)
   ]
-  const filled = fields.filter(v => v != null && String(v).trim() !== '').length
-  const pct = Math.round((filled / fields.length) * 100)
-  return Math.max(0, Math.min(100, pct))
+  const filled = fields.filter(Boolean).length
+  return Math.round((filled / fields.length) * 100)
 }
 
 export default function DashboardFreelance() {
@@ -235,7 +246,7 @@ export default function DashboardFreelance() {
     }
     const unread = (conversations ?? []).reduce((acc, c) => acc + (c.unread_count ?? 0), 0)
     const isApproved = (profile?.verification_status ?? null) === 'approved'
-    const completion = isApproved ? 100 : computeCompletionPct(user, profile)
+    const completion = isApproved ? 100 : computeCompletionPct(profile)
     return {
       missions_count: missions?.length ?? null,
       candidatures_count: candidaturesAll?.length ?? null,
@@ -263,7 +274,7 @@ export default function DashboardFreelance() {
           .single(),
         supabase
           .from('profiles')
-          .select('tjm_min, tjm_max, photo_url, visible, verification_status, verification_data, availability_status, verified_at, open_to_cdi')
+          .select('tjm_min, tjm_max, photo_url, visible, verification_status, verification_data, availability_status, verified_at, open_to_cdi, cv_parsing_status, title, summary, branch_id, speciality_id, skills, languages')
           .eq('user_id', session.user.id)
           .maybeSingle(),
       ])

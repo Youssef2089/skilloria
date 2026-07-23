@@ -61,19 +61,20 @@ const STATUS_BADGE_COLORS: Record<CdiStatus, string> = {
   open_to_work: '#10b981',
 }
 
-// Champs essentiels pour le calcul de complétion (9 critères)
+// Complétude RÉELLE (C2) — 8 blocs de CONTENU, PARITÉ STRICTE avec la home
+// freelance (mêmes critères, compensation propre au format CDI = salaire).
+// Aucun champ d'identité → un compte neuf est à 0 %.
 function calculateCompletion(profile: CdiProfile | null): number {
   if (!profile) return 0
   const fields = [
-    !!profile.title?.trim(),
-    !!profile.summary?.trim(),
-    !!profile.branch_id,
-    !!profile.speciality_id,
-    (profile.skills?.length ?? 0) >= 3,
-    !!profile.cdi_status,
-    profile.cdi_salary_min != null,
-    profile.cdi_salary_max != null,
-    !!profile.cdi_notice_period,
+    profile.cv_parsing_status === 'done',                            // CV parsé
+    !!profile.title?.trim(),                                         // Titre
+    !!profile.summary?.trim(),                                       // Résumé
+    !!profile.branch_id,                                            // Branche
+    !!profile.speciality_id,                                        // Spécialité
+    (profile.skills?.length ?? 0) >= 3,                             // Compétences
+    (profile.languages?.length ?? 0) >= 1,                          // Langues
+    profile.cdi_salary_min != null && profile.cdi_salary_max != null, // Compensation (salaire)
   ]
   const filled = fields.filter(Boolean).length
   return Math.round((filled / fields.length) * 100)
