@@ -852,8 +852,12 @@
         "invalid_siren": "Ungültige SIREN (9 Ziffern erwartet).",
         "invalid_linkedin": "Ungültige LinkedIn-URL.",
         "invalid_website": "Ungültige Website-URL.",
-        "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen."
-      }
+        "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
+        "invalid_vat": "Ungültige USt-IdNr. (z. B. FR + 11 Zeichen)."
+      },
+      "vat_label": "Innergemeinschaftliche USt-IdNr.",
+      "vat_placeholder": "FR12345678901",
+      "vat_hint": "EU-Format: Ländercode + Nummer. Steht auf Ihren Rechnungen und offiziellen Dokumenten."
     }
   },
   "signup_confirmation": {

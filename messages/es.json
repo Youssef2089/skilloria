@@ -852,8 +852,12 @@
         "invalid_siren": "SIREN no válido (se esperan 9 dígitos).",
         "invalid_linkedin": "URL de LinkedIn no válida.",
         "invalid_website": "URL de sitio web no válida.",
-        "generic": "Ha ocurrido un error. Inténtalo de nuevo."
-      }
+        "generic": "Ha ocurrido un error. Inténtalo de nuevo.",
+        "invalid_vat": "Número de IVA no válido (p. ej. FR + 11 caracteres)."
+      },
+      "vat_label": "Número de IVA intracomunitario",
+      "vat_placeholder": "FR12345678901",
+      "vat_hint": "Formato UE: código de país + número. Figura en sus facturas y documentos oficiales."
     }
   },
   "signup_confirmation": {

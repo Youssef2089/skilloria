@@ -37,6 +37,7 @@ type Body = {
   job_title?: unknown
   linkedin_url?: unknown
   siren?: unknown
+  vat_number?: unknown
   org_sub_type?: unknown
   website?: unknown
 }
@@ -52,8 +53,19 @@ type ValidatedInput = {
   job_title: string
   linkedin_url: string | null
   siren: string
+  vat_number: string
   org_sub_type: OrgSubType
   website_url: string | null
+}
+
+/** Normalise un n° TVA : majuscules + suppression de tous les espaces. */
+function normalizeVat(s: string): string {
+  return s.toUpperCase().replace(/\s/g, '')
+}
+
+/** Format TVA intracommunautaire UE : 2 lettres pays + 2 à 13 alphanumériques. */
+function isValidVat(s: string): boolean {
+  return /^[A-Z]{2}[A-Z0-9]{2,13}$/.test(s)
 }
 
 function asString(v: unknown): string | null {
@@ -102,6 +114,16 @@ function validate(body: Body): { ok: true; input: ValidatedInput } | { ok: false
   if (!/^\d{9}$/.test(siren)) {
     return { ok: false, error: 'invalid_siren' }
   }
+  // N° TVA intracommunautaire — OBLIGATOIRE. La garantie est ici (serveur) ;
+  // la colonne reste nullable en base (organisations historiques sans TVA).
+  const vat_raw = asString(body.vat_number)
+  if (!vat_raw) {
+    return { ok: false, error: 'invalid_vat' }
+  }
+  const vat_number = normalizeVat(vat_raw)
+  if (!isValidVat(vat_number)) {
+    return { ok: false, error: 'invalid_vat' }
+  }
   const org_sub_type = asString(body.org_sub_type)
   if (!org_sub_type || !(ORG_SUB_TYPES as readonly string[]).includes(org_sub_type)) {
     return { ok: false, error: 'invalid_org_sub_type' }
@@ -121,6 +143,7 @@ function validate(body: Body): { ok: true; input: ValidatedInput } | { ok: false
       job_title,
       linkedin_url,
       siren,
+      vat_number,
       org_sub_type: org_sub_type as OrgSubType,
       website_url,
     },
@@ -202,6 +225,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     .from('organizations')
     .update({
       siren: input.siren,
+      vat_number: input.vat_number,
       org_type: input.org_sub_type, // 'client' | 'esn' | 'cabinet'
       website_url: input.website_url,
       setup_completed_at: nowIso,
@@ -228,7 +252,9 @@ export async function POST(request: NextRequest): Promise<Response> {
         // null pour satisfaire VerificationInput (string non-nullable).
         email_domain: (orgRow.email_domain as string | null) ?? '',
         siren: input.siren,
-        vat_number: (orgRow.vat_number as string | null) ?? null,
+        // Valeur FRAÎCHE saisie au setup (orgRow date d'avant l'UPDATE ci-dessus,
+        // donc encore null). Transmise à l'IA comme signal de vérification.
+        vat_number: input.vat_number,
         // 11G : champs additionnels comparés par l'IA contre les données INSEE.
         website_url: input.website_url,
         org_type: input.org_sub_type,
@@ -276,6 +302,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     detail: {
       org_sub_type: input.org_sub_type,
       siren_provided: true,
+      vat_provided: true,
       verification_status: verdict?.verification_status ?? 'unknown',
     },
   })

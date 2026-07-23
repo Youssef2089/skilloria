@@ -852,8 +852,12 @@
         "invalid_siren": "SIREN invalide (9 chiffres attendus).",
         "invalid_linkedin": "URL LinkedIn invalide.",
         "invalid_website": "URL de site web invalide.",
-        "generic": "Une erreur est survenue. Veuillez réessayer."
-      }
+        "generic": "Une erreur est survenue. Veuillez réessayer.",
+        "invalid_vat": "Numéro de TVA invalide (ex. FR + 11 caractères)."
+      },
+      "vat_label": "Numéro de TVA intracommunautaire",
+      "vat_placeholder": "FR12345678901",
+      "vat_hint": "Format UE : code pays + numéro. Figure sur vos factures et documents officiels."
     }
   },
   "signup_confirmation": {

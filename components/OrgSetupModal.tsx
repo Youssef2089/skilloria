@@ -30,6 +30,7 @@ type FormState = {
   job_title: string
   linkedin_url: string
   siren: string
+  vat_number: string
   org_sub_type: OrgSubType | ''
   website: string
 }
@@ -39,8 +40,19 @@ const initialForm: FormState = {
   job_title: '',
   linkedin_url: '',
   siren: '',
+  vat_number: '',
   org_sub_type: '',
   website: '',
+}
+
+/** Normalise un n° TVA : majuscules + suppression de tous les espaces. */
+function normalizeVat(s: string): string {
+  return s.toUpperCase().replace(/\s/g, '')
+}
+
+/** Format TVA intracommunautaire UE : 2 lettres pays + 2 à 13 alphanumériques. */
+function isValidVat(s: string): boolean {
+  return /^[A-Z]{2}[A-Z0-9]{2,13}$/.test(normalizeVat(s))
 }
 
 function isValidUrl(s: string): boolean {
@@ -96,6 +108,7 @@ export default function OrgSetupModal({
   }, [success, onComplete])
 
   const sirenValid = /^\d{9}$/.test(form.siren.replace(/\s/g, ''))
+  const vatValid = isValidVat(form.vat_number)
   const jobTitleValid = form.job_title.trim().length >= 2
   const linkedinValid = !form.linkedin_url || isValidLinkedinUrl(form.linkedin_url)
   const websiteValid = !form.website || isValidUrl(form.website)
@@ -106,10 +119,11 @@ export default function OrgSetupModal({
       !form.civility ||
       !jobTitleValid ||
       !sirenValid ||
+      !vatValid ||
       !form.org_sub_type ||
       !linkedinValid ||
       !websiteValid,
-    [submitting, form.civility, form.org_sub_type, jobTitleValid, sirenValid, linkedinValid, websiteValid],
+    [submitting, form.civility, form.org_sub_type, jobTitleValid, sirenValid, vatValid, linkedinValid, websiteValid],
   )
 
   const setField = <K extends keyof FormState>(k: K, v: FormState[K]) => {
@@ -132,6 +146,10 @@ export default function OrgSetupModal({
       setError(t('errors.invalid_siren'))
       return
     }
+    if (!vatValid) {
+      setError(t('errors.invalid_vat'))
+      return
+    }
     if (!linkedinValid) {
       setError(t('errors.invalid_linkedin'))
       return
@@ -151,6 +169,7 @@ export default function OrgSetupModal({
           job_title: form.job_title.trim(),
           linkedin_url: form.linkedin_url.trim() || null,
           siren: form.siren.replace(/\s/g, ''),
+          vat_number: normalizeVat(form.vat_number),
           org_sub_type: form.org_sub_type,
           website: form.website.trim() || null,
         }),
@@ -159,6 +178,7 @@ export default function OrgSetupModal({
       if (!res.ok) {
         const c = payload.code
         if (c === 'invalid_siren' || c === 'siren_taken') setError(t('errors.invalid_siren'))
+        else if (c === 'invalid_vat') setError(t('errors.invalid_vat'))
         else if (c === 'invalid_linkedin') setError(t('errors.invalid_linkedin'))
         else if (c === 'invalid_website') setError(t('errors.invalid_website'))
         else setError(t('errors.generic'))
@@ -357,6 +377,25 @@ export default function OrgSetupModal({
           />
           <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 14 }}>
             {t('siren_hint')}
+          </div>
+
+          {/* N° TVA intracommunautaire — placé juste après le SIREN (les deux
+              identifiants légaux ensemble). Obligatoire, même pattern. */}
+          <label htmlFor="vat_number" style={labelStyle}>
+            {t('vat_label')} *
+          </label>
+          <input
+            id="vat_number"
+            type="text"
+            value={form.vat_number}
+            onChange={(e) => setField('vat_number', normalizeVat(e.target.value).slice(0, 15))}
+            placeholder={t('vat_placeholder')}
+            style={{ ...inputBase, marginBottom: 4 }}
+            required
+            maxLength={15}
+          />
+          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 14 }}>
+            {t('vat_hint')}
           </div>
 
           <label style={labelStyle}>{t('org_sub_type_label')} *</label>
