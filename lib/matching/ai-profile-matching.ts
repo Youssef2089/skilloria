@@ -91,24 +91,32 @@ function describeCandidate(c: ProfileCandidate, isMission: boolean): string {
   if (c.skills.length > 0) lines.push(`- Compétences : ${sanitizeList(c.skills, 30, 80)}`)
   if (c.languages.length > 0) lines.push(`- Langues : ${sanitizeList(c.languages, 10, 30)}`)
   if (c.certifications_count > 0) lines.push(`- Certifications : ${c.certifications_count}`)
-  if (isMission) {
-    if (c.tjm_min != null || c.tjm_max != null) {
-      lines.push(`- TJM : ${formatBudget(c.tjm_min, c.tjm_max, 'mission')}`)
-    }
-    if (c.work_modes.length > 0) lines.push(`- Modes de travail : ${sanitizeList(c.work_modes, 5, 20)}`)
-    if (c.mobility) lines.push(`- Mobilité : ${sanitize(c.mobility, 100)}`)
-    if (c.availability_status) lines.push(`- Disponibilité : ${sanitize(c.availability_status, 50)}`)
-    if (c.availability_date) lines.push(`- Date dispo : ${c.availability_date}`)
-  } else {
-    if (c.cdi_status) lines.push(`- Statut CDI : ${sanitize(c.cdi_status, 50)}`)
-    if (c.cdi_notice_period) lines.push(`- Préavis : ${sanitize(c.cdi_notice_period, 50)}`)
-    if (c.cdi_salary_min != null || c.cdi_salary_max != null) {
-      lines.push(`- Salaire souhaité : ${formatBudget(c.cdi_salary_min, c.cdi_salary_max, 'offre')}`)
-    }
-    if (c.cdi_sectors && c.cdi_sectors.length > 0) lines.push(`- Secteurs visés : ${sanitizeList(c.cdi_sectors, 8, 40)}`)
-    if (c.cdi_geo_mobility) lines.push(`- Mobilité géographique : ${sanitize(c.cdi_geo_mobility, 100)}`)
-    if (c.cdi_contract_types && c.cdi_contract_types.length > 0) {
-      lines.push(`- Types de contrat : ${sanitizeList(c.cdi_contract_types, 5, 30)}`)
+  // CAUSE RACINE (Règle 3) : le bloc de préférences ci-dessous suit le format de
+  // L'ANNONCE. Pour un candidat CROISÉ, ce sont les préférences d'un format qu'il
+  // n'a jamais renseigné (ses champs de CE format sont vides ; ses vraies
+  // préférences appartiennent à l'autre format et seraient non pertinentes ici).
+  // On les RETIRE totalement — l'IA ne doit ni les comparer ni pénaliser leur
+  // absence (la disponibilité reste garantie en amont par la garde de pool).
+  if (!c.cross_type_opt_in) {
+    if (isMission) {
+      if (c.tjm_min != null || c.tjm_max != null) {
+        lines.push(`- TJM : ${formatBudget(c.tjm_min, c.tjm_max, 'mission')}`)
+      }
+      if (c.work_modes.length > 0) lines.push(`- Modes de travail : ${sanitizeList(c.work_modes, 5, 20)}`)
+      if (c.mobility) lines.push(`- Mobilité : ${sanitize(c.mobility, 100)}`)
+      if (c.availability_status) lines.push(`- Disponibilité : ${sanitize(c.availability_status, 50)}`)
+      if (c.availability_date) lines.push(`- Date dispo : ${c.availability_date}`)
+    } else {
+      if (c.cdi_status) lines.push(`- Statut CDI : ${sanitize(c.cdi_status, 50)}`)
+      if (c.cdi_notice_period) lines.push(`- Préavis : ${sanitize(c.cdi_notice_period, 50)}`)
+      if (c.cdi_salary_min != null || c.cdi_salary_max != null) {
+        lines.push(`- Salaire souhaité : ${formatBudget(c.cdi_salary_min, c.cdi_salary_max, 'offre')}`)
+      }
+      if (c.cdi_sectors && c.cdi_sectors.length > 0) lines.push(`- Secteurs visés : ${sanitizeList(c.cdi_sectors, 8, 40)}`)
+      if (c.cdi_geo_mobility) lines.push(`- Mobilité géographique : ${sanitize(c.cdi_geo_mobility, 100)}`)
+      if (c.cdi_contract_types && c.cdi_contract_types.length > 0) {
+        lines.push(`- Types de contrat : ${sanitizeList(c.cdi_contract_types, 5, 30)}`)
+      }
     }
   }
   if (c.city || c.country) {
@@ -190,29 +198,47 @@ CONTRAINTES STRICTES :
 - Évite la redondance — si plusieurs candidats partagent un fit similaire,
   différencie-les en pointant ce qui les distingue.
 
-⚠ RÈGLE 1 — TYPE DE CONTRAT OPT-IN (cross_type_opt_in)
-Certains candidats sont marqués "cross_type_opt_in : true" : cet expert a
-EXPLICITEMENT demandé à recevoir ce type de contrat. N'utilise JAMAIS le type
-de contrat (mission freelance vs offre CDI) comme critère négatif de score pour
-ces candidats, et ne mentionne aucune inadéquation liée à leur statut, ni dans
-"reason" (destiné au candidat), ni dans "pitch_org" (destiné à l'organisation).
-Formulations INTERDITES (et toutes leurs variantes, dans les deux sens) :
-« profil orienté missions », « moins aligné avec une démarche CDI »,
-« meilleur fit sur missions courtes », « profil salarié », « peu adapté à une
-mission courte », « manque d'expérience du freelancing », « préfère la
-stabilité ». Un candidat croisé s'est porté volontaire : il ne doit jamais être
-déprécié pour son statut auprès de l'organisation.
+⚠ RÈGLE ABSOLUE 1 — CANDIDATS MARQUÉS cross_type_opt_in
+Le type de contrat a DÉJÀ ÉTÉ VALIDÉ par le candidat lui-même : il a
+explicitement demandé à recevoir ce type. Traite ce candidat EXACTEMENT comme
+si l'annonce était de son type natif.
+- Le score doit être IDENTIQUE à celui que tu donnerais si le candidat était du
+  type natif de l'annonce. Le type de contrat vaut ZÉRO point, ni positif ni
+  négatif.
+- N'écris AUCUNE réserve, nuance, restriction ou « bien que » portant sur : le
+  type de contrat, le statut du candidat, ses habitudes de travail, sa
+  « démarche », son « contexte habituel », sa préférence supposée pour un mode
+  d'engagement.
+- Si tu ressens le besoin d'écrire une nuance sur le contrat ou le statut, NE
+  L'ÉCRIS PAS : elle est hors-sujet par construction.
+Ces règles valent dans "reason" ET dans "pitch_org" (destiné à l'organisation).
 
-⚠ RÈGLE 2 — FORMATS DE RÉMUNÉRATION NON COMPARABLES
-Ne convertis JAMAIS un salaire annuel en TJM, ni un TJM en équivalent annuel,
-pour comparer des rémunérations : ces formats ne sont pas comparables (un CDI
-inclut congés, protection sociale et stabilité ; un TJM freelance couvre
-l'intercontrat, les charges et l'absence de congés). Si les formats diffèrent,
-n'en tire AUCUNE pénalité de score et n'en fais pas un point d'attention ; tu
-peux mentionner la rémunération en INFORMATION factuelle.
+⚠ RÈGLE ABSOLUE 2 — RÉMUNÉRATION HORS-SUJET POUR LES CANDIDATS cross_type_opt_in
+Pour les candidats marqués cross_type_opt_in, FAIS TOTALEMENT ABSTRACTION de la
+rémunération : ni le salaire de l'annonce, ni son TJM, ni la compensation
+souhaitée par le candidat n'entrent dans le score, sous aucune forme.
+Raison : le candidat n'a jamais renseigné de prétention pour ce format de
+contrat (un freelance n'a pas de salaire souhaité, un salarié n'a pas de TJM).
+Toute comparaison serait inventée.
+- N'évoque PAS la rémunération dans "reason" ni dans "pitch_org" pour ces
+  candidats.
+- Ne convertis JAMAIS un salaire annuel en TJM ni l'inverse.
+- N'écris aucune réserve du type « budget inférieur à », « rémunération à
+  confirmer », « écart de compensation ».
+(Pour les candidats NON marqués cross_type_opt_in, la rémunération reste un
+critère normal, comme aujourd'hui.)
 
-CE QUE TU DOIS SCORER : adéquation des compétences, séniorité, secteur/
-industrie, technologies, localisation/remote, disponibilité.
+⚠ RÈGLE 3 — PRÉFÉRENCES DE FORMAT ABSENTES POUR LES CANDIDATS cross_type_opt_in
+Pour les candidats marqués cross_type_opt_in, tu ne disposes PAS de leurs
+préférences de format (compensation souhaitée, mode d'engagement lié au
+format) : elles ont été volontairement retirées car elles concernent l'autre
+format. Ne formule aucune hypothèse à leur sujet et ne pénalise pas leur
+absence.
+
+CE QUE TU DOIS SCORER (pour TOUS les candidats) : adéquation des compétences,
+séniorité, secteur/industrie, technologies, localisation géographique,
+disponibilité. Un candidat dont les compétences collent à ~90 % doit obtenir
+8–9, que le contrat soit natif ou croisé.
 
 ═══════════════════════════════════════════════════════════════
 FORMAT DE RÉPONSE (JSON STRICT, sans markdown, sans texte autour)

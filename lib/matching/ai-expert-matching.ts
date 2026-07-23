@@ -73,7 +73,16 @@ function formatBudget(min: number | null | undefined, max: number | null | undef
   return `jusqu'à ${max as number} ${unit}`
 }
 
-function describeExpert(c: ProfileCandidate, isFreelance: boolean): string {
+/**
+ * `poolHasCross` : le pool contient au moins une opportunité de format croisé
+ * (cross_type_opt_in). Ici l'expert est le PIVOT décrit UNE fois pour un pool
+ * potentiellement mixte (missions natives + offres croisées) : on ne peut donc
+ * pas retirer ses préférences de format globalement (les opportunités natives
+ * en ont besoin). On les ISOLE : critères universels toujours transmis ; comp.
+ * + mode d'engagement regroupés sous un libellé qui les cantonne au format
+ * natif — à ignorer pour les opportunités croisées (renforcé par la Règle 3).
+ */
+function describeExpert(c: ProfileCandidate, isFreelance: boolean, poolHasCross: boolean): string {
   const lines: string[] = []
   if (c.title) lines.push(`- Titre déclaré : ${sanitize(c.title, 200)}`)
   if (c.summary) lines.push(`- Résumé : ${sanitize(c.summary, 800)}`)
@@ -85,26 +94,43 @@ function describeExpert(c: ProfileCandidate, isFreelance: boolean): string {
   if (c.skills.length > 0) lines.push(`- Compétences : ${sanitizeList(c.skills, 30, 80)}`)
   if (c.languages.length > 0) lines.push(`- Langues : ${sanitizeList(c.languages, 10, 30)}`)
   if (c.certifications_count > 0) lines.push(`- Certifications : ${c.certifications_count}`)
+
+  // Préférences universelles (valent pour TOUTE opportunité du pool) vs
+  // préférences liées au FORMAT natif (compensation + mode d'engagement).
+  const universal: string[] = []
+  const formatSpecific: string[] = []
   if (isFreelance) {
     if (c.tjm_min != null || c.tjm_max != null) {
-      lines.push(`- TJM souhaité : ${formatBudget(c.tjm_min, c.tjm_max, 'mission')}`)
+      formatSpecific.push(`- TJM souhaité : ${formatBudget(c.tjm_min, c.tjm_max, 'mission')}`)
     }
-    if (c.work_modes.length > 0) lines.push(`- Modes de travail acceptés : ${sanitizeList(c.work_modes, 5, 20)}`)
-    if (c.mobility) lines.push(`- Mobilité : ${sanitize(c.mobility, 100)}`)
-    if (c.availability_status) lines.push(`- Disponibilité : ${sanitize(c.availability_status, 50)}`)
-    if (c.availability_date) lines.push(`- Date dispo : ${c.availability_date}`)
+    if (c.work_modes.length > 0) formatSpecific.push(`- Modes de travail acceptés : ${sanitizeList(c.work_modes, 5, 20)}`)
+    if (c.mobility) universal.push(`- Mobilité : ${sanitize(c.mobility, 100)}`)
+    if (c.availability_status) universal.push(`- Disponibilité : ${sanitize(c.availability_status, 50)}`)
+    if (c.availability_date) universal.push(`- Date dispo : ${c.availability_date}`)
   } else {
-    if (c.cdi_status) lines.push(`- Statut CDI : ${sanitize(c.cdi_status, 50)}`)
-    if (c.cdi_notice_period) lines.push(`- Préavis : ${sanitize(c.cdi_notice_period, 50)}`)
     if (c.cdi_salary_min != null || c.cdi_salary_max != null) {
-      lines.push(`- Salaire souhaité : ${formatBudget(c.cdi_salary_min, c.cdi_salary_max, 'offre')}`)
+      formatSpecific.push(`- Salaire souhaité : ${formatBudget(c.cdi_salary_min, c.cdi_salary_max, 'offre')}`)
     }
-    if (c.cdi_sectors && c.cdi_sectors.length > 0) lines.push(`- Secteurs visés : ${sanitizeList(c.cdi_sectors, 8, 40)}`)
-    if (c.cdi_geo_mobility) lines.push(`- Mobilité géographique : ${sanitize(c.cdi_geo_mobility, 100)}`)
+    if (c.cdi_status) formatSpecific.push(`- Statut CDI : ${sanitize(c.cdi_status, 50)}`)
+    if (c.cdi_notice_period) formatSpecific.push(`- Préavis : ${sanitize(c.cdi_notice_period, 50)}`)
     if (c.cdi_contract_types && c.cdi_contract_types.length > 0) {
-      lines.push(`- Types de contrat : ${sanitizeList(c.cdi_contract_types, 5, 30)}`)
+      formatSpecific.push(`- Types de contrat : ${sanitizeList(c.cdi_contract_types, 5, 30)}`)
     }
+    if (c.cdi_sectors && c.cdi_sectors.length > 0) universal.push(`- Secteurs visés : ${sanitizeList(c.cdi_sectors, 8, 40)}`)
+    if (c.cdi_geo_mobility) universal.push(`- Mobilité géographique : ${sanitize(c.cdi_geo_mobility, 100)}`)
   }
+
+  lines.push(...universal)
+  if (formatSpecific.length > 0) {
+    // Pool mixte : on cantonne explicitement ces préférences au format natif.
+    if (poolHasCross) {
+      lines.push(
+        `- ⚠ Préférences liées au FORMAT NATIF de l'expert — s'appliquent UNIQUEMENT aux opportunités du type natif ; À IGNORER TOTALEMENT pour les opportunités marquées cross_type_opt_in :`,
+      )
+    }
+    lines.push(...formatSpecific)
+  }
+
   if (c.city || c.country) {
     lines.push(`- Localisation : ${sanitize(c.city, 80)}${c.city && c.country ? ', ' : ''}${sanitize(c.country, 80)}`)
   }
@@ -136,7 +162,9 @@ function describePublication(p: PublicationForMatching): string {
 function buildPrompt(expert: ProfileCandidate, publications: PublicationForMatching[], locale: string): string {
   const isFreelance = (expert.expert_type ?? '').toLowerCase().includes('freelance') ||
     publications.some((p) => p.type === 'mission')
-  const expertBlock = describeExpert(expert, isFreelance)
+  // Pool mixte ? → on cantonne les préférences de format de l'expert (cf. Règle 3).
+  const poolHasCross = publications.some((p) => p.cross_type_opt_in)
+  const expertBlock = describeExpert(expert, isFreelance, poolHasCross)
   const pubsBlock = publications.map((p, i) => `── Publication #${i + 1} ──\n${describePublication(p)}`).join('\n\n')
   const langName = languageName(locale)
 
@@ -186,30 +214,47 @@ CONTRAINTES STRICTES :
 - Aucun élément hors du pool fourni.
 - Le ton est PROFESSIONNEL et FACTUEL, en ${langName.toUpperCase()}.
 
-⚠ RÈGLE 1 — TYPE DE CONTRAT OPT-IN (cross_type_opt_in)
-Certaines opportunités sont marquées "cross_type_opt_in : true" : l'expert a
-EXPLICITEMENT demandé à recevoir ce type de contrat. N'utilise JAMAIS le type
-de contrat (mission freelance vs offre CDI) comme critère négatif de score pour
-ces opportunités, et ne mentionne aucune inadéquation liée au statut de
-l'expert, ni dans "reason" (destiné à l'expert), ni dans "pitch_org" (destiné à
-l'organisation).
-Formulations INTERDITES (et toutes leurs variantes, dans les deux sens) :
-« profil orienté missions », « moins aligné avec une démarche CDI »,
-« meilleur fit sur missions courtes », « profil salarié », « peu adapté à une
-mission courte », « manque d'expérience du freelancing », « préfère la
-stabilité ». Un expert croisé s'est porté volontaire : il ne doit jamais être
-déprécié pour son statut.
+⚠ RÈGLE ABSOLUE 1 — OPPORTUNITÉS MARQUÉES cross_type_opt_in
+Le type de contrat a DÉJÀ ÉTÉ VALIDÉ par l'expert lui-même : il a explicitement
+demandé à recevoir ce type. Traite cette opportunité EXACTEMENT comme si elle
+était du type natif de l'expert.
+- Le score doit être IDENTIQUE à celui que tu donnerais si le contrat était du
+  type habituel de l'expert. Le type de contrat vaut ZÉRO point, ni positif ni
+  négatif.
+- N'écris AUCUNE réserve, nuance, restriction ou « bien que » portant sur : le
+  type de contrat, le statut de l'expert, ses habitudes de travail, sa
+  « démarche », son « contexte habituel », sa préférence supposée pour un mode
+  d'engagement.
+- Si tu ressens le besoin d'écrire une nuance sur le contrat ou le statut, NE
+  L'ÉCRIS PAS : elle est hors-sujet par construction.
+Ces règles valent dans "reason" ET dans "pitch_org".
 
-⚠ RÈGLE 2 — FORMATS DE RÉMUNÉRATION NON COMPARABLES
-Ne convertis JAMAIS un salaire annuel en TJM, ni un TJM en équivalent annuel,
-pour comparer des rémunérations : ces formats ne sont pas comparables (un CDI
-inclut congés, protection sociale et stabilité ; un TJM freelance couvre
-l'intercontrat, les charges et l'absence de congés). Si les formats diffèrent,
-n'en tire AUCUNE pénalité de score et n'en fais pas un point d'attention ; tu
-peux mentionner la rémunération en INFORMATION factuelle.
+⚠ RÈGLE ABSOLUE 2 — RÉMUNÉRATION HORS-SUJET POUR LES OPPORTUNITÉS cross_type_opt_in
+Pour les opportunités marquées cross_type_opt_in, FAIS TOTALEMENT ABSTRACTION
+de la rémunération : ni le salaire proposé, ni le TJM proposé, ni la
+compensation souhaitée par l'expert n'entrent dans le score, sous aucune forme.
+Raison : l'expert n'a jamais renseigné de prétention pour ce format de contrat
+(un freelance n'a pas de salaire souhaité, un salarié n'a pas de TJM). Toute
+comparaison serait inventée.
+- N'évoque PAS la rémunération dans "reason" ni dans "pitch_org" pour ces
+  opportunités.
+- Ne convertis JAMAIS un salaire annuel en TJM ni l'inverse.
+- N'écris aucune réserve du type « budget inférieur à », « rémunération à
+  confirmer », « écart de compensation ».
+(Pour les opportunités NON marquées cross_type_opt_in, la rémunération reste un
+critère normal, comme aujourd'hui.)
 
-CE QUE TU DOIS SCORER : adéquation des compétences, séniorité, secteur/
-industrie, technologies, localisation/remote, disponibilité.
+⚠ RÈGLE 3 — PRÉFÉRENCES DE FORMAT ABSENTES POUR LES OPPORTUNITÉS cross_type_opt_in
+Les préférences de rémunération et de mode d'engagement de l'expert ci-dessus
+concernent son format NATIF. Pour une opportunité marquée cross_type_opt_in, tu
+ne disposes PAS des préférences de l'expert pour CE format : n'applique aucune
+des préférences de format ci-dessus, ne formule aucune hypothèse à leur sujet
+et ne pénalise pas leur absence.
+
+CE QUE TU DOIS SCORER (pour TOUTES les opportunités) : adéquation des
+compétences, séniorité, secteur/industrie, technologies, localisation
+géographique, disponibilité. Un expert dont les compétences collent à ~90 %
+doit obtenir 8–9, que le contrat soit natif ou croisé.
 
 ═══════════════════════════════════════════════════════════════
 FORMAT DE RÉPONSE (JSON STRICT, sans markdown, sans texte autour)
