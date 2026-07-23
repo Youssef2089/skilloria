@@ -45,15 +45,19 @@ export async function GET(request: NextRequest): Promise<Response> {
   const isAdmin = org.role_in_org === 'admin'
 
   // ── Membres (on exclut les 'removed' — retrait soft) ────────────────────────
+  // ⚠️ Embed DÉSAMBIGUÏSÉ : organization_members a DEUX FK vers users
+  // (user_id_fkey ET invited_by_fkey). Sans hint, PostgREST échoue (PGRST201,
+  // « more than one relationship found ») → 500. On force la relation via le
+  // nom de contrainte user_id_fkey.
   const { data: memberRows, error: memErr } = await admin
     .from('organization_members')
-    .select('id, user_id, role_in_org, status, joined_at, users(first_name, last_name, email)')
+    .select('id, user_id, role_in_org, status, joined_at, users!organization_members_user_id_fkey(first_name, last_name, email)')
     .eq('organization_id', org.id)
     .neq('status', 'removed')
     .order('joined_at', { ascending: true })
   if (memErr) {
     console.error('[me/members] members lookup failed', memErr.message)
-    return json({ error: 'Query failed', code: 'db_error' }, 500)
+    return json({ error: 'Query failed', code: 'db_error', detail: memErr.message }, 500)
   }
 
   const members = (memberRows ?? []).map((r) => {
@@ -83,7 +87,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       .order('created_at', { ascending: false })
     if (invErr) {
       console.error('[me/members] invitations lookup failed', invErr.message)
-      return json({ error: 'Query failed', code: 'db_error' }, 500)
+      return json({ error: 'Query failed', code: 'db_error', detail: invErr.message }, 500)
     }
     invitations = invRows ?? []
   }

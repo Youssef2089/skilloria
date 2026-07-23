@@ -1574,7 +1574,11 @@
       "resend": "Resend",
       "revoke": "Revoke",
       "invite_revoked": "Invitation revoked.",
-      "invite_resent": "Invitation resent."
+      "invite_resent": "Invitation resent.",
+      "error_no_org": "No organisation linked to your account.",
+      "error_session": "Your session has expired. Please sign in again.",
+      "error_ref": "Reference: {ref}",
+      "retry": "Retry"
     }
   },
   "publications": {

@@ -1574,7 +1574,11 @@
       "resend": "Reenviar",
       "revoke": "Revocar",
       "invite_revoked": "Invitación revocada.",
-      "invite_resent": "Invitación reenviada."
+      "invite_resent": "Invitación reenviada.",
+      "error_no_org": "Ninguna organización vinculada a su cuenta.",
+      "error_session": "Su sesión ha caducado. Vuelva a iniciar sesión.",
+      "error_ref": "Referencia: {ref}",
+      "retry": "Reintentar"
     }
   },
   "publications": {

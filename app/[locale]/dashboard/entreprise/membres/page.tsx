@@ -86,7 +86,11 @@ export default function MembresPage() {
     try { return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(iso)) } catch { return iso }
   }, [locale])
 
-  const [state, setState] = useState<{ kind: 'loading' } | { kind: 'error' } | { kind: 'ready'; data: Data }>({ kind: 'loading' })
+  const [state, setState] = useState<
+    | { kind: 'loading' }
+    | { kind: 'error'; status: number; code?: string; detail?: string }
+    | { kind: 'ready'; data: Data }
+  >({ kind: 'loading' })
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' } | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -106,11 +110,16 @@ export default function MembresPage() {
   const load = useCallback(async () => {
     try {
       const res = await secureFetch('/api/me/organisation/members')
-      if (!res.ok) { setState({ kind: 'error' }); return }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({} as { code?: string; detail?: string }))
+        console.error('[entreprise/membres] load failed', res.status, body?.code, body?.detail)
+        setState({ kind: 'error', status: res.status, code: body?.code, detail: body?.detail })
+        return
+      }
       setState({ kind: 'ready', data: (await res.json()) as Data })
     } catch (err) {
       console.error('[entreprise/membres] load failed', err)
-      setState({ kind: 'error' })
+      setState({ kind: 'error', status: 0, code: 'network_error' })
     }
   }, [secureFetch])
 
@@ -218,7 +227,27 @@ export default function MembresPage() {
   }
 
   if (state.kind === 'loading') return <div style={{ padding: 24, fontFamily: fontJakarta, color: '#64748b' }}>{t('loading')}</div>
-  if (state.kind === 'error') return <div style={{ padding: 24, fontFamily: fontJakarta, color: '#991B1B' }}>{t('error_load')}</div>
+  if (state.kind === 'error') {
+    // Message exploitable : on distingue les cas connus et on expose la
+    // référence technique (code + statut HTTP) pour le diagnostic.
+    const known = state.code === 'no_organization' ? t('error_no_org')
+      : state.code === 'session_superseded' ? t('error_session')
+        : t('error_load')
+    const ref = [state.code, state.status ? `HTTP ${state.status}` : null].filter(Boolean).join(' · ')
+    return (
+      <div style={{ padding: 24, fontFamily: fontJakarta, maxWidth: 560 }}>
+        <p style={{ margin: '0 0 8px', color: '#991B1B', fontWeight: 600 }}>{known}</p>
+        {ref && (
+          <p style={{ margin: '0 0 14px', fontSize: 12.5, color: '#94a3b8' }}>
+            {t('error_ref', { ref })}
+          </p>
+        )}
+        <button type="button" onClick={() => { setState({ kind: 'loading' }); void load() }} style={btnBase}>
+          {t('retry')}
+        </button>
+      </div>
+    )
+  }
 
   const { members, invitations, isAdmin, me } = state.data
 

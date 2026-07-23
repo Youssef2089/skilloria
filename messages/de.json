@@ -1574,7 +1574,11 @@
       "resend": "Erneut senden",
       "revoke": "Widerrufen",
       "invite_revoked": "Einladung widerrufen.",
-      "invite_resent": "Einladung erneut gesendet."
+      "invite_resent": "Einladung erneut gesendet.",
+      "error_no_org": "Ihrem Konto ist keine Organisation zugeordnet.",
+      "error_session": "Ihre Sitzung ist abgelaufen. Bitte erneut anmelden.",
+      "error_ref": "Referenz: {ref}",
+      "retry": "Erneut versuchen"
     }
   },
   "publications": {
