@@ -47,6 +47,7 @@ export default function InscriptionRolePage() {
     code_label: t('otp.code_label'),
     code_invalid: t('otp.code_invalid'),
     phone_verified: t('otp.phone_verified'),
+    invalid_phone: t('errors.invalid_phone'),
     rate_limited: t('errors.rate_limited'),
     vonage_error: t('errors.vonage_error'),
   }

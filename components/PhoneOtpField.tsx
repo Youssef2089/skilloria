@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { normalizeE164 } from '@/lib/phone'
 
 /**
  * PhoneOtpField — champ téléphone + vérification OTP Vonage, autonome.
@@ -31,6 +32,8 @@ export type PhoneOtpLabels = {
   code_label: string
   code_invalid: string
   phone_verified: string
+  /** Message « numéro invalide » — distinct de vonage_error (service indispo.). */
+  invalid_phone: string
   rate_limited: string
   vonage_error: string
 }
@@ -46,9 +49,16 @@ export type PhoneOtpFieldProps = {
   labels: PhoneOtpLabels
 }
 
-/** Format E.164 strict (validation UI ; le serveur canonicalise via lib/phone). */
+/**
+ * Validation UI ALIGNÉE sur le serveur : le bouton « Envoyer SMS » ne doit être
+ * actif que pour un numéro que le serveur (lib/phone.normalizeE164, même
+ * bibliothèque) acceptera. Sans cet alignement, un numéro structurellement
+ * E.164 mais non attribuable (ex. +3312345678) passait une regex laxiste →
+ * bouton actif → le serveur le rejetait (invalid_phone) → le message générique
+ * « Service SMS indisponible » s'affichait à tort. On refuse en amont.
+ */
 function isPhoneValid(phone: string): boolean {
-  return /^\+[1-9]\d{6,14}$/.test(phone)
+  return normalizeE164(phone) !== null
 }
 
 export default function PhoneOtpField(props: PhoneOtpFieldProps) {
@@ -97,7 +107,8 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
     setPhoneError(null)
     setOtpError(null)
     if (!phoneOk) {
-      setPhoneError(labels.vonage_error)
+      // Numéro invalide (≠ service SMS indisponible).
+      setPhoneError(labels.invalid_phone)
       return
     }
     const prev = previousRequestId
@@ -113,7 +124,12 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
       })
       const json = (await res.json().catch(() => ({}))) as { request_id?: string; code?: string }
       if (!res.ok || !json.request_id) {
-        setPhoneError(json.code === 'rate_limited' ? labels.rate_limited : labels.vonage_error)
+        // Message PRÉCIS selon le code serveur : un numéro rejeté par la
+        // validation stricte (invalid_phone / vonage_invalid_request) ne doit
+        // PAS s'afficher comme « Service SMS indisponible ».
+        if (json.code === 'rate_limited') setPhoneError(labels.rate_limited)
+        else if (json.code === 'invalid_phone' || json.code === 'vonage_invalid_request') setPhoneError(labels.invalid_phone)
+        else setPhoneError(labels.vonage_error)
         return
       }
       setOtpRequestId(json.request_id)
