@@ -148,6 +148,11 @@ export default function DashboardShell({
     else if (section === 'profil')       key = segs[3] === 'valider' ? 'profil_valider' : 'profil'
     else if (section === 'annonces')     key = 'annonces'
     else if (section === 'parametres')   key = 'settings'
+    // Section COMPTE entreprise (Lot A). 'membres' est déclaré ici bien que la
+    // page arrive au Lot B : le titre est prêt, l'entrée de sidebar est locked.
+    else if (section === 'organisation') key = 'organisation'
+    else if (section === 'membres')      key = 'membres'
+    else if (section === 'offre')        key = 'offre'
     resolvedTitle = tShell(`page_titles.${key}` as 'page_titles.dashboard')
   }
 
