@@ -437,7 +437,7 @@ function DeletionSection({ secureFetch, requestReauth, notify }: {
 }
 
 // ─── Vue principale ─────────────────────────────────────────────────────────
-export default function SettingsView({ side: _side }: { side: 'freelance' | 'cdi' }) {
+export default function SettingsView({ side: _side }: { side: 'freelance' | 'cdi' | 'entreprise' }) {
   const t = useTranslations('settings')
   const tn = useTranslations('settings.nav')
   const secureFetch = useSecureFetch()

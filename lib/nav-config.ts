@@ -65,8 +65,21 @@ export function dashboardNavSections(
         sectionKey: 'account',
         items: [
           { key: 'organisation', href: '/dashboard/entreprise/organisation', iconKey: 'organisation' },
-          { key: 'members',      href: '/dashboard/entreprise/membres',      iconKey: 'members' },
-          { key: 'invoices',     href: '/dashboard/entreprise/factures',     iconKey: 'invoices' },
+          // Membres équipe : page NON livrée (Lot B — invitations). On garde
+          // l'entrée visible mais `locked` : la sidebar rend alors pointerEvents
+          // 'none' + preventDefault, donc le lien n'est JAMAIS suivi → plus de
+          // 404. On conserve volontairement le href RÉEL (plutôt que de le faire
+          // pointer vers la racine comme les placeholders expert) pour deux
+          // raisons : (1) pas de faux état "actif" sur le tableau de bord, car
+          // isItemActive compare le pathname exact ; (2) la route est déjà
+          // déclarée comme route de MENU dans allMenuRoutes(), donc le Lot B
+          // n'aura qu'à retirer `locked`.
+          { key: 'members',      href: '/dashboard/entreprise/membres',      iconKey: 'members', locked: true },
+          // Ex-« Factures et paiements » → « Mon offre ». Stripe n'est pas
+          // branché et `transactions` est indexée sur user_id (inexploitable
+          // par org) : une page Factures n'aurait rien à afficher. On montre à
+          // la place l'offre effective et sa consommation du mois.
+          { key: 'offre',        href: '/dashboard/entreprise/offre',        iconKey: 'invoices' },
           { key: 'settings',     href: '/dashboard/entreprise/parametres',   iconKey: 'settings' },
         ],
       },
