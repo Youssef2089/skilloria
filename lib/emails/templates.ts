@@ -262,3 +262,90 @@ ${reasonP2Html}
     tag: 'expert_rejected',
   }
 }
+
+export type InvitationEmailParams = {
+  locale: string | null | undefined
+  /** Nom de l'organisation qui invite. */
+  companyName: string
+  /** Libellé HUMAIN du rôle proposé (déjà localisé par le caller). */
+  roleLabel: string
+  /** URL absolue de la page d'acceptation (contient le token EN CLAIR). */
+  inviteUrl: string
+  /** Date d'expiration déjà formatée (localisée) par le caller. */
+  expiresLabel: string
+  /**
+   * `true` si l'email invité N'appartient PAS au domaine de l'org (D4) : on
+   * ajoute un paragraphe d'avertissement. L'invitation reste valide.
+   */
+  domainMismatch: boolean
+}
+
+/**
+ * Email d'invitation à rejoindre une organisation (Lot B, B2).
+ *
+ * Le lien `inviteUrl` porte le token EN CLAIR (haché en base) — c'est le canal
+ * du cas 1 (compte existant qui clique). L'escaping des variables est assuré
+ * par `interpolate` (E1) ; `inviteUrl` passe par `renderEmailHtml` qui l'insère
+ * dans un href déjà sécurisé côté layout.
+ */
+export function renderInvitationEmail(params: InvitationEmailParams): RenderedEmail {
+  const locale: Locale = resolveLocale(params.locale)
+  const m = getEmailMessages(locale).invitation
+  const common = getEmailMessages(locale)
+  const variables = {
+    companyName: params.companyName,
+    roleLabel: params.roleLabel,
+    expiresLabel: params.expiresLabel,
+  }
+
+  const bodyP1Html = interpolate(m.body_p1, variables)
+  const bodyRoleHtml = interpolate(m.body_role, variables)
+  const bodyExpiresHtml = interpolate(m.body_expires, variables)
+  const domainWarnHtml = params.domainMismatch
+    ? `<p style="margin:0 0 12px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;">${m.body_domain_warning}</p>`
+    : ''
+
+  const bodyHtml = `<p style="margin:0 0 12px;">${m.hello}</p>
+<p style="margin:0 0 12px;">${bodyP1Html}</p>
+<p style="margin:0 0 12px;">${bodyRoleHtml}</p>
+${domainWarnHtml}
+<p style="margin:0;color:#475569;">${bodyExpiresHtml}</p>`
+
+  const bodyTextParts = [
+    stripHtml(m.hello),
+    '',
+    stripHtml(bodyP1Html),
+    '',
+    stripHtml(bodyRoleHtml),
+  ]
+  if (params.domainMismatch) bodyTextParts.push('', stripHtml(m.body_domain_warning))
+  bodyTextParts.push('', stripHtml(bodyExpiresHtml))
+  const bodyText = bodyTextParts.join('\n')
+
+  const html = renderEmailHtml({
+    title: m.title,
+    bodyHtml,
+    ctaLabel: m.cta_label,
+    ctaUrl: params.inviteUrl,
+    signature: common.common_signature,
+    footer: common.common_footer,
+  })
+  const text = renderEmailText({
+    title: m.title,
+    bodyText,
+    ctaLabel: m.cta_label,
+    ctaUrl: params.inviteUrl,
+    signature: common.common_signature,
+    footer: common.common_footer,
+  })
+
+  return {
+    // Sujet/preheader STATIQUES (comme welcome/reject) : `interpolate` ferait
+    // de l'escaping HTML, inadapté à un en-tête de mail en texte brut.
+    subject: m.subject,
+    html,
+    text,
+    preheader: m.preheader,
+    tag: 'org_invitation',
+  }
+}
