@@ -57,6 +57,17 @@ type EmailsRoot = {
     body_p3: string
     cta_label: string
   }
+  invitation: {
+    subject: string
+    preheader: string
+    title: string
+    hello: string
+    body_p1: string
+    body_role: string
+    body_domain_warning: string
+    body_expires: string
+    cta_label: string
+  }
 }
 
 const MESSAGES: Record<Locale, { emails: EmailsRoot }> = {
