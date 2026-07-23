@@ -35,6 +35,12 @@ type Resolved = {
   email_already_exists: boolean
   signup_role: 'entreprise' | 'cabinet'
   domain_slug: string | null
+  // null = acceptable ; sinon code de refus (compte expert/admin/autre org).
+  blocked_reason:
+    | 'email_is_expert_account'
+    | 'email_is_admin_account'
+    | 'email_already_in_organization'
+    | null
 }
 
 type View =
@@ -180,15 +186,23 @@ export default function InvitationPage() {
 
             {err && <p style={{ fontSize: 13, color: '#B91C1C', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '8px 12px', margin: '0 0 16px' }}>{err}</p>}
 
+            {/* BLOCAGE (filet serveur) : compte expert/admin ou déjà dans une
+                autre org → message explicite, aucune action d'acceptation. */}
+            {view.data.blocked_reason && (
+              <p role="alert" style={{ fontSize: 13.5, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '12px 14px', margin: 0, lineHeight: 1.55 }}>
+                {t(`blocked_${view.data.blocked_reason}` as 'blocked_email_is_expert_account')}
+              </p>
+            )}
+
             {/* CAS 1 : déjà connecté → accepter directement. */}
-            {view.hasSession && (
+            {!view.data.blocked_reason && view.hasSession && (
               <button type="button" disabled={busy} onClick={accept} style={{ ...primaryBtn(domain.primaryColor), opacity: busy ? 0.6 : 1 }}>
                 {t('accept_cta')}
               </button>
             )}
 
             {/* CAS "compte existant non connecté" → invitation à se connecter. */}
-            {!view.hasSession && view.data.email_already_exists && (
+            {!view.data.blocked_reason && !view.hasSession && view.data.email_already_exists && (
               <>
                 <p style={{ fontSize: 13.5, color: '#475569', margin: '0 0 12px', lineHeight: 1.5 }}>{t('existing_account_body')}</p>
                 <button type="button" onClick={() => router.push('/connexion')} style={primaryBtn(domain.primaryColor)}>{t('signin_cta')}</button>
@@ -196,7 +210,7 @@ export default function InvitationPage() {
             )}
 
             {/* CAS 2 : pas de compte → inscription (email verrouillé). */}
-            {!view.hasSession && !view.data.email_already_exists && (
+            {!view.data.blocked_reason && !view.hasSession && !view.data.email_already_exists && (
               <form onSubmit={signup} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <Field label={t('email_label')}>
                   <input value={view.data.email} readOnly style={{ ...inputStyle, background: '#f1f5f9', color: '#64748b' }} />

@@ -1578,7 +1578,10 @@
       "error_no_org": "No organisation linked to your account.",
       "error_session": "Your session has expired. Please sign in again.",
       "error_ref": "Reference: {ref}",
-      "retry": "Retry"
+      "retry": "Retry",
+      "err_email_is_expert_account": "This address belongs to an expert account. An expert cannot join an organisation.",
+      "err_email_is_admin_account": "This address belongs to an administrator account and cannot be invited.",
+      "err_email_already_in_organization": "This address already belongs to an account attached to an organisation."
     }
   },
   "publications": {
@@ -2521,6 +2524,9 @@
     "password_placeholder": "at least 8 characters",
     "cgu_label": "I accept the terms of use and privacy policy.",
     "signup_cta": "Create my account",
-    "later_cta": "Later"
+    "later_cta": "Later",
+    "blocked_email_is_expert_account": "This address matches an expert account, which cannot join an organisation. Please contact the administrator who invited you.",
+    "blocked_email_is_admin_account": "This address matches an administrator account, which cannot join an organisation this way.",
+    "blocked_email_already_in_organization": "This address is already attached to another organisation. An account can only belong to one organisation."
   }
 }

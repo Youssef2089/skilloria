@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { hashInvitationToken } from '@/lib/invitation-token'
-import { membershipIdentityForOrgType } from '@/lib/org-members'
+import { membershipIdentityForOrgType, joinBlockReason, type JoinBlockReason } from '@/lib/org-members'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -72,6 +72,21 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   const identity = membershipIdentityForOrgType(orgType)
 
+  // ── Filet serveur : un compte a pu être créé APRÈS l'envoi de l'invitation ──
+  // (l'invitation n'est censée partir que vers une adresse inexistante, mais on
+  // re-vérifie à l'affichage). Si l'email correspond désormais à un compte
+  // expert/admin ou déjà membre d'une AUTRE org → l'écran affichera un message
+  // au lieu du bouton d'acceptation. On ne divulgue que le CODE de blocage.
+  let blockedReason: JoinBlockReason | null = null
+  const { data: existingUser } = await admin
+    .from('users')
+    .select('id')
+    .ilike('email', inv.email as string)
+    .maybeSingle()
+  if (existingUser) {
+    blockedReason = await joinBlockReason(admin, existingUser.id as string, inv.organization_id as string)
+  }
+
   return json(
     {
       valid: true,
@@ -85,6 +100,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       email_already_exists: inv.email_already_exists === true,
       signup_role: identity.signupRole,
       domain_slug: domainSlug,
+      // null si acceptable ; sinon un code de refus (compte expert/admin/autre org).
+      blocked_reason: blockedReason,
     },
     200,
   )

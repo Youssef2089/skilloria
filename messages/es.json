@@ -1578,7 +1578,10 @@
       "error_no_org": "Ninguna organización vinculada a su cuenta.",
       "error_session": "Su sesión ha caducado. Vuelva a iniciar sesión.",
       "error_ref": "Referencia: {ref}",
-      "retry": "Reintentar"
+      "retry": "Reintentar",
+      "err_email_is_expert_account": "Esta dirección pertenece a una cuenta de experto. Un experto no puede unirse a una organización.",
+      "err_email_is_admin_account": "Esta dirección pertenece a una cuenta de administrador y no se puede invitar.",
+      "err_email_already_in_organization": "Esta dirección ya pertenece a una cuenta vinculada a una organización."
     }
   },
   "publications": {
@@ -2521,6 +2524,9 @@
     "password_placeholder": "mínimo 8 caracteres",
     "cgu_label": "Acepto las condiciones de uso y la política de privacidad.",
     "signup_cta": "Crear mi cuenta",
-    "later_cta": "Más tarde"
+    "later_cta": "Más tarde",
+    "blocked_email_is_expert_account": "Esta dirección corresponde a una cuenta de experto, que no puede unirse a una organización. Contacte con el administrador que le invitó.",
+    "blocked_email_is_admin_account": "Esta dirección corresponde a una cuenta de administrador, que no puede unirse a una organización de esta manera.",
+    "blocked_email_already_in_organization": "Esta dirección ya está vinculada a otra organización. Una cuenta solo puede pertenecer a una organización."
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/auth-guard'
 import { hashInvitationToken } from '@/lib/invitation-token'
 import { applyInvitation } from '@/lib/invitation-accept'
+import { joinBlockReason } from '@/lib/org-members'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   // ── Résolution de l'invitation ──────────────────────────────────────────────
   const COLS = 'id, organization_id, email, role_in_org, status, expires_at, invited_by'
-  let invitation: {
+  type Inv = {
     id: string
     organization_id: string
     email: string
@@ -66,7 +67,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     status: string
     expires_at: string
     invited_by: string | null
-  } | null = null
+  }
+  let invitation: Inv | null = null
 
   if (token) {
     const { data } = await admin
@@ -74,7 +76,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       .select(COLS)
       .eq('token', hashInvitationToken(token))
       .maybeSingle()
-    invitation = (data as typeof invitation) ?? null
+    invitation = (data as unknown as Inv | null) ?? null
   } else {
     const nowIso = new Date().toISOString()
     const { data } = await admin
@@ -86,11 +88,20 @@ export async function POST(request: NextRequest): Promise<Response> {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-    invitation = (data as typeof invitation) ?? null
+    invitation = (data as unknown as Inv | null) ?? null
   }
 
   if (!invitation) {
     return json({ error: 'Invitation not found', code: 'not_found' }, 404)
+  }
+
+  // ── Filet serveur (règle figée) : le compte connecté peut avoir été créé /
+  // modifié entre l'invitation et l'acceptation. On refuse un compte expert /
+  // admin, ou déjà membre actif d'une AUTRE org — jamais d'insertion dans
+  // organization_members dans ces cas.
+  const block = await joinBlockReason(admin, auth.user.id, invitation.organization_id)
+  if (block) {
+    return json({ error: 'Account cannot join', code: block }, 403)
   }
 
   const result = await applyInvitation({

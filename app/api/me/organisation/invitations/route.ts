@@ -105,25 +105,40 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
 
-  // ── Déjà membre ACTIF ? (via users.email → organization_members) ────────────
+  // ── Règle figée : on n'invite QU'UNE ADRESSE INEXISTANTE en base ────────────
+  // Tout compte existant (quel qu'il soit) → REFUS, AVANT toute création et
+  // AVANT tout envoi d'email. Justification : un compte entreprise est toujours
+  // créé AVEC son organisation (register-org), donc déjà rattaché ; un expert
+  // (ou un admin) ne peut pas rejoindre une organisation ; 1 compte = 1 org.
   const { data: existingUser } = await admin
     .from('users')
-    .select('id')
+    .select('id, user_type')
     .ilike('email', email)
     .maybeSingle()
-  const emailAlreadyExists = !!existingUser
   if (existingUser) {
-    const { data: activeMember } = await admin
+    const ut = (existingUser.user_type as string | null) ?? null
+    if (ut === 'expert_freelance' || ut === 'expert_cdi') {
+      return json({ error: 'Email belongs to an expert account', code: 'email_is_expert_account' }, 400)
+    }
+    if (ut === 'admin') {
+      return json({ error: 'Email belongs to an admin account', code: 'email_is_admin_account' }, 400)
+    }
+    // Compte entreprise (client/cabinet). Membre actif de CETTE org → already_member,
+    // sinon (autre org, ou compte entreprise flottant) → email_already_in_organization.
+    const { data: thisOrgMember } = await admin
       .from('organization_members')
       .select('id')
       .eq('organization_id', org.id)
       .eq('user_id', existingUser.id)
       .eq('status', 'active')
       .maybeSingle()
-    if (activeMember) {
+    if (thisOrgMember) {
       return json({ error: 'Already a member', code: 'already_member' }, 400)
     }
+    return json({ error: 'Email already in an organization', code: 'email_already_in_organization' }, 400)
   }
+  // À ce stade, l'email n'existe PAS en base → email_already_exists = false.
+  const emailAlreadyExists = false
 
   // ── Anti-doublon : invitation pending non expirée déjà présente ? ───────────
   const nowIso = new Date().toISOString()

@@ -98,6 +98,7 @@ export default function MembresPage() {
   // Formulaire d'invitation.
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<string>('viewer')
+  const [inviteErr, setInviteErr] = useState('')
   // Confirmation « Quitter ».
   const [leaveOpen, setLeaveOpen] = useState(false)
 
@@ -136,6 +137,9 @@ export default function MembresPage() {
       case 'last_admin': return t('err_last_admin')
       case 'invalid_email': return t('err_invalid_email')
       case 'self_forbidden': return t('err_self_forbidden')
+      case 'email_is_expert_account': return t('err_email_is_expert_account')
+      case 'email_is_admin_account': return t('err_email_is_admin_account')
+      case 'email_already_in_organization': return t('err_email_already_in_organization')
       default: return t('err_generic')
     }
   }
@@ -143,6 +147,7 @@ export default function MembresPage() {
   async function doInvite(e: React.FormEvent) {
     e.preventDefault()
     if (busy) return
+    setInviteErr('')
     setBusy(true)
     try {
       const res = await secureFetch('/api/me/organisation/invitations', {
@@ -151,7 +156,8 @@ export default function MembresPage() {
         body: JSON.stringify({ email: inviteEmail.trim(), role_in_org: inviteRole }),
       })
       const body = await res.json().catch(() => ({}))
-      if (!res.ok) { notify(errMessage(body?.code), 'error'); return }
+      // Refus : message distinct SOUS le champ, sans vider la saisie.
+      if (!res.ok) { setInviteErr(errMessage(body?.code)); return }
       setInviteEmail('')
       notify(t('invite_sent'))
       await load()
@@ -264,10 +270,14 @@ export default function MembresPage() {
             <div style={{ flex: '1 1 260px', minWidth: 0 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>{t('invite_email_label')}</label>
               <input
-                type="email" required value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)}
+                type="email" required value={inviteEmail}
+                onChange={(e) => { setInviteEmail(e.target.value); if (inviteErr) setInviteErr('') }}
                 placeholder={t('invite_email_placeholder')}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 14, fontFamily: fontJakarta, outline: 'none' }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: `1.5px solid ${inviteErr ? '#FCA5A5' : '#e2e8f0'}`, borderRadius: 10, fontSize: 14, fontFamily: fontJakarta, outline: 'none' }}
               />
+              {inviteErr && (
+                <p role="alert" style={{ margin: '6px 0 0', fontSize: 12.5, color: '#B91C1C', lineHeight: 1.45 }}>{inviteErr}</p>
+              )}
             </div>
             <div style={{ flex: '0 0 auto' }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>{t('invite_role_label')}</label>

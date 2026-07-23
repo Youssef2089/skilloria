@@ -1578,7 +1578,10 @@
       "error_no_org": "Aucune organisation rattachée à votre compte.",
       "error_session": "Votre session a expiré. Reconnectez-vous.",
       "error_ref": "Référence : {ref}",
-      "retry": "Réessayer"
+      "retry": "Réessayer",
+      "err_email_is_expert_account": "Cette adresse appartient à un compte expert. Un expert ne peut pas rejoindre une organisation.",
+      "err_email_is_admin_account": "Cette adresse appartient à un compte administrateur et ne peut pas être invitée.",
+      "err_email_already_in_organization": "Cette adresse appartient déjà à un compte rattaché à une organisation."
     }
   },
   "publications": {
@@ -2521,6 +2524,9 @@
     "password_placeholder": "8 caractères minimum",
     "cgu_label": "J’accepte les conditions d’utilisation et la politique de confidentialité.",
     "signup_cta": "Créer mon compte",
-    "later_cta": "Plus tard"
+    "later_cta": "Plus tard",
+    "blocked_email_is_expert_account": "Cette adresse correspond à un compte expert, qui ne peut pas rejoindre une organisation. Contactez l'administrateur qui vous a invité.",
+    "blocked_email_is_admin_account": "Cette adresse correspond à un compte administrateur, qui ne peut pas rejoindre une organisation de cette manière.",
+    "blocked_email_already_in_organization": "Cette adresse est déjà rattachée à une autre organisation. Un compte ne peut appartenir qu'à une seule organisation."
   }
 }

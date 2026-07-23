@@ -61,7 +61,11 @@ export default function PendingInvitationGate() {
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        setErr(body?.code === 'email_mismatch' ? t('err_email_mismatch') : t('err_generic'))
+        const code = body?.code as string | undefined
+        if (code === 'email_mismatch') setErr(t('err_email_mismatch'))
+        else if (code === 'email_is_expert_account' || code === 'email_is_admin_account' || code === 'email_already_in_organization') {
+          setErr(t(`blocked_${code}` as 'blocked_email_is_expert_account'))
+        } else setErr(t('err_generic'))
         return
       }
       // Rechargement dur : la nouvelle appartenance change tout le contexte org.

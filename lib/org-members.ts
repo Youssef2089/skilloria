@@ -70,3 +70,59 @@ export function wouldRemoveLastAdmin(params: {
 }): boolean {
   return params.targetIsActiveAdmin && params.activeAdminCount <= 1
 }
+
+/**
+ * Codes de refus « ce compte ne peut pas rejoindre l'organisation cible ».
+ * Règle projet (figée) : un compte est soit expert, soit entreprise, jamais les
+ * deux ; et un compte entreprise appartient toujours à UNE seule organisation.
+ */
+export type JoinBlockReason =
+  | 'email_is_expert_account'
+  | 'email_is_admin_account'
+  | 'email_already_in_organization'
+
+/**
+ * Détermine si un compte EXISTANT (userId) est inéligible pour rejoindre
+ * `targetOrgId`. Retourne le code de refus, ou `null` si le compte peut
+ * légitimement rejoindre (compte entreprise sans appartenance, ou déjà membre
+ * actif de CETTE org — cas idempotent géré en amont par l'appelant).
+ *
+ * Filet serveur partagé par : POST invitations (au moment d'inviter), GET
+ * resolve (affichage), POST accept (à l'acceptation — un compte a pu être créé
+ * entre-temps). Fail-safe : erreur de lecture → null (on ne bloque pas sur une
+ * panne ; les autres gardes restent en place).
+ */
+export async function joinBlockReason(
+  admin: SupabaseClient,
+  userId: string,
+  targetOrgId: string,
+): Promise<JoinBlockReason | null> {
+  const { data: u, error } = await admin
+    .from('users')
+    .select('user_type')
+    .eq('id', userId)
+    .maybeSingle()
+  if (error || !u) {
+    console.warn('[org-members] joinBlockReason user read error — no block', error?.message)
+    return null
+  }
+  const ut = (u.user_type as string | null) ?? null
+  if (ut === 'expert_freelance' || ut === 'expert_cdi') return 'email_is_expert_account'
+  if (ut === 'admin') return 'email_is_admin_account'
+
+  // Compte entreprise (client/cabinet) : bloqué s'il est membre ACTIF d'une
+  // AUTRE organisation. Membre actif de la cible → non bloqué (idempotent).
+  const { data: memberships, error: mErr } = await admin
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+  if (mErr) {
+    console.warn('[org-members] joinBlockReason membership read error — no block', mErr.message)
+    return null
+  }
+  const inAnotherOrg = (memberships ?? []).some(
+    (m) => (m.organization_id as string) !== targetOrgId,
+  )
+  return inAnotherOrg ? 'email_already_in_organization' : null
+}
