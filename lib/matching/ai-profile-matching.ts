@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import type { AnnonceType } from '@/types/annonce'
 import type {
   AiMatchProposal,
   MatchingConfig,
@@ -68,9 +69,10 @@ function languageName(locale: string): string {
   }
 }
 
-function formatBudget(min: number | null | undefined, max: number | null | undefined, type: 'mission' | 'offre'): string {
+function formatBudget(min: number | null | undefined, max: number | null | undefined, type: AnnonceType): string {
   if (min == null && max == null) return '(non précisé)'
-  const unit = type === 'mission' ? '€/jour' : '€/an'
+  // offre = salaire annuel ; mission ET sous_traitance = TJM journalier.
+  const unit = type === 'offre' ? '€/an' : '€/jour'
   if (min != null && max != null) return `${min} – ${max} ${unit}`
   if (min != null) return `à partir de ${min} ${unit}`
   return `jusqu'à ${max as number} ${unit}`

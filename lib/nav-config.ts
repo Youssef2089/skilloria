@@ -98,9 +98,10 @@ export function dashboardNavSections(
     {
       sectionKey: 'publish',
       items: [
-        // Placeholders : pointent vers la racine du dashboard (déjà route de menu).
-        { key: 'alert',       href: `/dashboard/${side}`, iconKey: 'alert',       variant: 'link', locked: !userIsVerified },
-        { key: 'subcontract', href: `/dashboard/${side}`, iconKey: 'subcontract', variant: 'link', locked: !userIsVerified },
+        // Placeholder (alerte dispo) : pointe vers la racine (déjà route de menu).
+        { key: 'alert',       href: `/dashboard/${side}`,                iconKey: 'alert',       variant: 'link', locked: !userIsVerified },
+        // Collaboration experts — LIVRÉ : besoin de sous-traitance entre pairs.
+        { key: 'subcontract', href: `/dashboard/${side}/sous-traitance`, iconKey: 'subcontract', variant: 'link' },
       ],
     },
     {

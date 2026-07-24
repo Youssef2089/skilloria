@@ -68,13 +68,13 @@ async function loadPublication(
   supabaseAdmin: SupabaseClient,
   publicationId: string,
   locale: MatchingLocale,
-): Promise<{ pub: PublicationForMatching; domain_id: string } | null> {
+): Promise<{ pub: PublicationForMatching; domain_id: string; created_by: string | null } | null> {
   const { data, error } = await supabaseAdmin
     .from('publications')
     .select(
       'id, domain_id, type, title, description, branch_id, speciality_id, ' +
         'skills_required, seniority, work_mode, location, duration, ' +
-        'budget_min, budget_max, status, ' +
+        'budget_min, budget_max, status, created_by, ' +
         'branches(name), specialities(name)',
     )
     .eq('id', publicationId)
@@ -83,11 +83,15 @@ async function loadPublication(
     console.error('[matching] publication load failed', error?.message ?? 'not found')
     return null
   }
-  const row = data as unknown as PublicationRow
+  const row = data as unknown as PublicationRow & { created_by?: string | null }
   const branch = pickRel(row.branches)
   const speciality = pickRel(row.specialities)
-  const safeType: AnnonceType = row.type === 'mission' || row.type === 'offre' ? row.type : 'mission'
+  const safeType: AnnonceType =
+    row.type === 'mission' || row.type === 'offre' || row.type === 'sous_traitance'
+      ? row.type
+      : 'mission'
   return {
+    created_by: (row.created_by as string | null) ?? null,
     pub: {
       id: row.id,
       type: safeType,
@@ -132,11 +136,19 @@ export async function runMatchingForPublication(args: {
   if (!pubLoad) {
     return { status: 'error', proposals: [], notes: 'Publication introuvable.', model: config.model }
   }
-  const { pub, domain_id } = pubLoad
+  const { pub, domain_id, created_by } = pubLoad
 
   // 3. Profils éligibles (frontière D + E + user_type C)
   const expectedUserType = userTypeForPublication(pub.type)
-  const candidates = await loadEligibleProfiles(supabaseAdmin, domain_id, expectedUserType, config.max_candidates)
+  // Sous-traitance : exclure l'expert publiant de son propre pool (auto-match).
+  const excludeUserId = pub.type === 'sous_traitance' ? created_by : null
+  const candidates = await loadEligibleProfiles(
+    supabaseAdmin,
+    domain_id,
+    expectedUserType,
+    config.max_candidates,
+    excludeUserId,
+  )
   if (candidates.length === 0) {
     console.warn('[matching] empty pool', { publicationId, domain_id, expectedUserType })
     try {

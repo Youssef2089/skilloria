@@ -2182,7 +2182,8 @@
       "err_orgs_would_be_orphaned": "{count, plural, one {# Organisation vom Typ {type} ist} other {# Organisationen vom Typ {type} sind}} diesem Angebot zugeordnet. Migrieren Sie sie zu einem anderen Angebot, bevor Sie die Zielgruppe einschränken.",
       "deactivate_warning": "{count, plural, one {# Organisation bleibt} other {# Organisationen bleiben}} bei diesem Angebot. Ihre Rechte bleiben erhalten, aber das Angebot ist nicht mehr zuweisbar oder anbietbar.",
       "deactivate_warning_link": "Organisationen migrieren",
-      "default_cannot_deactivate": "Das Standardangebot kann nicht deaktiviert werden: Eine Registrierung muss immer ein Angebot finden. Legen Sie zuerst ein anderes Standardangebot fest."
+      "default_cannot_deactivate": "Das Standardangebot kann nicht deaktiviert werden: Eine Registrierung muss immer ein Angebot finden. Legen Sie zuerst ein anderes Standardangebot fest.",
+      "target_collaboration": "Kollaboration"
     },
     "pilot": {
       "section_title": "Paket",
@@ -2553,5 +2554,36 @@
     "blocked_email_is_expert_account": "Diese Adresse gehört zu einem Expertenkonto, das keiner Organisation beitreten kann. Wenden Sie sich an den Administrator, der Sie eingeladen hat.",
     "blocked_email_is_admin_account": "Diese Adresse gehört zu einem Administratorkonto, das auf diese Weise keiner Organisation beitreten kann.",
     "blocked_email_already_in_organization": "Diese Adresse ist bereits einer anderen Organisation zugeordnet. Ein Konto kann nur zu einer Organisation gehören."
+  },
+  "collaboration": {
+    "page_title": "Unterauftrags-Bedarf",
+    "page_subtitle": "Veröffentlichen Sie einen Bedarf und lassen Sie unsere KI verfügbare Experten Ihres Fachgebiets vorschlagen. 1 Veröffentlichung pro Monat, 1 Profil enthüllt.",
+    "loading": "Ihr Arbeitsbereich wird vorbereitet…",
+    "retry": "Erneut versuchen",
+    "published_title": "Ihr Bedarf ist veröffentlicht",
+    "published_body": "Wir suchen die relevantesten Experten. Das beste Profil wird Ihnen enthüllt und Sie können mit ihm in Kontakt treten.",
+    "wall_title": "Limit erreicht",
+    "wall_body": "Sie haben diesen Monat bereits einen Bedarf veröffentlicht. Weitere Veröffentlichungen sind bald verfügbar.",
+    "wall_contact": "Früher benötigt? Kontaktieren Sie uns.",
+    "form": {
+      "title_label": "Titel des Bedarfs",
+      "title_placeholder": "z. B. Power-BI-Verstärkung für einen 3-Monats-Einsatz",
+      "description_label": "Beschreibung",
+      "description_placeholder": "Beschreiben Sie den Bedarf, den Kontext, die erwarteten Ergebnisse…",
+      "description_hint": "Mindestens 20 Zeichen.",
+      "skills_label": "Kompetenzen (durch Kommas getrennt)",
+      "skills_placeholder": "Power BI, DAX, Azure",
+      "budget_min_label": "Budget min (€/Tag)",
+      "budget_max_label": "Budget max (€/Tag)",
+      "budget_placeholder": "Optional",
+      "submit": "Bedarf veröffentlichen",
+      "submitting": "Wird veröffentlicht…",
+      "quota_note": "1 Veröffentlichung pro Monat inklusive. Der beste Kandidat wird automatisch enthüllt."
+    },
+    "errors": {
+      "org_unavailable": "Ihr Kollaborationsbereich konnte nicht vorbereitet werden. Bitte versuchen Sie es gleich erneut.",
+      "create_failed": "Der Bedarf konnte nicht gespeichert werden. Prüfen Sie die Felder und versuchen Sie es erneut.",
+      "publish_failed": "Die Veröffentlichung ist fehlgeschlagen. Bitte versuchen Sie es erneut."
+    }
   }
 }

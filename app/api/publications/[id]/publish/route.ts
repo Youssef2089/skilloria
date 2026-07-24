@@ -152,7 +152,10 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
 
   // ── Build input IA depuis la ligne ──────────────────────────────────────
   const aiInput: PublicationQualityInput = {
-    type: pub.type as 'mission' | 'offre',
+    // sous_traitance → traité comme 'mission' pour la vérif QUALITÉ (même nature
+    // freelance ; le prompt ne juge que titre/description). Le matching, lui,
+    // distingue bien sous_traitance (pool experts, cf. userTypeForPublication).
+    type: (pub.type === 'offre' ? 'offre' : 'mission') as 'mission' | 'offre',
     title: pub.title as string,
     description: pub.description as string,
     skills_required: (pub.skills_required as string[] | null) ?? [],

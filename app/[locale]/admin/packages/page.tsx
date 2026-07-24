@@ -102,6 +102,7 @@ export default function AdminPackagesPage() {
 
   function targetLabel(role: string): string {
     if (role === 'all') return t('packages.target_all')
+    if (role === 'collaboration') return t('packages.target_collaboration')
     return role === 'cabinet' ? t('packages.target_cabinet') : t('packages.target_client')
   }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useLocale, useTranslations } from 'next-intl'
+import type { AnnonceType } from '@/types/annonce'
 import {
   IconCoin,
   IconMapPin,
@@ -34,7 +35,7 @@ import {
 
 export type PublicationSynthesisData = {
   id: string
-  type: 'mission' | 'offre'
+  type: AnnonceType
   title: string
   budget_min: number | null
   budget_max: number | null

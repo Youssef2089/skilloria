@@ -54,6 +54,10 @@ export async function GET(request: NextRequest): Promise<Response> {
     .select(
       'id, company_name, logo_url, siren, org_type, verification_status, verification_data, verification_method, created_at, verified_at, verified_by, review_reason',
     )
+    // Les organisations PERSONNELLES d'experts (org_type='freelance',
+    // collaboration/sous-traitance) ne sont PAS de vraies entreprises : on les
+    // exclut de l'admin des orgs, des files d'attente et des compteurs.
+    .neq('org_type', 'freelance')
 
   if (status === 'pending') {
     query = query.eq('verification_status', 'pending_admin_review')

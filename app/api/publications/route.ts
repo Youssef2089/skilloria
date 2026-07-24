@@ -49,7 +49,7 @@ type Body = {
   confidential?: unknown
 }
 
-const TYPES = ['mission', 'offre'] as const
+const TYPES = ['mission', 'offre', 'sous_traitance'] as const
 type PublicationType = (typeof TYPES)[number]
 
 type ValidatedInput = {
@@ -252,7 +252,7 @@ const VALID_STATUSES: readonly AnnonceStatus[] = [
   'archived',
   'rejected',
 ]
-const VALID_TYPES: readonly AnnonceType[] = ['mission', 'offre']
+const VALID_TYPES: readonly AnnonceType[] = ['mission', 'offre', 'sous_traitance']
 
 const EMPTY_CANDIDATURES = {
   total: 0,

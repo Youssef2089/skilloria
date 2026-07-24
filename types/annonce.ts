@@ -27,7 +27,9 @@ export type AnnonceStatus =
   | 'archived'
   | 'rejected'
 
-export type AnnonceType = 'mission' | 'offre'
+// 'sous_traitance' : besoin publié par un EXPERT (via son organisation
+// personnelle) et matché à d'autres experts — collaboration entre pairs.
+export type AnnonceType = 'mission' | 'offre' | 'sous_traitance'
 
 /**
  * Unité de budget. V1 sans colonne `budget_unit` en BDD : dérivée du type

@@ -2182,7 +2182,8 @@
       "err_orgs_would_be_orphaned": "{count, plural, one {# organization of type {type} is attached} other {# organizations of type {type} are attached}} to this plan. Migrate them to another plan before narrowing the audience.",
       "deactivate_warning": "{count, plural, one {# organization will remain} other {# organizations will remain}} on this plan. They keep their entitlements, but the plan will no longer be assignable or offered.",
       "deactivate_warning_link": "Migrate organizations",
-      "default_cannot_deactivate": "The default plan cannot be deactivated: a sign-up must always find a plan. Designate another default plan first."
+      "default_cannot_deactivate": "The default plan cannot be deactivated: a sign-up must always find a plan. Designate another default plan first.",
+      "target_collaboration": "Collaboration"
     },
     "pilot": {
       "section_title": "Package",
@@ -2553,5 +2554,36 @@
     "blocked_email_is_expert_account": "This address matches an expert account, which cannot join an organisation. Please contact the administrator who invited you.",
     "blocked_email_is_admin_account": "This address matches an administrator account, which cannot join an organisation this way.",
     "blocked_email_already_in_organization": "This address is already attached to another organisation. An account can only belong to one organisation."
+  },
+  "collaboration": {
+    "page_title": "Subcontracting need",
+    "page_subtitle": "Post a need and let our AI suggest available experts in your field. 1 post per month, 1 profile revealed.",
+    "loading": "Preparing your workspace…",
+    "retry": "Retry",
+    "published_title": "Your need is published",
+    "published_body": "We are finding the most relevant experts. The best profile will be revealed to you, and you can start a conversation.",
+    "wall_title": "Limit reached",
+    "wall_body": "You have already posted a need this month. Additional posts will be available soon.",
+    "wall_contact": "Need it sooner? Contact us.",
+    "form": {
+      "title_label": "Need title",
+      "title_placeholder": "e.g. Power BI reinforcement for a 3-month engagement",
+      "description_label": "Description",
+      "description_placeholder": "Describe the need, the context, the expected deliverables…",
+      "description_hint": "20 characters minimum.",
+      "skills_label": "Skills (comma-separated)",
+      "skills_placeholder": "Power BI, DAX, Azure",
+      "budget_min_label": "Min budget (€/day)",
+      "budget_max_label": "Max budget (€/day)",
+      "budget_placeholder": "Optional",
+      "submit": "Publish my need",
+      "submitting": "Publishing…",
+      "quota_note": "1 post per month included. The best candidate is revealed automatically."
+    },
+    "errors": {
+      "org_unavailable": "Your collaboration workspace could not be prepared. Please try again shortly.",
+      "create_failed": "Could not save the need. Check the fields and try again.",
+      "publish_failed": "Publishing failed. Please try again."
+    }
   }
 }

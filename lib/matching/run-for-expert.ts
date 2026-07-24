@@ -14,6 +14,8 @@ import {
   notifyAndFlip,
   pickRel as pickRelShared,
   publicationTypeForUserType,
+  poolTypesForUser,
+  isCrossType,
   type NotifySpec,
 } from './shared'
 
@@ -161,18 +163,22 @@ function profileToCandidate(p: ProfileFullRow): ProfileCandidate {
 function pubToForMatching(
   row: PublicationRow,
   locale: MatchingLocale,
-  /** Type d'annonce NATIF de l'expert — tout autre type est un croisé opt-in. */
-  nativeType: AnnonceType,
+  /** Type d'expert — sert à déterminer si l'annonce est croisée (hors set natif). */
+  userType: 'expert_freelance' | 'expert_cdi',
 ): PublicationForMatching {
   const branch = pickRel(row.branches)
   const speciality = pickRel(row.specialities)
-  const safeType: AnnonceType = row.type === 'mission' || row.type === 'offre' ? row.type : 'mission'
+  const safeType: AnnonceType =
+    row.type === 'mission' || row.type === 'offre' || row.type === 'sous_traitance'
+      ? row.type
+      : 'mission'
   return {
     id: row.id,
     type: safeType,
     // OUVERTURE CROISÉE : cette annonce est dans le pool UNIQUEMENT parce que
-    // l'expert a coché l'opt-in (le pool est restreint au type natif sinon).
-    cross_type_opt_in: safeType !== nativeType,
+    // l'expert a coché l'opt-in (hors de son set natif). sous_traitance est
+    // freelance-natif → jamais marqué croisé pour un freelance.
+    cross_type_opt_in: isCrossType(safeType, userType),
     title: row.title,
     description: row.description,
     branch_name: branch?.name ?? null,
@@ -286,9 +292,11 @@ export async function runMatchingForExpert(args: {
     )
     .eq('domain_id', profile.domain_id)
     .eq('status', 'published')
-  pubQuery = crossOpen
-    ? pubQuery.in('type', ['mission', 'offre'])
-    : pubQuery.eq('type', targetPubType)
+  // Pool de types : natifs de l'expert (freelance = mission + sous_traitance ;
+  // cdi = offre), + l'autre set si ouverture croisée. Inclure sous_traitance
+  // dans le pool freelance évite AUSSI que reconcile n'élague un match vers un
+  // besoin de sous-traitance (préservation in_scope).
+  pubQuery = pubQuery.in('type', poolTypesForUser(userType, crossOpen))
   const { data: pubData, error: pubErr } = await pubQuery
     .order('published_at', { ascending: false })
     .limit(config.max_candidates)
@@ -320,7 +328,7 @@ export async function runMatchingForExpert(args: {
 
   // 4. AI call inverse — 1 expert vs N publications
   const expertCandidate = profileToCandidate(profile)
-  const publications = pubRows.map((r) => pubToForMatching(r, locale, targetPubType))
+  const publications = pubRows.map((r) => pubToForMatching(r, locale, userType))
   const aiResult = await callExpertMatchingAi({
     config,
     expert: expertCandidate,
@@ -512,8 +520,9 @@ export async function runPruneForExpert(args: {
   const crossOpen =
     (userType === 'expert_freelance' && profile.open_to_cdi === true) ||
     (userType === 'expert_cdi' && profile.open_to_freelance === true)
-  const nativeType = publicationTypeForUserType(userType)
-  const allowedTypes: string[] = crossOpen ? ['mission', 'offre'] : [nativeType]
+  // Types conservés = pool de l'expert (inclut sous_traitance en freelance) —
+  // sinon la passe prune élaguerait à tort les matches vers un besoin croisé.
+  const allowedTypes: string[] = poolTypesForUser(userType, crossOpen)
 
   // 2. Matches existants + type/statut/domaine de leur publication (jointure SQL).
   const { data: existData, error: exErr } = await supabaseAdmin

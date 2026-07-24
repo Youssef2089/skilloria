@@ -1,4 +1,5 @@
 import { tBDD, type TranslationsMap } from '@/lib/translations'
+import type { AnnonceType } from '@/types/annonce'
 
 /**
  * lib/publication-synthesis.ts — source UNIQUE de synthèse d'une publication
@@ -16,7 +17,7 @@ import { tBDD, type TranslationsMap } from '@/lib/translations'
 
 export type PublicationSynthesis = {
   id: string
-  type: 'mission' | 'offre'
+  type: AnnonceType
   title: string
   budget_min: number | null
   budget_max: number | null
@@ -79,7 +80,8 @@ export function buildPublicationSynthesis(
     ? tBDD(translations, 'specialities', specialityId, 'name', specialityName)
     : null
 
-  const type: 'mission' | 'offre' = pub.type === 'offre' ? 'offre' : 'mission'
+  const type: AnnonceType =
+    pub.type === 'offre' ? 'offre' : pub.type === 'sous_traitance' ? 'sous_traitance' : 'mission'
 
   return {
     id: pub.id,

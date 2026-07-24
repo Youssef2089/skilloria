@@ -23,7 +23,32 @@ export function normalizeMatchingLocale(raw: string | null | undefined): Matchin
 }
 
 export function userTypeForPublication(type: AnnonceType): 'expert_freelance' | 'expert_cdi' {
-  return type === 'mission' ? 'expert_freelance' : 'expert_cdi'
+  // mission ET sous_traitance → pool d'experts FREELANCE (le besoin de
+  // sous-traitance est du travail de type freelance, matché entre pairs).
+  // offre → experts CDI.
+  return type === 'offre' ? 'expert_cdi' : 'expert_freelance'
+}
+
+// Types d'annonce NATIFS par type d'expert. sous_traitance est un type
+// freelance-natif (travail freelance entre pairs) — pas un croisé.
+const FREELANCE_TYPES: readonly AnnonceType[] = ['mission', 'sous_traitance']
+const CDI_TYPES: readonly AnnonceType[] = ['offre']
+
+export function nativeTypesForUser(userType: 'expert_freelance' | 'expert_cdi'): AnnonceType[] {
+  return userType === 'expert_cdi' ? [...CDI_TYPES] : [...FREELANCE_TYPES]
+}
+
+/** Types du pool d'un expert : natifs, + l'autre set si ouverture croisée. */
+export function poolTypesForUser(
+  userType: 'expert_freelance' | 'expert_cdi',
+  crossOpen: boolean,
+): AnnonceType[] {
+  return crossOpen ? [...FREELANCE_TYPES, ...CDI_TYPES] : nativeTypesForUser(userType)
+}
+
+/** Une annonce est-elle « croisée » (hors du set natif de l'expert) ? */
+export function isCrossType(pubType: AnnonceType, userType: 'expert_freelance' | 'expert_cdi'): boolean {
+  return !nativeTypesForUser(userType).includes(pubType)
 }
 
 export function publicationTypeForUserType(userType: 'expert_freelance' | 'expert_cdi'): AnnonceType {
@@ -109,6 +134,9 @@ export async function loadEligibleProfiles(
   domainId: string,
   expectedUserType: 'expert_freelance' | 'expert_cdi',
   maxCandidates: number,
+  // Sous-traitance : l'expert PUBLIANT ne doit pas se retrouver dans son propre
+  // pool de candidats (auto-match). NULL pour une publication d'entreprise.
+  excludeUserId?: string | null,
 ): Promise<ProfileCandidate[]> {
   const SELECT =
     'id, user_id, expert_type, title, summary, seniority, years_experience, ' +
@@ -122,8 +150,8 @@ export async function loadEligibleProfiles(
     'users!profiles_user_id_fkey!inner(user_type, locale)'
 
   // Filtres d'éligibilité communs aux deux groupes (approved, visible, consent, cv, domain).
-  const baseQuery = () =>
-    supabaseAdmin
+  const baseQuery = () => {
+    let q = supabaseAdmin
       .from('profiles')
       .select(SELECT)
       .eq('domain_id', domainId)
@@ -131,6 +159,10 @@ export async function loadEligibleProfiles(
       .eq('visible', true)
       .not('ai_consent_at', 'is', null)
       .eq('verification_status', 'approved')
+    // Exclusion de l'expert publiant (sous-traitance) : pas d'auto-match.
+    if (excludeUserId) q = q.neq('user_id', excludeUserId)
+    return q
+  }
 
   // Garde de DISPONIBILITÉ propre au type de l'EXPERT (jamais celui de la publication).
   const withAvailabilityGuard = (

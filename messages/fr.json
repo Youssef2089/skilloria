@@ -2182,7 +2182,8 @@
       "err_orgs_would_be_orphaned": "{count, plural, one {# organisation de type {type} est rattachée} other {# organisations de type {type} sont rattachées}} à cette offre. Migrez-les vers une autre offre avant de restreindre la cible.",
       "deactivate_warning": "{count, plural, one {# organisation restera} other {# organisations resteront}} sur cette offre. Elles conservent leurs droits, mais l’offre ne sera plus attribuable ni proposable.",
       "deactivate_warning_link": "Migrer les organisations",
-      "default_cannot_deactivate": "L’offre par défaut ne peut pas être désactivée : une inscription doit toujours trouver une offre. Désignez d’abord une autre offre par défaut."
+      "default_cannot_deactivate": "L’offre par défaut ne peut pas être désactivée : une inscription doit toujours trouver une offre. Désignez d’abord une autre offre par défaut.",
+      "target_collaboration": "Collaboration"
     },
     "pilot": {
       "section_title": "Package",
@@ -2553,5 +2554,36 @@
     "blocked_email_is_expert_account": "Cette adresse correspond à un compte expert, qui ne peut pas rejoindre une organisation. Contactez l'administrateur qui vous a invité.",
     "blocked_email_is_admin_account": "Cette adresse correspond à un compte administrateur, qui ne peut pas rejoindre une organisation de cette manière.",
     "blocked_email_already_in_organization": "Cette adresse est déjà rattachée à une autre organisation. Un compte ne peut appartenir qu'à une seule organisation."
+  },
+  "collaboration": {
+    "page_title": "Besoin de sous-traitance",
+    "page_subtitle": "Publiez un besoin et laissez notre IA vous proposer des experts disponibles de votre domaine. 1 publication par mois, 1 profil dévoilé.",
+    "loading": "Préparation de votre espace…",
+    "retry": "Réessayer",
+    "published_title": "Votre besoin est publié",
+    "published_body": "Nous recherchons les experts les plus pertinents. Le meilleur profil vous sera dévoilé ; vous pourrez alors échanger avec lui.",
+    "wall_title": "Limite atteinte",
+    "wall_body": "Vous avez déjà publié un besoin ce mois-ci. Des publications supplémentaires seront bientôt disponibles.",
+    "wall_contact": "Besoin de plus tôt ? Contactez-nous.",
+    "form": {
+      "title_label": "Titre du besoin",
+      "title_placeholder": "Ex. Renfort Power BI sur une mission de 3 mois",
+      "description_label": "Description",
+      "description_placeholder": "Décrivez le besoin, le contexte, les livrables attendus…",
+      "description_hint": "20 caractères minimum.",
+      "skills_label": "Compétences (séparées par des virgules)",
+      "skills_placeholder": "Power BI, DAX, Azure",
+      "budget_min_label": "Budget min (€/jour)",
+      "budget_max_label": "Budget max (€/jour)",
+      "budget_placeholder": "Optionnel",
+      "submit": "Publier mon besoin",
+      "submitting": "Publication…",
+      "quota_note": "1 publication par mois incluse. Le meilleur candidat est dévoilé automatiquement."
+    },
+    "errors": {
+      "org_unavailable": "Votre espace de collaboration n'a pas pu être préparé. Réessayez dans un instant.",
+      "create_failed": "Impossible d’enregistrer le besoin. Vérifiez les champs et réessayez.",
+      "publish_failed": "La publication a échoué. Veuillez réessayer."
+    }
   }
 }
