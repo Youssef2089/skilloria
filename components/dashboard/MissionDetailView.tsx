@@ -164,6 +164,8 @@ export default function MissionDetailView({
         if (payload.code === 'already_applied') setErrorBanner(t('error_already_applied'))
         else if (payload.code === 'not_matched') setErrorBanner(t('error_not_matched'))
         else if (payload.code === 'publication_not_published') setErrorBanner(t('error_not_published'))
+        else if (payload.code === 'cannot_apply_own_need') setErrorBanner(t('error_cannot_apply_own_need'))
+        else if (payload.code === 'type_not_candidatable') setErrorBanner(t('error_type_not_candidatable'))
         else if (payload.code === 'invalid_cover_message') setErrorBanner(t('error_cover_too_long'))
         else setErrorBanner(t('error_generic'))
         return

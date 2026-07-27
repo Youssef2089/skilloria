@@ -2070,7 +2070,9 @@
       "error_already_applied": "Sie haben sich bereits beworben.",
       "error_not_matched": "Diese Möglichkeit ist nicht in Ihren Vorschlägen.",
       "error_not_published": "Diese Möglichkeit ist nicht mehr verfügbar.",
-      "error_cover_too_long": "Ihre Nachricht überschreitet 2000 Zeichen."
+      "error_cover_too_long": "Ihre Nachricht überschreitet 2000 Zeichen.",
+      "error_cannot_apply_own_need": "Sie können sich nicht auf Ihren eigenen Bedarf bewerben.",
+      "error_type_not_candidatable": "Diese Art von Gelegenheit nimmt keine Bewerbungen an."
     }
   },
   "admin_back_office": {

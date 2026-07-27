@@ -297,6 +297,10 @@ export async function runMatchingForExpert(args: {
   // dans le pool freelance évite AUSSI que reconcile n'élague un match vers un
   // besoin de sous-traitance (préservation in_scope).
   pubQuery = pubQuery.in('type', poolTypesForUser(userType, crossOpen))
+  // C2a — l'expert ne doit JAMAIS voir/matcher SON PROPRE besoin de
+  // sous-traitance (created_by = lui). Exclusion dans le pool expert→publications
+  // (le sens publication→experts exclut déjà via loadEligibleProfiles).
+  pubQuery = pubQuery.neq('created_by', profile.user_id)
   const { data: pubData, error: pubErr } = await pubQuery
     .order('published_at', { ascending: false })
     .limit(config.max_candidates)

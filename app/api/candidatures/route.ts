@@ -160,17 +160,39 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   const matchRow = match as unknown as { id: string; score: number; status: string }
 
-  // ── Vérif publication encore publiée (ne pas candidater sur expirée) ───
+  // ── Vérif publication : publiée + type candidatable + pas son propre besoin ─
+  //  `created_by` = l'auteur de la publication (pour un besoin sous_traitance,
+  //  l'expert publiant = owner de son organisation personnelle).
   const { data: pub, error: pubErr } = await auth.supabaseAdmin
     .from('publications')
-    .select('id, status')
+    .select('id, status, type, created_by')
     .eq('id', publicationId)
     .maybeSingle()
   if (pubErr || !pub) {
     return json({ error: 'Publication not found', code: 'not_found' }, 404)
   }
-  if ((pub as { status: string }).status !== 'published') {
+  const pubRow = pub as { id: string; status: string; type: string; created_by: string | null }
+  if (pubRow.status !== 'published') {
     return json({ error: 'Publication not available', code: 'publication_not_published' }, 409)
+  }
+
+  // ── C1 : types candidatables (whitelist EXPLICITE, incl. sous_traitance) ──
+  //  L'exigence « candidat = expert » est déjà garantie IDENTIQUEMENT pour les
+  //  3 types par (a) le profil expert résolu ci-dessus — un compte entreprise
+  //  n'a PAS de profil (profiles = experts uniquement) → 404 profile_missing
+  //  avant d'arriver ici — et (b) le match requis (les matches ne lient que des
+  //  profils experts). Aucun compte entreprise ne peut donc candidater, ni à un
+  //  besoin de sous-traitance ni à une mission/offre.
+  const CANDIDATABLE_TYPES = ['mission', 'offre', 'sous_traitance']
+  if (!CANDIDATABLE_TYPES.includes(pubRow.type)) {
+    return json({ error: 'Type not candidatable', code: 'type_not_candidatable' }, 403)
+  }
+
+  // ── C2b : filet serveur — on ne candidate JAMAIS à son propre besoin ──────
+  //  (le pool de matching exclut déjà l'expert publiant, cf. loadEligibleProfiles
+  //  + run-for-expert ; ceci est la garde applicative de dernier recours.)
+  if (pubRow.created_by && pubRow.created_by === auth.user.id) {
+    return json({ error: 'Cannot apply to your own need', code: 'cannot_apply_own_need' }, 403)
   }
 
   // ── INSERT candidature ─────────────────────────────────────────────────

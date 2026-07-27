@@ -2070,7 +2070,9 @@
       "error_already_applied": "Vous avez déjà candidaté à cette opportunité.",
       "error_not_matched": "Cette opportunité ne fait pas partie de vos suggestions.",
       "error_not_published": "Cette opportunité n'est plus disponible.",
-      "error_cover_too_long": "Votre message dépasse 2000 caractères."
+      "error_cover_too_long": "Votre message dépasse 2000 caractères.",
+      "error_cannot_apply_own_need": "Vous ne pouvez pas candidater à votre propre besoin.",
+      "error_type_not_candidatable": "Ce type d'opportunité n'accepte pas de candidature."
     }
   },
   "admin_back_office": {

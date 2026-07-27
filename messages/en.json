@@ -2070,7 +2070,9 @@
       "error_already_applied": "You've already applied to this opportunity.",
       "error_not_matched": "This opportunity is not in your suggestions.",
       "error_not_published": "This opportunity is no longer available.",
-      "error_cover_too_long": "Your message exceeds 2000 characters."
+      "error_cover_too_long": "Your message exceeds 2000 characters.",
+      "error_cannot_apply_own_need": "You can't apply to your own need.",
+      "error_type_not_candidatable": "This type of opportunity does not accept applications."
     }
   },
   "admin_back_office": {
