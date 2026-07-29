@@ -1878,6 +1878,10 @@
     },
     "card": {
       "anonymous_candidate": "Candidato anónimo",
+      "wall_title": "Perfil oculto",
+      "wall_body": "Este candidato permanece oculto. La revelación de perfiles adicionales estará disponible pronto.",
+      "wall_cta": "Próximamente",
+      "wall_cta_hint": "La revelación de pago aún no está activa. Contáctenos para saber más.",
       "candidate_label": "Candidato",
       "ai_score": "Puntuación {score}/10",
       "ai_score_tooltip": "Puntuación IA respecto a tu publicación.",
@@ -1979,7 +1983,9 @@
       "group_no_publication": "Sin misión",
       "group_no_publication_title": "Conversaciones sin misión asociada",
       "detail_empty_title": "Elige una conversación",
-      "detail_empty_subtitle": "Selecciona un intercambio a la izquierda para ver el hilo de mensajes."
+      "detail_empty_subtitle": "Selecciona un intercambio a la izquierda para ver el hilo de mensajes.",
+      "role_recruiter": "Usted contrata",
+      "role_applicant": "Usted se postula"
     },
     "view": {
       "back_to_inbox": "← Mensajes",
@@ -2564,6 +2570,7 @@
     "retry": "Reintentar",
     "published_title": "Su necesidad está publicada",
     "published_body": "Estamos buscando los expertos más relevantes. Se le revelará el mejor perfil y podrá conversar con él.",
+    "published_cta": "Ver mis necesidades",
     "wall_title": "Límite alcanzado",
     "wall_body": "Ya ha publicado una necesidad este mes. Pronto habrá publicaciones adicionales disponibles.",
     "wall_contact": "¿Lo necesita antes? Contáctenos.",
@@ -2586,6 +2593,47 @@
       "org_unavailable": "No se pudo preparar su espacio de colaboración. Inténtelo de nuevo en un momento.",
       "create_failed": "No se pudo guardar la necesidad. Revise los campos e inténtelo de nuevo.",
       "publish_failed": "La publicación falló. Inténtelo de nuevo."
+    },
+    "list": {
+      "title": "Mis necesidades de subcontratación",
+      "subtitle": "Gestione sus necesidades publicadas y las candidaturas recibidas.",
+      "new_cta": "Publicar una necesidad",
+      "loading": "Cargando sus necesidades…",
+      "error": "No se pudieron cargar sus necesidades. Inténtelo de nuevo.",
+      "retry": "Reintentar",
+      "empty_title": "Ninguna necesidad publicada",
+      "empty_body": "Publique una necesidad de subcontratación: nuestra IA le propondrá expertos disponibles de su ámbito.",
+      "quota_reached_title": "Ya tiene una necesidad activa",
+      "quota_reached_body": "Cierre su necesidad actual para poder publicar una nueva.",
+      "candidatures_count": "{count, plural, =0 {Ninguna candidatura} =1 {1 candidatura} other {# candidaturas}}",
+      "new_badge": "Nuevo",
+      "published_at": "Publicado el {date}",
+      "view_cta": "Gestionar"
+    },
+    "detail": {
+      "loading": "Cargando…",
+      "error_generic": "Se produjo un error. Inténtelo de nuevo.",
+      "error_not_found": "No se encuentra esta necesidad.",
+      "back_to_list": "Volver a mis necesidades",
+      "type_label": "Subcontratación",
+      "section_recap": "La necesidad",
+      "field_budget": "Presupuesto",
+      "field_location": "Lugar",
+      "field_seniority": "Senioridad",
+      "section_candidatures": "Candidaturas recibidas",
+      "count_candidates": "{count, plural, =0 {Ningún candidato} =1 {1 candidato} other {# candidatos}}",
+      "candidatures_empty_title": "Aún no hay candidaturas",
+      "candidatures_empty_body": "En cuanto un experto se postule, aparecerá aquí. El mejor perfil se revela automáticamente.",
+      "closed_notice": "Esta necesidad está cerrada. Las candidaturas recibidas y las conversaciones en curso siguen disponibles."
+    },
+    "close": {
+      "cta": "Cerrar esta necesidad",
+      "confirm_title": "¿Cerrar esta necesidad?",
+      "confirm_body": "Podrá publicar una nueva necesidad. Las candidaturas recibidas y las conversaciones en curso siguen accesibles.",
+      "confirm_cta": "Cerrar",
+      "cancel": "Cancelar",
+      "closing": "Cerrando…",
+      "error": "El cierre falló. Inténtelo de nuevo."
     }
   }
 }

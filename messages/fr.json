@@ -1878,6 +1878,10 @@
     },
     "card": {
       "anonymous_candidate": "Candidat anonyme",
+      "wall_title": "Profil masqué",
+      "wall_body": "Ce candidat reste masqué. Le dévoilement de profils supplémentaires sera bientôt disponible.",
+      "wall_cta": "Bientôt disponible",
+      "wall_cta_hint": "Le dévoilement payant n’est pas encore actif. Contactez-nous pour en savoir plus.",
       "candidate_label": "Candidat",
       "ai_score": "Score {score}/10",
       "ai_score_tooltip": "Note IA de pertinence par rapport à votre annonce.",
@@ -1979,7 +1983,9 @@
       "group_no_publication": "Sans mission",
       "group_no_publication_title": "Conversations sans mission associée",
       "detail_empty_title": "Choisissez une conversation",
-      "detail_empty_subtitle": "Sélectionnez un échange à gauche pour afficher le fil de messages."
+      "detail_empty_subtitle": "Sélectionnez un échange à gauche pour afficher le fil de messages.",
+      "role_recruiter": "Vous recrutez",
+      "role_applicant": "Vous candidatez"
     },
     "view": {
       "back_to_inbox": "← Messages",
@@ -2564,6 +2570,7 @@
     "retry": "Réessayer",
     "published_title": "Votre besoin est publié",
     "published_body": "Nous recherchons les experts les plus pertinents. Le meilleur profil vous sera dévoilé ; vous pourrez alors échanger avec lui.",
+    "published_cta": "Voir mes besoins",
     "wall_title": "Limite atteinte",
     "wall_body": "Vous avez déjà publié un besoin ce mois-ci. Des publications supplémentaires seront bientôt disponibles.",
     "wall_contact": "Besoin de plus tôt ? Contactez-nous.",
@@ -2586,6 +2593,47 @@
       "org_unavailable": "Votre espace de collaboration n'a pas pu être préparé. Réessayez dans un instant.",
       "create_failed": "Impossible d’enregistrer le besoin. Vérifiez les champs et réessayez.",
       "publish_failed": "La publication a échoué. Veuillez réessayer."
+    },
+    "list": {
+      "title": "Mes besoins de sous-traitance",
+      "subtitle": "Gérez vos besoins publiés et les candidatures reçues.",
+      "new_cta": "Publier un besoin",
+      "loading": "Chargement de vos besoins…",
+      "error": "Impossible de charger vos besoins. Réessayez.",
+      "retry": "Réessayer",
+      "empty_title": "Aucun besoin publié",
+      "empty_body": "Publiez un besoin de sous-traitance : notre IA vous proposera des experts disponibles de votre domaine.",
+      "quota_reached_title": "Vous avez déjà un besoin actif",
+      "quota_reached_body": "Clôturez votre besoin en cours pour pouvoir en publier un nouveau.",
+      "candidatures_count": "{count, plural, =0 {Aucune candidature} =1 {1 candidature} other {# candidatures}}",
+      "new_badge": "Nouveau",
+      "published_at": "Publié le {date}",
+      "view_cta": "Gérer"
+    },
+    "detail": {
+      "loading": "Chargement…",
+      "error_generic": "Une erreur est survenue. Réessayez.",
+      "error_not_found": "Ce besoin est introuvable.",
+      "back_to_list": "Retour à mes besoins",
+      "type_label": "Sous-traitance",
+      "section_recap": "Le besoin",
+      "field_budget": "Budget",
+      "field_location": "Lieu",
+      "field_seniority": "Séniorité",
+      "section_candidatures": "Candidatures reçues",
+      "count_candidates": "{count, plural, =0 {Aucun candidat} =1 {1 candidat} other {# candidats}}",
+      "candidatures_empty_title": "Aucune candidature pour l’instant",
+      "candidatures_empty_body": "Dès qu’un expert se positionne, il apparaîtra ici. Le meilleur profil est dévoilé automatiquement.",
+      "closed_notice": "Ce besoin est clôturé. Les candidatures reçues et les conversations en cours restent consultables."
+    },
+    "close": {
+      "cta": "Clôturer ce besoin",
+      "confirm_title": "Clôturer ce besoin ?",
+      "confirm_body": "Vous pourrez publier un nouveau besoin. Les candidatures reçues et les conversations en cours restent accessibles.",
+      "confirm_cta": "Clôturer",
+      "cancel": "Annuler",
+      "closing": "Clôture…",
+      "error": "La clôture a échoué. Veuillez réessayer."
     }
   }
 }

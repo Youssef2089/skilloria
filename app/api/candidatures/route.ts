@@ -5,6 +5,9 @@ import { getOrgEntitlements } from '@/lib/entitlements'
 // performUnlock est factorisé dans lib/unlock.ts (Lot 3), partagé avec la route
 // unlock — garantit un chemin de dévoilement STRICTEMENT identique.
 import { performUnlock } from '@/lib/unlock'
+// A4 : dérivation CENTRALISÉE du deep-link notif selon le type d'org (org
+// personnelle freelance → dashboard expert ; org cliente → dashboard entreprise).
+import { publicationCandidaturesLinkForOrg } from '@/lib/collaboration-links'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -228,13 +231,37 @@ export async function POST(request: NextRequest): Promise<Response> {
   //  channel='inapp', type='new_candidature_received', entity_id=candidature.id,
   //  link_url → vue candidatures de l'annonce.
   try {
+    //  A4 : on charge aussi le TYPE d'org (+ propriétaire pour l'org perso) afin
+    //  de dériver un deep-link joignable par le propriétaire (org cliente →
+    //  dashboard entreprise ; org personnelle freelance → dashboard expert).
     const { data: pubOrg } = await auth.supabaseAdmin
       .from('publications')
-      .select('id, organization_id, title')
+      .select('id, organization_id, title, organizations(org_type, owner_user_id)')
       .eq('id', publicationId)
       .maybeSingle()
-    const pubInfo = pubOrg as { id: string; organization_id: string; title: string } | null
+    const pubInfo = pubOrg as {
+      id: string
+      organization_id: string
+      title: string
+      organizations: { org_type: string | null; owner_user_id: string | null }
+        | { org_type: string | null; owner_user_id: string | null }[]
+        | null
+    } | null
     if (pubInfo) {
+      const orgRel = Array.isArray(pubInfo.organizations)
+        ? pubInfo.organizations[0]
+        : pubInfo.organizations
+      const orgType = orgRel?.org_type ?? null
+      // user_type du propriétaire (org personnelle uniquement) → segment expert.
+      let ownerUserType: string | null = null
+      if (orgType === 'freelance' && orgRel?.owner_user_id) {
+        const { data: ownerRow } = await auth.supabaseAdmin
+          .from('users')
+          .select('user_type')
+          .eq('id', orgRel.owner_user_id)
+          .maybeSingle()
+        ownerUserType = (ownerRow as { user_type: string | null } | null)?.user_type ?? null
+      }
       const { data: members } = await auth.supabaseAdmin
         .from('organization_members')
         .select('user_id, users!organization_members_user_id_fkey(id, locale)')
@@ -242,7 +269,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         .eq('status', 'active')
       type Member = { user_id: string; users: { id: string; locale: string | null } | { id: string; locale: string | null }[] }
       const membersTyped = (members ?? []) as unknown as Member[]
-      const linkUrl = `/dashboard/entreprise/annonces/${publicationId}/candidatures`
+      const linkUrl = publicationCandidaturesLinkForOrg(publicationId, { orgType, ownerUserType })
       const titlesByLocale: Record<string, string> = {
         fr: 'Nouvelle candidature reçue',
         en: 'New application received',

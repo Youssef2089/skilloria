@@ -1878,6 +1878,10 @@
     },
     "card": {
       "anonymous_candidate": "Anonymous candidate",
+      "wall_title": "Hidden profile",
+      "wall_body": "This candidate stays hidden. Revealing additional profiles will be available soon.",
+      "wall_cta": "Coming soon",
+      "wall_cta_hint": "Paid reveal is not active yet. Contact us to learn more.",
       "candidate_label": "Candidate",
       "ai_score": "Score {score}/10",
       "ai_score_tooltip": "AI relevance score against your posting.",
@@ -1979,7 +1983,9 @@
       "group_no_publication": "No mission",
       "group_no_publication_title": "Conversations without associated mission",
       "detail_empty_title": "Pick a conversation",
-      "detail_empty_subtitle": "Select an exchange on the left to view the message thread."
+      "detail_empty_subtitle": "Select an exchange on the left to view the message thread.",
+      "role_recruiter": "You’re hiring",
+      "role_applicant": "You’re applying"
     },
     "view": {
       "back_to_inbox": "← Messages",
@@ -2564,6 +2570,7 @@
     "retry": "Retry",
     "published_title": "Your need is published",
     "published_body": "We are finding the most relevant experts. The best profile will be revealed to you, and you can start a conversation.",
+    "published_cta": "View my needs",
     "wall_title": "Limit reached",
     "wall_body": "You have already posted a need this month. Additional posts will be available soon.",
     "wall_contact": "Need it sooner? Contact us.",
@@ -2586,6 +2593,47 @@
       "org_unavailable": "Your collaboration workspace could not be prepared. Please try again shortly.",
       "create_failed": "Could not save the need. Check the fields and try again.",
       "publish_failed": "Publishing failed. Please try again."
+    },
+    "list": {
+      "title": "My subcontracting needs",
+      "subtitle": "Manage your posted needs and the applications you receive.",
+      "new_cta": "Post a need",
+      "loading": "Loading your needs…",
+      "error": "Could not load your needs. Please try again.",
+      "retry": "Retry",
+      "empty_title": "No need posted",
+      "empty_body": "Post a subcontracting need: our AI will suggest available experts in your field.",
+      "quota_reached_title": "You already have an active need",
+      "quota_reached_body": "Close your current need to be able to post a new one.",
+      "candidatures_count": "{count, plural, =0 {No applications} =1 {1 application} other {# applications}}",
+      "new_badge": "New",
+      "published_at": "Posted on {date}",
+      "view_cta": "Manage"
+    },
+    "detail": {
+      "loading": "Loading…",
+      "error_generic": "Something went wrong. Please try again.",
+      "error_not_found": "This need could not be found.",
+      "back_to_list": "Back to my needs",
+      "type_label": "Subcontracting",
+      "section_recap": "The need",
+      "field_budget": "Budget",
+      "field_location": "Location",
+      "field_seniority": "Seniority",
+      "section_candidatures": "Applications received",
+      "count_candidates": "{count, plural, =0 {No candidates} =1 {1 candidate} other {# candidates}}",
+      "candidatures_empty_title": "No applications yet",
+      "candidatures_empty_body": "As soon as an expert applies, they will appear here. The best profile is revealed automatically.",
+      "closed_notice": "This need is closed. The applications received and ongoing conversations remain accessible."
+    },
+    "close": {
+      "cta": "Close this need",
+      "confirm_title": "Close this need?",
+      "confirm_body": "You will be able to post a new need. The applications received and ongoing conversations remain accessible.",
+      "confirm_cta": "Close",
+      "cancel": "Cancel",
+      "closing": "Closing…",
+      "error": "Closing failed. Please try again."
     }
   }
 }

@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
- * SousTraitanceView — publier un BESOIN de sous-traitance entre experts.
+ * SousTraitanceView — FORMULAIRE de publication d'un BESOIN de sous-traitance
+ * entre experts (page /dashboard/{role}/sous-traitance/nouveau).
  *
  * Rendu DANS la coquille dashboard (sidebar + header via le layout). Au montage :
  * ensure-org (création lazy transparente de l'organisation personnelle). Le
@@ -14,11 +16,14 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  * entreprises (POST /api/publications → POST /publish), donc les gates commerce
  * du package « collaboration » (1/mois) s'appliquent. Quota atteint → mur
  * « Bientôt disponible ».
+ *
+ * `basePath` = base du dashboard courant ('/dashboard/freelance' | '/dashboard/
+ * cdi'), pour renvoyer vers la LISTE des besoins après publication.
  */
 
 type Phase = 'loading' | 'ready' | 'org_error' | 'published' | 'wall'
 
-export default function SousTraitanceView() {
+export default function SousTraitanceView({ basePath }: { basePath: string }) {
   const t = useTranslations('collaboration')
   const domain = useDomain()
   const secureFetch = useSecureFetch()
@@ -164,7 +169,13 @@ export default function SousTraitanceView() {
         <div style={{ ...card, borderColor: '#bbf7d0', background: '#f0fdf4' }}>
           <div style={{ fontSize: 32, marginBottom: 8 }} aria-hidden>✅</div>
           <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: '#166534' }}>{t('published_title')}</h2>
-          <p style={{ margin: 0, fontSize: 14, color: '#15803d', lineHeight: 1.55 }}>{t('published_body')}</p>
+          <p style={{ margin: '0 0 16px', fontSize: 14, color: '#15803d', lineHeight: 1.55 }}>{t('published_body')}</p>
+          <Link
+            href={`${basePath}/sous-traitance`}
+            style={{ display: 'inline-flex', padding: '10px 16px', background: domain.primaryColor, color: '#fff', borderRadius: 10, fontSize: 13.5, fontWeight: 700, textDecoration: 'none' }}
+          >
+            {t('published_cta')}
+          </Link>
         </div>
       )}
 

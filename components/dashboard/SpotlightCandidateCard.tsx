@@ -32,6 +32,18 @@ import type { CandidatureData } from '@/components/dashboard/CandidatureCard'
  *
  * `interactive` (default true) : si false, les boutons sont désactivés
  * (utilisé par le carrousel pour les cartes voisines estompées).
+ *
+ * `messagesBasePath` (default '/dashboard/entreprise') : base d'URL du lien
+ * « Ouvrir la conversation ». Côté sous-traitance, l'expert publiant consomme
+ * la MÊME carte mais ses messages vivent sous /dashboard/{role}/messages — le
+ * lien entreprise y serait cassé (guard de routage). Un seul point paramétré.
+ *
+ * `conversionMode` (default 'unlock') : comportement sur un candidat MASQUÉ.
+ *   - 'unlock' (org) : bouton « Débloquer » actif + « Refuser ».
+ *   - 'wall'  (sous-traitance V0) : MUR DE CONVERSION visible mais INACTIF
+ *     (« Bientôt disponible ») — pas de Stripe en V0, aucun parcours de
+ *     paiement inventé. Le masquage reste porté SERVEUR par le DTO (aucune
+ *     duplication de logique) ; seule l'action de dévoilement est neutralisée.
  */
 
 type Props = {
@@ -41,6 +53,10 @@ type Props = {
   onMutated: () => void
   /** false → boutons disabled (cas slots voisins du carrousel). */
   interactive?: boolean
+  /** Base d'URL des liens messagerie (cf. en-tête). */
+  messagesBasePath?: string
+  /** Comportement sur candidat masqué : 'unlock' (org) | 'wall' (sous-traitance). */
+  conversionMode?: 'unlock' | 'wall'
 }
 
 function scoreColor(score: number | null): { bg: string; fg: string } | null {
@@ -63,6 +79,8 @@ export default function SpotlightCandidateCard({
   pubSkillsRequired,
   onMutated,
   interactive = true,
+  messagesBasePath = '/dashboard/entreprise',
+  conversionMode = 'unlock',
 }: Props) {
   const t = useTranslations('candidatures.card')
   // Bugfix : freelance availability namespace = `profile_view.availability_status`
@@ -355,7 +373,29 @@ export default function SpotlightCandidateCard({
 
       {/* FOOTER actions */}
       <div style={{ padding: '12px 20px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {canAct && !confirmReject && (
+        {/* MUR DE CONVERSION (sous-traitance V0) — visible mais INACTIF.
+            Construit pour signaler la valeur du dévoilement, sans parcours de
+            paiement (pas de Stripe en V0). Remplace le bloc unlock/refuser. */}
+        {canAct && conversionMode === 'wall' && (
+          <div style={{ background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: 12, padding: '14px 14px 12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span aria-hidden style={{ fontSize: 18 }}>🔒</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#92400E' }}>{t('wall_title')}</span>
+            </div>
+            <p style={{ margin: '0 0 10px', fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>{t('wall_body')}</p>
+            <button
+              type="button"
+              disabled
+              aria-disabled
+              title={t('wall_cta_hint')}
+              style={{ width: '100%', padding: '10px 14px', background: '#FEF3C7', color: '#92400E', border: '1px solid #FCD34D', borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: 'not-allowed', fontFamily: 'inherit', opacity: 0.85 }}
+            >
+              {t('wall_cta')}
+            </button>
+          </div>
+        )}
+
+        {canAct && conversionMode === 'unlock' && !confirmReject && (
           <>
             <button type="button" onClick={handleUnlock} disabled={disabled} style={{ width: '100%', padding: '12px 16px', background: domain.primaryColor, color: '#fff', border: 'none', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: busy === 'unlock' ? 0.6 : 1 }}>
               {busy === 'unlock' ? t('button_unlocking') : `🔓 ${t('button_unlock')}`}
@@ -373,7 +413,7 @@ export default function SpotlightCandidateCard({
           </>
         )}
 
-        {canAct && confirmReject && (
+        {canAct && conversionMode === 'unlock' && confirmReject && (
           <div style={{ background: '#FEF2F2', border: '1.5px solid #FECACA', borderRadius: 10, padding: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#991B1B', marginBottom: 8 }}>{t('reject_confirm_title')}</div>
             <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t('reject_reason_placeholder')} maxLength={2000} rows={3} style={{ width: '100%', padding: '8px 10px', fontSize: 12, border: '1px solid #FECACA', borderRadius: 8, outline: 'none', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.5, marginBottom: 10 }} />
@@ -391,7 +431,7 @@ export default function SpotlightCandidateCard({
         {isUnlocked && !isClosed && (
           <>
             {candidature.conversation_id && (
-              <Link href={`/dashboard/entreprise/messages/${candidature.conversation_id}`} style={{ width: '100%', padding: '12px 16px', background: domain.primaryColor, color: '#fff', border: 'none', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', textDecoration: 'none', textAlign: 'center', display: 'block', pointerEvents: disabled ? 'none' : 'auto', opacity: disabled ? 0.6 : 1 }}>
+              <Link href={`${messagesBasePath}/messages/${candidature.conversation_id}`} style={{ width: '100%', padding: '12px 16px', background: domain.primaryColor, color: '#fff', border: 'none', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', textDecoration: 'none', textAlign: 'center', display: 'block', pointerEvents: disabled ? 'none' : 'auto', opacity: disabled ? 0.6 : 1 }}>
                 💬 {t('conversation_button')}
               </Link>
             )}

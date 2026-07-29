@@ -1878,6 +1878,10 @@
     },
     "card": {
       "anonymous_candidate": "Anonyme/r Bewerber/in",
+      "wall_title": "Verborgenes Profil",
+      "wall_body": "Dieser Kandidat bleibt verborgen. Das Enthüllen weiterer Profile wird bald verfügbar sein.",
+      "wall_cta": "Bald verfügbar",
+      "wall_cta_hint": "Die kostenpflichtige Enthüllung ist noch nicht aktiv. Kontaktieren Sie uns für weitere Informationen.",
       "candidate_label": "Bewerber/in",
       "ai_score": "Bewertung {score}/10",
       "ai_score_tooltip": "KI-Bewertung der Passung zu Ihrer Veröffentlichung.",
@@ -1979,7 +1983,9 @@
       "group_no_publication": "Ohne Auftrag",
       "group_no_publication_title": "Konversationen ohne zugehörigen Auftrag",
       "detail_empty_title": "Wählen Sie eine Konversation",
-      "detail_empty_subtitle": "Wählen Sie links einen Austausch aus, um den Nachrichtenverlauf anzuzeigen."
+      "detail_empty_subtitle": "Wählen Sie links einen Austausch aus, um den Nachrichtenverlauf anzuzeigen.",
+      "role_recruiter": "Sie stellen ein",
+      "role_applicant": "Sie bewerben sich"
     },
     "view": {
       "back_to_inbox": "← Nachrichten",
@@ -2564,6 +2570,7 @@
     "retry": "Erneut versuchen",
     "published_title": "Ihr Bedarf ist veröffentlicht",
     "published_body": "Wir suchen die relevantesten Experten. Das beste Profil wird Ihnen enthüllt und Sie können mit ihm in Kontakt treten.",
+    "published_cta": "Meine Bedarfe ansehen",
     "wall_title": "Limit erreicht",
     "wall_body": "Sie haben diesen Monat bereits einen Bedarf veröffentlicht. Weitere Veröffentlichungen sind bald verfügbar.",
     "wall_contact": "Früher benötigt? Kontaktieren Sie uns.",
@@ -2586,6 +2593,47 @@
       "org_unavailable": "Ihr Kollaborationsbereich konnte nicht vorbereitet werden. Bitte versuchen Sie es gleich erneut.",
       "create_failed": "Der Bedarf konnte nicht gespeichert werden. Prüfen Sie die Felder und versuchen Sie es erneut.",
       "publish_failed": "Die Veröffentlichung ist fehlgeschlagen. Bitte versuchen Sie es erneut."
+    },
+    "list": {
+      "title": "Meine Unterauftrags-Bedarfe",
+      "subtitle": "Verwalten Sie Ihre veröffentlichten Bedarfe und die erhaltenen Bewerbungen.",
+      "new_cta": "Bedarf veröffentlichen",
+      "loading": "Ihre Bedarfe werden geladen…",
+      "error": "Ihre Bedarfe konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+      "retry": "Erneut versuchen",
+      "empty_title": "Kein Bedarf veröffentlicht",
+      "empty_body": "Veröffentlichen Sie einen Unterauftrags-Bedarf: Unsere KI schlägt Ihnen verfügbare Experten Ihres Fachgebiets vor.",
+      "quota_reached_title": "Sie haben bereits einen aktiven Bedarf",
+      "quota_reached_body": "Schließen Sie Ihren aktuellen Bedarf, um einen neuen veröffentlichen zu können.",
+      "candidatures_count": "{count, plural, =0 {Keine Bewerbungen} =1 {1 Bewerbung} other {# Bewerbungen}}",
+      "new_badge": "Neu",
+      "published_at": "Veröffentlicht am {date}",
+      "view_cta": "Verwalten"
+    },
+    "detail": {
+      "loading": "Wird geladen…",
+      "error_generic": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+      "error_not_found": "Dieser Bedarf wurde nicht gefunden.",
+      "back_to_list": "Zurück zu meinen Bedarfen",
+      "type_label": "Unterauftrag",
+      "section_recap": "Der Bedarf",
+      "field_budget": "Budget",
+      "field_location": "Ort",
+      "field_seniority": "Seniorität",
+      "section_candidatures": "Erhaltene Bewerbungen",
+      "count_candidates": "{count, plural, =0 {Keine Kandidaten} =1 {1 Kandidat} other {# Kandidaten}}",
+      "candidatures_empty_title": "Noch keine Bewerbungen",
+      "candidatures_empty_body": "Sobald sich ein Experte bewirbt, erscheint er hier. Das beste Profil wird automatisch enthüllt.",
+      "closed_notice": "Dieser Bedarf ist geschlossen. Die erhaltenen Bewerbungen und laufenden Konversationen bleiben zugänglich."
+    },
+    "close": {
+      "cta": "Diesen Bedarf schließen",
+      "confirm_title": "Diesen Bedarf schließen?",
+      "confirm_body": "Sie können einen neuen Bedarf veröffentlichen. Die erhaltenen Bewerbungen und laufenden Konversationen bleiben zugänglich.",
+      "confirm_cta": "Schließen",
+      "cancel": "Abbrechen",
+      "closing": "Wird geschlossen…",
+      "error": "Das Schließen ist fehlgeschlagen. Bitte versuchen Sie es erneut."
     }
   }
 }

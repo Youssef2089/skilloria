@@ -141,6 +141,7 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
               const badge =
                 item.badgeSource === 'messages' ? (badges.messages_unread ?? 0)
                 : item.badgeSource === 'candidatures' ? (badges.candidatures_unread ?? 0)
+                : item.badgeSource === 'candidatures_org' ? (badges.candidatures_org_unread ?? 0)
                 : item.badgeSource === 'missions' ? (badges.missions_unread ?? 0)
                 : 0
               const isLink = item.variant === 'link'

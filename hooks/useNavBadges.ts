@@ -35,12 +35,14 @@ const POLL_MS = 30_000
 export type NavBadges = {
   messages_unread: number | null
   missions_unread: number | null
+  /** A3 : candidatures DÉPOSÉES par l'expert (côté candidat) UNIQUEMENT.
+   *  Alimente l'entrée « Candidatures ». Ne mélange plus les reçues. */
   candidatures_unread: number | null
-  /** Côté org : badge "Mes annonces" — compte des nouvelles candidatures
-   *  reçues sur les pubs de l'org depuis la dernière visite de la home org.
-   *  Retourne 0 côté expert (l'API ne calcule cette section que pour les
-   *  membres d'org). Non-câblé sur la sidebar expert (pas de badgeSource
-   *  correspondant), exposé ici pour consommation future si besoin. */
+  /** A3 : candidatures REÇUES sur les pubs de l'org (côté donneur d'ordre :
+   *  entreprise OU expert publiant). Alimente l'entrée « Candidatures » de
+   *  l'entreprise ET l'entrée « Sous-traitance » de l'expert. */
+  candidatures_org_unread: number | null
+  /** Alias historique de candidatures_org (badge "Mes annonces" home org). */
   annonces_unread: number | null
 }
 
@@ -48,6 +50,7 @@ const INITIAL: NavBadges = {
   messages_unread: null,
   missions_unread: null,
   candidatures_unread: null,
+  candidatures_org_unread: null,
   annonces_unread: null,
 }
 
@@ -75,21 +78,24 @@ export function useNavBadges(): NavBadges {
         const p = (await convsRes.json()) as { conversations?: Array<{ unread_count?: number }> }
         messages = (p.conversations ?? []).reduce((acc, c) => acc + (c.unread_count ?? 0), 0)
       }
-      let missions = 0, candidatures = 0, annonces = 0
+      let missions = 0, candidaturesExpert = 0, candidaturesOrg = 0, annonces = 0
       if (badgesRes.ok) {
         const p = (await badgesRes.json()) as BadgesPayload
         const b = p.badges ?? {}
         missions = b.missions ?? 0
-        // candidatures_unread = somme expert + org (chaque user n'a qu'UN
-        // des deux côtés non-nul : un expert n'a pas d'org, un membre d'org
-        // n'a pas de profile vérifié — l'API renvoie 0 pour l'autre côté).
-        candidatures = (b.candidatures_expert ?? 0) + (b.candidatures_org ?? 0)
+        // A3 : on NE somme PLUS expert + org. Un expert PUBLIANT (org perso
+        // collaboration) a les DEUX non-nulles — les mélanger afficherait les
+        // reçues sur l'entrée « Candidatures » (déposées). On les expose
+        // séparément et chaque entrée de nav consomme sa source.
+        candidaturesExpert = b.candidatures_expert ?? 0
+        candidaturesOrg = b.candidatures_org ?? 0
         annonces = b.annonces_org ?? 0
       }
       setBadges({
         messages_unread: messages,
         missions_unread: missions,
-        candidatures_unread: candidatures,
+        candidatures_unread: candidaturesExpert,
+        candidatures_org_unread: candidaturesOrg,
         annonces_unread: annonces,
       })
     } catch (err) {

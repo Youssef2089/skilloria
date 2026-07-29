@@ -107,6 +107,18 @@ async function loadOrganizationContext(
   userId: string,
 ): Promise<AuthOrganization | null> {
   // V1 : 1 user = 1 org. On prend la 1ère ligne active par joined_at ASC.
+  //
+  // INVARIANTE COLLABORATION (A2) — ce « limit(1) » est sûr pour l'expert :
+  //   Un compte EXPERT ne peut jamais avoir qu'UNE SEULE membership active, son
+  //   organisation PERSONNELLE (org_type='freelance', créée par ensure-org).
+  //   La règle d'invitation entreprise REFUSE toute adresse déjà rattachée à un
+  //   compte expert (code `email_is_expert_account`), avec filet serveur à
+  //   l'acceptation → un expert ne rejoint jamais une vraie organisation.
+  //   Donc pour un expert, `auth.organization` = son org perso, sans ambiguïté
+  //   de tri. ⚠️ Si cette règle d'invitation change un jour (un expert pouvant
+  //   rejoindre une org cliente), ce chemin deviendrait ambigu (joined_at ASC
+  //   pourrait renvoyer l'org cliente au lieu de l'org perso) et il faudrait
+  //   alors résoudre explicitement l'org perso pour les surfaces sous-traitance.
   const { data: memberRow, error: memberErr } = await supabaseAdmin
     .from('organization_members')
     .select('organization_id, role_in_org, organizations(id, verification_status)')

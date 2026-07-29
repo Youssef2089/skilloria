@@ -28,9 +28,13 @@ type Props = {
   publicationType: 'mission' | 'offre' | string
   pubSkillsRequired: string[]
   onMutated: () => void
+  /** Base d'URL messagerie propagée à la carte (org vs sous-traitance expert). */
+  messagesBasePath?: string
+  /** Comportement sur candidat masqué : 'unlock' (org) | 'wall' (sous-traitance). */
+  conversionMode?: 'unlock' | 'wall'
 }
 
-export default function CastingCarousel({ items, publicationType, pubSkillsRequired, onMutated }: Props) {
+export default function CastingCarousel({ items, publicationType, pubSkillsRequired, onMutated, messagesBasePath, conversionMode }: Props) {
   const t = useTranslations('candidatures.casting')
   const tCard = useTranslations('candidatures.card')
   const markViewed = useMarkCandidatureViewed()
@@ -56,6 +60,8 @@ export default function CastingCarousel({ items, publicationType, pubSkillsRequi
           pubSkillsRequired={pubSkillsRequired}
           onMutated={onMutated}
           interactive={isCenter}
+          messagesBasePath={messagesBasePath}
+          conversionMode={conversionMode}
         />
       )}
     />

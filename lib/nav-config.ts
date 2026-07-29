@@ -29,7 +29,13 @@ export type NavItem = {
   key: string
   href: string
   iconKey: string
-  badgeSource?: 'messages' | 'candidatures' | 'missions'
+  // A3 : deux sources DISTINCTES pour les candidatures —
+  //   'candidatures'      = candidatures DÉPOSÉES par l'expert (côté candidat)
+  //   'candidatures_org'  = candidatures REÇUES sur les pubs de l'org (côté
+  //                         donneur d'ordre : entreprise OU expert publiant).
+  // Elles ne doivent JAMAIS être sommées : un expert publiant a les deux
+  // non-nulles (cf. hooks/useNavBadges).
+  badgeSource?: 'messages' | 'candidatures' | 'candidatures_org' | 'missions'
   locked?: boolean
   variant?: 'default' | 'link'
 }
@@ -57,7 +63,7 @@ export function dashboardNavSections(
         items: [
           { key: 'dashboard',         href: '/dashboard/entreprise',              iconKey: 'dashboard' },
           { key: 'annonces',          href: '/dashboard/entreprise/annonces',     iconKey: 'annonces' },
-          { key: 'candidatures_org',  href: '/dashboard/entreprise/candidatures', iconKey: 'applications', badgeSource: 'candidatures' },
+          { key: 'candidatures_org',  href: '/dashboard/entreprise/candidatures', iconKey: 'applications', badgeSource: 'candidatures_org' },
           { key: 'messages',          href: '/dashboard/entreprise/messages',     iconKey: 'messages', badgeSource: 'messages' },
         ],
       },
@@ -101,7 +107,9 @@ export function dashboardNavSections(
         // Placeholder (alerte dispo) : pointe vers la racine (déjà route de menu).
         { key: 'alert',       href: `/dashboard/${side}`,                iconKey: 'alert',       variant: 'link', locked: !userIsVerified },
         // Collaboration experts — LIVRÉ : besoin de sous-traitance entre pairs.
-        { key: 'subcontract', href: `/dashboard/${side}/sous-traitance`, iconKey: 'subcontract', variant: 'link' },
+        // Badge = candidatures REÇUES sur les besoins publiés (candidatures_org),
+        // distinct de l'entrée « Candidatures » (déposées) ci-dessus.
+        { key: 'subcontract', href: `/dashboard/${side}/sous-traitance`, iconKey: 'subcontract', variant: 'link', badgeSource: 'candidatures_org' },
       ],
     },
     {

@@ -301,8 +301,17 @@ export default function MessagesInbox({
                         )}
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6 }}>
-                            <span style={{ fontSize: 13, fontWeight: c.unread_count > 0 ? 700 : 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {c.correspondant.name ?? t('unknown_correspondant')}
+                            <span style={{ minWidth: 0, display: 'inline-flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+                              <span style={{ fontSize: 13, fontWeight: c.unread_count > 0 ? 700 : 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {c.correspondant.name ?? t('unknown_correspondant')}
+                              </span>
+                              {/* A5 : étiquette de rôle SOBRE dérivée de correspondant.kind.
+                                  kind='expert' ⇒ le correspondant est un expert ⇒ JE recrute.
+                                  kind='org'    ⇒ le correspondant est une org  ⇒ JE candidate.
+                                  Utile pour l'expert publiant dont l'inbox mêle les deux rôles. */}
+                              <span style={{ flexShrink: 0, fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: '#64748b', background: '#f1f5f9', border: '0.5px solid #e2e8f0', borderRadius: 6, padding: '1px 6px', lineHeight: 1.6 }}>
+                                {c.correspondant.kind === 'expert' ? t('role_recruiter') : t('role_applicant')}
+                              </span>
                             </span>
                             {c.last_message?.created_at && (
                               <span style={{ fontSize: 10, color: '#94a3b8', flexShrink: 0 }}>{relativeFromNow(c.last_message.created_at, locale)}</span>

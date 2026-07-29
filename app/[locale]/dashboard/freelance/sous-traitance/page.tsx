@@ -1,7 +1,7 @@
-import SousTraitanceView from '@/components/collaboration/SousTraitanceView'
+import SousTraitanceListView from '@/components/collaboration/SousTraitanceListView'
 
-// Rendu DANS la coquille dashboard (sidebar + header via freelance/layout →
-// DashboardShell). Page de menu : pas de bouton Retour, sidebar présente.
+// Page de MENU (entrée sidebar « Sous-traitance ») → pas de bouton Retour.
+// Liste des besoins publiés + accès à la publication d'un nouveau besoin.
 export default function FreelanceSousTraitancePage() {
-  return <SousTraitanceView />
+  return <SousTraitanceListView basePath="/dashboard/freelance" />
 }

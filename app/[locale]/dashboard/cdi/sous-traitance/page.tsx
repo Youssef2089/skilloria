@@ -1,6 +1,6 @@
-import SousTraitanceView from '@/components/collaboration/SousTraitanceView'
+import SousTraitanceListView from '@/components/collaboration/SousTraitanceListView'
 
-// Parité freelance : rendu DANS la coquille dashboard (cdi/layout → DashboardShell).
+// Parité freelance : page de MENU (pas de bouton Retour). Liste des besoins.
 export default function CdiSousTraitancePage() {
-  return <SousTraitanceView />
+  return <SousTraitanceListView basePath="/dashboard/cdi" />
 }
