@@ -21,7 +21,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  * cdi'), pour renvoyer vers la LISTE des besoins après publication.
  */
 
-type Phase = 'loading' | 'ready' | 'org_error' | 'published' | 'wall'
+type Phase = 'loading' | 'ready' | 'org_error' | 'published' | 'wall' | 'locked'
 
 export default function SousTraitanceView({ basePath }: { basePath: string }) {
   const t = useTranslations('collaboration')
@@ -44,7 +44,9 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
     try {
       const res = await secureFetch('/api/me/collaboration/ensure-org', { method: 'POST' })
       if (!res.ok) {
-        setPhase('org_error')
+        // C2 : profil non vérifié → état verrouillé explicite.
+        const p = (await res.json().catch(() => ({}))) as { code?: string }
+        setPhase(p.code === 'profile_not_verified' ? 'locked' : 'org_error')
         return
       }
       setPhase('ready')
@@ -162,6 +164,14 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
           <button type="button" onClick={() => void ensureOrg()} style={btn(domain.primaryColor)}>
             {t('retry')}
           </button>
+        </div>
+      )}
+
+      {phase === 'locked' && (
+        <div style={{ ...card, borderColor: '#fde68a', background: '#fffbeb' }}>
+          <div style={{ fontSize: 30, marginBottom: 8 }} aria-hidden>🔒</div>
+          <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: '#92400e' }}>{t('list.locked_title')}</h2>
+          <p style={{ margin: 0, fontSize: 14, color: '#a16207', lineHeight: 1.6 }}>{t('list.locked_body')}</p>
         </div>
       )}
 

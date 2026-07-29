@@ -62,6 +62,8 @@ export default function DashboardEntreprise() {
 
   const [state, setState] = useState<SetupState>({ kind: 'loading' })
   const [needsRedirect, setNeedsRedirect] = useState(false)
+  // C10 : prénom de l'utilisateur connecté pour l'accueil personnalisé.
+  const [firstName, setFirstName] = useState<string | null>(null)
 
   function classifyError(errorMessage: string | null | undefined): 'session_expired' | 'error' {
     if (!errorMessage) return 'error'
@@ -90,6 +92,9 @@ export default function DashboardEntreprise() {
       setNeedsRedirect(true)
       return
     }
+    // C10 : prénom (best-effort, ne bloque pas le rendu si absent).
+    const { data: uRow } = await supabase.from('users').select('first_name').eq('id', session.user.id).maybeSingle()
+    setFirstName(((uRow as { first_name?: string | null } | null)?.first_name ?? '').trim() || null)
     const { data: memberRow, error } = await supabase
       .from('organization_members')
       .select('organizations(id, company_name, verification_status, setup_completed_at)')
@@ -271,7 +276,8 @@ export default function DashboardEntreprise() {
         }}
       >
         <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--sk-text)', margin: 0, letterSpacing: '-0.3px' }}>
-          {t('greeting')} 👋
+          {/* C10 : accueil personnalisé ; fallback sobre si le prénom manque. */}
+          {firstName ? t('greeting_named', { firstName }) : t('greeting')} 👋
         </h1>
         {isApproved ? (
           <Link

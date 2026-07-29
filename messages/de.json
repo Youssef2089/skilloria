@@ -231,7 +231,7 @@
   },
   "dashboard_freelance": {
     "loading": "Wird geladen...",
-    "greeting": "Hallo 👋",
+    "greeting": "Hallo {firstName} 👋",
     "verified_badge": "Verifiziertes Profil",
     "topbar": {
       "available": "Verfügbar",
@@ -1458,6 +1458,7 @@
     },
     "add_logo": "Logo hinzufügen →",
     "greeting": "Hallo",
+    "greeting_named": "Hallo {firstName}",
     "publish_annonce": "Anzeige veröffentlichen",
     "publish_disabled_tooltip": "Verfügbar sobald Ihr Unternehmen verifiziert ist",
     "verification_pending": "Verifizierung ausstehend",
@@ -2563,6 +2564,38 @@
     "blocked_email_is_admin_account": "Diese Adresse gehört zu einem Administratorkonto, das auf diese Weise keiner Organisation beitreten kann.",
     "blocked_email_already_in_organization": "Diese Adresse ist bereits einer anderen Organisation zugeordnet. Ein Konto kann nur zu einer Organisation gehören."
   },
+  "verification_status": {
+    "draft": "Entwurf",
+    "pending": "Verifizierung ausstehend",
+    "approved": "Verifiziertes Profil",
+    "rejected": "Profil abgelehnt"
+  },
+  "expert_onboarding": {
+    "title": "Willkommen! So starten Sie",
+    "subtitle": "Schließen Sie diese Schritte ab, um sichtbar zu werden und Gelegenheiten zu erhalten.",
+    "cta": "Weiter",
+    "unlock": "Die Validierung schaltet frei: Missionen, Bewerbungen, Nachrichten und das Veröffentlichen von Unterauftrags-Bedarfen.",
+    "steps": {
+      "cv": { "title": "Lebenslauf hochladen" },
+      "profile": { "title": "Profil vervollständigen" },
+      "publish": { "title": "Profil veröffentlichen (KI-Prüfung)" },
+      "receive": { "title": "Missionen und Gelegenheiten erhalten" }
+    },
+    "status": {
+      "done": "Erledigt",
+      "current": "Jetzt zu erledigen",
+      "in_progress": "Prüfung läuft",
+      "todo": "Demnächst"
+    }
+  },
+  "collaboration_dashboard": {
+    "title": "Experten-Kollaboration",
+    "locked_chip": "Nicht verifiziert",
+    "see_all": "Alle ansehen",
+    "locked_message": "Veröffentlichen Sie Unterauftrags-Bedarfe und verfolgen Sie deren Bewerbungen, sobald Ihr Profil verifiziert ist.",
+    "empty_body": "Sie haben noch keinen Unterauftrags-Bedarf veröffentlicht.",
+    "publish_cta": "Bedarf veröffentlichen"
+  },
   "collaboration": {
     "page_title": "Unterauftrags-Bedarf",
     "page_subtitle": "Veröffentlichen Sie einen Bedarf und lassen Sie unsere KI verfügbare Experten Ihres Fachgebiets vorschlagen. 1 Veröffentlichung pro Monat, 1 Profil enthüllt.",
@@ -2608,7 +2641,10 @@
       "candidatures_count": "{count, plural, =0 {Keine Bewerbungen} =1 {1 Bewerbung} other {# Bewerbungen}}",
       "new_badge": "Neu",
       "published_at": "Veröffentlicht am {date}",
-      "view_cta": "Verwalten"
+      "view_cta": "Verwalten",
+      "locked_title": "Veröffentlichung gesperrt",
+      "locked_body": "Veröffentlichen Sie einen Unterauftrags-Bedarf, sobald Ihr Profil verifiziert ist. Vervollständigen und veröffentlichen Sie Ihr Profil, um diese Funktion freizuschalten.",
+      "locked_cta": "Mein Profil vervollständigen"
     },
     "detail": {
       "loading": "Wird geladen…",

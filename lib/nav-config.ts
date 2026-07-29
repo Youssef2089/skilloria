@@ -109,13 +109,19 @@ export function dashboardNavSections(
         // Collaboration experts — LIVRÉ : besoin de sous-traitance entre pairs.
         // Badge = candidatures REÇUES sur les besoins publiés (candidatures_org),
         // distinct de l'entrée « Candidatures » (déposées) ci-dessus.
-        { key: 'subcontract', href: `/dashboard/${side}/sous-traitance`, iconKey: 'subcontract', variant: 'link', badgeSource: 'candidatures_org' },
+        // C2 : VERROUILLÉE tant que le profil n'est pas vérifié — comme « Lancer
+        // une alerte ». Publier un besoin exige un profil approved (garde serveur
+        // dans ensure-org + la chaîne de publication ; ce lock est le miroir UI).
+        { key: 'subcontract', href: `/dashboard/${side}/sous-traitance`, iconKey: 'subcontract', variant: 'link', badgeSource: 'candidatures_org', locked: !userIsVerified },
       ],
     },
     {
       sectionKey: 'account',
       items: [
-        { key: 'payments', href: `/dashboard/${side}`,            iconKey: 'payments' },
+        // C4 : entrée « Paiements » retirée du menu expert — les experts sont
+        // GRATUITS par principe (Code du travail), la page n'existait pas (le
+        // lien renvoyait au tableau de bord). Aucune route stub à supprimer
+        // (l'href pointait sur la racine, pas sur un fichier dédié).
         { key: 'settings', href: `/dashboard/${side}/parametres`, iconKey: 'settings' },
       ],
     },

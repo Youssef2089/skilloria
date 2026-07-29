@@ -78,13 +78,14 @@ export default function NotificationBell({ ariaLabel }: { ariaLabel?: string }) 
   const dropdownRef = useRef<HTMLDivElement | null>(null)
   const buttonRef = useRef<HTMLButtonElement | null>(null)
 
-  const load = useCallback(async (silent: boolean) => {
+  const load = useCallback(async (silent: boolean): Promise<Notification[]> => {
     try {
       const res = await secureFetch('/api/me/notifications', { method: 'GET' })
-      if (!res.ok) return
+      if (!res.ok) return []
       const payload = (await res.json()) as { notifications?: Notification[]; unread_count?: number }
+      const list = payload.notifications ?? []
       const newUnread = payload.unread_count ?? 0
-      setItems(payload.notifications ?? [])
+      setItems(list)
       setUnread(newUnread)
       // Point 1 (temps réel) : émet un event quand unread_count AUGMENTE.
       // Les dashboards expert/org l'écoutent pour re-fetch leurs stats sans attendre
@@ -93,8 +94,10 @@ export default function NotificationBell({ ariaLabel }: { ariaLabel?: string }) 
         window.dispatchEvent(new CustomEvent('skilloria:notif-bump', { detail: { unread: newUnread } }))
       }
       previousUnreadRef.current = newUnread
+      return list
     } catch (err) {
       if (!silent) console.error('[NotificationBell] load threw', err)
+      return []
     }
   }, [secureFetch])
 
@@ -128,6 +131,25 @@ export default function NotificationBell({ ariaLabel }: { ariaLabel?: string }) 
     if (n.link_url) router.push(n.link_url)
   }
 
+  // C8 : ouverture du dropdown → refetch, affichage, puis marquage lu SCOPÉ aux
+  // seules notifications affichées (IDs envoyés au serveur).
+  const openAndMarkDisplayed = async () => {
+    const fresh = await load(false)
+    const displayedUnreadIds = fresh.filter((n) => n.read_at === null).map((n) => n.id)
+    if (displayedUnreadIds.length === 0) return
+    const nowIso = new Date().toISOString()
+    // Optimiste : les affichées passent lues immédiatement (dots + compteur).
+    setItems((prev) => prev?.map((x) => displayedUnreadIds.includes(x.id) ? { ...x, read_at: nowIso } : x) ?? null)
+    setUnread((u) => Math.max(0, u - displayedUnreadIds.length))
+    void secureFetch('/api/me/notifications', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ids: displayedUnreadIds }),
+    })
+  }
+
+  // Bouton EXPLICITE « Tout marquer lu » : décision volontaire → marque tout le
+  // non-lu (pas de borne d'IDs). Distinct de l'ouverture du dropdown.
   const handleReadAll = async () => {
     setUnread(0)
     setItems(prev => prev?.map(x => x.read_at === null ? { ...x, read_at: new Date().toISOString() } : x) ?? null)
@@ -140,14 +162,14 @@ export default function NotificationBell({ ariaLabel }: { ariaLabel?: string }) 
         ref={buttonRef}
         type="button"
         onClick={() => {
-          // Ouvrir la cloche marque tout comme lu (compteur rouge effacé +
-          // pastilles « non lu »), comme LinkedIn/FB — même action que le
-          // bouton « Tout marquer lu » (conservé). Les notifs RESTENT listées
-          // (handleReadAll ne flippe que read_at, ne supprime rien). N'affecte
-          // PAS les badges nav Missions/Candidatures (système séparé).
           const next = !open
           setOpen(next)
-          if (next && unread > 0) void handleReadAll()
+          // C8 — correctif « notifs effacées sans avoir été vues » :
+          //  À l'ouverture, on RAFRAÎCHIT d'abord la liste depuis le serveur,
+          //  on l'AFFICHE, PUIS on ne marque lu QUE les notifications réellement
+          //  affichées (par leurs IDs). Une notif arrivée entre le dernier poll
+          //  et le clic est donc d'abord montrée — jamais effacée à l'aveugle.
+          if (next) void openAndMarkDisplayed()
         }}
         aria-label={ariaLabel ?? t('aria_label_bell')}
         aria-expanded={open}

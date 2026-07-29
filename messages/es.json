@@ -231,7 +231,7 @@
   },
   "dashboard_freelance": {
     "loading": "Cargando...",
-    "greeting": "Hola 👋",
+    "greeting": "Hola {firstName} 👋",
     "verified_badge": "Perfil Verificado",
     "topbar": {
       "available": "Disponible",
@@ -1458,6 +1458,7 @@
     },
     "add_logo": "Añadir un logo →",
     "greeting": "Hola",
+    "greeting_named": "Hola {firstName}",
     "publish_annonce": "Publicar un anuncio",
     "publish_disabled_tooltip": "Disponible una vez verificada tu empresa",
     "verification_pending": "Verificación pendiente",
@@ -2563,6 +2564,38 @@
     "blocked_email_is_admin_account": "Esta dirección corresponde a una cuenta de administrador, que no puede unirse a una organización de esta manera.",
     "blocked_email_already_in_organization": "Esta dirección ya está vinculada a otra organización. Una cuenta solo puede pertenecer a una organización."
   },
+  "verification_status": {
+    "draft": "Borrador",
+    "pending": "Pendiente de verificación",
+    "approved": "Perfil verificado",
+    "rejected": "Perfil rechazado"
+  },
+  "expert_onboarding": {
+    "title": "¡Bienvenido! Así puede empezar",
+    "subtitle": "Complete estos pasos para ser visible y recibir oportunidades.",
+    "cta": "Continuar",
+    "unlock": "La validación desbloquea: misiones, candidaturas, mensajería y la publicación de necesidades de subcontratación.",
+    "steps": {
+      "cv": { "title": "Importar su CV" },
+      "profile": { "title": "Completar su perfil" },
+      "publish": { "title": "Publicar su perfil (verificación IA)" },
+      "receive": { "title": "Recibir misiones y oportunidades" }
+    },
+    "status": {
+      "done": "Hecho",
+      "current": "Por hacer ahora",
+      "in_progress": "Verificación en curso",
+      "todo": "Próximamente"
+    }
+  },
+  "collaboration_dashboard": {
+    "title": "Colaboración entre expertos",
+    "locked_chip": "No verificado",
+    "see_all": "Ver todo",
+    "locked_message": "Publique necesidades de subcontratación y siga sus candidaturas una vez verificado su perfil.",
+    "empty_body": "Aún no ha publicado ninguna necesidad de subcontratación.",
+    "publish_cta": "Publicar una necesidad"
+  },
   "collaboration": {
     "page_title": "Necesidad de subcontratación",
     "page_subtitle": "Publique una necesidad y deje que nuestra IA le proponga expertos disponibles de su ámbito. 1 publicación al mes, 1 perfil revelado.",
@@ -2608,7 +2641,10 @@
       "candidatures_count": "{count, plural, =0 {Ninguna candidatura} =1 {1 candidatura} other {# candidaturas}}",
       "new_badge": "Nuevo",
       "published_at": "Publicado el {date}",
-      "view_cta": "Gestionar"
+      "view_cta": "Gestionar",
+      "locked_title": "Publicación bloqueada",
+      "locked_body": "Publique una necesidad de subcontratación una vez verificado su perfil. Complete y publique su perfil para desbloquear esta función.",
+      "locked_cta": "Completar mi perfil"
     },
     "detail": {
       "loading": "Cargando…",

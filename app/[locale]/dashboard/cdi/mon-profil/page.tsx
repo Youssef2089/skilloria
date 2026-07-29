@@ -7,7 +7,8 @@ import { Link, useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import EmptyState from '@/components/ui/EmptyState'
-import { deriveVerificationUiState, verificationChipColors } from '@/lib/verification-state'
+import { deriveVerificationUiState } from '@/lib/verification-state'
+import VerificationStatusPill from '@/components/dashboard/VerificationStatusPill'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import { useAvatarUrl } from '@/hooks/useAvatarUrl'
@@ -817,7 +818,6 @@ function Header({
   const statusColor = status ? STATUS_BADGE_COLORS[status] : null
   // Lot bandeau vérif : badge piloté par l'état réel (plus de vert affiché à
   // tort quand pending_admin_review). Le badge "marché" cdi_status est distinct.
-  const tVerifBadge = useTranslations('expert_verification.badge')
   const verifState = deriveVerificationUiState({
     visible: profile?.visible ?? null,
     verificationStatus: profile?.verification_status ?? null,
@@ -867,50 +867,9 @@ function Header({
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <LanguageSwitcher />
-        {verifState === 'approved' ? (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              background: '#dcfce7',
-              border: '1px solid #bbf7d0',
-              padding: '5px 12px',
-              borderRadius: 999,
-              fontSize: 12,
-              fontWeight: 600,
-              color: '#15803d',
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" fill="#22c55e" />
-              <path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span>{t('verified_badge')}</span>
-          </div>
-        ) : (
-          (() => {
-            const c = verificationChipColors(verifState)
-            return (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  background: c.bg,
-                  border: `1px solid ${c.border}`,
-                  padding: '5px 12px',
-                  borderRadius: 999,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: c.fg,
-                }}
-              >
-                <span>{tVerifBadge(verifState)}</span>
-              </div>
-            )
-          })()
-        )}
+        {/* C6 : pastille de statut = SOURCE UNIQUE (VerificationStatusPill),
+            rendue par les 5 états réels. Parité stricte avec freelance. */}
+        <VerificationStatusPill state={verifState} />
         {status && statusColor && (
           <div
             style={{

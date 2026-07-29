@@ -18,6 +18,9 @@ import CrossOpenToggle from '@/components/dashboard/CrossOpenToggle'
 import { useMatchingAnalyzing } from '@/hooks/useMatchingAnalyzing'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
+import VerificationStatusPill from '@/components/dashboard/VerificationStatusPill'
+import ExpertOnboardingGuide from '@/components/dashboard/ExpertOnboardingGuide'
+import CollaborationDashboardBlock from '@/components/dashboard/CollaborationDashboardBlock'
 import { deriveVerificationUiState } from '@/lib/verification-state'
 import { emitAvailabilityChanged } from '@/lib/availability-actions'
 import { useSecureFetch } from '@/lib/secure-fetch'
@@ -114,11 +117,11 @@ export default function DashboardCDI() {
   const isVerified = !!user?.is_verified
   // Lot bandeau vérif : état réel pour le badge greeting (plus de "vérifié"
   // affiché à tort quand en attente de validation admin).
-  const isApprovedState =
-    deriveVerificationUiState({
-      visible: (profile?.visible ?? null) as boolean | null,
-      verificationStatus: (profile?.verification_status ?? null) as string | null,
-    }) === 'approved'
+  const verifState = deriveVerificationUiState({
+    visible: (profile?.visible ?? null) as boolean | null,
+    verificationStatus: (profile?.verification_status ?? null) as string | null,
+  })
+  const isApprovedState = verifState === 'approved'
   // Lot UX refetch auto post-matching (parité freelance) : pendant la fenêtre
   // d'analyse (verified_at récent OU trigger client récent), on poll vite (3s)
   // et on affiche un état transitoire "Analyse en cours". Hors fenêtre = 30s.
@@ -472,34 +475,11 @@ export default function DashboardCDI() {
                 {t('hello', { firstName: greetingName })}
               </h1>
 
-              {/* Verified badge inline (parité freelance) — état réel */}
-              {isApprovedState && (
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    marginRight: 8,
-                    animation: 'fadeIn 0.6s ease 0.3s both',
-                  }}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-                    <circle cx="12" cy="12" r="10" fill={domain.primaryColor} />
-                    <path
-                      d="M8 12l3 3 5-5"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span
-                    style={{ fontSize: 13, color: domain.primaryColor, fontWeight: 500 }}
-                  >
-                    {t('verified_badge')}
-                  </span>
-                </div>
-              )}
+              {/* C6 : pastille de statut = SOURCE UNIQUE (même que la topbar
+                  « Mon Profil » et la home freelance), rendue par les 5 états. */}
+              <div style={{ display: 'inline-flex', marginRight: 8, animation: 'fadeIn 0.6s ease 0.3s both' }}>
+                <VerificationStatusPill state={verifState} />
+              </div>
 
               {/* Status écoute marché badge (existant) */}
               {currentStatus && statusBadgeColor && (
@@ -534,6 +514,17 @@ export default function DashboardCDI() {
             {/* Lot A : tuile "Score IA" supprimée — voir commentaire en
                 tête de SECTION 1. */}
           </div>
+
+          {/* C1 — Guide d'onboarding : visible tant que le profil n'est pas
+              vérifié. Disparaît une fois approved. Parité freelance. */}
+          {!isApprovedState && (
+            <ExpertOnboardingGuide
+              basePath="/dashboard/cdi"
+              cvDone={profile?.cv_parsing_status === 'done'}
+              profileComplete={completionPercent >= 100}
+              verifState={verifState}
+            />
+          )}
 
           {/* SECTION 2 — Hero "Statut écoute marché" */}
           <div className="main-card" style={{ animationDelay: '0.05s' }}>
@@ -678,7 +669,11 @@ export default function DashboardCDI() {
                   {t('suggestions_section.ai_badge')}
                 </span>
               </div>
-              <Link href="/dashboard/cdi/missions" style={{ color: domain.primaryColor, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>{t('suggestions_section.see_all')}</Link>
+              {/* C3 : lien désactivé tant que non vérifié (rien à voir avant
+                  validation), même traitement que côté freelance. */}
+              {!isVerified
+                ? <span style={{ background: '#f3f4f6', color: '#9ca3af', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('suggestions_section.locked_chip')}</span>
+                : <Link href="/dashboard/cdi/missions" style={{ color: domain.primaryColor, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>{t('suggestions_section.see_all')}</Link>}
             </div>
             {!isApprovedState ? (
               <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
@@ -850,6 +845,12 @@ export default function DashboardCDI() {
                 )}
               />
             )}
+          </div>
+
+          {/* C9 — Collaboration experts : MES besoins publiés (parité freelance,
+              absent jusqu'ici côté CDI). Verrou non-vérifié interne au composant. */}
+          <div style={{ marginTop: 20 }}>
+            <CollaborationDashboardBlock basePath="/dashboard/cdi" isVerified={isVerified} />
           </div>
       </div>
 

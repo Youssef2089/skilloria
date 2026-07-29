@@ -8,6 +8,9 @@ import { useDomain } from '@/context/DomainContext'
 import TJMQuickEditModal from '@/components/TJMQuickEditModal'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import { deriveVerificationUiState } from '@/lib/verification-state'
+import VerificationStatusPill from '@/components/dashboard/VerificationStatusPill'
+import ExpertOnboardingGuide from '@/components/dashboard/ExpertOnboardingGuide'
+import CollaborationDashboardBlock from '@/components/dashboard/CollaborationDashboardBlock'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import MissionCastingCard from '@/components/dashboard/MissionCastingCard'
 import CandidatureCastingCard from '@/components/dashboard/CandidatureCastingCard'
@@ -417,6 +420,9 @@ export default function DashboardFreelance() {
   const firstName = (user?.first_name ?? '').trim()
   const lastName = (user?.last_name ?? '').trim()
   const fullName = `${firstName} ${lastName}`.trim() || tCommon('user_fallback')
+  // C10 : prénom pour l'accueil personnalisé ; fallback sur le nom complet puis
+  // sur le libellé générique — la phrase ne casse jamais si le prénom manque.
+  const greetingName = firstName || fullName
   const initials =
     ((firstName[0] ?? '') + (lastName[0] ?? '')).toUpperCase() ||
     fullName.substring(0, 2).toUpperCase() ||
@@ -552,17 +558,24 @@ export default function DashboardFreelance() {
           {/* Lot A : tuile "Score IA" retirée (UI placeholder vide qui
               n'alimentait rien). Le titre garde le même bloc d'en-tête. */}
           <div style={{ marginBottom: 26, animation: 'fadeInUp 0.4s ease' }}>
-            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginBottom: 8 }}>{t('greeting')}</h1>
-            {isApprovedState && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'fadeIn 0.6s ease 0.3s both' }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" fill={domain.primaryColor}/>
-                  <path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span style={{ fontSize: 13, color: domain.primaryColor, fontWeight: 500 }}>{t('verified_badge')}</span>
-              </div>
-            )}
+            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginBottom: 8 }}>{t('greeting', { firstName: greetingName })}</h1>
+            {/* C6 : statut de vérification = même pastille que la topbar « Mon
+                Profil » (source unique). C10 : greeting personnalisé. */}
+            <div style={{ animation: 'fadeIn 0.6s ease 0.3s both' }}>
+              <VerificationStatusPill state={verifState} />
+            </div>
           </div>
+
+          {/* C1 — Guide d'onboarding : visible tant que le profil n'est pas
+              vérifié. Disparaît une fois approved. */}
+          {!isApprovedState && (
+            <ExpertOnboardingGuide
+              basePath="/dashboard/freelance"
+              cvDone={profile?.cv_parsing_status === 'done'}
+              profileComplete={(stats.completion_pct ?? 0) >= 100}
+              verifState={verifState}
+            />
+          )}
 
           {/* Lot état 'selected' : 4 stat-cards de comptage (Postulées, En
               discussion, Acceptées, Refusées) + TJM card = 5 tuiles total. La
@@ -648,7 +661,11 @@ export default function DashboardFreelance() {
                 <span style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>{t('cards.recommended_missions.title')}</span>
                 <span style={{ background: '#ede9fe', color: '#6d28d9', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 20 }}>{t('cards.recommended_missions.ai_badge')}</span>
               </div>
-              <Link href="/dashboard/freelance/missions" className="voir-tout" style={{ color: domain.primaryColor }}>{t('cards.see_all')}</Link>
+              {/* C3 : lien désactivé tant que non vérifié (rien à voir avant
+                  validation), même traitement que le bloc Collaboration. */}
+              {!isVerified
+                ? <span style={{ background: '#f3f4f6', color: '#9ca3af', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('cards.locked_chip')}</span>
+                : <Link href="/dashboard/freelance/missions" className="voir-tout" style={{ color: domain.primaryColor }}>{t('cards.see_all')}</Link>}
             </div>
             {!isApproved ? (
               <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
@@ -743,7 +760,10 @@ export default function DashboardFreelance() {
             <div className="main-card" style={{ animationDelay: '0.38s' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <span style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>{t('cards.your_candidatures.title')}</span>
-                <Link href="/dashboard/freelance/candidatures" className="voir-tout" style={{ color: domain.primaryColor }}>{t('cards.see_all')}</Link>
+                {/* C3 : lien désactivé tant que non vérifié. */}
+                {!isVerified
+                  ? <span style={{ background: '#f3f4f6', color: '#9ca3af', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('cards.locked_chip')}</span>
+                  : <Link href="/dashboard/freelance/candidatures" className="voir-tout" style={{ color: domain.primaryColor }}>{t('cards.see_all')}</Link>}
               </div>
               {recentCandidatures === null ? (
                 <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af' }}>
@@ -763,22 +783,10 @@ export default function DashboardFreelance() {
               )}
             </div>
 
-          {/* Collaboration experts */}
-          <div className="main-card" style={{ opacity: isVerified ? 1 : 0.6, marginBottom: 0, animationDelay: '0.4s' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>{t('cards.expert_collaboration.title')}</span>
-                <span style={{ background: '#dcfce7', color: '#15803d', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 20 }}>{t('cards.expert_collaboration.new_badge')}</span>
-              </div>
-              {!isVerified
-                ? <span style={{ background: '#f3f4f6', color: '#9ca3af', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('cards.locked_chip')}</span>
-                : <span className="voir-tout" style={{ color: domain.primaryColor }}>{t('cards.see_all')}</span>
-              }
-            </div>
-            <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
-              {isVerified ? t('cards.expert_collaboration.empty_verified') : t('cards.empty_unverified')}
-            </div>
-          </div>
+          {/* C9 — Collaboration experts : MES besoins publiés (miroir « Mes
+              annonces » entreprise), plus les besoins reçus (doublon Missions).
+              Verrou non-vérifié conservé (interne au composant). */}
+          <CollaborationDashboardBlock basePath="/dashboard/freelance" isVerified={isVerified} />
 
         </div>
 

@@ -41,6 +41,33 @@ export function deriveVerificationUiState(input: {
   return 'draft'
 }
 
+/**
+ * Clé i18n (namespace `verification_status`) du LIBELLÉ par état (C6).
+ * admin_review partage le libellé de pending : dans les deux cas une demande de
+ * publication a été faite et la vérif n'a pas rendu son verdict → « En attente
+ * de vérification ». draft n'est JAMAIS « en attente » (rien ne tourne).
+ */
+export function verificationStatusLabelKey(state: VerificationUiState): 'draft' | 'pending' | 'approved' | 'rejected' {
+  switch (state) {
+    case 'approved': return 'approved'
+    case 'rejected': return 'rejected'
+    case 'admin_review':
+    case 'pending': return 'pending'
+    default: return 'draft'
+  }
+}
+
+/** Couleur de la pastille (point) par état — cohérente avec verificationChipColors. */
+export function verificationDotColor(state: VerificationUiState): string {
+  switch (state) {
+    case 'approved': return '#22c55e'
+    case 'pending': return '#3b82f6'
+    case 'admin_review': return '#eab308'
+    case 'rejected': return '#ef4444'
+    default: return '#94a3b8'
+  }
+}
+
 /** Couleurs du chip de statut "Mon Profil" par état (fond / bordure / texte). */
 export function verificationChipColors(state: VerificationUiState): {
   bg: string

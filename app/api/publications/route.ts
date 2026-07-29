@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
+import { isExpertProfileApproved, PROFILE_NOT_VERIFIED_CODE } from '@/lib/expert-verified-guard'
 import { loadTranslations, tBDD } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import type {
@@ -178,6 +179,15 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Invalid input', code: v.error }, 400)
   }
   const input = v.input
+
+  // ── C2 : GARDE profil approuvé, SCOPÉE sous_traitance ────────────────────
+  //  Seuls les besoins de sous-traitance émanent d'un expert (org personnelle).
+  //  On exige que SON profil soit approved — même par appel direct à l'API.
+  //  Les vraies orgs (mission/offre) n'ont pas de profil expert → non gardées.
+  if (input.type === 'sous_traitance'
+    && !(await isExpertProfileApproved(auth.supabaseAdmin, auth.user.id))) {
+    return json({ error: 'Profile not verified', code: PROFILE_NOT_VERIFIED_CODE }, 403)
+  }
 
   // ── INSERT brouillon ────────────────────────────────────────────────────
   const { data: row, error: insertErr } = await auth.supabaseAdmin

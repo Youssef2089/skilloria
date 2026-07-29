@@ -231,7 +231,7 @@
   },
   "dashboard_freelance": {
     "loading": "Loading...",
-    "greeting": "Hello 👋",
+    "greeting": "Hello {firstName} 👋",
     "verified_badge": "Verified Profile",
     "topbar": {
       "available": "Available",
@@ -1458,6 +1458,7 @@
     },
     "add_logo": "Add a logo →",
     "greeting": "Hello",
+    "greeting_named": "Hello {firstName}",
     "publish_annonce": "Post a listing",
     "publish_disabled_tooltip": "Available once your company is verified",
     "verification_pending": "Verification pending",
@@ -2563,6 +2564,38 @@
     "blocked_email_is_admin_account": "This address matches an administrator account, which cannot join an organisation this way.",
     "blocked_email_already_in_organization": "This address is already attached to another organisation. An account can only belong to one organisation."
   },
+  "verification_status": {
+    "draft": "Draft",
+    "pending": "Pending verification",
+    "approved": "Verified profile",
+    "rejected": "Profile rejected"
+  },
+  "expert_onboarding": {
+    "title": "Welcome! Here's how to get started",
+    "subtitle": "Complete these steps to become visible and receive opportunities.",
+    "cta": "Continue",
+    "unlock": "Validation unlocks: missions, applications, messaging and posting subcontracting needs.",
+    "steps": {
+      "cv": { "title": "Upload your CV" },
+      "profile": { "title": "Complete your profile" },
+      "publish": { "title": "Publish your profile (AI verification)" },
+      "receive": { "title": "Receive missions and opportunities" }
+    },
+    "status": {
+      "done": "Done",
+      "current": "To do now",
+      "in_progress": "Verification in progress",
+      "todo": "Coming up"
+    }
+  },
+  "collaboration_dashboard": {
+    "title": "Expert collaboration",
+    "locked_chip": "Not verified",
+    "see_all": "See all",
+    "locked_message": "Post subcontracting needs and track their applications once your profile is verified.",
+    "empty_body": "You haven't posted any subcontracting need yet.",
+    "publish_cta": "Post a need"
+  },
   "collaboration": {
     "page_title": "Subcontracting need",
     "page_subtitle": "Post a need and let our AI suggest available experts in your field. 1 post per month, 1 profile revealed.",
@@ -2608,7 +2641,10 @@
       "candidatures_count": "{count, plural, =0 {No applications} =1 {1 application} other {# applications}}",
       "new_badge": "New",
       "published_at": "Posted on {date}",
-      "view_cta": "Manage"
+      "view_cta": "Manage",
+      "locked_title": "Publishing locked",
+      "locked_body": "Post a subcontracting need once your profile is verified. Complete and publish your profile to unlock this feature.",
+      "locked_cta": "Complete my profile"
     },
     "detail": {
       "loading": "Loading…",

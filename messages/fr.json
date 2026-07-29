@@ -231,7 +231,7 @@
   },
   "dashboard_freelance": {
     "loading": "Chargement...",
-    "greeting": "Bonjour 👋",
+    "greeting": "Bonjour {firstName} 👋",
     "verified_badge": "Profil Vérifié",
     "topbar": {
       "available": "Disponible",
@@ -1458,6 +1458,7 @@
     },
     "add_logo": "Ajouter un logo →",
     "greeting": "Bonjour",
+    "greeting_named": "Bonjour {firstName}",
     "publish_annonce": "Publier une annonce",
     "publish_disabled_tooltip": "Disponible une fois votre entreprise vérifiée",
     "verification_pending": "En attente de vérification",
@@ -2563,6 +2564,38 @@
     "blocked_email_is_admin_account": "Cette adresse correspond à un compte administrateur, qui ne peut pas rejoindre une organisation de cette manière.",
     "blocked_email_already_in_organization": "Cette adresse est déjà rattachée à une autre organisation. Un compte ne peut appartenir qu'à une seule organisation."
   },
+  "verification_status": {
+    "draft": "Brouillon",
+    "pending": "En attente de vérification",
+    "approved": "Profil vérifié",
+    "rejected": "Profil refusé"
+  },
+  "expert_onboarding": {
+    "title": "Bienvenue ! Voici comment démarrer",
+    "subtitle": "Complétez ces étapes pour devenir visible et recevoir des opportunités.",
+    "cta": "Continuer",
+    "unlock": "La validation débloque : missions, candidatures, messagerie et la publication de besoins de sous-traitance.",
+    "steps": {
+      "cv": { "title": "Importer votre CV" },
+      "profile": { "title": "Compléter votre profil" },
+      "publish": { "title": "Publier votre profil (vérification IA)" },
+      "receive": { "title": "Recevoir missions et opportunités" }
+    },
+    "status": {
+      "done": "Fait",
+      "current": "À faire maintenant",
+      "in_progress": "Vérification en cours",
+      "todo": "À venir"
+    }
+  },
+  "collaboration_dashboard": {
+    "title": "Collaboration experts",
+    "locked_chip": "Non vérifié",
+    "see_all": "Voir tout",
+    "locked_message": "Publiez des besoins de sous-traitance et suivez leurs candidatures une fois votre profil vérifié.",
+    "empty_body": "Vous n'avez pas encore publié de besoin de sous-traitance.",
+    "publish_cta": "Publier un besoin"
+  },
   "collaboration": {
     "page_title": "Besoin de sous-traitance",
     "page_subtitle": "Publiez un besoin et laissez notre IA vous proposer des experts disponibles de votre domaine. 1 publication par mois, 1 profil dévoilé.",
@@ -2608,7 +2641,10 @@
       "candidatures_count": "{count, plural, =0 {Aucune candidature} =1 {1 candidature} other {# candidatures}}",
       "new_badge": "Nouveau",
       "published_at": "Publié le {date}",
-      "view_cta": "Gérer"
+      "view_cta": "Gérer",
+      "locked_title": "Publication verrouillée",
+      "locked_body": "Publiez un besoin de sous-traitance une fois votre profil vérifié. Terminez votre profil et publiez-le pour débloquer cette fonctionnalité.",
+      "locked_cta": "Compléter mon profil"
     },
     "detail": {
       "loading": "Chargement…",

@@ -18,7 +18,7 @@ import type { Annonce } from '@/types/annonce'
  * `basePath` = '/dashboard/freelance' | '/dashboard/cdi'.
  */
 
-type Phase = 'loading' | 'ready' | 'org_error'
+type Phase = 'loading' | 'ready' | 'org_error' | 'locked'
 type Quota = { activePublicationsMax: number | null; activePublishedCount: number; canPublish: boolean }
 
 export default function SousTraitanceListView({ basePath }: { basePath: string }) {
@@ -37,7 +37,12 @@ export default function SousTraitanceListView({ basePath }: { basePath: string }
     try {
       // 1. Org perso garantie (idempotent) avant toute lecture org-scopée.
       const orgRes = await secureFetch('/api/me/collaboration/ensure-org', { method: 'POST' })
-      if (!orgRes.ok) { setPhase('org_error'); return }
+      if (!orgRes.ok) {
+        // C2 : profil non vérifié → état verrouillé explicite (pas une erreur).
+        const p = (await orgRes.json().catch(() => ({}))) as { code?: string }
+        setPhase(p.code === 'profile_not_verified' ? 'locked' : 'org_error')
+        return
+      }
 
       // 2. Besoins + quota en parallèle.
       const [pubsRes, quotaRes] = await Promise.all([
@@ -99,6 +104,17 @@ export default function SousTraitanceListView({ basePath }: { basePath: string }
 
       {phase === 'loading' && (
         <div style={{ padding: 40, color: '#64748b', fontSize: 14 }}>{t('loading')}</div>
+      )}
+
+      {phase === 'locked' && (
+        <div style={{ maxWidth: 640, border: '1px solid #fde68a', background: '#fffbeb', borderRadius: 16, padding: 28 }}>
+          <div style={{ fontSize: 30, marginBottom: 10 }} aria-hidden>🔒</div>
+          <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: '#92400e' }}>{t('locked_title')}</h2>
+          <p style={{ margin: '0 0 18px', fontSize: 14, color: '#a16207', lineHeight: 1.6 }}>{t('locked_body')}</p>
+          <Link href={`${basePath}/profil/valider`} style={{ display: 'inline-flex', padding: '10px 16px', background: domain.primaryColor, color: '#fff', borderRadius: 10, fontSize: 13.5, fontWeight: 700, textDecoration: 'none' }}>
+            {t('locked_cta')}
+          </Link>
+        </div>
       )}
 
       {phase === 'org_error' && (

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
+import { isExpertProfileApproved, PROFILE_NOT_VERIFIED_CODE } from '@/lib/expert-verified-guard'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -65,6 +66,14 @@ export async function POST(request: NextRequest): Promise<Response> {
   const userType = userRow.user_type as string | null
   if (userType !== 'expert_freelance' && userType !== 'expert_cdi') {
     return json({ error: 'Experts only', code: 'forbidden' }, 403)
+  }
+
+  // ── C2 : GARDE profil approuvé (checklist #4/#20) ────────────────────────
+  //  Un expert non vérifié ne peut pas créer son espace de collaboration ni,
+  //  par ricochet, publier un besoin. Verrou SERVEUR (non contournable par un
+  //  appel direct), miroir du lock UI de la sidebar.
+  if (!(await isExpertProfileApproved(auth.supabaseAdmin, auth.user.id))) {
+    return json({ error: 'Profile not verified', code: PROFILE_NOT_VERIFIED_CODE }, 403)
   }
 
   // ── Idempotence : org personnelle déjà présente ? ────────────────────────

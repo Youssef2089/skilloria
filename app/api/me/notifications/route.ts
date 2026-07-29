@@ -49,7 +49,18 @@ export async function GET(request: NextRequest): Promise<Response> {
 }
 
 /**
- * POST /api/me/notifications/read-all — marque toutes les notifs non-lues comme lues.
+ * POST /api/me/notifications — marque des notifications comme lues.
+ *
+ * Body optionnel `{ ids?: string[] }` (C8 — correctif « notifs effacées sans
+ * avoir été vues ») :
+ *   - ids fourni  → ne marque QUE ces notifications (celles réellement
+ *     AFFICHÉES par le client au moment du clic). Une notif arrivée après le
+ *     dernier fetch n'est donc jamais marquée lue par un clic qui ne l'a pas
+ *     montrée.
+ *   - ids absent  → marque tout le non-lu (action EXPLICITE « Tout marquer
+ *     lu »). C'est une décision volontaire de l'utilisateur, pas un effet de
+ *     bord de l'ouverture du dropdown.
+ * Toujours scopé à `user_id = auth.user.id`.
  */
 export async function POST(request: NextRequest): Promise<Response> {
   let auth: AuthContext
@@ -60,14 +71,33 @@ export async function POST(request: NextRequest): Promise<Response> {
     throw err
   }
 
+  let ids: string[] | null = null
+  try {
+    const body = (await request.json().catch(() => null)) as { ids?: unknown } | null
+    if (body && Array.isArray(body.ids)) {
+      ids = body.ids.filter((v): v is string => typeof v === 'string')
+    }
+  } catch {
+    /* body vide/non-JSON → traité comme « tout marquer lu » */
+  }
+
+  // ids=[] explicite → rien à marquer (évite un UPDATE global accidentel).
+  if (ids !== null && ids.length === 0) {
+    return json({ ok: true, marked: 0 }, 200)
+  }
+
   const nowIso = new Date().toISOString()
-  const { error } = await auth.supabaseAdmin
+  let query = auth.supabaseAdmin
     .from('notifications')
     .update({ read_at: nowIso, status: 'read' })
     .eq('user_id', auth.user.id)
     .is('read_at', null)
+  if (ids !== null) {
+    query = query.in('id', ids)
+  }
+  const { error } = await query
   if (error) {
-    console.error('[me/notifications:POST] read-all failed', error.message)
+    console.error('[me/notifications:POST] read update failed', error.message)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
   return json({ ok: true }, 200)

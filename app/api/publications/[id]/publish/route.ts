@@ -8,6 +8,7 @@ import type {
 } from '@/lib/verification/ai-publication-quality'
 import { runMatching } from '@/lib/matching'
 import { getOrgEntitlements, consumeQuota, monthlyPeriodStart } from '@/lib/entitlements'
+import { isExpertProfileApproved, PROFILE_NOT_VERIFIED_CODE } from '@/lib/expert-verified-guard'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -111,6 +112,15 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
       { error: 'Cannot publish', code: 'wrong_status', current_status: currentStatus },
       409,
     )
+  }
+
+  // ── C2 : GARDE profil approuvé, SCOPÉE sous_traitance ────────────────────
+  //  Gate final : même si un draft sous_traitance existait, on refuse la
+  //  publication tant que l'expert (created_by = lui) n'est pas approved.
+  //  Verrou SERVEUR non contournable ; les mission/offre (vraies orgs) passent.
+  if ((pub.type as string) === 'sous_traitance'
+    && !(await isExpertProfileApproved(auth.supabaseAdmin, auth.user.id))) {
+    return json({ error: 'Profile not verified', code: PROFILE_NOT_VERIFIED_CODE }, 403)
   }
 
   // ── GATE COMMERCE (Lot 2) : plafond de publications actives + quota mensuel ─

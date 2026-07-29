@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import EmptyState from '@/components/ui/EmptyState'
 import { deriveVerificationUiState, verificationChipColors } from '@/lib/verification-state'
+import VerificationStatusPill from '@/components/dashboard/VerificationStatusPill'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import AvatarEditOverlay from '@/components/dashboard/AvatarEditOverlay'
@@ -891,24 +892,10 @@ export default function MonProfilPage() {
         <div />
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <LanguageSwitcher />
-          {/* Pastille "Disponible" : n'est VRAIE qu'une fois le profil approuvé
-              (un profil non validé n'est pas visible aux clients dans le
-              matching). Sinon → pastille "En attente", cohérente avec le badge. */}
-          {verifState === 'approved' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#dcfce7', border: '1px solid #bbf7d0', padding: '7px 16px', borderRadius: 20 }}>
-              <div className="pulse-dot" style={{ background: '#22c55e' }} />
-              <span style={{ fontSize: 13, fontWeight: 500, color: '#15803d', whiteSpace: 'nowrap' }}>
-                {tDash('topbar.available')}
-              </span>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fef9c3', border: '1px solid #fde68a', padding: '7px 16px', borderRadius: 20 }}>
-              <div className="pulse-dot" style={{ background: '#eab308' }} />
-              <span style={{ fontSize: 13, fontWeight: 500, color: '#92400e', whiteSpace: 'nowrap' }}>
-                {tDash('topbar.pending')}
-              </span>
-            </div>
-          )}
+          {/* C6 : pastille de statut = SOURCE UNIQUE (VerificationStatusPill),
+              rendue par les 5 états réels. Fini le binaire approved/En attente
+              qui affichait « En attente » sur un brouillon. */}
+          <VerificationStatusPill state={verifState} />
         </div>
       </div>
 
