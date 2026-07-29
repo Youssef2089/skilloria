@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { randomUUID } from 'node:crypto'
-import { logAudit } from '@/lib/audit'
+import { purgeAccount, type PurgeableUser } from '@/lib/account-purge'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -32,7 +31,6 @@ export const dynamic = 'force-dynamic'
  */
 
 const BATCH_LIMIT = 200
-const PERMANENT_BAN = '876000h' // ~100 ans
 
 function getAdmin(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -52,97 +50,9 @@ function unauthorized(): Response {
   })
 }
 
-type DueUser = {
-  id: string
-  domain_id: string
-  email: string | null
-}
-
-async function purgeOne(admin: SupabaseClient, u: DueUser): Promise<void> {
-  const uid = u.id
-  const placeholderEmail = `deleted+${uid}@deleted.invalid`
-
-  // 1. Bloque le login + libère l'email d'origine (auth = source de vérité).
-  //    Si ça échoue, on lève → le compte n'est PAS marqué et sera repris.
-  const { error: authErr } = await admin.auth.admin.updateUserById(uid, {
-    email: placeholderEmail,
-    password: randomUUID() + randomUUID(),
-    ban_duration: PERMANENT_BAN,
-  })
-  if (authErr) {
-    throw new Error(`auth_update_failed: ${authErr.message}`)
-  }
-
-  // 2. Suppression des fichiers perso (best-effort, ne bloque pas la purge).
-  const { data: prof } = await admin
-    .from('profiles')
-    .select('id, cv_file_path')
-    .eq('user_id', uid)
-    .maybeSingle()
-  if (prof?.cv_file_path) {
-    const { error: cvErr } = await admin.storage.from('cv').remove([prof.cv_file_path])
-    if (cvErr) console.error('[purge] cv remove failed', { uid, msg: cvErr.message })
-  }
-  const { error: avErr } = await admin.storage.from('avatars').remove([`${uid}/avatar.jpg`])
-  if (avErr) console.error('[purge] avatar remove failed', { uid, msg: avErr.message })
-
-  // 3. Anonymisation du profil (PII vidées, invisible).
-  if (prof?.id) {
-    const { error: profErr } = await admin
-      .from('profiles')
-      .update({
-        visible: false,
-        pre_deletion_visible: null,
-        summary: null,
-        title: null,
-        photo_url: null,
-        cv_file_path: null,
-        cv_url: null,
-        cv_hash: null,
-        address_line: null,
-        postal_code: null,
-        birth_year: null,
-        linkedin_url: null,
-        phone: null,
-        city: null,
-        location: null,
-        skills: [],
-        languages: [],
-        certifications: [],
-      })
-      .eq('id', prof.id)
-    if (profErr) throw new Error(`profile_anonymize_failed: ${profErr.message}`)
-  }
-
-  // 4. Anonymisation du user (anonymized_at posé EN DERNIER → idempotence).
-  const { error: userErr } = await admin
-    .from('users')
-    .update({
-      email: placeholderEmail,
-      first_name: null,
-      last_name: null,
-      phone: null,
-      phone_verified: false,
-      linkedin_url: null,
-      civility: null,
-      job_title: null,
-      status: 'deleted',
-      last_session_token: null,
-      anonymized_at: new Date().toISOString(),
-    })
-    .eq('id', uid)
-  if (userErr) throw new Error(`user_anonymize_failed: ${userErr.message}`)
-
-  await logAudit({
-    supabaseAdmin: admin,
-    user_id: uid,
-    domain_id: u.domain_id,
-    action: 'account_purged',
-    entity_type: 'user',
-    entity_id: uid,
-    detail: { anonymized: true },
-  })
-}
+// L'anonymisation elle-même vit désormais dans lib/account-purge.ts
+// (purgeAccount), partagée avec la purge des comptes INACTIFS. Cette route ne
+// garde que la SÉLECTION des comptes échus (deletion_scheduled_at <= now()).
 
 async function handle(request: NextRequest): Promise<Response> {
   const secret = process.env.CRON_SECRET
@@ -177,13 +87,13 @@ async function handle(request: NextRequest): Promise<Response> {
     })
   }
 
-  const due = (dueRaw ?? []) as DueUser[]
+  const due = (dueRaw ?? []) as PurgeableUser[]
   let purged = 0
   const failed: { id: string; error: string }[] = []
 
   for (const u of due) {
     try {
-      await purgeOne(admin, u)
+      await purgeAccount(admin, u)
       purged += 1
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)

@@ -9,6 +9,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
 import SessionHeartbeat from '@/components/SessionHeartbeat'
 import DeletionGate from '@/components/DeletionGate'
 import GlobalBackButton from '@/components/shell/GlobalBackButton'
+import LegalFooter from '@/components/layout/LegalFooter'
 import { ADMIN_NAV_SECTIONS } from '@/lib/nav-config'
 
 /** Icônes de la sidebar admin, indexées par `iconKey` de ADMIN_NAV_SECTIONS. */
@@ -297,9 +298,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      <main className="admin-main" style={{ padding: '24px 26px', minWidth: 0 }}>
+      <main className="admin-main" style={{ padding: '24px 26px', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <GlobalBackButton />
-        {children}
+        <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+        {/* Point B — accès universel aux pages légales depuis l'admin. */}
+        <div style={{ marginTop: 24 }}>
+          <LegalFooter />
+        </div>
       </main>
       </div>
     </>

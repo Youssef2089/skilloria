@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { LEGAL_PATHS } from '@/lib/legal'
 
 type FormState = {
   first_name: string
@@ -295,12 +296,15 @@ export default function InscriptionOrganisationPage() {
           domain_slug: domain.subdomain,
           org_type: 'client',
           email_redirect_to: emailRedirectTo,
+          // Acceptation des CGU — transmise pour preuve serveur (point C).
+          cgu_accepted: form.cgu,
         }),
       })
       const json = (await res.json().catch(() => ({}))) as { code?: string; error?: string }
       if (!res.ok) {
         const c = json.code
         if (c === 'email_domain_blocked') setSubmitError(t('errors.email_domain_blocked'))
+        else if (c === 'cgu_required') setSubmitError(t('errors.cgu_required'))
         else if (c === 'email_domain_taken') setSubmitError(t('errors.email_domain_taken'))
         else if (c === 'phone_otp_required') setSubmitError(t('errors.phone_not_verified'))
         else if (c === 'invalid_email') setSubmitError(t('errors.invalid_email'))
@@ -761,9 +765,9 @@ export default function InscriptionOrganisationPage() {
             {t.rich('cgu_text', {
               link: (chunks) => (
                 <a
-                  href="/cgu"
+                  href={`/${locale}${LEGAL_PATHS.cgu}`}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   style={{ color: domain.primaryColor, textDecoration: 'underline' }}
                 >
                   {chunks}

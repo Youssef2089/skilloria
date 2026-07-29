@@ -7,6 +7,7 @@ import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { LEGAL_PATHS } from '@/lib/legal'
 
 // =============================================================================
 // Page d'entrée upload CV — variant CDI
@@ -660,8 +661,20 @@ export default function CdiProfilUploadPage() {
           />
           <span style={{ fontSize: 12, color: '#475569', lineHeight: 1.6 }}>
             {t.rich('consent.text', {
+              // « En savoir plus » = vrai lien vers la politique de confidentialité
+              // (point D), ouvert dans un NOUVEL ONGLET pour ne pas perdre le
+              // parcours d'upload. stopPropagation : le clic sur le lien ne doit
+              // pas cocher/décocher la case (le <label> englobe tout).
               highlight: chunks => (
-                <span style={{ color: domain.primaryColor, fontWeight: 600 }}>{chunks}</span>
+                <a
+                  href={`/${locale}${LEGAL_PATHS.confidentialite}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  style={{ color: domain.primaryColor, fontWeight: 600, textDecoration: 'underline' }}
+                >
+                  {chunks}
+                </a>
               ),
             })}
           </span>

@@ -379,7 +379,7 @@
       "dropzone_hint": "PDF · 5 MB max"
     },
     "consent": {
-      "text": "I consent to my CV being analysed by Anthropic Claude (United States, with SCC contractual safeguards) to pre-fill my profile. The PDF is stored privately and automatically deleted after 90 days. <highlight>Learn more about how my data is processed →</highlight>"
+      "text": "I authorise the automated analysis of my CV and profile by Anthropic Claude (United States, contractual SCC safeguards) to pre-fill my profile, verify my expertise and match me with opportunities. The PDF is stored privately and automatically deleted after 90 days. <highlight>Learn more about how my data is processed →</highlight>"
     },
     "locked_banner": "<strong>Profile pending completion.</strong> Missions, Applications, Messaging and Publishing features remain locked until your profile is completed and validated by the AI.",
     "parsing_overlay": {
@@ -1162,7 +1162,7 @@
       "dropzone_hint": "PDF · 5 MB max"
     },
     "consent": {
-      "text": "I consent to my CV being analysed by Anthropic Claude (United States, contractual SCC safeguards) to pre-fill my profile. The PDF is stored privately and deleted automatically after 90 days. <highlight>Learn more about how my data is processed →</highlight>"
+      "text": "I authorise the automated analysis of my CV and profile by Anthropic Claude (United States, contractual SCC safeguards) to pre-fill my profile, verify my expertise and match me with opportunities. The PDF is stored privately and automatically deleted after 90 days. <highlight>Learn more about how my data is processed →</highlight>"
     },
     "locked_banner": "<strong>Profile pending completion.</strong> The Opportunities, Applications, Messaging and Publication features remain locked until your permanent-role profile is completed and validated.",
     "parsing_overlay": {
@@ -2387,6 +2387,15 @@
       "body_domain_warning": "This email does not belong to this organisation's domain. If you were not expecting this invitation, you can ignore it.",
       "body_expires": "This invitation is valid until {expiresLabel}.",
       "cta_label": "Accept invitation"
+    },
+    "inactivity_warning": {
+      "subject": "Your Skilloria account is about to be deleted",
+      "preheader": "Log back in to keep your account and data.",
+      "title": "Your account is about to be deleted",
+      "hello": "Hello {firstName},",
+      "body_p1": "You haven't logged in to your Skilloria account for almost two years. In line with data-protection regulations (CNIL), accounts inactive for two years are deleted.",
+      "body_p2": "To keep your account and data, log back in before {deadlineLabel}. Simply logging in is enough to reactivate your account. Without any action on your part, your account will be permanently anonymised.",
+      "cta_label": "Log back in"
     }
   },
   "session": {

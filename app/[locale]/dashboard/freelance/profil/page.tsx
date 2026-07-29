@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { LEGAL_PATHS } from '@/lib/legal'
 
 type UploadStatus = 'idle' | 'uploading' | 'success' | 'error'
 
@@ -512,8 +513,18 @@ export default function ProfilUploadPage() {
           />
           <span style={{ fontSize: 12, color: '#475569', lineHeight: 1.6 }}>
             {t.rich('consent.text', {
+              // « En savoir plus » = vrai lien vers la politique de confidentialité
+              // (point D), nouvel onglet. stopPropagation : ne pas basculer la case.
               highlight: chunks => (
-                <span style={{ color: domain.primaryColor, fontWeight: 600 }}>{chunks}</span>
+                <a
+                  href={`/${locale}${LEGAL_PATHS.confidentialite}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  style={{ color: domain.primaryColor, fontWeight: 600, textDecoration: 'underline' }}
+                >
+                  {chunks}
+                </a>
               ),
             })}
           </span>

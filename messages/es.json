@@ -379,7 +379,7 @@
       "dropzone_hint": "PDF · 5 MB máx."
     },
     "consent": {
-      "text": "Acepto que mi CV sea analizado por Anthropic Claude (Estados Unidos, con garantías contractuales SCC) para rellenar mi perfil. El PDF se almacena de forma privada y se elimina automáticamente tras 90 días. <highlight>Más información sobre el tratamiento de mis datos →</highlight>"
+      "text": "Autorizo el análisis automatizado de mi CV y de mi perfil por Anthropic Claude (EE. UU., garantías contractuales SCC) para rellenar mi perfil, verificar mi experiencia y proponerme oportunidades. El PDF se almacena de forma privada y se elimina automáticamente tras 90 días. <highlight>Saber más sobre el tratamiento de mis datos →</highlight>"
     },
     "locked_banner": "<strong>Perfil pendiente de completar.</strong> Las funciones Misiones, Candidaturas, Mensajería y Publicación permanecen bloqueadas hasta que tu perfil esté completo y validado por la IA.",
     "parsing_overlay": {
@@ -1162,7 +1162,7 @@
       "dropzone_hint": "PDF · 5 MB máx."
     },
     "consent": {
-      "text": "Acepto que mi CV sea analizado por Anthropic Claude (EE. UU., garantías contractuales SCC) para rellenar mi perfil. El PDF se guarda de forma privada y se elimina automáticamente tras 90 días. <highlight>Saber más sobre el tratamiento de mis datos →</highlight>"
+      "text": "Autorizo el análisis automatizado de mi CV y de mi perfil por Anthropic Claude (EE. UU., garantías contractuales SCC) para rellenar mi perfil, verificar mi experiencia y proponerme oportunidades. El PDF se almacena de forma privada y se elimina automáticamente tras 90 días. <highlight>Saber más sobre el tratamiento de mis datos →</highlight>"
     },
     "locked_banner": "<strong>Perfil pendiente de completar.</strong> Las funciones Oportunidades, Candidaturas, Mensajería y Publicación quedan bloqueadas hasta que tu perfil esté completo y validado.",
     "parsing_overlay": {
@@ -2387,6 +2387,15 @@
       "body_domain_warning": "Este correo no pertenece al dominio de esta organización. Si no esperabas esta invitación, puedes ignorarla.",
       "body_expires": "Esta invitación es válida hasta el {expiresLabel}.",
       "cta_label": "Aceptar invitación"
+    },
+    "inactivity_warning": {
+      "subject": "Tu cuenta de Skilloria está a punto de eliminarse",
+      "preheader": "Vuelve a iniciar sesión para conservar tu cuenta y tus datos.",
+      "title": "Tu cuenta está a punto de eliminarse",
+      "hello": "Hola {firstName}:",
+      "body_p1": "Hace casi dos años que no inicias sesión en tu cuenta de Skilloria. De acuerdo con la normativa de protección de datos (CNIL), las cuentas inactivas durante dos años se eliminan.",
+      "body_p2": "Para conservar tu cuenta y tus datos, vuelve a iniciar sesión antes del {deadlineLabel}. Basta con iniciar sesión para reactivar tu cuenta. Si no haces nada, tu cuenta se anonimizará de forma permanente.",
+      "cta_label": "Volver a iniciar sesión"
     }
   },
   "session": {

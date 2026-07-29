@@ -1,15 +1,15 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
+import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
+import { LEGAL_FOOTER_LINKS } from '@/lib/legal'
 
 type PlatformLinkKey = 'post_offer' | 'company' | 'freelance' | 'permanent' | 'pricing'
 type CompanyLinkKey = 'about' | 'blog' | 'contact' | 'partners'
-type LegalLinkKey = 'privacy' | 'terms' | 'imprint'
 
 const PLATFORM_LINKS: PlatformLinkKey[] = ['post_offer', 'company', 'freelance', 'permanent', 'pricing']
 const COMPANY_LINKS: CompanyLinkKey[] = ['about', 'blog', 'contact', 'partners']
-const LEGAL_LINKS: LegalLinkKey[] = ['privacy', 'terms', 'imprint']
 
 export default function Footer() {
   const domain = useDomain()
@@ -65,10 +65,10 @@ export default function Footer() {
             {t('copyright', { year, name: domain.name })}
           </span>
           <div style={{ display: 'flex', gap: 14 }}>
-            {LEGAL_LINKS.map(k => (
-              <span key={k} style={{ fontSize: 10, color: '#1e3a5f', cursor: 'pointer' }}>
-                {t(`legal.${k}`)}
-              </span>
+            {LEGAL_FOOTER_LINKS.map(({ key, path }) => (
+              <Link key={key} href={path} style={{ fontSize: 10, color: '#1e3a5f', textDecoration: 'none' }}>
+                {t(`legal.${key}`)}
+              </Link>
             ))}
           </div>
         </div>

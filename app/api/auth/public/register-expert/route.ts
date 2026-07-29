@@ -5,6 +5,7 @@ import { logSession } from '@/lib/session-log'
 import { verifyPhoneOtpToken } from '@/lib/phone-otp-token'
 import { normalizeE164 } from '@/lib/phone'
 import { signUpWithConfirmation, atomicCleanup, isUniqueViolation } from '@/lib/auth-signup'
+import { CGU_VERSION } from '@/lib/legal'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -60,6 +61,7 @@ type Body = {
   phone?: unknown
   phone_otp_token?: unknown
   email_redirect_to?: unknown
+  cgu_accepted?: unknown
 }
 
 type ValidatedInput = {
@@ -132,6 +134,13 @@ function validate(body: Body): { ok: true; input: ValidatedInput } | { ok: false
   const phone_otp_token = asString(body.phone_otp_token)
   if (!phone_otp_token) {
     return { ok: false, error: 'phone_otp_required' }
+  }
+  // Acceptation des CGU — GARDE SERVEUR (preuve juridique, point C). La case
+  // client seule ne suffit pas : on exige un booléen strictement `true`. La
+  // valeur n'est qu'un feu vert — l'horodatage et la VERSION posés en base sont
+  // décidés côté serveur (CGU_VERSION), jamais fournis par le client.
+  if (body.cgu_accepted !== true) {
+    return { ok: false, error: 'cgu_required' }
   }
   // email_redirect_to : anti open-redirect, MÊME regex que register-org (P7).
   const redirectRaw = asString(body.email_redirect_to)
@@ -243,9 +252,17 @@ export async function POST(request: NextRequest): Promise<Response> {
   try {
     // Flag phone_verified=true sur public.users — BLOQUANT (P5). Le trigger a
     // créé la ligne sans téléphone ; on y pose le numéro canonique + le flag.
+    // On y pose AUSSI la preuve d'acceptation des CGU (point C) : horodatage
+    // serveur + version en vigueur (constante CGU_VERSION). Même UPDATE → la
+    // preuve est écrite atomiquement avec la finalisation de l'inscription.
     const { error: phoneUpdErr } = await supabaseAdmin
       .from('users')
-      .update({ phone: input.phone, phone_verified: true })
+      .update({
+        phone: input.phone,
+        phone_verified: true,
+        cgu_accepted_at: new Date().toISOString(),
+        cgu_version: CGU_VERSION,
+      })
       .eq('id', user_id)
     if (phoneUpdErr) {
       // 23505 sur l'index unique partiel = course perdue avec un autre inscrit.

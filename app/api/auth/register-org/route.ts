@@ -5,6 +5,7 @@ import { logSession } from '@/lib/session-log'
 import { verifyPhoneOtpToken } from '@/lib/phone-otp-token'
 import { normalizeE164 } from '@/lib/phone'
 import { signUpWithConfirmation, atomicCleanup, isUniqueViolation } from '@/lib/auth-signup'
+import { CGU_VERSION } from '@/lib/legal'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -30,6 +31,7 @@ type RegisterOrgBody = {
   domain_slug?: unknown
   org_type?: unknown
   email_redirect_to?: unknown
+  cgu_accepted?: unknown
 }
 
 type OrgType = 'client' | 'cabinet' | 'esn'
@@ -143,6 +145,12 @@ function validate(body: RegisterOrgBody): { ok: true; input: ValidatedInput } | 
   const phone_otp_token = asString(body.phone_otp_token)
   if (!phone_otp_token) {
     return { ok: false, error: 'phone_otp_required' }
+  }
+  // Acceptation des CGU — GARDE SERVEUR (preuve juridique, point C). Même règle
+  // que register-expert : booléen strictement `true` exigé ; l'horodatage et la
+  // VERSION posés en base (CGU_VERSION) sont décidés côté serveur.
+  if (body.cgu_accepted !== true) {
+    return { ok: false, error: 'cgu_required' }
   }
   // email_redirect_to optionnel : front passe l'URL absolue vers /auth/callback
   // après confirmation du mail Supabase. On valide strictement pour éviter
@@ -347,9 +355,17 @@ export async function POST(request: NextRequest): Promise<Response> {
     // le téléphone vérifié est la barrière anti-multicompte, un échec silencieux
     // ruinerait le but. Un 23505 sur l'index unique partiel = course perdue avec
     // un autre inscrit → refus propre 'phone_already_used'.
+    // On y pose AUSSI la preuve d'acceptation des CGU (point C) : horodatage
+    // serveur + version en vigueur (CGU_VERSION), écrite atomiquement avec la
+    // finalisation de l'inscription.
     const { error: phoneUpdErr } = await supabaseAdmin
       .from('users')
-      .update({ phone: input.phone, phone_verified: true })
+      .update({
+        phone: input.phone,
+        phone_verified: true,
+        cgu_accepted_at: new Date().toISOString(),
+        cgu_version: CGU_VERSION,
+      })
       .eq('id', user_id)
     if (phoneUpdErr) {
       if (isUniqueViolation(phoneUpdErr)) {

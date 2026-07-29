@@ -1,5 +1,6 @@
 import SessionHeartbeat from '@/components/SessionHeartbeat'
 import DeletionGate from '@/components/DeletionGate'
+import LegalFooter from '@/components/layout/LegalFooter'
 import { assertDashboardRoleGuard } from '@/lib/dashboard-routing-guard'
 
 /**
@@ -38,6 +39,8 @@ export default async function DashboardLayout({
       <SessionHeartbeat />
       <DeletionGate />
       {children}
+      {/* Point B — accès universel aux pages légales depuis les dashboards. */}
+      <LegalFooter />
     </>
   )
 }

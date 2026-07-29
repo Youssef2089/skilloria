@@ -379,7 +379,7 @@
       "dropzone_hint": "PDF · 5 Mo max"
     },
     "consent": {
-      "text": "J'accepte que mon CV soit analysé par Anthropic Claude (États-Unis, garanties contractuelles SCC) pour pré-remplir mon profil. Le PDF est stocké de manière privée et supprimé automatiquement après 90 jours. <highlight>En savoir plus sur le traitement de mes données →</highlight>"
+      "text": "J'autorise l'analyse automatisée de mon CV et de mon profil par Anthropic Claude (États-Unis, garanties contractuelles SCC) afin de pré-remplir mon profil, vérifier mon expertise et me proposer des mises en relation. Le PDF est stocké de manière privée et supprimé automatiquement après 90 jours. <highlight>En savoir plus sur le traitement de mes données →</highlight>"
     },
     "locked_banner": "<strong>Profil en attente de complétion.</strong> Les fonctionnalités Missions, Candidatures, Messagerie et Publication restent verrouillées tant que votre profil n'est pas complété et validé par l'IA.",
     "parsing_overlay": {
@@ -1162,7 +1162,7 @@
       "dropzone_hint": "PDF · 5 Mo max"
     },
     "consent": {
-      "text": "J'accepte que mon CV soit analysé par Anthropic Claude (États-Unis, garanties contractuelles SCC) pour pré-remplir mon profil. Le PDF est stocké de manière privée et supprimé automatiquement après 90 jours. <highlight>En savoir plus sur le traitement de mes données →</highlight>"
+      "text": "J'autorise l'analyse automatisée de mon CV et de mon profil par Anthropic Claude (États-Unis, garanties contractuelles SCC) afin de pré-remplir mon profil, vérifier mon expertise et me proposer des mises en relation. Le PDF est stocké de manière privée et supprimé automatiquement après 90 jours. <highlight>En savoir plus sur le traitement de mes données →</highlight>"
     },
     "locked_banner": "<strong>Profil en attente de complétion.</strong> Les fonctionnalités Opportunités, Candidatures, Messagerie et Publication restent verrouillées tant que votre profil CDI n'est pas complété et validé.",
     "parsing_overlay": {
@@ -2387,6 +2387,15 @@
       "body_domain_warning": "Cet email n'appartient pas au domaine de cette organisation. Si vous ne vous attendiez pas à cette invitation, vous pouvez l'ignorer.",
       "body_expires": "Cette invitation est valable jusqu’au {expiresLabel}.",
       "cta_label": "Accepter l'invitation"
+    },
+    "inactivity_warning": {
+      "subject": "Votre compte Skilloria va bientôt être supprimé",
+      "preheader": "Reconnectez-vous pour conserver votre compte et vos données.",
+      "title": "Votre compte va bientôt être supprimé",
+      "hello": "Bonjour {firstName},",
+      "body_p1": "Cela fait près de deux ans que vous ne vous êtes pas connecté(e) à votre compte Skilloria. Conformément à la réglementation sur la protection des données (CNIL), les comptes inactifs depuis deux ans sont supprimés.",
+      "body_p2": "Pour conserver votre compte et vos données, reconnectez-vous avant le {deadlineLabel}. Une simple connexion suffit à réactiver votre compte. Sans action de votre part, votre compte sera définitivement anonymisé.",
+      "cta_label": "Me reconnecter"
     }
   },
   "session": {

@@ -248,6 +248,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     ? resetAt!.toISOString()
     : new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
   const nextCount = windowActive ? count24h + 1 : 1
+  // CONSENTEMENT IA (point D) — posé UNIQUEMENT parce que la case EXPLICITE a été
+  // validée : la garde `consent === 'true'` en tête de route (sinon 400
+  // consent_missing) rend ce chemin atteignable. Pas de pose automatique — sans
+  // coche, on n'arrive jamais ici. `?? now` = horodatage au PREMIER consentement.
   const consentAt = prof.ai_consent_at ?? now.toISOString()
 
   const { error: updateErr } = await supabaseAdmin
