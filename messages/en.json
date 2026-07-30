@@ -2398,6 +2398,21 @@
       "cta_label": "Log back in"
     }
   },
+  "legal": {
+    "language_notice": "This document is available in French. Only the French version is legally binding.",
+    "mentions_legales": {
+      "title": "Legal notice",
+      "meta_description": "Legal notice of the Skilloria 365 platform, published by WinOps."
+    },
+    "confidentialite": {
+      "title": "Privacy policy",
+      "meta_description": "How Skilloria 365 collects, uses and protects your personal data (GDPR)."
+    },
+    "cgu": {
+      "title": "Terms of use",
+      "meta_description": "Terms of use of the Skilloria 365 platform for experts."
+    }
+  },
   "session": {
     "superseded_title": "Session disconnected",
     "superseded_message": "Your account was opened on another device. For security reasons, you have been signed out.",

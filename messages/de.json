@@ -2398,6 +2398,21 @@
       "cta_label": "Erneut anmelden"
     }
   },
+  "legal": {
+    "language_notice": "Dieses Dokument ist auf Französisch verfügbar. Allein die französische Fassung ist rechtsverbindlich.",
+    "mentions_legales": {
+      "title": "Impressum",
+      "meta_description": "Impressum der Plattform Skilloria 365, herausgegeben von WinOps."
+    },
+    "confidentialite": {
+      "title": "Datenschutzerklärung",
+      "meta_description": "Wie Skilloria 365 Ihre personenbezogenen Daten erhebt, nutzt und schützt (DSGVO)."
+    },
+    "cgu": {
+      "title": "Nutzungsbedingungen",
+      "meta_description": "Nutzungsbedingungen der Plattform Skilloria 365 für Experten."
+    }
+  },
   "session": {
     "superseded_title": "Sitzung beendet",
     "superseded_message": "Ihr Konto wurde auf einem anderen Gerät geöffnet. Aus Sicherheitsgründen wurden Sie abgemeldet.",

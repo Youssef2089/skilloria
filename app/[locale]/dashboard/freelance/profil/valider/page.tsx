@@ -664,8 +664,11 @@ export default function ValiderProfilPage() {
     try {
       const res = await secureFetch('/api/profile/cv/reset', { method: 'POST' })
       if (!res.ok) {
-        const payload = await res.json().catch(() => ({} as { error?: string }))
-        setErrorMsg(payload?.error || tProfile('errors.reset_failed'))
+        // Message LOCALISÉ (4 langues) — on n'affiche jamais l'erreur serveur
+        // brute (anglais générique « Update failed »). L'utilisateur comprend
+        // qu'il s'agit de l'effacement du CV et qu'il peut réessayer.
+        await res.json().catch(() => ({}))
+        setErrorMsg(tProfile('errors.reset_failed'))
         setResetting(false)
         return
       }
@@ -1116,7 +1119,7 @@ export default function ValiderProfilPage() {
   return (
     <div
       className={jakarta.variable}
-      style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: fontInter }}
+      style={{ minHeight: '100%', background: '#f8fafc', fontFamily: fontInter }}
     >
       <style>{`
         @keyframes sk-spin { to { transform: rotate(360deg); } }

@@ -89,11 +89,14 @@ export async function POST(request: NextRequest): Promise<Response> {
       summary: null,
       seniority: null,
       years_experience: null,
-      skills: null,
-      certifications: null,
+      // ⚠ skills / certifications / languages / work_modes sont NOT NULL au schéma
+      //   (DEFAULT '{}' / '[]'). Les mettre à null violait la contrainte → l'UPDATE
+      //   entier échouait ("Update failed"). On efface = valeur VIDE, pas null.
+      skills: [],
+      certifications: [],
       branch_id: null,
       speciality_id: null,
-      languages: null,
+      languages: [],
       location: null,
       linkedin_url: null,
       phone: null,
@@ -103,7 +106,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       country: null,
       birth_year: null,
       years_total_experience: null,
-      work_modes: null,
+      work_modes: [], // NOT NULL (DEFAULT '{}') → vide, jamais null (cf. plus haut)
       // Champs parsés freelance
       tjm_min: null,
       tjm_max: null,

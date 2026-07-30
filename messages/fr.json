@@ -2398,6 +2398,21 @@
       "cta_label": "Me reconnecter"
     }
   },
+  "legal": {
+    "language_notice": "Ce document est disponible en français. La version française fait seule foi.",
+    "mentions_legales": {
+      "title": "Mentions légales",
+      "meta_description": "Mentions légales de la plateforme Skilloria 365, éditée par WinOps."
+    },
+    "confidentialite": {
+      "title": "Politique de confidentialité",
+      "meta_description": "Comment Skilloria 365 collecte, utilise et protège vos données personnelles (RGPD)."
+    },
+    "cgu": {
+      "title": "Conditions générales d'utilisation",
+      "meta_description": "Conditions générales d'utilisation de la plateforme Skilloria 365 pour les experts."
+    }
+  },
   "session": {
     "superseded_title": "Session déconnectée",
     "superseded_message": "Votre compte a été ouvert sur un autre appareil. Pour des raisons de sécurité, vous avez été déconnecté.",

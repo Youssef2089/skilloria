@@ -2398,6 +2398,21 @@
       "cta_label": "Volver a iniciar sesión"
     }
   },
+  "legal": {
+    "language_notice": "Este documento está disponible en francés. Solo la versión francesa da fe.",
+    "mentions_legales": {
+      "title": "Aviso legal",
+      "meta_description": "Aviso legal de la plataforma Skilloria 365, editada por WinOps."
+    },
+    "confidentialite": {
+      "title": "Política de privacidad",
+      "meta_description": "Cómo Skilloria 365 recopila, usa y protege tus datos personales (RGPD)."
+    },
+    "cgu": {
+      "title": "Condiciones generales de uso",
+      "meta_description": "Condiciones generales de uso de la plataforma Skilloria 365 para expertos."
+    }
+  },
   "session": {
     "superseded_title": "Sesión cerrada",
     "superseded_message": "Tu cuenta se ha abierto en otro dispositivo. Por motivos de seguridad, se ha cerrado tu sesión.",

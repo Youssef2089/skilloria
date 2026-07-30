@@ -11,10 +11,13 @@ import DashboardShell from '@/components/shell/DashboardShell'
  * retiré (cf. SC7a) et toutes les pages CDI utilisent désormais le shell
  * partagé via ce layout.
  *
- * Les pages /mon-profil, /profil, /profil/valider conservent encore leur
- * shell inline custom (refacto différée — comme côté freelance, ces pages
- * sont trop volumineuses pour ce sprint). Le layout les détecte et les
- * laisse en pass-through pour éviter un double-shell empilé.
+ * Seule /mon-profil conserve son shell inline custom (elle rend DashboardSidebar
+ * elle-même) → pass-through pour éviter un double-shell empilé.
+ *
+ * CORRECTIF (bug parcours profil), miroir exact du sub-layout freelance :
+ * /profil (import CV) et /profil/valider ne rendent PAS de shell inline et
+ * s'affichaient nues → elles sont désormais enveloppées par le DashboardShell
+ * partagé (sidebar + topbar + GlobalBackButton).
  *
  * CONFIRMATION SC7a : cdi/page.tsx ne contient PAS de PATCH /api/profile —
  * ce trigger vit uniquement dans profil/valider qui reste intact.
@@ -22,8 +25,6 @@ import DashboardShell from '@/components/shell/DashboardShell'
 
 const LEGACY_SHELL_ROUTES = [
   '/dashboard/cdi/mon-profil',
-  '/dashboard/cdi/profil',
-  '/dashboard/cdi/profil/valider',
 ] as const
 
 export default function CdiLayout({ children }: { children: React.ReactNode }) {

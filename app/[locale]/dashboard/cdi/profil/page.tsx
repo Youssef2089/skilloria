@@ -280,7 +280,7 @@ export default function CdiProfilUploadPage() {
 
   // ─── Main render ─────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ minHeight: '100%', background: '#f8fafc', fontFamily: 'Inter, sans-serif' }}>
       <style>{`
         @keyframes sk-spin { to { transform: rotate(360deg); } }
         @media (max-width: 767px) {
