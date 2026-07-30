@@ -349,3 +349,65 @@ ${domainWarnHtml}
     tag: 'org_invitation',
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Template AVERTISSEMENT D'INACTIVITÉ (point E — purge CNIL 2 ans).
+ *
+ * Envoyé ~23 mois après le dernier contact, AVANT toute anonymisation :
+ * l'information préalable est impérative (une purge silencieuse serait
+ * illégale). Une simple reconnexion (init-session) remet le compteur à zéro.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+export type InactivityWarningEmailParams = {
+  locale: string | null | undefined
+  firstName: string
+  /** Date limite déjà formatée (localisée) par le caller. */
+  deadlineLabel: string
+  /** URL absolue vers la page de connexion (sur le domaine de l'utilisateur). */
+  loginUrl: string
+}
+
+export function renderInactivityWarningEmail(params: InactivityWarningEmailParams): RenderedEmail {
+  const locale: Locale = resolveLocale(params.locale)
+  const m = getEmailMessages(locale).inactivity_warning
+  const common = getEmailMessages(locale)
+  const variables = {
+    firstName: params.firstName,
+    deadlineLabel: params.deadlineLabel,
+  }
+
+  const helloLine = interpolate(m.hello, variables)
+  const bodyP1Html = m.body_p1
+  const bodyP2Html = interpolate(m.body_p2, variables)
+
+  const bodyHtml = `<p style="margin:0 0 12px;">${helloLine}</p>
+<p style="margin:0 0 12px;">${bodyP1Html}</p>
+<p style="margin:0;">${bodyP2Html}</p>`
+
+  const bodyText = [stripHtml(helloLine), '', stripHtml(bodyP1Html), '', stripHtml(bodyP2Html)].join('\n')
+
+  const html = renderEmailHtml({
+    title: m.title,
+    bodyHtml,
+    ctaLabel: m.cta_label,
+    ctaUrl: params.loginUrl,
+    signature: common.common_signature,
+    footer: common.common_footer,
+  })
+  const text = renderEmailText({
+    title: m.title,
+    bodyText,
+    ctaLabel: m.cta_label,
+    ctaUrl: params.loginUrl,
+    signature: common.common_signature,
+    footer: common.common_footer,
+  })
+
+  return {
+    subject: m.subject,
+    html,
+    text,
+    preheader: m.preheader,
+    tag: 'inactivity_warning',
+  }
+}

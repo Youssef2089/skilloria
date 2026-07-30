@@ -84,6 +84,30 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Could not init session', code: 'db_error' }, 500)
   }
 
+  // ── DERNIER CONTACT (purge CNIL inactivité) ──────────────────────────────
+  //   init-session est le point de passage UNIQUE du login → on y rafraîchit
+  //   last_login_at (colonne jadis morte, cf. migration 20260709000009) ET on
+  //   remet inactivity_warning_sent_at à NULL dans la MÊME opération : un compte
+  //   averti puis revenu doit pouvoir être ré-averti s'il redevient inactif plus
+  //   tard. Best-effort : un échec ici ne doit pas bloquer le login (le token de
+  //   session, lui, est déjà posé) — au pire le compteur d'inactivité stagne un
+  //   cycle, sans conséquence de sécurité.
+  //   NB : volontairement PAS dans setSessionToken() — ce helper sert aussi à
+  //   /revoke-others (rotation hors login), qui ne doit pas compter comme un login.
+  const { error: activityErr } = await supabaseAdmin
+    .from('users')
+    .update({
+      last_login_at: new Date().toISOString(),
+      inactivity_warning_sent_at: null,
+    })
+    .eq('id', userId)
+  if (activityErr) {
+    console.error('[init-session] last_login_at refresh failed', {
+      userId,
+      msg: activityErr.message,
+    })
+  }
+
   // ── Log best-effort dans session_logs (trace IP/UA + le nouveau token) ──
   await logSession({ supabaseAdmin, user_id: userId, request, session_token: newToken })
 

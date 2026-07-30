@@ -379,7 +379,7 @@
       "dropzone_hint": "PDF · max. 5 MB"
     },
     "consent": {
-      "text": "Ich willige ein, dass mein Lebenslauf von Anthropic Claude (USA, mit SCC-Standardvertragsklauseln) analysiert wird, um mein Profil vorauszufüllen. Die PDF-Datei wird privat gespeichert und nach 90 Tagen automatisch gelöscht. <highlight>Mehr über die Verarbeitung meiner Daten erfahren →</highlight>"
+      "text": "Ich willige in die automatisierte Analyse meines Lebenslaufs und Profils durch Anthropic Claude (USA, vertragliche SCC-Garantien) ein, um mein Profil vorauszufüllen, meine Expertise zu überprüfen und mir Kontakte vorzuschlagen. Die PDF-Datei wird privat gespeichert und nach 90 Tagen automatisch gelöscht. <highlight>Mehr über die Verarbeitung meiner Daten erfahren →</highlight>"
     },
     "locked_banner": "<strong>Profil noch zu vervollständigen.</strong> Die Funktionen Missionen, Bewerbungen, Nachrichten und Veröffentlichung bleiben gesperrt, bis Ihr Profil vervollständigt und von der KI validiert wurde.",
     "parsing_overlay": {
@@ -1162,7 +1162,7 @@
       "dropzone_hint": "PDF · max. 5 MB"
     },
     "consent": {
-      "text": "Ich willige ein, dass mein Lebenslauf von Anthropic Claude (USA, vertragliche SCC-Garantien) analysiert wird, um mein Profil vorzubereiten. Das PDF wird privat gespeichert und nach 90 Tagen automatisch gelöscht. <highlight>Mehr über die Verarbeitung meiner Daten →</highlight>"
+      "text": "Ich willige in die automatisierte Analyse meines Lebenslaufs und Profils durch Anthropic Claude (USA, vertragliche SCC-Garantien) ein, um mein Profil vorauszufüllen, meine Expertise zu überprüfen und mir Kontakte vorzuschlagen. Die PDF-Datei wird privat gespeichert und nach 90 Tagen automatisch gelöscht. <highlight>Mehr über die Verarbeitung meiner Daten erfahren →</highlight>"
     },
     "locked_banner": "<strong>Profil noch nicht vollständig.</strong> Die Funktionen Stellen, Bewerbungen, Nachrichten und Veröffentlichung bleiben gesperrt, bis Ihr Festanstellungsprofil vollständig und validiert ist.",
     "parsing_overlay": {
@@ -2394,6 +2394,30 @@
       "body_domain_warning": "Diese E-Mail gehört nicht zur Domain dieser Organisation. Falls Sie diese Einladung nicht erwartet haben, können Sie sie ignorieren.",
       "body_expires": "Diese Einladung ist gültig bis zum {expiresLabel}.",
       "cta_label": "Einladung annehmen"
+    },
+    "inactivity_warning": {
+      "subject": "Ihr Skilloria-Konto wird bald gelöscht",
+      "preheader": "Melden Sie sich erneut an, um Ihr Konto und Ihre Daten zu behalten.",
+      "title": "Ihr Konto wird bald gelöscht",
+      "hello": "Hallo {firstName},",
+      "body_p1": "Sie haben sich seit fast zwei Jahren nicht mehr in Ihrem Skilloria-Konto angemeldet. Gemäß den Datenschutzvorschriften (CNIL) werden seit zwei Jahren inaktive Konten gelöscht.",
+      "body_p2": "Um Ihr Konto und Ihre Daten zu behalten, melden Sie sich vor dem {deadlineLabel} erneut an. Eine einfache Anmeldung genügt, um Ihr Konto zu reaktivieren. Ohne Ihr Zutun wird Ihr Konto endgültig anonymisiert.",
+      "cta_label": "Erneut anmelden"
+    }
+  },
+  "legal": {
+    "language_notice": "Dieses Dokument ist auf Französisch verfügbar. Allein die französische Fassung ist rechtsverbindlich.",
+    "mentions_legales": {
+      "title": "Impressum",
+      "meta_description": "Impressum der Plattform Skilloria 365, herausgegeben von WinOps."
+    },
+    "confidentialite": {
+      "title": "Datenschutzerklärung",
+      "meta_description": "Wie Skilloria 365 Ihre personenbezogenen Daten erhebt, nutzt und schützt (DSGVO)."
+    },
+    "cgu": {
+      "title": "Nutzungsbedingungen",
+      "meta_description": "Nutzungsbedingungen der Plattform Skilloria 365 für Experten."
     }
   },
   "session": {

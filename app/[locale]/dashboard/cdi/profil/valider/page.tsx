@@ -789,8 +789,10 @@ export default function CdiValiderProfilPage() {
     try {
       const res = await secureFetch('/api/profile/cv/reset', { method: 'POST' })
       if (!res.ok) {
-        const payload = await res.json().catch(() => ({} as { error?: string }))
-        setErrorMsg(payload?.error || tProfile('errors.reset_failed'))
+        // Message LOCALISÉ (4 langues) — jamais l'anglais serveur brut. Miroir
+        // exact du correctif freelance.
+        await res.json().catch(() => ({}))
+        setErrorMsg(tProfile('errors.reset_failed'))
         setResetting(false)
         return
       }
@@ -1363,7 +1365,7 @@ export default function CdiValiderProfilPage() {
   return (
     <div
       className={jakarta.variable}
-      style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: fontInter }}
+      style={{ minHeight: '100%', background: '#f8fafc', fontFamily: fontInter }}
     >
       <style>{`
         @keyframes sk-spin { to { transform: rotate(360deg); } }

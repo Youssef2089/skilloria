@@ -7,6 +7,7 @@ import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import PhoneOtpField, { type PhoneOtpLabels } from '@/components/PhoneOtpField'
+import { LEGAL_PATHS } from '@/lib/legal'
 
 type RoleKey = 'expert' | 'cdi'
 
@@ -138,12 +139,17 @@ export default function InscriptionRolePage() {
           phone,
           phone_otp_token: otpToken,
           email_redirect_to: emailRedirectTo,
+          // Acceptation des CGU — transmise pour preuve serveur (point C). La
+          // garde client ci-dessus (`if (!cgu)`) ne suffit pas juridiquement :
+          // le serveur re-vérifie et horodate.
+          cgu_accepted: cgu,
         }),
       })
       const json = (await res.json().catch(() => ({}))) as { code?: string; error?: string }
       if (!res.ok) {
         const c = json.code
         if (c === 'phone_already_used') setError(t('errors.phone_already_used'))
+        else if (c === 'cgu_required') setError(t('errors.cgu_required'))
         else if (c === 'email_taken') setError(t('errors.email_taken'))
         else if (c === 'phone_otp_required') {
           // Le jeton HMAC (TTL 15 min) a expiré pendant le remplissage :
@@ -254,8 +260,16 @@ export default function InscriptionRolePage() {
           />
           <label htmlFor="cgu" style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
             {t.rich('cgu', {
-              terms: (chunks) => <span style={{ color: domain.primaryColor, cursor: 'pointer' }}>{chunks}</span>,
-              privacy: (chunks) => <span style={{ color: domain.primaryColor, cursor: 'pointer' }}>{chunks}</span>,
+              // Vrais liens vers les pages légales, ouverts dans un NOUVEL ONGLET
+              // (point B) : l'utilisateur ne perd pas le formulaire en cours.
+              // Les pages sont créées dans un lot ultérieur — lien temporairement
+              // 404 jusque-là, assumé.
+              terms: (chunks) => (
+                <a href={`/${locale}${LEGAL_PATHS.cgu}`} target="_blank" rel="noopener noreferrer" style={{ color: domain.primaryColor, textDecoration: 'underline', textUnderlineOffset: 2 }}>{chunks}</a>
+              ),
+              privacy: (chunks) => (
+                <a href={`/${locale}${LEGAL_PATHS.confidentialite}`} target="_blank" rel="noopener noreferrer" style={{ color: domain.primaryColor, textDecoration: 'underline', textUnderlineOffset: 2 }}>{chunks}</a>
+              ),
             })}
           </label>
         </div>

@@ -68,6 +68,15 @@ type EmailsRoot = {
     body_expires: string
     cta_label: string
   }
+  inactivity_warning: {
+    subject: string
+    preheader: string
+    title: string
+    hello: string
+    body_p1: string
+    body_p2: string
+    cta_label: string
+  }
 }
 
 const MESSAGES: Record<Locale, { emails: EmailsRoot }> = {
