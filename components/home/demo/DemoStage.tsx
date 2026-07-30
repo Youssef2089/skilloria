@@ -15,6 +15,15 @@ import {
 export type DemoAudience = 'expert' | 'company'
 
 /**
+ * Visage attribué à chaque personne fictive.
+ *
+ * Ce sont des identités, pas du texte : elles ne passent donc pas par l'i18n.
+ * Le recruteur et l'expert principal gardent le même visage dans les deux démos,
+ * pour qu'un visiteur qui bascule d'onglet retrouve les mêmes personnes.
+ */
+const PORTRAIT = { recruiter: 0, expert: 1, candidate2: 2, candidate3: 3 } as const
+
+/**
  * Monte la démonstration correspondant à l'onglet actif.
  *
  * Le composant est monté avec `key={audience}` par l'appelant : basculer d'onglet
@@ -51,8 +60,8 @@ export default function DemoStage({ audience }: { audience: DemoAudience }) {
     const product = (index: number) => products[index] ?? domain.ecosystemName
 
     if (audience === 'company') {
-      const person = (key: 'p1' | 'p2' | 'p3', productIndex: number) => ({
-        initials: t(`company.people.${key}.initials`),
+      const person = (key: 'p1' | 'p2' | 'p3', productIndex: number, portraitIndex: number) => ({
+        portrait: portraitIndex,
         name: t(`company.people.${key}.name`),
         specShort: t(`company.people.${key}.spec_short`, { product: product(productIndex) }),
         specLong: t(`company.people.${key}.spec_long`, { product: product(productIndex) }),
@@ -64,7 +73,7 @@ export default function DemoStage({ audience }: { audience: DemoAudience }) {
 
       const labels: CompanyDemoLabels = {
         recruiter: {
-          initials: t('company.recruiter.initials'),
+          portrait: PORTRAIT.recruiter,
           name: t('company.recruiter.name'),
           postingLine: t('company.recruiter.posting_line'),
           selectingLine: t('company.recruiter.selecting_line'),
@@ -88,7 +97,11 @@ export default function DemoStage({ audience }: { audience: DemoAudience }) {
           criteria: t('company.matching.criteria'),
           notifiedBadge: t('company.matching.notified_badge'),
         },
-        candidates: [person('p1', 0), person('p2', 1), person('p3', 2)],
+        candidates: [
+          person('p1', 0, PORTRAIT.expert),
+          person('p2', 1, PORTRAIT.candidate2),
+          person('p3', 2, PORTRAIT.candidate3),
+        ],
         candidatesTitle: t('company.candidates_title'),
         matchLabel: t('company.match_label'),
         selectionConfirmed: t('company.selection_confirmed', { name: t('company.people.p1.name') }),
@@ -114,7 +127,7 @@ export default function DemoStage({ audience }: { audience: DemoAudience }) {
 
     const labels: ExpertDemoLabels = {
       profile: {
-        initials: t('expert.profile.initials'),
+        portrait: PORTRAIT.expert,
         name: t('expert.profile.name'),
         headline: t('expert.profile.headline', { product: product(0) }),
         checkingLabel: t('expert.profile.checking_label'),
@@ -143,7 +156,7 @@ export default function DemoStage({ audience }: { audience: DemoAudience }) {
       },
       chat: {
         title: t('expert.chat.title'),
-        recruiterInitials: t('expert.chat.recruiter_initials'),
+        recruiterPortrait: PORTRAIT.recruiter,
         recruiterName: t('expert.chat.recruiter_name'),
         recruiterRole: t('expert.chat.recruiter_role'),
         onlineLabel: t('expert.chat.online_label'),

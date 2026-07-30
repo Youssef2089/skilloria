@@ -10,7 +10,8 @@ import { esc, type DemoContext, type DemoScenario } from './engine'
 import { theme } from '../theme'
 
 export type DemoPerson = {
-  initials: string
+  /** Index du portrait SVG — une même personne garde son visage d'une démo à l'autre. */
+  portrait: number
   name: string
   specShort: string
   specLong: string
@@ -22,7 +23,7 @@ export type DemoPerson = {
 }
 
 export type CompanyDemoLabels = {
-  recruiter: { initials: string; name: string; postingLine: string; selectingLine: string }
+  recruiter: { portrait: number; name: string; postingLine: string; selectingLine: string }
   mission: {
     titleLabel: string
     titleValue: string
@@ -53,7 +54,7 @@ export type CompanyDemoLabels = {
 
 export type ExpertDemoLabels = {
   profile: {
-    initials: string
+    portrait: number
     name: string
     headline: string
     checkingLabel: string
@@ -77,7 +78,7 @@ export type ExpertDemoLabels = {
   apply: { sendingLabel: string; sentTitle: string; sentBody: string; anonymityNote: string }
   chat: {
     title: string
-    recruiterInitials: string
+    recruiterPortrait: number
     recruiterName: string
     recruiterRole: string
     onlineLabel: string
@@ -129,7 +130,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     ctx.setBar(20, 6500)
 
     panel.appendChild(
-      sectionHeader(ctx, ctx.avatar(labels.recruiter.initials, 34), labels.recruiter.name, labels.recruiter.postingLine, accent),
+      sectionHeader(ctx, ctx.portrait(labels.recruiter.portrait, 34), labels.recruiter.name, labels.recruiter.postingLine, accent),
     )
 
     const fields = [
@@ -196,7 +197,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     publish.style.opacity = '1'
     await ctx.moveTo(publish, 300)
     await ctx.clickEl(publish, 170)
-    await ctx.sleep(160)
+    await ctx.hold()
 
     /* 2 — l'IA cherche et notifie */
     await ctx.fadeTransition()
@@ -234,7 +235,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
       scanFill.style.width = `${((i + 1) / labels.candidates.length) * 100}%`
       const person = labels.candidates[i]
       const row = ctx.make(
-        `${ctx.avatar(person.initials, 28)}
+        `${ctx.portrait(person.portrait, 28)}
          <div style="flex:1;min-width:0">
            <div style="font-size:12px;font-weight:600;color:${theme.ink}">${esc(person.name)}</div>
            <div style="font-size:11px;color:${theme.muted}">${esc(person.specShort)}</div>
@@ -245,7 +246,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
       row.className = 'skh-row skh-slide'
       notifyList.appendChild(row)
     }
-    await ctx.sleep(260)
+    await ctx.hold()
 
     /* 3 — les candidatures arrivent, scorées */
     await ctx.fadeTransition()
@@ -265,7 +266,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
       if (ctx.cancelled()) return
       await ctx.sleep(220)
       const card = ctx.make(
-        `${ctx.avatar(person.initials, 38)}
+        `${ctx.portrait(person.portrait, 38)}
          <div style="flex:1;min-width:0">
            <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
              <span style="font-size:13px;font-weight:600;color:${theme.ink}">${esc(person.name)}</span>
@@ -287,14 +288,14 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
       panel.appendChild(card)
       cards.push(card)
     }
-    await ctx.sleep(400)
+    await ctx.hold(1.2)
 
     /* 4 — l'entreprise choisit */
     if (ctx.cancelled()) return
     ctx.activateStep(4)
     ctx.setBar(80, 2800)
     panel.insertBefore(
-      sectionHeader(ctx, ctx.avatar(labels.recruiter.initials, 32), labels.recruiter.name, labels.recruiter.selectingLine, theme.warn),
+      sectionHeader(ctx, ctx.portrait(labels.recruiter.portrait, 32), labels.recruiter.name, labels.recruiter.selectingLine, theme.warn),
       panel.firstChild,
     )
     await ctx.sleep(220)
@@ -308,7 +309,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
         `display:flex;align-items:center;gap:8px;padding:10px 12px;background:${theme.successSoft};border:1px solid ${theme.success}33;border-radius:9px;margin-top:10px`,
       ),
     ).classList.add('skh-in-up')
-    await ctx.sleep(360)
+    await ctx.hold()
 
     /* 5 — l'échange s'ouvre */
     await ctx.fadeTransition()
@@ -326,7 +327,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
 
     const chat = ctx.make(
       `<div style="background:${theme.white};border-bottom:1px solid ${theme.borderSoft};padding:10px 12px;display:flex;align-items:center;gap:9px">
-         ${ctx.avatar(chosen.initials, 30)}
+         ${ctx.portrait(chosen.portrait, 30)}
          <div style="flex:1;min-width:0">
            <div style="font-size:13px;font-weight:600;color:${theme.ink}">${esc(chosen.name)}</div>
            <div style="display:flex;align-items:center;gap:5px">
@@ -349,7 +350,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     chat.appendChild(thread)
 
     const composer = ctx.make(
-      `${ctx.avatar(labels.recruiter.initials, 26)}
+      `${ctx.portrait(labels.recruiter.portrait, 26)}
        <div class="skh-composer" style="flex:1;background:${theme.white};border:1px solid ${theme.border};border-radius:20px;padding:7px 12px;font-size:12px;color:${theme.ink};min-height:30px;white-space:pre-wrap;word-break:break-word"></div>
        <div class="skh-send" style="width:28px;height:28px;border-radius:50%;background:${accent};display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:.35;transition:opacity .3s">${sendGlyph()}</div>`,
       `padding:9px 10px;border-top:1px solid ${theme.borderSoft};display:flex;align-items:center;gap:8px;background:${theme.white}`,
@@ -396,7 +397,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     )
     incoming.classList.add('skh-in-up')
     thread.appendChild(incoming)
-    await ctx.sleep(320)
+    await ctx.hold(1.4)
   }
 }
 
@@ -416,7 +417,7 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
 
     const profile = ctx.make(
       `<div style="display:flex;align-items:center;gap:11px;margin-bottom:11px">
-         ${ctx.avatar(labels.profile.initials, 44)}
+         ${ctx.portrait(labels.profile.portrait, 44)}
          <div style="min-width:0">
            <div style="display:flex;align-items:center;gap:6px">
              <span style="font-size:14px;font-weight:700;color:${theme.ink}">${esc(labels.profile.name)}</span>
@@ -450,7 +451,7 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
         'display:flex;align-items:center;gap:7px;margin-top:11px',
       ),
     ).classList.add('skh-in')
-    await ctx.sleep(420)
+    await ctx.hold()
 
     /* 2 — une mission est détectée */
     await ctx.fadeTransition()
@@ -495,7 +496,9 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
       `margin-top:11px;padding:10px;background:${accent};color:${theme.white};border-radius:9px;font-size:13px;font-weight:600;text-align:center`,
     )
     panel.appendChild(apply)
-    await ctx.sleep(760)
+    // Carte la plus dense de la démo (score, TJM, lieu, explication du match) :
+    // elle a besoin de plus de temps de lecture que les autres phases.
+    await ctx.hold(1.8)
 
     /* 3 — l'expert candidate, son nom reste masqué */
     if (ctx.cancelled()) return
@@ -530,7 +533,7 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
     )
     anonymity.classList.add('skh-in-up')
     panel.appendChild(anonymity)
-    await ctx.sleep(520)
+    await ctx.hold(1.2)
 
     /* 4 — l'échange s'ouvre */
     await ctx.fadeTransition()
@@ -547,7 +550,7 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
 
     const conversation = ctx.make(
       `<div style="background:${theme.white};border-bottom:1px solid ${theme.borderSoft};padding:10px 12px;display:flex;align-items:center;gap:9px">
-         ${ctx.avatar(labels.chat.recruiterInitials, 30)}
+         ${ctx.portrait(labels.chat.recruiterPortrait, 30)}
          <div style="flex:1;min-width:0">
            <div style="font-size:13px;font-weight:600;color:${theme.ink}">${esc(labels.chat.recruiterName)}</div>
            <div style="display:flex;align-items:center;gap:5px">
@@ -591,6 +594,6 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
         'display:flex;justify-content:center;text-align:center;padding:0 8px 4px',
       ),
     ).classList.add('skh-in')
-    await ctx.sleep(360)
+    await ctx.hold(1.4)
   }
 }

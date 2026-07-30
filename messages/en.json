@@ -230,7 +230,6 @@
           "s4": "Conversation open"
         },
         "profile": {
-          "initials": "AM",
           "name": "Adrien Mercier",
           "headline": "{product} consultant · 8 years of experience",
           "checking_label": "Verification in progress",
@@ -258,7 +257,6 @@
         },
         "chat": {
           "title": "Internal messaging",
-          "recruiter_initials": "CL",
           "recruiter_name": "Camille Laurent",
           "recruiter_role": "Head of recruitment",
           "online_label": "Online",
@@ -278,7 +276,6 @@
           "s5": "Conversation"
         },
         "recruiter": {
-          "initials": "CL",
           "name": "Camille Laurent",
           "posting_line": "Posting a brief",
           "selecting_line": "Choosing a profile"
@@ -307,7 +304,6 @@
         "selection_confirmed": "{name} selected",
         "people": {
           "p1": {
-            "initials": "AM",
             "name": "Adrien Mercier",
             "first_name": "Adrien",
             "spec_short": "{product} · 8 yrs",
@@ -317,7 +313,6 @@
             "score": "97%"
           },
           "p2": {
-            "initials": "SB",
             "name": "Sarah Benali",
             "first_name": "Sarah",
             "spec_short": "{product} · 6 yrs",
@@ -327,7 +322,6 @@
             "score": "91%"
           },
           "p3": {
-            "initials": "TR",
             "name": "Thomas Riva",
             "first_name": "Thomas",
             "spec_short": "{product} · 5 yrs",

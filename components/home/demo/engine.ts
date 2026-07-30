@@ -18,6 +18,23 @@
 //     temps d'une bascule d'onglet sans se marcher dessus).
 
 import { theme } from '../theme'
+import { portrait } from './portraits'
+
+/**
+ * Tempo global des démonstrations.
+ *
+ * Multiplie TOUTES les temporisations d'un coup : attentes, déplacements du
+ * curseur, clics, vitesse de frappe et durée de la barre de progression. C'est
+ * volontairement un seul levier — le rythme se règle ici, pas en retouchant
+ * quarante constantes éparpillées dans les scénarios.
+ *
+ * Les micro-animations pèsent autant que la durée des phases dans l'impression
+ * de précipitation : les transitions CSS ci-dessous sont allongées en cohérence.
+ */
+const TEMPO = 1.6
+
+/** Pause de lecture en fin de phase, avant d'effacer le panneau. */
+const HOLD_BASE = 1500
 
 export type DemoContext = {
   /** Panneau de gauche : la scène où chaque phase se dessine. */
@@ -34,10 +51,12 @@ export type DemoContext = {
   fadeTransition: () => Promise<void>
   activateStep: (index: number) => void
   setBar: (percent: number, duration: number) => void
+  /** Pause de lecture en fin de phase. `factor` allonge les phases les plus denses. */
+  hold: (factor?: number) => Promise<void>
   /** Crée un élément détaché depuis du HTML (les valeurs i18n passent par `esc`). */
   make: (html: string, css?: string) => HTMLElement
-  /** Pastille d'initiales — remplace les avatars distants, aucune requête tierce. */
-  avatar: (initials: string, size?: number) => string
+  /** Portrait SVG d'une personne fictive — aucune requête réseau. */
+  portrait: (index: number, size?: number) => string
 }
 
 export type DemoScenario = (ctx: DemoContext) => Promise<void>
@@ -70,7 +89,7 @@ function buildStyles(accent: string, accentSoft: string): string {
     @media (min-width:760px){.skh-layout{flex-direction:row;gap:12px;padding:14px}}
 
     .skh-panelwrap{flex:1;min-width:0;min-height:0}
-    .skh-panel{background:${theme.white};border:1px solid ${theme.borderSoft};border-radius:14px;padding:13px;height:100%;overflow:hidden;transition:opacity .3s ease}
+    .skh-panel{background:${theme.white};border:1px solid ${theme.borderSoft};border-radius:14px;padding:13px;height:100%;overflow:hidden;transition:opacity .45s ease}
 
     .skh-progress{background:${theme.white};border:1px solid ${theme.borderSoft};border-radius:14px;padding:10px 12px;flex-shrink:0}
     @media (min-width:760px){.skh-progress{width:186px;align-self:flex-start;padding:12px}}
@@ -82,9 +101,9 @@ function buildStyles(accent: string, accentSoft: string): string {
     .skh-steps::-webkit-scrollbar{display:none}
     @media (min-width:760px){.skh-steps{flex-direction:column;gap:2px;overflow:visible}}
 
-    .skh-step{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;transition:background .35s ease,color .35s ease;flex-shrink:0}
-    .skh-snum{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;background:${theme.cream};color:${theme.faint};transition:background .35s ease,color .35s ease}
-    .skh-slbl{font-size:12px;font-weight:500;line-height:1.3;color:${theme.faint};white-space:nowrap;transition:color .35s ease}
+    .skh-step{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;transition:background .5s ease,color .5s ease;flex-shrink:0}
+    .skh-snum{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;background:${theme.cream};color:${theme.faint};transition:background .5s ease,color .5s ease}
+    .skh-slbl{font-size:12px;font-weight:500;line-height:1.3;color:${theme.faint};white-space:nowrap;transition:color .5s ease}
     @media (min-width:760px){.skh-slbl{white-space:normal}}
     .skh-step.is-active{background:${accentSoft}}
     .skh-step.is-active .skh-snum{background:${accent};color:${theme.white}}
@@ -96,10 +115,10 @@ function buildStyles(accent: string, accentSoft: string): string {
     .skh-bar{height:3px;background:${theme.border};border-radius:10px;overflow:hidden}
     .skh-bar>i{display:block;height:100%;width:0;background:${accent};border-radius:10px}
 
-    .skh-cursor{position:absolute;width:18px;height:18px;pointer-events:none;z-index:20;left:50%;top:50%;transition:left .38s cubic-bezier(.25,.1,.25,1),top .38s cubic-bezier(.25,.1,.25,1)}
+    .skh-cursor{position:absolute;width:18px;height:18px;pointer-events:none;z-index:20;left:50%;top:50%;transition:left .6s cubic-bezier(.25,.1,.25,1),top .6s cubic-bezier(.25,.1,.25,1)}
 
     .skh-card{background:${theme.white};border:1px solid ${theme.border};border-radius:11px}
-    .skh-field{background:${theme.cream};border:1.5px solid ${theme.border};border-radius:9px;padding:8px 11px;font-size:13px;color:${theme.ink};min-height:34px;white-space:pre-wrap;word-break:break-word;transition:border-color .2s,background .2s}
+    .skh-field{background:${theme.cream};border:1.5px solid ${theme.border};border-radius:9px;padding:8px 11px;font-size:13px;color:${theme.ink};min-height:34px;white-space:pre-wrap;word-break:break-word;transition:border-color .3s,background .3s}
     .skh-field.is-focus{border-color:${accent};background:${theme.white}}
     .skh-area{height:64px;overflow:hidden;line-height:1.5}
     .skh-tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;background:${theme.cream};color:${theme.muted};border:1px solid ${theme.border}}
@@ -107,16 +126,16 @@ function buildStyles(accent: string, accentSoft: string): string {
     .skh-row{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid ${theme.border};border-radius:10px;background:${theme.white};transition:border-color .25s,background .25s}
     .skh-row.is-sel{border-color:${theme.success};background:${theme.successSoft}}
 
-    .skh-in-up{animation:skh-inUp .32s ease both}
-    .skh-in{animation:skh-in .3s ease both}
-    .skh-slide{animation:skh-slide .3s ease both}
-    .skh-pop{animation:skh-pop .3s ease both}
+    .skh-in-up{animation:skh-inUp .5s ease both}
+    .skh-in{animation:skh-in .5s ease both}
+    .skh-slide{animation:skh-slide .5s ease both}
+    .skh-pop{animation:skh-pop .45s ease both}
     @keyframes skh-inUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
     @keyframes skh-in{from{opacity:0}to{opacity:1}}
     @keyframes skh-slide{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
     @keyframes skh-pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
     @keyframes skh-blink{50%{opacity:0}}
-    @keyframes skh-ripple{from{transform:scale(0);opacity:.45}to{transform:scale(3);opacity:0}}
+    @keyframes skh-ripple{from{transform:scale(0);opacity:.5}to{transform:scale(3);opacity:0}}
     @keyframes skh-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
     @keyframes skh-dot{0%,80%,100%{transform:scale(.6);opacity:.3}40%{transform:scale(1);opacity:1}}
     @keyframes skh-live{0%,100%{opacity:1}50%{opacity:.35}}
@@ -191,10 +210,12 @@ export function mountDemo(root: HTMLElement, options: DemoOptions): () => void {
       const id = setTimeout(() => {
         timeouts.delete(id)
         resolve()
-      }, ms)
+      }, ms * TEMPO)
       timeouts.add(id)
     })
   }
+
+  const hold = (factor = 1) => sleep(HOLD_BASE * factor)
 
   function centerOf(target: HTMLElement) {
     const rootBox = root.getBoundingClientRect()
@@ -217,7 +238,7 @@ export function mountDemo(root: HTMLElement, options: DemoOptions): () => void {
     if (!target || cancelled || reduced) return
     const point = centerOf(target)
     const ripple = document.createElement('div')
-    ripple.style.cssText = `position:absolute;left:${point.x - 10}px;top:${point.y - 10}px;width:20px;height:20px;border-radius:50%;background:${accentSoft};transform:scale(0);animation:skh-ripple .35s ease-out forwards;pointer-events:none;z-index:19`
+    ripple.style.cssText = `position:absolute;left:${point.x - 10}px;top:${point.y - 10}px;width:20px;height:20px;border-radius:50%;background:${accentSoft};transform:scale(0);animation:skh-ripple .55s ease-out forwards;pointer-events:none;z-index:19`
     root.appendChild(ripple)
     target.style.transform = 'scale(.98)'
     await sleep(duration)
@@ -255,7 +276,7 @@ export function mountDemo(root: HTMLElement, options: DemoOptions): () => void {
           caret.remove()
           resolve()
         }
-      }, speed)
+      }, speed * TEMPO)
       intervals.add(id)
     })
   }
@@ -302,7 +323,7 @@ export function mountDemo(root: HTMLElement, options: DemoOptions): () => void {
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
         if (cancelled) return
-        barFill.style.transition = `width ${duration}ms linear`
+        barFill.style.transition = `width ${duration * TEMPO}ms linear`
         barFill.style.width = `${percent}%`
       }),
     )
@@ -313,10 +334,6 @@ export function mountDemo(root: HTMLElement, options: DemoOptions): () => void {
     if (css) node.style.cssText = css
     node.innerHTML = html
     return node
-  }
-
-  function avatar(initials: string, size = 34): string {
-    return `<span class="skh-avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size * 0.38)}px" aria-hidden="true">${esc(initials)}</span>`
   }
 
   const context: DemoContext = {
@@ -332,8 +349,9 @@ export function mountDemo(root: HTMLElement, options: DemoOptions): () => void {
     fadeTransition,
     activateStep,
     setBar,
+    hold,
     make,
-    avatar,
+    portrait,
   }
 
   function reset() {
