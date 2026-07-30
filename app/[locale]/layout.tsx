@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
+import { getMessages, getTranslations } from "next-intl/server";
 import { DomainProvider } from "@/context/DomainContext";
 import NavHistoryProvider from "@/components/shell/NavHistoryProvider";
 import { getDomainConfig } from "@/lib/get-domain-config";
@@ -35,10 +35,15 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>
 }): Promise<Metadata> {
   const { locale } = await params;
-  const domain = await getDomainConfig(locale);
+  // Nom de plateforme, nom d'écosystème et formulation : tous résolus depuis le
+  // domaine servi et les traductions de la locale. Rien en dur.
+  const [domain, t] = await Promise.all([
+    getDomainConfig(locale),
+    getTranslations({ locale, namespace: 'app.meta' }),
+  ]);
   return {
-    title: `Skilloria 365 — La marketplace ${domain.ecosystemName} pilotée par l'IA`,
-    description: `Trouvez les meilleurs experts ${domain.ecosystemName} certifiés. Zéro commission. Matching IA en 24h.`,
+    title: t('title', { name: domain.name, ecosystem: domain.ecosystemName }),
+    description: t('description', { name: domain.name, ecosystem: domain.ecosystemName }),
   };
 }
 
