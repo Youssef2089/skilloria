@@ -1,4 +1,10 @@
 {
+  "sms_notifications": {
+    "match_digest": {
+      "one": "1 nueva misión coincide con tu perfil en {platform}. {link}",
+      "other": "{count} nuevas misiones coinciden con tu perfil en {platform}. {link}"
+    }
+  },
   "back_nav": {
     "back_to_dashboard": "← Volver al panel",
     "back_to_feed": "← Volver a oportunidades",
@@ -2343,6 +2349,17 @@
     "empty_body": "Te avisaremos aquí cuando haya novedades."
   },
   "emails": {
+    "match_digest": {
+      "subject_one": "Una nueva oportunidad coincide con tu perfil",
+      "subject_other": "{count} nuevas oportunidades coinciden con tu perfil",
+      "preheader": "Descubre las oportunidades que coinciden con tu perfil.",
+      "title": "Nuevas oportunidades para ti",
+      "hello": "Hola {firstName}:",
+      "intro_one": "Una nueva misión coincide con tu perfil en {platform}:",
+      "intro_other": "{count} nuevas misiones coinciden con tu perfil en {platform}:",
+      "cta_label": "Ver oportunidades",
+      "unsubscribe": "Cancelar las notificaciones por correo"
+    },
     "common_footer": "El equipo de Skilloria",
     "common_signature": "Hasta pronto,",
     "common_login_cta": "Iniciar sesión",
@@ -2426,9 +2443,22 @@
     "superseded_signin": "Volver a iniciar sesión"
   },
   "settings": {
+    "notifications": {
+      "title": "Notificaciones",
+      "description": "Estas notificaciones solo se refieren a nuevas oportunidades que coinciden con tu perfil, no a mensajes ni cambios de estado.",
+      "email_label": "Por correo electrónico",
+      "sms_label": "Por SMS",
+      "sms_unavailable": "No disponible: tu teléfono no está verificado.",
+      "sms_verify_link": "Verificar mi teléfono",
+      "grouping_note": "Las oportunidades recibidas en un breve intervalo se agrupan en un solo envío.",
+      "saved_on": "Notificaciones activadas.",
+      "saved_off": "Notificaciones desactivadas.",
+      "unsub_done": "Has cancelado las notificaciones por correo."
+    },
     "title": "Ajustes",
     "subtitle": "Gestiona tu cuenta y tus preferencias.",
     "nav": {
+      "notifications": "Notificaciones",
       "identity": "Identidad",
       "email": "Correo",
       "phone": "Teléfono",

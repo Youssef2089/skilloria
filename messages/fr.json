@@ -1,4 +1,10 @@
 {
+  "sms_notifications": {
+    "match_digest": {
+      "one": "1 nouvelle mission correspond à votre profil sur {platform}. {link}",
+      "other": "{count} nouvelles missions correspondent à votre profil sur {platform}. {link}"
+    }
+  },
   "back_nav": {
     "back_to_dashboard": "← Retour au tableau de bord",
     "back_to_feed": "← Retour aux opportunités",
@@ -2343,6 +2349,17 @@
     "empty_body": "Vous serez prévenu ici dès qu'il y a du nouveau."
   },
   "emails": {
+    "match_digest": {
+      "subject_one": "Une nouvelle opportunité correspond à votre profil",
+      "subject_other": "{count} nouvelles opportunités correspondent à votre profil",
+      "preheader": "Découvrez les opportunités qui correspondent à votre profil.",
+      "title": "De nouvelles opportunités pour vous",
+      "hello": "Bonjour {firstName},",
+      "intro_one": "Une nouvelle mission correspond à votre profil sur {platform} :",
+      "intro_other": "{count} nouvelles missions correspondent à votre profil sur {platform} :",
+      "cta_label": "Voir les opportunités",
+      "unsubscribe": "Se désabonner des notifications par e-mail"
+    },
     "common_footer": "L'équipe Skilloria",
     "common_signature": "À très vite,",
     "common_login_cta": "Se connecter",
@@ -2426,9 +2443,22 @@
     "superseded_signin": "Se reconnecter"
   },
   "settings": {
+    "notifications": {
+      "title": "Notifications",
+      "description": "Ces notifications concernent uniquement les nouvelles opportunités correspondant à votre profil — ni les messages, ni les changements de statut.",
+      "email_label": "Par e-mail",
+      "sms_label": "Par SMS",
+      "sms_unavailable": "Indisponible : votre téléphone n'est pas vérifié.",
+      "sms_verify_link": "Vérifier mon téléphone",
+      "grouping_note": "Les opportunités reçues dans un court intervalle sont regroupées en un seul envoi.",
+      "saved_on": "Notifications activées.",
+      "saved_off": "Notifications désactivées.",
+      "unsub_done": "Vous êtes désabonné des notifications par e-mail."
+    },
     "title": "Paramètres",
     "subtitle": "Gère ton compte et tes préférences.",
     "nav": {
+      "notifications": "Notifications",
       "identity": "Identité",
       "email": "Email",
       "phone": "Téléphone",

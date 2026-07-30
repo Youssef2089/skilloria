@@ -26,15 +26,21 @@ function toE164(raw: string): string {
   return s
 }
 
-type SectionId = 'identity' | 'email' | 'phone' | 'password' | 'language' | 'security' | 'deletion'
-const SECTIONS: SectionId[] = ['identity', 'email', 'phone', 'password', 'language', 'security', 'deletion']
+type SectionId = 'identity' | 'email' | 'phone' | 'password' | 'language' | 'security' | 'notifications' | 'deletion'
+// Notifications s'insère entre Sécurité et Suppression (réglages fonctionnels
+// d'abord, action destructive en dernier). Réservé aux experts (freelance/cdi) :
+// filtré pour l'entreprise (pas de matching d'opportunités sur son profil).
+const SECTIONS: SectionId[] = ['identity', 'email', 'phone', 'password', 'language', 'security', 'notifications', 'deletion']
 
 type UserData = {
   first_name: string | null
   last_name: string | null
   email: string | null
   phone: string | null
+  phone_verified: boolean
   locale: string | null
+  notify_match_email: boolean
+  notify_match_sms: boolean
 }
 
 type RequestReauth = () => Promise<string | null>
@@ -83,6 +89,31 @@ function SectionHeader({ title, description }: { title: string; description: str
 }
 function FieldRow({ children }: { children: React.ReactNode }) {
   return <div style={{ marginBottom: 16, maxWidth: 460 }}>{children}</div>
+}
+function Switch({ checked, disabled, onChange }: { checked: boolean; disabled?: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      style={{
+        width: 46, height: 27, borderRadius: 999, border: 'none', padding: 0, flexShrink: 0,
+        cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative',
+        background: checked ? 'var(--sk-accent, #0ea5e9)' : '#cbd5e1', opacity: disabled ? 0.45 : 1,
+        transition: 'background .15s',
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          position: 'absolute', top: 3, left: checked ? 22 : 3, width: 21, height: 21, borderRadius: '50%',
+          background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.25)', transition: 'left .15s',
+        }}
+      />
+    </button>
+  )
 }
 
 // ─── Section: Identité ──────────────────────────────────────────────────────
@@ -458,11 +489,114 @@ function DeletionSection({ secureFetch, requestReauth, notify }: {
   )
 }
 
+// ─── Section: Notifications ─────────────────────────────────────────────────
+function NotificationsSection({ user, secureFetch, notify, goToPhone }: {
+  user: UserData; secureFetch: SecureFetch; notify: Notify; goToPhone: () => void
+}) {
+  const t = useTranslations('settings.notifications')
+  const tc = useTranslations('settings.common')
+  const [emailOn, setEmailOn] = useState(user.notify_match_email !== false)
+  const [smsOn, setSmsOn] = useState(user.notify_match_sms !== false)
+  const [busy, setBusy] = useState<'email' | 'sms' | null>(null)
+  const phoneVerified = user.phone_verified === true
+
+  // Enregistrement IMMÉDIAT au basculement (pas de bouton Enregistrer), avec
+  // retour d'état (toast) + rollback optimiste en cas d'échec.
+  const save = async (channel: 'email' | 'sms', next: boolean) => {
+    if (busy) return
+    const prevE = emailOn
+    const prevS = smsOn
+    if (channel === 'email') setEmailOn(next)
+    else setSmsOn(next)
+    setBusy(channel)
+    try {
+      const res = await secureFetch('/api/me/notification-preferences', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(channel === 'email' ? { email: next } : { sms: next }),
+      })
+      if (!res.ok) {
+        setEmailOn(prevE)
+        setSmsOn(prevS)
+        notify(tc('error_generic'), 'error')
+        setBusy(null)
+        return
+      }
+      notify(next ? t('saved_on') : t('saved_off'))
+    } catch {
+      setEmailOn(prevE)
+      setSmsOn(prevS)
+      notify(tc('error_generic'), 'error')
+    }
+    setBusy(null)
+  }
+
+  const rowStyle: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
+    padding: '16px 0', borderBottom: '1px solid #f1f5f9',
+  }
+
+  return (
+    <div>
+      <SectionHeader title={t('title')} description={t('description')} />
+      <div style={{ maxWidth: 560 }}>
+        {/* Par e-mail */}
+        <div style={rowStyle}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0f172a' }}>{t('email_label')}</div>
+            <div style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 3, wordBreak: 'break-all' }}>
+              {user.email ?? '—'}
+            </div>
+          </div>
+          <Switch checked={emailOn} disabled={busy === 'email'} onChange={(v) => void save('email', v)} />
+        </div>
+
+        {/* Par SMS */}
+        <div style={{ ...rowStyle, borderBottom: 'none' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color: phoneVerified ? '#0f172a' : '#94a3b8' }}>
+              {t('sms_label')}
+            </div>
+            <div style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 3 }}>
+              {phoneVerified ? (user.phone ?? '—') : t('sms_unavailable')}
+            </div>
+            {!phoneVerified && (
+              <button
+                type="button"
+                onClick={goToPhone}
+                style={{
+                  marginTop: 6, padding: 0, background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--sk-accent, #0ea5e9)', fontSize: 12.5, fontWeight: 600, fontFamily: fontJakarta,
+                  textDecoration: 'underline',
+                }}
+              >
+                {t('sms_verify_link')}
+              </button>
+            )}
+          </div>
+          <Switch checked={smsOn && phoneVerified} disabled={!phoneVerified || busy === 'sms'} onChange={(v) => void save('sms', v)} />
+        </div>
+
+        {/* Mention regroupement */}
+        <p style={{ margin: '18px 0 0', fontSize: 12.5, color: '#94a3b8', lineHeight: 1.5 }}>
+          {t('grouping_note')}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // ─── Vue principale ─────────────────────────────────────────────────────────
 export default function SettingsView({ side: _side }: { side: 'freelance' | 'cdi' | 'entreprise' }) {
   const t = useTranslations('settings')
   const tn = useTranslations('settings.nav')
   const secureFetch = useSecureFetch()
+  // Onglet Notifications réservé aux experts (matching d'opportunités) — masqué
+  // pour l'entreprise.
+  const sections = useMemo<SectionId[]>(
+    () => (_side === 'entreprise' ? SECTIONS.filter((s) => s !== 'notifications') : SECTIONS),
+    [_side],
+  )
   const [active, setActive] = useState<SectionId>('identity')
   const [user, setUser] = useState<UserData | null>(null)
   const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' } | null>(null)
@@ -489,13 +623,26 @@ export default function SettingsView({ side: _side }: { side: 'freelance' | 'cdi
     if (!session?.user) return
     const { data } = await supabase
       .from('users')
-      .select('first_name, last_name, email, phone, locale')
+      .select('first_name, last_name, email, phone, phone_verified, locale, notify_match_email, notify_match_sms')
       .eq('id', session.user.id)
       .maybeSingle()
     setUser((data as UserData | null) ?? null)
   }, [])
 
   useEffect(() => { void loadUser() }, [loadUser])
+
+  // Deep-link depuis le lien de désabonnement des emails (?tab=notifications&unsub=1) :
+  // ouvre l'onglet Notifications et confirme la désactivation.
+  const unsubHandled = useRef(false)
+  useEffect(() => {
+    if (unsubHandled.current || typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('tab') === 'notifications' && sections.includes('notifications')) {
+      setActive('notifications')
+      if (params.get('unsub') === '1') notify(t('notifications.unsub_done'))
+      unsubHandled.current = true
+    }
+  }, [sections, notify, t])
 
   const sectionNode = useMemo(() => {
     if (!user) return null
@@ -506,6 +653,7 @@ export default function SettingsView({ side: _side }: { side: 'freelance' | 'cdi
       case 'password': return <PasswordSection secureFetch={secureFetch} requestReauth={requestReauth} notify={notify} />
       case 'language': return <LanguageSection secureFetch={secureFetch} notify={notify} />
       case 'security': return <SecuritySection secureFetch={secureFetch} notify={notify} />
+      case 'notifications': return <NotificationsSection user={user} secureFetch={secureFetch} notify={notify} goToPhone={() => setActive('phone')} />
       case 'deletion': return <DeletionSection secureFetch={secureFetch} requestReauth={requestReauth} notify={notify} />
     }
   }, [active, user, secureFetch, requestReauth, notify, loadUser])
@@ -524,7 +672,7 @@ export default function SettingsView({ side: _side }: { side: 'freelance' | 'cdi
             minWidth: 200, flex: '0 0 auto', position: 'sticky', top: 12,
           }}
         >
-          {SECTIONS.map((s) => {
+          {sections.map((s) => {
             const on = s === active
             return (
               <button
