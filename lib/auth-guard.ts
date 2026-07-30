@@ -285,6 +285,39 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
  * Non appliquée aux routes existantes (qui ne touchent pas aux orgs).
  * Sera utilisée à partir du Lot B5 sur les routes mission/payment/match.
  */
+/**
+ * Garde de RÔLE organisation (D2 — les rôles doivent avoir un sens côté SERVEUR).
+ *
+ * Hiérarchie : viewer (lecture seule) < editor (gère publications & candidatures)
+ *              < admin (tout, incl. membres & organisation).
+ *
+ * `requireOrgRole(auth, 'editor')` → autorise editor ET admin ; refuse viewer.
+ * `requireOrgRole(auth, 'admin')`  → autorise admin uniquement.
+ * Throw AuthError(403, 'insufficient_role') si le rôle est en dessous du minimum
+ * (ou si le user n'a pas d'organisation active).
+ *
+ * ⚠️ C'est la GARANTIE (checklist #20) : l'UI peut masquer les actions, mais un
+ *    appel direct à l'API doit être refusé ici.
+ */
+const ORG_ROLE_RANK: Record<AuthOrganization['role_in_org'], number> = {
+  viewer: 0,
+  editor: 1,
+  admin: 2,
+}
+
+export function requireOrgRole(authResult: AuthContext, min: 'editor' | 'admin'): void {
+  const org = authResult.organization
+  if (!org) {
+    throw new AuthError(403, { error: 'Organization required', code: 'org_required' })
+  }
+  if (ORG_ROLE_RANK[org.role_in_org] < ORG_ROLE_RANK[min]) {
+    throw new AuthError(403, {
+      error: `Insufficient role: ${min} required`,
+      code: 'insufficient_role',
+    })
+  }
+}
+
 export function requireOrgApproved(authResult: AuthContext): void {
   const org = authResult.organization
   if (!org) {

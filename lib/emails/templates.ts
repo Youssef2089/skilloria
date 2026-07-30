@@ -21,6 +21,8 @@ export type RenderedEmail = {
 
 export type WelcomeEmailParams = {
   locale: string | null | undefined
+  /** D3 : nom de marque = domain.name du destinataire (jamais figé). */
+  brandName: string
   firstName: string
   companyName: string
   /** URL absolue vers la page de connexion (ex: https://skilloria.io/fr/connexion). */
@@ -54,6 +56,7 @@ export function renderWelcomeEmail(params: WelcomeEmailParams): RenderedEmail {
   ].join('\n')
 
   const html = renderEmailHtml({
+    brandName: params.brandName,
     title: m.title,
     bodyHtml,
     ctaLabel: m.cta_label,
@@ -62,6 +65,7 @@ export function renderWelcomeEmail(params: WelcomeEmailParams): RenderedEmail {
     footer: common.common_footer,
   })
   const text = renderEmailText({
+    brandName: params.brandName,
     title: m.title,
     bodyText,
     ctaLabel: m.cta_label,
@@ -81,6 +85,8 @@ export function renderWelcomeEmail(params: WelcomeEmailParams): RenderedEmail {
 
 export type RejectEmailParams = {
   locale: string | null | undefined
+  /** D3 : nom de marque = domain.name du destinataire (jamais figé). */
+  brandName: string
   firstName: string
   companyName: string
   /** Motif de refus (optionnel). Si fourni, ajoute un paragraphe explicatif. */
@@ -119,6 +125,7 @@ ${reasonP2Html}
   const bodyText = bodyTextParts.join('\n')
 
   const html = renderEmailHtml({
+    brandName: params.brandName,
     title: m.title,
     bodyHtml,
     ctaLabel: m.cta_label,
@@ -127,6 +134,7 @@ ${reasonP2Html}
     footer: common.common_footer,
   })
   const text = renderEmailText({
+    brandName: params.brandName,
     title: m.title,
     bodyText,
     ctaLabel: m.cta_label,
@@ -153,6 +161,8 @@ ${reasonP2Html}
 
 export type ExpertWelcomeEmailParams = {
   locale: string | null | undefined
+  /** D3 : nom de marque = domain.name du destinataire (jamais figé). */
+  brandName: string
   firstName: string
   /** URL absolue vers le tableau de bord / la page de connexion. */
   loginUrl: string
@@ -175,6 +185,7 @@ export function renderExpertWelcomeEmail(params: ExpertWelcomeEmailParams): Rend
   const bodyText = [stripHtml(helloLine), '', stripHtml(bodyP1Html), '', bodyP2Html].join('\n')
 
   const html = renderEmailHtml({
+    brandName: params.brandName,
     title: m.title,
     bodyHtml,
     ctaLabel: m.cta_label,
@@ -183,6 +194,7 @@ export function renderExpertWelcomeEmail(params: ExpertWelcomeEmailParams): Rend
     footer: common.common_footer,
   })
   const text = renderEmailText({
+    brandName: params.brandName,
     title: m.title,
     bodyText,
     ctaLabel: m.cta_label,
@@ -202,6 +214,8 @@ export function renderExpertWelcomeEmail(params: ExpertWelcomeEmailParams): Rend
 
 export type ExpertRejectEmailParams = {
   locale: string | null | undefined
+  /** D3 : nom de marque = domain.name du destinataire (jamais figé). */
+  brandName: string
   firstName: string
   /** Motif de refus (obligatoire côté route expert, mais robuste si null). */
   reason: string | null
@@ -238,6 +252,7 @@ ${reasonP2Html}
   const bodyText = bodyTextParts.join('\n')
 
   const html = renderEmailHtml({
+    brandName: params.brandName,
     title: m.title,
     bodyHtml,
     ctaLabel: m.cta_label,
@@ -246,6 +261,7 @@ ${reasonP2Html}
     footer: common.common_footer,
   })
   const text = renderEmailText({
+    brandName: params.brandName,
     title: m.title,
     bodyText,
     ctaLabel: m.cta_label,
@@ -265,6 +281,8 @@ ${reasonP2Html}
 
 export type InvitationEmailParams = {
   locale: string | null | undefined
+  /** D3 : nom de marque = domain.name du destinataire (jamais figé). */
+  brandName: string
   /** Nom de l'organisation qui invite. */
   companyName: string
   /** Libellé HUMAIN du rôle proposé (déjà localisé par le caller). */
@@ -323,6 +341,7 @@ ${domainWarnHtml}
   const bodyText = bodyTextParts.join('\n')
 
   const html = renderEmailHtml({
+    brandName: params.brandName,
     title: m.title,
     bodyHtml,
     ctaLabel: m.cta_label,
@@ -331,6 +350,7 @@ ${domainWarnHtml}
     footer: common.common_footer,
   })
   const text = renderEmailText({
+    brandName: params.brandName,
     title: m.title,
     bodyText,
     ctaLabel: m.cta_label,
@@ -360,6 +380,8 @@ ${domainWarnHtml}
 
 export type InactivityWarningEmailParams = {
   locale: string | null | undefined
+  /** D3 : nom de marque = domain.name du destinataire (jamais figé). */
+  brandName: string
   firstName: string
   /** Date limite déjà formatée (localisée) par le caller. */
   deadlineLabel: string
@@ -387,6 +409,7 @@ export function renderInactivityWarningEmail(params: InactivityWarningEmailParam
   const bodyText = [stripHtml(helloLine), '', stripHtml(bodyP1Html), '', stripHtml(bodyP2Html)].join('\n')
 
   const html = renderEmailHtml({
+    brandName: params.brandName,
     title: m.title,
     bodyHtml,
     ctaLabel: m.cta_label,
@@ -395,6 +418,7 @@ export function renderInactivityWarningEmail(params: InactivityWarningEmailParam
     footer: common.common_footer,
   })
   const text = renderEmailText({
+    brandName: params.brandName,
     title: m.title,
     bodyText,
     ctaLabel: m.cta_label,

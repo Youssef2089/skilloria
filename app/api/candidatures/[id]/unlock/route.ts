@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
+import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
 import { markCandidatureViewedServerSide } from '@/lib/candidature-views'
 import { getOrgEntitlements, consumeQuota, monthlyPeriodStart } from '@/lib/entitlements'
 import { performUnlock, ALLOWED_PREVIOUS_STATUSES } from '@/lib/unlock'
@@ -54,6 +54,11 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   const orgId = auth.organization?.id
   if (!orgId) {
     return json({ error: 'No organization', code: 'org_required' }, 403)
+  }
+  // D2 : dévoiler un candidat = gestion des candidatures → editor+ (viewer refusé).
+  try { requireOrgRole(auth, 'editor') } catch (err) {
+    if (err instanceof AuthError) return err.toResponse()
+    throw err
   }
 
   const { id: candidatureId } = await ctx.params

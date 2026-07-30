@@ -51,6 +51,8 @@ type ExpertFull = {
   review_reason: string | null
   branches: { id: string; name: string } | null
   specialities: { id: string; name: string } | null
+  /** D1 : écosystème (domaine) de l'expert, pour l'admin plateforme. */
+  ecosystem: string | null
   users: { id: string; email: string; first_name: string | null; last_name: string | null; phone: string | null; locale: string | null; civility: string | null; job_title: string | null; linkedin_url: string | null } | null
 }
 
@@ -76,6 +78,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
   const { id } = use(params)
   const t = useTranslations('admin_back_office.experts')
   const tCommon = useTranslations('common')
+  const tAdmin = useTranslations('admin_back_office')
   const locale = useLocale()
   const router = useRouter()
   const secureFetch = useSecureFetch()
@@ -181,7 +184,15 @@ export default function AdminExpertDetailPage({ params }: Props) {
           {((user?.first_name?.[0] ?? '') + (user?.last_name?.[0] ?? '')).toUpperCase() || '?'}
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>{fullName || user?.email || '—'}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>{fullName || user?.email || '—'}</h1>
+            {/* D1 : écosystème de l'expert (admin plateforme multi-écosystème). */}
+            {e.ecosystem && (
+              <span title={tAdmin('ecosystem_label')} style={{ fontSize: 11, fontWeight: 700, color: '#3730a3', background: '#eef2ff', border: '0.5px solid #c7d2fe', borderRadius: 7, padding: '2px 9px', whiteSpace: 'nowrap' }}>
+                {e.ecosystem}
+              </span>
+            )}
+          </div>
           <div style={{ fontSize: 13, color: '#64748b' }}>
             {[e.title, e.seniority, e.years_experience != null ? `${e.years_experience} an(s)` : null].filter(Boolean).join(' · ')}
           </div>

@@ -60,6 +60,21 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     return json({ error: 'Not found', code: 'not_found' }, 404)
   }
 
+  // ── Écosystème de l'org (D1 — admin plateforme multi-écosystème) ────────
+  //  Via organization_domains → domains, SANS filtre domaine (vrai écosystème
+  //  de l'org, indépendant du domaine de l'admin).
+  let ecosystem: string | null = null
+  const { data: domLink } = await auth.supabaseAdmin
+    .from('organization_domains')
+    .select('domains(name)')
+    .eq('organization_id', id)
+    .limit(1)
+    .maybeSingle()
+  if (domLink) {
+    const dom = Array.isArray(domLink.domains) ? domLink.domains[0] : domLink.domains
+    ecosystem = ((dom as { name?: string | null } | null)?.name ?? '').trim() || null
+  }
+
   // ── Contact = membre admin le plus ancien ──────────────────────────────
   const { data: memberRow, error: memberErr } = await auth.supabaseAdmin
     .from('organization_members')
@@ -132,5 +147,5 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     sirene_error_note: vd?.sirene_error_note ?? null,
   }
 
-  return json({ org, contact, verification }, 200)
+  return json({ org: { ...org, ecosystem }, contact, verification }, 200)
 }

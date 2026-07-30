@@ -4,6 +4,7 @@ import { logAudit } from '@/lib/audit'
 import { isValidOrgRole, type OrgRole } from '@/lib/org-members'
 import { generateInvitationToken, hashInvitationToken } from '@/lib/invitation-token'
 import { renderInvitationEmail } from '@/lib/emails/templates'
+import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
 
 export const runtime = 'nodejs'
@@ -210,7 +211,10 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   after(async () => {
     try {
+      // D3 : marque = domaine de l'org (= domaine de l'admin invitant).
+      const brandName = await resolveEmailBrandName(auth.supabaseAdmin, auth.domain.id)
       const rendered = renderInvitationEmail({
+        brandName,
         locale,
         companyName,
         roleLabel,

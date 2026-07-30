@@ -465,7 +465,7 @@
       "identity": {
         "title": "Identidad profesional",
         "title_label": "Título profesional",
-        "title_placeholder": "Ej: Consultor sénior Dynamics 365 F&O",
+        "title_placeholder": "Ej: Consultor funcional sénior",
         "summary_label": "Resumen",
         "summary_placeholder": "10 años de experiencia en...",
         "summary_counter": "{count}/500 · mínimo 20 caracteres para publicar",
@@ -487,7 +487,7 @@
         "speciality_placeholder": "— Selecciona una especialidad —",
         "skills_label": "Competencias",
         "skills_min_hint": "(mín. 3 para publicar)",
-        "skills_placeholder": "Ej: Azure, Power BI, D365...",
+        "skills_placeholder": "Ej: tus competencias clave",
         "skills_add_button": "Añadir",
         "skill_remove_aria": "Quitar {name}"
       },
@@ -497,7 +497,7 @@
         "name_label": "Nombre",
         "name_placeholder": "PL-300, MB-700...",
         "issuer_label": "Emisor",
-        "issuer_placeholder": "Microsoft",
+        "issuer_placeholder": "Ej: organismo certificador",
         "year_label": "Año",
         "remove_aria": "Eliminar",
         "add_button": "+ Añadir una certificación"
@@ -558,7 +558,7 @@
         "title": "Trayectoria profesional",
         "empty": "Ningún empleador añadido.",
         "role_label": "Puesto",
-        "role_placeholder": "Lead Supply Chain D365 SCM",
+        "role_placeholder": "Lead consultor supply chain",
         "employer_label": "Empleador",
         "employer_placeholder": "Prodware, SilverProd...",
         "is_current_label": "Puesto actual",
@@ -880,14 +880,14 @@
         "email_label": "Correo electrónico",
         "email_placeholder": "tu@email.com",
         "specialty_label": "Especialidad principal en {ecosystem}",
-        "specialty_placeholder": "Ej: Dynamics 365, Azure, Power BI..."
+        "specialty_placeholder": "Ej: tu especialidad principal"
       },
       "cdi": {
         "form_title": "Crear un perfil de empleo fijo",
         "email_label": "Correo electrónico",
         "email_placeholder": "tu@email.com",
         "specialty_label": "Área de {ecosystem} que buscas",
-        "specialty_placeholder": "Ej: Dynamics 365, Azure..."
+        "specialty_placeholder": "Ej: tu especialidad principal"
       }
     },
     "fields": {
@@ -1254,7 +1254,7 @@
       "identity": {
         "title": "Identidad profesional",
         "title_label": "Título profesional",
-        "title_placeholder": "Ej: Consultor Dynamics 365 F&O Senior",
+        "title_placeholder": "Ej: Consultor funcional sénior",
         "summary_label": "Resumen",
         "summary_placeholder": "10 años de experiencia en...",
         "summary_counter": "{count}/500 · mínimo 20 caracteres para publicar",
@@ -1278,7 +1278,7 @@
         "speciality_placeholder": "— Seleccionar una especialidad —",
         "skills_label": "Competencias",
         "skills_min_hint": "(mín. 3 para publicar)",
-        "skills_placeholder": "Ej: Azure, Power BI, D365...",
+        "skills_placeholder": "Ej: tus competencias clave",
         "skills_add_button": "Añadir",
         "skill_remove_aria": "Quitar {name}"
       },
@@ -1332,7 +1332,7 @@
         "name_label": "Nombre",
         "name_placeholder": "PL-300, MB-700...",
         "issuer_label": "Emisor",
-        "issuer_placeholder": "Microsoft",
+        "issuer_placeholder": "Ej: organismo certificador",
         "year_label": "Año",
         "remove_aria": "Eliminar",
         "add_button": "+ Añadir una certificación"
@@ -1341,7 +1341,7 @@
         "title": "Trayectoria profesional",
         "empty": "Aún no hay empleadores.",
         "role_label": "Puesto",
-        "role_placeholder": "Lead Supply Chain D365 SCM",
+        "role_placeholder": "Lead consultor supply chain",
         "employer_label": "Empleador",
         "employer_placeholder": "Prodware, SilverProd...",
         "is_current_label": "Puesto actual",
@@ -1683,7 +1683,7 @@
       "section_advanced": "Avanzado",
       "field_type": "Tipo de anuncio",
       "field_title": "Título",
-      "field_title_placeholder": "Ej.: Consultor Power BI sénior — sector retail",
+      "field_title_placeholder": "Ej.: Consultor sénior — sector retail",
       "field_description": "Descripción",
       "field_description_placeholder": "Describe la misión o el puesto: contexto, entregables esperados, equipo, entorno técnico…",
       "field_description_help": "20 a 10 000 caracteres. Cuanto más clara y completa, mejor el matching.",
@@ -1696,7 +1696,7 @@
       "field_seniority": "Senioridad",
       "field_work_mode": "Modalidad de trabajo",
       "field_skills": "Competencias clave",
-      "field_skills_placeholder": "Ej.: Power BI, DAX, Azure SQL — Enter para añadir",
+      "field_skills_placeholder": "Ej.: tus competencias clave — Enter para añadir",
       "field_skills_add": "Añadir",
       "field_skills_remove_aria": "Quitar la competencia {skill}",
       "field_location": "Ubicación",
@@ -1942,6 +1942,7 @@
         "open_to_opportunities": "Abierto a oportunidades"
       },
       "error_invalid_transition": "Acción no permitida en el estado actual.",
+      "error_insufficient_role": "Tu rol no permite esta acción. Se requiere un rol de editor o administrador.",
       "error_not_found": "Esta candidatura ya no existe.",
       "error_reason_too_long": "El motivo supera los 2000 caracteres.",
       "error_generic": "Se produjo un error. Inténtalo de nuevo."
@@ -2082,7 +2083,14 @@
       "error_type_not_candidatable": "Este tipo de oportunidad no acepta candidaturas."
     }
   },
+  "relative_time": {
+    "now": "ahora mismo",
+    "suffix_day": "d",
+    "suffix_hour": "h",
+    "suffix_minute": "min"
+  },
   "admin_back_office": {
+    "ecosystem_label": "Ecosistema",
     "sidebar": {
       "title": "Back-office Skilloria",
       "section_validation": "Validación",
@@ -2633,12 +2641,12 @@
     "wall_contact": "¿Lo necesita antes? Contáctenos.",
     "form": {
       "title_label": "Título de la necesidad",
-      "title_placeholder": "Ej. Refuerzo Power BI para una misión de 3 meses",
+      "title_placeholder": "Ej. Refuerzo de equipo para una misión de 3 meses",
       "description_label": "Descripción",
       "description_placeholder": "Describa la necesidad, el contexto, los entregables esperados…",
       "description_hint": "20 caracteres mínimo.",
       "skills_label": "Competencias (separadas por comas)",
-      "skills_placeholder": "Power BI, DAX, Azure",
+      "skills_placeholder": "Ej. tus competencias clave",
       "budget_min_label": "Presupuesto mín (€/día)",
       "budget_max_label": "Presupuesto máx (€/día)",
       "budget_placeholder": "Opcional",

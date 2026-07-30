@@ -1,5 +1,5 @@
 import { NextRequest, after } from 'next/server'
-import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
+import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 
 export const runtime = 'nodejs'
@@ -181,6 +181,11 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   const orgId = auth.organization?.id
   if (!orgId) {
     return json({ error: 'No organization', code: 'org_required' }, 403)
+  }
+  // D2 : éditer une annonce = gestion des annonces → editor+ (viewer refusé).
+  try { requireOrgRole(auth, 'editor') } catch (err) {
+    if (err instanceof AuthError) return err.toResponse()
+    throw err
   }
 
   // ── Id de route ─────────────────────────────────────────────────────────

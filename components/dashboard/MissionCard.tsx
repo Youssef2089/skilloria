@@ -1,6 +1,7 @@
 'use client'
 
 import { useLocale, useTranslations } from 'next-intl'
+import { useRelativeTime } from '@/lib/use-relative-time'
 import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from './PublicationSynthesisLine'
@@ -51,26 +52,6 @@ function formatBudget(min: number | null, max: number | null, type: string, loca
   return `${Math.round(max!)}€${unit}`
 }
 
-function relativeFromNow(iso: string | null, locale: string): string {
-  if (!iso) return ''
-  const then = new Date(iso).getTime()
-  const now = Date.now()
-  const diffMs = Math.max(0, now - then)
-  const sec = Math.round(diffMs / 1000)
-  const min = Math.round(sec / 60)
-  const hr = Math.round(min / 60)
-  const day = Math.round(hr / 24)
-  const labels =
-    locale === 'fr' ? { d: 'j', h: 'h', m: 'min' }
-    : locale === 'es' ? { d: 'd', h: 'h', m: 'min' }
-    : locale === 'de' ? { d: 'T', h: 'h', m: 'min' }
-    : { d: 'd', h: 'h', m: 'min' }
-  if (day >= 1) return `${day}${labels.d}`
-  if (hr >= 1) return `${hr}${labels.h}`
-  if (min >= 1) return `${min}${labels.m}`
-  return locale === 'fr' ? "à l'instant" : 'just now'
-}
-
 function scoreColor(score: number, domainPrimary: string): string {
   if (score >= 9) return '#16A34A'
   if (score >= 7) return domainPrimary
@@ -89,6 +70,7 @@ export default function MissionCard({
   const t = useTranslations('missions.card')
   const tPub = useTranslations('publications')
   const locale = useLocale()
+  const relTime = useRelativeTime()
   const domain = useDomain()
 
   const { publication: pub, org, ai_score, ai_reason, match_status, matched_at } = mission
@@ -131,7 +113,7 @@ export default function MissionCard({
             {pub.published_at && (
               <>
                 <span aria-hidden style={{ color: 'var(--sk-faint)' }}>·</span>
-                <span style={{ color: 'var(--sk-faint)' }}>{tPub('dates.published_ago', { time: relativeFromNow(pub.published_at, locale) })}</span>
+                <span style={{ color: 'var(--sk-faint)' }}>{tPub('dates.published_ago', { time: relTime(pub.published_at) })}</span>
               </>
             )}
           </div>

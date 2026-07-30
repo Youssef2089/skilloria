@@ -3,6 +3,7 @@ import { requireAuth, AuthError } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { generateInvitationToken, hashInvitationToken } from '@/lib/invitation-token'
 import { renderInvitationEmail } from '@/lib/emails/templates'
+import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
 
 export const runtime = 'nodejs'
@@ -148,8 +149,10 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
 
   after(async () => {
     try {
+      // D3 : marque = domaine de l'org (= domaine de l'admin invitant).
+      const brandName = await resolveEmailBrandName(auth.supabaseAdmin, auth.domain.id)
       const rendered = renderInvitationEmail({
-        locale, companyName, roleLabel, inviteUrl, expiresLabel, domainMismatch,
+        brandName, locale, companyName, roleLabel, inviteUrl, expiresLabel, domainMismatch,
       })
       const res = await sendEmail({
         to: email,

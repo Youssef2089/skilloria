@@ -155,6 +155,32 @@ export async function GET(request: NextRequest): Promise<Response> {
     )
   }
 
-  const result = orgs.map((o) => ({ ...o, package: packageByOrg.get(o.id) ?? null }))
+  // ── Écosystème de chaque org (D1 — admin plateforme multi-écosystème) ──────
+  //  Résolution SANS filtre domaine (contrairement au package ci-dessus) : on
+  //  veut le VRAI écosystème de l'org, quel que soit le domaine de l'admin.
+  const ecosystemByOrg = new Map<string, string>()
+  try {
+    const orgIds = orgs.map((o) => o.id)
+    if (orgIds.length > 0) {
+      const { data: domLinks } = await auth.supabaseAdmin
+        .from('organization_domains')
+        .select('organization_id, domains(name)')
+        .in('organization_id', orgIds)
+      for (const l of (domLinks ?? []) as { organization_id: string; domains: { name?: string | null } | { name?: string | null }[] | null }[]) {
+        if (ecosystemByOrg.has(l.organization_id)) continue
+        const dom = Array.isArray(l.domains) ? l.domains[0] : l.domains
+        const name = (dom?.name ?? '').trim()
+        if (name) ecosystemByOrg.set(l.organization_id, name)
+      }
+    }
+  } catch (err) {
+    console.warn('[admin:list-orgs] ecosystem resolution failed', err instanceof Error ? err.message : String(err))
+  }
+
+  const result = orgs.map((o) => ({
+    ...o,
+    package: packageByOrg.get(o.id) ?? null,
+    ecosystem: ecosystemByOrg.get(o.id) ?? null,
+  }))
   return json({ orgs: result }, 200)
 }

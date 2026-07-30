@@ -83,8 +83,11 @@ export async function GET(request: NextRequest): Promise<Response> {
     .select(
       'id, user_id, expert_type, title, seniority, years_experience, ' +
         'verification_status, verification_score, verified_at, verified_by, review_reason, ' +
-        'created_at, updated_at, photo_url, ' +
-        'users!profiles_user_id_fkey(id, email, first_name, last_name, locale, user_type)',
+        'created_at, updated_at, photo_url, domain_id, ' +
+        'users!profiles_user_id_fkey(id, email, first_name, last_name, locale, user_type), ' +
+        // D1 : admin plateforme multi-écosystème → on expose l'écosystème de
+        // chaque expert (issu de la config de domaine, jamais en dur).
+        'domains(id, name, slug)',
     )
 
   if (status === 'pending') {
@@ -106,12 +109,18 @@ export async function GET(request: NextRequest): Promise<Response> {
   // M3 : photo_url est un chemin storage. Admin voit tout -> on signe
   // systématiquement (URL signée 300s) quand une photo est présente. Seule la
   // VALEUR change ; les autres champs et la condition d'accès restent identiques.
-  const rows = (data ?? []) as unknown as Array<Record<string, unknown> & { user_id: string; photo_url: string | null }>
+  const rows = (data ?? []) as unknown as Array<Record<string, unknown> & { user_id: string; photo_url: string | null; domains?: unknown }>
   const experts = await Promise.all(
-    rows.map(async (r) => ({
-      ...r,
-      photo_url: r.photo_url ? await signAvatarUrl(auth.supabaseAdmin, r.user_id) : null,
-    })),
+    rows.map(async (r) => {
+      const dom = Array.isArray(r.domains) ? r.domains[0] : r.domains
+      const ecosystem = (dom as { name?: string | null } | null)?.name ?? null
+      return {
+        ...r,
+        photo_url: r.photo_url ? await signAvatarUrl(auth.supabaseAdmin, r.user_id) : null,
+        // D1 : écosystème de l'expert, affiché en back-office.
+        ecosystem,
+      }
+    }),
   )
 
   return json({ experts }, 200)

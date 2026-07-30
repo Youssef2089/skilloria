@@ -19,9 +19,9 @@ import EmptyState from '@/components/ui/EmptyState'
 import CandidatureDetailPanel, {
   type Candidature,
   statusToPillKind,
-  relativeFromNow,
 } from '@/components/dashboard/CandidatureDetailPanel'
 import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
+import { useRelativeTime } from '@/lib/use-relative-time'
 
 /**
  * CandidaturesTrackingView — vue tracking des candidatures côté expert
@@ -57,6 +57,7 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
   // Pour la pill "Nouveau" cohérente avec MissionCard.
   const tMissionsCard = useTranslations('missions.card')
   const locale = useLocale()
+  const relTime = useRelativeTime()
   const [filter, setFilter] = useState<FilterKey>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
@@ -243,7 +244,7 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
                               ? t(c.publication?.type === 'mission' ? 'status_selected_mission' : 'status_selected_offre')
                               : t(`status.${c.status}` as 'status.received')}
                           </StatusPill>
-                          <span style={{ color: 'var(--sk-faint)', fontSize: 12 }}>{t('candidated_ago', { time: relativeFromNow(c.created_at, locale) })}</span>
+                          <span style={{ color: 'var(--sk-faint)', fontSize: 12 }}>{t('candidated_ago', { time: relTime(c.created_at) })}</span>
                         </div>
                       </button>
                     )

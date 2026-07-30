@@ -39,6 +39,8 @@ type Org = {
   verified_by: string | null
   review_reason: string | null
   created_at: string
+  /** D1 : écosystème (domaine) de l'org, pour l'admin plateforme. */
+  ecosystem: string | null
 }
 
 type Contact = {
@@ -263,7 +265,7 @@ export default function AdminOrgDetailPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '160px 1fr',
+          gridTemplateColumns: '160px minmax(0, 1fr)',
           gap: 12,
           padding: '8px 0',
           fontSize: 13,
@@ -427,6 +429,7 @@ export default function AdminOrgDetailPage() {
           >
             {t('detail.section_company')}
           </h2>
+          <Row label={t('ecosystem_label')} value={org.ecosystem} />
           <Row label={t('detail.field_siren')} value={org.siren} />
           <Row label={t('detail.field_type')} value={org.org_type} />
           <Row label={t('detail.field_website')} value={org.website_url} isLink />
@@ -510,7 +513,7 @@ export default function AdminOrgDetailPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '160px 1fr',
+              gridTemplateColumns: '160px minmax(0, 1fr)',
               gap: 12,
               padding: '8px 0',
               fontSize: 13,

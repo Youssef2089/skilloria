@@ -791,7 +791,6 @@ export default function DashboardCDI() {
                   cursor: 'not-allowed',
                   opacity: 0.6,
                 }}
-                title="V1 — placeholder"
               >
                 {t('applications_section.view_opportunities_cta')}
               </span>

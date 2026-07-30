@@ -46,6 +46,9 @@ export async function GET(
   return json({
     status: profile.cv_parsing_status ?? 'idle',
     error: profile.cv_parsing_error ?? undefined,
+    // Code stable quand le parsing a échoué → message i18n générique côté client
+    // (jamais le texte technique brut de `error`).
+    code: profile.cv_parsing_status === 'failed' ? 'cv_parsing_failed' : undefined,
     data:
       profile.cv_parsing_status === 'done'
         ? {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useLocale, useTranslations } from 'next-intl'
+import { useRelativeTime } from '@/lib/use-relative-time'
 import { Link } from '@/i18n/navigation'
 import {
   IconSend,
@@ -44,26 +45,6 @@ export type Candidature = {
   viewed_by_me?: boolean
 }
 
-export function relativeFromNow(iso: string | null, locale: string): string {
-  if (!iso) return ''
-  const then = new Date(iso).getTime()
-  const now = Date.now()
-  const diffMs = Math.max(0, now - then)
-  const sec = Math.round(diffMs / 1000)
-  const min = Math.round(sec / 60)
-  const hr = Math.round(min / 60)
-  const day = Math.round(hr / 24)
-  const labels =
-    locale === 'fr' ? { d: 'j', h: 'h', m: 'min' }
-    : locale === 'es' ? { d: 'd', h: 'h', m: 'min' }
-    : locale === 'de' ? { d: 'T', h: 'h', m: 'min' }
-    : { d: 'd', h: 'h', m: 'min' }
-  if (day >= 1) return `${day}${labels.d}`
-  if (hr >= 1) return `${hr}${labels.h}`
-  if (min >= 1) return `${min}${labels.m}`
-  return locale === 'fr' ? "à l'instant" : 'just now'
-}
-
 export function statusToPillKind(status: string): 'open' | 'won' | 'wait' | 'refused' | 'neutral' {
   if (status === 'selected') return 'won'
   if (status === 'unlocked') return 'open'
@@ -82,6 +63,7 @@ export default function CandidatureDetailPanel({
   const t = useTranslations('candidatures_tracking')
   const tPub = useTranslations('publications')
   const locale = useLocale()
+  const relTime = useRelativeTime()
 
   const pk = statusToPillKind(c.status)
   const PIcon = pk === 'won' ? IconTrophy : pk === 'open' ? IconLockOpen : pk === 'refused' ? IconX : IconClock
@@ -147,7 +129,7 @@ export default function CandidatureDetailPanel({
         <TimelineStep
           icon={<IconSend size={16} />}
           label={t('timeline.sent')}
-          sub={t('candidated_ago', { time: relativeFromNow(c.created_at, locale) })}
+          sub={t('candidated_ago', { time: relTime(c.created_at) })}
           state="done"
         />
         {c.ai_match_score != null && (
@@ -161,7 +143,7 @@ export default function CandidatureDetailPanel({
           <TimelineStep
             icon={<IconLockOpen size={16} />}
             label={t('timeline.unlocked')}
-            sub={t('unlocked_since', { time: relativeFromNow(c.unlocked_at, locale) })}
+            sub={t('unlocked_since', { time: relTime(c.unlocked_at) })}
             state="done"
             isLast={c.status === 'unlocked'}
           />
@@ -170,7 +152,7 @@ export default function CandidatureDetailPanel({
           <TimelineStep
             icon={<IconTrophy size={16} />}
             label={t(isMission ? 'timeline.selected_mission' : 'timeline.selected_offre')}
-            sub={t('selected_since', { time: relativeFromNow(c.selected_at, locale) })}
+            sub={t('selected_since', { time: relTime(c.selected_at) })}
             state="done"
             isLast
           />

@@ -46,6 +46,10 @@ export type ExpertVerificationInput = {
   // domain_id présent pour audit, mais le NOM du domaine déterminant est passé
   // séparément via `domain_name` (lisible et stable, ne dépend pas d'un join SQL).
   domain_name: string
+  // Référentiel produits/mots-clés de l'écosystème, issu de domain_configs.tags
+  // (source canonique par domaine). VIDE = aucun référentiel connu → l'IA juge
+  // alors sur la seule cohérence CV/profil, SANS verdict DOMAIN_MISMATCH possible.
+  domain_tags: string[]
   expert_type: 'expert_freelance' | 'expert_cdi' | null
   title: string | null
   summary: string | null
@@ -184,6 +188,14 @@ function buildPrompt(input: ExpertVerificationInput): string {
   const linkedin = sanitize(input.linkedin_url, 500)
   const skillsList = input.skills.slice(0, 60).map((s) => sanitize(s, 80)).filter(Boolean).join(', ') || '(aucune)'
   const languages = input.languages.slice(0, 20).map((s) => sanitize(s, 50)).filter(Boolean).join(', ') || '(aucune)'
+  // Référentiel produits par domaine (domain_configs.tags). Vide → pas de
+  // référentiel → aucun DOMAIN_MISMATCH possible (cf. bloc DOMAINE ci-dessous).
+  const keywordsRef = (input.domain_tags ?? [])
+    .map((s) => sanitize(s, 60))
+    .filter(Boolean)
+    .slice(0, 40)
+    .join(', ')
+  const hasRef = keywordsRef.length > 0
 
   return `Tu es l'analyseur de cohérence des profils experts d'une marketplace B2B spécialisée sur le domaine **${domain}** (écosystème logiciel d'entreprise).
 
@@ -217,9 +229,11 @@ ${buildEducationsBlock(input.educations)}
 ═══════════════════════════════════════════════════════════════
 DOMAINE DE LA PLATEFORME (référentiel)
 ═══════════════════════════════════════════════════════════════
-**${domain}** — écosystème logiciel d'entreprise. Mots-clés associés :
-  Microsoft 365, Dynamics 365, Azure, Power Platform, SharePoint, Teams,
-  Power BI, Office, .NET, C#, Active Directory, Exchange.
+**${domain}** — écosystème logiciel d'entreprise.${
+  keywordsRef
+    ? ` Produits/mots-clés associés :\n  ${keywordsRef}.`
+    : `\n  (Aucun référentiel produits n'est renseigné pour ce domaine : NE fais AUCUN jugement d'alignement d'écosystème — le flag DOMAIN_MISMATCH est INTERDIT dans ce cas. Évalue uniquement la cohérence interne CV/profil.)`
+}
 
 ═══════════════════════════════════════════════════════════════
 TA MISSION — 3 AXES À ÉVALUER, CHACUN INDÉPENDAMMENT
@@ -233,19 +247,26 @@ TA MISSION — 3 AXES À ÉVALUER, CHACUN INDÉPENDAMMENT
    - certifications listées cohérentes avec le profil ?
    - liste précisément chaque écart dans discrepancies[].
 
-**AXE 2 — Cohérence DOMAINE (DISQUALIFIANT si désalignement principal)**
+**AXE 2 — Cohérence DOMAINE (DISQUALIFIANT si désalignement principal)**${
+  hasRef
+    ? `
    L'orientation PRINCIPALE du profil doit s'aligner avec le domaine
-   **${domain}**.
+   **${domain}** (référentiel produits ci-dessus).
    ⚠️ Le flag DOMAIN_MISMATCH ne se déclenche QUE sur un VRAI désalignement
-   de l'orientation principale :
-     • titre "Consultant SAP MM" / branche "SAP" / spécialité "SAP S/4 HANA"
-       sur plateforme Microsoft → DOMAIN_MISMATCH ✓
-     • titre "Salesforce Architect" / spécialité "Salesforce CPQ" sur
-       Microsoft → DOMAIN_MISMATCH ✓
-   ❌ Un expert multi-écosystèmes qui mentionne du Salesforce ou du SAP
-   COMME COMPÉTENCE SECONDAIRE en PLUS de Microsoft (titre Microsoft, branche
-   Microsoft, expériences majoritaires Microsoft) NE doit PAS être plafonné.
-   Le flag ne juge que l'orientation principale (titre + branche + spécialité).
+   de l'orientation principale (titre + branche + spécialité) :
+     • Si l'orientation principale relève MANIFESTEMENT d'un AUTRE écosystème
+       logiciel d'entreprise que **${domain}** (produits/mots-clés étrangers au
+       référentiel dominant le titre ET la branche ET la spécialité)
+       → DOMAIN_MISMATCH ✓
+   ❌ Un expert multi-écosystèmes qui mentionne des produits d'un autre
+   écosystème COMME COMPÉTENCE SECONDAIRE, en PLUS de **${domain}** (titre,
+   branche et expériences majoritairement alignés **${domain}**), NE doit PAS
+   être plafonné. Le flag ne juge que l'orientation principale.`
+    : `
+   ⚠️ Aucun référentiel produits n'est renseigné pour **${domain}** : tu NE
+   PEUX PAS statuer sur l'alignement d'écosystème. Le flag DOMAIN_MISMATCH est
+   INTERDIT. Ignore cet axe et n'en tiens aucun compte dans le score.`
+}
 
 **AXE 3 — LinkedIn / empreinte publique (signal de corroboration NON décisif)**
    Si linkedin_url fourni : utilise web_search pour :

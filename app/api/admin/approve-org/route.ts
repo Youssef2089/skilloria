@@ -3,6 +3,7 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { renderWelcomeEmail } from '@/lib/emails/templates'
+import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
 import { resolveLocale } from '@/lib/emails/locales'
 
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   // Membre admin le plus ancien (D4) : locale + email + first_name.
   const { data: memberRow } = await auth.supabaseAdmin
     .from('organization_members')
-    .select('users(email, first_name, locale)')
+    .select('users(email, first_name, locale, domain_id)')
     .eq('organization_id', organization_id)
     .eq('role_in_org', 'admin')
     .eq('status', 'active')
@@ -142,7 +143,13 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (contactEmail) {
     const origin = siteOriginFromRequest(request, body)
     const loginUrl = `${origin}/${contactLocale}/connexion`
+    // D3 : marque = domaine du DESTINATAIRE (contact org), pas de l'admin.
+    const brandName = await resolveEmailBrandName(
+      auth.supabaseAdmin,
+      (userRow as { domain_id?: string | null } | null)?.domain_id ?? null,
+    )
     const rendered = renderWelcomeEmail({
+      brandName,
       locale: contactLocale,
       firstName: contactFirstName || (contactEmail.split('@')[0] ?? ''),
       companyName: (org.company_name as string | null) ?? '',

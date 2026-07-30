@@ -18,8 +18,14 @@ const TEXT_PRIMARY = '#0f172a'
 const TEXT_SECONDARY = '#64748b'
 const BG = '#f8fafc'
 const BORDER = '#e2e8f0'
+// Slogan de pied d'email — générique, non spécifique à un écosystème (le NOM
+// de marque, lui, est dynamique via params.brandName / D3).
+const TAGLINE = 'La marketplace premium des experts certifiés.'
 
 export type EmailLayoutParams = {
+  /** Nom de marque affiché (en-tête + pied) — issu de domain.name (D3),
+   *  jamais figé : l'email d'un utilisateur SAP porte le nom SAP. */
+  brandName: string
   title: string
   bodyHtml: string
   ctaLabel?: string
@@ -56,7 +62,7 @@ export function renderEmailHtml(params: EmailLayoutParams): string {
                style="max-width:560px;background:#fff;border:1px solid ${BORDER};border-radius:14px;padding:32px 36px;">
           <tr>
             <td style="font-size:18px;font-weight:500;color:${TEXT_PRIMARY};letter-spacing:-.01em;padding-bottom:18px;">
-              Skilloria
+              ${escapeText(params.brandName)}
             </td>
           </tr>
           <tr>
@@ -80,7 +86,7 @@ export function renderEmailHtml(params: EmailLayoutParams): string {
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;padding:14px 0;">
           <tr>
             <td style="font-size:11px;color:${TEXT_SECONDARY};text-align:center;line-height:1.5;">
-              Skilloria — La marketplace premium des experts certifiés.
+              ${escapeText(params.brandName)} — ${escapeText(TAGLINE)}
             </td>
           </tr>
         </table>
@@ -93,6 +99,7 @@ export function renderEmailHtml(params: EmailLayoutParams): string {
 
 /** Version texte brute — fallback pour les clients qui ne rendent pas HTML. */
 export function renderEmailText(args: {
+  brandName: string
   title: string
   bodyText: string
   ctaLabel?: string
@@ -113,7 +120,7 @@ export function renderEmailText(args: {
   parts.push(args.footer)
   parts.push('')
   parts.push('---')
-  parts.push('Skilloria — La marketplace premium des experts certifiés.')
+  parts.push(`${args.brandName} — ${TAGLINE}`)
   return parts.join('\n')
 }
 

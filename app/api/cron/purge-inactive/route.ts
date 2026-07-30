@@ -2,6 +2,7 @@ import { NextRequest, after } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { purgeAccount, type PurgeableUser } from '@/lib/account-purge'
 import { renderInactivityWarningEmail } from '@/lib/emails/templates'
+import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
 import { expertSiteOrigin } from '@/lib/emails/domain-url'
 
@@ -188,7 +189,10 @@ async function handle(request: NextRequest): Promise<Response> {
           const loginUrl = `${base}/${locale}/connexion`
           const deadline = shiftMonths(new Date(u.last_login_at), PURGE_MONTHS)
           const deadlineLabel = new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(deadline)
+          // D3 : marque = domaine du destinataire (u.domain_id).
+          const brandName = await resolveEmailBrandName(admin, u.domain_id)
           const rendered = renderInactivityWarningEmail({
+            brandName,
             locale,
             firstName: u.first_name ?? '',
             deadlineLabel,

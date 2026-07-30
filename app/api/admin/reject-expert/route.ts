@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
 import { renderExpertRejectEmail } from '@/lib/emails/templates'
+import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
 import { expertSiteOrigin } from '@/lib/emails/domain-url'
 
@@ -207,7 +208,10 @@ export async function POST(request: NextRequest): Promise<Response> {
         const baseOrigin = expertSiteOrigin({ origin: siteOrigin, slug: expertSlug })
         contactUrl = `${baseOrigin}/${locale}`
       }
+      // D3 : marque = domaine de l'EXPERT destinataire (row.domain_id).
+      const brandName = await resolveEmailBrandName(auth.supabaseAdmin, row.domain_id)
       const rendered = renderExpertRejectEmail({
+        brandName,
         locale: u?.locale ?? null,
         firstName: (u?.first_name ?? '').trim() || (contactEmail.split('@')[0] ?? ''),
         reason,

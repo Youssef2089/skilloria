@@ -247,7 +247,9 @@ export async function POST(request: NextRequest): Promise<Response> {
       detail: { status: 'failed', error: result.error, hash },
     })
 
-    return json({ jobId: profile.id, status: 'failed', error: result.error })
+    // Code explicite → le client affiche un message i18n générique (jamais le
+    // texte technique brut). `error` conservé pour les logs/diagnostic.
+    return json({ jobId: profile.id, status: 'failed', error: result.error, code: 'cv_parsing_failed' })
   }
 
   const parsed = result.data

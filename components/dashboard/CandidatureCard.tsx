@@ -1,6 +1,7 @@
 'use client'
 
 import { useLocale, useTranslations } from 'next-intl'
+import { useRelativeTime } from '@/lib/use-relative-time'
 import { useState } from 'react'
 import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
@@ -124,26 +125,6 @@ type Props = {
   onMutated: () => void                   // re-fetch parent
 }
 
-function relativeFromNow(iso: string | null, locale: string): string {
-  if (!iso) return ''
-  const then = new Date(iso).getTime()
-  const now = Date.now()
-  const diffMs = Math.max(0, now - then)
-  const sec = Math.round(diffMs / 1000)
-  const min = Math.round(sec / 60)
-  const hr = Math.round(min / 60)
-  const day = Math.round(hr / 24)
-  const labels =
-    locale === 'fr' ? { d: 'j', h: 'h', m: 'min' }
-    : locale === 'es' ? { d: 'd', h: 'h', m: 'min' }
-    : locale === 'de' ? { d: 'T', h: 'h', m: 'min' }
-    : { d: 'd', h: 'h', m: 'min' }
-  if (day >= 1) return `${day}${labels.d}`
-  if (hr >= 1) return `${hr}${labels.h}`
-  if (min >= 1) return `${min}${labels.m}`
-  return locale === 'fr' ? "à l'instant" : 'just now'
-}
-
 function formatRate(min: number | null, max: number | null, unit: string): string {
   if (min == null && max == null) return ''
   if (min != null && max != null) return `${Math.round(min)}-${Math.round(max)}€${unit}`
@@ -164,7 +145,9 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
   // (cdi_status_options, contract_types_options, notice_period_options,
   // geo_mobility_options) pour ne pas dupliquer les valeurs en i18n.
   const tCdi = useTranslations('cdi_profile_view')
+  const tPub = useTranslations('publications')
   const locale = useLocale()
+  const relTime = useRelativeTime()
   const domain = useDomain()
   const secureFetch = useSecureFetch()
 
@@ -202,8 +185,8 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
   const markCandidatureViewed = useMarkCandidatureViewed()
 
   const rateUnit = publicationType === 'mission'
-    ? (locale === 'fr' ? '/jour' : locale === 'es' ? '/día' : locale === 'de' ? '/Tag' : '/day')
-    : (locale === 'fr' ? '/an' : locale === 'es' ? '/año' : locale === 'de' ? '/Jahr' : '/year')
+    ? tPub('budget_unit.day')
+    : tPub('budget_unit.year')
   const rateText = publicationType === 'mission'
     ? formatRate(preview.tjm_min, preview.tjm_max, rateUnit)
     : formatRate(preview.salary_min, preview.salary_max, rateUnit)
@@ -414,7 +397,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
           <><span aria-hidden>·</span><span>{t(`availability.${preview.availability_status}` as 'availability.immediate', {} as never)}</span></>
         )}
         <span aria-hidden>·</span>
-        <span title={created_at}>{t('candidated_ago', { time: relativeFromNow(created_at, locale) })}</span>
+        <span title={created_at}>{t('candidated_ago', { time: relTime(created_at) })}</span>
       </div>
 
       {/* Compétences */}

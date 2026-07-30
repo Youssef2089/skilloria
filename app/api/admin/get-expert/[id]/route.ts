@@ -48,7 +48,9 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         'photo_url, country, city, ' +
         'created_at, updated_at, ' +
         'branches(id, name, slug), specialities(id, name, slug), ' +
-        'users!profiles_user_id_fkey(id, email, first_name, last_name, locale, user_type, civility, phone, linkedin_url, job_title)',
+        'users!profiles_user_id_fkey(id, email, first_name, last_name, locale, user_type, civility, phone, linkedin_url, job_title), ' +
+        // D1 : écosystème de l'expert (admin plateforme multi-écosystème).
+        'domains(id, name, slug)',
     )
     .eq('id', id)
     .maybeSingle()
@@ -69,10 +71,13 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
 
   // M3 : photo_url est un chemin storage. Admin voit tout -> URL signée (300s)
   // systématique quand une photo est présente. Seule la VALEUR change.
-  const prof = profile as unknown as Record<string, unknown> & { user_id: string; photo_url: string | null }
+  const prof = profile as unknown as Record<string, unknown> & { user_id: string; photo_url: string | null; domains?: unknown }
+  const profDom = Array.isArray(prof.domains) ? prof.domains[0] : prof.domains
   const expert = {
     ...prof,
     photo_url: prof.photo_url ? await signAvatarUrl(auth.supabaseAdmin, prof.user_id) : null,
+    // D1 : écosystème exposé à la fiche admin.
+    ecosystem: (profDom as { name?: string | null } | null)?.name ?? null,
   }
 
   return json(

@@ -12,6 +12,16 @@ import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
  *
  * NB : `AuthContext.user` ne contient pas `user_type` (cf. lib/auth-guard.ts) —
  * on l'ajoute ici via le retour étendu `AdminContext`.
+ *
+ * ⚠️ MODÈLE ADMIN = ADMIN PLATEFORME UNIQUE (décision produit D1).
+ *   L'admin consulte et administre TOUS les écosystèmes (microsoft, sap,
+ *   salesforce…). C'est pourquoi `requireAdmin` N'AJOUTE VOLONTAIREMENT AUCUN
+ *   filtre `domain_id` : les routes /api/admin/* opèrent cross-domaine par
+ *   conception. L'ABSENCE de scoping par domaine est INTENTIONNELLE.
+ *   ➜ Ne PAS ajouter de scoping `domain_id` ici ni dans les routes admin sans
+ *      décision produit explicite (cela casserait la vue plateforme unifiée).
+ *   Corollaire (D1) : les écrans admin AFFICHENT l'écosystème de chaque entité
+ *   (colonne/libellé « Écosystème ») pour que l'admin distingue les domaines.
  */
 
 export type AdminContext = AuthContext & {

@@ -29,6 +29,8 @@ type ExpertRow = {
   created_at: string
   updated_at: string
   photo_url: string | null
+  /** D1 : nom de l'écosystème (domaine) de l'expert, pour l'admin plateforme. */
+  ecosystem: string | null
   users: { id: string; email: string; first_name: string | null; last_name: string | null; locale: string | null; user_type: string | null } | { id: string; email: string; first_name: string | null; last_name: string | null; locale: string | null; user_type: string | null }[] | null
 }
 
@@ -60,6 +62,7 @@ function formatDate(iso: string | null, locale: string): string {
 
 export default function AdminExpertsListPage() {
   const t = useTranslations('admin_back_office.experts')
+  const tAdmin = useTranslations('admin_back_office')
   const locale = useLocale()
   const secureFetch = useSecureFetch()
   const [tab, setTab] = useState<TabKey>('pending')
@@ -153,7 +156,7 @@ export default function AdminExpertsListPage() {
       )}
 
       {rows !== null && rows.length > 0 && (
-        <div style={{ background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 14, overflowX: 'auto' }}>
           {rows.map((r, i) => {
             const u = pickRel(r.users)
             const name = [u?.first_name, u?.last_name].filter(Boolean).join(' ').trim()
@@ -164,6 +167,7 @@ export default function AdminExpertsListPage() {
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '44px 1fr 100px 90px 120px',
+                  minWidth: 560,
                   gap: 14,
                   alignItems: 'center',
                   padding: '14px 18px',
@@ -181,8 +185,16 @@ export default function AdminExpertsListPage() {
                   </div>
                 )}
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {name || u?.email || '—'}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {name || u?.email || '—'}
+                    </span>
+                    {/* D1 : écosystème de l'expert (admin plateforme multi-écosystème). */}
+                    {r.ecosystem && (
+                      <span title={tAdmin('ecosystem_label')} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: '#3730a3', background: '#eef2ff', border: '0.5px solid #c7d2fe', borderRadius: 6, padding: '1px 7px', whiteSpace: 'nowrap' }}>
+                        {r.ecosystem}
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: 12, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
                     {[r.title, r.seniority, r.years_experience != null ? `${r.years_experience} an(s)` : null].filter(Boolean).join(' · ')}

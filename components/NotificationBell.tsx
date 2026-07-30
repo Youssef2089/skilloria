@@ -1,10 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { useRelativeTime } from '@/lib/use-relative-time'
 
 /**
  * NotificationBell — cloche + dropdown du centre de notifications.
@@ -35,25 +36,6 @@ type Notification = {
 
 const POLL_MS = 30_000
 
-function relativeFromNow(iso: string, locale: string): string {
-  const then = new Date(iso).getTime()
-  const now = Date.now()
-  const diffMs = Math.max(0, now - then)
-  const sec = Math.round(diffMs / 1000)
-  const min = Math.round(sec / 60)
-  const hr = Math.round(min / 60)
-  const day = Math.round(hr / 24)
-  const labels =
-    locale === 'fr' ? { d: 'j', h: 'h', m: 'min' }
-    : locale === 'es' ? { d: 'd', h: 'h', m: 'min' }
-    : locale === 'de' ? { d: 'T', h: 'h', m: 'min' }
-    : { d: 'd', h: 'h', m: 'min' }
-  if (day >= 1) return `${day}${labels.d}`
-  if (hr >= 1) return `${hr}${labels.h}`
-  if (min >= 1) return `${min}${labels.m}`
-  return locale === 'fr' ? "à l'instant" : 'just now'
-}
-
 function emoji(type: string): string {
   switch (type) {
     case 'new_match_opportunity':  return '🎯'
@@ -67,7 +49,7 @@ function emoji(type: string): string {
 
 export default function NotificationBell({ ariaLabel }: { ariaLabel?: string }) {
   const t = useTranslations('notifications')
-  const locale = useLocale()
+  const relTime = useRelativeTime()
   const router = useRouter()
   const domain = useDomain()
   const secureFetch = useSecureFetch()
@@ -258,7 +240,7 @@ export default function NotificationBell({ ariaLabel }: { ariaLabel?: string }) 
                     <div style={{ minWidth: 0, flex: 1 }}>
                       {n.title && <div style={{ fontSize: 13, fontWeight: isUnread ? 700 : 600, color: '#0f172a', lineHeight: 1.35 }}>{n.title}</div>}
                       {n.body && <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{n.body}</div>}
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{relativeFromNow(n.created_at, locale)}</div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{relTime(n.created_at)}</div>
                     </div>
                     {isUnread && (
                       <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: domain.primaryColor, flexShrink: 0, marginTop: 6 }} />

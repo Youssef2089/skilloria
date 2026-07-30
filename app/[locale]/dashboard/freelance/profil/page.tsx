@@ -57,7 +57,8 @@ export default function ProfilUploadPage() {
       const payload = await res.json().catch(() => ({} as any))
       if (payload?.status === 'done') return { ok: true }
       if (payload?.status === 'failed') {
-        return { ok: false, error: payload?.error ?? t('errors.parsing_default') }
+        // Jamais le texte serveur brut (payload.error) : message i18n générique.
+        return { ok: false, error: t('errors.parsing_default') }
       }
     }
     return { ok: false, error: t('errors.timeout') }
@@ -112,18 +113,15 @@ export default function ProfilUploadPage() {
         } else if (code === 'consent_missing') {
           setErrorMsg(t('errors.consent_required'))
         } else {
-          setErrorMsg(payload?.error || t('errors.generic'))
+          // Jamais payload.error (anglais brut) : générique i18n.
+          setErrorMsg(t('errors.generic'))
         }
         setStatus('error')
         return
       }
 
       if (payload?.status === 'failed') {
-        setErrorMsg(
-          t('errors.parsing_failed', {
-            reason: payload.error ?? t('errors.unknown_reason'),
-          }),
-        )
+        setErrorMsg(t('errors.parsing_default'))
         setStatus('error')
         return
       }
@@ -131,7 +129,7 @@ export default function ProfilUploadPage() {
       if (payload?.status === 'processing' && payload?.jobId) {
         const poll = await pollStatus(payload.jobId)
         if (!poll.ok) {
-          setErrorMsg(t('errors.parsing_failed', { reason: poll.error }))
+          setErrorMsg(poll.error)
           setStatus('error')
           return
         }
@@ -225,7 +223,7 @@ export default function ProfilUploadPage() {
       </div>
 
       {/* Main */}
-      <div className="profil-main" style={{ maxWidth: 1040, margin: '0 auto', padding: 32 }}>
+      <div className="profil-main" style={{ width: '100%', padding: 24 }}>
         {errorMsg && (
           <div
             style={{

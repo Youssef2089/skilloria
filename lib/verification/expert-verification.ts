@@ -143,7 +143,7 @@ async function loadConfig(supabaseAdmin: SupabaseClient): Promise<ExpertVerifica
 async function loadProfileForVerification(
   supabaseAdmin: SupabaseClient,
   profileId: string,
-): Promise<{ row: ProfileRow; experiences: ExpertVerificationInput['experiences']; educations: ExpertVerificationInput['educations']; languages: string[]; domain_name: string } | null> {
+): Promise<{ row: ProfileRow; experiences: ExpertVerificationInput['experiences']; educations: ExpertVerificationInput['educations']; languages: string[]; domain_name: string; domain_tags: string[] } | null> {
   const { data, error } = await supabaseAdmin
     .from('profiles')
     .select(
@@ -166,14 +166,21 @@ async function loadProfileForVerification(
     supabaseAdmin.from('profile_experiences').select('role, employer, sector, start_date, end_date, is_current, description').eq('profile_id', profileId).order('start_date', { ascending: false }).limit(20),
     supabaseAdmin.from('profile_educations').select('school, degree, field, start_year, end_year').eq('profile_id', profileId).order('start_year', { ascending: false }).limit(10),
     supabaseAdmin.from('profile_languages').select('language, level').eq('profile_id', profileId).limit(15),
-    supabaseAdmin.from('domains').select('name').eq('id', row.domain_id).maybeSingle(),
+    // Référentiel écosystème : nom du domaine + tags (source canonique
+    // domain_configs.tags) pour la vérif multi-écosystème (fin du référentiel
+    // Microsoft figé). Pas de fallback en dur : un domaine sans nom = anomalie
+    // traitée par le caller (pending_admin_review), jamais masquée.
+    supabaseAdmin.from('domains').select('name, domain_configs(tags)').eq('id', row.domain_id).maybeSingle(),
   ])
   const experiences = ((expRes.data ?? []) as unknown as ExpertVerificationInput['experiences'])
   const educations = ((eduRes.data ?? []) as unknown as ExpertVerificationInput['educations'])
   const languages = ((langRes.data ?? []) as { language: string; level?: string }[]).map((l) => l.language)
-  const domain_name = ((domRes.data as { name?: string } | null)?.name) ?? 'Microsoft'
+  const domRow = domRes.data as { name?: string | null; domain_configs?: { tags?: string[] | null } | { tags?: string[] | null }[] | null } | null
+  const domain_name = (domRow?.name ?? '').trim()   // '' → anomalie (cf. caller), plus de défaut 'Microsoft'
+  const domCfg = Array.isArray(domRow?.domain_configs) ? domRow?.domain_configs[0] : domRow?.domain_configs
+  const domain_tags = Array.isArray(domCfg?.tags) ? (domCfg!.tags as string[]) : []
 
-  return { row, experiences, educations, languages, domain_name }
+  return { row, experiences, educations, languages, domain_name, domain_tags }
 }
 
 function countCerts(certifications: unknown): number {
@@ -285,7 +292,23 @@ export async function runExpertVerification(args: {
   if (!loaded) {
     return { status: 'skipped', verification_status: null, score: null, notes: '', flags: [], discrepancies: [], model: null, reason: 'profile_not_found' }
   }
-  const { row, experiences, educations, languages, domain_name } = loaded
+  const { row, experiences, educations, languages, domain_name, domain_tags } = loaded
+
+  // 2bis. Anomalie : domaine sans nom (données incohérentes). On NE masque plus
+  // par un défaut 'Microsoft' (1b) : sans domaine fiable, la vérif d'écosystème
+  // n'a aucun sens → on défère la décision à l'admin plutôt que d'auto-statuer.
+  if (!domain_name) {
+    console.error('[expert-verification] domaine introuvable/sans nom', { profile_id, domain_id: row.domain_id })
+    await supabaseAdmin
+      .from('profiles')
+      .update({
+        verification_status: 'pending_admin_review',
+        verification_method: 'manual_only',
+        verification_data: { notes: 'Domaine introuvable ou sans nom — vérification déférée à l\'admin (anomalie de données).' },
+      })
+      .eq('id', profile_id)
+    return { status: 'skipped', verification_status: 'pending_admin_review', score: null, notes: '', flags: [], discrepancies: [], model: null, reason: 'domain_not_found' }
+  }
 
   // 3. Pré-conditions (RGPD + CV parsé)
   if (!row.ai_consent_at) {
@@ -316,6 +339,7 @@ export async function runExpertVerification(args: {
   const locale = normalizeLocale(user?.locale)
   const input: ExpertVerificationInput = {
     domain_name,
+    domain_tags,
     expert_type: (row.expert_type as ExpertVerificationInput['expert_type']) ?? null,
     title: row.title,
     summary: row.summary,

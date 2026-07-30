@@ -946,7 +946,7 @@ export default function CdiValiderProfilPage() {
         } else if (res.status === 400 && payload?.code === 'cv_not_ready') {
           setErrorMsg(tProfile('errors.cv_not_ready'))
         } else {
-          setErrorMsg(payload?.error || tProfile('errors.save_failed'))
+          setErrorMsg(tProfile('errors.save_failed'))
         }
         setSaving(false)
         return

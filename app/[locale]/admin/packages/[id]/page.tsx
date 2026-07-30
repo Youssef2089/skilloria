@@ -567,7 +567,7 @@ export default function AdminPackageEditPage() {
           {features.map((f) => {
             const unlimited = isUnlimited(f.feature_code)
             return (
-              <div key={f.feature_code} style={{ display: 'grid', gridTemplateColumns: '1fr 130px auto', gap: 12, alignItems: 'center' }}>
+              <div key={f.feature_code} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 130px auto', gap: 12, alignItems: 'center' }}>
                 <label htmlFor={`f_${f.feature_code}`} style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>
                   {featureLabel(f)}
                 </label>

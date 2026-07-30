@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { useRelativeTime } from '@/lib/use-relative-time'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import ConversationView from '@/components/dashboard/ConversationView'
@@ -72,26 +73,6 @@ type Conversation = {
   unread_count: number
 }
 
-function relativeFromNow(iso: string | null, locale: string): string {
-  if (!iso) return ''
-  const then = new Date(iso).getTime()
-  const now = Date.now()
-  const diffMs = Math.max(0, now - then)
-  const sec = Math.round(diffMs / 1000)
-  const min = Math.round(sec / 60)
-  const hr = Math.round(min / 60)
-  const day = Math.round(hr / 24)
-  const labels =
-    locale === 'fr' ? { d: 'j', h: 'h', m: 'min' }
-    : locale === 'es' ? { d: 'd', h: 'h', m: 'min' }
-    : locale === 'de' ? { d: 'T', h: 'h', m: 'min' }
-    : { d: 'd', h: 'h', m: 'min' }
-  if (day >= 1) return `${day}${labels.d}`
-  if (hr >= 1) return `${hr}${labels.h}`
-  if (min >= 1) return `${min}${labels.m}`
-  return locale === 'fr' ? "à l'instant" : 'just now'
-}
-
 type Group = { publication: ConvPublication | null; conversations: Conversation[] }
 
 function groupByPublication(convs: Conversation[]): Group[] {
@@ -132,6 +113,7 @@ export default function MessagesInbox({
   const t = useTranslations('messages.inbox')
   const tPub = useTranslations('publications')
   const locale = useLocale()
+  const relTime = useRelativeTime()
   const router = useRouter()
   const domain = useDomain()
 
@@ -314,7 +296,7 @@ export default function MessagesInbox({
                               </span>
                             </span>
                             {c.last_message?.created_at && (
-                              <span style={{ fontSize: 10, color: '#94a3b8', flexShrink: 0 }}>{relativeFromNow(c.last_message.created_at, locale)}</span>
+                              <span style={{ fontSize: 10, color: '#94a3b8', flexShrink: 0 }}>{relTime(c.last_message.created_at)}</span>
                             )}
                           </div>
                           <div style={{ fontSize: 12, color: c.unread_count > 0 ? '#0f172a' : '#64748b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: c.unread_count > 0 ? 600 : 400 }}>

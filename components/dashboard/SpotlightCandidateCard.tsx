@@ -83,6 +83,7 @@ export default function SpotlightCandidateCard({
   conversionMode = 'unlock',
 }: Props) {
   const t = useTranslations('candidatures.card')
+  const tPub = useTranslations('publications')
   // Bugfix : freelance availability namespace = `profile_view.availability_status`
   // (l'ancien OrgCandidateGridCard pointait à tort sur `cdi_profile_view.*` qui
   // n'existe pas → clés brutes affichées).
@@ -129,8 +130,8 @@ export default function SpotlightCandidateCard({
   })()
 
   const unit = publicationType === 'mission'
-    ? (locale === 'fr' ? '/jour' : locale === 'es' ? '/día' : locale === 'de' ? '/Tag' : '/day')
-    : (locale === 'fr' ? '/an' : locale === 'es' ? '/año' : locale === 'de' ? '/Jahr' : '/year')
+    ? tPub('budget_unit.day')
+    : tPub('budget_unit.year')
   const rate = publicationType === 'mission'
     ? rateText(
         (preview.tjm_min as number | null) ?? null,
@@ -182,6 +183,7 @@ export default function SpotlightCandidateCard({
       if (!res.ok) {
         if (payload.code === 'invalid_transition') setError(t('error_invalid_transition'))
         else if (payload.code === 'not_found') setError(t('error_not_found'))
+        else if (payload.code === 'insufficient_role') setError(t('error_insufficient_role'))
         else setError(t('error_generic'))
         return
       }
@@ -199,6 +201,7 @@ export default function SpotlightCandidateCard({
       if (!res.ok) {
         if (payload.code === 'invalid_transition') setError(t('error_invalid_transition'))
         else if (payload.code === 'not_found') setError(t('error_not_found'))
+        else if (payload.code === 'insufficient_role') setError(t('error_insufficient_role'))
         else setError(t('error_generic'))
         return
       }
@@ -221,6 +224,7 @@ export default function SpotlightCandidateCard({
       if (!res.ok) {
         if (payload.code === 'invalid_transition') setError(t('error_invalid_transition'))
         else if (payload.code === 'not_found') setError(t('error_not_found'))
+        else if (payload.code === 'insufficient_role') setError(t('error_insufficient_role'))
         else setError(t('error_generic'))
         return
       }

@@ -341,7 +341,7 @@ export default function AdminPackageNewPage() {
           {LIMIT_CODES.map((l) => {
             const unlimited = isUnlimited(l.code)
             return (
-              <div key={l.code} style={{ display: 'grid', gridTemplateColumns: '1fr 130px auto', gap: 12, alignItems: 'center' }}>
+              <div key={l.code} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 130px auto', gap: 12, alignItems: 'center' }}>
                 <label htmlFor={`f_${l.code}`} style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>
                   {t(`packages.${l.labelKey}`)}
                 </label>

@@ -588,7 +588,7 @@ export default function MonProfilPage() {
             ? t('publish.error_cv')
             : code === 'incomplete'
               ? t('publish.error_incomplete')
-              : ((payload as { error?: string }).error || t('publish.error_generic'))
+              : t('publish.error_generic') /* jamais payload.error brut */
         setPublishMsg({ kind: 'error', text })
         setPublishing(false)
         return

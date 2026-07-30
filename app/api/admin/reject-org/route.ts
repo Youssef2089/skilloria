@@ -3,6 +3,7 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { renderRejectEmail } from '@/lib/emails/templates'
+import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
 import { resolveLocale } from '@/lib/emails/locales'
 
@@ -124,7 +125,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   // ── Email (best-effort) ─────────────────────────────────────────────────
   const { data: memberRow } = await auth.supabaseAdmin
     .from('organization_members')
-    .select('users(email, first_name, locale)')
+    .select('users(email, first_name, locale, domain_id)')
     .eq('organization_id', organization_id)
     .eq('role_in_org', 'admin')
     .eq('status', 'active')
@@ -151,7 +152,13 @@ export async function POST(request: NextRequest): Promise<Response> {
       process.env.RESEND_FROM_EMAIL
         ? `mailto:${process.env.RESEND_FROM_EMAIL}`
         : `${origin}/${contactLocale}`
+    // D3 : marque = domaine du DESTINATAIRE (contact org), pas de l'admin.
+    const brandName = await resolveEmailBrandName(
+      auth.supabaseAdmin,
+      (userRow as { domain_id?: string | null } | null)?.domain_id ?? null,
+    )
     const rendered = renderRejectEmail({
+      brandName,
       locale: contactLocale,
       firstName: contactFirstName || (contactEmail.split('@')[0] ?? ''),
       companyName: (org.company_name as string | null) ?? '',

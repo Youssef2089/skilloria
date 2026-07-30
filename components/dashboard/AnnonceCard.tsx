@@ -1,6 +1,7 @@
 'use client'
 
 import { useLocale, useTranslations } from 'next-intl'
+import { useRelativeTime } from '@/lib/use-relative-time'
 import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import type { Annonce, AnnonceStatus } from '@/types/annonce'
@@ -88,33 +89,11 @@ function formatBudget(
   return ''
 }
 
-function relativeFromNow(iso: string | null, locale: string): string {
-  if (!iso) return ''
-  const then = new Date(iso).getTime()
-  const now = Date.now()
-  const diffMs = Math.max(0, now - then)
-  const sec = Math.round(diffMs / 1000)
-  const min = Math.round(sec / 60)
-  const hr = Math.round(min / 60)
-  const day = Math.round(hr / 24)
-  const labels =
-    locale === 'fr'
-      ? { d: 'j', h: 'h', m: 'min' }
-      : locale === 'es'
-        ? { d: 'd', h: 'h', m: 'min' }
-        : locale === 'de'
-          ? { d: 'T', h: 'h', m: 'min' }
-          : { d: 'd', h: 'h', m: 'min' }
-  if (day >= 1) return `${day}${labels.d}`
-  if (hr >= 1) return `${hr}${labels.h}`
-  if (min >= 1) return `${min}${labels.m}`
-  return locale === 'fr' ? "à l'instant" : 'just now'
-}
-
 export default function AnnonceCard({ annonce, basePath }: Props) {
   const t = useTranslations('dashboard_entreprise')
   const tPub = useTranslations('publications')
   const locale = useLocale()
+  const relTime = useRelativeTime()
   const domain = useDomain()
 
   const statusStyle = STATUS_STYLES[annonce.status]
@@ -135,8 +114,8 @@ export default function AnnonceCard({ annonce, basePath }: Props) {
   const dateIso = annonce.status === 'published' ? annonce.published_at : annonce.created_at
   const dateLabel =
     annonce.status === 'published'
-      ? tPub('dates.published_ago', { time: relativeFromNow(dateIso, locale) })
-      : tPub('dates.created_ago', { time: relativeFromNow(dateIso, locale) })
+      ? tPub('dates.published_ago', { time: relTime(dateIso) })
+      : tPub('dates.created_ago', { time: relTime(dateIso) })
   const subtitle = budgetText ? `${dateLabel} · ${budgetText}` : dateLabel
 
   const statusLabel = tPub(`status.${annonce.status}`)

@@ -41,6 +41,8 @@ type OrgRow = {
   review_reason: string | null
   /** Offre effective resolue cote serveur (list-orgs). */
   package: { name: string; expired: boolean; fallback: boolean } | null
+  /** D1 : nom de l'écosystème (domaine) de l'org, pour l'admin plateforme. */
+  ecosystem: string | null
 }
 
 function initialsOf(name: string | null | undefined): string {
@@ -261,13 +263,14 @@ export default function AdminOrgsListPage() {
             background: 'var(--color-background-primary, #fff)',
             border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
             borderRadius: 12,
-            overflow: 'hidden',
+            overflowX: 'auto',
           }}
         >
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: 'minmax(200px, 2fr) 120px 110px minmax(130px, 1fr) 80px 110px',
+              minWidth: 780,
               gap: 0,
               padding: '10px 18px',
               borderBottom: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
@@ -297,6 +300,7 @@ export default function AdminOrgsListPage() {
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'minmax(200px, 2fr) 120px 110px minmax(130px, 1fr) 80px 110px',
+              minWidth: 780,
                   gap: 0,
                   padding: '14px 18px',
                   borderBottom: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
@@ -348,6 +352,12 @@ export default function AdminOrgsListPage() {
                   >
                     {org.company_name ?? '—'}
                   </span>
+                  {/* D1 : écosystème de l'org (admin plateforme multi-écosystème). */}
+                  {org.ecosystem && (
+                    <span title={t('ecosystem_label')} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: '#3730a3', background: '#eef2ff', border: '0.5px solid #c7d2fe', borderRadius: 6, padding: '1px 7px', whiteSpace: 'nowrap' }}>
+                      {org.ecosystem}
+                    </span>
+                  )}
                 </span>
 
                 <span style={{ color: 'var(--color-text-secondary, #64748b)' }}>
