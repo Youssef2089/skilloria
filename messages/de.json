@@ -1,4 +1,10 @@
 {
+  "sms_notifications": {
+    "match_digest": {
+      "one": "1 neuer Auftrag passt zu Ihrem Profil auf {platform}. {link}",
+      "other": "{count} neue Aufträge passen zu Ihrem Profil auf {platform}. {link}"
+    }
+  },
   "back_nav": {
     "back_to_dashboard": "← Zurück zum Dashboard",
     "back_to_feed": "← Zurück zu den Möglichkeiten",
@@ -2351,6 +2357,17 @@
     "empty_body": "Sie werden hier benachrichtigt, sobald es Neuigkeiten gibt."
   },
   "emails": {
+    "match_digest": {
+      "subject_one": "Eine neue Gelegenheit passt zu Ihrem Profil",
+      "subject_other": "{count} neue Gelegenheiten passen zu Ihrem Profil",
+      "preheader": "Entdecken Sie die Gelegenheiten, die zu Ihrem Profil passen.",
+      "title": "Neue Gelegenheiten für Sie",
+      "hello": "Hallo {firstName},",
+      "intro_one": "Ein neuer Auftrag passt zu Ihrem Profil auf {platform}:",
+      "intro_other": "{count} neue Aufträge passen zu Ihrem Profil auf {platform}:",
+      "cta_label": "Gelegenheiten ansehen",
+      "unsubscribe": "E-Mail-Benachrichtigungen abbestellen"
+    },
     "common_footer": "Das Skilloria-Team",
     "common_signature": "Bis bald,",
     "common_login_cta": "Anmelden",
@@ -2434,9 +2451,22 @@
     "superseded_signin": "Erneut anmelden"
   },
   "settings": {
+    "notifications": {
+      "title": "Benachrichtigungen",
+      "description": "Diese Benachrichtigungen betreffen nur neue Gelegenheiten, die zu Ihrem Profil passen – weder Nachrichten noch Statusänderungen.",
+      "email_label": "Per E-Mail",
+      "sms_label": "Per SMS",
+      "sms_unavailable": "Nicht verfügbar: Ihre Telefonnummer ist nicht verifiziert.",
+      "sms_verify_link": "Mein Telefon verifizieren",
+      "grouping_note": "In kurzem Abstand eingegangene Gelegenheiten werden zu einer einzigen Nachricht zusammengefasst.",
+      "saved_on": "Benachrichtigungen aktiviert.",
+      "saved_off": "Benachrichtigungen deaktiviert.",
+      "unsub_done": "Sie haben die E-Mail-Benachrichtigungen abbestellt."
+    },
     "title": "Einstellungen",
     "subtitle": "Verwalte dein Konto und deine Einstellungen.",
     "nav": {
+      "notifications": "Benachrichtigungen",
       "identity": "Identität",
       "email": "E-Mail",
       "phone": "Telefon",

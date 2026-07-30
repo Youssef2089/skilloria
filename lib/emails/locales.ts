@@ -77,6 +77,17 @@ type EmailsRoot = {
     body_p2: string
     cta_label: string
   }
+  match_digest: {
+    subject_one: string
+    subject_other: string
+    preheader: string
+    title: string
+    hello: string
+    intro_one: string
+    intro_other: string
+    cta_label: string
+    unsubscribe: string
+  }
 }
 
 const MESSAGES: Record<Locale, { emails: EmailsRoot }> = {

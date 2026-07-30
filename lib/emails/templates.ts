@@ -435,3 +435,102 @@ export function renderInactivityWarningEmail(params: InactivityWarningEmailParam
     tag: 'inactivity_warning',
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Template DIGEST DE MATCHES (notifications email/SMS sur nouvelle opportunité).
+ *
+ * Envoyé par le cron /api/cron/dispatch-match-notifications après la fenêtre de
+ * regroupement de 15 min, dans la langue de l'expert. Contenu agrégé : nombre de
+ * missions, liste courte (titre + score), lien vers les opportunités, lien de
+ * désabonnement (D6). Le nom de la plateforme (`platform`) vient de la config de
+ * domaine — jamais figé (checklist #1). Escaping via `interpolate`.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+export type MatchDigestItem = { title: string; score: number }
+
+export type MatchDigestEmailParams = {
+  locale: string | null | undefined
+  firstName: string
+  /** Nom de la plateforme issu de la config de domaine (jamais figé). */
+  platform: string
+  items: MatchDigestItem[]
+  /** URL absolue vers la liste des opportunités. */
+  missionsUrl: string
+  /** URL absolue de désabonnement (one-click, tokenisée). */
+  unsubscribeUrl: string
+}
+
+export function renderMatchDigestEmail(params: MatchDigestEmailParams): RenderedEmail {
+  const locale: Locale = resolveLocale(params.locale)
+  const m = getEmailMessages(locale).match_digest
+  const common = getEmailMessages(locale)
+  const count = params.items.length
+  const vars = {
+    firstName: params.firstName,
+    platform: params.platform,
+    count: String(count),
+  }
+
+  const subject = interpolate(count <= 1 ? m.subject_one : m.subject_other, vars)
+  const helloLine = interpolate(m.hello, vars)
+  const introHtml = interpolate(count <= 1 ? m.intro_one : m.intro_other, vars)
+
+  // Liste des missions : titre (échappé) + score /10. `interpolate` échappe le
+  // titre (provenant d'une publication, donc non fiable).
+  const itemsHtml = params.items
+    .map((it) =>
+      interpolate('<li style="margin:0 0 6px;">{title} · {score}/10</li>', {
+        title: it.title,
+        score: String(Math.round(it.score * 10) / 10),
+      }),
+    )
+    .join('')
+
+  const unsubscribeHtml = interpolate(
+    '<p style="margin:18px 0 0;font-size:12px;color:#94a3b8;"><a href="{url}" style="color:#94a3b8;text-decoration:underline;">{label}</a></p>',
+    { url: params.unsubscribeUrl, label: m.unsubscribe },
+  )
+
+  const bodyHtml = `<p style="margin:0 0 12px;">${helloLine}</p>
+<p style="margin:0 0 12px;">${introHtml}</p>
+<ul style="margin:0 0 12px;padding-left:20px;color:#334155;">${itemsHtml}</ul>
+${unsubscribeHtml}`
+
+  const itemsText = params.items
+    .map((it) => `- ${it.title} · ${Math.round(it.score * 10) / 10}/10`)
+    .join('\n')
+  const bodyText = [
+    stripHtml(helloLine),
+    '',
+    stripHtml(introHtml),
+    '',
+    itemsText,
+    '',
+    `${m.unsubscribe}: ${params.unsubscribeUrl}`,
+  ].join('\n')
+
+  const html = renderEmailHtml({
+    title: m.title,
+    bodyHtml,
+    ctaLabel: m.cta_label,
+    ctaUrl: params.missionsUrl,
+    signature: common.common_signature,
+    footer: common.common_footer,
+  })
+  const text = renderEmailText({
+    title: m.title,
+    bodyText,
+    ctaLabel: m.cta_label,
+    ctaUrl: params.missionsUrl,
+    signature: common.common_signature,
+    footer: common.common_footer,
+  })
+
+  return {
+    subject,
+    html,
+    text,
+    preheader: m.preheader,
+    tag: 'match_digest',
+  }
+}

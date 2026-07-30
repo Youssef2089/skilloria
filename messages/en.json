@@ -1,4 +1,10 @@
 {
+  "sms_notifications": {
+    "match_digest": {
+      "one": "1 new assignment matches your profile on {platform}. {link}",
+      "other": "{count} new assignments match your profile on {platform}. {link}"
+    }
+  },
   "back_nav": {
     "back_to_dashboard": "← Back to dashboard",
     "back_to_feed": "← Back to opportunities",
@@ -2351,6 +2357,17 @@
     "empty_body": "You'll be notified here whenever something new happens."
   },
   "emails": {
+    "match_digest": {
+      "subject_one": "A new opportunity matches your profile",
+      "subject_other": "{count} new opportunities match your profile",
+      "preheader": "Discover the opportunities that match your profile.",
+      "title": "New opportunities for you",
+      "hello": "Hello {firstName},",
+      "intro_one": "A new assignment matches your profile on {platform}:",
+      "intro_other": "{count} new assignments match your profile on {platform}:",
+      "cta_label": "View opportunities",
+      "unsubscribe": "Unsubscribe from email notifications"
+    },
     "common_footer": "The Skilloria team",
     "common_signature": "See you soon,",
     "common_login_cta": "Sign in",
@@ -2434,9 +2451,22 @@
     "superseded_signin": "Sign in again"
   },
   "settings": {
+    "notifications": {
+      "title": "Notifications",
+      "description": "These notifications only concern new opportunities matching your profile — not messages or status changes.",
+      "email_label": "By email",
+      "sms_label": "By SMS",
+      "sms_unavailable": "Unavailable: your phone number is not verified.",
+      "sms_verify_link": "Verify my phone",
+      "grouping_note": "Opportunities received within a short interval are grouped into a single message.",
+      "saved_on": "Notifications enabled.",
+      "saved_off": "Notifications disabled.",
+      "unsub_done": "You have been unsubscribed from email notifications."
+    },
     "title": "Settings",
     "subtitle": "Manage your account and preferences.",
     "nav": {
+      "notifications": "Notifications",
       "identity": "Identity",
       "email": "Email",
       "phone": "Phone",
