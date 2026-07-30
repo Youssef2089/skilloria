@@ -1,8 +1,8 @@
 # Politique de confidentialité
 
-**Dernière mise à jour : [DATE DE PUBLICATION]**
+**Dernière mise à jour : juillet 2026**
 
-WinOps attache une importance particulière à la protection des données personnelles des utilisateurs de la plateforme Skilloria 365. La présente politique décrit, en application du Règlement (UE) 2016/679 (RGPD) et de la loi n° 78-17 du 6 janvier 1978 modifiée, quelles données sont collectées, pourquoi, combien de temps elles sont conservées et quels droits vous pouvez exercer.
+WinOps attache une importance particulière à la protection des données personnelles des utilisateurs de la plateforme Skilloria (ci-après la « Plateforme »). La présente politique décrit, en application du Règlement (UE) 2016/679 (RGPD) et de la loi n° 78-17 du 6 janvier 1978 modifiée, quelles données sont collectées, pourquoi, combien de temps elles sont conservées et quels droits vous pouvez exercer.
 
 ---
 
@@ -52,6 +52,7 @@ WinOps n'est pas tenue de désigner un délégué à la protection des données 
 - Historique des candidatures, mises en relation et échanges via la messagerie interne
 - Résultats des analyses automatisées de vérification et de correspondance (score, motifs, indicateurs)
 - Préférences d'affichage et paramètres de compte
+- Date et version des conditions générales d'utilisation acceptées
 
 ### 2.3 Données que nous ne collectons pas
 
@@ -69,7 +70,8 @@ Nous ne collectons **aucune donnée sensible** au sens de l'article 9 du RGPD (o
 | Mise en relation et calcul de correspondance entre profils et opportunités | Exécution du contrat (art. 6.1.b) |
 | Messagerie interne entre utilisateurs | Exécution du contrat (art. 6.1.b) |
 | Envoi de courriels transactionnels (confirmation, notifications, alertes) | Exécution du contrat (art. 6.1.b) |
-| Sécurité de la plateforme, journalisation, prévention des abus | Intérêt légitime (art. 6.1.f) |
+| Preuve de l'acceptation des conditions générales | Obligation légale et intérêt légitime (art. 6.1.c et 6.1.f) |
+| Sécurité de la Plateforme, journalisation, prévention des abus | Intérêt légitime (art. 6.1.f) |
 | Respect des obligations légales et comptables | Obligation légale (art. 6.1.c) |
 
 ---
@@ -80,7 +82,7 @@ Cette section vous informe, conformément aux articles 13, 14 et 22 du RGPD, de 
 
 ### 4.1 Vérification automatisée du profil
 
-Lorsque vous demandez la publication de votre profil, un système d'intelligence artificielle analyse la cohérence entre les informations déclarées, le contenu de votre curriculum vitae et le domaine d'expertise de la plateforme. Ce traitement produit un score et, le cas échéant, des indicateurs de vigilance.
+Lorsque vous demandez la publication de votre profil, un système d'intelligence artificielle analyse la cohérence entre les informations déclarées, le contenu de votre curriculum vitae et le domaine d'expertise couvert par la Plateforme. Ce traitement produit un score et, le cas échéant, des indicateurs de vigilance.
 
 **Ce traitement n'est pas une décision entièrement automatisée au sens de l'article 22 du RGPD**, pour les raisons suivantes :
 
@@ -89,27 +91,31 @@ Lorsque vous demandez la publication de votre profil, un système d'intelligence
 - en cas de refus, **le motif vous est communiqué** et vous disposez d'un droit de contestation ;
 - vous pouvez à tout moment demander un réexamen en écrivant à contact@skilloria.io.
 
+Cette vérification porte sur la **cohérence déclarative** des informations que vous fournissez. Elle ne constitue ni un contrôle de références, ni une validation de diplômes.
+
 ### 4.2 Correspondance entre profils et opportunités
 
-Un système d'intelligence artificielle évalue la pertinence entre les profils publiés et les opportunités déposées sur la plateforme, et produit un score de correspondance accompagné d'une explication.
+Un système d'intelligence artificielle évalue la pertinence entre les profils publiés et les opportunités déposées sur la Plateforme, et produit un score de correspondance accompagné d'une explication.
 
 Ce traitement **ne produit aucun effet juridique** : il détermine uniquement l'ordre de présentation des opportunités et des candidatures. Il ne décide ni d'un recrutement, ni de l'attribution d'une mission. Toute décision relative à une collaboration relève exclusivement des utilisateurs concernés.
 
 Les critères pris en compte sont d'ordre strictement professionnel : compétences, séniorité, technologies maîtrisées, secteur d'activité, localisation et disponibilité.
 
+Ces résultats constituent des **suggestions** et ne sauraient être interprétés comme une recommandation ou une garantie de la part de WinOps.
+
 ### 4.3 Prestataire technique
 
-Les traitements décrits ci-dessus sont opérés au moyen de la technologie d'**Anthropic PBC** (États-Unis), en qualité de sous-traitant. Les données transmises sont limitées à ce qui est strictement nécessaire à l'analyse. Elles ne sont pas utilisées pour l'entraînement de modèles.
+Les traitements décrits ci-dessus sont opérés au moyen de la technologie d'**Anthropic PBC** (États-Unis), en qualité de sous-traitant. Les données transmises sont limitées à ce qui est strictement nécessaire à l'analyse. **Elles ne sont pas utilisées pour l'entraînement de modèles.**
 
 ### 4.4 Votre consentement
 
-L'analyse automatisée de votre curriculum vitae et de votre profil requiert votre **consentement explicite**, recueilli avant tout traitement. Vous pouvez le retirer à tout moment ; votre profil cessera alors d'être publié et de faire l'objet de mises en relation.
+L'analyse automatisée de votre curriculum vitae et de votre profil requiert votre **consentement explicite**, recueilli avant tout traitement au moyen d'une case à cocher dédiée et non pré-cochée. Vous pouvez le retirer à tout moment ; votre profil cessera alors d'être publié et de faire l'objet de mises en relation.
 
 ---
 
 ## 5. Destinataires des données
 
-### 5.1 Au sein de la plateforme
+### 5.1 Au sein de la Plateforme
 
 Vos données sont accessibles selon un principe de **divulgation progressive** :
 
@@ -150,19 +156,20 @@ Vos données peuvent être communiquées aux autorités administratives ou judic
 |---|---|
 | Compte actif et profil | Tant que le compte est actif |
 | Compte après demande de suppression | 90 jours (période de rétractation), puis anonymisation définitive |
-| Compte inactif (aucune connexion) | 2 ans à compter du dernier contact, conformément aux recommandations de la CNIL en matière de recrutement, puis suppression ou anonymisation après information préalable |
+| Compte inactif (aucune connexion) | 2 ans à compter du dernier contact, conformément aux recommandations de la CNIL en matière de recrutement. Un courriel d'avertissement est adressé avant l'échéance ; une reconnexion réinitialise ce délai |
 | Curriculum vitae et pièces jointes | Supprimés lors de l'anonymisation |
 | Journaux de connexion et de sécurité | 12 mois |
 | Échanges de messagerie | Conservés pour la durée du compte, puis anonymisés côté utilisateur supprimé |
+| Preuve d'acceptation des conditions générales | Durée du compte, puis 5 ans (prescription contractuelle) |
 | Données comptables et de facturation | 10 ans (obligation légale) |
 
-**Suppression de compte.** Vous pouvez demander la suppression de votre compte à tout moment depuis vos paramètres. Votre profil est immédiatement retiré de la plateforme et cesse d'apparaître dans les mises en relation. Vous disposez ensuite de 90 jours pour revenir sur votre décision ; passé ce délai, vos données personnelles sont définitivement anonymisées.
+**Suppression de compte.** Vous pouvez demander la suppression de votre compte à tout moment depuis vos paramètres. Votre profil est immédiatement retiré de la Plateforme, vous êtes déconnecté, et votre profil cesse d'apparaître dans les mises en relation. Vous disposez ensuite de 90 jours pour revenir sur votre décision en vous reconnectant ; passé ce délai, vos données personnelles sont définitivement anonymisées.
 
 ---
 
 ## 7. Cookies et traceurs
 
-La plateforme utilise exclusivement des traceurs **strictement nécessaires** à son fonctionnement. Aucun cookie de mesure d'audience, de publicité ou de profilage n'est déposé, et aucune donnée n'est transmise à un tiers à des fins de suivi.
+La Plateforme utilise exclusivement des traceurs **strictement nécessaires** à son fonctionnement. Aucun cookie de mesure d'audience, de publicité ou de profilage n'est déposé, et aucune donnée n'est transmise à un tiers à des fins de suivi.
 
 | Traceur | Type | Finalité | Durée |
 |---|---|---|---|
@@ -182,7 +189,7 @@ WinOps met en œuvre des mesures techniques et organisationnelles adaptées, not
 - chiffrement des communications (HTTPS/TLS) et des données au repos ;
 - cloisonnement des accès aux données au niveau de la base (politiques de sécurité par ligne) ;
 - hachage irréversible des mots de passe et des jetons de session ;
-- vérification du numéro de téléphone par code à usage unique ;
+- vérification du numéro de téléphone par code à usage unique, avec unicité du numéro par compte ;
 - limitation du nombre de tentatives (protection contre les attaques automatisées) ;
 - journalisation des actions sensibles ;
 - session unique par compte, empêchant le partage d'identifiants ;
@@ -212,4 +219,4 @@ Conformément aux articles 15 à 22 du RGPD, vous disposez des droits suivants :
 
 ## 10. Modification de la présente politique
 
-WinOps peut modifier la présente politique pour tenir compte d'évolutions légales, techniques ou fonctionnelles. En cas de modification substantielle, les utilisateurs sont informés par courriel ou par une notification sur la plateforme au moins quinze jours avant l'entrée en vigueur. La date de dernière mise à jour figure en tête du document.
+WinOps peut modifier la présente politique pour tenir compte d'évolutions légales, techniques ou fonctionnelles. En cas de modification substantielle, les utilisateurs sont informés par courriel ou par une notification sur la Plateforme au moins quinze jours avant l'entrée en vigueur. La date de dernière mise à jour figure en tête du document.

@@ -1,12 +1,12 @@
 # Conditions générales d'utilisation — Experts
 
-**Dernière mise à jour : [DATE DE PUBLICATION]**
+**Dernière mise à jour : juillet 2026**
 
 ---
 
 ## Article 1 — Objet
 
-Les présentes conditions générales d'utilisation (ci-après les « **CGU** ») définissent les modalités d'accès et d'utilisation de la plateforme **Skilloria 365** (ci-après la « **Plateforme** »), éditée par la société **WinOps**, SASU au capital de 1 000 euros, immatriculée au RCS de Nanterre sous le numéro 933 768 087, dont le siège social est situé 8 rue Henri Régnault, 92400 Courbevoie (ci-après « **WinOps** » ou « **nous** »).
+Les présentes conditions générales d'utilisation (ci-après les « **CGU** ») définissent les modalités d'accès et d'utilisation de la plateforme **Skilloria** (ci-après la « **Plateforme** »), éditée par la société **WinOps**, SASU au capital de 1 000 euros, immatriculée au RCS de Nanterre sous le numéro 933 768 087, dont le siège social est situé 8 rue Henri Régnault, 92400 Courbevoie (ci-après « **WinOps** » ou « **nous** »).
 
 Elles s'appliquent aux personnes physiques qui créent un compte en qualité d'expert, indépendant ou salarié (ci-après l'« **Expert** » ou « **vous** »).
 
@@ -17,6 +17,8 @@ La création d'un compte emporte acceptation pleine et entière des présentes C
 ## Article 2 — Définitions
 
 **Plateforme** : le service accessible à l'adresse skilloria.io et ses sous-domaines.
+
+**Écosystème** : le domaine technologique couvert par la Plateforme à l'adresse depuis laquelle vous y accédez.
 
 **Expert** : personne physique inscrite sur la Plateforme afin d'y publier un profil professionnel et de recevoir des propositions d'opportunités.
 
@@ -42,7 +44,7 @@ Aucune somme, à quelque titre que ce soit, ne peut être mise à la charge d'un
 
 ### 4.1 Conditions d'inscription
 
-L'inscription est réservée aux personnes physiques majeures, agissant dans un cadre professionnel, disposant d'une expertise dans l'écosystème couvert par la Plateforme.
+L'inscription est réservée aux personnes physiques majeures, agissant dans un cadre professionnel, disposant d'une expertise dans l'Écosystème couvert par la Plateforme.
 
 ### 4.2 Vérification du numéro de téléphone
 
@@ -66,7 +68,9 @@ Vous constituez librement votre profil professionnel : curriculum vitae, expéri
 
 ### 5.2 Vérification préalable
 
-La publication de votre profil est soumise à une **vérification de cohérence** portant sur l'adéquation entre les informations déclarées, le contenu de votre curriculum vitae et le domaine d'expertise de la Plateforme. Cette vérification s'appuie sur un traitement automatisé, complété par un examen humain dans les conditions décrites à la Politique de confidentialité.
+La publication de votre profil est soumise à une **vérification de cohérence** portant sur l'adéquation entre les informations déclarées, le contenu de votre curriculum vitae et l'Écosystème couvert par la Plateforme. Cette vérification s'appuie sur un traitement automatisé, complété par un examen humain dans les conditions décrites à la Politique de confidentialité.
+
+Cette vérification porte sur la **cohérence déclarative** des informations fournies. Elle ne constitue ni un contrôle de références, ni une validation de diplômes, ni une garantie de compétence effective au bénéfice des Organisations.
 
 ### 5.3 Décision et recours
 
@@ -148,7 +152,30 @@ WinOps ne saurait être tenue responsable :
 
 ### 9.4 Vérification des Organisations
 
-WinOps procède à une vérification de l'existence légale des Organisations inscrites. Cette vérification ne constitue ni une garantie de solvabilité, ni un agrément, ni une caution quant à la qualité des Opportunités publiées. Il vous appartient d'exercer votre propre diligence avant tout engagement.
+WinOps procède à une vérification de l'existence légale des Organisations inscrites.
+
+**Cette vérification confirme l'existence juridique de l'Organisation. Elle ne constitue ni une garantie de solvabilité, ni un agrément, ni une caution quant à la qualité des Opportunités publiées, ni une appréciation de la capacité de l'Organisation à honorer ses engagements financiers.**
+
+### 9.5 Absence de garantie sur les Organisations et les Opportunités
+
+**WinOps ne garantit ni la solvabilité, ni la fiabilité, ni le sérieux, ni les intentions des Organisations inscrites sur la Plateforme.**
+
+Les scores de correspondance et les propositions d'Opportunités produits par la Plateforme reposent sur des traitements automatisés qui, par nature, **ne sont exacts ni exhaustifs ni infaillibles**. Ils constituent des **suggestions destinées à orienter votre recherche**, en aucun cas une recommandation, une validation ou une garantie de la part de WinOps.
+
+**Il vous appartient de conduire vos propres vérifications avant tout engagement** : appréciation de la réalité et de l'intérêt de l'Opportunité, vérification de la situation de l'Organisation, négociation des conditions contractuelles et financières, et toute diligence que vous jugerez nécessaire.
+
+En conséquence, WinOps ne saurait être tenue responsable :
+
+- d'un défaut ou d'un retard de paiement d'une Organisation ;
+- de l'annulation, de l'interruption ou de la modification d'une mission ou d'une offre ;
+- de conditions de travail ou de rémunération différentes de celles annoncées ;
+- de tout litige, préjudice ou perte résultant d'une relation contractuelle nouée avec une Organisation rencontrée via la Plateforme.
+
+### 9.6 Absence de garantie sur les Experts
+
+Symétriquement, et pour votre information, WinOps ne garantit aux Organisations ni vos compétences, ni votre disponibilité, ni votre adéquation à leurs besoins. Il appartient à chaque Organisation de conduire sa propre évaluation avant tout engagement — entretien, vérification des références, test technique, contrôle des qualifications.
+
+La publication et la vérification de votre profil sur la Plateforme ne valent donc ni certification, ni recommandation de votre personne par WinOps.
 
 ---
 
@@ -171,7 +198,7 @@ Vous vous engagez à :
 
 ### 11.1 À votre initiative
 
-Vous pouvez supprimer votre compte à tout moment depuis vos paramètres. Votre profil est immédiatement retiré de la Plateforme. Vous disposez de 90 jours pour revenir sur votre décision ; passé ce délai, vos données personnelles sont définitivement anonymisées dans les conditions prévues à la Politique de confidentialité.
+Vous pouvez supprimer votre compte à tout moment depuis vos paramètres. Votre profil est immédiatement retiré de la Plateforme et vous êtes déconnecté. Vous disposez de 90 jours pour revenir sur votre décision en vous reconnectant ; passé ce délai, vos données personnelles sont définitivement anonymisées dans les conditions prévues à la Politique de confidentialité.
 
 ### 11.2 À l'initiative de WinOps
 
@@ -187,7 +214,7 @@ La décision est motivée et peut être contestée à l'adresse contact@skillori
 
 ### 11.3 Inactivité
 
-Un compte demeuré inactif pendant deux années consécutives peut faire l'objet d'une suppression ou d'une anonymisation, après information préalable de l'utilisateur.
+Un compte demeuré inactif pendant deux années consécutives peut faire l'objet d'une suppression ou d'une anonymisation. Un courriel d'avertissement vous est adressé avant l'échéance ; une simple reconnexion réinitialise ce délai.
 
 ---
 
@@ -202,6 +229,8 @@ La Plateforme, son architecture, ses interfaces, ses contenus éditoriaux, ses m
 Vous conservez l'intégralité de vos droits sur les contenus que vous publiez (profil, curriculum vitae, descriptions).
 
 Vous concédez à WinOps, pour la durée de votre inscription et aux seules fins de fonctionnement du service, une licence non exclusive, gratuite et non transférable d'héberger, reproduire, adapter au format d'affichage et communiquer ces contenus aux utilisateurs de la Plateforme, dans les limites prévues à l'article 6.
+
+**Vos contenus ne sont pas utilisés à des fins publicitaires ou promotionnelles sans votre accord préalable, ni pour l'entraînement de modèles d'intelligence artificielle.**
 
 Cette licence prend fin lors de la suppression de votre compte, sous réserve des durées de conservation légales.
 
@@ -249,4 +278,4 @@ En cas de différend, les parties s'efforceront de trouver une solution amiable.
 
 ---
 
-**En créant un compte sur Skilloria 365, vous déclarez avoir pris connaissance des présentes conditions générales d'utilisation et les accepter sans réserve.**
+**En créant un compte sur la Plateforme, vous déclarez avoir pris connaissance des présentes conditions générales d'utilisation et les accepter sans réserve.**
