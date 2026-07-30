@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { sendEmail } from '@/lib/emails/resend'
 import { renderMatchDigestEmail, type MatchDigestItem } from '@/lib/emails/templates'
+import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { renderMatchDigestSms } from '@/lib/sms/templates'
 import { sendSms, smsSenderFrom } from '@/lib/sms/vonage'
 import { expertSiteOrigin } from '@/lib/emails/domain-url'
@@ -283,8 +284,14 @@ async function handle(request: NextRequest): Promise<Response> {
               console.warn('[dispatch] email skipped', { uid, items: items.length, hasEmail: !!user.email })
             } else {
               const unsubscribeUrl = `${base}/api/notifications/unsubscribe?token=${encodeURIComponent(signUnsubToken(uid))}`
+              // D3 : nom de marque = domaine du DESTINATAIRE, via le helper (comme
+              // les 6 autres gabarits). Jamais le domaine de l'admin, jamais de
+              // défaut en dur. Résolu ici (branche email) pour ne pas requêter
+              // quand aucun email n'est envoyé (SMS-only, skip…).
+              const brandName = await resolveEmailBrandName(admin, rows[0].domain_id)
               const rendered = renderMatchDigestEmail({
                 locale,
+                brandName,
                 firstName: user.first_name ?? '',
                 platform,
                 items,

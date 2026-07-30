@@ -450,6 +450,8 @@ export type MatchDigestItem = { title: string; score: number }
 
 export type MatchDigestEmailParams = {
   locale: string | null | undefined
+  /** D3 : nom de marque = domain.name du destinataire (jamais figé). */
+  brandName: string
   firstName: string
   /** Nom de la plateforme issu de la config de domaine (jamais figé). */
   platform: string
@@ -510,6 +512,7 @@ ${unsubscribeHtml}`
   ].join('\n')
 
   const html = renderEmailHtml({
+    brandName: params.brandName,
     title: m.title,
     bodyHtml,
     ctaLabel: m.cta_label,
@@ -518,6 +521,7 @@ ${unsubscribeHtml}`
     footer: common.common_footer,
   })
   const text = renderEmailText({
+    brandName: params.brandName,
     title: m.title,
     bodyText,
     ctaLabel: m.cta_label,
