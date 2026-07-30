@@ -58,6 +58,30 @@ function normalizeLocale(raw: string | null | undefined): string {
   return raw && (VALID_LOCALES as readonly string[]).includes(raw) ? raw : 'fr'
 }
 
+// Plage de silence SMS : 21h → 8h (heure locale). Seuils exclusifs/inclusifs :
+// silence si heure >= 21 OU heure < 8 (donc 21:00–07:59), envoi de 08:00 à 20:59.
+const SMS_QUIET_START_H = 21
+const SMS_QUIET_END_H = 8
+
+/**
+ * Vrai si l'instant tombe dans la plage de silence SMS, évaluée sur le FUSEAU
+ * PLATEFORME (Europe/Paris). Intl gère automatiquement l'heure d'été (CET/CEST).
+ *
+ * Choix du fuseau (A2) : WinOps est une société française, les experts sont
+ * très majoritairement en France → Europe/Paris est le bon défaut aujourd'hui.
+ * AFFINAGE FUTUR possible : déduire le fuseau de l'indicatif du numéro E.164
+ * (users.phone) pour respecter l'heure locale réelle de chaque expert.
+ */
+function isSmsQuietHoursParis(nowMs: number): boolean {
+  const hourStr = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Paris',
+    hour: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(nowMs))
+  const hour = parseInt(hourStr, 10)
+  return hour >= SMS_QUIET_START_H || hour < SMS_QUIET_END_H
+}
+
 type PendingRow = {
   id: string
   user_id: string
@@ -302,9 +326,14 @@ async function handle(request: NextRequest): Promise<Response> {
           .is('match_sms_dispatch_at', null)
       } else {
         const oldest = Math.min(...smsPending.map((r) => new Date(r.created_at).getTime()))
-        // A2 (horaires d'envoi) : une garde « heures calmes » viendrait ICI,
-        // avant la réclamation SMS — non implémentée (en attente d'arbitrage).
-        if (now - oldest >= WINDOW_MS) {
+        // A2 — PLAGE DE SILENCE SMS (21h–8h Europe/Paris) : un SMS de nuit est
+        // désagréable. On REPORTE (jamais on ne supprime) : la garde est ICI,
+        // AVANT la réclamation → aucune ligne n'est réclamée, AUCUNE tentative
+        // n'est consommée (c'est un report, pas un échec). Les lignes restent
+        // en attente (match_sms_dispatch_at NULL, match_sms_attempts inchangé)
+        // et seront reprises au prochain passage hors plage de silence, i.e. le
+        // matin. L'email, lui, part sans restriction (traité plus haut).
+        if (now - oldest >= WINDOW_MS && !isSmsQuietHoursParis(now)) {
           const { data: claimedRaw } = await admin
             .from('notifications')
             .update({ match_sms_dispatch_at: nowIso })
