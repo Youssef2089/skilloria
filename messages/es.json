@@ -15,7 +15,11 @@
     "back": "← Volver"
   },
   "app": {
-    "name": "Skilloria"
+    "name": "Skilloria",
+    "meta": {
+      "title": "{name} — El marketplace de expertos {ecosystem}, impulsado por IA",
+      "description": "Expertos {ecosystem} verificados, matching por IA, cero comisión."
+    }
   },
   "not_found": {
     "title": "Página no encontrada",
@@ -88,152 +92,286 @@
   },
   "homepage": {
     "meta": {
-      "title": "{name} — Encuentra el experto {ecosystem} que necesitas",
-      "description": "{name} conecta a las empresas con los mejores expertos {ecosystem} certificados mediante matching IA. Publica tu proyecto en 2 minutos."
+      "title": "{name} — Cero comisión, perfiles verificados",
+      "description": "{name} conecta a los expertos {ecosystem} con las empresas. La IA analiza los perfiles y las necesidades, propone las coincidencias más relevantes y no cobra ninguna comisión."
+    },
+    "tabs": {
+      "aria_label": "Elegir el punto de vista de la página",
+      "expert": "Soy un experto",
+      "company": "Busco un experto"
     },
     "hero": {
-      "badge": "Impulsado por IA · {name}",
-      "title": "Encuentra el experto <highlight>{ecosystem}</highlight> que necesitas.",
-      "subtitle": "Publica tu necesidad: nuestra IA analiza más de 40 criterios y te conecta con los mejores expertos certificados del ecosistema {ecosystem}.",
-      "cta_company": "Publicar un proyecto",
-      "cta_expert": "Crear mi perfil de experto",
-      "feature_free": "✓ Gratis",
-      "feature_zero_commission": "✓ 0% comisión",
-      "feature_ai": "✓ Impulsado por IA"
+      "expert": {
+        "title": "Cero comisión.",
+        "subtitle": "Tu identidad permanece protegida hasta que decidas lo contrario.",
+        "cta": "Crear mi perfil",
+        "proof_1": "Gratis",
+        "proof_2": "0 % de comisión",
+        "proof_3": "Perfiles verificados"
+      },
+      "company": {
+        "title": "El experto {ecosystem} que necesitas.",
+        "subtitle": "Publica tu necesidad. La IA analiza cada perfil y te propone los expertos que encajan.",
+        "cta": "Publicar un proyecto u oferta",
+        "proof_1": "Perfiles verificados",
+        "proof_2": "Cero comisión",
+        "proof_3": "Matching por IA"
+      }
     },
-    "cards": {
-      "collaborate": {
-        "title": "Colabora con otros expertos",
-        "description": "Subcontrata, forma equipos entre expertos certificados."
+    "features": {
+      "eyebrow": "Impulsado por IA",
+      "expert": {
+        "title": "Mucho más que un flujo de proyectos",
+        "subtitle": "Tú diriges tu actividad. La plataforma trabaja para ti, de forma continua.",
+        "items": {
+          "availability": {
+            "title": "Alerta de disponibilidad",
+            "description": "¿Te liberas? Las empresas de tu área reciben el aviso."
+          },
+          "collaboration": {
+            "title": "Colaboración entre expertos",
+            "description": "¿Vas desbordado? Publica tu necesidad y la IA te propone expertos verificados."
+          },
+          "matching": {
+            "title": "Matching por IA",
+            "description": "La IA analiza tu perfil y te propone los proyectos que encajan contigo, con una puntuación."
+          },
+          "freelance_cdi": {
+            "title": "Freelance y contrato fijo",
+            "description": "Recibe proyectos freelance, ofertas de contrato fijo, o ambos. Tú decides."
+          },
+          "cv_profile": {
+            "title": "Perfil creado a partir de tu CV",
+            "description": "Sube tu CV: la IA lo lee y lo rellena todo."
+          }
+        }
       },
-      "experts": {
-        "title": "¿Experto / Freelance / Indefinido?",
-        "description": "Indica tu disponibilidad, recibe alertas de proyectos."
-      },
-      "cta_join": "Únete a {name} →"
+      "company": {
+        "title": "Encuentra sin revisar montones de CV",
+        "subtitle": "Tú publicas, la IA busca. Solo ves perfiles relevantes y verificados.",
+        "items": {
+          "verified": {
+            "title": "Expertos verificados",
+            "description": "Cada perfil es revisado por la IA y después validado."
+          },
+          "matching": {
+            "title": "Matching por IA",
+            "description": "La IA analiza tu necesidad y te propone los expertos que encajan, con una puntuación."
+          },
+          "zero_commission": {
+            "title": "Cero comisión",
+            "description": "Ningún porcentaje sobre tus proyectos."
+          },
+          "availability_alerts": {
+            "title": "Alertas de disponibilidad",
+            "description": "Recibe un aviso cuando un experto se libera."
+          },
+          "team": {
+            "title": "Trabaja en equipo",
+            "description": "Invita a tus compañeros a la cuenta de empresa, cada uno con su acceso."
+          }
+        }
+      }
     },
-    "profiles": {
-      "more_domains": "+ Otras áreas {ecosystem} cubiertas →"
+    "steps": {
+      "expert": {
+        "title": "En cuatro pasos",
+        "items": {
+          "cv": {
+            "title": "Sube tu CV",
+            "description": "La IA rellena tu perfil."
+          },
+          "verified": {
+            "title": "Perfil verificado",
+            "description": "Tu experiencia se comprueba."
+          },
+          "opportunities": {
+            "title": "Recibe oportunidades",
+            "description": "La IA te propone proyectos y ofertas."
+          },
+          "exchange": {
+            "title": "Habla directamente",
+            "description": "A través de la mensajería interna."
+          }
+        }
+      },
+      "company": {
+        "title": "En cinco pasos",
+        "items": {
+          "publish": {
+            "title": "Publica tu necesidad",
+            "description": "La IA te ayuda a hacerla atractiva."
+          },
+          "search": {
+            "title": "La IA busca",
+            "description": "Los expertos relevantes reciben el aviso."
+          },
+          "apply": {
+            "title": "Se postulan",
+            "description": "Cada candidatura recibe una puntuación."
+          },
+          "choose": {
+            "title": "Tú eliges",
+            "description": "Revisa las candidaturas y quédate con el perfil que te conviene."
+          },
+          "exchange": {
+            "title": "Habla directamente",
+            "description": "A través de la mensajería interna."
+          }
+        }
+      }
     },
-    "ad": {
-      "sponsored_label": "PATROCINADO",
-      "title": "Anúnciate aquí.",
-      "description": "Llega al instante a miles de expertos, reclutadores y empresas del ecosistema {ecosystem}.",
-      "cta": "Contáctanos →"
+    "ecosystem": {
+      "title": "El ecosistema {ecosystem}, en profundidad",
+      "subtitle": "Las áreas que cubren los expertos de la plataforma."
     },
-    "hero_animation": {
-      "progression_label": "Progreso",
-      "workflow": {
-        "step_1": "Publicar el proyecto",
-        "step_2": "IA notifica a expertos",
-        "step_3": "El experto aplica",
-        "step_4": "Reclutador elige",
-        "step_5": "Chat abierto"
+    "demo": {
+      "expert": {
+        "aria_label": "Demostración animada del recorrido del experto: el perfil se verifica, la IA detecta un proyecto, el experto se postula sin revelar su nombre y se abre la conversación.",
+        "progress_label": "Progreso",
+        "steps": {
+          "s1": "Perfil verificado",
+          "s2": "Proyecto detectado",
+          "s3": "Candidatura",
+          "s4": "Conversación abierta"
+        },
+        "profile": {
+          "name": "Adrien Mercier",
+          "headline": "Consultor {product} · 8 años de experiencia",
+          "checking_label": "Verificación en curso",
+          "verified_badge": "Perfil verificado",
+          "availability_label": "Disponible en 2 semanas"
+        },
+        "mission": {
+          "detected_label": "Proyecto detectado",
+          "title": "Consultor {product} sénior",
+          "company": "Empresa del sector industrial",
+          "score": "9/10",
+          "score_label": "de coincidencia",
+          "tjm_label": "Tarifa diaria propuesta",
+          "tjm_value": "600 € / día",
+          "location_label": "Lugar",
+          "location_value": "Lyon · 2 días presenciales",
+          "match_explanation": "Tu experiencia en {product} y tu disponibilidad encajan con la necesidad.",
+          "apply_button": "Postularme"
+        },
+        "apply": {
+          "sending_label": "Enviando…",
+          "sent_title": "Candidatura enviada",
+          "sent_body": "La empresa recibe tu candidatura junto con su puntuación de coincidencia.",
+          "anonymity_note": "Tu nombre permanece oculto mientras la empresa no te haya seleccionado."
+        },
+        "chat": {
+          "title": "Mensajería interna",
+          "recruiter_name": "Camille Laurent",
+          "recruiter_role": "Responsable de selección",
+          "online_label": "En línea",
+          "message": "Hola, tu perfil nos interesa. ¿Tienes un rato esta semana para hablar?",
+          "internal_note": "Todo ocurre en la mensajería interna. No se comparte ningún dato de contacto sin tu acuerdo.",
+          "reply_placeholder": "Escribe un mensaje…"
+        }
       },
-      "persona_recruiter": {
-        "name": "María L.",
-        "first_name": "María",
-        "role": "Responsable de selección",
-        "action_post": "Publica un proyecto",
-        "action_select": "Elige el mejor perfil"
-      },
-      "persona_freelance": {
-        "name": "Carlos D.",
-        "first_name": "Carlos",
-        "role_short": "Experto Senior D365",
-        "spec_short": "D365 Finance · 7 años",
-        "spec_long": "D365 Finance · 7 años · Madrid",
-        "tjm": "920€/d",
-        "dispo": "Inmediata"
-      },
-      "candidate_2": {
-        "name": "Lucía F.",
-        "spec_short": "Finanzas · 5 años",
-        "spec_long": "Finanzas · 5 años · Remote",
-        "tjm": "850€/d",
-        "dispo": "15 mayo"
-      },
-      "candidate_3": {
-        "name": "Pablo M.",
-        "spec_short": "SCM · 6 años",
-        "spec_long": "SCM · 6 años · Madrid",
-        "tjm": "880€/d",
-        "dispo": "1 mayo"
-      },
-      "mission": {
-        "title_label": "Título",
-        "title_value": "Experto en D365 Finance & Ops",
-        "tjm_label": "Tarifa diaria",
-        "tjm_value": "850€ — 1000€ / día",
-        "duration_label": "Duración y lugar",
-        "duration_value": "6 meses · Madrid · Remote",
-        "duration_short": "6 meses · Madrid",
-        "description_label": "Descripción",
-        "description_value": "Migración a D365 Finance — configuración contable, cierres mensuales y formación de usuarios.",
-        "publish_button": "Publicar el proyecto →"
-      },
-      "tags": {
-        "d365": "D365",
-        "finance": "Finanzas",
-        "remote_ok": "Remote OK",
-        "tjm_compact": "850€—1000€/d"
-      },
-      "matching": {
-        "badge": "Skilloria AI",
-        "status": "Matching en curso · 847 perfiles analizados",
-        "criteria": "Analizando más de 40 criterios",
-        "notified_badge": "Notificado"
-      },
-      "candidates": {
-        "received_title": "Candidaturas recibidas",
-        "dispo_label": "Disponible: {dispo}",
-        "match_label": "match IA"
-      },
-      "selection": {
-        "confirmation": "{name} seleccionado · Abriendo chat…"
-      },
-      "chat": {
-        "title": "Chat · {recruiter} ↔ {freelance}",
-        "online_label": "En línea",
-        "match_score": "Match {score}%",
-        "shared_mission_label": "Proyecto compartido",
-        "message_recruiter": "Hola {name}, ¿disponible desde el 1 de mayo? Tarifa 950€ confirmada.",
-        "message_freelance": "¡Confirmado para el 1 de mayo, 950€/día! Envío CV y referencias esta noche."
+      "company": {
+        "aria_label": "Demostración animada del recorrido de la empresa: se publica la necesidad, la IA avisa a los expertos, llegan candidaturas puntuadas, la empresa elige y después conversa.",
+        "progress_label": "Progreso",
+        "steps": {
+          "s1": "Publicar la necesidad",
+          "s2": "La IA avisa",
+          "s3": "Candidaturas",
+          "s4": "Selección",
+          "s5": "Conversación"
+        },
+        "recruiter": {
+          "name": "Camille Laurent",
+          "posting_line": "Publica una necesidad",
+          "selecting_line": "Elige un perfil"
+        },
+        "mission": {
+          "title_label": "Título",
+          "title_value": "Consultor {product} sénior",
+          "tjm_label": "Tarifa diaria",
+          "tjm_value": "600 € / día",
+          "duration_label": "Duración",
+          "duration_value": "6 meses, inicio inmediato",
+          "duration_short": "6 meses",
+          "description_label": "Descripción",
+          "description_value": "Rehacer la configuración de {product} y asumir el soporte de nivel 3.",
+          "publish_button": "Publicar la necesidad"
+        },
+        "tag_remote": "Teletrabajo posible",
+        "matching": {
+          "title": "Matching por IA",
+          "status": "Analizando los perfiles",
+          "criteria": "Competencias, disponibilidad, tarifa",
+          "notified_badge": "Avisado"
+        },
+        "candidates_title": "Candidaturas recibidas",
+        "match_label": "de coincidencia",
+        "selection_confirmed": "{name} seleccionado",
+        "people": {
+          "p1": {
+            "name": "Adrien Mercier",
+            "first_name": "Adrien",
+            "spec_short": "{product} · 8 años",
+            "spec_long": "Experto en {product} · 8 años de experiencia",
+            "tjm": "580 € / día",
+            "availability": "Disponible en 2 semanas",
+            "score": "97 %"
+          },
+          "p2": {
+            "name": "Sarah Benali",
+            "first_name": "Sarah",
+            "spec_short": "{product} · 6 años",
+            "spec_long": "Consultora {product} · 6 años de experiencia",
+            "tjm": "540 € / día",
+            "availability": "Disponible de inmediato",
+            "score": "91 %"
+          },
+          "p3": {
+            "name": "Thomas Riva",
+            "first_name": "Thomas",
+            "spec_short": "{product} · 5 años",
+            "spec_long": "Consultor {product} · 5 años de experiencia",
+            "tjm": "510 € / día",
+            "availability": "Disponible en 1 mes",
+            "score": "86 %"
+          }
+        },
+        "chat": {
+          "title": "Mensajería interna",
+          "online_label": "En línea",
+          "shared_mission_label": "Necesidad compartida",
+          "score_label": "{score} de coincidencia",
+          "message_from_company": "Hola {name}, tu perfil encaja exactamente con lo que buscamos. ¿Tienes un rato esta semana para hablar?",
+          "message_from_expert": "Hola, con mucho gusto. ¿Te va bien el jueves por la mañana?"
+        }
       }
     }
   },
   "navbar": {
+    "home_aria": "{name} — volver al inicio",
     "menu": {
-      "company": "Empresa",
-      "freelance": "Freelance",
-      "permanent": "Indefinido",
-      "pricing": "Precios"
+      "fonctionnalites": "Funcionalidades",
+      "etapes": "Cómo funciona",
+      "domaines": "Áreas"
     },
-    "cta_signup": "Crear cuenta",
+    "cta_signup": "Crear mi cuenta",
     "cta_signin": "Iniciar sesión"
   },
   "footer": {
-    "tagline": "El marketplace premium de expertos {ecosystem} certificados, impulsado por IA Agéntica.",
+    "tagline": "El marketplace de expertos {ecosystem}, impulsado por IA.",
     "col_platform": "Plataforma",
-    "col_domains": "Áreas",
-    "col_company": "Empresa",
+    "col_legal": "Información",
     "links": {
-      "post_offer": "Publicar un proyecto",
-      "company": "Empresa",
-      "freelance": "Freelance",
-      "permanent": "Indefinido",
-      "pricing": "Precios",
-      "about": "Sobre nosotros",
-      "blog": "Blog",
-      "contact": "Contacto",
-      "partners": "Partners"
+      "create_expert_profile": "Crear un perfil de experto",
+      "post_offer": "Publicar un proyecto u oferta"
     },
-    "copyright": "© {year} {name}. Todos los derechos reservados.",
     "legal": {
+      "imprint": "Aviso legal",
       "privacy": "Privacidad",
-      "terms": "Términos",
-      "imprint": "Aviso legal"
-    }
+      "terms": "Términos"
+    },
+    "copyright": "© {year} {name}. Todos los derechos reservados."
   },
   "dashboard_freelance": {
     "loading": "Cargando...",
@@ -2638,10 +2776,18 @@
     "cta": "Continuar",
     "unlock": "La validación desbloquea: misiones, candidaturas, mensajería y la publicación de necesidades de subcontratación.",
     "steps": {
-      "cv": { "title": "Importar su CV" },
-      "profile": { "title": "Completar su perfil" },
-      "publish": { "title": "Publicar su perfil (verificación IA)" },
-      "receive": { "title": "Recibir misiones y oportunidades" }
+      "cv": {
+        "title": "Importar su CV"
+      },
+      "profile": {
+        "title": "Completar su perfil"
+      },
+      "publish": {
+        "title": "Publicar su perfil (verificación IA)"
+      },
+      "receive": {
+        "title": "Recibir misiones y oportunidades"
+      }
     },
     "status": {
       "done": "Hecho",

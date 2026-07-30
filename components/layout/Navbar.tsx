@@ -3,91 +3,68 @@
 import { useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
+import { theme } from '@/components/home/theme'
 
-type MenuKey = 'company' | 'freelance' | 'permanent' | 'pricing'
+/**
+ * Navigation de la vitrine.
+ * Rendue exclusivement par <HomeView>, qui injecte les classes `skh-*`.
+ *
+ * Les anciens menus déroulants (Entreprise, Freelance, CDI, Tarifs) n'ouvraient
+ * rien : c'étaient quatre liens morts. Ils sont remplacés par des ancres vers les
+ * sections réellement présentes sur la page.
+ *
+ * Le logo conserve `domain.primaryColor` : c'est la marque du domaine, elle ne
+ * suit pas l'accent de la page.
+ */
+const SECTION_LINKS = ['fonctionnalites', 'etapes', 'domaines'] as const
 
 export default function Navbar() {
   const router = useRouter()
   const domain = useDomain()
   const t = useTranslations('navbar')
 
-  const menuItems: Array<{ key: MenuKey; dropdown: boolean }> = [
-    { key: 'company', dropdown: true },
-    { key: 'freelance', dropdown: true },
-    { key: 'permanent', dropdown: false },
-    { key: 'pricing', dropdown: false },
-  ]
-
   return (
-    <nav style={{
-      background: '#fff',
-      borderBottom: '1px solid #e5e5e5',
-      padding: '0 32px',
-      display: 'flex',
-      alignItems: 'center',
-      height: '48px',
-      position: 'relative',
-      zIndex: 10,
-    }}>
-      <div
+    <nav className="skh-nav">
+      <button
+        type="button"
         onClick={() => router.push('/')}
-        style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 28, flexShrink: 0, cursor: 'pointer' }}
+        aria-label={t('home_aria', { name: domain.name })}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0,
+          background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit',
+        }}
       >
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: domain.primaryColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{
+          width: 30, height: 30, borderRadius: 8, background: domain.primaryColor,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
           {domain.logoUrl ? (
-            <img src={domain.logoUrl} alt={domain.name} width={20} height={20} />
+            <img src={domain.logoUrl} alt="" width={18} height={18} />
           ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
             </svg>
           )}
-        </div>
-        <span style={{ fontSize: 15, fontWeight: 700, color: '#1a1a1a', letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>
+        </span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: theme.ink, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
           {domain.name}
         </span>
-      </div>
+      </button>
 
-      <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-        {menuItems.map((item) => (
-          <div key={item.key} style={{
-            padding: '0 12px', height: 48,
-            fontSize: 12, fontWeight: 500, color: '#1a1a1a',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-            whiteSpace: 'nowrap',
-          }}>
-            {t(`menu.${item.key}`)}
-            {item.dropdown && (
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2.5">
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            )}
-          </div>
+      <div className="skh-nav-links">
+        {SECTION_LINKS.map(section => (
+          <a key={section} className="skh-nav-link" href={`#${section}`}>
+            {t(`menu.${section}`)}
+          </a>
         ))}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto', flexShrink: 0 }}>
-        <button
-          onClick={() => router.push('/inscription')}
-          style={{
-            fontSize: 12, fontWeight: 700, color: '#fff',
-            background: domain.primaryColor, border: 'none',
-            borderRadius: 100, padding: '7px 16px',
-            cursor: 'pointer', whiteSpace: 'nowrap',
-          }}
-        >
-          {t('cta_signup')}
-        </button>
-
-        <button
-          onClick={() => router.push('/connexion')}
-          style={{
-            fontSize: 12, fontWeight: 600, color: domain.primaryColor,
-            background: 'none', border: 'none',
-            cursor: 'pointer', textDecoration: 'underline',
-            textUnderlineOffset: 3, whiteSpace: 'nowrap',
-          }}
-        >
+      <div className="skh-nav-actions">
+        <button type="button" className="skh-nav-signin" onClick={() => router.push('/connexion')}>
           {t('cta_signin')}
+        </button>
+        <button type="button" className="skh-nav-cta" onClick={() => router.push('/inscription')}>
+          {t('cta_signup')}
         </button>
       </div>
     </nav>

@@ -1,7 +1,7 @@
 // lib/get-domain-config.ts
 import { headers } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
-import { defaultDomainConfig, type DomainConfig } from './domain-config'
+import { defaultDomainConfig, resolveAccentColor, type DomainConfig } from './domain-config'
 import { loadTranslations, tBDD } from './translations'
 import type { Locale } from '@/i18n/routing'
 import { routing } from '@/i18n/routing'
@@ -39,6 +39,19 @@ type DomainRow = {
   } | null
 }
 
+/**
+ * Lit l'override d'accent sans jamais casser si la colonne n'existe pas encore.
+ *
+ * La migration 20260710000001 est additive et peut ne pas être appliquée dans un
+ * environnement donné ; la sélection imbriquée `domain_configs (*)` renvoie alors
+ * simplement une ligne sans `accent_color`, et l'accent est dérivé de la couleur
+ * primaire. Aucune requête supplémentaire, aucune erreur PostgREST.
+ */
+function readAccentOverride(config: unknown): string | null {
+  const value = (config as { accent_color?: unknown } | null)?.accent_color
+  return typeof value === 'string' && value.trim() !== '' ? value : null
+}
+
 async function mapRowToDomainConfig(row: DomainRow, locale: Locale): Promise<DomainConfig> {
   const cfg = row.domain_configs
   const translations = await loadTranslations(locale)
@@ -62,6 +75,7 @@ async function mapRowToDomainConfig(row: DomainRow, locale: Locale): Promise<Dom
     tagline: tBDD(translations, 'domains', row.id, 'tagline', row.tagline ?? ''),
     primaryColor: cfg.primary_color,
     secondaryColor: cfg.secondary_color,
+    accentColor: resolveAccentColor(cfg.primary_color, readAccentOverride(cfg)),
     logoUrl: cfg.logo_url,
     faviconUrl: cfg.favicon_url,
     isActive: row.active,
@@ -96,19 +110,15 @@ export async function getDomainConfig(locale?: string): Promise<DomainConfig> {
   try {
     const supabase = getSupabaseAdmin()
 
+    // `domain_configs (*)` plutôt qu'une liste explicite : la sélection reste
+    // valide que la migration 20260710000001 (accent_color) soit appliquée ou
+    // non. Une liste nommant accent_color ferait échouer la requête entière
+    // avant migration, et la page publique retomberait sur le domaine par défaut.
     const { data, error } = await supabase
       .from('domains')
       .select(`
         id, slug, name, description, tagline, active,
-        domain_configs (
-          id, logo_url, favicon_url,
-          primary_color, secondary_color,
-          tags, featured_products,
-          ecosystem_expert_label,
-          ecosystem_community_label,
-          ecosystem_speciality_label,
-          ecosystem_domain_search_label
-        )
+        domain_configs (*)
       `)
       .eq('slug', slug)
       .eq('active', true)

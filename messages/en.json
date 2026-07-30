@@ -15,7 +15,11 @@
     "back": "← Back"
   },
   "app": {
-    "name": "Skilloria"
+    "name": "Skilloria",
+    "meta": {
+      "title": "{name} — The AI-driven marketplace for {ecosystem} experts",
+      "description": "Verified {ecosystem} experts, AI matching, zero commission."
+    }
   },
   "not_found": {
     "title": "Page not found",
@@ -88,152 +92,286 @@
   },
   "homepage": {
     "meta": {
-      "title": "{name} — Find the {ecosystem} expert you need",
-      "description": "{name} connects companies with the best certified {ecosystem} experts through AI matching. Post your assignment in 2 minutes."
+      "title": "{name} — Zero commission, verified profiles",
+      "description": "{name} connects {ecosystem} experts with companies. The AI reads profiles and briefs, suggests the most relevant matches, and takes no commission."
+    },
+    "tabs": {
+      "aria_label": "Choose the point of view of the page",
+      "expert": "I am an expert",
+      "company": "I am looking for an expert"
     },
     "hero": {
-      "badge": "AI-powered · {name}",
-      "title": "Find the <highlight>{ecosystem}</highlight> expert you need.",
-      "subtitle": "Post your need — our AI analyzes 40+ criteria and connects you with the best certified experts in the {ecosystem} ecosystem.",
-      "cta_company": "Post an assignment",
-      "cta_expert": "Create my expert profile",
-      "feature_free": "✓ Free",
-      "feature_zero_commission": "✓ 0% commission",
-      "feature_ai": "✓ AI-powered"
+      "expert": {
+        "title": "Zero commission.",
+        "subtitle": "Your identity stays protected until you decide otherwise.",
+        "cta": "Create my profile",
+        "proof_1": "Free",
+        "proof_2": "0% commission",
+        "proof_3": "Verified profiles"
+      },
+      "company": {
+        "title": "The {ecosystem} expert you need.",
+        "subtitle": "Post your brief. The AI reviews every profile and suggests the experts that match.",
+        "cta": "Post an assignment or job",
+        "proof_1": "Verified profiles",
+        "proof_2": "Zero commission",
+        "proof_3": "AI matching"
+      }
     },
-    "cards": {
-      "collaborate": {
-        "title": "Experts, collaborate together!",
-        "description": "Subcontract, build teams between certified experts."
+    "features": {
+      "eyebrow": "AI-driven",
+      "expert": {
+        "title": "Far more than a feed of assignments",
+        "subtitle": "You run your business. The platform keeps working for you, around the clock.",
+        "items": {
+          "availability": {
+            "title": "Availability alert",
+            "description": "Freeing up? Companies in your field are notified."
+          },
+          "collaboration": {
+            "title": "Expert-to-expert collaboration",
+            "description": "Overloaded? Post your brief and the AI suggests verified experts."
+          },
+          "matching": {
+            "title": "AI matching",
+            "description": "The AI reads your profile and suggests the assignments that fit you, with a score."
+          },
+          "freelance_cdi": {
+            "title": "Freelance and permanent",
+            "description": "Receive freelance assignments, permanent offers, or both. Your call."
+          },
+          "cv_profile": {
+            "title": "Profile built from your CV",
+            "description": "Upload your CV, the AI reads it and fills everything in."
+          }
+        }
       },
-      "experts": {
-        "title": "Expert / Freelancer / Full-time?",
-        "description": "Set your availability, get assignment alerts."
-      },
-      "cta_join": "Join {name} →"
+      "company": {
+        "title": "Source without sifting through CVs",
+        "subtitle": "You post, the AI searches. You only see relevant, verified profiles.",
+        "items": {
+          "verified": {
+            "title": "Verified experts",
+            "description": "Every profile is checked by the AI, then approved."
+          },
+          "matching": {
+            "title": "AI matching",
+            "description": "The AI reads your brief and suggests the experts that match, with a score."
+          },
+          "zero_commission": {
+            "title": "Zero commission",
+            "description": "No percentage taken on your assignments."
+          },
+          "availability_alerts": {
+            "title": "Availability alerts",
+            "description": "Get notified when an expert frees up."
+          },
+          "team": {
+            "title": "Work as a team",
+            "description": "Invite your colleagues to your company account, each with their own access."
+          }
+        }
+      }
     },
-    "profiles": {
-      "more_domains": "+ Other {ecosystem} domains covered →"
+    "steps": {
+      "expert": {
+        "title": "In four steps",
+        "items": {
+          "cv": {
+            "title": "Upload your CV",
+            "description": "The AI fills in your profile."
+          },
+          "verified": {
+            "title": "Profile verified",
+            "description": "Your expertise is checked."
+          },
+          "opportunities": {
+            "title": "Receive opportunities",
+            "description": "The AI suggests assignments and job offers."
+          },
+          "exchange": {
+            "title": "Start talking",
+            "description": "Directly through the internal messaging."
+          }
+        }
+      },
+      "company": {
+        "title": "In five steps",
+        "items": {
+          "publish": {
+            "title": "Post your brief",
+            "description": "The AI helps you make it attractive."
+          },
+          "search": {
+            "title": "The AI searches",
+            "description": "Relevant experts are notified."
+          },
+          "apply": {
+            "title": "They apply",
+            "description": "Every application gets a score."
+          },
+          "choose": {
+            "title": "You choose",
+            "description": "Browse the applications and keep the profile that suits you."
+          },
+          "exchange": {
+            "title": "Start talking",
+            "description": "Directly through the internal messaging."
+          }
+        }
+      }
     },
-    "ad": {
-      "sponsored_label": "SPONSORED",
-      "title": "Advertise here.",
-      "description": "Instantly reach thousands of experts, recruiters and companies in the {ecosystem} ecosystem.",
-      "cta": "Contact us →"
+    "ecosystem": {
+      "title": "The {ecosystem} ecosystem, in depth",
+      "subtitle": "The areas covered by the experts on the platform."
     },
-    "hero_animation": {
-      "progression_label": "Progress",
-      "workflow": {
-        "step_1": "Post the assignment",
-        "step_2": "AI notifies experts",
-        "step_3": "The expert applies",
-        "step_4": "Recruiter selects",
-        "step_5": "Chat opened"
+    "demo": {
+      "expert": {
+        "aria_label": "Animated walkthrough of the expert journey: the profile is verified, the AI spots an assignment, the expert applies without revealing their name, then the conversation opens.",
+        "progress_label": "Progress",
+        "steps": {
+          "s1": "Profile verified",
+          "s2": "Assignment spotted",
+          "s3": "Application",
+          "s4": "Conversation open"
+        },
+        "profile": {
+          "name": "Adrien Mercier",
+          "headline": "{product} consultant · 8 years of experience",
+          "checking_label": "Verification in progress",
+          "verified_badge": "Profile verified",
+          "availability_label": "Available in 2 weeks"
+        },
+        "mission": {
+          "detected_label": "Assignment spotted",
+          "title": "Senior {product} consultant",
+          "company": "Company in the industrial sector",
+          "score": "9/10",
+          "score_label": "match",
+          "tjm_label": "Daily rate offered",
+          "tjm_value": "€600 / day",
+          "location_label": "Location",
+          "location_value": "Lyon · 2 days on site",
+          "match_explanation": "Your {product} experience and your availability match the brief.",
+          "apply_button": "Apply"
+        },
+        "apply": {
+          "sending_label": "Sending…",
+          "sent_title": "Application sent",
+          "sent_body": "The company receives your application together with its match score.",
+          "anonymity_note": "Your name stays hidden until the company has selected you."
+        },
+        "chat": {
+          "title": "Internal messaging",
+          "recruiter_name": "Camille Laurent",
+          "recruiter_role": "Head of recruitment",
+          "online_label": "Online",
+          "message": "Hello, we are interested in your profile. Available for a chat this week?",
+          "internal_note": "Everything happens in the internal messaging. No contact details are shared before you agree.",
+          "reply_placeholder": "Write a message…"
+        }
       },
-      "persona_recruiter": {
-        "name": "Sarah J.",
-        "first_name": "Sarah",
-        "role": "Talent Acquisition Manager",
-        "action_post": "Posts an assignment",
-        "action_select": "Picks the best profile"
-      },
-      "persona_freelance": {
-        "name": "James W.",
-        "first_name": "James",
-        "role_short": "Senior D365 Expert",
-        "spec_short": "D365 Finance · 7 years",
-        "spec_long": "D365 Finance · 7 years · London",
-        "tjm": "€920/d",
-        "dispo": "Immediate"
-      },
-      "candidate_2": {
-        "name": "Emma T.",
-        "spec_short": "Finance · 5 years",
-        "spec_long": "Finance · 5 years · Remote",
-        "tjm": "€850/d",
-        "dispo": "May 15"
-      },
-      "candidate_3": {
-        "name": "Daniel K.",
-        "spec_short": "SCM · 6 years",
-        "spec_long": "SCM · 6 years · London",
-        "tjm": "€880/d",
-        "dispo": "May 1"
-      },
-      "mission": {
-        "title_label": "Title",
-        "title_value": "D365 Finance & Ops Expert",
-        "tjm_label": "Daily rate",
-        "tjm_value": "€850 — €1000 / day",
-        "duration_label": "Duration & location",
-        "duration_value": "6 months · London · Remote",
-        "duration_short": "6 months · London",
-        "description_label": "Description",
-        "description_value": "D365 Finance migration — accounting setup, monthly closures and user training.",
-        "publish_button": "Post the assignment →"
-      },
-      "tags": {
-        "d365": "D365",
-        "finance": "Finance",
-        "remote_ok": "Remote OK",
-        "tjm_compact": "€850—€1000/d"
-      },
-      "matching": {
-        "badge": "Skilloria AI",
-        "status": "Matching in progress · 847 profiles analyzed",
-        "criteria": "Analyzing 40+ criteria",
-        "notified_badge": "Notified"
-      },
-      "candidates": {
-        "received_title": "Applications received",
-        "dispo_label": "Available: {dispo}",
-        "match_label": "AI match"
-      },
-      "selection": {
-        "confirmation": "{name} selected · Opening chat…"
-      },
-      "chat": {
-        "title": "Chat · {recruiter} ↔ {freelance}",
-        "online_label": "Online",
-        "match_score": "Match {score}%",
-        "shared_mission_label": "Shared assignment",
-        "message_recruiter": "Hi {name}, available from May 1? Daily rate €950 confirmed.",
-        "message_freelance": "Confirmed for May 1, €950/day. I'll send CV and references tonight!"
+      "company": {
+        "aria_label": "Animated walkthrough of the company journey: the brief is posted, the AI notifies experts, scored applications come in, the company chooses and then talks.",
+        "progress_label": "Progress",
+        "steps": {
+          "s1": "Post the brief",
+          "s2": "The AI notifies",
+          "s3": "Applications",
+          "s4": "Selection",
+          "s5": "Conversation"
+        },
+        "recruiter": {
+          "name": "Camille Laurent",
+          "posting_line": "Posting a brief",
+          "selecting_line": "Choosing a profile"
+        },
+        "mission": {
+          "title_label": "Title",
+          "title_value": "Senior {product} consultant",
+          "tjm_label": "Daily rate",
+          "tjm_value": "€600 / day",
+          "duration_label": "Duration",
+          "duration_value": "6 months, immediate start",
+          "duration_short": "6 months",
+          "description_label": "Description",
+          "description_value": "Rework the {product} configuration and take over level 3 support.",
+          "publish_button": "Post the brief"
+        },
+        "tag_remote": "Remote friendly",
+        "matching": {
+          "title": "AI matching",
+          "status": "Analysing profiles",
+          "criteria": "Skills, availability, rate",
+          "notified_badge": "Notified"
+        },
+        "candidates_title": "Applications received",
+        "match_label": "match",
+        "selection_confirmed": "{name} selected",
+        "people": {
+          "p1": {
+            "name": "Adrien Mercier",
+            "first_name": "Adrien",
+            "spec_short": "{product} · 8 yrs",
+            "spec_long": "{product} expert · 8 years of experience",
+            "tjm": "€580 / day",
+            "availability": "Available in 2 weeks",
+            "score": "97%"
+          },
+          "p2": {
+            "name": "Sarah Benali",
+            "first_name": "Sarah",
+            "spec_short": "{product} · 6 yrs",
+            "spec_long": "{product} consultant · 6 years of experience",
+            "tjm": "€540 / day",
+            "availability": "Available immediately",
+            "score": "91%"
+          },
+          "p3": {
+            "name": "Thomas Riva",
+            "first_name": "Thomas",
+            "spec_short": "{product} · 5 yrs",
+            "spec_long": "{product} consultant · 5 years of experience",
+            "tjm": "€510 / day",
+            "availability": "Available in 1 month",
+            "score": "86%"
+          }
+        },
+        "chat": {
+          "title": "Internal messaging",
+          "online_label": "Online",
+          "shared_mission_label": "Shared brief",
+          "score_label": "{score} match",
+          "message_from_company": "Hello {name}, your profile is exactly what we are looking for. Available for a chat this week?",
+          "message_from_expert": "Hello, gladly. Would Thursday morning work for you?"
+        }
       }
     }
   },
   "navbar": {
+    "home_aria": "{name} — back to home",
     "menu": {
-      "company": "Company",
-      "freelance": "Freelancer",
-      "permanent": "Full-time",
-      "pricing": "Pricing"
+      "fonctionnalites": "Features",
+      "etapes": "How it works",
+      "domaines": "Areas"
     },
-    "cta_signup": "Create account",
+    "cta_signup": "Create my account",
     "cta_signin": "Sign in"
   },
   "footer": {
-    "tagline": "The premium marketplace for certified {ecosystem} experts, powered by Agentic AI.",
+    "tagline": "The AI-driven marketplace for {ecosystem} experts.",
     "col_platform": "Platform",
-    "col_domains": "Domains",
-    "col_company": "Company",
+    "col_legal": "Information",
     "links": {
-      "post_offer": "Post an assignment",
-      "company": "Company",
-      "freelance": "Freelancer",
-      "permanent": "Full-time",
-      "pricing": "Pricing",
-      "about": "About",
-      "blog": "Blog",
-      "contact": "Contact",
-      "partners": "Partners"
+      "create_expert_profile": "Create an expert profile",
+      "post_offer": "Post an assignment or job"
     },
-    "copyright": "© {year} {name}. All rights reserved.",
     "legal": {
+      "imprint": "Legal notice",
       "privacy": "Privacy",
-      "terms": "Terms",
-      "imprint": "Legal notice"
-    }
+      "terms": "Terms"
+    },
+    "copyright": "© {year} {name}. All rights reserved."
   },
   "dashboard_freelance": {
     "loading": "Loading...",
@@ -2638,10 +2776,18 @@
     "cta": "Continue",
     "unlock": "Validation unlocks: missions, applications, messaging and posting subcontracting needs.",
     "steps": {
-      "cv": { "title": "Upload your CV" },
-      "profile": { "title": "Complete your profile" },
-      "publish": { "title": "Publish your profile (AI verification)" },
-      "receive": { "title": "Receive missions and opportunities" }
+      "cv": {
+        "title": "Upload your CV"
+      },
+      "profile": {
+        "title": "Complete your profile"
+      },
+      "publish": {
+        "title": "Publish your profile (AI verification)"
+      },
+      "receive": {
+        "title": "Receive missions and opportunities"
+      }
     },
     "status": {
       "done": "Done",

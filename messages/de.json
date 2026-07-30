@@ -15,7 +15,11 @@
     "back": "← Zurück"
   },
   "app": {
-    "name": "Skilloria"
+    "name": "Skilloria",
+    "meta": {
+      "title": "{name} — Der KI-gestützte Marktplatz für {ecosystem}-Expertinnen und -Experten",
+      "description": "Geprüfte {ecosystem}-Fachleute, KI-Matching, null Provision."
+    }
   },
   "not_found": {
     "title": "Seite nicht gefunden",
@@ -88,152 +92,286 @@
   },
   "homepage": {
     "meta": {
-      "title": "{name} — Finden Sie den {ecosystem}-Experten, den Sie brauchen",
-      "description": "{name} verbindet Unternehmen mit den besten zertifizierten {ecosystem}-Experten via KI-Matching. Veröffentlichen Sie Ihren Auftrag in 2 Minuten."
+      "title": "{name} — Null Provision, geprüfte Profile",
+      "description": "{name} bringt {ecosystem}-Fachleute und Unternehmen zusammen. Die KI analysiert Profile und Anforderungen, schlägt die passendsten Übereinstimmungen vor und nimmt keine Provision."
+    },
+    "tabs": {
+      "aria_label": "Blickwinkel der Seite wählen",
+      "expert": "Ich bin Fachkraft",
+      "company": "Ich suche Fachleute"
     },
     "hero": {
-      "badge": "KI-gestützt · {name}",
-      "title": "Finden Sie den <highlight>{ecosystem}</highlight>-Experten, den Sie brauchen.",
-      "subtitle": "Veröffentlichen Sie Ihren Bedarf: unsere KI analysiert über 40 Kriterien und verbindet Sie mit den besten zertifizierten Experten im {ecosystem}-Ökosystem.",
-      "cta_company": "Auftrag veröffentlichen",
-      "cta_expert": "Mein Experten-Profil erstellen",
-      "feature_free": "✓ Kostenlos",
-      "feature_zero_commission": "✓ 0% Provision",
-      "feature_ai": "✓ KI-gestützt"
+      "expert": {
+        "title": "Null Provision.",
+        "subtitle": "Ihre Identität bleibt geschützt, bis Sie sich anders entscheiden.",
+        "cta": "Mein Profil erstellen",
+        "proof_1": "Kostenlos",
+        "proof_2": "0 % Provision",
+        "proof_3": "Geprüfte Profile"
+      },
+      "company": {
+        "title": "Die {ecosystem}-Fachkraft, die Sie brauchen.",
+        "subtitle": "Veröffentlichen Sie Ihren Bedarf. Die KI analysiert jedes Profil und schlägt Ihnen die passenden Fachleute vor.",
+        "cta": "Auftrag oder Stelle veröffentlichen",
+        "proof_1": "Geprüfte Profile",
+        "proof_2": "Null Provision",
+        "proof_3": "KI-Matching"
+      }
     },
-    "cards": {
-      "collaborate": {
-        "title": "Experten, arbeiten Sie zusammen!",
-        "description": "Vergeben Sie Aufträge weiter, bilden Sie Teams unter zertifizierten Experten."
+    "features": {
+      "eyebrow": "KI-gestützt",
+      "expert": {
+        "title": "Weit mehr als eine Auftragsliste",
+        "subtitle": "Sie steuern Ihre Tätigkeit. Die Plattform arbeitet durchgehend für Sie.",
+        "items": {
+          "availability": {
+            "title": "Verfügbarkeitsmeldung",
+            "description": "Sie werden frei? Unternehmen in Ihrem Bereich werden benachrichtigt."
+          },
+          "collaboration": {
+            "title": "Zusammenarbeit unter Fachleuten",
+            "description": "Zu viel Arbeit? Veröffentlichen Sie Ihren Bedarf, die KI schlägt geprüfte Fachleute vor."
+          },
+          "matching": {
+            "title": "KI-Matching",
+            "description": "Die KI analysiert Ihr Profil und schlägt Ihnen passende Aufträge vor, mit einer Bewertung."
+          },
+          "freelance_cdi": {
+            "title": "Freiberuflich und Festanstellung",
+            "description": "Erhalten Sie freiberufliche Aufträge, Festanstellungen oder beides. Sie entscheiden."
+          },
+          "cv_profile": {
+            "title": "Profil aus Ihrem Lebenslauf",
+            "description": "Laden Sie Ihren Lebenslauf hoch, die KI liest ihn und füllt alles aus."
+          }
+        }
       },
-      "experts": {
-        "title": "Experte / Freelancer / Festanstellung?",
-        "description": "Geben Sie Ihre Verfügbarkeit an, erhalten Sie Auftragsbenachrichtigungen."
-      },
-      "cta_join": "{name} beitreten →"
+      "company": {
+        "title": "Finden, ohne Lebensläufe zu sichten",
+        "subtitle": "Sie veröffentlichen, die KI sucht. Sie sehen nur passende, geprüfte Profile.",
+        "items": {
+          "verified": {
+            "title": "Geprüfte Fachleute",
+            "description": "Jedes Profil wird von der KI geprüft und anschließend freigegeben."
+          },
+          "matching": {
+            "title": "KI-Matching",
+            "description": "Die KI analysiert Ihren Bedarf und schlägt passende Fachleute vor, mit einer Bewertung."
+          },
+          "zero_commission": {
+            "title": "Null Provision",
+            "description": "Kein Prozentsatz auf Ihre Aufträge."
+          },
+          "availability_alerts": {
+            "title": "Verfügbarkeitsmeldungen",
+            "description": "Werden Sie benachrichtigt, sobald eine Fachkraft frei wird."
+          },
+          "team": {
+            "title": "Gemeinsam arbeiten",
+            "description": "Laden Sie Kolleginnen und Kollegen in Ihr Unternehmenskonto ein, jeweils mit eigenem Zugang."
+          }
+        }
+      }
     },
-    "profiles": {
-      "more_domains": "+ Weitere {ecosystem}-Bereiche abgedeckt →"
+    "steps": {
+      "expert": {
+        "title": "In vier Schritten",
+        "items": {
+          "cv": {
+            "title": "Lebenslauf hochladen",
+            "description": "Die KI füllt Ihr Profil aus."
+          },
+          "verified": {
+            "title": "Profil geprüft",
+            "description": "Ihre Expertise wird kontrolliert."
+          },
+          "opportunities": {
+            "title": "Gelegenheiten erhalten",
+            "description": "Die KI schlägt Ihnen Aufträge und Stellen vor."
+          },
+          "exchange": {
+            "title": "Direkt sprechen",
+            "description": "Über die interne Nachrichtenfunktion."
+          }
+        }
+      },
+      "company": {
+        "title": "In fünf Schritten",
+        "items": {
+          "publish": {
+            "title": "Bedarf veröffentlichen",
+            "description": "Die KI hilft Ihnen, ihn attraktiv zu formulieren."
+          },
+          "search": {
+            "title": "Die KI sucht",
+            "description": "Passende Fachleute werden benachrichtigt."
+          },
+          "apply": {
+            "title": "Sie bewerben sich",
+            "description": "Jede Bewerbung erhält eine Bewertung."
+          },
+          "choose": {
+            "title": "Sie wählen aus",
+            "description": "Sehen Sie die Bewerbungen durch und behalten Sie das passende Profil."
+          },
+          "exchange": {
+            "title": "Direkt sprechen",
+            "description": "Über die interne Nachrichtenfunktion."
+          }
+        }
+      }
     },
-    "ad": {
-      "sponsored_label": "GESPONSERT",
-      "title": "Hier werben.",
-      "description": "Erreichen Sie sofort Tausende von Experten, Recruitern und Unternehmen im {ecosystem}-Ökosystem.",
-      "cta": "Kontakt aufnehmen →"
+    "ecosystem": {
+      "title": "Das {ecosystem}-Ökosystem, in der Tiefe",
+      "subtitle": "Die Bereiche, die die Fachleute der Plattform abdecken."
     },
-    "hero_animation": {
-      "progression_label": "Fortschritt",
-      "workflow": {
-        "step_1": "Auftrag veröffentlichen",
-        "step_2": "KI benachrichtigt Experten",
-        "step_3": "Experte bewirbt sich",
-        "step_4": "Recruiter wählt",
-        "step_5": "Chat eröffnet"
+    "demo": {
+      "expert": {
+        "aria_label": "Animierte Demonstration des Expertenwegs: das Profil wird geprüft, die KI entdeckt einen Auftrag, die Fachkraft bewirbt sich ohne ihren Namen preiszugeben, dann wird der Austausch eröffnet.",
+        "progress_label": "Fortschritt",
+        "steps": {
+          "s1": "Profil geprüft",
+          "s2": "Auftrag entdeckt",
+          "s3": "Bewerbung",
+          "s4": "Austausch eröffnet"
+        },
+        "profile": {
+          "name": "Adrien Mercier",
+          "headline": "{product}-Berater · 8 Jahre Erfahrung",
+          "checking_label": "Prüfung läuft",
+          "verified_badge": "Profil geprüft",
+          "availability_label": "Verfügbar in 2 Wochen"
+        },
+        "mission": {
+          "detected_label": "Auftrag entdeckt",
+          "title": "Senior {product}-Berater",
+          "company": "Unternehmen aus der Industrie",
+          "score": "9/10",
+          "score_label": "Übereinstimmung",
+          "tjm_label": "Angebotener Tagessatz",
+          "tjm_value": "600 € / Tag",
+          "location_label": "Ort",
+          "location_value": "Lyon · 2 Tage vor Ort",
+          "match_explanation": "Ihre {product}-Erfahrung und Ihre Verfügbarkeit passen zum Bedarf.",
+          "apply_button": "Bewerben"
+        },
+        "apply": {
+          "sending_label": "Wird gesendet…",
+          "sent_title": "Bewerbung gesendet",
+          "sent_body": "Das Unternehmen erhält Ihre Bewerbung zusammen mit der Übereinstimmungsbewertung.",
+          "anonymity_note": "Ihr Name bleibt verborgen, solange das Unternehmen Sie nicht ausgewählt hat."
+        },
+        "chat": {
+          "title": "Interne Nachrichten",
+          "recruiter_name": "Camille Laurent",
+          "recruiter_role": "Leitung Recruiting",
+          "online_label": "Online",
+          "message": "Guten Tag, Ihr Profil interessiert uns. Hätten Sie diese Woche Zeit für ein Gespräch?",
+          "internal_note": "Alles läuft über die interne Nachrichtenfunktion. Ohne Ihre Zustimmung werden keine Kontaktdaten weitergegeben.",
+          "reply_placeholder": "Nachricht schreiben…"
+        }
       },
-      "persona_recruiter": {
-        "name": "Stefanie K.",
-        "first_name": "Stefanie",
-        "role": "Personalleiterin",
-        "action_post": "Veröffentlicht einen Auftrag",
-        "action_select": "Wählt das beste Profil"
-      },
-      "persona_freelance": {
-        "name": "Lukas H.",
-        "first_name": "Lukas",
-        "role_short": "Senior D365 Experte",
-        "spec_short": "D365 Finance · 7 Jahre",
-        "spec_long": "D365 Finance · 7 Jahre · Berlin",
-        "tjm": "920 €/Tag",
-        "dispo": "Sofort"
-      },
-      "candidate_2": {
-        "name": "Anna B.",
-        "spec_short": "Finanzen · 5 Jahre",
-        "spec_long": "Finanzen · 5 Jahre · Remote",
-        "tjm": "850 €/Tag",
-        "dispo": "15. Mai"
-      },
-      "candidate_3": {
-        "name": "Lukas S.",
-        "spec_short": "SCM · 6 Jahre",
-        "spec_long": "SCM · 6 Jahre · Berlin",
-        "tjm": "880 €/Tag",
-        "dispo": "1. Mai"
-      },
-      "mission": {
-        "title_label": "Titel",
-        "title_value": "D365 Finance & Ops Experte",
-        "tjm_label": "Tagessatz",
-        "tjm_value": "850 € — 1000 € / Tag",
-        "duration_label": "Dauer & Ort",
-        "duration_value": "6 Monate · Berlin · Remote",
-        "duration_short": "6 Monate · Berlin",
-        "description_label": "Beschreibung",
-        "description_value": "D365-Finance-Migration — Buchhaltungseinrichtung, monatliche Abschlüsse und Schulung der Anwender.",
-        "publish_button": "Auftrag veröffentlichen →"
-      },
-      "tags": {
-        "d365": "D365",
-        "finance": "Finanzen",
-        "remote_ok": "Remote OK",
-        "tjm_compact": "850—1000 €/Tag"
-      },
-      "matching": {
-        "badge": "Skilloria AI",
-        "status": "Matching läuft · 847 Profile analysiert",
-        "criteria": "Über 40 Kriterien werden geprüft",
-        "notified_badge": "Benachrichtigt"
-      },
-      "candidates": {
-        "received_title": "Bewerbungen erhalten",
-        "dispo_label": "Verfügbar: {dispo}",
-        "match_label": "KI-Match"
-      },
-      "selection": {
-        "confirmation": "{name} ausgewählt · Chat wird geöffnet…"
-      },
-      "chat": {
-        "title": "Chat · {recruiter} ↔ {freelance}",
-        "online_label": "Online",
-        "match_score": "Match {score}%",
-        "shared_mission_label": "Geteilter Auftrag",
-        "message_recruiter": "Hallo {name}, ab dem 1. Mai verfügbar? Tagessatz 950 € bestätigt.",
-        "message_freelance": "Bestätigt für den 1. Mai, 950 €/Tag. Lebenslauf und Referenzen sende ich heute Abend."
+      "company": {
+        "aria_label": "Animierte Demonstration des Unternehmenswegs: der Bedarf wird veröffentlicht, die KI benachrichtigt Fachleute, bewertete Bewerbungen treffen ein, das Unternehmen wählt aus und spricht anschließend.",
+        "progress_label": "Fortschritt",
+        "steps": {
+          "s1": "Bedarf veröffentlichen",
+          "s2": "Die KI benachrichtigt",
+          "s3": "Bewerbungen",
+          "s4": "Auswahl",
+          "s5": "Austausch"
+        },
+        "recruiter": {
+          "name": "Camille Laurent",
+          "posting_line": "Veröffentlicht einen Bedarf",
+          "selecting_line": "Wählt ein Profil aus"
+        },
+        "mission": {
+          "title_label": "Titel",
+          "title_value": "Senior {product}-Berater",
+          "tjm_label": "Tagessatz",
+          "tjm_value": "600 € / Tag",
+          "duration_label": "Dauer",
+          "duration_value": "6 Monate, sofortiger Beginn",
+          "duration_short": "6 Monate",
+          "description_label": "Beschreibung",
+          "description_value": "Neugestaltung der {product}-Konfiguration und Übernahme des Third-Level-Supports.",
+          "publish_button": "Bedarf veröffentlichen"
+        },
+        "tag_remote": "Remote möglich",
+        "matching": {
+          "title": "KI-Matching",
+          "status": "Profile werden analysiert",
+          "criteria": "Kompetenzen, Verfügbarkeit, Tagessatz",
+          "notified_badge": "Benachrichtigt"
+        },
+        "candidates_title": "Eingegangene Bewerbungen",
+        "match_label": "Übereinstimmung",
+        "selection_confirmed": "{name} ausgewählt",
+        "people": {
+          "p1": {
+            "name": "Adrien Mercier",
+            "first_name": "Adrien",
+            "spec_short": "{product} · 8 Jahre",
+            "spec_long": "{product}-Experte · 8 Jahre Erfahrung",
+            "tjm": "580 € / Tag",
+            "availability": "Verfügbar in 2 Wochen",
+            "score": "97 %"
+          },
+          "p2": {
+            "name": "Sarah Benali",
+            "first_name": "Sarah",
+            "spec_short": "{product} · 6 Jahre",
+            "spec_long": "{product}-Beraterin · 6 Jahre Erfahrung",
+            "tjm": "540 € / Tag",
+            "availability": "Sofort verfügbar",
+            "score": "91 %"
+          },
+          "p3": {
+            "name": "Thomas Riva",
+            "first_name": "Thomas",
+            "spec_short": "{product} · 5 Jahre",
+            "spec_long": "{product}-Berater · 5 Jahre Erfahrung",
+            "tjm": "510 € / Tag",
+            "availability": "Verfügbar in 1 Monat",
+            "score": "86 %"
+          }
+        },
+        "chat": {
+          "title": "Interne Nachrichten",
+          "online_label": "Online",
+          "shared_mission_label": "Geteilter Bedarf",
+          "score_label": "{score} Übereinstimmung",
+          "message_from_company": "Guten Tag {name}, Ihr Profil passt genau zu unserem Bedarf. Hätten Sie diese Woche Zeit für ein Gespräch?",
+          "message_from_expert": "Guten Tag, sehr gerne. Würde Ihnen Donnerstagvormittag passen?"
+        }
       }
     }
   },
   "navbar": {
+    "home_aria": "{name} — zurück zur Startseite",
     "menu": {
-      "company": "Unternehmen",
-      "freelance": "Freelancer",
-      "permanent": "Festanstellung",
-      "pricing": "Preise"
+      "fonctionnalites": "Funktionen",
+      "etapes": "So funktioniert es",
+      "domaines": "Bereiche"
     },
     "cta_signup": "Konto erstellen",
     "cta_signin": "Anmelden"
   },
   "footer": {
-    "tagline": "Der Premium-Marktplatz für zertifizierte {ecosystem}-Experten, betrieben mit agentischer KI.",
+    "tagline": "Der KI-gestützte Marktplatz für {ecosystem}-Fachleute.",
     "col_platform": "Plattform",
-    "col_domains": "Bereiche",
-    "col_company": "Unternehmen",
+    "col_legal": "Informationen",
     "links": {
-      "post_offer": "Auftrag veröffentlichen",
-      "company": "Unternehmen",
-      "freelance": "Freelancer",
-      "permanent": "Festanstellung",
-      "pricing": "Preise",
-      "about": "Über uns",
-      "blog": "Blog",
-      "contact": "Kontakt",
-      "partners": "Partner"
+      "create_expert_profile": "Expertenprofil erstellen",
+      "post_offer": "Auftrag oder Stelle veröffentlichen"
     },
-    "copyright": "© {year} {name}. Alle Rechte vorbehalten.",
     "legal": {
+      "imprint": "Impressum",
       "privacy": "Datenschutz",
-      "terms": "AGB",
-      "imprint": "Impressum"
-    }
+      "terms": "AGB"
+    },
+    "copyright": "© {year} {name}. Alle Rechte vorbehalten."
   },
   "dashboard_freelance": {
     "loading": "Wird geladen...",
@@ -2638,10 +2776,18 @@
     "cta": "Weiter",
     "unlock": "Die Validierung schaltet frei: Missionen, Bewerbungen, Nachrichten und das Veröffentlichen von Unterauftrags-Bedarfen.",
     "steps": {
-      "cv": { "title": "Lebenslauf hochladen" },
-      "profile": { "title": "Profil vervollständigen" },
-      "publish": { "title": "Profil veröffentlichen (KI-Prüfung)" },
-      "receive": { "title": "Missionen und Gelegenheiten erhalten" }
+      "cv": {
+        "title": "Lebenslauf hochladen"
+      },
+      "profile": {
+        "title": "Profil vervollständigen"
+      },
+      "publish": {
+        "title": "Profil veröffentlichen (KI-Prüfung)"
+      },
+      "receive": {
+        "title": "Missionen und Gelegenheiten erhalten"
+      }
     },
     "status": {
       "done": "Erledigt",
