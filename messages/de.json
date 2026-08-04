@@ -1055,7 +1055,8 @@
       "speciality_placeholder": "Fachgebiet auswählen",
       "speciality_other_option": "Sonstige (angeben)",
       "speciality_other_label": "Geben Sie Ihr Fachgebiet an",
-      "speciality_other_placeholder": "z. B. FinOps, Green IT…"
+      "speciality_other_placeholder": "z. B. FinOps, Green IT…",
+      "taxonomy_loading": "Branchen werden geladen…"
     },
     "change_profile": "← Profil ändern",
     "cgu": "Ich akzeptiere die <terms>Nutzungsbedingungen</terms> und die <privacy>Datenschutzerklärung</privacy>",
@@ -1078,7 +1079,8 @@
       "branch_required": "Bitte wählen Sie eine Branche aus.",
       "speciality_required": "Bitte wählen Sie ein Fachgebiet aus.",
       "speciality_other_required": "Bitte geben Sie Ihr Fachgebiet an.",
-      "taxonomy_invalid": "Ungültige Branche oder ungültiges Fachgebiet. Bitte versuchen Sie es erneut."
+      "taxonomy_invalid": "Ungültige Branche oder ungültiges Fachgebiet. Bitte versuchen Sie es erneut.",
+      "taxonomy_unavailable": "Branchen und Fachgebiete können derzeit nicht geladen werden. Laden Sie die Seite neu oder versuchen Sie es später erneut."
     },
     "otp": {
       "send_sms_button": "SMS senden",

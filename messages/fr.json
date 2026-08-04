@@ -1055,7 +1055,8 @@
       "speciality_placeholder": "Sélectionnez une spécialité",
       "speciality_other_option": "Autre (préciser)",
       "speciality_other_label": "Précisez votre spécialité",
-      "speciality_other_placeholder": "Ex. FinOps, Green IT…"
+      "speciality_other_placeholder": "Ex. FinOps, Green IT…",
+      "taxonomy_loading": "Chargement des branches…"
     },
     "change_profile": "← Changer de profil",
     "cgu": "J'accepte les <terms>conditions d'utilisation</terms> et la <privacy>politique de confidentialité</privacy>",
@@ -1078,7 +1079,8 @@
       "branch_required": "Veuillez sélectionner une branche.",
       "speciality_required": "Veuillez sélectionner une spécialité.",
       "speciality_other_required": "Veuillez préciser votre spécialité.",
-      "taxonomy_invalid": "Branche ou spécialité invalide. Veuillez réessayer."
+      "taxonomy_invalid": "Branche ou spécialité invalide. Veuillez réessayer.",
+      "taxonomy_unavailable": "Impossible de charger les branches et spécialités pour le moment. Rechargez la page ou réessayez plus tard."
     },
     "otp": {
       "send_sms_button": "Envoyer SMS",

@@ -1055,7 +1055,8 @@
       "speciality_placeholder": "Seleccione una especialidad",
       "speciality_other_option": "Otra (especificar)",
       "speciality_other_label": "Especifique su especialidad",
-      "speciality_other_placeholder": "Ej. FinOps, Green IT…"
+      "speciality_other_placeholder": "Ej. FinOps, Green IT…",
+      "taxonomy_loading": "Cargando ramas…"
     },
     "change_profile": "← Cambiar de perfil",
     "cgu": "Acepto las <terms>condiciones de uso</terms> y la <privacy>política de privacidad</privacy>",
@@ -1078,7 +1079,8 @@
       "branch_required": "Seleccione una rama.",
       "speciality_required": "Seleccione una especialidad.",
       "speciality_other_required": "Especifique su especialidad.",
-      "taxonomy_invalid": "Rama o especialidad no válida. Vuelva a intentarlo."
+      "taxonomy_invalid": "Rama o especialidad no válida. Vuelva a intentarlo.",
+      "taxonomy_unavailable": "No se pueden cargar las ramas y especialidades en este momento. Recargue la página o inténtelo más tarde."
     },
     "otp": {
       "send_sms_button": "Enviar SMS",

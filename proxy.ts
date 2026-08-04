@@ -1,24 +1,14 @@
 import createMiddleware from 'next-intl/middleware'
 import { NextRequest } from 'next/server'
 import { routing } from './i18n/routing'
+import { resolveSubdomainFromHost } from './lib/subdomain'
 
 const handleI18n = createMiddleware(routing)
 
 export function proxy(request: NextRequest) {
-  const hostname = request.headers.get('host') || ''
-
-  // En local on simule le sous-domaine "microsoft"
-  const isLocal = hostname.includes('localhost')
-
-  let subdomain = 'microsoft' // valeur par défaut
-
-  if (!isLocal) {
-    // Ex: "microsoft.skilloria.io" → on extrait "microsoft"
-    const parts = hostname.split('.')
-    if (parts.length >= 3) {
-      subdomain = parts[0]
-    }
-  }
+  // Résolution mutualisée avec les routes /api publiques (lib/subdomain.ts) :
+  // localhost → "microsoft", sinon 1er label du host. Pas de dérive possible.
+  const subdomain = resolveSubdomainFromHost(request.headers.get('host'))
 
   // Injecte x-subdomain sur les headers de requête AVANT next-intl.
   // next-intl copie request.headers via `new Headers(request.headers)` dans son

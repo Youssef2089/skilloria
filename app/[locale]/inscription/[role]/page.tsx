@@ -47,17 +47,31 @@ export default function InscriptionRolePage() {
   const [branchId, setBranchId] = useState('')
   const [specialityId, setSpecialityId] = useState('')
   const [specialityOther, setSpecialityOther] = useState('')
+  // Fail-safe : si la taxonomie est irrésolvable (domaine introuvable, réseau…),
+  // on affiche un message explicite plutôt que deux listes vides silencieuses.
+  const [taxonomyLoading, setTaxonomyLoading] = useState(true)
+  const [taxonomyError, setTaxonomyError] = useState(false)
 
   useEffect(() => {
     let active = true
+    setTaxonomyLoading(true)
+    setTaxonomyError(false)
+    // domain_id volontairement omis : le serveur résout l'écosystème depuis le
+    // sous-domaine de la requête (checklist #20). Le client ne devine rien.
     fetch(`/api/taxonomy?locale=${encodeURIComponent(locale)}`)
-      .then(r => (r.ok ? r.json() : { branches: [], specialities: [] }))
+      .then(r => {
+        if (!r.ok) throw new Error('taxonomy_failed')
+        return r.json()
+      })
       .then((d: { branches?: TaxBranch[]; specialities?: TaxSpeciality[] }) => {
         if (!active) return
-        setBranches(d.branches ?? [])
+        const brs = d.branches ?? []
+        setBranches(brs)
         setSpecialities(d.specialities ?? [])
+        setTaxonomyError(brs.length === 0)
       })
-      .catch(() => {})
+      .catch(() => { if (active) setTaxonomyError(true) })
+      .finally(() => { if (active) setTaxonomyLoading(false) })
     return () => { active = false }
   }, [locale])
 
@@ -296,6 +310,14 @@ export default function InscriptionRolePage() {
 
           {/* D5/D6 : Branche → Spécialité (cascade) + option « Autre ». Libellés
               génériques (aucun nom d'écosystème en dur). Couvre expert ET cdi. */}
+          {taxonomyLoading ? (
+            <div style={{ fontSize: 13, color: '#64748b' }}>{t('fields.taxonomy_loading')}</div>
+          ) : taxonomyError ? (
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#92400e', lineHeight: 1.5 }}>
+              {t('errors.taxonomy_unavailable')}
+            </div>
+          ) : (
+          <>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
               {t('fields.branch_label')}
@@ -361,6 +383,8 @@ export default function InscriptionRolePage() {
                 }}
               />
             </div>
+          )}
+          </>
           )}
 
           {/* Téléphone + OTP obligatoire (D1) — même bloc que l'org. */}

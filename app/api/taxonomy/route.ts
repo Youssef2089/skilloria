@@ -6,6 +6,7 @@ import type { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { loadTranslations, tBDD } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
+import { resolveSubdomainFromHost } from '@/lib/subdomain'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -40,20 +41,27 @@ export async function GET(req: NextRequest) {
     const supabase = getSupabaseAdmin()
 
     // D5 : le domain_id est facultatif. Les surfaces authentifiées le fournissent
-    // (profil, publication) ; la page publique d'inscription ne connaît pas l'uuid
-    // du domaine → on le résout depuis `x-subdomain` (injecté par proxy.ts sur
-    // toutes les requêtes, y compris /api/*). Aucun uuid à exposer au client.
+    // (profil, publication) ; la page publique d'inscription ne le connaît pas et
+    // ne DOIT PAS deviner d'identifiant de domaine (checklist #20). On le résout
+    // donc SERVEUR, à partir du sous-domaine de la requête.
+    //
+    // ⚠️ Le proxy N'INJECTE PAS x-subdomain sur /api (son matcher exclut `api`).
+    // On lit donc directement l'en-tête Host — présent sur toute requête, y
+    // compris pré-authentification — via le même résolveur que le proxy
+    // (localhost → "microsoft" en dev, sinon 1er label ; multi-écosystème :
+    // sap.skilloria.io → taxonomie SAP). x-subdomain reste lu en priorité au cas
+    // où un appelant l'aurait déjà posé.
     if (!domainId) {
-      const subdomain = req.headers.get('x-subdomain')
-      if (subdomain) {
-        const { data: dom } = await supabase
-          .from('domains')
-          .select('id')
-          .eq('slug', subdomain)
-          .eq('active', true)
-          .maybeSingle()
-        domainId = dom?.id ?? null
-      }
+      const subdomain =
+        req.headers.get('x-subdomain') ||
+        resolveSubdomainFromHost(req.headers.get('host') ?? req.headers.get('x-forwarded-host'))
+      const { data: dom } = await supabase
+        .from('domains')
+        .select('id')
+        .eq('slug', subdomain)
+        .eq('active', true)
+        .maybeSingle()
+      domainId = dom?.id ?? null
     }
 
     if (!domainId) {

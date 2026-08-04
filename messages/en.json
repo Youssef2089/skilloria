@@ -1055,7 +1055,8 @@
       "speciality_placeholder": "Select a speciality",
       "speciality_other_option": "Other (specify)",
       "speciality_other_label": "Specify your speciality",
-      "speciality_other_placeholder": "e.g. FinOps, Green IT…"
+      "speciality_other_placeholder": "e.g. FinOps, Green IT…",
+      "taxonomy_loading": "Loading branches…"
     },
     "change_profile": "← Change profile",
     "cgu": "I agree to the <terms>terms of service</terms> and the <privacy>privacy policy</privacy>",
@@ -1078,7 +1079,8 @@
       "branch_required": "Please select a branch.",
       "speciality_required": "Please select a speciality.",
       "speciality_other_required": "Please specify your speciality.",
-      "taxonomy_invalid": "Invalid branch or speciality. Please try again."
+      "taxonomy_invalid": "Invalid branch or speciality. Please try again.",
+      "taxonomy_unavailable": "Unable to load branches and specialities right now. Reload the page or try again later."
     },
     "otp": {
       "send_sms_button": "Send SMS",
