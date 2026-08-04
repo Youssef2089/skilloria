@@ -7,8 +7,11 @@ const handleI18n = createMiddleware(routing)
 
 export function proxy(request: NextRequest) {
   // Résolution mutualisée avec les routes /api publiques (lib/subdomain.ts) :
-  // localhost → "microsoft", sinon 1er label du host. Pas de dérive possible.
-  const subdomain = resolveSubdomainFromHost(request.headers.get('host'))
+  // dev → DEV_DOMAIN_SLUG, prod → 1er label du host. Aucun slug figé en dur.
+  // Hôte non résolvable → null : x-subdomain vide, getDomainConfig retombera sur
+  // le repli NEUTRE (defaultDomainConfig, sans écosystème). En dev sans
+  // DEV_DOMAIN_SLUG, resolveSubdomainFromHost lève une erreur actionnable.
+  const subdomain = resolveSubdomainFromHost(request.headers.get('host')) ?? ''
 
   // Injecte x-subdomain sur les headers de requête AVANT next-intl.
   // next-intl copie request.headers via `new Headers(request.headers)` dans son

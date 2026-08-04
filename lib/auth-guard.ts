@@ -224,11 +224,14 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
     }
   }
 
-  const headerSubdomain = request.headers.get('x-subdomain') ?? 'microsoft'
+  // Règle d'or : AUCUN slug d'écosystème par défaut. x-subdomain est injecté par
+  // useSecureFetch sur toute requête authentifiée ; absent = anomalie → échec
+  // (domain_mismatch), jamais un rattachement implicite à un écosystème figé.
+  const headerSubdomain = request.headers.get('x-subdomain')
   const domainRow = Array.isArray(userRow.domains)
     ? userRow.domains[0]
     : userRow.domains
-  if (!domainRow || (domainRow as { slug?: string } | null)?.slug !== headerSubdomain) {
+  if (!headerSubdomain || !domainRow || (domainRow as { slug?: string } | null)?.slug !== headerSubdomain) {
     throw new AuthError(403, { error: 'Domain mismatch', code: 'domain_mismatch' })
   }
 

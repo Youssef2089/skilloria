@@ -4,26 +4,53 @@
 // requête. SOURCE UNIQUE partagée par proxy.ts (qui injecte x-subdomain sur les
 // pages) et par les routes /api PUBLIQUES qui doivent résoudre l'écosystème
 // elles-mêmes — car le proxy N'INJECTE PAS x-subdomain sur /api (matcher qui
-// exclut `api`). Garder les deux alignés évite toute dérive multi-écosystème.
+// exclut `api`). Une seule fonction, aucune duplication de logique.
 //
-// Multi-écosystème : le slug vient TOUJOURS du host de la requête, jamais d'un
-// défaut figé en production. Le seul cas « microsoft » est le développement
-// local (localhost n'a pas de sous-domaine), pour que l'app reste testable.
+// RÈGLE D'OR (multi-écosystème) : AUCUN nom/slug d'écosystème n'est codé en dur,
+// ni comme défaut, ni comme repli, ni comme exemple exécuté.
+//   • Production  : le slug est dérivé du host de la requête. Hôte non résolvable
+//                   (apex, IP…) → null : l'appelant échoue, jamais de repli.
+//   • Développement (localhost, pas de sous-domaine) : le slug vient de la
+//                   variable d'environnement DEV_DOMAIN_SLUG (.env.local).
+//                   Absente → ÉCHEC EXPLICITE et actionnable, jamais de défaut.
 
-/** Slug d'écosystème par défaut en local (localhost ne porte pas de sous-domaine). */
-export const LOCAL_DEFAULT_SUBDOMAIN = 'microsoft'
+/** Vrai si l'hôte est une adresse de développement local (pas de sous-domaine). */
+function isLocalHost(hostname: string): boolean {
+  return (
+    hostname.includes('localhost') ||
+    hostname.startsWith('127.0.0.1') ||
+    hostname.startsWith('[::1]') ||
+    hostname.startsWith('0.0.0.0')
+  )
+}
 
 /**
- * Extrait le sous-domaine depuis un en-tête Host.
+ * Extrait le slug d'écosystème depuis un en-tête Host.
  *   "sap.skilloria.io"       → "sap"
  *   "microsoft.skilloria.io" → "microsoft"
- *   "localhost:3000"         → "microsoft" (dev)
- *   host absent / apex        → "microsoft" (repli prudent, identique au proxy)
+ *   "localhost:3000"         → process.env.DEV_DOMAIN_SLUG (ou throw si absente)
+ *   apex / IP / host absent   → null  (l'appelant décide de l'échec)
+ *
+ * @throws Error en développement si DEV_DOMAIN_SLUG est absente (message actionnable).
  */
-export function resolveSubdomainFromHost(host: string | null | undefined): string {
+export function resolveSubdomainFromHost(host: string | null | undefined): string | null {
   const hostname = host ?? ''
-  if (hostname.includes('localhost')) return LOCAL_DEFAULT_SUBDOMAIN
+
+  if (isLocalHost(hostname)) {
+    const devSlug = process.env.DEV_DOMAIN_SLUG?.trim()
+    if (!devSlug) {
+      throw new Error(
+        'DEV_DOMAIN_SLUG manquant. En développement (localhost) il n\'y a pas de ' +
+          'sous-domaine pour déduire l\'écosystème. Ajoutez à votre .env.local le slug ' +
+          'd\'un domaine ACTIF de votre base, par exemple :\n' +
+          '  DEV_DOMAIN_SLUG=<votre-slug>\n' +
+          'Aucun écosystème n\'est codé en dur (règle multi-écosystème).',
+      )
+    }
+    return devSlug
+  }
+
+  // Production : premier label du host. Non résolvable → null (aucun repli figé).
   const parts = hostname.split('.')
-  if (parts.length >= 3) return parts[0]
-  return LOCAL_DEFAULT_SUBDOMAIN
+  return parts.length >= 3 ? parts[0] : null
 }

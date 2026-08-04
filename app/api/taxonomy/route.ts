@@ -55,13 +55,15 @@ export async function GET(req: NextRequest) {
       const subdomain =
         req.headers.get('x-subdomain') ||
         resolveSubdomainFromHost(req.headers.get('host') ?? req.headers.get('x-forwarded-host'))
-      const { data: dom } = await supabase
-        .from('domains')
-        .select('id')
-        .eq('slug', subdomain)
-        .eq('active', true)
-        .maybeSingle()
-      domainId = dom?.id ?? null
+      if (subdomain) {
+        const { data: dom } = await supabase
+          .from('domains')
+          .select('id')
+          .eq('slug', subdomain)
+          .eq('active', true)
+          .maybeSingle()
+        domainId = dom?.id ?? null
+      }
     }
 
     if (!domainId) {
