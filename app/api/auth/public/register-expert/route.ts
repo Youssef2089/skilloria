@@ -154,6 +154,16 @@ function validate(body: Body): { ok: true; input: ValidatedInput } | { ok: false
   if (speciality_other && speciality_other.length > 100) {
     return { ok: false, error: 'invalid_speciality' }
   }
+  // Checklist #20 : la règle est SERVEUR, pas seulement client. Sans cela, un
+  // appel direct créerait un profil sans branche ni spécialité (le trou qu'on
+  // ferme). Branche obligatoire ; spécialité = soit une du référentiel, soit une
+  // précision libre « Autre ». Même règle pour expert ET cdi.
+  if (!branch_id) {
+    return { ok: false, error: 'branch_required' }
+  }
+  if (!speciality_id && !speciality_other) {
+    return { ok: false, error: 'speciality_required' }
+  }
   // Téléphone : normalisation E.164 STRICTE (D4). La forme canonique est celle
   // sur laquelle le jeton HMAC a été signé et celle indexée par l'unique.
   const phone = normalizeE164(body.phone)

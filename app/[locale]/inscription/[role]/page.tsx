@@ -215,6 +215,8 @@ export default function InscriptionRolePage() {
           setError(t('errors.otp_expired'))
         } else if (c === 'invalid_phone') setError(t('errors.invalid_phone'))
         else if (c === 'invalid_password') setError(t('errors.password_too_short'))
+        else if (c === 'branch_required') setError(t('errors.branch_required'))
+        else if (c === 'speciality_required') setError(t('errors.speciality_required'))
         else if (c === 'invalid_branch' || c === 'invalid_speciality') setError(t('errors.taxonomy_invalid'))
         else setError(t('errors.generic'))
         return
