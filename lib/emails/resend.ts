@@ -23,6 +23,12 @@ export type SendEmailParams = {
   preheader?: string
   /** Tag optionnel pour le tracking côté Resend (ex: 'org_approved'). */
   tag?: string
+  /**
+   * Adresse de réponse (Resend v6 : champ `replyTo`). Ex : le formulaire de
+   * contact fixe `replyTo` sur l'email du visiteur pour qu'un « Répondre »
+   * depuis la boîte contact@ écrive directement au visiteur.
+   */
+  replyTo?: string
 }
 
 export type SendEmailResult =
@@ -66,6 +72,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
         subject: params.subject,
         html: finalHtml,
         text: params.text,
+        replyTo: params.replyTo,
         tags: params.tag ? [{ name: 'kind', value: params.tag }] : undefined,
       })
       clearTimeout(timeout)

@@ -71,9 +71,15 @@ export function homeStyles(accent: string, accentSoft: string, accentStrong: str
     .skh-step-title{font-size:16px;font-weight:700;letter-spacing:-.01em;margin:0 0 6px}
     .skh-step-text{font-size:14px;line-height:1.6;color:${theme.muted};margin:0}
 
-    /* Domaines de l'écosystème ------------------------------------------ */
-    .skh-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:30px}
-    .skh-chip{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:100px;font-size:14px;font-weight:600}
+    /* Domaines de l'écosystème (D4 : dérivés de la taxonomie réelle) ----- */
+    /* Une carte = une branche ; ses spécialités en sous-texte. Grille
+       responsive 1 → 2 → 3 colonnes, alignée sur la grille fonctionnalités. */
+    .skh-eco-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:34px;list-style:none;padding:0}
+    @media (min-width:680px){.skh-eco-grid{grid-template-columns:repeat(2,1fr)}}
+    @media (min-width:1100px){.skh-eco-grid{grid-template-columns:repeat(3,1fr)}}
+    .skh-eco-branch{background:${theme.white};border:1px solid ${theme.border};border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:6px}
+    .skh-eco-name{font-size:16px;font-weight:700;letter-spacing:-.01em;color:${theme.ink};margin:0}
+    .skh-eco-specs{font-size:13px;line-height:1.6;color:${theme.muted};margin:0}
 
     /* Pied de page ------------------------------------------------------ */
     .skh-footer{background:${theme.inkSurface};color:${theme.onInk};padding:52px ${gutter} 30px}

@@ -174,6 +174,12 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
       { key: 'packages', href: '/admin/packages', labelKey: 'nav_packages', iconKey: 'package' },
     ],
   },
+  {
+    sectionKey: 'section_taxonomy',
+    items: [
+      { key: 'taxonomie', href: '/admin/taxonomie', labelKey: 'nav_taxonomie', iconKey: 'taxonomy' },
+    ],
+  },
 ] as const
 
 // ─────────────────────────────────────────────────────────────────────────────

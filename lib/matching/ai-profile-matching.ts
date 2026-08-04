@@ -90,6 +90,8 @@ function describeCandidate(c: ProfileCandidate, isMission: boolean): string {
   if (c.years_total_experience != null) lines.push(`- Années d'expérience (total) : ${c.years_total_experience}`)
   if (c.branch_name) lines.push(`- Branche : ${sanitize(c.branch_name, 100)}`)
   if (c.speciality_name) lines.push(`- Spécialité : ${sanitize(c.speciality_name, 100)}`)
+  // D6 : spécialité hors référentiel (« Autre »).
+  else if (c.speciality_other) lines.push(`- Spécialité (précisée) : ${sanitize(c.speciality_other, 100)}`)
   if (c.skills.length > 0) lines.push(`- Compétences : ${sanitizeList(c.skills, 30, 80)}`)
   if (c.languages.length > 0) lines.push(`- Langues : ${sanitizeList(c.languages, 10, 30)}`)
   if (c.certifications_count > 0) lines.push(`- Certifications : ${c.certifications_count}`)
@@ -143,7 +145,7 @@ ANNONCE
 - Type : ${pub.type} (${isMission ? 'mission freelance — TJM journalier' : 'offre CDI — salaire annuel'})
 - Titre : ${sanitize(pub.title, 300)}
 - Branche : ${sanitize(pub.branch_name, 100) || '(non précisé)'}
-- Spécialité : ${sanitize(pub.speciality_name, 100) || '(non précisé)'}
+- Spécialité : ${sanitize(pub.speciality_name, 100) || sanitize(pub.speciality_other, 100) || '(non précisé)'}
 - Compétences requises : ${sanitizeList(pub.skills_required, 50, 80)}
 - Séniorité visée : ${sanitize(pub.seniority, 50) || '(non précisé)'}
 - Mode de travail : ${sanitize(pub.work_mode, 50) || '(non précisé)'}

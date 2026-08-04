@@ -354,7 +354,9 @@
     "menu": {
       "fonctionnalites": "Features",
       "etapes": "How it works",
-      "domaines": "Areas"
+      "domaines": "Areas",
+      "qui": "About us",
+      "contact": "Contact"
     },
     "cta_signup": "Create my account",
     "cta_signin": "Sign in"
@@ -634,7 +636,10 @@
         "skills_min_hint": "(min. 3 to publish)",
         "skills_placeholder": "e.g. your key skills",
         "skills_add_button": "Add",
-        "skill_remove_aria": "Remove {name}"
+        "skill_remove_aria": "Remove {name}",
+        "speciality_other_option": "Other (specify)",
+        "speciality_other_label": "Specify your speciality",
+        "speciality_other_placeholder": "e.g. FinOps, Green IT…"
       },
       "certifications": {
         "title": "Certifications",
@@ -1043,7 +1048,14 @@
       "password_label": "Password",
       "password_placeholder": "Minimum 8 characters",
       "phone_label": "Phone",
-      "phone_placeholder": "+33 6 12 34 56 78"
+      "phone_placeholder": "+33 6 12 34 56 78",
+      "branch_label": "Branch",
+      "branch_placeholder": "Select a branch",
+      "speciality_label": "Main speciality",
+      "speciality_placeholder": "Select a speciality",
+      "speciality_other_option": "Other (specify)",
+      "speciality_other_label": "Specify your speciality",
+      "speciality_other_placeholder": "e.g. FinOps, Green IT…"
     },
     "change_profile": "← Change profile",
     "cgu": "I agree to the <terms>terms of service</terms> and the <privacy>privacy policy</privacy>",
@@ -1062,7 +1074,11 @@
       "invalid_phone": "Invalid phone number (expected format: +33XXXXXXXXX).",
       "generic": "An error occurred. Please try again.",
       "phone_already_used": "This phone number is already used by another account.",
-      "otp_expired": "Your verification has expired. Please resend an SMS and re-enter the code."
+      "otp_expired": "Your verification has expired. Please resend an SMS and re-enter the code.",
+      "branch_required": "Please select a branch.",
+      "speciality_required": "Please select a speciality.",
+      "speciality_other_required": "Please specify your speciality.",
+      "taxonomy_invalid": "Invalid branch or speciality. Please try again."
     },
     "otp": {
       "send_sms_button": "Send SMS",
@@ -1425,7 +1441,10 @@
         "skills_min_hint": "(min. 3 to publish)",
         "skills_placeholder": "e.g. your key skills",
         "skills_add_button": "Add",
-        "skill_remove_aria": "Remove {name}"
+        "skill_remove_aria": "Remove {name}",
+        "speciality_other_option": "Other (specify)",
+        "speciality_other_label": "Specify your speciality",
+        "speciality_other_placeholder": "e.g. FinOps, Green IT…"
       },
       "status_availability": {
         "title": "Status & availability",
@@ -1884,7 +1903,10 @@
       "confirm_publish_rule_legal": "Legal conditions respected (compensation, status)",
       "confirm_publish_warning": "If a blocking criterion is detected, the listing will go to manual review instead of going live immediately.",
       "confirm_publish_yes": "Publish now",
-      "confirm_publish_no": "Cancel"
+      "confirm_publish_no": "Cancel",
+      "field_speciality_other_option": "Other (specify)",
+      "field_speciality_other_label": "Specify the speciality",
+      "field_speciality_other_placeholder": "e.g. FinOps, Green IT…"
     },
     "gate": {
       "published_title": "Listing live ✓",
@@ -2245,7 +2267,9 @@
       "nav_experts": "Experts",
       "nav_experts_soon": "soon",
       "section_commerce": "Commerce",
-      "nav_packages": "Packages"
+      "nav_packages": "Packages",
+      "section_taxonomy": "Taxonomy",
+      "nav_taxonomie": "Branches & specialities"
     },
     "packages": {
       "page_title": "Commerce catalog",
@@ -2473,7 +2497,8 @@
       "error_load": "Could not load experts.",
       "error_generic": "An error occurred. Please try again.",
       "error_already_processed": "This profile has already been processed.",
-      "error_reason_required": "A reason is required to reject."
+      "error_reason_required": "A reason is required to reject.",
+      "speciality_other_prefix": "{value} (not in the reference list)"
     }
   },
   "expert_verification": {
@@ -2882,5 +2907,124 @@
       "closing": "Closing…",
       "error": "Closing failed. Please try again."
     }
+  },
+  "qui": {
+    "meta_title": "About us — {name}",
+    "meta_description": "Discover {name}, the marketplace that connects organisations with certified experts from the {ecosystem} ecosystem.",
+    "title": "About us",
+    "intro": "{name} is a marketplace that connects organisations with certified experts from the {ecosystem} ecosystem. Our role is limited to facilitating the connection: we take no part in the negotiation or in the contractual relationship between the parties.",
+    "distinct_title": "What sets us apart",
+    "distinct_commission_title": "Zero commission",
+    "distinct_commission_body": "Access to the platform is free for experts: no commission is charged on assignments.",
+    "distinct_verified_title": "Verified profiles",
+    "distinct_verified_body": "Profiles and organisations are verified before being connected.",
+    "distinct_identity_title": "Protected identity",
+    "distinct_identity_body": "The expert's name and photo are only revealed to the organisation after selection. Only the email and phone number are never shared by the platform.",
+    "distinct_matching_title": "Explained matching",
+    "distinct_matching_body": "Matches are calculated by AI on clear criteria — branch, speciality, skills — and remain transparent.",
+    "how_title": "How it works",
+    "how_step1_title": "Post a need",
+    "how_step1_body": "The organisation describes the assignment or position it is looking for.",
+    "how_step2_title": "Get connected",
+    "how_step2_body": "{name} suggests the experts whose profile matches the need.",
+    "how_step3_title": "Talk",
+    "how_step3_body": "The parties talk directly to decide whether to work together.",
+    "editor_title": "The publisher",
+    "editor_body": "**WinOps** — Simplified single-shareholder joint-stock company (SASU)\n\n- Share capital: 1 000,00 €\n- Registered office: 8 rue Henri Régnault, 92400 Courbevoie, France\n- RCS Nanterre 933 768 087\n- Intra-community VAT number: FR48933768087\n- Email address: contact@skilloria.io\n- Publication director: Mr Youssef CHERIF, President of WinOps\n\nHosting: Vercel Inc. and Supabase Inc.\n\nFor more details, see the [legal notice](/mentions-legales).",
+    "language_notice": "This document is available in French. Only the French version is authoritative."
+  },
+  "contact": {
+    "meta_title": "Contact — {name}",
+    "meta_description": "Contact the {name} team. We will get back to you as soon as possible.",
+    "title": "Contact us",
+    "intro": "A question, a request or a project? Write to us using the form below.",
+    "language_notice": "This page is available in French. Only the French version is authoritative.",
+    "field_firstname": "First name",
+    "field_lastname": "Last name",
+    "field_company": "Company",
+    "field_email": "Email",
+    "field_phone": "Phone",
+    "field_message": "Message",
+    "optional": "(optional)",
+    "consent_label": "I agree that my data may be processed to respond to my request, in accordance with the <link>privacy policy</link>.",
+    "err_firstname_required": "Please enter your first name.",
+    "err_lastname_required": "Please enter your last name.",
+    "err_email_required": "Please enter your email.",
+    "err_email_invalid": "Please enter a valid email.",
+    "err_message_required": "Please enter your message.",
+    "err_consent_required": "You must accept the processing of your data to continue.",
+    "submit": "Send message",
+    "submit_sending": "Sending…",
+    "success_title": "Message sent",
+    "success_body": "Thank you, your message has been sent. We will get back to you as soon as possible.",
+    "success_again": "Send another message",
+    "error_validation": "Some fields are invalid. Please check your entry.",
+    "error_rate_limited": "You have sent too many messages. Please try again in a few moments.",
+    "error_generic": "Sending failed. Please try again in a few moments."
+  },
+  "admin_taxonomie": {
+    "page_title": "Taxonomy",
+    "subtitle": "Branches and specialities by ecosystem.",
+    "action_new_branch": "New branch",
+    "empty_title": "No branch",
+    "empty_hint": "Create a first branch to structure the reference list.",
+    "col_branch": "Branch",
+    "col_specialities": "Specialities",
+    "col_status": "Status",
+    "col_usage": "Usage",
+    "col_reorder": "Reorder",
+    "action_edit": "Edit",
+    "speciality_count": "{count, plural, =0 {no speciality} one {# speciality} other {# specialities}}",
+    "status_active": "Active",
+    "status_inactive": "Inactive",
+    "usage_summary": "{profiles} profile(s) · {publications} publication(s)",
+    "reorder_up": "Move up",
+    "reorder_down": "Move down",
+    "other_title": "Specialities not in the reference list",
+    "other_hint": "Free-text values entered via “Other” by experts and organisations, sorted by frequency: the most frequent ones should be added to the reference list first.",
+    "other_empty": "No free-text entry for now.",
+    "other_count": "{count, plural, one {# occurrence} other {# occurrences}}",
+    "not_found_title": "Branch not found",
+    "new_title": "New branch",
+    "section_branch": "Branch",
+    "ecosystem_placeholder": "Choose an ecosystem…",
+    "ecosystem_locked_hint": "The ecosystem is set at creation and cannot be changed afterwards.",
+    "field_name_fr": "Name (French)",
+    "field_name_fr_placeholder": "e.g. Data & AI",
+    "field_slug": "Identifier (slug)",
+    "field_slug_placeholder": "generated automatically if empty",
+    "field_name_en": "Name (English)",
+    "field_name_es": "Name (Spanish)",
+    "field_name_de": "Name (German)",
+    "lang_fallback_note": "A language left blank falls back to French.",
+    "field_active": "Active",
+    "deactivate_branch_warning": "This branch is used by {profiles} profile(s) and {publications} publication(s). Deactivating it will remove it from the selections.",
+    "saved": "Changes saved.",
+    "confirm_save": "Confirm save?",
+    "confirm_yes": "Confirm",
+    "confirm_cancel": "Cancel",
+    "action_create_branch": "Create branch",
+    "save": "Save",
+    "section_specialities": "Specialities",
+    "action_new_speciality": "Create a speciality",
+    "spec_empty_title": "No speciality",
+    "spec_empty_hint": "Add a speciality to this branch.",
+    "action_deactivate": "Deactivate",
+    "action_activate": "Activate",
+    "action_delete": "Delete",
+    "delete_disabled_hint": "Deletion is not possible while items are attached to it.",
+    "deactivate_spec_warning": "This speciality is used by {profiles} profile(s) and {publications} publication(s). Confirm deactivation?",
+    "confirm_delete_spec": "Permanently delete this speciality?",
+    "section_danger": "Deletion",
+    "delete_branch_explain": "This branch is not referenced anywhere: it can be permanently deleted.",
+    "delete_branch_blocked": "Deletion not possible: first remove the specialities and make sure no profile or publication is attached to it.",
+    "confirm_delete_branch": "Permanently delete this branch?",
+    "action_delete_branch": "Delete branch",
+    "err_invalid_name": "Invalid name.",
+    "err_invalid_slug": "Invalid identifier.",
+    "err_slug_taken": "This identifier is already used in this ecosystem.",
+    "err_invalid_domain": "Select an ecosystem.",
+    "err_branch_in_use": "Branch in use: {profiles} profile(s), {publications} publication(s), {specialities} speciality(ies).",
+    "err_spec_in_use": "Speciality in use: {profiles} profile(s), {publications} publication(s)."
   }
 }

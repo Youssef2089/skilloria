@@ -47,6 +47,7 @@ type Body = {
   budget_max?: unknown
   branch_id?: unknown
   speciality_id?: unknown
+  speciality_other?: unknown
   confidential?: unknown
 }
 
@@ -67,6 +68,7 @@ type ValidatedInput = {
   budget_max: number | null
   branch_id: string | null
   speciality_id: string | null
+  speciality_other: string | null
   confidential: boolean
 }
 
@@ -148,6 +150,11 @@ function validate(body: Body): { ok: true; input: ValidatedInput } | { ok: false
       budget_max,
       branch_id: asUuid(body.branch_id),
       speciality_id: asUuid(body.speciality_id),
+      // D6 : précision libre « Autre » (bornée 100). Ignorée si une spécialité
+      // du référentiel est fournie.
+      speciality_other: asUuid(body.speciality_id)
+        ? null
+        : (asString(body.speciality_other)?.slice(0, 100) ?? null),
       confidential: body.confidential === true,
     },
   }
@@ -214,6 +221,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       budget_max: input.budget_max,
       branch_id: input.branch_id,
       speciality_id: input.speciality_id,
+      speciality_other: input.speciality_other,
       confidential: input.confidential,
       status: 'draft',
     })

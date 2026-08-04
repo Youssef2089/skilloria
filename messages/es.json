@@ -354,7 +354,9 @@
     "menu": {
       "fonctionnalites": "Funcionalidades",
       "etapes": "Cómo funciona",
-      "domaines": "Áreas"
+      "domaines": "Áreas",
+      "qui": "Quiénes somos",
+      "contact": "Contacto"
     },
     "cta_signup": "Crear mi cuenta",
     "cta_signin": "Iniciar sesión"
@@ -634,7 +636,10 @@
         "skills_min_hint": "(mín. 3 para publicar)",
         "skills_placeholder": "Ej: tus competencias clave",
         "skills_add_button": "Añadir",
-        "skill_remove_aria": "Quitar {name}"
+        "skill_remove_aria": "Quitar {name}",
+        "speciality_other_option": "Otra (especificar)",
+        "speciality_other_label": "Especifique su especialidad",
+        "speciality_other_placeholder": "Ej. FinOps, Green IT…"
       },
       "certifications": {
         "title": "Certificaciones",
@@ -1043,7 +1048,14 @@
       "password_label": "Contraseña",
       "password_placeholder": "Mínimo 8 caracteres",
       "phone_label": "Teléfono",
-      "phone_placeholder": "+34 600 12 34 56"
+      "phone_placeholder": "+34 600 12 34 56",
+      "branch_label": "Rama",
+      "branch_placeholder": "Seleccione una rama",
+      "speciality_label": "Especialidad principal",
+      "speciality_placeholder": "Seleccione una especialidad",
+      "speciality_other_option": "Otra (especificar)",
+      "speciality_other_label": "Especifique su especialidad",
+      "speciality_other_placeholder": "Ej. FinOps, Green IT…"
     },
     "change_profile": "← Cambiar de perfil",
     "cgu": "Acepto las <terms>condiciones de uso</terms> y la <privacy>política de privacidad</privacy>",
@@ -1062,7 +1074,11 @@
       "invalid_phone": "Número de teléfono no válido (formato esperado: +34XXXXXXXXX).",
       "generic": "Ha ocurrido un error. Inténtalo de nuevo.",
       "phone_already_used": "Este número ya está siendo utilizado por otra cuenta.",
-      "otp_expired": "Su verificación ha caducado. Vuelva a enviar un SMS e introduzca el código de nuevo."
+      "otp_expired": "Su verificación ha caducado. Vuelva a enviar un SMS e introduzca el código de nuevo.",
+      "branch_required": "Seleccione una rama.",
+      "speciality_required": "Seleccione una especialidad.",
+      "speciality_other_required": "Especifique su especialidad.",
+      "taxonomy_invalid": "Rama o especialidad no válida. Vuelva a intentarlo."
     },
     "otp": {
       "send_sms_button": "Enviar SMS",
@@ -1425,7 +1441,10 @@
         "skills_min_hint": "(mín. 3 para publicar)",
         "skills_placeholder": "Ej: tus competencias clave",
         "skills_add_button": "Añadir",
-        "skill_remove_aria": "Quitar {name}"
+        "skill_remove_aria": "Quitar {name}",
+        "speciality_other_option": "Otra (especificar)",
+        "speciality_other_label": "Especifique su especialidad",
+        "speciality_other_placeholder": "Ej. FinOps, Green IT…"
       },
       "status_availability": {
         "title": "Estado y disponibilidad",
@@ -1884,7 +1903,10 @@
       "confirm_publish_rule_legal": "Condiciones legales respetadas (remuneración, estatus)",
       "confirm_publish_warning": "Si se detecta un criterio bloqueante, el anuncio pasará a revisión manual en lugar de publicarse inmediatamente.",
       "confirm_publish_yes": "Publicar ahora",
-      "confirm_publish_no": "Cancelar"
+      "confirm_publish_no": "Cancelar",
+      "field_speciality_other_option": "Otra (especificar)",
+      "field_speciality_other_label": "Especifique la especialidad",
+      "field_speciality_other_placeholder": "Ej. FinOps, Green IT…"
     },
     "gate": {
       "published_title": "Anuncio en línea ✓",
@@ -2245,7 +2267,9 @@
       "nav_experts": "Expertos",
       "nav_experts_soon": "próximamente",
       "section_commerce": "Comercial",
-      "nav_packages": "Paquetes"
+      "nav_packages": "Paquetes",
+      "section_taxonomy": "Taxonomía",
+      "nav_taxonomie": "Ramas y especialidades"
     },
     "packages": {
       "page_title": "Catálogo comercial",
@@ -2473,7 +2497,8 @@
       "error_load": "No se pudieron cargar los expertos.",
       "error_generic": "Se produjo un error. Inténtalo de nuevo.",
       "error_already_processed": "Este perfil ya ha sido procesado.",
-      "error_reason_required": "Se requiere un motivo para rechazar."
+      "error_reason_required": "Se requiere un motivo para rechazar.",
+      "speciality_other_prefix": "{value} (fuera del catálogo)"
     }
   },
   "expert_verification": {
@@ -2882,5 +2907,124 @@
       "closing": "Cerrando…",
       "error": "El cierre falló. Inténtelo de nuevo."
     }
+  },
+  "qui": {
+    "meta_title": "Quiénes somos — {name}",
+    "meta_description": "Descubra {name}, el marketplace que conecta a las organizaciones con expertos certificados del ecosistema {ecosystem}.",
+    "title": "Quiénes somos",
+    "intro": "{name} es un marketplace que conecta a las organizaciones con expertos certificados del ecosistema {ecosystem}. Nuestro papel se limita a facilitar el contacto: no intervenimos ni en la negociación ni en la relación contractual entre las partes.",
+    "distinct_title": "Lo que nos distingue",
+    "distinct_commission_title": "Cero comisiones",
+    "distinct_commission_body": "El acceso a la plataforma es gratuito para los expertos: no se cobra ninguna comisión sobre las misiones.",
+    "distinct_verified_title": "Perfiles verificados",
+    "distinct_verified_body": "Los perfiles y las organizaciones se verifican antes de ponerse en contacto.",
+    "distinct_identity_title": "Identidad protegida",
+    "distinct_identity_body": "El nombre y la foto del experto solo se revelan a la organización tras la selección. Solo el correo electrónico y el teléfono no se transmiten nunca a través de la plataforma.",
+    "distinct_matching_title": "Matching explicado",
+    "distinct_matching_body": "La puesta en contacto la calcula la IA con criterios claros — rama, especialidad, competencias — y se mantiene transparente.",
+    "how_title": "Cómo funciona",
+    "how_step1_title": "Publicar una necesidad",
+    "how_step1_body": "La organización describe la misión o el puesto que busca.",
+    "how_step2_title": "Ponerse en contacto",
+    "how_step2_body": "{name} propone los expertos cuyo perfil se ajusta a la necesidad.",
+    "how_step3_title": "Conversar",
+    "how_step3_body": "Las partes conversan directamente para decidir si colaboran.",
+    "editor_title": "El editor",
+    "editor_body": "**WinOps** — Sociedad por acciones simplificada unipersonal (SASU)\n\n- Capital social: 1 000,00 €\n- Domicilio social: 8 rue Henri Régnault, 92400 Courbevoie, France\n- RCS Nanterre 933 768 087\n- Número de IVA intracomunitario: FR48933768087\n- Dirección de correo electrónico: contact@skilloria.io\n- Director de la publicación: Don Youssef CHERIF, Presidente de WinOps\n\nAlojamiento: Vercel Inc. y Supabase Inc.\n\nPara más detalles, consulte el [aviso legal](/mentions-legales).",
+    "language_notice": "Este documento está disponible en francés. Solo la versión francesa da fe."
+  },
+  "contact": {
+    "meta_title": "Contacto — {name}",
+    "meta_description": "Póngase en contacto con el equipo de {name}. Le responderemos lo antes posible.",
+    "title": "Contáctenos",
+    "intro": "¿Una pregunta, una solicitud o un proyecto? Escríbanos a través del formulario que aparece a continuación.",
+    "language_notice": "Esta página está disponible en francés. Solo la versión francesa da fe.",
+    "field_firstname": "Nombre",
+    "field_lastname": "Apellidos",
+    "field_company": "Empresa",
+    "field_email": "Correo electrónico",
+    "field_phone": "Teléfono",
+    "field_message": "Mensaje",
+    "optional": "(opcional)",
+    "consent_label": "Acepto que mis datos se traten para responder a mi solicitud, de conformidad con la <link>política de privacidad</link>.",
+    "err_firstname_required": "Introduzca su nombre.",
+    "err_lastname_required": "Introduzca sus apellidos.",
+    "err_email_required": "Introduzca su correo electrónico.",
+    "err_email_invalid": "Introduzca un correo electrónico válido.",
+    "err_message_required": "Escriba su mensaje.",
+    "err_consent_required": "Debe aceptar el tratamiento de sus datos para continuar.",
+    "submit": "Enviar mensaje",
+    "submit_sending": "Enviando…",
+    "success_title": "Mensaje enviado",
+    "success_body": "Gracias, su mensaje se ha enviado correctamente. Le responderemos lo antes posible.",
+    "success_again": "Enviar otro mensaje",
+    "error_validation": "Algunos campos no son válidos. Compruebe los datos introducidos.",
+    "error_rate_limited": "Ha enviado demasiados mensajes. Vuelva a intentarlo en unos instantes.",
+    "error_generic": "El envío ha fallado. Vuelva a intentarlo en unos instantes."
+  },
+  "admin_taxonomie": {
+    "page_title": "Taxonomía",
+    "subtitle": "Ramas y especialidades por ecosistema.",
+    "action_new_branch": "Nueva rama",
+    "empty_title": "Ninguna rama",
+    "empty_hint": "Cree una primera rama para estructurar el catálogo.",
+    "col_branch": "Rama",
+    "col_specialities": "Especialidades",
+    "col_status": "Estado",
+    "col_usage": "Uso",
+    "col_reorder": "Reordenar",
+    "action_edit": "Editar",
+    "speciality_count": "{count, plural, =0 {ninguna especialidad} one {# especialidad} other {# especialidades}}",
+    "status_active": "Activo",
+    "status_inactive": "Inactivo",
+    "usage_summary": "{profiles} perfil(es) · {publications} publicación(es)",
+    "reorder_up": "Subir",
+    "reorder_down": "Bajar",
+    "other_title": "Especialidades fuera del catálogo",
+    "other_hint": "Valores libres introducidos mediante «Otro» por los expertos y las organizaciones, ordenados por frecuencia: los más frecuentes deben integrarse prioritariamente en el catálogo.",
+    "other_empty": "Ninguna entrada libre por el momento.",
+    "other_count": "{count, plural, one {# aparición} other {# apariciones}}",
+    "not_found_title": "Rama no encontrada",
+    "new_title": "Nueva rama",
+    "section_branch": "Rama",
+    "ecosystem_placeholder": "Elegir un ecosistema…",
+    "ecosystem_locked_hint": "El ecosistema se define en la creación y ya no puede modificarse después.",
+    "field_name_fr": "Nombre (francés)",
+    "field_name_fr_placeholder": "Ej. Data e IA",
+    "field_slug": "Identificador (slug)",
+    "field_slug_placeholder": "se genera automáticamente si se deja vacío",
+    "field_name_en": "Nombre (inglés)",
+    "field_name_es": "Nombre (español)",
+    "field_name_de": "Nombre (alemán)",
+    "lang_fallback_note": "Un idioma sin rellenar recurre al francés.",
+    "field_active": "Activo",
+    "deactivate_branch_warning": "Esta rama la utilizan {profiles} perfil(es) y {publications} publicación(es). Desactivarla la eliminará de las selecciones.",
+    "saved": "Cambios guardados.",
+    "confirm_save": "¿Confirmar el guardado?",
+    "confirm_yes": "Confirmar",
+    "confirm_cancel": "Cancelar",
+    "action_create_branch": "Crear la rama",
+    "save": "Guardar",
+    "section_specialities": "Especialidades",
+    "action_new_speciality": "Crear una especialidad",
+    "spec_empty_title": "Ninguna especialidad",
+    "spec_empty_hint": "Añada una especialidad a esta rama.",
+    "action_deactivate": "Desactivar",
+    "action_activate": "Activar",
+    "action_delete": "Eliminar",
+    "delete_disabled_hint": "No se puede eliminar mientras haya elementos vinculados.",
+    "deactivate_spec_warning": "Esta especialidad la utilizan {profiles} perfil(es) y {publications} publicación(es). ¿Confirmar la desactivación?",
+    "confirm_delete_spec": "¿Eliminar definitivamente esta especialidad?",
+    "section_danger": "Eliminación",
+    "delete_branch_explain": "Esta rama no está referenciada en ningún sitio: puede eliminarse definitivamente.",
+    "delete_branch_blocked": "No se puede eliminar: retire primero las especialidades y asegúrese de que no haya ningún perfil ni publicación vinculados.",
+    "confirm_delete_branch": "¿Eliminar definitivamente esta rama?",
+    "action_delete_branch": "Eliminar la rama",
+    "err_invalid_name": "Nombre no válido.",
+    "err_invalid_slug": "Identificador no válido.",
+    "err_slug_taken": "Este identificador ya está en uso en este ecosistema.",
+    "err_invalid_domain": "Seleccione un ecosistema.",
+    "err_branch_in_use": "Rama en uso: {profiles} perfil(es), {publications} publicación(es), {specialities} especialidad(es).",
+    "err_spec_in_use": "Especialidad en uso: {profiles} perfil(es), {publications} publicación(es)."
   }
 }

@@ -2718,6 +2718,7 @@ export type Database = {
           seniority: string | null
           skills: string[]
           speciality_id: string | null
+          speciality_other: string | null
           summary: string | null
           title: string | null
           tjm_max: number | null
@@ -2781,6 +2782,7 @@ export type Database = {
           seniority?: string | null
           skills?: string[]
           speciality_id?: string | null
+          speciality_other?: string | null
           summary?: string | null
           title?: string | null
           tjm_max?: number | null
@@ -2844,6 +2846,7 @@ export type Database = {
           seniority?: string | null
           skills?: string[]
           speciality_id?: string | null
+          speciality_other?: string | null
           summary?: string | null
           title?: string | null
           tjm_max?: number | null
@@ -3043,6 +3046,7 @@ export type Database = {
           seniority: string | null
           skills_required: string[]
           speciality_id: string | null
+          speciality_other: string | null
           start_date: string | null
           status: string
           title: string
@@ -3074,6 +3078,7 @@ export type Database = {
           seniority?: string | null
           skills_required?: string[]
           speciality_id?: string | null
+          speciality_other?: string | null
           start_date?: string | null
           status?: string
           title: string
@@ -3105,6 +3110,7 @@ export type Database = {
           seniority?: string | null
           skills_required?: string[]
           speciality_id?: string | null
+          speciality_other?: string | null
           start_date?: string | null
           status?: string
           title?: string

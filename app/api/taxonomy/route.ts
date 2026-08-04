@@ -34,14 +34,31 @@ function normalizeLocale(raw: string | null): Locale {
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
   const locale = normalizeLocale(url.searchParams.get('locale'))
-  const domainId = url.searchParams.get('domain_id')
-
-  if (!domainId) {
-    return json({ error: 'domain_id required', code: 'missing_domain_id' }, 400)
-  }
+  let domainId = url.searchParams.get('domain_id')
 
   try {
     const supabase = getSupabaseAdmin()
+
+    // D5 : le domain_id est facultatif. Les surfaces authentifiées le fournissent
+    // (profil, publication) ; la page publique d'inscription ne connaît pas l'uuid
+    // du domaine → on le résout depuis `x-subdomain` (injecté par proxy.ts sur
+    // toutes les requêtes, y compris /api/*). Aucun uuid à exposer au client.
+    if (!domainId) {
+      const subdomain = req.headers.get('x-subdomain')
+      if (subdomain) {
+        const { data: dom } = await supabase
+          .from('domains')
+          .select('id')
+          .eq('slug', subdomain)
+          .eq('active', true)
+          .maybeSingle()
+        domainId = dom?.id ?? null
+      }
+    }
+
+    if (!domainId) {
+      return json({ error: 'domain_id required', code: 'missing_domain_id' }, 400)
+    }
     const [{ data: brs, error: brsErr }, { data: sps, error: spsErr }, translations] =
       await Promise.all([
         supabase

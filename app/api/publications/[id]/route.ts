@@ -49,6 +49,7 @@ type Body = {
   budget_max?: unknown
   branch_id?: unknown
   speciality_id?: unknown
+  speciality_other?: unknown
   confidential?: unknown
 }
 
@@ -159,6 +160,12 @@ function buildUpdates(body: Body): { ok: true; updates: Record<string, unknown> 
     const r = asUuidOrNull(body.speciality_id)
     if (!r.ok) return { ok: false, error: 'invalid_json' }
     updates.speciality_id = r.value
+  }
+  // D6 : précision libre « Autre » (bornée 100).
+  if ('speciality_other' in body) {
+    const raw = typeof body.speciality_other === 'string' ? body.speciality_other.trim() : ''
+    if (raw.length > 100) return { ok: false, error: 'invalid_json' }
+    updates.speciality_other = raw.length > 0 ? raw : null
   }
   if ('confidential' in body) {
     updates.confidential = body.confidential === true
@@ -324,6 +331,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     description: string
     branch_id: string | null
     speciality_id: string | null
+    speciality_other: string | null
     skills_required: string[] | null
     seniority: string | null
     work_mode: string | null
@@ -344,7 +352,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     .from('publications')
     .select(
       'id, organization_id, type, title, description, branch_id, speciality_id, ' +
-        'skills_required, seniority, work_mode, location, duration, start_date, ' +
+        'speciality_other, skills_required, seniority, work_mode, location, duration, start_date, ' +
         'budget_min, budget_max, confidential, status, verification_score, ' +
         'created_at, updated_at, published_at',
     )
@@ -373,6 +381,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         description: pub.description,
         branch_id: pub.branch_id,
         speciality_id: pub.speciality_id,
+        speciality_other: pub.speciality_other,
         skills_required: pub.skills_required ?? [],
         seniority: pub.seniority,
         work_mode: pub.work_mode,

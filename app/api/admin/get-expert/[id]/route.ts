@@ -39,6 +39,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     .from('profiles')
     .select(
       'id, user_id, domain_id, expert_type, title, summary, seniority, ' +
+        'speciality_other, ' +
         'years_experience, years_total_experience, languages, skills, certifications, ' +
         'location, mobility, tjm_min, tjm_max, salary_min, salary_max, ' +
         'availability_status, availability_date, work_modes, ' +

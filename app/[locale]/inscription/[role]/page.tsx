@@ -18,6 +18,11 @@ type FieldDef = {
   placeholder: string
 }
 
+// D5/D6 : taxonomie structurée (branche → spécialité) + option « Autre ».
+type TaxBranch = { id: string; slug: string; name: string }
+type TaxSpeciality = { id: string; slug: string; name: string; branch_id: string }
+const SPECIALITY_OTHER = '__other__'
+
 export default function InscriptionRolePage() {
   const router = useRouter()
   const params = useParams()
@@ -33,6 +38,43 @@ export default function InscriptionRolePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [cgu, setCgu] = useState(false)
+
+  // D5/D6 : sélection structurée branche → spécialité (remplace le champ libre
+  // « spécialité »), alimentée par /api/taxonomy (domain_id résolu côté serveur
+  // depuis x-subdomain). L'option « Autre » ouvre un champ de précision libre.
+  const [branches, setBranches] = useState<TaxBranch[]>([])
+  const [specialities, setSpecialities] = useState<TaxSpeciality[]>([])
+  const [branchId, setBranchId] = useState('')
+  const [specialityId, setSpecialityId] = useState('')
+  const [specialityOther, setSpecialityOther] = useState('')
+
+  useEffect(() => {
+    let active = true
+    fetch(`/api/taxonomy?locale=${encodeURIComponent(locale)}`)
+      .then(r => (r.ok ? r.json() : { branches: [], specialities: [] }))
+      .then((d: { branches?: TaxBranch[]; specialities?: TaxSpeciality[] }) => {
+        if (!active) return
+        setBranches(d.branches ?? [])
+        setSpecialities(d.specialities ?? [])
+      })
+      .catch(() => {})
+    return () => { active = false }
+  }, [locale])
+
+  const filteredSpecialities = branchId
+    ? specialities.filter(s => s.branch_id === branchId)
+    : []
+
+  function onBranchChange(value: string) {
+    setBranchId(value)
+    setSpecialityId('')
+    setSpecialityOther('')
+  }
+
+  function onSpecialityChange(value: string) {
+    setSpecialityId(value)
+    if (value !== SPECIALITY_OTHER) setSpecialityOther('')
+  }
 
   // Téléphone + OTP obligatoire (D1) — le token HMAC prouve la vérification.
   const [phone, setPhone] = useState('+33')
@@ -80,7 +122,6 @@ export default function InscriptionRolePage() {
         { id: 'firstname', label: t('fields.firstname_label'), type: 'text', placeholder: t('fields.firstname_placeholder') },
         { id: 'lastname', label: t('fields.lastname_label'), type: 'text', placeholder: t('fields.lastname_placeholder') },
         { id: 'email', label: t('roles.expert.email_label'), type: 'email', placeholder: t('roles.expert.email_placeholder') },
-        { id: 'specialty', label: t('roles.expert.specialty_label', { ecosystem: domain.ecosystemName }), type: 'text', placeholder: t('roles.expert.specialty_placeholder') },
         { id: 'password', label: t('fields.password_label'), type: 'password', placeholder: t('fields.password_placeholder') },
       ],
     },
@@ -92,7 +133,6 @@ export default function InscriptionRolePage() {
         { id: 'firstname', label: t('fields.firstname_label'), type: 'text', placeholder: t('fields.firstname_placeholder') },
         { id: 'lastname', label: t('fields.lastname_label'), type: 'text', placeholder: t('fields.lastname_placeholder') },
         { id: 'email', label: t('roles.cdi.email_label'), type: 'email', placeholder: t('roles.cdi.email_placeholder') },
-        { id: 'specialty', label: t('roles.cdi.specialty_label', { ecosystem: domain.ecosystemName }), type: 'text', placeholder: t('roles.cdi.specialty_placeholder') },
         { id: 'password', label: t('fields.password_label'), type: 'password', placeholder: t('fields.password_placeholder') },
       ],
     },
@@ -118,6 +158,20 @@ export default function InscriptionRolePage() {
       setError(t('errors.phone_not_verified'))
       return
     }
+    // D5/D6 : spécialité structurée obligatoire (alimente le matching). « Autre »
+    // impose une précision libre, sinon la saisie devient un trou noir.
+    if (!branchId) {
+      setError(t('errors.branch_required'))
+      return
+    }
+    if (!specialityId) {
+      setError(t('errors.speciality_required'))
+      return
+    }
+    if (specialityId === SPECIALITY_OTHER && !specialityOther.trim()) {
+      setError(t('errors.speciality_other_required'))
+      return
+    }
 
     setLoading(true)
     setError('')
@@ -133,7 +187,10 @@ export default function InscriptionRolePage() {
           lastname: form.lastname || '',
           email: form.email.trim().toLowerCase(),
           password: form.password,
-          specialty: form.specialty || '',
+          // D5/D6 : spécialité structurée + précision libre « Autre ».
+          branch_id: branchId,
+          speciality_id: specialityId === SPECIALITY_OTHER ? '' : specialityId,
+          speciality_other: specialityId === SPECIALITY_OTHER ? specialityOther.trim() : '',
           role, // 'expert' | 'cdi'
           domain_slug: domain.subdomain,
           phone,
@@ -158,6 +215,7 @@ export default function InscriptionRolePage() {
           setError(t('errors.otp_expired'))
         } else if (c === 'invalid_phone') setError(t('errors.invalid_phone'))
         else if (c === 'invalid_password') setError(t('errors.password_too_short'))
+        else if (c === 'invalid_branch' || c === 'invalid_speciality') setError(t('errors.taxonomy_invalid'))
         else setError(t('errors.generic'))
         return
       }
@@ -233,6 +291,75 @@ export default function InscriptionRolePage() {
               />
             </div>
           ))}
+
+          {/* D5/D6 : Branche → Spécialité (cascade) + option « Autre ». Libellés
+              génériques (aucun nom d'écosystème en dur). Couvre expert ET cdi. */}
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+              {t('fields.branch_label')}
+            </label>
+            <select
+              value={branchId}
+              onChange={e => onBranchChange(e.target.value)}
+              style={{
+                width: '100%', padding: '10px 14px',
+                border: '1.5px solid #e2e8f0', borderRadius: 10,
+                fontSize: 14, color: branchId ? '#0f172a' : '#94a3b8',
+                outline: 'none', background: '#fff', cursor: 'pointer',
+              }}
+            >
+              <option value="">{t('fields.branch_placeholder')}</option>
+              {branches.map(b => (
+                <option key={b.id} value={b.id} style={{ color: '#0f172a' }}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+              {t('fields.speciality_label')}
+            </label>
+            <select
+              value={specialityId}
+              onChange={e => onSpecialityChange(e.target.value)}
+              disabled={!branchId}
+              style={{
+                width: '100%', padding: '10px 14px',
+                border: '1.5px solid #e2e8f0', borderRadius: 10,
+                fontSize: 14, color: specialityId ? '#0f172a' : '#94a3b8',
+                outline: 'none', background: branchId ? '#fff' : '#f1f5f9',
+                cursor: branchId ? 'pointer' : 'not-allowed',
+              }}
+            >
+              <option value="">{t('fields.speciality_placeholder')}</option>
+              {filteredSpecialities.map(s => (
+                <option key={s.id} value={s.id} style={{ color: '#0f172a' }}>{s.name}</option>
+              ))}
+              {branchId ? (
+                <option value={SPECIALITY_OTHER} style={{ color: '#0f172a' }}>{t('fields.speciality_other_option')}</option>
+              ) : null}
+            </select>
+          </div>
+
+          {specialityId === SPECIALITY_OTHER && (
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                {t('fields.speciality_other_label')}
+              </label>
+              <input
+                type="text"
+                placeholder={t('fields.speciality_other_placeholder')}
+                value={specialityOther}
+                onChange={e => setSpecialityOther(e.target.value)}
+                maxLength={100}
+                style={{
+                  width: '100%', padding: '10px 14px',
+                  border: '1.5px solid #e2e8f0', borderRadius: 10,
+                  fontSize: 14, color: '#0f172a', outline: 'none',
+                }}
+              />
+            </div>
+          )}
 
           {/* Téléphone + OTP obligatoire (D1) — même bloc que l'org. */}
           <PhoneOtpField

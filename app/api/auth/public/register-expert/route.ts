@@ -56,6 +56,9 @@ type Body = {
   email?: unknown
   password?: unknown
   specialty?: unknown
+  branch_id?: unknown
+  speciality_id?: unknown
+  speciality_other?: unknown
   role?: unknown
   domain_slug?: unknown
   phone?: unknown
@@ -70,6 +73,10 @@ type ValidatedInput = {
   email: string
   password: string
   specialty: string | null
+  // D5/D6 : spécialité structurée + précision libre « Autre ».
+  branch_id: string | null
+  speciality_id: string | null
+  speciality_other: string | null
   role: ExpertRole
   domain_slug: string
   phone: string
@@ -94,6 +101,11 @@ function asString(v: unknown): string | null {
   if (typeof v !== 'string') return null
   const t = v.trim()
   return t.length > 0 ? t : null
+}
+
+function asUuid(v: unknown): string | null {
+  const t = asString(v)
+  return t && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t) ? t : null
 }
 
 function validate(body: Body): { ok: true; input: ValidatedInput } | { ok: false; error: string } {
@@ -124,6 +136,23 @@ function validate(body: Body): { ok: true; input: ValidatedInput } | { ok: false
   const specialty = asString(body.specialty)
   if (specialty && specialty.length > 200) {
     return { ok: false, error: 'invalid_specialty' }
+  }
+  // D5/D6 : spécialité structurée (uuid) + précision « Autre ». Optionnelles au
+  // niveau format ; l'intégrité (appartenance au domaine) est revérifiée en base
+  // avant signUp. « Autre » = speciality_id vide + speciality_other renseigné.
+  const rawBranch = asString(body.branch_id)
+  const branch_id = rawBranch ? asUuid(rawBranch) : null
+  if (rawBranch && !branch_id) {
+    return { ok: false, error: 'invalid_branch' }
+  }
+  const rawSpeciality = asString(body.speciality_id)
+  const speciality_id = rawSpeciality ? asUuid(rawSpeciality) : null
+  if (rawSpeciality && !speciality_id) {
+    return { ok: false, error: 'invalid_speciality' }
+  }
+  const speciality_other = asString(body.speciality_other)
+  if (speciality_other && speciality_other.length > 100) {
+    return { ok: false, error: 'invalid_speciality' }
   }
   // Téléphone : normalisation E.164 STRICTE (D4). La forme canonique est celle
   // sur laquelle le jeton HMAC a été signé et celle indexée par l'unique.
@@ -157,6 +186,9 @@ function validate(body: Body): { ok: true; input: ValidatedInput } | { ok: false
       email: email.toLowerCase(),
       password,
       specialty,
+      branch_id,
+      speciality_id,
+      speciality_other,
       role: roleRaw as ExpertRole,
       domain_slug,
       phone,
@@ -220,9 +252,48 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Phone already used', code: 'phone_already_used' }, 409)
   }
 
+  // ── Domaine cible + intégrité TAXONOMIE (D5/D6) AVANT signUp ──────────────
+  // Le trigger dérive le domaine du slug ; on le résout ici aussi pour vérifier
+  // que la branche/spécialité fournies appartiennent bien à ce domaine et sont
+  // actives — sinon le client (ou un appel forgé) pourrait injecter des ids
+  // d'un autre écosystème. On réutilise domainId pour l'audit plus bas.
+  const { data: domainRow } = await supabaseAdmin
+    .from('domains')
+    .select('id')
+    .eq('slug', input.domain_slug)
+    .eq('active', true)
+    .maybeSingle()
+  const domainId = (domainRow?.id as string | undefined) ?? null
+
+  if (input.branch_id && domainId) {
+    const { data: br } = await supabaseAdmin
+      .from('branches')
+      .select('id')
+      .eq('id', input.branch_id)
+      .eq('domain_id', domainId)
+      .eq('active', true)
+      .maybeSingle()
+    if (!br) {
+      return json({ error: 'Invalid branch', code: 'invalid_branch' }, 400)
+    }
+  }
+  if (input.speciality_id && domainId) {
+    const { data: sp } = await supabaseAdmin
+      .from('specialities')
+      .select('id, branch_id')
+      .eq('id', input.speciality_id)
+      .eq('domain_id', domainId)
+      .eq('active', true)
+      .maybeSingle()
+    if (!sp || (input.branch_id && sp.branch_id !== input.branch_id)) {
+      return json({ error: 'Invalid speciality', code: 'invalid_speciality' }, 400)
+    }
+  }
+
   // ── Création auth.users via helper partagé (P1) ──────────────────────────
   // Le trigger handle_new_user crée public.users + public.profiles (visible=false)
-  // à partir de raw_user_meta_data.role ('expert'|'cdi').
+  // à partir de raw_user_meta_data.role ('expert'|'cdi') et alimente
+  // branch_id / speciality_id / speciality_other (D5/D6).
   const signup = await signUpWithConfirmation({
     email: input.email,
     password: input.password,
@@ -231,6 +302,9 @@ export async function POST(request: NextRequest): Promise<Response> {
       firstname: input.first_name,
       lastname: input.last_name,
       specialty: input.specialty ?? '',
+      branch_id: input.branch_id ?? '',
+      speciality_id: input.speciality_id ?? '',
+      speciality_other: input.speciality_other ?? '',
       role: input.role, // 'expert' | 'cdi' — accepté tel quel par le trigger
       domain_slug: input.domain_slug,
     },
@@ -272,18 +346,11 @@ export async function POST(request: NextRequest): Promise<Response> {
       throw new RegisterExpertError('phone_update_failed', 'Could not set verified phone', 500, phoneUpdErr)
     }
 
-    // ── Domaine cible (pour l'audit/session — le trigger a déjà rattaché) ──
-    const { data: domainRow } = await supabaseAdmin
-      .from('domains')
-      .select('id')
-      .eq('slug', input.domain_slug)
-      .eq('active', true)
-      .maybeSingle()
-
+    // Domaine déjà résolu plus haut (domainId) — réutilisé pour l'audit.
     await logAudit({
       supabaseAdmin,
       user_id,
-      domain_id: (domainRow?.id as string | undefined) ?? null,
+      domain_id: domainId,
       action: 'expert_registered',
       entity_type: 'user',
       entity_id: user_id,

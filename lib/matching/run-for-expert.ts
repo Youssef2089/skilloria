@@ -94,6 +94,7 @@ type PublicationRow = {
   description: string
   branch_id: string | null
   speciality_id: string | null
+  speciality_other: string | null
   skills_required: string[] | null
   seniority: string | null
   work_mode: string | null
@@ -139,6 +140,7 @@ function profileToCandidate(p: ProfileFullRow): ProfileCandidate {
     years_total_experience: p.years_total_experience,
     branch_name: branch?.name ?? null,
     speciality_name: speciality?.name ?? null,
+    speciality_other: (p as { speciality_other?: string | null }).speciality_other ?? null,
     skills: p.skills ?? [],
     languages: p.languages ?? [],
     certifications_count: certs,
@@ -183,6 +185,7 @@ function pubToForMatching(
     description: row.description,
     branch_name: branch?.name ?? null,
     speciality_name: speciality?.name ?? null,
+    speciality_other: row.speciality_other ?? null,
     skills_required: row.skills_required ?? [],
     seniority: row.seniority,
     work_mode: row.work_mode,
@@ -234,6 +237,7 @@ export async function runMatchingForExpert(args: {
     .from('profiles')
     .select(
       'id, user_id, domain_id, expert_type, title, summary, seniority, ' +
+        'speciality_other, ' +
         'years_experience, years_total_experience, skills, languages, certifications, ' +
         'tjm_min, tjm_max, work_modes, mobility, availability_status, availability_date, ' +
         'cdi_status, cdi_notice_period, cdi_salary_min, cdi_salary_max, ' +
@@ -285,7 +289,7 @@ export async function runMatchingForExpert(args: {
   let pubQuery = supabaseAdmin
     .from('publications')
     .select(
-      'id, domain_id, type, title, description, branch_id, speciality_id, ' +
+      'id, domain_id, type, title, description, branch_id, speciality_id, speciality_other, ' +
         'skills_required, seniority, work_mode, location, duration, ' +
         'budget_min, budget_max, status, ' +
         'branches(name), specialities(name)',

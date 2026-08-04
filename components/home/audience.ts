@@ -6,10 +6,11 @@
  * dériver de l'autre.
  *
  * L'ordre d'affichage des onglets et l'onglet actif au chargement sont deux
- * décisions distinctes : « Je suis un expert » reste en première position, mais
- * c'est le point de vue entreprise qui est sélectionné à l'arrivée.
+ * décisions distinctes : « Je cherche un expert » (company) est affiché en
+ * première position, et c'est aussi ce point de vue entreprise qui est
+ * sélectionné à l'arrivée (cf. DEFAULT_AUDIENCE).
  */
-export const AUDIENCES = ['expert', 'company'] as const
+export const AUDIENCES = ['company', 'expert'] as const
 
 export type HomeAudience = (typeof AUDIENCES)[number]
 

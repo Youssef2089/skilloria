@@ -93,6 +93,8 @@ function describeExpert(c: ProfileCandidate, isFreelance: boolean, poolHasCross:
   if (c.years_total_experience != null) lines.push(`- Années d'expérience (total) : ${c.years_total_experience}`)
   if (c.branch_name) lines.push(`- Branche : ${sanitize(c.branch_name, 100)}`)
   if (c.speciality_name) lines.push(`- Spécialité : ${sanitize(c.speciality_name, 100)}`)
+  // D6 : spécialité hors référentiel (« Autre ») — au même titre que la spécialité.
+  else if (c.speciality_other) lines.push(`- Spécialité (précisée) : ${sanitize(c.speciality_other, 100)}`)
   if (c.skills.length > 0) lines.push(`- Compétences : ${sanitizeList(c.skills, 30, 80)}`)
   if (c.languages.length > 0) lines.push(`- Langues : ${sanitizeList(c.languages, 10, 30)}`)
   if (c.certifications_count > 0) lines.push(`- Certifications : ${c.certifications_count}`)
@@ -149,6 +151,8 @@ function describePublication(p: PublicationForMatching): string {
   lines.push(`- Titre : ${sanitize(p.title, 250)}`)
   if (p.branch_name) lines.push(`- Branche : ${sanitize(p.branch_name, 100)}`)
   if (p.speciality_name) lines.push(`- Spécialité : ${sanitize(p.speciality_name, 100)}`)
+  // D6 : spécialité hors référentiel (« Autre »).
+  else if (p.speciality_other) lines.push(`- Spécialité (précisée) : ${sanitize(p.speciality_other, 100)}`)
   if (p.skills_required.length > 0) lines.push(`- Compétences requises : ${sanitizeList(p.skills_required, 40, 80)}`)
   if (p.seniority) lines.push(`- Séniorité visée : ${sanitize(p.seniority, 50)}`)
   if (p.work_mode) lines.push(`- Mode de travail : ${sanitize(p.work_mode, 50)}`)

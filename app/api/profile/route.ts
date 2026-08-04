@@ -54,6 +54,7 @@ type PatchBody = Partial<{
   certifications: Array<{ name: string; issuer?: string | null; year?: number | null }> | null
   branch_slug: string | null
   speciality_slug: string | null
+  speciality_other: string | null
   languages: string[] | null
   location: string | null
   work_modes: Array<'remote' | 'onsite' | 'hybrid'>
@@ -204,6 +205,16 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       if (!sp) return json({ error: 'Unknown speciality', code: 'bad_speciality' }, 400)
       patch.speciality_id = sp.id
     }
+  }
+  // D6 : précision libre « Autre » (bornée). Renseignée quand speciality_id est
+  // nul, effacée sinon — le formulaire envoie null quand une spécialité listée
+  // est choisie. On ne l'accepte que comme string bornée à 100 caractères.
+  if ('speciality_other' in body) {
+    const raw = typeof body.speciality_other === 'string' ? body.speciality_other.trim() : ''
+    if (raw.length > 100) {
+      return json({ error: 'speciality_other too long', code: 'bad_speciality_other' }, 400)
+    }
+    patch.speciality_other = raw.length > 0 ? raw : null
   }
 
   // Validation pour publication

@@ -413,7 +413,8 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
     await ctx.fadeTransition()
     if (ctx.cancelled()) return
     ctx.activateStep(1)
-    ctx.setBar(25, 4200)
+    // D2 : démo expert ralentie modérément (~×1,3) pour un confort de lecture — TEMPO reste 1.0, démo entreprise inchangée.
+    ctx.setBar(25, 5500)
 
     const profile = ctx.make(
       `<div style="display:flex;align-items:center;gap:11px;margin-bottom:11px">
@@ -436,14 +437,14 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
     profile.classList.add('skh-in-up')
     panel.appendChild(profile)
 
-    await ctx.sleep(1150)
+    await ctx.sleep(1500)
     if (ctx.cancelled()) return
     profile.querySelector<HTMLElement>('.skh-badge')!.style.opacity = '1'
     const state = profile.querySelector<HTMLElement>('.skh-state')!
     state.style.background = theme.successSoft
     state.style.borderColor = `${theme.success}33`
     state.innerHTML = `${verifiedMark(15)}<span style="font-size:12px;font-weight:600;color:${theme.success}">${esc(labels.profile.verifiedBadge)}</span>`
-    await ctx.sleep(280)
+    await ctx.sleep(360)
 
     panel.appendChild(
       ctx.make(
@@ -451,13 +452,13 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
         'display:flex;align-items:center;gap:7px;margin-top:11px',
       ),
     ).classList.add('skh-in')
-    await ctx.sleep(420)
+    await ctx.sleep(550)
 
     /* 2 — une mission est détectée */
     await ctx.fadeTransition()
     if (ctx.cancelled()) return
     ctx.activateStep(2)
-    ctx.setBar(50, 4600)
+    ctx.setBar(50, 6000)
 
     panel.appendChild(
       ctx.make(
@@ -497,18 +498,18 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
     )
     panel.appendChild(apply)
     // Carte la plus dense de la démo (score, TJM, lieu, explication du match).
-    await ctx.sleep(760)
+    await ctx.sleep(990)
 
     /* 3 — l'expert candidate, son nom reste masqué */
     if (ctx.cancelled()) return
     ctx.activateStep(3)
-    ctx.setBar(75, 3600)
+    ctx.setBar(75, 4700)
     await ctx.moveTo(apply, 420)
     await ctx.clickEl(apply, 190)
     if (ctx.cancelled()) return
     apply.textContent = labels.apply.sendingLabel
     apply.style.opacity = '.6'
-    await ctx.sleep(620)
+    await ctx.sleep(800)
 
     await ctx.fadeTransition()
     if (ctx.cancelled()) return
@@ -524,7 +525,7 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
     sent.classList.add('skh-pop')
     panel.appendChild(sent)
 
-    await ctx.sleep(320)
+    await ctx.sleep(420)
     const anonymity = ctx.make(
       `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="flex-shrink:0;margin-top:1px"><rect x="4" y="10" width="16" height="10" rx="2.5" stroke="${theme.warn}" stroke-width="1.9"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10" stroke="${theme.warn}" stroke-width="1.9" stroke-linecap="round"/></svg>
        <span style="font-size:11px;line-height:1.55;color:${theme.warn}">${esc(labels.apply.anonymityNote)}</span>`,
@@ -532,13 +533,13 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
     )
     anonymity.classList.add('skh-in-up')
     panel.appendChild(anonymity)
-    await ctx.sleep(520)
+    await ctx.sleep(680)
 
     /* 4 — l'échange s'ouvre */
     await ctx.fadeTransition()
     if (ctx.cancelled()) return
     ctx.activateStep(4)
-    ctx.setBar(100, 4600)
+    ctx.setBar(100, 6000)
 
     panel.appendChild(
       ctx.make(
@@ -569,14 +570,14 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
     panel.appendChild(conversation)
 
     const thread = conversation.querySelector<HTMLElement>('.skh-thread')!
-    await ctx.sleep(340)
+    await ctx.sleep(440)
 
     const typing = ctx.make(
       `<div style="display:flex;align-items:center;gap:3px;padding:7px 11px;background:${theme.white};border:1px solid ${theme.borderSoft};border-radius:11px 11px 11px 2px"><span class="skh-dot"></span><span class="skh-dot" style="animation-delay:.15s"></span><span class="skh-dot" style="animation-delay:.3s"></span></div>`,
       'display:flex;justify-content:flex-start;margin-bottom:7px',
     )
     thread.appendChild(typing)
-    await ctx.sleep(820)
+    await ctx.sleep(1070)
     typing.remove()
 
     const incoming = ctx.make(
@@ -585,7 +586,7 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
     )
     incoming.classList.add('skh-in-up')
     thread.appendChild(incoming)
-    await ctx.sleep(340)
+    await ctx.sleep(440)
 
     thread.appendChild(
       ctx.make(
@@ -593,6 +594,6 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
         'display:flex;justify-content:center;text-align:center;padding:0 8px 4px',
       ),
     ).classList.add('skh-in')
-    await ctx.sleep(360)
+    await ctx.sleep(470)
   }
 }

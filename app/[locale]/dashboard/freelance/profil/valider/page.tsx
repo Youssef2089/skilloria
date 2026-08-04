@@ -261,6 +261,8 @@ export default function ValiderProfilPage() {
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [resetting, setResetting] = useState(false)
 
+  const SPECIALITY_OTHER = '__other__'
+
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [branches, setBranches] = useState<Branch[]>([])
   const [specialities, setSpecialities] = useState<Speciality[]>([])
@@ -271,6 +273,8 @@ export default function ValiderProfilPage() {
   const [yearsExperience, setYearsExperience] = useState('')
   const [branchId, setBranchId] = useState('')
   const [specialityId, setSpecialityId] = useState('')
+  // D6 : option « Autre » → speciality_id vide + précision libre.
+  const [specialityOther, setSpecialityOther] = useState('')
   const [skills, setSkills] = useState<string[]>([])
   const [skillDraft, setSkillDraft] = useState('')
   const [certifications, setCertifications] = useState<Certification[]>([])
@@ -404,7 +408,7 @@ export default function ValiderProfilPage() {
       const { data: profile, error: profErr } = await supabase
         .from('profiles')
         .select(
-          'id, title, summary, seniority, years_experience, skills, certifications, branch_id, speciality_id, languages, location, work_modes, tjm_min, tjm_max, availability_date, linkedin_url, cv_parsing_status, ai_consent_at, visible, phone, address_line, postal_code, city, country, birth_year, photo_url, years_total_experience, availability_status',
+          'id, title, summary, seniority, years_experience, skills, certifications, branch_id, speciality_id, speciality_other, languages, location, work_modes, tjm_min, tjm_max, availability_date, linkedin_url, cv_parsing_status, ai_consent_at, visible, phone, address_line, postal_code, city, country, birth_year, photo_url, years_total_experience, availability_status',
         )
         .eq('user_id', session.user.id)
         .single()
@@ -426,7 +430,18 @@ export default function ValiderProfilPage() {
         profile.years_experience != null ? String(profile.years_experience) : '',
       )
       setBranchId(profile.branch_id ?? '')
-      setSpecialityId(profile.speciality_id ?? '')
+      // D6 : si pas de speciality_id mais une précision libre, on repositionne
+      // la sélection sur « Autre » et on réhydrate le champ texte.
+      if (profile.speciality_id) {
+        setSpecialityId(profile.speciality_id)
+        setSpecialityOther('')
+      } else if (profile.speciality_other) {
+        setSpecialityId(SPECIALITY_OTHER)
+        setSpecialityOther(profile.speciality_other)
+      } else {
+        setSpecialityId('')
+        setSpecialityOther('')
+      }
       setSkills(Array.isArray(profile.skills) ? (profile.skills as string[]) : [])
       setCertifications(
         Array.isArray(profile.certifications)
@@ -575,10 +590,16 @@ export default function ValiderProfilPage() {
 
   const onBranchChange = (id: string) => {
     setBranchId(id)
-    if (specialityId) {
+    // « Autre » n'est rattachée à aucune branche : on la conserve au changement.
+    if (specialityId && specialityId !== SPECIALITY_OTHER) {
       const sp = specialitiesById.get(specialityId)
       if (!sp || sp.branch_id !== id) setSpecialityId('')
     }
+  }
+
+  const onSpecialityChange = (value: string) => {
+    setSpecialityId(value)
+    if (value !== SPECIALITY_OTHER) setSpecialityOther('')
   }
 
   const addSkill = () => {
@@ -686,6 +707,8 @@ export default function ValiderProfilPage() {
     if (skills.length < 3) missing.push('skills')
     if (!branchId) missing.push('branch_id')
     if (!specialityId) missing.push('speciality_id')
+    // D6 : « Autre » sans précision libre = spécialité incomplète.
+    else if (specialityId === SPECIALITY_OTHER && !specialityOther.trim()) missing.push('speciality_id')
     if (workModes.length === 0) missing.push('work_modes')
     if (experiences.filter(e => e.role.trim()).length < 1) missing.push('experiences')
     if (languagesStructured.filter(l => l.language.trim()).length < 1)
@@ -760,9 +783,13 @@ export default function ValiderProfilPage() {
           year: c.year ?? null,
         })),
       branch_slug: branchId ? branchesById.get(branchId)?.slug ?? null : null,
-      speciality_slug: specialityId
-        ? specialitiesById.get(specialityId)?.slug ?? null
-        : null,
+      speciality_slug:
+        specialityId && specialityId !== SPECIALITY_OTHER
+          ? specialitiesById.get(specialityId)?.slug ?? null
+          : null,
+      // D6 : précision libre transmise quand « Autre », sinon effacée.
+      speciality_other:
+        specialityId === SPECIALITY_OTHER ? specialityOther.trim() : null,
       languages: cleanedLanguages.map(l => l.language),
       location: location.trim() || null,
       work_modes: workModes,
@@ -1576,7 +1603,7 @@ export default function ValiderProfilPage() {
                   ref={fieldRefs.speciality_id}
                   className={focusClass('speciality_id')}
                   value={specialityId}
-                  onChange={e => setSpecialityId(e.target.value)}
+                  onChange={e => onSpecialityChange(e.target.value)}
                   disabled={!branchId}
                   style={{ ...inputStyle('speciality_id'), opacity: branchId ? 1 : 0.55 }}
                 >
@@ -1586,8 +1613,30 @@ export default function ValiderProfilPage() {
                       {s.name}
                     </option>
                   ))}
+                  {/* D6 : spécialité hors référentiel */}
+                  {branchId ? (
+                    <option value={SPECIALITY_OTHER}>
+                      {tProfile('sections.expertise.speciality_other_option')}
+                    </option>
+                  ) : null}
                 </select>
                 <FieldError field="speciality_id" />
+
+                {specialityId === SPECIALITY_OTHER && (
+                  <div style={{ marginTop: 10 }}>
+                    <label style={labelStyle}>
+                      {tProfile('sections.expertise.speciality_other_label')}
+                    </label>
+                    <input
+                      type="text"
+                      value={specialityOther}
+                      onChange={e => setSpecialityOther(e.target.value)}
+                      maxLength={100}
+                      placeholder={tProfile('sections.expertise.speciality_other_placeholder')}
+                      style={inputStyle('speciality_id')}
+                    />
+                  </div>
+                )}
               </div>
 
               <div

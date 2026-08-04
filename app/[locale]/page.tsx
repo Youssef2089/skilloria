@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { getDomainConfig } from '@/lib/get-domain-config'
+import { loadHomeEcosystem } from '@/lib/home-ecosystem'
 import HomeView from '@/components/home/HomeView'
 
 /**
@@ -32,6 +33,16 @@ export async function generateMetadata({
   }
 }
 
-export default function Home() {
-  return <HomeView />
+export default async function Home({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
+  // D4 : la section écosystème dérive de la taxonomie réelle du domaine servi
+  // (branches + spécialités), chargée côté serveur et passée à l'arbre client.
+  const domain = await getDomainConfig(locale)
+  const ecosystem = await loadHomeEcosystem(domain.id, locale)
+
+  return <HomeView ecosystem={ecosystem} />
 }

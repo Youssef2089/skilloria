@@ -354,7 +354,9 @@
     "menu": {
       "fonctionnalites": "Funktionen",
       "etapes": "So funktioniert es",
-      "domaines": "Bereiche"
+      "domaines": "Bereiche",
+      "qui": "Über uns",
+      "contact": "Kontakt"
     },
     "cta_signup": "Konto erstellen",
     "cta_signin": "Anmelden"
@@ -634,7 +636,10 @@
         "skills_min_hint": "(mind. 3 zum Veröffentlichen)",
         "skills_placeholder": "z.B. Ihre Kernkompetenzen",
         "skills_add_button": "Hinzufügen",
-        "skill_remove_aria": "{name} entfernen"
+        "skill_remove_aria": "{name} entfernen",
+        "speciality_other_option": "Sonstige (angeben)",
+        "speciality_other_label": "Geben Sie Ihr Fachgebiet an",
+        "speciality_other_placeholder": "z. B. FinOps, Green IT…"
       },
       "certifications": {
         "title": "Zertifizierungen",
@@ -1043,7 +1048,14 @@
       "password_label": "Passwort",
       "password_placeholder": "Mindestens 8 Zeichen",
       "phone_label": "Telefon",
-      "phone_placeholder": "+49 151 12345678"
+      "phone_placeholder": "+49 151 12345678",
+      "branch_label": "Branche",
+      "branch_placeholder": "Branche auswählen",
+      "speciality_label": "Hauptfachgebiet",
+      "speciality_placeholder": "Fachgebiet auswählen",
+      "speciality_other_option": "Sonstige (angeben)",
+      "speciality_other_label": "Geben Sie Ihr Fachgebiet an",
+      "speciality_other_placeholder": "z. B. FinOps, Green IT…"
     },
     "change_profile": "← Profil ändern",
     "cgu": "Ich akzeptiere die <terms>Nutzungsbedingungen</terms> und die <privacy>Datenschutzerklärung</privacy>",
@@ -1062,7 +1074,11 @@
       "invalid_phone": "Ungültige Telefonnummer (erwartetes Format: +49XXXXXXXXX).",
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
       "phone_already_used": "Diese Nummer wird bereits von einem anderen Konto verwendet.",
-      "otp_expired": "Ihre Verifizierung ist abgelaufen. Bitte fordern Sie eine neue SMS an und geben Sie den Code erneut ein."
+      "otp_expired": "Ihre Verifizierung ist abgelaufen. Bitte fordern Sie eine neue SMS an und geben Sie den Code erneut ein.",
+      "branch_required": "Bitte wählen Sie eine Branche aus.",
+      "speciality_required": "Bitte wählen Sie ein Fachgebiet aus.",
+      "speciality_other_required": "Bitte geben Sie Ihr Fachgebiet an.",
+      "taxonomy_invalid": "Ungültige Branche oder ungültiges Fachgebiet. Bitte versuchen Sie es erneut."
     },
     "otp": {
       "send_sms_button": "SMS senden",
@@ -1425,7 +1441,10 @@
         "skills_min_hint": "(mind. 3 zum Veröffentlichen)",
         "skills_placeholder": "z. B. Ihre Kernkompetenzen",
         "skills_add_button": "Hinzufügen",
-        "skill_remove_aria": "{name} entfernen"
+        "skill_remove_aria": "{name} entfernen",
+        "speciality_other_option": "Sonstige (angeben)",
+        "speciality_other_label": "Geben Sie Ihr Fachgebiet an",
+        "speciality_other_placeholder": "z. B. FinOps, Green IT…"
       },
       "status_availability": {
         "title": "Status & Verfügbarkeit",
@@ -1884,7 +1903,10 @@
       "confirm_publish_rule_legal": "Gesetzliche Bedingungen eingehalten (Vergütung, Status)",
       "confirm_publish_warning": "Wird ein blockierendes Kriterium erkannt, geht die Anzeige in manuelle Prüfung statt sofort zu veröffentlichen.",
       "confirm_publish_yes": "Jetzt veröffentlichen",
-      "confirm_publish_no": "Abbrechen"
+      "confirm_publish_no": "Abbrechen",
+      "field_speciality_other_option": "Sonstige (angeben)",
+      "field_speciality_other_label": "Geben Sie das Fachgebiet an",
+      "field_speciality_other_placeholder": "z. B. FinOps, Green IT…"
     },
     "gate": {
       "published_title": "Anzeige live ✓",
@@ -2245,7 +2267,9 @@
       "nav_experts": "Experten",
       "nav_experts_soon": "demnächst",
       "section_commerce": "Commerce",
-      "nav_packages": "Pakete"
+      "nav_packages": "Pakete",
+      "section_taxonomy": "Taxonomie",
+      "nav_taxonomie": "Branchen & Fachgebiete"
     },
     "packages": {
       "page_title": "Commerce-Katalog",
@@ -2473,7 +2497,8 @@
       "error_load": "Experten konnten nicht geladen werden.",
       "error_generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
       "error_already_processed": "Dieses Profil wurde bereits bearbeitet.",
-      "error_reason_required": "Ein Grund ist zur Ablehnung erforderlich."
+      "error_reason_required": "Ein Grund ist zur Ablehnung erforderlich.",
+      "speciality_other_prefix": "{value} (nicht im Referenzkatalog)"
     }
   },
   "expert_verification": {
@@ -2882,5 +2907,124 @@
       "closing": "Wird geschlossen…",
       "error": "Das Schließen ist fehlgeschlagen. Bitte versuchen Sie es erneut."
     }
+  },
+  "qui": {
+    "meta_title": "Über uns — {name}",
+    "meta_description": "Entdecken Sie {name}, den Marktplatz, der Organisationen mit zertifizierten Expertinnen und Experten des {ecosystem}-Ökosystems verbindet.",
+    "title": "Über uns",
+    "intro": "{name} ist ein Marktplatz, der Organisationen mit zertifizierten Expertinnen und Experten des {ecosystem}-Ökosystems verbindet. Unsere Rolle beschränkt sich darauf, den Kontakt zu erleichtern: Wir sind weder an der Verhandlung noch an der vertraglichen Beziehung zwischen den Parteien beteiligt.",
+    "distinct_title": "Was uns auszeichnet",
+    "distinct_commission_title": "Keine Provision",
+    "distinct_commission_body": "Der Zugang zur Plattform ist für Expertinnen und Experten kostenlos: Auf Einsätze wird keine Provision erhoben.",
+    "distinct_verified_title": "Geprüfte Profile",
+    "distinct_verified_body": "Profile und Organisationen werden vor der Kontaktaufnahme überprüft.",
+    "distinct_identity_title": "Geschützte Identität",
+    "distinct_identity_body": "Name und Foto der Expertin oder des Experten werden der Organisation erst nach der Auswahl offengelegt. Lediglich E-Mail-Adresse und Telefonnummer werden niemals über die Plattform weitergegeben.",
+    "distinct_matching_title": "Nachvollziehbares Matching",
+    "distinct_matching_body": "Die Zusammenführung wird von KI anhand klarer Kriterien berechnet — Branche, Fachgebiet, Kompetenzen — und bleibt transparent.",
+    "how_title": "So funktioniert es",
+    "how_step1_title": "Einen Bedarf veröffentlichen",
+    "how_step1_body": "Die Organisation beschreibt den gesuchten Einsatz oder die gesuchte Stelle.",
+    "how_step2_title": "In Kontakt gebracht werden",
+    "how_step2_body": "{name} schlägt die Expertinnen und Experten vor, deren Profil zum Bedarf passt.",
+    "how_step3_title": "Sich austauschen",
+    "how_step3_body": "Die Parteien tauschen sich direkt aus, um über eine Zusammenarbeit zu entscheiden.",
+    "editor_title": "Der Herausgeber",
+    "editor_body": "**WinOps** — Vereinfachte Aktiengesellschaft mit einem einzigen Gesellschafter (SASU)\n\n- Stammkapital: 1 000,00 €\n- Firmensitz: 8 rue Henri Régnault, 92400 Courbevoie, France\n- RCS Nanterre 933 768 087\n- Umsatzsteuer-Identifikationsnummer: FR48933768087\n- E-Mail-Adresse: contact@skilloria.io\n- Verantwortlicher für die Veröffentlichung: Herr Youssef CHERIF, Präsident von WinOps\n\nHosting: Vercel Inc. und Supabase Inc.\n\nWeitere Einzelheiten finden Sie im [Impressum](/mentions-legales).",
+    "language_notice": "Dieses Dokument ist auf Französisch verfügbar. Allein die französische Fassung ist maßgeblich."
+  },
+  "contact": {
+    "meta_title": "Kontakt — {name}",
+    "meta_description": "Kontaktieren Sie das {name}-Team. Wir melden uns so schnell wie möglich bei Ihnen.",
+    "title": "Kontaktieren Sie uns",
+    "intro": "Eine Frage, ein Anliegen oder ein Projekt? Schreiben Sie uns über das untenstehende Formular.",
+    "language_notice": "Diese Seite ist auf Französisch verfügbar. Allein die französische Fassung ist maßgeblich.",
+    "field_firstname": "Vorname",
+    "field_lastname": "Nachname",
+    "field_company": "Unternehmen",
+    "field_email": "E-Mail",
+    "field_phone": "Telefon",
+    "field_message": "Nachricht",
+    "optional": "(optional)",
+    "consent_label": "Ich bin damit einverstanden, dass meine Daten zur Beantwortung meiner Anfrage verarbeitet werden, gemäß der <link>Datenschutzerklärung</link>.",
+    "err_firstname_required": "Bitte geben Sie Ihren Vornamen ein.",
+    "err_lastname_required": "Bitte geben Sie Ihren Nachnamen ein.",
+    "err_email_required": "Bitte geben Sie Ihre E-Mail-Adresse ein.",
+    "err_email_invalid": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+    "err_message_required": "Bitte geben Sie Ihre Nachricht ein.",
+    "err_consent_required": "Sie müssen der Verarbeitung Ihrer Daten zustimmen, um fortzufahren.",
+    "submit": "Nachricht senden",
+    "submit_sending": "Wird gesendet…",
+    "success_title": "Nachricht gesendet",
+    "success_body": "Vielen Dank, Ihre Nachricht wurde übermittelt. Wir melden uns so schnell wie möglich bei Ihnen.",
+    "success_again": "Weitere Nachricht senden",
+    "error_validation": "Einige Felder sind ungültig. Bitte überprüfen Sie Ihre Eingabe.",
+    "error_rate_limited": "Sie haben zu viele Nachrichten gesendet. Bitte versuchen Sie es in einigen Augenblicken erneut.",
+    "error_generic": "Das Senden ist fehlgeschlagen. Bitte versuchen Sie es in einigen Augenblicken erneut."
+  },
+  "admin_taxonomie": {
+    "page_title": "Taxonomie",
+    "subtitle": "Branchen und Fachgebiete nach Ökosystem.",
+    "action_new_branch": "Neue Branche",
+    "empty_title": "Keine Branche",
+    "empty_hint": "Erstellen Sie eine erste Branche, um den Referenzkatalog zu strukturieren.",
+    "col_branch": "Branche",
+    "col_specialities": "Fachgebiete",
+    "col_status": "Status",
+    "col_usage": "Nutzung",
+    "col_reorder": "Neu anordnen",
+    "action_edit": "Bearbeiten",
+    "speciality_count": "{count, plural, =0 {kein Fachgebiet} one {# Fachgebiet} other {# Fachgebiete}}",
+    "status_active": "Aktiv",
+    "status_inactive": "Inaktiv",
+    "usage_summary": "{profiles} Profil(e) · {publications} Veröffentlichung(en)",
+    "reorder_up": "Nach oben",
+    "reorder_down": "Nach unten",
+    "other_title": "Fachgebiete außerhalb des Referenzkatalogs",
+    "other_hint": "Freitextwerte, die von Expertinnen und Experten sowie Organisationen über „Sonstige“ eingegeben wurden, nach Häufigkeit sortiert: Die häufigsten sollten vorrangig in den Referenzkatalog aufgenommen werden.",
+    "other_empty": "Derzeit keine Freitexteingabe.",
+    "other_count": "{count, plural, one {# Vorkommen} other {# Vorkommen}}",
+    "not_found_title": "Branche nicht gefunden",
+    "new_title": "Neue Branche",
+    "section_branch": "Branche",
+    "ecosystem_placeholder": "Ökosystem auswählen…",
+    "ecosystem_locked_hint": "Das Ökosystem wird bei der Erstellung festgelegt und kann anschließend nicht mehr geändert werden.",
+    "field_name_fr": "Name (Französisch)",
+    "field_name_fr_placeholder": "z. B. Data & KI",
+    "field_slug": "Kennung (Slug)",
+    "field_slug_placeholder": "wird automatisch generiert, wenn leer",
+    "field_name_en": "Name (Englisch)",
+    "field_name_es": "Name (Spanisch)",
+    "field_name_de": "Name (Deutsch)",
+    "lang_fallback_note": "Eine nicht ausgefüllte Sprache greift auf Französisch zurück.",
+    "field_active": "Aktiv",
+    "deactivate_branch_warning": "Diese Branche wird von {profiles} Profil(en) und {publications} Veröffentlichung(en) verwendet. Durch die Deaktivierung wird sie aus den Auswahllisten entfernt.",
+    "saved": "Änderungen gespeichert.",
+    "confirm_save": "Speichern bestätigen?",
+    "confirm_yes": "Bestätigen",
+    "confirm_cancel": "Abbrechen",
+    "action_create_branch": "Branche erstellen",
+    "save": "Speichern",
+    "section_specialities": "Fachgebiete",
+    "action_new_speciality": "Fachgebiet erstellen",
+    "spec_empty_title": "Kein Fachgebiet",
+    "spec_empty_hint": "Fügen Sie dieser Branche ein Fachgebiet hinzu.",
+    "action_deactivate": "Deaktivieren",
+    "action_activate": "Aktivieren",
+    "action_delete": "Löschen",
+    "delete_disabled_hint": "Löschen ist nicht möglich, solange Elemente damit verknüpft sind.",
+    "deactivate_spec_warning": "Dieses Fachgebiet wird von {profiles} Profil(en) und {publications} Veröffentlichung(en) verwendet. Deaktivierung bestätigen?",
+    "confirm_delete_spec": "Dieses Fachgebiet endgültig löschen?",
+    "section_danger": "Löschen",
+    "delete_branch_explain": "Diese Branche wird nirgends referenziert: Sie kann endgültig gelöscht werden.",
+    "delete_branch_blocked": "Löschen nicht möglich: Entfernen Sie zunächst die Fachgebiete und stellen Sie sicher, dass weder ein Profil noch eine Veröffentlichung damit verknüpft ist.",
+    "confirm_delete_branch": "Diese Branche endgültig löschen?",
+    "action_delete_branch": "Branche löschen",
+    "err_invalid_name": "Ungültiger Name.",
+    "err_invalid_slug": "Ungültige Kennung.",
+    "err_slug_taken": "Diese Kennung wird in diesem Ökosystem bereits verwendet.",
+    "err_invalid_domain": "Wählen Sie ein Ökosystem aus.",
+    "err_branch_in_use": "Branche in Verwendung: {profiles} Profil(e), {publications} Veröffentlichung(en), {specialities} Fachgebiet(e).",
+    "err_spec_in_use": "Fachgebiet in Verwendung: {profiles} Profil(e), {publications} Veröffentlichung(en)."
   }
 }

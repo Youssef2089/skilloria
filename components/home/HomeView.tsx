@@ -13,6 +13,7 @@ import HomeHero from './HomeHero'
 import HomeFeatures from './HomeFeatures'
 import HomeSteps from './HomeSteps'
 import HomeEcosystem from './HomeEcosystem'
+import type { EcosystemBranch } from '@/lib/home-ecosystem'
 
 /**
  * Page d'accueil publique.
@@ -24,7 +25,7 @@ import HomeEcosystem from './HomeEcosystem'
  * démonstration animée. Le panneau porte `key={audience}` : basculer démonte
  * réellement la démo précédente (nettoyage des timers) avant de monter l'autre.
  */
-export default function HomeView() {
+export default function HomeView({ ecosystem }: { ecosystem: EcosystemBranch[] }) {
   const domain = useDomain()
   const t = useTranslations('homepage')
   const [audience, setAudience] = useState<HomeAudience>(DEFAULT_AUDIENCE)
@@ -92,7 +93,7 @@ export default function HomeView() {
           <HomeSteps audience={audience} />
         </div>
 
-        <HomeEcosystem />
+        <HomeEcosystem branches={ecosystem} />
       </main>
 
       <Footer />

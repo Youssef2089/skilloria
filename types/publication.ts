@@ -33,6 +33,7 @@ export type PublicationDraft = {
   description: string
   branch_id: string | null
   speciality_id: string | null
+  speciality_other: string | null
   skills_required: string[]
   seniority: string | null
   work_mode: string | null

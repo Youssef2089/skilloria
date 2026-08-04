@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useRouter } from '@/i18n/navigation'
+import { useRouter, Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { theme } from '@/components/home/theme'
 
@@ -9,14 +9,18 @@ import { theme } from '@/components/home/theme'
  * Navigation de la vitrine.
  * Rendue exclusivement par <HomeView>, qui injecte les classes `skh-*`.
  *
- * Les anciens menus déroulants (Entreprise, Freelance, CDI, Tarifs) n'ouvraient
- * rien : c'étaient quatre liens morts. Ils sont remplacés par des ancres vers les
- * sections réellement présentes sur la page.
+ * D3 : les anciennes ancres de section (Fonctionnalités, Comment ça marche,
+ * Domaines) pointaient vers des sections de la home. Elles sont remplacées par
+ * deux VRAIES pages publiques — « Qui sommes-nous » et « Contact » — via le
+ * <Link> i18n (préfixe automatique de la locale).
  *
  * Le logo conserve `domain.primaryColor` : c'est la marque du domaine, elle ne
  * suit pas l'accent de la page.
  */
-const SECTION_LINKS = ['fonctionnalites', 'etapes', 'domaines'] as const
+const PAGE_LINKS = [
+  { key: 'qui', href: '/qui-sommes-nous' },
+  { key: 'contact', href: '/contact' },
+] as const
 
 export default function Navbar() {
   const router = useRouter()
@@ -52,10 +56,10 @@ export default function Navbar() {
       </button>
 
       <div className="skh-nav-links">
-        {SECTION_LINKS.map(section => (
-          <a key={section} className="skh-nav-link" href={`#${section}`}>
-            {t(`menu.${section}`)}
-          </a>
+        {PAGE_LINKS.map(({ key, href }) => (
+          <Link key={key} className="skh-nav-link" href={href}>
+            {t(`menu.${key}`)}
+          </Link>
         ))}
       </div>
 

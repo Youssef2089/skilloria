@@ -33,6 +33,15 @@ const ADMIN_NAV_ICONS: Record<string, React.ReactNode> = {
       <path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12" />
     </svg>
   ),
+  // Taxonomie (branches / spécialités) — arborescence à puces.
+  taxonomy: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="6" cy="5" r="2" />
+      <circle cx="18" cy="12" r="2" />
+      <circle cx="18" cy="19" r="2" />
+      <path d="M6 7v9a2 2 0 0 0 2 2h8M8 12h8" />
+    </svg>
+  ),
 }
 
 /**

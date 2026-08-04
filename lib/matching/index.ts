@@ -52,6 +52,7 @@ type PublicationRow = {
   description: string
   branch_id: string | null
   speciality_id: string | null
+  speciality_other: string | null
   skills_required: string[] | null
   seniority: string | null
   work_mode: string | null
@@ -72,7 +73,7 @@ async function loadPublication(
   const { data, error } = await supabaseAdmin
     .from('publications')
     .select(
-      'id, domain_id, type, title, description, branch_id, speciality_id, ' +
+      'id, domain_id, type, title, description, branch_id, speciality_id, speciality_other, ' +
         'skills_required, seniority, work_mode, location, duration, ' +
         'budget_min, budget_max, status, created_by, ' +
         'branches(name), specialities(name)',
@@ -103,6 +104,7 @@ async function loadPublication(
       description: row.description,
       branch_name: branch?.name ?? null,
       speciality_name: speciality?.name ?? null,
+      speciality_other: row.speciality_other ?? null,
       skills_required: row.skills_required ?? [],
       seniority: row.seniority,
       work_mode: row.work_mode,

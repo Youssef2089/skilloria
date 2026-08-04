@@ -48,6 +48,8 @@ type FormState = {
   description: string
   branch_id: string
   speciality_id: string
+  // D6 : « Autre » → speciality_id = SPECIALITY_OTHER (sentinel) + précision libre.
+  speciality_other: string
   skills_required: string[]
   skillInput: string
   seniority: SeniorityCode | ''
@@ -62,6 +64,9 @@ type FormState = {
 
 type Branch = { id: string; slug: string; name: string }
 type Speciality = { id: string; slug: string; branch_id: string; name: string }
+
+// D6 : sentinel « Autre » (spécialité hors référentiel).
+const SPECIALITY_OTHER = '__other__'
 
 type TaxonomyResponse = {
   locale: string
@@ -94,7 +99,9 @@ function initialFromDraft(d: PublicationDraft): FormState {
     title: d.title,
     description: d.description,
     branch_id: d.branch_id ?? '',
-    speciality_id: d.speciality_id ?? '',
+    // D6 : pas de speciality_id mais une précision libre → sélection sur « Autre ».
+    speciality_id: d.speciality_id ?? (d.speciality_other ? SPECIALITY_OTHER : ''),
+    speciality_other: d.speciality_other ?? '',
     skills_required: d.skills_required ?? [],
     skillInput: '',
     seniority: (SENIORITY_CODES as readonly string[]).includes(d.seniority ?? '')
@@ -118,6 +125,7 @@ const EMPTY_STATE: FormState = {
   description: '',
   branch_id: '',
   speciality_id: '',
+  speciality_other: '',
   skills_required: [],
   skillInput: '',
   seniority: '',
@@ -198,6 +206,8 @@ export default function PublicationForm(props: Props) {
   // Reset spécialité si on change de branche et que la spec actuelle n'est plus valide
   useEffect(() => {
     if (!form.speciality_id) return
+    // « Autre » n'est rattachée à aucune branche : on la conserve.
+    if (form.speciality_id === SPECIALITY_OTHER) return
     if (!form.branch_id) {
       setForm((p) => ({ ...p, speciality_id: '' }))
       return
@@ -232,6 +242,10 @@ export default function PublicationForm(props: Props) {
     if (branchHasSpecs && !state.speciality_id) {
       errs.speciality_id = t('form.required_marker')
     }
+    // D6 : « Autre » impose une précision libre.
+    if (state.speciality_id === SPECIALITY_OTHER && !state.speciality_other.trim()) {
+      errs.speciality_other = t('form.required_marker')
+    }
     const bmin = parseBudget(state.budget_min)
     const bmax = parseBudget(state.budget_max)
     if (state.budget_min !== '' && bmin === null) errs.budget_min = t('errors.invalid_budget')
@@ -252,7 +266,13 @@ export default function PublicationForm(props: Props) {
       title: state.title.trim(),
       description: state.description.trim(),
       branch_id: state.branch_id || null,
-      speciality_id: state.speciality_id || null,
+      speciality_id:
+        state.speciality_id && state.speciality_id !== SPECIALITY_OTHER
+          ? state.speciality_id
+          : null,
+      // D6 : précision libre transmise quand « Autre », sinon effacée.
+      speciality_other:
+        state.speciality_id === SPECIALITY_OTHER ? state.speciality_other.trim() : null,
       skills_required: state.skills_required,
       seniority: state.seniority || null,
       work_mode: state.work_mode || null,
@@ -640,9 +660,12 @@ export default function PublicationForm(props: Props) {
               <select
                 id="sk-spec"
                 value={form.speciality_id}
-                onChange={(e) => setField('speciality_id', e.target.value)}
+                onChange={(e) => {
+                  setField('speciality_id', e.target.value)
+                  if (e.target.value !== SPECIALITY_OTHER) setField('speciality_other', '')
+                }}
                 style={{ ...inputStyle, ...(fieldErrors.speciality_id ? { border: errorInputBorder } : null) }}
-                disabled={!form.branch_id || filteredSpecialities.length === 0}
+                disabled={!form.branch_id}
               >
                 <option value="">
                   {!form.branch_id
@@ -654,8 +677,28 @@ export default function PublicationForm(props: Props) {
                 {filteredSpecialities.map((s) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
+                {/* D6 : spécialité hors référentiel */}
+                {form.branch_id ? (
+                  <option value={SPECIALITY_OTHER}>{t('form.field_speciality_other_option')}</option>
+                ) : null}
               </select>
               {fieldErrors.speciality_id && <div style={fieldErrorStyle}>{fieldErrors.speciality_id}</div>}
+
+              {form.speciality_id === SPECIALITY_OTHER && (
+                <div style={{ marginTop: 10 }}>
+                  <label htmlFor="sk-spec-other" style={labelStyle}>{t('form.field_speciality_other_label')} *</label>
+                  <input
+                    id="sk-spec-other"
+                    type="text"
+                    value={form.speciality_other}
+                    onChange={(e) => setField('speciality_other', e.target.value)}
+                    maxLength={100}
+                    placeholder={t('form.field_speciality_other_placeholder')}
+                    style={{ ...inputStyle, ...(fieldErrors.speciality_other ? { border: errorInputBorder } : null) }}
+                  />
+                  {fieldErrors.speciality_other && <div style={fieldErrorStyle}>{fieldErrors.speciality_other}</div>}
+                </div>
+              )}
             </div>
           </div>
 

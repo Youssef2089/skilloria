@@ -40,6 +40,8 @@ export type ProfileCandidate = {
   years_total_experience: number | null
   branch_name: string | null
   speciality_name: string | null
+  // D6 : spécialité hors référentiel saisie via « Autre » (nourrit le prompt IA).
+  speciality_other: string | null
   skills: string[]
   languages: string[]
   certifications_count: number
@@ -81,6 +83,8 @@ export type PublicationForMatching = {
   description: string
   branch_name: string | null
   speciality_name: string | null
+  // D6 : spécialité hors référentiel saisie via « Autre » (nourrit le prompt IA).
+  speciality_other: string | null
   skills_required: string[]
   seniority: string | null
   work_mode: string | null

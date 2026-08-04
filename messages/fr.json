@@ -354,7 +354,9 @@
     "menu": {
       "fonctionnalites": "Fonctionnalités",
       "etapes": "Comment ça marche",
-      "domaines": "Domaines"
+      "domaines": "Domaines",
+      "qui": "Qui sommes-nous",
+      "contact": "Contact"
     },
     "cta_signup": "Créer mon compte",
     "cta_signin": "Me connecter"
@@ -634,7 +636,10 @@
         "skills_min_hint": "(min. 3 pour publier)",
         "skills_placeholder": "Ex : vos compétences clés",
         "skills_add_button": "Ajouter",
-        "skill_remove_aria": "Retirer {name}"
+        "skill_remove_aria": "Retirer {name}",
+        "speciality_other_option": "Autre (préciser)",
+        "speciality_other_label": "Précisez votre spécialité",
+        "speciality_other_placeholder": "Ex. FinOps, Green IT…"
       },
       "certifications": {
         "title": "Certifications",
@@ -1043,7 +1048,14 @@
       "password_label": "Mot de passe",
       "password_placeholder": "Minimum 8 caractères",
       "phone_label": "Téléphone",
-      "phone_placeholder": "+33 6 12 34 56 78"
+      "phone_placeholder": "+33 6 12 34 56 78",
+      "branch_label": "Branche",
+      "branch_placeholder": "Sélectionnez une branche",
+      "speciality_label": "Spécialité principale",
+      "speciality_placeholder": "Sélectionnez une spécialité",
+      "speciality_other_option": "Autre (préciser)",
+      "speciality_other_label": "Précisez votre spécialité",
+      "speciality_other_placeholder": "Ex. FinOps, Green IT…"
     },
     "change_profile": "← Changer de profil",
     "cgu": "J'accepte les <terms>conditions d'utilisation</terms> et la <privacy>politique de confidentialité</privacy>",
@@ -1062,7 +1074,11 @@
       "invalid_phone": "Numéro de téléphone invalide (format attendu : +33XXXXXXXXX).",
       "generic": "Une erreur est survenue. Veuillez réessayer.",
       "phone_already_used": "Ce numéro est déjà utilisé par un autre compte.",
-      "otp_expired": "Votre vérification a expiré. Veuillez renvoyer un SMS et re-saisir le code."
+      "otp_expired": "Votre vérification a expiré. Veuillez renvoyer un SMS et re-saisir le code.",
+      "branch_required": "Veuillez sélectionner une branche.",
+      "speciality_required": "Veuillez sélectionner une spécialité.",
+      "speciality_other_required": "Veuillez préciser votre spécialité.",
+      "taxonomy_invalid": "Branche ou spécialité invalide. Veuillez réessayer."
     },
     "otp": {
       "send_sms_button": "Envoyer SMS",
@@ -1425,7 +1441,10 @@
         "skills_min_hint": "(min. 3 pour publier)",
         "skills_placeholder": "Ex : vos compétences clés",
         "skills_add_button": "Ajouter",
-        "skill_remove_aria": "Retirer {name}"
+        "skill_remove_aria": "Retirer {name}",
+        "speciality_other_option": "Autre (préciser)",
+        "speciality_other_label": "Précisez votre spécialité",
+        "speciality_other_placeholder": "Ex. FinOps, Green IT…"
       },
       "status_availability": {
         "title": "Statut & disponibilité",
@@ -1884,7 +1903,10 @@
       "confirm_publish_rule_legal": "Conditions légales respectées (rémunération, statut)",
       "confirm_publish_warning": "Si un critère bloquant est détecté, l'annonce passera en revue manuelle au lieu d'être publiée immédiatement.",
       "confirm_publish_yes": "Publier maintenant",
-      "confirm_publish_no": "Annuler"
+      "confirm_publish_no": "Annuler",
+      "field_speciality_other_option": "Autre (préciser)",
+      "field_speciality_other_label": "Précisez la spécialité",
+      "field_speciality_other_placeholder": "Ex. FinOps, Green IT…"
     },
     "gate": {
       "published_title": "Annonce en ligne ✓",
@@ -2245,7 +2267,9 @@
       "nav_experts": "Experts",
       "nav_experts_soon": "bientôt",
       "section_commerce": "Commerce",
-      "nav_packages": "Packages"
+      "nav_packages": "Packages",
+      "section_taxonomy": "Taxonomie",
+      "nav_taxonomie": "Branches & spécialités"
     },
     "packages": {
       "page_title": "Catalogue commerce",
@@ -2473,7 +2497,8 @@
       "error_load": "Impossible de charger les experts.",
       "error_generic": "Une erreur est survenue. Réessayez.",
       "error_already_processed": "Ce profil a déjà été traité.",
-      "error_reason_required": "Le motif est obligatoire pour refuser."
+      "error_reason_required": "Le motif est obligatoire pour refuser.",
+      "speciality_other_prefix": "{value} (hors référentiel)"
     }
   },
   "expert_verification": {
@@ -2882,5 +2907,124 @@
       "closing": "Clôture…",
       "error": "La clôture a échoué. Veuillez réessayer."
     }
+  },
+  "qui": {
+    "meta_title": "Qui sommes-nous — {name}",
+    "meta_description": "Découvrez {name}, la marketplace qui met en relation les organisations avec des experts certifiés de l'écosystème {ecosystem}.",
+    "title": "Qui sommes-nous",
+    "intro": "{name} est une marketplace qui met en relation les organisations avec des experts certifiés de l'écosystème {ecosystem}. Notre rôle se limite à faciliter la rencontre : nous n'intervenons ni dans la négociation, ni dans la relation contractuelle entre les parties.",
+    "distinct_title": "Ce qui nous distingue",
+    "distinct_commission_title": "Zéro commission",
+    "distinct_commission_body": "L'accès à la plateforme est gratuit pour les experts : aucune commission n'est prélevée sur les missions.",
+    "distinct_verified_title": "Profils vérifiés",
+    "distinct_verified_body": "Les profils et les organisations font l'objet d'une vérification avant leur mise en relation.",
+    "distinct_identity_title": "Identité protégée",
+    "distinct_identity_body": "Le nom et la photo de l'expert ne sont dévoilés à l'organisation qu'après sélection. Seuls l'email et le téléphone ne sont jamais transmis par la plateforme.",
+    "distinct_matching_title": "Matching expliqué",
+    "distinct_matching_body": "La mise en relation est calculée par IA sur des critères clairs — branche, spécialité, compétences — et reste transparente.",
+    "how_title": "Comment ça marche",
+    "how_step1_title": "Publier un besoin",
+    "how_step1_body": "L'organisation décrit la mission ou le poste recherché.",
+    "how_step2_title": "Être mis en relation",
+    "how_step2_body": "{name} propose les experts dont le profil correspond au besoin.",
+    "how_step3_title": "Échanger",
+    "how_step3_body": "Les parties échangent directement pour décider de collaborer.",
+    "editor_title": "L'éditeur",
+    "editor_body": "**WinOps** — Société par actions simplifiée à associé unique (SASU)\n\n- Capital social : 1 000,00 €\n- Siège social : 8 rue Henri Régnault, 92400 Courbevoie, France\n- RCS Nanterre 933 768 087\n- Numéro de TVA intracommunautaire : FR48933768087\n- Adresse électronique : contact@skilloria.io\n- Directeur de la publication : Monsieur Youssef CHERIF, Président de WinOps\n\nHébergement : Vercel Inc. et Supabase Inc.\n\nPour plus de détails, consultez les [mentions légales](/mentions-legales).",
+    "language_notice": "Ce document est disponible en français. La version française fait seule foi."
+  },
+  "contact": {
+    "meta_title": "Contact — {name}",
+    "meta_description": "Contactez l'équipe {name}. Nous vous répondrons dans les meilleurs délais.",
+    "title": "Nous contacter",
+    "intro": "Une question, une demande ou un projet ? Écrivez-nous via le formulaire ci-dessous.",
+    "language_notice": "Cette page est disponible en français. La version française fait seule foi.",
+    "field_firstname": "Prénom",
+    "field_lastname": "Nom",
+    "field_company": "Société",
+    "field_email": "Email",
+    "field_phone": "Téléphone",
+    "field_message": "Message",
+    "optional": "(facultatif)",
+    "consent_label": "J'accepte que mes données soient traitées pour répondre à ma demande, conformément à la <link>politique de confidentialité</link>.",
+    "err_firstname_required": "Veuillez saisir votre prénom.",
+    "err_lastname_required": "Veuillez saisir votre nom.",
+    "err_email_required": "Veuillez saisir votre email.",
+    "err_email_invalid": "Veuillez saisir un email valide.",
+    "err_message_required": "Veuillez saisir votre message.",
+    "err_consent_required": "Vous devez accepter le traitement de vos données pour continuer.",
+    "submit": "Envoyer le message",
+    "submit_sending": "Envoi…",
+    "success_title": "Message envoyé",
+    "success_body": "Merci, votre message a bien été transmis. Nous vous répondrons dans les meilleurs délais.",
+    "success_again": "Envoyer un autre message",
+    "error_validation": "Certains champs sont invalides. Veuillez vérifier votre saisie.",
+    "error_rate_limited": "Vous avez envoyé trop de messages. Veuillez réessayer dans quelques instants.",
+    "error_generic": "L'envoi a échoué. Veuillez réessayer dans quelques instants."
+  },
+  "admin_taxonomie": {
+    "page_title": "Taxonomie",
+    "subtitle": "Branches et spécialités par écosystème.",
+    "action_new_branch": "Nouvelle branche",
+    "empty_title": "Aucune branche",
+    "empty_hint": "Créez une première branche pour structurer le référentiel.",
+    "col_branch": "Branche",
+    "col_specialities": "Spécialités",
+    "col_status": "Statut",
+    "col_usage": "Usage",
+    "col_reorder": "Réordonner",
+    "action_edit": "Modifier",
+    "speciality_count": "{count, plural, =0 {aucune spécialité} one {# spécialité} other {# spécialités}}",
+    "status_active": "Actif",
+    "status_inactive": "Inactif",
+    "usage_summary": "{profiles} profil(s) · {publications} publication(s)",
+    "reorder_up": "Monter",
+    "reorder_down": "Descendre",
+    "other_title": "Spécialités hors référentiel",
+    "other_hint": "Valeurs libres saisies via « Autre » par les experts et les organisations, triées par fréquence : les plus fréquentes sont à intégrer en priorité au référentiel.",
+    "other_empty": "Aucune saisie libre pour le moment.",
+    "other_count": "{count, plural, one {# occurrence} other {# occurrences}}",
+    "not_found_title": "Branche introuvable",
+    "new_title": "Nouvelle branche",
+    "section_branch": "Branche",
+    "ecosystem_placeholder": "Choisir un écosystème…",
+    "ecosystem_locked_hint": "L'écosystème est défini à la création et n'est plus modifiable ensuite.",
+    "field_name_fr": "Nom (français)",
+    "field_name_fr_placeholder": "Ex. Data & IA",
+    "field_slug": "Identifiant (slug)",
+    "field_slug_placeholder": "généré automatiquement si vide",
+    "field_name_en": "Nom (anglais)",
+    "field_name_es": "Nom (espagnol)",
+    "field_name_de": "Nom (allemand)",
+    "lang_fallback_note": "Une langue non renseignée retombe sur le français.",
+    "field_active": "Actif",
+    "deactivate_branch_warning": "Cette branche est utilisée par {profiles} profil(s) et {publications} publication(s). La désactiver la retirera des sélections.",
+    "saved": "Modifications enregistrées.",
+    "confirm_save": "Confirmer l'enregistrement ?",
+    "confirm_yes": "Confirmer",
+    "confirm_cancel": "Annuler",
+    "action_create_branch": "Créer la branche",
+    "save": "Enregistrer",
+    "section_specialities": "Spécialités",
+    "action_new_speciality": "Créer une spécialité",
+    "spec_empty_title": "Aucune spécialité",
+    "spec_empty_hint": "Ajoutez une spécialité à cette branche.",
+    "action_deactivate": "Désactiver",
+    "action_activate": "Activer",
+    "action_delete": "Supprimer",
+    "delete_disabled_hint": "Suppression impossible tant que des éléments y sont rattachés.",
+    "deactivate_spec_warning": "Cette spécialité est utilisée par {profiles} profil(s) et {publications} publication(s). Confirmer la désactivation ?",
+    "confirm_delete_spec": "Supprimer définitivement cette spécialité ?",
+    "section_danger": "Suppression",
+    "delete_branch_explain": "Cette branche n'est référencée nulle part : elle peut être supprimée définitivement.",
+    "delete_branch_blocked": "Suppression impossible : retirez d'abord les spécialités et assurez-vous qu'aucun profil ni publication n'y est rattaché.",
+    "confirm_delete_branch": "Supprimer définitivement cette branche ?",
+    "action_delete_branch": "Supprimer la branche",
+    "err_invalid_name": "Nom invalide.",
+    "err_invalid_slug": "Identifiant invalide.",
+    "err_slug_taken": "Cet identifiant est déjà utilisé dans cet écosystème.",
+    "err_invalid_domain": "Sélectionnez un écosystème.",
+    "err_branch_in_use": "Branche utilisée : {profiles} profil(s), {publications} publication(s), {specialities} spécialité(s).",
+    "err_spec_in_use": "Spécialité utilisée : {profiles} profil(s), {publications} publication(s)."
   }
 }

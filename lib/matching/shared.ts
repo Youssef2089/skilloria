@@ -140,6 +140,7 @@ export async function loadEligibleProfiles(
 ): Promise<ProfileCandidate[]> {
   const SELECT =
     'id, user_id, expert_type, title, summary, seniority, years_experience, ' +
+    'speciality_other, ' +
     'years_total_experience, skills, languages, certifications, ' +
     'tjm_min, tjm_max, work_modes, mobility, ' +
     'availability_status, availability_date, ' +
@@ -233,6 +234,7 @@ export async function loadEligibleProfiles(
       years_total_experience: r.years_total_experience,
       branch_name: branch?.name ?? null,
       speciality_name: speciality?.name ?? null,
+      speciality_other: (r as { speciality_other?: string | null }).speciality_other ?? null,
       skills: r.skills ?? [],
       languages: r.languages ?? [],
       certifications_count: certs,

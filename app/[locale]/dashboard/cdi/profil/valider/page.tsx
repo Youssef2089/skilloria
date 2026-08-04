@@ -255,6 +255,7 @@ export default function CdiValiderProfilPage() {
   const router = useRouter()
   const domain = useDomain()
   const secureFetch = useSecureFetch()
+  const SPECIALITY_OTHER = '__other__'
   const tProfile = useTranslations('cdi_profile_validation')
   // tView : on réutilise les options déjà i18n-isées dans le namespace
   // cdi_profile_view (notice_period_options, geo_mobility_options, etc.).
@@ -331,6 +332,8 @@ export default function CdiValiderProfilPage() {
   const [yearsExperience, setYearsExperience] = useState('')
   const [branchId, setBranchId] = useState('')
   const [specialityId, setSpecialityId] = useState('')
+  // D6 : option « Autre » → speciality_id vide + précision libre.
+  const [specialityOther, setSpecialityOther] = useState('')
   const [skills, setSkills] = useState<string[]>([])
   const [skillDraft, setSkillDraft] = useState('')
   const [certifications, setCertifications] = useState<Certification[]>([])
@@ -507,7 +510,7 @@ export default function CdiValiderProfilPage() {
         .select(
           [
             'id', 'title', 'summary', 'seniority', 'years_experience',
-            'skills', 'certifications', 'branch_id', 'speciality_id',
+            'skills', 'certifications', 'branch_id', 'speciality_id', 'speciality_other',
             'languages', 'location', 'linkedin_url', 'cv_parsing_status', 'ai_consent_at',
             'visible', 'phone', 'address_line', 'postal_code', 'city',
             'country', 'birth_year', 'photo_url', 'work_modes',
@@ -541,7 +544,17 @@ export default function CdiValiderProfilPage() {
         p.years_experience != null ? String(p.years_experience) : '',
       )
       setBranchId(p.branch_id ?? '')
-      setSpecialityId(p.speciality_id ?? '')
+      // D6 : « Autre » → réhydrate la sélection + le champ libre.
+      if (p.speciality_id) {
+        setSpecialityId(p.speciality_id)
+        setSpecialityOther('')
+      } else if (p.speciality_other) {
+        setSpecialityId(SPECIALITY_OTHER)
+        setSpecialityOther(p.speciality_other as string)
+      } else {
+        setSpecialityId('')
+        setSpecialityOther('')
+      }
       setSkills(Array.isArray(p.skills) ? (p.skills as string[]) : [])
       setCertifications(
         Array.isArray(p.certifications)
@@ -698,10 +711,16 @@ export default function CdiValiderProfilPage() {
 
   const onBranchChange = (id: string) => {
     setBranchId(id)
-    if (specialityId) {
+    // « Autre » n'est rattachée à aucune branche : on la conserve au changement.
+    if (specialityId && specialityId !== SPECIALITY_OTHER) {
       const sp = specialitiesById.get(specialityId)
       if (!sp || sp.branch_id !== id) setSpecialityId('')
     }
+  }
+
+  const onSpecialityChange = (value: string) => {
+    setSpecialityId(value)
+    if (value !== SPECIALITY_OTHER) setSpecialityOther('')
   }
 
   const addSkill = () => {
@@ -810,6 +829,8 @@ export default function CdiValiderProfilPage() {
     if (skills.length < 3) missing.push('skills')
     if (!branchId) missing.push('branch_id')
     if (!specialityId) missing.push('speciality_id')
+    // D6 : « Autre » sans précision libre = spécialité incomplète.
+    else if (specialityId === SPECIALITY_OTHER && !specialityOther.trim()) missing.push('speciality_id')
     if (!cdiStatus) missing.push('cdi_status')
     if (experiences.filter(e => e.role.trim()).length < 1) missing.push('experiences')
     if (languagesStructured.filter(l => l.language.trim()).length < 1)
@@ -892,9 +913,13 @@ export default function CdiValiderProfilPage() {
           year: c.year ?? null,
         })),
       branch_slug: branchId ? branchesById.get(branchId)?.slug ?? null : null,
-      speciality_slug: specialityId
-        ? specialitiesById.get(specialityId)?.slug ?? null
-        : null,
+      speciality_slug:
+        specialityId && specialityId !== SPECIALITY_OTHER
+          ? specialitiesById.get(specialityId)?.slug ?? null
+          : null,
+      // D6 : précision libre transmise quand « Autre », sinon effacée.
+      speciality_other:
+        specialityId === SPECIALITY_OTHER ? specialityOther.trim() : null,
       languages: cleanedLanguages.map(l => l.language),
       location: location.trim() || null,
       linkedin_url: linkedinUrl.trim() || null,
@@ -1864,7 +1889,7 @@ export default function CdiValiderProfilPage() {
                   ref={fieldRefs.speciality_id as RefObject<HTMLSelectElement>}
                   className={focusClass('speciality_id')}
                   value={specialityId}
-                  onChange={e => setSpecialityId(e.target.value)}
+                  onChange={e => onSpecialityChange(e.target.value)}
                   disabled={!branchId}
                   style={{ ...inputStyle('speciality_id'), opacity: branchId ? 1 : 0.55 }}
                 >
@@ -1876,8 +1901,30 @@ export default function CdiValiderProfilPage() {
                       {s.name}
                     </option>
                   ))}
+                  {/* D6 : spécialité hors référentiel */}
+                  {branchId ? (
+                    <option value={SPECIALITY_OTHER}>
+                      {tProfile('sections.expertise.speciality_other_option')}
+                    </option>
+                  ) : null}
                 </select>
                 <FieldError field="speciality_id" />
+
+                {specialityId === SPECIALITY_OTHER && (
+                  <div style={{ marginTop: 10 }}>
+                    <label style={labelStyle}>
+                      {tProfile('sections.expertise.speciality_other_label')}
+                    </label>
+                    <input
+                      type="text"
+                      value={specialityOther}
+                      onChange={e => setSpecialityOther(e.target.value)}
+                      maxLength={100}
+                      placeholder={tProfile('sections.expertise.speciality_other_placeholder')}
+                      style={inputStyle('speciality_id')}
+                    />
+                  </div>
+                )}
               </div>
 
               <div

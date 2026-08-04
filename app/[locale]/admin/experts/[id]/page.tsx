@@ -51,6 +51,8 @@ type ExpertFull = {
   review_reason: string | null
   branches: { id: string; name: string } | null
   specialities: { id: string; name: string } | null
+  /** D6 : spécialité hors référentiel (« Autre »). */
+  speciality_other: string | null
   /** D1 : écosystème (domaine) de l'expert, pour l'admin plateforme. */
   ecosystem: string | null
   users: { id: string; email: string; first_name: string | null; last_name: string | null; phone: string | null; locale: string | null; civility: string | null; job_title: string | null; linkedin_url: string | null } | null
@@ -260,7 +262,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
         <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.6, marginBottom: 10, whiteSpace: 'pre-wrap' }}>{e.summary ?? '—'}</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, fontSize: 13 }}>
           <div><div style={{ color: '#94a3b8', fontSize: 11 }}>{t('branch')}</div><div>{(pickRel(e.branches) as { name: string } | null)?.name ?? '—'}</div></div>
-          <div><div style={{ color: '#94a3b8', fontSize: 11 }}>{t('speciality')}</div><div>{(pickRel(e.specialities) as { name: string } | null)?.name ?? '—'}</div></div>
+          <div><div style={{ color: '#94a3b8', fontSize: 11 }}>{t('speciality')}</div><div>{(pickRel(e.specialities) as { name: string } | null)?.name ?? (e.speciality_other ? t('speciality_other_prefix', { value: e.speciality_other }) : '—')}</div></div>
         </div>
         {e.skills && e.skills.length > 0 && (
           <div style={{ marginTop: 12 }}>
