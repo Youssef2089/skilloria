@@ -98,8 +98,19 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
         padding: '16px 14px',
       }}
     >
-      {/* Brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px 16px' }}>
+      {/* Brand — cliquable vers l'accueil (convention universelle). Le nom vient
+          de la config de domaine ; l'aria-label annonce la destination. */}
+      <Link
+        href="/"
+        aria-label={t('brand_home_aria', { name: domain.name })}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px 16px',
+          textDecoration: 'none', color: 'inherit', borderRadius: 8,
+          transition: 'opacity .15s',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7' }}
+        onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+      >
         <span
           style={{
             width: 30, height: 30, borderRadius: 8,
@@ -112,7 +123,7 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
         <b style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-0.2px', color: 'var(--sk-text)' }}>
           {domain.name}
         </b>
-      </div>
+      </Link>
 
       {/* User block */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 8px', borderBottom: '1px solid var(--sk-border-soft)', marginBottom: 12 }}>

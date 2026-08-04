@@ -28,6 +28,7 @@
   },
   "shell": {
     "user_fallback": "Usuario",
+    "brand_home_aria": "Inicio de {name}",
     "user_subtitle": {
       "freelance": "Freelance · {ecosystem}",
       "cdi": "Indefinido · {ecosystem}",
@@ -1605,6 +1606,7 @@
     "greeting_named": "Hola {firstName}",
     "publish_annonce": "Publicar un anuncio",
     "publish_disabled_tooltip": "Disponible una vez verificada tu empresa",
+    "publish_role_tooltip": "Tu rol no permite publicar. Se requiere un rol de editor o administrador.",
     "verification_pending": "Verificación pendiente",
     "my_annonces": "Mis anuncios",
     "search_placeholder": "Buscar por título…",
@@ -2087,6 +2089,7 @@
       },
       "error_invalid_transition": "Acción no permitida en el estado actual.",
       "error_insufficient_role": "Tu rol no permite esta acción. Se requiere un rol de editor o administrador.",
+      "read_only_role": "Solo lectura — tu rol no permite actuar sobre las candidaturas.",
       "error_not_found": "Esta candidatura ya no existe.",
       "error_reason_too_long": "El motivo supera los 2000 caracteres.",
       "error_generic": "Se produjo un error. Inténtalo de nuevo."
@@ -2812,9 +2815,9 @@
     "published_title": "Su necesidad está publicada",
     "published_body": "Estamos buscando los expertos más relevantes. Se le revelará el mejor perfil y podrá conversar con él.",
     "published_cta": "Ver mis necesidades",
-    "wall_title": "Límite alcanzado",
-    "wall_body": "Ya ha publicado una necesidad este mes. Pronto habrá publicaciones adicionales disponibles.",
-    "wall_contact": "¿Lo necesita antes? Contáctenos.",
+    "wall_title": "Límite de tu plan alcanzado",
+    "wall_body": "Has alcanzado el límite de publicaciones de tu plan. Cierra una publicación en curso o inténtalo más tarde.",
+    "wall_contact": "¿Necesitas más? Contáctanos.",
     "form": {
       "title_label": "Título de la necesidad",
       "title_placeholder": "Ej. Refuerzo de equipo para una misión de 3 meses",
@@ -2844,8 +2847,8 @@
       "retry": "Reintentar",
       "empty_title": "Ninguna necesidad publicada",
       "empty_body": "Publique una necesidad de subcontratación: nuestra IA le propondrá expertos disponibles de su ámbito.",
-      "quota_reached_title": "Ya tiene una necesidad activa",
-      "quota_reached_body": "Cierre su necesidad actual para poder publicar una nueva.",
+      "quota_reached_title": "Límite de tu plan alcanzado",
+      "quota_reached_body": "Tu plan permite {max, plural, =1 {una publicación activa} other {# publicaciones activas}}. Cierra una publicación en curso para publicar otra.",
       "candidatures_count": "{count, plural, =0 {Ninguna candidatura} =1 {1 candidatura} other {# candidaturas}}",
       "new_badge": "Nuevo",
       "published_at": "Publicado el {date}",

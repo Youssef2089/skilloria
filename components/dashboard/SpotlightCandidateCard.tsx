@@ -6,6 +6,7 @@ import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
+import { useOrgRole } from '@/lib/use-org-role'
 import type { CandidatureData } from '@/components/dashboard/CandidatureCard'
 
 /**
@@ -84,6 +85,9 @@ export default function SpotlightCandidateCard({
 }: Props) {
   const t = useTranslations('candidatures.card')
   const tPub = useTranslations('publications')
+  // C7 : masquage préventif des actions pour un viewer (lecture seule). La
+  // garde SERVEUR (requireOrgRole) reste la garantie ; ceci n'est qu'un confort.
+  const { canManage, loading: roleLoading } = useOrgRole()
   // Bugfix : freelance availability namespace = `profile_view.availability_status`
   // (l'ancien OrgCandidateGridCard pointait à tort sur `cdi_profile_view.*` qui
   // n'existe pas → clés brutes affichées).
@@ -377,10 +381,17 @@ export default function SpotlightCandidateCard({
 
       {/* FOOTER actions */}
       <div style={{ padding: '12px 20px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* C7 : viewer = lecture seule. On masque toute action d'écriture et on
+            affiche une note explicative. La garde serveur reste la garantie. */}
+        {!roleLoading && !canManage && (canAct || (isUnlocked && !isClosed)) && (
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 9, padding: '9px 11px', fontSize: 12, color: '#64748b', textAlign: 'center' }}>
+            {t('read_only_role')}
+          </div>
+        )}
         {/* MUR DE CONVERSION (sous-traitance V0) — visible mais INACTIF.
             Construit pour signaler la valeur du dévoilement, sans parcours de
             paiement (pas de Stripe en V0). Remplace le bloc unlock/refuser. */}
-        {canAct && conversionMode === 'wall' && (
+        {canAct && conversionMode === 'wall' && canManage && (
           <div style={{ background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: 12, padding: '14px 14px 12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <span aria-hidden style={{ fontSize: 18 }}>🔒</span>
@@ -399,7 +410,7 @@ export default function SpotlightCandidateCard({
           </div>
         )}
 
-        {canAct && conversionMode === 'unlock' && !confirmReject && (
+        {canAct && conversionMode === 'unlock' && canManage && !confirmReject && (
           <>
             <button type="button" onClick={handleUnlock} disabled={disabled} style={{ width: '100%', padding: '12px 16px', background: domain.primaryColor, color: '#fff', border: 'none', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: busy === 'unlock' ? 0.6 : 1 }}>
               {busy === 'unlock' ? t('button_unlocking') : `🔓 ${t('button_unlock')}`}
@@ -417,7 +428,7 @@ export default function SpotlightCandidateCard({
           </>
         )}
 
-        {canAct && conversionMode === 'unlock' && confirmReject && (
+        {canAct && conversionMode === 'unlock' && canManage && confirmReject && (
           <div style={{ background: '#FEF2F2', border: '1.5px solid #FECACA', borderRadius: 10, padding: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#991B1B', marginBottom: 8 }}>{t('reject_confirm_title')}</div>
             <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t('reject_reason_placeholder')} maxLength={2000} rows={3} style={{ width: '100%', padding: '8px 10px', fontSize: 12, border: '1px solid #FECACA', borderRadius: 8, outline: 'none', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.5, marginBottom: 10 }} />
@@ -439,12 +450,12 @@ export default function SpotlightCandidateCard({
                 💬 {t('conversation_button')}
               </Link>
             )}
-            {canSelect && !confirmSelect && (
+            {canSelect && canManage && !confirmSelect && (
               <button type="button" onClick={() => setConfirmSelect(true)} disabled={disabled} style={{ width: '100%', padding: '9px 14px', background: '#fff', color: '#92400E', border: '1.5px solid #F59E0B', borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                 🏆 {t('button_select')}
               </button>
             )}
-            {canSelect && confirmSelect && (
+            {canSelect && canManage && confirmSelect && (
               <div style={{ background: '#FEF3C7', border: '1.5px solid #F59E0B', borderRadius: 10, padding: 12 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: '#92400E', marginBottom: 5 }}>{t('select_confirm_title')}</div>
                 <div style={{ fontSize: 12, color: '#92400E', lineHeight: 1.5, marginBottom: 10 }}>

@@ -6,6 +6,7 @@ import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import type { Annonce } from '@/types/annonce'
+import AnnonceCard from '@/components/dashboard/AnnonceCard'
 
 /**
  * CollaborationDashboardBlock — bloc « Collaboration experts » du tableau de
@@ -22,7 +23,6 @@ type Props = { basePath: string; isVerified: boolean }
 export default function CollaborationDashboardBlock({ basePath, isVerified }: Props) {
   const t = useTranslations('collaboration_dashboard')
   const tList = useTranslations('collaboration.list')
-  const tPub = useTranslations('publications')
   const locale = useLocale()
   const domain = useDomain()
   const secureFetch = useSecureFetch()
@@ -84,33 +84,18 @@ export default function CollaborationDashboardBlock({ basePath, isVerified }: Pr
           </Link>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {needs.slice(0, 3).map((n) => {
-            const total = n.candidatures?.total ?? 0
-            const toReview = n.candidatures?.to_review ?? 0
-            return (
-              <Link
-                key={n.id}
-                href={`${basePath}/sous-traitance/${n.id}`}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 14px', border: '1px solid #e5e7eb', borderRadius: 12, textDecoration: 'none', color: 'inherit' }}
-              >
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
-                    <span style={{ padding: '2px 8px', borderRadius: 999, background: '#f1f5f9', color: '#64748b', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-                      {tPub(`status.${n.status}` as 'status.published')}
-                    </span>
-                    {toReview > 0 && (
-                      <span style={{ padding: '2px 8px', borderRadius: 999, background: `${domain.primaryColor}18`, color: domain.primaryColor, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-                        {tList('new_badge')}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</div>
-                </div>
-                <span style={{ fontSize: 13, color: '#64748b', flexShrink: 0 }}>{tList('candidatures_count', { count: total })}</span>
-              </Link>
-            )
-          })}
+        // C3 : même format de CARTE que les blocs voisins — réutilise AnnonceCard
+        // (titre, statut, compteurs de candidatures, date, action vers le détail).
+        // Le lien pointe vers la page de détail sous-traitance ({role}).
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {needs.slice(0, 3).map((n) => (
+            <AnnonceCard
+              key={n.id}
+              annonce={n}
+              basePath={basePath}
+              href={`${basePath}/sous-traitance/${n.id}`}
+            />
+          ))}
         </div>
       )}
     </div>

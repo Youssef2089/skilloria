@@ -28,6 +28,7 @@
   },
   "shell": {
     "user_fallback": "User",
+    "brand_home_aria": "{name} home",
     "user_subtitle": {
       "freelance": "Freelance · {ecosystem}",
       "cdi": "Full-time · {ecosystem}",
@@ -1605,6 +1606,7 @@
     "greeting_named": "Hello {firstName}",
     "publish_annonce": "Post a listing",
     "publish_disabled_tooltip": "Available once your company is verified",
+    "publish_role_tooltip": "Your role can't publish. An editor or admin role is required.",
     "verification_pending": "Verification pending",
     "my_annonces": "My listings",
     "search_placeholder": "Search by title…",
@@ -2087,6 +2089,7 @@
       },
       "error_invalid_transition": "Action not allowed in the current candidature state.",
       "error_insufficient_role": "Your role doesn't allow this action. An editor or admin role is required.",
+      "read_only_role": "Read-only — your role can't act on applications.",
       "error_not_found": "This application no longer exists.",
       "error_reason_too_long": "Reason exceeds 2000 characters.",
       "error_generic": "An error occurred. Please try again."
@@ -2812,9 +2815,9 @@
     "published_title": "Your need is published",
     "published_body": "We are finding the most relevant experts. The best profile will be revealed to you, and you can start a conversation.",
     "published_cta": "View my needs",
-    "wall_title": "Limit reached",
-    "wall_body": "You have already posted a need this month. Additional posts will be available soon.",
-    "wall_contact": "Need it sooner? Contact us.",
+    "wall_title": "Your plan's limit is reached",
+    "wall_body": "You've reached your plan's posting limit. Close a current post, or try again later.",
+    "wall_contact": "Need more? Contact us.",
     "form": {
       "title_label": "Need title",
       "title_placeholder": "e.g. Team reinforcement for a 3-month engagement",
@@ -2844,8 +2847,8 @@
       "retry": "Retry",
       "empty_title": "No need posted",
       "empty_body": "Post a subcontracting need: our AI will suggest available experts in your field.",
-      "quota_reached_title": "You already have an active need",
-      "quota_reached_body": "Close your current need to be able to post a new one.",
+      "quota_reached_title": "Your plan's limit is reached",
+      "quota_reached_body": "Your plan allows {max, plural, =1 {one active post} other {# active posts}}. Close a current post to publish another.",
       "candidatures_count": "{count, plural, =0 {No applications} =1 {1 application} other {# applications}}",
       "new_badge": "New",
       "published_at": "Posted on {date}",

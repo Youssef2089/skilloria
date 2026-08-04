@@ -49,10 +49,15 @@ export function homeStyles(accent: string, accentSoft: string, accentStrong: str
     .skh-sub{font-size:clamp(15px,2vw,17px);line-height:1.6;color:${theme.muted};margin:0;max-width:52ch}
 
     /* Fonctionnalités --------------------------------------------------- */
-    .skh-grid{display:grid;grid-template-columns:1fr;gap:1px;margin-top:38px;background:${theme.border};border:1px solid ${theme.border};border-radius:14px;overflow:hidden}
+    /* Fond + bordure portés par la CARTE, pas par la grille : avec 5 cartes
+       (nombre premier) sur 2 ou 3 colonnes, une piste de grille reste toujours
+       vide — si le fond venait de la grille (ancienne technique background+gap
+       1px), cette piste affichait un rectangle beige. Ici une piste vide ne
+       rend rien (fond de section). Robuste pour tout nombre de cartes. */
+    .skh-grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:38px}
     @media (min-width:680px){.skh-grid{grid-template-columns:repeat(2,1fr)}}
     @media (min-width:1100px){.skh-grid{grid-template-columns:repeat(3,1fr)}}
-    .skh-cell{background:${theme.white};padding:26px 24px;display:flex;flex-direction:column;gap:9px}
+    .skh-cell{background:${theme.white};border:1px solid ${theme.border};border-radius:14px;padding:26px 24px;display:flex;flex-direction:column;gap:9px}
     .skh-cell-icon{width:34px;height:34px;border-radius:9px;background:${accentSoft};display:flex;align-items:center;justify-content:center;margin-bottom:5px}
     .skh-cell-title{font-size:16px;font-weight:700;letter-spacing:-.01em;margin:0}
     .skh-cell-text{font-size:14px;line-height:1.6;color:${theme.muted};margin:0}

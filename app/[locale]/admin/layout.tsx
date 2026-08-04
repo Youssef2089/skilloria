@@ -61,6 +61,7 @@ type GuardState =
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('admin_back_office')
   const tCommon = useTranslations('common')
+  const tShell = useTranslations('shell')
   const router = useRouter()
   const pathname = usePathname()
   const domain = useDomain()
@@ -196,8 +197,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           gap: 4,
         }}
       >
-        {/* Header */}
-        <div
+        {/* Header — cliquable vers l'accueil (convention universelle). */}
+        <Link
+          href="/"
+          aria-label={tShell('brand_home_aria', { name: domain.name })}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -205,7 +208,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             padding: '0 6px 18px',
             borderBottom: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
             marginBottom: 12,
+            textDecoration: 'none',
+            transition: 'opacity .15s',
           }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7' }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
         >
           <div
             style={{
@@ -238,7 +245,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             {t('sidebar.title')}
           </span>
-        </div>
+        </Link>
 
         {/* Nav — rendue depuis ADMIN_NAV_SECTIONS (lib/nav-config), la MEME
             structure dont lib/menu-routes derive les routes de menu. Ajouter une

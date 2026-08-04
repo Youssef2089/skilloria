@@ -197,7 +197,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     publish.style.opacity = '1'
     await ctx.moveTo(publish, 300)
     await ctx.clickEl(publish, 170)
-    await ctx.hold()
+    await ctx.sleep(160)
 
     /* 2 — l'IA cherche et notifie */
     await ctx.fadeTransition()
@@ -246,7 +246,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
       row.className = 'skh-row skh-slide'
       notifyList.appendChild(row)
     }
-    await ctx.hold()
+    await ctx.sleep(260)
 
     /* 3 — les candidatures arrivent, scorées */
     await ctx.fadeTransition()
@@ -288,7 +288,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
       panel.appendChild(card)
       cards.push(card)
     }
-    await ctx.hold(1.2)
+    await ctx.sleep(400)
 
     /* 4 — l'entreprise choisit */
     if (ctx.cancelled()) return
@@ -309,7 +309,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
         `display:flex;align-items:center;gap:8px;padding:10px 12px;background:${theme.successSoft};border:1px solid ${theme.success}33;border-radius:9px;margin-top:10px`,
       ),
     ).classList.add('skh-in-up')
-    await ctx.hold()
+    await ctx.sleep(360)
 
     /* 5 — l'échange s'ouvre */
     await ctx.fadeTransition()
@@ -397,7 +397,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     )
     incoming.classList.add('skh-in-up')
     thread.appendChild(incoming)
-    await ctx.hold(1.4)
+    await ctx.sleep(320)
   }
 }
 
@@ -451,7 +451,7 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
         'display:flex;align-items:center;gap:7px;margin-top:11px',
       ),
     ).classList.add('skh-in')
-    await ctx.hold()
+    await ctx.sleep(420)
 
     /* 2 — une mission est détectée */
     await ctx.fadeTransition()
@@ -496,9 +496,8 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
       `margin-top:11px;padding:10px;background:${accent};color:${theme.white};border-radius:9px;font-size:13px;font-weight:600;text-align:center`,
     )
     panel.appendChild(apply)
-    // Carte la plus dense de la démo (score, TJM, lieu, explication du match) :
-    // elle a besoin de plus de temps de lecture que les autres phases.
-    await ctx.hold(1.8)
+    // Carte la plus dense de la démo (score, TJM, lieu, explication du match).
+    await ctx.sleep(760)
 
     /* 3 — l'expert candidate, son nom reste masqué */
     if (ctx.cancelled()) return
@@ -533,7 +532,7 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
     )
     anonymity.classList.add('skh-in-up')
     panel.appendChild(anonymity)
-    await ctx.hold(1.2)
+    await ctx.sleep(520)
 
     /* 4 — l'échange s'ouvre */
     await ctx.fadeTransition()
@@ -594,6 +593,6 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
         'display:flex;justify-content:center;text-align:center;padding:0 8px 4px',
       ),
     ).classList.add('skh-in')
-    await ctx.hold(1.4)
+    await ctx.sleep(360)
   }
 }

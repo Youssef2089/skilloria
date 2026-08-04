@@ -22,7 +22,12 @@ import PublicationSynthesisLine, { type PublicationSynthesisData } from './Publi
 
 type Props = {
   annonce: Annonce
-  basePath: '/dashboard/entreprise'
+  /** Base du dashboard courant ('/dashboard/entreprise' | '/dashboard/freelance' | '/dashboard/cdi'). */
+  basePath: string
+  /** Lien d'action explicite (override). Fourni côté sous-traitance (une seule
+   *  page de détail) ; absent → logique entreprise par statut (édition /
+   *  candidatures / fiche). */
+  href?: string
 }
 
 type StatusVisual = { bg: string; color: string; dot: string }
@@ -89,7 +94,7 @@ function formatBudget(
   return ''
 }
 
-export default function AnnonceCard({ annonce, basePath }: Props) {
+export default function AnnonceCard({ annonce, basePath, href }: Props) {
   const t = useTranslations('dashboard_entreprise')
   const tPub = useTranslations('publications')
   const locale = useLocale()
@@ -307,11 +312,13 @@ export default function AnnonceCard({ annonce, basePath }: Props) {
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <Link
           href={
-            (EDITABLE_STATUSES as readonly string[]).includes(annonce.status)
-              ? `${basePath}/annonces/${annonce.id}/modifier`
-              : annonce.status === 'published'
-                ? `${basePath}/annonces/${annonce.id}/candidatures`
-                : `${basePath}/annonces/${annonce.id}`
+            href ?? (
+              (EDITABLE_STATUSES as readonly string[]).includes(annonce.status)
+                ? `${basePath}/annonces/${annonce.id}/modifier`
+                : annonce.status === 'published'
+                  ? `${basePath}/annonces/${annonce.id}/candidatures`
+                  : `${basePath}/annonces/${annonce.id}`
+            )
           }
           style={{
             fontSize: 12,

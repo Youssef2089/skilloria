@@ -28,6 +28,7 @@
   },
   "shell": {
     "user_fallback": "Benutzer",
+    "brand_home_aria": "{name} Startseite",
     "user_subtitle": {
       "freelance": "Freelance · {ecosystem}",
       "cdi": "Festanstellung · {ecosystem}",
@@ -1605,6 +1606,7 @@
     "greeting_named": "Hallo {firstName}",
     "publish_annonce": "Anzeige veröffentlichen",
     "publish_disabled_tooltip": "Verfügbar sobald Ihr Unternehmen verifiziert ist",
+    "publish_role_tooltip": "Ihre Rolle kann nicht veröffentlichen. Eine Editor- oder Admin-Rolle ist erforderlich.",
     "verification_pending": "Verifizierung ausstehend",
     "my_annonces": "Meine Anzeigen",
     "search_placeholder": "Nach Titel suchen…",
@@ -2087,6 +2089,7 @@
       },
       "error_invalid_transition": "Aktion im aktuellen Status nicht erlaubt.",
       "error_insufficient_role": "Ihre Rolle erlaubt diese Aktion nicht. Eine Editor- oder Admin-Rolle ist erforderlich.",
+      "read_only_role": "Nur Lesezugriff — Ihre Rolle kann keine Bewerbungen bearbeiten.",
       "error_not_found": "Diese Bewerbung existiert nicht mehr.",
       "error_reason_too_long": "Der Grund überschreitet 2000 Zeichen.",
       "error_generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen."
@@ -2812,9 +2815,9 @@
     "published_title": "Ihr Bedarf ist veröffentlicht",
     "published_body": "Wir suchen die relevantesten Experten. Das beste Profil wird Ihnen enthüllt und Sie können mit ihm in Kontakt treten.",
     "published_cta": "Meine Bedarfe ansehen",
-    "wall_title": "Limit erreicht",
-    "wall_body": "Sie haben diesen Monat bereits einen Bedarf veröffentlicht. Weitere Veröffentlichungen sind bald verfügbar.",
-    "wall_contact": "Früher benötigt? Kontaktieren Sie uns.",
+    "wall_title": "Limit Ihres Tarifs erreicht",
+    "wall_body": "Sie haben das Veröffentlichungslimit Ihres Tarifs erreicht. Schließen Sie eine laufende Veröffentlichung oder versuchen Sie es später erneut.",
+    "wall_contact": "Mehr benötigt? Kontaktieren Sie uns.",
     "form": {
       "title_label": "Titel des Bedarfs",
       "title_placeholder": "z. B. Team-Verstärkung für einen 3-Monats-Einsatz",
@@ -2844,8 +2847,8 @@
       "retry": "Erneut versuchen",
       "empty_title": "Kein Bedarf veröffentlicht",
       "empty_body": "Veröffentlichen Sie einen Unterauftrags-Bedarf: Unsere KI schlägt Ihnen verfügbare Experten Ihres Fachgebiets vor.",
-      "quota_reached_title": "Sie haben bereits einen aktiven Bedarf",
-      "quota_reached_body": "Schließen Sie Ihren aktuellen Bedarf, um einen neuen veröffentlichen zu können.",
+      "quota_reached_title": "Limit Ihres Tarifs erreicht",
+      "quota_reached_body": "Ihr Tarif erlaubt {max, plural, =1 {eine aktive Veröffentlichung} other {# aktive Veröffentlichungen}}. Schließen Sie eine laufende Veröffentlichung, um eine weitere zu veröffentlichen.",
       "candidatures_count": "{count, plural, =0 {Keine Bewerbungen} =1 {1 Bewerbung} other {# Bewerbungen}}",
       "new_badge": "Neu",
       "published_at": "Veröffentlicht am {date}",

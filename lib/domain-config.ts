@@ -197,35 +197,47 @@ export function resolveAccentColor(
 
 const DEFAULT_PRIMARY = '#0ea5e9'
 
+/**
+ * ⚠️ REPLI DE SECOURS — PAS une configuration par défaut à enrichir.
+ *
+ * Cette valeur n'est servie QUE lorsque le domaine est IRRÉSOLVABLE : base
+ * Supabase injoignable, ou sous-domaine inconnu (cf. getDomainConfig). Sur une
+ * plateforme MULTI-ÉCOSYSTÈME, y mettre le moindre nom d'écosystème ou produit
+ * ferait afficher le MAUVAIS écosystème à un utilisateur d'un autre (ex. du
+ * Microsoft sur sap.skilloria.io lors d'une panne BDD).
+ *
+ * → Ce repli est donc volontairement NEUTRE : marque ombrelle « Skilloria »,
+ *   aucun nom d'écosystème, aucun produit. Fail-safe cohérent avec le trigger
+ *   handle_new_user durci (une inscription depuis un domaine irrésolvable
+ *   échoue proprement plutôt que de rattacher au mauvais écosystème).
+ *
+ * ❌ NE PAS y remettre de produits/noms d'écosystème (Azure, Dynamics, SAP…).
+ *    La vraie config par écosystème vit en base (domains + domain_configs).
+ */
 export const defaultDomainConfig: DomainConfig = {
   id: 'default',
-  subdomain: 'microsoft',
-  name: 'Skilloria 365',
-  ecosystemName: 'Microsoft',
-  tagline: 'For Microsoft Ecosystem Experts',
-  primaryColor: DEFAULT_PRIMARY,
+  // Slug NEUTRE (pas 'microsoft') : sur un domaine irrésolvable, un signup/
+  // invitation enverrait domain_slug='default' → le trigger durci rejette
+  // proprement au lieu de rattacher silencieusement au mauvais écosystème.
+  subdomain: 'default',
+  name: 'Skilloria',            // marque ombrelle, sans '365' ni écosystème
+  ecosystemName: 'Skilloria',   // neutre : « experts Skilloria » se lit correctement (4 langues)
+  tagline: '',
+  primaryColor: DEFAULT_PRIMARY,   // chrome Skilloria (identique tous écosystèmes), pas un écosystème
   secondaryColor: '#6366f1',
   accentColor: deriveAccentColor(DEFAULT_PRIMARY),
   logoUrl: null,
   faviconUrl: null,
   isActive: true,
-  tags: ['Azure', 'Dynamics 365', 'Power Platform', 'Power BI', 'SharePoint', 'Teams', 'Microsoft 365', 'Copilot', 'Fabric', 'SQL Server'],
+  tags: [],                        // aucun produit (HomeEcosystem masque la section si vide)
+  // ⚠️ ecosystemTerms n'est plus consommé nulle part (aucune lecture dans app/
+  //    components/lib — vérifié). Neutralisé par principe ; à SUPPRIMER lors
+  //    d'un prochain nettoyage du type DomainConfig, ou laissé inerte.
   ecosystemTerms: {
-    expertLabel: 'experts Microsoft certifiés',
-    communityLabel: 'écosystème Microsoft',
-    specialityLabel: 'Spécialité Microsoft principale',
-    domainSearchLabel: 'Domaine Microsoft recherché',
+    expertLabel: 'experts certifiés',
+    communityLabel: 'la communauté',
+    specialityLabel: 'Spécialité principale',
+    domainSearchLabel: 'Domaine recherché',
   },
-  featuredProducts: [
-    { label: 'Azure', icon: '☁️' },
-    { label: 'Business Central', icon: '📊' },
-    { label: 'Power BI', icon: '📈' },
-    { label: 'Power Platform', icon: '⚡' },
-    { label: 'D365 Finance & Ops', icon: '💼' },
-    { label: 'SharePoint', icon: '🗂️' },
-    { label: 'Copilot Studio', icon: '🤖' },
-    { label: 'Azure DevOps', icon: '🔧' },
-    { label: 'Dynamics CRM', icon: '🤝' },
-    { label: 'Microsoft Fabric', icon: '🧵' },
-  ],
+  featuredProducts: [],            // aucun produit ; DemoStage retombe sur ecosystemName
 }

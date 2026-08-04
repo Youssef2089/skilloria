@@ -7,6 +7,7 @@ import { useDomain } from '@/context/DomainContext'
 import { type OrganisationLite } from '@/components/dashboard/OrganisationSidebar'
 import AnnonceCard from '@/components/dashboard/AnnonceCard'
 import { useNavBadges } from '@/hooks/useNavBadges'
+import { useOrgRole } from '@/lib/use-org-role'
 import type { Annonce, AnnonceStatus } from '@/types/annonce'
 import BoundedScrollList from '@/components/ui/BoundedScrollList'
 
@@ -111,6 +112,9 @@ export default function OrganisationDashboard({
 
   const isApproved = organization.verification_status === 'approved'
   const publishHref = `${basePath}/annonces/nouvelle`
+  // C7 : viewer = lecture seule → « Publier » masqué/désactivé (garde serveur =
+  // garantie). canManage vrai pour editor/admin.
+  const { canManage } = useOrgRole()
 
   // Compteurs par onglet (regroupement de 1..3 statuts BDD chacun).
   // 'all' = total des annonces (sans bucket — chevauche les 4 autres tabs).
@@ -247,7 +251,7 @@ export default function OrganisationDashboard({
             {t('greeting')} 👋
           </h1>
 
-          {isApproved ? (
+          {isApproved && canManage ? (
             <Link
               href={publishHref}
               style={{
@@ -271,7 +275,7 @@ export default function OrganisationDashboard({
             <button
               type="button"
               disabled
-              title={t('publish_disabled_tooltip')}
+              title={!isApproved ? t('publish_disabled_tooltip') : t('publish_role_tooltip')}
               aria-disabled
               style={{
                 display: 'inline-flex',
@@ -467,7 +471,7 @@ export default function OrganisationDashboard({
               >
                 {tPub(`list.empty_subtitle_${emptyStateKey}`)}
               </p>
-              {isApproved ? (
+              {isApproved && canManage ? (
                 <Link
                   href={publishHref}
                   style={{
@@ -490,7 +494,7 @@ export default function OrganisationDashboard({
                 <button
                   type="button"
                   disabled
-                  title={t('publish_disabled_tooltip')}
+                  title={!isApproved ? t('publish_disabled_tooltip') : t('publish_role_tooltip')}
                   aria-disabled
                   style={{
                     display: 'inline-flex',

@@ -28,6 +28,7 @@
   },
   "shell": {
     "user_fallback": "Utilisateur",
+    "brand_home_aria": "Accueil {name}",
     "user_subtitle": {
       "freelance": "Freelance · {ecosystem}",
       "cdi": "CDI · {ecosystem}",
@@ -1605,6 +1606,7 @@
     "greeting_named": "Bonjour {firstName}",
     "publish_annonce": "Publier une annonce",
     "publish_disabled_tooltip": "Disponible une fois votre entreprise vérifiée",
+    "publish_role_tooltip": "Votre rôle ne permet pas de publier. Un rôle éditeur ou administrateur est requis.",
     "verification_pending": "En attente de vérification",
     "my_annonces": "Mes annonces",
     "search_placeholder": "Rechercher par titre…",
@@ -2087,6 +2089,7 @@
       },
       "error_invalid_transition": "Action impossible dans l'état actuel de la candidature.",
       "error_insufficient_role": "Votre rôle ne permet pas cette action. Un rôle éditeur ou administrateur est requis.",
+      "read_only_role": "Lecture seule — votre rôle ne permet pas d'agir sur les candidatures.",
       "error_not_found": "Cette candidature n'existe plus.",
       "error_reason_too_long": "Le motif dépasse 2000 caractères.",
       "error_generic": "Une erreur est survenue. Réessayez dans un instant."
@@ -2812,9 +2815,9 @@
     "published_title": "Votre besoin est publié",
     "published_body": "Nous recherchons les experts les plus pertinents. Le meilleur profil vous sera dévoilé ; vous pourrez alors échanger avec lui.",
     "published_cta": "Voir mes besoins",
-    "wall_title": "Limite atteinte",
-    "wall_body": "Vous avez déjà publié un besoin ce mois-ci. Des publications supplémentaires seront bientôt disponibles.",
-    "wall_contact": "Besoin de plus tôt ? Contactez-nous.",
+    "wall_title": "Limite de votre offre atteinte",
+    "wall_body": "Vous avez atteint la limite de publications de votre offre. Clôturez une publication en cours, ou réessayez plus tard.",
+    "wall_contact": "Besoin de plus ? Contactez-nous.",
     "form": {
       "title_label": "Titre du besoin",
       "title_placeholder": "Ex. Renfort d'équipe sur une mission de 3 mois",
@@ -2844,8 +2847,8 @@
       "retry": "Réessayer",
       "empty_title": "Aucun besoin publié",
       "empty_body": "Publiez un besoin de sous-traitance : notre IA vous proposera des experts disponibles de votre domaine.",
-      "quota_reached_title": "Vous avez déjà un besoin actif",
-      "quota_reached_body": "Clôturez votre besoin en cours pour pouvoir en publier un nouveau.",
+      "quota_reached_title": "Limite de votre offre atteinte",
+      "quota_reached_body": "Votre offre autorise {max, plural, =1 {une publication active} other {# publications actives}}. Clôturez une publication en cours pour en publier une autre.",
       "candidatures_count": "{count, plural, =0 {Aucune candidature} =1 {1 candidature} other {# candidatures}}",
       "new_badge": "Nouveau",
       "published_at": "Publié le {date}",

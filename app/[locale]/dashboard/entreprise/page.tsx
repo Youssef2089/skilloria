@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import OrgSetupModal from '@/components/OrgSetupModal'
 import { useDomain } from '@/context/DomainContext'
 import { useLiveResource } from '@/hooks/useLiveResource'
+import { useOrgRole } from '@/lib/use-org-role'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
 import type { Annonce, AnnonceStatus, AnnonceCandidatures } from '@/types/annonce'
 
@@ -59,6 +60,9 @@ export default function DashboardEntreprise() {
   const t = useTranslations('dashboard_entreprise')
   const tCommon = useTranslations('common')
   const domain = useDomain()
+  // C7 : viewer = lecture seule → bouton « Publier » masqué/désactivé (garde
+  // serveur = garantie). canManage vrai pour editor/admin.
+  const { canManage } = useOrgRole()
 
   const [state, setState] = useState<SetupState>({ kind: 'loading' })
   const [needsRedirect, setNeedsRedirect] = useState(false)
@@ -279,7 +283,7 @@ export default function DashboardEntreprise() {
           {/* C10 : accueil personnalisé ; fallback sobre si le prénom manque. */}
           {firstName ? t('greeting_named', { firstName }) : t('greeting')} 👋
         </h1>
-        {isApproved ? (
+        {isApproved && canManage ? (
           <Link
             href={publishHref}
             style={{
@@ -301,7 +305,7 @@ export default function DashboardEntreprise() {
           <button
             type="button"
             disabled
-            title={t('publish_disabled_tooltip')}
+            title={!isApproved ? t('publish_disabled_tooltip') : t('publish_role_tooltip')}
             aria-disabled
             style={{
               display: 'inline-flex',
