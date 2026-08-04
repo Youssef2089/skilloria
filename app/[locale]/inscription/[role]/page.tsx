@@ -7,6 +7,7 @@ import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import PhoneOtpField, { type PhoneOtpLabels } from '@/components/PhoneOtpField'
+import PhoneTakenNotice from '@/components/auth/PhoneTakenNotice'
 import { LEGAL_PATHS } from '@/lib/legal'
 
 type RoleKey = 'expert' | 'cdi'
@@ -94,6 +95,8 @@ export default function InscriptionRolePage() {
   const [phone, setPhone] = useState('+33')
   const [otpToken, setOtpToken] = useState<string | null>(null)
   const phoneVerified = otpToken !== null
+  // D6 — numéro déjà rattaché à un compte (refus avant envoi SMS).
+  const [phoneTaken, setPhoneTaken] = useState(false)
 
   // Libellés OTP tirés du namespace signup_form (copiés d'inscription_org).
   const otpLabels: PhoneOtpLabels = {
@@ -107,6 +110,7 @@ export default function InscriptionRolePage() {
     invalid_phone: t('errors.invalid_phone'),
     rate_limited: t('errors.rate_limited'),
     vonage_error: t('errors.vonage_error'),
+    edit_number: t('otp.edit_number'),
   }
 
   // Redirection des URLs invalides (ex: /inscription/cabinet, /inscription/entreprise)
@@ -394,12 +398,22 @@ export default function InscriptionRolePage() {
               setPhone(v)
               // Éditer le numéro invalide la vérification précédente.
               if (otpToken) setOtpToken(null)
+              if (phoneTaken) setPhoneTaken(false)
             }}
             onVerified={(token) => setOtpToken(token)}
             verified={phoneVerified}
             primaryColor={domain.primaryColor}
             labels={otpLabels}
+            onPhoneTaken={() => setPhoneTaken(true)}
+            onEdit={() => { setOtpToken(null); setPhoneTaken(false) }}
           />
+          {/* D6 — numéro déjà rattaché : message de récupération (jamais accusatoire). */}
+          {phoneTaken && (
+            <PhoneTakenNotice
+              primaryColor={domain.primaryColor}
+              onUseAnotherNumber={() => { setPhone('+33'); setOtpToken(null); setPhoneTaken(false) }}
+            />
+          )}
         </div>
 
         {/* CGU */}

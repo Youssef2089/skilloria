@@ -1,4 +1,11 @@
 {
+  "phone_taken": {
+    "title": "Diese Nummer ist bereits mit einem Konto verknüpft",
+    "body": "Wenn dies Ihre Nummer ist, haben Sie bereits ein Konto. Melden Sie sich an, setzen Sie Ihr Passwort zurück oder geben Sie eine andere Nummer ein.",
+    "action_login": "Anmelden",
+    "action_reset": "Passwort vergessen",
+    "action_change": "Andere Nummer verwenden"
+  },
   "sms_notifications": {
     "match_digest": {
       "one": "1 neuer Auftrag passt zu Ihrem Profil auf {platform}. {link}",
@@ -944,6 +951,7 @@
     "code_placeholder": "Per SMS erhaltener Code",
     "code_invalid": "Ungültiger Code. Klicken Sie auf Erneut senden, um einen neuen Code zu erhalten.",
     "phone_verified": "Telefon verifiziert",
+    "edit_number": "Nummer ändern",
     "section_account": "Ihr Konto",
     "password_label": "Passwort",
     "password_placeholder": "Mindestens 8 Zeichen",
@@ -1087,7 +1095,8 @@
       "resend_sms_label": "Erneut senden ({seconds}s)",
       "code_label": "Bestätigungscode",
       "code_invalid": "Ungültiger Code. Klicken Sie auf Erneut senden, um einen neuen Code zu erhalten.",
-      "phone_verified": "Telefon verifiziert"
+      "phone_verified": "Telefon verifiziert",
+      "edit_number": "Nummer ändern"
     }
   },
   "dashboard_cdi": {

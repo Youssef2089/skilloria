@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkRateLimit, extractClientIp } from '@/lib/rate-limit'
 import { normalizeE164 } from '@/lib/phone'
 
 export const runtime = 'nodejs'
@@ -74,19 +74,49 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   const phoneVonage = phone.slice(1)
 
-  // Rate-limit serveur/DB par téléphone (clé principale, hachée), AVANT tout
-  // envoi Vonage : anti SMS-pumping. 1/60s ET 5/3600s. Fail-open si le limiteur
-  // est indisponible (cf. lib/rate-limit.ts + getSupabaseAdmin null ci-dessus).
+  // Gardes serveur AVANT tout envoi Vonage, dans cet ordre précis (mêmes
+  // fonction rate_limit_check, clés différentes — pas de mécanisme parallèle) :
+  //   normalisation E.164 (ci-dessus) → bucket IP → buckets téléphone →
+  //   pré-check unicité (D1) → Vonage.
+  // Fail-open si le limiteur est indisponible (cf. lib/rate-limit.ts +
+  // getSupabaseAdmin null ci-dessus).
   const admin = getSupabaseAdmin()
   if (admin) {
+    // Bucket IP (anti-énumération D3) : 10 / 3600s. Un pré-check D1 négatif
+    // consomme les buckets → sonder un numéro a un coût. IP introuvable →
+    // NE BLOQUE PAS (fail-open, cohérent avec le reste du limiteur).
+    const ip = extractClientIp(request)
+    if (ip) {
+      if (!(await checkRateLimit(admin, 'otp_send_ip_1h', ip, 3600, 10))) {
+        return json({ error: 'Too many requests', code: 'rate_limited', retry_after_seconds: 3600 }, 429)
+      }
+    }
+    // Buckets téléphone : 1/60s (inchangé) ET 3/3600s (abaissé de 5 → 3 :
+    // 3 envois/heure suffisent à qui se trompe sur SON numéro).
     if (!(await checkRateLimit(admin, 'otp_send_60s', phone, 60, 1))) {
       return json({ error: 'Too many requests', code: 'rate_limited', retry_after_seconds: 60 }, 429)
     }
-    if (!(await checkRateLimit(admin, 'otp_send_1h', phone, 3600, 5))) {
+    if (!(await checkRateLimit(admin, 'otp_send_1h', phone, 3600, 3))) {
       return json({ error: 'Too many requests', code: 'rate_limited', retry_after_seconds: 3600 }, 429)
     }
+
+    // D1 — CONTRÔLE D'UNICITÉ AVANT L'ENVOI DU SMS. Un numéro déjà rattaché à un
+    // compte VÉRIFIÉ ne déclenche aucun appel Vonage (pas de SMS facturé, pas de
+    // code envoyé à un tiers). Comparaison sur la forme E.164 NORMALISÉE (`phone`).
+    // Garde-fou d'expérience : la vérif à la création du compte reste en place
+    // (D2, register-expert/register-org). Le message de récupération est côté
+    // client (code 'phone_already_used'). Aucune info sur le compte détenteur.
+    const { data: phoneOwner } = await admin
+      .from('users')
+      .select('id')
+      .eq('phone', phone)
+      .eq('phone_verified', true)
+      .maybeSingle()
+    if (phoneOwner) {
+      return json({ error: 'Phone already used', code: 'phone_already_used' }, 409)
+    }
   } else {
-    console.warn('[public/send-phone-otp] service-role indisponible — rate-limit ignoré (fail-open)')
+    console.warn('[public/send-phone-otp] service-role indisponible — rate-limit + unicité ignorés (fail-open)')
   }
 
   const previousRequestIdRaw = typeof body.previous_request_id === 'string'

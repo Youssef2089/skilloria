@@ -1,4 +1,11 @@
 {
+  "phone_taken": {
+    "title": "This number is already linked to an account",
+    "body": "If this number is yours, you already have an account. Sign in, reset your password, or enter a different number.",
+    "action_login": "Sign in",
+    "action_reset": "Forgot password",
+    "action_change": "Use another number"
+  },
   "sms_notifications": {
     "match_digest": {
       "one": "1 new assignment matches your profile on {platform}. {link}",
@@ -944,6 +951,7 @@
     "code_placeholder": "Code received by SMS",
     "code_invalid": "Invalid code. Click Resend to receive a new code.",
     "phone_verified": "Phone verified",
+    "edit_number": "Change number",
     "section_account": "Your account",
     "password_label": "Password",
     "password_placeholder": "Minimum 8 characters",
@@ -1087,7 +1095,8 @@
       "resend_sms_label": "Resend ({seconds}s)",
       "code_label": "Verification code",
       "code_invalid": "Invalid code. Click Resend to receive a new code.",
-      "phone_verified": "Phone verified"
+      "phone_verified": "Phone verified",
+      "edit_number": "Change number"
     }
   },
   "dashboard_cdi": {

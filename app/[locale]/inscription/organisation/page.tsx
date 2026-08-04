@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import PhoneTakenNotice from '@/components/auth/PhoneTakenNotice'
 import { LEGAL_PATHS } from '@/lib/legal'
 
 type FormState = {
@@ -52,6 +53,8 @@ export default function InscriptionOrganisationPage() {
   const [otpVerifying, setOtpVerifying] = useState(false)
   const [phoneError, setPhoneError] = useState<string | null>(null)
   const [cooldownLeft, setCooldownLeft] = useState(0)
+  // D6 — numéro déjà rattaché à un compte (refus avant envoi SMS).
+  const [phoneTaken, setPhoneTaken] = useState(false)
   const otpInputRefs = useRef<Array<HTMLInputElement | null>>([])
 
   // Submit state
@@ -132,6 +135,12 @@ export default function InscriptionOrganisationPage() {
       })
       const json = (await res.json().catch(() => ({}))) as { request_id?: string; code?: string }
       if (!res.ok || !json.request_id) {
+        // D1/D6 : numéro déjà rattaché à un compte (refus AVANT tout SMS) →
+        // message de récupération, pas d'erreur technique.
+        if (json.code === 'phone_already_used') {
+          setPhoneTaken(true)
+          return
+        }
         setPhoneError(t(json.code === 'rate_limited' ? 'errors.rate_limited' : 'errors.vonage_error'))
         return
       }
@@ -144,6 +153,29 @@ export default function InscriptionOrganisationPage() {
       setPhoneError(t('errors.vonage_error'))
     } finally {
       setOtpSending(false)
+    }
+  }
+
+  // ── D4 « Modifier le numéro » ────────────────────────────────────────────
+  // Relâche l'état vérifié SANS toucher aux autres champs du formulaire, redonne
+  // le champ saisissable, réactive « Envoyer SMS », purge la session Vonage
+  // (best-effort) et efface les erreurs.
+  function handleEditPhone() {
+    const rid = otpRequestId ?? previousRequestId
+    setOtpToken(null)
+    setOtpRequestId(null)
+    setPreviousRequestId(null)
+    setOtpDigits(Array(OTP_LENGTH).fill(''))
+    setPhoneError(null)
+    setOtpError(null)
+    setCooldownLeft(0)
+    setPhoneTaken(false)
+    if (rid) {
+      void fetch('/api/auth/public/cancel-phone-otp', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ request_id: rid }),
+      }).catch(() => {})
     }
   }
 
@@ -567,6 +599,7 @@ export default function InscriptionOrganisationPage() {
                 onChange={(e) => {
                   setField('phone', e.target.value)
                   if (phoneError) setPhoneError(null)
+                  if (phoneTaken) setPhoneTaken(false)
                 }}
                 placeholder={t('phone_placeholder')}
                 style={{
@@ -629,16 +662,36 @@ export default function InscriptionOrganisationPage() {
           )}
 
           {phoneVerified && (
-            <div
-              style={{
-                fontSize: 13,
-                color: '#15803d',
-                fontWeight: 600,
-                marginTop: 4,
-              }}
-            >
-              ✓ {t('phone_verified')}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginTop: 4 }}>
+              <span style={{ fontSize: 13, color: '#15803d', fontWeight: 600 }}>✓ {t('phone_verified')}</span>
+              {/* D4 — sortie de l'état vérifié, sans perte de formulaire. */}
+              <button
+                type="button"
+                onClick={handleEditPhone}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: domain.primaryColor,
+                  textDecoration: 'underline',
+                  textUnderlineOffset: 2,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {t('edit_number')}
+              </button>
             </div>
+          )}
+
+          {/* D6 — numéro déjà rattaché : message de récupération (jamais accusatoire). */}
+          {phoneTaken && (
+            <PhoneTakenNotice
+              primaryColor={domain.primaryColor}
+              onUseAnotherNumber={() => { setField('phone', '+33'); setOtpToken(null); setPhoneTaken(false) }}
+            />
           )}
 
           {otpRequestId && !phoneVerified && (

@@ -1,4 +1,11 @@
 {
+  "phone_taken": {
+    "title": "Ce numéro est déjà associé à un compte",
+    "body": "Si ce numéro est le vôtre, vous avez déjà un compte. Connectez-vous, réinitialisez votre mot de passe, ou saisissez un autre numéro.",
+    "action_login": "Se connecter",
+    "action_reset": "Mot de passe oublié",
+    "action_change": "Saisir un autre numéro"
+  },
   "sms_notifications": {
     "match_digest": {
       "one": "1 nouvelle mission correspond à votre profil sur {platform}. {link}",
@@ -944,6 +951,7 @@
     "code_placeholder": "Code reçu par SMS",
     "code_invalid": "Code invalide. Cliquez sur Renvoyer pour recevoir un nouveau code.",
     "phone_verified": "Téléphone vérifié",
+    "edit_number": "Modifier le numéro",
     "section_account": "Votre compte",
     "password_label": "Mot de passe",
     "password_placeholder": "Minimum 8 caractères",
@@ -1087,7 +1095,8 @@
       "resend_sms_label": "Renvoyer ({seconds}s)",
       "code_label": "Code de vérification",
       "code_invalid": "Code invalide. Cliquez sur Renvoyer pour recevoir un nouveau code.",
-      "phone_verified": "Téléphone vérifié"
+      "phone_verified": "Téléphone vérifié",
+      "edit_number": "Modifier le numéro"
     }
   },
   "dashboard_cdi": {

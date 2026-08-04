@@ -36,6 +36,8 @@ export type PhoneOtpLabels = {
   invalid_phone: string
   rate_limited: string
   vonage_error: string
+  /** D4 — lien « Modifier le numéro » (sortie de l'état vérifié). */
+  edit_number: string
 }
 
 export type PhoneOtpFieldProps = {
@@ -47,6 +49,10 @@ export type PhoneOtpFieldProps = {
   verified: boolean
   primaryColor: string
   labels: PhoneOtpLabels
+  /** D1/D6 — le numéro est déjà rattaché à un compte (avant tout envoi SMS). */
+  onPhoneTaken?: () => void
+  /** D4 — l'utilisateur relâche l'état vérifié pour saisir un autre numéro. */
+  onEdit?: () => void
 }
 
 /**
@@ -62,7 +68,7 @@ function isPhoneValid(phone: string): boolean {
 }
 
 export default function PhoneOtpField(props: PhoneOtpFieldProps) {
-  const { phone, onPhoneChange, onVerified, verified, primaryColor, labels } = props
+  const { phone, onPhoneChange, onVerified, verified, primaryColor, labels, onPhoneTaken, onEdit } = props
 
   const [otpRequestId, setOtpRequestId] = useState<string | null>(null)
   // Survit au reset de otpRequestId (P2).
@@ -124,6 +130,13 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
       })
       const json = (await res.json().catch(() => ({}))) as { request_id?: string; code?: string }
       if (!res.ok || !json.request_id) {
+        // D1/D6 : numéro déjà rattaché à un compte (refus AVANT tout SMS) → on
+        // délègue au parent l'affichage du message de récupération ; pas d'erreur
+        // « technique » ici.
+        if (json.code === 'phone_already_used') {
+          onPhoneTaken?.()
+          return
+        }
         // Message PRÉCIS selon le code serveur : un numéro rejeté par la
         // validation stricte (invalid_phone / vonage_invalid_request) ne doit
         // PAS s'afficher comme « Service SMS indisponible ».
@@ -183,6 +196,29 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
       setCooldownLeft(0)
     } finally {
       setOtpVerifying(false)
+    }
+  }
+
+  // D4 — « Modifier le numéro » : relâche l'état vérifié SANS toucher aux autres
+  // champs (le parent gère son token via onEdit), redonne le champ saisissable,
+  // réactive « Envoyer SMS », purge la session Vonage courante (best-effort) et
+  // efface les erreurs. Aucun état de formulaire n'est perdu.
+  function handleEdit() {
+    const rid = otpRequestId ?? previousRequestId
+    setOtpRequestId(null)
+    setPreviousRequestId(null)
+    setOtpDigits(Array(OTP_LENGTH).fill(''))
+    setPhoneError(null)
+    setOtpError(null)
+    setCooldownLeft(0)
+    onEdit?.()
+    if (rid) {
+      // Best-effort : jamais bloquant, échec silencieux.
+      void fetch('/api/auth/public/cancel-phone-otp', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ request_id: rid }),
+      }).catch(() => {})
     }
   }
 
@@ -279,7 +315,28 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
       {phoneError && <div style={{ fontSize: 12, color: '#b91c1c', marginBottom: 8 }}>{phoneError}</div>}
 
       {verified && (
-        <div style={{ fontSize: 13, color: '#15803d', fontWeight: 600, marginTop: 4 }}>✓ {labels.phone_verified}</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginTop: 4 }}>
+          <span style={{ fontSize: 13, color: '#15803d', fontWeight: 600 }}>✓ {labels.phone_verified}</span>
+          {/* D4 — sortie de l'état vérifié, sans perte de formulaire. */}
+          <button
+            type="button"
+            onClick={handleEdit}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              fontSize: 13,
+              fontWeight: 600,
+              color: primaryColor,
+              textDecoration: 'underline',
+              textUnderlineOffset: 2,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            {labels.edit_number}
+          </button>
+        </div>
       )}
 
       {otpRequestId && !verified && (
