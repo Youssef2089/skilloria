@@ -439,8 +439,9 @@ export function renderInactivityWarningEmail(params: InactivityWarningEmailParam
 /* ─────────────────────────────────────────────────────────────────────────
  * Template DIGEST DE MATCHES (notifications email/SMS sur nouvelle opportunité).
  *
- * Envoyé par le cron /api/cron/dispatch-match-notifications après la fenêtre de
- * regroupement de 15 min, dans la langue de l'expert. Contenu agrégé : nombre de
+ * Envoyé en IMMÉDIAT à la création des notifications de match, groupé par expert
+ * (lib/notifications/dispatch-match.ts, appelé depuis le reconcile du matching),
+ * dans la langue de l'expert. Contenu agrégé : nombre de
  * missions, liste courte (titre + score), lien vers les opportunités, lien de
  * désabonnement (D6). Le nom de la plateforme (`platform`) vient de la config de
  * domaine — jamais figé (checklist #1). Escaping via `interpolate`.

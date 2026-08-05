@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { MatchingConfig, MatchingLocale, ProfileCandidate } from './types'
 import type { AnnonceType } from '@/types/annonce'
+import { dispatchMatchNotificationsForUsers } from '@/lib/notifications/dispatch-match'
 
 /**
  * Helpers partagés entre les deux orchestrateurs `runMatchingForPublication`
@@ -343,7 +344,21 @@ export async function notifyAndFlip(args: {
 
   if (rows.length > 0) {
     const { error: insErr } = await supabaseAdmin.from('notifications').insert(rows)
-    if (insErr) console.error('[matching] notif insert failed', insErr.message)
+    if (insErr) {
+      console.error('[matching] notif insert failed', insErr.message)
+    } else {
+      // D2/D3 — ENVOI IMMÉDIAT email+SMS, groupé PAR expert (un seul message
+      // mentionnant les N missions). Tourne dans le after() des 6 appelants du
+      // matching (aucun after() supplémentaire ici). GARDE-FOU : isolé en
+      // try/catch — une panne Resend/Vonage ne casse jamais le matching ni
+      // l'insert ci-dessus (best-effort, aucune erreur remontée à l'appelant).
+      try {
+        const notifiedUserIds = Array.from(new Set(rows.map((r) => r.user_id)))
+        await dispatchMatchNotificationsForUsers(supabaseAdmin, notifiedUserIds)
+      } catch (err) {
+        console.error('[matching] envoi immédiat échoué (best-effort)', err instanceof Error ? err.message : err)
+      }
+    }
   }
 
   for (const f of flips) {

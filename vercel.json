@@ -7,10 +7,6 @@
     {
       "path": "/api/cron/purge-inactive",
       "schedule": "30 3 * * *"
-    },
-    {
-      "path": "/api/cron/dispatch-match-notifications",
-      "schedule": "*/5 * * * *"
     }
   ]
 }
