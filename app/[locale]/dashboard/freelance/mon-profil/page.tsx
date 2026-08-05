@@ -115,7 +115,6 @@ type UserData = {
   email: string
   first_name: string | null
   last_name: string | null
-  is_verified: boolean | null
   user_type: string | null
   domain_id: string | null
 }
@@ -353,7 +352,7 @@ export default function MonProfilPage() {
 
       const { data: userRow, error: userErr } = await supabase
         .from('users')
-        .select('id, email, first_name, last_name, is_verified, user_type, domain_id')
+        .select('id, email, first_name, last_name, user_type, domain_id')
         .eq('id', session.user.id)
         .single()
 
@@ -542,7 +541,9 @@ export default function MonProfilPage() {
     ((firstName[0] ?? '') + (lastName[0] ?? '')).toUpperCase() ||
     fullName.substring(0, 2).toUpperCase() ||
     '??'
-  const isVerified = user?.is_verified === true
+  // D1 : « profil vérifié » (pilote la sidebar via userIsVerified) = source de
+  // vérité verification_status === 'approved', jamais users.is_verified.
+  const isVerified = (profile?.verification_status ?? null) === 'approved'
   // Lot bandeau vérif : badge piloté par l'état réel (plus de vert affiché
   // à tort quand pending_admin_review).
   const verifState = deriveVerificationUiState({

@@ -114,7 +114,10 @@ export default function DashboardCDI() {
   // user_type-agnostic au niveau du contrat : runMatching ne crée des
   // matches QUE pour le user_type cohérent (expert_cdi → type='offre').
   // Donc cette home reçoit les offres CDI matchées de l'expert.
-  const isVerified = !!user?.is_verified
+  // D1 : « profil vérifié » = source de vérité verification_status === 'approved'
+  // (même source que la garde serveur + la pastille), jamais users.is_verified.
+  // Pilote le bloc Collaboration ET les stats verrouillées (mêmes gates métier).
+  const isVerified = (profile?.verification_status ?? null) === 'approved'
   // Lot bandeau vérif : état réel pour le badge greeting (plus de "vérifié"
   // affiché à tort quand en attente de validation admin).
   const verifState = deriveVerificationUiState({

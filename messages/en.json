@@ -36,6 +36,7 @@
   "shell": {
     "user_fallback": "User",
     "brand_home_aria": "{name} home",
+    "nav_soon": "Coming soon",
     "user_subtitle": {
       "freelance": "Freelance · {ecosystem}",
       "cdi": "Full-time · {ecosystem}",

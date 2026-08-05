@@ -6,6 +6,7 @@ import { usePathname } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
 import { useAvatarUrl } from '@/hooks/useAvatarUrl'
+import { deriveVerificationUiState } from '@/lib/verification-state'
 import DashboardSidebar from './DashboardSidebar'
 import DashboardTopbar from './DashboardTopbar'
 import GlobalBackButton from './GlobalBackButton'
@@ -24,8 +25,9 @@ import GlobalBackButton from './GlobalBackButton'
  *    `useDomain().primaryColor`, et `--sk-accent-soft` / `--sk-accent-ink`
  *    sont DÉRIVÉS via color-mix dans globals.css. Un domaine non-bleu reste
  *    cohérent.
- *  - Fetch léger user+profile pour alimenter sidebar (nom/photo/is_verified)
- *    et topbar (statut "Disponible"). Pas de re-fetch périodique ici : les
+ *  - Fetch léger user+profile pour alimenter sidebar (nom/photo + statut de
+ *    vérification dérivé de profiles.verification_status/visible) et topbar
+ *    (statut "Disponible"). Pas de re-fetch périodique ici : les
  *    pages enfants gèrent leur propre temps réel.
  *  - Pas de gate session/auth ici : DashboardLayout amont monte déjà
  *    SessionHeartbeat ; chaque page enfant gère son propre redirect /
@@ -36,11 +38,13 @@ type UserInfo = {
   id: string | null
   first_name: string | null
   last_name: string | null
-  is_verified: boolean
   user_type: string | null
 }
 type ProfileInfo = {
   verification_status: string | null
+  // D1 : source de vérité de « profil vérifié » (avec verification_status),
+  // via deriveVerificationUiState — jamais users.is_verified (drapeau non fiable).
+  visible: boolean | null
   availability_status: string | null
   cdi_status: string | null
 }
@@ -70,8 +74,8 @@ export default function DashboardShell({
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) return
       const [{ data: uRow }, { data: pRow }] = await Promise.all([
-        supabase.from('users').select('id, first_name, last_name, is_verified, user_type').eq('id', session.user.id).maybeSingle(),
-        supabase.from('profiles').select('verification_status, availability_status, cdi_status').eq('user_id', session.user.id).maybeSingle(),
+        supabase.from('users').select('id, first_name, last_name, user_type').eq('id', session.user.id).maybeSingle(),
+        supabase.from('profiles').select('verification_status, visible, availability_status, cdi_status').eq('user_id', session.user.id).maybeSingle(),
       ])
       if (cancelled) return
       setUser((uRow as UserInfo | null) ?? null)
@@ -121,7 +125,13 @@ export default function DashboardShell({
       : tShell('user_subtitle.freelance', { ecosystem: domain.ecosystemName })
 
   const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ').trim() || tCommon('user_fallback')
-  const isVerified = user?.is_verified === true
+  // D1 : « profil vérifié » = source de vérité verification_status (via
+  // deriveVerificationUiState === 'approved'), la MÊME que la garde serveur
+  // isExpertProfileApproved. On n'utilise plus users.is_verified (non fiable).
+  const isVerified = deriveVerificationUiState({
+    visible: profile?.visible ?? null,
+    verificationStatus: profile?.verification_status ?? null,
+  }) === 'approved'
 
   // Titre topbar : prop si fournie, sinon résolution pathname → i18n key.
   //   /dashboard/{side}                                  → 'dashboard'

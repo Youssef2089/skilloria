@@ -409,7 +409,10 @@ export default function DashboardFreelance() {
     </div>
   )
 
-  const isVerified = user?.is_verified === true
+  // D1 : « profil vérifié » = source de vérité verification_status === 'approved'
+  // (même source que la garde serveur + la pastille), jamais users.is_verified.
+  // Pilote le bloc Collaboration ET les stats verrouillées (mêmes gates métier).
+  const isVerified = (profile?.verification_status ?? null) === 'approved'
   // Lot bandeau vérif : état réel (badge greeting fidèle, plus de "vérifié"
   // affiché à tort quand le profil est en attente de validation admin).
   const verifState = deriveVerificationUiState({

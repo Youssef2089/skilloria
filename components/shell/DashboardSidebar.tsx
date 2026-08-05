@@ -156,28 +156,30 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
                 : item.badgeSource === 'missions' ? (badges.missions_unread ?? 0)
                 : 0
               const isLink = item.variant === 'link'
+              // Non cliquable : verrou métier (locked) OU fonctionnalité à venir (soon).
+              const disabled = item.locked || item.soon
               return (
                 <Link
                   key={item.key}
-                  href={item.locked ? '#' : item.href}
-                  aria-disabled={item.locked || undefined}
+                  href={disabled ? '#' : item.href}
+                  aria-disabled={disabled || undefined}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 11,
                     padding: '9px 10px',
                     borderRadius: 9,
-                    color: item.locked ? 'var(--sk-faint)' : active ? 'var(--sk-accent-ink)' : isLink ? accent : '#33414F',
+                    color: disabled ? 'var(--sk-faint)' : active ? 'var(--sk-accent-ink)' : isLink ? accent : '#33414F',
                     background: active ? 'var(--sk-accent-soft)' : 'transparent',
                     textDecoration: 'none',
                     fontSize: 14,
                     fontWeight: 500,
-                    pointerEvents: item.locked ? 'none' : undefined,
-                    opacity: item.locked ? 0.55 : 1,
+                    pointerEvents: disabled ? 'none' : undefined,
+                    opacity: disabled ? 0.55 : 1,
                     position: 'relative',
                     transition: 'background .12s',
                   }}
-                  onClick={(e) => { if (item.locked) e.preventDefault() }}
+                  onClick={(e) => { if (disabled) e.preventDefault() }}
                 >
                   <Icon size={18} stroke={1.8} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -188,8 +190,22 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
                       ? t('nav.offres')
                       : t(`nav.${item.key}` as 'nav.dashboard')}
                   </span>
+                  {/* Verrou métier (profil non vérifié) → cadenas. */}
                   {item.locked && <span aria-hidden style={{ fontSize: 11 }}>🔒</span>}
-                  {!item.locked && badge > 0 && (
+                  {/* Fonctionnalité à venir → puce « Bientôt disponible ». */}
+                  {item.soon && (
+                    <span
+                      style={{
+                        fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap',
+                        color: 'var(--sk-faint)', background: 'var(--sk-surface-2, #f1f5f9)',
+                        border: '1px solid var(--sk-border, #e2e8f0)',
+                        padding: '2px 7px', borderRadius: 999,
+                      }}
+                    >
+                      {t('nav_soon')}
+                    </span>
+                  )}
+                  {!disabled && badge > 0 && (
                     <span
                       aria-label={`${badge}`}
                       style={{

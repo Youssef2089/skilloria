@@ -37,6 +37,9 @@ export type NavItem = {
   // non-nulles (cf. hooks/useNavBadges).
   badgeSource?: 'messages' | 'candidatures' | 'candidatures_org' | 'missions'
   locked?: boolean
+  // Fonctionnalité pas encore livrée (lien mort) : entrée non cliquable marquée
+  // « Bientôt disponible ». Distinct de `locked` (verrou métier profil vérifié).
+  soon?: boolean
   variant?: 'default' | 'link'
 }
 
@@ -104,8 +107,10 @@ export function dashboardNavSections(
     {
       sectionKey: 'publish',
       items: [
-        // Placeholder (alerte dispo) : pointe vers la racine (déjà route de menu).
-        { key: 'alert',       href: `/dashboard/${side}`,                iconKey: 'alert',       variant: 'link', locked: !userIsVerified },
+        // Alerte dispo : fonctionnalité PAS ENCORE LIVRÉE (href = racine, lien
+        // mort). Verrouillée pour le motif « à venir » — INDÉPENDANT de la
+        // vérification (la déverrouiller ouvrirait un lien mort, cf. point 13).
+        { key: 'alert',       href: `/dashboard/${side}`,                iconKey: 'alert',       variant: 'link', soon: true },
         // Collaboration experts — LIVRÉ : besoin de sous-traitance entre pairs.
         // Badge = candidatures REÇUES sur les besoins publiés (candidatures_org),
         // distinct de l'entrée « Candidatures » (déposées) ci-dessus.
