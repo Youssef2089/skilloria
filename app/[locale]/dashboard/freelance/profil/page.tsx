@@ -5,7 +5,6 @@ import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { LEGAL_PATHS } from '@/lib/legal'
 
 type UploadStatus = 'idle' | 'uploading' | 'success' | 'error'
@@ -160,67 +159,9 @@ export default function ProfilUploadPage() {
         }
       `}</style>
 
-      {/* Header */}
-      <div
-        style={{
-          background: '#fff',
-          borderBottom: '1px solid #e5e7eb',
-          padding: '0 20px',
-          height: 58,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 9,
-              background: domain.primaryColor,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            {domain.logoUrl ? (
-              <img src={domain.logoUrl} alt={domain.name} width={18} height={18} />
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19"
-                  stroke="white"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-            )}
-          </div>
-          <span style={{ fontSize: 17, fontWeight: 700, color: '#111827' }}>{domain.name}</span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <LanguageSwitcher />
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: '#fef9c3',
-              border: '1px solid #fde68a',
-              padding: '7px 14px',
-              borderRadius: 20,
-            }}
-          >
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#eab308' }} />
-            <span style={{ fontSize: 13, fontWeight: 500, color: '#92400e', whiteSpace: 'nowrap' }}>
-              {t('status_badge.pending')}
-            </span>
-          </div>
-        </div>
-      </div>
+      {/* En-tête interne retiré (logo + nom de domaine + LanguageSwitcher +
+          badge de statut) : le DashboardShell fournit déjà logo (sidebar) et
+          LanguageSwitcher (topbar) ; le statut reste sur le tableau de bord. */}
 
       {/* Main */}
       <div className="profil-main" style={{ width: '100%', padding: 24 }}>

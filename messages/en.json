@@ -511,11 +511,7 @@
   "profile_upload": {
     "page_title": "Create your profile",
     "page_subtitle": "Our AI analyses your document and pre-fills your profile. You review, and you're set.",
-    "back_link": "← Back to dashboard",
     "error_close_aria": "Close",
-    "status_badge": {
-      "pending": "Pending verification"
-    },
     "card_cv": {
       "recommended_badge": "RECOMMENDED",
       "title": "Upload my CV",
@@ -560,10 +556,8 @@
     "page_title": "Validate your profile",
     "page_subtitle": "Check the information extracted from your document. You can edit anything before publishing.",
     "ai_banner": "💡 Our AI pre-filled these fields. Edit if needed before publishing.",
-    "back_link": "← Back",
     "loading": "Loading your profile...",
     "parsing_failed_message": "⚠️ AI parsing failed, please complete your profile manually.",
-    "topbar_pending": "Pending verification",
     "close_aria": "Close",
     "banner_error": "{count, plural, one {To publish your profile, complete the highlighted field below: {fields}.} other {To publish your profile, complete the # highlighted fields below: {fields}.}}",
     "errors": {
@@ -1312,11 +1306,7 @@
   "cdi_profile_upload": {
     "page_title": "Create your permanent profile",
     "page_subtitle": "Our AI analyses your document and pre-fills your candidate profile. You review, you publish.",
-    "back_link": "← Back to dashboard",
     "error_close_aria": "Close",
-    "status_badge": {
-      "pending": "Pending verification"
-    },
     "card_cv": {
       "recommended_badge": "RECOMMENDED",
       "title": "Upload my CV",
@@ -1361,10 +1351,8 @@
     "page_title": "Validate your permanent profile",
     "page_subtitle": "Review the information extracted from your document. You can adjust everything before publishing.",
     "ai_banner": "💡 Our AI pre-filled these fields. Tweak as needed before publishing.",
-    "back_link": "← Back",
     "loading": "Loading your profile...",
     "parsing_failed_message": "⚠️ AI parsing failed, please complete your profile manually.",
-    "topbar_pending": "Pending verification",
     "close_aria": "Close",
     "banner_error": "{count, plural, one {To publish your profile, complete the highlighted field below: {fields}.} other {To publish your profile, complete the # highlighted fields below: {fields}.}}",
     "errors": {

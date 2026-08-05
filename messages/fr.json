@@ -511,11 +511,7 @@
   "profile_upload": {
     "page_title": "Créez votre profil",
     "page_subtitle": "Notre IA analyse votre document et pré-remplit votre profil. Vous validez, c'est prêt.",
-    "back_link": "← Retour au tableau de bord",
     "error_close_aria": "Fermer",
-    "status_badge": {
-      "pending": "En attente de vérification"
-    },
     "card_cv": {
       "recommended_badge": "RECOMMANDÉ",
       "title": "Importer mon CV",
@@ -560,10 +556,8 @@
     "page_title": "Validez votre profil",
     "page_subtitle": "Vérifiez les informations extraites de votre document. Vous pouvez tout corriger avant de publier.",
     "ai_banner": "💡 Notre IA a pré-rempli ces champs. Modifiez si nécessaire avant de publier.",
-    "back_link": "← Retour",
     "loading": "Chargement de votre profil...",
     "parsing_failed_message": "⚠️ Le parsing IA a échoué, complétez votre profil manuellement.",
-    "topbar_pending": "En attente de vérification",
     "close_aria": "Fermer",
     "banner_error": "{count, plural, one {Pour publier votre profil, complétez le champ surligné ci-dessous : {fields}.} other {Pour publier votre profil, complétez les # champs surlignés ci-dessous : {fields}.}}",
     "errors": {
@@ -1312,11 +1306,7 @@
   "cdi_profile_upload": {
     "page_title": "Créez votre profil CDI",
     "page_subtitle": "Notre IA analyse votre document et pré-remplit votre profil candidat. Vous validez, c'est prêt.",
-    "back_link": "← Retour au tableau de bord",
     "error_close_aria": "Fermer",
-    "status_badge": {
-      "pending": "En attente de vérification"
-    },
     "card_cv": {
       "recommended_badge": "RECOMMANDÉ",
       "title": "Importer mon CV",
@@ -1361,10 +1351,8 @@
     "page_title": "Validez votre profil CDI",
     "page_subtitle": "Vérifiez les informations extraites de votre document. Vous pouvez tout corriger avant de publier.",
     "ai_banner": "💡 Notre IA a pré-rempli ces champs. Modifiez si nécessaire avant de publier.",
-    "back_link": "← Retour",
     "loading": "Chargement de votre profil...",
     "parsing_failed_message": "⚠️ Le parsing IA a échoué, complétez votre profil manuellement.",
-    "topbar_pending": "En attente de vérification",
     "close_aria": "Fermer",
     "banner_error": "{count, plural, one {Pour publier votre profil, complétez le champ surligné ci-dessous : {fields}.} other {Pour publier votre profil, complétez les # champs surlignés ci-dessous : {fields}.}}",
     "errors": {

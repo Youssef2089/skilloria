@@ -53,6 +53,15 @@ export default function ExpertOnboardingGuide({
     { key: 'receive', state: 'todo' },
   ]
 
+  // D4 — cible PAR ÉTAPE (et non plus une cible unique) : l'étape « CV » mène à
+  // la vraie zone d'import (${basePath}/profil), les autres à la validation.
+  const STEP_HREF: Record<'cv' | 'profile' | 'publish' | 'receive', string | null> = {
+    cv: `${basePath}/profil`,
+    profile: `${basePath}/profil/valider`,
+    publish: `${basePath}/profil/valider`,
+    receive: null,
+  }
+
   return (
     <div
       style={{
@@ -72,55 +81,58 @@ export default function ExpertOnboardingGuide({
         <p style={{ fontSize: 13.5, color: '#64748b', margin: 0, lineHeight: 1.55 }}>{t('subtitle')}</p>
       </div>
 
-      <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* D5 — compaction progressive : SEULE l'étape courante est détaillée
+          (carte + statut + CTA) ; les étapes faites et à venir tiennent sur UNE
+          ligne (pastille + libellé), sans description ni CTA. Le bloc se resserre
+          donc à mesure de l'avancement. */}
+      <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
         {steps.map((step, i) => {
           const isCurrent = step.state === 'current'
           const isDone = step.state === 'done'
           const dotBg = isDone ? '#22c55e' : isCurrent ? domain.primaryColor : '#e2e8f0'
           const dotFg = isDone || isCurrent ? '#fff' : '#94a3b8'
+          const href = STEP_HREF[step.key]
+          const dotSize = isCurrent ? 26 : 22
           return (
             <li
               key={step.key}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 14,
-                padding: '12px 14px',
+                gap: 12,
+                padding: isCurrent ? '12px 14px' : '7px 14px',
                 borderRadius: 12,
                 background: isCurrent ? `${domain.primaryColor}0A` : 'transparent',
-                border: isCurrent ? `1px solid ${domain.primaryColor}33` : '1px solid #eef2f6',
+                border: isCurrent ? `1px solid ${domain.primaryColor}33` : '1px solid transparent',
               }}
             >
               <span
                 aria-hidden
                 style={{
-                  width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+                  width: dotSize, height: dotSize, borderRadius: '50%', flexShrink: 0,
                   background: dotBg, color: dotFg,
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 13, fontWeight: 700,
+                  fontSize: isCurrent ? 13 : 12, fontWeight: 700,
                 }}
               >
                 {isDone ? '✓' : i + 1}
               </span>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: isCurrent ? 700 : 600, color: isDone ? '#64748b' : '#0f172a' }}>
+                <div style={{ fontSize: 14, fontWeight: isCurrent ? 700 : 600, color: isDone ? '#64748b' : isCurrent ? '#0f172a' : '#94a3b8' }}>
                   {t(`steps.${step.key}.title`)}
                 </div>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
-                  {isDone
-                    ? t('status.done')
-                    : step.inProgress
-                      ? t('status.in_progress')
-                      : isCurrent
-                        ? t('status.current')
-                        : t('status.todo')}
-                </div>
+                {/* Description/statut : UNIQUEMENT sur l'étape courante. */}
+                {isCurrent && (
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                    {step.inProgress ? t('status.in_progress') : t('status.current')}
+                  </div>
+                )}
               </div>
               {/* Action directe UNIQUEMENT sur l'étape courante actionnable
                   (pas quand la vérif est déjà en cours, ni sur « recevoir »). */}
-              {isCurrent && !step.inProgress && step.key !== 'receive' && (
+              {isCurrent && !step.inProgress && href && (
                 <Link
-                  href={`${basePath}/profil/valider`}
+                  href={href}
                   style={{
                     flexShrink: 0,
                     display: 'inline-flex', alignItems: 'center', gap: 6,

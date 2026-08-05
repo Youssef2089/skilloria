@@ -9,7 +9,6 @@ import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { markMatchingTriggered } from '@/lib/matching-resync-hint'
 import CountrySelect from '@/components/CountrySelect'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
 import CompactListItem from '@/components/CompactListItem'
 import CdiStatusToggle, { type CdiStatus } from '@/components/cdi/CdiStatusToggle'
 
@@ -316,8 +315,6 @@ export default function CdiValiderProfilPage() {
   // Lot CV obligatoire : "CV prêt" = parsé (done) ET consentement IA donné.
   const [cvParsingStatus, setCvParsingStatus] = useState<string | null>(null)
   const [aiConsentAt, setAiConsentAt] = useState<string | null>(null)
-  // Statut de publication : décide la cible du lien "Retour" (édition vs onboarding).
-  const [isPublished, setIsPublished] = useState(false)
   // Lot reset CV : annuler/retélécharger (remise à zéro complète serveur).
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [resetting, setResetting] = useState(false)
@@ -536,7 +533,6 @@ export default function CdiValiderProfilPage() {
       setParsingFailed(p.cv_parsing_status === 'failed')
       setCvParsingStatus(p.cv_parsing_status ?? null)
       setAiConsentAt(p.ai_consent_at ?? null)
-      setIsPublished(p.visible === true)
       setTitle(p.title ?? '')
       setSummary(p.summary ?? '')
       setSeniority((p.seniority as Seniority | null) ?? '')
@@ -1420,87 +1416,10 @@ export default function CdiValiderProfilPage() {
         }
       `}</style>
 
-      {/* Header */}
-      <div
-        style={{
-          background: '#fff',
-          borderBottom: '1px solid #e5e7eb',
-          padding: '0 20px',
-          height: 58,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 9,
-              background: domain.primaryColor,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            {domain.logoUrl ? (
-              <img src={domain.logoUrl} alt={domain.name} width={18} height={18} />
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19"
-                  stroke="white"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-            )}
-          </div>
-          <span
-            style={{
-              fontSize: 17,
-              fontWeight: 700,
-              color: '#111827',
-              fontFamily: fontJakarta,
-            }}
-          >
-            {domain.name}
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <LanguageSwitcher />
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: '#fef9c3',
-              border: '1px solid #fde68a',
-              padding: '7px 14px',
-              borderRadius: 20,
-            }}
-          >
-            <div
-              style={{ width: 8, height: 8, borderRadius: '50%', background: '#eab308' }}
-            />
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 500,
-                color: '#92400e',
-                whiteSpace: 'nowrap',
-                fontFamily: fontJakarta,
-              }}
-            >
-              {tProfile('topbar_pending')}
-            </span>
-          </div>
-        </div>
-      </div>
-
+      {/* En-tête interne retiré (logo + nom de domaine + LanguageSwitcher +
+          badge) : le DashboardShell fournit déjà logo (sidebar) et
+          LanguageSwitcher (topbar). Statut de vérification uniquement sur le
+          tableau de bord (non dupliqué). */}
       <div className="profil-main" style={{ width: '100%', padding: 24 }}>
         {(!authChecked || loading) ? (
           <div
@@ -1530,24 +1449,8 @@ export default function CdiValiderProfilPage() {
           </div>
         ) : (
           <>
-            <button
-              type="button"
-              onClick={() => router.push(isPublished ? '/dashboard/cdi/mon-profil' : '/dashboard/cdi/profil')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: domain.primaryColor,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                padding: 0,
-                marginBottom: 24,
-                fontFamily: fontJakarta,
-              }}
-            >
-              {tProfile('back_link')}
-            </button>
-
+            {/* Bouton Retour local retiré : le GlobalBackButton du shell est
+                l'unique bouton Retour (règle projet). */}
             {errorMsg && (
               <div
                 role="alert"

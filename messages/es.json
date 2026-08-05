@@ -511,11 +511,7 @@
   "profile_upload": {
     "page_title": "Crea tu perfil",
     "page_subtitle": "Nuestra IA analiza tu documento y rellena tu perfil. Tú validas, y listo.",
-    "back_link": "← Volver al panel",
     "error_close_aria": "Cerrar",
-    "status_badge": {
-      "pending": "Pendiente de verificación"
-    },
     "card_cv": {
       "recommended_badge": "RECOMENDADO",
       "title": "Subir mi CV",
@@ -560,10 +556,8 @@
     "page_title": "Valida tu perfil",
     "page_subtitle": "Comprueba la información extraída de tu documento. Puedes editar todo antes de publicar.",
     "ai_banner": "💡 Nuestra IA ha pre-rellenado estos campos. Edita si es necesario antes de publicar.",
-    "back_link": "← Volver",
     "loading": "Cargando tu perfil...",
     "parsing_failed_message": "⚠️ El análisis IA ha fallado, completa tu perfil manualmente.",
-    "topbar_pending": "Pendiente de verificación",
     "close_aria": "Cerrar",
     "banner_error": "{count, plural, one {Para publicar tu perfil, completa el campo destacado de abajo: {fields}.} other {Para publicar tu perfil, completa los # campos destacados de abajo: {fields}.}}",
     "errors": {
@@ -1312,11 +1306,7 @@
   "cdi_profile_upload": {
     "page_title": "Crea tu perfil de candidato",
     "page_subtitle": "Nuestra IA analiza tu documento y rellena tu perfil. Tú lo validas, listo.",
-    "back_link": "← Volver al panel",
     "error_close_aria": "Cerrar",
-    "status_badge": {
-      "pending": "Pendiente de verificación"
-    },
     "card_cv": {
       "recommended_badge": "RECOMENDADO",
       "title": "Subir mi CV",
@@ -1361,10 +1351,8 @@
     "page_title": "Valida tu perfil de candidato",
     "page_subtitle": "Revisa la información extraída del documento. Puedes corregir todo antes de publicar.",
     "ai_banner": "💡 Nuestra IA ha rellenado estos campos. Modifícalos si lo necesitas antes de publicar.",
-    "back_link": "← Volver",
     "loading": "Cargando tu perfil...",
     "parsing_failed_message": "⚠️ El análisis IA falló, completa tu perfil manualmente.",
-    "topbar_pending": "Pendiente de verificación",
     "close_aria": "Cerrar",
     "banner_error": "{count, plural, one {Para publicar tu perfil, completa el campo destacado abajo: {fields}.} other {Para publicar tu perfil, completa los # campos destacados abajo: {fields}.}}",
     "errors": {

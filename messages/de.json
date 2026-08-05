@@ -511,11 +511,7 @@
   "profile_upload": {
     "page_title": "Erstellen Sie Ihr Profil",
     "page_subtitle": "Unsere KI analysiert Ihr Dokument und füllt Ihr Profil vor. Sie prüfen, fertig.",
-    "back_link": "← Zurück zum Dashboard",
     "error_close_aria": "Schließen",
-    "status_badge": {
-      "pending": "Verifizierung ausstehend"
-    },
     "card_cv": {
       "recommended_badge": "EMPFOHLEN",
       "title": "Lebenslauf hochladen",
@@ -560,10 +556,8 @@
     "page_title": "Validieren Sie Ihr Profil",
     "page_subtitle": "Überprüfen Sie die aus Ihrem Dokument extrahierten Informationen. Sie können alles vor dem Veröffentlichen bearbeiten.",
     "ai_banner": "💡 Unsere KI hat diese Felder vorausgefüllt. Bearbeiten Sie sie bei Bedarf vor dem Veröffentlichen.",
-    "back_link": "← Zurück",
     "loading": "Ihr Profil wird geladen...",
     "parsing_failed_message": "⚠️ Die KI-Auswertung ist fehlgeschlagen, vervollständigen Sie Ihr Profil manuell.",
-    "topbar_pending": "Wartet auf Verifizierung",
     "close_aria": "Schließen",
     "banner_error": "{count, plural, one {Um Ihr Profil zu veröffentlichen, vervollständigen Sie das unten markierte Feld: {fields}.} other {Um Ihr Profil zu veröffentlichen, vervollständigen Sie die # unten markierten Felder: {fields}.}}",
     "errors": {
@@ -1312,11 +1306,7 @@
   "cdi_profile_upload": {
     "page_title": "Erstellen Sie Ihr Festanstellungsprofil",
     "page_subtitle": "Unsere KI analysiert Ihr Dokument und füllt Ihr Bewerberprofil vor. Sie prüfen, fertig.",
-    "back_link": "← Zurück zum Dashboard",
     "error_close_aria": "Schliessen",
-    "status_badge": {
-      "pending": "Verifizierung ausstehend"
-    },
     "card_cv": {
       "recommended_badge": "EMPFOHLEN",
       "title": "Lebenslauf hochladen",
@@ -1361,10 +1351,8 @@
     "page_title": "Validieren Sie Ihr Festanstellungsprofil",
     "page_subtitle": "Prüfen Sie die aus Ihrem Dokument extrahierten Informationen. Sie können alles vor der Veröffentlichung anpassen.",
     "ai_banner": "💡 Unsere KI hat diese Felder vorausgefüllt. Passen Sie sie bei Bedarf vor der Veröffentlichung an.",
-    "back_link": "← Zurück",
     "loading": "Ihr Profil wird geladen...",
     "parsing_failed_message": "⚠️ KI-Analyse fehlgeschlagen, bitte vervollständigen Sie Ihr Profil manuell.",
-    "topbar_pending": "Verifizierung ausstehend",
     "close_aria": "Schliessen",
     "banner_error": "{count, plural, one {Um Ihr Profil zu veröffentlichen, vervollständigen Sie das hervorgehobene Feld unten: {fields}.} other {Um Ihr Profil zu veröffentlichen, vervollständigen Sie die # hervorgehobenen Felder unten: {fields}.}}",
     "errors": {
