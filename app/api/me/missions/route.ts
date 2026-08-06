@@ -3,6 +3,7 @@ import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { buildPublicationSynthesis } from '@/lib/publication-synthesis'
+import { activePublishedOrClause } from '@/lib/publications/expiry'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -139,6 +140,10 @@ export async function GET(request: NextRequest): Promise<Response> {
       .eq('profile_id', profile.id)
       .neq('status', 'dismissed')
       .eq('publications.status', 'published')
+      // Expiration 30j calculée à la lecture : une annonce expirée disparaît du
+      // feed (lib/publications/expiry — source unique ; filtre sur la ressource
+      // imbriquée `publications`).
+      .or(activePublishedOrClause(), { referencedTable: 'publications' })
       .order('score', { ascending: false })
       .limit(200),
     loadTranslations(locale),

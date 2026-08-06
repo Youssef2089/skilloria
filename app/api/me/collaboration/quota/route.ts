@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { getOrgEntitlements } from '@/lib/entitlements'
+import { activePublishedOrClause } from '@/lib/publications/expiry'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -44,11 +45,14 @@ export async function GET(request: NextRequest): Promise<Response> {
   const ents = await getOrgEntitlements(auth.supabaseAdmin, orgId, auth.domain.id)
   const activePublicationsMax = ents.limits.activePublicationsMax
 
+  // Miroir du plafond d'actives (publish) : mêmes « actives » = published NON
+  // expirées (règle 30j read-time, lib/publications/expiry). Une expirée libère un slot.
   const { count, error: countErr } = await auth.supabaseAdmin
     .from('publications')
     .select('id', { count: 'exact', head: true })
     .eq('organization_id', orgId)
     .eq('status', 'published')
+    .or(activePublishedOrClause())
   if (countErr) {
     console.error('[collaboration/quota:GET] count failed', countErr.message)
     // Fail-open : on n'empêche pas l'accès à l'écran sur une erreur de comptage.

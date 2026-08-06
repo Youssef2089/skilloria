@@ -1902,6 +1902,7 @@
       "confirm_publish_rule_no_discrimination": "No discriminatory criteria (age, gender, origin, etc.)",
       "confirm_publish_rule_legal": "Legal conditions respected (compensation, status)",
       "confirm_publish_warning": "If a blocking criterion is detected, the listing will go to manual review instead of going live immediately.",
+      "confirm_publish_expiry": "Your listing will stay live for 30 days and will expire on {date}. After that, you'll need to republish it (a new publication).",
       "confirm_publish_yes": "Publish now",
       "confirm_publish_no": "Cancel",
       "field_speciality_other_option": "Other (specify)",

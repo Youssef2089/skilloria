@@ -4,6 +4,7 @@ import { logAudit } from '@/lib/audit'
 import { isExpertProfileApproved, PROFILE_NOT_VERIFIED_CODE } from '@/lib/expert-verified-guard'
 import { loadTranslations, tBDD } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
+import { isActivePublished } from '@/lib/publications/expiry'
 import type {
   Annonce,
   AnnonceBudgetUnit,
@@ -362,6 +363,7 @@ type PublicationRow = {
   verification_score: number | null
   created_at: string
   published_at: string | null
+  expires_at: string | null
   branches: { id: string; name: string } | { id: string; name: string }[] | null
   specialities: { id: string; name: string } | { id: string; name: string }[] | null
 }
@@ -397,7 +399,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         // buildPublicationSynthesis pour la carte AnnonceCard.
         'id, type, title, status, branch_id, speciality_id, budget_min, budget_max, ' +
           'location, work_mode, duration, start_date, seniority, confidential, ' +
-          'verification_score, created_at, published_at, ' +
+          'verification_score, created_at, published_at, expires_at, ' +
           'branches(id, name), specialities(id, name)',
       )
       .eq('organization_id', orgId)
@@ -438,9 +440,15 @@ export async function GET(request: NextRequest): Promise<Response> {
     const safeType: AnnonceType = (VALID_TYPES as readonly string[]).includes(row.type)
       ? (row.type as AnnonceType)
       : 'mission'
-    const safeStatus: AnnonceStatus = (VALID_STATUSES as readonly string[]).includes(row.status)
+    // Statut EFFECTIF dérivé SERVEUR (point 20) : une publication 'published'
+    // dont l'expiration 30j (calculée à la lecture) est dépassée est renvoyée
+    // 'expired' au client — le statut en base reste 'published' (aucun job).
+    // AnnonceCard rend déjà le badge 'Expirée' + le funnel « clôturées ».
+    const rawStatus = (VALID_STATUSES as readonly string[]).includes(row.status)
       ? (row.status as AnnonceStatus)
       : 'draft'
+    const safeStatus: AnnonceStatus =
+      rawStatus === 'published' && !isActivePublished(row) ? 'expired' : rawStatus
     const branch = pickRel(row.branches)
     const speciality = pickRel(row.specialities)
 

@@ -9,6 +9,7 @@ import type {
 import { runMatching } from '@/lib/matching'
 import { getOrgEntitlements, consumeQuota, monthlyPeriodStart } from '@/lib/entitlements'
 import { isExpertProfileApproved, PROFILE_NOT_VERIFIED_CODE } from '@/lib/expert-verified-guard'
+import { activePublishedOrClause } from '@/lib/publications/expiry'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -136,11 +137,14 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   const ents = await getOrgEntitlements(auth.supabaseAdmin, orgId, auth.domain.id)
 
   if (ents.limits.activePublicationsMax !== null) {
+    // « Actives » = published NON EXPIRÉES (règle 30j calculée à la lecture, cf.
+    // lib/publications/expiry). Une annonce expirée LIBÈRE son slot.
     const { count: activeCount, error: countErr } = await auth.supabaseAdmin
       .from('publications')
       .select('id', { count: 'exact', head: true })
       .eq('organization_id', orgId)
       .eq('status', 'published')
+      .or(activePublishedOrClause())
     if (countErr) {
       // Fail-open : on ne bloque pas sur une erreur de comptage.
       console.warn('[publications:publish] active count error — fail-open', countErr.message)
@@ -205,8 +209,10 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     verification_data: verdict.data,
   }
   if (verdict.status === 'published') {
+    // published_at pilote l'expiration (calculée à la lecture : published_at + 30j).
+    // On N'ÉCRIT PAS expires_at (décision : règle read-time, pas de valeur stockée
+    // — une colonne écrite mais jamais relue serait un piège futur).
     updates.published_at = nowIso
-    updates.expires_at = null
   }
 
   const { error: updateErr } = await auth.supabaseAdmin

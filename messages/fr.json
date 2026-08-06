@@ -1902,6 +1902,7 @@
       "confirm_publish_rule_no_discrimination": "Aucun critère discriminatoire (âge, sexe, origine, etc.)",
       "confirm_publish_rule_legal": "Conditions légales respectées (rémunération, statut)",
       "confirm_publish_warning": "Si un critère bloquant est détecté, l'annonce passera en revue manuelle au lieu d'être publiée immédiatement.",
+      "confirm_publish_expiry": "Votre annonce restera en ligne 30 jours et expirera le {date}. Passé ce délai, vous devrez la republier (nouvelle publication).",
       "confirm_publish_yes": "Publier maintenant",
       "confirm_publish_no": "Annuler",
       "field_speciality_other_option": "Autre (préciser)",

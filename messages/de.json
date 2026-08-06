@@ -1902,6 +1902,7 @@
       "confirm_publish_rule_no_discrimination": "Keine diskriminierenden Kriterien (Alter, Geschlecht, Herkunft, etc.)",
       "confirm_publish_rule_legal": "Gesetzliche Bedingungen eingehalten (Vergütung, Status)",
       "confirm_publish_warning": "Wird ein blockierendes Kriterium erkannt, geht die Anzeige in manuelle Prüfung statt sofort zu veröffentlichen.",
+      "confirm_publish_expiry": "Ihre Anzeige bleibt 30 Tage online und läuft am {date} ab. Danach müssen Sie sie erneut veröffentlichen (eine neue Veröffentlichung).",
       "confirm_publish_yes": "Jetzt veröffentlichen",
       "confirm_publish_no": "Abbrechen",
       "field_speciality_other_option": "Sonstige (angeben)",

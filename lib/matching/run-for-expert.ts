@@ -8,6 +8,7 @@ import type {
   PublicationForMatching,
 } from './types'
 import type { AnnonceType } from '@/types/annonce'
+import { activePublishedOrClause } from '@/lib/publications/expiry'
 import {
   loadMatchingConfig,
   normalizeMatchingLocale,
@@ -296,6 +297,9 @@ export async function runMatchingForExpert(args: {
     )
     .eq('domain_id', profile.domain_id)
     .eq('status', 'published')
+    // Expiration 30j calculée à la lecture : une annonce expirée n'entre jamais
+    // dans le pool de matching (lib/publications/expiry — source unique).
+    .or(activePublishedOrClause())
   // Pool de types : natifs de l'expert (freelance = mission + sous_traitance ;
   // cdi = offre), + l'autre set si ouverture croisée. Inclure sous_traitance
   // dans le pool freelance évite AUSSI que reconcile n'élague un match vers un

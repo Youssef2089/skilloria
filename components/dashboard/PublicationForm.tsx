@@ -13,6 +13,7 @@ import {
   type WorkModeCode,
 } from '@/types/publication'
 import type { AnnonceType } from '@/types/annonce'
+import { PUBLICATION_TTL_DAYS } from '@/lib/publications/expiry'
 
 /**
  * Formulaire de création + édition d'une publication.
@@ -943,8 +944,17 @@ export default function PublicationForm(props: Props) {
               <li>{t('form.confirm_publish_rule_no_discrimination')}</li>
               <li>{t('form.confirm_publish_rule_legal')}</li>
             </ul>
-            <p style={{ fontSize: 13, color: '#854D0E', background: '#FEF9C3', border: '1px solid #FDE047', borderRadius: 8, padding: '10px 12px', lineHeight: 1.55, marginBottom: 18 }}>
+            <p style={{ fontSize: 13, color: '#854D0E', background: '#FEF9C3', border: '1px solid #FDE047', borderRadius: 8, padding: '10px 12px', lineHeight: 1.55, marginBottom: 12 }}>
               {t('form.confirm_publish_warning')}
+            </p>
+            {/* Lot A — avertissement d'expiration : date calculée (now + 30j) +
+                mention explicite de la republication. */}
+            <p style={{ fontSize: 13, color: '#334155', lineHeight: 1.55, marginBottom: 18 }}>
+              {t('form.confirm_publish_expiry', {
+                date: new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(
+                  new Date(Date.now() + PUBLICATION_TTL_DAYS * 24 * 60 * 60 * 1000),
+                ),
+              })}
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button

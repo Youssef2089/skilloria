@@ -8,6 +8,7 @@ import { performUnlock } from '@/lib/unlock'
 // A4 : dérivation CENTRALISÉE du deep-link notif selon le type d'org (org
 // personnelle freelance → dashboard expert ; org cliente → dashboard entreprise).
 import { publicationCandidaturesLinkForOrg } from '@/lib/collaboration-links'
+import { isActivePublished } from '@/lib/publications/expiry'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -168,14 +169,19 @@ export async function POST(request: NextRequest): Promise<Response> {
   //  l'expert publiant = owner de son organisation personnelle).
   const { data: pub, error: pubErr } = await auth.supabaseAdmin
     .from('publications')
-    .select('id, status, type, created_by')
+    .select('id, status, type, created_by, published_at, expires_at')
     .eq('id', publicationId)
     .maybeSingle()
   if (pubErr || !pub) {
     return json({ error: 'Publication not found', code: 'not_found' }, 404)
   }
-  const pubRow = pub as { id: string; status: string; type: string; created_by: string | null }
-  if (pubRow.status !== 'published') {
+  const pubRow = pub as {
+    id: string; status: string; type: string; created_by: string | null
+    published_at: string | null; expires_at: string | null
+  }
+  // Ouverte = published NON expirée (règle 30j read-time, lib/publications/expiry).
+  // On ne peut pas postuler à une annonce expirée.
+  if (!isActivePublished(pubRow)) {
     return json({ error: 'Publication not available', code: 'publication_not_published' }, 409)
   }
 

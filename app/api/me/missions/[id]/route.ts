@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { loadTranslations, tBDD } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
+import { activePublishedOrClause } from '@/lib/publications/expiry'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -126,6 +127,9 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
       )
       .eq('id', publicationId)
       .eq('status', 'published')
+      // Expiration 30j read-time : le détail d'une mission expirée n'est plus
+      // servi côté expert (lib/publications/expiry — source unique).
+      .or(activePublishedOrClause())
       .maybeSingle(),
     loadTranslations(locale),
   ])
