@@ -14,6 +14,7 @@ import CollaborationDashboardBlock from '@/components/dashboard/CollaborationDas
 import { useLiveResource } from '@/hooks/useLiveResource'
 import MissionCastingCard from '@/components/dashboard/MissionCastingCard'
 import CandidatureCastingCard from '@/components/dashboard/CandidatureCastingCard'
+import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
 import CastingRow from '@/components/dashboard/CastingRow'
 import type { MissionCardData } from '@/components/dashboard/MissionCard'
 import type { PublicationSynthesisData } from '@/components/dashboard/PublicationSynthesisLine'
@@ -123,6 +124,8 @@ export default function DashboardFreelance() {
     conversation_id: string | null
     created_at: string
     viewed_by_me?: boolean
+    /** État de vie dérivé serveur (lot « libellés d'état réels »). */
+    lifecycle?: CandidatureLifecycle | null
   }
   // Lot polish UX SC5 : on utilise MissionCardData (déjà aligné sur la
   // PublicationSynthesis renvoyée par /api/me/missions).
@@ -173,11 +176,14 @@ export default function DashboardFreelance() {
     enabled: liveEnabled && isApproved,
     holdNewItems: false,
   })
+  // `?filter=all` : la home a besoin des DEUX buckets — les KPI comptent aussi
+  // les refusées/expirées, la rangée casting n'affiche que les actives (elle
+  // LIT le bucket servi, elle ne le recalcule pas).
   const candidaturesLive = useLiveResource<{ candidatures: CandidatureLite[] }, CandidatureLite>({
-    url: liveEnabled ? '/api/me/candidatures' : null,
+    url: liveEnabled ? '/api/me/candidatures?filter=all' : null,
     itemsOf: (d) => d.candidatures ?? [],
     identityOf: (c) => c.id,
-    versionOf: (c) => `${c.status}|${c.conversation_id ?? ''}`,
+    versionOf: (c) => `${c.status}|${c.lifecycle?.reason ?? ''}|${c.conversation_id ?? ''}`,
     enabled: liveEnabled,
     holdNewItems: false,
   })
@@ -223,7 +229,13 @@ export default function DashboardFreelance() {
         console.warn('[dashboard:freelance] sync-matching ping failed', err)
       })
   }
-  const recentCandidatures = useMemo(() => candidaturesAll === null ? null : candidaturesAll, [candidaturesAll])
+  // Rangée casting home : ACTIVES uniquement. Une candidature morte n'a rien
+  // à faire sous les yeux de l'expert au réveil — elle reste consultable dans
+  // l'onglet Archivées de /candidatures.
+  const recentCandidatures = useMemo(
+    () => candidaturesAll === null ? null : candidaturesAll.filter((c) => c.lifecycle?.bucket !== 'archived'),
+    [candidaturesAll],
+  )
   const stats = useMemo(() => {
     if (missions === null && candidaturesAll === null && conversations === null) {
       return {
@@ -232,19 +244,20 @@ export default function DashboardFreelance() {
         completion_pct: null,
       } as const
     }
-    // Lot état 'selected' :
-    //   en_discussion = UNLOCKED uniquement (l'expert et l'org échangent).
-    //                   in_review / shortlisted = encore "en attente côté org"
-    //                   → ne comptent plus comme "en discussion" V1.
-    //   retenues      = SELECTED uniquement (l'expert a été retenu).
-    //   refusees      = REJECTED (inchangé).
+    // Lot « libellés d'état réels » : les KPI comptent des RAISONS DÉRIVÉES,
+    // plus des statuts bruts.
+    //   en_discussion = échange dont la fenêtre 15 j est ENCORE ouverte. Un
+    //                   'unlocked' périmé n'est plus une discussion en cours.
+    //   retenues      = sélection (issue positive, sans limite de temps).
+    //   refusees      = refus explicite de l'entreprise.
     let postulees = 0, enDiscussion = 0, retenues = 0, refusees = 0
     if (candidaturesAll) {
       postulees = candidaturesAll.length
       for (const c of candidaturesAll) {
-        if (c.status === 'unlocked') enDiscussion++
-        else if (c.status === 'selected') retenues++
-        else if (c.status === 'rejected') refusees++
+        const reason = c.lifecycle?.reason
+        if (reason === 'exchange_open') enDiscussion++
+        else if (reason === 'selected') retenues++
+        else if (reason === 'rejected') refusees++
       }
     }
     const unread = (conversations ?? []).reduce((acc, c) => acc + (c.unread_count ?? 0), 0)

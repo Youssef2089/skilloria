@@ -3027,5 +3027,46 @@
     "err_invalid_domain": "Seleccione un ecosistema.",
     "err_branch_in_use": "Rama en uso: {profiles} perfil(es), {publications} publicación(es), {specialities} especialidad(es).",
     "err_spec_in_use": "Especialidad en uso: {profiles} perfil(es), {publications} publicación(es)."
+  },
+  "candidature_lifecycle": {
+    "filters": {
+      "active": "Activas",
+      "archived": "Archivadas",
+      "active_count": "Activas ({count})",
+      "archived_count": "Archivadas ({count})"
+    },
+    "empty_active_title": "Ninguna candidatura activa",
+    "empty_active_body": "Las candidaturas en curso aparecerán aquí.",
+    "empty_archived_title": "Ninguna candidatura archivada",
+    "empty_archived_body": "Las candidaturas cerradas se guardan aquí y siguen siendo consultables.",
+    "messages_empty_active_title": "Ningún intercambio en curso",
+    "messages_empty_active_body": "Los intercambios abiertos aparecerán aquí.",
+    "messages_empty_archived_title": "Ningún intercambio archivado",
+    "messages_empty_archived_body": "Los intercambios cerrados siguen siendo consultables aquí, en solo lectura.",
+    "read_only_notice": "Este intercambio está archivado: sigue siendo consultable, pero ya no se puede escribir en él.",
+    "expert": {
+      "selected_mission": "Misión conseguida",
+      "selected_offre": "Puesto conseguido",
+      "exchange_open": "Intercambio abierto hasta el {date}",
+      "awaiting_review": "A la espera de respuesta — anuncio abierto hasta el {date}",
+      "exchange_expired": "Intercambio terminado sin continuación",
+      "publication_expired": "Este anuncio ha expirado",
+      "publication_closed": "Este anuncio ha sido retirado",
+      "rejected": "Candidatura rechazada",
+      "withdrawn": "Candidatura retirada",
+      "archived": "Candidatura archivada"
+    },
+    "org": {
+      "selected_mission": "Candidato seleccionado para esta misión",
+      "selected_offre": "Candidato seleccionado para este puesto",
+      "exchange_open": "Intercambio abierto hasta el {date}",
+      "awaiting_review": "Por revisar — anuncio abierto hasta el {date}",
+      "exchange_expired": "Intercambio terminado sin continuación",
+      "publication_expired": "Este anuncio ha expirado",
+      "publication_closed": "Este anuncio ha sido retirado",
+      "rejected": "Candidatura rechazada",
+      "withdrawn": "Candidatura retirada por el candidato",
+      "archived": "Candidatura archivada"
+    }
   }
 }

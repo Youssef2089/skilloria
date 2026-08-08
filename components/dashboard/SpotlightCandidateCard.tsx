@@ -8,6 +8,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
 import { useOrgRole } from '@/lib/use-org-role'
 import type { CandidatureData } from '@/components/dashboard/CandidatureCard'
+import { useCandidatureLifecycleLabel } from '@/lib/candidatures/use-lifecycle-label'
 
 /**
  * SpotlightCandidateCard — carte candidat "sous projecteur" du carrousel
@@ -93,6 +94,8 @@ export default function SpotlightCandidateCard({
   // n'existe pas → clés brutes affichées).
   const tAvail = useTranslations('profile_view.availability_status')
   const tCdi = useTranslations('cdi_profile_view.status_badges')
+  // SITE DE RENDU 5/5 — libellé d'état par la RAISON dérivée, point de vue org.
+  const lifecycleLabel = useCandidatureLifecycleLabel('org')
   const locale = useLocale()
   const domain = useDomain()
   const secureFetch = useSecureFetch()
@@ -105,13 +108,21 @@ export default function SpotlightCandidateCard({
   const [rejectReason, setRejectReason] = useState('')
   const [viewedOptimistic, setViewedOptimistic] = useState(false)
 
-  const { status, preview, unlocked_profile, ai_match_score, ai_pitch, viewed_by_me } = candidature
+  const { status, preview, unlocked_profile, ai_match_score, ai_pitch, viewed_by_me, lifecycle } = candidature
   const isUnlocked = status === 'unlocked' || status === 'selected'
   const isSelected = status === 'selected'
   const isRejected = status === 'rejected'
-  const isClosed = isRejected || status === 'withdrawn' || status === 'archived'
-  const canAct = status === 'received' || status === 'in_review' || status === 'shortlisted'
+  // « Close » = ARCHIVÉE au sens état de vie : refus, retrait, mais aussi
+  // fenêtre d'échange écoulée et annonce expirée. C'est ce qui fane la carte
+  // et retire les actions — on ne retient pas un candidat sur un échange mort.
+  const isClosed = lifecycle
+    ? lifecycle.bucket === 'archived'
+    : isRejected || status === 'withdrawn' || status === 'archived'
+  const canAct = !isClosed && (status === 'received' || status === 'in_review' || status === 'shortlisted')
   const canSelect = status === 'unlocked' && !isClosed
+  /** Bandeau d'état affiché en bas de carte quand la candidature n'est plus
+   *  « en cours » : sélection (positive) ou archivage (avec sa raison). */
+  const showStateBanner = isSelected || isClosed
   const isViewed = viewedOptimistic || viewed_by_me === true
   const isUnviewed = !isViewed && viewed_by_me === false
   const optimisticView = () => setViewedOptimistic(true)
@@ -357,17 +368,24 @@ export default function SpotlightCandidateCard({
           </div>
         )}
 
-        {isSelected && (
+        {/* Un SEUL bandeau, dont le texte EST la raison dérivée. Avant, seuls
+            'selected' et 'rejected' parlaient : une candidature archivée par
+            expiration ne disait rien, ou pire gardait « Échange ouvert » en
+            haut de carte. On dit toujours POURQUOI, jamais un « Archivée » nu. */}
+        {showStateBanner && (
           <div style={{ display: 'inline-flex' }}>
-            <span style={{ padding: '5px 11px', background: '#FEF3C7', color: '#92400E', fontSize: 11.5, fontWeight: 700, borderRadius: 999 }}>
-              🏆 {t(publicationType === 'mission' ? 'selected_section_label_mission' : 'selected_section_label_offre')}
-            </span>
-          </div>
-        )}
-        {isRejected && (
-          <div style={{ display: 'inline-flex' }}>
-            <span style={{ padding: '5px 11px', background: '#FEE2E2', color: '#991B1B', fontSize: 11.5, fontWeight: 700, borderRadius: 999 }}>
-              {t('status.rejected')}
+            <span
+              style={{
+                padding: '5px 11px',
+                background: isSelected ? '#FEF3C7' : isRejected ? '#FEE2E2' : '#f1f5f9',
+                color: isSelected ? '#92400E' : isRejected ? '#991B1B' : '#475569',
+                fontSize: 11.5,
+                fontWeight: 700,
+                borderRadius: 999,
+              }}
+            >
+              {isSelected ? '🏆 ' : ''}
+              {lifecycleLabel(lifecycle, publicationType)}
             </span>
           </div>
         )}

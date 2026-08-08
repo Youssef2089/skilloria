@@ -42,15 +42,18 @@ type PublicationInfo = {
   skills_required?: string[]
 }
 type GlobalCandidature = CandidatureData & { publication_id: string }
+type BucketCounts = { active: number; archived: number }
+type BucketKey = 'active' | 'archived'
 type State =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
-  | { kind: 'ready'; candidatures: GlobalCandidature[]; publications: PublicationInfo[] }
+  | { kind: 'ready'; candidatures: GlobalCandidature[]; publications: PublicationInfo[]; counts: BucketCounts }
 
 export default function GlobalCandidaturesPage() {
   const t = useTranslations('candidatures.feed_global')
   const tCasting = useTranslations('candidatures.casting')
   const tPub = useTranslations('publications.type')
+  const tLifecycle = useTranslations('candidature_lifecycle')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -58,18 +61,22 @@ export default function GlobalCandidaturesPage() {
 
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [selectedPubId, setSelectedPubId] = useState<string | null>(null)
+  // Deux buckets, ACTIVES par défaut — mêmes libellés et même filtre que côté
+  // expert. Le bucket est demandé au SERVEUR : la page ne trie rien elle-même.
+  const [bucket, setBucket] = useState<BucketKey>('active')
 
   const load = useCallback(async () => {
     setState({ kind: 'loading' })
     try {
       const res = await secureFetch(
-        `/api/me/candidatures-org?locale=${encodeURIComponent(locale)}`,
+        `/api/me/candidatures-org?locale=${encodeURIComponent(locale)}&filter=${bucket}`,
         { method: 'GET' },
       )
       const payload = (await res.json().catch(() => ({} as { code?: string }))) as {
         code?: string
         candidatures?: GlobalCandidature[]
         publications?: PublicationInfo[]
+        counts?: BucketCounts
       }
       if (!res.ok) {
         setState({ kind: 'error', message: t('error_generic') })
@@ -79,12 +86,13 @@ export default function GlobalCandidaturesPage() {
         kind: 'ready',
         candidatures: payload.candidatures ?? [],
         publications: payload.publications ?? [],
+        counts: payload.counts ?? { active: 0, archived: 0 },
       })
     } catch (err) {
       console.error('[global candidatures] fetch threw', err)
       setState({ kind: 'error', message: t('error_generic') })
     }
-  }, [locale, secureFetch, t])
+  }, [locale, secureFetch, t, bucket])
 
   useEffect(() => { void load() }, [load])
 
@@ -148,6 +156,10 @@ export default function GlobalCandidaturesPage() {
     )
   }
 
+  // Compteurs des DEUX buckets, servis par le serveur : l'onglet Archivées
+  // affiche son nombre sans second appel et sans recomptage client.
+  const bucketCounts = state.counts
+
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <style>{`
@@ -210,6 +222,35 @@ export default function GlobalCandidaturesPage() {
         </p>
       </header>
 
+      {/* Actives / Archivées — mêmes buckets, mêmes libellés, même défaut que
+          le menu Candidatures de l'expert. Compteurs servis par le serveur. */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+        {([
+          { key: 'active' as const,   label: tLifecycle('filters.active_count',   { count: bucketCounts.active }) },
+          { key: 'archived' as const, label: tLifecycle('filters.archived_count', { count: bucketCounts.archived }) },
+        ]).map((b) => {
+          const on = bucket === b.key
+          return (
+            <button
+              key={b.key}
+              type="button"
+              aria-pressed={on}
+              onClick={() => setBucket(b.key)}
+              style={{
+                fontSize: 12.5, fontWeight: 600, padding: '6px 13px',
+                borderRadius: 999,
+                color: on ? 'var(--sk-accent-ink)' : 'var(--sk-muted)',
+                background: on ? 'var(--sk-accent-soft)' : 'var(--sk-surface)',
+                border: on ? '1px solid transparent' : '1px solid var(--sk-border)',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              {b.label}
+            </button>
+          )
+        })}
+      </div>
+
       {pubOptions.length === 0 ? (
         <div
           style={{
@@ -219,9 +260,9 @@ export default function GlobalCandidaturesPage() {
           }}
         >
           <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
-            {t('empty_all_title')}
+            {bucket === 'archived' ? tLifecycle('empty_archived_title') : t('empty_all_title')}
           </div>
-          <div>{t('empty_all_subtitle')}</div>
+          <div>{bucket === 'archived' ? tLifecycle('empty_archived_body') : t('empty_all_subtitle')}</div>
         </div>
       ) : (
         <div className="sk-cand-layout">

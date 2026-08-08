@@ -7,6 +7,8 @@ import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
+import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
+import { useCandidatureLifecycleLabel } from '@/lib/candidatures/use-lifecycle-label'
 
 /**
  * Carte de candidature côté ORG (Lot 2c).
@@ -117,6 +119,12 @@ export type CandidatureData = {
    * Optionnel pour rétro-compat avec call-sites qui ne le passent pas encore.
    */
   viewed_by_me?: boolean
+  /**
+   * État de vie DÉRIVÉ SERVEUR (lib/candidatures/lifecycle.ts, servi par
+   * lib/candidature-org-dto). MÊME fait que côté expert, point de vue org.
+   * Source unique du libellé d'état et de la teinte de la pastille.
+   */
+  lifecycle?: CandidatureLifecycle | null
 }
 
 type Props = {
@@ -146,6 +154,8 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
   // geo_mobility_options) pour ne pas dupliquer les valeurs en i18n.
   const tCdi = useTranslations('cdi_profile_view')
   const tPub = useTranslations('publications')
+  // SITE DE RENDU 4/5 — libellé d'état par la RAISON dérivée, point de vue org.
+  const lifecycleLabel = useCandidatureLifecycleLabel('org')
   const locale = useLocale()
   const relTime = useRelativeTime()
   const domain = useDomain()
@@ -166,12 +176,28 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
   // jamais le passage true → false côté optimiste.
   const [viewedOptimistic, setViewedOptimistic] = useState(false)
 
-  const { status, preview, unlocked_profile, ai_match_score, cover_message, created_at, status_reason, ai_pitch, viewed_by_me } = candidature
+  const { status, preview, unlocked_profile, ai_match_score, cover_message, created_at, status_reason, ai_pitch, viewed_by_me, lifecycle } = candidature
   const isUnlocked = status === 'unlocked'
   const isSelected = status === 'selected'
   const isRejected = status === 'rejected'
-  const isClosed = isRejected || status === 'withdrawn' || status === 'archived'
-  const canAct = status === 'received' || status === 'in_review' || status === 'shortlisted'
+  // « Close » = ARCHIVÉE au sens état de vie (refus, retrait, mais aussi
+  // fenêtre d'échange écoulée ou annonce expirée) : c'est ce qui décide de
+  // la carte fanée et de la disparition des actions. Repli sur les statuts
+  // terminaux si le DTO ne porte pas encore de lifecycle.
+  const isClosed = lifecycle
+    ? lifecycle.bucket === 'archived'
+    : isRejected || status === 'withdrawn' || status === 'archived'
+  // Agir suppose une candidature encore vivante : on ne débloque pas une
+  // candidature dont l'annonce a expiré.
+  const canAct = !isClosed && (status === 'received' || status === 'in_review' || status === 'shortlisted')
+  const statusTone = ((): { bg: string; fg: string } => {
+    switch (lifecycle?.reason) {
+      case 'selected':        return { bg: '#FEF3C7', fg: '#92400E' }
+      case 'exchange_open':   return { bg: '#DCFCE7', fg: '#166534' }
+      case 'rejected':        return { bg: '#FEE2E2', fg: '#991B1B' }
+      default:                return { bg: '#f1f5f9', fg: '#475569' }
+    }
+  })()
   // Bouton "Accepter" : visible UNIQUEMENT en 'unlocked' (l'org a déjà
   // débloqué le profil et discuté). Côté serveur, la transition autorisée
   // est aussi restreinte à ['unlocked'] (cf. /api/candidatures/[id]/select).
@@ -354,12 +380,11 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
           <span
             style={{
               padding: '3px 9px',
-              background: isSelected
-                ? '#FEF3C7'
-                : isUnlocked ? '#DCFCE7' : isRejected ? '#FEE2E2' : '#f1f5f9',
-              color: isSelected
-                ? '#92400E'
-                : isUnlocked ? '#166534' : isRejected ? '#991B1B' : '#475569',
+              // Teinte dérivée de la RAISON : un « Échange ouvert » vert ne
+              // peut plus survivre à sa fenêtre (raison → exchange_expired
+              // → gris). Repli neutre si le DTO n'a pas de lifecycle.
+              background: statusTone.bg,
+              color: statusTone.fg,
               fontSize: 10,
               fontWeight: 600,
               borderRadius: 10,
@@ -367,7 +392,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
               letterSpacing: '.05em',
             }}
           >
-            {t(`status.${status}`)}
+            {lifecycleLabel(lifecycle, publicationType)}
           </span>
           {/* Lot bascule badges par item : pill "Nouveau" + bouton "Marquer
               comme vue" pour les candidatures non consultées par cet user. */}

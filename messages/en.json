@@ -3027,5 +3027,46 @@
     "err_invalid_domain": "Select an ecosystem.",
     "err_branch_in_use": "Branch in use: {profiles} profile(s), {publications} publication(s), {specialities} speciality(ies).",
     "err_spec_in_use": "Speciality in use: {profiles} profile(s), {publications} publication(s)."
+  },
+  "candidature_lifecycle": {
+    "filters": {
+      "active": "Active",
+      "archived": "Archived",
+      "active_count": "Active ({count})",
+      "archived_count": "Archived ({count})"
+    },
+    "empty_active_title": "No active applications",
+    "empty_active_body": "Applications still in play will appear here.",
+    "empty_archived_title": "No archived applications",
+    "empty_archived_body": "Closed applications are filed here, still readable.",
+    "messages_empty_active_title": "No ongoing conversations",
+    "messages_empty_active_body": "Open conversations will appear here.",
+    "messages_empty_archived_title": "No archived conversations",
+    "messages_empty_archived_body": "Closed conversations stay readable here, in read-only mode.",
+    "read_only_notice": "This conversation is archived: still readable, but you can no longer write in it.",
+    "expert": {
+      "selected_mission": "Mission won",
+      "selected_offre": "Position landed",
+      "exchange_open": "Conversation open until {date}",
+      "awaiting_review": "Awaiting a reply — listing open until {date}",
+      "exchange_expired": "Conversation ended without follow-up",
+      "publication_expired": "This listing has expired",
+      "publication_closed": "This listing was withdrawn",
+      "rejected": "Application declined",
+      "withdrawn": "Application withdrawn",
+      "archived": "Application archived"
+    },
+    "org": {
+      "selected_mission": "Candidate selected for this mission",
+      "selected_offre": "Candidate selected for this position",
+      "exchange_open": "Conversation open until {date}",
+      "awaiting_review": "To review — listing open until {date}",
+      "exchange_expired": "Conversation ended without follow-up",
+      "publication_expired": "This listing has expired",
+      "publication_closed": "This listing was withdrawn",
+      "rejected": "Application declined",
+      "withdrawn": "Application withdrawn by the candidate",
+      "archived": "Application archived"
+    }
   }
 }

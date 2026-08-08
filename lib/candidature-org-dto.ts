@@ -3,6 +3,11 @@ import { tBDD, type TranslationsMap } from '@/lib/translations'
 import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name-masking'
 import { disclosurePolicyForCandidatureStatus } from '@/lib/expert-disclosure'
 import { signAvatarUrl } from '@/lib/avatar'
+import {
+  deriveCandidatureLifecycle,
+  type CandidatureBucket,
+  type CandidatureLifecycle,
+} from '@/lib/candidatures/lifecycle'
 
 /**
  * lib/candidature-org-dto.ts — helper partagé qui construit les DTOs
@@ -26,6 +31,15 @@ import { signAvatarUrl } from '@/lib/avatar'
  *     (publication.organization_id == auth.organization.id) AVANT d'appeler
  *     cette fonction. Cette fonction ne re-vérifie pas l'ownership — elle
  *     suppose que `publicationIds` est déjà un sous-ensemble appartenant à l'org.
+ *  5) ÉTAT DE VIE (lot « libellés d'état réels ») : chaque DTO porte
+ *     `lifecycle = { bucket, reason, until }` dérivé À LA LECTURE par le
+ *     MÊME helper que côté expert (lib/candidatures/lifecycle.ts). Le
+ *     libellé menteur (« Échange ouvert » sur une fenêtre close) était
+ *     identique des deux côtés : le corriger côté expert seulement aurait
+ *     créé une asymétrie où l'org lit « ouvert » ce que l'expert voit
+ *     archivé. Le point de vue diffère, le FAIT dérivé est le même.
+ *     La dérivation est SERVEUR : le client reçoit le bucket, il ne le
+ *     calcule pas et ne peut pas le contredire (point 20).
  */
 
 export type OrgCandidatureDTO = {
@@ -41,6 +55,8 @@ export type OrgCandidatureDTO = {
   created_at: string
   conversation_id: string | null
   ai_pitch: string | null
+  /** État de vie dérivé serveur (cf. invariant 5). */
+  lifecycle: CandidatureLifecycle
   unlocked_profile: Record<string, unknown> | null
   preview: {
     title: unknown
@@ -126,6 +142,12 @@ export async function buildOrgCandidatureDTOs(
   auth: AuthContext,
   publicationIds: string[],
   translations: TranslationsMap,
+  /**
+   * Filtre de bucket appliqué APRÈS dérivation, côté serveur. `null`/absent
+   * = tout servir. Les routes traduisent `?filter=` via `parseBucketFilter`
+   * (actives par défaut) et passent le résultat ici.
+   */
+  bucket: CandidatureBucket | null = null,
 ): Promise<OrgCandidatureDTO[]> {
   if (publicationIds.length === 0) return []
 
@@ -169,13 +191,31 @@ export async function buildOrgCandidatureDTOs(
   const accessibleStatuses = new Set(['unlocked', 'selected'])
   const accessibleCandIds = rows.filter((r) => accessibleStatuses.has(r.status)).map((r) => r.id)
   const convIdByCand = new Map<string, string>()
+  /** Fenêtre 15 j du fil — décide si un 'unlocked' est encore ouvert. */
+  const convExpiryByCand = new Map<string, string | null>()
   if (accessibleCandIds.length > 0) {
     const { data: convs } = await auth.supabaseAdmin
       .from('conversations')
-      .select('id, candidature_id')
+      .select('id, candidature_id, expires_at')
       .in('candidature_id', accessibleCandIds)
-    for (const c of (convs ?? []) as { id: string; candidature_id: string }[]) {
+    for (const c of (convs ?? []) as { id: string; candidature_id: string; expires_at: string | null }[]) {
       convIdByCand.set(c.candidature_id, c.id)
+      convExpiryByCand.set(c.candidature_id, c.expires_at)
+    }
+  }
+
+  // Fenêtres d'expiration des ANNONCES portant ces candidatures. Chargées ICI
+  // plutôt que passées par le caller : les deux routes appelantes ne
+  // sélectionnaient pas les mêmes colonnes, et une divergence sur la source
+  // de la règle 30 j est exactement ce que ce helper existe pour empêcher.
+  const pubExpiryById = new Map<string, { status: string | null; published_at: string | null; expires_at: string | null }>()
+  {
+    const { data: pubRows } = await auth.supabaseAdmin
+      .from('publications')
+      .select('id, status, published_at, expires_at')
+      .in('id', publicationIds)
+    for (const p of (pubRows ?? []) as { id: string; status: string | null; published_at: string | null; expires_at: string | null }[]) {
+      pubExpiryById.set(p.id, { status: p.status, published_at: p.published_at, expires_at: p.expires_at })
     }
   }
 
@@ -256,7 +296,11 @@ export async function buildOrgCandidatureDTOs(
     }
   }
 
-  return Promise.all(rows.map(async (row) => {
+  // Instant unique pour toute la réponse : deux candidatures de la même page
+  // ne doivent pas être dérivées à des `now` différents.
+  const now = new Date()
+
+  const dtos = await Promise.all(rows.map(async (row) => {
     const preview = row.preview ?? {}
     const branchId = typeof preview.branch_id === 'string' ? preview.branch_id : null
     const specialityId = typeof preview.speciality_id === 'string' ? preview.speciality_id : null
@@ -313,6 +357,18 @@ export async function buildOrgCandidatureDTOs(
 
     const v = viewedAtByCand.get(row.id)
     const viewedByMe = !!v && new Date(v).getTime() >= new Date(row.updated_at).getTime()
+    // Invariant 5 : état de vie dérivé — même helper que côté expert.
+    const lifecycle = deriveCandidatureLifecycle(
+      {
+        status: row.status,
+        unlocked_at: row.unlocked_at,
+        publication: pubExpiryById.get(row.publication_id) ?? null,
+        conversation: convExpiryByCand.has(row.id)
+          ? { expires_at: convExpiryByCand.get(row.id) ?? null }
+          : null,
+      },
+      now,
+    )
     return {
       id: row.id,
       publication_id: row.publication_id,
@@ -328,6 +384,7 @@ export async function buildOrgCandidatureDTOs(
       ai_pitch: row.match_id ? pitchByMatch.get(row.match_id) ?? null : null,
       unlocked_profile: unlockedProfile,
       viewed_by_me: viewedByMe,
+      lifecycle,
       preview: {
         title: preview.title ?? null,
         summary: preview.summary ?? null,
@@ -364,4 +421,14 @@ export async function buildOrgCandidatureDTOs(
       },
     }
   }))
+
+  // Filtrage APRÈS dérivation : le bucket est un fait serveur.
+  return bucket ? dtos.filter((d) => d.lifecycle.bucket === bucket) : dtos
+}
+
+/** Compte les DTO par bucket — pour servir les deux onglets sans 2ᵉ appel. */
+export function countByBucket(dtos: OrgCandidatureDTO[]): { active: number; archived: number } {
+  const counts = { active: 0, archived: 0 }
+  for (const d of dtos) counts[d.lifecycle.bucket]++
+  return counts
 }

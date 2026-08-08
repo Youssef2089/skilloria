@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
-import { buildOrgCandidatureDTOs } from '@/lib/candidature-org-dto'
+import { buildOrgCandidatureDTOs, countByBucket } from '@/lib/candidature-org-dto'
+import { parseBucketFilter } from '@/lib/candidatures/lifecycle'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,6 +25,10 @@ export const dynamic = 'force-dynamic'
  *    l'UI post-unlock d'appeler la route /api/profiles/[id] (à venir) qui
  *    projettera le profil complet (RLS profiles_org_unlocked_read s'active
  *    alors automatiquement côté authenticated).
+ *
+ * ?filter=active|archived|all — ACTIVES PAR DÉFAUT (parité stricte avec la
+ * vue globale org et avec les deux menus expert). Le bucket est dérivé
+ * serveur par le helper partagé ; le DTO porte `lifecycle`.
  *
  * Tri : ai_match_score DESC NULLS LAST, created_at DESC.
  */
@@ -97,14 +102,19 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   //    Le même builder DTO est utilisé par /api/me/candidatures-org pour la
   //    vue globale org. Tout invariant masquage/unlock vit dans le helper —
   //    aucune divergence possible entre vue per-publication et vue globale.
-  const locale = normalizeLocale(new URL(request.url).searchParams.get('locale'))
+  const url = new URL(request.url)
+  const locale = normalizeLocale(url.searchParams.get('locale'))
+  const bucketFilter = parseBucketFilter(url.searchParams.get('filter'))
   const translations = await loadTranslations(locale)
-  let candidatures: Awaited<ReturnType<typeof buildOrgCandidatureDTOs>>
+  let all: Awaited<ReturnType<typeof buildOrgCandidatureDTOs>>
   try {
-    candidatures = await buildOrgCandidatureDTOs(auth, [publicationId], translations)
+    all = await buildOrgCandidatureDTOs(auth, [publicationId], translations)
   } catch {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
+  // Compteurs sur la totalité, liste filtrée : cf. /api/me/candidatures-org.
+  const counts = countByBucket(all)
+  const candidatures = bucketFilter ? all.filter((c) => c.lifecycle.bucket === bucketFilter) : all
 
   return json(
     {
@@ -116,6 +126,8 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         skills_required: pubRow.skills_required ?? [],
       },
       candidatures,
+      counts,
+      filter: bucketFilter ?? 'all',
     },
     200,
   )

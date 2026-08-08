@@ -44,10 +44,12 @@ type PublicationDetail = {
   status: string
 }
 
+type BucketCounts = { active: number; archived: number }
+type BucketKey = 'active' | 'archived'
 type State =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
-  | { kind: 'ready'; publication: PublicationDetail; candidatures: CandidatureData[] }
+  | { kind: 'ready'; publication: PublicationDetail; candidatures: CandidatureData[]; counts: BucketCounts }
 
 type Props = { basePath: string; params: Promise<{ id: string }> }
 
@@ -55,6 +57,7 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
   const t = useTranslations('collaboration.detail')
   const tClose = useTranslations('collaboration.close')
   const tPub = useTranslations('publications')
+  const tLifecycle = useTranslations('candidature_lifecycle')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -65,29 +68,37 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
   const [confirmClose, setConfirmClose] = useState(false)
   const [closing, setClosing] = useState(false)
   const [closeError, setCloseError] = useState<string | null>(null)
+  // Actives / Archivées : l'expert publiant est ici DONNEUR D'ORDRE — il voit
+  // ses candidats reçus, exactement comme une org. Mêmes buckets, même défaut,
+  // même helper serveur : aucun miroir partiel.
+  const [bucket, setBucket] = useState<BucketKey>('active')
 
   const load = useCallback(async (id: string) => {
     setState({ kind: 'loading' })
     try {
       const [pubRes, candRes] = await Promise.all([
         secureFetch(`/api/publications/${id}`, { method: 'GET' }),
-        secureFetch(`/api/publications/${id}/candidatures?locale=${encodeURIComponent(locale)}`, { method: 'GET' }),
+        secureFetch(`/api/publications/${id}/candidatures?locale=${encodeURIComponent(locale)}&filter=${bucket}`, { method: 'GET' }),
       ])
       const pubPayload = (await pubRes.json().catch(() => ({}))) as { code?: string; publication?: PublicationDetail }
       if (!pubRes.ok || !pubPayload.publication) {
         setState({ kind: 'error', message: pubPayload.code === 'not_found' ? t('error_not_found') : t('error_generic') })
         return
       }
-      const candPayload = (await candRes.json().catch(() => ({}))) as { candidatures?: CandidatureData[] }
+      const candPayload = (await candRes.json().catch(() => ({}))) as {
+        candidatures?: CandidatureData[]
+        counts?: BucketCounts
+      }
       setState({
         kind: 'ready',
         publication: pubPayload.publication,
         candidatures: candRes.ok ? (candPayload.candidatures ?? []) : [],
+        counts: (candRes.ok ? candPayload.counts : null) ?? { active: 0, archived: 0 },
       })
     } catch {
       setState({ kind: 'error', message: t('error_generic') })
     }
-  }, [secureFetch, locale, t])
+  }, [secureFetch, locale, t, bucket])
 
   useEffect(() => {
     let cancelled = false
@@ -230,10 +241,38 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
           <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--sk-text)', margin: 0 }}>{t('section_candidatures')}</h2>
           <span style={{ fontSize: 13, color: 'var(--sk-muted)' }}>{t('count_candidates', { count: candidatures.length })}</span>
         </div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          {([
+            { key: 'active' as const,   label: tLifecycle('filters.active_count',   { count: state.counts.active }) },
+            { key: 'archived' as const, label: tLifecycle('filters.archived_count', { count: state.counts.archived }) },
+          ]).map((b) => {
+            const on = bucket === b.key
+            return (
+              <button
+                key={b.key}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setBucket(b.key)}
+                style={{
+                  fontSize: 12.5, fontWeight: 600, padding: '6px 13px',
+                  borderRadius: 999,
+                  color: on ? 'var(--sk-accent-ink)' : 'var(--sk-muted)',
+                  background: on ? 'var(--sk-accent-soft)' : 'var(--sk-surface)',
+                  border: on ? '1px solid transparent' : '1px solid var(--sk-border)',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                {b.label}
+              </button>
+            )
+          })}
+        </div>
         {candidatures.length === 0 ? (
           <div style={{ background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 14, padding: '40px 24px', textAlign: 'center', color: '#64748b', fontSize: 14, lineHeight: 1.6 }}>
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>{t('candidatures_empty_title')}</div>
-            <div>{t('candidatures_empty_body')}</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>
+              {bucket === 'archived' ? tLifecycle('empty_archived_title') : t('candidatures_empty_title')}
+            </div>
+            <div>{bucket === 'archived' ? tLifecycle('empty_archived_body') : t('candidatures_empty_body')}</div>
           </div>
         ) : (
           <CastingCarousel

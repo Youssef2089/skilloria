@@ -18,8 +18,11 @@ import MasterDetail from '@/components/ui/MasterDetail'
 import EmptyState from '@/components/ui/EmptyState'
 import CandidatureDetailPanel, {
   type Candidature,
-  statusToPillKind,
 } from '@/components/dashboard/CandidatureDetailPanel'
+import {
+  lifecycleToPillKind,
+  useCandidatureLifecycleLabel,
+} from '@/lib/candidatures/use-lifecycle-label'
 import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
 import { useRelativeTime } from '@/lib/use-relative-time'
 
@@ -32,6 +35,13 @@ import { useRelativeTime } from '@/lib/use-relative-time'
  * Layout : PageHeader + StatsStrip + MasterDetail (filtres chips + cartes
  * liste à gauche + détail à droite avec timeline + meta + actions).
  * Polling 30s + focus + bump préservé.
+ *
+ * FILTRE (lot état de vie) : DEUX buckets, Actives et Archivées — c'est la
+ * cible produit, pas cinq chips par statut brut. Le filtrage est fait par le
+ * SERVEUR (`?filter=`), pas ici : le client demande un bucket et affiche ce
+ * qu'on lui rend. Il ne peut pas montrer active ce que le serveur dit
+ * archivé. ACTIVES PAR DÉFAUT. Les compteurs des deux onglets viennent de la
+ * réponse (`counts`), donc jamais recomptés côté client.
  */
 
 type State =
@@ -39,17 +49,7 @@ type State =
   | { kind: 'error'; message: string }
   | { kind: 'ready'; candidatures: Candidature[] }
 
-// Lot état 'selected' : nouveau filtre 'won' (Mission remportée / Poste décroché).
-type FilterKey = 'all' | 'open' | 'won' | 'wait' | 'refused'
-
-function matchesFilter(status: string, f: FilterKey): boolean {
-  if (f === 'all') return true
-  if (f === 'open') return status === 'unlocked'
-  if (f === 'won') return status === 'selected'
-  if (f === 'wait') return status === 'received' || status === 'in_review' || status === 'shortlisted'
-  if (f === 'refused') return status === 'rejected'
-  return true
-}
+type BucketKey = 'active' | 'archived'
 
 export default function CandidaturesTrackingView({ side = 'freelance' }: { side?: 'freelance' | 'cdi' }) {
   const t = useTranslations('candidatures_tracking')
@@ -58,21 +58,31 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
   const tMissionsCard = useTranslations('missions.card')
   const locale = useLocale()
   const relTime = useRelativeTime()
-  const [filter, setFilter] = useState<FilterKey>('all')
+  const tLifecycle = useTranslations('candidature_lifecycle')
+  const lifecycleLabel = useCandidatureLifecycleLabel('expert')
+  const [bucket, setBucket] = useState<BucketKey>('active')
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  // useLiveResource : holdNewItems=false ici, les changements de status
-  // (unlocked/rejected) doivent apparaître instantanément.
-  const live = useLiveResource<{ candidatures: Candidature[] }, Candidature>({
-    url: `/api/me/candidatures?locale=${encodeURIComponent(locale)}`,
+  // useLiveResource : holdNewItems=false ici, les changements d'état
+  // (échange ouvert / refus / expiration) doivent apparaître instantanément.
+  // L'URL porte le bucket → changer d'onglet re-demande au SERVEUR.
+  const live = useLiveResource<
+    { candidatures: Candidature[]; counts?: { active: number; archived: number } },
+    Candidature
+  >({
+    url: `/api/me/candidatures?locale=${encodeURIComponent(locale)}&filter=${bucket}`,
     itemsOf: (d) => d.candidatures ?? [],
     identityOf: (c) => c.id,
-    versionOf: (c) => `${c.status}|${c.unlocked_at ?? ''}|${c.conversation_id ?? ''}`,
+    // `lifecycle.reason` fait partie de la version : une candidature qui
+    // bascule archivée (fenêtre écoulée) doit se rafraîchir sans clic.
+    versionOf: (c) => `${c.status}|${c.lifecycle?.reason ?? ''}|${c.unlocked_at ?? ''}|${c.conversation_id ?? ''}`,
     holdNewItems: false,
   })
   const state = live.state
   const list = live.data?.candidatures ?? []
-  const filtered = useMemo(() => list.filter((c) => matchesFilter(c.status, filter)), [list, filter])
+  const counts = live.data?.counts ?? { active: 0, archived: 0 }
+  // Plus de filtrage client : la liste servie EST le bucket demandé.
+  const filtered = list
   useEffect(() => {
     if (!selectedId && filtered.length > 0) setSelectedId(filtered[0].id)
     if (selectedId && !filtered.some((c) => c.id === selectedId) && filtered.length > 0) {
@@ -91,23 +101,24 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
   }, [selectedId, markCandidatureViewed])
   const selected = selectedId ? list.find((c) => c.id === selectedId) ?? null : null
 
-  const counts = useMemo(() => {
-    let open = 0, won = 0, wait = 0, scoreSum = 0, scoreN = 0
+  // Stats DÉRIVÉES DES RAISONS servies, plus des statuts bruts : « Échanges
+  // ouverts » ne doit compter que des fenêtres réellement ouvertes.
+  const derived = useMemo(() => {
+    let open = 0, wait = 0, scoreSum = 0, scoreN = 0
     for (const c of list) {
-      if (c.status === 'selected') won++
-      else if (c.status === 'unlocked') open++
-      else if (c.status === 'received' || c.status === 'in_review' || c.status === 'shortlisted') wait++
+      if (c.lifecycle?.reason === 'exchange_open') open++
+      else if (c.lifecycle?.reason === 'awaiting_review') wait++
       if (c.ai_match_score != null) { scoreSum += c.ai_match_score; scoreN++ }
     }
     const avgPct = scoreN > 0 ? Math.round((scoreSum / scoreN) * 10) : null
-    return { total: list.length, open, won, wait, avgPct }
+    return { open, wait, avgPct }
   }, [list])
 
   const stats: Stat[] = [
-    { value: counts.total, label: t('stats.total') },
-    { value: counts.open,  label: t('stats.open'),  emphasis: 'success' },
-    { value: counts.wait,  label: t('stats.wait') },
-    { value: counts.avgPct == null ? '—' : `${counts.avgPct}%`, label: t('stats.avg_score') },
+    { value: counts.active + counts.archived, label: t('stats.total') },
+    { value: derived.open,  label: t('stats.open'),  emphasis: 'success' },
+    { value: derived.wait,  label: t('stats.wait') },
+    { value: derived.avgPct == null ? '—' : `${derived.avgPct}%`, label: t('stats.avg_score') },
   ]
 
   if (state.kind === 'loading') {
@@ -127,16 +138,12 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
     )
   }
 
-  // Filtre 'won' insere entre 'open' et 'wait' (ordre de funnel naturel :
-  // retenu → en cours → en attente → refuse). Le label se differencie par
-  // type de publication via i18n (won_mission / won_offre sont identiques
-  // au niveau du filtre — le distingo n'apparait que dans le détail).
-  const filters: Array<{ key: FilterKey; label: string }> = [
-    { key: 'all',     label: t('filters.all') },
-    { key: 'won',     label: t('filters.won') },
-    { key: 'open',    label: t('filters.open') },
-    { key: 'wait',    label: t('filters.wait') },
-    { key: 'refused', label: t('filters.refused') },
+  // DEUX buckets, pas cinq chips par statut : Actives (ce qui peut encore
+  // bouger, sélection comprise) et Archivées (ce dont plus rien ne sortira,
+  // toujours consultable). Compteurs servis par le serveur.
+  const buckets: Array<{ key: BucketKey; label: string }> = [
+    { key: 'active',   label: tLifecycle('filters.active_count',   { count: counts.active }) },
+    { key: 'archived', label: tLifecycle('filters.archived_count', { count: counts.archived }) },
   ]
 
   return (
@@ -159,13 +166,14 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
           list={
             <>
               <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-                {filters.map((f) => {
-                  const on = filter === f.key
+                {buckets.map((f) => {
+                  const on = bucket === f.key
                   return (
                     <button
                       key={f.key}
                       type="button"
-                      onClick={() => setFilter(f.key)}
+                      aria-pressed={on}
+                      onClick={() => setBucket(f.key)}
                       style={{
                         fontSize: 12.5, fontWeight: 600, padding: '6px 13px',
                         borderRadius: 999,
@@ -183,11 +191,17 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
 
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 11, paddingRight: 2 }}>
                 {filtered.length === 0 ? (
-                  <EmptyState icon="🔍" title={t('empty_filter_title')} body={t('empty_filter_body')} surface="card" />
+                  <EmptyState
+                    icon={bucket === 'archived' ? '🗂️' : '🔍'}
+                    title={tLifecycle(bucket === 'archived' ? 'empty_archived_title' : 'empty_active_title')}
+                    body={tLifecycle(bucket === 'archived' ? 'empty_archived_body' : 'empty_active_body')}
+                    surface="card"
+                  />
                 ) : (
                   filtered.map((c) => {
                     const on = c.id === selectedId
-                    const pk = statusToPillKind(c.status)
+                    // SITE DE RENDU 2/5 — teinte ET libellé viennent de la raison.
+                    const pk = c.lifecycle ? lifecycleToPillKind(c.lifecycle.reason) : 'neutral'
                     const PIcon = pk === 'won' ? IconTrophy : pk === 'open' ? IconLockOpen : pk === 'refused' ? IconX : IconClock
                     // Lot bascule badges par item : "Nouveau" si pas encore
                     // consulté (et pas l'item actuellement sélectionné, qui
@@ -240,9 +254,7 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
                         </div>
                         <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                           <StatusPill kind={pk} icon={<PIcon size={14} />} size="sm">
-                            {c.status === 'selected'
-                              ? t(c.publication?.type === 'mission' ? 'status_selected_mission' : 'status_selected_offre')
-                              : t(`status.${c.status}` as 'status.received')}
+                            {lifecycleLabel(c.lifecycle, c.publication?.type)}
                           </StatusPill>
                           <span style={{ color: 'var(--sk-faint)', fontSize: 12 }}>{t('candidated_ago', { time: relTime(c.created_at) })}</span>
                         </div>

@@ -5,6 +5,7 @@ import { dashboardUrlForUserType } from '@/lib/auth-routing'
 import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name-masking'
 import { disclosurePolicyForConversationOrgSide } from '@/lib/expert-disclosure'
 import { signAvatarUrl } from '@/lib/avatar'
+import { isConversationExpired } from '@/lib/conversations/expiry'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -104,10 +105,8 @@ function pickRel<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value
 }
 
-function isExpired(expiresAt: string | null): boolean {
-  if (!expiresAt) return false
-  return new Date(expiresAt).getTime() <= Date.now()
-}
+/** Alias local : la règle vit dans lib/conversations/expiry.ts (source unique). */
+const isExpired = (expiresAt: string | null): boolean => isConversationExpired(expiresAt)
 
 /**
  * Charge la conv + chaîne d'identité et vérifie que `userId` est participant.
@@ -160,8 +159,15 @@ async function loadConvAsParticipant(
     profiles: unknown; publications: unknown
   } | null
   if (!cand) return { ok: false, status: 404, code: 'not_found' }
-  // Sécurité : la conv n'est lisible que si candidature.status='unlocked'
-  if (cand.status !== 'unlocked') return { ok: false, status: 404, code: 'not_found' }
+  // Sécurité : la conv n'est lisible que si la candidature ouvre bien un
+  // échange. 'selected' est INCLUS (cohérence lot état de vie) : une
+  // candidature retenue garde sa conversation pour caler date/contrat — les
+  // DTO servent déjà son `conversation_id` et l'inbox la liste désormais.
+  // Sans ça, « Ouvrir la conversation » sur une mission remportée renvoyait
+  // 404. Le droit d'ÉCRIRE reste gardé séparément par l'expiration du fil.
+  if (cand.status !== 'unlocked' && cand.status !== 'selected') {
+    return { ok: false, status: 404, code: 'not_found' }
+  }
 
   const profile = pickRel(cand.profiles as { id: string; user_id: string; photo_url: string | null; users: unknown } | { id: string; user_id: string; photo_url: string | null; users: unknown }[] | null)
   const pub = pickRel(cand.publications as { id: string; type: string; title: string; organization_id: string; organizations: unknown } | { id: string; type: string; title: string; organization_id: string; organizations: unknown }[] | null)

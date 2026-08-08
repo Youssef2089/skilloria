@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import type { PublicationSynthesisData } from '@/components/dashboard/PublicationSynthesisLine'
+import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
 
 /** Publication enrichie renvoyée par /api/me/candidatures (synthèse parlante). */
 type CandidaturePublication = PublicationSynthesisData & { status: string | null; published_at?: string | null }
@@ -34,6 +35,8 @@ export type ApplicationItem = {
   publication: CandidaturePublication | null
   org: CandidatureOrg
   skills_required: string[]
+  /** État de vie dérivé serveur — parité stricte avec la home freelance. */
+  lifecycle: CandidatureLifecycle | null
 }
 
 export type UseCdiApplicationsState = {
@@ -45,6 +48,13 @@ export type UseCdiApplicationsState = {
   retenues: number
   refusees: number
   items: ApplicationItem[]
+  /**
+   * Sous-ensemble ACTIF de `items` (bucket dérivé serveur). Exposé par le
+   * hook plutôt que refiltré à chaque call-site : la rangée casting home ET
+   * son garde d'état vide doivent lire EXACTEMENT la même liste, sinon on
+   * réaffiche l'empty state par-dessus une rangée non vide (ou l'inverse).
+   */
+  activeItems: ApplicationItem[]
 }
 
 type ApiCandidature = {
@@ -58,29 +68,33 @@ type ApiCandidature = {
   conversation_id: string | null
   created_at: string
   viewed_by_me?: boolean
+  lifecycle?: CandidatureLifecycle | null
 }
 
 export function useCdiApplications(): UseCdiApplicationsState {
+  // `?filter=all` : parité stricte avec la home freelance — les KPI comptent
+  // les deux buckets, la rangée casting n'affiche que les actives.
   const live = useLiveResource<{ candidatures: ApiCandidature[] }, ApiCandidature>({
-    url: '/api/me/candidatures',
+    url: '/api/me/candidatures?filter=all',
     itemsOf: (d) => d.candidatures ?? [],
     identityOf: (c) => c.id,
-    versionOf: (c) => `${c.status}|${c.conversation_id ?? ''}`,
+    versionOf: (c) => `${c.status}|${c.lifecycle?.reason ?? ''}|${c.conversation_id ?? ''}`,
     holdNewItems: false,
   })
 
   return useMemo<UseCdiApplicationsState>(() => {
     const all = live.data?.candidatures ?? []
-    // Lot état 'selected' :
-    //   en_discussion = UNLOCKED uniquement (parité freelance).
-    //   retenues      = SELECTED uniquement.
-    //   refusees      = REJECTED.
+    // Lot « libellés d'état réels » : KPI comptés sur les RAISONS DÉRIVÉES,
+    // parité stricte avec la home freelance.
+    //   en_discussion = fenêtre d'échange ENCORE ouverte.
+    //   retenues      = sélection. refusees = refus explicite.
     let postulees = 0, enDiscussion = 0, retenues = 0, refusees = 0
     for (const c of all) {
       postulees++
-      if (c.status === 'unlocked') enDiscussion++
-      else if (c.status === 'selected') retenues++
-      else if (c.status === 'rejected') refusees++
+      const reason = c.lifecycle?.reason
+      if (reason === 'exchange_open') enDiscussion++
+      else if (reason === 'selected') retenues++
+      else if (reason === 'rejected') refusees++
     }
     const items: ApplicationItem[] = all.map((c) => ({
       id: c.id,
@@ -95,6 +109,7 @@ export function useCdiApplications(): UseCdiApplicationsState {
       publication: c.publication ?? null,
       org: c.org ?? null,
       skills_required: c.skills_required ?? [],
+      lifecycle: c.lifecycle ?? null,
     }))
     return {
       loading: live.state.kind === 'loading',
@@ -104,6 +119,7 @@ export function useCdiApplications(): UseCdiApplicationsState {
       retenues,
       refusees,
       items,
+      activeItems: items.filter((i) => i.lifecycle?.bucket !== 'archived'),
     }
   }, [live.data, live.state.kind])
 }

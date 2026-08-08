@@ -812,7 +812,7 @@ export default function DashboardCDI() {
               >
                 {t('loading')}
               </div>
-            ) : apps.count === 0 ? (
+            ) : apps.activeItems.length === 0 ? (
               <div
                 style={{
                   background: '#f8fafc',
@@ -829,7 +829,10 @@ export default function DashboardCDI() {
               </div>
             ) : (
               <CastingRow
-                items={apps.items}
+                /* Rangée casting : ACTIVES uniquement (parité stricte avec la
+                   home freelance). Le bucket est LU sur le DTO servi, jamais
+                   recalculé ici. */
+                items={apps.activeItems}
                 getKey={(item) => item.id}
                 labels={{ prevAria: tc('prev_aria'), nextAria: tc('next_aria'), empty: tc('empty') }}
                 renderItem={(item) => (
@@ -842,6 +845,7 @@ export default function DashboardCDI() {
                       skills_required: item.skills_required,
                       status: item.status ?? '',
                       viewed_by_me: item.viewed_by_me,
+                      lifecycle: item.lifecycle,
                     }}
                   />
                 )}

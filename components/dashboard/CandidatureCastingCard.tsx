@@ -4,8 +4,13 @@ import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { IconTrophy, IconLockOpen, IconClock, IconX } from '@tabler/icons-react'
 import Avatar from '@/components/ui/Avatar'
-import StatusPill, { type StatusPillKind } from '@/components/ui/StatusPill'
+import StatusPill from '@/components/ui/StatusPill'
 import { castingTheme } from '@/lib/casting-theme'
+import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
+import {
+  lifecycleToPillKind,
+  useCandidatureLifecycleLabel,
+} from '@/lib/candidatures/use-lifecycle-label'
 import { formatPublicationBudget, type PublicationSynthesisData } from './PublicationSynthesisLine'
 import type { MissionCardData } from './MissionCard'
 
@@ -35,14 +40,8 @@ export type CandidatureCastingData = {
   skills_required: string[]
   status: string
   viewed_by_me?: boolean
-}
-
-function statusToPillKind(status: string): StatusPillKind {
-  if (status === 'selected') return 'won'
-  if (status === 'unlocked') return 'open'
-  if (status === 'rejected' || status === 'withdrawn') return 'refused'
-  if (status === 'received' || status === 'in_review' || status === 'shortlisted') return 'wait'
-  return 'neutral'
+  /** État de vie dérivé serveur — source unique du libellé et de la teinte. */
+  lifecycle?: CandidatureLifecycle | null
 }
 
 export default function CandidatureCastingCard({
@@ -55,33 +54,25 @@ export default function CandidatureCastingCard({
   const tCard = useTranslations('missions.card')
   const tc = useTranslations('missions.casting')
   const tPub = useTranslations('publications')
-  // Vocabulaire expert : labels de statut sous dashboard_{freelance,cdi}
-  // (« Mission remportée » / « Poste décroché », jamais « Acceptée »).
-  const tStatus = useTranslations(
-    side === 'cdi' ? 'dashboard_cdi.applications_section' : 'dashboard_freelance.cards.your_candidatures',
-  )
+  // SITE DE RENDU 3/5 — le vocabulaire expert (« Mission remportée » / « Poste
+  // décroché ») vit désormais dans candidature_lifecycle.expert, indexé par la
+  // RAISON dérivée, plus par le statut brut sous dashboard_{freelance,cdi}.
+  const lifecycleLabel = useCandidatureLifecycleLabel('expert')
 
-  const { publication: pub, org, status, skills_required = [], viewed_by_me } = candidature
+  const { publication: pub, org, lifecycle, skills_required = [], viewed_by_me } = candidature
   if (!pub) return null
 
   const orgName = pub.confidential ? tCard('confidential_org') : org?.name ?? tCard('confidential_org')
   const logoUrl = pub.confidential ? null : org?.logo_url ?? null
 
-  const isClosed = status === 'rejected' || status === 'withdrawn' || status === 'archived'
+  // « Close » = archivée au sens état de vie, pas au sens statut : un échange
+  // dont la fenêtre est passée est clos même si son statut reste 'unlocked'.
+  const isClosed = lifecycle?.bucket === 'archived'
   const isFresh = viewed_by_me === false && !isClosed
 
-  const pillKind = statusToPillKind(status)
+  const pillKind = lifecycle ? lifecycleToPillKind(lifecycle.reason) : 'neutral'
   const PillIcon = pillKind === 'won' ? IconTrophy : pillKind === 'open' ? IconLockOpen : pillKind === 'refused' ? IconX : IconClock
-  const statusLabel = (() => {
-    try {
-      if (status === 'selected') {
-        return tStatus(pub.type === 'mission' ? 'status_selected_mission' : 'status_selected_offre')
-      }
-      return tStatus(`status.${status}` as 'status.received')
-    } catch {
-      return status
-    }
-  })()
+  const statusLabel = lifecycleLabel(lifecycle, pub.type)
 
   const workModeLabel = (() => {
     if (!pub.work_mode) return null

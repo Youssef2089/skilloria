@@ -3027,5 +3027,46 @@
     "err_invalid_domain": "Sélectionnez un écosystème.",
     "err_branch_in_use": "Branche utilisée : {profiles} profil(s), {publications} publication(s), {specialities} spécialité(s).",
     "err_spec_in_use": "Spécialité utilisée : {profiles} profil(s), {publications} publication(s)."
+  },
+  "candidature_lifecycle": {
+    "filters": {
+      "active": "Actives",
+      "archived": "Archivées",
+      "active_count": "Actives ({count})",
+      "archived_count": "Archivées ({count})"
+    },
+    "empty_active_title": "Aucune candidature active",
+    "empty_active_body": "Les candidatures en cours apparaîtront ici.",
+    "empty_archived_title": "Aucune candidature archivée",
+    "empty_archived_body": "Les candidatures closes seront rangées ici, toujours consultables.",
+    "messages_empty_active_title": "Aucun échange en cours",
+    "messages_empty_active_body": "Les échanges ouverts apparaîtront ici.",
+    "messages_empty_archived_title": "Aucun échange archivé",
+    "messages_empty_archived_body": "Les échanges terminés restent consultables ici, en lecture seule.",
+    "read_only_notice": "Cet échange est archivé : il reste consultable, mais on ne peut plus y écrire.",
+    "expert": {
+      "selected_mission": "Mission remportée",
+      "selected_offre": "Poste décroché",
+      "exchange_open": "Échange ouvert jusqu’au {date}",
+      "awaiting_review": "En attente de réponse — annonce ouverte jusqu’au {date}",
+      "exchange_expired": "Échange terminé sans suite",
+      "publication_expired": "Cette annonce a expiré",
+      "publication_closed": "Cette annonce a été retirée",
+      "rejected": "Candidature refusée",
+      "withdrawn": "Candidature retirée",
+      "archived": "Candidature archivée"
+    },
+    "org": {
+      "selected_mission": "Candidat retenu pour cette mission",
+      "selected_offre": "Candidat retenu pour ce poste",
+      "exchange_open": "Échange ouvert jusqu’au {date}",
+      "awaiting_review": "À traiter — annonce ouverte jusqu’au {date}",
+      "exchange_expired": "Échange terminé sans suite",
+      "publication_expired": "Cette annonce a expiré",
+      "publication_closed": "Cette annonce a été retirée",
+      "rejected": "Candidature refusée",
+      "withdrawn": "Candidature retirée par le candidat",
+      "archived": "Candidature archivée"
+    }
   }
 }

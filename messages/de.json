@@ -3027,5 +3027,46 @@
     "err_invalid_domain": "Wählen Sie ein Ökosystem aus.",
     "err_branch_in_use": "Branche in Verwendung: {profiles} Profil(e), {publications} Veröffentlichung(en), {specialities} Fachgebiet(e).",
     "err_spec_in_use": "Fachgebiet in Verwendung: {profiles} Profil(e), {publications} Veröffentlichung(en)."
+  },
+  "candidature_lifecycle": {
+    "filters": {
+      "active": "Aktiv",
+      "archived": "Archiviert",
+      "active_count": "Aktiv ({count})",
+      "archived_count": "Archiviert ({count})"
+    },
+    "empty_active_title": "Keine aktiven Bewerbungen",
+    "empty_active_body": "Laufende Bewerbungen erscheinen hier.",
+    "empty_archived_title": "Keine archivierten Bewerbungen",
+    "empty_archived_body": "Abgeschlossene Bewerbungen werden hier abgelegt und bleiben einsehbar.",
+    "messages_empty_active_title": "Kein laufender Austausch",
+    "messages_empty_active_body": "Offene Gespräche erscheinen hier.",
+    "messages_empty_archived_title": "Kein archivierter Austausch",
+    "messages_empty_archived_body": "Beendete Gespräche bleiben hier einsehbar, schreibgeschützt.",
+    "read_only_notice": "Dieser Austausch ist archiviert: weiterhin einsehbar, aber nicht mehr beschreibbar.",
+    "expert": {
+      "selected_mission": "Auftrag gewonnen",
+      "selected_offre": "Stelle erhalten",
+      "exchange_open": "Austausch offen bis zum {date}",
+      "awaiting_review": "Warten auf Antwort — Anzeige offen bis zum {date}",
+      "exchange_expired": "Austausch ohne Fortsetzung beendet",
+      "publication_expired": "Diese Anzeige ist abgelaufen",
+      "publication_closed": "Diese Anzeige wurde zurückgezogen",
+      "rejected": "Bewerbung abgelehnt",
+      "withdrawn": "Bewerbung zurückgezogen",
+      "archived": "Bewerbung archiviert"
+    },
+    "org": {
+      "selected_mission": "Kandidat für diesen Auftrag ausgewählt",
+      "selected_offre": "Kandidat für diese Stelle ausgewählt",
+      "exchange_open": "Austausch offen bis zum {date}",
+      "awaiting_review": "Zu bearbeiten — Anzeige offen bis zum {date}",
+      "exchange_expired": "Austausch ohne Fortsetzung beendet",
+      "publication_expired": "Diese Anzeige ist abgelaufen",
+      "publication_closed": "Diese Anzeige wurde zurückgezogen",
+      "rejected": "Bewerbung abgelehnt",
+      "withdrawn": "Bewerbung vom Kandidaten zurückgezogen",
+      "archived": "Bewerbung archiviert"
+    }
   }
 }

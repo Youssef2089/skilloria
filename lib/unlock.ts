@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { logAudit } from '@/lib/audit'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
+import { conversationExpiryIso } from '@/lib/conversations/expiry'
 
 /**
  * lib/unlock.ts — cœur mécanique du dévoilement d'une candidature, PARTAGÉ.
@@ -100,9 +101,11 @@ export async function performUnlock(
   }
 
   // (1) INSERT conversation — idempotent via UNIQUE candidature_id.
-  //  Fenêtre de validité 15 j : expires_at posé à la création.
-  const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000
-  const expiresAtIso = new Date(Date.now() + fifteenDaysMs).toISOString()
+  //  Fenêtre de validité 15 j : expires_at posé à la création. La constante
+  //  vit désormais dans lib/conversations/expiry.ts — SOURCE UNIQUE partagée
+  //  avec la dérivation d'état de vie des candidatures (lib/candidatures/
+  //  lifecycle.ts), qui doit lire EXACTEMENT la même règle que celle écrite ici.
+  const expiresAtIso = conversationExpiryIso()
   const { data: convInserted, error: convInsertErr } = await admin
     .from('conversations')
     .insert({

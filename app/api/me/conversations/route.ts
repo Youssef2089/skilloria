@@ -6,6 +6,12 @@ import { buildPublicationSynthesis } from '@/lib/publication-synthesis'
 import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name-masking'
 import { disclosurePolicyForConversationOrgSide } from '@/lib/expert-disclosure'
 import { signAvatarUrl } from '@/lib/avatar'
+import { isConversationExpired } from '@/lib/conversations/expiry'
+import {
+  deriveCandidatureLifecycle,
+  parseBucketFilter,
+  type CandidatureLifecycle,
+} from '@/lib/candidatures/lifecycle'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -25,8 +31,22 @@ function normalizeLocale(raw: string | null): Locale {
  *      • l'expert : profiles.user_id == auth.uid() ET candidature.profile_id == profiles.id
  *      • OU un membre actif de l'org propriétaire de candidature.publication.
  *
- * Retour : conversations où candidature.status='unlocked', triées par
- *   last_message_at DESC NULLS LAST, puis created_at DESC.
+ * Retour : conversations où candidature.status ∈ ('unlocked','selected'),
+ *   triées par last_message_at DESC NULLS LAST, puis created_at DESC.
+ *
+ * Pourquoi 'selected' est INCLUS (correction de cohérence, lot état de vie) :
+ *   une candidature retenue conserve sa conversation (caler date / contrat) —
+ *   /api/me/candidatures et lib/candidature-org-dto exposent d'ailleurs déjà
+ *   son `conversation_id`. Elle était pourtant ABSENTE de l'inbox : le lien
+ *   « Ouvrir la conversation » d'une mission remportée pointait vers un fil
+ *   introuvable dans la liste. Avec « Actives par défaut », l'issue positive
+ *   du parcours doit être dans le bucket Actives, pas nulle part.
+ *
+ * ?filter=active|archived|all — ACTIVES PAR DÉFAUT. Le bucket vient de la
+ *   dérivation serveur partagée (lib/candidatures/lifecycle.ts), la MÊME que
+ *   celle qui range les candidatures : un échange archivé côté Messages est
+ *   exactement celui qui est archivé côté Candidatures. Une conversation
+ *   archivée reste LISIBLE en lecture seule — on n'efface aucun historique.
  *
  * Pour chaque conversation :
  *   - conversation : id, status, last_message_at, expires_at, is_expired
@@ -76,10 +96,8 @@ function pickRel<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value
 }
 
-function isExpired(expiresAt: string | null): boolean {
-  if (!expiresAt) return false
-  return new Date(expiresAt).getTime() <= Date.now()
-}
+/** Statuts de candidature dont la conversation est servie dans l'inbox. */
+const CONVERSATION_STATUSES = ['unlocked', 'selected'] as const
 
 export async function GET(request: NextRequest): Promise<Response> {
   let auth: AuthContext
@@ -91,15 +109,18 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   const userId = auth.user.id
-  const locale = normalizeLocale(new URL(request.url).searchParams.get('locale'))
+  const url = new URL(request.url)
+  const locale = normalizeLocale(url.searchParams.get('locale'))
+  const bucketFilter = parseBucketFilter(url.searchParams.get('filter'))
   const translations = await loadTranslations(locale)
 
   // ── Résoudre les conversations où l'user est participant ────────────────
-  //  Plus simple en 2 queries jointes : on prend candidatures.status='unlocked'
-  //  où profile.user_id = me OU une publi appartenant à mon org active.
+  //  Plus simple en 2 queries jointes : on prend les candidatures dont le
+  //  statut ouvre une conversation (unlocked | selected) où profile.user_id =
+  //  me OU une publi appartenant à mon org active.
   //  Pour rester service_role et éviter une OR sur RLS, on fait deux SELECT :
-  //   (1) candidatures unlocked liées à mon profile (expert)
-  //   (2) candidatures unlocked sur des publis de mon org (membre)
+  //   (1) candidatures conversables liées à mon profile (expert)
+  //   (2) candidatures conversables sur des publis de mon org (membre)
   //  Puis on charge les conversations correspondantes en une 3e query.
 
   // (1) Expert
@@ -114,7 +135,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       .from('candidatures')
       .select('id')
       .eq('profile_id', (myProfile as { id: string }).id)
-      .eq('status', 'unlocked')
+      .in('status', CONVERSATION_STATUSES as unknown as string[])
     for (const r of (rows ?? []) as { id: string }[]) candIdsExpert.push(r.id)
   }
 
@@ -131,14 +152,14 @@ export async function GET(request: NextRequest): Promise<Response> {
         .from('candidatures')
         .select('id')
         .in('publication_id', pubIds)
-        .eq('status', 'unlocked')
+        .in('status', CONVERSATION_STATUSES as unknown as string[])
       for (const r of (rows ?? []) as { id: string }[]) candIdsOrg.push(r.id)
     }
   }
 
   const candIds = Array.from(new Set([...candIdsExpert, ...candIdsOrg]))
   if (candIds.length === 0) {
-    return json({ conversations: [] }, 200)
+    return json({ conversations: [], counts: { active: 0, archived: 0 }, filter: bucketFilter ?? 'all' }, 200)
   }
 
   // (3) Charger les conversations + chaîne d'identité
@@ -155,11 +176,13 @@ export async function GET(request: NextRequest): Promise<Response> {
         // déjà = candidature unlocked → policy reveal_photo: true).
         // Servi côté EXPERT : avatar org logo_url comme avant (inchangé).
         // Contact (email/phone) jamais chargé / jamais servi.
-        'candidatures!inner(id, status, profile_id, publication_id, ' +
+        // `unlocked_at` (candidature) + `status`/`published_at` (publication) :
+        // entrées de la dérivation d'état de vie (lib/candidatures/lifecycle).
+        'candidatures!inner(id, status, profile_id, publication_id, unlocked_at, ' +
           'profiles!inner(id, user_id, photo_url, users!profiles_user_id_fkey(id, first_name, last_name, deletion_scheduled_at, anonymized_at)), ' +
           'publications!inner(id, type, title, description, budget_min, budget_max, ' +
             'location, work_mode, duration, start_date, seniority, skills_required, ' +
-            'confidential, branch_id, speciality_id, expires_at, organization_id, ' +
+            'confidential, branch_id, speciality_id, status, published_at, expires_at, organization_id, ' +
             'branches(id, name), specialities(id, name), ' +
             'organizations(id, company_name, logo_url)))',
     )
@@ -198,10 +221,13 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   // ── DTO : projection correspondant + last_message + unread ──────────────
+  // Instant unique pour toute la réponse (cf. /api/me/candidatures).
+  const now = new Date()
   const conversations = await Promise.all(convRows.map(async (conv) => {
     const c = pickRel(conv.candidatures) as ConversationRow['candidatures'] extends (infer X)[] | infer Y ? Y : never
     const cand = c as unknown as {
       id: string; status: string; profile_id: string; publication_id: string;
+      unlocked_at: string | null;
       profiles: unknown; publications: unknown;
     } | null
     const profile = pickRel(cand?.profiles as { id: string; user_id: string; photo_url: string | null; users: unknown } | { id: string; user_id: string; photo_url: string | null; users: unknown }[] | null)
@@ -255,13 +281,32 @@ export async function GET(request: NextRequest): Promise<Response> {
         }
       : null
 
+    // ÉTAT DE VIE dérivé SERVEUR — même helper, mêmes entrées que côté
+    // candidatures : un fil rangé dans « Archivées » ici l'est aussi là-bas.
+    const lifecycle = deriveCandidatureLifecycle(
+      {
+        status: cand?.status ?? 'unlocked',
+        unlocked_at: cand?.unlocked_at ?? null,
+        publication: pub
+          ? {
+              status: (pub.status as string | null | undefined) ?? null,
+              published_at: (pub.published_at as string | null | undefined) ?? null,
+              expires_at: (pub.expires_at as string | null | undefined) ?? null,
+            }
+          : null,
+        conversation: { expires_at: conv.expires_at },
+      },
+      now,
+    )
+
     return {
       id: conv.id,
       candidature_id: conv.candidature_id,
       status: conv.status,
       last_message_at: conv.last_message_at,
       expires_at: conv.expires_at,
-      is_expired: isExpired(conv.expires_at),
+      is_expired: isConversationExpired(conv.expires_at, now),
+      lifecycle,
       created_at: conv.created_at,
       publication: pub
         ? {
@@ -278,5 +323,12 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
   }))
 
-  return json({ conversations }, 200)
+  // Filtrage APRÈS dérivation (serveur), comptage sur la totalité.
+  const counts = { active: 0, archived: 0 }
+  for (const c of conversations) counts[(c.lifecycle as CandidatureLifecycle).bucket]++
+  const visible = bucketFilter
+    ? conversations.filter((c) => (c.lifecycle as CandidatureLifecycle).bucket === bucketFilter)
+    : conversations
+
+  return json({ conversations: visible, counts, filter: bucketFilter ?? 'all' }, 200)
 }

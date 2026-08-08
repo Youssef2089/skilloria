@@ -26,15 +26,18 @@ type PublicationInfo = {
   status: string
   skills_required?: string[]
 }
+type BucketCounts = { active: number; archived: number }
+type BucketKey = 'active' | 'archived'
 type State =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
-  | { kind: 'ready'; publication: PublicationInfo; candidatures: CandidatureData[] }
+  | { kind: 'ready'; publication: PublicationInfo; candidatures: CandidatureData[]; counts: BucketCounts }
 
 export default function CandidaturesPage({ params }: Props) {
   const t = useTranslations('candidatures.feed')
   const tCasting = useTranslations('candidatures.casting')
   const tPub = useTranslations('publications.type')
+  const tLifecycle = useTranslations('candidature_lifecycle')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -42,18 +45,21 @@ export default function CandidaturesPage({ params }: Props) {
 
   const [pubId, setPubId] = useState<string | null>(null)
   const [state, setState] = useState<State>({ kind: 'loading' })
+  // Actives par défaut, parité stricte avec la vue globale org et l'expert.
+  const [bucket, setBucket] = useState<BucketKey>('active')
 
   const load = useCallback(async (id: string) => {
     setState({ kind: 'loading' })
     try {
       const res = await secureFetch(
-        `/api/publications/${id}/candidatures?locale=${encodeURIComponent(locale)}`,
+        `/api/publications/${id}/candidatures?locale=${encodeURIComponent(locale)}&filter=${bucket}`,
         { method: 'GET' },
       )
       const payload = (await res.json().catch(() => ({} as { code?: string }))) as {
         code?: string
         publication?: PublicationInfo
         candidatures?: CandidatureData[]
+        counts?: BucketCounts
       }
       if (!res.ok) {
         setState({
@@ -66,12 +72,13 @@ export default function CandidaturesPage({ params }: Props) {
         kind: 'ready',
         publication: payload.publication ?? { id, type: 'mission', title: '', status: 'published' },
         candidatures: payload.candidatures ?? [],
+        counts: payload.counts ?? { active: 0, archived: 0 },
       })
     } catch (err) {
       console.error('[candidatures page] fetch threw', err)
       setState({ kind: 'error', message: t('error_generic') })
     }
-  }, [locale, secureFetch, t])
+  }, [locale, secureFetch, t, bucket])
 
   useEffect(() => {
     let cancelled = false
@@ -122,7 +129,7 @@ export default function CandidaturesPage({ params }: Props) {
     )
   }
 
-  const { publication, candidatures } = state
+  const { publication, candidatures, counts: bucketCounts } = state
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
@@ -170,6 +177,35 @@ export default function CandidaturesPage({ params }: Props) {
         )}
       </div>
 
+      {/* Actives / Archivées — mêmes buckets, mêmes libellés, même défaut que
+          partout ailleurs. Le serveur filtre, la page ne fait que demander. */}
+      <div style={{ display: 'flex', gap: 8, margin: '10px 0 4px' }}>
+        {([
+          { key: 'active' as const,   label: tLifecycle('filters.active_count',   { count: bucketCounts.active }) },
+          { key: 'archived' as const, label: tLifecycle('filters.archived_count', { count: bucketCounts.archived }) },
+        ]).map((b) => {
+          const on = bucket === b.key
+          return (
+            <button
+              key={b.key}
+              type="button"
+              aria-pressed={on}
+              onClick={() => setBucket(b.key)}
+              style={{
+                fontSize: 12.5, fontWeight: 600, padding: '6px 13px',
+                borderRadius: 999,
+                color: on ? 'var(--sk-accent-ink)' : 'var(--sk-muted)',
+                background: on ? 'var(--sk-accent-soft)' : 'var(--sk-surface)',
+                border: on ? '1px solid transparent' : '1px solid var(--sk-border)',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              {b.label}
+            </button>
+          )
+        })}
+      </div>
+
       {/* Carrousel casting */}
       {candidatures.length === 0 ? (
         <div
@@ -186,9 +222,9 @@ export default function CandidaturesPage({ params }: Props) {
           }}
         >
           <div style={{ fontSize: 16, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>
-            {t('empty_all_title')}
+            {bucket === 'archived' ? tLifecycle('empty_archived_title') : t('empty_all_title')}
           </div>
-          <div>{t('empty_all_subtitle')}</div>
+          <div>{bucket === 'archived' ? tLifecycle('empty_archived_body') : t('empty_all_subtitle')}</div>
         </div>
       ) : (
         <CastingCarousel

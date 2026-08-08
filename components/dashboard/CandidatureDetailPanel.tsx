@@ -16,6 +16,11 @@ import {
 import StatusPill from '@/components/ui/StatusPill'
 import TimelineStep from '@/components/ui/TimelineStep'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from '@/components/dashboard/PublicationSynthesisLine'
+import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
+import {
+  lifecycleToPillKind,
+  useCandidatureLifecycleLabel,
+} from '@/lib/candidatures/use-lifecycle-label'
 
 /**
  * CandidatureDetailPanel — détail d'UNE candidature côté expert.
@@ -43,14 +48,14 @@ export type Candidature = {
   created_at: string
   conversation_id: string | null
   viewed_by_me?: boolean
-}
-
-export function statusToPillKind(status: string): 'open' | 'won' | 'wait' | 'refused' | 'neutral' {
-  if (status === 'selected') return 'won'
-  if (status === 'unlocked') return 'open'
-  if (status === 'rejected') return 'refused'
-  if (status === 'received' || status === 'in_review' || status === 'shortlisted') return 'wait'
-  return 'neutral'
+  /**
+   * État de vie DÉRIVÉ SERVEUR (/api/me/candidatures). Source unique du
+   * libellé et de la teinte de la pastille — `status` ne sert plus à
+   * fabriquer un mot. Optionnel au type près pour rester tolérant aux
+   * call-sites qui n'ont pas encore la donnée ; le rendu retombe alors
+   * silencieusement sur rien plutôt que sur un libellé menteur.
+   */
+  lifecycle?: CandidatureLifecycle | null
 }
 
 export default function CandidatureDetailPanel({
@@ -65,10 +70,14 @@ export default function CandidatureDetailPanel({
   const locale = useLocale()
   const relTime = useRelativeTime()
 
-  const pk = statusToPillKind(c.status)
+  // SITE DE RENDU 1/5 — le libellé d'état passe par la RAISON dérivée.
+  const lifecycleLabel = useCandidatureLifecycleLabel('expert')
+  const reason = c.lifecycle?.reason ?? null
+  const pk = reason ? lifecycleToPillKind(reason) : 'neutral'
   const PIcon = pk === 'won' ? IconTrophy : pk === 'open' ? IconLockOpen : pk === 'refused' ? IconX : IconClock
   const isSelected = c.status === 'selected'
   const isMission = c.publication?.type === 'mission'
+  const isArchived = c.lifecycle?.bucket === 'archived'
   return (
     <div style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', borderRadius: 'var(--sk-r-lg)', padding: '24px 26px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14 }}>
@@ -81,9 +90,7 @@ export default function CandidatureDetailPanel({
           </div>
         </div>
         <StatusPill kind={pk} icon={<PIcon size={14} />}>
-          {isSelected
-            ? t(isMission ? 'status_selected_mission' : 'status_selected_offre')
-            : t(`status.${c.status}` as 'status.received')}
+          {lifecycleLabel(c.lifecycle, c.publication?.type)}
         </StatusPill>
       </div>
 
@@ -145,7 +152,7 @@ export default function CandidatureDetailPanel({
             label={t('timeline.unlocked')}
             sub={t('unlocked_since', { time: relTime(c.unlocked_at) })}
             state="done"
-            isLast={c.status === 'unlocked'}
+            isLast={reason === 'exchange_open'}
           />
         )}
         {c.status === 'selected' && c.selected_at && (
@@ -166,12 +173,23 @@ export default function CandidatureDetailPanel({
             isLast
           />
         )}
-        {c.status !== 'unlocked' && c.status !== 'rejected' && c.status !== 'selected' && (
+        {/* Dernière étape : elle aussi dérive de la RAISON. Sans ça la
+            timeline continuait d'annoncer « En attente de l'entreprise » sur
+            une candidature dont l'annonce a expiré depuis 30 jours. */}
+        {reason === 'awaiting_review' && (
           <TimelineStep
             icon={<IconClock size={16} />}
             label={t('timeline.waiting')}
-            sub={t('waiting_for_org')}
+            sub={lifecycleLabel(c.lifecycle, c.publication?.type)}
             state="pending"
+            isLast
+          />
+        )}
+        {isArchived && reason !== 'rejected' && (
+          <TimelineStep
+            icon={<IconClock size={16} />}
+            label={lifecycleLabel(c.lifecycle, c.publication?.type)}
+            state="failed"
             isLast
           />
         )}

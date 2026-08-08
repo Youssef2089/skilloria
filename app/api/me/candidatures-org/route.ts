@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
-import { buildOrgCandidatureDTOs } from '@/lib/candidature-org-dto'
+import { buildOrgCandidatureDTOs, countByBucket } from '@/lib/candidature-org-dto'
+import { parseBucketFilter } from '@/lib/candidatures/lifecycle'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,6 +21,10 @@ export const dynamic = 'force-dynamic'
  * /api/publications/[id]/candidatures (les deux routes appellent
  * buildOrgCandidatureDTOs). Un set de invariants vit dans le helper, pas
  * dans la route — pas de divergence possible.
+ *
+ * ?filter=active|archived|all — ACTIVES PAR DÉFAUT, exactement comme côté
+ * expert. Le bucket vient de la dérivation serveur portée par le helper ; le
+ * client reçoit `lifecycle` et se contente d'en rendre la raison.
  *
  * Tri : ai_match_score DESC NULLS LAST, created_at DESC (héritage helper).
  * Le DTO inclut publication_id pour permettre le regroupement côté UI.
@@ -75,18 +80,25 @@ export async function GET(request: NextRequest): Promise<Response> {
   const publicationIds = ownedPubs.map((p) => p.id)
 
   if (publicationIds.length === 0) {
-    return json({ candidatures: [], publications: [] }, 200)
+    return json({ candidatures: [], publications: [], counts: { active: 0, archived: 0 }, filter: 'active' }, 200)
   }
 
   // ── Délégation au helper partagé (même masquage que vue per-pub) ────────
-  const locale = normalizeLocale(new URL(request.url).searchParams.get('locale'))
+  const url = new URL(request.url)
+  const locale = normalizeLocale(url.searchParams.get('locale'))
+  const bucketFilter = parseBucketFilter(url.searchParams.get('filter'))
   const translations = await loadTranslations(locale)
-  let candidatures: Awaited<ReturnType<typeof buildOrgCandidatureDTOs>>
+  // Deux passes sur le MÊME helper : la totalité alimente les compteurs des
+  // deux onglets, la vue filtrée alimente la liste. Une seule source de
+  // dérivation, donc jamais de compteur qui contredit la liste.
+  let all: Awaited<ReturnType<typeof buildOrgCandidatureDTOs>>
   try {
-    candidatures = await buildOrgCandidatureDTOs(auth, publicationIds, translations)
+    all = await buildOrgCandidatureDTOs(auth, publicationIds, translations)
   } catch {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
+  const counts = countByBucket(all)
+  const candidatures = bucketFilter ? all.filter((c) => c.lifecycle.bucket === bucketFilter) : all
 
   // Mini-DTO publication pour permettre le regroupement / labels côté UI.
   // On ne renvoie QUE les publications qui ont au moins une candidature, pour
@@ -106,5 +118,5 @@ export async function GET(request: NextRequest): Promise<Response> {
       skills_required: p.skills_required ?? [],
     }))
 
-  return json({ candidatures, publications }, 200)
+  return json({ candidatures, publications, counts, filter: bucketFilter ?? 'all' }, 200)
 }

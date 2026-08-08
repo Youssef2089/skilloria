@@ -9,6 +9,8 @@ import ConversationView from '@/components/dashboard/ConversationView'
 import MessageContextPanel from '@/components/dashboard/MessageContextPanel'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import NewItemsPill from '@/components/ui/NewItemsPill'
+import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
+import { useCandidatureLifecycleLabel } from '@/lib/candidatures/use-lifecycle-label'
 
 /**
  * Inbox messagerie LAYOUT 2 PANNEAUX (Point 6 finitions UX).
@@ -20,7 +22,15 @@ import NewItemsPill from '@/components/ui/NewItemsPill'
  *   └───────────────┴──────────────────────────────────┘
  *
  * Scope strict : /api/me/conversations ne retourne QUE les conversations
- * unlocked + non expirées (RLS core_loop). Pas de messagerie libre.
+ * adossées à une candidature qui ouvre un échange (unlocked | selected).
+ * Pas de messagerie libre.
+ *
+ * FILTRE (lot état de vie) : deux buckets, Actives et Archivées, ACTIVES PAR
+ * DÉFAUT — les MÊMES que le menu Candidatures, dérivés par le MÊME helper
+ * serveur. Un échange rangé « Archivé » ici l'est aussi là-bas ; l'expert et
+ * l'org voient le même fait. Le client passe `?filter=` et rend ce qu'on lui
+ * donne : il ne calcule aucun état. Une conversation archivée reste LISIBLE
+ * en lecture seule — aucun historique n'est effacé.
  *
  * Comportement :
  *   - `selectedConvId` (prop optionnel) pré-sélectionne une conv à droite
@@ -67,6 +77,8 @@ type Conversation = {
   last_message_at: string | null
   expires_at: string | null
   is_expired: boolean
+  /** État de vie dérivé serveur — bucket + raison + fin de fenêtre. */
+  lifecycle?: CandidatureLifecycle | null
   publication: ConvPublication | null
   correspondant: Correspondant
   last_message: { content: string; created_at: string; sender_is_me: boolean } | null
@@ -112,6 +124,12 @@ export default function MessagesInbox({
 }) {
   const t = useTranslations('messages.inbox')
   const tPub = useTranslations('publications')
+  const tLifecycle = useTranslations('candidature_lifecycle')
+  // Le correspondant décide du point de vue : l'org côté expert, l'expert
+  // côté org. L'inbox d'un expert PUBLIANT mêle les deux — d'où la résolution
+  // par conversation, pas par page.
+  const lifecycleLabelExpert = useCandidatureLifecycleLabel('expert')
+  const lifecycleLabelOrg = useCandidatureLifecycleLabel('org')
   const locale = useLocale()
   const relTime = useRelativeTime()
   const router = useRouter()
@@ -130,6 +148,8 @@ export default function MessagesInbox({
   //  Le prop selectedConvId reste lu au mount (initial state) pour
   //  préserver la chaîne notif → /messages/[id].
   const [localSelectedConvId, setLocalSelectedConvId] = useState<string | null>(selectedConvId ?? null)
+  // Bucket demandé au SERVEUR. Actives par défaut.
+  const [bucket, setBucket] = useState<'active' | 'archived'>('active')
 
   useEffect(() => {
     if (selectedConvId !== undefined && selectedConvId !== null) {
@@ -155,15 +175,21 @@ export default function MessagesInbox({
   // faire bouger la liste pendant que l'user lit. Les updates en place
   // (last_message_at, unread_count) sont appliqués directement (clés
   // stables = conv.id).
-  const live = useLiveResource<{ conversations: Conversation[] }, Conversation>({
-    url: `/api/me/conversations?locale=${encodeURIComponent(locale)}`,
+  const live = useLiveResource<
+    { conversations: Conversation[]; counts?: { active: number; archived: number } },
+    Conversation
+  >({
+    url: `/api/me/conversations?locale=${encodeURIComponent(locale)}&filter=${bucket}`,
     itemsOf: (d) => d.conversations ?? [],
     identityOf: (c) => c.id,
-    versionOf: (c) => `${c.last_message_at ?? ''}|${c.unread_count}|${c.status}`,
+    // La raison entre dans la version : un fil qui bascule archivé (fenêtre
+    // 15 j écoulée) doit se rafraîchir sans intervention.
+    versionOf: (c) => `${c.last_message_at ?? ''}|${c.unread_count}|${c.status}|${c.lifecycle?.reason ?? ''}`,
     holdNewItems: true,
   })
 
   const conversations: Conversation[] = live.data?.conversations ?? []
+  const counts = live.data?.counts ?? { active: 0, archived: 0 }
   const groups = useMemo(() => groupByPublication(conversations), [conversations])
 
   // Conv sélectionnée (pour panneau ctx mission)
@@ -218,6 +244,34 @@ export default function MessagesInbox({
             minHeight: 0,
           }}
         >
+          {/* Deux buckets, actives par défaut. Le clic re-demande au serveur —
+              le client ne re-trie rien localement. */}
+          <div style={{ display: 'flex', gap: 8, padding: '12px 14px', borderBottom: '0.5px solid #e5e7eb', flexShrink: 0 }}>
+            {([
+              { key: 'active' as const,   label: tLifecycle('filters.active_count',   { count: counts.active }) },
+              { key: 'archived' as const, label: tLifecycle('filters.archived_count', { count: counts.archived }) },
+            ]).map((b) => {
+              const on = bucket === b.key
+              return (
+                <button
+                  key={b.key}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => setBucket(b.key)}
+                  style={{
+                    fontSize: 12, fontWeight: 600, padding: '5px 12px',
+                    borderRadius: 999,
+                    color: on ? 'var(--sk-accent-ink)' : 'var(--sk-muted)',
+                    background: on ? 'var(--sk-accent-soft)' : 'var(--sk-surface)',
+                    border: on ? '1px solid transparent' : '1px solid var(--sk-border)',
+                    cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  {b.label}
+                </button>
+              )
+            })}
+          </div>
           {state.kind === 'loading' && (
             <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 13 }}>{t('loading')}</div>
           )}
@@ -226,8 +280,12 @@ export default function MessagesInbox({
           )}
           {state.kind === 'ready' && groups.length === 0 && (
             <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>{t('empty_title')}</div>
-              <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.55 }}>{t('empty_subtitle')}</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>
+                {tLifecycle(bucket === 'archived' ? 'messages_empty_archived_title' : 'messages_empty_active_title')}
+              </div>
+              <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.55 }}>
+                {tLifecycle(bucket === 'archived' ? 'messages_empty_archived_body' : 'messages_empty_active_body')}
+              </div>
             </div>
           )}
           {state.kind === 'ready' && groups.length > 0 && (
@@ -252,6 +310,13 @@ export default function MessagesInbox({
                   {/* Conversations du groupe */}
                   {g.conversations.map((c) => {
                     const active = localSelectedConvId === c.id
+                    // Point de vue : correspondant='org' ⇒ je suis l'expert ;
+                    // correspondant='expert' ⇒ je suis l'org. Même fait, deux
+                    // vocabulaires — résolu par conversation, pas par page.
+                    const label = c.correspondant.kind === 'org'
+                      ? lifecycleLabelExpert(c.lifecycle, c.publication?.type)
+                      : lifecycleLabelOrg(c.lifecycle, c.publication?.type)
+                    const isArchived = c.lifecycle?.bucket === 'archived'
                     return (
                       <button
                         key={c.id}
@@ -268,7 +333,7 @@ export default function MessagesInbox({
                           textDecoration: 'none', color: 'inherit',
                           textAlign: 'left',
                           fontFamily: 'inherit',
-                          opacity: c.is_expired ? 0.7 : 1,
+                          opacity: isArchived ? 0.7 : 1,
                           cursor: 'pointer',
                           transition: 'background .15s',
                         }}
@@ -309,6 +374,27 @@ export default function MessagesInbox({
                               <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>{t('no_messages_yet')}</span>
                             )}
                           </div>
+                          {/* ÉTAT DE VIE, en clair, sur chaque ligne. C'est
+                              ici que l'utilisateur apprend qu'il a 15 jours :
+                              « Échange ouvert jusqu'au … » rend la fenêtre
+                              visible AVANT qu'elle se ferme. Et une fois
+                              close, la ligne dit POURQUOI, jamais « Archivée »
+                              tout court. */}
+                          {label && (
+                            <div
+                              style={{
+                                fontSize: 10.5,
+                                marginTop: 3,
+                                color: isArchived ? '#94a3b8' : '#166534',
+                                fontWeight: 600,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {label}
+                            </div>
+                          )}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>
                           {c.unread_count > 0 && (
@@ -316,11 +402,8 @@ export default function MessagesInbox({
                               {c.unread_count}
                             </span>
                           )}
-                          {c.is_expired && (
-                            <span style={{ background: '#f1f5f9', color: '#64748b', fontSize: 9, fontWeight: 600, padding: '1px 6px', borderRadius: 9, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-                              {t('expired_badge')}
-                            </span>
-                          )}
+                          {/* Le badge « Expiré » nu a disparu : la ligne d'état
+                              ci-dessus porte la raison complète. */}
                         </div>
                       </button>
                     )

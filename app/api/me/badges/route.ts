@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
+import { deriveCandidatureLifecycle } from '@/lib/candidatures/lifecycle'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -128,6 +129,12 @@ export async function GET(request: NextRequest): Promise<Response> {
  *     bougé depuis la dernière consultation → la candidature revient
  *     dans le compteur).
  *
+ * ARCHIVÉES EXCLUES (lot état de vie) : une candidature morte ne ping plus.
+ * Un échange dont la fenêtre 15 j est passée, une candidature dont l'annonce
+ * a expiré, un refus — plus rien n'en sortira, donc plus rien à traiter. Le
+ * bucket vient du MÊME helper de dérivation que les listes : le badge ne peut
+ * pas compter ce que l'onglet « Actives » n'affiche pas.
+ *
  * Best-effort : si le sous-SELECT scope échoue, on retourne 0 plutôt que
  * de propager une 500 (le badge nav doit rester silencieux en cas de pépin
  * non-bloquant).
@@ -138,10 +145,10 @@ async function countUnviewedCandidaturesForUser(
     | { kind: 'expert'; profileId: string }
     | { kind: 'org'; orgId: string },
 ): Promise<number> {
-  // 1. Liste des candidatures du scope (id + updated_at)
+  // 1. Liste des candidatures du scope (+ entrées de dérivation d'état de vie)
   let candQuery = auth.supabaseAdmin
     .from('candidatures')
-    .select('id, updated_at')
+    .select('id, updated_at, status, unlocked_at, publication_id')
     .limit(2000)
 
   if (scope.kind === 'expert') {
@@ -161,7 +168,52 @@ async function countUnviewedCandidaturesForUser(
     console.error('[me/badges] candidatures scope query failed', cErr.message)
     return 0
   }
-  const candRows = (candRowsRaw ?? []) as { id: string; updated_at: string }[]
+  const candRowsAll = (candRowsRaw ?? []) as {
+    id: string; updated_at: string; status: string
+    unlocked_at: string | null; publication_id: string
+  }[]
+  if (candRowsAll.length === 0) return 0
+
+  // 1bis. Fenêtres annonce + fenêtres échange, pour dériver le bucket.
+  const pubIdsRef = Array.from(new Set(candRowsAll.map((c) => c.publication_id)))
+  const pubById = new Map<string, { status: string | null; published_at: string | null; expires_at: string | null }>()
+  if (pubIdsRef.length > 0) {
+    const { data: pubRows } = await auth.supabaseAdmin
+      .from('publications')
+      .select('id, status, published_at, expires_at')
+      .in('id', pubIdsRef)
+    for (const p of (pubRows ?? []) as { id: string; status: string | null; published_at: string | null; expires_at: string | null }[]) {
+      pubById.set(p.id, { status: p.status, published_at: p.published_at, expires_at: p.expires_at })
+    }
+  }
+  const convExpiryByCand = new Map<string, string | null>()
+  const conversableIds = candRowsAll
+    .filter((c) => c.status === 'unlocked' || c.status === 'selected')
+    .map((c) => c.id)
+  if (conversableIds.length > 0) {
+    const { data: convRows } = await auth.supabaseAdmin
+      .from('conversations')
+      .select('candidature_id, expires_at')
+      .in('candidature_id', conversableIds)
+    for (const c of (convRows ?? []) as { candidature_id: string; expires_at: string | null }[]) {
+      convExpiryByCand.set(c.candidature_id, c.expires_at)
+    }
+  }
+
+  // 1ter. ARCHIVÉES ÉCARTÉES avant tout comptage (cf. en-tête).
+  const now = new Date()
+  const candRows = candRowsAll.filter((c) => {
+    const lifecycle = deriveCandidatureLifecycle(
+      {
+        status: c.status,
+        unlocked_at: c.unlocked_at,
+        publication: pubById.get(c.publication_id) ?? null,
+        conversation: convExpiryByCand.has(c.id) ? { expires_at: convExpiryByCand.get(c.id) ?? null } : null,
+      },
+      now,
+    )
+    return lifecycle.bucket === 'active'
+  })
   if (candRows.length === 0) return 0
 
   // 2. Vues de l'user courant pour ces candidatures
