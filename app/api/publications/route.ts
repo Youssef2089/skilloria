@@ -5,9 +5,12 @@ import { isExpertProfileApproved, PROFILE_NOT_VERIFIED_CODE } from '@/lib/expert
 import { loadTranslations, tBDD } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { isActivePublished } from '@/lib/publications/expiry'
+import { deriveLifecycleByCandidature } from '@/lib/candidatures/lifecycle-batch'
 import type {
   Annonce,
   AnnonceBudgetUnit,
+  AnnonceCandidatureFunnel,
+  AnnonceCandidatures,
   AnnonceStatus,
   AnnonceType,
 } from '@/types/annonce'
@@ -278,13 +281,9 @@ const VALID_STATUSES: readonly AnnonceStatus[] = [
 ]
 const VALID_TYPES: readonly AnnonceType[] = ['mission', 'offre', 'sous_traitance']
 
-const EMPTY_CANDIDATURES = {
-  total: 0,
-  to_review: 0,
-  in_progress: 0,
-  accepted: 0,
-  rejected: 0,
-} as const
+function makeEmptyCandidatures(): AnnonceCandidatures {
+  return { active: makeEmptyAgg(), archived: makeEmptyAgg() }
+}
 
 /**
  * Mapping logique compteurs UI ↔ candidatures.status (Lot refonte dashboard
@@ -302,16 +301,17 @@ const EMPTY_CANDIDATURES = {
  *
  * Codes DB INCHANGÉS (selected, unlocked, …). Renommage uniquement display.
  *
+ * VENTILÉ PAR ÉTAT DE VIE (lot compteurs) : chaque candidature est d'abord
+ * rangée en 'active' ou 'archived' par deriveCandidatureLifecycle — le MÊME
+ * helper que /api/publications/[id]/candidatures et /api/me/candidatures-org,
+ * dont les listes ouvrent sur le bucket « Actives ». Sans cette ventilation, la
+ * carte annonçait « 3 à consulter » sur une annonce expirée pendant que la
+ * liste correspondante était vide.
+ *
  * Le badge nav "Candidatures" reste indépendant — basé sur `candidature_views`
  * (par item non consulté). Ces deux compteurs cohabitent volontairement.
  */
-type CounterAgg = {
-  total: number
-  to_review: number
-  in_progress: number
-  accepted: number
-  rejected: number
-}
+type CounterAgg = AnnonceCandidatureFunnel
 function makeEmptyAgg(): CounterAgg {
   return { total: 0, to_review: 0, in_progress: 0, accepted: 0, rejected: 0 }
 }
@@ -417,21 +417,45 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   // ── Agrégat candidatures par publication (Lot 2c) ─────────────────────
   //  Une seule query batch sur l'ensemble des ids ; mapping en mémoire ensuite.
+  //
+  //  Lot compteurs : chaque candidature est ventilée par ÉTAT DE VIE avant
+  //  d'entrer dans l'entonnoir. Les fenêtres d'annonce sont déjà chargées ici
+  //  (`rows`) — on ne les relit pas ; seules les fenêtres d'échange (15 j) sont
+  //  résolues par le helper partagé. Instant UNIQUE pour tout le lot.
   const pubIds = rows.map((r) => r.id)
-  const aggByPub = new Map<string, CounterAgg>()
+  const aggByPub = new Map<string, AnnonceCandidatures>()
   if (pubIds.length > 0) {
     const { data: candRows, error: candErr } = await auth.supabaseAdmin
       .from('candidatures')
-      .select('publication_id, status')
+      .select('id, publication_id, status, unlocked_at')
       .in('publication_id', pubIds)
     if (candErr) {
       console.error('[publications:GET] candidatures agg failed', candErr.message)
-      // best-effort : on continue avec EMPTY_CANDIDATURES
+      // best-effort : on continue avec des compteurs vides
     } else {
-      for (const c of (candRows ?? []) as { publication_id: string; status: string }[]) {
+      const candidatures = (candRows ?? []) as {
+        id: string; publication_id: string; status: string; unlocked_at: string | null
+      }[]
+      const pubWindows = new Map(
+        rows.map((r) => [
+          r.id,
+          { status: r.status, published_at: r.published_at, expires_at: r.expires_at },
+        ]),
+      )
+      const lifecycleByCand = await deriveLifecycleByCandidature(
+        auth.supabaseAdmin,
+        candidatures,
+        pubWindows,
+        new Date(),
+      )
+      for (const c of candidatures) {
         let agg = aggByPub.get(c.publication_id)
-        if (!agg) { agg = makeEmptyAgg(); aggByPub.set(c.publication_id, agg) }
-        bumpAgg(agg, c.status)
+        if (!agg) { agg = makeEmptyCandidatures(); aggByPub.set(c.publication_id, agg) }
+        // Bucket inconnu impossible (la map couvre tout le lot) ; par sécurité
+        // une candidature non dérivée est rangée en archivée, jamais en active :
+        // on ne réclame pas une action sur une donnée qu'on n'a pas su lire.
+        const bucket = lifecycleByCand.get(c.id)?.bucket ?? 'archived'
+        bumpAgg(agg[bucket], c.status)
       }
     }
   }
@@ -469,7 +493,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       verification_score: row.verification_score,
       created_at: row.created_at,
       published_at: row.published_at,
-      candidatures: aggByPub.get(row.id) ?? { ...EMPTY_CANDIDATURES },
+      candidatures: aggByPub.get(row.id) ?? makeEmptyCandidatures(),
       // Lot synthèse parlante
       location: row.location,
       work_mode: row.work_mode,

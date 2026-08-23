@@ -137,7 +137,11 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
   // - Acceptées en vert succès
   // - Refusées en rouge tertiaire (faible visibilité, c'est un état clos)
   // Codes DB intacts ; libellés via i18n dashboard_entreprise.funnel.*.
-  const c = annonce.candidatures
+  // Lot compteurs : on affiche l'entonnoir ACTIF, dérivé serveur (état de vie).
+  // Sur une annonce expirée ou clôturée, les candidatures basculent en archivé
+  // et la carte tombe à 0 — exactement ce que montre l'onglet « Actives » de la
+  // page candidatures. Le client ne recalcule rien : il lit le bucket servi.
+  const c = annonce.candidatures.active
   const counters: Array<{ key: string; label: string; value: number; color?: string }> = [
     { key: 'to_review', label: t('funnel.to_review'), value: Math.round(c.to_review), color: domain.primaryColor },
     { key: 'in_progress', label: t('funnel.in_progress'), value: Math.round(c.in_progress) },

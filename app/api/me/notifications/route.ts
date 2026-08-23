@@ -11,6 +11,11 @@ export const dynamic = 'force-dynamic'
  *  Tri : created_at DESC, limite 50.
  *  Retour : { notifications: [...], unread_count: N }
  *
+ *  `unread_count` est un COUNT EXACT sur la table, PAS un filtre sur la page de
+ *  50 : le compteur de la cloche plafonnait à 50 et mentait dès qu'un
+ *  utilisateur actif dépassait ce seuil. La liste reste bornée à 50 (c'est un
+ *  dropdown), le compteur non — ils répondent à deux questions différentes.
+ *
  * POST /api/me/notifications/read-all — flip read_at sur toutes les non-lues.
  *  Idempotent. (Endpoint séparé en sous-route mais on regroupe ici pour
  *  simplicité — voir /[id]/read pour la lecture unitaire.)
@@ -32,18 +37,32 @@ export async function GET(request: NextRequest): Promise<Response> {
     throw err
   }
 
-  const { data, error } = await auth.supabaseAdmin
-    .from('notifications')
-    .select('id, type, title, body, link_url, entity_id, status, channel, read_at, created_at')
-    .eq('user_id', auth.user.id)
-    .order('created_at', { ascending: false })
-    .limit(50)
-  if (error) {
-    console.error('[me/notifications:GET] query failed', error.message)
+  const [listResult, unreadResult] = await Promise.all([
+    auth.supabaseAdmin
+      .from('notifications')
+      .select('id, type, title, body, link_url, entity_id, status, channel, read_at, created_at')
+      .eq('user_id', auth.user.id)
+      .order('created_at', { ascending: false })
+      .limit(50),
+    auth.supabaseAdmin
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', auth.user.id)
+      .is('read_at', null),
+  ])
+  if (listResult.error) {
+    console.error('[me/notifications:GET] query failed', listResult.error.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
-  const notifications = (data ?? []) as Array<{ id: string; type: string; title: string | null; body: string | null; link_url: string | null; entity_id: string | null; status: string; channel: string; read_at: string | null; created_at: string }>
-  const unread_count = notifications.filter(n => n.read_at === null).length
+  const notifications = (listResult.data ?? []) as Array<{ id: string; type: string; title: string | null; body: string | null; link_url: string | null; entity_id: string | null; status: string; channel: string; read_at: string | null; created_at: string }>
+  // Repli best-effort si le COUNT échoue : mieux vaut le compteur borné de la
+  // page servie qu'une cloche muette. L'erreur est tracée.
+  if (unreadResult.error) {
+    console.error('[me/notifications:GET] unread count failed', unreadResult.error.message)
+  }
+  const unread_count = unreadResult.error
+    ? notifications.filter((n) => n.read_at === null).length
+    : (unreadResult.count ?? 0)
 
   return json({ notifications, unread_count }, 200)
 }

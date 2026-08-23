@@ -169,8 +169,11 @@ function NeedCard({
   tPub: ReturnType<typeof useTranslations>
   t: ReturnType<typeof useTranslations>
 }) {
-  const total = need.candidatures?.total ?? 0
-  const toReview = need.candidatures?.to_review ?? 0
+  // Lot compteurs : entonnoir ACTIF uniquement (état de vie dérivé serveur).
+  // Le badge « Nouveau » ne peut plus s'allumer sur un besoin expiré dont la
+  // page de détail ouvre, elle, sur un onglet « Actives » vide.
+  const total = need.candidatures?.active.total ?? 0
+  const toReview = need.candidatures?.active.to_review ?? 0
   const publishedDate = need.published_at ?? need.created_at
 
   return (
