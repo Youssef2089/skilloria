@@ -2165,7 +2165,6 @@
       "error_generic": "An error occurred. Please try again.",
       "error_not_found": "This conversation no longer exists or is no longer available.",
       "unknown_correspondant": "(unknown correspondent)",
-      "banner_expired": "This exchange is closed (15-day window exceeded). Read only.",
       "banner_closed": "This exchange is closed. Read only.",
       "empty_no_messages": "No messages yet. Introduce yourself to start.",
       "input_placeholder": "Write your message…",
@@ -3044,6 +3043,7 @@
     "messages_empty_archived_title": "No archived conversations",
     "messages_empty_archived_body": "Closed conversations stay readable here, in read-only mode.",
     "read_only_notice": "This conversation is archived: still readable, but you can no longer write in it.",
+    "read_only_window_closed": "The 15-day exchange window is closed: the thread is still readable, but you can no longer write in it.",
     "expert": {
       "selected_mission": "Mission won",
       "selected_offre": "Position landed",

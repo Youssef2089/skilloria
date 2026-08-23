@@ -6,6 +6,7 @@ import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name
 import { disclosurePolicyForConversationOrgSide } from '@/lib/expert-disclosure'
 import { signAvatarUrl } from '@/lib/avatar'
 import { isConversationExpired } from '@/lib/conversations/expiry'
+import { deriveCandidatureLifecycle } from '@/lib/candidatures/lifecycle'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -82,6 +83,7 @@ type ConvJoin = {
     status: string
     publication_id: string
     domain_id: string
+    unlocked_at: string | null
     profiles: {
       id: string
       user_id: string
@@ -93,11 +95,14 @@ type ConvJoin = {
       id: string
       type: string
       title: string
+      status: string | null
+      published_at: string | null
+      expires_at: string | null
       organization_id: string
       organizations: { id: string; company_name: string | null; logo_url: string | null }
         | { id: string; company_name: string | null; logo_url: string | null }[]
     } | { id: string; type: string; title: string; organization_id: string; organizations: unknown }[]
-  } | { id: string; profile_id: string; status: string; publication_id: string; domain_id: string; profiles: unknown; publications: unknown }[]
+  } | { id: string; profile_id: string; status: string; publication_id: string; domain_id: string; unlocked_at: string | null; profiles: unknown; publications: unknown }[]
 }
 
 function pickRel<T>(value: T | T[] | null | undefined): T | null {
@@ -141,9 +146,14 @@ async function loadConvAsParticipant(
         // Servi côté ORG post-unlock uniquement (cf. correspondant=expert
         // → DisclosurePolicy reveal_photo: true). Email/phone toujours hors
         // périmètre (reveal_contact: false en V1).
-        'candidatures!inner(id, profile_id, status, publication_id, domain_id, ' +
+        // `unlocked_at` (candidature) + `status`/`published_at`/`expires_at`
+        // (publication) : entrées de la dérivation d'état de vie
+        // (lib/candidatures/lifecycle.ts). Mêmes colonnes que /api/me/conversations
+        // — c'est ce qui garantit que le bandeau de CETTE vue et le bucket de
+        // l'inbox ne peuvent pas diverger.
+        'candidatures!inner(id, profile_id, status, publication_id, domain_id, unlocked_at, ' +
           'profiles!inner(id, user_id, photo_url, users!profiles_user_id_fkey(id, first_name, last_name, locale, user_type, deletion_scheduled_at, anonymized_at)), ' +
-          'publications!inner(id, type, title, organization_id, organizations(id, company_name, logo_url)))',
+          'publications!inner(id, type, title, status, published_at, expires_at, organization_id, organizations(id, company_name, logo_url)))',
     )
     .eq('id', convId)
     .maybeSingle()
@@ -269,11 +279,25 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   if (!loaded.ok) return json({ error: loaded.code, code: loaded.code }, loaded.status)
   const { conv, role } = loaded
 
-  const cand = pickRel(conv.candidatures) as { id: string; profile_id: string; status: string; publication_id: string; profiles: unknown; publications: unknown }
+  const cand = pickRel(conv.candidatures) as { id: string; profile_id: string; status: string; publication_id: string; unlocked_at: string | null; profiles: unknown; publications: unknown }
   const profile = pickRel(cand.profiles as { id: string; user_id: string; photo_url: string | null; users: unknown } | { id: string; user_id: string; photo_url: string | null; users: unknown }[] | null)
   const expertUser = pickRel(profile?.users as { id: string; first_name: string | null; last_name: string | null; locale: string | null } | { id: string; first_name: string | null; last_name: string | null; locale: string | null }[] | null)
-  const pub = pickRel(cand.publications as { id: string; type: string; title: string; organization_id: string; organizations: unknown } | { id: string; type: string; title: string; organization_id: string; organizations: unknown }[] | null)
+  const pub = pickRel(cand.publications as { id: string; type: string; title: string; status: string | null; published_at: string | null; expires_at: string | null; organization_id: string; organizations: unknown } | { id: string; type: string; title: string; status: string | null; published_at: string | null; expires_at: string | null; organization_id: string; organizations: unknown }[] | null)
   const orgRaw = pickRel(pub?.organizations as { id: string; company_name: string | null; logo_url: string | null } | { id: string; company_name: string | null; logo_url: string | null }[] | null)
+
+  // ── ÉTAT DE VIE dérivé SERVEUR ─────────────────────────────────────────
+  //  Même helper, mêmes entrées que /api/me/conversations : le bandeau de
+  //  cette vue ne peut donc pas annoncer « archivé » sur un fil que l'inbox
+  //  range dans Actives, ni l'inverse. Le client ne recalcule rien : il reçoit
+  //  le bucket et se contente de choisir la phrase.
+  const lifecycle = deriveCandidatureLifecycle({
+    status: cand.status,
+    unlocked_at: cand.unlocked_at,
+    publication: pub
+      ? { status: pub.status, published_at: pub.published_at, expires_at: pub.expires_at }
+      : null,
+    conversation: { expires_at: conv.expires_at },
+  })
 
   // ── Charger les messages ────────────────────────────────────────────────
   const { data: msgs, error: mErr } = await auth.supabaseAdmin
@@ -353,6 +377,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         expires_at: conv.expires_at,
         is_expired: isExpired(conv.expires_at),
       },
+      lifecycle,
       publication: pub ? { id: pub.id, type: pub.type, title: pub.title } : null,
       correspondant,
       me: { user_id: auth.user.id, role },

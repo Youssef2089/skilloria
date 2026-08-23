@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
 
 /**
  * Vue d'une conversation (Lot 3).
@@ -12,7 +13,10 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  * Polling 5s sur les messages (la route GET marque read_at sur les messages
  * REÇUS uniquement, jamais ceux de l'utilisateur courant).
  *
- * Bannière "lecture seule" si is_expired ; input désactivé.
+ * Bandeau "lecture seule" + input désactivé dès qu'on ne peut plus écrire.
+ * Le bandeau dit POURQUOI, en suivant l'état de vie DÉRIVÉ PAR LE SERVEUR
+ * (`lifecycle`, lib/candidatures/lifecycle.ts) — la même source que le bucket
+ * Actives/Archivées de l'inbox. Aucun état n'est recalculé ici.
  */
 
 type Correspondant = { kind: 'expert' | 'org'; name: string | null; avatar_url: string | null }
@@ -26,6 +30,8 @@ type Message = {
 }
 type ConvHeader = {
   conversation: { id: string; candidature_id: string; status: string; last_message_at: string | null; expires_at: string | null; is_expired: boolean }
+  /** État de vie dérivé serveur. Optionnel : réponse d'une version antérieure. */
+  lifecycle?: CandidatureLifecycle | null
   publication: { id: string; type: string; title: string } | null
   correspondant: Correspondant
   me: { user_id: string; role: 'expert' | 'org' }
@@ -66,6 +72,9 @@ function formatDate(iso: string, locale: string): string {
 export default function ConversationView({ convId, side, embedded = false }: { convId: string; side: 'freelance' | 'entreprise' | 'cdi'; embedded?: boolean }) {
   const t = useTranslations('messages.view')
   const tPub = useTranslations('publications')
+  // Les phrases qui décrivent l'ÉTAT DE VIE vivent toutes dans le même
+  // namespace que les libellés dérivés du lot — une seule source de vocabulaire.
+  const tLifecycle = useTranslations('candidature_lifecycle')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -168,10 +177,32 @@ export default function ConversationView({ convId, side, embedded = false }: { c
     )
   }
 
-  const { conversation, publication, correspondant, messages } = state.data
+  const { conversation, publication, correspondant, messages, lifecycle } = state.data
   const isExpired = conversation.is_expired
   const isClosed = conversation.status !== 'open'
-  const canWrite = !isExpired && !isClosed
+  // ARCHIVÉE au sens état de vie, dérivé SERVEUR. Intégré à `canWrite` pour
+  // que l'input ne puisse jamais rester ouvert sur un fil que le serveur range
+  // dans Archivées — cas legacy d'une conversation sans `expires_at`, dont la
+  // fenêtre est pourtant calculable depuis `unlocked_at` (repli de
+  // effectiveConversationExpiry). Sans ça, l'inbox dirait « Archivé » pendant
+  // que cette vue laisserait écrire.
+  const isArchived = lifecycle?.bucket === 'archived'
+  const canWrite = !isExpired && !isClosed && !isArchived
+  /**
+   * Phrase du bandeau — dit TOUJOURS pourquoi, jamais seulement que.
+   * Elle suit le bucket dérivé, pas une horloge relue ici :
+   *   • archivée              → « Cet échange est archivé … »
+   *   • fenêtre 15 j écoulée mais candidature encore ACTIVE ('selected' :
+   *     mission remportée / poste décroché) → on ne peut pas dire « archivé »
+   *     sans contredire le serveur : on dit que la fenêtre est close.
+   *   • fil explicitement fermé → fait propre à la CONVERSATION, distinct de
+   *     l'état de vie de la candidature : libellé messages.view d'origine.
+   */
+  const bannerText = isArchived
+    ? tLifecycle('read_only_notice')
+    : isExpired
+      ? tLifecycle('read_only_window_closed')
+      : t('banner_closed')
 
   // Group messages by day for header separators
   const dayKey = (iso: string) => {
@@ -224,8 +255,8 @@ export default function ConversationView({ convId, side, embedded = false }: { c
         </div>
       </header>
 
-      {/* Bannière expiry / closed */}
-      {(isExpired || isClosed) && (
+      {/* Bandeau lecture seule — affiché exactement quand l'envoi est bloqué */}
+      {!canWrite && (
         <div
           role="status"
           style={{
@@ -234,7 +265,7 @@ export default function ConversationView({ convId, side, embedded = false }: { c
           }}
         >
           <span aria-hidden>🔒</span>
-          <span>{isExpired ? t('banner_expired') : t('banner_closed')}</span>
+          <span>{bannerText}</span>
         </div>
       )}
 

@@ -2165,7 +2165,6 @@
       "error_generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
       "error_not_found": "Diese Konversation existiert nicht mehr oder ist nicht verfügbar.",
       "unknown_correspondant": "(unbekannte/r Korrespondent/in)",
-      "banner_expired": "Dieser Austausch ist beendet (15-Tage-Fenster überschritten). Nur Lesezugriff.",
       "banner_closed": "Dieser Austausch ist geschlossen. Nur Lesezugriff.",
       "empty_no_messages": "Noch keine Nachricht. Stellen Sie sich vor, um zu beginnen.",
       "input_placeholder": "Nachricht schreiben…",
@@ -3044,6 +3043,7 @@
     "messages_empty_archived_title": "Kein archivierter Austausch",
     "messages_empty_archived_body": "Beendete Gespräche bleiben hier einsehbar, schreibgeschützt.",
     "read_only_notice": "Dieser Austausch ist archiviert: weiterhin einsehbar, aber nicht mehr beschreibbar.",
+    "read_only_window_closed": "Das 15-tägige Austauschfenster ist geschlossen: der Verlauf bleibt einsehbar, aber nicht mehr beschreibbar.",
     "expert": {
       "selected_mission": "Auftrag gewonnen",
       "selected_offre": "Stelle erhalten",

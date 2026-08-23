@@ -2165,7 +2165,6 @@
       "error_generic": "Se produjo un error. Inténtalo de nuevo.",
       "error_not_found": "Esta conversación ya no existe o no está disponible.",
       "unknown_correspondant": "(corresponsal desconocido)",
-      "banner_expired": "Este intercambio está cerrado (ventana de 15 días superada). Solo lectura.",
       "banner_closed": "Este intercambio está cerrado. Solo lectura.",
       "empty_no_messages": "Aún no hay mensajes. Preséntate para empezar.",
       "input_placeholder": "Escribe tu mensaje…",
@@ -3044,6 +3043,7 @@
     "messages_empty_archived_title": "Ningún intercambio archivado",
     "messages_empty_archived_body": "Los intercambios cerrados siguen siendo consultables aquí, en solo lectura.",
     "read_only_notice": "Este intercambio está archivado: sigue siendo consultable, pero ya no se puede escribir en él.",
+    "read_only_window_closed": "La ventana de intercambio de 15 días está cerrada: el hilo sigue siendo consultable, pero ya no se puede escribir en él.",
     "expert": {
       "selected_mission": "Misión conseguida",
       "selected_offre": "Puesto conseguido",

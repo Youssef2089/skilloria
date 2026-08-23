@@ -2165,7 +2165,6 @@
       "error_generic": "Une erreur est survenue. Réessayez.",
       "error_not_found": "Cette conversation n'existe pas ou ne vous est plus accessible.",
       "unknown_correspondant": "(correspondant inconnu)",
-      "banner_expired": "Cet échange est clôturé (fenêtre de 15 jours dépassée). Lecture seule.",
       "banner_closed": "Cet échange est fermé. Lecture seule.",
       "empty_no_messages": "Pas encore de message. Présentez-vous pour démarrer.",
       "input_placeholder": "Écrivez votre message…",
@@ -3044,6 +3043,7 @@
     "messages_empty_archived_title": "Aucun échange archivé",
     "messages_empty_archived_body": "Les échanges terminés restent consultables ici, en lecture seule.",
     "read_only_notice": "Cet échange est archivé : il reste consultable, mais on ne peut plus y écrire.",
+    "read_only_window_closed": "La fenêtre d’échange de 15 jours est close : le fil reste consultable, mais on ne peut plus y écrire.",
     "expert": {
       "selected_mission": "Mission remportée",
       "selected_offre": "Poste décroché",
