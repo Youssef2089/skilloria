@@ -22,6 +22,7 @@ import {
   lifecycleToPillKind,
   useCandidatureLifecycleLabel,
 } from '@/lib/candidatures/use-lifecycle-label'
+import type { CandidaturesAggregate } from '@/lib/candidatures/aggregate'
 import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
 import { useRelativeTime } from '@/lib/use-relative-time'
 
@@ -52,16 +53,16 @@ import { useRelativeTime } from '@/lib/use-relative-time'
 type BucketKey = 'active' | 'archived'
 
 /**
- * Agrégat du bandeau, DÉRIVÉ SERVEUR (cf. /api/me/candidatures). Calculé sur la
- * totalité des candidatures avant filtrage, dans la même passe que `counts`.
- * Le client ne le recompose plus : c'était la source de « 3 candidatures »
- * au-dessus de « Aucune candidature ».
+ * Agrégat du bandeau, DÉRIVÉ SERVEUR (cf. /api/me/candidatures). Cette page lit
+ * la portée `all` — la TOTALITÉ, actives et archivées — parce que les chips
+ * Actives/Archivées donnent le contexte à l'écran. Les accueils experts, eux,
+ * lisent `stats.active` : ils n'ont pas d'onglets. Deux écrans, deux besoins ;
+ * la justification complète est là où les deux portées sont calculées
+ * (app/api/me/candidatures). Ne pas aligner l'un sur l'autre.
  */
-type CandidaturesStats = {
-  total: number
-  open: number
-  waiting: number
-  avg_score_pct: number | null
+type CandidaturesStatsPayload = {
+  all: CandidaturesAggregate
+  active: CandidaturesAggregate
 }
 
 export default function CandidaturesTrackingView({ side = 'freelance' }: { side?: 'freelance' | 'cdi' }) {
@@ -83,7 +84,7 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
     {
       candidatures: Candidature[]
       counts?: { active: number; archived: number }
-      stats?: CandidaturesStats
+      stats?: CandidaturesStatsPayload
     },
     Candidature
   >({
@@ -123,11 +124,11 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
   // des raisons du bucket ACTIVE par définition, les scoper au filtre les
   // rendrait structurellement nuls sur Archivées. Les chips portent déjà les
   // nombres par bucket.
-  const serverStats = live.data?.stats ?? null
+  const serverStats = live.data?.stats?.all ?? null
   const stats: Stat[] = [
-    { value: serverStats?.total ?? 0,   label: t('stats.total') },
-    { value: serverStats?.open ?? 0,    label: t('stats.open'), emphasis: 'success' },
-    { value: serverStats?.waiting ?? 0, label: t('stats.wait') },
+    { value: serverStats?.total ?? 0,          label: t('stats.total') },
+    { value: serverStats?.exchange_open ?? 0,  label: t('stats.open'), emphasis: 'success' },
+    { value: serverStats?.awaiting_review ?? 0, label: t('stats.wait') },
     {
       value: serverStats?.avg_score_pct == null ? '—' : `${serverStats.avg_score_pct}%`,
       label: t('stats.avg_score'),

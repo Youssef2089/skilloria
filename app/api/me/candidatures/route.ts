@@ -8,6 +8,7 @@ import {
   parseBucketFilter,
   type CandidatureLifecycle,
 } from '@/lib/candidatures/lifecycle'
+import { aggregateCandidatures } from '@/lib/candidatures/aggregate'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -176,8 +177,8 @@ export async function GET(request: NextRequest): Promise<Response> {
           status: (pubRaw as { status?: string }).status ?? null,
         }
       : null
-    // Org + compétences pour la carte casting du home (additif ; la page
-    // dédiée /candidatures et useCdiApplications ignorent ces champs).
+    // Org + compétences pour la carte casting des accueils experts (additif ;
+    // la page dédiée /candidatures ignore ces champs).
     // Masquage confidential STRICTEMENT identique à /api/me/missions.
     const isConfidential = !!(pubRaw as { confidential?: boolean } | null)?.confidential
     const orgRaw = pubRaw
@@ -234,47 +235,53 @@ export async function GET(request: NextRequest): Promise<Response> {
     ? candidatures.filter((c) => (c.lifecycle as CandidatureLifecycle).bucket === bucketFilter)
     : candidatures
 
-  // Compteurs des DEUX buckets ET agrégat du bandeau, calculés dans la MÊME
-  // passe sur le MÊME tableau `candidatures` — celui d'AVANT filtrage.
+  // ─── COMPTEURS ET AGRÉGATS — TOUT DANS LA PASSE EXISTANTE ────────────────
   //
-  // POURQUOI LE BANDEAU DESCEND D'ICI
-  //   Le client agrégeait ces quatre nombres lui-même, sur la liste déjà
-  //   filtrée. Résultat vécu : « 3 candidatures » au-dessus de « Aucune
-  //   candidature » — le premier KPI lisait `counts` (totalité), les trois
-  //   autres le bucket courant. Deux altitudes dans le même bandeau.
+  // POURQUOI LES AGRÉGATS DESCENDENT D'ICI
+  //   Le client les recomposait lui-même, sur la liste déjà filtrée. Résultat
+  //   vécu : « 3 candidatures » au-dessus de « Aucune candidature », et sur
+  //   l'accueil « Postulées 3 » à côté de trois zéros. Un tableau, plusieurs
+  //   altitudes. Le client affiche désormais, il n'agrège plus rien : compteur
+  //   et liste ne peuvent plus diverger — même tableau, même passe.
   //
-  //   Surtout : `exchange_open` et `awaiting_review` sont des raisons du bucket
-  //   ACTIVE par définition (cf. lib/candidatures/lifecycle.ts). Les calculer
-  //   sur le bucket courant les rend structurellement nuls sur l'onglet
-  //   Archivées — un zéro qui ne veut rien dire.
+  // ═══ DEUX PORTÉES, DEUX ÉCRANS — LIRE AVANT DE « CORRIGER » ══════════════
+  //   `stats.all`    : agrégat sur la TOTALITÉ (actives + archivées).
+  //   `stats.active` : agrégat sur le SEUL bucket actif.
   //
-  //   Le bandeau décrit donc la PAGE, pas l'onglet : il est indépendant du
-  //   filtre. Les chips portent déjà les nombres par bucket, aucune
-  //   redondance. Le client affiche, il n'agrège plus rien : compteur et liste
-  //   ne peuvent plus diverger — même tableau, même passe, une seule réponse.
-  //   Aucune requête supplémentaire.
+  //   Ce n'est PAS une incohérence, c'est une décision produit :
+  //
+  //   • La PAGE CANDIDATURES consomme `stats.all`. Elle porte les chips
+  //     Actives/Archivées : le contexte est à l'écran, le bandeau peut donc
+  //     décrire l'ensemble sans ambiguïté. Et `exchange_open` /
+  //     `awaiting_review` étant des raisons du bucket ACTIVE par définition
+  //     (cf. lib/candidatures/lifecycle.ts), les borner à l'onglet courant les
+  //     rendrait structurellement nuls sur Archivées — un zéro qui ne veut
+  //     rien dire.
+  //
+  //   • L'ACCUEIL EXPERT consomme `stats.active`. Il n'a PAS d'onglets : il
+  //     doit dire où l'expert en est MAINTENANT. Une candidature sur annonce
+  //     expirée n'appelle plus aucune action, elle ne doit pas gonfler un
+  //     chiffre d'accueil. C'est déjà la règle de l'accueil ENTREPRISE
+  //     (cf. dashboard/entreprise/page.tsx, somme de `candidatures.active`).
+  //
+  //   Symétriquement, `rejected` est une raison du bucket ARCHIVÉ par
+  //   définition : aucune tuile d'accueil ne doit la compter, elle y serait un
+  //   zéro permanent. L'accueil affiche donc « En attente » (awaiting_review),
+  //   pas « Refusées ».
+  //
+  //   → Si une session future trouve « incohérent » que deux écrans affichent
+  //     des nombres différents pour la même personne : c'est voulu, ne pas
+  //     aligner l'un sur l'autre. Deux écrans, deux besoins.
+  // ═════════════════════════════════════════════════════════════════════════
+
   const counts = { active: 0, archived: 0 }
-  let openCount = 0
-  let waitCount = 0
-  let scoreSum = 0
-  let scoreN = 0
-  for (const c of candidatures) {
-    const lc = c.lifecycle as CandidatureLifecycle
-    counts[lc.bucket]++
-    if (lc.reason === 'exchange_open') openCount++
-    else if (lc.reason === 'awaiting_review') waitCount++
-    if (c.ai_match_score != null) {
-      scoreSum += c.ai_match_score
-      scoreN++
-    }
-  }
+  for (const c of candidatures) counts[(c.lifecycle as CandidatureLifecycle).bucket]++
+
   const stats = {
-    total: counts.active + counts.archived,
-    open: openCount,
-    waiting: waitCount,
-    // Score IA servi sur 10 en base → exposé en pourcentage, arrondi ici pour
-    // que le client n'ait aucun calcul à refaire. `null` = aucun score connu.
-    avg_score_pct: scoreN > 0 ? Math.round((scoreSum / scoreN) * 10) : null,
+    all: aggregateCandidatures(candidatures),
+    active: aggregateCandidatures(
+      candidatures.filter((c) => (c.lifecycle as CandidatureLifecycle).bucket === 'active'),
+    ),
   }
 
   return json({ candidatures: visible, counts, stats, filter: bucketFilter ?? 'all' }, 200)

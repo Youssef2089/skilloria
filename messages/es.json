@@ -430,10 +430,10 @@
       "available_missions": "Misiones disponibles",
       "applications": "Candidaturas",
       "messages": "Mensajes",
-      "posted": "Postuladas",
+      "active_applications": "Candidaturas activas",
       "in_discussion": "En curso",
+      "awaiting": "En espera",
       "retained": "Aceptadas",
-      "refused": "Rechazadas",
       "daily_rate": "Mi tarifa diaria",
       "daily_rate_set": "Definir →",
       "daily_rate_range": "{min} € — {max} €"
@@ -1133,10 +1133,10 @@
       "profile_views": "Vistas del perfil",
       "recruiter_contacts": "Contactos recibidos",
       "applications_sent": "Candidaturas enviadas",
-      "posted": "Postuladas",
+      "active_applications": "Candidaturas activas",
       "in_discussion": "En curso",
-      "retained": "Aceptadas",
-      "refused": "Rechazadas"
+      "awaiting": "En espera",
+      "retained": "Aceptadas"
     },
     "applications_section": {
       "title": "Mis candidaturas",

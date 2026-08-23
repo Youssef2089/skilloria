@@ -14,10 +14,12 @@ import CollaborationDashboardBlock from '@/components/dashboard/CollaborationDas
 import { useLiveResource } from '@/hooks/useLiveResource'
 import MissionCastingCard from '@/components/dashboard/MissionCastingCard'
 import CandidatureCastingCard from '@/components/dashboard/CandidatureCastingCard'
-import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
 import CastingRow from '@/components/dashboard/CastingRow'
 import type { MissionCardData } from '@/components/dashboard/MissionCard'
-import type { PublicationSynthesisData } from '@/components/dashboard/PublicationSynthesisLine'
+import {
+  useExpertApplications,
+  type ExpertApplicationItem,
+} from '@/lib/hooks/useExpertApplications'
 import AvailabilityToggle, {
   type AvailabilityStatus,
 } from '@/components/freelance/AvailabilityToggle'
@@ -110,23 +112,8 @@ export default function DashboardFreelance() {
   const [crossOpenUpdating, setCrossOpenUpdating] = useState(false)
   const secureFetch = useSecureFetch()
 
-  // Types minimaux pour les ressources live.
-  type CandidatureLite = {
-    id: string
-    publication_id: string
-    // Refonte casting home : publication = synthèse parlante complète (+ org +
-    // compétences) renvoyée par /api/me/candidatures. Alimente la carte riche.
-    publication: (PublicationSynthesisData & { status: string | null; published_at?: string | null }) | null
-    org: MissionCardData['org']
-    skills_required: string[]
-    status: string
-    ai_match_score: number | null
-    conversation_id: string | null
-    created_at: string
-    viewed_by_me?: boolean
-    /** État de vie dérivé serveur (lot « libellés d'état réels »). */
-    lifecycle?: CandidatureLifecycle | null
-  }
+  // Les candidatures (liste ACTIVE + agrégat des tuiles) viennent du hook
+  // PARTAGÉ avec l'accueil CDI : lib/hooks/useExpertApplications.
   // Lot polish UX SC5 : on utilise MissionCardData (déjà aligné sur la
   // PublicationSynthesis renvoyée par /api/me/missions).
   type RecommendedMission = MissionCardData
@@ -176,28 +163,12 @@ export default function DashboardFreelance() {
     enabled: liveEnabled && isApproved,
     holdNewItems: false,
   })
-  // `?filter=all` : la home a besoin des DEUX buckets — les KPI comptent aussi
-  // les refusées/expirées, la rangée casting n'affiche que les actives (elle
-  // LIT le bucket servi, elle ne le recalcule pas).
-  const candidaturesLive = useLiveResource<{ candidatures: CandidatureLite[] }, CandidatureLite>({
-    url: liveEnabled ? '/api/me/candidatures?filter=all' : null,
-    itemsOf: (d) => d.candidatures ?? [],
-    identityOf: (c) => c.id,
-    versionOf: (c) => `${c.status}|${c.lifecycle?.reason ?? ''}|${c.conversation_id ?? ''}`,
-    enabled: liveEnabled,
-    holdNewItems: false,
-  })
-  const conversationsLive = useLiveResource<{ conversations: { unread_count: number }[] }, { unread_count: number }>({
-    url: liveEnabled ? '/api/me/conversations' : null,
-    itemsOf: () => null,    // pas de diff par item — on lit l'agrégat unread
-    identityOf: () => '',
-    enabled: liveEnabled,
-  })
+  // Candidatures : hook PARTAGÉ avec l'accueil CDI. Il demande `?filter=active`
+  // au serveur et rend l'agrégat du bucket actif — rien n'est compté ici.
+  const apps = useExpertApplications({ enabled: liveEnabled })
 
-  // Dérivation memo : stats / recentCandidatures / recommendedMissions.
+  // Dérivation memo : recommendedMissions.
   const missions = missionsLive.data?.missions ?? null
-  const candidaturesAll = candidaturesLive.data?.candidatures ?? null
-  const conversations = conversationsLive.data?.conversations ?? null
 
   // Casting home : on parcourt TOUTES les recommandations / candidatures
   // (carrousel sous projecteur → ne rallonge pas le home). Plus de slice top-N.
@@ -229,51 +200,17 @@ export default function DashboardFreelance() {
         console.warn('[dashboard:freelance] sync-matching ping failed', err)
       })
   }
-  // Rangée casting home : ACTIVES uniquement. Une candidature morte n'a rien
-  // à faire sous les yeux de l'expert au réveil — elle reste consultable dans
+  // Rangée casting home : la liste SERVIE, telle quelle. Le hook demande
+  // `?filter=active` — plus aucun filtrage ici. Une candidature morte n'a rien
+  // à faire sous les yeux de l'expert au réveil ; elle reste consultable dans
   // l'onglet Archivées de /candidatures.
-  const recentCandidatures = useMemo(
-    () => candidaturesAll === null ? null : candidaturesAll.filter((c) => c.lifecycle?.bucket !== 'archived'),
-    [candidaturesAll],
+  const recentCandidatures = apps.loading ? null : apps.items
+  // Le seul agrégat encore calculé côté client est la complétion du profil :
+  // elle ne dépend pas des candidatures.
+  const completionPct = useMemo(
+    () => ((profile?.verification_status ?? null) === 'approved' ? 100 : computeCompletionPct(profile)),
+    [profile],
   )
-  const stats = useMemo(() => {
-    if (missions === null && candidaturesAll === null && conversations === null) {
-      return {
-        missions_count: null, candidatures_count: null, postulees: null,
-        en_discussion: null, retenues: null, refusees: null, messages_unread: null,
-        completion_pct: null,
-      } as const
-    }
-    // Lot « libellés d'état réels » : les KPI comptent des RAISONS DÉRIVÉES,
-    // plus des statuts bruts.
-    //   en_discussion = échange dont la fenêtre 15 j est ENCORE ouverte. Un
-    //                   'unlocked' périmé n'est plus une discussion en cours.
-    //   retenues      = sélection (issue positive, sans limite de temps).
-    //   refusees      = refus explicite de l'entreprise.
-    let postulees = 0, enDiscussion = 0, retenues = 0, refusees = 0
-    if (candidaturesAll) {
-      postulees = candidaturesAll.length
-      for (const c of candidaturesAll) {
-        const reason = c.lifecycle?.reason
-        if (reason === 'exchange_open') enDiscussion++
-        else if (reason === 'selected') retenues++
-        else if (reason === 'rejected') refusees++
-      }
-    }
-    const unread = (conversations ?? []).reduce((acc, c) => acc + (c.unread_count ?? 0), 0)
-    const isApproved = (profile?.verification_status ?? null) === 'approved'
-    const completion = isApproved ? 100 : computeCompletionPct(profile)
-    return {
-      missions_count: missions?.length ?? null,
-      candidatures_count: candidaturesAll?.length ?? null,
-      postulees: candidaturesAll === null ? null : postulees,
-      en_discussion: candidaturesAll === null ? null : enDiscussion,
-      retenues: candidaturesAll === null ? null : retenues,
-      refusees: candidaturesAll === null ? null : refusees,
-      messages_unread: conversations === null ? null : unread,
-      completion_pct: completion,
-    } as const
-  }, [missions, candidaturesAll, conversations, user, profile])
 
   useEffect(() => {
     const loadUserAndProfile = async () => {
@@ -588,7 +525,7 @@ export default function DashboardFreelance() {
             <ExpertOnboardingGuide
               basePath="/dashboard/freelance"
               cvDone={profile?.cv_parsing_status === 'done'}
-              profileComplete={(stats.completion_pct ?? 0) >= 100}
+              profileComplete={(completionPct) >= 100}
               verifState={verifState}
             />
           )}
@@ -599,10 +536,14 @@ export default function DashboardFreelance() {
               mobile pour rester lisible (cf. styles ci-dessous). */}
           <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 22 }}>
             {[
-              { label: t('stats.posted'),        value: !isVerified ? '—' : (stats.postulees ?? '…').toString(),      delay: '0.1s'  },
-              { label: t('stats.in_discussion'), value: !isVerified ? '—' : (stats.en_discussion ?? '…').toString(), delay: '0.13s' },
-              { label: t('stats.retained'),      value: !isVerified ? '—' : (stats.retenues ?? '…').toString(),      delay: '0.15s', accent: '#D97706' },
-              { label: t('stats.refused'),       value: !isVerified ? '—' : (stats.refusees ?? '…').toString(),       delay: '0.17s' },
+              // BUCKET ACTIF UNIQUEMENT, agrégé par le serveur (hook partagé
+              // avec l'accueil CDI). « Refusées » a disparu : `rejected` est
+              // une raison du bucket ARCHIVÉ, la tuile y aurait valu 0 à vie.
+              // « En attente » la remplace — active par définition.
+              { label: t('stats.active_applications'), value: !isVerified ? '—' : (apps.stats?.total ?? '…').toString(),           delay: '0.1s'  },
+              { label: t('stats.in_discussion'),       value: !isVerified ? '—' : (apps.stats?.exchange_open ?? '…').toString(),   delay: '0.13s' },
+              { label: t('stats.awaiting'),            value: !isVerified ? '—' : (apps.stats?.awaiting_review ?? '…').toString(), delay: '0.15s' },
+              { label: t('stats.retained'),            value: !isVerified ? '—' : (apps.stats?.selected ?? '…').toString(),        delay: '0.17s', accent: '#D97706' },
             ].map((stat) => (
               <div key={stat.label} className="stat-card" style={{ background: '#f3f4f6', animationDelay: stat.delay }}>
                 <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>{stat.label}</div>
@@ -657,12 +598,12 @@ export default function DashboardFreelance() {
           <div className="main-card" style={{ borderColor: `${domain.primaryColor}55`, animationDelay: '0.3s' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>
-                {t('completion.title', { percent: stats.completion_pct ?? 0 })}
+                {t('completion.title', { percent: completionPct })}
               </div>
               <Link href="/dashboard/freelance/profil/valider" className="voir-tout" style={{ color: domain.primaryColor }}>{t('completion.cta')}</Link>
             </div>
             <div className="progress-bar">
-              <div className="progress-fill" style={{ background: `linear-gradient(90deg, ${domain.primaryColor}, ${domain.secondaryColor})`, width: `${stats.completion_pct ?? 0}%` }}></div>
+              <div className="progress-fill" style={{ background: `linear-gradient(90deg, ${domain.primaryColor}, ${domain.secondaryColor})`, width: `${completionPct}%` }}></div>
             </div>
             <div style={{ fontSize: 13, color: '#6b7280', marginTop: 10, lineHeight: 1.6 }}>{t('completion.hint')}</div>
           </div>
@@ -790,7 +731,7 @@ export default function DashboardFreelance() {
                   {t('cards.your_candidatures.empty')}
                 </div>
               ) : (
-                <CastingRow<CandidatureLite>
+                <CastingRow<ExpertApplicationItem>
                   items={recentCandidatures}
                   getKey={(c) => c.id}
                   labels={{ prevAria: tc('prev_aria'), nextAria: tc('next_aria'), empty: tc('empty') }}

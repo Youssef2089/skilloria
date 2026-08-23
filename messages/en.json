@@ -430,10 +430,10 @@
       "available_missions": "Available missions",
       "applications": "Applications",
       "messages": "Messages",
-      "posted": "Posted",
+      "active_applications": "Active applications",
       "in_discussion": "In progress",
+      "awaiting": "Awaiting reply",
       "retained": "Accepted",
-      "refused": "Rejected",
       "daily_rate": "My day rate",
       "daily_rate_set": "Set →",
       "daily_rate_range": "{min} € — {max} €"
@@ -1133,10 +1133,10 @@
       "profile_views": "Profile views",
       "recruiter_contacts": "Recruiter messages",
       "applications_sent": "Applications sent",
-      "posted": "Posted",
+      "active_applications": "Active applications",
       "in_discussion": "In progress",
-      "retained": "Accepted",
-      "refused": "Rejected"
+      "awaiting": "Awaiting reply",
+      "retained": "Accepted"
     },
     "applications_section": {
       "title": "My applications",

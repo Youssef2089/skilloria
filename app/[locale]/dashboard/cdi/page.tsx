@@ -12,7 +12,7 @@ import {
   type CdiStatus,
   type CdiUser,
 } from '@/lib/hooks/useCdiProfile'
-import { useCdiApplications } from '@/lib/hooks/useCdiApplications'
+import { useExpertApplications } from '@/lib/hooks/useExpertApplications'
 import CdiStatusToggle from '@/components/cdi/CdiStatusToggle'
 import CrossOpenToggle from '@/components/dashboard/CrossOpenToggle'
 import { useMatchingAnalyzing } from '@/hooks/useMatchingAnalyzing'
@@ -107,7 +107,9 @@ export default function DashboardCDI() {
   const locale = useLocale()
   const state = useCdiProfile()
   const { loading, authenticated, forbidden, error, user, profile } = state
-  const apps = useCdiApplications()
+  // Hook PARTAGÉ avec l'accueil freelance : mêmes métriques, mêmes valeurs,
+  // même bucket. La parité n'est plus surveillée, elle est structurelle.
+  const apps = useExpertApplications()
 
   // Suggestions pour vous — mirror EXACT du freelance home (useLiveResource
   // + slice(0,3) + holdNewItems=false). La route /api/me/missions est
@@ -563,9 +565,12 @@ export default function DashboardCDI() {
             />
           </div>
 
-          {/* SECTION 3 — KPIs (parité freelance, Lot état 'selected').
-                Postulées / En discussion / Acceptées / Refusées.
-                en_discussion = unlocked uniquement, retenues (label DB) = selected. */}
+          {/* SECTION 3 — KPIs. BUCKET ACTIF UNIQUEMENT, agrégé par le serveur
+                via le hook PARTAGÉ avec l'accueil freelance : mêmes métriques,
+                mêmes valeurs, seuls les libellés diffèrent (vocabulaire CDI).
+                « Refusées » a disparu : `rejected` est une raison du bucket
+                ARCHIVÉ, la tuile y aurait valu 0 à vie. « En attente » la
+                remplace — active par définition. */}
           <div
             className="stats-grid"
             style={{
@@ -576,29 +581,29 @@ export default function DashboardCDI() {
             }}
           >
             <KpiCard
-              label={t('kpis.posted')}
-              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.postulees)}
+              label={t('kpis.active_applications')}
+              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.stats?.total ?? 0)}
               delay="0.1s"
               accentColor={domain.primaryColor}
               isPlaceholder={!isVerified}
             />
             <KpiCard
               label={t('kpis.in_discussion')}
-              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.en_discussion)}
+              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.stats?.exchange_open ?? 0)}
               delay="0.13s"
               isPlaceholder={!isVerified}
             />
             <KpiCard
-              label={t('kpis.retained')}
-              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.retenues)}
+              label={t('kpis.awaiting')}
+              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.stats?.awaiting_review ?? 0)}
               delay="0.16s"
-              accentColor="#D97706"
               isPlaceholder={!isVerified}
             />
             <KpiCard
-              label={t('kpis.refused')}
-              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.refusees)}
+              label={t('kpis.retained')}
+              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.stats?.selected ?? 0)}
               delay="0.2s"
+              accentColor="#D97706"
               isPlaceholder={!isVerified}
             />
           </div>
@@ -812,7 +817,7 @@ export default function DashboardCDI() {
               >
                 {t('loading')}
               </div>
-            ) : apps.activeItems.length === 0 ? (
+            ) : apps.items.length === 0 ? (
               <div
                 style={{
                   background: '#f8fafc',
@@ -832,7 +837,7 @@ export default function DashboardCDI() {
                 /* Rangée casting : ACTIVES uniquement (parité stricte avec la
                    home freelance). Le bucket est LU sur le DTO servi, jamais
                    recalculé ici. */
-                items={apps.activeItems}
+                items={apps.items}
                 getKey={(item) => item.id}
                 labels={{ prevAria: tc('prev_aria'), nextAria: tc('next_aria'), empty: tc('empty') }}
                 renderItem={(item) => (
