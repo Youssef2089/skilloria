@@ -20,7 +20,8 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  *   - annonces_org         : alias V1 de candidatures_org (cf. /api/me/badges).
  *
  * Exceptions (modèles déjà par-item, intacts) :
- *   - messages_unread : /api/me/conversations.unread_count (par conv).
+ *   - messages_unread : /api/me/conversations.unread_count (par conv), bucket
+ *                       ACTIVE explicitement (cf. `?filter=active` plus bas).
  *   - cloche          : /api/me/notifications.unread_count (par notif).
  *
  * Polling 30s + revalidation sur 'skilloria:notif-bump' (cloche, toggle DND,
@@ -70,7 +71,15 @@ export function useNavBadges(): NavBadges {
   const load = useCallback(async () => {
     try {
       const [convsRes, badgesRes] = await Promise.all([
-        secureFetch('/api/me/conversations', { method: 'GET' }),
+        // `?filter=active` EXPLICITE, jamais laissé au défaut de
+        // parseBucketFilter : le badge doit dire de quoi il parle. Un non-lu
+        // dans une conversation ARCHIVÉE ne doit pas rappeler l'utilisateur
+        // vers un fil qu'il ne peut plus alimenter — l'échange est clos, le
+        // rouge de la nav appelle à une action devenue impossible. Le fil
+        // reste lisible via l'onglet Archivées, avec sa propre pastille.
+        // Le badge est ainsi un SOUS-ENSEMBLE de la liste par construction
+        // (même bucket par défaut des deux côtés), pas par coïncidence.
+        secureFetch('/api/me/conversations?filter=active', { method: 'GET' }),
         secureFetch('/api/me/badges', { method: 'GET' }),
       ])
       let messages = 0

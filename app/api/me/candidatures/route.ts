@@ -234,11 +234,48 @@ export async function GET(request: NextRequest): Promise<Response> {
     ? candidatures.filter((c) => (c.lifecycle as CandidatureLifecycle).bucket === bucketFilter)
     : candidatures
 
-  // Compteurs des DEUX buckets, toujours servis : l'onglet « Archivées » doit
-  // pouvoir afficher son nombre sans second appel, et sans que le client
-  // recompte quoi que ce soit.
+  // Compteurs des DEUX buckets ET agrégat du bandeau, calculés dans la MÊME
+  // passe sur le MÊME tableau `candidatures` — celui d'AVANT filtrage.
+  //
+  // POURQUOI LE BANDEAU DESCEND D'ICI
+  //   Le client agrégeait ces quatre nombres lui-même, sur la liste déjà
+  //   filtrée. Résultat vécu : « 3 candidatures » au-dessus de « Aucune
+  //   candidature » — le premier KPI lisait `counts` (totalité), les trois
+  //   autres le bucket courant. Deux altitudes dans le même bandeau.
+  //
+  //   Surtout : `exchange_open` et `awaiting_review` sont des raisons du bucket
+  //   ACTIVE par définition (cf. lib/candidatures/lifecycle.ts). Les calculer
+  //   sur le bucket courant les rend structurellement nuls sur l'onglet
+  //   Archivées — un zéro qui ne veut rien dire.
+  //
+  //   Le bandeau décrit donc la PAGE, pas l'onglet : il est indépendant du
+  //   filtre. Les chips portent déjà les nombres par bucket, aucune
+  //   redondance. Le client affiche, il n'agrège plus rien : compteur et liste
+  //   ne peuvent plus diverger — même tableau, même passe, une seule réponse.
+  //   Aucune requête supplémentaire.
   const counts = { active: 0, archived: 0 }
-  for (const c of candidatures) counts[(c.lifecycle as CandidatureLifecycle).bucket]++
+  let openCount = 0
+  let waitCount = 0
+  let scoreSum = 0
+  let scoreN = 0
+  for (const c of candidatures) {
+    const lc = c.lifecycle as CandidatureLifecycle
+    counts[lc.bucket]++
+    if (lc.reason === 'exchange_open') openCount++
+    else if (lc.reason === 'awaiting_review') waitCount++
+    if (c.ai_match_score != null) {
+      scoreSum += c.ai_match_score
+      scoreN++
+    }
+  }
+  const stats = {
+    total: counts.active + counts.archived,
+    open: openCount,
+    waiting: waitCount,
+    // Score IA servi sur 10 en base → exposé en pourcentage, arrondi ici pour
+    // que le client n'ait aucun calcul à refaire. `null` = aucun score connu.
+    avg_score_pct: scoreN > 0 ? Math.round((scoreSum / scoreN) * 10) : null,
+  }
 
-  return json({ candidatures: visible, counts, filter: bucketFilter ?? 'all' }, 200)
+  return json({ candidatures: visible, counts, stats, filter: bucketFilter ?? 'all' }, 200)
 }

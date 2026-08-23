@@ -1938,8 +1938,6 @@
     "subtitle": "Suivi par mission : statut, échanges ouverts, et messages associés.",
     "loading": "Chargement…",
     "error_generic": "Impossible de charger vos candidatures.",
-    "empty_title": "Aucune candidature pour l'instant",
-    "empty_subtitle": "Vos candidatures apparaîtront ici dès que vous postulez à une mission.",
     "candidated_ago": "Candidaté il y a {time}",
     "waiting_for_org": "L'entreprise n'a pas encore répondu. Vous serez notifié dès qu'elle traite votre candidature.",
     "unlocked_since": "Échange ouvert il y a {time} — vous pouvez communiquer directement.",

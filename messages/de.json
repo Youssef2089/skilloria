@@ -1938,8 +1938,6 @@
     "subtitle": "Verfolgung nach Auftrag: Status, offene Austausche und zugehörige Nachrichten.",
     "loading": "Wird geladen…",
     "error_generic": "Bewerbungen konnten nicht geladen werden.",
-    "empty_title": "Noch keine Bewerbungen",
-    "empty_subtitle": "Ihre Bewerbungen erscheinen hier, sobald Sie sich auf einen Auftrag bewerben.",
     "candidated_ago": "Beworben vor {time}",
     "waiting_for_org": "Das Unternehmen hat noch nicht geantwortet. Sie werden benachrichtigt, sobald Ihre Bewerbung bearbeitet wird.",
     "unlocked_since": "Austausch geöffnet vor {time} — Sie können direkt kommunizieren.",

@@ -1938,8 +1938,6 @@
     "subtitle": "Seguimiento por misión: estado, intercambios abiertos y mensajes asociados.",
     "loading": "Cargando…",
     "error_generic": "No se pudieron cargar tus candidaturas.",
-    "empty_title": "Aún no hay candidaturas",
-    "empty_subtitle": "Tus candidaturas aparecerán aquí en cuanto te postules a una misión.",
     "candidated_ago": "Postulado hace {time}",
     "waiting_for_org": "La empresa aún no ha respondido. Te avisaremos en cuanto procese tu candidatura.",
     "unlocked_since": "Intercambio abierto hace {time} — puedes comunicarte directamente.",

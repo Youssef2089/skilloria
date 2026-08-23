@@ -128,7 +128,11 @@ export function useLiveResource<T, Item>(opts: UseLiveResourceOptions<T, Item>):
   const key = enabled ? url : null
 
   const swr = useSWR<T>(key, fetcher, swrConfig)
-  const { data: serverData, error, isValidating, mutate } = swr
+  // `isLoading` (SWR v2) = requête en vol ET aucune donnée chargée POUR LA CLÉ
+  // COURANTE. Avec `keepPreviousData: true`, `data` porte encore la charge utile
+  // de la clé précédente pendant ce temps : `isLoading` est le SEUL signal qui
+  // permet de savoir à quelle collection `data` appartient. Cf. l'effet ci-dessous.
+  const { data: serverData, error, isValidating, isLoading, mutate } = swr
 
   // Listener bump → mutate().
   useEffect(() => {
@@ -147,18 +151,63 @@ export function useLiveResource<T, Item>(opts: UseLiveResourceOptions<T, Item>):
   const [displayed, setDisplayed] = useState<T | null>(null)
   const [pendingItems, setPendingItems] = useState<Item[]>([])
 
-  // Initialisation : dès qu'on a la 1re data, on la pose comme displayed.
+  /**
+   * Clé SWR à laquelle `displayed` correspond. `undefined` = rien encore
+   * appliqué (sentinelle : `key` vaut `string | null`, jamais `undefined`).
+   *
+   * POURQUOI CETTE RÉFÉRENCE EXISTE
+   *   `displayed` est un état SÉPARÉ de `serverData`. Sans mémoire de la clé,
+   *   un changement d'URL (donc de filtre) était vu par le diff ci-dessous
+   *   comme « des items apparaissent dans la même liste » : avec
+   *   `holdNewItems`, ils partaient en `pendingItems` et `displayed` restait
+   *   sur la charge utile de l'ANCIEN filtre. Vécu : onglet « Archivées (3) »
+   *   au-dessus d'une liste vide, parce que `counts` est calculé sur la
+   *   totalité (donc identique dans les deux charges utiles) alors que la
+   *   liste, elle, était périmée.
+   *
+   *   Un changement de clé signifie AUTRE COLLECTION, jamais NOUVEAUX ITEMS.
+   */
+  const appliedKeyRef = useRef<string | null | undefined>(undefined)
+
+  // Effet UNIQUE : bascule de collection PUIS diff. Les deux ne peuvent pas
+  // être séparés — deux effets distincts se marcheraient dessus au render où
+  // la nouvelle charge utile arrive (le second diffe encore contre l'ancien
+  // `displayed`, que le premier vient seulement de programmer).
   useEffect(() => {
-    if (displayed === null && serverData !== undefined) {
+    // ── (1) CHANGEMENT DE COLLECTION ─────────────────────────────────────
+    if (appliedKeyRef.current !== key) {
+      // PIÈGE `keepPreviousData` : tant que le fetch de la nouvelle clé est en
+      // vol, `serverData` porte ENCORE la charge utile de l'ancienne. On
+      // attend — sinon on afficherait les données d'un autre filtre sous le
+      // nouvel onglet, ce qui est pire que le bug corrigé.
+      if (isLoading) return
+      if (error) {
+        // Aucune donnée valide pour cette clé : on refuse d'afficher celle
+        // d'une autre collection. `displayed = null` → l'état bascule sur
+        // 'error' plutôt que de mentir.
+        appliedKeyRef.current = key
+        setDisplayed(null)
+        setPendingItems([])
+        return
+      }
+      if (serverData === undefined) return
+      // Collection différente ⇒ application IMMÉDIATE, `holdNewItems`
+      // court-circuité, pending vidés (ils appartenaient à l'ancienne liste).
+      // Même esprit que le court-circuit `metadataHash` plus bas.
+      appliedKeyRef.current = key
       setDisplayed(serverData)
       setPendingItems([])
+      return
     }
-  }, [serverData, displayed])
 
-  // Diff à chaque update de serverData.
-  useEffect(() => {
+    // ── (2) MÊME COLLECTION : diff habituel ──────────────────────────────
     if (serverData === undefined) return
-    if (displayed === null) return  // sera traité par l'effet d'init
+    if (displayed === null) {
+      // Reprise après une erreur sur cette même clé.
+      setDisplayed(serverData)
+      setPendingItems([])
+      return
+    }
     // Lot global C1 : si une métadonnée hors-items change (ex.
     // expert_status.is_dnd), on applique en place IMMÉDIATEMENT et on vide
     // les pending. Indépendant de holdNewItems. Court-circuit avant tout
@@ -227,8 +276,10 @@ export function useLiveResource<T, Item>(opts: UseLiveResourceOptions<T, Item>):
         setPendingItems(stillPending)
       }
     }
+  // `key` / `isLoading` / `error` entrent dans les deps : ce sont eux qui
+  // portent l'identité de la collection et la validité de la charge utile.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serverData])
+  }, [key, isLoading, error, serverData])
 
   const applyPending = useCallback(() => {
     if (serverData === undefined) return
