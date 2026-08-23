@@ -39,7 +39,7 @@ export type AnnonceType = 'mission' | 'offre' | 'sous_traitance'
 export type AnnonceBudgetUnit = 'day' | 'month' | 'year' | 'mission'
 
 /**
- * Compteurs entonnoir candidatures par annonce (Lot refonte dashboard org).
+ * Entonnoir candidatures par annonce (Lot refonte dashboard org).
  *
  * 4 buckets EXCLUSIFS qui s'additionnent au total :
  *   - to_review   : 'received' + 'in_review' + 'shortlisted'  (à consulter)
@@ -54,12 +54,31 @@ export type AnnonceBudgetUnit = 'day' | 'month' | 'year' | 'mission'
  * ("À consulter", "Échanges en cours", "Acceptées", "Refusées") vivent
  * dans messages/{fr,en,es,de}.json — clés dashboard_entreprise.funnel.*.
  */
-export type AnnonceCandidatures = {
+export type AnnonceCandidatureFunnel = {
   total: number
   to_review: number
   in_progress: number
   accepted: number
   rejected: number
+}
+
+/**
+ * Entonnoir VENTILÉ PAR ÉTAT DE VIE dérivé (lib/candidatures/lifecycle.ts).
+ *
+ * POURQUOI DEUX ENTONNOIRS ET PAS UN
+ *   Le statut brut ne dit pas si une candidature est encore vivante. Sur une
+ *   annonce expirée ou clôturée, une candidature 'received' reste 'received' —
+ *   la carte annonçait « 3 à consulter » pendant que l'onglet « Actives » de la
+ *   page candidatures (bucket par défaut) en affichait 0. Le compteur et sa
+ *   liste dérivent maintenant du MÊME helper.
+ *
+ * Les cartes affichent `active`. `archived` est exposé — pas masqué — pour
+ *   qu'un écran futur n'ait pas à le recalculer, et parce que « 0 à consulter »
+ *   sans dire qu'il y a 3 candidatures rangées serait une autre demi-vérité.
+ */
+export type AnnonceCandidatures = {
+  active: AnnonceCandidatureFunnel
+  archived: AnnonceCandidatureFunnel
 }
 
 export type Annonce = {

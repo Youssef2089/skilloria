@@ -9,7 +9,7 @@ import { useDomain } from '@/context/DomainContext'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import { useOrgRole } from '@/lib/use-org-role'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
-import type { Annonce, AnnonceStatus, AnnonceCandidatures } from '@/types/annonce'
+import type { Annonce, AnnonceStatus, AnnonceCandidatureFunnel } from '@/types/annonce'
 
 /**
  * Dashboard entreprise (Lot refonte tableau de bord).
@@ -166,10 +166,13 @@ export default function DashboardEntreprise() {
     return r
   }, [annonces])
 
-  const candCounts: AnnonceCandidatures = useMemo(() => {
-    const acc: AnnonceCandidatures = { total: 0, to_review: 0, in_progress: 0, accepted: 0, rejected: 0 }
+  // Lot compteurs : somme des entonnoirs ACTIFS (état de vie dérivé serveur).
+  // Une candidature sur annonce expirée n'appelle plus d'action — elle ne doit
+  // pas gonfler le KPI d'accueil pendant que la liste correspondante est vide.
+  const candCounts: AnnonceCandidatureFunnel = useMemo(() => {
+    const acc: AnnonceCandidatureFunnel = { total: 0, to_review: 0, in_progress: 0, accepted: 0, rejected: 0 }
     for (const a of annonces) {
-      const c = a.candidatures
+      const c = a.candidatures.active
       acc.total += c.total
       acc.to_review += c.to_review
       acc.in_progress += c.in_progress

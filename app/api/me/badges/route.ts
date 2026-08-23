@@ -1,6 +1,16 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
-import { deriveCandidatureLifecycle } from '@/lib/candidatures/lifecycle'
+import {
+  deriveLifecycleByCandidature,
+  loadLifecyclePublicationWindows,
+} from '@/lib/candidatures/lifecycle-batch'
+import {
+  buildExpertMissionsSelect,
+  expertMissionsQuery,
+  loadExpertFeedContext,
+  EXPERT_FEED_LIMIT,
+  type ExpertFeedContext,
+} from '@/lib/missions/feed'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -10,10 +20,17 @@ export const dynamic = 'force-dynamic'
  * "badge = items NOUVEAUX non consultés par item").
  *
  * Modèle :
- *   - missions             = matches dont status ∈ ('pending','notified')
- *                            pour le profil expert courant.
+ *   - missions             = matches ÉLIGIBLES AU FEED (lib/missions/feed.ts,
+ *                            le MÊME helper que /api/me/missions) dont le
+ *                            status ∈ ('pending','notified').
  *                            (Le flip 'viewed' se fait à l'ouverture du
  *                            détail mission, cf. /api/me/missions/[id].)
+ *                            Le compteur est donc un SOUS-ENSEMBLE de la liste
+ *                            PAR CONSTRUCTION : annonce expirée (30 j read-time),
+ *                            clôturée, ou expert en « Ne pas déranger » →
+ *                            l'item n'est ni affiché ni compté. Aucune règle de
+ *                            filtrage n'est recopiée ici — si tu es tenté d'en
+ *                            écrire une, c'est le helper qu'il faut corriger.
  *   - candidatures_expert  = candidatures de l'expert NON consultées par lui
  *                            (NOT EXISTS candidature_views.viewed_at >= updated_at).
  *   - candidatures_org     = candidatures sur les pubs de l'org NON
@@ -65,27 +82,38 @@ export async function GET(request: NextRequest): Promise<Response> {
     annonces_org: 0,
   }
 
-  // ── Profile expert (peut être absent côté membres d'org pur) ────────────
-  const { data: profile } = await auth.supabaseAdmin
-    .from('profiles')
-    .select('id, verification_status')
-    .eq('user_id', auth.user.id)
-    .maybeSingle()
-  const expertProfile = profile as { id: string; verification_status?: string | null } | null
+  // ── Contexte d'éligibilité expert (helper PARTAGÉ avec /api/me/missions) ─
+  //  Peut être absent côté membres d'org pur → sections expert à 0.
+  //  Best-effort : une lecture ratée laisse les compteurs expert à 0 plutôt que
+  //  de propager une 500 (le badge nav doit rester silencieux).
+  let feedContext: ExpertFeedContext | null = null
+  const feedCtxResult = await loadExpertFeedContext(auth.supabaseAdmin, auth.user.id)
+  if (!feedCtxResult.ok) {
+    console.error('[me/badges:GET] profile lookup failed', feedCtxResult.message)
+  } else {
+    feedContext = feedCtxResult.context
+  }
+  const expertProfile = feedContext?.profile ?? null
 
   // ── missions (expert) ───────────────────────────────────────────────────
   // = matches "à voir" : status ∈ ('pending','notified'). Le flip 'viewed'
   // arrive à l'ouverture du détail (/api/me/missions/[id]) → décrément.
-  if (expertProfile && expertProfile.verification_status === 'approved') {
-    const { count, error } = await auth.supabaseAdmin
-      .from('matches')
-      .select('id', { count: 'exact', head: true })
-      .eq('profile_id', expertProfile.id)
-      .in('status', ['pending', 'notified'])
+  //
+  // `isOpen` (profil approuvé ET hors « Ne pas déranger ») et les filtres
+  // publication viennent de lib/missions/feed.ts — même contexte, même requête
+  // que le feed. Un expert dont le feed est vide ne peut plus porter de badge.
+  if (expertProfile && feedContext?.isOpen) {
+    const { count, error } = await expertMissionsQuery(auth.supabaseAdmin, expertProfile.id, {
+      select: buildExpertMissionsSelect(),
+      count: 'exact',
+      head: true,
+    }).in('status', ['pending', 'notified'])
     if (error) {
       console.error('[me/badges:GET] missions count failed', error.message)
     } else {
-      counts.missions = count ?? 0
+      // Borné au plafond du feed : le badge n'annonce jamais plus d'items que
+      // la page ne peut en afficher.
+      counts.missions = Math.min(count ?? 0, EXPERT_FEED_LIMIT)
     }
   }
 
@@ -174,46 +202,21 @@ async function countUnviewedCandidaturesForUser(
   }[]
   if (candRowsAll.length === 0) return 0
 
-  // 1bis. Fenêtres annonce + fenêtres échange, pour dériver le bucket.
+  // 1bis. Fenêtres annonce + fenêtres échange, puis dérivation — assemblage
+  //       PARTAGÉ (lib/candidatures/lifecycle-batch), le même que celui qui
+  //       alimente les compteurs par annonce de /api/publications.
   const pubIdsRef = Array.from(new Set(candRowsAll.map((c) => c.publication_id)))
-  const pubById = new Map<string, { status: string | null; published_at: string | null; expires_at: string | null }>()
-  if (pubIdsRef.length > 0) {
-    const { data: pubRows } = await auth.supabaseAdmin
-      .from('publications')
-      .select('id, status, published_at, expires_at')
-      .in('id', pubIdsRef)
-    for (const p of (pubRows ?? []) as { id: string; status: string | null; published_at: string | null; expires_at: string | null }[]) {
-      pubById.set(p.id, { status: p.status, published_at: p.published_at, expires_at: p.expires_at })
-    }
-  }
-  const convExpiryByCand = new Map<string, string | null>()
-  const conversableIds = candRowsAll
-    .filter((c) => c.status === 'unlocked' || c.status === 'selected')
-    .map((c) => c.id)
-  if (conversableIds.length > 0) {
-    const { data: convRows } = await auth.supabaseAdmin
-      .from('conversations')
-      .select('candidature_id, expires_at')
-      .in('candidature_id', conversableIds)
-    for (const c of (convRows ?? []) as { candidature_id: string; expires_at: string | null }[]) {
-      convExpiryByCand.set(c.candidature_id, c.expires_at)
-    }
-  }
+  const pubWindows = await loadLifecyclePublicationWindows(auth.supabaseAdmin, pubIdsRef)
 
   // 1ter. ARCHIVÉES ÉCARTÉES avant tout comptage (cf. en-tête).
   const now = new Date()
-  const candRows = candRowsAll.filter((c) => {
-    const lifecycle = deriveCandidatureLifecycle(
-      {
-        status: c.status,
-        unlocked_at: c.unlocked_at,
-        publication: pubById.get(c.publication_id) ?? null,
-        conversation: convExpiryByCand.has(c.id) ? { expires_at: convExpiryByCand.get(c.id) ?? null } : null,
-      },
-      now,
-    )
-    return lifecycle.bucket === 'active'
-  })
+  const lifecycleByCand = await deriveLifecycleByCandidature(
+    auth.supabaseAdmin,
+    candRowsAll,
+    pubWindows,
+    now,
+  )
+  const candRows = candRowsAll.filter((c) => lifecycleByCand.get(c.id)?.bucket === 'active')
   if (candRows.length === 0) return 0
 
   // 2. Vues de l'user courant pour ces candidatures

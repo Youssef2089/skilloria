@@ -3,7 +3,12 @@ import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { buildPublicationSynthesis } from '@/lib/publication-synthesis'
-import { activePublishedOrClause } from '@/lib/publications/expiry'
+import {
+  buildExpertMissionsSelect,
+  expertMissionsQuery,
+  loadExpertFeedContext,
+  EXPERT_FEED_LIMIT,
+} from '@/lib/missions/feed'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -16,6 +21,12 @@ export const dynamic = 'force-dynamic'
  * - Joint matches → publications status='published' où le profile est matché.
  * - Filtre les matches en status 'dismissed' (l'expert les a déclinés).
  * - Masque l'identité de l'org si publication.confidential = true.
+ *
+ * SOURCE DES RÈGLES : lib/missions/feed.ts. Éligibilité (profil, vérification,
+ * « Ne pas déranger ») et filtres publication (publiée, non expirée à 30 j, org
+ * existante) ne sont PAS écrits ici — /api/me/badges appelle les mêmes
+ * fonctions, de sorte que le badge nav est un sous-ensemble de cette liste par
+ * construction. Toute règle recopiée dans l'une des deux routes est un bug.
  *
  * → L'expert ne peut PAS parcourir le catalogue : la curation par matching
  *   est imposée côté serveur ET par la RLS publications (publications_published_expert_read
@@ -74,45 +85,36 @@ export async function GET(request: NextRequest): Promise<Response> {
     throw err
   }
 
-  // ── Profile expert courant ─────────────────────────────────────────────
+  // ── Contexte d'éligibilité (helper PARTAGÉ avec /api/me/badges) ────────
+  //  Lot compteurs : profil, vérification et barrière « Ne pas déranger » sont
+  //  lus par lib/missions/feed.ts. Le badge nav consomme EXACTEMENT le même
+  //  contexte — il ne peut donc plus compter ce que ce feed refuse de servir.
+  //
   //  Lot vérif expert : defense-in-depth — exige verification_status='approved'.
   //  Si non vérifié → 403 not_verified. La nav freelance gate déjà côté UI.
-  //  Lot disponibilité : on lit aussi availability_status / cdi_status pour
-  //  le short-circuit "Ne pas déranger" (barrière feed serveur).
-  const { data: profile, error: pErr } = await auth.supabaseAdmin
-    .from('profiles')
-    .select('id, user_id, domain_id, verification_status, availability_status, cdi_status')
-    .eq('user_id', auth.user.id)
-    .maybeSingle()
-  if (pErr) {
-    console.error('[me/missions:GET] profile lookup failed', pErr.message)
+  //
+  //  Lot disponibilité — BARRIÈRE FEED non contournable côté serveur. Un expert
+  //  en « Ne pas déranger » ne reçoit AUCUNE mission, peu importe les matches
+  //  déjà calculés. Symétrique côté entreprise via loadEligibleProfiles
+  //  (lib/matching/index.ts).
+  //
+  //  Lot A : on expose `expert_status.is_dnd` dans la réponse pour que les
+  //  pages clientes affichent l'empty-state ROUGE conditionnel + le bouton
+  //  "Repasser À l'écoute". Le side (freelance/cdi) est connu côté page
+  //  appelante — pas besoin de le faire transiter par l'API.
+  const feedCtx = await loadExpertFeedContext(auth.supabaseAdmin, auth.user.id)
+  if (!feedCtx.ok) {
+    console.error('[me/missions:GET] profile lookup failed', feedCtx.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
+  const { profile, isApproved, isDnd } = feedCtx.context
   if (!profile) {
     // L'utilisateur n'a pas de profile (expert pas encore inscrit). Feed vide.
     return json({ missions: [] }, 200)
   }
-  if ((profile as { verification_status?: string | null }).verification_status !== 'approved') {
+  if (!isApproved) {
     return json({ error: 'Profile not verified', code: 'not_verified' }, 403)
   }
-
-  // Lot disponibilité — BARRIÈRE FEED non contournable côté serveur.
-  // Un expert en "Ne pas déranger" ne reçoit AUCUNE mission dans son feed,
-  // peu importe les matches déjà calculés. Symétrique côté entreprise via
-  // loadEligibleProfiles (lib/matching/index.ts).
-  //
-  //   Freelance : availability_status = 'do_not_disturb' → feed vide.
-  //   CDI       : cdi_status          = 'employed'       → feed vide.
-  //   NULL est considéré disponible (défaut produit).
-  //
-  // Lot A : on expose `expert_status.is_dnd` dans la réponse pour que les
-  // pages clientes affichent l'empty-state ROUGE conditionnel + le bouton
-  // "Repasser À l'écoute". Le side (freelance/cdi) est connu côté page
-  // appelante — pas besoin de le faire transiter par l'API.
-  const availStatus = (profile as { availability_status?: string | null }).availability_status ?? null
-  const cdiStatus = (profile as { cdi_status?: string | null }).cdi_status ?? null
-  const isDnd = availStatus === 'do_not_disturb' || cdiStatus === 'employed'
-
   if (isDnd) {
     return json({ missions: [], expert_status: { is_dnd: true } }, 200)
   }
@@ -124,28 +126,25 @@ export async function GET(request: NextRequest): Promise<Response> {
   //  par buildPublicationSynthesis (location, work_mode, duration, start_date,
   //  seniority). Branches/specialities passent par la même jointure pour
   //  obtenir les labels traduits via tBDD.
+  //
+  //  Les FILTRES (non décliné, publication publiée, non expirée à 30 j, org
+  //  existante) vivent dans expertMissionsQuery — la route ne fournit que ses
+  //  colonnes. Le badge nav appelle la même fonction avec un select minimal :
+  //  aucune règle n'est recopiée, donc aucune divergence possible.
   const [matchesResult, translations] = await Promise.all([
-    auth.supabaseAdmin
-      .from('matches')
-      .select(
-        'id, publication_id, score, status, explanation, created_at, ' +
-          'publications!inner(' +
+    expertMissionsQuery(auth.supabaseAdmin, profile.id, {
+      select: buildExpertMissionsSelect({
+        matchColumns: 'id, publication_id, score, status, explanation, created_at',
+        publicationColumns:
           'id, type, title, branch_id, speciality_id, budget_min, budget_max, ' +
           'location, work_mode, duration, start_date, seniority, skills_required, ' +
-          'confidential, status, published_at, organization_id, ' +
-          'branches(id, name), specialities(id, name), ' +
-          'organizations!inner(id, company_name, logo_url)' +
-          ')',
-      )
-      .eq('profile_id', profile.id)
-      .neq('status', 'dismissed')
-      .eq('publications.status', 'published')
-      // Expiration 30j calculée à la lecture : une annonce expirée disparaît du
-      // feed (lib/publications/expiry — source unique ; filtre sur la ressource
-      // imbriquée `publications`).
-      .or(activePublishedOrClause(), { referencedTable: 'publications' })
+          'confidential, status, published_at, organization_id',
+        publicationEmbeds: 'branches(id, name), specialities(id, name)',
+        organizationColumns: 'id, company_name, logo_url',
+      }),
+    })
       .order('score', { ascending: false })
-      .limit(200),
+      .limit(EXPERT_FEED_LIMIT),
     loadTranslations(locale),
   ])
 
