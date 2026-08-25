@@ -176,15 +176,36 @@ export function useLiveResource<T, Item>(opts: UseLiveResourceOptions<T, Item>):
   useEffect(() => {
     // ── (1) CHANGEMENT DE COLLECTION ─────────────────────────────────────
     if (appliedKeyRef.current !== key) {
+      // PURGE IMMÉDIATE de la charge utile précédente.
+      //
+      //   Conserver l'ancienne pendant le fetch faisait dire au hook « ready »
+      //   pour une collection que l'appelant ne demande plus. La vue lisait
+      //   alors une liste vide — celle de l'ancien bucket — et affichait
+      //   « Aucune candidature archivée » AVANT d'avoir la réponse. Pire, avec
+      //   un ancien bucket non vide, elle affichait ses items sous le nouveau
+      //   libellé. Un écran ne doit jamais affirmer « il n'y a rien » tant
+      //   qu'il ne sait pas.
+      //
+      //   `displayed = null` ⇒ `state.kind === 'loading'` mécaniquement : les
+      //   9 consommateurs sont couverts sans être modifiés, et le prochain
+      //   écran filtré le sera aussi.
+      //
+      //   `key !== null` : une clé nulle n'est PAS une autre collection, c'est
+      //   une MISE EN PAUSE (url conditionnelle : `enabled`, `isApproved`,
+      //   setup non prêt…). On conserve alors l'affichage — comportement
+      //   strictement inchangé pour les consommateurs qui alternent url ↔ null.
+      if (key !== null && displayed !== null) {
+        setDisplayed(null)
+        setPendingItems([])
+      }
       // PIÈGE `keepPreviousData` : tant que le fetch de la nouvelle clé est en
       // vol, `serverData` porte ENCORE la charge utile de l'ancienne. On
       // attend — sinon on afficherait les données d'un autre filtre sous le
-      // nouvel onglet, ce qui est pire que le bug corrigé.
+      // nouvel onglet.
       if (isLoading) return
       if (error) {
-        // Aucune donnée valide pour cette clé : on refuse d'afficher celle
-        // d'une autre collection. `displayed = null` → l'état bascule sur
-        // 'error' plutôt que de mentir.
+        // Aucune donnée valide pour cette clé : `displayed` est déjà purgé,
+        // l'état bascule sur 'error' plutôt que de mentir.
         appliedKeyRef.current = key
         setDisplayed(null)
         setPendingItems([])

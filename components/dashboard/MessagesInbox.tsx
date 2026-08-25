@@ -247,9 +247,24 @@ export default function MessagesInbox({
           {/* Deux buckets, actives par défaut. Le clic re-demande au serveur —
               le client ne re-trie rien localement. */}
           <div style={{ display: 'flex', gap: 8, padding: '12px 14px', borderBottom: '0.5px solid #e5e7eb', flexShrink: 0 }}>
+            {/* Pendant un chargement, `counts` n'est pas connu : libellé SANS
+                nombre plutôt qu'un « (0) » faux. Un libellé nu ne ment pas.
+                Les chips, elles, restent en place — elles sont hors des
+                branches loading/empty, c'est ce qui permet de rebasculer
+                d'onglet sans attendre. */}
             {([
-              { key: 'active' as const,   label: tLifecycle('filters.active_count',   { count: counts.active }) },
-              { key: 'archived' as const, label: tLifecycle('filters.archived_count', { count: counts.archived }) },
+              {
+                key: 'active' as const,
+                label: state.kind === 'loading'
+                  ? tLifecycle('filters.active')
+                  : tLifecycle('filters.active_count', { count: counts.active }),
+              },
+              {
+                key: 'archived' as const,
+                label: state.kind === 'loading'
+                  ? tLifecycle('filters.archived')
+                  : tLifecycle('filters.archived_count', { count: counts.archived }),
+              },
             ]).map((b) => {
               const on = bucket === b.key
               return (

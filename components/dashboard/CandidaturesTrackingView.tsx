@@ -124,25 +124,26 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
   // des raisons du bucket ACTIVE par définition, les scoper au filtre les
   // rendrait structurellement nuls sur Archivées. Les chips portent déjà les
   // nombres par bucket.
+  // `?? null` et non `?? 0` : `Stat.value = null` rend « — ». Tant que la
+  // réponse n'est pas là, le bandeau ne doit pas afficher des zéros qui
+  // seraient faux — c'est le même principe que les chips sans nombre.
   const serverStats = live.data?.stats?.all ?? null
   const stats: Stat[] = [
-    { value: serverStats?.total ?? 0,          label: t('stats.total') },
-    { value: serverStats?.exchange_open ?? 0,  label: t('stats.open'), emphasis: 'success' },
-    { value: serverStats?.awaiting_review ?? 0, label: t('stats.wait') },
+    { value: serverStats?.total ?? null,           label: t('stats.total') },
+    { value: serverStats?.exchange_open ?? null,   label: t('stats.open'), emphasis: 'success' },
+    { value: serverStats?.awaiting_review ?? null, label: t('stats.wait') },
     {
       value: serverStats?.avg_score_pct == null ? '—' : `${serverStats.avg_score_pct}%`,
       label: t('stats.avg_score'),
     },
   ]
 
-  if (state.kind === 'loading') {
-    return (
-      <div style={{ padding: '24px 26px' }}>
-        <PageHeader title={t('title')} subtitle={t('subtitle')} />
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--sk-muted)' }}>{t('loading')}</div>
-      </div>
-    )
-  }
+  // PAS de retour anticipé sur 'loading'. Depuis que le hook purge sa charge
+  // utile au changement de clé, `loading` survient AUSSI à chaque clic sur une
+  // chip — un retour anticipé ferait disparaître l'en-tête ET les chips à
+  // chaque bascule, exactement le défaut des écrans org. Le chargement se
+  // traite dans la colonne liste, le chrome ne bouge jamais.
+  const isLoading = state.kind === 'loading'
   if (state.kind === 'error') {
     return (
       <div style={{ padding: '24px 26px' }}>
@@ -155,9 +156,23 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
   // DEUX buckets, pas cinq chips par statut : Actives (ce qui peut encore
   // bouger, sélection comprise) et Archivées (ce dont plus rien ne sortira,
   // toujours consultable). Compteurs servis par le serveur.
+  //
+  // Pendant un chargement, `counts` n'est pas connu : on affiche le libellé
+  // SANS nombre plutôt qu'un « (0) » qui serait faux. Un libellé nu ne ment
+  // pas ; un zéro, si.
   const buckets: Array<{ key: BucketKey; label: string }> = [
-    { key: 'active',   label: tLifecycle('filters.active_count',   { count: counts.active }) },
-    { key: 'archived', label: tLifecycle('filters.archived_count', { count: counts.archived }) },
+    {
+      key: 'active',
+      label: isLoading
+        ? tLifecycle('filters.active')
+        : tLifecycle('filters.active_count', { count: counts.active }),
+    },
+    {
+      key: 'archived',
+      label: isLoading
+        ? tLifecycle('filters.archived')
+        : tLifecycle('filters.archived_count', { count: counts.archived }),
+    },
   ]
 
   return (
@@ -201,7 +216,14 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 11, paddingRight: 2 }}>
-              {filtered.length === 0 ? (
+              {/* L'ORDRE COMPTE : le chargement est testé AVANT la vacuité.
+                  Une liste vide pendant un fetch n'est pas une absence de
+                  résultat, c'est une absence de réponse. */}
+              {isLoading ? (
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14 }}>
+                  {t('loading')}
+                </div>
+              ) : filtered.length === 0 ? (
                 <EmptyState
                   icon={bucket === 'archived' ? '🗂️' : '🔍'}
                   title={tLifecycle(bucket === 'archived' ? 'empty_archived_title' : 'empty_active_title')}
