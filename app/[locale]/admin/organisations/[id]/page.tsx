@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { Link, useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { targetRoleForOrgType } from '@/lib/org-target-role'
 
 /**
  * /admin/organisations/[id] — fiche détail d'une organisation (B5c).
@@ -823,7 +824,7 @@ type UsageAvailable = {
     revealedCandidatesPerPublication: number | null
     manualUnlocksPerMonth: number | null
   }
-  usage: { publications: number; manual_unlocks: number }
+  usage: { publications: number; manual_unlocks: number; active_published: number }
   period_start: string
 }
 type UsageData = UsageAvailable | { available: false; reason: string }
@@ -867,7 +868,10 @@ function OrgPackageSection({ orgId, orgType }: { orgId: string; orgType: string 
     void load()
   }, [load])
 
-  const targetRole = orgType === 'cabinet' || orgType === 'esn' ? 'cabinet' : 'client'
+  // Mapping org_type → cible commerciale : source unique partagée
+  // (lib/org-target-role). Une org personnelle d'expert relève de la cible
+  // 'collaboration' — on ne lui propose donc jamais une offre entreprise.
+  const targetRole = targetRoleForOrgType(orgType)
   const assignable = packages.filter(
     (p) => p.active && p.scope === 'organization' && p.target_role === targetRole,
   )
@@ -978,6 +982,18 @@ function OrgPackageSection({ orgId, orgType }: { orgId: string; orgType: string 
               </div>
               <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)' }}>
                 {fmtLimit(usage.usage.publications, usage.limits.publicationsPerMonth)}
+              </div>
+            </div>
+            {/* Annonces ACTIVES à l'instant T — comptées à la lecture (règle
+                30 j), pas un compteur consommable. Son absence ici a déjà coûté
+                une heure de diagnostic à l'aveugle : le plafond d'actives est
+                le blocage réellement ressenti, pas le quota mensuel. */}
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--color-text-tertiary, #94a3b8)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                {t('pilot.usage_active_published')}
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)' }}>
+                {fmtLimit(usage.usage.active_published, usage.limits.activePublicationsMax)}
               </div>
             </div>
             <div>

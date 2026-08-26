@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
+import { targetRoleForOrgType } from '@/lib/org-target-role'
+import { covers, type CoverageTarget } from '@/lib/package-default'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -102,10 +104,16 @@ export async function GET(request: NextRequest): Promise<Response> {
     }[]
     const pkgById = new Map(pkgs.map((p) => [p.id, p]))
 
-    /** Offre par défaut couvrant une cible : ligne spécifique, sinon 'all'. */
+    /**
+     * Offre par défaut couvrant une cible : ligne spécifique, sinon 'all'.
+     * `covers` porte la règle (et son exception : 'all' ne couvre jamais
+     * 'collaboration') — aucune duplication ici.
+     */
     const defaultFor = (target: string) =>
       pkgs.find((p) => p.is_default && p.active && p.target_role === target) ??
-      pkgs.find((p) => p.is_default && p.active && p.target_role === 'all') ??
+      pkgs.find(
+        (p) => p.is_default && p.active && covers(p.target_role, target as CoverageTarget),
+      ) ??
       null
 
     const linkByOrg = new Map<string, { package_id: string | null; package_valid_until: string | null }>()
@@ -143,8 +151,9 @@ export async function GET(request: NextRequest): Promise<Response> {
         packageByOrg.set(o.id, { name: linked.name, expired: true, fallback: false })
         continue
       }
-      // Repli sur l'offre par défaut (mapping esn→cabinet, cf. entitlements).
-      const target = o.org_type === 'cabinet' || o.org_type === 'esn' ? 'cabinet' : 'client'
+      // Repli sur l'offre par défaut. Mapping org_type → cible via la source
+      // unique partagée (lib/org-target-role) : aucune copie locale.
+      const target = targetRoleForOrgType(o.org_type)
       const def = defaultFor(target)
       if (def) packageByOrg.set(o.id, { name: def.name, expired: false, fallback: true })
     }

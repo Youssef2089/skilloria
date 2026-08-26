@@ -69,9 +69,14 @@ export default function SousTraitanceListView({ basePath }: { basePath: string }
 
   const canPublish = quota?.canPublish ?? true
   // C5 : le message de quota reflète le NOMBRE réel autorisé par l'offre
-  // (paramétrable en back-office), jamais « un besoin » en dur. Repli à 1 si
-  // le quota n'a pas pu être lu (le message reste cohérent, jamais cassé).
-  const quotaMax = quota?.activePublicationsMax ?? 1
+  // (paramétrable en back-office), jamais « un besoin » en dur.
+  //
+  // AUCUN REPLI CHIFFRÉ : si le plafond n'a pas pu être lu (ou s'il est
+  // illimité), on affiche une formulation SANS nombre plutôt qu'un « 1 » en dur
+  // qui contredirait l'offre réelle dès que l'admin la modifie.
+  const quotaMax = quota?.activePublicationsMax ?? null
+  const quotaMessage =
+    quotaMax == null ? t('quota_reached_body_generic') : t('quota_reached_body', { max: quotaMax })
 
   const header = (
     <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
@@ -92,7 +97,7 @@ export default function SousTraitanceListView({ basePath }: { basePath: string }
             type="button"
             disabled
             aria-disabled
-            title={t('quota_reached_body', { max: quotaMax })}
+            title={quotaMessage}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', background: '#e2e8f0', color: '#94a3b8', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'not-allowed', flexShrink: 0, fontFamily: 'inherit' }}
           >
             + {t('new_cta')}
@@ -133,7 +138,7 @@ export default function SousTraitanceListView({ basePath }: { basePath: string }
       {phase === 'ready' && !canPublish && (
         <div role="status" style={{ maxWidth: 720, border: '1px solid #fde68a', background: '#fffbeb', borderRadius: 12, padding: '14px 16px', marginBottom: 18 }}>
           <div style={{ fontSize: 13.5, fontWeight: 700, color: '#92400e', marginBottom: 3 }}>{t('quota_reached_title')}</div>
-          <div style={{ fontSize: 13, color: '#a16207', lineHeight: 1.5 }}>{t('quota_reached_body', { max: quotaMax })}</div>
+          <div style={{ fontSize: 13, color: '#a16207', lineHeight: 1.5 }}>{quotaMessage}</div>
         </div>
       )}
 

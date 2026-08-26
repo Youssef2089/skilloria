@@ -4,6 +4,8 @@ import { Fragment, useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { summarizeLimitParts, targetLabelKey } from '@/lib/packages-display'
+import { COVERAGE_TARGETS, covers } from '@/lib/package-default'
 
 /**
  * /admin/packages — catalogue commerce (liste). Édition seule via [id].
@@ -33,15 +35,6 @@ type Package = {
   features: Feature[]
   org_count: number
 }
-
-// Ordre d'affichage stable des limites dans le résumé + clé i18n plurielle.
-const SUMMARY_ORDER: { code: string; key: string }[] = [
-  { code: 'publications_per_month', key: 'summary_publications' },
-  { code: 'active_publications_max', key: 'summary_active' },
-  { code: 'revealed_candidates_per_publication', key: 'summary_revealed' },
-  { code: 'manual_unlocks_per_month', key: 'summary_unlocks' },
-  { code: 'seats_max', key: 'summary_seats' },
-]
 
 export default function AdminPackagesPage() {
   const t = useTranslations('admin_back_office')
@@ -100,41 +93,32 @@ export default function AdminPackagesPage() {
     return t('packages.price_monthly_format', { price: p.price_monthly, currency: p.currency })
   }
 
+  // Libellé de cible : clé dérivée par le module partagé (lib/packages-display),
+  // seul endroit qui connaît les 4 cibles — la fiche d'édition l'utilise aussi.
   function targetLabel(role: string): string {
-    if (role === 'all') return t('packages.target_all')
-    if (role === 'collaboration') return t('packages.target_collaboration')
-    return role === 'cabinet' ? t('packages.target_cabinet') : t('packages.target_client')
+    return t(`packages.${targetLabelKey(role)}`)
   }
 
   // Résumé COURT en langage clair : les limites finies listées ("2 publications/mois
   // · 1 candidat dévoilé…"), puis « reste illimité » si au moins une limite l'est.
-  // Tout illimité → un seul libellé.
+  // Tout illimité → un seul libellé. L'ordre et le parsing viennent du module
+  // partagé ; seule la traduction reste ici.
   function summarizeLimits(features: Feature[]): string {
-    const byCode = new Map(features.map((f) => [f.feature_code, f.value]))
-    const parts: string[] = []
-    let anyUnlimited = false
-    for (const { code, key } of SUMMARY_ORDER) {
-      const raw = byCode.get(code)
-      if (raw == null) continue
-      if (raw.trim().toLowerCase() === 'unlimited') {
-        anyUnlimited = true
-        continue
-      }
-      const n = parseInt(raw, 10)
-      if (!Number.isFinite(n)) continue
-      parts.push(t(`packages.${key}`, { count: n }))
-    }
+    const { parts, anyUnlimited } = summarizeLimitParts(features)
     if (parts.length === 0) return t('packages.summary_all_unlimited')
-    if (anyUnlimited) parts.push(t('packages.summary_rest_unlimited'))
-    return parts.join(' · ')
+    const labels = parts.map((p) => t(`packages.${p.summaryKey}`, { count: p.count }))
+    if (anyUnlimited) labels.push(t('packages.summary_rest_unlimited'))
+    return labels.join(' · ')
   }
 
   // Défaut actuel COUVRANT la même cible — sert à nommer l'offre qui perdra le
-  // statut dans la confirmation inline (impact explicite avant clic). Une offre
-  // 'all' couvre client ET cabinet.
+  // statut dans la confirmation inline (impact explicite avant clic). La règle
+  // de couverture ('all' couvre client ET cabinet, jamais collaboration) vient
+  // de lib/package-default : aucune réécriture locale.
   function currentDefaultFor(role: string): Package | null {
-    const coversRole = (r: string) => r === role || r === 'all' || role === 'all'
-    return (packages ?? []).find((x) => x.is_default && coversRole(x.target_role)) ?? null
+    const sharesTarget = (r: string) =>
+      COVERAGE_TARGETS.some((tgt) => covers(role, tgt) && covers(r, tgt))
+    return (packages ?? []).find((x) => x.is_default && sharesTarget(x.target_role)) ?? null
   }
 
   // TRANSFERT du défaut. Le serveur applique l'invariant (un seul défaut actif
@@ -175,12 +159,19 @@ export default function AdminPackagesPage() {
     return (packages ?? []).find((p) => p.id === id)?.name ?? ''
   }
 
-  /** Une offre cible est éligible si elle couvre la cible de la source. */
+  /**
+   * Une offre cible est éligible si elle couvre TOUTES les cibles de la source.
+   * Passe par `covers` (lib/package-default) : une offre 'all' couvre client et
+   * cabinet mais JAMAIS collaboration — sans quoi on pourrait migrer des
+   * organisations personnelles d'experts vers une offre entreprise, exactement
+   * l'anomalie que /admin/collaboration signale en rouge.
+   */
   function migTargetCompatible(candidate: Package): boolean {
     const from = (packages ?? []).find((p) => p.id === migFrom)
     if (!from) return true
-    if (candidate.target_role === 'all') return true
-    return candidate.target_role === from.target_role
+    return COVERAGE_TARGETS.every(
+      (tgt) => !covers(from.target_role, tgt) || covers(candidate.target_role, tgt),
+    )
   }
 
   function migErrorFor(code: string | undefined, uncovered?: string[]): string {

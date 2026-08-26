@@ -2,7 +2,14 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
-import { covers, isTargetRole, uncoveredTargets, type DefaultRow } from '@/lib/package-default'
+import {
+  covers,
+  isTargetRole,
+  uncoveredTargets,
+  type CoverageTarget,
+  type DefaultRow,
+} from '@/lib/package-default'
+import { targetRoleForOrgType } from '@/lib/org-target-role'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -12,7 +19,7 @@ export const dynamic = 'force-dynamic'
  * Body : {
  *   package_id: uuid,
  *   name?: string,                        // non vide, <= 100 car.
- *   target_role?: 'client'|'cabinet'|'all',
+ *   target_role?: 'client'|'cabinet'|'all'|'collaboration',
  *   price_monthly?: number|null|string,   // numeric >= 0 ou null
  *   price_yearly?:  number|null|string,
  *   active?: boolean,
@@ -143,8 +150,8 @@ export async function POST(request: NextRequest): Promise<Response> {
   const packageUpdates: Record<string, unknown> = {}
 
   // Le NOM est éditable (l'admin renomme une offre sans la recréer). La CIBLE
-  // ne l'est pas : la changer retirerait leurs droits aux organisations déjà
-  // rattachées — l'admin crée une nouvelle offre puis migre les organisations.
+  // l'est aussi, mais sous les gardes plus bas : jamais au prix d'organisations
+  // rattachées hors de la nouvelle cible, ni d'une cible privée de son défaut.
   if (has('name')) {
     const n = typeof body.name === 'string' ? body.name.trim() : ''
     if (!n || n.length > 100) return json({ error: 'Invalid name', code: 'invalid_name' }, 400)
@@ -208,10 +215,13 @@ export async function POST(request: NextRequest): Promise<Response> {
           return json({ error: 'Query failed', code: 'db_error' }, 500)
         }
 
-        // Mapping org_type → cible commerciale (identique à lib/entitlements).
+        // Mapping org_type → cible commerciale : SOURCE UNIQUE partagée avec
+        // lib/entitlements (une org personnelle d'expert relève de la cible
+        // 'collaboration', jamais de 'client' — sinon convertir une offre
+        // collaboration en offre client passerait sans rien signaler).
         const orphansByType = new Map<string, number>()
         for (const o of (orgs ?? []) as { org_type: string | null }[]) {
-          const mapped = o.org_type === 'cabinet' || o.org_type === 'esn' ? 'cabinet' : 'client'
+          const mapped = targetRoleForOrgType(o.org_type) as CoverageTarget
           if (!covers(nextTarget, mapped)) {
             orphansByType.set(o.org_type ?? mapped, (orphansByType.get(o.org_type ?? mapped) ?? 0) + 1)
           }

@@ -16,9 +16,20 @@ import CastingCarousel from '@/components/dashboard/CastingCarousel'
  *   - GET /api/publications/[id]            → rappel du besoin (owner-scoped)
  *   - GET /api/publications/[id]/candidatures → DTO masqué/dévoilé (service_role)
  *   - <CastingCarousel> → mêmes cartes candidat que l'org (masquage porté
- *     serveur). Le meilleur candidat est auto-dévoilé (nom + photo) ; les autres
- *     restent masqués derrière un MUR DE CONVERSION inactif en V0 (conversionMode
- *     'wall'). Le contact (email/tél) n'est JAMAIS exposé (reveal_contact:false).
+ *     serveur). Le meilleur candidat est auto-dévoilé (nom + photo). Le contact
+ *     (email/tél) n'est JAMAIS exposé (reveal_contact:false).
+ *   - GET /api/me/collaboration/quota → droits de l'offre.
+ *
+ * ┌─ MUR DE DÉVOILEMENT : DÉRIVÉ DU CATALOGUE, PLUS CODÉ EN DUR ────────────┐
+ * │ `conversionMode` était un littéral 'wall' : porter                       │
+ * │ manual_unlocks_per_month de 0 à 3 dans le back-office ne changeait RIEN  │
+ * │ pour l'expert. La règle était écrite deux fois et c'est le code qui      │
+ * │ gagnait. Elle est désormais lue une seule fois, au catalogue :           │
+ * │   limite = 0  → mur « Bientôt disponible »                               │
+ * │   sinon       → bouton « Débloquer » actif                               │
+ * │ L'UI n'est QUE de l'affichage : le refus fait autorité côté serveur      │
+ * │ (candidatures/[id]/unlock → 402 unlock_limit_reached).                   │
+ * └────────────────────────────────────────────────────────────────────────┘
  *   - Lien conversation → /dashboard/{role}/messages (messagesBasePath), fenêtre
  *     15 j de la messagerie interne — INDÉPENDANTE de la clôture.
  *
@@ -72,14 +83,25 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
   // ses candidats reçus, exactement comme une org. Mêmes buckets, même défaut,
   // même helper serveur : aucun miroir partiel.
   const [bucket, setBucket] = useState<BucketKey>('active')
+  // Droits de l'offre. `null` tant que non lu : on garde alors le mur (posture
+  // prudente — on ne propose jamais une action que l'offre pourrait refuser).
+  const [canUnlockManually, setCanUnlockManually] = useState<boolean | null>(null)
 
   const load = useCallback(async (id: string) => {
     setState({ kind: 'loading' })
     try {
-      const [pubRes, candRes] = await Promise.all([
+      const [pubRes, candRes, quotaRes] = await Promise.all([
         secureFetch(`/api/publications/${id}`, { method: 'GET' }),
         secureFetch(`/api/publications/${id}/candidatures?locale=${encodeURIComponent(locale)}&filter=${bucket}`, { method: 'GET' }),
+        secureFetch('/api/me/collaboration/quota', { method: 'GET' }),
       ])
+      // Best-effort : un quota illisible n'empêche pas d'afficher le besoin.
+      if (quotaRes.ok) {
+        const q = (await quotaRes.json().catch(() => null)) as { canUnlockManually?: boolean } | null
+        setCanUnlockManually(q?.canUnlockManually ?? null)
+      } else {
+        setCanUnlockManually(null)
+      }
       const pubPayload = (await pubRes.json().catch(() => ({}))) as { code?: string; publication?: PublicationDetail }
       if (!pubRes.ok || !pubPayload.publication) {
         setState({ kind: 'error', message: pubPayload.code === 'not_found' ? t('error_not_found') : t('error_generic') })
@@ -281,7 +303,7 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
             pubSkillsRequired={pub.skills_required}
             onMutated={refresh}
             messagesBasePath={basePath}
-            conversionMode="wall"
+            conversionMode={canUnlockManually === true ? 'unlock' : 'wall'}
           />
         )}
       </section>

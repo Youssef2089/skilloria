@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useRouter } from '@/i18n/navigation'
+import { useSearchParams } from 'next/navigation'
+import { Link, useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { LIMIT_CODES, targetLabelKey } from '@/lib/packages-display'
 
 /**
  * /admin/packages/new — création d'une offre.
@@ -16,6 +18,13 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  * Cible « Tous » = UNE seule offre (target_role='all') couvrant clients ET
  * cabinets — jamais deux lignes. Le statut par défaut passe par l'invariant de
  * couverture côté serveur (lib/package-default.ts).
+ *
+ * Cible « Collaboration » = offre de sous-traitance entre experts. Monde
+ * commercial disjoint : 'all' ne la couvre pas, et l'écran d'édition ne permet
+ * pas de convertir une offre d'un monde à l'autre. C'est donc ICI, à la
+ * création, que la cible se choisit. `?target=collaboration` la présélectionne
+ * (lien « Nouvelle offre » depuis /admin/collaboration) et le retour se fait
+ * vers l'espace d'origine.
  */
 
 type Feature = { feature_code: string; value: string; reset_period: string | null }
@@ -29,17 +38,11 @@ type Package = {
   features: Feature[]
 }
 
-// Les 5 limites du catalogue, dans l'ordre d'affichage, avec leur libellé HUMAIN.
-const LIMIT_CODES: { code: string; labelKey: string }[] = [
-  { code: 'publications_per_month', labelKey: 'feature_label_publications_per_month' },
-  { code: 'active_publications_max', labelKey: 'feature_label_active_publications_max' },
-  { code: 'revealed_candidates_per_publication', labelKey: 'feature_label_revealed_candidates_per_publication' },
-  { code: 'manual_unlocks_per_month', labelKey: 'feature_label_manual_unlocks_per_month' },
-  { code: 'seats_max', labelKey: 'feature_label_seats_max' },
-]
+// Les 5 limites du catalogue (ordre + libellés humains) viennent de
+// lib/packages-display : source unique partagée avec la liste et la fiche.
 
 const UNLIMITED = 'unlimited'
-const TARGETS = ['client', 'cabinet', 'all'] as const
+const TARGETS = ['client', 'cabinet', 'all', 'collaboration'] as const
 
 const cardStyle: React.CSSProperties = {
   background: 'var(--color-background-primary, #fff)',
@@ -96,6 +99,13 @@ export default function AdminPackageNewPage() {
   const t = useTranslations('admin_back_office')
   const secureFetch = useSecureFetch()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Cible pré-sélectionnée (lien « Nouvelle offre » de /admin/collaboration).
+  // Seule 'collaboration' est honorée : les cibles entreprise gardent 'all' par
+  // défaut, l'admin choisit dans la foulée.
+  const presetCollaboration = searchParams?.get('target') === 'collaboration'
+  const backHref = presetCollaboration ? '/admin/collaboration' : '/admin/packages'
 
   const [packages, setPackages] = useState<Package[]>([])
   const [loading, setLoading] = useState(true)
@@ -105,7 +115,9 @@ export default function AdminPackageNewPage() {
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [slugTouched, setSlugTouched] = useState(false)
-  const [targetRole, setTargetRole] = useState<(typeof TARGETS)[number]>('all')
+  const [targetRole, setTargetRole] = useState<(typeof TARGETS)[number]>(
+    presetCollaboration ? 'collaboration' : 'all',
+  )
   const [priceMonthly, setPriceMonthly] = useState('')
   const [priceYearly, setPriceYearly] = useState('')
   const [active, setActive] = useState(true)
@@ -135,8 +147,15 @@ export default function AdminPackageNewPage() {
       const json = (await res.json()) as { packages: Package[] }
       const list = json.packages ?? []
       setPackages(list)
-      // Modèle proposé par défaut : l'offre free si présente, sinon la première.
-      const model = list.find((p) => p.slug.startsWith('free')) ?? list[0]
+      // Modèle proposé par défaut : une offre de la MÊME famille quand la cible
+      // est présélectionnée (copier « 3 publications/mois » depuis une offre
+      // entreprise n'aurait aucun sens pour une offre de collaboration), sinon
+      // l'offre free, sinon la première.
+      const model = presetCollaboration
+        ? (list.find((p) => p.target_role === 'collaboration' && p.is_default) ??
+           list.find((p) => p.target_role === 'collaboration') ??
+           list[0])
+        : (list.find((p) => p.slug.startsWith('free')) ?? list[0])
       if (model) {
         setCopyFrom(model.id)
         applyModel(model)
@@ -146,7 +165,7 @@ export default function AdminPackageNewPage() {
     } finally {
       setLoading(false)
     }
-  }, [t, secureFetch])
+  }, [t, secureFetch, presetCollaboration])
 
   useEffect(() => {
     void load()
@@ -242,6 +261,23 @@ export default function AdminPackageNewPage() {
 
   return (
     <div>
+      {/* Page de DÉTAIL → un unique bouton Retour, vers l'espace d'origine. */}
+      <Link
+        href={backHref}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: 13,
+          color: 'var(--color-text-secondary, #64748b)',
+          textDecoration: 'none',
+          marginBottom: 14,
+        }}
+      >
+        <span aria-hidden>←</span>
+        {presetCollaboration ? t('packages.back_to_collaboration') : t('packages.back_to_packages')}
+      </Link>
+
       <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: '0 0 4px' }}>
         {t('packages.new_title')}
       </h1>
@@ -295,7 +331,7 @@ export default function AdminPackageNewPage() {
                   checked={targetRole === tr}
                   onChange={() => setTargetRole(tr)}
                 />
-                {tr === 'all' ? t('packages.target_all') : tr === 'cabinet' ? t('packages.target_cabinet') : t('packages.target_client')}
+                {t(`packages.${targetLabelKey(tr)}`)}
               </label>
             ))}
           </div>

@@ -5,6 +5,8 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { FEATURE_LABEL_KEYS, targetLabelKey } from '@/lib/packages-display'
+import { COVERAGE_TARGETS, covers } from '@/lib/package-default'
 
 /**
  * /admin/packages/[id] — édition d'un package (prix mensuel/annuel, actif) et
@@ -44,15 +46,9 @@ type Feature = {
   value_type: string | null
 }
 
-// Mapping feature_code → clé i18n de libellé HUMAIN. Un code absent retombe sur
-// le nom BDD (jamais le code brut).
-const FEATURE_LABEL_KEYS: Record<string, string> = {
-  publications_per_month: 'feature_label_publications_per_month',
-  active_publications_max: 'feature_label_active_publications_max',
-  revealed_candidates_per_publication: 'feature_label_revealed_candidates_per_publication',
-  manual_unlocks_per_month: 'feature_label_manual_unlocks_per_month',
-  seats_max: 'feature_label_seats_max',
-}
+// Libellés humains des limites : FEATURE_LABEL_KEYS vient de lib/packages-display
+// (source unique partagée avec la liste et l'écran de création). Un code absent
+// retombe sur le nom BDD — jamais le code brut.
 
 const UNLIMITED = 'unlimited'
 
@@ -164,8 +160,16 @@ export default function AdminPackageEditPage() {
             const listJson = (await listRes.json()) as {
               packages: { id: string; name: string; target_role: string; is_default: boolean }[]
             }
+            // Offre par défaut partageant au moins une cible avec celle-ci
+            // (règle de couverture partagée : 'all' couvre client et cabinet,
+            // jamais collaboration).
             const prev = (listJson.packages ?? []).find(
-              (x) => x.target_role === json.package.target_role && x.is_default && x.id !== json.package.id,
+              (x) =>
+                x.is_default &&
+                x.id !== json.package.id &&
+                COVERAGE_TARGETS.some(
+                  (tgt) => covers(json.package.target_role, tgt) && covers(x.target_role, tgt),
+                ),
             )
             setPreviousDefaultName(prev?.name ?? null)
           }
@@ -251,12 +255,14 @@ export default function AdminPackageEditPage() {
           setSaveError(
             t('packages.err_target_uncovered', {
               targets: (payload.uncovered ?? [])
-                .map((r) => (r === 'cabinet' ? t('packages.target_cabinet') : t('packages.target_client')))
+                .map((r) => t(`packages.${targetLabelKey(r)}`))
                 .join(', '),
             }),
           )
         } else if (payload.code === 'default_requires_active') {
           setSaveError(t('packages.default_cannot_deactivate'))
+        } else if (payload.code === 'invalid_target_role') {
+          setSaveError(t('packages.err_invalid_target_role'))
         } else {
           setSaveError(t('errors.generic'))
         }
@@ -292,7 +298,7 @@ export default function AdminPackageEditPage() {
           setDefaultError(
             t('packages.err_target_uncovered', {
               targets: (payload.uncovered ?? [])
-                .map((r) => (r === 'cabinet' ? t('packages.target_cabinet') : t('packages.target_client')))
+                .map((r) => t(`packages.${targetLabelKey(r)}`))
                 .join(', '),
             }),
           )
@@ -339,19 +345,41 @@ export default function AdminPackageEditPage() {
   // L'admin s'apprête à retirer de la vente une offre actuellement active.
   const willDeactivate = pkg.active && !active
 
-  const targetRoleLabel =
-    pkg.target_role === 'all'
-      ? t('packages.target_all')
-      : pkg.target_role === 'cabinet'
-        ? t('packages.target_cabinet')
-        : t('packages.target_client')
+  // Libellé de cible : clé dérivée par lib/packages-display, qui connaît les 4
+  // cibles. Avant ce lot, une offre 'collaboration' s'affichait « Client ».
+  const targetRoleLabel = t(`packages.${targetLabelKey(pkg.target_role)}`)
+
+  // Une offre de COLLABORATION vit dans un monde commercial disjoint : elle se
+  // gère depuis /admin/collaboration, et sa cible n'est pas convertible en
+  // cible entreprise (le serveur refuserait de toute façon dès qu'un expert y
+  // est rattaché — orgs_would_be_orphaned).
+  const isCollaboration = pkg.target_role === 'collaboration'
+  const backHref = isCollaboration ? '/admin/collaboration' : '/admin/packages'
 
   return (
     <div>
+      {/* Page de DÉTAIL → un unique bouton Retour, dirigé vers la liste d'où
+          l'offre provient (catalogue entreprise ou espace collaboration). */}
+      <Link
+        href={backHref}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: 13,
+          color: 'var(--color-text-secondary, #64748b)',
+          textDecoration: 'none',
+          marginBottom: 14,
+        }}
+      >
+        <span aria-hidden>←</span>
+        {isCollaboration ? t('packages.back_to_collaboration') : t('packages.back_to_packages')}
+      </Link>
+
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: 0 }}>{pkg.name}</h1>
         <span style={{ fontSize: 12, color: 'var(--color-text-secondary, #64748b)' }}>
-          {pkg.target_role === 'cabinet' ? t('packages.target_cabinet') : t('packages.target_client')}
+          {targetRoleLabel}
         </span>
         {pkg.is_default && (
           <span style={{ fontSize: 11, padding: '2px 8px', background: '#DBEAFE', color: '#1e40af', borderRadius: 10 }}>
@@ -473,24 +501,46 @@ export default function AdminPackageEditPage() {
               {t('packages.slug_readonly_hint')}
             </p>
           </div>
-          {/* Cible : MODIFIABLE. Le serveur refuse tout rétrécissement qui
-              laisserait des organisations rattachées hors de la cible, ou qui
-              priverait une cible d'offre par défaut. */}
+          {/* Cible : MODIFIABLE entre publics ENTREPRISE. Le serveur refuse
+              tout rétrécissement qui laisserait des organisations rattachées
+              hors de la cible, ou qui priverait une cible d'offre par défaut.
+              Une offre de COLLABORATION reste sur sa cible : les deux mondes
+              sont disjoints, on n'en convertit pas un en l'autre. */}
           <div>
-            <label htmlFor="target" style={labelStyle}>{t('packages.field_target')}</label>
-            <select
-              id="target"
-              value={targetRole}
-              onChange={(e) => setTargetRole(e.target.value)}
-              style={inputStyle}
-            >
-              <option value="client">{t('packages.target_client')}</option>
-              <option value="cabinet">{t('packages.target_cabinet')}</option>
-              <option value="all">{t('packages.target_all')}</option>
-            </select>
-            <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '6px 0 0' }}>
-              {t('packages.target_editable_help')}
-            </p>
+            {isCollaboration ? (
+              <>
+                <span style={labelStyle}>{t('packages.field_target')}</span>
+                <div
+                  style={{
+                    ...inputStyle,
+                    background: 'var(--color-background-secondary, #f8fafc)',
+                    color: 'var(--color-text-secondary, #64748b)',
+                  }}
+                >
+                  {targetRoleLabel}
+                </div>
+                <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '6px 0 0' }}>
+                  {t('packages.target_collaboration_locked_hint')}
+                </p>
+              </>
+            ) : (
+              <>
+                <label htmlFor="target" style={labelStyle}>{t('packages.field_target')}</label>
+                <select
+                  id="target"
+                  value={targetRole}
+                  onChange={(e) => setTargetRole(e.target.value)}
+                  style={inputStyle}
+                >
+                  <option value="client">{t('packages.target_client')}</option>
+                  <option value="cabinet">{t('packages.target_cabinet')}</option>
+                  <option value="all">{t('packages.target_all')}</option>
+                </select>
+                <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '6px 0 0' }}>
+                  {t('packages.target_editable_help')}
+                </p>
+              </>
+            )}
           </div>
         </div>
 
