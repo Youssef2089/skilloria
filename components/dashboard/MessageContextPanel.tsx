@@ -169,12 +169,21 @@ export default function MessageContextPanel({
           </div>
         )}
 
-        {/* Indicateur "Profil débloqué" — toute conv visible ici est forcément
-            issue d'une candidature unlocked (RLS scope strict). */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--sk-border)', fontSize: 13, fontWeight: 600, color: 'var(--sk-success)' }}>
-          <IconCircleCheck size={16} stroke={2} />
-          {side === 'entreprise' ? t('exchange_open_org') : t('exchange_open_expert')}
-        </div>
+        {/* Indicateur RÉSERVÉ AU CÔTÉ ORGANISATION.
+            Il annonçait « Profil débloqué » à l'EXPERT : une mécanique
+            commerciale de déverrouillage qui décrit l'accès obtenu par
+            l'entreprise, pas un état que l'expert a demandé ni sur lequel il
+            peut agir. Un indicateur qui ne concerne pas celui qui le lit n'a
+            pas à occuper son écran, quel que soit l'état de la conversation.
+            Le panneau étant partagé par les trois côtés, c'est un rendu
+            conditionnel — pas une suppression : côté org le badge dit
+            « Échange ouvert », ce qui la regarde bien. */}
+        {side === 'entreprise' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--sk-border)', fontSize: 13, fontWeight: 600, color: 'var(--sk-success)' }}>
+            <IconCircleCheck size={16} stroke={2} />
+            {t('exchange_open_org')}
+          </div>
+        )}
       </div>
     </aside>
   )
