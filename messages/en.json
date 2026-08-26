@@ -2113,6 +2113,7 @@
       "read_only_role": "Read-only — your role can't act on applications.",
       "error_not_found": "This application no longer exists.",
       "error_reason_too_long": "Reason exceeds 2000 characters.",
+      "error_candidature_archived": "This application is archived: the posting is no longer open, so the profile can no longer be unlocked.",
       "error_generic": "An error occurred. Please try again."
     }
   },

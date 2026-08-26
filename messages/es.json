@@ -2113,6 +2113,7 @@
       "read_only_role": "Solo lectura — tu rol no permite actuar sobre las candidaturas.",
       "error_not_found": "Esta candidatura ya no existe.",
       "error_reason_too_long": "El motivo supera los 2000 caracteres.",
+      "error_candidature_archived": "Esta candidatura está archivada: el anuncio ya no está abierto, por lo que el perfil ya no puede desbloquearse.",
       "error_generic": "Se produjo un error. Inténtalo de nuevo."
     }
   },
