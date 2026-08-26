@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { targetRoleForOrgType } from '@/lib/org-target-role'
 
 /**
  * lib/entitlements.ts — couche DROITS du moteur commerce (Lot 2).
@@ -68,13 +69,17 @@ function parseLimit(raw: string | null | undefined): number | null {
 }
 
 /**
- * Mappe organizations.org_type → packages.target_role.
- * CHECK org_type = client | cabinet | esn ; CHECK target_role = client | cabinet.
- * En V1, 'esn' (prestataire) accède à la même offre que 'cabinet'.
+ * Cibles de repli acceptables pour une cible donnée, par ordre de préférence.
+ *
+ * ⚠ 'collaboration' n'accepte QUE 'collaboration' : une offre 'all' couvre les
+ *   clients et les cabinets (deux publics ENTREPRISE), jamais l'organisation
+ *   personnelle d'un expert. Sans cette exclusion, un expert dont le
+ *   rattachement saute hériterait de l'offre entreprise — l'anomalie que tout
+ *   ce lot ferme. Règle jumelle de `covers()` (lib/package-default.ts) et de la
+ *   RPC set_default_package.
  */
-function targetRoleForOrgType(orgType: string | null | undefined): string {
-  if (orgType === 'cabinet' || orgType === 'esn') return 'cabinet'
-  return 'client' // 'client' + défaut prudent
+function fallbackTargetsFor(targetRole: string): string[] {
+  return targetRole === 'collaboration' ? ['collaboration'] : [targetRole, 'all']
 }
 
 /**
@@ -148,12 +153,13 @@ export async function getOrgEntitlements(
       // La cible 'all' est une offre UNIQUE couvrant client ET cabinet (pas de
       // doublon au catalogue). On accepte donc la ligne spécifique OU la ligne
       // 'all' ; si les deux existent, la ligne spécifique l'emporte (réglage
-      // fin d'une cible > réglage commun).
+      // fin d'une cible > réglage commun). Pour 'collaboration', 'all' est
+      // exclu (cf. fallbackTargetsFor).
       const { data: defs } = await admin
         .from('packages')
         .select('id, slug, target_role')
         .is('domain_id', null)
-        .in('target_role', [targetRole, 'all'])
+        .in('target_role', fallbackTargetsFor(targetRole))
         .eq('is_default', true)
         .eq('active', true)
       const candidates = (defs ?? []) as { id: string; slug: string; target_role: string }[]

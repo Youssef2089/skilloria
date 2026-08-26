@@ -13,9 +13,14 @@ export const dynamic = 'force-dynamic'
  * Un expert n'a pas d'organisation → il ne peut pas publier (publications.
  * organization_id NOT NULL). Au premier accès à « Besoin / Sous-traitance », on
  * crée à la demande une org PERSONNELLE (org_type='freelance', invisible côté
- * entreprise) rattachée au PACKAGE dédié « collaboration ». L'expert hérite
- * alors de tout le moteur commerce (quotas, masquage, dévoilement) sans logique
- * dupliquée.
+ * entreprise) rattachée à l'offre de collaboration PAR DÉFAUT du catalogue.
+ * L'expert hérite alors de tout le moteur commerce (quotas, masquage,
+ * dévoilement) sans logique dupliquée.
+ *
+ * Le rattachement suit l'offre par défaut, PAS un slug figé : l'admin pilote
+ * depuis /admin/collaboration quelle offre reçoit les nouveaux experts. Changer
+ * l'offre par défaut ne migre PAS les experts déjà rattachés (leur lien est
+ * écrit en base) — c'est /api/admin/migrate-org-packages qui sert à ça.
  *
  * IDEMPOTENT (D3) : au plus UNE org personnelle par expert. Si elle existe, on
  * la retourne. L'index unique partiel `organizations_personal_owner_unique_idx`
@@ -82,21 +87,30 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ ok: true, organization_id: existing, created: false }, 200)
   }
 
-  // ── Package collaboration (rattachement explicite → getOrgEntitlements) ───
+  // ── Offre collaboration PAR DÉFAUT (rattachement explicite → entitlements) ─
+  //  On cible le DÉFAUT de la cible 'collaboration', jamais un slug littéral :
+  //  le catalogue peut contenir plusieurs offres de collaboration, et c'est
+  //  l'admin qui décide laquelle reçoit les nouveaux experts (back-office,
+  //  point 8). L'invariant « exactement une offre par défaut active par cible »
+  //  est tenu par la RPC set_default_package — cette lecture est donc
+  //  déterministe par construction.
   const { data: pkg, error: pkgErr } = await auth.supabaseAdmin
     .from('packages')
-    .select('id')
+    .select('id, slug')
     .is('domain_id', null)
-    .eq('slug', 'collaboration')
     .eq('target_role', 'collaboration')
+    .eq('is_default', true)
     .eq('active', true)
     .maybeSingle()
   if (pkgErr) {
-    console.error('[ensure-org] package lookup failed', pkgErr.message)
+    console.error('[ensure-org] default collaboration package lookup failed', pkgErr.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
   if (!pkg) {
-    // La migration/seed collaboration n'est pas appliquée → on ne crée rien.
+    // Aucune offre de collaboration par défaut au catalogue (migration non
+    // appliquée, ou offre désactivée depuis l'admin) → on ne crée rien plutôt
+    // que de rattacher l'expert à une offre arbitraire.
+    console.error('[ensure-org] no active default package for target_role=collaboration')
     return json({ error: 'Collaboration package missing', code: 'package_missing' }, 503)
   }
 
@@ -170,7 +184,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       action: 'personal_org_created',
       entity_type: 'organization',
       entity_id: organizationId,
-      detail: { org_type: 'freelance', package_slug: 'collaboration' },
+      detail: { org_type: 'freelance', package_slug: pkg.slug as string },
     })
 
     return json({ ok: true, organization_id: organizationId, created: true }, 200)

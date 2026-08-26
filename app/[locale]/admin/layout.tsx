@@ -33,6 +33,15 @@ const ADMIN_NAV_ICONS: Record<string, React.ReactNode> = {
       <path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12" />
     </svg>
   ),
+  // Collaboration entre experts — deux personnes reliées (sous-traitance).
+  collaboration: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="8" r="3" />
+      <circle cx="17" cy="15" r="3" />
+      <path d="M2 20v-1.5A3.5 3.5 0 0 1 5.5 15h2" />
+      <path d="M11 8h3a3 3 0 0 1 3 3v1" />
+    </svg>
+  ),
   // Taxonomie (branches / spécialités) — arborescence à puces.
   taxonomy: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

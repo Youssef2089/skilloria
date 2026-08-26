@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/auth-guard'
 import { getOrgEntitlements, monthlyPeriodStart } from '@/lib/entitlements'
+import { targetRoleForOrgType } from '@/lib/org-target-role'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -48,17 +49,6 @@ async function peek(admin: Admin, orgId: string, key: string, period: string): P
 }
 
 /**
- * Mappe org_type → target_role (contrat baseline : org_type = client|cabinet|esn,
- * target_role = client|cabinet). Miroir de la logique interne d'entitlements.ts,
- * dupliqué ici volontairement : entitlements.ts ne l'exporte pas et le Lot A ne
- * doit pas le modifier (règle projet — on ne touche pas au moteur commerce).
- */
-function targetRoleForOrgType(orgType: string | null): string {
-  if (orgType === 'cabinet' || orgType === 'esn') return 'cabinet'
-  return 'client'
-}
-
-/**
  * Résout la ligne `packages` correspondant à l'offre effective, UNIQUEMENT pour
  * l'AFFICHAGE (nom, prix, description). Les LIMITES restent celles renvoyées par
  * `getOrgEntitlements` (source autoritaire, fail-open).
@@ -102,11 +92,17 @@ async function resolvePackageRow(
       .maybeSingle()
     const targetRole = targetRoleForOrgType((org?.org_type as string | null) ?? null)
 
+    // Cibles de repli : la ligne spécifique, plus 'all' — SAUF pour
+    // 'collaboration', qu'une offre entreprise 'all' ne couvre jamais. Même
+    // règle que le moteur (lib/entitlements) et que `covers`.
+    const fallbackTargets =
+      targetRole === 'collaboration' ? ['collaboration'] : [targetRole, 'all']
+
     const { data: defs } = await admin
       .from('packages')
       .select('name, price_monthly, currency, target_role')
       .is('domain_id', null)
-      .in('target_role', [targetRole, 'all'])
+      .in('target_role', fallbackTargets)
       .eq('is_default', true)
       .eq('active', true)
     const candidates = (defs ?? []) as {

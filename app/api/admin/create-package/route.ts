@@ -12,7 +12,10 @@ export const dynamic = 'force-dynamic'
  * Body : {
  *   name: string,                          // requis, affiché
  *   slug?: string,                         // sinon dérivé du nom ; suffixé si collision
- *   target_role: 'client'|'cabinet'|'all', // 'all' = UNE offre couvrant les deux cibles
+ *   target_role: 'client'|'cabinet'|'all'|'collaboration',
+ *     // 'all'           = UNE offre couvrant les deux cibles ENTREPRISE
+ *     // 'collaboration' = offre de sous-traitance entre experts (monde disjoint,
+ *     //                   jamais couvert par 'all')
  *   price_monthly?: number|string|null,    // vide/null = gratuit
  *   price_yearly?:  number|string|null,
  *   currency?: string,                     // défaut EUR

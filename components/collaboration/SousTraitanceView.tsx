@@ -14,14 +14,27 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  * ensure-org (création lazy transparente de l'organisation personnelle). Le
  * formulaire publie un besoin type='sous_traitance' via la MÊME chaîne que les
  * entreprises (POST /api/publications → POST /publish), donc les gates commerce
- * du package « collaboration » (1/mois) s'appliquent. Quota atteint → mur
+ * de l'offre de collaboration s'appliquent. Quota atteint → mur
  * « Bientôt disponible ».
+ *
+ * AUCUN CHIFFRE COMMERCIAL EN DUR : le récapitulatif de l'offre (« N
+ * publications par mois, N profils dévoilés ») est COMPOSÉ à partir des limites
+ * lues au catalogue via GET /api/me/collaboration/quota. Ces valeurs vivaient
+ * auparavant en toutes lettres dans messages/{fr,en,es,de}.json — modifier
+ * l'offre en back-office ne changeait pas la phrase. Quand les limites ne sont
+ * pas lisibles, on n'affiche AUCUN nombre plutôt qu'un nombre faux.
  *
  * `basePath` = base du dashboard courant ('/dashboard/freelance' | '/dashboard/
  * cdi'), pour renvoyer vers la LISTE des besoins après publication.
  */
 
 type Phase = 'loading' | 'ready' | 'org_error' | 'published' | 'wall' | 'locked'
+
+/** Limites de l'offre effective (null = illimité). */
+type QuotaLimits = {
+  publicationsPerMonth: number | null
+  revealedCandidatesPerPublication: number | null
+}
 
 export default function SousTraitanceView({ basePath }: { basePath: string }) {
   const t = useTranslations('collaboration')
@@ -36,6 +49,7 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
   const [budgetMax, setBudgetMax] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [limits, setLimits] = useState<QuotaLimits | null>(null)
 
   // ── Création lazy de l'org personnelle au chargement ─────────────────────
   const ensureOrg = useCallback(async () => {
@@ -48,6 +62,19 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
         const p = (await res.json().catch(() => ({}))) as { code?: string }
         setPhase(p.code === 'profile_not_verified' ? 'locked' : 'org_error')
         return
+      }
+      // Limites de l'offre — best-effort : leur absence ne bloque pas la
+      // publication, elle retire seulement le récapitulatif chiffré.
+      try {
+        const qRes = await secureFetch('/api/me/collaboration/quota', { method: 'GET' })
+        if (qRes.ok) {
+          const q = (await qRes.json().catch(() => null)) as { limits?: QuotaLimits } | null
+          setLimits(q?.limits ?? null)
+        } else {
+          setLimits(null)
+        }
+      } catch {
+        setLimits(null)
       }
       setPhase('ready')
     } catch {
@@ -65,6 +92,24 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
     () => !submitting && phase === 'ready' && titleOk && descOk,
     [submitting, phase, titleOk, descOk],
   )
+
+  /**
+   * Récapitulatif de l'offre, COMPOSÉ depuis le catalogue. `null` si les
+   * limites n'ont pas pu être lues : on préfère ne rien annoncer plutôt
+   * qu'annoncer un chiffre qui ne serait pas celui de l'offre.
+   */
+  const offerSummary = useMemo(() => {
+    if (!limits) return null
+    const publications =
+      limits.publicationsPerMonth == null
+        ? t('offer_publications_unlimited')
+        : t('offer_publications', { count: limits.publicationsPerMonth })
+    const revealed =
+      limits.revealedCandidatesPerPublication == null
+        ? t('offer_revealed_unlimited')
+        : t('offer_revealed', { count: limits.revealedCandidatesPerPublication })
+    return `${publications} ${revealed}`
+  }, [limits, t])
 
   async function publish() {
     if (!canSubmit) return
@@ -238,7 +283,11 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
           >
             {submitting ? t('form.submitting') : t('form.submit')}
           </button>
-          <p style={{ fontSize: 12, color: '#94a3b8', margin: '12px 0 0' }}>{t('form.quota_note')}</p>
+          {/* Récapitulatif chiffré de l'offre, juste avant l'action. Alimenté
+              par le catalogue — jamais écrit en dur dans les traductions. */}
+          {offerSummary && (
+            <p style={{ fontSize: 12, color: '#94a3b8', margin: '12px 0 0' }}>{offerSummary}</p>
+          )}
         </div>
       )}
     </div>

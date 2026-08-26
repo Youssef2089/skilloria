@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { getOrgEntitlements, monthlyPeriodStart } from '@/lib/entitlements'
+import { activePublishedOrClause } from '@/lib/publications/expiry'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -12,6 +13,13 @@ export const dynamic = 'force-dynamic'
  * Lecture seule : package effectif d'une org + conso du mois courant
  * (usage_peek publications / manual_unlocks) pour la section « Package » de la
  * fiche org admin.
+ *
+ * `usage.active_published` — annonces ACTIVES à l'instant T, comptées À LA
+ * LECTURE via activePublishedOrClause (règle 30 j, aucun batch, aucun cron).
+ * Ce n'est PAS un compteur usage_counters : le plafond d'actives n'est pas
+ * consommable, il se recalcule (une annonce expirée ou clôturée libère son
+ * slot). Même définition exacte que le gate publish et que
+ * /api/me/collaboration/quota — un seul comptage, trois lecteurs.
  *
  * Domaine ciblé = organization_domains ACTIVE unique (même règle que
  * assign-org-package) : 0 → available:false 'no_active_domain' ; >1 →
@@ -43,6 +51,28 @@ async function peek(
     return 0
   }
   return typeof data === 'number' ? data : 0
+}
+
+/**
+ * Annonces ACTIVES de l'org à l'instant T : published NON expirées (règle 30 j
+ * calculée à la lecture). Miroir strict du gate publish. Fail-open à 0 : une
+ * erreur de comptage n'a pas à casser la fiche.
+ */
+async function countActivePublished(
+  admin: Awaited<ReturnType<typeof requireAdmin>>['supabaseAdmin'],
+  orgId: string,
+): Promise<number> {
+  const { count, error } = await admin
+    .from('publications')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', orgId)
+    .eq('status', 'published')
+    .or(activePublishedOrClause())
+  if (error) {
+    console.warn('[admin:org-usage] active publications count error', error.message)
+    return 0
+  }
+  return count ?? 0
 }
 
 export async function GET(request: NextRequest): Promise<Response> {
@@ -89,9 +119,10 @@ export async function GET(request: NextRequest): Promise<Response> {
   const ents = await getOrgEntitlements(auth.supabaseAdmin, organizationId, target.domain_id)
   const period = monthlyPeriodStart().toISOString().slice(0, 10)
 
-  const [publicationsUsed, manualUnlocksUsed] = await Promise.all([
+  const [publicationsUsed, manualUnlocksUsed, activePublished] = await Promise.all([
     peek(auth.supabaseAdmin, organizationId, 'publications', period),
     peek(auth.supabaseAdmin, organizationId, 'manual_unlocks', period),
+    countActivePublished(auth.supabaseAdmin, organizationId),
   ])
 
   return json(
@@ -113,6 +144,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       usage: {
         publications: publicationsUsed,
         manual_unlocks: manualUnlocksUsed,
+        active_published: activePublished,
       },
       period_start: period,
     },

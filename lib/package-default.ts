@@ -4,16 +4,25 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  * INVARIANT DE COUVERTURE du package par défaut — source unique de vérité,
  * partagée par /api/admin/set-default-package et /api/admin/create-package.
  *
- * RÈGLE SYSTÈME : chaque cible (client, cabinet) doit être couverte À TOUT
- * MOMENT par EXACTEMENT UNE offre par défaut ACTIVE — via sa ligne spécifique
- * OU via une ligne 'all' (offre unique couvrant les deux cibles). Sans cela une
- * inscription ne recevrait aucune offre (cf. lib/entitlements.ts, fallback
- * is_default).
+ * RÈGLE SYSTÈME : chaque cible (client, cabinet, collaboration) doit être
+ * couverte À TOUT MOMENT par EXACTEMENT UNE offre par défaut ACTIVE — via sa
+ * ligne spécifique OU, pour les deux cibles ENTREPRISE seulement, via une ligne
+ * 'all'. Sans cela une inscription (ou la création de l'espace de collaboration
+ * d'un expert) ne recevrait aucune offre (cf. lib/entitlements.ts, fallback
+ * is_default, et /api/me/collaboration/ensure-org).
+ *
+ * ⚠ 'all' NE COUVRE PAS 'collaboration'. 'all' signifie « une offre unique pour
+ *   les clients ET les cabinets » — deux publics ENTREPRISE. La collaboration
+ *   entre experts est un monde commercial disjoint : son offre par défaut est
+ *   toujours une ligne target_role='collaboration' explicite. Cette règle est
+ *   écrite à l'identique dans la RPC set_default_package (migration
+ *   20260826000000) : toute évolution ici doit y être répercutée.
  *
  * Le seul geste possible est le TRANSFERT : on ne décoche jamais un défaut, on
  * en désigne un autre. Conséquences :
- *  - Désigner une offre 'all'      → retire le défaut de TOUTES les lignes
- *                                    (les deux cibles sont couvertes par elle).
+ *  - Désigner une offre 'all'      → retire le défaut des lignes client/cabinet
+ *                                    (les deux cibles sont couvertes par elle),
+ *                                    et LAISSE INTACTE la ligne collaboration.
  *  - Désigner une offre spécifique → retire la couverture de SA cible
  *                                    uniquement. Si la ligne retirée était une
  *                                    'all', l'autre cible se retrouverait
@@ -21,20 +30,24 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  */
 
 /** Les cibles qui doivent rester couvertes en permanence. */
-export const COVERAGE_TARGETS = ['client', 'cabinet'] as const
+export const COVERAGE_TARGETS = ['client', 'cabinet', 'collaboration'] as const
 export type CoverageTarget = (typeof COVERAGE_TARGETS)[number]
 
 /** Cibles commerciales acceptées par le CHECK packages_target_role_check. */
-export const TARGET_ROLES = ['client', 'cabinet', 'all'] as const
+export const TARGET_ROLES = ['client', 'cabinet', 'all', 'collaboration'] as const
 export type TargetRole = (typeof TARGET_ROLES)[number]
 
 export function isTargetRole(v: unknown): v is TargetRole {
   return typeof v === 'string' && (TARGET_ROLES as readonly string[]).includes(v)
 }
 
-/** Une offre de cible `targetRole` couvre-t-elle la cible `t` ? */
+/**
+ * Une offre de cible `targetRole` couvre-t-elle la cible `t` ?
+ * 'all' couvre client et cabinet, JAMAIS collaboration (cf. en-tête).
+ */
 export function covers(targetRole: string, t: CoverageTarget): boolean {
-  return targetRole === t || targetRole === 'all'
+  if (targetRole === t) return true
+  return targetRole === 'all' && t !== 'collaboration'
 }
 
 export type DefaultRow = { id: string; target_role: string }

@@ -177,6 +177,16 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
     sectionKey: 'section_commerce',
     items: [
       { key: 'packages', href: '/admin/packages', labelKey: 'nav_packages', iconKey: 'package' },
+      // Espace dédié à la collaboration entre experts : offres de
+      // sous-traitance (cible 'collaboration') + experts rattachés et leur
+      // consommation. L'ÉDITION d'une offre reste la fiche partagée
+      // /admin/packages/[id] — un seul moteur d'édition pour tout le catalogue.
+      {
+        key: 'collaboration',
+        href: '/admin/collaboration',
+        labelKey: 'nav_collaboration',
+        iconKey: 'collaboration',
+      },
     ],
   },
   {
