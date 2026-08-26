@@ -3,6 +3,7 @@ import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { buildPublicationSynthesis } from '@/lib/publication-synthesis'
+import { isActivePublished } from '@/lib/publications/expiry'
 import {
   deriveCandidatureLifecycle,
   parseBucketFilter,
@@ -175,6 +176,39 @@ export async function GET(request: NextRequest): Promise<Response> {
       ? {
           ...buildPublicationSynthesis(pubRaw, translations),
           status: (pubRaw as { status?: string }).status ?? null,
+          // ═══ LE FAIT, PAS LE RÉSUMÉ ═══════════════════════════════════
+          //
+          // `lifecycle.reason` est un RÉSUMÉ destiné à l'AFFICHAGE. Ce n'est
+          // PAS un prédicat métier. S'en servir pour décider d'un
+          // comportement fonctionne tant que la raison coïncide avec le fait,
+          // et échoue SILENCIEUSEMENT dès qu'une règle de priorité en masque
+          // une autre.
+          //
+          // Vécu : le bouton « Voir la mission » se grisait sur
+          // `reason === 'publication_expired'`. Or `deriveCandidatureLifecycle`
+          // rend inconditionnellement dès que la candidature est 'unlocked'
+          // (règle 3, lib/candidatures/lifecycle.ts) — priorité VOULUE et
+          // juste : deux personnes qui se parlent n'ont plus besoin de
+          // l'annonce. Conséquence non voulue : sur tout le parcours
+          // débloqué, la raison vaut `exchange_expired` et l'état de
+          // l'annonce devient INVISIBLE. Le bouton restait actif sur une
+          // annonce morte depuis 53 jours, et menait à un 404.
+          //
+          // On sert donc LE FAIT. `is_available` répond à « l'annonce est-elle
+          // encore consultable », question à laquelle aucune raison ne peut
+          // répondre. Avec `status` (déjà servi juste au-dessus) le client
+          // distingue « retirée » de « expirée » sans qu'on lui invente un
+          // troisième vocabulaire parallèle à `lifecycle.reason`.
+          //
+          // RÈGLE UNIQUE : `isActivePublished` (lib/publications/expiry.ts).
+          // La fenêtre de 30 j n'est redéfinie NULLE PART ailleurs, ni ici ni
+          // côté client. Zéro requête ajoutée : `status`/`published_at`/
+          // `expires_at` sont déjà chargés — ce sont les mêmes colonnes qui
+          // alimentent la dérivation d'état de vie quelques lignes plus bas.
+          is_available: isActivePublished(
+            pubRaw as { status?: string | null; published_at?: string | null; expires_at?: string | null },
+            now,
+          ),
         }
       : null
     // Org + compétences pour la carte casting des accueils experts (additif ;

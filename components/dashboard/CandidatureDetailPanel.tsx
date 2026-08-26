@@ -15,7 +15,7 @@ import {
 } from '@tabler/icons-react'
 import TimelineStep from '@/components/ui/TimelineStep'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from '@/components/dashboard/PublicationSynthesisLine'
-import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
+import type { CandidatureLifecycle, CandidatureLifecycleReason } from '@/lib/candidatures/lifecycle'
 import { useCandidatureLifecycleLabel } from '@/lib/candidatures/use-lifecycle-label'
 
 /**
@@ -34,7 +34,18 @@ import { useCandidatureLifecycleLabel } from '@/lib/candidatures/use-lifecycle-l
 export type Candidature = {
   id: string
   publication_id: string
-  publication: (PublicationSynthesisData & { status: string | null }) | null
+  publication:
+    | (PublicationSynthesisData & {
+        status: string | null
+        /**
+         * L'annonce est-elle encore CONSULTABLE ? Dérivé SERVEUR par
+         * `isActivePublished` (règle 30 j, source unique). Optionnel au type
+         * près : un call-site qui ne le sert pas encore laisse le lien actif
+         * plutôt que de griser à tort.
+         */
+        is_available?: boolean
+      })
+    | null
   status: string
   status_reason: string | null
   ai_match_score: number | null
@@ -79,7 +90,15 @@ export default function CandidatureDetailPanel({
    * annonce toujours en ligne laisse le bouton ACTIF — griser sur `isArchived`
    * serait trop large et priverait l'expert d'une annonce parfaitement lisible.
    */
-  const publicationUnavailable = reason === 'publication_expired' || reason === 'publication_closed'
+  const publicationUnavailable = c.publication?.is_available === false
+  /**
+   * Motif du grisage — indexé sur le FAIT, jamais sur `lifecycle.reason`.
+   * `status !== 'published'` ⇒ l'org l'a retirée ; sinon les 30 j sont passés.
+   * On réutilise les libellés d'état de vie (présents en 4 langues) : ils
+   * décrivent exactement ces deux faits, pas besoin d'un vocabulaire de plus.
+   */
+  const unavailableReason: CandidatureLifecycleReason =
+    c.publication?.status !== 'published' ? 'publication_closed' : 'publication_expired'
   const isSelected = c.status === 'selected'
   const isMission = c.publication?.type === 'mission'
   const isArchived = c.lifecycle?.bucket === 'archived'
@@ -239,7 +258,12 @@ export default function CandidatureDetailPanel({
                tort, pas la route. Le motif est le libellé DÉRIVÉ, pas une
                phrase en dur : « Cette annonce a expiré » / « … a été retirée ».
                Affiché sous le libellé plutôt qu'en infobulle : une infobulle
-               n'existe pas au doigt (mobile-first). */
+               n'existe pas au doigt (mobile-first).
+
+               Le grisage suit `publication.is_available` — LE FAIT servi par le
+               serveur — et NON `lifecycle.reason`, qui est un résumé
+               d'affichage : sur une candidature débloquée il vaut toujours
+               `exchange_*` et masque totalement l'état de l'annonce. */
             <span
               aria-disabled="true"
               style={{
@@ -256,7 +280,15 @@ export default function CandidatureDetailPanel({
                 {t('view_mission')}
               </span>
               <span style={{ fontSize: 11.5, fontWeight: 500, lineHeight: 1.3 }}>
-                {lifecycleLabel(c.lifecycle, c.publication?.type)}
+                {/* On passe la raison du FAIT, pas `c.lifecycle` — qui dirait
+                    « Échange terminé sans suite », hors sujet pour un bouton
+                    qui parle de l'ANNONCE. Le rendu reste centralisé dans
+                    use-lifecycle-label, seul point de rendu des libellés
+                    d'état : aucune clé n'est lue en direct ici. */}
+                {lifecycleLabel(
+                  { bucket: 'archived', reason: unavailableReason, until: null },
+                  c.publication?.type,
+                )}
               </span>
             </span>
           ) : (
