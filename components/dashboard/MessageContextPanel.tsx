@@ -37,10 +37,20 @@ export default function MessageContextPanel({
   publication,
   side,
   locale,
+  exchangeOpen = false,
 }: {
   publication: MessageContextPublication | null
   side: 'freelance' | 'entreprise' | 'cdi'
   locale?: string
+  /**
+   * L'échange est-il RÉELLEMENT ouvert ? Décidé par l'appelant à partir de
+   * l'état dérivé SERVEUR — ce panneau ne calcule rien.
+   *
+   * Défaut `false` VOLONTAIRE : en l'absence d'information on n'affirme rien.
+   * Un appelant qui oublierait la prop ne montre pas de badge, plutôt que
+   * d'annoncer en vert une ouverture qu'il n'a pas vérifiée.
+   */
+  exchangeOpen?: boolean
 }) {
   const t = useTranslations('messages.context')
   const tPub = useTranslations('publications')
@@ -177,8 +187,16 @@ export default function MessageContextPanel({
             pas à occuper son écran, quel que soit l'état de la conversation.
             Le panneau étant partagé par les trois côtés, c'est un rendu
             conditionnel — pas une suppression : côté org le badge dit
-            « Échange ouvert », ce qui la regarde bien. */}
-        {side === 'entreprise' && (
+            « Échange ouvert », ce qui la regarde bien.
+
+            ET SEULEMENT SI L'ÉCHANGE EST VRAIMENT OUVERT. Il était rendu sans
+            condition d'état : sur un fil archivé il affirmait en vert une
+            ouverture démentie par le bandeau jaune du fil et par le refus
+            d'écriture. Sur un fil archivé : RIEN — pas de badge inversé, pas
+            de « Échange clos ». Le bandeau du fil dit déjà que l'échange est
+            archivé et pourquoi ; un second indicateur sur le même écran serait
+            la redondance qu'on vient de retirer ailleurs. */}
+        {side === 'entreprise' && exchangeOpen && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--sk-border)', fontSize: 13, fontWeight: 600, color: 'var(--sk-success)' }}>
             <IconCircleCheck size={16} stroke={2} />
             {t('exchange_open_org')}

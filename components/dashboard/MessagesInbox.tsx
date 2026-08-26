@@ -243,6 +243,27 @@ export default function MessagesInbox({
     ? conversations.find((c) => c.id === localSelectedConvId) ?? null
     : null
 
+  /**
+   * L'échange est-il RÉELLEMENT ouvert ? Consommé par le badge côté org du
+   * panneau de contexte, qui l'affirmait jusqu'ici sans rien vérifier.
+   *
+   * Trois faits SERVIS PAR LE SERVEUR, aucun recalcul, aucune requête :
+   *   - `lifecycle.bucket` : la candidature est-elle encore vivante ;
+   *   - `is_expired`       : la fenêtre de 15 j est-elle passée ;
+   *   - `status === 'open'`: le fil n'a-t-il pas été clos explicitement.
+   *
+   * Le bucket seul ne suffirait PAS : une candidature `selected` reste
+   * `active` sans limite de temps alors que sa conversation, elle, expire au
+   * bout de 15 j — le badge aurait continué de mentir sur une mission
+   * remportée. C'est exactement le prédicat dont ConversationView tire son
+   * droit d'écriture : le badge dit désormais la même chose que le bandeau du
+   * fil et que le champ de saisie.
+   */
+  const selectedExchangeOpen =
+    selectedConv?.lifecycle?.bucket === 'active' &&
+    !selectedConv.is_expired &&
+    selectedConv.status === 'open'
+
   // Force le suivi de l'état dérivé pour state-based rendering ci-dessous.
   const state = live.state
 
@@ -499,7 +520,12 @@ export default function MessagesInbox({
         {/* Colonne droite : ctx mission (3ᵉ zone — n'apparaît que si conv sélectionnée) */}
         {localSelectedConvId && (
           <div className="inbox-ctx-col" style={{ minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <MessageContextPanel publication={selectedConv?.publication ?? null} side={side} locale={locale} />
+            <MessageContextPanel
+              publication={selectedConv?.publication ?? null}
+              side={side}
+              locale={locale}
+              exchangeOpen={selectedExchangeOpen}
+            />
           </div>
         )}
       </div>
