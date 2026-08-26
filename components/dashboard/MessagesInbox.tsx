@@ -148,8 +148,14 @@ export default function MessagesInbox({
   //  Le prop selectedConvId reste lu au mount (initial state) pour
   //  préserver la chaîne notif → /messages/[id].
   const [localSelectedConvId, setLocalSelectedConvId] = useState<string | null>(selectedConvId ?? null)
-  // Bucket demandé au SERVEUR. Actives par défaut.
-  const [bucket, setBucket] = useState<'active' | 'archived'>('active')
+  /**
+   * Bucket CHOISI PAR L'UTILISATEUR via les chips. `null` = il n'a rien choisi
+   * encore ; c'est alors le SERVEUR qui décide (cf. `focus` plus bas).
+   *
+   * Ce n'est PAS le bucket affiché — celui-ci est `bucket`, plus bas, lu dans
+   * la réponse. Le client ne calcule jamais le bucket : il l'obéit.
+   */
+  const [bucketOverride, setBucketOverride] = useState<'active' | 'archived' | null>(null)
 
   useEffect(() => {
     if (selectedConvId !== undefined && selectedConvId !== null) {
@@ -175,11 +181,41 @@ export default function MessagesInbox({
   // faire bouger la liste pendant que l'user lit. Les updates en place
   // (last_message_at, unread_count) sont appliqués directement (clés
   // stables = conv.id).
+  /**
+   * `focus` n'est joint QUE tant que l'utilisateur n'a pas cliqué de chip, et
+   * seulement si une conversation nous est imposée (arrivée par lien externe :
+   * détail de candidature, notification). Le serveur répond alors avec le
+   * bucket RÉEL de cette conversation.
+   *
+   * Il disparaît dès le premier clic sur une chip — sinon le serveur
+   * écraserait le choix de l'utilisateur à chaque poll.
+   *
+   * ENTRÉE PAR LE MENU (`selectedConvId` absent) : `focusParam` est vide et
+   * `requestedFilter` vaut 'active' → l'URL est identique au caractère près à
+   * celle d'avant ce lot.
+   */
+  //   ⚠️ On lit la PROP `selectedConvId`, JAMAIS `localSelectedConvId`.
+  //   `localSelectedConvId` bouge à chaque clic dans la liste : l'utiliser
+  //   ajouterait `&focus=` après le premier clic sur l'entrée MENU, changerait
+  //   la clé SWR et provoquerait un refetch inutile à chaque sélection — en
+  //   plus de modifier la requête de l'entrée menu, ce qui est proscrit.
+  //   La prop, elle, ne vaut quelque chose que sur /messages/[id] : c'est
+  //   exactement le signal « une conversation m'est imposée de l'extérieur ».
+  const focusParam = selectedConvId && bucketOverride === null
+    ? `&focus=${encodeURIComponent(selectedConvId)}`
+    : ''
+  const requestedFilter = bucketOverride ?? 'active'
+
   const live = useLiveResource<
-    { conversations: Conversation[]; counts?: { active: number; archived: number } },
+    {
+      conversations: Conversation[]
+      counts?: { active: number; archived: number }
+      /** Bucket EFFECTIVEMENT servi. Fait autorité côté client. */
+      filter?: string
+    },
     Conversation
   >({
-    url: `/api/me/conversations?locale=${encodeURIComponent(locale)}&filter=${bucket}`,
+    url: `/api/me/conversations?locale=${encodeURIComponent(locale)}&filter=${requestedFilter}${focusParam}`,
     itemsOf: (d) => d.conversations ?? [],
     identityOf: (c) => c.id,
     // La raison entre dans la version : un fil qui bascule archivé (fenêtre
@@ -190,6 +226,16 @@ export default function MessagesInbox({
 
   const conversations: Conversation[] = live.data?.conversations ?? []
   const counts = live.data?.counts ?? { active: 0, archived: 0 }
+  /**
+   * BUCKET AFFICHÉ — annoncé par le serveur, jamais déduit ici.
+   * Repli sur le choix utilisateur (ou 'active') tant que la réponse n'est pas
+   * là : c'est ce qui fait réagir la chip au clic sans attendre le réseau.
+   */
+  const servedFilter = live.data?.filter
+  const bucket: 'active' | 'archived' =
+    servedFilter === 'archived' || servedFilter === 'active'
+      ? servedFilter
+      : requestedFilter
   const groups = useMemo(() => groupByPublication(conversations), [conversations])
 
   // Conv sélectionnée (pour panneau ctx mission)
@@ -272,7 +318,7 @@ export default function MessagesInbox({
                   key={b.key}
                   type="button"
                   aria-pressed={on}
-                  onClick={() => setBucket(b.key)}
+                  onClick={() => setBucketOverride(b.key)}
                   style={{
                     fontSize: 12, fontWeight: 600, padding: '5px 12px',
                     borderRadius: 999,

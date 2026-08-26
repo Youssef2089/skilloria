@@ -1,6 +1,6 @@
 'use client'
 
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { useRelativeTime } from '@/lib/use-relative-time'
 import { Link } from '@/i18n/navigation'
 import {
@@ -13,14 +13,10 @@ import {
   IconExternalLink,
   IconTrophy,
 } from '@tabler/icons-react'
-import StatusPill from '@/components/ui/StatusPill'
 import TimelineStep from '@/components/ui/TimelineStep'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from '@/components/dashboard/PublicationSynthesisLine'
 import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
-import {
-  lifecycleToPillKind,
-  useCandidatureLifecycleLabel,
-} from '@/lib/candidatures/use-lifecycle-label'
+import { useCandidatureLifecycleLabel } from '@/lib/candidatures/use-lifecycle-label'
 
 /**
  * CandidatureDetailPanel — détail d'UNE candidature côté expert.
@@ -67,31 +63,44 @@ export default function CandidatureDetailPanel({
 }) {
   const t = useTranslations('candidatures_tracking')
   const tPub = useTranslations('publications')
-  const locale = useLocale()
   const relTime = useRelativeTime()
 
   // SITE DE RENDU 1/5 — le libellé d'état passe par la RAISON dérivée.
   const lifecycleLabel = useCandidatureLifecycleLabel('expert')
   const reason = c.lifecycle?.reason ?? null
-  const pk = reason ? lifecycleToPillKind(reason) : 'neutral'
-  const PIcon = pk === 'won' ? IconTrophy : pk === 'open' ? IconLockOpen : pk === 'refused' ? IconX : IconClock
+  /**
+   * L'ANNONCE est-elle encore consultable ?
+   *
+   * Deux horloges DISTINCTES, à ne jamais confondre :
+   *   - la fenêtre d'ÉCHANGE (15 j)  → `exchange_expired`
+   *   - la vie de l'ANNONCE (30 j)   → `publication_expired` / `_closed`
+   *
+   * Seule la seconde condamne « Voir la mission ». Un échange clos sur une
+   * annonce toujours en ligne laisse le bouton ACTIF — griser sur `isArchived`
+   * serait trop large et priverait l'expert d'une annonce parfaitement lisible.
+   */
+  const publicationUnavailable = reason === 'publication_expired' || reason === 'publication_closed'
   const isSelected = c.status === 'selected'
   const isMission = c.publication?.type === 'mission'
   const isArchived = c.lifecycle?.bucket === 'archived'
   return (
     <div style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', borderRadius: 'var(--sk-r-lg)', padding: '24px 26px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14 }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.3px', lineHeight: 1.25, color: 'var(--sk-text)' }}>
-            {c.publication?.title ?? '—'}
-          </div>
-          <div style={{ color: 'var(--sk-muted)', fontSize: 13, marginTop: 5 }}>
-            {c.publication ? tPub(`type.${c.publication.type}`) : '—'}
-          </div>
+      {/* Pastille d'état RETIRÉE d'ici. Le libellé apparaissait TROIS fois sur
+          le même écran : sur la carte de la liste, ici, et en clôture de la
+          frise. Cette occurrence-ci est le doublon pur — à quelques centimètres
+          de la carte sélectionnée sur le master-detail, et redondante avec la
+          frise sur la page autonome. Les deux autres ont chacune un rôle que
+          celle-ci n'a pas : la carte renseigne TOUS les items pour le balayage,
+          la frise CLÔT la chronologie (sans elle, elle s'arrêterait sur
+          « Échange ouvert par l'entreprise » et laisserait croire l'échange
+          vivant — un mensonge par omission, pire qu'une répétition). */}
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.3px', lineHeight: 1.25, color: 'var(--sk-text)' }}>
+          {c.publication?.title ?? '—'}
         </div>
-        <StatusPill kind={pk} icon={<PIcon size={14} />}>
-          {lifecycleLabel(c.lifecycle, c.publication?.type)}
-        </StatusPill>
+        <div style={{ color: 'var(--sk-muted)', fontSize: 13, marginTop: 5 }}>
+          {c.publication ? tPub(`type.${c.publication.type}`) : '—'}
+        </div>
       </div>
 
       {/* Lot état 'selected' : bandeau triomphal côté expert. */}
@@ -223,19 +232,48 @@ export default function CandidatureDetailPanel({
           </Link>
         )}
         {c.publication?.id && (
-          <Link
-            href={`/dashboard/${side}/missions/${c.publication.id}`}
-            style={{
-              padding: '11px 20px', borderRadius: 11,
-              background: 'var(--sk-surface)', color: 'var(--sk-text)',
-              border: '1px solid var(--sk-border)', fontWeight: 600, fontSize: 14,
-              cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8,
-              textDecoration: 'none',
-            }}
-          >
-            <IconExternalLink size={16} stroke={2} />
-            {t('view_mission')}
-          </Link>
+          publicationUnavailable ? (
+            /* GRISÉ, pas retiré : l'expert doit comprendre POURQUOI le lien ne
+               mène nulle part. /api/me/missions/[id] refuse volontairement une
+               annonce expirée (règle 30 j du lot A) — c'est le bouton qui avait
+               tort, pas la route. Le motif est le libellé DÉRIVÉ, pas une
+               phrase en dur : « Cette annonce a expiré » / « … a été retirée ».
+               Affiché sous le libellé plutôt qu'en infobulle : une infobulle
+               n'existe pas au doigt (mobile-first). */
+            <span
+              aria-disabled="true"
+              style={{
+                padding: '11px 20px', borderRadius: 11,
+                background: 'var(--sk-surface-sunken, var(--sk-surface))',
+                color: 'var(--sk-faint)',
+                border: '1px dashed var(--sk-border)', fontWeight: 600, fontSize: 14,
+                cursor: 'not-allowed', display: 'inline-flex',
+                flexDirection: 'column', alignItems: 'flex-start', gap: 2,
+              }}
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <IconExternalLink size={16} stroke={2} />
+                {t('view_mission')}
+              </span>
+              <span style={{ fontSize: 11.5, fontWeight: 500, lineHeight: 1.3 }}>
+                {lifecycleLabel(c.lifecycle, c.publication?.type)}
+              </span>
+            </span>
+          ) : (
+            <Link
+              href={`/dashboard/${side}/missions/${c.publication.id}`}
+              style={{
+                padding: '11px 20px', borderRadius: 11,
+                background: 'var(--sk-surface)', color: 'var(--sk-text)',
+                border: '1px solid var(--sk-border)', fontWeight: 600, fontSize: 14,
+                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8,
+                textDecoration: 'none',
+              }}
+            >
+              <IconExternalLink size={16} stroke={2} />
+              {t('view_mission')}
+            </Link>
+          )
         )}
       </div>
     </div>

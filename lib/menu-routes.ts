@@ -21,12 +21,24 @@ import { allMenuRoutes } from '@/lib/nav-config'
 const MENU_ROUTES: ReadonlySet<string> = new Set<string>(allMenuRoutes())
 
 /**
- * Bases de la MESSAGERIE (tous rôles). La messagerie est un inbox MASTER-DETAIL
- * (liste de conversations + conversation ouverte dans le même écran). Ouvrir une
- * conversation passe l'URL à `…/messages/[id]` (replaceState, sans navigation) :
- * ce n'est PAS un drill-in « liste → détail », c'est toujours la page de menu
- * Messages. On considère donc TOUTE la section `…/messages[/…]` comme une route
- * de menu → pas de bouton Retour, ni sur la liste ni sur une conversation.
+ * Bases de la MESSAGERIE (tous rôles).
+ *
+ * Les RACINES `…/messages` sont déjà des entrées de sidebar, donc déjà dans
+ * MENU_ROUTES (cf. lib/nav-config.ts) : rien à ajouter pour elles.
+ *
+ * Reste `…/messages/[id]`, qui est AMBIGU — et c'est tout le sujet :
+ *
+ *   • Ouverte DEPUIS l'inbox, ce n'est pas un drill-in : le clic ne navigue
+ *     pas, il fait un `replaceState`. On est toujours sur la page de menu
+ *     Messages → aucun bouton Retour.
+ *   • Ouverte depuis AILLEURS (détail d'une candidature, notification), c'est
+ *     un vrai drill-in : sans bouton Retour, l'utilisateur est bloqué et doit
+ *     repasser par le menu.
+ *
+ * Le même chemin recouvre donc deux situations opposées. Ce qui les distingue
+ * n'est pas l'URL mais l'HISTORIQUE — d'où l'exposition de ce prédicat, que
+ * GlobalBackButton applique à la cible de retour. Avant ce lot, toute la
+ * section était classée « menu », ce qui condamnait le second cas.
  */
 const MESSAGING_BASES = [
   '/dashboard/freelance/messages',
@@ -34,7 +46,10 @@ const MESSAGING_BASES = [
   '/dashboard/entreprise/messages',
 ] as const
 
-function isMessagingRoute(path: string): boolean {
+/** `true` si le chemin appartient à la messagerie (racine ou conversation). */
+export function isMessagingRoute(pathname: string | null | undefined): boolean {
+  if (!pathname) return false
+  const path = normalize(pathname)
   return MESSAGING_BASES.some((base) => path === base || path.startsWith(base + '/'))
 }
 
@@ -50,6 +65,5 @@ function normalize(pathname: string): string {
  */
 export function isMenuRoute(pathname: string | null | undefined): boolean {
   if (!pathname) return false
-  const path = normalize(pathname)
-  return MENU_ROUTES.has(path) || isMessagingRoute(path)
+  return MENU_ROUTES.has(normalize(pathname))
 }

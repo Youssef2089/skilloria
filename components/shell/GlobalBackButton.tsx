@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { useRouter, usePathname } from '@/i18n/navigation'
 import { deriveBackLabel, isSafeInternalPath } from '@/lib/auth-routing'
-import { isMenuRoute } from '@/lib/menu-routes'
+import { isMenuRoute, isMessagingRoute } from '@/lib/menu-routes'
 import { useNavHistory } from './NavHistoryProvider'
 
 /**
@@ -36,8 +36,17 @@ export default function GlobalBackButton() {
   const t = useTranslations('back_nav')
 
   // Jamais de Retour sur une page de MENU (sidebar) : uniquement sur un détail.
+  // Les racines `…/messages` en font partie (entrées de sidebar).
   if (isMenuRoute(pathname)) return null
   if (!backTarget || !isSafeInternalPath(backTarget)) return null
+
+  // MESSAGERIE — `…/messages/[id]` est ambigu (cf. lib/menu-routes.ts) :
+  //   • venu de l'inbox  → la cible de retour est elle-même dans la messagerie
+  //     → ce n'est pas un drill-in, on n'affiche RIEN (comportement d'avant) ;
+  //   • venu d'ailleurs  → la cible est hors messagerie (détail de candidature,
+  //     notification) → c'est un vrai détail, l'utilisateur doit pouvoir
+  //     revenir. Sans ce cas, il était bloqué et devait repasser par le menu.
+  if (isMessagingRoute(pathname) && isMessagingRoute(backTarget)) return null
 
   const label = t(deriveBackLabel(backTarget) as 'back')
 

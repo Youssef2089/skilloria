@@ -112,6 +112,9 @@ export async function GET(request: NextRequest): Promise<Response> {
   const url = new URL(request.url)
   const locale = normalizeLocale(url.searchParams.get('locale'))
   const bucketFilter = parseBucketFilter(url.searchParams.get('filter'))
+  // `?focus=<conversationId>` — OPTIONNEL. Cf. le bloc de résolution en fin de
+  // route. Absent (tous les appelants existants) ⇒ comportement identique.
+  const focusConvId = url.searchParams.get('focus')
   const translations = await loadTranslations(locale)
 
   // ── Résoudre les conversations où l'user est participant ────────────────
@@ -326,9 +329,39 @@ export async function GET(request: NextRequest): Promise<Response> {
   // Filtrage APRÈS dérivation (serveur), comptage sur la totalité.
   const counts = { active: 0, archived: 0 }
   for (const c of conversations) counts[(c.lifecycle as CandidatureLifecycle).bucket]++
-  const visible = bucketFilter
-    ? conversations.filter((c) => (c.lifecycle as CandidatureLifecycle).bucket === bucketFilter)
+
+  // ─── `?focus=<conversationId>` : LE SERVEUR CHOISIT LE BUCKET ────────────
+  //
+  // POURQUOI
+  //   Arriver sur /messages/[id] par un lien externe (détail d'une candidature,
+  //   notification) n'apprend rien au client sur le bucket de la conversation
+  //   visée. Il partait donc sur 'active' par défaut, et une conversation
+  //   ARCHIVÉE se retrouvait exclue de sa propre liste : colonne gauche vide
+  //   (« Aucun échange en cours »), panneau droit vide (« Mission non
+  //   disponible »), fil ouvert au milieu. Trois zones incohérentes.
+  //
+  // LE CLIENT NE DEVINE RIEN (point 20)
+  //   Il envoie l'id qu'on lui a demandé d'ouvrir ; le serveur — qui vient de
+  //   dériver le bucket de TOUTES les conversations, juste au-dessus — décide,
+  //   et l'ANNONCE dans le champ `filter` déjà renvoyé. Le client s'y aligne.
+  //   Aucune règle dupliquée, un seul aller-retour.
+  //
+  // STRICTEMENT OPTIONNEL
+  //   `focus` absent ⇒ `effectiveFilter === bucketFilter` ⇒ ce bloc est un
+  //   non-événement. L'entrée par le MENU (/messages sans id) ne le fournit
+  //   jamais : même filtrage, mêmes compteurs, même réponse qu'avant ce lot.
+  //   Un id inconnu (conversation d'un autre user, id inventé) ne trouve rien
+  //   et retombe sur `bucketFilter` — aucune fuite, aucune erreur.
+  const focused = focusConvId
+    ? conversations.find((c) => c.id === focusConvId) ?? null
+    : null
+  const effectiveFilter = focused
+    ? (focused.lifecycle as CandidatureLifecycle).bucket
+    : bucketFilter
+
+  const visible = effectiveFilter
+    ? conversations.filter((c) => (c.lifecycle as CandidatureLifecycle).bucket === effectiveFilter)
     : conversations
 
-  return json({ conversations: visible, counts, filter: bucketFilter ?? 'all' }, 200)
+  return json({ conversations: visible, counts, filter: effectiveFilter ?? 'all' }, 200)
 }
