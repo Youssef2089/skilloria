@@ -3,7 +3,7 @@ import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
 import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name-masking'
-import { disclosurePolicyForConversationOrgSide } from '@/lib/expert-disclosure'
+import { disclosurePolicyForCandidatureLifecycle } from '@/lib/expert-disclosure'
 import { signAvatarUrl } from '@/lib/avatar'
 import { isConversationExpired } from '@/lib/conversations/expiry'
 import { deriveCandidatureLifecycle } from '@/lib/candidatures/lifecycle'
@@ -331,11 +331,13 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     }
   }
 
-  // ── Correspondant (identité MUTUELLE post-unlock) ──────────────────────
-  // Lot grille photo-forward : l'user courant est l'ORG → le correspondant
-  // est l'expert. Une conversation n'existe QUE post-unlock, donc on révèle
-  // photo + nom complet (cf. disclosurePolicyForConversationOrgSide). Email/
-  // phone restent hors périmètre (reveal_contact: false en V1).
+  // ── Correspondant (identité MUTUELLE tant que l'échange est vivant) ────
+  // L'user courant est l'ORG → le correspondant est l'expert. La divulgation
+  // passe par la MÊME fonction que les candidatures et l'inbox, sur l'ÉTAT DE
+  // VIE dérivé ci-dessus : dès que le fil est archivé (fenêtre 15 j close,
+  // annonce expirée ou retirée, refus), nom et photo se referment. Le CORPS
+  // des messages reste tel quel — on ne réécrit pas un historique.
+  // Email/phone restent hors périmètre (reveal_contact: false en V1).
   // L'expert (role==='expert') voit l'org normalement (company_name + logo).
   const correspondant = role === 'expert'
     ? {
@@ -344,7 +346,10 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         avatar_url: orgRaw?.logo_url ?? null,
       }
     : await (async () => {
-        const policy = disclosurePolicyForConversationOrgSide()
+        const policy = disclosurePolicyForCandidatureLifecycle({
+          candidatureStatus: cand.status,
+          lifecycleBucket: lifecycle.bucket,
+        })
         const fn = expertUser?.first_name ?? null
         const ln = expertUser?.last_name ?? null
         const fullName = [fn, ln].filter(Boolean).join(' ').trim()

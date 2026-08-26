@@ -3,6 +3,7 @@ import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/
 import { markCandidatureViewedServerSide } from '@/lib/candidature-views'
 import { getOrgEntitlements, consumeQuota, monthlyPeriodStart } from '@/lib/entitlements'
 import { performUnlock, ALLOWED_PREVIOUS_STATUSES } from '@/lib/unlock'
+import { deriveLifecycleByCandidature } from '@/lib/candidatures/lifecycle-batch'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -13,6 +14,12 @@ export const dynamic = 'force-dynamic'
  * Garde (service_role) :
  *  - requireAuth + auth.organization?.id présent
  *  - ownership : candidature → publication.organization_id == auth.org.id
+ *
+ * Garde d'ÉTAT DE VIE (lot re-masquage) :
+ *  - candidature dans le bucket 'archived' → 409 'candidature_archived',
+ *    AVANT toute consommation de quota. Le dévoilement est temporaire et ne se
+ *    reprend pas : annonce expirée, clôturée, retirée, ou fenêtre d'échange
+ *    close ⇒ plus aucun déverrouillage possible sur cette candidature.
  *
  * Garde de transition (cf. décision Lot 2c, point 1) :
  *  - unlock autorisé SEULEMENT depuis 'received' | 'in_review' | 'shortlisted'
@@ -67,9 +74,14 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   }
 
   // ── Ownership + statut courant (pour la garde de transition + décision quota) ─
+  //  On charge aussi la fenêtre de l'annonce et `unlocked_at` : ils alimentent
+  //  la garde d'état de vie ci-dessous.
   const { data: cand, error: candErr } = await auth.supabaseAdmin
     .from('candidatures')
-    .select('id, domain_id, status, publications!inner(organization_id)')
+    .select(
+      'id, domain_id, status, unlocked_at, publication_id, ' +
+        'publications!inner(organization_id, status, published_at, expires_at)',
+    )
     .eq('id', candidatureId)
     .maybeSingle()
   if (candErr) {
@@ -79,15 +91,59 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   if (!cand) {
     return json({ error: 'Not found', code: 'not_found' }, 404)
   }
+  type OwnershipPub = {
+    organization_id: string
+    status: string | null
+    published_at: string | null
+    expires_at: string | null
+  }
   type OwnershipRow = {
     domain_id: string
     status: string
-    publications: { organization_id: string } | { organization_id: string }[]
+    unlocked_at: string | null
+    publication_id: string
+    publications: OwnershipPub | OwnershipPub[]
   }
   const ownRow = cand as unknown as OwnershipRow
   const ownPub = Array.isArray(ownRow.publications) ? ownRow.publications[0] : ownRow.publications
   if (!ownPub || ownPub.organization_id !== orgId) {
     return json({ error: 'Not found', code: 'not_found' }, 404)
+  }
+
+  // ── GARDE D'ÉTAT DE VIE — LE DÉVOILEMENT NE SE REPREND PAS ──────────────
+  //  L'UI retire déjà le bouton sur une candidature archivée, mais l'UI n'est
+  //  pas une sécurité (point 20). Sans cette garde, une requête forgée — ou
+  //  simplement un clic pendant que les 30 jours s'écoulent, la page étant
+  //  restée ouverte — rouvrait un profil que le lot re-masquage vient de
+  //  refermer : unlock ⇒ nouvelle fenêtre de 15 j ⇒ bucket 'active' ⇒ identité
+  //  à nouveau servie. Le contournement aurait annulé tout le lot.
+  //
+  //  Décision produit : le re-dévoilement n'existe pas. Une organisation qui
+  //  laisse expirer assume. Refus AVANT toute consommation de quota — on ne
+  //  fait pas payer une action qu'on refuse.
+  //
+  //  Dérivation par le helper partagé, jamais réécrite ici (le bucket doit
+  //  être EXACTEMENT celui qui range la candidature dans « Archivées »).
+  const lifecycleByCand = await deriveLifecycleByCandidature(
+    auth.supabaseAdmin,
+    [{
+      id: candidatureId,
+      status: ownRow.status,
+      unlocked_at: ownRow.unlocked_at,
+      publication_id: ownRow.publication_id,
+    }],
+    new Map([[ownRow.publication_id, {
+      status: ownPub.status,
+      published_at: ownPub.published_at,
+      expires_at: ownPub.expires_at,
+    }]]),
+  )
+  const lifecycle = lifecycleByCand.get(candidatureId)
+  if (lifecycle?.bucket === 'archived') {
+    return json(
+      { error: 'Candidature archived', code: 'candidature_archived', reason: lifecycle.reason },
+      409,
+    )
   }
 
   // ── Garde de transition (early 409 + on ne consomme le quota qu'au flip réel) ─

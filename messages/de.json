@@ -2113,6 +2113,7 @@
       "read_only_role": "Nur Lesezugriff — Ihre Rolle kann keine Bewerbungen bearbeiten.",
       "error_not_found": "Diese Bewerbung existiert nicht mehr.",
       "error_reason_too_long": "Der Grund überschreitet 2000 Zeichen.",
+      "error_candidature_archived": "Diese Bewerbung ist archiviert: Die Anzeige ist nicht mehr offen, das Profil kann nicht mehr freigeschaltet werden.",
       "error_generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen."
     }
   },

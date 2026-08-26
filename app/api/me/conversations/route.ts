@@ -4,7 +4,7 @@ import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { buildPublicationSynthesis } from '@/lib/publication-synthesis'
 import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name-masking'
-import { disclosurePolicyForConversationOrgSide } from '@/lib/expert-disclosure'
+import { disclosurePolicyForCandidatureLifecycle } from '@/lib/expert-disclosure'
 import { signAvatarUrl } from '@/lib/avatar'
 import { isConversationExpired } from '@/lib/conversations/expiry'
 import {
@@ -238,6 +238,26 @@ export async function GET(request: NextRequest): Promise<Response> {
     const pub = pickRel(cand?.publications as Record<string, unknown> | Record<string, unknown>[] | null)
     const org = pickRel(pub?.organizations as { id: string; company_name: string | null; logo_url: string | null } | { id: string; company_name: string | null; logo_url: string | null }[] | null)
 
+    // ÉTAT DE VIE dérivé SERVEUR — même helper, mêmes entrées que côté
+    // candidatures : un fil rangé dans « Archivées » ici l'est aussi là-bas.
+    // Calculé AVANT la projection du correspondant : c'est lui qui décide si
+    // l'identité de l'expert est encore divulgable (cf. lot re-masquage).
+    const lifecycle = deriveCandidatureLifecycle(
+      {
+        status: cand?.status ?? 'unlocked',
+        unlocked_at: cand?.unlocked_at ?? null,
+        publication: pub
+          ? {
+              status: (pub.status as string | null | undefined) ?? null,
+              published_at: (pub.published_at as string | null | undefined) ?? null,
+              expires_at: (pub.expires_at as string | null | undefined) ?? null,
+            }
+          : null,
+        conversation: { expires_at: conv.expires_at },
+      },
+      now,
+    )
+
     // L'user courant est-il l'expert ou l'org ?
     const isMeExpert = profile?.user_id === userId
     const correspondant = isMeExpert
@@ -247,12 +267,16 @@ export async function GET(request: NextRequest): Promise<Response> {
           avatar_url: org?.logo_url ?? null,
         }
       : await (async () => {
-          // Lot grille photo-forward : l'user courant est l'ORG → le
-          // correspondant est l'expert. Une conversation n'existe QUE
-          // post-unlock, donc DisclosurePolicy reveal_photo + reveal_full_name
-          // sont true (cf. disclosurePolicyForConversationOrgSide). Email,
-          // phone, cv, linkedin : JAMAIS (reveal_contact: false en V1).
-          const policy = disclosurePolicyForConversationOrgSide()
+          // L'user courant est l'ORG → le correspondant est l'expert. La
+          // divulgation passe par la MÊME fonction que les candidatures, sur
+          // l'ÉTAT DE VIE : un fil archivé re-masque nom et photo. Le CORPS
+          // des messages n'est pas réécrit — on ferme le chemin d'accès
+          // permanent, on n'efface pas l'historique.
+          // Email, phone, cv, linkedin : JAMAIS (reveal_contact: false en V1).
+          const policy = disclosurePolicyForCandidatureLifecycle({
+            candidatureStatus: cand?.status ?? 'unlocked',
+            lifecycleBucket: lifecycle.bucket,
+          })
           const fn = u?.first_name ?? null
           const ln = u?.last_name ?? null
           const fullName = [fn, ln].filter(Boolean).join(' ').trim()
@@ -283,24 +307,6 @@ export async function GET(request: NextRequest): Promise<Response> {
           sender_is_me: lastMsg.sender_id === userId,
         }
       : null
-
-    // ÉTAT DE VIE dérivé SERVEUR — même helper, mêmes entrées que côté
-    // candidatures : un fil rangé dans « Archivées » ici l'est aussi là-bas.
-    const lifecycle = deriveCandidatureLifecycle(
-      {
-        status: cand?.status ?? 'unlocked',
-        unlocked_at: cand?.unlocked_at ?? null,
-        publication: pub
-          ? {
-              status: (pub.status as string | null | undefined) ?? null,
-              published_at: (pub.published_at as string | null | undefined) ?? null,
-              expires_at: (pub.expires_at as string | null | undefined) ?? null,
-            }
-          : null,
-        conversation: { expires_at: conv.expires_at },
-      },
-      now,
-    )
 
     return {
       id: conv.id,

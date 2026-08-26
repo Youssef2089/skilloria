@@ -193,10 +193,14 @@ export default function SpotlightCandidateCard({
     setBusy('unlock')
     setError(null)
     try {
+      // `candidature_archived` : l'annonce a atteint sa fin de vie pendant que
+      // la page était ouverte. Le bouton avait disparu au prochain rendu, mais
+      // le clic avait déjà été émis — on dit pourquoi plutôt qu'« erreur ».
       const res = await secureFetch(`/api/candidatures/${candidature.id}/unlock`, { method: 'POST' })
       const payload = (await res.json().catch(() => ({} as { code?: string }))) as { code?: string }
       if (!res.ok) {
-        if (payload.code === 'invalid_transition') setError(t('error_invalid_transition'))
+        if (payload.code === 'candidature_archived') setError(t('error_candidature_archived'))
+        else if (payload.code === 'invalid_transition') setError(t('error_invalid_transition'))
         else if (payload.code === 'not_found') setError(t('error_not_found'))
         else if (payload.code === 'insufficient_role') setError(t('error_insufficient_role'))
         else setError(t('error_generic'))

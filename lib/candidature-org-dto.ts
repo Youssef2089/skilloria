@@ -1,7 +1,7 @@
 import type { AuthContext } from '@/lib/auth-guard'
 import { tBDD, type TranslationsMap } from '@/lib/translations'
 import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name-masking'
-import { disclosurePolicyForCandidatureStatus } from '@/lib/expert-disclosure'
+import { disclosurePolicyForCandidatureLifecycle } from '@/lib/expert-disclosure'
 import { signAvatarUrl } from '@/lib/avatar'
 import {
   deriveCandidatureLifecycle,
@@ -20,6 +20,17 @@ import {
  * un chemin pourrait fuir là où l'autre ne fuit pas.
  *
  * Invariants critiques préservés :
+ *  0) LE DÉVOILEMENT EST TEMPORAIRE. Le profil complet n'est ni CHARGÉ ni
+ *     projeté dès que la candidature est dans le bucket 'archived' — annonce
+ *     expirée à 30 j, clôturée, retirée, fenêtre d'échange close, refus. Le
+ *     motif est indifférent : clôturer plutôt que laisser expirer ne
+ *     contourne rien. `conversation_id` est gaté sur la même condition, sans
+ *     quoi le fil de messages rouvrirait l'identité en deux clics.
+ *     Ce qui RESTE servi sur une candidature archivée : la trace (id, date,
+ *     score IA, pitch, annonce, statut, lifecycle) et le `preview` GELÉ à la
+ *     date de candidature — soit le niveau strict d'avant déverrouillage.
+ *     Aucune PII, aucun suivi dans le temps. L'org garde la mémoire de ce
+ *     qu'elle a examiné, pas une base de profils exploitable.
  *  1) AUCUNE jointure systématique sur `profiles` : on ne projette le profil
  *     complet QUE pour candidatures.status === 'unlocked'.
  *  2) `preview` provient de candidatures.preview (snapshot whitelist posé par
@@ -124,7 +135,8 @@ type FullProfile = {
   city: string | null
   // Lot grille photo-forward : photo_url RE-INTRODUIT au SELECT, mais
   // n'est projeté dans le DTO QUE si DisclosurePolicy.reveal_photo === true
-  // (cf. disclosurePolicyForCandidatureStatus → unlocked/selected uniquement).
+  // (cf. disclosurePolicyForCandidatureLifecycle → unlocked/selected ET
+  // candidature encore active ; une archivée n'est même plus chargée).
   // address_line/postal_code/birth_year/cv_url/linkedin_url/email/phone
   // restent strippés à jamais — reveal_contact: false en V1.
   photo_url: string | null
@@ -219,6 +231,36 @@ export async function buildOrgCandidatureDTOs(
     }
   }
 
+  // ── ÉTAT DE VIE DÉRIVÉ — CALCULÉ ICI, AVANT TOUTE PROJECTION ────────────
+  // Il était dérivé en fin de map, après la projection du profil : la sécurité
+  // décidait donc sur `status` brut pendant que le FAIT était calculé vingt
+  // lignes plus bas. Il remonte devant, parce que c'est lui qui commande ce
+  // qu'on a le droit de LIRE, pas seulement ce qu'on affiche.
+  //
+  // Instant unique pour toute la réponse : deux candidatures de la même page
+  // ne doivent pas être dérivées à des `now` différents.
+  const now = new Date()
+  const lifecycleByCand = new Map<string, CandidatureLifecycle>()
+  for (const row of rows) {
+    lifecycleByCand.set(
+      row.id,
+      deriveCandidatureLifecycle(
+        {
+          status: row.status,
+          unlocked_at: row.unlocked_at,
+          publication: pubExpiryById.get(row.publication_id) ?? null,
+          conversation: convExpiryByCand.has(row.id)
+            ? { expires_at: convExpiryByCand.get(row.id) ?? null }
+            : null,
+        },
+        now,
+      ),
+    )
+  }
+  /** Accès encore ouvert = statut déverrouillant ET candidature non archivée. */
+  const isDisclosable = (row: CandidatureRow): boolean =>
+    accessibleStatuses.has(row.status) && lifecycleByCand.get(row.id)?.bucket === 'active'
+
   // Lot bascule badges par item : viewed_by_me par candidature pour l'user
   // ORG courant. Sémantique "fresh" = candidature_views.viewed_at >=
   // candidatures.updated_at (un nouveau message ou changement de statut
@@ -236,16 +278,24 @@ export async function buildOrgCandidatureDTOs(
     }
   }
 
-  // Profil complet pour candidatures unlocked OU selected (idem : l'accès
-  // au profil débloqué est conservé une fois le candidat retenu).
+  // Profil complet pour candidatures unlocked OU selected ENCORE ACTIVES.
+  //
+  // DÉFENSE EN PROFONDEUR : on ne CHARGE PAS un profil qu'on n'a pas le droit
+  // de servir, plutôt que le charger pour le jeter ensuite. Une donnée qui ne
+  // quitte jamais la base ne peut pas fuir par une projection oubliée dans six
+  // mois. Bénéfice collatéral : la requête ne porte que sur les candidatures
+  // vivantes.
+  //
+  // 'selected' passe toujours (bucket 'active' sans limite de durée) : un
+  // candidat retenu conserve son profil ouvert.
   const unlockedProfileIds = new Set(
-    rows.filter((r) => accessibleStatuses.has(r.status)).map((r) => r.profile_id),
+    rows.filter(isDisclosable).map((r) => r.profile_id),
   )
   const fullProfileById = new Map<string, FullProfile>()
   if (unlockedProfileIds.size > 0) {
     // Lot grille photo-forward :
     //   - photo_url RÉINTRODUIT au SELECT (projeté dans le DTO seulement si
-    //     la policy l'autorise, cf. disclosurePolicyForCandidatureStatus).
+    //     la policy l'autorise, cf. disclosurePolicyForCandidatureLifecycle).
     //   - first_name + last_name chargés pour le nom complet post-unlock
     //     ET pour le fallback pseudonyme si on en a besoin ailleurs.
     //   - address_line, postal_code, birth_year, cv_url, linkedin_url, email,
@@ -296,25 +346,27 @@ export async function buildOrgCandidatureDTOs(
     }
   }
 
-  // Instant unique pour toute la réponse : deux candidatures de la même page
-  // ne doivent pas être dérivées à des `now` différents.
-  const now = new Date()
-
   const dtos = await Promise.all(rows.map(async (row) => {
     const preview = row.preview ?? {}
     const branchId = typeof preview.branch_id === 'string' ? preview.branch_id : null
     const specialityId = typeof preview.speciality_id === 'string' ? preview.speciality_id : null
+    // Invariant 5 : état de vie dérivé plus haut — même helper que côté expert.
+    const lifecycle = lifecycleByCand.get(row.id) as CandidatureLifecycle
+    const disclosable = isDisclosable(row)
 
     let unlockedProfile: Record<string, unknown> | null = null
-    if (accessibleStatuses.has(row.status)) {
+    if (disclosable) {
       const fp = fullProfileById.get(row.profile_id)
       if (fp) {
         const u = Array.isArray(fp.users) ? fp.users[0] : fp.users
-        // Lot grille photo-forward : politique de divulgation appliquée
-        // CÔTÉ SERVEUR (sécurité non contournable). Status 'unlocked' ou
-        // 'selected' → reveal_photo + reveal_full_name à true ; contact
-        // (email/phone) hors périmètre V1 (reveal_contact: false toujours).
-        const policy = disclosurePolicyForCandidatureStatus(row.status)
+        // Politique de divulgation appliquée CÔTÉ SERVEUR (sécurité non
+        // contournable), sur l'ÉTAT DE VIE et non sur le statut brut : la
+        // même fonction sert les cinq surfaces org (cf. lib/expert-disclosure).
+        // Contact (email/phone) hors périmètre V1 (reveal_contact: false).
+        const policy = disclosurePolicyForCandidatureLifecycle({
+          candidatureStatus: row.status,
+          lifecycleBucket: lifecycle.bucket,
+        })
         const firstName = u?.first_name ?? null
         const lastName = u?.last_name ?? null
         // Mission S3 : si l'expert est en grâce/purge, le placeholder prime sur
@@ -357,18 +409,6 @@ export async function buildOrgCandidatureDTOs(
 
     const v = viewedAtByCand.get(row.id)
     const viewedByMe = !!v && new Date(v).getTime() >= new Date(row.updated_at).getTime()
-    // Invariant 5 : état de vie dérivé — même helper que côté expert.
-    const lifecycle = deriveCandidatureLifecycle(
-      {
-        status: row.status,
-        unlocked_at: row.unlocked_at,
-        publication: pubExpiryById.get(row.publication_id) ?? null,
-        conversation: convExpiryByCand.has(row.id)
-          ? { expires_at: convExpiryByCand.get(row.id) ?? null }
-          : null,
-      },
-      now,
-    )
     return {
       id: row.id,
       publication_id: row.publication_id,
@@ -380,7 +420,10 @@ export async function buildOrgCandidatureDTOs(
       cover_message: row.cover_message,
       ai_match_score: row.ai_match_score,
       created_at: row.created_at,
-      conversation_id: accessibleStatuses.has(row.status) ? convIdByCand.get(row.id) ?? null : null,
+      // Gaté sur l'état de vie, pas sur le statut : c'est le lien qui menait
+      // en deux clics au fil de messages, où l'identité restait ouverte.
+      // Refermer le profil sans refermer ce chemin n'aurait rien réglé.
+      conversation_id: disclosable ? convIdByCand.get(row.id) ?? null : null,
       ai_pitch: row.match_id ? pitchByMatch.get(row.match_id) ?? null : null,
       unlocked_profile: unlockedProfile,
       viewed_by_me: viewedByMe,

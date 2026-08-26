@@ -2,15 +2,35 @@
  * lib/expert-disclosure.ts — politique de divulgation des données expert
  * côté ORG (Lot grille photo-forward).
  *
+ * LE DÉVOILEMENT EST TEMPORAIRE, PAS DÉFINITIF (lot sécurité/RGPD).
+ *
+ *   `candidatures.status` est la MÉCANIQUE : « l'org a déverrouillé ». Il ne
+ *   redescend jamais. L'ÉTAT DE VIE dérivé (lib/candidatures/lifecycle.ts) est
+ *   le FAIT : « l'accès est-il encore ouvert ? ». Décider la divulgation sur le
+ *   statut brut rendait le dévoilement PERPÉTUEL : une organisation pouvait
+ *   publier, déverrouiller, laisser expirer, et se constituer une base de
+ *   profils identifiés — un détournement de la finalité du traitement.
+ *
+ *   Dès que la candidature bascule dans le bucket 'archived' — annonce expirée
+ *   à 30 j, annonce clôturée manuellement, annonce retirée, fenêtre d'échange
+ *   de 15 j close, refus — le profil REDEVIENT MASQUÉ au niveau strict
+ *   d'avant déverrouillage. Le motif de l'archivage est indifférent : clôturer
+ *   ses annonces plutôt que les laisser expirer ne contourne rien.
+ *
  * V1 : politique déterministe.
- *   - Candidature pré-unlock          → tout masqué (LOCKED_POLICY)
- *   - Candidature 'unlocked'/'selected' → photo + nom complet révélés,
+ *   - Bucket 'archived'                 → tout masqué (LOCKED_POLICY), quel que
+ *                                         soit le statut brut
+ *   - Candidature pré-unlock            → tout masqué (LOCKED_POLICY)
+ *   - Candidature 'unlocked'/'selected'
+ *     ENCORE ACTIVE                     → photo + nom complet révélés,
  *                                         contact (email/tel) JAMAIS exposé
- *   - Conversation org↔expert         → même reveal que candidature unlocked
- *                                         (une conv n'existe que post-unlock,
- *                                         donc l'org a déjà vu photo+nom dans
- *                                         la grille — l'afficher en initiale
- *                                         dans le chat serait incohérent).
+ *   - Conversation org↔expert           → MÊME fonction, mêmes entrées : un fil
+ *                                         archivé re-masque son en-tête. Le
+ *                                         CORPS des messages n'est pas réécrit
+ *                                         (on n'efface aucun historique et on
+ *                                         ne prétend pas l'avoir anonymisé) —
+ *                                         ce qui se ferme, c'est le CHEMIN
+ *                                         D'ACCÈS permanent, pas la trace.
  *
  * V2 (futur, NON branché ici) : la fonction est conçue comme un POINT
  * D'EXTENSION propre. Pour brancher le packaging commerce, il suffira de
@@ -26,6 +46,8 @@
  *    DTO (lib/candidature-org-dto.ts) + routes conversations. Le client ne
  *    voit jamais que le résultat (un objet avec ou sans le champ).
  */
+
+import type { CandidatureBucket } from '@/lib/candidatures/lifecycle'
 
 export type DisclosurePolicy = {
   /** Permet de projeter `photo_url` dans le payload destiné à l'ORG. */
@@ -53,27 +75,45 @@ const LOCKED_POLICY: DisclosurePolicy = Object.freeze({
 })
 
 /**
- * Policy applicable à une candidature côté ORG en fonction de son `status`.
- *  - 'unlocked' | 'selected' → UNLOCKED_POLICY
- *  - sinon                    → LOCKED_POLICY
- *
- * `status` reste la source de vérité ; on ne fait jamais confiance au flag
- * client (sécurité serveur non contournable).
+ * Entrées de la décision. Objet nommé À DEUX CHAMPS OBLIGATOIRES, et c'est
+ * délibéré : la signature précédente prenait un `status: string` nu, ce qui
+ * rendait l'erreur invisible — on croyait décider sur un droit d'accès alors
+ * qu'on décidait sur une mécanique de paiement. Ici, oublier l'état de vie ne
+ * compile pas.
  */
-export function disclosurePolicyForCandidatureStatus(status: string): DisclosurePolicy {
-  if (status === 'unlocked' || status === 'selected') return UNLOCKED_POLICY
-  return LOCKED_POLICY
+export type CandidatureDisclosureInput = {
+  /** `candidatures.status` — la MÉCANIQUE (l'org a-t-elle déverrouillé ?). */
+  candidatureStatus: string
+  /**
+   * Bucket DÉRIVÉ par `deriveCandidatureLifecycle` — le FAIT (l'accès est-il
+   * encore ouvert ?). Jamais recalculé ici : ce module ne connaît aucune règle
+   * temporelle, il en consomme le verdict.
+   */
+  lifecycleBucket: CandidatureBucket
 }
 
 /**
- * Policy applicable à la vue ORG d'une conversation. Une conversation
- * n'existe QUE post-unlock (cf. /api/candidatures/[id]/unlock qui crée la
- * conversation), donc l'org est par définition autorisé à voir photo+nom.
- * Même politique que UNLOCKED_POLICY ; contact toujours hors périmètre.
+ * SEULE fonction de divulgation côté ORG. Les cinq surfaces qui projettent un
+ * profil expert vers une organisation la traversent — candidatures agrégées,
+ * candidatures d'une annonce, sous-traitance, inbox messagerie, fil de
+ * messages. Si une surface décide encore seule, la faille reste ouverte.
  *
- * Le caller doit avoir vérifié AU PRÉALABLE que l'org courant est bien
- * participant légitime de la conversation (pub.organization_id == auth.org.id).
+ * ORDRE SIGNIFIANT : l'état de vie prime sur le statut. Un statut 'unlocked'
+ * figé en base ne rouvre rien une fois la candidature archivée.
+ *
+ * 'selected' est ACTIF sans limite de durée (cf. lifecycle.ts §2) : un candidat
+ * retenu ne se re-masque JAMAIS, l'expiration de l'annonce n'y change rien.
+ * La relation commerciale existe, le fait est acquis.
+ *
+ * Le caller doit avoir vérifié AU PRÉALABLE que l'org courante est bien
+ * légitime sur la candidature / la conversation (ownership publication).
  */
-export function disclosurePolicyForConversationOrgSide(): DisclosurePolicy {
-  return UNLOCKED_POLICY
+export function disclosurePolicyForCandidatureLifecycle(
+  input: CandidatureDisclosureInput,
+): DisclosurePolicy {
+  if (input.lifecycleBucket === 'archived') return LOCKED_POLICY
+  if (input.candidatureStatus === 'unlocked' || input.candidatureStatus === 'selected') {
+    return UNLOCKED_POLICY
+  }
+  return LOCKED_POLICY
 }

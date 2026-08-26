@@ -224,7 +224,11 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
       const res = await secureFetch(`/api/candidatures/${candidature.id}/unlock`, { method: 'POST' })
       const payload = (await res.json().catch(() => ({} as { code?: string }))) as { code?: string }
       if (!res.ok) {
-        if (payload.code === 'invalid_transition') setError(t('error_invalid_transition'))
+        // `candidature_archived` : l'annonce a atteint sa fin de vie pendant
+        // que la page était ouverte. Le bouton disparaît au prochain rendu ;
+        // ce message explique le clic déjà émis, plutôt qu'« erreur ».
+        if (payload.code === 'candidature_archived') setError(t('error_candidature_archived'))
+        else if (payload.code === 'invalid_transition') setError(t('error_invalid_transition'))
         else if (payload.code === 'not_found') setError(t('error_not_found'))
         else setError(t('error_generic'))
         return

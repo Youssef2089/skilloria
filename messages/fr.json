@@ -2113,6 +2113,7 @@
       "read_only_role": "Lecture seule — votre rôle ne permet pas d'agir sur les candidatures.",
       "error_not_found": "Cette candidature n'existe plus.",
       "error_reason_too_long": "Le motif dépasse 2000 caractères.",
+      "error_candidature_archived": "Cette candidature est archivée : l'annonce n'est plus ouverte, le profil ne peut plus être déverrouillé.",
       "error_generic": "Une erreur est survenue. Réessayez dans un instant."
     }
   },
