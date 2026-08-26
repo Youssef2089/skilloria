@@ -47,7 +47,23 @@ export default function CandidatureDetailView({
     setState({ kind: 'loading' })
     void (async () => {
       try {
-        const res = await secureFetch(`/api/me/candidatures?locale=${encodeURIComponent(locale)}`, { method: 'GET' })
+        // `?filter=all` — OBLIGATOIRE ICI. Sans lui, `parseBucketFilter` retombe
+        // sur 'active' et cette page annonçait « introuvable » sur une
+        // candidature ARCHIVÉE qui existe bel et bien : un écran mort sur une
+        // donnée présente. La notion de bucket n'a aucun sens sur une vue de
+        // DÉTAIL désignée par son id — c'est une liste filtrée qui a des
+        // onglets, pas une fiche.
+        //
+        // On élargit la RECHERCHE, jamais le périmètre : le bornage à
+        // l'utilisateur vient de requireAuth + profiles.user_id +
+        // candidatures.profile_id, côté serveur, indépendamment de `filter`
+        // (appliqué APRÈS la requête, sur des lignes déjà bornées). L'état
+        // « introuvable » reste donc atteignable pour les vrais cas — id
+        // inexistant, candidature d'un autre utilisateur.
+        //
+        // Le `lifecycle` dérivé continue d'être servi et affiché : l'expert
+        // voit que sa candidature est archivée, et pourquoi.
+        const res = await secureFetch(`/api/me/candidatures?locale=${encodeURIComponent(locale)}&filter=all`, { method: 'GET' })
         if (!res.ok) { if (!cancelled) setState({ kind: 'error' }); return }
         const data = await res.json()
         const list: Candidature[] = data.candidatures ?? []
