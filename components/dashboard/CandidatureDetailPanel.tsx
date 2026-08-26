@@ -15,7 +15,7 @@ import {
 } from '@tabler/icons-react'
 import TimelineStep from '@/components/ui/TimelineStep'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from '@/components/dashboard/PublicationSynthesisLine'
-import type { CandidatureLifecycle, CandidatureLifecycleReason } from '@/lib/candidatures/lifecycle'
+import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
 import { useCandidatureLifecycleLabel } from '@/lib/candidatures/use-lifecycle-label'
 
 /**
@@ -86,19 +86,17 @@ export default function CandidatureDetailPanel({
    *   - la fenêtre d'ÉCHANGE (15 j)  → `exchange_expired`
    *   - la vie de l'ANNONCE (30 j)   → `publication_expired` / `_closed`
    *
-   * Seule la seconde condamne « Voir la mission ». Un échange clos sur une
-   * annonce toujours en ligne laisse le bouton ACTIF — griser sur `isArchived`
-   * serait trop large et priverait l'expert d'une annonce parfaitement lisible.
+   * Seule la seconde retire « Voir la mission ». Un échange clos sur une
+   * annonce toujours en ligne laisse le bouton PRÉSENT — se fier à
+   * `isArchived` serait trop large et priverait l'expert d'une annonce
+   * parfaitement lisible.
    */
   const publicationUnavailable = c.publication?.is_available === false
-  /**
-   * Motif du grisage — indexé sur le FAIT, jamais sur `lifecycle.reason`.
-   * `status !== 'published'` ⇒ l'org l'a retirée ; sinon les 30 j sont passés.
-   * On réutilise les libellés d'état de vie (présents en 4 langues) : ils
-   * décrivent exactement ces deux faits, pas besoin d'un vocabulaire de plus.
-   */
-  const unavailableReason: CandidatureLifecycleReason =
-    c.publication?.status !== 'published' ? 'publication_closed' : 'publication_expired'
+  /** Les deux actions de bas de carte. Extraites pour que la barre elle-même
+   *  puisse ne pas exister quand aucune n'est rendue. */
+  const showConversationAction =
+    (c.status === 'unlocked' || c.status === 'selected') && !!c.conversation_id
+  const showMissionAction = !!c.publication?.id && !publicationUnavailable
   const isSelected = c.status === 'selected'
   const isMission = c.publication?.type === 'mission'
   const isArchived = c.lifecycle?.bucket === 'archived'
@@ -234,8 +232,14 @@ export default function CandidatureDetailPanel({
         </>
       )}
 
+      {/* Barre d'actions rendue SEULEMENT si elle porte quelque chose. Depuis
+          que « Voir la mission » peut disparaître, les deux boutons peuvent
+          être absents en même temps (annonce indisponible + candidature jamais
+          débloquée) : sans cette garde, il resterait un filet de séparation
+          suivi de vide, en bas d'une carte qui s'arrête là. */}
+      {(showConversationAction || showMissionAction) && (
       <div style={{ display: 'flex', gap: 11, marginTop: 26, paddingTop: 20, borderTop: '1px solid var(--sk-border-soft)' }}>
-        {(c.status === 'unlocked' || c.status === 'selected') && c.conversation_id && (
+        {showConversationAction && (
           <Link
             href={`/dashboard/${side}/messages/${c.conversation_id}`}
             style={{
@@ -250,64 +254,34 @@ export default function CandidatureDetailPanel({
             {t('open_conversation')}
           </Link>
         )}
-        {c.publication?.id && (
-          publicationUnavailable ? (
-            /* GRISÉ, pas retiré : l'expert doit comprendre POURQUOI le lien ne
-               mène nulle part. /api/me/missions/[id] refuse volontairement une
-               annonce expirée (règle 30 j du lot A) — c'est le bouton qui avait
-               tort, pas la route. Le motif est le libellé DÉRIVÉ, pas une
-               phrase en dur : « Cette annonce a expiré » / « … a été retirée ».
-               Affiché sous le libellé plutôt qu'en infobulle : une infobulle
-               n'existe pas au doigt (mobile-first).
+        {/* « Voir la mission » DISPARAÎT quand l'annonce n'est plus
+            disponible — ni bouton grisé, ni motif. Un bouton inutilisable
+            n'a pas à occuper une carte de détail déjà dense, et l'information
+            est déjà portée deux fois ailleurs : par la pastille de la carte
+            dans la liste et par la clôture de la frise de suivi.
 
-               Le grisage suit `publication.is_available` — LE FAIT servi par le
-               serveur — et NON `lifecycle.reason`, qui est un résumé
-               d'affichage : sur une candidature débloquée il vaut toujours
-               `exchange_*` et masque totalement l'état de l'annonce. */
-            <span
-              aria-disabled="true"
-              style={{
-                padding: '11px 20px', borderRadius: 11,
-                background: 'var(--sk-surface-sunken, var(--sk-surface))',
-                color: 'var(--sk-faint)',
-                border: '1px dashed var(--sk-border)', fontWeight: 600, fontSize: 14,
-                cursor: 'not-allowed', display: 'inline-flex',
-                flexDirection: 'column', alignItems: 'flex-start', gap: 2,
-              }}
-            >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <IconExternalLink size={16} stroke={2} />
-                {t('view_mission')}
-              </span>
-              <span style={{ fontSize: 11.5, fontWeight: 500, lineHeight: 1.3 }}>
-                {/* On passe la raison du FAIT, pas `c.lifecycle` — qui dirait
-                    « Échange terminé sans suite », hors sujet pour un bouton
-                    qui parle de l'ANNONCE. Le rendu reste centralisé dans
-                    use-lifecycle-label, seul point de rendu des libellés
-                    d'état : aucune clé n'est lue en direct ici. */}
-                {lifecycleLabel(
-                  { bucket: 'archived', reason: unavailableReason, until: null },
-                  c.publication?.type,
-                )}
-              </span>
-            </span>
-          ) : (
-            <Link
-              href={`/dashboard/${side}/missions/${c.publication.id}`}
-              style={{
-                padding: '11px 20px', borderRadius: 11,
-                background: 'var(--sk-surface)', color: 'var(--sk-text)',
-                border: '1px solid var(--sk-border)', fontWeight: 600, fontSize: 14,
-                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8,
-                textDecoration: 'none',
-              }}
-            >
-              <IconExternalLink size={16} stroke={2} />
-              {t('view_mission')}
-            </Link>
-          )
+            La CONDITION est inchangée : `publication.is_available`, LE FAIT
+            dérivé serveur par isActivePublished — et surtout PAS
+            `lifecycle.reason`, qui est un résumé d'affichage : sur une
+            candidature débloquée il vaut toujours `exchange_*` et masque
+            totalement l'état de l'annonce. Seul le RENDU change ici. */}
+        {showMissionAction && (
+          <Link
+            href={`/dashboard/${side}/missions/${c.publication!.id}`}
+            style={{
+              padding: '11px 20px', borderRadius: 11,
+              background: 'var(--sk-surface)', color: 'var(--sk-text)',
+              border: '1px solid var(--sk-border)', fontWeight: 600, fontSize: 14,
+              cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8,
+              textDecoration: 'none',
+            }}
+          >
+            <IconExternalLink size={16} stroke={2} />
+            {t('view_mission')}
+          </Link>
         )}
       </div>
+      )}
     </div>
   )
 }
