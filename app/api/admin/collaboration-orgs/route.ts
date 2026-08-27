@@ -84,16 +84,29 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   // ── 1. Organisations PERSONNELLES ──────────────────────────────────────────
-  const { data: orgRows, error: orgErr } = await auth.supabaseAdmin
-    .from('organizations')
-    .select('id, company_name, owner_user_id, created_at')
-    .eq('org_type', 'freelance')
-    .order('created_at', { ascending: false })
-    .limit(MAX_ORGS)
+  //  Le TOTAL EXACT est lu à part (`head: true` → aucun transfert de lignes).
+  //  Sans lui, un écran tronqué ne pourrait pas dire de combien il l'est — et
+  //  un écran de pilotage qui tronque en silence masque exactement ce qu'il
+  //  doit montrer, d'autant que le tri est `created_at DESC` : ce sont les
+  //  organisations les plus anciennes, souvent les plus établies, qui sortent
+  //  les premières.
+  const [{ data: orgRows, error: orgErr }, { count: totalCount }] = await Promise.all([
+    auth.supabaseAdmin
+      .from('organizations')
+      .select('id, company_name, owner_user_id, created_at')
+      .eq('org_type', 'freelance')
+      .order('created_at', { ascending: false })
+      .limit(MAX_ORGS),
+    auth.supabaseAdmin
+      .from('organizations')
+      .select('id', { count: 'exact', head: true })
+      .eq('org_type', 'freelance'),
+  ])
   if (orgErr) {
     console.error('[admin:collaboration-orgs] organizations query failed', orgErr.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
+  const total = totalCount ?? 0
   const orgs = (orgRows ?? []) as {
     id: string
     company_name: string | null
@@ -102,7 +115,16 @@ export async function GET(request: NextRequest): Promise<Response> {
   }[]
 
   if (orgs.length === 0) {
-    return json({ experts: [], period_start: monthlyPeriodStart().toISOString().slice(0, 10) }, 200)
+    return json(
+      {
+        experts: [],
+        period_start: monthlyPeriodStart().toISOString().slice(0, 10),
+        total,
+        truncated: false,
+        limit: MAX_ORGS,
+      },
+      200,
+    )
   }
 
   const orgIds = orgs.map((o) => o.id)
@@ -278,5 +300,16 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
   })
 
-  return json({ experts, period_start: period }, 200)
+  return json(
+    {
+      experts,
+      period_start: period,
+      // `total` = nombre réel d'organisations personnelles ; `experts.length`
+      // est plafonné à `limit`. L'écran doit dire l'écart, pas le taire.
+      total,
+      truncated: total > orgs.length,
+      limit: MAX_ORGS,
+    },
+    200,
+  )
 }

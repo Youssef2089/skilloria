@@ -2409,14 +2409,16 @@
       "offers_empty_title": "No collaboration plan",
       "offers_empty_body": "Create a plan to set the limits for experts posting subcontracting needs: posts per month, active postings, revealed candidates.",
       "experts_empty_title": "No expert is using collaboration yet",
-      "experts_empty_body": "Experts appear here as soon as they open their subcontracting space.",
+      "experts_empty_body": "Experts appear here as soon as they post a subcontracting need.",
       "experts_filtered_empty": "No expert on this plan.",
       "anomaly_title": "{count, plural, one {# expert outside a collaboration plan} other {# experts outside a collaboration plan}}",
       "anomaly_body": "These experts are attached to a company plan, or no longer have a resolvable plan. Check their attachment in the list below.",
       "state_fallback": "Falling back to the default plan",
       "state_expired": "Attachment expired on {date} — falling back to the default plan",
       "state_foreign": "Company plan",
-      "state_none": "No resolvable plan"
+      "state_none": "No resolvable plan",
+      "truncated_title": "Truncated list: {shown} organisations shown out of {total}.",
+      "truncated_body": "This screen has a read cap. The oldest ones are not displayed."
     },
     "pilot": {
       "section_title": "Package",

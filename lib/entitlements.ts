@@ -182,42 +182,88 @@ export async function getOrgEntitlements(
     }
 
     // 3. Limites depuis package_features.
-    const { data: feats, error: featErr } = await admin
-      .from('package_features')
-      .select('feature_code, value')
-      .eq('package_id', pkgId)
-    if (featErr) {
-      console.warn('[entitlements] package_features read error — fail-open', featErr.message)
-      return unlimitedEntitlements(pkgSlug)
-    }
-    const byCode = new Map<string, string>()
-    for (const f of (feats ?? []) as { feature_code: string; value: string }[]) {
-      byCode.set(f.feature_code, f.value)
-    }
-
-    const limitFor = (code: string): number | null => {
-      if (!byCode.has(code)) {
-        // Config incomplète = on ne bloque pas (fail-open).
-        console.warn(
-          `[entitlements] feature '${code}' missing for package '${pkgSlug}' — treating as unlimited`,
-        )
-        return null
-      }
-      return parseLimit(byCode.get(code))
-    }
-
-    return {
-      packageSlug: pkgSlug,
-      limits: {
-        publicationsPerMonth: limitFor(FEATURE_PUBLICATIONS_PER_MONTH),
-        activePublicationsMax: limitFor(FEATURE_ACTIVE_PUBLICATIONS_MAX),
-        revealedCandidatesPerPublication: limitFor(FEATURE_REVEALED_CANDIDATES_PER_PUBLICATION),
-        manualUnlocksPerMonth: limitFor(FEATURE_MANUAL_UNLOCKS_PER_MONTH),
-      },
-    }
+    return await limitsForPackage(admin, pkgId, pkgSlug)
   } catch (err) {
     // FAIL-OPEN global : toute exception inattendue → illimité.
     console.warn('[entitlements] getOrgEntitlements threw — fail-open (unlimited)', err)
+    return unlimitedEntitlements('free')
+  }
+}
+
+/**
+ * Limites d'un package donné. EXTRAIT de getOrgEntitlements sans changement de
+ * comportement : mêmes replis fail-open, mêmes avertissements. Partagé avec
+ * getDefaultCollaborationEntitlements ci-dessous, pour qu'un seul code lise
+ * `package_features`.
+ */
+async function limitsForPackage(
+  admin: SupabaseClient,
+  pkgId: string,
+  pkgSlug: string,
+): Promise<OrgEntitlements> {
+  const { data: feats, error: featErr } = await admin
+    .from('package_features')
+    .select('feature_code, value')
+    .eq('package_id', pkgId)
+  if (featErr) {
+    console.warn('[entitlements] package_features read error — fail-open', featErr.message)
+    return unlimitedEntitlements(pkgSlug)
+  }
+  const byCode = new Map<string, string>()
+  for (const f of (feats ?? []) as { feature_code: string; value: string }[]) {
+    byCode.set(f.feature_code, f.value)
+  }
+
+  const limitFor = (code: string): number | null => {
+    if (!byCode.has(code)) {
+      // Config incomplète = on ne bloque pas (fail-open).
+      console.warn(
+        `[entitlements] feature '${code}' missing for package '${pkgSlug}' — treating as unlimited`,
+      )
+      return null
+    }
+    return parseLimit(byCode.get(code))
+  }
+
+  return {
+    packageSlug: pkgSlug,
+    limits: {
+      publicationsPerMonth: limitFor(FEATURE_PUBLICATIONS_PER_MONTH),
+      activePublicationsMax: limitFor(FEATURE_ACTIVE_PUBLICATIONS_MAX),
+      revealedCandidatesPerPublication: limitFor(FEATURE_REVEALED_CANDIDATES_PER_PUBLICATION),
+      manualUnlocksPerMonth: limitFor(FEATURE_MANUAL_UNLOCKS_PER_MONTH),
+    },
+  }
+}
+
+/**
+ * Droits de l'offre de collaboration PAR DÉFAUT, SANS organisation.
+ *
+ * Utilisé par l'écran « Mes besoins » d'un expert qui n'a jamais publié : son
+ * organisation personnelle n'existe pas encore, mais les limites qu'il obtiendra
+ * à sa première publication sont parfaitement connues — c'est la MÊME offre que
+ * celle qu'ensurePersonalOrg lui attribuera. On lit donc le catalogue, pas une
+ * supposition.
+ */
+export async function getDefaultCollaborationEntitlements(
+  admin: SupabaseClient,
+): Promise<OrgEntitlements> {
+  try {
+    const { data: pkg } = await admin
+      .from('packages')
+      .select('id, slug')
+      .is('domain_id', null)
+      .eq('target_role', 'collaboration')
+      .eq('is_default', true)
+      .eq('active', true)
+      .maybeSingle()
+    if (!pkg) {
+      console.warn('[entitlements] no default collaboration package — fail-open (unlimited)')
+      return unlimitedEntitlements('free')
+    }
+    return await limitsForPackage(admin, pkg.id as string, pkg.slug as string)
+  } catch (err) {
+    console.warn('[entitlements] getDefaultCollaborationEntitlements threw — fail-open', err)
     return unlimitedEntitlements('free')
   }
 }

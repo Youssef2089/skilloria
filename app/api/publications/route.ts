@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
-import { isExpertProfileApproved, PROFILE_NOT_VERIFIED_CODE } from '@/lib/expert-verified-guard'
+import { ensurePersonalOrg } from '@/lib/collaboration/ensure-personal-org'
 import { loadTranslations, tBDD } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { isActivePublished } from '@/lib/publications/expiry'
@@ -173,17 +173,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
-  const orgId = auth.organization?.id
-  if (!orgId) {
-    return json({ error: 'No organization', code: 'org_required' }, 403)
-  }
-  // D2 : créer une publication = gestion des annonces → editor+ (viewer refusé).
-  try { requireOrgRole(auth, 'editor') } catch (err) {
-    if (err instanceof AuthError) return err.toResponse()
-    throw err
-  }
-
-  // ── Body + validation ───────────────────────────────────────────────────
+  // ── Body + validation, AVANT la résolution de l'organisation ─────────────
+  //  L'ordre a changé : c'est le TYPE de publication qui décide COMMENT
+  //  l'organisation se résout. Un besoin de sous-traitance peut la créer ; une
+  //  mission ou une offre l'exige déjà présente.
   let body: Body
   try {
     body = (await request.json()) as Body
@@ -196,13 +189,45 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   const input = v.input
 
-  // ── C2 : GARDE profil approuvé, SCOPÉE sous_traitance ────────────────────
-  //  Seuls les besoins de sous-traitance émanent d'un expert (org personnelle).
-  //  On exige que SON profil soit approved — même par appel direct à l'API.
-  //  Les vraies orgs (mission/offre) n'ont pas de profil expert → non gardées.
-  if (input.type === 'sous_traitance'
-    && !(await isExpertProfileApproved(auth.supabaseAdmin, auth.user.id))) {
-    return json({ error: 'Profile not verified', code: PROFILE_NOT_VERIFIED_CODE }, 403)
+  // ── Résolution de l'ORGANISATION ─────────────────────────────────────────
+  let orgId: string
+  if (input.type === 'sous_traitance') {
+    // C'EST ICI, ET NULLE PART AILLEURS, que naît l'organisation personnelle
+    // d'un expert. Elle était créée au chargement des écrans de collaboration :
+    // ouvrir l'entrée « Sous-traitance » par curiosité suffisait. Désormais il
+    // faut avoir rempli un besoin et l'avoir soumis.
+    //
+    // Le helper porte AUSSI la garde « profil expert approuvé » (même code
+    // `profile_not_verified`, même 403) : le test qui vivait ici est donc
+    // devenu redondant et a été retiré, pas affaibli.
+    const ensured = await ensurePersonalOrg(auth.supabaseAdmin, auth.user.id, {
+      userDomainId: auth.user.domain_id,
+      auditDomainId: auth.domain.id,
+    })
+    if (!ensured.ok) {
+      return json({ error: ensured.message, code: ensured.code }, ensured.status)
+    }
+    orgId = ensured.organizationId
+
+    // ⚠️ `requireOrgRole` est DÉLIBÉRÉMENT CONTOURNÉ ICI, ET SUR CE SEUL CHEMIN.
+    //   Il lit `auth.organization`, résolu par requireAuth AVANT l'exécution de
+    //   la route : une organisation créée à l'instant y est forcément absente,
+    //   et la garde refuserait un espace dont l'expert est pourtant l'unique
+    //   admin (ensurePersonalOrg l'y inscrit en `role_in_org: 'admin'`).
+    //   Le contrôle d'accès n'est pas perdu pour autant : le helper a déjà
+    //   vérifié que l'appelant est un expert au profil approuvé, et
+    //   l'organisation retournée est la SIENNE (résolue par `owner_user_id`).
+    //   Il ne peut donc pas publier pour le compte d'une autre organisation.
+  } else {
+    orgId = auth.organization?.id ?? ''
+    if (!orgId) {
+      return json({ error: 'No organization', code: 'org_required' }, 403)
+    }
+    // D2 : créer une publication = gestion des annonces → editor+ (viewer refusé).
+    try { requireOrgRole(auth, 'editor') } catch (err) {
+      if (err instanceof AuthError) return err.toResponse()
+      throw err
+    }
   }
 
   // ── INSERT brouillon ────────────────────────────────────────────────────
@@ -382,9 +407,19 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // SANS ORGANISATION → LISTE VIDE, pas une erreur.
+  //
+  // Depuis que l'organisation personnelle n'est plus créée à l'ouverture des
+  // écrans de collaboration mais au moment de PUBLIER, un expert qui n'a jamais
+  // publié n'en a pas. « Vous n'avez aucune annonce » est un FAIT, pas une
+  // panne : un 403 ici affichait un écran d'erreur à la place de l'état vide,
+  // qui existe pourtant déjà côté composant.
+  //
+  // Le POST, lui, garde son 403 : créer une annonce sans organisation n'a aucun
+  // sens, et c'est justement lui qui la crée désormais.
   const orgId = auth.organization?.id
   if (!orgId) {
-    return json({ error: 'No organization', code: 'org_required' }, 403)
+    return json({ publications: [] }, 200)
   }
 
   const locale = normalizeLocale(new URL(request.url).searchParams.get('locale'))

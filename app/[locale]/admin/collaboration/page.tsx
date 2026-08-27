@@ -77,6 +77,13 @@ export default function AdminCollaborationPage() {
 
   const [packages, setPackages] = useState<Package[] | null>(null)
   const [experts, setExperts] = useState<ExpertRow[]>([])
+  /**
+   * Troncature de la liste, ANNONCÉE PAR LE SERVEUR. La lecture est plafonnée ;
+   * sans cet indicateur, l'écran affichait une liste incomplète en la donnant
+   * pour complète — et le tri par date décroissante fait sortir les
+   * organisations les plus anciennes en premier.
+   */
+  const [truncation, setTruncation] = useState<{ total: number; limit: number } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -107,9 +114,19 @@ export default function AdminCollaborationPage() {
           return
         }
         const pkgJson = (await pkgRes.json()) as { packages: Package[] }
-        const expJson = (await expRes.json()) as { experts: ExpertRow[] }
+        const expJson = (await expRes.json()) as {
+          experts: ExpertRow[]
+          total?: number
+          truncated?: boolean
+          limit?: number
+        }
         setPackages((pkgJson.packages ?? []).filter((p) => p.target_role === 'collaboration'))
         setExperts(expJson.experts ?? [])
+        setTruncation(
+          expJson.truncated
+            ? { total: expJson.total ?? 0, limit: expJson.limit ?? (expJson.experts ?? []).length }
+            : null,
+        )
       } catch {
         setError(t('errors.generic'))
       } finally {
@@ -368,6 +385,31 @@ export default function AdminCollaborationPage() {
           </div>
           <div style={{ fontSize: 12.5, color: '#b91c1c', lineHeight: 1.5 }}>
             {t('collaboration.anomaly_body')}
+          </div>
+        </div>
+      )}
+
+      {/* ── LISTE TRONQUÉE ───────────────────────────────────────────────────
+          La lecture est plafonnée. Tant que l'écran ne le disait pas, il
+          présentait une liste incomplète comme si elle était complète — et le
+          tri par date décroissante retire d'abord les organisations les plus
+          anciennes, donc souvent les plus établies. */}
+      {truncation && (
+        <div
+          role="status"
+          style={{
+            marginTop: 16,
+            padding: '12px 16px',
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            borderRadius: 10,
+          }}
+        >
+          <div style={{ fontSize: 13, fontWeight: 500, color: '#92400e', marginBottom: 3 }}>
+            {t('collaboration.truncated_title', { shown: experts.length, total: truncation.total })}
+          </div>
+          <div style={{ fontSize: 12.5, color: '#92400e', lineHeight: 1.5 }}>
+            {t('collaboration.truncated_body')}
           </div>
         </div>
       )}

@@ -2409,14 +2409,16 @@
       "offers_empty_title": "Ninguna oferta de colaboración",
       "offers_empty_body": "Cree una oferta para definir los límites de los expertos que publican necesidades de subcontratación: publicaciones por mes, anuncios activos, candidatos revelados.",
       "experts_empty_title": "Todavía ningún experto utiliza la colaboración",
-      "experts_empty_body": "Los expertos aparecen aquí en cuanto abren su espacio de subcontratación.",
+      "experts_empty_body": "Los expertos aparecen aquí en cuanto publican una necesidad de subcontratación.",
       "experts_filtered_empty": "Ningún experto en esta oferta.",
       "anomaly_title": "{count, plural, one {# experto fuera de una oferta de colaboración} other {# expertos fuera de una oferta de colaboración}}",
       "anomaly_body": "Estos expertos están vinculados a una oferta de empresa, o ya no tienen una oferta resoluble. Compruebe su vinculación en la lista siguiente.",
       "state_fallback": "Repliegue a la oferta predeterminada",
       "state_expired": "Vinculación vencida el {date} — repliegue a la oferta predeterminada",
       "state_foreign": "Oferta de empresa",
-      "state_none": "Ninguna oferta resoluble"
+      "state_none": "Ninguna oferta resoluble",
+      "truncated_title": "Lista truncada: {shown} organizaciones mostradas de {total}.",
+      "truncated_body": "La pantalla tiene un límite de lectura. Las más antiguas no se muestran."
     },
     "pilot": {
       "section_title": "Paquete",

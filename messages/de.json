@@ -2409,14 +2409,16 @@
       "offers_empty_title": "Kein Kollaborationsangebot",
       "offers_empty_body": "Erstellen Sie ein Angebot, um die Grenzen für Experten festzulegen, die Untervergabe-Bedarfe veröffentlichen: Veröffentlichungen pro Monat, aktive Anzeigen, enthüllte Kandidaten.",
       "experts_empty_title": "Noch nutzt kein Experte die Kollaboration",
-      "experts_empty_body": "Experten erscheinen hier, sobald sie ihren Untervergabe-Bereich öffnen.",
+      "experts_empty_body": "Fachkräfte erscheinen hier, sobald sie einen Unterauftrags-Bedarf veröffentlichen.",
       "experts_filtered_empty": "Kein Experte in diesem Angebot.",
       "anomaly_title": "{count, plural, one {# Experte außerhalb eines Kollaborationsangebots} other {# Experten außerhalb eines Kollaborationsangebots}}",
       "anomaly_body": "Diese Experten sind einem Unternehmensangebot zugeordnet oder haben kein auflösbares Angebot mehr. Prüfen Sie ihre Zuordnung in der Liste unten.",
       "state_fallback": "Rückfall auf das Standardangebot",
       "state_expired": "Zuordnung am {date} abgelaufen — Rückfall auf das Standardangebot",
       "state_foreign": "Unternehmensangebot",
-      "state_none": "Kein auflösbares Angebot"
+      "state_none": "Kein auflösbares Angebot",
+      "truncated_title": "Gekürzte Liste: {shown} von {total} Organisationen angezeigt.",
+      "truncated_body": "Diese Ansicht hat ein Leselimit. Die ältesten werden nicht angezeigt."
     },
     "pilot": {
       "section_title": "Paket",

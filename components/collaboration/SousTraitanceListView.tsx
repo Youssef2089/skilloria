@@ -13,7 +13,11 @@ import type { Annonce } from '@/types/annonce'
  * routes existantes SANS dupliquer de logique métier :
  *   - GET /api/publications            → besoins de l'org perso (filtre type)
  *   - GET /api/me/collaboration/quota  → plafond d'actives (bouton Publier)
- *   - POST /api/me/collaboration/ensure-org → création lazy de l'org perso
+ *                                        ET verrou « profil non vérifié »
+ *
+ * AUCUNE ÉCRITURE À L'OUVERTURE. L'organisation personnelle n'est plus créée
+ * ici : elle naît à la publication (POST /api/publications). Les deux lectures
+ * ci-dessus savent répondre sans organisation.
  *
  * `basePath` = '/dashboard/freelance' | '/dashboard/cdi'.
  */
@@ -35,20 +39,27 @@ export default function SousTraitanceListView({ basePath }: { basePath: string }
   const load = useCallback(async () => {
     setPhase('loading')
     try {
-      // 1. Org perso garantie (idempotent) avant toute lecture org-scopée.
-      const orgRes = await secureFetch('/api/me/collaboration/ensure-org', { method: 'POST' })
-      if (!orgRes.ok) {
-        // C2 : profil non vérifié → état verrouillé explicite (pas une erreur).
-        const p = (await orgRes.json().catch(() => ({}))) as { code?: string }
-        setPhase(p.code === 'profile_not_verified' ? 'locked' : 'org_error')
-        return
-      }
-
-      // 2. Besoins + quota en parallèle.
+      // PLUS D'APPEL À ensure-org ICI. Il créait une organisation personnelle
+      // à la simple ouverture de l'écran : tout expert curieux repartait avec
+      // une organisation, une ligne organization_members et un rattachement
+      // d'offre, sans avoir rien publié. L'organisation naît désormais au
+      // moment de PUBLIER (POST /api/publications).
+      //
+      // Les deux lectures ci-dessous savent répondre sans organisation :
+      // liste vide, et droits de l'offre par défaut à consommation zéro.
       const [pubsRes, quotaRes] = await Promise.all([
         secureFetch(`/api/publications?locale=${encodeURIComponent(locale)}`, { method: 'GET' }),
         secureFetch('/api/me/collaboration/quota', { method: 'GET' }),
       ])
+
+      // C2 : le verrou « profil non vérifié » est désormais porté par la route
+      // quota — seule lecture faite à l'ouverture qui connaisse le statut du
+      // profil. État VERROUILLÉ explicite, pas une erreur.
+      if (!quotaRes.ok) {
+        const p = (await quotaRes.clone().json().catch(() => ({}))) as { code?: string }
+        if (p.code === 'profile_not_verified') { setPhase('locked'); return }
+      }
+
       if (!pubsRes.ok) { setPhase('org_error'); return }
       const pubsPayload = (await pubsRes.json().catch(() => ({}))) as { publications?: Annonce[] }
       const all = pubsPayload.publications ?? []

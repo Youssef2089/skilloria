@@ -11,10 +11,12 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  * entre experts (page /dashboard/{role}/sous-traitance/nouveau).
  *
  * Rendu DANS la coquille dashboard (sidebar + header via le layout). Au montage :
- * ensure-org (création lazy transparente de l'organisation personnelle). Le
+ * lecture des droits de l'offre + verrou « profil non vérifié », AUCUNE
+ * écriture — ouvrir le formulaire puis renoncer ne laisse aucune trace. Le
  * formulaire publie un besoin type='sous_traitance' via la MÊME chaîne que les
- * entreprises (POST /api/publications → POST /publish), donc les gates commerce
- * de l'offre de collaboration s'appliquent. Quota atteint → mur
+ * entreprises (POST /api/publications → POST /publish), et c'est ce POST qui
+ * crée l'organisation personnelle si elle n'existe pas encore. Les gates
+ * commerce de l'offre de collaboration s'appliquent. Quota atteint → mur
  * « Bientôt disponible ».
  *
  * AUCUN CHIFFRE COMMERCIAL EN DUR : le récapitulatif de l'offre (« N
@@ -51,31 +53,31 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
   const [error, setError] = useState<string | null>(null)
   const [limits, setLimits] = useState<QuotaLimits | null>(null)
 
-  // ── Création lazy de l'org personnelle au chargement ─────────────────────
+  // ── Chargement : droits de l'offre + verrou profil ───────────────────────
+  //  PLUS DE CRÉATION D'ORGANISATION ICI. Ouvrir le formulaire ne doit rien
+  //  écrire en base : l'organisation personnelle naît à la SOUMISSION, dans
+  //  POST /api/publications. Un expert qui ouvre le formulaire puis renonce ne
+  //  laisse aucune trace.
+  //
+  //  La route quota porte désormais le verrou « profil non vérifié » et sait
+  //  répondre sans organisation (droits de l'offre par défaut, consommation
+  //  zéro) — le récapitulatif chiffré est donc juste dès la première visite.
   const ensureOrg = useCallback(async () => {
     setPhase('loading')
     setError(null)
     try {
-      const res = await secureFetch('/api/me/collaboration/ensure-org', { method: 'POST' })
-      if (!res.ok) {
-        // C2 : profil non vérifié → état verrouillé explicite.
-        const p = (await res.json().catch(() => ({}))) as { code?: string }
-        setPhase(p.code === 'profile_not_verified' ? 'locked' : 'org_error')
+      const qRes = await secureFetch('/api/me/collaboration/quota', { method: 'GET' })
+      if (!qRes.ok) {
+        const p = (await qRes.json().catch(() => ({}))) as { code?: string }
+        if (p.code === 'profile_not_verified') { setPhase('locked'); return }
+        // Autre échec : best-effort, on n'empêche pas la saisie — on retire
+        // seulement le récapitulatif chiffré (comportement d'avant ce lot).
+        setLimits(null)
+        setPhase('ready')
         return
       }
-      // Limites de l'offre — best-effort : leur absence ne bloque pas la
-      // publication, elle retire seulement le récapitulatif chiffré.
-      try {
-        const qRes = await secureFetch('/api/me/collaboration/quota', { method: 'GET' })
-        if (qRes.ok) {
-          const q = (await qRes.json().catch(() => null)) as { limits?: QuotaLimits } | null
-          setLimits(q?.limits ?? null)
-        } else {
-          setLimits(null)
-        }
-      } catch {
-        setLimits(null)
-      }
+      const q = (await qRes.json().catch(() => null)) as { limits?: QuotaLimits } | null
+      setLimits(q?.limits ?? null)
       setPhase('ready')
     } catch {
       setPhase('org_error')

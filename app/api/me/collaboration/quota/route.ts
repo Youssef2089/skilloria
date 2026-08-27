@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
-import { getOrgEntitlements } from '@/lib/entitlements'
+import { getOrgEntitlements, getDefaultCollaborationEntitlements } from '@/lib/entitlements'
 import { activePublishedOrClause } from '@/lib/publications/expiry'
+import { expertProfileGate, PROFILE_NOT_VERIFIED_CODE } from '@/lib/expert-verified-guard'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -52,9 +53,45 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // ── C2 : GARDE « profil expert approuvé » ────────────────────────────────
+  //  Elle vivait dans ensure-org, que les écrans appelaient à l'ouverture. Cet
+  //  appel a disparu (l'organisation se crée désormais à la publication), la
+  //  garde doit donc être portée par la lecture qui reste faite à l'ouverture :
+  //  celle-ci.
+  //
+  //  Elle n'est PAS affaiblie : ensure-org vérifiait AVANT même son test
+  //  d'idempotence, donc un expert non approuvé était verrouillé qu'il ait déjà
+  //  une organisation ou non. On reproduit exactement ça — le test précède la
+  //  résolution de l'organisation.
+  //
+  //  `expertProfileGate` et non `isExpertProfileApproved` : ce dernier renvoie
+  //  `false` pour qui n'a pas de ligne `profiles`, donc pour tout compte
+  //  ENTREPRISE, qu'il verrouillerait à tort. On ne bloque que l'expert
+  //  réellement non approuvé.
+  const gate = await expertProfileGate(auth.supabaseAdmin, auth.user.id)
+  if (gate === 'not_approved') {
+    return json({ error: 'Profile not verified', code: PROFILE_NOT_VERIFIED_CODE }, 403)
+  }
+
+  // ── SANS ORGANISATION → droits de l'offre par défaut, consommation à zéro ─
+  //  Un expert qui n'a jamais publié n'a pas encore d'organisation. Ce ne sont
+  //  pas des chiffres inventés : c'est la MÊME offre de collaboration par
+  //  défaut qu'ensurePersonalOrg lui attribuera à sa première publication.
+  //  `canPublish: true` — il peut effectivement publier, c'est ce geste qui
+  //  créera son espace.
   const orgId = auth.organization?.id
   if (!orgId) {
-    return json({ error: 'No organization', code: 'org_required' }, 403)
+    const defaults = await getDefaultCollaborationEntitlements(auth.supabaseAdmin)
+    return json(
+      {
+        limits: defaults.limits,
+        activePublicationsMax: defaults.limits.activePublicationsMax,
+        activePublishedCount: 0,
+        canPublish: true,
+        canUnlockManually: defaults.limits.manualUnlocksPerMonth !== 0,
+      },
+      200,
+    )
   }
 
   const ents = await getOrgEntitlements(auth.supabaseAdmin, orgId, auth.domain.id)

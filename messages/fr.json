@@ -2409,14 +2409,16 @@
       "offers_empty_title": "Aucune offre de collaboration",
       "offers_empty_body": "Créez une offre pour définir les limites des experts qui publient des besoins de sous-traitance : publications par mois, annonces actives, candidats dévoilés.",
       "experts_empty_title": "Aucun expert n’utilise encore la collaboration",
-      "experts_empty_body": "Les experts apparaissent ici dès qu’ils ouvrent leur espace de sous-traitance.",
+      "experts_empty_body": "Les experts apparaissent ici dès qu’ils publient un besoin de sous-traitance.",
       "experts_filtered_empty": "Aucun expert sur cette offre.",
       "anomaly_title": "{count, plural, one {# expert hors offre de collaboration} other {# experts hors offre de collaboration}}",
       "anomaly_body": "Ces experts sont rattachés à une offre entreprise, ou n’ont plus d’offre résoluble. Vérifiez leur rattachement dans la liste ci-dessous.",
       "state_fallback": "Repli sur l’offre par défaut",
       "state_expired": "Rattachement échu le {date} — repli sur l’offre par défaut",
       "state_foreign": "Offre entreprise",
-      "state_none": "Aucune offre résoluble"
+      "state_none": "Aucune offre résoluble",
+      "truncated_title": "Liste tronquée : {shown} organisations affichées sur {total}.",
+      "truncated_body": "L'écran est plafonné en lecture. Les plus anciennes ne sont pas affichées."
     },
     "pilot": {
       "section_title": "Package",
