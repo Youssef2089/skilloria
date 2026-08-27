@@ -2699,8 +2699,14 @@
           "description": "Una misión o una oferta coincide con tu perfil."
         },
         "new_candidature_received": {
-          "label": "Candidaturas recibidas",
-          "description": "Un experto se postula a una de tus publicaciones."
+          "expert": {
+            "label": "Respuestas a tus necesidades",
+            "description": "Un experto responde a una de tus necesidades de subcontratación."
+          },
+          "org": {
+            "label": "Candidaturas recibidas",
+            "description": "Un experto se postula a una de tus publicaciones."
+          }
         },
         "new_message": {
           "label": "Nuevos mensajes",

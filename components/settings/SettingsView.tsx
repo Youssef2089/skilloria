@@ -50,6 +50,14 @@ type UserData = {
 type NotificationSetting = {
   event: string
   channel: 'email' | 'sms'
+  /**
+   * Vocabulaire à employer pour CE lecteur, DÉRIVÉ SERVEUR. `null` = l'événement
+   * n'a qu'une voix. Le composant ne déduit jamais la voix de son propre côté :
+   * c'est ce qui empêche un expert de lire « Un expert postule à l'une de vos
+   * annonces » alors qu'il ne peut recevoir que des réponses à ses besoins de
+   * sous-traitance.
+   */
+  voice: 'expert' | 'org' | null
   enabled: boolean
 }
 
@@ -575,21 +583,30 @@ function NotificationsSection({ user, secureFetch, notify, goToPhone }: {
   }
 
   // Regroupement par ÉVÉNEMENT : l'utilisateur raisonne « de quoi veux-je être
-  // prévenu », pas « quels canaux existent ».
-  const events = Array.from(new Set(settings.map((s) => s.event)))
+  // prévenu », pas « quels canaux existent ». La voix est portée par chaque
+  // réglage du groupe (identique pour tous les canaux d'un même événement).
+  const events = Array.from(new Set(settings.map((s) => s.event))).map((event) => ({
+    event,
+    // Préfixe de clé i18n : `events.{event}.{voice}` quand l'événement a deux
+    // vocabulaires, `events.{event}` sinon. La voix vient du serveur.
+    keyBase: (() => {
+      const voice = settings.find((s) => s.event === event)?.voice
+      return voice ? `events.${event}.${voice}` : `events.${event}`
+    })(),
+  }))
 
   return (
     <div>
       <SectionHeader title={t('title')} description={t('description')} />
       <div style={{ maxWidth: 560 }}>
-        {events.map((event, i) => (
+        {events.map(({ event, keyBase }, i) => (
           <div key={event} style={{ marginBottom: i === events.length - 1 ? 0 : 26 }}>
             <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0f172a' }}>
-              {t(`events.${event}.label` as 'events.new_message.label')}
+              {t(`${keyBase}.label` as 'events.new_message.label')}
             </div>
             {/* Chaque réglage dit CE QU'IL DÉCLENCHE, en clair. */}
             <div style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 3, lineHeight: 1.5 }}>
-              {t(`events.${event}.description` as 'events.new_message.description')}
+              {t(`${keyBase}.description` as 'events.new_message.description')}
             </div>
 
             {settings

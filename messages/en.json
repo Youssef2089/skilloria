@@ -2699,8 +2699,14 @@
           "description": "An assignment or a job matches your profile."
         },
         "new_candidature_received": {
-          "label": "Applications received",
-          "description": "An expert applies to one of your postings."
+          "expert": {
+            "label": "Replies to your needs",
+            "description": "An expert replies to one of your subcontracting needs."
+          },
+          "org": {
+            "label": "Applications received",
+            "description": "An expert applies to one of your postings."
+          }
         },
         "new_message": {
           "label": "New messages",

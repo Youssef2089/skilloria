@@ -4,6 +4,7 @@ import { logAudit } from '@/lib/audit'
 import {
   eventsForFacts,
   eventHasChannel,
+  resolveVoice,
   type NotificationChannel,
   type NotificationEventType,
 } from '@/lib/notifications/catalog'
@@ -27,8 +28,8 @@ function json(data: unknown, status = 200): Response {
 /**
  * Préférences de notification, PAR ÉVÉNEMENT ET PAR CANAL.
  *
- * GET   → { settings: [{ event, channel, enabled }], phone_verified, phone,
- *           email_address }
+ * GET   → { settings: [{ event, channel, voice, enabled }], phone_verified,
+ *           phone, email_address }
  *         `settings` EST le catalogue applicable à CET utilisateur : le client
  *         n'a aucune liste d'événements à connaître, il rend ce qu'on lui
  *         donne. Un réglage absent de la réponse n'existe pas pour lui.
@@ -62,10 +63,14 @@ export async function GET(request: NextRequest): Promise<Response> {
     return json({ error: 'Could not load preferences', code: 'db_error' }, 500)
   }
 
+  // `voice` : le vocabulaire à employer pour CE lecteur, dérivé ici et servi.
+  // Le client ne déduit rien de son propre type — il rend le libellé qu'on lui
+  // désigne. `null` = l'événement n'a qu'une seule voix.
   const settings = eventsForFacts(facts).flatMap((def) =>
     def.channels.map((channel) => ({
       event: def.event,
       channel,
+      voice: resolveVoice(def.event, facts),
       enabled: isChannelEnabled(disabled, auth.user.id, def.event, channel),
     })),
   )
