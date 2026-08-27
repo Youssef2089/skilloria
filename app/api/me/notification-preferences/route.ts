@@ -1,6 +1,18 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
+import {
+  eventsForFacts,
+  eventHasChannel,
+  type NotificationChannel,
+  type NotificationEventType,
+} from '@/lib/notifications/catalog'
+import {
+  loadAudienceFacts,
+  loadDisabledPreferences,
+  setPreference,
+  isChannelEnabled,
+} from '@/lib/notifications/preferences'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -13,14 +25,20 @@ function json(data: unknown, status = 200): Response {
 }
 
 /**
- * Préférences de notification (email / SMS sur nouvelle opportunité).
+ * Préférences de notification, PAR ÉVÉNEMENT ET PAR CANAL.
  *
- * GET   → { email, sms, phone_verified, email_address, phone } pour l'écran de
- *         paramétrage (le SMS est indisponible si le téléphone n'est pas vérifié).
- * PATCH → { email?: boolean, sms?: boolean } — enregistrement immédiat au toggle.
+ * GET   → { settings: [{ event, channel, enabled }], phone_verified, phone,
+ *           email_address }
+ *         `settings` EST le catalogue applicable à CET utilisateur : le client
+ *         n'a aucune liste d'événements à connaître, il rend ce qu'on lui
+ *         donne. Un réglage absent de la réponse n'existe pas pour lui.
+ * PATCH → { event, channel, enabled } — enregistrement immédiat au toggle.
  *
- * Les préférences sont APPLIQUÉES côté serveur au moment de l'envoi (cron
- * dispatch) — le client ne fait que les afficher/mettre à jour. Borné à auth.uid().
+ * SÉCURITÉ (point 20) : le serveur ne se contente pas d'écrire ce qu'on lui
+ * envoie. Il vérifie que l'événement existe, que le canal existe POUR cet
+ * événement (un SMS sur un message est refusé même si le client le demande),
+ * et que l'utilisateur appartient bien au public de cet événement. Borné à
+ * auth.uid() dans tous les cas.
  */
 export async function GET(request: NextRequest): Promise<Response> {
   let auth: AuthContext
@@ -31,20 +49,32 @@ export async function GET(request: NextRequest): Promise<Response> {
     throw err
   }
 
-  const { data, error } = await auth.supabaseAdmin
-    .from('users')
-    .select('notify_match_email, notify_match_sms, phone, phone_verified, email')
-    .eq('id', auth.user.id)
-    .maybeSingle()
-  if (error || !data) {
+  const [{ data: userRow, error }, facts, disabled] = await Promise.all([
+    auth.supabaseAdmin
+      .from('users')
+      .select('phone, phone_verified, email')
+      .eq('id', auth.user.id)
+      .maybeSingle(),
+    loadAudienceFacts(auth.supabaseAdmin, auth.user.id),
+    loadDisabledPreferences(auth.supabaseAdmin, [auth.user.id]),
+  ])
+  if (error || !userRow) {
     return json({ error: 'Could not load preferences', code: 'db_error' }, 500)
   }
+
+  const settings = eventsForFacts(facts).flatMap((def) =>
+    def.channels.map((channel) => ({
+      event: def.event,
+      channel,
+      enabled: isChannelEnabled(disabled, auth.user.id, def.event, channel),
+    })),
+  )
+
   return json({
-    email: data.notify_match_email !== false,
-    sms: data.notify_match_sms !== false,
-    phone_verified: data.phone_verified === true,
-    phone: data.phone ?? null,
-    email_address: data.email ?? null,
+    settings,
+    phone_verified: userRow.phone_verified === true,
+    phone: userRow.phone ?? null,
+    email_address: userRow.email ?? null,
   })
 }
 
@@ -57,26 +87,35 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     throw err
   }
 
-  let body: { email?: unknown; sms?: unknown }
+  let body: { event?: unknown; channel?: unknown; enabled?: unknown }
   try {
-    body = (await request.json()) as { email?: unknown; sms?: unknown }
+    body = (await request.json()) as { event?: unknown; channel?: unknown; enabled?: unknown }
   } catch {
     return json({ error: 'Invalid JSON body', code: 'invalid_json' }, 400)
   }
 
-  const patch: Record<string, boolean> = {}
-  if (typeof body.email === 'boolean') patch.notify_match_email = body.email
-  if (typeof body.sms === 'boolean') patch.notify_match_sms = body.sms
-  if (Object.keys(patch).length === 0) {
-    return json({ error: 'No valid preference provided', code: 'no_op' }, 400)
+  const event = typeof body.event === 'string' ? (body.event as NotificationEventType) : null
+  const channel = body.channel === 'email' || body.channel === 'sms'
+    ? (body.channel as NotificationChannel)
+    : null
+  const enabled = typeof body.enabled === 'boolean' ? body.enabled : null
+  if (!event || !channel || enabled === null) {
+    return json({ error: 'event, channel and enabled are required', code: 'invalid_body' }, 400)
+  }
+  // Le canal doit exister POUR cet événement — un client qui demanderait
+  // d'activer le SMS sur les messages est refusé ici, pas seulement masqué.
+  if (!eventHasChannel(event, channel)) {
+    return json({ error: 'Unknown event or channel', code: 'unknown_setting' }, 400)
+  }
+  // …et l'utilisateur doit appartenir au public de cet événement.
+  const facts = await loadAudienceFacts(auth.supabaseAdmin, auth.user.id)
+  if (!eventsForFacts(facts).some((d) => d.event === event)) {
+    return json({ error: 'Setting not available for this account', code: 'not_applicable' }, 403)
   }
 
-  const { error: updErr } = await auth.supabaseAdmin
-    .from('users')
-    .update(patch)
-    .eq('id', auth.user.id)
-  if (updErr) {
-    console.error('[me/notification-preferences] update failed', updErr.message)
+  const res = await setPreference(auth.supabaseAdmin, auth.user.id, event, channel, enabled)
+  if (!res.ok) {
+    console.error('[me/notification-preferences] update failed', res.message)
     return json({ error: 'Could not update preferences', code: 'db_error' }, 500)
   }
 
@@ -87,8 +126,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     action: 'notification_prefs_updated',
     entity_type: 'user',
     entity_id: auth.user.id,
-    detail: patch,
+    detail: { event, channel, enabled },
   })
 
-  return json({ ok: true, ...patch }, 200)
+  return json({ ok: true, event, channel, enabled }, 200)
 }

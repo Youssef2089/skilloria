@@ -10,6 +10,19 @@
     "match_digest": {
       "one": "1 nouvelle mission correspond à votre profil sur {platform}. {link}",
       "other": "{count} nouvelles missions correspondent à votre profil sur {platform}. {link}"
+    },
+    "new_candidature": {
+      "text": "Vous avez reçu une nouvelle candidature. {link}"
+    }
+  },
+  "notifications_inapp": {
+    "new_message": {
+      "title": "Nouveau message",
+      "body": "{senderName} vous a écrit : « {preview} »"
+    },
+    "new_candidature_received": {
+      "title": "Nouvelle candidature reçue",
+      "body": "Un expert a candidaté à votre annonce « {title} »."
     }
   },
   "back_nav": {
@@ -2567,6 +2580,25 @@
       "cta_label": "Voir les opportunités",
       "unsubscribe": "Se désabonner des notifications par e-mail"
     },
+    "new_message": {
+      "subject": "Nouveau message de {senderName}",
+      "preheader": "Vous avez reçu un nouveau message.",
+      "title": "Vous avez un nouveau message",
+      "hello": "Bonjour {firstName},",
+      "intro": "Vous avez un nouveau message de {senderName}.",
+      "notice": "Le message vous attend dans votre messagerie.",
+      "cta_label": "Ouvrir la conversation",
+      "unsubscribe": "Se désabonner des e-mails de messages"
+    },
+    "new_candidature": {
+      "subject": "Nouvelle candidature sur « {title} »",
+      "preheader": "Un expert a postulé à votre annonce.",
+      "title": "Vous avez reçu une candidature",
+      "hello": "Bonjour {firstName},",
+      "intro": "Un expert a postulé à votre annonce « {title} ».",
+      "cta_label": "Voir les candidatures",
+      "unsubscribe": "Se désabonner des e-mails de candidatures"
+    },
     "common_footer": "L'équipe Skilloria",
     "common_signature": "À très vite,",
     "common_login_cta": "Se connecter",
@@ -2652,15 +2684,29 @@
   "settings": {
     "notifications": {
       "title": "Notifications",
-      "description": "Ces notifications concernent uniquement les nouvelles opportunités correspondant à votre profil — ni les messages, ni les changements de statut.",
+      "description": "Choisissez de quoi vous voulez être prévenu, et par quel canal. La cloche de l'application reste toujours active.",
       "email_label": "Par e-mail",
       "sms_label": "Par SMS",
       "sms_unavailable": "Indisponible : votre téléphone n'est pas vérifié.",
       "sms_verify_link": "Vérifier mon téléphone",
-      "grouping_note": "Les opportunités reçues dans un court intervalle sont regroupées en un seul envoi.",
+      "grouping_note": "Les opportunités reçues dans un court intervalle sont regroupées en un seul envoi. Les messages et les candidatures partent à l'unité.",
       "saved_on": "Notifications activées.",
       "saved_off": "Notifications désactivées.",
-      "unsub_done": "Vous êtes désabonné des notifications par e-mail."
+      "unsub_done": "Vous êtes désabonné des notifications par e-mail.",
+      "events": {
+        "new_match_opportunity": {
+          "label": "Nouvelles opportunités",
+          "description": "Une mission ou une offre correspond à votre profil."
+        },
+        "new_candidature_received": {
+          "label": "Candidatures reçues",
+          "description": "Un expert postule à l'une de vos annonces."
+        },
+        "new_message": {
+          "label": "Nouveaux messages",
+          "description": "Quelqu'un vous écrit. Le contenu du message n'est jamais recopié dans l'e-mail."
+        }
+      }
     },
     "title": "Paramètres",
     "subtitle": "Gère ton compte et tes préférences.",
@@ -2681,7 +2727,8 @@
       "saving": "Enregistrement…",
       "success_generic": "Modifications enregistrées.",
       "error_generic": "Une erreur est survenue. Réessaie.",
-      "required": "Champ requis"
+      "required": "Champ requis",
+      "loading": "Chargement…"
     },
     "identity": {
       "title": "Identité",

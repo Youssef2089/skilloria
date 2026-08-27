@@ -10,6 +10,19 @@
     "match_digest": {
       "one": "1 neuer Auftrag passt zu Ihrem Profil auf {platform}. {link}",
       "other": "{count} neue Aufträge passen zu Ihrem Profil auf {platform}. {link}"
+    },
+    "new_candidature": {
+      "text": "Sie haben eine neue Bewerbung erhalten. {link}"
+    }
+  },
+  "notifications_inapp": {
+    "new_message": {
+      "title": "Neue Nachricht",
+      "body": "{senderName} schrieb: „{preview}“"
+    },
+    "new_candidature_received": {
+      "title": "Neue Bewerbung erhalten",
+      "body": "Eine Fachkraft hat sich auf Ihre Anzeige „{title}“ beworben."
     }
   },
   "back_nav": {
@@ -2567,6 +2580,25 @@
       "cta_label": "Gelegenheiten ansehen",
       "unsubscribe": "E-Mail-Benachrichtigungen abbestellen"
     },
+    "new_message": {
+      "subject": "Neue Nachricht von {senderName}",
+      "preheader": "Sie haben eine neue Nachricht erhalten.",
+      "title": "Sie haben eine neue Nachricht",
+      "hello": "Hallo {firstName},",
+      "intro": "Sie haben eine neue Nachricht von {senderName}.",
+      "notice": "Die Nachricht wartet in Ihrem Postfach auf Sie.",
+      "cta_label": "Unterhaltung öffnen",
+      "unsubscribe": "Nachrichten-E-Mails abbestellen"
+    },
+    "new_candidature": {
+      "subject": "Neue Bewerbung auf „{title}“",
+      "preheader": "Eine Fachkraft hat sich auf Ihre Anzeige beworben.",
+      "title": "Sie haben eine Bewerbung erhalten",
+      "hello": "Hallo {firstName},",
+      "intro": "Eine Fachkraft hat sich auf Ihre Anzeige „{title}“ beworben.",
+      "cta_label": "Bewerbungen ansehen",
+      "unsubscribe": "Bewerbungs-E-Mails abbestellen"
+    },
     "common_footer": "Das Skilloria-Team",
     "common_signature": "Bis bald,",
     "common_login_cta": "Anmelden",
@@ -2652,15 +2684,29 @@
   "settings": {
     "notifications": {
       "title": "Benachrichtigungen",
-      "description": "Diese Benachrichtigungen betreffen nur neue Gelegenheiten, die zu Ihrem Profil passen – weder Nachrichten noch Statusänderungen.",
+      "description": "Wählen Sie, worüber Sie informiert werden möchten und über welchen Kanal. Die Glocke in der App bleibt immer aktiv.",
       "email_label": "Per E-Mail",
       "sms_label": "Per SMS",
       "sms_unavailable": "Nicht verfügbar: Ihre Telefonnummer ist nicht verifiziert.",
       "sms_verify_link": "Mein Telefon verifizieren",
-      "grouping_note": "In kurzem Abstand eingegangene Gelegenheiten werden zu einer einzigen Nachricht zusammengefasst.",
+      "grouping_note": "In kurzem Abstand eingegangene Gelegenheiten werden zu einer Nachricht zusammengefasst. Nachrichten und Bewerbungen werden einzeln versendet.",
       "saved_on": "Benachrichtigungen aktiviert.",
       "saved_off": "Benachrichtigungen deaktiviert.",
-      "unsub_done": "Sie haben die E-Mail-Benachrichtigungen abbestellt."
+      "unsub_done": "Sie haben die E-Mail-Benachrichtigungen abbestellt.",
+      "events": {
+        "new_match_opportunity": {
+          "label": "Neue Gelegenheiten",
+          "description": "Ein Auftrag oder eine Stelle passt zu Ihrem Profil."
+        },
+        "new_candidature_received": {
+          "label": "Erhaltene Bewerbungen",
+          "description": "Eine Fachkraft bewirbt sich auf eine Ihrer Anzeigen."
+        },
+        "new_message": {
+          "label": "Neue Nachrichten",
+          "description": "Jemand schreibt Ihnen. Der Nachrichteninhalt wird nie in die E-Mail kopiert."
+        }
+      }
     },
     "title": "Einstellungen",
     "subtitle": "Verwalte dein Konto und deine Einstellungen.",
@@ -2681,7 +2727,8 @@
       "saving": "Speichern…",
       "success_generic": "Änderungen gespeichert.",
       "error_generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
-      "required": "Pflichtfeld"
+      "required": "Pflichtfeld",
+      "loading": "Wird geladen…"
     },
     "identity": {
       "title": "Identität",

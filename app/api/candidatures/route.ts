@@ -1,6 +1,8 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
+import { dispatchNotificationsForUsers } from '@/lib/notifications/dispatch'
+import { newCandidatureInappLabels } from '@/lib/notifications/inapp-labels'
 import { getOrgEntitlements } from '@/lib/entitlements'
 // performUnlock est factorisé dans lib/unlock.ts (Lot 3), partagé avec la route
 // unlock — garantit un chemin de dévoilement STRICTEMENT identique.
@@ -12,6 +14,9 @@ import { isActivePublished } from '@/lib/publications/expiry'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+// Nécessaire au `after()` du POST : sans plafond explicite, les envois lancés
+// après la réponse n'ont pas le temps de s'exécuter sur Vercel.
+export const maxDuration = 60
 
 /**
  * POST /api/candidatures — l'expert candidate à une publication MATCHÉE.
@@ -270,35 +275,31 @@ export async function POST(request: NextRequest): Promise<Response> {
       }
       const { data: members } = await auth.supabaseAdmin
         .from('organization_members')
-        .select('user_id, users!organization_members_user_id_fkey(id, locale)')
+        // `role` ajouté : il départage la CLOCHE (tous les membres actifs) des
+        // envois externes (admin/editor seulement, cf. plus bas).
+        .select('user_id, role, users!organization_members_user_id_fkey(id, locale)')
         .eq('organization_id', pubInfo.organization_id)
         .eq('status', 'active')
-      type Member = { user_id: string; users: { id: string; locale: string | null } | { id: string; locale: string | null }[] }
+      type Member = {
+        user_id: string
+        role: string | null
+        users: { id: string; locale: string | null } | { id: string; locale: string | null }[]
+      }
       const membersTyped = (members ?? []) as unknown as Member[]
       const linkUrl = publicationCandidaturesLinkForOrg(publicationId, { orgType, ownerUserType })
-      const titlesByLocale: Record<string, string> = {
-        fr: 'Nouvelle candidature reçue',
-        en: 'New application received',
-        es: 'Nueva candidatura recibida',
-        de: 'Neue Bewerbung erhalten',
-      }
-      const bodiesByLocale: Record<string, (t: string) => string> = {
-        fr: (t) => `Un expert a candidaté à votre annonce « ${t} ».`,
-        en: (t) => `An expert has applied to your posting "${t}".`,
-        es: (t) => `Un experto se ha postulado a tu publicación «${t}».`,
-        de: (t) => `Eine Fachkraft hat sich auf Ihre Veröffentlichung „${t}" beworben.`,
-      }
-      const VALID_LOCALES = ['fr', 'en', 'es', 'de']
+      // Libellés de la cloche : i18n partagée avec l'e-mail du même événement
+      // (cf. lib/notifications/inapp-labels). Ils vivaient en dur ici, dans
+      // deux tables `Record<locale, …>`.
       const rows = membersTyped.map((m) => {
         const u = Array.isArray(m.users) ? m.users[0] : m.users
-        const loc = u?.locale && VALID_LOCALES.includes(u.locale) ? u.locale : 'fr'
+        const inapp = newCandidatureInappLabels(u?.locale ?? null, pubInfo.title)
         return {
           user_id: m.user_id,
           domain_id: profileRow.domain_id,
           type: 'new_candidature_received',
           channel: 'inapp',
-          title: titlesByLocale[loc],
-          body: bodiesByLocale[loc](pubInfo.title),
+          title: inapp.title,
+          body: inapp.body,
           link_url: linkUrl,
           status: 'pending',
           entity_id: row.id,
@@ -308,6 +309,31 @@ export async function POST(request: NextRequest): Promise<Response> {
         const { error: notifErr } = await auth.supabaseAdmin.from('notifications').insert(rows)
         if (notifErr) {
           console.error('[candidatures:POST] org notif insert failed', notifErr.message)
+        } else {
+          // E-MAIL / SMS : `admin` et `editor` SEULEMENT. Un `viewer` est en
+          // lecture seule — débloquer, refuser ou sélectionner un candidat
+          // exigent `requireOrgRole(auth, 'editor')`. Lui envoyer un SMS
+          // payant pour une action qu'il n'a pas le droit d'exécuter, c'est le
+          // rappeler vers une impasse. La CLOCHE, elle, reste pour tout le
+          // monde : elle est passive et informative.
+          const actingUserIds = membersTyped
+            .filter((m) => m.role === 'admin' || m.role === 'editor')
+            .map((m) => m.user_id)
+          if (actingUserIds.length > 0) {
+            // ⚠️ PIÈGE VERCEL : sans `after()`, ce travail lancé après la
+            // réponse est TUÉ silencieusement — rien ne partirait et aucune
+            // erreur ne s'afficherait. `after()` + `maxDuration` (en tête de
+            // fichier) sont indispensables.
+            after(async () => {
+              try {
+                await dispatchNotificationsForUsers(auth.supabaseAdmin, actingUserIds, {
+                  events: ['new_candidature_received'],
+                })
+              } catch (e) {
+                console.error('[candidatures:POST] dispatch failed (best-effort)', e)
+              }
+            })
+          }
         }
       }
     }

@@ -10,6 +10,19 @@
     "match_digest": {
       "one": "1 new assignment matches your profile on {platform}. {link}",
       "other": "{count} new assignments match your profile on {platform}. {link}"
+    },
+    "new_candidature": {
+      "text": "You have received a new application. {link}"
+    }
+  },
+  "notifications_inapp": {
+    "new_message": {
+      "title": "New message",
+      "body": "{senderName} wrote: \"{preview}\""
+    },
+    "new_candidature_received": {
+      "title": "New application received",
+      "body": "An expert has applied to your posting \"{title}\"."
     }
   },
   "back_nav": {
@@ -2567,6 +2580,25 @@
       "cta_label": "View opportunities",
       "unsubscribe": "Unsubscribe from email notifications"
     },
+    "new_message": {
+      "subject": "New message from {senderName}",
+      "preheader": "You have received a new message.",
+      "title": "You have a new message",
+      "hello": "Hello {firstName},",
+      "intro": "You have a new message from {senderName}.",
+      "notice": "The message is waiting for you in your inbox.",
+      "cta_label": "Open the conversation",
+      "unsubscribe": "Unsubscribe from message emails"
+    },
+    "new_candidature": {
+      "subject": "New application for \"{title}\"",
+      "preheader": "An expert has applied to your posting.",
+      "title": "You have received an application",
+      "hello": "Hello {firstName},",
+      "intro": "An expert has applied to your posting \"{title}\".",
+      "cta_label": "View applications",
+      "unsubscribe": "Unsubscribe from application emails"
+    },
     "common_footer": "The Skilloria team",
     "common_signature": "See you soon,",
     "common_login_cta": "Sign in",
@@ -2652,15 +2684,29 @@
   "settings": {
     "notifications": {
       "title": "Notifications",
-      "description": "These notifications only concern new opportunities matching your profile — not messages or status changes.",
+      "description": "Choose what you want to be notified about, and through which channel. The in-app bell always stays on.",
       "email_label": "By email",
       "sms_label": "By SMS",
       "sms_unavailable": "Unavailable: your phone number is not verified.",
       "sms_verify_link": "Verify my phone",
-      "grouping_note": "Opportunities received within a short interval are grouped into a single message.",
+      "grouping_note": "Opportunities received within a short interval are grouped into a single message. Messages and applications are sent individually.",
       "saved_on": "Notifications enabled.",
       "saved_off": "Notifications disabled.",
-      "unsub_done": "You have been unsubscribed from email notifications."
+      "unsub_done": "You have been unsubscribed from email notifications.",
+      "events": {
+        "new_match_opportunity": {
+          "label": "New opportunities",
+          "description": "An assignment or a job matches your profile."
+        },
+        "new_candidature_received": {
+          "label": "Applications received",
+          "description": "An expert applies to one of your postings."
+        },
+        "new_message": {
+          "label": "New messages",
+          "description": "Someone writes to you. The message content is never copied into the email."
+        }
+      }
     },
     "title": "Settings",
     "subtitle": "Manage your account and preferences.",
@@ -2681,7 +2727,8 @@
       "saving": "Saving…",
       "success_generic": "Changes saved.",
       "error_generic": "Something went wrong. Please try again.",
-      "required": "Required field"
+      "required": "Required field",
+      "loading": "Loading…"
     },
     "identity": {
       "title": "Identity",

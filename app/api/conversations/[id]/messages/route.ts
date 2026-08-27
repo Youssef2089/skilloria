@@ -1,5 +1,10 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
+import { dispatchNotificationsForUsers } from '@/lib/notifications/dispatch'
+import {
+  newMessageInappLabels,
+  resolveNotificationLocale,
+} from '@/lib/notifications/inapp-labels'
 import { logAudit } from '@/lib/audit'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
 import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name-masking'
@@ -10,6 +15,9 @@ import { deriveCandidatureLifecycle } from '@/lib/candidatures/lifecycle'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+// Nécessaire au `after()` du POST : sans plafond explicite, l'envoi d'e-mail
+// lancé après la réponse n'a pas le temps de s'exécuter sur Vercel.
+export const maxDuration = 60
 
 /**
  * GET /api/conversations/[id]/messages — fil de messages côté participant.
@@ -52,24 +60,10 @@ const MAX_CONTENT_LEN = 5000
 const NOTIF_TYPE = 'new_message'
 const NOTIF_CHANNEL = 'inapp'
 const NOTIF_STATUS = 'pending'
-const VALID_LOCALES = ['fr', 'en', 'es', 'de']
-function normalizeLocale(raw: string | null | undefined): string {
-  if (raw && VALID_LOCALES.includes(raw)) return raw
-  return 'fr'
-}
-const NOTIF_TITLE: Record<string, string> = {
-  fr: 'Nouveau message',
-  en: 'New message',
-  es: 'Nuevo mensaje',
-  de: 'Neue Nachricht',
-}
-function notifBody(loc: string, senderName: string, preview: string): string {
-  const previewClip = preview.length > 80 ? `${preview.slice(0, 80)}…` : preview
-  if (loc === 'en') return `${senderName} wrote: "${previewClip}"`
-  if (loc === 'es') return `${senderName} escribió: «${previewClip}»`
-  if (loc === 'de') return `${senderName} schrieb: „${previewClip}"`
-  return `${senderName} vous a écrit : « ${previewClip} »`
-}
+// Libellés de la cloche : plus de table `Record<locale, string>` en dur ici.
+// Le vocabulaire de l'événement vit dans messages/*.json et se lit via
+// lib/notifications/inapp-labels (partagé avec l'e-mail du même événement).
+const normalizeLocale = resolveNotificationLocale
 
 type ConvJoin = {
   id: string
@@ -480,18 +474,40 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     const link = role === 'expert'
       ? `/dashboard/entreprise/messages/${convId}`
       : `${dashboardUrlForUserType(expertUserType)}/messages/${convId}`
+    // Libellés de la cloche : i18n partagée avec l'e-mail du même événement.
+    // Ils vivaient en dur ici (NOTIF_TITLE / notifBody) — deux vocabulaires
+    // pour un seul événement auraient divergé dès la première reformulation.
+    const inapp = newMessageInappLabels(otherUserLocale, senderFirstLast, content)
     const { error: notifErr } = await auth.supabaseAdmin.from('notifications').insert({
       user_id: otherUserId,
       domain_id: cand.domain_id,
       type: NOTIF_TYPE,
       channel: NOTIF_CHANNEL,
-      title: NOTIF_TITLE[otherUserLocale] ?? NOTIF_TITLE.fr,
-      body: notifBody(otherUserLocale, senderFirstLast, content),
+      title: inapp.title,
+      body: inapp.body,
       link_url: link,
       status: NOTIF_STATUS,
       entity_id: convId,
     })
-    if (notifErr) console.error('[conversations/[id]/messages:POST] notif insert failed', notifErr.message)
+    if (notifErr) {
+      console.error('[conversations/[id]/messages:POST] notif insert failed', notifErr.message)
+    } else {
+      // ⚠️ PIÈGE VERCEL : sans `after()`, tout travail lancé APRÈS la réponse
+      // est TUÉ, silencieusement — l'e-mail ne partirait jamais et aucune
+      // erreur n'apparaîtrait nulle part. `after()` + `maxDuration` (en tête
+      // de fichier) sont la seule façon correcte de faire ça ici.
+      // Best-effort : le dispatcher ne jette jamais, et le try/catch isole
+      // une panne Resend de l'envoi du message lui-même, déjà persisté.
+      after(async () => {
+        try {
+          await dispatchNotificationsForUsers(auth.supabaseAdmin, [otherUserId], {
+            events: ['new_message'],
+          })
+        } catch (err) {
+          console.error('[conversations/[id]/messages:POST] dispatch failed (best-effort)', err)
+        }
+      })
+    }
   }
 
   // ── Audit ───────────────────────────────────────────────────────────────

@@ -15,5 +15,5 @@ import SettingsView from '@/components/settings/SettingsView'
  * Aucune nouvelle clé i18n : le namespace `settings` couvre déjà tout.
  */
 export default function EntrepriseParametresPage() {
-  return <SettingsView side="entreprise" />
+  return <SettingsView />
 }

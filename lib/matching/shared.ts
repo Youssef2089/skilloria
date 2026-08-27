@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { MatchingConfig, MatchingLocale, ProfileCandidate } from './types'
 import type { AnnonceType } from '@/types/annonce'
-import { dispatchMatchNotificationsForUsers } from '@/lib/notifications/dispatch-match'
+import { dispatchNotificationsForUsers } from '@/lib/notifications/dispatch'
 
 /**
  * Helpers partagés entre les deux orchestrateurs `runMatchingForPublication`
@@ -354,7 +354,13 @@ export async function notifyAndFlip(args: {
       // l'insert ci-dessus (best-effort, aucune erreur remontée à l'appelant).
       try {
         const notifiedUserIds = Array.from(new Set(rows.map((r) => r.user_id)))
-        await dispatchMatchNotificationsForUsers(supabaseAdmin, notifiedUserIds)
+        // Borné explicitement à l'événement du matching : ce chemin ne doit
+        // jamais dépêcher au passage des messages ou des candidatures d'un
+        // même utilisateur, dont les envois appartiennent à leurs propres
+        // routes (et à leur propre after()).
+        await dispatchNotificationsForUsers(supabaseAdmin, notifiedUserIds, {
+          events: ['new_match_opportunity'],
+        })
       } catch (err) {
         console.error('[matching] envoi immédiat échoué (best-effort)', err instanceof Error ? err.message : err)
       }

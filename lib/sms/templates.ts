@@ -18,6 +18,9 @@ type SmsRoot = {
     one: string
     other: string
   }
+  new_candidature: {
+    text: string
+  }
 }
 
 const MESSAGES: Record<Locale, { sms_notifications: SmsRoot }> = {
@@ -54,6 +57,26 @@ export function renderMatchDigestSms(params: MatchDigestSmsParams): string {
   return interpolate(template, {
     count: String(params.count),
     platform: params.platform,
+    link: params.link,
+  })
+}
+
+export type NewCandidatureSmsParams = {
+  locale: string | null | undefined
+  /** Lien (court) vers les candidatures de l'annonce. */
+  link: string
+}
+
+/**
+ * SMS « nouvelle candidature reçue ».
+ *
+ * AUCUNE donnée identifiante du candidat, ni même le titre de l'annonce : un
+ * SMS tient en 160 caractères et un titre libre les ferait exploser en
+ * plusieurs segments facturés. Le lien porte le contexte.
+ */
+export function renderNewCandidatureSms(params: NewCandidatureSmsParams): string {
+  const locale = resolveLocale(params.locale)
+  return interpolate(MESSAGES[locale].sms_notifications.new_candidature.text, {
     link: params.link,
   })
 }

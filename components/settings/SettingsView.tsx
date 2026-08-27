@@ -39,8 +39,18 @@ type UserData = {
   phone: string | null
   phone_verified: boolean
   locale: string | null
-  notify_match_email: boolean
-  notify_match_sms: boolean
+}
+
+/**
+ * Un réglage de notification, TEL QUE SERVI par le serveur.
+ * Le client ne construit jamais cette liste : elle vient du catalogue
+ * (lib/notifications/catalog.ts) filtré pour ce compte. Un réglage absent de
+ * la réponse n'existe pas pour cet utilisateur.
+ */
+type NotificationSetting = {
+  event: string
+  channel: 'email' | 'sms'
+  enabled: boolean
 }
 
 type RequestReauth = () => Promise<string | null>
@@ -495,37 +505,56 @@ function NotificationsSection({ user, secureFetch, notify, goToPhone }: {
 }) {
   const t = useTranslations('settings.notifications')
   const tc = useTranslations('settings.common')
-  const [emailOn, setEmailOn] = useState(user.notify_match_email !== false)
-  const [smsOn, setSmsOn] = useState(user.notify_match_sms !== false)
-  const [busy, setBusy] = useState<'email' | 'sms' | null>(null)
+  // Les réglages sont SERVIS par /api/me/notification-preferences : la réponse
+  // EST le catalogue applicable à ce compte. Le composant ne connaît aucune
+  // liste d'événements — il rend ce qu'on lui donne. C'est ce qui garantit
+  // qu'un interrupteur affiché est toujours un interrupteur honoré, et que
+  // l'expert-publiant (qui reçoit à la fois opportunités, candidatures et
+  // messages) voit les trois sans code particulier.
+  const [settings, setSettings] = useState<NotificationSetting[] | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
   const phoneVerified = user.phone_verified === true
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const res = await secureFetch('/api/me/notification-preferences', { method: 'GET' })
+        if (!res.ok) { if (!cancelled) setSettings([]); return }
+        const data = (await res.json()) as { settings?: NotificationSetting[] }
+        if (!cancelled) setSettings(data.settings ?? [])
+      } catch {
+        if (!cancelled) setSettings([])
+      }
+    })()
+    return () => { cancelled = true }
+  }, [secureFetch])
+
+  const keyOf = (s: { event: string; channel: string }) => `${s.event}:${s.channel}`
 
   // Enregistrement IMMÉDIAT au basculement (pas de bouton Enregistrer), avec
   // retour d'état (toast) + rollback optimiste en cas d'échec.
-  const save = async (channel: 'email' | 'sms', next: boolean) => {
-    if (busy) return
-    const prevE = emailOn
-    const prevS = smsOn
-    if (channel === 'email') setEmailOn(next)
-    else setSmsOn(next)
-    setBusy(channel)
+  const save = async (setting: NotificationSetting, next: boolean) => {
+    if (busy || !settings) return
+    const k = keyOf(setting)
+    const previous = settings
+    setSettings(settings.map((s) => (keyOf(s) === k ? { ...s, enabled: next } : s)))
+    setBusy(k)
     try {
       const res = await secureFetch('/api/me/notification-preferences', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(channel === 'email' ? { email: next } : { sms: next }),
+        body: JSON.stringify({ event: setting.event, channel: setting.channel, enabled: next }),
       })
       if (!res.ok) {
-        setEmailOn(prevE)
-        setSmsOn(prevS)
+        setSettings(previous)
         notify(tc('error_generic'), 'error')
         setBusy(null)
         return
       }
       notify(next ? t('saved_on') : t('saved_off'))
     } catch {
-      setEmailOn(prevE)
-      setSmsOn(prevS)
+      setSettings(previous)
       notify(tc('error_generic'), 'error')
     }
     setBusy(null)
@@ -536,46 +565,76 @@ function NotificationsSection({ user, secureFetch, notify, goToPhone }: {
     padding: '16px 0', borderBottom: '1px solid #f1f5f9',
   }
 
+  if (settings === null) {
+    return (
+      <div>
+        <SectionHeader title={t('title')} description={t('description')} />
+        <div style={{ padding: 24, color: '#94a3b8', fontSize: 13.5 }}>{tc('loading')}</div>
+      </div>
+    )
+  }
+
+  // Regroupement par ÉVÉNEMENT : l'utilisateur raisonne « de quoi veux-je être
+  // prévenu », pas « quels canaux existent ».
+  const events = Array.from(new Set(settings.map((s) => s.event)))
+
   return (
     <div>
       <SectionHeader title={t('title')} description={t('description')} />
       <div style={{ maxWidth: 560 }}>
-        {/* Par e-mail */}
-        <div style={rowStyle}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0f172a' }}>{t('email_label')}</div>
-            <div style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 3, wordBreak: 'break-all' }}>
-              {user.email ?? '—'}
+        {events.map((event, i) => (
+          <div key={event} style={{ marginBottom: i === events.length - 1 ? 0 : 26 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0f172a' }}>
+              {t(`events.${event}.label` as 'events.new_message.label')}
             </div>
-          </div>
-          <Switch checked={emailOn} disabled={busy === 'email'} onChange={(v) => void save('email', v)} />
-        </div>
+            {/* Chaque réglage dit CE QU'IL DÉCLENCHE, en clair. */}
+            <div style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 3, lineHeight: 1.5 }}>
+              {t(`events.${event}.description` as 'events.new_message.description')}
+            </div>
 
-        {/* Par SMS */}
-        <div style={{ ...rowStyle, borderBottom: 'none' }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14.5, fontWeight: 700, color: phoneVerified ? '#0f172a' : '#94a3b8' }}>
-              {t('sms_label')}
-            </div>
-            <div style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 3 }}>
-              {phoneVerified ? (user.phone ?? '—') : t('sms_unavailable')}
-            </div>
-            {!phoneVerified && (
-              <button
-                type="button"
-                onClick={goToPhone}
-                style={{
-                  marginTop: 6, padding: 0, background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--sk-accent, #0ea5e9)', fontSize: 12.5, fontWeight: 600, fontFamily: fontJakarta,
-                  textDecoration: 'underline',
-                }}
-              >
-                {t('sms_verify_link')}
-              </button>
-            )}
+            {settings
+              .filter((s) => s.event === event)
+              .map((s, j, arr) => {
+                const isSms = s.channel === 'sms'
+                const unavailable = isSms && !phoneVerified
+                return (
+                  <div
+                    key={keyOf(s)}
+                    style={{ ...rowStyle, borderBottom: j === arr.length - 1 ? 'none' : rowStyle.borderBottom }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: unavailable ? '#94a3b8' : '#0f172a' }}>
+                        {isSms ? t('sms_label') : t('email_label')}
+                      </div>
+                      <div style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 3, wordBreak: 'break-all' }}>
+                        {isSms
+                          ? (phoneVerified ? (user.phone ?? '—') : t('sms_unavailable'))
+                          : (user.email ?? '—')}
+                      </div>
+                      {unavailable && (
+                        <button
+                          type="button"
+                          onClick={goToPhone}
+                          style={{
+                            marginTop: 6, padding: 0, background: 'none', border: 'none', cursor: 'pointer',
+                            color: 'var(--sk-accent, #0ea5e9)', fontSize: 12.5, fontWeight: 600, fontFamily: fontJakarta,
+                            textDecoration: 'underline',
+                          }}
+                        >
+                          {t('sms_verify_link')}
+                        </button>
+                      )}
+                    </div>
+                    <Switch
+                      checked={s.enabled && !unavailable}
+                      disabled={unavailable || busy === keyOf(s)}
+                      onChange={(v) => void save(s, v)}
+                    />
+                  </div>
+                )
+              })}
           </div>
-          <Switch checked={smsOn && phoneVerified} disabled={!phoneVerified || busy === 'sms'} onChange={(v) => void save('sms', v)} />
-        </div>
+        ))}
 
         {/* Mention regroupement */}
         <p style={{ margin: '18px 0 0', fontSize: 12.5, color: '#94a3b8', lineHeight: 1.5 }}>
@@ -587,16 +646,24 @@ function NotificationsSection({ user, secureFetch, notify, goToPhone }: {
 }
 
 // ─── Vue principale ─────────────────────────────────────────────────────────
-export default function SettingsView({ side: _side }: { side: 'freelance' | 'cdi' | 'entreprise' }) {
+/**
+ * La prop `side` a DISPARU. Elle ne servait qu'à masquer l'onglet Notifications
+ * côté entreprise ; ce filtrage vient désormais du catalogue serveur, qui
+ * raisonne sur ce que le compte peut réellement recevoir. Garder une prop que
+ * le composant n'utilise plus aurait laissé croire qu'elle influence encore
+ * quelque chose.
+ */
+export default function SettingsView() {
   const t = useTranslations('settings')
   const tn = useTranslations('settings.nav')
   const secureFetch = useSecureFetch()
-  // Onglet Notifications réservé aux experts (matching d'opportunités) — masqué
-  // pour l'entreprise.
-  const sections = useMemo<SectionId[]>(
-    () => (_side === 'entreprise' ? SECTIONS.filter((s) => s !== 'notifications') : SECTIONS),
-    [_side],
-  )
+  // L'onglet Notifications n'est plus filtré par CÔTÉ. Il l'était parce qu'il
+  // ne servait qu'au matching d'opportunités ; il porte désormais aussi les
+  // candidatures reçues et les messages, qui concernent l'organisation. Ce que
+  // chacun y voit est décidé par le CATALOGUE, côté serveur — un compte sans
+  // aucun réglage applicable verrait une section vide, ce qui n'arrive pas :
+  // « nouveau message » vaut pour tout le monde.
+  const sections = SECTIONS
   const [active, setActive] = useState<SectionId>('identity')
   const [user, setUser] = useState<UserData | null>(null)
   const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' } | null>(null)
@@ -623,7 +690,7 @@ export default function SettingsView({ side: _side }: { side: 'freelance' | 'cdi
     if (!session?.user) return
     const { data } = await supabase
       .from('users')
-      .select('first_name, last_name, email, phone, phone_verified, locale, notify_match_email, notify_match_sms')
+      .select('first_name, last_name, email, phone, phone_verified, locale')
       .eq('id', session.user.id)
       .maybeSingle()
     setUser((data as UserData | null) ?? null)

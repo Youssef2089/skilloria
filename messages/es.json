@@ -10,6 +10,19 @@
     "match_digest": {
       "one": "1 nueva misión coincide con tu perfil en {platform}. {link}",
       "other": "{count} nuevas misiones coinciden con tu perfil en {platform}. {link}"
+    },
+    "new_candidature": {
+      "text": "Has recibido una nueva candidatura. {link}"
+    }
+  },
+  "notifications_inapp": {
+    "new_message": {
+      "title": "Nuevo mensaje",
+      "body": "{senderName} escribió: «{preview}»"
+    },
+    "new_candidature_received": {
+      "title": "Nueva candidatura recibida",
+      "body": "Un experto se ha postulado a tu publicación «{title}»."
     }
   },
   "back_nav": {
@@ -2567,6 +2580,25 @@
       "cta_label": "Ver oportunidades",
       "unsubscribe": "Cancelar las notificaciones por correo"
     },
+    "new_message": {
+      "subject": "Nuevo mensaje de {senderName}",
+      "preheader": "Has recibido un nuevo mensaje.",
+      "title": "Tienes un nuevo mensaje",
+      "hello": "Hola {firstName}:",
+      "intro": "Tienes un nuevo mensaje de {senderName}.",
+      "notice": "El mensaje te espera en tu mensajería.",
+      "cta_label": "Abrir la conversación",
+      "unsubscribe": "Cancelar los correos de mensajes"
+    },
+    "new_candidature": {
+      "subject": "Nueva candidatura en «{title}»",
+      "preheader": "Un experto se ha postulado a tu publicación.",
+      "title": "Has recibido una candidatura",
+      "hello": "Hola {firstName}:",
+      "intro": "Un experto se ha postulado a tu publicación «{title}».",
+      "cta_label": "Ver las candidaturas",
+      "unsubscribe": "Cancelar los correos de candidaturas"
+    },
     "common_footer": "El equipo de Skilloria",
     "common_signature": "Hasta pronto,",
     "common_login_cta": "Iniciar sesión",
@@ -2652,15 +2684,29 @@
   "settings": {
     "notifications": {
       "title": "Notificaciones",
-      "description": "Estas notificaciones solo se refieren a nuevas oportunidades que coinciden con tu perfil, no a mensajes ni cambios de estado.",
+      "description": "Elige de qué quieres recibir aviso y por qué canal. La campana de la aplicación permanece siempre activa.",
       "email_label": "Por correo electrónico",
       "sms_label": "Por SMS",
       "sms_unavailable": "No disponible: tu teléfono no está verificado.",
       "sms_verify_link": "Verificar mi teléfono",
-      "grouping_note": "Las oportunidades recibidas en un breve intervalo se agrupan en un solo envío.",
+      "grouping_note": "Las oportunidades recibidas en un breve intervalo se agrupan en un solo envío. Los mensajes y las candidaturas se envían de uno en uno.",
       "saved_on": "Notificaciones activadas.",
       "saved_off": "Notificaciones desactivadas.",
-      "unsub_done": "Has cancelado las notificaciones por correo."
+      "unsub_done": "Has cancelado las notificaciones por correo.",
+      "events": {
+        "new_match_opportunity": {
+          "label": "Nuevas oportunidades",
+          "description": "Una misión o una oferta coincide con tu perfil."
+        },
+        "new_candidature_received": {
+          "label": "Candidaturas recibidas",
+          "description": "Un experto se postula a una de tus publicaciones."
+        },
+        "new_message": {
+          "label": "Nuevos mensajes",
+          "description": "Alguien te escribe. El contenido del mensaje nunca se copia en el correo."
+        }
+      }
     },
     "title": "Ajustes",
     "subtitle": "Gestiona tu cuenta y tus preferencias.",
@@ -2681,7 +2727,8 @@
       "saving": "Guardando…",
       "success_generic": "Cambios guardados.",
       "error_generic": "Algo salió mal. Inténtalo de nuevo.",
-      "required": "Campo obligatorio"
+      "required": "Campo obligatorio",
+      "loading": "Cargando…"
     },
     "identity": {
       "title": "Identidad",

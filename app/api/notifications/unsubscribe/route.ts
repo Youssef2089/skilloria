@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { verifyUnsubToken } from '@/lib/notification-unsub-token'
+import { setPreference } from '@/lib/notifications/preferences'
+import type { NotificationEventType } from '@/lib/notifications/catalog'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -10,7 +12,8 @@ export const dynamic = 'force-dynamic'
  *
  * PUBLIQUE (pas d'auth : un lien de désabonnement doit marcher sans re-login).
  * La légitimité vient de la signature HMAC du token (lib/notification-unsub-token).
- * Effet CÔTÉ SERVEUR : users.notify_match_email = false. Puis redirection vers
+ * Effet CÔTÉ SERVEUR : le canal EMAIL de l'événement visé par le token est
+ * désactivé dans `notification_preferences`. Puis redirection vers
  * l'onglet Notifications des paramètres, où l'utilisateur voit l'email désormais
  * désactivé et peut ajuster.
  *
@@ -47,24 +50,38 @@ export async function GET(request: NextRequest): Promise<Response> {
     return NextResponse.redirect(new URL('/fr?unsub=error', request.url))
   }
 
-  // Désactive la préférence email (idempotent) + lit de quoi router l'écran.
+  // Désactive le canal EMAIL de l'ÉVÉNEMENT visé par le lien (idempotent).
+  //
+  // Le token porte désormais l'événement. Un lien émis avant la généralisation
+  // n'en porte pas : `verifyUnsubToken` le fait retomber sur
+  // 'new_match_opportunity', le seul qui existait alors — aucun lien déjà parti
+  // dans une boîte mail ne cesse de fonctionner.
+  //
+  // On ne coupe QUE l'événement demandé : se désabonner des e-mails de
+  // messages ne doit pas faire taire les opportunités.
   const { data: user } = await admin
     .from('users')
     .select('user_type, locale')
     .eq('id', verified.uid)
     .maybeSingle()
 
-  const { error: updErr } = await admin
-    .from('users')
-    .update({ notify_match_email: false })
-    .eq('id', verified.uid)
-  if (updErr) {
-    console.error('[unsubscribe] update failed', updErr.message)
+  const res = await setPreference(
+    admin,
+    verified.uid,
+    verified.event as NotificationEventType,
+    'email',
+    false,
+  )
+  if (!res.ok) {
+    console.error('[unsubscribe] preference update failed', res.message)
     return NextResponse.redirect(new URL('/fr?unsub=error', request.url))
   }
 
   const locale = normalizeLocale((user?.locale as string | null | undefined) ?? null)
-  const segment = user?.user_type === 'expert_cdi' ? 'cdi' : 'freelance'
+  // Routage de l'écran de réglages selon le type de compte : un membre
+  // d'organisation n'a pas de tableau de bord expert.
+  const ut = (user?.user_type as string | null | undefined) ?? null
+  const segment = ut === 'expert_cdi' ? 'cdi' : ut === 'client' || ut === 'cabinet' ? 'entreprise' : 'freelance'
   return NextResponse.redirect(
     new URL(`/${locale}/dashboard/${segment}/parametres?tab=notifications&unsub=1`, request.url),
   )

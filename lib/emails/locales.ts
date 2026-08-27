@@ -88,6 +88,25 @@ type EmailsRoot = {
     cta_label: string
     unsubscribe: string
   }
+  new_message: {
+    subject: string
+    preheader: string
+    title: string
+    hello: string
+    intro: string
+    notice: string
+    cta_label: string
+    unsubscribe: string
+  }
+  new_candidature: {
+    subject: string
+    preheader: string
+    title: string
+    hello: string
+    intro: string
+    cta_label: string
+    unsubscribe: string
+  }
 }
 
 const MESSAGES: Record<Locale, { emails: EmailsRoot }> = {
