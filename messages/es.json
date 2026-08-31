@@ -1655,7 +1655,8 @@
       "to_review": "Por revisar",
       "in_progress": "En curso",
       "accepted": "Aceptadas",
-      "rejected": "Rechazadas"
+      "rejected": "Rechazadas",
+      "rejected_hint": "Ver las candidaturas rechazadas (archivadas)"
     },
     "overview": {
       "annonces_title": "Seguimiento de anuncios",
@@ -3130,7 +3131,9 @@
       "active": "Activas",
       "archived": "Archivadas",
       "active_count": "Activas ({count})",
-      "archived_count": "Archivadas ({count})"
+      "archived_count": "Archivadas ({count})",
+      "bucket_group": "Estado de las candidaturas",
+      "facet_group": "Filtrar por situación"
     },
     "empty_active_title": "Ninguna candidatura activa",
     "empty_active_body": "Las candidaturas en curso aparecerán aquí.",
@@ -3165,6 +3168,70 @@
       "rejected": "Candidatura rechazada",
       "withdrawn": "Candidatura retirada por el candidato",
       "archived": "Candidatura archivada"
+    },
+    "facets": {
+      "all": "Todas",
+      "empty_title": "Ninguna candidatura en «{facet}»",
+      "expert": {
+        "awaiting_review": {
+          "label": "En espera",
+          "empty": "Tus candidaturas a la espera de respuesta aparecerán aquí."
+        },
+        "exchange_open": {
+          "label": "Intercambios abiertos",
+          "empty": "Tus intercambios abiertos con una empresa aparecerán aquí."
+        },
+        "selected": {
+          "label": "Aceptadas",
+          "empty": "Las candidaturas en las que fuiste seleccionado aparecerán aquí."
+        },
+        "rejected": {
+          "label": "Rechazadas",
+          "empty": "Las candidaturas rechazadas por la empresa se archivarán aquí."
+        },
+        "exchange_expired": {
+          "label": "Intercambios cerrados",
+          "empty": "Los intercambios terminados sin continuidad se archivarán aquí."
+        },
+        "publication_ended": {
+          "label": "Anuncios finalizados",
+          "empty": "Las candidaturas cuyo anuncio expiró o fue retirado se archivarán aquí."
+        },
+        "withdrawn": {
+          "label": "Retiradas",
+          "empty": "Las candidaturas que hayas retirado se archivarán aquí."
+        }
+      },
+      "org": {
+        "awaiting_review": {
+          "label": "Por revisar",
+          "empty": "Las candidaturas que aún no has tratado aparecerán aquí."
+        },
+        "exchange_open": {
+          "label": "Intercambios abiertos",
+          "empty": "Los intercambios abiertos con un candidato aparecerán aquí."
+        },
+        "selected": {
+          "label": "Aceptadas",
+          "empty": "Los candidatos que has seleccionado aparecerán aquí."
+        },
+        "rejected": {
+          "label": "Rechazadas",
+          "empty": "Las candidaturas que has rechazado se archivarán aquí."
+        },
+        "exchange_expired": {
+          "label": "Intercambios cerrados",
+          "empty": "Los intercambios terminados sin continuidad se archivarán aquí."
+        },
+        "publication_ended": {
+          "label": "Anuncios finalizados",
+          "empty": "Las candidaturas recibidas en un anuncio expirado o retirado se archivarán aquí."
+        },
+        "withdrawn": {
+          "label": "Retiradas",
+          "empty": "Las candidaturas retiradas por el candidato se archivarán aquí."
+        }
+      }
     }
   }
 }

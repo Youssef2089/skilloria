@@ -6,10 +6,10 @@ import { loadTranslations, tBDD } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { isActivePublished } from '@/lib/publications/expiry'
 import { deriveLifecycleByCandidature } from '@/lib/candidatures/lifecycle-batch'
+import { emptyFacetCounts, facetForLifecycle } from '@/lib/candidatures/facets'
 import type {
   Annonce,
   AnnonceBudgetUnit,
-  AnnonceCandidatureFunnel,
   AnnonceCandidatures,
   AnnonceStatus,
   AnnonceType,
@@ -306,55 +306,22 @@ const VALID_STATUSES: readonly AnnonceStatus[] = [
 ]
 const VALID_TYPES: readonly AnnonceType[] = ['mission', 'offre', 'sous_traitance']
 
-function makeEmptyCandidatures(): AnnonceCandidatures {
-  return { active: makeEmptyAgg(), archived: makeEmptyAgg() }
-}
-
 /**
- * Mapping logique compteurs UI ↔ candidatures.status (Lot refonte dashboard
- * org + clarification entonnoir).
+ * Compteurs de candidatures par annonce — VENTILÉS PAR FACETTE.
  *
- * 4 buckets EXCLUSIFS qui s'additionnent au TOTAL :
- *   to_review   = 'received' + 'in_review' + 'shortlisted'  (à consulter,
- *                 actions org pas encore prises)
- *   in_progress = 'unlocked'                                (échanges en cours,
- *                 messagerie ouverte)
- *   accepted    = 'selected'                                (candidature acceptée)
- *   rejected    = 'rejected'                                (candidature refusée)
- *   total       = somme des 4 (ne compte ni withdrawn ni archived,
- *                 qui sont hors-funnel produit V1)
- *
- * Codes DB INCHANGÉS (selected, unlocked, …). Renommage uniquement display.
- *
- * VENTILÉ PAR ÉTAT DE VIE (lot compteurs) : chaque candidature est d'abord
- * rangée en 'active' ou 'archived' par deriveCandidatureLifecycle — le MÊME
- * helper que /api/publications/[id]/candidatures et /api/me/candidatures-org,
- * dont les listes ouvrent sur le bucket « Actives ». Sans cette ventilation, la
- * carte annonçait « 3 à consulter » sur une annonce expirée pendant que la
- * liste correspondante était vide.
+ * La ventilation par `candidatures.status` a disparu. Elle comptait sur la
+ * MÉCANIQUE (le statut) ce que les listes filtrent sur le FAIT (la raison
+ * dérivée), et laissait cinq raisons sur neuf hors de tout compteur — dont
+ * l'ensemble des refus, rangés dans le bucket archivé alors que la carte lisait
+ * l'actif. Une seule grandeur désormais : `facetForLifecycle`, la MÊME que
+ * `?facet=` sur /api/publications/[id]/candidatures, vers laquelle les
+ * compteurs de la carte pointent.
  *
  * Le badge nav "Candidatures" reste indépendant — basé sur `candidature_views`
  * (par item non consulté). Ces deux compteurs cohabitent volontairement.
  */
-type CounterAgg = AnnonceCandidatureFunnel
-function makeEmptyAgg(): CounterAgg {
-  return { total: 0, to_review: 0, in_progress: 0, accepted: 0, rejected: 0 }
-}
-function bumpAgg(agg: CounterAgg, status: string): void {
-  if (status === 'received' || status === 'in_review' || status === 'shortlisted') {
-    agg.to_review += 1
-    agg.total += 1
-  } else if (status === 'unlocked') {
-    agg.in_progress += 1
-    agg.total += 1
-  } else if (status === 'selected') {
-    agg.accepted += 1
-    agg.total += 1
-  } else if (status === 'rejected') {
-    agg.rejected += 1
-    agg.total += 1
-  }
-  // 'withdrawn' & 'archived' : hors-funnel (ne comptent pas dans total).
+function makeEmptyCandidatures(): AnnonceCandidatures {
+  return { total: 0, active: 0, archived: 0, facets: emptyFacetCounts() }
 }
 
 function normalizeLocale(raw: string | null): Locale {
@@ -486,11 +453,16 @@ export async function GET(request: NextRequest): Promise<Response> {
       for (const c of candidatures) {
         let agg = aggByPub.get(c.publication_id)
         if (!agg) { agg = makeEmptyCandidatures(); aggByPub.set(c.publication_id, agg) }
-        // Bucket inconnu impossible (la map couvre tout le lot) ; par sécurité
-        // une candidature non dérivée est rangée en archivée, jamais en active :
-        // on ne réclame pas une action sur une donnée qu'on n'a pas su lire.
-        const bucket = lifecycleByCand.get(c.id)?.bucket ?? 'archived'
-        bumpAgg(agg[bucket], c.status)
+        // État inconnu impossible (la map couvre tout le lot) ; par sécurité une
+        // candidature non dérivée est rangée en « annonce terminée » — donc
+        // archivée, jamais active : on ne réclame pas une action sur une donnée
+        // qu'on n'a pas su lire.
+        const lifecycle = lifecycleByCand.get(c.id) ?? null
+        const facet = lifecycle ? facetForLifecycle(lifecycle) : 'publication_ended'
+        const bucket = lifecycle?.bucket ?? 'archived'
+        agg.facets[facet] += 1
+        agg[bucket] += 1
+        agg.total += 1
       }
     }
   }

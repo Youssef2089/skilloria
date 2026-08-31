@@ -444,6 +444,12 @@ export default function DashboardFreelance() {
           transform: translateY(-4px);
           box-shadow: 0 8px 24px rgba(0,0,0,0.09);
         }
+        /* Tuile cliquable : affordance + focus clavier portés par le <a>. */
+        .stat-card.is-link { cursor: pointer; }
+        .stat-card.is-link:focus-visible {
+          outline: 2px solid ${domain.primaryColor};
+          outline-offset: 2px;
+        }
         .main-card {
           background: #fff;
           border-radius: 14px;
@@ -530,26 +536,53 @@ export default function DashboardFreelance() {
             />
           )}
 
-          {/* Lot état 'selected' : 4 stat-cards de comptage (Postulées, En
-              discussion, Acceptées, Refusées) + TJM card = 5 tuiles total. La
-              media query .stats-grid bascule en grid auto-fit min 140 sur
-              mobile pour rester lisible (cf. styles ci-dessous). */}
+          {/* Lot état 'selected' : 4 stat-cards de comptage + TJM card = 5
+              tuiles total. La media query .stats-grid bascule en grid auto-fit
+              min 140 sur mobile pour rester lisible (cf. styles ci-dessous).
+
+              Lot facettes : chaque tuile MÈNE à ce qu'elle compte. Le chiffre
+              vient de `stats.active.facets`, dérivé serveur ; le lien porte la
+              MÊME facette dans l'URL de /candidatures, qui refiltre le même
+              tableau avec le même prédicat. Une tuile à zéro reste cliquable :
+              c'est le seul moyen de vérifier qu'on n'a effectivement rien.
+              Tant que le profil n'est pas vérifié, il n'y a pas de liste à
+              ouvrir — la tuile reste alors un simple affichage « — ». */}
           <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 22 }}>
             {[
               // BUCKET ACTIF UNIQUEMENT, agrégé par le serveur (hook partagé
-              // avec l'accueil CDI). « Refusées » a disparu : `rejected` est
-              // une raison du bucket ARCHIVÉ, la tuile y aurait valu 0 à vie.
+              // avec l'accueil CDI). « Refusées » n'y figure pas : `rejected`
+              // est une facette du bucket ARCHIVÉ, elle y vaudrait 0 à vie.
               // « En attente » la remplace — active par définition.
-              { label: t('stats.active_applications'), value: !isVerified ? '—' : (apps.stats?.total ?? '…').toString(),           delay: '0.1s'  },
-              { label: t('stats.in_discussion'),       value: !isVerified ? '—' : (apps.stats?.exchange_open ?? '…').toString(),   delay: '0.13s' },
-              { label: t('stats.awaiting'),            value: !isVerified ? '—' : (apps.stats?.awaiting_review ?? '…').toString(), delay: '0.15s' },
-              { label: t('stats.retained'),            value: !isVerified ? '—' : (apps.stats?.selected ?? '…').toString(),        delay: '0.17s', accent: '#D97706' },
-            ].map((stat) => (
-              <div key={stat.label} className="stat-card" style={{ background: '#f3f4f6', animationDelay: stat.delay }}>
-                <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>{stat.label}</div>
-                <div style={{ fontSize: 28, fontWeight: 700, color: !isVerified ? '#d1d5db' : (stat.accent ?? '#111827'), animation: `countUp 0.5s ease ${stat.delay} both` }}>{stat.value}</div>
-              </div>
-            ))}
+              { label: t('stats.active_applications'), value: apps.stats?.total,                   facet: null,              delay: '0.1s'  },
+              { label: t('stats.in_discussion'),       value: apps.stats?.facets.exchange_open,    facet: 'exchange_open',   delay: '0.13s' },
+              { label: t('stats.awaiting'),            value: apps.stats?.facets.awaiting_review,  facet: 'awaiting_review', delay: '0.15s' },
+              { label: t('stats.retained'),            value: apps.stats?.facets.selected,         facet: 'selected',        delay: '0.17s', accent: '#D97706' },
+            ].map((stat) => {
+              const text = !isVerified ? '—' : (stat.value ?? '…').toString()
+              const body = (
+                <>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>{stat.label}</div>
+                  <div style={{ fontSize: 28, fontWeight: 700, color: !isVerified ? '#d1d5db' : (stat.accent ?? '#111827'), animation: `countUp 0.5s ease ${stat.delay} both` }}>{text}</div>
+                </>
+              )
+              if (!isVerified) {
+                return (
+                  <div key={stat.label} className="stat-card" style={{ background: '#f3f4f6', animationDelay: stat.delay }}>
+                    {body}
+                  </div>
+                )
+              }
+              return (
+                <Link
+                  key={stat.label}
+                  href={`/dashboard/freelance/candidatures?filter=active${stat.facet ? `&facet=${stat.facet}` : ''}`}
+                  className="stat-card is-link"
+                  style={{ background: '#f3f4f6', animationDelay: stat.delay, textDecoration: 'none', color: 'inherit', display: 'block' }}
+                >
+                  {body}
+                </Link>
+              )
+            })}
             <div className="stat-card" style={{ background: '#fff', border: `1px solid ${domain.primaryColor}55`, animationDelay: '0.25s' }}>
               <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>{t('stats.daily_rate')}</div>
               <div style={{ fontSize: profile?.tjm_min != null && profile?.tjm_max != null ? 18 : 24, fontWeight: 700, color: domain.primaryColor }}>

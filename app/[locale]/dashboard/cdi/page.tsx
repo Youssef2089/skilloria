@@ -396,6 +396,12 @@ export default function DashboardCDI() {
           animation: fadeInUp 0.4s ease both;
         }
         .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+        /* Tuile cliquable : affordance + focus clavier portés par le <a>. */
+        .stat-card.is-link { cursor: pointer; }
+        .stat-card.is-link:focus-visible {
+          outline: 2px solid ${domain.primaryColor};
+          outline-offset: 2px;
+        }
         .main-card {
           background: #fff;
           border: 1px solid #e2e8f0;
@@ -586,25 +592,29 @@ export default function DashboardCDI() {
               delay="0.1s"
               accentColor={domain.primaryColor}
               isPlaceholder={!isVerified}
+              href={isVerified ? '/dashboard/cdi/candidatures?filter=active' : undefined}
             />
             <KpiCard
               label={t('kpis.in_discussion')}
-              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.stats?.exchange_open ?? 0)}
+              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.stats?.facets.exchange_open ?? 0)}
               delay="0.13s"
               isPlaceholder={!isVerified}
+              href={isVerified ? '/dashboard/cdi/candidatures?filter=active&facet=exchange_open' : undefined}
             />
             <KpiCard
               label={t('kpis.awaiting')}
-              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.stats?.awaiting_review ?? 0)}
+              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.stats?.facets.awaiting_review ?? 0)}
               delay="0.16s"
               isPlaceholder={!isVerified}
+              href={isVerified ? '/dashboard/cdi/candidatures?filter=active&facet=awaiting_review' : undefined}
             />
             <KpiCard
               label={t('kpis.retained')}
-              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.stats?.selected ?? 0)}
+              value={!isVerified ? '—' : apps.loading ? '…' : String(apps.stats?.facets.selected ?? 0)}
               delay="0.2s"
               accentColor="#D97706"
               isPlaceholder={!isVerified}
+              href={isVerified ? '/dashboard/cdi/candidatures?filter=active&facet=selected' : undefined}
             />
           </div>
 
@@ -910,21 +920,30 @@ export default function DashboardCDI() {
 // =========================================================================
 // KPI Card
 // =========================================================================
+/**
+ * Tuile KPI de l'accueil CDI. Parité stricte avec l'accueil freelance : même
+ * source (`useExpertApplications`), mêmes facettes, même destination.
+ *
+ * `href` absent (profil non vérifié) ⇒ simple affichage : il n'y a pas de
+ * liste à ouvrir tant que le profil n'est pas validé.
+ */
 function KpiCard({
   label,
   value,
   delay,
   isPlaceholder = false,
   accentColor,
+  href,
 }: {
   label: string
   value: string
   delay: string
   isPlaceholder?: boolean
   accentColor?: string
+  href?: string
 }) {
-  return (
-    <div className="stat-card" style={{ animationDelay: delay }}>
+  const body = (
+    <>
       <div
         style={{
           fontSize: 12,
@@ -948,6 +967,22 @@ function KpiCard({
       >
         {value}
       </div>
-    </div>
+    </>
+  )
+  if (!href) {
+    return (
+      <div className="stat-card" style={{ animationDelay: delay }}>
+        {body}
+      </div>
+    )
+  }
+  return (
+    <Link
+      href={href}
+      className="stat-card is-link"
+      style={{ animationDelay: delay, textDecoration: 'none', color: 'inherit', display: 'block' }}
+    >
+      {body}
+    </Link>
   )
 }

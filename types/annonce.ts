@@ -18,6 +18,8 @@
  * skills_required (réservés à la vue détail si pertinents).
  */
 
+import type { CandidatureFacetCounts } from '@/lib/candidatures/facets'
+
 export type AnnonceStatus =
   | 'draft'
   | 'pending_review'
@@ -39,46 +41,36 @@ export type AnnonceType = 'mission' | 'offre' | 'sous_traitance'
 export type AnnonceBudgetUnit = 'day' | 'month' | 'year' | 'mission'
 
 /**
- * Entonnoir candidatures par annonce (Lot refonte dashboard org).
+ * Entonnoir candidatures par annonce, VENTILÉ PAR FACETTE
+ * (lib/candidatures/facets.ts).
  *
- * 4 buckets EXCLUSIFS qui s'additionnent au total :
- *   - to_review   : 'received' + 'in_review' + 'shortlisted'  (à consulter)
- *   - in_progress : 'unlocked'                                (échanges en cours)
- *   - accepted    : 'selected'                                (candidature acceptée)
- *   - rejected    : 'rejected'                                (candidature refusée)
- *   - total       = to_review + in_progress + accepted + rejected
+ * POURQUOI PLUS PAR STATUT
+ *   L'entonnoir comptait sur `candidatures.status` regroupé, puis ventilait le
+ *   résultat par bucket d'état de vie. Deux vocabulaires pour un seul fait, et
+ *   un piège structurel : « Refusées » lisait le bucket ACTIF alors qu'une
+ *   candidature refusée est archivée par définition — la tuile ne pouvait
+ *   afficher que 0, à vie. Le même piège avait déjà été retiré des accueils
+ *   experts ; l'accueil entreprise et la carte annonce l'avaient conservé.
  *
- * 'withdrawn' / 'archived' = hors-funnel V1, ne sont comptés nulle part.
+ *   Les facettes sont dérivées de `lifecycle.reason`, c'est-à-dire de la MÊME
+ *   grandeur que celle sur laquelle les listes de candidatures filtrent
+ *   (`?facet=`). Un compteur et la liste qu'il ouvre ne peuvent plus diverger,
+ *   et chaque facette porte son propre bucket : « Refusées » compte là où les
+ *   refus vivent.
  *
- * Codes ANGLAIS pour cohérence avec les statuts DB ; les libellés FR
- * ("À consulter", "Échanges en cours", "Acceptées", "Refusées") vivent
- * dans messages/{fr,en,es,de}.json — clés dashboard_entreprise.funnel.*.
- */
-export type AnnonceCandidatureFunnel = {
-  total: number
-  to_review: number
-  in_progress: number
-  accepted: number
-  rejected: number
-}
-
-/**
- * Entonnoir VENTILÉ PAR ÉTAT DE VIE dérivé (lib/candidatures/lifecycle.ts).
- *
- * POURQUOI DEUX ENTONNOIRS ET PAS UN
- *   Le statut brut ne dit pas si une candidature est encore vivante. Sur une
- *   annonce expirée ou clôturée, une candidature 'received' reste 'received' —
- *   la carte annonçait « 3 à consulter » pendant que l'onglet « Actives » de la
- *   page candidatures (bucket par défaut) en affichait 0. Le compteur et sa
- *   liste dérivent maintenant du MÊME helper.
- *
- * Les cartes affichent `active`. `archived` est exposé — pas masqué — pour
- *   qu'un écran futur n'ait pas à le recalculer, et parce que « 0 à consulter »
- *   sans dire qu'il y a 3 candidatures rangées serait une autre demi-vérité.
+ * PARTITION COMPLÈTE : la somme des 7 facettes vaut `total`. Les raisons que
+ * l'ancien entonnoir ne comptait nulle part (annonce expirée, annonce retirée,
+ * échange clos, retrait) ont maintenant leur case.
  */
 export type AnnonceCandidatures = {
-  active: AnnonceCandidatureFunnel
-  archived: AnnonceCandidatureFunnel
+  /** Toutes candidatures confondues (actives + archivées). */
+  total: number
+  /** Nombre de candidatures du bucket actif. */
+  active: number
+  /** Nombre de candidatures du bucket archivé. */
+  archived: number
+  /** Répartition fine — clés de `CandidatureFacet`. */
+  facets: CandidatureFacetCounts
 }
 
 export type Annonce = {

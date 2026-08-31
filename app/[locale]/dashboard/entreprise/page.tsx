@@ -10,7 +10,9 @@ import { useLiveResource } from '@/hooks/useLiveResource'
 import { useOrgRole } from '@/lib/use-org-role'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
 import { TAB_STATUS_MAP, type TabKey } from '@/components/dashboard/OrganisationDashboard'
-import type { Annonce, AnnonceCandidatureFunnel } from '@/types/annonce'
+import type { CandidatureFacet, CandidatureFacetCounts } from '@/lib/candidatures/facets'
+import { FACET_BUCKET } from '@/lib/candidatures/facets'
+import type { Annonce } from '@/types/annonce'
 
 /**
  * Dashboard entreprise (Lot refonte tableau de bord).
@@ -166,21 +168,33 @@ export default function DashboardEntreprise() {
     return r
   }, [annonces])
 
-  // Lot compteurs : somme des entonnoirs ACTIFS (état de vie dérivé serveur).
-  // Une candidature sur annonce expirée n'appelle plus d'action — elle ne doit
-  // pas gonfler le KPI d'accueil pendant que la liste correspondante est vide.
-  const candCounts: AnnonceCandidatureFunnel = useMemo(() => {
-    const acc: AnnonceCandidatureFunnel = { total: 0, to_review: 0, in_progress: 0, accepted: 0, rejected: 0 }
-    for (const a of annonces) {
-      const c = a.candidatures.active
-      acc.total += c.total
-      acc.to_review += c.to_review
-      acc.in_progress += c.in_progress
-      acc.accepted += c.accepted
-      acc.rejected += c.rejected
-    }
-    return acc
-  }, [annonces])
+  // ── Compteurs de candidatures : LA SOURCE EST LA LISTE ELLE-MÊME ────────
+  //
+  // Les tuiles sommaient les entonnoirs par annonce servis par /api/publications.
+  // Deux tableaux différents alimentaient alors le chiffre et la liste qu'il
+  // ouvre : celui-là plafonne à 500 annonces, la liste lit toutes les annonces
+  // de l'org puis plafonne à 2000 candidatures. Deux plafonds ⇒ un écart
+  // possible, c'est-à-dire un compteur qui peut contredire sa liste. On appelle
+  // donc /api/me/candidatures-org — LA MÊME ROUTE que la page Candidatures,
+  // avec `filter=all` — et on lit ses `facets`, calculés par le serveur sur le
+  // tableau que le clic affichera. Aucun agrégat client, aucun second plafond.
+  const candUrl = state.kind === 'ready'
+    ? `/api/me/candidatures-org?locale=${encodeURIComponent(locale)}&filter=all`
+    : null
+  const candLive = useLiveResource<
+    { candidatures: { id: string }[]; counts?: { active: number; archived: number }; facets?: CandidatureFacetCounts },
+    { id: string }
+  >({
+    url: candUrl,
+    itemsOf: (d) => d.candidatures ?? [],
+    identityOf: (c) => c.id,
+    versionOf: (c) => c.id,
+    holdNewItems: false,
+  })
+  const candFacets = candLive.data?.facets ?? null
+  const candTotal = candLive.data?.counts
+    ? candLive.data.counts.active + candLive.data.counts.archived
+    : null
 
   if (state.kind === 'loading' || state.kind === 'no_org' || needsRedirect) {
     return <div style={{ padding: 48, textAlign: 'center', color: '#64748b' }}>…</div>
@@ -404,41 +418,31 @@ export default function DashboardEntreprise() {
         {/* Total en lead */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
           <span style={{ fontSize: 38, fontWeight: 800, color: 'var(--sk-text)', lineHeight: 1, letterSpacing: '-1px' }}>
-            {isLoadingData ? '…' : candCounts.total}
+            {candTotal ?? '…'}
           </span>
           <span style={{ fontSize: 13, color: 'var(--sk-muted)', fontWeight: 500 }}>
             {t('funnel.total_suffix')}
           </span>
         </div>
 
-        {/* 4 buckets entonnoir */}
+        {/* 4 facettes — chaque tuile MÈNE à la facette qu'elle compte.
+            « Refusées » pointe vers les ARCHIVÉES : un refus y vit, et c'est
+            précisément parce que la tuile lisait l'actif qu'elle affichait 0 à
+            vie. `FACET_BUCKET` décide du bucket du lien — la facette porte son
+            bucket, on ne le devine pas ici. */}
         <div
           className="sk-dash-grid"
           style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}
         >
-          <FunnelTile
-            label={t('funnel.to_review')}
-            value={candCounts.to_review}
-            accent
-            loading={isLoadingData}
-          />
-          <FunnelTile
-            label={t('funnel.in_progress')}
-            value={candCounts.in_progress}
-            color="var(--sk-text)"
-            loading={isLoadingData}
-          />
-          <FunnelTile
-            label={t('funnel.accepted')}
-            value={candCounts.accepted}
-            color="#16A34A"
-            loading={isLoadingData}
-          />
+          <FunnelTile label={t('funnel.to_review')} facet="awaiting_review" facets={candFacets} accent />
+          <FunnelTile label={t('funnel.in_progress')} facet="exchange_open" facets={candFacets} color="var(--sk-text)" />
+          <FunnelTile label={t('funnel.accepted')} facet="selected" facets={candFacets} color="#16A34A" />
           <FunnelTile
             label={t('funnel.rejected')}
-            value={candCounts.rejected}
+            facet="rejected"
+            facets={candFacets}
             color="var(--sk-muted)"
-            loading={isLoadingData}
+            title={t('funnel.rejected_hint')}
           />
         </div>
       </section>
@@ -490,21 +494,39 @@ function PubTile({
   )
 }
 
+/**
+ * Tuile d'entonnoir candidatures. Comme <PubTile>, c'est un LIEN réel : le
+ * focus clavier, l'activation à Entrée et la cible tactile pleine tuile
+ * viennent avec l'élément.
+ *
+ * Le chiffre et la destination sortent de la MÊME facette : impossible de
+ * pointer ailleurs que là où l'on a compté.
+ */
 function FunnelTile({
   label,
-  value,
+  facet,
+  facets,
   color,
   accent,
-  loading,
+  title,
 }: {
   label: string
-  value: number
+  facet: CandidatureFacet
+  /** Compteurs servis par /api/me/candidatures-org. `null` = pas encore connus. */
+  facets: CandidatureFacetCounts | null
   color?: string
   accent?: boolean
-  loading: boolean
+  title?: string
 }) {
+  const href =
+    `/dashboard/entreprise/candidatures?filter=${FACET_BUCKET[facet]}&facet=${facet}`
   return (
-    <div className={`sk-dash-tile${accent ? ' is-accent' : ''}`}>
+    <Link
+      href={href}
+      title={title}
+      className={`sk-dash-tile is-link${accent ? ' is-accent' : ''}`}
+      style={{ textDecoration: 'none', color: 'inherit' }}
+    >
       <div style={{ fontSize: 11, color: accent ? 'var(--sk-accent-ink)' : 'var(--sk-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>
         {label}
       </div>
@@ -517,9 +539,9 @@ function FunnelTile({
           letterSpacing: '-0.5px',
         }}
       >
-        {loading ? '…' : value}
+        {facets ? facets[facet] : '…'}
       </div>
-    </div>
+    </Link>
   )
 }
 

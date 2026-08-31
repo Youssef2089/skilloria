@@ -2,11 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { Link, useRouter } from '@/i18n/navigation'
+import { useSearchParams } from 'next/navigation'
+import { Link, usePathname, useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { type CandidatureData } from '@/components/dashboard/CandidatureCard'
 import CastingCarousel from '@/components/dashboard/CastingCarousel'
+import CandidatureFilterChips, {
+  type CandidatureFilterValue,
+} from '@/components/dashboard/CandidatureFilterChips'
+import { useCandidatureFacetLabels } from '@/lib/candidatures/use-facet-label'
+import { parseFacetFilter, type CandidatureFacetCounts } from '@/lib/candidatures/facets'
 import { IconExternalLink } from '@tabler/icons-react'
 
 /**
@@ -47,7 +53,13 @@ type BucketKey = 'active' | 'archived'
 type State =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
-  | { kind: 'ready'; candidatures: GlobalCandidature[]; publications: PublicationInfo[]; counts: BucketCounts }
+  | {
+      kind: 'ready'
+      candidatures: GlobalCandidature[]
+      publications: PublicationInfo[]
+      counts: BucketCounts
+      facets: CandidatureFacetCounts | null
+    }
 
 export default function GlobalCandidaturesPage() {
   const t = useTranslations('candidatures.feed_global')
@@ -61,15 +73,33 @@ export default function GlobalCandidaturesPage() {
 
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [selectedPubId, setSelectedPubId] = useState<string | null>(null)
-  // Deux buckets, ACTIVES par défaut — mêmes libellés et même filtre que côté
-  // expert. Le bucket est demandé au SERVEUR : la page ne trie rien elle-même.
-  const [bucket, setBucket] = useState<BucketKey>('active')
+
+  // ── Filtres portés par l'URL ────────────────────────────────────────────
+  // Bucket (Actives par défaut) + FACETTE, exactement comme côté expert et via
+  // le même composant de chips. L'URL plutôt qu'un `useState` : les tuiles de
+  // l'accueil entreprise mènent directement à une facette, et un état local
+  // n'est pas atteignable depuis un lien. La vue devient partageable et
+  // survit au rechargement.
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const bucket: BucketKey = searchParams.get('filter') === 'archived' ? 'archived' : 'active'
+  const facet = parseFacetFilter(searchParams.get('facet'), bucket)
+  const facetLabels = useCandidatureFacetLabels('org')
+  const setFilters = useCallback(
+    (next: CandidatureFilterValue) => {
+      const qs = new URLSearchParams({ filter: next.bucket })
+      if (next.facet) qs.set('facet', next.facet)
+      router.replace(`${pathname}?${qs.toString()}`, { scroll: false })
+    },
+    [pathname, router],
+  )
 
   const load = useCallback(async () => {
     setState({ kind: 'loading' })
     try {
       const res = await secureFetch(
-        `/api/me/candidatures-org?locale=${encodeURIComponent(locale)}&filter=${bucket}`,
+        `/api/me/candidatures-org?locale=${encodeURIComponent(locale)}&filter=${bucket}` +
+          (facet ? `&facet=${facet}` : ''),
         { method: 'GET' },
       )
       const payload = (await res.json().catch(() => ({} as { code?: string }))) as {
@@ -77,6 +107,7 @@ export default function GlobalCandidaturesPage() {
         candidatures?: GlobalCandidature[]
         publications?: PublicationInfo[]
         counts?: BucketCounts
+        facets?: CandidatureFacetCounts
       }
       if (!res.ok) {
         setState({ kind: 'error', message: t('error_generic') })
@@ -87,12 +118,13 @@ export default function GlobalCandidaturesPage() {
         candidatures: payload.candidatures ?? [],
         publications: payload.publications ?? [],
         counts: payload.counts ?? { active: 0, archived: 0 },
+        facets: payload.facets ?? null,
       })
     } catch (err) {
       console.error('[global candidatures] fetch threw', err)
       setState({ kind: 'error', message: t('error_generic') })
     }
-  }, [locale, secureFetch, t, bucket])
+  }, [locale, secureFetch, t, bucket, facet])
 
   useEffect(() => { void load() }, [load])
 
@@ -134,9 +166,12 @@ export default function GlobalCandidaturesPage() {
   )
   const selectedItems = selectedPubId ? (byPub.get(selectedPubId) ?? []) : []
 
-  if (state.kind === 'loading') {
-    return <div style={{ padding: 48, textAlign: 'center', color: 'var(--sk-muted)', fontFamily: 'inherit' }}>{t('loading')}</div>
-  }
+  // PAS de retour anticipé sur 'loading' : le chrome (en-tête + chips) doit
+  // rester à l'écran. Chaque clic sur une chip relance un fetch ; un retour
+  // anticipé ferait disparaître les filtres à chaque bascule et l'utilisateur
+  // ne pourrait plus revenir en arrière. Le chargement se traite dans la zone
+  // de contenu. C'est le correctif déjà appliqué côté expert.
+  const isLoading = state.kind === 'loading'
   if (state.kind === 'error') {
     return (
       <div style={{ maxWidth: 560, margin: '60px auto', padding: '0 24px', textAlign: 'center', fontFamily: 'inherit' }}>
@@ -156,9 +191,10 @@ export default function GlobalCandidaturesPage() {
     )
   }
 
-  // Compteurs des DEUX buckets, servis par le serveur : l'onglet Archivées
-  // affiche son nombre sans second appel et sans recomptage client.
-  const bucketCounts = state.counts
+  // Compteurs servis par le serveur : les chips affichent leur nombre sans
+  // second appel et sans recomptage client. `null` pendant un chargement.
+  const bucketCounts = state.kind === 'ready' ? state.counts : null
+  const facetCounts = state.kind === 'ready' ? state.facets : null
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
@@ -222,36 +258,22 @@ export default function GlobalCandidaturesPage() {
         </p>
       </header>
 
-      {/* Actives / Archivées — mêmes buckets, mêmes libellés, même défaut que
-          le menu Candidatures de l'expert. Compteurs servis par le serveur. */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-        {([
-          { key: 'active' as const,   label: tLifecycle('filters.active_count',   { count: bucketCounts.active }) },
-          { key: 'archived' as const, label: tLifecycle('filters.archived_count', { count: bucketCounts.archived }) },
-        ]).map((b) => {
-          const on = bucket === b.key
-          return (
-            <button
-              key={b.key}
-              type="button"
-              aria-pressed={on}
-              onClick={() => setBucket(b.key)}
-              style={{
-                fontSize: 12.5, fontWeight: 600, padding: '6px 13px',
-                borderRadius: 999,
-                color: on ? 'var(--sk-accent-ink)' : 'var(--sk-muted)',
-                background: on ? 'var(--sk-accent-soft)' : 'var(--sk-surface)',
-                border: on ? '1px solid transparent' : '1px solid var(--sk-border)',
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              {b.label}
-            </button>
-          )
-        })}
-      </div>
+      {/* Buckets + facettes — composant PARTAGÉ avec le menu Candidatures de
+          l'expert : mêmes chips, mêmes règles, deux vocabulaires. */}
+      <CandidatureFilterChips
+        viewpoint="org"
+        value={{ bucket, facet }}
+        counts={bucketCounts}
+        facets={facetCounts}
+        onChange={setFilters}
+      />
 
-      {pubOptions.length === 0 ? (
+      {/* L'ORDRE COMPTE : le chargement est testé AVANT la vacuité. Une liste
+          vide pendant un fetch n'est pas une absence de résultat, c'est une
+          absence de réponse. */}
+      {isLoading ? (
+        <div style={{ padding: 48, textAlign: 'center', color: 'var(--sk-muted)' }}>{t('loading')}</div>
+      ) : pubOptions.length === 0 ? (
         <div
           style={{
             background: 'var(--sk-surface)', border: '0.5px solid var(--sk-border)',
@@ -259,10 +281,22 @@ export default function GlobalCandidaturesPage() {
             color: 'var(--sk-muted)', fontSize: 14, lineHeight: 1.6, marginTop: 16,
           }}
         >
+          {/* L'état vide NOMME le filtre courant : une facette à zéro est un
+              résultat légitime, encore faut-il dire LEQUEL est vide. */}
           <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
-            {bucket === 'archived' ? tLifecycle('empty_archived_title') : t('empty_all_title')}
+            {facet
+              ? facetLabels.emptyTitle(facet)
+              : bucket === 'archived'
+                ? tLifecycle('empty_archived_title')
+                : t('empty_all_title')}
           </div>
-          <div>{bucket === 'archived' ? tLifecycle('empty_archived_body') : t('empty_all_subtitle')}</div>
+          <div>
+            {facet
+              ? facetLabels.emptyBody(facet)
+              : bucket === 'archived'
+                ? tLifecycle('empty_archived_body')
+                : t('empty_all_subtitle')}
+          </div>
         </div>
       ) : (
         <div className="sk-cand-layout">

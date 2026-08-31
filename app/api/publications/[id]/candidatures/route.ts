@@ -4,6 +4,12 @@ import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { buildOrgCandidatureDTOs, countByBucket } from '@/lib/candidature-org-dto'
 import { parseBucketFilter } from '@/lib/candidatures/lifecycle'
+import {
+  assertFacetPartition,
+  countFacets,
+  facetForLifecycle,
+  parseFacetFilter,
+} from '@/lib/candidatures/facets'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -105,6 +111,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   const url = new URL(request.url)
   const locale = normalizeLocale(url.searchParams.get('locale'))
   const bucketFilter = parseBucketFilter(url.searchParams.get('filter'))
+  const facetFilter = parseFacetFilter(url.searchParams.get('facet'), bucketFilter)
   const translations = await loadTranslations(locale)
   let all: Awaited<ReturnType<typeof buildOrgCandidatureDTOs>>
   try {
@@ -113,8 +120,16 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
   // Compteurs sur la totalité, liste filtrée : cf. /api/me/candidatures-org.
+  // `facets` alimente les chips ET les quatre compteurs d'<AnnonceCard>, qui
+  // pointent vers cette même route : même tableau, même prédicat.
   const counts = countByBucket(all)
-  const candidatures = bucketFilter ? all.filter((c) => c.lifecycle.bucket === bucketFilter) : all
+  const facets = countFacets(all)
+  assertFacetPartition(facets, counts, `publications/${publicationId}/candidatures`)
+  const candidatures = all.filter((c) => {
+    if (bucketFilter && c.lifecycle.bucket !== bucketFilter) return false
+    if (facetFilter && facetForLifecycle(c.lifecycle) !== facetFilter) return false
+    return true
+  })
 
   return json(
     {
@@ -127,7 +142,9 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
       },
       candidatures,
       counts,
+      facets,
       filter: bucketFilter ?? 'all',
+      facet: facetFilter,
     },
     200,
   )

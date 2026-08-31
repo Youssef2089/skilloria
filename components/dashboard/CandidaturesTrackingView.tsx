@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { useSearchParams } from 'next/navigation'
+import { usePathname, useRouter } from '@/i18n/navigation'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import {
   IconLockOpen,
@@ -23,6 +25,14 @@ import {
   useCandidatureLifecycleLabel,
 } from '@/lib/candidatures/use-lifecycle-label'
 import type { CandidaturesAggregate } from '@/lib/candidatures/aggregate'
+import CandidatureFilterChips, {
+  type CandidatureFilterValue,
+} from '@/components/dashboard/CandidatureFilterChips'
+import { useCandidatureFacetLabels } from '@/lib/candidatures/use-facet-label'
+import {
+  parseFacetFilter,
+  type CandidatureFacetCounts,
+} from '@/lib/candidatures/facets'
 import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
 import { useRelativeTime } from '@/lib/use-relative-time'
 
@@ -36,13 +46,21 @@ import { useRelativeTime } from '@/lib/use-relative-time'
  * liste à gauche + détail à droite avec timeline + meta + actions).
  * Polling 30s + focus + bump préservé.
  *
- * FILTRE (lot état de vie) : DEUX buckets, Actives et Archivées — c'est la
- * cible produit, pas cinq chips par statut brut. Le filtrage est fait par le
- * SERVEUR (`?filter=`), pas ici : le client demande un bucket et affiche ce
- * qu'on lui rend. Il ne peut pas montrer active ce que le serveur dit
- * archivé. ACTIVES PAR DÉFAUT. Les chips sont rendues INCONDITIONNELLEMENT :
- * les cacher quand le bucket courant est vide privait l'utilisateur du seul
- * moyen d'atteindre l'autre onglet.
+ * FILTRE (lot état de vie) : DEUX buckets, Actives et Archivées, puis une
+ * FACETTE dans le bucket (lib/candidatures/facets.ts). Deux buckets seuls ne
+ * suffisaient pas : un expert avec trente candidatures ne pouvait pas isoler
+ * celles encore en attente de réponse. Le filtrage est fait par le SERVEUR
+ * (`?filter=` + `?facet=`), pas ici : le client demande, affiche ce qu'on lui
+ * rend, et ne peut pas montrer active ce que le serveur dit archivé.
+ * ACTIVES PAR DÉFAUT. Les chips sont rendues INCONDITIONNELLEMENT : les cacher
+ * quand la sélection courante est vide privait l'utilisateur du seul moyen
+ * d'en sortir.
+ *
+ * L'ÉTAT DES FILTRES VIT DANS L'URL (`?filter=`, `?facet=`), pas dans un
+ * `useState`. Les tuiles chiffrées des accueils experts mènent directement à
+ * une facette : un état local n'aurait pas été atteignable depuis un lien, et
+ * il aurait fallu un second mécanisme pour le lui dire. Bénéfice immédiat :
+ * la vue est partageable et survit au rechargement.
  *
  * RIEN N'EST AGRÉGÉ ICI. Compteurs d'onglets (`counts`) ET bandeau (`stats`)
  * viennent de la même réponse, calculés par le serveur sur le même tableau
@@ -74,8 +92,28 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
   const relTime = useRelativeTime()
   const tLifecycle = useTranslations('candidature_lifecycle')
   const lifecycleLabel = useCandidatureLifecycleLabel('expert')
-  const [bucket, setBucket] = useState<BucketKey>('active')
+  const facetLabels = useCandidatureFacetLabels('expert')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  // ── Filtres portés par l'URL ────────────────────────────────────────────
+  // `parseBucketFilter` vit côté serveur (lib/candidatures/lifecycle) et n'est
+  // pas importable ici sans traîner ses dépendances : on relit la même règle
+  // minimale — 'archived' explicite, actives par défaut. La facette, elle,
+  // passe par le MÊME `parseFacetFilter` que la route, qui refuse déjà une
+  // facette étrangère au bucket.
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const router = useRouter()
+  const bucket: BucketKey = searchParams.get('filter') === 'archived' ? 'archived' : 'active'
+  const facet = parseFacetFilter(searchParams.get('facet'), bucket)
+  const setFilters = useCallback(
+    (next: CandidatureFilterValue) => {
+      const qs = new URLSearchParams({ filter: next.bucket })
+      if (next.facet) qs.set('facet', next.facet)
+      router.replace(`${pathname}?${qs.toString()}`, { scroll: false })
+    },
+    [pathname, router],
+  )
 
   // useLiveResource : holdNewItems=false ici, les changements d'état
   // (échange ouvert / refus / expiration) doivent apparaître instantanément.
@@ -84,11 +122,14 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
     {
       candidatures: Candidature[]
       counts?: { active: number; archived: number }
+      facets?: CandidatureFacetCounts
       stats?: CandidaturesStatsPayload
     },
     Candidature
   >({
-    url: `/api/me/candidatures?locale=${encodeURIComponent(locale)}&filter=${bucket}`,
+    url:
+      `/api/me/candidatures?locale=${encodeURIComponent(locale)}&filter=${bucket}` +
+      (facet ? `&facet=${facet}` : ''),
     itemsOf: (d) => d.candidatures ?? [],
     identityOf: (c) => c.id,
     // `lifecycle.reason` fait partie de la version : une candidature qui
@@ -99,6 +140,7 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
   const state = live.state
   const list = live.data?.candidatures ?? []
   const counts = live.data?.counts ?? { active: 0, archived: 0 }
+  const facetCounts = live.data?.facets ?? null
   // Plus de filtrage client : la liste servie EST le bucket demandé.
   const filtered = list
   useEffect(() => {
@@ -129,9 +171,9 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
   // seraient faux — c'est le même principe que les chips sans nombre.
   const serverStats = live.data?.stats?.all ?? null
   const stats: Stat[] = [
-    { value: serverStats?.total ?? null,           label: t('stats.total') },
-    { value: serverStats?.exchange_open ?? null,   label: t('stats.open'), emphasis: 'success' },
-    { value: serverStats?.awaiting_review ?? null, label: t('stats.wait') },
+    { value: serverStats?.total ?? null,                   label: t('stats.total') },
+    { value: serverStats?.facets.exchange_open ?? null,    label: t('stats.open'), emphasis: 'success' },
+    { value: serverStats?.facets.awaiting_review ?? null,  label: t('stats.wait') },
     {
       value: serverStats?.avg_score_pct == null ? '—' : `${serverStats.avg_score_pct}%`,
       label: t('stats.avg_score'),
@@ -153,28 +195,6 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
     )
   }
 
-  // DEUX buckets, pas cinq chips par statut : Actives (ce qui peut encore
-  // bouger, sélection comprise) et Archivées (ce dont plus rien ne sortira,
-  // toujours consultable). Compteurs servis par le serveur.
-  //
-  // Pendant un chargement, `counts` n'est pas connu : on affiche le libellé
-  // SANS nombre plutôt qu'un « (0) » qui serait faux. Un libellé nu ne ment
-  // pas ; un zéro, si.
-  const buckets: Array<{ key: BucketKey; label: string }> = [
-    {
-      key: 'active',
-      label: isLoading
-        ? tLifecycle('filters.active')
-        : tLifecycle('filters.active_count', { count: counts.active }),
-    },
-    {
-      key: 'archived',
-      label: isLoading
-        ? tLifecycle('filters.archived')
-        : tLifecycle('filters.archived_count', { count: counts.archived }),
-    },
-  ]
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
@@ -191,29 +211,17 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
         detailVisible={selected !== null}
         list={
           <>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-              {buckets.map((f) => {
-                const on = bucket === f.key
-                return (
-                  <button
-                    key={f.key}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => setBucket(f.key)}
-                    style={{
-                      fontSize: 12.5, fontWeight: 600, padding: '6px 13px',
-                      borderRadius: 999,
-                      color: on ? 'var(--sk-accent-ink)' : 'var(--sk-muted)',
-                      background: on ? 'var(--sk-accent-soft)' : 'var(--sk-surface)',
-                      border: on ? '1px solid transparent' : '1px solid var(--sk-border)',
-                      cursor: 'pointer', fontFamily: 'inherit',
-                    }}
-                  >
-                    {f.label}
-                  </button>
-                )
-              })}
-            </div>
+            {/* Chips buckets + facettes — composant PARTAGÉ avec la page
+                candidatures de l'organisation. Pendant un chargement on passe
+                `null` : le libellé s'affiche sans nombre plutôt qu'avec un
+                « (0) » qui serait faux. Un libellé nu ne ment pas ; un zéro, si. */}
+            <CandidatureFilterChips
+              viewpoint="expert"
+              value={{ bucket, facet }}
+              counts={isLoading ? null : counts}
+              facets={isLoading ? null : facetCounts}
+              onChange={setFilters}
+            />
 
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 11, paddingRight: 2 }}>
               {/* L'ORDRE COMPTE : le chargement est testé AVANT la vacuité.
@@ -224,10 +232,21 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
                   {t('loading')}
                 </div>
               ) : filtered.length === 0 ? (
+                // L'état vide NOMME le filtre courant. Une facette à zéro est
+                // un résultat légitime — encore faut-il que l'écran dise
+                // LEQUEL est vide, sinon l'utilisateur croit avoir tout perdu.
                 <EmptyState
                   icon={bucket === 'archived' ? '🗂️' : '🔍'}
-                  title={tLifecycle(bucket === 'archived' ? 'empty_archived_title' : 'empty_active_title')}
-                  body={tLifecycle(bucket === 'archived' ? 'empty_archived_body' : 'empty_active_body')}
+                  title={
+                    facet
+                      ? facetLabels.emptyTitle(facet)
+                      : tLifecycle(bucket === 'archived' ? 'empty_archived_title' : 'empty_active_title')
+                  }
+                  body={
+                    facet
+                      ? facetLabels.emptyBody(facet)
+                      : tLifecycle(bucket === 'archived' ? 'empty_archived_body' : 'empty_active_body')
+                  }
                   surface="card"
                 />
               ) : (

@@ -1655,7 +1655,8 @@
       "to_review": "Zu prüfen",
       "in_progress": "Im Austausch",
       "accepted": "Angenommen",
-      "rejected": "Abgelehnt"
+      "rejected": "Abgelehnt",
+      "rejected_hint": "Abgelehnte Bewerbungen ansehen (archiviert)"
     },
     "overview": {
       "annonces_title": "Übersicht Anzeigen",
@@ -3130,7 +3131,9 @@
       "active": "Aktiv",
       "archived": "Archiviert",
       "active_count": "Aktiv ({count})",
-      "archived_count": "Archiviert ({count})"
+      "archived_count": "Archiviert ({count})",
+      "bucket_group": "Status der Bewerbungen",
+      "facet_group": "Nach Situation filtern"
     },
     "empty_active_title": "Keine aktiven Bewerbungen",
     "empty_active_body": "Laufende Bewerbungen erscheinen hier.",
@@ -3165,6 +3168,70 @@
       "rejected": "Bewerbung abgelehnt",
       "withdrawn": "Bewerbung vom Kandidaten zurückgezogen",
       "archived": "Bewerbung archiviert"
+    },
+    "facets": {
+      "all": "Alle",
+      "empty_title": "Keine Bewerbung unter „{facet}“",
+      "expert": {
+        "awaiting_review": {
+          "label": "Ausstehend",
+          "empty": "Ihre Bewerbungen, die auf eine Antwort warten, erscheinen hier."
+        },
+        "exchange_open": {
+          "label": "Laufende Gespräche",
+          "empty": "Ihre laufenden Gespräche mit einem Unternehmen erscheinen hier."
+        },
+        "selected": {
+          "label": "Angenommen",
+          "empty": "Bewerbungen, für die Sie ausgewählt wurden, erscheinen hier."
+        },
+        "rejected": {
+          "label": "Abgelehnt",
+          "empty": "Vom Unternehmen abgelehnte Bewerbungen werden hier abgelegt."
+        },
+        "exchange_expired": {
+          "label": "Beendete Gespräche",
+          "empty": "Ohne Ergebnis beendete Gespräche werden hier abgelegt."
+        },
+        "publication_ended": {
+          "label": "Beendete Anzeigen",
+          "empty": "Bewerbungen, deren Anzeige abgelaufen oder zurückgezogen wurde, werden hier abgelegt."
+        },
+        "withdrawn": {
+          "label": "Zurückgezogen",
+          "empty": "Von Ihnen zurückgezogene Bewerbungen werden hier abgelegt."
+        }
+      },
+      "org": {
+        "awaiting_review": {
+          "label": "Zu prüfen",
+          "empty": "Noch nicht bearbeitete Bewerbungen erscheinen hier."
+        },
+        "exchange_open": {
+          "label": "Laufende Gespräche",
+          "empty": "Laufende Gespräche mit einer Kandidatin oder einem Kandidaten erscheinen hier."
+        },
+        "selected": {
+          "label": "Angenommen",
+          "empty": "Die von Ihnen ausgewählten Personen erscheinen hier."
+        },
+        "rejected": {
+          "label": "Abgelehnt",
+          "empty": "Von Ihnen abgelehnte Bewerbungen werden hier abgelegt."
+        },
+        "exchange_expired": {
+          "label": "Beendete Gespräche",
+          "empty": "Ohne Ergebnis beendete Gespräche werden hier abgelegt."
+        },
+        "publication_ended": {
+          "label": "Beendete Anzeigen",
+          "empty": "Bewerbungen auf eine abgelaufene oder zurückgezogene Anzeige werden hier abgelegt."
+        },
+        "withdrawn": {
+          "label": "Zurückgezogen",
+          "empty": "Von der bewerbenden Person zurückgezogene Bewerbungen werden hier abgelegt."
+        }
+      }
     }
   }
 }

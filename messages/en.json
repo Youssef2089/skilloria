@@ -1655,7 +1655,8 @@
       "to_review": "To review",
       "in_progress": "In progress",
       "accepted": "Accepted",
-      "rejected": "Declined"
+      "rejected": "Declined",
+      "rejected_hint": "View declined applications (archived)"
     },
     "overview": {
       "annonces_title": "Listings overview",
@@ -3130,7 +3131,9 @@
       "active": "Active",
       "archived": "Archived",
       "active_count": "Active ({count})",
-      "archived_count": "Archived ({count})"
+      "archived_count": "Archived ({count})",
+      "bucket_group": "Application state",
+      "facet_group": "Filter by situation"
     },
     "empty_active_title": "No active applications",
     "empty_active_body": "Applications still in play will appear here.",
@@ -3165,6 +3168,70 @@
       "rejected": "Application declined",
       "withdrawn": "Application withdrawn by the candidate",
       "archived": "Application archived"
+    },
+    "facets": {
+      "all": "All",
+      "empty_title": "No applications in “{facet}”",
+      "expert": {
+        "awaiting_review": {
+          "label": "Awaiting reply",
+          "empty": "Your applications waiting for a reply will appear here."
+        },
+        "exchange_open": {
+          "label": "Open exchanges",
+          "empty": "Your open exchanges with a company will appear here."
+        },
+        "selected": {
+          "label": "Accepted",
+          "empty": "The applications where you were selected will appear here."
+        },
+        "rejected": {
+          "label": "Declined",
+          "empty": "Applications declined by the company will be filed here."
+        },
+        "exchange_expired": {
+          "label": "Closed exchanges",
+          "empty": "Exchanges that ended without a follow-up will be filed here."
+        },
+        "publication_ended": {
+          "label": "Listings ended",
+          "empty": "Applications whose listing expired or was withdrawn will be filed here."
+        },
+        "withdrawn": {
+          "label": "Withdrawn",
+          "empty": "Applications you withdrew will be filed here."
+        }
+      },
+      "org": {
+        "awaiting_review": {
+          "label": "To review",
+          "empty": "Applications you have not handled yet will appear here."
+        },
+        "exchange_open": {
+          "label": "Open exchanges",
+          "empty": "Open exchanges with a candidate will appear here."
+        },
+        "selected": {
+          "label": "Accepted",
+          "empty": "The candidates you selected will appear here."
+        },
+        "rejected": {
+          "label": "Declined",
+          "empty": "Applications you declined will be filed here."
+        },
+        "exchange_expired": {
+          "label": "Closed exchanges",
+          "empty": "Exchanges that ended without a follow-up will be filed here."
+        },
+        "publication_ended": {
+          "label": "Listings ended",
+          "empty": "Applications received on an expired or withdrawn listing will be filed here."
+        },
+        "withdrawn": {
+          "label": "Withdrawn",
+          "empty": "Applications withdrawn by the candidate will be filed here."
+        }
+      }
     }
   }
 }

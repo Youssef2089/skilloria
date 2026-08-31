@@ -132,21 +132,27 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
   if (annonce.speciality_label) metaParts.push(annonce.speciality_label)
   const metaLine = metaParts.join(' · ')
 
-  // Lot refonte entonnoir : 4 buckets EXCLUSIFS qui s'additionnent au total.
   // - À consulter en accent useDomain (action requise côté org)
   // - Acceptées en vert succès
   // - Refusées en rouge tertiaire (faible visibilité, c'est un état clos)
   // Codes DB intacts ; libellés via i18n dashboard_entreprise.funnel.*.
-  // Lot compteurs : on affiche l'entonnoir ACTIF, dérivé serveur (état de vie).
-  // Sur une annonce expirée ou clôturée, les candidatures basculent en archivé
-  // et la carte tombe à 0 — exactement ce que montre l'onglet « Actives » de la
-  // page candidatures. Le client ne recalcule rien : il lit le bucket servi.
-  const c = annonce.candidatures.active
+  // Lot facettes : chaque compteur lit SA facette (lib/candidatures/facets.ts),
+  // dérivée serveur de l'état de vie. Le client ne recalcule rien.
+  //
+  // « Refusées » LIT LE BUCKET ARCHIVÉ. Elle lisait l'actif, où un refus ne
+  // peut pas se trouver — le compteur ne pouvait afficher que 0, à vie. Chaque
+  // facette porte son bucket, on compte donc là où l'état vit réellement.
+  //
+  // Ces quatre compteurs sont une SÉLECTION, pas une partition : trois autres
+  // facettes existent (échange clos, annonce terminée, retirée) et sont
+  // comptées dans le total en lead. Ne pas les faire « s'additionner au
+  // total » — c'est ce raccourci qui avait produit la tuile morte.
+  const c = annonce.candidatures
   const counters: Array<{ key: string; label: string; value: number; color?: string }> = [
-    { key: 'to_review', label: t('funnel.to_review'), value: Math.round(c.to_review), color: domain.primaryColor },
-    { key: 'in_progress', label: t('funnel.in_progress'), value: Math.round(c.in_progress) },
-    { key: 'accepted', label: t('funnel.accepted'), value: Math.round(c.accepted), color: '#16A34A' },
-    { key: 'rejected', label: t('funnel.rejected'), value: Math.round(c.rejected) },
+    { key: 'to_review', label: t('funnel.to_review'), value: Math.round(c.facets.awaiting_review), color: domain.primaryColor },
+    { key: 'in_progress', label: t('funnel.in_progress'), value: Math.round(c.facets.exchange_open) },
+    { key: 'accepted', label: t('funnel.accepted'), value: Math.round(c.facets.selected), color: '#16A34A' },
+    { key: 'rejected', label: t('funnel.rejected'), value: Math.round(c.facets.rejected) },
   ]
 
   return (
@@ -286,7 +292,7 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
           </span>
         </div>
 
-        {/* 4 buckets */}
+        {/* 4 facettes */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, flex: 1, minWidth: 220 }}>
           {counters.map((cnt) => {
             const isZero = cnt.value === 0

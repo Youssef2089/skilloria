@@ -9,6 +9,12 @@ import {
   parseBucketFilter,
   type CandidatureLifecycle,
 } from '@/lib/candidatures/lifecycle'
+import {
+  assertFacetPartition,
+  countFacets,
+  facetForLifecycle,
+  parseFacetFilter,
+} from '@/lib/candidatures/facets'
 import { aggregateCandidatures } from '@/lib/candidatures/aggregate'
 
 export const runtime = 'nodejs'
@@ -35,6 +41,12 @@ export const dynamic = 'force-dynamic'
  *  ?filter=active|archived|all — ACTIVES PAR DÉFAUT. Le filtrage est
  *   appliqué APRÈS dérivation, donc côté serveur : le client ne peut pas
  *   afficher active ce que le serveur dit archivé.
+ *
+ *  ?facet=<facette> — découpage FIN du bucket (lib/candidatures/facets.ts),
+ *   dérivé de `lifecycle.reason` comme les compteurs servis dans `stats`.
+ *   Compteur et liste appliquent LITTÉRALEMENT le même prédicat sur le même
+ *   tableau, dans la même requête : ils ne peuvent pas diverger. Une facette
+ *   étrangère au bucket demandé est ignorée (cf. `parseFacetFilter`).
  *
  *  Tri : created_at DESC (les plus récentes d'abord).
  */
@@ -85,6 +97,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const locale = normalizeLocale(url.searchParams.get('locale'))
   // Actives par défaut (cf. en-tête). 'all' → null = pas de filtrage.
   const bucketFilter = parseBucketFilter(url.searchParams.get('filter'))
+  const facetFilter = parseFacetFilter(url.searchParams.get('facet'), bucketFilter)
 
   // Profile expert
   const { data: profile, error: pErr } = await auth.supabaseAdmin
@@ -265,9 +278,14 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   // Filtrage APRÈS dérivation : le bucket est un fait serveur, pas un choix
   // client. `null` (?filter=all) = tout, pour les compteurs des deux onglets.
-  const visible = bucketFilter
-    ? candidatures.filter((c) => (c.lifecycle as CandidatureLifecycle).bucket === bucketFilter)
-    : candidatures
+  // La facette s'ajoute au bucket ; elle est dérivée de la MÊME `lifecycle`
+  // que le compteur qui l'annonce, sur le MÊME tableau.
+  const visible = candidatures.filter((c) => {
+    const lc = c.lifecycle as CandidatureLifecycle
+    if (bucketFilter && lc.bucket !== bucketFilter) return false
+    if (facetFilter && facetForLifecycle(lc) !== facetFilter) return false
+    return true
+  })
 
   // ─── COMPTEURS ET AGRÉGATS — TOUT DANS LA PASSE EXISTANTE ────────────────
   //
@@ -298,10 +316,12 @@ export async function GET(request: NextRequest): Promise<Response> {
   //     chiffre d'accueil. C'est déjà la règle de l'accueil ENTREPRISE
   //     (cf. dashboard/entreprise/page.tsx, somme de `candidatures.active`).
   //
-  //   Symétriquement, `rejected` est une raison du bucket ARCHIVÉ par
-  //   définition : aucune tuile d'accueil ne doit la compter, elle y serait un
-  //   zéro permanent. L'accueil affiche donc « En attente » (awaiting_review),
-  //   pas « Refusées ».
+  //   Symétriquement, `rejected` est une facette du bucket ARCHIVÉ par
+  //   définition : une tuile d'accueil bornée à l'actif ne peut pas la compter,
+  //   elle y serait un zéro permanent. L'accueil expert affiche donc « En
+  //   attente » (awaiting_review). Une tuile qui VEUT compter les refus doit
+  //   lire `stats.all.facets.rejected` et mener au bucket archivé — c'est ce
+  //   que fait désormais l'accueil entreprise.
   //
   //   → Si une session future trouve « incohérent » que deux écrans affichent
   //     des nombres différents pour la même personne : c'est voulu, ne pas
@@ -311,6 +331,11 @@ export async function GET(request: NextRequest): Promise<Response> {
   const counts = { active: 0, archived: 0 }
   for (const c of candidatures) counts[(c.lifecycle as CandidatureLifecycle).bucket]++
 
+  // `facets` : compteurs de chips, sur la TOTALITÉ. Une chip doit annoncer ce
+  // que son clic affichera, y compris pour la facette qu'on ne regarde pas.
+  const facets = countFacets(candidatures)
+  assertFacetPartition(facets, counts, 'me/candidatures')
+
   const stats = {
     all: aggregateCandidatures(candidatures),
     active: aggregateCandidatures(
@@ -318,5 +343,15 @@ export async function GET(request: NextRequest): Promise<Response> {
     ),
   }
 
-  return json({ candidatures: visible, counts, stats, filter: bucketFilter ?? 'all' }, 200)
+  return json(
+    {
+      candidatures: visible,
+      counts,
+      facets,
+      stats,
+      filter: bucketFilter ?? 'all',
+      facet: facetFilter,
+    },
+    200,
+  )
 }

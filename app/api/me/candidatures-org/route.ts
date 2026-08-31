@@ -4,6 +4,13 @@ import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { buildOrgCandidatureDTOs, countByBucket } from '@/lib/candidature-org-dto'
 import { parseBucketFilter } from '@/lib/candidatures/lifecycle'
+import {
+  assertFacetPartition,
+  countFacets,
+  emptyFacetCounts,
+  facetForLifecycle,
+  parseFacetFilter,
+} from '@/lib/candidatures/facets'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -25,6 +32,12 @@ export const dynamic = 'force-dynamic'
  * ?filter=active|archived|all — ACTIVES PAR DÉFAUT, exactement comme côté
  * expert. Le bucket vient de la dérivation serveur portée par le helper ; le
  * client reçoit `lifecycle` et se contente d'en rendre la raison.
+ *
+ * ?facet=<facette> — découpage FIN du bucket (lib/candidatures/facets.ts).
+ * Dérivé de `lifecycle.reason`, comme les compteurs `facets` servis dans la
+ * MÊME réponse et sur le MÊME tableau : « à consulter » compte exactement ce
+ * que « à consulter » liste. C'est aussi la source des tuiles de l'accueil
+ * entreprise, qui appellent cette route — pas un second agrégat.
  *
  * Tri : ai_match_score DESC NULLS LAST, created_at DESC (héritage helper).
  * Le DTO inclut publication_id pour permettre le regroupement côté UI.
@@ -80,13 +93,24 @@ export async function GET(request: NextRequest): Promise<Response> {
   const publicationIds = ownedPubs.map((p) => p.id)
 
   if (publicationIds.length === 0) {
-    return json({ candidatures: [], publications: [], counts: { active: 0, archived: 0 }, filter: 'active' }, 200)
+    return json(
+      {
+        candidatures: [],
+        publications: [],
+        counts: { active: 0, archived: 0 },
+        facets: emptyFacetCounts(),
+        filter: 'active',
+        facet: null,
+      },
+      200,
+    )
   }
 
   // ── Délégation au helper partagé (même masquage que vue per-pub) ────────
   const url = new URL(request.url)
   const locale = normalizeLocale(url.searchParams.get('locale'))
   const bucketFilter = parseBucketFilter(url.searchParams.get('filter'))
+  const facetFilter = parseFacetFilter(url.searchParams.get('facet'), bucketFilter)
   const translations = await loadTranslations(locale)
   // Deux passes sur le MÊME helper : la totalité alimente les compteurs des
   // deux onglets, la vue filtrée alimente la liste. Une seule source de
@@ -98,7 +122,13 @@ export async function GET(request: NextRequest): Promise<Response> {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
   const counts = countByBucket(all)
-  const candidatures = bucketFilter ? all.filter((c) => c.lifecycle.bucket === bucketFilter) : all
+  const facets = countFacets(all)
+  assertFacetPartition(facets, counts, 'me/candidatures-org')
+  const candidatures = all.filter((c) => {
+    if (bucketFilter && c.lifecycle.bucket !== bucketFilter) return false
+    if (facetFilter && facetForLifecycle(c.lifecycle) !== facetFilter) return false
+    return true
+  })
 
   // Mini-DTO publication pour permettre le regroupement / labels côté UI.
   // On ne renvoie QUE les publications qui ont au moins une candidature, pour
@@ -118,5 +148,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       skills_required: p.skills_required ?? [],
     }))
 
-  return json({ candidatures, publications, counts, filter: bucketFilter ?? 'all' }, 200)
+  return json(
+    { candidatures, publications, counts, facets, filter: bucketFilter ?? 'all', facet: facetFilter },
+    200,
+  )
 }
