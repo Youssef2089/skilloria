@@ -28,8 +28,8 @@ function json(data: unknown, status = 200): Response {
 /**
  * Préférences de notification, PAR ÉVÉNEMENT ET PAR CANAL.
  *
- * GET   → { settings: [{ event, channel, voice, enabled }], phone_verified,
- *           phone, email_address }
+ * GET   → { settings: [{ event, channel, voice, grouping, enabled }],
+ *           phone_verified, phone, email_address }
  *         `settings` EST le catalogue applicable à CET utilisateur : le client
  *         n'a aucune liste d'événements à connaître, il rend ce qu'on lui
  *         donne. Un réglage absent de la réponse n'existe pas pour lui.
@@ -66,11 +66,18 @@ export async function GET(request: NextRequest): Promise<Response> {
   // `voice` : le vocabulaire à employer pour CE lecteur, dérivé ici et servi.
   // Le client ne déduit rien de son propre type — il rend le libellé qu'on lui
   // désigne. `null` = l'événement n'a qu'une seule voix.
+  //
+  // `grouping` : le mode d'envoi, recopié du catalogue — la MÊME source que
+  // celle que lit le dispatcher. L'écran s'en sert pour n'afficher la mention
+  // « regroupées en un seul envoi » qu'aux comptes qui reçoivent effectivement
+  // un événement groupé. Sans lui, le client la déduirait de son type de
+  // compte : une seconde règle, vouée à diverger de la première.
   const settings = eventsForFacts(facts).flatMap((def) =>
     def.channels.map((channel) => ({
       event: def.event,
       channel,
       voice: resolveVoice(def.event, facts),
+      grouping: def.grouping,
       enabled: isChannelEnabled(disabled, auth.user.id, def.event, channel),
     })),
   )

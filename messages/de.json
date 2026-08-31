@@ -74,7 +74,7 @@
       "organisation": "Mein Unternehmen",
       "members": "Teammitglieder",
       "offre": "Mein Tarif",
-      "annonces": "Meine Veröffentlichungen",
+      "annonces": "Meine Anzeigen",
       "candidatures_org": "Bewerbungen",
       "logout": "Abmelden"
     },
@@ -87,7 +87,7 @@
       "mon_profil": "Mein Profil",
       "profil": "Mein Profil",
       "profil_valider": "Mein Profil vervollständigen",
-      "annonces": "Meine Veröffentlichungen",
+      "annonces": "Meine Anzeigen",
       "settings": "Einstellungen",
       "organisation": "Mein Unternehmen",
       "membres": "Teammitglieder",
@@ -1658,9 +1658,9 @@
       "rejected": "Abgelehnt"
     },
     "overview": {
-      "publications_title": "Übersicht Veröffentlichungen",
+      "annonces_title": "Übersicht Anzeigen",
       "candidatures_title": "Übersicht Bewerbungen",
-      "see_annonces": "Meine Veröffentlichungen anzeigen",
+      "see_annonces": "Meine Anzeigen ansehen",
       "see_candidatures": "Bewerbungen anzeigen",
       "pub_published": "Veröffentlicht",
       "pub_review": "In Prüfung",
@@ -1725,11 +1725,15 @@
       "per_month": "/ Monat",
       "limits_title": "Im Tarif enthalten",
       "usage_title": "Verbrauch diesen Monat",
-      "usage_publications": "Anzeigen",
+      "usage_annonces": "Anzeigen",
       "usage_manual_unlocks": "Zusätzliche Freischaltungen",
       "unlimited": "Unbegrenzt",
       "valid_until": "Tarif gültig bis {date}.",
-      "contact_to_change": "Für einen Tarifwechsel kontaktieren Sie uns bitte."
+      "contact_to_change": "Für einen Tarifwechsel kontaktieren Sie uns bitte.",
+      "limit_annonces_per_month": "Anzeigen pro Monat",
+      "limit_active_annonces_max": "Maximal aktive Anzeigen",
+      "limit_revealed_candidates_per_annonce": "Freigeschaltete Kandidaten pro Anzeige",
+      "limit_manual_unlocks_per_month": "Zusätzliche Freischaltungen pro Monat"
     },
     "membres": {
       "loading": "Wird geladen…",
@@ -1783,10 +1787,10 @@
   },
   "publications": {
     "detail_org": {
-      "loading": "Veröffentlichung wird geladen…",
-      "error_generic": "Veröffentlichung konnte nicht geladen werden.",
-      "error_not_found": "Diese Veröffentlichung existiert nicht oder ist nicht mehr zugänglich.",
-      "back_to_annonces": "← Meine Veröffentlichungen",
+      "loading": "Anzeige wird geladen…",
+      "error_generic": "Anzeige konnte nicht geladen werden.",
+      "error_not_found": "Diese Anzeige existiert nicht oder ist nicht mehr zugänglich.",
+      "back_to_annonces": "← Meine Anzeigen",
       "edit_cta": "Bearbeiten",
       "view_candidatures_cta": "Bewerbungen anzeigen",
       "section_description": "Beschreibung",
@@ -1814,7 +1818,8 @@
     },
     "type": {
       "mission": "Mission",
-      "offre": "CDI-Angebot"
+      "offre": "CDI-Angebot",
+      "sous_traitance": "Unterauftrag"
     },
     "budget_unit": {
       "day": "/Tag",
@@ -1915,7 +1920,7 @@
       "confirm_publish_rule_no_discrimination": "Keine diskriminierenden Kriterien (Alter, Geschlecht, Herkunft, etc.)",
       "confirm_publish_rule_legal": "Gesetzliche Bedingungen eingehalten (Vergütung, Status)",
       "confirm_publish_warning": "Wird ein blockierendes Kriterium erkannt, geht die Anzeige in manuelle Prüfung statt sofort zu veröffentlichen.",
-      "confirm_publish_expiry": "Ihre Anzeige bleibt 30 Tage online und läuft am {date} ab. Danach müssen Sie sie erneut veröffentlichen (eine neue Veröffentlichung).",
+      "confirm_publish_expiry": "Ihre Anzeige bleibt 30 Tage online und läuft am {date} ab. Danach müssen Sie sie erneut veröffentlichen (eine neue Anzeige).",
       "confirm_publish_yes": "Jetzt veröffentlichen",
       "confirm_publish_no": "Abbrechen",
       "field_speciality_other_option": "Sonstige (angeben)",
@@ -2016,15 +2021,15 @@
       "count_candidates": "{count, plural, =0 {0 Kandidaten} =1 {1 Kandidat} other {# Kandidaten}}",
       "best_score": "Beste Bewertung {score}/10",
       "best_score_inline": "Beste {score}/10",
-      "switch_pub_label": "Veröffentlichung:",
-      "master_title": "Ihre Veröffentlichungen",
-      "master_aria_label": "Liste Ihrer Veröffentlichungen mit Bewerbungen"
+      "switch_pub_label": "Anzeige:",
+      "master_title": "Ihre Anzeigen",
+      "master_aria_label": "Liste Ihrer Anzeigen mit Bewerbungen"
     },
     "feed_global": {
       "back_to_dashboard": "← Dashboard",
       "header_kicker": "Bewerbungen",
       "header_title": "Alle Ihre Bewerbungen",
-      "header_subtitle": "Gesammelte Übersicht der Bewerbungen, die auf all Ihren Veröffentlichungen eingegangen sind. Das vollständige Profil wird erst nach Annahme des Austauschs angezeigt.",
+      "header_subtitle": "Gesammelte Übersicht der Bewerbungen, die auf all Ihren Anzeigen eingegangen sind. Das vollständige Profil wird erst nach Annahme des Austauschs angezeigt.",
       "loading": "Bewerbungen werden geladen…",
       "error_generic": "Bewerbungen konnten nicht geladen werden. Bitte erneut versuchen.",
       "filter_all": "Alle",
@@ -2037,16 +2042,16 @@
       "empty_filtered_title": "Keine Bewerbungen in diesem Filter",
       "empty_filtered_subtitle": "Versuchen Sie einen anderen Filter, um alle Bewerbungen zu sehen.",
       "group_count": "{count, plural, =0 {Keine Bewerbungen} =1 {1 Bewerbung} other {# Bewerbungen}}",
-      "view_pub": "Veröffentlichung ansehen"
+      "view_pub": "Anzeige ansehen"
     },
     "feed": {
       "back_to_dashboard": "← Dashboard",
       "header_kicker": "Bewerbungen",
-      "untitled_publication": "(Veröffentlichung ohne Titel)",
-      "header_subtitle": "Bewerbungen auf diese Veröffentlichung. Das vollständige Profil wird erst nach Annahme des Austauschs sichtbar.",
+      "untitled_publication": "(Anzeige ohne Titel)",
+      "header_subtitle": "Bewerbungen auf diese Anzeige. Das vollständige Profil wird erst nach Annahme des Austauschs sichtbar.",
       "loading": "Bewerbungen werden geladen…",
       "error_generic": "Bewerbungen konnten nicht geladen werden. Bitte erneut versuchen.",
-      "error_not_found": "Diese Veröffentlichung existiert nicht mehr oder ist nicht verfügbar.",
+      "error_not_found": "Diese Anzeige existiert nicht mehr oder ist nicht verfügbar.",
       "filter_all": "Alle",
       "filter_received": "Zu prüfen",
       "filter_unlocked": "Offene Austausche",
@@ -2065,7 +2070,7 @@
       "wall_cta_hint": "Die kostenpflichtige Enthüllung ist noch nicht aktiv. Kontaktieren Sie uns für weitere Informationen.",
       "candidate_label": "Bewerber/in",
       "ai_score": "Bewertung {score}/10",
-      "ai_score_tooltip": "KI-Bewertung der Passung zu Ihrer Veröffentlichung.",
+      "ai_score_tooltip": "KI-Bewertung der Passung zu Ihrer Anzeige.",
       "years_experience": "{years} Jahr(e) Erfahrung",
       "candidated_ago": "Beworben vor {time}",
       "cover_message_label": "Motivationsschreiben",
@@ -2077,8 +2082,8 @@
       "button_select": "Diesen Kandidaten annehmen",
       "button_selecting": "Bestätigung…",
       "select_confirm_title": "Diesen Kandidaten annehmen?",
-      "select_confirm_body_mission": "Diese Aktion ist endgültig: Sie nehmen diesen Kandidaten für die Mission an. Die anderen Bewerbungen zu dieser Veröffentlichung bleiben in Ihrem Dashboard verfügbar.",
-      "select_confirm_body_offre": "Diese Aktion ist endgültig: Sie nehmen diesen Kandidaten für die Stelle an. Die anderen Bewerbungen zu dieser Veröffentlichung bleiben in Ihrem Dashboard verfügbar.",
+      "select_confirm_body_mission": "Diese Aktion ist endgültig: Sie nehmen diesen Kandidaten für die Mission an. Die anderen Bewerbungen zu dieser Anzeige bleiben in Ihrem Dashboard verfügbar.",
+      "select_confirm_body_offre": "Diese Aktion ist endgültig: Sie nehmen diesen Kandidaten für die Stelle an. Die anderen Bewerbungen zu dieser Anzeige bleiben in Ihrem Dashboard verfügbar.",
       "select_cancel": "Abbrechen",
       "select_confirm": "Annahme bestätigen",
       "rejection_reason_label": "Ablehnungsgrund",
@@ -2097,7 +2102,7 @@
       "mark_viewed_cta": "Als gesehen markieren",
       "mark_viewed_busy": "Wird gespeichert…",
       "locked_profile_label": "Profil gesperrt",
-      "skill_matched_tooltip": "Von Ihrer Veröffentlichung gefordert",
+      "skill_matched_tooltip": "Von Ihrer Anzeige gefordert",
       "reject_confirm_title": "Ablehnung bestätigen",
       "reject_reason_placeholder": "Optionaler Grund (nur intern sichtbar)…",
       "reject_cancel": "Abbrechen",
@@ -2691,7 +2696,7 @@
       "sms_label": "Per SMS",
       "sms_unavailable": "Nicht verfügbar: Ihre Telefonnummer ist nicht verifiziert.",
       "sms_verify_link": "Mein Telefon verifizieren",
-      "grouping_note": "In kurzem Abstand eingegangene Gelegenheiten werden zu einer Nachricht zusammengefasst. Nachrichten und Bewerbungen werden einzeln versendet.",
+      "grouping_note_digest": "Chancen aus demselben Empfehlungslauf kommen in einer einzigen Sendung an. Andere Benachrichtigungen werden einzeln versendet.",
       "saved_on": "Benachrichtigungen aktiviert.",
       "saved_off": "Benachrichtigungen deaktiviert.",
       "unsub_done": "Sie haben die E-Mail-Benachrichtigungen abbestellt.",
@@ -2714,7 +2719,8 @@
           "label": "Neue Nachrichten",
           "description": "Jemand schreibt Ihnen. Der Nachrichteninhalt wird nie in die E-Mail kopiert."
         }
-      }
+      },
+      "grouping_note_per_item": "Jede Benachrichtigung wird einzeln versendet."
     },
     "title": "Einstellungen",
     "subtitle": "Verwalte dein Konto und deine Einstellungen.",

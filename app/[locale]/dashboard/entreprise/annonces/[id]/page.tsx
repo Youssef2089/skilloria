@@ -169,7 +169,11 @@ export default function AnnonceDetailPage({ params }: Props) {
                 letterSpacing: '.06em',
               }}
             >
-              {tPub(`type.${pub.type === 'offre' ? 'offre' : 'mission'}` as 'type.mission')}
+              {/* Les 3 types de la contrainte BDD ont désormais une clé i18n
+                  (mission / offre / sous_traitance). Le repli sur 'mission'
+                  affichait « Mission » sur un besoin de sous-traitance : on lit
+                  le type tel qu'il est, comme partout ailleurs. */}
+              {tPub(`type.${pub.type}` as 'type.mission')}
             </span>
             <span
               style={{

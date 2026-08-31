@@ -9,7 +9,8 @@ import { useDomain } from '@/context/DomainContext'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import { useOrgRole } from '@/lib/use-org-role'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
-import type { Annonce, AnnonceStatus, AnnonceCandidatureFunnel } from '@/types/annonce'
+import { TAB_STATUS_MAP, type TabKey } from '@/components/dashboard/OrganisationDashboard'
+import type { Annonce, AnnonceCandidatureFunnel } from '@/types/annonce'
 
 /**
  * Dashboard entreprise (Lot refonte tableau de bord).
@@ -47,12 +48,9 @@ type SetupState =
   | { kind: 'error'; message?: string }
 
 // Regroupement des 7 statuts publication en 4 buckets dashboard.
-const PUB_TAB_STATUSES: Record<'published' | 'review' | 'drafts' | 'closed', readonly AnnonceStatus[]> = {
-  published: ['published'],
-  review: ['pending_review', 'rejected'],
-  drafts: ['draft'],
-  closed: ['suspended', 'expired', 'archived'],
-}
+// La table vient de « Mes annonces » (TAB_STATUS_MAP) : les tuiles ci-dessous
+// OUVRENT ces onglets, elles doivent compter exactement ce qu'ils listent.
+const PUB_TILE_TABS: readonly Exclude<TabKey, 'all'>[] = ['published', 'review', 'drafts', 'closed']
 
 export default function DashboardEntreprise() {
   const router = useRouter()
@@ -156,12 +154,14 @@ export default function DashboardEntreprise() {
   //   - candCounts : somme des entonnoirs candidatures sur TOUTES les pubs.
   const annonces = annoncesLive.data?.publications ?? []
   const pubCounts = useMemo(() => {
-    const r = { published: 0, review: 0, drafts: 0, closed: 0 }
+    const r: Record<Exclude<TabKey, 'all'>, number> = { published: 0, review: 0, drafts: 0, closed: 0 }
     for (const a of annonces) {
-      if ((PUB_TAB_STATUSES.published as readonly string[]).includes(a.status)) r.published++
-      else if ((PUB_TAB_STATUSES.review as readonly string[]).includes(a.status)) r.review++
-      else if ((PUB_TAB_STATUSES.drafts as readonly string[]).includes(a.status)) r.drafts++
-      else if ((PUB_TAB_STATUSES.closed as readonly string[]).includes(a.status)) r.closed++
+      for (const tab of PUB_TILE_TABS) {
+        if ((TAB_STATUS_MAP[tab] as readonly string[]).includes(a.status)) {
+          r[tab]++
+          break
+        }
+      }
     }
     return r
   }, [annonces])
@@ -242,6 +242,17 @@ export default function DashboardEntreprise() {
         .sk-dash-tile.is-accent {
           border-color: var(--sk-accent);
           background: var(--sk-accent-soft);
+        }
+        /* Tuile cliquable : l'affordance et le focus clavier sont portés par
+           le <a> lui-même — aucune zone morte, la tuile entière est la cible. */
+        .sk-dash-tile.is-link { cursor: pointer; }
+        .sk-dash-tile.is-link:hover {
+          border-color: var(--sk-accent);
+          box-shadow: 0 1px 3px rgba(15, 23, 42, .08);
+        }
+        .sk-dash-tile.is-link:focus-visible {
+          outline: 2px solid var(--sk-accent);
+          outline-offset: 2px;
         }
         @media (max-width: 767px) {
           .sk-dash-grid { grid-template-columns: repeat(2, 1fr) !important; }
@@ -331,7 +342,7 @@ export default function DashboardEntreprise() {
         )}
       </header>
 
-      {/* ──────────────── BLOC 1 — Suivi des publications ──────────────── */}
+      {/* ──────────────── BLOC 1 — Suivi des annonces ──────────────── */}
       <section
         style={{
           background: 'var(--sk-surface)',
@@ -343,7 +354,7 @@ export default function DashboardEntreprise() {
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sk-text)', letterSpacing: '-0.2px' }}>
-            {t('overview.publications_title')}
+            {t('overview.annonces_title')}
           </div>
           <Link
             href="/dashboard/entreprise/annonces"
@@ -357,10 +368,15 @@ export default function DashboardEntreprise() {
           className="sk-dash-grid"
           style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}
         >
-          <PubTile label={t('overview.pub_published')} value={pubCounts.published} dot="#16A34A" loading={isLoadingData} />
-          <PubTile label={t('overview.pub_review')} value={pubCounts.review} dot="#CA8A04" loading={isLoadingData} />
-          <PubTile label={t('overview.pub_drafts')} value={pubCounts.drafts} dot="#94a3b8" loading={isLoadingData} />
-          <PubTile label={t('overview.pub_closed')} value={pubCounts.closed} dot="#94a3b8" loading={isLoadingData} />
+          {/* Chaque tuile MÈNE À CE QU'ELLE COMPTE : même bucket, même libellé,
+              même onglet de « Mes annonces ». Une tuile à zéro reste cliquable
+              — elle ouvre la liste vide correspondante, correctement libellée,
+              pour que l'utilisateur puisse vérifier qu'il n'a effectivement
+              rien plutôt que de se heurter à un chiffre inerte. */}
+          <PubTile label={t('overview.pub_published')} value={pubCounts.published} dot="#16A34A" loading={isLoadingData} tab="published" />
+          <PubTile label={t('overview.pub_review')} value={pubCounts.review} dot="#CA8A04" loading={isLoadingData} tab="review" />
+          <PubTile label={t('overview.pub_drafts')} value={pubCounts.drafts} dot="#94a3b8" loading={isLoadingData} tab="drafts" />
+          <PubTile label={t('overview.pub_closed')} value={pubCounts.closed} dot="#94a3b8" loading={isLoadingData} tab="closed" />
         </div>
       </section>
 
@@ -436,19 +452,33 @@ export default function DashboardEntreprise() {
   )
 }
 
+/**
+ * Tuile de suivi des annonces. C'est un LIEN, pas un div cliquable : focus
+ * clavier, activation à Entrée, ouverture dans un nouvel onglet et menu
+ * contextuel viennent avec l'élément, on n'a rien à réimplémenter. La zone
+ * cliquable couvre la tuile entière (le <Link> EST la tuile), ce qui donne
+ * aussi la cible tactile attendue sur mobile.
+ */
 function PubTile({
   label,
   value,
   dot,
   loading,
+  tab,
 }: {
   label: string
   value: number
   dot: string
   loading: boolean
+  /** Onglet de « Mes annonces » ouvert par la tuile (cf. parseAnnoncesTab). */
+  tab: TabKey
 }) {
   return (
-    <div className="sk-dash-tile">
+    <Link
+      href={`/dashboard/entreprise/annonces?tab=${tab}`}
+      className="sk-dash-tile is-link"
+      style={{ textDecoration: 'none', color: 'inherit' }}
+    >
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--sk-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>
         <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: dot }} />
         {label}
@@ -456,7 +486,7 @@ function PubTile({
       <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--sk-text)', lineHeight: 1.1, letterSpacing: '-0.5px' }}>
         {loading ? '…' : value}
       </div>
-    </div>
+    </Link>
   )
 }
 

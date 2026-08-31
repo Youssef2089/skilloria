@@ -74,7 +74,7 @@
       "organisation": "Mi empresa",
       "members": "Miembros del equipo",
       "offre": "Mi plan",
-      "annonces": "Mis publicaciones",
+      "annonces": "Mis anuncios",
       "candidatures_org": "Candidaturas",
       "logout": "Cerrar sesión"
     },
@@ -87,7 +87,7 @@
       "mon_profil": "Mi perfil",
       "profil": "Mi perfil",
       "profil_valider": "Completar mi perfil",
-      "annonces": "Mis publicaciones",
+      "annonces": "Mis anuncios",
       "settings": "Configuración",
       "organisation": "Mi empresa",
       "membres": "Miembros del equipo",
@@ -1658,9 +1658,9 @@
       "rejected": "Rechazadas"
     },
     "overview": {
-      "publications_title": "Seguimiento de publicaciones",
+      "annonces_title": "Seguimiento de anuncios",
       "candidatures_title": "Seguimiento de candidaturas",
-      "see_annonces": "Ver mis publicaciones",
+      "see_annonces": "Ver mis anuncios",
       "see_candidatures": "Ver candidaturas",
       "pub_published": "Publicadas",
       "pub_review": "En revisión",
@@ -1725,11 +1725,15 @@
       "per_month": "/ mes",
       "limits_title": "Lo que incluye su plan",
       "usage_title": "Consumo del mes",
-      "usage_publications": "Anuncios",
+      "usage_annonces": "Anuncios",
       "usage_manual_unlocks": "Revelaciones adicionales",
       "unlimited": "Ilimitado",
       "valid_until": "Plan válido hasta el {date}.",
-      "contact_to_change": "Para cambiar de plan, contáctenos."
+      "contact_to_change": "Para cambiar de plan, contáctenos.",
+      "limit_annonces_per_month": "Anuncios por mes",
+      "limit_active_annonces_max": "Anuncios activos máximo",
+      "limit_revealed_candidates_per_annonce": "Candidatos revelados por anuncio",
+      "limit_manual_unlocks_per_month": "Revelaciones adicionales por mes"
     },
     "membres": {
       "loading": "Cargando…",
@@ -1783,10 +1787,10 @@
   },
   "publications": {
     "detail_org": {
-      "loading": "Cargando la publicación…",
-      "error_generic": "No se puede cargar la publicación.",
-      "error_not_found": "Esta publicación no existe o ya no está accesible.",
-      "back_to_annonces": "← Mis publicaciones",
+      "loading": "Cargando el anuncio…",
+      "error_generic": "No se puede cargar el anuncio.",
+      "error_not_found": "Este anuncio no existe o ya no está accesible.",
+      "back_to_annonces": "← Mis anuncios",
       "edit_cta": "Modificar",
       "view_candidatures_cta": "Ver candidaturas",
       "section_description": "Descripción",
@@ -1814,7 +1818,8 @@
     },
     "type": {
       "mission": "Misión",
-      "offre": "Oferta CDI"
+      "offre": "Oferta CDI",
+      "sous_traitance": "Subcontratación"
     },
     "budget_unit": {
       "day": "/día",
@@ -1915,7 +1920,7 @@
       "confirm_publish_rule_no_discrimination": "Sin criterios discriminatorios (edad, género, origen, etc.)",
       "confirm_publish_rule_legal": "Condiciones legales respetadas (remuneración, estatus)",
       "confirm_publish_warning": "Si se detecta un criterio bloqueante, el anuncio pasará a revisión manual en lugar de publicarse inmediatamente.",
-      "confirm_publish_expiry": "Su anuncio permanecerá en línea 30 días y expirará el {date}. Después, deberá volver a publicarlo (una nueva publicación).",
+      "confirm_publish_expiry": "Su anuncio permanecerá en línea 30 días y expirará el {date}. Después, deberá volver a publicarlo (un nuevo anuncio).",
       "confirm_publish_yes": "Publicar ahora",
       "confirm_publish_no": "Cancelar",
       "field_speciality_other_option": "Otra (especificar)",
@@ -2016,15 +2021,15 @@
       "count_candidates": "{count, plural, =0 {0 candidatos} =1 {1 candidato} other {# candidatos}}",
       "best_score": "Mejor puntuación {score}/10",
       "best_score_inline": "mejor {score}/10",
-      "switch_pub_label": "Publicación:",
-      "master_title": "Tus publicaciones",
-      "master_aria_label": "Lista de tus publicaciones con candidaturas"
+      "switch_pub_label": "Anuncio:",
+      "master_title": "Tus anuncios",
+      "master_aria_label": "Lista de tus anuncios con candidaturas"
     },
     "feed_global": {
       "back_to_dashboard": "← Panel",
       "header_kicker": "Candidaturas",
       "header_title": "Todas tus candidaturas",
-      "header_subtitle": "Vista agregada de las candidaturas recibidas en todas tus publicaciones. El perfil completo solo se revela tras aceptar el intercambio.",
+      "header_subtitle": "Vista agregada de las candidaturas recibidas en todos tus anuncios. El perfil completo solo se revela tras aceptar el intercambio.",
       "loading": "Cargando candidaturas…",
       "error_generic": "No se pudieron cargar las candidaturas. Vuelve a intentarlo.",
       "filter_all": "Todas",
@@ -2037,16 +2042,16 @@
       "empty_filtered_title": "Sin candidaturas en este filtro",
       "empty_filtered_subtitle": "Prueba con otro filtro para ver todas las candidaturas.",
       "group_count": "{count, plural, =0 {Sin candidaturas} =1 {1 candidatura} other {# candidaturas}}",
-      "view_pub": "Ver publicación"
+      "view_pub": "Ver anuncio"
     },
     "feed": {
       "back_to_dashboard": "← Panel",
       "header_kicker": "Candidaturas",
-      "untitled_publication": "(publicación sin título)",
-      "header_subtitle": "Candidaturas recibidas en esta publicación. El perfil completo se revela solo tras aceptar el intercambio.",
+      "untitled_publication": "(anuncio sin título)",
+      "header_subtitle": "Candidaturas recibidas en este anuncio. El perfil completo se revela solo tras aceptar el intercambio.",
       "loading": "Cargando candidaturas…",
       "error_generic": "No se pudieron cargar las candidaturas. Inténtalo de nuevo.",
-      "error_not_found": "Esta publicación ya no existe o no está disponible.",
+      "error_not_found": "Este anuncio ya no existe o no está disponible.",
       "filter_all": "Todas",
       "filter_received": "Por tratar",
       "filter_unlocked": "Intercambios abiertos",
@@ -2065,7 +2070,7 @@
       "wall_cta_hint": "La revelación de pago aún no está activa. Contáctenos para saber más.",
       "candidate_label": "Candidato",
       "ai_score": "Puntuación {score}/10",
-      "ai_score_tooltip": "Puntuación IA respecto a tu publicación.",
+      "ai_score_tooltip": "Puntuación IA respecto a tu anuncio.",
       "years_experience": "{years} año(s) de experiencia",
       "candidated_ago": "Postuló hace {time}",
       "cover_message_label": "Carta de motivación",
@@ -2077,8 +2082,8 @@
       "button_select": "Aceptar este candidato",
       "button_selecting": "Confirmando…",
       "select_confirm_title": "¿Aceptar este candidato?",
-      "select_confirm_body_mission": "Esta acción es definitiva: aceptas a este candidato para la misión. Las demás candidaturas de esta publicación seguirán disponibles en tu panel.",
-      "select_confirm_body_offre": "Esta acción es definitiva: aceptas a este candidato para el puesto. Las demás candidaturas de esta publicación seguirán disponibles en tu panel.",
+      "select_confirm_body_mission": "Esta acción es definitiva: aceptas a este candidato para la misión. Las demás candidaturas de este anuncio seguirán disponibles en tu panel.",
+      "select_confirm_body_offre": "Esta acción es definitiva: aceptas a este candidato para el puesto. Las demás candidaturas de este anuncio seguirán disponibles en tu panel.",
       "select_cancel": "Cancelar",
       "select_confirm": "Confirmar aceptación",
       "rejection_reason_label": "Motivo del rechazo",
@@ -2097,7 +2102,7 @@
       "mark_viewed_cta": "Marcar como vista",
       "mark_viewed_busy": "Guardando…",
       "locked_profile_label": "Perfil bloqueado",
-      "skill_matched_tooltip": "Habilidad requerida por tu publicación",
+      "skill_matched_tooltip": "Habilidad requerida por tu anuncio",
       "reject_confirm_title": "Confirmar rechazo",
       "reject_reason_placeholder": "Motivo opcional (visible solo internamente)…",
       "reject_cancel": "Cancelar",
@@ -2691,7 +2696,7 @@
       "sms_label": "Por SMS",
       "sms_unavailable": "No disponible: tu teléfono no está verificado.",
       "sms_verify_link": "Verificar mi teléfono",
-      "grouping_note": "Las oportunidades recibidas en un breve intervalo se agrupan en un solo envío. Los mensajes y las candidaturas se envían de uno en uno.",
+      "grouping_note_digest": "Las oportunidades de un mismo ciclo de recomendación llegan en un solo envío. Las demás notificaciones se envían de una en una.",
       "saved_on": "Notificaciones activadas.",
       "saved_off": "Notificaciones desactivadas.",
       "unsub_done": "Has cancelado las notificaciones por correo.",
@@ -2714,7 +2719,8 @@
           "label": "Nuevos mensajes",
           "description": "Alguien te escribe. El contenido del mensaje nunca se copia en el correo."
         }
-      }
+      },
+      "grouping_note_per_item": "Cada notificación se envía por separado."
     },
     "title": "Ajustes",
     "subtitle": "Gestiona tu cuenta y tus preferencias.",

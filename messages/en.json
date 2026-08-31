@@ -74,7 +74,7 @@
       "organisation": "My company",
       "members": "Team members",
       "offre": "My plan",
-      "annonces": "My postings",
+      "annonces": "My listings",
       "candidatures_org": "Applications",
       "logout": "Sign out"
     },
@@ -87,7 +87,7 @@
       "mon_profil": "My profile",
       "profil": "My profile",
       "profil_valider": "Complete my profile",
-      "annonces": "My postings",
+      "annonces": "My listings",
       "settings": "Settings",
       "organisation": "My company",
       "membres": "Team members",
@@ -1658,9 +1658,9 @@
       "rejected": "Declined"
     },
     "overview": {
-      "publications_title": "Postings overview",
+      "annonces_title": "Listings overview",
       "candidatures_title": "Applications overview",
-      "see_annonces": "View my postings",
+      "see_annonces": "View my listings",
       "see_candidatures": "View applications",
       "pub_published": "Published",
       "pub_review": "In review",
@@ -1725,11 +1725,15 @@
       "per_month": "/ month",
       "limits_title": "What your plan includes",
       "usage_title": "This month’s usage",
-      "usage_publications": "Job posts",
+      "usage_annonces": "Listings",
       "usage_manual_unlocks": "Extra reveals",
       "unlimited": "Unlimited",
       "valid_until": "Plan valid until {date}.",
-      "contact_to_change": "To change your plan, contact us."
+      "contact_to_change": "To change your plan, contact us.",
+      "limit_annonces_per_month": "Listings per month",
+      "limit_active_annonces_max": "Maximum active listings",
+      "limit_revealed_candidates_per_annonce": "Revealed candidates per listing",
+      "limit_manual_unlocks_per_month": "Additional reveals per month"
     },
     "membres": {
       "loading": "Loading…",
@@ -1783,10 +1787,10 @@
   },
   "publications": {
     "detail_org": {
-      "loading": "Loading posting…",
-      "error_generic": "Could not load this posting.",
-      "error_not_found": "This posting no longer exists or is no longer accessible.",
-      "back_to_annonces": "← My postings",
+      "loading": "Loading listing…",
+      "error_generic": "Could not load this listing.",
+      "error_not_found": "This listing no longer exists or is no longer accessible.",
+      "back_to_annonces": "← My listings",
       "edit_cta": "Edit",
       "view_candidatures_cta": "View applications",
       "section_description": "Description",
@@ -1814,7 +1818,8 @@
     },
     "type": {
       "mission": "Mission",
-      "offre": "CDI offer"
+      "offre": "CDI offer",
+      "sous_traitance": "Subcontracting"
     },
     "budget_unit": {
       "day": "/day",
@@ -1915,7 +1920,7 @@
       "confirm_publish_rule_no_discrimination": "No discriminatory criteria (age, gender, origin, etc.)",
       "confirm_publish_rule_legal": "Legal conditions respected (compensation, status)",
       "confirm_publish_warning": "If a blocking criterion is detected, the listing will go to manual review instead of going live immediately.",
-      "confirm_publish_expiry": "Your listing will stay live for 30 days and will expire on {date}. After that, you'll need to republish it (a new publication).",
+      "confirm_publish_expiry": "Your listing will stay live for 30 days and will expire on {date}. After that, you'll need to republish it (a new listing).",
       "confirm_publish_yes": "Publish now",
       "confirm_publish_no": "Cancel",
       "field_speciality_other_option": "Other (specify)",
@@ -1932,10 +1937,10 @@
     "errors": {
       "invalid_json": "Invalid request.",
       "org_required": "You must be an active member of an organization.",
-      "not_found": "Publication not found.",
-      "forbidden": "You do not have access to this publication.",
+      "not_found": "Listing not found.",
+      "forbidden": "You do not have access to this listing.",
       "wrong_status": "Action not allowed in the current status.",
-      "invalid_type": "Invalid publication type.",
+      "invalid_type": "Invalid listing type.",
       "invalid_title": "Invalid title (5 to 200 characters).",
       "invalid_description": "Invalid description (20 to 10,000 characters).",
       "invalid_budget": "Invalid budget.",
@@ -2016,15 +2021,15 @@
       "count_candidates": "{count, plural, =0 {0 candidates} =1 {1 candidate} other {# candidates}}",
       "best_score": "Top score {score}/10",
       "best_score_inline": "top {score}/10",
-      "switch_pub_label": "Posting:",
-      "master_title": "Your postings",
-      "master_aria_label": "List of your postings with applications"
+      "switch_pub_label": "Listing:",
+      "master_title": "Your listings",
+      "master_aria_label": "List of your listings with applications"
     },
     "feed_global": {
       "back_to_dashboard": "← Dashboard",
       "header_kicker": "Applications",
       "header_title": "All your applications",
-      "header_subtitle": "Aggregated view of applications received across all your postings. The full profile is revealed only after you accept the exchange.",
+      "header_subtitle": "Aggregated view of applications received across all your listings. The full profile is revealed only after you accept the exchange.",
       "loading": "Loading applications…",
       "error_generic": "Couldn't load applications. Please try again.",
       "filter_all": "All",
@@ -2037,16 +2042,16 @@
       "empty_filtered_title": "No applications in this filter",
       "empty_filtered_subtitle": "Try another filter to see all applications.",
       "group_count": "{count, plural, =0 {No applications} =1 {1 application} other {# applications}}",
-      "view_pub": "View posting"
+      "view_pub": "View listing"
     },
     "feed": {
       "back_to_dashboard": "← Dashboard",
       "header_kicker": "Applications",
-      "untitled_publication": "(untitled posting)",
-      "header_subtitle": "Applications received on this posting. The full profile is revealed only after you accept the exchange.",
+      "untitled_publication": "(untitled listing)",
+      "header_subtitle": "Applications received on this listing. The full profile is revealed only after you accept the exchange.",
       "loading": "Loading applications…",
       "error_generic": "Could not load applications. Please try again.",
-      "error_not_found": "This posting no longer exists or is no longer available.",
+      "error_not_found": "This listing no longer exists or is no longer available.",
       "filter_all": "All",
       "filter_received": "To review",
       "filter_unlocked": "Open exchanges",
@@ -2065,7 +2070,7 @@
       "wall_cta_hint": "Paid reveal is not active yet. Contact us to learn more.",
       "candidate_label": "Candidate",
       "ai_score": "Score {score}/10",
-      "ai_score_tooltip": "AI relevance score against your posting.",
+      "ai_score_tooltip": "AI relevance score against your listing.",
       "years_experience": "{years} year(s) of experience",
       "candidated_ago": "Applied {time} ago",
       "cover_message_label": "Cover message",
@@ -2077,8 +2082,8 @@
       "button_select": "Accept this candidate",
       "button_selecting": "Confirming…",
       "select_confirm_title": "Accept this candidate?",
-      "select_confirm_body_mission": "This action is final: you're accepting this candidate for the mission. Other applications on this posting will remain available in your dashboard.",
-      "select_confirm_body_offre": "This action is final: you're accepting this candidate for the position. Other applications on this posting will remain available in your dashboard.",
+      "select_confirm_body_mission": "This action is final: you're accepting this candidate for the mission. Other applications on this listing will remain available in your dashboard.",
+      "select_confirm_body_offre": "This action is final: you're accepting this candidate for the position. Other applications on this listing will remain available in your dashboard.",
       "select_cancel": "Cancel",
       "select_confirm": "Confirm acceptance",
       "rejection_reason_label": "Rejection reason",
@@ -2097,7 +2102,7 @@
       "mark_viewed_cta": "Mark as viewed",
       "mark_viewed_busy": "Saving…",
       "locked_profile_label": "Profile locked",
-      "skill_matched_tooltip": "Skill required by your posting",
+      "skill_matched_tooltip": "Skill required by your listing",
       "reject_confirm_title": "Confirm rejection",
       "reject_reason_placeholder": "Optional reason (visible internally only)…",
       "reject_cancel": "Cancel",
@@ -2126,7 +2131,7 @@
       "read_only_role": "Read-only — your role can't act on applications.",
       "error_not_found": "This application no longer exists.",
       "error_reason_too_long": "Reason exceeds 2000 characters.",
-      "error_candidature_archived": "This application is archived: the posting is no longer open, so the profile can no longer be unlocked.",
+      "error_candidature_archived": "This application is archived: the listing is no longer open, so the profile can no longer be unlocked.",
       "error_generic": "An error occurred. Please try again."
     }
   },
@@ -2691,7 +2696,7 @@
       "sms_label": "By SMS",
       "sms_unavailable": "Unavailable: your phone number is not verified.",
       "sms_verify_link": "Verify my phone",
-      "grouping_note": "Opportunities received within a short interval are grouped into a single message. Messages and applications are sent individually.",
+      "grouping_note_digest": "Opportunities from the same recommendation run arrive in a single send. Other notifications are sent one by one.",
       "saved_on": "Notifications enabled.",
       "saved_off": "Notifications disabled.",
       "unsub_done": "You have been unsubscribed from email notifications.",
@@ -2714,7 +2719,8 @@
           "label": "New messages",
           "description": "Someone writes to you. The message content is never copied into the email."
         }
-      }
+      },
+      "grouping_note_per_item": "Each notification is sent on its own."
     },
     "title": "Settings",
     "subtitle": "Manage your account and preferences.",

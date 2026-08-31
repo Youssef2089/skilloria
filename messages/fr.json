@@ -1658,7 +1658,7 @@
       "rejected": "Refusées"
     },
     "overview": {
-      "publications_title": "Suivi des publications",
+      "annonces_title": "Suivi des annonces",
       "candidatures_title": "Suivi des candidatures",
       "see_annonces": "Voir mes annonces",
       "see_candidatures": "Voir les candidatures",
@@ -1725,11 +1725,15 @@
       "per_month": "/ mois",
       "limits_title": "Ce que comprend votre offre",
       "usage_title": "Consommation du mois",
-      "usage_publications": "Publications",
+      "usage_annonces": "Annonces",
       "usage_manual_unlocks": "Dévoilements supplémentaires",
       "unlimited": "Illimité",
       "valid_until": "Offre valable jusqu'au {date}.",
-      "contact_to_change": "Pour changer d’offre, contactez-nous."
+      "contact_to_change": "Pour changer d’offre, contactez-nous.",
+      "limit_annonces_per_month": "Annonces par mois",
+      "limit_active_annonces_max": "Annonces actives maximum",
+      "limit_revealed_candidates_per_annonce": "Candidats dévoilés par annonce",
+      "limit_manual_unlocks_per_month": "Dévoilements supplémentaires par mois"
     },
     "membres": {
       "loading": "Chargement…",
@@ -1814,7 +1818,8 @@
     },
     "type": {
       "mission": "Mission",
-      "offre": "Offre CDI"
+      "offre": "Offre CDI",
+      "sous_traitance": "Sous-traitance"
     },
     "budget_unit": {
       "day": "/jour",
@@ -1915,7 +1920,7 @@
       "confirm_publish_rule_no_discrimination": "Aucun critère discriminatoire (âge, sexe, origine, etc.)",
       "confirm_publish_rule_legal": "Conditions légales respectées (rémunération, statut)",
       "confirm_publish_warning": "Si un critère bloquant est détecté, l'annonce passera en revue manuelle au lieu d'être publiée immédiatement.",
-      "confirm_publish_expiry": "Votre annonce restera en ligne 30 jours et expirera le {date}. Passé ce délai, vous devrez la republier (nouvelle publication).",
+      "confirm_publish_expiry": "Votre annonce restera en ligne 30 jours et expirera le {date}. Passé ce délai, vous devrez la republier (nouvelle annonce).",
       "confirm_publish_yes": "Publier maintenant",
       "confirm_publish_no": "Annuler",
       "field_speciality_other_option": "Autre (préciser)",
@@ -2691,7 +2696,7 @@
       "sms_label": "Par SMS",
       "sms_unavailable": "Indisponible : votre téléphone n'est pas vérifié.",
       "sms_verify_link": "Vérifier mon téléphone",
-      "grouping_note": "Les opportunités reçues dans un court intervalle sont regroupées en un seul envoi. Les messages et les candidatures partent à l'unité.",
+      "grouping_note_digest": "Les opportunités issues d’un même cycle de recommandation arrivent en un seul envoi. Les autres notifications partent à l’unité.",
       "saved_on": "Notifications activées.",
       "saved_off": "Notifications désactivées.",
       "unsub_done": "Vous êtes désabonné des notifications par e-mail.",
@@ -2714,7 +2719,8 @@
           "label": "Nouveaux messages",
           "description": "Quelqu'un vous écrit. Le contenu du message n'est jamais recopié dans l'e-mail."
         }
-      }
+      },
+      "grouping_note_per_item": "Chaque notification part à l’unité."
     },
     "title": "Paramètres",
     "subtitle": "Gère ton compte et tes préférences.",

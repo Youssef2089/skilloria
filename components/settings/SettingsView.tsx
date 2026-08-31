@@ -58,6 +58,15 @@ type NotificationSetting = {
    * sous-traitance.
    */
   voice: 'expert' | 'org' | null
+  /**
+   * Mode d'envoi de l'événement, DÉRIVÉ SERVEUR du catalogue — même source que
+   * le dispatcher. `digest` = les notifications en attente d'un même événement
+   * partent en un seul message ; `per_item` = un message par notification.
+   * C'est ce champ, et non le type de compte, qui décide de la note de bas
+   * d'écran : une organisation ne reçoit aucun événement `digest`, la phrase
+   * sur le regroupement ne s'affiche donc pas chez elle.
+   */
+  grouping: 'digest' | 'per_item'
   enabled: boolean
 }
 
@@ -653,9 +662,20 @@ function NotificationsSection({ user, secureFetch, notify, goToPhone }: {
           </div>
         ))}
 
-        {/* Mention regroupement */}
+        {/* Mention regroupement — DÉCRIT CE QUE CE LECTEUR REÇOIT.
+            La note unique d'avant parlait d'opportunités regroupées « dans un
+            court intervalle » : deux erreurs à la fois. Une organisation ne
+            reçoit jamais d'opportunité, et l'intervalle décrivait la fenêtre de
+            15 min du cron de dispatch, supprimé depuis (3ec7492, envoi
+            immédiat). Le regroupement, lui, EXISTE TOUJOURS : `new_match_opportunity`
+            est déclaré `digest` au catalogue et lib/notifications/dispatch.ts
+            envoie un seul e-mail/SMS pour les N opportunités en attente d'un
+            même cycle. On corrige donc la formulation ET le public, en lisant
+            le mode d'envoi servi — pas le type de compte. */}
         <p style={{ margin: '18px 0 0', fontSize: 12.5, color: '#94a3b8', lineHeight: 1.5 }}>
-          {t('grouping_note')}
+          {settings.some((s) => s.grouping === 'digest')
+            ? t('grouping_note_digest')
+            : t('grouping_note_per_item')}
         </p>
       </div>
     </div>

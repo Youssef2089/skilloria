@@ -40,15 +40,20 @@ type Payload = {
 }
 
 /**
- * Limites → clés i18n du back-office. On NE recrée PAS de libellés : on
- * réutilise le mapping `feature_label_*` déjà traduit dans les 4 langues sous
- * `admin_back_office.packages` (cf. app/[locale]/admin/packages/[id]/page.tsx).
+ * Limites → clés i18n de l'écran ORGANISATION.
+ *
+ * Ces lignes empruntaient les libellés `admin_back_office.packages.feature_*`.
+ * L'économie était fausse : le back-office parle de « publications », l'écran
+ * entreprise dit « annonce » partout ailleurs (« Publier une annonce », « Voir
+ * mes annonces », « Suivi des annonces »). Un même écran affichait donc deux
+ * mots pour une seule chose. Les libellés admin restent INCHANGÉS — ils
+ * s'adressent à un autre lecteur ; l'organisation a désormais les siens.
  */
 const LIMIT_ROWS = [
-  { key: 'publicationsPerMonth', labelKey: 'feature_label_publications_per_month' },
-  { key: 'activePublicationsMax', labelKey: 'feature_label_active_publications_max' },
-  { key: 'revealedCandidatesPerPublication', labelKey: 'feature_label_revealed_candidates_per_publication' },
-  { key: 'manualUnlocksPerMonth', labelKey: 'feature_label_manual_unlocks_per_month' },
+  { key: 'publicationsPerMonth', labelKey: 'limit_annonces_per_month' },
+  { key: 'activePublicationsMax', labelKey: 'limit_active_annonces_max' },
+  { key: 'revealedCandidatesPerPublication', labelKey: 'limit_revealed_candidates_per_annonce' },
+  { key: 'manualUnlocksPerMonth', labelKey: 'limit_manual_unlocks_per_month' },
 ] as const
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
@@ -122,7 +127,6 @@ function UsageRow({ label, used, limit, unlimitedLabel }: {
 
 export default function MonOffrePage() {
   const t = useTranslations('dashboard_entreprise.offre')
-  const tFeat = useTranslations('admin_back_office.packages')
   const locale = useLocale()
   const secureFetch = useSecureFetch()
 
@@ -209,7 +213,7 @@ export default function MonOffrePage() {
             return (
               <Row
                 key={key}
-                label={tFeat(labelKey as 'feature_label_publications_per_month')}
+                label={t(labelKey as 'limit_annonces_per_month')}
                 value={v == null ? t('unlimited') : v}
               />
             )
@@ -221,7 +225,7 @@ export default function MonOffrePage() {
       <Card title={t('usage_title')}>
         <div>
           <UsageRow
-            label={t('usage_publications')}
+            label={t('usage_annonces')}
             used={usage?.publications ?? 0}
             limit={limits?.publicationsPerMonth ?? null}
             unlimitedLabel={t('unlimited')}

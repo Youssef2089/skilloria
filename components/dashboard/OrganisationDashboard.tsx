@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Link } from '@/i18n/navigation'
+import { useSearchParams } from 'next/navigation'
+import { Link, usePathname, useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { type OrganisationLite } from '@/components/dashboard/OrganisationSidebar'
 import AnnonceCard from '@/components/dashboard/AnnonceCard'
@@ -11,8 +12,15 @@ import { useOrgRole } from '@/lib/use-org-role'
 import type { Annonce, AnnonceStatus } from '@/types/annonce'
 import BoundedScrollList from '@/components/ui/BoundedScrollList'
 
-// Regroupement des 7 statuts BDD en 4 onglets dashboard.
-const TAB_STATUS_MAP: Record<TabKey, readonly AnnonceStatus[]> = {
+/**
+ * Regroupement des 7 statuts BDD en 4 onglets dashboard (+ 'all').
+ *
+ * EXPORTÉ : le tableau de bord (`/dashboard/entreprise`) compte ses tuiles avec
+ * ce même mapping. Il en avait le sien, identique — deux définitions du même
+ * découpage, donc deux occasions de diverger le jour où un statut bouge, et un
+ * chiffre qui aurait fini par ne plus correspondre à l'onglet qu'il ouvre.
+ */
+export const TAB_STATUS_MAP: Record<TabKey, readonly AnnonceStatus[]> = {
   all: ['draft', 'pending_review', 'rejected', 'published', 'suspended', 'expired', 'archived'],
   drafts: ['draft'],
   review: ['pending_review', 'rejected'],
@@ -33,8 +41,9 @@ const TAB_STATUS_MAP: Record<TabKey, readonly AnnonceStatus[]> = {
  *
  * Section "Mes annonces" :
  *   - Recherche par titre (state local `searchQuery`)
- *   - Onglets filtres (state local `activeTab`) : Publiées (par défaut),
- *     En discussion, Clôturées, Toutes
+ *   - Onglets filtres portés par l'URL (`?tab=`) : Publiées (par défaut),
+ *     Brouillons, En revue, Clôturées, Toutes — atteignables depuis les tuiles
+ *     du tableau de bord, partageables, résistants au rechargement.
  *   - Empty states selon contexte
  *
  * Bouton "Publier une annonce" désactivé tant que
@@ -65,7 +74,26 @@ type Props = {
   unreadMessagesCount?: number
 }
 
-type TabKey = 'all' | 'drafts' | 'review' | 'published' | 'closed'
+export type TabKey = 'all' | 'drafts' | 'review' | 'published' | 'closed'
+
+/**
+ * L'onglet actif vit dans l'URL (`?tab=`), plus dans un `useState`.
+ *
+ * POURQUOI
+ *   Les tuiles chiffrées du tableau de bord (Publiées / En revue / Brouillons /
+ *   Clôturées) mènent maintenant à cette liste DÉJÀ FILTRÉE. Un état local
+ *   n'est pas atteignable depuis un lien : il aurait fallu un second mécanisme
+ *   (prop initiale, événement, store) pour dire à la liste quoi afficher. Une
+ *   seule source, et elle est partageable, elle survit au rechargement et au
+ *   bouton Précédent.
+ *
+ * VALEUR INCONNUE OU ABSENTE → 'published', le défaut historique. Un `?tab=`
+ * inventé ne casse rien et n'affiche jamais une liste vide sans onglet actif.
+ */
+const TAB_KEYS: readonly TabKey[] = ['all', 'drafts', 'review', 'published', 'closed']
+export function parseAnnoncesTab(raw: string | null | undefined): TabKey {
+  return (TAB_KEYS as readonly string[]).includes(raw ?? '') ? (raw as TabKey) : 'published'
+}
 
 function IconPlus({ size = 14 }: { size?: number }) {
   return (
@@ -107,7 +135,16 @@ export default function OrganisationDashboard({
   const badges = useNavBadges()
   const effectiveUnread = unreadMessagesCount ?? badges.messages_unread ?? 0
 
-  const [activeTab, setActiveTab] = useState<TabKey>('published')
+  // Onglet actif : lu dans l'URL, écrit dans l'URL (cf. parseAnnoncesTab).
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const router = useRouter()
+  const activeTab = parseAnnoncesTab(searchParams.get('tab'))
+  const selectTab = (key: TabKey) => {
+    // `replace` et non `push` : parcourir les onglets ne doit pas empiler cinq
+    // entrées d'historique entre le tableau de bord et la page suivante.
+    router.replace(`${pathname}?tab=${key}`, { scroll: false })
+  }
   const [searchQuery, setSearchQuery] = useState('')
 
   const isApproved = organization.verification_status === 'approved'
@@ -386,7 +423,7 @@ export default function OrganisationDashboard({
                   type="button"
                   role="tab"
                   aria-selected={active}
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => selectTab(tab.key)}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
