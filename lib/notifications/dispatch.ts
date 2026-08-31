@@ -433,11 +433,18 @@ async function deliverMessage(
     .select(
       'id, candidatures!inner(id, profile_id, ' +
         'profiles!inner(id, user_id, users!profiles_user_id_fkey(id, first_name, last_name, user_type, deletion_scheduled_at, anonymized_at)), ' +
-        'publications!inner(id, organization_id, organizations(id, company_name)))',
+        'publications!inner(id, title, organization_id, organizations(id, company_name)))',
     )
     .in('id', convIds)
 
-  type ConvCtx = { expertUserId: string; expertName: string; orgName: string; expertUserType: string | null }
+  type ConvCtx = {
+    expertUserId: string
+    expertName: string
+    orgName: string
+    expertUserType: string | null
+    /** Titre de l'annonce — DISCRIMINANT de l'objet d'e-mail (cf. plus bas). */
+    publicationTitle: string
+  }
   const ctxByConv = new Map<string, ConvCtx>()
   for (const row of (convsRaw ?? []) as unknown as Array<{ id: string; candidatures: unknown }>) {
     const cand = (Array.isArray(row.candidatures) ? row.candidatures[0] : row.candidatures) as {
@@ -459,6 +466,7 @@ async function deliverMessage(
         }
       | null
     const pub = (Array.isArray(cand.publications) ? cand.publications[0] : cand.publications) as {
+      title: string | null
       organizations: unknown
     } | null
     const org = (Array.isArray(pub?.organizations) ? pub?.organizations[0] : pub?.organizations) as
@@ -469,9 +477,17 @@ async function deliverMessage(
       expertUserId: prof.user_id,
       // Masquage appliqué SYSTÉMATIQUEMENT : l'e-mail ne doit pas devenir le
       // canal qui dévoile ce que l'interface masque.
-      expertName: maskExpertNameForOrg(expertUser.first_name, expertUser.last_name, expertUser),
+      // Langue du DESTINATAIRE (ctx.locale) : c'est lui qui lira un éventuel
+      // libellé de repli (« Expert », « Deleted user »…).
+      expertName: maskExpertNameForOrg(
+        expertUser.first_name,
+        expertUser.last_name,
+        expertUser,
+        ctx.locale,
+      ),
       orgName: org?.company_name ?? ctx.platform,
       expertUserType: expertUser.user_type ?? null,
+      publicationTitle: (pub?.title ?? '').trim(),
     })
   }
 
@@ -487,11 +503,22 @@ async function deliverMessage(
       : '/dashboard/entreprise'
     const url = `${ctx.base}/${ctx.locale}${basePath}/messages/${c.entity_id}`
 
+    // TITRE DE L'ANNONCE DANS L'OBJET — discriminant de collision.
+    //   Le code masqué à trois lettres est bien moins distinctif que l'ancienne
+    //   forme : deux experts différents peuvent produire le même « YCH ». Or
+    //   dans une boîte mail, deux objets identiques se regroupent en un seul
+    //   fil de discussion — deux conversations distinctes fusionneraient sous
+    //   les yeux du destinataire.
+    //   L'objet est la SEULE des quatre surfaces masquées où aucun contexte
+    //   n'accompagne le nom (l'inbox a le titre et l'extrait, la cloche a
+    //   l'extrait, le fil n'a qu'un correspondant). C'est donc la seule qu'on
+    //   enrichit ; alourdir les trois autres n'apporterait rien.
     const rendered = renderNewMessageEmail({
       locale: ctx.locale,
       brandName: ctx.brandName,
       firstName: ctx.user.first_name ?? '',
       senderName,
+      publicationTitle: conv.publicationTitle,
       conversationUrl: url,
       unsubscribeUrl: ctx.unsubscribeUrl,
     })

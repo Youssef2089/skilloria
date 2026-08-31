@@ -115,7 +115,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   const translations = await loadTranslations(locale)
   let all: Awaited<ReturnType<typeof buildOrgCandidatureDTOs>>
   try {
-    all = await buildOrgCandidatureDTOs(auth, [publicationId], translations)
+    all = await buildOrgCandidatureDTOs(auth, [publicationId], translations, null, locale)
   } catch {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }

@@ -224,13 +224,10 @@ export default function AdminUserDetailPage() {
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit' }}>
-      {/* Bouton Retour GLOBAL UNIQUE — page de détail (règle projet). */}
-      <Link
-        href="/admin/utilisateurs"
-        style={{ display: 'inline-block', marginBottom: 16, fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary, #64748b)', textDecoration: 'none' }}
-      >
-        {t('back_to_list')}
-      </Link>
+      {/* AUCUN bouton Retour local : le <GlobalBackButton> du layout admin
+          (app/[locale]/admin/layout.tsx) en rend déjà UN, et un seul. En
+          poser un second ici donnait deux « ← Retour » empilés sur la même
+          page — exactement ce que la règle projet interdit. */}
 
       {loading ? (
         <div style={{ padding: 48, textAlign: 'center', color: 'var(--color-text-secondary, #64748b)' }}>{t('loading')}</div>

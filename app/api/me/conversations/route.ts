@@ -264,6 +264,10 @@ export async function GET(request: NextRequest): Promise<Response> {
       ? {
           kind: 'org' as const,
           name: org?.company_name ?? null,
+          // Une organisation n'est jamais masquée : l'expert voit sa raison
+          // sociale. Le champ est servi quand même pour que le client n'ait
+          // qu'une seule forme à traiter.
+          is_masked: false,
           avatar_url: org?.logo_url ?? null,
         }
       : await (async () => {
@@ -283,13 +287,20 @@ export async function GET(request: NextRequest): Promise<Response> {
           // Mission S3 : expert en grâce/purge → placeholder prioritaire.
           const accountState = (u ?? undefined) as ExpertAccountState | undefined
           const inDeletion = !!(accountState?.deletion_scheduled_at || accountState?.anonymized_at)
+          // Le nom servi est-il un CODE masqué (« YCH ») ou une identité
+          // lisible ? Le SERVEUR le dit ; le client ne le devine pas au motif
+          // de la chaîne. Sans ce drapeau, la pastille d'avatar devrait
+          // reconstruire une règle de sécurité dans le navigateur (point 20).
+          const showsMaskedCode =
+            !inDeletion && !(policy.reveal_full_name && fullName)
           return {
             kind: 'expert' as const,
             name: inDeletion
-              ? maskExpertNameForOrg(fn, ln, accountState)
+              ? maskExpertNameForOrg(fn, ln, accountState, locale)
               : policy.reveal_full_name && fullName
                 ? fullName
-                : maskExpertNameForOrg(fn, ln),
+                : maskExpertNameForOrg(fn, ln, null, locale),
+            is_masked: showsMaskedCode,
             // M3 : URL signée (300s). CONDITION inchangée (reveal_photo + photo présente),
             // seule la VALEUR passe en signée (avant : profile.photo_url public).
             avatar_url:

@@ -223,16 +223,24 @@ async function loadConvAsParticipant(
   }
 
   // ── Identité de l'émetteur (pour body notif) ──────────────────────────
-  // Lot masquage : si l'émetteur est l'expert, on persiste le NOM MASQUÉ
-  // dans la notif → l'org ne verra "Youssef F" dans son centre de notifs,
-  // pas le nom complet. Notifs déjà persistées (pré-lot) restent telles
-  // quelles — décision séparée pour un éventuel backfill.
+  // Lot masquage : si l'émetteur est l'expert, on persiste le CODE MASQUÉ dans
+  // la notif → l'org ne verra que « YCH » dans son centre de notifications,
+  // jamais le nom complet.
+  //
+  // Les notifications DÉJÀ PERSISTÉES gardent la forme du moment où elles ont
+  // été écrites (« Youssef F » pour les plus anciennes). Ce n'est pas un bug :
+  // une notification est un événement daté, elle porte légitimement l'état de
+  // son époque, et l'ancienne forme n'est pas moins masquée que la nouvelle.
+  // Aucun backfill — il demanderait une écriture de masse pour un gain nul.
   let senderFirstLast = ''
   if (role === 'expert') {
     senderFirstLast = maskExpertNameForOrg(
       expertUser?.first_name ?? null,
       expertUser?.last_name ?? null,
       (expertUser ?? undefined) as ExpertAccountState | undefined,
+      // Langue du DESTINATAIRE de la notification (le membre de l'org), pas
+      // celle de l'expéditeur : c'est lui qui lira le libellé de repli.
+      otherUserLocale,
     )
   } else {
     const orgRaw = pickRel(pub.organizations as { id: string; company_name: string | null; logo_url: string | null } | { id: string; company_name: string | null; logo_url: string | null }[] | null)
@@ -268,6 +276,10 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   if (!convId || !UUID_REGEX.test(convId)) {
     return json({ error: 'Invalid id', code: 'invalid_id' }, 400)
   }
+
+  // Langue du LECTEUR, pour les libellés de repli du masquage (« Expert »,
+  // « Utilisateur supprimé »…). Absente ⇒ 'fr', le défaut du projet.
+  const readerLocale = normalizeLocale(new URL(request.url).searchParams.get('locale'))
 
   const loaded = await loadConvAsParticipant(auth.supabaseAdmin, convId, auth.user.id, auth.organization?.id ?? null)
   if (!loaded.ok) return json({ error: loaded.code, code: loaded.code }, loaded.status)
@@ -337,6 +349,10 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     ? {
         kind: 'org' as const,
         name: orgRaw?.company_name ?? null,
+        // Une organisation n'est jamais masquée : l'expert voit sa raison
+        // sociale. Le champ est servi quand même pour que le client n'ait
+        // qu'une seule forme à traiter.
+        is_masked: false,
         avatar_url: orgRaw?.logo_url ?? null,
       }
     : await (async () => {
@@ -350,13 +366,17 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         // Mission S3 : expert en grâce/purge → placeholder prioritaire.
         const accountState = (expertUser ?? undefined) as ExpertAccountState | undefined
         const inDeletion = !!(accountState?.deletion_scheduled_at || accountState?.anonymized_at)
+        // Cf. /api/me/conversations : le SERVEUR dit si le nom servi est un
+        // code masqué. Le client ne le devine pas au motif de la chaîne.
+        const showsMaskedCode = !inDeletion && !(policy.reveal_full_name && fullName)
         return {
           kind: 'expert' as const,
           name: inDeletion
-            ? maskExpertNameForOrg(fn, ln, accountState)
+            ? maskExpertNameForOrg(fn, ln, accountState, readerLocale)
             : policy.reveal_full_name && fullName
               ? fullName
-              : maskExpertNameForOrg(fn, ln),
+              : maskExpertNameForOrg(fn, ln, null, readerLocale),
+          is_masked: showsMaskedCode,
           // M3 : URL signée (300s). CONDITION inchangée (reveal_photo + photo présente),
           // seule la VALEUR passe en signée (avant : profile.photo_url public).
           avatar_url:

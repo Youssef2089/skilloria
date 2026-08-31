@@ -316,11 +316,21 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
     }
   }
 
-  // ── Display name : anonyme avant unlock, pseudo serveur après ──────────
-  // Lot masquage : post-unlock, le serveur fournit `display_name` déjà
-  // pseudonymisé ("Prénom + dernière lettre maj"). Le navigateur ne reçoit
-  // plus first_name/last_name/civility/email/phone : aucune reconstruction
-  // possible côté FE.
+  // ── Display name : anonyme avant unlock, NOM COMPLET après ─────────────
+  //
+  // ⚠️ CE COMMENTAIRE A ÉTÉ FAUX. Il affirmait que le serveur fournit ici un
+  // `display_name` « déjà pseudonymisé ». Ce n'est plus vrai depuis le lot de
+  // re-masquage : `buildOrgCandidatureDTOs` ne charge le profil complet QUE
+  // si la candidature est déverrouillée ET encore active, cas dans lequel la
+  // policy autorise le nom complet. Sur toute autre candidature,
+  // `unlocked_profile` vaut `null` et l'on affiche « Candidat anonyme ».
+  // Le CODE MASQUÉ (« YCH ») n'apparaît donc JAMAIS sur cette carte — il est
+  // réservé aux surfaces messagerie et notifications.
+  // Un commentaire qui ment sur une règle de sécurité est pire que pas de
+  // commentaire : il fait prendre une décision sur une prémisse fausse.
+  //
+  // Ce qui reste vrai : le navigateur ne reçoit jamais
+  // civility/email/phone/cv — aucune reconstruction possible côté client.
   const displayName = isUnlocked && unlocked_profile
     ? unlocked_profile.display_name || t('candidate_label')
     : t('anonymous_candidate')

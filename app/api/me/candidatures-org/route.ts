@@ -117,7 +117,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   // dérivation, donc jamais de compteur qui contredit la liste.
   let all: Awaited<ReturnType<typeof buildOrgCandidatureDTOs>>
   try {
-    all = await buildOrgCandidatureDTOs(auth, publicationIds, translations)
+    all = await buildOrgCandidatureDTOs(auth, publicationIds, translations, null, locale)
   } catch {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }

@@ -160,6 +160,12 @@ export async function buildOrgCandidatureDTOs(
    * (actives par défaut) et passent le résultat ici.
    */
   bucket: CandidatureBucket | null = null,
+  /**
+   * Langue du LECTEUR (le membre de l'organisation). Sert UNIQUEMENT les
+   * libellés de repli du masquage d'identité (« Expert » / « Experto »…),
+   * choisis côté serveur. Absente ⇒ français.
+   */
+  locale: string | null = null,
 ): Promise<OrgCandidatureDTO[]> {
   if (publicationIds.length === 0) return []
 
@@ -374,11 +380,11 @@ export async function buildOrgCandidatureDTOs(
         const accountState = (u ?? undefined) as ExpertAccountState | undefined
         const inDeletion = !!(accountState?.deletion_scheduled_at || accountState?.anonymized_at)
         const displayName = inDeletion
-          ? maskExpertNameForOrg(firstName, lastName, accountState)
+          ? maskExpertNameForOrg(firstName, lastName, accountState, locale)
           : policy.reveal_full_name
             ? [firstName, lastName].filter(Boolean).join(' ').trim() ||
-              maskExpertNameForOrg(firstName, lastName)
-            : maskExpertNameForOrg(firstName, lastName)
+              maskExpertNameForOrg(firstName, lastName, null, locale)
+            : maskExpertNameForOrg(firstName, lastName, null, locale)
 
         unlockedProfile = {
           display_name: displayName,

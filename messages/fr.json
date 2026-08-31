@@ -2582,7 +2582,6 @@
       "never_logged_in": "Jamais connecté",
       "no_organization": "—",
       "loading": "Chargement…",
-      "back_to_list": "← Retour aux utilisateurs",
       "type_expert_freelance": "Expert freelance",
       "type_expert_cdi": "Expert CDI",
       "type_client": "Entreprise",
@@ -2688,7 +2687,7 @@
       "unsubscribe": "Se désabonner des notifications par e-mail"
     },
     "new_message": {
-      "subject": "Nouveau message de {senderName}",
+      "subject": "Nouveau message de {senderName} — {publicationTitle}",
       "preheader": "Vous avez reçu un nouveau message.",
       "title": "Vous avez un nouveau message",
       "hello": "Bonjour {firstName},",
@@ -3335,5 +3334,10 @@
         }
       }
     }
+  },
+  "expert_masking": {
+    "fallback": "Expert",
+    "deleted": "Utilisateur supprimé",
+    "unavailable": "Interlocuteur indisponible"
   }
 }

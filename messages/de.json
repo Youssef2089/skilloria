@@ -2582,7 +2582,6 @@
       "never_logged_in": "Nie angemeldet",
       "no_organization": "—",
       "loading": "Wird geladen…",
-      "back_to_list": "← Zurück zu den Benutzern",
       "type_expert_freelance": "Freiberufliche Fachkraft",
       "type_expert_cdi": "Festangestellte Fachkraft",
       "type_client": "Unternehmen",
@@ -2688,7 +2687,7 @@
       "unsubscribe": "E-Mail-Benachrichtigungen abbestellen"
     },
     "new_message": {
-      "subject": "Neue Nachricht von {senderName}",
+      "subject": "Neue Nachricht von {senderName} — {publicationTitle}",
       "preheader": "Sie haben eine neue Nachricht erhalten.",
       "title": "Sie haben eine neue Nachricht",
       "hello": "Hallo {firstName},",
@@ -3335,5 +3334,10 @@
         }
       }
     }
+  },
+  "expert_masking": {
+    "fallback": "Fachkraft",
+    "deleted": "Gelöschtes Konto",
+    "unavailable": "Kontakt nicht verfügbar"
   }
 }

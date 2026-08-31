@@ -2582,7 +2582,6 @@
       "never_logged_in": "Never signed in",
       "no_organization": "—",
       "loading": "Loading…",
-      "back_to_list": "← Back to users",
       "type_expert_freelance": "Freelance expert",
       "type_expert_cdi": "Permanent-role expert",
       "type_client": "Company",
@@ -2688,7 +2687,7 @@
       "unsubscribe": "Unsubscribe from email notifications"
     },
     "new_message": {
-      "subject": "New message from {senderName}",
+      "subject": "New message from {senderName} — {publicationTitle}",
       "preheader": "You have received a new message.",
       "title": "You have a new message",
       "hello": "Hello {firstName},",
@@ -3335,5 +3334,10 @@
         }
       }
     }
+  },
+  "expert_masking": {
+    "fallback": "Expert",
+    "deleted": "Deleted user",
+    "unavailable": "Contact unavailable"
   }
 }

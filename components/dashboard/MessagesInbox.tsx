@@ -7,6 +7,7 @@ import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import ConversationView from '@/components/dashboard/ConversationView'
 import MessageContextPanel from '@/components/dashboard/MessageContextPanel'
+import CorrespondantAvatar from '@/components/dashboard/CorrespondantAvatar'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import NewItemsPill from '@/components/ui/NewItemsPill'
 import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
@@ -47,7 +48,14 @@ import { useCandidatureLifecycleLabel } from '@/lib/candidatures/use-lifecycle-l
  * Polling 30s aligné cloche + focus + bump.
  */
 
-type Correspondant = { kind: 'expert' | 'org'; name: string | null; avatar_url: string | null }
+type Correspondant = {
+  kind: 'expert' | 'org'
+  name: string | null
+  /** SERVI PAR LE SERVEUR : `name` est-il un code de masquage (« YCH ») ?
+   *  Le client ne le devine JAMAIS au motif de la chaine (point 20). */
+  is_masked?: boolean
+  avatar_url: string | null
+}
 // SC4 Lot synthèse parlante : publication = PublicationSynthesis + champs
 // supplémentaires consommés par MessageContextPanel inline complet
 // (description, skills_required, expires_at).
@@ -420,14 +428,12 @@ export default function MessagesInbox({
                           transition: 'background .15s',
                         }}
                       >
-                        {c.correspondant.avatar_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={c.correspondant.avatar_url} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                        ) : (
-                          <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#f1f5f9', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 600, flexShrink: 0 }}>
-                            {c.correspondant.name ? c.correspondant.name[0]?.toUpperCase() ?? '?' : '?'}
-                          </div>
-                        )}
+                        <CorrespondantAvatar
+                          name={c.correspondant.name}
+                          isMasked={c.correspondant.is_masked === true}
+                          avatarUrl={c.correspondant.avatar_url}
+                          size={36}
+                        />
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6 }}>
                             <span style={{ minWidth: 0, display: 'inline-flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>

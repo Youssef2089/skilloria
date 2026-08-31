@@ -555,6 +555,18 @@ export type NewMessageEmailParams = {
   firstName: string
   /** Nom d'affichage de l'expéditeur, DÉJÀ masqué par l'appelant si besoin. */
   senderName: string
+  /**
+   * Titre de l'annonce portant la conversation — DISCRIMINANT de l'objet.
+   *
+   * Le nom masqué est un code de trois lettres : deux experts différents
+   * peuvent produire le même. Deux objets d'e-mail identiques se regroupent en
+   * un seul fil dans une boîte mail, faisant fusionner deux conversations
+   * distinctes. Le titre de l'annonce est le contexte que l'organisation
+   * reconnaît immédiatement.
+   *
+   * Vide ⇒ l'objet retombe sur sa forme courte, sans tiret orphelin.
+   */
+  publicationTitle?: string | null
   /** URL absolue vers la conversation. */
   conversationUrl: string
   unsubscribeUrl: string
@@ -566,7 +578,14 @@ export function renderNewMessageEmail(params: NewMessageEmailParams): RenderedEm
   const common = getEmailMessages(locale)
   const vars = { firstName: params.firstName, senderName: params.senderName }
 
-  const subject = interpolate(m.subject, vars)
+  // Le gabarit d'objet porte `{publicationTitle}`. Titre absent (donnée
+  // manquante, conversation orpheline) ⇒ on retire le séparateur AVEC le
+  // marqueur, pour ne pas laisser « Nouveau message de YCH — » en suspens.
+  const rawTitle = (params.publicationTitle ?? '').trim()
+  const subjectTemplate = rawTitle
+    ? m.subject
+    : m.subject.replace(/\s*[—–-]\s*\{publicationTitle\}\s*/u, '')
+  const subject = interpolate(subjectTemplate, { ...vars, publicationTitle: rawTitle })
   const helloLine = interpolate(m.hello, vars)
   // `interpolate` échappe chaque valeur (lib/emails/escape.ts, fix E1) : le nom
   // d'expéditeur vient d'un profil utilisateur, donc non fiable.

@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import CorrespondantAvatar from '@/components/dashboard/CorrespondantAvatar'
 import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
 
 /**
@@ -19,7 +20,14 @@ import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
  * Actives/Archivées de l'inbox. Aucun état n'est recalculé ici.
  */
 
-type Correspondant = { kind: 'expert' | 'org'; name: string | null; avatar_url: string | null }
+type Correspondant = {
+  kind: 'expert' | 'org'
+  name: string | null
+  /** SERVI PAR LE SERVEUR : `name` est-il un code de masquage (« YCH ») ?
+   *  Le client ne le devine JAMAIS au motif de la chaine (point 20). */
+  is_masked?: boolean
+  avatar_url: string | null
+}
 type Message = {
   id: string
   sender_id: string
@@ -93,7 +101,13 @@ export default function ConversationView({ convId, side, embedded = false }: { c
   const load = useCallback(async (silent: boolean) => {
     if (!silent) setState({ kind: 'loading' })
     try {
-      const res = await secureFetch(`/api/conversations/${convId}/messages`, { method: 'GET' })
+      // `locale` : le serveur en a besoin pour les libellés de repli du
+      // masquage d'identité (« Expert », « Utilisateur supprimé »…), qui sont
+      // choisis CÔTÉ SERVEUR et non traduits ici.
+      const res = await secureFetch(
+        `/api/conversations/${convId}/messages?locale=${encodeURIComponent(locale)}`,
+        { method: 'GET' },
+      )
       const payload = (await res.json().catch(() => ({} as { code?: string }))) as { code?: string } & Partial<ConvHeader>
       if (!res.ok) {
         if (!silent) setState({ kind: 'error', message: payload.code === 'not_found' ? t('error_not_found') : t('error_generic') })
@@ -106,7 +120,11 @@ export default function ConversationView({ convId, side, embedded = false }: { c
         setState({ kind: 'error', message: t('error_generic') })
       }
     }
-  }, [convId, secureFetch, t])
+    // `locale` fait partie des dépendances : elle est envoyée au serveur, qui
+    // s'en sert pour choisir les libellés de repli du masquage. L'omettre
+    // figerait le fil dans la langue du premier rendu après un changement de
+    // langue.
+  }, [convId, secureFetch, t, locale])
 
   // Initial + polling 5s
   useEffect(() => {
@@ -237,14 +255,12 @@ export default function ConversationView({ convId, side, embedded = false }: { c
 
       {/* Header conv : correspondant + publication */}
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, paddingBottom: 14, borderBottom: '0.5px solid #e5e7eb', marginBottom: 14 }}>
-        {correspondant.avatar_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={correspondant.avatar_url} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-        ) : (
-          <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#f1f5f9', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 600, flexShrink: 0 }}>
-            {correspondant.name ? correspondant.name[0]?.toUpperCase() ?? '?' : '?'}
-          </div>
-        )}
+        <CorrespondantAvatar
+          name={correspondant.name}
+          isMasked={correspondant.is_masked === true}
+          avatarUrl={correspondant.avatar_url}
+          size={44}
+        />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{correspondant.name ?? t('unknown_correspondant')}</div>
           {publication && (
