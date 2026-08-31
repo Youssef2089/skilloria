@@ -467,7 +467,20 @@ function DeletionSection({ secureFetch, requestReauth, notify }: {
         headers: { 'content-type': 'application/json', 'x-reauth-token': token },
       })
       if (!res.ok) {
-        notify(t('error_failed'), 'error')
+        // Le refus « dernier administrateur » (409) N'EST PAS une panne : il a
+        // un remède, et l'utilisateur doit le lire. Sans cette distinction,
+        // toute réponse non-OK affichait « Impossible de programmer la
+        // suppression » — indiscernable d'une erreur serveur, sans indication
+        // de ce qu'il fallait faire.
+        // Le refus reste SERVEUR : le bouton n'est jamais masqué, l'admin peut
+        // tenter et comprendre.
+        const payload = (await res.json().catch(() => null)) as { code?: string } | null
+        notify(
+          payload?.code === 'last_platform_admin'
+            ? t('error_last_platform_admin')
+            : t('error_failed'),
+          'error',
+        )
         setBusy(false)
         return
       }

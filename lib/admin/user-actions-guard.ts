@@ -1,4 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+// Prédicat anti-lock-out PARTAGÉ avec les organisations. Il est pur et ne
+// connaît ni table ni périmètre : la plateforme et l'organisation posent la
+// même question à deux échelles, elles doivent la poser avec les mêmes mots.
+import { wouldRemoveLastAdmin } from '@/lib/org-members'
 
 /**
  * lib/admin/user-actions-guard.ts — GARDES des actions d'administration de
@@ -102,9 +106,23 @@ export async function refuseAdminActionOnTarget(args: {
 
   // Interdit 3, filet explicite. Inatteignable tant que l'interdit 2 tient ;
   // il tiendra le jour où quelqu'un l'assouplira sans y penser.
+  //
+  // MÊME PRÉDICAT que la garde anti-lock-out des organisations —
+  // `wouldRemoveLastAdmin` est pure et ne parle ni de table ni de périmètre :
+  // on la réutilise, on ne la réécrit pas. Deux échelles, un seul raisonnement.
   if (target.user_type === 'admin') {
-    const remaining = await countActivePlatformAdmins(supabaseAdmin, target.id)
-    if (remaining < 1) {
+    const others = await countOtherAvailablePlatformAdmins(supabaseAdmin, target.id)
+    // Suspension = action RÉVERSIBLE : sur un comptage indisponible (`null`),
+    // on laisse passer plutôt que de bloquer une opération légitime — c'est le
+    // fail-safe historique de `countActiveAdmins`. La purge, elle, tranchera
+    // dans l'autre sens (cf. countOtherAvailablePlatformAdmins).
+    if (
+      others !== null &&
+      wouldRemoveLastAdmin({
+        targetIsActiveAdmin: true,
+        activeAdminCount: platformAdminCountIncludingTarget(others),
+      })
+    ) {
       return {
         code: 'last_platform_admin',
         message: 'Refusing to leave the platform without an active administrator',
@@ -116,28 +134,82 @@ export async function refuseAdminActionOnTarget(args: {
 }
 
 /**
- * Nombre d'administrateurs plateforme ACTIFS, en excluant `excludeUserId`.
+ * Nombre d'administrateurs plateforme RÉELLEMENT DISPONIBLES, **hors** la cible.
  *
- * Fail-safe identique à `countActiveAdmins` (lib/org-members.ts) : en cas
- * d'erreur de lecture on renvoie un compte PRUDENT (2), pour ne pas
- * transformer une panne de lecture en blocage d'une opération légitime. Une
- * garde est un garde-fou, pas un point de défaillance.
+ * ═══ CE QUE « DISPONIBLE » VEUT DIRE ═══════════════════════════════════════
+ *   La question à laquelle ce compteur répond n'est PAS « combien de lignes
+ *   portent user_type='admin' ? » mais « combien de personnes pourront
+ *   administrer la plateforme demain matin ? ».
+ *
+ *   D'où trois critères, et pas un :
+ *     - `status = 'active'`            : un compte suspendu ne passe plus
+ *                                        `requireAuth` (lib/auth-guard.ts).
+ *     - `deletion_scheduled_at IS NULL`: un compte en GRÂCE a déjà quitté la
+ *                                        salle — la route de suppression a
+ *                                        révoqué sa session, et `requireAuth`
+ *                                        le refuse partout sauf l'allowlist de
+ *                                        réactivation. Le compter comme
+ *                                        disponible n'a aucun sens.
+ *     - `anonymized_at IS NULL`        : filet. Un compte purgé n'administre
+ *                                        évidemment plus rien.
+ *
+ *   Le critère `deletion_scheduled_at` est celui qui ferme le scénario de
+ *   course : deux administrateurs qui demandent leur suppression à quelques
+ *   minutes d'intervalle passaient tous deux la garde, chacun voyant l'autre
+ *   encore « actif ». Le second se voit désormais refuser.
+ *
+ * ═══ RÉSULTAT `null` = INCONNU, ET C'EST VOULU ═════════════════════════════
+ *   `countActiveAdmins` (lib/org-members.ts) renvoie un compte PRUDENT (2) en
+ *   cas d'erreur de lecture, pour ne pas transformer une panne en blocage.
+ *   Ce choix est juste pour une opération RÉVERSIBLE (rétrograder un membre).
+ *   Il ne l'est pas pour une purge, qui est DÉFINITIVE.
+ *
+ *   On renvoie donc `null` — « je ne sais pas » — et chaque appelant tranche
+ *   selon la réversibilité de SON action :
+ *     - suspension / suppression programmée (réversibles) → laisser passer ;
+ *     - purge (irréversible)                              → ne rien faire,
+ *                                                           réessayer demain.
+ *   Un compteur qui ment poliment est pire qu'un compteur qui se tait.
  */
-export async function countActivePlatformAdmins(
+export async function countOtherAvailablePlatformAdmins(
   supabaseAdmin: SupabaseClient,
   excludeUserId: string,
-): Promise<number> {
+): Promise<number | null> {
   const { count, error } = await supabaseAdmin
     .from('users')
     .select('id', { count: 'exact', head: true })
     .eq('user_type', 'admin')
     .eq('status', 'active')
+    .is('deletion_scheduled_at', null)
+    .is('anonymized_at', null)
     .neq('id', excludeUserId)
   if (error) {
-    console.warn('[admin/user-actions-guard] countActivePlatformAdmins error — garde prudente', error.message)
-    return 2
+    console.warn('[admin/user-actions-guard] countOtherAvailablePlatformAdmins failed', error.message)
+    return null
   }
   return count ?? 0
+}
+
+/**
+ * `activeAdminCount` à passer à `wouldRemoveLastAdmin` (lib/org-members.ts).
+ *
+ * POURQUOI CE « +1 »
+ *   `wouldRemoveLastAdmin` attend le nombre d'administrateurs actifs **cible
+ *   INCLUSE** (c'est la sémantique de `countActiveAdmins` côté organisation) et
+ *   refuse si ce nombre est ≤ 1. Notre compteur, lui, EXCLUT la cible.
+ *
+ *   Réintroduire la cible ici rend les deux gardes strictement équivalentes et,
+ *   surtout, rend l'appel CORRECT DANS LES DEUX CONTEXTES :
+ *     - suppression demandée : la cible n'est pas encore en grâce, elle serait
+ *       comptée ; on la retire du compteur puis on la remet — neutre.
+ *     - purge : la cible EST en grâce, donc absente du compteur ; le `+1` la
+ *       réintroduit. Sans lui, un compte bloqué le serait même avec un autre
+ *       administrateur disponible.
+ *   Une seule formule, deux contextes, aucun raisonnement à refaire au
+ *   call-site.
+ */
+export function platformAdminCountIncludingTarget(othersAvailable: number): number {
+  return othersAvailable + 1
 }
 
 /** Statut HTTP à renvoyer pour un refus donné. */

@@ -94,10 +94,18 @@ const guard = read(guardModule)
 ok(/'self_forbidden'/.test(guard), 'garde 1 : jamais sur soi-même')
 ok(/'target_is_admin'/.test(guard), 'garde 2 : jamais sur un autre administrateur')
 ok(/'last_platform_admin'/.test(guard), 'garde 3 : jamais zéro administrateur plateforme actif')
+// Le compteur renvoyait un chiffre PRUDENT (2) en cas d'erreur de lecture. Ce
+// choix, juste pour une action réversible, ne l'est pas pour une purge
+// définitive : il est devenu `null` — « je ne sais pas » — et chaque appelant
+// tranche selon la réversibilité de SON action (cf. diag-account-lifecycle).
 ok(
-  /return 2\b/.test(guard),
-  'countActivePlatformAdmins : fail-safe prudent en cas d’erreur de lecture',
-  'une panne de lecture ne doit pas bloquer une opération légitime',
+  /return null/.test(guard),
+  'countOtherAvailablePlatformAdmins : renvoie `null` sur erreur de lecture',
+  'un compteur qui ment poliment est pire qu’un compteur qui se tait',
+)
+ok(
+  /others !== null &&/.test(guard),
+  'suspension (réversible) : comptage indisponible ⇒ on laisse passer',
 )
 
 for (const f of WRITE_ROUTES) {

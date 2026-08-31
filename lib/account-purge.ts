@@ -19,8 +19,19 @@ import { logAudit } from '@/lib/audit'
  *   2. SUPPRESSION fichiers perso : CV (bucket 'cv') + avatar (bucket 'avatars').
  *   3. ANONYMISATION profil : PII vidées, visible=false.
  *   4. ANONYMISATION user : nom vidé, téléphone libéré, email miroir = placeholder,
- *      status='deleted', anonymized_at=now() (posé EN DERNIER → un échec amont
+ *      status='archived', anonymized_at=now() (posé EN DERNIER → un échec amont
  *      laisse le compte non marqué et il sera repris au prochain run).
+ *
+ * ⚠️ `status` DOIT être une valeur admise par `users_status_check`
+ *    (draft | active | in_review | suspended | rejected | archived).
+ *    Cette étape écrivait 'archived'… non : elle écrivait 'deleted', valeur
+ *    ABSENTE du CHECK. L'UPDATE violait donc la contrainte et levait à CHAQUE
+ *    passage : `anonymized_at` n'était jamais posé, aucune purge n'aboutissait,
+ *    et les comptes restaient à MI-CHEMIN — `profiles` anonymisé (étape 3),
+ *    mais nom, prénom, e-mail et téléphone conservés dans `users`. Un
+ *    manquement RGPD actif, pas un risque théorique.
+ *    'archived' porte exactement le sens voulu et figure déjà au CHECK : aucune
+ *    migration nécessaire. La valeur 'deleted' n'était lue nulle part.
  *   Les enregistrements d'interaction (candidatures/conversations/messages)
  *   sont PRÉSERVÉS sous forme désormais anonymisée.
  *
@@ -105,7 +116,8 @@ export async function purgeAccount(admin: SupabaseClient, u: PurgeableUser): Pro
       linkedin_url: null,
       civility: null,
       job_title: null,
-      status: 'deleted',
+      // Valeur admise par `users_status_check` (cf. avertissement en tête).
+      status: 'archived',
       last_session_token: null,
       anonymized_at: new Date().toISOString(),
     })

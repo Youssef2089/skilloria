@@ -2928,7 +2928,8 @@
       "warning_immediate_label": "Immédiatement :",
       "warning_immediate": "ton compte est désactivé, tu disparais du matching et tu es déconnecté.",
       "warning_delayed_label": "Au bout de 90 jours :",
-      "warning_delayed": "tes données personnelles sont définitivement anonymisées. Avant cette échéance, tu peux réactiver ton compte à tout moment en te reconnectant."
+      "warning_delayed": "tes données personnelles sont définitivement anonymisées. Avant cette échéance, tu peux réactiver ton compte à tout moment en te reconnectant.",
+      "error_last_platform_admin": "Vous êtes le dernier administrateur de la plateforme. Nommez un autre administrateur avant de supprimer votre compte."
     },
     "reauth": {
       "title": "Confirme ton identité",

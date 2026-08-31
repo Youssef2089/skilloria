@@ -2928,7 +2928,8 @@
       "warning_immediate_label": "De inmediato:",
       "warning_immediate": "tu cuenta se desactiva, desapareces del emparejamiento y se cierra tu sesión.",
       "warning_delayed_label": "A los 90 días:",
-      "warning_delayed": "tus datos personales se anonimizan de forma definitiva. Antes de esa fecha, puedes reactivar tu cuenta en cualquier momento volviendo a iniciar sesión."
+      "warning_delayed": "tus datos personales se anonimizan de forma definitiva. Antes de esa fecha, puedes reactivar tu cuenta en cualquier momento volviendo a iniciar sesión.",
+      "error_last_platform_admin": "Eres el último administrador de la plataforma. Nombra a otro administrador antes de eliminar tu cuenta."
     },
     "reauth": {
       "title": "Confirma tu identidad",

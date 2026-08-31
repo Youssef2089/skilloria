@@ -1,6 +1,12 @@
 import { NextRequest } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { purgeAccount, type PurgeableUser } from '@/lib/account-purge'
+import { logAudit } from '@/lib/audit'
+import { wouldRemoveLastAdmin } from '@/lib/org-members'
+import {
+  countOtherAvailablePlatformAdmins,
+  platformAdminCountIncludingTarget,
+} from '@/lib/admin/user-actions-guard'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,8 +26,9 @@ export const dynamic = 'force-dynamic'
  *   2. SUPPRESSION fichiers perso : CV (bucket 'cv') + avatar (bucket 'avatars').
  *   3. ANONYMISATION profil : PII vidées, visible=false.
  *   4. ANONYMISATION user : nom vidé, téléphone libéré, email miroir = placeholder,
- *      status='deleted', anonymized_at=now() (posé EN DERNIER → un échec amont
- *      laisse le compte non marqué et il sera repris au prochain run).
+ *      status='archived' (valeur admise par users_status_check — cf.
+ *      lib/account-purge.ts), anonymized_at=now() (posé EN DERNIER → un échec
+ *      amont laisse le compte non marqué et il sera repris au prochain run).
  *   Les enregistrements d'interaction (candidatures/conversations/messages)
  *   sont PRÉSERVÉS sous forme désormais anonymisée.
  *
@@ -72,9 +79,10 @@ async function handle(request: NextRequest): Promise<Response> {
   const admin = getAdmin()
   const nowIso = new Date().toISOString()
 
+  // `user_type` est chargé pour la garde « dernier administrateur » ci-dessous.
   const { data: dueRaw, error: dueErr } = await admin
     .from('users')
-    .select('id, domain_id, email')
+    .select('id, domain_id, email, user_type')
     .lte('deletion_scheduled_at', nowIso)
     .is('anonymized_at', null)
     .not('deletion_scheduled_at', 'is', null)
@@ -87,11 +95,59 @@ async function handle(request: NextRequest): Promise<Response> {
     })
   }
 
-  const due = (dueRaw ?? []) as PurgeableUser[]
+  const due = (dueRaw ?? []) as Array<PurgeableUser & { user_type: string | null }>
   let purged = 0
   const failed: { id: string; error: string }[] = []
+  const blocked: string[] = []
 
   for (const u of due) {
+    // ── DERNIER VERROU : JAMAIS ZÉRO ADMINISTRATEUR ────────────────────────
+    //
+    // La garde posée sur /api/me/account/delete refuse la DEMANDE. Elle ne
+    // suffit pas : deux administrateurs qui la formulent à quelques minutes
+    // d'intervalle peuvent la franchir tous les deux si leurs requêtes se
+    // croisent, et une demande enregistrée AVANT ce lot n'a jamais été gardée
+    // du tout. Ce contrôle-ci est le seul qui ne dépende d'aucune réaction
+    // humaine — c'est ici, au moment irréversible, qu'il doit tenir.
+    //
+    // IL NE SUPPRIME RIEN ET NE DÉBLOQUE RIEN TOUT SEUL : il refuse d'agir, il
+    // le journalise, et il le remonte dans la réponse. `deletion_scheduled_at`
+    // est CONSERVÉ — la demande reste valide et sera honorée dès qu'un autre
+    // administrateur existera. On ne décide pas à la place de l'utilisateur.
+    if (u.user_type === 'admin') {
+      const others = await countOtherAvailablePlatformAdmins(admin, u.id)
+      // Comptage indisponible (`null`) → ON NE PURGE PAS. Fail-safe INVERSE de
+      // celui des actions réversibles : reporter au lendemain ne coûte rien,
+      // purger à tort est définitif.
+      const unsafe =
+        others === null ||
+        wouldRemoveLastAdmin({
+          targetIsActiveAdmin: true,
+          activeAdminCount: platformAdminCountIncludingTarget(others),
+        })
+      if (unsafe) {
+        blocked.push(u.id)
+        console.warn('[purge] admin purge blocked — would leave platform without administrator', {
+          uid: u.id,
+          others_available: others,
+        })
+        await logAudit({
+          supabaseAdmin: admin,
+          user_id: u.id,
+          domain_id: u.domain_id,
+          action: 'account_purge_blocked',
+          entity_type: 'user',
+          entity_id: u.id,
+          detail: {
+            reason: 'last_platform_admin',
+            others_available: others,
+            deletion_scheduled_at_kept: true,
+          },
+        })
+        continue
+      }
+    }
+
     try {
       await purgeAccount(admin, u)
       purged += 1
@@ -103,7 +159,16 @@ async function handle(request: NextRequest): Promise<Response> {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, due: due.length, purged, failed: failed.length, errors: failed }),
+    JSON.stringify({
+      ok: true,
+      due: due.length,
+      purged,
+      failed: failed.length,
+      errors: failed,
+      /** Comptes échus NON purgés parce qu'ils sont le dernier administrateur. */
+      blocked: blocked.length,
+      blocked_ids: blocked,
+    }),
     { status: 200, headers: { 'content-type': 'application/json' } },
   )
 }

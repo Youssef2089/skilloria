@@ -3,6 +3,11 @@ import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { requireReauth } from '@/lib/reauth-token'
 import { logAudit } from '@/lib/audit'
 import { clearSessionToken, serializeClearedSessionCookie } from '@/lib/session-token'
+import { wouldRemoveLastAdmin } from '@/lib/org-members'
+import {
+  countOtherAvailablePlatformAdmins,
+  platformAdminCountIncludingTarget,
+} from '@/lib/admin/user-actions-guard'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -51,9 +56,12 @@ export async function POST(request: NextRequest): Promise<Response> {
   const reauthFail = requireReauth(request, auth.user.id)
   if (reauthFail) return reauthFail
 
+  // `user_type` est chargé ICI plutôt que dans une requête à part : la garde
+  // « dernier administrateur » ci-dessous en a besoin, et cette lecture existe
+  // déjà. Zéro requête ajoutée pour les comptes non-administrateurs.
   const { data: userRow, error: userErr } = await auth.supabaseAdmin
     .from('users')
-    .select('deletion_scheduled_at, anonymized_at')
+    .select('deletion_scheduled_at, anonymized_at, user_type')
     .eq('id', auth.user.id)
     .maybeSingle()
   if (userErr || !userRow) {
@@ -65,6 +73,47 @@ export async function POST(request: NextRequest): Promise<Response> {
   // Idempotent : déjà programmé → on renvoie la date existante.
   if (userRow.deletion_scheduled_at) {
     return json({ ok: true, deletion_scheduled_at: userRow.deletion_scheduled_at }, 200)
+  }
+
+  // ── JAMAIS ZÉRO ADMINISTRATEUR PLATEFORME ────────────────────────────────
+  //
+  // La suppression en self-service n'était gardée par RIEN : le dernier
+  // administrateur pouvait la déclencher depuis ses propres paramètres, et la
+  // plateforme se retrouvait sans administrateur à l'expiration de la grâce.
+  // Les 90 jours laissaient le temps de réagir — mais un garde-fou ne doit pas
+  // dépendre d'une réaction humaine.
+  //
+  // CONTRÔLE SUR LE NOMBRE, PAS VERROU TOTAL (décision produit) : le droit à
+  // l'effacement (RGPD art. 17) s'applique aussi aux administrateurs. Un
+  // administrateur qui quitte le projet doit pouvoir partir — dès lors qu'il
+  // en reste au moins un autre.
+  //
+  // Le comptage n'est fait QUE pour les administrateurs : un expert ou une
+  // entreprise ne paie pas cette requête.
+  //
+  // MÊME PRÉDICAT que l'anti-lock-out des organisations (`wouldRemoveLastAdmin`),
+  // réutilisé et non réécrit. Le CODE, lui, est distinct de `last_admin` :
+  // deux échelles, deux remèdes, deux messages.
+  if (userRow.user_type === 'admin') {
+    const others = await countOtherAvailablePlatformAdmins(auth.supabaseAdmin, auth.user.id)
+    // Comptage indisponible (`null`) → on laisse passer. La programmation de
+    // suppression est RÉVERSIBLE pendant 90 jours, et le second verrou (la
+    // purge, irréversible) refusera d'agir s'il ne peut pas vérifier.
+    if (
+      others !== null &&
+      wouldRemoveLastAdmin({
+        targetIsActiveAdmin: true,
+        activeAdminCount: platformAdminCountIncludingTarget(others),
+      })
+    ) {
+      return json(
+        {
+          error: 'Refusing to leave the platform without an active administrator',
+          code: 'last_platform_admin',
+        },
+        409,
+      )
+    }
   }
 
   const scheduledAt = new Date(Date.now() + GRACE_DAYS * 24 * 60 * 60 * 1000).toISOString()

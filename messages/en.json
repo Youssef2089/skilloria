@@ -2928,7 +2928,8 @@
       "warning_immediate_label": "Immediately:",
       "warning_immediate": "your account is deactivated, you disappear from matching, and you are signed out.",
       "warning_delayed_label": "After 90 days:",
-      "warning_delayed": "your personal data is permanently anonymized. Before that deadline, you can reactivate your account at any time by signing back in."
+      "warning_delayed": "your personal data is permanently anonymized. Before that deadline, you can reactivate your account at any time by signing back in.",
+      "error_last_platform_admin": "You are the last administrator on the platform. Appoint another administrator before deleting your account."
     },
     "reauth": {
       "title": "Confirm your identity",
