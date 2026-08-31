@@ -102,6 +102,32 @@ const DELETION_GRACE_ALLOWLIST = new Set<string>([
 // Paths joignables même APRÈS purge (compte anonymisé) : uniquement logout.
 const DELETION_ANONYMIZED_ALLOWLIST = new Set<string>(['/api/auth/logout'])
 
+// ── SUSPENSION ADMINISTRATIVE (lot back-office « Utilisateurs ») ─────────────
+//
+// `users.status` portait la valeur 'suspended' à son CHECK depuis l'origine,
+// mais RIEN ne la lisait : ce garde la chargeait déjà et la renvoyait dans
+// `AuthContext.user.status` sans jamais s'en servir. Un compte suspendu se
+// connectait normalement. C'est ici que la suspension prend effet.
+//
+// ⚠️ ÉGALITÉ STRICTE SUR 'suspended', JAMAIS `status !== 'active'`.
+//   Le CHECK admet six valeurs (draft, active, in_review, suspended, rejected,
+//   archived). 'in_review' est écrit par /api/profile à CHAQUE soumission de
+//   profil expert : tester la non-égalité à 'active' verrouillerait d'un coup
+//   TOUS les experts en cours de validation — exactement la population qu'on
+//   attend sur la plateforme. On teste donc la seule valeur qui signifie
+//   « accès coupé », et on l'énonce ici pour que personne ne « simplifie »
+//   ce test plus tard.
+const SUSPENDED_STATUS = 'suspended'
+
+// AUCUNE ALLOWLIST, et c'est délibéré.
+//   Les deux gates de suppression en ont une parce qu'elles laissent à
+//   l'utilisateur un chemin de sortie en self-service (réactivation). La
+//   suspension n'en a pas : seule une décision d'administrateur la lève.
+//   Le LOGOUT reste possible sans allowlist — /api/auth/logout n'utilise pas
+//   `requireAuth` (il valide le Bearer à la main, volontairement permissif),
+//   donc il ne traverse jamais ce garde. L'utilisateur peut toujours se
+//   déconnecter proprement.
+
 async function loadOrganizationContext(
   supabaseAdmin: SupabaseClient,
   userId: string,
@@ -233,6 +259,27 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
     : userRow.domains
   if (!headerSubdomain || !domainRow || (domainRow as { slug?: string } | null)?.slug !== headerSubdomain) {
     throw new AuthError(403, { error: 'Domain mismatch', code: 'domain_mismatch' })
+  }
+
+  // ── Gate SUSPENSION (APRÈS session+domaine, AVANT les gates suppression) ──
+  //
+  // ORDRE SIGNIFIANT : la suspension prime sur la suppression programmée. Un
+  // compte à la fois suspendu et en grâce ne doit PAS pouvoir se réactiver —
+  // la réactivation est en self-service, la levée de suspension ne l'est pas.
+  // Inverser l'ordre offrirait une sortie de suspension par la porte de
+  // service.
+  //
+  // Après session+domaine : on ne renseigne personne sur l'état d'un compte
+  // dont il n'a pas prouvé qu'il détient la session courante.
+  //
+  // MESURE D'ACCÈS, PAS SANCTION COMMERCIALE (décision produit) : ce garde
+  // coupe l'accès du compte, un point c'est tout. Les annonces publiées
+  // restent en ligne, les candidatures et le matching sont inchangés — rien
+  // ici ne touche à une autre table. Faire disparaître des annonces payées
+  // comme effet de bord d'une suspension serait une décision commerciale
+  // qu'aucun administrateur n'a prise en cliquant « Suspendre ».
+  if (userRow.status === SUSPENDED_STATUS) {
+    throw new AuthError(403, { error: 'Account suspended', code: 'account_suspended' })
   }
 
   // ── Gate cycle de vie suppression S3 (ADDITIF, APRÈS session+domaine) ─────

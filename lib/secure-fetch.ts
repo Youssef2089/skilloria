@@ -38,6 +38,13 @@ export type SecureFetchContext = {
    * l'état « suppression programmée » sur les écrans sans appel /api/* protégé.
    */
   onDeletionScheduled: () => void
+  /**
+   * Callback appelé après 403 `account_suspended` — compte suspendu par un
+   * administrateur. Sans lui, le heartbeat et tous les écrans avaleraient un
+   * 403 muet : l'utilisateur verrait des données vides et croirait à une
+   * panne. On le déconnecte et on lui DIT pourquoi.
+   */
+  onSuspended: () => void
 }
 
 /**
@@ -74,6 +81,8 @@ export async function secureFetch(
         ctx.onSuperseded()
       } else if (payload?.code === 'account_deletion_scheduled') {
         ctx.onDeletionScheduled()
+      } else if (payload?.code === 'account_suspended') {
+        ctx.onSuspended()
       }
     } catch {
       /* swallow — le caller verra le 403 brut */
@@ -105,6 +114,16 @@ export function useSecureFetch(): (input: RequestInfo | URL, init?: RequestInit)
         onDeletionScheduled: () => {
           router.replace('/reactivation')
         },
+        // Suspension administrative : on purge la session locale et on renvoie
+        // vers l'écran de connexion AVEC LE MOTIF. Même chemin que
+        // `session_superseded` — un seul mécanisme de bandeau, deux motifs.
+        // Sans `reason`, l'utilisateur retomberait sur un formulaire de login
+        // muet après avoir été éjecté de son tableau de bord : il croirait à
+        // une panne et réessaierait en boucle.
+        onSuspended: () => {
+          void supabase.auth.signOut()
+          router.replace('/connexion?reason=account_suspended')
+        },
       }),
     [domain.subdomain, router],
   )
@@ -122,7 +141,7 @@ export function useSecureFetch(): (input: RequestInfo | URL, init?: RequestInit)
 export async function initSession(args: {
   accessToken: string
   subdomain: string
-}): Promise<{ ok: boolean }> {
+}): Promise<{ ok: boolean; code?: string }> {
   try {
     const res = await fetch('/api/auth/init-session', {
       method: 'POST',
@@ -133,8 +152,15 @@ export async function initSession(args: {
       credentials: 'include',
     })
     if (!res.ok) {
-      console.warn('[secure-fetch] initSession failed', res.status)
-      return { ok: false }
+      // `code` REMONTÉ AU CALL-SITE (et non plus avalé) : c'est ainsi que les
+      // écrans de login apprennent qu'un compte est suspendu. Cet appel ne
+      // passe pas par `secureFetch` (l'utilisateur n'a pas encore de session
+      // établie), il n'y a donc aucune interception en amont — sans ce retour,
+      // le refus resterait invisible et l'écran redirigerait vers un tableau
+      // de bord qui échouerait ensuite partout.
+      const payload = (await res.json().catch(() => null)) as { code?: string } | null
+      console.warn('[secure-fetch] initSession failed', res.status, payload?.code ?? '')
+      return { ok: false, code: payload?.code }
     }
     return { ok: true }
   } catch (err) {

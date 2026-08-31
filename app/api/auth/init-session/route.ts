@@ -77,6 +77,41 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   const userId = userInfo.user.id
 
+  // ── SUSPENSION : on refuse D'OUVRIR la session ──────────────────────────
+  //
+  // `requireAuth` bloque déjà toute requête d'un compte suspendu ; ce contrôle
+  // est le second verrou, et c'est celui qui « bloque le login » au sens propre.
+  // Il est placé AVANT `setSessionToken` à dessein — trois conséquences voulues :
+  //   • aucun `last_session_token` n'est posé, donc aucun cookie n'est émis :
+  //     l'utilisateur n'obtient pas de session à moitié valide ;
+  //   • `last_login_at` n'est pas rafraîchi : une tentative refusée n'est pas
+  //     une connexion, et ne doit pas remettre à zéro le compteur d'inactivité
+  //     qui pilote la purge CNIL ;
+  //   • rien n'est écrit dans `session_logs` : le journal des connexions ne
+  //     doit contenir que des connexions réussies.
+  //
+  // Égalité stricte sur 'suspended' — même raison qu'en tête de
+  // lib/auth-guard.ts : `!== 'active'` verrouillerait les experts 'in_review'.
+  //
+  // Lecture best-effort inversée : si le SELECT échoue, on LAISSE PASSER. Une
+  // panne de lecture ne doit pas verrouiller toute la plateforme au login ;
+  // `requireAuth` reste le garde de référence et refusera à la requête
+  // suivante. On ne transforme pas un garde-fou en point de défaillance
+  // unique (même principe que `countActiveAdmins`, lib/org-members.ts).
+  const { data: statusRow, error: statusErr } = await supabaseAdmin
+    .from('users')
+    .select('status')
+    .eq('id', userId)
+    .maybeSingle()
+  if (statusErr) {
+    console.error('[init-session] status lookup failed — login laissé passer', {
+      userId,
+      msg: statusErr.message,
+    })
+  } else if ((statusRow as { status?: string | null } | null)?.status === 'suspended') {
+    return json({ error: 'Account suspended', code: 'account_suspended' }, 403)
+  }
+
   // ── Génère + persiste le nouveau session token ──────────────────────────
   const newToken = generateSessionToken()
   const setRes = await setSessionToken({ supabaseAdmin, userId, token: newToken })

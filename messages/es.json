@@ -2687,7 +2687,9 @@
   "session": {
     "superseded_title": "Sesión cerrada",
     "superseded_message": "Tu cuenta se ha abierto en otro dispositivo. Por motivos de seguridad, se ha cerrado tu sesión.",
-    "superseded_signin": "Volver a iniciar sesión"
+    "superseded_signin": "Volver a iniciar sesión",
+    "suspended_title": "Acceso suspendido",
+    "suspended_message": "Un administrador ha suspendido el acceso a esta cuenta. Tus anuncios y candidaturas no se han eliminado. Contacta con el soporte para saber más."
   },
   "settings": {
     "notifications": {

@@ -16,9 +16,17 @@ export default function ConnexionPage() {
   const t = useTranslations('login')
   const tSession = useTranslations('session')
   const searchParams = useSearchParams()
-  // Bandeau "Session déconnectée" si arrivée via 11F mismatch
-  // (?reason=session_superseded posé par secureFetch.onSuperseded).
-  const showSupersededBanner = searchParams.get('reason') === 'session_superseded'
+  // Bandeau d'arrivée, piloté par `?reason=` — UN SEUL mécanisme, deux motifs :
+  //   session_superseded : compte rouvert ailleurs (11F D2).
+  //   account_suspended  : compte suspendu par un administrateur.
+  // Tous deux posés par secure-fetch (onSuperseded / onSuspended) ou, pour la
+  // suspension, par le refus de `initSession` juste en dessous. Un motif
+  // inconnu n'affiche rien plutôt qu'un bandeau vide.
+  const reason = searchParams.get('reason')
+  const bannerKind: 'superseded' | 'suspended' | null =
+    reason === 'session_superseded' ? 'superseded'
+      : reason === 'account_suspended' ? 'suspended'
+        : null
   const [form, setForm] = useState({ email: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -87,7 +95,20 @@ export default function ConnexionPage() {
     // d'être ré-établie → on établit le cookie puis on mène droit à
     // /reactivation (évite un flash de dashboard avant le redirect du gate).
     if (userData.deletion_scheduled_at && !userData.anonymized_at) {
-      await initSession({ accessToken: data.session.access_token, subdomain: domain.subdomain })
+      const initGrace = await initSession({
+        accessToken: data.session.access_token,
+        subdomain: domain.subdomain,
+      })
+      // La SUSPENSION PRIME sur la suppression programmée — même ordre que
+      // dans lib/auth-guard.ts. Un compte suspendu ne doit pas atteindre
+      // /reactivation : la réactivation est en self-service, la levée de
+      // suspension ne l'est pas. Sans ce test, la porte de service serait
+      // ouverte ici, dans l'écran de login, hors de portée du garde serveur.
+      if (initGrace.code === 'account_suspended') {
+        await supabase.auth.signOut()
+        router.replace('/connexion?reason=account_suspended')
+        return
+      }
       router.push('/reactivation')
       return
     }
@@ -108,10 +129,21 @@ export default function ConnexionPage() {
     // Session unique (11F) : on pose le last_session_token + cookie httpOnly
     // AVANT le redirect. Effet voulu : invalide les sessions actives du
     // même compte sur d'autres appareils/onglets (D2). Best-effort.
-    await initSession({
+    const init = await initSession({
       accessToken: data.session.access_token,
       subdomain: domain.subdomain,
     })
+
+    // COMPTE SUSPENDU : le serveur a refusé d'ouvrir la session. On purge
+    // l'authentification Supabase (sans quoi l'utilisateur resterait à
+    // moitié connecté) et on affiche le motif. Surtout pas de redirection
+    // vers un tableau de bord : il se chargerait vide, et l'utilisateur
+    // croirait à une panne au lieu de comprendre qu'on lui a coupé l'accès.
+    if (init.code === 'account_suspended') {
+      await supabase.auth.signOut()
+      router.replace('/connexion?reason=account_suspended')
+      return
+    }
 
     // Redirection selon le type d'utilisateur — mapping mutualisé
     // dans lib/auth-routing.ts, partagé avec /auth/callback (B3.3.fix2).
@@ -139,8 +171,8 @@ export default function ConnexionPage() {
         <LanguageSwitcher />
       </div>
 
-      {/* Bandeau session superseded (11F D2) */}
-      {showSupersededBanner && (
+      {/* Bandeau d'arrivée (session rouverte ailleurs, ou compte suspendu) */}
+      {bannerKind && (
         <div
           role="alert"
           style={{
@@ -159,9 +191,13 @@ export default function ConnexionPage() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: '#CA8A04' }} />
-            <strong style={{ fontWeight: 600 }}>{tSession('superseded_title')}</strong>
+            <strong style={{ fontWeight: 600 }}>
+              {bannerKind === 'suspended' ? tSession('suspended_title') : tSession('superseded_title')}
+            </strong>
           </div>
-          <div>{tSession('superseded_message')}</div>
+          <div>
+            {bannerKind === 'suspended' ? tSession('suspended_message') : tSession('superseded_message')}
+          </div>
         </div>
       )}
 

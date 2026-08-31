@@ -123,7 +123,15 @@ export default function NouveauMotDePassePage() {
           .select('user_type')
           .eq('id', session.user.id)
           .single()
-        await initSession({ accessToken: session.access_token, subdomain: domain.subdomain })
+        const init = await initSession({ accessToken: session.access_token, subdomain: domain.subdomain })
+        // Compte suspendu : réinitialiser son mot de passe ne rend pas l'accès.
+        // Sans ce test, la page de reset serait la troisième porte d'entrée
+        // (avec /connexion et /auth/callback) et la seule restée ouverte.
+        if (init.code === 'account_suspended') {
+          await supabase.auth.signOut()
+          router.replace('/connexion?reason=account_suspended')
+          return
+        }
         router.push(dashboardUrlForUserType((userData?.user_type as string | null) ?? null))
         return
       }

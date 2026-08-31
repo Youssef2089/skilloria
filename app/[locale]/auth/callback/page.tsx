@@ -53,7 +53,16 @@ export default function AuthCallbackPage() {
 
         // Session unique (11F) : on pose le token+cookie AVANT le redirect.
         // Best-effort, ne bloque pas le flow d'arrivée sur le dashboard.
-        await initSession({ accessToken, subdomain: domain.subdomain })
+        const init = await initSession({ accessToken, subdomain: domain.subdomain })
+
+        // Compte suspendu : ce sas de confirmation d'e-mail ne doit pas
+        // devenir un contournement du blocage. On purge et on renvoie vers
+        // l'écran de connexion avec le motif, comme /connexion.
+        if (init.code === 'account_suspended') {
+          await supabase.auth.signOut()
+          if (!cancelled) setRedirectUrl('/connexion?reason=account_suspended')
+          return
+        }
 
         const { data: userRow, error: userErr } = await supabase
           .from('users')

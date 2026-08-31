@@ -2687,7 +2687,9 @@
   "session": {
     "superseded_title": "Sitzung beendet",
     "superseded_message": "Ihr Konto wurde auf einem anderen Gerät geöffnet. Aus Sicherheitsgründen wurden Sie abgemeldet.",
-    "superseded_signin": "Erneut anmelden"
+    "superseded_signin": "Erneut anmelden",
+    "suspended_title": "Zugang gesperrt",
+    "suspended_message": "Der Zugang zu diesem Konto wurde von einer Administratorin oder einem Administrator gesperrt. Ihre Anzeigen und Bewerbungen wurden nicht gelöscht. Wenden Sie sich an den Support, um mehr zu erfahren."
   },
   "settings": {
     "notifications": {
