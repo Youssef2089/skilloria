@@ -27,6 +27,15 @@ const ADMIN_NAV_ICONS: Record<string, React.ReactNode> = {
       <path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2" />
     </svg>
   ),
+  // Parc de comptes — GROUPE de personnes, distinct de `user` (Experts) :
+  // deux entrées voisines dans la sidebar ne doivent pas porter la même icône.
+  users: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M2.5 20v-1.6A3.9 3.9 0 0 1 6.4 14.5h5.2a3.9 3.9 0 0 1 3.9 3.9V20" />
+      <path d="M16.5 5.3a3.2 3.2 0 0 1 0 5.4M18.2 14.7a3.9 3.9 0 0 1 3.3 3.7V20" />
+    </svg>
+  ),
   package: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />

@@ -161,6 +161,17 @@ export const ADMIN_ROOT_ROUTE = '/admin'
 
 export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
   {
+    // « Comptes » ≠ « Validation ». Validation = files d'attente, pilotées par
+    // le verification_status d'une entité métier (organisation, profil expert).
+    // Comptes = le PARC : identité, accès, session, rôle. Population plus
+    // large — un compte client, un membre invité, un administrateur ou un
+    // expert sans profil n'apparaissaient sur AUCUN écran du back-office.
+    sectionKey: 'section_comptes',
+    items: [
+      { key: 'utilisateurs', href: '/admin/utilisateurs', labelKey: 'nav_utilisateurs', iconKey: 'users' },
+    ],
+  },
+  {
     sectionKey: 'section_validation',
     items: [
       {

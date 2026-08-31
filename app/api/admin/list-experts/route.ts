@@ -30,6 +30,14 @@ function json(data: unknown, status = 200): Response {
 const VALID_STATUSES = ['pending', 'approved', 'rejected', 'all'] as const
 type StatusFilter = (typeof VALID_STATUSES)[number]
 
+/**
+ * Plafond de lignes servies. INCHANGÉ en valeur, mais il n'est plus MUET :
+ * la réponse porte désormais `total` et `truncated`, et l'écran affiche un
+ * bandeau quand la liste est coupée. Un plafond qu'on ne voit pas est un
+ * compteur qui ment — c'est la leçon de MAX_ORGS sur /admin/collaboration.
+ */
+const LIST_LIMIT = 500
+
 export async function GET(request: NextRequest): Promise<Response> {
   let auth
   try {
@@ -88,6 +96,10 @@ export async function GET(request: NextRequest): Promise<Response> {
         // D1 : admin plateforme multi-écosystème → on expose l'écosystème de
         // chaque expert (issu de la config de domaine, jamais en dur).
         'domains(id, name, slug)',
+      // Le plafond de 500 lignes ci-dessous était SILENCIEUX : au-delà, la
+      // liste s'arrêtait sans que rien ne le dise. `count: 'exact'` porte sur
+      // la requête FILTRÉE et permet d'annoncer la troncature à l'écran.
+      { count: 'exact' },
     )
 
   if (status === 'pending') {
@@ -100,7 +112,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     query = query.not('verification_status', 'is', null).order('updated_at', { ascending: false })
   }
 
-  const { data, error } = await query.limit(500)
+  const { data, error, count } = await query.limit(LIST_LIMIT)
   if (error) {
     console.error('[admin:list-experts] query failed', error.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
@@ -123,5 +135,6 @@ export async function GET(request: NextRequest): Promise<Response> {
     }),
   )
 
-  return json({ experts }, 200)
+  const total = count ?? experts.length
+  return json({ experts, total, truncated: total > experts.length, limit: LIST_LIMIT }, 200)
 }

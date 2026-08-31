@@ -72,6 +72,8 @@ export default function AdminOrgsListPage() {
   // Compteurs : on fait 1 call par onglet n'est pas idéal. On fait à la place
   // 1 call "all" + comptage côté client par status. Petite optimisation V1.
   const [allOrgs, setAllOrgs] = useState<OrgRow[]>([])
+  /** Non-null ⇒ la liste est coupée : on l'annonce, on ne la subit pas. */
+  const [truncation, setTruncation] = useState<{ total: number; limit: number } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -90,8 +92,19 @@ export default function AdminOrgsListPage() {
         setLoading(false)
         return
       }
-      const json = (await res.json()) as { orgs: OrgRow[] }
+      const json = (await res.json()) as {
+        orgs: OrgRow[]
+        total?: number
+        truncated?: boolean
+        limit?: number
+      }
       setAllOrgs(json.orgs ?? [])
+      // Le plafond de 500 lignes était SILENCIEUX : au-delà, la liste
+      // s'arrêtait sans le dire — et les compteurs d'onglets, calculés sur ce
+      // tableau tronqué, mentaient avec elle. On l'annonce.
+      setTruncation(
+        json.truncated ? { total: json.total ?? 0, limit: json.limit ?? (json.orgs ?? []).length } : null,
+      )
     } catch {
       setError(t('errors.generic'))
     } finally {
@@ -175,6 +188,21 @@ export default function AdminOrgsListPage() {
       >
         {t('orgs.page_title')}
       </h1>
+
+      {/* Bandeau de troncature — le plafond ne doit jamais être muet, d'autant
+          que les compteurs d'onglets sont calculés sur ce tableau. */}
+      {truncation && (
+        <div
+          role="status"
+          style={{
+            marginBottom: 16, padding: '11px 15px', borderRadius: 10,
+            background: '#FEF9C3', border: '1px solid #FDE047', color: '#713F12',
+            fontSize: 12.5, lineHeight: 1.55,
+          }}
+        >
+          {t('users.truncated_notice', { limit: truncation.limit, total: truncation.total })}
+        </div>
+      )}
 
       {/* Onglets */}
       <div

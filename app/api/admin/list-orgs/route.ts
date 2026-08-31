@@ -36,6 +36,14 @@ function json(data: unknown, status = 200): Response {
 const VALID_STATUSES = ['pending', 'approved', 'rejected', 'all'] as const
 type StatusFilter = (typeof VALID_STATUSES)[number]
 
+/**
+ * Plafond de lignes servies. INCHANGÉ en valeur, mais il n'est plus MUET : la
+ * réponse porte désormais `total` et `truncated`, et l'écran affiche un bandeau
+ * quand la liste est coupée. Un plafond qu'on ne voit pas est un compteur qui
+ * ment — c'est la leçon de MAX_ORGS sur /admin/collaboration.
+ */
+const LIST_LIMIT = 500
+
 export async function GET(request: NextRequest): Promise<Response> {
   let auth
   try {
@@ -55,6 +63,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     .from('organizations')
     .select(
       'id, company_name, logo_url, siren, org_type, verification_status, verification_data, verification_method, created_at, verified_at, verified_by, review_reason',
+      { count: 'exact' },
     )
     // Les organisations PERSONNELLES d'experts (org_type='freelance',
     // collaboration/sous-traitance) ne sont PAS de vraies entreprises : on les
@@ -75,7 +84,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     query = query.order('created_at', { ascending: false })
   }
 
-  const { data, error } = await query.limit(500)
+  const { data, error, count } = await query.limit(LIST_LIMIT)
   if (error) {
     console.error('[admin:list-orgs] query failed', error.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
@@ -191,5 +200,6 @@ export async function GET(request: NextRequest): Promise<Response> {
     package: packageByOrg.get(o.id) ?? null,
     ecosystem: ecosystemByOrg.get(o.id) ?? null,
   }))
-  return json({ orgs: result }, 200)
+  const total = count ?? result.length
+  return json({ orgs: result, total, truncated: total > result.length, limit: LIST_LIMIT }, 200)
 }

@@ -1,5 +1,8 @@
 import type { NextRequest } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
+// Extraction IP/UA PARTAGÉE avec `logAudit` (lib/request-meta.ts) : les deux
+// journaux décrivent la même requête, ils ne doivent pas la lire différemment.
+import { extractIp, extractUserAgent } from '@/lib/request-meta'
 
 /**
  * Helper centralisé pour logger une connexion dans `session_logs`.
@@ -20,23 +23,6 @@ export type SessionLogParams = {
   user_id: string
   request: NextRequest | Request
   session_token?: string | null
-}
-
-function extractIp(request: NextRequest | Request): string | null {
-  const forwarded = request.headers.get('x-forwarded-for')
-  if (forwarded) {
-    // x-forwarded-for peut contenir une chaîne "client, proxy1, proxy2"
-    const first = forwarded.split(',')[0]?.trim()
-    if (first) return first
-  }
-  const realIp = request.headers.get('x-real-ip')
-  if (realIp) return realIp.trim()
-  return null
-}
-
-function extractUserAgent(request: NextRequest | Request): string | null {
-  const ua = request.headers.get('user-agent')
-  return ua ? ua.slice(0, 1000) : null
 }
 
 export async function logSession(params: SessionLogParams): Promise<void> {

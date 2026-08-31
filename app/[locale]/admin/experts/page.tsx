@@ -63,12 +63,17 @@ function formatDate(iso: string | null, locale: string): string {
 export default function AdminExpertsListPage() {
   const t = useTranslations('admin_back_office.experts')
   const tAdmin = useTranslations('admin_back_office')
+  // Message de troncature MUTUALISÉ avec l'écran Utilisateurs : même plafond,
+  // même phrase — on ne duplique pas une chaîne en quatre langues.
+  const tUsers = useTranslations('admin_back_office.users')
   const locale = useLocale()
   const secureFetch = useSecureFetch()
   const [tab, setTab] = useState<TabKey>('pending')
   const [counts, setCounts] = useState<Record<TabKey, number | null>>({ pending: null, approved: null, rejected: null, all: null })
   const [rows, setRows] = useState<ExpertRow[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  /** Non-null ⇒ la liste est coupée : on l'annonce, on ne la subit pas. */
+  const [truncation, setTruncation] = useState<{ total: number; limit: number } | null>(null)
 
   const load = useCallback(async (filter: TabKey) => {
     setRows(null)
@@ -79,8 +84,20 @@ export default function AdminExpertsListPage() {
         setError(t('error_load'))
         return
       }
-      const payload = (await res.json()) as { experts: ExpertRow[] }
+      const payload = (await res.json()) as {
+        experts: ExpertRow[]
+        total?: number
+        truncated?: boolean
+        limit?: number
+      }
       setRows(payload.experts ?? [])
+      // Le plafond de 500 lignes était SILENCIEUX : au-delà, la liste
+      // s'arrêtait sans le dire. On le rend visible plutôt que de le subir.
+      setTruncation(
+        payload.truncated
+          ? { total: payload.total ?? 0, limit: payload.limit ?? (payload.experts ?? []).length }
+          : null,
+      )
     } catch (err) {
       console.error('[admin/experts] load threw', err)
       setError(t('error_load'))
@@ -114,6 +131,20 @@ export default function AdminExpertsListPage() {
     <div>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>{t('page_title')}</h1>
       <p style={{ fontSize: 13, color: '#64748b', marginBottom: 22 }}>{t('page_subtitle')}</p>
+
+      {/* Bandeau de troncature — le plafond ne doit jamais être muet. */}
+      {truncation && (
+        <div
+          role="status"
+          style={{
+            marginBottom: 16, padding: '11px 15px', borderRadius: 10,
+            background: '#FEF9C3', border: '1px solid #FDE047', color: '#713F12',
+            fontSize: 12.5, lineHeight: 1.55,
+          }}
+        >
+          {tUsers('truncated_notice', { limit: truncation.limit, total: truncation.total })}
+        </div>
+      )}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid #e5e7eb', marginBottom: 18, flexWrap: 'wrap' }}>
