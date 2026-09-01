@@ -102,6 +102,11 @@ type ApiActions = {
   purge_refusal_code: AdminRefusalCode | 'already_anonymized' | null
   /** Organisations que la purge laisserait sans administrateur joignable. */
   purge_org_lockout: { id: string; company_name: string | null }[]
+  /**
+   * Renvoi d'invitation — administrateur JAMAIS connecté. Verdict serveur :
+   * l'écran ne recalcule ni le type de compte ni l'absence de connexion.
+   */
+  can_resend_invite: boolean
 }
 type Detail = { user: ApiUser; organization: ApiOrg | null; profile: ApiProfile | null; actions: ApiActions }
 
@@ -126,6 +131,7 @@ type PendingAction =
    * garde — ce sont les entrées d'une décision prise ailleurs.
    */
   | { kind: 'purge'; confirmEmail: string; acknowledgeOrgLockout: boolean }
+  | { kind: 'resend_invite' }
 
 export default function AdminUserDetailPage() {
   const t = useTranslations('admin_back_office.users')
@@ -207,6 +213,7 @@ export default function AdminUserDetailPage() {
   const canRevoke = actions?.can_revoke_session === true
   const canPurge = actions?.can_purge === true
   const purgeOrgLockout = actions?.purge_org_lockout ?? []
+  const canResendInvite = actions?.can_resend_invite === true
 
   /**
    * Raison affichée à la place des boutons. Deux cas atteignables :
@@ -249,6 +256,9 @@ export default function AdminUserDetailPage() {
         case 'confirm_email_mismatch': return t('err_confirm_email_mismatch')
         case 'already_anonymized': return t('err_already_anonymized')
         case 'purge_failed': return t('err_purge_failed')
+        case 'invitation_failed': return t('err_invitation_failed')
+        case 'already_signed_in': return t('err_already_signed_in')
+        case 'rate_limited': return t('err_rate_limited')
         default: return t('err_generic')
       }
     },
@@ -270,6 +280,10 @@ export default function AdminUserDetailPage() {
           })
         } else if (action.kind === 'revoke') {
           res = await secureFetch('/api/admin/user-revoke-session', {
+            method: 'POST', headers, body: JSON.stringify({ user_id: userId }),
+          })
+        } else if (action.kind === 'resend_invite') {
+          res = await secureFetch('/api/admin/user-resend-invite', {
             method: 'POST', headers, body: JSON.stringify({ user_id: userId }),
           })
         } else if (action.kind === 'purge') {
@@ -305,8 +319,9 @@ export default function AdminUserDetailPage() {
             action.kind === 'role' ? t('toast_role_changed')
               : action.kind === 'revoke' ? t('toast_revoked')
                 : action.kind === 'purge' ? t('toast_purged')
-                  : action.kind === 'suspend' ? t('toast_suspended')
-                    : t('toast_reactivated'),
+                  : action.kind === 'resend_invite' ? t('toast_invite_resent')
+                    : action.kind === 'suspend' ? t('toast_suspended')
+                      : t('toast_reactivated'),
           kind: 'success',
         })
         await load()
@@ -376,6 +391,35 @@ export default function AdminUserDetailPage() {
           {!u.anonymized_at && u.deletion_scheduled_at && (
             <div role="note" style={{ marginBottom: 14, padding: '12px 16px', borderRadius: 10, background: '#FEF9C3', color: '#713F12', fontSize: 13 }}>
               {t('deletion_scheduled_notice', { date: dateFmt.format(new Date(u.deletion_scheduled_at)) })}
+            </div>
+          )}
+
+          {/* INVITATION EN ATTENTE — un administrateur créé qui ne s'est jamais
+              connecté n'a peut-être jamais reçu son lien (panne SMTP). Sans ce
+              bandeau, le compte resterait sans accès et sans signal : on
+              recréerait un problème du jour zéro à chaque hoquet du serveur de
+              mail. Le verdict `can_resend_invite` vient du SERVEUR — l'écran ne
+              devine ni le type de compte, ni l'absence de connexion. */}
+          {canResendInvite && (
+            <div
+              role="note"
+              style={{
+                marginBottom: 14, padding: '12px 16px', borderRadius: 10,
+                background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#1E3A8A',
+                fontSize: 13, lineHeight: 1.6,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                gap: 14, flexWrap: 'wrap',
+              }}
+            >
+              <span>{t('invite_pending_notice')}</span>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => { setPending({ kind: 'resend_invite' }); setReauthOpen(true) }}
+                style={btn()}
+              >
+                {t('action_resend_invite')}
+              </button>
             </div>
           )}
 

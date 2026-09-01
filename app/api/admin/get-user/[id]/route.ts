@@ -264,6 +264,25 @@ export async function GET(request: NextRequest, ctx: Ctx): Promise<Response> {
        * de purge le revalide et exige l'acquittement.
        */
       purge_org_lockout: purgeOrgLockout,
+      /**
+       * RENVOI D'INVITATION — fenêtre volontairement ÉTROITE, et c'est elle qui
+       * fait la sécurité (cf. /api/admin/user-resend-invite) : un administrateur
+       * qui ne s'est JAMAIS connecté et dont le compte ne s'en va pas.
+       *
+       * Cette action N'UTILISE PAS `refuseAdminActionOnTarget` : cette garde
+       * interdit d'agir sur un autre administrateur, ce qui refuserait le seul
+       * cas qu'on sert. Les deux répondent à des questions différentes — l'une
+       * protège d'une action SUBIE, l'autre renvoie un lien vers la boîte mail
+       * de l'intéressé sans rien changer à son compte.
+       *
+       * Le verdict reste SERVEUR : l'écran ne recalcule ni « c'est un admin »
+       * ni « il ne s'est jamais connecté ».
+       */
+      can_resend_invite:
+        u.user_type === 'admin' &&
+        !u.anonymized_at &&
+        !u.deletion_scheduled_at &&
+        (sessionCountRes.count ?? 0) === 0,
     },
     organization: member && org
       ? {

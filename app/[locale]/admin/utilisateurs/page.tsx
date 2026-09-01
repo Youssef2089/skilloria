@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { Link, usePathname, useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import ReauthModal from '@/components/settings/ReauthModal'
 
 /**
  * /admin/utilisateurs — LE PARC DE COMPTES.
@@ -105,6 +106,24 @@ export default function AdminUsersListPage() {
   // Champ de recherche local : on n'écrit dans l'URL qu'à la validation, sinon
   // chaque frappe déclencherait une requête et une entrée d'historique.
   const [searchDraft, setSearchDraft] = useState(q)
+
+  /**
+   * CRÉATION D'ADMINISTRATEUR — elle vit sur la LISTE, pas sur une fiche :
+   * elle crée une LIGNE, et n'a aucune cible préexistante à désigner.
+   *
+   * Comme toute écriture de cet écran, elle passe par <ReauthModal> — le
+   * mécanisme EXISTANT. Ce que le formulaire valide n'est que de la courtoisie :
+   * /api/admin/create-admin revalide tout, et c'est lui qui fait autorité.
+   */
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createEmail, setCreateEmail] = useState('')
+  const [createFirstName, setCreateFirstName] = useState('')
+  const [createLastName, setCreateLastName] = useState('')
+  /** Vide = « écosystème du créateur » : c'est le SERVEUR qui applique ce défaut. */
+  const [createDomainSlug, setCreateDomainSlug] = useState('')
+  const [createBusy, setCreateBusy] = useState(false)
+  const [reauthOpen, setReauthOpen] = useState(false)
+  const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' | 'warn' } | null>(null)
   useEffect(() => { setSearchDraft(q) }, [q])
 
   /** Écrit les filtres dans l'URL. Tout changement de filtre revient page 1. */
@@ -146,6 +165,58 @@ export default function AdminUsersListPage() {
 
   useEffect(() => { void load() }, [load])
 
+  /** Crée l'administrateur une fois le grant de ré-auth obtenu. */
+  const runCreate = useCallback(
+    async (reauthToken: string) => {
+      setCreateBusy(true)
+      try {
+        const res = await secureFetch('/api/admin/create-admin', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-reauth-token': reauthToken },
+          body: JSON.stringify({
+            email: createEmail.trim(),
+            first_name: createFirstName.trim(),
+            last_name: createLastName.trim(),
+            // Omis quand vide : le SERVEUR applique alors l'écosystème du
+            // créateur. On ne devine pas ce défaut côté client.
+            ...(createDomainSlug ? { domain_slug: createDomainSlug } : {}),
+          }),
+        })
+        const payload = (await res.json().catch(() => ({}))) as {
+          code?: string
+          invitation_sent?: boolean
+        }
+        if (!res.ok) {
+          setToast({
+            msg:
+              payload.code === 'email_taken' ? t('err_email_taken')
+                : payload.code === 'rate_limited' ? t('err_rate_limited')
+                  : payload.code === 'invalid_domain_slug' ? t('err_invalid_ecosystem')
+                    : payload.code === 'mirror_missing' ? t('err_mirror_missing')
+                      : t('err_generic'),
+            kind: 'error',
+          })
+          return
+        }
+        setCreateOpen(false)
+        setCreateEmail(''); setCreateFirstName(''); setCreateLastName(''); setCreateDomainSlug('')
+        // Le compte EXISTE même si l'e-mail n'est pas parti : on le dit
+        // franchement, et la fiche porte le bouton de renvoi.
+        setToast(
+          payload.invitation_sent === false
+            ? { msg: t('toast_admin_created_no_email'), kind: 'warn' }
+            : { msg: t('toast_admin_created'), kind: 'success' },
+        )
+        await load()
+      } catch {
+        setToast({ msg: t('err_generic'), kind: 'error' })
+      } finally {
+        setCreateBusy(false)
+      }
+    },
+    [secureFetch, createEmail, createFirstName, createLastName, createDomainSlug, t, load],
+  )
+
   // Écosystèmes pour le filtre — JAMAIS de slug en dur (règle multi-écosystème).
   useEffect(() => {
     let cancelled = false
@@ -178,6 +249,13 @@ export default function AdminUsersListPage() {
     fontSize: 13,
     fontFamily: 'inherit',
   }
+  /** Champs de la modale de création — même grammaire visuelle que les filtres. */
+  const inputStyle: React.CSSProperties = {
+    ...selectStyle,
+    width: '100%',
+    boxSizing: 'border-box',
+    marginBottom: 12,
+  }
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit' }}>
@@ -196,13 +274,41 @@ export default function AdminUsersListPage() {
         }
       `}</style>
 
-      <header style={{ marginBottom: 18 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary, #0f172a)', margin: 0, letterSpacing: '-0.2px' }}>
-          {t('title')}
-        </h1>
-        <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '4px 0 0', lineHeight: 1.55 }}>
-          {t('subtitle')}
-        </p>
+      {toast && (
+        <div
+          role="status"
+          style={{
+            marginBottom: 14, padding: '12px 16px', borderRadius: 10, fontSize: 13, lineHeight: 1.55,
+            background: toast.kind === 'error' ? '#FEE2E2' : toast.kind === 'warn' ? '#FEF9C3' : '#DCFCE7',
+            color: toast.kind === 'error' ? '#991B1B' : toast.kind === 'warn' ? '#713F12' : '#166534',
+          }}
+        >
+          {toast.msg}
+        </div>
+      )}
+
+      <header style={{ marginBottom: 18, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary, #0f172a)', margin: 0, letterSpacing: '-0.2px' }}>
+            {t('title')}
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '4px 0 0', lineHeight: 1.55 }}>
+            {t('subtitle')}
+          </p>
+        </div>
+        {/* Création d'administrateur : sur la LISTE, parce qu'elle crée une
+            ligne et n'a pas de cible préexistante à désigner. */}
+        <button
+          type="button"
+          onClick={() => { setToast(null); setCreateOpen(true) }}
+          style={{
+            padding: '9px 15px', borderRadius: 9, border: 'none',
+            background: 'var(--color-text-primary, #0f172a)', color: '#fff',
+            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+          }}
+        >
+          {t('action_create_admin')}
+        </button>
       </header>
 
       {/* ── Recherche + filtres ─────────────────────────────────────────── */}
@@ -363,6 +469,116 @@ export default function AdminUsersListPage() {
           </span>
         </div>
       )}
+
+      {/* ── Créer un administrateur ────────────────────────────────────────
+          L'action la plus sensible de la plateforme : créer quelqu'un qui peut
+          tout faire. D'où la ré-authentification, comme pour toute écriture de
+          cet écran. Le mot de passe n'est JAMAIS saisi ici — l'invité reçoit un
+          lien pour définir le sien, et le créateur ne connaît donc jamais le
+          secret d'un autre administrateur. */}
+      {createOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 60 }}
+        >
+          <div style={{ background: '#fff', borderRadius: 14, padding: '22px 24px', maxWidth: 520, width: '100%' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 8px', color: '#0f172a' }}>
+              {t('create_admin_title')}
+            </h3>
+            <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.6, margin: '0 0 16px' }}>
+              {t('create_admin_body')}
+            </p>
+
+            <label style={{ display: 'block', fontSize: 12.5, color: '#475569', marginBottom: 5 }}>
+              {t('create_admin_email')}
+            </label>
+            <input
+              type="email"
+              autoComplete="off"
+              value={createEmail}
+              onChange={(e) => setCreateEmail(e.target.value)}
+              style={inputStyle}
+            />
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 180px', minWidth: 0 }}>
+                <label style={{ display: 'block', fontSize: 12.5, color: '#475569', marginBottom: 5 }}>
+                  {t('create_admin_first_name')}
+                </label>
+                <input value={createFirstName} onChange={(e) => setCreateFirstName(e.target.value)} style={inputStyle} />
+              </div>
+              <div style={{ flex: '1 1 180px', minWidth: 0 }}>
+                <label style={{ display: 'block', fontSize: 12.5, color: '#475569', marginBottom: 5 }}>
+                  {t('create_admin_last_name')}
+                </label>
+                <input value={createLastName} onChange={(e) => setCreateLastName(e.target.value)} style={inputStyle} />
+              </div>
+            </div>
+
+            <label style={{ display: 'block', fontSize: 12.5, color: '#475569', marginBottom: 5 }}>
+              {t('create_admin_ecosystem')}
+            </label>
+            <select
+              value={createDomainSlug}
+              onChange={(e) => setCreateDomainSlug(e.target.value)}
+              style={inputStyle}
+            >
+              {/* Vide = le SERVEUR applique l'écosystème du créateur. On ne
+                  devine pas ce défaut côté client. */}
+              <option value="">{t('create_admin_ecosystem_default')}</option>
+              {domains.map((d) => (
+                <option key={d.id} value={d.slug ?? ''}>{d.name ?? d.slug}</option>
+              ))}
+            </select>
+            <p style={{ fontSize: 12, color: '#64748b', lineHeight: 1.55, margin: '0 0 16px' }}>
+              {t('create_admin_ecosystem_hint')}
+            </p>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setCreateOpen(false)}
+                style={{ ...selectStyle, cursor: 'pointer', fontWeight: 600 }}
+              >
+                {t('confirm_cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={
+                  createBusy ||
+                  !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createEmail.trim()) ||
+                  createFirstName.trim() === '' ||
+                  createLastName.trim() === ''
+                }
+                onClick={() => { setCreateOpen(false); setReauthOpen(true) }}
+                style={{
+                  padding: '9px 15px', borderRadius: 9, border: 'none',
+                  background: 'var(--color-text-primary, #0f172a)', color: '#fff',
+                  fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                  cursor: createBusy ? 'not-allowed' : 'pointer',
+                  opacity:
+                    createBusy ||
+                    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createEmail.trim()) ||
+                    createFirstName.trim() === '' ||
+                    createLastName.trim() === ''
+                      ? 0.5
+                      : 1,
+                }}
+              >
+                {t('create_admin_submit')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ré-authentification — mécanisme EXISTANT, réutilisé tel quel. */}
+      <ReauthModal
+        open={reauthOpen}
+        onConfirm={(token) => { setReauthOpen(false); void runCreate(token) }}
+        onCancel={() => { setReauthOpen(false); setCreateOpen(true) }}
+      />
     </div>
   )
 }
