@@ -186,7 +186,18 @@ if (ko === 0) {
   if (warn > 0) console.log(`${YELLOW}${warn} avertissement(s) non bloquant(s) ci-dessus.${RESET}`)
 } else {
   console.log(`${RED}${BOLD}${ko} JOB(S) EN DEFAUT${RESET} — voir le detail ci-dessus.`)
-  console.log(`${DIM}Rappel : tant que vercel.json porte encore les deux crons, l'ordonnanceur${RESET}`)
-  console.log(`${DIM}Vercel assure le filet. Ne rien retirer avant que ce diagnostic soit vert.${RESET}`)
+  // Les crons Vercel ont ete retires : pg_cron est le SEUL ordonnanceur. Il n'y
+  // a plus de filet automatique — le rattrapage est manuel, et c'est ici qu'il
+  // doit etre rappele, au moment exact ou le diagnostic vire au rouge.
+  console.log()
+  console.log(`${YELLOW}${BOLD}PLUS AUCUN FILET AUTOMATIQUE${RESET} — pg_cron est le seul ordonnanceur.`)
+  console.log(`${DIM}Rattraper la nuit manquee A LA MAIN (les deux routes sont idempotentes,${RESET}`)
+  console.log(`${DIM}un passage en double ne casse rien) :${RESET}`)
+  console.log()
+  console.log(`  curl -X POST "$SITE_URL/api/cron/purge-deletions" -H "Authorization: Bearer $CRON_SECRET"`)
+  console.log(`  curl -X POST "$SITE_URL/api/cron/purge-inactive"  -H "Authorization: Bearer $CRON_SECRET"`)
+  console.log()
+  console.log(`${DIM}SITE_URL = origine de l'app (sans slash final), CRON_SECRET = variable Vercel.${RESET}`)
+  console.log(`${DIM}Attendu : HTTP 200 + un JSON de compte-rendu. 401 => secret errone.${RESET}`)
 }
 process.exit(ko === 0 ? 0 : 1)

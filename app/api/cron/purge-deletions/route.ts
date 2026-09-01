@@ -14,7 +14,10 @@ export const dynamic = 'force-dynamic'
 /**
  * GET /api/cron/purge-deletions — PURGE RGPD planifiée (mission S3, section 7).
  *
- * Déclenchée quotidiennement par Vercel Cron (cf. vercel.json). Traite les
+ * Déclenchée quotidiennement (3 h UTC) par pg_cron — job `purge_deletions_trigger`,
+ * cf. supabase/migrations/20260823000000_purges_rgpd_pg_cron.sql. L'ordonnancement
+ * a quitté Vercel Cron : plus aucun batch n'est hébergé chez l'hébergeur, la
+ * planification suit la base. Le TRAITEMENT, lui, n'a pas bougé : traite les
  * comptes dont deletion_scheduled_at <= now() ET anonymized_at IS NULL.
  *
  * Pour chaque compte échu (idempotent, échec partiel toléré, JAMAIS de
@@ -33,8 +36,9 @@ export const dynamic = 'force-dynamic'
  *   sont PRÉSERVÉS sous forme désormais anonymisée.
  *
  * Sécurité : protégé par CRON_SECRET (header Authorization: Bearer <secret>,
- * envoyé automatiquement par Vercel Cron ; ?secret= accepté pour un
- * déclenchement manuel de test).
+ * posé par `trigger_purge_cron()` qui lit le miroir du secret dans Supabase
+ * Vault ; ?secret= accepté pour un déclenchement manuel — le seul filet de
+ * rattrapage depuis le retrait des crons Vercel).
  */
 
 const BATCH_LIMIT = 200

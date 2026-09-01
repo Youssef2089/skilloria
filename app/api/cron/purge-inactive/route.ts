@@ -15,7 +15,10 @@ export const maxDuration = 60
  * GET /api/cron/purge-inactive — PURGE RGPD des comptes INACTIFS (règle CNIL
  * « recrutement » : conservation ≤ 2 ans après le dernier contact).
  *
- * Déclenchée quotidiennement par Vercel Cron (cf. vercel.json). Deux phases,
+ * Déclenchée quotidiennement (3 h 30 UTC) par pg_cron — job `purge_inactive_trigger`,
+ * cf. supabase/migrations/20260823000000_purges_rgpd_pg_cron.sql. L'ordonnancement
+ * a quitté Vercel Cron : plus aucun batch n'est hébergé chez l'hébergeur, la
+ * planification suit la base. Le TRAITEMENT n'a pas bougé — deux phases,
  * dans cet ordre :
  *
  *   PHASE 1 — PURGE (24 mois) : anonymise les comptes sans connexion depuis
@@ -47,8 +50,10 @@ export const maxDuration = 60
  * volontaire (deletion_scheduled_at — traités par purge-deletions), et les
  * comptes admin (jamais auto-anonymisés).
  *
- * Sécurité : protégé par CRON_SECRET (Authorization: Bearer <secret> envoyé par
- * Vercel Cron ; ?secret= accepté pour un déclenchement manuel de test).
+ * Sécurité : protégé par CRON_SECRET (Authorization: Bearer <secret> posé par
+ * `trigger_purge_cron()`, qui lit le miroir du secret dans Supabase Vault ;
+ * ?secret= accepté pour un déclenchement manuel — le seul filet de rattrapage
+ * depuis le retrait des crons Vercel).
  */
 
 const BATCH_LIMIT = 200
