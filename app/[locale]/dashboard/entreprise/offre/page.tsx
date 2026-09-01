@@ -162,12 +162,23 @@ export default function MonOffrePage() {
 
   const { package: pkg, limits, usage, package_valid_until: validUntil } = state.data
 
-  // Prix : null ou 0 → « Gratuit » (V1 de lancement).
+  // ── PRIX : `null` et `0` ne disent PAS la même chose ─────────────────────
+  //  Cet écran les confondait — les deux affichaient « Gratuit ». L'ambiguïté
+  //  était sans conséquence tant que rien n'encaissait ; elle deviendrait un
+  //  bug d'argent dès qu'un tarif doit être dérivé de la ligne. Sémantique
+  //  désormais verrouillée en base (packages.price_monthly, Lot 0 Stripe) :
+  //    0    → offre GRATUITE et vendable ;
+  //    null → aucun tarif défini, offre NON VENDABLE.
+  //  Une offre par défaut est toujours à 0 (contrainte
+  //  packages_default_must_be_free), donc `null` ici signale une offre du
+  //  catalogue restée sans tarif — on le dit, on ne le maquille pas en gratuit.
   const price = pkg?.price_monthly ?? null
   const priceLabel =
-    price == null || Number(price) === 0
-      ? t('free')
-      : `${new Intl.NumberFormat(locale, { style: 'currency', currency: pkg?.currency || 'EUR' }).format(Number(price))} ${t('per_month')}`
+    price == null
+      ? t('price_undefined')
+      : Number(price) === 0
+        ? t('free')
+        : `${new Intl.NumberFormat(locale, { style: 'currency', currency: pkg?.currency || 'EUR' }).format(Number(price))} ${t('per_month')}`
 
   const validUntilLabel = validUntil
     ? t('valid_until', { date: new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(new Date(validUntil)) })

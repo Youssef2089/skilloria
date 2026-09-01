@@ -1722,6 +1722,7 @@
       "unavailable": "Ihr Tarif ist derzeit nicht verfügbar.",
       "current_plan": "Aktueller Tarif",
       "free": "Kostenlos",
+      "price_undefined": "Kein Preis festgelegt",
       "per_month": "/ Monat",
       "limits_title": "Im Tarif enthalten",
       "usage_title": "Verbrauch diesen Monat",

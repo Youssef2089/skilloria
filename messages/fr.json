@@ -1722,6 +1722,7 @@
       "unavailable": "Votre offre n'est pas disponible pour le moment.",
       "current_plan": "Offre courante",
       "free": "Gratuit",
+      "price_undefined": "Tarif non défini",
       "per_month": "/ mois",
       "limits_title": "Ce que comprend votre offre",
       "usage_title": "Consommation du mois",
