@@ -243,15 +243,11 @@ export default function ConversationView({ convId, side, embedded = false }: { c
           : { maxWidth: 880, margin: '0 auto', padding: '20px 24px 60px', fontFamily: 'Inter, sans-serif', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 40px)' }
       }
     >
-      {!embedded && (
-        <button
-          type="button"
-          onClick={() => router.push(`${basePath}/messages`)}
-          style={{ background: 'transparent', border: 'none', color: domain.primaryColor, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 12 }}
-        >
-          {t('back_to_inbox')}
-        </button>
-      )}
+      {/* AUCUN bouton Retour local : la coquille (DashboardShell) rend déjà LE
+          <GlobalBackButton>, et un seul. Ce lien-ci en aurait fait un second,
+          empilé au-dessus — exactement ce que la règle projet interdit. Le
+          bouton de la branche d'erreur, lui, RESTE : il est de récupération
+          (état sans coquille exploitable), pas de navigation. */}
 
       {/* Header conv : correspondant + publication */}
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, paddingBottom: 14, borderBottom: '0.5px solid #e5e7eb', marginBottom: 14 }}>

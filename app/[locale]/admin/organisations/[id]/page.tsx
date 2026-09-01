@@ -294,12 +294,11 @@ export default function AdminOrgDetailPage() {
 
   return (
     <div>
-      <Link
-        href="/admin/organisations"
-        style={{ fontSize: 13, color: '#00B9FF', textDecoration: 'none', marginBottom: 16, display: 'inline-block' }}
-      >
-        {t('detail.back')}
-      </Link>
+      {/* AUCUN bouton Retour local : le layout admin monte déjà LE
+          <GlobalBackButton>, et un seul. Ce lien en affichait un second,
+          empilé — même défaut que celui corrigé sur /admin/utilisateurs/[id].
+          Les liens des branches « introuvable » et « erreur » ci-dessus
+          RESTENT : ce sont des sorties de secours, pas de la navigation. */}
 
       {/* Header */}
       <div

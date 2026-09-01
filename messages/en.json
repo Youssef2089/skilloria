@@ -1210,7 +1210,6 @@
     "error_loading": "Could not load your profile. Please retry.",
     "empty_profile": "You haven't created a profile yet.",
     "page_title": "My profile",
-    "back_to_dashboard": "← Back to dashboard",
     "fallback_user_name": "User",
     "edit_button": "Edit my profile →",
     "verified_badge": "Verified profile",
@@ -1952,7 +1951,6 @@
     }
   },
   "candidatures_tracking": {
-    "back_to_dashboard": "← Dashboard",
     "title": "My applications",
     "subtitle": "Mission tracking: status, open exchanges, and related messages.",
     "loading": "Loading…",
@@ -2158,7 +2156,6 @@
       "show_less_details": "Show less"
     },
     "inbox": {
-      "back_to_dashboard": "← Dashboard",
       "title": "Messages",
       "subtitle": "Your exchanges with companies or experts after acceptance.",
       "loading": "Loading…",
@@ -2216,7 +2213,6 @@
       "cta_consult_offre": "View job offer"
     },
     "feed": {
-      "back": "← Dashboard",
       "title": "Your opportunities",
       "subtitle": "Missions and positions selected for you, by relevance.",
       "loading": "Loading your opportunities…",
@@ -2236,9 +2232,6 @@
     },
     "detail": {
       "back_to_feed": "← Back to opportunities",
-      "back_to_dashboard": "← Back to dashboard",
-      "back_to_candidatures": "← Back to applications",
-      "back_to_messages": "← Back to messages",
       "loading": "Loading opportunity…",
       "error_generic": "Could not load this opportunity.",
       "error_not_found": "This opportunity no longer exists or is no longer available to you.",
@@ -2393,9 +2386,7 @@
       "default_cannot_deactivate": "The default plan cannot be deactivated: a sign-up must always find a plan. Designate another default plan first.",
       "target_collaboration": "Collaboration",
       "target_collaboration_locked_hint": "A collaboration plan stays on its audience: experts and companies belong to two separate catalogues.",
-      "err_invalid_target_role": "Unknown audience. Reload the page and try again.",
-      "back_to_packages": "Back to catalogue",
-      "back_to_collaboration": "Back to collaboration"
+      "err_invalid_target_role": "Unknown audience. Reload the page and try again."
     },
     "collaboration": {
       "page_title": "Expert-to-expert collaboration",

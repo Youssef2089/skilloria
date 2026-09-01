@@ -1210,7 +1210,6 @@
     "error_loading": "Impossible de charger votre profil. Réessayez.",
     "empty_profile": "Aucun profil n'a encore été créé.",
     "page_title": "Mon profil",
-    "back_to_dashboard": "← Retour au tableau de bord",
     "fallback_user_name": "Utilisateur",
     "edit_button": "Modifier mon profil →",
     "verified_badge": "Profil vérifié",
@@ -1952,7 +1951,6 @@
     }
   },
   "candidatures_tracking": {
-    "back_to_dashboard": "← Tableau de bord",
     "title": "Mes candidatures",
     "subtitle": "Suivi par mission : statut, échanges ouverts, et messages associés.",
     "loading": "Chargement…",
@@ -2158,7 +2156,6 @@
       "show_less_details": "Réduire"
     },
     "inbox": {
-      "back_to_dashboard": "← Tableau de bord",
       "title": "Messages",
       "subtitle": "Vos échanges avec les entreprises ou les experts après acceptation.",
       "loading": "Chargement…",
@@ -2216,7 +2213,6 @@
       "cta_consult_offre": "Consulter l'offre"
     },
     "feed": {
-      "back": "← Tableau de bord",
       "title": "Vos opportunités",
       "subtitle": "Les missions et postes sélectionnés pour vous, par ordre de pertinence.",
       "loading": "Chargement de vos opportunités…",
@@ -2236,9 +2232,6 @@
     },
     "detail": {
       "back_to_feed": "← Retour aux opportunités",
-      "back_to_dashboard": "← Retour au tableau de bord",
-      "back_to_candidatures": "← Retour aux candidatures",
-      "back_to_messages": "← Retour aux messages",
       "loading": "Chargement de l'opportunité…",
       "error_generic": "Impossible de charger cette opportunité.",
       "error_not_found": "Cette opportunité n'existe pas ou ne vous est plus accessible.",
@@ -2393,9 +2386,7 @@
       "default_cannot_deactivate": "L’offre par défaut ne peut pas être désactivée : une inscription doit toujours trouver une offre. Désignez d’abord une autre offre par défaut.",
       "target_collaboration": "Collaboration",
       "target_collaboration_locked_hint": "Une offre de collaboration reste sur sa cible : les experts et les entreprises relèvent de deux catalogues distincts.",
-      "err_invalid_target_role": "Cible inconnue. Rechargez la page et réessayez.",
-      "back_to_packages": "Retour au catalogue",
-      "back_to_collaboration": "Retour à la collaboration"
+      "err_invalid_target_role": "Cible inconnue. Rechargez la page et réessayez."
     },
     "collaboration": {
       "page_title": "Collaboration entre experts",

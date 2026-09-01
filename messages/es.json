@@ -1210,7 +1210,6 @@
     "error_loading": "No se pudo cargar tu perfil. Vuelve a intentarlo.",
     "empty_profile": "Aún no has creado tu perfil.",
     "page_title": "Mi perfil",
-    "back_to_dashboard": "← Volver al panel",
     "fallback_user_name": "Usuario",
     "edit_button": "Editar mi perfil →",
     "verified_badge": "Perfil verificado",
@@ -1952,7 +1951,6 @@
     }
   },
   "candidatures_tracking": {
-    "back_to_dashboard": "← Panel",
     "title": "Mis candidaturas",
     "subtitle": "Seguimiento por misión: estado, intercambios abiertos y mensajes asociados.",
     "loading": "Cargando…",
@@ -2158,7 +2156,6 @@
       "show_less_details": "Mostrar menos"
     },
     "inbox": {
-      "back_to_dashboard": "← Panel",
       "title": "Mensajes",
       "subtitle": "Tus intercambios con empresas o expertos tras la aceptación.",
       "loading": "Cargando…",
@@ -2216,7 +2213,6 @@
       "cta_consult_offre": "Ver la oferta"
     },
     "feed": {
-      "back": "← Panel",
       "title": "Tus oportunidades",
       "subtitle": "Misiones y puestos seleccionados para ti, por relevancia.",
       "loading": "Cargando tus oportunidades…",
@@ -2236,9 +2232,6 @@
     },
     "detail": {
       "back_to_feed": "← Volver a oportunidades",
-      "back_to_dashboard": "← Volver al panel",
-      "back_to_candidatures": "← Volver a las candidaturas",
-      "back_to_messages": "← Volver a los mensajes",
       "loading": "Cargando oportunidad…",
       "error_generic": "No se pudo cargar esta oportunidad.",
       "error_not_found": "Esta oportunidad ya no existe o no está disponible para ti.",
@@ -2393,9 +2386,7 @@
       "default_cannot_deactivate": "La oferta predeterminada no puede desactivarse: un registro siempre debe encontrar una oferta. Designe primero otra oferta predeterminada.",
       "target_collaboration": "Colaboración",
       "target_collaboration_locked_hint": "Una oferta de colaboración permanece en su público: los expertos y las empresas pertenecen a dos catálogos distintos.",
-      "err_invalid_target_role": "Público desconocido. Recargue la página e inténtelo de nuevo.",
-      "back_to_packages": "Volver al catálogo",
-      "back_to_collaboration": "Volver a colaboración"
+      "err_invalid_target_role": "Público desconocido. Recargue la página e inténtelo de nuevo."
     },
     "collaboration": {
       "page_title": "Colaboración entre expertos",

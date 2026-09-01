@@ -156,6 +156,11 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
   }
   if (state.kind === 'error') {
     return (
+      // Bouton de RÉCUPÉRATION, pas de navigation : sur un lien profond ou un
+      // rechargement en erreur, la pile de NavHistory n'a pas de cible et le
+      // <GlobalBackButton> ne s'affiche pas — sans celui-ci l'utilisateur
+      // resterait bloqué sur l'écran d'erreur. Même motif qu'admin/experts/[id].
+      // Le rendu NORMAL, lui, ne porte aucun bouton Retour local (règle projet).
       <div style={{ maxWidth: 560, margin: '60px auto', padding: '0 24px', textAlign: 'center' }}>
         <p style={{ fontSize: 14, color: 'var(--sk-red)', marginBottom: 18 }}>{state.message}</p>
         <button

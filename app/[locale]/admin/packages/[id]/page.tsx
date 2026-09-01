@@ -354,27 +354,13 @@ export default function AdminPackageEditPage() {
   // cible entreprise (le serveur refuserait de toute façon dès qu'un expert y
   // est rattaché — orgs_would_be_orphaned).
   const isCollaboration = pkg.target_role === 'collaboration'
-  const backHref = isCollaboration ? '/admin/collaboration' : '/admin/packages'
 
   return (
     <div>
-      {/* Page de DÉTAIL → un unique bouton Retour, dirigé vers la liste d'où
-          l'offre provient (catalogue entreprise ou espace collaboration). */}
-      <Link
-        href={backHref}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6,
-          fontSize: 13,
-          color: 'var(--color-text-secondary, #64748b)',
-          textDecoration: 'none',
-          marginBottom: 14,
-        }}
-      >
-        <span aria-hidden>←</span>
-        {isCollaboration ? t('packages.back_to_collaboration') : t('packages.back_to_packages')}
-      </Link>
+      {/* Page de DÉTAIL → un unique bouton Retour, celui du layout admin
+          (<GlobalBackButton>). Le lien local qui vivait ici en faisait un
+          second, empilé, et pointait vers une cible FIGÉE là où le global
+          ramène à la page réellement quittée (catalogue ou collaboration). */}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: 0 }}>{pkg.name}</h1>

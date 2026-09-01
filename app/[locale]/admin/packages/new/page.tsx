@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
-import { Link, useRouter } from '@/i18n/navigation'
+import { useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { LIMIT_CODES, targetLabelKey } from '@/lib/packages-display'
 
@@ -105,7 +105,6 @@ export default function AdminPackageNewPage() {
   // Seule 'collaboration' est honorée : les cibles entreprise gardent 'all' par
   // défaut, l'admin choisit dans la foulée.
   const presetCollaboration = searchParams?.get('target') === 'collaboration'
-  const backHref = presetCollaboration ? '/admin/collaboration' : '/admin/packages'
 
   const [packages, setPackages] = useState<Package[]>([])
   const [loading, setLoading] = useState(true)
@@ -261,22 +260,10 @@ export default function AdminPackageNewPage() {
 
   return (
     <div>
-      {/* Page de DÉTAIL → un unique bouton Retour, vers l'espace d'origine. */}
-      <Link
-        href={backHref}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6,
-          fontSize: 13,
-          color: 'var(--color-text-secondary, #64748b)',
-          textDecoration: 'none',
-          marginBottom: 14,
-        }}
-      >
-        <span aria-hidden>←</span>
-        {presetCollaboration ? t('packages.back_to_collaboration') : t('packages.back_to_packages')}
-      </Link>
+      {/* Page de DÉTAIL → un unique bouton Retour, celui du layout admin
+          (<GlobalBackButton>). Le lien local qui vivait ici en faisait un
+          second, empilé, et pointait vers une cible FIGÉE là où le global
+          ramène à la page réellement quittée (catalogue ou collaboration). */}
 
       <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: '0 0 4px' }}>
         {t('packages.new_title')}
