@@ -2617,6 +2617,8 @@
       "action_suspend": "Suspend",
       "action_reactivate": "Reactivate",
       "action_revoke": "Force sign-out",
+      "actions_blocked_self": "You cannot act on your own account.",
+      "actions_blocked_admin": "Administrator accounts cannot be suspended from this screen.",
       "confirm_suspend_title": "Suspend this account?",
       "confirm_suspend_body": "{name} will no longer be able to sign in, and their current session will be invalidated immediately. Their listings stay live, their applications and matching are unchanged. No email will be sent to them.",
       "confirm_reactivate_title": "Reactivate this account?",

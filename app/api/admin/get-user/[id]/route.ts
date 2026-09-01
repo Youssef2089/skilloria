@@ -2,6 +2,13 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+// LA MÊME fonction que les trois routes d'action (user-status,
+// user-revoke-session, user-org-role). On ne la réécrit pas, on ne la
+// paraphrase pas : l'écran doit masquer EXACTEMENT ce que le serveur refuse.
+import {
+  refuseAdminActionOnTarget,
+  type AdminActionTarget,
+} from '@/lib/admin/user-actions-guard'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -72,6 +79,41 @@ export async function GET(request: NextRequest, ctx: Ctx): Promise<Response> {
   }
 
   const u = row as unknown as Record<string, unknown>
+
+  /**
+   * FAISABILITÉ DES ACTIONS — CALCULÉE PAR LE SERVEUR, JAMAIS DEVINÉE.
+   *
+   * L'écran affichait « Suspendre » et « Forcer la déconnexion » même quand
+   * l'action était structurellement impossible (sa propre fiche, fiche d'un
+   * autre administrateur). Le serveur refusait bien, mais l'admin ne
+   * l'apprenait qu'après avoir cliqué ET saisi son mot de passe.
+   *
+   * CE BLOC NE GARDE RIEN. La garde reste entière dans les trois routes
+   * d'action, inchangée — un appel forgé se heurte toujours au même refus.
+   * Il ne fait que RENDRE LISIBLE la décision, en appelant la même fonction
+   * pure : impossible que l'UI et le serveur divergent, puisqu'ils lisent le
+   * même verdict.
+   *
+   * Aucune requête supplémentaire dans le cas courant : la cible est
+   * construite depuis la ligne DÉJÀ chargée ci-dessus (mêmes colonnes que
+   * `loadAdminActionTarget`), et `refuseAdminActionOnTarget` ne compte les
+   * administrateurs que si la cible en est un — ce que l'interdit 2
+   * court-circuite avant.
+   */
+  const actionTarget: AdminActionTarget = {
+    id: u.id as string,
+    user_type: (u.user_type as string | null) ?? null,
+    status: (u.status as string | null) ?? null,
+    domain_id: (u.domain_id as string | null) ?? null,
+    email: (u.email as string | null) ?? null,
+    first_name: (u.first_name as string | null) ?? null,
+    last_name: (u.last_name as string | null) ?? null,
+  }
+  const actionRefusal = await refuseAdminActionOnTarget({
+    supabaseAdmin: auth.supabaseAdmin,
+    adminUserId: auth.user.id,
+    target: actionTarget,
+  })
 
   // Rattachement organisation (membre ACTIF) + profil expert, à plat.
   const [memberRes, profileRes, sessionCountRes] = await Promise.all([
@@ -146,6 +188,19 @@ export async function GET(request: NextRequest, ctx: Ctx): Promise<Response> {
       deletion_scheduled_at: u.deletion_scheduled_at ?? null,
       anonymized_at: u.anonymized_at ?? null,
       ecosystem: dom ? { id: dom.id, name: dom.name, slug: dom.slug } : null,
+    },
+    /**
+     * Verdict d'administrabilité de CETTE cible pour CET administrateur.
+     * `refusal_code` reprend tel quel le code de la garde partagée — le client
+     * le traduit, il ne le recalcule pas. `null` = action permise.
+     *
+     * `target_not_found` ne peut pas apparaître ici : la ligne existe (404
+     * renvoyé plus haut sinon).
+     */
+    actions: {
+      can_suspend: actionRefusal === null,
+      can_revoke_session: actionRefusal === null,
+      refusal_code: actionRefusal?.code ?? null,
     },
     organization: member && org
       ? {

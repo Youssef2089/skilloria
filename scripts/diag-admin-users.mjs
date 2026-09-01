@@ -225,11 +225,44 @@ ok(/GlobalBackButton/.test(read('app/[locale]/admin/layout.tsx')),
 ok(/ReauthModal/.test(read('app/[locale]/admin/utilisateurs/[id]/page.tsx')),
   'écran fiche : réutilise <ReauthModal> existant')
 
+// Écran : les actions STRUCTURELLEMENT impossibles ne sont plus proposées.
+//
+// Aucun contrôle n'exigeait leur affichage inconditionnel — il n'y avait donc
+// rien à inverser ici. On pose la règle dans l'autre sens, pour qu'un retour en
+// arrière se voie : le verdict vient du SERVEUR, l'écran ne le devine pas.
+const userDetailScreen = read('app/[locale]/admin/utilisateurs/[id]/page.tsx')
+const getUserRoute = read('app/api/admin/get-user/[id]/route.ts')
+ok(
+  /refuseAdminActionOnTarget/.test(getUserRoute) && /can_suspend/.test(getUserRoute),
+  'get-user : sert la faisabilité des actions, calculée par LA garde partagée',
+  'sans elle, l’écran devrait deviner — et sa règle dériverait de la vraie',
+)
+ok(
+  /actions\?\.can_suspend === true/.test(userDetailScreen) &&
+    /actions\?\.can_revoke_session === true/.test(userDetailScreen),
+  'écran fiche : les deux boutons suivent le verdict SERVEUR',
+)
+ok(
+  !/u\.user_type === 'admin'/.test(userDetailScreen),
+  'écran fiche : aucune comparaison devinée côté client (ni « c’est un admin », ni « c’est moi »)',
+  'user_type est un libellé d’affichage, jamais une autorisation',
+)
+ok(
+  /actions_blocked_self/.test(userDetailScreen) && /actions_blocked_admin/.test(userDetailScreen),
+  'écran fiche : la RAISON du masquage est affichée, pas seulement le vide',
+)
+// La garde elle-même n'a pas bougé : le masquage s'AJOUTE, il ne remplace rien.
+ok(
+  /'self_forbidden'/.test(guard) && /'target_is_admin'/.test(guard),
+  'garde serveur intacte : le masquage d’écran ne l’a pas remplacée',
+)
+
 for (const loc of ['fr', 'en', 'es', 'de']) {
   const m = JSON.parse(read(`messages/${loc}.json`))
   const u = m.admin_back_office?.users
   ok(
     !!u?.title && !!u?.confirm_role_last_admin_warning && !!u?.truncated_notice &&
+      !!u?.actions_blocked_self && !!u?.actions_blocked_admin &&
       !!m.admin_back_office?.sidebar?.nav_utilisateurs,
     `i18n ${loc} : libellés de l’écran Utilisateurs présents`,
   )

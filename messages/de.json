@@ -2617,6 +2617,8 @@
       "action_suspend": "Sperren",
       "action_reactivate": "Entsperren",
       "action_revoke": "Abmeldung erzwingen",
+      "actions_blocked_self": "Sie können keine Aktionen für Ihr eigenes Konto ausführen.",
+      "actions_blocked_admin": "Administratorkonten können über diesen Bildschirm nicht gesperrt werden.",
       "confirm_suspend_title": "Dieses Konto sperren?",
       "confirm_suspend_body": "{name} kann sich nicht mehr anmelden, und die laufende Sitzung wird sofort ungültig. Die Anzeigen bleiben online, Bewerbungen und Matching bleiben unverändert. Es wird keine E-Mail versendet.",
       "confirm_reactivate_title": "Dieses Konto entsperren?",

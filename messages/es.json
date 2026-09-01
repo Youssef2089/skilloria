@@ -2617,6 +2617,8 @@
       "action_suspend": "Suspender",
       "action_reactivate": "Reactivar",
       "action_revoke": "Forzar la desconexión",
+      "actions_blocked_self": "No puede actuar sobre su propia cuenta.",
+      "actions_blocked_admin": "Las cuentas de administrador no se pueden suspender desde esta pantalla.",
       "confirm_suspend_title": "¿Suspender esta cuenta?",
       "confirm_suspend_body": "{name} ya no podrá conectarse y su sesión actual se invalidará de inmediato. Sus anuncios siguen en línea, sus candidaturas y su matching no cambian. No se le enviará ningún correo.",
       "confirm_reactivate_title": "¿Reactivar esta cuenta?",

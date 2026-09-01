@@ -24,6 +24,20 @@ import ReauthModal from '@/components/settings/ReauthModal'
  *   (grant HMAC de 5 min, header `x-reauth-token`), le même que le changement
  *   d'e-mail et la suppression de compte. Les gardes réelles sont SERVEUR ;
  *   ce que l'écran fait ici n'est que de la courtoisie.
+ *
+ * ACTIONS IMPOSSIBLES : MASQUÉES, ET LA RAISON EST DITE
+ *   « Suspendre » et « Forcer la déconnexion » s'affichaient même sur sa
+ *   PROPRE fiche et sur celle d'un AUTRE ADMINISTRATEUR — deux cas que le
+ *   serveur refuse par construction. L'admin ne l'apprenait qu'après avoir
+ *   cliqué ET saisi son mot de passe. Ils sont désormais masqués, remplacés
+ *   par le motif en clair.
+ *
+ *   Le verdict vient du SERVEUR (bloc `actions` de /api/admin/get-user/[id],
+ *   produit par la garde partagée `refuseAdminActionOnTarget`). Rien n'est
+ *   comparé ici : cet écran ne connaît pas l'id de l'admin connecté, et
+ *   `user_type` est un libellé d'affichage, pas une autorisation. Le masquage
+ *   S'AJOUTE à la garde, il ne la remplace pas — un appel forgé se heurte
+ *   toujours au même refus 403.
  */
 
 type ApiUser = {
@@ -54,7 +68,21 @@ type ApiOrg = {
   role_in_org: string
 }
 type ApiProfile = { id: string; verification_status: string | null; expert_type: string | null; title: string | null }
-type Detail = { user: ApiUser; organization: ApiOrg | null; profile: ApiProfile | null }
+/**
+ * Verdict d'administrabilité SERVI PAR LE SERVEUR (cf. /api/admin/get-user/[id]),
+ * calculé par la garde partagée `refuseAdminActionOnTarget`.
+ *
+ * On ne compare RIEN côté client : ni « cette cible est-elle moi ? » (l'écran
+ * ne connaît pas l'id de l'admin connecté), ni « cette cible est-elle admin ? »
+ * (`user_type` est de l'affichage, pas une autorisation). Deviner ici, c'est
+ * signer une seconde règle métier qui dérivera de la vraie.
+ */
+type ApiActions = {
+  can_suspend: boolean
+  can_revoke_session: boolean
+  refusal_code: 'self_forbidden' | 'target_is_admin' | 'last_platform_admin' | 'target_not_found' | null
+}
+type Detail = { user: ApiUser; organization: ApiOrg | null; profile: ApiProfile | null; actions: ApiActions }
 
 type TimelineEntry = {
   kind: 'login' | 'revocation'
@@ -132,6 +160,32 @@ export default function AdminUserDetailPage() {
 
   const u = detail?.user ?? null
   const org = detail?.organization ?? null
+  const actions = detail?.actions ?? null
+
+  /**
+   * Les deux actions sont proposées UNIQUEMENT si le serveur les autorise.
+   * Repli PRUDENT sur `false` : une réponse d'une version antérieure de l'API
+   * (sans bloc `actions`) masque les boutons plutôt que d'en proposer un qui
+   * échouerait après saisie du mot de passe. Le serveur, lui, refuse de toute
+   * façon — ce repli ne fait que choisir le moins mauvais des affichages.
+   */
+  const canSuspend = actions?.can_suspend === true
+  const canRevoke = actions?.can_revoke_session === true
+
+  /**
+   * Raison affichée à la place des boutons. Deux cas atteignables :
+   *   - `self_forbidden`  → sa propre fiche ;
+   *   - `target_is_admin` → fiche d'un autre administrateur.
+   * `last_platform_admin` n'est renvoyé QUE pour une cible administratrice —
+   * que l'interdit 2 court-circuite avant : la phrase « comptes
+   * administrateurs » reste donc exacte s'il survenait. `target_not_found` est
+   * impossible ici (la fiche a été chargée).
+   */
+  const blockedReason = canSuspend || canRevoke || !actions
+    ? null
+    : actions.refusal_code === 'self_forbidden'
+      ? t('actions_blocked_self')
+      : t('actions_blocked_admin')
   const fullName = u ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || (u.email ?? '—') : '—'
 
   /** Traduit le code d'erreur serveur en message. Jamais de code brut à l'écran. */
@@ -273,19 +327,38 @@ export default function AdminUserDetailPage() {
                 {u.ecosystem?.name ? ` · ${u.ecosystem.name}` : ''}
               </p>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => setConfirming({ kind: u.status === 'suspended' ? 'reactivate' : 'suspend' })}
-                style={btn(u.status !== 'suspended')}
+            {/* Actions impossibles → on ne les propose pas, et on DIT pourquoi.
+                Un bouton grisé sans motif fait deviner ; un bouton actif qui
+                échoue après ré-authentification fait perdre du temps. */}
+            {blockedReason ? (
+              <p
+                role="note"
+                style={{
+                  margin: 0, maxWidth: 380, padding: '11px 14px', borderRadius: 10,
+                  background: '#f1f5f9', color: '#475569', fontSize: 13, lineHeight: 1.55,
+                }}
               >
-                {u.status === 'suspended' ? t('action_reactivate') : t('action_suspend')}
-              </button>
-              <button type="button" disabled={busy} onClick={() => setConfirming({ kind: 'revoke' })} style={btn()}>
-                {t('action_revoke')}
-              </button>
-            </div>
+                {blockedReason}
+              </p>
+            ) : (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {canSuspend && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setConfirming({ kind: u.status === 'suspended' ? 'reactivate' : 'suspend' })}
+                    style={btn(u.status !== 'suspended')}
+                  >
+                    {u.status === 'suspended' ? t('action_reactivate') : t('action_suspend')}
+                  </button>
+                )}
+                {canRevoke && (
+                  <button type="button" disabled={busy} onClick={() => setConfirming({ kind: 'revoke' })} style={btn()}>
+                    {t('action_revoke')}
+                  </button>
+                )}
+              </div>
+            )}
           </header>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14, marginBottom: 14 }}>
