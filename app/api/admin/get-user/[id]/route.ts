@@ -9,6 +9,9 @@ import {
   refuseAdminActionOnTarget,
   type AdminActionTarget,
 } from '@/lib/admin/user-actions-guard'
+// Anti-lock-out d'organisation : MÊME prédicat et MÊME compteur que les routes
+// de membres. L'avertissement de purge ne se calcule pas autrement qu'ailleurs.
+import { countActiveAdmins, wouldRemoveLastAdmin } from '@/lib/org-members'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -115,6 +118,57 @@ export async function GET(request: NextRequest, ctx: Ctx): Promise<Response> {
     target: actionTarget,
   })
 
+  /**
+   * SUPPRESSION DÉFINITIVE — même verdict, plus un refus qui lui est propre.
+   *
+   * Un compte DÉJÀ anonymisé n'a plus rien à effacer : proposer le bouton
+   * mènerait à un 409 après ré-authentification ET saisie de l'adresse. La
+   * fiche affiche déjà `anonymized_notice` juste au-dessus ; l'action, elle,
+   * disparaît.
+   */
+  const alreadyAnonymized = !!u.anonymized_at
+  const purgeRefusalCode = actionRefusal?.code ?? (alreadyAnonymized ? 'already_anonymized' : null)
+
+  /**
+   * AVERTISSEMENT organisation — servi AVANT le clic, pas après.
+   *
+   * La règle (décision produit) est d'AVERTIR puis d'exiger un acquittement,
+   * jamais de bloquer : subordonner un droit RGPD à une structure
+   * d'organisation serait inacceptable. Pour que l'avertissement soit lisible
+   * au moment de décider, l'écran doit le connaître d'avance — d'où ce calcul
+   * ici, et non au moment du refus.
+   *
+   * Calculé UNIQUEMENT si la purge est possible : un compte qu'on ne peut pas
+   * effacer ne paie pas ces requêtes.
+   */
+  const purgeOrgLockout: { id: string; company_name: string | null }[] = []
+  if (purgeRefusalCode === null) {
+    const { data: adminMemberships, error: memErr } = await auth.supabaseAdmin
+      .from('organization_members')
+      .select('organization_id, organizations(id, company_name)')
+      .eq('user_id', id)
+      .eq('role_in_org', 'admin')
+      .eq('status', 'active')
+    if (memErr) {
+      // Avertissement best-effort : son absence ne doit jamais empêcher
+      // d'afficher la fiche. La route de purge re-pose la question de toute
+      // façon, et c'est ELLE qui exige l'acquittement.
+      console.warn('[admin:get-user] org lockout lookup failed', memErr.message)
+    } else {
+      for (const row of adminMemberships ?? []) {
+        const orgId = (row as { organization_id: string }).organization_id
+        const rel = (row as { organizations: unknown }).organizations
+        const o = (Array.isArray(rel) ? rel[0] : rel) as
+          | { id: string; company_name: string | null }
+          | null
+        const available = await countActiveAdmins(auth.supabaseAdmin, orgId)
+        if (wouldRemoveLastAdmin({ targetIsActiveAdmin: true, activeAdminCount: available })) {
+          purgeOrgLockout.push({ id: orgId, company_name: o?.company_name ?? null })
+        }
+      }
+    }
+  }
+
   // Rattachement organisation (membre ACTIF) + profil expert, à plat.
   const [memberRes, profileRes, sessionCountRes] = await Promise.all([
     auth.supabaseAdmin
@@ -201,6 +255,15 @@ export async function GET(request: NextRequest, ctx: Ctx): Promise<Response> {
       can_suspend: actionRefusal === null,
       can_revoke_session: actionRefusal === null,
       refusal_code: actionRefusal?.code ?? null,
+      /** Suppression DÉFINITIVE — même garde, plus le cas « déjà anonymisé ». */
+      can_purge: purgeRefusalCode === null,
+      purge_refusal_code: purgeRefusalCode,
+      /**
+       * Organisations que la purge laisserait sans administrateur joignable.
+       * Vide = aucun avertissement. L'écran l'affiche AVANT le clic ; la route
+       * de purge le revalide et exige l'acquittement.
+       */
+      purge_org_lockout: purgeOrgLockout,
     },
     organization: member && org
       ? {

@@ -18,9 +18,10 @@ import ReauthModal from '@/components/settings/ReauthModal'
  *   suspendre ou révoquer. Idem pour le CV, le contenu du profil et les
  *   messages : la fiche expert existe déjà et a ses propres gardes.
  *
- * TROIS ACTIONS, TOUTES RÉ-AUTHENTIFIÉES
+ * QUATRE ACTIONS, TOUTES RÉ-AUTHENTIFIÉES
  *   Suspendre/réactiver, forcer la déconnexion, changer le rôle en
- *   organisation. Chacune passe par <ReauthModal> — le mécanisme EXISTANT
+ *   organisation, et SUPPRIMER DÉFINITIVEMENT. Chacune passe par
+ *   <ReauthModal> — le mécanisme EXISTANT
  *   (grant HMAC de 5 min, header `x-reauth-token`), le même que le changement
  *   d'e-mail et la suppression de compte. Les gardes réelles sont SERVEUR ;
  *   ce que l'écran fait ici n'est que de la courtoisie.
@@ -38,6 +39,16 @@ import ReauthModal from '@/components/settings/ReauthModal'
  *   `user_type` est un libellé d'affichage, pas une autorisation. Le masquage
  *   S'AJOUTE à la garde, il ne la remplace pas — un appel forgé se heurte
  *   toujours au même refus 403.
+ *
+ * LA ZONE IRRÉVERSIBLE EST SÉPARÉE, PAS SEULEMENT DÉCORÉE
+ *   « Supprimer définitivement » vit en BAS de page, dans son propre encadré,
+ *   hors de la barre d'actions de l'en-tête. Un geste sans retour ne doit pas
+ *   voisiner un geste annulable : le clic de proximité est une cause d'accident
+ *   réelle, pas une hypothèse. La modale exige en plus de retaper l'adresse de
+ *   la cible — le SEUL des trois verrous qui adresse l'erreur de CIBLE, les
+ *   deux autres n'adressant que l'identité de l'auteur et la règle métier.
+ *   Ces exigences sont TOUTES revalidées par /api/admin/user-purge : ce que
+ *   l'écran en fait n'est, là encore, que de la courtoisie.
  */
 
 type ApiUser = {
@@ -77,10 +88,20 @@ type ApiProfile = { id: string; verification_status: string | null; expert_type:
  * (`user_type` est de l'affichage, pas une autorisation). Deviner ici, c'est
  * signer une seconde règle métier qui dérivera de la vraie.
  */
+type AdminRefusalCode =
+  | 'self_forbidden'
+  | 'target_is_admin'
+  | 'last_platform_admin'
+  | 'target_not_found'
 type ApiActions = {
   can_suspend: boolean
   can_revoke_session: boolean
-  refusal_code: 'self_forbidden' | 'target_is_admin' | 'last_platform_admin' | 'target_not_found' | null
+  refusal_code: AdminRefusalCode | null
+  /** Suppression DÉFINITIVE — même garde, plus le cas « déjà anonymisé ». */
+  can_purge: boolean
+  purge_refusal_code: AdminRefusalCode | 'already_anonymized' | null
+  /** Organisations que la purge laisserait sans administrateur joignable. */
+  purge_org_lockout: { id: string; company_name: string | null }[]
 }
 type Detail = { user: ApiUser; organization: ApiOrg | null; profile: ApiProfile | null; actions: ApiActions }
 
@@ -99,6 +120,12 @@ const ROLES = ['viewer', 'editor', 'admin'] as const
 type PendingAction =
   | { kind: 'suspend' | 'reactivate' | 'revoke' }
   | { kind: 'role'; role: string; force: boolean }
+  /**
+   * `purge` transporte l'adresse retapée et l'acquittement : les deux partent
+   * au serveur, qui les REVALIDE. Rien de ce que porte cet objet n'est une
+   * garde — ce sont les entrées d'une décision prise ailleurs.
+   */
+  | { kind: 'purge'; confirmEmail: string; acknowledgeOrgLockout: boolean }
 
 export default function AdminUserDetailPage() {
   const t = useTranslations('admin_back_office.users')
@@ -121,6 +148,13 @@ export default function AdminUserDetailPage() {
   const [confirming, setConfirming] = useState<PendingAction | null>(null)
   const [pending, setPending] = useState<PendingAction | null>(null)
   const [reauthOpen, setReauthOpen] = useState(false)
+
+  // Suppression définitive : sa propre modale, parce qu'elle demande DEUX
+  // choses que les autres actions ne demandent pas — l'adresse retapée et,
+  // le cas échéant, l'acquittement du verrouillage d'organisation.
+  const [purgeOpen, setPurgeOpen] = useState(false)
+  const [purgeEmail, setPurgeEmail] = useState('')
+  const [purgeAck, setPurgeAck] = useState(false)
 
   const load = useCallback(async () => {
     if (!userId) return
@@ -171,6 +205,8 @@ export default function AdminUserDetailPage() {
    */
   const canSuspend = actions?.can_suspend === true
   const canRevoke = actions?.can_revoke_session === true
+  const canPurge = actions?.can_purge === true
+  const purgeOrgLockout = actions?.purge_org_lockout ?? []
 
   /**
    * Raison affichée à la place des boutons. Deux cas atteignables :
@@ -186,6 +222,19 @@ export default function AdminUserDetailPage() {
     : actions.refusal_code === 'self_forbidden'
       ? t('actions_blocked_self')
       : t('actions_blocked_admin')
+
+  /**
+   * Raison du masquage de la suppression définitive. Trois cas atteignables —
+   * les deux mêmes que ci-dessus, plus « déjà anonymisé », propre à cette
+   * action : il n'y a plus rien à effacer.
+   */
+  const purgeBlockedReason = canPurge || !actions
+    ? null
+    : actions.purge_refusal_code === 'self_forbidden'
+      ? t('purge_blocked_self')
+      : actions.purge_refusal_code === 'already_anonymized'
+        ? t('purge_blocked_already_anonymized')
+        : t('purge_blocked_admin')
   const fullName = u ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || (u.email ?? '—') : '—'
 
   /** Traduit le code d'erreur serveur en message. Jamais de code brut à l'écran. */
@@ -197,6 +246,9 @@ export default function AdminUserDetailPage() {
         case 'last_platform_admin': return t('err_last_platform_admin')
         case 'no_membership': return t('err_no_membership')
         case 'nothing_to_update': return t('err_nothing_to_update')
+        case 'confirm_email_mismatch': return t('err_confirm_email_mismatch')
+        case 'already_anonymized': return t('err_already_anonymized')
+        case 'purge_failed': return t('err_purge_failed')
         default: return t('err_generic')
       }
     },
@@ -220,6 +272,16 @@ export default function AdminUserDetailPage() {
           res = await secureFetch('/api/admin/user-revoke-session', {
             method: 'POST', headers, body: JSON.stringify({ user_id: userId }),
           })
+        } else if (action.kind === 'purge') {
+          res = await secureFetch('/api/admin/user-purge', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              user_id: userId,
+              confirm_email: action.confirmEmail,
+              acknowledge_org_lockout: action.acknowledgeOrgLockout,
+            }),
+          })
         } else {
           res = await secureFetch('/api/admin/user-status', {
             method: 'POST', headers, body: JSON.stringify({ user_id: userId, action: action.kind }),
@@ -242,8 +304,9 @@ export default function AdminUserDetailPage() {
           msg:
             action.kind === 'role' ? t('toast_role_changed')
               : action.kind === 'revoke' ? t('toast_revoked')
-                : action.kind === 'suspend' ? t('toast_suspended')
-                  : t('toast_reactivated'),
+                : action.kind === 'purge' ? t('toast_purged')
+                  : action.kind === 'suspend' ? t('toast_suspended')
+                    : t('toast_reactivated'),
           kind: 'success',
         })
         await load()
@@ -451,6 +514,147 @@ export default function AdminUserDetailPage() {
               </ul>
             )}
           </section>
+
+          {/* ─── ZONE IRRÉVERSIBLE ───────────────────────────────────────────
+              SÉPARÉE, et pas seulement décorée : elle est en bas de page, hors
+              de la barre d'actions de l'en-tête, avec son propre encadré. Un
+              geste sans retour ne doit pas voisiner un geste annulable — le
+              clic de proximité est une vraie cause d'accident. */}
+          <section
+            style={{
+              ...card,
+              marginTop: 14,
+              borderColor: '#FCA5A5',
+              background: '#FFF7F7',
+            }}
+            aria-label={t('section_danger')}
+          >
+            <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#991B1B', margin: '0 0 8px' }}>
+              {t('section_danger')}
+            </h2>
+            <p style={{ fontSize: 13, color: '#7F1D1D', lineHeight: 1.6, margin: '0 0 12px' }}>
+              {t('purge_section_body')}
+            </p>
+            {purgeBlockedReason ? (
+              <p
+                role="note"
+                style={{
+                  margin: 0, padding: '11px 14px', borderRadius: 10,
+                  background: '#fff', border: '1px solid #FECACA',
+                  color: '#7F1D1D', fontSize: 13, lineHeight: 1.55,
+                }}
+              >
+                {purgeBlockedReason}
+              </p>
+            ) : (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => { setPurgeEmail(''); setPurgeAck(false); setPurgeOpen(true) }}
+                style={btn(true)}
+              >
+                {t('action_purge')}
+              </button>
+            )}
+          </section>
+
+          {/* ── Suppression définitive : trois exigences, à l'écran ────────
+              L'écran ne garde rien — il rend LISIBLE ce que le serveur va
+              exiger de toute façon (adresse identique, acquittement). Le bouton
+              désactivé est de la courtoisie ; le refus fait autorité côté
+              serveur (confirm_email_mismatch / org_lockout_ack_required). */}
+          {purgeOpen && u && (
+            <div
+              role="dialog"
+              aria-modal="true"
+              style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 60 }}
+            >
+              <div style={{ background: '#fff', borderRadius: 14, padding: '22px 24px', maxWidth: 560, width: '100%' }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 10px', color: '#991B1B' }}>
+                  {t('confirm_purge_title')}
+                </h3>
+                <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6, margin: '0 0 12px' }}>
+                  {t('confirm_purge_body', { name: fullName })}
+                </p>
+                <p style={{ fontSize: 13, color: '#7F1D1D', background: '#FEE2E2', borderRadius: 10, padding: '11px 14px', lineHeight: 1.6, margin: '0 0 14px' }}>
+                  {t('confirm_purge_irreversible')}
+                </p>
+
+                {/* Avertissement organisation — servi par le SERVEUR avant le
+                    clic, pas découvert après. On ne bloque pas : on exige un
+                    acquittement, revalidé côté serveur. */}
+                {purgeOrgLockout.length > 0 && (
+                  <div role="alert" style={{ margin: '0 0 14px', padding: '12px 14px', borderRadius: 10, background: '#FEF9C3', border: '1px solid #FDE68A' }}>
+                    <p style={{ fontSize: 13, color: '#713F12', lineHeight: 1.6, margin: '0 0 8px' }}>
+                      {t('confirm_purge_org_lockout', {
+                        orgs: purgeOrgLockout
+                          .map((o) => o.company_name ?? t('purge_org_unnamed'))
+                          .join(', '),
+                      })}
+                    </p>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#713F12', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={purgeAck}
+                        onChange={(e) => setPurgeAck(e.target.checked)}
+                        style={{ marginTop: 2 }}
+                      />
+                      <span>{t('confirm_purge_org_lockout_ack')}</span>
+                    </label>
+                  </div>
+                )}
+
+                <label style={{ display: 'block', fontSize: 13, color: '#475569', marginBottom: 6 }}>
+                  {t('confirm_purge_email_label', { email: u.email ?? '—' })}
+                </label>
+                <input
+                  type="email"
+                  autoComplete="off"
+                  value={purgeEmail}
+                  onChange={(e) => setPurgeEmail(e.target.value)}
+                  placeholder={u.email ?? ''}
+                  style={{
+                    width: '100%', boxSizing: 'border-box', padding: '9px 12px', borderRadius: 9,
+                    border: '1px solid var(--color-border-tertiary, #e5e7eb)', fontSize: 13,
+                    fontFamily: 'inherit', marginBottom: 16,
+                  }}
+                />
+
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button type="button" onClick={() => setPurgeOpen(false)} style={btn()}>
+                    {t('confirm_cancel')}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={
+                      busy ||
+                      purgeEmail.trim().toLowerCase() !== (u.email ?? '').trim().toLowerCase() ||
+                      (purgeOrgLockout.length > 0 && !purgeAck)
+                    }
+                    onClick={() => {
+                      setPending({
+                        kind: 'purge',
+                        confirmEmail: purgeEmail.trim(),
+                        acknowledgeOrgLockout: purgeAck,
+                      })
+                      setPurgeOpen(false)
+                      setReauthOpen(true)
+                    }}
+                    style={{
+                      ...btn(true),
+                      opacity:
+                        purgeEmail.trim().toLowerCase() !== (u.email ?? '').trim().toLowerCase() ||
+                        (purgeOrgLockout.length > 0 && !purgeAck)
+                          ? 0.5
+                          : 1,
+                    }}
+                  >
+                    {t('confirm_purge_yes')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ── Confirmation : NOMME ce qui va se passer ─────────────────── */}
           {confirming && (
