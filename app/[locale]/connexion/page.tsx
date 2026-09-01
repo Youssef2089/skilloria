@@ -32,6 +32,13 @@ export default function ConnexionPage() {
   const [error, setError] = useState('')
 
   const handleSubmit = async () => {
+    // Garde de RÉ-ENTRANCE. Le bouton est déjà `disabled={loading}`, mais un
+    // écran ne se garde pas avec un attribut : la touche Entrée, un double clic
+    // avalé pendant un re-rendu, ou un appel programmatique passeraient à côté.
+    // Elle couvre aussi le bref instant où le `finally` ci-dessous a relâché le
+    // drapeau alors que la navigation de succès n'a pas encore démonté la page.
+    if (loading) return
+
     if (!form.email || !form.password) {
       setError(t('errors.missing_fields'))
       return
@@ -40,114 +47,138 @@ export default function ConnexionPage() {
     setLoading(true)
     setError('')
 
-    const { data, error: authError } = await supabase.auth.signInWithPassword({
-      email: form.email,
-      password: form.password,
-    })
+    /**
+     * ÉTAT DE CHARGEMENT RELÂCHÉ DANS UN `finally`, JAMAIS PAR ÉNUMÉRATION.
+     *
+     * Ce handler relâchait son drapeau en listant ses chemins de sortie. Sur
+     * NEUF sorties, DEUX avaient été oubliées — les deux refus pour compte
+     * suspendu, qui redirigent vers `/connexion` alors qu'on y est DÉJÀ : le
+     * composant ne se démonte pas, et le bouton restait figé sur « Connexion en
+     * cours… » indéfiniment. Il fallait recharger la page à la main pour
+     * retrouver un formulaire utilisable.
+     *
+     * L'énumération marche jusqu'au jour où quelqu'un ajoute un chemin — ou
+     * jusqu'à la première exception, qui n'est énumérable par personne. Ce n'est
+     * donc pas « deux cas oubliés » qu'on corrige, c'est la méthode.
+     *
+     * UN SEUL point de relâchement, en `finally`. Conséquence assumée : sur le
+     * chemin de succès, le drapeau retombe pendant que la navigation est encore
+     * en vol (Next garde la page montée le temps de charger la suivante) et le
+     * bouton redevient brièvement cliquable — la garde de ré-entrance ci-dessus
+     * couvre cet instant. L'alternative (un drapeau « je pars » posé avant chaque
+     * navigation) rachèterait ce scintillement au prix exact du défaut qu'on
+     * corrige : une discipline par call-site, qu'un `router.push` ajouté plus
+     * tard ferait sauter.
+     */
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.password,
+      })
 
-    if (authError) {
-      setError(t('errors.invalid_credentials'))
-      setLoading(false)
-      return
-    }
+      if (authError) {
+        setError(t('errors.invalid_credentials'))
+        return
+      }
 
-    // Routage via la fonction SECURITY DEFINER my_account_routing() (C4) plutôt
-    // qu'un SELECT direct sur `users` : ce dernier est désormais verrouillé par
-    // RLS pour un compte EN GRÂCE (verrou de lecture des données perso). La
-    // fonction n'expose QUE le routage (user_type, domain_slug + 2 dates de
-    // suppression) et reste accessible en grâce → la réactivation fonctionne.
-    let userData: {
-      user_type?: string | null
-      domain_slug?: string | null
-      deletion_scheduled_at?: string | null
-      anonymized_at?: string | null
-    } | null = null
-    const { data: routingRows, error: rpcErr } = await supabase.rpc('my_account_routing')
-    if (!rpcErr) {
-      userData = (Array.isArray(routingRows) ? routingRows[0] : routingRows) ?? null
-    } else {
-      // Filet indépendant de l'ORDRE de déploiement : si la fonction n'existe
-      // pas encore (migration C4 pas appliquée), on retombe sur le SELECT direct
-      // — non verrouillé tant que la migration n'est pas là. Une fois la
-      // migration poussée, la RPC répond et ce fallback n'est plus atteint.
-      const { data: row } = await supabase
-        .from('users')
-        .select('user_type, domains(slug), deletion_scheduled_at, anonymized_at')
-        .eq('id', data.user.id)
-        .maybeSingle()
-      if (row) {
-        userData = {
-          user_type: row.user_type as string | null,
-          domain_slug: (row.domains as { slug?: string } | null)?.slug ?? null,
-          deletion_scheduled_at: (row as { deletion_scheduled_at?: string | null }).deletion_scheduled_at ?? null,
-          anonymized_at: (row as { anonymized_at?: string | null }).anonymized_at ?? null,
+      // Routage via la fonction SECURITY DEFINER my_account_routing() (C4) plutôt
+      // qu'un SELECT direct sur `users` : ce dernier est désormais verrouillé par
+      // RLS pour un compte EN GRÂCE (verrou de lecture des données perso). La
+      // fonction n'expose QUE le routage (user_type, domain_slug + 2 dates de
+      // suppression) et reste accessible en grâce → la réactivation fonctionne.
+      let userData: {
+        user_type?: string | null
+        domain_slug?: string | null
+        deletion_scheduled_at?: string | null
+        anonymized_at?: string | null
+      } | null = null
+      const { data: routingRows, error: rpcErr } = await supabase.rpc('my_account_routing')
+      if (!rpcErr) {
+        userData = (Array.isArray(routingRows) ? routingRows[0] : routingRows) ?? null
+      } else {
+        // Filet indépendant de l'ORDRE de déploiement : si la fonction n'existe
+        // pas encore (migration C4 pas appliquée), on retombe sur le SELECT direct
+        // — non verrouillé tant que la migration n'est pas là. Une fois la
+        // migration poussée, la RPC répond et ce fallback n'est plus atteint.
+        const { data: row } = await supabase
+          .from('users')
+          .select('user_type, domains(slug), deletion_scheduled_at, anonymized_at')
+          .eq('id', data.user.id)
+          .maybeSingle()
+        if (row) {
+          userData = {
+            user_type: row.user_type as string | null,
+            domain_slug: (row.domains as { slug?: string } | null)?.slug ?? null,
+            deletion_scheduled_at: (row as { deletion_scheduled_at?: string | null }).deletion_scheduled_at ?? null,
+            anonymized_at: (row as { anonymized_at?: string | null }).anonymized_at ?? null,
+          }
         }
       }
-    }
 
-    if (!userData) {
-      setError(t('errors.profile_not_found'))
-      setLoading(false)
-      return
-    }
+      if (!userData) {
+        setError(t('errors.profile_not_found'))
+        return
+      }
 
-    // Compte en GRÂCE (suppression programmée, non purgé) : la session vient
-    // d'être ré-établie → on établit le cookie puis on mène droit à
-    // /reactivation (évite un flash de dashboard avant le redirect du gate).
-    if (userData.deletion_scheduled_at && !userData.anonymized_at) {
-      const initGrace = await initSession({
+      // Compte en GRÂCE (suppression programmée, non purgé) : la session vient
+      // d'être ré-établie → on établit le cookie puis on mène droit à
+      // /reactivation (évite un flash de dashboard avant le redirect du gate).
+      if (userData.deletion_scheduled_at && !userData.anonymized_at) {
+        const initGrace = await initSession({
+          accessToken: data.session.access_token,
+          subdomain: domain.subdomain,
+        })
+        // La SUSPENSION PRIME sur la suppression programmée — même ordre que
+        // dans lib/auth-guard.ts. Un compte suspendu ne doit pas atteindre
+        // /reactivation : la réactivation est en self-service, la levée de
+        // suspension ne l'est pas. Sans ce test, la porte de service serait
+        // ouverte ici, dans l'écran de login, hors de portée du garde serveur.
+        if (initGrace.code === 'account_suspended') {
+          await supabase.auth.signOut()
+          router.replace('/connexion?reason=account_suspended')
+          return
+        }
+        router.push('/reactivation')
+        return
+      }
+
+      const userType = userData.user_type as string
+
+      // Vérification du domaine — uniquement pour les experts (freelance + CDI)
+      if (userType === 'expert_freelance' || userType === 'expert_cdi') {
+        const userDomainSlug = userData.domain_slug as string | null
+        if (userDomainSlug && userDomainSlug !== domain.subdomain) {
+          await supabase.auth.signOut()
+          setError(t('errors.wrong_domain', { subdomain: userDomainSlug }))
+          return
+        }
+      }
+
+      // Session unique (11F) : on pose le last_session_token + cookie httpOnly
+      // AVANT le redirect. Effet voulu : invalide les sessions actives du
+      // même compte sur d'autres appareils/onglets (D2). Best-effort.
+      const init = await initSession({
         accessToken: data.session.access_token,
         subdomain: domain.subdomain,
       })
-      // La SUSPENSION PRIME sur la suppression programmée — même ordre que
-      // dans lib/auth-guard.ts. Un compte suspendu ne doit pas atteindre
-      // /reactivation : la réactivation est en self-service, la levée de
-      // suspension ne l'est pas. Sans ce test, la porte de service serait
-      // ouverte ici, dans l'écran de login, hors de portée du garde serveur.
-      if (initGrace.code === 'account_suspended') {
+
+      // COMPTE SUSPENDU : le serveur a refusé d'ouvrir la session. On purge
+      // l'authentification Supabase (sans quoi l'utilisateur resterait à
+      // moitié connecté) et on affiche le motif. Surtout pas de redirection
+      // vers un tableau de bord : il se chargerait vide, et l'utilisateur
+      // croirait à une panne au lieu de comprendre qu'on lui a coupé l'accès.
+      if (init.code === 'account_suspended') {
         await supabase.auth.signOut()
         router.replace('/connexion?reason=account_suspended')
         return
       }
-      router.push('/reactivation')
-      return
+
+      // Redirection selon le type d'utilisateur — mapping mutualisé
+      // dans lib/auth-routing.ts, partagé avec /auth/callback (B3.3.fix2).
+      router.push(dashboardUrlForUserType(userType))
+    } finally {
+      setLoading(false)
     }
-
-    const userType = userData.user_type as string
-
-    // Vérification du domaine — uniquement pour les experts (freelance + CDI)
-    if (userType === 'expert_freelance' || userType === 'expert_cdi') {
-      const userDomainSlug = userData.domain_slug as string | null
-      if (userDomainSlug && userDomainSlug !== domain.subdomain) {
-        await supabase.auth.signOut()
-        setError(t('errors.wrong_domain', { subdomain: userDomainSlug }))
-        setLoading(false)
-        return
-      }
-    }
-
-    // Session unique (11F) : on pose le last_session_token + cookie httpOnly
-    // AVANT le redirect. Effet voulu : invalide les sessions actives du
-    // même compte sur d'autres appareils/onglets (D2). Best-effort.
-    const init = await initSession({
-      accessToken: data.session.access_token,
-      subdomain: domain.subdomain,
-    })
-
-    // COMPTE SUSPENDU : le serveur a refusé d'ouvrir la session. On purge
-    // l'authentification Supabase (sans quoi l'utilisateur resterait à
-    // moitié connecté) et on affiche le motif. Surtout pas de redirection
-    // vers un tableau de bord : il se chargerait vide, et l'utilisateur
-    // croirait à une panne au lieu de comprendre qu'on lui a coupé l'accès.
-    if (init.code === 'account_suspended') {
-      await supabase.auth.signOut()
-      router.replace('/connexion?reason=account_suspended')
-      return
-    }
-
-    // Redirection selon le type d'utilisateur — mapping mutualisé
-    // dans lib/auth-routing.ts, partagé avec /auth/callback (B3.3.fix2).
-    router.push(dashboardUrlForUserType(userType))
   }
 
   return (

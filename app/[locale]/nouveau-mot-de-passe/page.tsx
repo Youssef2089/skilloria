@@ -93,6 +93,11 @@ export default function NouveauMotDePassePage() {
 
   // ── Soumission du nouveau mot de passe ───────────────────────────────────
   const handleSubmit = async () => {
+    // Garde de RÉ-ENTRANCE — cf. le même motif dans connexion/page.tsx. Le
+    // bouton est `disabled={submitting}`, mais la touche Entrée (câblée plus
+    // bas) et un double clic avalé pendant un re-rendu passeraient à côté.
+    if (submitting) return
+
     if (pw.length < 8) {
       setError(t('errors.too_short'))
       return
@@ -104,41 +109,61 @@ export default function NouveauMotDePassePage() {
     setSubmitting(true)
     setError('')
 
-    const { error: upErr } = await supabase.auth.updateUser({ password: pw })
-    if (upErr) {
-      setError(t('errors.generic'))
-      setSubmitting(false)
-      return
-    }
-
-    // Succès → l'utilisateur est authentifié (session de recovery). On RÉUTILISE
-    // la redirection post-login de connexion/page.tsx : lookup user_type +
-    // initSession (session unique 11F) + dashboardUrlForUserType. Repli sur
-    // /connexion si le lookup échoue.
+    /**
+     * ÉTAT DE CHARGEMENT RELÂCHÉ DANS UN `finally`, JAMAIS PAR ÉNUMÉRATION.
+     *
+     * Même règle, et même leçon, que connexion/page.tsx — où l'explication
+     * complète est écrite. Ici le défaut était LATENT, pas visible : le refus
+     * pour compte suspendu, juste en dessous, sort sans relâcher `submitting`,
+     * mais il redirige vers une AUTRE route, donc le composant se démonte et
+     * personne ne voit le bouton figé. Il suffirait que la cible change, ou
+     * qu'une navigation échoue, pour que le gel apparaisse ici aussi.
+     *
+     * On ne corrige pas un symptôme absent : on aligne la méthode, pour que le
+     * défaut ne puisse pas se réveiller.
+     */
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        const { data: userData } = await supabase
-          .from('users')
-          .select('user_type')
-          .eq('id', session.user.id)
-          .single()
-        const init = await initSession({ accessToken: session.access_token, subdomain: domain.subdomain })
-        // Compte suspendu : réinitialiser son mot de passe ne rend pas l'accès.
-        // Sans ce test, la page de reset serait la troisième porte d'entrée
-        // (avec /connexion et /auth/callback) et la seule restée ouverte.
-        if (init.code === 'account_suspended') {
-          await supabase.auth.signOut()
-          router.replace('/connexion?reason=account_suspended')
-          return
-        }
-        router.push(dashboardUrlForUserType((userData?.user_type as string | null) ?? null))
+      const { error: upErr } = await supabase.auth.updateUser({ password: pw })
+      if (upErr) {
+        setError(t('errors.generic'))
         return
       }
-    } catch {
-      /* fallthrough → repli connexion */
+
+      // Succès → l'utilisateur est authentifié (session de recovery). On RÉUTILISE
+      // la redirection post-login de connexion/page.tsx : lookup user_type +
+      // initSession (session unique 11F) + dashboardUrlForUserType. Repli sur
+      // /connexion si le lookup échoue.
+      //
+      // Ce try/catch INTERNE a un autre rôle que le `finally` externe : il
+      // convertit un échec de lecture en REPLI (`/connexion`), il ne gère pas
+      // le drapeau. Les deux ne se remplacent pas.
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('user_type')
+            .eq('id', session.user.id)
+            .single()
+          const init = await initSession({ accessToken: session.access_token, subdomain: domain.subdomain })
+          // Compte suspendu : réinitialiser son mot de passe ne rend pas l'accès.
+          // Sans ce test, la page de reset serait la troisième porte d'entrée
+          // (avec /connexion et /auth/callback) et la seule restée ouverte.
+          if (init.code === 'account_suspended') {
+            await supabase.auth.signOut()
+            router.replace('/connexion?reason=account_suspended')
+            return
+          }
+          router.push(dashboardUrlForUserType((userData?.user_type as string | null) ?? null))
+          return
+        }
+      } catch {
+        /* fallthrough → repli connexion */
+      }
+      router.push('/connexion')
+    } finally {
+      setSubmitting(false)
     }
-    router.push('/connexion')
   }
 
   // ── Header partagé (logo + switcher) ─────────────────────────────────────

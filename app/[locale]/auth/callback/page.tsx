@@ -34,6 +34,26 @@ export default function AuthCallbackPage() {
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null)
   const [hasError, setHasError] = useState(false)
 
+  /**
+   * POURQUOI CET ÉCRAN NE PEUT PAS SE FIGER — propriété à ne pas perdre.
+   *
+   * Les deux autres écrans d'ouverture de session (connexion, nouveau mot de
+   * passe) portent un drapeau de chargement relâché dans un `finally`. Celui-ci
+   * n'en a pas, et n'en a pas besoin : il n'expose AUCUN bouton, et son état
+   * d'attente n'est pas un booléen mais l'ABSENCE de verdict — le rendu affiche
+   * le spinner tant que ni `redirectUrl` ni `hasError` n'est posé.
+   *
+   * Ce qui garantit la sortie, c'est le `catch` de `run()` plus bas : tout
+   * chemin, exception comprise, aboutit à l'un des deux états terminaux. Il n'y
+   * a rien à relâcher parce qu'il n'y a rien à énumérer.
+   *
+   * ⚠️ Cette immunité tient à DEUX conditions. Si une réécriture introduit un
+   *    drapeau booléen, OU retire le `catch` qui pose `hasError`, l'écran
+   *    devient capable de rester bloqué sur son spinner sans que personne ne
+   *    l'ait voulu. Dans ce cas, appliquer le motif `try/finally` des deux
+   *    autres écrans.
+   */
+
   // 1. Récupère la session + user_type, calcule l'URL cible.
   useEffect(() => {
     let cancelled = false
