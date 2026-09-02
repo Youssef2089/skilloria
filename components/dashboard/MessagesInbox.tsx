@@ -7,6 +7,7 @@ import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import ConversationView from '@/components/dashboard/ConversationView'
 import MessageContextPanel from '@/components/dashboard/MessageContextPanel'
+import type { PublicationSynthesis } from '@/lib/publication-synthesis'
 import CorrespondantAvatar from '@/components/dashboard/CorrespondantAvatar'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import NewItemsPill from '@/components/ui/NewItemsPill'
@@ -59,21 +60,7 @@ type Correspondant = {
 // SC4 Lot synthèse parlante : publication = PublicationSynthesis + champs
 // supplémentaires consommés par MessageContextPanel inline complet
 // (description, skills_required, expires_at).
-type ConvPublication = {
-  id: string
-  type: 'mission' | 'offre'
-  title: string
-  budget_min: number | null
-  budget_max: number | null
-  budget_unit: 'day' | 'year'
-  location: string | null
-  work_mode: string | null
-  duration: string | null
-  start_date: string | null
-  seniority: string | null
-  branch_label: string | null
-  speciality_label: string | null
-  confidential: boolean
+type ConvPublication = PublicationSynthesis & {
   description: string | null
   skills_required: string[] | null
   expires_at: string | null

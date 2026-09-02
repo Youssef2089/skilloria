@@ -1,6 +1,7 @@
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
+import { missingForVisibility } from '@/lib/profile-visibility'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -48,12 +49,28 @@ type LanguageInput = {
 type PatchBody = Partial<{
   title: string | null
   summary: string | null
-  seniority: 'junior' | 'confirmed' | 'senior' | 'expert' | null
+  /**
+   * SÉNIORITÉS — multiple. Un expert peut se déclarer « confirmé » ET
+   * « senior » : ce sont deux niveaux de mission qu'il accepte, pas une
+   * identité. La colonne à valeur unique a été supprimée avec la migration
+   * profil_annonce_multivalues.
+   */
+  seniorities: Array<'junior' | 'confirmed' | 'senior' | 'expert'> | null
   years_experience: number | null
   skills: string[] | null
   certifications: Array<{ name: string; issuer?: string | null; year?: number | null }> | null
   branch_slug: string | null
-  speciality_slug: string | null
+  /**
+   * SPÉCIALITÉS — multiple, transmises en SLUGS. Le client n'envoie jamais
+   * d'uuid de taxonomie : le serveur résout, et refuse un slug inconnu ou
+   * appartenant à un autre écosystème (règle 20).
+   */
+  speciality_slugs: string[] | null
+  /**
+   * ZONES DE TRAVAIL — transmises en CODES stables ('EU', 'C_FR'), résolues
+   * serveur pour la même raison.
+   */
+  work_zone_codes: string[] | null
   speciality_other: string | null
   languages: string[] | null
   location: string | null
@@ -123,9 +140,11 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
   // currentProfile : on étend le select avec les colonnes nécessaires à la
   // validation CDI uniquement si isCdi (pas de surcoût pour le freelance).
-  const baseSelect = 'id, title, summary, skills, branch_id, speciality_id, work_modes, verification_status, cv_parsing_status, ai_consent_at'
-  const cdiSelectExtra =
-    ', cdi_status, cdi_salary_min, cdi_salary_max, cdi_notice_period'
+  const baseSelect = 'id, title, summary, skills, branch_id, speciality_ids, seniorities, work_zone_ids, work_modes, availability_status, cdi_status, verification_status, cv_parsing_status, ai_consent_at'
+  // `cdi_status` est désormais dans le socle : la garde de visibilité en a
+  // besoin pour TOUS les experts (elle teste « au moins l'une des deux
+  // disponibilités »). Ne pas le redemander ici.
+  const cdiSelectExtra = ', cdi_salary_min, cdi_salary_max, cdi_notice_period'
   const profileSelect = isCdi ? baseSelect + cdiSelectExtra : baseSelect
 
   const { data: currentProfile, error: fetchErr } = await supabaseAdmin
@@ -142,7 +161,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
   const patch: Record<string, unknown> = {}
   const directFields: Array<keyof PatchBody> = [
-    'title', 'summary', 'seniority', 'years_experience',
+    'title', 'summary', 'seniorities', 'years_experience',
     'skills', 'certifications',
     'languages', 'location', 'work_modes', 'tjm_min', 'tjm_max',
     'availability_date', 'linkedin_url', 'visible',
@@ -192,18 +211,60 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       patch.branch_id = br.id
     }
   }
-  if ('speciality_slug' in body) {
-    if (body.speciality_slug === null) {
-      patch.speciality_id = null
-    } else if (body.speciality_slug) {
-      const { data: sp } = await supabaseAdmin
+  // SPÉCIALITÉS multiples. Le serveur résout les slugs EN LOT et exige que
+  // TOUTES existent dans l'écosystème de l'utilisateur : un slug inconnu fait
+  // échouer la requête entière plutôt que d'être ignoré en silence. Ignorer
+  // reviendrait à enregistrer une sélection amputée sans que l'expert le sache
+  // — et à le rendre invisible sur un axe qu'il croit avoir renseigné.
+  if ('speciality_slugs' in body) {
+    const slugs = Array.isArray(body.speciality_slugs)
+      ? [...new Set(body.speciality_slugs.filter((s): s is string => typeof s === 'string' && s.length > 0))]
+      : []
+    if (slugs.length === 0) {
+      patch.speciality_ids = []
+    } else {
+      const { data: sps } = await supabaseAdmin
         .from('specialities')
-        .select('id')
+        .select('id, slug')
         .eq('domain_id', user.domain_id)
-        .eq('slug', body.speciality_slug)
-        .maybeSingle()
-      if (!sp) return json({ error: 'Unknown speciality', code: 'bad_speciality' }, 400)
-      patch.speciality_id = sp.id
+        .eq('active', true)
+        .in('slug', slugs)
+      const trouves = (sps ?? []) as Array<{ id: string; slug: string }>
+      if (trouves.length !== slugs.length) {
+        const inconnus = slugs.filter((s) => !trouves.some((t) => t.slug === s))
+        return json(
+          { error: 'Unknown speciality', code: 'bad_speciality', unknown: inconnus },
+          400,
+        )
+      }
+      patch.speciality_ids = trouves.map((t) => t.id)
+    }
+  }
+
+  // ZONES DE TRAVAIL. Résolution par CODE stable, jamais par uuid transmis par
+  // le client. La colonne dérivée work_zone_countries est remplie par le
+  // trigger de base : elle n'est jamais écrite ici (cf. migration).
+  if ('work_zone_codes' in body) {
+    const codes = Array.isArray(body.work_zone_codes)
+      ? [...new Set(body.work_zone_codes.filter((c): c is string => typeof c === 'string' && c.length > 0))]
+      : []
+    if (codes.length === 0) {
+      patch.work_zone_ids = []
+    } else {
+      const { data: wzs } = await supabaseAdmin
+        .from('work_zones')
+        .select('id, code')
+        .eq('active', true)
+        .in('code', codes)
+      const trouvees = (wzs ?? []) as Array<{ id: string; code: string }>
+      if (trouvees.length !== codes.length) {
+        const inconnus = codes.filter((c) => !trouvees.some((t) => t.code === c))
+        return json(
+          { error: 'Unknown work zone', code: 'bad_work_zone', unknown: inconnus },
+          400,
+        )
+      }
+      patch.work_zone_ids = trouvees.map((t) => t.id)
     }
   }
   // D6 : précision libre « Autre » (bornée). Renseignée quand speciality_id est
@@ -240,8 +301,6 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       return json({ error: 'CV not ready for publication', code: 'cv_not_ready' }, 400)
     }
 
-    const missing: string[] = []
-
     // experiences >= 1 (body ou BDD) — commun
     let experiencesCount: number
     if ('experiences' in body) {
@@ -270,50 +329,37 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       languagesCount = count ?? 0
     }
 
-    if (isCdi) {
-      // ── Règles CDI : 8 critères (parité freelance — Fix C Lot CDI publish) ──
-      //  Décision cahier : cdi_salary_min/max + cdi_notice_period ne sont
-      //  PAS lus par runExpertVerification (qui vérifie l'expertise, pas la
-      //  compensation). Freelance ne bloque pas non plus sur tjm_min/max.
-      //  → On retire ces 3 champs des bloquants Publish ; ils restent
-      //  optionnels (recommandés pour la qualité du matching), via l'encart
-      //  conseil côté UI. cdi_status reste requis (signal écoute marché).
-      const merged = {
+    // ── LE PRÉDICAT, EN UN SEUL EXEMPLAIRE ────────────────────────────────
+    //  Il vivait ici en DEUX versions (freelance et CDI), plus une troisième
+    //  dans chaque formulaire, plus une quatrième en contrainte de base.
+    //  Quatre copies du même test dérivent : un écran finit par annoncer
+    //  « complet » pendant que le serveur refuse, sans que personne puisse
+    //  dire lequel a raison.
+    //
+    //  Désormais lib/profile-visibility.ts est la seule écriture. Cette route
+    //  reste LA BARRIÈRE (règle 20) — le formulaire ne fait que prévenir plus
+    //  tôt, avec exactement la même liste.
+    //
+    //  L'unique différence entre freelance et CDI qui subsiste est le champ de
+    //  disponibilité, et elle est portée par le paramètre `expertKind`.
+    const missing = missingForVisibility(
+      {
         title: (patch.title ?? cur.title) as string | null,
         summary: (patch.summary ?? cur.summary) as string | null,
         skills: (patch.skills ?? cur.skills) as string[] | null,
         branch_id: (patch.branch_id ?? cur.branch_id) as string | null,
-        speciality_id: (patch.speciality_id ?? cur.speciality_id) as string | null,
+        speciality_ids: (patch.speciality_ids ?? cur.speciality_ids) as string[] | null,
+        seniorities: (patch.seniorities ?? cur.seniorities) as string[] | null,
+        work_zone_ids: (patch.work_zone_ids ?? cur.work_zone_ids) as string[] | null,
+        availability_status: (patch.availability_status ?? cur.availability_status) as string | null,
         cdi_status: (patch.cdi_status ?? cur.cdi_status) as string | null,
-      }
-      if (!merged.title) missing.push('title')
-      if (!merged.summary || merged.summary.trim().length < 20) missing.push('summary')
-      if (!merged.skills || merged.skills.length < 3) missing.push('skills')
-      if (!merged.branch_id) missing.push('branch_id')
-      if (!merged.speciality_id) missing.push('speciality_id')
-      if (!merged.cdi_status) missing.push('cdi_status')
-      if (experiencesCount < 1) missing.push('experiences')
-      if (languagesCount < 1) missing.push('languages_structured')
-    } else {
-      // ── Règles freelance : INCHANGÉES (backward-compat) ──────────────
-      const merged = {
-        title: (patch.title ?? cur.title) as string | null,
-        summary: (patch.summary ?? cur.summary) as string | null,
-        skills: (patch.skills ?? cur.skills) as string[] | null,
-        branch_id: (patch.branch_id ?? cur.branch_id) as string | null,
-        speciality_id: (patch.speciality_id ?? cur.speciality_id) as string | null,
-        work_modes: (patch.work_modes ?? cur.work_modes) as string[] | null,
-      }
-      if (!merged.title) missing.push('title')
-      if (!merged.summary) missing.push('summary')
-      if (!merged.skills || merged.skills.length < 3) missing.push('skills')
-      if (!merged.branch_id) missing.push('branch_id')
-      if (!merged.speciality_id) missing.push('speciality_id')
-      if (!Array.isArray(merged.work_modes) || merged.work_modes.length === 0)
-        missing.push('work_modes')
-      if (experiencesCount < 1) missing.push('experiences')
-      if (languagesCount < 1) missing.push('languages_structured')
-    }
+        experiences_count: experiencesCount,
+        languages_count: languagesCount,
+        cv_parsing_status: (cur as { cv_parsing_status?: string | null }).cv_parsing_status ?? null,
+        ai_consent_at: (cur as { ai_consent_at?: string | null }).ai_consent_at ?? null,
+      },
+      isCdi ? 'expert_cdi' : 'expert_freelance',
+    )
 
     if (missing.length) {
       return json({ error: 'Profile incomplete', code: 'incomplete', missing }, 400)

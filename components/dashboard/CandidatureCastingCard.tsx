@@ -80,7 +80,10 @@ export default function CandidatureCastingCard({
     try { return tPub(`form.work_mode_options.${key}` as 'form.work_mode_options.remote') }
     catch { return pub.work_mode }
   })()
-  const metaParts = [pub.location, workModeLabel].filter(Boolean) as string[]
+  const zoneLabel = pub.work_zone_labels.length > 0
+    ? pub.work_zone_labels.join(' · ')
+    : pub.location_note
+  const metaParts = [zoneLabel, workModeLabel].filter(Boolean) as string[]
 
   const budgetUnit = pub.type === 'offre' ? tPub('budget_unit.year') : tPub('budget_unit.day')
   const budgetText = formatPublicationBudget(pub, budgetUnit)

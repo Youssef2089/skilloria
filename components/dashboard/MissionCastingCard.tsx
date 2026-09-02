@@ -54,7 +54,10 @@ export default function MissionCastingCard({
     catch { return pub.work_mode }
   })()
   const freshness = relativeTimeFromNow(pub.published_at, locale)
-  const metaParts = [pub.location, workModeLabel, freshness].filter(Boolean) as string[]
+  const zoneLabel = pub.work_zone_labels.length > 0
+    ? pub.work_zone_labels.join(' · ')
+    : pub.location_note
+  const metaParts = [zoneLabel, workModeLabel, freshness].filter(Boolean) as string[]
 
   const budgetUnit = pub.type === 'offre' ? tPub('budget_unit.year') : tPub('budget_unit.day')
   const budgetText = formatPublicationBudget(pub, budgetUnit)

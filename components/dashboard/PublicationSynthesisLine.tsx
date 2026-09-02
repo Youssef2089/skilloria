@@ -1,7 +1,7 @@
 'use client'
 
 import { useLocale, useTranslations } from 'next-intl'
-import type { AnnonceType } from '@/types/annonce'
+import type { PublicationSynthesis } from '@/lib/publication-synthesis'
 import {
   IconCoin,
   IconMapPin,
@@ -33,22 +33,7 @@ import {
  * Mobile-first : flex-wrap natif.
  */
 
-export type PublicationSynthesisData = {
-  id: string
-  type: AnnonceType
-  title: string
-  budget_min: number | null
-  budget_max: number | null
-  budget_unit: 'day' | 'year'
-  location: string | null
-  work_mode: string | null
-  duration: string | null
-  start_date: string | null
-  seniority: string | null
-  branch_label: string | null
-  speciality_label: string | null
-  confidential: boolean
-}
+export type PublicationSynthesisData = PublicationSynthesis
 
 function formatBudget(min: number | null, max: number | null, unit: string): string | null {
   if (min == null && max == null) return null
@@ -119,10 +104,15 @@ export default function PublicationSynthesisLine({
   })()
 
   const seniorityLabel = (() => {
-    if (!pub.seniority) return null
-    const key = pub.seniority.toLowerCase()
-    try { return tPub(`form.seniority_options.${key}` as 'form.seniority_options.junior') }
-    catch { return pub.seniority }
+    if (!pub.seniorities || pub.seniorities.length === 0) return null
+    const traduire = (v: string) => {
+      const key = v.toLowerCase()
+      try { return tPub(`form.seniority_options.${key}` as 'form.seniority_options.junior') }
+      catch { return v }
+    }
+    // Une mission peut viser « Confirmé OU Senior » : on affiche les deux,
+    // séparés comme le reste de la ligne de synthèse.
+    return pub.seniorities.map(traduire).join(' · ')
   })()
 
   // Contrat dérivé : 'offre' → "CDI" (pas de colonne contract_type, décision
@@ -136,7 +126,10 @@ export default function PublicationSynthesisLine({
   const chips: Array<{ key: string; icon: React.ReactNode; label: string }> = []
   if (budgetText) chips.push({ key: 'budget', icon: <IconCoin size={iconSize} stroke={1.8} />, label: budgetText })
   if (contractLabel) chips.push({ key: 'contract', icon: <IconFileCertificate size={iconSize} stroke={1.8} />, label: contractLabel })
-  if (pub.location) chips.push({ key: 'location', icon: <IconMapPin size={iconSize} stroke={1.8} />, label: pub.location })
+  const zoneLabel = pub.work_zone_labels.length > 0
+    ? [pub.work_zone_labels.join(' · '), pub.location_note].filter(Boolean).join(' — ')
+    : pub.location_note
+  if (zoneLabel) chips.push({ key: 'work_zones', icon: <IconMapPin size={iconSize} stroke={1.8} />, label: zoneLabel })
   if (workModeLabel) chips.push({ key: 'work_mode', icon: workModeIcon, label: workModeLabel })
   if (pub.duration) chips.push({ key: 'duration', icon: <IconClock size={iconSize} stroke={1.8} />, label: pub.duration })
   if (startText) chips.push({ key: 'start', icon: <IconCalendarEvent size={iconSize} stroke={1.8} />, label: startText })

@@ -152,9 +152,9 @@ export default function MissionCard({
 
       {/* Branche · spécialité — reléguées en ligne discrète bottom.
           Utiles pour le matching IA mais visuellement secondaires. */}
-      {(pub.branch_label || pub.speciality_label) && (
+      {(pub.branch_label || pub.speciality_labels.length > 0) && (
         <div style={{ fontSize: 11, color: 'var(--sk-faint)', marginBottom: 10 }}>
-          {[pub.branch_label, pub.speciality_label].filter(Boolean).join(' · ')}
+          {[pub.branch_label, ...pub.speciality_labels].filter(Boolean).join(' · ')}
         </div>
       )}
 
