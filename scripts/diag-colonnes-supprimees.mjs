@@ -13,10 +13,11 @@
 //   panne que ce projet passe son temps à supprimer.
 //
 // POURQUOI UN CLIQUET, ET PAS UN SIMPLE REFUS
-//   Au moment où ce script est écrit, 34 fichiers citent encore ces colonnes :
-//   ce sont les écrans et les routes que le lot 2c doit reprendre. Refuser tout
-//   d'un bloc rendrait le contrôle rouge en permanence, donc ignoré — et un
-//   contrôle qu'on ignore ne protège de rien.
+//   Au moment du gel, 24 fichiers citent encore ces colonnes : ce sont les
+//   écrans et les routes que le lot 2c doit reprendre, plus trois fichiers de
+//   matching que le lot 4 réécrit de toute façon. Refuser tout d'un bloc
+//   rendrait le contrôle rouge en permanence, donc ignoré — et un contrôle
+//   qu'on ignore ne protège de rien.
 //
 //   Le cliquet fait l'inverse : il fige l'existant fichier par fichier, et
 //   REFUSE toute NOUVELLE occurrence. On ne peut plus en ajouter, et chaque
@@ -46,40 +47,41 @@ const RACINES = ['app', 'lib', 'components']
  * n'existe plus.
  */
 const DETTE = {
-  'app/[locale]/dashboard/freelance/profil/valider/page.tsx': 12,
-  'app/[locale]/dashboard/cdi/profil/valider/page.tsx': 11,
-  'app/api/publications/[id]/route.ts': 5,
-  'lib/matching/run-for-expert.ts': 4,
-  'components/dashboard/PublicationForm.tsx': 4,
+  // ── Écrans et routes à reprendre (lot 2c) ────────────────────────────────
   'app/api/admin/get-branch/[id]/route.ts': 4,
-  'lib/matching/index.ts': 3,
-  'lib/database.types.ts': 3,
-  'app/api/profile/upload-cv/route.ts': 3,
-  'app/api/profile/cv-status/[jobId]/route.ts': 3,
+  'app/api/me/candidatures/route.ts': 3,
+  'app/api/me/conversations/route.ts': 3,
   'app/api/me/missions/route.ts': 3,
   'app/api/me/missions/[id]/route.ts': 3,
-  'app/api/me/conversations/route.ts': 3,
-  'app/api/me/candidatures/route.ts': 3,
-  'lib/verification/expert-verification.ts': 2,
-  'lib/matching/ai-expert-matching.ts': 2,
-  'lib/hooks/useCdiProfile.ts': 2,
-  'lib/candidature-org-dto.ts': 2,
-  'components/collaboration/SousTraitanceDetailView.tsx': 2,
-  'app/api/publications/[id]/publish/route.ts': 2,
-  'app/api/profile/cdi-upload-cv/route.ts': 2,
-  'app/api/candidatures/route.ts': 2,
+  'app/api/profile/cv-status/[jobId]/route.ts': 3,
+  'app/api/profile/upload-cv/route.ts': 3,
+  'app/api/publications/[id]/route.ts': 3,
+  'app/[locale]/dashboard/freelance/profil/valider/page.tsx': 3,
   'app/api/admin/delete-speciality/route.ts': 2,
+  'app/api/candidatures/route.ts': 2,
+  'app/api/publications/[id]/publish/route.ts': 2,
+  'app/[locale]/dashboard/cdi/profil/valider/page.tsx': 2,
   'app/[locale]/dashboard/freelance/mon-profil/page.tsx': 2,
-  'app/[locale]/dashboard/entreprise/annonces/[id]/page.tsx': 2,
-  'lib/matching/shared.ts': 1,
-  'lib/matching/ai-profile-matching.ts': 1,
+  'lib/candidature-org-dto.ts': 2,
+  'lib/verification/expert-verification.ts': 2,
+  'app/api/admin/get-expert/[id]/route.ts': 1,
+  'app/api/admin/list-experts/route.ts': 1,
+  'app/[locale]/dashboard/freelance/page.tsx': 1,
   'lib/cv-parser.ts': 1,
   'lib/cv-parser-cdi.ts': 1,
-  'components/dashboard/PublicationSynthesisLine.tsx': 1,
-  'app/api/admin/list-experts/route.ts': 1,
-  'app/api/admin/get-expert/[id]/route.ts': 1,
-  'app/[locale]/dashboard/freelance/page.tsx': 1,
-  'app/[locale]/dashboard/cdi/mon-profil/page.tsx': 1,
+
+  // ── Code RÉÉCRIT au lot 4 : ne pas le reprendre ─────────────────────────
+  //  Claude sort du matching. index.ts, run-for-expert.ts et shared.ts sont
+  //  réécrits de bout en bout (filtres SQL + reranking) ; leurs chaînes de
+  //  select seront refaites à cette occasion. Les corriger aujourd'hui serait
+  //  du travail jeté.
+  //
+  //  CONSÉQUENCE ASSUMÉE : le matching est INOPÉRANT jusqu'au lot 4 — ses
+  //  requêtes citent des colonnes supprimées. Ce n'est pas une régression de
+  //  ce lot-ci, c'est l'état depuis la migration, et c'est délibéré.
+  'lib/matching/run-for-expert.ts': 4,
+  'lib/matching/index.ts': 3,
+  'lib/matching/shared.ts': 1,
 }
 
 const fichiers = []
@@ -97,16 +99,57 @@ for (const r of RACINES) parcourir(join(ROOT, r))
  * On ne regarde QUE les littéraux de chaîne : le reste est typé, donc déjà
  * couvert par tsc. Les commentaires sont ignorés — documenter la colonne
  * supprimée doit rester possible, c'est même souhaitable.
+ *
+ * DEUX RAFFINEMENTS, et ils comptent : un cliquet qui crie à tort finit par
+ * être ignoré, ce qui le rend pire qu'absent.
+ *
+ *  ① L'INTERPOLATION D'UN GABARIT N'EST PAS UNE CHAÎNE. Dans
+ *     `- Séniorité : ${sanitize(c.seniority, 50)}`, le `c.seniority` est un
+ *     accès de PROPRIÉTÉ, typé, donc déjà couvert par tsc. Le retenir ici
+ *     doublonnerait le compilateur et masquerait les vraies occurrences.
+ *
+ *  ② UNE CHAÎNE N'EST PAS UNE COLONNE PARCE QU'ELLE EN PORTE LE NOM. Dans
+ *     `chips.push({ key: 'seniority' })`, c'est une clé d'affichage. On ne
+ *     retient donc que deux formes : une chaîne passée à un filtre PostgREST
+ *     (.select/.eq/.in/.order/.neq/.not/.is/.gt/.lt), ou une LISTE de colonnes
+ *     — au moins deux identifiants en minuscules séparés par des virgules.
  */
+const APPELS_POSTGREST = /\.(select|eq|neq|in|order|not|is|gt|gte|lt|lte|filter|match)\s*\(/
+
+function chainesDe(ligne) {
+  const out = []
+  // Gabarits : on retire les ${…} avant de regarder le texte.
+  for (const m of ligne.matchAll(/`([^`]*)`/g)) out.push(m[1].replace(/\$\{[^}]*\}/g, ' '))
+  for (const m of ligne.matchAll(/'([^']*)'/g)) out.push(m[1])
+  for (const m of ligne.matchAll(/"([^"]*)"/g)) out.push(m[1])
+  return out
+}
+
+/** Une liste de colonnes : au moins deux identifiants snake_case virgulés. */
+const estListeDeColonnes = (c) =>
+  /^[\s(]*[a-z][a-z0-9_]*\s*(\([^)]*\))?\s*(,\s*[a-z][a-z0-9_]*\s*(\([^)]*\))?\s*)+,?\s*$/.test(c)
+
 function occurrencesDe(src) {
   const trouvees = []
   src.split('\n').forEach((ligne, i) => {
     const t = ligne.trim()
     if (t.startsWith('//') || t.startsWith('*')) return
-    const chaines = [...ligne.matchAll(/'([^']*)'|"([^"]*)"|`([^`]*)`/g)].map((m) => m[1] ?? m[2] ?? m[3])
+    const chaines = chainesDe(ligne)
     if (chaines.length === 0) return
 
+    // Troisième forme, trouvée par un faux NÉGATIF : certains écrans listent
+    // leurs colonnes en TABLEAU — ['id', 'title', 'seniority', …] — assemblé
+    // plus loin. Chaque élément est alors un mot isolé, sans appel PostgREST
+    // sur la ligne : les deux règles précédentes le laissaient passer.
+    // Trois identifiants snake_case nus sur une même ligne ne sont pas un
+    // hasard : c'est une liste de colonnes.
+    const nus = chaines.filter((c) => /^[a-z][a-z0-9_]*$/.test(c))
+    const contexteRequete = APPELS_POSTGREST.test(ligne) || nus.length >= 3
+
     for (const c of chaines) {
+      const pertinent = contexteRequete || estListeDeColonnes(c)
+      if (!pertinent) continue
+
       if (/\bspeciality_id\b/.test(c)) trouvees.push({ l: i + 1, nom: 'speciality_id', t })
       if (/\bseniority\b/.test(c)) trouvees.push({ l: i + 1, nom: 'seniority', t })
       // `location` est un cas à part : profiles.location et
