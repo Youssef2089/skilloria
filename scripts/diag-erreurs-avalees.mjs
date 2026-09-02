@@ -30,6 +30,18 @@
 //      DÉCIDÉ, et où le message doit dire « la requête a échoué », jamais
 //      « il n'y a rien ».
 //
+// ⚠️ CE SCRIPT LIT UN MOTIF, PAS UNE INTENTION — et la nuance a déjà coûté un
+//    faux signalement. `countOtherAvailablePlatformAdmins`
+//    (lib/admin/user-actions-guard.ts) apparaît en forme ③ et j'en avais fait
+//    un cas prioritaire. Vérification faite, c'est l'inverse : son `null` est
+//    documenté, VOULU, et les deux appelants l'honorent avec des replis
+//    opposés adaptés à la réversibilité de leur action — la purge, définitive,
+//    refuse d'agir ; la suppression programmée, réversible, laisse passer.
+//    La conception est saine de bout en bout.
+//
+//    Chaque ligne de ce recensement demande donc la même lecture avant d'être
+//    traitée. Un motif n'est pas un défaut.
+//
 // CE QUE CE SCRIPT N'EST PAS
 //   Ni un contrôle qui échoue, ni un cliquet. Il RECENSE et rend 0. Décider
 //   quoi corriger est un autre chantier, et il appartient à Youssef.
@@ -43,6 +55,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, relative } from 'node:path'
+import { estObjetIntrouvable } from '../lib/avatar.ts'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const RACINES = ['app', 'lib']
@@ -114,6 +127,40 @@ for (const f of fichiers) {
 
 const par = (forme) => trouvailles.filter((t) => t.forme === forme)
 
+/**
+ * ÉPREUVE de la seule correction que ce recensement a motivée.
+ *
+ * `signAvatarUrl` traitait à l'identique un compte sans photo et un stockage
+ * tombé — sans une ligne de journal. Le corriger demandait de DISTINGUER les
+ * deux, et cette distinction est un jugement : trop large, une panne redevient
+ * muette ; trop étroite, le journal se remplit d'un cas parfaitement banal.
+ *
+ * Elle est donc éprouvée ici, à chaque exécution. Le recensement prouve ce
+ * qu'il a fait changer.
+ */
+function eprouverDistinctionAvatar() {
+  const cas = [
+    [{ status: 404, message: 'Object not found' }, true, 'objet absent — le cas NORMAL'],
+    [{ message: 'Object not found' }, true, 'absent, sans code de statut'],
+    [{ statusCode: '404', message: 'not_found' }, true, 'statut rendu en chaîne'],
+    [{ status: 500, message: 'Internal error' }, false, 'PANNE de stockage'],
+    [{ message: 'fetch failed' }, false, 'PANNE réseau'],
+    [{ status: 403, message: 'Unauthorized' }, false, 'droits insuffisants'],
+  ]
+  let echecs = 0
+  console.log('\n═══ DISTINCTION « absent » / « en panne » (lib/avatar.ts) ═══\n')
+  for (const [erreur, attendu, libelle] of cas) {
+    const obtenu = estObjetIntrouvable(erreur)
+    const bon = obtenu === attendu
+    if (!bon) echecs++
+    console.log(
+      `  ${bon ? 'ok  ' : 'KO  '} ${libelle} → ${obtenu ? 'silencieux' : 'JOURNALISÉ'}` +
+        (bon ? '' : `  (attendu : ${attendu ? 'silencieux' : 'JOURNALISÉ'})`),
+    )
+  }
+  return echecs
+}
+
 if (process.argv.includes('--detail')) {
   for (const forme of ['non lue', 'ignorée', 'convertie']) {
     const liste = par(forme)
@@ -134,4 +181,11 @@ console.log('\n  Recensement, pas un contrôle : `--detail` liste les emplacemen
 console.log('  Les formes ② et ③ sont souvent DÉLIBÉRÉES et légitimes ; ce qui ne')
 console.log('  l\'est jamais, c\'est un message qui dit « rien trouvé » quand la')
 console.log('  requête a échoué.\n')
-process.exit(0)
+
+const echecs = eprouverDistinctionAvatar()
+console.log(
+  echecs === 0
+    ? '\n✅ Recensement rendu ; la distinction éprouvée tient.\n'
+    : `\n❌ ${echecs} cas de distinction en échec — une panne redeviendrait muette.\n`,
+)
+process.exit(echecs === 0 ? 0 : 1)
