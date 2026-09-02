@@ -2797,7 +2797,18 @@
       "chain_violation_body": "Dieser Zeitplan bricht die Kette: diese Aufgabe muss mindestens {minutes} Min. nach {other} laufen. Sonst liefe sie, bevor es etwas zu verarbeiten gibt, und die Diagnose läse diese Leere als Störung.",
       "chain_violation_suggestion": "Nächstgelegener gültiger Zeitplan: {schedule}",
       "toast_rescheduled": "Zeitplan geändert.",
-      "err_invalid_schedule": "Die angegebenen Zeitplan-Bestandteile sind ungültig."
+      "err_invalid_schedule": "Die angegebenen Zeitplan-Bestandteile sind ungültig.",
+      "action_run_now": "Jetzt ausführen",
+      "confirm_run_title": "Diese Aufgabe jetzt ausführen?",
+      "confirm_run_body": "{name} läuft sofort, zusätzlich zum gewohnten Zeitplan. Keine Fälligkeit wird vorgezogen: die Aufgabe verarbeitet nur, was ohnehin fällig war.",
+      "confirm_run_legal": "Diese Aufgabe erfüllt eine Pflicht: {basis}. Die Verarbeitung der bereits fälligen Konten beginnt sofort.",
+      "confirm_run_disabled": "Diese Aufgabe ist derzeit DEAKTIVIERT. Möglicherweise wurde sie bewusst gestoppt — sie jetzt auszuführen nimmt die Verarbeitung dennoch wieder auf.",
+      "confirm_run_async": "Der Start erfolgt sofort, das Ergebnis nicht: die Antwort trifft später ein und erscheint nach dem Abgleich im Verlauf.",
+      "toast_triggered": "Aufgabe gestartet. Das Ergebnis erscheint im Verlauf.",
+      "err_already_running": "Eine manuelle Ausführung dieser Aufgabe läuft bereits.",
+      "run_manual": "manuell",
+      "run_manual_by": "manuell · {who}",
+      "run_scheduled": "geplant"
     }
   },
   "expert_verification": {

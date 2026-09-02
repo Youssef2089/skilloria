@@ -115,6 +115,9 @@ export default function AdminScheduledTasksPage() {
   // propose un horaire valide — on rouvre la modale dessus plutôt que de
   // laisser l'administrateur deviner.
   const [scheduling, setScheduling] = useState<CronJob | null>(null)
+  // Execution manuelle : PAS de re-authentification (les echeances sont cote
+  // serveur), mais une confirmation NOMMEE — l'action est dite, pas devinee.
+  const [running, setRunning] = useState<CronJob | null>(null)
   const [chainError, setChainError] = useState<{ otherJobLabel: string; minGap: number; suggested: string | null } | null>(null)
 
   const load = useCallback(async () => {
@@ -195,6 +198,39 @@ export default function AdminScheduledTasksPage() {
       default: return t('error_title')
     }
   }, [t])
+
+  /**
+   * Déclenchement manuel. Chemin SÉPARÉ de `run` : il ne passe pas par la
+   * ré-authentification, et c'est délibéré (cf. la route). Le mélanger au flux
+   * ré-authentifié aurait fini par lui en imposer une par ressemblance.
+   */
+  const runNow = useCallback(async (job: CronJob) => {
+    setBusy(true)
+    try {
+      const res = await secureFetch(
+        `/api/admin/cron-jobs/${encodeURIComponent(job.job_name)}/run`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ confirm: true }),
+        },
+      )
+      const payload = (await res.json().catch(() => ({}))) as { code?: string }
+      if (!res.ok) {
+        setToast({
+          msg: payload.code === 'already_running' ? t('err_already_running') : messageForCode(payload.code),
+          kind: 'error',
+        })
+        return
+      }
+      setToast({ msg: t('toast_triggered'), kind: 'success' })
+      await load()
+    } catch {
+      setToast({ msg: t('error_title'), kind: 'error' })
+    } finally {
+      setBusy(false)
+    }
+  }, [secureFetch, t, load, messageForCode])
 
   /** Exécute l'action une fois le grant de ré-auth obtenu. */
   const run = useCallback(
@@ -457,6 +493,14 @@ export default function AdminScheduledTasksPage() {
                   >
                     {t('action_reschedule')}
                   </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setRunning(j)}
+                    style={actionBtn(false)}
+                  >
+                    {t('action_run_now')}
+                  </button>
                 </div>
               </div>
             </div>
@@ -526,6 +570,59 @@ export default function AdminScheduledTasksPage() {
                 }}
               >
                 {toggling.next ? t('action_enable') : t('action_disable')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── EXÉCUTION MANUELLE ───────────────────────────────────────────
+          Pas de ré-authentification : les échéances sont côté serveur, la
+          déclencher n'avance aucune date. Mais la confirmation NOMME ce qui
+          va se passer, et signale si la tâche est actuellement désactivée —
+          on peut avoir voulu l'arrêter. */}
+      {running && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 60 }}
+        >
+          <div style={{ background: '#fff', borderRadius: 14, padding: '22px 24px', maxWidth: 520, width: '100%' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 10px', color: '#0f172a' }}>
+              {t('confirm_run_title')}
+            </h3>
+            <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6, margin: '0 0 12px' }}>
+              {t('confirm_run_body', { name: labelOf(running) })}
+            </p>
+            {running.criticality === 'legal' && running.legal_basis_key && (
+              <p style={{ fontSize: 13, color: '#713F12', background: '#FEF9C3', borderRadius: 10, padding: '11px 14px', lineHeight: 1.6, margin: '0 0 12px' }}>
+                {t('confirm_run_legal', { basis: t(running.legal_basis_key as 'title') })}
+              </p>
+            )}
+            {!running.active && (
+              <p role="alert" style={{ fontSize: 13, color: '#991B1B', background: '#FEE2E2', borderRadius: 10, padding: '11px 14px', lineHeight: 1.6, margin: '0 0 12px' }}>
+                {t('confirm_run_disabled')}
+              </p>
+            )}
+            <p style={{ fontSize: 12.5, color: 'var(--color-text-tertiary, #94a3b8)', lineHeight: 1.55, margin: '0 0 16px' }}>
+              {t('confirm_run_async')}
+            </p>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button type="button" onClick={() => setRunning(null)} style={actionBtn(false)}>
+                {t('confirm_cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => { const j = running; setRunning(null); void runNow(j) }}
+                style={{
+                  padding: '8px 14px', borderRadius: 9, border: 'none',
+                  background: 'var(--color-text-primary, #0f172a)', color: '#fff',
+                  fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                  cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1,
+                }}
+              >
+                {t('action_run_now')}
               </button>
             </div>
           </div>

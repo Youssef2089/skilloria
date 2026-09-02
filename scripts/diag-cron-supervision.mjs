@@ -431,6 +431,69 @@ ok(/entity_id: cronJobAuditId\(jobName\)/.test(schedRoute) &&
 ok(!/grant\s+(usage|all)\s+on\s+schema\s+cron/i.test(schedSql),
   'aucun grant sur le schema cron dans la migration d’horaire')
 
+// ═══ E5. EXECUTION MANUELLE (lot 4) ════════════════════════════════════════
+section('E5. Execution manuelle')
+
+const MANUAL_SQL = 'supabase/migrations/20260902000003_cron_manual_run.sql'
+const manualSql = stripComments(read(MANUAL_SQL))
+const runRoute = stripComments(read('app/api/admin/cron-jobs/[name]/run/route.ts'))
+const detailScreen2 = stripComments(read('app/[locale]/admin/taches-planifiees/[job_name]/page.tsx'))
+
+// ── VERROU CONSULTATIF, PAS UN DRAPEAU ──────────────────────────────────────
+ok(/pg_try_advisory_xact_lock\(hashtext\('cron_manual:' \|\| p_job_name\)\)/.test(manualSql),
+  'verrou CONSULTATIF de transaction',
+  'un drapeau `is_running` en table resterait a true POUR TOUJOURS si le processus tombait')
+ok(!/is_running|running_since/.test(manualSql),
+  'aucun drapeau d’execution en table')
+ok(/cron_already_running/.test(manualSql) && /already_running/.test(runRoute),
+  'verrou non obtenu → refus lisible, jamais une seconde execution')
+
+// ── ON REJOUE LA COMMANDE, ON NE LA REECRIT PAS ─────────────────────────────
+ok(/select j\.jobid, j\.command::text into v_jobid, v_command/.test(manualSql) &&
+   /execute v_command;/.test(manualSql),
+  'la fonction rejoue cron.job.command telle quelle',
+  'redefinir « ce que fait cette tache » creerait une seconde definition qui divergerait')
+// La propriete qui rend `execute v_command` SUR : personne ne peut ecrire dans
+// `command`. Si elle tombait, cette fonction deviendrait un chemin d'execution
+// arbitraire — c'est LE controle a ne jamais perdre de ce lot.
+const writableSql = [schedSql, actionsSql, manualSql].join('\n')
+ok(!/alter_job\([^)]*command\s*:=/.test(writableSql),
+  'AUCUNE fonction ne permet de modifier `cron.job.command`',
+  'sans cette garantie, rejouer la commande deviendrait une execution arbitraire')
+
+// ── PAS DE RE-AUTHENTIFICATION, ET C'EST DELIBERE ───────────────────────────
+ok(!/requireReauth/.test(runRoute),
+  'execution manuelle : PAS de re-authentification',
+  'les echeances sont cote serveur — declencher n’avance aucune date')
+ok(/confirm !== true/.test(runRoute) && /confirm_run_title/.test(screen),
+  'mais une confirmation NOMMEE, cote ecran et cote serveur')
+ok(/confirm_run_disabled/.test(screen),
+  'l’ecran signale si la tache est DESACTIVEE avant de la declencher',
+  'elle a pu etre arretee volontairement — l’execution manuelle passe outre')
+
+// ── PROVENANCE ──────────────────────────────────────────────────────────────
+ok(/trigger_source/.test(manualSql) && /triggered_by/.test(manualSql),
+  'la provenance est enregistree (source + auteur)')
+ok(/check \(trigger_source in \('schedule', 'manual'\)\)/.test(manualSql),
+  'trigger_source contrainte a schedule | manual')
+// Un run manuel ne produit AUCUNE ligne cote ordonnanceur : l'historique doit
+// UNIR les deux origines, sinon l'evenement de secours est le seul absent.
+ok(/union all\n\s+select \* from manual/.test(manualSql),
+  'l’historique UNIT executions planifiees et declenchements manuels',
+  'pg_cron n’ecrit rien pour un run manuel : sans l’union, il serait invisible')
+ok(/if v_rows = 0 then\n\s+insert into public\.cron_run_log/.test(manualSql),
+  'une tache SQL pure obtient quand meme une ligne de journal',
+  'sans elle, son declenchement manuel ne laisserait aucune trace')
+ok(/r\.trigger_source === 'manual'/.test(detailScreen2) && /run_manual_by/.test(detailScreen2),
+  'l’historique AFFICHE la provenance et l’auteur')
+ok(/action: 'cron_job_triggered_manually'/.test(runRoute) &&
+   /entity_id: cronJobAuditId\(jobName\)/.test(runRoute),
+  'audit cron_job_triggered_manually, avec entity_id derive')
+ok(/was_active: job\.active/.test(runRoute),
+  'l’audit conserve si la tache etait desactivee au moment du declenchement')
+ok(!/grant\s+(usage|all)\s+on\s+schema\s+cron/i.test(manualSql),
+  'aucun grant sur le schema cron dans la migration d’execution manuelle')
+
 // ═══ F. LE DIAGNOSTIC EXISTANT NE DOIT PAS CASSER ══════════════════════════
 section('F. diag-cron-purges reste utilisable')
 
@@ -451,6 +514,7 @@ ok(!/cron_purge_health/.test(readFns),
 // ═══ G. i18n — 4 LANGUES ═══════════════════════════════════════════════════
 section('G. i18n')
 
+const LOT4_KEYS = ['action_run_now','confirm_run_title','confirm_run_body','confirm_run_legal','confirm_run_disabled','confirm_run_async','toast_triggered','err_already_running','run_manual','run_manual_by','run_scheduled']
 const LOT3_KEYS = ['action_reschedule','reschedule_title','reschedule_body','reschedule_submit','field_frequency','field_hour_utc','field_minutes','field_days_of_week','field_day_of_month','frequency_daily','frequency_weekly','frequency_monthly','day_of_month_hint','preview_utc','chain_violation_body','chain_violation_suggestion','toast_rescheduled','err_invalid_schedule']
 const LOT2_KEYS = ['action_enable','action_disable','confirm_cancel','confirm_enable_title','confirm_disable_title','confirm_enable_body','confirm_disable_body','confirm_enable_legal','confirm_disable_legal','confirm_type_name','toast_enabled','toast_disabled','err_confirm_name_mismatch','err_nothing_to_update']
 const LOT1_KEYS = ['banner_action','history_title','history_depth_notice','history_empty_title','history_empty_body','runs_count','run_running','duration_ms','duration_s','http_no_verdict','not_found_title','not_found_body','page_of','prev','next']
@@ -463,7 +527,7 @@ for (const loc of ['fr', 'en', 'es', 'de']) {
   const missing = []
   for (const k of ['title', 'subtitle', 'utc_hint', 'banner_title', 'banner_body', 'banner_hint',
     'migration_pending_title', 'migration_pending_body', 'badge_legal', 'badge_uncatalogued',
-    'schedule_advanced', 'chain_notice', 'uncatalogued_body', ...LOT1_KEYS, ...LOT2_KEYS, ...LOT3_KEYS]) {
+    'schedule_advanced', 'chain_notice', 'uncatalogued_body', ...LOT1_KEYS, ...LOT2_KEYS, ...LOT3_KEYS, ...LOT4_KEYS]) {
     if (!c?.[k]) missing.push(k)
   }
   for (const h of HEALTH) if (!c?.health?.[h]) missing.push(`health.${h}`)

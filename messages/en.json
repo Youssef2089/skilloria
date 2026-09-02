@@ -2797,7 +2797,18 @@
       "chain_violation_body": "This schedule breaks the chain: this task must run at least {minutes} min after {other}. Otherwise it would run before there is anything to process, and the diagnostic would read that emptiness as a failure.",
       "chain_violation_suggestion": "Nearest valid schedule: {schedule}",
       "toast_rescheduled": "Schedule changed.",
-      "err_invalid_schedule": "The schedule components provided are invalid."
+      "err_invalid_schedule": "The schedule components provided are invalid.",
+      "action_run_now": "Run now",
+      "confirm_run_title": "Run this task now?",
+      "confirm_run_body": "{name} will run immediately, on top of its usual schedule. No due date is brought forward: the task will only process what was already due.",
+      "confirm_run_legal": "This task fulfils an obligation: {basis}. Processing of the accounts already due will start right away.",
+      "confirm_run_disabled": "This task is currently DISABLED. It may have been stopped on purpose — running it now will resume processing regardless.",
+      "confirm_run_async": "The trigger is immediate, the result is not: the response arrives later and will appear in the history once reconciled.",
+      "toast_triggered": "Task triggered. The result will appear in the history.",
+      "err_already_running": "A manual run of this task is already in progress.",
+      "run_manual": "manual",
+      "run_manual_by": "manual · {who}",
+      "run_scheduled": "scheduled"
     }
   },
   "expert_verification": {

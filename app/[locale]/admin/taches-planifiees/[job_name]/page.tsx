@@ -56,6 +56,9 @@ type CronRun = {
   http_error: string | null
   http_response: string | null
   http_reconciled_at: string | null
+  /** Provenance : un declenchement manuel est un fait a tracer, avec qui. */
+  trigger_source: string | null
+  triggered_by_email: string | null
 }
 
 export default function AdminScheduledTaskDetailPage() {
@@ -262,6 +265,20 @@ export default function AdminScheduledTaskDetailPage() {
                 >
                   <span style={{ minWidth: 190, color: 'var(--color-text-secondary, #64748b)' }}>
                     {dateFmt.format(new Date(r.run_started_at))}
+                  </span>
+                  {/* Provenance. Un declenchement manuel ne produit AUCUNE ligne
+                      cote ordonnanceur : sans cette colonne, l'evenement de
+                      secours serait le seul absent de l'historique. */}
+                  <span style={{ minWidth: 150 }}>
+                    {r.trigger_source === 'manual' ? (
+                      <span style={{ fontWeight: 600, color: '#5B21B6' }}>
+                        {r.triggered_by_email
+                          ? t('run_manual_by', { who: r.triggered_by_email })
+                          : t('run_manual')}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--color-text-tertiary, #94a3b8)' }}>{t('run_scheduled')}</span>
+                    )}
                   </span>
                   <span style={{ minWidth: 90, color: 'var(--color-text-secondary, #64748b)' }}>
                     {duration(r.duration_ms)}

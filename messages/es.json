@@ -2797,7 +2797,18 @@
       "chain_violation_body": "Este horario rompe el encadenamiento: esta tarea debe ejecutarse al menos {minutes} min después de {other}. De lo contrario se ejecutaría antes de tener nada que tratar, y el diagnóstico leería ese vacío como una avería.",
       "chain_violation_suggestion": "Horario válido más cercano: {schedule}",
       "toast_rescheduled": "Horario modificado.",
-      "err_invalid_schedule": "Los componentes de horario proporcionados no son válidos."
+      "err_invalid_schedule": "Los componentes de horario proporcionados no son válidos.",
+      "action_run_now": "Ejecutar ahora",
+      "confirm_run_title": "¿Ejecutar esta tarea ahora?",
+      "confirm_run_body": "{name} se ejecutará de inmediato, además de su horario habitual. No se adelanta ningún vencimiento: la tarea solo tratará lo que ya estaba pendiente.",
+      "confirm_run_legal": "Esta tarea cumple una obligación: {basis}. El tratamiento de las cuentas ya vencidas comenzará enseguida.",
+      "confirm_run_disabled": "Esta tarea está actualmente DESACTIVADA. Puede que se haya detenido a propósito: ejecutarla ahora reanudará el tratamiento de todos modos.",
+      "confirm_run_async": "El disparo es inmediato, el resultado no: la respuesta llega más tarde y aparecerá en el historial tras la reconciliación.",
+      "toast_triggered": "Tarea disparada. El resultado aparecerá en el historial.",
+      "err_already_running": "Ya hay una ejecución manual de esta tarea en curso.",
+      "run_manual": "manual",
+      "run_manual_by": "manual · {who}",
+      "run_scheduled": "programada"
     }
   },
   "expert_verification": {

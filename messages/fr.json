@@ -2797,7 +2797,18 @@
       "chain_violation_body": "Cet horaire casse l’enchaînement : cette tâche doit tourner au moins {minutes} min après {other}. Sans cela, elle s’exécuterait avant d’avoir quoi que ce soit à traiter, et le diagnostic lirait ce vide comme une panne.",
       "chain_violation_suggestion": "Horaire valide le plus proche : {schedule}",
       "toast_rescheduled": "Horaire modifié.",
-      "err_invalid_schedule": "Les composants d’horaire fournis sont invalides."
+      "err_invalid_schedule": "Les composants d’horaire fournis sont invalides.",
+      "action_run_now": "Exécuter maintenant",
+      "confirm_run_title": "Exécuter cette tâche maintenant ?",
+      "confirm_run_body": "{name} va s’exécuter immédiatement, en plus de son horaire habituel. Aucune échéance n’est avancée : la tâche ne traitera que ce qui était déjà dû.",
+      "confirm_run_legal": "Cette tâche exécute une obligation : {basis}. Le traitement des comptes déjà échus commencera tout de suite.",
+      "confirm_run_disabled": "Cette tâche est actuellement DÉSACTIVÉE. Elle a peut-être été arrêtée volontairement — l’exécuter maintenant reprendra le traitement malgré cela.",
+      "confirm_run_async": "Le déclenchement est immédiat, le résultat ne l’est pas : la réponse arrive plus tard et apparaîtra dans l’historique après réconciliation.",
+      "toast_triggered": "Tâche déclenchée. Le résultat apparaîtra dans l’historique.",
+      "err_already_running": "Une exécution manuelle de cette tâche est déjà en cours.",
+      "run_manual": "manuelle",
+      "run_manual_by": "manuelle · {who}",
+      "run_scheduled": "planifiée"
     }
   },
   "expert_verification": {
