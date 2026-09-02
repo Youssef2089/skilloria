@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import ReauthModal from '@/components/settings/ReauthModal'
 
 /**
  * /admin/taches-planifiees — LES TRAITEMENTS AUTOMATIQUES, TELS QUE LA BASE
@@ -93,6 +94,16 @@ export default function AdminScheduledTasksPage() {
   /** Migration non poussée : état DISTINCT d'une panne, et actionnable. */
   const [pendingMigration, setPendingMigration] = useState<string | null>(null)
 
+  // Activation / désactivation : confirmation → ré-auth → exécution. Trois
+  // états distincts pour que l'administrateur sache toujours ce qu'il s'apprête
+  // à faire AVANT de saisir son mot de passe.
+  const [busy, setBusy] = useState(false)
+  const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' } | null>(null)
+  const [toggling, setToggling] = useState<{ job: CronJob; next: boolean } | null>(null)
+  const [confirmName, setConfirmName] = useState('')
+  const [pending, setPending] = useState<{ job: CronJob; next: boolean; confirmName: string } | null>(null)
+  const [reauthOpen, setReauthOpen] = useState(false)
+
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -156,12 +167,58 @@ export default function AdminScheduledTasksPage() {
     [t],
   )
 
+  /** Exécute la bascule une fois le grant de ré-auth obtenu. */
+  const runToggle = useCallback(
+    async (p: { job: CronJob; next: boolean; confirmName: string }, reauthToken: string) => {
+      setBusy(true)
+      try {
+        const res = await secureFetch(
+          `/api/admin/cron-jobs/${encodeURIComponent(p.job.job_name)}/toggle`,
+          {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-reauth-token': reauthToken },
+            body: JSON.stringify({ active: p.next, confirm_name: p.confirmName }),
+          },
+        )
+        const payload = (await res.json().catch(() => ({}))) as { code?: string }
+        if (!res.ok) {
+          setToast({
+            msg:
+              payload.code === 'confirm_name_mismatch' ? t('err_confirm_name_mismatch')
+                : payload.code === 'nothing_to_update' ? t('err_nothing_to_update')
+                  : payload.code === 'not_found' ? t('not_found_title')
+                    : t('error_title'),
+            kind: 'error',
+          })
+          return
+        }
+        setToast({ msg: p.next ? t('toast_enabled') : t('toast_disabled'), kind: 'success' })
+        await load()
+      } catch {
+        setToast({ msg: t('error_title'), kind: 'error' })
+      } finally {
+        setBusy(false)
+      }
+    },
+    [secureFetch, t, load],
+  )
+
   const card: React.CSSProperties = {
     borderRadius: 12,
     padding: '16px 18px',
     marginBottom: 10,
     border: '1px solid',
   }
+  /** `danger` = l'action retire quelque chose (désactivation). */
+  const actionBtn = (danger: boolean): React.CSSProperties => ({
+    padding: '8px 13px',
+    borderRadius: 9,
+    border: danger ? '1px solid #FCA5A5' : '1px solid var(--color-border-tertiary, #e5e7eb)',
+    background: danger ? '#FEE2E2' : 'var(--color-background-primary, #fff)',
+    color: danger ? '#991B1B' : 'var(--color-text-primary, #0f172a)',
+    fontSize: 12.5, fontWeight: 600, fontFamily: 'inherit',
+    cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1,
+  })
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit' }}>
@@ -170,6 +227,19 @@ export default function AdminScheduledTasksPage() {
           toutes les autres. En poser un second ici en donnerait deux, empilés,
           sur le seul écran où il était le moins utile : celui qu'on ouvre déjà
           pour regarder les tâches. Même règle que le bouton Retour global. */}
+
+      {toast && (
+        <div
+          role="status"
+          style={{
+            marginBottom: 14, padding: '12px 16px', borderRadius: 10, fontSize: 13, lineHeight: 1.55,
+            background: toast.kind === 'error' ? '#FEE2E2' : '#DCFCE7',
+            color: toast.kind === 'error' ? '#991B1B' : '#166534',
+          }}
+        >
+          {toast.msg}
+        </div>
+      )}
 
       <header style={{ marginBottom: 18 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary, #0f172a)', margin: 0, letterSpacing: '-0.2px' }}>
@@ -319,11 +389,101 @@ export default function AdminScheduledTasksPage() {
                 {j.last_run_message && j.last_run_status !== 'succeeded' && (
                   <div style={{ fontWeight: 400, marginTop: 4, fontSize: 12.5 }}>{j.last_run_message}</div>
                 )}
+                <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => { setConfirmName(''); setToggling({ job: j, next: !j.active }) }}
+                    style={actionBtn(j.active === true)}
+                  >
+                    {j.active ? t('action_disable') : t('action_enable')}
+                  </button>
+                </div>
               </div>
             </div>
           </section>
         )
       })}
+
+      {/* ─── CONFIRMATION D'ACTIVATION / DÉSACTIVATION ────────────────────
+          Elle NOMME l'obligation légale quand il y en a une, et exige de
+          retaper le nom de la tâche. Les deux exigences sont revalidées par
+          /toggle : ce que l'écran en fait n'est que de la courtoisie. */}
+      {toggling && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 60 }}
+        >
+          <div style={{ background: '#fff', borderRadius: 14, padding: '22px 24px', maxWidth: 560, width: '100%' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 10px', color: toggling.next ? '#0f172a' : '#991B1B' }}>
+              {toggling.next ? t('confirm_enable_title') : t('confirm_disable_title')}
+            </h3>
+            <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6, margin: '0 0 12px' }}>
+              {toggling.next
+                ? t('confirm_enable_body', { name: labelOf(toggling.job) })
+                : t('confirm_disable_body', { name: labelOf(toggling.job) })}
+            </p>
+
+            {/* L'obligation est NOMMÉE, jamais résumée en « tâche critique ». */}
+            {toggling.job.criticality === 'legal' && toggling.job.legal_basis_key && (
+              <p role="alert" style={{ fontSize: 13, color: '#991B1B', background: '#FEE2E2', borderRadius: 10, padding: '11px 14px', lineHeight: 1.6, margin: '0 0 14px' }}>
+                {toggling.next
+                  ? t('confirm_enable_legal', { basis: t(toggling.job.legal_basis_key as 'title') })
+                  : t('confirm_disable_legal', { basis: t(toggling.job.legal_basis_key as 'title') })}
+              </p>
+            )}
+
+            <label style={{ display: 'block', fontSize: 13, color: '#475569', marginBottom: 6 }}>
+              {t('confirm_type_name', { name: toggling.job.job_name })}
+            </label>
+            <input
+              value={confirmName}
+              autoComplete="off"
+              onChange={(e) => setConfirmName(e.target.value)}
+              placeholder={toggling.job.job_name}
+              style={{
+                width: '100%', boxSizing: 'border-box', padding: '9px 12px', borderRadius: 9,
+                border: '1px solid var(--color-border-tertiary, #e5e7eb)', fontSize: 13,
+                fontFamily: 'inherit', marginBottom: 16,
+              }}
+            />
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button type="button" onClick={() => setToggling(null)} style={actionBtn(false)}>
+                {t('confirm_cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={busy || confirmName.trim() !== toggling.job.job_name}
+                onClick={() => {
+                  setPending({ job: toggling.job, next: toggling.next, confirmName: confirmName.trim() })
+                  setToggling(null)
+                  setReauthOpen(true)
+                }}
+                style={{
+                  ...actionBtn(!toggling.next),
+                  opacity: confirmName.trim() !== toggling.job.job_name ? 0.5 : 1,
+                }}
+              >
+                {toggling.next ? t('action_enable') : t('action_disable')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ré-authentification — mécanisme EXISTANT, réutilisé tel quel. */}
+      <ReauthModal
+        open={reauthOpen}
+        onConfirm={(token) => {
+          setReauthOpen(false)
+          const p = pending
+          setPending(null)
+          if (p) void runToggle(p, token)
+        }}
+        onCancel={() => { setReauthOpen(false); setPending(null) }}
+      />
     </div>
   )
 }

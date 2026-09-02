@@ -2765,7 +2765,21 @@
       "not_found_body": "No task named “{name}” is scheduled in the database.",
       "page_of": "Page {page} of {pages}",
       "prev": "Previous",
-      "next": "Next"
+      "next": "Next",
+      "action_enable": "Enable",
+      "action_disable": "Disable",
+      "confirm_cancel": "Cancel",
+      "confirm_enable_title": "Re-enable this task?",
+      "confirm_disable_title": "Disable this task?",
+      "confirm_enable_body": "{name} will start running again on its usual schedule, from the next due time.",
+      "confirm_disable_body": "{name} will stop running. Nothing is caught up automatically when it is re-enabled.",
+      "confirm_enable_legal": "This task fulfils an obligation: {basis}. If it was suspended deliberately — audit, dispute, investigation — re-enabling it will resume processing the accounts concerned.",
+      "confirm_disable_legal": "This task fulfils an obligation: {basis}. While it is disabled the platform is no longer compliant, and no catch-up purge happens automatically.",
+      "confirm_type_name": "To confirm, type the task name: {name}",
+      "toast_enabled": "Task re-enabled.",
+      "toast_disabled": "Task disabled.",
+      "err_confirm_name_mismatch": "The name you typed does not match the task’s.",
+      "err_nothing_to_update": "The task is already in that state."
     }
   },
   "expert_verification": {

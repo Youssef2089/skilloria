@@ -2765,7 +2765,21 @@
       "not_found_body": "Aucune tâche nommée « {name} » n’est planifiée dans la base.",
       "page_of": "Page {page} sur {pages}",
       "prev": "Précédent",
-      "next": "Suivant"
+      "next": "Suivant",
+      "action_enable": "Activer",
+      "action_disable": "Désactiver",
+      "confirm_cancel": "Annuler",
+      "confirm_enable_title": "Réactiver cette tâche ?",
+      "confirm_disable_title": "Désactiver cette tâche ?",
+      "confirm_enable_body": "{name} recommencera à s’exécuter à son horaire habituel, dès la prochaine échéance.",
+      "confirm_disable_body": "{name} cessera de s’exécuter. Rien ne sera rattrapé automatiquement à la réactivation.",
+      "confirm_enable_legal": "Cette tâche exécute une obligation : {basis}. Si elle avait été suspendue délibérément — audit, litige, investigation — la réactiver reprendra le traitement des comptes concernés.",
+      "confirm_disable_legal": "Cette tâche exécute une obligation : {basis}. Tant qu’elle est désactivée, la plateforme cesse d’être conforme, et aucune purge de rattrapage n’est automatique.",
+      "confirm_type_name": "Pour confirmer, saisissez le nom de la tâche : {name}",
+      "toast_enabled": "Tâche réactivée.",
+      "toast_disabled": "Tâche désactivée.",
+      "err_confirm_name_mismatch": "Le nom saisi ne correspond pas à celui de la tâche.",
+      "err_nothing_to_update": "La tâche est déjà dans cet état."
     }
   },
   "expert_verification": {

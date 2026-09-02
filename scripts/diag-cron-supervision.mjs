@@ -269,6 +269,66 @@ ok(/catch \{/.test(banner) && /return null/.test(banner),
   'le bandeau ne casse JAMAIS le layout en cas d’erreur',
   'un bandeau d’alerte qui empeche d’afficher le back-office est pire que le probleme')
 
+// ═══ E3. ACTIVER / DESACTIVER (lot 2) ══════════════════════════════════════
+section('E3. Activer / desactiver')
+
+const ACTIONS_SQL = 'supabase/migrations/20260902000001_cron_supervision_actions.sql'
+const actionsSql = stripComments(read(ACTIONS_SQL))
+const toggleRoute = stripComments(read('app/api/admin/cron-jobs/[name]/toggle/route.ts'))
+const auditId = stripComments(read('lib/admin/cron-audit-id.ts'))
+
+// La surface d'ecriture doit rester MINIMALE : basculer un drapeau, rien de plus.
+ok(/cron\.alter_job\(v_jobid, active := p_active\)/.test(actionsSql),
+  'la fonction ne fait que basculer le drapeau `active`')
+for (const forbidden of ['cron.schedule(', 'cron.unschedule(']) {
+  ok(!actionsSql.includes(forbidden),
+    `la fonction de bascule ne peut pas ${forbidden.includes('unschedule') ? 'desplanifier' : 'planifier'}`)
+}
+ok(!/grant\s+(usage|all)\s+on\s+schema\s+cron/i.test(actionsSql),
+  'aucun grant sur le schema cron dans la migration d’actions')
+ok(/revoke all on function public\.admin_cron_set_active/.test(actionsSql) &&
+   /grant execute on function public\.admin_cron_set_active\(text, boolean\)\s*\n?\s*to service_role/.test(actionsSql),
+  'admin_cron_set_active : revoquee puis grantee au seul service_role')
+// Le nom est resolu sur cron.job : une tache non cataloguee reste actionnable.
+ok(/from cron\.job j\n\s+where j\.jobname = p_job_name/.test(actionsSql),
+  'le nom est resolu sur cron.job, pas sur le catalogue')
+// RELECTURE apres ecriture : un alter_job sans effet doit se VOIR.
+ok(/select j\.active into v_new/.test(actionsSql),
+  'la fonction RELIT l’etat apres ecriture',
+  'renvoyer ce qu’on a demande plutot que ce que la base a retenu est le defaut que cet ecran combat')
+ok(/row\.new_active !== nextActive/.test(toggleRoute),
+  'la route REFUSE de repondre « ok » si l’etat n’a pas change')
+
+// Les deux barrieres, cote serveur.
+ok(/requireReauth\(request, auth\.user\.id\)/.test(toggleRoute),
+  'barriere 1 : re-authentification exigee')
+ok(/confirm_name_mismatch/.test(toggleRoute) && /typed !== jobName/.test(toggleRoute),
+  'barriere 2 : le nom retape est REVALIDE au serveur',
+  'verifie seulement dans le .tsx, ce champ ne garde rien')
+ok(toggleRoute.indexOf('requireReauth') < toggleRoute.indexOf('rpc('),
+  'la re-authentification precede toute lecture')
+// La barriere vaut dans les DEUX sens : reactiver une purge suspendue
+// deliberement (audit, litige) reprend l'anonymisation des comptes.
+ok(!/if \(!nextActive\)[\s\S]{0,200}?confirm_name/.test(toggleRoute),
+  'le nom retape est exige dans les DEUX sens, pas seulement a la desactivation')
+
+// AUCUN refus sur une tache legale : decision produit explicite.
+ok(!/criticality === 'legal'[\s\S]{0,120}?return json\([^)]*403/.test(toggleRoute),
+  'aucun refus serveur sur une tache legale',
+  'une obligation qu’on ne peut pas suspendre est une obligation qu’on contournera en base')
+
+// L'audit ne doit pas echouer EN SILENCE : entity_id est uuid NOT NULL.
+// Ancre sur l'AFFECTATION, pas sur le nom du helper : remplacer la valeur
+// laisse l'import en place, et le controle restait vert (constate au test de
+// mutation, deja le cas au lot 1 avec le bandeau). Un import n'ecrit rien.
+ok(/entity_id: cronJobAuditId\(jobName\)/.test(toggleRoute) && /createHash\('md5'\)/.test(auditId),
+  'entity_id derive du nom — audit_logs.entity_id est uuid NOT NULL',
+  'un nom brut y serait rejete par Postgres, et logAudit etant best-effort, l’action ne laisserait AUCUNE trace')
+ok(/job_name: jobName/.test(toggleRoute),
+  'le nom LISIBLE est ecrit dans detail — l’empreinte ne se relit pas')
+ok(/'cron_job_enabled' : 'cron_job_disabled'/.test(toggleRoute) && /request,/.test(toggleRoute),
+  'audit cron_job_enabled / cron_job_disabled, avec IP et user-agent')
+
 // ═══ F. LE DIAGNOSTIC EXISTANT NE DOIT PAS CASSER ══════════════════════════
 section('F. diag-cron-purges reste utilisable')
 
@@ -289,6 +349,7 @@ ok(!/cron_purge_health/.test(readFns),
 // ═══ G. i18n — 4 LANGUES ═══════════════════════════════════════════════════
 section('G. i18n')
 
+const LOT2_KEYS = ['action_enable','action_disable','confirm_cancel','confirm_enable_title','confirm_disable_title','confirm_enable_body','confirm_disable_body','confirm_enable_legal','confirm_disable_legal','confirm_type_name','toast_enabled','toast_disabled','err_confirm_name_mismatch','err_nothing_to_update']
 const LOT1_KEYS = ['banner_action','history_title','history_depth_notice','history_empty_title','history_empty_body','runs_count','run_running','duration_ms','duration_s','http_no_verdict','not_found_title','not_found_body','page_of','prev','next']
 const HEALTH = ['legal_disabled', 'never_ran', 'failed', 'stale', 'repeated_failures',
   'verdict_missing', 'disabled', 'uncatalogued', 'ok']
@@ -299,7 +360,7 @@ for (const loc of ['fr', 'en', 'es', 'de']) {
   const missing = []
   for (const k of ['title', 'subtitle', 'utc_hint', 'banner_title', 'banner_body', 'banner_hint',
     'migration_pending_title', 'migration_pending_body', 'badge_legal', 'badge_uncatalogued',
-    'schedule_advanced', 'chain_notice', 'uncatalogued_body', ...LOT1_KEYS]) {
+    'schedule_advanced', 'chain_notice', 'uncatalogued_body', ...LOT1_KEYS, ...LOT2_KEYS]) {
     if (!c?.[k]) missing.push(k)
   }
   for (const h of HEALTH) if (!c?.health?.[h]) missing.push(`health.${h}`)

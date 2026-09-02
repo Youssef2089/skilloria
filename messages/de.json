@@ -2765,7 +2765,21 @@
       "not_found_body": "In der Datenbank ist keine Aufgabe namens „{name}“ geplant.",
       "page_of": "Seite {page} von {pages}",
       "prev": "Zurück",
-      "next": "Weiter"
+      "next": "Weiter",
+      "action_enable": "Aktivieren",
+      "action_disable": "Deaktivieren",
+      "confirm_cancel": "Abbrechen",
+      "confirm_enable_title": "Diese Aufgabe wieder aktivieren?",
+      "confirm_disable_title": "Diese Aufgabe deaktivieren?",
+      "confirm_enable_body": "{name} läuft ab der nächsten Fälligkeit wieder nach dem gewohnten Zeitplan.",
+      "confirm_disable_body": "{name} läuft nicht mehr. Beim Wiederaktivieren wird nichts automatisch nachgeholt.",
+      "confirm_enable_legal": "Diese Aufgabe erfüllt eine Pflicht: {basis}. Wurde sie bewusst ausgesetzt — Prüfung, Rechtsstreit, Untersuchung —, nimmt die Wiederaktivierung die Verarbeitung der betroffenen Konten wieder auf.",
+      "confirm_disable_legal": "Diese Aufgabe erfüllt eine Pflicht: {basis}. Solange sie deaktiviert ist, ist die Plattform nicht mehr konform, und es findet keine automatische Nachhol-Löschung statt.",
+      "confirm_type_name": "Geben Sie zur Bestätigung den Aufgabennamen ein: {name}",
+      "toast_enabled": "Aufgabe wieder aktiviert.",
+      "toast_disabled": "Aufgabe deaktiviert.",
+      "err_confirm_name_mismatch": "Der eingegebene Name stimmt nicht mit dem der Aufgabe überein.",
+      "err_nothing_to_update": "Die Aufgabe befindet sich bereits in diesem Zustand."
     }
   },
   "expert_verification": {

@@ -2765,7 +2765,21 @@
       "not_found_body": "No hay ninguna tarea llamada «{name}» programada en la base de datos.",
       "page_of": "Página {page} de {pages}",
       "prev": "Anterior",
-      "next": "Siguiente"
+      "next": "Siguiente",
+      "action_enable": "Activar",
+      "action_disable": "Desactivar",
+      "confirm_cancel": "Cancelar",
+      "confirm_enable_title": "¿Reactivar esta tarea?",
+      "confirm_disable_title": "¿Desactivar esta tarea?",
+      "confirm_enable_body": "{name} volverá a ejecutarse en su horario habitual, desde el próximo vencimiento.",
+      "confirm_disable_body": "{name} dejará de ejecutarse. Nada se recupera automáticamente al reactivarla.",
+      "confirm_enable_legal": "Esta tarea cumple una obligación: {basis}. Si se suspendió deliberadamente —auditoría, litigio, investigación—, reactivarla reanudará el tratamiento de las cuentas afectadas.",
+      "confirm_disable_legal": "Esta tarea cumple una obligación: {basis}. Mientras esté desactivada, la plataforma deja de ser conforme, y ninguna purga de recuperación es automática.",
+      "confirm_type_name": "Para confirmar, escriba el nombre de la tarea: {name}",
+      "toast_enabled": "Tarea reactivada.",
+      "toast_disabled": "Tarea desactivada.",
+      "err_confirm_name_mismatch": "El nombre introducido no coincide con el de la tarea.",
+      "err_nothing_to_update": "La tarea ya está en ese estado."
     }
   },
   "expert_verification": {
