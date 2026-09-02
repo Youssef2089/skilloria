@@ -2808,7 +2808,8 @@
       "err_already_running": "Eine manuelle Ausführung dieser Aufgabe läuft bereits.",
       "run_manual": "manuell",
       "run_manual_by": "manuell · {who}",
-      "run_scheduled": "geplant"
+      "run_scheduled": "geplant",
+      "history_retention_notice": "Der ausführliche Bericht wird nach 90 Tagen gelöscht; der Ausführungsnachweis — Datum, Status und Zähler, ohne jede Kennung — wird 5 Jahre aufbewahrt."
     }
   },
   "expert_verification": {

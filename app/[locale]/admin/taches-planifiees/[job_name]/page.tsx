@@ -59,6 +59,12 @@ type CronRun = {
   /** Provenance : un declenchement manuel est un fait a tracer, avec qui. */
   trigger_source: string | null
   triggered_by_email: string | null
+  /**
+   * PREUVE d'execution : des nombres, aucun identifiant. Conservee 5 ans, la
+   * ou le compte-rendu detaille est efface a 90 jours. C'est elle qui permet
+   * de demontrer qu'une purge legale a tourne il y a six mois.
+   */
+  summary: Record<string, number | boolean> | null
 }
 
 export default function AdminScheduledTaskDetailPage() {
@@ -231,6 +237,8 @@ export default function AdminScheduledTaskDetailPage() {
             </div>
             <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '0 0 12px', lineHeight: 1.55 }}>
               {t('history_depth_notice')}
+              <br />
+              {t('history_retention_notice')}
             </p>
 
             {loading && (
@@ -301,7 +309,17 @@ export default function AdminScheduledTaskDetailPage() {
                     </span>
                   )}
                   <span style={{ flex: '1 1 240px', minWidth: 0, color: bad ? '#991B1B' : 'var(--color-text-tertiary, #94a3b8)', wordBreak: 'break-word' }}>
-                    {r.return_message ?? r.http_error ?? r.http_response ?? ''}
+                    {/* Le detail s'efface a 90 jours ; le RESUME reste 5 ans.
+                        Sans ce repli, une ligne au-dela de 90 jours paraitrait
+                        vide alors que la preuve est juste a cote — une preuve
+                        conservee mais invisible ne prouve rien. */}
+                    {r.return_message ?? r.http_error ?? r.http_response ?? (
+                      r.summary
+                        ? Object.entries(r.summary)
+                            .map(([k, v]) => `${k}=${String(v)}`)
+                            .join(' · ')
+                        : ''
+                    )}
                   </span>
                 </div>
               )

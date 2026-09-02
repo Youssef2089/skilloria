@@ -2808,7 +2808,8 @@
       "err_already_running": "Ya hay una ejecución manual de esta tarea en curso.",
       "run_manual": "manual",
       "run_manual_by": "manual · {who}",
-      "run_scheduled": "programada"
+      "run_scheduled": "programada",
+      "history_retention_notice": "El informe detallado se borra a los 90 días; la prueba de ejecución —fecha, estado y contadores, sin ningún identificador— se conserva 5 años."
     }
   },
   "expert_verification": {

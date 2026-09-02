@@ -2808,7 +2808,8 @@
       "err_already_running": "A manual run of this task is already in progress.",
       "run_manual": "manual",
       "run_manual_by": "manual · {who}",
-      "run_scheduled": "scheduled"
+      "run_scheduled": "scheduled",
+      "history_retention_notice": "The detailed report is erased after 90 days; the proof of execution — date, status and counters, with no identifier — is kept for 5 years."
     }
   },
   "expert_verification": {

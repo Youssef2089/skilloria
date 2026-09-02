@@ -494,6 +494,57 @@ ok(/was_active: job\.active/.test(runRoute),
 ok(!/grant\s+(usage|all)\s+on\s+schema\s+cron/i.test(manualSql),
   'aucun grant sur le schema cron dans la migration d’execution manuelle')
 
+// ═══ E6. RETENTION DISSOCIEE (lot 5) ═══════════════════════════════════════
+section('E6. Retention : detail 90 j, preuve 5 ans')
+
+const RETENTION_SQL = 'supabase/migrations/20260902000004_cron_run_log_retention.sql'
+const retSql = stripComments(read(RETENTION_SQL))
+
+// ── LES DEUX HORIZONS ───────────────────────────────────────────────────────
+// Le detail est ANONYMISE, pas supprime : supprimer la ligne detruirait la
+// preuve pour proteger un detail. C'est le trou que Youssef a decouvert, vu de
+// l'autre bout : « prouvez-moi que la purge a tourne en mars ».
+ok(/update public\.cron_run_log\n\s+set response_body = null\n\s+where requested_at < now\(\) - interval '90 days'/.test(retSql),
+  'DETAIL : response_body ANONYMISE a 90 jours, la ligne survit',
+  'supprimer la ligne detruirait la preuve pour proteger un detail technique')
+ok(/delete from public\.cron_run_log\n\s+where requested_at < now\(\) - interval '5 years'/.test(retSql),
+  'PREUVE : la ligne n’est supprimee qu’a 5 ANS')
+ok(!/delete from public\.cron_run_log\n\s+where requested_at < now\(\) - interval '90 days'/.test(retSql),
+  'plus aucune suppression a 90 jours',
+  'c’etait le comportement d’avant — il detruisait la preuve d’execution')
+ok(/interval '30 days'[\s\S]{0,120}?cron\.job_run_details|cron\.job_run_details[\s\S]{0,120}?interval '30 days'/.test(retSql),
+  'cron.job_run_details reste borne a 30 jours (inchange)')
+
+// ── « DES NOMBRES, AUCUN IDENTIFIANT », APPLIQUE LITTERALEMENT ──────────────
+ok(/where jsonb_typeof\(v\) in \('number', 'boolean'\)/.test(retSql),
+  'le resume ne garde QUE les nombres et booleens',
+  'retirer une liste de cles connues laisserait passer la prochaine cle ajoutee par une route')
+ok(!/- 'errors'|- 'blocked_ids'/.test(retSql),
+  'aucune liste de cles a exclure — la regle est positive, pas une liste noire')
+ok(/exception when others then\n\s+return null;/.test(retSql),
+  'un corps non exploitable donne NULL, jamais un resume faux')
+
+// ── LA CAPTURE SE FAIT SUR LA REPONSE COMPLETE ──────────────────────────────
+// `response_body` est tronque a 2000 caracteres : extraire le resume de cette
+// copie echouerait sur les executions les plus chargees, c'est-a-dire celles
+// qui comptent le plus.
+ok(/summary       = public\.cron_run_summary\(r\.content\)/.test(retSql),
+  'le resume est calcule sur r.content COMPLET, a la reconciliation',
+  'l’extraire de response_body (tronque a 2000 car.) echouerait sur les reponses les plus longues')
+ok(/left\(r\.content, 2000\)/.test(retSql),
+  'la troncature de response_body est conservee telle quelle')
+
+// ── LA PREUVE DOIT ETRE VISIBLE ─────────────────────────────────────────────
+ok(/summary             jsonb/.test(retSql),
+  'l’historique EXPOSE le resume',
+  'une preuve conservee mais invisible ne prouve rien')
+ok(/r\.summary/.test(detailScreen2) && /history_retention_notice/.test(detailScreen2),
+  'l’ecran affiche le resume en repli et ANNONCE les deux horizons')
+ok(/cron_run_log_requested_at_idx/.test(retSql),
+  'index sur requested_at — le menage a 5 ans balaie sur cette colonne')
+ok(!/grant\s+(usage|all)\s+on\s+schema\s+cron/i.test(retSql),
+  'aucun grant sur le schema cron dans la migration de retention')
+
 // ═══ F. LE DIAGNOSTIC EXISTANT NE DOIT PAS CASSER ══════════════════════════
 section('F. diag-cron-purges reste utilisable')
 
@@ -514,6 +565,7 @@ ok(!/cron_purge_health/.test(readFns),
 // ═══ G. i18n — 4 LANGUES ═══════════════════════════════════════════════════
 section('G. i18n')
 
+const LOT5_KEYS = ['history_retention_notice']
 const LOT4_KEYS = ['action_run_now','confirm_run_title','confirm_run_body','confirm_run_legal','confirm_run_disabled','confirm_run_async','toast_triggered','err_already_running','run_manual','run_manual_by','run_scheduled']
 const LOT3_KEYS = ['action_reschedule','reschedule_title','reschedule_body','reschedule_submit','field_frequency','field_hour_utc','field_minutes','field_days_of_week','field_day_of_month','frequency_daily','frequency_weekly','frequency_monthly','day_of_month_hint','preview_utc','chain_violation_body','chain_violation_suggestion','toast_rescheduled','err_invalid_schedule']
 const LOT2_KEYS = ['action_enable','action_disable','confirm_cancel','confirm_enable_title','confirm_disable_title','confirm_enable_body','confirm_disable_body','confirm_enable_legal','confirm_disable_legal','confirm_type_name','toast_enabled','toast_disabled','err_confirm_name_mismatch','err_nothing_to_update']
@@ -527,7 +579,7 @@ for (const loc of ['fr', 'en', 'es', 'de']) {
   const missing = []
   for (const k of ['title', 'subtitle', 'utc_hint', 'banner_title', 'banner_body', 'banner_hint',
     'migration_pending_title', 'migration_pending_body', 'badge_legal', 'badge_uncatalogued',
-    'schedule_advanced', 'chain_notice', 'uncatalogued_body', ...LOT1_KEYS, ...LOT2_KEYS, ...LOT3_KEYS, ...LOT4_KEYS]) {
+    'schedule_advanced', 'chain_notice', 'uncatalogued_body', ...LOT1_KEYS, ...LOT2_KEYS, ...LOT3_KEYS, ...LOT4_KEYS, ...LOT5_KEYS]) {
     if (!c?.[k]) missing.push(k)
   }
   for (const h of HEALTH) if (!c?.health?.[h]) missing.push(`health.${h}`)
