@@ -131,6 +131,32 @@ grant execute on function public.admin_cron_run_now(text, uuid) to service_role;
 -- pg_cron ne l'a pas execute. L'historique doit donc UNIR deux sources, sans
 -- quoi le declenchement de secours serait le seul evenement absent de
 -- l'historique — l'inverse du but recherche.
+--
+-- ╔══════════════════════════════════════════════════════════════════════════╗
+-- ║ ⚠️  DROP OBLIGATOIRE — `CREATE OR REPLACE` NE SUFFIT PAS ICI              ║
+-- ╠══════════════════════════════════════════════════════════════════════════╣
+-- ║ Postgres REFUSE de changer le type de retour d'une fonction existante :  ║
+-- ║   ERROR: cannot change return type of existing function (42P13)          ║
+-- ║   Row type defined by OUT parameters is different.                       ║
+-- ║                                                                          ║
+-- ║ La version de 20260902000000 renvoyait 12 colonnes ; celle-ci en renvoie ║
+-- ║ 14 (`trigger_source`, `triggered_by_email`). Sans le DROP, la migration  ║
+-- ║ echoue au push — et elle a effectivement echoue.                         ║
+-- ║                                                                          ║
+-- ║ La SIGNATURE du DROP porte sur les ARGUMENTS seuls, jamais sur le retour ║
+-- ║ ni sur les valeurs par defaut : `(text, integer, integer)`. Une erreur   ║
+-- ║ ici ne supprime rien et le CREATE echoue a nouveau, a l'identique.       ║
+-- ║                                                                          ║
+-- ║ Le DROP emporte les privileges : les `revoke` / `grant` qui suivent le   ║
+-- ║ CREATE ne sont donc pas redondants, ils sont NECESSAIRES.                ║
+-- ║                                                                          ║
+-- ║ REGLE GENERALE, verifiee par scripts/diag-cron-supervision.mjs : toute   ║
+-- ║ redefinition changeant les colonnes renvoyees doit etre precedee d'un    ║
+-- ║ DROP. Ce n'est pas un cas isole — cela se reproduira au prochain lot qui ║
+-- ║ etend une fonction.                                                      ║
+-- ╚══════════════════════════════════════════════════════════════════════════╝
+drop function if exists public.admin_cron_job_runs(text, integer, integer);
+
 create or replace function public.admin_cron_job_runs(
   p_job_name text,
   p_limit    integer default 25,

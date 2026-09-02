@@ -40,7 +40,7 @@
 //
 // LECTURE PURE : ce script n'ecrit JAMAIS, dans aucun mode.
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -544,6 +544,111 @@ ok(/cron_run_log_requested_at_idx/.test(retSql),
   'index sur requested_at — le menage a 5 ans balaie sur cette colonne')
 ok(!/grant\s+(usage|all)\s+on\s+schema\s+cron/i.test(retSql),
   'aucun grant sur le schema cron dans la migration de retention')
+
+// ═══ E7. REDEFINITION DE FONCTION — LA CLASSE DE DEFAUT 42P13 ══════════════
+section('E7. Toute redefinition changeant le retour exige un DROP')
+
+// ┌──────────────────────────────────────────────────────────────────────────┐
+// │ POURQUOI CE CONTROLE EXISTE                                              │
+// │                                                                          │
+// │ Postgres REFUSE de changer le type de retour d'une fonction existante :  │
+// │   ERROR: cannot change return type of existing function (42P13)          │
+// │   Row type defined by OUT parameters is different.                       │
+// │                                                                          │
+// │ `admin_cron_job_runs` est passee de 12 a 14 colonnes au lot 4, puis a 15 │
+// │ au lot 5. La migration a ECHOUE au push, apres que Youssef l'a lancee.   │
+// │                                                                          │
+// │ Ce n'est PAS un cas isole : c'est une classe de defaut qui se reproduira │
+// │ au prochain lot qui etend une fonction — le chantier matching en         │
+// │ ajoutera. Le controle balaie donc TOUT `supabase/migrations/`, tous      │
+// │ worktrees confondus, et pas seulement les fichiers de ce chantier.       │
+// │                                                                          │
+// │ Il est volontairement STATIQUE : il compare les fichiers entre eux, sans │
+// │ toucher a la base. Une migration cassee doit se voir AVANT le push.      │
+// └──────────────────────────────────────────────────────────────────────────┘
+
+const MIG_DIR = join(ROOT, 'supabase', 'migrations')
+const migFiles = readdirSync(MIG_DIR).filter((f) => f.endsWith('.sql')).sort()
+
+/**
+ * Declarations `create or replace function`. Accepte les identifiants ENTRE
+ * GUILLEMETS (`"public"."handle_new_user"`) : la baseline les utilise, et un
+ * motif qui ne les reconnait pas laisserait un angle mort exactement la ou le
+ * projet a le plus d'historique.
+ */
+const FN_DEF_RE =
+  /create\s+or\s+replace\s+function\s+(?:"?public"?\.)?"?([a-z0-9_]+)"?\s*\(([\s\S]*?)\)\s*\n?\s*returns([\s\S]*?)(?:\blanguage\b|\bas\b)/gi
+
+/** Types des arguments — c'est la signature au sens de DROP (le retour n'y entre pas). */
+function argTypesOf(argsRaw) {
+  const cleaned = argsRaw.replace(/--[^\n]*/g, '')
+  if (!cleaned.trim()) return []
+  const parts = []
+  let depth = 0
+  let cur = ''
+  for (const ch of cleaned) {
+    if (ch === '(') depth++
+    if (ch === ')') depth--
+    if (ch === ',' && depth === 0) { parts.push(cur); cur = '' } else cur += ch
+  }
+  if (cur.trim()) parts.push(cur)
+  return parts.map((p) => {
+    const s = p.replace(/\bdefault\b[\s\S]*$/i, '').trim().replace(/^\s*(in|out|inout|variadic)\s+/i, '')
+    const toks = s.split(/\s+/)
+    return (toks.slice(1).join(' ') || toks[0]).toLowerCase().replace(/\s+/g, ' ').trim()
+  })
+}
+
+const knownFns = new Map()
+const unprotected = []
+let redefinitions = 0
+
+for (const f of migFiles) {
+  const sql = readFileSync(join(MIG_DIR, f), 'utf8')
+  FN_DEF_RE.lastIndex = 0
+  let m
+  while ((m = FN_DEF_RE.exec(sql)) !== null) {
+    const name = m[1].toLowerCase()
+    const key = `${name}(${argTypesOf(m[2]).join(',')})`
+    const ret = m[3].replace(/--[^\n]*/g, '').replace(/\s+/g, ' ').trim().toLowerCase()
+    const prev = knownFns.get(key)
+    if (prev && prev.ret !== ret) {
+      redefinitions++
+      // ⚠️ ON COMPARE LA SIGNATURE DU DROP, PAS SA SEULE PRESENCE.
+      //    Un `drop function if exists f(text, integer)` sur une fonction
+      //    `f(text, integer, integer)` ne supprime RIEN — et le CREATE echoue
+      //    a l'identique. Se contenter de chercher `drop function ... f(`
+      //    laissait passer ce cas (constate au test de mutation) : le controle
+      //    aurait valide une migration qui echoue quand meme au push.
+      const dropRe = new RegExp(
+        `drop\\s+function\\s+if\\s+exists\\s+(?:"?public"?\\.)?"?${name}"?\\s*\\(([^)]*)\\)`,
+        'gi',
+      )
+      let d
+      let matched = false
+      while ((d = dropRe.exec(sql)) !== null) {
+        if (d.index > m.index) continue // le DROP doit PRECEDER le CREATE
+        if (argTypesOf(d[1]).join(',') === argTypesOf(m[2]).join(',')) { matched = true; break }
+      }
+      if (!matched) {
+        unprotected.push(`${f} → ${key} (defini avant dans ${prev.file})`)
+      }
+    }
+    knownFns.set(key, { file: f, ret })
+  }
+}
+
+ok(migFiles.length > 30 && knownFns.size > 20,
+  `le balayage voit bien les migrations (${migFiles.length} fichiers, ${knownFns.size} fonctions)`,
+  'un motif qui ne reconnait presque rien passerait pour vert sans rien verifier')
+ok(unprotected.length === 0,
+  `aucune redefinition de fonction sans DROP prealable (${redefinitions} redefinition(s) a retour different)`,
+  unprotected.length ? `sans DROP : ${unprotected.join(' · ')} — echouera au push (42P13)` : undefined)
+// La regle est INUTILE si elle ne s'exerce sur rien : on verifie qu'il existe
+// bien au moins un cas reel, sans quoi le controle serait vert par vacuite.
+ok(redefinitions > 0,
+  'le controle s’exerce sur au moins une redefinition reelle',
+  'vert par vacuite, un controle ne protege rien')
 
 // ═══ F. LE DIAGNOSTIC EXISTANT NE DOIT PAS CASSER ══════════════════════════
 section('F. diag-cron-purges reste utilisable')

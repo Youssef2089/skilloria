@@ -168,6 +168,14 @@ revoke all on function public.purge_cron_maintenance() from public, anon, authen
 -- alors que la preuve est la, juste a cote. Une preuve conservee mais invisible
 -- ne prouve rien.
 -- Corps IDENTIQUE au lot 4, a une colonne pres.
+--
+-- ⚠️ DROP OBLIGATOIRE — meme raison qu'en 20260902000003 : on passe de 14 a 15
+--    colonnes renvoyees, et `CREATE OR REPLACE` ne peut pas changer le type de
+--    retour d'une fonction existante (42P13). La signature du DROP porte sur les
+--    ARGUMENTS seuls : `(text, integer, integer)`. Le DROP emportant les
+--    privileges, les `revoke` / `grant` qui suivent sont necessaires.
+drop function if exists public.admin_cron_job_runs(text, integer, integer);
+
 create or replace function public.admin_cron_job_runs(
   p_job_name text,
   p_limit    integer default 25,
