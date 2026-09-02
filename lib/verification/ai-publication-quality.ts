@@ -22,7 +22,25 @@ const PROVIDER_NAME = 'claude_opportunity_quality'
 const PRIMARY_MODEL = 'claude-haiku-4-5-20251001'
 const FALLBACK_MODEL = 'claude-sonnet-4-6'
 const MAX_TOKENS = 1500
-const REQUEST_TIMEOUT_MS = 30_000
+
+/**
+ * BUDGET DE TEMPS — le TOTAL de la gate reste 30 s, quel que soit le nombre
+ * d'essais. C'était déjà le plafond avant l'ajout du repli sur échec
+ * transitoire : deux essais de 30 s auraient fait 60 s, or toute la route
+ * `/publish` est plafonnée à 60 s (maxDuration) et doit encore y loger le
+ * matching. Le repli est donc GRATUIT en temps de mur — il consomme le budget
+ * restant du premier essai, il ne l'ajoute pas.
+ *
+ *   TOTAL_BUDGET_MS      plafond dur de la gate, tous essais confondus.
+ *   PER_ATTEMPT_MS       plafond d'UN essai (le reste du budget sert au repli).
+ *   MIN_RETRY_BUDGET_MS  en dessous, on ne tente pas le repli : un essai
+ *                        étranglé échouerait de toute façon, et on préfère
+ *                        rendre la main à l'admin que brûler le budget du
+ *                        matching qui suit.
+ */
+const TOTAL_BUDGET_MS = 30_000
+const PER_ATTEMPT_MS = 20_000
+const MIN_RETRY_BUDGET_MS = 8_000
 
 export const PUBLICATION_QUALITY_FLAGS = [
   'incoherent',
@@ -71,8 +89,8 @@ export type PublicationQualityOutput = {
 }
 
 type ClaudeJson = {
-  score?: number
-  notes?: string
+  score?: unknown
+  notes?: unknown
   flags?: unknown
 }
 
@@ -260,9 +278,10 @@ async function callClaude(args: {
   apiKey: string
   model: string
   prompt: string
+  timeoutMs: number
 }): Promise<Anthropic.Messages.Message> {
-  const { apiKey, model, prompt } = args
-  const client = new Anthropic({ apiKey, timeout: REQUEST_TIMEOUT_MS })
+  const { apiKey, model, prompt, timeoutMs } = args
+  const client = new Anthropic({ apiKey, timeout: timeoutMs })
   return await client.messages.create({
     model,
     max_tokens: MAX_TOKENS,
@@ -270,11 +289,66 @@ async function callClaude(args: {
   })
 }
 
-function isModelError(err: unknown): boolean {
-  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase()
-  // Heuristique : erreur évoquant le modèle indisponible / non supporté →
-  // on tente le fallback Sonnet.
-  return /model|unavailable|not_found|invalid_request/i.test(msg)
+/** Code HTTP porté par l'erreur, `null` si l'appel n'a jamais atteint l'API. */
+function httpStatusOf(err: unknown): number | null {
+  if (typeof err !== 'object' || err === null || !('status' in err)) return null
+  const status = (err as { status: unknown }).status
+  return typeof status === 'number' && Number.isFinite(status) ? status : null
+}
+
+/**
+ * L'échec mérite-t-il un SECOND essai sur le modèle de repli ?
+ *
+ * TRANSITOIRE → oui. Le premier essai est tombé sur une circonstance, pas sur
+ * un défaut de la requête : modèle inconnu ou retiré (404 — c'est le cas
+ * historique qui a justifié le repli), délai dépassé, coupure réseau,
+ * surcharge (429), panne côté fournisseur (5xx).
+ *
+ * DÉFINITIF → non. Réessayer ne ferait que coûter : clé absente ou invalide
+ * (401), droits insuffisants (403), requête malformée (400), charge utile trop
+ * grande (413). Le second appel échouerait à l'identique.
+ *
+ * INCONNU → non, volontairement. Ne pas réessayer envoie l'annonce en revue
+ * admin : c'est le sens SÛR (aucune publication automatique sur un verdict
+ * qu'on n'a pas), et cela évite de brûler le budget de temps du matching qui
+ * s'exécute juste après dans la même requête.
+ *
+ * Le code HTTP est lu PAR FORME (`err.status`) plutôt que via `instanceof
+ * Anthropic.APIError` : c'est la même information, sans coupler la décision à
+ * la hiérarchie de classes du SDK, et cela reste éprouvable à l'exécution sans
+ * réseau ni clé API. Les pannes de transport, elles, n'exposent rien
+ * d'exploitable par la forme et exigent le `instanceof` (cf. plus bas).
+ *
+ * Exporté pour être ÉPROUVÉ à l'exécution (scripts/diag-publication-gate.mjs).
+ */
+export function isRetryableFailure(err: unknown): boolean {
+  const status = httpStatusOf(err)
+  if (status !== null) {
+    if (status >= 500) return true            // panne fournisseur
+    if (status === 429) return true           // surcharge / quota de débit
+    if (status === 408) return true           // délai dépassé côté API
+    if (status === 404) return true           // modèle inconnu → l'autre existe peut-être
+    return false                              // 400 / 401 / 403 / 413 / tout autre 4xx
+  }
+
+  // Aucun code HTTP : l'appel n'a pas abouti (réseau, délai local, abandon).
+  //
+  // Le SDK enveloppe TOUTE panne de transport dans APIConnectionError (et sa
+  // sous-classe …TimeoutError) — un test signalé par le diagnostic : ces
+  // erreurs ne portent PAS de `name` distinctif (il reste 'Error') et leur
+  // message est un laconique « Connection error. ». Le `instanceof` est donc le
+  // seul signal fiable ; le reste ci-dessous couvre ce qui serait levé hors du
+  // SDK ou par une version future.
+  if (err instanceof Anthropic.APIConnectionError) return true
+
+  const name = err instanceof Error ? err.name : ''
+  if (name.startsWith('APIConnection')) return true
+  if (name === 'AbortError' || name === 'TimeoutError') return true
+
+  const msg = err instanceof Error ? err.message : String(err)
+  return /timeout|timed out|aborted|connection error|econnreset|econnrefused|enotfound|etimedout|eai_again|socket hang up|network|fetch failed/i.test(
+    msg,
+  )
 }
 
 function extractFinalText(response: Anthropic.Messages.Message): string {
@@ -287,8 +361,53 @@ function extractFinalText(response: Anthropic.Messages.Message): string {
   return out
 }
 
-function normalizeFlags(value: unknown): PublicationQualityFlag[] {
-  if (!Array.isArray(value)) return []
+/**
+ * Lecture STRICTE du score. `null` = l'IA n'a rien jugé : champ absent, vide,
+ * non numérique, NaN ou Infini. L'appelant en fait un ÉCHEC — jamais une valeur
+ * de repli.
+ *
+ * POURQUOI : ce champ décide seul, avec les flags, si une annonce est publiée
+ * automatiquement. Un repli à 5 (comportement historique) n'était le jugement
+ * de personne ; selon le seuil configuré en base il pouvait PUBLIER une annonce
+ * que rien n'avait évaluée. Une valeur de repli qui ressemble à un verdict est
+ * un mensonge — l'absence de verdict doit ressortir comme telle.
+ *
+ * On accepte une chaîne numérique ("8") : c'est bien un score, juste mal typé
+ * par le modèle, et le reste du projet coerce déjà de la même façon
+ * (cf. lib/matching/ai-profile-matching.ts). On refuse en revanche `null`,
+ * `true`, `[]` ou `""`, que `Number()` convertirait silencieusement en 0 ou 1 —
+ * un 0 fabriqué serait, lui aussi, un verdict que personne n'a rendu.
+ *
+ * Exporté pour être ÉPROUVÉ à l'exécution (scripts/diag-publication-gate.mjs).
+ */
+export function readPublicationScore(value: unknown): number | null {
+  let raw: number
+  if (typeof value === 'number') raw = value
+  else if (typeof value === 'string' && value.trim().length > 0) raw = Number(value)
+  else return null
+  if (!Number.isFinite(raw)) return null
+  return Math.max(0, Math.min(10, Math.round(raw)))
+}
+
+/**
+ * Lecture STRICTE des signalements. `null` = la clé `flags` est absente ou
+ * n'est pas un tableau : les axes bloquants n'ont PAS été évalués. L'appelant
+ * en fait un ÉCHEC.
+ *
+ * POURQUOI : un `[]` de repli affirme « aucun contournement de plateforme,
+ * aucune discrimination, aucune illégalité ». C'est le verdict le plus lourd du
+ * fichier, et il va dans le sens qui PUBLIE — exactement le même défaut que le
+ * score par défaut, en plus grave. Un `[]` explicitement renvoyé par l'IA reste
+ * un verdict valide et passe normalement.
+ *
+ * Les libellés inconnus sont ignorés en silence : ils ne peuvent pas être
+ * bloquants (BLOCKING_FLAGS est une liste fermée), et un modèle qui invente
+ * 'suspicious' ne doit pas faire échouer une réponse par ailleurs exploitable.
+ *
+ * Exporté pour être ÉPROUVÉ à l'exécution (scripts/diag-publication-gate.mjs).
+ */
+export function readPublicationFlags(value: unknown): PublicationQualityFlag[] | null {
+  if (!Array.isArray(value)) return null
   const seen = new Set<PublicationQualityFlag>()
   for (const item of value) {
     if (typeof item !== 'string') continue
@@ -299,57 +418,72 @@ function normalizeFlags(value: unknown): PublicationQualityFlag[] {
   return Array.from(seen)
 }
 
+/**
+ * UNIQUE forme d'échec du fichier. Clé absente, appel raté, réponse illisible,
+ * score manquant, flags manquants : tous empruntent ce chemin et aboutissent au
+ * même endroit — `result='error'`, score 0, aucun flag, et donc
+ * 'pending_review' côté dispatcher (cf. publication-verification.ts). Il n'y a
+ * pas de demi-verdict : soit l'IA a jugé, soit l'admin tranche.
+ */
+function failure(notes: string): PublicationQualityOutput {
+  return {
+    provider_name: PROVIDER_NAME,
+    result: 'error',
+    score: 0,
+    notes,
+    flags: [],
+  }
+}
+
 export async function verifyAiPublicationQuality(
   input: PublicationQualityInput,
 ): Promise<PublicationQualityOutput> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
     console.error('[verification:publication-quality] ANTHROPIC_API_KEY missing')
-    return {
-      provider_name: PROVIDER_NAME,
-      result: 'error',
-      score: 0,
-      notes: 'Clé API IA non configurée — admin tranche manuellement.',
-      flags: [],
-    }
+    return failure('Clé API IA non configurée — admin tranche manuellement.')
   }
 
   const prompt = buildPrompt(input)
 
-  // ── Retry Haiku 4.5 → Sonnet 4.6 ─────────────────────────────────────────
-  let response: Anthropic.Messages.Message | null = null
+  // ── Essai principal, puis repli sur ÉCHEC TRANSITOIRE uniquement ─────────
+  //  Budget de temps partagé : les deux essais tiennent dans TOTAL_BUDGET_MS
+  //  (cf. constantes en tête). Le repli ne rallonge donc jamais la requête de
+  //  publication, il se contente d'occuper ce qui reste.
+  const deadline = Date.now() + TOTAL_BUDGET_MS
+  const remainingMs = () => deadline - Date.now()
+  const attemptTimeoutMs = () => Math.min(PER_ATTEMPT_MS, Math.max(0, remainingMs()))
+
+  let response: Anthropic.Messages.Message
   try {
-    response = await callClaude({ apiKey, model: PRIMARY_MODEL, prompt })
+    response = await callClaude({ apiKey, model: PRIMARY_MODEL, prompt, timeoutMs: attemptTimeoutMs() })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.warn('[verification:publication-quality] Haiku failed', { msg })
-    if (isModelError(err)) {
-      try {
-        response = await callClaude({ apiKey, model: FALLBACK_MODEL, prompt })
-      } catch (err2) {
-        const msg2 = err2 instanceof Error ? err2.message : String(err2)
-        console.error('[verification:publication-quality] Sonnet also failed', { msg2 })
-        return {
-          provider_name: PROVIDER_NAME,
-          result: 'error',
-          score: 0,
-          notes: 'Échec des appels IA (Haiku + Sonnet) — admin tranche manuellement.',
-          flags: [],
-        }
-      }
-    } else {
-      return {
-        provider_name: PROVIDER_NAME,
-        result: 'error',
-        score: 0,
-        notes: 'Échec de l’appel IA — admin tranche manuellement.',
-        flags: [],
-      }
+    const retryable = isRetryableFailure(err)
+    console.warn('[verification:publication-quality] Haiku failed', { msg, retryable })
+
+    if (!retryable) {
+      // Clé invalide, droits, requête malformée : le repli échouerait pareil.
+      return failure('Échec définitif de l’appel IA (non rejouable) — admin tranche manuellement.')
+    }
+    if (remainingMs() < MIN_RETRY_BUDGET_MS) {
+      console.warn('[verification:publication-quality] retry skipped — budget exhausted', {
+        remaining_ms: remainingMs(),
+      })
+      return failure('Échec de l’appel IA, budget de temps épuisé — admin tranche manuellement.')
+    }
+
+    try {
+      response = await callClaude({ apiKey, model: FALLBACK_MODEL, prompt, timeoutMs: attemptTimeoutMs() })
+    } catch (err2) {
+      const msg2 = err2 instanceof Error ? err2.message : String(err2)
+      console.error('[verification:publication-quality] Sonnet also failed', { msg2 })
+      return failure('Échec des appels IA (Haiku + Sonnet) — admin tranche manuellement.')
     }
   }
 
   // ── Parsing JSON strict ──────────────────────────────────────────────────
-  const rawText = extractFinalText(response!)
+  const rawText = extractFinalText(response)
   let parsed: ClaudeJson | null = null
   const match = rawText.match(/\{[\s\S]*\}/)
   if (match) {
@@ -364,19 +498,36 @@ export async function verifyAiPublicationQuality(
     console.warn('[verification:publication-quality] could not parse JSON from Claude', {
       preview: rawText.slice(0, 200),
     })
-    return {
-      provider_name: PROVIDER_NAME,
-      result: 'error',
-      score: 0,
-      notes: 'Réponse IA non parsable — admin tranche manuellement.',
-      flags: [],
-    }
+    return failure('Réponse IA non parsable — admin tranche manuellement.')
   }
 
-  const rawScore = typeof parsed.score === 'number' ? parsed.score : 5
-  const score = Math.max(0, Math.min(10, Math.round(rawScore)))
-  const notes = (typeof parsed.notes === 'string' ? parsed.notes : 'Analyse IA sans détails.').slice(0, 1500)
-  const flags = normalizeFlags(parsed.flags)
+  // ── Verdict : les DEUX champs décisionnels doivent avoir été rendus ──────
+  //  Un JSON lisible ne suffit pas. `score` et `flags` pilotent seuls la
+  //  publication automatique : s'ils manquent, personne n'a jugé, et aucune
+  //  valeur de repli ne doit prendre la place d'un verdict absent.
+  const score = readPublicationScore(parsed.score)
+  if (score === null) {
+    console.warn('[verification:publication-quality] score absent ou non numérique', {
+      raw_score: parsed.score,
+    })
+    return failure('Score absent ou non numérique dans la réponse IA — annonce non évaluée, admin tranche manuellement.')
+  }
+
+  const flags = readPublicationFlags(parsed.flags)
+  if (flags === null) {
+    console.warn('[verification:publication-quality] flags absents de la réponse', {
+      raw_flags: parsed.flags,
+    })
+    return failure('Signalements absents de la réponse IA — axes bloquants non évalués, admin tranche manuellement.')
+  }
+
+  // `notes` est purement informatif (admin) et n'entre dans aucune décision :
+  // son absence se CONSTATE, elle ne se remplace pas par un commentaire qui
+  // laisserait croire à une analyse.
+  const notes = (typeof parsed.notes === 'string' && parsed.notes.trim().length > 0
+    ? parsed.notes
+    : 'Aucune note renvoyée par l’IA.'
+  ).slice(0, 1500)
 
   return {
     provider_name: PROVIDER_NAME,
