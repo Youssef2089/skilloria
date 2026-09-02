@@ -62,7 +62,6 @@ const DETTE = {
   'app/[locale]/dashboard/freelance/mon-profil/page.tsx': 2,
   'lib/candidature-org-dto.ts': 2,
   'lib/hooks/useCdiProfile.ts': 2,
-  'lib/verification/expert-verification.ts': 2,
   'app/api/admin/get-expert/[id]/route.ts': 1,
   'app/api/admin/list-experts/route.ts': 1,
   'app/api/publications/[id]/publish/route.ts': 1,

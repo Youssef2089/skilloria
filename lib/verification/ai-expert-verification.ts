@@ -53,11 +53,11 @@ export type ExpertVerificationInput = {
   expert_type: 'expert_freelance' | 'expert_cdi' | null
   title: string | null
   summary: string | null
-  seniority: 'junior' | 'confirmed' | 'senior' | 'expert' | string | null
+  seniorities: string[]
   years_experience: number | null
   years_total_experience: number | null
   branch_name: string | null
-  speciality_name: string | null
+  speciality_names: string[]
   skills: string[]
   languages: string[]
   certifications_count: number
@@ -123,6 +123,21 @@ function sanitize(value: unknown, maxLen: number): string {
   return s.replace(/[\r\n\t]/g, ' ').trim().slice(0, maxLen)
 }
 
+/**
+ * Champs devenus MULTIPLES (séniorités, spécialités). Le prompt les reçoit
+ * joints — « confirmé, senior » — plutôt que sous forme de liste : la
+ * consigne de vérification les lit comme une déclaration, et une déclaration
+ * à plusieurs valeurs se lit très bien en toutes lettres.
+ */
+function sanitizeList(values: unknown, maxItems: number, maxLen: number): string {
+  if (!Array.isArray(values)) return ''
+  return values
+    .slice(0, maxItems)
+    .map((v) => sanitize(v, maxLen))
+    .filter((v) => v.length > 0)
+    .join(', ')
+}
+
 function sanitizeMultiline(value: unknown, maxLen: number): string {
   if (value == null) return ''
   const s = typeof value === 'string' ? value : String(value)
@@ -182,9 +197,9 @@ function buildPrompt(input: ExpertVerificationInput): string {
   const domain = sanitize(input.domain_name, 100)
   const title = sanitize(input.title, 200)
   const summary = sanitizeMultiline(input.summary, 1200)
-  const seniority = sanitize(input.seniority, 30)
+  const seniority = sanitizeList(input.seniorities, 4, 30)
   const branch = sanitize(input.branch_name, 200)
-  const speciality = sanitize(input.speciality_name, 200)
+  const speciality = sanitizeList(input.speciality_names, 10, 100)
   const linkedin = sanitize(input.linkedin_url, 500)
   const skillsList = input.skills.slice(0, 60).map((s) => sanitize(s, 80)).filter(Boolean).join(', ') || '(aucune)'
   const languages = input.languages.slice(0, 20).map((s) => sanitize(s, 50)).filter(Boolean).join(', ') || '(aucune)'
@@ -207,10 +222,10 @@ PROFIL DÉCLARÉ PAR L'EXPERT
 - Titre : ${title || '(non fourni)'}
 - Résumé : ${summary || '(non fourni)'}
 - Type expert : ${sanitize(input.expert_type, 30) || '(non fourni)'}
-- Séniorité déclarée : ${seniority || '(non fournie)'}
+- Séniorités déclarées : ${seniority || '(non fournie)'}
 - Années d'expérience déclarées : ${input.years_experience ?? '(non fournies)'} (total carrière : ${input.years_total_experience ?? '(non fournies)'})
 - Branche : ${branch || '(non fournie)'}
-- Spécialité : ${speciality || '(non fournie)'}
+- Spécialités : ${speciality || '(non fournie)'}
 - Compétences déclarées (max 60) : ${skillsList}
 - Langues : ${languages}
 - Certifications listées : ${input.certifications_count}

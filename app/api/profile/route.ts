@@ -601,7 +601,21 @@ export async function PATCH(request: NextRequest): Promise<Response> {
         proposals: v.proposals.length,
       })
     } catch (err) {
-      console.error('[profile:PATCH] matching threw (after)', err)
+      // ÉTAT CONNU jusqu'au lot 4 : le moteur de matching interroge encore des
+      // colonnes supprimées par la migration profil_annonce_multivalues
+      // (lib/matching/index.ts, run-for-expert.ts, shared.ts sont réécrits à ce
+      // lot-là, avec le passage au reranking).
+      //
+      // L'échec est SANS CONSÉQUENCE pour l'expert : il tourne dans un after(),
+      // la réponse est déjà partie, son profil est enregistré. Mais son feed
+      // reste vide, et un feed vide sans explication est exactement le faux
+      // défaut qu'on passe des heures à diagnostiquer. Le message le dit donc
+      // en toutes lettres plutôt que de laisser une pile d'appels muette.
+      console.error(
+        '[profile:PATCH] matching indisponible — attendu jusqu au lot 4 (moteur non migré). ' +
+          'Le profil est bien enregistré ; seules les recommandations manquent.',
+        { profileId: cp.id, cause: err instanceof Error ? err.message : String(err) },
+      )
     }
   })
 

@@ -52,11 +52,11 @@ type ProfileRow = {
   expert_type: string | null
   title: string | null
   summary: string | null
-  seniority: string | null
+  seniorities: string[] | null
   years_experience: number | null
   years_total_experience: number | null
   branch_id: string | null
-  speciality_id: string | null
+  speciality_ids: string[] | null
   skills: string[] | null
   certifications: unknown
   linkedin_url: string | null
@@ -65,7 +65,6 @@ type ProfileRow = {
   cv_parsing_status: string | null
   verification_status: string | null
   branches: { name: string } | { name: string }[] | null
-  specialities: { name: string } | { name: string }[] | null
   users: { id: string; locale: string | null; user_type: string | null } | { id: string; locale: string | null; user_type: string | null }[] | null
 }
 
@@ -147,18 +146,27 @@ async function loadProfileForVerification(
   const { data, error } = await supabaseAdmin
     .from('profiles')
     .select(
-      'id, user_id, domain_id, expert_type, title, summary, seniority, years_experience, ' +
-        'years_total_experience, branch_id, speciality_id, skills, certifications, ' +
+      'id, user_id, domain_id, expert_type, title, summary, seniorities, years_experience, ' +
+        'years_total_experience, branch_id, speciality_ids, skills, certifications, ' +
         'linkedin_url, visible, ai_consent_at, cv_parsing_status, verification_status, ' +
-        'branches(name), specialities(name), users!profiles_user_id_fkey(id, locale, user_type)',
+        'branches(name), users!profiles_user_id_fkey(id, locale, user_type)',
     )
     .eq('id', profileId)
     .maybeSingle()
   if (error) {
-    console.error('[expert-verification] profile load failed', error.message)
+    // Message distinct du « profil absent » : ici la ligne existe et c'est la
+    // REQUÊTE qui a échoué (colonne inconnue, droits…). Les confondre envoie
+    // chercher un profil disparu qui se porte très bien.
+    console.error('[expert-verification] requête profil en échec', {
+      profileId,
+      message: error.message,
+    })
     return null
   }
-  if (!data) return null
+  if (!data) {
+    console.warn('[expert-verification] profil introuvable', { profileId })
+    return null
+  }
   const row = data as unknown as ProfileRow
 
   // Charger experiences / educations / languages (tables structurées, optionnelles)
@@ -335,7 +343,14 @@ export async function runExpertVerification(args: {
   // 5. Préparer l'input IA
   const user = pickRel(row.users)
   const branch = pickRel(row.branches)
-  const speciality = pickRel(row.specialities)
+  // Les spécialités sont multiples : l'embed PostgREST n'existe plus (la clé
+  // étrangère a disparu), on résout les libellés en une requête.
+  const specialityNames = await (async () => {
+    const ids = row.speciality_ids ?? []
+    if (ids.length === 0) return [] as string[]
+    const { data: sps } = await supabaseAdmin.from('specialities').select('name').in('id', ids)
+    return ((sps ?? []) as Array<{ name: string }>).map((x) => x.name)
+  })()
   const locale = normalizeLocale(user?.locale)
   const input: ExpertVerificationInput = {
     domain_name,
@@ -343,11 +358,11 @@ export async function runExpertVerification(args: {
     expert_type: (row.expert_type as ExpertVerificationInput['expert_type']) ?? null,
     title: row.title,
     summary: row.summary,
-    seniority: row.seniority,
+    seniorities: row.seniorities ?? [],
     years_experience: row.years_experience,
     years_total_experience: row.years_total_experience,
     branch_name: branch?.name ?? null,
-    speciality_name: speciality?.name ?? null,
+    speciality_names: specialityNames,
     skills: Array.isArray(row.skills) ? row.skills : [],
     languages,
     certifications_count: countCerts(row.certifications),
