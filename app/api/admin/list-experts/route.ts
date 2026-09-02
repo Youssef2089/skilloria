@@ -89,7 +89,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   let query = auth.supabaseAdmin
     .from('profiles')
     .select(
-      'id, user_id, expert_type, title, seniority, years_experience, ' +
+      'id, user_id, expert_type, title, seniorities, years_experience, ' +
         'verification_status, verification_score, verified_at, verified_by, review_reason, ' +
         'created_at, updated_at, photo_url, domain_id, ' +
         'users!profiles_user_id_fkey(id, email, first_name, last_name, locale, user_type), ' +

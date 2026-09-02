@@ -47,21 +47,9 @@ const RACINES = ['app', 'lib', 'components']
  * n'existe plus.
  */
 const DETTE = {
-  // ── Écrans et routes à reprendre (lot 2c) ────────────────────────────────
-  'app/api/admin/get-branch/[id]/route.ts': 4,
-  'app/api/admin/delete-speciality/route.ts': 2,
-  'app/api/candidatures/route.ts': 2,
-  'app/api/me/candidatures/route.ts': 2,
-  'app/api/me/conversations/route.ts': 2,
-  'app/api/me/missions/route.ts': 2,
-  'app/api/me/missions/[id]/route.ts': 2,
-  'app/api/profile/cv-status/[jobId]/route.ts': 2,
-  'app/[locale]/dashboard/freelance/mon-profil/page.tsx': 2,
-  'lib/candidature-org-dto.ts': 2,
-  'lib/hooks/useCdiProfile.ts': 2,
-  'app/api/admin/get-expert/[id]/route.ts': 1,
-  'app/api/admin/list-experts/route.ts': 1,
-  'app/[locale]/dashboard/freelance/page.tsx': 1,
+  // ── Écrans et routes du lot 2c : TOUS repris ─────────────────────────────
+  //  Il ne reste rien ici, et c'est le but. Un fichier repris SORT du gel :
+  //  l'y laisser ferait lire une réapparition comme une baisse.
 
   // ── Code RÉÉCRIT au lot 4 : ne pas le reprendre ─────────────────────────
   //  Claude sort du matching. index.ts, run-for-expert.ts et shared.ts sont

@@ -506,6 +506,64 @@ for (const cle of ['errors.missing_fields', 'form.field_work_zones', 'form.field
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════
+section('I. AUCUN CHEMIN DE CLÉ AFFICHÉ À L UTILISATEUR')
+// ══════════════════════════════════════════════════════════════════════════
+//
+// next-intl n'échoue PAS au build sur une clé absente : il journalise et rend
+// le CHEMIN de la clé. L'utilisateur lit alors, en toutes lettres,
+// « publications.form.field_work_zones » à la place d'un libellé. Un build vert
+// ne prouve donc rien — seul un passage à l'écran le révélerait, et seulement
+// dans la langue testée.
+//
+// Le piège s'est présenté deux fois pendant ce lot : d'abord parce que les deux
+// formulaires de profil n'utilisent pas le même espace de noms
+// (`profile_validation` / `cdi_profile_validation`), ensuite parce que les vues
+// de détail mélangent trois traducteurs (`publications`, `publications.form`,
+// `missions.detail`). Rien ne dit lequel est actif sans lire la déclaration.
+//
+// PORTÉE ASSUMÉE : les surfaces touchées par ce lot, pas toute l'application.
+// Un contrôle qui ment sur sa couverture est pire qu'un contrôle absent.
+
+const SURFACES_DU_LOT = [
+  'components/dashboard/PublicationForm.tsx',
+  'components/dashboard/MissionDetailView.tsx',
+  'components/dashboard/CandidatureCard.tsx',
+  'components/collaboration/SousTraitanceDetailView.tsx',
+  'app/[locale]/dashboard/entreprise/annonces/[id]/page.tsx',
+  'app/[locale]/dashboard/freelance/profil/valider/page.tsx',
+  'app/[locale]/dashboard/cdi/profil/valider/page.tsx',
+]
+
+let clesVerifiees = 0
+for (const fichier of SURFACES_DU_LOT) {
+  const src = read(fichier)
+  // Quel traducteur porte quel espace de noms, tel que déclaré dans CE fichier.
+  const espaces = new Map()
+  for (const m of src.matchAll(/const\s+([A-Za-z_$][\w$]*)\s*=\s*useTranslations\('([^']+)'\)/g)) {
+    espaces.set(m[1], m[2])
+  }
+  const manquantes = []
+  for (const [nom, espace] of espaces) {
+    // Seules les clés LITTÉRALES sont vérifiables. Les clés construites
+    // (`form.seniority_options.${v}`) sortent du périmètre : les contrôler
+    // demanderait d'évaluer le code, et un faux vert vaudrait moins que rien.
+    const appels = src.matchAll(new RegExp(`\\b${nom}\\('([A-Za-z0-9_.]+)'`, 'g'))
+    for (const a of appels) {
+      const chemin = `${espace}.${a[1]}`
+      clesVerifiees++
+      const absentes = LOCALES.filter((l) => lire(MSG[l], chemin) === undefined)
+      if (absentes.length > 0) manquantes.push(`${chemin} (${absentes.join(', ')})`)
+    }
+  }
+  ok(manquantes.length === 0, `${fichier} : toutes ses clés existent`,
+    manquantes.length
+      ? `l utilisateur verrait le chemin : ${manquantes.slice(0, 4).join(' ; ')}`
+      : undefined)
+}
+console.log(`\n  ${clesVerifiees} clés littérales vérifiées dans les 4 langues.`)
+
+// ══════════════════════════════════════════════════════════════════════════
 console.log(
   failures === 0 ? '\n✅ Tous les contrôles passent.\n' : `\n❌ ${failures} contrôle(s) en échec.\n`,
 )

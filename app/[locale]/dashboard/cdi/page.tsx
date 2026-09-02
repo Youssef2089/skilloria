@@ -74,7 +74,9 @@ function calculateCompletion(profile: CdiProfile | null): number {
     !!profile.title?.trim(),                                         // Titre
     !!profile.summary?.trim(),                                       // Résumé
     !!profile.branch_id,                                            // Branche
-    !!profile.speciality_id,                                        // Spécialité
+    (profile.speciality_ids?.length ?? 0) >= 1,                     // Spécialités
+    (profile.seniorities?.length ?? 0) >= 1,                        // Séniorités
+    (profile.work_zone_ids?.length ?? 0) >= 1,                      // Zones de travail
     (profile.skills?.length ?? 0) >= 3,                             // Compétences
     (profile.languages?.length ?? 0) >= 1,                          // Langues
     profile.cdi_salary_min != null && profile.cdi_salary_max != null, // Compensation (salaire)

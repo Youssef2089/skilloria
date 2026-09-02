@@ -60,10 +60,10 @@ function asString(v: unknown): string | null {
  * Whitelist de construction de `candidatures.preview` — strictement les
  * champs NON-SENSIBLES (cf. migration boucle cœur §4).
  *
- * AUTORISÉS (24) : title, summary, skills, seniority, expert_type, tjm_min/max,
+ * AUTORISÉS (24) : title, summary, skills, seniorities, expert_type, tjm_min/max,
  *   salary_min/max, years_experience, years_total_experience, work_modes,
  *   languages, country, city, availability_status, availability_date,
- *   profile_score, branch_id, speciality_id, + 6 signaux CDI non-PII :
+ *   profile_score, branch_id, speciality_ids, + 6 signaux CDI non-PII :
  *   cdi_status, cdi_notice_period, cdi_geo_mobility, cdi_contract_types,
  *   cdi_company_size, cdi_sectors.
  *
@@ -77,7 +77,7 @@ function buildPreview(profile: Record<string, unknown>): Record<string, unknown>
     title: profile.title ?? null,
     summary: profile.summary ?? null,
     skills: Array.isArray(profile.skills) ? profile.skills : [],
-    seniority: profile.seniority ?? null,
+    seniorities: Array.isArray(profile.seniorities) ? profile.seniorities : [],
     expert_type: profile.expert_type ?? null,
     years_experience: profile.years_experience ?? null,
     years_total_experience: profile.years_total_experience ?? null,
@@ -93,7 +93,7 @@ function buildPreview(profile: Record<string, unknown>): Record<string, unknown>
     availability_date: profile.availability_date ?? null,
     profile_score: profile.profile_score ?? null,
     branch_id: profile.branch_id ?? null,
-    speciality_id: profile.speciality_id ?? null,
+    speciality_ids: Array.isArray(profile.speciality_ids) ? profile.speciality_ids : [],
     // Lot synthèse candidat CDI — 6 signaux non-PII pour les candidatures
     // sur publications de type 'offre'. Affichés uniquement quand
     // publicationType==='offre' côté UI.
@@ -139,10 +139,10 @@ export async function POST(request: NextRequest): Promise<Response> {
   const { data: profile, error: pErr } = await auth.supabaseAdmin
     .from('profiles')
     .select(
-      'id, user_id, domain_id, title, summary, skills, seniority, expert_type, ' +
+      'id, user_id, domain_id, title, summary, skills, seniorities, expert_type, ' +
         'years_experience, years_total_experience, tjm_min, tjm_max, salary_min, salary_max, ' +
         'work_modes, languages, country, city, availability_status, availability_date, ' +
-        'profile_score, branch_id, speciality_id, ' +
+        'profile_score, branch_id, speciality_ids, ' +
         'cdi_status, cdi_notice_period, cdi_geo_mobility, cdi_contract_types, ' +
         'cdi_company_size, cdi_sectors',
     )

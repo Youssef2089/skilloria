@@ -38,7 +38,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   const { data: profile, error } = await auth.supabaseAdmin
     .from('profiles')
     .select(
-      'id, user_id, domain_id, expert_type, title, summary, seniority, ' +
+      'id, user_id, domain_id, expert_type, title, summary, seniorities, ' +
         'speciality_other, ' +
         'years_experience, years_total_experience, languages, skills, certifications, ' +
         'location, mobility, tjm_min, tjm_max, salary_min, salary_max, ' +

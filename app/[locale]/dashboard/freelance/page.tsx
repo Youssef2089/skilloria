@@ -57,7 +57,9 @@ type ProfileData = {
   title?: string | null
   summary?: string | null
   branch_id?: string | null
-  speciality_id?: string | null
+  speciality_ids?: string[] | null
+  seniorities?: string[] | null
+  work_zone_ids?: string[] | null
   skills?: string[] | null
   languages?: string[] | null
 }
@@ -78,7 +80,9 @@ function computeCompletionPct(profile: ProfileData | null): number {
     !!profile.title?.trim(),                              // Titre
     !!profile.summary?.trim(),                            // Résumé
     !!profile.branch_id,                                  // Branche
-    !!profile.speciality_id,                              // Spécialité
+    (profile.speciality_ids?.length ?? 0) >= 1,           // Spécialités
+    (profile.seniorities?.length ?? 0) >= 1,              // Séniorités
+    (profile.work_zone_ids?.length ?? 0) >= 1,            // Zones de travail
     (profile.skills?.length ?? 0) >= 3,                   // Compétences
     (profile.languages?.length ?? 0) >= 1,                // Langues
     profile.tjm_min != null && profile.tjm_max != null,   // Compensation (TJM)
@@ -227,7 +231,7 @@ export default function DashboardFreelance() {
           .single(),
         supabase
           .from('profiles')
-          .select('tjm_min, tjm_max, photo_url, visible, verification_status, verification_data, availability_status, verified_at, open_to_cdi, cv_parsing_status, title, summary, branch_id, speciality_id, skills, languages')
+          .select('tjm_min, tjm_max, photo_url, visible, verification_status, verification_data, availability_status, verified_at, open_to_cdi, cv_parsing_status, title, summary, branch_id, speciality_ids, seniorities, work_zone_ids, skills, languages')
           .eq('user_id', session.user.id)
           .maybeSingle(),
       ])

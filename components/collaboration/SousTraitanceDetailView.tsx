@@ -46,8 +46,11 @@ type PublicationDetail = {
   title: string
   description: string
   skills_required: string[]
-  seniority: string | null
-  location: string | null
+  seniorities: string[]
+  // Ce sont les ZONES qui décident où l'annonce cherche ; la note de
+  // localisation est une précision d'affichage et ne filtre rien.
+  work_zone_labels: string[]
+  location_note: string | null
   work_mode: string | null
   duration: string | null
   budget_min: number | null
@@ -91,7 +94,7 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
     setState({ kind: 'loading' })
     try {
       const [pubRes, candRes, quotaRes] = await Promise.all([
-        secureFetch(`/api/publications/${id}`, { method: 'GET' }),
+        secureFetch(`/api/publications/${id}?locale=${encodeURIComponent(locale)}`, { method: 'GET' }),
         secureFetch(`/api/publications/${id}/candidatures?locale=${encodeURIComponent(locale)}&filter=${bucket}`, { method: 'GET' }),
         secureFetch('/api/me/collaboration/quota', { method: 'GET' }),
       ])
@@ -246,11 +249,17 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
         <div style={{ fontSize: 14, color: 'var(--sk-text)', lineHeight: 1.65, whiteSpace: 'pre-wrap', marginBottom: pub.skills_required.length > 0 || budgetText ? 14 : 0 }}>
           {pub.description}
         </div>
-        {(budgetText || pub.location || pub.seniority) && (
+        {(budgetText || pub.work_zone_labels.length > 0 || pub.location_note || pub.seniorities.length > 0) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: pub.skills_required.length > 0 ? 14 : 0 }}>
             {budgetText && <Field label={t('field_budget')} value={budgetText} />}
-            {pub.location && <Field label={t('field_location')} value={pub.location} />}
-            {pub.seniority && <Field label={t('field_seniority')} value={tPub(`seniority.${pub.seniority}` as 'seniority.junior')} />}
+            {pub.work_zone_labels.length > 0 && <Field label={tPub('form.field_work_zones')} value={pub.work_zone_labels.join(', ')} />}
+            {pub.location_note && <Field label={tPub('form.field_location_note')} value={pub.location_note} />}
+            {pub.seniorities.length > 0 && (
+              <Field
+                label={t('field_seniority')}
+                value={pub.seniorities.map((s) => tPub(`seniority.${s}` as 'seniority.junior')).join(', ')}
+              />
+            )}
           </div>
         )}
         {pub.skills_required.length > 0 && (
