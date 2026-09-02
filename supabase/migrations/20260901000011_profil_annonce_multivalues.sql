@@ -277,7 +277,7 @@ $$;
 do $$
 declare v_fautifs text; v_n integer;
 begin
-  select count(*), string_agg(id::text, E'\n    - ' order by id)
+  select count(*), string_agg(id::text, ', ' order by id)
     into v_n, v_fautifs
     from public.profiles
    where visible = true
@@ -293,14 +293,20 @@ begin
 
   if v_n > 0 then
     raise exception
-      -- CHAQUE littéral contenant \n porte son propre préfixe E. En SQL, le
-      -- préfixe ne vaut QUE pour le littéral qu'il précède, pas pour ceux qui
-      -- lui sont concaténés : sans cela, « \n » ressortirait tel quel dans le
-      -- message, et l'opérateur lirait une ligne illisible au lieu d'une liste.
-      E'[profil_annonce_multivalues] % profil(s) sont encore visibles sans remplir les critères '
-      E'APRÈS le repli : la contrainte profiles_visible_requiert_criteres_check ne peut pas être '
-      E'posée.\n  Cause probable : le prédicat du repli et celui de la contrainte ont divergé.\n'
-      E'  Profils concernés :\n    - %',
+      -- AUCUN littéral E'...', AUCUN retour à la ligne. Volontairement.
+      --
+      -- PostgreSQL concatène deux constantes de chaîne séparées par un saut de
+      -- ligne, MAIS la continuation doit être une chaîne SIMPLE : un E'...' en
+      -- deuxième position est une ERREUR DE SYNTAXE (42601). C'est exactement
+      -- ce qui a fait échouer le troisième push, sur ce bloc-ci.
+      --
+      -- Un message d'une seule ligne, identifiants séparés par des virgules,
+      -- vaut mieux qu'une migration qui ne passe pas. Le contrôle qui interdit
+      -- désormais ce motif vit dans scripts/diag-sql-litteraux.mjs.
+      '[profil_annonce_multivalues] % profil(s) sont encore visibles sans remplir les critères '
+      'APRÈS le repli — la contrainte profiles_visible_requiert_criteres_check ne peut pas être '
+      'posée. Cause probable : le prédicat du repli et celui de la contrainte ont divergé. '
+      'Profils concernés : %',
       v_n, v_fautifs;
   end if;
 end
@@ -380,7 +386,7 @@ $$;
 do $$
 declare v_fautives text; v_n integer;
 begin
-  select count(*), string_agg(id::text || ' — « ' || left(coalesce(title, ''), 60) || ' »', E'\n    - ' order by id)
+  select count(*), string_agg(id::text || ' « ' || left(coalesce(title, ''), 60) || ' »', ' | ' order by id)
     into v_n, v_fautives
     from public.publications
    where status = 'published'
@@ -388,11 +394,11 @@ begin
 
   if v_n > 0 then
     raise exception
-      -- Même règle qu'au-dessus : le préfixe E est requis sur CHAQUE littéral
-      -- qui contient \n, jamais seulement sur le premier de la concaténation.
-      E'[profil_annonce_multivalues] % annonce(s) publiée(s) n''ont toujours aucune zone de travail '
-      E'APRÈS le repli : la contrainte publications_publiee_requiert_zones_check ne peut pas être '
-      E'posée.\n  Annonces concernées :\n    - %',
+      -- Même règle qu'au-dessus : aucun E'...', aucun retour à la ligne. Une
+      -- continuation de littéral doit être une chaîne SIMPLE (cf. bloc profils).
+      '[profil_annonce_multivalues] % annonce(s) publiée(s) n''ont toujours aucune zone de travail '
+      'APRÈS le repli — la contrainte publications_publiee_requiert_zones_check ne peut pas être '
+      'posée. Annonces concernées : %',
       v_n, v_fautives;
   end if;
 end

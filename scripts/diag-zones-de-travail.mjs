@@ -405,25 +405,27 @@ for (const critere of ['branch_id', 'speciality_ids', 'seniorities', 'work_zone_
     `présent seulement dans ${blocRepli.includes(critere) ? 'le repli' : 'la contrainte'} — la migration cassera`)
 }
 
-console.log('\n— échappement des messages d erreur')
-// En SQL, le préfixe E ne vaut QUE pour le littéral qu'il précède : dans une
-// concaténation, les suivants doivent porter le leur. Sans cela, « \n » sort
-// littéralement et l'opérateur lit une bouillie au lieu de la liste des lignes
-// fautives — précisément au moment où il en a le plus besoin. Défaut réel,
-// trouvé en relecture avant le second push.
-const litterauxFautifs = []
+console.log('\n— messages d erreur')
+// J'avais mis ici un contrôle qui exigeait un préfixe E sur chaque littéral
+// contenant \n. Il encodait une règle FAUSSE : en PostgreSQL, une continuation
+// de littéral doit au contraire être une chaîne SIMPLE, et un E'…' en deuxième
+// position est une erreur de syntaxe (42601). Ce contrôle a coûté un push.
+//
+// La validation des littéraux vit désormais dans scripts/diag-sql-litteraux.mjs,
+// qui lit le SQL comme un analyseur lexical, s'applique à TOUTES les migrations
+// et se prouve lui-même à chaque exécution. Ce diagnostic-ci ne se prononce plus
+// sur la syntaxe : il vérifie seulement qu'aucun message ne dépend d'un
+// échappement, donc qu'il ne peut pas retomber dans le piège.
+const echappements = []
 for (const [f, src] of [[M_ZONES, SRC_ZONES], [M_CHAMPS, SRC_CHAMPS]]) {
   src.split('\n').forEach((ligne, i) => {
-    const t = ligne.trimStart()
-    if (t.startsWith('--')) return
-    if (/^'/.test(t) && t.includes('\\n')) {
-      litterauxFautifs.push(`${f.split('/').pop()}:${i + 1}`)
-    }
+    if (ligne.trimStart().startsWith('--')) return
+    if (/\bE'/.test(ligne)) echappements.push(`${f.split('/').pop()}:${i + 1}`)
   })
 }
-ok(litterauxFautifs.length === 0,
-  'tout littéral contenant \\n porte son propre préfixe E',
-  litterauxFautifs.length ? `sans préfixe : ${litterauxFautifs.join(', ')}` : undefined)
+ok(echappements.length === 0,
+  "aucun littéral E'…' dans les migrations du lot — rien à échapper, rien à casser",
+  echappements.length ? `présents : ${echappements.join(', ')}` : undefined)
 
 console.log('\n— l en-tête prévient un successeur')
 ok(/CE QUE CETTE MIGRATION FAIT AUX DONNÉES EXISTANTES/.test(SRC_CHAMPS),
