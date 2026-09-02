@@ -338,6 +338,102 @@ for (const [f, src] of [[M_ZONES, SRC_ZONES], [M_CHAMPS, SRC_CHAMPS]]) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+section('F. LES REPLIS SUR LES DONNÉES EXISTANTES — et leur ORDRE')
+// ══════════════════════════════════════════════════════════════════════════
+//
+// Les colonnes viennent d'être créées : AUCUNE ligne existante ne peut
+// satisfaire les contraintes. Sans repli, la migration échoue et exige d'un
+// opérateur qu'il répare la base à la main — ce n'est pas une migration, c'est
+// un piège. C'est exactement ce qui s'est produit au premier push :
+//   ERROR: check constraint "publications_publiee_requiert_zones_check" ...
+//
+// Ce que ce bloc vérifie n'est pas seulement la PRÉSENCE des replis, mais leur
+// ORDRE : un repli posé après sa contrainte ne sert à rien.
+
+const pos = (motif) => C.indexOf(motif)
+
+console.log('— repli ① : annonces publiées → « Monde entier »')
+const pReplPub  = pos('set work_zone_ids = array[v_monde]')
+const pVerifPub = pos("n''ont toujours aucune zone de travail")
+const pCtrPub   = pos('add constraint publications_publiee_requiert_zones_check')
+
+ok(pReplPub > -1, 'le repli des annonces publiées existe',
+  'sans lui, la migration échoue sur SQLSTATE 23514 — le bug corrigé')
+ok(/where code = 'WORLD'/.test(C), 'la zone « Monde entier » est résolue par son code, pas par un uuid en dur')
+ok(/v_monde is null/.test(C) && /raise exception/.test(C),
+  'un garde-fou refuse de continuer si la zone « WORLD » manque',
+  'array[null] passerait la contrainte en portant une zone qui ne recoupe RIEN — panne silencieuse')
+// Assertion ANCRÉE sur le bloc de repli lui-même. Une version non ancrée
+// (une regex lâchée sur tout le fichier) passait en vert alors que la
+// condition avait été retirée : elle attrapait le bloc de VÉRIFICATION voisin,
+// qui contient le même motif. Trouvé par mutation — c'est à cela qu'elle sert.
+const blocBackfill = pReplPub > -1
+  ? C.slice(pReplPub, C.indexOf('get diagnostics v_touchees'))
+  : ''
+ok(/status = 'published'/.test(blocBackfill)
+   && /array_length\(work_zone_ids, 1\), 0\) = 0/.test(blocBackfill),
+  'le repli ne touche QUE les annonces publiées et déjà vides — donc idempotent',
+  'sans la seconde condition, un rejeu écraserait des zones renseignées entre-temps')
+ok(pReplPub > -1 && pCtrPub > -1 && pReplPub < pCtrPub,
+  'le repli précède la contrainte',
+  'un repli posé après sa contrainte ne sert à rien')
+ok(pVerifPub > -1 && pVerifPub < pCtrPub,
+  'la vérification lisible précède la contrainte',
+  'sans elle, un échec ressort en SQLSTATE illisible au lieu de nommer les lignes fautives')
+
+console.log('\n— repli ① bis : profils visibles non conformes → invisibles')
+const pReplProf  = pos('set visible = false')
+const pVerifProf = pos('sont encore visibles sans remplir les critères')
+const pCtrProf   = pos('add constraint profiles_visible_requiert_criteres_check')
+
+ok(pReplProf > -1 && pReplProf < pCtrProf, 'le repli des profils précède la contrainte')
+ok(pVerifProf > -1 && pVerifProf < pCtrProf, 'la vérification lisible précède la contrainte')
+ok(/get diagnostics v_masques = row_count/.test(C) && /raise notice/.test(C),
+  'le nombre de profils masqués est REMONTÉ à l opérateur',
+  'des experts deviennent invisibles sans être prévenus : le silence n est pas acceptable')
+
+console.log('\n— parité des prédicats (la dérive qui reproduirait la panne)')
+// Le repli et la contrainte sont deux écritures du MÊME prédicat, l'une en
+// négatif, l'autre en positif. Le jour où l'un gagne un critère sans l'autre,
+// la migration casse à nouveau. On vérifie que les deux citent les mêmes.
+const blocRepli = C.slice(pReplProf, pVerifProf)
+const blocCheck = C.slice(pCtrProf, pCtrProf + 600)
+for (const critere of ['branch_id', 'speciality_ids', 'seniorities', 'work_zone_ids',
+                       'availability_status', 'cdi_status', 'summary']) {
+  ok(blocRepli.includes(critere) && blocCheck.includes(critere),
+    `« ${critere} » cité des DEUX côtés`,
+    `présent seulement dans ${blocRepli.includes(critere) ? 'le repli' : 'la contrainte'} — la migration cassera`)
+}
+
+console.log('\n— échappement des messages d erreur')
+// En SQL, le préfixe E ne vaut QUE pour le littéral qu'il précède : dans une
+// concaténation, les suivants doivent porter le leur. Sans cela, « \n » sort
+// littéralement et l'opérateur lit une bouillie au lieu de la liste des lignes
+// fautives — précisément au moment où il en a le plus besoin. Défaut réel,
+// trouvé en relecture avant le second push.
+const litterauxFautifs = []
+for (const [f, src] of [[M_ZONES, SRC_ZONES], [M_CHAMPS, SRC_CHAMPS]]) {
+  src.split('\n').forEach((ligne, i) => {
+    const t = ligne.trimStart()
+    if (t.startsWith('--')) return
+    if (/^'/.test(t) && t.includes('\\n')) {
+      litterauxFautifs.push(`${f.split('/').pop()}:${i + 1}`)
+    }
+  })
+}
+ok(litterauxFautifs.length === 0,
+  'tout littéral contenant \\n porte son propre préfixe E',
+  litterauxFautifs.length ? `sans préfixe : ${litterauxFautifs.join(', ')}` : undefined)
+
+console.log('\n— l en-tête prévient un successeur')
+ok(/CE QUE CETTE MIGRATION FAIT AUX DONNÉES EXISTANTES/.test(SRC_CHAMPS),
+  'l en-tête porte une section dédiée aux effets sur les données existantes')
+ok(/Monde entier/.test(SRC_CHAMPS) && /PERSONNE N'A DÉCIDÉ CELA/.test(SRC_CHAMPS),
+  'l en-tête dit que des annonces deviennent mondiales sans que personne l ait décidé')
+ok(/INVISIBLES SANS ÊTRE\n--\s+PRÉVENUS/.test(SRC_CHAMPS),
+  'l en-tête dit que des experts deviennent invisibles sans être prévenus')
+
+// ══════════════════════════════════════════════════════════════════════════
 console.log(
   failures === 0
     ? '\n✅ Tous les contrôles passent.\n'
