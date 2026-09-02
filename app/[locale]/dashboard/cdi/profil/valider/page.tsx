@@ -290,7 +290,9 @@ export default function CdiValiderProfilPage() {
   }
   const FIELD_LABELS: Record<FieldKey, string> = {
     title: tProfile('field_labels_short.title'),
-    summary: tProfile('field_labels_short.summary'),
+    // Les bornes viennent du prédicat : un libellé qui les écrit en dur
+    // finit par annoncer « 20 caractères » alors que le serveur en exige 200.
+    summary: tProfile('field_labels_short.summary', { min: RESUME_MIN, max: RESUME_MAX }),
     skills: tProfile('field_labels_short.skills'),
     branch_id: tProfile('field_labels_short.branch_id'),
     speciality_ids: tProfile('field_labels_short.speciality_ids'),
@@ -305,7 +307,7 @@ export default function CdiValiderProfilPage() {
   }
   const FIELD_INLINE_ERRORS: Record<FieldKey, string> = {
     title: tProfile('field_errors.title'),
-    summary: tProfile('field_errors.summary'),
+    summary: tProfile('field_errors.summary', { min: RESUME_MIN, max: RESUME_MAX }),
     skills: tProfile('field_errors.skills'),
     branch_id: tProfile('field_errors.branch_id'),
     speciality_ids: tProfile('field_errors.speciality_ids'),

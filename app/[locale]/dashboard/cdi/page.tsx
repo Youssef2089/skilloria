@@ -37,6 +37,7 @@ import CandidatureCastingCard from '@/components/dashboard/CandidatureCastingCar
 import CastingRow from '@/components/dashboard/CastingRow'
 import type { MissionCardData } from '@/components/dashboard/MissionCard'
 import { useLiveResource } from '@/hooks/useLiveResource'
+import ProfilMasqueBanner from '@/components/profile/ProfilMasqueBanner'
 
 /**
  * Dashboard CDI — page content (SC7a Lot UX Finitions 2).
@@ -441,6 +442,16 @@ export default function DashboardCDI() {
       `}</style>
 
       <div style={{ padding: 28 }}>
+
+          {/* La raison NOMMÉE d'un profil invisible. Placée en tête : c'est le
+              premier écran de l'expert, et c'est là qu'il vient chercher
+              pourquoi il ne reçoit plus rien. Silencieuse si le profil est
+              visible ou si le verdict serveur est indisponible. */}
+          <ProfilMasqueBanner
+            namespace="cdi_profile_validation"
+            href="/dashboard/cdi/profil/valider"
+            accentColor={domain.primaryColor}
+          />
 
           {error && (
             <div

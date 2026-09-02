@@ -594,7 +594,7 @@
     "field_labels_short": {
       "cv_ready": "Lebenslauf hochgeladen und KI-Überprüfung akzeptiert",
       "title": "den beruflichen Titel",
-      "summary": "die Zusammenfassung (mindestens 20 Zeichen)",
+      "summary": "die Zusammenfassung (zwischen {min} und {max} Zeichen)",
       "skills": "mindestens 3 Kompetenzen",
       "branch_id": "den Hauptbereich",
       "speciality_id": "die Spezialisierung",
@@ -608,7 +608,7 @@
     },
     "field_errors": {
       "title": "Geben Sie Ihren beruflichen Titel an",
-      "summary": "Mindestens 20 Zeichen zum Veröffentlichen",
+      "summary": "Zwischen {min} und {max} Zeichen zum Veröffentlichen",
       "skills": "Fügen Sie mindestens 3 Kompetenzen hinzu",
       "branch_id": "Wählen Sie einen Bereich",
       "speciality_id": "Wählen Sie eine Spezialisierung",
@@ -779,6 +779,8 @@
       "summary_matching": {
         "summary_matching_help": "Diesen Text lesen wir, um Ihnen Projekte vorzuschlagen. Beschreiben Sie in eigenen Worten, was Sie können. Zwischen {min} und {max} Zeichen.",
         "summary_counter": "{count} / {max} Zeichen",
+        "incomplete_title": "Ihr Profil ist noch nicht sichtbar",
+        "incomplete_intro": "Solange diese Angaben fehlen, wird es Organisationen nicht vorgeschlagen. Es geht nichts verloren: Alles, was Sie bereits eingegeben haben, bleibt erhalten.",
         "hidden_title": "Ihr Profil ist nicht mehr sichtbar",
         "hidden_intro": "Für Projektvorschläge sind neue Angaben nötig geworden. Ihr Profil wurde vorübergehend ausgeblendet — es wurde nicht gelöscht.",
         "hidden_list_intro": "Noch zu ergänzen:",
@@ -1406,7 +1408,7 @@
     "field_labels_short": {
       "cv_ready": "Lebenslauf hochgeladen und KI-Überprüfung akzeptiert",
       "title": "die Berufsbezeichnung",
-      "summary": "die Zusammenfassung (mindestens 20 Zeichen)",
+      "summary": "die Zusammenfassung (zwischen {min} und {max} Zeichen)",
       "skills": "mindestens 3 Fähigkeiten",
       "branch_id": "den Hauptbereich",
       "speciality_id": "die Spezialisierung",
@@ -1423,7 +1425,7 @@
     },
     "field_errors": {
       "title": "Geben Sie Ihre Berufsbezeichnung ein",
-      "summary": "Mindestens 20 Zeichen zum Veröffentlichen",
+      "summary": "Zwischen {min} und {max} Zeichen zum Veröffentlichen",
       "skills": "Fügen Sie mindestens 3 Fähigkeiten hinzu",
       "branch_id": "Wählen Sie einen Bereich",
       "speciality_id": "Wählen Sie eine Spezialisierung",
@@ -1632,6 +1634,8 @@
       "summary_matching": {
         "summary_matching_help": "Diesen Text lesen wir, um Ihnen Projekte vorzuschlagen. Beschreiben Sie in eigenen Worten, was Sie können. Zwischen {min} und {max} Zeichen.",
         "summary_counter": "{count} / {max} Zeichen",
+        "incomplete_title": "Ihr Profil ist noch nicht sichtbar",
+        "incomplete_intro": "Solange diese Angaben fehlen, wird es Organisationen nicht vorgeschlagen. Es geht nichts verloren: Alles, was Sie bereits eingegeben haben, bleibt erhalten.",
         "hidden_title": "Ihr Profil ist nicht mehr sichtbar",
         "hidden_intro": "Für Projektvorschläge sind neue Angaben nötig geworden. Ihr Profil wurde vorübergehend ausgeblendet — es wurde nicht gelöscht.",
         "hidden_list_intro": "Noch zu ergänzen:",

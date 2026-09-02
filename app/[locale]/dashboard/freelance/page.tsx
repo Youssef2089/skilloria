@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
+import ProfilMasqueBanner from '@/components/profile/ProfilMasqueBanner'
 import { Link, useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
@@ -517,6 +518,16 @@ export default function DashboardFreelance() {
           que le CONTENU central. */}
 
         <div style={{ padding: '24px 26px', minWidth: 0 }}>
+
+          {/* La raison NOMMÉE d'un profil invisible. Placée en tête : c'est le
+              premier écran de l'expert, et c'est là qu'il vient chercher
+              pourquoi il ne reçoit plus rien. Silencieuse si le profil est
+              visible ou si le verdict serveur est indisponible. */}
+          <ProfilMasqueBanner
+            namespace="profile_validation"
+            href="/dashboard/freelance/profil/valider"
+            accentColor={domain.primaryColor}
+          />
 
           {/* Lot A : tuile "Score IA" retirée (UI placeholder vide qui
               n'alimentait rien). Le titre garde le même bloc d'en-tête. */}

@@ -594,7 +594,7 @@
     "field_labels_short": {
       "cv_ready": "CV subido y verificación por IA aceptada",
       "title": "tu título profesional",
-      "summary": "el resumen (20 caracteres mínimo)",
+      "summary": "el resumen (entre {min} y {max} caracteres)",
       "skills": "al menos 3 competencias",
       "branch_id": "la rama principal",
       "speciality_id": "la especialidad",
@@ -608,7 +608,7 @@
     },
     "field_errors": {
       "title": "Indica tu título profesional",
-      "summary": "Mínimo 20 caracteres para publicar",
+      "summary": "Entre {min} y {max} caracteres para publicar",
       "skills": "Añade al menos 3 competencias",
       "branch_id": "Selecciona una rama",
       "speciality_id": "Selecciona una especialidad",
@@ -779,6 +779,8 @@
       "summary_matching": {
         "summary_matching_help": "Este es el texto que leemos para proponerte misiones. Describe lo que sabes hacer, con tus palabras. Entre {min} y {max} caracteres.",
         "summary_counter": "{count} / {max} caracteres",
+        "incomplete_title": "Tu perfil aún no es visible",
+        "incomplete_intro": "No se mostrará a las organizaciones mientras falte esta información. No se pierde nada: todo lo que ya has introducido se conserva.",
         "hidden_title": "Tu perfil ya no es visible",
         "hidden_intro": "Se han vuelto necesarios nuevos campos para poder proponerte misiones. Tu perfil se ha ocultado mientras tanto — no se ha eliminado.",
         "hidden_list_intro": "Te queda por completar:",
@@ -1406,7 +1408,7 @@
     "field_labels_short": {
       "cv_ready": "CV subido y verificación por IA aceptada",
       "title": "el título profesional",
-      "summary": "el resumen (mínimo 20 caracteres)",
+      "summary": "el resumen (entre {min} y {max} caracteres)",
       "skills": "al menos 3 competencias",
       "branch_id": "la rama principal",
       "speciality_id": "la especialidad",
@@ -1423,7 +1425,7 @@
     },
     "field_errors": {
       "title": "Indica tu título profesional",
-      "summary": "Mínimo 20 caracteres para publicar",
+      "summary": "Entre {min} y {max} caracteres para publicar",
       "skills": "Añade al menos 3 competencias",
       "branch_id": "Selecciona una rama",
       "speciality_id": "Selecciona una especialidad",
@@ -1632,6 +1634,8 @@
       "summary_matching": {
         "summary_matching_help": "Este es el texto que leemos para proponerte misiones. Describe lo que sabes hacer, con tus palabras. Entre {min} y {max} caracteres.",
         "summary_counter": "{count} / {max} caracteres",
+        "incomplete_title": "Tu perfil aún no es visible",
+        "incomplete_intro": "No se mostrará a las organizaciones mientras falte esta información. No se pierde nada: todo lo que ya has introducido se conserva.",
         "hidden_title": "Tu perfil ya no es visible",
         "hidden_intro": "Se han vuelto necesarios nuevos campos para poder proponerte misiones. Tu perfil se ha ocultado mientras tanto — no se ha eliminado.",
         "hidden_list_intro": "Te queda por completar:",

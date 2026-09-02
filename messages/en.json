@@ -594,7 +594,7 @@
     "field_labels_short": {
       "cv_ready": "CV uploaded and AI verification accepted",
       "title": "your professional title",
-      "summary": "the summary (20 characters minimum)",
+      "summary": "the summary (between {min} and {max} characters)",
       "skills": "at least 3 skills",
       "branch_id": "the main branch",
       "speciality_id": "the speciality",
@@ -608,7 +608,7 @@
     },
     "field_errors": {
       "title": "Enter your professional title",
-      "summary": "Minimum 20 characters to publish",
+      "summary": "Between {min} and {max} characters to publish",
       "skills": "Add at least 3 skills",
       "branch_id": "Select a branch",
       "speciality_id": "Select a speciality",
@@ -779,6 +779,8 @@
       "summary_matching": {
         "summary_matching_help": "This is the text we read to suggest assignments to you. Describe what you can do, in your own words. Between {min} and {max} characters.",
         "summary_counter": "{count} / {max} characters",
+        "incomplete_title": "Your profile is not visible yet",
+        "incomplete_intro": "It will not be shown to organisations while this information is missing. Nothing is lost: everything you have already entered is kept.",
         "hidden_title": "Your profile is no longer visible",
         "hidden_intro": "New fields became necessary for us to suggest assignments to you. Your profile has been hidden in the meantime — it has not been deleted.",
         "hidden_list_intro": "What is left to complete:",
@@ -1406,7 +1408,7 @@
     "field_labels_short": {
       "cv_ready": "CV uploaded and AI verification accepted",
       "title": "your professional title",
-      "summary": "your summary (20 characters minimum)",
+      "summary": "the summary (between {min} and {max} characters)",
       "skills": "at least 3 skills",
       "branch_id": "the main branch",
       "speciality_id": "the specialty",
@@ -1423,7 +1425,7 @@
     },
     "field_errors": {
       "title": "Enter your professional title",
-      "summary": "Minimum 20 characters to publish",
+      "summary": "Between {min} and {max} characters to publish",
       "skills": "Add at least 3 skills",
       "branch_id": "Select a branch",
       "speciality_id": "Select a specialty",
@@ -1632,6 +1634,8 @@
       "summary_matching": {
         "summary_matching_help": "This is the text we read to suggest assignments to you. Describe what you can do, in your own words. Between {min} and {max} characters.",
         "summary_counter": "{count} / {max} characters",
+        "incomplete_title": "Your profile is not visible yet",
+        "incomplete_intro": "It will not be shown to organisations while this information is missing. Nothing is lost: everything you have already entered is kept.",
         "hidden_title": "Your profile is no longer visible",
         "hidden_intro": "New fields became necessary for us to suggest assignments to you. Your profile has been hidden in the meantime — it has not been deleted.",
         "hidden_list_intro": "What is left to complete:",

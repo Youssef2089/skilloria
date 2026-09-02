@@ -564,6 +564,105 @@ for (const fichier of SURFACES_DU_LOT) {
 console.log(`\n  ${clesVerifiees} clés littérales vérifiées dans les 4 langues.`)
 
 // ══════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════
+section('J. LA BANNIÈRE DIT POURQUOI, ET NE MENT PAS')
+// ══════════════════════════════════════════════════════════════════════════
+//
+// La migration a masqué des profils déjà publiés sans prévenir personne. La
+// bannière est la réparation : elle nomme les champs qui manquent et mène au
+// formulaire qui les contient. Nommable ET contestable — une raison qu'on ne
+// peut pas aller corriger n'est pas contestable.
+//
+// Trois façons de la rendre nuisible, et les trois sont vérifiées :
+//   • qu'elle RECALCULE de son côté et liste des champs que le serveur n'exige
+//     pas — ou en taise un qu'il exige ;
+//   • qu'elle PARLE sur une panne, et accuse un profil complet d'être vide ;
+//   • qu'elle affirme « votre profil a été masqué » à quelqu'un qui n'a jamais
+//     publié. Rien en base n'enregistre l'avoir été : la seule chose vérifiable
+//     est d'être passé par la vérification.
+
+const BANNIERE = read('components/profile/ProfilMasqueBanner.tsx')
+const ROUTE_VISIBILITE = read('app/api/profile/visibility/route.ts')
+
+console.log('\n— le verdict vient du serveur, et de lui seul')
+ok(/\/api\/profile\/visibility/.test(BANNIERE),
+  'la bannière lit le verdict serveur')
+ok(!/missingForVisibility/.test(BANNIERE),
+  'la bannière ne recalcule RIEN',
+  'un second calcul dérive, et finit par contredire le refus')
+ok(/missingForVisibility\(/.test(ROUTE_VISIBILITE),
+  'la route applique le prédicat partagé — le même que le refus')
+
+console.log('\n— elle se tait quand elle ne sait pas')
+{
+  // La branche « réponse non ok » doit SORTIR sans jamais poser de verdict.
+  // On la lit jusqu'à son `return`, en refusant qu'un setVerdict s'y glisse.
+  const brancheEchec = /if \(!res\.ok\)\s*\{((?:(?!setVerdict)[\s\S]){0,800}?)\breturn\b/.exec(BANNIERE)
+  ok(!!brancheEchec,
+    'verdict indisponible → aucune bannière',
+    'accuser un profil complet sur une panne de lecture est pire que se taire')
+}
+ok(/if \(!verdict\?\.applicable\) return null/.test(BANNIERE),
+  'pas de profil expert → aucune bannière')
+ok(/if \(verdict\.visible\) return null/.test(BANNIERE),
+  'profil visible → aucune bannière')
+ok(/manquants\.length === 0\) return null/.test(BANNIERE),
+  'rien à signaler → aucune bannière')
+
+console.log('\n— la route refuse de répondre plutôt que de compter zéro')
+ok(/expRes\.error \|\| langRes\.error[\s\S]{0,400}code: 'db_error'/.test(ROUTE_VISIBILITE),
+  'un comptage en panne fait échouer la réponse',
+  'un zéro emprunté à une panne ferait réclamer des expériences déjà saisies')
+ok(/if \(profErr\)[\s\S]{0,300}if \(!profile\)/.test(ROUTE_VISIBILITE),
+  'requête en ÉCHEC et profil ABSENT sont distingués',
+  'les confondre fait dire « complétez votre profil » sur un profil complet')
+
+console.log('\n— deux formulations, et la différence est un FAIT de la ligne')
+ok(/verification_approved/.test(ROUTE_VISIBILITE) && /verification_approved === true/.test(BANNIERE),
+  'la formulation « masqué » est réservée aux profils passés par la vérification',
+  'l écrire à quelqu un qui n a jamais publié serait un mensonge de plus')
+for (const espace of ['profile_validation', 'cdi_profile_validation']) {
+  for (const cle of [
+    'hidden_title', 'hidden_intro', 'incomplete_title', 'incomplete_intro',
+    'hidden_list_intro', 'hidden_cta',
+  ]) {
+    const chemin = `${espace}.sections.summary_matching.${cle}`
+    const absentes = LOCALES.filter((l) => !lire(MSG[l], chemin))
+    ok(absentes.length === 0, chemin, absentes.join(', ') || undefined)
+  }
+}
+
+console.log('\n— les bornes du résumé ne sont plus écrites en dur')
+for (const espace of ['profile_validation', 'cdi_profile_validation']) {
+  for (const chemin of [
+    `${espace}.field_labels_short.summary`,
+    `${espace}.field_errors.summary`,
+  ]) {
+    const fautives = LOCALES.filter((l) => {
+      const v = String(lire(MSG[l], chemin) ?? '')
+      return !v.includes('{min}') || !v.includes('{max}')
+    })
+    ok(fautives.length === 0, `${chemin} interpole ses bornes`,
+      fautives.length
+        ? `écrites en dur en : ${fautives.join(', ')} — elles annonçaient encore 20 caractères quand le serveur en exigeait 200`
+        : undefined)
+  }
+}
+
+console.log('\n— elle est montée là où l expert arrive')
+for (const accueil of [
+  'app/[locale]/dashboard/freelance/page.tsx',
+  'app/[locale]/dashboard/cdi/page.tsx',
+]) {
+  const src = read(accueil)
+  ok(/<ProfilMasqueBanner/.test(src), `${accueil} affiche la bannière`)
+  const espace = /namespace="([a-z_]+)"/.exec(src)?.[1]
+  const attendu = accueil.includes('/cdi/') ? 'cdi_profile_validation' : 'profile_validation'
+  ok(espace === attendu, `${accueil} passe le bon espace de noms (${espace})`,
+    'un espace erroné afficherait le CHEMIN des clés en clair')
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 console.log(
   failures === 0 ? '\n✅ Tous les contrôles passent.\n' : `\n❌ ${failures} contrôle(s) en échec.\n`,
 )
