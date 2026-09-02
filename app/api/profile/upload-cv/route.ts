@@ -84,7 +84,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   const { data: profile, error: profileErr } = await supabaseAdmin
     .from('profiles')
     .select(
-      'id, cv_file_path, cv_hash, cv_parsing_status, cv_parsing_count_24h, cv_parsing_reset_at, ai_consent_at, title, summary, seniority, years_experience, skills, certifications, branch_id, speciality_id, languages, location, tjm_min, tjm_max, linkedin_url, phone, address_line, postal_code, city, country, birth_year, photo_url, years_total_experience, work_modes',
+      'id, cv_file_path, cv_hash, cv_parsing_status, cv_parsing_count_24h, cv_parsing_reset_at, ai_consent_at, title, summary, seniorities, years_experience, skills, certifications, branch_id, speciality_ids, languages, location, tjm_min, tjm_max, linkedin_url, phone, address_line, postal_code, city, country, birth_year, photo_url, years_total_experience, work_modes',
     )
     .eq('user_id', user.id)
     .maybeSingle()
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       data: {
         title: profile.title,
         summary: profile.summary,
-        seniority: profile.seniority,
+        seniorities: profile.seniorities,
         years_experience: profile.years_experience,
         skills: profile.skills,
         certifications: profile.certifications,
@@ -254,7 +254,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const parsed = result.data
   let branchId: string | null = null
-  let specialityId: string | null = null
+  let specialityIds: string[] = []
   if (parsed.branch_slug) {
     const { data: br } = await supabaseAdmin
       .from('branches')
@@ -264,14 +264,18 @@ export async function POST(request: NextRequest): Promise<Response> {
       .maybeSingle()
     branchId = br?.id ?? null
   }
-  if (parsed.speciality_slug) {
-    const { data: sp } = await supabaseAdmin
+  // SPÉCIALITÉS multiples. On résout en LOT, et un slug que le modèle aurait
+  // inventé est simplement ignoré : ici, contrairement à la route PATCH, il n'y
+  // a pas d'utilisateur à qui rendre une erreur — c'est une extraction, pas une
+  // saisie. Le profil reste modifiable à l'écran.
+  if (parsed.speciality_slugs.length > 0) {
+    const { data: sps } = await supabaseAdmin
       .from('specialities')
       .select('id')
       .eq('domain_id', user.domain_id)
-      .eq('slug', parsed.speciality_slug)
-      .maybeSingle()
-    specialityId = sp?.id ?? null
+      .eq('active', true)
+      .in('slug', parsed.speciality_slugs)
+    specialityIds = ((sps ?? []) as Array<{ id: string }>).map((x) => x.id)
   }
 
   // COALESCE: ne pas écraser ce que le user a déjà rempli manuellement
@@ -292,12 +296,12 @@ export async function POST(request: NextRequest): Promise<Response> {
       cv_parsing_error: null,
       title: coalesce(profile.title, parsed.title),
       summary: coalesce(profile.summary, parsed.summary),
-      seniority: coalesce(profile.seniority, parsed.seniority),
+      seniorities: coalesce(profile.seniorities as string[] | null, parsed.seniorities),
       years_experience: coalesce(profile.years_experience, parsed.years_experience),
       skills: coalesce(profile.skills as any, parsed.skills),
       certifications: coalesce(profile.certifications as any, parsed.certifications),
       branch_id: coalesce(profile.branch_id, branchId),
-      speciality_id: coalesce(profile.speciality_id, specialityId),
+      speciality_ids: coalesce(profile.speciality_ids as string[] | null, specialityIds),
       languages: coalesce(profile.languages as any, parsed.languages),
       location: coalesce(profile.location, parsed.location),
       tjm_min: coalesce(profile.tjm_min, parsed.tjm_min),

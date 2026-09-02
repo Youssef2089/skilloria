@@ -49,26 +49,24 @@ const RACINES = ['app', 'lib', 'components']
 const DETTE = {
   // ── Écrans et routes à reprendre (lot 2c) ────────────────────────────────
   'app/api/admin/get-branch/[id]/route.ts': 4,
-  'app/api/me/candidatures/route.ts': 3,
-  'app/api/me/conversations/route.ts': 3,
-  'app/api/me/missions/route.ts': 3,
-  'app/api/me/missions/[id]/route.ts': 3,
-  'app/api/profile/cv-status/[jobId]/route.ts': 3,
-  'app/api/profile/upload-cv/route.ts': 3,
-  'app/api/publications/[id]/route.ts': 3,
+  'app/[locale]/dashboard/cdi/profil/valider/page.tsx': 3,
   'app/[locale]/dashboard/freelance/profil/valider/page.tsx': 3,
   'app/api/admin/delete-speciality/route.ts': 2,
   'app/api/candidatures/route.ts': 2,
-  'app/api/publications/[id]/publish/route.ts': 2,
-  'app/[locale]/dashboard/cdi/profil/valider/page.tsx': 2,
+  'app/api/me/candidatures/route.ts': 2,
+  'app/api/me/conversations/route.ts': 2,
+  'app/api/me/missions/route.ts': 2,
+  'app/api/me/missions/[id]/route.ts': 2,
+  'app/api/profile/cv-status/[jobId]/route.ts': 2,
+  'app/api/publications/[id]/route.ts': 2,
   'app/[locale]/dashboard/freelance/mon-profil/page.tsx': 2,
   'lib/candidature-org-dto.ts': 2,
+  'lib/hooks/useCdiProfile.ts': 2,
   'lib/verification/expert-verification.ts': 2,
   'app/api/admin/get-expert/[id]/route.ts': 1,
   'app/api/admin/list-experts/route.ts': 1,
+  'app/api/publications/[id]/publish/route.ts': 1,
   'app/[locale]/dashboard/freelance/page.tsx': 1,
-  'lib/cv-parser.ts': 1,
-  'lib/cv-parser-cdi.ts': 1,
 
   // ── Code RÉÉCRIT au lot 4 : ne pas le reprendre ─────────────────────────
   //  Claude sort du matching. index.ts, run-for-expert.ts et shared.ts sont
@@ -79,8 +77,8 @@ const DETTE = {
   //  CONSÉQUENCE ASSUMÉE : le matching est INOPÉRANT jusqu'au lot 4 — ses
   //  requêtes citent des colonnes supprimées. Ce n'est pas une régression de
   //  ce lot-ci, c'est l'état depuis la migration, et c'est délibéré.
-  'lib/matching/run-for-expert.ts': 4,
-  'lib/matching/index.ts': 3,
+  'lib/matching/run-for-expert.ts': 3,
+  'lib/matching/index.ts': 2,
   'lib/matching/shared.ts': 1,
 }
 
@@ -129,9 +127,42 @@ function chainesDe(ligne) {
 const estListeDeColonnes = (c) =>
   /^[\s(]*[a-z][a-z0-9_]*\s*(\([^)]*\))?\s*(,\s*[a-z][a-z0-9_]*\s*(\([^)]*\))?\s*)+,?\s*$/.test(c)
 
+/**
+ * Quatrième forme, trouvée par un second faux négatif : certaines routes
+ * listent leurs colonnes UNE PAR LIGNE —
+ *
+ *     'title',
+ *     'summary',
+ *     'seniority',
+ *
+ * Chaque ligne ne porte alors qu'un mot, et la règle « trois sur la même
+ * ligne » les laissait toutes passer. Trois lignes CONSÉCUTIVES ne portant
+ * chacune qu'un identifiant snake_case ne sont pas un hasard non plus.
+ *
+ * Rend l'ensemble des numéros de ligne appartenant à une telle suite.
+ */
+function lignesDeListeVerticale(lignes) {
+  const seule = (l) => /^'[a-z][a-z0-9_]*',?$/.test(l.trim())
+  const dedans = new Set()
+  let debut = -1
+  for (let i = 0; i <= lignes.length; i++) {
+    if (i < lignes.length && seule(lignes[i])) {
+      if (debut === -1) debut = i
+    } else {
+      if (debut !== -1 && i - debut >= 3) {
+        for (let k = debut; k < i; k++) dedans.add(k)
+      }
+      debut = -1
+    }
+  }
+  return dedans
+}
+
 function occurrencesDe(src) {
   const trouvees = []
-  src.split('\n').forEach((ligne, i) => {
+  const lignes = src.split('\n')
+  const verticales = lignesDeListeVerticale(lignes)
+  lignes.forEach((ligne, i) => {
     const t = ligne.trim()
     if (t.startsWith('//') || t.startsWith('*')) return
     const chaines = chainesDe(ligne)
@@ -144,7 +175,7 @@ function occurrencesDe(src) {
     // Trois identifiants snake_case nus sur une même ligne ne sont pas un
     // hasard : c'est une liste de colonnes.
     const nus = chaines.filter((c) => /^[a-z][a-z0-9_]*$/.test(c))
-    const contexteRequete = APPELS_POSTGREST.test(ligne) || nus.length >= 3
+    const contexteRequete = APPELS_POSTGREST.test(ligne) || nus.length >= 3 || verticales.has(i)
 
     for (const c of chaines) {
       const pertinent = contexteRequete || estListeDeColonnes(c)
@@ -157,7 +188,7 @@ function occurrencesDe(src) {
       // publications.location a été renommée — on ne signale donc que les
       // chaînes qui citent aussi une colonne exclusive aux publications.
       if (/\blocation\b/.test(c)
-        && /(skills_required|work_mode|budget_min|confidential|start_date)/.test(c)) {
+        && /(skills_required|work_mode|budget_min|confidential|start_date)/.test(c)) {
         trouvees.push({ l: i + 1, nom: 'location (publications)', t })
       }
     }
