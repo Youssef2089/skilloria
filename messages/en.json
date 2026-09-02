@@ -2750,7 +2750,22 @@
           "label": "Rate-limit counter purge",
           "description": "Deletes rate-limiting counters older than 24 hours."
         }
-      }
+      },
+      "banner_action": "View scheduled tasks",
+      "history_title": "Run history",
+      "history_depth_notice": "The scheduler keeps 30 days of runs; beyond that, the history is cleared by the daily housekeeping.",
+      "history_empty_title": "No run recorded",
+      "history_empty_body": "This task is scheduled but the scheduler kept no trace of it. Either it has never run, or its runs are older than 30 days.",
+      "runs_count": "{count, plural, =0 {no run} =1 {# run} other {# runs}}",
+      "run_running": "running",
+      "duration_ms": "{ms} ms",
+      "duration_s": "{s} s",
+      "http_no_verdict": "no verdict",
+      "not_found_title": "Task not found",
+      "not_found_body": "No task named “{name}” is scheduled in the database.",
+      "page_of": "Page {page} of {pages}",
+      "prev": "Previous",
+      "next": "Next"
     }
   },
   "expert_verification": {

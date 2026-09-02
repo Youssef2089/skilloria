@@ -9,6 +9,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
 import SessionHeartbeat from '@/components/SessionHeartbeat'
 import DeletionGate from '@/components/DeletionGate'
 import GlobalBackButton from '@/components/shell/GlobalBackButton'
+import CronComplianceBanner from '@/components/admin/CronComplianceBanner'
 import LegalFooter from '@/components/layout/LegalFooter'
 import { ADMIN_NAV_SECTIONS } from '@/lib/nav-config'
 
@@ -342,6 +343,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       <main className="admin-main" style={{ padding: '24px 26px', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <GlobalBackButton />
+        {/* Conformité : une obligation légale désactivée est justement ce qu'on
+            n'ira pas vérifier spontanément. Le bandeau vit donc ICI, sur toutes
+            les pages du back-office — il doit trouver l'administrateur, pas
+            l'inverse. Il ne rend rien quand tout va bien, ni en cas d'erreur. */}
+        <CronComplianceBanner />
         <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
         {/* Point B — accès universel aux pages légales depuis l'admin. */}
         <div style={{ marginTop: 24 }}>

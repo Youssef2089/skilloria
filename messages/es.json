@@ -2750,7 +2750,22 @@
           "label": "Purga de los contadores de tasa",
           "description": "Borra los contadores de limitación de tasa de más de 24 horas."
         }
-      }
+      },
+      "banner_action": "Ver las tareas programadas",
+      "history_title": "Historial de ejecución",
+      "history_depth_notice": "El planificador conserva 30 días de ejecuciones; más allá, el historial lo borra la limpieza diaria.",
+      "history_empty_title": "Ninguna ejecución registrada",
+      "history_empty_body": "Esta tarea está programada pero el planificador no ha guardado ningún rastro. O nunca se ha ejecutado, o sus ejecuciones tienen más de 30 días.",
+      "runs_count": "{count, plural, =0 {ninguna ejecución} =1 {# ejecución} other {# ejecuciones}}",
+      "run_running": "en curso",
+      "duration_ms": "{ms} ms",
+      "duration_s": "{s} s",
+      "http_no_verdict": "sin veredicto",
+      "not_found_title": "Tarea no encontrada",
+      "not_found_body": "No hay ninguna tarea llamada «{name}» programada en la base de datos.",
+      "page_of": "Página {page} de {pages}",
+      "prev": "Anterior",
+      "next": "Siguiente"
     }
   },
   "expert_verification": {

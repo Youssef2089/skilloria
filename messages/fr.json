@@ -2750,7 +2750,22 @@
           "label": "Purge des compteurs de débit",
           "description": "Efface les compteurs de limitation de débit de plus de 24 heures."
         }
-      }
+      },
+      "banner_action": "Voir les tâches planifiées",
+      "history_title": "Historique d’exécution",
+      "history_depth_notice": "L’ordonnanceur conserve 30 jours d’exécutions ; au-delà, l’historique est effacé par le ménage quotidien.",
+      "history_empty_title": "Aucune exécution enregistrée",
+      "history_empty_body": "Cette tâche est planifiée mais l’ordonnanceur n’en a gardé aucune trace. Soit elle n’a jamais tourné, soit ses exécutions ont plus de 30 jours.",
+      "runs_count": "{count, plural, =0 {aucune exécution} =1 {# exécution} other {# exécutions}}",
+      "run_running": "en cours",
+      "duration_ms": "{ms} ms",
+      "duration_s": "{s} s",
+      "http_no_verdict": "aucun verdict",
+      "not_found_title": "Tâche introuvable",
+      "not_found_body": "Aucune tâche nommée « {name} » n’est planifiée dans la base.",
+      "page_of": "Page {page} sur {pages}",
+      "prev": "Précédent",
+      "next": "Suivant"
     }
   },
   "expert_verification": {

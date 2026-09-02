@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
@@ -155,9 +156,6 @@ export default function AdminScheduledTasksPage() {
     [t],
   )
 
-  /** Obligations légales désactivées — le bandeau qui ne doit jamais s'oublier. */
-  const legalDisabled = (jobs ?? []).filter((j) => j.health === 'legal_disabled')
-
   const card: React.CSSProperties = {
     borderRadius: 12,
     padding: '16px 18px',
@@ -167,33 +165,11 @@ export default function AdminScheduledTasksPage() {
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit' }}>
-      {/* ─── BANDEAU DE CONFORMITÉ ────────────────────────────────────────
-          Permanent, non refermable, tant qu'une obligation légale est
-          désactivée. Youssef doit pouvoir désactiver une purge ; il ne doit
-          pas pouvoir l'oublier. */}
-      {legalDisabled.length > 0 && (
-        <div
-          role="alert"
-          style={{
-            marginBottom: 18, padding: '14px 18px', borderRadius: 12,
-            background: '#FEE2E2', border: '1.5px solid #FCA5A5', color: '#991B1B',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-            <span aria-hidden style={{ width: 9, height: 9, borderRadius: '50%', background: '#DC2626' }} />
-            <strong style={{ fontSize: 14, fontWeight: 700 }}>{t('banner_title')}</strong>
-          </div>
-          <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-            {t('banner_body', {
-              count: legalDisabled.length,
-              jobs: legalDisabled.map(labelOf).join(', '),
-            })}
-          </div>
-          <div style={{ fontSize: 13, lineHeight: 1.6, marginTop: 4, opacity: 0.9 }}>
-            {t('banner_hint')}
-          </div>
-        </div>
-      )}
+      {/* AUCUN bandeau de conformité local : <CronComplianceBanner /> est monté
+          dans le layout admin, donc DÉJÀ rendu au-dessus de cette page — et sur
+          toutes les autres. En poser un second ici en donnerait deux, empilés,
+          sur le seul écran où il était le moins utile : celui qu'on ouvre déjà
+          pour regarder les tâches. Même règle que le bouton Retour global. */}
 
       <header style={{ marginBottom: 18 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary, #0f172a)', margin: 0, letterSpacing: '-0.2px' }}>
@@ -253,9 +229,18 @@ export default function AdminScheduledTasksPage() {
               <span aria-hidden style={{ width: 9, height: 9, borderRadius: '50%', background: tone.dot, marginTop: 6, flexShrink: 0 }} />
               <div style={{ flex: '1 1 320px', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
-                  <strong style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary, #0f172a)' }}>
+                  {/* Vers la fiche : l'historique répond à « depuis quand ? »,
+                      question que la liste ne peut pas trancher (elle ne montre
+                      que la dernière exécution). */}
+                  <Link
+                    href={`/admin/taches-planifiees/${encodeURIComponent(j.job_name)}`}
+                    style={{
+                      fontSize: 15, fontWeight: 700,
+                      color: 'var(--color-text-primary, #0f172a)', textDecoration: 'none',
+                    }}
+                  >
                     {labelOf(j)}
-                  </strong>
+                  </Link>
                   <Badge tone={j.criticality === 'legal' ? 'legal' : 'neutral'}>
                     {j.criticality === 'legal' ? t('badge_legal') : t('badge_technical')}
                   </Badge>

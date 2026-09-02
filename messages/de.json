@@ -2750,7 +2750,22 @@
           "label": "Löschung der Ratenzähler",
           "description": "Entfernt Zähler der Ratenbegrenzung, die älter als 24 Stunden sind."
         }
-      }
+      },
+      "banner_action": "Geplante Aufgaben ansehen",
+      "history_title": "Ausführungsverlauf",
+      "history_depth_notice": "Der Planer bewahrt 30 Tage an Ausführungen auf; darüber hinaus wird der Verlauf von der täglichen Bereinigung gelöscht.",
+      "history_empty_title": "Keine Ausführung erfasst",
+      "history_empty_body": "Diese Aufgabe ist geplant, doch der Planer hat keine Spur davon behalten. Entweder lief sie nie, oder ihre Ausführungen sind älter als 30 Tage.",
+      "runs_count": "{count, plural, =0 {keine Ausführung} =1 {# Ausführung} other {# Ausführungen}}",
+      "run_running": "läuft",
+      "duration_ms": "{ms} ms",
+      "duration_s": "{s} s",
+      "http_no_verdict": "kein Ergebnis",
+      "not_found_title": "Aufgabe nicht gefunden",
+      "not_found_body": "In der Datenbank ist keine Aufgabe namens „{name}“ geplant.",
+      "page_of": "Seite {page} von {pages}",
+      "prev": "Zurück",
+      "next": "Weiter"
     }
   },
   "expert_verification": {

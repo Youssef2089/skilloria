@@ -180,9 +180,14 @@ ok(/min_gap_minutes/.test(catalog), 'l’ecart minimal de la chaine est declare'
 // ═══ E. L'ECRAN ════════════════════════════════════════════════════════════
 section('E. Ecran')
 
-ok(/banner_title/.test(screen) && /legal_disabled/.test(screen),
-  'bandeau de conformite pilote par l’etat legal_disabled')
-ok(/role="alert"/.test(screen), 'le bandeau est annonce aux lecteurs d’ecran')
+// Le bandeau a DEMENAGE dans le layout au lot 1 : ces deux controles visaient
+// l'ecran des taches, ils visent desormais le composant partage. Les laisser
+// pointer sur l'ecran les aurait rendus contradictoires avec le controle
+// « l'ecran ne rend PAS un second bandeau » (section E2).
+ok(/banner_title/.test(stripComments(read('components/admin/CronComplianceBanner.tsx'))),
+  'bandeau de conformite : libelle porte par le composant partage')
+ok(/role="alert"/.test(stripComments(read('components/admin/CronComplianceBanner.tsx'))),
+  'le bandeau est annonce aux lecteurs d’ecran')
 ok(/migration_pending/.test(screen) && /migration_pending/.test(route),
   'migration non poussee : etat DEDIE, jamais un ecran mort')
 ok(/empty_title/.test(screen), 'etat vide traite explicitement')
@@ -196,6 +201,73 @@ ok(/section_exploitation/.test(navConfig) && /taches-planifiees/.test(navConfig)
 ok(!/batchs/i.test(navConfig),
   'l’ecran ne s’appelle pas « batchs »',
   'le chantier matching introduira des batchs au sens de tranches — deux sens pour un mot')
+
+// ═══ E2. HISTORIQUE ET BANDEAU GLOBAL (lot 1) ══════════════════════════════
+section('E2. Historique pagine et bandeau global')
+
+const HISTORY_SQL = 'supabase/migrations/20260902000000_cron_job_runs_history.sql'
+const history = stripComments(read(HISTORY_SQL))
+const runsRoute = stripComments(read('app/api/admin/cron-jobs/[name]/runs/route.ts'))
+const detail = stripComments(read('app/[locale]/admin/taches-planifiees/[job_name]/page.tsx'))
+const banner = stripComments(read('components/admin/CronComplianceBanner.tsx'))
+const adminLayout = stripComments(read('app/[locale]/admin/layout.tsx'))
+
+// L'ossature de l'historique doit rester cron.job_run_details : c'est la SEULE
+// source universelle. cron_run_log n'existe que pour les taches HTTP — en faire
+// l'ossature ferait disparaitre les trois taches SQL pures de leur propre
+// historique.
+ok(/from cron\.job_run_details/.test(history),
+  'l’ossature de l’historique est cron.job_run_details (source universelle)',
+  'cron_run_log n’existe que pour les taches HTTP — il ne peut pas servir d’ossature')
+ok(/left join lateral/.test(history) && /public\.cron_run_log/.test(history),
+  'le verdict HTTP est recoupe en LEFT JOIN — jamais exige')
+// Le recoupement par FENETRE, pas par proximite de date : trigger_purge_cron
+// insere sa ligne DANS la transaction du job.
+ok(/ll\.requested_at >= r\.start_time/.test(history) &&
+   /ll\.requested_at <= coalesce\(r\.end_time/.test(history),
+  'recoupement par la FENETRE d’execution, pas par proximite de date',
+  'une heuristique de proximite rattacherait le mauvais appel au mauvais run')
+ok(/count\(\*\) over \(\)/.test(history),
+  'total EXACT par fenetre SQL — aucun ecretage muet (lecon MAX_ORGS)')
+ok(/least\(coalesce\(p_limit, 25\), 200\)/.test(history),
+  'la taille de page est bornee cote base, pas seulement cote route')
+ok(!/cron\.schedule|cron\.alter_job|cron\.unschedule/.test(history),
+  'lot 1 en LECTURE SEULE : l’historique ne planifie rien')
+ok(/revoke all on function public\.admin_cron_job_runs/.test(history) &&
+   /grant execute on function public\.admin_cron_job_runs\(text, integer, integer\)\s*\n?\s*to service_role/.test(history),
+  'admin_cron_job_runs : revoquee puis grantee au seul service_role')
+ok(!/grant\s+(usage|all)\s+on\s+schema\s+cron/i.test(history),
+  'aucun grant sur le schema cron dans la migration d’historique')
+
+// La fiche ne doit pas RECALCULER l'etat de sante : une seconde formule
+// finirait par contredire la liste.
+ok(/rpc\('admin_cron_jobs_overview'\)/.test(runsRoute),
+  'la fiche lit l’etat de sante de la MEME source que la liste',
+  'le recalculer ici garantirait qu’un jour les deux ecrans se contredisent')
+ok(/code: 'not_found'/.test(runsRoute),
+  'un nom inexistant renvoie 404 — distinct d’un historique vide')
+ok(/health\./.test(detail) && !/const SEVERITY/.test(detail),
+  'la fiche AFFICHE l’etat de sante sans le recalculer')
+
+// Page de DETAIL : le bouton Retour est celui du layout, unique.
+ok(!/back_to|Retour/.test(detail.replace(/AUCUN bouton Retour[\s\S]*?\*\//, '')),
+  'fiche : aucun bouton Retour local (le global du layout suffit)')
+
+// UN SEUL bandeau, monte dans le layout.
+// Ancre sur l'USAGE JSX, pas sur le nom du composant : demonter la balise
+// laisse l'import en place, et le controle restait vert (constate au test de
+// mutation). Un import n'a jamais rendu un bandeau.
+ok(/<CronComplianceBanner\s*\/>/.test(adminLayout),
+  'le bandeau de conformite est MONTE dans le layout admin',
+  'sur le seul ecran des taches, il faudrait deja soupconner le probleme pour le voir')
+ok(!/banner_title/.test(stripComments(read('app/[locale]/admin/taches-planifiees/page.tsx'))),
+  'l’ecran des taches ne rend PAS un second bandeau',
+  'deux bandeaux empiles — meme defaut que deux boutons Retour')
+ok(/legal_disabled/.test(banner),
+  'le bandeau se declenche sur l’etat legal_disabled, pas sur une liste de noms')
+ok(/catch \{/.test(banner) && /return null/.test(banner),
+  'le bandeau ne casse JAMAIS le layout en cas d’erreur',
+  'un bandeau d’alerte qui empeche d’afficher le back-office est pire que le probleme')
 
 // ═══ F. LE DIAGNOSTIC EXISTANT NE DOIT PAS CASSER ══════════════════════════
 section('F. diag-cron-purges reste utilisable')
@@ -217,6 +289,7 @@ ok(!/cron_purge_health/.test(readFns),
 // ═══ G. i18n — 4 LANGUES ═══════════════════════════════════════════════════
 section('G. i18n')
 
+const LOT1_KEYS = ['banner_action','history_title','history_depth_notice','history_empty_title','history_empty_body','runs_count','run_running','duration_ms','duration_s','http_no_verdict','not_found_title','not_found_body','page_of','prev','next']
 const HEALTH = ['legal_disabled', 'never_ran', 'failed', 'stale', 'repeated_failures',
   'verdict_missing', 'disabled', 'uncatalogued', 'ok']
 const JOBS = ['purge_deletions', 'purge_inactive', 'reconcile', 'log_purge', 'rate_limit_purge']
@@ -226,7 +299,7 @@ for (const loc of ['fr', 'en', 'es', 'de']) {
   const missing = []
   for (const k of ['title', 'subtitle', 'utc_hint', 'banner_title', 'banner_body', 'banner_hint',
     'migration_pending_title', 'migration_pending_body', 'badge_legal', 'badge_uncatalogued',
-    'schedule_advanced', 'chain_notice', 'uncatalogued_body']) {
+    'schedule_advanced', 'chain_notice', 'uncatalogued_body', ...LOT1_KEYS]) {
     if (!c?.[k]) missing.push(k)
   }
   for (const h of HEALTH) if (!c?.health?.[h]) missing.push(`health.${h}`)
