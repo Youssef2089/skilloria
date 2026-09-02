@@ -1987,6 +1987,7 @@
       "not_found": "Anzeige nicht gefunden.",
       "forbidden": "Sie haben keinen Zugriff auf diese Anzeige.",
       "wrong_status": "Aktion im aktuellen Status nicht möglich.",
+      "missing_fields": "Vor der Veröffentlichung fehlen noch Angaben: {fields}.",
       "invalid_type": "Ungültiger Anzeigentyp.",
       "invalid_title": "Ungültiger Titel (5 bis 200 Zeichen).",
       "invalid_description": "Ungültige Beschreibung (20 bis 10.000 Zeichen).",

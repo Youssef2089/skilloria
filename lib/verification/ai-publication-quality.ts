@@ -69,9 +69,13 @@ export type PublicationQualityInput = {
   title: string
   description: string
   skills_required: string[]
-  seniority?: string | null
+  // Multiple depuis le passage aux critères multivalués. Un ensemble vide dit
+  // « aucune contrainte de séniorité », pas « personne ».
+  seniorities?: string[] | null
   work_mode?: string | null
-  location?: string | null
+  // Texte libre d'appoint. Ce n'est PAS un critère de mise en relation — ce
+  // sont les zones de travail qui la décident.
+  location_note?: string | null
   duration?: string | null
   budget_min?: number | null
   budget_max?: number | null
@@ -144,9 +148,9 @@ function buildPrompt(input: PublicationQualityInput): string {
   const title = sanitize(input.title, 300)
   const description = sanitize(input.description, 10_000)
   const skills = sanitizeArray(input.skills_required, 50, 80)
-  const seniority = sanitize(input.seniority, 50) || '(non précisé)'
+  const seniority = sanitize((input.seniorities ?? []).join(', '), 100) || '(non précisé)'
   const workMode = sanitize(input.work_mode, 50) || '(non précisé)'
-  const location = sanitize(input.location, 200) || '(non précisé)'
+  const location = sanitize(input.location_note, 200) || '(non précisé)'
   const duration = sanitize(input.duration, 100) || '(non précisé)'
   const budget = formatBudget(input.budget_min, input.budget_max, input.type)
   const langName = languageName(input.locale)

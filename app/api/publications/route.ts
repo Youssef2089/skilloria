@@ -259,6 +259,35 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
   }
 
+  // ── ZONES DE TRAVAIL : des CODES en entrée, des uuid en base ────────────
+  //
+  // `work_zone_codes` était validé puis JETÉ : l'insert ne portait pas la
+  // colonne. Une annonce créée avec des zones les perdait sans un mot, et comme
+  // les zones conditionnent la publication, l'organisation se retrouvait bloquée
+  // sur un champ qu'elle venait de remplir.
+  //
+  // Résolution par code stable, jamais par uuid transmis. Un code inconnu fait
+  // échouer la requête ENTIÈRE : enregistrer une sélection amputée reviendrait à
+  // publier une annonce qui ne cherche pas là où on croit qu'elle cherche.
+  let zoneIds: string[] = []
+  if (input.work_zone_codes.length > 0) {
+    const { data: wzs, error: wzErr } = await auth.supabaseAdmin
+      .from('work_zones')
+      .select('id, code')
+      .eq('active', true)
+      .in('code', input.work_zone_codes)
+    if (wzErr) {
+      console.error('[publications:POST] lecture des zones en échec', wzErr.message)
+      return json({ error: 'Query failed', code: 'db_error' }, 500)
+    }
+    const trouvees = (wzs ?? []) as Array<{ id: string; code: string }>
+    if (trouvees.length !== input.work_zone_codes.length) {
+      const inconnus = input.work_zone_codes.filter((c) => !trouvees.some((t) => t.code === c))
+      return json({ error: 'Unknown work zone', code: 'bad_work_zone', unknown: inconnus }, 400)
+    }
+    zoneIds = trouvees.map((t) => t.id)
+  }
+
   // ── INSERT brouillon ────────────────────────────────────────────────────
   const { data: row, error: insertErr } = await auth.supabaseAdmin
     .from('publications')
@@ -280,6 +309,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       branch_id: input.branch_id,
       speciality_ids: input.speciality_ids,
       speciality_other: input.speciality_other,
+      work_zone_ids: zoneIds,
       confidential: input.confidential,
       status: 'draft',
     })

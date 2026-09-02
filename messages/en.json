@@ -1987,6 +1987,7 @@
       "not_found": "Listing not found.",
       "forbidden": "You do not have access to this listing.",
       "wrong_status": "Action not allowed in the current status.",
+      "missing_fields": "Some information is missing before publishing: {fields}.",
       "invalid_type": "Invalid listing type.",
       "invalid_title": "Invalid title (5 to 200 characters).",
       "invalid_description": "Invalid description (20 to 10,000 characters).",

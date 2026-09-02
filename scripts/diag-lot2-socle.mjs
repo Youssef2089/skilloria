@@ -430,6 +430,82 @@ for (const form of FORMULAIRES) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════
+section('H. LA CHAÎNE DE L ANNONCE — ce qui est saisi arrive en base')
+// ══════════════════════════════════════════════════════════════════════════
+//
+// Un champ peut être offert à l'écran, transmis, VALIDÉ par la route… et jeté.
+// C'est exactement ce qui arrivait aux zones de travail : `work_zone_codes`
+// était lu et contrôlé par la route de création, puis l'INSERT ne portait pas
+// la colonne. L'organisation choisissait ses zones, ne voyait aucune erreur, et
+// se retrouvait bloquée à la publication sur un champ qu'elle venait de
+// remplir. Rien, dans tsc ni dans le build, ne dit cela.
+//
+// Ce contrôle relie les trois maillons : ce que le FORMULAIRE envoie, ce que la
+// ROUTE lit, ce que l'INSERT écrit.
+
+const FORM_ANNONCE = read('components/dashboard/PublicationForm.tsx')
+const POST_ANNONCE = read('app/api/publications/route.ts')
+const PATCH_ANNONCE = read('app/api/publications/[id]/route.ts')
+const PUBLISH_ANNONCE = read('app/api/publications/[id]/publish/route.ts')
+
+console.log('\n— ce que le formulaire envoie, les routes le lisent')
+for (const champ of ['speciality_ids', 'seniorities', 'work_zone_codes', 'location_note']) {
+  ok(new RegExp(`\\b${champ}:`).test(FORM_ANNONCE), `le formulaire envoie « ${champ} »`)
+  ok(new RegExp(`body\\.${champ}\\b`).test(POST_ANNONCE), `la création lit « ${champ} »`)
+  ok(new RegExp(`'${champ}' in body|body\\.${champ}\\b`).test(PATCH_ANNONCE),
+    `l édition lit « ${champ} »`)
+}
+
+console.log('\n— rien n est validé puis jeté')
+// Les colonnes que l'INSERT de création écrit réellement.
+const blocInsert = /\.insert\(\{([\s\S]*?)\n    \}\)/.exec(POST_ANNONCE)?.[1] ?? ''
+ok(blocInsert.length > 0, 'bloc INSERT localisé')
+// Chaque champ de ValidatedInput doit finir quelque part dans cet INSERT.
+const blocValide = /type ValidatedInput = \{([\s\S]*?)\n\}/.exec(POST_ANNONCE)?.[1] ?? ''
+const champsValides = [...blocValide.matchAll(/^\s{2}([a-z_]+):/gm)].map((m) => m[1])
+ok(champsValides.length >= 10, `ValidatedInput lu (${champsValides.length} champs)`)
+// Seule exception ADMISE, et elle est nommée : les zones entrent en CODES et
+// sortent en uuid. Toute autre exception est un champ jeté.
+const RENOMMAGES_ADMIS = { work_zone_codes: 'work_zone_ids' }
+for (const champ of champsValides) {
+  const cible = RENOMMAGES_ADMIS[champ]
+  const present = cible
+    ? new RegExp(`\\b${cible}:`).test(blocInsert)
+    : new RegExp(`input\\.${champ}\\b`).test(blocInsert)
+  ok(present, `« ${champ} » est écrit en base${cible ? ` (sous ${cible})` : ''}`,
+    'validé puis jeté : l utilisateur ne verrait aucune erreur et perdrait sa saisie')
+}
+
+console.log('\n— publier refuse en NOMMANT, et refuse tôt')
+ok(/missingForPublish\(/.test(PUBLISH_ANNONCE),
+  'publier applique le prédicat partagé',
+  'sans lui, seule la contrainte de base refuse — et l org lit « db_error »')
+ok(/code: 'missing_fields', missing: manquants/.test(PUBLISH_ANNONCE),
+  'le refus rend la LISTE des champs manquants',
+  'un refus sans champ nommé ne laisse rien à corriger')
+{
+  // La garde doit précéder la vérification IA : refuser après avoir payé un
+  // appel modèle serait payer pour un refus qu'on savait déjà.
+  const iGarde = PUBLISH_ANNONCE.indexOf('missingForPublish(')
+  const iIA = PUBLISH_ANNONCE.indexOf('runPublicationVerification(')
+  ok(iGarde !== -1 && iIA !== -1 && iGarde < iIA,
+    'la garde passe AVANT l appel au modèle',
+    'refuser après avoir payé la vérification IA coûte pour rien')
+}
+ok(/messageChampsManquants\(payload\.missing\)/.test(FORM_ANNONCE),
+  'le formulaire rend ce refus lisible plutôt que « une erreur est survenue »')
+
+console.log('\n— les zones décident, la note de localisation ne décide rien')
+ok(!/form\.field_location'/.test(FORM_ANNONCE),
+  'l ancien champ « Localisation » ne se présente plus comme un critère')
+ok(/field_work_zones/.test(FORM_ANNONCE), 'le formulaire propose les zones de travail')
+for (const cle of ['errors.missing_fields', 'form.field_work_zones', 'form.field_location_note']) {
+  const absentes = LOCALES.filter((l) => !lire(MSG[l], `publications.${cle}`))
+  ok(absentes.length === 0, `publications.${cle} dans les 4 langues`, absentes.join(', ') || undefined)
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 console.log(
   failures === 0 ? '\n✅ Tous les contrôles passent.\n' : `\n❌ ${failures} contrôle(s) en échec.\n`,
 )

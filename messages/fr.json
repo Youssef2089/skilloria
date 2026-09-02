@@ -1987,6 +1987,7 @@
       "not_found": "Annonce introuvable.",
       "forbidden": "Vous n'avez pas accès à cette annonce.",
       "wrong_status": "Action impossible dans le statut actuel.",
+      "missing_fields": "Il manque des informations pour publier : {fields}.",
       "invalid_type": "Type d'annonce invalide.",
       "invalid_title": "Titre invalide (5 à 200 caractères).",
       "invalid_description": "Description invalide (20 à 10 000 caractères).",

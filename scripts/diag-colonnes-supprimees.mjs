@@ -56,13 +56,11 @@ const DETTE = {
   'app/api/me/missions/route.ts': 2,
   'app/api/me/missions/[id]/route.ts': 2,
   'app/api/profile/cv-status/[jobId]/route.ts': 2,
-  'app/api/publications/[id]/route.ts': 2,
   'app/[locale]/dashboard/freelance/mon-profil/page.tsx': 2,
   'lib/candidature-org-dto.ts': 2,
   'lib/hooks/useCdiProfile.ts': 2,
   'app/api/admin/get-expert/[id]/route.ts': 1,
   'app/api/admin/list-experts/route.ts': 1,
-  'app/api/publications/[id]/publish/route.ts': 1,
   'app/[locale]/dashboard/freelance/page.tsx': 1,
 
   // ── Code RÉÉCRIT au lot 4 : ne pas le reprendre ─────────────────────────

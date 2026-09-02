@@ -145,9 +145,13 @@ export const PUBLICATION_SYNTHESIS_SELECT =
  * n'aperçoit qu'en production, quand la page rame sans qu'on sache pourquoi.
  */
 export async function loadReferentielLabels(
+  // Structurel, et volontairement PERMISSIF : le client Supabase rend un
+  // builder « thenable », pas une vraie Promise. Exiger Promise ici rendait ce
+  // helper inappelable avec le client réel — il n'avait d'ailleurs aucun
+  // appelant, ce qui l'avait laissé passer.
   supabaseAdmin: {
     from: (t: string) => {
-      select: (c: string) => { in: (col: string, v: string[]) => Promise<{ data: unknown }> }
+      select: (c: string) => { in: (col: string, v: string[]) => PromiseLike<{ data: unknown }> }
     }
   },
   translations: TranslationsMap,

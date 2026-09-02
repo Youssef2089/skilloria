@@ -1,6 +1,9 @@
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
+import { loadTranslations } from '@/lib/translations'
+import { loadReferentielLabels } from '@/lib/publication-synthesis'
+import { routing, type Locale } from '@/i18n/routing'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -40,17 +43,46 @@ type Body = {
   title?: unknown
   description?: unknown
   skills_required?: unknown
-  seniority?: unknown
+  seniorities?: unknown
   work_mode?: unknown
-  location?: unknown
+  location_note?: unknown
+  work_zone_codes?: unknown
   duration?: unknown
   start_date?: unknown
   budget_min?: unknown
   budget_max?: unknown
   branch_id?: unknown
-  speciality_id?: unknown
+  speciality_ids?: unknown
   speciality_other?: unknown
   confidential?: unknown
+}
+
+/**
+ * SÉNIORITÉS — multiple, bornée au vocabulaire du référentiel.
+ *
+ * Miroir exact de la route de création : une valeur hors liste est IGNORÉE
+ * plutôt que refusée. Le client ne peut pas en fabriquer une utile, et refuser
+ * toute la requête pour un intrus rendrait l'édition impossible sans dire
+ * pourquoi. La contrainte de base reste la barrière finale.
+ *
+ * Un tableau VIDE est une valeur légitime : « aucune contrainte de séniorité ».
+ * Jamais « ne correspond à personne » (cf. lib/publications/publishable.ts).
+ */
+const SENIORITES = ['junior', 'confirmed', 'senior', 'expert'] as const
+function asSeniorities(v: unknown): string[] {
+  if (!Array.isArray(v)) return []
+  return [...new Set(v.filter((x): x is string =>
+    typeof x === 'string' && (SENIORITES as readonly string[]).includes(x)))]
+}
+
+function asUuidArray(v: unknown, maxItems: number): string[] {
+  if (!Array.isArray(v)) return []
+  const out = new Set<string>()
+  for (const item of v) {
+    if (typeof item === 'string' && UUID_REGEX.test(item)) out.add(item)
+    if (out.size >= maxItems) break
+  }
+  return [...out]
 }
 
 function asString(v: unknown): string | null {
@@ -116,14 +148,16 @@ function buildUpdates(body: Body): { ok: true; updates: Record<string, unknown> 
   if ('skills_required' in body) {
     updates.skills_required = asStringArray(body.skills_required, 50, 100)
   }
-  if ('seniority' in body) {
-    updates.seniority = body.seniority === null ? null : asString(body.seniority)
+  if ('seniorities' in body) {
+    updates.seniorities = asSeniorities(body.seniorities)
   }
   if ('work_mode' in body) {
     updates.work_mode = body.work_mode === null ? null : asString(body.work_mode)
   }
-  if ('location' in body) {
-    updates.location = body.location === null ? null : asString(body.location)
+  // `location` s'appelle désormais `location_note` : un texte libre d'appoint,
+  // qui ne sert PAS à la mise en relation. Ce sont les zones qui la décident.
+  if ('location_note' in body) {
+    updates.location_note = body.location_note === null ? null : asString(body.location_note)
   }
   if ('duration' in body) {
     updates.duration = body.duration === null ? null : asString(body.duration)
@@ -156,10 +190,8 @@ function buildUpdates(body: Body): { ok: true; updates: Record<string, unknown> 
     if (!r.ok) return { ok: false, error: 'invalid_json' }
     updates.branch_id = r.value
   }
-  if ('speciality_id' in body) {
-    const r = asUuidOrNull(body.speciality_id)
-    if (!r.ok) return { ok: false, error: 'invalid_json' }
-    updates.speciality_id = r.value
+  if ('speciality_ids' in body) {
+    updates.speciality_ids = asUuidArray(body.speciality_ids, 20)
   }
   // D6 : précision libre « Autre » (bornée 100).
   if ('speciality_other' in body) {
@@ -172,6 +204,12 @@ function buildUpdates(body: Body): { ok: true; updates: Record<string, unknown> 
   }
 
   return { ok: true, updates }
+}
+
+function normalizeLocale(raw: string | null): Locale {
+  return (routing.locales as readonly string[]).includes(raw ?? '')
+    ? (raw as Locale)
+    : routing.defaultLocale
 }
 
 type RouteContext = { params: Promise<{ id: string }> }
@@ -213,6 +251,37 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   if (!u.ok) {
     return json({ error: 'Invalid input', code: u.error }, 400)
   }
+
+  // ── ZONES DE TRAVAIL : des CODES en entrée, des uuid en base ────────────
+  // Résolues ici et non dans buildUpdates : cela demande une requête, et
+  // buildUpdates est volontairement synchrone. Un code inconnu fait échouer la
+  // requête ENTIÈRE — une sélection amputée en silence enverrait l'annonce
+  // chercher ailleurs que là où l'organisation croit chercher.
+  if ('work_zone_codes' in body) {
+    const codes = Array.isArray(body.work_zone_codes)
+      ? [...new Set(body.work_zone_codes.filter((c): c is string => typeof c === 'string' && c.length > 0))]
+      : []
+    if (codes.length === 0) {
+      u.updates.work_zone_ids = []
+    } else {
+      const { data: wzs, error: wzErr } = await auth.supabaseAdmin
+        .from('work_zones')
+        .select('id, code')
+        .eq('active', true)
+        .in('code', codes)
+      if (wzErr) {
+        console.error('[publications:PATCH] lecture des zones en échec', wzErr.message)
+        return json({ error: 'Query failed', code: 'db_error' }, 500)
+      }
+      const trouvees = (wzs ?? []) as Array<{ id: string; code: string }>
+      if (trouvees.length !== codes.length) {
+        const inconnus = codes.filter((c) => !trouvees.some((t) => t.code === c))
+        return json({ error: 'Unknown work zone', code: 'bad_work_zone', unknown: inconnus }, 400)
+      }
+      u.updates.work_zone_ids = trouvees.map((t) => t.id)
+    }
+  }
+
   if (Object.keys(u.updates).length === 0) {
     return json({ error: 'No editable fields', code: 'invalid_json' }, 400)
   }
@@ -330,12 +399,13 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     title: string
     description: string
     branch_id: string | null
-    speciality_id: string | null
+    speciality_ids: string[] | null
     speciality_other: string | null
     skills_required: string[] | null
-    seniority: string | null
+    seniorities: string[] | null
     work_mode: string | null
-    location: string | null
+    location_note: string | null
+    work_zone_ids: string[] | null
     duration: string | null
     start_date: string | null
     budget_min: number | null
@@ -351,8 +421,8 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   const fetchResult = await auth.supabaseAdmin
     .from('publications')
     .select(
-      'id, organization_id, type, title, description, branch_id, speciality_id, ' +
-        'speciality_other, skills_required, seniority, work_mode, location, duration, start_date, ' +
+      'id, organization_id, type, title, description, branch_id, speciality_ids, ' +
+        'speciality_other, skills_required, seniorities, work_mode, location_note, work_zone_ids, duration, start_date, ' +
         'budget_min, budget_max, confidential, status, verification_score, ' +
         'created_at, updated_at, published_at',
     )
@@ -371,6 +441,19 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     return json({ error: 'Forbidden', code: 'forbidden' }, 403)
   }
 
+  // ── LIBELLÉS des référentiels multiples ─────────────────────────────────
+  //  Le détail rendait `speciality_id`, et l'écran affichait un nom résolu par
+  //  l'ancien embed PostgREST. La clé étrangère est morte avec le passage au
+  //  multiple : sans cette résolution, l'écran afficherait des uuid — ou, pire,
+  //  rien du tout, ce qui se lit comme « aucune spécialité ».
+  const locale = normalizeLocale(new URL(request.url).searchParams.get('locale'))
+  const translations = await loadTranslations(locale)
+  const labels = await loadReferentielLabels(
+    auth.supabaseAdmin as unknown as Parameters<typeof loadReferentielLabels>[0],
+    translations,
+    [pub],
+  )
+
   // DTO retourné — strip organization_id (déduit du contexte, inutile au client).
   return json(
     {
@@ -380,12 +463,19 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         title: pub.title,
         description: pub.description,
         branch_id: pub.branch_id,
-        speciality_id: pub.speciality_id,
+        speciality_ids: pub.speciality_ids ?? [],
+        speciality_labels: (pub.speciality_ids ?? [])
+          .map((sid) => labels.specialities?.get(sid))
+          .filter((x): x is string => !!x),
         speciality_other: pub.speciality_other,
         skills_required: pub.skills_required ?? [],
-        seniority: pub.seniority,
+        seniorities: pub.seniorities ?? [],
         work_mode: pub.work_mode,
-        location: pub.location,
+        location_note: pub.location_note,
+        work_zone_ids: pub.work_zone_ids ?? [],
+        work_zone_labels: (pub.work_zone_ids ?? [])
+          .map((zid) => labels.workZones?.get(zid))
+          .filter((x): x is string => !!x),
         duration: pub.duration,
         start_date: pub.start_date,
         budget_min: pub.budget_min,
