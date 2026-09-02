@@ -600,7 +600,11 @@
       "speciality_id": "the speciality",
       "work_modes": "at least one work mode",
       "experiences": "at least one professional experience",
-      "languages_structured": "at least one language"
+      "languages_structured": "at least one language",
+      "speciality_ids": "Specialities",
+      "seniorities": "Seniority levels",
+      "work_zone_ids": "Work areas",
+      "availability": "Availability"
     },
     "field_errors": {
       "title": "Enter your professional title",
@@ -1411,7 +1415,11 @@
       "cdi_salary_max": "the maximum target salary",
       "cdi_notice_period": "your notice period",
       "experiences": "at least one professional experience",
-      "languages_structured": "at least one language"
+      "languages_structured": "at least one language",
+      "speciality_ids": "Specialities",
+      "seniorities": "Seniority levels",
+      "work_zone_ids": "Work areas",
+      "availability": "Availability"
     },
     "field_errors": {
       "title": "Enter your professional title",

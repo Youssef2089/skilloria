@@ -50,7 +50,6 @@ const DETTE = {
   // ── Écrans et routes à reprendre (lot 2c) ────────────────────────────────
   'app/api/admin/get-branch/[id]/route.ts': 4,
   'app/[locale]/dashboard/cdi/profil/valider/page.tsx': 3,
-  'app/[locale]/dashboard/freelance/profil/valider/page.tsx': 3,
   'app/api/admin/delete-speciality/route.ts': 2,
   'app/api/candidatures/route.ts': 2,
   'app/api/me/candidatures/route.ts': 2,

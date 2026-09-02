@@ -600,7 +600,11 @@
       "speciality_id": "die Spezialisierung",
       "work_modes": "mindestens einen Arbeitsmodus",
       "experiences": "mindestens eine Berufserfahrung",
-      "languages_structured": "mindestens eine Sprache"
+      "languages_structured": "mindestens eine Sprache",
+      "speciality_ids": "Spezialisierungen",
+      "seniorities": "Erfahrungsstufen",
+      "work_zone_ids": "Arbeitsgebiete",
+      "availability": "Verfügbarkeit"
     },
     "field_errors": {
       "title": "Geben Sie Ihren beruflichen Titel an",
@@ -1411,7 +1415,11 @@
       "cdi_salary_max": "das Höchstgehalt",
       "cdi_notice_period": "Ihre Kündigungsfrist",
       "experiences": "mindestens eine Berufserfahrung",
-      "languages_structured": "mindestens eine Sprache"
+      "languages_structured": "mindestens eine Sprache",
+      "speciality_ids": "Spezialisierungen",
+      "seniorities": "Erfahrungsstufen",
+      "work_zone_ids": "Arbeitsgebiete",
+      "availability": "Verfügbarkeit"
     },
     "field_errors": {
       "title": "Geben Sie Ihre Berufsbezeichnung ein",

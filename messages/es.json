@@ -600,7 +600,11 @@
       "speciality_id": "la especialidad",
       "work_modes": "al menos un modo de trabajo",
       "experiences": "al menos una experiencia profesional",
-      "languages_structured": "al menos un idioma"
+      "languages_structured": "al menos un idioma",
+      "speciality_ids": "Especialidades",
+      "seniorities": "Niveles de seniority",
+      "work_zone_ids": "Zonas de trabajo",
+      "availability": "Disponibilidad"
     },
     "field_errors": {
       "title": "Indica tu título profesional",
@@ -1411,7 +1415,11 @@
       "cdi_salary_max": "el salario máximo objetivo",
       "cdi_notice_period": "tu plazo de preaviso",
       "experiences": "al menos una experiencia profesional",
-      "languages_structured": "al menos un idioma"
+      "languages_structured": "al menos un idioma",
+      "speciality_ids": "Especialidades",
+      "seniorities": "Niveles de seniority",
+      "work_zone_ids": "Zonas de trabajo",
+      "availability": "Disponibilidad"
     },
     "field_errors": {
       "title": "Indica tu título profesional",

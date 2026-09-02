@@ -600,7 +600,11 @@
       "speciality_id": "la spécialité",
       "work_modes": "au moins un mode de travail",
       "experiences": "au moins une expérience professionnelle",
-      "languages_structured": "au moins une langue"
+      "languages_structured": "au moins une langue",
+      "speciality_ids": "Spécialités",
+      "seniorities": "Séniorités",
+      "work_zone_ids": "Zones de travail",
+      "availability": "Disponibilité"
     },
     "field_errors": {
       "title": "Renseignez votre titre professionnel",
@@ -1411,7 +1415,11 @@
       "cdi_salary_max": "le salaire annuel brut max",
       "cdi_notice_period": "votre délai de préavis",
       "experiences": "au moins une expérience professionnelle",
-      "languages_structured": "au moins une langue"
+      "languages_structured": "au moins une langue",
+      "speciality_ids": "Spécialités",
+      "seniorities": "Séniorités",
+      "work_zone_ids": "Zones de travail",
+      "availability": "Disponibilité"
     },
     "field_errors": {
       "title": "Renseignez votre titre professionnel",
