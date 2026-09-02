@@ -610,7 +610,13 @@
       "speciality_id": "Select a speciality",
       "work_modes": "Select at least one work mode",
       "experiences": "Add at least one experience (career or assignment)",
-      "languages_structured": "Add at least one language"
+      "languages_structured": "Add at least one language",
+      "speciality_ids": "Select at least one speciality",
+      "seniorities": "Select at least one seniority level",
+      "work_zone_ids": "Select at least one work area",
+      "availability": "State your availability",
+      "summary_length": "The summary must be between {min} and {max} characters",
+      "cv_ready": "Upload your CV and accept its analysis to publish"
     },
     "compact_actions": {
       "expand": "Edit",
@@ -765,6 +771,14 @@
         "end_year_label": "End year",
         "remove_aria": "Remove this education",
         "add_button": "+ Add an education"
+      },
+      "summary_matching": {
+        "summary_matching_help": "This is the text we read to suggest assignments to you. Describe what you can do, in your own words. Between {min} and {max} characters.",
+        "summary_counter": "{count} / {max} characters",
+        "hidden_title": "Your profile is no longer visible",
+        "hidden_intro": "New fields became necessary for us to suggest assignments to you. Your profile has been hidden in the meantime — it has not been deleted.",
+        "hidden_list_intro": "What is left to complete:",
+        "hidden_cta": "Complete my profile"
       }
     },
     "actions": {
@@ -1410,7 +1424,13 @@
       "cdi_salary_max": "Enter the maximum target salary",
       "cdi_notice_period": "Indicate your notice period",
       "experiences": "Add at least one experience (career or project)",
-      "languages_structured": "Add at least one language"
+      "languages_structured": "Add at least one language",
+      "speciality_ids": "Select at least one speciality",
+      "seniorities": "Select at least one seniority level",
+      "work_zone_ids": "Select at least one work area",
+      "availability": "State your availability",
+      "summary_length": "The summary must be between {min} and {max} characters",
+      "cv_ready": "Upload your CV and accept its analysis to publish"
     },
     "compact_actions": {
       "expand": "Edit",
@@ -1600,6 +1620,14 @@
         "country_search_placeholder": "Search for a country...",
         "country_loading": "Loading countries...",
         "country_empty": "No country found"
+      },
+      "summary_matching": {
+        "summary_matching_help": "This is the text we read to suggest assignments to you. Describe what you can do, in your own words. Between {min} and {max} characters.",
+        "summary_counter": "{count} / {max} characters",
+        "hidden_title": "Your profile is no longer visible",
+        "hidden_intro": "New fields became necessary for us to suggest assignments to you. Your profile has been hidden in the meantime — it has not been deleted.",
+        "hidden_list_intro": "What is left to complete:",
+        "hidden_cta": "Complete my profile"
       }
     },
     "actions": {
@@ -1925,7 +1953,18 @@
       "confirm_publish_no": "Cancel",
       "field_speciality_other_option": "Other (specify)",
       "field_speciality_other_label": "Specify the speciality",
-      "field_speciality_other_placeholder": "e.g. FinOps, Green IT…"
+      "field_speciality_other_placeholder": "e.g. FinOps, Green IT…",
+      "field_work_zones": "Work areas",
+      "field_work_zones_help": "Where you are looking for someone",
+      "field_location_note": "Detail (optional)",
+      "field_location_note_placeholder": "e.g. Paris or Lyon",
+      "field_location_note_help": "Shown on the listing. Not used for matching.",
+      "field_errors": {
+        "title": "Enter a title",
+        "description": "Enter a description",
+        "branch_id": "Select a branch",
+        "work_zone_ids": "Select at least one work area"
+      }
     },
     "gate": {
       "published_title": "Listing live ✓",
@@ -2260,7 +2299,8 @@
       "error_cover_too_long": "Your message exceeds 2000 characters.",
       "error_cannot_apply_own_need": "You can't apply to your own need.",
       "error_type_not_candidatable": "This type of opportunity does not accept applications."
-    }
+    },
+    "recommendations_updated": "Your recommendations have been updated."
   },
   "relative_time": {
     "now": "just now",
@@ -3332,5 +3372,23 @@
     "fallback": "Expert",
     "deleted": "Deleted user",
     "unavailable": "Contact unavailable"
+  },
+  "work_zones": {
+    "label": "Work areas",
+    "hint": "Where you agree to work — not where you live",
+    "hint_publication": "Where you are looking for someone",
+    "empty": "No areas available right now.",
+    "none_selected": "Select at least one area to publish",
+    "coverage": "{count} countries covered",
+    "country_count": "{count} countries",
+    "detail_by_country": "Pick specific countries in {continent}",
+    "covered_by_continent": "Already covered by {continent}",
+    "suggestion_label": "Suggestion: {zone}",
+    "suggestion_confirm": "Use this area",
+    "suggestion_not_applied": "Not applied until you confirm it"
+  },
+  "matching_badge": {
+    "strong": "Strong match",
+    "normal": "Match"
   }
 }

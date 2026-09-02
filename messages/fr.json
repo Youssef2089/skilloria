@@ -610,7 +610,13 @@
       "speciality_id": "Sélectionnez une spécialité",
       "work_modes": "Sélectionnez au moins un mode de travail",
       "experiences": "Ajoutez au moins une expérience (parcours ou mission)",
-      "languages_structured": "Ajoutez au moins une langue"
+      "languages_structured": "Ajoutez au moins une langue",
+      "speciality_ids": "Sélectionnez au moins une spécialité",
+      "seniorities": "Sélectionnez au moins un niveau de séniorité",
+      "work_zone_ids": "Sélectionnez au moins une zone de travail",
+      "availability": "Indiquez votre disponibilité",
+      "summary_length": "Le résumé doit faire entre {min} et {max} caractères",
+      "cv_ready": "Déposez votre CV et acceptez son analyse pour publier"
     },
     "compact_actions": {
       "expand": "Modifier",
@@ -765,6 +771,14 @@
         "end_year_label": "Année fin",
         "remove_aria": "Retirer cette formation",
         "add_button": "+ Ajouter une formation"
+      },
+      "summary_matching": {
+        "summary_matching_help": "Ce texte est ce que nous lisons pour vous proposer des missions. Décrivez ce que vous savez faire, dans vos mots. Entre {min} et {max} caractères.",
+        "summary_counter": "{count} / {max} caractères",
+        "hidden_title": "Votre profil n’est plus visible",
+        "hidden_intro": "De nouveaux champs sont devenus nécessaires pour que nous puissions vous proposer des missions. Votre profil a été masqué en attendant, il n’a pas été supprimé.",
+        "hidden_list_intro": "Il vous reste à compléter :",
+        "hidden_cta": "Compléter mon profil"
       }
     },
     "actions": {
@@ -1410,7 +1424,13 @@
       "cdi_salary_max": "Renseignez le salaire annuel brut max",
       "cdi_notice_period": "Indiquez votre délai de préavis",
       "experiences": "Ajoutez au moins une expérience (parcours ou mission)",
-      "languages_structured": "Ajoutez au moins une langue"
+      "languages_structured": "Ajoutez au moins une langue",
+      "speciality_ids": "Sélectionnez au moins une spécialité",
+      "seniorities": "Sélectionnez au moins un niveau de séniorité",
+      "work_zone_ids": "Sélectionnez au moins une zone de travail",
+      "availability": "Indiquez votre disponibilité",
+      "summary_length": "Le résumé doit faire entre {min} et {max} caractères",
+      "cv_ready": "Déposez votre CV et acceptez son analyse pour publier"
     },
     "compact_actions": {
       "expand": "Modifier",
@@ -1600,6 +1620,14 @@
         "country_search_placeholder": "Rechercher un pays...",
         "country_loading": "Chargement des pays...",
         "country_empty": "Aucun pays trouvé"
+      },
+      "summary_matching": {
+        "summary_matching_help": "Ce texte est ce que nous lisons pour vous proposer des missions. Décrivez ce que vous savez faire, dans vos mots. Entre {min} et {max} caractères.",
+        "summary_counter": "{count} / {max} caractères",
+        "hidden_title": "Votre profil n’est plus visible",
+        "hidden_intro": "De nouveaux champs sont devenus nécessaires pour que nous puissions vous proposer des missions. Votre profil a été masqué en attendant, il n’a pas été supprimé.",
+        "hidden_list_intro": "Il vous reste à compléter :",
+        "hidden_cta": "Compléter mon profil"
       }
     },
     "actions": {
@@ -1925,7 +1953,18 @@
       "confirm_publish_no": "Annuler",
       "field_speciality_other_option": "Autre (préciser)",
       "field_speciality_other_label": "Précisez la spécialité",
-      "field_speciality_other_placeholder": "Ex. FinOps, Green IT…"
+      "field_speciality_other_placeholder": "Ex. FinOps, Green IT…",
+      "field_work_zones": "Zones de travail",
+      "field_work_zones_help": "Où vous cherchez quelqu’un",
+      "field_location_note": "Précision (facultatif)",
+      "field_location_note_placeholder": "Ex. : Paris ou Lyon",
+      "field_location_note_help": "Affiché sur l’annonce. Ne sert pas à la mise en relation.",
+      "field_errors": {
+        "title": "Renseignez un titre",
+        "description": "Renseignez une description",
+        "branch_id": "Sélectionnez une branche",
+        "work_zone_ids": "Sélectionnez au moins une zone de travail"
+      }
     },
     "gate": {
       "published_title": "Annonce en ligne ✓",
@@ -2260,7 +2299,8 @@
       "error_cover_too_long": "Votre message dépasse 2000 caractères.",
       "error_cannot_apply_own_need": "Vous ne pouvez pas candidater à votre propre besoin.",
       "error_type_not_candidatable": "Ce type d'opportunité n'accepte pas de candidature."
-    }
+    },
+    "recommendations_updated": "Vos recommandations ont été mises à jour."
   },
   "relative_time": {
     "now": "à l'instant",
@@ -3332,5 +3372,23 @@
     "fallback": "Expert",
     "deleted": "Utilisateur supprimé",
     "unavailable": "Interlocuteur indisponible"
+  },
+  "work_zones": {
+    "label": "Zones de travail",
+    "hint": "Où vous acceptez de travailler — pas où vous habitez",
+    "hint_publication": "Où vous cherchez quelqu’un",
+    "empty": "Aucune zone disponible pour le moment.",
+    "none_selected": "Sélectionnez au moins une zone pour publier",
+    "coverage": "{count} pays couverts",
+    "country_count": "{count} pays",
+    "detail_by_country": "Choisir des pays précis en {continent}",
+    "covered_by_continent": "Déjà couvert par {continent}",
+    "suggestion_label": "Suggestion : {zone}",
+    "suggestion_confirm": "Utiliser cette zone",
+    "suggestion_not_applied": "Non appliquée tant que vous ne l’avez pas confirmée"
+  },
+  "matching_badge": {
+    "strong": "Correspondance forte",
+    "normal": "Correspondance"
   }
 }
