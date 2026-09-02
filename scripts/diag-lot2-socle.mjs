@@ -349,6 +349,87 @@ ok(/dedupeCoveredZones/.test(SEL), 'la sélection est dédoublonnée par la hié
 ok(/countryCountOf/.test(SEL), 'l étendue de chaque continent est affichée, pas devinée')
 
 // ══════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════
+section('G. LES DEUX FORMULAIRES NOMMENT CE QUI MANQUE')
+// ══════════════════════════════════════════════════════════════════════════
+//
+// Un profil refusé doit dire LEQUEL de ses champs le bloque. C'est la règle
+// gelée appliquée à l'écran de l'expert lui-même : aucun refus sans une raison
+// nommable. Trois façons de la trahir, et les trois se sont produites :
+//
+//   • le formulaire réimplémente le prédicat, dérive, et annonce « complet »
+//     sur un profil que le serveur rejette ;
+//   • la bannière COMPTE un champ qu'elle ne sait pas NOMMER — elle disait
+//     « 3 champs » et n'en listait que deux ;
+//   • le libellé est cherché dans le mauvais espace de noms. Les deux écrans
+//     n'utilisent pas le même : `profile_validation` pour le freelance,
+//     `cdi_profile_validation` pour le CDI. Une clé présente dans l'un et
+//     absente de l'autre affiche à l'expert le CHEMIN de la clé, en clair.
+//     next-intl n'échoue pas au build : cela ne se voit qu'à l'écran.
+
+const FORMULAIRES = [
+  {
+    nom: 'freelance',
+    chemin: 'app/[locale]/dashboard/freelance/profil/valider/page.tsx',
+    // Règles PROPRES au formulaire, hors prédicat partagé — déclarées ici pour
+    // que toute NOUVELLE clé locale échoue tant qu'elle n'est pas nommable.
+    propres: ['work_modes'],
+    renommages: {},
+  },
+  {
+    nom: 'cdi',
+    chemin: 'app/[locale]/dashboard/cdi/profil/valider/page.tsx',
+    propres: ['cdi_salary_min', 'cdi_salary_max', 'cdi_notice_period'],
+    // Le prédicat dit « availability » sans savoir lequel des deux champs il a
+    // testé ; côté CDI le contrôle réel s'appelle cdi_status.
+    renommages: { availability: 'cdi_status' },
+  },
+]
+
+for (const form of FORMULAIRES) {
+  console.log(`\n— ${form.nom}`)
+  const src = read(form.chemin)
+
+  ok(/missingForVisibility,?\s*[\s\S]{0,120}from '@\/lib\/profile-visibility'/.test(src),
+    'appelle le prédicat partagé plutôt que d en tenir une copie',
+    'une copie dérive, et l écran finit par contredire le serveur')
+
+  // L'espace de noms RÉELLEMENT utilisé par cet écran.
+  const ns = /const tProfile = useTranslations\('([^']+)'\)/.exec(src)?.[1]
+  ok(!!ns, `espace de noms identifié (${ns ?? 'introuvable'})`)
+
+  // Ce que la bannière sait nommer : FIELD_ORDER + les ajouts de MISSING_LABELS.
+  const ordre = /const FIELD_ORDER = \[([\s\S]*?)\] as const/.exec(src)?.[1] ?? ''
+  const nommables = new Set([...ordre.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]))
+  const blocLabels = /const MISSING_LABELS[\s\S]*?\n  \}/.exec(src)?.[0] ?? ''
+  for (const m of blocLabels.matchAll(/^\s{4}([a-z_]+):/gm)) nommables.add(m[1])
+  ok(/\.map\(f => MISSING_LABELS\[f\]\)/.test(src),
+    'la bannière nomme depuis MISSING_LABELS, pas depuis les seuls champs à ref',
+    'sinon elle compte des champs qu elle ne liste pas')
+
+  // Tout ce que le prédicat peut rendre, une fois les renommages appliqués.
+  const attendus = [
+    ...PROFILE_VISIBILITY_FIELDS.map((c) => form.renommages[c] ?? c),
+    ...form.propres,
+  ]
+  for (const cle of attendus) {
+    ok(nommables.has(cle), `« ${cle} » est nommable par la bannière`,
+      'compté sans être nommé : l expert voit un nombre, pas une raison')
+    const absentes = LOCALES.filter((l) => !lire(MSG[l], `${ns}.field_labels_short.${cle}`))
+    ok(absentes.length === 0, `« ${cle} » a un libellé dans ${ns}, 4 langues`,
+      absentes.length ? `absent en : ${absentes.join(', ')} — l expert verrait le chemin de la clé` : undefined)
+  }
+
+  // Le résumé : l'aide et le compteur vivent dans le MÊME espace de noms.
+  for (const cle of ['summary_matching_help', 'summary_counter']) {
+    const absentes = LOCALES.filter((l) => !lire(MSG[l], `${ns}.sections.summary_matching.${cle}`))
+    ok(absentes.length === 0, `« ${cle} » dans ${ns}, 4 langues`, absentes.join(', ') || undefined)
+  }
+  ok(/RESUME_MIN/.test(src) && /RESUME_MAX/.test(src),
+    'les bornes du résumé viennent du prédicat, pas d un nombre écrit à la main')
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 console.log(
   failures === 0 ? '\n✅ Tous les contrôles passent.\n' : `\n❌ ${failures} contrôle(s) en échec.\n`,
 )

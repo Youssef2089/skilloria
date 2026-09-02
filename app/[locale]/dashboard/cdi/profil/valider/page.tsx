@@ -11,6 +11,14 @@ import { markMatchingTriggered } from '@/lib/matching-resync-hint'
 import CountrySelect from '@/components/CountrySelect'
 import CompactListItem from '@/components/CompactListItem'
 import CdiStatusToggle, { type CdiStatus } from '@/components/cdi/CdiStatusToggle'
+import MultiSelectChips from '@/components/ui/MultiSelectChips'
+import WorkZoneSelector from '@/components/ui/WorkZoneSelector'
+import type { WorkZone } from '@/lib/work-zones'
+import {
+  missingForVisibility,
+  RESUME_MAX,
+  RESUME_MIN,
+} from '@/lib/profile-visibility'
 
 // =============================================================================
 // Page de validation profil CDI — phase 4a (sections COMMUNES + placeholders)
@@ -132,7 +140,9 @@ const FIELD_ORDER = [
   'summary',
   'skills',
   'branch_id',
-  'speciality_id',
+  'speciality_ids',
+  'seniorities',
+  'work_zone_ids',
   'cdi_status',
   'cdi_salary_min',
   'cdi_salary_max',
@@ -260,6 +270,7 @@ export default function CdiValiderProfilPage() {
   // cdi_profile_view (notice_period_options, geo_mobility_options, etc.).
   // Évite la duplication des 30+ libellés d'options.
   const tView = useTranslations('cdi_profile_view')
+  const tWorkZones = useTranslations('work_zones')
   const locale = useLocale()
 
   const SENIORITY_LABELS: Record<Seniority, string> = {
@@ -282,7 +293,9 @@ export default function CdiValiderProfilPage() {
     summary: tProfile('field_labels_short.summary'),
     skills: tProfile('field_labels_short.skills'),
     branch_id: tProfile('field_labels_short.branch_id'),
-    speciality_id: tProfile('field_labels_short.speciality_id'),
+    speciality_ids: tProfile('field_labels_short.speciality_ids'),
+    seniorities: tProfile('field_labels_short.seniorities'),
+    work_zone_ids: tProfile('field_labels_short.work_zone_ids'),
     cdi_status: tProfile('field_labels_short.cdi_status'),
     cdi_salary_min: tProfile('field_labels_short.cdi_salary_min'),
     cdi_salary_max: tProfile('field_labels_short.cdi_salary_max'),
@@ -295,13 +308,26 @@ export default function CdiValiderProfilPage() {
     summary: tProfile('field_errors.summary'),
     skills: tProfile('field_errors.skills'),
     branch_id: tProfile('field_errors.branch_id'),
-    speciality_id: tProfile('field_errors.speciality_id'),
+    speciality_ids: tProfile('field_errors.speciality_ids'),
+    seniorities: tProfile('field_errors.seniorities'),
+    work_zone_ids: tProfile('field_errors.work_zone_ids'),
     cdi_status: tProfile('field_errors.cdi_status'),
     cdi_salary_min: tProfile('field_errors.cdi_salary_min'),
     cdi_salary_max: tProfile('field_errors.cdi_salary_max'),
     cdi_notice_period: tProfile('field_errors.cdi_notice_period'),
     experiences: tProfile('field_errors.experiences'),
     languages_structured: tProfile('field_errors.languages_structured'),
+  }
+
+  // Ce que la BANNIÈRE peut nommer. Ce n'est pas FIELD_LABELS : `cv_ready`
+  // n'est pas un champ de ce formulaire — il n'a ni ref ni surlignage — mais il
+  // PEUT manquer, et il manquait au décompte sans jamais apparaître dans la
+  // liste. La bannière annonçait alors « 3 champs » et n'en nommait que deux :
+  // le compte disait une chose, la liste une autre, et l'expert n'avait aucun
+  // moyen de savoir lequel des deux avait raison.
+  const MISSING_LABELS: Record<string, string> = {
+    ...FIELD_LABELS,
+    cv_ready: tProfile('field_labels_short.cv_ready'),
   }
 
   const [authChecked, setAuthChecked] = useState(false)
@@ -325,12 +351,16 @@ export default function CdiValiderProfilPage() {
 
   const [title, setTitle] = useState('')
   const [summary, setSummary] = useState('')
-  const [seniority, setSeniority] = useState<Seniority | ''>('')
+  const [seniorities, setSeniorities] = useState<Seniority[]>([])
   const [yearsExperience, setYearsExperience] = useState('')
   const [branchId, setBranchId] = useState('')
-  const [specialityId, setSpecialityId] = useState('')
-  // D6 : option « Autre » → speciality_id vide + précision libre.
+  const [specialityIds, setSpecialityIds] = useState<string[]>([])
+  // D6 : option « Autre » → aucune spécialité du référentiel + précision libre.
   const [specialityOther, setSpecialityOther] = useState('')
+  // Zones de travail : le référentiel complet (arbre monde/continent/pays) et
+  // la sélection. Le formulaire manipule des uuid ; il n'envoie que des CODES.
+  const [workZones, setWorkZones] = useState<WorkZone[]>([])
+  const [workZoneIds, setWorkZoneIds] = useState<string[]>([])
   const [skills, setSkills] = useState<string[]>([])
   const [skillDraft, setSkillDraft] = useState('')
   const [certifications, setCertifications] = useState<Certification[]>([])
@@ -385,7 +415,9 @@ export default function CdiValiderProfilPage() {
     summary: useRef<HTMLTextAreaElement>(null),
     skills: useRef<HTMLDivElement>(null),
     branch_id: useRef<HTMLSelectElement>(null),
-    speciality_id: useRef<HTMLSelectElement>(null),
+    speciality_ids: useRef<HTMLDivElement>(null),
+    seniorities: useRef<HTMLDivElement>(null),
+    work_zone_ids: useRef<HTMLDivElement>(null),
     // Les refs CDI pointent sur la card placeholder (scroll OK même sans champ)
     cdi_status: useRef<HTMLDivElement>(null),
     cdi_salary_min: useRef<HTMLDivElement>(null),
@@ -506,8 +538,9 @@ export default function CdiValiderProfilPage() {
         .from('profiles')
         .select(
           [
-            'id', 'title', 'summary', 'seniority', 'years_experience',
-            'skills', 'certifications', 'branch_id', 'speciality_id', 'speciality_other',
+            'id', 'title', 'summary', 'seniorities', 'years_experience',
+            'skills', 'certifications', 'branch_id', 'speciality_ids', 'speciality_other',
+            'work_zone_ids',
             'languages', 'location', 'linkedin_url', 'cv_parsing_status', 'ai_consent_at',
             'visible', 'phone', 'address_line', 'postal_code', 'city',
             'country', 'birth_year', 'photo_url', 'work_modes',
@@ -535,22 +568,23 @@ export default function CdiValiderProfilPage() {
       setAiConsentAt(p.ai_consent_at ?? null)
       setTitle(p.title ?? '')
       setSummary(p.summary ?? '')
-      setSeniority((p.seniority as Seniority | null) ?? '')
+      setSeniorities(Array.isArray(p.seniorities) ? (p.seniorities as Seniority[]) : [])
       setYearsExperience(
         p.years_experience != null ? String(p.years_experience) : '',
       )
       setBranchId(p.branch_id ?? '')
       // D6 : « Autre » → réhydrate la sélection + le champ libre.
-      if (p.speciality_id) {
-        setSpecialityId(p.speciality_id)
+      if (Array.isArray(p.speciality_ids) && p.speciality_ids.length > 0) {
+        setSpecialityIds(p.speciality_ids as string[])
         setSpecialityOther('')
       } else if (p.speciality_other) {
-        setSpecialityId(SPECIALITY_OTHER)
+        setSpecialityIds([SPECIALITY_OTHER])
         setSpecialityOther(p.speciality_other as string)
       } else {
-        setSpecialityId('')
+        setSpecialityIds([])
         setSpecialityOther('')
       }
+      setWorkZoneIds(Array.isArray(p.work_zone_ids) ? (p.work_zone_ids as string[]) : [])
       setSkills(Array.isArray(p.skills) ? (p.skills as string[]) : [])
       setCertifications(
         Array.isArray(p.certifications)
@@ -592,8 +626,8 @@ export default function CdiValiderProfilPage() {
         `/api/taxonomy?locale=${encodeURIComponent(locale)}&domain_id=${encodeURIComponent(domainId)}`,
         { cache: 'no-store' },
       )
-        .then(r => (r.ok ? r.json() : { branches: [], specialities: [] }))
-        .catch(() => ({ branches: [], specialities: [] }))
+        .then(r => (r.ok ? r.json() : { branches: [], specialities: [], work_zones: [] }))
+        .catch(() => ({ branches: [], specialities: [], work_zones: [] }))
 
       const [taxonomy, expsRes, edusRes, langsRes] = await Promise.all([
         taxonomyPromise,
@@ -618,6 +652,7 @@ export default function CdiValiderProfilPage() {
 
       setBranches((taxonomy.branches ?? []) as Branch[])
       setSpecialities((taxonomy.specialities ?? []) as Speciality[])
+      setWorkZones((taxonomy.work_zones ?? []) as WorkZone[])
 
       const raw: Array<ExperienceItem & { _so: number }> = (expsRes.data ?? []).map(
         (e: any) => ({
@@ -708,15 +743,17 @@ export default function CdiValiderProfilPage() {
   const onBranchChange = (id: string) => {
     setBranchId(id)
     // « Autre » n'est rattachée à aucune branche : on la conserve au changement.
-    if (specialityId && specialityId !== SPECIALITY_OTHER) {
-      const sp = specialitiesById.get(specialityId)
-      if (!sp || sp.branch_id !== id) setSpecialityId('')
-    }
+    // Les autres ne survivent que si elles appartiennent à la nouvelle branche —
+    // on ne vide pas TOUTE la sélection, ce qui obligerait à tout ressaisir pour
+    // une seule spécialité devenue hors branche.
+    setSpecialityIds(prev =>
+      prev.filter(sid => sid === SPECIALITY_OTHER || specialitiesById.get(sid)?.branch_id === id),
+    )
   }
 
-  const onSpecialityChange = (value: string) => {
-    setSpecialityId(value)
-    if (value !== SPECIALITY_OTHER) setSpecialityOther('')
+  const onSpecialitiesChange = (next: string[]) => {
+    setSpecialityIds(next)
+    if (!next.includes(SPECIALITY_OTHER)) setSpecialityOther('')
   }
 
   const addSkill = () => {
@@ -819,21 +856,39 @@ export default function CdiValiderProfilPage() {
   }
 
   const validateForPublish = (): string[] => {
-    const missing: string[] = []
-    if (!title.trim()) missing.push('title')
-    if (!summary.trim() || summary.trim().length < 20) missing.push('summary')
-    if (skills.length < 3) missing.push('skills')
-    if (!branchId) missing.push('branch_id')
-    if (!specialityId) missing.push('speciality_id')
-    // D6 : « Autre » sans précision libre = spécialité incomplète.
-    else if (specialityId === SPECIALITY_OTHER && !specialityOther.trim()) missing.push('speciality_id')
-    if (!cdiStatus) missing.push('cdi_status')
-    if (experiences.filter(e => e.role.trim()).length < 1) missing.push('experiences')
-    if (languagesStructured.filter(l => l.language.trim()).length < 1)
-      missing.push('languages_structured')
-    // Lot CV obligatoire : CV parsé + consentement IA exigés pour publier.
-    // L'API reste la barrière non contournable (cf. app/api/profile/route.ts).
-    if (!(cvParsingStatus === 'done' && aiConsentAt != null)) missing.push('cv_ready')
+    // SOURCE UNIQUE : exactement le prédicat que /api/profile applique pour
+    // refuser. Il vivait ici en copie, et une copie dérive — un écran finit par
+    // annoncer « complet » sur un profil que le serveur rejette, sans que
+    // personne puisse dire lequel a raison. L'API reste la barrière (règle 20) ;
+    // cet appel ne fait que prévenir plus tôt, avec la MÊME liste.
+    const missing: string[] = missingForVisibility(
+      {
+        title,
+        summary,
+        skills,
+        branch_id: branchId || null,
+        speciality_ids: specialityIds,
+        seniorities,
+        work_zone_ids: workZoneIds,
+        availability_status: null,
+        cdi_status: cdiStatus,
+        experiences_count: experiences.filter(e => e.role.trim()).length,
+        languages_count: languagesStructured.filter(l => l.language.trim()).length,
+        cv_parsing_status: cvParsingStatus,
+        ai_consent_at: aiConsentAt,
+      },
+      'expert_cdi',
+    // Le prédicat nomme « availability » le champ de disponibilité, sans savoir
+    // lequel des deux il a testé. Côté CDI c'est cdi_status, et cet écran a un
+    // vrai contrôle pour lui : on rebaptise pour que l'erreur se pose DESSUS —
+    // sinon elle désignerait un champ que ce formulaire n'affiche pas.
+    ).map(f => (f === 'availability' ? 'cdi_status' : f))
+    // Règle PROPRE au formulaire, absente du prédicat partagé parce qu'elle ne
+    // conditionne pas la visibilité en base — D6 : « Autre » coché sans
+    // précision libre = spécialité incomplète.
+    if (specialityIds.includes(SPECIALITY_OTHER) && !specialityOther.trim()) {
+      if (!missing.includes('speciality_ids')) missing.push('speciality_ids')
+    }
     return missing
   }
 
@@ -897,7 +952,7 @@ export default function CdiValiderProfilPage() {
     const body: Record<string, unknown> = {
       title: title.trim() || null,
       summary: summary.trim() || null,
-      seniority: seniority || null,
+      seniorities,
       years_experience:
         yearsExperience.trim() === '' ? null : Number(yearsExperience),
       skills,
@@ -909,13 +964,20 @@ export default function CdiValiderProfilPage() {
           year: c.year ?? null,
         })),
       branch_slug: branchId ? branchesById.get(branchId)?.slug ?? null : null,
-      speciality_slug:
-        specialityId && specialityId !== SPECIALITY_OTHER
-          ? specialitiesById.get(specialityId)?.slug ?? null
-          : null,
+      // Le serveur résout les slugs et REFUSE un slug inconnu : le client
+      // n'envoie jamais d'identifiant de taxonomie.
+      speciality_slugs: specialityIds
+        .filter(id => id !== SPECIALITY_OTHER)
+        .map(id => specialitiesById.get(id)?.slug)
+        .filter((sl): sl is string => !!sl),
       // D6 : précision libre transmise quand « Autre », sinon effacée.
-      speciality_other:
-        specialityId === SPECIALITY_OTHER ? specialityOther.trim() : null,
+      speciality_other: specialityIds.includes(SPECIALITY_OTHER)
+        ? specialityOther.trim()
+        : null,
+      // Zones transmises en CODES stables, jamais en uuid.
+      work_zone_codes: workZoneIds
+        .map(id => workZones.find(z => z.id === id)?.code)
+        .filter((c): c is string => !!c),
       languages: cleanedLanguages.map(l => l.language),
       location: location.trim() || null,
       linkedin_url: linkedinUrl.trim() || null,
@@ -1483,8 +1545,8 @@ export default function CdiValiderProfilPage() {
                     ? tProfile('banner_error', {
                         count: missingFields.length,
                         fields: missingFields
-                          .filter((f): f is FieldKey => f in FIELD_LABELS)
-                          .map(f => FIELD_LABELS[f])
+                          .map(f => MISSING_LABELS[f])
+                          .filter(Boolean)
                           .join(', '),
                       })
                     : errorMsg}
@@ -1670,26 +1732,48 @@ export default function CdiValiderProfilPage() {
                 <label style={labelStyle}>
                   {tProfile('sections.identity.summary_label')}
                 </label>
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: '#475569',
+                    margin: '0 0 8px',
+                    fontFamily: fontJakarta,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {tProfile('sections.summary_matching.summary_matching_help', {
+                    min: RESUME_MIN,
+                    max: RESUME_MAX,
+                  })}
+                </p>
                 <textarea
                   ref={fieldRefs.summary as RefObject<HTMLTextAreaElement>}
                   className={focusClass('summary')}
-                  rows={4}
-                  maxLength={500}
+                  rows={5}
+                  maxLength={RESUME_MAX}
                   value={summary}
                   onChange={e => setSummary(e.target.value)}
                   placeholder={tProfile('sections.identity.summary_placeholder')}
-                  style={{ ...inputStyle('summary'), resize: 'vertical', minHeight: 100 }}
+                  style={{ ...inputStyle('summary'), resize: 'vertical', minHeight: 120 }}
                 />
                 <div
                   style={{
                     fontSize: 11,
-                    color: '#94a3b8',
+                    // Rouge tant que le texte est hors des bornes : le compteur
+                    // dit alors quelque chose, au lieu d'afficher un chiffre
+                    // neutre pendant que le bouton refuse de publier.
+                    color:
+                      summary.trim().length > 0 &&
+                      (summary.trim().length < RESUME_MIN || summary.trim().length > RESUME_MAX)
+                        ? '#dc2626'
+                        : '#94a3b8',
                     marginTop: 4,
                     fontFamily: fontJakarta,
                   }}
                 >
-                  {tProfile('sections.identity.summary_counter', {
+                  {tProfile('sections.summary_matching.summary_counter', {
                     count: summary.trim().length,
+                    max: RESUME_MAX,
                   })}
                 </div>
                 <FieldError field="summary" />
@@ -1704,24 +1788,21 @@ export default function CdiValiderProfilPage() {
                   marginBottom: 14,
                 }}
               >
-                <div>
+                <div
+                  ref={fieldRefs.seniorities as RefObject<HTMLDivElement>}
+                  className={focusClass('seniorities')}
+                >
                   <label style={labelStyle}>
-                    {tProfile('sections.identity.seniority_label')}
+                    {tProfile('field_labels_short.seniorities')}
                   </label>
-                  <select
-                    value={seniority}
-                    onChange={e => setSeniority(e.target.value as Seniority | '')}
-                    style={inputStyle()}
-                  >
-                    <option value="">
-                      {tProfile('sections.identity.seniority_placeholder')}
-                    </option>
-                    {SENIORITY_VALUES.map(s => (
-                      <option key={s} value={s}>
-                        {SENIORITY_LABELS[s]}
-                      </option>
-                    ))}
-                  </select>
+                  <MultiSelectChips
+                    ariaLabel={tProfile('field_labels_short.seniorities')}
+                    options={SENIORITY_VALUES.map(v => ({ value: v, label: SENIORITY_LABELS[v] }))}
+                    selected={seniorities}
+                    onChange={next => setSeniorities(next as Seniority[])}
+                    invalid={isMissing('seniorities')}
+                  />
+                  <FieldError field="seniorities" />
                 </div>
                 <div>
                   <label style={labelStyle}>
@@ -1788,32 +1869,32 @@ export default function CdiValiderProfilPage() {
                 <label style={labelStyle}>
                   {tProfile('sections.expertise.speciality_label')}
                 </label>
-                <select
-                  ref={fieldRefs.speciality_id as RefObject<HTMLSelectElement>}
-                  className={focusClass('speciality_id')}
-                  value={specialityId}
-                  onChange={e => onSpecialityChange(e.target.value)}
-                  disabled={!branchId}
-                  style={{ ...inputStyle('speciality_id'), opacity: branchId ? 1 : 0.55 }}
+                <div
+                  ref={fieldRefs.speciality_ids as RefObject<HTMLDivElement>}
+                  className={focusClass('speciality_ids')}
                 >
-                  <option value="">
-                    {tProfile('sections.expertise.speciality_placeholder')}
-                  </option>
-                  {filteredSpecialities.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                  {/* D6 : spécialité hors référentiel */}
-                  {branchId ? (
-                    <option value={SPECIALITY_OTHER}>
-                      {tProfile('sections.expertise.speciality_other_option')}
-                    </option>
-                  ) : null}
-                </select>
-                <FieldError field="speciality_id" />
+                  <MultiSelectChips
+                    ariaLabel={tProfile('field_labels_short.speciality_ids')}
+                    options={[
+                      ...filteredSpecialities.map(sp => ({ value: sp.id, label: sp.name })),
+                      // D6 : spécialité hors référentiel, proposée seulement
+                      // quand une branche est choisie.
+                      ...(branchId
+                        ? [{
+                            value: SPECIALITY_OTHER,
+                            label: tProfile('sections.expertise.speciality_other_option'),
+                          }]
+                        : []),
+                    ]}
+                    selected={specialityIds}
+                    onChange={onSpecialitiesChange}
+                    invalid={isMissing('speciality_ids')}
+                    emptyLabel={tProfile('sections.expertise.speciality_placeholder')}
+                  />
+                </div>
+                <FieldError field="speciality_ids" />
 
-                {specialityId === SPECIALITY_OTHER && (
+                {specialityIds.includes(SPECIALITY_OTHER) && (
                   <div style={{ marginTop: 10 }}>
                     <label style={labelStyle}>
                       {tProfile('sections.expertise.speciality_other_label')}
@@ -1824,10 +1905,33 @@ export default function CdiValiderProfilPage() {
                       onChange={e => setSpecialityOther(e.target.value)}
                       maxLength={100}
                       placeholder={tProfile('sections.expertise.speciality_other_placeholder')}
-                      style={inputStyle('speciality_id')}
+                      style={inputStyle('speciality_ids')}
                     />
                   </div>
                 )}
+              </div>
+
+              {/* ── ZONES DE TRAVAIL ────────────────────────────────────────
+                  Placées ici, avec branche et spécialités, parce que c'est un
+                  critère de mise en relation comme elles — et non près du champ
+                  « Localisation », qui laisserait croire qu'on décrit un
+                  domicile. */}
+              <div
+                ref={fieldRefs.work_zone_ids as RefObject<HTMLDivElement>}
+                className={focusClass('work_zone_ids')}
+                style={{ marginBottom: 14 }}
+              >
+                <label style={labelStyle}>
+                  {tWorkZones('label')}{' '}
+                  <span style={{ color: '#94a3b8', fontWeight: 400 }}>· {tWorkZones('hint')}</span>
+                </label>
+                <WorkZoneSelector
+                  zones={workZones}
+                  selected={workZoneIds}
+                  onChange={setWorkZoneIds}
+                  invalid={isMissing('work_zone_ids')}
+                />
+                <FieldError field="work_zone_ids" />
               </div>
 
               <div

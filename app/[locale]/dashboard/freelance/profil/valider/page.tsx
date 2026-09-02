@@ -264,6 +264,17 @@ export default function ValiderProfilPage() {
     languages_structured: tProfile('field_errors.languages_structured'),
   }
 
+  // Ce que la BANNIÈRE peut nommer. Ce n'est pas FIELD_LABELS : `cv_ready`
+  // n'est pas un champ de ce formulaire — il n'a ni ref ni surlignage — mais il
+  // PEUT manquer, et il manquait au décompte sans jamais apparaître dans la
+  // liste. La bannière annonçait alors « 3 champs » et n'en nommait que deux :
+  // le compte disait une chose, la liste une autre, et l'expert n'avait aucun
+  // moyen de savoir lequel des deux avait raison.
+  const MISSING_LABELS: Record<string, string> = {
+    ...FIELD_LABELS,
+    cv_ready: tProfile('field_labels_short.cv_ready'),
+  }
+
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -1301,8 +1312,8 @@ export default function ValiderProfilPage() {
                     ? tProfile('banner_error', {
                         count: missingFields.length,
                         fields: missingFields
-                          .filter((f): f is FieldKey => f in FIELD_LABELS)
-                          .map(f => FIELD_LABELS[f])
+                          .map(f => MISSING_LABELS[f])
+                          .filter(Boolean)
                           .join(', '),
                       })
                     : errorMsg}
