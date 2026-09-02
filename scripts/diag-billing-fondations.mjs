@@ -300,7 +300,15 @@ const walk = (rel) => {
 scanned.forEach(walk)
 ok(leak === null, 'aucune variable NEXT_PUBLIC_ de facturation', leak ? `Fuite : ${leak}` : undefined)
 
-// Le lot 0 ne branche RIEN : aucune clé Stripe ne doit encore être lue.
+// Les variables Stripe ne se lisent QUE dans lib/billing.
+//
+// Cette assertion disait à l'origine « le lot 0 ne lit AUCUNE variable Stripe,
+// il ne branche rien ». C'était vrai du lot 0 seul, et c'est devenu faux au lot
+// 1 qui, lui, branche. Une assertion datée qui vire au rouge sans qu'aucun
+// invariant ne soit rompu est pire qu'inutile : on prend l'habitude de
+// l'ignorer. Elle est donc remplacée par l'invariant DURABLE — la lecture des
+// clés est confinée au seul module qui applique les deux verrous, si bien
+// qu'aucun chemin ne peut contourner le contrôle de cohérence clé/environnement.
 let reads = []
 const walkEnv = (rel) => {
   const abs = join(ROOT, rel)
@@ -311,6 +319,8 @@ const walkEnv = (rel) => {
   }
   if (!/\.(ts|tsx|mjs)$/.test(rel)) return
   const src = readFileSync(abs, 'utf8')
+  const confine = rel.startsWith('lib\\billing') || rel.startsWith('lib/billing')
+  if (confine) return
   for (const m of src.matchAll(/process\.env\.(STRIPE[A-Z_0-9]*|ENABLE_BILLING)/g)) {
     reads.push(`${rel} → ${m[1]}`)
   }
@@ -318,8 +328,8 @@ const walkEnv = (rel) => {
 scanned.forEach(walkEnv)
 ok(
   reads.length === 0,
-  'le Lot 0 ne lit AUCUNE variable Stripe (il ne branche rien)',
-  reads.length ? `Trouvé : ${reads.join(', ')}` : undefined,
+  'les variables Stripe ne sont lues que dans lib/billing',
+  reads.length ? `Lecture hors lib/billing : ${reads.join(', ')}` : undefined,
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
