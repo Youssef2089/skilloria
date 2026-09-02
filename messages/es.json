@@ -2779,7 +2779,25 @@
       "toast_enabled": "Tarea reactivada.",
       "toast_disabled": "Tarea desactivada.",
       "err_confirm_name_mismatch": "El nombre introducido no coincide con el de la tarea.",
-      "err_nothing_to_update": "La tarea ya está en ese estado."
+      "err_nothing_to_update": "La tarea ya está en ese estado.",
+      "action_reschedule": "Reprogramar",
+      "reschedule_title": "Modificar el horario",
+      "reschedule_body": "Elija la frecuencia y la hora de {name}. Ninguna expresión se escribe a mano: se construye a partir de estas opciones, lo que hace irrepresentable un horario imposible, como un 30 de febrero.",
+      "reschedule_submit": "Guardar el horario",
+      "field_frequency": "Frecuencia",
+      "field_hour_utc": "Hora (UTC)",
+      "field_minutes": "Minutos",
+      "field_days_of_week": "Días de la semana",
+      "field_day_of_month": "Día del mes",
+      "frequency_daily": "Cada día",
+      "frequency_weekly": "Ciertos días de la semana",
+      "frequency_monthly": "Cada mes",
+      "day_of_month_hint": "Limitado al 28: no todos los meses tienen un 29, un 30 ni un 31. Un horario fijado el 31 no se dispararía algunos meses, sin ninguna alerta.",
+      "preview_utc": "Se ejecutará a las {times} UTC",
+      "chain_violation_body": "Este horario rompe el encadenamiento: esta tarea debe ejecutarse al menos {minutes} min después de {other}. De lo contrario se ejecutaría antes de tener nada que tratar, y el diagnóstico leería ese vacío como una avería.",
+      "chain_violation_suggestion": "Horario válido más cercano: {schedule}",
+      "toast_rescheduled": "Horario modificado.",
+      "err_invalid_schedule": "Los componentes de horario proporcionados no son válidos."
     }
   },
   "expert_verification": {

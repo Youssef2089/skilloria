@@ -329,6 +329,108 @@ ok(/job_name: jobName/.test(toggleRoute),
 ok(/'cron_job_enabled' : 'cron_job_disabled'/.test(toggleRoute) && /request,/.test(toggleRoute),
   'audit cron_job_enabled / cron_job_disabled, avec IP et user-agent')
 
+// ═══ E4. MODIFICATION D'HORAIRE — LE « 30 FEVRIER » (lot 3) ════════════════
+section('E4. Modification d’horaire')
+
+const SCHED_SQL = 'supabase/migrations/20260902000002_cron_schedule_edit.sql'
+const schedSql = stripComments(read(SCHED_SQL))
+const schedRoute = stripComments(read('app/api/admin/cron-jobs/[name]/schedule/route.ts'))
+const schedModal = stripComments(read('components/admin/CronScheduleModal.tsx'))
+
+// ── LE CONTROLE CENTRAL DE TOUT CE LOT ──────────────────────────────────────
+// pg_cron accepte `0 3 30 2 *` sans erreur et ne la declenche JAMAIS. Le
+// plafond a 28 rend cette classe d'erreur IRREPRESENTABLE plutot que
+// detectable. S'il saute, on retombe sur une purge legale qui s'arrete en
+// silence — le scenario exact que cet ecran existe pour rendre impossible.
+ok(/p_day_of_month < 1 or p_day_of_month > 28/.test(schedSql),
+  'BASE : le jour du mois est borne a 28 — « 30 fevrier » irrepresentable',
+  'pg_cron valide la FORME, pas la satisfiabilite : une expression jamais declenchee ne signale rien')
+ok(/asBoundedInt\(body\.day_of_month, 1, 28\)/.test(schedRoute),
+  'ROUTE : meme borne a 28 (defense en profondeur)')
+ok(/length: 28 \}/.test(schedModal),
+  'ECRAN : le selecteur ne propose que 1 a 28')
+ok(/day_of_month_hint/.test(schedModal),
+  'l’ecran DIT pourquoi la liste s’arrete a 28',
+  'sans explication, la borne passe pour arbitraire et quelqu’un la « corrigera »')
+
+// AUCUNE expression n'est acceptee de l'exterieur : elle est CONSTRUITE.
+ok(/create or replace function public\.cron_build_schedule/.test(schedSql),
+  'l’expression est CONSTRUITE en base a partir de composants bornes')
+ok(!/p_schedule text[\s\S]{0,200}?perform cron\.alter_job\(v_jobid, schedule := p_schedule\)/.test(schedSql),
+  'aucune expression brute n’est ecrite telle quelle dans cron.job')
+ok(/v_target := public\.cron_build_schedule\(/.test(schedSql) &&
+   /cron\.alter_job\(v_jobid, schedule := v_target\)/.test(schedSql),
+  'seule l’expression CONSTRUITE est ecrite')
+ok(!/body\.schedule/.test(schedRoute),
+  'la route n’accepte JAMAIS de champ `schedule` depuis le client')
+ok(/p_frequency/.test(schedRoute) && /p_minutes/.test(schedRoute) && /p_hour/.test(schedRoute),
+  'la route envoie des composants types, pas une chaine')
+
+// Les bornes des autres composants, en base ET en route.
+for (const [re, label] of [
+  [/m < 0 or m > 59/, 'minutes 0-59'],
+  [/p_hour < 0 or p_hour > 23/, 'heure 0-23'],
+  [/d < 0 or d > 6/, 'jour de semaine 0-6'],
+]) {
+  ok(re.test(schedSql), `BASE : ${label}`)
+}
+
+// ── LA CHAINE, DANS LES DEUX SENS ───────────────────────────────────────────
+ok(/create or replace function public\.admin_cron_chain_violations/.test(schedSql),
+  'la chaine est verifiee avant ecriture')
+ok(/'upstream'/.test(schedSql) && /'downstream'/.test(schedSql),
+  'la chaine est verifiee DANS LES DEUX SENS',
+  'deplacer une dependance sans verifier ses dependants casserait la chaine par l’autre bout')
+// L'invariant EXACT : pour chaque execution d'une dependance, il EXISTE une
+// execution de la cible `gap` plus tard. PAS « toutes apres toutes » — la
+// reconciliation tourne a 3h15 ET 3h45 pour deux purges a 3h00 et 3h30.
+// Ancre sur la FIN du predicat : la mutation « … and false » laissait le motif
+// intact et le controle vert (constate au test de mutation).
+ok(/where tm >= dm \+ t\.gap\s*\n\s*\)/.test(schedSql),
+  'invariant : POUR CHAQUE execution amont, il EXISTE une execution cible plus tard',
+  '« toutes apres toutes » refuserait la configuration actuelle, pourtant correcte')
+ok(/select \* into v_bad[\s\S]{0,200}?raise exception 'cron_chain_violation/.test(schedSql),
+  'la violation LEVE avant tout appel a alter_job')
+// L'ORDRE se verifie DANS LE CORPS de admin_cron_set_schedule, et sur le RAISE
+// — pas sur la chaine « cron_chain_violation », qui apparait deja bien plus haut
+// dans le NOM de la fonction admin_cron_chain_violations. Cherche sur le fichier
+// entier, ce controle etait toujours vrai (constate au test de mutation).
+const setSchedStart = schedSql.indexOf('create or replace function public.admin_cron_set_schedule')
+const setSchedBody = setSchedStart === -1 ? '' : schedSql.slice(setSchedStart)
+const raiseIdx = setSchedBody.indexOf("raise exception 'cron_chain_violation")
+const writeIdx = setSchedBody.indexOf('perform cron.alter_job(v_jobid, schedule')
+ok(raiseIdx !== -1 && writeIdx !== -1 && raiseIdx < writeIdx,
+  'la verification precede l’ecriture, jamais l’inverse',
+  'verifier apres avoir ecrit laisserait un horaire casse en base jusqu’a la correction')
+
+// ── UN REFUS QUI PROPOSE ────────────────────────────────────────────────────
+ok(/create or replace function public\.admin_cron_suggest_schedule/.test(schedSql),
+  'la base calcule l’horaire valide le plus proche')
+ok(/admin_cron_suggest_schedule/.test(schedRoute) && /suggested_schedule/.test(schedRoute),
+  'le refus PROPOSE un horaire valide',
+  'un refus qu’on ne sait pas satisfaire est un refus qu’on finit par contourner en base')
+ok(/chain_violation_body/.test(schedModal) && /chain_violation_suggestion/.test(schedModal),
+  'l’ecran NOMME la contrainte et affiche la proposition')
+
+// ── AUCUN CHAMP LIBRE A L'ECRAN ─────────────────────────────────────────────
+ok(!/type="text"/.test(schedModal.replace(/placeholder=\{jobName\}/, '')) || /confirmName/.test(schedModal),
+  'la modale n’expose aucun champ texte d’expression cron')
+ok(/MINUTE_CHOICES/.test(schedModal) && /HOUR_CHOICES/.test(schedModal) && /DOM_CHOICES/.test(schedModal),
+  'la saisie passe par des selecteurs bornes')
+
+// ── LES DEUX BARRIERES, COMME LA BASCULE ────────────────────────────────────
+ok(/requireReauth\(request, auth\.user\.id\)/.test(schedRoute),
+  'reprogrammation : re-authentification exigee')
+ok(/typed !== jobName/.test(schedRoute) && /confirm_name_mismatch/.test(schedRoute),
+  'reprogrammation : le nom retape est REVALIDE au serveur')
+ok(/select j\.schedule::text into v_new/.test(schedSql),
+  'la fonction RELIT l’horaire apres ecriture')
+ok(/entity_id: cronJobAuditId\(jobName\)/.test(schedRoute) &&
+   /action: 'cron_job_rescheduled'/.test(schedRoute) && /from_schedule/.test(schedRoute),
+  'audit cron_job_rescheduled, avec l’horaire avant et apres')
+ok(!/grant\s+(usage|all)\s+on\s+schema\s+cron/i.test(schedSql),
+  'aucun grant sur le schema cron dans la migration d’horaire')
+
 // ═══ F. LE DIAGNOSTIC EXISTANT NE DOIT PAS CASSER ══════════════════════════
 section('F. diag-cron-purges reste utilisable')
 
@@ -349,6 +451,7 @@ ok(!/cron_purge_health/.test(readFns),
 // ═══ G. i18n — 4 LANGUES ═══════════════════════════════════════════════════
 section('G. i18n')
 
+const LOT3_KEYS = ['action_reschedule','reschedule_title','reschedule_body','reschedule_submit','field_frequency','field_hour_utc','field_minutes','field_days_of_week','field_day_of_month','frequency_daily','frequency_weekly','frequency_monthly','day_of_month_hint','preview_utc','chain_violation_body','chain_violation_suggestion','toast_rescheduled','err_invalid_schedule']
 const LOT2_KEYS = ['action_enable','action_disable','confirm_cancel','confirm_enable_title','confirm_disable_title','confirm_enable_body','confirm_disable_body','confirm_enable_legal','confirm_disable_legal','confirm_type_name','toast_enabled','toast_disabled','err_confirm_name_mismatch','err_nothing_to_update']
 const LOT1_KEYS = ['banner_action','history_title','history_depth_notice','history_empty_title','history_empty_body','runs_count','run_running','duration_ms','duration_s','http_no_verdict','not_found_title','not_found_body','page_of','prev','next']
 const HEALTH = ['legal_disabled', 'never_ran', 'failed', 'stale', 'repeated_failures',
@@ -360,7 +463,7 @@ for (const loc of ['fr', 'en', 'es', 'de']) {
   const missing = []
   for (const k of ['title', 'subtitle', 'utc_hint', 'banner_title', 'banner_body', 'banner_hint',
     'migration_pending_title', 'migration_pending_body', 'badge_legal', 'badge_uncatalogued',
-    'schedule_advanced', 'chain_notice', 'uncatalogued_body', ...LOT1_KEYS, ...LOT2_KEYS]) {
+    'schedule_advanced', 'chain_notice', 'uncatalogued_body', ...LOT1_KEYS, ...LOT2_KEYS, ...LOT3_KEYS]) {
     if (!c?.[k]) missing.push(k)
   }
   for (const h of HEALTH) if (!c?.health?.[h]) missing.push(`health.${h}`)

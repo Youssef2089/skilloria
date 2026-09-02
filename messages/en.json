@@ -2779,7 +2779,25 @@
       "toast_enabled": "Task re-enabled.",
       "toast_disabled": "Task disabled.",
       "err_confirm_name_mismatch": "The name you typed does not match the task’s.",
-      "err_nothing_to_update": "The task is already in that state."
+      "err_nothing_to_update": "The task is already in that state.",
+      "action_reschedule": "Reschedule",
+      "reschedule_title": "Change the schedule",
+      "reschedule_body": "Pick the frequency and time for {name}. No expression is typed by hand: it is built from these choices, which makes an impossible schedule — like 30 February — unrepresentable.",
+      "reschedule_submit": "Save schedule",
+      "field_frequency": "Frequency",
+      "field_hour_utc": "Hour (UTC)",
+      "field_minutes": "Minutes",
+      "field_days_of_week": "Days of the week",
+      "field_day_of_month": "Day of the month",
+      "frequency_daily": "Every day",
+      "frequency_weekly": "Certain days of the week",
+      "frequency_monthly": "Every month",
+      "day_of_month_hint": "Capped at 28: not every month has a 29th, 30th or 31st. A schedule set on the 31st would simply not fire in some months, with no warning at all.",
+      "preview_utc": "Will run at {times} UTC",
+      "chain_violation_body": "This schedule breaks the chain: this task must run at least {minutes} min after {other}. Otherwise it would run before there is anything to process, and the diagnostic would read that emptiness as a failure.",
+      "chain_violation_suggestion": "Nearest valid schedule: {schedule}",
+      "toast_rescheduled": "Schedule changed.",
+      "err_invalid_schedule": "The schedule components provided are invalid."
     }
   },
   "expert_verification": {

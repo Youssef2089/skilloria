@@ -2779,7 +2779,25 @@
       "toast_enabled": "Tâche réactivée.",
       "toast_disabled": "Tâche désactivée.",
       "err_confirm_name_mismatch": "Le nom saisi ne correspond pas à celui de la tâche.",
-      "err_nothing_to_update": "La tâche est déjà dans cet état."
+      "err_nothing_to_update": "La tâche est déjà dans cet état.",
+      "action_reschedule": "Reprogrammer",
+      "reschedule_title": "Modifier l’horaire",
+      "reschedule_body": "Choisissez la fréquence et l’heure de {name}. Aucune expression n’est saisie à la main : elle est construite à partir de ces choix, ce qui rend un horaire impossible — comme un 30 février — irreprésentable.",
+      "reschedule_submit": "Enregistrer l’horaire",
+      "field_frequency": "Fréquence",
+      "field_hour_utc": "Heure (UTC)",
+      "field_minutes": "Minutes",
+      "field_days_of_week": "Jours de la semaine",
+      "field_day_of_month": "Jour du mois",
+      "frequency_daily": "Chaque jour",
+      "frequency_weekly": "Certains jours de la semaine",
+      "frequency_monthly": "Chaque mois",
+      "day_of_month_hint": "Limité au 28 : les mois n’ont pas tous un 29, un 30 ni un 31. Un horaire fixé au 31 ne se déclencherait pas certains mois, sans aucune alerte.",
+      "preview_utc": "S’exécutera à {times} UTC",
+      "chain_violation_body": "Cet horaire casse l’enchaînement : cette tâche doit tourner au moins {minutes} min après {other}. Sans cela, elle s’exécuterait avant d’avoir quoi que ce soit à traiter, et le diagnostic lirait ce vide comme une panne.",
+      "chain_violation_suggestion": "Horaire valide le plus proche : {schedule}",
+      "toast_rescheduled": "Horaire modifié.",
+      "err_invalid_schedule": "Les composants d’horaire fournis sont invalides."
     }
   },
   "expert_verification": {

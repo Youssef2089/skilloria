@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import ReauthModal from '@/components/settings/ReauthModal'
+import CronScheduleModal, { type ScheduleDraft } from '@/components/admin/CronScheduleModal'
 
 /**
  * /admin/taches-planifiees — LES TRAITEMENTS AUTOMATIQUES, TELS QUE LA BASE
@@ -62,6 +63,11 @@ type CronJob = {
     | 'verdict_missing' | 'disabled' | 'uncatalogued' | 'ok'
 }
 
+/** Action en attente de ré-authentification. */
+type PendingAction =
+  | { kind: 'toggle'; job: CronJob; next: boolean; confirmName: string }
+  | { kind: 'schedule'; job: CronJob; draft: ScheduleDraft; confirmName: string }
+
 /** Rouge = il faut agir. Orange = il faut regarder. Gris = état voulu. */
 const SEVERITY: Record<CronJob['health'], 'red' | 'amber' | 'grey' | 'green'> = {
   legal_disabled: 'red',
@@ -101,8 +107,15 @@ export default function AdminScheduledTasksPage() {
   const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' } | null>(null)
   const [toggling, setToggling] = useState<{ job: CronJob; next: boolean } | null>(null)
   const [confirmName, setConfirmName] = useState('')
-  const [pending, setPending] = useState<{ job: CronJob; next: boolean; confirmName: string } | null>(null)
+  const [pending, setPending] = useState<PendingAction | null>(null)
   const [reauthOpen, setReauthOpen] = useState(false)
+
+  // Reprogrammation. `scheduling` porte la tâche en cours d'édition ;
+  // `chainError` le refus renvoyé par le serveur, qui NOMME la contrainte et
+  // propose un horaire valide — on rouvre la modale dessus plutôt que de
+  // laisser l'administrateur deviner.
+  const [scheduling, setScheduling] = useState<CronJob | null>(null)
+  const [chainError, setChainError] = useState<{ otherJobLabel: string; minGap: number; suggested: string | null } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -167,32 +180,70 @@ export default function AdminScheduledTasksPage() {
     [t],
   )
 
-  /** Exécute la bascule une fois le grant de ré-auth obtenu. */
-  const runToggle = useCallback(
-    async (p: { job: CronJob; next: boolean; confirmName: string }, reauthToken: string) => {
+  /** Traduit un code d'erreur serveur. Jamais de code brut à l'écran. */
+  const messageForCode = useCallback((code: string | undefined): string => {
+    switch (code) {
+      case 'confirm_name_mismatch': return t('err_confirm_name_mismatch')
+      case 'nothing_to_update': return t('err_nothing_to_update')
+      case 'not_found': return t('not_found_title')
+      case 'invalid_schedule':
+      case 'invalid_frequency':
+      case 'invalid_minutes':
+      case 'invalid_hour':
+      case 'invalid_days_of_week':
+      case 'invalid_day_of_month': return t('err_invalid_schedule')
+      default: return t('error_title')
+    }
+  }, [t])
+
+  /** Exécute l'action une fois le grant de ré-auth obtenu. */
+  const run = useCallback(
+    async (p: PendingAction, reauthToken: string) => {
       setBusy(true)
       try {
-        const res = await secureFetch(
-          `/api/admin/cron-jobs/${encodeURIComponent(p.job.job_name)}/toggle`,
-          {
-            method: 'POST',
-            headers: { 'content-type': 'application/json', 'x-reauth-token': reauthToken },
-            body: JSON.stringify({ active: p.next, confirm_name: p.confirmName }),
-          },
-        )
-        const payload = (await res.json().catch(() => ({}))) as { code?: string }
-        if (!res.ok) {
-          setToast({
-            msg:
-              payload.code === 'confirm_name_mismatch' ? t('err_confirm_name_mismatch')
-                : payload.code === 'nothing_to_update' ? t('err_nothing_to_update')
-                  : payload.code === 'not_found' ? t('not_found_title')
-                    : t('error_title'),
-            kind: 'error',
+        const headers = { 'content-type': 'application/json', 'x-reauth-token': reauthToken }
+        const base = `/api/admin/cron-jobs/${encodeURIComponent(p.job.job_name)}`
+        const res = p.kind === 'toggle'
+          ? await secureFetch(`${base}/toggle`, {
+              method: 'POST', headers,
+              body: JSON.stringify({ active: p.next, confirm_name: p.confirmName }),
+            })
+          : await secureFetch(`${base}/schedule`, {
+              method: 'POST', headers,
+              body: JSON.stringify({ ...p.draft, confirm_name: p.confirmName }),
+            })
+
+        const payload = (await res.json().catch(() => ({}))) as {
+          code?: string
+          other_job_name?: string
+          min_gap_minutes?: number
+          suggested_schedule?: string | null
+        }
+
+        if (res.status === 409 && payload.code === 'chain_violation' && p.kind === 'schedule') {
+          // Le serveur refuse ET explique. On ROUVRE la modale avec le motif :
+          // un refus qu'on ne sait pas satisfaire est un refus qu'on finit par
+          // contourner en base.
+          const other = (jobs ?? []).find((j) => j.job_name === payload.other_job_name)
+          setChainError({
+            otherJobLabel: other ? labelOf(other) : (payload.other_job_name ?? '—'),
+            minGap: payload.min_gap_minutes ?? 0,
+            suggested: payload.suggested_schedule ?? null,
           })
+          setScheduling(p.job)
           return
         }
-        setToast({ msg: p.next ? t('toast_enabled') : t('toast_disabled'), kind: 'success' })
+        if (!res.ok) {
+          setToast({ msg: messageForCode(payload.code), kind: 'error' })
+          return
+        }
+        setToast({
+          msg: p.kind === 'toggle'
+            ? (p.next ? t('toast_enabled') : t('toast_disabled'))
+            : t('toast_rescheduled'),
+          kind: 'success',
+        })
+        setChainError(null)
         await load()
       } catch {
         setToast({ msg: t('error_title'), kind: 'error' })
@@ -200,7 +251,7 @@ export default function AdminScheduledTasksPage() {
         setBusy(false)
       }
     },
-    [secureFetch, t, load],
+    [secureFetch, t, load, jobs, labelOf, messageForCode],
   )
 
   const card: React.CSSProperties = {
@@ -398,6 +449,14 @@ export default function AdminScheduledTasksPage() {
                   >
                     {j.active ? t('action_disable') : t('action_enable')}
                   </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => { setChainError(null); setScheduling(j) }}
+                    style={actionBtn(false)}
+                  >
+                    {t('action_reschedule')}
+                  </button>
                 </div>
               </div>
             </div>
@@ -457,7 +516,7 @@ export default function AdminScheduledTasksPage() {
                 type="button"
                 disabled={busy || confirmName.trim() !== toggling.job.job_name}
                 onClick={() => {
-                  setPending({ job: toggling.job, next: toggling.next, confirmName: confirmName.trim() })
+                  setPending({ kind: 'toggle', job: toggling.job, next: toggling.next, confirmName: confirmName.trim() })
                   setToggling(null)
                   setReauthOpen(true)
                 }}
@@ -473,6 +532,22 @@ export default function AdminScheduledTasksPage() {
         </div>
       )}
 
+      {scheduling && (
+        <CronScheduleModal
+          jobName={scheduling.job_name}
+          jobLabel={labelOf(scheduling)}
+          currentSchedule={scheduling.schedule}
+          busy={busy}
+          chainError={chainError}
+          onCancel={() => { setScheduling(null); setChainError(null) }}
+          onSubmit={(draft, name) => {
+            setPending({ kind: 'schedule', job: scheduling, draft, confirmName: name })
+            setScheduling(null)
+            setReauthOpen(true)
+          }}
+        />
+      )}
+
       {/* Ré-authentification — mécanisme EXISTANT, réutilisé tel quel. */}
       <ReauthModal
         open={reauthOpen}
@@ -480,7 +555,7 @@ export default function AdminScheduledTasksPage() {
           setReauthOpen(false)
           const p = pending
           setPending(null)
-          if (p) void runToggle(p, token)
+          if (p) void run(p, token)
         }}
         onCancel={() => { setReauthOpen(false); setPending(null) }}
       />

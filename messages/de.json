@@ -2779,7 +2779,25 @@
       "toast_enabled": "Aufgabe wieder aktiviert.",
       "toast_disabled": "Aufgabe deaktiviert.",
       "err_confirm_name_mismatch": "Der eingegebene Name stimmt nicht mit dem der Aufgabe überein.",
-      "err_nothing_to_update": "Die Aufgabe befindet sich bereits in diesem Zustand."
+      "err_nothing_to_update": "Die Aufgabe befindet sich bereits in diesem Zustand.",
+      "action_reschedule": "Neu planen",
+      "reschedule_title": "Zeitplan ändern",
+      "reschedule_body": "Wählen Sie Häufigkeit und Uhrzeit für {name}. Kein Ausdruck wird von Hand eingegeben: er wird aus diesen Angaben gebildet, wodurch ein unmöglicher Zeitplan — etwa der 30. Februar — nicht darstellbar ist.",
+      "reschedule_submit": "Zeitplan speichern",
+      "field_frequency": "Häufigkeit",
+      "field_hour_utc": "Stunde (UTC)",
+      "field_minutes": "Minuten",
+      "field_days_of_week": "Wochentage",
+      "field_day_of_month": "Tag des Monats",
+      "frequency_daily": "Täglich",
+      "frequency_weekly": "An bestimmten Wochentagen",
+      "frequency_monthly": "Monatlich",
+      "day_of_month_hint": "Auf den 28. begrenzt: nicht jeder Monat hat einen 29., 30. oder 31. Ein auf den 31. gelegter Zeitplan würde in manchen Monaten schlicht nicht auslösen — ohne jede Warnung.",
+      "preview_utc": "Läuft um {times} UTC",
+      "chain_violation_body": "Dieser Zeitplan bricht die Kette: diese Aufgabe muss mindestens {minutes} Min. nach {other} laufen. Sonst liefe sie, bevor es etwas zu verarbeiten gibt, und die Diagnose läse diese Leere als Störung.",
+      "chain_violation_suggestion": "Nächstgelegener gültiger Zeitplan: {schedule}",
+      "toast_rescheduled": "Zeitplan geändert.",
+      "err_invalid_schedule": "Die angegebenen Zeitplan-Bestandteile sind ungültig."
     }
   },
   "expert_verification": {
