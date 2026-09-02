@@ -2283,7 +2283,9 @@
       "section_taxonomy": "Taxonomía",
       "nav_taxonomie": "Ramas y especialidades",
       "section_comptes": "Cuentas",
-      "nav_utilisateurs": "Usuarios"
+      "nav_utilisateurs": "Usuarios",
+      "section_exploitation": "Explotación",
+      "nav_taches_planifiees": "Tareas programadas"
     },
     "packages": {
       "page_title": "Catálogo comercial",
@@ -2684,6 +2686,71 @@
       "err_nothing_to_update": "No hay nada que cambiar.",
       "err_generic": "La acción ha fallado. Inténtalo de nuevo.",
       "truncated_notice": "Esta lista está limitada a {limit} filas de {total}. Afina los filtros para ver el resto."
+    },
+    "cron": {
+      "title": "Tareas programadas",
+      "subtitle": "Los procesos automáticos de la plataforma, tal como los ejecuta la base de datos. Dos de ellos cumplen una obligación legal.",
+      "utc_hint": "Los horarios se expresan en UTC; la hora local se indica en gris.",
+      "loading": "Cargando…",
+      "error_title": "No se ha podido leer el estado de las tareas programadas.",
+      "empty_title": "Ninguna tarea programada",
+      "empty_body": "La base de datos no contiene ninguna tarea pg_cron. Si esperaba alguna, puede que las migraciones no se hayan aplicado.",
+      "migration_pending_title": "Funciones de supervisión no desplegadas",
+      "migration_pending_body": "La migración {migration} aún no se ha aplicado a esta base de datos. La pantalla aparecerá en cuanto se publique.",
+      "banner_title": "Conformidad suspendida",
+      "banner_body": "{count, plural, =1 {# obligación legal ha dejado de ejecutarse} other {# obligaciones legales han dejado de ejecutarse}}: {jobs}.",
+      "banner_hint": "Ninguna purga de recuperación es automática. Mientras estas tareas estén desactivadas, la plataforma deja de ser conforme.",
+      "badge_legal": "Legal",
+      "badge_technical": "Técnica",
+      "badge_active": "Activa",
+      "badge_disabled": "Desactivada",
+      "badge_uncatalogued": "Sin catalogar",
+      "schedule_advanced": "Expresión avanzada",
+      "field_schedule": "Programación",
+      "field_last_run": "Última ejecución",
+      "field_never": "nunca",
+      "field_scheduler": "Planificador",
+      "field_http": "Respuesta HTTP",
+      "recent_failures": "{failures, plural, =1 {# fallo} other {# fallos}} en las últimas {runs, plural, =1 {# ejecución} other {# ejecuciones}}",
+      "chain_notice": "Debe ejecutarse al menos {minutes} min después de: {jobs}.",
+      "uncatalogued_body": "Esta tarea se ejecuta, pero no se ha declarado ninguna descripción para ella. Añádala al catálogo para que quede supervisada correctamente.",
+      "health": {
+        "legal_disabled": "Obligación suspendida: desactivada aunque cumple una obligación legal.",
+        "never_ran": "Programada, nunca ejecutada. Una expresión válida pero nunca satisfacible no dispara nada ni avisa de nada.",
+        "failed": "La última ejecución ha fallado.",
+        "stale": "No se ejecuta desde hace más tiempo del que permite su periodo.",
+        "repeated_failures": "Fallos repetidos en las últimas ejecuciones.",
+        "verdict_missing": "Llamada emitida, ninguna respuesta observada desde hace más de 24 h.",
+        "disabled": "Desactivada.",
+        "uncatalogued": "Programada en la base de datos, ausente del catálogo: su función no está declarada.",
+        "ok": "Nominal."
+      },
+      "legal_basis": {
+        "rgpd_art17": "RGPD art. 17 — derecho de supresión",
+        "cnil_2y": "CNIL — conservación ≤ 2 años tras el último contacto"
+      },
+      "jobs": {
+        "purge_deletions": {
+          "label": "Purga RGPD art. 17",
+          "description": "Anonimiza las cuentas cuya supresión voluntaria ha vencido."
+        },
+        "purge_inactive": {
+          "label": "Purga CNIL 2 años",
+          "description": "Anonimiza las cuentas sin contacto desde hace dos años."
+        },
+        "reconcile": {
+          "label": "Reconciliación de las respuestas HTTP",
+          "description": "Copia el veredicto de las purgas antes de que pg_net descarte la respuesta."
+        },
+        "log_purge": {
+          "label": "Limpieza del registro",
+          "description": "Limita la retención del registro de ejecución y del historial del planificador."
+        },
+        "rate_limit_purge": {
+          "label": "Purga de los contadores de tasa",
+          "description": "Borra los contadores de limitación de tasa de más de 24 horas."
+        }
+      }
     }
   },
   "expert_verification": {

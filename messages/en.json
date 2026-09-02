@@ -2283,7 +2283,9 @@
       "section_taxonomy": "Taxonomy",
       "nav_taxonomie": "Branches & specialities",
       "section_comptes": "Accounts",
-      "nav_utilisateurs": "Users"
+      "nav_utilisateurs": "Users",
+      "section_exploitation": "Operations",
+      "nav_taches_planifiees": "Scheduled tasks"
     },
     "packages": {
       "page_title": "Commerce catalog",
@@ -2684,6 +2686,71 @@
       "err_nothing_to_update": "Nothing to change.",
       "err_generic": "The action failed. Please try again.",
       "truncated_notice": "This list is capped at {limit} rows out of {total}. Narrow the filters to see the rest."
+    },
+    "cron": {
+      "title": "Scheduled tasks",
+      "subtitle": "The platform’s automated jobs, as the database actually runs them. Two of them fulfil a legal obligation.",
+      "utc_hint": "Times are in UTC; local time is shown in grey.",
+      "loading": "Loading…",
+      "error_title": "Could not read the state of the scheduled tasks.",
+      "empty_title": "No scheduled task",
+      "empty_body": "The database holds no pg_cron task. If you expected some, the migrations may not have been applied.",
+      "migration_pending_title": "Supervision functions not deployed",
+      "migration_pending_body": "Migration {migration} has not been applied to this database yet. The screen will show up as soon as it is pushed.",
+      "banner_title": "Compliance suspended",
+      "banner_body": "{count, plural, =1 {# legal obligation is no longer running} other {# legal obligations are no longer running}}: {jobs}.",
+      "banner_hint": "No catch-up purge happens automatically. While these tasks are disabled, the platform is no longer compliant.",
+      "badge_legal": "Legal",
+      "badge_technical": "Technical",
+      "badge_active": "Active",
+      "badge_disabled": "Disabled",
+      "badge_uncatalogued": "Not catalogued",
+      "schedule_advanced": "Advanced expression",
+      "field_schedule": "Schedule",
+      "field_last_run": "Last run",
+      "field_never": "never",
+      "field_scheduler": "Scheduler",
+      "field_http": "HTTP response",
+      "recent_failures": "{failures, plural, =1 {# failure} other {# failures}} over the last {runs, plural, =1 {# run} other {# runs}}",
+      "chain_notice": "Must run at least {minutes} min after: {jobs}.",
+      "uncatalogued_body": "This task runs, but no description has been declared for it. Add it to the catalogue so it can be supervised properly.",
+      "health": {
+        "legal_disabled": "Obligation suspended — disabled although it fulfils a legal obligation.",
+        "never_ran": "Scheduled, never executed. A valid but never-satisfiable expression fires nothing and reports nothing.",
+        "failed": "Last run failed.",
+        "stale": "Has not run for longer than its period allows.",
+        "repeated_failures": "Repeated failures over the recent runs.",
+        "verdict_missing": "Call issued, no response observed for over 24 h.",
+        "disabled": "Disabled.",
+        "uncatalogued": "Scheduled in the database, absent from the catalogue: its purpose is undeclared.",
+        "ok": "Nominal."
+      },
+      "legal_basis": {
+        "rgpd_art17": "GDPR art. 17 — right to erasure",
+        "cnil_2y": "CNIL — retention ≤ 2 years after the last contact"
+      },
+      "jobs": {
+        "purge_deletions": {
+          "label": "GDPR art. 17 purge",
+          "description": "Anonymises accounts whose voluntary deletion has come due."
+        },
+        "purge_inactive": {
+          "label": "CNIL 2-year purge",
+          "description": "Anonymises accounts with no contact for two years."
+        },
+        "reconcile": {
+          "label": "HTTP response reconciliation",
+          "description": "Copies the purges’ verdict before pg_net discards the response."
+        },
+        "log_purge": {
+          "label": "Log housekeeping",
+          "description": "Bounds the retention of the run log and of the scheduler history."
+        },
+        "rate_limit_purge": {
+          "label": "Rate-limit counter purge",
+          "description": "Deletes rate-limiting counters older than 24 hours."
+        }
+      }
     }
   },
   "expert_verification": {

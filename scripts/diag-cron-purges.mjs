@@ -61,13 +61,35 @@ const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_KEY, {
 })
 
 // ─── Attentes par job ────────────────────────────────────────────────────────
+//
+// ⚠️ L'HORAIRE N'EST PLUS UNE ATTENTE — ET C'EST UN CORRECTIF, PAS UN OUBLI.
+//
+//   Ce tableau portait un champ `schedule` compare par EGALITE STRICTE au
+//   `cron.job.schedule` reel. Cela avait un sens tant que reprogrammer une tache
+//   demandait une migration : tout ecart signalait une derive.
+//
+//   L'ecran /admin/taches-planifiees fait de la reprogrammation une OPERATION
+//   SUPPORTEE. Des le premier usage legitime, ce controle serait passe au rouge
+//   en accusant un changement voulu. Un diagnostic qui crie au loup sur une
+//   action normale finit ignore — et c'est alors qu'il rate la vraie panne.
+//
+//   Ce qui reste verifiable, et qui compte, est INCHANGE : le job existe, il est
+//   actif, il a tourne recemment, et sa reponse HTTP est saine. `maxAgeHours`
+//   reste une attente legitime : elle ne decrit pas QUAND la tache tourne, mais
+//   a quelle FREQUENCE minimale on exige qu'elle tourne.
+//
+//   La coherence de la CHAINE (reconciliation apres les purges) n'est pas non
+//   plus perdue : elle est desormais declaree en base (`cron_job_catalog.
+//   depends_on` / `min_gap_minutes`) et refusee au serveur au moment de
+//   reprogrammer — c'est-a-dire empechee, plutot que constatee apres coup.
+//
 // `maxAgeHours` = au-dela, le silence est traite comme une panne. 26 h pour un
 // job quotidien : une marge de 2 h absorbe un decalage sans masquer un jour saute.
 const EXPECTED = [
-  { name: 'purge_deletions_trigger', schedule: '0 3 * * *',      http: true,  maxAgeHours: 26, label: 'Purge RGPD art. 17 (suppression volontaire echue)' },
-  { name: 'purge_inactive_trigger',  schedule: '30 3 * * *',     http: true,  maxAgeHours: 26, label: 'Purge CNIL 2 ans (comptes inactifs)' },
-  { name: 'cron_run_reconcile',      schedule: '15,45 3 * * *',  http: false, maxAgeHours: 26, label: 'Reconciliation des reponses HTTP' },
-  { name: 'cron_run_log_purge',      schedule: '10 4 * * *',     http: false, maxAgeHours: 26, label: 'Menage cron_run_log + cron.job_run_details' },
+  { name: 'purge_deletions_trigger', http: true,  maxAgeHours: 26, label: 'Purge RGPD art. 17 (suppression volontaire echue)' },
+  { name: 'purge_inactive_trigger',  http: true,  maxAgeHours: 26, label: 'Purge CNIL 2 ans (comptes inactifs)' },
+  { name: 'cron_run_reconcile',      http: false, maxAgeHours: 26, label: 'Reconciliation des reponses HTTP' },
+  { name: 'cron_run_log_purge',      http: false, maxAgeHours: 26, label: 'Menage cron_run_log + cron.job_run_details' },
 ]
 
 function hoursSince(iso) {
@@ -109,9 +131,9 @@ for (const exp of EXPECTED) {
     problems.push('job ABSENT de cron.job (planification perdue)')
   } else {
     if (r.active === false) problems.push('job DESACTIVE (active = false)')
-    if (r.schedule !== exp.schedule) {
-      problems.push(`horaire inattendu : "${r.schedule}" au lieu de "${exp.schedule}"`)
-    }
+    // L'horaire est AFFICHE, jamais compare : il est desormais modifiable
+    // depuis /admin/taches-planifiees (cf. note sur EXPECTED plus haut).
+    notes.push(`horaire : ${r.schedule}`)
   }
 
   // 2. L'ordonnanceur : le declenchement a-t-il abouti ?

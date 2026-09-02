@@ -206,6 +206,24 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
       { key: 'taxonomie', href: '/admin/taxonomie', labelKey: 'nav_taxonomie', iconKey: 'taxonomy' },
     ],
   },
+  {
+    // « Exploitation » ≠ « Commerce » ni « Validation » : ce qui fait tourner la
+    // plateforme, pas ce qu'on y vend ni ce qu'on y valide.
+    //
+    // L'écran s'appelle « tâches planifiées » et non « batchs » : le chantier
+    // matching va introduire des BATCHS au sens de tranches de traitement
+    // (table `matching_batches`). Deux sens pour un mot dans le même
+    // back-office, c'est une confusion garantie.
+    sectionKey: 'section_exploitation',
+    items: [
+      {
+        key: 'taches-planifiees',
+        href: '/admin/taches-planifiees',
+        labelKey: 'nav_taches_planifiees',
+        iconKey: 'clock',
+      },
+    ],
+  },
 ] as const
 
 // ─────────────────────────────────────────────────────────────────────────────

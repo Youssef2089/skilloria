@@ -2283,7 +2283,9 @@
       "section_taxonomy": "Taxonomie",
       "nav_taxonomie": "Branchen & Fachgebiete",
       "section_comptes": "Konten",
-      "nav_utilisateurs": "Benutzer"
+      "nav_utilisateurs": "Benutzer",
+      "section_exploitation": "Betrieb",
+      "nav_taches_planifiees": "Geplante Aufgaben"
     },
     "packages": {
       "page_title": "Commerce-Katalog",
@@ -2684,6 +2686,71 @@
       "err_nothing_to_update": "Nichts zu ändern.",
       "err_generic": "Die Aktion ist fehlgeschlagen. Bitte erneut versuchen.",
       "truncated_notice": "Diese Liste ist auf {limit} von {total} Zeilen begrenzt. Grenzen Sie die Filter ein, um den Rest zu sehen."
+    },
+    "cron": {
+      "title": "Geplante Aufgaben",
+      "subtitle": "Die automatischen Abläufe der Plattform, so wie die Datenbank sie ausführt. Zwei davon erfüllen eine gesetzliche Pflicht.",
+      "utc_hint": "Die Zeiten sind in UTC angegeben; die Ortszeit steht in Grau daneben.",
+      "loading": "Wird geladen…",
+      "error_title": "Der Zustand der geplanten Aufgaben konnte nicht gelesen werden.",
+      "empty_title": "Keine geplante Aufgabe",
+      "empty_body": "Die Datenbank enthält keine pg_cron-Aufgabe. Falls Sie welche erwarten, wurden die Migrationen möglicherweise nicht angewendet.",
+      "migration_pending_title": "Überwachungsfunktionen nicht bereitgestellt",
+      "migration_pending_body": "Die Migration {migration} wurde auf diese Datenbank noch nicht angewendet. Der Bildschirm erscheint, sobald sie eingespielt ist.",
+      "banner_title": "Konformität ausgesetzt",
+      "banner_body": "{count, plural, =1 {# gesetzliche Pflicht wird nicht mehr ausgeführt} other {# gesetzliche Pflichten werden nicht mehr ausgeführt}}: {jobs}.",
+      "banner_hint": "Es findet keine automatische Nachhol-Löschung statt. Solange diese Aufgaben deaktiviert sind, ist die Plattform nicht mehr konform.",
+      "badge_legal": "Gesetzlich",
+      "badge_technical": "Technisch",
+      "badge_active": "Aktiv",
+      "badge_disabled": "Deaktiviert",
+      "badge_uncatalogued": "Nicht katalogisiert",
+      "schedule_advanced": "Erweiterter Ausdruck",
+      "field_schedule": "Zeitplan",
+      "field_last_run": "Letzte Ausführung",
+      "field_never": "nie",
+      "field_scheduler": "Planer",
+      "field_http": "HTTP-Antwort",
+      "recent_failures": "{failures, plural, =1 {# Fehlschlag} other {# Fehlschläge}} bei den letzten {runs, plural, =1 {# Ausführung} other {# Ausführungen}}",
+      "chain_notice": "Muss mindestens {minutes} Min. nach folgenden Aufgaben laufen: {jobs}.",
+      "uncatalogued_body": "Diese Aufgabe läuft, doch es wurde keine Beschreibung für sie hinterlegt. Nehmen Sie sie in den Katalog auf, damit sie ordentlich überwacht wird.",
+      "health": {
+        "legal_disabled": "Pflicht ausgesetzt — deaktiviert, obwohl sie eine gesetzliche Pflicht erfüllt.",
+        "never_ran": "Geplant, nie ausgeführt. Ein gültiger, aber nie erfüllbarer Ausdruck löst nichts aus und meldet nichts.",
+        "failed": "Letzte Ausführung fehlgeschlagen.",
+        "stale": "Läuft länger nicht, als es ihr Zeitraum zulässt.",
+        "repeated_failures": "Wiederholte Fehlschläge bei den letzten Ausführungen.",
+        "verdict_missing": "Aufruf abgesetzt, seit über 24 Std. keine Antwort beobachtet.",
+        "disabled": "Deaktiviert.",
+        "uncatalogued": "In der Datenbank geplant, im Katalog nicht vorhanden: ihr Zweck ist nicht deklariert.",
+        "ok": "Normal."
+      },
+      "legal_basis": {
+        "rgpd_art17": "DSGVO Art. 17 — Recht auf Löschung",
+        "cnil_2y": "CNIL — Aufbewahrung ≤ 2 Jahre nach dem letzten Kontakt"
+      },
+      "jobs": {
+        "purge_deletions": {
+          "label": "DSGVO-Art.-17-Löschung",
+          "description": "Anonymisiert Konten, deren freiwillige Löschung fällig geworden ist."
+        },
+        "purge_inactive": {
+          "label": "CNIL-2-Jahres-Löschung",
+          "description": "Anonymisiert Konten ohne Kontakt seit zwei Jahren."
+        },
+        "reconcile": {
+          "label": "Abgleich der HTTP-Antworten",
+          "description": "Überträgt das Ergebnis der Löschläufe, bevor pg_net die Antwort verwirft."
+        },
+        "log_purge": {
+          "label": "Bereinigung des Protokolls",
+          "description": "Begrenzt die Aufbewahrung des Ausführungsprotokolls und der Planer-Historie."
+        },
+        "rate_limit_purge": {
+          "label": "Löschung der Ratenzähler",
+          "description": "Entfernt Zähler der Ratenbegrenzung, die älter als 24 Stunden sind."
+        }
+      }
     }
   },
   "expert_verification": {

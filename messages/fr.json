@@ -2283,7 +2283,9 @@
       "section_taxonomy": "Taxonomie",
       "nav_taxonomie": "Branches & spécialités",
       "section_comptes": "Comptes",
-      "nav_utilisateurs": "Utilisateurs"
+      "nav_utilisateurs": "Utilisateurs",
+      "section_exploitation": "Exploitation",
+      "nav_taches_planifiees": "Tâches planifiées"
     },
     "packages": {
       "page_title": "Catalogue commerce",
@@ -2684,6 +2686,71 @@
       "err_nothing_to_update": "Aucun changement à appliquer.",
       "err_generic": "L’action a échoué. Réessayez.",
       "truncated_notice": "Cette liste est plafonnée à {limit} lignes sur {total}. Affinez les filtres pour voir le reste."
+    },
+    "cron": {
+      "title": "Tâches planifiées",
+      "subtitle": "Les traitements automatiques de la plateforme, tels que la base les exécute. Deux d’entre eux répondent à une obligation légale.",
+      "utc_hint": "Les horaires sont exprimés en UTC ; l’heure locale est indiquée en gris.",
+      "loading": "Chargement…",
+      "error_title": "Impossible de lire l’état des tâches planifiées.",
+      "empty_title": "Aucune tâche planifiée",
+      "empty_body": "La base ne contient aucune tâche pg_cron. Si vous en attendiez, les migrations n’ont peut-être pas été appliquées.",
+      "migration_pending_title": "Fonctions de supervision non déployées",
+      "migration_pending_body": "La migration {migration} n’a pas encore été appliquée à cette base. L’écran s’affichera dès qu’elle sera poussée.",
+      "banner_title": "Conformité suspendue",
+      "banner_body": "{count, plural, =1 {# obligation légale ne s’exécute plus} other {# obligations légales ne s’exécutent plus}} : {jobs}.",
+      "banner_hint": "Aucune purge de rattrapage n’est automatique. Tant que ces tâches sont désactivées, la plateforme n’est plus conforme.",
+      "badge_legal": "Légal",
+      "badge_technical": "Technique",
+      "badge_active": "Active",
+      "badge_disabled": "Désactivée",
+      "badge_uncatalogued": "Non cataloguée",
+      "schedule_advanced": "Expression avancée",
+      "field_schedule": "Planification",
+      "field_last_run": "Dernière exécution",
+      "field_never": "jamais",
+      "field_scheduler": "Ordonnanceur",
+      "field_http": "Réponse HTTP",
+      "recent_failures": "{failures, plural, =1 {# échec} other {# échecs}} sur les {runs, plural, =1 {# dernière exécution} other {# dernières exécutions}}",
+      "chain_notice": "Doit tourner au moins {minutes} min après : {jobs}.",
+      "uncatalogued_body": "Cette tâche tourne, mais aucune description n’a été déclarée pour elle. Ajoutez-la au catalogue pour qu’elle soit supervisée correctement.",
+      "health": {
+        "legal_disabled": "Obligation suspendue — désactivée alors qu’elle exécute une obligation légale.",
+        "never_ran": "Planifiée, jamais exécutée. Une expression valide mais jamais satisfiable ne déclenche rien et ne signale rien.",
+        "failed": "Dernière exécution en échec.",
+        "stale": "N’a pas tourné depuis plus longtemps que sa période ne l’autorise.",
+        "repeated_failures": "Échecs répétés sur les dernières exécutions.",
+        "verdict_missing": "Appel émis, aucune réponse observée depuis plus de 24 h.",
+        "disabled": "Désactivée.",
+        "uncatalogued": "Planifiée dans la base, absente du catalogue : son rôle n’est pas déclaré.",
+        "ok": "Nominale."
+      },
+      "legal_basis": {
+        "rgpd_art17": "RGPD art. 17 — droit à l’effacement",
+        "cnil_2y": "CNIL — conservation ≤ 2 ans après le dernier contact"
+      },
+      "jobs": {
+        "purge_deletions": {
+          "label": "Purge RGPD art. 17",
+          "description": "Anonymise les comptes dont la suppression volontaire est échue."
+        },
+        "purge_inactive": {
+          "label": "Purge CNIL 2 ans",
+          "description": "Anonymise les comptes sans contact depuis deux ans."
+        },
+        "reconcile": {
+          "label": "Réconciliation des réponses HTTP",
+          "description": "Recopie le verdict des purges avant que la réponse ne soit effacée par pg_net."
+        },
+        "log_purge": {
+          "label": "Ménage du journal",
+          "description": "Borne la rétention du journal d’exécution et de l’historique de l’ordonnanceur."
+        },
+        "rate_limit_purge": {
+          "label": "Purge des compteurs de débit",
+          "description": "Efface les compteurs de limitation de débit de plus de 24 heures."
+        }
+      }
     }
   },
   "expert_verification": {
