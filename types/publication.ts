@@ -32,12 +32,16 @@ export type PublicationDraft = {
   title: string
   description: string
   branch_id: string | null
-  speciality_id: string | null
+  speciality_ids: string[]
   speciality_other: string | null
   skills_required: string[]
-  seniority: string | null
+  seniorities: string[]
   work_mode: string | null
-  location: string | null
+  // Texte libre d'appoint, jamais un critère de mise en relation.
+  location_note: string | null
+  // Zones de travail — obligatoires pour publier : une annonce sans zone ne
+  // recouperait aucun expert (cf. lib/publications/publishable.ts).
+  work_zone_ids: string[]
   duration: string | null
   start_date: string | null
   budget_min: number | null

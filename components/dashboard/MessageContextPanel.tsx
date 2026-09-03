@@ -82,8 +82,8 @@ export default function MessageContextPanel({
         </div>
         <div style={{ color: 'var(--sk-muted)', fontSize: 12.5, marginTop: 5 }}>
           {tPub(`type.${publication.type}`)}
-          {(publication.branch_label || publication.speciality_label) && (
-            <> · {[publication.branch_label, publication.speciality_label].filter(Boolean).join(' · ')}</>
+          {(publication.branch_label || publication.speciality_labels.length > 0) && (
+            <> · {[publication.branch_label, ...publication.speciality_labels].filter(Boolean).join(' · ')}</>
           )}
         </div>
 

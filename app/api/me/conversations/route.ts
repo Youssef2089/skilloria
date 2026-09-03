@@ -188,9 +188,11 @@ export async function GET(request: NextRequest): Promise<Response> {
         'candidatures!inner(id, status, profile_id, publication_id, unlocked_at, ' +
           'profiles!inner(id, user_id, photo_url, users!profiles_user_id_fkey(id, first_name, last_name, deletion_scheduled_at, anonymized_at)), ' +
           'publications!inner(id, type, title, description, budget_min, budget_max, ' +
-            'location, work_mode, duration, start_date, seniority, skills_required, ' +
-            'confidential, branch_id, speciality_id, status, published_at, expires_at, organization_id, ' +
-            'branches(id, name), specialities(id, name), ' +
+            'location_note, work_zone_ids, work_mode, duration, start_date, seniorities, skills_required, ' +
+            'confidential, branch_id, speciality_ids, status, published_at, expires_at, organization_id, ' +
+            // Plus d'embed specialities(...) : clé étrangère morte au passage
+            // au multiple. Libellés résolus par lot après le chargement.
+            'branches(id, name), ' +
             'organizations(id, company_name, logo_url)))',
     )
     .in('candidature_id', candIds)

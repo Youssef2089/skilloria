@@ -1,0 +1,669 @@
+// scripts/diag-lot2-socle.mjs — LE SOCLE DES ÉCRANS, ÉPROUVÉ EN L'EXÉCUTANT.
+//
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// POURQUOI CE DIAG
+//   Le lot 2 introduit trois choses dont la correction ne se voit pas à la
+//   relecture, et dont l'échec est SILENCIEUX :
+//
+//   ① UN MIROIR. `expandToCountryCodes` (TypeScript) doit rendre exactement ce
+//      que rend `work_zone_country_codes` (SQL). La base écrit la colonne
+//      dérivée qui FILTRE, l'écran affiche ce que la sélection RECOUVRE. Si les
+//      deux divergent, l'écran annonce une couverture que le moteur n'applique
+//      pas — et personne ne s'en aperçoit, puisque les deux ont l'air corrects
+//      chacun de son côté.
+//
+//   ② UN PRÉDICAT PARTAGÉ. Ce qui rend un profil visible vivait en TROIS
+//      exemplaires : contrainte base, route, formulaire. Trois copies dérivent.
+//      Le fichier lib/profile-visibility.ts est désormais la seule écriture, et
+//      ce diag vérifie qu'il dit bien la même chose que la contrainte.
+//
+//   ③ DES MESSAGES QUI DOIVENT EXISTER. Cinq experts ont été rendus invisibles
+//      par la migration SANS ÊTRE PRÉVENUS. La seule réparation possible est de
+//      leur dire précisément ce qui manque. Un champ manquant sans traduction
+//      afficherait une clé technique — ou rien. Le contrôle est donc : TOUT
+//      champ que le prédicat peut rendre a un libellé dans LES QUATRE langues.
+//
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//   node scripts/diag-lot2-socle.mjs
+//
+// AUCUN accès base, AUCUN réseau, AUCUNE variable d'environnement.
+
+import { readFileSync, readdirSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
+import {
+  buildWorkZoneTree,
+  continentsOf,
+  countryCountOf,
+  dedupeCoveredZones,
+  expandToCountryCodes,
+  worldZoneOf,
+} from '../lib/work-zones.ts'
+import {
+  CHAMPS_AUSSI_GARANTIS_EN_BASE,
+  PROFILE_VISIBILITY_FIELDS,
+  RESUME_MAX,
+  RESUME_MIN,
+  missingForVisibility,
+} from '../lib/profile-visibility.ts'
+import {
+  CHAMPS_AUSSI_GARANTIS_EN_BASE as CHAMPS_ANNONCE_EN_BASE,
+  missingForPublish,
+} from '../lib/publications/publishable.ts'
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+const read = (p) => readFileSync(join(ROOT, p), 'utf8')
+
+/** Résout une migration par son SUFFIXE : le renumérotage est normal ici. */
+function migration(suffixe) {
+  const t = readdirSync(join(ROOT, 'supabase/migrations')).filter((f) => f.endsWith(`_${suffixe}.sql`))
+  if (t.length !== 1) {
+    console.error(`\n❌ ${t.length} migration(s) « ${suffixe} » — attendu exactement une.\n`)
+    process.exit(1)
+  }
+  return `supabase/migrations/${t[0]}`
+}
+
+const stripComments = (src) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').filter((l) => !l.trimStart().startsWith('--')).join('\n')
+
+let failures = 0
+const ok = (cond, label, hint) => {
+  if (cond) console.log(`  ok   ${label}`)
+  else { failures++; console.log(`  KO   ${label}${hint ? `\n       → ${hint}` : ''}`) }
+}
+const eq = (a, b, label) =>
+  ok(a === b, `${label} → ${JSON.stringify(a)}`, a === b ? undefined : `attendu ${JSON.stringify(b)}`)
+const section = (s) => console.log(`\n═══ ${s} ═══\n`)
+
+const SRC_ZONES = read(migration('referentiel_zones_de_travail'))
+const SRC_CHAMPS = read(migration('profil_annonce_multivalues'))
+
+// ══════════════════════════════════════════════════════════════════════════
+section('A. LE MIROIR — TypeScript contre SQL, sur la vraie donnée')
+// ══════════════════════════════════════════════════════════════════════════
+//
+// On reconstruit la liste de zones exactement comme la migration la seede, puis
+// on compare DEUX implémentations indépendantes de la descente : celle de
+// lib/work-zones.ts (utilisée par les écrans) et une descente écrite ici, qui
+// rejoue le CTE récursif du SQL. Un écart signalerait que l'écran et le moteur
+// ne parlent pas de la même chose.
+
+const debut = SRC_ZONES.indexOf('iso_continent(country_code, continent_code) as (values')
+const fin = SRC_ZONES.indexOf('insert into public.work_zones (parent_id, kind, code, country_code, name, slug, sort_order)\nselect cont.id')
+const BLOC = SRC_ZONES.slice(debut, fin)
+const PAYS = [...BLOC.matchAll(/\('([A-Z]{2})','([A-Z]{2})'\)/g)].map((m) => ({ pays: m[1], continent: m[2] }))
+const CONTINENTS = [...SRC_ZONES.matchAll(/\('([A-Z]{2})',\s*'([^']+)',\s*'([^']+)',\s*(\d+)\)/g)]
+  .map((m) => ({ code: m[1], nom: m[2] }))
+
+ok(PAYS.length >= 150 && CONTINENTS.length === 6,
+  `donnée lue dans la migration : ${CONTINENTS.length} continents, ${PAYS.length} pays`)
+
+/** Les zones telles que /api/taxonomy les rend. */
+const ZONES = [
+  { id: 'z-WORLD', parent_id: null, kind: 'world', code: 'WORLD', country_code: null, name: 'Monde entier', slug: 'monde-entier' },
+  ...CONTINENTS.map((c) => ({
+    id: `z-${c.code}`, parent_id: 'z-WORLD', kind: 'continent',
+    code: c.code, country_code: null, name: c.nom, slug: c.nom.toLowerCase(),
+  })),
+  ...PAYS.map((p) => ({
+    id: `z-C_${p.pays}`, parent_id: `z-${p.continent}`, kind: 'country',
+    code: `C_${p.pays}`, country_code: p.pays, name: p.pays, slug: `pays-${p.pays.toLowerCase()}`,
+  })),
+]
+
+/** Descente indépendante — le CTE récursif du SQL, réécrit à la main. */
+function descenteSql(zones, ids) {
+  const parId = new Map(zones.map((z) => [z.id, z]))
+  const enfants = new Map()
+  for (const z of zones) if (z.parent_id) enfants.set(z.parent_id, [...(enfants.get(z.parent_id) ?? []), z.id])
+  const out = new Set(); const vus = new Set(); const pile = [...ids]
+  while (pile.length) {
+    const id = pile.pop()
+    if (vus.has(id) || !parId.has(id)) continue
+    vus.add(id)
+    const cc = parId.get(id).country_code
+    if (cc) out.add(cc)
+    for (const e of enfants.get(id) ?? []) pile.push(e)
+  }
+  return [...out].sort()
+}
+
+const memeChose = (ids, libelle) => {
+  const ts = expandToCountryCodes(ZONES, ids)
+  const sql = descenteSql(ZONES, ids)
+  ok(JSON.stringify(ts) === JSON.stringify(sql),
+    `${libelle} — ${ts.length} pays, les deux implémentations concordent`,
+    `TypeScript ${ts.length} vs SQL ${sql.length} : l'écran annoncerait autre chose que ce que le moteur filtre`)
+}
+
+memeChose(['z-WORLD'], 'Monde entier')
+memeChose(['z-EU'], 'Europe')
+memeChose(['z-AF'], 'Afrique')
+memeChose(['z-C_FR'], 'France seule')
+memeChose(['z-EU', 'z-AF'], 'Europe + Afrique')
+memeChose(['z-EU', 'z-C_TN'], 'Europe + Tunisie')
+memeChose([], 'sélection vide')
+memeChose(['z-INEXISTANTE'], 'zone inconnue (ignorée des deux côtés)')
+
+// ══════════════════════════════════════════════════════════════════════════
+section('B. LE RECOUPEMENT — la symétrie, vue depuis les écrans')
+// ══════════════════════════════════════════════════════════════════════════
+
+const recoupe = (a, b) => {
+  const ea = new Set(expandToCountryCodes(ZONES, a))
+  return expandToCountryCodes(ZONES, b).some((c) => ea.has(c))
+}
+ok(recoupe(['z-C_FR'], ['z-EU']), 'expert « France » vs annonce « Europe »')
+ok(recoupe(['z-EU'], ['z-C_FR']), 'expert « Europe » vs annonce « France » (symétrie)')
+ok(!recoupe(['z-C_FR'], ['z-C_DE']), 'expert « France » vs annonce « Allemagne » — ne recoupe pas')
+ok(!recoupe([], ['z-C_FR']), 'sélection vide ne recoupe RIEN — d où l obligation du champ')
+
+eq(worldZoneOf(ZONES)?.code, 'WORLD', 'zone racine trouvée')
+eq(continentsOf(ZONES).length, 6, 'continents')
+eq(buildWorkZoneTree(ZONES).length, 1, 'arbre : une seule racine')
+ok(countryCountOf(ZONES, 'z-EU') > 40, `Europe couvre ${countryCountOf(ZONES, 'z-EU')} pays`)
+
+console.log('\n— dédoublonnage : cocher un continent PUIS un de ses pays')
+eq(dedupeCoveredZones(ZONES, ['z-EU', 'z-C_FR']).join(','), 'z-EU',
+  'le pays couvert est retiré, le choix large est gardé')
+eq(dedupeCoveredZones(ZONES, ['z-C_FR', 'z-C_DE']).join(','), 'z-C_FR,z-C_DE',
+  'deux pays sans lien de parenté sont tous deux gardés')
+eq(dedupeCoveredZones(ZONES, ['z-WORLD', 'z-EU', 'z-C_FR']).join(','), 'z-WORLD',
+  'le monde absorbe tout le reste')
+
+// ══════════════════════════════════════════════════════════════════════════
+section('C. LE PRÉDICAT DE VISIBILITÉ — source unique, comportement')
+// ══════════════════════════════════════════════════════════════════════════
+
+const PROFIL_COMPLET = {
+  title: 'Consultant D365',
+  summary: 'x'.repeat(300),
+  skills: ['a', 'b', 'c'],
+  branch_id: 'b1',
+  speciality_ids: ['s1'],
+  seniorities: ['senior'],
+  work_zone_ids: ['z-EU'],
+  availability_status: 'available',
+  cdi_status: null,
+  experiences_count: 2,
+  languages_count: 1,
+  cv_parsing_status: 'done',
+  ai_consent_at: '2026-01-01',
+}
+const sans = (champ, valeur) => ({ ...PROFIL_COMPLET, [champ]: valeur })
+
+eq(missingForVisibility(PROFIL_COMPLET, 'expert_freelance').length, 0, 'profil complet : rien ne manque')
+
+console.log('\n— chaque champ manquant est NOMMÉ, un par un')
+for (const [champ, valeur, attendu] of [
+  ['title', '', 'title'],
+  ['skills', ['a'], 'skills'],
+  ['branch_id', null, 'branch_id'],
+  ['speciality_ids', [], 'speciality_ids'],
+  ['seniorities', [], 'seniorities'],
+  ['work_zone_ids', [], 'work_zone_ids'],
+  ['availability_status', null, 'availability'],
+  ['experiences_count', 0, 'experiences'],
+  ['languages_count', 0, 'languages_structured'],
+  ['cv_parsing_status', 'pending', 'cv_ready'],
+]) {
+  const m = missingForVisibility(sans(champ, valeur), 'expert_freelance')
+  ok(m.length === 1 && m[0] === attendu, `${champ} vide → « ${attendu} »`, `obtenu : ${m.join(', ')}`)
+}
+
+console.log('\n— le résumé : les deux bornes, et elles comptent toutes les deux')
+eq(missingForVisibility(sans('summary', 'x'.repeat(RESUME_MIN - 1)), 'expert_freelance').join(','), 'summary',
+  `${RESUME_MIN - 1} caractères : trop court`)
+eq(missingForVisibility(sans('summary', 'x'.repeat(RESUME_MIN)), 'expert_freelance').join(','), '',
+  `${RESUME_MIN} caractères : accepté`)
+eq(missingForVisibility(sans('summary', 'x'.repeat(RESUME_MAX)), 'expert_freelance').join(','), '',
+  `${RESUME_MAX} caractères : accepté`)
+eq(missingForVisibility(sans('summary', 'x'.repeat(RESUME_MAX + 1)), 'expert_freelance').join(','), 'summary',
+  `${RESUME_MAX + 1} caractères : trop long — au-delà, le moteur ne le lit plus`)
+eq(missingForVisibility(sans('summary', '   ' + 'x'.repeat(RESUME_MIN) + '   '), 'expert_freelance').join(','), '',
+  'les espaces de bord ne comptent pas')
+
+console.log('\n— la disponibilité dépend du TYPE d expert, ce qu une contrainte de base ne sait pas faire')
+const cdi = { ...PROFIL_COMPLET, availability_status: null, cdi_status: 'open_to_work' }
+eq(missingForVisibility(cdi, 'expert_cdi').join(','), '', 'CDI : cdi_status suffit')
+eq(missingForVisibility(cdi, 'expert_freelance').join(','), 'availability',
+  'freelance : cdi_status ne suffit PAS — la route exige le bon champ')
+
+console.log('\n— annonce')
+eq(missingForPublish({ title: 'T', description: 'D', branch_id: 'b', work_zone_ids: ['z'] }).length, 0,
+  'annonce complète')
+eq(missingForPublish({ title: 'T', description: 'D', branch_id: 'b', work_zone_ids: [] }).join(','), 'work_zone_ids',
+  'sans zone : refusée')
+eq(missingForPublish({ title: 'T', description: 'D', branch_id: 'b', work_zone_ids: ['z'] })
+  .concat(missingForPublish({ title: 'T', description: 'D', branch_id: 'b', work_zone_ids: ['z'] })).length, 0,
+  'spécialités et séniorités NON exigées — un ensemble vide y signifie « aucune contrainte »')
+
+// ══════════════════════════════════════════════════════════════════════════
+section('D. PARITÉ AVEC LA CONTRAINTE BASE — la dérive qui a coûté un push')
+// ══════════════════════════════════════════════════════════════════════════
+
+const C = stripComments(SRC_CHAMPS)
+const blocCheck = C.slice(
+  C.indexOf('add constraint profiles_visible_requiert_criteres_check'),
+  C.indexOf('add constraint profiles_visible_requiert_criteres_check') + 600,
+)
+const COLONNE_DE = {
+  branch_id: 'branch_id',
+  speciality_ids: 'speciality_ids',
+  seniorities: 'seniorities',
+  work_zone_ids: 'work_zone_ids',
+  availability: 'availability_status',
+  summary: 'summary',
+}
+for (const champ of CHAMPS_AUSSI_GARANTIS_EN_BASE) {
+  ok(blocCheck.includes(COLONNE_DE[champ]),
+    `« ${champ} » est aussi garanti par la contrainte base`,
+    'déclaré partagé côté code, absent de la contrainte : les deux divergent')
+}
+ok(blocCheck.includes(`between ${RESUME_MIN} and ${RESUME_MAX}`),
+  `les bornes du résumé (${RESUME_MIN}-${RESUME_MAX}) sont les MÊMES en base et dans le code`,
+  'un écran qui accepte ce que la base refuse produit une erreur incompréhensible')
+
+const blocCheckAnnonce = C.slice(
+  C.indexOf('add constraint publications_publiee_requiert_zones_check'),
+  C.indexOf('add constraint publications_publiee_requiert_zones_check') + 300,
+)
+for (const champ of CHAMPS_ANNONCE_EN_BASE) {
+  ok(blocCheckAnnonce.includes(champ), `annonce : « ${champ} » garanti en base aussi`)
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+section('E. LES MESSAGES — un champ manquant doit être DISABLE, pas muet')
+// ══════════════════════════════════════════════════════════════════════════
+//
+// Cinq experts sont devenus invisibles sans être prévenus. Leur dire « profil
+// incomplet » ne répare rien : il leur faut la liste des champs. Un champ sans
+// traduction afficherait une clé technique.
+
+const LOCALES = ['fr', 'en', 'es', 'de']
+const MSG = Object.fromEntries(LOCALES.map((l) => [l, JSON.parse(read(`messages/${l}.json`))]))
+const lire = (m, chemin) => chemin.split('.').reduce((o, k) => (o == null ? o : o[k]), m)
+
+for (const champ of PROFILE_VISIBILITY_FIELDS) {
+  // 'summary' et 'availability' ont leur propre clé ; les autres portent leur nom.
+  const manquantes = LOCALES.filter((l) => {
+    const dansExpert = lire(MSG[l], `profile_validation.field_errors.${champ}`)
+    const dansCdi = lire(MSG[l], `cdi_profile_validation.field_errors.${champ}`)
+    return !dansExpert && !dansCdi
+  })
+  ok(manquantes.length === 0, `« ${champ} » a un libellé dans les 4 langues`,
+    manquantes.length ? `absent en : ${manquantes.join(', ')}` : undefined)
+}
+
+console.log('\n— la bannière des profils rendus invisibles')
+for (const cle of ['hidden_title', 'hidden_intro', 'hidden_list_intro', 'hidden_cta', 'summary_matching_help']) {
+  const manquantes = LOCALES.filter((l) => !lire(MSG[l], `profile_validation.sections.summary_matching.${cle}`))
+  ok(manquantes.length === 0, `« ${cle} » dans les 4 langues`, manquantes.join(', ') || undefined)
+}
+
+console.log('\n— le vocabulaire du lot')
+for (const chemin of [
+  'work_zones.label', 'work_zones.hint', 'work_zones.none_selected', 'work_zones.coverage',
+  'work_zones.suggestion_confirm', 'work_zones.suggestion_not_applied',
+  'matching_badge.strong', 'matching_badge.normal',
+  'missions.recommendations_updated',
+  'publications.form.field_work_zones', 'publications.form.field_location_note_help',
+]) {
+  const manquantes = LOCALES.filter((l) => !lire(MSG[l], chemin))
+  ok(manquantes.length === 0, chemin, manquantes.join(', ') || undefined)
+}
+
+console.log('\n— « Localisation » ne doit plus désigner un critère de mise en relation')
+const FR = MSG.fr
+ok(lire(FR, 'publications.form.field_work_zones') === 'Zones de travail',
+  'le formulaire d annonce dit « Zones de travail »')
+ok(/ne sert pas|Ne sert pas/.test(lire(FR, 'publications.form.field_location_note_help') ?? ''),
+  'le champ texte libre dit explicitement qu il ne sert PAS à la mise en relation',
+  'sans cela, un utilisateur croit filtrer avec un champ décoratif')
+
+// ══════════════════════════════════════════════════════════════════════════
+section('F. LE RÉFÉRENTIEL EST SERVI, ET SANS BIBLIOTHÈQUE')
+// ══════════════════════════════════════════════════════════════════════════
+
+const TAXO = read('app/api/taxonomy/route.ts')
+ok(/from\('work_zones'\)/.test(TAXO), 'la route taxonomie expose les zones')
+ok(/tBDD\(translations, 'work_zones'/.test(TAXO), 'les libellés partent traduits (tBDD)')
+const blocZones = TAXO.slice(TAXO.indexOf("from('work_zones')"), TAXO.indexOf("from('work_zones')") + 300)
+ok(!blocZones.includes('domain_id'),
+  'aucun filtre domain_id sur les zones — la géographie n appartient à aucun écosystème')
+
+for (const f of ['components/ui/MultiSelectChips.tsx', 'components/ui/WorkZoneSelector.tsx']) {
+  const src = read(f)
+  const imports = [...src.matchAll(/from '([^']+)'/g)].map((m) => m[1])
+  const externes = imports.filter((i) => !i.startsWith('@/') && !i.startsWith('.') && i !== 'react' && i !== 'next-intl')
+  ok(externes.length === 0, `${f.split('/').pop()} : aucune bibliothèque ajoutée`,
+    externes.length ? `externes : ${externes.join(', ')}` : undefined)
+}
+
+const SEL = read('components/ui/WorkZoneSelector.tsx')
+ok(/suggestion_not_applied/.test(SEL) && /selected\.length === 0/.test(SEL),
+  'la pré-sélection est NON VALIDANTE : elle n entre pas dans la valeur tant qu on ne confirme pas',
+  'une valeur par défaut qui validerait ferait déclarer une zone que personne n a choisie')
+ok(/dedupeCoveredZones/.test(SEL), 'la sélection est dédoublonnée par la hiérarchie')
+ok(/countryCountOf/.test(SEL), 'l étendue de chaque continent est affichée, pas devinée')
+
+// ══════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════
+section('G. LES DEUX FORMULAIRES NOMMENT CE QUI MANQUE')
+// ══════════════════════════════════════════════════════════════════════════
+//
+// Un profil refusé doit dire LEQUEL de ses champs le bloque. C'est la règle
+// gelée appliquée à l'écran de l'expert lui-même : aucun refus sans une raison
+// nommable. Trois façons de la trahir, et les trois se sont produites :
+//
+//   • le formulaire réimplémente le prédicat, dérive, et annonce « complet »
+//     sur un profil que le serveur rejette ;
+//   • la bannière COMPTE un champ qu'elle ne sait pas NOMMER — elle disait
+//     « 3 champs » et n'en listait que deux ;
+//   • le libellé est cherché dans le mauvais espace de noms. Les deux écrans
+//     n'utilisent pas le même : `profile_validation` pour le freelance,
+//     `cdi_profile_validation` pour le CDI. Une clé présente dans l'un et
+//     absente de l'autre affiche à l'expert le CHEMIN de la clé, en clair.
+//     next-intl n'échoue pas au build : cela ne se voit qu'à l'écran.
+
+const FORMULAIRES = [
+  {
+    nom: 'freelance',
+    chemin: 'app/[locale]/dashboard/freelance/profil/valider/page.tsx',
+    // Règles PROPRES au formulaire, hors prédicat partagé — déclarées ici pour
+    // que toute NOUVELLE clé locale échoue tant qu'elle n'est pas nommable.
+    propres: ['work_modes'],
+    renommages: {},
+  },
+  {
+    nom: 'cdi',
+    chemin: 'app/[locale]/dashboard/cdi/profil/valider/page.tsx',
+    propres: ['cdi_salary_min', 'cdi_salary_max', 'cdi_notice_period'],
+    // Le prédicat dit « availability » sans savoir lequel des deux champs il a
+    // testé ; côté CDI le contrôle réel s'appelle cdi_status.
+    renommages: { availability: 'cdi_status' },
+  },
+]
+
+for (const form of FORMULAIRES) {
+  console.log(`\n— ${form.nom}`)
+  const src = read(form.chemin)
+
+  ok(/missingForVisibility,?\s*[\s\S]{0,120}from '@\/lib\/profile-visibility'/.test(src),
+    'appelle le prédicat partagé plutôt que d en tenir une copie',
+    'une copie dérive, et l écran finit par contredire le serveur')
+
+  // L'espace de noms RÉELLEMENT utilisé par cet écran.
+  const ns = /const tProfile = useTranslations\('([^']+)'\)/.exec(src)?.[1]
+  ok(!!ns, `espace de noms identifié (${ns ?? 'introuvable'})`)
+
+  // Ce que la bannière sait nommer : FIELD_ORDER + les ajouts de MISSING_LABELS.
+  const ordre = /const FIELD_ORDER = \[([\s\S]*?)\] as const/.exec(src)?.[1] ?? ''
+  const nommables = new Set([...ordre.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]))
+  const blocLabels = /const MISSING_LABELS[\s\S]*?\n  \}/.exec(src)?.[0] ?? ''
+  for (const m of blocLabels.matchAll(/^\s{4}([a-z_]+):/gm)) nommables.add(m[1])
+  ok(/\.map\(f => MISSING_LABELS\[f\]\)/.test(src),
+    'la bannière nomme depuis MISSING_LABELS, pas depuis les seuls champs à ref',
+    'sinon elle compte des champs qu elle ne liste pas')
+
+  // Tout ce que le prédicat peut rendre, une fois les renommages appliqués.
+  const attendus = [
+    ...PROFILE_VISIBILITY_FIELDS.map((c) => form.renommages[c] ?? c),
+    ...form.propres,
+  ]
+  for (const cle of attendus) {
+    ok(nommables.has(cle), `« ${cle} » est nommable par la bannière`,
+      'compté sans être nommé : l expert voit un nombre, pas une raison')
+    const absentes = LOCALES.filter((l) => !lire(MSG[l], `${ns}.field_labels_short.${cle}`))
+    ok(absentes.length === 0, `« ${cle} » a un libellé dans ${ns}, 4 langues`,
+      absentes.length ? `absent en : ${absentes.join(', ')} — l expert verrait le chemin de la clé` : undefined)
+  }
+
+  // Le résumé : l'aide et le compteur vivent dans le MÊME espace de noms.
+  for (const cle of ['summary_matching_help', 'summary_counter']) {
+    const absentes = LOCALES.filter((l) => !lire(MSG[l], `${ns}.sections.summary_matching.${cle}`))
+    ok(absentes.length === 0, `« ${cle} » dans ${ns}, 4 langues`, absentes.join(', ') || undefined)
+  }
+  ok(/RESUME_MIN/.test(src) && /RESUME_MAX/.test(src),
+    'les bornes du résumé viennent du prédicat, pas d un nombre écrit à la main')
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════
+section('H. LA CHAÎNE DE L ANNONCE — ce qui est saisi arrive en base')
+// ══════════════════════════════════════════════════════════════════════════
+//
+// Un champ peut être offert à l'écran, transmis, VALIDÉ par la route… et jeté.
+// C'est exactement ce qui arrivait aux zones de travail : `work_zone_codes`
+// était lu et contrôlé par la route de création, puis l'INSERT ne portait pas
+// la colonne. L'organisation choisissait ses zones, ne voyait aucune erreur, et
+// se retrouvait bloquée à la publication sur un champ qu'elle venait de
+// remplir. Rien, dans tsc ni dans le build, ne dit cela.
+//
+// Ce contrôle relie les trois maillons : ce que le FORMULAIRE envoie, ce que la
+// ROUTE lit, ce que l'INSERT écrit.
+
+const FORM_ANNONCE = read('components/dashboard/PublicationForm.tsx')
+const POST_ANNONCE = read('app/api/publications/route.ts')
+const PATCH_ANNONCE = read('app/api/publications/[id]/route.ts')
+const PUBLISH_ANNONCE = read('app/api/publications/[id]/publish/route.ts')
+
+console.log('\n— ce que le formulaire envoie, les routes le lisent')
+for (const champ of ['speciality_ids', 'seniorities', 'work_zone_codes', 'location_note']) {
+  ok(new RegExp(`\\b${champ}:`).test(FORM_ANNONCE), `le formulaire envoie « ${champ} »`)
+  ok(new RegExp(`body\\.${champ}\\b`).test(POST_ANNONCE), `la création lit « ${champ} »`)
+  ok(new RegExp(`'${champ}' in body|body\\.${champ}\\b`).test(PATCH_ANNONCE),
+    `l édition lit « ${champ} »`)
+}
+
+console.log('\n— rien n est validé puis jeté')
+// Les colonnes que l'INSERT de création écrit réellement.
+const blocInsert = /\.insert\(\{([\s\S]*?)\n    \}\)/.exec(POST_ANNONCE)?.[1] ?? ''
+ok(blocInsert.length > 0, 'bloc INSERT localisé')
+// Chaque champ de ValidatedInput doit finir quelque part dans cet INSERT.
+const blocValide = /type ValidatedInput = \{([\s\S]*?)\n\}/.exec(POST_ANNONCE)?.[1] ?? ''
+const champsValides = [...blocValide.matchAll(/^\s{2}([a-z_]+):/gm)].map((m) => m[1])
+ok(champsValides.length >= 10, `ValidatedInput lu (${champsValides.length} champs)`)
+// Seule exception ADMISE, et elle est nommée : les zones entrent en CODES et
+// sortent en uuid. Toute autre exception est un champ jeté.
+const RENOMMAGES_ADMIS = { work_zone_codes: 'work_zone_ids' }
+for (const champ of champsValides) {
+  const cible = RENOMMAGES_ADMIS[champ]
+  const present = cible
+    ? new RegExp(`\\b${cible}:`).test(blocInsert)
+    : new RegExp(`input\\.${champ}\\b`).test(blocInsert)
+  ok(present, `« ${champ} » est écrit en base${cible ? ` (sous ${cible})` : ''}`,
+    'validé puis jeté : l utilisateur ne verrait aucune erreur et perdrait sa saisie')
+}
+
+console.log('\n— publier refuse en NOMMANT, et refuse tôt')
+ok(/missingForPublish\(/.test(PUBLISH_ANNONCE),
+  'publier applique le prédicat partagé',
+  'sans lui, seule la contrainte de base refuse — et l org lit « db_error »')
+ok(/code: 'missing_fields', missing: manquants/.test(PUBLISH_ANNONCE),
+  'le refus rend la LISTE des champs manquants',
+  'un refus sans champ nommé ne laisse rien à corriger')
+{
+  // La garde doit précéder la vérification IA : refuser après avoir payé un
+  // appel modèle serait payer pour un refus qu'on savait déjà.
+  const iGarde = PUBLISH_ANNONCE.indexOf('missingForPublish(')
+  const iIA = PUBLISH_ANNONCE.indexOf('runPublicationVerification(')
+  ok(iGarde !== -1 && iIA !== -1 && iGarde < iIA,
+    'la garde passe AVANT l appel au modèle',
+    'refuser après avoir payé la vérification IA coûte pour rien')
+}
+ok(/messageChampsManquants\(payload\.missing\)/.test(FORM_ANNONCE),
+  'le formulaire rend ce refus lisible plutôt que « une erreur est survenue »')
+
+console.log('\n— les zones décident, la note de localisation ne décide rien')
+ok(!/form\.field_location'/.test(FORM_ANNONCE),
+  'l ancien champ « Localisation » ne se présente plus comme un critère')
+ok(/field_work_zones/.test(FORM_ANNONCE), 'le formulaire propose les zones de travail')
+for (const cle of ['errors.missing_fields', 'form.field_work_zones', 'form.field_location_note']) {
+  const absentes = LOCALES.filter((l) => !lire(MSG[l], `publications.${cle}`))
+  ok(absentes.length === 0, `publications.${cle} dans les 4 langues`, absentes.join(', ') || undefined)
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════
+section('I. AUCUN CHEMIN DE CLÉ AFFICHÉ À L UTILISATEUR')
+// ══════════════════════════════════════════════════════════════════════════
+//
+// next-intl n'échoue PAS au build sur une clé absente : il journalise et rend
+// le CHEMIN de la clé. L'utilisateur lit alors, en toutes lettres,
+// « publications.form.field_work_zones » à la place d'un libellé. Un build vert
+// ne prouve donc rien — seul un passage à l'écran le révélerait, et seulement
+// dans la langue testée.
+//
+// Le piège s'est présenté deux fois pendant ce lot : d'abord parce que les deux
+// formulaires de profil n'utilisent pas le même espace de noms
+// (`profile_validation` / `cdi_profile_validation`), ensuite parce que les vues
+// de détail mélangent trois traducteurs (`publications`, `publications.form`,
+// `missions.detail`). Rien ne dit lequel est actif sans lire la déclaration.
+//
+// PORTÉE ASSUMÉE : les surfaces touchées par ce lot, pas toute l'application.
+// Un contrôle qui ment sur sa couverture est pire qu'un contrôle absent.
+
+const SURFACES_DU_LOT = [
+  'components/dashboard/PublicationForm.tsx',
+  'components/dashboard/MissionDetailView.tsx',
+  'components/dashboard/CandidatureCard.tsx',
+  'components/collaboration/SousTraitanceDetailView.tsx',
+  'app/[locale]/dashboard/entreprise/annonces/[id]/page.tsx',
+  'app/[locale]/dashboard/freelance/profil/valider/page.tsx',
+  'app/[locale]/dashboard/cdi/profil/valider/page.tsx',
+]
+
+let clesVerifiees = 0
+for (const fichier of SURFACES_DU_LOT) {
+  const src = read(fichier)
+  // Quel traducteur porte quel espace de noms, tel que déclaré dans CE fichier.
+  const espaces = new Map()
+  for (const m of src.matchAll(/const\s+([A-Za-z_$][\w$]*)\s*=\s*useTranslations\('([^']+)'\)/g)) {
+    espaces.set(m[1], m[2])
+  }
+  const manquantes = []
+  for (const [nom, espace] of espaces) {
+    // Seules les clés LITTÉRALES sont vérifiables. Les clés construites
+    // (`form.seniority_options.${v}`) sortent du périmètre : les contrôler
+    // demanderait d'évaluer le code, et un faux vert vaudrait moins que rien.
+    const appels = src.matchAll(new RegExp(`\\b${nom}\\('([A-Za-z0-9_.]+)'`, 'g'))
+    for (const a of appels) {
+      const chemin = `${espace}.${a[1]}`
+      clesVerifiees++
+      const absentes = LOCALES.filter((l) => lire(MSG[l], chemin) === undefined)
+      if (absentes.length > 0) manquantes.push(`${chemin} (${absentes.join(', ')})`)
+    }
+  }
+  ok(manquantes.length === 0, `${fichier} : toutes ses clés existent`,
+    manquantes.length
+      ? `l utilisateur verrait le chemin : ${manquantes.slice(0, 4).join(' ; ')}`
+      : undefined)
+}
+console.log(`\n  ${clesVerifiees} clés littérales vérifiées dans les 4 langues.`)
+
+// ══════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════
+section('J. LA BANNIÈRE DIT POURQUOI, ET NE MENT PAS')
+// ══════════════════════════════════════════════════════════════════════════
+//
+// La migration a masqué des profils déjà publiés sans prévenir personne. La
+// bannière est la réparation : elle nomme les champs qui manquent et mène au
+// formulaire qui les contient. Nommable ET contestable — une raison qu'on ne
+// peut pas aller corriger n'est pas contestable.
+//
+// Trois façons de la rendre nuisible, et les trois sont vérifiées :
+//   • qu'elle RECALCULE de son côté et liste des champs que le serveur n'exige
+//     pas — ou en taise un qu'il exige ;
+//   • qu'elle PARLE sur une panne, et accuse un profil complet d'être vide ;
+//   • qu'elle affirme « votre profil a été masqué » à quelqu'un qui n'a jamais
+//     publié. Rien en base n'enregistre l'avoir été : la seule chose vérifiable
+//     est d'être passé par la vérification.
+
+const BANNIERE = read('components/profile/ProfilMasqueBanner.tsx')
+const ROUTE_VISIBILITE = read('app/api/profile/visibility/route.ts')
+
+console.log('\n— le verdict vient du serveur, et de lui seul')
+ok(/\/api\/profile\/visibility/.test(BANNIERE),
+  'la bannière lit le verdict serveur')
+ok(!/missingForVisibility/.test(BANNIERE),
+  'la bannière ne recalcule RIEN',
+  'un second calcul dérive, et finit par contredire le refus')
+ok(/missingForVisibility\(/.test(ROUTE_VISIBILITE),
+  'la route applique le prédicat partagé — le même que le refus')
+
+console.log('\n— elle se tait quand elle ne sait pas')
+{
+  // La branche « réponse non ok » doit SORTIR sans jamais poser de verdict.
+  // On la lit jusqu'à son `return`, en refusant qu'un setVerdict s'y glisse.
+  const brancheEchec = /if \(!res\.ok\)\s*\{((?:(?!setVerdict)[\s\S]){0,800}?)\breturn\b/.exec(BANNIERE)
+  ok(!!brancheEchec,
+    'verdict indisponible → aucune bannière',
+    'accuser un profil complet sur une panne de lecture est pire que se taire')
+}
+ok(/if \(!verdict\?\.applicable\) return null/.test(BANNIERE),
+  'pas de profil expert → aucune bannière')
+ok(/if \(verdict\.visible\) return null/.test(BANNIERE),
+  'profil visible → aucune bannière')
+ok(/manquants\.length === 0\) return null/.test(BANNIERE),
+  'rien à signaler → aucune bannière')
+
+console.log('\n— la route refuse de répondre plutôt que de compter zéro')
+ok(/expRes\.error \|\| langRes\.error[\s\S]{0,400}code: 'db_error'/.test(ROUTE_VISIBILITE),
+  'un comptage en panne fait échouer la réponse',
+  'un zéro emprunté à une panne ferait réclamer des expériences déjà saisies')
+ok(/if \(profErr\)[\s\S]{0,300}if \(!profile\)/.test(ROUTE_VISIBILITE),
+  'requête en ÉCHEC et profil ABSENT sont distingués',
+  'les confondre fait dire « complétez votre profil » sur un profil complet')
+
+console.log('\n— deux formulations, et la différence est un FAIT de la ligne')
+ok(/verification_approved/.test(ROUTE_VISIBILITE) && /verification_approved === true/.test(BANNIERE),
+  'la formulation « masqué » est réservée aux profils passés par la vérification',
+  'l écrire à quelqu un qui n a jamais publié serait un mensonge de plus')
+for (const espace of ['profile_validation', 'cdi_profile_validation']) {
+  for (const cle of [
+    'hidden_title', 'hidden_intro', 'incomplete_title', 'incomplete_intro',
+    'hidden_list_intro', 'hidden_cta',
+  ]) {
+    const chemin = `${espace}.sections.summary_matching.${cle}`
+    const absentes = LOCALES.filter((l) => !lire(MSG[l], chemin))
+    ok(absentes.length === 0, chemin, absentes.join(', ') || undefined)
+  }
+}
+
+console.log('\n— les bornes du résumé ne sont plus écrites en dur')
+for (const espace of ['profile_validation', 'cdi_profile_validation']) {
+  for (const chemin of [
+    `${espace}.field_labels_short.summary`,
+    `${espace}.field_errors.summary`,
+  ]) {
+    const fautives = LOCALES.filter((l) => {
+      const v = String(lire(MSG[l], chemin) ?? '')
+      return !v.includes('{min}') || !v.includes('{max}')
+    })
+    ok(fautives.length === 0, `${chemin} interpole ses bornes`,
+      fautives.length
+        ? `écrites en dur en : ${fautives.join(', ')} — elles annonçaient encore 20 caractères quand le serveur en exigeait 200`
+        : undefined)
+  }
+}
+
+console.log('\n— elle est montée là où l expert arrive')
+for (const accueil of [
+  'app/[locale]/dashboard/freelance/page.tsx',
+  'app/[locale]/dashboard/cdi/page.tsx',
+]) {
+  const src = read(accueil)
+  ok(/<ProfilMasqueBanner/.test(src), `${accueil} affiche la bannière`)
+  const espace = /namespace="([a-z_]+)"/.exec(src)?.[1]
+  const attendu = accueil.includes('/cdi/') ? 'cdi_profile_validation' : 'profile_validation'
+  ok(espace === attendu, `${accueil} passe le bon espace de noms (${espace})`,
+    'un espace erroné afficherait le CHEMIN des clés en clair')
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+console.log(
+  failures === 0 ? '\n✅ Tous les contrôles passent.\n' : `\n❌ ${failures} contrôle(s) en échec.\n`,
+)
+process.exit(failures === 0 ? 0 : 1)

@@ -594,23 +594,33 @@
     "field_labels_short": {
       "cv_ready": "CV uploaded and AI verification accepted",
       "title": "your professional title",
-      "summary": "the summary (20 characters minimum)",
+      "summary": "the summary (between {min} and {max} characters)",
       "skills": "at least 3 skills",
       "branch_id": "the main branch",
       "speciality_id": "the speciality",
       "work_modes": "at least one work mode",
       "experiences": "at least one professional experience",
-      "languages_structured": "at least one language"
+      "languages_structured": "at least one language",
+      "speciality_ids": "Specialities",
+      "seniorities": "Seniority levels",
+      "work_zone_ids": "Work areas",
+      "availability": "Availability"
     },
     "field_errors": {
       "title": "Enter your professional title",
-      "summary": "Minimum 20 characters to publish",
+      "summary": "Between {min} and {max} characters to publish",
       "skills": "Add at least 3 skills",
       "branch_id": "Select a branch",
       "speciality_id": "Select a speciality",
       "work_modes": "Select at least one work mode",
       "experiences": "Add at least one experience (career or assignment)",
-      "languages_structured": "Add at least one language"
+      "languages_structured": "Add at least one language",
+      "speciality_ids": "Select at least one speciality",
+      "seniorities": "Select at least one seniority level",
+      "work_zone_ids": "Select at least one work area",
+      "availability": "State your availability",
+      "summary_length": "The summary must be between {min} and {max} characters",
+      "cv_ready": "Upload your CV and accept its analysis to publish"
     },
     "compact_actions": {
       "expand": "Edit",
@@ -765,6 +775,16 @@
         "end_year_label": "End year",
         "remove_aria": "Remove this education",
         "add_button": "+ Add an education"
+      },
+      "summary_matching": {
+        "summary_matching_help": "This is the text we read to suggest assignments to you. Describe what you can do, in your own words. Between {min} and {max} characters.",
+        "summary_counter": "{count} / {max} characters",
+        "incomplete_title": "Your profile is not visible yet",
+        "incomplete_intro": "It will not be shown to organisations while this information is missing. Nothing is lost: everything you have already entered is kept.",
+        "hidden_title": "Your profile is no longer visible",
+        "hidden_intro": "New fields became necessary for us to suggest assignments to you. Your profile has been hidden in the meantime — it has not been deleted.",
+        "hidden_list_intro": "What is left to complete:",
+        "hidden_cta": "Complete my profile"
       }
     },
     "actions": {
@@ -1388,7 +1408,7 @@
     "field_labels_short": {
       "cv_ready": "CV uploaded and AI verification accepted",
       "title": "your professional title",
-      "summary": "your summary (20 characters minimum)",
+      "summary": "the summary (between {min} and {max} characters)",
       "skills": "at least 3 skills",
       "branch_id": "the main branch",
       "speciality_id": "the specialty",
@@ -1397,11 +1417,15 @@
       "cdi_salary_max": "the maximum target salary",
       "cdi_notice_period": "your notice period",
       "experiences": "at least one professional experience",
-      "languages_structured": "at least one language"
+      "languages_structured": "at least one language",
+      "speciality_ids": "Specialities",
+      "seniorities": "Seniority levels",
+      "work_zone_ids": "Work areas",
+      "availability": "Availability"
     },
     "field_errors": {
       "title": "Enter your professional title",
-      "summary": "Minimum 20 characters to publish",
+      "summary": "Between {min} and {max} characters to publish",
       "skills": "Add at least 3 skills",
       "branch_id": "Select a branch",
       "speciality_id": "Select a specialty",
@@ -1410,7 +1434,13 @@
       "cdi_salary_max": "Enter the maximum target salary",
       "cdi_notice_period": "Indicate your notice period",
       "experiences": "Add at least one experience (career or project)",
-      "languages_structured": "Add at least one language"
+      "languages_structured": "Add at least one language",
+      "speciality_ids": "Select at least one speciality",
+      "seniorities": "Select at least one seniority level",
+      "work_zone_ids": "Select at least one work area",
+      "availability": "State your availability",
+      "summary_length": "The summary must be between {min} and {max} characters",
+      "cv_ready": "Upload your CV and accept its analysis to publish"
     },
     "compact_actions": {
       "expand": "Edit",
@@ -1600,6 +1630,16 @@
         "country_search_placeholder": "Search for a country...",
         "country_loading": "Loading countries...",
         "country_empty": "No country found"
+      },
+      "summary_matching": {
+        "summary_matching_help": "This is the text we read to suggest assignments to you. Describe what you can do, in your own words. Between {min} and {max} characters.",
+        "summary_counter": "{count} / {max} characters",
+        "incomplete_title": "Your profile is not visible yet",
+        "incomplete_intro": "It will not be shown to organisations while this information is missing. Nothing is lost: everything you have already entered is kept.",
+        "hidden_title": "Your profile is no longer visible",
+        "hidden_intro": "New fields became necessary for us to suggest assignments to you. Your profile has been hidden in the meantime — it has not been deleted.",
+        "hidden_list_intro": "What is left to complete:",
+        "hidden_cta": "Complete my profile"
       }
     },
     "actions": {
@@ -1926,7 +1966,18 @@
       "confirm_publish_no": "Cancel",
       "field_speciality_other_option": "Other (specify)",
       "field_speciality_other_label": "Specify the speciality",
-      "field_speciality_other_placeholder": "e.g. FinOps, Green IT…"
+      "field_speciality_other_placeholder": "e.g. FinOps, Green IT…",
+      "field_work_zones": "Work areas",
+      "field_work_zones_help": "Where you are looking for someone",
+      "field_location_note": "Detail (optional)",
+      "field_location_note_placeholder": "e.g. Paris or Lyon",
+      "field_location_note_help": "Shown on the listing. Not used for matching.",
+      "field_errors": {
+        "title": "Enter a title",
+        "description": "Enter a description",
+        "branch_id": "Select a branch",
+        "work_zone_ids": "Select at least one work area"
+      }
     },
     "gate": {
       "published_title": "Listing live ✓",
@@ -1948,7 +1999,8 @@
       "budget_inverted": "Minimum budget cannot be greater than maximum.",
       "verification_failed": "Automated check failed. Please try again.",
       "db_error": "Technical error. Please try again.",
-      "generic": "An error occurred. Please try again."
+      "generic": "An error occurred. Please try again.",
+      "missing_fields": "Some information is missing before publishing: {fields}."
     }
   },
   "candidatures_tracking": {
@@ -2206,8 +2258,7 @@
     "card": {
       "confidential_org": "Confidential company",
       "confidential_tooltip": "The company name is revealed after your application is accepted.",
-      "ai_score": "Score {score}/10",
-      "ai_score_tooltip": "AI match score against your profile.",
+      "ai_score_tooltip": "Why this posting is shown to you.",
       "new_label": "New",
       "why_match_label": "Why this matches you",
       "cta_consult_mission": "View mission",
@@ -2228,8 +2279,7 @@
       "see_mission": "View mission",
       "see_offre": "View position",
       "see_application": "View application",
-      "more_skills": "+{count}",
-      "top_match": "Top match"
+      "more_skills": "+{count}"
     },
     "detail": {
       "back_to_feed": "← Back to opportunities",
@@ -2238,8 +2288,7 @@
       "error_not_found": "This opportunity no longer exists or is no longer available to you.",
       "confidential_org": "Confidential company",
       "confidential_tooltip": "The company name is revealed after your application is accepted.",
-      "ai_score_label": "AI Score {score}/10",
-      "ai_score_tooltip": "AI match score against your profile.",
+      "ai_score_tooltip": "Why this posting is shown to you.",
       "why_match_label": "Why this matches you",
       "section_description": "Description",
       "section_details": "Details",
@@ -2261,7 +2310,8 @@
       "error_cover_too_long": "Your message exceeds 2000 characters.",
       "error_cannot_apply_own_need": "You can't apply to your own need.",
       "error_type_not_candidatable": "This type of opportunity does not accept applications."
-    }
+    },
+    "recommendations_updated": "Your recommendations have been updated."
   },
   "relative_time": {
     "now": "just now",
@@ -2285,7 +2335,9 @@
       "section_comptes": "Accounts",
       "nav_utilisateurs": "Users",
       "section_exploitation": "Operations",
-      "nav_taches_planifiees": "Scheduled tasks"
+      "nav_taches_planifiees": "Scheduled tasks",
+      "section_moteur": "Engine",
+      "nav_matching": "Matching"
     },
     "packages": {
       "page_title": "Commerce catalog",
@@ -3496,5 +3548,73 @@
     "fallback": "Expert",
     "deleted": "Deleted user",
     "unavailable": "Contact unavailable"
+  },
+  "work_zones": {
+    "label": "Work areas",
+    "hint": "Where you agree to work — not where you live",
+    "hint_publication": "Where you are looking for someone",
+    "empty": "No areas available right now.",
+    "none_selected": "Select at least one area to publish",
+    "coverage": "{count} countries covered",
+    "country_count": "{count} countries",
+    "detail_by_country": "Pick specific countries in {continent}",
+    "covered_by_continent": "Already covered by {continent}",
+    "suggestion_label": "Suggestion: {zone}",
+    "suggestion_confirm": "Use this area",
+    "suggestion_not_applied": "Not applied until you confirm it"
+  },
+  "matching_badge": {
+    "strong": "Strong match",
+    "normal": "Match",
+    "tooltip": "What we understood from your profile matches what this posting asks for. No ranking between experts: each profile is assessed on its own."
+  },
+  "admin_matching": {
+    "title": "Matching engine",
+    "intro": "Two thresholds decide what an expert sees and what they are alerted about. The engine's score is not a mark out of 10 and cannot be guessed: read the observed distribution below, then set them.",
+    "loading": "Loading…",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Settings saved.",
+    "errors": {
+      "load_failed": "Settings could not be read. Nothing was changed.",
+      "save_failed": "Saving failed. Your changes were not applied.",
+      "ordre_seuils": "The notification threshold cannot sit below the feed threshold: someone would be alerted about a listing they would not see when logging in."
+    },
+    "spend": {
+      "title": "This month’s spend",
+      "line": "${spent} of ${cap}",
+      "capped": "cap reached",
+      "none": "No spend recorded this month.",
+      "unavailable": "Spend could not be read. That is not zero: it is unknown.",
+      "help": "At the cap, matching stops and writes it into the run’s trace. It does not keep spending, and it does not stop silently."
+    },
+    "distribution": {
+      "title": "Observed distribution (last 30 days)",
+      "runs": "{count} run(s) observed.",
+      "percentiles": "Median score {p50} · 90th percentile {p90}.",
+      "notified": "{avg} expert(s) above the threshold, on average per listing.",
+      "extremes": "{zero} run(s) with nobody above the threshold, {all} with everybody.",
+      "empty": "No runs observed: the engine has not run yet, there is nothing to read.",
+      "unavailable": "The distribution could not be read.",
+      "help": "Setting a threshold without looking at this distribution amounts to picking a number at random."
+    },
+    "coverage": {
+      "title": "Coverage",
+      "line": "{complets} complete run(s) out of {total} · {manquants} expert(s) not scored.",
+      "empty": "No runs observed.",
+      "unavailable": "Coverage could not be read.",
+      "help": "An eligible expert who was not scored is an expert excluded for no reason. This number must stay at zero."
+    },
+    "fields": {
+      "feed": "Feed threshold",
+      "feed_help": "Below this, the listing does not appear in the expert’s feed. At 0, every eligible profile sees it.",
+      "notify": "Notification threshold",
+      "notify_help": "Above this, the expert is alerted and the listing is marked “strong match”.",
+      "batch": "Batch size",
+      "batch_help": "Number of profiles sent to the engine per call.",
+      "notify_enabled": "Enable notifications",
+      "notify_enabled_help": "Left off until someone has read the distribution: a guessed threshold would alert at random.",
+      "model": "Model: {model}. Changing it changes the scale — both thresholds become wrong."
+    }
   }
 }

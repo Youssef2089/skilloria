@@ -23,18 +23,28 @@ import CandidatureModal from '@/components/dashboard/CandidatureModal'
  */
 
 type DetailData = {
-  match: { id: string; status: string; ai_score: number; ai_reason: string | null; matched_at: string }
+  match: {
+    id: string
+    status: string
+    /** Palier affiché, figé à la notation. Aucun nombre — cf. MissionCard. */
+    relevance_tier: 'strong' | 'normal'
+    ai_reason: string | null
+    matched_at: string
+  }
   publication: {
     id: string
     type: string
     title: string
     description: string
     branch_label: string | null
-    speciality_label: string | null
+    speciality_labels: string[]
     skills_required: string[]
-    seniority: string | null
+    seniorities: string[]
     work_mode: string | null
-    location: string | null
+    // Ce sont les ZONES qui décident où l'annonce cherche. `location_note` est
+    // une précision d'affichage, et ne filtre rien.
+    work_zone_labels: string[]
+    location_note: string | null
     duration: string | null
     start_date: string | null
     budget_min: number | null
@@ -96,6 +106,7 @@ export default function MissionDetailView({
 }) {
   const t = useTranslations('missions.detail')
   const tPub = useTranslations('publications')
+  const tBadge = useTranslations('matching_badge')
   const tForm = useTranslations('publications.form')
   const locale = useLocale()
   const router = useRouter()
@@ -254,7 +265,7 @@ export default function MissionDetailView({
             {pub.title}
           </h1>
           <div style={{ fontSize: 13, color: 'var(--sk-muted)' }}>
-            {[pub.branch_label, pub.speciality_label, budgetText].filter(Boolean).join(' · ')}
+            {[pub.branch_label, pub.speciality_labels.join(', ') || null, budgetText].filter(Boolean).join(' · ')}
           </div>
         </div>
         <span
@@ -265,7 +276,7 @@ export default function MissionDetailView({
             fontSize: 13, fontWeight: 700, borderRadius: 14, flexShrink: 0,
           }}
         >
-          {t('ai_score_label', { score: Math.round(match.ai_score) })}
+          {tBadge(match.relevance_tier)}
         </span>
       </div>
 
@@ -298,14 +309,17 @@ export default function MissionDetailView({
           {t('section_details')}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, fontSize: 13 }}>
-          {pub.seniority && (
-            <div><div style={{ color: 'var(--sk-faint)', fontSize: 11, marginBottom: 2 }}>{tForm('field_seniority')}</div><div>{translateSeniority(pub.seniority, tForm)}</div></div>
+          {pub.seniorities.length > 0 && (
+            <div><div style={{ color: 'var(--sk-faint)', fontSize: 11, marginBottom: 2 }}>{tForm('field_seniority')}</div><div>{pub.seniorities.map((s) => translateSeniority(s, tForm)).join(', ')}</div></div>
           )}
           {pub.work_mode && (
             <div><div style={{ color: 'var(--sk-faint)', fontSize: 11, marginBottom: 2 }}>{tForm('field_work_mode')}</div><div>{translateWorkMode(pub.work_mode, tForm)}</div></div>
           )}
-          {pub.location && (
-            <div><div style={{ color: 'var(--sk-faint)', fontSize: 11, marginBottom: 2 }}>{tForm('field_location')}</div><div>{pub.location}</div></div>
+          {pub.work_zone_labels.length > 0 && (
+            <div><div style={{ color: 'var(--sk-faint)', fontSize: 11, marginBottom: 2 }}>{tForm('field_work_zones')}</div><div>{pub.work_zone_labels.join(', ')}</div></div>
+          )}
+          {pub.location_note && (
+            <div><div style={{ color: 'var(--sk-faint)', fontSize: 11, marginBottom: 2 }}>{tForm('field_location_note')}</div><div>{pub.location_note}</div></div>
           )}
           {pub.duration && (
             <div><div style={{ color: 'var(--sk-faint)', fontSize: 11, marginBottom: 2 }}>{tForm('field_duration')}</div><div>{pub.duration}</div></div>

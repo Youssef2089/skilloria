@@ -112,22 +112,40 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   const specProfiles = new Map<string, number>()
   const specPublications = new Map<string, number>()
   if (specIds.length > 0) {
-    const { data: profs } = await auth.supabaseAdmin
+    // Une ligne porte désormais PLUSIEURS spécialités : on ramène celles qui en
+    // recoupent au moins une (`&&` via .overlaps) et on compte chacune. Un même
+    // profil peut donc peser dans plusieurs compteurs — c'est le sens du
+    // multiple, pas un double comptage.
+    const compter = (
+      lignes: Array<{ speciality_ids: string[] | null }> | null,
+      cible: Map<string, number>,
+    ) => {
+      for (const l of lignes ?? []) {
+        for (const sid of l.speciality_ids ?? []) {
+          if (!specIds.includes(sid)) continue
+          cible.set(sid, (cible.get(sid) ?? 0) + 1)
+        }
+      }
+    }
+    const { data: profs, error: profErr } = await auth.supabaseAdmin
       .from('profiles')
-      .select('speciality_id')
-      .in('speciality_id', specIds)
-    for (const p of (profs ?? []) as { speciality_id: string | null }[]) {
-      if (!p.speciality_id) continue
-      specProfiles.set(p.speciality_id, (specProfiles.get(p.speciality_id) ?? 0) + 1)
-    }
-    const { data: pubs } = await auth.supabaseAdmin
+      .select('speciality_ids')
+      .overlaps('speciality_ids', specIds)
+    const { data: pubs, error: pubErr } = await auth.supabaseAdmin
       .from('publications')
-      .select('speciality_id')
-      .in('speciality_id', specIds)
-    for (const p of (pubs ?? []) as { speciality_id: string | null }[]) {
-      if (!p.speciality_id) continue
-      specPublications.set(p.speciality_id, (specPublications.get(p.speciality_id) ?? 0) + 1)
+      .select('speciality_ids')
+      .overlaps('speciality_ids', specIds)
+    // Écran d'administration : un comptage indisponible ne doit pas faire
+    // échouer la page, mais il ne doit pas non plus passer pour un zéro
+    // silencieux — ce zéro est ce qui autoriserait une suppression à tort.
+    if (profErr || pubErr) {
+      console.error('[admin:get-branch] comptage d usage en échec', {
+        profils: profErr?.message,
+        annonces: pubErr?.message,
+      })
     }
+    compter((profs ?? []) as Array<{ speciality_ids: string[] | null }>, specProfiles)
+    compter((pubs ?? []) as Array<{ speciality_ids: string[] | null }>, specPublications)
   }
 
   // ── Traductions EN/ES/DE (field 'name') pour branche + spécialités ──────────

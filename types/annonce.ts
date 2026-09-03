@@ -79,7 +79,15 @@ export type Annonce = {
   title: string
   status: AnnonceStatus
   branch_label: string | null
-  speciality_label: string | null
+  /**
+   * SPÉCIALITÉS — multiple, libellés déjà traduits.
+   *
+   * Remplace `speciality_label` au singulier. Ce n'est pas une commodité
+   * d'affichage : une annonce peut légitimement viser deux spécialités
+   * voisines, et n'en déclarer qu'une la rendait invisible aux experts de
+   * l'autre — sans que personne puisse dire pourquoi.
+   */
+  speciality_labels: string[]
   budget_min: number | null
   budget_max: number | null
   budget_unit: AnnonceBudgetUnit
@@ -91,10 +99,25 @@ export type Annonce = {
   published_at: string | null
   candidatures: AnnonceCandidatures
   /** Lot synthèse parlante — champs publi enrichis pour <PublicationSynthesisLine>. */
-  location: string | null
+  /**
+   * ZONES DE TRAVAIL — libellés déjà traduits, prêts à afficher.
+   *
+   * Remplace l'ancien `location`, texte libre qui servait à la fois de critère
+   * supposé et d'affichage. Ce sont désormais deux choses distinctes : les
+   * zones FILTRENT (elles sont opposables, déclarées des deux côtés du marché,
+   * et le moteur les recoupe), `location_note` n'est qu'une précision affichée.
+   */
+  work_zone_labels: string[]
+  /**
+   * Précision d'affichage (« Paris ou Lyon »). NE FILTRE RIEN — et le
+   * formulaire le dit à celui qui la saisit, sans quoi il croirait restreindre
+   * quelque chose.
+   */
+  location_note: string | null
   work_mode: string | null
   duration: string | null
   start_date: string | null
-  seniority: string | null
+  /** SÉNIORITÉS — multiple : une mission peut chercher « confirmé OU senior ». */
+  seniorities: string[]
   confidential: boolean
 }

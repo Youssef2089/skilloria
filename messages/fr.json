@@ -594,23 +594,33 @@
     "field_labels_short": {
       "cv_ready": "CV déposé et vérification IA acceptée",
       "title": "le titre professionnel",
-      "summary": "le résumé (20 caractères minimum)",
+      "summary": "le résumé (entre {min} et {max} caractères)",
       "skills": "au moins 3 compétences",
       "branch_id": "la branche principale",
       "speciality_id": "la spécialité",
       "work_modes": "au moins un mode de travail",
       "experiences": "au moins une expérience professionnelle",
-      "languages_structured": "au moins une langue"
+      "languages_structured": "au moins une langue",
+      "speciality_ids": "Spécialités",
+      "seniorities": "Séniorités",
+      "work_zone_ids": "Zones de travail",
+      "availability": "Disponibilité"
     },
     "field_errors": {
       "title": "Renseignez votre titre professionnel",
-      "summary": "Minimum 20 caractères pour publier",
+      "summary": "Entre {min} et {max} caractères pour publier",
       "skills": "Ajoutez au moins 3 compétences",
       "branch_id": "Sélectionnez une branche",
       "speciality_id": "Sélectionnez une spécialité",
       "work_modes": "Sélectionnez au moins un mode de travail",
       "experiences": "Ajoutez au moins une expérience (parcours ou mission)",
-      "languages_structured": "Ajoutez au moins une langue"
+      "languages_structured": "Ajoutez au moins une langue",
+      "speciality_ids": "Sélectionnez au moins une spécialité",
+      "seniorities": "Sélectionnez au moins un niveau de séniorité",
+      "work_zone_ids": "Sélectionnez au moins une zone de travail",
+      "availability": "Indiquez votre disponibilité",
+      "summary_length": "Le résumé doit faire entre {min} et {max} caractères",
+      "cv_ready": "Déposez votre CV et acceptez son analyse pour publier"
     },
     "compact_actions": {
       "expand": "Modifier",
@@ -765,6 +775,16 @@
         "end_year_label": "Année fin",
         "remove_aria": "Retirer cette formation",
         "add_button": "+ Ajouter une formation"
+      },
+      "summary_matching": {
+        "summary_matching_help": "Ce texte est ce que nous lisons pour vous proposer des missions. Décrivez ce que vous savez faire, dans vos mots. Entre {min} et {max} caractères.",
+        "summary_counter": "{count} / {max} caractères",
+        "incomplete_title": "Votre profil n’est pas encore visible",
+        "incomplete_intro": "Il ne sera pas proposé aux organisations tant que ces informations manquent. Rien n’est perdu : tout ce que vous avez déjà saisi est conservé.",
+        "hidden_title": "Votre profil n’est plus visible",
+        "hidden_intro": "De nouveaux champs sont devenus nécessaires pour que nous puissions vous proposer des missions. Votre profil a été masqué en attendant, il n’a pas été supprimé.",
+        "hidden_list_intro": "Il vous reste à compléter :",
+        "hidden_cta": "Compléter mon profil"
       }
     },
     "actions": {
@@ -1388,7 +1408,7 @@
     "field_labels_short": {
       "cv_ready": "CV déposé et vérification IA acceptée",
       "title": "le titre professionnel",
-      "summary": "le résumé (20 caractères minimum)",
+      "summary": "le résumé (entre {min} et {max} caractères)",
       "skills": "au moins 3 compétences",
       "branch_id": "la branche principale",
       "speciality_id": "la spécialité",
@@ -1397,11 +1417,15 @@
       "cdi_salary_max": "le salaire annuel brut max",
       "cdi_notice_period": "votre délai de préavis",
       "experiences": "au moins une expérience professionnelle",
-      "languages_structured": "au moins une langue"
+      "languages_structured": "au moins une langue",
+      "speciality_ids": "Spécialités",
+      "seniorities": "Séniorités",
+      "work_zone_ids": "Zones de travail",
+      "availability": "Disponibilité"
     },
     "field_errors": {
       "title": "Renseignez votre titre professionnel",
-      "summary": "Minimum 20 caractères pour publier",
+      "summary": "Entre {min} et {max} caractères pour publier",
       "skills": "Ajoutez au moins 3 compétences",
       "branch_id": "Sélectionnez une branche",
       "speciality_id": "Sélectionnez une spécialité",
@@ -1410,7 +1434,13 @@
       "cdi_salary_max": "Renseignez le salaire annuel brut max",
       "cdi_notice_period": "Indiquez votre délai de préavis",
       "experiences": "Ajoutez au moins une expérience (parcours ou mission)",
-      "languages_structured": "Ajoutez au moins une langue"
+      "languages_structured": "Ajoutez au moins une langue",
+      "speciality_ids": "Sélectionnez au moins une spécialité",
+      "seniorities": "Sélectionnez au moins un niveau de séniorité",
+      "work_zone_ids": "Sélectionnez au moins une zone de travail",
+      "availability": "Indiquez votre disponibilité",
+      "summary_length": "Le résumé doit faire entre {min} et {max} caractères",
+      "cv_ready": "Déposez votre CV et acceptez son analyse pour publier"
     },
     "compact_actions": {
       "expand": "Modifier",
@@ -1600,6 +1630,16 @@
         "country_search_placeholder": "Rechercher un pays...",
         "country_loading": "Chargement des pays...",
         "country_empty": "Aucun pays trouvé"
+      },
+      "summary_matching": {
+        "summary_matching_help": "Ce texte est ce que nous lisons pour vous proposer des missions. Décrivez ce que vous savez faire, dans vos mots. Entre {min} et {max} caractères.",
+        "summary_counter": "{count} / {max} caractères",
+        "incomplete_title": "Votre profil n’est pas encore visible",
+        "incomplete_intro": "Il ne sera pas proposé aux organisations tant que ces informations manquent. Rien n’est perdu : tout ce que vous avez déjà saisi est conservé.",
+        "hidden_title": "Votre profil n’est plus visible",
+        "hidden_intro": "De nouveaux champs sont devenus nécessaires pour que nous puissions vous proposer des missions. Votre profil a été masqué en attendant, il n’a pas été supprimé.",
+        "hidden_list_intro": "Il vous reste à compléter :",
+        "hidden_cta": "Compléter mon profil"
       }
     },
     "actions": {
@@ -1926,7 +1966,18 @@
       "confirm_publish_no": "Annuler",
       "field_speciality_other_option": "Autre (préciser)",
       "field_speciality_other_label": "Précisez la spécialité",
-      "field_speciality_other_placeholder": "Ex. FinOps, Green IT…"
+      "field_speciality_other_placeholder": "Ex. FinOps, Green IT…",
+      "field_work_zones": "Zones de travail",
+      "field_work_zones_help": "Où vous cherchez quelqu’un",
+      "field_location_note": "Précision (facultatif)",
+      "field_location_note_placeholder": "Ex. : Paris ou Lyon",
+      "field_location_note_help": "Affiché sur l’annonce. Ne sert pas à la mise en relation.",
+      "field_errors": {
+        "title": "Renseignez un titre",
+        "description": "Renseignez une description",
+        "branch_id": "Sélectionnez une branche",
+        "work_zone_ids": "Sélectionnez au moins une zone de travail"
+      }
     },
     "gate": {
       "published_title": "Annonce en ligne ✓",
@@ -1948,7 +1999,8 @@
       "budget_inverted": "Le budget minimum ne peut pas être supérieur au maximum.",
       "verification_failed": "La vérification automatique a échoué. Veuillez réessayer.",
       "db_error": "Erreur technique. Veuillez réessayer.",
-      "generic": "Une erreur est survenue. Veuillez réessayer."
+      "generic": "Une erreur est survenue. Veuillez réessayer.",
+      "missing_fields": "Il manque des informations pour publier : {fields}."
     }
   },
   "candidatures_tracking": {
@@ -2206,8 +2258,7 @@
     "card": {
       "confidential_org": "Entreprise confidentielle",
       "confidential_tooltip": "Le nom est révélé après acceptation de votre candidature.",
-      "ai_score": "Score {score}/10",
-      "ai_score_tooltip": "Note IA de pertinence par rapport à votre profil.",
+      "ai_score_tooltip": "Pourquoi cette annonce vous est proposée.",
       "new_label": "Nouveau",
       "why_match_label": "Pourquoi ça vous correspond",
       "cta_consult_mission": "Consulter la mission",
@@ -2228,8 +2279,7 @@
       "see_mission": "Voir la mission",
       "see_offre": "Voir l'offre",
       "see_application": "Voir la candidature",
-      "more_skills": "+{count}",
-      "top_match": "Top match"
+      "more_skills": "+{count}"
     },
     "detail": {
       "back_to_feed": "← Retour aux opportunités",
@@ -2238,8 +2288,7 @@
       "error_not_found": "Cette opportunité n'existe pas ou ne vous est plus accessible.",
       "confidential_org": "Entreprise confidentielle",
       "confidential_tooltip": "Le nom de l'entreprise est révélé après acceptation de votre candidature.",
-      "ai_score_label": "Score IA {score}/10",
-      "ai_score_tooltip": "Note IA de pertinence par rapport à votre profil.",
+      "ai_score_tooltip": "Pourquoi cette annonce vous est proposée.",
       "why_match_label": "Pourquoi ça vous correspond",
       "section_description": "Description",
       "section_details": "Détails",
@@ -2261,7 +2310,8 @@
       "error_cover_too_long": "Votre message dépasse 2000 caractères.",
       "error_cannot_apply_own_need": "Vous ne pouvez pas candidater à votre propre besoin.",
       "error_type_not_candidatable": "Ce type d'opportunité n'accepte pas de candidature."
-    }
+    },
+    "recommendations_updated": "Vos recommandations ont été mises à jour."
   },
   "relative_time": {
     "now": "à l'instant",
@@ -2285,7 +2335,9 @@
       "section_comptes": "Comptes",
       "nav_utilisateurs": "Utilisateurs",
       "section_exploitation": "Exploitation",
-      "nav_taches_planifiees": "Tâches planifiées"
+      "nav_taches_planifiees": "Tâches planifiées",
+      "section_moteur": "Moteur",
+      "nav_matching": "Mise en relation"
     },
     "packages": {
       "page_title": "Catalogue commerce",
@@ -3496,5 +3548,73 @@
     "fallback": "Expert",
     "deleted": "Utilisateur supprimé",
     "unavailable": "Interlocuteur indisponible"
+  },
+  "work_zones": {
+    "label": "Zones de travail",
+    "hint": "Où vous acceptez de travailler — pas où vous habitez",
+    "hint_publication": "Où vous cherchez quelqu’un",
+    "empty": "Aucune zone disponible pour le moment.",
+    "none_selected": "Sélectionnez au moins une zone pour publier",
+    "coverage": "{count} pays couverts",
+    "country_count": "{count} pays",
+    "detail_by_country": "Choisir des pays précis en {continent}",
+    "covered_by_continent": "Déjà couvert par {continent}",
+    "suggestion_label": "Suggestion : {zone}",
+    "suggestion_confirm": "Utiliser cette zone",
+    "suggestion_not_applied": "Non appliquée tant que vous ne l’avez pas confirmée"
+  },
+  "matching_badge": {
+    "strong": "Correspondance forte",
+    "normal": "Correspondance",
+    "tooltip": "Ce que nous avons compris de votre profil correspond à ce que cette annonce demande. Aucun classement entre experts : chaque profil est examiné pour lui-même."
+  },
+  "admin_matching": {
+    "title": "Moteur de mise en relation",
+    "intro": "Deux seuils décident de ce que voit un expert et de ce pour quoi il est prévenu. Le score du moteur n'est pas une note sur 10 et ne se devine pas : lisez la distribution observée ci-dessous, puis réglez.",
+    "loading": "Chargement…",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saved": "Réglages enregistrés.",
+    "errors": {
+      "load_failed": "Les réglages n'ont pas pu être lus. Rien n'a été modifié.",
+      "save_failed": "L'enregistrement a échoué. Vos modifications n'ont pas été appliquées.",
+      "ordre_seuils": "Le seuil de notification ne peut pas être sous celui du flux : on préviendrait quelqu'un pour une annonce qu'il ne verrait pas en se connectant."
+    },
+    "spend": {
+      "title": "Dépense du mois",
+      "line": "{spent} $ sur {cap} $",
+      "capped": "plafond atteint",
+      "none": "Aucune dépense enregistrée ce mois-ci.",
+      "unavailable": "La dépense n'a pas pu être lue. Ce n'est pas zéro : c'est inconnu.",
+      "help": "Au plafond, la mise en relation s'arrête et l'écrit dans la trace du run. Elle ne continue pas à dépenser, et elle ne s'arrête pas en silence."
+    },
+    "distribution": {
+      "title": "Distribution observée (30 derniers jours)",
+      "runs": "{count} exécution(s) observée(s).",
+      "percentiles": "Score médian {p50} · 9ᵉ décile {p90}.",
+      "notified": "{avg} expert(s) au-dessus du seuil, en moyenne par annonce.",
+      "extremes": "{zero} exécution(s) sans personne au-dessus du seuil, {all} avec tout le monde.",
+      "empty": "Aucune exécution observée : le moteur n'a pas encore tourné, il n'y a rien à lire.",
+      "unavailable": "La distribution n'a pas pu être lue.",
+      "help": "Régler un seuil sans regarder cette distribution revient à choisir un nombre au hasard."
+    },
+    "coverage": {
+      "title": "Couverture",
+      "line": "{complets} exécution(s) complètes sur {total} · {manquants} expert(s) non noté(s).",
+      "empty": "Aucune exécution observée.",
+      "unavailable": "La couverture n'a pas pu être lue.",
+      "help": "Un expert éligible non noté est un expert écarté sans raison. Ce nombre doit rester à zéro."
+    },
+    "fields": {
+      "feed": "Seuil du flux",
+      "feed_help": "En dessous, l'annonce n'apparaît pas dans le flux de l'expert. À 0, tout profil éligible la voit.",
+      "notify": "Seuil de notification",
+      "notify_help": "Au-dessus, l'expert est prévenu et l'annonce est marquée « correspondance forte ».",
+      "batch": "Taille des lots",
+      "batch_help": "Nombre de profils envoyés au moteur par appel.",
+      "notify_enabled": "Activer les notifications",
+      "notify_enabled_help": "Laissé inactif tant que personne n'a lu la distribution : un seuil deviné préviendrait au hasard.",
+      "model": "Modèle : {model}. En changer change l’échelle — les deux seuils deviennent faux."
+    }
   }
 }

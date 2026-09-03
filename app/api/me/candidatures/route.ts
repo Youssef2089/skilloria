@@ -2,7 +2,11 @@ import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
-import { buildPublicationSynthesis } from '@/lib/publication-synthesis'
+import {
+  buildPublicationSynthesis,
+  loadReferentielLabels,
+  PUBLICATION_SYNTHESIS_SELECT,
+} from '@/lib/publication-synthesis'
 import { isActivePublished } from '@/lib/publications/expiry'
 import {
   deriveCandidatureLifecycle,
@@ -122,12 +126,17 @@ export async function GET(request: NextRequest): Promise<Response> {
         'id, publication_id, status, status_reason, ai_match_score, unlocked_at, selected_at, ' +
           'cover_message, created_at, updated_at, ' +
           'publications!inner(' +
-          'id, type, title, branch_id, speciality_id, budget_min, budget_max, ' +
-          'location, work_mode, duration, start_date, seniority, skills_required, ' +
+          // SOURCE UNIQUE des colonnes de synthèse. La copie locale citait
+          // encore trois colonnes supprimées : la requête échouait en entier,
+          // et l'expert ne voyait plus AUCUNE de ses candidatures.
+          PUBLICATION_SYNTHESIS_SELECT +
+          ', skills_required, ' +
           // published_at + expires_at : indispensables à la dérivation de
           // l'état de vie (règle 30 j lue par isActivePublished).
-          'confidential, status, published_at, expires_at, organization_id, ' +
-          'branches(id, name), specialities(id, name), ' +
+          'status, published_at, expires_at, organization_id, ' +
+          // Plus d'embed specialities(...) : clé étrangère morte, libellés
+          // résolus par lot plus bas.
+          'branches(id, name), ' +
           'organizations(id, company_name, logo_url)' +
           ')',
       )
@@ -179,6 +188,22 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
   }
 
+  // Libellés des référentiels multiples : deux requêtes pour toute la page.
+  type LigneAvecReferentiels = { speciality_ids?: string[] | null; work_zone_ids?: string[] | null }
+  const pubsDeLaPage: LigneAvecReferentiels[] = []
+  for (const r of rows) {
+    const p = pickRel(r.publications as never) as LigneAvecReferentiels | null
+    if (p) pubsDeLaPage.push(p)
+  }
+  // Le cast structurel casse une explosion de généricité du client Supabase
+  // dans CE fichier (TS2589). Il ne relâche aucune vérification utile : le
+  // helper n'attend qu'un `from().select().in()`.
+  const labels = await loadReferentielLabels(
+    auth.supabaseAdmin as unknown as Parameters<typeof loadReferentielLabels>[0],
+    translations,
+    pubsDeLaPage,
+  )
+
   // Instant unique pour toute la page : deux candidatures de la même réponse
   // ne doivent pas être dérivées à des `now` différents.
   const now = new Date()
@@ -187,7 +212,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     const pubRaw = pickRel(r.publications as Parameters<typeof buildPublicationSynthesis>[0] | Parameters<typeof buildPublicationSynthesis>[0][] | null)
     const publication = pubRaw
       ? {
-          ...buildPublicationSynthesis(pubRaw, translations),
+          ...buildPublicationSynthesis(pubRaw, translations, labels),
           status: (pubRaw as { status?: string }).status ?? null,
           // ═══ LE FAIT, PAS LE RÉSUMÉ ═══════════════════════════════════
           //

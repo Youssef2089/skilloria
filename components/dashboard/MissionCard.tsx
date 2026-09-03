@@ -28,7 +28,12 @@ import PublicationSynthesisLine, { type PublicationSynthesisData } from './Publi
 export type MissionCardData = {
   match_id: string
   match_status: string
-  ai_score: number
+  /**
+   * Palier AFFICHÉ, figé au moment de la notation. Deux valeurs, aucun nombre :
+   * le score d'un reranker n'est ni une proportion ni comparable d'une annonce à
+   * l'autre. L'afficher inviterait à le comparer, donc à se comparer aux autres.
+   */
+  relevance_tier: 'strong' | 'normal'
   ai_reason: string | null
   matched_at: string
   /** PublicationSynthesis enrichi par /api/me/missions + published_at. */
@@ -52,11 +57,10 @@ function formatBudget(min: number | null, max: number | null, type: string, loca
   return `${Math.round(max!)}€${unit}`
 }
 
-function scoreColor(score: number, domainPrimary: string): string {
-  if (score >= 9) return '#16A34A'
-  if (score >= 7) return domainPrimary
-  if (score >= 5) return '#CA8A04'
-  return '#94a3b8'
+// Deux paliers, deux traitements. Plus d'échelle de couleurs : une échelle
+// suggère une graduation, donc un nombre, donc une comparaison.
+function tierColor(tier: 'strong' | 'normal', domainPrimary: string): string {
+  return tier === 'strong' ? domainPrimary : '#64748b'
 }
 
 export default function MissionCard({
@@ -68,12 +72,13 @@ export default function MissionCard({
   side?: 'freelance' | 'cdi'
 }) {
   const t = useTranslations('missions.card')
+  const tBadge = useTranslations('matching_badge')
   const tPub = useTranslations('publications')
   const locale = useLocale()
   const relTime = useRelativeTime()
   const domain = useDomain()
 
-  const { publication: pub, org, ai_score, ai_reason, match_status, matched_at } = mission
+  const { publication: pub, org, relevance_tier, ai_reason, match_status, matched_at } = mission
   void formatBudget
   void matched_at
   const orgName = pub.confidential ? t('confidential_org') : org?.name ?? t('confidential_org')
@@ -126,15 +131,15 @@ export default function MissionCard({
               alignItems: 'center',
               gap: 6,
               padding: '4px 10px',
-              background: `${scoreColor(ai_score, domain.primaryColor)}1A`,
-              color: scoreColor(ai_score, domain.primaryColor),
+              background: `${tierColor(relevance_tier, domain.primaryColor)}1A`,
+              color: tierColor(relevance_tier, domain.primaryColor),
               fontSize: 11,
               fontWeight: 600,
               borderRadius: 12,
             }}
           >
-            <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: scoreColor(ai_score, domain.primaryColor) }} />
-            {t('ai_score', { score: Math.round(ai_score) })}
+            <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: tierColor(relevance_tier, domain.primaryColor) }} />
+            {tBadge(relevance_tier)}
           </span>
           {isUnread && (
             <span style={{ fontSize: 10, fontWeight: 600, color: domain.primaryColor, textTransform: 'uppercase', letterSpacing: '.05em' }}>
@@ -152,9 +157,9 @@ export default function MissionCard({
 
       {/* Branche · spécialité — reléguées en ligne discrète bottom.
           Utiles pour le matching IA mais visuellement secondaires. */}
-      {(pub.branch_label || pub.speciality_label) && (
+      {(pub.branch_label || pub.speciality_labels.length > 0) && (
         <div style={{ fontSize: 11, color: 'var(--sk-faint)', marginBottom: 10 }}>
-          {[pub.branch_label, pub.speciality_label].filter(Boolean).join(' · ')}
+          {[pub.branch_label, ...pub.speciality_labels].filter(Boolean).join(' · ')}
         </div>
       )}
 

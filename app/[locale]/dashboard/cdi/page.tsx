@@ -37,6 +37,7 @@ import CandidatureCastingCard from '@/components/dashboard/CandidatureCastingCar
 import CastingRow from '@/components/dashboard/CastingRow'
 import type { MissionCardData } from '@/components/dashboard/MissionCard'
 import { useLiveResource } from '@/hooks/useLiveResource'
+import ProfilMasqueBanner from '@/components/profile/ProfilMasqueBanner'
 
 /**
  * Dashboard CDI — page content (SC7a Lot UX Finitions 2).
@@ -74,7 +75,9 @@ function calculateCompletion(profile: CdiProfile | null): number {
     !!profile.title?.trim(),                                         // Titre
     !!profile.summary?.trim(),                                       // Résumé
     !!profile.branch_id,                                            // Branche
-    !!profile.speciality_id,                                        // Spécialité
+    (profile.speciality_ids?.length ?? 0) >= 1,                     // Spécialités
+    (profile.seniorities?.length ?? 0) >= 1,                        // Séniorités
+    (profile.work_zone_ids?.length ?? 0) >= 1,                      // Zones de travail
     (profile.skills?.length ?? 0) >= 3,                             // Compétences
     (profile.languages?.length ?? 0) >= 1,                          // Langues
     profile.cdi_salary_min != null && profile.cdi_salary_max != null, // Compensation (salaire)
@@ -153,7 +156,7 @@ export default function DashboardCDI() {
     pollMs: missionsPollMs,
     itemsOf: (d) => d.missions ?? [],
     identityOf: (m) => m.match_id,
-    versionOf: (m) => `${m.ai_score}`,
+    versionOf: (m) => `${m.relevance_tier}`,
     enabled: isApprovedState,
     holdNewItems: false,
   })
@@ -439,6 +442,16 @@ export default function DashboardCDI() {
       `}</style>
 
       <div style={{ padding: 28 }}>
+
+          {/* La raison NOMMÉE d'un profil invisible. Placée en tête : c'est le
+              premier écran de l'expert, et c'est là qu'il vient chercher
+              pourquoi il ne reçoit plus rien. Silencieuse si le profil est
+              visible ou si le verdict serveur est indisponible. */}
+          <ProfilMasqueBanner
+            namespace="cdi_profile_validation"
+            href="/dashboard/cdi/profil/valider"
+            accentColor={domain.primaryColor}
+          />
 
           {error && (
             <div

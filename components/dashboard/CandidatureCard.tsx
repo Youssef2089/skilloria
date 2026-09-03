@@ -51,7 +51,7 @@ export type CandidatureUnlockedProfile = {
   title: string | null
   summary: string | null
   skills: string[]
-  seniority: string | null
+  seniorities: string[]
   expert_type: string | null
   years_experience: number | null
   years_total_experience: number | null
@@ -72,7 +72,7 @@ export type CandidaturePreview = {
   title: string | null
   summary: string | null
   skills: string[]
-  seniority: string | null
+  seniorities: string[]
   expert_type: string | null
   years_experience: number | null
   years_total_experience: number | null
@@ -88,7 +88,7 @@ export type CandidaturePreview = {
   availability_date: string | null
   profile_score: number | null
   branch_label: string | null
-  speciality_label: string | null
+  speciality_labels: string[]
   /** Lot synthèse candidat CDI — 6 signaux non-PII. Affichés uniquement
    *  quand publicationType === 'offre'. Null/[] pour les candidatures
    *  legacy (avant le lot — cf. backfill). */
@@ -364,7 +364,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
             </h3>
             <div style={{ fontSize: 12, color: '#64748b', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
               {preview.title && <span>{preview.title}</span>}
-              {preview.seniority && (<><span aria-hidden>·</span><span>{preview.seniority}</span></>)}
+              {preview.seniorities.length > 0 && (<><span aria-hidden>·</span><span>{preview.seniorities.join(', ')}</span></>)}
               {(preview.years_experience ?? preview.years_total_experience) != null && (
                 <><span aria-hidden>·</span><span>{t('years_experience', { years: preview.years_experience ?? preview.years_total_experience ?? 0 })}</span></>
               )}

@@ -14,6 +14,10 @@ import {
 } from '@/types/publication'
 import type { AnnonceType } from '@/types/annonce'
 import { PUBLICATION_TTL_DAYS } from '@/lib/publications/expiry'
+import MultiSelectChips from '@/components/ui/MultiSelectChips'
+import WorkZoneSelector from '@/components/ui/WorkZoneSelector'
+import type { WorkZone } from '@/lib/work-zones'
+import { missingForPublish } from '@/lib/publications/publishable'
 
 /**
  * Formulaire de création + édition d'une publication.
@@ -48,14 +52,20 @@ type FormState = {
   title: string
   description: string
   branch_id: string
-  speciality_id: string
-  // D6 : « Autre » → speciality_id = SPECIALITY_OTHER (sentinel) + précision libre.
+  // D6 : « Autre » → SPECIALITY_OTHER (sentinel) parmi les spécialités choisies.
+  speciality_ids: string[]
   speciality_other: string
   skills_required: string[]
   skillInput: string
-  seniority: SeniorityCode | ''
+  // Séniorités et spécialités : un ensemble VIDE veut dire « aucune contrainte
+  // sur cet axe », jamais « ne correspond à personne ». Une annonce
+  // incomplètement remplie doit chercher LARGE.
+  seniorities: SeniorityCode[]
   work_mode: WorkModeCode | ''
-  location: string
+  // Zones de travail : elles, sont exigées pour publier — sans zone, l'annonce
+  // ne recouperait aucun expert.
+  work_zone_ids: string[]
+  location_note: string
   duration: string
   start_date: string
   budget_min: string
@@ -73,6 +83,7 @@ type TaxonomyResponse = {
   locale: string
   branches: Branch[]
   specialities: Speciality[]
+  work_zones: WorkZone[]
 }
 
 type PublishOutcome =
@@ -100,18 +111,24 @@ function initialFromDraft(d: PublicationDraft): FormState {
     title: d.title,
     description: d.description,
     branch_id: d.branch_id ?? '',
-    // D6 : pas de speciality_id mais une précision libre → sélection sur « Autre ».
-    speciality_id: d.speciality_id ?? (d.speciality_other ? SPECIALITY_OTHER : ''),
+    // D6 : aucune spécialité du référentiel mais une précision libre → « Autre ».
+    speciality_ids:
+      (d.speciality_ids ?? []).length > 0
+        ? d.speciality_ids
+        : d.speciality_other
+          ? [SPECIALITY_OTHER]
+          : [],
     speciality_other: d.speciality_other ?? '',
     skills_required: d.skills_required ?? [],
     skillInput: '',
-    seniority: (SENIORITY_CODES as readonly string[]).includes(d.seniority ?? '')
-      ? ((d.seniority as SeniorityCode) ?? '')
-      : '',
+    seniorities: (d.seniorities ?? []).filter(
+      (x): x is SeniorityCode => (SENIORITY_CODES as readonly string[]).includes(x),
+    ),
     work_mode: (WORK_MODE_CODES as readonly string[]).includes(d.work_mode ?? '')
       ? ((d.work_mode as WorkModeCode) ?? '')
       : '',
-    location: d.location ?? '',
+    work_zone_ids: d.work_zone_ids ?? [],
+    location_note: d.location_note ?? '',
     duration: d.duration ?? '',
     start_date: d.start_date ?? '',
     budget_min: d.budget_min != null ? String(d.budget_min) : '',
@@ -125,13 +142,14 @@ const EMPTY_STATE: FormState = {
   title: '',
   description: '',
   branch_id: '',
-  speciality_id: '',
+  speciality_ids: [],
   speciality_other: '',
   skills_required: [],
   skillInput: '',
-  seniority: '',
+  seniorities: [],
   work_mode: '',
-  location: '',
+  work_zone_ids: [],
+  location_note: '',
   duration: '',
   start_date: '',
   budget_min: '',
@@ -158,6 +176,7 @@ export default function PublicationForm(props: Props) {
   const [status, setStatus] = useState(initialStatus)
 
   const [taxonomy, setTaxonomy] = useState<TaxonomyResponse | null>(null)
+  const workZones = taxonomy?.work_zones ?? []
   const [taxonomyError, setTaxonomyError] = useState(false)
 
   const [saving, setSaving] = useState(false)
@@ -204,19 +223,23 @@ export default function PublicationForm(props: Props) {
     return taxonomy.specialities.filter((s) => s.branch_id === form.branch_id)
   }, [taxonomy, form.branch_id])
 
-  // Reset spécialité si on change de branche et que la spec actuelle n'est plus valide
+  // Au changement de branche, seules les spécialités devenues hors branche
+  // partent — on ne vide pas TOUTE la sélection, ce qui obligerait à tout
+  // ressaisir pour une seule. « Autre » n'est rattachée à aucune branche : elle
+  // survit toujours.
   useEffect(() => {
-    if (!form.speciality_id) return
-    // « Autre » n'est rattachée à aucune branche : on la conserve.
-    if (form.speciality_id === SPECIALITY_OTHER) return
-    if (!form.branch_id) {
-      setForm((p) => ({ ...p, speciality_id: '' }))
-      return
-    }
-    if (taxonomy && !filteredSpecialities.find((s) => s.id === form.speciality_id)) {
-      setForm((p) => ({ ...p, speciality_id: '' }))
-    }
-  }, [form.branch_id, form.speciality_id, taxonomy, filteredSpecialities])
+    if (!taxonomy) return
+    setForm((p) => {
+      if (p.speciality_ids.length === 0) return p
+      const gardees = p.speciality_ids.filter(
+        (id) =>
+          id === SPECIALITY_OTHER ||
+          (!!p.branch_id && filteredSpecialities.some((s) => s.id === id)),
+      )
+      if (gardees.length === p.speciality_ids.length) return p
+      return { ...p, speciality_ids: gardees }
+    })
+  }, [form.branch_id, taxonomy, filteredSpecialities])
 
   const setField = useCallback(<K extends keyof FormState>(k: K, v: FormState[K]) => {
     setForm((p) => ({ ...p, [k]: v }))
@@ -235,16 +258,26 @@ export default function PublicationForm(props: Props) {
     if (!state.branch_id) {
       errs.branch_id = t('form.required_marker')
     }
-    // Spécialité requise SAUF si la branche choisie n'a aucune spécialité disponible
-    const branchHasSpecs =
-      taxonomy &&
-      state.branch_id &&
-      taxonomy.specialities.some((s) => s.branch_id === state.branch_id)
-    if (branchHasSpecs && !state.speciality_id) {
-      errs.speciality_id = t('form.required_marker')
+    // SOURCE UNIQUE : exactement le prédicat que /publish applique pour
+    // refuser. Les contrôles ci-dessus sont plus fins (bornes de longueur) et
+    // gardent la main quand ils ont déjà parlé ; celui-ci garantit qu'aucun
+    // champ exigé par le serveur ne manque à l'appel du formulaire.
+    //
+    // Les ZONES en font partie : sans zone, l'annonce ne recouperait AUCUN
+    // expert et serait publiée silencieusement invisible. Cet appel prévient
+    // plus tôt, il ne remplace pas la barrière (règle 20).
+    for (const champ of missingForPublish({
+      title: state.title,
+      description: state.description,
+      branch_id: state.branch_id || null,
+      work_zone_ids: state.work_zone_ids,
+    })) {
+      if (!errs[champ]) errs[champ] = t(`form.field_errors.${champ}`)
     }
-    // D6 : « Autre » impose une précision libre.
-    if (state.speciality_id === SPECIALITY_OTHER && !state.speciality_other.trim()) {
+    // SPÉCIALITÉS et SÉNIORITÉS ne sont PAS exigées : un ensemble vide y dit
+    // « aucune contrainte sur cet axe ». Seule « Autre » impose sa précision
+    // libre, sans quoi elle ne désignerait rien (D6).
+    if (state.speciality_ids.includes(SPECIALITY_OTHER) && !state.speciality_other.trim()) {
       errs.speciality_other = t('form.required_marker')
     }
     const bmin = parseBudget(state.budget_min)
@@ -267,17 +300,20 @@ export default function PublicationForm(props: Props) {
       title: state.title.trim(),
       description: state.description.trim(),
       branch_id: state.branch_id || null,
-      speciality_id:
-        state.speciality_id && state.speciality_id !== SPECIALITY_OTHER
-          ? state.speciality_id
-          : null,
+      speciality_ids: state.speciality_ids.filter((id) => id !== SPECIALITY_OTHER),
       // D6 : précision libre transmise quand « Autre », sinon effacée.
-      speciality_other:
-        state.speciality_id === SPECIALITY_OTHER ? state.speciality_other.trim() : null,
+      speciality_other: state.speciality_ids.includes(SPECIALITY_OTHER)
+        ? state.speciality_other.trim()
+        : null,
       skills_required: state.skills_required,
-      seniority: state.seniority || null,
+      seniorities: state.seniorities,
       work_mode: state.work_mode || null,
-      location: state.location.trim() || null,
+      // Zones transmises en CODES stables, jamais en uuid : le serveur résout,
+      // et REFUSE un code inconnu plutôt que de tronquer en silence.
+      work_zone_codes: state.work_zone_ids
+        .map((id) => workZones.find((z) => z.id === id)?.code)
+        .filter((c): c is string => !!c),
+      location_note: state.location_note.trim() || null,
       duration: state.duration.trim() || null,
       start_date: state.start_date || null,
       budget_min: parseBudget(state.budget_min),
@@ -299,6 +335,7 @@ export default function PublicationForm(props: Props) {
       not_found: t('errors.not_found'),
       forbidden: t('errors.forbidden'),
       wrong_status: t('errors.wrong_status'),
+      bad_work_zone: t('form.field_errors.work_zone_ids'),
       invalid_type: t('errors.invalid_type'),
       invalid_title: t('errors.invalid_title'),
       invalid_description: t('errors.invalid_description'),
@@ -308,6 +345,26 @@ export default function PublicationForm(props: Props) {
       db_error: t('errors.db_error'),
     }
     return (code && known[code]) ?? t('errors.generic')
+  }
+
+  /**
+   * Refus NOMMÉ de /publish. Le serveur rend la LISTE des champs qui bloquent ;
+   * on la rend lisible plutôt que d'afficher « une erreur est survenue ».
+   *
+   * Sans cela, l'organisation lisait `db_error` — la contrainte de base violée —
+   * pour une annonce à laquelle il manquait simplement une zone.
+   */
+  const LIBELLE_CHAMP: Record<string, string> = {
+    title: t('form.field_title'),
+    description: t('form.field_description'),
+    branch_id: t('form.field_branch'),
+    work_zone_ids: t('form.field_work_zones'),
+  }
+  const messageChampsManquants = (missing: unknown): string | null => {
+    if (!Array.isArray(missing) || missing.length === 0) return null
+    const noms = missing.map((m) => LIBELLE_CHAMP[String(m)]).filter(Boolean)
+    if (noms.length === 0) return null
+    return t('errors.missing_fields', { fields: noms.join(', ') })
   }
 
   // ── Save (POST si create / PATCH si edit) ──────────────────────────────
@@ -385,9 +442,12 @@ export default function PublicationForm(props: Props) {
         method: 'POST',
         headers: { 'x-locale': locale },
       })
-      const payload = (await res.json().catch(() => ({} as { code?: string; status?: string; score?: number })))
+      const payload = (await res.json().catch(() => ({} as { code?: string; status?: string; score?: number; missing?: unknown })))
       if (!res.ok) {
-        setErrorMsg(apiErrorMessage(payload.code))
+        // Un refus de publiabilité NOMME ses champs ; les autres codes gardent
+        // leur message. Dire « une erreur est survenue » pour une zone
+        // manquante laisse l'organisation sans rien à corriger.
+        setErrorMsg(messageChampsManquants(payload.missing) ?? apiErrorMessage(payload.code))
         setPublishing(false)
         return
       }
@@ -657,35 +717,34 @@ export default function PublicationForm(props: Props) {
               {fieldErrors.branch_id && <div style={fieldErrorStyle}>{fieldErrors.branch_id}</div>}
             </div>
             <div>
-              <label htmlFor="sk-spec" style={labelStyle}>{t('form.field_speciality')} *</label>
-              <select
-                id="sk-spec"
-                value={form.speciality_id}
-                onChange={(e) => {
-                  setField('speciality_id', e.target.value)
-                  if (e.target.value !== SPECIALITY_OTHER) setField('speciality_other', '')
+              {/* Plus d'astérisque : une annonce sans spécialité cherche LARGE,
+                  elle ne cherche pas « rien ». */}
+              <label style={labelStyle}>{t('form.field_speciality')}</label>
+              <MultiSelectChips
+                ariaLabel={t('form.field_speciality')}
+                options={[
+                  ...filteredSpecialities.map((sp) => ({ value: sp.id, label: sp.name })),
+                  // D6 : spécialité hors référentiel, seulement quand une
+                  // branche est choisie.
+                  ...(form.branch_id
+                    ? [{ value: SPECIALITY_OTHER, label: t('form.field_speciality_other_option') }]
+                    : []),
+                ]}
+                selected={form.speciality_ids}
+                onChange={(next) => {
+                  setField('speciality_ids', next)
+                  if (!next.includes(SPECIALITY_OTHER)) setField('speciality_other', '')
                 }}
-                style={{ ...inputStyle, ...(fieldErrors.speciality_id ? { border: errorInputBorder } : null) }}
-                disabled={!form.branch_id}
-              >
-                <option value="">
-                  {!form.branch_id
+                emptyLabel={
+                  !form.branch_id
                     ? t('form.field_speciality_select_branch_first')
                     : filteredSpecialities.length === 0
                       ? t('form.field_speciality_none_in_branch')
-                      : t('form.field_speciality_placeholder')}
-                </option>
-                {filteredSpecialities.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-                {/* D6 : spécialité hors référentiel */}
-                {form.branch_id ? (
-                  <option value={SPECIALITY_OTHER}>{t('form.field_speciality_other_option')}</option>
-                ) : null}
-              </select>
-              {fieldErrors.speciality_id && <div style={fieldErrorStyle}>{fieldErrors.speciality_id}</div>}
+                      : t('form.field_speciality_placeholder')
+                }
+              />
 
-              {form.speciality_id === SPECIALITY_OTHER && (
+              {form.speciality_ids.includes(SPECIALITY_OTHER) && (
                 <div style={{ marginTop: 10 }}>
                   <label htmlFor="sk-spec-other" style={labelStyle}>{t('form.field_speciality_other_label')} *</label>
                   <input
@@ -705,18 +764,17 @@ export default function PublicationForm(props: Props) {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 18 }}>
             <div>
-              <label htmlFor="sk-seniority" style={labelStyle}>{t('form.field_seniority')}</label>
-              <select
-                id="sk-seniority"
-                value={form.seniority}
-                onChange={(e) => setField('seniority', e.target.value as SeniorityCode | '')}
-                style={inputStyle}
-              >
-                <option value="">{t('form.option_not_specified')}</option>
-                {SENIORITY_CODES.map((s) => (
-                  <option key={s} value={s}>{t(`form.seniority_options.${s}`)}</option>
-                ))}
-              </select>
+              <label style={labelStyle}>{t('form.field_seniority')}</label>
+              <MultiSelectChips
+                ariaLabel={t('form.field_seniority')}
+                options={SENIORITY_CODES.map((v) => ({
+                  value: v,
+                  label: t(`form.seniority_options.${v}`),
+                }))}
+                selected={form.seniorities}
+                onChange={(next) => setField('seniorities', next as SeniorityCode[])}
+                emptyLabel={t('form.option_not_specified')}
+              />
             </div>
             <div>
               <label htmlFor="sk-workmode" style={labelStyle}>{t('form.field_work_mode')}</label>
@@ -732,6 +790,21 @@ export default function PublicationForm(props: Props) {
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* ZONES DE TRAVAIL — placées avec branche et spécialités, parce que
+              c'est un critère de recherche comme elles, et non dans la section
+              logistique où « Localisation » les ferait passer pour une adresse. */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={labelStyle}>{t('form.field_work_zones')} *</label>
+            <div style={helpStyle}>{t('form.field_work_zones_help')}</div>
+            <WorkZoneSelector
+              zones={workZones}
+              selected={form.work_zone_ids}
+              onChange={(next) => setField('work_zone_ids', next)}
+              invalid={!!fieldErrors.work_zone_ids}
+            />
+            {fieldErrors.work_zone_ids && <div style={fieldErrorStyle}>{fieldErrors.work_zone_ids}</div>}
           </div>
 
           {/* Skills */}
@@ -802,8 +875,19 @@ export default function PublicationForm(props: Props) {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 18 }}>
             <div>
-              <label htmlFor="sk-loc" style={labelStyle}>{t('form.field_location')}</label>
-              <input id="sk-loc" type="text" value={form.location} onChange={(e) => setField('location', e.target.value)} placeholder={t('form.field_location_placeholder')} style={inputStyle} />
+              {/* Le champ libre reste, mais il DIT désormais qu'il ne sert pas à
+                  la mise en relation. Sans cela, une organisation croyait
+                  filtrer avec un champ décoratif. */}
+              <label htmlFor="sk-loc" style={labelStyle}>{t('form.field_location_note')}</label>
+              <input
+                id="sk-loc"
+                type="text"
+                value={form.location_note}
+                onChange={(e) => setField('location_note', e.target.value)}
+                placeholder={t('form.field_location_note_placeholder')}
+                style={inputStyle}
+              />
+              <div style={helpStyle}>{t('form.field_location_note_help')}</div>
             </div>
             <div>
               <label htmlFor="sk-dur" style={labelStyle}>{t('form.field_duration')}</label>

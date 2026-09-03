@@ -2,7 +2,11 @@ import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
-import { buildPublicationSynthesis } from '@/lib/publication-synthesis'
+import {
+  buildPublicationSynthesis,
+  loadReferentielLabels,
+  PUBLICATION_SYNTHESIS_SELECT,
+} from '@/lib/publication-synthesis'
 import {
   buildExpertMissionsSelect,
   expertMissionsQuery,
@@ -49,7 +53,12 @@ function normalizeLocale(raw: string | null): Locale {
 type MatchRow = {
   id: string
   publication_id: string
-  score: number
+  // Le score de pertinence NE SORT PAS de cette route. Il vit dans [0,1], il est
+  // propre à une annonce, et le fournisseur écrit qu'on ne peut ni le lire comme
+  // une proportion ni comparer deux requêtes. Ce qui sort, c'est le PALIER —
+  // figé au moment de la notation.
+  relevance_score: number | null
+  relevance_tier: string | null
   status: string
   explanation: { reason?: string; model?: string; evaluated_at?: string } | null
   created_at: string
@@ -134,16 +143,24 @@ export async function GET(request: NextRequest): Promise<Response> {
   const [matchesResult, translations] = await Promise.all([
     expertMissionsQuery(auth.supabaseAdmin, profile.id, {
       select: buildExpertMissionsSelect({
-        matchColumns: 'id, publication_id, score, status, explanation, created_at',
+        matchColumns: 'id, publication_id, relevance_score, relevance_tier, status, explanation, created_at',
+        // SOURCE UNIQUE des colonnes de synthèse : la liste vivait recopiée
+        // ici, et c'est cette copie qui citait encore `speciality_id`,
+        // `seniority` et `location` — trois colonnes supprimées. La requête
+        // échouait ENTIÈREMENT : plus une seule mission dans le flux.
         publicationColumns:
-          'id, type, title, branch_id, speciality_id, budget_min, budget_max, ' +
-          'location, work_mode, duration, start_date, seniority, skills_required, ' +
-          'confidential, status, published_at, organization_id',
-        publicationEmbeds: 'branches(id, name), specialities(id, name)',
+          PUBLICATION_SYNTHESIS_SELECT +
+          ', skills_required, status, published_at, organization_id',
+        // Plus d'embed `specialities(...)` : la clé étrangère est morte avec le
+        // passage au multiple. Les libellés se résolvent par lot, plus bas.
+        publicationEmbeds: 'branches(id, name)',
         organizationColumns: 'id, company_name, logo_url',
       }),
     })
-      .order('score', { ascending: false })
+      // Ordonner PAR le score reste juste : à l'intérieur d'une même annonce, il
+      // dit lequel des deux profils correspond le mieux. C'est l'AFFICHER qui ne
+      // l'est pas.
+      .order('relevance_score', { ascending: false, nullsFirst: false })
       .limit(EXPERT_FEED_LIMIT),
     loadTranslations(locale),
   ])
@@ -154,6 +171,24 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   const rows = (matchesResult.data ?? []) as unknown as MatchRow[]
+
+  // Libellés des référentiels multiples : DEUX requêtes pour toute la page,
+  // jamais une par ligne.
+  type LigneAvecReferentiels = { speciality_ids?: string[] | null; work_zone_ids?: string[] | null }
+  const pubsDeLaPage: LigneAvecReferentiels[] = []
+  for (const r of rows) {
+    const p = pickRel(r.publications) as LigneAvecReferentiels | null
+    if (p) pubsDeLaPage.push(p)
+  }
+  // Le cast structurel casse une explosion de généricité du client Supabase
+  // (TS2589). Il ne relâche aucune vérification utile : le helper n'attend
+  // qu'un `from().select().in()`.
+  const labels = await loadReferentielLabels(
+    auth.supabaseAdmin as unknown as Parameters<typeof loadReferentielLabels>[0],
+    translations,
+    pubsDeLaPage,
+  )
+
   const missions = rows.map((row) => {
     const pub = pickRel(row.publications)
     if (!pub) return null
@@ -162,13 +197,18 @@ export async function GET(request: NextRequest): Promise<Response> {
       | null
 
     // Synthèse publication via le helper partagé (source unique).
-    const synthesis = buildPublicationSynthesis(pub as Parameters<typeof buildPublicationSynthesis>[0], translations)
+    const synthesis = buildPublicationSynthesis(
+      pub as Parameters<typeof buildPublicationSynthesis>[0],
+      translations,
+      labels,
+    )
 
     return {
       // Match (côté expert)
       match_id: row.id,
       match_status: row.status,           // pending | notified | viewed | dismissed
-      ai_score: Number(row.score),
+      // Deux paliers, aucun nombre (cf. migration score_de_pertinence).
+      relevance_tier: row.relevance_tier === 'strong' ? 'strong' : 'normal',
       ai_reason: row.explanation?.reason ?? null,
       matched_at: row.created_at,
       // Publication (DTO masqué + synthèse parlante via helper partagé)
