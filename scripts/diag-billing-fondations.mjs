@@ -336,10 +336,25 @@ ok(
 section('5. Le moteur commerce n\'a pas bougé')
 
 const ent = stripJsComments(read('lib/entitlements.ts'))
+// Le contrat entre les lots, réécrit sur la bonne table.
+//
+// Ce contrôle épinglait `organization_domains`, du temps où l'abonnement valait
+// pour un couple (organisation, écosystème). Le modèle a changé — UN SEUL
+// abonnement, partagé entre tous les écosystèmes — et l'assertion s'est
+// retournée : elle affirmait désormais le CONTRAIRE de la règle, et serait donc
+// restée verte sur un webhook écrivant au mauvais endroit.
+//
+// Le contrat lui-même n'a pas bougé d'un pouce : le webhook écrit EXACTEMENT
+// les colonnes que le moteur lit. Seule la table qui les porte a changé.
 ok(
-  /organization_domains[\s\S]{0,200}?package_id,\s*package_valid_until/.test(ent),
-  'getOrgEntitlements lit toujours package_id + package_valid_until',
-  "Ce sont EXACTEMENT les colonnes que le webhook écrira : c'est le contrat entre les lots.",
+  /\.from\('organizations'\)[\s\S]{0,200}?package_id,\s*package_valid_until/.test(ent),
+  'getOrgEntitlements lit package_id + package_valid_until sur organizations',
+  "Ce sont EXACTEMENT les colonnes que le webhook écrit : c'est le contrat entre les lots.",
+)
+ok(
+  !/organization_domains/.test(ent),
+  'lib/entitlements.ts ne lit pas la table de trace',
+  "organization_domains est une TRACE HISTORIQUE : elle n'alimente plus aucune décision.",
 )
 ok(
   /export\s+async\s+function\s+consumeQuota/.test(ent),

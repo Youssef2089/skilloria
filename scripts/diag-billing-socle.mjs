@@ -36,6 +36,23 @@
 //   7. LE CATALOGUE LOCAL FAIT AUTORITÉ. La synchronisation est SORTANTE :
 //      aucun montant lu chez Stripe n'est jamais écrit en base.
 //
+//   8. LES DROITS S'ÉCRIVENT SUR L'ORGANISATION, PAS SUR LE RATTACHEMENT.
+//      C'est le contrôle qui manquait, et son absence a coûté un lot entier.
+//      Ce socle a d'abord été écrit contre `organization_domains`, du temps où
+//      l'abonnement valait pour un couple (organisation, écosystème). Le modèle
+//      a changé — un seul abonnement, partagé entre tous les écosystèmes — et
+//      le webhook s'est mis à écrire dans des colonnes que le moteur de droits
+//      ne lit plus.
+//
+//      RIEN NE L'AURAIT SIGNALÉ. Les clients Supabase du projet ne sont pas
+//      typés : un UPDATE sur une colonne disparue ne lève pas. `tsc` passait,
+//      le build passait, et une organisation qui paie serait restée sur l'offre
+//      gratuite. Un défaut d'argent parfaitement silencieux.
+//
+//      Le diagnostic voisin de l'abonnement ne le voyait pas non plus : il ne
+//      balaie que `app/api/**/route.ts`, jamais `lib/`. D'où ce contrôle-ci,
+//      qui interdit à tout `lib/billing` de nommer la table de trace.
+//
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //   node scripts/diag-billing-socle.mjs        → contrôles statiques.
 //                                                AUCUN accès base.
@@ -186,7 +203,69 @@ ok(
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-section('5. Garde anti-désordre dans le WHERE, pas en mémoire')
+section("5. Les droits s'écrivent sur l'ORGANISATION")
+
+// Le contrôle qui manquait. `organization_domains` est une TRACE HISTORIQUE
+// dont le commentaire de table interdit de tirer une décision : aucun module de
+// facturation ne doit la nommer, hors commentaire expliquant précisément qu'on
+// ne s'en sert pas.
+const nommeLaTrace = BILLING.filter(
+  (f) => exists(f) && /organization_domains/.test(stripJs(read(f))),
+)
+ok(
+  nommeLaTrace.length === 0,
+  'aucun module de facturation ne touche organization_domains',
+  nommeLaTrace.length
+    ? `Trouvé dans : ${nommeLaTrace.join(', ')}. L'abonnement est un attribut de l'ORGANISATION ; écrire sur le rattachement est un défaut d'argent SILENCIEUX (clients Supabase non typés, aucune erreur levée).`
+    : undefined,
+)
+// Le contrôle porte sur le CORPS de applyPackageState : le patch se construit
+// avant l'appel, donc chercher `package_id` APRÈS `.from('organizations')` ne
+// pouvait pas mordre. On exige les deux dans la même fonction.
+const corpsApply = apply.slice(
+  apply.search(/export async function applyPackageState/),
+  apply.search(/export async function extendValidity/),
+)
+// Le contrôle vise l'UPDATE, pas le fichier : `applyPackageState` contient AUSSI
+// une lecture de diagnostic sur `organizations`, si bien qu'un contrôle à la
+// maille de la fonction restait vert alors que l'écriture, elle, était partie
+// sur la table de trace. On exige donc `.from('organizations')` immédiatement
+// suivi de `.update(`.
+const ECRIT_SUR_ORG = /\.from\('organizations'\)\s*\n?\s*\.update\(/
+ok(
+  ECRIT_SUR_ORG.test(corpsApply) &&
+    /package_id:/.test(corpsApply) &&
+    /package_valid_until:/.test(corpsApply),
+  'applyPackageState ÉCRIT package_id et package_valid_until sur organizations',
+  'Ce sont EXACTEMENT les colonnes que getOrgEntitlements lit.',
+)
+ok(
+  ECRIT_SUR_ORG.test(
+    apply.slice(apply.search(/export async function extendValidity/), apply.search(/export async function attachCustomer/)),
+  ),
+  'extendValidity ÉCRIT sur organizations',
+)
+ok(
+  !/domainId/.test(apply) && !/domainId/.test(events),
+  "plus aucune notion de domaine dans l'écriture des droits",
+  'Un abonnement est UNIQUE et PARTAGÉ entre tous les écosystèmes.',
+)
+
+// L'écosystème d'un paiement est une ÉTIQUETTE, pas une règle : il ne doit
+// jamais faire échouer l'enregistrement d'un encaissement réel, et il ne doit
+// surtout pas être déduit d'une lecture de la table de trace.
+const resolveMod = stripJs(read('lib/billing/resolve.ts'))
+ok(
+  /export function purchaseEcosystem/.test(resolveMod),
+  "l'écosystème d'achat est résolu sans lecture de table",
+)
+ok(
+  !/purchaseEcosystem[\s\S]{0,240}?throw/.test(events),
+  "un écosystème inconnu ne bloque JAMAIS l'enregistrement d'un paiement",
+  "On ne refuse pas de l'argent parce qu'il manque une étiquette.",
+)
+
+section('5 bis. Garde anti-désordre dans le WHERE, pas en mémoire')
 
 ok(
   /package_source_event_at/.test(apply),
@@ -337,9 +416,17 @@ section('8. Le moteur commerce n\'a pas bougé')
 
 const ent = stripJs(read('lib/entitlements.ts'))
 ok(!/billing|stripe/i.test(ent), 'lib/entitlements.ts n\'importe rien de la facturation')
+// Le contrat entre les lots, réécrit sur la bonne table : le moteur lit
+// l'abonnement sur `organizations`, et c'est exactement là que le webhook
+// l'écrit. Ce contrôle pointait `organization_domains` — il affirmait donc le
+// contraire de la règle actuelle et serait resté vert sur le code fautif.
 ok(
-  /organization_domains[\s\S]{0,200}?package_id,\s*package_valid_until/.test(ent),
-  'getOrgEntitlements lit toujours package_id + package_valid_until',
+  /\.from\('organizations'\)[\s\S]{0,200}?package_id,\s*package_valid_until/.test(ent),
+  'getOrgEntitlements lit package_id + package_valid_until sur organizations',
+)
+ok(
+  !/organization_domains/.test(ent),
+  'lib/entitlements.ts ne lit plus la table de trace',
 )
 ok(
   /package_id/.test(apply) && /package_valid_until/.test(apply),
@@ -409,6 +496,35 @@ ok(
 ok(
   /packages_default_must_be_free/.test(socleSql) && /transactions_block_delete/.test(socleSql),
   'la migration revérifie que les garanties des fondations tiennent toujours',
+)
+// On cherche une manipulation DDL/DML de la table, pas une mention.
+// Chercher le simple nom déclenchait sur le commentaire de colonne qui dit
+// « ne jamais la remplir depuis organization_domains » — c'est-à-dire sur la
+// phrase même qui énonce la règle. Un contrôle qui punit la documentation de la
+// règle qu'il défend finit par être désactivé.
+const TOUCHE_LA_TRACE =
+  /(alter\s+table|insert\s+into|update|delete\s+from|from|join|index[\s\S]{0,60}?on)\s+(public\.)?organization_domains/i
+ok(
+  !TOUCHE_LA_TRACE.test(socleSql),
+  'la migration ne pose RIEN sur organization_domains',
+  "La table est une trace historique : lui rajouter une colonne relancerait la confusion qu'on vient de fermer.",
+)
+ok(
+  /alter column domain_id drop not null/i.test(socleSql),
+  'transactions.domain_id devient facultatif (contexte, pas règle)',
+  "Un renouvellement automatique ne vient d'aucune page : exiger un écosystème obligerait à en inventer un.",
+)
+// La garde de prérequis doit précéder TOUT DDL, sinon elle ne garde rien : une
+// migration qui vérifie ses prérequis après avoir modifié le schéma a déjà
+// modifié le schéma. Le contrôle exigeait seulement qu'un `information_schema`
+// existe QUELQUE PART — et le bloc de vérification FINALE, en fin de fichier, le
+// satisfaisait à lui seul. Il restait donc vert la garde retirée.
+const iGarde = socleSql.search(/information_schema\.columns[\s\S]{0,600}?raise\s+exception/i)
+const iPremierDdl = socleSql.search(/alter\s+table|create\s+(unique\s+)?index/i)
+ok(
+  iGarde !== -1 && iPremierDdl !== -1 && iGarde < iPremierDdl,
+  "la garde de prérequis sur organizations précède tout DDL",
+  'Sans elle, le socle écrirait dans des colonnes inexistantes, en silence.',
 )
 
 // ─────────────────────────────────────────────────────────────────────────────

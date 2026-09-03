@@ -1,25 +1,40 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
- * lib/billing/apply.ts — L'ÉCRITURE DES DROITS, sous garde anti-désordre.
+ * lib/billing/apply.ts — L'ÉCRITURE DES DROITS, sur L'ORGANISATION.
+ *
+ * ┌─ L'ABONNEMENT EST UN ATTRIBUT DE L'ORGANISATION ────────────────────────┐
+ * │ Toute organisation accède à TOUS les écosystèmes actifs, avec UN SEUL   │
+ * │ abonnement et UN SEUL quota, partagés. Seules les DONNÉES sont          │
+ * │ cloisonnées par écosystème.                                             │
+ * │                                                                          │
+ * │ Ce module écrivait initialement sur `organization_domains`, du temps où │
+ * │ l'abonnement valait pour un couple (organisation, écosystème). C'était  │
+ * │ un DÉFAUT D'ARGENT INVISIBLE : le moteur de droits ne lit plus cette    │
+ * │ table, donc une organisation qui paie serait restée sur l'offre         │
+ * │ gratuite — sans erreur, sans trace, sans symptôme. Rien dans le code ne │
+ * │ l'aurait signalé : les clients Supabase du projet ne sont pas typés, un │
+ * │ UPDATE sur une colonne disparue ne lève pas.                            │
+ * │                                                                          │
+ * │ `organization_domains` est une TRACE HISTORIQUE. Ce module ne la lit    │
+ * │ pas, ne l'écrit pas, ne la nomme pas.                                   │
+ * └────────────────────────────────────────────────────────────────────────┘
  *
  * ┌─ STRIPE SE BRANCHE DERRIÈRE LE MOTEUR COMMERCE ─────────────────────────┐
- * │ Ce module écrit `organization_domains.package_id` et                     │
- * │ `package_valid_until` — EXACTEMENT les deux colonnes que                 │
- * │ `getOrgEntitlements` lit déjà (lib/entitlements.ts). Le moteur n'est pas │
- * │ modifié, ne connaît pas Stripe, et ne fera JAMAIS d'appel réseau pour    │
- * │ lire un droit : une lecture de droits est sur le chemin critique de      │
- * │ `publish` et `unlock`.                                                   │
- * │                                                                          │
- * │ La ligne LOCALE fait foi. Stripe ne fait autorité que sur l'état de      │
- * │ l'encaissement.                                                          │
+ * │ On écrit `organizations.package_id` et `package_valid_until` —          │
+ * │ EXACTEMENT les deux colonnes que `getOrgEntitlements` lit déjà          │
+ * │ (lib/entitlements.ts). Le moteur n'est pas modifié, ne connaît pas      │
+ * │ Stripe, et ne fera JAMAIS d'appel réseau pour lire un droit : une       │
+ * │ lecture de droits est sur le chemin critique de `publish` et `unlock`.  │
+ * │ La ligne LOCALE fait foi ; Stripe ne fait autorité que sur l'état de    │
+ * │ l'encaissement.                                                         │
  * └────────────────────────────────────────────────────────────────────────┘
  *
  * ┌─ LA GARDE ANTI-DÉSORDRE ────────────────────────────────────────────────┐
  * │ Stripe ne garantit AUCUN ordre de livraison. Un                          │
- * │ `customer.subscription.updated` retardataire peut arriver APRÈS le       │
- * │ `customer.subscription.deleted` qui le suit dans le temps réel. Sans     │
- * │ garde, il ressusciterait un abonnement résilié.                          │
+ * │ `customer.subscription.updated` retardataire peut arriver APRÈS le      │
+ * │ `customer.subscription.deleted` qui le suit dans le temps réel. Sans    │
+ * │ garde, il ressusciterait un abonnement résilié.                         │
  * │                                                                          │
  * │ La garde est dans le WHERE de l'UPDATE, pas dans une lecture préalable : │
  * │   ... where package_source_event_at is null                              │
@@ -39,7 +54,6 @@ export type ApplyOutcome = 'applied' | 'stale' | 'no_row'
 
 export type PackageState = {
   organizationId: string
-  domainId: string
   /** `event.created` — l'horodatage qui arbitre le désordre. */
   eventAt: Date
   /** null = retour à l'offre par défaut (le moteur retombe sur `is_default`). */
@@ -55,12 +69,12 @@ export type PackageState = {
 }
 
 /**
- * Écrit l'état d'abonnement sur la ligne (organisation, domaine).
+ * Écrit l'état d'abonnement sur l'organisation.
  *
  * Retourne :
  *   - 'applied' : l'état a été écrit ;
  *   - 'stale'   : un événement PLUS RÉCENT avait déjà écrit — on n'écrase pas ;
- *   - 'no_row'  : aucune ligne (organisation, domaine) — anomalie à signaler.
+ *   - 'no_row'  : organisation introuvable — anomalie à signaler.
  *
  * La distinction 'stale' / 'no_row' compte : la première est un fonctionnement
  * NORMAL (Stripe rejoue et livre dans le désordre), la seconde est un défaut.
@@ -86,10 +100,9 @@ export async function applyPackageState(
   // Guillemets doubles autour de la date : PostgREST accepte une valeur citée,
   // ce qui met la chaîne ISO à l'abri de son interprétation comme séparateur.
   const { data, error } = await admin
-    .from('organization_domains')
+    .from('organizations')
     .update(patch)
-    .eq('organization_id', state.organizationId)
-    .eq('domain_id', state.domainId)
+    .eq('id', state.organizationId)
     .or(`package_source_event_at.is.null,package_source_event_at.lt."${iso}"`)
     .select('id')
 
@@ -97,13 +110,12 @@ export async function applyPackageState(
   if ((data ?? []).length > 0) return 'applied'
 
   // Zéro ligne mise à jour : soit la garde a mordu (événement retardataire),
-  // soit la ligne n'existe pas. On distingue par une lecture SANS la garde —
-  // lecture de diagnostic, elle ne décide d'aucune écriture.
+  // soit l'organisation n'existe pas. On distingue par une lecture SANS la
+  // garde — lecture de diagnostic, elle ne décide d'aucune écriture.
   const { data: exists } = await admin
-    .from('organization_domains')
+    .from('organizations')
     .select('id')
-    .eq('organization_id', state.organizationId)
-    .eq('domain_id', state.domainId)
+    .eq('id', state.organizationId)
     .maybeSingle()
 
   return exists ? 'stale' : 'no_row'
@@ -128,14 +140,13 @@ export async function applyPackageState(
  * │ retirerait des candidatures qu'il a déjà payées.                         │
  * └────────────────────────────────────────────────────────────────────────┘
  *
- * `Math.max` sur les dates : un événement ne doit jamais RACCOURCIR une
- * validité déjà acquise. Prolonger est sûr, réduire ne l'est pas.
+ * On ne RACCOURCIT jamais une validité déjà acquise : prolonger est sûr,
+ * réduire ne l'est pas.
  */
 export async function extendValidity(
   admin: SupabaseClient,
   args: {
     organizationId: string
-    domainId: string
     eventAt: Date
     until: string
     subscriptionStatus?: string | null
@@ -144,10 +155,9 @@ export async function extendValidity(
   const iso = args.eventAt.toISOString()
 
   const { data: row, error: readErr } = await admin
-    .from('organization_domains')
+    .from('organizations')
     .select('id, package_valid_until, package_source_event_at')
-    .eq('organization_id', args.organizationId)
-    .eq('domain_id', args.domainId)
+    .eq('id', args.organizationId)
     .maybeSingle()
   if (readErr) throw new Error(`extendValidity (lecture): ${readErr.message}`)
   if (!row) return 'no_row'
@@ -168,9 +178,9 @@ export async function extendValidity(
   }
 
   const { data, error } = await admin
-    .from('organization_domains')
+    .from('organizations')
     .update(patch)
-    .eq('id', row.id as string)
+    .eq('id', args.organizationId)
     .or(`package_source_event_at.is.null,package_source_event_at.lt."${iso}"`)
     .select('id')
   if (error) throw new Error(`extendValidity: ${error.message}`)
@@ -179,6 +189,11 @@ export async function extendValidity(
 
 /**
  * Rattache un Customer Stripe à une organisation.
+ *
+ * Le Customer était DÉJÀ posé sur l'organisation dès les fondations, avec ce
+ * raisonnement : c'est l'entité juridique qui détient le moyen de paiement et
+ * les factures. Le même raisonnement vaut mot pour mot pour la Subscription —
+ * Customer et Subscription vivent désormais côte à côte, sur la même ligne.
  *
  * Idempotent, et REFUSE de réattribuer un customer déjà lié à une AUTRE
  * organisation : l'index unique le rejetterait de toute façon, mais échouer ici

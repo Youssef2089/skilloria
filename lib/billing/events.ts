@@ -4,7 +4,7 @@ import { stripeTsToIso } from '@/lib/billing/stripe'
 import {
   idOf,
   metaUuid,
-  resolveDomain,
+  purchaseEcosystem,
   resolveOrganization,
   resolvePackageByPrice,
   META_USER,
@@ -206,9 +206,6 @@ async function onSubscriptionUpsert(
   const org = await resolveOrganization(admin, { metadata, customerId })
   if (!org.ok) throw new Error(`organisation non résolue — ${org.reason}`)
 
-  const domain = await resolveDomain(admin, org.value, metadata)
-  if (!domain.ok) throw new Error(`domaine non résolu — ${domain.reason}`)
-
   // Un abonnement dont le statut n'ouvre aucun droit (incomplete, unpaid,
   // canceled…) : on enregistre le STATUT, on ne pose PAS d'offre. Une session
   // de paiement abandonnée laisse un abonnement 'incomplete' — il ne doit rien
@@ -216,7 +213,6 @@ async function onSubscriptionUpsert(
   if (!STATUTS_OUVRANTS.has(sub.status)) {
     const outcome = await applyPackageState(admin, {
       organizationId: org.value,
-      domainId: domain.value,
       eventAt,
       packageId: null,
       packageValidUntil: null,
@@ -241,7 +237,6 @@ async function onSubscriptionUpsert(
 
   const outcome = await applyPackageState(admin, {
     organizationId: org.value,
-    domainId: domain.value,
     eventAt,
     packageId: pkg.value.id,
     packageValidUntil: until,
@@ -249,9 +244,7 @@ async function onSubscriptionUpsert(
     stripeSubscriptionStatus: sub.status,
     packageStartedAt: stripeTsToIso(sub.start_date),
   })
-  if (outcome === 'no_row') {
-    throw new Error(`aucune ligne organization_domains (${org.value}, ${domain.value})`)
-  }
+  if (outcome === 'no_row') throw new Error(`organisation ${org.value} introuvable`)
 
   return {
     status: 'processed',
@@ -275,8 +268,6 @@ async function onSubscriptionDeleted(
   const metadata = meta(sub)
   const org = await resolveOrganization(admin, { metadata, customerId: idOf(sub.customer) })
   if (!org.ok) throw new Error(`organisation non résolue — ${org.reason}`)
-  const domain = await resolveDomain(admin, org.value, metadata)
-  if (!domain.ok) throw new Error(`domaine non résolu — ${domain.reason}`)
 
   // Retour à l'offre par défaut, PAS de perte d'accès. `package_id` à null
   // suffit : `getOrgEntitlements` retombe alors sur l'offre `is_default` du
@@ -287,16 +278,13 @@ async function onSubscriptionDeleted(
   // croire à un abonnement vivant.
   const outcome = await applyPackageState(admin, {
     organizationId: org.value,
-    domainId: domain.value,
     eventAt,
     packageId: null,
     packageValidUntil: null,
     stripeSubscriptionId: null,
     stripeSubscriptionStatus: 'canceled',
   })
-  if (outcome === 'no_row') {
-    throw new Error(`aucune ligne organization_domains (${org.value}, ${domain.value})`)
-  }
+  if (outcome === 'no_row') throw new Error(`organisation ${org.value} introuvable`)
 
   return {
     status: 'processed',
@@ -323,8 +311,10 @@ async function onInvoicePaid(
   const org = await resolveOrganization(admin, { metadata, customerId })
   if (!org.ok) throw new Error(`organisation non résolue — ${org.reason}`)
 
-  const domain = await resolveDomain(admin, org.value, metadata)
-  if (!domain.ok) throw new Error(`domaine non résolu — ${domain.reason}`)
+  // Étiquette descriptive, sans lecture ni refus : on ne bloque JAMAIS
+  // l'enregistrement d'un paiement réel au motif qu'on ignore d'où il vient.
+  // null est le cas normal d'un renouvellement automatique.
+  const ecosystem = purchaseEcosystem(metadata)
 
   // ── La pièce comptable ────────────────────────────────────────────────────
   //  Idempotence par la contrainte UNIQUE sur stripe_invoice_id (fondations) :
@@ -343,7 +333,7 @@ async function onInvoicePaid(
     {
       organization_id: org.value,
       user_id: metaUuid(metadata, META_USER),
-      domain_id: domain.value,
+      domain_id: ecosystem,
       package_id: pkg?.ok ? pkg.value.id : null,
       stripe_invoice_id: invoice.id,
       stripe_customer_id: customerId,
@@ -380,7 +370,6 @@ async function onInvoicePaid(
 
   const outcome = await extendValidity(admin, {
     organizationId: org.value,
-    domainId: domain.value,
     eventAt,
     until,
     subscriptionStatus: 'active',
@@ -404,8 +393,6 @@ async function onInvoicePaymentFailed(
   const metadata = meta(invoice)
   const org = await resolveOrganization(admin, { metadata, customerId: idOf(invoice.customer) })
   if (!org.ok) throw new Error(`organisation non résolue — ${org.reason}`)
-  const domain = await resolveDomain(admin, org.value, metadata)
-  if (!domain.ok) throw new Error(`domaine non résolu — ${domain.reason}`)
 
   // ON NE RETIRE RIEN. On repousse la validité à la prochaine tentative que
   // Stripe annonce. Quand Stripe cesse de réessayer, il n'annonce plus rien :
@@ -425,7 +412,6 @@ async function onInvoicePaymentFailed(
 
   const outcome = await extendValidity(admin, {
     organizationId: org.value,
-    domainId: domain.value,
     eventAt,
     until: nextAttempt,
     subscriptionStatus: 'past_due',

@@ -96,39 +96,34 @@ export async function resolveOrganization(
 }
 
 /**
- * DOMAINE — les droits d'une organisation valent SUR UN DOMAINE : c'est la
- * granularité de `organization_domains`, donc celle de l'abonnement.
+ * ÉCOSYSTÈME D'ACHAT — contexte descriptif, jamais une règle.
  *
- * Métadonnée d'abord, sinon l'unique ligne active de l'organisation. Zéro ligne
- * ou plus d'une : REFUS explicite, jamais un choix arbitraire. Mêmes règles que
- * `assign-org-package` et `/api/me/organisation/offre` — poser un abonnement sur
- * « le premier domaine trouvé » attribuerait des droits payés au mauvais
- * écosystème.
+ * ┌─ CETTE FONCTION NE LIT AUCUNE TABLE, ET C'EST LE POINT ─────────────────┐
+ * │ Elle résolvait auparavant l'écosystème en interrogeant                  │
+ * │ `organization_domains`, et refusait quand la réponse était ambiguë.     │
+ * │ Deux choses l'ont rendue fausse d'un coup :                             │
+ * │                                                                          │
+ * │  · L'abonnement N'A PLUS D'ÉCOSYSTÈME. Une organisation accède à tous   │
+ * │    les écosystèmes actifs avec un seul abonnement partagé. Il n'y a     │
+ * │    plus rien à résoudre pour accorder un droit.                         │
+ * │                                                                          │
+ * │  · `organization_domains` est une TRACE HISTORIQUE dont le commentaire  │
+ * │    de table interdit de tirer une décision. Y lire l'écosystème d'un    │
+ * │    paiement serait exactement l'usage proscrit.                         │
+ * │                                                                          │
+ * │ Et le refus sur ambiguïté était pire encore : il aurait BLOQUÉ          │
+ * │ l'enregistrement d'un paiement réel au motif qu'on ne savait pas dire   │
+ * │ d'où il venait. On ne refuse jamais de l'argent parce qu'il manque une  │
+ * │ étiquette.                                                              │
+ * └────────────────────────────────────────────────────────────────────────┘
+ *
+ * Ne sert plus qu'à renseigner `transactions.domain_id`, colonne désormais
+ * FACULTATIVE et purement descriptive. `null` est le cas NORMAL d'un
+ * renouvellement automatique : douze mois après la souscription, un prélèvement
+ * ne vient d'aucune page et d'aucun écosystème.
  */
-export async function resolveDomain(
-  admin: SupabaseClient,
-  organizationId: string,
-  metadata?: Stripe$Metadata | null,
-): Promise<Resolved<string>> {
-  const fromMeta = metaUuid(metadata, META_DOMAIN)
-  if (fromMeta) return { ok: true, value: fromMeta }
-
-  const { data, error } = await admin
-    .from('organization_domains')
-    .select('domain_id')
-    .eq('organization_id', organizationId)
-    .eq('active', true)
-  if (error) return { ok: false, reason: `lecture organization_domains: ${error.message}` }
-
-  const rows = (data ?? []) as { domain_id: string }[]
-  if (rows.length === 0) return { ok: false, reason: 'aucun domaine actif pour cette organisation' }
-  if (rows.length > 1) {
-    return {
-      ok: false,
-      reason: `${rows.length} domaines actifs : le domaine doit être porté par la métadonnée ${META_DOMAIN}`,
-    }
-  }
-  return { ok: true, value: rows[0].domain_id }
+export function purchaseEcosystem(metadata?: Stripe$Metadata | null): string | null {
+  return metaUuid(metadata, META_DOMAIN)
 }
 
 /**
