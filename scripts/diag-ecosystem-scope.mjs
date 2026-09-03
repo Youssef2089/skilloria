@@ -55,59 +55,115 @@ const SCOPED_TABLES = ['publications', 'candidatures', 'conversations']
 
 const INVENTORY = {
   // ── Organisation : LISTES ──────────────────────────────────────────────
-  'publications/route.ts': 'scoped',
-  'me/candidatures-org/route.ts': 'scoped',
-  'me/badges/route.ts': 'scoped',
-  'me/conversations/route.ts': 'scoped',
+  'app/api/publications/route.ts': 'scoped',
+  'app/api/me/candidatures-org/route.ts': 'scoped',
+  'app/api/me/badges/route.ts': 'scoped',
+  'app/api/me/conversations/route.ts': 'scoped',
   // ── Organisation : ACCES PAR IDENTIFIANT ───────────────────────────────
-  'publications/[id]/route.ts': 'scoped',
-  'publications/[id]/candidatures/route.ts': 'scoped',
-  'publications/[id]/close/route.ts': 'scoped',
-  'publications/[id]/publish/route.ts': 'scoped',
-  'candidatures/[id]/reject/route.ts': 'scoped',
-  'candidatures/[id]/select/route.ts': 'scoped',
-  'candidatures/[id]/unlock/route.ts': 'scoped',
-  'me/candidatures/[id]/view/route.ts': 'scoped',
+  'app/api/publications/[id]/route.ts': 'scoped',
+  'app/api/publications/[id]/candidatures/route.ts': 'scoped',
+  'app/api/publications/[id]/close/route.ts': 'scoped',
+  'app/api/publications/[id]/publish/route.ts': 'scoped',
+  'app/api/candidatures/[id]/reject/route.ts': 'scoped',
+  'app/api/candidatures/[id]/select/route.ts': 'scoped',
+  'app/api/candidatures/[id]/unlock/route.ts': 'scoped',
+  'app/api/me/candidatures/[id]/view/route.ts': 'scoped',
 
   // ── Surfaces EXPERT ────────────────────────────────────────────────────
   // Un expert est lie a UN ecosysteme a vie : son ecosysteme actif est
   // toujours celui de son compte. La garde d'appartenance (profil, match)
   // cloisonne donc deja, et le moteur de matching ne cree de match qu'a
   // l'interieur d'un ecosysteme (lib/matching/shared.ts).
-  'me/missions/[id]/route.ts': 'expert',
-  'me/candidatures/route.ts': 'expert',
-  'me/collaboration/quota/route.ts': 'expert',
+  'app/api/me/missions/[id]/route.ts': 'expert',
+  'app/api/me/candidatures/route.ts': 'expert',
+  'app/api/me/collaboration/quota/route.ts': 'expert',
   // Depot de candidature par l'expert : la candidature herite du domain_id du
   // PROFIL (candidatures/route.ts), donc de l'ecosysteme unique de l'expert.
-  'candidatures/route.ts': 'expert',
+  'app/api/candidatures/route.ts': 'expert',
 
   // ── Conversation : deux cotes ──────────────────────────────────────────
   // La conversation est atteinte par la candidature, elle-meme deja
   // cloisonnee des deux cotes (org via l'annonce, expert via son profil).
   // Un filtre ici serait redondant sans rien ajouter.
-  'conversations/[id]/messages/route.ts': 'exempt',
+  'app/api/conversations/[id]/messages/route.ts': 'exempt',
+
+  // ── MODULES lib/ ───────────────────────────────────────────────────────
+  // Mode 'appele' : le module ne LISTE jamais librement. Il travaille sur des
+  // identifiants DEJA resolus par son appelant — `.in('id', ids)`,
+  // `.eq('id', x)`, `.eq('candidature_id', x)` — et l'appelant, lui, est une
+  // surface declaree ci-dessus. La garantie de cloisonnement est donc celle de
+  // l'appelant, et elle est verifiee la ou elle vit.
+  //
+  // ⚠ CE QUE CE MODE NE PROUVE PAS, et il faut le dire : contrairement a
+  //   'scoped', il n'est pas verifie automatiquement. Sa valeur est la
+  //   DECOUVERTE — un module de lib/ ajoute demain, qui lirait ces tables sans
+  //   etre declare, fait echouer ce diagnostic. C'est exactement ce qui
+  //   manquait : ces sept modules etaient invisibles, et c'est dans lib/ qu'une
+  //   ecriture fautive a dormi jusqu'a casser la creation d'organisation.
+  //
+  //   Un module qui se mettrait a LISTER (sans `.in`/`.eq` sur des identifiants
+  //   fournis) doit changer de mode et porter son propre filtre.
+
+  // Assemblage de vues, sur des identifiants fournis par une route cloisonnee.
+  'lib/candidature-org-dto.ts': 'appele',
+  'lib/candidatures/lifecycle-batch.ts': 'appele',
+  // Devoilement d'UNE candidature designee par son identifiant ; l'ownership et
+  // le cloisonnement sont verifies par les routes appelantes, declarees 'scoped'.
+  'lib/unlock.ts': 'appele',
+  // Rendu d'emails : lecture des libelles des entites deja notifiees.
+  'lib/notifications/dispatch.ts': 'appele',
+  // Matching : il ne rapproche que des entites d'un MEME ecosysteme
+  // (lib/matching/shared.ts), et chaque execution part d'une annonce ou d'un
+  // profil dont l'ecosysteme est connu.
+  'lib/matching/index.ts': 'appele',
+  'lib/matching/run-for-expert.ts': 'appele',
+  'lib/matching/reconcile.ts': 'appele',
 }
 
 // ─── DECOUVERTE ──────────────────────────────────────────────────────────────
-function walk(dir, out = []) {
+/**
+ * BALAYAGE : app/api ET lib.
+ *
+ * Il ne couvrait que les routes. Or une route cloisonnee delegue la moitie de
+ * son travail a `lib/` — dto, cycle de vie, matching, devoilement, notifications
+ * — et ces modules touchent EXACTEMENT les memes tables. Un filtre oublie s'y
+ * cache aussi bien, et « ca ne leve rien, ca renvoie juste trop de lignes »
+ * vaut la aussi.
+ *
+ * Le trou n'etait pas theorique : c'est dans `lib/` qu'une ecriture fautive sur
+ * la table de trace a dormi jusqu'a casser la creation d'organisation
+ * personnelle (cf. diag-abonnement-organisation, meme elargissement).
+ *
+ * Les chemins portent leur racine, pour que l'inventaire distingue une route
+ * d'un module et n'affirme pas d'un module ce qui n'est vrai que d'une route.
+ */
+function walk(dir, out = [], keep = (e) => e === 'route.ts') {
   for (const e of readdirSync(dir)) {
     const p = join(dir, e)
-    if (statSync(p).isDirectory()) walk(p, out)
-    else if (e === 'route.ts') out.push(p)
+    if (statSync(p).isDirectory()) walk(p, out, keep)
+    else if (keep(e)) out.push(p)
   }
   return out
 }
 
 const API_DIR = join(ROOT, 'app', 'api')
-const routes = walk(API_DIR)
-  .map((p) => relative(API_DIR, p).split('\\').join('/'))
-  // Le back-office est PLATEFORME : un administrateur voit tous les
-  // ecosystemes, il ne doit surtout pas etre cloisonne.
-  .filter((r) => !r.startsWith('admin/'))
-  .sort()
+const LIB_DIR = join(ROOT, 'lib')
+const norm = (p) => p.split('\\').join('/')
+const routes = [
+  ...walk(API_DIR)
+    .map((p) => norm(relative(API_DIR, p)))
+    // Le back-office est PLATEFORME : un administrateur voit tous les
+    // ecosystemes, il ne doit surtout pas etre cloisonne.
+    .filter((r) => !r.startsWith('admin/'))
+    .map((r) => 'app/api/' + r),
+  // `database.types.ts` est un artefact GENERE, perime et importe nulle part.
+  ...walk(LIB_DIR, [], (e) => e.endsWith('.ts') && e !== 'database.types.ts').map(
+    (p) => 'lib/' + norm(relative(LIB_DIR, p)),
+  ),
+].sort()
 
 const touching = routes.filter((r) => {
-  const src = read(join('app', 'api', r))
+  const src = read(r)
   return SCOPED_TABLES.some((t) => src.includes(`.from('${t}')`))
 })
 
@@ -137,7 +193,7 @@ const scopedRoutes = Object.entries(INVENTORY).filter(([, m]) => m === 'scoped')
 const notFiltering = []
 const notNamed = []
 for (const r of scopedRoutes) {
-  const src = read(join('app', 'api', r))
+  const src = read(r)
   if (!src.includes(".eq('domain_id'")) notFiltering.push(r)
   // Le marqueur NOMME : `auth.domain.id` en direct ne dit pas au relecteur
   // lequel des deux ecosystemes il regarde (celui du compte ou l'actif).
@@ -159,7 +215,7 @@ section('C. Acces par identifiant : filtre DANS la recherche')
 const BY_ID = scopedRoutes.filter((r) => r.includes('[id]'))
 const badById = []
 for (const r of BY_ID) {
-  const src = read(join('app', 'api', r)).replace(/\r\n/g, '\n')
+  const src = read(r).replace(/\r\n/g, '\n')
   // Chaque `.eq('id', …)` d'une requete sur une table cloisonnee doit etre
   // suivi, dans les 3 lignes, d'un `.eq('domain_id', …)`.
   const lines = src.split('\n')
@@ -181,10 +237,12 @@ ok(badById.length === 0,
 // ═══ D. LE BACK-OFFICE N'EST PAS CLOISONNE ═════════════════════════════════
 section('D. L’administrateur reste plateforme')
 
+// Chemin complet, comme partout ailleurs depuis l'elargissement a lib/ : les
+// lectures ne prefixent plus, elles lisent ce qu'on leur donne.
 const adminRoutes = walk(API_DIR)
-  .map((p) => relative(API_DIR, p).split('\\').join('/'))
-  .filter((r) => r.startsWith('admin/'))
-const adminScoped = adminRoutes.filter((r) => read(join('app', 'api', r)).includes('activeEcosystemId('))
+  .map((p) => 'app/api/' + norm(relative(API_DIR, p)))
+  .filter((r) => r.startsWith('app/api/admin/'))
+const adminScoped = adminRoutes.filter((r) => read(r).includes('activeEcosystemId('))
 ok(adminScoped.length === 0,
   'aucune route admin ne cloisonne par ecosysteme',
   adminScoped.length ? `cloisonnees a tort : ${adminScoped.join(' · ')} — un admin voit TOUS les ecosystemes` : undefined)

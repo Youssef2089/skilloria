@@ -143,16 +143,38 @@ ok(/L'ABONNEMENT EST UNIQUE ET PARTAG/.test(ents),
 // ═══ E. PLUS AUCUN LECTEUR D'ABONNEMENT PAR ECOSYSTEME ═════════════════════
 section('E. Aucun lecteur residuel')
 
-function walk(dir, out = []) {
+/**
+ * BALAYAGE : app/api ET lib.
+ *
+ * Il ne couvrait que `app/api/**` + `route.ts`. Le trou n'etait pas theorique :
+ * `lib/collaboration/ensure-personal-org.ts` inserait encore `package_id` sur la
+ * trace, colonne SUPPRIMEE — l'organisation personnelle d'un expert ne pouvait
+ * plus naitre, donc il ne pouvait plus publier son premier besoin. Ni `tsc` ni
+ * le build ne pouvaient le dire : les clients Supabase du projet ne sont pas
+ * types, un INSERT sur une colonne disparue ne leve qu'a l'execution.
+ *
+ * On balaie donc les deux racines, et les chemins portent leur racine pour que
+ * l'inventaire distingue une route d'un module.
+ */
+function walk(dir, out = [], keep = (e) => e === 'route.ts') {
   for (const e of readdirSync(dir)) {
     const p = join(dir, e)
-    if (statSync(p).isDirectory()) walk(p, out)
-    else if (e === 'route.ts') out.push(p)
+    if (statSync(p).isDirectory()) walk(p, out, keep)
+    else if (keep(e)) out.push(p)
   }
   return out
 }
 const API_DIR = join(ROOT, 'app', 'api')
-const routes = walk(API_DIR).map((p) => relative(API_DIR, p).split('\\').join('/')).sort()
+const LIB_DIR = join(ROOT, 'lib')
+const norm = (p) => p.split('\\').join('/')
+// `database.types.ts` est un artefact GENERE, perime et importe nulle part :
+// il nomme toutes les colonnes de la base, y compris disparues.
+const routes = [
+  ...walk(API_DIR).map((p) => 'app/api/' + norm(relative(API_DIR, p))),
+  ...walk(LIB_DIR, [], (e) => e.endsWith('.ts') && e !== 'database.types.ts').map(
+    (p) => 'lib/' + norm(relative(LIB_DIR, p)),
+  ),
+].sort()
 
 /**
  * Commentaires retires — de bloc ET de ligne. Le `//` d'un commentaire qui
@@ -205,7 +227,7 @@ const SUBSCRIPTION_COLUMNS =
 const readers = []
 const traceUsers = []
 for (const r of routes) {
-  const src = stripComments(read(join('app', 'api', r)))
+  const src = stripComments(read(r))
   const NEEDLE = "from('organization_domains')"
   let at = src.indexOf(NEEDLE)
   if (at === -1) continue
@@ -216,7 +238,7 @@ for (const r of routes) {
   }
 }
 ok(readers.length === 0,
-  'aucune requete sur organization_domains ne nomme une colonne d’abonnement',
+  'aucune requete sur organization_domains ne nomme une colonne d’abonnement (app/api ET lib)',
   readers.length ? `lecteurs residuels : ${readers.join(' · ')}` : undefined)
 
 /**
@@ -228,15 +250,31 @@ ok(readers.length === 0,
  * facon de rendre visible un couplage qui, sinon, ne leverait rien.
  */
 const TRACE_USERS = {
-  'admin/collaboration-orgs/route.ts': 'affiche le nom de l’ecosysteme d’inscription',
-  'admin/get-org/[id]/route.ts': 'affiche le nom de l’ecosysteme d’inscription',
-  'admin/list-orgs/route.ts': 'affiche le nom de l’ecosysteme d’inscription',
-  'auth/register-org/route.ts': 'ECRIT la ligne de trace a l’inscription',
+  'app/api/admin/collaboration-orgs/route.ts': 'affiche le nom de l’ecosysteme d’inscription',
+  'app/api/admin/get-org/[id]/route.ts': 'affiche le nom de l’ecosysteme d’inscription',
+  'app/api/admin/list-orgs/route.ts': 'affiche le nom de l’ecosysteme d’inscription',
+  'app/api/auth/register-org/route.ts': 'ECRIT la ligne de trace a l’inscription',
+  // lib/ — la moitie du code que ce diagnostic ne voyait pas.
+  'lib/collaboration/ensure-personal-org.ts':
+    'ECRIT la ligne de trace a la naissance de l’organisation personnelle d’un expert',
   // Seul usage DECISIONNEL restant, et il est assume : le slug sert a poser
   // l'invite sur un sous-domaine d'atterrissage. Il ne restreint rien — une
   // fois entre, son organisation lui ouvre tous les ecosystemes actifs.
-  'invitations/resolve/route.ts': 'choisit le sous-domaine d’atterrissage de l’invite',
+  'app/api/invitations/resolve/route.ts': 'choisit le sous-domaine d’atterrissage de l’invite',
 }
+
+/**
+ * QUI A LE DROIT D'ECRIRE LA TRACE : les DEUX points ou une organisation NAIT.
+ *
+ * Il n'y en avait qu'un declare — l'inscription d'une organisation cliente. Le
+ * second, la naissance de l'organisation personnelle d'un expert, vit dans
+ * `lib/` et echappait donc au balayage. C'est precisement la qu'une ecriture
+ * fautive dormait.
+ */
+const WRITERS_AUTORISES = new Set([
+  'app/api/auth/register-org/route.ts',
+  'lib/collaboration/ensure-personal-org.ts',
+])
 const undeclared = traceUsers.filter((r) => !(r in TRACE_USERS))
 const gone = Object.keys(TRACE_USERS).filter((r) => !traceUsers.includes(r))
 ok(undeclared.length === 0,
@@ -248,8 +286,8 @@ ok(gone.length === 0,
 
 // La trace reste une TRACE : personne n'y ecrit hors de l'inscription.
 const writers = traceUsers.filter((r) => {
-  if (r === 'auth/register-org/route.ts') return false
-  const src = stripComments(read(join('app', 'api', r)))
+  if (WRITERS_AUTORISES.has(r)) return false
+  const src = stripComments(read(r))
   let at = src.indexOf("from('organization_domains')")
   while (at !== -1) {
     if (/\.(insert|update|upsert|delete)\(/.test(queryBlock(src, at))) return true
@@ -258,7 +296,7 @@ const writers = traceUsers.filter((r) => {
   return false
 })
 ok(writers.length === 0,
-  'aucune route n’ECRIT sur la trace hors de l’inscription',
+  'rien n’ECRIT sur la trace hors de la naissance d’une organisation',
   writers.length ? `ecrivains : ${writers.join(' · ')}` : undefined)
 
 // R3 — l'administrateur est PLATEFORME.
