@@ -169,18 +169,47 @@ export async function ensurePersonalOrg(
       throw new EnsureOrgError('member_insert_failed', 'Could not link member', 500, memberErr)
     }
 
-    // 3. Rattachement domaine + PACKAGE collaboration (lu en priorité par
-    //    getOrgEntitlements → quotas 1/mois, 1 dévoilé).
+    // 3. TRACE de l'écosystème d'inscription — et RIEN D'AUTRE.
+    //
+    //  Cette insertion portait `package_id`. La colonne n'existe plus :
+    //  l'abonnement est un attribut de l'ORGANISATION, unique et partagé entre
+    //  tous les écosystèmes. L'insert échouait donc, le bloc levait, et le
+    //  rollback supprimait l'organisation — un expert ne pouvait plus publier
+    //  son premier besoin de sous-traitance.
+    //
+    //  Rien ne le signalait : les diagnostics du modèle multi-écosystème ne
+    //  balayaient que `app/api/**/route.ts`, jamais `lib/`. C'est ce trou que
+    //  l'élargissement de ce lot ferme.
     const { error: domErr } = await admin
       .from('organization_domains')
       .insert({
         organization_id: organizationId,
         domain_id: domains.userDomainId,
         active: true,
-        package_id: pkg.id,
       })
     if (domErr) {
-      throw new EnsureOrgError('domain_insert_failed', 'Could not link domain/package', 500, domErr)
+      throw new EnsureOrgError('domain_insert_failed', 'Could not link domain', 500, domErr)
+    }
+
+    // 4. OFFRE de collaboration, sur l'organisation.
+    //
+    //  Écrite explicitement plutôt que laissée nulle, pour deux raisons : c'est
+    //  l'intention d'origine du code (« l'organisation personnelle naît sur
+    //  l'offre de collaboration »), et c'est exactement ce que la reprise de
+    //  données a posé sur les organisations personnelles déjà existantes. Une
+    //  organisation créée aujourd'hui est donc dans le même état qu'une
+    //  organisation créée hier.
+    //
+    //  Non bloquant : `getOrgEntitlements` retombe de lui-même sur l'offre
+    //  `is_default` de la cible 'collaboration' quand `package_id` est nul —
+    //  la MÊME offre. Faire échouer la création d'une organisation sur cette
+    //  écriture reviendrait à interdire de publier pour une redondance.
+    const { error: pkgErr } = await admin
+      .from('organizations')
+      .update({ package_id: pkg.id })
+      .eq('id', organizationId)
+    if (pkgErr) {
+      console.warn('[ensure-org] offre de collaboration non posée — repli sur is_default', pkgErr.message)
     }
 
     await logAudit({
