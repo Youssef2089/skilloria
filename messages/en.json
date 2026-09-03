@@ -2438,8 +2438,6 @@
       "assign_button": "Assign",
       "assign_confirm": "Confirm assigning this package to the organization?",
       "assigned": "Package assigned.",
-      "err_no_active_domain": "No active domain for this organization.",
-      "err_multiple_active_domains": "Multiple active domains — manual resolution required.",
       "err_invalid_package": "Package not found or inactive."
     },
     "orgs": {

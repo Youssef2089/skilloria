@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
+import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { logAudit } from '@/lib/audit'
 
 export const runtime = 'nodejs'
@@ -72,7 +73,10 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   const { data: pub, error: fetchErr } = await auth.supabaseAdmin
     .from('publications')
     .select('id, organization_id, status')
+    // CLOISONNEMENT — ÉCRITURE : clôturer une annonce d'un autre écosystème
+    // depuis celui-ci doit être impossible, pas seulement invisible.
     .eq('id', id)
+    .eq('domain_id', activeEcosystemId(auth))
     .maybeSingle()
 
   if (fetchErr) {
@@ -98,7 +102,10 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   const { data: updated, error: updateErr } = await auth.supabaseAdmin
     .from('publications')
     .update({ status: 'archived' })
+    // Defense en profondeur : le SELECT ci-dessus est deja cloisonne, mais une
+    // ECRITURE ne doit pas dependre de l'ORDRE des instructions pour etre sure.
     .eq('id', id)
+    .eq('domain_id', activeEcosystemId(auth))
     .select('id, status')
     .single()
 

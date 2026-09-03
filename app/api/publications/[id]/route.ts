@@ -1,5 +1,6 @@
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
+import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { logAudit } from '@/lib/audit'
 
 export const runtime = 'nodejs'
@@ -221,7 +222,10 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   const { data: pub, error: fetchErr } = await auth.supabaseAdmin
     .from('publications')
     .select('id, organization_id, status')
+    // CLOISONNEMENT DANS LA RECHERCHE, pas après : une annonce d'un autre
+    // écosystème devient INTROUVABLE, et la route emprunte son 404 existant.
     .eq('id', id)
+    .eq('domain_id', activeEcosystemId(auth))
     .maybeSingle()
 
   if (fetchErr) {
@@ -246,7 +250,10 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   const { data: updated, error: updateErr } = await auth.supabaseAdmin
     .from('publications')
     .update(u.updates)
+    // CLOISONNEMENT — ECRITURE : la mise a jour ne peut atteindre une annonce
+    // d'un autre ecosysteme. Zero ligne touchee -> 404, jamais une ecriture muette.
     .eq('id', id)
+    .eq('domain_id', activeEcosystemId(auth))
     .select('id, status')
     .single()
 
@@ -356,7 +363,9 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         'budget_min, budget_max, confidential, status, verification_score, ' +
         'created_at, updated_at, published_at',
     )
+    // CLOISONNEMENT — lecture du detail : introuvable hors de l'ecosysteme actif.
     .eq('id', id)
+    .eq('domain_id', activeEcosystemId(auth))
     .maybeSingle()
 
   if (fetchResult.error) {

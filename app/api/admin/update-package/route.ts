@@ -195,15 +195,17 @@ export async function POST(request: NextRequest): Promise<Response> {
       // (a) Organisations RATTACHÉES que la nouvelle cible ne couvrirait plus.
       //     Élargir (client → all) ne retire jamais personne : le calcul le
       //     constate de lui-même, aucun cas particulier à coder.
+      //     Le rattachement se lit sur `organizations` : l'abonnement y a été
+      //     hissé (cf. 20260903000000_abonnement_sur_organisation.sql).
       const { data: links, error: linkErr } = await auth.supabaseAdmin
-        .from('organization_domains')
-        .select('organization_id')
+        .from('organizations')
+        .select('id')
         .eq('package_id', packageId)
       if (linkErr) {
         console.error('[admin:update-package] org links lookup failed', linkErr.message)
         return json({ error: 'Query failed', code: 'db_error' }, 500)
       }
-      const orgIds = ((links ?? []) as { organization_id: string }[]).map((l) => l.organization_id)
+      const orgIds = ((links ?? []) as { id: string }[]).map((l) => l.id)
 
       if (orgIds.length > 0) {
         const { data: orgs, error: orgErr } = await auth.supabaseAdmin

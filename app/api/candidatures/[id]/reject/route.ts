@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
+import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { logAudit } from '@/lib/audit'
 import { markCandidatureViewedServerSide } from '@/lib/candidature-views'
 
@@ -91,7 +92,10 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
       'id, publication_id, domain_id, status, ' +
         'publications!inner(id, organization_id)',
     )
+    // CLOISONNEMENT — ÉCRITURE. La candidature porte son propre domain_id ;
+    // il était lu pour l'audit, jamais comparé à l'écosystème actif.
     .eq('id', candidatureId)
+    .eq('domain_id', activeEcosystemId(auth))
     .maybeSingle()
   if (candErr) {
     console.error('[candidatures/[id]/reject:POST] lookup failed', candErr.message)
@@ -125,7 +129,9 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   const { error: updErr } = await auth.supabaseAdmin
     .from('candidatures')
     .update({ status: 'rejected', status_reason: reason })
+    // Defense en profondeur — cf. la lecture cloisonnee plus haut.
     .eq('id', candidatureId)
+    .eq('domain_id', activeEcosystemId(auth))
     .in('status', ALLOWED_PREVIOUS_STATUSES)  // anti-race
   if (updErr) {
     console.error('[candidatures/[id]/reject:POST] update failed', updErr.message)

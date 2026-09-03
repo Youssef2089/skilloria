@@ -2438,8 +2438,6 @@
       "assign_button": "Asignar",
       "assign_confirm": "¿Confirmar la asignación de este paquete a la organización?",
       "assigned": "Paquete asignado.",
-      "err_no_active_domain": "No hay dominio activo para esta organización.",
-      "err_multiple_active_domains": "Varios dominios activos: se requiere resolución manual.",
       "err_invalid_package": "Paquete no encontrado o inactivo."
     },
     "orgs": {

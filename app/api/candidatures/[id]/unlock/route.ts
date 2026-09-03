@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
+import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { markCandidatureViewedServerSide } from '@/lib/candidature-views'
 import { getOrgEntitlements, consumeQuota, monthlyPeriodStart } from '@/lib/entitlements'
 import { performUnlock, ALLOWED_PREVIOUS_STATUSES } from '@/lib/unlock'
@@ -82,7 +83,10 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
       'id, domain_id, status, unlocked_at, publication_id, ' +
         'publications!inner(organization_id, status, published_at, expires_at)',
     )
+    // CLOISONNEMENT — ÉCRITURE (déverrouillage payant). Déverrouiller depuis
+    // le mauvais écosystème consommerait un quota sur des données invisibles ici.
     .eq('id', candidatureId)
+    .eq('domain_id', activeEcosystemId(auth))
     .maybeSingle()
   if (candErr) {
     console.error('[candidatures/[id]/unlock:POST] lookup failed', candErr.message)
@@ -157,7 +161,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
 
   // ── GATE COMMERCE : quota d'unlocks manuels (seulement si un flip va avoir lieu) ─
   if (!isAlreadyUnlocked) {
-    const ents = await getOrgEntitlements(auth.supabaseAdmin, orgId, ownRow.domain_id)
+    const ents = await getOrgEntitlements(auth.supabaseAdmin, orgId)
     if (ents.limits.manualUnlocksPerMonth !== null) {
       const allowed = await consumeQuota(
         auth.supabaseAdmin,

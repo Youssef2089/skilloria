@@ -814,7 +814,6 @@ export default function AdminOrgDetailPage() {
 
 type UsageAvailable = {
   available: true
-  domain_id: string
   assignment: { package_id: string | null; package_started_at: string | null; package_valid_until: string | null }
   package_slug: string
   limits: {
@@ -826,7 +825,13 @@ type UsageAvailable = {
   usage: { publications: number; manual_unlocks: number; active_published: number }
   period_start: string
 }
-type UsageData = UsageAvailable | { available: false; reason: string }
+/**
+ * Plus de variante `available: false`. Les deux refus qu'elle portait
+ * (`no_active_domain`, `multiple_active_domains`) gardaient le rattachement
+ * org↔écosystème, dont l'abonnement ne dépend plus : ils masquaient TOUT
+ * l'écran de pilotage à une organisation parfaitement en règle.
+ */
+type UsageData = UsageAvailable
 type PkgOption = { id: string; name: string; slug: string; target_role: string; active: boolean; scope: string }
 
 function OrgPackageSection({ orgId, orgType }: { orgId: string; orgType: string | null }) {
@@ -903,13 +908,7 @@ function OrgPackageSection({ orgId, orgType }: { orgId: string; orgType: string 
       const payload = (await res.json().catch(() => ({}))) as { code?: string }
       if (!res.ok) {
         const key =
-          payload.code === 'no_active_domain'
-            ? 'pilot.err_no_active_domain'
-            : payload.code === 'multiple_active_domains'
-              ? 'pilot.err_multiple_active_domains'
-              : payload.code === 'invalid_package'
-                ? 'pilot.err_invalid_package'
-                : 'errors.generic'
+          payload.code === 'invalid_package' ? 'pilot.err_invalid_package' : 'errors.generic'
         setMsg({ kind: 'err', text: t(key) })
         return
       }
@@ -954,13 +953,9 @@ function OrgPackageSection({ orgId, orgType }: { orgId: string; orgType: string 
     <div style={cardStyle}>
       <h2 style={titleStyle}>{t('pilot.section_title')}</h2>
 
-      {!usage || usage.available === false ? (
+      {!usage ? (
         <div style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)' }}>
-          {usage && usage.available === false && usage.reason === 'no_active_domain'
-            ? t('pilot.err_no_active_domain')
-            : usage && usage.available === false && usage.reason === 'multiple_active_domains'
-              ? t('pilot.err_multiple_active_domains')
-              : t('errors.generic')}
+          {t('errors.generic')}
         </div>
       ) : (
         <>

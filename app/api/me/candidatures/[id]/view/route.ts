@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext, type AuthOrganization } from '@/lib/auth-guard'
+import { activeEcosystemId } from '@/lib/ecosystem-scope'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -77,7 +78,10 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
         'profiles!inner(user_id), ' +
         'publications!inner(organization_id)',
     )
+    // CLOISONNEMENT — marquage « vu » : il ne doit pas être possible depuis
+    // un écosystème où la candidature n'apparaît pas.
     .eq('id', candidatureId)
+    .eq('domain_id', activeEcosystemId(auth))
     .maybeSingle()
   if (candErr) {
     console.error('[me/candidatures/[id]/view:POST] lookup failed', candErr.message)

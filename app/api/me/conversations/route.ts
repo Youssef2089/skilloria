@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
+import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { buildPublicationSynthesis } from '@/lib/publication-synthesis'
@@ -148,7 +149,10 @@ export async function GET(request: NextRequest): Promise<Response> {
     const { data: pubs } = await auth.supabaseAdmin
       .from('publications')
       .select('id')
+      // CLOISONNEMENT — côté organisation uniquement : les conversations suivent
+      // l'annonce, donc son écosystème.
       .eq('organization_id', auth.organization.id)
+      .eq('domain_id', activeEcosystemId(auth))
     const pubIds = ((pubs ?? []) as { id: string }[]).map((p) => p.id)
     if (pubIds.length > 0) {
       const { data: rows } = await auth.supabaseAdmin

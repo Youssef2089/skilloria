@@ -92,9 +92,24 @@ export function monthlyPeriodStart(): Date {
 }
 
 /**
- * Résout le package effectif d'une org (sur un domaine) et retourne ses limites.
+ * Résout le package effectif d'une organisation et retourne ses limites.
  *
- * Package effectif = organization_domains(org, domaine) :
+ * ⚠️ L'ABONNEMENT EST UNIQUE ET PARTAGÉ ENTRE TOUS LES ÉCOSYSTÈMES.
+ *    Il ne prend donc AUCUN domaine en paramètre — et le paramètre a été
+ *    RETIRÉ plutôt que laissé inutilisé : un argument qu'on passe et qui ne
+ *    sert à rien réinstalle exactement l'ambiguïté qu'on vient de supprimer.
+ *
+ *    Il vivait sur `organization_domains(org, domaine)`. Dans le modèle
+ *    actuel — toute organisation accède à tous les écosystèmes actifs — cette
+ *    résolution produisait un DÉFAUT D'ARGENT SILENCIEUX : sur tout écosystème
+ *    autre que celui d'inscription, aucune ligne n'existait, et l'organisation
+ *    retombait sur l'offre GRATUITE alors qu'elle payait.
+ *    Voir 20260903000000_abonnement_sur_organisation.sql.
+ *
+ *    Ce qui reste cloisonné par écosystème, ce sont les DONNÉES
+ *    (lib/ecosystem-scope.ts), jamais les droits ni le quota.
+ *
+ * Package effectif = organizations.package_id :
  *   - package_id non nul ET (package_valid_until null OU dans le futur) → ce package ;
  *   - sinon → package is_default actif du catalogue (domain_id NULL) couvrant le
  *     target_role de l'org (mapping esn→cabinet) : ligne spécifique OU ligne
@@ -107,18 +122,18 @@ export function monthlyPeriodStart(): Date {
 export async function getOrgEntitlements(
   admin: SupabaseClient,
   organizationId: string,
-  domainId: string,
 ): Promise<OrgEntitlements> {
   try {
-    // 1. Lien org↔domaine → package_id + échéance éventuelle.
-    const { data: link, error: linkErr } = await admin
-      .from('organization_domains')
-      .select('package_id, package_valid_until')
-      .eq('organization_id', organizationId)
-      .eq('domain_id', domainId)
+    // 1. L'organisation porte son abonnement ET son type : UNE seule lecture.
+    //    (Avant, le type était relu dans la branche de repli — un aller-retour
+    //    de plus pour une information qu'on avait déjà sous la main.)
+    const { data: org, error: orgErr } = await admin
+      .from('organizations')
+      .select('org_type, package_id, package_valid_until')
+      .eq('id', organizationId)
       .maybeSingle()
-    if (linkErr) {
-      console.warn('[entitlements] organization_domains read error — fail-open', linkErr.message)
+    if (orgErr) {
+      console.warn('[entitlements] organizations read error — fail-open', orgErr.message)
       return unlimitedEntitlements('free')
     }
 
@@ -126,15 +141,15 @@ export async function getOrgEntitlements(
     let pkgId: string | null = null
     let pkgSlug = 'free'
 
-    const validUntil = link?.package_valid_until as string | null | undefined
-    const linkActive =
-      !!link?.package_id && (validUntil == null || new Date(validUntil).getTime() > Date.now())
+    const validUntil = (org?.package_valid_until as string | null | undefined) ?? null
+    const subscriptionActive =
+      !!org?.package_id && (validUntil == null || new Date(validUntil).getTime() > Date.now())
 
-    if (linkActive) {
+    if (subscriptionActive) {
       const { data: pkg } = await admin
         .from('packages')
         .select('id, slug, active')
-        .eq('id', link!.package_id as string)
+        .eq('id', org!.package_id as string)
         .maybeSingle()
       if (pkg && (pkg.active as boolean)) {
         pkgId = pkg.id as string
@@ -144,11 +159,6 @@ export async function getOrgEntitlements(
 
     // Fallback : package is_default du catalogue pour le target_role de l'org.
     if (!pkgId) {
-      const { data: org } = await admin
-        .from('organizations')
-        .select('org_type')
-        .eq('id', organizationId)
-        .maybeSingle()
       const targetRole = targetRoleForOrgType((org?.org_type as string | null) ?? null)
       // La cible 'all' est une offre UNIQUE couvrant client ET cabinet (pas de
       // doublon au catalogue). On accepte donc la ligne spécifique OU la ligne
@@ -176,7 +186,7 @@ export async function getOrgEntitlements(
     // Aucun package résoluble (catalogue non seedé ?) → fail-open illimité.
     if (!pkgId) {
       console.warn(
-        `[entitlements] no effective package for org ${organizationId} on domain ${domainId} — fail-open (unlimited)`,
+        `[entitlements] no effective package for org ${organizationId} — fail-open (unlimited)`,
       )
       return unlimitedEntitlements(pkgSlug)
     }

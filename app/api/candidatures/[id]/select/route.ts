@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
+import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { logAudit } from '@/lib/audit'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
 import { markCandidatureViewedServerSide } from '@/lib/candidature-views'
@@ -125,7 +126,9 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
       'id, publication_id, profile_id, domain_id, status, selected_at, ' +
         'publications!inner(id, organization_id, title, type)',
     )
+    // CLOISONNEMENT — ÉCRITURE (sélection d'un candidat).
     .eq('id', candidatureId)
+    .eq('domain_id', activeEcosystemId(auth))
     .maybeSingle()
   if (candErr) {
     console.error('[candidatures/[id]/select:POST] lookup failed', candErr.message)
@@ -168,7 +171,9 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     const { error: updErr } = await auth.supabaseAdmin
       .from('candidatures')
       .update({ status: 'selected', selected_at: nowIso })
+      // Defense en profondeur — cf. la lecture cloisonnee plus haut.
       .eq('id', candidatureId)
+      .eq('domain_id', activeEcosystemId(auth))
       .in('status', ALLOWED_PREVIOUS_STATUSES)   // anti-race : re-check transition
     if (updErr) {
       console.error('[candidatures/[id]/select:POST] candidature flip failed', updErr.message)

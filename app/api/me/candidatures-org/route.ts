@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
+import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { buildOrgCandidatureDTOs, countByBucket } from '@/lib/candidature-org-dto'
@@ -81,7 +82,9 @@ export async function GET(request: NextRequest): Promise<Response> {
   const { data: pubsRaw, error: pErr } = await auth.supabaseAdmin
     .from('publications')
     .select('id, type, title, status, organization_id, skills_required')
+    // CLOISONNEMENT — les candidatures suivent l'écosystème de leur annonce.
     .eq('organization_id', orgId)
+    .eq('domain_id', activeEcosystemId(auth))
   if (pErr) {
     console.error('[me/candidatures-org:GET] pubs lookup failed', pErr.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
