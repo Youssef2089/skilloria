@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
+import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import {
   deriveLifecycleByCandidature,
   loadLifecyclePublicationWindows,
@@ -185,7 +186,10 @@ async function countUnviewedCandidaturesForUser(
     const { data: pubsRaw } = await auth.supabaseAdmin
       .from('publications')
       .select('id')
+      // CLOISONNEMENT — un badge qui compte les deux écosystèmes afficherait un
+      // nombre ne correspondant à rien de ce que l'écran montre.
       .eq('organization_id', scope.orgId)
+      .eq('domain_id', activeEcosystemId(auth))
     const pubIds = ((pubsRaw ?? []) as { id: string }[]).map((p) => p.id)
     if (pubIds.length === 0) return 0
     candQuery = candQuery.in('publication_id', pubIds)

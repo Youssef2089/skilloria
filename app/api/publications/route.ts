@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
+import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { logAudit } from '@/lib/audit'
 import { ensurePersonalOrg } from '@/lib/collaboration/ensure-personal-org'
 import { loadTranslations, tBDD } from '@/lib/translations'
@@ -404,7 +405,10 @@ export async function GET(request: NextRequest): Promise<Response> {
           'verification_score, created_at, published_at, expires_at, ' +
           'branches(id, name), specialities(id, name)',
       )
+      // CLOISONNEMENT — l'écosystème actif, jamais celui du compte.
+      // Neutre tant qu'une organisation n'a qu'un écosystème (cf. ecosystem-scope).
       .eq('organization_id', orgId)
+      .eq('domain_id', activeEcosystemId(auth))
       .order('updated_at', { ascending: false })
       .limit(500),
     loadTranslations(locale),

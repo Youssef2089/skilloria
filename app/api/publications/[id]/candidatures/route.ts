@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
+import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { buildOrgCandidatureDTOs, countByBucket } from '@/lib/candidature-org-dto'
@@ -81,7 +82,10 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   const { data: pub, error: pubErr } = await auth.supabaseAdmin
     .from('publications')
     .select('id, organization_id, type, title, confidential, status, skills_required')
+    // CLOISONNEMENT — un lien gardé en favori ne doit pas ouvrir les
+    // candidatures d'une annonce d'un autre écosystème.
     .eq('id', publicationId)
+    .eq('domain_id', activeEcosystemId(auth))
     .maybeSingle()
   if (pubErr) {
     console.error('[publications/[id]/candidatures:GET] pub lookup failed', pubErr.message)

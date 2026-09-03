@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
+import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { logAudit } from '@/lib/audit'
 import { runPublicationVerification } from '@/lib/verification/publication-verification'
 import type {
@@ -99,7 +100,10 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     .select(
       'id, organization_id, status, type, title, description, skills_required, seniority, work_mode, location, duration, budget_min, budget_max',
     )
+    // CLOISONNEMENT — ECRITURE : publier une annonce d'un autre ecosysteme
+    // depuis celui-ci consommerait un quota sur des donnees invisibles ici.
     .eq('id', id)
+    .eq('domain_id', activeEcosystemId(auth))
     .maybeSingle()
 
   if (fetchErr) {
@@ -218,7 +222,9 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   const { error: updateErr } = await auth.supabaseAdmin
     .from('publications')
     .update(updates)
+    // Defense en profondeur — cf. la lecture cloisonnee plus haut.
     .eq('id', id)
+    .eq('domain_id', activeEcosystemId(auth))
 
   if (updateErr) {
     console.error('[publications:publish] update failed', updateErr.message)
