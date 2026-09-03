@@ -2332,7 +2332,9 @@
       "section_taxonomy": "Taxonomie",
       "nav_taxonomie": "Branchen & Fachgebiete",
       "section_comptes": "Konten",
-      "nav_utilisateurs": "Benutzer"
+      "nav_utilisateurs": "Benutzer",
+      "section_moteur": "Engine",
+      "nav_matching": "Vermittlung"
     },
     "packages": {
       "page_title": "Commerce-Katalog",
@@ -3401,5 +3403,54 @@
     "strong": "Starke Übereinstimmung",
     "normal": "Übereinstimmung",
     "tooltip": "Was wir aus Ihrem Profil entnommen haben, passt zu dem, was diese Ausschreibung verlangt. Keine Rangfolge zwischen Fachleuten: Jedes Profil wird für sich betrachtet."
+  },
+  "admin_matching": {
+    "title": "Vermittlungs-Engine",
+    "intro": "Zwei Schwellen entscheiden, was eine Fachkraft sieht und worüber sie benachrichtigt wird. Der Wert der Engine ist keine Note von 10 und lässt sich nicht erraten: Lesen Sie zuerst die unten beobachtete Verteilung und stellen Sie dann ein.",
+    "loading": "Wird geladen…",
+    "save": "Speichern",
+    "saving": "Wird gespeichert…",
+    "saved": "Einstellungen gespeichert.",
+    "errors": {
+      "load_failed": "Die Einstellungen konnten nicht gelesen werden. Es wurde nichts geändert.",
+      "save_failed": "Das Speichern ist fehlgeschlagen. Ihre Änderungen wurden nicht übernommen.",
+      "ordre_seuils": "Die Benachrichtigungsschwelle darf nicht unter der Feed-Schwelle liegen: Jemand würde über eine Anzeige benachrichtigt, die er beim Anmelden nicht sieht."
+    },
+    "spend": {
+      "title": "Ausgaben dieses Monats",
+      "line": "{spent} $ von {cap} $",
+      "capped": "Obergrenze erreicht",
+      "none": "In diesem Monat wurden keine Ausgaben erfasst.",
+      "unavailable": "Die Ausgaben konnten nicht gelesen werden. Das ist nicht null, sondern unbekannt.",
+      "help": "An der Obergrenze hält die Vermittlung an und schreibt es in die Spur des Laufs. Sie gibt nicht weiter aus und hält nicht stillschweigend an."
+    },
+    "distribution": {
+      "title": "Beobachtete Verteilung (letzte 30 Tage)",
+      "runs": "{count} beobachtete(r) Lauf/Läufe.",
+      "percentiles": "Median {p50} · 90. Perzentil {p90}.",
+      "notified": "Durchschnittlich {avg} Fachkraft/Fachkräfte über der Schwelle je Anzeige.",
+      "extremes": "{zero} Lauf/Läufe ohne jemanden über der Schwelle, {all} mit allen.",
+      "empty": "Keine Läufe beobachtet: Die Engine lief noch nicht, es gibt nichts zu lesen.",
+      "unavailable": "Die Verteilung konnte nicht gelesen werden.",
+      "help": "Eine Schwelle ohne Blick auf diese Verteilung einzustellen heißt, eine Zahl zufällig zu wählen."
+    },
+    "coverage": {
+      "title": "Abdeckung",
+      "line": "{complets} vollständige(r) Lauf/Läufe von {total} · {manquants} nicht bewertete Fachkraft/Fachkräfte.",
+      "empty": "Keine Läufe beobachtet.",
+      "unavailable": "Die Abdeckung konnte nicht gelesen werden.",
+      "help": "Eine geeignete, nicht bewertete Fachkraft ist eine grundlos ausgeschlossene Fachkraft. Diese Zahl muss null bleiben."
+    },
+    "fields": {
+      "feed": "Feed-Schwelle",
+      "feed_help": "Darunter erscheint die Anzeige nicht im Feed der Fachkraft. Bei 0 sieht sie jedes geeignete Profil.",
+      "notify": "Benachrichtigungsschwelle",
+      "notify_help": "Darüber wird die Fachkraft benachrichtigt und die Anzeige als „starke Übereinstimmung“ markiert.",
+      "batch": "Losgröße",
+      "batch_help": "Anzahl der Profile, die je Aufruf an die Engine gehen.",
+      "notify_enabled": "Benachrichtigungen aktivieren",
+      "notify_enabled_help": "Bleibt aus, bis jemand die Verteilung gelesen hat: Eine geratene Schwelle würde zufällig benachrichtigen.",
+      "model": "Modell: {model}. Ein Wechsel ändert die Skala — beide Schwellen werden dadurch falsch."
+    }
   }
 }

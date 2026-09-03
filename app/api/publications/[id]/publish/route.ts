@@ -259,7 +259,6 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
       const matchingVerdict = await runMatching({
         supabaseAdmin: auth.supabaseAdmin,
         publicationId: id,
-        locale: aiInput.locale,
       })
       console.log('[publications:publish] matching done', {
         publicationId: id,

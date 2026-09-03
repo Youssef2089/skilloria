@@ -2332,7 +2332,9 @@
       "section_taxonomy": "Taxonomy",
       "nav_taxonomie": "Branches & specialities",
       "section_comptes": "Accounts",
-      "nav_utilisateurs": "Users"
+      "nav_utilisateurs": "Users",
+      "section_moteur": "Engine",
+      "nav_matching": "Matching"
     },
     "packages": {
       "page_title": "Commerce catalog",
@@ -3401,5 +3403,54 @@
     "strong": "Strong match",
     "normal": "Match",
     "tooltip": "What we understood from your profile matches what this posting asks for. No ranking between experts: each profile is assessed on its own."
+  },
+  "admin_matching": {
+    "title": "Matching engine",
+    "intro": "Two thresholds decide what an expert sees and what they are alerted about. The engine's score is not a mark out of 10 and cannot be guessed: read the observed distribution below, then set them.",
+    "loading": "Loading…",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Settings saved.",
+    "errors": {
+      "load_failed": "Settings could not be read. Nothing was changed.",
+      "save_failed": "Saving failed. Your changes were not applied.",
+      "ordre_seuils": "The notification threshold cannot sit below the feed threshold: someone would be alerted about a listing they would not see when logging in."
+    },
+    "spend": {
+      "title": "This month’s spend",
+      "line": "${spent} of ${cap}",
+      "capped": "cap reached",
+      "none": "No spend recorded this month.",
+      "unavailable": "Spend could not be read. That is not zero: it is unknown.",
+      "help": "At the cap, matching stops and writes it into the run’s trace. It does not keep spending, and it does not stop silently."
+    },
+    "distribution": {
+      "title": "Observed distribution (last 30 days)",
+      "runs": "{count} run(s) observed.",
+      "percentiles": "Median score {p50} · 90th percentile {p90}.",
+      "notified": "{avg} expert(s) above the threshold, on average per listing.",
+      "extremes": "{zero} run(s) with nobody above the threshold, {all} with everybody.",
+      "empty": "No runs observed: the engine has not run yet, there is nothing to read.",
+      "unavailable": "The distribution could not be read.",
+      "help": "Setting a threshold without looking at this distribution amounts to picking a number at random."
+    },
+    "coverage": {
+      "title": "Coverage",
+      "line": "{complets} complete run(s) out of {total} · {manquants} expert(s) not scored.",
+      "empty": "No runs observed.",
+      "unavailable": "Coverage could not be read.",
+      "help": "An eligible expert who was not scored is an expert excluded for no reason. This number must stay at zero."
+    },
+    "fields": {
+      "feed": "Feed threshold",
+      "feed_help": "Below this, the listing does not appear in the expert’s feed. At 0, every eligible profile sees it.",
+      "notify": "Notification threshold",
+      "notify_help": "Above this, the expert is alerted and the listing is marked “strong match”.",
+      "batch": "Batch size",
+      "batch_help": "Number of profiles sent to the engine per call.",
+      "notify_enabled": "Enable notifications",
+      "notify_enabled_help": "Left off until someone has read the distribution: a guessed threshold would alert at random.",
+      "model": "Model: {model}. Changing it changes the scale — both thresholds become wrong."
+    }
   }
 }

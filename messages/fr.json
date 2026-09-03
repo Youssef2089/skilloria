@@ -2332,7 +2332,9 @@
       "section_taxonomy": "Taxonomie",
       "nav_taxonomie": "Branches & spécialités",
       "section_comptes": "Comptes",
-      "nav_utilisateurs": "Utilisateurs"
+      "nav_utilisateurs": "Utilisateurs",
+      "section_moteur": "Moteur",
+      "nav_matching": "Mise en relation"
     },
     "packages": {
       "page_title": "Catalogue commerce",
@@ -3401,5 +3403,54 @@
     "strong": "Correspondance forte",
     "normal": "Correspondance",
     "tooltip": "Ce que nous avons compris de votre profil correspond à ce que cette annonce demande. Aucun classement entre experts : chaque profil est examiné pour lui-même."
+  },
+  "admin_matching": {
+    "title": "Moteur de mise en relation",
+    "intro": "Deux seuils décident de ce que voit un expert et de ce pour quoi il est prévenu. Le score du moteur n'est pas une note sur 10 et ne se devine pas : lisez la distribution observée ci-dessous, puis réglez.",
+    "loading": "Chargement…",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saved": "Réglages enregistrés.",
+    "errors": {
+      "load_failed": "Les réglages n'ont pas pu être lus. Rien n'a été modifié.",
+      "save_failed": "L'enregistrement a échoué. Vos modifications n'ont pas été appliquées.",
+      "ordre_seuils": "Le seuil de notification ne peut pas être sous celui du flux : on préviendrait quelqu'un pour une annonce qu'il ne verrait pas en se connectant."
+    },
+    "spend": {
+      "title": "Dépense du mois",
+      "line": "{spent} $ sur {cap} $",
+      "capped": "plafond atteint",
+      "none": "Aucune dépense enregistrée ce mois-ci.",
+      "unavailable": "La dépense n'a pas pu être lue. Ce n'est pas zéro : c'est inconnu.",
+      "help": "Au plafond, la mise en relation s'arrête et l'écrit dans la trace du run. Elle ne continue pas à dépenser, et elle ne s'arrête pas en silence."
+    },
+    "distribution": {
+      "title": "Distribution observée (30 derniers jours)",
+      "runs": "{count} exécution(s) observée(s).",
+      "percentiles": "Score médian {p50} · 9ᵉ décile {p90}.",
+      "notified": "{avg} expert(s) au-dessus du seuil, en moyenne par annonce.",
+      "extremes": "{zero} exécution(s) sans personne au-dessus du seuil, {all} avec tout le monde.",
+      "empty": "Aucune exécution observée : le moteur n'a pas encore tourné, il n'y a rien à lire.",
+      "unavailable": "La distribution n'a pas pu être lue.",
+      "help": "Régler un seuil sans regarder cette distribution revient à choisir un nombre au hasard."
+    },
+    "coverage": {
+      "title": "Couverture",
+      "line": "{complets} exécution(s) complètes sur {total} · {manquants} expert(s) non noté(s).",
+      "empty": "Aucune exécution observée.",
+      "unavailable": "La couverture n'a pas pu être lue.",
+      "help": "Un expert éligible non noté est un expert écarté sans raison. Ce nombre doit rester à zéro."
+    },
+    "fields": {
+      "feed": "Seuil du flux",
+      "feed_help": "En dessous, l'annonce n'apparaît pas dans le flux de l'expert. À 0, tout profil éligible la voit.",
+      "notify": "Seuil de notification",
+      "notify_help": "Au-dessus, l'expert est prévenu et l'annonce est marquée « correspondance forte ».",
+      "batch": "Taille des lots",
+      "batch_help": "Nombre de profils envoyés au moteur par appel.",
+      "notify_enabled": "Activer les notifications",
+      "notify_enabled_help": "Laissé inactif tant que personne n'a lu la distribution : un seuil deviné préviendrait au hasard.",
+      "model": "Modèle : {model}. En changer change l’échelle — les deux seuils deviennent faux."
+    }
   }
 }

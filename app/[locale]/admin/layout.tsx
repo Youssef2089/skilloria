@@ -51,6 +51,14 @@ const ADMIN_NAV_ICONS: Record<string, React.ReactNode> = {
       <path d="M11 8h3a3 3 0 0 1 3 3v1" />
     </svg>
   ),
+  // Moteur de mise en relation — deux curseurs.
+  matching: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 7h16M4 17h16" />
+      <circle cx="9" cy="7" r="2.2" />
+      <circle cx="16" cy="17" r="2.2" />
+    </svg>
+  ),
   // Taxonomie (branches / spécialités) — arborescence à puces.
   taxonomy: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

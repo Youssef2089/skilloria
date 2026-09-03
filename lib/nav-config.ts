@@ -201,6 +201,15 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
     ],
   },
   {
+    // Le moteur de mise en relation a des RÉGLAGES, et ils doivent être
+    // atteignables sans développeur : le score d'un reranker n'est pas calibré,
+    // les seuils se lisent sur les faits et se corrigent à la main.
+    sectionKey: 'section_moteur',
+    items: [
+      { key: 'matching', href: '/admin/matching', labelKey: 'nav_matching', iconKey: 'matching' },
+    ],
+  },
+  {
     sectionKey: 'section_taxonomy',
     items: [
       { key: 'taxonomie', href: '/admin/taxonomie', labelKey: 'nav_taxonomie', iconKey: 'taxonomy' },

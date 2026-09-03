@@ -51,18 +51,13 @@ const DETTE = {
   //  Il ne reste rien ici, et c'est le but. Un fichier repris SORT du gel :
   //  l'y laisser ferait lire une réapparition comme une baisse.
 
-  // ── Code RÉÉCRIT au lot 4 : ne pas le reprendre ─────────────────────────
-  //  Claude sort du matching. index.ts, run-for-expert.ts et shared.ts sont
-  //  réécrits de bout en bout (filtres SQL + reranking) ; leurs chaînes de
-  //  select seront refaites à cette occasion. Les corriger aujourd'hui serait
-  //  du travail jeté.
-  //
-  //  CONSÉQUENCE ASSUMÉE : le matching est INOPÉRANT jusqu'au lot 4 — ses
-  //  requêtes citent des colonnes supprimées. Ce n'est pas une régression de
-  //  ce lot-ci, c'est l'état depuis la migration, et c'est délibéré.
-  'lib/matching/run-for-expert.ts': 3,
-  'lib/matching/index.ts': 2,
-  'lib/matching/shared.ts': 1,
+  // ── Code du lot 4 : RÉÉCRIT, donc SORTI du gel ──────────────────────────
+  //  index.ts, run-for-expert.ts et shared.ts ont été refaits de bout en bout :
+  //  Claude est sorti de la mise en relation, et les chaînes de select qui
+  //  citaient d'anciennes colonnes sont parties avec lui. Les retirer du gel
+  //  fait partie de la réparation — les y laisser ferait lire une réapparition
+  //  comme une baisse. La dette est désormais VIDE, et le cliquet refuse toute
+  //  nouvelle occurrence.
 }
 
 const fichiers = []

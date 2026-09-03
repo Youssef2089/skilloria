@@ -11,6 +11,7 @@ import { performUnlock } from '@/lib/unlock'
 // personnelle freelance → dashboard expert ; org cliente → dashboard entreprise).
 import { publicationCandidaturesLinkForOrg } from '@/lib/collaboration-links'
 import { isActivePublished } from '@/lib/publications/expiry'
+import { jugerCandidature } from '@/lib/candidatures/ai-assessment'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -174,15 +175,21 @@ export async function POST(request: NextRequest): Promise<Response> {
   //  l'expert publiant = owner de son organisation personnelle).
   const { data: pub, error: pubErr } = await auth.supabaseAdmin
     .from('publications')
-    .select('id, status, type, created_by, published_at, expires_at')
+    .select(
+      'id, status, type, created_by, published_at, expires_at, domain_id, ' +
+        'title, description, skills_required, seniorities',
+    )
     .eq('id', publicationId)
     .maybeSingle()
   if (pubErr || !pub) {
     return json({ error: 'Publication not found', code: 'not_found' }, 404)
   }
-  const pubRow = pub as {
+  const pubRow = pub as unknown as {
     id: string; status: string; type: string; created_by: string | null
     published_at: string | null; expires_at: string | null
+    domain_id: string
+    title: string | null; description: string | null
+    skills_required: string[] | null; seniorities: string[] | null
   }
   // Ouverte = published NON expirée (règle 30j read-time, lib/publications/expiry).
   // On ne peut pas postuler à une annonce expirée.
@@ -247,6 +254,82 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Insert failed', code: 'db_error' }, 500)
   }
   const row = inserted as unknown as { id: string; status: string; created_at: string }
+
+  // ── LE JUGEMENT DE CLAUDE, APRÈS LA RÉPONSE ─────────────────────────────
+  //
+  //  Il ne bloque JAMAIS le dépôt. Un dossier est déposé même si le modèle est
+  //  indisponible ou si le plafond mensuel est atteint : la note reste nulle,
+  //  les écrans savent se taire, et l'organisation dévoile à la main. Faire
+  //  échouer un dépôt pour une panne qui ne concerne pas l'expert serait le
+  //  punir de quelque chose qu'il ne peut ni voir ni corriger.
+  //
+  //  C'est ICI que Claude intervient désormais, et nulle part ailleurs : il
+  //  répond à « que vaut ce dossier ? », pas à « pourquoi ce profil
+  //  apparaît-il ? » — cette seconde question appartient au reranking.
+  after(async () => {
+    try {
+      const resultat = await jugerCandidature({
+        supabaseAdmin: auth.supabaseAdmin,
+        domainId: pubRow.domain_id,
+        candidatureId: row.id,
+        entree: {
+          locale: 'fr',
+          annonce: {
+            type: pubRow.type,
+            title: pubRow.title ?? '',
+            description: pubRow.description ?? '',
+            skills_required: pubRow.skills_required ?? [],
+            seniorities: pubRow.seniorities ?? [],
+          },
+          profil: {
+            title: (profileRow.title as string | null) ?? null,
+            summary: (profileRow.summary as string | null) ?? null,
+            skills: Array.isArray(profileRow.skills) ? (profileRow.skills as string[]) : [],
+            seniorities: Array.isArray(profileRow.seniorities)
+              ? (profileRow.seniorities as string[])
+              : [],
+            years_total_experience:
+              typeof profileRow.years_total_experience === 'number'
+                ? profileRow.years_total_experience
+                : null,
+            // Rôles et secteurs seulement : l'employeur ne sort pas d'ici, et
+            // `pitch_org` est affiché AVANT le déverrouillage.
+            experiences: [],
+          },
+        },
+      })
+      if (!resultat.ok) {
+        // Journalisé avec sa RAISON. Une note absente sans raison enverrait
+        // chercher un bug là où il n'y a qu'un plafond atteint.
+        console.warn('[candidatures:POST] aucun jugement rendu', {
+          candidature: row.id,
+          raison: resultat.raison,
+        })
+        return
+      }
+      const { error: majErr } = await auth.supabaseAdmin
+        .from('candidatures')
+        .update({
+          ai_match_score: resultat.jugement.score,
+          ai_assessment: {
+            reason: resultat.jugement.reason,
+            pitch_org: resultat.jugement.pitch_org,
+            model: resultat.jugement.model,
+            evaluated_at: new Date().toISOString(),
+          },
+          ai_model: resultat.jugement.model,
+        })
+        .eq('id', row.id)
+      if (majErr) {
+        console.error('[candidatures:POST] jugement non enregistré', {
+          candidature: row.id,
+          message: majErr.message,
+        })
+      }
+    } catch (err) {
+      console.error('[candidatures:POST] jugement a levé (best-effort)', err)
+    }
+  })
 
   // ── Notif ORG : nouvelle candidature (best-effort, n'invalide pas le 201) ─
   //  Lot 2c — D3 : on notifie chaque membre actif de l'org propriétaire de la

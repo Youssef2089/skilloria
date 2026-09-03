@@ -2332,7 +2332,9 @@
       "section_taxonomy": "Taxonomía",
       "nav_taxonomie": "Ramas y especialidades",
       "section_comptes": "Cuentas",
-      "nav_utilisateurs": "Usuarios"
+      "nav_utilisateurs": "Usuarios",
+      "section_moteur": "Motor",
+      "nav_matching": "Emparejamiento"
     },
     "packages": {
       "page_title": "Catálogo comercial",
@@ -3401,5 +3403,54 @@
     "strong": "Coincidencia alta",
     "normal": "Coincidencia",
     "tooltip": "Lo que hemos entendido de tu perfil coincide con lo que pide este anuncio. Sin clasificación entre expertos: cada perfil se examina por sí mismo."
+  },
+  "admin_matching": {
+    "title": "Motor de emparejamiento",
+    "intro": "Dos umbrales deciden lo que ve un experto y aquello de lo que se le avisa. La puntuación del motor no es una nota sobre 10 y no se adivina: lee la distribución observada más abajo y luego ajústalos.",
+    "loading": "Cargando…",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "saved": "Ajustes guardados.",
+    "errors": {
+      "load_failed": "No se han podido leer los ajustes. No se ha modificado nada.",
+      "save_failed": "No se ha podido guardar. Tus cambios no se han aplicado.",
+      "ordre_seuils": "El umbral de notificación no puede estar por debajo del umbral del flujo: se avisaría a alguien de un anuncio que no vería al iniciar sesión."
+    },
+    "spend": {
+      "title": "Gasto del mes",
+      "line": "{spent} $ de {cap} $",
+      "capped": "límite alcanzado",
+      "none": "Ningún gasto registrado este mes.",
+      "unavailable": "No se ha podido leer el gasto. No es cero: es desconocido.",
+      "help": "Al alcanzar el límite, el emparejamiento se detiene y lo escribe en la traza de la ejecución. No sigue gastando ni se detiene en silencio."
+    },
+    "distribution": {
+      "title": "Distribución observada (últimos 30 días)",
+      "runs": "{count} ejecución(es) observada(s).",
+      "percentiles": "Puntuación mediana {p50} · percentil 90 {p90}.",
+      "notified": "{avg} experto(s) por encima del umbral, de media por anuncio.",
+      "extremes": "{zero} ejecución(es) sin nadie por encima del umbral, {all} con todo el mundo.",
+      "empty": "Ninguna ejecución observada: el motor aún no se ha ejecutado, no hay nada que leer.",
+      "unavailable": "No se ha podido leer la distribución.",
+      "help": "Ajustar un umbral sin mirar esta distribución equivale a elegir un número al azar."
+    },
+    "coverage": {
+      "title": "Cobertura",
+      "line": "{complets} ejecución(es) completas de {total} · {manquants} experto(s) sin puntuar.",
+      "empty": "Ninguna ejecución observada.",
+      "unavailable": "No se ha podido leer la cobertura.",
+      "help": "Un experto elegible sin puntuar es un experto descartado sin motivo. Este número debe permanecer en cero."
+    },
+    "fields": {
+      "feed": "Umbral del flujo",
+      "feed_help": "Por debajo, el anuncio no aparece en el flujo del experto. En 0, lo ve todo perfil elegible.",
+      "notify": "Umbral de notificación",
+      "notify_help": "Por encima, se avisa al experto y el anuncio se marca «correspondencia fuerte».",
+      "batch": "Tamaño de los lotes",
+      "batch_help": "Número de perfiles enviados al motor por llamada.",
+      "notify_enabled": "Activar las notificaciones",
+      "notify_enabled_help": "Se deja inactivo mientras nadie haya leído la distribución: un umbral adivinado avisaría al azar.",
+      "model": "Modelo: {model}. Cambiarlo cambia la escala — ambos umbrales dejan de ser válidos."
+    }
   }
 }
