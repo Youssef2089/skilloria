@@ -110,9 +110,11 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   // ── Comptage (preview ET pré-contrôle de l'écriture) ───────────────────────
+  // On compte et on migre des ORGANISATIONS : l'abonnement a été hissé sur
+  // `organizations` (cf. 20260903000000_abonnement_sur_organisation.sql).
   const { count, error: cntErr } = await auth.supabaseAdmin
-    .from('organization_domains')
-    .select('organization_id', { count: 'exact', head: true })
+    .from('organizations')
+    .select('id', { count: 'exact', head: true })
     .eq('package_id', fromId)
   if (cntErr) {
     console.error('[admin:migrate-org-packages] count failed', cntErr.message)
@@ -140,10 +142,10 @@ export async function POST(request: NextRequest): Promise<Response> {
   // ── Application ────────────────────────────────────────────────────────────
   const now = new Date().toISOString()
   const { data: updated, error: updErr } = await auth.supabaseAdmin
-    .from('organization_domains')
+    .from('organizations')
     .update({ package_id: toId, package_started_at: now, package_valid_until: null })
     .eq('package_id', fromId)
-    .select('organization_id')
+    .select('id')
   if (updErr) {
     console.error('[admin:migrate-org-packages] update failed', updErr.message)
     return json({ error: 'Migration failed', code: 'db_error' }, 500)

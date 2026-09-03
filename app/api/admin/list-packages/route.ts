@@ -74,7 +74,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const orgCountByPkg = new Map<string, number>()
   if (ids.length > 0) {
     const { data: links, error: linkErr } = await auth.supabaseAdmin
-      .from('organization_domains')
+      .from('organizations')
       .select('package_id')
       .in('package_id', ids)
     if (linkErr) {

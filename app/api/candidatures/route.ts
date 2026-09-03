@@ -378,11 +378,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       .maybeSingle()
     const pubEnts = pubForEnts as { organization_id: string; domain_id: string } | null
     if (pubEnts) {
-      const ents = await getOrgEntitlements(
-        auth.supabaseAdmin,
-        pubEnts.organization_id,
-        pubEnts.domain_id,
-      )
+      const ents = await getOrgEntitlements(auth.supabaseAdmin, pubEnts.organization_id)
       const revealN = ents.limits.revealedCandidatesPerPublication
       // null = illimité → aucun auto : l'org dévoile manuellement sans limite.
       if (revealN !== null) {

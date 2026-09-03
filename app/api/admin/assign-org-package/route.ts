@@ -93,36 +93,28 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Package not found or inactive', code: 'invalid_package' }, 400)
   }
 
-  // ── Ligne organization_domains ACTIVE unique ────────────────────────────────
-  const { data: domains, error: domErr } = await auth.supabaseAdmin
-    .from('organization_domains')
-    .select('id, domain_id')
-    .eq('organization_id', organizationId)
-    .eq('active', true)
-  if (domErr) {
-    console.error('[admin:assign-org-package] org_domains lookup failed', domErr.message)
-    return json({ error: 'Query failed', code: 'db_error' }, 500)
-  }
-  const activeRows = (domains ?? []) as { id: string; domain_id: string }[]
-  if (activeRows.length === 0) {
-    return json({ error: 'No active domain for this organization', code: 'no_active_domain' }, 404)
-  }
-  if (activeRows.length > 1) {
-    return json({ error: 'Multiple active domains — manual resolution required', code: 'multiple_active_domains' }, 409)
-  }
-  const target = activeRows[0]
-
   // ── Attribution ─────────────────────────────────────────────────────────────
+  //  L'ABONNEMENT VIT SUR L'ORGANISATION, plus sur le couple (org, écosystème).
+  //  Une organisation accède à TOUS les écosystèmes actifs : le porter sur la
+  //  ligne de rattachement produisait un défaut d'argent SILENCIEUX — partout
+  //  ailleurs que sur l'écosystème d'inscription, aucune ligne, donc repli sur
+  //  l'offre gratuite alors que l'organisation paie.
+  //  Cf. supabase/migrations/20260903000000_abonnement_sur_organisation.sql.
+  //
+  //  DEUX REFUS DISPARAISSENT AVEC LUI : `no_active_domain` (404) et
+  //  `multiple_active_domains` (409). Ils gardaient une ligne de rattachement
+  //  dont l'abonnement ne dépend plus ; les conserver aurait refusé
+  //  l'attribution à une organisation parfaitement en règle.
+  //  `updated_at` est posé par le trigger `trg_organizations_updated_at`.
   const nowIso = new Date().toISOString()
   const { error: updErr } = await auth.supabaseAdmin
-    .from('organization_domains')
+    .from('organizations')
     .update({
       package_id: packageId,
       package_started_at: nowIso,
       package_valid_until: validUntilIso,
-      updated_at: nowIso,
     })
-    .eq('id', target.id)
+    .eq('id', organizationId)
   if (updErr) {
     console.error('[admin:assign-org-package] update failed', updErr.message)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
@@ -138,7 +130,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     detail: {
       package_id: packageId,
       package_slug: pkg.slug as string,
-      domain_id: target.domain_id,
       package_started_at: nowIso,
       package_valid_until: validUntilIso,
     },
@@ -148,7 +139,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     {
       ok: true,
       organization_id: organizationId,
-      domain_id: target.domain_id,
       package_id: packageId,
       package_started_at: nowIso,
       package_valid_until: validUntilIso,

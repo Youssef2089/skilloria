@@ -90,33 +90,30 @@ export async function GET(request: NextRequest): Promise<Response> {
     return json({ error: 'Invalid organization_id', code: 'invalid_id' }, 400)
   }
 
-  // ── Domaine actif unique ────────────────────────────────────────────────────
-  const { data: domains, error: domErr } = await auth.supabaseAdmin
-    .from('organization_domains')
-    .select('id, domain_id, package_id, package_started_at, package_valid_until')
-    .eq('organization_id', organizationId)
-    .eq('active', true)
-  if (domErr) {
-    console.error('[admin:org-usage] org_domains lookup failed', domErr.message)
+  // ── Abonnement de l'organisation ────────────────────────────────────────────
+  //  L'ABONNEMENT VIT SUR L'ORGANISATION, plus sur le couple (org, écosystème).
+  //  Une organisation accède à TOUS les écosystèmes actifs : le porter sur la
+  //  ligne de rattachement produisait un défaut d'argent SILENCIEUX — partout
+  //  ailleurs que sur l'écosystème d'inscription, aucune ligne, donc repli sur
+  //  l'offre gratuite alors que l'organisation paie.
+  //  Cf. supabase/migrations/20260903000000_abonnement_sur_organisation.sql.
+  //
+  //  Le préambule « domaine actif unique » a disparu avec ses deux réponses
+  //  `available: false` (`no_active_domain`, `multiple_active_domains`) : elles
+  //  masquaient TOUT l'écran de pilotage — offre, limites et compteurs — au nom
+  //  d'un rattachement qui ne porte plus rien.
+  const { data: target, error: subErr } = await auth.supabaseAdmin
+    .from('organizations')
+    .select('package_id, package_started_at, package_valid_until')
+    .eq('id', organizationId)
+    .maybeSingle()
+  if (subErr || !target) {
+    console.error('[admin:org-usage] organization lookup failed', subErr?.message ?? 'not found')
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
-  const activeRows = (domains ?? []) as {
-    id: string
-    domain_id: string
-    package_id: string | null
-    package_started_at: string | null
-    package_valid_until: string | null
-  }[]
-  if (activeRows.length === 0) {
-    return json({ available: false, reason: 'no_active_domain' }, 200)
-  }
-  if (activeRows.length > 1) {
-    return json({ available: false, reason: 'multiple_active_domains' }, 200)
-  }
-  const target = activeRows[0]
 
   // ── Package effectif (fail-open) + compteurs du mois ────────────────────────
-  const ents = await getOrgEntitlements(auth.supabaseAdmin, organizationId, target.domain_id)
+  const ents = await getOrgEntitlements(auth.supabaseAdmin, organizationId)
   const period = monthlyPeriodStart().toISOString().slice(0, 10)
 
   const [publicationsUsed, manualUnlocksUsed, activePublished] = await Promise.all([
@@ -128,7 +125,6 @@ export async function GET(request: NextRequest): Promise<Response> {
   return json(
     {
       available: true,
-      domain_id: target.domain_id,
       assignment: {
         package_id: target.package_id,
         package_started_at: target.package_started_at,

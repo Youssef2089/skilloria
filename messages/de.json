@@ -2438,8 +2438,6 @@
       "assign_button": "Zuweisen",
       "assign_confirm": "Zuweisung dieses Pakets an die Organisation bestätigen?",
       "assigned": "Paket zugewiesen.",
-      "err_no_active_domain": "Keine aktive Domain für diese Organisation.",
-      "err_multiple_active_domains": "Mehrere aktive Domains — manuelle Auflösung erforderlich.",
       "err_invalid_package": "Paket nicht gefunden oder inaktiv."
     },
     "orgs": {

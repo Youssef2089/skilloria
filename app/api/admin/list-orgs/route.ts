@@ -125,19 +125,28 @@ export async function GET(request: NextRequest): Promise<Response> {
       ) ??
       null
 
+    /**
+     * L'abonnement se lit sur l'ORGANISATION, plus sur le couple
+     * (organisation, écosystème).
+     *
+     * Le filtre `.eq('domain_id', auth.domain.id)` qui vivait ici était devenu
+     * DOUBLEMENT faux : l'abonnement est unique et partagé, et surtout un
+     * administrateur est PLATEFORME — restreindre son enrichissement à son
+     * propre écosystème lui aurait masqué l'offre des organisations vues
+     * depuis un autre sous-domaine.
+     */
     const linkByOrg = new Map<string, { package_id: string | null; package_valid_until: string | null }>()
     if (orgIds.length > 0) {
-      const { data: links } = await auth.supabaseAdmin
-        .from('organization_domains')
-        .select('organization_id, package_id, package_valid_until')
-        .eq('domain_id', auth.domain.id)
-        .in('organization_id', orgIds)
-      for (const l of (links ?? []) as {
-        organization_id: string
+      const { data: subs } = await auth.supabaseAdmin
+        .from('organizations')
+        .select('id, package_id, package_valid_until')
+        .in('id', orgIds)
+      for (const l of (subs ?? []) as {
+        id: string
         package_id: string | null
         package_valid_until: string | null
       }[]) {
-        linkByOrg.set(l.organization_id, {
+        linkByOrg.set(l.id, {
           package_id: l.package_id,
           package_valid_until: l.package_valid_until,
         })

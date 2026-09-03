@@ -2438,8 +2438,6 @@
       "assign_button": "Attribuer",
       "assign_confirm": "Confirmer l'attribution de ce package à l'organisation ?",
       "assigned": "Package attribué.",
-      "err_no_active_domain": "Aucun domaine actif pour cette organisation.",
-      "err_multiple_active_domains": "Plusieurs domaines actifs — résolution manuelle requise.",
       "err_invalid_package": "Package introuvable ou inactif."
     },
     "orgs": {

@@ -430,7 +430,9 @@ export async function POST(request: NextRequest): Promise<Response> {
         organization_id,
         domain_id: domainRow.id,
         active: true,
-        package_id: null,
+        // Aucun `package_id` ici : l'abonnement vit désormais sur
+        // `organizations`, et la colonne a été SUPPRIMÉE de cette table.
+        // Cette ligne n'est plus qu'une TRACE de l'écosystème d'inscription.
       })
     if (orgDomErr) {
       throw new RegisterOrgError(

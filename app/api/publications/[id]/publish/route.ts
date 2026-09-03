@@ -138,7 +138,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   //  1) plafond d'actives (SANS consommation) ; 2) compteur mensuel (consomme).
   //  On ne consomme JAMAIS le compteur mensuel si on refuse sur le plafond actif.
   //  getOrgEntitlements/consumeQuota sont fail-open (une panne moteur ne bloque pas).
-  const ents = await getOrgEntitlements(auth.supabaseAdmin, orgId, auth.domain.id)
+  const ents = await getOrgEntitlements(auth.supabaseAdmin, orgId)
 
   if (ents.limits.activePublicationsMax !== null) {
     // « Actives » = published NON EXPIRÉES (règle 30j calculée à la lecture, cf.

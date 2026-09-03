@@ -93,7 +93,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const [{ data: orgRows, error: orgErr }, { count: totalCount }] = await Promise.all([
     auth.supabaseAdmin
       .from('organizations')
-      .select('id, company_name, owner_user_id, created_at')
+      .select('id, company_name, owner_user_id, created_at, package_id, package_valid_until')
       .eq('org_type', 'freelance')
       .order('created_at', { ascending: false })
       .limit(MAX_ORGS),
@@ -112,6 +112,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     company_name: string | null
     owner_user_id: string | null
     created_at: string
+    package_id: string | null
+    package_valid_until: string | null
   }[]
 
   if (orgs.length === 0) {
@@ -141,7 +143,9 @@ export async function GET(request: NextRequest): Promise<Response> {
       : Promise.resolve({ data: [], error: null }),
     auth.supabaseAdmin
       .from('organization_domains')
-      .select('organization_id, domain_id, package_id, package_valid_until, active, domains(name)')
+      // TRACE de l'écosystème d'inscription UNIQUEMENT (colonne « Écosystème »).
+      // L'abonnement se lit sur `organizations` : cf. la sélection ci-dessus.
+      .select('organization_id, domain_id, active, domains(name)')
       .in('organization_id', orgIds),
     auth.supabaseAdmin.from('packages').select('id, name, slug, target_role, is_default, active'),
     auth.supabaseAdmin
@@ -182,8 +186,6 @@ export async function GET(request: NextRequest): Promise<Response> {
   type LinkRow = {
     organization_id: string
     domain_id: string
-    package_id: string | null
-    package_valid_until: string | null
     active: boolean
     domains: { name?: string | null } | { name?: string | null }[] | null
   }
@@ -218,10 +220,9 @@ export async function GET(request: NextRequest): Promise<Response> {
   const expectedTarget = targetRoleForOrgType('freelance') // 'collaboration'
 
   for (const o of orgs) {
-    const link = linkByOrg.get(o.id)
-    const linked = link?.package_id ? (pkgById.get(link.package_id) ?? null) : null
+    const linked = o.package_id ? (pkgById.get(o.package_id) ?? null) : null
     const expired =
-      !!link?.package_valid_until && new Date(link.package_valid_until).getTime() <= Date.now()
+      !!o.package_valid_until && new Date(o.package_valid_until).getTime() <= Date.now()
 
     let pkg: PkgRow | null = null
     let state: string
@@ -234,7 +235,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       // Repli : même résolution que getOrgEntitlements pour une org 'freelance'.
       pkg = collaborationDefault
       state = pkg ? 'fallback' : 'none'
-      if (expired) expiredAt = link?.package_valid_until ?? null
+      if (expired) expiredAt = o.package_valid_until ?? null
     }
 
     // ANOMALIE : l'offre effective n'appartient pas au monde collaboration.
@@ -291,7 +292,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         : null,
       state: eff.state,
       expired_at: eff.expiredAt,
-      valid_until: eff.state === 'linked' ? (link?.package_valid_until ?? null) : null,
+      valid_until: eff.state === 'linked' ? (o.package_valid_until ?? null) : null,
       usage: {
         publications: publicationsByOrg.get(o.id) ?? 0,
         active_published: activeByOrg.get(o.id) ?? 0,

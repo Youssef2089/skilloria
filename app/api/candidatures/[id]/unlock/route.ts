@@ -161,7 +161,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
 
   // ── GATE COMMERCE : quota d'unlocks manuels (seulement si un flip va avoir lieu) ─
   if (!isAlreadyUnlocked) {
-    const ents = await getOrgEntitlements(auth.supabaseAdmin, orgId, ownRow.domain_id)
+    const ents = await getOrgEntitlements(auth.supabaseAdmin, orgId)
     if (ents.limits.manualUnlocksPerMonth !== null) {
       const allowed = await consumeQuota(
         auth.supabaseAdmin,

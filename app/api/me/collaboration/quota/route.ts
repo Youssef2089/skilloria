@@ -94,7 +94,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     )
   }
 
-  const ents = await getOrgEntitlements(auth.supabaseAdmin, orgId, auth.domain.id)
+  const ents = await getOrgEntitlements(auth.supabaseAdmin, orgId)
   const limits = {
     publicationsPerMonth: ents.limits.publicationsPerMonth,
     activePublicationsMax: ents.limits.activePublicationsMax,
