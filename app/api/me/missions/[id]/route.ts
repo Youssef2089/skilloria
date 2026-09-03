@@ -108,7 +108,8 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   }
   const matchRow = match as unknown as {
     id: string
-    score: number
+    relevance_score: number | null
+    relevance_tier: string | null
     status: string
     explanation: { reason?: string; model?: string } | null
     created_at: string
@@ -202,7 +203,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
       match: {
         id: matchRow.id,
         status: matchRow.status === 'notified' || matchRow.status === 'pending' ? 'viewed' : matchRow.status,
-        ai_score: Number(matchRow.score),
+        relevance_tier: matchRow.relevance_tier === 'strong' ? 'strong' : 'normal',
         ai_reason: matchRow.explanation?.reason ?? null,
         matched_at: matchRow.created_at,
       },

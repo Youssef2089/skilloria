@@ -2257,8 +2257,7 @@
     "card": {
       "confidential_org": "Entreprise confidentielle",
       "confidential_tooltip": "Le nom est révélé après acceptation de votre candidature.",
-      "ai_score": "Score {score}/10",
-      "ai_score_tooltip": "Note IA de pertinence par rapport à votre profil.",
+      "ai_score_tooltip": "Pourquoi cette annonce vous est proposée.",
       "new_label": "Nouveau",
       "why_match_label": "Pourquoi ça vous correspond",
       "cta_consult_mission": "Consulter la mission",
@@ -2279,8 +2278,7 @@
       "see_mission": "Voir la mission",
       "see_offre": "Voir l'offre",
       "see_application": "Voir la candidature",
-      "more_skills": "+{count}",
-      "top_match": "Top match"
+      "more_skills": "+{count}"
     },
     "detail": {
       "back_to_feed": "← Retour aux opportunités",
@@ -2289,8 +2287,7 @@
       "error_not_found": "Cette opportunité n'existe pas ou ne vous est plus accessible.",
       "confidential_org": "Entreprise confidentielle",
       "confidential_tooltip": "Le nom de l'entreprise est révélé après acceptation de votre candidature.",
-      "ai_score_label": "Score IA {score}/10",
-      "ai_score_tooltip": "Note IA de pertinence par rapport à votre profil.",
+      "ai_score_tooltip": "Pourquoi cette annonce vous est proposée.",
       "why_match_label": "Pourquoi ça vous correspond",
       "section_description": "Description",
       "section_details": "Détails",
@@ -3402,6 +3399,7 @@
   },
   "matching_badge": {
     "strong": "Correspondance forte",
-    "normal": "Correspondance"
+    "normal": "Correspondance",
+    "tooltip": "Ce que nous avons compris de votre profil correspond à ce que cette annonce demande. Aucun classement entre experts : chaque profil est examiné pour lui-même."
   }
 }

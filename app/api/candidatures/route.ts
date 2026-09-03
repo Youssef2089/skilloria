@@ -156,7 +156,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   // ── Match requis (borrnage curation) ────────────────────────────────────
   const { data: match, error: mErr } = await auth.supabaseAdmin
     .from('matches')
-    .select('id, score, status')
+    .select('id, relevance_score, status')
     .eq('publication_id', publicationId)
     .eq('profile_id', profileRow.id)
     .maybeSingle()
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!match) {
     return json({ error: 'No match for this publication', code: 'not_matched' }, 403)
   }
-  const matchRow = match as unknown as { id: string; score: number; status: string }
+  const matchRow = match as unknown as { id: string; relevance_score: number | null; status: string }
 
   // ── Vérif publication : publiée + type candidatable + pas son propre besoin ─
   //  `created_by` = l'auteur de la publication (pour un besoin sous_traitance,
@@ -219,7 +219,19 @@ export async function POST(request: NextRequest): Promise<Response> {
       match_id: matchRow.id,
       domain_id: profileRow.domain_id,
       cover_message: coverMessage,
-      ai_match_score: matchRow.score,
+      // LAISSÉ VIDE À DESSEIN, et ce n'est pas un oubli.
+      //
+      // `ai_match_score` est une note de Claude SUR 10, adossée à un texte, qui
+      // répond à « que vaut ce dossier ? ». Elle était jusqu'ici recopiée depuis
+      // la note du matching — une autre question (« pourquoi ce profil
+      // apparaît ? »), posée à un autre moment, sur une autre matière.
+      //
+      // Claude quitte le matching : cette note n'a plus de producteur ici. La
+      // remplacer par le score de pertinence serait ranger une grandeur dans
+      // l'échelle d'une autre — 0,73 lu comme « 0,73 / 10 ». Elle reste nulle
+      // jusqu'à ce que le jugement au dépôt la produise (lot 4), et les écrans
+      // qui l'affichent savent déjà se taire quand elle manque.
+      ai_match_score: null,
       status: 'received',
       preview,
     })
@@ -352,7 +364,19 @@ export async function POST(request: NextRequest): Promise<Response> {
     detail: {
       publication_id: publicationId,
       match_id: matchRow.id,
-      ai_match_score: matchRow.score,
+      // LAISSÉ VIDE À DESSEIN, et ce n'est pas un oubli.
+      //
+      // `ai_match_score` est une note de Claude SUR 10, adossée à un texte, qui
+      // répond à « que vaut ce dossier ? ». Elle était jusqu'ici recopiée depuis
+      // la note du matching — une autre question (« pourquoi ce profil
+      // apparaît ? »), posée à un autre moment, sur une autre matière.
+      //
+      // Claude quitte le matching : cette note n'a plus de producteur ici. La
+      // remplacer par le score de pertinence serait ranger une grandeur dans
+      // l'échelle d'une autre — 0,73 lu comme « 0,73 / 10 ». Elle reste nulle
+      // jusqu'à ce que le jugement au dépôt la produise (lot 4), et les écrans
+      // qui l'affichent savent déjà se taire quand elle manque.
+      ai_match_score: null,
       has_cover_message: coverMessage !== null,
     },
   })
@@ -394,6 +418,13 @@ export async function POST(request: NextRequest): Promise<Response> {
         if ((revealedCount ?? 0) < revealN) {
           // La candidature qui vient d'être créée est-elle le meilleur score de
           // la publication ? (égalité de score → la plus ancienne l'emporte.)
+          //
+          // ⚠️ CONSÉQUENCE DU LOT 3, ÉCRITE PLUTÔT QUE SUBIE : `ai_match_score`
+          // est nul tant que le jugement au dépôt ne le produit pas. Toutes les
+          // notes étant égales (nulles), le départage tombe sur `created_at` :
+          // le dévoilement inclus va à la PREMIÈRE candidature, plus à la
+          // meilleure. C'est un repli déterministe et défendable, mais ce n'est
+          // pas la règle annoncée — le lot 4 rétablit la note.
           const { data: topRow } = await auth.supabaseAdmin
             .from('candidatures')
             .select('id')

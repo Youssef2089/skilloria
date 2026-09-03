@@ -2257,8 +2257,7 @@
     "card": {
       "confidential_org": "Empresa confidencial",
       "confidential_tooltip": "El nombre de la empresa se revela tras aceptar tu candidatura.",
-      "ai_score": "Puntuación {score}/10",
-      "ai_score_tooltip": "Puntuación de IA según tu perfil.",
+      "ai_score_tooltip": "Por qué se te propone este anuncio.",
       "new_label": "Nuevo",
       "why_match_label": "Por qué te conviene",
       "cta_consult_mission": "Ver la misión",
@@ -2279,8 +2278,7 @@
       "see_mission": "Ver la misión",
       "see_offre": "Ver el puesto",
       "see_application": "Ver la candidatura",
-      "more_skills": "+{count}",
-      "top_match": "Top match"
+      "more_skills": "+{count}"
     },
     "detail": {
       "back_to_feed": "← Volver a oportunidades",
@@ -2289,8 +2287,7 @@
       "error_not_found": "Esta oportunidad ya no existe o no está disponible para ti.",
       "confidential_org": "Empresa confidencial",
       "confidential_tooltip": "El nombre de la empresa se revela tras aceptar tu candidatura.",
-      "ai_score_label": "Puntuación IA {score}/10",
-      "ai_score_tooltip": "Puntuación de IA según tu perfil.",
+      "ai_score_tooltip": "Por qué se te propone este anuncio.",
       "why_match_label": "Por qué te conviene",
       "section_description": "Descripción",
       "section_details": "Detalles",
@@ -3402,6 +3399,7 @@
   },
   "matching_badge": {
     "strong": "Coincidencia alta",
-    "normal": "Coincidencia"
+    "normal": "Coincidencia",
+    "tooltip": "Lo que hemos entendido de tu perfil coincide con lo que pide este anuncio. Sin clasificación entre expertos: cada perfil se examina por sí mismo."
   }
 }

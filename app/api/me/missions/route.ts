@@ -53,7 +53,12 @@ function normalizeLocale(raw: string | null): Locale {
 type MatchRow = {
   id: string
   publication_id: string
-  score: number
+  // Le score de pertinence NE SORT PAS de cette route. Il vit dans [0,1], il est
+  // propre à une annonce, et le fournisseur écrit qu'on ne peut ni le lire comme
+  // une proportion ni comparer deux requêtes. Ce qui sort, c'est le PALIER —
+  // figé au moment de la notation.
+  relevance_score: number | null
+  relevance_tier: string | null
   status: string
   explanation: { reason?: string; model?: string; evaluated_at?: string } | null
   created_at: string
@@ -138,7 +143,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const [matchesResult, translations] = await Promise.all([
     expertMissionsQuery(auth.supabaseAdmin, profile.id, {
       select: buildExpertMissionsSelect({
-        matchColumns: 'id, publication_id, score, status, explanation, created_at',
+        matchColumns: 'id, publication_id, relevance_score, relevance_tier, status, explanation, created_at',
         // SOURCE UNIQUE des colonnes de synthèse : la liste vivait recopiée
         // ici, et c'est cette copie qui citait encore `speciality_id`,
         // `seniority` et `location` — trois colonnes supprimées. La requête
@@ -152,7 +157,10 @@ export async function GET(request: NextRequest): Promise<Response> {
         organizationColumns: 'id, company_name, logo_url',
       }),
     })
-      .order('score', { ascending: false })
+      // Ordonner PAR le score reste juste : à l'intérieur d'une même annonce, il
+      // dit lequel des deux profils correspond le mieux. C'est l'AFFICHER qui ne
+      // l'est pas.
+      .order('relevance_score', { ascending: false, nullsFirst: false })
       .limit(EXPERT_FEED_LIMIT),
     loadTranslations(locale),
   ])
@@ -199,7 +207,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       // Match (côté expert)
       match_id: row.id,
       match_status: row.status,           // pending | notified | viewed | dismissed
-      ai_score: Number(row.score),
+      // Deux paliers, aucun nombre (cf. migration score_de_pertinence).
+      relevance_tier: row.relevance_tier === 'strong' ? 'strong' : 'normal',
       ai_reason: row.explanation?.reason ?? null,
       matched_at: row.created_at,
       // Publication (DTO masqué + synthèse parlante via helper partagé)

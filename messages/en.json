@@ -2257,8 +2257,7 @@
     "card": {
       "confidential_org": "Confidential company",
       "confidential_tooltip": "The company name is revealed after your application is accepted.",
-      "ai_score": "Score {score}/10",
-      "ai_score_tooltip": "AI match score against your profile.",
+      "ai_score_tooltip": "Why this posting is shown to you.",
       "new_label": "New",
       "why_match_label": "Why this matches you",
       "cta_consult_mission": "View mission",
@@ -2279,8 +2278,7 @@
       "see_mission": "View mission",
       "see_offre": "View position",
       "see_application": "View application",
-      "more_skills": "+{count}",
-      "top_match": "Top match"
+      "more_skills": "+{count}"
     },
     "detail": {
       "back_to_feed": "← Back to opportunities",
@@ -2289,8 +2287,7 @@
       "error_not_found": "This opportunity no longer exists or is no longer available to you.",
       "confidential_org": "Confidential company",
       "confidential_tooltip": "The company name is revealed after your application is accepted.",
-      "ai_score_label": "AI Score {score}/10",
-      "ai_score_tooltip": "AI match score against your profile.",
+      "ai_score_tooltip": "Why this posting is shown to you.",
       "why_match_label": "Why this matches you",
       "section_description": "Description",
       "section_details": "Details",
@@ -3402,6 +3399,7 @@
   },
   "matching_badge": {
     "strong": "Strong match",
-    "normal": "Match"
+    "normal": "Match",
+    "tooltip": "What we understood from your profile matches what this posting asks for. No ranking between experts: each profile is assessed on its own."
   }
 }

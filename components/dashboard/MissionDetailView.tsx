@@ -23,7 +23,14 @@ import CandidatureModal from '@/components/dashboard/CandidatureModal'
  */
 
 type DetailData = {
-  match: { id: string; status: string; ai_score: number; ai_reason: string | null; matched_at: string }
+  match: {
+    id: string
+    status: string
+    /** Palier affiché, figé à la notation. Aucun nombre — cf. MissionCard. */
+    relevance_tier: 'strong' | 'normal'
+    ai_reason: string | null
+    matched_at: string
+  }
   publication: {
     id: string
     type: string
@@ -99,6 +106,7 @@ export default function MissionDetailView({
 }) {
   const t = useTranslations('missions.detail')
   const tPub = useTranslations('publications')
+  const tBadge = useTranslations('matching_badge')
   const tForm = useTranslations('publications.form')
   const locale = useLocale()
   const router = useRouter()
@@ -268,7 +276,7 @@ export default function MissionDetailView({
             fontSize: 13, fontWeight: 700, borderRadius: 14, flexShrink: 0,
           }}
         >
-          {t('ai_score_label', { score: Math.round(match.ai_score) })}
+          {tBadge(match.relevance_tier)}
         </span>
       </div>
 

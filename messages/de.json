@@ -2257,8 +2257,7 @@
     "card": {
       "confidential_org": "Vertrauliches Unternehmen",
       "confidential_tooltip": "Der Firmenname wird nach Annahme Ihrer Bewerbung enthüllt.",
-      "ai_score": "Bewertung {score}/10",
-      "ai_score_tooltip": "KI-Bewertung basierend auf Ihrem Profil.",
+      "ai_score_tooltip": "Warum Ihnen diese Ausschreibung vorgeschlagen wird.",
       "new_label": "Neu",
       "why_match_label": "Warum es zu Ihnen passt",
       "cta_consult_mission": "Mission anzeigen",
@@ -2279,8 +2278,7 @@
       "see_mission": "Mission ansehen",
       "see_offre": "Stelle ansehen",
       "see_application": "Bewerbung ansehen",
-      "more_skills": "+{count}",
-      "top_match": "Top-Match"
+      "more_skills": "+{count}"
     },
     "detail": {
       "back_to_feed": "← Zurück zu den Möglichkeiten",
@@ -2289,8 +2287,7 @@
       "error_not_found": "Diese Möglichkeit existiert nicht mehr oder ist für Sie nicht mehr verfügbar.",
       "confidential_org": "Vertrauliches Unternehmen",
       "confidential_tooltip": "Der Firmenname wird nach Annahme Ihrer Bewerbung enthüllt.",
-      "ai_score_label": "KI-Bewertung {score}/10",
-      "ai_score_tooltip": "KI-Bewertung basierend auf Ihrem Profil.",
+      "ai_score_tooltip": "Warum Ihnen diese Ausschreibung vorgeschlagen wird.",
       "why_match_label": "Warum es zu Ihnen passt",
       "section_description": "Beschreibung",
       "section_details": "Details",
@@ -3402,6 +3399,7 @@
   },
   "matching_badge": {
     "strong": "Starke Übereinstimmung",
-    "normal": "Übereinstimmung"
+    "normal": "Übereinstimmung",
+    "tooltip": "Was wir aus Ihrem Profil entnommen haben, passt zu dem, was diese Ausschreibung verlangt. Keine Rangfolge zwischen Fachleuten: Jedes Profil wird für sich betrachtet."
   }
 }

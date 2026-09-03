@@ -26,7 +26,9 @@ import type { MissionCardData } from './MissionCard'
  * centralisés dans lib/casting-theme — rien en dur ici.
  */
 
-const TOP_MATCH_THRESHOLD = 9
+// Plus de seuil ici : le palier est décidé au moment de la notation, contre le
+// seuil de notification en vigueur ce jour-là, et il voyage avec le match. Le
+// recalculer à l'affichage rebaptiserait des matches anciens en silence.
 
 export default function MissionCastingCard({
   mission,
@@ -36,16 +38,17 @@ export default function MissionCastingCard({
   side?: 'freelance' | 'cdi'
 }) {
   const tCard = useTranslations('missions.card')
+  const tBadge = useTranslations('matching_badge')
   const tc = useTranslations('missions.casting')
   const tPub = useTranslations('publications')
   const locale = useLocale()
 
-  const { publication: pub, org, ai_score, match_status, skills_required = [] } = mission
+  const { publication: pub, org, relevance_tier, match_status, skills_required = [] } = mission
 
   const orgName = pub.confidential ? tCard('confidential_org') : org?.name ?? tCard('confidential_org')
   const logoUrl = pub.confidential ? null : org?.logo_url ?? null
   const isFresh = match_status === 'pending' || match_status === 'notified'
-  const isTopMatch = ai_score >= TOP_MATCH_THRESHOLD
+  const isTopMatch = relevance_tier === 'strong'
 
   const workModeLabel = (() => {
     if (!pub.work_mode) return null
@@ -87,9 +90,12 @@ export default function MissionCastingCard({
         <span style={{ display: 'inline-flex', padding: 4, background: '#fff', border: `1px solid ${castingTheme.logoBorder}`, borderRadius: 11, boxShadow: '0 1px 3px rgba(15,23,42,0.12)' }}>
           <Avatar src={logoUrl} name={orgName} size={34} variant="neutral" />
         </span>
-        <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 1, background: '#fff', padding: '4px 10px', borderRadius: 999, boxShadow: '0 1px 3px rgba(15,23,42,0.12)' }}>
-          <span style={{ fontSize: 14, fontWeight: 800, color: castingTheme.scoreGreen }}>{Math.round(ai_score)}</span>
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--sk-faint)' }}>/10</span>
+        {/* La pastille « N /10 » a disparu avec le nombre qu'elle affichait. */}
+        <span
+          title={tBadge('tooltip')}
+          style={{ display: 'inline-flex', alignItems: 'center', background: '#fff', padding: '4px 10px', borderRadius: 999, boxShadow: '0 1px 3px rgba(15,23,42,0.12)', fontSize: 11, fontWeight: 700, color: isTopMatch ? castingTheme.scoreGreen : 'var(--sk-muted)' }}
+        >
+          {tBadge(relevance_tier)}
         </span>
       </div>
 
@@ -97,7 +103,7 @@ export default function MissionCastingCard({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7, padding: '12px 14px', flex: 1 }}>
         {(isFresh || isTopMatch) && (
           <span style={{ alignSelf: 'flex-start', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: castingTheme.pillSoftText, background: castingTheme.pillSoftBg, padding: '3px 8px', borderRadius: 999 }}>
-            {isFresh ? tCard('new_label') : tc('top_match')}
+            {isFresh ? tCard('new_label') : tBadge('strong')}
           </span>
         )}
 

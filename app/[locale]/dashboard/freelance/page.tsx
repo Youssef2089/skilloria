@@ -164,7 +164,7 @@ export default function DashboardFreelance() {
     pollMs: missionsPollMs,
     itemsOf: (d) => d.missions ?? [],
     identityOf: (m) => m.match_id,
-    versionOf: (m) => `${m.ai_score}`,
+    versionOf: (m) => `${m.relevance_tier}`,
     enabled: liveEnabled && isApproved,
     holdNewItems: false,
   })
