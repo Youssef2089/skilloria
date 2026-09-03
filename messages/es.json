@@ -2337,7 +2337,8 @@
       "section_exploitation": "Explotación",
       "nav_taches_planifiees": "Tareas programadas",
       "section_moteur": "Motor",
-      "nav_matching": "Emparejamiento"
+      "nav_matching": "Emparejamiento",
+      "nav_ecosystemes": "Ecosistemas"
     },
     "packages": {
       "page_title": "Catálogo comercial",
@@ -3644,6 +3645,92 @@
       "own_label": "Su ecosistema",
       "cta": "Ir a mi ecosistema",
       "no_link": "Abra este subdominio directamente en su navegador."
+    }
+  },
+  "admin_ecosystemes": {
+    "page_title": "Ecosistemas",
+    "subtitle": "Crear, personalizar y abrir un ecosistema. Dos pasos ocurren fuera de esta pantalla.",
+    "loading": "Cargando…",
+    "empty": "Ningún ecosistema.",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "saved": "Cambios guardados.",
+    "activate": "Activar",
+    "state": {
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "not_ready": "No listo",
+      "not_ready_hint": "Sin rama: no es posible registrarse ni publicar.",
+      "not_ready_detail": "Este ecosistema no tiene ninguna rama. Mientras no tenga una, nadie puede crear un perfil ni publicar un anuncio: ambos formularios exigen una rama."
+    },
+    "counts": {
+      "branches": "{n, plural, =0 {ninguna rama} one {# rama} other {# ramas}}",
+      "specialities": "{n, plural, =0 {ninguna especialidad} one {# especialidad} other {# especialidades}}",
+      "users": "{n, plural, =0 {ninguna cuenta} one {# cuenta} other {# cuentas}}",
+      "publications": "{n, plural, =0 {ningún anuncio} one {# anuncio} other {# anuncios}}"
+    },
+    "sections": {
+      "identity": "Identidad",
+      "vocabulary": "Vocabulario",
+      "branding": "Apariencia"
+    },
+    "fields": {
+      "name": "Nombre",
+      "slug": "Subdominio",
+      "tagline": "Lema",
+      "slug_locked": "No modificable: es una dirección pública, declarada en el proveedor y presente en enlaces ya enviados.",
+      "primary_color": "Color principal",
+      "secondary_color": "Color secundario",
+      "logo_url": "URL del logotipo",
+      "favicon_url": "URL del favicon",
+      "ecosystem_expert_label": "Cómo llamar a un experto",
+      "ecosystem_community_label": "Cómo llamar al ecosistema",
+      "ecosystem_speciality_label": "Etiqueta «especialidad principal»",
+      "ecosystem_domain_search_label": "Etiqueta «dominio buscado»",
+      "fallback_fr": "Vacío → francés",
+      "description": "Descripción",
+      "launch_date": "Fecha de lanzamiento",
+      "tags": "Palabras clave",
+      "tags_hint": "separadas por comas",
+      "ecosystem_name": "Nombre del ecosistema en las frases",
+      "ecosystem_name_hint": "Se usa en los textos del sitio. Vacío → el nombre de arriba."
+    },
+    "create": {
+      "title": "Crear un ecosistema",
+      "submit": "Crear",
+      "pending": "Creando…",
+      "born_inactive": "Se crea INACTIVO: las organizaciones solo lo verán cuando su subdominio esté declarado y se haya creado su primera rama."
+    },
+    "after_create": {
+      "title": "Lo que queda por hacer, fuera de esta pantalla",
+      "intro": "«{name}» ya existe en la base de datos. Tres pasos lo hacen realmente utilizable.",
+      "step_host": "Declarar el dominio {slug} en el proveedor (Vercel → Settings → Domains).",
+      "step_dns": "Añadir un CNAME para {slug} apuntando a cname.vercel-dns.com.",
+      "step_branch": "Crear al menos una rama en Taxonomía — sin ella, ni registro ni anuncios.",
+      "step_activate": "Volver aquí y activar: entonces será visible para las organizaciones.",
+      "dismiss": "Entendido"
+    },
+    "deactivate": {
+      "open": "Desactivar…",
+      "title": "Antes de desactivar",
+      "confirm": "Desactivar",
+      "cancel": "Cancelar",
+      "keeps": "{n, plural, =0 {Ningún experto está registrado allí.} one {# experto está registrado allí: CONSERVA su acceso, sus misiones y sus mensajes.} other {# expertos están registrados allí: CONSERVAN su acceso, sus misiones y sus mensajes.}}",
+      "loses": "{n, plural, =0 {Ninguna cuenta de organización lo perderá.} one {# cuenta de organización ya no podrá entrar ni publicar allí.} other {# cuentas de organización ya no podrán entrar ni publicar allí.}}",
+      "published": "Anuncios en línea",
+      "publications": "Anuncios en total",
+      "candidatures": "Candidaturas",
+      "conversations": "Conversaciones",
+      "reversible": "No se elimina nada. Reactivar lo vuelve todo visible de nuevo."
+    },
+    "errors": {
+      "load": "No se ha podido cargar.",
+      "generic": "Se ha producido un error.",
+      "name_required": "El nombre es obligatorio.",
+      "invalid_slug": "Subdominio no válido: minúsculas, cifras y guiones, sin punto ni espacio.",
+      "slug_taken": "Este subdominio ya está en uso."
     }
   }
 }

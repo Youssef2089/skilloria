@@ -2337,7 +2337,8 @@
       "section_exploitation": "Operations",
       "nav_taches_planifiees": "Scheduled tasks",
       "section_moteur": "Engine",
-      "nav_matching": "Matching"
+      "nav_matching": "Matching",
+      "nav_ecosystemes": "Ecosystems"
     },
     "packages": {
       "page_title": "Commerce catalog",
@@ -3644,6 +3645,92 @@
       "own_label": "Your ecosystem",
       "cta": "Go to my ecosystem",
       "no_link": "Open this subdomain directly in your browser."
+    }
+  },
+  "admin_ecosystemes": {
+    "page_title": "Ecosystems",
+    "subtitle": "Create, style and open an ecosystem. Two steps happen outside this screen.",
+    "loading": "Loading…",
+    "empty": "No ecosystem.",
+    "edit": "Edit",
+    "close": "Close",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Changes saved.",
+    "activate": "Activate",
+    "state": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "not_ready": "Not ready",
+      "not_ready_hint": "No branch: neither sign-up nor listing is possible.",
+      "not_ready_detail": "This ecosystem has no branch. Until it has one, nobody can create a profile or post a listing there: both forms require a branch."
+    },
+    "counts": {
+      "branches": "{n, plural, =0 {no branch} one {# branch} other {# branches}}",
+      "specialities": "{n, plural, =0 {no speciality} one {# speciality} other {# specialities}}",
+      "users": "{n, plural, =0 {no account} one {# account} other {# accounts}}",
+      "publications": "{n, plural, =0 {no listing} one {# listing} other {# listings}}"
+    },
+    "sections": {
+      "identity": "Identity",
+      "vocabulary": "Wording",
+      "branding": "Appearance"
+    },
+    "fields": {
+      "name": "Name",
+      "slug": "Subdomain",
+      "tagline": "Tagline",
+      "slug_locked": "Not editable: it is a public address, declared with the host and present in links already sent.",
+      "primary_color": "Primary colour",
+      "secondary_color": "Secondary colour",
+      "logo_url": "Logo URL",
+      "favicon_url": "Favicon URL",
+      "ecosystem_expert_label": "What to call an expert",
+      "ecosystem_community_label": "What to call the ecosystem",
+      "ecosystem_speciality_label": "\"Main speciality\" label",
+      "ecosystem_domain_search_label": "\"Domain sought\" label",
+      "fallback_fr": "Empty → French",
+      "description": "Description",
+      "launch_date": "Launch date",
+      "tags": "Keywords",
+      "tags_hint": "comma-separated",
+      "ecosystem_name": "Ecosystem name used in sentences",
+      "ecosystem_name_hint": "Used in site copy. Empty → the name above."
+    },
+    "create": {
+      "title": "Create an ecosystem",
+      "submit": "Create",
+      "pending": "Creating…",
+      "born_inactive": "It is created INACTIVE: organisations will only see it once its subdomain is declared and its first branch created."
+    },
+    "after_create": {
+      "title": "What is left to do, outside this screen",
+      "intro": "\"{name}\" now exists in the database. Three steps make it actually usable.",
+      "step_host": "Declare the domain {slug} with the host (Vercel → Settings → Domains).",
+      "step_dns": "Add a CNAME for {slug} pointing to cname.vercel-dns.com.",
+      "step_branch": "Create at least one branch under Taxonomy — without it, no sign-up and no listing.",
+      "step_activate": "Come back here and activate: it then becomes visible to organisations.",
+      "dismiss": "Got it"
+    },
+    "deactivate": {
+      "open": "Deactivate…",
+      "title": "Before deactivating",
+      "confirm": "Deactivate",
+      "cancel": "Cancel",
+      "keeps": "{n, plural, =0 {No expert is registered there.} one {# expert is registered there: they KEEP their access, assignments and messages.} other {# experts are registered there: they KEEP their access, assignments and messages.}}",
+      "loses": "{n, plural, =0 {No organisation account will lose it.} one {# organisation account will no longer be able to enter or post there.} other {# organisation accounts will no longer be able to enter or post there.}}",
+      "published": "Live listings",
+      "publications": "Listings in total",
+      "candidatures": "Applications",
+      "conversations": "Conversations",
+      "reversible": "Nothing is deleted. Reactivating makes everything visible again."
+    },
+    "errors": {
+      "load": "Could not load.",
+      "generic": "Something went wrong.",
+      "name_required": "Name is required.",
+      "invalid_slug": "Invalid subdomain: lowercase letters, digits and hyphens, no dot or space.",
+      "slug_taken": "This subdomain is already in use."
     }
   }
 }

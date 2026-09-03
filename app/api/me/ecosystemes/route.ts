@@ -68,8 +68,11 @@ export async function GET(request: NextRequest): Promise<Response> {
   let query = auth.supabaseAdmin
     .from('domains')
     .select('id, slug, name, domain_configs(primary_color)')
-    .eq('active', true)
     .order('name', { ascending: true })
+  // Les ORGANISATIONS ne voient que les écosystèmes offerts. Un expert, lui,
+  // garde le sien même désactivé — le filtrer ici lui servirait une liste vide
+  // où ne figurerait même pas l'écosystème qu'il est en train de regarder.
+  if (scope !== 'own') query = query.eq('active', true)
 
   // EXPERT : son écosystème, à vie. Le sélecteur n'aura donc qu'une entrée, et
   // le composant ne s'affichera pas — plutôt que d'afficher une liste d'un seul

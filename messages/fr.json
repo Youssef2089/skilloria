@@ -2337,7 +2337,8 @@
       "section_exploitation": "Exploitation",
       "nav_taches_planifiees": "Tâches planifiées",
       "section_moteur": "Moteur",
-      "nav_matching": "Mise en relation"
+      "nav_matching": "Mise en relation",
+      "nav_ecosystemes": "Écosystèmes"
     },
     "packages": {
       "page_title": "Catalogue commerce",
@@ -3644,6 +3645,92 @@
       "own_label": "Votre écosystème",
       "cta": "Aller sur mon écosystème",
       "no_link": "Ouvrez ce sous-domaine directement dans votre navigateur."
+    }
+  },
+  "admin_ecosystemes": {
+    "page_title": "Écosystèmes",
+    "subtitle": "Créer, habiller et ouvrir un écosystème. Deux étapes se font hors de cet écran.",
+    "loading": "Chargement…",
+    "empty": "Aucun écosystème.",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saved": "Modifications enregistrées.",
+    "activate": "Activer",
+    "state": {
+      "active": "Actif",
+      "inactive": "Inactif",
+      "not_ready": "Non prêt",
+      "not_ready_hint": "Aucune branche : ni inscription ni annonce possible.",
+      "not_ready_detail": "Cet écosystème n'a aucune branche. Tant qu'il n'en a pas, personne ne peut y créer de profil ni y publier d'annonce : le formulaire de profil et celui d'annonce en exigent une."
+    },
+    "counts": {
+      "branches": "{n, plural, =0 {aucune branche} one {# branche} other {# branches}}",
+      "specialities": "{n, plural, =0 {aucune spécialité} one {# spécialité} other {# spécialités}}",
+      "users": "{n, plural, =0 {aucun compte} one {# compte} other {# comptes}}",
+      "publications": "{n, plural, =0 {aucune annonce} one {# annonce} other {# annonces}}"
+    },
+    "sections": {
+      "identity": "Identité",
+      "vocabulary": "Vocabulaire",
+      "branding": "Apparence"
+    },
+    "fields": {
+      "name": "Nom",
+      "slug": "Sous-domaine",
+      "tagline": "Accroche",
+      "slug_locked": "Non modifiable : c'est une adresse publique, déclarée chez l'hébergeur et présente dans des liens déjà envoyés.",
+      "primary_color": "Couleur principale",
+      "secondary_color": "Couleur secondaire",
+      "logo_url": "URL du logo",
+      "favicon_url": "URL du favicon",
+      "ecosystem_expert_label": "Comment nommer un expert",
+      "ecosystem_community_label": "Comment nommer l'écosystème",
+      "ecosystem_speciality_label": "Libellé « spécialité principale »",
+      "ecosystem_domain_search_label": "Libellé « domaine recherché »",
+      "fallback_fr": "Vide → français",
+      "description": "Description",
+      "launch_date": "Date de lancement",
+      "tags": "Mots-clés",
+      "tags_hint": "séparés par des virgules",
+      "ecosystem_name": "Nom de l'écosystème dans les phrases",
+      "ecosystem_name_hint": "Utilisé dans les textes du site. Vide → le nom ci-dessus."
+    },
+    "create": {
+      "title": "Créer un écosystème",
+      "submit": "Créer",
+      "pending": "Création…",
+      "born_inactive": "Il est créé INACTIF : les organisations ne le verront qu'une fois son sous-domaine déclaré et sa première branche créée."
+    },
+    "after_create": {
+      "title": "Ce qu’il reste à faire, hors de cet écran",
+      "intro": "« {name} » existe en base. Trois étapes le rendent réellement utilisable.",
+      "step_host": "Déclarer le domaine {slug} chez l'hébergeur (Vercel → Settings → Domains).",
+      "step_dns": "Ajouter un CNAME pour {slug} vers cname.vercel-dns.com.",
+      "step_branch": "Créer au moins une branche dans Taxonomie — sans elle, ni inscription ni annonce.",
+      "step_activate": "Revenir ici et activer : il devient alors visible des organisations.",
+      "dismiss": "J'ai lu"
+    },
+    "deactivate": {
+      "open": "Désactiver…",
+      "title": "Avant de désactiver",
+      "confirm": "Désactiver",
+      "cancel": "Annuler",
+      "keeps": "{n, plural, =0 {Aucun expert n’y est inscrit.} one {# expert y est inscrit : il GARDE son accès, ses missions et ses messages.} other {# experts y sont inscrits : ils GARDENT leur accès, leurs missions et leurs messages.}}",
+      "loses": "{n, plural, =0 {Aucun compte d’organisation ne le perdra.} one {# compte d’organisation ne pourra plus y entrer ni y publier.} other {# comptes d’organisation ne pourront plus y entrer ni y publier.}}",
+      "published": "Annonces en ligne",
+      "publications": "Annonces au total",
+      "candidatures": "Candidatures",
+      "conversations": "Conversations",
+      "reversible": "Rien n’est supprimé. Réactiver rend tout de nouveau visible."
+    },
+    "errors": {
+      "load": "Chargement impossible.",
+      "generic": "Une erreur est survenue.",
+      "name_required": "Le nom est obligatoire.",
+      "invalid_slug": "Sous-domaine invalide : minuscules, chiffres et tirets, sans point ni espace.",
+      "slug_taken": "Ce sous-domaine est déjà utilisé."
     }
   }
 }

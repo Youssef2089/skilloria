@@ -226,6 +226,16 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
     sectionKey: 'section_exploitation',
     items: [
       {
+        // L'écosystème est l'unité de cloisonnement de toute la plateforme :
+        // sa création, son vocabulaire et son activation doivent être
+        // atteignables sans développeur — sinon ouvrir un marché suppose un
+        // déploiement, et la promesse multi-écosystème reste théorique.
+        key: 'ecosystemes',
+        href: '/admin/ecosystemes',
+        labelKey: 'nav_ecosystemes',
+        iconKey: 'globe',
+      },
+      {
         key: 'taches-planifiees',
         href: '/admin/taches-planifiees',
         labelKey: 'nav_taches_planifiees',

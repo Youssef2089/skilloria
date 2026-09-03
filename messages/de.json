@@ -2337,7 +2337,8 @@
       "section_exploitation": "Betrieb",
       "nav_taches_planifiees": "Geplante Aufgaben",
       "section_moteur": "Motor",
-      "nav_matching": "Vermittlung"
+      "nav_matching": "Vermittlung",
+      "nav_ecosystemes": "Ökosysteme"
     },
     "packages": {
       "page_title": "Commerce-Katalog",
@@ -3644,6 +3645,92 @@
       "own_label": "Ihr Ökosystem",
       "cta": "Zu meinem Ökosystem",
       "no_link": "Öffnen Sie diese Subdomain direkt in Ihrem Browser."
+    }
+  },
+  "admin_ecosystemes": {
+    "page_title": "Ökosysteme",
+    "subtitle": "Ein Ökosystem anlegen, gestalten und öffnen. Zwei Schritte erfolgen außerhalb dieser Ansicht.",
+    "loading": "Wird geladen…",
+    "empty": "Kein Ökosystem.",
+    "edit": "Bearbeiten",
+    "close": "Schließen",
+    "save": "Speichern",
+    "saving": "Wird gespeichert…",
+    "saved": "Änderungen gespeichert.",
+    "activate": "Aktivieren",
+    "state": {
+      "active": "Aktiv",
+      "inactive": "Inaktiv",
+      "not_ready": "Nicht bereit",
+      "not_ready_hint": "Keine Sparte: weder Registrierung noch Ausschreibung möglich.",
+      "not_ready_detail": "Dieses Ökosystem hat keine Sparte. Solange das so ist, kann niemand dort ein Profil anlegen oder eine Ausschreibung veröffentlichen: beide Formulare verlangen eine Sparte."
+    },
+    "counts": {
+      "branches": "{n, plural, =0 {keine Sparte} one {# Sparte} other {# Sparten}}",
+      "specialities": "{n, plural, =0 {keine Spezialisierung} one {# Spezialisierung} other {# Spezialisierungen}}",
+      "users": "{n, plural, =0 {kein Konto} one {# Konto} other {# Konten}}",
+      "publications": "{n, plural, =0 {keine Ausschreibung} one {# Ausschreibung} other {# Ausschreibungen}}"
+    },
+    "sections": {
+      "identity": "Identität",
+      "vocabulary": "Begriffe",
+      "branding": "Erscheinungsbild"
+    },
+    "fields": {
+      "name": "Name",
+      "slug": "Subdomain",
+      "tagline": "Claim",
+      "slug_locked": "Nicht änderbar: eine öffentliche Adresse, beim Hoster hinterlegt und in bereits versendeten Links enthalten.",
+      "primary_color": "Hauptfarbe",
+      "secondary_color": "Sekundärfarbe",
+      "logo_url": "Logo-URL",
+      "favicon_url": "Favicon-URL",
+      "ecosystem_expert_label": "Bezeichnung für eine Fachkraft",
+      "ecosystem_community_label": "Bezeichnung für das Ökosystem",
+      "ecosystem_speciality_label": "Bezeichnung „Hauptspezialisierung“",
+      "ecosystem_domain_search_label": "Bezeichnung „gesuchter Bereich“",
+      "fallback_fr": "Leer → Französisch",
+      "description": "Beschreibung",
+      "launch_date": "Startdatum",
+      "tags": "Schlagwörter",
+      "tags_hint": "durch Kommas getrennt",
+      "ecosystem_name": "Name des Ökosystems im Fließtext",
+      "ecosystem_name_hint": "Wird in den Texten der Website verwendet. Leer → der Name oben."
+    },
+    "create": {
+      "title": "Ökosystem anlegen",
+      "submit": "Anlegen",
+      "pending": "Wird angelegt…",
+      "born_inactive": "Es wird INAKTIV angelegt: Organisationen sehen es erst, wenn die Subdomain hinterlegt und die erste Sparte angelegt ist."
+    },
+    "after_create": {
+      "title": "Was außerhalb dieser Ansicht noch zu tun ist",
+      "intro": "„{name}“ existiert nun in der Datenbank. Drei Schritte machen es tatsächlich nutzbar.",
+      "step_host": "Die Domain {slug} beim Hoster hinterlegen (Vercel → Settings → Domains).",
+      "step_dns": "Einen CNAME für {slug} auf cname.vercel-dns.com anlegen.",
+      "step_branch": "Mindestens eine Sparte unter Taxonomie anlegen — ohne sie weder Registrierung noch Ausschreibung.",
+      "step_activate": "Hierher zurückkehren und aktivieren: dann wird es für Organisationen sichtbar.",
+      "dismiss": "Verstanden"
+    },
+    "deactivate": {
+      "open": "Deaktivieren…",
+      "title": "Vor dem Deaktivieren",
+      "confirm": "Deaktivieren",
+      "cancel": "Abbrechen",
+      "keeps": "{n, plural, =0 {Dort ist keine Fachkraft registriert.} one {# Fachkraft ist dort registriert: sie BEHÄLT Zugang, Einsätze und Nachrichten.} other {# Fachkräfte sind dort registriert: sie BEHALTEN Zugang, Einsätze und Nachrichten.}}",
+      "loses": "{n, plural, =0 {Kein Organisationskonto verliert den Zugang.} one {# Organisationskonto kann dort weder eintreten noch veröffentlichen.} other {# Organisationskonten können dort weder eintreten noch veröffentlichen.}}",
+      "published": "Aktive Ausschreibungen",
+      "publications": "Ausschreibungen insgesamt",
+      "candidatures": "Bewerbungen",
+      "conversations": "Unterhaltungen",
+      "reversible": "Es wird nichts gelöscht. Eine Reaktivierung macht alles wieder sichtbar."
+    },
+    "errors": {
+      "load": "Laden nicht möglich.",
+      "generic": "Ein Fehler ist aufgetreten.",
+      "name_required": "Der Name ist erforderlich.",
+      "invalid_slug": "Ungültige Subdomain: Kleinbuchstaben, Ziffern und Bindestriche, kein Punkt, kein Leerzeichen.",
+      "slug_taken": "Diese Subdomain ist bereits vergeben."
     }
   }
 }

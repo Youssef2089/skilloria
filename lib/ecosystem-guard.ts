@@ -123,11 +123,22 @@ export async function resolveEcosystemAccess(args: {
   // EXPERT : son écosystème, à vie.
   if (scope === 'own' && target.id !== userDomainId) return deny('domain_mismatch')
 
-  // Un écosystème DÉSACTIVÉ n'accueille plus personne — pas même l'expert qui y
-  // est né. C'est la conséquence assumée de la désactivation, et la raison pour
-  // laquelle elle s'annonce avec ses volumes réels. Seul l'ADMIN passe : c'est
-  // de là qu'on réactive.
-  if (scope !== 'platform' && !target.active) return deny('domain_inactive')
+  // ══ CE QUE « DÉSACTIVER » VEUT DIRE ═══════════════════════════════════════
+  //
+  // ⚠️ CORRECTION D'UNE RÈGLE FIGÉE AU LOT 2. Elle disait : « un écosystème
+  //    désactivé n'accueille plus personne, pas même l'expert qui y est né ».
+  //    C'était trop large, et la conséquence n'était pas anodine — désactiver
+  //    un écosystème aurait mis à la porte, du jour au lendemain, tous les
+  //    experts qui y travaillent, avec leurs missions en cours.
+  //
+  // Désactiver, c'est CESSER DE L'OFFRIR, pas l'éteindre :
+  //   • ORGANISATION (`all_active`) → refusée. L'écosystème disparaît de son
+  //     sélecteur, elle ne peut plus y entrer ni y publier.
+  //   • EXPERT (`own`) → GARDE SON ACCÈS. Il y est inscrit à vie ; ses
+  //     candidatures, ses missions et ses messages continuent d'exister, et
+  //     lui couper la porte les rendrait inatteignables.
+  //   • ADMIN (`platform`) → passe. C'est de là qu'on réactive.
+  if (scope === 'all_active' && !target.active) return deny('domain_inactive')
 
   return { ok: true, domain: target }
 }

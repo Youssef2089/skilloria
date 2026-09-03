@@ -155,8 +155,12 @@ ok(/if \(!target\) return deny\('unknown_domain'\)/.test(resolver),
   'un ecosysteme INEXISTANT est refuse explicitement')
 
 // R3 — l'ecosysteme desactive.
-ok(/if \(scope !== 'platform' && !target\.active\) return deny\('domain_inactive'\)/.test(resolver),
-  'un ecosysteme DESACTIVE est refuse a tous sauf a l’administrateur')
+// Desactiver, c'est CESSER D'OFFRIR, pas eteindre. Le controle du lot 2 exigeait
+// un refus « a tous sauf a l'administrateur » : applique, il aurait mis a la
+// porte les experts inscrits, avec leurs missions en cours.
+ok(/if \(scope === 'all_active' && !target\.active\) return deny\('domain_inactive'\)/.test(resolver),
+  'un ecosysteme DESACTIVE est refuse aux ORGANISATIONS',
+  'et a elles seules : l’expert qui y est inscrit garde son acces')
 
 // R4 — une base muette n'autorise pas.
 ok(/if \(domErr\)[\s\S]{0,320}?return deny\('domain_lookup_failed'\)/.test(resolver),

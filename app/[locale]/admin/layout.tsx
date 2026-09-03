@@ -15,6 +15,14 @@ import { ADMIN_NAV_SECTIONS } from '@/lib/nav-config'
 
 /** Icônes de la sidebar admin, indexées par `iconKey` de ADMIN_NAV_SECTIONS. */
 const ADMIN_NAV_ICONS: Record<string, React.ReactNode> = {
+  // Écosystèmes — un globe. Distinct de `building` (organisations) : une
+  // entrée de sidebar qui reprend l'icône d'une voisine devient illisible.
+  globe: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+    </svg>
+  ),
   building: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <rect x="4" y="3" width="16" height="18" rx="1" />
