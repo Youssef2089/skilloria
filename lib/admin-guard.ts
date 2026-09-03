@@ -6,11 +6,16 @@ import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
  *
  * Décision B5/D2 : garde PER-ROUTE (pas de middleware global).
  *
- * Implémentation MODE A (cf. audit B5) : on réutilise `requireAuth` puis
- * on fait une SELECT supplémentaire sur `users.user_type` pour s'assurer
- * que le user courant est admin. Throw `AuthError(403, 'not_admin')` sinon.
+ * Implémentation : on réutilise `requireAuth`, qui remonte désormais
+ * `user_type` dans le contexte, et on vérifie qu'il vaut 'admin'.
  *
- * NB : `AuthContext.user` ne contient pas `user_type` (cf. lib/auth-guard.ts) —
+ * LA SECONDE LECTURE A DISPARU. `requireAuth` doit connaître `user_type` pour
+ * décider quels écosystèmes ce compte peut atteindre (cf.
+ * `ecosystemAccessScope`) : la relire ici, c'était un aller-retour de plus
+ * ET une seconde photo de la même ligne, que rien ne garantissait identique
+ * à celle sur laquelle la garde d'écosystème venait de statuer.
+ *
+ * NB (obsolète) : `AuthContext.user` ne contenait pas `user_type` —
  * on l'ajoute ici via le retour étendu `AdminContext`.
  *
  * ⚠️ MODÈLE ADMIN = ADMIN PLATEFORME UNIQUE (décision produit D1).
@@ -33,21 +38,7 @@ export class AdminGuardError extends AuthError {}
 export async function requireAdmin(request: NextRequest): Promise<AdminContext> {
   const auth = await requireAuth(request)
 
-  const { data: row, error } = await auth.supabaseAdmin
-    .from('users')
-    .select('user_type')
-    .eq('id', auth.user.id)
-    .maybeSingle()
-
-  if (error) {
-    console.error('[admin-guard] user_type lookup failed', {
-      userId: auth.user.id,
-      msg: error.message,
-    })
-    throw new AdminGuardError(500, { error: 'User lookup failed', code: 'lookup_failed' })
-  }
-
-  if (!row || row.user_type !== 'admin') {
+  if (auth.user.user_type !== 'admin') {
     throw new AdminGuardError(403, { error: 'Admin access only', code: 'forbidden' })
   }
 

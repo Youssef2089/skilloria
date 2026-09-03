@@ -64,3 +64,56 @@ export const ECOSYSTEM_COLUMN = 'domain_id'
 export function activeEcosystemId(auth: { domain: { id: string } }): string {
   return auth.domain.id
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * QUI A LE DROIT D'ÊTRE SUR CET ÉCOSYSTÈME
+ *
+ * Le filtre ci-dessus dit CE QU'ON VOIT une fois entré. Ceci dit QUI ENTRE.
+ * Les deux sont indissociables : cloisonner les données d'un écosystème où
+ * n'importe qui peut se poser ne cloisonne rien.
+ *
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║ TROIS POPULATIONS, TROIS RÈGLES — ET UN REFUS PAR DÉFAUT.                ║
+ * ║                                                                          ║
+ * ║   EXPERT        → SON écosystème, à vie. Y compris son organisation      ║
+ * ║                   personnelle de sous-traitance.                         ║
+ * ║   ORGANISATION  → TOUS les écosystèmes ACTIFS. Aucun rattachement,       ║
+ * ║                   aucune activation, aucun abonnement par écosystème.    ║
+ * ║   ADMIN         → PLATEFORME. Y compris un écosystème DÉSACTIVÉ : c'est  ║
+ * ║                   depuis là qu'on le réactive, s'en verrouiller dehors   ║
+ * ║                   serait se priver de la marche arrière.                 ║
+ * ║                                                                          ║
+ * ║ Tout autre `user_type` — inconnu, futur, mal orthographié — retourne    ║
+ * ║ `null`, et `null` REFUSE. Un `default:` permissif transformerait une    ║
+ * ║ faute de frappe en accès universel, sans rien lever.                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
+ */
+export type EcosystemAccessScope =
+  /** Uniquement l'écosystème du compte (`users.domain_id`). */
+  | 'own'
+  /** N'importe quel écosystème, à condition qu'il soit actif. */
+  | 'all_active'
+  /** N'importe quel écosystème existant, actif ou non. */
+  | 'platform'
+
+/**
+ * Portée d'accès d'un `users.user_type`. `null` = type inconnu = REFUS.
+ *
+ * ⚠️ Pas de `default:` permissif — cf. l'encadré ci-dessus.
+ */
+export function ecosystemAccessScope(
+  userType: string | null | undefined,
+): EcosystemAccessScope | null {
+  switch (userType) {
+    case 'expert_freelance':
+    case 'expert_cdi':
+      return 'own'
+    case 'client':
+    case 'cabinet':
+      return 'all_active'
+    case 'admin':
+      return 'platform'
+    default:
+      return null
+  }
+}

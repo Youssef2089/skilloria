@@ -2,17 +2,35 @@ import { NextRequest } from 'next/server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { readSessionCookieToken, hashSessionToken } from '@/lib/session-token'
 import { isProduction } from '@/lib/env'
+import { ecosystemAccessScope } from '@/lib/ecosystem-scope'
 
 export type AuthUser = {
   id: string
   last_session_token: string | null
+  /**
+   * Écosystème DU COMPTE. ⚠️ À ne pas confondre avec `domain.id`, l'écosystème
+   * ACTIF. Pour un expert les deux coïncident à vie ; pour un membre
+   * d'organisation ils divergent dès qu'il circule. C'est `domain.id` qu'on
+   * filtre (cf. `activeEcosystemId`), jamais celui-ci.
+   */
   domain_id: string
+  user_type: string | null
   status: string | null
 }
 
+/**
+ * L'écosystème ACTIF — celui du sous-domaine de la requête, PAS celui du compte.
+ *
+ * Avant le multi-écosystème, cette valeur était lue sur `users.domains` : les
+ * deux ne pouvaient pas différer. Elles diffèrent maintenant, et c'est bien
+ * celle-ci que `activeEcosystemId(auth)` renvoie — sans quoi une organisation
+ * naviguant sur un écosystème verrait les données de son écosystème
+ * d'inscription, en silence.
+ */
 export type AuthDomain = {
   id: string
   slug: string
+  active: boolean
 }
 
 /**
@@ -206,7 +224,7 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
   const { data: userRow, error: userErr } = await supabaseAdmin
     .from('users')
     .select(
-      'id, last_session_token, domain_id, status, deletion_scheduled_at, anonymized_at, domains(id, slug)',
+      'id, last_session_token, domain_id, user_type, status, deletion_scheduled_at, anonymized_at, domains(id, slug, active)',
     )
     .eq('id', userInfo.user.id)
     .maybeSingle()
@@ -250,15 +268,75 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
     }
   }
 
-  // Règle d'or : AUCUN slug d'écosystème par défaut. x-subdomain est injecté par
-  // useSecureFetch sur toute requête authentifiée ; absent = anomalie → échec
-  // (domain_mismatch), jamais un rattachement implicite à un écosystème figé.
+  // ══ GARDE DU SLUG — ELLE ÉCHOUE FERME ═══════════════════════════════════
+  //
+  // Règle d'or : AUCUN slug d'écosystème par défaut. `x-subdomain` est injecté
+  // par useSecureFetch sur toute requête authentifiée ; absent = anomalie →
+  // échec, jamais un rattachement implicite à un écosystème figé.
+  //
+  // CE SLUG EST RÉSOLU EN BASE, jamais comparé de chaîne à chaîne. Tant que la
+  // garde se résumait à « le slug reçu vaut-il celui de mon compte ? », un
+  // écosystème inexistant ou désactivé était impossible à distinguer : le test
+  // passait ou échouait pour la seule raison que le compte était ailleurs.
+  // Il faut désormais que l'écosystème EXISTE — et, sauf pour un
+  // administrateur, qu'il soit ACTIF.
   const headerSubdomain = request.headers.get('x-subdomain')
-  const domainRow = Array.isArray(userRow.domains)
-    ? userRow.domains[0]
-    : userRow.domains
-  if (!headerSubdomain || !domainRow || (domainRow as { slug?: string } | null)?.slug !== headerSubdomain) {
+  if (!headerSubdomain) {
     throw new AuthError(403, { error: 'Domain mismatch', code: 'domain_mismatch' })
+  }
+
+  const ownDomain = (Array.isArray(userRow.domains) ? userRow.domains[0] : userRow.domains) as
+    | { id: string; slug: string; active: boolean }
+    | null
+
+  // L'écosystème visé. Sur son propre sous-domaine — le cas de tout expert, et
+  // le plus fréquent — la ligne est déjà jointe : aucune lecture de plus.
+  let target = ownDomain && ownDomain.slug === headerSubdomain ? ownDomain : null
+  if (!target) {
+    const { data: domRow, error: domErr } = await supabaseAdmin
+      .from('domains')
+      .select('id, slug, active')
+      .eq('slug', headerSubdomain)
+      .maybeSingle()
+    if (domErr) {
+      console.error('[auth-guard] domain lookup error', {
+        slug: headerSubdomain,
+        msg: domErr.message,
+      })
+      // Une base muette ne vaut PAS une autorisation.
+      throw new AuthError(403, { error: 'Domain lookup failed', code: 'domain_lookup_failed' })
+    }
+    target = (domRow ?? null) as { id: string; slug: string; active: boolean } | null
+  }
+  if (!target) {
+    // Le slug d'un écosystème est un sous-domaine public, lisible dans le DNS :
+    // le nommer inexistant ne révèle rien, et rend l'incident diagnosticable.
+    throw new AuthError(403, { error: 'Unknown ecosystem', code: 'unknown_domain' })
+  }
+
+  // La règle par population vit dans lib/ecosystem-scope.ts, avec sa doctrine.
+  // `null` = user_type inconnu = REFUS : un type non prévu ne doit jamais
+  // hériter du régime le plus permissif.
+  const scope = ecosystemAccessScope(userRow.user_type as string | null)
+  if (scope === null) {
+    console.error('[auth-guard] unknown user_type', {
+      userId: userRow.id,
+      userType: userRow.user_type,
+    })
+    throw new AuthError(403, { error: 'Unknown user type', code: 'unknown_user_type' })
+  }
+
+  // EXPERT : son écosystème, à vie.
+  if (scope === 'own' && target.id !== userRow.domain_id) {
+    throw new AuthError(403, { error: 'Domain mismatch', code: 'domain_mismatch' })
+  }
+
+  // Un écosystème DÉSACTIVÉ n'accueille plus personne — pas même l'expert qui y
+  // est né. C'est la conséquence assumée de la désactivation, et la raison pour
+  // laquelle elle s'annonce avec ses volumes réels. Seul l'ADMIN passe : c'est
+  // de là qu'on réactive.
+  if (scope !== 'platform' && !target.active) {
+    throw new AuthError(403, { error: 'Ecosystem inactive', code: 'domain_inactive' })
   }
 
   // ── Gate SUSPENSION (APRÈS session+domaine, AVANT les gates suppression) ──
@@ -313,12 +391,11 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
       id: userRow.id,
       last_session_token: userRow.last_session_token,
       domain_id: userRow.domain_id,
+      user_type: (userRow.user_type ?? null) as string | null,
       status: (userRow.status ?? null) as string | null,
     },
-    domain: {
-      id: (domainRow as { id: string }).id,
-      slug: (domainRow as { slug: string }).slug,
-    },
+    // L'écosystème ACTIF (le sous-domaine), pas celui du compte.
+    domain: { id: target.id, slug: target.slug, active: target.active },
     organization,
     supabaseAdmin,
   }
