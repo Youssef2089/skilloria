@@ -2,7 +2,16 @@ import { NextRequest } from 'next/server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { readSessionCookieToken, hashSessionToken } from '@/lib/session-token'
 import { isProduction } from '@/lib/env'
-import { ecosystemAccessScope } from '@/lib/ecosystem-scope'
+import { resolveEcosystemAccess, type EcosystemDenialCode } from '@/lib/ecosystem-guard'
+
+/** Messages techniques des refus d'écosystème. L'UI, elle, traduit sur `code`. */
+const ECOSYSTEM_DENIAL_MESSAGES: Record<EcosystemDenialCode, string> = {
+  domain_mismatch: 'Domain mismatch',
+  unknown_domain: 'Unknown ecosystem',
+  domain_inactive: 'Ecosystem inactive',
+  unknown_user_type: 'Unknown user type',
+  domain_lookup_failed: 'Domain lookup failed',
+}
 
 export type AuthUser = {
   id: string
@@ -71,7 +80,7 @@ export type AuthContext = {
 export class AuthError extends Error {
   constructor(
     public readonly status: number,
-    public readonly body: { error: string; code?: string },
+    public readonly body: { error: string; code?: string; own_slug?: string | null },
   ) {
     super(body.error)
   }
@@ -270,74 +279,36 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
 
   // ══ GARDE DU SLUG — ELLE ÉCHOUE FERME ═══════════════════════════════════
   //
-  // Règle d'or : AUCUN slug d'écosystème par défaut. `x-subdomain` est injecté
-  // par useSecureFetch sur toute requête authentifiée ; absent = anomalie →
-  // échec, jamais un rattachement implicite à un écosystème figé.
+  // La règle ne vit plus ici : elle est dans lib/ecosystem-guard.ts, partagée
+  // avec la garde du dashboard (server component, qui REDIRIGE au lieu de
+  // lever). Deux gardes, un seul verdict — écrire la règle deux fois, c'est
+  // accepter qu'un écran s'affiche pendant que les données sont refusées.
   //
-  // CE SLUG EST RÉSOLU EN BASE, jamais comparé de chaîne à chaîne. Tant que la
-  // garde se résumait à « le slug reçu vaut-il celui de mon compte ? », un
-  // écosystème inexistant ou désactivé était impossible à distinguer : le test
-  // passait ou échouait pour la seule raison que le compte était ailleurs.
-  // Il faut désormais que l'écosystème EXISTE — et, sauf pour un
-  // administrateur, qu'il soit ACTIF.
-  const headerSubdomain = request.headers.get('x-subdomain')
-  if (!headerSubdomain) {
-    throw new AuthError(403, { error: 'Domain mismatch', code: 'domain_mismatch' })
-  }
-
+  // Ce qui reste ici, c'est la SANCTION : une AuthError 403.
   const ownDomain = (Array.isArray(userRow.domains) ? userRow.domains[0] : userRow.domains) as
     | { id: string; slug: string; active: boolean }
     | null
 
-  // L'écosystème visé. Sur son propre sous-domaine — le cas de tout expert, et
-  // le plus fréquent — la ligne est déjà jointe : aucune lecture de plus.
-  let target = ownDomain && ownDomain.slug === headerSubdomain ? ownDomain : null
-  if (!target) {
-    const { data: domRow, error: domErr } = await supabaseAdmin
-      .from('domains')
-      .select('id, slug, active')
-      .eq('slug', headerSubdomain)
-      .maybeSingle()
-    if (domErr) {
-      console.error('[auth-guard] domain lookup error', {
-        slug: headerSubdomain,
-        msg: domErr.message,
-      })
-      // Une base muette ne vaut PAS une autorisation.
-      throw new AuthError(403, { error: 'Domain lookup failed', code: 'domain_lookup_failed' })
-    }
-    target = (domRow ?? null) as { id: string; slug: string; active: boolean } | null
-  }
-  if (!target) {
-    // Le slug d'un écosystème est un sous-domaine public, lisible dans le DNS :
-    // le nommer inexistant ne révèle rien, et rend l'incident diagnosticable.
-    throw new AuthError(403, { error: 'Unknown ecosystem', code: 'unknown_domain' })
-  }
-
-  // La règle par population vit dans lib/ecosystem-scope.ts, avec sa doctrine.
-  // `null` = user_type inconnu = REFUS : un type non prévu ne doit jamais
-  // hériter du régime le plus permissif.
-  const scope = ecosystemAccessScope(userRow.user_type as string | null)
-  if (scope === null) {
-    console.error('[auth-guard] unknown user_type', {
-      userId: userRow.id,
-      userType: userRow.user_type,
+  const access = await resolveEcosystemAccess({
+    admin: supabaseAdmin,
+    headerSubdomain: request.headers.get('x-subdomain'),
+    userType: (userRow.user_type ?? null) as string | null,
+    userDomainId: userRow.domain_id as string,
+    ownDomain,
+    logTag: 'auth-guard',
+  })
+  if (!access.ok) {
+    // `own_slug` VOYAGE AVEC LE REFUS. C'est lui qui permet à l'écran de dire
+    // à un expert égaré « votre écosystème est celui-ci, voici l'adresse »
+    // plutôt que « accès refusé ». Un refus sans issue n'est qu'une impasse
+    // polie. Il ne révèle rien : c'est l'écosystème de son propre compte.
+    throw new AuthError(403, {
+      error: ECOSYSTEM_DENIAL_MESSAGES[access.denial.code],
+      code: access.denial.code,
+      own_slug: access.denial.ownSlug,
     })
-    throw new AuthError(403, { error: 'Unknown user type', code: 'unknown_user_type' })
   }
-
-  // EXPERT : son écosystème, à vie.
-  if (scope === 'own' && target.id !== userRow.domain_id) {
-    throw new AuthError(403, { error: 'Domain mismatch', code: 'domain_mismatch' })
-  }
-
-  // Un écosystème DÉSACTIVÉ n'accueille plus personne — pas même l'expert qui y
-  // est né. C'est la conséquence assumée de la désactivation, et la raison pour
-  // laquelle elle s'annonce avec ses volumes réels. Seul l'ADMIN passe : c'est
-  // de là qu'on réactive.
-  if (scope !== 'platform' && !target.active) {
-    throw new AuthError(403, { error: 'Ecosystem inactive', code: 'domain_inactive' })
-  }
+  const target = access.domain
 
   // ── Gate SUSPENSION (APRÈS session+domaine, AVANT les gates suppression) ──
   //

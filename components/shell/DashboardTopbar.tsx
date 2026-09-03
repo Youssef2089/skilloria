@@ -1,6 +1,7 @@
 'use client'
 
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import EcosystemSwitcher from '@/components/shell/EcosystemSwitcher'
 import NotificationBell from '@/components/NotificationBell'
 import MessagesTopbarIcon from '@/components/MessagesTopbarIcon'
 
@@ -8,7 +9,8 @@ import MessagesTopbarIcon from '@/components/MessagesTopbarIcon'
  * DashboardTopbar — barre supérieure 60px (Lot refonte UX).
  *
  * Côté gauche : titre de page (dérivé du sub-layout ou pris en prop).
- * Côté droit : LanguageSwitcher · NotificationBell · MessagesTopbarIcon ·
+ * Côté droit : EcosystemSwitcher (organisation) · LanguageSwitcher ·
+ *              NotificationBell · MessagesTopbarIcon ·
  *              statut "Disponible" (expert) / placeholder.
  *
  * Le titre est passé en prop ; chaque sub-layout le résout via usePathname()
@@ -44,6 +46,12 @@ export default function DashboardTopbar({
         {title}
       </span>
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+        {/* Sélecteur d'écosystème — CÔTÉ ORGANISATION UNIQUEMENT.
+            Un expert reste sur le sien à vie : lui montrer une liste serait
+            proposer un choix qui n'existe pas. Le composant se retire d'ailleurs
+            de lui-même dès qu'il n'a qu'une destination, ce qui le rend inerte
+            en mono-écosystème sans qu'on ait à le prévoir ici. */}
+        {side === 'entreprise' && <EcosystemSwitcher />}
         <LanguageSwitcher />
         <NotificationBell />
         <MessagesTopbarIcon side={messagesSide} />

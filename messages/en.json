@@ -3616,5 +3616,34 @@
       "notify_enabled_help": "Left off until someone has read the distribution: a guessed threshold would alert at random.",
       "model": "Model: {model}. Changing it changes the scale — both thresholds become wrong."
     }
+  },
+  "ecosystem_switcher": {
+    "aria": "Switch ecosystem",
+    "label": "Ecosystem",
+    "current": "Current ecosystem: {name}",
+    "unavailable_here": "Switching ecosystems is not available at this address."
+  },
+  "ecosystem_unavailable": {
+    "meta_title": "Ecosystem unavailable",
+    "back_home": "Back to home",
+    "generic": {
+      "title": "This ecosystem is unavailable",
+      "body": "We could not open this ecosystem. Try again in a moment; if the problem persists, contact support."
+    },
+    "unknown_domain": {
+      "title": "This address matches no ecosystem",
+      "body": "The subdomain used does not exist. Check the address, or go back to the home page."
+    },
+    "domain_inactive": {
+      "title": "This ecosystem is deactivated",
+      "body": "It no longer accepts connections. Your data is kept; contact support to find out what happens next."
+    },
+    "domain_mismatch": {
+      "title": "Your account belongs to another ecosystem",
+      "body": "An expert account belongs to a single ecosystem, permanently. Here is yours.",
+      "own_label": "Your ecosystem",
+      "cta": "Go to my ecosystem",
+      "no_link": "Open this subdomain directly in your browser."
+    }
   }
 }

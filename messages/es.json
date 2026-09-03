@@ -3616,5 +3616,34 @@
       "notify_enabled_help": "Se deja inactivo mientras nadie haya leído la distribución: un umbral adivinado avisaría al azar.",
       "model": "Modelo: {model}. Cambiarlo cambia la escala — ambos umbrales dejan de ser válidos."
     }
+  },
+  "ecosystem_switcher": {
+    "aria": "Cambiar de ecosistema",
+    "label": "Ecosistema",
+    "current": "Ecosistema actual: {name}",
+    "unavailable_here": "El cambio de ecosistema no está disponible en esta dirección."
+  },
+  "ecosystem_unavailable": {
+    "meta_title": "Ecosistema no disponible",
+    "back_home": "Volver al inicio",
+    "generic": {
+      "title": "Este ecosistema no está disponible",
+      "body": "No hemos podido abrir este ecosistema. Inténtelo de nuevo en un momento; si el problema persiste, contacte con el soporte."
+    },
+    "unknown_domain": {
+      "title": "Esta dirección no corresponde a ningún ecosistema",
+      "body": "El subdominio utilizado no existe. Compruebe la dirección o vuelva al inicio."
+    },
+    "domain_inactive": {
+      "title": "Este ecosistema está desactivado",
+      "body": "Ya no admite conexiones. Sus datos se conservan; contacte con el soporte para conocer los siguientes pasos."
+    },
+    "domain_mismatch": {
+      "title": "Su cuenta pertenece a otro ecosistema",
+      "body": "Una cuenta de experto pertenece a un único ecosistema, de forma definitiva. Este es el suyo.",
+      "own_label": "Su ecosistema",
+      "cta": "Ir a mi ecosistema",
+      "no_link": "Abra este subdominio directamente en su navegador."
+    }
   }
 }

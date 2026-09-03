@@ -3616,5 +3616,34 @@
       "notify_enabled_help": "Laissé inactif tant que personne n'a lu la distribution : un seuil deviné préviendrait au hasard.",
       "model": "Modèle : {model}. En changer change l’échelle — les deux seuils deviennent faux."
     }
+  },
+  "ecosystem_switcher": {
+    "aria": "Changer d'écosystème",
+    "label": "Écosystème",
+    "current": "Écosystème actuel : {name}",
+    "unavailable_here": "Le changement d'écosystème n'est pas disponible sur cette adresse."
+  },
+  "ecosystem_unavailable": {
+    "meta_title": "Écosystème indisponible",
+    "back_home": "Retour à l'accueil",
+    "generic": {
+      "title": "Cet écosystème est indisponible",
+      "body": "Nous n'avons pas pu ouvrir cet écosystème. Réessayez dans un instant ; si le problème persiste, contactez le support."
+    },
+    "unknown_domain": {
+      "title": "Cette adresse ne correspond à aucun écosystème",
+      "body": "Le sous-domaine utilisé n'existe pas. Vérifiez l'adresse, ou revenez à l'accueil."
+    },
+    "domain_inactive": {
+      "title": "Cet écosystème est désactivé",
+      "body": "Il n'accueille plus de connexions. Vos données sont conservées ; contactez le support pour connaître la suite."
+    },
+    "domain_mismatch": {
+      "title": "Votre compte appartient à un autre écosystème",
+      "body": "Un compte expert est rattaché à un seul écosystème, définitivement. Voici le vôtre.",
+      "own_label": "Votre écosystème",
+      "cta": "Aller sur mon écosystème",
+      "no_link": "Ouvrez ce sous-domaine directement dans votre navigateur."
+    }
   }
 }

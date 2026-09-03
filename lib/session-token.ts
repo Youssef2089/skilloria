@@ -27,24 +27,46 @@ const SESSION_COOKIE_BASE_NAME = 'ss_token'
 const SESSION_COOKIE_MAX_AGE_S = 30 * 24 * 60 * 60 // 30 jours
 
 /**
+ * Hôte de staging — `staging.skilloria.io` ET TOUT SOUS-DOMAINE EN DESSOUS.
+ *
+ * ⚠️ LE SUFFIXE `_staging` NE SERT À RIEN S'IL NE VOIT PAS LES SOUS-DOMAINES.
+ *
+ *    La règle testait l'ÉGALITÉ STRICTE avec `staging.skilloria.io`. Tant que
+ *    staging n'avait qu'un seul hôte, elle suffisait. Éprouver la bascule entre
+ *    écosystèmes exige des hôtes `<slug>.staging.skilloria.io` — pour lesquels
+ *    l'égalité est FAUSSE. Le cookie s'y serait appelé `ss_token`, posé sur
+ *    `Domain=.skilloria.io`, donc EXACTEMENT sur le cookie de production :
+ *    se connecter à staging aurait déconnecté l'utilisateur de la production.
+ *    C'est précisément l'accident que ce suffixe existe pour empêcher.
+ *
+ * Fonction PURE et exportée : la garde du dashboard (server component, sans
+ * NextRequest) doit appliquer la MÊME règle. Elle vivait recopiée là-bas ; deux
+ * copies d'une règle de nommage de cookie finissent par lire deux cookies
+ * différents, et la garde qui lit le mauvais ne garde plus rien, en silence.
+ */
+export function isStagingHost(host: string | null | undefined): boolean {
+  const h = (host ?? '').toLowerCase().split(':')[0]
+  return h === 'staging.skilloria.io' || h.endsWith('.staging.skilloria.io')
+}
+
+/**
  * Nom du cookie de session — suffixé sur staging pour éviter la collision
  * avec prod sur le domaine parent `.skilloria.io`.
  *
- * Problème évité (11F F2) :
- *   prod (app.skilloria.io) et staging (staging.skilloria.io) partagent
- *   Domain=.skilloria.io. Sans suffixe, un login staging écraserait le
- *   cookie prod côté navigateur → l'user se ferait déconnecter de prod
- *   à tort (mismatch BDD prod ≠ cookie issu de staging).
- *
- *   Solution : staging utilise `ss_token_staging`. Prod garde `ss_token`.
- *
  * NB : le nom du cookie est dérivé du host pour rester zero-config —
- * même règle côté pose (init-session) et lecture (auth-guard).
+ * même règle côté pose (init-session), lecture (auth-guard) et garde dashboard.
+ *
+ * ⚠️ Il N'EST PAS suffixé par écosystème, et c'est VOULU : `microsoft.` et
+ *    `sap.` partagent `Domain=.skilloria.io` et le même cookie. C'est ce qui
+ *    permet de changer d'écosystème SANS se réauthentifier — et donc de ne
+ *    jamais rappeler init-session à la bascule.
  */
+export function sessionCookieNameForHost(host: string | null | undefined): string {
+  return isStagingHost(host) ? `${SESSION_COOKIE_BASE_NAME}_staging` : SESSION_COOKIE_BASE_NAME
+}
+
 export function getSessionCookieName(request: NextRequest): string {
-  const host = (request.headers.get('host') ?? '').toLowerCase().split(':')[0]
-  if (host === 'staging.skilloria.io') return `${SESSION_COOKIE_BASE_NAME}_staging`
-  return SESSION_COOKIE_BASE_NAME
+  return sessionCookieNameForHost(request.headers.get('host'))
 }
 
 /** Re-export pour compat éventuelle (utilisé nulle part actuellement). */

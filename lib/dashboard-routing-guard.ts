@@ -15,6 +15,21 @@
  *  - User identifié sur le bon segment → pass-through.
  *  - Segment non-role-specific (ex. /dashboard/cabinet qui redirect lui-même)
  *    → pass-through.
+ *
+ * ══ ELLE GARDE AUSSI L'ÉCOSYSTÈME ═══════════════════════════════════════════
+ *  Cette garde ne connaissait que les RÔLES. Le sous-domaine, elle l'ignorait :
+ *  une adresse d'écosystème inconnue ou désactivée rendait la coquille du
+ *  dashboard, dont chaque appel /api répondait ensuite 403. La sécurité était
+ *  fermée — l'API refusait — mais l'expérience ne l'était pas : un écran vide
+ *  sans explication vaut, pour l'utilisateur, un bug.
+ *
+ *  Le verdict vient de resolveEcosystemAccess, LA MÊME fonction que
+ *  requireAuth. Ce qu'on en fait diffère (ici on redirige, là on lève un 403) ;
+ *  le verdict, lui, ne peut pas différer.
+ *
+ *  ORDRE SIGNIFIANT : l'écosystème AVANT le rôle. Rediriger vers le bon
+ *  dashboard d'abord laisserait l'utilisateur sur le mauvais sous-domaine —
+ *  on l'aurait déplacé sans le sortir de l'impasse.
  */
 
 import { headers, cookies } from 'next/headers'
@@ -24,7 +39,9 @@ import {
   allowedUserTypesForDashboardSegment,
   dashboardUrlForUserType,
 } from '@/lib/auth-routing'
-import { hashSessionToken } from '@/lib/session-token'
+import { hashSessionToken, sessionCookieNameForHost } from '@/lib/session-token'
+import { resolveEcosystemAccess } from '@/lib/ecosystem-guard'
+import { ECOSYSTEM_UNAVAILABLE_PATH } from '@/lib/ecosystem-url'
 
 function getSupabaseAdmin(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -36,16 +53,6 @@ function getSupabaseAdmin(): SupabaseClient | null {
   return createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
-}
-
-/**
- * Lit le nom du cookie de session (suffixé sur staging — cf.
- * lib/session-token.ts). On reproduit la logique ici sans dépendre du
- * NextRequest (qu'on n'a pas en server component).
- */
-function getSessionCookieName(host: string | null): string {
-  const h = (host ?? '').toLowerCase().split(':')[0]
-  return h === 'staging.skilloria.io' ? 'ss_token_staging' : 'ss_token'
 }
 
 /**
@@ -73,11 +80,11 @@ export async function assertDashboardRoleGuard(): Promise<void> {
   const segment = parseDashboardSegment(pathname)
   if (!segment) return
 
-  const allowed = allowedUserTypesForDashboardSegment(segment)
-  if (allowed === null) return   // segment "ouvert" (ex. cabinet redirect)
-
   const cookieStore = await cookies()
-  const cookieName = getSessionCookieName(host)
+  // La règle de nommage vient de lib/session-token.ts, elle n'est plus
+  // RECOPIÉE ici : une copie qui prend du retard fait lire un cookie qui
+  // n'existe pas, et cette garde s'arrête alors sans rien dire.
+  const cookieName = sessionCookieNameForHost(host)
   const sessionToken = cookieStore.get(cookieName)?.value
   if (!sessionToken) return   // pas connecté — laisser la page gérer
 
@@ -89,7 +96,7 @@ export async function assertDashboardRoleGuard(): Promise<void> {
   // matche jamais et ce garde casse (redirect dashboard rompu).
   const { data, error } = await supabaseAdmin
     .from('users')
-    .select('id, user_type')
+    .select('id, user_type, domain_id, domains(id, slug, active)')
     .eq('last_session_token', hashSessionToken(sessionToken))
     .maybeSingle()
 
@@ -99,9 +106,36 @@ export async function assertDashboardRoleGuard(): Promise<void> {
   }
   if (!data) return   // token orphelin — laisser la page gérer
 
-  const userType = (data as { user_type: string | null }).user_type
+  const row = data as {
+    id: string
+    user_type: string | null
+    domain_id: string
+    domains: { id: string; slug: string; active: boolean } | { id: string; slug: string; active: boolean }[] | null
+  }
+  const userType = row.user_type
   if (!userType) return
 
+  // ── ÉCOSYSTÈME D'ABORD ────────────────────────────────────────────────────
+  // `x-subdomain` est posé par proxy.ts sur les PAGES (il n'exclut que /api).
+  const access = await resolveEcosystemAccess({
+    admin: supabaseAdmin,
+    headerSubdomain: hdrs.get('x-subdomain'),
+    userType,
+    userDomainId: row.domain_id,
+    ownDomain: (Array.isArray(row.domains) ? row.domains[0] : row.domains) ?? null,
+    logTag: 'dashboard-routing-guard',
+  })
+  if (!access.ok) {
+    // La page vit HORS de /dashboard : cette garde ne s'y exécute pas, donc
+    // aucune boucle de redirection possible.
+    const params = new URLSearchParams({ code: access.denial.code })
+    if (access.denial.ownSlug) params.set('slug', access.denial.ownSlug)
+    redirect(`${ECOSYSTEM_UNAVAILABLE_PATH}?${params.toString()}`)
+  }
+
+  // ── PUIS LE RÔLE ──────────────────────────────────────────────────────────
+  const allowed = allowedUserTypesForDashboardSegment(segment)
+  if (allowed === null) return   // segment "ouvert" (ex. cabinet redirect)
   if ((allowed as readonly string[]).includes(userType)) return
 
   // Mismatch — redirect vers le bon dashboard.

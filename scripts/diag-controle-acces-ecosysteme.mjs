@@ -137,48 +137,77 @@ ok(/"user_type" character varying\(30\) NOT NULL/.test(baseline),
 // ═══ C. LA GARDE DU SLUG ═══════════════════════════════════════════════════
 section('C. La garde echoue FERME')
 
-// Le corps de requireAuth : on ne veut pas qu'une occurrence dans un
-// commentaire de tete ou dans requireOrgRole fasse passer un controle.
+// LA RESOLUTION A DEMENAGE dans lib/ecosystem-guard.ts, partagee avec la garde
+// du dashboard. Les controles la suivent : un controle qui reste braque sur
+// l'ancien emplacement ne verifie plus rien, il constate seulement une absence.
+const ecoGuard = stripComments(read('lib/ecosystem-guard.ts'))
+const resolver = ecoGuard.slice(ecoGuard.indexOf('export async function resolveEcosystemAccess'))
 const guardBody = guard.slice(
   guard.indexOf('export async function requireAuth'),
   guard.indexOf('export function requireOrgRole'),
 )
 
 // R2 — le slug est RESOLU EN BASE, pas compare a une chaine.
-ok(/\.from\('domains'\)[\s\S]{0,200}?\.eq\('slug', headerSubdomain\)/.test(guardBody),
+ok(/\.from\('domains'\)[\s\S]{0,200}?\.eq\('slug', headerSubdomain\)/.test(resolver),
   'le slug recu est resolu sur la table domains',
   'une comparaison de chaines ne peut pas distinguer inconnu / desactive / ailleurs')
-ok(/code: 'unknown_domain'/.test(guardBody),
+ok(/if \(!target\) return deny\('unknown_domain'\)/.test(resolver),
   'un ecosysteme INEXISTANT est refuse explicitement')
 
 // R3 — l'ecosysteme desactive.
-ok(/scope !== 'platform' && !target\.active/.test(guardBody),
+ok(/if \(scope !== 'platform' && !target\.active\) return deny\('domain_inactive'\)/.test(resolver),
   'un ecosysteme DESACTIVE est refuse a tous sauf a l’administrateur')
-ok(/code: 'domain_inactive'/.test(guardBody),
-  'ce refus porte un code distinct')
 
 // R4 — une base muette n'autorise pas.
-ok(/if \(domErr\)[\s\S]{0,320}?throw new AuthError\(403/.test(guardBody),
+ok(/if \(domErr\)[\s\S]{0,320}?return deny\('domain_lookup_failed'\)/.test(resolver),
   'une erreur de lecture sur domains REFUSE',
   'une base muette ne vaut pas une autorisation')
 
 // L'en-tete absent refuse, et aucun slug par defaut ne le remplace.
-ok(/if \(!headerSubdomain\) \{\s*\n\s*throw new AuthError\(403/.test(guardBody),
+ok(/if \(!headerSubdomain\) return deny\('domain_mismatch'\)/.test(resolver),
   'un x-subdomain absent refuse')
-// La LECTURE doit etre nue, terminee par la fin de ligne. Chercher un repli sur
-// la VARIABLE (`headerSubdomain ??`) etait decoratif : le repli s'ecrit sur la
-// lecture (`.get('x-subdomain') ?? 'default'`), et passait sous le controle.
-ok(/const headerSubdomain = request\.headers\.get\('x-subdomain'\)\n/.test(guardBody),
+// La LECTURE doit etre nue. Chercher un repli sur la VARIABLE etait decoratif :
+// le repli s'ecrit sur la lecture (\`.get('x-subdomain') ?? 'default'\`).
+ok(/headerSubdomain: request\.headers\.get\('x-subdomain'\),/.test(guardBody),
   'aucun slug par defaut ne remplace un en-tete manquant',
   'un repli implicite rattacherait le compte a un ecosysteme fige')
 
-// La regle vient de la source unique, elle n'est pas recopiee ici.
-ok(/import \{ ecosystemAccessScope \} from '@\/lib\/ecosystem-scope'/.test(guard),
+// La regle par population vient de la source unique, elle n'est pas recopiee.
+ok(/import \{ ecosystemAccessScope \} from '@\/lib\/ecosystem-scope'/.test(ecoGuard),
   'la garde importe la regle, elle ne la redecrit pas')
-ok(/if \(scope === null\)[\s\S]{0,300}?code: 'unknown_user_type'/.test(guardBody),
+ok(/if \(scope === null\)[\s\S]{0,220}?return deny\('unknown_user_type'\)/.test(resolver),
   'un user_type inconnu refuse, au lieu d’heriter d’un regime')
-ok(/scope === 'own' && target\.id !== userRow\.domain_id/.test(guardBody),
+ok(/if \(scope === 'own' && target\.id !== userDomainId\) return deny\('domain_mismatch'\)/.test(resolver),
   'un expert hors de SON ecosysteme est refuse')
+
+// ═══ C bis. UNE SEULE IMPLEMENTATION ═══════════════════════════════════════
+section('C bis. Deux gardes, un seul verdict')
+
+// L'acces se decide a DEUX endroits — requireAuth (qui leve un 403) et la garde
+// du dashboard (qui redirige). Ce qu'ils FONT du verdict differe ; le verdict
+// doit etre le meme. Si l'un des deux se remet a resoudre l'ecosysteme
+// lui-meme, ils divergeront : l'ecran s'affichera pendant que les donnees sont
+// refusees, ou l'inverse. Ce controle interdit la seconde implementation.
+const dashGuard = stripComments(read('lib/dashboard-routing-guard.ts'))
+for (const [src, label] of [[guardBody, 'requireAuth'], [dashGuard, 'la garde du dashboard']]) {
+  ok(!/\.from\('domains'\)/.test(src),
+    `${label} ne resout pas l’ecosysteme elle-meme`,
+    'la resolution vit dans lib/ecosystem-guard.ts, une seule fois')
+  ok(/resolveEcosystemAccess\(/.test(src),
+    `${label} passe par resolveEcosystemAccess`)
+}
+// La regle par population n'est jamais rejouee a la main a cote.
+for (const [src, label] of [[guardBody, 'requireAuth'], [dashGuard, 'la garde du dashboard']]) {
+  ok(!/ecosystemAccessScope\(/.test(src),
+    `${label} ne rejoue pas la regle par population`)
+}
+
+// Le refus porte de quoi construire une SORTIE, pas seulement un mur.
+ok(/own_slug: access\.denial\.ownSlug/.test(guardBody),
+  'le refus emporte le slug de l’ecosysteme du compte',
+  'sans lui, l’ecran ne peut que dire « refuse » — une impasse polie')
+ok(/ownSlug: ownDomain\?\.slug \?\? null/.test(resolver),
+  'ce slug est celui du COMPTE, jamais celui qui a ete demande')
 
 // ═══ D. L'ECOSYSTEME ACTIF, PAS CELUI DU COMPTE ════════════════════════════
 section('D. auth.domain est le SOUS-DOMAINE')

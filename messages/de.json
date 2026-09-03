@@ -3616,5 +3616,34 @@
       "notify_enabled_help": "Bleibt aus, bis jemand die Verteilung gelesen hat: Eine geratene Schwelle würde zufällig benachrichtigen.",
       "model": "Modell: {model}. Ein Wechsel ändert die Skala — beide Schwellen werden dadurch falsch."
     }
+  },
+  "ecosystem_switcher": {
+    "aria": "Ökosystem wechseln",
+    "label": "Ökosystem",
+    "current": "Aktuelles Ökosystem: {name}",
+    "unavailable_here": "Der Wechsel des Ökosystems ist unter dieser Adresse nicht verfügbar."
+  },
+  "ecosystem_unavailable": {
+    "meta_title": "Ökosystem nicht verfügbar",
+    "back_home": "Zurück zur Startseite",
+    "generic": {
+      "title": "Dieses Ökosystem ist nicht verfügbar",
+      "body": "Dieses Ökosystem konnte nicht geöffnet werden. Versuchen Sie es gleich erneut; besteht das Problem weiter, wenden Sie sich an den Support."
+    },
+    "unknown_domain": {
+      "title": "Diese Adresse gehört zu keinem Ökosystem",
+      "body": "Die verwendete Subdomain existiert nicht. Prüfen Sie die Adresse oder kehren Sie zur Startseite zurück."
+    },
+    "domain_inactive": {
+      "title": "Dieses Ökosystem ist deaktiviert",
+      "body": "Es nimmt keine Verbindungen mehr an. Ihre Daten bleiben erhalten; wenden Sie sich an den Support, um das weitere Vorgehen zu erfahren."
+    },
+    "domain_mismatch": {
+      "title": "Ihr Konto gehört zu einem anderen Ökosystem",
+      "body": "Ein Expertenkonto gehört dauerhaft zu genau einem Ökosystem. Hier ist Ihres.",
+      "own_label": "Ihr Ökosystem",
+      "cta": "Zu meinem Ökosystem",
+      "no_link": "Öffnen Sie diese Subdomain direkt in Ihrem Browser."
+    }
   }
 }
