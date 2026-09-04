@@ -163,6 +163,9 @@ const ROUTES_VIA_MOTEUR = {
   // Tache planifiee : aucun contexte d'appel, donc aucun ecosysteme actif. Le
   // cloisonnement ne PEUT venir que de la ligne.
   'cron/match-retry/route.ts': 'moteur',
+  // Relance d'un expert arrivee a echeance : meme absence de contexte d'appel,
+  // donc meme cloisonnement par la ligne (le domain_id du profil).
+  'cron/expert-relance/route.ts': 'moteur',
   // Declencheurs cote expert : l'expert est mono-ecosysteme a vie.
   'me/sync-matching/route.ts': 'moteur',
   'profile/cdi-upload-cv/route.ts': 'moteur',

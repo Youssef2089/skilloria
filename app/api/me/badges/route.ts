@@ -126,11 +126,17 @@ export async function GET(request: NextRequest): Promise<Response> {
   // Supabase JS ne sait pas exprimer "NOT EXISTS join LATERAL" trivialement.
   // Pattern : 2 SELECT batch + diff client-side. O(N + M) où N=candidatures
   // du profile, M=views du user. Volumes faibles (centaines max V1).
+  // EXACTITUDE RENDUE AVEC LE COMPTE. Un badge tronqué doit s'afficher
+  // « 2 000+ » et non un chiffre inventé : c'est la différence entre un
+  // compteur qui se tait sur ce qu'il ignore et un compteur qui ment.
+  const approximatifs: string[] = []
   if (expertProfile) {
-    counts.candidatures_expert = await countUnviewedCandidaturesForUser(
-      auth,
-      { kind: 'expert', profileId: expertProfile.id },
-    )
+    const c = await countUnviewedCandidaturesForUser(auth, {
+      kind: 'expert',
+      profileId: expertProfile.id,
+    })
+    counts.candidatures_expert = c.valeur
+    if (!c.exact) approximatifs.push('candidatures_expert')
   }
 
   // ── candidatures_org + annonces_org (org members) ───────────────────────
@@ -140,11 +146,15 @@ export async function GET(request: NextRequest): Promise<Response> {
       kind: 'org',
       orgId,
     })
-    counts.candidatures_org = orgUnviewed
-    counts.annonces_org = orgUnviewed  // alias V1 (cf. en-tête)
+    counts.candidatures_org = orgUnviewed.valeur
+    counts.annonces_org = orgUnviewed.valeur  // alias V1 (cf. en-tête)
+    if (!orgUnviewed.exact) approximatifs.push('candidatures_org', 'annonces_org')
   }
 
-  return json({ badges: counts }, 200)
+  // `approximatifs` est vide dans l'immense majorité des cas. Le rendre TOUJOURS
+  // — plutôt que seulement quand il est non vide — évite à l'écran d'avoir à
+  // distinguer « absent » de « aucun », distinction dont il ne peut rien faire.
+  return json({ badges: counts, approximatifs }, 200)
 }
 
 /**
@@ -168,17 +178,46 @@ export async function GET(request: NextRequest): Promise<Response> {
  * de propager une 500 (le badge nav doit rester silencieux en cas de pépin
  * non-bloquant).
  */
+/**
+ * Nombre de candidatures chargées pour dériver le compteur.
+ *
+ * INCHANGÉ EN VALEUR — ce n'est pas un relèvement de plafond, c'est la fin d'un
+ * mensonge. Le tri par `updated_at` décroissant est nouveau : tronquer une
+ * liste NON TRIÉE retenait des lignes arbitraires, ce qui rendait le chiffre
+ * faux ET instable d'un appel à l'autre.
+ */
+const PLAFOND_CANDIDATURES = 2000
+
+type CompteBadge = { valeur: number; exact: boolean }
+
 async function countUnviewedCandidaturesForUser(
   auth: AuthContext,
   scope:
     | { kind: 'expert'; profileId: string }
     | { kind: 'org'; orgId: string },
-): Promise<number> {
+): Promise<CompteBadge> {
   // 1. Liste des candidatures du scope (+ entrées de dérivation d'état de vie)
+  //
+  //  ⚠️ CE PLAFOND EXISTE, ET IL NE MENT PLUS.
+  //    L'état de vie d'une candidature se dérive en mémoire, par le MÊME
+  //    assemblage que les compteurs par annonce — le réécrire en SQL en ferait
+  //    une seconde copie, et deux copies dérivent. On charge donc des lignes,
+  //    et il faut bien s'arrêter quelque part.
+  //
+  //    Ce qui était faux, c'est le SILENCE : au-delà de 2 000 candidatures, le
+  //    chiffre affiché était simplement inexact, et rien ne le disait. Un
+  //    compteur qui ment est pire qu'un compteur absent — on lui fait
+  //    confiance.
+  //
+  //    Le plafond est désormais RENDU avec le compte : l'appelant sait si le
+  //    nombre est exact, et l'écran peut afficher « 2 000+ » plutôt qu'un
+  //    chiffre inventé. Une lecture de plus, tronquée elle aussi, dirait la
+  //    même chose en coûtant davantage.
   let candQuery = auth.supabaseAdmin
     .from('candidatures')
     .select('id, updated_at, status, unlocked_at, publication_id')
-    .limit(2000)
+    .order('updated_at', { ascending: false })
+    .limit(PLAFOND_CANDIDATURES)
 
   if (scope.kind === 'expert') {
     candQuery = candQuery.eq('profile_id', scope.profileId)
@@ -191,20 +230,30 @@ async function countUnviewedCandidaturesForUser(
       .eq('organization_id', scope.orgId)
       .eq('domain_id', activeEcosystemId(auth))
     const pubIds = ((pubsRaw ?? []) as { id: string }[]).map((p) => p.id)
-    if (pubIds.length === 0) return 0
+    if (pubIds.length === 0) return { valeur: 0, exact: true }
     candQuery = candQuery.in('publication_id', pubIds)
   }
 
   const { data: candRowsRaw, error: cErr } = await candQuery
   if (cErr) {
     console.error('[me/badges] candidatures scope query failed', cErr.message)
-    return 0
+    return { valeur: 0, exact: true }
   }
   const candRowsAll = (candRowsRaw ?? []) as {
     id: string; updated_at: string; status: string
     unlocked_at: string | null; publication_id: string
   }[]
-  if (candRowsAll.length === 0) return 0
+  if (candRowsAll.length === 0) return { valeur: 0, exact: true }
+
+  // Le plafond a-t-il mordu ? Si oui, le compte qui suit porte sur un
+  // sous-ensemble : il est MINORANT, jamais exact. L'appelant doit le savoir.
+  const tronque = candRowsAll.length >= PLAFOND_CANDIDATURES
+  if (tronque) {
+    console.warn('[me/badges] plafond atteint — le compte est minorant, pas exact', {
+      scope: scope.kind,
+      plafond: PLAFOND_CANDIDATURES,
+    })
+  }
 
   // 1bis. Fenêtres annonce + fenêtres échange, puis dérivation — assemblage
   //       PARTAGÉ (lib/candidatures/lifecycle-batch), le même que celui qui
@@ -221,7 +270,7 @@ async function countUnviewedCandidaturesForUser(
     now,
   )
   const candRows = candRowsAll.filter((c) => lifecycleByCand.get(c.id)?.bucket === 'active')
-  if (candRows.length === 0) return 0
+  if (candRows.length === 0) return { valeur: 0, exact: tronque ? false : true }
 
   // 2. Vues de l'user courant pour ces candidatures
   const candIds = candRows.map((c) => c.id)
@@ -232,7 +281,7 @@ async function countUnviewedCandidaturesForUser(
     .in('candidature_id', candIds)
   if (vErr) {
     console.error('[me/badges] candidature_views query failed', vErr.message)
-    return 0
+    return { valeur: 0, exact: true }
   }
   const viewedAtByCand = new Map<string, string>()
   for (const v of (viewsRaw ?? []) as { candidature_id: string; viewed_at: string }[]) {
@@ -251,5 +300,5 @@ async function countUnviewedCandidaturesForUser(
       unviewed++
     }
   }
-  return unviewed
+  return { valeur: unviewed, exact: !tronque }
 }
