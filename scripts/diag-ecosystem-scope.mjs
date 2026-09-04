@@ -67,6 +67,9 @@ const INVENTORY = {
   'candidatures/[id]/reject/route.ts': 'scoped',
   'candidatures/[id]/select/route.ts': 'scoped',
   'candidatures/[id]/unlock/route.ts': 'scoped',
+  // Pitch redige a la demande : elle lit la candidature ET son annonce, donc
+  // elle porte le filtre comme les autres acces par identifiant.
+  'candidatures/[id]/pitch/route.ts': 'scoped',
   'me/candidatures/[id]/view/route.ts': 'scoped',
 
   // ── Surfaces EXPERT ────────────────────────────────────────────────────
