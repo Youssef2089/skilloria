@@ -79,6 +79,8 @@ export function activeEcosystemId(auth: { domain: { id: string } }): string {
  * ║                   personnelle de sous-traitance.                         ║
  * ║   ORGANISATION  → TOUS les écosystèmes ACTIFS. Aucun rattachement,       ║
  * ║                   aucune activation, aucun abonnement par écosystème.    ║
+ * ║                   Seule population que la DÉSACTIVATION arrête : un      ║
+ * ║                   expert inscrit garde le sien (cf. ecosystem-guard).    ║
  * ║   ADMIN         → PLATEFORME. Y compris un écosystème DÉSACTIVÉ : c'est  ║
  * ║                   depuis là qu'on le réactive, s'en verrouiller dehors   ║
  * ║                   serait se priver de la marche arrière.                 ║

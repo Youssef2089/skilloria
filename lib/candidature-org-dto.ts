@@ -73,7 +73,7 @@ export type OrgCandidatureDTO = {
     title: unknown
     summary: unknown
     skills: unknown[]
-    seniority: unknown
+    seniorities: string[]
     expert_type: unknown
     years_experience: unknown
     years_total_experience: unknown
@@ -89,7 +89,7 @@ export type OrgCandidatureDTO = {
     availability_date: unknown
     profile_score: unknown
     branch_label: string | null
-    speciality_label: string | null
+    speciality_labels: string[]
     /** Lot synthèse candidat CDI — 6 signaux non-PII. */
     cdi_status: string | null
     cdi_notice_period: string | null
@@ -121,7 +121,7 @@ type FullProfile = {
   title: string | null
   summary: string | null
   skills: string[] | null
-  seniority: string | null
+  seniorities: string[] | null
   expert_type: string | null
   years_experience: number | null
   years_total_experience: number | null
@@ -144,10 +144,29 @@ type FullProfile = {
   availability_date: string | null
   profile_score: number | null
   branch_id: string | null
-  speciality_id: string | null
+  speciality_ids: string[] | null
   users:
     | { id: string; first_name: string | null; last_name: string | null }
     | { id: string; first_name: string | null; last_name: string | null }[]
+}
+
+/**
+ * Lit une valeur devenue MULTIPLE dans un instantané qui peut être ANCIEN.
+ *
+ * `candidatures.preview` est un instantané du profil au moment de la
+ * candidature. Il n'est jamais réécrit — c'est précisément son rôle : dire ce
+ * que l'organisation a vu ce jour-là. Les instantanés déjà en base portent donc
+ * `seniority` et `speciality_id` au singulier, d'avant le passage au multiple.
+ *
+ * Ne lire que le pluriel viderait l'affichage de TOUTES les candidatures
+ * existantes — sans une erreur nulle part, juste des champs vides. On lit donc
+ * les deux formes, le pluriel d'abord.
+ */
+function listeDepuisInstantane(pluriel: unknown, singulier: unknown): string[] {
+  if (Array.isArray(pluriel)) {
+    return pluriel.filter((x): x is string => typeof x === 'string' && x.length > 0)
+  }
+  return typeof singulier === 'string' && singulier.length > 0 ? [singulier] : []
 }
 
 export async function buildOrgCandidatureDTOs(
@@ -310,11 +329,11 @@ export async function buildOrgCandidatureDTOs(
     const { data: profRows } = await auth.supabaseAdmin
       .from('profiles')
       .select(
-        'id, user_id, title, summary, skills, seniority, expert_type, ' +
+        'id, user_id, title, summary, skills, seniorities, expert_type, ' +
           'years_experience, years_total_experience, tjm_min, tjm_max, salary_min, salary_max, ' +
           'work_modes, languages, country, city, photo_url, ' +
           'availability_status, availability_date, profile_score, ' +
-          'branch_id, speciality_id, ' +
+          'branch_id, speciality_ids, ' +
           'users!profiles_user_id_fkey!inner(id, first_name, last_name, deletion_scheduled_at, anonymized_at)',
       )
       .in('id', Array.from(unlockedProfileIds))
@@ -329,7 +348,7 @@ export async function buildOrgCandidatureDTOs(
   for (const r of rows) {
     const p = r.preview ?? {}
     if (typeof p.branch_id === 'string') branchIds.add(p.branch_id)
-    if (typeof p.speciality_id === 'string') specIds.add(p.speciality_id)
+    for (const sid of listeDepuisInstantane(p.speciality_ids, p.speciality_id)) specIds.add(sid)
   }
   const branchNameById = new Map<string, string>()
   const specNameById = new Map<string, string>()
@@ -355,7 +374,7 @@ export async function buildOrgCandidatureDTOs(
   const dtos = await Promise.all(rows.map(async (row) => {
     const preview = row.preview ?? {}
     const branchId = typeof preview.branch_id === 'string' ? preview.branch_id : null
-    const specialityId = typeof preview.speciality_id === 'string' ? preview.speciality_id : null
+    const specialityIds = listeDepuisInstantane(preview.speciality_ids, preview.speciality_id)
     // Invariant 5 : état de vie dérivé plus haut — même helper que côté expert.
     const lifecycle = lifecycleByCand.get(row.id) as CandidatureLifecycle
     const disclosable = isDisclosable(row)
@@ -394,7 +413,7 @@ export async function buildOrgCandidatureDTOs(
           title: fp.title,
           summary: fp.summary,
           skills: fp.skills ?? [],
-          seniority: fp.seniority,
+          seniorities: fp.seniorities ?? [],
           expert_type: fp.expert_type,
           years_experience: fp.years_experience,
           years_total_experience: fp.years_total_experience,
@@ -438,7 +457,7 @@ export async function buildOrgCandidatureDTOs(
         title: preview.title ?? null,
         summary: preview.summary ?? null,
         skills: Array.isArray(preview.skills) ? preview.skills : [],
-        seniority: preview.seniority ?? null,
+        seniorities: listeDepuisInstantane(preview.seniorities, preview.seniority),
         expert_type: preview.expert_type ?? null,
         years_experience: preview.years_experience ?? null,
         years_total_experience: preview.years_total_experience ?? null,
@@ -456,9 +475,9 @@ export async function buildOrgCandidatureDTOs(
         branch_label: branchId
           ? tBDD(translations, 'branches', branchId, 'name', branchNameById.get(branchId) ?? '')
           : null,
-        speciality_label: specialityId
-          ? tBDD(translations, 'specialities', specialityId, 'name', specNameById.get(specialityId) ?? '')
-          : null,
+        speciality_labels: specialityIds.map((sid) =>
+          tBDD(translations, 'specialities', sid, 'name', specNameById.get(sid) ?? ''),
+        ),
         // Lot synthèse candidat CDI — 6 signaux non-PII (null/[] pour
         // candidatures legacy avant le lot tant que pas backfillées).
         cdi_status: typeof preview.cdi_status === 'string' ? preview.cdi_status : null,

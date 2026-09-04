@@ -594,23 +594,33 @@
     "field_labels_short": {
       "cv_ready": "Lebenslauf hochgeladen und KI-Überprüfung akzeptiert",
       "title": "den beruflichen Titel",
-      "summary": "die Zusammenfassung (mindestens 20 Zeichen)",
+      "summary": "die Zusammenfassung (zwischen {min} und {max} Zeichen)",
       "skills": "mindestens 3 Kompetenzen",
       "branch_id": "den Hauptbereich",
       "speciality_id": "die Spezialisierung",
       "work_modes": "mindestens einen Arbeitsmodus",
       "experiences": "mindestens eine Berufserfahrung",
-      "languages_structured": "mindestens eine Sprache"
+      "languages_structured": "mindestens eine Sprache",
+      "speciality_ids": "Spezialisierungen",
+      "seniorities": "Erfahrungsstufen",
+      "work_zone_ids": "Arbeitsgebiete",
+      "availability": "Verfügbarkeit"
     },
     "field_errors": {
       "title": "Geben Sie Ihren beruflichen Titel an",
-      "summary": "Mindestens 20 Zeichen zum Veröffentlichen",
+      "summary": "Zwischen {min} und {max} Zeichen zum Veröffentlichen",
       "skills": "Fügen Sie mindestens 3 Kompetenzen hinzu",
       "branch_id": "Wählen Sie einen Bereich",
       "speciality_id": "Wählen Sie eine Spezialisierung",
       "work_modes": "Wählen Sie mindestens einen Arbeitsmodus",
       "experiences": "Fügen Sie mindestens eine Erfahrung hinzu (Werdegang oder Einsatz)",
-      "languages_structured": "Fügen Sie mindestens eine Sprache hinzu"
+      "languages_structured": "Fügen Sie mindestens eine Sprache hinzu",
+      "speciality_ids": "Wählen Sie mindestens eine Spezialisierung",
+      "seniorities": "Wählen Sie mindestens eine Erfahrungsstufe",
+      "work_zone_ids": "Wählen Sie mindestens ein Arbeitsgebiet",
+      "availability": "Geben Sie Ihre Verfügbarkeit an",
+      "summary_length": "Die Zusammenfassung muss zwischen {min} und {max} Zeichen lang sein",
+      "cv_ready": "Laden Sie Ihren Lebenslauf hoch und stimmen Sie der Auswertung zu, um zu veröffentlichen"
     },
     "compact_actions": {
       "expand": "Bearbeiten",
@@ -765,6 +775,16 @@
         "end_year_label": "Endjahr",
         "remove_aria": "Diese Ausbildung entfernen",
         "add_button": "+ Ausbildung hinzufügen"
+      },
+      "summary_matching": {
+        "summary_matching_help": "Diesen Text lesen wir, um Ihnen Projekte vorzuschlagen. Beschreiben Sie in eigenen Worten, was Sie können. Zwischen {min} und {max} Zeichen.",
+        "summary_counter": "{count} / {max} Zeichen",
+        "incomplete_title": "Ihr Profil ist noch nicht sichtbar",
+        "incomplete_intro": "Solange diese Angaben fehlen, wird es Organisationen nicht vorgeschlagen. Es geht nichts verloren: Alles, was Sie bereits eingegeben haben, bleibt erhalten.",
+        "hidden_title": "Ihr Profil ist nicht mehr sichtbar",
+        "hidden_intro": "Für Projektvorschläge sind neue Angaben nötig geworden. Ihr Profil wurde vorübergehend ausgeblendet — es wurde nicht gelöscht.",
+        "hidden_list_intro": "Noch zu ergänzen:",
+        "hidden_cta": "Mein Profil vervollständigen"
       }
     },
     "actions": {
@@ -1388,7 +1408,7 @@
     "field_labels_short": {
       "cv_ready": "Lebenslauf hochgeladen und KI-Überprüfung akzeptiert",
       "title": "die Berufsbezeichnung",
-      "summary": "die Zusammenfassung (mindestens 20 Zeichen)",
+      "summary": "die Zusammenfassung (zwischen {min} und {max} Zeichen)",
       "skills": "mindestens 3 Fähigkeiten",
       "branch_id": "den Hauptbereich",
       "speciality_id": "die Spezialisierung",
@@ -1397,11 +1417,15 @@
       "cdi_salary_max": "das Höchstgehalt",
       "cdi_notice_period": "Ihre Kündigungsfrist",
       "experiences": "mindestens eine Berufserfahrung",
-      "languages_structured": "mindestens eine Sprache"
+      "languages_structured": "mindestens eine Sprache",
+      "speciality_ids": "Spezialisierungen",
+      "seniorities": "Erfahrungsstufen",
+      "work_zone_ids": "Arbeitsgebiete",
+      "availability": "Verfügbarkeit"
     },
     "field_errors": {
       "title": "Geben Sie Ihre Berufsbezeichnung ein",
-      "summary": "Mindestens 20 Zeichen zum Veröffentlichen",
+      "summary": "Zwischen {min} und {max} Zeichen zum Veröffentlichen",
       "skills": "Fügen Sie mindestens 3 Fähigkeiten hinzu",
       "branch_id": "Wählen Sie einen Bereich",
       "speciality_id": "Wählen Sie eine Spezialisierung",
@@ -1410,7 +1434,13 @@
       "cdi_salary_max": "Geben Sie das Höchstbruttogehalt pro Jahr an",
       "cdi_notice_period": "Geben Sie Ihre Kündigungsfrist an",
       "experiences": "Fügen Sie mindestens eine Erfahrung hinzu (Karriere oder Projekt)",
-      "languages_structured": "Fügen Sie mindestens eine Sprache hinzu"
+      "languages_structured": "Fügen Sie mindestens eine Sprache hinzu",
+      "speciality_ids": "Wählen Sie mindestens eine Spezialisierung",
+      "seniorities": "Wählen Sie mindestens eine Erfahrungsstufe",
+      "work_zone_ids": "Wählen Sie mindestens ein Arbeitsgebiet",
+      "availability": "Geben Sie Ihre Verfügbarkeit an",
+      "summary_length": "Die Zusammenfassung muss zwischen {min} und {max} Zeichen lang sein",
+      "cv_ready": "Laden Sie Ihren Lebenslauf hoch und stimmen Sie der Auswertung zu, um zu veröffentlichen"
     },
     "compact_actions": {
       "expand": "Bearbeiten",
@@ -1600,6 +1630,16 @@
         "country_search_placeholder": "Land suchen...",
         "country_loading": "Länder werden geladen...",
         "country_empty": "Kein Land gefunden"
+      },
+      "summary_matching": {
+        "summary_matching_help": "Diesen Text lesen wir, um Ihnen Projekte vorzuschlagen. Beschreiben Sie in eigenen Worten, was Sie können. Zwischen {min} und {max} Zeichen.",
+        "summary_counter": "{count} / {max} Zeichen",
+        "incomplete_title": "Ihr Profil ist noch nicht sichtbar",
+        "incomplete_intro": "Solange diese Angaben fehlen, wird es Organisationen nicht vorgeschlagen. Es geht nichts verloren: Alles, was Sie bereits eingegeben haben, bleibt erhalten.",
+        "hidden_title": "Ihr Profil ist nicht mehr sichtbar",
+        "hidden_intro": "Für Projektvorschläge sind neue Angaben nötig geworden. Ihr Profil wurde vorübergehend ausgeblendet — es wurde nicht gelöscht.",
+        "hidden_list_intro": "Noch zu ergänzen:",
+        "hidden_cta": "Mein Profil vervollständigen"
       }
     },
     "actions": {
@@ -1926,7 +1966,18 @@
       "confirm_publish_no": "Abbrechen",
       "field_speciality_other_option": "Sonstige (angeben)",
       "field_speciality_other_label": "Geben Sie das Fachgebiet an",
-      "field_speciality_other_placeholder": "z. B. FinOps, Green IT…"
+      "field_speciality_other_placeholder": "z. B. FinOps, Green IT…",
+      "field_work_zones": "Arbeitsgebiete",
+      "field_work_zones_help": "Wo Sie jemanden suchen",
+      "field_location_note": "Genauer (optional)",
+      "field_location_note_placeholder": "z. B. Paris oder Lyon",
+      "field_location_note_help": "Wird in der Anzeige angezeigt. Nicht für die Vermittlung verwendet.",
+      "field_errors": {
+        "title": "Geben Sie einen Titel ein",
+        "description": "Geben Sie eine Beschreibung ein",
+        "branch_id": "Wählen Sie einen Bereich",
+        "work_zone_ids": "Wählen Sie mindestens ein Arbeitsgebiet"
+      }
     },
     "gate": {
       "published_title": "Anzeige live ✓",
@@ -1948,7 +1999,8 @@
       "budget_inverted": "Das Mindestbudget darf das Höchstbudget nicht überschreiten.",
       "verification_failed": "Die automatische Prüfung ist fehlgeschlagen. Bitte erneut versuchen.",
       "db_error": "Technischer Fehler. Bitte erneut versuchen.",
-      "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen."
+      "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
+      "missing_fields": "Vor der Veröffentlichung fehlen noch Angaben: {fields}."
     }
   },
   "candidatures_tracking": {
@@ -2206,8 +2258,7 @@
     "card": {
       "confidential_org": "Vertrauliches Unternehmen",
       "confidential_tooltip": "Der Firmenname wird nach Annahme Ihrer Bewerbung enthüllt.",
-      "ai_score": "Bewertung {score}/10",
-      "ai_score_tooltip": "KI-Bewertung basierend auf Ihrem Profil.",
+      "ai_score_tooltip": "Warum Ihnen diese Ausschreibung vorgeschlagen wird.",
       "new_label": "Neu",
       "why_match_label": "Warum es zu Ihnen passt",
       "cta_consult_mission": "Mission anzeigen",
@@ -2228,8 +2279,7 @@
       "see_mission": "Mission ansehen",
       "see_offre": "Stelle ansehen",
       "see_application": "Bewerbung ansehen",
-      "more_skills": "+{count}",
-      "top_match": "Top-Match"
+      "more_skills": "+{count}"
     },
     "detail": {
       "back_to_feed": "← Zurück zu den Möglichkeiten",
@@ -2238,8 +2288,7 @@
       "error_not_found": "Diese Möglichkeit existiert nicht mehr oder ist für Sie nicht mehr verfügbar.",
       "confidential_org": "Vertrauliches Unternehmen",
       "confidential_tooltip": "Der Firmenname wird nach Annahme Ihrer Bewerbung enthüllt.",
-      "ai_score_label": "KI-Bewertung {score}/10",
-      "ai_score_tooltip": "KI-Bewertung basierend auf Ihrem Profil.",
+      "ai_score_tooltip": "Warum Ihnen diese Ausschreibung vorgeschlagen wird.",
       "why_match_label": "Warum es zu Ihnen passt",
       "section_description": "Beschreibung",
       "section_details": "Details",
@@ -2261,7 +2310,8 @@
       "error_cover_too_long": "Ihre Nachricht überschreitet 2000 Zeichen.",
       "error_cannot_apply_own_need": "Sie können sich nicht auf Ihren eigenen Bedarf bewerben.",
       "error_type_not_candidatable": "Diese Art von Gelegenheit nimmt keine Bewerbungen an."
-    }
+    },
+    "recommendations_updated": "Ihre Empfehlungen wurden aktualisiert."
   },
   "relative_time": {
     "now": "gerade eben",
@@ -2285,7 +2335,10 @@
       "section_comptes": "Konten",
       "nav_utilisateurs": "Benutzer",
       "section_exploitation": "Betrieb",
-      "nav_taches_planifiees": "Geplante Aufgaben"
+      "nav_taches_planifiees": "Geplante Aufgaben",
+      "section_moteur": "Motor",
+      "nav_matching": "Vermittlung",
+      "nav_ecosystemes": "Ökosysteme"
     },
     "packages": {
       "page_title": "Commerce-Katalog",
@@ -3496,5 +3549,188 @@
     "fallback": "Fachkraft",
     "deleted": "Gelöschtes Konto",
     "unavailable": "Kontakt nicht verfügbar"
+  },
+  "work_zones": {
+    "label": "Arbeitsgebiete",
+    "hint": "Wo Sie arbeiten möchten — nicht wo Sie wohnen",
+    "hint_publication": "Wo Sie jemanden suchen",
+    "empty": "Derzeit keine Gebiete verfügbar.",
+    "none_selected": "Wählen Sie mindestens ein Gebiet, um zu veröffentlichen",
+    "coverage": "{count} Länder abgedeckt",
+    "country_count": "{count} Länder",
+    "detail_by_country": "Einzelne Länder in {continent} wählen",
+    "covered_by_continent": "Bereits durch {continent} abgedeckt",
+    "suggestion_label": "Vorschlag: {zone}",
+    "suggestion_confirm": "Dieses Gebiet verwenden",
+    "suggestion_not_applied": "Wird erst nach Ihrer Bestätigung übernommen"
+  },
+  "matching_badge": {
+    "strong": "Starke Übereinstimmung",
+    "normal": "Übereinstimmung",
+    "tooltip": "Was wir aus Ihrem Profil entnommen haben, passt zu dem, was diese Ausschreibung verlangt. Keine Rangfolge zwischen Fachleuten: Jedes Profil wird für sich betrachtet."
+  },
+  "admin_matching": {
+    "title": "Vermittlungs-Engine",
+    "intro": "Zwei Schwellen entscheiden, was eine Fachkraft sieht und worüber sie benachrichtigt wird. Der Wert der Engine ist keine Note von 10 und lässt sich nicht erraten: Lesen Sie zuerst die unten beobachtete Verteilung und stellen Sie dann ein.",
+    "loading": "Wird geladen…",
+    "save": "Speichern",
+    "saving": "Wird gespeichert…",
+    "saved": "Einstellungen gespeichert.",
+    "errors": {
+      "load_failed": "Die Einstellungen konnten nicht gelesen werden. Es wurde nichts geändert.",
+      "save_failed": "Das Speichern ist fehlgeschlagen. Ihre Änderungen wurden nicht übernommen.",
+      "ordre_seuils": "Die Benachrichtigungsschwelle darf nicht unter der Feed-Schwelle liegen: Jemand würde über eine Anzeige benachrichtigt, die er beim Anmelden nicht sieht."
+    },
+    "spend": {
+      "title": "Ausgaben dieses Monats",
+      "line": "{spent} $ von {cap} $",
+      "capped": "Obergrenze erreicht",
+      "none": "In diesem Monat wurden keine Ausgaben erfasst.",
+      "unavailable": "Die Ausgaben konnten nicht gelesen werden. Das ist nicht null, sondern unbekannt.",
+      "help": "An der Obergrenze hält die Vermittlung an und schreibt es in die Spur des Laufs. Sie gibt nicht weiter aus und hält nicht stillschweigend an."
+    },
+    "distribution": {
+      "title": "Beobachtete Verteilung (letzte 30 Tage)",
+      "runs": "{count} beobachtete(r) Lauf/Läufe.",
+      "percentiles": "Median {p50} · 90. Perzentil {p90}.",
+      "notified": "Durchschnittlich {avg} Fachkraft/Fachkräfte über der Schwelle je Anzeige.",
+      "extremes": "{zero} Lauf/Läufe ohne jemanden über der Schwelle, {all} mit allen.",
+      "empty": "Keine Läufe beobachtet: Die Engine lief noch nicht, es gibt nichts zu lesen.",
+      "unavailable": "Die Verteilung konnte nicht gelesen werden.",
+      "help": "Eine Schwelle ohne Blick auf diese Verteilung einzustellen heißt, eine Zahl zufällig zu wählen."
+    },
+    "coverage": {
+      "title": "Abdeckung",
+      "line": "{complets} vollständige(r) Lauf/Läufe von {total} · {manquants} nicht bewertete Fachkraft/Fachkräfte.",
+      "empty": "Keine Läufe beobachtet.",
+      "unavailable": "Die Abdeckung konnte nicht gelesen werden.",
+      "help": "Eine geeignete, nicht bewertete Fachkraft ist eine grundlos ausgeschlossene Fachkraft. Diese Zahl muss null bleiben."
+    },
+    "fields": {
+      "feed": "Feed-Schwelle",
+      "feed_help": "Darunter erscheint die Anzeige nicht im Feed der Fachkraft. Bei 0 sieht sie jedes geeignete Profil.",
+      "notify": "Benachrichtigungsschwelle",
+      "notify_help": "Darüber wird die Fachkraft benachrichtigt und die Anzeige als „starke Übereinstimmung“ markiert.",
+      "batch": "Losgröße",
+      "batch_help": "Anzahl der Profile, die je Aufruf an die Engine gehen.",
+      "notify_enabled": "Benachrichtigungen aktivieren",
+      "notify_enabled_help": "Bleibt aus, bis jemand die Verteilung gelesen hat: Eine geratene Schwelle würde zufällig benachrichtigen.",
+      "model": "Modell: {model}. Ein Wechsel ändert die Skala — beide Schwellen werden dadurch falsch."
+    }
+  },
+  "ecosystem_switcher": {
+    "aria": "Ökosystem wechseln",
+    "label": "Ökosystem",
+    "current": "Aktuelles Ökosystem: {name}",
+    "unavailable_here": "Der Wechsel des Ökosystems ist unter dieser Adresse nicht verfügbar."
+  },
+  "ecosystem_unavailable": {
+    "meta_title": "Ökosystem nicht verfügbar",
+    "back_home": "Zurück zur Startseite",
+    "generic": {
+      "title": "Dieses Ökosystem ist nicht verfügbar",
+      "body": "Dieses Ökosystem konnte nicht geöffnet werden. Versuchen Sie es gleich erneut; besteht das Problem weiter, wenden Sie sich an den Support."
+    },
+    "unknown_domain": {
+      "title": "Diese Adresse gehört zu keinem Ökosystem",
+      "body": "Die verwendete Subdomain existiert nicht. Prüfen Sie die Adresse oder kehren Sie zur Startseite zurück."
+    },
+    "domain_inactive": {
+      "title": "Dieses Ökosystem ist deaktiviert",
+      "body": "Es nimmt keine Verbindungen mehr an. Ihre Daten bleiben erhalten; wenden Sie sich an den Support, um das weitere Vorgehen zu erfahren."
+    },
+    "domain_mismatch": {
+      "title": "Ihr Konto gehört zu einem anderen Ökosystem",
+      "body": "Ein Expertenkonto gehört dauerhaft zu genau einem Ökosystem. Hier ist Ihres.",
+      "own_label": "Ihr Ökosystem",
+      "cta": "Zu meinem Ökosystem",
+      "no_link": "Öffnen Sie diese Subdomain direkt in Ihrem Browser."
+    }
+  },
+  "admin_ecosystemes": {
+    "page_title": "Ökosysteme",
+    "subtitle": "Ein Ökosystem anlegen, gestalten und öffnen. Zwei Schritte erfolgen außerhalb dieser Ansicht.",
+    "loading": "Wird geladen…",
+    "empty": "Kein Ökosystem.",
+    "edit": "Bearbeiten",
+    "close": "Schließen",
+    "save": "Speichern",
+    "saving": "Wird gespeichert…",
+    "saved": "Änderungen gespeichert.",
+    "activate": "Aktivieren",
+    "state": {
+      "active": "Aktiv",
+      "inactive": "Inaktiv",
+      "not_ready": "Nicht bereit",
+      "not_ready_hint": "Keine Sparte: weder Registrierung noch Ausschreibung möglich.",
+      "not_ready_detail": "Dieses Ökosystem hat keine Sparte. Solange das so ist, kann niemand dort ein Profil anlegen oder eine Ausschreibung veröffentlichen: beide Formulare verlangen eine Sparte."
+    },
+    "counts": {
+      "branches": "{n, plural, =0 {keine Sparte} one {# Sparte} other {# Sparten}}",
+      "specialities": "{n, plural, =0 {keine Spezialisierung} one {# Spezialisierung} other {# Spezialisierungen}}",
+      "users": "{n, plural, =0 {kein Konto} one {# Konto} other {# Konten}}",
+      "publications": "{n, plural, =0 {keine Ausschreibung} one {# Ausschreibung} other {# Ausschreibungen}}"
+    },
+    "sections": {
+      "identity": "Identität",
+      "vocabulary": "Begriffe",
+      "branding": "Erscheinungsbild"
+    },
+    "fields": {
+      "name": "Name",
+      "slug": "Subdomain",
+      "tagline": "Claim",
+      "slug_locked": "Nicht änderbar: eine öffentliche Adresse, beim Hoster hinterlegt und in bereits versendeten Links enthalten.",
+      "primary_color": "Hauptfarbe",
+      "secondary_color": "Sekundärfarbe",
+      "logo_url": "Logo-URL",
+      "favicon_url": "Favicon-URL",
+      "ecosystem_expert_label": "Bezeichnung für eine Fachkraft",
+      "ecosystem_community_label": "Bezeichnung für das Ökosystem",
+      "ecosystem_speciality_label": "Bezeichnung „Hauptspezialisierung“",
+      "ecosystem_domain_search_label": "Bezeichnung „gesuchter Bereich“",
+      "fallback_fr": "Leer → Französisch",
+      "description": "Beschreibung",
+      "launch_date": "Startdatum",
+      "tags": "Schlagwörter",
+      "tags_hint": "durch Kommas getrennt",
+      "ecosystem_name": "Name des Ökosystems im Fließtext",
+      "ecosystem_name_hint": "Wird in den Texten der Website verwendet. Leer → der Name oben."
+    },
+    "create": {
+      "title": "Ökosystem anlegen",
+      "submit": "Anlegen",
+      "pending": "Wird angelegt…",
+      "born_inactive": "Es wird INAKTIV angelegt: Organisationen sehen es erst, wenn die Subdomain hinterlegt und die erste Sparte angelegt ist."
+    },
+    "after_create": {
+      "title": "Was außerhalb dieser Ansicht noch zu tun ist",
+      "intro": "„{name}“ existiert nun in der Datenbank. Drei Schritte machen es tatsächlich nutzbar.",
+      "step_host": "Die Domain {slug} beim Hoster hinterlegen (Vercel → Settings → Domains).",
+      "step_dns": "Einen CNAME für {slug} auf cname.vercel-dns.com anlegen.",
+      "step_branch": "Mindestens eine Sparte unter Taxonomie anlegen — ohne sie weder Registrierung noch Ausschreibung.",
+      "step_activate": "Hierher zurückkehren und aktivieren: dann wird es für Organisationen sichtbar.",
+      "dismiss": "Verstanden"
+    },
+    "deactivate": {
+      "open": "Deaktivieren…",
+      "title": "Vor dem Deaktivieren",
+      "confirm": "Deaktivieren",
+      "cancel": "Abbrechen",
+      "keeps": "{n, plural, =0 {Dort ist keine Fachkraft registriert.} one {# Fachkraft ist dort registriert: sie BEHÄLT Zugang, Einsätze und Nachrichten.} other {# Fachkräfte sind dort registriert: sie BEHALTEN Zugang, Einsätze und Nachrichten.}}",
+      "loses": "{n, plural, =0 {Kein Organisationskonto verliert den Zugang.} one {# Organisationskonto kann dort weder eintreten noch veröffentlichen.} other {# Organisationskonten können dort weder eintreten noch veröffentlichen.}}",
+      "published": "Aktive Ausschreibungen",
+      "publications": "Ausschreibungen insgesamt",
+      "candidatures": "Bewerbungen",
+      "conversations": "Unterhaltungen",
+      "reversible": "Es wird nichts gelöscht. Eine Reaktivierung macht alles wieder sichtbar."
+    },
+    "errors": {
+      "load": "Laden nicht möglich.",
+      "generic": "Ein Fehler ist aufgetreten.",
+      "name_required": "Der Name ist erforderlich.",
+      "invalid_slug": "Ungültige Subdomain: Kleinbuchstaben, Ziffern und Bindestriche, kein Punkt, kein Leerzeichen.",
+      "slug_taken": "Diese Subdomain ist bereits vergeben."
+    }
   }
 }

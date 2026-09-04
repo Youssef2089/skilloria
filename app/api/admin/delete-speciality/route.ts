@@ -57,14 +57,34 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   if (!spec) return json({ error: 'Not found', code: 'not_found' }, 404)
 
-  const { count: profiles } = await auth.supabaseAdmin
+  // GARDE « encore utilisée » — et elle avait cessé de garder.
+  //
+  //   `.eq('speciality_id', id)` citait une colonne supprimée. PostgREST rendait
+  //   une erreur, `count` valait undefined, `(profiles ?? 0) > 0` était faux :
+  //   la garde LAISSAIT PASSER, et la spécialité partait alors qu'elle était
+  //   encore rattachée à des profils et à des annonces. Une suppression, donc
+  //   irréversible.
+  //
+  //   Deux corrections, pas une : la colonne est désormais un tableau
+  //   (`@>` via .contains), et l'erreur est LUE. Sur panne de comptage on
+  //   REFUSE — devant un geste définitif, un comptage indisponible ne vaut
+  //   jamais « aucun usage ».
+  const { count: profiles, error: profErr } = await auth.supabaseAdmin
     .from('profiles')
     .select('id', { count: 'exact', head: true })
-    .eq('speciality_id', id)
-  const { count: publications } = await auth.supabaseAdmin
+    .contains('speciality_ids', [id])
+  const { count: publications, error: pubErr } = await auth.supabaseAdmin
     .from('publications')
     .select('id', { count: 'exact', head: true })
-    .eq('speciality_id', id)
+    .contains('speciality_ids', [id])
+
+  if (profErr || pubErr) {
+    console.error('[admin:delete-speciality] comptage d usage en échec', {
+      profils: profErr?.message,
+      annonces: pubErr?.message,
+    })
+    return json({ error: 'Usage count failed', code: 'db_error' }, 500)
+  }
 
   if ((profiles ?? 0) > 0 || (publications ?? 0) > 0) {
     return json(

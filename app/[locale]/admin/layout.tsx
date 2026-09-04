@@ -15,6 +15,14 @@ import { ADMIN_NAV_SECTIONS } from '@/lib/nav-config'
 
 /** Icônes de la sidebar admin, indexées par `iconKey` de ADMIN_NAV_SECTIONS. */
 const ADMIN_NAV_ICONS: Record<string, React.ReactNode> = {
+  // Écosystèmes — un globe. Distinct de `building` (organisations) : une
+  // entrée de sidebar qui reprend l'icône d'une voisine devient illisible.
+  globe: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+    </svg>
+  ),
   building: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <rect x="4" y="3" width="16" height="18" rx="1" />
@@ -50,6 +58,14 @@ const ADMIN_NAV_ICONS: Record<string, React.ReactNode> = {
       <circle cx="17" cy="15" r="3" />
       <path d="M2 20v-1.5A3.5 3.5 0 0 1 5.5 15h2" />
       <path d="M11 8h3a3 3 0 0 1 3 3v1" />
+    </svg>
+  ),
+  // Moteur de mise en relation — deux curseurs.
+  matching: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 7h16M4 17h16" />
+      <circle cx="9" cy="7" r="2.2" />
+      <circle cx="16" cy="17" r="2.2" />
     </svg>
   ),
   // Taxonomie (branches / spécialités) — arborescence à puces.

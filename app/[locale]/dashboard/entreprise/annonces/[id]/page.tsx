@@ -29,11 +29,13 @@ type PublicationDetail = {
   title: string
   description: string
   branch_id: string | null
-  speciality_id: string | null
+  speciality_ids: string[] | null
+  speciality_labels: string[] | null
   skills_required: string[] | null
-  seniority: string | null
+  seniorities: string[] | null
   work_mode: string | null
-  location: string | null
+  location_note: string | null
+  work_zone_labels: string[] | null
   duration: string | null
   start_date: string | null
   budget_min: number | null
@@ -69,7 +71,9 @@ export default function AnnonceDetailPage({ params }: Props) {
   const load = useCallback(async (id: string) => {
     setState({ kind: 'loading' })
     try {
-      const res = await secureFetch(`/api/publications/${id}`, { method: 'GET' })
+      // La locale accompagne la lecture : les libellés de référentiel sont
+      // résolus au serveur, traduits, et non pas devinés ici.
+      const res = await secureFetch(`/api/publications/${id}?locale=${encodeURIComponent(locale)}`, { method: 'GET' })
       const payload = (await res.json().catch(() => ({} as { code?: string }))) as {
         code?: string
         publication?: PublicationDetail
@@ -86,7 +90,7 @@ export default function AnnonceDetailPage({ params }: Props) {
       console.error('[annonce detail] fetch threw', err)
       setState({ kind: 'error', message: t('error_generic') })
     }
-  }, [secureFetch, t])
+  }, [secureFetch, t, locale])
 
   useEffect(() => {
     let cancelled = false
@@ -249,8 +253,14 @@ export default function AnnonceDetailPage({ params }: Props) {
           {budgetText && (
             <Field label={t('field_budget')} value={budgetText} />
           )}
-          {pub.location && (
-            <Field label={t('field_location')} value={pub.location} />
+          {/* ZONES DE TRAVAIL — le critère qui décide vraiment où l'annonce
+              cherche. Il vient AVANT la note de localisation, qui n'est qu'un
+              texte d'appoint. */}
+          {pub.work_zone_labels && pub.work_zone_labels.length > 0 && (
+            <Field label={tPub('form.field_work_zones')} value={pub.work_zone_labels.join(', ')} />
+          )}
+          {pub.location_note && (
+            <Field label={tPub('form.field_location_note')} value={pub.location_note} />
           )}
           {pub.work_mode && (
             <Field label={t('field_work_mode')} value={tPub(`work_mode.${pub.work_mode}` as 'work_mode.remote')} />
@@ -261,8 +271,13 @@ export default function AnnonceDetailPage({ params }: Props) {
           {pub.start_date && (
             <Field label={t('field_start_date')} value={new Date(pub.start_date).toLocaleDateString(locale)} />
           )}
-          {pub.seniority && (
-            <Field label={t('field_seniority')} value={tPub(`seniority.${pub.seniority}` as 'seniority.junior')} />
+          {pub.seniorities && pub.seniorities.length > 0 && (
+            <Field
+              label={t('field_seniority')}
+              value={pub.seniorities
+                .map((s) => tPub(`seniority.${s}` as 'seniority.junior'))
+                .join(', ')}
+            />
           )}
           {pub.confidential && (
             <Field label={t('field_confidential')} value={t('confidential_yes')} />

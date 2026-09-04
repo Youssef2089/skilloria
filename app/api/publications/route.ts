@@ -43,15 +43,16 @@ type Body = {
   title?: unknown
   description?: unknown
   skills_required?: unknown
-  seniority?: unknown
+  seniorities?: unknown
   work_mode?: unknown
-  location?: unknown
+  location_note?: unknown
+  work_zone_codes?: unknown
   duration?: unknown
   start_date?: unknown
   budget_min?: unknown
   budget_max?: unknown
   branch_id?: unknown
-  speciality_id?: unknown
+  speciality_ids?: unknown
   speciality_other?: unknown
   confidential?: unknown
 }
@@ -64,15 +65,16 @@ type ValidatedInput = {
   title: string
   description: string
   skills_required: string[]
-  seniority: string | null
+  seniorities: string[]
   work_mode: string | null
-  location: string | null
+  location_note: string | null
+  work_zone_codes: string[]
   duration: string | null
   start_date: string | null
   budget_min: number | null
   budget_max: number | null
   branch_id: string | null
-  speciality_id: string | null
+  speciality_ids: string[]
   speciality_other: string | null
   confidential: boolean
 }
@@ -112,6 +114,32 @@ function asUuid(v: unknown): string | null {
     : null
 }
 
+/**
+ * SÉNIORITÉS — multiple, et bornée au vocabulaire du référentiel.
+ *
+ * Une valeur hors liste est IGNORÉE plutôt que refusée : le client ne peut pas
+ * en fabriquer une utile, et refuser toute la requête pour un intrus rendrait
+ * la publication impossible sans dire pourquoi. La contrainte de base
+ * (publications_seniorities_check) reste la barrière finale.
+ */
+const SENIORITES = ['junior', 'confirmed', 'senior', 'expert'] as const
+function asSeniorities(v: unknown): string[] {
+  if (!Array.isArray(v)) return []
+  return [...new Set(v.filter((x): x is string =>
+    typeof x === 'string' && (SENIORITES as readonly string[]).includes(x)))]
+}
+
+function asUuidArray(v: unknown, maxItems: number): string[] {
+  if (!Array.isArray(v)) return []
+  const out = new Set<string>()
+  for (const item of v) {
+    const u = asUuid(item)
+    if (u) out.add(u)
+    if (out.size >= maxItems) break
+  }
+  return [...out]
+}
+
 function asIsoDate(v: unknown): string | null {
   if (typeof v !== 'string') return null
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null
@@ -146,18 +174,19 @@ function validate(body: Body): { ok: true; input: ValidatedInput } | { ok: false
       title,
       description,
       skills_required: asStringArray(body.skills_required, 50, 100),
-      seniority: asString(body.seniority),
+      seniorities: asSeniorities(body.seniorities),
       work_mode: asString(body.work_mode),
-      location: asString(body.location),
+      location_note: asString(body.location_note),
+      work_zone_codes: asStringArray(body.work_zone_codes, 250, 20),
       duration: asString(body.duration),
       start_date: asIsoDate(body.start_date),
       budget_min,
       budget_max,
       branch_id: asUuid(body.branch_id),
-      speciality_id: asUuid(body.speciality_id),
+      speciality_ids: asUuidArray(body.speciality_ids, 20),
       // D6 : précision libre « Autre » (bornée 100). Ignorée si une spécialité
       // du référentiel est fournie.
-      speciality_other: asUuid(body.speciality_id)
+      speciality_other: asUuidArray(body.speciality_ids, 20).length > 0
         ? null
         : (asString(body.speciality_other)?.slice(0, 100) ?? null),
       confidential: body.confidential === true,
@@ -231,6 +260,35 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
   }
 
+  // ── ZONES DE TRAVAIL : des CODES en entrée, des uuid en base ────────────
+  //
+  // `work_zone_codes` était validé puis JETÉ : l'insert ne portait pas la
+  // colonne. Une annonce créée avec des zones les perdait sans un mot, et comme
+  // les zones conditionnent la publication, l'organisation se retrouvait bloquée
+  // sur un champ qu'elle venait de remplir.
+  //
+  // Résolution par code stable, jamais par uuid transmis. Un code inconnu fait
+  // échouer la requête ENTIÈRE : enregistrer une sélection amputée reviendrait à
+  // publier une annonce qui ne cherche pas là où on croit qu'elle cherche.
+  let zoneIds: string[] = []
+  if (input.work_zone_codes.length > 0) {
+    const { data: wzs, error: wzErr } = await auth.supabaseAdmin
+      .from('work_zones')
+      .select('id, code')
+      .eq('active', true)
+      .in('code', input.work_zone_codes)
+    if (wzErr) {
+      console.error('[publications:POST] lecture des zones en échec', wzErr.message)
+      return json({ error: 'Query failed', code: 'db_error' }, 500)
+    }
+    const trouvees = (wzs ?? []) as Array<{ id: string; code: string }>
+    if (trouvees.length !== input.work_zone_codes.length) {
+      const inconnus = input.work_zone_codes.filter((c) => !trouvees.some((t) => t.code === c))
+      return json({ error: 'Unknown work zone', code: 'bad_work_zone', unknown: inconnus }, 400)
+    }
+    zoneIds = trouvees.map((t) => t.id)
+  }
+
   // ── INSERT brouillon ────────────────────────────────────────────────────
   const { data: row, error: insertErr } = await auth.supabaseAdmin
     .from('publications')
@@ -242,16 +300,17 @@ export async function POST(request: NextRequest): Promise<Response> {
       title: input.title,
       description: input.description,
       skills_required: input.skills_required,
-      seniority: input.seniority,
+      seniorities: input.seniorities,
       work_mode: input.work_mode,
-      location: input.location,
+      location_note: input.location_note,
       duration: input.duration,
       start_date: input.start_date,
       budget_min: input.budget_min,
       budget_max: input.budget_max,
       branch_id: input.branch_id,
-      speciality_id: input.speciality_id,
+      speciality_ids: input.speciality_ids,
       speciality_other: input.speciality_other,
+      work_zone_ids: zoneIds,
       confidential: input.confidential,
       status: 'draft',
     })
@@ -344,21 +403,21 @@ type PublicationRow = {
   title: string
   status: string
   branch_id: string | null
-  speciality_id: string | null
+  speciality_ids: string[] | null
+  work_zone_ids: string[] | null
   budget_min: number | null
   budget_max: number | null
-  location: string | null
+  location_note: string | null
   work_mode: string | null
   duration: string | null
   start_date: string | null
-  seniority: string | null
+  seniorities: string[] | null
   confidential: boolean | null
   verification_score: number | null
   created_at: string
   published_at: string | null
   expires_at: string | null
   branches: { id: string; name: string } | { id: string; name: string }[] | null
-  specialities: { id: string; name: string } | { id: string; name: string }[] | null
 }
 
 function pickRel<T>(value: T | T[] | null): T | null {
@@ -400,10 +459,10 @@ export async function GET(request: NextRequest): Promise<Response> {
         // Lot synthèse parlante : étendu avec location, work_mode, duration,
         // start_date, seniority, confidential — consommé par
         // buildPublicationSynthesis pour la carte AnnonceCard.
-        'id, type, title, status, branch_id, speciality_id, budget_min, budget_max, ' +
-          'location, work_mode, duration, start_date, seniority, confidential, ' +
+        'id, type, title, status, branch_id, speciality_ids, budget_min, budget_max, ' +
+          'location_note, work_zone_ids, work_mode, duration, start_date, seniorities, confidential, ' +
           'verification_score, created_at, published_at, expires_at, ' +
-          'branches(id, name), specialities(id, name)',
+          'branches(id, name)',
       )
       // CLOISONNEMENT — l'écosystème actif, jamais celui du compte.
       // Neutre tant qu'une organisation n'a qu'un écosystème (cf. ecosystem-scope).
@@ -420,6 +479,35 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   const rows = (pubsResult.data ?? []) as unknown as PublicationRow[]
+
+  // ── Libellés des référentiels MULTIPLES ─────────────────────────────────
+  //  L'embed PostgREST specialities(name) reposait sur la clé étrangère
+  //  speciality_id, que la migration a supprimée en passant au multiple. On
+  //  résout donc en DEUX requêtes groupées pour toute la page — ce qui est
+  //  d'ailleurs préférable : une jointure de moins sur un chemin lu à chaque
+  //  affichage du tableau de bord.
+  const specIds = [...new Set(rows.flatMap((r) => r.speciality_ids ?? []))]
+  const zoneIds = [...new Set(rows.flatMap((r) => r.work_zone_ids ?? []))]
+  const [specRes, zoneRes] = await Promise.all([
+    specIds.length
+      ? auth.supabaseAdmin.from('specialities').select('id, name').in('id', specIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
+    zoneIds.length
+      ? auth.supabaseAdmin.from('work_zones').select('id, name').in('id', zoneIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
+  ])
+  const specLabel = new Map(
+    ((specRes.data ?? []) as Array<{ id: string; name: string }>).map((x) => [
+      x.id,
+      tBDD(translations, 'specialities', x.id, 'name', x.name),
+    ]),
+  )
+  const zoneLabel = new Map(
+    ((zoneRes.data ?? []) as Array<{ id: string; name: string }>).map((x) => [
+      x.id,
+      tBDD(translations, 'work_zones', x.id, 'name', x.name),
+    ]),
+  )
 
   // ── Agrégat candidatures par publication (Lot 2c) ─────────────────────
   //  Une seule query batch sur l'ensemble des ids ; mapping en mémoire ensuite.
@@ -485,7 +573,6 @@ export async function GET(request: NextRequest): Promise<Response> {
     const safeStatus: AnnonceStatus =
       rawStatus === 'published' && !isActivePublished(row) ? 'expired' : rawStatus
     const branch = pickRel(row.branches)
-    const speciality = pickRel(row.specialities)
 
     return {
       id: row.id,
@@ -495,9 +582,12 @@ export async function GET(request: NextRequest): Promise<Response> {
       branch_label: branch
         ? tBDD(translations, 'branches', branch.id, 'name', branch.name)
         : null,
-      speciality_label: speciality
-        ? tBDD(translations, 'specialities', speciality.id, 'name', speciality.name)
-        : null,
+      speciality_labels: (row.speciality_ids ?? [])
+        .map((id) => specLabel.get(id))
+        .filter((n): n is string => !!n),
+      work_zone_labels: (row.work_zone_ids ?? [])
+        .map((id) => zoneLabel.get(id))
+        .filter((n): n is string => !!n),
       budget_min: row.budget_min,
       budget_max: row.budget_max,
       budget_unit: budgetUnitForType(safeType),
@@ -506,11 +596,11 @@ export async function GET(request: NextRequest): Promise<Response> {
       published_at: row.published_at,
       candidatures: aggByPub.get(row.id) ?? makeEmptyCandidatures(),
       // Lot synthèse parlante
-      location: row.location,
+      location_note: row.location_note,
       work_mode: row.work_mode,
       duration: row.duration,
       start_date: row.start_date,
-      seniority: row.seniority,
+      seniorities: row.seniorities ?? [],
       confidential: !!row.confidential,
     }
   })

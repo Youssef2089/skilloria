@@ -86,13 +86,13 @@ type Profile = {
   id: string
   title: string | null
   summary: string | null
-  seniority: Seniority | null
+  seniorities: Seniority[] | null
   years_experience: number | null
   years_total_experience: number | null
   skills: string[] | null
   certifications: Certification[] | null
   branch_id: string | null
-  speciality_id: string | null
+  speciality_ids: string[] | null
   work_modes: WorkMode[] | null
   tjm_min: number | null
   tjm_max: number | null
@@ -375,7 +375,7 @@ export default function MonProfilPage() {
       const { data: profileData, error: profileErr } = await supabase
         .from('profiles')
         .select(
-          'id, title, summary, seniority, years_experience, years_total_experience, skills, certifications, branch_id, speciality_id, work_modes, tjm_min, tjm_max, availability_date, availability_status, linkedin_url, visible, city, country, photo_url, cv_file_path, cv_parsing_status, ai_consent_at, verification_status, review_reason',
+          'id, title, summary, seniorities, years_experience, years_total_experience, skills, certifications, branch_id, speciality_ids, work_modes, tjm_min, tjm_max, availability_date, availability_status, linkedin_url, visible, city, country, photo_url, cv_file_path, cv_parsing_status, ai_consent_at, verification_status, review_reason',
         )
         .eq('user_id', session.user.id)
         .maybeSingle()
@@ -456,9 +456,14 @@ export default function MonProfilPage() {
     return branches.find(b => b.id === profile.branch_id)?.name ?? null
   }, [branches, profile])
 
+  // Plusieurs spécialités désormais : on les nomme toutes, dans l'ordre choisi.
   const specialityName = useMemo(() => {
-    if (!profile?.speciality_id) return null
-    return specialities.find(s => s.id === profile.speciality_id)?.name ?? null
+    const ids = profile?.speciality_ids ?? []
+    if (ids.length === 0) return null
+    const noms = ids
+      .map(id => specialities.find(s => s.id === id)?.name)
+      .filter((x): x is string => !!x)
+    return noms.length > 0 ? noms.join(', ') : null
   }, [specialities, profile])
 
   const country = useMemo(() => {

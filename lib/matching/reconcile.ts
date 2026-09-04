@@ -43,7 +43,10 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 export type ReconcileDesired = {
   profile_id: string
   publication_id: string
-  score: number
+  /** Score de pertinence BRUT du reranker, dans [0,1]. Jamais normalisé. */
+  relevance_score: number
+  /** Palier AFFICHÉ, figé ici et jamais recalculé à la lecture. */
+  relevance_tier: 'strong' | 'normal'
   reason: string
   pitch_org?: string | null
 }
@@ -65,7 +68,6 @@ type ExistingMatchRow = {
   id: string
   profile_id: string
   publication_id: string
-  score: number
   status: string
   explanation: unknown
 }
@@ -115,7 +117,7 @@ export async function reconcileMatches(args: {
   // ── 1. Charger l'existant pour le scope (axe fixé) ────────────────────────
   const existingQuery = supabaseAdmin
     .from('matches')
-    .select('id, profile_id, publication_id, score, status, explanation')
+    .select('id, profile_id, publication_id, status, explanation')
   const filteredExisting =
     'byProfileId' in scope && scope.byProfileId
       ? existingQuery.eq('profile_id', scope.byProfileId)
@@ -167,11 +169,20 @@ export async function reconcileMatches(args: {
     publication_id: string
     profile_id: string
     domain_id: string
-    score: number
+    relevance_score: number
+    relevance_tier: 'strong' | 'normal'
+    relevance_model: string
+    relevance_scored_at: string
     explanation: { reason: string; pitch_org: string | null; model: string; evaluated_at: string }
     status: 'pending'
   }> = []
-  const toUpdate: Array<{ id: string; score: number; explanation: ExistingMatchRow['explanation'] }> = []
+  const toUpdate: Array<{
+    id: string
+    relevance_score: number
+    relevance_tier: 'strong' | 'normal'
+    relevance_model: string
+    explanation: unknown
+  }> = []
   const toDeleteIds: string[] = []
 
   for (const [key, d] of desiredByKey) {
@@ -181,7 +192,10 @@ export async function reconcileMatches(args: {
         publication_id: d.publication_id,
         profile_id: d.profile_id,
         domain_id: domainId,
-        score: d.score,
+        relevance_score: d.relevance_score,
+        relevance_tier: d.relevance_tier,
+        relevance_model: model,
+        relevance_scored_at: nowIso,
         explanation: {
           reason: d.reason,
           pitch_org: d.pitch_org ?? null,
@@ -197,7 +211,9 @@ export async function reconcileMatches(args: {
         : {}) as Record<string, unknown>
       toUpdate.push({
         id: ex.id,
-        score: d.score,
+        relevance_score: d.relevance_score,
+        relevance_tier: d.relevance_tier,
+        relevance_model: model,
         explanation: {
           ...prevExp,
           reason: d.reason,
@@ -246,17 +262,34 @@ export async function reconcileMatches(args: {
     stats.inserted = toInsert.map((r) => ({ profile_id: r.profile_id, publication_id: r.publication_id }))
   }
 
-  for (const u of toUpdate) {
-    const { error: updErr } = await supabaseAdmin
-      .from('matches')
-      .update({ score: u.score, explanation: u.explanation })
-      .eq('id', u.id)
-    if (updErr) {
-      console.error('[reconcile] update failed', updErr.message)
-      // Best-effort : on n'arrête pas le batch sur un update partiel.
-      continue
+  // ── LES MISES À JOUR PARTENT EN UNE SEULE ÉCRITURE ───────────────────────
+  //  Elles partaient UNE PAR UNE. Invisible à dix profils, fatal à dix mille :
+  //  dix mille allers-retours pour une seule annonce, et un run qui n'a plus
+  //  aucune chance de tenir dans un budget de temps. Le plafond de vivier
+  //  masquait le problème ; il n'y a plus de plafond.
+  //
+  //  La fonction SQL ne cite jamais `status` : elle ne peut donc pas le remettre
+  //  à 'pending', ce qui était le bug d'origine de la réconciliation.
+  if (toUpdate.length > 0) {
+    const PAQUET = 500
+    for (let i = 0; i < toUpdate.length; i += PAQUET) {
+      const tranche = toUpdate.slice(i, i + PAQUET)
+      const { data: touchees, error: updErr } = await supabaseAdmin.rpc(
+        'appliquer_scores_de_pertinence',
+        { p_lignes: tranche },
+      )
+      if (updErr) {
+        // Best-effort assumé : on n'arrête pas le run sur une tranche. Mais on
+        // le DIT — une mise à jour muette ferait croire à des scores frais sur
+        // des matches restés vieux.
+        console.error('[reconcile] tranche de scores NON appliquée', {
+          taille: tranche.length,
+          message: updErr.message,
+        })
+        continue
+      }
+      stats.updated += typeof touchees === 'number' ? touchees : tranche.length
     }
-    stats.updated++
   }
 
   if (toDeleteIds.length > 0) {

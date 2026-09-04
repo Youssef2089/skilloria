@@ -4,6 +4,10 @@ import { useCallback } from 'react'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
+import {
+  ECOSYSTEM_SCREEN_CODES,
+  ECOSYSTEM_UNAVAILABLE_PATH,
+} from '@/lib/ecosystem-url'
 
 /**
  * Helper unifié pour tous les fetchs client AUTHENTIFIÉS (11F F2).
@@ -27,6 +31,14 @@ import { supabase } from '@/lib/supabase'
  * NE PASSENT PAS PAR ICI — ils restent en fetch direct.
  */
 
+/**
+ * Les refus d'écosystème qui MÉRITENT UN ÉCRAN — la même liste que la page,
+ * importée, jamais recopiée. Deux listes finiraient par diverger, et le code
+ * absent de l'une des deux produirait exactement ce qu'on corrige ici : un 403
+ * muet et un écran vide.
+ */
+const ECOSYSTEM_DENIALS = new Set<string>(ECOSYSTEM_SCREEN_CODES)
+
 export type SecureFetchContext = {
   /** Subdomain du tenant courant (cf. useDomain) — exigé par auth-guard. */
   subdomain: string
@@ -45,6 +57,22 @@ export type SecureFetchContext = {
    * panne. On le déconnecte et on lui DIT pourquoi.
    */
   onSuspended: () => void
+  /**
+   * Callback appelé après un 403 d'ÉCOSYSTÈME (`unknown_domain`,
+   * `domain_inactive`, `domain_mismatch`).
+   *
+   * ⚠️ FILET, PAS GARDE PRINCIPALE. La garde du dashboard redirige déjà côté
+   *    serveur, avant le moindre rendu. Ce chemin-ci couvre ce qu'elle ne voit
+   *    pas : les écrans hors /dashboard, et le cas où un écosystème est
+   *    désactivé PENDANT qu'une session est ouverte — la page est déjà rendue,
+   *    seuls les appels suivants apprennent la nouvelle.
+   *
+   * ⚠️ ON NE DÉCONNECTE PAS. Contrairement à `session_superseded` et à la
+   *    suspension, la session est parfaitement valide : c'est l'écosystème qui
+   *    ne l'est pas. Purger la session ferait perdre à l'utilisateur son accès
+   *    à ses AUTRES écosystèmes pour un problème sur un seul.
+   */
+  onEcosystemDenied: (code: string, ownSlug: string | null) => void
 }
 
 /**
@@ -75,7 +103,7 @@ export async function secureFetch(
     // Lit le body sans consommer la Response originale (clone).
     try {
       const payload = (await res.clone().json().catch(() => null)) as
-        | { code?: string }
+        | { code?: string; own_slug?: string | null }
         | null
       if (payload?.code === 'session_superseded') {
         ctx.onSuperseded()
@@ -83,6 +111,8 @@ export async function secureFetch(
         ctx.onDeletionScheduled()
       } else if (payload?.code === 'account_suspended') {
         ctx.onSuspended()
+      } else if (payload?.code && ECOSYSTEM_DENIALS.has(payload.code)) {
+        ctx.onEcosystemDenied(payload.code, payload.own_slug ?? null)
       }
     } catch {
       /* swallow — le caller verra le 403 brut */
@@ -123,6 +153,14 @@ export function useSecureFetch(): (input: RequestInfo | URL, init?: RequestInit)
         onSuspended: () => {
           void supabase.auth.signOut()
           router.replace('/connexion?reason=account_suspended')
+        },
+        // Écosystème refusé : on EXPLIQUE, on ne déconnecte pas. `slug` est
+        // celui de l'écosystème DU COMPTE, seul moyen de proposer une sortie
+        // plutôt qu'un mur.
+        onEcosystemDenied: (code, ownSlug) => {
+          const params = new URLSearchParams({ code })
+          if (ownSlug) params.set('slug', ownSlug)
+          router.replace(`${ECOSYSTEM_UNAVAILABLE_PATH}?${params.toString()}`)
         },
       }),
     [domain.subdomain, router],

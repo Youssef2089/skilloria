@@ -3,6 +3,7 @@ import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { loadTranslations, tBDD } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { activePublishedOrClause } from '@/lib/publications/expiry'
+import { loadReferentielLabels } from '@/lib/publication-synthesis'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -42,11 +43,12 @@ type PublicationRow = {
   title: string
   description: string
   branch_id: string | null
-  speciality_id: string | null
+  speciality_ids: string[] | null
+  work_zone_ids: string[] | null
   skills_required: string[] | null
-  seniority: string | null
+  seniorities: string[] | null
   work_mode: string | null
-  location: string | null
+  location_note: string | null
   duration: string | null
   start_date: string | null
   budget_min: number | null
@@ -56,7 +58,6 @@ type PublicationRow = {
   published_at: string | null
   organization_id: string
   branches: { id: string; name: string } | { id: string; name: string }[] | null
-  specialities: { id: string; name: string } | { id: string; name: string }[] | null
   organizations: { id: string; company_name: string | null; logo_url: string | null } | { id: string; company_name: string | null; logo_url: string | null }[] | null
 }
 
@@ -107,7 +108,8 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   }
   const matchRow = match as unknown as {
     id: string
-    score: number
+    relevance_score: number | null
+    relevance_tier: string | null
     status: string
     explanation: { reason?: string; model?: string } | null
     created_at: string
@@ -119,10 +121,12 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     auth.supabaseAdmin
       .from('publications')
       .select(
-        'id, type, title, description, branch_id, speciality_id, ' +
-          'skills_required, seniority, work_mode, location, duration, start_date, ' +
+        // Plus d'embed `specialities(...)` : la clé étrangère est morte avec le
+        // passage au multiple. Les libellés sont résolus juste après.
+        'id, type, title, description, branch_id, speciality_ids, work_zone_ids, ' +
+          'skills_required, seniorities, work_mode, location_note, duration, start_date, ' +
           'budget_min, budget_max, confidential, status, published_at, organization_id, ' +
-          'branches(id, name), specialities(id, name), ' +
+          'branches(id, name), ' +
           'organizations(id, company_name, logo_url)',
       )
       .eq('id', publicationId)
@@ -142,7 +146,6 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   }
   const pub = pubResult.data as unknown as PublicationRow
   const branch = pickRel(pub.branches)
-  const speciality = pickRel(pub.specialities)
   const orgRaw = pickRel(pub.organizations)
 
   // 4. Atomique : match notified → viewed + notif read_at ─────────────────
@@ -182,16 +185,25 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   const branchLabel = branch
     ? tBDD(translations, 'branches', branch.id, 'name', branch.name)
     : null
-  const specialityLabel = speciality
-    ? tBDD(translations, 'specialities', speciality.id, 'name', speciality.name)
-    : null
+  // Libellés des référentiels multiples — une annonce, deux requêtes au plus.
+  const labels = await loadReferentielLabels(
+    auth.supabaseAdmin as unknown as Parameters<typeof loadReferentielLabels>[0],
+    translations,
+    [pub],
+  )
+  const specialityLabels = (pub.speciality_ids ?? [])
+    .map((sid) => labels.specialities?.get(sid))
+    .filter((x): x is string => !!x)
+  const workZoneLabels = (pub.work_zone_ids ?? [])
+    .map((zid) => labels.workZones?.get(zid))
+    .filter((x): x is string => !!x)
 
   return json(
     {
       match: {
         id: matchRow.id,
         status: matchRow.status === 'notified' || matchRow.status === 'pending' ? 'viewed' : matchRow.status,
-        ai_score: Number(matchRow.score),
+        relevance_tier: matchRow.relevance_tier === 'strong' ? 'strong' : 'normal',
         ai_reason: matchRow.explanation?.reason ?? null,
         matched_at: matchRow.created_at,
       },
@@ -201,11 +213,14 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         title: pub.title,
         description: pub.description,
         branch_label: branchLabel,
-        speciality_label: specialityLabel,
+        speciality_labels: specialityLabels,
         skills_required: pub.skills_required ?? [],
-        seniority: pub.seniority,
+        seniorities: pub.seniorities ?? [],
         work_mode: pub.work_mode,
-        location: pub.location,
+        // Ce sont les ZONES qui décident où l'annonce cherche ; la note de
+        // localisation n'est qu'une précision d'affichage.
+        work_zone_labels: workZoneLabels,
+        location_note: pub.location_note,
         duration: pub.duration,
         start_date: pub.start_date,
         budget_min: pub.budget_min,

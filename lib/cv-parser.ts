@@ -36,12 +36,18 @@ export type ParsedLanguageStructured = {
 export type ParsedCV = {
   title: string | null
   summary: string | null
-  seniority: 'junior' | 'confirmed' | 'senior' | 'expert' | null
+  /**
+   * SÉNIORITÉS — les niveaux que le CV ÉTABLIT, jamais ceux que la personne
+   * pourrait accepter. Cette nuance est écrite dans le prompt : l'élargir
+   * reviendrait à décider à sa place.
+   */
+  seniorities: Array<'junior' | 'confirmed' | 'senior' | 'expert'>
   years_experience: number | null
   skills: string[]
   certifications: Array<{ name: string; issuer: string | null; year: number | null }>
   branch_slug: string | null
-  speciality_slug: string | null
+  /** SPÉCIALITÉS — toutes celles que le parcours démontre réellement. */
+  speciality_slugs: string[]
   languages: string[]
   location: string | null
   tjm_min: number | null
@@ -80,9 +86,11 @@ function buildTool(ctx: DomainContext) {
       properties: {
         title: { type: ['string', 'null'] },
         summary: { type: ['string', 'null'] },
-        seniority: {
-          type: ['string', 'null'],
-          enum: ['junior', 'confirmed', 'senior', 'expert', null],
+        seniorities: {
+          type: 'array',
+          items: { type: 'string', enum: ['junior', 'confirmed', 'senior', 'expert'] },
+          description:
+            "Niveaux que le parcours ÉTABLIT (un, ou deux si l'expérience est à la charnière). Jamais un élargissement vers le bas : ce choix appartient à la personne.",
         },
         years_experience: { type: ['number', 'null'] },
         skills: {
@@ -107,9 +115,10 @@ function buildTool(ctx: DomainContext) {
           type: ['string', 'null'],
           description: `Un parmi : ${ctx.branches.join(', ')} (null si inconnu).`,
         },
-        speciality_slug: {
-          type: ['string', 'null'],
-          description: `Un parmi : ${ctx.specialities.join(', ')} (null si inconnu).`,
+        speciality_slugs: {
+          type: 'array',
+          items: { type: 'string' },
+          description: `Toutes celles que le parcours démontre, parmi : ${ctx.specialities.join(', ')}. [] si aucune n'est établie.`,
         },
         languages: { type: 'array', items: { type: 'string' } },
         location: { type: ['string', 'null'] },
@@ -212,9 +221,9 @@ function buildTool(ctx: DomainContext) {
         },
       },
       required: [
-        'title', 'summary', 'seniority', 'years_experience',
+        'title', 'summary', 'seniorities', 'years_experience',
         'skills', 'certifications',
-        'branch_slug', 'speciality_slug',
+        'branch_slug', 'speciality_slugs',
         'languages', 'location', 'tjm_min', 'tjm_max', 'linkedin_url',
         'phone', 'address_line', 'postal_code', 'city', 'country',
         'birth_year', 'photo_url', 'years_total_experience',
@@ -231,8 +240,16 @@ function buildSystemPrompt(ctx: DomainContext): string {
     'Tu DOIS appeler l\'outil `record_cv` avec un JSON strict. Ne renvoie jamais de texte libre.',
     `Normalise les compétences contre la liste suivante quand c'est possible : ${ctx.tags.join(', ')}.`,
     `La branche doit être l'un des slugs suivants (sinon null) : ${ctx.branches.join(', ')}.`,
-    `La spécialité doit être l'un des slugs suivants (sinon null) : ${ctx.specialities.join(', ')}.`,
+    `Les spécialités doivent être des slugs de cette liste : ${ctx.specialities.join(', ')}.`,
     'Pour les champs inconnus, renvoie null (ou [] pour les listes).',
+    '',
+    'CHAMPS MULTIPLES — et les deux ne se déduisent PAS de la même façon.',
+    '',
+    "SPÉCIALITÉS (`speciality_slugs`) : un CV en montre souvent PLUSIEURS, et c'est un FAIT qu'on lit, pas une préférence qu'on suppose. Un consultant qui a mené des projets Finance ET Supply Chain a bien les deux. Retiens TOUTES celles que le parcours démontre réellement — missions, projets, certifications à l'appui. N'en ajoute aucune que le CV ne prouve pas : une spécialité inventée fera proposer à cette personne des missions qu'elle ne sait pas faire.",
+    '',
+    "SÉNIORITÉS (`seniorities`) : ici la prudence est INVERSE. Un CV démontre un NIVEAU ATTEINT ; il ne dit rien de ce que la personne ACCEPTE. Retiens donc uniquement le ou les niveaux que le parcours établit — deux seulement si l'expérience est franchement à la charnière entre deux (par exemple 7 ans, entre confirmé et senior). N'ÉLARGIS JAMAIS vers le bas en supposant qu'un senior accepterait des missions de junior : c'est un choix qui appartient à la personne, et l'écran le lui demandera.",
+    '',
+    "ZONES DE TRAVAIL : ne les déduis PAS, et ne les invente sous aucune forme. Un CV dit où quelqu'un a TRAVAILLÉ, jamais où il ACCEPTE de travailler. Le schéma ne prévoit d'ailleurs aucun champ pour cela — c'est délibéré.",
     '',
     'Extrais TOUTES les expériences professionnelles du CV en deux catégories :',
     '',

@@ -33,12 +33,14 @@ export type CdiProfile = {
   user_id: string
   title: string | null
   summary: string | null
-  seniority: Seniority | null
+  seniorities: Seniority[] | null
   years_experience: number | null
   skills: string[] | null
   certifications: Certification[] | null
   branch_id: string | null
-  speciality_id: string | null
+  speciality_ids: string[] | null
+  /** Zones où l'expert accepte de travailler. Exigées pour être visible. */
+  work_zone_ids: string[] | null
   languages: string[] | null
   location: string | null
   work_modes: WorkMode[] | null
@@ -127,12 +129,13 @@ const PROFILE_COLUMNS = [
   'user_id',
   'title',
   'summary',
-  'seniority',
+  'seniorities',
   'years_experience',
   'skills',
   'certifications',
   'branch_id',
-  'speciality_id',
+  'speciality_ids',
+  'work_zone_ids',
   'languages',
   'location',
   'work_modes',

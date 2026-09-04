@@ -129,7 +129,7 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
   // Ligne meta : Type · Branch · Speciality (jointe au "·")
   const metaParts: string[] = [typeLabel]
   if (annonce.branch_label) metaParts.push(annonce.branch_label)
-  if (annonce.speciality_label) metaParts.push(annonce.speciality_label)
+  if (annonce.speciality_labels.length > 0) metaParts.push(annonce.speciality_labels.join(' · '))
   const metaLine = metaParts.join(' · ')
 
   // - À consulter en accent useDomain (action requise côté org)
@@ -250,13 +250,14 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
           budget_min: annonce.budget_min,
           budget_max: annonce.budget_max,
           budget_unit: annonce.type === 'offre' ? 'year' : 'day',
-          location: annonce.location,
+          work_zone_labels: annonce.work_zone_labels,
+          location_note: annonce.location_note,
           work_mode: annonce.work_mode,
           duration: annonce.duration,
           start_date: annonce.start_date,
-          seniority: annonce.seniority,
+          seniorities: annonce.seniorities,
           branch_label: annonce.branch_label,
-          speciality_label: annonce.speciality_label,
+          speciality_labels: annonce.speciality_labels,
           confidential: annonce.confidential,
         }
         return (

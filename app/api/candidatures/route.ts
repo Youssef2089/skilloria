@@ -11,6 +11,7 @@ import { performUnlock } from '@/lib/unlock'
 // personnelle freelance → dashboard expert ; org cliente → dashboard entreprise).
 import { publicationCandidaturesLinkForOrg } from '@/lib/collaboration-links'
 import { isActivePublished } from '@/lib/publications/expiry'
+import { jugerCandidature } from '@/lib/candidatures/ai-assessment'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -60,10 +61,10 @@ function asString(v: unknown): string | null {
  * Whitelist de construction de `candidatures.preview` — strictement les
  * champs NON-SENSIBLES (cf. migration boucle cœur §4).
  *
- * AUTORISÉS (24) : title, summary, skills, seniority, expert_type, tjm_min/max,
+ * AUTORISÉS (24) : title, summary, skills, seniorities, expert_type, tjm_min/max,
  *   salary_min/max, years_experience, years_total_experience, work_modes,
  *   languages, country, city, availability_status, availability_date,
- *   profile_score, branch_id, speciality_id, + 6 signaux CDI non-PII :
+ *   profile_score, branch_id, speciality_ids, + 6 signaux CDI non-PII :
  *   cdi_status, cdi_notice_period, cdi_geo_mobility, cdi_contract_types,
  *   cdi_company_size, cdi_sectors.
  *
@@ -77,7 +78,7 @@ function buildPreview(profile: Record<string, unknown>): Record<string, unknown>
     title: profile.title ?? null,
     summary: profile.summary ?? null,
     skills: Array.isArray(profile.skills) ? profile.skills : [],
-    seniority: profile.seniority ?? null,
+    seniorities: Array.isArray(profile.seniorities) ? profile.seniorities : [],
     expert_type: profile.expert_type ?? null,
     years_experience: profile.years_experience ?? null,
     years_total_experience: profile.years_total_experience ?? null,
@@ -93,7 +94,7 @@ function buildPreview(profile: Record<string, unknown>): Record<string, unknown>
     availability_date: profile.availability_date ?? null,
     profile_score: profile.profile_score ?? null,
     branch_id: profile.branch_id ?? null,
-    speciality_id: profile.speciality_id ?? null,
+    speciality_ids: Array.isArray(profile.speciality_ids) ? profile.speciality_ids : [],
     // Lot synthèse candidat CDI — 6 signaux non-PII pour les candidatures
     // sur publications de type 'offre'. Affichés uniquement quand
     // publicationType==='offre' côté UI.
@@ -139,10 +140,10 @@ export async function POST(request: NextRequest): Promise<Response> {
   const { data: profile, error: pErr } = await auth.supabaseAdmin
     .from('profiles')
     .select(
-      'id, user_id, domain_id, title, summary, skills, seniority, expert_type, ' +
+      'id, user_id, domain_id, title, summary, skills, seniorities, expert_type, ' +
         'years_experience, years_total_experience, tjm_min, tjm_max, salary_min, salary_max, ' +
         'work_modes, languages, country, city, availability_status, availability_date, ' +
-        'profile_score, branch_id, speciality_id, ' +
+        'profile_score, branch_id, speciality_ids, ' +
         'cdi_status, cdi_notice_period, cdi_geo_mobility, cdi_contract_types, ' +
         'cdi_company_size, cdi_sectors',
     )
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   // ── Match requis (borrnage curation) ────────────────────────────────────
   const { data: match, error: mErr } = await auth.supabaseAdmin
     .from('matches')
-    .select('id, score, status')
+    .select('id, relevance_score, status')
     .eq('publication_id', publicationId)
     .eq('profile_id', profileRow.id)
     .maybeSingle()
@@ -167,22 +168,28 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!match) {
     return json({ error: 'No match for this publication', code: 'not_matched' }, 403)
   }
-  const matchRow = match as unknown as { id: string; score: number; status: string }
+  const matchRow = match as unknown as { id: string; relevance_score: number | null; status: string }
 
   // ── Vérif publication : publiée + type candidatable + pas son propre besoin ─
   //  `created_by` = l'auteur de la publication (pour un besoin sous_traitance,
   //  l'expert publiant = owner de son organisation personnelle).
   const { data: pub, error: pubErr } = await auth.supabaseAdmin
     .from('publications')
-    .select('id, status, type, created_by, published_at, expires_at')
+    .select(
+      'id, status, type, created_by, published_at, expires_at, domain_id, ' +
+        'title, description, skills_required, seniorities',
+    )
     .eq('id', publicationId)
     .maybeSingle()
   if (pubErr || !pub) {
     return json({ error: 'Publication not found', code: 'not_found' }, 404)
   }
-  const pubRow = pub as {
+  const pubRow = pub as unknown as {
     id: string; status: string; type: string; created_by: string | null
     published_at: string | null; expires_at: string | null
+    domain_id: string
+    title: string | null; description: string | null
+    skills_required: string[] | null; seniorities: string[] | null
   }
   // Ouverte = published NON expirée (règle 30j read-time, lib/publications/expiry).
   // On ne peut pas postuler à une annonce expirée.
@@ -219,7 +226,19 @@ export async function POST(request: NextRequest): Promise<Response> {
       match_id: matchRow.id,
       domain_id: profileRow.domain_id,
       cover_message: coverMessage,
-      ai_match_score: matchRow.score,
+      // LAISSÉ VIDE À DESSEIN, et ce n'est pas un oubli.
+      //
+      // `ai_match_score` est une note de Claude SUR 10, adossée à un texte, qui
+      // répond à « que vaut ce dossier ? ». Elle était jusqu'ici recopiée depuis
+      // la note du matching — une autre question (« pourquoi ce profil
+      // apparaît ? »), posée à un autre moment, sur une autre matière.
+      //
+      // Claude quitte le matching : cette note n'a plus de producteur ici. La
+      // remplacer par le score de pertinence serait ranger une grandeur dans
+      // l'échelle d'une autre — 0,73 lu comme « 0,73 / 10 ». Elle reste nulle
+      // jusqu'à ce que le jugement au dépôt la produise (lot 4), et les écrans
+      // qui l'affichent savent déjà se taire quand elle manque.
+      ai_match_score: null,
       status: 'received',
       preview,
     })
@@ -235,6 +254,82 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Insert failed', code: 'db_error' }, 500)
   }
   const row = inserted as unknown as { id: string; status: string; created_at: string }
+
+  // ── LE JUGEMENT DE CLAUDE, APRÈS LA RÉPONSE ─────────────────────────────
+  //
+  //  Il ne bloque JAMAIS le dépôt. Un dossier est déposé même si le modèle est
+  //  indisponible ou si le plafond mensuel est atteint : la note reste nulle,
+  //  les écrans savent se taire, et l'organisation dévoile à la main. Faire
+  //  échouer un dépôt pour une panne qui ne concerne pas l'expert serait le
+  //  punir de quelque chose qu'il ne peut ni voir ni corriger.
+  //
+  //  C'est ICI que Claude intervient désormais, et nulle part ailleurs : il
+  //  répond à « que vaut ce dossier ? », pas à « pourquoi ce profil
+  //  apparaît-il ? » — cette seconde question appartient au reranking.
+  after(async () => {
+    try {
+      const resultat = await jugerCandidature({
+        supabaseAdmin: auth.supabaseAdmin,
+        domainId: pubRow.domain_id,
+        candidatureId: row.id,
+        entree: {
+          locale: 'fr',
+          annonce: {
+            type: pubRow.type,
+            title: pubRow.title ?? '',
+            description: pubRow.description ?? '',
+            skills_required: pubRow.skills_required ?? [],
+            seniorities: pubRow.seniorities ?? [],
+          },
+          profil: {
+            title: (profileRow.title as string | null) ?? null,
+            summary: (profileRow.summary as string | null) ?? null,
+            skills: Array.isArray(profileRow.skills) ? (profileRow.skills as string[]) : [],
+            seniorities: Array.isArray(profileRow.seniorities)
+              ? (profileRow.seniorities as string[])
+              : [],
+            years_total_experience:
+              typeof profileRow.years_total_experience === 'number'
+                ? profileRow.years_total_experience
+                : null,
+            // Rôles et secteurs seulement : l'employeur ne sort pas d'ici, et
+            // `pitch_org` est affiché AVANT le déverrouillage.
+            experiences: [],
+          },
+        },
+      })
+      if (!resultat.ok) {
+        // Journalisé avec sa RAISON. Une note absente sans raison enverrait
+        // chercher un bug là où il n'y a qu'un plafond atteint.
+        console.warn('[candidatures:POST] aucun jugement rendu', {
+          candidature: row.id,
+          raison: resultat.raison,
+        })
+        return
+      }
+      const { error: majErr } = await auth.supabaseAdmin
+        .from('candidatures')
+        .update({
+          ai_match_score: resultat.jugement.score,
+          ai_assessment: {
+            reason: resultat.jugement.reason,
+            pitch_org: resultat.jugement.pitch_org,
+            model: resultat.jugement.model,
+            evaluated_at: new Date().toISOString(),
+          },
+          ai_model: resultat.jugement.model,
+        })
+        .eq('id', row.id)
+      if (majErr) {
+        console.error('[candidatures:POST] jugement non enregistré', {
+          candidature: row.id,
+          message: majErr.message,
+        })
+      }
+    } catch (err) {
+      console.error('[candidatures:POST] jugement a levé (best-effort)', err)
+    }
+  })
 
   // ── Notif ORG : nouvelle candidature (best-effort, n'invalide pas le 201) ─
   //  Lot 2c — D3 : on notifie chaque membre actif de l'org propriétaire de la
@@ -352,7 +447,19 @@ export async function POST(request: NextRequest): Promise<Response> {
     detail: {
       publication_id: publicationId,
       match_id: matchRow.id,
-      ai_match_score: matchRow.score,
+      // LAISSÉ VIDE À DESSEIN, et ce n'est pas un oubli.
+      //
+      // `ai_match_score` est une note de Claude SUR 10, adossée à un texte, qui
+      // répond à « que vaut ce dossier ? ». Elle était jusqu'ici recopiée depuis
+      // la note du matching — une autre question (« pourquoi ce profil
+      // apparaît ? »), posée à un autre moment, sur une autre matière.
+      //
+      // Claude quitte le matching : cette note n'a plus de producteur ici. La
+      // remplacer par le score de pertinence serait ranger une grandeur dans
+      // l'échelle d'une autre — 0,73 lu comme « 0,73 / 10 ». Elle reste nulle
+      // jusqu'à ce que le jugement au dépôt la produise (lot 4), et les écrans
+      // qui l'affichent savent déjà se taire quand elle manque.
+      ai_match_score: null,
       has_cover_message: coverMessage !== null,
     },
   })
@@ -390,6 +497,13 @@ export async function POST(request: NextRequest): Promise<Response> {
         if ((revealedCount ?? 0) < revealN) {
           // La candidature qui vient d'être créée est-elle le meilleur score de
           // la publication ? (égalité de score → la plus ancienne l'emporte.)
+          //
+          // ⚠️ CONSÉQUENCE DU LOT 3, ÉCRITE PLUTÔT QUE SUBIE : `ai_match_score`
+          // est nul tant que le jugement au dépôt ne le produit pas. Toutes les
+          // notes étant égales (nulles), le départage tombe sur `created_at` :
+          // le dévoilement inclus va à la PREMIÈRE candidature, plus à la
+          // meilleure. C'est un repli déterministe et défendable, mais ce n'est
+          // pas la règle annoncée — le lot 4 rétablit la note.
           const { data: topRow } = await auth.supabaseAdmin
             .from('candidatures')
             .select('id')

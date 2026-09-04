@@ -114,12 +114,12 @@ export async function POST(request: NextRequest): Promise<Response> {
         'ai_consent_at',
         'title',
         'summary',
-        'seniority',
+        'seniorities',
         'years_experience',
         'skills',
         'certifications',
         'branch_id',
-        'speciality_id',
+        'speciality_ids',
         'languages',
         'location',
         'linkedin_url',
@@ -325,7 +325,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   // 7. Resolve branch_id / speciality_id depuis slugs
   // ───────────────────────────────────────────────────────────────────────
   let branchId: string | null = null
-  let specialityId: string | null = null
+  let specialityIds: string[] = []
   if (parsed.branch_slug) {
     const { data: br } = await supabaseAdmin
       .from('branches')
@@ -335,14 +335,17 @@ export async function POST(request: NextRequest): Promise<Response> {
       .maybeSingle()
     branchId = br?.id ?? null
   }
-  if (parsed.speciality_slug) {
-    const { data: sp } = await supabaseAdmin
+  // SPÉCIALITÉS multiples, résolues en lot. Un slug que le modèle aurait
+  // inventé est ignoré : c'est une extraction, pas une saisie — il n'y a pas
+  // d'utilisateur à qui rendre une erreur, et le profil reste modifiable.
+  if (parsed.speciality_slugs.length > 0) {
+    const { data: sps } = await supabaseAdmin
       .from('specialities')
       .select('id')
       .eq('domain_id', user.domain_id)
-      .eq('slug', parsed.speciality_slug)
-      .maybeSingle()
-    specialityId = sp?.id ?? null
+      .eq('active', true)
+      .in('slug', parsed.speciality_slugs)
+    specialityIds = ((sps ?? []) as Array<{ id: string }>).map((x) => x.id)
   }
 
   // ───────────────────────────────────────────────────────────────────────
@@ -365,12 +368,12 @@ export async function POST(request: NextRequest): Promise<Response> {
       cv_parsing_error: null,
       title: coalesce(prof.title, parsed.title),
       summary: coalesce(prof.summary, parsed.summary),
-      seniority: coalesce(prof.seniority, parsed.seniority),
+      seniorities: coalesce(prof.seniorities as string[] | null, parsed.seniorities),
       years_experience: coalesce(prof.years_experience, parsed.years_experience),
       skills: coalesce(prof.skills as any, parsed.skills),
       certifications: coalesce(prof.certifications as any, parsed.certifications),
       branch_id: coalesce(prof.branch_id, branchId),
-      speciality_id: coalesce(prof.speciality_id, specialityId),
+      speciality_ids: coalesce(prof.speciality_ids as string[] | null, specialityIds),
       languages: coalesce(prof.languages as any, parsed.languages),
       location: coalesce(prof.location, parsed.location),
       linkedin_url: coalesce(prof.linkedin_url, parsed.linkedin_url),

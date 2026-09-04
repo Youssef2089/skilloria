@@ -69,8 +69,12 @@ export async function GET(req: NextRequest) {
     if (!domainId) {
       return json({ error: 'domain_id required', code: 'missing_domain_id' }, 400)
     }
-    const [{ data: brs, error: brsErr }, { data: sps, error: spsErr }, translations] =
-      await Promise.all([
+    const [
+      { data: brs, error: brsErr },
+      { data: sps, error: spsErr },
+      { data: wzs, error: wzsErr },
+      translations,
+    ] = await Promise.all([
         supabase
           .from('branches')
           .select('id, name, slug, sort_order')
@@ -83,11 +87,22 @@ export async function GET(req: NextRequest) {
           .eq('domain_id', domainId)
           .eq('active', true)
           .order('sort_order', { ascending: true }),
+        // ZONES DE TRAVAIL — PAS de filtre domain_id, et ce n'est pas un oubli :
+        // la géographie n'appartient à aucun écosystème. Une branche « Dynamics
+        // 365 » n'existe que dans l'écosystème qui la déclare ; la France existe
+        // pour tout le monde. Même posture que `countries`, qui n'a pas de
+        // domain_id non plus.
+        supabase
+          .from('work_zones')
+          .select('id, parent_id, kind, code, country_code, name, slug, sort_order')
+          .eq('active', true)
+          .order('sort_order', { ascending: true })
+          .order('name', { ascending: true }),
         loadTranslations(locale),
       ])
 
-    if (brsErr || spsErr) {
-      console.error('[taxonomy]', brsErr?.message, spsErr?.message)
+    if (brsErr || spsErr || wzsErr) {
+      console.error('[taxonomy]', brsErr?.message, spsErr?.message, wzsErr?.message)
       return json({ error: 'Failed to load taxonomy', code: 'db_error' }, 500)
     }
 
@@ -104,7 +119,20 @@ export async function GET(req: NextRequest) {
       name: tBDD(translations, 'specialities', s.id, 'name', s.name),
     }))
 
-    return json({ locale, branches, specialities })
+    // Les libellés partent DÉJÀ traduits, comme branches et spécialités : le
+    // FR est le repli automatique de tBDD, en/es/de viennent de `translations`.
+    // L'écran n'a donc aucune règle de langue à porter — il affiche `name`.
+    const work_zones = (wzs ?? []).map(z => ({
+      id: z.id,
+      parent_id: z.parent_id,
+      kind: z.kind,
+      code: z.code,
+      country_code: z.country_code,
+      slug: z.slug,
+      name: tBDD(translations, 'work_zones', z.id, 'name', z.name),
+    }))
+
+    return json({ locale, branches, specialities, work_zones })
   } catch (err) {
     console.error('[taxonomy] exception:', err)
     return json({ error: 'Internal error', code: 'internal' }, 500)

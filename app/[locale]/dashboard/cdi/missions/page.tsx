@@ -37,7 +37,7 @@ export default function CdiMissionsFeedPage() {
     url: `/api/me/missions?locale=${encodeURIComponent(locale)}`,
     itemsOf: (d) => d.missions ?? [],
     identityOf: (m) => m.match_id,
-    versionOf: (m) => `${m.match_status}|${m.ai_score}`,
+    versionOf: (m) => `${m.match_status}|${m.relevance_tier}`,
     holdNewItems: true,
     metadataHash: (d) => String(d.expert_status?.is_dnd ?? false),
   })

@@ -11,6 +11,7 @@ import { runMatching } from '@/lib/matching'
 import { getOrgEntitlements, consumeQuota, monthlyPeriodStart } from '@/lib/entitlements'
 import { isExpertProfileApproved, PROFILE_NOT_VERIFIED_CODE } from '@/lib/expert-verified-guard'
 import { activePublishedOrClause } from '@/lib/publications/expiry'
+import { missingForPublish } from '@/lib/publications/publishable'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   const { data: pub, error: fetchErr } = await auth.supabaseAdmin
     .from('publications')
     .select(
-      'id, organization_id, status, type, title, description, skills_required, seniority, work_mode, location, duration, budget_min, budget_max',
+      'id, organization_id, status, type, title, description, skills_required, seniorities, work_mode, location_note, work_zone_ids, branch_id, duration, budget_min, budget_max',
     )
     // CLOISONNEMENT — ECRITURE : publier une annonce d'un autre ecosysteme
     // depuis celui-ci consommerait un quota sur des donnees invisibles ici.
@@ -121,6 +122,29 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     return json(
       { error: 'Cannot publish', code: 'wrong_status', current_status: currentStatus },
       409,
+    )
+  }
+
+  // ── GARDE DE PUBLIABILITÉ — la barrière est ICI, pas dans l'écran ────────
+  //
+  // Sans zone de travail, une annonce ne recouperait AUCUN expert : `&&` sur un
+  // ensemble vide est toujours faux. Elle serait publiée, facturée, et
+  // silencieusement invisible. La contrainte de base l'interdit déjà, mais une
+  // contrainte violée rend une erreur Postgres que l'organisation lit « db_error » :
+  // un refus sans raison nommable. On refuse donc ici, en NOMMANT les champs.
+  //
+  // Même prédicat que le formulaire (lib/publications/publishable.ts) : une
+  // copie dériverait, et l'écran finirait par contredire le serveur.
+  const manquants = missingForPublish({
+    title: pub.title as string | null,
+    description: pub.description as string | null,
+    branch_id: pub.branch_id as string | null,
+    work_zone_ids: (pub.work_zone_ids as string[] | null) ?? [],
+  })
+  if (manquants.length > 0) {
+    return json(
+      { error: 'Publication incomplete', code: 'missing_fields', missing: manquants },
+      400,
     )
   }
 
@@ -182,9 +206,9 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     title: pub.title as string,
     description: pub.description as string,
     skills_required: (pub.skills_required as string[] | null) ?? [],
-    seniority: (pub.seniority as string | null) ?? null,
+    seniorities: (pub.seniorities as string[] | null) ?? [],
     work_mode: (pub.work_mode as string | null) ?? null,
-    location: (pub.location as string | null) ?? null,
+    location_note: (pub.location_note as string | null) ?? null,
     duration: (pub.duration as string | null) ?? null,
     budget_min: (pub.budget_min as number | null) ?? null,
     budget_max: (pub.budget_max as number | null) ?? null,
@@ -241,7 +265,6 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
       const matchingVerdict = await runMatching({
         supabaseAdmin: auth.supabaseAdmin,
         publicationId: id,
-        locale: aiInput.locale,
       })
       console.log('[publications:publish] matching done', {
         publicationId: id,

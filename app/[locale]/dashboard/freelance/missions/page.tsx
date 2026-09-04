@@ -42,7 +42,7 @@ export default function MissionsFeedPage() {
     url: `/api/me/missions?locale=${encodeURIComponent(locale)}`,
     itemsOf: (d) => d.missions ?? [],
     identityOf: (m) => m.match_id,
-    versionOf: (m) => `${m.match_status}|${m.ai_score}`,
+    versionOf: (m) => `${m.match_status}|${m.relevance_tier}`,
     holdNewItems: true,
     // Lot global C1 : si is_dnd change (Réactiver → false, ou DND → true),
     // on force l'update de `displayed` sans passer par le "hold". Sinon le

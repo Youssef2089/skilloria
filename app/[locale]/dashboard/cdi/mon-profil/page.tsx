@@ -1075,9 +1075,11 @@ function ExpertiseSection({
   t: ReturnType<typeof useTranslations<'cdi_profile_view'>>
 }) {
   const branch = branches.find(b => b.id === profile.branch_id) ?? null
-  const specialty = specialities.find(s => s.id === profile.speciality_id) ?? null
+  const specialtyNames = (profile.speciality_ids ?? [])
+    .map(id => specialities.find(s => s.id === id)?.name)
+    .filter((x): x is string => !!x)
   const skills = profile.skills ?? []
-  const seniorityKey = profile.seniority
+  const seniorityKeys = profile.seniorities ?? []
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1094,12 +1096,12 @@ function ExpertiseSection({
         />
         <MetaItem
           label={t('labels.specialty')}
-          value={specialty?.name ?? null}
+          value={specialtyNames.join(', ') || null}
         />
-        {seniorityKey && (
+        {seniorityKeys.length > 0 && (
           <MetaItem
             label={t('labels.seniority')}
-            value={seniorityKey}
+            value={seniorityKeys.join(', ')}
           />
         )}
         {profile.years_experience != null && (
