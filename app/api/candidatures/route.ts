@@ -487,7 +487,37 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (pubEnts) {
       const ents = await getOrgEntitlements(auth.supabaseAdmin, pubEnts.organization_id)
       const revealN = ents.limits.revealedCandidatesPerPublication
-      // null = illimité → aucun auto : l'org dévoile manuellement sans limite.
+
+      // ┌─ « ILLIMITÉ » DÉVOILE TOUT LE MONDE, PAS PERSONNE ─────────────────┐
+      // │ Ce test était `if (revealN !== null)`, et il produisait l'INVERSE   │
+      // │ de ce que le back-office annonce. La chaîne complète :              │
+      // │                                                                     │
+      // │   package_features.value = 'unlimited'                              │
+      // │     → parseLimit() → null            (lib/entitlements.ts)          │
+      // │       → revealN = null                                              │
+      // │         → le bloc entier était SAUTÉ → zéro dévoilement.            │
+      // │                                                                     │
+      // │ Cocher « Illimité » retirait donc le dévoilement au lieu de le      │
+      // │ rendre total. Conséquence observable en base : `business` et        │
+      // │ `elite`, les deux offres PAYANTES, dévoilaient MOINS que l'offre    │
+      // │ gratuite — qui, elle, porte un 1 et fonctionnait.                   │
+      // │                                                                     │
+      // │ C'est le code qui avait tort, pas le libellé : l'écran dit déjà     │
+      // │ « les # meilleurs candidats sont dévoilés automatiquement ».        │
+      // └────────────────────────────────────────────────────────────────────┘
+      //
+      // Seul le COMBIEN change. Le QUI et le COMMENT sont intacts : même
+      // critère de sélection, même départage à l'ancienneté, même chemin
+      // `performUnlock`, et toujours aucune rétrogradation d'une place prise.
+      //
+      //   null (illimité) → toute candidature est dévoilée, celle-ci comprise.
+      //                     Ni comptage de places ni départage : il n'y a plus
+      //                     de place à disputer. C'est aussi une requête de
+      //                     moins sur le chemin de création.
+      //   N (nombre)      → inchangé : au plus N dévoilées, et seulement si
+      //                     celle-ci est en tête.
+      let devoile = revealN === null
+
       if (revealN !== null) {
         const { count: revealedCount } = await auth.supabaseAdmin
           .from('candidatures')
@@ -513,15 +543,17 @@ export async function POST(request: NextRequest): Promise<Response> {
             .limit(1)
             .maybeSingle()
           const top = topRow as { id: string } | null
-          if (top && top.id === row.id) {
-            const res = await performUnlock(auth.supabaseAdmin, row.id, {
-              auto: true,
-              actorUserId: auth.user.id,
-            })
-            if (!res.ok) {
-              console.warn('[candidatures:POST] auto-reveal performUnlock failed', res.code)
-            }
-          }
+          devoile = top !== null && top.id === row.id
+        }
+      }
+
+      if (devoile) {
+        const res = await performUnlock(auth.supabaseAdmin, row.id, {
+          auto: true,
+          actorUserId: auth.user.id,
+        })
+        if (!res.ok) {
+          console.warn('[candidatures:POST] auto-reveal performUnlock failed', res.code)
         }
       }
     }
