@@ -120,6 +120,12 @@ export async function POST(request: NextRequest): Promise<Response> {
   const { programmerRelance } = await import('@/lib/matching/relance')
   const prog = await programmerRelance(supabaseAdmin, prof.id, 'ouverture_croisee')
   if (!prog.ok) {
+    // Le plafond horaire (garde d'ÉCRITURE, cf. lib/matching/relance.ts) est un
+    // refus DÉLIBÉRÉ, pas une panne : il mérite son propre code et un 429. Le
+    // confondre avec une erreur serveur ferait chercher une panne inexistante.
+    if (prog.raison === 'plafond_horaire') {
+      return json({ ok: false, code: 'relance_plafond' }, 429)
+    }
     // Une relance non programmée est un changement qui ne sera jamais pris en
     // compte. On rend une erreur plutôt qu'un « ok » : l'écran doit pouvoir le
     // dire, et non laisser croire que c'est parti.

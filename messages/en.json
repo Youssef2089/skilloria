@@ -3631,6 +3631,19 @@
         "candidature": "on submission",
         "pitch": "on opening a card"
       }
+    },
+    "overruns": {
+      "title": "Follow-up cap exceeded (last 30 days)",
+      "none": "No overruns: nobody came close to the cap.",
+      "unavailable": "The counter could not be read. That is not zero: it is unknown.",
+      "experts": "{count, plural, one {# expert} other {# experts}}",
+      "help": "The threshold is deliberately not adjustable here: an anti-abuse guard is not a commercial setting. An overrun means a trigger was not scheduled — if this counter climbs, look for a client-side loop rather than raising the threshold.",
+      "origine": {
+        "profil_modifie": "Profile edited",
+        "ouverture_croisee": "Back to listening",
+        "disponibilite": "Availability change",
+        "cv_reanalyse": "CV re-parsed"
+      }
     }
   },
   "ecosystem_switcher": {

@@ -45,7 +45,8 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
   const admin = auth.supabaseAdmin
 
-  const [reglagesRes, domainesRes, distributionRes, depenseRes, couvertureRes, pannesRes] = await Promise.all([
+  const [reglagesRes, domainesRes, distributionRes, depenseRes, couvertureRes, pannesRes, depassementsRes] =
+    await Promise.all([
     admin
       .from('matching_settings')
       .select('domain_id, feed_threshold, notify_threshold, notify_enabled, rerank_model, rerank_batch_size, updated_at'),
@@ -58,6 +59,11 @@ export async function GET(request: NextRequest): Promise<Response> {
     // mise en relation. Le compteur de pannes appartient donc au même bloc :
     // « ce que l'IA coûte, et ce qu'elle n'a pas pu faire » se lisent ensemble.
     admin.rpc('redaction_failure_health'),
+    // LES DEPASSEMENTS DU PLAFOND DE RELANCE. Le seuil n'a deliberement AUCUN
+    // champ sur cet ecran — un seuil anti-abus n'est pas un reglage commercial.
+    // En echange, il se LIT ici, a cote du compteur de pannes : un plafond
+    // qu'on ne peut pas observer est un plafond qu'on decouvre par un ticket.
+    admin.rpc('relance_overrun_health'),
   ])
 
   if (reglagesRes.error) {
@@ -86,6 +92,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       depense: depenseRes.error ? null : (depenseRes.data ?? []),
       couverture: couvertureRes.error ? null : (couvertureRes.data ?? []),
       pannes: pannesRes.error ? null : (pannesRes.data ?? []),
+      depassements: depassementsRes.error ? null : (depassementsRes.data ?? []),
     },
     200,
   )

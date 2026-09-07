@@ -369,6 +369,129 @@ for (const langue of ['fr', 'en', 'es', 'de']) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 2.4 — M2 : LE PLAFOND DE RELANCE EST UN GARDE D'ÉCRITURE
+//
+//   Requalification : depuis le lot 6, la route ne lance plus de reranking —
+//   elle PROGRAMME une relance. Le coût est déjà borné par la temporisation
+//   (une rafale ne produit qu'un seul run). Ce qui n'était borné par rien,
+//   c'est le nombre d'ÉCRITURES sur `profiles` qu'un client peut déclencher.
+//
+//   Deux choses doivent tenir ensemble, et elles se contredisent en apparence :
+//     • le seuil n'a AUCUN champ d'administration — un garde anti-abus n'est
+//       pas un réglage commercial, et le rendre modifiable invite à le relever
+//       le jour où il gêne, c'est-à-dire le jour où il sert ;
+//     • en échange, les dépassements sont COMPTÉS et LISIBLES, au même endroit
+//       que le compteur de pannes. Un plafond qu'on ne peut pas observer est un
+//       plafond qu'on découvre par un ticket.
+//   Retirer l'une des deux casse le marché. Le contrôle tient les deux.
+// ═══════════════════════════════════════════════════════════════════════════
+titre("2.4 — M2 : plafond en constante, sans réglage, mais observable")
+
+const relance = read('lib/matching/relance.ts')
+const sync = read('app/api/me/sync-matching/route.ts')
+const routeAdmin = read('app/api/admin/matching-settings/route.ts')
+const pageAdmin = read('app/[locale]/admin/matching/page.tsx')
+
+// (i) Le seuil est une constante NOMMÉE, pas un nombre posé dans un appel.
+ok('le plafond est une constante nommée', /export const RELANCE_MAX_PAR_HEURE = \d+/.test(relance))
+ok('la fenêtre est une constante nommée', /export const RELANCE_FENETRE_S = \d+/.test(relance))
+ok(
+  'le plafond vaut 20 par heure',
+  /RELANCE_MAX_PAR_HEURE = 20\b/.test(relance) && /RELANCE_FENETRE_S = 3600\b/.test(relance),
+)
+
+// (ii) La garde est posée dans programmerRelance — donc sur TOUS les appelants,
+//   pas seulement sur la route qu'on avait en tête le jour du correctif.
+const debutProg = relance.indexOf('export async function programmerRelance')
+const finProg = relance.indexOf('export async function solderRelance')
+const corpsProg = debutProg >= 0 && finProg > debutProg ? relance.slice(debutProg, finProg) : ''
+ok('programmerRelance existe', corpsProg.length > 0)
+ok(
+  'la garde est DANS programmerRelance (tous les appelants sont bornés)',
+  corpsProg.includes('RELANCE_MAX_PAR_HEURE') && corpsProg.includes("'relance_programmation'"),
+)
+// Elle passe AVANT l'écriture : garder après ne garderait rien.
+ok(
+  "la garde précède l'écriture",
+  corpsProg.indexOf('RELANCE_MAX_PAR_HEURE') < corpsProg.indexOf("rpc('programmer_relance_expert'"),
+)
+// Et elle s'appuie sur la même fonction SQL — aucun limiteur parallèle.
+ok('elle utilise le limiteur partagé', corpsProg.includes('checkRateLimit('))
+
+// (iii) FAIL-OPEN ici, et c'est l'inverse de l'OTP — pour une bonne raison :
+//   refuser sur limiteur cassé ferait PERDRE un déclenchement, soit exactement
+//   le défaut corrigé au lot 6.
+ok(
+  "le plafond de relance reste fail-open (checkRateLimit, pas evaluerLimite)",
+  corpsProg.includes('checkRateLimit(') && !corpsProg.includes('evaluerLimite('),
+  'un limiteur cassé perdrait des déclenchements — le défaut corrigé au lot 6',
+)
+
+// (iv) AUCUN réglage d'administration. Ni champ éditable, ni colonne.
+ok(
+  "le seuil n'est pas exposé en écriture par la route d'administration",
+  !routeAdmin.includes('RELANCE_MAX') && !/relance_max|relance_plafond_reglable/.test(routeAdmin),
+)
+ok(
+  "aucun champ de saisie du plafond sur l'écran /admin/matching",
+  !/RELANCE_MAX|relance_max/.test(pageAdmin),
+  'un seuil anti-abus est devenu un réglage commercial',
+)
+// La table des réglages ne doit pas non plus l'avoir absorbé.
+const colonneReglage = SQL.some(
+  (i) => /alter table (public\.)?matching_settings/.test(i.plat) && /relance/.test(i.plat),
+)
+ok("le plafond n'a pas été ajouté aux réglages en base", !colonneReglage)
+
+// (v) EN ÉCHANGE : les dépassements sont comptés, et lus au même endroit.
+ok(
+  'les dépassements sont comptés en base',
+  relance.includes("from('relance_overruns')") && relance.includes('.insert('),
+)
+ok(
+  'le comptage est best-effort (ne fait jamais échouer une programmation)',
+  /dépassement NON COMPTÉ/.test(relance),
+)
+const migrationPlafond = migrations.find((m) => m.nom.endsWith('_plafond_relance.sql'))
+ok('la migration du compteur existe', !!migrationPlafond)
+if (migrationPlafond) {
+  const sql = sansCommentairesSql(migrationPlafond.sql).toLowerCase()
+  ok('table relance_overruns', sql.includes('create table if not exists public.relance_overruns'))
+  ok('RLS active sans policy (service-role seul)', sql.includes('enable row level security'))
+  ok('fonction de santé relance_overrun_health', sql.includes('function public.relance_overrun_health'))
+  // Jamais additionnés : les origines n'appellent pas la même action.
+  ok('les dépassements ne sont JAMAIS agrégés en un seul nombre', sql.includes('group by o.origine'))
+}
+ok(
+  "la route d'administration expose les dépassements",
+  routeAdmin.includes("rpc('relance_overrun_health')") && routeAdmin.includes('depassements:'),
+)
+ok(
+  "l'écran /admin/matching les affiche",
+  pageAdmin.includes("t('overruns.title')") && pageAdmin.includes('charge?.depassements'),
+)
+// « Indisponible » et « zéro » restent distincts, comme pour les pannes.
+ok(
+  "« compteur illisible » ne se lit pas « aucun dépassement »",
+  pageAdmin.includes('charge?.depassements === null') && pageAdmin.includes("t('overruns.unavailable')"),
+)
+for (const langue of ['fr', 'en', 'es', 'de']) {
+  const msg = JSON.parse(read(`messages/${langue}.json`))
+  const o = msg?.admin_matching?.overruns
+  ok(
+    `libellés des dépassements traduits (${langue})`,
+    !!o && typeof o.title === 'string' && typeof o.help === 'string' && !!o.origine?.profil_modifie,
+  )
+}
+
+// (vi) Le refus est un refus DÉLIBÉRÉ, pas une panne : il ne doit pas se
+//   confondre avec une erreur serveur, sinon on cherche une panne inexistante.
+ok(
+  'sync-matching distingue le plafond (429) de la panne (500)',
+  sync.includes("prog.raison === 'plafond_horaire'") && sync.includes("code: 'relance_plafond'"),
+)
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 2.5 — M3 : photo_url ET LES BUCKETS
 //
 //   CONSTAT ÉTABLI (lecture de code + requête, staging) :

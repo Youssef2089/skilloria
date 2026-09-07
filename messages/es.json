@@ -3631,6 +3631,19 @@
         "candidature": "al presentar",
         "pitch": "al abrir una tarjeta"
       }
+    },
+    "overruns": {
+      "title": "Límite de reactivación superado (últimos 30 días)",
+      "none": "Ningún exceso: nadie se ha acercado al límite.",
+      "unavailable": "No se ha podido leer el contador. No es cero: es desconocido.",
+      "experts": "{count, plural, one {# experto} other {# expertos}}",
+      "help": "El umbral no es ajustable aquí, y es deliberado: una defensa antiabuso no es un parámetro comercial. Un exceso significa que una activación no se programó; si este contador sube, hay que buscar un bucle en el cliente, no subir el umbral.",
+      "origine": {
+        "profil_modifie": "Perfil modificado",
+        "ouverture_croisee": "Vuelta a la escucha",
+        "disponibilite": "Cambio de disponibilidad",
+        "cv_reanalyse": "CV reanalizado"
+      }
     }
   },
   "ecosystem_switcher": {
