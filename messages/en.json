@@ -99,6 +99,10 @@
       "status_do_not_disturb": "Do not disturb"
     }
   },
+  "commerce": {
+    "need_more_contact": "Need more? Get in touch.",
+    "need_more_upgrade": "Need more? See our plans."
+  },
   "common": {
     "language_switcher_aria": "Change language",
     "language_switcher_current": "Current language: {locale}",
@@ -1997,6 +2001,8 @@
       "invalid_description": "Invalid description (20 to 10,000 characters).",
       "invalid_budget": "Invalid budget.",
       "budget_inverted": "Minimum budget cannot be greater than maximum.",
+      "quota_publications_reached": "You have posted every listing included in your plan this month. The counter resets on the 1st of next month.",
+      "active_publications_limit_reached": "You have reached your plan's number of active listings. Close a current listing to post a new one, or wait for it to expire.",
       "verification_failed": "Automated check failed. Please try again.",
       "db_error": "Technical error. Please try again.",
       "generic": "An error occurred. Please try again.",
@@ -2184,6 +2190,7 @@
       "error_not_found": "This application no longer exists.",
       "error_reason_too_long": "Reason exceeds 2000 characters.",
       "error_candidature_archived": "This application is archived: the listing is no longer open, so the profile can no longer be unlocked.",
+      "error_unlock_limit_reached": "You have used every reveal included in your plan this month. The counter resets on the 1st of next month.",
       "error_generic": "An error occurred. Please try again."
     }
   },

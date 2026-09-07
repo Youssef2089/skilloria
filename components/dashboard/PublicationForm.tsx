@@ -157,11 +157,21 @@ const EMPTY_STATE: FormState = {
   confidential: false,
 }
 
+/**
+ * Les refus qui viennent d'une LIMITE D'OFFRE, et non d'une saisie fautive.
+ *
+ * Ils se traitent autrement : le formulaire ne peut rien y corriger, et
+ * l'utilisateur a besoin d'une issue, pas d'un champ à reprendre. D'où un ton
+ * distinct (ambre, pas rouge) et une ligne d'appel à l'action.
+ */
+const LIMITES_COMMERCE = new Set(['quota_publications_reached', 'active_publications_limit_reached'])
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function PublicationForm(props: Props) {
   const t = useTranslations('publications')
   const tStatus = useTranslations('publications.status')
+  const tCommerce = useTranslations('commerce')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -185,6 +195,16 @@ export default function PublicationForm(props: Props) {
   const [outcome, setOutcome] = useState<PublishOutcome | null>(null)
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  /**
+   * Le code du dernier refus, gardé À CÔTÉ du message.
+   *
+   * Un refus COMMERCE n'appelle pas la même chose qu'un refus de saisie : il ne
+   * se corrige pas dans le formulaire, il se lève par une action hors de
+   * l'écran. On garde donc le code pour savoir s'il faut ajouter cette issue —
+   * plutôt que de la coller au message, qui se retrouverait à porter un appel
+   * à l'action même sur « titre invalide ».
+   */
+  const [errorCode, setErrorCode] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof FormState, string>>>({})
 
@@ -336,6 +356,17 @@ export default function PublicationForm(props: Props) {
       forbidden: t('errors.forbidden'),
       wrong_status: t('errors.wrong_status'),
       bad_work_zone: t('form.field_errors.work_zone_ids'),
+      // ── Refus COMMERCE (402) ────────────────────────────────────────────
+      //  Ils manquaient à cette table, et le serveur les nomme pourtant depuis
+      //  toujours : l'organisation qui butait sur son quota lisait « une erreur
+      //  est survenue », sans savoir ni ce qui bloquait ni quoi faire. Le
+      //  message dit maintenant les deux — la limite ATTEINTE, et le geste qui
+      //  débloque : attendre le 1er du mois, ou clôturer une annonce.
+      //
+      //  Les VALEURS ne sont jamais citées : elles vivent au catalogue, et les
+      //  écrire ici les figerait au moment où on les recopie.
+      quota_publications_reached: t('errors.quota_publications_reached'),
+      active_publications_limit_reached: t('errors.active_publications_limit_reached'),
       invalid_type: t('errors.invalid_type'),
       invalid_title: t('errors.invalid_title'),
       invalid_description: t('errors.invalid_description'),
@@ -381,6 +412,7 @@ export default function PublicationForm(props: Props) {
     const payload = (await res.json().catch(() => ({} as { code?: string; id?: string; status?: string })))
     if (!res.ok) {
       setErrorMsg(apiErrorMessage(payload.code))
+      setErrorCode(payload.code ?? null)
       return { ok: false }
     }
     const newId = (payload.id as string | undefined) ?? pubId
@@ -397,6 +429,7 @@ export default function PublicationForm(props: Props) {
   const handleSaveDraft = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMsg(null)
+    setErrorCode(null)
     setSuccessMsg(null)
     const v = validate(form)
     if (!v.ok) {
@@ -415,6 +448,7 @@ export default function PublicationForm(props: Props) {
   const openConfirmPublish = (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMsg(null)
+    setErrorCode(null)
     setSuccessMsg(null)
     const v = validate(form)
     if (!v.ok) {
@@ -428,6 +462,7 @@ export default function PublicationForm(props: Props) {
   const handlePublish = async () => {
     setConfirmOpen(false)
     setErrorMsg(null)
+    setErrorCode(null)
     setSuccessMsg(null)
     setPublishing(true)
     // 1. Save first
@@ -448,6 +483,7 @@ export default function PublicationForm(props: Props) {
         // leur message. Dire « une erreur est survenue » pour une zone
         // manquante laisse l'organisation sans rien à corriger.
         setErrorMsg(messageChampsManquants(payload.missing) ?? apiErrorMessage(payload.code))
+        setErrorCode(payload.code ?? null)
         setPublishing(false)
         return
       }
@@ -613,8 +649,28 @@ export default function PublicationForm(props: Props) {
       )}
 
       {errorMsg && (
-        <div role="alert" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 18 }}>
+        <div
+          role="alert"
+          style={{
+            background: LIMITES_COMMERCE.has(errorCode ?? '') ? '#fffbeb' : '#fef2f2',
+            border: `1px solid ${LIMITES_COMMERCE.has(errorCode ?? '') ? '#fde68a' : '#fecaca'}`,
+            color: LIMITES_COMMERCE.has(errorCode ?? '') ? '#92400e' : '#b91c1c',
+            padding: '10px 14px',
+            borderRadius: 8,
+            fontSize: 13,
+            marginBottom: 18,
+            lineHeight: 1.55,
+          }}
+        >
           {errorMsg}
+          {/* Une limite d'offre n'est pas une panne : elle se distingue en ambre,
+              et elle porte l'issue qui reste quand le formulaire ne peut rien
+              corriger. Aucun bouton de paiement — le verrou est fermé. */}
+          {LIMITES_COMMERCE.has(errorCode ?? '') && (
+            <p style={{ margin: '6px 0 0', fontSize: 12.5, color: '#a16207' }}>
+              {tCommerce('need_more_contact')}
+            </p>
+          )}
         </div>
       )}
 

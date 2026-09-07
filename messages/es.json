@@ -99,6 +99,10 @@
       "status_do_not_disturb": "No molestar"
     }
   },
+  "commerce": {
+    "need_more_contact": "¿Necesitas más? Contáctanos.",
+    "need_more_upgrade": "¿Necesitas más? Descubre nuestros planes."
+  },
   "common": {
     "language_switcher_aria": "Cambiar idioma",
     "language_switcher_current": "Idioma actual: {locale}",
@@ -1997,6 +2001,8 @@
       "invalid_description": "Descripción no válida (20 a 10 000 caracteres).",
       "invalid_budget": "Presupuesto no válido.",
       "budget_inverted": "El presupuesto mínimo no puede ser superior al máximo.",
+      "quota_publications_reached": "Has publicado todos los anuncios incluidos en tu plan este mes. El contador se reinicia el día 1 del mes próximo.",
+      "active_publications_limit_reached": "Has alcanzado el número de anuncios activos de tu plan. Cierra un anuncio en curso para publicar uno nuevo, o espera a que caduque.",
       "verification_failed": "La verificación automática falló. Inténtalo de nuevo.",
       "db_error": "Error técnico. Inténtalo de nuevo.",
       "generic": "Se produjo un error. Inténtalo de nuevo.",
@@ -2184,6 +2190,7 @@
       "error_not_found": "Esta candidatura ya no existe.",
       "error_reason_too_long": "El motivo supera los 2000 caracteres.",
       "error_candidature_archived": "Esta candidatura está archivada: el anuncio ya no está abierto, por lo que el perfil ya no puede desbloquearse.",
+      "error_unlock_limit_reached": "Has utilizado todas las revelaciones incluidas en tu plan este mes. El contador se reinicia el día 1 del mes próximo.",
       "error_generic": "Se produjo un error. Inténtalo de nuevo."
     }
   },

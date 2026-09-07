@@ -86,6 +86,7 @@ export default function SpotlightCandidateCard({
 }: Props) {
   const t = useTranslations('candidatures.card')
   const tPub = useTranslations('publications')
+  const tCommerce = useTranslations('commerce')
   // C7 : masquage préventif des actions pour un viewer (lecture seule). La
   // garde SERVEUR (requireOrgRole) reste la garantie ; ceci n'est qu'un confort.
   const { canManage, loading: roleLoading } = useOrgRole()
@@ -103,6 +104,15 @@ export default function SpotlightCandidateCard({
 
   const [busy, setBusy] = useState<'unlock' | 'reject' | 'select' | 'view' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  /**
+   * Le refus vient-il d'une LIMITE D'OFFRE plutôt que d'une action impossible ?
+   *
+   * Une limite ne se corrige pas sur cette carte : elle appelle une issue, pas
+   * une reprise. On la distingue donc du reste (ambre, pas rouge) et on lui
+   * ajoute une ligne d'action — que « candidature introuvable » ne doit surtout
+   * pas porter.
+   */
+  const [limiteAtteinte, setLimiteAtteinte] = useState(false)
   const [confirmReject, setConfirmReject] = useState(false)
   const [confirmSelect, setConfirmSelect] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
@@ -181,6 +191,7 @@ export default function SpotlightCandidateCard({
     if (disabled) return
     setBusy('view')
     setError(null)
+    setLimiteAtteinte(false)
     try {
       await markViewed(candidature.id)
       optimisticView()
@@ -192,6 +203,7 @@ export default function SpotlightCandidateCard({
     if (disabled) return
     setBusy('unlock')
     setError(null)
+    setLimiteAtteinte(false)
     try {
       // `candidature_archived` : l'annonce a atteint sa fin de vie pendant que
       // la page était ouverte. Le bouton avait disparu au prochain rendu, mais
@@ -203,6 +215,16 @@ export default function SpotlightCandidateCard({
         else if (payload.code === 'invalid_transition') setError(t('error_invalid_transition'))
         else if (payload.code === 'not_found') setError(t('error_not_found'))
         else if (payload.code === 'insufficient_role') setError(t('error_insufficient_role'))
+        // ── Refus COMMERCE (402) ──────────────────────────────────────────
+        //  Il manquait, et le serveur le nomme pourtant : l'organisation qui
+        //  épuisait ses dévoilements lisait « une erreur est survenue ». Le
+        //  message dit maintenant la limite ATTEINTE et quand elle se relève.
+        //  La ligne d'issue est portée à part (`limiteAtteinte`), pour ne pas
+        //  coller un appel à l'action sur « candidature introuvable ».
+        else if (payload.code === 'unlock_limit_reached') {
+          setError(t('error_unlock_limit_reached'))
+          setLimiteAtteinte(true)
+        }
         else setError(t('error_generic'))
         return
       }
@@ -214,6 +236,7 @@ export default function SpotlightCandidateCard({
     if (disabled) return
     setBusy('select')
     setError(null)
+    setLimiteAtteinte(false)
     try {
       const res = await secureFetch(`/api/candidatures/${candidature.id}/select`, { method: 'POST' })
       const payload = (await res.json().catch(() => ({} as { code?: string }))) as { code?: string }
@@ -233,6 +256,7 @@ export default function SpotlightCandidateCard({
     if (rejectReason.length > 2000) { setError(t('error_reason_too_long')); return }
     setBusy('reject')
     setError(null)
+    setLimiteAtteinte(false)
     try {
       const res = await secureFetch(`/api/candidatures/${candidature.id}/reject`, {
         method: 'POST',
@@ -395,8 +419,27 @@ export default function SpotlightCandidateCard({
         )}
 
         {error && (
-          <div role="alert" style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B', padding: '9px 11px', borderRadius: 9, fontSize: 12 }}>
+          <div
+            role="alert"
+            style={{
+              background: limiteAtteinte ? '#FFFBEB' : '#FEF2F2',
+              border: `1px solid ${limiteAtteinte ? '#FDE68A' : '#FECACA'}`,
+              color: limiteAtteinte ? '#92400E' : '#991B1B',
+              padding: '9px 11px',
+              borderRadius: 9,
+              fontSize: 12,
+              lineHeight: 1.5,
+            }}
+          >
             {error}
+            {/* Une limite d'offre n'est pas une panne : ambre plutôt que rouge,
+                et l'issue qui reste quand la carte ne peut rien corriger.
+                AUCUN bouton de paiement — le verrou est fermé. */}
+            {limiteAtteinte && (
+              <p style={{ margin: '5px 0 0', fontSize: 11.5, color: '#A16207' }}>
+                {tCommerce('need_more_contact')}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -455,7 +498,7 @@ export default function SpotlightCandidateCard({
             <div style={{ fontSize: 13, fontWeight: 700, color: '#991B1B', marginBottom: 8 }}>{t('reject_confirm_title')}</div>
             <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t('reject_reason_placeholder')} maxLength={2000} rows={3} style={{ width: '100%', padding: '8px 10px', fontSize: 12, border: '1px solid #FECACA', borderRadius: 8, outline: 'none', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.5, marginBottom: 10 }} />
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => { setConfirmReject(false); setRejectReason(''); setError(null) }} disabled={disabled} style={{ padding: '7px 14px', background: 'transparent', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+              <button type="button" onClick={() => { setConfirmReject(false); setRejectReason(''); setError(null); setLimiteAtteinte(false) }} disabled={disabled} style={{ padding: '7px 14px', background: 'transparent', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                 {t('reject_cancel')}
               </button>
               <button type="button" onClick={handleReject} disabled={disabled} style={{ padding: '7px 14px', background: '#DC2626', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: busy === 'reject' ? 0.6 : 1 }}>
@@ -484,7 +527,7 @@ export default function SpotlightCandidateCard({
                   {t(publicationType === 'mission' ? 'select_confirm_body_mission' : 'select_confirm_body_offre')}
                 </div>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                  <button type="button" onClick={() => { setConfirmSelect(false); setError(null) }} disabled={disabled} style={{ padding: '7px 11px', background: 'transparent', color: '#92400E', border: '1px solid #FCD34D', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                  <button type="button" onClick={() => { setConfirmSelect(false); setError(null); setLimiteAtteinte(false) }} disabled={disabled} style={{ padding: '7px 11px', background: 'transparent', color: '#92400E', border: '1px solid #FCD34D', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                     {t('select_cancel')}
                   </button>
                   <button type="button" onClick={handleSelect} disabled={disabled} style={{ padding: '7px 11px', background: '#D97706', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: busy === 'select' ? 0.6 : 1 }}>

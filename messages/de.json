@@ -99,6 +99,10 @@
       "status_do_not_disturb": "Nicht stören"
     }
   },
+  "commerce": {
+    "need_more_contact": "Mehr benötigt? Kontaktieren Sie uns.",
+    "need_more_upgrade": "Mehr benötigt? Entdecken Sie unsere Tarife."
+  },
   "common": {
     "language_switcher_aria": "Sprache ändern",
     "language_switcher_current": "Aktuelle Sprache: {locale}",
@@ -1997,6 +2001,8 @@
       "invalid_description": "Ungültige Beschreibung (20 bis 10.000 Zeichen).",
       "invalid_budget": "Ungültiges Budget.",
       "budget_inverted": "Das Mindestbudget darf das Höchstbudget nicht überschreiten.",
+      "quota_publications_reached": "Sie haben diesen Monat alle in Ihrem Tarif enthaltenen Anzeigen veröffentlicht. Der Zähler beginnt am 1. des nächsten Monats neu.",
+      "active_publications_limit_reached": "Sie haben die Anzahl aktiver Anzeigen Ihres Tarifs erreicht. Schließen Sie eine laufende Anzeige, um eine neue zu veröffentlichen, oder warten Sie, bis sie abläuft.",
       "verification_failed": "Die automatische Prüfung ist fehlgeschlagen. Bitte erneut versuchen.",
       "db_error": "Technischer Fehler. Bitte erneut versuchen.",
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
@@ -2184,6 +2190,7 @@
       "error_not_found": "Diese Bewerbung existiert nicht mehr.",
       "error_reason_too_long": "Der Grund überschreitet 2000 Zeichen.",
       "error_candidature_archived": "Diese Bewerbung ist archiviert: Die Anzeige ist nicht mehr offen, das Profil kann nicht mehr freigeschaltet werden.",
+      "error_unlock_limit_reached": "Sie haben alle in Ihrem Tarif enthaltenen Freischaltungen diesen Monat genutzt. Der Zähler beginnt am 1. des nächsten Monats neu.",
       "error_generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen."
     }
   },
