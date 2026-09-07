@@ -38,7 +38,7 @@ import { dirname, join } from 'node:path'
 // Les deux LECTEURS survivants sont importés depuis leur module sans
 // dépendance : le SDK et le compteur de dépense ne sont pas chargés, et le
 // diagnostic peut donc les éprouver pour de vrai.
-import { lireNote, lireTexte } from '../lib/candidatures/conformite.ts'
+import { lireNote, lireTexte } from '../lib/candidatures/lecture-reponse.ts'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(join(ROOT, p), 'utf8')
@@ -60,7 +60,7 @@ const ok = (cond, label, hint) => {
 const section = (s) => console.log(`\n═══ ${s} ═══\n`)
 
 const ASSESSMENT = read('lib/candidatures/ai-assessment.ts')
-const CONFORMITE = read('lib/candidatures/conformite.ts')
+const LECTURE = read('lib/candidatures/lecture-reponse.ts')
 const DEPOT = read('app/api/candidatures/route.ts').replace(/\r\n/g, '\n')
 const PITCH = read('app/api/candidatures/[id]/pitch/route.ts')
 
@@ -77,12 +77,12 @@ for (const [nom, motif] of [
   ['contientUneAnnee', /contientUneAnnee/],
   ['ANNEE_SOURCE', /ANNEE_SOURCE/],
 ]) {
-  ok(!motif.test(CONFORMITE), `« ${nom} » n existe plus dans conformite.ts`,
+  ok(!motif.test(LECTURE), `« ${nom} » n existe plus dans lecture-reponse.ts`,
     'un filtre neutralise se reactive ; un filtre supprime se reecrit')
   ok(!motif.test(ASSESSMENT), `« ${nom} » n est plus appelé par le jugement`)
 }
 // Aucune expression d'année ne doit subsister ailleurs dans ces deux fichiers.
-for (const [nom, src] of [['conformite.ts', CONFORMITE], ['ai-assessment.ts', ASSESSMENT]]) {
+for (const [nom, src] of [['lecture-reponse.ts', LECTURE], ['ai-assessment.ts', ASSESSMENT]]) {
   const motifs = [...src.matchAll(/\(19\|20\)/g)]
   ok(motifs.length === 0, `${nom} ne porte plus d expression d année`,
     motifs.length ? `trouvé ${motifs.length} occurrence(s)` : undefined)

@@ -4,9 +4,9 @@ import { budgetDisponible, enregistrerDepense } from '@/lib/ai-budget'
 // Deux LECTEURS, pas deux filtres : ils vérifient que le modèle a répondu
 // quelque chose d'exploitable, ils ne jugent pas le contenu du texte. Sans
 // aucune dépendance, donc éprouvables à l'exécution.
-import { lireNote, lireTexte } from './conformite'
+import { lireNote, lireTexte } from './lecture-reponse'
 
-export { lireNote, lireTexte } from './conformite'
+export { lireNote, lireTexte } from './lecture-reponse'
 
 /**
  * LE JUGEMENT DE CLAUDE — au DÉPÔT d'une candidature, et le PITCH à la demande.
