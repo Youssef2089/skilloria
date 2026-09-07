@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useLocale } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import OrgSetupModal from '@/components/OrgSetupModal'
@@ -37,6 +37,7 @@ type SetupState =
 export default function MesAnnoncesPage() {
   const router = useRouter()
   const locale = useLocale()
+  const tPlafond = useTranslations('plafonds')
   const [state, setState] = useState<SetupState>({ kind: 'loading' })
   const [needsRedirect, setNeedsRedirect] = useState(false)
 
@@ -99,7 +100,7 @@ export default function MesAnnoncesPage() {
   const annoncesUrl = state.kind === 'ready'
     ? `/api/publications?locale=${encodeURIComponent(locale)}`
     : null
-  const annoncesLive = useLiveResource<{ publications: Annonce[] }, Annonce>({
+  const annoncesLive = useLiveResource<{ publications: Annonce[]; troncature?: { plafond: number; atteint: boolean } }, Annonce>({
     url: annoncesUrl,
     itemsOf: (d) => d.publications ?? [],
     identityOf: (a) => a.id,
@@ -121,8 +122,30 @@ export default function MesAnnoncesPage() {
   }
 
   const annonces: Annonce[] = annoncesLive.data?.publications ?? []
+  // UN PLAFOND MUET EST UN MENSONGE DIFFERE. Quand la liste est coupee, on le
+  // DIT ici — c'est l'organisation qui est concernee : ce sont ses annonces, et
+  // il en manque. Le message est pose dans la page, pas dans le tableau de bord
+  // partage : la mention appartient a CETTE liste, pas au composant.
+  const troncature = annoncesLive.data?.troncature
   return (
     <>
+      {troncature?.atteint && (
+        <div
+          role="status"
+          style={{
+            margin: '0 0 12px',
+            padding: '10px 14px',
+            borderRadius: 10,
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            color: '#92400e',
+            fontSize: 13,
+            lineHeight: 1.5,
+          }}
+        >
+          {tPlafond('annonces_tronquees', { plafond: troncature.plafond })}
+        </div>
+      )}
       <OrganisationDashboard
         organization={state.organization}
         basePath="/dashboard/entreprise"

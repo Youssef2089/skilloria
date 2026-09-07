@@ -1,3 +1,4 @@
+import { couperEtSignaler, limiteSondee, PLAFOND_PUBLICATIONS_ORG } from '@/lib/plafonds-liste'
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
@@ -446,7 +447,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   // sens, et c'est justement lui qui la crée désormais.
   const orgId = auth.organization?.id
   if (!orgId) {
-    return json({ publications: [] }, 200)
+    return json({ publications: [], troncature: { plafond: PLAFOND_PUBLICATIONS_ORG, atteint: false } }, 200)
   }
 
   const locale = normalizeLocale(new URL(request.url).searchParams.get('locale'))
@@ -468,8 +469,15 @@ export async function GET(request: NextRequest): Promise<Response> {
       // Neutre tant qu'une organisation n'a qu'un écosystème (cf. ecosystem-scope).
       .eq('organization_id', orgId)
       .eq('domain_id', activeEcosystemId(auth))
+      // SENS DE LA TRONCATURE — VÉRIFIÉ. `updated_at` décroissant : le bout qui
+      // tombe est celui des annonces les plus anciennement touchées. Une
+      // organisation qui dépasse le plafond garde donc ses annonces vivantes et
+      // perd les dormantes. C'est le bon bout — contrairement au fil de
+      // messagerie, où un tri croissant faisait disparaître les messages récents.
       .order('updated_at', { ascending: false })
-      .limit(500),
+      // Une ligne de plus que le plafond : elle n'est jamais servie, elle
+      // répond seulement à « y en avait-il d'autres ? ».
+      .limit(limiteSondee(PLAFOND_PUBLICATIONS_ORG)),
     loadTranslations(locale),
   ])
 
@@ -478,7 +486,13 @@ export async function GET(request: NextRequest): Promise<Response> {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
 
-  const rows = (pubsResult.data ?? []) as unknown as PublicationRow[]
+  // On coupe AVANT toute dérivation : la ligne-sonde ne doit atteindre ni la
+  // résolution des libellés, ni la réponse.
+  const { lignes: rows, troncature } = couperEtSignaler(
+    (pubsResult.data ?? []) as unknown as PublicationRow[],
+    PLAFOND_PUBLICATIONS_ORG,
+    'annonces org',
+  )
 
   // ── Libellés des référentiels MULTIPLES ─────────────────────────────────
   //  L'embed PostgREST specialities(name) reposait sur la clé étrangère
@@ -605,5 +619,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
   })
 
-  return json({ publications }, 200)
+  // `troncature` DIT que la liste est partielle. Champ additif : les quatre
+  // consommateurs de cette route qui l'ignorent ne changent pas de comportement.
+  return json({ publications, troncature }, 200)
 }

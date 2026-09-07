@@ -3760,5 +3760,8 @@
       "invalid_slug": "Sous-domaine invalide : minuscules, chiffres et tirets, sans point ni espace.",
       "slug_taken": "Ce sous-domaine est déjà utilisé."
     }
+  },
+  "plafonds": {
+    "annonces_tronquees": "Cette liste est incomplète : elle affiche vos {plafond} annonces les plus récemment modifiées. Les plus anciennes ne sont pas montrées."
   }
 }

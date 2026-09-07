@@ -3760,5 +3760,8 @@
       "invalid_slug": "Ungültige Subdomain: Kleinbuchstaben, Ziffern und Bindestriche, kein Punkt, kein Leerzeichen.",
       "slug_taken": "Diese Subdomain ist bereits vergeben."
     }
+  },
+  "plafonds": {
+    "annonces_tronquees": "Diese Liste ist unvollständig: Sie zeigt Ihre {plafond} zuletzt geänderten Anzeigen. Ältere werden nicht angezeigt."
   }
 }

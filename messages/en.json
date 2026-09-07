@@ -3760,5 +3760,8 @@
       "invalid_slug": "Invalid subdomain: lowercase letters, digits and hyphens, no dot or space.",
       "slug_taken": "This subdomain is already in use."
     }
+  },
+  "plafonds": {
+    "annonces_tronquees": "This list is incomplete: it shows your {plafond} most recently updated postings. Older ones are not displayed."
   }
 }

@@ -3,7 +3,8 @@ import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
-import { buildOrgCandidatureDTOs, countByBucket } from '@/lib/candidature-org-dto'
+import { buildOrgCandidatureDTOs, countByBucket, type OrgCandidatureDTO } from '@/lib/candidature-org-dto'
+import type { Troncature } from '@/lib/plafonds-liste'
 import { parseBucketFilter } from '@/lib/candidatures/lifecycle'
 import {
   assertFacetPartition,
@@ -118,9 +119,12 @@ export async function GET(request: NextRequest): Promise<Response> {
   // Deux passes sur le MÊME helper : la totalité alimente les compteurs des
   // deux onglets, la vue filtrée alimente la liste. Une seule source de
   // dérivation, donc jamais de compteur qui contredit la liste.
-  let all: Awaited<ReturnType<typeof buildOrgCandidatureDTOs>>
+  let all: OrgCandidatureDTO[]
+  let troncature: Troncature
   try {
-    all = await buildOrgCandidatureDTOs(auth, publicationIds, translations, null, locale)
+    const bati = await buildOrgCandidatureDTOs(auth, publicationIds, translations, null, locale)
+    all = bati.dtos
+    troncature = bati.troncature
   } catch {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
@@ -152,7 +156,9 @@ export async function GET(request: NextRequest): Promise<Response> {
     }))
 
   return json(
-    { candidatures, publications, counts, facets, filter: bucketFilter ?? 'all', facet: facetFilter },
+    // `troncature` DIT que la liste et les compteurs sont partiels. Champ
+    // additif : les consommateurs qui l'ignorent ne changent pas de comportement.
+    { candidatures, publications, counts, facets, troncature, filter: bucketFilter ?? 'all', facet: facetFilter },
     200,
   )
 }
