@@ -45,7 +45,14 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const read = (p) => readFileSync(join(ROOT, p), 'utf8')
+/**
+ * Fins de ligne NORMALISEES. Le depot sort les fichiers en CRLF : un controle
+ * dont le motif traverse une fin de ligne (`...\n\s+...`) ne matche jamais sur
+ * une copie de travail fraichement extraite, et le diagnostic vire au rouge
+ * sans qu'aucun code n'ait change. Un diagnostic dont le resultat depend de la
+ * machine qui l'execute ne dit pas si le code est juste : il dit d'ou il vient.
+ */
+const read = (p) => readFileSync(join(ROOT, p), 'utf8').split('\r\n').join('\n')
 
 /** Retire les commentaires : un anti-pattern doit pouvoir être DOCUMENTÉ. */
 const sansCommentaires = (src) =>
@@ -71,9 +78,28 @@ const section = (s) => console.log(`\n═══ ${s} ═══\n`)
 const ROUTE = 'app/api/candidatures/route.ts'
 const src = sansCommentaires(read(ROUTE))
 
-/** Le bloc d'auto-dévoilement, isolé de la route qui le contient. */
+/**
+ * Le bloc de dévoilement, isolé de ce qui l'entoure.
+ *
+ * ⚠️ IL A DÉMÉNAGÉ, et le contrôle a suivi. Il vivait en ligne dans le POST,
+ *    avant la réponse ; un autre worktree l'a extrait dans `devoilementInclus()`
+ *    et l'appelle depuis `after()` — le travail part donc APRÈS la réponse, ce
+ *    qui est le bon endroit sur cette plateforme.
+ *
+ *    L'ancienne extraction découpait « de la limite jusqu'au prochain
+ *    `return json(` », ce qui n'a plus de sens : la fonction se trouve désormais
+ *    APRÈS ce return. On isole donc la FONCTION, par son nom.
+ */
+const debutFn = src.search(/async function devoilementInclus/)
 const debut = src.search(/revealedCandidatesPerPublication/)
-const bloc = debut === -1 ? '' : src.slice(debut, src.indexOf('return json(', debut))
+const bloc =
+  debutFn === -1
+    ? ''
+    : src.slice(debutFn, (() => {
+        // Fin de la fonction : la première accolade fermante en colonne 0.
+        const i = src.indexOf('\n}', debutFn)
+        return i === -1 ? src.length : i + 2
+      })())
 
 console.log('\nDÉVOILEMENT INCLUS — « Illimité » dévoile TOUT\n')
 
@@ -187,11 +213,11 @@ ok(
   'l’égalité est toujours départagée par l’ancienneté',
 )
 ok(
-  /\.limit\(1\)/.test(bloc) && /top\.id === row\.id/.test(bloc),
+  /\.limit\(1\)/.test(bloc) && /top\.id === candidatureId/.test(bloc),
   'seule la candidature en tête prend la place, comme avant',
 )
 ok(
-  /performUnlock\(auth\.supabaseAdmin, row\.id, \{\s*\n?\s*auto: true/.test(bloc),
+  /performUnlock\(auth\.supabaseAdmin, candidatureId, \{\s*\n?\s*auto: true/.test(bloc),
   'le dévoilement passe par le MÊME chemin que l’unlock manuel, marqué auto',
   'Un chemin parallèle divergerait tôt ou tard de l’unlock manuel.',
 )
@@ -202,23 +228,52 @@ ok(
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-section('4. Le chemin reste NON BLOQUANT')
+section('4. Le chemin reste NON BLOQUANT, et il part APRÈS la réponse')
 
+// Le corps de la fonction est enveloppé dans un try/catch : la candidature
+// existe déjà quand ce travail démarre, et rien de ce qui suit ne doit la
+// remettre en cause.
 ok(
-  /catch \(err\) \{\s*\n\s*console\.warn\('\[candidatures:POST\] auto-reveal block threw/.test(
-    sansCommentaires(read(ROUTE)),
-  ),
-  'tout le bloc est sous try/catch : un échec ne perd pas la candidature',
+  /try \{/.test(bloc) && /catch \(err\) \{/.test(bloc),
+  'toute la fonction est sous try/catch : un échec ne perd pas la candidature',
   'La candidature doit rester créée même si le dévoilement échoue.',
 )
 ok(
-  /console\.warn\('\[candidatures:POST\] auto-reveal performUnlock failed'/.test(bloc),
-  'un échec de dévoilement est journalisé, pas propagé',
+  /console\.warn\('\[candidatures\][^']*',\s*err\)/.test(bloc),
+  'une exception est journalisée, pas propagée',
 )
-// La création doit répondre 201 quoi qu'il arrive ensuite.
 ok(
-  /return json\(\s*\{[\s\S]{0,200}?\},\s*201,?\s*\)/.test(src.slice(debut)),
-  'la route répond 201 après le bloc, quel que soit son sort',
+  /console\.warn\('\[candidatures\][^']*',\s*res\.code\)/.test(bloc),
+  'un refus de dévoilement est journalisé, pas propagé',
+)
+
+// ⚠️ LE DÉPLACEMENT LUI-MÊME. Le dévoilement s'exécute désormais APRÈS la
+//    réponse : sur cette plateforme, un travail lancé après la réponse SANS
+//    `after()` est tué. Vérifier qu'il est bien appelé DEPUIS un `after()` est
+//    donc autant une garantie de non-blocage qu'une garantie d'exécution.
+const routeEntiere = sansCommentaires(read(ROUTE))
+const appels = [...routeEntiere.matchAll(/devoilementInclus\(/g)].length
+ok(appels >= 2, `la fonction est appelée (${appels - 1} appel(s) hors définition)`)
+const dansAfter = [...routeEntiere.matchAll(/after\(async \(\) => \{([\s\S]*?)\n  \}\)/g)].some((m) =>
+  m[1].includes('devoilementInclus('),
+)
+ok(
+  dansAfter,
+  'le dévoilement est appelé DEPUIS un after()',
+  "Sans after(), un travail lancé après la réponse est tué par la plateforme — et l'échec serait invisible.",
+)
+ok(
+  /export const maxDuration/.test(routeEntiere),
+  'la route déclare un maxDuration (le travail d’après-réponse a le temps de finir)',
+)
+// La création répond 201 quoi qu'il advienne du dévoilement.
+//
+// Cherché dans TOUTE la route, et non à partir de la limite : depuis
+// l'extraction, la fonction se trouve APRÈS le `return json(…, 201)`, et
+// découper « à partir de la limite » sautait précisément le return.
+ok(
+  /return json\(\s*\{[\s\S]{0,200}?\},\s*201,?\s*\)/.test(routeEntiere),
+  'la route répond 201 indépendamment du dévoilement',
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
