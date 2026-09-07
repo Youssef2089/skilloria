@@ -264,6 +264,96 @@ if (M4) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 2.3 — M1 : LA VÉRIFICATION D'UN CODE OTP EST FAIL-CLOSED
+//
+//   À l'ENVOI, laisser passer quand le limiteur est cassé est le bon choix :
+//   le pire cas est un SMS de trop. À la VÉRIFICATION, c'est l'inverse — la
+//   limite EST la défense anti-force-brute sur un code à 4-6 chiffres, et le
+//   seul moment où elle compte vraiment est celui où on l'ignorerait.
+//
+//   Ce qui peut revenir sans bruit : quelqu'un « harmonise » les deux routes
+//   en rebranchant `checkRateLimit` (fail-open) sur la vérification. Le code
+//   serait plus court et l'inversion repartirait avec.
+// ═══════════════════════════════════════════════════════════════════════════
+titre("2.3 — M1 : à la vérification, un limiteur indisponible REFUSE")
+
+const VERIFY = ['app/api/auth/public/verify-phone-otp/route.ts', 'app/api/auth/verify-phone-otp/route.ts']
+const ENVOI = 'app/api/auth/public/send-phone-otp/route.ts'
+const limiteur = read('lib/rate-limit.ts')
+
+// (i) Le verdict à trois états existe, et distingue bien l'indisponibilité.
+ok("le limiteur rend un verdict à trois états", limiteur.includes("'autorise' | 'refuse' | 'indisponible'"))
+// UNE SEULE sortie « indisponible ». Chercher la chaîne n'importe où dans le
+// fichier ne suffit pas : avec deux sorties jumelles, en supprimer une laissait
+// le contrôle vert et emportait la moitié du fail-closed. Le code a donc été
+// réécrit pour n'en avoir qu'une — et le contrôle compte.
+ok(
+  "une RPC en échec vaut « indisponible », plus « autorisé »",
+  (limiteur.match(/return 'indisponible'/g) ?? []).length === 1,
+  `sorties « indisponible » comptées : ${(limiteur.match(/return 'indisponible'/g) ?? []).length} (attendu : exactement 1)`,
+)
+ok(
+  "l'exception converge vers la MÊME sortie (gestionnaire de rejet sur la RPC)",
+  /\.then\(\s*\n?\s*\(r\)/.test(limiteur) && /\(err: unknown\) =>/.test(limiteur),
+  "le chemin d'exception a été détaché : il pourrait retomber en « autorisé »",
+)
+// UN SEUL mécanisme : la même fonction SQL, jamais un limiteur parallèle.
+ok(
+  "une seule et même RPC rate_limit_check",
+  (limiteur.match(/rpc\('rate_limit_check'/g) ?? []).length === 1,
+)
+
+for (const f of VERIFY) {
+  const src = read(f)
+  const court = f.replace('app/api/auth/', '')
+  // (ii) La vérification n'utilise PAS l'aide fail-open.
+  ok(`${court} : n'appelle pas checkRateLimit (fail-open)`, !src.includes('checkRateLimit('))
+  ok(`${court} : lit le verdict brut (evaluerLimite)`, src.includes('evaluerLimite('))
+  // (iii) Tout ce qui n'est pas « autorisé » refuse — y compris l'indisponibilité.
+  const comparaisons = (src.match(/!==\s*\n?\s*'autorise'/g) ?? []).length
+  ok(
+    `${court} : seul « autorise » laisse passer (${comparaisons} comparaison(s))`,
+    comparaisons >= 2,
+    'une comparaison a disparu : un verdict « indisponible » pourrait passer',
+  )
+  // (iv) Les deux clés, dont l'IP, sur la même fonction.
+  ok(`${court} : clé (request_id + téléphone)`, src.includes("'otp_verify'"))
+  ok(`${court} : clé IP`, src.includes("'otp_verify_ip'") && src.includes('extractClientIp('))
+  // (v) Le refus ne dit jamais si le code était bon : une seule forme de refus.
+  const formesRefus = new Set(src.match(/code: '(rate_limited|invalid_code|expired)'/g) ?? [])
+  ok(
+    `${court} : le refus de limite est indistinct (code unique 'rate_limited')`,
+    src.includes("code: 'rate_limited'") && (src.match(/code: 'rate_limited'/g) ?? []).length === 1,
+    `formes trouvées : ${[...formesRefus].join(', ')}`,
+  )
+}
+
+// (vi) Le service-role manquant REFUSE côté route publique (pas d'auth pour le fournir).
+const pub = read(VERIFY[0])
+ok(
+  'public/verify : service-role indisponible → refus (fail-closed)',
+  /if \(!admin\) \{[\s\S]{0,300}?return refus\(\)/.test(pub),
+  "l'absence de service-role laisse encore passer",
+)
+
+// (vii) ET SURTOUT : l'inversion ne déborde pas sur l'ENVOI, où le fail-open
+//   est un choix délibéré et documenté. Un contrôle qui laisserait basculer les
+//   deux aurait transformé un correctif en régression.
+const envoi = read(ENVOI)
+ok(
+  "l'ENVOI conserve son fail-open (checkRateLimit)",
+  envoi.includes('checkRateLimit('),
+  "l'inversion a débordé sur l'envoi : un limiteur cassé y bloquerait les inscriptions",
+)
+
+// (viii) Le message de refus existe dans les quatre langues.
+for (const langue of ['fr', 'en', 'es', 'de']) {
+  const msg = JSON.parse(read(`messages/${langue}.json`))
+  const v = msg?.signup_form?.errors?.rate_limited
+  ok(`message de refus traduit (${langue})`, typeof v === 'string' && v.length > 0)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 2.5 — M3 : photo_url ET LES BUCKETS
 //
 //   CONSTAT ÉTABLI (lecture de code + requête, staging) :

@@ -1104,7 +1104,7 @@
       "cgu_required": "Por favor acepta las condiciones de uso.",
       "missing_fields": "El correo y la contraseña son obligatorios.",
       "password_too_short": "La contraseña debe tener al menos 8 caracteres.",
-      "rate_limited": "Demasiados intentos. Intentalo de nuevo en un momento.",
+      "rate_limited": "Demasiados intentos. Inténtalo de nuevo en un momento.",
       "vonage_error": "Servicio SMS temporalmente no disponible. Inténtalo de nuevo.",
       "phone_not_verified": "Verifica tu teléfono por SMS.",
       "email_taken": "Ya existe una cuenta con esta dirección de correo.",

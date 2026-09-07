@@ -38,14 +38,82 @@ export function hashRateLimitKey(value: string): string {
 }
 
 /**
+ * Trois etats, pas deux.
+ *
+ * « Autorise » et « le limiteur n'a pas pu repondre » sont deux choses
+ * differentes, et elles n'appellent pas la meme decision selon l'appelant :
+ *
+ *   • A L'ENVOI d'un SMS, laisser passer quand le limiteur est casse est le bon
+ *     choix : le pire cas est un SMS de trop, et refuser ferait un deni de
+ *     service sur nos propres inscriptions.
+ *   • A LA VERIFICATION d'un code, c'est l'inverse : la limite EST la defense
+ *     anti-force-brute. Laisser passer quand elle est indisponible, c'est
+ *     offrir un nombre illimite d'essais sur un code a 4-6 chiffres — le seul
+ *     moment ou le limiteur compte vraiment est celui ou on l'ignore.
+ *
+ * Le verdict est donc rendu tel quel, et chaque appelant tranche. Un seul
+ * mecanisme, une seule RPC : rien de parallele.
+ */
+export type VerdictLimite = 'autorise' | 'refuse' | 'indisponible'
+
+/** Fenetres et plafonds de la VERIFICATION d'un code OTP. Definis une fois, */
+/** partages par la route publique et la route authentifiee. */
+export const OTP_VERIFY_FENETRE_S = 900
+export const OTP_VERIFY_MAX = 5
+/** Cle IP : plus large que la cle telephone — plusieurs personnes peuvent */
+/** partager une sortie NAT, et chacune a droit a ses tentatives. */
+export const OTP_VERIFY_IP_FENETRE_S = 3600
+export const OTP_VERIFY_IP_MAX = 30
+
+/**
+ * Verifie ET enregistre atomiquement une tentative pour (bucket, rawKey),
+ * en distinguant le refus de l'indisponibilite.
+ *
+ * UNE SEULE SORTIE « indisponible », et c'est deliberé. Les deux facons dont ce
+ * limiteur peut tomber — la RPC qui repond en erreur, et l'exception qui ne
+ * repond pas du tout — convergent vers le meme point. Ecrites en deux `return`
+ * separes, elles se ressemblent assez pour qu'on en supprime une sans le voir,
+ * et la moitie du fail-closed partirait en silence.
+ */
+export async function evaluerLimite(
+  admin: SupabaseClient,
+  bucket: string,
+  rawKey: string,
+  windowSeconds: number,
+  max: number,
+): Promise<VerdictLimite> {
+  const issue = await admin
+    .rpc('rate_limit_check', {
+      p_bucket: bucket,
+      p_key_hash: hashRateLimitKey(rawKey),
+      p_window_seconds: windowSeconds,
+      p_max: max,
+    })
+    .then(
+      (r) => (r.error ? { panne: r.error.message } : { autorise: r.data === true }),
+      (err: unknown) => ({ panne: err instanceof Error ? err.message : String(err) }),
+    )
+
+  if ('panne' in issue) {
+    console.warn('[rate-limit] limiteur indisponible', { bucket, message: issue.panne })
+    return 'indisponible'
+  }
+  return issue.autorise ? 'autorise' : 'refuse'
+}
+
+/**
  * Verifie ET enregistre atomiquement une tentative pour (bucket, rawKey).
  * Retourne true si AUTORISE (sous la limite), false si REFUSE.
  *
  * FAIL-OPEN VOLONTAIRE : si la RPC echoue (DB indisponible, migration pas encore
  * deployee, exception reseau...), on LOG un warning et on retourne `true`
  * (autorise). Rationale : un limiteur casse ne doit jamais provoquer un deni de
- * service sur nos propres inscriptions/verifications. Ne PAS "corriger" ce
- * comportement en fail-closed.
+ * service sur nos propres inscriptions. Ne PAS "corriger" ce comportement en
+ * fail-closed.
+ *
+ * NB : ce contrat est celui de l'ENVOI. Les routes de VERIFICATION n'utilisent
+ * pas cette fonction — elles lisent le verdict brut via `evaluerLimite` et
+ * traitent « indisponible » comme un refus (cf. ci-dessus).
  */
 export async function checkRateLimit(
   admin: SupabaseClient,
@@ -54,25 +122,5 @@ export async function checkRateLimit(
   windowSeconds: number,
   max: number,
 ): Promise<boolean> {
-  try {
-    const { data, error } = await admin.rpc('rate_limit_check', {
-      p_bucket: bucket,
-      p_key_hash: hashRateLimitKey(rawKey),
-      p_window_seconds: windowSeconds,
-      p_max: max,
-    })
-    if (error) {
-      // Fail-open : on laisse passer plutot que de bloquer un user legitime.
-      console.warn('[rate-limit] rate_limit_check RPC error (fail-open)', {
-        bucket,
-        message: error.message,
-      })
-      return true
-    }
-    return data === true
-  } catch (err) {
-    // Fail-open : idem sur exception inattendue.
-    console.warn('[rate-limit] rate_limit_check threw (fail-open)', { bucket, err })
-    return true
-  }
+  return (await evaluerLimite(admin, bucket, rawKey, windowSeconds, max)) !== 'refuse'
 }
