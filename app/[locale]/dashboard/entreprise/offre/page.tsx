@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
@@ -37,7 +38,55 @@ type Payload = {
   usage?: { publications: number; manual_unlocks: number }
   period_start?: string
   package_valid_until?: string | null
+  /**
+   * LE VERROU, résolu au SERVEUR. Jamais une variable `NEXT_PUBLIC_` : une
+   * variable publique est inlinée dans le bundle navigateur, et l'UI pourrait
+   * alors diverger du serveur — qui reste seul à décider.
+   *
+   * Faux tant que le lancement est gratuit : l'écran propose de nous contacter.
+   * Vrai le jour où il s'ouvre : les mêmes emplacements portent les chemins de
+   * paiement, sans redéploiement de logique. `undefined` (payload d'une version
+   * antérieure) est traité comme FERMÉ — on n'ouvre jamais par ignorance.
+   */
+  billing_enabled?: boolean
+  /**
+   * AFFICHAGE UNIQUEMENT. Le statut Stripe alimente le bandeau d'échec de
+   * paiement, et rien d'autre : aucune lecture de droits n'en dépend. Les
+   * droits, eux, viennent de `limits`, calculées par getOrgEntitlements.
+   */
+  subscription_status?: string | null
 }
+
+/** Le drapeau déposé par la route de retour de paiement. Liste fermée. */
+type RetourPaiement = 'succes' | 'annule'
+
+/**
+ * Le catalogue achetable, servi par /api/billing/offers.
+ *
+ * Les prix et les quotas viennent du CATALOGUE, jamais de cet écran : les
+ * recopier ici les figerait au moment où on les écrit, et l'écran mentirait dès
+ * le premier réglage au back-office.
+ */
+type Offres = {
+  current_package_id: string | null
+  offers: {
+    id: string
+    slug: string
+    name: string
+    description: string | null
+    price_monthly: number | null
+    currency: string
+    limits: Partial<Record<string, number | null>>
+  }[]
+}
+
+/** Limites d'une offre → clés i18n, dans l'ordre où l'organisation les lit. */
+const LIMITES_OFFRE = [
+  ['publications_per_month', 'limit_annonces_per_month'],
+  ['active_publications_max', 'limit_active_annonces_max'],
+  ['revealed_candidates_per_publication', 'limit_revealed_candidates_per_annonce'],
+  ['manual_unlocks_per_month', 'limit_manual_unlocks_per_month'],
+] as const
 
 /**
  * Limites → clés i18n de l'écran ORGANISATION.
@@ -67,6 +116,48 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
       }}
     >
       <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{title}</h2>
+      {children}
+    </section>
+  )
+}
+
+/**
+ * Bandeau d'information, du plus neutre au plus alarmant.
+ *
+ * Mobile-first : pleine largeur, texte qui coule, aucune hauteur fixe — un
+ * bandeau d'échec de paiement doit rester lisible sur un téléphone, c'est
+ * souvent là qu'on le lit.
+ */
+function Bandeau({
+  ton,
+  titre,
+  corps,
+  children,
+}: {
+  ton: 'succes' | 'neutre' | 'alerte'
+  titre: string
+  corps: string
+  children?: React.ReactNode
+}) {
+  const palette = {
+    succes: { bg: '#F0FDF4', bord: '#BBF7D0', titre: '#166534', texte: '#15803D' },
+    neutre: { bg: '#F8FAFC', bord: '#E2E8F0', titre: '#334155', texte: '#475569' },
+    alerte: { bg: '#FFFBEB', bord: '#FDE68A', titre: '#92400E', texte: '#A16207' },
+  }[ton]
+  return (
+    <section
+      role={ton === 'alerte' ? 'alert' : undefined}
+      style={{
+        background: palette.bg,
+        border: `1.5px solid ${palette.bord}`,
+        borderRadius: 14,
+        padding: 'clamp(14px, 2.5vw, 18px)',
+      }}
+    >
+      <h2 style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 700, color: palette.titre }}>
+        {titre}
+      </h2>
+      <p style={{ margin: 0, fontSize: 13, color: palette.texte, lineHeight: 1.55 }}>{corps}</p>
       {children}
     </section>
   )
@@ -127,8 +218,42 @@ function UsageRow({ label, used, limit, unlimitedLabel }: {
 
 export default function MonOffrePage() {
   const t = useTranslations('dashboard_entreprise.offre')
+  const tCommerce = useTranslations('commerce')
   const locale = useLocale()
   const secureFetch = useSecureFetch()
+  const searchParams = useSearchParams()
+
+  /**
+   * LE RETOUR DE PAIEMENT, ENFIN RAMASSÉ.
+   *
+   * La route de retour dépose `?paiement=succes|annule` depuis le premier jour ;
+   * cet écran l'ignorait. Quelqu'un qui venait de payer atterrissait sur une
+   * page juste — elle montre l'offre réelle — mais muette.
+   *
+   * Liste FERMÉE : le paramètre vient de l'URL, donc de l'utilisateur. Toute
+   * autre valeur est ignorée.
+   *
+   * ⚠️ Ce drapeau n'accorde RIEN et ne prouve RIEN : les droits sont posés par
+   *    le webhook, jamais par un retour de navigation — c'est ce qui permet de
+   *    fermer son navigateur avant la redirection sans rien perdre. Le message
+   *    dit d'ailleurs que l'offre se met à jour « dès que la banque a
+   *    confirmé », et l'écran montre l'offre RÉELLE juste en dessous.
+   */
+  const drapeau = searchParams.get('paiement')
+  const retourPaiement: RetourPaiement | null =
+    drapeau === 'succes' || drapeau === 'annule' ? drapeau : null
+
+  const [portailEnCours, setPortailEnCours] = useState(false)
+  const [portailErreur, setPortailErreur] = useState(false)
+
+  /** Le sélecteur d'offres, replié tant qu'on ne le demande pas. */
+  const [offresOuvertes, setOffresOuvertes] = useState(false)
+  const [offres, setOffres] = useState<
+    { kind: 'idle' } | { kind: 'loading' } | { kind: 'error' } | { kind: 'ready'; data: Offres }
+  >({ kind: 'idle' })
+  const [choixEnCours, setChoixEnCours] = useState<string | null>(null)
+  const [choixErreur, setChoixErreur] = useState(false)
+  const [choixProgramme, setChoixProgramme] = useState<'a_echeance' | 'immediat' | null>(null)
 
   const [state, setState] = useState<{ kind: 'loading' } | { kind: 'error' } | { kind: 'ready'; data: Payload }>({
     kind: 'loading',
@@ -148,7 +273,104 @@ export default function MonOffrePage() {
     }
   }, [secureFetch])
 
+  /** Charge le catalogue achetable à l'ouverture du sélecteur, une seule fois. */
+  const ouvrirOffres = useCallback(async () => {
+    setOffresOuvertes(true)
+    if (offres.kind === 'ready' || offres.kind === 'loading') return
+    setOffres({ kind: 'loading' })
+    try {
+      const res = await secureFetch('/api/billing/offers')
+      if (!res.ok) {
+        setOffres({ kind: 'error' })
+        return
+      }
+      setOffres({ kind: 'ready', data: (await res.json()) as Offres })
+    } catch (err) {
+      console.error('[entreprise/offre] offres', err)
+      setOffres({ kind: 'error' })
+    }
+  }, [secureFetch, offres.kind])
+
   useEffect(() => { void load() }, [load])
+
+  /**
+   * Ouvre le portail client Stripe.
+   *
+   * La route décide, pas cet écran : elle revérifie le verrou, le rôle
+   * administrateur et l'existence d'un dossier de facturation, et répond 503 ou
+   * 403 le cas échéant. Ce bouton n'est même pas rendu tant que le verrou est
+   * fermé — mais c'est un CONFORT, jamais la garde.
+   */
+  const ouvrirPortail = useCallback(async () => {
+    setPortailEnCours(true)
+    setPortailErreur(false)
+    try {
+      const res = await secureFetch('/api/billing/portal', { method: 'POST' })
+      const payload = (await res.json().catch(() => ({}))) as { url?: string }
+      if (!res.ok || !payload.url) {
+        setPortailErreur(true)
+        return
+      }
+      window.location.href = payload.url
+    } catch (err) {
+      console.error('[entreprise/offre] portail', err)
+      setPortailErreur(true)
+    } finally {
+      setPortailEnCours(false)
+    }
+  }, [secureFetch])
+
+  /**
+   * Souscrire, ou changer d'offre — c'est la MÊME intention, et deux routes.
+   *
+   * L'écran ne tranche pas : il regarde s'il existe déjà un abonnement. Le
+   * SERVEUR retranche de toute façon — `checkout` refuse en 409 une
+   * organisation déjà abonnée, `change-plan` refuse en 409 une organisation qui
+   * ne l'est pas. Ce choix n'est qu'un confort ; la garde est ailleurs.
+   *
+   * Une MONTÉE prend effet tout de suite, une DESCENTE à l'échéance : la
+   * réponse le dit, et l'écran le répète — sans quoi l'organisation croirait
+   * qu'il ne s'est rien passé.
+   */
+  const choisirOffre = useCallback(
+    async (packageId: string, dejaAbonne: boolean) => {
+      setChoixEnCours(packageId)
+      setChoixErreur(false)
+      setChoixProgramme(null)
+      try {
+        const route = dejaAbonne ? '/api/billing/change-plan' : '/api/billing/checkout'
+        const res = await secureFetch(route, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-locale': locale },
+          body: JSON.stringify({ package_id: packageId }),
+        })
+        const payload = (await res.json().catch(() => ({}))) as {
+          url?: string
+          effet?: 'immediat' | 'a_echeance'
+        }
+        if (!res.ok) {
+          setChoixErreur(true)
+          return
+        }
+        // Souscription : on part chez Stripe. Aucune donnée de carte ne passe
+        // par cet écran — c'est tout l'intérêt du paiement hébergé.
+        if (payload.url) {
+          window.location.href = payload.url
+          return
+        }
+        // Changement d'offre : rien à quitter. On dit ce qui a été décidé, puis
+        // on relit l'offre RÉELLE plutôt que de l'inventer côté client.
+        setChoixProgramme(payload.effet ?? 'immediat')
+        await load()
+      } catch (err) {
+        console.error('[entreprise/offre] choix offre', err)
+        setChoixErreur(true)
+      } finally {
+        setChoixEnCours(null)
+      }
+    },
+    [secureFetch, locale, load],
+  )
 
   if (state.kind === 'loading') {
     return <div style={{ padding: 24, fontFamily: fontJakarta, color: '#64748b' }}>{t('loading')}</div>
@@ -161,6 +383,31 @@ export default function MonOffrePage() {
   }
 
   const { package: pkg, limits, usage, package_valid_until: validUntil } = state.data
+
+  /**
+   * LE VERROU décide de ce que cet écran PROPOSE.
+   *
+   * `=== true` et non une simple vérité : un payload sans le champ (version
+   * antérieure de la route, réponse tronquée) doit compter comme FERMÉ. On
+   * n'ouvre jamais un chemin de paiement par ignorance.
+   *
+   * Fermé  → une ligne de contact, comme aujourd'hui.
+   * Ouvert → « Changer d'offre » et l'accès au portail, aux MÊMES emplacements.
+   *          Le jour où ENABLE_BILLING passe à vrai, rien d'autre ne bouge.
+   */
+  const verrouOuvert = state.data.billing_enabled === true
+
+  /**
+   * Le dernier paiement a-t-il échoué ?
+   *
+   * Dérivé de `stripe_subscription_status`, commenté « AFFICHAGE UNIQUEMENT »
+   * en base — et c'est tenu ici : ce booléen ne décide QUE d'un bandeau. Les
+   * droits affichés plus bas viennent de `limits`, jamais de ce statut. Une
+   * organisation en `past_due` garde ses accès pendant les relances, et le
+   * bandeau explique exactement cela plutôt que de la laisser le découvrir.
+   */
+  const paiementEnEchec =
+    state.data.subscription_status === 'past_due' || state.data.subscription_status === 'unpaid'
 
   // ── PRIX : `null` et `0` ne disent PAS la même chose ─────────────────────
   //  Cet écran les confondait — les deux affichaient « Gratuit ». L'ambiguïté
@@ -197,6 +444,45 @@ export default function MonOffrePage() {
         boxSizing: 'border-box',
       }}
     >
+      {/* ─── Retour de paiement ─────────────────────────────────────────────
+          Un mot sur ce qui vient de se passer. Il ne PROUVE rien : l'offre
+          réelle est affichée juste en dessous, et c'est elle qui fait foi. */}
+      {retourPaiement === 'succes' && (
+        <Bandeau ton="succes" titre={t('payment_success_title')} corps={t('payment_success_body')} />
+      )}
+      {retourPaiement === 'annule' && (
+        <Bandeau ton="neutre" titre={t('payment_cancelled_title')} corps={t('payment_cancelled_body')} />
+      )}
+
+      {/* ─── Échec de paiement ──────────────────────────────────────────────
+          Les accès sont MAINTENUS pendant les relances : le bandeau le dit,
+          plutôt que de laisser l'organisation le découvrir en butant. */}
+      {paiementEnEchec && (
+        <Bandeau ton="alerte" titre={t('payment_failed_title')} corps={t('payment_failed_body')}>
+          {verrouOuvert && (
+            <button
+              type="button"
+              onClick={() => void ouvrirPortail()}
+              disabled={portailEnCours}
+              style={{
+                marginTop: 12,
+                padding: '9px 16px',
+                background: '#92400E',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: portailEnCours ? 'wait' : 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              {portailEnCours ? t('portal_opening') : t('open_portal')}
+            </button>
+          )}
+        </Bandeau>
+      )}
+
       {/* ─── Offre courante ─────────────────────────────────────────────────── */}
       <Card title={t('current_plan')}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
@@ -211,10 +497,184 @@ export default function MonOffrePage() {
           <p style={{ margin: '10px 0 0', fontSize: 12.5, color: '#64748b' }}>{validUntilLabel}</p>
         )}
 
-        {/* Pas de bouton « Changer d'offre » : le libre-service arrivera avec
-            Stripe. Ligne de contact sobre en attendant. */}
-        <p style={{ margin: '14px 0 0', fontSize: 13, color: '#475569' }}>{t('contact_to_change')}</p>
+        {/* ── VERROU FERMÉ : une ligne de contact, pas un bouton mort ──────
+            Le lancement est gratuit et la date d'ouverture n'est pas fixée. Un
+            bouton grisé « Changer d'offre » serait pire que pas de bouton : il
+            promet une porte qui n'existe pas. */}
+        {!verrouOuvert && (
+          <p style={{ margin: '14px 0 0', fontSize: 13, color: '#475569' }}>
+            {t('contact_to_change')}
+          </p>
+        )}
+
+        {/* ── VERROU OUVERT : les mêmes emplacements portent les chemins ────
+            Aucune logique n'est redéployée ce jour-là — seule la variable
+            d'environnement change, et ces deux actions apparaissent.
+            Mobile-first : les boutons passent à la ligne plutôt que de
+            déborder. */}
+        {verrouOuvert && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
+            {/* Le sélecteur s'ouvre SUR PLACE. Un lien vers un écran dédié
+                aurait été un lien vers une page qui n'existe pas — un écran
+                mort est pire qu'une absence de bouton. */}
+            <button
+              type="button"
+              onClick={() => (offresOuvertes ? setOffresOuvertes(false) : void ouvrirOffres())}
+              aria-expanded={offresOuvertes}
+              style={{
+                padding: '9px 16px',
+                background: 'var(--sk-accent, #0369a1)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              {offresOuvertes ? t('close') : t('change_plan')}
+            </button>
+            <button
+              type="button"
+              onClick={() => void ouvrirPortail()}
+              disabled={portailEnCours}
+              style={{
+                padding: '9px 16px',
+                background: '#fff',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: portailEnCours ? 'wait' : 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              {portailEnCours ? t('portal_opening') : t('open_portal')}
+            </button>
+          </div>
+        )}
+
+        {portailErreur && (
+          <p role="alert" style={{ margin: '10px 0 0', fontSize: 12.5, color: '#B91C1C' }}>
+            {t('portal_failed')}
+          </p>
+        )}
+
+        {/* L'issue reste la même des deux côtés du verrou, seul son libellé
+            change — d'où deux clés dans un espace partagé plutôt qu'une phrase
+            recopiée dans chaque écran. */}
+        <p style={{ margin: '12px 0 0', fontSize: 12.5, color: '#64748b' }}>
+          {verrouOuvert ? tCommerce('need_more_upgrade') : tCommerce('need_more_contact')}
+        </p>
       </Card>
+
+      {/* ─── Sélecteur d'offres ─────────────────────────────────────────────
+          Rendu UNIQUEMENT verrou ouvert. Prix et quotas viennent du catalogue,
+          jamais d'ici : les recopier les figerait au premier réglage. */}
+      {verrouOuvert && offresOuvertes && (
+        <Card title={t('offers_title')}>
+          {offres.kind === 'loading' && (
+            <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>{t('offers_loading')}</p>
+          )}
+          {offres.kind === 'error' && (
+            <p role="alert" style={{ margin: 0, fontSize: 13, color: '#B91C1C' }}>
+              {t('offers_failed')}
+            </p>
+          )}
+          {offres.kind === 'ready' && offres.data.offers.length === 0 && (
+            <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>{t('offers_empty')}</p>
+          )}
+          {offres.kind === 'ready' && offres.data.offers.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {offres.data.offers.map((o) => {
+                const enCours = o.id === offres.data.current_package_id
+                const prix =
+                  o.price_monthly == null
+                    ? t('price_undefined')
+                    : Number(o.price_monthly) === 0
+                      ? t('free')
+                      : `${new Intl.NumberFormat(locale, { style: 'currency', currency: o.currency || 'EUR' }).format(Number(o.price_monthly))} ${t('per_month')}`
+                return (
+                  <div
+                    key={o.id}
+                    style={{
+                      border: `1.5px solid ${enCours ? 'var(--sk-accent, #0369a1)' : '#e2e8f0'}`,
+                      borderRadius: 12,
+                      padding: 14,
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: 12,
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div style={{ minWidth: 0, flex: '1 1 260px' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{o.name}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>{prix}</span>
+                      </div>
+                      <ul style={{ margin: '8px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        {LIMITES_OFFRE.map(([code, labelKey]) => {
+                          // Une feature ABSENTE du catalogue n'est pas affichée :
+                          // on ne montre pas une limite qu'on ne connaît pas.
+                          if (!(code in o.limits)) return null
+                          const v = o.limits[code] ?? null
+                          return (
+                            <li key={code} style={{ fontSize: 12.5, color: '#64748b' }}>
+                              {t(labelKey as 'limit_annonces_per_month')} :{' '}
+                              <strong style={{ color: '#334155' }}>
+                                {v == null ? t('unlimited') : v}
+                              </strong>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                    {enCours ? (
+                      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--sk-accent, #0369a1)', whiteSpace: 'nowrap' }}>
+                        {t('offer_current')}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => void choisirOffre(o.id, offres.data.current_package_id !== null)}
+                        disabled={choixEnCours !== null}
+                        style={{
+                          padding: '8px 14px',
+                          background: 'var(--sk-accent, #0369a1)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 8,
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          cursor: choixEnCours !== null ? 'wait' : 'pointer',
+                          fontFamily: 'inherit',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {choixEnCours === o.id ? t('offer_switching') : t('offer_choose')}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {choixErreur && (
+            <p role="alert" style={{ margin: '12px 0 0', fontSize: 12.5, color: '#B91C1C' }}>
+              {t('offer_failed')}
+            </p>
+          )}
+          {choixProgramme && (
+            <p style={{ margin: '12px 0 0', fontSize: 12.5, color: '#166534' }}>
+              {choixProgramme === 'a_echeance' ? t('offer_scheduled') : t('offer_applied')}
+            </p>
+          )}
+        </Card>
+      )}
 
       {/* ─── Limites de l'offre (libellés du back-office) ───────────────────── */}
       <Card title={t('limits_title')}>

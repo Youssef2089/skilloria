@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/auth-guard'
 import { getOrgEntitlements, monthlyPeriodStart } from '@/lib/entitlements'
 import { targetRoleForOrgType } from '@/lib/org-target-role'
+import { billingEnabled } from '@/lib/billing/config'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -151,7 +152,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   //  auraient caché son offre à une organisation qui la paie.
   const { data: target, error: subErr } = await auth.supabaseAdmin
     .from('organizations')
-    .select('package_id, package_started_at, package_valid_until')
+    .select('package_id, package_started_at, package_valid_until, stripe_subscription_status')
     .eq('id', org.id)
     .maybeSingle()
   if (subErr || !target) {
@@ -193,6 +194,25 @@ export async function GET(request: NextRequest): Promise<Response> {
       period_start: period,
       package_started_at: target.package_started_at,
       package_valid_until: target.package_valid_until,
+
+      // ── LE VERROU, SERVI DEPUIS LE SERVEUR ──────────────────────────────
+      //  Il était parfaitement étanche, donc totalement INVISIBLE : aucun écran
+      //  ne savait s'il devait montrer un mur ou une porte, et poser
+      //  ENABLE_BILLING à vrai n'aurait rien changé de visible.
+      //
+      //  Servi ici, et JAMAIS par une variable NEXT_PUBLIC_ : une variable
+      //  publique est inlinée dans le bundle navigateur — le verrou y serait
+      //  lisible, et surtout l'UI pourrait diverger du serveur, qui reste seul
+      //  à décider. Ce booléen n'accorde AUCUN droit : les quatre routes de
+      //  paiement le retestent chacune pour leur compte.
+      billing_enabled: billingEnabled(),
+
+      // ── AFFICHAGE UNIQUEMENT ────────────────────────────────────────────
+      //  Le statut Stripe sert au bandeau « votre dernier paiement a échoué »,
+      //  et à RIEN d'autre. La colonne porte ce commentaire en base, et il est
+      //  tenu ici : AUCUNE lecture de droits n'en dépend — les droits se lisent
+      //  sur package_id et package_valid_until, par getOrgEntitlements.
+      subscription_status: (target.stripe_subscription_status as string | null) ?? null,
     },
     200,
   )
