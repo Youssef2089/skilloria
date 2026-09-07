@@ -3644,6 +3644,34 @@
       "notify_enabled": "Benachrichtigungen aktivieren",
       "notify_enabled_help": "Bleibt aus, bis jemand die Verteilung gelesen hat: Eine geratene Schwelle würde zufällig benachrichtigen.",
       "model": "Modell: {model}. Ein Wechsel ändert die Skala — beide Schwellen werden dadurch falsch."
+    },
+    "failures": {
+      "title": "Nicht erstellte Zusammenfassungen (letzte 30 Tage)",
+      "none": "Alle angeforderten Zusammenfassungen wurden geschrieben.",
+      "unavailable": "Der Zähler konnte nicht gelesen werden. Das ist nicht null, sondern unbekannt.",
+      "help": "Drei Ursachen, die nie addiert werden: Sie erfordern nicht dieselbe Maßnahme. Eine Bewerbung ohne Zusammenfassung wird ganz normal eingereicht — ihr fehlt ein Text, keine Unterlage.",
+      "cause": {
+        "plafond": "Ausgabenobergrenze erreicht",
+        "modele_indisponible": "Modell nicht verfügbar",
+        "reponse_illisible": "Unlesbare Antwort"
+      },
+      "surface": {
+        "candidature": "beim Einreichen",
+        "pitch": "beim Öffnen einer Karte"
+      }
+    },
+    "overruns": {
+      "title": "Nachfass-Obergrenze überschritten (letzte 30 Tage)",
+      "none": "Keine Überschreitungen: niemand kam der Grenze nahe.",
+      "unavailable": "Der Zähler konnte nicht gelesen werden. Das ist nicht null, sondern unbekannt.",
+      "experts": "{count, plural, one {# Experte} other {# Expertinnen und Experten}}",
+      "help": "Der Schwellenwert ist hier bewusst nicht einstellbar: ein Missbrauchsschutz ist kein kommerzieller Parameter. Eine Überschreitung bedeutet, dass eine Auslösung nicht eingeplant wurde — steigt dieser Zähler, suchen Sie eine Schleife auf Client-Seite, statt den Wert anzuheben.",
+      "origine": {
+        "profil_modifie": "Profil bearbeitet",
+        "ouverture_croisee": "Wieder empfangsbereit",
+        "disponibilite": "Verfügbarkeit geändert",
+        "cv_reanalyse": "Lebenslauf neu ausgewertet"
+      }
     }
   },
   "ecosystem_switcher": {

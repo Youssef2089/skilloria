@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { readSessionCookieToken, hashSessionToken } from '@/lib/session-token'
-import { isProduction } from '@/lib/env'
 import { resolveEcosystemAccess, type EcosystemDenialCode } from '@/lib/ecosystem-guard'
 
 /** Messages techniques des refus d'écosystème. L'UI, elle, traduit sur `code`. */
@@ -254,17 +253,25 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
   // déploiement de 11F, `last_session_token` est NULL → on skip le check
   // (il se peuplera à son prochain login via /api/auth/init-session).
   //
-  // Sinon : compare avec le token client. Source primaire = cookie
-  // httpOnly `ss_token` (D5, posé par init-session). Fallback header
-  // `x-session-token` réservé au NON-PRODUCTION (Postman/dev, scripts diag sur
-  // staging) : en production, seul le cookie httpOnly fait foi — on ne lit pas
-  // ce header (surface non-httpOnly inutile en prod).
+  // Sinon : compare avec le token client. Source UNIQUE = cookie httpOnly
+  // `ss_token` (D5, posé par init-session).
+  //
+  // ═══ L'EN-TÊTE `x-session-token` A ÉTÉ RETIRÉ ═════════════════════════════
+  //   Il offrait un repli hors production, pour Postman et les scripts de
+  //   diagnostic. Plus aucun script du dépôt ne l'utilise, et il ouvrait une
+  //   surface non-httpOnly à un secret de session : un jeton lisible depuis
+  //   JavaScript, là où tout le mécanisme existe précisément pour qu'il ne le
+  //   soit pas.
+  //
+  //   Son seul garde-fou était `isProduction()`, c'est-à-dire une variable
+  //   d'environnement. Une porte de service dont la serrure est un réglage
+  //   n'est pas une porte fermée : elle est fermée tant que personne ne se
+  //   trompe de valeur. Retirée, il n'y a plus rien à mal configurer.
+  //
   // Mismatch → 403 `session_superseded` (D2, code distinct de
   // `forbidden`/`no_token`/`invalid_token`).
   if (userRow.last_session_token) {
-    const cookieToken = readSessionCookieToken(request)
-    const headerToken = isProduction() ? null : request.headers.get('x-session-token')
-    const clientToken = cookieToken ?? headerToken
+    const clientToken = readSessionCookieToken(request)
     // C2 : la BDD stocke le sha256 du token, le client envoie le brut (cookie
     // ss_token). On hashe l'entrée client avant comparaison. clientToken null
     // → hash impossible → mismatch (403), comme avant.

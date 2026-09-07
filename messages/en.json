@@ -3644,6 +3644,34 @@
       "notify_enabled": "Enable notifications",
       "notify_enabled_help": "Left off until someone has read the distribution: a guessed threshold would alert at random.",
       "model": "Model: {model}. Changing it changes the scale — both thresholds become wrong."
+    },
+    "failures": {
+      "title": "Summaries not produced (last 30 days)",
+      "none": "Every requested summary was written.",
+      "unavailable": "The counter could not be read. That is not zero: it is unknown.",
+      "help": "Three causes, never added together: they do not call for the same action. An application whose summary is missing is still submitted normally — it lacks a text, not a file.",
+      "cause": {
+        "plafond": "Spending cap reached",
+        "modele_indisponible": "Model unavailable",
+        "reponse_illisible": "Unreadable response"
+      },
+      "surface": {
+        "candidature": "on submission",
+        "pitch": "on opening a card"
+      }
+    },
+    "overruns": {
+      "title": "Follow-up cap exceeded (last 30 days)",
+      "none": "No overruns: nobody came close to the cap.",
+      "unavailable": "The counter could not be read. That is not zero: it is unknown.",
+      "experts": "{count, plural, one {# expert} other {# experts}}",
+      "help": "The threshold is deliberately not adjustable here: an anti-abuse guard is not a commercial setting. An overrun means a trigger was not scheduled — if this counter climbs, look for a client-side loop rather than raising the threshold.",
+      "origine": {
+        "profil_modifie": "Profile edited",
+        "ouverture_croisee": "Back to listening",
+        "disponibilite": "Availability change",
+        "cv_reanalyse": "CV re-parsed"
+      }
     }
   },
   "ecosystem_switcher": {

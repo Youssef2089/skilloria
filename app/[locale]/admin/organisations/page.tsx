@@ -12,7 +12,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  * Onglet par défaut "En attente". Compteur par onglet.
  *
  * Source : GET /api/admin/list-orgs?status=<filter>
- * Headers : Bearer (Supabase session) + x-subdomain + x-session-token
+ * Headers : Bearer (Supabase session) + x-subdomain
  *           (pattern projet, requireAdmin attend ces 3 headers).
  *
  * Tableau adaptatif :

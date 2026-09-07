@@ -30,6 +30,21 @@ for (const line of env.split(/\r?\n/)) {
   if (m) process.env[m[1]] = m[2]
 }
 
+// ⚠️ CE SCRIPT ECRIT EN BASE. Il refuse de tourner sans drapeau explicite,
+//    et dit ce qu'il ecrirait. Cf. scripts/garde-ecriture.mjs — la garde
+//    est POSEE AVANT la creation du client : rien n'est ouvert tant que
+//    l'autorisation n'est pas donnee.
+const { exigerAutorisationEcriture } = await import('./garde-ecriture.mjs')
+exigerAutorisationEcriture({
+  script: "diag-lot2b-expert.mjs",
+  ecrit: [
+    "SUPPRIME des lignes de matches",
+    "INSERE des matches et des notifications de test",
+    "reecrit matches.status et read_at",
+  ],
+  perte: "les lignes supprimees ne sont pas relues avant.",
+})
+
 const { createClient } = await import('@supabase/supabase-js')
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL

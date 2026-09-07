@@ -30,7 +30,14 @@ import { dirname, join } from 'node:path'
 import { expertNameCode, firstLetters } from '../lib/expert-name-code.ts'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const read = (p) => readFileSync(join(ROOT, p), 'utf8')
+/**
+ * Fins de ligne NORMALISEES. Le depot sort les fichiers en CRLF : un controle
+ * dont le motif traverse une fin de ligne (`...\n\s+...`) ne matche jamais sur
+ * une copie de travail fraichement extraite, et le diagnostic vire au rouge
+ * sans qu'aucun code n'ait change. Un diagnostic dont le resultat depend de la
+ * machine qui l'execute ne dit pas si le code est juste : il dit d'ou il vient.
+ */
+const read = (p) => readFileSync(join(ROOT, p), 'utf8').split('\r\n').join('\n')
 
 /**
  * Retire les commentaires avant de chercher un anti-pattern. Sans ça, ce diag

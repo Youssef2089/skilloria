@@ -1,7 +1,14 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
-import { checkRateLimit } from '@/lib/rate-limit'
+import {
+  evaluerLimite,
+  extractClientIp,
+  OTP_VERIFY_FENETRE_S,
+  OTP_VERIFY_MAX,
+  OTP_VERIFY_IP_FENETRE_S,
+  OTP_VERIFY_IP_MAX,
+} from '@/lib/rate-limit'
 import { normalizeE164 } from '@/lib/phone'
 import { isUniqueViolation } from '@/lib/auth-signup'
 
@@ -73,10 +80,37 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Phone already used', code: 'phone_already_used' }, 409)
   }
 
-  // Rate-limit serveur/DB anti brute-force du code, AVANT l'appel Vonage "check" :
-  // 5 tentatives / 900s par (request_id + téléphone). Fail-open (cf. lib/rate-limit.ts).
-  if (!(await checkRateLimit(auth.supabaseAdmin, 'otp_verify', `${request_id}:${phone}`, 900, 5))) {
-    return json({ error: 'Too many requests', code: 'rate_limited', retry_after_seconds: 900 }, 429)
+  // ── Rate-limit anti-force-brute, AVANT l'appel Vonage "check" ──────────────
+  //
+  // FAIL-CLOSED, comme la variante publique et pour la même raison : à la
+  // VÉRIFICATION, la limite n'est pas un garde-fou de coût, elle EST la
+  // défense. Un limiteur indisponible qui laisse passer offre un nombre
+  // illimité d'essais sur un code à 4-6 chiffres.
+  //
+  // Deux clés, la MÊME fonction `rate_limit_check`. Une IP introuvable ne
+  // bloque pas : l'absence d'un signal n'est pas la panne d'une garde.
+  // La réponse ne dit jamais si le code était bon.
+  const refus = () =>
+    json({ error: 'Too many requests', code: 'rate_limited', retry_after_seconds: OTP_VERIFY_FENETRE_S }, 429)
+
+  const ip = extractClientIp(request)
+  if (
+    ip &&
+    (await evaluerLimite(auth.supabaseAdmin, 'otp_verify_ip', ip, OTP_VERIFY_IP_FENETRE_S, OTP_VERIFY_IP_MAX)) !==
+      'autorise'
+  ) {
+    return refus()
+  }
+  if (
+    (await evaluerLimite(
+      auth.supabaseAdmin,
+      'otp_verify',
+      `${request_id}:${phone}`,
+      OTP_VERIFY_FENETRE_S,
+      OTP_VERIFY_MAX,
+    )) !== 'autorise'
+  ) {
+    return refus()
   }
 
   const basic = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')

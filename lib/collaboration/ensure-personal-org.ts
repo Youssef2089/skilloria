@@ -142,6 +142,18 @@ export async function ensurePersonalOrg(
         verification_status: 'approved',
         verified_at: nowIso,
         setup_completed_at: nowIso,
+        // L'ABONNEMENT VIT ICI, SUR L'ORGANISATION. Il était posé plus bas, sur
+        // la ligne `organization_domains` — et cette colonne a été SUPPRIMÉE
+        // par 20260903000000_abonnement_sur_organisation.sql. L'insert échouait
+        // donc à l'exécution : l'expert n'obtenait pas son espace de
+        // collaboration, et ne pouvait plus publier son premier besoin de
+        // sous-traitance. Ni tsc ni le build ne le voyaient — les clients
+        // Supabase ne sont pas typés, la colonne n'est qu'une chaîne.
+        //
+        // Posé dès l'INSERT plutôt que par une mise à jour ensuite : une
+        // écriture de moins, et l'organisation n'existe jamais sans son offre.
+        package_id: pkg.id,
+        package_started_at: nowIso,
       })
       .select('id')
       .single()
@@ -169,17 +181,10 @@ export async function ensurePersonalOrg(
       throw new EnsureOrgError('member_insert_failed', 'Could not link member', 500, memberErr)
     }
 
-    // 3. TRACE de l'écosystème d'inscription — et RIEN D'AUTRE.
-    //
-    //  Cette insertion portait `package_id`. La colonne n'existe plus :
-    //  l'abonnement est un attribut de l'ORGANISATION, unique et partagé entre
-    //  tous les écosystèmes. L'insert échouait donc, le bloc levait, et le
-    //  rollback supprimait l'organisation — un expert ne pouvait plus publier
-    //  son premier besoin de sous-traitance.
-    //
-    //  Rien ne le signalait : les diagnostics du modèle multi-écosystème ne
-    //  balayaient que `app/api/**/route.ts`, jamais `lib/`. C'est ce trou que
-    //  l'élargissement de ce lot ferme.
+    // 3. TRACE de l'écosystème d'inscription — rien d'autre.
+    //    L'offre collaboration est posée sur l'organisation (étape 1) : c'est
+    //    là que `getOrgEntitlements` la lit. Cette ligne ne porte plus aucune
+    //    décision, et ses colonnes d'abonnement n'existent plus.
     const { error: domErr } = await admin
       .from('organization_domains')
       .insert({
@@ -189,27 +194,6 @@ export async function ensurePersonalOrg(
       })
     if (domErr) {
       throw new EnsureOrgError('domain_insert_failed', 'Could not link domain', 500, domErr)
-    }
-
-    // 4. OFFRE de collaboration, sur l'organisation.
-    //
-    //  Écrite explicitement plutôt que laissée nulle, pour deux raisons : c'est
-    //  l'intention d'origine du code (« l'organisation personnelle naît sur
-    //  l'offre de collaboration »), et c'est exactement ce que la reprise de
-    //  données a posé sur les organisations personnelles déjà existantes. Une
-    //  organisation créée aujourd'hui est donc dans le même état qu'une
-    //  organisation créée hier.
-    //
-    //  Non bloquant : `getOrgEntitlements` retombe de lui-même sur l'offre
-    //  `is_default` de la cible 'collaboration' quand `package_id` est nul —
-    //  la MÊME offre. Faire échouer la création d'une organisation sur cette
-    //  écriture reviendrait à interdire de publier pour une redondance.
-    const { error: pkgErr } = await admin
-      .from('organizations')
-      .update({ package_id: pkg.id })
-      .eq('id', organizationId)
-    if (pkgErr) {
-      console.warn('[ensure-org] offre de collaboration non posée — repli sur is_default', pkgErr.message)
     }
 
     await logAudit({

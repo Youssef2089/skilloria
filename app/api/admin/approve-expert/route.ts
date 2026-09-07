@@ -220,14 +220,24 @@ export async function POST(request: NextRequest): Promise<Response> {
       console.error('[admin:approve-expert] welcome email threw (after)', err)
     }
 
-    // 2. Matching réconcilié — direction EXPERT → publications publiées.
+    // 2. Mise en relation — direction EXPERT → annonces publiées.
+    //
+    //  IMMÉDIAT, ET SANS TEMPORISATION. C'est le moment qui compte pour
+    //  l'expert : son profil vient d'être validé, il doit voir des annonces
+    //  tout de suite. Le reporter d'une heure ici ferait de son premier
+    //  contact avec la plateforme un écran vide.
     try {
+      const debutRun = new Date()
       const { runMatchingForExpert } = await import('@/lib/matching')
       const v = await runMatchingForExpert({
         supabaseAdmin: auth.supabaseAdmin,
         profileId,
-        locale: u?.locale ?? 'fr',
       })
+      // Une relance était peut-être en attente pour ce profil : elle vient
+      // d'être satisfaite. Ne pas la solder ferait tourner le moteur une
+      // seconde fois dans l'heure, pour rien.
+      const { solderRelance } = await import('@/lib/matching/relance')
+      await solderRelance(auth.supabaseAdmin, profileId, debutRun)
       console.log('[admin:approve-expert] matching done', {
         profileId,
         status: v.status,

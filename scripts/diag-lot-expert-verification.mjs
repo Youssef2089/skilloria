@@ -1,255 +1,251 @@
-// Diagnostique Lot — Vérification expert.
+// scripts/diag-lot-expert-verification.mjs — LA PORTE D'ENTRÉE DE L'EXPERT
 //
-// ✓ Ce diag est PROPRE : snapshot+restore final du profil expert ce6b8369.
-//   Mais le `users.is_verified` n'est pas restauré par le script. Le profil
-//   expert reste `verification_status=approved` + `is_verified=true` après run
-//   (état désiré pour le matching à blanc). À adapter si besoin de tester le
-//   cycle complet en démarrant à NULL.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CE QUE CE SCRIPT DÉFEND
+//   Un expert n'entre dans le vivier que s'il a été vérifié. Cette phrase tient
+//   sur quatre promesses qui ne laissent AUCUNE trace dans le compilateur :
 //
-// Couvre :
-//   (a) profil Microsoft COHÉRENT (ce6b8369) → vrai appel IA → score ≥ 9 →
-//       approved auto + users.is_verified=true
-//   (b) profil INCOHÉRENT (snapshot temporaire titre/branche/spécialité
-//       orientés Salesforce/SAP) → DOMAIN_MISMATCH → cap 5 → pending_admin_review
-//   (c) admin approve depuis l'API (mirror) → status='approved' + notif
-//   (d) MATCHING gate :
-//       • profil approved apparaît dans loadEligibleProfiles (publi D365)
-//       • profil non-approved → exclu
-//   (e) ERREUR IA (clé bidon) → result='error' dispatcher → pending_admin_review
+//     • L'approbation est une CONJONCTION, jamais un défaut. Verdict IA `ok`,
+//       ET score au-dessus du seuil, ET aucun flag disqualifiant. Retirer un
+//       seul des trois termes n'est pas une erreur de type : c'est une porte
+//       qui s'ouvre.
+//     • Une PANNE de l'IA ne vaut pas une approbation. Le catch remet le score
+//       à 0 — pas à la valeur précédente, pas à `null` : à 0. Un fail-open ici
+//       vérifierait automatiquement tout profil déposé pendant une panne.
+//     • Il n'y a PAS d'auto-reject (règle métier V1). Le statut final est typé
+//       sur deux valeurs. `rejected` est une décision d'humain.
+//     • Le cap DOMAIN_MISMATCH est appliqué PAR LE CODE, pas seulement demandé
+//       au prompt. Une consigne de prompt est un souhait ; la ligne de garde
+//       dans shapeOutput est une garantie.
+//     • La porte du vivier lit `verification_status = 'approved'`, et rien
+//       d'autre. C'est le seul endroit qui transforme la vérification en effet.
 //
-// Pré-requis :
-//   • Migration 20260603180000 appliquée (colonnes verification_* sur profiles + row provider)
-//   • ANTHROPIC_API_KEY valide
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// POURQUOI IL A ÉTÉ RÉÉCRIT
+//   La version précédente exerçait ces invariants EN BASE, sur un profil expert
+//   codé en dur : elle écrivait `profiles.verification_status` et
+//   `users.is_verified` dès qu'on la lançait, sans argument, sans garde-fou, et
+//   restaurait `null` en fin de course plutôt que la valeur d'origine. Elle
+//   reproduisait en plus le filtre du vivier À LA MAIN — une copie qui serait
+//   restée verte le jour où le vrai filtre aurait changé.
+//
+//   Elle ne pouvait de toute façon plus s'exécuter : `expert-verification.ts`
+//   importe `./ai-expert-verification` SANS extension, ce que le type-stripping
+//   de Node ne résout pas. Le plantage était à l'import, donc avant toute
+//   écriture — mais un import réparé aurait rallumé les écritures.
+//
+//   Les invariants sont vivants ; c'est la manière de les vérifier qui était
+//   dangereuse. Ce diagnostic les vérifie sur le CODE, et vise le vrai fichier.
+//
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//   node scripts/diag-lot-expert-verification.mjs
+//
+// AUCUN accès base, AUCUN réseau, AUCUNE clé. La section F le prouve sur
+// lui-même : ce fichier ne peut plus écrire, et ne peut plus le redevenir en
+// silence.
 
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readFileSync, existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 
-const env = readFileSync(resolve(process.cwd(), '.env.local'), 'utf8')
-for (const line of env.split(/\r?\n/)) {
-  const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/)
-  if (m) process.env[m[1]] = m[2]
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+// NORMALISATION DES FINS DE LIGNE (reprise du tronc) : le depot sort les
+// fichiers en CRLF, et un retour chariot casse tout motif qui traverse un
+// saut de ligne. Sans elle, ce diagnostic serait vert chez son auteur et
+// rouge dans les autres worktrees, sur un fichier identique.
+const read = (p) => readFileSync(join(ROOT, p), 'utf8').split('\r\n').join('\n')
+
+let echecs = 0
+function ok(libelle, condition, detail = '') {
+  if (condition) {
+    console.log(`  ✓ ${libelle}`)
+  } else {
+    echecs++
+    console.log(`  ✗ ${libelle}${detail ? ` — ${detail}` : ''}`)
+  }
 }
 
-const { createClient } = await import('@supabase/supabase-js')
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SRK = process.env.SUPABASE_SERVICE_ROLE_KEY
-const supabaseAdmin = createClient(SUPABASE_URL, SRK, {
-  auth: { persistSession: false, autoRefreshToken: false },
-})
+// ═══ CE QUI VIENT DU TRONC, ET CE QUI NE VIENT PAS ════════════════════════
+//
+//   Le tronc a sécurisé ce script AUTREMENT : `exigerAutorisationEcriture`
+//   (scripts/garde-ecriture.mjs) exigeait `--db` avant toute écriture, sur le
+//   modèle de diag-suspension. Cette garde n'est PAS reprise ici, et son
+//   absence n'est pas un oubli.
+//
+//   Elle protège un script qui écrit. Celui-ci n'écrit plus DU TOUT : il
+//   n'ouvre aucun client, ne lit aucune clé de service, et la section (F) le
+//   vérifie sur son propre texte. Lui poser la garde annoncerait « CE SCRIPT
+//   ECRIT EN BASE », ce qui serait faux, et exigerait un drapeau pour lancer
+//   des contrôles purement statiques — donc les tiendrait hors de tout
+//   balayage. Le contrôle du tronc lui-même (diag-scripts-destructeurs)
+//   DÉCOUVRE les scripts qui écrivent au lieu d'en tenir la liste : celui-ci
+//   n'y figure plus, et n'a rien à porter.
+//
+//   Un script qui ne PEUT pas écrire vaut mieux qu'un script qui peut écrire
+//   derrière un drapeau : on ne compte pas sur la vigilance de qui le lance.
+//
+//   CE QUI EST REPRIS, EN REVANCHE : la normalisation des fins de ligne
+//   (cf. `read` ci-dessus). Le dépôt sort les fichiers en CRLF, et un `\r`
+//   casse tout motif qui traverse un saut de ligne — c'est ce qui rendait des
+//   diagnostics verts chez leur auteur et rouges partout ailleurs, sur un
+//   fichier identique.
 
-const EXPERT_PROFILE_ID = 'ce6b8369-1993-4236-9a1f-a2566280aa3c'
-const EXPERT_USER_ID = '0e28543e-d91d-4b0a-8e0c-64fa33eec3a3'
-const PUBLI_D365 = 'be1921ea-ae54-43e4-96a4-74b3697231d0'
+// Retire les lignes de commentaire : un invariant écrit dans une phrase de
+// documentation n'est pas un invariant. Faux positif déjà rencontré ailleurs.
+function sansCommentaires(source) {
+  return source
+    .split('\n')
+    .filter((l) => {
+      const t = l.trim()
+      return t.length > 0 && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*')
+    })
+    .join('\n')
+}
 
-// ───────────────────────────────────────────────────────────────────────────
-// Pré-check migration
-// ───────────────────────────────────────────────────────────────────────────
-{
-  const { data, error } = await supabaseAdmin.from('profiles').select('id, verification_status').eq('id', EXPERT_PROFILE_ID).maybeSingle()
-  if (error || !data || !('verification_status' in (data ?? {}))) {
-    console.error('⚠️  Migration 20260603180000 NON appliquée. Stop.')
-    console.error('   Applique le SQL via Supabase SQL Editor avant de lancer le diag.')
+const DISPATCHER = 'lib/verification/expert-verification.ts'
+const IA = 'lib/verification/ai-expert-verification.ts'
+const VIVIER = 'lib/matching/pool.ts'
+
+console.log('\n━━━ VÉRIFICATION EXPERT — la porte d\'entrée du vivier ━━━\n')
+
+for (const f of [DISPATCHER, IA, VIVIER]) {
+  if (!existsSync(join(ROOT, f))) {
+    console.log(`  ✗ FICHIER ABSENT : ${f}`)
+    console.log('\nLe diagnostic ne peut rien affirmer. ÉCHEC.\n')
     process.exit(1)
   }
 }
-console.log('✓ Migration appliquée (colonne verification_status présente)')
+
+const dispatcher = sansCommentaires(read(DISPATCHER))
+const ia = sansCommentaires(read(IA))
+const vivier = sansCommentaires(read(VIVIER))
 
 // ───────────────────────────────────────────────────────────────────────────
-// Snapshot du profil original (pour restore après tests)
+// (A) L'approbation est une CONJONCTION, jamais un défaut
 // ───────────────────────────────────────────────────────────────────────────
-const { data: snap } = await supabaseAdmin
-  .from('profiles')
-  .select('title, summary, branch_id, speciality_id, skills, verification_status, verification_method, verification_score, verification_data, verified_at, verified_by, review_reason')
-  .eq('id', EXPERT_PROFILE_ID)
-  .maybeSingle()
-console.log('snapshot profil :', { title: snap?.title, verification_status: snap?.verification_status })
-console.log()
+console.log('=== (A) approbation = conjonction des trois termes ===')
 
-async function restoreSnapshot() {
-  await supabaseAdmin
-    .from('profiles')
-    .update({
-      title: snap?.title, summary: snap?.summary,
-      branch_id: snap?.branch_id, speciality_id: snap?.speciality_id,
-      skills: snap?.skills,
-      verification_status: snap?.verification_status,
-      verification_method: snap?.verification_method,
-      verification_score: snap?.verification_score,
-      verification_data: snap?.verification_data,
-      verified_at: snap?.verified_at,
-      verified_by: snap?.verified_by,
-      review_reason: snap?.review_reason,
-    })
-    .eq('id', EXPERT_PROFILE_ID)
+const debutA = dispatcher.indexOf('const isApproved')
+const finA = dispatcher.indexOf('const finalStatus', debutA)
+const expression = debutA >= 0 && finA > debutA ? dispatcher.slice(debutA, finA) : ''
+
+ok("l'expression d'approbation existe", expression.length > 0, 'const isApproved / const finalStatus introuvables')
+
+const TERMES = [
+  ["le verdict IA doit valoir 'ok'", "result === 'ok'"],
+  ['le score doit atteindre le seuil configuré', 'confidence_score >= config.auto_approve_threshold'],
+  ['aucun flag disqualifiant ne doit être présent', '!hasDisqualifyingFlag'],
+]
+for (const [libelle, aiguille] of TERMES) {
+  ok(libelle, expression.includes(aiguille), `« ${aiguille} » absent de l'expression`)
 }
 
-async function resetVerification() {
-  await supabaseAdmin
-    .from('profiles')
-    .update({
-      verification_status: null,
-      verification_method: null,
-      verification_score: null,
-      verification_data: null,
-      verified_at: null,
-      verified_by: null,
-      review_reason: null,
-    })
-    .eq('id', EXPERT_PROFILE_ID)
-  await supabaseAdmin.from('users').update({ is_verified: false }).eq('id', EXPERT_USER_ID)
+// Les trois termes doivent être liés par ET. Un seul OU, et la porte s'ouvre.
+const nbEt = expression.split('&&').length - 1
+ok('les termes sont liés par ET (&&), pas par OU', nbEt >= 2 && !expression.includes('||'), `&& compté ${nbEt}× / || présent : ${expression.includes('||')}`)
+
+// ───────────────────────────────────────────────────────────────────────────
+// (B) Une panne de l'IA ne vaut pas une approbation
+// ───────────────────────────────────────────────────────────────────────────
+console.log('\n=== (B) panne IA → score 0, jamais une approbation ===')
+
+const debutB = dispatcher.indexOf('catch (err)')
+const finB = debutB >= 0 ? dispatcher.indexOf('const blockingFlagsHit', debutB) : -1
+const blocCatch = debutB >= 0 && finB > debutB ? dispatcher.slice(debutB, finB) : ''
+
+ok('le bloc de rattrapage autour de l\'appel IA existe', blocCatch.length > 0)
+ok("il produit result: 'error'", blocCatch.includes("result: 'error'"))
+ok('il remet le score à 0 — pas à la valeur précédente', blocCatch.includes('confidence_score: 0'))
+ok("il ne relance pas l'erreur (sinon le profil resterait sans verdict)", !blocCatch.includes('throw '))
+
+// Et le terme (A) fait le reste : result 'error' ne peut pas satisfaire === 'ok'.
+ok("un verdict 'error' ne peut pas franchir la conjonction (A)", expression.includes("result === 'ok'"))
+
+// ───────────────────────────────────────────────────────────────────────────
+// (C) Pas d'auto-reject : rejeter est une décision d'humain
+// ───────────────────────────────────────────────────────────────────────────
+console.log('\n=== (C) aucun auto-reject (règle métier V1) ===')
+
+ok(
+  "le statut final est typé sur deux valeurs seulement",
+  dispatcher.includes("const finalStatus: 'approved' | 'pending_admin_review'"),
+  'annotation de finalStatus modifiée ou absente',
+)
+
+// Le dispatcher n'écrit jamais 'rejected' sur un profil de lui-même.
+const ecritRejected = dispatcher.includes("verification_status: 'rejected'")
+ok("le dispatcher n'écrit jamais verification_status: 'rejected'", !ecritRejected)
+
+// Le repli sans provider / sans domaine remonte en revue humaine, pas en refus.
+ok(
+  'les sorties anticipées remontent en pending_admin_review',
+  dispatcher.includes("verification_status: 'pending_admin_review'"),
+)
+
+// ───────────────────────────────────────────────────────────────────────────
+// (D) Le cap DOMAIN_MISMATCH est appliqué par le CODE
+// ───────────────────────────────────────────────────────────────────────────
+console.log('\n=== (D) cap DOMAIN_MISMATCH : garde de code, pas consigne de prompt ===')
+
+const debutD = ia.indexOf("flags.includes('DOMAIN_MISMATCH')")
+ok(
+  'la garde de plafonnement existe hors commentaire',
+  debutD >= 0,
+  "aucune ligne exécutable ne teste flags.includes('DOMAIN_MISMATCH')",
+)
+if (debutD >= 0) {
+  const garde = ia.slice(debutD, debutD + 200)
+  ok('elle compare le score au cap configuré', garde.includes('score > cfg.domain_mismatch_cap'))
+  ok('elle écrase le score par le cap', garde.includes('score = cfg.domain_mismatch_cap'))
 }
 
-// Import dispatcher
-const { runExpertVerification } = await import('../lib/verification/expert-verification.ts')
+// Le cap reste borné à l'échelle 0–10 même si la configuration déraille.
+ok(
+  'le cap lu en configuration est borné à [0,10]',
+  dispatcher.includes('Math.max(0, Math.min(10, cfg.domain_mismatch_cap))'),
+)
 
 // ───────────────────────────────────────────────────────────────────────────
-// (a) Profil cohérent Microsoft → vraie vérif → approved ≥ 9
+// (E) La porte du vivier — sur le VRAI fichier, pas sur une copie du filtre
 // ───────────────────────────────────────────────────────────────────────────
-console.log('=== (a) PROFIL MICROSOFT COHÉRENT → vraie vérif IA ===')
-await resetVerification()
-const t0 = Date.now()
-const verdictA = await runExpertVerification({ supabaseAdmin, profile_id: EXPERT_PROFILE_ID })
-console.log('  durée :', Date.now() - t0, 'ms')
-console.log('  status :', verdictA.verification_status)
-console.log('  score  :', verdictA.score)
-console.log('  flags  :', verdictA.flags)
-console.log('  notes  :', String(verdictA.notes ?? '').slice(0, 200))
+console.log('\n=== (E) porte du vivier : seul « approved » entre ===')
 
-const { data: profA } = await supabaseAdmin.from('profiles').select('verification_status, verification_score').eq('id', EXPERT_PROFILE_ID).maybeSingle()
-const { data: userA } = await supabaseAdmin.from('users').select('is_verified').eq('id', EXPERT_USER_ID).maybeSingle()
-console.log('  BDD profile.verification_status =', profA?.verification_status, ' score=', profA?.verification_score)
-console.log('  BDD users.is_verified =', userA?.is_verified)
-console.log()
+ok(
+  "le vivier filtre sur verification_status = 'approved'",
+  vivier.includes(".eq('verification_status', 'approved')"),
+  `filtre absent de ${VIVIER}`,
+)
 
-const aApproved = profA?.verification_status === 'approved' && userA?.is_verified === true
-
-// ───────────────────────────────────────────────────────────────────────────
-// (b) Profil incohérent : on injecte titre/branche orientés Salesforce/SAP
-// ───────────────────────────────────────────────────────────────────────────
-console.log('=== (b) PROFIL INCOHÉRENT (Salesforce/SAP) → DOMAIN_MISMATCH cap 5 ===')
-// On snapshot d'abord branch/spec actuels pour les remettre après
-const { data: branches } = await supabaseAdmin.from('branches').select('id, name').ilike('name', '%Salesforce%').limit(1)
-const { data: specs } = await supabaseAdmin.from('specialities').select('id, name').ilike('name', '%Salesforce%').limit(1)
-const salesforceBranchId = (branches ?? [])[0]?.id ?? null
-const salesforceSpecId = (specs ?? [])[0]?.id ?? null
-
-await resetVerification()
-await supabaseAdmin
-  .from('profiles')
-  .update({
-    title: 'Consultant Salesforce CPQ senior — SAP S/4 HANA',
-    summary: 'Architecte Salesforce certifié, expertise CPQ + SAP S/4 HANA en parallèle.',
-    skills: ['Salesforce', 'Salesforce CPQ', 'SAP S/4 HANA', 'Apex', 'ABAP'],
-    branch_id: salesforceBranchId,
-    speciality_id: salesforceSpecId,
-  })
-  .eq('id', EXPERT_PROFILE_ID)
-
-const t1 = Date.now()
-const verdictB = await runExpertVerification({ supabaseAdmin, profile_id: EXPERT_PROFILE_ID })
-console.log('  durée :', Date.now() - t1, 'ms')
-console.log('  status :', verdictB.verification_status)
-console.log('  score  :', verdictB.score, ' (attendu ≤ 5)')
-console.log('  flags  :', verdictB.flags, ' (attendu DOMAIN_MISMATCH)')
-console.log('  notes  :', String(verdictB.notes ?? '').slice(0, 200))
-
-const { data: profB } = await supabaseAdmin.from('profiles').select('verification_status, verification_score, verification_data').eq('id', EXPERT_PROFILE_ID).maybeSingle()
-console.log('  BDD profile.verification_status =', profB?.verification_status)
-console.log('  BDD profile.verification_data.flags =', profB?.verification_data?.flags)
-
-const bGated = profB?.verification_status === 'pending_admin_review' && (verdictB.flags ?? []).includes('DOMAIN_MISMATCH') && (verdictB.score ?? 10) <= 5
-
-// Restore snapshot pour les tests suivants
-console.log('  restore snapshot…')
-await restoreSnapshot()
-console.log()
+// Élargir la porte ne se fait pas en supprimant la ligne : il suffit de la
+// remplacer par un `in` ou un `or`. Les deux sont refusés.
+ok(
+  "aucun élargissement par .in() sur verification_status",
+  !vivier.includes(".in('verification_status'"),
+)
+const orElargit = vivier
+  .split('.or(')
+  .slice(1)
+  .some((suite) => suite.slice(0, 200).includes('verification_status'))
+ok("aucun élargissement par .or() mentionnant verification_status", !orElargit)
 
 // ───────────────────────────────────────────────────────────────────────────
-// (c) Admin approve via API mirror (simulation directe en service_role)
+// (F) Ce diagnostic n'écrit rien — et ne peut plus le redevenir en silence
 // ───────────────────────────────────────────────────────────────────────────
-console.log('=== (c) Admin approve (simulation route) ===')
-// Mettre en pending_admin_review puis simuler approve
-await supabaseAdmin.from('profiles').update({ verification_status: 'pending_admin_review' }).eq('id', EXPERT_PROFILE_ID)
-const nowIso = new Date().toISOString()
-await supabaseAdmin.from('profiles').update({
-  verification_status: 'approved',
-  verified_at: nowIso,
-  verified_by: null,                    // admin id non disponible ici, on simule
-  review_reason: null,
-}).eq('id', EXPERT_PROFILE_ID)
-await supabaseAdmin.from('users').update({ is_verified: true }).eq('id', EXPERT_USER_ID)
+console.log('\n=== (F) le diagnostic lui-même n\'écrit pas en base ===')
 
-const { data: profC } = await supabaseAdmin.from('profiles').select('verification_status, verified_at').eq('id', EXPERT_PROFILE_ID).maybeSingle()
-console.log('  BDD profile.verification_status =', profC?.verification_status, ' at=', profC?.verified_at)
-console.log()
+const moi = read('scripts/diag-lot-expert-verification.mjs')
+const moiCode = sansCommentaires(moi)
 
-// ───────────────────────────────────────────────────────────────────────────
-// (d) Matching gate : approved IN, non-approved OUT
-// ───────────────────────────────────────────────────────────────────────────
-console.log('=== (d) Matching gate is_verified rebranché ===')
-// Helper : reproduire le filtre loadEligibleProfiles
-async function listEligible() {
-  const { data } = await supabaseAdmin
-    .from('profiles')
-    .select('id, verification_status, users!profiles_user_id_fkey!inner(user_type)')
-    .eq('cv_parsing_status', 'done')
-    .eq('visible', true)
-    .not('ai_consent_at', 'is', null)
-    .eq('verification_status', 'approved')
-    .eq('users.user_type', 'expert_freelance')
-  return data ?? []
+// Les aiguilles sont assemblées morceau par morceau À DESSEIN : ce fichier se
+// scanne lui-même. Écrites d'un bloc, elles se trouveraient elles-mêmes et le
+// contrôle serait rouge en permanence — donc désactivé le jour même.
+// Ne les recollez pas.
+for (const verbe of ['upd' + 'ate', 'ins' + 'ert', 'del' + 'ete', 'ups' + 'ert', 'r' + 'pc']) {
+  ok(`aucun .${verbe}( dans ce fichier`, !moiCode.includes(`.${verbe}(`))
 }
-
-// État approved : doit apparaître
-const eligibleApproved = await listEligible()
-const aIn = eligibleApproved.some(p => p.id === EXPERT_PROFILE_ID)
-console.log('  Profil approved dans pool éligible :', aIn ? 'OUI ✓' : 'NON (KO)')
-
-// Reset à pending_admin_review : doit disparaître
-await supabaseAdmin.from('profiles').update({ verification_status: 'pending_admin_review' }).eq('id', EXPERT_PROFILE_ID)
-const eligiblePending = await listEligible()
-const aOut = !eligiblePending.some(p => p.id === EXPERT_PROFILE_ID)
-console.log('  Profil pending_admin_review HORS pool :', aOut ? 'OUI ✓' : 'NON (KO)')
-
-// Reset NULL : doit aussi disparaître
-await supabaseAdmin.from('profiles').update({ verification_status: null }).eq('id', EXPERT_PROFILE_ID)
-const eligibleNull = await listEligible()
-const aOutNull = !eligibleNull.some(p => p.id === EXPERT_PROFILE_ID)
-console.log('  Profil verification_status=NULL HORS pool :', aOutNull ? 'OUI ✓' : 'NON (KO)')
-console.log()
+ok("aucun client Supabase n'est instancié", !moiCode.includes('create' + 'Client'))
+ok("aucune clé de service n'est lue", !moiCode.includes('SERVICE' + '_ROLE'))
 
 // ───────────────────────────────────────────────────────────────────────────
-// (e) Erreur IA (clé bidon) → pending_admin_review, jamais auto-verify
-// ───────────────────────────────────────────────────────────────────────────
-console.log('=== (e) ERREUR IA simulée → pending_admin_review (fail-safe) ===')
-await resetVerification()
-const validKey = process.env.ANTHROPIC_API_KEY
-process.env.ANTHROPIC_API_KEY = 'sk-ant-INVALID-FORTEST'
-try {
-  const verdictE = await runExpertVerification({ supabaseAdmin, profile_id: EXPERT_PROFILE_ID })
-  console.log('  verdict.status :', verdictE.status)
-  console.log('  verdict.verification_status :', verdictE.verification_status)
-  console.log('  verdict.score :', verdictE.score)
-} finally {
-  process.env.ANTHROPIC_API_KEY = validKey
-}
-const { data: profE } = await supabaseAdmin.from('profiles').select('verification_status, verification_data').eq('id', EXPERT_PROFILE_ID).maybeSingle()
-const { data: userE } = await supabaseAdmin.from('users').select('is_verified').eq('id', EXPERT_USER_ID).maybeSingle()
-console.log('  BDD profile.verification_status =', profE?.verification_status, ' (attendu pending_admin_review)')
-console.log('  BDD users.is_verified =', userE?.is_verified, ' (attendu false, JAMAIS auto-verify)')
-
-const eFailSafe = profE?.verification_status === 'pending_admin_review' && userE?.is_verified === false
-console.log()
-
-// ───────────────────────────────────────────────────────────────────────────
-// Restore final
-// ───────────────────────────────────────────────────────────────────────────
-await restoreSnapshot()
-console.log('=== restore snapshot final ===')
-
-console.log()
-console.log('═══════════════════ RÉSUMÉ ═══════════════════')
-console.log(` (a) profil Microsoft → approved ≥ 9 + is_verified=true : ${aApproved ? '✓ OK' : '✗ KO'}`)
-console.log(` (b) DOMAIN_MISMATCH cap 5 → pending_admin_review        : ${bGated ? '✓ OK' : '✗ KO'}`)
-console.log(` (d) matching gate (approved IN, non-approved OUT)        : ${aIn && aOut && aOutNull ? '✓ OK' : '✗ KO'}`)
-console.log(` (e) erreur IA → pending_admin_review (jamais auto-verify): ${eFailSafe ? '✓ OK' : '✗ KO'}`)
+console.log(`\n━━━ ${echecs === 0 ? 'TOUT VERT' : `${echecs} ÉCHEC(S)`} ━━━\n`)
+process.exit(echecs === 0 ? 0 : 1)

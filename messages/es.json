@@ -1108,7 +1108,7 @@
       "cgu_required": "Por favor acepta las condiciones de uso.",
       "missing_fields": "El correo y la contraseña son obligatorios.",
       "password_too_short": "La contraseña debe tener al menos 8 caracteres.",
-      "rate_limited": "Demasiados intentos. Intentalo de nuevo en un momento.",
+      "rate_limited": "Demasiados intentos. Inténtalo de nuevo en un momento.",
       "vonage_error": "Servicio SMS temporalmente no disponible. Inténtalo de nuevo.",
       "phone_not_verified": "Verifica tu teléfono por SMS.",
       "email_taken": "Ya existe una cuenta con esta dirección de correo.",
@@ -3644,6 +3644,34 @@
       "notify_enabled": "Activar las notificaciones",
       "notify_enabled_help": "Se deja inactivo mientras nadie haya leído la distribución: un umbral adivinado avisaría al azar.",
       "model": "Modelo: {model}. Cambiarlo cambia la escala — ambos umbrales dejan de ser válidos."
+    },
+    "failures": {
+      "title": "Resúmenes no producidos (últimos 30 días)",
+      "none": "Se han escrito todos los resúmenes solicitados.",
+      "unavailable": "No se ha podido leer el contador. No es cero: es desconocido.",
+      "help": "Tres causas, nunca sumadas: no exigen la misma acción. Una candidatura sin resumen se presenta con normalidad: le falta un texto, no un expediente.",
+      "cause": {
+        "plafond": "Límite de gasto alcanzado",
+        "modele_indisponible": "Modelo no disponible",
+        "reponse_illisible": "Respuesta ilegible"
+      },
+      "surface": {
+        "candidature": "al presentar",
+        "pitch": "al abrir una tarjeta"
+      }
+    },
+    "overruns": {
+      "title": "Límite de reactivación superado (últimos 30 días)",
+      "none": "Ningún exceso: nadie se ha acercado al límite.",
+      "unavailable": "No se ha podido leer el contador. No es cero: es desconocido.",
+      "experts": "{count, plural, one {# experto} other {# expertos}}",
+      "help": "El umbral no es ajustable aquí, y es deliberado: una defensa antiabuso no es un parámetro comercial. Un exceso significa que una activación no se programó; si este contador sube, hay que buscar un bucle en el cliente, no subir el umbral.",
+      "origine": {
+        "profil_modifie": "Perfil modificado",
+        "ouverture_croisee": "Vuelta a la escucha",
+        "disponibilite": "Cambio de disponibilidad",
+        "cv_reanalyse": "CV reanalizado"
+      }
     }
   },
   "ecosystem_switcher": {

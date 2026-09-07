@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
+import { useDemanderPitch } from '@/lib/candidature-pitch-client'
 import type { CandidatureData } from '@/components/dashboard/CandidatureCard'
 import SpotlightCandidateCard from '@/components/dashboard/SpotlightCandidateCard'
 import SpotlightCarousel from '@/components/dashboard/SpotlightCarousel'
@@ -38,12 +40,23 @@ export default function CastingCarousel({ items, publicationType, pubSkillsRequi
   const t = useTranslations('candidatures.casting')
   const tCard = useTranslations('candidatures.card')
   const markViewed = useMarkCandidatureViewed()
+  // Le pitch est rédigé quand une carte passe SOUS LE PROJECTEUR, jamais
+  // d'avance : un appel par candidat réellement ouvert.
+  const demanderPitch = useDemanderPitch()
+  const [pitchs, setPitchs] = useState<Record<string, string>>({})
 
   return (
     <SpotlightCarousel<CandidatureData>
       items={items}
       getKey={(c) => c.id}
-      onCenterChange={(c) => { void markViewed(c.id) }}
+      onCenterChange={(c) => {
+        void markViewed(c.id)
+        // Déjà porté par le DTO (rédigé au dépôt) : rien à demander.
+        if (c.ai_pitch) return
+        void demanderPitch(c.id).then((pitch) => {
+          if (pitch) setPitchs((p) => (p[c.id] === pitch ? p : { ...p, [c.id]: pitch }))
+        })
+      }}
       labels={{
         formatCounter: (current, total) => t('counter', { current, total }),
         prevAria: t('prev_aria'),
@@ -55,7 +68,10 @@ export default function CastingCarousel({ items, publicationType, pubSkillsRequi
       }}
       renderItem={(c, { isCenter }) => (
         <SpotlightCandidateCard
-          candidature={c}
+          // Le pitch rédigé à l'ouverture prend le relais quand le DTO n'en
+          // portait pas : la carte n'a pas à savoir lequel des deux chemins
+          // l'a produit.
+          candidature={pitchs[c.id] ? { ...c, ai_pitch: pitchs[c.id] } : c}
           publicationType={publicationType}
           pubSkillsRequired={pubSkillsRequired}
           onMutated={onMutated}

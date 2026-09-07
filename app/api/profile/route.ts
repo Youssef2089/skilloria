@@ -593,27 +593,34 @@ export async function PATCH(request: NextRequest): Promise<Response> {
         postUpd?.ai_consent_at != null &&
         postUpd?.cv_parsing_status === 'done'
       if (!ready) return
-      const { runMatchingForExpert } = await import('@/lib/matching')
-      const v = await runMatchingForExpert({ supabaseAdmin, profileId: cp.id })
-      console.log('[profile:PATCH] matching done', {
-        profileId: cp.id,
-        status: v.status,
-        proposals: v.proposals.length,
-      })
-    } catch (err) {
-      // ÉTAT CONNU jusqu'au lot 4 : le moteur de matching interroge encore des
-      // colonnes supprimées par la migration profil_annonce_multivalues
-      // (lib/matching/index.ts, run-for-expert.ts, shared.ts sont réécrits à ce
-      // lot-là, avec le passage au reranking).
+
+      // ── ON REPORTE, ON N'EXÉCUTE PAS ───────────────────────────────────
       //
-      // L'échec est SANS CONSÉQUENCE pour l'expert : il tourne dans un after(),
-      // la réponse est déjà partie, son profil est enregistré. Mais son feed
-      // reste vide, et un feed vide sans explication est exactement le faux
-      // défaut qu'on passe des heures à diagnostiquer. Le message le dit donc
-      // en toutes lettres plutôt que de laisser une pile d'appels muette.
+      //  Le moteur tournait ici, à chaque enregistrement. Un expert qui reprend
+      //  son profil en dix fois déclenchait dix runs — ou, pire, un seul suivi
+      //  de neuf refus de débit, et ses neuf dernières modifications n'étaient
+      //  JAMAIS notées.
+      //
+      //  On pose donc une échéance, repoussée à chaque nouvel enregistrement.
+      //  On attend qu'il ait fini, puis on note UNE fois, sur son état final.
+      //  Rien n'est perdu, et rien n'est payé dix fois.
+      const { programmerRelance } = await import('@/lib/matching/relance')
+      const prog = await programmerRelance(supabaseAdmin, cp.id, 'profil_modifie')
+      if (!prog.ok) {
+        console.error(
+          '[profile:PATCH] relance NON programmée — ces modifications ne seront pas notées',
+          { profileId: cp.id, raison: prog.raison },
+        )
+      }
+    } catch (err) {
+      // L'échec est SANS CONSÉQUENCE immédiate pour l'expert : on tourne dans
+      // un after(), la réponse est partie, son profil est enregistré. Mais sa
+      // relance n'est pas programmée, donc ses modifications ne seront pas
+      // notées — et un flux qui reste vide sans explication est exactement le
+      // faux défaut qu'on passe des heures à diagnostiquer.
       console.error(
-        '[profile:PATCH] matching indisponible — attendu jusqu au lot 4 (moteur non migré). ' +
-          'Le profil est bien enregistré ; seules les recommandations manquent.',
+        '[profile:PATCH] relance impossible — le profil est enregistré, ' +
+          'mais ces modifications ne seront pas prises en compte par la mise en relation.',
         { profileId: cp.id, cause: err instanceof Error ? err.message : String(err) },
       )
     }

@@ -46,7 +46,14 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join, relative } from 'node:path'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const read = (p) => readFileSync(join(ROOT, p), 'utf8')
+/**
+ * Fins de ligne NORMALISEES. Le depot sort les fichiers en CRLF : un controle
+ * dont le motif traverse une fin de ligne (`...\n\s+...`) ne matche jamais sur
+ * une copie de travail fraichement extraite, et le diagnostic vire au rouge
+ * sans qu'aucun code n'ait change. Un diagnostic dont le resultat depend de la
+ * machine qui l'execute ne dit pas si le code est juste : il dit d'ou il vient.
+ */
+const read = (p) => readFileSync(join(ROOT, p), 'utf8').split('\r\n').join('\n')
 
 let failures = 0
 const ok = (cond, label, hint) => {
@@ -144,37 +151,38 @@ ok(/L'ABONNEMENT EST UNIQUE ET PARTAG/.test(ents),
 section('E. Aucun lecteur residuel')
 
 /**
- * BALAYAGE : app/api ET lib.
+ * LE BALAYAGE COUVRE app/, lib/ ET components/.
  *
- * Il ne couvrait que `app/api/**` + `route.ts`. Le trou n'etait pas theorique :
- * `lib/collaboration/ensure-personal-org.ts` inserait encore `package_id` sur la
- * trace, colonne SUPPRIMEE — l'organisation personnelle d'un expert ne pouvait
- * plus naitre, donc il ne pouvait plus publier son premier besoin. Ni `tsc` ni
- * le build ne pouvaient le dire : les clients Supabase du projet ne sont pas
- * types, un INSERT sur une colonne disparue ne leve qu'a l'execution.
+ * ⚠️ IL NE REGARDAIT QUE LES FICHIERS route.ts SOUS app/api. C'ETAIT LE TROU,
+ *    et il a coute une panne REELLE en production : un module de lib/ inserait
+ *    dans une colonne que la migration d'abonnement venait de supprimer, et un
+ *    expert ne pouvait plus publier son premier besoin de sous-traitance.
  *
- * On balaie donc les deux racines, et les chemins portent leur racine pour que
- * l'inventaire distingue une route d'un module.
+ *    Ni tsc ni next build ne pouvaient le voir : ces colonnes vivent dans des
+ *    CHAINES — `.insert({ package_id: ... })`, `.select('package_id')` — et
+ *    les clients Supabase ne sont pas types. Vert a la compilation, casse a
+ *    l'execution.
+ *
+ *    Le balayage etait donc DOUBLEMENT insuffisant : un seul dossier, et un
+ *    seul nom de fichier. Une route est un endroit ou l'on ecrit ; ce n'est
+ *    pas le seul.
+ *
+ * Racines et parcours repris de scripts/diag-colonnes-supprimees.mjs — meme
+ * classe de defaut, meme perimetre. Un second parcours maison finirait par
+ * couvrir un dossier de moins que le premier.
  */
-function walk(dir, out = [], keep = (e) => e === 'route.ts') {
-  for (const e of readdirSync(dir)) {
-    const p = join(dir, e)
-    if (statSync(p).isDirectory()) walk(p, out, keep)
-    else if (keep(e)) out.push(p)
+const RACINES = ['app', 'lib', 'components']
+const SOURCES = []
+const parcourir = (d) => {
+  for (const e of readdirSync(d)) {
+    if (e === 'node_modules' || e === '.next') continue
+    const p = join(d, e)
+    if (statSync(p).isDirectory()) parcourir(p)
+    else if (/\.(ts|tsx)$/.test(e)) SOURCES.push(relative(ROOT, p).split('\\').join('/'))
   }
-  return out
 }
-const API_DIR = join(ROOT, 'app', 'api')
-const LIB_DIR = join(ROOT, 'lib')
-const norm = (p) => p.split('\\').join('/')
-// `database.types.ts` est un artefact GENERE, perime et importe nulle part :
-// il nomme toutes les colonnes de la base, y compris disparues.
-const routes = [
-  ...walk(API_DIR).map((p) => 'app/api/' + norm(relative(API_DIR, p))),
-  ...walk(LIB_DIR, [], (e) => e.endsWith('.ts') && e !== 'database.types.ts').map(
-    (p) => 'lib/' + norm(relative(LIB_DIR, p)),
-  ),
-].sort()
+for (const r of RACINES) parcourir(join(ROOT, r))
+SOURCES.sort()
 
 /**
  * Commentaires retires — de bloc ET de ligne. Le `//` d'un commentaire qui
@@ -226,7 +234,7 @@ const SUBSCRIPTION_COLUMNS =
 // Qui nomme encore une colonne d'abonnement DANS une requete sur la trace ?
 const readers = []
 const traceUsers = []
-for (const r of routes) {
+for (const r of SOURCES) {
   const src = stripComments(read(r))
   const NEEDLE = "from('organization_domains')"
   let at = src.indexOf(NEEDLE)
@@ -238,7 +246,7 @@ for (const r of routes) {
   }
 }
 ok(readers.length === 0,
-  'aucune requete sur organization_domains ne nomme une colonne d’abonnement (app/api ET lib)',
+  'aucune requete sur organization_domains ne nomme une colonne d’abonnement',
   readers.length ? `lecteurs residuels : ${readers.join(' · ')}` : undefined)
 
 /**
@@ -254,27 +262,15 @@ const TRACE_USERS = {
   'app/api/admin/get-org/[id]/route.ts': 'affiche le nom de l’ecosysteme d’inscription',
   'app/api/admin/list-orgs/route.ts': 'affiche le nom de l’ecosysteme d’inscription',
   'app/api/auth/register-org/route.ts': 'ECRIT la ligne de trace a l’inscription',
-  // lib/ — la moitie du code que ce diagnostic ne voyait pas.
-  'lib/collaboration/ensure-personal-org.ts':
-    'ECRIT la ligne de trace a la naissance de l’organisation personnelle d’un expert',
+  // Second createur de ligne de trace, et le balayage ne le voyait pas : il
+  // vit dans lib/, pas dans app/api. Il y inserait `package_id` — colonne
+  // supprimee — et cassait la creation de l'espace de collaboration.
+  'lib/collaboration/ensure-personal-org.ts': 'ECRIT la ligne de trace de l’org personnelle',
   // Seul usage DECISIONNEL restant, et il est assume : le slug sert a poser
   // l'invite sur un sous-domaine d'atterrissage. Il ne restreint rien — une
   // fois entre, son organisation lui ouvre tous les ecosystemes actifs.
   'app/api/invitations/resolve/route.ts': 'choisit le sous-domaine d’atterrissage de l’invite',
 }
-
-/**
- * QUI A LE DROIT D'ECRIRE LA TRACE : les DEUX points ou une organisation NAIT.
- *
- * Il n'y en avait qu'un declare — l'inscription d'une organisation cliente. Le
- * second, la naissance de l'organisation personnelle d'un expert, vit dans
- * `lib/` et echappait donc au balayage. C'est precisement la qu'une ecriture
- * fautive dormait.
- */
-const WRITERS_AUTORISES = new Set([
-  'app/api/auth/register-org/route.ts',
-  'lib/collaboration/ensure-personal-org.ts',
-])
 const undeclared = traceUsers.filter((r) => !(r in TRACE_USERS))
 const gone = Object.keys(TRACE_USERS).filter((r) => !traceUsers.includes(r))
 ok(undeclared.length === 0,
@@ -284,9 +280,16 @@ ok(gone.length === 0,
   'l’inventaire ne declare aucun usage disparu',
   gone.length ? `a retirer de l’inventaire : ${gone.join(' · ')}` : undefined)
 
-// La trace reste une TRACE : personne n'y ecrit hors de l'inscription.
+// La trace reste une TRACE : personne n'y ecrit hors de sa CREATION.
+const CREATEURS_DE_TRACE = new Set([
+  'app/api/auth/register-org/route.ts',
+  'lib/collaboration/ensure-personal-org.ts',
+])
 const writers = traceUsers.filter((r) => {
-  if (WRITERS_AUTORISES.has(r)) return false
+  // Les DEUX createurs de ligne de trace : l'inscription d'une entreprise, et
+  // la creation de l'espace de collaboration d'un expert. Toute autre ecriture
+  // signifierait qu'on s'est remis a faire dependre quelque chose de la trace.
+  if (CREATEURS_DE_TRACE.has(r)) return false
   const src = stripComments(read(r))
   let at = src.indexOf("from('organization_domains')")
   while (at !== -1) {
@@ -295,8 +298,18 @@ const writers = traceUsers.filter((r) => {
   }
   return false
 })
+// L'OFFRE NE DOIT PAS SE PERDRE EN CHEMIN. Deplacer `package_id` de la trace
+// vers l'organisation repare la panne ; l'oublier en route la remplacerait par
+// une autre, plus discrete : une org personnelle sans offre, qui retomberait
+// sur le repli et donnerait des quotas qu'on n'a pas voulus.
+const ENSURE = stripComments(read('lib/collaboration/ensure-personal-org.ts'))
+const insertOrg = ENSURE.slice(ENSURE.indexOf(".from('organizations')"))
+ok(/package_id: pkg\.id/.test(queryBlock(insertOrg, insertOrg.indexOf('.insert('))),
+  'l’org personnelle recoit son offre collaboration a la CREATION',
+  'sur `organizations`, dans le meme insert — sinon elle nait sans offre et retombe sur le repli')
+
 ok(writers.length === 0,
-  'rien n’ECRIT sur la trace hors de la naissance d’une organisation',
+  'aucune route n’ECRIT sur la trace hors de l’inscription',
   writers.length ? `ecrivains : ${writers.join(' · ')}` : undefined)
 
 // R3 — l'administrateur est PLATEFORME.

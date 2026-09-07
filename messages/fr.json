@@ -1108,7 +1108,7 @@
       "cgu_required": "Veuillez accepter les conditions d'utilisation.",
       "missing_fields": "Email et mot de passe sont obligatoires.",
       "password_too_short": "Le mot de passe doit contenir au moins 8 caractères.",
-      "rate_limited": "Trop de tentatives. Reessaie dans un instant.",
+      "rate_limited": "Trop de tentatives. Réessaie dans un instant.",
       "vonage_error": "Service SMS temporairement indisponible. Veuillez réessayer.",
       "phone_not_verified": "Veuillez vérifier votre téléphone par SMS.",
       "email_taken": "Un compte existe déjà avec cette adresse e-mail.",
@@ -3644,6 +3644,34 @@
       "notify_enabled": "Activer les notifications",
       "notify_enabled_help": "Laissé inactif tant que personne n'a lu la distribution : un seuil deviné préviendrait au hasard.",
       "model": "Modèle : {model}. En changer change l’échelle — les deux seuils deviennent faux."
+    },
+    "failures": {
+      "title": "Résumés non produits (30 derniers jours)",
+      "none": "Tous les résumés demandés ont été écrits.",
+      "unavailable": "Le compteur n'a pas pu être lu. Ce n'est pas zéro : c'est inconnu.",
+      "help": "Trois causes, jamais additionnées : elles n'appellent pas la même action. Une candidature dont le résumé manque est déposée normalement — il lui manque un texte, pas un dossier.",
+      "cause": {
+        "plafond": "Plafond de dépense atteint",
+        "modele_indisponible": "Modèle indisponible",
+        "reponse_illisible": "Réponse illisible"
+      },
+      "surface": {
+        "candidature": "au dépôt",
+        "pitch": "à l'ouverture d'une carte"
+      }
+    },
+    "overruns": {
+      "title": "Plafond de relance dépassé (30 derniers jours)",
+      "none": "Aucun dépassement : personne n'a approché le plafond.",
+      "unavailable": "Le compteur n'a pas pu être lu. Ce n'est pas zéro : c'est inconnu.",
+      "experts": "{count, plural, one {# expert} other {# experts}}",
+      "help": "Le seuil n'est pas réglable ici, et c'est délibéré : un garde anti-abus n'est pas un paramètre commercial. Un dépassement signifie qu'un déclenchement n'a pas été programmé — si ce compteur monte, c'est une boucle côté client qu'il faut regarder, pas le seuil qu'il faut relever.",
+      "origine": {
+        "profil_modifie": "Profil modifié",
+        "ouverture_croisee": "Retour à l’écoute",
+        "disponibilite": "Changement de disponibilité",
+        "cv_reanalyse": "CV réanalysé"
+      }
     }
   },
   "ecosystem_switcher": {

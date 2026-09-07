@@ -51,140 +51,211 @@ const section = (s) => console.log(`\n═══ ${s} ═══\n`)
 //   'expert'  : surface EXPERT — un expert est mono-ecosysteme A VIE, et sa
 //               garde d'appartenance (profil, match) cloisonne deja ;
 //   'exempt'  : hors cloisonnement, avec une raison ecrite.
-//
-// Et pour les MODULES de lib/, deux modes qui decrivent la GARANTIE OFFERTE :
-//   'ligne'   : le module porte LUI-MEME son filtre d'ecosysteme ;
-//   'cle'     : il n'atteint ses lignes que par des identifiants deja resolus
-//               en amont, donc la garantie est portee par la cle qu'on lui passe.
 const SCOPED_TABLES = ['publications', 'candidatures', 'conversations']
 
 const INVENTORY = {
   // ── Organisation : LISTES ──────────────────────────────────────────────
-  'app/api/publications/route.ts': 'scoped',
-  'app/api/me/candidatures-org/route.ts': 'scoped',
-  'app/api/me/badges/route.ts': 'scoped',
-  'app/api/me/conversations/route.ts': 'scoped',
+  'publications/route.ts': 'scoped',
+  'me/candidatures-org/route.ts': 'scoped',
+  'me/badges/route.ts': 'scoped',
+  'me/conversations/route.ts': 'scoped',
   // ── Organisation : ACCES PAR IDENTIFIANT ───────────────────────────────
-  'app/api/publications/[id]/route.ts': 'scoped',
-  'app/api/publications/[id]/candidatures/route.ts': 'scoped',
-  'app/api/publications/[id]/close/route.ts': 'scoped',
-  'app/api/publications/[id]/publish/route.ts': 'scoped',
-  'app/api/candidatures/[id]/reject/route.ts': 'scoped',
-  'app/api/candidatures/[id]/select/route.ts': 'scoped',
-  'app/api/candidatures/[id]/unlock/route.ts': 'scoped',
-  'app/api/me/candidatures/[id]/view/route.ts': 'scoped',
+  'publications/[id]/route.ts': 'scoped',
+  'publications/[id]/candidatures/route.ts': 'scoped',
+  'publications/[id]/close/route.ts': 'scoped',
+  'publications/[id]/publish/route.ts': 'scoped',
+  'candidatures/[id]/reject/route.ts': 'scoped',
+  'candidatures/[id]/select/route.ts': 'scoped',
+  'candidatures/[id]/unlock/route.ts': 'scoped',
+  // Pitch redige a la demande : elle lit la candidature ET son annonce, donc
+  // elle porte le filtre comme les autres acces par identifiant.
+  'candidatures/[id]/pitch/route.ts': 'scoped',
+  'me/candidatures/[id]/view/route.ts': 'scoped',
 
   // ── Surfaces EXPERT ────────────────────────────────────────────────────
   // Un expert est lie a UN ecosysteme a vie : son ecosysteme actif est
   // toujours celui de son compte. La garde d'appartenance (profil, match)
-  // cloisonne donc deja, et le moteur de matching ne cree de match qu'a
-  // l'interieur d'un ecosysteme (lib/matching/shared.ts).
-  'app/api/me/missions/[id]/route.ts': 'expert',
-  'app/api/me/candidatures/route.ts': 'expert',
-  'app/api/me/collaboration/quota/route.ts': 'expert',
+  // cloisonne donc deja, et le moteur de mise en relation ne cree de match qu'a
+  // l'interieur d'un ecosysteme.
+  //
+  // OU CELA SE JOUE, ET L'ADRESSE A CHANGE : le cloisonnement du moteur vivait
+  // dans lib/matching/shared.ts ; depuis la reecriture du moteur il est porte
+  // par lib/matching/pool.ts (sens annonce -> experts) et
+  // lib/matching/run-for-expert.ts (sens inverse). Le fait n'a pas bouge,
+  // l'adresse si — et une adresse perimee envoie le prochain lecteur verifier
+  // au mauvais endroit. Ces deux modules sont desormais DECLARES ci-dessous
+  // (LIB_INVENTORY), et leur filtre est verifie, plus seulement affirme.
+  'me/missions/[id]/route.ts': 'expert',
+  'me/candidatures/route.ts': 'expert',
+  'me/collaboration/quota/route.ts': 'expert',
   // Depot de candidature par l'expert : la candidature herite du domain_id du
   // PROFIL (candidatures/route.ts), donc de l'ecosysteme unique de l'expert.
-  'app/api/candidatures/route.ts': 'expert',
+  'candidatures/route.ts': 'expert',
 
   // ── Conversation : deux cotes ──────────────────────────────────────────
   // La conversation est atteinte par la candidature, elle-meme deja
   // cloisonnee des deux cotes (org via l'annonce, expert via son profil).
   // Un filtre ici serait redondant sans rien ajouter.
-  'app/api/conversations/[id]/messages/route.ts': 'exempt',
-
-  // ── MODULES lib/ ───────────────────────────────────────────────────────
-  //
-  // DEUX MODES, ET LE VOCABULAIRE EST CANONIQUE — ne pas en inventer un troisieme.
-  //
-  //   'ligne' : le module PORTE LUI-MEME son filtre d'ecosysteme. La garantie
-  //             est la sienne, et elle est verifiable dans son code.
-  //   'cle'   : le module ne LISTE jamais librement. Il n'atteint ses lignes que
-  //             par des identifiants DEJA resolus en amont — `.in('id', ids)`,
-  //             `.eq('id', x)`, `.eq('publication_id', x)`. La garantie est donc
-  //             portee par la CLE qu'on lui passe.
-  //
-  // Ces deux mots decrivent la GARANTIE OFFERTE par le module. Un mode nomme
-  // d'apres son appelant decrirait qui l'utilise — or c'est la garantie qu'on
-  // verifie, pas l'usage. Deux worktrees ont inventorie ce meme fichier en
-  // parallele ; le vocabulaire est unifie ici pour que la fusion soit une simple
-  // ADDITION d'entrees, sans renommage et sans perte.
-  //
-  // ⚠ CE QUE 'cle' NE PROUVE PAS, et il faut le dire : contrairement a 'scoped',
-  //   il n'est pas verifie automatiquement. Sa valeur est la DECOUVERTE — un
-  //   module de lib/ ajoute demain, qui lirait ces tables sans etre declare,
-  //   fait echouer ce diagnostic. C'est exactement ce qui manquait : ces modules
-  //   etaient invisibles, et c'est dans lib/ qu'une ecriture fautive a dormi
-  //   jusqu'a casser la creation d'organisation.
-  //
-  //   Un module qui se mettrait a LISTER doit passer en 'ligne' et porter son
-  //   propre filtre.
-
-  // Assemblage de vues, sur des identifiants fournis par une route cloisonnee.
-  'lib/candidature-org-dto.ts': 'cle',
-  'lib/candidatures/lifecycle-batch.ts': 'cle',
-  // Devoilement d'UNE candidature designee par son identifiant ; l'ownership et
-  // le cloisonnement sont verifies par les routes appelantes, declarees 'scoped'.
-  'lib/unlock.ts': 'cle',
-  // Rendu d'emails : lecture des libelles des entites deja notifiees.
-  'lib/notifications/dispatch.ts': 'cle',
-  // Matching : il ne rapproche que des entites d'un MEME ecosysteme, et chaque
-  // execution part d'une annonce ou d'un profil dont l'ecosysteme est connu.
-  'lib/matching/index.ts': 'cle',
-  'lib/matching/run-for-expert.ts': 'cle',
-  'lib/matching/reconcile.ts': 'cle',
-  // Le VIVIER (reecriture du moteur) : il lit les candidatures deja deposees sur
-  // UNE annonce — `.eq('publication_id', annonce.id)` — pour ne pas represente
-  // un expert qui a deja postule. La cle est l'annonce, dont l'ecosysteme est
-  // celui de l'execution.
-  'lib/matching/pool.ts': 'cle',
+  'conversations/[id]/messages/route.ts': 'exempt',
+}
+
+// ─── L'INVENTAIRE DES MODULES `lib/` ─────────────────────────────────────────
+//
+// POURQUOI IL A FALLU L'AJOUTER
+//   Le balayage ne regardait que `app/api/**`. Or la moitie des requetes sur les
+//   tables cloisonnees vit dans `lib/` : le moteur de mise en relation, le flux
+//   expert, le depechage des notifications, le devoilement. Ce diagnostic etait
+//   donc VERT pour ces chemins-la — non parce qu'ils etaient conformes, mais
+//   parce qu'il ne regardait pas ou ils sont.
+//
+//   Un angle mort dans le controle qui defend le cloisonnement est plus
+//   dangereux que l'absence de controle : il donne une assurance.
+//
+// LES DEUX MODES, ET LA DIFFERENCE EST REELLE
+//   'ligne' : le module lit une LISTE d'une table cloisonnee. Il porte donc
+//             lui-meme le filtre, pris sur le `domain_id` de la ligne PIVOT
+//             (l'annonce, le profil) et non sur le contexte d'appel — un moteur
+//             declenche par une tache planifiee n'a aucun contexte d'appel.
+//             VERIFIE : le fichier doit contenir un `.eq('domain_id', …)`.
+//
+//   'cle'   : le module ne lit QUE par identifiants fournis par l'appelant
+//             (`id`, `publication_id`, `candidature_id`, `profile_id`), deja
+//             cloisonnes en amont. Y poser un filtre d'ecosysteme serait
+//             redondant, et surtout exigerait un contexte que le module n'a pas.
+//             VERIFIE : chaque lecture d'une table cloisonnee est clavetee.
+const LIB_INVENTORY = {
+  // ── Moteur de mise en relation ─────────────────────────────────────────
+  // Il lit UNE annonce par identifiant ; tout le reste du run derive de son
+  // `domain_id`. C'est le pivot, et il n'y en a qu'un.
+  'lib/matching/index.ts': 'cle',
+  // Le vivier, lui, est une LISTE : il porte le filtre.
+  'lib/matching/pool.ts': 'ligne',
+  // Le sens inverse liste des ANNONCES pour un expert : meme obligation.
+  'lib/matching/run-for-expert.ts': 'ligne',
+  // La reconciliation ne lit que le scope qu'on lui fixe (une annonce ou un
+  // profil), jamais une liste libre.
+  'lib/matching/reconcile.ts': 'cle',
+
+  // ── Flux et surfaces expert ────────────────────────────────────────────
+  // Part de `matches` claveté sur le profil, et joint l'annonce. Un expert est
+  // mono-ecosysteme a vie : la cle porte le cloisonnement.
+  'lib/missions/feed.ts': 'cle',
+
+  // ── Surfaces organisation ──────────────────────────────────────────────
+  // Recoit des identifiants d'annonces deja filtres par la route appelante.
+  'lib/candidature-org-dto.ts': 'cle',
+  'lib/candidatures/lifecycle-batch.ts': 'cle',
+  'lib/unlock.ts': 'cle',
+
+  // ── Notifications ──────────────────────────────────────────────────────
+  // Ne lit que les entites citees par des notifications deja destinees a un
+  // utilisateur precis.
+  'lib/notifications/dispatch.ts': 'cle',
+}
+
+// ─── LES ROUTES QUI PASSENT PAR UN MODULE `ligne` ────────────────────────────
+//
+// Elles ne citent AUCUNE table cloisonnee : elles confient un identifiant au
+// moteur, qui se cloisonne par la ligne. Invisibles au balayage textuel, elles
+// sont pourtant le chemin par lequel des dizaines de milliers de lignes sont
+// lues. Elles sont donc declarees ICI, explicitement.
+const ROUTES_VIA_MOTEUR = {
+  // Tache planifiee : aucun contexte d'appel, donc aucun ecosysteme actif. Le
+  // cloisonnement ne PEUT venir que de la ligne.
+  'cron/match-retry/route.ts': 'moteur',
+  // Relance d'un expert arrivee a echeance : meme absence de contexte d'appel,
+  // donc meme cloisonnement par la ligne (le domain_id du profil).
+  'cron/expert-relance/route.ts': 'moteur',
+  // Declencheurs cote expert : l'expert est mono-ecosysteme a vie.
+  'me/sync-matching/route.ts': 'moteur',
+  'profile/cdi-upload-cv/route.ts': 'moteur',
+  'profile/upload-cv/route.ts': 'moteur',
+  // Enregistrement du profil : il ne cite aucune table cloisonnee, et pourtant
+  // il declenche le moteur dans un after(). C'est precisement la route que le
+  // balayage textuel ne pouvait pas voir.
+  'profile/route.ts': 'moteur',
 }
 
+// ─── DETECTION ───────────────────────────────────────────────────────────────
+//
+// Une table cloisonnee est atteinte de DEUX facons, et n'en voir qu'une laissait
+// passer le flux expert entier :
+//   • `.from('publications')`      — la lecture directe ;
+//   • `publications!inner(…)`      — la JOINTURE PostgREST. Elle lit exactement
+//     les memes lignes, et `lib/missions/feed.ts` n'utilise QUE cette forme.
+function atteintTableCloisonnee(src) {
+  return SCOPED_TABLES.some(
+    (t) => src.includes(`.from('${t}')`) || src.includes(`${t}!inner(`) || src.includes(`${t}(id`),
+  )
+}
+
+/** Les imports `@/lib/...` et relatifs d'un fichier, resolus en chemins de depot. */
+function importsDe(cheminRelatif, src) {
+  const out = []
+  for (const m of src.matchAll(/from '([^']+)'|import\('([^']+)'\)/g)) {
+    const spec = m[1] ?? m[2]
+    if (!spec) continue
+    let p = null
+    if (spec.startsWith('@/lib/')) p = `${spec.slice(2)}.ts`
+    else if (spec.startsWith('./') || spec.startsWith('../')) {
+      const base = dirname(cheminRelatif)
+      p = `${join(base, spec).split('\\').join('/')}.ts`
+    }
+    if (!p) continue
+    p = p.replace(/[.]ts[.]ts$/, '.ts')
+    // Un specificateur peut viser un DOSSIER : `@/lib/matching` est
+    // `lib/matching/index.ts`. Ne pas le resoudre laissait la decouverte
+    // transitive trouver zero route — verte, et aveugle.
+    out.push(existeFichier(p) ? p : p.replace(/[.]ts$/, '/index.ts'))
+  }
+  return out
+}
+
+/** Tous les modules `lib/` atteints depuis un fichier, transitivement. */
+function moduesAtteints(depart, vus = new Set()) {
+  const src = lireSiExiste(depart)
+  if (src == null) return vus
+  for (const imp of importsDe(depart, src)) {
+    if (!imp.startsWith('lib/')) continue
+    if (vus.has(imp)) continue
+    vus.add(imp)
+    moduesAtteints(imp, vus)
+  }
+  return vus
+}
+
+function existeFichier(rel) {
+  try { statSync(join(ROOT, rel)); return true } catch { return false }
+}
+
+function lireSiExiste(rel) {
+  try {
+    return readFileSync(join(ROOT, rel), 'utf8')
+  } catch {
+    // Un index de dossier (`./pool` → `lib/matching/pool.ts`) resout deja ;
+    // ce qui reste introuvable est un paquet externe, hors sujet ici.
+    return null
+  }
+}
 // ─── DECOUVERTE ──────────────────────────────────────────────────────────────
-/**
- * BALAYAGE : app/api ET lib.
- *
- * Il ne couvrait que les routes. Or une route cloisonnee delegue la moitie de
- * son travail a `lib/` — dto, cycle de vie, matching, devoilement, notifications
- * — et ces modules touchent EXACTEMENT les memes tables. Un filtre oublie s'y
- * cache aussi bien, et « ca ne leve rien, ca renvoie juste trop de lignes »
- * vaut la aussi.
- *
- * Le trou n'etait pas theorique : c'est dans `lib/` qu'une ecriture fautive sur
- * la table de trace a dormi jusqu'a casser la creation d'organisation
- * personnelle (cf. diag-abonnement-organisation, meme elargissement).
- *
- * Les chemins portent leur racine, pour que l'inventaire distingue une route
- * d'un module et n'affirme pas d'un module ce qui n'est vrai que d'une route.
- */
-function walk(dir, out = [], keep = (e) => e === 'route.ts') {
+function walk(dir, out = []) {
   for (const e of readdirSync(dir)) {
     const p = join(dir, e)
-    if (statSync(p).isDirectory()) walk(p, out, keep)
-    else if (keep(e)) out.push(p)
+    if (statSync(p).isDirectory()) walk(p, out)
+    else if (e === 'route.ts') out.push(p)
   }
   return out
 }
 
 const API_DIR = join(ROOT, 'app', 'api')
-const LIB_DIR = join(ROOT, 'lib')
-const norm = (p) => p.split('\\').join('/')
-const routes = [
-  ...walk(API_DIR)
-    .map((p) => norm(relative(API_DIR, p)))
-    // Le back-office est PLATEFORME : un administrateur voit tous les
-    // ecosystemes, il ne doit surtout pas etre cloisonne.
-    .filter((r) => !r.startsWith('admin/'))
-    .map((r) => 'app/api/' + r),
-  // `database.types.ts` est un artefact GENERE, perime et importe nulle part.
-  ...walk(LIB_DIR, [], (e) => e.endsWith('.ts') && e !== 'database.types.ts').map(
-    (p) => 'lib/' + norm(relative(LIB_DIR, p)),
-  ),
-].sort()
+const routes = walk(API_DIR)
+  .map((p) => relative(API_DIR, p).split('\\').join('/'))
+  // Le back-office est PLATEFORME : un administrateur voit tous les
+  // ecosystemes, il ne doit surtout pas etre cloisonne.
+  .filter((r) => !r.startsWith('admin/'))
+  .sort()
 
-const touching = routes.filter((r) => {
-  const src = read(r)
-  return SCOPED_TABLES.some((t) => src.includes(`.from('${t}')`))
-})
+const touching = routes.filter((r) => atteintTableCloisonnee(read(join('app', 'api', r))))
 
 // ═══ A. AUCUNE ROUTE N'ECHAPPE A L'INVENTAIRE ══════════════════════════════
 section('A. Inventaire : aucune route non declaree')
@@ -205,6 +276,108 @@ ok(stale.length === 0,
   'aucune entree d’inventaire perimee',
   stale.length ? `declarees mais ne touchent plus ces tables : ${stale.join(' · ')}` : undefined)
 
+// ═══ A2. LES MODULES `lib/` NON PLUS ═══════════════════════════════════════
+section('A2. Inventaire : aucun module lib/ non declare')
+
+function parcourirLib(dir, out = []) {
+  for (const e of readdirSync(dir)) {
+    const p = join(dir, e)
+    if (statSync(p).isDirectory()) parcourirLib(p, out)
+    else if (e.endsWith('.ts')) out.push(p)
+  }
+  return out
+}
+
+const LIB_DIR = join(ROOT, 'lib')
+const modulesLib = parcourirLib(LIB_DIR)
+  .map((p) => `lib/${relative(LIB_DIR, p).split('\\').join('/')}`)
+  .sort()
+
+const libTouching = modulesLib.filter((m) => atteintTableCloisonnee(read(m)))
+
+ok(libTouching.length >= 8,
+  `le balayage voit les modules concernes (${libTouching.length} modules lib/ touchent ${SCOPED_TABLES.join(', ')})`,
+  'un balayage qui ne trouve presque rien passerait pour vert sans rien verifier')
+
+const libNonDeclares = libTouching.filter((m) => !(m in LIB_INVENTORY))
+ok(libNonDeclares.length === 0,
+  'tout module lib/ touchant une table cloisonnee est DECLARE',
+  libNonDeclares.length
+    ? `non declares : ${libNonDeclares.join(' · ')} — ajoutez-les a LIB_INVENTORY avec leur mode`
+    : undefined)
+
+const libPerimes = Object.keys(LIB_INVENTORY).filter((m) => !libTouching.includes(m))
+ok(libPerimes.length === 0,
+  'aucune entree lib/ perimee',
+  libPerimes.length ? `declares mais ne touchent plus ces tables : ${libPerimes.join(' · ')}` : undefined)
+
+// ═══ A3. LES MODULES `ligne` PORTENT VRAIMENT LEUR FILTRE ══════════════════
+section('A3. Les modules qui LISTENT portent le filtre')
+
+const sansFiltre = Object.entries(LIB_INVENTORY)
+  .filter(([, mode]) => mode === 'ligne')
+  .map(([m]) => m)
+  .filter((m) => !read(m).includes(".eq('domain_id'"))
+ok(sansFiltre.length === 0,
+  'les modules declares "ligne" filtrent sur domain_id',
+  sansFiltre.length
+    ? `sans filtre : ${sansFiltre.join(' · ')} — une LISTE sans filtre traverse les ecosystemes`
+    : undefined)
+
+// Un module `cle` ne doit lire que par identifiant. Une lecture non clavetee y
+// serait une liste deguisee, et le mode mentirait sur ce que le module fait.
+const cleNonClavetes = []
+for (const [m, mode] of Object.entries(LIB_INVENTORY)) {
+  if (mode !== 'cle') continue
+  const lignes = read(m).replace(/\r\n/g, '\n').split('\n')
+  for (let i = 0; i < lignes.length; i++) {
+    const t = SCOPED_TABLES.find((x) => lignes[i].includes(`.from('${x}')`))
+    if (!t) continue
+    // Une ECRITURE n'est pas une liste : un insert porte son propre
+    // domain_id, un update est clavete sur la ligne qu'il modifie. Seule la
+    // LECTURE peut traverser les ecosystemes, et c'est elle qu'on controle.
+    const fenetre = lignes.slice(i, i + 14).join(String.fromCharCode(10))
+    if (/[.](insert|upsert)[(]/.test(fenetre)) continue
+    if (!/[.](eq|in)[(]'(id|publication_id|candidature_id|profile_id|conversation_id)'/.test(fenetre)) {
+      cleNonClavetes.push(`${m}:${i + 1}`)
+    }
+  }
+}
+ok(cleNonClavetes.length === 0,
+  'les modules declares "cle" ne lisent que par identifiant',
+  cleNonClavetes.length
+    ? `lecture non clavetee : ${cleNonClavetes.join(' · ')} — c'est une liste, pas un acces par cle`
+    : undefined)
+
+// ═══ A4. LES ROUTES QUI ATTEIGNENT LE MOTEUR ═══════════════════════════════
+section('A4. Les routes qui passent par un module qui LISTE')
+
+// Une route peut ne citer aucune table cloisonnee et pourtant en lire des
+// dizaines de milliers de lignes, en confiant un identifiant au moteur. C'est
+// le cas de /api/cron/match-retry : invisible au balayage textuel, et pourtant
+// le chemin par lequel tout un vivier est charge.
+const modulesListants = new Set(
+  Object.entries(LIB_INVENTORY).filter(([, mode]) => mode === 'ligne').map(([m]) => m),
+)
+
+const routesViaMoteur = routes.filter((r) => {
+  if (touching.includes(r)) return false // deja couvertes par l'inventaire A
+  const atteints = moduesAtteints(`app/api/${r}`)
+  return [...atteints].some((m) => modulesListants.has(m))
+})
+
+const viaMoteurNonDeclarees = routesViaMoteur.filter((r) => !(r in ROUTES_VIA_MOTEUR))
+ok(viaMoteurNonDeclarees.length === 0,
+  `les routes atteignant un module qui LISTE sont declarees (${routesViaMoteur.length} trouvee(s))`,
+  viaMoteurNonDeclarees.length
+    ? `non declarees : ${viaMoteurNonDeclarees.join(' · ')} — elles lisent une table cloisonnee sans la citer`
+    : undefined)
+
+const viaMoteurPerimees = Object.keys(ROUTES_VIA_MOTEUR).filter((r) => !routesViaMoteur.includes(r))
+ok(viaMoteurPerimees.length === 0,
+  'aucune declaration "moteur" perimee',
+  viaMoteurPerimees.length ? `n'atteignent plus de module listant : ${viaMoteurPerimees.join(' · ')}` : undefined)
+
 // ═══ B. LES ROUTES DECLAREES `scoped` FILTRENT VRAIMENT ════════════════════
 section('B. Les routes cloisonnees filtrent sur l’ecosysteme ACTIF')
 
@@ -212,7 +385,7 @@ const scopedRoutes = Object.entries(INVENTORY).filter(([, m]) => m === 'scoped')
 const notFiltering = []
 const notNamed = []
 for (const r of scopedRoutes) {
-  const src = read(r)
+  const src = read(join('app', 'api', r))
   if (!src.includes(".eq('domain_id'")) notFiltering.push(r)
   // Le marqueur NOMME : `auth.domain.id` en direct ne dit pas au relecteur
   // lequel des deux ecosystemes il regarde (celui du compte ou l'actif).
@@ -234,7 +407,7 @@ section('C. Acces par identifiant : filtre DANS la recherche')
 const BY_ID = scopedRoutes.filter((r) => r.includes('[id]'))
 const badById = []
 for (const r of BY_ID) {
-  const src = read(r).replace(/\r\n/g, '\n')
+  const src = read(join('app', 'api', r)).replace(/\r\n/g, '\n')
   // Chaque `.eq('id', …)` d'une requete sur une table cloisonnee doit etre
   // suivi, dans les 3 lignes, d'un `.eq('domain_id', …)`.
   const lines = src.split('\n')
@@ -256,12 +429,10 @@ ok(badById.length === 0,
 // ═══ D. LE BACK-OFFICE N'EST PAS CLOISONNE ═════════════════════════════════
 section('D. L’administrateur reste plateforme')
 
-// Chemin complet, comme partout ailleurs depuis l'elargissement a lib/ : les
-// lectures ne prefixent plus, elles lisent ce qu'on leur donne.
 const adminRoutes = walk(API_DIR)
-  .map((p) => 'app/api/' + norm(relative(API_DIR, p)))
-  .filter((r) => r.startsWith('app/api/admin/'))
-const adminScoped = adminRoutes.filter((r) => read(r).includes('activeEcosystemId('))
+  .map((p) => relative(API_DIR, p).split('\\').join('/'))
+  .filter((r) => r.startsWith('admin/'))
+const adminScoped = adminRoutes.filter((r) => read(join('app', 'api', r)).includes('activeEcosystemId('))
 ok(adminScoped.length === 0,
   'aucune route admin ne cloisonne par ecosysteme',
   adminScoped.length ? `cloisonnees a tort : ${adminScoped.join(' · ')} — un admin voit TOUS les ecosystemes` : undefined)

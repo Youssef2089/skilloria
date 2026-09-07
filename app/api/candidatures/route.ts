@@ -12,6 +12,7 @@ import { performUnlock } from '@/lib/unlock'
 import { publicationCandidaturesLinkForOrg } from '@/lib/collaboration-links'
 import { isActivePublished } from '@/lib/publications/expiry'
 import { jugerCandidature } from '@/lib/candidatures/ai-assessment'
+import { enregistrerPanne } from '@/lib/candidatures/pannes-redaction'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -268,6 +269,24 @@ export async function POST(request: NextRequest): Promise<Response> {
   //  apparaît-il ? » — cette seconde question appartient au reranking.
   after(async () => {
     try {
+      // Rôle et secteur, rien d'autre. Aucune date n'est demandée à la base :
+      // ce qu'on ne charge pas ne peut pas fuir.
+      const { data: expRows, error: expErr } = await auth.supabaseAdmin
+        .from('profile_experiences')
+        .select('role, sector')
+        .eq('profile_id', profileRow.id)
+        .limit(20)
+      if (expErr) {
+        // Le parcours ENRICHIT le jugement, il ne le conditionne pas : on juge
+        // sur le reste plutôt que de ne pas juger. Mais on le DIT.
+        console.warn('[candidatures:POST] parcours illisible — jugement sur le reste du dossier', {
+          candidature: row.id,
+          message: expErr.message,
+        })
+      }
+      const parcours = ((expRows ?? []) as Array<{ role: string | null; sector: string | null }>)
+        .map((e) => ({ role: e.role, sector: e.sector }))
+
       const resultat = await jugerCandidature({
         supabaseAdmin: auth.supabaseAdmin,
         domainId: pubRow.domain_id,
@@ -292,19 +311,32 @@ export async function POST(request: NextRequest): Promise<Response> {
               typeof profileRow.years_total_experience === 'number'
                 ? profileRow.years_total_experience
                 : null,
-            // Rôles et secteurs seulement : l'employeur ne sort pas d'ici, et
-            // `pitch_org` est affiché AVANT le déverrouillage.
-            experiences: [],
+            // Rôles et secteurs seulement. L'employeur n'est PAS sélectionné :
+            // il ne peut donc pas partir, même par étourderie — et le pitch est
+            // lu par l'organisation AVANT le déverrouillage.
+            experiences: parcours,
           },
         },
       })
       if (!resultat.ok) {
-        // Journalisé avec sa RAISON. Une note absente sans raison enverrait
-        // chercher un bug là où il n'y a qu'un plafond atteint.
+        // Journalisé avec sa CAUSE, et COMPTÉ avec elle. Une note absente sans
+        // cause enverrait chercher un bug là où il n'y a qu'un plafond atteint.
         console.warn('[candidatures:POST] aucun jugement rendu', {
           candidature: row.id,
+          cause: resultat.cause,
           raison: resultat.raison,
         })
+        await enregistrerPanne(auth.supabaseAdmin, {
+          cause: resultat.cause,
+          surface: 'candidature',
+          domain_id: pubRow.domain_id,
+          entity_id: row.id,
+          detail: resultat.raison,
+        })
+        // Le dévoilement inclus a lieu QUAND MÊME : une place offerte ne doit
+        // pas rester vide parce qu'un modèle n'a pas répondu. Faute de note, le
+        // départage tombera sur l'ancienneté — c'est un repli, et il est écrit.
+        await devoilementInclus(auth, publicationId, row.id)
         return
       }
       const { error: majErr } = await auth.supabaseAdmin
@@ -326,6 +358,10 @@ export async function POST(request: NextRequest): Promise<Response> {
           message: majErr.message,
         })
       }
+
+      // La note existe maintenant : le dévoilement inclus peut départager sur
+      // ce qu'il annonce départager.
+      await devoilementInclus(auth, publicationId, row.id)
     } catch (err) {
       console.error('[candidatures:POST] jugement a levé (best-effort)', err)
     }
@@ -464,19 +500,42 @@ export async function POST(request: NextRequest): Promise<Response> {
     },
   })
 
-  // ── AUTO-DÉVOILEMENT TOP-1 (Lot 2) — règle « 1 candidat dévoilé » du free ─
-  //  Si le package de l'org donne revealed_candidates_per_publication = N (non
-  //  illimité) et qu'il reste des places (déjà dévoilées < N), on dévoile
-  //  AUTOMATIQUEMENT la candidature qui a le MEILLEUR ai_match_score de la
-  //  publication — via le MÊME chemin que l'unlock manuel (performUnlock), mais
-  //  SANS consommer manual_unlocks (c'est le dévoilement inclus).
-  //
-  //  V1 assumée — on ne « rétrograde » JAMAIS un dévoilé : si un meilleur score
-  //  arrive après que la place est prise (déjà dévoilées >= N), il ne remplace
-  //  pas le dévoilé en place (premier meilleur servi).
-  //
-  //  Entièrement NON-BLOQUANT : toute erreur ici n'invalide pas la création de
-  //  candidature (la candidature reste créée ; l'org pourra dévoiler manuellement).
+  return json(
+    {
+      id: row.id,
+      status: row.status,
+      created_at: row.created_at,
+    },
+    201,
+  )
+}
+
+/**
+ * DÉVOILEMENT INCLUS — la place offerte va au MEILLEUR dossier.
+ *
+ * Si l'offre de l'organisation inclut N candidats dévoilés et qu'il reste une
+ * place, on dévoile automatiquement la candidature à la meilleure note de
+ * l'annonce — par le MÊME chemin que le dévoilement manuel, mais sans consommer
+ * de crédit.
+ *
+ * ⚠️ IL S'EXÉCUTE APRÈS LE JUGEMENT, ET C'EST TOUT LE SUJET.
+ *   Tant que Claude notait la mise en relation, la note existait avant le dépôt.
+ *   Elle est désormais produite AU dépôt, dans le même after(). Départager avant
+ *   qu'elle soit écrite comparerait des notes toutes nulles : le départage
+ *   tomberait sur l'ancienneté, et la place irait à la PREMIÈRE candidature au
+ *   lieu de la meilleure — sans que rien ne le signale.
+ *
+ * V1 assumée : on ne rétrograde JAMAIS un dévoilé. Un meilleur dossier arrivé
+ * après que la place est prise ne remplace pas celui qui l'occupe.
+ *
+ * Entièrement NON-BLOQUANT : une erreur ici n'invalide rien — la candidature
+ * existe, et l'organisation peut dévoiler à la main.
+ */
+async function devoilementInclus(
+  auth: AuthContext,
+  publicationId: string,
+  candidatureId: string,
+): Promise<void> {
   try {
     const { data: pubForEnts } = await auth.supabaseAdmin
       .from('publications')
@@ -525,15 +584,8 @@ export async function POST(request: NextRequest): Promise<Response> {
           .eq('publication_id', publicationId)
           .in('status', ['unlocked', 'selected'])
         if ((revealedCount ?? 0) < revealN) {
-          // La candidature qui vient d'être créée est-elle le meilleur score de
-          // la publication ? (égalité de score → la plus ancienne l'emporte.)
-          //
-          // ⚠️ CONSÉQUENCE DU LOT 3, ÉCRITE PLUTÔT QUE SUBIE : `ai_match_score`
-          // est nul tant que le jugement au dépôt ne le produit pas. Toutes les
-          // notes étant égales (nulles), le départage tombe sur `created_at` :
-          // le dévoilement inclus va à la PREMIÈRE candidature, plus à la
-          // meilleure. C'est un repli déterministe et défendable, mais ce n'est
-          // pas la règle annoncée — le lot 4 rétablit la note.
+          // La candidature qui vient d'être créée est-elle la meilleure note de
+          // la publication ? (égalité → la plus ancienne l'emporte.)
           const { data: topRow } = await auth.supabaseAdmin
             .from('candidatures')
             .select('id')
@@ -543,30 +595,21 @@ export async function POST(request: NextRequest): Promise<Response> {
             .limit(1)
             .maybeSingle()
           const top = topRow as { id: string } | null
-          devoile = top !== null && top.id === row.id
+          devoile = top !== null && top.id === candidatureId
         }
       }
 
       if (devoile) {
-        const res = await performUnlock(auth.supabaseAdmin, row.id, {
+        const res = await performUnlock(auth.supabaseAdmin, candidatureId, {
           auto: true,
           actorUserId: auth.user.id,
         })
         if (!res.ok) {
-          console.warn('[candidatures:POST] auto-reveal performUnlock failed', res.code)
+          console.warn('[candidatures] dévoilement inclus refusé', res.code)
         }
       }
     }
   } catch (err) {
-    console.warn('[candidatures:POST] auto-reveal block threw (non-blocking)', err)
+    console.warn('[candidatures] dévoilement inclus a levé (non bloquant)', err)
   }
-
-  return json(
-    {
-      id: row.id,
-      status: row.status,
-      created_at: row.created_at,
-    },
-    201,
-  )
 }

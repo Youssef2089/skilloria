@@ -97,29 +97,43 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ ok: true, profile_id: prof.id, queued: true, mode: 'prune' }, 200)
   }
 
-  // ── CHEMIN IA COMPLET — STRICTEMENT INCHANGÉ ───────────────────────────
-  //  ÉLARGI (false → true), trace absente/null, OU scope inchangé (ex. retour
-  //  de DND) : il faut (re)scorer → run IA complet sous cooldown M2 STRICT.
-  // Cooldown M2 : plafonne le coût des appels Claude. Check AVANT le after()
-  // -> un refus ne programme jamais de travail IA. checkRateLimit est fail-open.
-  const allowed60 = await checkRateLimit(supabaseAdmin, 'matching_sync_60s', user.id, 60, 1)
-  if (!allowed60) return json({ ok: false, code: 'rate_limited', retry_after_seconds: 60 }, 429)
-  const allowedHour = await checkRateLimit(supabaseAdmin, 'matching_sync_1h', user.id, 3600, 10)
-  if (!allowedHour) return json({ ok: false, code: 'rate_limited', retry_after_seconds: 3600 }, 429)
-
-  // Exécution via `after()` — on retourne immédiatement, le matching IA
-  // (~10-15s) tourne après l'envoi de la response mais AVANT que le runtime
-  // serverless ne soit suspendu. Sans `after()`, un `void promise` serait
-  // tué par Vercel quand la response part.
-  after(async () => {
-    try {
-      const { runMatchingForExpert } = await import('@/lib/matching')
-      const v = await runMatchingForExpert({ supabaseAdmin, profileId: prof.id })
-      console.log('[me/sync-matching] done', { profileId: prof.id, status: v.status, proposals: v.proposals.length })
-    } catch (err) {
-      console.error('[me/sync-matching] threw (after)', err)
+  // ── CHEMIN COMPLET : ON REPORTE, ON NE REFUSE PLUS ─────────────────────
+  //
+  //  ÉLARGI (false → true), trace absente, ou périmètre inchangé (retour de
+  //  « ne pas déranger ») : il faut renoter, et renoter coûte.
+  //
+  //  CE QUI CHANGE, ET C'EST LE SUJET DE CE LOT :
+  //    Deux garde-fous de débit refusaient ici — 1 par minute, 10 par heure —
+  //    et un refus PERDAIT le déclenchement. Un expert qui basculait sa
+  //    disponibilité deux fois de suite voyait le second changement ignoré, et
+  //    son flux rester celui d'avant. Rien ne le lui disait.
+  //
+  //    On pose désormais une échéance à une heure, REPOUSSÉE à chaque nouveau
+  //    déclenchement. On attend qu'il ait fini de changer d'avis, puis on note
+  //    UNE fois, sur son état final. Le coût reste borné — mieux qu'avant,
+  //    puisqu'une rafale ne produit plus qu'un seul run — et plus rien n'est
+  //    perdu.
+  //
+  //    Les deux garde-fous de débit disparaissent donc : ils ne protégeaient
+  //    plus rien que la temporisation ne protège mieux, et leur seul effet
+  //    restant aurait été d'empêcher de PROGRAMMER une relance.
+  const { programmerRelance } = await import('@/lib/matching/relance')
+  const prog = await programmerRelance(supabaseAdmin, prof.id, 'ouverture_croisee')
+  if (!prog.ok) {
+    // Le plafond horaire (garde d'ÉCRITURE, cf. lib/matching/relance.ts) est un
+    // refus DÉLIBÉRÉ, pas une panne : il mérite son propre code et un 429. Le
+    // confondre avec une erreur serveur ferait chercher une panne inexistante.
+    if (prog.raison === 'plafond_horaire') {
+      return json({ ok: false, code: 'relance_plafond' }, 429)
     }
-  })
+    // Une relance non programmée est un changement qui ne sera jamais pris en
+    // compte. On rend une erreur plutôt qu'un « ok » : l'écran doit pouvoir le
+    // dire, et non laisser croire que c'est parti.
+    return json({ ok: false, code: 'relance_non_programmee' }, 500)
+  }
 
-  return json({ ok: true, profile_id: prof.id, queued: true, mode: 'full' }, 200)
+  return json(
+    { ok: true, profile_id: prof.id, queued: true, mode: 'reportee', due_at: prog.due_at, reportee: prog.reportee },
+    200,
+  )
 }
