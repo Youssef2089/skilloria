@@ -617,7 +617,11 @@ ok(/manquants\.length === 0\) return null/.test(BANNIERE),
   'rien à signaler → aucune bannière')
 
 console.log('\n— la route refuse de répondre plutôt que de compter zéro')
-ok(/expRes\.error \|\| langRes\.error[\s\S]{0,400}code: 'db_error'/.test(ROUTE_VISIBILITE),
+// Fenêtre à 600, pas 400. La CAUSE de l'échec était les fins de ligne — le \r
+// gonflait l'écart à couvrir de 398 à 406 — et non la fenêtre, qui suffisait.
+// Mais deux caractères de marge, c'est une détente à cheveu : un console.error
+// de plus et le contrôle rougit sans qu'aucune garde n'ait bougé.
+ok(/expRes\.error \|\| langRes\.error[\s\S]{0,600}code: 'db_error'/.test(ROUTE_VISIBILITE),
   'un comptage en panne fait échouer la réponse',
   'un zéro emprunté à une panne ferait réclamer des expériences déjà saisies')
 ok(/if \(profErr\)[\s\S]{0,300}if \(!profile\)/.test(ROUTE_VISIBILITE),
