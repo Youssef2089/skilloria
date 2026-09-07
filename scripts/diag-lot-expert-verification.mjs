@@ -49,7 +49,11 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const read = (p) => readFileSync(join(ROOT, p), 'utf8')
+// NORMALISATION DES FINS DE LIGNE (reprise du tronc) : le depot sort les
+// fichiers en CRLF, et un retour chariot casse tout motif qui traverse un
+// saut de ligne. Sans elle, ce diagnostic serait vert chez son auteur et
+// rouge dans les autres worktrees, sur un fichier identique.
+const read = (p) => readFileSync(join(ROOT, p), 'utf8').split('\r\n').join('\n')
 
 let echecs = 0
 function ok(libelle, condition, detail = '') {
@@ -60,6 +64,31 @@ function ok(libelle, condition, detail = '') {
     console.log(`  ✗ ${libelle}${detail ? ` — ${detail}` : ''}`)
   }
 }
+
+// ═══ CE QUI VIENT DU TRONC, ET CE QUI NE VIENT PAS ════════════════════════
+//
+//   Le tronc a sécurisé ce script AUTREMENT : `exigerAutorisationEcriture`
+//   (scripts/garde-ecriture.mjs) exigeait `--db` avant toute écriture, sur le
+//   modèle de diag-suspension. Cette garde n'est PAS reprise ici, et son
+//   absence n'est pas un oubli.
+//
+//   Elle protège un script qui écrit. Celui-ci n'écrit plus DU TOUT : il
+//   n'ouvre aucun client, ne lit aucune clé de service, et la section (F) le
+//   vérifie sur son propre texte. Lui poser la garde annoncerait « CE SCRIPT
+//   ECRIT EN BASE », ce qui serait faux, et exigerait un drapeau pour lancer
+//   des contrôles purement statiques — donc les tiendrait hors de tout
+//   balayage. Le contrôle du tronc lui-même (diag-scripts-destructeurs)
+//   DÉCOUVRE les scripts qui écrivent au lieu d'en tenir la liste : celui-ci
+//   n'y figure plus, et n'a rien à porter.
+//
+//   Un script qui ne PEUT pas écrire vaut mieux qu'un script qui peut écrire
+//   derrière un drapeau : on ne compte pas sur la vigilance de qui le lance.
+//
+//   CE QUI EST REPRIS, EN REVANCHE : la normalisation des fins de ligne
+//   (cf. `read` ci-dessus). Le dépôt sort les fichiers en CRLF, et un `\r`
+//   casse tout motif qui traverse un saut de ligne — c'est ce qui rendait des
+//   diagnostics verts chez leur auteur et rouges partout ailleurs, sur un
+//   fichier identique.
 
 // Retire les lignes de commentaire : un invariant écrit dans une phrase de
 // documentation n'est pas un invariant. Faux positif déjà rencontré ailleurs.

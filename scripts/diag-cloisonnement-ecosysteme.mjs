@@ -37,7 +37,11 @@ import { resolveEcosystemAccess } from '@/lib/ecosystem-guard'
 import { ecosystemAccessScope } from '@/lib/ecosystem-scope'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const read = (p) => readFileSync(join(ROOT, p), 'utf8')
+// NORMALISATION DES FINS DE LIGNE (reprise du tronc) : le depot sort les
+// fichiers en CRLF, et un retour chariot casse tout motif qui traverse un
+// saut de ligne. Sans elle, ce diagnostic serait vert chez son auteur et
+// rouge dans les autres worktrees, sur un fichier identique.
+const read = (p) => readFileSync(join(ROOT, p), 'utf8').split('\r\n').join('\n')
 
 let echecs = 0
 function ok(libelle, condition, detail = '') {

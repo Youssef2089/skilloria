@@ -142,6 +142,18 @@ export async function ensurePersonalOrg(
         verification_status: 'approved',
         verified_at: nowIso,
         setup_completed_at: nowIso,
+        // L'ABONNEMENT VIT ICI, SUR L'ORGANISATION. Il était posé plus bas, sur
+        // la ligne `organization_domains` — et cette colonne a été SUPPRIMÉE
+        // par 20260903000000_abonnement_sur_organisation.sql. L'insert échouait
+        // donc à l'exécution : l'expert n'obtenait pas son espace de
+        // collaboration, et ne pouvait plus publier son premier besoin de
+        // sous-traitance. Ni tsc ni le build ne le voyaient — les clients
+        // Supabase ne sont pas typés, la colonne n'est qu'une chaîne.
+        //
+        // Posé dès l'INSERT plutôt que par une mise à jour ensuite : une
+        // écriture de moins, et l'organisation n'existe jamais sans son offre.
+        package_id: pkg.id,
+        package_started_at: nowIso,
       })
       .select('id')
       .single()
@@ -169,18 +181,19 @@ export async function ensurePersonalOrg(
       throw new EnsureOrgError('member_insert_failed', 'Could not link member', 500, memberErr)
     }
 
-    // 3. Rattachement domaine + PACKAGE collaboration (lu en priorité par
-    //    getOrgEntitlements → quotas 1/mois, 1 dévoilé).
+    // 3. TRACE de l'écosystème d'inscription — rien d'autre.
+    //    L'offre collaboration est posée sur l'organisation (étape 1) : c'est
+    //    là que `getOrgEntitlements` la lit. Cette ligne ne porte plus aucune
+    //    décision, et ses colonnes d'abonnement n'existent plus.
     const { error: domErr } = await admin
       .from('organization_domains')
       .insert({
         organization_id: organizationId,
         domain_id: domains.userDomainId,
         active: true,
-        package_id: pkg.id,
       })
     if (domErr) {
-      throw new EnsureOrgError('domain_insert_failed', 'Could not link domain/package', 500, domErr)
+      throw new EnsureOrgError('domain_insert_failed', 'Could not link domain', 500, domErr)
     }
 
     await logAudit({

@@ -41,7 +41,11 @@ import { dirname, join } from 'node:path'
 import { lireNote, lireTexte } from '../lib/candidatures/lecture-reponse.ts'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const read = (p) => readFileSync(join(ROOT, p), 'utf8')
+// NORMALISATION DES FINS DE LIGNE (reprise du tronc) : le depot sort les
+// fichiers en CRLF, et un retour chariot casse tout motif qui traverse un
+// saut de ligne. Sans elle, ce diagnostic serait vert chez son auteur et
+// rouge dans les autres worktrees, sur un fichier identique.
+const read = (p) => readFileSync(join(ROOT, p), 'utf8').split('\r\n').join('\n')
 const existe = (p) => existsSync(join(ROOT, p))
 
 function migration(suffixe) {
