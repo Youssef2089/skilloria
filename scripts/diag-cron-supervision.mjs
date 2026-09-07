@@ -46,13 +46,48 @@ import { dirname, join } from 'node:path'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /**
- * Fins de ligne NORMALISEES. Le depot sort les fichiers en CRLF : un controle
- * dont le motif traverse une fin de ligne (`...\n\s+...`) ne matche jamais sur
- * une copie de travail fraichement extraite, et le diagnostic vire au rouge
- * sans qu'aucun code n'ait change. Un diagnostic dont le resultat depend de la
- * machine qui l'execute ne dit pas si le code est juste : il dit d'ou il vient.
+ * ⚠️ FINS DE LIGNE NORMALISÉES — c'est ce qui manquait, et ça a rendu ce
+ *    diagnostic MENSONGER pendant tout le sprint.
+ *
+ *    Presque tous les contrôles SQL ci-dessous cherchent un motif multiligne
+ *    (`from cron.job j\n\s+where ...`). Sur un fichier en CRLF, le `j` est
+ *    suivi d'un `\r` avant le `\n` : le motif ne matche pas. Le dépôt
+ *    normalise en CRLF à la sortie (`core.autocrlf`), donc TOUTE copie de
+ *    travail fraîchement extraite voyait rouge — six contrôles d'un coup.
+ *    Ici, il restait vert pour une seule raison : les fichiers venaient
+ *    d'être écrits en LF et n'avaient pas été réextraits.
+ *
+ *    Un diagnostic dont le résultat dépend de la machine qui l'exécute ne
+ *    garantit rien. Il ne dit pas si le code est juste ; il dit d'où il vient.
  */
 const read = (p) => readFileSync(join(ROOT, p), 'utf8').split('\r\n').join('\n')
+
+/**
+ * Migration désignée par son SUFFIXE DESCRIPTIF, jamais par son horodatage.
+ *
+ * Les numéros bougent : ce dépôt vient encore d'en renuméroter un pour cause
+ * de collision entre worktrees. Une référence par numéro fait planter le
+ * diagnostic au premier renommage — ou, pire, le fait passer à côté.
+ *
+ * Refuse de tourner sur zéro OU deux correspondances : deux migrations au même
+ * suffixe, et on ne saurait pas laquelle fait foi. Motif repris tel quel de
+ * scripts/diag-zones-de-travail.mjs — un second résolveur maison finirait par
+ * diverger du premier.
+ */
+function migration(suffixe) {
+  const trouves = readdirSync(join(ROOT, 'supabase', 'migrations'))
+    .filter((x) => x.endsWith(`_${suffixe}.sql`))
+    .sort()
+  if (trouves.length !== 1) {
+    console.error(
+      `\n❌ ${trouves.length} migration(s) « ${suffixe} » trouvée(s)` +
+        (trouves.length ? ` : ${trouves.join(', ')}` : '') +
+        `\n   Attendu : exactement une. Le diagnostic ne peut rien vérifier.\n`,
+    )
+    process.exit(1)
+  }
+  return `supabase/migrations/${trouves[0]}`
+}
 
 /** Retire les commentaires : un anti-pattern doit pouvoir etre DOCUMENTE. */
 const stripComments = (src) =>
@@ -72,8 +107,8 @@ const ok = (cond, label, hint) => {
 }
 const section = (s) => console.log(`\n═══ ${s} ═══\n`)
 
-const CATALOG_SQL = 'supabase/migrations/20260901000002_cron_job_catalog.sql'
-const READ_SQL = 'supabase/migrations/20260901000003_cron_supervision_read.sql'
+const CATALOG_SQL = migration('cron_job_catalog')
+const READ_SQL = migration('cron_supervision_read')
 const catalog = stripComments(read(CATALOG_SQL))
 const readFns = stripComments(read(READ_SQL))
 const route = stripComments(read('app/api/admin/cron-jobs/route.ts'))
@@ -129,8 +164,7 @@ ok(/return null/.test(readFns),
 // ═══ C. P3 — AUCUN GRANT SUR LE SCHEMA cron ════════════════════════════════
 section('C. Le schema cron reste ferme')
 
-const allSql = ['supabase/migrations/20260901000002_cron_job_catalog.sql',
-  'supabase/migrations/20260901000003_cron_supervision_read.sql']
+const allSql = [CATALOG_SQL, READ_SQL]
   .map((f) => stripComments(read(f))).join('\n')
 ok(!/grant\s+(usage|all)\s+on\s+schema\s+cron/i.test(allSql),
   'AUCUN grant sur le schema cron',
@@ -212,7 +246,7 @@ ok(!/batchs/i.test(navConfig),
 // ═══ E2. HISTORIQUE ET BANDEAU GLOBAL (lot 1) ══════════════════════════════
 section('E2. Historique pagine et bandeau global')
 
-const HISTORY_SQL = 'supabase/migrations/20260902000000_cron_job_runs_history.sql'
+const HISTORY_SQL = migration('cron_job_runs_history')
 const history = stripComments(read(HISTORY_SQL))
 const runsRoute = stripComments(read('app/api/admin/cron-jobs/[name]/runs/route.ts'))
 const detail = stripComments(read('app/[locale]/admin/taches-planifiees/[job_name]/page.tsx'))
@@ -279,7 +313,7 @@ ok(/catch \{/.test(banner) && /return null/.test(banner),
 // ═══ E3. ACTIVER / DESACTIVER (lot 2) ══════════════════════════════════════
 section('E3. Activer / desactiver')
 
-const ACTIONS_SQL = 'supabase/migrations/20260902000001_cron_supervision_actions.sql'
+const ACTIONS_SQL = migration('cron_supervision_actions')
 const actionsSql = stripComments(read(ACTIONS_SQL))
 const toggleRoute = stripComments(read('app/api/admin/cron-jobs/[name]/toggle/route.ts'))
 const auditId = stripComments(read('lib/admin/cron-audit-id.ts'))
@@ -339,7 +373,7 @@ ok(/'cron_job_enabled' : 'cron_job_disabled'/.test(toggleRoute) && /request,/.te
 // ═══ E4. MODIFICATION D'HORAIRE — LE « 30 FEVRIER » (lot 3) ════════════════
 section('E4. Modification d’horaire')
 
-const SCHED_SQL = 'supabase/migrations/20260902000002_cron_schedule_edit.sql'
+const SCHED_SQL = migration('cron_schedule_edit')
 const schedSql = stripComments(read(SCHED_SQL))
 const schedRoute = stripComments(read('app/api/admin/cron-jobs/[name]/schedule/route.ts'))
 const schedModal = stripComments(read('components/admin/CronScheduleModal.tsx'))
@@ -441,7 +475,7 @@ ok(!/grant\s+(usage|all)\s+on\s+schema\s+cron/i.test(schedSql),
 // ═══ E5. EXECUTION MANUELLE (lot 4) ════════════════════════════════════════
 section('E5. Execution manuelle')
 
-const MANUAL_SQL = 'supabase/migrations/20260902000003_cron_manual_run.sql'
+const MANUAL_SQL = migration('cron_manual_run')
 const manualSql = stripComments(read(MANUAL_SQL))
 const runRoute = stripComments(read('app/api/admin/cron-jobs/[name]/run/route.ts'))
 const detailScreen2 = stripComments(read('app/[locale]/admin/taches-planifiees/[job_name]/page.tsx'))
@@ -504,7 +538,7 @@ ok(!/grant\s+(usage|all)\s+on\s+schema\s+cron/i.test(manualSql),
 // ═══ E6. RETENTION DISSOCIEE (lot 5) ═══════════════════════════════════════
 section('E6. Retention : detail 90 j, preuve 5 ans')
 
-const RETENTION_SQL = 'supabase/migrations/20260902000004_cron_run_log_retention.sql'
+const RETENTION_SQL = migration('cron_run_log_retention')
 const retSql = stripComments(read(RETENTION_SQL))
 
 // ── LES DEUX HORIZONS ───────────────────────────────────────────────────────
@@ -611,7 +645,7 @@ const unprotected = []
 let redefinitions = 0
 
 for (const f of migFiles) {
-  const sql = readFileSync(join(MIG_DIR, f), 'utf8')
+  const sql = readFileSync(join(MIG_DIR, f), 'utf8').split('\r\n').join('\n')
   FN_DEF_RE.lastIndex = 0
   let m
   while ((m = FN_DEF_RE.exec(sql)) !== null) {
