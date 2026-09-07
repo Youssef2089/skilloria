@@ -319,12 +319,27 @@ for (const f of VERIFY) {
   // (iv) Les deux clés, dont l'IP, sur la même fonction.
   ok(`${court} : clé (request_id + téléphone)`, src.includes("'otp_verify'"))
   ok(`${court} : clé IP`, src.includes("'otp_verify_ip'") && src.includes('extractClientIp('))
-  // (v) Le refus ne dit jamais si le code était bon : une seule forme de refus.
-  const formesRefus = new Set(src.match(/code: '(rate_limited|invalid_code|expired)'/g) ?? [])
+  // (v) Le refus ne dit jamais si le code était bon.
+  //   Compter les occurrences ne suffit pas : on peut AJOUTER un champ révélateur
+  //   sans toucher au compte. On lit donc la FORME EXACTE de la réponse — un
+  //   champ de plus, quel qu'il soit, et le contrôle tombe.
+  const CHAMPS_REFUS_ATTENDUS = ['error', 'code', 'retry_after_seconds']
+  const fab = src.match(/const refus = \(\) =>\s*\n?\s*json\(\{([^}]*)\}/)
+  ok(`${court} : un seul fabricant de refus (const refus)`, !!fab)
+  if (fab) {
+    const champs = [...fab[1].matchAll(/(\w+):/g)].map((x) => x[1])
+    ok(
+      `${court} : la réponse de refus ne porte QUE ${CHAMPS_REFUS_ATTENDUS.join(', ')}`,
+      champs.length === CHAMPS_REFUS_ATTENDUS.length &&
+        CHAMPS_REFUS_ATTENDUS.every((c) => champs.includes(c)),
+      `champs trouvés : ${champs.join(', ')} — tout champ supplémentaire peut trahir la justesse du code`,
+    )
+  }
+  // Et une seule fabrication : pas de refus écrit à la main ailleurs, qui
+  // échapperait à la forme ci-dessus.
   ok(
-    `${court} : le refus de limite est indistinct (code unique 'rate_limited')`,
-    src.includes("code: 'rate_limited'") && (src.match(/code: 'rate_limited'/g) ?? []).length === 1,
-    `formes trouvées : ${[...formesRefus].join(', ')}`,
+    `${court} : aucun refus de limite écrit hors du fabricant`,
+    (src.match(/code: 'rate_limited'/g) ?? []).length === 1,
   )
 }
 
