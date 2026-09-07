@@ -76,9 +76,13 @@ const selFil = selectionMessages(fil)
 ok('la requête des messages du fil existe', selFil.length > 0)
 
 // LE contrôle qui mord : le tri de SÉLECTION est décroissant.
+// Viser `created_at` NOMMÉMENT : un `ascending: false` cherché au hasard dans
+// le bloc est aussi satisfait par le tri de départage sur `id`. Le contrôle
+// resterait alors vert avec un `created_at` ascendant — ou sans tri du tout,
+// auquel cas le plafond couperait un ensemble arbitraire.
 ok(
-  'la sélection est décroissante (les plus récents)',
-  /ascending:\s*false/.test(selFil),
+  'la sélection est décroissante SUR created_at (les plus récents)',
+  /\.order\('created_at',\s*\{\s*ascending:\s*false/.test(selFil),
   'tri ascendant + limit = on garde les plus ANCIENS, et les messages récents disparaissent',
 )
 ok(
