@@ -406,15 +406,28 @@ const debutProg = relance.indexOf('export async function programmerRelance')
 const finProg = relance.indexOf('export async function solderRelance')
 const corpsProg = debutProg >= 0 && finProg > debutProg ? relance.slice(debutProg, finProg) : ''
 ok('programmerRelance existe', corpsProg.length > 0)
+
+// On lit L'APPEL, pas le fichier. Chercher un nom de constante n'importe où
+// dans la fonction ne prouve rien : il survit dans le message de journal juste
+// en dessous, et remplacer les constantes par des nombres au point d'appel
+// laissait le contrôle vert. C'est l'invocation qui décide, pas la prose.
+const appelGarde = corpsProg.match(/checkRateLimit\(([^)]*)\)/)
 ok(
   'la garde est DANS programmerRelance (tous les appelants sont bornés)',
-  corpsProg.includes('RELANCE_MAX_PAR_HEURE') && corpsProg.includes("'relance_programmation'"),
+  !!appelGarde && appelGarde[1].includes("'relance_programmation'"),
 )
-// Elle passe AVANT l'écriture : garder après ne garderait rien.
-ok(
-  "la garde précède l'écriture",
-  corpsProg.indexOf('RELANCE_MAX_PAR_HEURE') < corpsProg.indexOf("rpc('programmer_relance_expert'"),
-)
+if (appelGarde) {
+  ok(
+    "l'appel utilise les constantes nommées, pas des nombres posés là",
+    appelGarde[1].includes('RELANCE_FENETRE_S') && appelGarde[1].includes('RELANCE_MAX_PAR_HEURE'),
+    `arguments trouvés : ${appelGarde[1].trim()}`,
+  )
+  // Elle passe AVANT l'écriture : garder après ne garderait rien.
+  ok(
+    "la garde précède l'écriture",
+    corpsProg.indexOf(appelGarde[0]) < corpsProg.indexOf("rpc('programmer_relance_expert'"),
+  )
+}
 // Et elle s'appuie sur la même fonction SQL — aucun limiteur parallèle.
 ok('elle utilise le limiteur partagé', corpsProg.includes('checkRateLimit('))
 
@@ -444,8 +457,18 @@ const colonneReglage = SQL.some(
 ok("le plafond n'a pas été ajouté aux réglages en base", !colonneReglage)
 
 // (v) EN ÉCHANGE : les dépassements sont comptés, et lus au même endroit.
+// Là encore : ce qui compte n'est pas que la fonction de comptage EXISTE, mais
+// qu'elle soit APPELÉE sur le chemin du refus. Une fonction orpheline laisse le
+// compteur à zéro pour toujours, et zéro se lit « tout va bien ».
 ok(
-  'les dépassements sont comptés en base',
+  'le dépassement est compté SUR LE CHEMIN DU REFUS',
+  /return \{ ok: false, raison: 'plafond_horaire' \}/.test(corpsProg) &&
+    corpsProg.indexOf('compterDepassement(') >= 0 &&
+    corpsProg.indexOf('compterDepassement(') < corpsProg.indexOf("raison: 'plafond_horaire'"),
+  'la fonction de comptage existe peut-être encore, mais plus personne ne l’appelle',
+)
+ok(
+  'le comptage écrit bien dans relance_overruns',
   relance.includes("from('relance_overruns')") && relance.includes('.insert('),
 )
 ok(
