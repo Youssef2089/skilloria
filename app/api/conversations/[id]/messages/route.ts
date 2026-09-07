@@ -306,17 +306,35 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   })
 
   // ── Charger les messages ────────────────────────────────────────────────
+  //
+  //  ⚠️ L'ORDRE DE SÉLECTION N'EST PAS L'ORDRE D'AFFICHAGE, et les confondre
+  //     coûtait cher.
+  //
+  //  Avant : `ascending: true` PUIS `limit(500)` — donc les 500 messages LES
+  //  PLUS ANCIENS. Au-delà de 500, l'utilisateur voyait le début de l'échange
+  //  et PLUS les messages récents : il ne lisait pas ce qu'on venait de lui
+  //  écrire. Une conversation active devenait muette par le haut.
+  //
+  //  Maintenant : on SÉLECTIONNE les 500 plus RÉCENTS (`ascending: false`),
+  //  puis on rétablit l'ordre chronologique pour l'AFFICHAGE. Le plafond reste
+  //  le même ; c'est le bout qu'on garde qui change, et c'est le bon.
+  //
+  //  `id` départage deux messages de même horodatage : sans lui, la frontière
+  //  des 500 pourrait couper différemment d'une lecture à l'autre.
   const { data: msgs, error: mErr } = await auth.supabaseAdmin
     .from('messages')
     .select('id, conversation_id, sender_id, content, read_at, created_at')
     .eq('conversation_id', convId)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
     .limit(500)
   if (mErr) {
     console.error('[conversations/[id]/messages:GET] msgs failed', mErr.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
-  const messages = (msgs ?? []) as { id: string; conversation_id: string; sender_id: string; content: string; read_at: string | null; created_at: string }[]
+  // Retour à l'ordre chronologique : le fil se lit du plus ancien au plus
+  // récent, comme avant. Seule la SÉLECTION a changé.
+  const messages = ((msgs ?? []) as { id: string; conversation_id: string; sender_id: string; content: string; read_at: string | null; created_at: string }[]).reverse()
 
   // ── Flip read_at uniquement sur les messages REÇUS et non lus ──────────
   //  (cf. précision Lot 3, point 2 : jamais sur ses propres messages)

@@ -210,22 +210,55 @@ export async function GET(request: NextRequest): Promise<Response> {
   const lastMsgByConv = new Map<string, { content: string; created_at: string; sender_id: string }>()
   const unreadByConv = new Map<string, number>()
   if (convIds.length > 0) {
-    // Last message par conv (1 par conv, on lit le plus récent global puis filtre)
-    const { data: msgs } = await auth.supabaseAdmin
-      .from('messages')
-      .select('conversation_id, content, created_at, sender_id, read_at')
-      .in('conversation_id', convIds)
-      .order('created_at', { ascending: false })
-      .limit(500)
-    const seen = new Set<string>()
-    for (const m of ((msgs ?? []) as { conversation_id: string; content: string; created_at: string; sender_id: string; read_at: string | null }[])) {
-      if (!seen.has(m.conversation_id)) {
-        seen.add(m.conversation_id)
-        lastMsgByConv.set(m.conversation_id, { content: m.content, created_at: m.created_at, sender_id: m.sender_id })
-      }
-      if (m.sender_id !== userId && m.read_at === null) {
-        unreadByConv.set(m.conversation_id, (unreadByConv.get(m.conversation_id) ?? 0) + 1)
-      }
+    // ── APERÇU + NON-LUS : UNE LIGNE PAR CONVERSATION, GARANTIE ────────────
+    //
+    //  CE QUI CLOCHAIT, ET CE N'ÉTAIT PAS UNE TRONCATURE.
+    //    On lisait les 500 derniers messages TOUTES CONVERSATIONS CONFONDUES,
+    //    puis on gardait le premier vu par conversation. Au-delà de 500
+    //    messages cumulés, les fils les moins récents n'apparaissaient dans
+    //    AUCUNE ligne lue : ils n'avaient aucun aperçu. Or une conversation
+    //    sans aperçu se lit « personne n'a rien écrit » — l'inverse de la
+    //    vérité. Le compteur de non-lus, dérivé de la MÊME lecture,
+    //    sous-comptait pour la même raison : un fil pouvait afficher zéro
+    //    non-lu tout en en ayant.
+    //
+    //  POURQUOI UNE FONCTION SQL.
+    //    « Une ligne par groupe » ne s'exprime pas en PostgREST. Les seules
+    //    issues sans fonction étaient une requête par conversation — jusqu'à
+    //    200 allers-retours sur une liste qu'on ouvre souvent — ou un plafond
+    //    plus haut, c'est-à-dire le même défaut plus tard et toujours muet.
+    //    `distinct on` le fait en une passe indexée : le coût devient
+    //    proportionnel au nombre de CONVERSATIONS, plus au nombre de messages.
+    //    C'est strictement moins de travail qu'avant, où 500 lignes étaient
+    //    lues puis jetées à chaque ouverture.
+    //
+    //  L'ERREUR EST MAINTENANT TRAITÉE. Elle ne l'était pas : le `error` de
+    //  cette lecture n'était même pas déstructuré. Une panne rendait zéro
+    //  aperçu partout, silencieusement — exactement le symptôme du défaut
+    //  qu'on corrige, donc impossible à distinguer de lui.
+    const { data: apercus, error: apErr } = await auth.supabaseAdmin.rpc('conversation_apercus', {
+      p_conversation_ids: convIds,
+      p_user_id: userId,
+    })
+    if (apErr) {
+      console.error('[me/conversations:GET] aperçus failed', apErr.message)
+      return json({ error: 'Query failed', code: 'db_error' }, 500)
+    }
+    for (const a of ((apercus ?? []) as {
+      conversation_id: string
+      content: string
+      created_at: string
+      sender_id: string
+      non_lus: number
+    }[])) {
+      lastMsgByConv.set(a.conversation_id, {
+        content: a.content,
+        created_at: a.created_at,
+        sender_id: a.sender_id,
+      })
+      // Une conversation sans message ne renvoie aucune ligne : elle reste à
+      // zéro non-lu, et sans aperçu — le seul cas où « pas d'aperçu » est vrai.
+      if (a.non_lus > 0) unreadByConv.set(a.conversation_id, Number(a.non_lus))
     }
   }
 
