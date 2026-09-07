@@ -51,6 +51,11 @@ const section = (s) => console.log(`\n═══ ${s} ═══\n`)
 //   'expert'  : surface EXPERT — un expert est mono-ecosysteme A VIE, et sa
 //               garde d'appartenance (profil, match) cloisonne deja ;
 //   'exempt'  : hors cloisonnement, avec une raison ecrite.
+//
+// Et pour les MODULES de lib/, deux modes qui decrivent la GARANTIE OFFERTE :
+//   'ligne'   : le module porte LUI-MEME son filtre d'ecosysteme ;
+//   'cle'     : il n'atteint ses lignes que par des identifiants deja resolus
+//               en amont, donc la garantie est portee par la cle qu'on lui passe.
 const SCOPED_TABLES = ['publications', 'candidatures', 'conversations']
 
 const INVENTORY = {
@@ -88,36 +93,50 @@ const INVENTORY = {
   'app/api/conversations/[id]/messages/route.ts': 'exempt',
 
   // ── MODULES lib/ ───────────────────────────────────────────────────────
-  // Mode 'appele' : le module ne LISTE jamais librement. Il travaille sur des
-  // identifiants DEJA resolus par son appelant — `.in('id', ids)`,
-  // `.eq('id', x)`, `.eq('candidature_id', x)` — et l'appelant, lui, est une
-  // surface declaree ci-dessus. La garantie de cloisonnement est donc celle de
-  // l'appelant, et elle est verifiee la ou elle vit.
   //
-  // ⚠ CE QUE CE MODE NE PROUVE PAS, et il faut le dire : contrairement a
-  //   'scoped', il n'est pas verifie automatiquement. Sa valeur est la
-  //   DECOUVERTE — un module de lib/ ajoute demain, qui lirait ces tables sans
-  //   etre declare, fait echouer ce diagnostic. C'est exactement ce qui
-  //   manquait : ces sept modules etaient invisibles, et c'est dans lib/ qu'une
-  //   ecriture fautive a dormi jusqu'a casser la creation d'organisation.
+  // DEUX MODES, ET LE VOCABULAIRE EST CANONIQUE — ne pas en inventer un troisieme.
   //
-  //   Un module qui se mettrait a LISTER (sans `.in`/`.eq` sur des identifiants
-  //   fournis) doit changer de mode et porter son propre filtre.
+  //   'ligne' : le module PORTE LUI-MEME son filtre d'ecosysteme. La garantie
+  //             est la sienne, et elle est verifiable dans son code.
+  //   'cle'   : le module ne LISTE jamais librement. Il n'atteint ses lignes que
+  //             par des identifiants DEJA resolus en amont — `.in('id', ids)`,
+  //             `.eq('id', x)`, `.eq('publication_id', x)`. La garantie est donc
+  //             portee par la CLE qu'on lui passe.
+  //
+  // Ces deux mots decrivent la GARANTIE OFFERTE par le module. Un mode nomme
+  // d'apres son appelant decrirait qui l'utilise — or c'est la garantie qu'on
+  // verifie, pas l'usage. Deux worktrees ont inventorie ce meme fichier en
+  // parallele ; le vocabulaire est unifie ici pour que la fusion soit une simple
+  // ADDITION d'entrees, sans renommage et sans perte.
+  //
+  // ⚠ CE QUE 'cle' NE PROUVE PAS, et il faut le dire : contrairement a 'scoped',
+  //   il n'est pas verifie automatiquement. Sa valeur est la DECOUVERTE — un
+  //   module de lib/ ajoute demain, qui lirait ces tables sans etre declare,
+  //   fait echouer ce diagnostic. C'est exactement ce qui manquait : ces modules
+  //   etaient invisibles, et c'est dans lib/ qu'une ecriture fautive a dormi
+  //   jusqu'a casser la creation d'organisation.
+  //
+  //   Un module qui se mettrait a LISTER doit passer en 'ligne' et porter son
+  //   propre filtre.
 
   // Assemblage de vues, sur des identifiants fournis par une route cloisonnee.
-  'lib/candidature-org-dto.ts': 'appele',
-  'lib/candidatures/lifecycle-batch.ts': 'appele',
+  'lib/candidature-org-dto.ts': 'cle',
+  'lib/candidatures/lifecycle-batch.ts': 'cle',
   // Devoilement d'UNE candidature designee par son identifiant ; l'ownership et
   // le cloisonnement sont verifies par les routes appelantes, declarees 'scoped'.
-  'lib/unlock.ts': 'appele',
+  'lib/unlock.ts': 'cle',
   // Rendu d'emails : lecture des libelles des entites deja notifiees.
-  'lib/notifications/dispatch.ts': 'appele',
-  // Matching : il ne rapproche que des entites d'un MEME ecosysteme
-  // (lib/matching/shared.ts), et chaque execution part d'une annonce ou d'un
-  // profil dont l'ecosysteme est connu.
-  'lib/matching/index.ts': 'appele',
-  'lib/matching/run-for-expert.ts': 'appele',
-  'lib/matching/reconcile.ts': 'appele',
+  'lib/notifications/dispatch.ts': 'cle',
+  // Matching : il ne rapproche que des entites d'un MEME ecosysteme, et chaque
+  // execution part d'une annonce ou d'un profil dont l'ecosysteme est connu.
+  'lib/matching/index.ts': 'cle',
+  'lib/matching/run-for-expert.ts': 'cle',
+  'lib/matching/reconcile.ts': 'cle',
+  // Le VIVIER (reecriture du moteur) : il lit les candidatures deja deposees sur
+  // UNE annonce — `.eq('publication_id', annonce.id)` — pour ne pas represente
+  // un expert qui a deja postule. La cle est l'annonce, dont l'ecosysteme est
+  // celui de l'execution.
+  'lib/matching/pool.ts': 'cle',
 }
 
 // ─── DECOUVERTE ──────────────────────────────────────────────────────────────
