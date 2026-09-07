@@ -3616,6 +3616,21 @@
       "notify_enabled": "Activar las notificaciones",
       "notify_enabled_help": "Se deja inactivo mientras nadie haya leído la distribución: un umbral adivinado avisaría al azar.",
       "model": "Modelo: {model}. Cambiarlo cambia la escala — ambos umbrales dejan de ser válidos."
+    },
+    "failures": {
+      "title": "Resúmenes no producidos (últimos 30 días)",
+      "none": "Se han escrito todos los resúmenes solicitados.",
+      "unavailable": "No se ha podido leer el contador. No es cero: es desconocido.",
+      "help": "Tres causas, nunca sumadas: no exigen la misma acción. Una candidatura sin resumen se presenta con normalidad: le falta un texto, no un expediente.",
+      "cause": {
+        "plafond": "Límite de gasto alcanzado",
+        "modele_indisponible": "Modelo no disponible",
+        "reponse_illisible": "Respuesta ilegible"
+      },
+      "surface": {
+        "candidature": "al presentar",
+        "pitch": "al abrir una tarjeta"
+      }
     }
   },
   "ecosystem_switcher": {

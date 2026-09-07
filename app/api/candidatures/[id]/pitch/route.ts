@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { redigerPitchOrg, type Langue } from '@/lib/candidatures/ai-assessment'
+import { enregistrerPanne } from '@/lib/candidatures/pannes-redaction'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -201,9 +202,21 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   })
 
   if (!resultat.ok) {
-    // Pas d'erreur HTTP : la carte s'affiche sans pitch, et la raison est
-    // journalisée. Un texte d'agrément ne doit pas empêcher de lire un dossier.
-    console.warn('[pitch] non rédigé', { candidature: id, raison: resultat.raison })
+    // Pas d'erreur HTTP : la carte s'affiche sans pitch. Un texte d'agrément ne
+    // doit pas empêcher de lire un dossier — et la panne est COMPTÉE avec sa
+    // cause, pour que l'absence de résumés se voie.
+    console.warn('[pitch] non rédigé', {
+      candidature: id,
+      cause: resultat.cause,
+      raison: resultat.raison,
+    })
+    await enregistrerPanne(auth.supabaseAdmin, {
+      cause: resultat.cause,
+      surface: 'pitch',
+      domain_id: cand.domain_id,
+      entity_id: cand.match_id,
+      detail: resultat.raison,
+    })
     return json({ pitch: null, raison: resultat.raison }, 200)
   }
 

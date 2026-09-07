@@ -1,12 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { budgetDisponible, enregistrerDepense } from '@/lib/ai-budget'
-// Les quatre barrières de conformité vivent à part, SANS aucune dépendance :
-// c'est ce qui les rend éprouvables à l'exécution, hors de tout client HTTP.
-// Un garde-fou qu'on ne peut pas éprouver n'est qu'une intention.
-import { contientUneAnnee, expurgerAnnees, lireNote, lireTexte } from './conformite'
+// Deux LECTEURS, pas deux filtres : ils vérifient que le modèle a répondu
+// quelque chose d'exploitable, ils ne jugent pas le contenu du texte. Sans
+// aucune dépendance, donc éprouvables à l'exécution.
+import { lireNote, lireTexte } from './conformite'
 
-export { contientUneAnnee, expurgerAnnees, lireNote, lireTexte } from './conformite'
+export { lireNote, lireTexte } from './conformite'
 
 /**
  * LE JUGEMENT DE CLAUDE — au DÉPÔT d'une candidature, et le PITCH à la demande.
@@ -20,36 +20,35 @@ export { contientUneAnnee, expurgerAnnees, lireNote, lireTexte } from './conform
  *     • ici          : « que vaut ce dossier ? » — un jugement, adressé à une
  *       organisation qui va y consacrer du temps, puis de l'argent.
  *
- *   Volume faible, texte lu avant paiement : c'est ce qui justifie le modèle le
- *   plus capable plutôt que le moins cher.
- *
  * ═══ DEUX TEXTES, DEUX DESTINATAIRES ══════════════════════════════════════
  *   `reason`    va à l'EXPERT : ce que son dossier a de solide, ce qui manque.
  *   `pitch_org` va à l'ORGANISATION, et il est affiché AVANT le déverrouillage
  *               payant.
  *
- * ═══ LA CONFORMITÉ N'EST PAS CONFIÉE AU PROMPT SEUL ═══════════════════════
- *   Une consigne de rédaction est une intention, pas une garantie. Trois
- *   barrières, dans cet ordre :
+ * ═══ LA CONFORMITÉ VIT DANS LE PROMPT, ET NULLE PART AILLEURS ═════════════
+ *   Il y avait une seconde barrière : les années étaient expurgées du document
+ *   envoyé, et un texte produit qui en contenait était refusé. Elle est
+ *   RETIRÉE, aux deux bouts.
  *
- *     1. CE QUI ENTRE. Le type d'entrée ne PEUT PAS porter de nom, d'employeur,
- *        de client, d'école ni de date : ces champs n'existent pas. Ce n'est pas
- *        un filtre, c'est une absence.
- *     2. CE QUI ENTRE, BIS. Les textes libres (résumé, description de poste)
- *        sont expurgés de toute ANNÉE avant l'envoi — un expert écrit « diplômé
- *        en 2015 » dans son résumé sans y penser, et l'année est une donnée
- *        identifiante autant qu'un discriminant d'âge.
- *     3. CE QUI SORT. Le texte est REFUSÉ s'il contient une année. On ne fait
- *        pas confiance à la consigne : on vérifie ce qui a été produit.
+ *   Ce qui l'a condamnée n'est pas le refus, c'est l'AMPUTATION. Sur une place
+ *   de marché Microsoft, les produits portent des années : SQL Server 2019,
+ *   Dynamics AX 2012, SharePoint 2016. Le modèle recevait « Expert Dynamics AX
+ *   … et SQL Server … » — privé de la précision technique qui fait justement la
+ *   valeur des profils les plus pointus, ceux pour lesquels une organisation
+ *   paie le déverrouillage. On effaçait la compétence en croyant protéger
+ *   l'âge.
  *
- *   La durée reste dite en RELATIF (« huit ans d'expérience »), jamais en dates.
+ *   La règle est donc redevenue une consigne, écrite en toutes lettres : ce qui
+ *   est interdit, ce qui est EXPLICITEMENT AUTORISÉ, et ce qui est exigé.
+ *   Autoriser explicitement les produits versionnés n'est pas un détail : sans
+ *   cela, un modèle prudent les éviterait de lui-même, et le défaut serait
+ *   reproduit par un autre chemin.
  *
- * ═══ IL NE BLOQUE JAMAIS UNE CANDIDATURE ══════════════════════════════════
- *   Un dépôt réussit même si Claude ne répond pas, ou si le plafond mensuel est
- *   atteint. La note reste nulle, les écrans savent se taire, l'organisation
- *   dévoile à la main, et `candidature_ai_health()` compte les dossiers sans
- *   jugement. Faire échouer un dépôt pour une panne qui ne concerne pas
- *   l'expert serait le punir de quelque chose qu'il ne peut ni voir ni corriger.
+ * ═══ RIEN NE BLOQUE UNE CANDIDATURE. C'EST LA RÈGLE LA PLUS IMPORTANTE ════
+ *   Modèle muet, plafond atteint, réponse illisible : la candidature est
+ *   déposée normalement et l'organisation la reçoit. Il manque un texte
+ *   d'agrément, pas un dossier. Chaque échec rend une CAUSE, et cette cause est
+ *   comptée (`ai_redaction_failures`) pour que l'absence de résumés se voie.
  */
 
 /**
@@ -58,7 +57,8 @@ export { contientUneAnnee, expurgerAnnees, lireNote, lireTexte } from './conform
  * Ce n'est pas un réflexe : c'est le SEUL appel de modèle qui subsiste hors
  * analyse de CV, son volume est d'un appel par candidature, et son texte est lu
  * par l'organisation AVANT qu'elle paie. Économiser ici se verrait dans la
- * qualité de la seule chose qu'on lui donne à lire.
+ * qualité de la seule chose qu'on lui donne à lire — et depuis ce lot, c'est
+ * lui, et lui seul, qui porte les règles de conformité.
  */
 const MODELE = 'claude-sonnet-5'
 const MAX_TOKENS = 1200
@@ -75,11 +75,25 @@ const COUT_USD_PAR_1M_SORTIE = 15
 export type Langue = 'fr' | 'en' | 'es' | 'de'
 
 /**
+ * Les trois raisons pour lesquelles un résumé n'est pas écrit.
+ *
+ * Elles restent DISTINCTES jusqu'à l'affichage : un compteur unique dirait
+ * seulement « il en manque beaucoup », là où trois compteurs disent lequel des
+ * trois problèmes on a — et donc quoi faire.
+ */
+export type CausePanne = 'plafond' | 'modele_indisponible' | 'reponse_illisible'
+
+/**
  * Ce que le modèle reçoit.
  *
  * REGARDEZ CE QUI N'Y EST PAS : ni nom, ni employeur, ni client, ni école, ni
- * ville, ni date, ni année de diplôme. Ces champs n'existent pas dans ce type —
- * on ne peut donc pas les transmettre par étourderie.
+ * ville, ni date. Ces champs n'existent pas dans ce type — on ne peut donc pas
+ * les transmettre par étourderie. C'est la seule barrière STRUCTURELLE qui
+ * subsiste, et c'est la plus solide : une absence ne se contourne pas.
+ *
+ * Le résumé et la description, eux, partent INTACTS. Ils sont écrits par
+ * l'expert et par l'organisation ; les amputer pour se rassurer revenait à
+ * juger un dossier sur un extrait qu'on a soi-même abîmé.
  */
 export type EntreeJugement = {
   locale: Langue
@@ -95,7 +109,7 @@ export type EntreeJugement = {
     summary: string | null
     skills: string[]
     seniorities: string[]
-    /** Durée RELATIVE, en années. Jamais une date. */
+    /** Durée RELATIVE, en années écoulées. Jamais une date. */
     years_total_experience: number | null
     /** Rôle et secteur seulement. L'employeur est absent du type. */
     experiences: Array<{ role: string | null; sector: string | null }>
@@ -111,7 +125,7 @@ export type Jugement = {
 
 export type ResultatJugement =
   | { ok: true; jugement: Jugement }
-  | { ok: false; raison: string }
+  | { ok: false; cause: CausePanne; raison: string }
 
 const LANGUES: Record<Langue, string> = {
   fr: 'français',
@@ -122,6 +136,18 @@ const LANGUES: Record<Langue, string> = {
 
 const propre = (v: string | null | undefined): string => (v ?? '').replace(/\s+/g, ' ').trim()
 
+/**
+ * LE PROMPT DE RÉDACTION — il porte désormais TOUTE la conformité.
+ *
+ * Les trois blocs d'instruction ne sont pas décoratifs :
+ *   INTERDIT   — ce qui identifierait la personne avant le déverrouillage ;
+ *   AUTORISÉ   — les produits versionnés, dits explicitement, sans quoi un
+ *                modèle prudent les éviterait et amputerait le texte lui-même ;
+ *   EXIGÉ      — la durée en relatif, là où une date viendrait naturellement.
+ *
+ * Les trois valent pour les DEUX textes. Le texte destiné à l'expert traverse
+ * les mêmes écrans que celui destiné à l'organisation.
+ */
 function construirePrompt(e: EntreeJugement): string {
   const p = e.profil
   const a = e.annonce
@@ -130,21 +156,17 @@ function construirePrompt(e: EntreeJugement): string {
     .filter(Boolean)
     .slice(0, 8)
 
-  // Les deux textes libres sont expurgés de toute année AVANT l'envoi.
-  const resume = expurgerAnnees(propre(p.summary)) || '(non précisé)'
-  const description = expurgerAnnees(propre(a.description))
-
   return `Tu évalues UNE candidature pour UNE annonce. Tu ne compares ce dossier à aucun autre : aucun autre dossier ne t'est présenté, et tu ne dois en supposer aucun.
 
 ANNONCE
 Titre : ${propre(a.title)}
-Description : ${description}
+Description : ${propre(a.description)}
 Compétences attendues : ${a.skills_required.join(', ') || '(non précisées)'}
 Séniorités recherchées : ${a.seniorities.join(', ') || '(non précisées)'}
 
 DOSSIER
 Titre : ${propre(p.title) || '(non précisé)'}
-Résumé : ${resume}
+Résumé : ${propre(p.summary) || '(non précisé)'}
 Compétences : ${p.skills.join(', ') || '(non précisées)'}
 Séniorités déclarées : ${p.seniorities.join(', ') || '(non précisées)'}
 Expérience totale : ${p.years_total_experience != null ? `${p.years_total_experience} an(s)` : '(non précisée)'}
@@ -155,10 +177,23 @@ CE QUE TU PRODUIS
 2. "reason" : 2 phrases maximum, adressées À L'EXPERT, en ${LANGUES[e.locale]}. Dis ce que son dossier a de solide pour ce besoin, et ce qui n'y répond pas. Sois précis et factuel ; ne le flatte pas et ne le décourage pas.
 3. "pitch_org" : 2 phrases maximum, adressées À L'ORGANISATION, en ${LANGUES[e.locale]}. Dis ce que cette personne apporte à ce besoin précis.
 
-INTERDICTIONS ABSOLUES, POUR LES DEUX TEXTES
-- Ne nomme JAMAIS une personne, un employeur, un client, une école ni une ville. Ces textes sont affichés AVANT que l'organisation n'ait accès à l'identité du candidat : le moindre nom contournerait ce masquage.
-- N'écris JAMAIS d'année ni de date. Exprime toute durée en RELATIF : « huit ans d'expérience », « plusieurs années sur ce type de poste ». Une année de diplôme est une donnée identifiante, et un discriminant d'âge.
-- N'invente rien qui ne figure pas dans le dossier ci-dessus.
+═══ RÈGLES DE RÉDACTION — ELLES VALENT POUR LES DEUX TEXTES ═══
+
+Ces deux textes sont affichés AVANT que l'organisation n'ait accès à l'identité du candidat. Ce sont les seuls textes qui traversent ce masquage : ce que tu y écris ne peut plus être retiré.
+
+INTERDIT — n'écris JAMAIS :
+- une année de diplôme, une année de naissance, une année de début de carrière, ni aucune date de début ou de fin de poste ;
+- le nom d'un employeur ou d'un client de cette personne, même s'il apparaît dans le dossier ci-dessus ;
+- le nom d'une personne, d'une école, d'une ville ou d'un quartier ;
+- toute autre donnée permettant d'identifier la personne : identifiant, adresse, coordonnée, particularité unique.
+
+AUTORISÉ, ET MÊME ATTENDU — écris SANS HÉSITER :
+- les noms de produits et de technologies, Y COMPRIS lorsqu'ils contiennent une année, car l'année fait partie du nom du produit et non de l'identité de la personne. Exemples : Dynamics AX 2012, SQL Server 2019, SharePoint 2016, Windows Server 2022, Visual Studio 2022, Exchange 2019, Office 365.
+- Ces versions sont ce qui distingue un profil d'un autre sur cet écosystème. Les taire appauvrirait ton texte exactement là où il a le plus de valeur.
+
+EXIGÉ — pour toute notion de durée :
+- exprime-la en RELATIF, jamais par des dates. Écris « 8 ans sur Dynamics », « plusieurs années sur ce type de poste », « une expérience récente sur cette version » ;
+- n'écris jamais « depuis 2016 », « de 2019 à 2022 », « diplômé en 2015 ».
 
 Réponds STRICTEMENT en JSON, sans aucun texte avant ou après :
 {"score": <entier 0..10>, "reason": "<texte>", "pitch_org": "<texte>"}`
@@ -189,21 +224,31 @@ function extraireJson(texte: string): Record<string, unknown> | null {
  *
  * AUCUN REPLI DE MODÈLE, et c'est délibéré : le dossier est déjà déposé, et un
  * jugement qui arrive trente secondes plus tard ne sert personne. L'absence de
- * jugement est un état PRÉVU, compté par `candidature_ai_health()`.
+ * jugement est un état PRÉVU — et désormais COMPTÉ, avec sa cause.
  */
 async function appeler(args: {
   supabaseAdmin: SupabaseClient
   domainId: string | null
   prompt: string
   contexte: Record<string, unknown>
-}): Promise<{ ok: true; charge: Record<string, unknown> } | { ok: false; raison: string }> {
+}): Promise<
+  { ok: true; charge: Record<string, unknown> } | { ok: false; cause: CausePanne; raison: string }
+> {
   if (process.env.ENABLE_AI_CANDIDATURE_ASSESSMENT === 'false') {
-    return { ok: false, raison: 'jugement désactivé par interrupteur' }
+    return {
+      ok: false,
+      cause: 'modele_indisponible',
+      raison: 'jugement désactivé par interrupteur',
+    }
   }
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
     console.error('[jugement] ANTHROPIC_API_KEY absente')
-    return { ok: false, raison: 'clé du modèle absente de l environnement' }
+    return {
+      ok: false,
+      cause: 'modele_indisponible',
+      raison: 'clé du modèle absente de l environnement',
+    }
   }
 
   // Le budget est vérifié AVANT l'appel. Au plafond, on ne juge pas — et on le
@@ -211,7 +256,7 @@ async function appeler(args: {
   const budget = await budgetDisponible(args.supabaseAdmin, 'claude')
   if (!budget.ok) {
     console.warn('[jugement] non rendu', { ...args.contexte, raison: budget.raison })
-    return { ok: false, raison: budget.raison }
+    return { ok: false, cause: 'plafond', raison: budget.raison }
   }
 
   let reponse: Anthropic.Messages.Message
@@ -227,7 +272,7 @@ async function appeler(args: {
       ...args.contexte,
       cause: err instanceof Error ? err.message : String(err),
     })
-    return { ok: false, raison: 'appel au modèle en échec' }
+    return { ok: false, cause: 'modele_indisponible', raison: 'appel au modèle en échec' }
   }
 
   // Dépense enregistrée sur les jetons RÉELLEMENT consommés, jamais estimés.
@@ -245,7 +290,7 @@ async function appeler(args: {
   const charge = extraireJson(texteFinal(reponse))
   if (!charge) {
     console.error('[jugement] réponse illisible', args.contexte)
-    return { ok: false, raison: 'réponse du modèle illisible' }
+    return { ok: false, cause: 'reponse_illisible', raison: 'réponse du modèle illisible' }
   }
   return { ok: true, charge }
 }
@@ -262,7 +307,7 @@ export async function jugerCandidature(args: {
     prompt: construirePrompt(args.entree),
     contexte: { candidature_id: args.candidatureId },
   })
-  if (!appel.ok) return { ok: false, raison: appel.raison }
+  if (!appel.ok) return { ok: false, cause: appel.cause, raison: appel.raison }
 
   const score = lireNote(appel.charge.score)
   const reason = lireTexte(appel.charge.reason)
@@ -278,17 +323,11 @@ export async function jugerCandidature(args: {
       reason_present: !!reason,
       pitch_present: !!pitch,
     })
-    return { ok: false, raison: 'jugement incomplet rendu par le modèle' }
-  }
-
-  // TROISIÈME BARRIÈRE : on vérifie le texte produit, on ne se fie pas à la
-  // consigne. Une année dans un texte lu avant le déverrouillage est une donnée
-  // identifiante que le masquage n'aurait pas arrêtée.
-  if (contientUneAnnee(pitch) || contientUneAnnee(reason)) {
-    console.error('[jugement] texte REFUSÉ : contient une année malgré la consigne', {
-      candidature: args.candidatureId,
-    })
-    return { ok: false, raison: 'texte produit non conforme (année présente)' }
+    return {
+      ok: false,
+      cause: 'reponse_illisible',
+      raison: 'jugement incomplet rendu par le modèle',
+    }
   }
 
   return { ok: true, jugement: { score, reason, pitch_org: pitch, model: MODELE } }
@@ -312,7 +351,7 @@ export async function jugerCandidature(args: {
  */
 export type ResultatPitch =
   | { ok: true; pitch: string; deja: boolean }
-  | { ok: false; raison: string }
+  | { ok: false; cause: CausePanne; raison: string }
 
 export async function redigerPitchOrg(args: {
   supabaseAdmin: SupabaseClient
@@ -331,15 +370,15 @@ export async function redigerPitchOrg(args: {
     prompt: construirePrompt(args.entree),
     contexte: { match_id: args.matchId },
   })
-  if (!appel.ok) return { ok: false, raison: appel.raison }
+  if (!appel.ok) return { ok: false, cause: appel.cause, raison: appel.raison }
 
   const pitch = lireTexte(appel.charge.pitch_org)
-  if (!pitch) return { ok: false, raison: 'aucun pitch rendu par le modèle' }
-  if (contientUneAnnee(pitch)) {
-    console.error('[pitch] texte REFUSÉ : contient une année malgré la consigne', {
-      match: args.matchId,
-    })
-    return { ok: false, raison: 'texte produit non conforme (année présente)' }
+  if (!pitch) {
+    return {
+      ok: false,
+      cause: 'reponse_illisible',
+      raison: 'aucun pitch rendu par le modèle',
+    }
   }
   return { ok: true, pitch, deja: false }
 }

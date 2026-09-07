@@ -66,11 +66,20 @@ type LigneCouverture = {
   lots_rerank_en_echec: number
 }
 
+/** Une panne de rédaction, par cause et par surface. Jamais agrégée. */
+type LignePanne = {
+  cause: 'plafond' | 'modele_indisponible' | 'reponse_illisible' | string
+  surface: 'candidature' | 'pitch' | string
+  pannes: number
+  derniere: string | null
+}
+
 type Charge = {
   reglages: Reglage[]
   distribution: LigneDistribution[] | null
   depense: LigneDepense[] | null
   couverture: LigneCouverture[] | null
+  pannes: LignePanne[] | null
 }
 
 const carte: React.CSSProperties = {
@@ -241,6 +250,39 @@ export default function AdminMatchingPage() {
           </div>
         )}
         <div style={aide}>{t('spend.help')}</div>
+      </section>
+
+      {/* ── LES RÉSUMÉS QUI N'ONT PAS PU ÊTRE ÉCRITS ────────────────────
+          Placé juste après la dépense, et pas ailleurs : la dépense Claude
+          affichée au-dessus ne sert QUE la rédaction de ces résumés. « Ce que
+          l'IA coûte » et « ce qu'elle n'a pas pu faire » se lisent ensemble. */}
+      <section style={carte}>
+        <div style={titreBloc}>{t('failures.title')}</div>
+        {charge?.pannes === null ? (
+          <div style={{ fontSize: 13, color: '#b45309' }}>{t('failures.unavailable')}</div>
+        ) : (charge?.pannes ?? []).length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--sk-faint)' }}>{t('failures.none')}</div>
+        ) : (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {(charge?.pannes ?? []).map((p) => (
+              <div
+                key={`${p.cause}:${p.surface}`}
+                style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 8, fontSize: 13.5 }}
+              >
+                {/* Les trois causes restent DISTINCTES jusqu'ici : les additionner
+                    reproduirait le compteur unique qu'on remplace. */}
+                <span style={{ fontWeight: 600, color: 'var(--sk-text)' }}>
+                  {t(`failures.cause.${p.cause}` as 'failures.cause.plafond')}
+                </span>
+                <span style={{ color: 'var(--sk-muted)' }}>
+                  {t(`failures.surface.${p.surface}` as 'failures.surface.candidature')}
+                </span>
+                <span style={{ color: 'var(--sk-text)', fontWeight: 600 }}>{p.pannes}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={aide}>{t('failures.help')}</div>
       </section>
 
       {/* ── LA DISTRIBUTION OBSERVÉE ───────────────────────────────────── */}

@@ -12,6 +12,7 @@ import { performUnlock } from '@/lib/unlock'
 import { publicationCandidaturesLinkForOrg } from '@/lib/collaboration-links'
 import { isActivePublished } from '@/lib/publications/expiry'
 import { jugerCandidature } from '@/lib/candidatures/ai-assessment'
+import { enregistrerPanne } from '@/lib/candidatures/pannes-redaction'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -318,11 +319,19 @@ export async function POST(request: NextRequest): Promise<Response> {
         },
       })
       if (!resultat.ok) {
-        // Journalisé avec sa RAISON. Une note absente sans raison enverrait
-        // chercher un bug là où il n'y a qu'un plafond atteint.
+        // Journalisé avec sa CAUSE, et COMPTÉ avec elle. Une note absente sans
+        // cause enverrait chercher un bug là où il n'y a qu'un plafond atteint.
         console.warn('[candidatures:POST] aucun jugement rendu', {
           candidature: row.id,
+          cause: resultat.cause,
           raison: resultat.raison,
+        })
+        await enregistrerPanne(auth.supabaseAdmin, {
+          cause: resultat.cause,
+          surface: 'candidature',
+          domain_id: pubRow.domain_id,
+          entity_id: row.id,
+          detail: resultat.raison,
         })
         // Le dévoilement inclus a lieu QUAND MÊME : une place offerte ne doit
         // pas rester vide parce qu'un modèle n'a pas répondu. Faute de note, le

@@ -1,46 +1,43 @@
 /**
- * CONFORMITÉ DES TEXTES PRODUITS PAR LE MODÈLE — et rien d'autre.
+ * LECTURE STRICTE DE LA RÉPONSE DU MODÈLE — et rien d'autre.
  *
- * POURQUOI CE FICHIER EST SÉPARÉ, ET SANS AUCUNE DÉPENDANCE
- *   Ces quatre fonctions sont les seules barrières entre un texte rédigé par un
- *   modèle et une organisation qui n'a pas encore payé pour voir l'identité du
- *   candidat. Elles doivent pouvoir être ÉPROUVÉES à l'exécution, sur des cas
- *   écrits, sans démarrer un client HTTP ni lire une clé d'API.
+ * ═══ OÙ VIT LA CONFORMITÉ, DEPUIS CE LOT ══════════════════════════════════
+ *   DANS LE PROMPT DE RÉDACTION, et nulle part ailleurs. Ce fichier ne filtre
+ *   plus rien de ce que le modèle écrit.
  *
- *   Tant qu'elles vivaient à côté de l'appel au modèle, le diagnostic ne pouvait
- *   pas les importer : le module tirait le SDK et le compteur de dépense avec
- *   lui. Un garde-fou qu'on ne peut pas éprouver n'est qu'une intention.
+ *   Il portait une barrière « année » : les années étaient expurgées du
+ *   document ENVOYÉ, et un texte produit qui en contenait était refusé.
+ *   L'intention était juste — une année de diplôme est une donnée identifiante
+ *   autant qu'un discriminant d'âge — mais le contrôle était trop large, et son
+ *   effet le plus grave n'était pas le refus.
  *
- * CE QU'ELLES DÉFENDENT
- *   `pitch_org` est lu AVANT le déverrouillage payant : c'est le seul texte qui
- *   traverse le masquage. Un nom d'école, une année de diplôme, et le masquage
- *   est contourné — sans erreur, sans changement d'écran, sans que personne le
- *   sache.
+ *   SUR UNE PLACE DE MARCHÉ MICROSOFT, LES PRODUITS PORTENT DES ANNÉES.
+ *   SQL Server 2019, Dynamics AX 2012, SharePoint 2016, Visual Studio 2022.
+ *   L'expurgation d'entrée transformait « Expert Dynamics AX 2012 et SQL Server
+ *   2019 » en « Expert Dynamics AX … et SQL Server … » : le modèle recevait un
+ *   document amputé de sa précision technique AVANT même d'écrire. On effaçait
+ *   la compétence en croyant protéger l'âge — et précisément sur les profils les
+ *   plus pointus, ceux qui valent le déverrouillage.
+ *
+ *   La règle est donc redevenue une CONSIGNE, écrite en toutes lettres dans le
+ *   prompt : ce qui est interdit, ce qui est explicitement autorisé (les noms de
+ *   produits versionnés), et ce qui est exigé (des durées relatives).
+ *
+ * ═══ CE QUI RESTE ICI, ET POURQUOI CE N'EST PAS LA MÊME CHOSE ═════════════
+ *   Deux lecteurs, pas deux filtres. Ils ne jugent PAS le contenu du texte : ils
+ *   vérifient que le modèle a bien répondu quelque chose d'exploitable.
+ *
+ *     `lireNote`  — une note absente rend `null`, jamais 0. Un 0 fabriqué serait
+ *                   un verdict que personne n'a rendu, et il pèserait sur le
+ *                   dévoilement inclus, qui départage à la note.
+ *     `lireTexte` — une chaîne vide rend `null`, jamais "". Mieux vaut se taire
+ *                   que rendre du vide, et un texte trop long est borné à ce que
+ *                   la carte peut afficher.
+ *
+ *   Ils restent sans AUCUNE dépendance : c'est ce qui les rend éprouvables à
+ *   l'exécution, hors de tout client HTTP. Un lecteur qu'on ne peut pas
+ *   éprouver n'est qu'une intention.
  */
-
-/**
- * Une année, 1900–2099. Sert DEUX FOIS, et c'est voulu : à expurger ce qui
- * entre, et à refuser ce qui sort.
- *
- * POURQUOI L'ANNÉE PLUTÔT QUE « TOUT NOMBRE » : « 12 personnes », « 300
- * serveurs » sont des faits utiles au jugement. Une année, elle, n'apporte rien
- * qu'une durée relative ne dise mieux — et c'est à la fois une donnée
- * identifiante et un discriminant d'âge.
- */
-const ANNEE_SOURCE = '\\b(19|20)\\d{2}\\b'
-
-/** Retire les années d'un texte libre sans le vider de son sens. */
-export function expurgerAnnees(texte: string): string {
-  return texte
-    .replace(new RegExp(ANNEE_SOURCE, 'g'), '…')
-    .replace(/\s{2,}/g, ' ')
-    .trim()
-}
-
-/** Un texte contient-il une année ? Un texte produit qui en contient est REFUSÉ. */
-export function contientUneAnnee(texte: string): boolean {
-  return new RegExp(ANNEE_SOURCE).test(texte)
-}
 
 /**
  * Lecture STRICTE d'une note.

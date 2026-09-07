@@ -3616,6 +3616,21 @@
       "notify_enabled": "Activer les notifications",
       "notify_enabled_help": "Laissé inactif tant que personne n'a lu la distribution : un seuil deviné préviendrait au hasard.",
       "model": "Modèle : {model}. En changer change l’échelle — les deux seuils deviennent faux."
+    },
+    "failures": {
+      "title": "Résumés non produits (30 derniers jours)",
+      "none": "Tous les résumés demandés ont été écrits.",
+      "unavailable": "Le compteur n'a pas pu être lu. Ce n'est pas zéro : c'est inconnu.",
+      "help": "Trois causes, jamais additionnées : elles n'appellent pas la même action. Une candidature dont le résumé manque est déposée normalement — il lui manque un texte, pas un dossier.",
+      "cause": {
+        "plafond": "Plafond de dépense atteint",
+        "modele_indisponible": "Modèle indisponible",
+        "reponse_illisible": "Réponse illisible"
+      },
+      "surface": {
+        "candidature": "au dépôt",
+        "pitch": "à l'ouverture d'une carte"
+      }
     }
   },
   "ecosystem_switcher": {

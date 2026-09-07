@@ -3616,6 +3616,21 @@
       "notify_enabled": "Benachrichtigungen aktivieren",
       "notify_enabled_help": "Bleibt aus, bis jemand die Verteilung gelesen hat: Eine geratene Schwelle würde zufällig benachrichtigen.",
       "model": "Modell: {model}. Ein Wechsel ändert die Skala — beide Schwellen werden dadurch falsch."
+    },
+    "failures": {
+      "title": "Nicht erstellte Zusammenfassungen (letzte 30 Tage)",
+      "none": "Alle angeforderten Zusammenfassungen wurden geschrieben.",
+      "unavailable": "Der Zähler konnte nicht gelesen werden. Das ist nicht null, sondern unbekannt.",
+      "help": "Drei Ursachen, die nie addiert werden: Sie erfordern nicht dieselbe Maßnahme. Eine Bewerbung ohne Zusammenfassung wird ganz normal eingereicht — ihr fehlt ein Text, keine Unterlage.",
+      "cause": {
+        "plafond": "Ausgabenobergrenze erreicht",
+        "modele_indisponible": "Modell nicht verfügbar",
+        "reponse_illisible": "Unlesbare Antwort"
+      },
+      "surface": {
+        "candidature": "beim Einreichen",
+        "pitch": "beim Öffnen einer Karte"
+      }
     }
   },
   "ecosystem_switcher": {
