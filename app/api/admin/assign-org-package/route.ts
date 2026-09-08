@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { abonnementStripeVivant } from '@/lib/billing/attribution-manuelle'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -91,6 +92,25 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   if (!pkg || !(pkg.active as boolean)) {
     return json({ error: 'Package not found or inactive', code: 'invalid_package' }, 400)
+  }
+
+  // ── GARDE-FOU : on n'ecrase pas un abonnement PAYE ─────────────────────────
+  //  L'attribution manuelle est faite pour les comptes PILOTES, a qui l'on ouvre
+  //  des droits sans paiement. Sur une organisation abonnee, elle produirait deux
+  //  degats muets : l'offre change sans qu'on ait facture ni rembourse, puis le
+  //  prochain evenement Stripe la reecrit — l'admin voit son geste s'annuler
+  //  seul, sans explication.
+  //
+  //  AU SERVEUR : griser un bouton au back-office ne garderait rien, un POST
+  //  direct sur cette route passerait.
+  if (await abonnementStripeVivant(auth.supabaseAdmin, organizationId)) {
+    return json(
+      {
+        error: 'Organization has a live Stripe subscription',
+        code: 'org_has_stripe_subscription',
+      },
+      409,
+    )
   }
 
   // ── Attribution ─────────────────────────────────────────────────────────────

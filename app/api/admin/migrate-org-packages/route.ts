@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { organisationsAbonnees } from '@/lib/billing/attribution-manuelle'
 import { COVERAGE_TARGETS, covers } from '@/lib/package-default'
 
 export const runtime = 'nodejs'
@@ -139,12 +140,46 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ ok: true, migrated: 0 }, 200)
   }
 
+  // ── GARDE-FOU : les organisations ABONNÉES sont ÉCARTÉES, pas migrées ──────
+  //  Cette route écrasait `package_id` ET remettait `package_valid_until` à
+  //  null, en masse, sans regarder si une organisation payait. Sur un abonné
+  //  cela retirait l'échéance de son abonnement — le moteur de droits lit
+  //  précisément cette date, l'organisation basculait donc sur une autre offre
+  //  sans qu'on ait rien facturé ni remboursé.
+  //
+  //  Une garde posée seulement sur l'attribution unitaire se serait contournée
+  //  par ici : DEUX routes écrivent `organizations.package_id`, la garde est
+  //  donc partagée (lib/billing/attribution-manuelle).
+  //
+  //  ÉCARTÉES et non refusées en bloc : une migration de catalogue ne doit pas
+  //  échouer entièrement parce qu'une organisation sur trois cents paie. Les
+  //  écartées sont COMPTÉES dans la réponse et dans l'audit.
+  const { data: concernees, error: concErr } = await auth.supabaseAdmin
+    .from('organizations')
+    .select('id')
+    .eq('package_id', fromId)
+  if (concErr) {
+    console.error('[admin:migrate-org-packages] lookup failed', concErr.message)
+    return json({ error: 'Query failed', code: 'db_error' }, 500)
+  }
+  const idsConcernes = ((concernees ?? []) as { id: string }[]).map((o) => o.id)
+  const abonnees = await organisationsAbonnees(auth.supabaseAdmin, idsConcernes)
+  const idsEcartes = new Set(abonnees.map((a) => a.organizationId))
+  const idsAMigrer = idsConcernes.filter((id) => !idsEcartes.has(id))
+
+  if (idsAMigrer.length === 0) {
+    return json(
+      { ok: true, migrated: 0, skipped_subscribed: idsEcartes.size, code: 'all_subscribed' },
+      200,
+    )
+  }
+
   // ── Application ────────────────────────────────────────────────────────────
   const now = new Date().toISOString()
   const { data: updated, error: updErr } = await auth.supabaseAdmin
     .from('organizations')
     .update({ package_id: toId, package_started_at: now, package_valid_until: null })
-    .eq('package_id', fromId)
+    .in('id', idsAMigrer)
     .select('id')
   if (updErr) {
     console.error('[admin:migrate-org-packages] update failed', updErr.message)
@@ -163,6 +198,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       from: { id: from.id, slug: from.slug, name: from.name, target_role: from.target_role },
       to: { id: to.id, slug: to.slug, name: to.name, target_role: to.target_role },
       count: migrated,
+      skipped_subscribed: idsEcartes.size,
     },
   })
 
