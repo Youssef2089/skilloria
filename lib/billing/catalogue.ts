@@ -2,6 +2,7 @@ import type Stripe from 'stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getStripe, toMinorUnits } from '@/lib/billing/stripe'
 import { META_PACKAGE_SLUG } from '@/lib/billing/resolve'
+import { cleProduit, clePrix } from '@/lib/billing/idempotence'
 
 /**
  * lib/billing/catalogue.ts — SYNCHRONISATION SORTANTE, JAMAIS ENTRANTE.
@@ -109,9 +110,17 @@ async function ensureProduct(
     return pkg.stripe_product_id
   }
 
-  // Rattrapage : un product a pu être créé lors d'une synchro interrompue avant
-  // l'écriture en base. On le retrouve par sa métadonnée plutôt que d'en créer
-  // un doublon.
+  // RÉCUPÉRATION LONGUE, et non protection contre les doublons.
+  //
+  //  Un product a pu être créé lors d'une synchro interrompue avant l'écriture
+  //  en base. Cette recherche le retrouve — mais elle ne garantit RIEN sur le
+  //  court terme : l'index de recherche de Stripe est différé d'environ une
+  //  minute, il ne voit pas un produit créé quelques secondes plus tôt.
+  //
+  //  Ce n'est donc plus elle qui empêche le doublon : c'est la clé
+  //  d'idempotence, juste en dessous. Elle reste ici pour le SEUL cas qu'une
+  //  clé ne couvre pas — un orphelin découvert plus de 24 h après, au-delà de
+  //  la fenêtre de mémorisation de Stripe.
   const found = await stripe.products.search({
     query: `metadata['${META_PACKAGE_SLUG}']:'${pkg.slug}'`,
     limit: 2,
@@ -121,11 +130,17 @@ async function ensureProduct(
     return found.data[0].id
   }
 
-  const created = await stripe.products.create({
-    name: pkg.name,
-    description: pkg.description ?? undefined,
-    metadata: { [META_PACKAGE_SLUG]: pkg.slug, skilloria_target_role: pkg.target_role },
-  })
+  // LA CLÉ FERME LA COURSE. Deux synchros concurrentes de la même offre
+  // présentent la même clé dérivée : Stripe renvoie l'objet de la première au
+  // lieu d'en créer un second. Voir lib/billing/idempotence.
+  const created = await stripe.products.create(
+    {
+      name: pkg.name,
+      description: pkg.description ?? undefined,
+      metadata: { [META_PACKAGE_SLUG]: pkg.slug, skilloria_target_role: pkg.target_role },
+    },
+    { idempotencyKey: cleProduit(pkg) },
+  )
   actions.push('product créé')
   return created.id
 }
@@ -162,13 +177,28 @@ async function ensureMonthlyPrice(
     }
   }
 
-  const created = await stripe.prices.create({
-    product: productId,
-    currency: pkg.currency.toLowerCase(),
-    unit_amount: minor.value,
-    recurring: { interval: 'month' },
-    metadata: { [META_PACKAGE_SLUG]: pkg.slug },
-  })
+  // Clé dérivée du produit, de la devise et du MONTANT : rejouer la même
+  // synchro ne crée pas un second prix identique (le défaut survenait dès que
+  // l'écriture en base échouait après la création), tandis qu'un changement de
+  // tarif donne une clé différente — donc bien un nouveau Price, comme le veut
+  // le grand-père tarifaire.
+  const created = await stripe.prices.create(
+    {
+      product: productId,
+      currency: pkg.currency.toLowerCase(),
+      unit_amount: minor.value,
+      recurring: { interval: 'month' },
+      metadata: { [META_PACKAGE_SLUG]: pkg.slug },
+    },
+    {
+      idempotencyKey: clePrix({
+        slug: pkg.slug,
+        productId,
+        currency: pkg.currency,
+        unitAmount: minor.value,
+      }),
+    },
+  )
   actions.push(`price créé (${minor.value} ${pkg.currency})`)
 
   if (pkg.stripe_price_id_monthly && pkg.stripe_price_id_monthly !== created.id) {
