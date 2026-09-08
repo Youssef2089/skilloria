@@ -3642,6 +3642,18 @@
         "disponibilite": "Cambio de disponibilidad",
         "cv_reanalyse": "CV reanalizado"
       }
+    },
+    "unfinished": {
+      "title": "Emparejamientos no finalizados",
+      "none": "Ninguno: todos los anuncios publicados se han procesado por completo.",
+      "unavailable": "No se ha podido leer el contador. No es cero: es desconocido.",
+      "depuis": "desde el {date}",
+      "help": "Un emparejamiento sin finalizar no produce candidatos para la organización ni anuncios para el experto, y nada lo indica en sus pantallas. «Abandonado» es el único estado que exige intervención: superado el límite de intentos, el anuncio ya no se reintenta solo. Los tres estados nunca se suman: no exigen la misma acción.",
+      "etat": {
+        "en_cours": "Se reintentará",
+        "abandonne": "Abandonado: requiere intervención",
+        "jamais_tente": "Nunca intentado: el disparador no funcionó"
+      }
     }
   },
   "ecosystem_switcher": {

@@ -82,9 +82,20 @@ function normalisationsSurLeLot(src) {
 
 /** Un plafond de vivier : une limite posée sur le nombre de profils chargés. */
 function plafondsDeVivier(src) {
+  // LU SUR LE CODE SEUL. Le module explique désormais dans son en-tête pourquoi
+  // il n'a PAS de `.limit()` — et un détecteur qui lit la prose trouvait ce
+  // `.limit()`-là, donc criait au plafond sur le commentaire qui dit qu'il n'y
+  // en a pas. Un contrôle qui crie à tort finit ignoré.
+  const code = src
+    .split('\n')
+    .filter((l) => {
+      const t = l.trim()
+      return t.length > 0 && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*')
+    })
+    .join('\n')
   const motifs = [/\.limit\(/g, /max_candidates/g, /maxCandidates/g, /\.slice\(0,\s*max/gi]
   const t = []
-  for (const m of motifs) for (const x of src.matchAll(m)) t.push(x[0])
+  for (const m of motifs) for (const x of code.matchAll(m)) t.push(x[0])
   return t
 }
 
@@ -216,11 +227,16 @@ section('F. LE BUDGET, ET CE QUI SE PASSE AU PLAFOND')
 
 const RERANK = read('lib/matching/rerank.ts')
 {
-  // Le contrôle de budget doit être DANS la boucle sur les lots, pas avant.
-  const debutBoucle = RERANK.indexOf('for (const lot of lots)')
+  // Le contrôle de budget doit être DANS la boucle de notation, pas avant.
+  //
+  // LA BOUCLE A CHANGÉ DE FORME, PAS D'INTENTION : les lots ne s'enchaînent
+  // plus un à un, ils partent par vagues (la séquence était le mur des 60 s).
+  // Ce qui doit rester vrai, c'est que le budget soit relu À CHAQUE TOUR —
+  // qu'un tour porte un lot ou quatre ne change rien à la règle.
+  const debutBoucle = RERANK.indexOf('for (const vague of enLots(lots, CONCURRENCE_LOTS))')
   const appelBudget = RERANK.indexOf('budgetDisponible(', debutBoucle)
   ok(debutBoucle !== -1 && appelBudget > debutBoucle,
-    'le budget est relu ENTRE LES LOTS',
+    'le budget est relu à CHAQUE TOUR de notation',
     'vérifié une seule fois au début, un run géant dépasse le plafond de dix fois')
 }
 ok(/arret\s*=\s*budget\.raison/.test(RERANK),
