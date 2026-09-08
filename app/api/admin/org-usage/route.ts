@@ -21,9 +21,11 @@ export const dynamic = 'force-dynamic'
  * slot). Même définition exacte que le gate publish et que
  * /api/me/collaboration/quota — un seul comptage, trois lecteurs.
  *
- * Domaine ciblé = organization_domains ACTIVE unique (même règle que
- * assign-org-package) : 0 → available:false 'no_active_domain' ; >1 →
- * available:false 'multiple_active_domains'. Garde admin per-route. service_role.
+ * L'ABONNEMENT VIT SUR L'ORGANISATION : il n'y a plus de domaine à cibler, et
+ * les deux réponses `available: false` ('no_active_domain',
+ * 'multiple_active_domains') ont disparu avec lui — elles masquaient TOUT
+ * l'écran de pilotage au nom d'un rattachement qui ne porte plus rien.
+ * Garde admin per-route. service_role.
  */
 
 function json(data: unknown, status = 200): Response {
