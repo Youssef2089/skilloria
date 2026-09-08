@@ -131,6 +131,62 @@ ok('le brouillon n’est soldé QUE si le run s’est achevé',
   'soldé plus tôt, il rouvre exactement le mur qu’il ferme')
 
 // ═══════════════════════════════════════════════════════════════════════════
+titre('(B bis) L’INDÉPENDANCE DES NOTES SURVIT À LA PARALLÉLISATION')
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   C'est l'exigence la plus forte du moteur, et la parallélisation est
+//   précisément le genre de changement qui pourrait l'entamer sans bruit. Si le
+//   découpage ou l'ordre d'envoi influençait la note d'un expert, on aurait
+//   recréé une compétition invisible — celle que le départ de Claude avait
+//   supprimée.
+//
+//   LA PREUVE TIENT EN QUATRE POINTS, et chacun est vérifiable ici :
+//     1. la note d'un document ne dépend que de (requête, document) DANS SON
+//        PROPRE APPEL — le lot est le seul contexte, et `top_n` vaut sa taille,
+//        donc aucun document n'est écarté par comparaison avec ses voisins ;
+//     2. la constitution d'un lot ne lit JAMAIS les notes déjà obtenues : sans
+//        cette lecture, l'ordre d'exécution ne peut pas entrer dans le calcul ;
+//     3. les notes sont rangées PAR IDENTIFIANT, jamais par position — une
+//        arrivée dans le désordre ne peut pas les permuter ;
+//     4. le découpage en vagues est une partition pure de la liste des lots,
+//        sans tri ni réordonnancement.
+//
+//   Autrement dit : changer la concurrence ne peut déplacer aucune note, parce
+//   que ni l'ordre ni le parallélisme n'apparaissent nulle part dans le calcul.
+
+{
+  const iVague = RERANK.indexOf('for (const vague of enLots(lots, CONCURRENCE_LOTS))')
+  const iRetour = RERANK.indexOf('return { scores, notes', iVague)
+  const corpsBoucle = iVague >= 0 && iRetour > iVague ? RERANK.slice(iVague, iRetour) : ''
+  const codeBoucle = sansCommentaires(corpsBoucle)
+
+  ok('1. la note ne dépend que de son propre lot (top_n = taille du lot)',
+    /top_n: args\.lot\.length/.test(RERANK))
+
+  // Le point qui compte : rien dans la constitution d'un lot ne lit `scores`.
+  const iMap = codeBoucle.indexOf('vague.map(')
+  const iFinMap = codeBoucle.indexOf('return { lot, r }', iMap)
+  const closure = iMap >= 0 && iFinMap > iMap ? codeBoucle.slice(iMap, iFinMap) : ''
+  ok('2. la constitution d’un lot ne lit AUCUNE note déjà obtenue',
+    closure.length > 0 && !/\bscores\b/.test(closure),
+    'une dépendance aux notes précédentes ferait entrer l’ordre d’exécution dans le calcul')
+
+  ok('3. les notes sont rangées par IDENTIFIANT, jamais par position',
+    /scores\.set\(s\.id, s\.score\)/.test(codeBoucle),
+    'rangées par index, une arrivée dans le désordre les permuterait')
+  ok('3. aucune note n’est rangée par indice de tableau',
+    !/scores\[\s*i\s*\]|scores\.set\(i,/.test(codeBoucle))
+
+  ok('4. le découpage en vagues est une partition pure, sans tri',
+    /enLots\(lots, CONCURRENCE_LOTS\)/.test(codeBoucle) && !/\.sort\(/.test(codeBoucle),
+    'trier les lots avant envoi ferait dépendre le résultat de l’ordre')
+
+  // Et le lot lui-même n'est pas trié avant d'être envoyé.
+  ok('4. les documents ne sont pas triés avant l’appel',
+    !/documents[\s\S]{0,40}\.sort\(/.test(sansCommentaires(RERANK)))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 titre('(C) M3 — aucune liste d’identifiants entière dans une URL')
 // ═══════════════════════════════════════════════════════════════════════════
 
