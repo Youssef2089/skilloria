@@ -55,6 +55,30 @@ type Payload = {
    * droits, eux, viennent de `limits`, calculées par getOrgEntitlements.
    */
   subscription_status?: string | null
+  /**
+   * LE DERNIER MONTANT RÉELLEMENT PRÉLEVÉ. Source : `transactions`.
+   *
+   * Les `Price` Stripe sont IMMUABLES : une organisation abonnée à 349 € y reste
+   * même si le catalogue passe à 399 €. Afficher le prix catalogue à la place du
+   * prix payé est un litige commercial en puissance.
+   *
+   * `null` = aucun encaissement enregistré. On le DIT — jamais de repli sur le
+   * prix catalogue, ce repli-là réintroduirait le défaut par la bande.
+   */
+  billed?: {
+    amount: number | null
+    currency: string
+    period_end: string | null
+    paid_at: string | null
+  } | null
+  /**
+   * L'organisation est-elle ABONNÉE ? C'est ce qui décide quel prix fait foi.
+   *
+   * Abonnée : seul le montant prélevé compte. Non abonnée : elle est sur l'offre
+   * par défaut du catalogue, gratuite par contrainte de base — « Gratuit » est
+   * alors la vérité, pas un repli.
+   */
+  has_subscription?: boolean
 }
 
 /** Le drapeau déposé par la route de retour de paiement. Liste fermée. */
@@ -427,6 +451,28 @@ export default function MonOffrePage() {
         ? t('free')
         : `${new Intl.NumberFormat(locale, { style: 'currency', currency: pkg?.currency || 'EUR' }).format(Number(price))} ${t('per_month')}`
 
+  /**
+   * ┌─ QUEL PRIX FAIT FOI ────────────────────────────────────────────────────┐
+   * │ ABONNÉE  → le montant RÉELLEMENT PRÉLEVÉ, lu sur `transactions`. Les    │
+   * │            `Price` Stripe sont immuables : une organisation abonnée à   │
+   * │            349 € y reste quand le catalogue passe à 399 €. Lui montrer  │
+   * │            399 € serait lui annoncer un montant qu'on ne lui prend pas. │
+   * │            Aucun prélèvement encore enregistré → ON LE DIT. Retomber    │
+   * │            sur le prix catalogue rouvrirait le défaut par la bande.     │
+   * │                                                                          │
+   * │ NON ABONNÉE → le prix catalogue, et c'est la VÉRITÉ : elle est sur      │
+   * │            l'offre par défaut, gratuite par contrainte de base. Rien    │
+   * │            n'est prélevé, « Gratuit » n'est donc pas un repli.          │
+   * └────────────────────────────────────────────────────────────────────────┘
+   */
+  const abonnee = state.data.has_subscription === true
+  const preleve = state.data.billed ?? null
+
+  const montantPreleve =
+    preleve?.amount == null
+      ? null
+      : `${new Intl.NumberFormat(locale, { style: 'currency', currency: preleve.currency || 'EUR' }).format(Number(preleve.amount))} ${t('per_month')}`
+
   const validUntilLabel = validUntil
     ? t('valid_until', { date: new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(new Date(validUntil)) })
     : null
@@ -490,8 +536,27 @@ export default function MonOffrePage() {
             {/* name null (lookup dégradé) → repli sur le slug, jamais vide. */}
             {pkg?.name || pkg?.slug}
           </span>
-          <span style={{ fontSize: 14, fontWeight: 600, color: '#475569' }}>{priceLabel}</span>
+          {/* ABONNÉE : le montant prélevé, jamais le prix catalogue. NON
+              ABONNÉE : le prix catalogue, qui est alors la vérité. */}
+          <span style={{ fontSize: 14, fontWeight: 600, color: '#475569' }}>
+            {abonnee ? (montantPreleve ?? '—') : priceLabel}
+          </span>
         </div>
+
+        {/* Le montant prélevé s'annonce comme tel, et dit pourquoi il peut
+            différer du catalogue. Un « — » sans explication ferait croire à une
+            panne, alors qu'il signale simplement qu'aucun paiement n'a encore
+            été confirmé. */}
+        {abonnee && (
+          <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#64748b', lineHeight: 1.5 }}>
+            {montantPreleve
+              ? `${t('billed_label')} · ${t('billed_note')}`
+              : t('billed_pending')}
+          </p>
+        )}
+        {!abonnee && price != null && Number(price) !== 0 && (
+          <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#64748b' }}>{t('catalog_note')}</p>
+        )}
 
         {validUntilLabel && (
           <p style={{ margin: '10px 0 0', fontSize: 12.5, color: '#64748b' }}>{validUntilLabel}</p>

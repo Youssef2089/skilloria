@@ -152,7 +152,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   //  auraient caché son offre à une organisation qui la paie.
   const { data: target, error: subErr } = await auth.supabaseAdmin
     .from('organizations')
-    .select('package_id, package_started_at, package_valid_until, stripe_subscription_status')
+    .select('package_id, package_started_at, package_valid_until, stripe_subscription_status, stripe_subscription_id')
     .eq('id', org.id)
     .maybeSingle()
   if (subErr || !target) {
@@ -163,6 +163,40 @@ export async function GET(request: NextRequest): Promise<Response> {
   // ── Offre effective (fail-open) + conso du mois ────────────────────────────
   const ents = await getOrgEntitlements(auth.supabaseAdmin, org.id)
   const period = monthlyPeriodStart().toISOString().slice(0, 10)
+
+  /**
+   * LE DERNIER MONTANT RÉELLEMENT PRÉLEVÉ, lu sur `transactions`.
+   *
+   * Source unique du prix affiché à une organisation ABONNÉE : le catalogue dit
+   * ce qu'on VEND aujourd'hui, `transactions` dit ce qu'on lui a PRIS. Les deux
+   * divergent dès qu'un tarif change, puisque les `Price` Stripe sont immuables
+   * et que les abonnements en cours restent sur l'ancien.
+   *
+   * Fail-safe : toute erreur → `null`, et l'écran dira qu'aucun montant n'est
+   * connu. Jamais un repli sur le prix catalogue.
+   */
+  const dernierPaiement = await (async () => {
+    try {
+      const { data } = await auth.supabaseAdmin
+        .from('transactions')
+        .select('amount, currency, period_end, created_at')
+        .eq('organization_id', org.id)
+        .eq('status', 'success')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (!data) return null
+      return {
+        amount: (data.amount as number | null) ?? null,
+        currency: (data.currency as string | null) ?? 'EUR',
+        period_end: (data.period_end as string | null) ?? null,
+        paid_at: (data.created_at as string | null) ?? null,
+      }
+    } catch (err) {
+      console.warn('[me/organisation/offre] lecture transactions — affichage dégradé', err)
+      return null
+    }
+  })()
 
   const [pkgRow, publicationsUsed, manualUnlocksUsed] = await Promise.all([
     resolvePackageRow(auth.supabaseAdmin, org.id, target.package_id, target.package_valid_until),
@@ -206,6 +240,22 @@ export async function GET(request: NextRequest): Promise<Response> {
       //  à décider. Ce booléen n'accorde AUCUN droit : les quatre routes de
       //  paiement le retestent chacune pour leur compte.
       billing_enabled: billingEnabled(),
+
+      // ── LE PRIX RÉELLEMENT FACTURÉ ──────────────────────────────────────
+      //  Les `Price` Stripe sont IMMUABLES : une organisation abonnée à 349 €
+      //  y reste même si le catalogue passe à 399 €. Afficher le prix catalogue
+      //  à la place du prix payé est un litige commercial en puissance —
+      //  l'organisation lit un montant qu'on ne lui prélève pas.
+      //
+      //  `null` = aucun encaissement enregistré. L'écran le DIT plutôt que de
+      //  retomber sur le prix catalogue : ce repli-là réintroduirait exactement
+      //  le défaut qu'on ferme.
+      billed: dernierPaiement,
+
+      // L'organisation est-elle ABONNÉE ? C'est ce qui décide quel prix fait
+      // foi : abonnée, seul le montant prélevé compte ; non abonnée, elle est
+      // sur l'offre par défaut du catalogue, et « Gratuit » est la vérité.
+      has_subscription: target.stripe_subscription_id != null,
 
       // ── AFFICHAGE UNIQUEMENT ────────────────────────────────────────────
       //  Le statut Stripe sert au bandeau « votre dernier paiement a échoué »,
