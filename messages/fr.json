@@ -2386,6 +2386,7 @@
       "err_invalid_feature_value": "Valeur invalide pour {code} (entier ≥ 0 ou « unlimited »).",
       "err_unknown_feature": "Fonctionnalité inconnue pour cette offre : {code}.",
       "err_invalid_price": "Prix invalide (nombre ≥ 0 ou vide).",
+      "err_stripe_sync_failed": "La synchronisation vers Stripe a échoué : RIEN N’A ÉTÉ ENREGISTRÉ. L’offre est inchangée. Réessayez dans un instant — si l’échec persiste, vérifiez l’état du service Stripe avant de modifier un prix.",
       "col_offer": "Offre",
       "col_target": "Cible",
       "col_price": "Prix",

@@ -2386,6 +2386,7 @@
       "err_invalid_feature_value": "Valor no válido para {code} (entero ≥ 0 o «unlimited»).",
       "err_unknown_feature": "Función desconocida para esta oferta: {code}.",
       "err_invalid_price": "Precio no válido (número ≥ 0 o vacío).",
+      "err_stripe_sync_failed": "La sincronización con Stripe ha fallado: NO SE HA GUARDADO NADA. El plan no ha cambiado. Inténtalo de nuevo en un momento; si el fallo persiste, comprueba el estado del servicio de Stripe antes de cambiar un precio.",
       "col_offer": "Oferta",
       "col_target": "Destino",
       "col_price": "Precio",

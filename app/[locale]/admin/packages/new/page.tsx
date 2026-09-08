@@ -232,7 +232,8 @@ export default function AdminPackageNewPage() {
         uncovered?: string[]
       }
       if (!res.ok) {
-        if (payload.code === 'invalid_name') setSaveError(t('packages.err_invalid_name'))
+        if (payload.code === 'stripe_sync_failed') setSaveError(t('packages.err_stripe_sync_failed'))
+        else if (payload.code === 'invalid_name') setSaveError(t('packages.err_invalid_name'))
         else if (payload.code === 'default_requires_active') setSaveError(t('packages.err_default_requires_active'))
         else if (payload.code === 'invalid_price') setSaveError(t('packages.err_invalid_price'))
         else if (payload.code === 'invalid_feature_value') setSaveError(t('packages.err_invalid_feature_value', { code: '' }))

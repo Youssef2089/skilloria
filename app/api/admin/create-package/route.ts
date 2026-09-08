@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { synchroniserAvantEcriture } from '@/lib/billing/catalogue-guard'
 import { applyDefaultTransfer, isTargetRole } from '@/lib/package-default'
 
 export const runtime = 'nodejs'
@@ -238,6 +239,35 @@ export async function POST(request: NextRequest): Promise<Response> {
       await auth.supabaseAdmin.from('packages').delete().eq('id', pkg.id)
       return json({ error: 'Create failed', code: 'db_error' }, 500)
     }
+  }
+
+  // ── (5 bis) SYNCHRONISATION STRIPE — sinon on retire ce qu'on vient de créer ─
+  //  Ici la synchro ne peut PAS précéder l'écriture : l'offre n'existe pas
+  //  encore, elle n'a donc ni identifiant ni ligne à pousser. On applique donc
+  //  la règle par le seul autre moyen — créer, tenter, et DÉFAIRE si Stripe
+  //  refuse. Le résultat pour l'admin est le même : rien n'est enregistré.
+  //
+  //  La suppression emporte les limites (clé étrangère en CASCADE), exactement
+  //  comme le rollback d'échec d'insertion des limites juste au-dessus.
+  //
+  //  Verrou fermé (V0) : rien n'est tenté et la création passe.
+  const synchro = await synchroniserAvantEcriture(auth.supabaseAdmin, pkg.id, {
+    name,
+    price_monthly: pm.value,
+    currency,
+    active,
+  })
+  if (!synchro.ok) {
+    console.error('[admin:create-package] synchro Stripe refusée', synchro.raison)
+    await auth.supabaseAdmin.from('packages').delete().eq('id', pkg.id)
+    return json(
+      {
+        error: 'Stripe sync failed — nothing was saved',
+        code: 'stripe_sync_failed',
+        detail: synchro.raison,
+      },
+      502,
+    )
   }
 
   // ── (6) Snapshot de création dans package_history ──────────────────────────

@@ -2386,6 +2386,7 @@
       "err_invalid_feature_value": "Invalid value for {code} (integer ≥ 0 or “unlimited”).",
       "err_unknown_feature": "Unknown feature for this plan: {code}.",
       "err_invalid_price": "Invalid price (number ≥ 0 or empty).",
+      "err_stripe_sync_failed": "Syncing to Stripe failed: NOTHING WAS SAVED. The plan is unchanged. Please try again in a moment — if it keeps failing, check the Stripe service status before changing a price.",
       "col_offer": "Offer",
       "col_target": "Target",
       "col_price": "Price",

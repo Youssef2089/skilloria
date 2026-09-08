@@ -190,6 +190,22 @@ async function ensureMonthlyPrice(
 export async function syncPackage(
   admin: SupabaseClient,
   packageId: string,
+  /**
+   * Valeurs VOULUES, quand la synchro précède l'écriture locale.
+   *
+   * ┌─ POURQUOI CE PARAMÈTRE EXISTE ──────────────────────────────────────┐
+   * │ La règle est : REFUSER la modification locale si la synchro échoue —  │
+   * │ deux prix différents des deux côtés est pire qu'un prix qu'on ne peut │
+   * │ pas changer. Pour tenir cette règle il faut synchroniser AVANT        │
+   * │ d'écrire ; or à cet instant la base porte encore l'ANCIEN prix, et    │
+   * │ une synchro qui la relit pousserait donc l'ancien.                    │
+   * │                                                                        │
+   * │ D'où ces valeurs passées explicitement. Sans elles, la règle serait   │
+   * │ « écrire puis synchroniser », et un échec laisserait précisément la   │
+   * │ divergence qu'on veut interdire.                                      │
+   * └──────────────────────────────────────────────────────────────────────┘
+   */
+  voulu?: Partial<Pick<PackageRow, 'name' | 'description' | 'price_monthly' | 'currency' | 'active'>>,
 ): Promise<{ ok: true; result: SyncResult } | { ok: false; refusal: SyncRefusal }> {
   const handle = getStripe()
   if (!handle.ok) {
@@ -200,7 +216,7 @@ export async function syncPackage(
   if (error) throw new Error(`lecture packages: ${error.message}`)
   if (!data) return { ok: false, refusal: { packageId, slug: '?', reason: 'offre introuvable' } }
 
-  const pkg = data as unknown as PackageRow
+  const pkg = { ...(data as unknown as PackageRow), ...(voulu ?? {}) }
   const sellable = sellability(pkg)
   if (!sellable.ok) {
     return { ok: false, refusal: { packageId, slug: pkg.slug, reason: sellable.reason } }

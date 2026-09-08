@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { synchroniserAvantEcriture } from '@/lib/billing/catalogue-guard'
 import {
   covers,
   isTargetRole,
@@ -312,6 +313,32 @@ export async function POST(request: NextRequest): Promise<Response> {
     // On refuse d'appliquer sans trace : le snapshot est la garantie d'auditabilité.
     console.error('[admin:update-package] history snapshot failed', histErr.message)
     return json({ error: 'Snapshot failed', code: 'db_error' }, 500)
+  }
+
+  // ── (4 bis) SYNCHRONISATION STRIPE, AVANT TOUTE ÉCRITURE ───────────────────
+  //  Le catalogue Skilloria fait autorité, mais il ne doit pas DIVERGER de ce
+  //  que Stripe facture. Si la synchro échoue, on refuse la modification :
+  //  deux prix différents des deux côtés est pire qu'un prix qu'on ne peut pas
+  //  changer.
+  //
+  //  AVANT l'écriture, et avec les valeurs VOULUES : la base porte encore
+  //  l'ancien prix à cet instant, une synchro qui la relirait pousserait donc
+  //  l'ancien. Et « écrire puis synchroniser » laisserait, en cas d'échec,
+  //  exactement la divergence qu'on veut interdire.
+  //
+  //  Verrou fermé (V0) : rien n'est tenté et la modification passe — sans quoi
+  //  l'absence de clé Stripe gèlerait le back-office.
+  const synchro = await synchroniserAvantEcriture(auth.supabaseAdmin, packageId, packageUpdates)
+  if (!synchro.ok) {
+    console.error('[admin:update-package] synchro Stripe refusée', synchro.raison)
+    return json(
+      {
+        error: 'Stripe sync failed — nothing was saved',
+        code: 'stripe_sync_failed',
+        detail: synchro.raison,
+      },
+      502,
+    )
   }
 
   // ── (5) Application ─────────────────────────────────────────────────────────

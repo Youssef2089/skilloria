@@ -234,7 +234,11 @@ export default function AdminPackageEditPage() {
         uncovered?: string[]
       }
       if (!res.ok) {
-        if (payload.code === 'invalid_feature_value') {
+        // La synchro a echoue : RIEN n'a ete enregistre. Le dire explicitement,
+        // sinon l'admin croit avoir modifie le prix et repart.
+        if (payload.code === 'stripe_sync_failed') {
+          setSaveError(t('packages.err_stripe_sync_failed'))
+        } else if (payload.code === 'invalid_feature_value') {
           setSaveError(t('packages.err_invalid_feature_value', { code: payload.feature_code ?? '' }))
         } else if (payload.code === 'unknown_feature') {
           setSaveError(t('packages.err_unknown_feature', { code: payload.feature_code ?? '' }))
