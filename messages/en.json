@@ -2144,9 +2144,7 @@
     "card": {
       "anonymous_candidate": "Anonymous candidate",
       "wall_title": "Hidden profile",
-      "wall_body": "This candidate stays hidden. Revealing additional profiles will be available soon.",
-      "wall_cta": "Coming soon",
-      "wall_cta_hint": "Paid reveal is not active yet. Contact us to learn more.",
+      "wall_body": "This candidate stays hidden: your plan does not include an additional reveal.",
       "candidate_label": "Candidate",
       "ai_score": "Score {score}/10",
       "ai_score_tooltip": "AI relevance score against your listing.",

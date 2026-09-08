@@ -59,6 +59,17 @@ type Props = {
   messagesBasePath?: string
   /** Comportement sur candidat masqué : 'unlock' (org) | 'wall' (sous-traitance). */
   conversionMode?: 'unlock' | 'wall'
+  /**
+   * LE VERROU D'ENCAISSEMENT, résolu au SERVEUR et transmis en prop.
+   *
+   * En prop plutôt qu'en lecture propre : le carrousel affiche plusieurs
+   * cartes, et chacune interrogerait le serveur pour la même réponse. La
+   * surface qui charge déjà les droits le lit une fois et le fait descendre.
+   *
+   * `undefined` = pas encore connu → traité comme FERMÉ. On n'ouvre jamais un
+   * chemin de paiement par ignorance.
+   */
+  billingEnabled?: boolean
 }
 
 function scoreColor(score: number | null): { bg: string; fg: string } | null {
@@ -83,6 +94,7 @@ export default function SpotlightCandidateCard({
   interactive = true,
   messagesBasePath = '/dashboard/entreprise',
   conversionMode = 'unlock',
+  billingEnabled,
 }: Props) {
   const t = useTranslations('candidatures.card')
   const tPub = useTranslations('publications')
@@ -453,25 +465,29 @@ export default function SpotlightCandidateCard({
             {t('read_only_role')}
           </div>
         )}
-        {/* MUR DE CONVERSION (sous-traitance V0) — visible mais INACTIF.
-            Construit pour signaler la valeur du dévoilement, sans parcours de
-            paiement (pas de Stripe en V0). Remplace le bloc unlock/refuser. */}
+        {/* ── MUR DE DÉVOILEMENT ────────────────────────────────────────────
+            L'offre n'inclut aucun dévoilement supplémentaire (limite lue au
+            catalogue, jamais écrite ici). Le mur dit ce qui bloque, et propose
+            l'issue qui existe RÉELLEMENT au moment où on le lit.
+
+            ⚠️ IL PORTAIT UN BOUTON DÉSACTIVÉ « Bientôt disponible ». Un bouton
+               qu'on ne peut pas cliquer promet une porte qui n'existe pas : on
+               le remplace par une ligne d'issue. Le verrou, lui, est servi par
+               le SERVEUR — jamais par une variable publique — et il est FERMÉ
+               par défaut : un quota illisible ne doit pas ouvrir un chemin de
+               paiement. */}
         {canAct && conversionMode === 'wall' && canManage && (
           <div style={{ background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: 12, padding: '14px 14px 12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <span aria-hidden style={{ fontSize: 18 }}>🔒</span>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#92400E' }}>{t('wall_title')}</span>
             </div>
-            <p style={{ margin: '0 0 10px', fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>{t('wall_body')}</p>
-            <button
-              type="button"
-              disabled
-              aria-disabled
-              title={t('wall_cta_hint')}
-              style={{ width: '100%', padding: '10px 14px', background: '#FEF3C7', color: '#92400E', border: '1px solid #FCD34D', borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: 'not-allowed', fontFamily: 'inherit', opacity: 0.85 }}
-            >
-              {t('wall_cta')}
-            </button>
+            <p style={{ margin: '0 0 8px', fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>{t('wall_body')}</p>
+            <p style={{ margin: 0, fontSize: 11.5, color: '#A16207', lineHeight: 1.5 }}>
+              {billingEnabled === true
+                ? tCommerce('need_more_upgrade')
+                : tCommerce('need_more_contact')}
+            </p>
           </div>
         )}
 

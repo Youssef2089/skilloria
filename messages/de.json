@@ -2144,9 +2144,7 @@
     "card": {
       "anonymous_candidate": "Anonyme/r Bewerber/in",
       "wall_title": "Verborgenes Profil",
-      "wall_body": "Dieser Kandidat bleibt verborgen. Das Enthüllen weiterer Profile wird bald verfügbar sein.",
-      "wall_cta": "Bald verfügbar",
-      "wall_cta_hint": "Die kostenpflichtige Enthüllung ist noch nicht aktiv. Kontaktieren Sie uns für weitere Informationen.",
+      "wall_body": "Dieser Kandidat bleibt verborgen: Ihr Tarif enthält keine zusätzliche Freischaltung.",
       "candidate_label": "Bewerber/in",
       "ai_score": "Bewertung {score}/10",
       "ai_score_tooltip": "KI-Bewertung der Passung zu Ihrer Anzeige.",

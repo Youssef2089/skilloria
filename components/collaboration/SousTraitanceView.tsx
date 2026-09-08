@@ -40,6 +40,7 @@ type QuotaLimits = {
 
 export default function SousTraitanceView({ basePath }: { basePath: string }) {
   const t = useTranslations('collaboration')
+  const tCommerce = useTranslations('commerce')
   const domain = useDomain()
   const secureFetch = useSecureFetch()
 
@@ -52,6 +53,14 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [limits, setLimits] = useState<QuotaLimits | null>(null)
+  /**
+   * LE VERROU D'ENCAISSEMENT, resolu au SERVEUR.
+   *
+   * `false` par defaut, et un quota illisible le laisse a `false` : on n'ouvre
+   * jamais un chemin de paiement par ignorance. Le mur reste un mur tant que
+   * le lancement est gratuit.
+   */
+  const [billingEnabled, setBillingEnabled] = useState(false)
 
   // ── Chargement : droits de l'offre + verrou profil ───────────────────────
   //  PLUS DE CRÉATION D'ORGANISATION ICI. Ouvrir le formulaire ne doit rien
@@ -76,8 +85,15 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
         setPhase('ready')
         return
       }
-      const q = (await qRes.json().catch(() => null)) as { limits?: QuotaLimits } | null
+      const q = (await qRes.json().catch(() => null)) as {
+        limits?: QuotaLimits
+        billing_enabled?: boolean
+      } | null
       setLimits(q?.limits ?? null)
+      // Le verrou vient de la MÊME lecture que les droits : une requête de plus
+      // pour un booléen serait un aller-retour pour rien. Jamais une variable
+      // NEXT_PUBLIC_ — le serveur reste seul à décider.
+      setBillingEnabled(q?.billing_enabled === true)
       setPhase('ready')
     } catch {
       setPhase('org_error')
@@ -241,7 +257,12 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
           <div style={{ fontSize: 32, marginBottom: 8 }} aria-hidden>🔒</div>
           <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: '#92400e' }}>{t('wall_title')}</h2>
           <p style={{ margin: '0 0 6px', fontSize: 14, color: '#92400e', lineHeight: 1.55 }}>{t('wall_body')}</p>
-          <p style={{ margin: 0, fontSize: 13, color: '#a16207' }}>{t('wall_contact')}</p>
+          {/* L'issue depend du VERROU, pas d'une phrase figee : « contactez-nous »
+              tant qu'il est ferme, « decouvrez nos offres » le jour ou il s'ouvre.
+              Ferme par defaut — un quota illisible n'ouvre aucun chemin. */}
+          <p style={{ margin: 0, fontSize: 13, color: '#a16207' }}>
+            {billingEnabled ? tCommerce('need_more_upgrade') : tCommerce('need_more_contact')}
+          </p>
         </div>
       )}
 

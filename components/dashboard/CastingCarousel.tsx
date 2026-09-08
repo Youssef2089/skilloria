@@ -34,9 +34,15 @@ type Props = {
   messagesBasePath?: string
   /** Comportement sur candidat masqué : 'unlock' (org) | 'wall' (sous-traitance). */
   conversionMode?: 'unlock' | 'wall'
+  /**
+   * Verrou d'encaissement, résolu au SERVEUR. Transmis tel quel aux cartes :
+   * le carrousel en affiche plusieurs, et chacune interrogerait le serveur pour
+   * la même réponse. `undefined` = traité comme FERMÉ par la carte.
+   */
+  billingEnabled?: boolean
 }
 
-export default function CastingCarousel({ items, publicationType, pubSkillsRequired, onMutated, messagesBasePath, conversionMode }: Props) {
+export default function CastingCarousel({ items, publicationType, pubSkillsRequired, onMutated, messagesBasePath, conversionMode, billingEnabled }: Props) {
   const t = useTranslations('candidatures.casting')
   const tCard = useTranslations('candidatures.card')
   const markViewed = useMarkCandidatureViewed()
@@ -78,6 +84,7 @@ export default function CastingCarousel({ items, publicationType, pubSkillsRequi
           interactive={isCenter}
           messagesBasePath={messagesBasePath}
           conversionMode={conversionMode}
+          billingEnabled={billingEnabled}
         />
       )}
     />

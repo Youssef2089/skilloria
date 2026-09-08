@@ -2144,9 +2144,7 @@
     "card": {
       "anonymous_candidate": "Candidato anónimo",
       "wall_title": "Perfil oculto",
-      "wall_body": "Este candidato permanece oculto. La revelación de perfiles adicionales estará disponible pronto.",
-      "wall_cta": "Próximamente",
-      "wall_cta_hint": "La revelación de pago aún no está activa. Contáctenos para saber más.",
+      "wall_body": "Este candidato permanece oculto: tu plan no incluye ninguna revelación adicional.",
       "candidate_label": "Candidato",
       "ai_score": "Puntuación {score}/10",
       "ai_score_tooltip": "Puntuación IA respecto a tu anuncio.",

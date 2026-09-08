@@ -2144,9 +2144,7 @@
     "card": {
       "anonymous_candidate": "Candidat anonyme",
       "wall_title": "Profil masqué",
-      "wall_body": "Ce candidat reste masqué. Le dévoilement de profils supplémentaires sera bientôt disponible.",
-      "wall_cta": "Bientôt disponible",
-      "wall_cta_hint": "Le dévoilement payant n’est pas encore actif. Contactez-nous pour en savoir plus.",
+      "wall_body": "Ce candidat reste masqué : votre offre n’inclut pas de dévoilement supplémentaire.",
       "candidate_label": "Candidat",
       "ai_score": "Score {score}/10",
       "ai_score_tooltip": "Note IA de pertinence par rapport à votre annonce.",

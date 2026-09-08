@@ -3,6 +3,7 @@ import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { getOrgEntitlements, getDefaultCollaborationEntitlements } from '@/lib/entitlements'
 import { activePublishedOrClause } from '@/lib/publications/expiry'
 import { expertProfileGate, PROFILE_NOT_VERIFIED_CODE } from '@/lib/expert-verified-guard'
+import { billingEnabled } from '@/lib/billing/config'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -89,6 +90,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         activePublishedCount: 0,
         canPublish: true,
         canUnlockManually: defaults.limits.manualUnlocksPerMonth !== 0,
+        billing_enabled: billingEnabled(),
       },
       200,
     )
@@ -124,6 +126,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         activePublishedCount: 0,
         canPublish: true,
         canUnlockManually,
+        billing_enabled: billingEnabled(),
       },
       200,
     )
@@ -141,6 +144,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       activePublishedCount,
       canPublish,
       canUnlockManually,
+      billing_enabled: billingEnabled(),
     },
     200,
   )

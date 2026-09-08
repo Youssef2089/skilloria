@@ -89,6 +89,18 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
   // Droits de l'offre. `null` tant que non lu : on garde alors le mur (posture
   // prudente — on ne propose jamais une action que l'offre pourrait refuser).
   const [canUnlockManually, setCanUnlockManually] = useState<boolean | null>(null)
+  /**
+   * LE VERROU D'ENCAISSEMENT, servi par la MEME lecture que les droits.
+   *
+   * Lu ici plutot que dans chaque carte : le carrousel en affiche plusieurs, et
+   * chacune interrogerait le serveur pour la meme reponse. Jamais une variable
+   * NEXT_PUBLIC_ — elle serait inlinee dans le bundle, et l'UI pourrait diverger
+   * du serveur qui reste seul a decider.
+   *
+   * `false` par defaut, et un quota illisible le laisse a `false` : on n'ouvre
+   * pas un chemin de paiement par ignorance.
+   */
+  const [billingEnabled, setBillingEnabled] = useState(false)
 
   const load = useCallback(async (id: string) => {
     setState({ kind: 'loading' })
@@ -100,10 +112,18 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
       ])
       // Best-effort : un quota illisible n'empêche pas d'afficher le besoin.
       if (quotaRes.ok) {
-        const q = (await quotaRes.json().catch(() => null)) as { canUnlockManually?: boolean } | null
+        const q = (await quotaRes.json().catch(() => null)) as {
+          canUnlockManually?: boolean
+          billing_enabled?: boolean
+        } | null
         setCanUnlockManually(q?.canUnlockManually ?? null)
+        // `=== true` : un payload sans le champ vaut FERMÉ. Best-effort sur
+        // l'affichage des droits, oui — jamais sur l'ouverture d'un chemin de
+        // paiement.
+        setBillingEnabled(q?.billing_enabled === true)
       } else {
         setCanUnlockManually(null)
+        setBillingEnabled(false)
       }
       const pubPayload = (await pubRes.json().catch(() => ({}))) as { code?: string; publication?: PublicationDetail }
       if (!pubRes.ok || !pubPayload.publication) {
@@ -318,6 +338,7 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
             onMutated={refresh}
             messagesBasePath={basePath}
             conversionMode={canUnlockManually === true ? 'unlock' : 'wall'}
+            billingEnabled={billingEnabled}
           />
         )}
       </section>
