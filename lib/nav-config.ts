@@ -226,6 +226,16 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
     sectionKey: 'section_exploitation',
     items: [
       {
+        // Le quota d'analyses de CV protège une DÉPENSE (l'API d'analyse) : il
+        // doit se relever sans déploiement, sinon ce n'est pas un plafond,
+        // c'est un incident. Rangé ici et non dans « Commerce » — il ne se vend
+        // pas, il borne un coût.
+        key: 'quotas-ia',
+        href: '/admin/quotas-ia',
+        labelKey: 'nav_quotas_ia',
+        iconKey: 'gauge',
+      },
+      {
         // L'écosystème est l'unité de cloisonnement de toute la plateforme :
         // sa création, son vocabulaire et son activation doivent être
         // atteignables sans développeur — sinon ouvrir un marché suppose un

@@ -3,6 +3,7 @@ import crypto from 'node:crypto'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { parseCdiCV } from '@/lib/cv-parser-cdi'
+import { loadCvParsingQuota, windowEndsAt, QuotaConfigMissing } from '@/lib/ai-quotas'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -25,7 +26,9 @@ export const maxDuration = 60
 // =============================================================================
 
 const MAX_SIZE = 5 * 1024 * 1024
-const RATE_LIMIT = 3
+// Le quota d'analyses N'EST PLUS ÉCRIT ICI : il se lit en base (lib/ai-quotas).
+// Cette route portait sa PROPRE copie de la valeur — deux réglages pour un
+// seul, dont l'un pouvait rester en arrière sans que rien ne le signale.
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -99,7 +102,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   const hash = crypto.createHash('sha256').update(buffer).digest('hex')
 
   // ───────────────────────────────────────────────────────────────────────
-  // 3. Lookup profile + rate-limit (3/24h)
+  // 3. Lookup profile + quota d’analyses (lu en base)
   // ───────────────────────────────────────────────────────────────────────
   const { data: profile, error: profileErr } = await supabaseAdmin
     .from('profiles')
@@ -154,16 +157,31 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const prof = profile as any
 
+  // ── Le quota, LU en base ──────────────────────────────────────────────────
+  //  Même source que /upload-cv : un quota par route, c'est un quota qui dérive.
+  let quota
+  try {
+    quota = await loadCvParsingQuota(supabaseAdmin)
+  } catch (err) {
+    if (err instanceof QuotaConfigMissing) {
+      console.error('[cdi-upload-cv]', err.message)
+      return json({ error: 'Quota not configured', code: err.code }, 503)
+    }
+    throw err
+  }
+
   const now = new Date()
   const resetAt = prof.cv_parsing_reset_at ? new Date(prof.cv_parsing_reset_at) : null
   const windowActive = resetAt !== null && resetAt > now
   const count24h = prof.cv_parsing_count_24h ?? 0
 
-  if (windowActive && count24h >= RATE_LIMIT) {
+  if (windowActive && count24h >= quota.maxPerWindow) {
     return json(
       {
-        error: 'Rate limit: 3 parsings / 24h',
+        error: `Rate limit: ${quota.maxPerWindow} parsings / ${quota.windowHours}h`,
         code: 'rate_limited',
+        limit: quota.maxPerWindow,
+        window_hours: quota.windowHours,
         reset_at: resetAt!.toISOString(),
       },
       429,
@@ -244,9 +262,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Upload failed', code: 'storage_error' }, 500)
   }
 
-  const nextResetAt = windowActive
-    ? resetAt!.toISOString()
-    : new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
+  const nextResetAt = windowActive ? resetAt!.toISOString() : windowEndsAt(quota, now)
   const nextCount = windowActive ? count24h + 1 : 1
   // CONSENTEMENT IA (point D) — posé UNIQUEMENT parce que la case EXPLICITE a été
   // validée : la garde `consent === 'true'` en tête de route (sinon 400

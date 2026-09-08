@@ -15,6 +15,15 @@ import { ADMIN_NAV_SECTIONS } from '@/lib/nav-config'
 
 /** Icônes de la sidebar admin, indexées par `iconKey` de ADMIN_NAV_SECTIONS. */
 const ADMIN_NAV_ICONS: Record<string, React.ReactNode> = {
+  // Quotas IA — un cadran (jauge). Distincte de `matching` et de `clock` :
+  // une entrée qui reprend l'icône d'une voisine devient illisible.
+  gauge: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 21a9 9 0 1 1 9-9" />
+      <path d="m12 12 4.5-3" />
+      <circle cx="12" cy="12" r="1.2" />
+    </svg>
+  ),
   // Écosystèmes — un globe. Distinct de `building` (organisations) : une
   // entrée de sidebar qui reprend l'icône d'une voisine devient illisible.
   globe: (

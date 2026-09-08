@@ -3,6 +3,7 @@ import crypto from 'node:crypto'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { parseCV } from '@/lib/cv-parser'
+import { loadCvParsingQuota, windowEndsAt, QuotaConfigMissing } from '@/lib/ai-quotas'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -11,7 +12,9 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 const MAX_SIZE = 5 * 1024 * 1024
-const RATE_LIMIT = 3
+// Le quota d'analyses N'EST PLUS ÉCRIT ICI : il se lit en base
+// (lib/ai-quotas). Il vivait en dur dans cette route ET dans cdi-upload-cv, et
+// le relever supposait un déploiement — le relever à moitié ne signalait rien.
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -97,6 +100,20 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Profile not found', code: 'profile_missing' }, 404)
   }
 
+  // ── Le quota, LU en base ──────────────────────────────────────────────────
+  //  Aucun repli : ligne absente ⇒ on refuse et on le dit. Une valeur de
+  //  secours en dur serait un second réglage prenant la main en silence.
+  let quota
+  try {
+    quota = await loadCvParsingQuota(supabaseAdmin)
+  } catch (err) {
+    if (err instanceof QuotaConfigMissing) {
+      console.error('[upload-cv]', err.message)
+      return json({ error: 'Quota not configured', code: err.code }, 503)
+    }
+    throw err
+  }
+
   const now = new Date()
   const resetAt = profile.cv_parsing_reset_at
     ? new Date(profile.cv_parsing_reset_at)
@@ -104,11 +121,15 @@ export async function POST(request: NextRequest): Promise<Response> {
   const windowActive = resetAt !== null && resetAt > now
   const count24h = profile.cv_parsing_count_24h ?? 0
 
-  if (windowActive && count24h >= RATE_LIMIT) {
+  if (windowActive && count24h >= quota.maxPerWindow) {
     return json(
       {
-        error: 'Rate limit: 3 parsings / 24h',
+        // Le message REPREND les valeurs lues : il disait « 3 / 24h » en dur,
+        // et serait resté faux le jour où le réglage change.
+        error: `Rate limit: ${quota.maxPerWindow} parsings / ${quota.windowHours}h`,
         code: 'rate_limited',
+        limit: quota.maxPerWindow,
+        window_hours: quota.windowHours,
         reset_at: resetAt!.toISOString(),
       },
       429,
@@ -178,9 +199,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Upload failed', code: 'storage_error' }, 500)
   }
 
-  const nextResetAt = windowActive
-    ? resetAt!.toISOString()
-    : new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
+  const nextResetAt = windowActive ? resetAt!.toISOString() : windowEndsAt(quota, now)
   const nextCount = windowActive ? count24h + 1 : 1
   // CONSENTEMENT IA (point D) — posé UNIQUEMENT parce que la case EXPLICITE a été
   // validée : la garde `consent === 'true'` en tête de route (sinon 400

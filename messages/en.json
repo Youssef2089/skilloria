@@ -2368,7 +2368,26 @@
       "nav_taches_planifiees": "Scheduled tasks",
       "section_moteur": "Engine",
       "nav_matching": "Matching",
-      "nav_ecosystemes": "Ecosystems"
+      "nav_ecosystemes": "Ecosystems",
+      "nav_quotas_ia": "AI quotas"
+    },
+    "quotas_ia": {
+      "title": "AI quotas",
+      "intro": "These settings cap the cost of AI features. They take effect immediately, with no redeployment.",
+      "cv_title": "CV analyses",
+      "cv_hint": "How many analyses an expert can run over a rolling period. Abuse protection, not a commercial argument: the setting is the same for every ecosystem.",
+      "field_max": "Analyses allowed",
+      "field_window": "Window length (hours)",
+      "summary": "{max} CV analyses per {hours} hours, per expert.",
+      "loading": "Loading…",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Quota saved.",
+      "err_load": "Could not read the quota. Please try again in a moment.",
+      "err_missing": "The quota does not exist in the database. The migration that creates it was probably not applied on this environment.",
+      "err_save": "Could not save the quota. Please try again in a moment.",
+      "err_invalid_max": "The number of analyses must be a whole number between 1 and 1000.",
+      "err_invalid_window": "The window must be a whole number between 1 and 720 hours."
     },
     "packages": {
       "page_title": "Commerce catalog",

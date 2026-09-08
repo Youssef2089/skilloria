@@ -2368,7 +2368,26 @@
       "nav_taches_planifiees": "Geplante Aufgaben",
       "section_moteur": "Motor",
       "nav_matching": "Vermittlung",
-      "nav_ecosystemes": "Ökosysteme"
+      "nav_ecosystemes": "Ökosysteme",
+      "nav_quotas_ia": "KI-Kontingente"
+    },
+    "quotas_ia": {
+      "title": "KI-Kontingente",
+      "intro": "Diese Einstellungen begrenzen die Kosten der KI-Funktionen. Sie gelten sofort, ohne erneutes Deployment.",
+      "cv_title": "Lebenslauf-Analysen",
+      "cv_hint": "Wie viele Analysen eine Fachkraft in einem gleitenden Zeitraum starten kann. Missbrauchsschutz, kein Verkaufsargument: die Einstellung gilt für alle Ökosysteme gleich.",
+      "field_max": "Erlaubte Analysen",
+      "field_window": "Länge des Zeitfensters (Stunden)",
+      "summary": "{max} Lebenslauf-Analysen je {hours} Stunden, pro Fachkraft.",
+      "loading": "Wird geladen…",
+      "save": "Speichern",
+      "saving": "Wird gespeichert…",
+      "saved": "Kontingent gespeichert.",
+      "err_load": "Das Kontingent konnte nicht gelesen werden. Bitte gleich erneut versuchen.",
+      "err_missing": "Das Kontingent existiert nicht in der Datenbank. Die Migration, die es anlegt, wurde auf dieser Umgebung vermutlich nicht angewendet.",
+      "err_save": "Das Kontingent konnte nicht gespeichert werden. Bitte gleich erneut versuchen.",
+      "err_invalid_max": "Die Anzahl der Analysen muss eine ganze Zahl zwischen 1 und 1000 sein.",
+      "err_invalid_window": "Das Zeitfenster muss eine ganze Zahl zwischen 1 und 720 Stunden sein."
     },
     "packages": {
       "page_title": "Commerce-Katalog",

@@ -2368,7 +2368,26 @@
       "nav_taches_planifiees": "Tâches planifiées",
       "section_moteur": "Moteur",
       "nav_matching": "Mise en relation",
-      "nav_ecosystemes": "Écosystèmes"
+      "nav_ecosystemes": "Écosystèmes",
+      "nav_quotas_ia": "Quotas IA"
+    },
+    "quotas_ia": {
+      "title": "Quotas IA",
+      "intro": "Ces réglages bornent le coût des fonctionnalités d’intelligence artificielle. Ils s’appliquent immédiatement, sans redéploiement.",
+      "cv_title": "Analyses de CV",
+      "cv_hint": "Nombre d’analyses qu’un expert peut lancer sur une période glissante. Protection contre les abus, et non argument commercial : le réglage est le même pour tous les écosystèmes.",
+      "field_max": "Analyses autorisées",
+      "field_window": "Durée de la fenêtre (heures)",
+      "summary": "{max} analyses de CV par tranche de {hours} heures, par expert.",
+      "loading": "Chargement…",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "saved": "Quota enregistré.",
+      "err_load": "Impossible de lire le quota. Réessayez dans un instant.",
+      "err_missing": "Le quota n’existe pas en base. La migration qui le crée n’a probablement pas été appliquée sur cet environnement.",
+      "err_save": "Impossible d’enregistrer le quota. Réessayez dans un instant.",
+      "err_invalid_max": "Le nombre d’analyses doit être un entier compris entre 1 et 1000.",
+      "err_invalid_window": "La fenêtre doit être un entier compris entre 1 et 720 heures."
     },
     "packages": {
       "page_title": "Catalogue commerce",

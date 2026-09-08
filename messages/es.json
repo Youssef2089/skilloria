@@ -2368,7 +2368,26 @@
       "nav_taches_planifiees": "Tareas programadas",
       "section_moteur": "Motor",
       "nav_matching": "Emparejamiento",
-      "nav_ecosystemes": "Ecosistemas"
+      "nav_ecosystemes": "Ecosistemas",
+      "nav_quotas_ia": "Cuotas de IA"
+    },
+    "quotas_ia": {
+      "title": "Cuotas de IA",
+      "intro": "Estos ajustes limitan el coste de las funciones de inteligencia artificial. Se aplican de inmediato, sin volver a desplegar.",
+      "cv_title": "Análisis de CV",
+      "cv_hint": "Número de análisis que un experto puede lanzar en un periodo móvil. Protección contra abusos, no argumento comercial: el ajuste es el mismo para todos los ecosistemas.",
+      "field_max": "Análisis permitidos",
+      "field_window": "Duración de la ventana (horas)",
+      "summary": "{max} análisis de CV cada {hours} horas, por experto.",
+      "loading": "Cargando…",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "saved": "Cuota guardada.",
+      "err_load": "No se ha podido leer la cuota. Inténtalo de nuevo en un momento.",
+      "err_missing": "La cuota no existe en la base de datos. Probablemente la migración que la crea no se ha aplicado en este entorno.",
+      "err_save": "No se ha podido guardar la cuota. Inténtalo de nuevo en un momento.",
+      "err_invalid_max": "El número de análisis debe ser un entero entre 1 y 1000.",
+      "err_invalid_window": "La ventana debe ser un entero entre 1 y 720 horas."
     },
     "packages": {
       "page_title": "Catálogo comercial",
