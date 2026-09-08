@@ -644,7 +644,6 @@
         "title_placeholder": "Ex : Consultant fonctionnel senior",
         "summary_label": "Résumé",
         "summary_placeholder": "10 ans d'expérience sur...",
-        "summary_counter": "{count}/500 · minimum 20 caractères pour publier",
         "seniority_label": "Séniorité",
         "seniority_placeholder": "— Sélectionner —",
         "seniority_options": {
@@ -1464,7 +1463,6 @@
         "title_placeholder": "Ex : Consultant fonctionnel senior",
         "summary_label": "Résumé",
         "summary_placeholder": "10 ans d'expérience sur...",
-        "summary_counter": "{count}/500 · minimum 20 caractères pour publier",
         "seniority_label": "Séniorité",
         "seniority_placeholder": "— Sélectionner —",
         "seniority_options": {
@@ -3697,6 +3695,18 @@
         "disponibilite": "Changement de disponibilité",
         "cv_reanalyse": "CV réanalysé"
       }
+    },
+    "unfinished": {
+      "title": "Mises en relation non achevées",
+      "none": "Aucune : toutes les annonces publiées ont été traitées jusqu’au bout.",
+      "unavailable": "Le compteur n'a pas pu être lu. Ce n'est pas zéro : c'est inconnu.",
+      "depuis": "depuis le {date}",
+      "help": "Une mise en relation non achevée ne produit ni candidat pour l'organisation, ni annonce pour l'expert — et rien ne le dit sur leurs écrans. « Abandonnée » est le seul état qui demande une intervention : au-delà du plafond de tentatives, l'annonce n'est plus rejouée toute seule. Les trois états ne sont jamais additionnés : ils n'appellent pas la même action.",
+      "etat": {
+        "en_cours": "Sera rejouée",
+        "abandonne": "Abandonnée — intervention nécessaire",
+        "jamais_tente": "Jamais tentée — le déclencheur n’a pas fonctionné"
+      }
     }
   },
   "ecosystem_switcher": {
@@ -3813,5 +3823,8 @@
       "invalid_slug": "Sous-domaine invalide : minuscules, chiffres et tirets, sans point ni espace.",
       "slug_taken": "Ce sous-domaine est déjà utilisé."
     }
+  },
+  "plafonds": {
+    "annonces_tronquees": "Cette liste est incomplète : elle affiche vos {plafond} annonces les plus récemment modifiées. Les plus anciennes ne sont pas montrées."
   }
 }

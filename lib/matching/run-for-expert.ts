@@ -1,3 +1,4 @@
+import { memoriserNotesParAnnonce, notesDejaAcquisesPourAnnonces } from '@/lib/matching/reprise'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AnnonceType } from '@/types/annonce'
 import { annonceTypesForExpert, type ExpertKind } from '@/lib/annonces/audience'
@@ -238,15 +239,35 @@ export async function runMatchingForExpert(args: {
   }
 
   // ── 5. La notation ───────────────────────────────────────────────────────
+  //
+  //  MÊME REPRISE QUE DANS L'AUTRE SENS. Le brouillon est indexé par le couple
+  //  (annonce, profil) : il sert donc les deux directions sans distinction, et
+  //  une note acquise ici épargne aussi le run de l'annonce correspondante.
+  const acquises = await notesDejaAcquisesPourAnnonces(
+    supabaseAdmin,
+    documents.map((d) => d.id),
+    profileId,
+    s.rerank_model,
+  )
+  const aNoter = acquises.size > 0 ? documents.filter((d) => !acquises.has(d.id)) : documents
+
   const notation = await rerankerTout({
     supabaseAdmin,
     domainId: p.domain_id,
     model: s.rerank_model,
     tailleLot: s.rerank_batch_size,
     requete,
-    documents,
+    documents: aNoter,
     contexte: { profile_id: profileId },
+    // Ici l'identifiant noté est celui de l'ANNONCE, et le profil est fixe :
+    // c'est l'inverse de l'autre sens, mais la même clé de brouillon.
+    memoriser: (notes) =>
+      memoriserNotesParAnnonce(supabaseAdmin, profileId, s.rerank_model, notes),
   })
+
+  for (const [publicationId, score] of acquises) {
+    if (!notation.scores.has(publicationId)) notation.scores.set(publicationId, score)
+  }
 
   const parAnnonce = new Map(retenues.map((a) => [a.id, a]))
   const desired: ReconcileDesired[] = []

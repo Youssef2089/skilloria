@@ -644,7 +644,6 @@
         "title_placeholder": "e.g. Senior functional consultant",
         "summary_label": "Summary",
         "summary_placeholder": "10 years of experience on...",
-        "summary_counter": "{count}/500 · minimum 20 characters to publish",
         "seniority_label": "Seniority",
         "seniority_placeholder": "— Select —",
         "seniority_options": {
@@ -1464,7 +1463,6 @@
         "title_placeholder": "e.g. Senior functional consultant",
         "summary_label": "Summary",
         "summary_placeholder": "10 years of experience in...",
-        "summary_counter": "{count}/500 · 20 characters minimum to publish",
         "seniority_label": "Seniority",
         "seniority_placeholder": "— Select —",
         "seniority_options": {
@@ -3697,6 +3695,18 @@
         "disponibilite": "Availability change",
         "cv_reanalyse": "CV re-parsed"
       }
+    },
+    "unfinished": {
+      "title": "Unfinished matching runs",
+      "none": "None: every published listing was processed through to the end.",
+      "unavailable": "The counter could not be read. That is not zero: it is unknown.",
+      "depuis": "since {date}",
+      "help": "An unfinished run produces no candidates for the organisation and no listings for the expert — and nothing says so on their screens. \"Abandoned\" is the only state that needs action: past the attempt cap, the listing is no longer retried on its own. The three states are never added together: they do not call for the same action.",
+      "etat": {
+        "en_cours": "Will be retried",
+        "abandonne": "Abandoned — needs action",
+        "jamais_tente": "Never attempted — the trigger did not fire"
+      }
     }
   },
   "ecosystem_switcher": {
@@ -3813,5 +3823,8 @@
       "invalid_slug": "Invalid subdomain: lowercase letters, digits and hyphens, no dot or space.",
       "slug_taken": "This subdomain is already in use."
     }
+  },
+  "plafonds": {
+    "annonces_tronquees": "This list is incomplete: it shows your {plafond} most recently updated postings. Older ones are not displayed."
   }
 }

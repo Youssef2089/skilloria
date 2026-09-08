@@ -45,7 +45,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
   const admin = auth.supabaseAdmin
 
-  const [reglagesRes, domainesRes, distributionRes, depenseRes, couvertureRes, pannesRes, depassementsRes] =
+  const [reglagesRes, domainesRes, distributionRes, depenseRes, couvertureRes, pannesRes, depassementsRes, inachevesRes] =
     await Promise.all([
     admin
       .from('matching_settings')
@@ -64,6 +64,11 @@ export async function GET(request: NextRequest): Promise<Response> {
     // En echange, il se LIT ici, a cote du compteur de pannes : un plafond
     // qu'on ne peut pas observer est un plafond qu'on decouvre par un ticket.
     admin.rpc('relance_overrun_health'),
+    // LES RUNS DE MISE EN RELATION QUI NE SE SONT JAMAIS ACHEVES. Au-dela du
+    // plafond de tentatives, l'annonce cesse d'etre rejouee et RIEN ne le
+    // disait : un ecran vide sans explication, cote expert comme cote
+    // organisation. On ne change pas la regle de rejeu, on la rend LISIBLE.
+    admin.rpc('matching_runs_inacheves'),
   ])
 
   if (reglagesRes.error) {
@@ -93,6 +98,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       couverture: couvertureRes.error ? null : (couvertureRes.data ?? []),
       pannes: pannesRes.error ? null : (pannesRes.data ?? []),
       depassements: depassementsRes.error ? null : (depassementsRes.data ?? []),
+      inacheves: inachevesRes.error ? null : (inachevesRes.data ?? []),
     },
     200,
   )

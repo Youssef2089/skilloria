@@ -1,3 +1,9 @@
+import {
+  couperEtSignaler,
+  limiteSondee,
+  PLAFOND_CANDIDATURES_ORG,
+  type Troncature,
+} from '@/lib/plafonds-liste'
 import type { AuthContext } from '@/lib/auth-guard'
 import { tBDD, type TranslationsMap } from '@/lib/translations'
 import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name-masking'
@@ -185,8 +191,15 @@ export async function buildOrgCandidatureDTOs(
    * choisis côté serveur. Absente ⇒ français.
    */
   locale: string | null = null,
-): Promise<OrgCandidatureDTO[]> {
-  if (publicationIds.length === 0) return []
+  /**
+   * LE RETOUR N'EST PLUS UN TABLEAU, et c'est délibéré. Une troncature rendue
+   * à côté du résultat, dans un champ facultatif, se serait oubliée. Ici le
+   * compilateur oblige chaque appelant à la voir.
+   */
+): Promise<{ dtos: OrgCandidatureDTO[]; troncature: Troncature }> {
+  if (publicationIds.length === 0) {
+    return { dtos: [], troncature: { plafond: PLAFOND_CANDIDATURES_ORG, atteint: false } }
+  }
 
   const { data: rowsRaw, error } = await auth.supabaseAdmin
     .from('candidatures')
@@ -197,15 +210,25 @@ export async function buildOrgCandidatureDTOs(
     .in('publication_id', publicationIds)
     .order('ai_match_score', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
-    .limit(2000)
+    // UNE LIGNE DE PLUS QUE LE PLAFOND — elle n'est jamais servie, elle répond
+    // seulement à « y en avait-il d'autres ? ». Un résultat de exactement
+    // PLAFOND lignes est aussi bien complet que tronqué : sans cette ligne, la
+    // question n'a pas de réponse.
+    .limit(limiteSondee(PLAFOND_CANDIDATURES_ORG))
 
   if (error) {
     console.error('[buildOrgCandidatureDTOs] query failed', error.message)
     throw new Error('db_error')
   }
 
-  const rows = (rowsRaw ?? []) as unknown as CandidatureRow[]
-  if (rows.length === 0) return []
+  // On coupe AVANT toute dérivation : la ligne-sonde ne doit jamais atteindre
+  // un DTO, ni les compteurs.
+  const { lignes: rows, troncature } = couperEtSignaler(
+    (rowsRaw ?? []) as unknown as CandidatureRow[],
+    PLAFOND_CANDIDATURES_ORG,
+    'candidatures org',
+  )
+  if (rows.length === 0) return { dtos: [], troncature }
 
   // Pitch IA orienté org via matches.explanation.pitch_org.
   const matchIds = Array.from(new Set(rows.map((r) => r.match_id).filter((id): id is string => !!id)))
@@ -491,7 +514,16 @@ export async function buildOrgCandidatureDTOs(
   }))
 
   // Filtrage APRÈS dérivation : le bucket est un fait serveur.
-  return bucket ? dtos.filter((d) => d.lifecycle.bucket === bucket) : dtos
+  //
+  // LA TRONCATURE VOYAGE AVEC LE RÉSULTAT, et ce n'est pas décoratif : les
+  // compteurs de buckets sont dérivés de CE tableau (cf. `countByBucket`).
+  // Au-delà du plafond ils sous-comptent — c'est le défaut du badge du lot 6,
+  // à un autre plafond. Ils ne peuvent pas être rendus exacts en SQL sans
+  // réécrire `deriveCandidatureLifecycle` en base, c'est-à-dire sans créer une
+  // SECONDE règle d'état de vie. On préfère un compteur dit PARTIEL à un
+  // compteur faux, et à une règle en double.
+  const servies = bucket ? dtos.filter((d) => d.lifecycle.bucket === bucket) : dtos
+  return { dtos: servies, troncature }
 }
 
 /** Compte les DTO par bucket — pour servir les deux onglets sans 2ᵉ appel. */

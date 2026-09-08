@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
@@ -82,6 +82,14 @@ type LigneDepassement = {
   experts: number
 }
 
+/** Un run de mise en relation qui ne s-est pas acheve, par etat. Jamais agrege :
+ *  « il sera rejoue » et « il ne le sera plus » n-appellent pas la meme action. */
+type LigneInacheve = {
+  etat: 'en_cours' | 'abandonne' | 'jamais_tente' | string
+  publications: number
+  plus_ancien: string | null
+}
+
 type Charge = {
   reglages: Reglage[]
   distribution: LigneDistribution[] | null
@@ -89,6 +97,7 @@ type Charge = {
   couverture: LigneCouverture[] | null
   pannes: LignePanne[] | null
   depassements: LigneDepassement[] | null
+  inacheves: LigneInacheve[] | null
 }
 
 const carte: React.CSSProperties = {
@@ -131,6 +140,7 @@ const aide: React.CSSProperties = {
 
 export default function AdminMatchingPage() {
   const t = useTranslations('admin_matching')
+  const locale = useLocale()
   const secureFetch = useSecureFetch()
 
   const [charge, setCharge] = useState<Charge | null>(null)
@@ -324,6 +334,40 @@ export default function AdminMatchingPage() {
           </div>
         )}
         <div style={aide}>{t('overruns.help')}</div>
+      </section>
+
+      {/* ── LES RUNS QUI NE SE SONT PAS ACHEVES ─────────────────────────
+          Au-dela du plafond de tentatives, l-annonce cesse d-etre rejouee.
+          Rien ne le disait : ni l-organisation qui ne recoit aucun candidat,
+          ni l-expert qui ne voit aucune annonce. Un abandon silencieux est le
+          plus couteux des defauts a diagnostiquer. */}
+      <section style={carte}>
+        <div style={titreBloc}>{t('unfinished.title')}</div>
+        {charge?.inacheves === null ? (
+          <div style={{ fontSize: 13, color: '#b45309' }}>{t('unfinished.unavailable')}</div>
+        ) : (charge?.inacheves ?? []).length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--sk-faint)' }}>{t('unfinished.none')}</div>
+        ) : (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {(charge?.inacheves ?? []).map((r) => (
+              <div
+                key={r.etat}
+                style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 8, fontSize: 13.5 }}
+              >
+                <span style={{ fontWeight: 600, color: r.etat === 'abandonne' ? '#b45309' : 'var(--sk-text)' }}>
+                  {t(`unfinished.etat.${r.etat}` as 'unfinished.etat.abandonne')}
+                </span>
+                <span style={{ color: 'var(--sk-text)', fontWeight: 600 }}>{r.publications}</span>
+                {r.plus_ancien && (
+                  <span style={{ color: 'var(--sk-muted)' }}>
+                    {t('unfinished.depuis', { date: new Date(r.plus_ancien).toLocaleDateString(locale) })}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={aide}>{t('unfinished.help')}</div>
       </section>
 
       {/* ── LA DISTRIBUTION OBSERVÉE ───────────────────────────────────── */}

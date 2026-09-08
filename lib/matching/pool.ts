@@ -1,3 +1,4 @@
+import { enTranches, TAILLE_TRANCHE_IDS } from '@/lib/matching/tranches'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AnnonceType } from '@/types/annonce'
 import {
@@ -81,7 +82,7 @@ const pickRel = <T,>(v: T | T[] | null | undefined): T | null =>
 
 const SELECT_PROFIL =
   'id, user_id, title, summary, skills, certifications, years_total_experience, ' +
-  'users!profiles_user_id_fkey!inner(user_type, locale)'
+  'users!profiles_user_id_fkey!inner(user_type, locale, status, deletion_scheduled_at, anonymized_at)'
 
 /**
  * Critères déclarés PAR L'ANNONCE. Un tableau vide = aucune contrainte sur cet
@@ -98,12 +99,70 @@ export type CriteresAnnonce = {
   work_zone_countries: string[]
 }
 
+/** Une page de lecture. Voir `lireToutesLesLignes`. */
+const TAILLE_PAGE = 1000
+
+/**
+ * Lit TOUTES les lignes d'une requête, page par page, jusqu'à épuisement.
+ *
+ * ═══ LE MUR QU'ON SUPPRIME ════════════════════════════════════════════════
+ *   Sans `.limit()` ET sans pagination, la requête n'était pas illimitée : elle
+ *   était bornée par le réglage « Max rows » du projet — un nombre qui ne figure
+ *   nulle part dans le dépôt, pas même dans `config.toml`. Au-delà, les experts
+ *   suivants N'EXISTAIENT PAS : aucune erreur, aucune trace, et
+ *   `eligible_after_filters` affichait un nombre faux et rassurant.
+ *
+ *   Un plafond invisible est pire qu'un plafond assumé.
+ *
+ * ═══ ET ON COMPTE ═════════════════════════════════════════════════════════
+ *   Lire par tranches ne suffit pas : il faut savoir si on a tout lu. On
+ *   demande donc AUSSI le nombre attendu, et l'appelant confronte les deux. Une
+ *   divergence devient un fait, pas une déduction.
+ *
+ *   Le comptage est fait en UNE requête `head` séparée plutôt que sur chaque
+ *   page : compter à chaque page referait le même dénombrement à chaque fois.
+ */
+async function lireToutesLesLignes(
+  construire: (options?: { count?: 'exact'; head?: boolean }) => PromiseLike<{
+    data: unknown[] | null
+    error: { message: string } | null
+    count?: number | null
+  }>,
+  contexte: string,
+): Promise<{ lignes: unknown[]; attendu: number | null; erreur?: string }> {
+  const comptage = await construire({ count: 'exact', head: true })
+  if (comptage.error) {
+    return { lignes: [], attendu: null, erreur: `${contexte} : ${comptage.error.message}` }
+  }
+  const attendu = typeof comptage.count === 'number' ? comptage.count : null
+
+  const lignes: unknown[] = []
+  for (let debut = 0; ; debut += TAILLE_PAGE) {
+    const q = construire() as unknown as {
+      range: (a: number, b: number) => PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>
+    }
+    const { data, error } = await q.range(debut, debut + TAILLE_PAGE - 1)
+    if (error) return { lignes, attendu, erreur: `${contexte} : ${error.message}` }
+    const page = data ?? []
+    lignes.push(...page)
+    // Une page incomplète est la fin : il n'y a rien après.
+    if (page.length < TAILLE_PAGE) break
+    // Garde-fou de boucle : si le nombre attendu est connu et déjà atteint, on
+    // s'arrête même si la dernière page était pleine.
+    if (attendu !== null && lignes.length >= attendu) break
+  }
+  return { lignes, attendu }
+}
+
 /**
  * Le vivier d'une annonce.
  *
- * Toutes les exclusions sont poussées EN SQL, jamais faites en mémoire après
- * chargement : charger 50 000 profils pour en jeter 49 000 ne tient pas, et
- * c'est l'ordre de grandeur visé.
+ * Les exclusions sont poussées EN SQL — charger 50 000 profils pour en jeter
+ * 49 000 ne tient pas, et c'est l'ordre de grandeur visé.
+ *
+ * UNE SEULE EXCEPTION, et elle est justifiée sur place : les décisions déjà
+ * prises (déclinées, candidatures) sont retirées EN MÉMOIRE, parce qu'un filtre
+ * NÉGATIF ne se découpe pas et qu'entier il dépasse la longueur d'URL admise.
  */
 export async function chargerVivierPourAnnonce(
   supabaseAdmin: SupabaseClient,
@@ -140,17 +199,35 @@ export async function chargerVivierPourAnnonce(
   const declines = new Set((declinesRes.data ?? []).map((r) => (r as { profile_id: string }).profile_id))
   const postules = new Set((postulesRes.data ?? []).map((r) => (r as { profile_id: string }).profile_id))
   const exclus = [...new Set([...declines, ...postules])]
+  const exclusSet = new Set(exclus)
 
   // ── Filtres communs, tous sur des données DÉCLARÉES ──────────────────────
-  const base = () => {
+  const base = (options?: { count?: 'exact'; head?: boolean }) => {
     let q = supabaseAdmin
       .from('profiles')
-      .select(SELECT_PROFIL)
+      .select(SELECT_PROFIL, options)
       .eq('domain_id', annonce.domain_id)
       .eq('visible', true)
       .eq('cv_parsing_status', 'done')
       .not('ai_consent_at', 'is', null)
       .eq('verification_status', 'approved')
+      // ── D1 : LES COMPTES QUI NE DOIVENT PLUS ÊTRE PROPOSÉS ────────────────
+      //
+      //  UN COMPTE SUSPENDU n'était filtré NULLE PART. Il était noté, apparié,
+      //  et aurait été notifié dès l'ouverture des notifications : la
+      //  suspension coupe l'accès, elle ne retirait pas du marché.
+      //
+      //  UN COMPTE EN SUPPRESSION était bien écarté — mais indirectement, par
+      //  un `visible = false` posé dans une AUTRE route (account/delete). La
+      //  garde tenait donc à une ligne située ailleurs : le jour où cette route
+      //  cesse de poser le drapeau, le moteur recommence à proposer des comptes
+      //  effacés, sans qu'aucune règle du moteur n'ait changé.
+      //
+      //  Les deux exclusions deviennent EXPLICITES ICI, dans la règle du vivier
+      //  — là où on vient lire ce que « éligible » veut dire.
+      .neq('users.status', 'suspended')
+      .is('users.deletion_scheduled_at', null)
+      .is('users.anonymized_at', null)
 
     // BRANCHE — déclarée des deux côtés, et obligatoire des deux côtés.
     if (annonce.branch_id) q = q.eq('branch_id', annonce.branch_id)
@@ -172,8 +249,10 @@ export async function chargerVivierPourAnnonce(
       q = q.neq('user_id', annonce.created_by)
     }
 
-    // LES DÉCISIONS DÉJÀ PRISES.
-    if (exclus.length > 0) q = q.not('id', 'in', `(${exclus.join(',')})`)
+    // LES DÉCISIONS DÉJÀ PRISES — retirées EN MÉMOIRE, et c'est la seule
+    // exception à la règle « tout filtrer en SQL ». Voir plus bas : un filtre
+    // NÉGATIF ne se découpe pas, et non découpé il dépasse la longueur d'URL
+    // admise dès quelques centaines de décisions.
 
     return q
   }
@@ -191,29 +270,68 @@ export async function chargerVivierPourAnnonce(
   const drapeauOuverture = publicNatif === 'expert_freelance' ? 'open_to_freelance' : 'open_to_cdi'
 
   const [natifsRes, croisesRes] = await Promise.all([
-    avecDisponibilite(base().eq('users.user_type', publicNatif), publicNatif),
+    lireToutesLesLignes(
+      () => avecDisponibilite(base().eq('users.user_type', publicNatif), publicNatif),
+      `vivier natif (${annonce.id})`,
+    ),
     // OUVERTURE CROISÉE : l'autre public, mais SEULEMENT ceux qui l'ont
     // explicitement demandée. C'est un critère déclaré, avec sa propre garde de
     // disponibilité.
-    avecDisponibilite(
-      base().eq('users.user_type', autrePublic).eq(drapeauOuverture, true),
-      autrePublic,
+    lireToutesLesLignes(
+      () =>
+        avecDisponibilite(
+          base().eq('users.user_type', autrePublic).eq(drapeauOuverture, true),
+          autrePublic,
+        ),
+      `vivier croisé (${annonce.id})`,
     ),
   ])
 
-  if (natifsRes.error || croisesRes.error) {
-    const detail = natifsRes.error?.message ?? croisesRes.error?.message ?? 'inconnue'
+  if (natifsRes.erreur || croisesRes.erreur) {
+    const detail = natifsRes.erreur ?? croisesRes.erreur ?? 'inconnue'
     console.error('[vivier] chargement en échec', { annonce: annonce.id, detail })
     return { ...vide, erreur: `chargement du vivier en échec : ${detail}` }
+  }
+
+  // ── LE NOMBRE LU EST CONFRONTÉ AU NOMBRE ATTENDU ─────────────────────────
+  //  Sans cette confrontation, une lecture partielle est rigoureusement
+  //  indistinguable d'une lecture complète : le vivier rend moins de profils,
+  //  et `eligible_after_filters` affiche ce nombre-là — faux, et rassurant.
+  //  Une divergence doit être VISIBLE, pas déduite.
+  const divergence = [natifsRes, croisesRes].find(
+    (r) => r.attendu !== null && r.lignes.length !== r.attendu,
+  )
+  if (divergence) {
+    console.error('[vivier] LECTURE INCOMPLÈTE — le vivier ne couvre pas tout le périmètre', {
+      annonce: annonce.id,
+      lus: divergence.lignes.length,
+      attendus: divergence.attendu,
+    })
+    return {
+      ...vide,
+      erreur: `vivier incomplet : ${divergence.lignes.length} profils lus pour ${divergence.attendu} attendus`,
+    }
   }
 
   const vues = new Set<string>()
   const profils: ProfilDuVivier[] = []
   for (const r of [
-    ...((natifsRes.data ?? []) as unknown as LigneProfil[]),
-    ...((croisesRes.data ?? []) as unknown as LigneProfil[]),
+    ...(natifsRes.lignes as unknown as LigneProfil[]),
+    ...(croisesRes.lignes as unknown as LigneProfil[]),
   ]) {
     if (vues.has(r.id)) continue
+    // LES DÉCISIONS DÉJÀ PRISES, appliquées ici plutôt qu'en SQL.
+    //
+    //  Un `not in (…)` porte la liste entière dans l'URL, et un filtre NÉGATIF
+    //  ne se découpe pas : l'union de « pas dans A » et « pas dans B » réadmet
+    //  ce que chaque moitié excluait. La seule découpe correcte serait une
+    //  intersection, qui reviendrait à réécrire la même URL trop longue.
+    //
+    //  On charge donc ces profils et on les retire ici. Le coût est de lire
+    //  quelques lignes de plus ; le bénéfice est que le mur d'URL disparaît, et
+    //  qu'il tombait dès quelques centaines de décisions — bien avant l'échelle
+    //  promise.
+    if (exclus.length > 0 && exclusSet.has(r.id)) continue
     vues.add(r.id)
     const u = pickRel(r.users)
     const kind: ExpertKind = u?.user_type === 'expert_cdi' ? 'expert_cdi' : 'expert_freelance'
@@ -237,11 +355,24 @@ export async function chargerVivierPourAnnonce(
   //  mille : c'est le genre de boucle qu'on n'aperçoit qu'en production.
   if (profils.length > 0) {
     const ids = profils.map((p) => p.profile_id)
-    const { data: exps, error: expErr } = await supabaseAdmin
-      .from('profile_experiences')
-      .select('profile_id, role, sector, description, start_date')
-      .in('profile_id', ids)
-      .order('start_date', { ascending: false })
+    // DÉCOUPÉE : injectés d'un bloc, ces identifiants écrivent un filtre d'URL
+    // qui dépasse la longueur admise dès quelques centaines de profils. Le
+    // filtre est POSITIF, donc l'union des tranches est exactement le résultat
+    // entier — contrairement au filtre négatif des décisions, plus haut.
+    const exps: Array<{ profile_id: string; role: string | null; sector: string | null; description: string | null }> = []
+    let expErr: { message: string } | null = null
+    for (const tranche of enTranches(ids, TAILLE_TRANCHE_IDS)) {
+      const { data, error } = await supabaseAdmin
+        .from('profile_experiences')
+        .select('profile_id, role, sector, description, start_date')
+        .in('profile_id', tranche)
+        .order('start_date', { ascending: false })
+      if (error) {
+        expErr = error
+        break
+      }
+      exps.push(...((data ?? []) as typeof exps))
+    }
     if (expErr) {
       // Le parcours ENRICHIT le document, il ne le conditionne pas. Un profil
       // sans parcours reste notable sur son titre, son résumé et ses

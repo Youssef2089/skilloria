@@ -644,7 +644,6 @@
         "title_placeholder": "Ej: Consultor funcional sénior",
         "summary_label": "Resumen",
         "summary_placeholder": "10 años de experiencia en...",
-        "summary_counter": "{count}/500 · mínimo 20 caracteres para publicar",
         "seniority_label": "Nivel de experiencia",
         "seniority_placeholder": "— Seleccionar —",
         "seniority_options": {
@@ -1464,7 +1463,6 @@
         "title_placeholder": "Ej: Consultor funcional sénior",
         "summary_label": "Resumen",
         "summary_placeholder": "10 años de experiencia en...",
-        "summary_counter": "{count}/500 · mínimo 20 caracteres para publicar",
         "seniority_label": "Senioridad",
         "seniority_placeholder": "— Seleccionar —",
         "seniority_options": {
@@ -3697,6 +3695,18 @@
         "disponibilite": "Cambio de disponibilidad",
         "cv_reanalyse": "CV reanalizado"
       }
+    },
+    "unfinished": {
+      "title": "Emparejamientos no finalizados",
+      "none": "Ninguno: todos los anuncios publicados se han procesado por completo.",
+      "unavailable": "No se ha podido leer el contador. No es cero: es desconocido.",
+      "depuis": "desde el {date}",
+      "help": "Un emparejamiento sin finalizar no produce candidatos para la organización ni anuncios para el experto, y nada lo indica en sus pantallas. «Abandonado» es el único estado que exige intervención: superado el límite de intentos, el anuncio ya no se reintenta solo. Los tres estados nunca se suman: no exigen la misma acción.",
+      "etat": {
+        "en_cours": "Se reintentará",
+        "abandonne": "Abandonado: requiere intervención",
+        "jamais_tente": "Nunca intentado: el disparador no funcionó"
+      }
     }
   },
   "ecosystem_switcher": {
@@ -3813,5 +3823,8 @@
       "invalid_slug": "Subdominio no válido: minúsculas, cifras y guiones, sin punto ni espacio.",
       "slug_taken": "Este subdominio ya está en uso."
     }
+  },
+  "plafonds": {
+    "annonces_tronquees": "Esta lista está incompleta: muestra tus {plafond} anuncios modificados más recientemente. Los más antiguos no aparecen."
   }
 }

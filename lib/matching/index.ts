@@ -1,3 +1,4 @@
+import { memoriserNotes, notesDejaAcquises, solderBrouillon } from '@/lib/matching/reprise'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AnnonceType } from '@/types/annonce'
 import { estTypeAnnonce, expertKindForAnnonce, type ExpertKind } from '@/lib/annonces/audience'
@@ -277,15 +278,32 @@ export async function runMatchingForPublication(args: {
   }
 
   // ── 4. La notation ───────────────────────────────────────────────────────
+  //
+  //  CE QUI A DÉJÀ ÉTÉ NOTÉ N'EST PAS RENOTÉ. La fonction est tuée à soixante
+  //  secondes ; à l'échelle promise, un run peut ne pas finir. Il restait alors
+  //  rejouable — mais repartait de zéro, REPAYANT les lots déjà payés, jusqu'à
+  //  l'abandon au bout de cinq tentatives. Paralléliser repousse ce mur ; seule
+  //  la reprise le supprime.
+  const acquises = await notesDejaAcquises(supabaseAdmin, publicationId, s.rerank_model)
+  const aNoter = acquises.size > 0 ? documents.filter((d) => !acquises.has(d.id)) : documents
+
   const notation = await rerankerTout({
     supabaseAdmin,
     domainId: pub.domain_id,
     model: s.rerank_model,
     tailleLot: s.rerank_batch_size,
     requete,
-    documents,
+    documents: aNoter,
     contexte: { publication_id: publicationId },
+    memoriser: (notes) => memoriserNotes(supabaseAdmin, publicationId, s.rerank_model, notes),
   })
+
+  // Les notes reprises rejoignent celles du run : la suite ne fait aucune
+  // différence entre une note d'aujourd'hui et une note d'il y a trente
+  // secondes — c'est le même modèle sur le même profil.
+  for (const [profileId, score] of acquises) {
+    if (!notation.scores.has(profileId)) notation.scores.set(profileId, score)
+  }
 
   const parProfil = new Map(vivier.profils.map((p) => [p.profile_id, p]))
   const scores: number[] = []
@@ -383,6 +401,12 @@ export async function runMatchingForPublication(args: {
     notation.model,
     acheve,
   )
+
+  // Le brouillon n'est soldé QUE si le run s'est vraiment achevé, et APRÈS la
+  // réconciliation : tant qu'elle n'a pas eu lieu, il est la seule mémoire de
+  // ce qui a été payé. L'effacer plus tôt rouvrirait exactement le mur qu'on
+  // ferme ; ne pas l'effacer du tout ferait reprendre un run déjà fini.
+  if (acheve) await solderBrouillon(supabaseAdmin, publicationId)
 
   const resume =
     `Vivier ${vivier.profils.length} · notés ${notation.notes} · retenus ${desired.length} · ` +

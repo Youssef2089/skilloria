@@ -1,3 +1,4 @@
+import { capaciteActive } from '@/lib/interrupteurs'
 import Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { budgetDisponible, enregistrerDepense } from '@/lib/ai-budget'
@@ -234,7 +235,10 @@ async function appeler(args: {
 }): Promise<
   { ok: true; charge: Record<string, unknown> } | { ok: false; cause: CausePanne; raison: string }
 > {
-  if (process.env.ENABLE_AI_CANDIDATURE_ASSESSMENT === 'false') {
+  // Convention unique, fail-closed (cf. lib/interrupteurs.ts) : seule la
+  // valeur exacte 'true' active. Avant, tout ce qui n'était pas la chaîne
+  // 'false' laissait le jugement ACTIF — y compris une faute de frappe.
+  if (!capaciteActive('ENABLE_AI_CANDIDATURE_ASSESSMENT')) {
     return {
       ok: false,
       cause: 'modele_indisponible',

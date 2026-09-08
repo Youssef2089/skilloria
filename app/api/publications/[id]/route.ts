@@ -8,8 +8,18 @@ import { routing, type Locale } from '@/i18n/routing'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-// Matching IA via `after()` (~10-15s) après l'envoi de la response, dans le
-// cas (dormant) où le PATCH cible une publication déjà 'published'.
+// Matching IA via `after()` après l'envoi de la response, dans le cas (dormant)
+// où le PATCH cible une publication déjà 'published'.
+//
+// LA DURÉE N'EST PLUS ANNONCÉE ICI, ET C'EST DÉLIBÉRÉ. Ce commentaire disait
+// « ~10-15 s » : il datait du plafond de vivier à 100 profils, qui n'existe
+// plus. Un chiffre qui a survécu à sa raison d'être trompe le prochain lecteur
+// mieux qu'une absence de chiffre.
+//
+// Ce qui borne réellement le run : les lots sont notés par vagues (cf.
+// CONCURRENCE_LOTS) au lieu d'être enchaînés, et ce qui a été noté est
+// mémorisé — un run interrompu par le couperet reprend où il s'est arrêté au
+// lieu de tout repayer.
 export const maxDuration = 60
 
 /**

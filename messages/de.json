@@ -644,7 +644,6 @@
         "title_placeholder": "z.B. Senior Fachberater",
         "summary_label": "Zusammenfassung",
         "summary_placeholder": "10 Jahre Erfahrung in...",
-        "summary_counter": "{count}/500 · mindestens 20 Zeichen zum Veröffentlichen",
         "seniority_label": "Seniorität",
         "seniority_placeholder": "— Auswählen —",
         "seniority_options": {
@@ -1464,7 +1463,6 @@
         "title_placeholder": "z. B. Senior Fachberater",
         "summary_label": "Zusammenfassung",
         "summary_placeholder": "10 Jahre Erfahrung in...",
-        "summary_counter": "{count}/500 · mindestens 20 Zeichen zum Veröffentlichen",
         "seniority_label": "Senioritätslevel",
         "seniority_placeholder": "— Auswählen —",
         "seniority_options": {
@@ -3697,6 +3695,18 @@
         "disponibilite": "Verfügbarkeit geändert",
         "cv_reanalyse": "Lebenslauf neu ausgewertet"
       }
+    },
+    "unfinished": {
+      "title": "Nicht abgeschlossene Zuordnungen",
+      "none": "Keine: Alle veröffentlichten Anzeigen wurden vollständig verarbeitet.",
+      "unavailable": "Der Zähler konnte nicht gelesen werden. Das ist nicht null, sondern unbekannt.",
+      "depuis": "seit dem {date}",
+      "help": "Eine nicht abgeschlossene Zuordnung liefert der Organisation keine Kandidaten und der Expertin oder dem Experten keine Anzeigen — und auf ihren Bildschirmen weist nichts darauf hin. „Abgebrochen\" ist der einzige Zustand, der ein Eingreifen erfordert: Über der Versuchsgrenze wird die Anzeige nicht mehr von selbst wiederholt. Die drei Zustände werden nie addiert: Sie erfordern nicht dieselbe Maßnahme.",
+      "etat": {
+        "en_cours": "Wird wiederholt",
+        "abandonne": "Abgebrochen — Eingreifen nötig",
+        "jamais_tente": "Nie versucht — der Auslöser hat nicht ausgelöst"
+      }
     }
   },
   "ecosystem_switcher": {
@@ -3813,5 +3823,8 @@
       "invalid_slug": "Ungültige Subdomain: Kleinbuchstaben, Ziffern und Bindestriche, kein Punkt, kein Leerzeichen.",
       "slug_taken": "Diese Subdomain ist bereits vergeben."
     }
+  },
+  "plafonds": {
+    "annonces_tronquees": "Diese Liste ist unvollständig: Sie zeigt Ihre {plafond} zuletzt geänderten Anzeigen. Ältere werden nicht angezeigt."
   }
 }

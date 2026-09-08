@@ -1,3 +1,4 @@
+import { enTranches, TAILLE_TRANCHE_IDS } from '@/lib/matching/tranches'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
@@ -293,16 +294,22 @@ export async function reconcileMatches(args: {
   }
 
   if (toDeleteIds.length > 0) {
-    const { error: delErr } = await supabaseAdmin
-      .from('matches')
-      .delete()
-      .in('id', toDeleteIds)
-    if (delErr) {
-      console.error('[reconcile] delete failed', delErr.message)
-      // Best-effort.
-    } else {
-      stats.deleted = toDeleteIds.length
+    // DÉCOUPÉE — quatrième site du même mur, trouvé par le contrôle et non par
+    // l'audit. Une suppression de 12 000 identifiants écrit dans l'URL un
+    // filtre qui dépasse la longueur admise dès quelques centaines : la
+    // suppression échouerait en bloc, et des matches sortis du vivier
+    // resteraient affichés sans que rien ne le dise.
+    let supprimes = 0
+    for (const tranche of enTranches(toDeleteIds, TAILLE_TRANCHE_IDS)) {
+      const { error: delErr } = await supabaseAdmin.from('matches').delete().in('id', tranche)
+      if (delErr) {
+        console.error('[reconcile] delete failed', delErr.message)
+        // Best-effort : les autres tranches méritent d'être tentées.
+        continue
+      }
+      supprimes += tranche.length
     }
+    stats.deleted = supprimes
   }
 
   return stats

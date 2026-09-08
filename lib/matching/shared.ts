@@ -1,3 +1,4 @@
+import { enTranches, TAILLE_TRANCHE_IDS } from '@/lib/matching/tranches'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AnnonceType } from '@/types/annonce'
 import type { ExpertKind } from '@/lib/annonces/audience'
@@ -81,22 +82,44 @@ export async function notifyAndFlip(args: {
 
   // Idempotence : ne jamais renotifier une paire (utilisateur, annonce) déjà
   // notifiée. La lecture est bornée aux destinataires et aux annonces du lot.
-  const { data: existing, error: existErr } = await supabaseAdmin
-    .from('notifications')
-    .select('user_id, entity_id')
-    .eq('type', NOTIFICATION_TYPE)
-    .in('user_id', userIds)
-    .in('entity_id', pubIds)
-  if (existErr) {
-    // On ne sait pas ce qui existe déjà : on RENONCE à insérer plutôt que de
-    // risquer un doublon de notification. Une notification manquée se rattrape
-    // au prochain run ; une notification en double se voit et ne se rattrape pas.
-    console.error('[matching] notifications existantes illisibles — aucun envoi ce run', existErr.message)
-    return
+  //
+  // ═══ DÉCOUPÉE, ET C'EST LA PLUS CRITIQUE DES TROIS ══════════════════════
+  //   Injectés d'un bloc, `userIds` et `pubIds` écrivent dans l'URL un filtre
+  //   qui dépasse la longueur admise dès quelques centaines d'identifiants —
+  //   très loin avant l'échelle promise. Les deux dimensions sont donc
+  //   découpées, et le produit des tranches parcouru.
+  //
+  //   POURQUOI ELLE PASSE EN PREMIER : si elle ÉCHOUE, le bloc ci-dessous
+  //   renonce à TOUT envoi — un run entier sans notification. Et si elle était
+  //   TRONQUÉE par un intermédiaire, elle rendrait moins de lignes qu'il n'en
+  //   existe, donc des paires vues comme jamais notifiées : des NOTIFICATIONS
+  //   EN DOUBLE, ce que le commentaire ci-dessous dit précisément ne jamais
+  //   devoir arriver. Une lecture partielle est ici pire qu'une lecture ratée.
+  const dejaNotifie = new Set<string>()
+  for (const tranchesUsers of enTranches(userIds, TAILLE_TRANCHE_IDS)) {
+    for (const tranchePubs of enTranches(pubIds, TAILLE_TRANCHE_IDS)) {
+      const { data: existing, error: existErr } = await supabaseAdmin
+        .from('notifications')
+        .select('user_id, entity_id')
+        .eq('type', NOTIFICATION_TYPE)
+        .in('user_id', tranchesUsers)
+        .in('entity_id', tranchePubs)
+      if (existErr) {
+        // On ne sait pas ce qui existe déjà : on RENONCE à insérer plutôt que de
+        // risquer un doublon de notification. Une notification manquée se rattrape
+        // au prochain run ; une notification en double se voit et ne se rattrape pas.
+        //
+        // UNE SEULE TRANCHE EN ÉCHEC SUFFIT À RENONCER : poursuivre avec une
+        // vue partielle de l'existant, c'est exactement produire les doublons
+        // qu'on refuse.
+        console.error('[matching] notifications existantes illisibles — aucun envoi ce run', existErr.message)
+        return
+      }
+      for (const r of existing ?? []) {
+        dejaNotifie.add(`${r.user_id as string}:::${r.entity_id as string}`)
+      }
+    }
   }
-  const dejaNotifie = new Set(
-    (existing ?? []).map((r) => `${r.user_id as string}:::${r.entity_id as string}`),
-  )
 
   const rows: Array<Record<string, unknown>> = []
   const aBasculer: NotifySpec[] = []

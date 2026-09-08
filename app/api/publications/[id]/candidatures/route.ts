@@ -3,7 +3,8 @@ import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
-import { buildOrgCandidatureDTOs, countByBucket } from '@/lib/candidature-org-dto'
+import { buildOrgCandidatureDTOs, countByBucket, type OrgCandidatureDTO } from '@/lib/candidature-org-dto'
+import type { Troncature } from '@/lib/plafonds-liste'
 import { parseBucketFilter } from '@/lib/candidatures/lifecycle'
 import {
   assertFacetPartition,
@@ -117,9 +118,12 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   const bucketFilter = parseBucketFilter(url.searchParams.get('filter'))
   const facetFilter = parseFacetFilter(url.searchParams.get('facet'), bucketFilter)
   const translations = await loadTranslations(locale)
-  let all: Awaited<ReturnType<typeof buildOrgCandidatureDTOs>>
+  let all: OrgCandidatureDTO[]
+  let troncature: Troncature
   try {
-    all = await buildOrgCandidatureDTOs(auth, [publicationId], translations, null, locale)
+    const bati = await buildOrgCandidatureDTOs(auth, [publicationId], translations, null, locale)
+    all = bati.dtos
+    troncature = bati.troncature
   } catch {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
@@ -147,6 +151,9 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
       candidatures,
       counts,
       facets,
+      // `troncature` DIT que la liste ET les compteurs sont partiels. Champ
+      // additif : un consommateur qui l'ignore ne change pas de comportement.
+      troncature,
       filter: bucketFilter ?? 'all',
       facet: facetFilter,
     },
