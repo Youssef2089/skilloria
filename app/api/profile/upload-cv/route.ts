@@ -1,3 +1,4 @@
+import { capaciteActive } from '@/lib/interrupteurs'
 import { NextRequest, after } from 'next/server'
 import crypto from 'node:crypto'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
@@ -30,7 +31,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Auth failed', code: 'auth_error' }, 500)
   }
 
-  if (process.env.ENABLE_AI_CV_PARSING !== 'true') {
+  // Convention unique, fail-closed (cf. lib/interrupteurs.ts).
+  if (!capaciteActive('ENABLE_AI_CV_PARSING')) {
     return json({ error: 'AI parsing disabled', code: 'ai_disabled' }, 503)
   }
 
