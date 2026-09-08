@@ -87,7 +87,35 @@ const ok = (cond, label, hint) => {
 const info = (label) => console.log(`  ··   ${label}`)
 const section = (s) => console.log(`\n═══ ${s} ═══\n`)
 
-const MIGRATION = 'supabase/migrations/20260901000000_stripe_fondations.sql'
+/**
+ * Migration désignée par son SUFFIXE DESCRIPTIF, jamais par son horodatage.
+ *
+ * Elle était nommée ici par son numéro complet. Les numéros bougent : ce dépôt
+ * vient encore d'en renuméroter un pour cause de collision entre worktrees, et
+ * une référence par numéro fait planter le diagnostic au premier renommage —
+ * ou, pire, le fait passer à côté sans rien dire.
+ *
+ * Refuse de tourner sur zéro OU deux correspondances : deux migrations au même
+ * suffixe, et on ne saurait pas laquelle fait foi. Motif repris tel quel de
+ * scripts/diag-cron-supervision.mjs — un second résolveur maison finirait par
+ * diverger du premier.
+ */
+function migration(suffixe) {
+  const trouves = readdirSync(join(ROOT, 'supabase', 'migrations'))
+    .filter((x) => x.endsWith(`_${suffixe}.sql`))
+    .sort()
+  if (trouves.length !== 1) {
+    console.error(
+      `\n❌ ${trouves.length} migration(s) « ${suffixe} » trouvée(s)` +
+        (trouves.length ? ` : ${trouves.join(', ')}` : '') +
+        `\n   Attendu : exactement une. Le diagnostic ne peut rien vérifier.\n`,
+    )
+    process.exit(1)
+  }
+  return `supabase/migrations/${trouves[0]}`
+}
+
+const MIGRATION = migration('stripe_fondations')
 
 // ─────────────────────────────────────────────────────────────────────────────
 console.log('\nLOT 0 STRIPE — FONDATIONS\n')

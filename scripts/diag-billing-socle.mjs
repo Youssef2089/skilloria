@@ -457,19 +457,44 @@ ok(
 // ─────────────────────────────────────────────────────────────────────────────
 section('9. Hygiène des migrations')
 
-const migs = readdirSync(join(ROOT, 'supabase/migrations')).filter((f) => f.endsWith('.sql')).sort()
-const mine = migs.filter((f) => /stripe/.test(f))
-ok(mine.length >= 1, `migrations Stripe présentes : ${mine.join(', ')}`)
-const last = migs[migs.length - 1]
+/**
+ * Migration désignée par son SUFFIXE DESCRIPTIF, jamais par son horodatage.
+ *
+ * Elle était retrouvée ici par « la dernière dont le nom contient stripe » —
+ * une désignation par POSITION, qui se trompe de fichier dès qu'une migration
+ * Stripe s'ajoute, ou qu'un renumérotage change l'ordre. Ce dépôt vient
+ * précisément d'en renuméroter une pour cause de collision entre worktrees.
+ *
+ * Refuse de tourner sur zéro OU deux correspondances : deux migrations au même
+ * suffixe, et on ne saurait pas laquelle fait foi. Motif repris tel quel de
+ * scripts/diag-cron-supervision.mjs — un second résolveur maison finirait par
+ * diverger du premier.
+ */
+function migration(suffixe) {
+  const trouves = readdirSync(join(ROOT, 'supabase', 'migrations'))
+    .filter((x) => x.endsWith(`_${suffixe}.sql`))
+    .sort()
+  if (trouves.length !== 1) {
+    console.error(
+      `\n❌ ${trouves.length} migration(s) « ${suffixe} » trouvée(s)` +
+        (trouves.length ? ` : ${trouves.join(', ')}` : '') +
+        `\n   Attendu : exactement une. Le diagnostic ne peut rien vérifier.\n`,
+    )
+    process.exit(1)
+  }
+  return `supabase/migrations/${trouves[0]}`
+}
+
+const MIGRATION_SOCLE = migration('stripe_socle_serveur')
 ok(
-  mine.includes(last) || migs.indexOf(mine[mine.length - 1]) >= 0,
-  'les migrations Stripe s\'insèrent dans la séquence',
+  exists(MIGRATION_SOCLE),
+  `la migration du socle est trouvée par son suffixe (${MIGRATION_SOCLE.split('/').pop()})`,
 )
 
 // RÈGLE : ne JAMAIS citer une migration par son numéro. Le renumérotage est
 // une opération normale ici ; un numéro cité vieillit mal et ment ensuite.
 const citing = []
-for (const rel of [...BILLING, ROUTE, 'scripts/diag-billing-socle.mjs', `supabase/migrations/${mine[mine.length - 1]}`]) {
+for (const rel of [...BILLING, ROUTE, 'scripts/diag-billing-socle.mjs', MIGRATION_SOCLE]) {
   if (!exists(rel)) continue
   const src = read(rel)
   // Lookarounds sur les CHIFFRES, et non `\b` : un horodatage de migration est
@@ -489,7 +514,7 @@ ok(
   citing.length ? citing.join(' | ') : undefined,
 )
 
-const socle = read(`supabase/migrations/${mine[mine.length - 1]}`)
+const socle = read(MIGRATION_SOCLE)
 const socleSql = stripSql(socle)
 ok(
   /alter column user_id drop not null/i.test(socleSql),

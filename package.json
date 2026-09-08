@@ -11,8 +11,7 @@
     "db:diff": "supabase db diff",
     "db:push": "supabase db push",
     "db:lint": "supabase db lint",
-    "db:new": "supabase migration new",
-    "diag": "node scripts/diag.mjs"
+    "db:new": "supabase migration new"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.85.0",
