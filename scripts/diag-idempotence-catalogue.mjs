@@ -226,11 +226,17 @@ ok(
   /prices\.create\([\s\S]{0,700}?idempotencyKey:\s*clePrix\(/.test(CATALOGUE),
   'prices.create reçoit la clé dérivée du prix',
 )
-ok(
-  !/idempotencyKey:\s*(crypto\.|`?\$?\{?Date|randomUUID|Math\.random)/.test(CATALOGUE),
-  'aucune clé d’idempotence construite à la volée sur place',
-  'Une clé calculée sur place échapperait aux contrôles de stabilité ci-dessus.',
-)
+// Viser `idempotencyKey:` suivi d'une source d'aléa ratait la forme la plus
+// naturelle : une interpolation, `` `prod-${Date.now()}` ``, où la source
+// n'arrive qu'APRÈS le préfixe littéral. On interdit donc ces sources dans TOUT
+// le module de synchro — elles n'y ont aucun usage légitime (vérifié).
+for (const source of ['Date.now', 'new Date', 'randomUUID', 'Math.random', 'randomBytes']) {
+  ok(
+    !CATALOGUE.includes(source),
+    `la synchro n’utilise pas ${source} (une clé doit être dérivée, pas fabriquée)`,
+    'Une clé calculée sur place échapperait aux contrôles de stabilité ci-dessus.',
+  )
+}
 
 // products.search reste, mais il n'est PLUS ce qui empêche le doublon. On
 // vérifie qu'il n'a pas disparu (ce serait perdre la récupération longue) ET
