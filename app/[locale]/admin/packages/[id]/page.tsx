@@ -630,6 +630,40 @@ export default function AdminPackageEditPage() {
               </div>
             )
           })}
+
+          {/* ── SIÈGES : le champ reste, mais il cesse de mentir ────────────
+              `packages.max_seats` existe en base et n'est LU par aucune garde :
+              le poser à 5 ne limite rien, et rien ne le disait. Un réglage qui
+              ne règle rien est exactement le défaut corrigé sur « Illimité ».
+
+              On ne retire pas la colonne — la facturation au siège est prévue à
+              l'ouverture des abonnements, c'est une fondation, pas un vestige.
+              On le rend donc VISIBLE et INACTIF : caché, il aurait été renseigné
+              depuis la base par quelqu'un qui aurait cru poser une limite.
+
+              En lecture seule côté SERVEUR aussi : aucune route n'accepte de
+              l'écrire (update-package ne le lit pas). Désactiver l'input ne
+              garde rien à lui seul. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 130px auto', gap: 12, alignItems: 'center', opacity: 0.6 }}>
+            <label htmlFor="max_seats" style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>
+              {t('packages.field_max_seats')}
+            </label>
+            <input
+              id="max_seats"
+              type="number"
+              value={pkg.max_seats ?? ''}
+              disabled
+              readOnly
+              placeholder="—"
+              style={{ ...inputStyle, background: 'var(--color-background-secondary, #f8fafc)', color: 'var(--color-text-tertiary, #94a3b8)' }}
+            />
+            <span style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', whiteSpace: 'nowrap' }}>
+              {t('packages.max_seats_badge')}
+            </span>
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: 0, maxWidth: 640 }}>
+            {t('packages.max_seats_inactive')}
+          </p>
         </div>
       </section>
 
