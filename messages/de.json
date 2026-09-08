@@ -640,7 +640,6 @@
         "title_placeholder": "z.B. Senior Fachberater",
         "summary_label": "Zusammenfassung",
         "summary_placeholder": "10 Jahre Erfahrung in...",
-        "summary_counter": "{count}/500 · mindestens 20 Zeichen zum Veröffentlichen",
         "seniority_label": "Seniorität",
         "seniority_placeholder": "— Auswählen —",
         "seniority_options": {
@@ -1460,7 +1459,6 @@
         "title_placeholder": "z. B. Senior Fachberater",
         "summary_label": "Zusammenfassung",
         "summary_placeholder": "10 Jahre Erfahrung in...",
-        "summary_counter": "{count}/500 · mindestens 20 Zeichen zum Veröffentlichen",
         "seniority_label": "Senioritätslevel",
         "seniority_placeholder": "— Auswählen —",
         "seniority_options": {

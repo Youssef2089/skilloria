@@ -640,7 +640,6 @@
         "title_placeholder": "Ex : Consultant fonctionnel senior",
         "summary_label": "Résumé",
         "summary_placeholder": "10 ans d'expérience sur...",
-        "summary_counter": "{count}/500 · minimum 20 caractères pour publier",
         "seniority_label": "Séniorité",
         "seniority_placeholder": "— Sélectionner —",
         "seniority_options": {
@@ -1460,7 +1459,6 @@
         "title_placeholder": "Ex : Consultant fonctionnel senior",
         "summary_label": "Résumé",
         "summary_placeholder": "10 ans d'expérience sur...",
-        "summary_counter": "{count}/500 · minimum 20 caractères pour publier",
         "seniority_label": "Séniorité",
         "seniority_placeholder": "— Sélectionner —",
         "seniority_options": {

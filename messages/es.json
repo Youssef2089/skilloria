@@ -640,7 +640,6 @@
         "title_placeholder": "Ej: Consultor funcional sénior",
         "summary_label": "Resumen",
         "summary_placeholder": "10 años de experiencia en...",
-        "summary_counter": "{count}/500 · mínimo 20 caracteres para publicar",
         "seniority_label": "Nivel de experiencia",
         "seniority_placeholder": "— Seleccionar —",
         "seniority_options": {
@@ -1460,7 +1459,6 @@
         "title_placeholder": "Ej: Consultor funcional sénior",
         "summary_label": "Resumen",
         "summary_placeholder": "10 años de experiencia en...",
-        "summary_counter": "{count}/500 · mínimo 20 caracteres para publicar",
         "seniority_label": "Senioridad",
         "seniority_placeholder": "— Seleccionar —",
         "seniority_options": {

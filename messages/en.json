@@ -640,7 +640,6 @@
         "title_placeholder": "e.g. Senior functional consultant",
         "summary_label": "Summary",
         "summary_placeholder": "10 years of experience on...",
-        "summary_counter": "{count}/500 · minimum 20 characters to publish",
         "seniority_label": "Seniority",
         "seniority_placeholder": "— Select —",
         "seniority_options": {
@@ -1460,7 +1459,6 @@
         "title_placeholder": "e.g. Senior functional consultant",
         "summary_label": "Summary",
         "summary_placeholder": "10 years of experience in...",
-        "summary_counter": "{count}/500 · 20 characters minimum to publish",
         "seniority_label": "Seniority",
         "seniority_placeholder": "— Select —",
         "seniority_options": {
