@@ -3213,7 +3213,10 @@
       "purged_body": "Ce compte a été supprimé définitivement et ne peut plus être utilisé.",
       "need_login_title": "Compte désactivé",
       "need_login_body": "Votre compte est désactivé et sera supprimé définitivement à l’échéance. Reconnectez-vous pour le réactiver pendant la période de grâce.",
-      "need_login_button": "Se reconnecter"
+      "need_login_button": "Se reconnecter",
+      "blocked_title": "Votre profil ne peut pas être republié en l’état",
+      "blocked_body": "Votre compte est réactivé, mais votre profil reste masqué tant qu’il est incomplet. Complétez ce qui suit, puis rendez-le visible depuis votre profil :",
+      "reactivate_failed": "La réactivation n’a pas abouti. Réessayez dans un instant."
     }
   },
   "invitation_public": {

@@ -20,6 +20,10 @@ type View = 'loading' | 'grace' | 'purged' | 'active' | 'need_login'
  */
 export default function ReactivationPage() {
   const t = useTranslations('settings.reactivation')
+  // Les libellés de champs existent déjà dans les quatre langues et servent
+  // l'écran de validation de profil. On les RÉUTILISE plutôt que d'en écrire
+  // une seconde série, qui finirait par dire autre chose.
+  const tChamps = useTranslations('profile_validation.field_errors')
   const locale = useLocale()
   const router = useRouter()
   const secureFetch = useSecureFetch()
@@ -28,6 +32,8 @@ export default function ReactivationPage() {
   const [date, setDate] = useState<string | null>(null)
   const [userType, setUserType] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  /** `manquants` non nul = le profil ne remplit plus les conditions ; on les NOMME. */
+  const [erreur, setErreur] = useState<{ manquants: string[] | null } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -84,7 +90,23 @@ export default function ReactivationPage() {
     setBusy(true)
     try {
       const res = await secureFetch('/api/me/account/reactivate', { method: 'POST' })
-      if (!res.ok) { setBusy(false); return }
+      if (!res.ok) {
+        // ── UN REFUS QUI DIT QUOI FAIRE ────────────────────────────────────
+        //  L'écran avalait l'échec en silence : le bouton se réarmait, et
+        //  rien n'expliquait pourquoi. Un expert pouvait rester enfermé dans
+        //  sa période de grâce sans jamais comprendre ce qui bloquait.
+        const charge = (await res.json().catch(() => ({}))) as {
+          code?: string
+          missing?: string[]
+        }
+        setErreur(
+          charge.code === 'visibility_blocked'
+            ? { manquants: charge.missing ?? [] }
+            : { manquants: null },
+        )
+        setBusy(false)
+        return
+      }
       const dest = userType === 'cdi' ? '/dashboard/cdi' : '/dashboard/freelance'
       router.replace(dest)
     } catch { setBusy(false) }
@@ -147,6 +169,40 @@ export default function ReactivationPage() {
         <p style={{ margin: '0 0 24px', fontSize: 13, fontWeight: 700, color: '#b91c1c' }}>
           {t('scheduled_for', { date: date ? fmt(date) : '' })}
         </p>
+        {/* ── UN REFUS QUI DIT QUOI FAIRE ────────────────────────────────
+            L'échec était avalé en silence : le bouton se réarmait, et rien
+            n'expliquait pourquoi. Un expert pouvait rester enfermé dans sa
+            période de grâce sans jamais comprendre ce qui bloquait. */}
+        {erreur && (
+          <div
+            role="alert"
+            style={{
+              margin: '0 0 14px',
+              padding: '12px 14px',
+              borderRadius: 12,
+              background: '#fffbeb',
+              border: '1px solid #fde68a',
+              color: '#92400e',
+              fontSize: 13.5,
+              lineHeight: 1.55,
+              textAlign: 'left',
+            }}
+          >
+            {erreur.manquants && erreur.manquants.length > 0 ? (
+              <>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>{t('blocked_title')}</div>
+                <div style={{ marginBottom: 8 }}>{t('blocked_body')}</div>
+                <ul style={{ margin: 0, paddingInlineStart: 18 }}>
+                  {erreur.manquants.map((c) => (
+                    <li key={c}>{tChamps(c as 'title')}</li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              t('reactivate_failed')
+            )}
+          </div>
+        )}
         <button
           type="button"
           onClick={() => void reactivate()}

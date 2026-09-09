@@ -3213,7 +3213,10 @@
       "purged_body": "This account has been permanently deleted and can no longer be used.",
       "need_login_title": "Account deactivated",
       "need_login_body": "Your account is deactivated and will be permanently deleted at the deadline. Sign back in to reactivate it during the grace period.",
-      "need_login_button": "Sign back in"
+      "need_login_button": "Sign back in",
+      "blocked_title": "Your profile cannot be republished as it stands",
+      "blocked_body": "Your account is reactivated, but your profile stays hidden while it is incomplete. Complete the following, then make it visible from your profile:",
+      "reactivate_failed": "Reactivation did not go through. Please try again shortly."
     }
   },
   "invitation_public": {

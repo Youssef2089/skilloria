@@ -3213,7 +3213,10 @@
       "purged_body": "Dieses Konto wurde endgültig gelöscht und kann nicht mehr verwendet werden.",
       "need_login_title": "Konto deaktiviert",
       "need_login_body": "Ihr Konto ist deaktiviert und wird zum Stichtag endgültig gelöscht. Melden Sie sich erneut an, um es während der Kulanzfrist zu reaktivieren.",
-      "need_login_button": "Erneut anmelden"
+      "need_login_button": "Erneut anmelden",
+      "blocked_title": "Ihr Profil kann so nicht wieder veröffentlicht werden",
+      "blocked_body": "Ihr Konto ist reaktiviert, doch Ihr Profil bleibt verborgen, solange es unvollständig ist. Ergänzen Sie Folgendes und schalten Sie es dann in Ihrem Profil sichtbar:",
+      "reactivate_failed": "Die Reaktivierung ist nicht durchgegangen. Bitte versuchen Sie es gleich erneut."
     }
   },
   "invitation_public": {

@@ -3213,7 +3213,10 @@
       "purged_body": "Esta cuenta se ha eliminado de forma permanente y ya no se puede usar.",
       "need_login_title": "Cuenta desactivada",
       "need_login_body": "Su cuenta está desactivada y se eliminará definitivamente al vencimiento. Vuelva a iniciar sesión para reactivarla durante el periodo de gracia.",
-      "need_login_button": "Volver a iniciar sesión"
+      "need_login_button": "Volver a iniciar sesión",
+      "blocked_title": "Tu perfil no puede volver a publicarse tal cual",
+      "blocked_body": "Tu cuenta está reactivada, pero tu perfil permanece oculto mientras esté incompleto. Completa lo siguiente y luego hazlo visible desde tu perfil:",
+      "reactivate_failed": "La reactivación no se ha completado. Inténtalo de nuevo en un momento."
     }
   },
   "invitation_public": {
