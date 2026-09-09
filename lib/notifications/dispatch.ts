@@ -1,3 +1,4 @@
+import { canauxOuvertsDe } from '@/lib/notifications/canaux'
 import { type SupabaseClient } from '@supabase/supabase-js'
 import { sendEmail } from '@/lib/emails/resend'
 import {
@@ -181,8 +182,19 @@ export async function dispatchNotificationsForUsers(
       rows,
     }
 
-    emails += await runChannel(admin, ctx, def.event, 'email', disabled, nowIso)
-    sms += await runChannel(admin, ctx, def.event, 'sms', disabled, nowIso)
+    // ── LE CANAL N'EST EMPRUNTÉ QUE S'IL EST OUVERT ────────────────────────
+    //  Un seul point, ici, et la règle vit dans ./canaux. Le SMS y est FERMÉ :
+    //  il partait jusqu'ici sans aucune condition — le seul filtre était une
+    //  préférence en OPT-OUT, donc l'absence de ligne valait « actif », sur un
+    //  canal payant que plus aucun écran ne permettait de couper.
+    //
+    //  Filtrer ici plutôt qu'événement par événement n'est pas un raccourci :
+    //  au cas par cas, le prochain événement ajouté repart tout seul.
+    for (const canal of canauxOuvertsDe(def.channels)) {
+      const envoyes = await runChannel(admin, ctx, def.event, canal, disabled, nowIso)
+      if (canal === 'email') emails += envoyes
+      else sms += envoyes
+    }
   }
 
   return { emails, sms }

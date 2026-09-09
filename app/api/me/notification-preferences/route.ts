@@ -1,3 +1,4 @@
+import { canauxOuvertsDe } from '@/lib/notifications/canaux'
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
@@ -73,7 +74,10 @@ export async function GET(request: NextRequest): Promise<Response> {
   // un événement groupé. Sans lui, le client la déduirait de son type de
   // compte : une seconde règle, vouée à diverger de la première.
   const settings = eventsForFacts(facts).flatMap((def) =>
-    def.channels.map((channel) => ({
+    // Un canal FERMÉ n-est pas offert : servir une ligne SMS afficherait dans
+    // les réglages un interrupteur qui ne règle rien. L-écran rend ce que le
+    // serveur lui donne — la mécanique d-affichage reste intacte pour la V2.
+    canauxOuvertsDe(def.channels).map((channel) => ({
       event: def.event,
       channel,
       voice: resolveVoice(def.event, facts),

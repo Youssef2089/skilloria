@@ -30,6 +30,8 @@
  *   d'organisation (client, cabinet, esn) sont couverts sans être nommés.
  */
 
+import { canalOuvert } from './canaux'
+
 export type NotificationEventType =
   | 'new_match_opportunity'
   | 'new_candidature_received'
@@ -117,8 +119,26 @@ export function eventDef(event: string): NotificationEventDef | null {
   return NOTIFICATION_EVENTS.find((e) => e.event === event) ?? null
 }
 
-/** Le canal est-il défini pour cet événement ? (`new_message` + `sms` ⇒ false). */
+/**
+ * Le canal est-il utilisable pour cet événement ?
+ *
+ * DEUX CONDITIONS, et l'ordre compte : le canal doit être OUVERT, puis déclaré
+ * par l'événement (`new_message` + `sms` ⇒ false même canal ouvert).
+ *
+ * ⚠️ UN CANAL FERMÉ N'EST JAMAIS « DISPONIBLE POUR CET ÉVÉNEMENT ».
+ *
+ * Cette fonction garde l'écriture d'une préférence (route PATCH) et la lecture
+ * de l'activation (`isChannelEnabled`). Sans la condition d'ouverture, on
+ * continuerait d'ACCEPTER et de STOCKER une préférence SMS que rien n'honore —
+ * un réglage qui ne règle rien, ce qui est pire qu'un réglage absent.
+ */
 export function eventHasChannel(event: string, channel: NotificationChannel): boolean {
+  if (!canalOuvert(channel)) return false
+  return eventHasChannelDansLeCatalogue(event, channel)
+}
+
+/** Le catalogue seul, sans la question de l'ouverture du canal. */
+function eventHasChannelDansLeCatalogue(event: string, channel: NotificationChannel): boolean {
   return eventDef(event)?.channels.includes(channel) ?? false
 }
 
