@@ -72,16 +72,21 @@ titre('(A) M1 — le vivier est lu EN ENTIER, et le nombre lu est confronté')
 // ═══════════════════════════════════════════════════════════════════════════
 
 const POOL = read('lib/matching/pool.ts')
+// LE LECTEUR A ÉTÉ SORTI DE pool.ts pour être partagé avec le parcours. Ces
+// assertions le suivent : elles visaient un fichier, elles visent maintenant le
+// module qui porte la règle. Rien n'est retiré — la section (A bis) ajoute
+// l'ordre total et le décompte des distincts, qui manquaient.
+const LECTURE = read('lib/matching/lecture-paginee.ts')
 
 ok('la lecture est paginée jusqu’à épuisement',
-  /\.range\(debut, debut \+ TAILLE_PAGE - 1\)/.test(POOL),
+  /\.range\(debut, debut \+ TAILLE_PAGE - 1\)/.test(LECTURE),
   'sans pagination, la borne est le réglage « Max rows » du projet — invisible et non versionné')
-ok('une page incomplète termine la lecture', /page\.length < TAILLE_PAGE/.test(POOL))
+ok('une page incomplète termine la lecture', /page\.length < TAILLE_PAGE/.test(LECTURE))
 ok('le nombre ATTENDU est demandé séparément',
-  /count: 'exact', head: true/.test(POOL),
+  /count: 'exact', head: true/.test(LECTURE),
   'sans comptage, une lecture partielle est indistinguable d’une lecture complète')
 ok('le nombre lu est CONFRONTÉ à l’attendu',
-  /r\.lignes\.length !== r\.attendu/.test(POOL))
+  /l\.distincts !== l\.attendu/.test(LECTURE))
 ok('une divergence INTERROMPT le run au lieu d’être déduite',
   /vivier incomplet/.test(POOL) && /LECTURE INCOMPLÈTE/.test(POOL),
   'un compteur qui ment est pire qu’un compteur absent')
