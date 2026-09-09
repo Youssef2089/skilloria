@@ -531,6 +531,29 @@ export async function POST(request: NextRequest): Promise<Response> {
  * Entièrement NON-BLOQUANT : une erreur ici n'invalide rien — la candidature
  * existe, et l'organisation peut dévoiler à la main.
  */
+/**
+ * Fenêtre pendant laquelle une candidature non notée peut encore l'être.
+ *
+ * QUARANTE-CINQ SECONDES, ET LE CHOIX SE JUSTIFIE DES DEUX CÔTÉS.
+ *   Le jugement appelle le modèle avec un délai d'attente de 30 s
+ *   (TIMEOUT_MS, lib/candidatures/ai-assessment.ts). Une candidature créée il y
+ *   a moins de 30 s peut donc encore recevoir sa note ; au-delà, son appel a
+ *   forcément rendu la main — réussi, échoué, ou expiré. La marge de 15 s
+ *   couvre le temps qui encadre l'appel : insertion, lecture de l'annonce,
+ *   écriture du verdict.
+ *
+ *   TROP COURTE, on déciderait encore trop tôt : c'est exactement le défaut
+ *   qu'on corrige, et il reviendrait sur les candidatures lentes.
+ *   TROP LONGUE, la place resterait vide pendant tout ce temps alors que
+ *   l'organisation attend son candidat — et une place offerte qui reste vide
+ *   est aussi une promesse non tenue.
+ *
+ *   ⚠️ ELLE EST ADOSSÉE AU DÉLAI DU MODÈLE. Si TIMEOUT_MS change, celle-ci doit
+ *      changer avec lui : une fenêtre plus courte que le délai d'attente
+ *      rouvrirait le défaut en silence.
+ */
+const FENETRE_JUGEMENT_MS = 45_000
+
 async function devoilementInclus(
   auth: AuthContext,
   publicationId: string,
@@ -584,6 +607,47 @@ async function devoilementInclus(
           .eq('publication_id', publicationId)
           .in('status', ['unlocked', 'selected'])
         if ((revealedCount ?? 0) < revealN) {
+          // ── ON NE DÉPARTAGE PAS SUR UN CHAMP INCOMPLET ────────────────────
+          //
+          //  LE DÉFAUT : le classement trie sur `ai_match_score DESC NULLS
+          //  LAST`. Une candidature dont le jugement n'a pas encore abouti vaut
+          //  NULL et passe DERNIÈRE. Le « meilleur profil » n'était donc que le
+          //  meilleur PARMI CEUX DÉJÀ NOTÉS : deux experts qui postulent à
+          //  quelques secondes d'intervalle étaient départagés par l'ordre
+          //  d'arrivée du modèle, pas par leur dossier. L'organisation croit
+          //  pourtant recevoir le meilleur candidat.
+          //
+          //  CE QU'ON FAIT : si une AUTRE candidature de cette annonce est
+          //  encore en cours de jugement ET assez récente pour que son jugement
+          //  puisse encore aboutir, on NE DÉCIDE PAS maintenant. Chaque
+          //  candidature appelle ce bloc à la fin de son propre jugement : la
+          //  DERNIÈRE à finir verra tout le monde noté et tranchera sur un
+          //  champ complet. Aucun travail planifié, aucune rétrogradation.
+          //
+          //  LE FILET, ET IL EST OBLIGATOIRE : au-delà de la fenêtre, une
+          //  candidature sans note ne bloque plus rien. Si le dernier jugement
+          //  n'aboutit jamais — modèle en panne, fonction tuée — la place
+          //  serait sinon restée VIDE pour toujours. Passé ce délai, le
+          //  départage retombe sur l'ancienneté, exactement comme lorsqu'un
+          //  jugement échoue.
+          const limiteFenetre = new Date(Date.now() - FENETRE_JUGEMENT_MS).toISOString()
+          const { count: enAttente } = await auth.supabaseAdmin
+            .from('candidatures')
+            .select('id', { count: 'exact', head: true })
+            .eq('publication_id', publicationId)
+            .neq('id', candidatureId)
+            .is('ai_match_score', null)
+            .gte('created_at', limiteFenetre)
+
+          if ((enAttente ?? 0) > 0) {
+            // La cohorte n'est pas stable : celle qui finira après nous décidera.
+            console.log('[candidatures] dévoilement différé — jugements en cours', {
+              publicationId,
+              en_attente: enAttente,
+            })
+            return
+          }
+
           // La candidature qui vient d'être créée est-elle la meilleure note de
           // la publication ? (égalité → la plus ancienne l'emporte.)
           const { data: topRow } = await auth.supabaseAdmin

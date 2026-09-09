@@ -289,6 +289,55 @@ ok(
   'Un `?? 1` ferait mentir le back-office aussi sûrement que l’inversion.',
 )
 
+// ─────────────────────────────────────────────────────────────────────────────
+section('6. LE MEILLEUR PROFIL N’EST PAS DÉCIDÉ SUR UN CHAMP INCOMPLET')
+//
+//   LE DÉFAUT : le classement trie sur `ai_match_score DESC NULLS LAST`. Une
+//   candidature dont le jugement n'a pas abouti vaut NULL et passe DERNIÈRE. Le
+//   « meilleur profil » n'était donc que le meilleur PARMI CEUX DÉJÀ NOTÉS —
+//   deux experts postulant à quelques secondes d'intervalle étaient départagés
+//   par l'ordre d'arrivée du modèle, pas par leur dossier. C'est une promesse
+//   produit non tenue : l'organisation croit recevoir le meilleur candidat.
+//
+//   IL NE SE MANIFESTE PAS À « ILLIMITÉ » — il attend qu'on mette un nombre. Le
+//   jour où une offre passe à 3 places, il repart sans prévenir.
+
+ok(
+  /FENETRE_JUGEMENT_MS/.test(src),
+  'la fenêtre de jugement est une constante nommée',
+  'Un délai écrit dans l’appel se recopie et diverge.',
+)
+ok(
+  /const FENETRE_JUGEMENT_MS = 45_000/.test(src),
+  'la fenêtre couvre le délai d’attente du modèle (30 s) avec sa marge',
+  'Plus courte, on décide encore trop tôt ; plus longue, la place reste vide pour rien.',
+)
+// LE CONTRÔLE CENTRAL : on refuse de décider tant qu'une autre candidature de
+// cette annonce peut encore recevoir sa note.
+ok(
+  /\.is\('ai_match_score', null\)/.test(src) && /\.neq\('id', candidatureId\)/.test(src),
+  'les candidatures encore non notées de cette annonce sont recherchées',
+  'Sans ce comptage, le départage retombe sur l’ordre d’arrivée du modèle.',
+)
+ok(
+  /if \(\(enAttente \?\? 0\) > 0\) \{[\s\S]{0,320}?return\n/.test(src),
+  'on NE DÉCIDE PAS tant que la cohorte n’est pas stable',
+  'La dernière candidature à finir verra tout le monde noté et tranchera.',
+)
+// LE FILET, ET IL EST OBLIGATOIRE.
+ok(
+  /\.gte\('created_at', limiteFenetre\)/.test(src),
+  'au-delà de la fenêtre, une candidature sans note ne bloque plus rien',
+  'Sans ce filet, un jugement qui n’aboutit jamais laisserait la place VIDE pour toujours.',
+)
+// Et le départage lui-même n'a pas bougé : mêmes tris, même ancienneté.
+ok(
+  /\.order\('ai_match_score', \{ ascending: false, nullsFirst: false \}\)/.test(src) &&
+    /\.order\('created_at', \{ ascending: true \}\)/.test(src),
+  'le départage reste : note décroissante puis ancienneté',
+  'On corrige QUAND on décide, pas COMMENT on départage.',
+)
+
 console.log(
   failures === 0
     ? '\nRÉSULTAT : tout est vert. Illimité dévoile tout, un nombre en dévoile ce nombre.\n'
