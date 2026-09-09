@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { logAudit } from '@/lib/audit'
@@ -16,9 +16,19 @@ import { missingForPublish } from '@/lib/publications/publishable'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// Vercel function timeout : la séquence verif IA publication (~20s) + matching
-// IA (~15s) tourne synchrone dans cette route. 60s = max Hobby ; Pro/Enterprise
-// peuvent monter plus haut (cf. https://vercel.com/docs/functions/runtimes#max-duration).
+// Vercel function timeout.
+//
+// CE QUI EST SYNCHRONE, ET CE QUI NE L'EST PLUS. La vérification IA de
+// l'annonce reste dans la requête : son verdict DÉCIDE du statut, donc la
+// réponse ne peut pas partir avant elle. Le matching, lui, est passé dans un
+// `after()` — il ne décide de rien pour l'appelant, et il faisait attendre
+// l'organisation sur la seule route qui publie, alors que la route sœur (PATCH)
+// le différait déjà correctement.
+//
+// L'ORDRE DES ÉCRITURES EST LE VRAI SUJET : quota → publication → AUDIT →
+// réponse → matching. L'audit précède désormais tout travail susceptible de
+// faire tuer la fonction ; une annonce publiée sans trace d'audit était un trou
+// de traçabilité.
 export const maxDuration = 60
 
 /**
@@ -255,30 +265,18 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
 
-  // ── Matching IA — synchrone, isolé, FAIL-SAFE ──────────────────────────
-  // Lance le moteur de matching profils ↔ publication APRÈS que la publi est
-  // effectivement passée en 'published'. Un échec ici n'impacte JAMAIS la
-  // publication (la ligne reste publiée, matching re-jouable via un futur
-  // endpoint admin appelant runMatching directement).
-  if (verdict.status === 'published') {
-    try {
-      const matchingVerdict = await runMatching({
-        supabaseAdmin: auth.supabaseAdmin,
-        publicationId: id,
-      })
-      console.log('[publications:publish] matching done', {
-        publicationId: id,
-        status: matchingVerdict.status,
-        proposalsCount: matchingVerdict.proposals.length,
-        model: matchingVerdict.model,
-      })
-    } catch (err) {
-      // Best-effort : tout échec matching est non-bloquant.
-      console.error('[publications:publish] matching threw (non-blocking)', err)
-    }
-  }
-
-  // ── Audit ──────────────────────────────────────────────────────────────
+  // ── Audit — AVANT tout travail qui peut faire tuer la fonction ─────────
+  //
+  //  L'ORDRE DES ÉCRITURES EST LE SUJET, PAS UN DÉTAIL. Il était :
+  //    publication → matching (bloquant) → audit → réponse
+  //  Avec `maxDuration = 60`, un run qui dépasse tue la fonction APRÈS la mise
+  //  en ligne et APRÈS la consommation du quota, mais AVANT l'audit et AVANT
+  //  la réponse. L'organisation voyait alors une erreur réseau sur une annonce
+  //  pourtant publiée, avec un quota déjà décompté — et le réflexe naturel est
+  //  de republier, donc d'en consommer un second.
+  //
+  //  L'audit passe donc AVANT : une annonce publiée sans trace d'audit est un
+  //  trou de traçabilité, et c'est précisément l'écriture qui doit survivre.
   await logAudit({
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
@@ -295,6 +293,38 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
       method: verdict.method,
     },
   })
+
+  // ── Matching IA — APRÈS la réponse, comme dans la route sœur ───────────
+  //
+  //  ⚠️ PIÈGE VERCEL : un traitement lancé après la réponse est TUÉ s'il n'est
+  //     pas enregistré dans `after()`. C'est `after()` + `maxDuration` qui lui
+  //     donnent le droit de continuer une fois la réponse partie.
+  //
+  //  Le PATCH du même dossier le faisait déjà ainsi ; cette route, non. Deux
+  //  routes voisines, deux traitements opposés — et c'est celle qui publie qui
+  //  faisait attendre l'organisation.
+  //
+  //  FAIL-SAFE INCHANGÉ : un échec de matching n'impacte JAMAIS la
+  //  publication. La ligne reste publiée, et le run demeure rejouable
+  //  (il est marqué inachevé, donc repris par le rattrapage).
+  if (verdict.status === 'published') {
+    after(async () => {
+      try {
+        const matchingVerdict = await runMatching({
+          supabaseAdmin: auth.supabaseAdmin,
+          publicationId: id,
+        })
+        console.log('[publications:publish] matching done', {
+          publicationId: id,
+          status: matchingVerdict.status,
+          proposalsCount: matchingVerdict.proposals.length,
+          model: matchingVerdict.model,
+        })
+      } catch (err) {
+        console.error('[publications:publish] matching threw (after)', err)
+      }
+    })
+  }
 
   return json({ status: verdict.status, score: verdict.score }, 200)
 }
