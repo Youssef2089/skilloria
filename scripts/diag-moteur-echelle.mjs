@@ -179,14 +179,23 @@ const migVerrou = readdirSync(join(ROOT, 'supabase', 'migrations')).find((f) =>
 ok('la migration du verrou et de l’unicité existe', !!migVerrou)
 if (migVerrou) {
   const sql = readFileSync(join(ROOT, 'supabase', 'migrations', migVerrou), 'utf8').toLowerCase()
+  // LE CORPS DE LA FONCTION, PAS SA DOCUMENTATION. Le `comment on function`
+  // décrit la garde en toutes lettres : chercher la clause dans le fichier
+  // entier la trouvait dans la PROSE, et le contrôle restait vert alors que la
+  // clause avait été retirée du code. Faux positif déjà rencontré ce sprint —
+  // ici il portait sur la garde elle-même.
+  const iCorps = sql.indexOf('as $fn$')
+  const iFin = sql.indexOf('$fn$;', iCorps + 1)
+  const corpsFn = iCorps >= 0 && iFin > iCorps ? sql.slice(iCorps, iFin) : ''
+  ok('le corps de la fonction de sélection est lisible', corpsFn.length > 0)
   ok(
     'une annonce en cours de traitement n’est pas re-sélectionnable (délai de grâce)',
-    /matching_attempted_at < now\(\) - p_grace/.test(sql),
+    /matching_attempted_at < now\(\) - p_grace/.test(corpsFn),
     'cron toutes les 5 min et rejeu de 300 s : le chevauchement est arithmétique',
   )
   ok(
     'les appels simultanés sont départagés (for update skip locked)',
-    /for update skip locked/.test(sql),
+    /for update skip locked/.test(corpsFn),
     'le délai de grâce ne couvre pas deux appels avant que le premier ait écrit son horodatage',
   )
   ok(
