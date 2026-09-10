@@ -664,12 +664,54 @@ async function devoilementInclus(
       }
 
       if (devoile) {
+        // ── LA PLACE EST RÉSERVÉE EN BASE, PAS COMPTÉE EN MÉMOIRE ──────────
+        //
+        //  Le comptage ci-dessus est un lire-puis-écrire : deux jugements qui
+        //  finissent au même instant lisent tous deux « 0 place prise »,
+        //  concluent tous deux qu'il en reste une, et dévoilent tous deux. Une
+        //  organisation à UNE place incluse en obtiendrait DEUX — un droit
+        //  payant donné gratuitement, et non rattrapable puisqu'on ne
+        //  rétrograde jamais.
+        //
+        //  Aucune vérification avant écriture ne peut corriger cela. C'est la
+        //  base qui tranche : un index unique partiel sur le numéro de place
+        //  accepte la première réservation et refuse la seconde.
+        //
+        //  À PLAFOND ILLIMITÉ, la fonction rend `true` sans rien écrire : aucun
+        //  numéro n'est attribué, donc rien ne peut être refusé.
+        const { data: place, error: placeErr } = await auth.supabaseAdmin.rpc(
+          'reserver_place_incluse',
+          { p_candidature_id: candidatureId, p_plafond: revealN },
+        )
+        if (placeErr) {
+          // Une panne de réservation n'accorde RIEN : dans le doute, on ferme.
+          // La candidature existe, c'est le dévoilement qui n'a pas lieu.
+          console.error('[candidatures] réservation de place en échec', placeErr.message)
+          return
+        }
+        if (place !== true) {
+          // REFUS NORMAL, PAS UNE PANNE : la place vient d'être prise par une
+          // candidature concurrente, ou le plafond est atteint.
+          console.log('[candidatures] place incluse non obtenue', { publicationId, candidatureId })
+          return
+        }
+
         const res = await performUnlock(auth.supabaseAdmin, candidatureId, {
           auto: true,
           actorUserId: auth.user.id,
         })
         if (!res.ok) {
           console.warn('[candidatures] dévoilement inclus refusé', res.code)
+          // LA PLACE REPART. Réservée puis non honorée, elle serait perdue pour
+          // toujours. Si cette libération échoue à son tour, on aura
+          // SOUS-attribué — la bonne direction d'échec : on peut donner moins
+          // que le dû, jamais plus.
+          const { error: libErr } = await auth.supabaseAdmin.rpc('liberer_place_incluse', {
+            p_candidature_id: candidatureId,
+          })
+          if (libErr) {
+            console.error('[candidatures] place non libérée — elle restera inutilisée', libErr.message)
+          }
         }
       }
     }
