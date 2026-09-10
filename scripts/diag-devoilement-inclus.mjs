@@ -425,12 +425,21 @@ if (migPlace) {
     'une place prise au même instant est un REFUS, pas une panne',
     'Remonter une erreur ferait échouer le after() sur un cas parfaitement normal.',
   )
-  ok(
-    /grant execute on function public\.reserver_place_incluse\(uuid, integer\) to service_role/.test(sql) &&
-      !/to authenticated/.test(sql),
-    'la fonction n’est exécutable que par le service-role',
-    'Exposée à `authenticated`, elle deviendrait un chemin d’attribution de droits.',
-  )
+  // ON LIT LA LISTE DE BÉNÉFICIAIRES, PAS UN PRÉFIXE.
+  //   Première version : `to service_role` présent ET `to authenticated` absent.
+  //   Elle laissait passer `to service_role, authenticated` — le préfixe matche,
+  //   et la chaîne « to authenticated » n'apparaît nulle part. La mutation l'a
+  //   prouvé. On capture donc la liste entière et on exige qu'elle soit
+  //   EXACTEMENT `service_role`.
+  const grants = [...sql.matchAll(/grant execute on function public\.(\w+)\([^)]*\) to ([^;]+);/g)]
+  const beneficiaires = new Map(grants.map((g) => [g[1], g[2].trim()]))
+  for (const fn of ['reserver_place_incluse', 'liberer_place_incluse']) {
+    ok(
+      beneficiaires.get(fn) === 'service_role',
+      `${fn} n’est exécutable QUE par le service-role`,
+      `bénéficiaires : « ${beneficiaires.get(fn) ?? 'aucun grant trouvé'} » — exposée à authenticated, elle deviendrait un chemin d’attribution de droits.`,
+    )
+  }
   ok(
     /create or replace function public\.liberer_place_incluse/.test(sql),
     'une place réservée mais non honorée peut repartir',
