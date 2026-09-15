@@ -279,6 +279,19 @@ function problemesDe(src) {
       const dansChaine = chaines.find((c) => j >= c.debut && j < c.fin)
       if (dansChaine) { vuArgument = true; j = dansChaine.fin; continue }
       if (src.slice(j, j + 2) === '--') { j = src.indexOf('\n', j); if (j === -1) break; continue }
+      // LA CLAUSE `USING` FERME LA LISTE D'ARGUMENTS.
+      //
+      //   RAISE niveau 'format' [, arg […]] [ USING option = expr [, …] ] ;
+      //
+      // Les virgules qui suivent `using` separent des OPTIONS (errcode, hint,
+      // detail…), pas des arguments de format. Sans cette borne, un
+      //   raise exception 'texte %', x using errcode = 'e', hint = 'h';
+      // etait compte comme DEUX arguments pour un seul « % », et le validateur
+      // criait au loup sur une instruction parfaitement valide. Un controle qui
+      // crie au loup finit par ne plus etre lu — trouve en ecrivant la migration
+      // du siege d'administrateur, premiere du depot a utiliser `using`.
+      if (profondeur === 0 && /^using\b/i.test(src.slice(j, j + 6))
+          && (j === 0 || /[\s)'\]]/.test(src[j - 1]))) break
       if (ch === '(' || ch === '[') profondeur++
       else if (ch === ')' || ch === ']') profondeur--
       else if (ch === ';' && profondeur <= 0) break
@@ -360,6 +373,16 @@ function autotest() {
     ['VALIDE : un E dans un commentaire ne compte pas',
       "-- attention au E'…' en continuation\nselect 1;",
       false],
+    // Les options d'un `using` ne sont PAS des arguments de format. Sans borne,
+    // ce cas comptait deux arguments pour un seul « % ».
+    ['VALIDE : raise … using errcode, hint — deux options, un seul argument',
+      "do $$ declare v uuid; begin raise exception 'refus pour %', v using errcode = 'check_violation', hint = 'faites ceci'; end $$;",
+      false],
+    // Et la borne ne doit pas non plus AVEUGLER le controle : un vrai defaut
+    // AVANT le `using` doit toujours mordre.
+    ['raise … using : le defaut avant le using mord toujours',
+      "do $$ declare v uuid; begin raise exception 'deux % et % ici', v using errcode = 'check_violation'; end $$;",
+      true, /RAISE MAL FORMÉ/],
   ]
 
   let mordus = 0
