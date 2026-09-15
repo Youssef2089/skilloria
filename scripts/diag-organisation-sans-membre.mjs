@@ -242,10 +242,20 @@ if (net) {
   ok(/exigerAutorisationEcriture\(/.test(code), 'il passe par la garde d\'ecriture du depot', 'un script qui supprime ne doit pas pouvoir partir sans drapeau explicite')
   // Le drapeau de suppression doit etre DISTINCT du drapeau de lecture base :
   // `--db` ouvre l'acces, il ne doit pas suffire a supprimer.
+  //
+  // ON LIT LE SITE DE DECISION, PAS LA PRESENCE DE LA CHAINE. Un controle ecrit
+  // `/--supprimer/.test(code)` restait VERT apres avoir remplace la condition
+  // par `includes('--db')` : le mot survivait dans le message d'aide et dans
+  // les drapeaux passes a la garde. Verifier une presence quelque part ne
+  // verifie rien — trouve en mutant.
+  const decision = code.match(/const\s+SUPPRIMER\s*=\s*([^\n]+)/)
+  ok(!!decision, 'la decision de supprimer est portee par une constante nommee SUPPRIMER', '')
   ok(
-    /--supprimer/.test(code),
+    !!decision && /'--supprimer'/.test(decision[1]) && !/'--db'/.test(decision[1]),
     'la suppression exige un drapeau PROPRE, distinct de --db',
-    '`--db` sert a joindre la base en lecture : s\'il suffisait a supprimer, lister et detruire auraient le meme visage',
+    decision
+      ? `condition lue : ${decision[1].trim()}\n       « --db » sert a joindre la base en lecture : s'il suffisait a supprimer,\n       lister et detruire auraient le meme visage.`
+      : '',
   )
 }
 
