@@ -2,6 +2,10 @@ import { NextRequest } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { runMatchingForExpert } from '@/lib/matching'
 import { prochaineRelance, solderRelance } from '@/lib/matching/relance'
+import { prendreBailRun, rendreBailRun } from '@/lib/cron/bail-de-run'
+
+/** Nom du bail. MÊME valeur pour GET et POST : c'est la TÂCHE qu'on garde. */
+const JOB = 'expert_relance'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -62,32 +66,64 @@ async function handle(request: NextRequest): Promise<Response> {
 
   const admin = getAdmin()
 
-  const file = await prochaineRelance(admin)
-  if (!file.ok) return json({ error: 'Query failed', code: 'db_error', detail: file.raison }, 500)
-  if (!file.profileId) {
-    // File vide : ce n'est pas un incident, c'est le cas normal.
-    return json({ ok: true, relance: null, note: 'Aucune relance arrivée à échéance.' }, 200)
+  // ── BAIL DE RUN — la tâche la plus exposée du dépôt ─────────────────────
+  //
+  //  CADENCE */5 POUR UN RUN DE 300 s : le chevauchement n'était pas
+  //  hypothétique, il était STRUCTUREL — exactement l'arithmétique du défaut de
+  //  rejeu de matching fermé au lot 20260912200000, laissée ouverte sur la
+  //  route sœur. Deux runs recevaient LE MÊME PROFIL et refaisaient le même
+  //  travail d'IA.
+  //
+  //  FAIL-CLOSED : un bail indisponible ⇒ on ne tourne pas. Pour une tâche
+  //  périodique, sauter un passage se rattrape cinq minutes plus tard ; tourner
+  //  sans bail rouvre le chevauchement.
+  const bail = await prendreBailRun(admin, { job: JOB, maxDurationSec: maxDuration })
+  if (bail === 'occupe') {
+    // PAS un incident : c'est le cas normal quand un run déborde sur le
+    // suivant. On répond 200 pour ne pas polluer la supervision d'alertes.
+    return json({ ok: true, relance: null, note: 'Un run est déjà en cours.' }, 200)
+  }
+  if (bail === 'erreur') {
+    return json({ error: 'Run lease unavailable', code: 'bail_indisponible' }, 503)
   }
 
-  // L'instant du début, AVANT le run. C'est lui qui permettra de distinguer un
-  // déclenchement d'avant (soldé) d'un déclenchement pendant (conservé).
-  const debutRun = new Date()
-  const verdict = await runMatchingForExpert({ supabaseAdmin: admin, profileId: file.profileId })
-  const { soldee } = await solderRelance(admin, file.profileId, debutRun)
+  try {
+    const file = await prochaineRelance(admin)
+    if (!file.ok) return json({ error: 'Query failed', code: 'db_error', detail: file.raison }, 500)
+    if (!file.profileId) {
+      // File vide : ce n'est pas un incident, c'est le cas normal.
+      return json({ ok: true, relance: null, note: 'Aucune relance arrivée à échéance.' }, 200)
+    }
 
-  // Le verdict est rendu TEL QUEL, y compris en échec. Un pilote qui répond
-  // toujours « ok » rend la supervision aveugle.
-  return json(
-    {
-      ok: verdict.status === 'ok',
-      relance: file.profileId,
-      status: verdict.status,
-      soldee,
-      note: verdict.notes,
-      model: verdict.model,
-    },
-    200,
-  )
+    // L'instant du début, AVANT le run. C'est lui qui permettra de distinguer un
+    // déclenchement d'avant (soldé) d'un déclenchement pendant (conservé).
+    const debutRun = new Date()
+    const verdict = await runMatchingForExpert({ supabaseAdmin: admin, profileId: file.profileId })
+    const { soldee } = await solderRelance(admin, file.profileId, debutRun)
+
+    // Le verdict est rendu TEL QUEL, y compris en échec. Un pilote qui répond
+    // toujours « ok » rend la supervision aveugle.
+    return json(
+      {
+        ok: verdict.status === 'ok',
+        relance: file.profileId,
+        status: verdict.status,
+        soldee,
+        note: verdict.notes,
+        model: verdict.model,
+      },
+      200,
+    )
+  } finally {
+    // ON REND LE BAIL SUR TOUS LES CHEMINS, y compris en erreur.
+    //
+    //  ET CE N'EST PAS UN CONFORT ICI : le délai de grâce vaut 2 × 300 s, soit
+    //  dix minutes, pour une cadence de cinq. Sans restitution, un run terminé
+    //  en trois secondes bloquerait le tick suivant et la file se viderait à
+    //  moitié vitesse. La garantie, elle, ne dépend pas de cet appel : le bail
+    //  expire seul, donc un processus tué ne coince rien.
+    await rendreBailRun(admin, JOB)
+  }
 }
 
 export async function GET(request: NextRequest): Promise<Response> {

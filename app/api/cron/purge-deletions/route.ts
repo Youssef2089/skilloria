@@ -8,8 +8,18 @@ import {
   platformAdminCountIncludingTarget,
 } from '@/lib/admin/user-actions-guard'
 
+import { prendreBailRun, rendreBailRun } from '@/lib/cron/bail-de-run'
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+// DÉCLARÉ EXPLICITEMENT, et ce n'est pas cosmétique : le délai de grâce du bail
+// de run s'en DÉDUIT. Sans valeur ici, on s'appuierait sur un défaut de
+// plateforme invisible dans le code, et le jour où il changerait le bail
+// deviendrait trop court sans que rien ne le dise.
+export const maxDuration = 300
+
+/** Nom du bail. MÊME valeur pour GET et POST : c'est la TÂCHE qu'on garde. */
+const JOB = 'purge_deletions'
 
 /**
  * GET /api/cron/purge-deletions — PURGE RGPD planifiée (mission S3, section 7).
@@ -81,6 +91,47 @@ async function handle(request: NextRequest): Promise<Response> {
   }
 
   const admin = getAdmin()
+
+  // ── BAIL DE RUN ─────────────────────────────────────────────────────────
+  //
+  //  L'EXPOSITION N'EST PAS LA CADENCE. Cette tâche tourne une fois par jour :
+  //  un chevauchement depuis l'ordonnanceur exigerait un run de vingt-quatre
+  //  heures, ce que `maxDuration` rend impossible.
+  //
+  //  ELLE EST DANS LE DÉCLENCHEMENT MANUEL. Le bouton « exécuter maintenant »
+  //  du back-office et tout appel porteur de `CRON_SECRET` peuvent lancer un
+  //  second run pendant le premier. Le `pg_try_advisory_xact_lock` de
+  //  `cron_manual_run` ne couvre QUE la mise en file : il meurt avec la
+  //  transaction, alors que ce run HTTP commence après.
+  //
+  //  ET ICI C'EST IRRÉVERSIBLE. Deux runs concurrents évaluent chacun la garde
+  //  « dernier administrateur plateforme » sur un état que l'autre est en train
+  //  de changer — sur un chemin qui anonymise définitivement.
+  const bail = await prendreBailRun(admin, { job: JOB, maxDurationSec: maxDuration })
+  if (bail === 'occupe') {
+    return new Response(
+      JSON.stringify({ ok: true, note: 'Un run est déjà en cours.', due: 0, purged: 0 }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    )
+  }
+  if (bail === 'erreur') {
+    // FAIL-CLOSED. Reporter une purge au lendemain ne coûte rien ; la lancer
+    // sans bail est définitif.
+    return new Response(
+      JSON.stringify({ error: 'Run lease unavailable', code: 'bail_indisponible' }),
+      { status: 503, headers: { 'content-type': 'application/json' } },
+    )
+  }
+
+  try {
+    return await purger(admin)
+  } finally {
+    await rendreBailRun(admin, JOB)
+  }
+}
+
+/** Le traitement lui-même, isolé pour que le bail l'entoure sur TOUS ses chemins. */
+async function purger(admin: SupabaseClient): Promise<Response> {
   const nowIso = new Date().toISOString()
 
   // `user_type` est chargé pour la garde « dernier administrateur » ci-dessous.
