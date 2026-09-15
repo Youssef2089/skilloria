@@ -47,9 +47,16 @@
 //      un manquement, et inversement.
 //
 //   ④ UNE ECHAPPATOIRE NOMMEE, ET TRACEE — pas un contournement.
-//      `[memoire:n/a]` dans le message de commit passe le controle. Un controle
-//      sans issue legitime se fait desactiver au premier cas limite ; une issue
-//      ECRITE DANS LE MESSAGE laisse la decision lisible, datee et attribuee.
+//      `[memoire:n/a]` EN DEBUT DE LIGNE du message de commit passe le
+//      controle. Un controle sans issue legitime se fait desactiver au premier
+//      cas limite ; une issue ECRITE DANS LE MESSAGE laisse la decision
+//      lisible, datee et attribuee.
+//
+//      EN DEBUT DE LIGNE, et c'est le fruit d'un defaut immediat : la premiere
+//      version cherchait le marqueur n'importe ou dans le corps, et s'est
+//      declenchee sur le commit qui introduit ce fichier — dont le message
+//      EXPLIQUE l'echappatoire sans la revendiquer. Un commit qui parle de la
+//      regle s'en exonerait. On pose un marqueur, on ne le cite pas.
 //
 // LA REGLE NE VAUT QUE DEPUIS QU'ELLE EXISTE
 //   Lance avec `--base` sur de l'historique ANTERIEUR au commit qui a dote
@@ -204,15 +211,29 @@ for (const sha of commits) {
   const corps = git('log', '-1', '--format=%B', sha)
   const court = sha.slice(0, 7)
 
-  if (corps.includes(ECHAPPATOIRE)) {
-    console.log(`  ok   ${court} — ${ECHAPPATOIRE} assume : ${declenches.length} ajout(s) non documente(s)`)
-    console.log(`       ${sujet}`)
+  // ORDRE SIGNIFIANT : la mise a jour REELLE prime sur l'echappatoire.
+  // L'inverse ferait dire « non documente, assume » d'un commit qui a fait le
+  // travail — un compte-rendu faux, dans le sens le plus trompeur.
+  if (touches.includes(MEMOIRE)) {
+    ok(true, `${court} — ${declenches.length} ajout(s), ${MEMOIRE} mis a jour dans le meme commit`)
     continue
   }
 
-  const memoireTouchee = touches.includes(MEMOIRE)
-  if (memoireTouchee) {
-    ok(true, `${court} — ${declenches.length} ajout(s), ${MEMOIRE} mis a jour dans le meme commit`)
+  // L'ECHAPPATOIRE SE POSE, ELLE NE SE MENTIONNE PAS.
+  //
+  //   Premiere version : `corps.includes('[memoire:n/a]')`. Elle s'est
+  //   declenchee sur le commit qui introduit CE FICHIER — son message EXPLIQUE
+  //   l'echappatoire, il ne la revendique pas. Un commit qui parle de la regle
+  //   s'en exonerait donc, et le compte-rendu affirmait « non documente » d'un
+  //   commit qui avait mis a jour la memoire.
+  //
+  //   Meme famille que tout le reste de ce depot : un controle qui lit une
+  //   DESCRIPTION au lieu d'un ACTE. Le marqueur doit ouvrir une ligne — la
+  //   forme d'un trailer de commit, deliberee et non citee au fil du texte.
+  const revendiquee = corps.split('\n').some((l) => l.trimStart().startsWith(ECHAPPATOIRE))
+  if (revendiquee) {
+    console.log(`  ok   ${court} — ${ECHAPPATOIRE} assume : ${declenches.length} ajout(s) non documente(s)`)
+    console.log(`       ${sujet}`)
     continue
   }
 
