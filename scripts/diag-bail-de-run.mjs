@@ -54,6 +54,7 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { sqlCodeSeul } from './_sql-lecture.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /** Fins de ligne NORMALISEES — cf. les autres diagnostics du depot. */
@@ -74,8 +75,22 @@ const sansCommentaires = (src) =>
     })
     .join('\n')
 
-const sqlSansCommentaires = (src) =>
-  src.split('\n').filter((l) => !l.trimStart().startsWith('--')).join('\n')
+/**
+ * Retire du SQL tout ce qui n'est PAS du code : les commentaires lexicaux `--`
+ * ET les instructions `comment on … is …`.
+ *
+ * CES DERNIERES SONT DES CHAINES SQL, PAS DES COMMENTAIRES, et c'est ce qui a
+ * failli passer inapercu : en mutant `for update skip locked` en `for update`,
+ * un controle est reste VERT — il trouvait la chaine dans le TEXTE du
+ * `comment on` juste en dessous, qui explique pourquoi la garde est la. Le code
+ * avait perdu sa garde, la documentation disait encore qu'il l'avait, et le
+ * diagnostic croyait la documentation.
+ *
+ * La regle du projet — lire LE CODE, pas les commentaires qui le decrivent —
+ * etait prise en defaut par sa propre mise en oeuvre. Source unique dans
+ * scripts/_sql-lecture.mjs, avec un filet qui refuse de rendre un texte tronque.
+ */
+const sqlSansCommentaires = sqlCodeSeul
 
 let failures = 0
 const ok = (cond, label, hint) => {
