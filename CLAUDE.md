@@ -665,6 +665,19 @@ délibérément la règle et vérifier que le contrôle **rougit**, puis la rét
 trouvés E.7 et E.8. Plusieurs commits en portent la trace explicite (`c7cc8e6` : « 62 contrôles,
 15 mutations » ; `6558515` : « 42 contrôles, campagne de mutation »).
 
+**G.5 bis — La règle de maintenance de ce fichier est GARDÉE PAR UN CONTRÔLE.**
+[scripts/diag-memoire-a-jour.mjs](scripts/diag-memoire-a-jour.mjs) — il lit git, rien d'autre.
+Sur les **ajouts** seulement (une migration, une route `app/api/**/route.ts`, un script de
+`scripts/`), il vérifie **commit par commit** que `CLAUDE.md` a été touché dans le même commit, et
+**nomme** le fichier ajouté et la section où l'écrire. Échappatoire assumée et tracée :
+`[memoire:n/a]` dans le message de commit. Trois codes de sortie : `0` vert · `1` manquement ·
+`2` n'a pas tourné.
+`--base=<ref>` dit ce qu'une plage — donc ce que trois worktrees — a oublié ; `--sections` vérifie
+qu'aucune réécriture n'a perdu un chapitre.
+> ⚠️ **Il force la TRACE, pas la VÉRITÉ.** Son vert dit seulement que le fichier a été touché, jamais
+> que ce qui y est écrit est juste. Un contrôle qui promettrait la justesse serait pire qu'absent :
+> on cesserait de relire.
+
 **G.6 — Aucun push, aucune écriture en base depuis un worktree.**
 La moitié « écriture en base » est **gardée dans le dépôt** (§E.4 : `garde-ecriture.mjs` +
 `diag-scripts-destructeurs.mjs`), avec l'angle mort des trois scripts hors périmètre.
