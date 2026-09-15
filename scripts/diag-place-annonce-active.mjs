@@ -134,7 +134,12 @@ ok(!ttlSql.test(mig), 'la regle des 30 jours n\'est PAS recopiee en SQL', 'la de
 // A4 — PIEGE 3, seconde moitie : la reservation ne doit PAS se fonder sur
 //      `status = 'published'`. Ce serait une SECONDE regle d'activite, muette,
 //      et surtout elle ne libererait jamais une place expiree.
-ok(!/status\s*=\s*'published'/i.test(mig), 'la reservation ne se fonde PAS sur status = \'published\'', 'une place expiree ne serait alors JAMAIS liberee : le plafond deviendrait un compteur a sens unique')
+//      On interdit le LITTERAL, pas une comparaison precise : `status =
+//      'published'` et `status <> 'published'` sont la MEME faute, et la
+//      seconde echappait a un controle ecrit sur `=`. La migration n'a aucune
+//      raison de nommer un statut de publication — si elle le fait, c'est
+//      qu'une seconde regle d'activite s'y est glissee.
+ok(!/'published'/i.test(mig), 'la migration ne nomme AUCUN statut de publication', 'une place expiree ne serait alors JAMAIS liberee : le plafond deviendrait un compteur a sens unique')
 
 // A5 — la liberation existe, et elle est pilotee par la LISTE fournie.
 ok(/p_ids_actives\s+uuid\[\]/i.test(mig), 'la fonction recoit la LISTE des annonces actives (uuid[])', 'c\'est le seul moyen de connaitre « actif » sans recopier la regle')
