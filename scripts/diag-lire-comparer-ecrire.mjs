@@ -75,43 +75,43 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Sites FERMES : la garantie y vit desormais en base. Ils ne doivent PLUS etre
- * detectes. S'ils reapparaissent, c'est qu'une correction a ete defaite.
+ * Sites FERMES : la garantie y vit en base. Chaque entree nomme CE QUI la porte
+ * — une RPC, ou le helper qui l'appelle — et le controle verifie que ce nom est
+ * toujours la.
+ *
+ * ⚠️ UNE PREMIERE VERSION DE CE FICHIER SE TROMPAIT DE CRITERE, et il faut le
+ *    dire : elle listait ces sites en exigeant qu'ils ne soient PLUS DETECTES.
+ *    C'est faux. « Compter, comparer, puis ecrire » est aussi la forme d'un
+ *    site CORRECTEMENT ferme : la garde applicative reste (elle donne le refus
+ *    precis sans aller-retour), et l'ecriture passe desormais par une RPC.
+ *    Les quatre premiers sites n'echappaient a la detection que parce que leur
+ *    appel `.rpc(...)` avait demenage dans un helper de lib/ — par accident
+ *    d'indirection, pas par conception. Le jour ou quelqu'un l'aurait remis en
+ *    ligne dans la route, ce diagnostic aurait crie au loup sur du code juste.
+ *
+ *    LA DETECTION NE PEUT PAS VOIR UNE CONTRAINTE. Elle voit une forme. C'est
+ *    donc l'inventaire qui dit ou vit la garantie, et le controle verifie que
+ *    le lien n'a pas ete coupe — ce qui MORD davantage que l'absence de motif.
  */
-const TRAITES = [
-  'app/api/publications/[id]/publish/route.ts',
-  'app/api/me/organisation/members/[id]/route.ts',
-  'app/api/me/organisation/leave/route.ts',
-  'app/api/admin/user-org-role/route.ts',
-]
+const GARANTIES = {
+  'app/api/publications/[id]/publish/route.ts': 'reserver_place_annonce',
+  'app/api/me/organisation/members/[id]/route.ts': 'majMembreOrganisation',
+  'app/api/me/organisation/leave/route.ts': 'majMembreOrganisation',
+  'app/api/admin/user-org-role/route.ts': 'majMembreOrganisation',
+  'app/api/me/account/delete/route.ts': 'programmer_suppression_compte',
+  'app/api/cron/purge-deletions/route.ts': 'liberer_siege_plateforme',
+}
 
 /**
- * Sites CONNUS et DELIBEREMENT non fermes. Chaque entree porte sa raison — une
- * liste sans raisons devient un tampon qu'on remplit sans lire.
+ * Sites CONNUS et DELIBEREMENT non fermes. Chaque entree porterait sa raison —
+ * une liste sans raisons devient un tampon qu'on remplit sans lire.
+ *
+ * VIDE. Le dernier membre de la classe — la programmation de suppression du
+ * dernier administrateur plateforme — a ete ferme par la migration
+ * 20260915200020 (siege d'administrateur plateforme), et sa cause reelle, le
+ * cron sans verrou de run, par 20260915200010.
  */
-const CONNUS_NON_TRAITES = {
-  'app/api/me/account/delete/route.ts': `PROGRAMMATION DE SUPPRESSION DU DERNIER ADMINISTRATEUR PLATEFORME.
-
-  Le motif y est bien present : on compte les autres administrateurs
-  disponibles, on compare, puis on ecrit deletion_scheduled_at. Deux
-  administrateurs plateforme qui programment leur suppression au meme instant
-  franchissent tous deux la garde.
-
-  CE N'EST PAS LE MEME DEFAUT, et c'est pourquoi il n'est pas ferme ici :
-    · l'ecriture est REVERSIBLE — 90 jours de grace, annulables depuis les
-      ecrans ;
-    · l'etat dangereux (plateforme a zero administrateur) ne se produit qu'au
-      moment IRREVERSIBLE, la purge, qui REVERIFIE le compte et REFUSE d'agir
-      en conservant deletion_scheduled_at (app/api/cron/purge-deletions) ;
-    · ce second controle est fail-safe INVERSE : comptage indisponible ⇒ on ne
-      purge pas.
-  La garde utile est donc au bon endroit. L'exposition residuelle est deux
-  executions concurrentes du meme cron, qui n'a pas de verrou de run.
-
-  A DECIDER, pas a corriger en passant : c'est une echelle plateforme, pas
-  organisation, et le remede (un siege d'administrateur plateforme, symetrique
-  de celui des organisations) est un lot a lui seul.`,
-}
+const CONNUS_NON_TRAITES = {}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LA DETECTION
@@ -195,18 +195,25 @@ console.log('=== diag-lire-comparer-ecrire — la classe, pas les cas ===')
 console.log(`\n     ${fichiers.length} fichiers app/ + lib/ balayes.`)
 console.log(`     ${detectes.size} site(s) portant le motif.\n`)
 
-console.log('═══ A. LES SITES FERMES NE DOIVENT PLUS APPARAITRE ═══\n')
-for (const f of TRAITES) {
+console.log('═══ A. CHAQUE SITE FERME APPELLE TOUJOURS SA GARANTIE ═══\n')
+// On ne verifie PAS l'absence du motif — un site correctement ferme le porte
+// encore. On verifie que le LIEN avec la garantie est intact : si quelqu'un
+// retire l'appel a la RPC en gardant le comptage, ce controle rougit.
+for (const [f, garantie] of Object.entries(GARANTIES)) {
+  let src = null
+  try { src = sansCommentaires(read(f)) } catch { /* fichier disparu */ }
   ok(
-    !detectes.has(f),
-    `${f} — garantie toujours en base`,
-    `le motif y est redetecte : la correction a ete defaite (${(detectes.get(f) ?? []).join(', ')})`,
+    src !== null && src.includes(garantie),
+    `${f} — passe toujours par ${garantie}`,
+    src === null
+      ? 'fichier introuvable : mettez l\'inventaire a jour'
+      : `l'appel a ${garantie} a disparu. Le comptage applicatif ne tient pas seul sous concurrence — c'est la base qui tranche.`,
   )
 }
 
 console.log('\n═══ B. AUCUN SITE NOUVEAU ═══\n')
 const nouveaux = [...detectes.keys()].filter(
-  (f) => !(f in CONNUS_NON_TRAITES) && !TRAITES.includes(f),
+  (f) => !(f in CONNUS_NON_TRAITES) && !(f in GARANTIES),
 )
 ok(
   nouveaux.length === 0,
@@ -214,14 +221,16 @@ ok(
   nouveaux.length
     ? `sites a qualifier :\n         · ${nouveaux
         .map((f) => `${f} — ${detectes.get(f).join(', ')}`)
-        .join('\n         · ')}\n\n       Un site detecte n'est pas fautif d'office : la detection voit une\n       FORME, pas un ENJEU. Qualifiez-le — soit la garantie passe en base,\n       soit il rejoint CONNUS_NON_TRAITES AVEC SA RAISON.`
+        .join('\n         · ')}\n\n       Un site detecte n'est pas fautif d'office : la detection voit une\n       FORME, pas un ENJEU. Qualifiez-le — soit la garantie passe en base et\n       il rejoint GARANTIES avec le nom qui la porte, soit il rejoint\n       CONNUS_NON_TRAITES AVEC SA RAISON.`
     : '',
 )
 
 console.log('\n═══ C. CE QUI RESTE OUVERT, EN TOUTES LETTRES ═══\n')
-const ouverts = Object.keys(CONNUS_NON_TRAITES).filter((f) => detectes.has(f))
+const ouverts = Object.keys(CONNUS_NON_TRAITES)
 if (ouverts.length === 0) {
-  console.log('     Aucun site connu non traite. La classe est entierement fermee.')
+  console.log('     AUCUN. La classe est entierement fermee :')
+  console.log('     tout lire-puis-comparer-puis-ecrire de app/ et lib/ a une')
+  console.log('     contrainte de base derriere lui.')
 } else {
   // Ces sites ne font PAS echouer le controle : ils sont connus, qualifies, et
   // leur sort est une decision produit. Mais ils sont IMPRIMES a chaque
@@ -230,15 +239,15 @@ if (ouverts.length === 0) {
     console.log(`     ⚠ ${f}`)
     console.log(`       ${CONNUS_NON_TRAITES[f].split('\n').join('\n       ')}\n`)
   }
-}
-// Un site liste comme « connu » mais que la detection ne trouve plus a ete
-// corrige, ou la detection a regresse. Dans les deux cas l'inventaire ment.
-for (const f of Object.keys(CONNUS_NON_TRAITES)) {
-  ok(
-    detectes.has(f),
-    `${f} — toujours detecte, l'inventaire reste exact`,
-    'ce site n\'est plus detecte : soit il a ete corrige (retirez-le de CONNUS_NON_TRAITES), soit la detection a regresse',
-  )
+  // Un site liste comme « connu » mais que la detection ne trouve plus a ete
+  // corrige, ou la detection a regresse. Dans les deux cas l'inventaire ment.
+  for (const f of ouverts) {
+    ok(
+      detectes.has(f),
+      `${f} — toujours detecte, l'inventaire reste exact`,
+      'ce site n\'est plus detecte : soit il a ete corrige (retirez-le de CONNUS_NON_TRAITES), soit la detection a regresse',
+    )
+  }
 }
 
 console.log(failures === 0 ? '\n✔ TOUT VERT\n' : `\n✘ ${failures} CONTROLE(S) EN ECHEC\n`)

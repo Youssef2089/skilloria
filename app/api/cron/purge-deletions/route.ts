@@ -180,7 +180,38 @@ async function purger(admin: SupabaseClient): Promise<Response> {
           targetIsActiveAdmin: true,
           activeAdminCount: platformAdminCountIncludingTarget(others),
         })
-      if (unsafe) {
+      // ── LE SIÈGE PLATEFORME EST DÉGAGÉ AVANT D'ANONYMISER ───────────────
+      //
+      //  Depuis la migration 20260915200020, un administrateur qui occupe le
+      //  siège ne peut PAS être anonymisé : la clé étrangère l'interdit.
+      //
+      //  Sans cet appel, le refus GRACIEUX ci-dessous — journalisé, avec
+      //  `deletion_scheduled_at` conservé — deviendrait une erreur technique
+      //  23503 au milieu de la boucle, sur un chemin RGPD irréversible et
+      //  légalement dû. On dégage donc le siège d'abord ; s'il n'y a personne à
+      //  qui le transférer, la fonction rend `dernier_admin` et on rejoint
+      //  EXACTEMENT le chemin `blocked` existant.
+      //
+      //  Une erreur d'appel compte comme `unsafe` : même sens que le comptage
+      //  indisponible — on ne purge pas quand on ne sait pas.
+      let siegeDegage = true
+      if (!unsafe) {
+        const { data: resSiege, error: siegeErr } = await admin.rpc(
+          'liberer_siege_plateforme',
+          { p_user_id: u.id, p_forcer: false },
+        )
+        if (siegeErr) {
+          console.warn('[purge] liberation du siege plateforme en echec — on ne purge pas', {
+            uid: u.id,
+            msg: siegeErr.message,
+          })
+          siegeDegage = false
+        } else if (resSiege !== 'ok') {
+          siegeDegage = false
+        }
+      }
+
+      if (unsafe || !siegeDegage) {
         blocked.push(u.id)
         console.warn('[purge] admin purge blocked — would leave platform without administrator', {
           uid: u.id,
@@ -197,6 +228,13 @@ async function purger(admin: SupabaseClient): Promise<Response> {
             reason: 'last_platform_admin',
             others_available: others,
             deletion_scheduled_at_kept: true,
+            /**
+             * `false` ⇒ le refus vient de la BASE (le siège n'a pas pu être
+             * transféré), pas du comptage applicatif. Les deux mènent au même
+             * refus gracieux, mais la trace doit dire lequel a parlé — sinon on
+             * chercherait la cause du mauvais côté.
+             */
+            siege_plateforme_degage: siegeDegage,
           },
         })
         continue

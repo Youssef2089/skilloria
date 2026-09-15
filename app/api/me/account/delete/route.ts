@@ -149,13 +149,43 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
   }
 
-  // 2. User → marqueur de grâce.
-  const { error: userUpdErr } = await auth.supabaseAdmin
-    .from('users')
-    .update({ deletion_scheduled_at: scheduledAt })
-    .eq('id', auth.user.id)
-  if (userUpdErr) {
-    console.error('[account/delete] user update failed', userUpdErr.message)
+  // 2. User → marqueur de grâce, PAR LA BASE (migration 20260915200020).
+  //
+  //  DERNIER MEMBRE DE LA CLASSE lire-puis-comparer-puis-écrire, et le seul qui
+  //  restait ouvert. Le comptage ci-dessus ne tient pas sous concurrence : deux
+  //  administrateurs plateforme qui programment leur suppression au même
+  //  instant lisent tous deux « il en reste un autre » et écrivent tous deux.
+  //
+  //  La RPC transfère le SIÈGE d'administrateur plateforme puis écrit
+  //  `deletion_scheduled_at` dans la MÊME transaction : il n'existe aucun
+  //  instant où la plateforme serait sans administrateur. Sous concurrence,
+  //  c'est la clé étrangère composite qui tranche.
+  //
+  //  Le comptage plus haut RESTE : il donne le refus précis sans aller-retour,
+  //  et son fail-safe (`null` sur erreur de lecture) est ce qui protège la
+  //  purge quand le décompte est indisponible.
+  const resProgrammation = await auth.supabaseAdmin.rpc('programmer_suppression_compte', {
+    p_user_id: auth.user.id,
+    p_scheduled_at: scheduledAt,
+  })
+  if (resProgrammation.error) {
+    console.error('[account/delete] user update failed', resProgrammation.error.message)
+    return json({ error: 'Could not schedule deletion', code: 'db_error' }, 500)
+  }
+  if (resProgrammation.data === 'dernier_admin') {
+    // MÊME code et MÊME message que le refus applicatif plus haut : deux
+    // chemins, un seul vocabulaire. Arriver ici signifie que la base a tranché
+    // une course que le comptage ne pouvait pas voir.
+    return json(
+      {
+        error: 'Refusing to leave the platform without an active administrator',
+        code: 'last_platform_admin',
+      },
+      409,
+    )
+  }
+  if (resProgrammation.data !== 'ok') {
+    console.error('[account/delete] user update failed', resProgrammation.data)
     return json({ error: 'Could not schedule deletion', code: 'db_error' }, 500)
   }
 
