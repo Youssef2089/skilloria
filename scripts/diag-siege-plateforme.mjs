@@ -103,12 +103,21 @@ const ts = migFile.slice(0, 14)
 ok(/^\d{14}$/.test(ts) && ts > '20260915200010', 'horodatage strictement superieur a la migration precedente', `lu : ${ts}`)
 
 // A1 — PIEGE 2 : la colonne generee, STOCKEE, et portant les QUATRE conditions.
+//      ⚠️ DEUX FOIS LE MEME PIEGE ICI, ET IL A FALLU DEUX MUTATIONS POUR LES
+//      VOIR — un motif non borne finit toujours par lire le VOISIN :
+//        · `[\s\S]*?` traversait le `;` et allait chercher le `stored` de la
+//          table suivante ;
+//        · et `admin_disponible` matchait la FIN de `siege_admin_disponible`,
+//          l'autre colonne generee, celle de la table plateforme.
+//      Dans les deux cas, retirer `stored` de la vraie colonne laissait le
+//      controle vert. On borne a `[^;]*?` ET on ancre sur la declaration elle
+//      meme (`add column if not exists`), qui n'appartient qu'a celle-ci.
 ok(
-  /admin_disponible\s+boolean\s+generated\s+always\s+as\s*\([\s\S]*?\)\s*stored/i.test(migPlat),
+  /add\s+column\s+if\s+not\s+exists\s+admin_disponible\s+boolean\s+generated\s+always\s+as\s*\([^;]*?\)\s*stored/i.test(migPlat),
   'users.admin_disponible est une colonne GENEREE et STOCKEE',
   'ecrite par du code elle serait falsifiable ; non stockee elle ne serait pas une colonne de cle, et l\'argument de verrouillage tomberait',
 )
-const expr = (migPlat.match(/admin_disponible\s+boolean\s+generated\s+always\s+as\s*\(([\s\S]*?)\)\s*stored/i) ?? [])[1] ?? ''
+const expr = (migPlat.match(/add\s+column\s+if\s+not\s+exists\s+admin_disponible\s+boolean\s+generated\s+always\s+as\s*\(([^;]*?)\)\s*stored/i) ?? [])[1] ?? ''
 // LES QUATRE CONDITIONS, CAPTUREES EN ENTIER. En omettre une rendrait le siege
 // attribuable a un compte suspendu, en grace, ou anonymise.
 for (const [quoi, motif] of [

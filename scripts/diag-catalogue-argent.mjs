@@ -230,7 +230,17 @@ const ECRIVAINS_ATTENDUS = {
   'app/api/admin/assign-org-package/route.ts': 'garde',
   'app/api/admin/migrate-org-packages/route.ts': 'garde',
   'lib/billing/apply.ts': 'webhook',
-  'lib/collaboration/ensure-personal-org.ts': 'creation',
+  // 'creation' A QUITTE CETTE LISTE, et ce n'est pas un relâchement.
+  // `ensure-personal-org` posait `package_id` dans un `.insert()` applicatif,
+  // troisième d'une série de trois allers-retours non transactionnels — la
+  // structure qui a produit deux organisations sans aucun membre. L'offre est
+  // désormais posée DANS la transaction de création, par
+  // `creer_organisation_avec_admin` (migration 20260915200000).
+  //
+  // L'exigence, elle, n'a pas bougé de place : elle est vérifiée là où elle a
+  // du sens, par diag-abonnement-organisation.mjs, qui contrôle que l'offre
+  // figure bien dans les arguments de la RPC — « sinon elle naît sans offre et
+  // retombe sur le repli ».
 }
 const nonDeclares = ecrivains.filter((r) => !(r in ECRIVAINS_ATTENDUS))
 ok(
