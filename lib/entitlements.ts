@@ -4,9 +4,16 @@ import { targetRoleForOrgType } from '@/lib/org-target-role'
 /**
  * lib/entitlements.ts — couche DROITS du moteur commerce (Lot 2).
  *
- * Traduit la config DB (packages / package_features / organization_domains)
- * en limites exploitables par les gates (publish / unlock / auto-dévoilement),
- * et encapsule la consommation atomique des compteurs (usage_increment).
+ * Traduit la config DB (`packages` / `package_features` / `organizations`) en
+ * limites exploitables par les gates (publish / unlock / auto-dévoilement), et
+ * encapsule la consommation atomique des compteurs (`usage_increment`).
+ *
+ * ⚠️ CETTE LISTE A NOMMÉ `organization_domains` PENDANT UN TEMPS, ET C'ÉTAIT FAUX.
+ *    Ce module ne la lit plus depuis que l'abonnement est remonté sur
+ *    `organizations` (cf. plus bas). La table est une TRACE HISTORIQUE qui
+ *    n'alimente plus aucune décision — son propre commentaire de table l'énonce.
+ *    Un en-tête qui désigne la mauvaise source est la seule chose qui trompe
+ *    ACTIVEMENT le prochain lecteur : il a l'air d'une source.
  *
  * ┌─ PRINCIPE FIGÉ : FAIL-OPEN ────────────────────────────────────────────┐
  * │ Un moteur commercial en panne ne doit JAMAIS bloquer l'usage produit.  │
@@ -104,7 +111,8 @@ export function monthlyPeriodStart(): Date {
  *    résolution produisait un DÉFAUT D'ARGENT SILENCIEUX : sur tout écosystème
  *    autre que celui d'inscription, aucune ligne n'existait, et l'organisation
  *    retombait sur l'offre GRATUITE alors qu'elle payait.
- *    Voir 20260903000000_abonnement_sur_organisation.sql.
+ *    Voir la migration de suffixe `abonnement_sur_organisation` — désignée par
+ *    son SUFFIXE, jamais par son numéro (le renumérotage est normal ici).
  *
  *    Ce qui reste cloisonné par écosystème, ce sont les DONNÉES
  *    (lib/ecosystem-scope.ts), jamais les droits ni le quota.

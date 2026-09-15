@@ -12,13 +12,29 @@ export const dynamic = 'force-dynamic'
  * Body : { organization_id: uuid, package_id: uuid, package_valid_until?: string|null }
  *
  * Attribution manuelle d'un package (pilote grands comptes) sur la ligne
- * organization_domains ACTIVE de l'org.
+ * `organizations` de l'org.
  *
- * RÈGLES FERMES (Lot 3) — aucune décision silencieuse, aucune création implicite :
- *  - la cible est organization_domains WHERE organization_id = X AND active = true ;
- *  - 0 ligne active   → 404 'no_active_domain' ;
- *  - >1 ligne active  → 409 'multiple_active_domains' ;
- *  - package inexistant ou inactif → 400 'invalid_package'.
+ * ┌─ CET EN-TÊTE A DÉJÀ MENTI, ET C'EST POUR ÇA QU'IL EST RÉÉCRIT ──────────┐
+ * │ Il décrivait `organization_domains` comme cible, et annonçait deux      │
+ * │ refus — `no_active_domain` (404), `multiple_active_domains` (409) — que  │
+ * │ le corps de CE MÊME FICHIER déclare disparus quelques dizaines de lignes │
+ * │ plus bas. Un lecteur pressé lit l'en-tête et s'arrête là.                │
+ * │                                                                          │
+ * │ Un commentaire faux ne se contente pas d'être inutile : il est la SEULE  │
+ * │ chose qui trompe ACTIVEMENT le prochain lecteur, parce qu'il a l'air     │
+ * │ d'une source. Un fichier sans commentaire envoie lire le code.           │
+ * └────────────────────────────────────────────────────────────────────────┘
+ *
+ * RÈGLES FERMES — aucune décision silencieuse, aucune création implicite :
+ *  - la cible est `organizations` WHERE id = X — l'abonnement est un attribut
+ *    de l'ORGANISATION, unique et partagé entre TOUS les écosystèmes ;
+ *  - package inexistant ou inactif → 400 'invalid_package' ;
+ *  - abonnement Stripe VIVANT → 409 'org_has_stripe_subscription' : on ne passe
+ *    jamais par-dessus un abonnement payé (cf. lib/billing/attribution-manuelle.ts).
+ *
+ * L'organisation elle-même n'est PAS vérifiée avant l'écriture : un id inconnu
+ * produit un UPDATE à zéro ligne, et la route répond 200. Dit ici plutôt que
+ * laissé à découvrir — c'est l'écart connu de cette route.
  *
  * Écrit package_id, package_started_at=now(), package_valid_until (ou null).
  * Audit logAudit action 'org_package_assigned'. Garde admin per-route. service_role.
@@ -119,7 +135,9 @@ export async function POST(request: NextRequest): Promise<Response> {
   //  ligne de rattachement produisait un défaut d'argent SILENCIEUX — partout
   //  ailleurs que sur l'écosystème d'inscription, aucune ligne, donc repli sur
   //  l'offre gratuite alors que l'organisation paie.
-  //  Cf. supabase/migrations/20260903000000_abonnement_sur_organisation.sql.
+  //  Cf. la migration de suffixe `abonnement_sur_organisation` — DÉSIGNÉE PAR SON
+  //  SUFFIXE, jamais par son numéro : le renumérotage est une opération normale
+  //  ici, et un numéro cité vieillit mal puis ment.
   //
   //  DEUX REFUS DISPARAISSENT AVEC LUI : `no_active_domain` (404) et
   //  `multiple_active_domains` (409). Ils gardaient une ligne de rattachement
