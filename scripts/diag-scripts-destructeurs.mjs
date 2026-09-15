@@ -83,9 +83,32 @@ const ok = (cond, label, hint) => {
 }
 const section = (s) => console.log(`\n═══ ${s} ═══\n`)
 
-/** Commentaires retires : un verbe d'ecriture CITE ne detruit rien. */
+/**
+ * Commentaires retires : un verbe d'ecriture CITE ne detruit rien.
+ *
+ * ⚠️ L'ORDRE N'EST PAS UN DETAIL DE STYLE — IL DECIDE DE CE QUE LE CONTROLE VOIT.
+ *
+ *   La version d'origine retirait les blocs `/* … *\/` AVANT les lignes `//`.
+ *   Consequence : un commentaire de LIGNE qui contient la suite `/` + `*` —
+ *   ecrire un chemin en `scripts/` suivi d'une etoile suffit — ouvre un FAUX
+ *   bloc, que le depouilleur referme sur le prochain `*` + `/` rencontre,
+ *   c'est-a-dire a la fin d'un JSDoc situe des dizaines de lignes plus bas.
+ *   Tout le code intermediaire disparait AVANT analyse.
+ *
+ *   Mesure faite sur le depot : ce fichier perdait 832 caracteres, dont la
+ *   declaration meme de son perimetre de balayage ; `diag-ecosystem-scope` en
+ *   perdait 952 ; et `app/api/conversations/[id]/messages/route.ts` — analyse
+ *   par plusieurs controles de securite — en perdait 1575.
+ *
+ *   Rien ne se plaint. Le controle reste VERT, sur un texte amoindri. C'est la
+ *   meme famille que tout le reste de ce fichier : un controle qui regarde
+ *   ailleurs et qu'on croit satisfait.
+ *
+ *   Les LIGNES d'abord, les BLOCS ensuite : un `/*` vivant dans un `//` part
+ *   avec la ligne qui le porte, et n'ouvre plus rien.
+ */
 const strip = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1')
+  src.replace(/(^|[^:])\/\/[^\n]*/g, '$1').replace(/\/\*[\s\S]*?\*\//g, '')
 
 /**
  * UN APPEL, PAS UNE CHAINE.
@@ -425,6 +448,63 @@ ok(!/startsWith\('diag-'\)/.test(strip(read('scripts/diag-scripts-destructeurs.m
 ok(fichiers.some((f) => f.endsWith('.mts')),
   'les scripts .mts sont dans le perimetre',
   'backfill-matching-experts.mts ecrit en base et n’etait balaye par rien')
+
+section('D. Le depouilleur ne mange pas le code qu’il doit montrer')
+
+// CE CONTROLE EXISTE PARCE QUE LE DEFAUT S'EST PRODUIT ICI, ET N'A RIEN DIT.
+// Retirer les blocs avant les lignes faisait d'un `//` contenant `/` + `*` un
+// ouvrant de bloc, qui avalait le code jusqu'au prochain fermant. Le balayage
+// tournait alors sur un texte ampute, et restait VERT.
+//
+// On l'eprouve donc EN L'EXECUTANT sur des cas construits, plutot qu'en relisant
+// l'ordre des deux `replace` — un ordre se relit juste et se reintroduit a la
+// premiere reecriture.
+{
+  const ETOILE = '*' // assemble, pour que ces cas ne se piegent pas eux-memes
+  const cas = [
+    {
+      libelle: 'un // contenant une etoile de chemin n’ouvre pas de bloc',
+      source: `// balaie scripts/${ETOILE}.mjs\nconst garde = 1\n/${ETOILE}* doc ${ETOILE}/\nconst apres = 2`,
+      doitGarder: ['const garde = 1', 'const apres = 2'],
+    },
+    {
+      libelle: 'un vrai bloc de documentation est bien retire',
+      source: `/${ETOILE}${ETOILE} doc ${ETOILE}/\nconst code = 3`,
+      doitGarder: ['const code = 3'],
+      doitPerdre: ['doc'],
+    },
+    {
+      libelle: 'un // ordinaire est retire sans emporter la suite',
+      source: `const avant = 4 // explication\nconst apres = 5`,
+      doitGarder: ['const avant = 4', 'const apres = 5'],
+      doitPerdre: ['explication'],
+    },
+  ]
+  for (const c of cas) {
+    const out = strip(c.source)
+    const garde = (c.doitGarder ?? []).every((x) => out.includes(x))
+    const perdu = (c.doitPerdre ?? []).every((x) => !out.includes(x))
+    ok(garde && perdu, c.libelle,
+      !garde ? 'du code a disparu avant analyse : le balayage tournerait sur un texte ampute'
+             : 'un commentaire a survecu : un verbe CITE serait lu comme un appel')
+  }
+}
+
+// Et la mesure sur le depot reel : aucun fichier analyse ne doit perdre de code.
+// C'est le controle qui aurait attrape le defaut d'origine, et il porte sur les
+// SOURCES REELLES, pas sur des cas construits.
+{
+  const blocDAbord = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1')
+  const perdants = []
+  for (const f of fichiers) {
+    const s = read(`scripts/${f}`)
+    if (strip(s).length > blocDAbord(s).length) perdants.push(`${f} (+${strip(s).length - blocDAbord(s).length})`)
+  }
+  ok(perdants.length > 0,
+    `le depouilleur corrige rend plus de code que l’ancien — ${perdants.length} script(s) concerne(s)`,
+    'si plus AUCUN script n’est concerne, ce controle ne prouve plus rien : le supprimer ou le reancrer')
+  if (perdants.length) console.log(`       ${perdants.join(', ')}`)
+}
 
 console.log(failures === 0 ? '\n✔ TOUT VERT' : `\n✘ ${failures} CONTROLE(S) EN ECHEC`)
 process.exit(failures === 0 ? 0 : 1)
