@@ -256,14 +256,24 @@ for (const r of ROUTES) {
     `${r} — aucune ecriture directe du role ou du statut`,
     fautives.length ? `trouvee(s) : ${fautives.join(' | ')}` : '',
   )
-  ok(/majMembreOrganisation\(/.test(src), `${r} — passe par majMembreOrganisation`, '')
+  const appels = [...src.matchAll(/majMembreOrganisation\(/g)]
+  ok(appels.length > 0, `${r} — passe par majMembreOrganisation`, '')
+
   // Le refus reste NOMME : `dernier_admin` doit remonter en `last_admin`, pas
   // se fondre dans un `db_error` generique.
-  ok(
-    /['"]dernier_admin['"]/.test(src) && /last_admin/.test(src),
-    `${r} — le refus de base remonte en 'last_admin', pas en erreur technique`,
-    'un « erreur technique » ne dirait pas a l\'organisation de designer un autre administrateur',
-  )
+  //
+  // PAR SITE D'APPEL, pas par fichier. Un controle qui cherchait 'dernier_admin'
+  // n'importe ou dans le fichier se satisfaisait d'une seule occurrence : une
+  // route a deux verbes (PATCH et DELETE) pouvait perdre son refus nomme dans
+  // l'un des deux et rester verte. Verifie en mutant, et corrige.
+  for (const [i, m] of appels.entries()) {
+    const fenetre = src.slice(m.index, m.index + 700)
+    ok(
+      /['"]dernier_admin['"]/.test(fenetre) && /last_admin/.test(fenetre),
+      `${r} — appel ${i + 1}/${appels.length} : le refus remonte en 'last_admin'`,
+      'un « erreur technique » ne dirait pas a l\'organisation de designer un autre administrateur',
+    )
+  }
 }
 
 // B2 — LA GARDE APPLICATIVE RESTE. Elle pose une question que la base ne peut
@@ -273,7 +283,16 @@ for (const r of ROUTES) {
 //      precedent a ferme.
 for (const r of ROUTES) {
   const src = sansCommentaires(read(r))
-  ok(/countActiveAdmins\(/.test(src), `${r} — la garde applicative (compte joignable) est conservee`, 'la base ne voit que la LIGNE, pas le COMPTE : un admin purge laisse sa ligne admin/active intacte')
+  // UN APPEL PAR SITE D'ECRITURE, pas un `import` orphelin. Un controle qui se
+  // contentait de trouver le mot dans le fichier restait vert alors que seule
+  // la ligne d'import survivait — verifie en mutant.
+  const gardes = (src.match(/countActiveAdmins\(\s*\w/g) ?? []).length
+  const ecritures = (src.match(/majMembreOrganisation\(/g) ?? []).length
+  ok(
+    gardes >= ecritures,
+    `${r} — la garde applicative (compte joignable) couvre chaque ecriture (${gardes}/${ecritures})`,
+    'la base ne voit que la LIGNE, pas le COMPTE : un admin purge laisse sa ligne admin/active intacte',
+  )
 }
 
 // B3 — PIEGE 4, cote route : la porte ne doit s'ouvrir QUE sur le bypass
