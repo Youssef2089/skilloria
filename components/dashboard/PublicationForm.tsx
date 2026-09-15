@@ -367,6 +367,10 @@ export default function PublicationForm(props: Props) {
       //  écrire ici les figerait au moment où on les recopie.
       quota_publications_reached: t('errors.quota_publications_reached'),
       active_publications_limit_reached: t('errors.active_publications_limit_reached'),
+      //  DISTINCT de la limite atteinte, et ce n'est pas un détail : ici le
+      //  serveur n'a PAS PU compter. Annoncer « offre pleine » serait un
+      //  mensonge, et l'organisation clôturerait une annonce pour rien.
+      active_publications_check_failed: t('errors.active_publications_check_failed'),
       invalid_type: t('errors.invalid_type'),
       invalid_title: t('errors.invalid_title'),
       invalid_description: t('errors.invalid_description'),

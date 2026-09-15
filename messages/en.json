@@ -2026,6 +2026,7 @@
       "budget_inverted": "Minimum budget cannot be greater than maximum.",
       "quota_publications_reached": "You have posted every listing included in your plan this month. The counter resets on the 1st of next month.",
       "active_publications_limit_reached": "You have reached your plan's number of active listings. Close a current listing to post a new one, or wait for it to expire.",
+      "active_publications_check_failed": "We could not check how many active listings your plan allows. Nothing was posted and nothing was counted. Try again in a few moments; if it persists, contact support.",
       "verification_failed": "Automated check failed. Please try again.",
       "db_error": "Technical error. Please try again.",
       "generic": "An error occurred. Please try again.",
@@ -3324,7 +3325,8 @@
     "errors": {
       "org_unavailable": "Your collaboration workspace could not be prepared. Please try again shortly.",
       "create_failed": "Could not save the need. Check the fields and try again.",
-      "publish_failed": "Publishing failed. Please try again."
+      "publish_failed": "Publishing failed. Please try again.",
+      "publish_check_failed": "We could not check how many active listings your plan allows. Nothing was posted. Try again in a few moments; if it persists, contact support."
     },
     "list": {
       "title": "My subcontracting needs",

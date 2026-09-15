@@ -171,26 +171,97 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   //  Placée AVANT la vérif IA (coûteuse) : on refuse tôt. Ordre des gardes :
   //  1) plafond d'actives (SANS consommation) ; 2) compteur mensuel (consomme).
   //  On ne consomme JAMAIS le compteur mensuel si on refuse sur le plafond actif.
-  //  getOrgEntitlements/consumeQuota sont fail-open (une panne moteur ne bloque pas).
+  //
+  //  SENS DE L'ÉCHEC, ÉTAGE PAR ÉTAGE — ce n'est pas uniforme, et c'est voulu :
+  //   · `getOrgEntitlements` reste FAIL-OPEN (illimité) : une panne du CATALOGUE
+  //     ne doit pas transformer toutes les offres en offres bloquées. C'est une
+  //     décision assumée et documentée dans lib/entitlements.
+  //   · le PLAFOND D'ACTIVES, lui, est désormais FAIL-CLOSED : l'offre est
+  //     connue, c'est le décompte qui manque — et un plafond qui s'ouvre quand
+  //     la base tousse n'est pas un plafond. Voir juste en dessous.
   const ents = await getOrgEntitlements(auth.supabaseAdmin, orgId)
 
+  // ── LE PLAFOND D'ANNONCES ACTIVES — GARANTI EN BASE, ET FAIL-CLOSED ──────
+  //
+  //  DEUX DÉFAUTS FERMÉS ENSEMBLE, cf. migration 20260914200000 :
+  //
+  //  1. LA COURSE. On lisait un compteur, on le comparait, puis on écrivait.
+  //     Deux publications simultanées lisaient la même valeur et passaient
+  //     toutes les deux : une offre à 3 actives pouvait en porter 4, soit un
+  //     droit payant donné gratuitement. La garantie vit désormais dans un
+  //     index unique partiel ; `reserver_place_annonce` attribue un NUMÉRO DE
+  //     PLACE, et la base en refuse le doublon quel que soit l'ordre d'arrivée.
+  //
+  //  2. LE FAIL-OPEN. Une erreur de comptage laissait publier. Un plafond
+  //     commercial qui s'ouvre quand la base tousse n'est pas un plafond : le
+  //     sens est inversé ici, une lecture qui échoue REFUSE.
+  //
+  //  LA RÈGLE « ACTIF » N'EST PAS RECOPIÉE EN SQL. Elle se dérive à la lecture
+  //  (lib/publications/expiry) et n'est pas appelable depuis la base ; une
+  //  seconde copie en SQL divergerait un jour et l'une aurait tort en silence.
+  //  On passe donc à la base la LISTE des annonces actives, calculée ici avec
+  //  `activePublishedOrClause()` — l'unique source. C'est aussi ce qui LIBÈRE
+  //  les places : toute annonce numérotée absente de cette liste (clôturée,
+  //  archivée, repassée en brouillon, ou EXPIRÉE) rend la sienne.
+  //
+  //  Placé AVANT la vérif IA (coûteuse) : on refuse tôt. Le compteur mensuel
+  //  n'est JAMAIS consommé si on refuse sur le plafond actif.
+  let placeReservee = false
   if (ents.limits.activePublicationsMax !== null) {
-    // « Actives » = published NON EXPIRÉES (règle 30j calculée à la lecture, cf.
-    // lib/publications/expiry). Une annonce expirée LIBÈRE son slot.
-    const { count: activeCount, error: countErr } = await auth.supabaseAdmin
+    const { data: actives, error: activesErr } = await auth.supabaseAdmin
       .from('publications')
-      .select('id', { count: 'exact', head: true })
+      .select('id')
       .eq('organization_id', orgId)
       .eq('status', 'published')
       .or(activePublishedOrClause())
-    if (countErr) {
-      // Fail-open : on ne bloque pas sur une erreur de comptage.
-      console.warn('[publications:publish] active count error — fail-open', countErr.message)
-    } else if ((activeCount ?? 0) + 1 > ents.limits.activePublicationsMax) {
+    if (activesErr) {
+      // FAIL-CLOSED. On ne sait pas combien d'annonces sont actives : on ne
+      // peut pas savoir s'il reste une place. Refuser en disant « plafond
+      // atteint » serait un mensonge — le code est distinct, et le message
+      // dit quoi faire.
+      console.error('[publications:publish] active list error — fail-closed', activesErr.message)
+      return json(
+        { error: 'Cannot verify active publications', code: 'active_publications_check_failed' },
+        503,
+      )
+    }
+
+    const { data: reserve, error: rpcErr } = await auth.supabaseAdmin.rpc(
+      'reserver_place_annonce',
+      {
+        p_publication_id: id,
+        p_plafond: ents.limits.activePublicationsMax,
+        p_ids_actives: (actives ?? []).map((r) => r.id as string),
+      },
+    )
+    if (rpcErr) {
+      console.error('[publications:publish] reserve place failed — fail-closed', rpcErr.message)
+      return json(
+        { error: 'Cannot verify active publications', code: 'active_publications_check_failed' },
+        503,
+      )
+    }
+    if (reserve !== true) {
       return json(
         { error: 'Active publications limit reached', code: 'active_publications_limit_reached' },
         402,
       )
+    }
+    placeReservee = true
+  }
+
+  /**
+   * Rend la place si l'annonce ne finit pas en ligne. Best-effort : un échec
+   * ici SOUS-attribue (une place inutilisée), et la prochaine réservation la
+   * reprendra de toute façon. On ne donne jamais plus que le dû.
+   */
+  const rendreLaPlace = async (pourquoi: string): Promise<void> => {
+    if (!placeReservee) return
+    const { error } = await auth.supabaseAdmin.rpc('liberer_place_annonce', {
+      p_publication_id: id,
+    })
+    if (error) {
+      console.warn(`[publications:publish] liberer place (${pourquoi}) failed`, error.message)
     }
   }
 
@@ -203,6 +274,9 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
       monthlyPeriodStart(),
     )
     if (!allowed) {
+      // La place a été réservée juste avant : on la rend, sinon un refus sur le
+      // compteur mensuel consommerait une place active sans rien publier.
+      await rendreLaPlace('quota mensuel atteint')
       return json({ error: 'Monthly publications quota reached', code: 'quota_publications_reached' }, 402)
     }
   }
@@ -235,7 +309,16 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     })
   } catch (err) {
     console.error('[publications:publish] verification threw', err)
+    await rendreLaPlace('vérification en échec')
     return json({ error: 'Verification failed', code: 'verification_failed' }, 500)
+  }
+
+  // Verdict qui ne met PAS en ligne (`pending_review`) : l'annonce n'est pas
+  // active, elle ne doit donc pas retenir de place. On la rend AVANT d'écrire
+  // le statut — la réservation la reprendrait de toute façon au prochain appel,
+  // mais le compte doit être juste tout de suite.
+  if (verdict.status !== 'published') {
+    await rendreLaPlace(`verdict ${verdict.status}`)
   }
 
   // ── UPDATE atomique : status + verification_* (+ published_at si OK) ────
@@ -262,6 +345,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
 
   if (updateErr) {
     console.error('[publications:publish] update failed', updateErr.message)
+    await rendreLaPlace('écriture du statut en échec')
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
 

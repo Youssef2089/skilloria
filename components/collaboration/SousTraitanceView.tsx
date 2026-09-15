@@ -165,6 +165,15 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
           setPhase('wall')
           return
         }
+        // PANNE DE VÉRIFICATION ≠ MUR PAYANT. Le plafond d'actives est
+        // fail-closed : quand le décompte est indisponible, on refuse. Envoyer
+        // l'expert sur « Bientôt disponible » lui ferait croire à une limite
+        // d'offre, et un « la publication a échoué » ne lui dirait pas quoi
+        // faire. On nomme la panne, et on donne la suite.
+        if (pub.code === 'active_publications_check_failed') {
+          setError(t('errors.publish_check_failed'))
+          return
+        }
         setError(t('errors.publish_failed'))
         return
       }

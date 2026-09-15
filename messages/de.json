@@ -2026,6 +2026,7 @@
       "budget_inverted": "Das Mindestbudget darf das Höchstbudget nicht überschreiten.",
       "quota_publications_reached": "Sie haben diesen Monat alle in Ihrem Tarif enthaltenen Anzeigen veröffentlicht. Der Zähler beginnt am 1. des nächsten Monats neu.",
       "active_publications_limit_reached": "Sie haben die Anzahl aktiver Anzeigen Ihres Tarifs erreicht. Schließen Sie eine laufende Anzeige, um eine neue zu veröffentlichen, oder warten Sie, bis sie abläuft.",
+      "active_publications_check_failed": "Wir konnten die Anzahl aktiver Anzeigen Ihres Tarifs nicht prüfen. Es wurde nichts veröffentlicht und nichts angerechnet. Versuchen Sie es in Kürze erneut; besteht das Problem weiterhin, wenden Sie sich an den Support.",
       "verification_failed": "Die automatische Prüfung ist fehlgeschlagen. Bitte erneut versuchen.",
       "db_error": "Technischer Fehler. Bitte erneut versuchen.",
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
@@ -3324,7 +3325,8 @@
     "errors": {
       "org_unavailable": "Ihr Kollaborationsbereich konnte nicht vorbereitet werden. Bitte versuchen Sie es gleich erneut.",
       "create_failed": "Der Bedarf konnte nicht gespeichert werden. Prüfen Sie die Felder und versuchen Sie es erneut.",
-      "publish_failed": "Die Veröffentlichung ist fehlgeschlagen. Bitte versuchen Sie es erneut."
+      "publish_failed": "Die Veröffentlichung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+      "publish_check_failed": "Wir konnten die Anzahl aktiver Anzeigen Ihres Tarifs nicht prüfen. Es wurde nichts veröffentlicht. Versuchen Sie es in Kürze erneut; besteht das Problem weiterhin, wenden Sie sich an den Support."
     },
     "list": {
       "title": "Meine Unterauftrags-Bedarfe",
