@@ -1,7 +1,12 @@
 import { NextRequest } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
-import { isValidOrgRole, countActiveAdmins, wouldRemoveLastAdmin } from '@/lib/org-members'
+import {
+  isValidOrgRole,
+  countActiveAdmins,
+  wouldRemoveLastAdmin,
+  majMembreOrganisation,
+} from '@/lib/org-members'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -92,12 +97,21 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
     }
   }
 
-  const { error: upErr } = await auth.supabaseAdmin
-    .from('organization_members')
-    .update({ role_in_org: newRole, updated_at: new Date().toISOString() })
-    .eq('id', target.id)
-  if (upErr) {
-    console.error('[me/members/:id] role update failed', upErr.message)
+  // L'ÉCRITURE PASSE PAR LA BASE. Le garde applicatif ci-dessus reste : il pose
+  // une question que la base ne peut pas poser (le compte est-il joignable ?) et
+  // il donne un refus précis sans aller-retour. Mais lui seul ne tient pas sous
+  // concurrence — deux rétrogradations simultanées le franchissaient toutes les
+  // deux. La RPC transfère le siège d'administrateur avant de rétrograder son
+  // occupant, dans la même transaction : il n'existe aucune fenêtre à zéro.
+  const res = await majMembreOrganisation(auth.supabaseAdmin, {
+    membreId: target.id,
+    nouveauRole: newRole,
+  })
+  if (res === 'dernier_admin') {
+    return json({ error: 'Would remove last admin', code: 'last_admin' }, 409)
+  }
+  if (res !== 'ok') {
+    console.error('[me/members/:id] role update failed', res)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
 
@@ -134,13 +148,18 @@ export async function DELETE(request: NextRequest, ctx: Ctx): Promise<Response> 
     }
   }
 
-  // Retrait SOFT (status='removed') plutôt que DELETE physique.
-  const { error: upErr } = await auth.supabaseAdmin
-    .from('organization_members')
-    .update({ status: 'removed', updated_at: new Date().toISOString() })
-    .eq('id', target.id)
-  if (upErr) {
-    console.error('[me/members/:id] remove failed', upErr.message)
+  // Retrait SOFT (status='removed') plutôt que DELETE physique, et par la base
+  // — cf. le commentaire du PATCH : le garde applicatif ne tient pas seul sous
+  // deux retraits simultanés.
+  const res = await majMembreOrganisation(auth.supabaseAdmin, {
+    membreId: target.id,
+    nouveauStatut: 'removed',
+  })
+  if (res === 'dernier_admin') {
+    return json({ error: 'Would remove last admin', code: 'last_admin' }, 409)
+  }
+  if (res !== 'ok') {
+    console.error('[me/members/:id] remove failed', res)
     return json({ error: 'Remove failed', code: 'db_error' }, 500)
   }
 
