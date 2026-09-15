@@ -7,6 +7,25 @@ for (const line of env.split(/\r?\n/)) {
   if (m) process.env[m[1]] = m[2]
 }
 
+// ⚠️ CE SCRIPT ECRIT EN BASE — SANS AUCUN `.update(` VISIBLE DANS CE FICHIER.
+//    C'est tout l'interet de le dire ici : il ecrit en APPELANT du code
+//    applicatif. `runExpertVerification()` repose `profiles.verification_status`,
+//    `verification_score`, `verified_at`, `verification_data` et
+//    `users.is_verified`. Un lecteur qui cherche un verbe d'ecriture dans ce
+//    fichier n'en trouve pas et le croit inoffensif.
+//
+//    Il appelle AUSSI l'IA Claude pour de vrai : chaque execution coute.
+const { exigerAutorisationEcriture } = await import('./garde-ecriture.mjs')
+exigerAutorisationEcriture({
+  script: 'verify-test-profile-once.mjs',
+  ecrit: [
+    'lance une VERIFICATION IA REELLE (Claude) sur un profil code en dur — depense a chaque run',
+    "reecrit profiles.verification_status / verification_score / verified_at / verification_data",
+    'reecrit users.is_verified',
+  ],
+  perte: "l'ancien verdict de verification est ecrase et n'est pas conserve.",
+})
+
 const { createClient } = await import('@supabase/supabase-js')
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },

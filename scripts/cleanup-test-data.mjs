@@ -20,6 +20,33 @@ for (const line of env.split(/\r?\n/)) {
   if (m) process.env[m[1]] = m[2]
 }
 
+// ⚠️ CE SCRIPT SUPPRIME EN BASE, SANS RETOUR. Il refuse de tourner sans drapeau
+//    explicite, et dit ce qu'il detruirait. Cf. scripts/garde-ecriture.mjs — la
+//    garde est POSEE AVANT la creation du client : rien n'est ouvert tant que
+//    l'autorisation n'est pas donnee.
+//
+//    CE SCRIPT ETAIT PLUS LARGE QUE SON TITRE, ET LA GARDE LE DIT.
+//    Son en-tete annonce « les donnees de test du sprint », par IDs explicites.
+//    Mais sa troisieme suppression de notifications ne porte AUCUN filtre
+//    d'utilisateur ni d'entite : elle vide quatre TYPES de notifications sur
+//    TOUTE la base, y compris celles de comptes reels etrangers au test. C'est
+//    enumere ci-dessous parce qu'on ne doit pas le decouvrir apres coup.
+const { exigerAutorisationEcriture } = await import('./garde-ecriture.mjs')
+exigerAutorisationEcriture({
+  script: 'cleanup-test-data.mjs',
+  ecrit: [
+    "SUPPRIME 3 publications de test (resolues par prefixe d'UUID)",
+    'SUPPRIME par CASCADE leurs matches, candidatures, conversations et messages',
+    "SUPPRIME les notifications dont entity_id vise ces publications/candidatures/conversations",
+    "SUPPRIME les notifications du user fictif",
+    "SUPPRIME, SANS AUCUN FILTRE D'UTILISATEUR, TOUTES les notifications de type " +
+      "new_message, new_match_opportunity, candidature_unlocked et verification_result — " +
+      'sur TOUTE la base, comptes reels compris',
+    "SUPPRIME 1 user fictif et, par CASCADE, son profil et ses appartenances",
+  ],
+  perte: "aucune sauvegarde n'est prise avant. Aucun retour arriere possible.",
+})
+
 const { createClient } = await import('@supabase/supabase-js')
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },

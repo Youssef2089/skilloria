@@ -3,13 +3,22 @@
 // un expert déjà réconcilié ne re-notifie pas (les notifications sont émises
 // uniquement sur inserts FRAIS de matches — cf. reconcile.ts).
 //
-// Garde : --only-email=<email> pour cibler un expert précis (utile en V1
+// ⚠️ CE SCRIPT ÉCRIT EN BASE — sans aucun `.insert(` dans ce fichier.
+//    `runMatchingForExpert()` écrit `matches`, `notifications`, et consomme du
+//    budget IA (reranking). Il refuse donc de tourner sans `--db`.
+//
+//    LA GARDE EST POSÉE APRÈS LE `--dry-run`, ET C'EST DÉLIBÉRÉ. Le mode sec
+//    lit la base et n'écrit rien : exiger `--db` pour lui interdirait le seul
+//    usage qui permet de vérifier AVANT d'agir. On garde les ÉCRITURES, pas la
+//    mise en route — même raisonnement que diag-suspension.
+//
+// Garde métier : --only-email=<email> pour cibler un expert précis (utile en V1
 // pour valider de bout en bout avant un fanout).
 //
-// Usage :
-//   node scripts/backfill-matching-experts.mjs                       (tous)
-//   node scripts/backfill-matching-experts.mjs --only-email=foo@x    (un seul)
-//   node scripts/backfill-matching-experts.mjs --dry-run             (lecture)
+// Usage (le fichier est en .mts — l'ancienne en-tête annonçait .mjs) :
+//   node scripts/backfill-matching-experts.mts --dry-run             (lecture seule)
+//   node scripts/backfill-matching-experts.mts --db                  (tous)
+//   node scripts/backfill-matching-experts.mts --db --only-email=foo@x
 
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -90,6 +99,20 @@ if (candidates.length === 0) {
   console.log('Rien à faire.')
   process.exit(0)
 }
+
+// ⚠️ ICI COMMENCE L'ÉCRITURE. Tout ce qui précède a lu, compté et affiché ;
+//    rien n'a été modifié. La garde est donc posée juste avant l'import du
+//    module qui écrit, et pas plus tôt — cf. l'en-tête.
+const { exigerAutorisationEcriture } = await import('./garde-ecriture.mjs')
+exigerAutorisationEcriture({
+  script: 'backfill-matching-experts.mts',
+  ecrit: [
+    `lance la mise en relation pour ${candidates.length} expert(s) — liste affichée ci-dessus`,
+    'INSÈRE des lignes `matches` (réconciliation idempotente : un ré-run ne re-notifie pas)',
+    'INSÈRE des `notifications` pour les matches FRAIS au-dessus du seuil',
+    'CONSOMME du budget IA (reranking) — la dépense est enregistrée dans ai_spend_events',
+  ],
+})
 
 // 3. Importer runMatchingForExpert et exécuter sérialement (rate-limit IA)
 console.log('Exécution runMatchingForExpert sérialement (rate-limit IA)...')
