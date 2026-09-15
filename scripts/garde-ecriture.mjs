@@ -38,8 +38,18 @@ const DRAPEAUX = ['--db', '--live']
  * @param {string} o.script     nom du script, pour le message
  * @param {string[]} o.ecrit    ce qui est ecrit, une ligne par effet
  * @param {string} [o.perte]    ce qui est DETRUIT sans retour, s'il y en a
+ * @param {string} [o.drapeaux] les drapeaux REELS a repasser, si le script en
+ *   exige d'autres que `--db`.
+ *
+ *   POURQUOI CE PARAMETRE. Le refus affiche la commande a retaper. Elle etait
+ *   figee a `--db` — ce qui est juste pour un script dont c'est le seul
+ *   drapeau, et FAUX pour un script qui en exige un second pour detruire
+ *   (`--db --supprimer`). Le message aurait alors appris a l'operateur que
+ *   `--db` suffit a supprimer : exactement la confusion que ce fichier existe
+ *   pour empecher. Un garde-fou qui donne la mauvaise consigne est pire que
+ *   pas de consigne.
  */
-export function exigerAutorisationEcriture({ script, ecrit, perte }) {
+export function exigerAutorisationEcriture({ script, ecrit, perte, drapeaux }) {
   const autorise = DRAPEAUX.some((d) => process.argv.includes(d))
 
   const bandeau = (titre) => {
@@ -58,7 +68,7 @@ export function exigerAutorisationEcriture({ script, ecrit, perte }) {
   if (!autorise) {
     bandeau(`${script} ECRIT EN BASE — refus, aucun drapeau d'ecriture.`)
     console.log(`    Rien n'a ete lu ni ecrit. Pour l'executer volontairement :`)
-    console.log(`      node --env-file=.env.local scripts/${script} --db`)
+    console.log(`      node --env-file=.env.local scripts/${script} ${drapeaux ?? '--db'}`)
     console.log('')
     // 2 = « n'a pas tourne ». Surtout pas 1, qui se lirait comme un echec de
     // controle et donnerait envie de « reparer » en passant le drapeau.
