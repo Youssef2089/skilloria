@@ -21,6 +21,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 >
 > Les sections anglaises ci-dessous contiennent des énoncés **PÉRIMÉS**, signalés sur place et
 > récapitulés en **§M0**.
+>
+> **Par où entrer, selon ce que vous cherchez :**
+> · *Je reprends le projet, ou j'y reviens après des mois* → **§P1 à §P4 (LE PRODUIT)**.
+> · *Je vais toucher au code et je veux savoir où je mets les pieds* → **§A à §H**, et **§E** avant
+>   d'écrire un diagnostic.
+> · *Je cherche une décision déjà arbitrée* → **§D**, puis **§P4** pour ce qui est éteint exprès.
+> · *Je cherche une valeur chiffrée et qui peut la changer* → **§P3**.
 
 @AGENTS.md
 
@@ -248,6 +255,13 @@ modèle.
 ---
 
 ## C. Les chaînes fonctionnelles, de bout en bout
+
+> **§C et §P1 décrivent les mêmes parcours, pour deux usages différents — ce n'est pas un doublon.**
+> **§C** est un **repérage** : où vivent les règles, quel fichier ouvrir. On le lit avec le code sous
+> les yeux.
+> **§P1** est le **produit** : ce qui se passe, dans l'ordre, ce qui bloque et pourquoi, et ce que
+> l'utilisateur voit quand ça refuse. On le lit **sans** le code.
+> En cas de divergence entre les deux, **§P1 fait foi** : c'est lui qui est écrit pour être relu.
 
 ### C.1 Dépôt de CV et visibilité (expert)
 `POST /api/profile/upload-cv` (freelance) · `POST /api/profile/cdi-upload-cv` (CDI) — routes
@@ -741,3 +755,736 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 - L'affichage de `ai_match_score` sur les écrans expert (§D.6) : conforme au diagnostic actuel, en écart
   avec la règle telle qu'elle est énoncée à l'oral.
 - La règle de fusion UNION sur `messages/*.json` n'est imposée par rien (§G.7).
+
+---
+
+# LE PRODUIT
+
+> Ce que Skilloria **fait**, écran par écran et règle par règle. Les sections A–H au-dessus sont un
+> guide de repérage — où vivent les choses, quels pièges les entourent. Celle-ci est le produit
+> lui-même : c'est elle qu'on lit quand on reprend le projet, ou qu'on y revient dans six mois.
+>
+> Chaque chapitre de §P1 doit se lire **seul**, sans avoir lu le code.
+> Tout y est vérifié dans le dépôt ; ce qui ne l'est pas est marqué **NON VÉRIFIÉ**.
+
+## P1. Les six parcours, de bout en bout
+
+### P1.1 — L'expert dépose son CV et devient visible
+
+**Qui.** `expert_freelance` ou `expert_cdi`. Un expert appartient à **un** écosystème, à vie (§D.3).
+
+**1. Il s'inscrit.** `/inscription/[role]` → `POST /api/auth/public/register-expert`.
+La route est **publique** (bare `fetch`, pas `useSecureFetch`) et résout l'écosystème elle-même via
+`resolveSubdomainFromHost()` : le proxy n'injecte pas `x-subdomain` sur `/api`.
+L'inscription exige une **branche et une spécialité choisies dans le référentiel**, pas du texte
+libre — avant la migration `taxonomie_specialite_autre_et_inscription`, la spécialité était stockée
+dans `profiles.title`, `branch_id`/`speciality_id` restaient NULL, et **le profil n'alimentait pas le
+matching**. Si la spécialité n'est pas au référentiel, l'expert saisit « Autre » et le texte part en
+modération.
+L'acceptation des CGU est **horodatée et versionnée** en base (migration
+`legal_consent_and_inactivity`) : une case cochée non tracée n'a aucune valeur juridique.
+Le rattachement à l'écosystème vient des métadonnées d'inscription — `handle_new_user` **refuse**
+un `domain_slug` absent ou inconnu depuis la migration `fix_handle_new_user_domain_slug`, là où la
+baseline retombait silencieusement sur `microsoft`.
+
+**2. Il vérifie son téléphone.** OTP par SMS (Vonage **Verify v2**, `api.nexmo.com/v2/verify` — un
+chemin entièrement distinct du canal SMS de notification, qui est fermé, cf. §D.2).
+Limites : **1 envoi / 60 s** et **3 / heure** par numéro, plus **10 / heure par IP** sur la route
+publique (`rate_limit_check`, atomique en base). La vérification du code est **fail-closed** et
+clée par IP.
+Un index **UNIQUE PARTIEL** sur `users(phone) WHERE phone_verified` tient la règle « 1 numéro
+vérifié = 1 compte » : c'est la seule barrière réelle contre la multiplication de comptes — la
+vérification IA d'expertise est franchissable, un recruteur recycle un CV authentique.
+
+**3. Il dépose son CV.** `/dashboard/{freelance,cdi}/profil` → `POST /api/profile/upload-cv`
+(freelance) ou `/api/profile/cdi-upload-cv` (CDI). **Deux routes distinctes, gardées par
+`user_type`** : un `expert_cdi` sur la route freelance reçoit **403 `wrong_user_type`**.
+- PDF, **5 Mo** maximum, bucket `cv` **privé** (service-role seul, jamais d'URL).
+- Consentement RGPD requis (`profiles.ai_consent_at`).
+- Interrupteur `ENABLE_AI_CV_PARSING` → **503 `ai_disabled`** s'il n'est pas exactement `'true'`.
+- Quota **3 analyses / 24 h**, lu en base (`ai_quotas`), **pas dans le code** : ligne absente ⇒ la
+  route **refuse** (`quota_config_missing`), elle ne devine pas.
+- Parsing par `claude-haiku-4-5-20251001`, résultat **caché par SHA-256** du fichier : redéposer le
+  même PDF ne repaie pas.
+- `maxDuration = 60`. Le matching qui suit part dans un `after()` (§E.5).
+
+**4. Il devient visible — ou il apprend pourquoi il ne l'est pas.**
+Le prédicat de visibilité vit **une seule fois**, dans
+[lib/profile-visibility.ts](lib/profile-visibility.ts), et il a **trois** lecteurs : la route (qui
+refuse), le formulaire (qui prévient avant l'envoi), et la bannière (qui dit **quels champs
+manquent**). Le même prédicat existe en contrainte base
+(`profiles_visible_requiert_criteres_check`) — trois copies dérivent, et c'est déjà ce qui a fait
+échouer une migration.
+Exigé : titre, résumé **200–800 caractères**, compétences, branche, spécialités, séniorités, zones
+de travail, disponibilité, expériences, langues, CV analysé, consentement IA.
+Les bornes du résumé ne sont pas une préférence de rédaction : **en dessous de 200 il n'y a pas
+matière à juger, au-delà de 800 le texte sort du document envoyé au moteur** et n'est plus lu.
+Ce qu'il voit quand ça refuse : la liste **nommée** des champs manquants, traduite dans les quatre
+langues (`profile_validation.field_errors`) — jamais « votre profil est incomplet ».
+
+**5. Il est vérifié.** `/dashboard/{freelance,cdi}/profil/valider` →
+[lib/verification/expert-verification.ts](lib/verification/expert-verification.ts).
+`verification_status` passe à `pending` **avant** l'appel (l'écran ne ment pas sur ce qui se passe),
+puis Claude croise trois axes avec recherche web native.
+- score ≥ `auto_approve_threshold` **et** aucun drapeau disqualifiant → **`approved`**,
+  `verified_at` posé, `verified_by` NULL (automatique), `users.is_verified` basculé ;
+- sinon → **`pending_admin_review`** : un humain tranche depuis `/admin/experts/[id]` ;
+- **erreur** (timeout, rate-limit, JSON invalide) → `pending_admin_review`. **Jamais**
+  d'auto-approbation sur une panne.
+- Consentement IA absent → le statut **reste** `pending`, rien n'est appelé.
+Idempotent : rejouable, le dernier verdict écrase le précédent.
+
+**Où ça bloque, et pourquoi.** Tant que le profil n'est pas `approved`, **visible**, CV analysé et
+consentement donné, il n'entre pas dans le vivier (§P1.3). Les écrans « Missions » affichent alors
+un état vide **explicite** (« profil pas encore validé »), jamais un cache périmé.
+
+---
+
+### P1.2 — L'organisation publie une annonce
+
+**Qui.** Un membre d'une `organization` (`org_type` ∈ `client` \| `cabinet` \| `esn`), ou un expert
+via son **organisation personnelle** (`org_type = 'freelance'`, §P1.2 bis).
+
+**1. L'organisation s'inscrit.** `/inscription/organisation` → `POST /api/auth/register-org`.
+C'est la seule instruction `insert into organization_domains` de tout le dépôt — une ligne, une
+fois, et cette table n'est plus qu'une **trace historique** (§B.2 ①).
+
+**2. Elle est vérifiée.** [lib/verification/](lib/verification/) — **l'IA est le décideur
+systématique, pas un repli**. Sirene (FR) ou Companies House (UK) fournissent les données ; Claude
+compare **champ par champ** et produit un score de confiance, comparé au
+`verification_providers.confidence_threshold` du pays (**défaut 9 sur 10**).
+**Règle métier : jamais d'auto-rejet.** En dessous du seuil → `pending_admin_review`, un humain
+tranche depuis `/admin/organisations/[id]`.
+`requireOrgApproved(ctx)` garde ensuite les routes réservées.
+
+**3. Elle rédige.** `/dashboard/entreprise/annonces/nouvelle` → `POST /api/publications`.
+Champs structurants : branche, spécialités (multiples), séniorités (multiples), compétences requises,
+**zones de travail** (multiples), `location_note` (texte libre, ex-`location`).
+
+**4. Elle publie.** `POST /api/publications/[id]/publish`. Trois portes, dans cet ordre :
+
+- **Complétude** — prédicat unique [lib/publications/publishable.ts](lib/publications/publishable.ts),
+  doublé d'une contrainte base `publications_publiee_requiert_zones_check`.
+  Exigés : titre, description, branche, **zones de travail**.
+  La sémantique de l'ensemble vide est **asymétrique, et c'est voulu** :
+  · **zones obligatoires** — `&&` sur un ensemble vide est toujours faux, une annonce sans zone
+    serait publiée et **silencieusement invisible** ;
+  · **spécialités et séniorités facultatives** — vide signifie « aucune contrainte sur cet axe »,
+    jamais « ne correspond à personne ». Une annonce incomplète doit matcher **large**, pas rien.
+
+- **Qualité (IA)** — [lib/verification/ai-publication-quality.ts](lib/verification/ai-publication-quality.ts),
+  provider `opportunity_quality_check`, **seuil 7/10**. Le prompt refuse explicitement qu'un champ
+  optionnel vide fasse descendre sous 7, et traque les coordonnées en clair (téléphone, e-mail) —
+  une annonce qui contourne la messagerie contourne le dévoilement payant.
+
+- **Commerce** — deux quotas, deux refus **402** :
+  `quota_publications_reached` (publications du mois) et `quota_active_publications_reached`
+  (annonces actives simultanées). Cf. §P1.6.
+
+**5. Elle vit 30 jours.** **L'expiration est calculée À LA LECTURE.** Aucun job, aucun cron, aucun
+statut basculé : `publications.expires_at` n'est **jamais écrit**. La règle se réduit à
+`status = 'published' AND published_at > now() - 30 jours`, et vit une seule fois dans
+[lib/publications/expiry.ts](lib/publications/expiry.ts).
+L'organisation peut aussi clôturer à la main (`POST /api/publications/[id]/close`).
+
+**Ce que voit l'utilisateur quand ça refuse.** Un refus nomme **ce qui bloque et ce qu'on peut
+faire** (`diag-refus-actionnables.mjs` le garde) : les champs manquants pour la complétude, le motif
+pour la qualité, et pour le quota — la limite atteinte **et** l'issue. Les murs de conversion ne
+portent **aucun bouton désactivé** (§D.1).
+
+#### P1.2 bis — La sous-traitance entre experts
+Un expert publie un **besoin** et est mis en relation avec d'autres **experts**.
+Blocage structurel : `publications.organization_id` est NOT NULL. D'où une **organisation
+personnelle** (`org_type = 'freelance'`, `owner_user_id` renseigné), créée **paresseusement**.
+Elle hérite de 100 % du moteur commerce — quotas, masquage, dévoilement, messagerie 15 j — sans
+aucune logique dupliquée.
+**Elle naît au moment de PUBLIER, pas à l'ouverture de l'écran** : avant la correction, tout expert
+vérifié qui ouvrait « Sous-traitance » par curiosité repartait avec une organisation, et
+`/admin/collaboration` mesurait la curiosité. Un index unique partiel
+(`organizations_personal_owner_unique_idx`) tranche les courses ; la migration
+`nettoyage_organisations_fantomes` a supprimé les fantômes — **après** le déploiement du code, sinon
+les écrans les auraient recréés dans la minute.
+
+### P1.3 — La mise en relation et la notification
+
+**Ce que c'est.** Le moteur rapproche une annonce et des experts. Il tourne dans **les deux sens** :
+`runMatchingForPublication` (une annonce vient d'être publiée) et `runMatchingForExpert` (un expert
+vient de modifier son profil).
+
+**Claude n'est plus là.** Il notait cent profils **dans un seul prompt**, en les comparant les uns
+aux autres — et « ne les compare pas entre eux » n'était qu'une phrase dans ce prompt, que rien ne
+garantissait. Le vivier était plafonné à cent **sans `ORDER BY`** : une liste d'autorisés stable et
+invisible, où le 101ᵉ n'existait pas.
+Le **reranking** (Cohere) note chaque couple (annonce, profil) **indépendamment**. Il n'y a donc plus
+rien à couper, plus de plafond, et **l'absence de compétition devient une propriété du moteur au lieu
+d'une consigne**.
+
+**Quatre temps, et chacun sait se taire ou parler.**
+
+1. **Les réglages** — `matching_settings`, **une ligne par écosystème**, créée par un déclencheur
+   pour tout domaine nouveau. **Aucune valeur de repli dans le code** : ligne absente ⇒ le moteur
+   **refuse et le dit**. Un repli codé en dur serait un second réglage, invisible, qui prendrait la
+   main le jour où l'on comprend le moins ce qui se passe.
+
+2. **Le vivier** ([lib/matching/pool.ts](lib/matching/pool.ts)) — la règle est explicite :
+   > *Aucun profil n'est écarté sans une raison **nommable et contestable**. Le backend filtre sur
+   > des critères **déclarés par l'expert lui-même**. Il n'exclut jamais sur un jugement de
+   > pertinence.*
+
+   Filtres : même écosystème, `user_type` compatible avec le type d'annonce (ou **ouverture
+   croisée** cochée : `open_to_cdi` / `open_to_freelance`, défaut **fermé**), branche, spécialités,
+   séniorités, zones (`&&`), disponibilité (`availability_status` / `cdi_status`), vérification
+   `approved`, `visible`, CV analysé, consentement IA — **et ses décisions** : avoir décliné
+   l'annonce, ou y avoir déjà postulé. Un refus et une candidature sont des **actes de l'expert**,
+   pas des jugements portés sur lui.
+   Chaque filtre rend **son propre décompte** : sans cela « 3 candidats » ne dit pas si le vivier est
+   petit ou si un filtre est trop serré, et personne ne sait quoi corriger.
+   Lecture paginée par tranches de 1000, identifiants par paquets de 200.
+
+3. **La notation** — Cohere (`rerank-v4.0-fast` par défaut), par lots de 200, 4 lots en parallèle,
+   **budget relu entre chaque lot** ([lib/ai-budget.ts](lib/ai-budget.ts)). Interrupteur
+   `ENABLE_RERANKING`, qui doit valoir exactement `'true'`.
+   Au plafond, **la fonctionnalité se dégrade et le DIT** : elle ne disparaît pas en silence et ne
+   continue pas à dépenser. Le module rend toujours une **raison nommable**, écrite dans la trace du
+   run. Fail-safe **fermé** ici, à l'inverse du reste du projet : *ne pas savoir combien on a dépensé
+   n'autorise pas à dépenser plus.*
+   Le score produit vit dans **[0,1]**, il est **propre à une annonce**, et il n'est **jamais
+   normalisé sur le vivier** — normaliser reviendrait à classer les experts les uns par rapport aux
+   autres, c'est-à-dire à réintroduire la compétition que le produit interdit.
+
+4. **La réconciliation puis les notifications** ([lib/matching/reconcile.ts](lib/matching/reconcile.ts))
+   — upsert **idempotent** qui préserve les `dismissed` et les candidatures engagées, et ne notifie
+   que sur les **inserts FRAIS** au-dessus du seuil. Un ré-run ne re-notifie personne.
+
+**La trace n'est pas un détail.** Chaque run écrit `publications.matching_stats` : périmètre, notés,
+lots en échec, distribution des scores, seuil appliqué. C'est ce qui distingue « noté, personne ne
+correspond » de « jamais noté ». Un run interrompu reste **INACHEVÉ**, donc visible et rejouable, et
+la reprise s'appuie sur `matching_notes_partielles` : **ce qui est noté ne se renote pas** — avant,
+un run tué à 60 s repartait de zéro et **repayait les lots déjà payés**, jusqu'à l'abandon silencieux
+au bout de cinq tentatives.
+La trace est construite par **un seul** constructeur pour les deux chemins de sortie : tant que
+chacun écrivait son objet, l'un pouvait oublier une clé — et une clé absente se lit `null`, qu'une
+somme SQL affiche **zéro**. La supervision aurait dit « tout va bien » sur un moteur muet.
+
+**La relance : reporter n'est pas annuler.** Un expert modifie son profil, le moteur tourne ; il le
+modifie à nouveau dans l'heure, et l'ancien garde-fou de débit **refusait** — le déclenchement était
+**perdu**, ses dernières modifications jamais notées, et rien ne le signalait. Désormais on
+**reporte** : `programmer_relance_expert()` écrit l'échéance **en une seule instruction en base**
+(§F), `prochaine_relance_expert()` la réclame, `solder_relance_expert()` ne solde **que ce qui était
+dû** — un déclenchement arrivé pendant le run n'est pas effacé.
+Délai **60 minutes**, attente totale bornée à **6 heures**, tâche `expert_relance_trigger` toutes les
+5 minutes.
+Un plafond anti-abus de **20 programmations / heure / expert** protège l'**écriture** (pas le coût :
+la temporisation borne déjà le coût). Il vit en **constante nommée dans le code**, et n'a
+**volontairement aucun champ** dans `/admin/matching` — *un seuil anti-abus n'est pas un réglage
+commercial, et le rendre réglable invite à le désactiver le jour où il gêne.* En échange, les
+dépassements sont **comptés** (`relance_overruns`) et affichés.
+
+**La notification.** Trois événements (`new_match_opportunity`, `new_candidature_received`,
+`new_message`), déclarés **une seule fois** dans [lib/notifications/catalog.ts](lib/notifications/catalog.ts)
+— lu à la fois par l'écran de réglages et par le dispatcher, pour qu'un interrupteur affiché soit
+toujours un interrupteur honoré.
+Le public est **un fait, pas un type** : « a un profil expert », « est membre actif d'une org »,
+« tout le monde ». Un expert qui publie via son organisation personnelle reçoit donc légitimement les
+trois — un découpage par `user_type` l'aurait privé du réglage correspondant.
+Regroupement : **digest** pour les opportunités (anti-rafale : un run peut produire 20 matches d'un
+coup), **un envoi par élément** pour les messages.
+**Seul le canal e-mail est ouvert** (§D.2). Et **`notify_enabled` vaut `false` par défaut sur chaque
+écosystème** (§P4) : aujourd'hui, personne n'est notifié.
+
+**Ce que l'expert voit.** Son flux est **ordonné** par le score, mais le score **ne sort pas de
+l'API** : `/api/me/missions` le passe en **chaîne** à `.order()` et ne lit jamais sa valeur. L'expert
+reçoit un **palier** — « Correspondance forte » ou « Correspondance » — **figé au moment de la
+notation**. Jamais recalculé à l'affichage : le seuil est réglable et les scores ne sont pas
+comparables entre deux runs, un recalcul rebaptiserait des matches anciens en silence.
+Deux paliers et pas trois : une troisième valeur réintroduirait une graduation, donc un classement,
+donc la comparaison entre experts.
+
+---
+
+### P1.4 — L'expert postule
+
+**1. Il ouvre une mission.** `/dashboard/{freelance,cdi}/missions/[id]`. Il peut la **décliner**
+(`POST /api/me/missions/[id]/dismiss`) — le match passe `dismissed`, et le vivier ne le reproposera
+plus : c'est **sa décision**, pas un jugement.
+
+**2. Il postule.** `POST /api/candidatures`, `maxDuration = 60`.
+La candidature porte `publication_id`, `profile_id`, `match_id`, `domain_id`, un `cover_message`
+facultatif, et `status = 'received'`.
+
+**3. Claude juge — au dépôt, et seulement là.**
+[lib/candidatures/ai-assessment.ts](lib/candidatures/ai-assessment.ts), `claude-sonnet-5`, lancé dans
+un **`after()`** (sinon la plateforme le tuerait sans trace, §E.5), sous l'interrupteur
+`ENABLE_AI_CANDIDATURE_ASSESSMENT`.
+Il note **un seul couple** profil × annonce, sur **10**, et produit `ai_assessment` :
+- `reason` — adressé à l'**expert** ;
+- `pitch_org` — adressé à l'**organisation**, et **affiché AVANT le déverrouillage payant**. D'où
+  l'interdiction, dans le prompt, de nommer un employeur ou un client : **ce texte doit rester
+  compatible avec le masquage**.
+
+Cette note (`candidatures.ai_match_score`, bornée **[0,10]**) est une **autre grandeur** que le score
+de pertinence du matching (`matches.relevance_score`, borné [0,1]). Les deux ne doivent **jamais**
+être affichés côte à côte : ils répondent à deux questions différentes — *pourquoi ce profil
+apparaît* / *que vaut ce dossier* — à deux moments différents.
+
+**Quand le résumé n'est pas écrit, on sait pourquoi.** `ai_redaction_failures` distingue trois
+causes — **plafond** de dépense atteint (un choix, pas une panne), **interrupteur** coupé, **erreur**.
+`candidature_ai_health()` les confondait toutes en « sans jugement IA », et elles n'appellent pas la
+même action.
+
+**4. Il suit ses candidatures.** `/dashboard/{freelance,cdi}/candidatures`.
+L'**état de vie est dérivé à la lecture**, côté serveur
+([lib/candidatures/lifecycle.ts](lib/candidatures/lifecycle.ts)) : `status` est la **mécanique**,
+l'état de vie est le **fait**. Une candidature `unlocked` dont la fenêtre de 15 j est passée
+affichait « Échange ouvert » — un libellé menteur.
+Deux buckets, **et toujours une raison nommée** : jamais un « Archivée » nu.
+· actif — `selected`, `exchange_open`, `awaiting_review` ;
+· archivé — `exchange_expired`, `publication_expired`, `publication_closed`, `rejected`, plus les
+  vestiges `withdrawn` / `archived` (jamais écrits par le produit, couverts en lecture pour que
+  d'éventuelles lignes historiques tombent dans un bucket honnête).
+`until` porte la fin de la fenêtre encore ouverte — c'est le **seul** endroit où l'utilisateur
+apprend qu'il a 15 j ou 30 j, **avant** que la fenêtre se ferme.
+Le client **rend** la raison, il ne la calcule pas : il ne peut pas afficher actif ce que le serveur
+dit archivé.
+Le **point de vue diffère, pas l'état** : l'expert voit ses candidatures déposées, l'organisation ses
+candidats reçus — le même module sert les deux côtés, sinon l'entreprise lirait « Échange ouvert »
+sur ce que l'expert voit archivé.
+
+> ⚠️ **ÉCART CONNU (§D.6).** L'expert **voit** `ai_match_score` sous la forme **`N/10`** sur
+> `/dashboard/{freelance,cdi}/candidatures`
+> ([CandidaturesTrackingView.tsx:291](components/dashboard/CandidaturesTrackingView.tsx#L291)) et
+> dans le panneau de détail. Ce qu'il ne voit jamais, c'est le score de **pertinence**. La règle
+> « l'expert ne voit jamais de note chiffrée » est donc **plus large que le code**.
+
+---
+
+### P1.5 — L'organisation lit, dévoile, échange
+
+**1. Elle reçoit.** `/dashboard/entreprise/candidatures` et
+`/dashboard/entreprise/annonces/[id]/candidatures`. Tri **serveur** par `ai_match_score` décroissant.
+
+**2. Elle voit un CODE, pas un nom.** L'expert est affiché **`YCH`** — première lettre du prénom,
+deux premières du nom, majuscules, sans espace ni point. Le calcul est **au serveur** : le navigateur
+de l'entreprise ne reçoit **jamais** le nom complet.
+Le format « trois majuscules » est un **signal de pseudonymisation** : il ne peut pas être confondu
+avec un vrai nom, contrairement à l'ancienne forme « Prénom + lettre » qui ressemblait à une identité
+tronquée. (Détail des cas limites : §D.4.)
+Avant déverrouillage, elle dispose du `preview`, du `pitch_org` rédigé par Claude, et de la note sur
+10 — de quoi décider, **sans identité**.
+
+**3. Elle dévoile.** Deux chemins, **une seule mécanique** ([lib/unlock.ts](lib/unlock.ts),
+idempotente) :
+· **auto-dévoilement** du meilleur candidat à la création de la candidature — **sans quota** ;
+· **dévoilement manuel** `POST /api/candidatures/[id]/unlock` — **sous quota**, refus **402
+  `unlock_limit_reached`**.
+Statuts acceptés en entrée : `received`, `in_review`, `shortlisted`.
+Le dévoilement pose `unlocked_at`, ouvre une `conversation` avec
+`expires_at = unlock + 15 jours`, et notifie l'expert (`candidature_unlocked`).
+
+**Ce que le dévoilement donne — et ce qu'il ne donne jamais.**
+[lib/expert-disclosure.ts](lib/expert-disclosure.ts) est la **seule** fonction de divulgation, et les
+**cinq** surfaces qui projettent un profil expert vers une organisation la traversent : candidatures
+agrégées, candidatures d'une annonce, sous-traitance, inbox, fil de messages. *Si une surface décide
+encore seule, la faille reste ouverte.*
+· dévoilé et **actif** → photo + nom complet ;
+· **jamais** → `email`, `phone`, `linkedin_url`, `cv_url`. `reveal_contact` vaut `false` partout,
+  toujours, même après paiement. Aucun chemin serveur ne les projette.
+
+**4. Le dévoilement se REFERME.** Dès que la candidature bascule en **archivé**, le profil redevient
+masqué au niveau strict d'avant déverrouillage. **L'état de vie prime sur le statut** : un
+`status = 'unlocked'` figé en base ne rouvre rien.
+Sans cette règle, une organisation pourrait publier, déverrouiller, laisser expirer, et **se
+constituer une base de profils identifiés** — un détournement de la finalité du traitement.
+Le **motif** de l'archivage est indifférent : expiration 30 j, clôture manuelle, retrait, fenêtre
+d'échange close, refus. **Clôturer ses annonces plutôt que les laisser expirer ne contourne rien.**
+**Exception : `selected`.** Un candidat **retenu** est actif **sans limite de durée** et ne se
+re-masque jamais — la relation commerciale existe, le fait est acquis.
+Ce qui se ferme est le **chemin d'accès permanent**, pas la trace : le corps des messages n'est pas
+réécrit. On n'efface aucun historique, et on ne prétend pas l'avoir anonymisé. L'en-tête d'un fil
+archivé, lui, re-masque.
+
+**5. Elles échangent.** `/dashboard/entreprise/messages/[id]` ↔ `/dashboard/{freelance,cdi}/messages/[id]`.
+Fenêtre **15 jours** à compter du déverrouillage
+([lib/conversations/expiry.ts](lib/conversations/expiry.ts), source unique). Contrairement aux
+annonces, `conversations.expires_at` **est réellement écrit** en base.
+Fenêtre close → l'envoi est refusé **409**. La lecture reste possible : on ferme un chemin, on
+n'efface pas.
+Message : **5000 caractères** maximum (refus 400 `invalid_content`). Notification `new_message` par **e-mail uniquement** — décision
+produit explicite : *une conversation compte 5 à 10 allers-retours ; un SMS par message sature le
+destinataire pour ~0,08 € pièce.* Le canal SMS **n'existe pas** pour cet événement, l'écran de
+réglages ne peut donc pas l'afficher.
+L'aperçu de chaque fil et son compteur de non-lus sont calculés **en SQL, par conversation**. L'ancienne
+version lisait les **500 derniers messages toutes conversations confondues** puis gardait le premier
+vu par fil : au-delà de 500 messages cumulés, les conversations les moins récentes n'apparaissaient
+dans **aucune** ligne lue. Ce n'était pas une troncature, c'était un résultat **faux** — un fil sans
+aperçu se lit « personne n'a rien écrit », l'inverse de la vérité.
+
+**6. Elle tranche.** `POST /api/candidatures/[id]/select` (→ `selected`, `selected_at`) ou
+`/reject` (→ `rejected`, avec motif). Le refus **re-masque** immédiatement (bucket archivé).
+
+### P1.6 — Le commerce, les offres, les quotas
+
+**Rien n'encaisse aujourd'hui.** Le chemin de paiement est **construit, câblé et testable**, et il
+est fermé par **deux verrous** (§D.1, §P4). Ce chapitre décrit ce qui existe, pas ce qui tourne.
+
+**1. Le catalogue.** `packages` + `package_features`, édités dans `/admin/packages`.
+Seed initial — **modifiable au back-office**, `ON CONFLICT DO NOTHING` et jamais `DO UPDATE` pour
+qu'un redéploiement n'écrase pas une valeur ajustée :
+
+| Offre | Prix/mois | Annonces/mois | Annonces actives | Candidats dévoilés/annonce | Dévoilements manuels/mois |
+|---|---|---|---|---|---|
+| **Free** (défaut) | — | 2 | 2 | 1 | 2 |
+| **Business** | 349 € | illimité | 5 | illimité | illimité |
+| **Elite** | 899 € | illimité | illimité | illimité | illimité |
+
+Une offre applicable aux clients **et** aux cabinets est **une seule ligne** (`target_role = 'all'`) :
+le seed initial les dupliquait, l'admin voyait chaque offre en double et devait éditer deux fois le
+même prix.
+Invariant **gardé en base** : l'offre par défaut est **gratuite**
+(`packages_default_must_be_free`). La désigner se fait par la RPC `set_default_package()`, atomique
+(§F).
+
+**2. L'abonnement.** Il vit sur **`organizations`** — `package_id`, `package_started_at`,
+`package_valid_until`, `stripe_subscription_id`, `stripe_subscription_status`,
+`package_source_event_at` — et **plus** sur `organization_domains` (§B.2 ①).
+**Un seul abonnement, un seul quota, partagés entre TOUS les écosystèmes.** Une organisation accède
+à tous les écosystèmes actifs ; seules les **données** sont cloisonnées.
+`usage_counters` n'a **délibérément pas** de `domain_id` dans sa clé : le quota partagé est **voulu**.
+
+**3. Les droits, lus à la lecture.** [lib/entitlements.ts](lib/entitlements.ts) :
+- `package_id` non nul **et** (`package_valid_until` nul **ou** futur) → cette offre ;
+- sinon → l'offre `is_default` active couvrant le `target_role` de l'organisation (mapping
+  `esn` → `cabinet`), la ligne spécifique primant sur la ligne `'all'`.
+
+**L'expiration est décidée À LA LECTURE. Aucun batch, aucun cron.**
+**Fail-open assumé** sur toute la couche Droits : un moteur commercial en panne ne bloque **jamais**
+l'usage produit (limite `null` = illimité, `console.warn`). ⚠️ **Ne pas « corriger » en fail-closed :
+c'est un choix délibéré, pas un oubli.**
+
+**4. La consommation.** `usage_increment()` — un seul `INSERT … ON CONFLICT DO UPDATE` sous garde de
+limite (§F). Période = mois civil pour les compteurs mensuels, epoch (`1970-01-01`) pour les
+compteurs `never`.
+
+**5. Le parcours d'achat** (fermé, cf. §P4).
+`/dashboard/entreprise/offre` → `/api/billing/offers` → `/api/billing/checkout` → Stripe →
+`/api/billing/return`. Ensuite `/api/billing/portal` (portail client) et `/api/billing/change-plan`.
+**Checkout HÉBERGÉ, jamais de formulaire intégré** : aucune donnée de carte ne touche ce serveur ni
+notre DOM. Le périmètre PCI-DSS reste le plus léger, et le SDK navigateur a été **retiré des
+dépendances**.
+Cette route **n'accorde aucun droit** : elle rend une URL. **Les droits viennent du webhook, et de
+lui seul.**
+
+**6. Le webhook.** `/api/stripe/webhook` — **la seule route de l'application sans `requireAuth`**, et
+ce n'est ni un oubli ni à corriger : l'appelant est Stripe, il n'a ni session, ni jeton, ni domaine.
+L'authentification est la **signature cryptographique** du corps.
+- Corps lu **brut** (`await request.text()`, **jamais** `.json()`) : la signature est un HMAC des
+  **octets exacts**. Un JSON désérialisé puis re-sérialisé est un autre texte — c'est le piège n°1
+  des webhooks Stripe, et il échoue de façon intermittente et incompréhensible.
+- **Idempotence par contrainte de base** : `stripe_event_claim()` est un `INSERT … ON CONFLICT` dont
+  la clé primaire **est** l'identifiant Stripe. Deux livraisons simultanées sont sérialisées par le
+  verrou de ligne PostgreSQL.
+- Un événement `livemode` arrivé sur un environnement hors production est **ignoré** (journalisé,
+  **200**) : on ne fait pas échouer l'endpoint, Stripe le désactiverait.
+- **Ce n'est pas un batch** : c'est une requête HTTP entrante déclenchée par un fait. C'est même ce
+  qui **évite** de balayer périodiquement les abonnements pour savoir qui a payé. La règle « zéro
+  batch, zéro cron d'hébergeur » est tenue.
+
+**7. Ce que l'organisation voit.** Le montant **PRÉLEVÉ**, lu dans `transactions` — **jamais** le
+prix du catalogue. Les `Price` Stripe sont **immuables** : une organisation abonnée à 349 € y reste
+quand le catalogue passe à 399 €, et lui montrer 399 € serait un litige commercial en puissance.
+
+**8. L'attribution manuelle.** `/admin/organisations/[id]` → `POST /api/admin/assign-org-package`,
+pour les comptes **pilotes**. Elle **refuse** (409 `org_has_stripe_subscription`) de passer par-dessus
+un abonnement Stripe vivant : sinon l'offre changerait sans facturation ni remboursement, puis le
+prochain événement Stripe la réécrirait — l'admin verrait son geste s'annuler seul, sans explication.
+Le refus est **au serveur** : griser un bouton ne garderait rien.
+
+**9. La synchronisation du catalogue.** La synchro vers Stripe **précède** l'écriture locale : son
+échec la **refuse**, avec un message explicite. Sinon Skilloria afficherait 399 € pendant que Stripe
+prélève 349 €, et personne ne le verrait — les deux côtés fonctionnent parfaitement, séparément.
+Les clés d'idempotence sont **dérivées et stables** (§F) : deux synchros concurrentes ne créent plus
+deux produits.
+
+---
+
+## P2. Les écrans qui existent
+
+### P2.1 — Public (hors session)
+| Écran | À quoi il sert |
+|---|---|
+| `/` | Accueil de l'écosystème servi par le sous-domaine (branding, couleurs, libellés, produits mis en avant). |
+| `/qui-sommes-nous` · `/contact` | Présentation ; formulaire de contact. |
+| `/inscription` · `/inscription/[role]` · `/inscription/confirmation` | Inscription expert (branche + spécialité **structurées**, CGU horodatées, OTP téléphone). |
+| `/inscription/organisation` (+ `/confirmation`) | Inscription organisation (SIREN/numéro, vérification à suivre). |
+| `/connexion` · `/mot-de-passe-oublie` · `/nouveau-mot-de-passe` · `/auth/callback` | Session. |
+| `/invitation/[token]` | Acceptation d'une invitation à rejoindre une organisation. |
+| `/reactivation` | Réactivation d'un compte pendant la grâce de 90 j. |
+| `/ecosysteme-indisponible` | **Un écran par motif de refus d'écosystème** — et non un « accès refusé » nu : un expert égaré lit *votre écosystème est celui-ci, voici l'adresse*. |
+| `/cgu` · `/mentions-legales` · `/politique-de-confidentialite` | Documents légaux, servis depuis `docs/legal/*.md`. |
+
+### P2.2 — Expert freelance et expert CDI
+**Parité vérifiée : 14 écrans de chaque côté, aucun manquant ni d'un côté ni de l'autre.**
+
+| Écran (× 2 : `/dashboard/freelance/…` et `/dashboard/cdi/…`) | À quoi il sert |
+|---|---|
+| *(index)* | Tableau de bord : missions recommandées, candidatures, badges, état du profil. |
+| `missions` · `missions/[id]` | Le flux des opportunités, ordonné par pertinence, **sans aucun nombre affiché** — deux paliers. Décliner s'y fait. |
+| `candidatures` · `candidatures/[id]` | Suivi des candidatures, par **état de vie dérivé** avec sa raison. ⚠️ **Affiche `N/10`** (§D.6). |
+| `messages` · `messages/[id]` | Messagerie, fenêtre 15 j. |
+| `profil` · `profil/valider` | Saisie du profil et dépôt du CV ; lancement de la vérification. |
+| `mon-profil` | Le profil **tel que l'organisation le verra**. |
+| `sous-traitance` · `sous-traitance/nouveau` · `sous-traitance/[id]` | Publier un besoin et recevoir des experts (via l'organisation personnelle, §P1.2 bis). |
+| `parametres` | Compte, langue, notifications, sessions, suppression. |
+
+> **Dette de parité SIGNALÉE DANS LE CODE, pas dans les écrans.** La parité de *surface* est
+> complète, mais quatre fichiers portent un `TODO post-merge V1+V3 : factoriser` —
+> [lib/cv-parser-cdi.ts](lib/cv-parser-cdi.ts),
+> [app/api/profile/cdi-upload-cv/route.ts](app/api/profile/cdi-upload-cv/route.ts),
+> `app/[locale]/dashboard/cdi/profil/page.tsx`, `…/profil/valider/page.tsx`.
+> **Deux copies dérivent** : c'est le risque de parité réel de ce projet, et il est dans le code, pas
+> dans la liste des écrans.
+
+### P2.3 — Organisation (client, cabinet, ESN — un seul dashboard)
+`client`, `cabinet` et `esn` partagent **`/dashboard/entreprise`**. `/dashboard/cabinet` est une
+**redirection** conservée pour les anciens signets — pas un écran.
+
+| Écran | À quoi il sert |
+|---|---|
+| `/dashboard/entreprise` | Tableau de bord : annonces, candidatures reçues, compteurs. |
+| `annonces` · `annonces/nouvelle` · `annonces/[id]` · `annonces/[id]/modifier` | Cycle de vie d'une annonce. |
+| `annonces/[id]/candidatures` | Les candidats d'une annonce, triés serveur, **masqués** avant dévoilement. |
+| `candidatures` | Toutes les candidatures reçues, toutes annonces confondues. |
+| `messages` · `messages/[id]` | Messagerie avec les experts dévoilés. |
+| `membres` | Membres, rôles (`admin`/`editor`/`viewer`), invitations. |
+| `organisation` | Fiche et statut de vérification de l'organisation. |
+| `offre` | Offre en cours, consommation, parcours d'achat (**mur fermé**, §P4). |
+| `parametres` | Compte et préférences du membre. |
+
+> **Asymétrie d'écrans, VÉRIFIÉE et VOULUE** : l'expert a `mon-profil` (se voir comme l'autre le
+> voit) ; l'organisation n'a **pas** d'équivalent. Ce n'est pas un oubli de parité — l'organisation
+> n'est pas *regardée* par les experts de la même façon.
+
+### P2.4 — Administration
+| Écran | À quoi il sert |
+|---|---|
+| `/admin` | Tableau de bord plateforme. |
+| `utilisateurs` · `utilisateurs/[id]` | Comptes : statut, rôle d'organisation, sessions, purge, ré-invitation. |
+| `experts` · `experts/[id]` | Modération des vérifications d'experts (approuver / refuser avec motif). |
+| `organisations` · `organisations/[id]` | Modération des organisations ; attribution manuelle d'offre ; consommation. |
+| `packages` · `packages/new` · `packages/[id]` | Catalogue commerce : offres, limites, offre par défaut, synchro Stripe. |
+| `matching` | Les **deux seuils** par écosystème, le modèle de reranking, la taille de lot, `notify_enabled` ; pannes de rédaction et dépassements de relance. |
+| `quotas-ia` | Les quotas anti-abus IA (analyses de CV). |
+| `taxonomie` · `taxonomie/[id]` | Branches et spécialités, et leurs traductions. |
+| `ecosystemes` · `ecosystemes/[id]` | Créer un écosystème, le traduire, l'ouvrir — **et dire ce qui manque**. |
+| `taches-planifiees` · `taches-planifiees/[job_name]` | Supervision pg_cron : activer/désactiver, reprogrammer, déclencher, historique. |
+| `collaboration` | Les organisations personnelles d'experts. |
+
+> **Il n'existe aucun écran pour `verification_providers`** (seuils de vérification, priorité,
+> fournisseur par pays). Ces réglages se changent **en base uniquement** — cf. §P3.
+
+---
+
+## P3. Les règles métier, rassemblées
+
+Pour chacune : **sa valeur**, **d'où elle vient**, **qui peut la changer**.
+« Back-office » = un écran `/admin` l'expose. « Base » = la valeur est en base mais **aucun écran ne
+l'expose**. « Code » = un déploiement est nécessaire.
+
+### P3.1 — Commerce et quotas
+| Règle | Valeur | Origine | Qui peut la changer |
+|---|---|---|---|
+| Annonces par mois | Free 2 · Business ∞ · Elite ∞ | `package_features` | **Back-office** `/admin/packages` |
+| Annonces actives simultanées | Free 2 · Business 5 · Elite ∞ | `package_features` | **Back-office** |
+| Candidats dévoilés par annonce | Free 1 · Business ∞ · Elite ∞ | `package_features` | **Back-office** |
+| Dévoilements manuels / mois | Free 2 · Business ∞ · Elite ∞ | `package_features` | **Back-office** |
+| Prix | 0 / 349 € / 899 € | `packages.price_monthly` | **Back-office** (+ synchro Stripe) |
+| Offre par défaut | Free | `packages.is_default`, RPC `set_default_package()` | **Back-office** |
+| Invariant « l'offre par défaut est gratuite » | — | contrainte `packages_default_must_be_free` | **Personne** — migration |
+| Sièges maximum | **inactif** | `packages.max_seats` | **Personne** (§P4) |
+
+### P3.2 — Moteur de mise en relation
+| Règle | Valeur | Origine | Qui peut la changer |
+|---|---|---|---|
+| Seuil d'entrée dans le flux | **0** (tout profil éligible entre) | `matching_settings.feed_threshold` | **Back-office** `/admin/matching` |
+| Seuil de notification | **1** | `matching_settings.notify_threshold` | **Back-office** |
+| Notifications actives | **`false`** | `matching_settings.notify_enabled` | **Back-office** (§P4) |
+| Modèle de reranking | `rerank-v4.0-fast` | `matching_settings.rerank_model` | **Back-office** |
+| Taille de lot | 200 (borne 1–1000) | `matching_settings.rerank_batch_size` | **Back-office** |
+| Contrainte `notify_threshold ≥ feed_threshold` | — | CHECK en base | **Personne** — migration |
+| Plafond de dépense mensuel | rerank 200 $ · claude 100 $ | `ai_spend_caps` | **Base** (aucun écran) |
+| Coût unitaire retenu | 0,000002 $/document | **Code** `lib/matching/rerank.ts` | Déploiement |
+| Lots en parallèle | 4 | **Code** | Déploiement |
+| Délai fournisseur | 10 s | **Code** | Déploiement |
+| Délai de relance | **60 min** | **Code** `DELAI_RELANCE_MINUTES` | Déploiement |
+| Attente totale bornée | **6 h** | **Code** `ATTENTE_MAX_HEURES` | Déploiement |
+| Plafond de programmation de relance | **20 / h / expert** | **Code** `RELANCE_MAX_PAR_HEURE` | Déploiement — **volontairement non réglable** (§D.7) |
+| Pagination du vivier | 1000 lignes · 200 identifiants | **Code** | Déploiement |
+
+### P3.3 — IA et contenus
+| Règle | Valeur | Origine | Qui peut la changer |
+|---|---|---|---|
+| Analyses de CV | **3 / 24 h** | `ai_quotas` | **Back-office** `/admin/quotas-ia` |
+| Taille de CV | 5 Mo, PDF | **Code** | Déploiement |
+| Seuil qualité d'annonce | **7 / 10** | `verification_providers` (`opportunity_quality_check`) | **Base** (aucun écran) |
+| Seuil d'auto-approbation d'expert | par (pays, type), **défaut 9 / 10** | `verification_providers.confidence_threshold` | **Base** (aucun écran) |
+| Seuil de vérification d'entreprise | idem, par pays | `verification_providers` | **Base** (aucun écran) |
+| « Jamais d'auto-rejet » | — | **Code** — règle métier | Arbitrage |
+| Résumé de profil | **200–800 caractères** | **Code** `lib/profile-visibility.ts` | Déploiement |
+| Document envoyé au moteur | 25 compétences · 6 expériences · 300 car. chacune | **Code** | Déploiement |
+| Message de conversation | **5000 caractères** | **Code** `MAX_CONTENT_LEN` | Déploiement |
+| Texte rendu par Claude (reason, pitch_org) | **400 caractères** | **Code** `MAX_CARACTERES_TEXTE` | Déploiement |
+
+### P3.4 — Délais et cycles de vie
+| Règle | Valeur | Origine | Qui peut la changer |
+|---|---|---|---|
+| Durée de vie d'une annonce | **30 j**, calculés **à la lecture** | **Code** `lib/publications/expiry.ts` | Déploiement |
+| Fenêtre d'échange | **15 j** depuis le dévoilement, **écrits** en base | **Code** `CONVERSATION_TTL_DAYS` | Déploiement |
+| Grâce avant suppression définitive | **90 j** | **Code** `GRACE_DAYS` | Déploiement |
+| Avertissement d'inactivité | **23 mois** | **Code** `WARNING_MONTHS` | Déploiement |
+| Purge d'inactivité (CNIL) | **24 mois** | **Code** `PURGE_MONTHS` | Déploiement |
+| Rétention du détail d'exécution cron | 90 j (`response_body`) | migration `cron_run_log_retention` | Migration |
+| Horaires des tâches planifiées | cf. §P3.6 | `cron.job` | **Back-office** `/admin/taches-planifiees` |
+
+### P3.5 — Sécurité et abus
+| Règle | Valeur | Origine | Qui peut la changer |
+|---|---|---|---|
+| Session unique par utilisateur | — | `users.last_session_token` (sha256) | Arbitrage |
+| OTP : envois par numéro | **1 / 60 s** et **3 / h** (public) · **5 / h** (connecté) | **Code** | Déploiement |
+| OTP : envois par IP | **10 / h** (public) | **Code** | Déploiement |
+| « 1 numéro vérifié = 1 compte » | — | index UNIQUE PARTIEL sur `users(phone)` | Migration |
+| Le dernier administrateur d'une organisation | ne peut pas se retirer | policies `organization_members` | Migration |
+| Contact expert (`email`/`phone`) | **jamais exposé**, même après paiement | **Code** `reveal_contact: false` | Arbitrage |
+
+### P3.6 — Les huit tâches planifiées (pg_cron, plus aucun cron d'hébergeur)
+| Tâche | Horaire | Ce qu'elle fait |
+|---|---|---|
+| `purge_deletions_trigger` | 03:00 | Efface les comptes dont la grâce de 90 j est échue (RGPD art. 17). |
+| `purge_inactive_trigger` | 03:30 | Avertit à 23 mois, purge à 24 (CNIL recrutement). |
+| `cron_run_reconcile` | 03:15 et 03:45 | Recoupe le journal applicatif et `cron.job_run_details`. |
+| `cron_run_log_purge` | 04:10 | Applique la rétention dissociée du journal. |
+| `rate_limit_hits_purge` | 04:00 | Purge les compteurs de débit. |
+| `matching_retry_trigger` | toutes les 5 min | Reprend les runs de matching inachevés. |
+| `expert_relance_trigger` | toutes les 5 min | Exécute les relances arrivées à échéance. |
+| `matching_notes_partielles_purge` | 04:30 | Purge les brouillons de notation soldés. |
+
+> Une tâche **invisible** a déjà tourné des mois sans que personne sache ce qu'elle faisait :
+> planifiée en SQL inline, absente du journal applicatif et de la liste codée en dur. D'où
+> `cron_job_catalog`, qui **nomme** chaque tâche.
+> Et `/admin/taches-planifiees` **ne reçoit jamais d'expression cron** : pg_cron valide la **forme**
+> (cinq champs), pas la **satisfaisabilité** — `0 3 30 2 *` (30 février) est acceptée et ne se
+> déclenchera **jamais**, sans erreur ni ligne d'exécution. La purge CNIL s'arrêterait en silence.
+> L'écran reçoit donc des **composants typés et bornés**.
+
+### P3.7 — Les règles EN DUR qui devraient être réglables
+Nommées, comme demandé. Chacune exige aujourd'hui un **déploiement** :
+
+1. **Durée de vie d'une annonce (30 j)** et **fenêtre d'échange (15 j)** — deux règles que
+   l'utilisateur voit, que le commerce pourrait vouloir différencier par offre, et qui vivent en
+   constantes de code. Ce sont les plus mûres pour un passage en base.
+2. **Grâce de suppression (90 j)**, **avertissement (23 mois)**, **purge (24 mois)** — contraintes
+   légales, donc stables ; mais les rendre lisibles depuis un écran servirait le registre RGPD.
+3. **Seuils de `verification_providers`** (7/10 pour les annonces, 9/10 pour les profils et les
+   entreprises) — ils sont **déjà en base**, il manque seulement l'**écran**. Aujourd'hui les
+   changer suppose un accès direct à la base : c'est le pire des deux mondes, ni tracé ni pratique.
+4. **Plafonds de dépense IA** (`ai_spend_caps`, 200 $ / 100 $) — en base, aucun écran, alors que
+   c'est un réglage d'argent que `/admin/matching` affiche déjà à côté.
+5. **Limites de l'OTP** (1/60 s, 3/h, 10/h par IP) — anti-abus, donc légitimement en code, selon le
+   même raisonnement que le plafond de relance (§D.7).
+6. **Taille de CV (5 Mo)**, **longueur de message (5000)**, **bornes du résumé (200–800)** — bornes de
+   produit, en code. Les deux dernières sont **liées au moteur** (au-delà de 800, le texte n'est plus
+   lu) : les rendre réglables sans rappeler ce lien serait un piège.
+
+---
+
+## P4. Ce qui est volontairement inactif
+
+**Lisez cette section avant de « réparer » quoi que ce soit ici.** Chacun de ces quatre points
+ressemble à un oubli et n'en est pas. Les retirer coûterait le travail déjà fait ; les activer sans
+arbitrage coûterait de l'argent ou de la crédibilité.
+
+### P4.1 — Le mur payant, derrière ses deux verrous
+**Pourquoi c'est là.** Le lancement est **gratuit** et la date d'ouverture des abonnements **n'est
+pas fixée**. Le chemin de paiement est entièrement construit pour être relu et éprouvé **avant**
+d'être ouvert, pas écrit dans l'urgence le jour de l'ouverture.
+
+**Comment c'est fermé** ([lib/billing/config.ts](lib/billing/config.ts)) :
+① la **clé Stripe scopée par environnement** — absente ⇒ 503 ; et le contrôle va **dans les deux
+sens** : une clé de **test en production** ferait croire aux clients qu'ils paient, une clé **live
+hors production** débiterait de **vraies cartes** pendant les tests. Les deux sont refusées durement.
+② l'**interrupteur `ENABLE_BILLING`**, qui doit valoir exactement `'true'`.
+**Aucune variable `NEXT_PUBLIC_`** : le verrou serait lisible dans le bundle, et surtout l'UI pourrait
+diverger du serveur. L'UI apprend l'état du mur par une **réponse serveur**.
+
+**Ce qu'il faudra décider le jour de l'activation :**
+- poser les **deux** variables, sur le **bon** environnement (deux gestes distincts et délibérés :
+  c'est le but) ;
+- créer l'endpoint webhook côté Stripe et récupérer **son** `STRIPE_WEBHOOK_SECRET` — il y en a un
+  **par endpoint**, celui de test et celui de production sont **différents** ;
+- synchroniser le catalogue **avant** d'ouvrir, pour qu'aucune offre ne soit sans `price` Stripe ;
+- décider du sort des organisations déjà en **attribution manuelle** : le garde-fou refuse d'écraser
+  un abonnement Stripe, l'inverse n'est pas gardé ;
+- surveiller les `stripe_events` **bloqués en `received`** — un crash avant marquage bloque tous les
+  réessais. C'est **délibéré** (mieux vaut un événement non appliqué et visible qu'un double crédit),
+  mais **rien ne l'automatise** : `idx_stripe_events_status` est le seul moyen de les voir.
+- La marche à suivre pour le premier paiement est écrite dans
+  [docs/stripe-premier-paiement.md](docs/stripe-premier-paiement.md).
+
+### P4.2 — Le canal SMS de notification, coupé au dispatcher
+**Pourquoi c'est là.** Il n'a **jamais** été coupé, et ça a coûté : en production, **chaque
+candidature déposée envoyait un SMS Vonage payant à tous les membres de l'organisation au téléphone
+vérifié** — le filtre était une préférence en **opt-out** dont l'absence valait « activé », et les
+interrupteurs avaient été retirés des écrans : personne ne pouvait s'en désinscrire.
+
+**Comment c'est fermé.** `CANAUX_OUVERTS = ['email']`, **un seul point**, fermé par défaut. Couper
+événement par événement laisserait le **prochain** événement ajouté repartir tout seul, par recopie
+de `channels: ['email','sms']`.
+**Les OTP ne passent pas par là** : autre API Vonage (Verify v2), appelée directement par les routes
+d'auth. Les deux chemins n'ont **aucun point commun** — fermer celui-ci ne peut pas casser
+l'inscription.
+Le code V2 est **conservé délibérément** : `runChannel`, le gabarit SMS, `lib/sms/vonage.ts` et les
+branches `channel === 'sms'` sont **inatteignables à l'exécution**. Ce n'est pas du code mort oublié.
+
+**Ce qu'il faudra décider :**
+- basculer le défaut de préférence en **opt-in** — aujourd'hui l'**absence de ligne** dans
+  `notification_preferences` vaut **activé** ;
+- **rendre les interrupteurs aux écrans** avant de rouvrir, pas après ;
+- accepter le coût : ajouter `'sms'` à cette constante **réactive une dépense sortante
+  immédiatement**, sur tous les événements qui le déclarent, sans autre changement.
+
+### P4.3 — Les notifications de mise en relation, éteintes sur chaque écosystème
+**Pourquoi c'est là.** `notify_enabled` vaut **`false` par défaut**, et `feed_threshold` vaut **0**.
+Ce n'est pas une panne : c'est un refus de deviner.
+Le score d'un reranker **n'est pas calibré** — le fournisseur écrit noir sur blanc qu'on ne peut ni
+lire 0,91 comme « deux fois 0,44 », ni comparer les scores de deux requêtes. **7/10 sur l'échelle de
+Claude ne vaut donc pas 0,7 ici : il n'existe aucune traduction.**
+Les valeurs de départ sont choisies pour ne **rien casser** : `feed_threshold = 0` n'écarte **aucun**
+expert par un nombre choisi au hasard (ce que la règle figée interdit), et `notify_enabled = false`
+ne notifie personne. *Un moteur qui notifie 12 000 personnes sur un seuil deviné est pire qu'un
+moteur qui ne notifie pas encore.*
+
+**Ce qu'il faudra décider :** lire la **distribution réelle** des scores (`matching_stats`,
+`matching_threshold_health()`), régler les deux seuils **sur les faits**, puis basculer
+`notify_enabled` — **par écosystème**, depuis `/admin/matching`. Le levier est « montrer plus,
+notifier moins ».
+
+### P4.4 — `packages.max_seats` : affiché, et sans effet
+**Pourquoi c'est là.** La colonne existe en base et **n'est lue par aucune garde** : la poser à 5 ne
+limite rien. Un réglage qui ne règle rien est exactement le défaut corrigé ailleurs.
+On ne retire pas la colonne — **la facturation au siège est prévue à l'ouverture des abonnements**,
+c'est une fondation, pas un vestige.
+
+**Comment c'est neutralisé.** Le champ est **visible et inactif** dans `/admin/packages/[id]`, avec
+un libellé qui le dit. **Caché, il aurait été renseigné depuis la base par quelqu'un qui aurait cru
+poser une limite.** Et c'est **en lecture seule au SERVEUR aussi** : `update-package` ne le lit pas —
+désactiver l'`input` ne garde rien à lui seul.
+
+**Ce qu'il faudra décider :** ce que « siège » signifie (membre actif ? invité compris ?), ce qui se
+passe au dépassement (refus d'invitation ? facturation au prorata ?), et **quelle garde** le lit —
+côté invitation **et** côté acceptation, sinon la limite se contourne par le second chemin.
+
+### P4.5 — Et ce qui n'est PAS volontairement inactif, pour lever le doute
+- `reveal_contact` est un **point d'extension conçu mais non branché** — pas un interrupteur. Le
+  packaging commerce qui l'ouvrirait **n'existe pas**, et §D.4 dit qu'il reste `false` **toujours**.
+- `lib/database.types.ts` **n'est pas un choix** : c'est un filet périmé et débranché (§E.1, §H).
+- `scripts/diag.mjs` **n'est pas désactivé** : il est **cassé et inachevé**, et retiré de
+  `package.json` pour cesser de piéger.

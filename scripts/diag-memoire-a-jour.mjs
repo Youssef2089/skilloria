@@ -261,6 +261,7 @@ if (verifierSections) {
   // CE QUE CE CONTROLE GARDE : une reecriture qui perd un chapitre entier le
   // fait savoir. Il ne dit rien du CONTENU — cf. l'avertissement en tete.
   const CHAPITRES = [
+    // Le guide de reperage : ou vivent les choses, quels pieges les entourent.
     ['A', 'ce qu’est le produit'],
     ['B', 'le modele de donnees et son histoire'],
     ['C', 'les chaines fonctionnelles'],
@@ -269,6 +270,12 @@ if (verifierSections) {
     ['F', 'la classe « lire puis ecrire »'],
     ['G', 'les regles entre worktrees'],
     ['H', 'ce qui reste ouvert'],
+    // LE PRODUIT. C'est la partie qu'on lit quand on reprend le projet, et
+    // c'est donc celle dont la disparition couterait le plus cher.
+    ['P1', 'les six parcours de bout en bout'],
+    ['P2', 'les ecrans qui existent'],
+    ['P3', 'les regles metier rassemblees'],
+    ['P4', 'ce qui est volontairement inactif'],
   ]
   const src = readFileSync(join(ROOT, MEMOIRE), 'utf8').split('\r\n').join('\n')
 
