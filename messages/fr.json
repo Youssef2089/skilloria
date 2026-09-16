@@ -2368,7 +2368,8 @@
       "section_moteur": "Moteur",
       "nav_matching": "Mise en relation",
       "nav_ecosystemes": "Écosystèmes",
-      "nav_quotas_ia": "Quotas IA"
+      "nav_quotas_ia": "Quotas IA",
+      "nav_seuils": "Seuils de jugement"
     },
     "quotas_ia": {
       "title": "Quotas IA",
@@ -3831,5 +3832,57 @@
   },
   "plafonds": {
     "annonces_tronquees": "Cette liste est incomplète : elle affiche vos {plafond} annonces les plus récemment modifiées. Les plus anciennes ne sont pas montrées."
+  },
+  "admin_seuils": {
+    "title": "Seuils de jugement",
+    "intro": "Ces seuils décident qui est approuvé sans intervention humaine. Ils vivaient en base sans écran : les changer demandait un accès direct à la base, et ne laissait aucune trace. Chaque modification faite ici est désormais journalisée.",
+    "loading": "Chargement…",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saved": "Seuil enregistré et journalisé.",
+    "not_editable": "Ce fournisseur n'est pas réglable depuis cet écran : aucun chemin du code ne le lit.",
+    "decisive_label": "Seuil qui décide (0 à 10)",
+    "decisive_help": "Valeur lue par le code : {cle}.",
+    "inert_label": "confidence_threshold (non lue par ce chemin)",
+    "inert_help": "Cette colonne existe et n'est JAMAIS utilisée pour décider ici — la décision se prend sur auto_approve_threshold. Elle est affichée en lecture seule plutôt que cachée : masquée, elle finirait renseignée par quelqu'un qui croirait régler quelque chose.",
+    "flags_label": "Drapeaux disqualifiants",
+    "flags_help": "Un profil portant l'un de ces drapeaux part en validation manuelle QUEL QUE SOIT son score. Au moins un drapeau est requis : tout décocher ne les désarme pas, le code retomberait sur la liste par défaut.",
+    "audit_note": "Chaque modification écrit dans le journal d'audit : qui, quand, depuis quelle valeur, et depuis quelle adresse. C'est ce qui manquait pour comprendre le passage de 9 à 8 du seuil expert, en juin.",
+    "types": {
+      "profile_verification": {
+        "name": "Validation d'un expert",
+        "effect": "Au-dessus de ce seuil, et sans drapeau disqualifiant, le profil est approuvé SANS intervention. En dessous, il arrive dans /admin/experts pour être tranché à la main. Il n'est JAMAIS refusé automatiquement."
+      },
+      "ai_web_search": {
+        "name": "Vérification d'une entreprise",
+        "effect": "Au-dessus de ce seuil, l'organisation est approuvée SANS intervention. En dessous, elle arrive dans /admin/organisations. Elle n'est JAMAIS refusée automatiquement. Si aucun fournisseur actif n'existe pour le pays, la vérification part directement en revue manuelle, sans appel au modèle."
+      },
+      "opportunity_quality_check": {
+        "name": "Qualité d'une annonce",
+        "effect": "Au-dessus de ce seuil, l'annonce est publiée. En dessous, elle part en revue manuelle. Le contrôle traque aussi les coordonnées en clair : une annonce qui contourne la messagerie contourne le dévoilement."
+      }
+    },
+    "flags": {
+      "DOMAIN_MISMATCH": "Écosystème incohérent",
+      "CV_PROFILE_INCOHERENT": "CV et profil incohérents",
+      "LINKEDIN_UNVERIFIABLE": "LinkedIn invérifiable",
+      "SUSPICIOUS_CONTENT": "Contenu suspect"
+    },
+    "no_decider": {
+      "title": "Pays sans fournisseur de décision",
+      "explain": "Pour ces pays, aucune vérification d'entreprise ne peut être tranchée automatiquement : elle part en revue manuelle, sans appel au modèle et sans dépense. Ce n'est pas une panne — c'est le refus explicite qui remplace un seuil deviné."
+    },
+    "errors": {
+      "load_failed": "Lecture impossible.",
+      "save_failed": "Enregistrement impossible.",
+      "seuil_invalide": "Le seuil doit être un nombre entier entre 0 et 10.",
+      "colonne_inerte": "Cette colonne n'est pas lue par ce chemin : la régler ne changerait rien.",
+      "cle_non_lue": "Cette valeur n'est pas lue par ce chemin.",
+      "drapeaux_invalides": "Drapeau inconnu.",
+      "drapeaux_vides": "Au moins un drapeau est requis : tout décocher ne les désarme pas.",
+      "drapeaux_non_lus": "Ce chemin ne porte aucun drapeau.",
+      "type_non_gere": "Ce type de fournisseur n'est pas réglable ici.",
+      "bad_provider": "Fournisseur introuvable."
+    }
   }
 }

@@ -207,6 +207,20 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
     sectionKey: 'section_moteur',
     items: [
       { key: 'matching', href: '/admin/matching', labelKey: 'nav_matching', iconKey: 'matching' },
+      {
+        // LES SEUILS DE JUGEMENT, rangés à côté des seuils du moteur et non
+        // dans « Validation » : ce sont des RÉGLAGES, pas des dossiers à
+        // trancher. /admin/experts et /admin/organisations traitent les cas ;
+        // ici on règle ce qui décide lesquels y arrivent.
+        //
+        // Ils vivaient en base SANS écran — ni pratique, ni tracé. Le passage
+        // de 9 à 8 du seuil expert, en juin, n'a laissé aucune trace
+        // exploitable : c'est cet écran qui ferme ce trou.
+        key: 'seuils',
+        href: '/admin/seuils',
+        labelKey: 'nav_seuils',
+        iconKey: 'gauge',
+      },
     ],
   },
   {

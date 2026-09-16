@@ -2368,7 +2368,8 @@
       "section_moteur": "Motor",
       "nav_matching": "Emparejamiento",
       "nav_ecosystemes": "Ecosistemas",
-      "nav_quotas_ia": "Cuotas de IA"
+      "nav_quotas_ia": "Cuotas de IA",
+      "nav_seuils": "Umbrales de decisión"
     },
     "quotas_ia": {
       "title": "Cuotas de IA",
@@ -3831,5 +3832,57 @@
   },
   "plafonds": {
     "annonces_tronquees": "Esta lista está incompleta: muestra tus {plafond} anuncios modificados más recientemente. Los más antiguos no aparecen."
+  },
+  "admin_seuils": {
+    "title": "Umbrales de decisión",
+    "intro": "Estos umbrales deciden quién se aprueba sin intervención humana. Vivían en la base de datos sin pantalla: cambiarlos exigía acceso directo y no dejaba ninguna traza. Cada cambio hecho aquí queda ahora registrado.",
+    "loading": "Cargando…",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "saved": "Umbral guardado y registrado.",
+    "not_editable": "Este proveedor no es configurable aquí: ningún camino del código lo lee.",
+    "decisive_label": "Umbral que decide (0 a 10)",
+    "decisive_help": "Valor leído por el código: {cle}.",
+    "inert_label": "confidence_threshold (no leída por este camino)",
+    "inert_help": "Esta columna existe y NUNCA se usa para decidir aquí — la decisión se toma sobre auto_approve_threshold. Se muestra en solo lectura en vez de ocultarse: oculta, acabaría rellenada por alguien que creería estar configurando algo.",
+    "flags_label": "Señales descalificantes",
+    "flags_help": "Un perfil con cualquiera de estas señales pasa a revisión manual SEA CUAL SEA su puntuación. Se requiere al menos una: desmarcarlas todas no las desactiva, el código volvería a la lista por defecto.",
+    "audit_note": "Cada cambio se escribe en el registro de auditoría: quién, cuándo, desde qué valor y desde qué dirección. Es exactamente lo que faltó para entender el paso de 9 a 8 del umbral de expertos, en junio.",
+    "types": {
+      "profile_verification": {
+        "name": "Validación de un experto",
+        "effect": "Por encima de este umbral, y sin señal descalificante, el perfil se aprueba SIN intervención. Por debajo, llega a /admin/experts para decidirse a mano. NUNCA se rechaza automáticamente."
+      },
+      "ai_web_search": {
+        "name": "Verificación de una empresa",
+        "effect": "Por encima de este umbral, la organización se aprueba SIN intervención. Por debajo, llega a /admin/organisations. NUNCA se rechaza automáticamente. Si no existe proveedor activo para el país, la verificación pasa directamente a revisión manual, sin llamada al modelo."
+      },
+      "opportunity_quality_check": {
+        "name": "Calidad de un anuncio",
+        "effect": "Por encima de este umbral, el anuncio se publica. Por debajo, pasa a revisión manual. El control también busca datos de contacto en claro: un anuncio que evita la mensajería evita el desbloqueo."
+      }
+    },
+    "flags": {
+      "DOMAIN_MISMATCH": "Ecosistema incoherente",
+      "CV_PROFILE_INCOHERENT": "CV y perfil incoherentes",
+      "LINKEDIN_UNVERIFIABLE": "LinkedIn no verificable",
+      "SUSPICIOUS_CONTENT": "Contenido sospechoso"
+    },
+    "no_decider": {
+      "title": "Países sin proveedor de decisión",
+      "explain": "Para estos países, ninguna verificación de empresa puede decidirse automáticamente: pasa a revisión manual, sin llamada al modelo y sin gasto. No es una avería — es el rechazo explícito que sustituyó a un umbral adivinado."
+    },
+    "errors": {
+      "load_failed": "No se pudo cargar.",
+      "save_failed": "No se pudo guardar.",
+      "seuil_invalide": "El umbral debe ser un número entero entre 0 y 10.",
+      "colonne_inerte": "Esta columna no se lee en este camino: configurarla no cambiaría nada.",
+      "cle_non_lue": "Este valor no se lee en este camino.",
+      "drapeaux_invalides": "Señal desconocida.",
+      "drapeaux_vides": "Se requiere al menos una señal: desmarcarlas todas no las desactiva.",
+      "drapeaux_non_lus": "Este camino no lleva señales.",
+      "type_non_gere": "Este tipo de proveedor no es configurable aquí.",
+      "bad_provider": "Proveedor no encontrado."
+    }
   }
 }

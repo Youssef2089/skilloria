@@ -848,8 +848,9 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 
 **Arbitrages en attente (signalés par ce document)**
 - La règle de fusion UNION sur `messages/*.json` n'est imposée par rien (§G.7).
-- Les seuils de `verification_providers` sont en base **sans écran** — le pire des deux mondes, ni
-  tracé ni pratique (§P3.3). L'écran `/admin/seuils` est décidé, pas encore livré.
+- ~~Les seuils de `verification_providers` sans écran~~ — **CLOS** : `/admin/seuils` est livré (§P2.4).
+  Reste sans écran : **`ai_spend_caps`**, les plafonds de dépense IA — `/admin/matching` affiche la
+  dépense du mois **sans** le plafond en regard.
 - **Cinq des sept points de dépense IA n'enregistrent rien et ne consultent jamais le plafond**
   (§P4.3) : le « plafond Claude 100 $ » ne compte aujourd'hui que le jugement de candidature et le
   pitch. Le total est faux **avant** toute répartition par acteur.
@@ -1377,8 +1378,12 @@ deux produits.
 | `taches-planifiees` · `taches-planifiees/[job_name]` | Supervision pg_cron : activer/désactiver, reprogrammer, déclencher, historique. |
 | `collaboration` | Les organisations personnelles d'experts. |
 
-> **Il n'existe aucun écran pour `verification_providers`** (seuils de vérification, priorité,
-> fournisseur par pays). Ces réglages se changent **en base uniquement** — cf. §P3.
+| `seuils` | **Les seuils de jugement** : auto-approbation d'expert, vérification d'entreprise, qualité d'annonce — par pays et par type. Dit **ce que chaque seuil produit**, montre la colonne inerte **comme inerte**, et **journalise** chaque modification. |
+
+> **§P2.4 a longtemps dit « il n'existe aucun écran pour `verification_providers` ». C'est désormais
+> FAUX** : [/admin/seuils](app/[locale]/admin/seuils/page.tsx) existe, et §P3.3 le reflète.
+> Ce qui reste vrai : **`ai_spend_caps` n'a toujours aucun écran** — seule la *dépense* du mois est
+> affichée, sur `/admin/matching`, sans son plafond à côté.
 
 ---
 
@@ -1423,11 +1428,11 @@ l'expose**. « Code » = un déploiement est nécessaire.
 |---|---|---|---|
 | Analyses de CV | **3 / 24 h** | `ai_quotas` | **Back-office** `/admin/quotas-ia` |
 | Taille de CV | 5 Mo, PDF | **Code** | Déploiement |
-| Seuil qualité d'annonce | **7 / 10** | `verification_providers` (`opportunity_quality_check`) | **Base** (aucun écran) |
-| Seuil d'auto-approbation d'expert | **8 / 10** | `verification_providers.config->>'auto_approve_threshold'` — **le jsonb, PAS la colonne** | **Base** (aucun écran) |
-| Drapeaux disqualifiants d'expert | `CV_PROFILE_INCOHERENT`, `SUSPICIOUS_CONTENT`, `DOMAIN_MISMATCH` | `verification_providers.config->>'blocking_flags'` | **Base** (aucun écran) |
+| Seuil qualité d'annonce | **7 / 10** | `verification_providers` (`opportunity_quality_check`) | **Back-office** `/admin/seuils` |
+| Seuil d'auto-approbation d'expert | **8 / 10** | `verification_providers.config->>'auto_approve_threshold'` — **le jsonb, PAS la colonne** | **Back-office** `/admin/seuils` |
+| Drapeaux disqualifiants d'expert | `CV_PROFILE_INCOHERENT`, `SUSPICIOUS_CONTENT`, `DOMAIN_MISMATCH` | `verification_providers.config->>'blocking_flags'` | **Back-office** `/admin/seuils` — liste vide **refusée** |
 | `verification_providers.confidence_threshold` sur la ligne expert | 7 — **lue puis JAMAIS utilisée** par le chemin expert | colonne | — |
-| Seuil de vérification d'entreprise | **7 / 10** (`ai_coherence_check`) | `verification_providers.confidence_threshold` | **Base** (aucun écran) |
+| Seuil de vérification d'entreprise | **7 / 10** (`ai_coherence_check`) | `verification_providers.confidence_threshold` | **Back-office** `/admin/seuils` |
 | Ligne absente pour un pays | **refus explicite**, revue manuelle, aucun appel IA | **Code** — plus aucun repli (§E.11) | — |
 | « Jamais d'auto-rejet » | — | **Code** — règle métier | Arbitrage |
 | Résumé de profil | **200–800 caractères** | **Code** `lib/profile-visibility.ts` | Déploiement |
@@ -1484,9 +1489,10 @@ Nommées, comme demandé. Chacune exige aujourd'hui un **déploiement** :
    constantes de code. Ce sont les plus mûres pour un passage en base.
 2. **Grâce de suppression (90 j)**, **avertissement (23 mois)**, **purge (24 mois)** — contraintes
    légales, donc stables ; mais les rendre lisibles depuis un écran servirait le registre RGPD.
-3. **Seuils de `verification_providers`** (7/10 pour les annonces, 9/10 pour les profils et les
-   entreprises) — ils sont **déjà en base**, il manque seulement l'**écran**. Aujourd'hui les
-   changer suppose un accès direct à la base : c'est le pire des deux mondes, ni tracé ni pratique.
+3. ~~Seuils de `verification_providers`~~ — **CLOS.** `/admin/seuils` les règle, borne **au serveur**
+   (entier, 0–10), **refuse** d'écrire une clé que le chemin ne lit pas, refuse une liste de drapeaux
+   vide, et **journalise** qui a changé quoi, depuis quelle valeur et depuis quelle adresse. La
+   valeur réelle du seuil expert est **8**, dans le jsonb — ni 9, ni la colonne.
 4. **Plafonds de dépense IA** (`ai_spend_caps`, 200 $ / 100 $) — en base, aucun écran, alors que
    c'est un réglage d'argent que `/admin/matching` affiche déjà à côté.
 5. **Limites de l'OTP** (1/60 s, 3/h, 10/h par IP) — anti-abus, donc légitimement en code, selon le

@@ -2368,7 +2368,8 @@
       "section_moteur": "Engine",
       "nav_matching": "Matching",
       "nav_ecosystemes": "Ecosystems",
-      "nav_quotas_ia": "AI quotas"
+      "nav_quotas_ia": "AI quotas",
+      "nav_seuils": "Decision thresholds"
     },
     "quotas_ia": {
       "title": "AI quotas",
@@ -3831,5 +3832,57 @@
   },
   "plafonds": {
     "annonces_tronquees": "This list is incomplete: it shows your {plafond} most recently updated postings. Older ones are not displayed."
+  },
+  "admin_seuils": {
+    "title": "Decision thresholds",
+    "intro": "These thresholds decide who is approved without human review. They lived in the database with no screen: changing one required direct database access and left no trace. Every change made here is now logged.",
+    "loading": "Loading…",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Threshold saved and logged.",
+    "not_editable": "This provider is not editable here: no code path reads it.",
+    "decisive_label": "Deciding threshold (0 to 10)",
+    "decisive_help": "Value read by the code: {cle}.",
+    "inert_label": "confidence_threshold (not read by this path)",
+    "inert_help": "This column exists and is NEVER used to decide here — the decision is taken on auto_approve_threshold. It is shown read-only rather than hidden: hidden, it would end up filled in by someone who believed they were setting something.",
+    "flags_label": "Disqualifying flags",
+    "flags_help": "A profile carrying any of these flags goes to manual review WHATEVER its score. At least one flag is required: unchecking them all does not disarm them, the code would fall back to the default list.",
+    "audit_note": "Every change is written to the audit log: who, when, from which value, and from which address. This is exactly what was missing to understand the expert threshold moving from 9 to 8 last June.",
+    "types": {
+      "profile_verification": {
+        "name": "Expert validation",
+        "effect": "Above this threshold, and with no disqualifying flag, the profile is approved WITHOUT review. Below it, it lands in /admin/experts to be decided by hand. It is NEVER rejected automatically."
+      },
+      "ai_web_search": {
+        "name": "Company verification",
+        "effect": "Above this threshold, the organisation is approved WITHOUT review. Below it, it lands in /admin/organisations. It is NEVER rejected automatically. If no active provider exists for the country, verification goes straight to manual review, with no model call."
+      },
+      "opportunity_quality_check": {
+        "name": "Listing quality",
+        "effect": "Above this threshold, the listing is published. Below it, it goes to manual review. The check also looks for contact details in plain text: a listing that bypasses messaging bypasses unlocking."
+      }
+    },
+    "flags": {
+      "DOMAIN_MISMATCH": "Ecosystem mismatch",
+      "CV_PROFILE_INCOHERENT": "CV and profile inconsistent",
+      "LINKEDIN_UNVERIFIABLE": "LinkedIn unverifiable",
+      "SUSPICIOUS_CONTENT": "Suspicious content"
+    },
+    "no_decider": {
+      "title": "Countries with no decision provider",
+      "explain": "For these countries, no company verification can be decided automatically: it goes to manual review, with no model call and no spend. This is not a failure — it is the explicit refusal that replaced a guessed threshold."
+    },
+    "errors": {
+      "load_failed": "Could not load.",
+      "save_failed": "Could not save.",
+      "seuil_invalide": "The threshold must be a whole number between 0 and 10.",
+      "colonne_inerte": "This column is not read by this path: setting it would change nothing.",
+      "cle_non_lue": "This value is not read by this path.",
+      "drapeaux_invalides": "Unknown flag.",
+      "drapeaux_vides": "At least one flag is required: unchecking them all does not disarm them.",
+      "drapeaux_non_lus": "This path carries no flags.",
+      "type_non_gere": "This provider type is not editable here.",
+      "bad_provider": "Provider not found."
+    }
   }
 }

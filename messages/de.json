@@ -2368,7 +2368,8 @@
       "section_moteur": "Motor",
       "nav_matching": "Vermittlung",
       "nav_ecosystemes": "Ökosysteme",
-      "nav_quotas_ia": "KI-Kontingente"
+      "nav_quotas_ia": "KI-Kontingente",
+      "nav_seuils": "Entscheidungsschwellen"
     },
     "quotas_ia": {
       "title": "KI-Kontingente",
@@ -3831,5 +3832,57 @@
   },
   "plafonds": {
     "annonces_tronquees": "Diese Liste ist unvollständig: Sie zeigt Ihre {plafond} zuletzt geänderten Anzeigen. Ältere werden nicht angezeigt."
+  },
+  "admin_seuils": {
+    "title": "Entscheidungsschwellen",
+    "intro": "Diese Schwellen entscheiden, wer ohne menschliche Prüfung freigegeben wird. Sie lagen in der Datenbank ohne Oberfläche: eine Änderung erforderte direkten Datenbankzugriff und hinterließ keine Spur. Jede hier vorgenommene Änderung wird nun protokolliert.",
+    "loading": "Wird geladen…",
+    "save": "Speichern",
+    "saving": "Wird gespeichert…",
+    "saved": "Schwelle gespeichert und protokolliert.",
+    "not_editable": "Dieser Anbieter ist hier nicht einstellbar: kein Codepfad liest ihn.",
+    "decisive_label": "Entscheidende Schwelle (0 bis 10)",
+    "decisive_help": "Vom Code gelesener Wert: {cle}.",
+    "inert_label": "confidence_threshold (von diesem Pfad nicht gelesen)",
+    "inert_help": "Diese Spalte existiert und wird hier NIE zur Entscheidung verwendet — entschieden wird über auto_approve_threshold. Sie wird schreibgeschützt angezeigt statt versteckt: versteckt würde sie irgendwann von jemandem ausgefüllt, der glaubt, etwas einzustellen.",
+    "flags_label": "Disqualifizierende Merkmale",
+    "flags_help": "Ein Profil mit einem dieser Merkmale geht UNABHÄNGIG von seiner Punktzahl in die manuelle Prüfung. Mindestens eines ist erforderlich: alle abzuwählen schaltet sie nicht ab, der Code fiele auf die Standardliste zurück.",
+    "audit_note": "Jede Änderung wird ins Prüfprotokoll geschrieben: wer, wann, von welchem Wert und von welcher Adresse. Genau das fehlte, um den Wechsel der Expertenschwelle von 9 auf 8 im Juni nachzuvollziehen.",
+    "types": {
+      "profile_verification": {
+        "name": "Prüfung einer Fachkraft",
+        "effect": "Oberhalb dieser Schwelle und ohne disqualifizierendes Merkmal wird das Profil OHNE Prüfung freigegeben. Darunter landet es in /admin/experts zur manuellen Entscheidung. Es wird NIE automatisch abgelehnt."
+      },
+      "ai_web_search": {
+        "name": "Prüfung eines Unternehmens",
+        "effect": "Oberhalb dieser Schwelle wird die Organisation OHNE Prüfung freigegeben. Darunter landet sie in /admin/organisations. Sie wird NIE automatisch abgelehnt. Gibt es für das Land keinen aktiven Anbieter, geht die Prüfung direkt in die manuelle Bearbeitung, ohne Modellaufruf."
+      },
+      "opportunity_quality_check": {
+        "name": "Qualität einer Anzeige",
+        "effect": "Oberhalb dieser Schwelle wird die Anzeige veröffentlicht. Darunter geht sie in die manuelle Prüfung. Die Kontrolle sucht auch nach Kontaktdaten im Klartext: eine Anzeige, die das Nachrichtensystem umgeht, umgeht die Freischaltung."
+      }
+    },
+    "flags": {
+      "DOMAIN_MISMATCH": "Ökosystem passt nicht",
+      "CV_PROFILE_INCOHERENT": "Lebenslauf und Profil widersprüchlich",
+      "LINKEDIN_UNVERIFIABLE": "LinkedIn nicht überprüfbar",
+      "SUSPICIOUS_CONTENT": "Verdächtiger Inhalt"
+    },
+    "no_decider": {
+      "title": "Länder ohne Entscheidungsanbieter",
+      "explain": "Für diese Länder kann keine Unternehmensprüfung automatisch entschieden werden: sie geht in die manuelle Bearbeitung, ohne Modellaufruf und ohne Kosten. Das ist kein Fehler — es ist die ausdrückliche Verweigerung, die eine geratene Schwelle ersetzt hat."
+    },
+    "errors": {
+      "load_failed": "Laden nicht möglich.",
+      "save_failed": "Speichern nicht möglich.",
+      "seuil_invalide": "Die Schwelle muss eine ganze Zahl zwischen 0 und 10 sein.",
+      "colonne_inerte": "Diese Spalte wird von diesem Pfad nicht gelesen: sie einzustellen ändert nichts.",
+      "cle_non_lue": "Dieser Wert wird von diesem Pfad nicht gelesen.",
+      "drapeaux_invalides": "Unbekanntes Merkmal.",
+      "drapeaux_vides": "Mindestens ein Merkmal ist erforderlich: alle abzuwählen schaltet sie nicht ab.",
+      "drapeaux_non_lus": "Dieser Pfad trägt keine Merkmale.",
+      "type_non_gere": "Dieser Anbietertyp ist hier nicht einstellbar.",
+      "bad_provider": "Anbieter nicht gefunden."
+    }
   }
 }
