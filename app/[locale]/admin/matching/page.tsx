@@ -58,6 +58,32 @@ type LigneDepense = {
   au_plafond: boolean
 }
 
+/**
+ * QUI FAIT MONTER LA FACTURE — une ligne par acteur déclencheur.
+ *
+ * Trois `acteur_type` possibles, et les deux derniers ne sont PAS des acteurs :
+ *   `organization` / `profile` — un acteur nommé, avec son seuil et son drapeau ;
+ *   `reste_non_detaille`       — les acteurs au-delà des dix plus gros, agrégés
+ *                                et COMPTÉS : on dit combien ils sont ;
+ *   `non_imputable`            — la dépense sans acteur. Elle est AFFICHÉE telle
+ *                                quelle, jamais répartie sur les autres : une
+ *                                proration inventée rendrait le tableau faux
+ *                                tout en le rendant joli.
+ *
+ * La somme des lignes ÉGALE la dépense du mois. C'est vérifiable à l'œil sur
+ * cet écran, et c'est ce qui le rend croyable.
+ */
+type LigneParActeur = {
+  acteur_type: 'organization' | 'profile' | 'reste_non_detaille' | 'non_imputable' | string
+  acteur_id: string | null
+  acteur_nom: string | null
+  depense_mois: number
+  evenements: number
+  acteurs_regroupes: number
+  seuil_mensuel_usd: number | null
+  en_alerte: boolean
+}
+
 type LigneCouverture = {
   runs_observes: number
   runs_complets: number
@@ -98,6 +124,7 @@ type Charge = {
   pannes: LignePanne[] | null
   depassements: LigneDepassement[] | null
   inacheves: LigneInacheve[] | null
+  par_acteur: LigneParActeur[] | null
 }
 
 const carte: React.CSSProperties = {
@@ -269,6 +296,77 @@ export default function AdminMatchingPage() {
           </div>
         )}
         <div style={aide}>{t('spend.help')}</div>
+      </section>
+
+      {/* ── QUI FAIT MONTER LA FACTURE ──────────────────────────────────
+          Juste sous le plafond global, et pas ailleurs : le bloc du dessus dit
+          COMBIEN on a dépensé, celui-ci dit QUI. Lus séparément, le premier
+          alerte sans qu'on sache où regarder.
+
+          UN DÉPASSEMENT ALERTE, IL NE BLOQUE PAS — décision produit arbitrée.
+          Aucun bouton ici : cet écran constate, il ne sanctionne pas. */}
+      <section style={carte}>
+        <div style={titreBloc}>{t('spendByActor.title')}</div>
+        {charge?.par_acteur === null ? (
+          <div style={{ fontSize: 13, color: '#b45309' }}>{t('spendByActor.unavailable')}</div>
+        ) : (charge?.par_acteur ?? []).length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--sk-faint)' }}>{t('spendByActor.none')}</div>
+        ) : (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {(charge?.par_acteur ?? []).map((a, i) => {
+              const agrege =
+                a.acteur_type === 'reste_non_detaille' || a.acteur_type === 'non_imputable'
+              return (
+                <div
+                  key={`${a.acteur_type}-${a.acteur_id ?? i}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    gap: 10,
+                    fontSize: 13.5,
+                    // Les deux lignes agrégées se distinguent à l'œil des acteurs
+                    // nommés : ce ne sont pas des coupables, ce sont des restes.
+                    color: agrege ? 'var(--sk-faint)' : 'var(--sk-text)',
+                    fontStyle: agrege ? 'italic' : 'normal',
+                  }}
+                >
+                  <span style={{ minWidth: 220, fontWeight: agrege ? 400 : 600 }}>
+                    {a.acteur_type === 'non_imputable'
+                      ? t('spendByActor.unattributed')
+                      : a.acteur_type === 'reste_non_detaille'
+                        ? t('spendByActor.others', { count: a.acteurs_regroupes })
+                        : (a.acteur_nom ?? t('spendByActor.unnamed'))}
+                  </span>
+                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {t('spendByActor.line', {
+                      spent: Number(a.depense_mois).toFixed(2),
+                      events: a.evenements,
+                    })}
+                  </span>
+                  {!agrege && (
+                    <span style={{ fontSize: 12, color: 'var(--sk-faint)' }}>
+                      {a.acteur_type === 'organization'
+                        ? t('spendByActor.kindOrg')
+                        : t('spendByActor.kindExpert')}
+                    </span>
+                  )}
+                  {a.en_alerte && (
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#b45309' }}>
+                      {t('spendByActor.alert', {
+                        threshold: Number(a.seuil_mensuel_usd ?? 0).toFixed(2),
+                      })}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+        <div style={aide}>{t('spendByActor.help')}</div>
+        {/* L'angle mort est ÉCRIT, pas deviné. Une ligne « non imputable » sans
+            explication se lit comme un bug ; expliquée, elle se lit comme une
+            limite connue qui décroît d'elle-même. */}
+        <div style={aide}>{t('spendByActor.unattributedHelp')}</div>
       </section>
 
       {/* ── LES RÉSUMÉS QUI N'ONT PAS PU ÊTRE ÉCRITS ────────────────────

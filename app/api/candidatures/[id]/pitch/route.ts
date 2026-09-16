@@ -178,6 +178,9 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     supabaseAdmin: auth.supabaseAdmin,
     domainId: cand.domain_id,
     matchId: cand.match_id,
+    // L organisation qui demande le pitch : deja verifiee proprietaire de
+    // l annonce plus haut (404 sinon).
+    organizationId: orgId,
     pitchExistant: dejaEcrit,
     entree: {
       locale,

@@ -334,12 +334,14 @@ export async function POST(request: NextRequest): Promise<Response> {
     await enregistrerDepenseIA(supabaseAdmin, {
       provider: 'claude',
       action: 'cv_parsing',
-      consommation: result.usage,
-      domain_id: user.domain_id,
+      // L'expert dépose SON CV : c'est lui qui déclenche la dépense.
       // `prof` et non `profile` : le select est construit depuis un tableau de
       // noms, que le client Supabase ne sait pas typer (cf. §E.1 — les clients
       // ne sont pas typés). Le reste du fichier lit `prof` pour la même raison.
-      context: { profile_id: prof.id as string, user_id: user.id, aboutie: result.success },
+      acteur: { type: 'profile', id: prof.id as string },
+      consommation: result.usage,
+      domain_id: user.domain_id,
+      context: { user_id: user.id, aboutie: result.success },
     })
   }
 

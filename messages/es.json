@@ -3646,6 +3646,20 @@
       "unavailable": "No se ha podido leer el gasto. No es cero: es desconocido.",
       "help": "Al alcanzar el límite, el emparejamiento se detiene y lo escribe en la traza de la ejecución. No sigue gastando ni se detiene en silencio."
     },
+    "spendByActor": {
+      "title": "Quién hace subir la factura",
+      "line": "{spent} $ — {events} evento(s)",
+      "kindOrg": "organización",
+      "kindExpert": "experto",
+      "alert": "por encima del umbral de {threshold} $",
+      "others": "{count} otro(s) actor(es), agrupado(s)",
+      "unattributed": "No imputable",
+      "unnamed": "Actor eliminado",
+      "none": "Ningún gasto registrado este mes.",
+      "unavailable": "No se ha podido leer el desglose por actor. No es cero: es desconocido.",
+      "help": "Superar el umbral GENERA UNA ALERTA, nunca bloquea: esta pantalla no priva a nadie de nada. La suma de las líneas es igual al gasto del mes — actores detallados, resto agrupado y no imputable incluidos.",
+      "unattributedHelp": "«No imputable»: gastos registrados antes de que la factura se desglosara por actor. No tienen un origen conocido y nunca lo tendrán — repartirlos entre los demás sería inventar una cifra. Esta línea disminuye por sí sola, ya que la lectura es mensual."
+    },
     "distribution": {
       "title": "Distribución observada (últimos 30 días)",
       "runs": "{count} ejecución(es) observada(s).",

@@ -251,8 +251,9 @@ export async function runVerification(args: {
     await enregistrerDepenseIA(supabaseAdmin, {
       provider: 'claude',
       action: 'org_verification',
+      // L'organisation demande SA vérification : c'est elle qui déclenche.
+      acteur: { type: 'organization', id: organization_id },
       consommation: aiOutput.usage,
-      context: { organization_id },
     })
   }
   attempts_count++

@@ -269,9 +269,11 @@ export async function POST(request: NextRequest): Promise<Response> {
     await enregistrerDepenseIA(supabaseAdmin, {
       provider: 'claude',
       action: 'cv_parsing',
+      // L'expert dépose SON CV : c'est lui qui déclenche la dépense.
+      acteur: { type: 'profile', id: profile.id },
       consommation: result.usage,
       domain_id: user.domain_id,
-      context: { profile_id: profile.id, user_id: user.id, aboutie: result.success },
+      context: { user_id: user.id, aboutie: result.success },
     })
   }
 

@@ -305,6 +305,8 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     verdict = await runPublicationVerification({
       supabaseAdmin: auth.supabaseAdmin,
       publication_id: id,
+      // Déjà vérifié non nul plus haut (403 org_required sinon).
+      organization_id: orgId,
       input: aiInput,
     })
   } catch (err) {

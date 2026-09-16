@@ -3646,6 +3646,20 @@
       "unavailable": "Die Ausgaben konnten nicht gelesen werden. Das ist nicht null, sondern unbekannt.",
       "help": "An der Obergrenze hält die Vermittlung an und schreibt es in die Spur des Laufs. Sie gibt nicht weiter aus und hält nicht stillschweigend an."
     },
+    "spendByActor": {
+      "title": "Wer die Rechnung treibt",
+      "line": "{spent} $ — {events} Ereignis(se)",
+      "kindOrg": "Organisation",
+      "kindExpert": "Experte",
+      "alert": "über der Schwelle von {threshold} $",
+      "others": "{count} weitere(r) Akteur(e), zusammengefasst",
+      "unattributed": "Nicht zurechenbar",
+      "unnamed": "Gelöschter Akteur",
+      "none": "In diesem Monat wurden keine Ausgaben erfasst.",
+      "unavailable": "Die Aufschlüsselung nach Akteur konnte nicht gelesen werden. Das ist nicht null, sondern unbekannt.",
+      "help": "Eine Überschreitung LÖST EINEN HINWEIS AUS, sie blockiert nie: dieser Bildschirm entzieht niemandem etwas. Die Summe der Zeilen entspricht den Ausgaben des Monats — einschließlich benannter Akteure, zusammengefasstem Rest und nicht zurechenbarem Anteil.",
+      "unattributedHelp": "„Nicht zurechenbar“: Ausgaben, die erfasst wurden, bevor die Rechnung nach Akteur aufgeschlüsselt wurde. Sie haben keinen bekannten Auslöser und werden nie einen haben — sie auf die anderen zu verteilen hieße, eine Zahl zu erfinden. Diese Zeile schrumpft von selbst, da die Ansicht monatlich ist."
+    },
     "distribution": {
       "title": "Beobachtete Verteilung (letzte 30 Tage)",
       "runs": "{count} beobachtete(r) Lauf/Läufe.",

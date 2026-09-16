@@ -1,7 +1,7 @@
 import { capaciteActive } from '@/lib/interrupteurs'
 import Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { budgetDisponible, enregistrerDepenseIA, type ActionIA } from '@/lib/ai-budget'
+import { budgetDisponible, enregistrerDepenseIA, type ActeurIA, type ActionIA } from '@/lib/ai-budget'
 // Deux LECTEURS, pas deux filtres : ils vérifient que le modèle a répondu
 // quelque chose d'exploitable, ils ne jugent pas le contenu du texte. Sans
 // aucune dépendance, donc éprouvables à l'exécution.
@@ -240,6 +240,12 @@ async function appeler(args: {
   /** Quelle action dépense. Deux appelants, deux actions : le jugement au dépôt
    *  et la rédaction du pitch ne se confondent pas dans la comptabilité. */
   action: ActionIA
+  /**
+   * Et deux ACTEURS opposés, pour la même raison : l'expert déclenche le
+   * jugement en postulant, l'organisation déclenche le pitch en le demandant.
+   * Les confondre porterait la dépense d'un parcours sur l'autre.
+   */
+  acteur: ActeurIA
   contexte: Record<string, unknown>
 }): Promise<
   { ok: true; charge: Record<string, unknown> } | { ok: false; cause: CausePanne; raison: string }
@@ -294,6 +300,7 @@ async function appeler(args: {
   await enregistrerDepenseIA(args.supabaseAdmin, {
     provider: 'claude',
     action: args.action,
+    acteur: args.acteur,
     consommation: { forme: 'jetons', model: MODELE, entree, sortie },
     domain_id: args.domainId,
     context: { ...args.contexte },
@@ -312,12 +319,19 @@ export async function jugerCandidature(args: {
   domainId: string | null
   entree: EntreeJugement
   candidatureId: string
+  /**
+   * L'expert qui postule. Le jugement PROFITE à l'organisation, mais c'est
+   * l'expert qui le DÉCLENCHE en déposant — et la comptabilité répond à « qui
+   * fait monter la facture », pas à « qui en bénéficie ».
+   */
+  profileId: string
 }): Promise<ResultatJugement> {
   const appel = await appeler({
     supabaseAdmin: args.supabaseAdmin,
     domainId: args.domainId,
     prompt: construirePrompt(args.entree),
     action: 'candidature_assessment',
+    acteur: { type: 'profile', id: args.profileId },
     contexte: { candidature_id: args.candidatureId },
   })
   if (!appel.ok) return { ok: false, cause: appel.cause, raison: appel.raison }
@@ -370,6 +384,8 @@ export async function redigerPitchOrg(args: {
   supabaseAdmin: SupabaseClient
   domainId: string | null
   matchId: string
+  /** L'organisation qui demande le pitch : ici c'est elle qui déclenche. */
+  organizationId: string
   /** Le pitch déjà écrit, s'il existe. Fourni par l'appelant, qui l'a déjà lu. */
   pitchExistant: string | null
   entree: EntreeJugement
@@ -382,6 +398,7 @@ export async function redigerPitchOrg(args: {
     domainId: args.domainId,
     prompt: construirePrompt(args.entree),
     action: 'pitch',
+    acteur: { type: 'organization', id: args.organizationId },
     contexte: { match_id: args.matchId },
   })
   if (!appel.ok) return { ok: false, cause: appel.cause, raison: appel.raison }

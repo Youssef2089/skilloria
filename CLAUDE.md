@@ -192,7 +192,8 @@ avec le seed) : `publications_per_month`, `active_publications_max`,
 `transactions`, `usage_counters`, `promo_codes`, `promo_code_uses`, `stripe_events`.
 
 **Moteur & exploitation** — `matching_settings`, `matching_notes_partielles`, `relance_overruns`,
-`ai_quotas`, `ai_spend_caps`, `ai_spend_events`, `ai_redaction_failures`, `rate_limit_hits`,
+`ai_quotas`, `ai_spend_caps`, `ai_spend_seuils_acteur`, `ai_spend_events`, `ai_model_tarifs`,
+`ai_redaction_failures`, `rate_limit_hits`,
 `cron_job_catalog`, `cron_run_log`, `audit_logs`.
 
 ### B.2 Les déplacements structurants — ceux qui piègent
@@ -722,6 +723,31 @@ qui crie à tort est désactivé le jour même : la liste de valeurs s'arrêtait
 dénoncées) ; et la règle « `translations` doit être la **dernière** insertion » dénonçait
 `public_email_domains`, que **aucune** traduction ne référence.
 
+**E.14 — Rien ne dit QUELS diagnostics un lot doit rejouer, alors on les choisit de mémoire.**
+Il y a **~70** scripts `diag-*.mjs` et **aucun test runner**. Le dépôt ne dit nulle part lesquels
+lisent les fichiers qu'on vient de modifier : on en lance donc quatre ou cinq, ceux qu'on a en tête.
+
+**Le cas réel, et il est récent.** Le lot « les sept points de dépense » a été livré (`246c592`) avec
+[scripts/diag-moteur-reranking.mjs](scripts/diag-moteur-reranking.mjs) **au rouge**. Il ancrait
+`enregistrerDepense(` ; le lot avait renommé l'appel en `enregistrerDepenseIA(`. **Aucun défaut
+réel** — mais un contrôle rouge livré, c'est-à-dire un contrôle qu'on apprend à ignorer, et c'est
+ainsi qu'ils meurent tous. Il n'a été vu qu'au lot **suivant**, par hasard.
+
+**La parade : [scripts/diag-controles-a-rejouer.mjs](scripts/diag-controles-a-rejouer.mjs).**
+Il lit les fichiers du lot (`git diff --name-only <base>` + non suivis), cherche lesquels des ~70
+diagnostics les **citent**, et — c'est le point qui compte — considère aussi comme concernés les
+contrôles **de classe**, ceux qui ne citent personne parce qu'ils *balaient* un dossier
+(`readdirSync` sur `app/`, `lib/`, `supabase/migrations/`, `messages/`, `scripts/`). Sans cette
+règle, les contrôles qui attrapent justement le cas non prévu ne seraient jamais proposés.
+Puis **il les rejoue** : un diagnostic qu'on se contente de *nommer* n'est pas joué. Il sort en `1`
+si l'un d'eux est rouge.
+
+Sur le lot « dépense par acteur » : **36 diagnostics concernés**. J'en aurais lancé quatre.
+
+> Deux limites, dites plutôt que tues : il ne remplace pas le jugement (un lot peut mériter un
+> contrôle qui ne cite aucun de ses fichiers), et il ne connaît que les liens **textuels** — un
+> diagnostic qui atteindrait un fichier par une chaîne construite lui échapperait.
+
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
   acceptée et ne se déclenchera **jamais** : aucune erreur, aucune ligne dans `job_run_details`. D'où le
@@ -926,8 +952,16 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 - ~~Cinq des sept points de dépense IA n'enregistrent rien~~ — **CLOS.** Les **sept** consultent le
   plafond avant d'appeler et enregistrent après, au tarif du modèle réellement appelé (§E.13).
   Gardé par un contrôle **de classe** : un huitième point ajouté demain rougit s'il est muet.
-  Reste ouvert : la répartition **par acteur** (organisation, annonce, expert, action), et
-  `ai_spend_caps` toujours **sans écran** — `/admin/matching` affiche la dépense sans son plafond.
+- ~~La dépense IA n'est pas répartie par acteur~~ — **CLOS.** Chaque événement nomme son acteur
+  **déclencheur** (« qui fait monter la facture »), et **un seul** : contrainte en base
+  (`ai_spend_un_seul_acteur`) *et* dans le type (`ActeurIA` est une union, pas deux champs
+  optionnels), pour que les deux sommes ne comptent jamais deux fois la même dépense.
+  `/admin/matching` affiche le découpage, l'alerte étant **recalculée à chaque affichage** —
+  rien n'est stocké, aucune tâche planifiée. **Un dépassement alerte, il ne bloque pas.**
+  La dépense antérieure au découpage apparaît en clair sur une ligne **« non imputable »** :
+  elle n'est **jamais proratisée** sur les autres, et elle décroît d'elle-même (lecture mensuelle).
+  Reste ouvert : **`ai_spend_caps` et `ai_spend_seuils_acteur` n'ont aucun écran** — deux réglages
+  d'argent que `/admin/matching` affiche déjà sans permettre de les changer.
 
 ---
 
@@ -1488,7 +1522,8 @@ l'expose**. « Code » = un déploiement est nécessaire.
 | Modèle de reranking | `rerank-v4.0-fast` | `matching_settings.rerank_model` | **Back-office** |
 | Taille de lot | 200 (borne 1–1000) | `matching_settings.rerank_batch_size` | **Back-office** |
 | Contrainte `notify_threshold ≥ feed_threshold` | — | CHECK en base | **Personne** — migration |
-| Plafond de dépense mensuel | rerank 200 $ · claude 100 $ | `ai_spend_caps` | **Base** (aucun écran) |
+| Plafond de dépense mensuel | rerank 200 $ · claude 100 $ | `ai_spend_caps` | **Base** (aucun écran) — **bloque** |
+| Seuil d'alerte **par acteur** | organisation **10 $** · expert **2 $** | `ai_spend_seuils_acteur` | **Base** (aucun écran) — **alerte, ne bloque JAMAIS** |
 | Grille tarifaire par modèle | Sonnet 5 **2/10** · Sonnet 4.6 **3/15** · Haiku 4.5 **1/5** · rerank **0,000002 $/doc** | `ai_model_tarifs` | **Base** (aucun écran) — change quand le fournisseur change ses prix, pas quand on déploie |
 | Lots en parallèle | 4 | **Code** | Déploiement |
 | Délai fournisseur | 10 s | **Code** | Déploiement |
@@ -1567,8 +1602,10 @@ Nommées, comme demandé. Chacune exige aujourd'hui un **déploiement** :
    (entier, 0–10), **refuse** d'écrire une clé que le chemin ne lit pas, refuse une liste de drapeaux
    vide, et **journalise** qui a changé quoi, depuis quelle valeur et depuis quelle adresse. La
    valeur réelle du seuil expert est **8**, dans le jsonb — ni 9, ni la colonne.
-4. **Plafonds de dépense IA** (`ai_spend_caps`, 200 $ / 100 $) — en base, aucun écran, alors que
-   c'est un réglage d'argent que `/admin/matching` affiche déjà à côté.
+4. **Plafonds de dépense IA** (`ai_spend_caps`, 200 $ / 100 $) **et seuils d'alerte par acteur**
+   (`ai_spend_seuils_acteur`, 10 $ / 2 $) — en base, aucun écran, alors que ce sont des réglages
+   d'argent que `/admin/matching` affiche déjà à côté. Le second est moins urgent que le premier :
+   une mauvaise valeur y produit du **bruit**, pas un incident — le plafond, lui, bloque.
 5. **Limites de l'OTP** (1/60 s, 3/h, 10/h par IP) — anti-abus, donc légitimement en code, selon le
    même raisonnement que le plafond de relance (§D.7).
 6. **Taille de CV (5 Mo)**, **longueur de message (5000)**, **bornes du résumé (200–800)** — bornes de

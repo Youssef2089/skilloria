@@ -45,8 +45,18 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
   const admin = auth.supabaseAdmin
 
-  const [reglagesRes, domainesRes, distributionRes, depenseRes, couvertureRes, pannesRes, depassementsRes, inachevesRes] =
-    await Promise.all([
+  const [
+    reglagesRes,
+    domainesRes,
+    distributionRes,
+    depenseRes,
+    couvertureRes,
+    pannesRes,
+    depassementsRes,
+    inachevesRes,
+    parActeurRes,
+    seuilsActeurRes,
+  ] = await Promise.all([
     admin
       .from('matching_settings')
       .select('domain_id, feed_threshold, notify_threshold, notify_enabled, rerank_model, rerank_batch_size, updated_at'),
@@ -69,6 +79,16 @@ export async function GET(request: NextRequest): Promise<Response> {
     // disait : un ecran vide sans explication, cote expert comme cote
     // organisation. On ne change pas la regle de rejeu, on la rend LISIBLE.
     admin.rpc('matching_runs_inacheves'),
+    // ── QUI FAIT MONTER LA FACTURE ───────────────────────────────────────
+    //  Le plafond global dit COMBIEN ; il ne dit pas QUI. Une seule
+    //  organisation pouvait consommer le budget de tout l'écosystème sans
+    //  qu'aucun écran ne puisse le montrer.
+    //
+    //  RIEN N'EST STOCKÉ : la dépense par acteur est recalculée à CHAQUE
+    //  chargement, et l'alerte se déduit ici, en comparant au seuil. Un état
+    //  « en dépassement » écrit quelque part serait faux la seconde suivante.
+    admin.rpc('ai_spend_par_acteur', { p_limite: 10 }),
+    admin.from('ai_spend_seuils_acteur').select('acteur, seuil_mensuel_usd'),
   ])
 
   if (reglagesRes.error) {
@@ -82,6 +102,33 @@ export async function GET(request: NextRequest): Promise<Response> {
       { slug: d.slug, name: d.name },
     ]),
   )
+
+  // ── L'ALERTE SE CALCULE ICI, À L'AFFICHAGE ─────────────────────────────
+  //  Décision produit arbitrée : UN DÉPASSEMENT ALERTE, IL NE BLOQUE PAS. Rien
+  //  dans ce bloc n'écrit, ne refuse ni ne dégrade quoi que ce soit — il pose
+  //  un drapeau que l'écran affiche.
+  //
+  //  Les lignes `reste_non_detaille` et `non_imputable` n'ont PAS de seuil et
+  //  ne sont jamais « en alerte » : elles agrègent plusieurs acteurs, ou aucun.
+  //  Leur mettre un drapeau reviendrait à accuser quelqu'un qu'on n'a pas su
+  //  nommer.
+  const seuils = new Map(
+    ((seuilsActeurRes.data ?? []) as Array<{ acteur: string; seuil_mensuel_usd: number | string }>).map(
+      (s) => [s.acteur, Number(s.seuil_mensuel_usd)],
+    ),
+  )
+  const parActeur = parActeurRes.error
+    ? null
+    : ((parActeurRes.data ?? []) as Array<Record<string, unknown>>).map((l) => {
+        const type = l.acteur_type as string
+        const seuil = seuils.get(type) ?? null
+        const depense = Number(l.depense_mois)
+        return {
+          ...l,
+          seuil_mensuel_usd: seuil,
+          en_alerte: seuil !== null && depense >= seuil,
+        }
+      })
 
   return json(
     {
@@ -99,6 +146,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       pannes: pannesRes.error ? null : (pannesRes.data ?? []),
       depassements: depassementsRes.error ? null : (depassementsRes.data ?? []),
       inacheves: inachevesRes.error ? null : (inachevesRes.data ?? []),
+      par_acteur: parActeur,
     },
     200,
   )

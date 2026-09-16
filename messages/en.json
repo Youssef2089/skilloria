@@ -3646,6 +3646,20 @@
       "unavailable": "Spend could not be read. That is not zero: it is unknown.",
       "help": "At the cap, matching stops and writes it into the run’s trace. It does not keep spending, and it does not stop silently."
     },
+    "spendByActor": {
+      "title": "Who is driving the bill",
+      "line": "${spent} — {events} event(s)",
+      "kindOrg": "organisation",
+      "kindExpert": "expert",
+      "alert": "above the ${threshold} threshold",
+      "others": "{count} other actor(s), grouped",
+      "unattributed": "Unattributable",
+      "unnamed": "Deleted actor",
+      "none": "No spend recorded this month.",
+      "unavailable": "The per-actor breakdown could not be read. This is not zero: it is unknown.",
+      "help": "Going over the threshold RAISES AN ALERT, it never blocks: no one loses access to anything because of this screen. The lines add up to the month total — named actors, grouped remainder and unattributable included.",
+      "unattributedHelp": "“Unattributable”: spend recorded before the bill was broken down by actor. It has no known trigger and never will — spreading it over the others would mean inventing a figure. This line shrinks on its own, since the view is monthly."
+    },
     "distribution": {
       "title": "Observed distribution (last 30 days)",
       "runs": "{count} run(s) observed.",

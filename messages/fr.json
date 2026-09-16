@@ -3646,6 +3646,20 @@
       "unavailable": "La dépense n'a pas pu être lue. Ce n'est pas zéro : c'est inconnu.",
       "help": "Au plafond, la mise en relation s'arrête et l'écrit dans la trace du run. Elle ne continue pas à dépenser, et elle ne s'arrête pas en silence."
     },
+    "spendByActor": {
+      "title": "Qui fait monter la facture",
+      "line": "{spent} $ — {events} événement(s)",
+      "kindOrg": "organisation",
+      "kindExpert": "expert",
+      "alert": "au-dessus du seuil de {threshold} $",
+      "others": "{count} autre(s) acteur(s), regroupé(s)",
+      "unattributed": "Non imputable",
+      "unnamed": "Acteur supprimé",
+      "none": "Aucune dépense enregistrée ce mois-ci.",
+      "unavailable": "Le découpage par acteur n'a pas pu être lu. Ce n'est pas zéro : c'est inconnu.",
+      "help": "Un dépassement ALERTE, il ne bloque pas : personne n'est privé d'un parcours par cet écran. La somme des lignes égale la dépense du mois — acteurs détaillés, reste regroupé et non imputable compris.",
+      "unattributedHelp": "« Non imputable » : des dépenses enregistrées avant que la facture soit découpée par acteur. Elles n'ont pas de déclencheur connu et n'en auront jamais — les répartir sur les autres reviendrait à inventer un chiffre. Cette ligne décroît d'elle-même, la lecture étant mensuelle."
+    },
     "distribution": {
       "title": "Distribution observée (30 derniers jours)",
       "runs": "{count} exécution(s) observée(s).",

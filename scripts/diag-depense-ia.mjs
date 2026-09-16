@@ -29,6 +29,20 @@
 //   donc la chaine plutot que de lire un fichier isole.
 //
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ET LE SECOND DEFAUT : COMPTER SANS SAVOIR POUR QUI
+//
+//   Une fois les sept points comptes, le total etait juste et MUET : une seule
+//   organisation pouvait remplir le plafond de tout l'ecosysteme sans qu'aucune
+//   requete ne puisse le montrer. Les identifiants d'acteur existaient — dans
+//   le `context` jsonb, c'est-a-dire nulle part ou l'on puisse sommer.
+//
+//   Les sections F a H exigent donc trois choses de plus :
+//     ③ que chaque depense NOMME son acteur declencheur, et UN SEUL ;
+//     ④ qu'un depassement par acteur ALERTE sans jamais bloquer ;
+//     ⑤ que la somme des lignes affichees EGALE la depense du mois — sans quoi
+//       le tableau de bord cesse d'etre croyable, et donc d'etre lu.
+//
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //   node scripts/diag-depense-ia.mjs
 //
 // AUCUN acces base, AUCUN reseau, AUCUNE variable d'environnement.
@@ -257,6 +271,143 @@ section('E. Le detecteur lui-meme est eprouve')
   ok(!APPEL_PAYANT.some((m) => m.re.test(sansCommentaires('// on appelle client.messages.create ici'))),
     'ignore : un appel cite dans un commentaire',
     'un anti-pattern doit pouvoir etre DOCUMENTE')
+}
+
+section('F. Toute depense NOMME son acteur declencheur')
+
+// Le type `ActeurIA` rend l'oubli non compilable — ce controle verifie que le
+// type existe TOUJOURS sous cette forme, et que personne ne l'a assoupli en
+// deux champs optionnels « juste pour ce cas-la ».
+{
+  const BUDGET = sansCommentaires(read('lib/ai-budget.ts'))
+
+  ok(/export type ActeurIA\s*=/.test(BUDGET),
+    'le type ActeurIA existe',
+    'sans lui, un point de depense peut enregistrer sans acteur')
+
+  // L'union interdit STRUCTURELLEMENT les deux acteurs a la fois. Deux champs
+  // optionnels les autoriseraient, et les deux sommes compteraient deux fois la
+  // meme depense.
+  const uni = BUDGET.slice(BUDGET.indexOf('export type ActeurIA'))
+  const corpsUnion = uni.slice(0, uni.indexOf('\n\n'))
+  ok(
+    /\{\s*type:\s*'organization';\s*id:\s*string\s*\}/.test(corpsUnion) &&
+      /\{\s*type:\s*'profile';\s*id:\s*string\s*\}/.test(corpsUnion),
+    'ActeurIA est une UNION — deux acteurs a la fois ne compilent pas',
+    'deux champs optionnels laisseraient les sommes se compter deux fois')
+
+  // L'argument est OBLIGATOIRE : `acteur?` reintroduirait le defaut silencieux.
+  const sig = BUDGET.slice(BUDGET.indexOf('export async function enregistrerDepenseIA'))
+  const argsIA = sig.slice(0, sig.indexOf('): Promise'))
+  ok(/\n\s*acteur:\s*ActeurIA/.test(argsIA) && !/acteur\?:/.test(argsIA),
+    'l’argument acteur est OBLIGATOIRE, sans defaut',
+    'un acteur optionnel rend le non-imputable possible par simple oubli')
+
+  // Les deux colonnes sont REELLEMENT ecrites, et depuis le type.
+  ok(/organization_id: args\.acteur\.type === 'organization'/.test(BUDGET) &&
+     /profile_id: args\.acteur\.type === 'profile'/.test(BUDGET),
+    'les deux colonnes d’acteur sont ecrites depuis le type',
+    'un acteur porte seulement dans le contexte jsonb reste inagregeable')
+
+  // CHAQUE appel passe un acteur. Le compilateur le garantit deja ; on le
+  // verifie quand meme, car un objet construit ailleurs le contournerait sans
+  // erreur de type.
+  const appels = []
+  for (const f of fichiers) {
+    if (f === 'lib/ai-budget.ts') continue
+    const code = sansCommentaires(read(f))
+    let k = code.indexOf('enregistrerDepenseIA(')
+    while (k >= 0) {
+      const bloc = code.slice(k, k + 700)
+      appels.push({ fichier: f, aActeur: /\bacteur:/.test(bloc) })
+      k = code.indexOf('enregistrerDepenseIA(', k + 1)
+    }
+  }
+  const muets = appels.filter((a) => !a.aActeur)
+  ok(appels.length >= 7,
+    `les ${appels.length} enregistrement(s) de depense sont vus par le controle`,
+    'moins de sept : un point de depense a disparu ou n’est plus detecte')
+  ok(muets.length === 0,
+    'aucun enregistrement ne se passe d’acteur',
+    muets.map((m) => m.fichier).join(', '))
+
+  // L'ECHAPPATOIRE EST VISIBLE. `non_imputable` est legitime, mais il doit
+  // rester RARE et MOTIVE : on compte ses usages pour qu'il ne se repande pas
+  // en silence. Aucun aujourd'hui.
+  const evasions = fichiers.filter(
+    (f) => f !== 'lib/ai-budget.ts' && /type: 'non_imputable'/.test(sansCommentaires(read(f))),
+  )
+  ok(evasions.length === 0,
+    `l’echappatoire non_imputable n’est utilisee nulle part (${evasions.length})`,
+    'usage(s) : ' + evasions.join(', ') + ' — legitime, mais il doit etre motive et rester rare')
+}
+
+section('G. L’alerte par acteur ALERTE — elle ne bloque rien')
+
+{
+  const ROUTE = sansCommentaires(read('app/api/admin/matching-settings/route.ts'))
+  const ECRAN = sansCommentaires(read('app/[locale]/admin/matching/page.tsx'))
+
+  ok(/ai_spend_par_acteur/.test(ROUTE),
+    'le decoupage par acteur est LU par l’ecran',
+    'une comptabilite qu’aucun ecran ne montre ne sert a rien')
+
+  // RIEN N'EST STOCKE : l'alerte se deduit a chaque chargement.
+  ok(/en_alerte: seuil !== null/.test(ROUTE),
+    'l’alerte est CALCULEE a l’affichage, jamais stockee',
+    'un etat « en depassement » ecrit quelque part serait faux la seconde suivante')
+
+  // Le drapeau ne doit exister QUE pour etre affiche. S'il commandait un refus,
+  // un `return`, un 4xx ou une degradation, l'alerte serait devenue un blocage.
+  const BLOQUE = /en_alerte[^\n]*\)\s*\{?\s*(return|throw)/
+  ok(!BLOQUE.test(ROUTE) && !BLOQUE.test(ECRAN),
+    'aucun refus, aucun arret ne depend de en_alerte',
+    'la decision produit est arbitree : un depassement ALERTE, il ne bloque pas')
+
+  const METIER = fichiers.filter((f) => !f.startsWith('app/api/admin/') && !f.includes('admin/matching'))
+  const contamines = METIER.filter((f) => /\ben_alerte\b|ai_spend_seuils_acteur/.test(sansCommentaires(read(f))))
+  ok(contamines.length === 0,
+    'le seuil par acteur ne sort pas de l’ecran d’administration',
+    'lu dans un parcours, il finirait par le conditionner : ' + contamines.join(', '))
+
+  // AUCUNE PRORATION. Une depense n'est jamais divisee entre acteurs : le
+  // non-imputable reste non-imputable, il ne se repartit pas.
+  const PRORATION = /(depense|cost_usd|depense_mois)\s*[/*]\s*[a-z_]*(acteurs|organisations|profils|count)/i
+  const proratises = fichiers.filter((f) => PRORATION.test(sansCommentaires(read(f))))
+  ok(proratises.length === 0,
+    'aucune depense n’est proratisee entre acteurs',
+    'repartir le non-imputable inventerait un chiffre : ' + proratises.join(', '))
+}
+
+section('H. La somme peut boucler — les deux fenetres sont identiques')
+
+{
+  // La propriete « Σ lignes = depense du mois » ne tient QUE si les deux
+  // fonctions decoupent le mois de la MEME facon. Deux expressions differentes
+  // decaleraient les totaux de quelques heures en fin de mois, et l'ecran
+  // mentirait sans lever la moindre erreur.
+  const FENETRE = /created_at >= date_trunc\('month', now\(\) at time zone 'utc'\)/
+  const SQL = readdirSync(join(ROOT, 'supabase/migrations'))
+    .filter((f) => f.endsWith('.sql'))
+    .map((f) => read('supabase/migrations/' + f))
+    .join('\n')
+
+  const debut = SQL.indexOf('function public.ai_spend_par_acteur')
+  const corps = debut < 0 ? '' : SQL.slice(debut, SQL.indexOf('$fn$;', debut) + 5)
+
+  ok(FENETRE.test(corps),
+    'ai_spend_par_acteur decoupe le mois comme ai_spend_status',
+    'deux fenetres differentes et la somme cesse de boucler')
+
+  ok(/constraint ai_spend_un_seul_acteur/.test(SQL),
+    'la base refuse deux acteurs sur le meme evenement',
+    'sans elle, les sommes par organisation et par profil compteraient deux fois')
+
+  // Les deux lignes agregees doivent EXISTER dans la fonction, sans quoi la
+  // somme ne boucle pas : le reste tronque ou le non-imputable disparaitraient.
+  ok(/'reste_non_detaille'/.test(corps) && /'non_imputable'/.test(corps),
+    'le reste tronque et le non-imputable sont des lignes rendues',
+    'sans elles, le tableau affiche moins que la depense reelle')
 }
 
 console.log(echecs === 0 ? '\n✔ TOUT VERT' : `\n✘ ${echecs} CONTROLE(S) EN ECHEC`)

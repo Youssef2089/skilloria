@@ -258,6 +258,10 @@ export async function runMatchingForExpert(args: {
     tailleLot: s.rerank_batch_size,
     requete,
     documents: aNoter,
+    // SENS EXPERT → ANNONCES : c'est l'expert qui déclenche la notation, et non
+    // les organisations dont les annonces sont notées. L'acteur est l'inverse
+    // de l'autre sens — d'où l'argument obligatoire côté rerank.
+    acteur: { type: 'profile', id: profileId },
     contexte: { profile_id: profileId },
     // Ici l'identifiant noté est celui de l'ANNONCE, et le profil est fixe :
     // c'est l'inverse de l'autre sens, mais la même clé de brouillon.

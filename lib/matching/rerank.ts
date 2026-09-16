@@ -1,6 +1,6 @@
 import { capaciteActive } from '@/lib/interrupteurs'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { budgetDisponible, enregistrerDepenseIA } from '@/lib/ai-budget'
+import { budgetDisponible, enregistrerDepenseIA, type ActeurIA } from '@/lib/ai-budget'
 
 /**
  * LE RERANKER — un score par couple (requête, document), sans compétition.
@@ -226,6 +226,17 @@ export async function rerankerTout(args: {
   tailleLot: number
   requete: string
   documents: readonly DocumentANoter[]
+  /**
+   * QUI PAIE CE RUN — et ce n'est pas le même selon le SENS.
+   *
+   *   annonce → experts : l'organisation a publié, elle déclenche la notation ;
+   *   expert → annonces : l'expert s'est ouvert, il la déclenche.
+   *
+   * La notation est le poste le plus cher du moteur : la porter sur le mauvais
+   * acteur inverserait le classement de l'écran. L'appelant connaît son sens ;
+   * ce module ne le devine pas.
+   */
+  acteur: ActeurIA
   contexte?: Record<string, unknown>
   /**
    * Appelé après CHAQUE lot réussi, avec les notes de ce lot seul.
@@ -319,6 +330,7 @@ export async function rerankerTout(args: {
       await enregistrerDepenseIA(args.supabaseAdmin, {
         provider: 'rerank',
         action: 'matching_pool',
+        acteur: args.acteur,
         consommation: { forme: 'unites', model: args.model, unites: lot.length },
         domain_id: args.domainId,
         context: { ...args.contexte },

@@ -103,6 +103,10 @@ export async function enregistrerDepense(
   args: {
     provider: Fournisseur
     domain_id?: string | null
+    /** L'acteur DÉCLENCHEUR — au plus un des deux, jamais les deux (cf. `ActeurIA`). */
+    organization_id?: string | null
+    profile_id?: string | null
+    action?: ActionIA | null
     units: number
     cost_usd: number
     context?: Record<string, unknown>
@@ -118,6 +122,9 @@ export async function enregistrerDepense(
     const { error } = await supabaseAdmin.from('ai_spend_events').insert({
       provider: args.provider,
       domain_id: args.domain_id ?? null,
+      organization_id: args.organization_id ?? null,
+      profile_id: args.profile_id ?? null,
+      action: args.action ?? null,
       units: Math.max(0, Math.round(args.units)),
       cost_usd: Math.max(0, args.cost_usd),
       context: args.context ?? null,
@@ -163,6 +170,32 @@ export type ActionIA =
   | 'expert_verification'
   | 'org_verification'
   | 'publication_quality'
+
+/**
+ * QUI FAIT MONTER LA FACTURE — et pourquoi un seul acteur, jamais deux.
+ *
+ * L'acteur retenu est celui qui DÉCLENCHE la dépense, pas celui qui en profite.
+ * Un jugement de candidature profite à l'organisation, mais c'est l'expert qui
+ * l'a déclenché en postulant : il est porté au profil.
+ *
+ * ═══ POURQUOI UNE UNION, ET PAS DEUX CHAMPS OPTIONNELS ══════════════════════
+ *   Deux champs optionnels laisseraient renseigner les deux. La somme par
+ *   organisation et la somme par profil compteraient alors deux fois la même
+ *   dépense, et leur total dépasserait la dépense réelle. La base porte la même
+ *   règle (`ai_spend_un_seul_acteur`) — ici elle est portée par le TYPE, donc
+ *   l'erreur ne compile pas au lieu d'échouer en production.
+ *
+ * ═══ L'ARGUMENT EST OBLIGATOIRE, ET IL N'A AUCUN DÉFAUT ═════════════════════
+ *   Pas de `acteur?:`. Un huitième point de dépense écrit demain DOIT choisir —
+ *   y compris choisir `non_imputable`, mais alors en écrivant la raison, qui
+ *   part dans le contexte et se lit à l'écran. Un défaut silencieux aurait
+ *   reproduit exactement le défaut qu'on ferme : une dépense qui n'appartient à
+ *   personne sans que personne l'ait décidé.
+ */
+export type ActeurIA =
+  | { type: 'organization'; id: string }
+  | { type: 'profile'; id: string }
+  | { type: 'non_imputable'; pourquoi: string }
 
 /**
  * Le tarif d'un modèle, ou `null` s'il n'est pas dans la grille.
@@ -217,6 +250,8 @@ export async function enregistrerDepenseIA(
   args: {
     provider: Fournisseur
     action: ActionIA
+    /** OBLIGATOIRE, sans défaut : cf. `ActeurIA`. */
+    acteur: ActeurIA
     consommation: ConsommationIA
     domain_id?: string | null
     context?: Record<string, unknown>
@@ -236,12 +271,22 @@ export async function enregistrerDepenseIA(
     await enregistrerDepense(supabaseAdmin, {
       provider: args.provider,
       domain_id: args.domain_id ?? null,
+      // Le type garantit qu'un seul des deux est renseigné ; ces deux lignes ne
+      // font que le transcrire en colonnes.
+      organization_id: args.acteur.type === 'organization' ? args.acteur.id : null,
+      profile_id: args.acteur.type === 'profile' ? args.acteur.id : null,
+      action: args.action,
       units: unitesBrutes(args.consommation),
       cost_usd: cout ?? 0,
       context: {
         model: args.consommation.model,
         action: args.action,
         ...(cout === null ? { tarif_manquant: true } : {}),
+        // La raison d'un non-imputable est CONSERVÉE : c'est ce qui permet de
+        // distinguer un angle mort assumé d'un oubli.
+        ...(args.acteur.type === 'non_imputable'
+          ? { non_imputable_pourquoi: args.acteur.pourquoi }
+          : {}),
         ...(args.consommation.forme === 'jetons'
           ? { jetons_entree: args.consommation.entree, jetons_sortie: args.consommation.sortie }
           : { unites: args.consommation.unites }),

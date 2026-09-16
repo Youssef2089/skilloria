@@ -425,9 +425,11 @@ export async function runExpertVerification(args: {
     await enregistrerDepenseIA(supabaseAdmin, {
       provider: 'claude',
       action: 'expert_verification',
+      // L'expert demande SA vérification : c'est lui qui déclenche la dépense.
+      acteur: { type: 'profile', id: profile_id },
       consommation: aiOut.usage,
       domain_id: row.domain_id,
-      context: { profile_id },
+      context: {},
     })
   }
 

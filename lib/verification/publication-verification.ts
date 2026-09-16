@@ -73,6 +73,13 @@ async function loadProviderThreshold(
 export async function runPublicationVerification(args: {
   supabaseAdmin: SupabaseClient
   publication_id: string
+  /**
+   * L'organisation qui publie — elle DÉCLENCHE le contrôle qualité, donc elle
+   * le porte. Transmise par l'appelant plutôt que relue ici : la route de
+   * publication l'a déjà en main, et une relecture serait une requête de plus
+   * pour une valeur déjà connue.
+   */
+  organization_id: string
   input: PublicationQualityInput
 }): Promise<PublicationVerdict> {
   const { supabaseAdmin, input } = args
@@ -118,6 +125,7 @@ export async function runPublicationVerification(args: {
     await enregistrerDepenseIA(supabaseAdmin, {
       provider: 'claude',
       action: 'publication_quality',
+      acteur: { type: 'organization', id: args.organization_id },
       consommation: ai.usage,
       context: { publication_id: args.publication_id },
     })

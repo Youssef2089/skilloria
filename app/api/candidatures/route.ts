@@ -291,6 +291,8 @@ export async function POST(request: NextRequest): Promise<Response> {
         supabaseAdmin: auth.supabaseAdmin,
         domainId: pubRow.domain_id,
         candidatureId: row.id,
+        // L expert qui depose : c est lui qui declenche le jugement.
+        profileId: profileRow.id,
         entree: {
           locale: 'fr',
           annonce: {
