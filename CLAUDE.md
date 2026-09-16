@@ -192,7 +192,9 @@ avec le seed) : `publications_per_month`, `active_publications_max`,
 `transactions`, `usage_counters`, `promo_codes`, `promo_code_uses`, `stripe_events`.
 
 **Moteur & exploitation** — `matching_settings`, `matching_notes_partielles`, `relance_overruns`,
-`ai_quotas`, `ai_spend_caps`, `ai_spend_events`, `ai_redaction_failures`, `rate_limit_hits`,
+`ai_quotas`, `ai_spend_caps`, `ai_spend_seuils_acteur`, `ai_spend_events`, `ai_model_tarifs`,
+`duree_reglages`,
+`ai_redaction_failures`, `rate_limit_hits`,
 `cron_job_catalog`, `cron_run_log`, `audit_logs`.
 
 ### B.2 Les déplacements structurants — ceux qui piègent
@@ -598,6 +600,26 @@ portait le même motif et passait en vert alors que la condition avait été ret
 mutation**. Règle : **ancrer** l'assertion sur le bloc qu'elle vise, jamais lâcher une regex sur tout le
 fichier.
 
+**E.13 — Un tarif écrit à côté d'un modèle diverge du modèle, et personne ne le voit.**
+Le code appliquait `3 $ / 15 $` par million de jetons à **tous** les appels Claude. Ce sont les prix
+de **Sonnet 4.6**. Or :
+· `claude-sonnet-5` (jugement de candidature, pitch) coûte **2 $ / 10 $** → la dépense était
+**surévaluée de 50 %**, sur le seul point que le plafond comptait ;
+· `claude-haiku-4-5-*` (analyse de CV, vérifications) coûte **1 $ / 5 $** → le brancher sur cette
+grille l'aurait surévalué d'un **facteur 3**.
+Chaque module portait **sa propre** constante, et chacune se croyait « le seul endroit à corriger ».
+Un tarif unique pour plusieurs modèles n'est pas une approximation : **c'est un chiffre faux, qu'on
+croit vrai parce qu'il est affiché.**
+**La parade** : `ai_model_tarifs`, en base — un tarif change quand le **fournisseur** change ses prix,
+jamais quand on déploie (même raisonnement que `ai_spend_caps` et `ai_quotas`). `enregistrerDepenseIA`
+lit celui du modèle **réellement appelé** — y compris quand un **repli** a répondu à la place du
+principal, ce que l'ancien code ne distinguait pas. Les **unités brutes** restent journalisées : le
+coût reste recalculable quand la grille change. Tarif absent ⇒ coût **0**, drapeau `tarif_manquant`,
+journal bruyant — **jamais un refus** : l'appel a déjà eu lieu, et casser le dépôt d'un CV pour une
+ligne de configuration manquante serait pire que le défaut corrigé.
+Gardé par [scripts/diag-depense-ia.mjs](scripts/diag-depense-ia.mjs), qui vérifie aussi que **tout
+modèle cité dans le code a un tarif seedé**.
+
 **E.10 — UNE VALEUR POSÉE À LA MAIN EN BASE NE SURVIT PAS À UNE RECONSTRUCTION, ET PERSONNE NE LE SAIT.**
 C'est le piège le plus coûteux établi à ce jour, parce qu'il ne laisse **aucune trace exploitable**.
 
@@ -701,6 +723,53 @@ qui crie à tort est désactivé le jour même : la liste de valeurs s'arrêtait
 `on conflict (name) do nothing` était lu comme **un tuple de plus** (six migrations saines
 dénoncées) ; et la règle « `translations` doit être la **dernière** insertion » dénonçait
 `public_email_domains`, que **aucune** traduction ne référence.
+
+**E.14 — Rien ne dit QUELS diagnostics un lot doit rejouer, alors on les choisit de mémoire.**
+Il y a **~70** scripts `diag-*.mjs` et **aucun test runner**. Le dépôt ne dit nulle part lesquels
+lisent les fichiers qu'on vient de modifier : on en lance donc quatre ou cinq, ceux qu'on a en tête.
+
+**Le cas réel, et il est récent.** Le lot « les sept points de dépense » a été livré (`246c592`) avec
+[scripts/diag-moteur-reranking.mjs](scripts/diag-moteur-reranking.mjs) **au rouge**. Il ancrait
+`enregistrerDepense(` ; le lot avait renommé l'appel en `enregistrerDepenseIA(`. **Aucun défaut
+réel** — mais un contrôle rouge livré, c'est-à-dire un contrôle qu'on apprend à ignorer, et c'est
+ainsi qu'ils meurent tous. Il n'a été vu qu'au lot **suivant**, par hasard.
+
+**La parade : [scripts/diag-controles-a-rejouer.mjs](scripts/diag-controles-a-rejouer.mjs).**
+Il lit les fichiers du lot (`git diff --name-only <base>` + non suivis), cherche lesquels des ~70
+diagnostics les **citent**, et — c'est le point qui compte — considère aussi comme concernés les
+contrôles **de classe**, ceux qui ne citent personne parce qu'ils *balaient* un dossier
+(`readdirSync` sur `app/`, `lib/`, `supabase/migrations/`, `messages/`, `scripts/`). Sans cette
+règle, les contrôles qui attrapent justement le cas non prévu ne seraient jamais proposés.
+Puis **il les rejoue** : un diagnostic qu'on se contente de *nommer* n'est pas joué. Il sort en `1`
+si l'un d'eux est rouge.
+
+Sur le lot « dépense par acteur » : **36 diagnostics concernés**. J'en aurais lancé quatre.
+
+> Deux limites, dites plutôt que tues : il ne remplace pas le jugement (un lot peut mériter un
+> contrôle qui ne cite aucun de ses fichiers), et il ne connaît que les liens **textuels** — un
+> diagnostic qui atteindrait un fichier par une chaîne construite lui échapperait.
+
+**E.15 — Un composant CLIENT qui applique une règle serveur la fige dans le bundle.**
+Rendre une règle réglable ne suffit pas : il faut savoir QUI l'applique. Le balayage des
+consommateurs, fait sur `app/` et `lib/`, en avait trouvé **treize**, tous serveur — et concluait
+que « la lecture faite par les routes » tenait partout. **Il manquait `components/`.**
+
+C'est le compilateur qui l'a dit : [components/dashboard/PublicationForm.tsx](components/dashboard/PublicationForm.tsx)
+importait `PUBLICATION_TTL_DAYS` pour annoncer, dans la fenêtre de confirmation,
+« votre annonce sera visible jusqu'au … ». Un composant `'use client'`, rendu par deux pages
+`'use client'` : **aucun composant serveur dans la chaîne** pour lui passer la valeur. La constante
+aurait donc annoncé **30 jours pendant que le serveur en appliquait 20** — un chiffre faux dit à
+l'utilisateur à la seconde exacte où il s'engage.
+
+**Ce qui a été fait, et ce qui a été refusé.** Refusé : garder la constante « juste pour le
+libellé ». Fait : [app/api/durees/route.ts](app/api/durees/route.ts) rend la valeur, le composant la
+lit, et **s'il ne l'a pas il n'écrit pas la phrase** — mieux vaut ne rien promettre que promettre
+une date que le serveur ne tiendra pas. La règle du lot tient donc : la lecture reste faite par une
+route, le client ne fait qu'afficher.
+
+**La parade** : `diag-durees-reglables` balaie `app/`, `lib/` **et `components/`**, et rougit sur
+tout fichier `'use client'` qui importe une règle de durée — un client ne lit pas la base, la valeur
+qu'il applique vient forcément d'ailleurs.
 
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
@@ -954,11 +1023,12 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   secrets du Vault : `purge_deletions_trigger`, `purge_inactive_trigger`, `matching_retry_trigger`,
   `expert_relance_trigger`. Les deux premières portent une **obligation légale** (RGPD art. 17 et
   CNIL). Elles ne se plaignent qu'au journal de la base : rien à l'écran.
-- **`ensure_rls` n'a jamais été exécuté nulle part** — sa branche `create` est sautée par un
-  `if not exists` sur tous les environnements connus. `CREATE EVENT TRIGGER` exige un privilège que
-  le rôle `postgres` de Supabase ne possède pas toujours ; un refus ferait échouer la migration **au
-  4ᵉ fichier sur 51**, et les 47 suivantes ne s'appliqueraient pas. **NON VÉRIFIÉ à ce jour** —
-  éprouver le privilège avant le jour J (cf. la réponse en fin de lot).
+- **`ensure_rls` est ÉPROUVÉ.** Sa branche `create` avait été sautée par un `if not exists` sur tous
+  les environnements connus, donc **jamais exécutée nulle part** ; `CREATE EVENT TRIGGER` exige un
+  privilège que le rôle `postgres` de Supabase ne possède pas toujours, et un refus aurait fait
+  échouer la migration **au 4ᵉ fichier**, les suivantes ne s'appliquant pas.
+  **Le 16 septembre 2026, les 52 migrations se sont déroulées sur une base VIERGE en local, sans une
+  seule erreur. La branche `create` s'est exécutée pour la première fois, sans refus de privilège.**
 
 **Conformité**
 - L'inscription au **registre des traitements** reste à faire pour `cron_run_log.response_body`, qui
@@ -975,9 +1045,19 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 - ~~Les seuils de `verification_providers` sans écran~~ — **CLOS** : `/admin/seuils` est livré (§P2.4).
   Reste sans écran : **`ai_spend_caps`**, les plafonds de dépense IA — `/admin/matching` affiche la
   dépense du mois **sans** le plafond en regard.
-- **Cinq des sept points de dépense IA n'enregistrent rien et ne consultent jamais le plafond**
-  (§P4.3) : le « plafond Claude 100 $ » ne compte aujourd'hui que le jugement de candidature et le
-  pitch. Le total est faux **avant** toute répartition par acteur.
+- ~~Cinq des sept points de dépense IA n'enregistrent rien~~ — **CLOS.** Les **sept** consultent le
+  plafond avant d'appeler et enregistrent après, au tarif du modèle réellement appelé (§E.13).
+  Gardé par un contrôle **de classe** : un huitième point ajouté demain rougit s'il est muet.
+- ~~La dépense IA n'est pas répartie par acteur~~ — **CLOS.** Chaque événement nomme son acteur
+  **déclencheur** (« qui fait monter la facture »), et **un seul** : contrainte en base
+  (`ai_spend_un_seul_acteur`) *et* dans le type (`ActeurIA` est une union, pas deux champs
+  optionnels), pour que les deux sommes ne comptent jamais deux fois la même dépense.
+  `/admin/matching` affiche le découpage, l'alerte étant **recalculée à chaque affichage** —
+  rien n'est stocké, aucune tâche planifiée. **Un dépassement alerte, il ne bloque pas.**
+  La dépense antérieure au découpage apparaît en clair sur une ligne **« non imputable »** :
+  elle n'est **jamais proratisée** sur les autres, et elle décroît d'elle-même (lecture mensuelle).
+  Reste ouvert : **`ai_spend_caps` et `ai_spend_seuils_acteur` n'ont aucun écran** — deux réglages
+  d'argent que `/admin/matching` affiche déjà sans permettre de les changer.
 
 ---
 
@@ -1570,8 +1650,9 @@ l'expose**. « Code » = un déploiement est nécessaire.
 | Modèle de reranking | `rerank-v4.0-fast` | `matching_settings.rerank_model` | **Back-office** |
 | Taille de lot | 200 (borne 1–1000) | `matching_settings.rerank_batch_size` | **Back-office** |
 | Contrainte `notify_threshold ≥ feed_threshold` | — | CHECK en base | **Personne** — migration |
-| Plafond de dépense mensuel | rerank 200 $ · claude 100 $ | `ai_spend_caps` | **Base** (aucun écran) |
-| Coût unitaire retenu | 0,000002 $/document | **Code** `lib/matching/rerank.ts` | Déploiement |
+| Plafond de dépense mensuel | rerank 200 $ · claude 100 $ | `ai_spend_caps` | **Base** (aucun écran) — **bloque** |
+| Seuil d'alerte **par acteur** | organisation **10 $** · expert **2 $** | `ai_spend_seuils_acteur` | **Base** (aucun écran) — **alerte, ne bloque JAMAIS** |
+| Grille tarifaire par modèle | Sonnet 5 **2/10** · Sonnet 4.6 **3/15** · Haiku 4.5 **1/5** · rerank **0,000002 $/doc** | `ai_model_tarifs` | **Base** (aucun écran) — change quand le fournisseur change ses prix, pas quand on déploie |
 | Lots en parallèle | 4 | **Code** | Déploiement |
 | Délai fournisseur | 10 s | **Code** | Déploiement |
 | Délai de relance | **60 min** | **Code** `DELAI_RELANCE_MINUTES` | Déploiement |
@@ -1599,8 +1680,8 @@ l'expose**. « Code » = un déploiement est nécessaire.
 ### P3.4 — Délais et cycles de vie
 | Règle | Valeur | Origine | Qui peut la changer |
 |---|---|---|---|
-| Durée de vie d'une annonce | **30 j**, calculés **à la lecture** | **Code** `lib/publications/expiry.ts` | Déploiement |
-| Fenêtre d'échange | **15 j** depuis le dévoilement, **écrits** en base | **Code** `CONVERSATION_TTL_DAYS` | Déploiement |
+| Durée de vie d'une annonce | **30 j**, calculés **à la lecture** | `duree_reglages.vie_annonce_jours` | **Back-office** `/admin/durees` — **changement RÉTROACTIF** |
+| Fenêtre d'échange | **15 j** depuis le dévoilement, **écrits** en base | `duree_reglages.fenetre_echange_jours` | **Back-office** `/admin/durees` — changement **NON** rétroactif |
 | Grâce avant suppression définitive | **90 j** | **Code** `GRACE_DAYS` | Déploiement |
 | Avertissement d'inactivité | **23 mois** | **Code** `WARNING_MONTHS` | Déploiement |
 | Purge d'inactivité (CNIL) | **24 mois** | **Code** `PURGE_MONTHS` | Déploiement |
@@ -1640,17 +1721,36 @@ l'expose**. « Code » = un déploiement est nécessaire.
 ### P3.7 — Les règles EN DUR qui devraient être réglables
 Nommées, comme demandé. Chacune exige aujourd'hui un **déploiement** :
 
-1. **Durée de vie d'une annonce (30 j)** et **fenêtre d'échange (15 j)** — deux règles que
-   l'utilisateur voit, que le commerce pourrait vouloir différencier par offre, et qui vivent en
-   constantes de code. Ce sont les plus mûres pour un passage en base.
+1. ~~**Durée de vie d'une annonce (30 j)** et **fenêtre d'échange (15 j)**~~ — **CLOS.**
+   `/admin/durees` les règle, borne **au serveur** (entier, 1–365), et **trace** chaque changement.
+   Les deux valeurs sont **identiques pour toutes les offres** : la différenciation par offre reste
+   possible, elle n'est pas faite, et rien ne la prépare en douce.
+
+   **L'asymétrie est le vrai sujet, et l'écran l'écrit en toutes lettres :**
+   · la vie d'une annonce est **RÉTROACTIVE** — `publications.expires_at` n'est jamais écrit,
+     l'activité se recalcule à chaque lecture ; la baisser retire de la place, tout de suite, des
+     annonces déjà en ligne ;
+   · la fenêtre d'échange **ne l'est pas** — `conversations.expires_at` est écrit au déblocage, les
+     échanges ouverts gardent leur date.
+
+   Une baisse est **comptée avant d'être écrite** (`annonces_basculant_par_duree`, qui compte ce qui
+   **bascule** et non le total : « 14 seraient expirées » n'alarme personne si 12 le sont déjà), et
+   le nombre d'annonces concernées — **dont celles portant des candidatures dévoilées, donc payées** —
+   est montré avant validation. **On demande confirmation, on ne bloque pas** : un refus définitif
+   aurait obligé à modifier la base à la main, le défaut même qu'on ferme (§E.10).
+
+   Côté code : **argument obligatoire, aucun défaut**, la lecture faite par les routes. Un appel qui
+   oublie la durée **ne compile pas**. Piège découvert en chemin : §E.15.
 2. **Grâce de suppression (90 j)**, **avertissement (23 mois)**, **purge (24 mois)** — contraintes
    légales, donc stables ; mais les rendre lisibles depuis un écran servirait le registre RGPD.
 3. ~~Seuils de `verification_providers`~~ — **CLOS.** `/admin/seuils` les règle, borne **au serveur**
    (entier, 0–10), **refuse** d'écrire une clé que le chemin ne lit pas, refuse une liste de drapeaux
    vide, et **journalise** qui a changé quoi, depuis quelle valeur et depuis quelle adresse. La
    valeur réelle du seuil expert est **8**, dans le jsonb — ni 9, ni la colonne.
-4. **Plafonds de dépense IA** (`ai_spend_caps`, 200 $ / 100 $) — en base, aucun écran, alors que
-   c'est un réglage d'argent que `/admin/matching` affiche déjà à côté.
+4. **Plafonds de dépense IA** (`ai_spend_caps`, 200 $ / 100 $) **et seuils d'alerte par acteur**
+   (`ai_spend_seuils_acteur`, 10 $ / 2 $) — en base, aucun écran, alors que ce sont des réglages
+   d'argent que `/admin/matching` affiche déjà à côté. Le second est moins urgent que le premier :
+   une mauvaise valeur y produit du **bruit**, pas un incident — le plafond, lui, bloque.
 5. **Limites de l'OTP** (1/60 s, 3/h, 10/h par IP) — anti-abus, donc légitimement en code, selon le
    même raisonnement que le plafond de relance (§D.7).
 6. **Taille de CV (5 Mo)**, **longueur de message (5000)**, **bornes du résumé (200–800)** — bornes de
@@ -1729,6 +1829,13 @@ moteur qui ne notifie pas encore.*
 `matching_threshold_health()`), régler les deux seuils **sur les faits**, puis basculer
 `notify_enabled` — **par écosystème**, depuis `/admin/matching`. Le levier est « montrer plus,
 notifier moins ».
+
+> **La comptabilité IA change ce que « les faits » veulent dire ici.** Jusqu'à ce lot, la dépense
+> n'était comptée que sur **deux** des sept points, et au tarif de Sonnet 4.6 pour **tous** les
+> modèles. Régler les seuils « sur les faits » se faisait donc sur un coût faux dans les deux sens :
+> **incomplet** (cinq points muets) et **surévalué** (mauvaise grille, §E.13). Les sept points
+> comptent désormais, au tarif du modèle réellement appelé — le calibrage repose enfin sur une
+> dépense **mesurée**.
 
 ### P4.4 — `packages.max_seats` : affiché, et sans effet
 **Pourquoi c'est là.** La colonne existe en base et **n'est lue par aucune garde** : la poser à 5 ne

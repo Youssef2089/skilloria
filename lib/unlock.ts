@@ -74,7 +74,16 @@ export type PerformUnlockResult =
 export async function performUnlock(
   admin: SupabaseClient,
   candidatureId: string,
-  opts: { auto: boolean; actorUserId: string },
+  opts: {
+    auto: boolean
+    actorUserId: string
+    /**
+     * Fenêtre d'échange, en jours — EXIGÉE, aucun défaut (cf. lib/durees.ts).
+     * C'est ici, et nulle part ailleurs, que la date est POSÉE : d'où le fait
+     * qu'un changement de réglage n'affecte jamais un échange déjà ouvert.
+     */
+    fenetreEchangeJours: number
+  },
 ): Promise<PerformUnlockResult> {
   // Charge candidature + publication (self-contained pour la réutilisation).
   const { data: cand, error: candErr } = await admin
@@ -101,11 +110,12 @@ export async function performUnlock(
   }
 
   // (1) INSERT conversation — idempotent via UNIQUE candidature_id.
-  //  Fenêtre de validité 15 j : expires_at posé à la création. La constante
-  //  vit désormais dans lib/conversations/expiry.ts — SOURCE UNIQUE partagée
+  //  Fenêtre de validité RÉGLABLE : expires_at posé à la création, à partir de
+  //  la valeur lue par la route. La règle vit dans lib/conversations/expiry.ts —
+  //  SOURCE UNIQUE partagée
   //  avec la dérivation d'état de vie des candidatures (lib/candidatures/
   //  lifecycle.ts), qui doit lire EXACTEMENT la même règle que celle écrite ici.
-  const expiresAtIso = conversationExpiryIso()
+  const expiresAtIso = conversationExpiryIso({ fenetreEchangeJours: opts.fenetreEchangeJours })
   const { data: convInserted, error: convInsertErr } = await admin
     .from('conversations')
     .insert({

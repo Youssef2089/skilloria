@@ -1,4 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import {
+  coutUsd,
+  unitesBrutes,
+  type ConsommationIA,
+  type TarifModele,
+} from '@/lib/ai-consommation'
 
 /**
  * LE PLAFOND DE DÉPENSE — et ce qui se passe quand on l'atteint.
@@ -97,24 +103,200 @@ export async function enregistrerDepense(
   args: {
     provider: Fournisseur
     domain_id?: string | null
+    /** L'acteur DÉCLENCHEUR — au plus un des deux, jamais les deux (cf. `ActeurIA`). */
+    organization_id?: string | null
+    profile_id?: string | null
+    action?: ActionIA | null
     units: number
     cost_usd: number
     context?: Record<string, unknown>
   },
 ): Promise<void> {
-  const { error } = await supabaseAdmin.from('ai_spend_events').insert({
-    provider: args.provider,
-    domain_id: args.domain_id ?? null,
-    units: Math.max(0, Math.round(args.units)),
-    cost_usd: Math.max(0, args.cost_usd),
-    context: args.context ?? null,
-  })
-  if (error) {
-    console.error('[budget] DÉPENSE NON ENREGISTRÉE — le plafond va dériver', {
+  // ⚠️ NE LÈVE JAMAIS, SUR AUCUN CHEMIN.
+  //   Un expert qui dépose son CV ne doit pas être bloqué parce qu'on n'a pas
+  //   su compter une dépense. Le `try` couvre AUSSI ce que le `error` de
+  //   PostgREST ne couvre pas : une panne réseau, un client mal formé, une
+  //   exception synchrone du SDK. Même règle que le compteur de pannes de
+  //   rédaction — le module se tait sur l'échec du parcours, jamais l'inverse.
+  try {
+    const { error } = await supabaseAdmin.from('ai_spend_events').insert({
+      provider: args.provider,
+      domain_id: args.domain_id ?? null,
+      organization_id: args.organization_id ?? null,
+      profile_id: args.profile_id ?? null,
+      action: args.action ?? null,
+      units: Math.max(0, Math.round(args.units)),
+      cost_usd: Math.max(0, args.cost_usd),
+      context: args.context ?? null,
+    })
+    if (error) {
+      console.error('[budget] DÉPENSE NON ENREGISTRÉE — le plafond va dériver', {
+        provider: args.provider,
+        units: args.units,
+        cost_usd: args.cost_usd,
+        message: error.message,
+      })
+    }
+  } catch (err) {
+    console.error('[budget] DÉPENSE NON ENREGISTRÉE (exception) — le plafond va dériver', {
       provider: args.provider,
       units: args.units,
       cost_usd: args.cost_usd,
-      message: error.message,
+      cause: err instanceof Error ? err.message : String(err),
+    })
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * LA GRILLE TARIFAIRE, ET L'ENREGISTREMENT QUI S'EN SERT
+ *
+ * ═══ POURQUOI UNE SECONDE FONCTION D'ENREGISTREMENT ═════════════════════════
+ *   `enregistrerDepense` prend un coût DÉJÀ CALCULÉ. C'est ce qui a permis à
+ *   deux points de dépense d'appliquer 3 $ / 15 $ — les prix de Sonnet 4.6 — à
+ *   des appels Sonnet 5 (2 $ / 10 $) et, demain, Haiku (1 $ / 5 $).
+ *
+ *   `enregistrerDepenseIA` ne PREND PAS de coût : elle prend ce qui a été
+ *   CONSOMMÉ et le modèle qui l'a consommé, puis lit le tarif en base. Le
+ *   calcul ne peut plus diverger d'un appelant à l'autre, parce qu'il n'y a
+ *   plus qu'un endroit où il se fait.
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/** Les actions qui dépensent. Nommer ferme la liste, et l'écran les regroupe. */
+export type ActionIA =
+  | 'cv_parsing'
+  | 'matching_pool'
+  | 'candidature_assessment'
+  | 'pitch'
+  | 'expert_verification'
+  | 'org_verification'
+  | 'publication_quality'
+
+/**
+ * QUI FAIT MONTER LA FACTURE — et pourquoi un seul acteur, jamais deux.
+ *
+ * L'acteur retenu est celui qui DÉCLENCHE la dépense, pas celui qui en profite.
+ * Un jugement de candidature profite à l'organisation, mais c'est l'expert qui
+ * l'a déclenché en postulant : il est porté au profil.
+ *
+ * ═══ POURQUOI UNE UNION, ET PAS DEUX CHAMPS OPTIONNELS ══════════════════════
+ *   Deux champs optionnels laisseraient renseigner les deux. La somme par
+ *   organisation et la somme par profil compteraient alors deux fois la même
+ *   dépense, et leur total dépasserait la dépense réelle. La base porte la même
+ *   règle (`ai_spend_un_seul_acteur`) — ici elle est portée par le TYPE, donc
+ *   l'erreur ne compile pas au lieu d'échouer en production.
+ *
+ * ═══ L'ARGUMENT EST OBLIGATOIRE, ET IL N'A AUCUN DÉFAUT ═════════════════════
+ *   Pas de `acteur?:`. Un huitième point de dépense écrit demain DOIT choisir —
+ *   y compris choisir `non_imputable`, mais alors en écrivant la raison, qui
+ *   part dans le contexte et se lit à l'écran. Un défaut silencieux aurait
+ *   reproduit exactement le défaut qu'on ferme : une dépense qui n'appartient à
+ *   personne sans que personne l'ait décidé.
+ */
+export type ActeurIA =
+  | { type: 'organization'; id: string }
+  | { type: 'profile'; id: string }
+  | { type: 'non_imputable'; pourquoi: string }
+
+/**
+ * Le tarif d'un modèle, ou `null` s'il n'est pas dans la grille.
+ *
+ * Aucune mémoïsation : la lecture est une ligne par clé primaire, et un tarif
+ * mis en cache continuerait d'appliquer l'ancien prix après une correction —
+ * c'est-à-dire exactement le défaut qu'on ferme. Même raisonnement que
+ * `lib/ai-quotas.ts`.
+ */
+async function chargerTarif(
+  supabaseAdmin: SupabaseClient,
+  model: string,
+): Promise<TarifModele | null> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('ai_model_tarifs')
+      .select('model, usd_par_1m_entree, usd_par_1m_sortie, usd_par_unite')
+      .eq('model', model)
+      .maybeSingle()
+    if (error || !data) return null
+    const r = data as unknown as TarifModele
+    return {
+      model: r.model,
+      usd_par_1m_entree: r.usd_par_1m_entree == null ? null : Number(r.usd_par_1m_entree),
+      usd_par_1m_sortie: r.usd_par_1m_sortie == null ? null : Number(r.usd_par_1m_sortie),
+      usd_par_unite: r.usd_par_unite == null ? null : Number(r.usd_par_unite),
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Enregistre ce qu'un appel a consommé, au tarif de SON modèle.
+ *
+ * ⚠️ UN TARIF INCONNU NE CASSE RIEN, ET NE SE TAIT PAS.
+ *    On journalise la consommation BRUTE avec un coût NUL, un drapeau
+ *    `tarif_manquant` dans le contexte, et une erreur bruyante. Trois raisons
+ *    de ne pas refuser l'appel à la place :
+ *      · l'appel a DÉJÀ eu lieu — le coût est engagé, refuser ne rend rien ;
+ *      · casser le dépôt d'un CV parce qu'une ligne de configuration manque
+ *        serait un défaut bien pire que celui qu'on corrige ;
+ *      · les unités brutes sont conservées, donc le coût reste RECALCULABLE
+ *        une fois le tarif posé.
+ *    Le plafond, lui, cesse de compter cette dépense — d'où le drapeau, qui la
+ *    rend retrouvable.
+ *
+ * NE LÈVE JAMAIS, sur aucun chemin.
+ */
+export async function enregistrerDepenseIA(
+  supabaseAdmin: SupabaseClient,
+  args: {
+    provider: Fournisseur
+    action: ActionIA
+    /** OBLIGATOIRE, sans défaut : cf. `ActeurIA`. */
+    acteur: ActeurIA
+    consommation: ConsommationIA
+    domain_id?: string | null
+    context?: Record<string, unknown>
+  },
+): Promise<void> {
+  try {
+    const tarif = await chargerTarif(supabaseAdmin, args.consommation.model)
+    const cout = coutUsd(args.consommation, tarif)
+
+    if (cout === null) {
+      console.error(
+        '[budget] TARIF INCONNU — dépense journalisée à 0, le plafond ne la compte pas',
+        { model: args.consommation.model, action: args.action },
+      )
+    }
+
+    await enregistrerDepense(supabaseAdmin, {
+      provider: args.provider,
+      domain_id: args.domain_id ?? null,
+      // Le type garantit qu'un seul des deux est renseigné ; ces deux lignes ne
+      // font que le transcrire en colonnes.
+      organization_id: args.acteur.type === 'organization' ? args.acteur.id : null,
+      profile_id: args.acteur.type === 'profile' ? args.acteur.id : null,
+      action: args.action,
+      units: unitesBrutes(args.consommation),
+      cost_usd: cout ?? 0,
+      context: {
+        model: args.consommation.model,
+        action: args.action,
+        ...(cout === null ? { tarif_manquant: true } : {}),
+        // La raison d'un non-imputable est CONSERVÉE : c'est ce qui permet de
+        // distinguer un angle mort assumé d'un oubli.
+        ...(args.acteur.type === 'non_imputable'
+          ? { non_imputable_pourquoi: args.acteur.pourquoi }
+          : {}),
+        ...(args.consommation.forme === 'jetons'
+          ? { jetons_entree: args.consommation.entree, jetons_sortie: args.consommation.sortie }
+          : { unites: args.consommation.unites }),
+        ...(args.context ?? {}),
+      },
+    })
+  } catch (err) {
+    console.error('[budget] DÉPENSE NON ENREGISTRÉE (exception) — le plafond va dériver', {
+      action: args.action,
+      cause: err instanceof Error ? err.message : String(err),
     })
   }
 }

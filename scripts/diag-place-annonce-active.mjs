@@ -229,7 +229,10 @@ ok(
 ok(!/activeCount/.test(route), 'la variable de comptage a disparu', 'sa presence signale un retour au lire-puis-comparer')
 
 // B3 — la LISTE est bien calculee avec l'unique source, pas reconstruite.
-ok(/activePublishedOrClause\(\)/.test(route), 'la liste des actives passe par activePublishedOrClause()', 'toute reconstruction du filtre ici ferait une seconde regle d\'activite')
+// Le motif accepte desormais un ARGUMENT : la duree n'est plus une constante
+// du module, elle est lue par la route et passee ici. Exiger `()` vide
+// ferait rougir ce controle sur le lot qui a justement rendu la duree reglable.
+ok(/activePublishedOrClause\(/.test(route), 'la liste des actives passe par activePublishedOrClause()', 'toute reconstruction du filtre ici ferait une seconde regle d\'activite')
 ok(/p_ids_actives:/.test(route), 'la liste est transmise a la base', '')
 
 // B4 — PIEGE 2 : FAIL-CLOSED. Une erreur de lecture ou de RPC doit RETOURNER.

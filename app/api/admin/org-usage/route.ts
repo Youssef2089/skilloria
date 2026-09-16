@@ -3,6 +3,7 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { getOrgEntitlements, monthlyPeriodStart } from '@/lib/entitlements'
 import { activePublishedOrClause } from '@/lib/publications/expiry'
+import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -63,13 +64,15 @@ async function peek(
 async function countActivePublished(
   admin: Awaited<ReturnType<typeof requireAdmin>>['supabaseAdmin'],
   orgId: string,
+  /** Vie d'une annonce, en jours — EXIGÉE, lue par la route (lib/durees.ts). */
+  vieAnnonceJours: number,
 ): Promise<number> {
   const { count, error } = await admin
     .from('publications')
     .select('id', { count: 'exact', head: true })
     .eq('organization_id', orgId)
     .eq('status', 'published')
-    .or(activePublishedOrClause())
+    .or(activePublishedOrClause({ vieAnnonceJours }))
   if (error) {
     console.warn('[admin:org-usage] active publications count error', error.message)
     return 0
@@ -85,6 +88,18 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+
+  // ── LES DURÉES SONT LUES ICI, PAR LA ROUTE ───────────────────────────────
+  //  Aucun défaut dans le code (cf. lib/durees.ts) : illisibles, on REFUSE en
+  //  le nommant plutôt que de servir une durée inventée. Même parti pris que
+  //  `matching_settings` — un repli codé en dur devient une seconde source de
+  //  vérité, et elle prend la main le jour où l'on comprend le moins.
+  const lectureDurees = await chargerDurees(auth.supabaseAdmin)
+  if (!lectureDurees.ok) {
+    console.error('[admin:org-usage] durées de la place illisibles', lectureDurees.raison)
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
+  }
+  const durees = lectureDurees.durees
 
   const url = new URL(request.url)
   const organizationId = (url.searchParams.get('organization_id') ?? '').trim()
@@ -121,7 +136,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const [publicationsUsed, manualUnlocksUsed, activePublished] = await Promise.all([
     peek(auth.supabaseAdmin, organizationId, 'publications', period),
     peek(auth.supabaseAdmin, organizationId, 'manual_unlocks', period),
-    countActivePublished(auth.supabaseAdmin, organizationId),
+    countActivePublished(auth.supabaseAdmin, organizationId, durees.vieAnnonceJours),
   ])
 
   return json(

@@ -4,6 +4,7 @@ import { loadTranslations, tBDD } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { activePublishedOrClause } from '@/lib/publications/expiry'
 import { loadReferentielLabels } from '@/lib/publication-synthesis'
+import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -77,6 +78,18 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     throw err
   }
 
+  // ── LES DURÉES SONT LUES ICI, PAR LA ROUTE ───────────────────────────────
+  //  Aucun défaut dans le code (cf. lib/durees.ts) : illisibles, on REFUSE en
+  //  le nommant plutôt que de servir une durée inventée. Même parti pris que
+  //  `matching_settings` — un repli codé en dur devient une seconde source de
+  //  vérité, et elle prend la main le jour où l'on comprend le moins.
+  const lectureDurees = await chargerDurees(auth.supabaseAdmin)
+  if (!lectureDurees.ok) {
+    console.error('[me/missions/[id]:GET] durées de la place illisibles', lectureDurees.raison)
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
+  }
+  const durees = lectureDurees.durees
+
   const { id: publicationId } = await ctx.params
   if (!publicationId || !UUID_REGEX.test(publicationId)) {
     return json({ error: 'Invalid id', code: 'not_found' }, 404)
@@ -131,9 +144,9 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
       )
       .eq('id', publicationId)
       .eq('status', 'published')
-      // Expiration 30j read-time : le détail d'une mission expirée n'est plus
+      // Expiration read-time : le détail d'une mission expirée n'est plus
       // servi côté expert (lib/publications/expiry — source unique).
-      .or(activePublishedOrClause())
+      .or(activePublishedOrClause({ vieAnnonceJours: durees.vieAnnonceJours }))
       .maybeSingle(),
     loadTranslations(locale),
   ])

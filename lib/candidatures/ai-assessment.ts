@@ -1,7 +1,7 @@
 import { capaciteActive } from '@/lib/interrupteurs'
 import Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { budgetDisponible, enregistrerDepense } from '@/lib/ai-budget'
+import { budgetDisponible, enregistrerDepenseIA, type ActeurIA, type ActionIA } from '@/lib/ai-budget'
 // Deux LECTEURS, pas deux filtres : ils vérifient que le modèle a répondu
 // quelque chose d'exploitable, ils ne jugent pas le contenu du texte. Sans
 // aucune dépendance, donc éprouvables à l'exécution.
@@ -65,13 +65,19 @@ const MODELE = 'claude-sonnet-5'
 const MAX_TOKENS = 1200
 const TIMEOUT_MS = 30_000
 
-/**
- * Coût par million de jetons, en dollars. Écrit ici parce que le plafond
- * mensuel s'appuie dessus ; on journalise AUSSI le volume brut de jetons, pour
- * que le coût reste recalculable quand la grille change.
+/*
+ * LE TARIF A QUITTÉ CE FICHIER, ET IL ÉTAIT FAUX.
+ *
+ *   Ces constantes valaient 3 $ / 15 $ par million de jetons — les prix de
+ *   **Sonnet 4.6**. Or ce module appelle `claude-sonnet-5`, qui coûte
+ *   2 $ / 10 $. La dépense était donc SURÉVALUÉE DE 50 %, sur le seul point
+ *   que le plafond comptait.
+ *
+ *   Un tarif écrit à côté d'un modèle diverge dès que le modèle change — et
+ *   il change sans que personne pense au tarif. La grille vit désormais en
+ *   base (`ai_model_tarifs`), et `enregistrerDepenseIA` lit celle du modèle
+ *   RÉELLEMENT appelé. Il n'y a plus qu'un endroit où le coût se calcule.
  */
-const COUT_USD_PAR_1M_ENTREE = 3
-const COUT_USD_PAR_1M_SORTIE = 15
 
 export type Langue = 'fr' | 'en' | 'es' | 'de'
 
@@ -231,6 +237,15 @@ async function appeler(args: {
   supabaseAdmin: SupabaseClient
   domainId: string | null
   prompt: string
+  /** Quelle action dépense. Deux appelants, deux actions : le jugement au dépôt
+   *  et la rédaction du pitch ne se confondent pas dans la comptabilité. */
+  action: ActionIA
+  /**
+   * Et deux ACTEURS opposés, pour la même raison : l'expert déclenche le
+   * jugement en postulant, l'organisation déclenche le pitch en le demandant.
+   * Les confondre porterait la dépense d'un parcours sur l'autre.
+   */
+  acteur: ActeurIA
   contexte: Record<string, unknown>
 }): Promise<
   { ok: true; charge: Record<string, unknown> } | { ok: false; cause: CausePanne; raison: string }
@@ -282,13 +297,13 @@ async function appeler(args: {
   // Dépense enregistrée sur les jetons RÉELLEMENT consommés, jamais estimés.
   const entree = reponse.usage?.input_tokens ?? 0
   const sortie = reponse.usage?.output_tokens ?? 0
-  await enregistrerDepense(args.supabaseAdmin, {
+  await enregistrerDepenseIA(args.supabaseAdmin, {
     provider: 'claude',
+    action: args.action,
+    acteur: args.acteur,
+    consommation: { forme: 'jetons', model: MODELE, entree, sortie },
     domain_id: args.domainId,
-    units: entree + sortie,
-    cost_usd:
-      (entree / 1_000_000) * COUT_USD_PAR_1M_ENTREE + (sortie / 1_000_000) * COUT_USD_PAR_1M_SORTIE,
-    context: { model: MODELE, ...args.contexte },
+    context: { ...args.contexte },
   })
 
   const charge = extraireJson(texteFinal(reponse))
@@ -304,11 +319,19 @@ export async function jugerCandidature(args: {
   domainId: string | null
   entree: EntreeJugement
   candidatureId: string
+  /**
+   * L'expert qui postule. Le jugement PROFITE à l'organisation, mais c'est
+   * l'expert qui le DÉCLENCHE en déposant — et la comptabilité répond à « qui
+   * fait monter la facture », pas à « qui en bénéficie ».
+   */
+  profileId: string
 }): Promise<ResultatJugement> {
   const appel = await appeler({
     supabaseAdmin: args.supabaseAdmin,
     domainId: args.domainId,
     prompt: construirePrompt(args.entree),
+    action: 'candidature_assessment',
+    acteur: { type: 'profile', id: args.profileId },
     contexte: { candidature_id: args.candidatureId },
   })
   if (!appel.ok) return { ok: false, cause: appel.cause, raison: appel.raison }
@@ -361,6 +384,8 @@ export async function redigerPitchOrg(args: {
   supabaseAdmin: SupabaseClient
   domainId: string | null
   matchId: string
+  /** L'organisation qui demande le pitch : ici c'est elle qui déclenche. */
+  organizationId: string
   /** Le pitch déjà écrit, s'il existe. Fourni par l'appelant, qui l'a déjà lu. */
   pitchExistant: string | null
   entree: EntreeJugement
@@ -372,6 +397,8 @@ export async function redigerPitchOrg(args: {
     supabaseAdmin: args.supabaseAdmin,
     domainId: args.domainId,
     prompt: construirePrompt(args.entree),
+    action: 'pitch',
+    acteur: { type: 'organization', id: args.organizationId },
     contexte: { match_id: args.matchId },
   })
   if (!appel.ok) return { ok: false, cause: appel.cause, raison: appel.raison }

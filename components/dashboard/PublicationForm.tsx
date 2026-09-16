@@ -13,7 +13,6 @@ import {
   type WorkModeCode,
 } from '@/types/publication'
 import type { AnnonceType } from '@/types/annonce'
-import { PUBLICATION_TTL_DAYS } from '@/lib/publications/expiry'
 import MultiSelectChips from '@/components/ui/MultiSelectChips'
 import WorkZoneSelector from '@/components/ui/WorkZoneSelector'
 import type { WorkZone } from '@/lib/work-zones'
@@ -177,6 +176,20 @@ export default function PublicationForm(props: Props) {
   const domain = useDomain()
   const secureFetch = useSecureFetch()
 
+  /**
+   * LA VIE D'UNE ANNONCE, LUE PAR LE SERVEUR — jamais supposée ici.
+   *
+   * Ce composant annonçait « visible jusqu'au … » à partir d'une constante
+   * compilée dans le bundle. Depuis que la durée est réglable, cette constante
+   * aurait dit 30 jours pendant que le serveur en appliquait 20 — un chiffre
+   * faux annoncé à la seconde exacte où l'organisation s'engage.
+   *
+   * `null` tant qu'on ne sait pas, et `null` si la lecture échoue. La phrase
+   * n'est alors PAS affichée : mieux vaut ne rien promettre que promettre une
+   * date fausse. Aucun repli à 30, nulle part.
+   */
+  const [vieAnnonceJours, setVieAnnonceJours] = useState<number | null>(null)
+
   const isEdit = props.mode === 'edit'
   const initialState = isEdit ? initialFromDraft(props.initial) : EMPTY_STATE
   const initialStatus = isEdit ? props.initial.status : 'draft'
@@ -236,6 +249,30 @@ export default function PublicationForm(props: Props) {
       cancelled = true
     }
   }, [domain.id, locale])
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await secureFetch('/api/durees', { cache: 'no-store' })
+        if (!res.ok) throw new Error(`durees ${res.status}`)
+        const data = (await res.json()) as { vie_annonce_jours?: number }
+        if (cancelled) return
+        const v = data.vie_annonce_jours
+        setVieAnnonceJours(typeof v === 'number' && Number.isFinite(v) ? v : null)
+      } catch (err) {
+        if (cancelled) return
+        // On JOURNALISE et on laisse `null` : l'écran perd une phrase, il ne
+        // gagne pas une date inventée.
+        console.error('[PublicationForm] durées non lues — la date d expiration ne sera pas annoncée', err)
+        setVieAnnonceJours(null)
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [secureFetch])
 
   // Spécialités filtrées par branche choisie
   const filteredSpecialities = useMemo(() => {
@@ -1091,15 +1128,18 @@ export default function PublicationForm(props: Props) {
             <p style={{ fontSize: 13, color: '#854D0E', background: '#FEF9C3', border: '1px solid #FDE047', borderRadius: 8, padding: '10px 12px', lineHeight: 1.55, marginBottom: 12 }}>
               {t('form.confirm_publish_warning')}
             </p>
-            {/* Lot A — avertissement d'expiration : date calculée (now + 30j) +
-                mention explicite de la republication. */}
-            <p style={{ fontSize: 13, color: '#334155', lineHeight: 1.55, marginBottom: 18 }}>
-              {t('form.confirm_publish_expiry', {
-                date: new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(
-                  new Date(Date.now() + PUBLICATION_TTL_DAYS * 24 * 60 * 60 * 1000),
-                ),
-              })}
-            </p>
+            {/* Avertissement d'expiration : date calculée à partir de la durée
+                RÉGLÉE, lue au serveur. Absente ⇒ la phrase n'est pas affichée,
+                plutôt qu'affichée avec une date que le serveur ne tiendra pas. */}
+            {vieAnnonceJours !== null && (
+              <p style={{ fontSize: 13, color: '#334155', lineHeight: 1.55, marginBottom: 18 }}>
+                {t('form.confirm_publish_expiry', {
+                  date: new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(
+                    new Date(Date.now() + vieAnnonceJours * 24 * 60 * 60 * 1000),
+                  ),
+                })}
+              </p>
+            )}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button
                 type="button"

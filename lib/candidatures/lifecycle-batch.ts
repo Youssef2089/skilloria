@@ -70,12 +70,17 @@ export async function deriveLifecycleByCandidature(
   supabaseAdmin: SupabaseClient,
   rows: LifecycleCandidatureRow[],
   pubWindows: Map<string, LifecyclePublicationWindow>,
+  /**
+   * LES DEUX DURÉES, EXIGÉES — aucun défaut (cf. lib/durees.ts). La route les
+   * lit et les fait descendre ; ce module ne les suppose jamais.
+   */
+  durees: { vieAnnonceJours: number; fenetreEchangeJours: number },
   now: Date = new Date(),
 ): Promise<Map<string, CandidatureLifecycle>> {
   const byCandidature = new Map<string, CandidatureLifecycle>()
   if (rows.length === 0) return byCandidature
 
-  // Fenêtre d'échange (15 j) : n'existe qu'après unlock. On distingue
+  // Fenêtre d'échange (réglable) : n'existe qu'après unlock. On distingue
   // « pas de ligne conversation » de « conversation sans expires_at » — le
   // helper de dérivation ne ferme jamais sur une donnée manquante.
   const conversableIds = rows.filter((r) => CONVERSABLE_STATUSES.has(r.status)).map((r) => r.id)
@@ -102,7 +107,7 @@ export async function deriveLifecycleByCandidature(
             ? { expires_at: convExpiryByCand.get(r.id) ?? null }
             : null,
         },
-        now,
+        { ...durees, now },
       ),
     )
   }

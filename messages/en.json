@@ -2378,7 +2378,8 @@
       "nav_matching": "Matching",
       "nav_ecosystemes": "Ecosystems",
       "nav_quotas_ia": "AI quotas",
-      "nav_seuils": "Decision thresholds"
+      "nav_seuils": "Decision thresholds",
+      "nav_durees": "Marketplace durations"
     },
     "quotas_ia": {
       "title": "AI quotas",
@@ -3665,6 +3666,20 @@
       "unavailable": "Spend could not be read. That is not zero: it is unknown.",
       "help": "At the cap, matching stops and writes it into the run’s trace. It does not keep spending, and it does not stop silently."
     },
+    "spendByActor": {
+      "title": "Who is driving the bill",
+      "line": "${spent} — {events} event(s)",
+      "kindOrg": "organisation",
+      "kindExpert": "expert",
+      "alert": "above the ${threshold} threshold",
+      "others": "{count} other actor(s), grouped",
+      "unattributed": "Unattributable",
+      "unnamed": "Deleted actor",
+      "none": "No spend recorded this month.",
+      "unavailable": "The per-actor breakdown could not be read. This is not zero: it is unknown.",
+      "help": "Going over the threshold RAISES AN ALERT, it never blocks: no one loses access to anything because of this screen. The lines add up to the month total — named actors, grouped remainder and unattributable included.",
+      "unattributedHelp": "“Unattributable”: spend recorded before the bill was broken down by actor. It has no known trigger and never will — spreading it over the others would mean inventing a figure. This line shrinks on its own, since the view is monthly."
+    },
     "distribution": {
       "title": "Observed distribution (last 30 days)",
       "runs": "{count} run(s) observed.",
@@ -3732,6 +3747,38 @@
         "abandonne": "Abandoned — needs action",
         "jamais_tente": "Never attempted — the trigger did not fire"
       }
+    }
+  },
+  "admin_durees": {
+    "title": "Marketplace durations",
+    "intro": "The two promises the marketplace makes to both its sides: how long a listing stays visible, and how long you have to talk once the contact is paid for. The two settings look alike — they do not behave alike.",
+    "days": "days",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Durations saved.",
+    "save_failed": "Saving failed.",
+    "invalid": "A duration must be a whole number of days, between 1 and 365.",
+    "unavailable": "The durations could not be read. No field is pre-filled: a made-up value here would be written on the first save.",
+    "preview": "{count, plural, =0 {No listing would flip.} one {# listing would become expired, {unlocked} of them with unlocked applications.} other {# listings would become expired, {unlocked} of them with unlocked applications.}}",
+    "last_change": "Last change: {date}",
+    "life": {
+      "title": "Listing lifetime",
+      "retroactive_label": "This setting is retroactive.",
+      "retroactive_body": "A listing’s expiry is not a stored date: it is recomputed on every read, from the publication date. Lowering this duration therefore removes already-published listings from the marketplace immediately — including listings where organisations have already paid to unlock candidates.",
+      "help": "The number of affected listings is counted before saving, and shown to you. You can lower it anyway: you are asked to confirm, not prevented."
+    },
+    "exchange": {
+      "title": "Exchange window",
+      "not_retroactive_label": "This setting is not retroactive.",
+      "not_retroactive_body": "A conversation’s end is a date WRITTEN at unlock time. Changing this duration neither shortens nor extends any ongoing exchange: open conversations keep the date they were promised. Only future unlocks will use the new value.",
+      "help": "That is the difference with the setting above, and it is not an implementation detail: a stored date is not recomputed."
+    },
+    "confirm": {
+      "title": "Please confirm",
+      "body": "Going from {from} to {to} days. {count, plural, one {# listing visible today would become expired} other {# listings visible today would become expired}}, {unlocked} of them carrying unlocked — therefore paid — applications.",
+      "note": "Nothing stops you from doing this. You are only asked to do it knowingly. The change and this number will be recorded.",
+      "accept": "I confirm, save",
+      "cancel": "Cancel"
     }
   },
   "ecosystem_switcher": {

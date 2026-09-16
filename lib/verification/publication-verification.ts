@@ -5,6 +5,7 @@ import {
   type PublicationQualityInput,
   type PublicationQualityFlag,
 } from './ai-publication-quality'
+import { budgetDisponible, enregistrerDepenseIA } from '@/lib/ai-budget'
 
 /**
  * Dispatcher de vérification d'une PUBLICATION.
@@ -72,6 +73,13 @@ async function loadProviderThreshold(
 export async function runPublicationVerification(args: {
   supabaseAdmin: SupabaseClient
   publication_id: string
+  /**
+   * L'organisation qui publie — elle DÉCLENCHE le contrôle qualité, donc elle
+   * le porte. Transmise par l'appelant plutôt que relue ici : la route de
+   * publication l'a déjà en main, et une relecture serait une requête de plus
+   * pour une valeur déjà connue.
+   */
+  organization_id: string
   input: PublicationQualityInput
 }): Promise<PublicationVerdict> {
   const { supabaseAdmin, input } = args
@@ -93,7 +101,35 @@ export async function runPublicationVerification(args: {
   }
 
   // 2. Appel IA ────────────────────────────────────────────────────────────
+  // ── LE PLAFOND EST CONSULTÉ AVANT D'APPELER ──────────────────────────────
+  //  Un point qui enregistre mais ne regarde jamais le plafond dépense au-delà.
+  //  FAIL-CLOSED assumé (lib/ai-budget.ts) : sur panne de lecture on REFUSE.
+  //  Ne pas savoir combien on a dépensé n'autorise pas à dépenser plus — c'est
+  //  l'exception au fail-open du reste du projet, et elle protège de l'argent.
+  //  Au plafond : l’annonce part en revue manuelle, jamais publiée sans examen.
+  const budget = await budgetDisponible(supabaseAdmin, 'claude')
+  if (!budget.ok) {
+    console.error('[publication-verification] contrôle refusé — budget', budget.raison)
+    return {
+      status: 'pending_review',
+      score: 0,
+      method: 'ai_publication_quality',
+      data: { score: 0, notes: 'Plafond de dépense IA atteint — revue admin. ' + budget.raison, flags: [] },
+    }
+  }
+
   const ai = await verifyAiPublicationQuality(input)
+
+  // ── LA DÉPENSE, ENREGISTRÉE QUE L'APPEL AIT ABOUTI OU NON ──────────────
+  if (ai.usage) {
+    await enregistrerDepenseIA(supabaseAdmin, {
+      provider: 'claude',
+      action: 'publication_quality',
+      acteur: { type: 'organization', id: args.organization_id },
+      consommation: ai.usage,
+      context: { publication_id: args.publication_id },
+    })
+  }
 
   // 3. Décision ────────────────────────────────────────────────────────────
   // 'published' SI score >= threshold ET pas de flag bloquant.

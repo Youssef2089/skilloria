@@ -45,6 +45,7 @@ import type { MatchingVerdict } from './types'
 type LigneAnnonce = {
   id: string
   domain_id: string
+  organization_id: string
   type: string
   created_by: string | null
   title: string | null
@@ -165,7 +166,7 @@ export async function runMatchingForPublication(args: {
   const { data: pubData, error: pubErr } = await supabaseAdmin
     .from('publications')
     .select(
-      'id, domain_id, type, created_by, title, description, branch_id, speciality_ids, ' +
+      'id, domain_id, organization_id, type, created_by, title, description, branch_id, speciality_ids, ' +
         'seniorities, skills_required, work_zone_countries, status, matching_attempts',
     )
     .eq('id', publicationId)
@@ -294,6 +295,9 @@ export async function runMatchingForPublication(args: {
     tailleLot: s.rerank_batch_size,
     requete,
     documents: aNoter,
+    // SENS ANNONCE → EXPERTS : l'organisation a publié, elle déclenche la
+    // notation de tout le vivier. C'est le poste le plus cher du moteur.
+    acteur: { type: 'organization', id: pub.organization_id },
     contexte: { publication_id: publicationId },
     memoriser: (notes) => memoriserNotes(supabaseAdmin, publicationId, s.rerank_model, notes),
   })

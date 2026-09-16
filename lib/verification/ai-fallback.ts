@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { SireneData, VerificationInput, VerificationOutput } from './types'
+import type { ConsommationIA } from '@/lib/ai-consommation'
 
 /**
  * Analyseur de cohérence IA — DÉCIDEUR SYSTÉMATIQUE AVEC RECHERCHE WEB (11G.2).
@@ -380,10 +381,15 @@ export async function verifyAiCoherence(
   // 3. Si KO encore : Haiku 4.5 SANS tools (mode 11G — déclaratif uniquement)
   //    Le prompt sait gérer (cf. instruction "Si tu n'as pas pu vérifier...")
   let response: Anthropic.Messages.Message | null = null
+  // QUEL modèle a répondu. Le repli Sonnet 4.6 (3/15) coûte trois fois le
+  // principal Haiku 4.5 (1/5) : enregistrer sous un modèle figé fausserait la
+  // dépense d'un facteur 3, dans un sens ou dans l'autre.
+  let modelUtilise: string | null = null
   const attempts: Array<{ model: string; withWebSearch: boolean; ok: boolean; err?: string }> = []
 
   try {
     response = await callClaude({ apiKey, model: PRIMARY_MODEL, prompt, withWebSearch: true })
+    modelUtilise = PRIMARY_MODEL
     attempts.push({ model: PRIMARY_MODEL, withWebSearch: true, ok: true })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -393,6 +399,7 @@ export async function verifyAiCoherence(
     if (isHaikuToolError(err)) {
       try {
         response = await callClaude({ apiKey, model: FALLBACK_MODEL, prompt, withWebSearch: true })
+        modelUtilise = FALLBACK_MODEL
         attempts.push({ model: FALLBACK_MODEL, withWebSearch: true, ok: true })
       } catch (err2) {
         const msg2 = err2 instanceof Error ? err2.message : String(err2)
@@ -404,6 +411,7 @@ export async function verifyAiCoherence(
     if (!response) {
       try {
         response = await callClaude({ apiKey, model: PRIMARY_MODEL, prompt, withWebSearch: false })
+        modelUtilise = PRIMARY_MODEL
         attempts.push({ model: PRIMARY_MODEL, withWebSearch: false, ok: true })
       } catch (err3) {
         const msg3 = err3 instanceof Error ? err3.message : String(err3)
@@ -445,8 +453,31 @@ export async function verifyAiCoherence(
       raw_response: { raw_text: rawText.slice(0, 1500), attempts },
       notes: 'Réponse IA non parsable, admin tranche manuellement',
       discrepancies: [],
+      // L'appel a EU LIEU et a consommé : une réponse illisible se paie
+      // autant qu'une réponse lisible. Ne pas la compter ferait dériver le
+      // plafond vers le bas — on croirait avoir de la marge.
+      usage:
+        response && modelUtilise
+          ? {
+              forme: 'jetons',
+              model: modelUtilise,
+              entree: response.usage?.input_tokens ?? 0,
+              sortie: response.usage?.output_tokens ?? 0,
+            }
+          : null,
     }
   }
+
+  // Ce que l'appel a consommé — RENDU, pas enregistré : ce module est pur.
+  const consommation: ConsommationIA | null =
+    response && modelUtilise
+      ? {
+          forme: 'jetons',
+          model: modelUtilise,
+          entree: response.usage?.input_tokens ?? 0,
+          sortie: response.usage?.output_tokens ?? 0,
+        }
+      : null
 
   const rawScore = typeof parsed.score === 'number' ? parsed.score : 5
   const score = Math.max(0, Math.min(10, Math.round(rawScore)))
@@ -473,6 +504,7 @@ export async function verifyAiCoherence(
     },
     notes,
     discrepancies,
+    usage: consommation,
   }
 }
 

@@ -6,6 +6,7 @@ import { routing, type Locale } from '@/i18n/routing'
 import { buildOrgCandidatureDTOs, countByBucket, type OrgCandidatureDTO } from '@/lib/candidature-org-dto'
 import type { Troncature } from '@/lib/plafonds-liste'
 import { parseBucketFilter } from '@/lib/candidatures/lifecycle'
+import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 import {
   assertFacetPartition,
   countFacets,
@@ -69,6 +70,18 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+
+  // ── LES DURÉES SONT LUES ICI, PAR LA ROUTE ───────────────────────────────
+  //  Aucun défaut dans le code (cf. lib/durees.ts) : illisibles, on REFUSE en
+  //  le nommant plutôt que de servir une durée inventée. Même parti pris que
+  //  `matching_settings` — un repli codé en dur devient une seconde source de
+  //  vérité, et elle prend la main le jour où l'on comprend le moins.
+  const lectureDurees = await chargerDurees(auth.supabaseAdmin)
+  if (!lectureDurees.ok) {
+    console.error('[me/candidatures-org:GET] durées de la place illisibles', lectureDurees.raison)
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
+  }
+  const durees = lectureDurees.durees
   const orgId = auth.organization?.id
   if (!orgId) {
     return json({ error: 'No organization', code: 'org_required' }, 403)
@@ -122,7 +135,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   let all: OrgCandidatureDTO[]
   let troncature: Troncature
   try {
-    const bati = await buildOrgCandidatureDTOs(auth, publicationIds, translations, null, locale)
+    const bati = await buildOrgCandidatureDTOs(auth, publicationIds, translations, null, locale, durees)
     all = bati.dtos
     troncature = bati.troncature
   } catch {

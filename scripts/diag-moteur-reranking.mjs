@@ -242,11 +242,16 @@ const RERANK = read('lib/matching/rerank.ts')
 ok(/arret\s*=\s*budget\.raison/.test(RERANK),
   'au plafond, le moteur s arrête et NOMME la raison',
   's arrêter sans un mot fait chercher un bug pendant deux jours')
-ok(/enregistrerDepense\(/.test(RERANK), 'la dépense est enregistrée')
+// `enregistrerDepenseIA` et non `enregistrerDepense` depuis que le coût n'est
+// plus calculé par l'appelant mais lu au tarif du modèle appelé. Le motif
+// accepte les DEUX noms : ce qui est contrôlé ici est l'ENREGISTREMENT et son
+// MOMENT, pas l'orthographe de la fonction — un contrôle qui rougit sur un
+// renommage sans défaut finit désactivé.
+ok(/enregistrerDepense(IA)?\(/.test(RERANK), 'la dépense est enregistrée')
 {
   const iAppel = RERANK.indexOf('notes += lot.length')
-  const iDepense = RERANK.indexOf('enregistrerDepense(', iAppel)
-  ok(iAppel !== -1 && iDepense > iAppel,
+  const iDepense = iAppel === -1 ? -1 : RERANK.slice(iAppel).search(/enregistrerDepense(IA)?\(/)
+  ok(iAppel !== -1 && iDepense > 0,
     'et elle l est APRÈS l appel, sur ce qui a été consommé',
     'un plafond réglé sur des estimations dérive en silence')
 }

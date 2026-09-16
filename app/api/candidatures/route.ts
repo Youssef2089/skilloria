@@ -13,6 +13,7 @@ import { publicationCandidaturesLinkForOrg } from '@/lib/collaboration-links'
 import { isActivePublished } from '@/lib/publications/expiry'
 import { jugerCandidature } from '@/lib/candidatures/ai-assessment'
 import { enregistrerPanne } from '@/lib/candidatures/pannes-redaction'
+import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -117,6 +118,18 @@ export async function POST(request: NextRequest): Promise<Response> {
     throw err
   }
 
+  // ── LES DURÉES SONT LUES ICI, PAR LA ROUTE ───────────────────────────────
+  //  Aucun défaut dans le code (cf. lib/durees.ts) : illisibles, on REFUSE en
+  //  le nommant plutôt que de servir une durée inventée. Même parti pris que
+  //  `matching_settings` — un repli codé en dur devient une seconde source de
+  //  vérité, et elle prend la main le jour où l'on comprend le moins.
+  const lectureDurees = await chargerDurees(auth.supabaseAdmin)
+  if (!lectureDurees.ok) {
+    console.error('[candidatures:POST] durées de la place illisibles', lectureDurees.raison)
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
+  }
+  const durees = lectureDurees.durees
+
   // ── Body ────────────────────────────────────────────────────────────────
   let body: Body
   try {
@@ -192,9 +205,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     title: string | null; description: string | null
     skills_required: string[] | null; seniorities: string[] | null
   }
-  // Ouverte = published NON expirée (règle 30j read-time, lib/publications/expiry).
+  // Ouverte = published NON expirée (règle read-time, lib/publications/expiry).
   // On ne peut pas postuler à une annonce expirée.
-  if (!isActivePublished(pubRow)) {
+  if (!isActivePublished(pubRow, { vieAnnonceJours: durees.vieAnnonceJours })) {
     return json({ error: 'Publication not available', code: 'publication_not_published' }, 409)
   }
 
@@ -291,6 +304,8 @@ export async function POST(request: NextRequest): Promise<Response> {
         supabaseAdmin: auth.supabaseAdmin,
         domainId: pubRow.domain_id,
         candidatureId: row.id,
+        // L expert qui depose : c est lui qui declenche le jugement.
+        profileId: profileRow.id,
         entree: {
           locale: 'fr',
           annonce: {
@@ -336,7 +351,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         // Le dévoilement inclus a lieu QUAND MÊME : une place offerte ne doit
         // pas rester vide parce qu'un modèle n'a pas répondu. Faute de note, le
         // départage tombera sur l'ancienneté — c'est un repli, et il est écrit.
-        await devoilementInclus(auth, publicationId, row.id)
+        await devoilementInclus(auth, publicationId, row.id, durees.fenetreEchangeJours)
         return
       }
       const { error: majErr } = await auth.supabaseAdmin
@@ -361,7 +376,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
       // La note existe maintenant : le dévoilement inclus peut départager sur
       // ce qu'il annonce départager.
-      await devoilementInclus(auth, publicationId, row.id)
+      await devoilementInclus(auth, publicationId, row.id, durees.fenetreEchangeJours)
     } catch (err) {
       console.error('[candidatures:POST] jugement a levé (best-effort)', err)
     }
@@ -558,6 +573,13 @@ async function devoilementInclus(
   auth: AuthContext,
   publicationId: string,
   candidatureId: string,
+  /**
+   * Fenêtre d'échange, EXIGÉE. Elle DESCEND de la route plutôt que d'être
+   * relue ici : ce chemin s'exécute dans un `after()`, après la réponse. Une
+   * relecture pourrait y voir une valeur changée entre-temps, et la
+   * conversation créée ne durerait pas ce que le dépôt a promis.
+   */
+  fenetreEchangeJours: number,
 ): Promise<void> {
   try {
     const { data: pubForEnts } = await auth.supabaseAdmin
@@ -699,6 +721,7 @@ async function devoilementInclus(
         const res = await performUnlock(auth.supabaseAdmin, candidatureId, {
           auto: true,
           actorUserId: auth.user.id,
+          fenetreEchangeJours,
         })
         if (!res.ok) {
           console.warn('[candidatures] dévoilement inclus refusé', res.code)

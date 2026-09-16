@@ -5,6 +5,7 @@ import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { parseCV } from '@/lib/cv-parser'
 import { loadCvParsingQuota, windowEndsAt, QuotaConfigMissing } from '@/lib/ai-quotas'
+import { budgetDisponible, enregistrerDepenseIA } from '@/lib/ai-budget'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -247,7 +248,34 @@ export async function POST(request: NextRequest): Promise<Response> {
     specialities: (specialityRows ?? []).map((s: any) => s.slug as string),
   }
 
+  // ── LE PLAFOND EST CONSULTÉ AVANT D'APPELER ──────────────────────────────
+  //  Un point qui enregistre mais ne regarde jamais le plafond dépense au-delà.
+  //  FAIL-CLOSED assumé (lib/ai-budget.ts) : sur panne de lecture on REFUSE —
+  //  ne pas savoir combien on a dépensé n'autorise pas à dépenser plus. C'est
+  //  l'exception au fail-open du reste du projet, elle protège de l'argent.
+  const budget = await budgetDisponible(supabaseAdmin, 'claude')
+  if (!budget.ok) {
+    console.error('[upload-cv] analyse refusée — budget', budget.raison)
+    return json({ error: 'AI budget exhausted', code: 'ai_budget_exhausted', detail: budget.raison }, 503)
+  }
+
   const result = await parseCV(buffer, domainCtx)
+  // ── LA DÉPENSE EST ENREGISTRÉE, QU'ELLE AIT ABOUTI OU NON ────────────────
+  //  Un appel qui échoue au parsing a QUAND MÊME consommé des jetons. Ne
+  //  compter que les succès ferait dériver le plafond vers le bas, ce qui est
+  //  la pire des deux erreurs : on croit avoir de la marge.
+  //  N'interrompt jamais le parcours (lib/ai-budget.ts ne lève sur aucun chemin).
+  if (result.usage) {
+    await enregistrerDepenseIA(supabaseAdmin, {
+      provider: 'claude',
+      action: 'cv_parsing',
+      // L'expert dépose SON CV : c'est lui qui déclenche la dépense.
+      acteur: { type: 'profile', id: profile.id },
+      consommation: result.usage,
+      domain_id: user.domain_id,
+      context: { user_id: user.id, aboutie: result.success },
+    })
+  }
 
   if (!result.success) {
     await supabaseAdmin

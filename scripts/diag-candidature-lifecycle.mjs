@@ -50,6 +50,21 @@ writeFileSync(
 const { deriveCandidatureLifecycle, parseBucketFilter } = await import(pathToFileURL(lifecyclePath).href)
 
 const NOW = new Date('2026-08-08T12:00:00.000Z')
+
+/**
+ * LES DEUX DUREES SONT DES ENTREES DU TEST, ET NON DES CONSTANTES DU CODE.
+ *
+ * Elles valaient 30 et 15 en dur dans lib/publications/expiry.ts et
+ * lib/conversations/expiry.ts. Elles vivent desormais en base et sont LUES PAR
+ * LES ROUTES, qui les font descendre jusqu'a la derivation. Ce diagnostic les
+ * fournit donc explicitement — c'est ce que fait une route, et c'est la seule
+ * facon d'eprouver la derivation sans base.
+ *
+ * On garde 30 et 15 ICI parce que la table de cas ci-dessous est ecrite autour
+ * de ces valeurs (« annonce de 31 jours », « fenetre de 15 j ecoulee »). Ce ne
+ * sont pas des valeurs de repli : ce sont les entrees du scenario.
+ */
+const DUREES = { vieAnnonceJours: 30, fenetreEchangeJours: 15 }
 const daysAgo = (n) => new Date(NOW.getTime() - n * 24 * 3600 * 1000).toISOString()
 const daysAhead = (n) => new Date(NOW.getTime() + n * 24 * 3600 * 1000).toISOString()
 
@@ -103,7 +118,7 @@ const CASES = [
 let failed = 0
 console.log('\nTABLE DE DÉRIVATION — état de vie des candidatures\n' + '='.repeat(78))
 for (const [label, input, expectedBucket, expectedReason] of CASES) {
-  const got = deriveCandidatureLifecycle(input, NOW)
+  const got = deriveCandidatureLifecycle(input, { ...DUREES, now: NOW })
   const ok = got.bucket === expectedBucket && got.reason === expectedReason
   if (!ok) failed++
   console.log(

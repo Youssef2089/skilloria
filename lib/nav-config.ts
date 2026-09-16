@@ -221,6 +221,20 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
         labelKey: 'nav_seuils',
         iconKey: 'gauge',
       },
+      {
+        // LES DEUX DUREES DU CONTRAT DE LA PLACE, rangees ici et non dans
+        // « Exploitation » : ce sont des REGLAGES produit, au meme titre que
+        // les seuils voisins — combien de temps une annonce se voit, combien
+        // de temps on a pour se parler.
+        //
+        // Elles vivaient en CONSTANTES : 30 et 15, dans deux fichiers, non
+        // atteignables sans deploiement. Et l'une des deux est RETROACTIVE,
+        // ce que seul un ecran peut dire avant qu'on y touche.
+        key: 'durees',
+        href: '/admin/durees',
+        labelKey: 'nav_durees',
+        iconKey: 'gauge',
+      },
     ],
   },
   {

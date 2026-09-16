@@ -196,6 +196,11 @@ export async function buildOrgCandidatureDTOs(
    * à côté du résultat, dans un champ facultatif, se serait oubliée. Ici le
    * compilateur oblige chaque appelant à la voir.
    */
+  /**
+   * LES DEUX DURÉES, EXIGÉES — aucun défaut (cf. lib/durees.ts). La route les
+   * lit et les fait descendre ; ce module ne les suppose jamais.
+   */
+  durees: { vieAnnonceJours: number; fenetreEchangeJours: number }
 ): Promise<{ dtos: OrgCandidatureDTO[]; troncature: Troncature }> {
   if (publicationIds.length === 0) {
     return { dtos: [], troncature: { plafond: PLAFOND_CANDIDATURES_ORG, atteint: false } }
@@ -301,7 +306,7 @@ export async function buildOrgCandidatureDTOs(
             ? { expires_at: convExpiryByCand.get(row.id) ?? null }
             : null,
         },
-        now,
+        { ...durees, now },
       ),
     )
   }

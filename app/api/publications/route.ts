@@ -9,6 +9,7 @@ import { routing, type Locale } from '@/i18n/routing'
 import { isActivePublished } from '@/lib/publications/expiry'
 import { deriveLifecycleByCandidature } from '@/lib/candidatures/lifecycle-batch'
 import { emptyFacetCounts, facetForLifecycle } from '@/lib/candidatures/facets'
+import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 import type {
   Annonce,
   AnnonceBudgetUnit,
@@ -204,6 +205,11 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+
+  // AUCUNE lecture des durées ici, et c'est délibéré : POST crée un BROUILLON.
+  // Il ne dérive aucune expiration, donc il n'a aucune durée à connaître — la
+  // lire quand même ferait échouer une création d'annonce sur un réglage
+  // qu'elle n'utilise pas. Le GET, lui, en a besoin : il dérive « expirée ».
   // ── Body + validation, AVANT la résolution de l'organisation ─────────────
   //  L'ordre a changé : c'est le TYPE de publication qui décide COMMENT
   //  l'organisation se résout. Un besoin de sous-traitance peut la créer ; une
@@ -435,6 +441,17 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+
+  // ── LES DURÉES SONT LUES ICI, PAR LA ROUTE (cf. lib/durees.ts) ───────────
+  //  Cette liste DÉRIVE le statut « expirée » à la lecture : sans la durée,
+  //  elle ne peut pas le faire. Illisible ⇒ on refuse en le nommant.
+  const lectureDurees = await chargerDurees(auth.supabaseAdmin)
+  if (!lectureDurees.ok) {
+    console.error('[publications:GET] durées de la place illisibles', lectureDurees.raison)
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
+  }
+  const durees = lectureDurees.durees
+
   // SANS ORGANISATION → LISTE VIDE, pas une erreur.
   //
   // Depuis que l'organisation personnelle n'est plus créée à l'ouverture des
@@ -554,6 +571,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         auth.supabaseAdmin,
         candidatures,
         pubWindows,
+        durees,
         new Date(),
       )
       for (const c of candidatures) {
@@ -585,7 +603,10 @@ export async function GET(request: NextRequest): Promise<Response> {
       ? (row.status as AnnonceStatus)
       : 'draft'
     const safeStatus: AnnonceStatus =
-      rawStatus === 'published' && !isActivePublished(row) ? 'expired' : rawStatus
+      rawStatus === 'published' &&
+      !isActivePublished(row, { vieAnnonceJours: durees.vieAnnonceJours })
+        ? 'expired'
+        : rawStatus
     const branch = pickRel(row.branches)
 
     return {

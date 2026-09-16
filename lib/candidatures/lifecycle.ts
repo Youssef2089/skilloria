@@ -107,8 +107,17 @@ function iso(d: Date | null): string | null {
  */
 export function deriveCandidatureLifecycle(
   input: CandidatureLifecycleInput,
-  now: Date = new Date(),
+  /**
+   * LES DEUX DURÉES, EXIGÉES — aucun défaut (cf. lib/durees.ts).
+   *
+   * Cette fonction décide si une candidature est encore vivante : elle ne peut
+   * pas le faire sans savoir combien de temps vit une annonce et combien de
+   * temps dure un échange. Un défaut ici aurait fait mentir l'écran d'un côté
+   * de la place pendant que l'autre appliquait la bonne valeur.
+   */
+  ctx: { vieAnnonceJours: number; fenetreEchangeJours: number; now?: Date },
 ): CandidatureLifecycle {
+  const now = ctx.now ?? new Date()
   const { status } = input
 
   // (1) États terminaux explicites — décidés par un humain, pas par une horloge.
@@ -121,14 +130,17 @@ export function deriveCandidatureLifecycle(
   //     acquis.
   if (status === 'selected') return { bucket: 'active', reason: 'selected', until: null }
 
-  // (3) Déblocage fait : c'est la fenêtre d'ÉCHANGE (15 j) qui gouverne, plus
+  // (3) Déblocage fait : c'est la fenêtre d'ÉCHANGE (réglable) qui gouverne, plus
   //     celle de l'annonce. Une conversation vivante survit à l'expiration de
   //     l'annonce : les deux parties se parlent déjà, l'annonce n'a plus de rôle.
   if (status === 'unlocked') {
-    const end = effectiveConversationExpiry({
-      conversationExpiresAt: input.conversation?.expires_at ?? null,
-      unlockedAt: input.unlocked_at ?? null,
-    })
+    const end = effectiveConversationExpiry(
+      {
+        conversationExpiresAt: input.conversation?.expires_at ?? null,
+        unlockedAt: input.unlocked_at ?? null,
+      },
+      { fenetreEchangeJours: ctx.fenetreEchangeJours },
+    )
     // Repli défensif : pas de conversation ET pas d'unlocked_at ⇒ fenêtre
     // inconnue. On ne ferme JAMAIS sur une donnée manquante (on n'archive pas
     // par ignorance) : actif, sans date affichée.
@@ -149,11 +161,16 @@ export function deriveCandidatureLifecycle(
     // ne peut en sortir. Archivée, avec la raison la plus proche du fait.
     return { bucket: 'archived', reason: 'publication_closed', until: null }
   }
-  if (isActivePublished(pub, now)) {
-    return { bucket: 'active', reason: 'awaiting_review', until: iso(effectiveExpiry(pub)) }
+  const ctxAnnonce = { vieAnnonceJours: ctx.vieAnnonceJours, now }
+  if (isActivePublished(pub, ctxAnnonce)) {
+    return {
+      bucket: 'active',
+      reason: 'awaiting_review',
+      until: iso(effectiveExpiry(pub, ctxAnnonce)),
+    }
   }
-  // Non active : soit l'org l'a retirée (status ≠ 'published'), soit les 30 j
-  // sont passés. On distingue — « retirée » et « expirée » ne se valent pas.
+  // Non active : soit l'org l'a retirée (status ≠ 'published'), soit la durée
+  // de vie réglée est passée. On distingue — « retirée » et « expirée » ne se valent pas.
   if (pub.status !== 'published') {
     return { bucket: 'archived', reason: 'publication_closed', until: null }
   }

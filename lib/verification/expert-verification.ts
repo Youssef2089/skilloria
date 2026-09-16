@@ -7,6 +7,7 @@ import {
   type ExpertVerificationOutput,
 } from './ai-expert-verification'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
+import { budgetDisponible, enregistrerDepenseIA } from '@/lib/ai-budget'
 
 /**
  * Dispatcher VÉRIFICATION EXPERT — fonction AUTONOME + IDEMPOTENTE.
@@ -373,6 +374,26 @@ export async function runExpertVerification(args: {
   }
 
   // 6. Appel IA
+  // ── LE PLAFOND EST CONSULTÉ AVANT D'APPELER ──────────────────────────────
+  //  Un point qui enregistre mais ne regarde jamais le plafond dépense au-delà.
+  //  FAIL-CLOSED assumé (lib/ai-budget.ts) : sur panne de lecture on REFUSE.
+  //  Ne pas savoir combien on a dépensé n'autorise pas à dépenser plus — c'est
+  //  l'exception au fail-open du reste du projet, et elle protège de l'argent.
+  //  Au plafond : le profil part en revue manuelle, jamais approuvé sans examen.
+  const budget = await budgetDisponible(supabaseAdmin, 'claude')
+  if (!budget.ok) {
+    console.error('[expert-verification] vérification refusée — budget', budget.raison)
+    await supabaseAdmin
+      .from('profiles')
+      .update({
+        verification_status: 'pending_admin_review',
+        verification_method: 'manual_only',
+        verification_data: { notes: 'Plafond de dépense IA atteint — vérification manuelle requise. ' + budget.raison },
+      })
+      .eq('id', profile_id)
+    return { status: 'skipped', verification_status: 'pending_admin_review', score: null, notes: '', flags: [], discrepancies: [], model: null, reason: 'ai_budget_exhausted' }
+  }
+
   let aiOut: ExpertVerificationOutput
   try {
     aiOut = await runExpertCoherenceCheck(input, config)
@@ -384,11 +405,32 @@ export async function runExpertVerification(args: {
       model_used: config.fallback_model,
       confidence_score: 0,
       notes: 'Erreur SDK Anthropic',
+      // Le SDK a levé : rien de mesurable n'a été consommé.
+      usage: null,
       discrepancies: [],
       flags: [],
       web_search_used: false,
       raw_response: null,
     }
+  }
+
+  // ── LA DÉPENSE, ENREGISTRÉE QUE L'APPEL AIT ABOUTI OU NON ─────────────────
+  //  Une réponse illisible ou un JSON invalide se paient autant qu'une réponse
+  //  exploitable. Ne compter que les succès ferait dériver le plafond vers le
+  //  bas — c'est la pire des deux erreurs, on croit avoir de la marge.
+  //  N'interrompt jamais la vérification : lib/ai-budget.ts ne lève sur aucun
+  //  chemin, et un profil ne doit pas rester bloqué parce qu'on n'a pas su
+  //  compter une dépense.
+  if (aiOut.usage) {
+    await enregistrerDepenseIA(supabaseAdmin, {
+      provider: 'claude',
+      action: 'expert_verification',
+      // L'expert demande SA vérification : c'est lui qui déclenche la dépense.
+      acteur: { type: 'profile', id: profile_id },
+      consommation: aiOut.usage,
+      domain_id: row.domain_id,
+      context: {},
+    })
   }
 
   // 7. Décision (PAS d'auto-reject V1)
