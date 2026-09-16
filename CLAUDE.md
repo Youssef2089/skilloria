@@ -651,6 +651,57 @@ Source unique désormais : [lib/site-url.ts](lib/site-url.ts) — repli explicit
 Gardé par [scripts/diag-configuration-absente.mjs](scripts/diag-configuration-absente.mjs), qui
 balaie **`app/` ET `lib/`** (438 fichiers) et vérifie que chacun des 8 appelants garde.
 
+**E.12 — Une migration de DONNÉES n'est validée par rien, et son seul usage est une base que personne n'a sous la main.**
+Même famille que **E.1** (« les clients Supabase ne sont pas typés »), et pour la même raison de fond :
+**aucun outil de compilation ne peut l'attraper.**
+
+Le cas réel : la migration `parametrage_de_production` a été livrée **sans avoir jamais été jouée**.
+Elle a échoué au **deuxième statement** :
+
+```
+ERROR: column "tags" is of type text[] but expression is of type jsonb (SQLSTATE 42804)
+```
+
+Les valeurs avaient été extraites de la base **via PostgREST — qui rend du JSON** — puis sérialisées
+en `::jsonb` sans jamais confronter chaque valeur au **type réel** de sa colonne.
+`domain_configs.tags` est un `text[]`.
+
+**Pourquoi rien ne l'a vu :**
+· `npx tsc` ne voit rien — c'est du SQL dans un `.sql` ;
+· `next build` non plus, pour la même raison ;
+· `diag-sql-litteraux` valide la **lexique** des chaînes, pas la **grammaire** ni les types ;
+· et surtout : **ce fichier n'a qu'un seul usage, une base NEUVE.** Personne ne l'exerce au
+quotidien. Le premier à le découvrir aurait été celui qui met en production.
+
+**Un deuxième effet, aussi grave :** une erreur au statement 2 **masque tout ce qui suit**. Rien ne
+dit si le reste est bon — et on est tenté de corriger la ligne fautive puis de repousser, au cas par
+cas, jusqu'à ce que ça passe. **C'est la mauvaise méthode** : il faut établir la liste **complète**
+des écarts avant de toucher au fichier.
+
+**La parade : [scripts/diag-migration-donnees.mjs](scripts/diag-migration-donnees.mjs).**
+Il **reconstruit le schéma depuis les migrations** (CREATE / ALTER / DROP / RENAME, dans l'ordre) et
+confronte chaque valeur écrite au type de sa colonne. La bonne référence est bien les migrations, pas
+la base actuelle : sur une base neuve, le schéma vient de là. Il tourne **sans base, sans réseau,
+sans identifiants**, donc depuis n'importe quel worktree.
+Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / uuid / temps / texte),
+**colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
+étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
+libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
+Sur les 51 migrations : **35 insertions analysées, 1913 valeurs confrontées**.
+
+> ⚠️ **ET IL DIT CE QU'IL NE SAIT PAS LIRE.** Les 12 `insert … select … from (values …) cross join`
+> sont déclarées **non analysables**, nommément, plutôt que jugées. Un contrôle qui invente un verdict
+> sur ce qu'il ne comprend pas fait croire à une couverture qui n'existe pas — et c'est exactement
+> comme ça qu'une migration non éprouvée a été livrée.
+> **Seul un rejeu réel les couvre** : `supabase db reset` sur une base locale, ou `begin; … rollback;`
+> sur un distant. Les deux exigent une base ; celui-ci n'exige rien, et c'est pour ça qu'il tournera.
+
+**Deux faux positifs, corrigés en l'exécutant** — et ils valent d'être nommés, parce qu'un contrôle
+qui crie à tort est désactivé le jour même : la liste de valeurs s'arrêtait au `;`, si bien que
+`on conflict (name) do nothing` était lu comme **un tuple de plus** (six migrations saines
+dénoncées) ; et la règle « `translations` doit être la **dernière** insertion » dénonçait
+`public_email_domains`, que **aucune** traduction ne référence.
+
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
   acceptée et ne se déclenchera **jamais** : aucune erreur, aucune ligne dans `job_run_details`. D'où le
