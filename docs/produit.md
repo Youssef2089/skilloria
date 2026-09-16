@@ -544,7 +544,7 @@ deux produits.
 | `experts` · `experts/[id]` | Modération des vérifications d'experts (approuver / refuser avec motif). |
 | `organisations` · `organisations/[id]` | Modération des organisations ; attribution manuelle d'offre ; consommation. |
 | `packages` · `packages/new` · `packages/[id]` | Catalogue commerce : offres, limites, offre par défaut, synchro Stripe. |
-| `matching` | Les **deux seuils** par écosystème, le modèle de reranking, la taille de lot, `notify_enabled` ; pannes de rédaction et dépassements de relance. |
+| `matching` | Les **deux seuils** par écosystème, le modèle de reranking, la taille de lot, `notify_enabled` ; pannes de rédaction et dépassements de relance. Et les **deux réglages d'argent** — plafond de dépense (**il bloque**) et seuil d'alerte par acteur (**il alerte**) — chacun dans le bloc qui affiche déjà sa valeur. |
 | `quotas-ia` | Les quotas anti-abus IA (analyses de CV). |
 | `taxonomie` · `taxonomie/[id]` | Branches et spécialités, et leurs traductions. |
 | `ecosystemes` | Créer un écosystème, le traduire, l'ouvrir — **et dire ce qui manque**. Le détail est un **panneau dans la page de liste**, pas un écran : `/admin/ecosystemes/[id]` n'existe pas (seule la **route API** porte ce chemin). Ce tableau l'annonçait comme un écran. |
@@ -588,8 +588,8 @@ l'expose**. « Code » = un déploiement est nécessaire.
 | Modèle de reranking | `rerank-v4.0-fast` | `matching_settings.rerank_model` | **Back-office** |
 | Taille de lot | 200 (borne 1–1000) | `matching_settings.rerank_batch_size` | **Back-office** |
 | Contrainte `notify_threshold ≥ feed_threshold` | — | CHECK en base | **Personne** — migration |
-| Plafond de dépense mensuel | rerank 200 $ · claude 100 $ | `ai_spend_caps` | **Base** (aucun écran) — **bloque** |
-| Seuil d'alerte **par acteur** | organisation **10 $** · expert **2 $** | `ai_spend_seuils_acteur` | **Base** (aucun écran) — **alerte, ne bloque JAMAIS** |
+| Plafond de dépense mensuel | rerank 200 $ · claude 100 $ | `ai_spend_caps` | **Back-office** `/admin/matching` — **il BLOQUE** |
+| Seuil d'alerte **par acteur** | organisation **10 $** · expert **2 $** | `ai_spend_seuils_acteur` | **Back-office** `/admin/matching` — **il ALERTE, il ne bloque JAMAIS** |
 | Grille tarifaire par modèle | Sonnet 5 **2/10** · Sonnet 4.6 **3/15** · Haiku 4.5 **1/5** · rerank **0,000002 $/doc** | `ai_model_tarifs` | **Base** (aucun écran) — change quand le fournisseur change ses prix, pas quand on déploie |
 | Lots en parallèle | 4 | **Code** | Déploiement |
 | Délai fournisseur | 10 s | **Code** | Déploiement |
@@ -620,6 +620,7 @@ l'expose**. « Code » = un déploiement est nécessaire.
 |---|---|---|---|
 | Durée de vie d'une annonce | **30 j**, calculés **à la lecture** | `duree_reglages.vie_annonce_jours` | **Back-office** `/admin/durees` — **changement RÉTROACTIF** |
 | Fenêtre d'échange | **15 j** depuis le dévoilement, **écrits** en base | `duree_reglages.fenetre_echange_jours` | **Back-office** `/admin/durees` — changement **NON** rétroactif |
+| Validité d'une invitation d'organisation | **7 j** | `duree_reglages.invitation_jours` | **Back-office** `/admin/durees` — changement **NON** rétroactif |
 | Grâce avant suppression définitive | **90 j** | **Code** `GRACE_DAYS` | Déploiement |
 | Avertissement d'inactivité | **23 mois** | **Code** `WARNING_MONTHS` | Déploiement |
 | Purge d'inactivité (CNIL) | **24 mois** | **Code** `PURGE_MONTHS` | Déploiement |
@@ -653,13 +654,12 @@ l'expose**. « Code » = un déploiement est nécessaire.
 > planifiée en SQL inline, absente du journal applicatif et de la liste codée en dur. D'où
 > `cron_job_catalog`.
 >
-> ⚠️ **MAIS IL N'EN NOMME QUE CINQ SUR HUIT** (vérifié en base le 16/09/2026). Les trois tâches du
-> moteur — `expert_relance_trigger`, `matching_retry_trigger`,
-> `matching_notes_partielles_purge` — **ne sont pas cataloguées**. Ce document écrivait qu'il
-> « nomme **chaque** tâche » : c'était exactement le défaut qu'il prétend avoir fermé.
-> L'écran, lui, ne les masque pas — `admin_cron_jobs_overview()` fait un **LEFT JOIN** sur le
-> catalogue et rejette les non-cataloguées en fin de liste (`display_order` 9000). Elles y
-> paraissent donc **sans libellé, sans description et sans dépendances** : visibles, mais muettes.
+> Il n'en nommait longtemps que **cinq sur huit** : les trois tâches du moteur, ajoutées après,
+> paraissaient à l'écran **sans libellé ni description** — visibles, et muettes. C'était exactement
+> le défaut que ce catalogue prétend fermer. **CLOS** : les huit sont nommées et traduites en quatre
+> langues (migration `duree_invitation`), les trois nouvelles classées `technical` — aucune n'est
+> portée par une obligation légale, et les confondre ferait passer une purge RGPD et une reprise de
+> run pour la même chose.
 > Et `/admin/taches-planifiees` **ne reçoit jamais d'expression cron** : pg_cron valide la **forme**
 > (cinq champs), pas la **satisfaisabilité** — `0 3 30 2 *` (30 février) est acceptée et ne se
 > déclenchera **jamais**, sans erreur ni ligne d'exécution. La purge CNIL s'arrêterait en silence.
@@ -706,10 +706,18 @@ Nommées, comme demandé. Chacune exige aujourd'hui un **déploiement** :
    (entier, 0–10), **refuse** d'écrire une clé que le chemin ne lit pas, refuse une liste de drapeaux
    vide, et **journalise** qui a changé quoi, depuis quelle valeur et depuis quelle adresse. La
    valeur réelle du seuil expert est **8**, dans le jsonb — ni 9, ni la colonne.
-4. **Plafonds de dépense IA** (`ai_spend_caps`, 200 $ / 100 $) **et seuils d'alerte par acteur**
-   (`ai_spend_seuils_acteur`, 10 $ / 2 $) — en base, aucun écran, alors que ce sont des réglages
-   d'argent que `/admin/matching` affiche déjà à côté. Le second est moins urgent que le premier :
-   une mauvaise valeur y produit du **bruit**, pas un incident — le plafond, lui, bloque.
+4. ~~**Plafonds de dépense IA** et **seuils d'alerte par acteur**~~ — **CLOS.** Les deux se règlent
+   sur `/admin/matching`, **dans le bloc qui affiche déjà leur valeur** — et non dans une section
+   « réglages » séparée : voir « 47 $ dépensés » et « plafond 200 $ » côte à côte est ce qui permet
+   de décider. Bornes **au serveur** (0 à 100 000 $), refus d'un fournisseur ou d'un acteur hors
+   catalogue, validation **du corps entier avant la moindre écriture** (un état à moitié appliqué
+   s'afficherait sans qu'on sache lequel des champs a pris), et **trace** sous **deux actions
+   distinctes** — `ai_spend_cap_updated` et `ai_spend_alert_threshold_updated`.
+
+   **L'écran écrit lequel arrête et lequel prévient**, à côté de chaque champ : le plafond **BLOQUE**
+   (le baisser sous la dépense engagée arrête le moteur à la seconde), le seuil **n'arrête rien** (il
+   pose un drapeau recalculé à chaque affichage). Deux champs voisins qui se ressemblent sans agir
+   pareil sont un piège — le même que celui des durées.
 5. **Limites de l'OTP** (1/60 s, 3/h, 10/h par IP) — anti-abus, donc légitimement en code, selon le
    même raisonnement que le plafond de relance (§D.7).
 6. **Taille de CV (5 Mo)**, **longueur de message (5000)**, **bornes du résumé (200–800)** — bornes de

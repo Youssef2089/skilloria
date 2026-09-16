@@ -2854,6 +2854,18 @@
         "rate_limit_purge": {
           "label": "Löschung der Ratenzähler",
           "description": "Entfernt Zähler der Ratenbegrenzung, die älter als 24 Stunden sind."
+        },
+        "matching_retry": {
+          "label": "Wiederaufnahme unvollendeter Vermittlungsläufe",
+          "description": "Spielt Vermittlungsläufe erneut ab, die nicht abgeschlossen wurden — Funktion abgebrochen, Stapel fehlgeschlagen, Ausgabenlimit erreicht. Ohne sie kann eine veröffentlichte Anzeige ohne Kandidaten bleiben."
+        },
+        "expert_relance": {
+          "label": "Erneute Vermittlungsläufe für Experten",
+          "description": "Führt die fälligen Wiederholungen aus, nachdem ein Experte sein Profil geändert hat. Aufschieben ist nicht Abbrechen: eine abgelehnte Auslösung wird neu geplant, nie verworfen."
+        },
+        "notes_partielles_purge": {
+          "label": "Bereinigung der Bewertungsentwürfe",
+          "description": "Löscht bereits abgerechnete Teilbewertungen. Sie verhindern, dass ein bereits bewerteter Stapel bei einem Abbruch ERNEUT BEZAHLT wird; nach Abschluss des Laufs haben sie keinen Zweck mehr."
         }
       },
       "banner_action": "Geplante Aufgaben ansehen",
@@ -3661,6 +3673,19 @@
       "help": "Eine Überschreitung LÖST EINEN HINWEIS AUS, sie blockiert nie: dieser Bildschirm entzieht niemandem etwas. Die Summe der Zeilen entspricht den Ausgaben des Monats — einschließlich benannter Akteure, zusammengefasstem Rest und nicht zurechenbarem Anteil.",
       "unattributedHelp": "„Nicht zurechenbar“: Ausgaben, die erfasst wurden, bevor die Rechnung nach Akteur aufgeschlüsselt wurde. Sie haben keinen bekannten Auslöser und werden nie einen haben — sie auf die anderen zu verteilen hieße, eine Zahl zu erfinden. Diese Zeile schrumpft von selbst, da die Ansicht monatlich ist."
     },
+    "money": {
+      "cap_label": "Monatliches Limit — änderbar",
+      "cap_blocks_label": "Dieses Limit BLOCKIERT.",
+      "cap_blocks_body": "Ist es erreicht, verschlechtert sich die Funktion und schreibt es in die Protokollspur des Laufs: sie gibt nicht weiter aus. Es unter die in diesem Monat bereits eingegangenen Ausgaben zu senken, stoppt die Engine sofort.",
+      "alert_label": "Hinweisschwelle je Akteur — änderbar",
+      "alert_warns_label": "Diese Schwelle STOPPT NICHTS.",
+      "alert_warns_body": "Sie markiert eine Zeile dieser Tabelle, bei jedem Laden neu berechnet. Niemandem wird etwas entzogen: ein falscher Wert erzeugt Rauschen, nie einen Vorfall.",
+      "save": "Beide Einstellungen speichern",
+      "saving": "Wird gespeichert…",
+      "saved": "Limit und Hinweisschwelle gespeichert.",
+      "save_failed": "Das Speichern ist fehlgeschlagen. Keiner der beiden Werte wurde geschrieben.",
+      "help": "Beide sind serverseitig begrenzt (0 bis 100 000 $) und im Prüfprotokoll erfasst, mit dem Wert davor und danach. Ein Limit von 0 stoppt alle Ausgaben bei diesem Anbieter — das ist ein vorgesehener Fall."
+    },
     "distribution": {
       "title": "Beobachtete Verteilung (letzte 30 Tage)",
       "runs": "{count} beobachtete(r) Lauf/Läufe.",
@@ -3753,6 +3778,12 @@
       "not_retroactive_label": "Diese Einstellung wirkt nicht rückwirkend.",
       "not_retroactive_body": "Das Ende eines Gesprächs ist ein beim Freischalten GESCHRIEBENES Datum. Diese Laufzeit zu ändern verkürzt oder verlängert keinen laufenden Austausch: offene Gespräche behalten das zugesagte Datum. Nur künftige Freischaltungen verwenden den neuen Wert.",
       "help": "Das ist der Unterschied zur Einstellung darüber, und er ist kein Implementierungsdetail: ein geschriebenes Datum wird nicht neu berechnet."
+    },
+    "invitation": {
+      "title": "Gültigkeit einer Einladung",
+      "not_retroactive_label": "Diese Einstellung wirkt nicht rückwirkend.",
+      "not_retroactive_body": "Das Enddatum einer Einladung wird beim Versand GESCHRIEBEN und beim erneuten Versand neu geschrieben. Diese Laufzeit zu ändern verkürzt oder verlängert keine bereits versandte Einladung: sie behalten das ihnen gegebene Datum. Nur künftige Einladungen verwenden den neuen Wert.",
+      "help": "Hier wird vor dem Speichern nicht gezählt, und das ist kein Versäumnis: es gibt nichts zu zählen, weil nichts umschlägt. Diese Laufzeit stand fest verdrahtet in zwei Dateien — damit war ihr Auseinanderlaufen nur eine Frage der Zeit."
     },
     "confirm": {
       "title": "Bitte bestätigen",

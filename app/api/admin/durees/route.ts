@@ -13,10 +13,13 @@ export const dynamic = 'force-dynamic'
  * ╔══════════════════════════════════════════════════════════════════════════╗
  * ║ CE QUE CET ÉCRAN RÈGLE                                                   ║
  * ║                                                                          ║
- * ║   La VIE D'UNE ANNONCE (30 j) et la FENÊTRE D'ÉCHANGE (15 j). Ce sont    ║
- * ║   les deux promesses que la place fait à ses deux côtés : combien de     ║
- * ║   temps une annonce se voit, et combien de temps on a pour se parler     ║
- * ║   une fois le contact payé. Les changer demandait un déploiement.        ║
+ * ║   La VIE D'UNE ANNONCE (30 j), la FENÊTRE D'ÉCHANGE (15 j) et la         ║
+ * ║   VALIDITÉ D'UNE INVITATION (7 j). Les deux premières sont les           ║
+ * ║   promesses que la place fait à ses deux côtés : combien de temps une    ║
+ * ║   annonce se voit, et combien de temps on a pour se parler une fois le   ║
+ * ║   contact payé. La troisième gouverne l'entrée dans une organisation.    ║
+ * ║   Les changer demandait un déploiement — et la troisième vivait EN DUR   ║
+ * ║   dans DEUX fichiers, ce qui la condamnait à diverger.                   ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  *
  * ═══ L'ASYMÉTRIE — ET ELLE EST LE SUJET DE CETTE ROUTE ══════════════════════
@@ -31,6 +34,13 @@ export const dynamic = 'force-dynamic'
  *   FENÊTRE D'ÉCHANGE : NON RÉTROACTIVE.
  *     `conversations.expires_at` EST écrit au déblocage. Les échanges ouverts
  *     gardent leur date ; seuls les déblocages à venir suivent la nouvelle.
+ *
+ *   VALIDITÉ D'UNE INVITATION : NON RÉTROACTIVE, pour la même raison.
+ *     `organization_invitations.expires_at` est écrit à la création et réécrit
+ *     au renvoi. Une invitation déjà partie garde la sienne.
+ *     D'où l'absence de garde de comptage sur ce champ : il n'y a **rien à
+ *     compter**, parce qu'il n'y a rien qui bascule. En poser une laisserait
+ *     croire le contraire, et apprendrait à cliquer sans lire.
  *
  *   Ce n'est pas un détail d'implémentation qu'on pourrait revoir : c'est ce
  *   que veut dire « une date écrite » contre « une règle appliquée à la
@@ -129,6 +139,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   return json({
     vie_annonce_jours: lecture.durees.vieAnnonceJours,
     fenetre_echange_jours: lecture.durees.fenetreEchangeJours,
+    invitation_jours: lecture.durees.invitationJours,
     updated_at: meta?.updated_at ?? null,
     updated_by: meta?.updated_by ?? null,
     simulation,
@@ -138,6 +149,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 type CorpsPatch = {
   vie_annonce_jours?: unknown
   fenetre_echange_jours?: unknown
+  invitation_jours?: unknown
   confirme_retroactivite?: unknown
 }
 
@@ -160,7 +172,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
   const vie = Number(corps.vie_annonce_jours)
   const fenetre = Number(corps.fenetre_echange_jours)
-  if (!estDureeAcceptable(vie) || !estDureeAcceptable(fenetre)) {
+  const invitation = Number(corps.invitation_jours)
+  if (!estDureeAcceptable(vie) || !estDureeAcceptable(fenetre) || !estDureeAcceptable(invitation)) {
     // On borne ICI pour rendre une raison lisible, alors que la base rendrait
     // une erreur de contrainte que l'écran afficherait « db_error ».
     return json(
@@ -215,6 +228,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     .update({
       vie_annonce_jours: vie,
       fenetre_echange_jours: fenetre,
+      invitation_jours: invitation,
       updated_at: new Date().toISOString(),
       updated_by: auth.user.id,
     })
@@ -238,8 +252,13 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       avant: {
         vie_annonce_jours: avant.durees.vieAnnonceJours,
         fenetre_echange_jours: avant.durees.fenetreEchangeJours,
+        invitation_jours: avant.durees.invitationJours,
       },
-      apres: { vie_annonce_jours: vie, fenetre_echange_jours: fenetre },
+      apres: {
+        vie_annonce_jours: vie,
+        fenetre_echange_jours: fenetre,
+        invitation_jours: invitation,
+      },
       retroactivite: bascule
         ? {
             basculent: bascule.basculent,
@@ -253,6 +272,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   return json({
     vie_annonce_jours: vie,
     fenetre_echange_jours: fenetre,
+    invitation_jours: invitation,
     retroactivite_appliquee: bascule ?? null,
   })
 }

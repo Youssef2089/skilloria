@@ -2854,6 +2854,18 @@
         "rate_limit_purge": {
           "label": "Rate-limit counter purge",
           "description": "Deletes rate-limiting counters older than 24 hours."
+        },
+        "matching_retry": {
+          "label": "Retry of unfinished matching runs",
+          "description": "Replays matching runs that did not complete — function interrupted, batch failed, spend cap reached. Without it, a published listing can stay with no candidates."
+        },
+        "expert_relance": {
+          "label": "Expert matching re-runs",
+          "description": "Runs the re-runs that fell due after an expert changed their profile. Deferring is not cancelling: a refused trigger is rescheduled, never lost."
+        },
+        "notes_partielles_purge": {
+          "label": "Purge of scoring drafts",
+          "description": "Deletes partial scores that have already been settled. They avoid PAYING AGAIN for a batch already scored when a run is interrupted; once the run completes they serve no purpose."
         }
       },
       "banner_action": "View scheduled tasks",
@@ -3661,6 +3673,19 @@
       "help": "Going over the threshold RAISES AN ALERT, it never blocks: no one loses access to anything because of this screen. The lines add up to the month total — named actors, grouped remainder and unattributable included.",
       "unattributedHelp": "“Unattributable”: spend recorded before the bill was broken down by actor. It has no known trigger and never will — spreading it over the others would mean inventing a figure. This line shrinks on its own, since the view is monthly."
     },
+    "money": {
+      "cap_label": "Monthly cap — editable",
+      "cap_blocks_label": "This cap BLOCKS.",
+      "cap_blocks_body": "Once reached, the feature degrades and says so in the run trace: it does not keep spending. Lowering it below this month’s committed spend stops the engine immediately.",
+      "alert_label": "Per-actor alert threshold — editable",
+      "alert_warns_label": "This threshold STOPS NOTHING.",
+      "alert_warns_body": "It raises a flag on a row of this table, recomputed on every load. Nobody loses access to anything: a wrong value produces noise, never an incident.",
+      "save": "Save both settings",
+      "saving": "Saving…",
+      "saved": "Cap and alert threshold saved.",
+      "save_failed": "Saving failed. Neither value was written.",
+      "help": "Both are bounded server-side (0 to $100,000) and recorded in the audit log, with the before and after values. A cap of 0 stops all spend with that provider — that is an intended use."
+    },
     "distribution": {
       "title": "Observed distribution (last 30 days)",
       "runs": "{count} run(s) observed.",
@@ -3753,6 +3778,12 @@
       "not_retroactive_label": "This setting is not retroactive.",
       "not_retroactive_body": "A conversation’s end is a date WRITTEN at unlock time. Changing this duration neither shortens nor extends any ongoing exchange: open conversations keep the date they were promised. Only future unlocks will use the new value.",
       "help": "That is the difference with the setting above, and it is not an implementation detail: a stored date is not recomputed."
+    },
+    "invitation": {
+      "title": "Invitation validity",
+      "not_retroactive_label": "This setting is not retroactive.",
+      "not_retroactive_body": "An invitation’s end date is WRITTEN when it is sent, and rewritten when it is resent. Changing this duration neither shortens nor extends any invitation already out: they keep the date they were given. Only future invitations will use the new value.",
+      "help": "No count before saving here, and that is not an oversight: there is nothing to count, because nothing flips. This duration lived hardcoded in two files, which doomed it to drift."
     },
     "confirm": {
       "title": "Please confirm",

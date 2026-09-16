@@ -147,6 +147,16 @@ export async function GET(request: NextRequest): Promise<Response> {
       depassements: depassementsRes.error ? null : (depassementsRes.data ?? []),
       inacheves: inachevesRes.error ? null : (inachevesRes.data ?? []),
       par_acteur: parActeur,
+      // LES DEUX REGLAGES D ARGENT, rendus pour etre EDITES et non seulement lus.
+      //  Ils etaient affiches sans pouvoir etre changes — le defaut que §D.7
+      //  condamne, sur les deux seuls reglages qui touchent a l argent.
+      seuils_acteur: seuilsActeurRes.error
+        ? null
+        : Object.fromEntries(
+            ((seuilsActeurRes.data ?? []) as Array<{ acteur: string; seuil_mensuel_usd: number | string }>).map(
+              (r) => [r.acteur, Number(r.seuil_mensuel_usd)],
+            ),
+          ),
     },
     200,
   )

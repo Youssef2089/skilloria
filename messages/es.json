@@ -2854,6 +2854,18 @@
         "rate_limit_purge": {
           "label": "Purga de los contadores de tasa",
           "description": "Borra los contadores de limitación de tasa de más de 24 horas."
+        },
+        "matching_retry": {
+          "label": "Reanudación de las vinculaciones inacabadas",
+          "description": "Reproduce las ejecuciones de vinculación que no se completaron — función interrumpida, lote fallido, límite de gasto alcanzado. Sin ella, un anuncio publicado puede quedarse sin candidatos."
+        },
+        "expert_relance": {
+          "label": "Reintentos de vinculación de los expertos",
+          "description": "Ejecuta los reintentos vencidos después de que un experto haya modificado su perfil. Aplazar no es cancelar: un disparo rechazado se reprograma, nunca se pierde."
+        },
+        "notes_partielles_purge": {
+          "label": "Purga de borradores de puntuación",
+          "description": "Borra las puntuaciones parciales ya saldadas. Evitan VOLVER A PAGAR un lote ya puntuado cuando una ejecución se interrumpe; una vez completada, no sirven para nada."
         }
       },
       "banner_action": "Ver las tareas programadas",
@@ -3661,6 +3673,19 @@
       "help": "Superar el umbral GENERA UNA ALERTA, nunca bloquea: esta pantalla no priva a nadie de nada. La suma de las líneas es igual al gasto del mes — actores detallados, resto agrupado y no imputable incluidos.",
       "unattributedHelp": "«No imputable»: gastos registrados antes de que la factura se desglosara por actor. No tienen un origen conocido y nunca lo tendrán — repartirlos entre los demás sería inventar una cifra. Esta línea disminuye por sí sola, ya que la lectura es mensual."
     },
+    "money": {
+      "cap_label": "Límite mensual — editable",
+      "cap_blocks_label": "Este límite BLOQUEA.",
+      "cap_blocks_body": "Al alcanzarlo, la funcionalidad se degrada y lo escribe en la traza de la ejecución: no sigue gastando. Bajarlo por debajo del gasto ya comprometido este mes detiene el motor de inmediato.",
+      "alert_label": "Umbral de alerta por actor — editable",
+      "alert_warns_label": "Este umbral NO DETIENE NADA.",
+      "alert_warns_body": "Marca una línea de esta tabla, recalculada en cada carga. Nadie se ve privado de nada: un valor incorrecto genera ruido, nunca un incidente.",
+      "save": "Guardar ambos ajustes",
+      "saving": "Guardando…",
+      "saved": "Límite y umbral de alerta guardados.",
+      "save_failed": "No se ha podido guardar. No se ha escrito ninguno de los dos valores.",
+      "help": "Ambos están acotados en el servidor (de 0 a 100 000 $) y registrados en el historial de auditoría, con el valor anterior y el nuevo. Un límite de 0 corta todo el gasto con ese proveedor: es un uso previsto."
+    },
     "distribution": {
       "title": "Distribución observada (últimos 30 días)",
       "runs": "{count} ejecución(es) observada(s).",
@@ -3753,6 +3778,12 @@
       "not_retroactive_label": "Este ajuste no es retroactivo.",
       "not_retroactive_body": "El fin de una conversación es una fecha ESCRITA en el momento del desbloqueo. Cambiar esta duración no acorta ni alarga ningún intercambio en curso: las conversaciones abiertas conservan la fecha prometida. Solo los desbloqueos futuros usarán el nuevo valor.",
       "help": "Esa es la diferencia con el ajuste anterior, y no es un detalle de implementación: una fecha escrita no se recalcula."
+    },
+    "invitation": {
+      "title": "Validez de una invitación",
+      "not_retroactive_label": "Este ajuste no es retroactivo.",
+      "not_retroactive_body": "La fecha de fin de una invitación se ESCRIBE en el momento del envío, y se reescribe al reenviarla. Cambiar esta duración no acorta ni alarga ninguna invitación ya enviada: conservan la fecha que se les dio. Solo las futuras usarán el nuevo valor.",
+      "help": "Aquí no hay recuento antes de guardar, y no es un olvido: no hay nada que contar, porque nada cambia de estado. Esta duración estaba escrita a mano en dos archivos, lo que la condenaba a divergir."
     },
     "confirm": {
       "title": "Confirmar",

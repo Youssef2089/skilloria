@@ -317,5 +317,77 @@ section('G. Le detecteur lui-meme est eprouve')
     'l’histoire d’un defaut doit pouvoir etre racontee')
 }
 
+section('H. La TROISIEME duree — celle qui vivait en DEUX exemplaires')
+
+{
+  const LECTEUR = sansCommentaires(read('lib/durees.ts'))
+  const JETON = sansCommentaires(read('lib/invitation-token.ts'))
+
+  ok(/invitationJours: number/.test(LECTEUR) && !/invitationJours\?:/.test(LECTEUR),
+    'la duree d’invitation est un champ REQUIS du lecteur',
+    'optionnelle, elle se resoudrait en undefined, donc en NaN, donc en date invalide')
+
+  ok(!/\b7\b/.test(LECTEUR),
+    'le lecteur ne contient pas l’ancienne valeur 7',
+    'un repli a 7 dans lib/durees.ts annulerait ce lot')
+
+  // LA SOURCE EST UNIQUE. C'est le coeur du defaut ferme : le meme nombre
+  // vivait dans DEUX routes, et deux copies derivent — six copies du mappage
+  // des offres avaient deja derive sur ce projet.
+  ok(/export function invitationExpiryIso/.test(JETON),
+    'une source UNIQUE calcule la date d’expiration d’une invitation')
+
+  // ANCRE SUR L'ECRITURE, ET SUR ELLE SEULE.
+  //   Premier motif : « cite organization_invitations ET expires_at ». Il
+  //   denoncait SIX fichiers sains — ceux qui LISENT la date pour dire si une
+  //   invitation est encore valable, plus les types generes. C'est la troisieme
+  //   fois de la journee que ce piege se referme : un controle qui crie a tort
+  //   est desactive le jour meme (§E.7).
+  const POSE_UNE_DATE =
+    /\.from\('organization_invitations'\)\s*\.?\s*\n?\s*\.(insert|update|upsert)\([\s\S]{0,400}?expires_at/
+  const ecrivains = fichiers.filter((f) => POSE_UNE_DATE.test(sansCommentaires(read(f))))
+  const sansSource = ecrivains.filter((f) => !/invitationExpiryIso/.test(sansCommentaires(read(f))))
+  ok(sansSource.length === 0,
+    `les ${ecrivains.length} fichier(s) qui posent une expiration d’invitation passent par la source unique`,
+    sansSource.join(', ') + ' — une seconde copie du meme nombre finira par diverger')
+
+  // ET ELLE N'EST PAS RETROACTIVE : la date est ECRITE. Poser une garde de
+  // comptage laisserait croire le contraire.
+  const ROUTE = sansCommentaires(read('app/api/admin/durees/route.ts'))
+  ok(!/invitation[\s\S]{0,200}basculant/i.test(ROUTE),
+    'aucune garde de comptage n’est posee sur la duree d’invitation',
+    'il n’y a rien a compter : la date est ecrite, rien ne bascule')
+
+  ok(/invitation_jours: invitation/.test(ROUTE),
+    'la troisieme duree est REELLEMENT ecrite par la route d’administration')
+}
+
+section('I. Les trois durees, et l’asymetrie, sont DITES dans les quatre langues')
+
+{
+  const LANGUES = ['fr', 'en', 'es', 'de']
+  const CLES = [
+    'life.retroactive_label',
+    'exchange.not_retroactive_label',
+    'invitation.not_retroactive_label',
+    'invitation.not_retroactive_body',
+  ]
+  for (const langue of LANGUES) {
+    const j = JSON.parse(read(`messages/${langue}.json`))
+    const manquantes = CLES.filter((c) => {
+      const v = c.split('.').reduce((o, k) => (o ? o[k] : undefined), j.admin_durees)
+      return typeof v !== 'string' || v.trim().length === 0
+    })
+    ok(manquantes.length === 0,
+      `${langue} : les trois durees disent si elles retroagissent`,
+      'clef(s) absente(s) : ' + manquantes.join(', '))
+  }
+
+  const ECRAN = sansCommentaires(read('app/[locale]/admin/durees/page.tsx'))
+  ok(/invitation\.not_retroactive_body/.test(ECRAN),
+    'l’avertissement de la troisieme duree est RENDU, pas seulement traduit',
+    'une traduction qu’aucun ecran n’affiche ne previent personne')
+}
+
 console.log(echecs === 0 ? '\n✔ TOUT VERT' : `\n✘ ${echecs} CONTROLE(S) EN ECHEC`)
 process.exit(echecs === 0 ? 0 : 1)

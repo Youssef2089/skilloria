@@ -410,6 +410,15 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 - ~~Cinq des sept points de dépense IA n'enregistrent rien~~ — **CLOS.** Les **sept** consultent le
   plafond avant d'appeler et enregistrent après, au tarif du modèle réellement appelé (§E.13).
   Gardé par un contrôle **de classe** : un huitième point ajouté demain rougit s'il est muet.
+- ~~`ai_spend_caps` et `ai_spend_seuils_acteur` n'ont aucun écran~~ — **CLOS.** Les deux se règlent
+  sur `/admin/matching`, chacun dans le bloc qui porte déjà sa valeur, bornés au serveur et tracés
+  sous **deux** actions distinctes. L'écran écrit lequel **bloque** et lequel **alerte** (§P3.7).
+- ~~La durée de validité d'une invitation vit en dur, dans DEUX fichiers~~ — **CLOS.** Elle rejoint
+  `duree_reglages` (`invitation_jours`), et la seconde copie a disparu : `invitationExpiryIso()` est
+  la source unique. Non rétroactive — la date est **écrite** à l'envoi et réécrite au renvoi — donc
+  **aucune garde de comptage**, et l'écran le dit.
+- ~~Trois des huit tâches planifiées ne sont pas dans `cron_job_catalog`~~ — **CLOS.** Les huit sont
+  nommées et traduites en quatre langues.
 - ~~La dépense IA n'est pas répartie par acteur~~ — **CLOS.** Chaque événement nomme son acteur
   **déclencheur** (« qui fait monter la facture »), et **un seul** : contrainte en base
   (`ai_spend_un_seul_acteur`) *et* dans le type (`ActeurIA` est une union, pas deux champs
@@ -418,7 +427,6 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   rien n'est stocké, aucune tâche planifiée. **Un dépassement alerte, il ne bloque pas.**
   La dépense antérieure au découpage apparaît en clair sur une ligne **« non imputable »** :
   elle n'est **jamais proratisée** sur les autres, et elle décroît d'elle-même (lecture mensuelle).
-  Reste ouvert : **`ai_spend_caps` et `ai_spend_seuils_acteur` n'ont aucun écran** — deux réglages
-  d'argent que `/admin/matching` affiche déjà sans permettre de les changer.
+  Ces deux réglages ont désormais leur écran (voir ci-dessus).
 
 ---

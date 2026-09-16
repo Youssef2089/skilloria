@@ -174,7 +174,7 @@ existe pour une seule raison : **chaque écart dit quelque chose sur la façon d
 | 11 | §P2.4 — `/admin/durees` | livré au lot 3, **absent du tableau** | oubli de maintenance |
 | 12 | §P3.1 — trois offres | **quatre** : `Collaboration` (1/1/1/**0**) gouverne l'organisation personnelle d'un expert | inventaire incomplet |
 | 13 | §P3.1 — « offre par défaut : Free » | **deux** défauts, un par cible | imprécision |
-| 14 | §P3.6 — « `cron_job_catalog` **nomme chaque** tâche » | **5 sur 8**. Les trois du moteur sont muettes à l'écran | le défaut qu'on prétend fermé |
+| 14 | §P3.6 — « `cron_job_catalog` **nomme chaque** tâche » | **5 sur 8**. Les trois du moteur sont muettes à l'écran — **corrigé depuis** : les huit sont nommées | le défaut qu'on prétend fermé |
 | 15 | §E.3 — « en tête de **32** scripts » | **50** sur 71 | chiffre vieilli |
 | 16 | §E.11 — « **438** fichiers » | **445** | chiffre vieilli |
 | 17 | §E.12 — « **51** migrations, **35** insertions, **1913** valeurs » | **61 / 38 (sur 50 vues) / 1944** | chiffre vieilli |
@@ -526,7 +526,7 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **61** migrations : **50 insertions vues, 38 analysées, 1944 valeurs confrontées** (mesuré le
+Sur les **62** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
 16/09/2026 — ce document disait 51 / 35 / 1913 ; les trois chiffres avaient vieilli sans que rien ne
 le signale, et c'est précisément pour ça qu'ils sont désormais **relus par un contrôle**, §E.16).
 

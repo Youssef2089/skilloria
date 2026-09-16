@@ -125,6 +125,8 @@ type Charge = {
   depassements: LigneDepassement[] | null
   inacheves: LigneInacheve[] | null
   par_acteur: LigneParActeur[] | null
+  /** Les deux seuils d'alerte par acteur, pour être ÉDITÉS et non seulement lus. */
+  seuils_acteur: Record<string, number> | null
 }
 
 const carte: React.CSSProperties = {
@@ -151,6 +153,17 @@ const champ: React.CSSProperties = {
   background: 'var(--sk-surface)',
   color: 'var(--sk-text)',
 }
+/** Champ court, pour un montant en dollars. */
+const champArgent: React.CSSProperties = {
+  width: 110,
+  padding: '7px 9px',
+  border: '1px solid var(--sk-border)',
+  borderRadius: 8,
+  fontSize: 13.5,
+  background: 'var(--sk-surface)',
+  color: 'var(--sk-text)',
+  fontVariantNumeric: 'tabular-nums',
+}
 const etiquette: React.CSSProperties = {
   display: 'block',
   fontSize: 12,
@@ -171,6 +184,18 @@ export default function AdminMatchingPage() {
   const secureFetch = useSecureFetch()
 
   const [charge, setCharge] = useState<Charge | null>(null)
+  /**
+   * LES DEUX RÉGLAGES D'ARGENT, en saisie libre.
+   *
+   * Ils étaient AFFICHÉS sans pouvoir être changés — le défaut que §D.7
+   * condamne, et le pire endroit où le laisser : de l'argent. Les voir à côté
+   * de la dépense déjà faite est ce qui permet de décider ; c'est pourquoi les
+   * champs vivent DANS les blocs qui portent ces nombres, et non dans une
+   * section « réglages » qu'il faudrait mettre en regard de tête.
+   */
+  const [plafonds, setPlafonds] = useState<Record<string, string>>({})
+  const [seuilsActeur, setSeuilsActeur] = useState<Record<string, string>>({})
+  const [argentEnCours, setArgentEnCours] = useState(false)
   const [chargement, setChargement] = useState(true)
   const [erreur, setErreur] = useState<string | null>(null)
   const [succes, setSucces] = useState<string | null>(null)
@@ -186,7 +211,17 @@ export default function AdminMatchingPage() {
         setErreur(t('errors.load_failed'))
         return
       }
-      setCharge((await res.json()) as Charge)
+      const data = (await res.json()) as Charge
+      setCharge(data)
+      // Les champs sont pré-remplis depuis la LECTURE, jamais depuis une
+      // constante : une valeur inventée ici serait écrite au premier
+      // enregistrement, sur un réglage d'argent.
+      setPlafonds(
+        Object.fromEntries((data.depense ?? []).map((d) => [d.provider, String(d.monthly_cap_usd)])),
+      )
+      setSeuilsActeur(
+        Object.fromEntries(Object.entries(data.seuils_acteur ?? {}).map(([k, v]) => [k, String(v)])),
+      )
     } catch {
       setErreur(t('errors.load_failed'))
     } finally {
@@ -197,6 +232,41 @@ export default function AdminMatchingPage() {
   useEffect(() => {
     void lire()
   }, [lire])
+
+  /**
+   * ENREGISTRE LES DEUX RÉGLAGES D'ARGENT — en une seule demande.
+   *
+   * Le serveur refuse le corps ENTIER si une valeur est mauvaise : appliquer
+   * les bonnes et refuser les autres laisserait un état à moitié écrit, que
+   * cet écran afficherait sans savoir lequel des champs a pris.
+   */
+  const enregistrerArgent = async () => {
+    setArgentEnCours(true)
+    setErreur(null)
+    setSucces(null)
+    try {
+      const res = await secureFetch('/api/admin/plafonds-ia', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          plafonds: Object.fromEntries(Object.entries(plafonds).map(([k, v]) => [k, Number(v)])),
+          seuils_acteur: Object.fromEntries(
+            Object.entries(seuilsActeur).map(([k, v]) => [k, Number(v)]),
+          ),
+        }),
+      })
+      if (!res.ok) {
+        setErreur(t('money.save_failed'))
+        return
+      }
+      setSucces(t('money.saved'))
+      await lire()
+    } catch {
+      setErreur(t('money.save_failed'))
+    } finally {
+      setArgentEnCours(false)
+    }
+  }
 
   const valeur = (r: Reglage, cle: keyof Reglage) => {
     const b = brouillons[r.domain_id]
@@ -295,6 +365,50 @@ export default function AdminMatchingPage() {
             ))}
           </div>
         )}
+        {/* ── LE PLAFOND, RÉGLABLE, ET À CÔTÉ DE LA DÉPENSE ─────────────
+            Voir « 47 $ dépensés » et « plafond 200 $ » côte à côte est ce qui
+            permet de décider. Le champ vit donc ICI, dans le bloc qui porte le
+            nombre, et non dans une section « réglages » qu'il faudrait mettre
+            en regard de tête.
+
+            ⚠️ CELUI-CI BLOQUE, et l'écran le dit. Le baisser sous la dépense
+            déjà engagée du mois arrête le moteur à la seconde. */}
+        {(charge?.depense ?? []).length > 0 && (
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--sk-border)' }}>
+            <div style={{ ...etiquette, marginBottom: 10 }}>{t('money.cap_label')}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
+              {(charge?.depense ?? []).map((d) => (
+                <label key={d.provider} style={{ fontSize: 13 }}>
+                  <span style={etiquette}>{d.provider}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100000}
+                    step={1}
+                    value={plafonds[d.provider] ?? ''}
+                    onChange={(e) => setPlafonds((p) => ({ ...p, [d.provider]: e.target.value }))}
+                    style={champArgent}
+                    disabled={argentEnCours}
+                  />
+                </label>
+              ))}
+            </div>
+            <p
+              style={{
+                fontSize: 12.5,
+                color: '#991b1b',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: 8,
+                padding: '9px 11px',
+                lineHeight: 1.5,
+                marginTop: 12,
+              }}
+            >
+              <strong>{t('money.cap_blocks_label')}</strong> {t('money.cap_blocks_body')}
+            </p>
+          </div>
+        )}
         <div style={aide}>{t('spend.help')}</div>
       </section>
 
@@ -366,6 +480,68 @@ export default function AdminMatchingPage() {
         {/* L'angle mort est ÉCRIT, pas deviné. Une ligne « non imputable » sans
             explication se lit comme un bug ; expliquée, elle se lit comme une
             limite connue qui décroît d'elle-même. */}
+        {/* ── LE SEUIL D'ALERTE, RÉGLABLE, ET À CÔTÉ DE CE QU'IL SIGNALE ──
+            ⚠️ CELUI-CI N'ARRÊTE RIEN, et l'écran le dit aussi clairement que
+            l'autre dit l'inverse. Une mauvaise valeur produit du BRUIT, pas un
+            incident — et deux champs qui se ressemblent sans agir pareil sont
+            un piège, exactement comme les durées (§P3.7). */}
+        {charge?.seuils_acteur && (
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--sk-border)' }}>
+            <div style={{ ...etiquette, marginBottom: 10 }}>{t('money.alert_label')}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
+              {Object.keys(charge.seuils_acteur).map((acteur) => (
+                <label key={acteur} style={{ fontSize: 13 }}>
+                  <span style={etiquette}>
+                    {acteur === 'organization' ? t('spendByActor.kindOrg') : t('spendByActor.kindExpert')}
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100000}
+                    step={1}
+                    value={seuilsActeur[acteur] ?? ''}
+                    onChange={(e) => setSeuilsActeur((p) => ({ ...p, [acteur]: e.target.value }))}
+                    style={champArgent}
+                    disabled={argentEnCours}
+                  />
+                </label>
+              ))}
+            </div>
+            <p
+              style={{
+                fontSize: 12.5,
+                color: '#1e40af',
+                background: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                borderRadius: 8,
+                padding: '9px 11px',
+                lineHeight: 1.5,
+                marginTop: 12,
+              }}
+            >
+              <strong>{t('money.alert_warns_label')}</strong> {t('money.alert_warns_body')}
+            </p>
+            <button
+              type="button"
+              onClick={() => void enregistrerArgent()}
+              disabled={argentEnCours}
+              style={{
+                marginTop: 14,
+                padding: '10px 20px',
+                background: argentEnCours ? 'var(--sk-border)' : 'var(--sk-text)',
+                color: argentEnCours ? 'var(--sk-faint)' : 'var(--sk-surface)',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 13.5,
+                fontWeight: 600,
+                cursor: argentEnCours ? 'default' : 'pointer',
+              }}
+            >
+              {argentEnCours ? t('money.saving') : t('money.save')}
+            </button>
+            <div style={aide}>{t('money.help')}</div>
+          </div>
+        )}
         <div style={aide}>{t('spendByActor.unattributedHelp')}</div>
       </section>
 
