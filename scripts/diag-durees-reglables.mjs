@@ -354,9 +354,18 @@ section('H. La TROISIEME duree — celle qui vivait en DEUX exemplaires')
   // ET ELLE N'EST PAS RETROACTIVE : la date est ECRITE. Poser une garde de
   // comptage laisserait croire le contraire.
   const ROUTE = sansCommentaires(read('app/api/admin/durees/route.ts'))
-  ok(!/invitation[\s\S]{0,200}basculant/i.test(ROUTE),
-    'aucune garde de comptage n’est posee sur la duree d’invitation',
-    'il n’y a rien a compter : la date est ecrite, rien ne bascule')
+  // ANCRE SUR LA FORME DE L'APPEL, ET NON SUR LA PROXIMITE.
+  //   Premier motif : `basculant` seul — il ne visait que le nom de la fonction
+  //   SQL et laissait passer un appel au helper `compterBascule`.
+  //   Deuxieme : « invitation puis bascul a moins de 200 caracteres » — il
+  //   rougissait sur le fichier SAIN, parce que la trace d'audit fait suivre
+  //   `invitation_jours` de `retroactivite: bascule`, tout a fait legitimement.
+  //   Un motif de PROXIMITE est le mauvais outil : ce qu'on interdit, c'est que
+  //   la duree d'invitation soit l'ARGUMENT d'un comptage.
+  ok(!/compterBascule\([^)]*invitation/i.test(ROUTE) &&
+     !/annonces_basculant_par_duree[\s\S]{0,120}invitation/i.test(ROUTE),
+    'la duree d’invitation n’est l’argument d’AUCUN comptage',
+    'il n’y a rien a compter : la date est ecrite, rien ne bascule — en compter laisserait croire le contraire')
 
   ok(/invitation_jours: invitation/.test(ROUTE),
     'la troisieme duree est REELLEMENT ecrite par la route d’administration')
