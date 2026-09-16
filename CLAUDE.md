@@ -598,6 +598,26 @@ portait le même motif et passait en vert alors que la condition avait été ret
 mutation**. Règle : **ancrer** l'assertion sur le bloc qu'elle vise, jamais lâcher une regex sur tout le
 fichier.
 
+**E.13 — Un tarif écrit à côté d'un modèle diverge du modèle, et personne ne le voit.**
+Le code appliquait `3 $ / 15 $` par million de jetons à **tous** les appels Claude. Ce sont les prix
+de **Sonnet 4.6**. Or :
+· `claude-sonnet-5` (jugement de candidature, pitch) coûte **2 $ / 10 $** → la dépense était
+**surévaluée de 50 %**, sur le seul point que le plafond comptait ;
+· `claude-haiku-4-5-*` (analyse de CV, vérifications) coûte **1 $ / 5 $** → le brancher sur cette
+grille l'aurait surévalué d'un **facteur 3**.
+Chaque module portait **sa propre** constante, et chacune se croyait « le seul endroit à corriger ».
+Un tarif unique pour plusieurs modèles n'est pas une approximation : **c'est un chiffre faux, qu'on
+croit vrai parce qu'il est affiché.**
+**La parade** : `ai_model_tarifs`, en base — un tarif change quand le **fournisseur** change ses prix,
+jamais quand on déploie (même raisonnement que `ai_spend_caps` et `ai_quotas`). `enregistrerDepenseIA`
+lit celui du modèle **réellement appelé** — y compris quand un **repli** a répondu à la place du
+principal, ce que l'ancien code ne distinguait pas. Les **unités brutes** restent journalisées : le
+coût reste recalculable quand la grille change. Tarif absent ⇒ coût **0**, drapeau `tarif_manquant`,
+journal bruyant — **jamais un refus** : l'appel a déjà eu lieu, et casser le dépôt d'un CV pour une
+ligne de configuration manquante serait pire que le défaut corrigé.
+Gardé par [scripts/diag-depense-ia.mjs](scripts/diag-depense-ia.mjs), qui vérifie aussi que **tout
+modèle cité dans le code a un tarif seedé**.
+
 **E.10 — UNE VALEUR POSÉE À LA MAIN EN BASE NE SURVIT PAS À UNE RECONSTRUCTION, ET PERSONNE NE LE SAIT.**
 C'est le piège le plus coûteux établi à ce jour, parce qu'il ne laisse **aucune trace exploitable**.
 
@@ -881,11 +901,12 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   secrets du Vault : `purge_deletions_trigger`, `purge_inactive_trigger`, `matching_retry_trigger`,
   `expert_relance_trigger`. Les deux premières portent une **obligation légale** (RGPD art. 17 et
   CNIL). Elles ne se plaignent qu'au journal de la base : rien à l'écran.
-- **`ensure_rls` n'a jamais été exécuté nulle part** — sa branche `create` est sautée par un
-  `if not exists` sur tous les environnements connus. `CREATE EVENT TRIGGER` exige un privilège que
-  le rôle `postgres` de Supabase ne possède pas toujours ; un refus ferait échouer la migration **au
-  4ᵉ fichier sur 51**, et les 47 suivantes ne s'appliqueraient pas. **NON VÉRIFIÉ à ce jour** —
-  éprouver le privilège avant le jour J (cf. la réponse en fin de lot).
+- **`ensure_rls` est ÉPROUVÉ.** Sa branche `create` avait été sautée par un `if not exists` sur tous
+  les environnements connus, donc **jamais exécutée nulle part** ; `CREATE EVENT TRIGGER` exige un
+  privilège que le rôle `postgres` de Supabase ne possède pas toujours, et un refus aurait fait
+  échouer la migration **au 4ᵉ fichier**, les suivantes ne s'appliquant pas.
+  **Le 16 septembre 2026, les 52 migrations se sont déroulées sur une base VIERGE en local, sans une
+  seule erreur. La branche `create` s'est exécutée pour la première fois, sans refus de privilège.**
 
 **Conformité**
 - L'inscription au **registre des traitements** reste à faire pour `cron_run_log.response_body`, qui
@@ -902,9 +923,11 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 - ~~Les seuils de `verification_providers` sans écran~~ — **CLOS** : `/admin/seuils` est livré (§P2.4).
   Reste sans écran : **`ai_spend_caps`**, les plafonds de dépense IA — `/admin/matching` affiche la
   dépense du mois **sans** le plafond en regard.
-- **Cinq des sept points de dépense IA n'enregistrent rien et ne consultent jamais le plafond**
-  (§P4.3) : le « plafond Claude 100 $ » ne compte aujourd'hui que le jugement de candidature et le
-  pitch. Le total est faux **avant** toute répartition par acteur.
+- ~~Cinq des sept points de dépense IA n'enregistrent rien~~ — **CLOS.** Les **sept** consultent le
+  plafond avant d'appeler et enregistrent après, au tarif du modèle réellement appelé (§E.13).
+  Gardé par un contrôle **de classe** : un huitième point ajouté demain rougit s'il est muet.
+  Reste ouvert : la répartition **par acteur** (organisation, annonce, expert, action), et
+  `ai_spend_caps` toujours **sans écran** — `/admin/matching` affiche la dépense sans son plafond.
 
 ---
 
@@ -1466,7 +1489,7 @@ l'expose**. « Code » = un déploiement est nécessaire.
 | Taille de lot | 200 (borne 1–1000) | `matching_settings.rerank_batch_size` | **Back-office** |
 | Contrainte `notify_threshold ≥ feed_threshold` | — | CHECK en base | **Personne** — migration |
 | Plafond de dépense mensuel | rerank 200 $ · claude 100 $ | `ai_spend_caps` | **Base** (aucun écran) |
-| Coût unitaire retenu | 0,000002 $/document | **Code** `lib/matching/rerank.ts` | Déploiement |
+| Grille tarifaire par modèle | Sonnet 5 **2/10** · Sonnet 4.6 **3/15** · Haiku 4.5 **1/5** · rerank **0,000002 $/doc** | `ai_model_tarifs` | **Base** (aucun écran) — change quand le fournisseur change ses prix, pas quand on déploie |
 | Lots en parallèle | 4 | **Code** | Déploiement |
 | Délai fournisseur | 10 s | **Code** | Déploiement |
 | Délai de relance | **60 min** | **Code** `DELAI_RELANCE_MINUTES` | Déploiement |
@@ -1624,6 +1647,13 @@ moteur qui ne notifie pas encore.*
 `matching_threshold_health()`), régler les deux seuils **sur les faits**, puis basculer
 `notify_enabled` — **par écosystème**, depuis `/admin/matching`. Le levier est « montrer plus,
 notifier moins ».
+
+> **La comptabilité IA change ce que « les faits » veulent dire ici.** Jusqu'à ce lot, la dépense
+> n'était comptée que sur **deux** des sept points, et au tarif de Sonnet 4.6 pour **tous** les
+> modèles. Régler les seuils « sur les faits » se faisait donc sur un coût faux dans les deux sens :
+> **incomplet** (cinq points muets) et **surévalué** (mauvaise grille, §E.13). Les sept points
+> comptent désormais, au tarif du modèle réellement appelé — le calibrage repose enfin sur une
+> dépense **mesurée**.
 
 ### P4.4 — `packages.max_seats` : affiché, et sans effet
 **Pourquoi c'est là.** La colonne existe en base et **n'est lue par aucune garde** : la poser à 5 ne

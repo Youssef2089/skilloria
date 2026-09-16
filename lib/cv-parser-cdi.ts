@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import type { ConsommationIA } from '@/lib/ai-consommation'
 
 // =============================================================================
 // CV Parser — Variant CDI
@@ -87,8 +88,8 @@ export type ParsedCdiCV = {
 }
 
 export type ParseCdiResult =
-  | { success: true; data: ParsedCdiCV }
-  | { success: false; error: string }
+  | { success: true; data: ParsedCdiCV; usage: ConsommationIA | null }
+  | { success: false; error: string; usage: ConsommationIA | null }
 
 const MODEL = 'claude-haiku-4-5-20251001'
 const TIMEOUT_MS = 30_000
@@ -378,7 +379,7 @@ async function callAnthropicCdi(
   pdfBase64: string,
   ctx: DomainContext,
   signal: AbortSignal,
-): Promise<ParsedCdiCV> {
+): Promise<{ data: ParsedCdiCV; usage: ConsommationIA }> {
   const tool = buildToolCdi(ctx)
 
   const response = await client.messages.create(
@@ -418,7 +419,17 @@ async function callAnthropicCdi(
   if (!toolUse) {
     throw new Error("Le modèle n'a pas renvoyé d'appel à record_cdi_cv")
   }
-  return toolUse.input
+  return {
+    data: toolUse.input,
+    // Les jetons RÉELLEMENT consommés, jamais estimés. Le coût se calcule
+    // ailleurs, au tarif de CE modèle (lib/ai-budget.ts).
+    usage: {
+      forme: 'jetons',
+      model: MODEL,
+      entree: response.usage?.input_tokens ?? 0,
+      sortie: response.usage?.output_tokens ?? 0,
+    },
+  }
 }
 
 export async function parseCdiCV(
@@ -428,13 +439,13 @@ export async function parseCdiCV(
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
     console.error('[cv-parser-cdi] ANTHROPIC_API_KEY manquante')
-    return { success: false, error: 'AI provider not configured' }
+    return { success: false, error: 'AI provider not configured', usage: null }
   }
 
   const client = new Anthropic({ apiKey })
   const pdfBase64 = pdfBuffer.toString('base64')
 
-  const attempt = async (): Promise<ParsedCdiCV> => {
+  const attempt = async (): Promise<{ data: ParsedCdiCV; usage: ConsommationIA }> => {
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
     try {
@@ -445,21 +456,23 @@ export async function parseCdiCV(
   }
 
   try {
-    return { success: true, data: await attempt() }
+      const r = await attempt()
+      return { success: true, data: r.data, usage: r.usage }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     const isNetwork = /network|fetch|timeout|abort|ECONN|EAI|socket/i.test(msg)
     if (!isNetwork) {
       console.error('[cv-parser-cdi] parse failed (no retry)', msg)
-      return { success: false, error: msg }
+      return { success: false, error: msg, usage: null }
     }
     console.warn('[cv-parser-cdi] network error, retrying once:', msg)
     try {
-      return { success: true, data: await attempt() }
+        const r = await attempt()
+      return { success: true, data: r.data, usage: r.usage }
     } catch (err2) {
       const msg2 = err2 instanceof Error ? err2.message : String(err2)
       console.error('[cv-parser-cdi] parse failed after retry', msg2)
-      return { success: false, error: msg2 }
+      return { success: false, error: msg2, usage: null }
     }
   }
 }

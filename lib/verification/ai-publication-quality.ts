@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import type { ConsommationIA } from '@/lib/ai-consommation'
 
 /**
  * Analyseur qualité d'une PUBLICATION (annonce de mission / offre CDI).
@@ -90,6 +91,13 @@ export type PublicationQualityOutput = {
   score: number
   notes: string
   flags: PublicationQualityFlag[]
+  /**
+   * Ce que l'appel a consommé — RENDU, jamais enregistré ici.
+   * Ce module est PUR : pas de client Supabase, pas d'écriture. C'est
+   * l'appelant, qui a le client et les identifiants, qui enregistre.
+   * `null` quand aucun appel n'a eu lieu (clé absente, refus amont).
+   */
+  usage: ConsommationIA | null
 }
 
 type ClaudeJson = {
@@ -429,13 +437,14 @@ export function readPublicationFlags(value: unknown): PublicationQualityFlag[] |
  * 'pending_review' côté dispatcher (cf. publication-verification.ts). Il n'y a
  * pas de demi-verdict : soit l'IA a jugé, soit l'admin tranche.
  */
-function failure(notes: string): PublicationQualityOutput {
+function failure(notes: string, usage: ConsommationIA | null = null): PublicationQualityOutput {
   return {
     provider_name: PROVIDER_NAME,
     result: 'error',
     score: 0,
     notes,
     flags: [],
+    usage,
   }
 }
 
@@ -459,6 +468,10 @@ export async function verifyAiPublicationQuality(
   const attemptTimeoutMs = () => Math.min(PER_ATTEMPT_MS, Math.max(0, remainingMs()))
 
   let response: Anthropic.Messages.Message
+  // QUEL modèle a répondu : le repli change le tarif (Haiku 1/5, Sonnet 3/15).
+  // Enregistrer la dépense sous le modèle principal alors que le repli a
+  // répondu la sous-estimerait d'un facteur 3.
+  let modelUtilise: string = PRIMARY_MODEL
   try {
     response = await callClaude({ apiKey, model: PRIMARY_MODEL, prompt, timeoutMs: attemptTimeoutMs() })
   } catch (err) {
@@ -479,6 +492,7 @@ export async function verifyAiPublicationQuality(
 
     try {
       response = await callClaude({ apiKey, model: FALLBACK_MODEL, prompt, timeoutMs: attemptTimeoutMs() })
+      modelUtilise = FALLBACK_MODEL
     } catch (err2) {
       const msg2 = err2 instanceof Error ? err2.message : String(err2)
       console.error('[verification:publication-quality] Sonnet also failed', { msg2 })
@@ -539,5 +553,11 @@ export async function verifyAiPublicationQuality(
     score,
     notes,
     flags,
+    usage: {
+      forme: 'jetons',
+      model: modelUtilise,
+      entree: response.usage?.input_tokens ?? 0,
+      sortie: response.usage?.output_tokens ?? 0,
+    },
   }
 }

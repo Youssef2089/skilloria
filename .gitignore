@@ -48,3 +48,6 @@ supabase/.temp/
 
 .vercel
 .env*
+
+# Supabase CLI local branches (artefact de db reset local)
+supabase/.branches/

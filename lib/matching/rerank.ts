@@ -1,6 +1,6 @@
 import { capaciteActive } from '@/lib/interrupteurs'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { budgetDisponible, enregistrerDepense } from '@/lib/ai-budget'
+import { budgetDisponible, enregistrerDepenseIA } from '@/lib/ai-budget'
 
 /**
  * LE RERANKER — un score par couple (requête, document), sans compétition.
@@ -35,16 +35,22 @@ import { budgetDisponible, enregistrerDepense } from '@/lib/ai-budget'
 
 const ENDPOINT = 'https://api.cohere.com/v2/rerank'
 
-/**
- * Coût unitaire, en dollars, par document noté.
+/*
+ * LE COÛT UNITAIRE A QUITTÉ CE FICHIER.
  *
- * ÉCRIT ICI ET NON DEVINÉ : le plafond mensuel s'appuie dessus, et un plafond
- * calculé sur une estimation fantaisiste ne protège de rien. Cette constante est
- * le seul endroit à corriger quand la grille du fournisseur change — et le coût
- * enregistré reste recalculable, puisqu'on journalise AUSSI le nombre d'unités
- * brutes (cf. ai_spend_events.units).
+ *   Il y vivait en constante — « le seul endroit à corriger quand la grille du
+ *   fournisseur change », disait son commentaire. C'était vrai POUR CE MODULE,
+ *   et c'est précisément le problème : chaque module avait le sien, et celui
+ *   de `ai-assessment` appliquait les prix de Sonnet 4.6 à des appels Sonnet 5.
+ *
+ *   Un tarif change quand LE FOURNISSEUR change ses prix, jamais quand on
+ *   déploie. Il vit donc en base (`ai_model_tarifs`), et `enregistrerDepenseIA`
+ *   lit celui du modèle RÉELLEMENT appelé — ici `args.model`, qui est réglable
+ *   au back-office et peut donc changer sans que ce fichier bouge.
+ *
+ *   Ce qui NE change pas : on journalise les unités BRUTES, donc le coût reste
+ *   recalculable quand la grille change (cf. ai_spend_events.units).
  */
-const COUT_USD_PAR_DOCUMENT = 0.000002
 
 /**
  * Délai d'attente d'un appel au fournisseur.
@@ -310,12 +316,12 @@ export async function rerankerTout(args: {
       notes += lot.length
 
       // Dépense enregistrée APRÈS l'appel, sur ce qui a réellement été consommé.
-      await enregistrerDepense(args.supabaseAdmin, {
+      await enregistrerDepenseIA(args.supabaseAdmin, {
         provider: 'rerank',
+        action: 'matching_pool',
+        consommation: { forme: 'unites', model: args.model, unites: lot.length },
         domain_id: args.domainId,
-        units: lot.length,
-        cost_usd: lot.length * COUT_USD_PAR_DOCUMENT,
-        context: { model: args.model, ...args.contexte },
+        context: { ...args.contexte },
       })
 
       // ── CE QUI EST NOTÉ NE SERA PAS RENOTÉ ────────────────────────────────

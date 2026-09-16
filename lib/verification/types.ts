@@ -1,3 +1,4 @@
+import type { ConsommationIA } from '@/lib/ai-consommation'
 /**
  * Types partagés pour la couche `lib/verification/*`.
  *
@@ -107,6 +108,12 @@ export type VerificationOutput = {
   structured_data?: SireneData | null
   /** 11G — écarts détectés par l'IA entre données saisies et INSEE. */
   discrepancies?: string[]
+  /**
+   * Ce que l'appel a consommé — RENDU, jamais enregistré par le provider.
+   * Absent pour Sirene, qui est un fournisseur de DONNÉES et ne consomme
+   * aucun jeton. `null` quand un provider IA n'a fait aucun appel abouti.
+   */
+  usage?: ConsommationIA | null
 }
 
 /** Verdict final retourné par `runVerification()` au caller. */

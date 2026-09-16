@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import type { ConsommationIA } from '@/lib/ai-consommation'
 
 /**
  * Analyseur de cohérence IA — VÉRIFICATION EXPERT (3 axes).
@@ -98,6 +99,13 @@ export type ExpertVerificationOutput = {
   flags: ExpertVerificationFlag[]
   web_search_used: boolean
   raw_response: unknown
+  /**
+   * Ce que l'appel a consommé — RENDU, jamais enregistré ici.
+   * Ce module est PUR : pas de client Supabase, pas d'écriture. C'est
+   * l'appelant, qui a le client et les identifiants, qui enregistre.
+   * `null` quand aucun appel n'a eu lieu (clé absente, refus amont).
+   */
+  usage: ConsommationIA | null
 }
 
 export type ExpertVerificationConfig = {
@@ -368,7 +376,7 @@ function safeParseJson(text: string): ClaudeJson | null {
   }
 }
 
-async function callClaude(model: string, prompt: string, cfg: ExpertVerificationConfig, withWebSearch: boolean): Promise<{ json: ClaudeJson | null; raw: unknown; model_used: string; web_search_used: boolean }> {
+async function callClaude(model: string, prompt: string, cfg: ExpertVerificationConfig, withWebSearch: boolean): Promise<{ json: ClaudeJson | null; raw: unknown; model_used: string; web_search_used: boolean; usage: ConsommationIA }> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY missing')
 
@@ -392,7 +400,20 @@ async function callClaude(model: string, prompt: string, cfg: ExpertVerification
   const blocks = message.content as unknown[]
   const hasToolUse = Array.isArray(blocks) && blocks.some((b) => b && typeof b === 'object' && ['tool_use', 'web_search_tool_result', 'server_tool_use'].includes((b as { type?: string }).type ?? ''))
 
-  return { json, raw: message, model_used: model, web_search_used: hasToolUse }
+  return {
+    json,
+    raw: message,
+    model_used: model,
+    web_search_used: hasToolUse,
+    // Jetons RÉELLEMENT consommés. Le tarif est celui de `model` — pas
+    // d'un modèle par défaut : le repli n'a pas le même prix.
+    usage: {
+      forme: 'jetons',
+      model,
+      entree: message.usage?.input_tokens ?? 0,
+      sortie: message.usage?.output_tokens ?? 0,
+    },
+  }
 }
 
 export async function runExpertCoherenceCheck(
@@ -441,11 +462,15 @@ export async function runExpertCoherenceCheck(
     flags: [],
     web_search_used: false,
     raw_response: null,
+    // Aucun appel n'a abouti : rien n'a été consommé DE MESURABLE. On rend
+    // null plutôt que zéro — zéro affirmerait « un appel gratuit », null dit
+    // « je ne sais pas », ce qui est la vérité. L'appelant n'enregistre rien.
+    usage: null,
   }
 }
 
 function shapeOutput(
-  parsed: { json: ClaudeJson | null; raw: unknown; model_used: string; web_search_used: boolean },
+  parsed: { json: ClaudeJson | null; raw: unknown; model_used: string; web_search_used: boolean; usage: ConsommationIA },
   cfg: ExpertVerificationConfig,
 ): ExpertVerificationOutput {
   const j = parsed.json ?? {}
@@ -457,6 +482,7 @@ function shapeOutput(
     score = cfg.domain_mismatch_cap
   }
   return {
+    usage: parsed.usage,
     result: 'ok',
     provider_name: PROVIDER_NAME,
     model_used: parsed.model_used,

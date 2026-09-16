@@ -8,6 +8,7 @@ import type {
 } from './types'
 import { verifyWithSirene } from './sirene'
 import { verifyAiCoherence } from './ai-fallback'
+import { budgetDisponible, enregistrerDepenseIA } from '@/lib/ai-budget'
 
 /**
  * Dispatcher de vérification entreprise — flow déterministe (11G).
@@ -217,7 +218,43 @@ export async function runVerification(args: {
   // Passe sireneStatus à l'IA pour qu'elle puisse appliquer le disqualifiant
   // D4 (Sirene indisponible par défaillance technique → score plafonné à 5).
   // Cf. lib/verification/ai-fallback.ts.
+  // ── LE PLAFOND EST CONSULTÉ AVANT D'APPELER ──────────────────────────────
+  //  Un point qui enregistre mais ne regarde jamais le plafond dépense au-delà.
+  //  FAIL-CLOSED assumé (lib/ai-budget.ts) : sur panne de lecture on REFUSE —
+  //  ne pas savoir combien on a dépensé n'autorise pas à dépenser plus.
+  //  Au plafond, l'organisation part en revue manuelle. La règle métier
+  //  « JAMAIS de rejet automatique » est préservée : un refus de budget n'est
+  //  pas un refus d'organisation.
+  const budget = await budgetDisponible(supabaseAdmin, 'claude')
+  if (!budget.ok) {
+    console.error('[verification:index] vérification refusée — budget', budget.raison)
+    return {
+      verification_status: 'pending_admin_review',
+      verification_method: null,
+      verification_data: {
+        score: 0,
+        notes: 'Plafond de dépense IA atteint — vérification manuelle requise. ' + budget.raison,
+        attempts_count,
+        sirene_data: sireneData,
+        sirene_status: sireneStatus,
+        ...(sireneErrorNote ? { sirene_error_note: sireneErrorNote } : {}),
+      },
+    }
+  }
+
   const aiOutput = await verifyAiCoherence(input, sireneData, sireneStatus)
+
+  // ── LA DÉPENSE, ENREGISTRÉE QUE L'APPEL AIT ABOUTI OU NON ────────────────
+  //  Une réponse illisible se paie autant qu'une réponse lisible.
+  //  N'interrompt jamais : lib/ai-budget.ts ne lève sur aucun chemin.
+  if (aiOutput.usage) {
+    await enregistrerDepenseIA(supabaseAdmin, {
+      provider: 'claude',
+      action: 'org_verification',
+      consommation: aiOutput.usage,
+      context: { organization_id },
+    })
+  }
   attempts_count++
   await logAttempt({ supabaseAdmin, organization_id, output: aiOutput })
 
