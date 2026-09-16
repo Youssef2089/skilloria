@@ -233,14 +233,35 @@ section('C. Les tables de la base et l’inventaire de la memoire se repondent')
 
   console.log(`       ${vivantes.length} table(s) vivante(s) reconstruite(s) depuis les migrations.\n`)
 
-  const citee = (t) => MEMOIRE.includes('`' + t + '`')
+  // ANCRE SUR L'INVENTAIRE, ET SUR LUI SEUL.
+  //   Premiere version : « citee au moins une fois dans la memoire ». Elle ne
+  //   MORDAIT PAS, et la mutation l'a montre — `branches` retiree de §B.1
+  //   restait verte, parce qu'elle est mentionnee en prose dans §P1.1. Ce
+  //   controle n'aurait donc PAS attrape le defaut d'origine : les dix-huit
+  //   tables manquantes etaient, pour plusieurs, citees ailleurs.
+  //   Ce qu'on defend, c'est l'INVENTAIRE — celui qui se lit comme exhaustif.
+  const bloc = MEMOIRE.slice(MEMOIRE.indexOf('### B.1'), MEMOIRE.indexOf('### B.2'))
+
+  // ET SEULEMENT LES LIGNES D'INVENTAIRE, PAS LA PROSE DU BLOC.
+  //   Deuxieme mutation ratee, et c'est encore §E.7 : `branches` figure DEUX
+  //   fois dans §B.1 — dans la liste, et dans la note qui explique pourquoi
+  //   elle y manquait. La retirer de la LISTE laissait le controle vert, la
+  //   note suffisant a la « citer ». On ne garde donc que les paragraphes
+  //   d'inventaire, ceux qui s'ouvrent sur « **Groupe** — ».
+  //   Le motif retenu : un paragraphe qui S'OUVRE sur du gras. Il couvre les
+  //   deux formes presentes (« **Groupe** — liste » et « **Groupe — TITRE.** »)
+  //   et exclut la prose, qui vit en citation (« > … »).
+  const inventaire = bloc
+    .split('\n\n')
+    .filter((para) => para.trimStart().startsWith('**'))
+    .join('\n')
+  const citee = (t) => inventaire.includes('`' + t + '`')
   const absentes = vivantes.filter((t) => !citee(t))
   ok(absentes.length === 0,
-    'chaque table vivante est citee au moins une fois dans la memoire',
-    absentes.join(', '))
+    'chaque table vivante figure dans l’inventaire §B.1',
+    absentes.join(', ') + ' — un inventaire incomplet se lit comme exhaustif')
 
   // Sens inverse : une table citee qu'aucune migration ne cree est un fantome.
-  const bloc = MEMOIRE.slice(MEMOIRE.indexOf('### B.1'), MEMOIRE.indexOf('### B.2'))
   const citeesB1 = [...bloc.matchAll(/`([a-z_][a-z0-9_]*)`/g)].map((m) => m[1])
   const fantomes = [...new Set(citeesB1)].filter((t) => !creees.has(t))
   ok(fantomes.length === 0,

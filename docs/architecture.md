@@ -64,6 +64,7 @@ avec le seed) : `publications_per_month`, `active_publications_max`,
 `transactions`, `usage_counters`, `promo_codes`, `promo_code_uses`, `stripe_events`.
 
 **Taxonomie** — `branches`, `specialities`, `public_email_domains`, `blocked_email_domains`.
+
 > Ces quatre tables manquaient à cet inventaire, alors que `branches` est citée dans **20** fichiers
 > et `specialities` dans **19** : l'inscription d'un expert en dépend (§P1.1). Un inventaire
 > incomplet est pire qu'absent — on le croit exhaustif.
@@ -77,6 +78,7 @@ avec le seed) : `publications_per_month`, `active_publications_max`,
 `ad_placements`, `blog_posts`, `campaigns`, `dashboard_stats`, `leads`,
 `newsletter_subscriptions`, `profile_alerts`, `referrals`, `testimonials`,
 `user_section_visits`, `waitlist`.
+
 > **Onze tables existent et ne sont lues ni écrites par aucune ligne de `app/` ou `lib/`**
 > (balayage du 16/09/2026). Elles ne sont pas un projet en cours : ce sont des vestiges du dump
 > de baseline. Les taire ferait croire, à qui explore la base, que ces fonctionnalités existent.
