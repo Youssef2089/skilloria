@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { monthlyPeriodStart } from '@/lib/entitlements'
 import { activePublishedOrClause } from '@/lib/publications/expiry'
 import { targetRoleForOrgType } from '@/lib/org-target-role'
+import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -83,6 +84,18 @@ export async function GET(request: NextRequest): Promise<Response> {
     throw err
   }
 
+  // ── LES DURÉES SONT LUES ICI, PAR LA ROUTE ───────────────────────────────
+  //  Aucun défaut dans le code (cf. lib/durees.ts) : illisibles, on REFUSE en
+  //  le nommant plutôt que de servir une durée inventée. Même parti pris que
+  //  `matching_settings` — un repli codé en dur devient une seconde source de
+  //  vérité, et elle prend la main le jour où l'on comprend le moins.
+  const lectureDurees = await chargerDurees(auth.supabaseAdmin)
+  if (!lectureDurees.ok) {
+    console.error('[admin:collaboration-orgs] durées de la place illisibles', lectureDurees.raison)
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
+  }
+  const durees = lectureDurees.durees
+
   // ── 1. Organisations PERSONNELLES ──────────────────────────────────────────
   //  Le TOTAL EXACT est lu à part (`head: true` → aucun transfert de lignes).
   //  Sans lui, un écran tronqué ne pourrait pas dire de combien il l'est — et
@@ -159,7 +172,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       .select('id, organization_id')
       .in('organization_id', orgIds)
       .eq('status', 'published')
-      .or(activePublishedOrClause()),
+      .or(activePublishedOrClause({ vieAnnonceJours: durees.vieAnnonceJours })),
   ])
 
   if (linksRes.error || pkgsRes.error) {

@@ -4,6 +4,7 @@ import { getOrgEntitlements, getDefaultCollaborationEntitlements } from '@/lib/e
 import { activePublishedOrClause } from '@/lib/publications/expiry'
 import { expertProfileGate, PROFILE_NOT_VERIFIED_CODE } from '@/lib/expert-verified-guard'
 import { billingEnabled } from '@/lib/billing/config'
+import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -54,6 +55,18 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+
+  // ── LES DURÉES SONT LUES ICI, PAR LA ROUTE ───────────────────────────────
+  //  Aucun défaut dans le code (cf. lib/durees.ts) : illisibles, on REFUSE en
+  //  le nommant plutôt que de servir une durée inventée. Même parti pris que
+  //  `matching_settings` — un repli codé en dur devient une seconde source de
+  //  vérité, et elle prend la main le jour où l'on comprend le moins.
+  const lectureDurees = await chargerDurees(auth.supabaseAdmin)
+  if (!lectureDurees.ok) {
+    console.error('[collaboration/quota:GET] durées de la place illisibles', lectureDurees.raison)
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
+  }
+  const durees = lectureDurees.durees
   // ── C2 : GARDE « profil expert approuvé » ────────────────────────────────
   //  Elle vivait dans ensure-org, que les écrans appelaient à l'ouverture. Cet
   //  appel a disparu (l'organisation se crée désormais à la publication), la
@@ -109,13 +122,13 @@ export async function GET(request: NextRequest): Promise<Response> {
   const canUnlockManually = limits.manualUnlocksPerMonth !== 0
 
   // Miroir du plafond d'actives (publish) : mêmes « actives » = published NON
-  // expirées (règle 30j read-time, lib/publications/expiry). Une expirée libère un slot.
+  // expirées (règle read-time, lib/publications/expiry). Une expirée libère un slot.
   const { count, error: countErr } = await auth.supabaseAdmin
     .from('publications')
     .select('id', { count: 'exact', head: true })
     .eq('organization_id', orgId)
     .eq('status', 'published')
-    .or(activePublishedOrClause())
+    .or(activePublishedOrClause({ vieAnnonceJours: durees.vieAnnonceJours }))
   if (countErr) {
     console.error('[collaboration/quota:GET] count failed', countErr.message)
     // Fail-open : on n'empêche pas l'accès à l'écran sur une erreur de comptage.

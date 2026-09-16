@@ -167,6 +167,8 @@ export function expertMissionsQuery(
     count?: 'exact' | 'planned' | 'estimated'
     head?: boolean
     now?: Date
+    /** Vie d'une annonce, en jours — EXIGÉE, aucun défaut (cf. lib/durees.ts). */
+    vieAnnonceJours: number
   },
 ) {
   return supabaseAdmin
@@ -175,5 +177,8 @@ export function expertMissionsQuery(
     .eq('profile_id', profileId)
     .neq('status', 'dismissed')
     .eq('publications.status', 'published')
-    .or(activePublishedOrClause(opts.now ?? new Date()), { referencedTable: 'publications' })
+    .or(
+      activePublishedOrClause({ vieAnnonceJours: opts.vieAnnonceJours, now: opts.now }),
+      { referencedTable: 'publications' },
+    )
 }

@@ -193,6 +193,7 @@ avec le seed) : `publications_per_month`, `active_publications_max`,
 
 **Moteur & exploitation** — `matching_settings`, `matching_notes_partielles`, `relance_overruns`,
 `ai_quotas`, `ai_spend_caps`, `ai_spend_seuils_acteur`, `ai_spend_events`, `ai_model_tarifs`,
+`duree_reglages`,
 `ai_redaction_failures`, `rate_limit_hits`,
 `cron_job_catalog`, `cron_run_log`, `audit_logs`.
 
@@ -747,6 +748,28 @@ Sur le lot « dépense par acteur » : **36 diagnostics concernés**. J'en aurai
 > Deux limites, dites plutôt que tues : il ne remplace pas le jugement (un lot peut mériter un
 > contrôle qui ne cite aucun de ses fichiers), et il ne connaît que les liens **textuels** — un
 > diagnostic qui atteindrait un fichier par une chaîne construite lui échapperait.
+
+**E.15 — Un composant CLIENT qui applique une règle serveur la fige dans le bundle.**
+Rendre une règle réglable ne suffit pas : il faut savoir QUI l'applique. Le balayage des
+consommateurs, fait sur `app/` et `lib/`, en avait trouvé **treize**, tous serveur — et concluait
+que « la lecture faite par les routes » tenait partout. **Il manquait `components/`.**
+
+C'est le compilateur qui l'a dit : [components/dashboard/PublicationForm.tsx](components/dashboard/PublicationForm.tsx)
+importait `PUBLICATION_TTL_DAYS` pour annoncer, dans la fenêtre de confirmation,
+« votre annonce sera visible jusqu'au … ». Un composant `'use client'`, rendu par deux pages
+`'use client'` : **aucun composant serveur dans la chaîne** pour lui passer la valeur. La constante
+aurait donc annoncé **30 jours pendant que le serveur en appliquait 20** — un chiffre faux dit à
+l'utilisateur à la seconde exacte où il s'engage.
+
+**Ce qui a été fait, et ce qui a été refusé.** Refusé : garder la constante « juste pour le
+libellé ». Fait : [app/api/durees/route.ts](app/api/durees/route.ts) rend la valeur, le composant la
+lit, et **s'il ne l'a pas il n'écrit pas la phrase** — mieux vaut ne rien promettre que promettre
+une date que le serveur ne tiendra pas. La règle du lot tient donc : la lecture reste faite par une
+route, le client ne fait qu'afficher.
+
+**La parade** : `diag-durees-reglables` balaie `app/`, `lib/` **et `components/`**, et rougit sur
+tout fichier `'use client'` qui importe une règle de durée — un client ne lit pas la base, la valeur
+qu'il applique vient forcément d'ailleurs.
 
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
@@ -1552,8 +1575,8 @@ l'expose**. « Code » = un déploiement est nécessaire.
 ### P3.4 — Délais et cycles de vie
 | Règle | Valeur | Origine | Qui peut la changer |
 |---|---|---|---|
-| Durée de vie d'une annonce | **30 j**, calculés **à la lecture** | **Code** `lib/publications/expiry.ts` | Déploiement |
-| Fenêtre d'échange | **15 j** depuis le dévoilement, **écrits** en base | **Code** `CONVERSATION_TTL_DAYS` | Déploiement |
+| Durée de vie d'une annonce | **30 j**, calculés **à la lecture** | `duree_reglages.vie_annonce_jours` | **Back-office** `/admin/durees` — **changement RÉTROACTIF** |
+| Fenêtre d'échange | **15 j** depuis le dévoilement, **écrits** en base | `duree_reglages.fenetre_echange_jours` | **Back-office** `/admin/durees` — changement **NON** rétroactif |
 | Grâce avant suppression définitive | **90 j** | **Code** `GRACE_DAYS` | Déploiement |
 | Avertissement d'inactivité | **23 mois** | **Code** `WARNING_MONTHS` | Déploiement |
 | Purge d'inactivité (CNIL) | **24 mois** | **Code** `PURGE_MONTHS` | Déploiement |
@@ -1593,9 +1616,26 @@ l'expose**. « Code » = un déploiement est nécessaire.
 ### P3.7 — Les règles EN DUR qui devraient être réglables
 Nommées, comme demandé. Chacune exige aujourd'hui un **déploiement** :
 
-1. **Durée de vie d'une annonce (30 j)** et **fenêtre d'échange (15 j)** — deux règles que
-   l'utilisateur voit, que le commerce pourrait vouloir différencier par offre, et qui vivent en
-   constantes de code. Ce sont les plus mûres pour un passage en base.
+1. ~~**Durée de vie d'une annonce (30 j)** et **fenêtre d'échange (15 j)**~~ — **CLOS.**
+   `/admin/durees` les règle, borne **au serveur** (entier, 1–365), et **trace** chaque changement.
+   Les deux valeurs sont **identiques pour toutes les offres** : la différenciation par offre reste
+   possible, elle n'est pas faite, et rien ne la prépare en douce.
+
+   **L'asymétrie est le vrai sujet, et l'écran l'écrit en toutes lettres :**
+   · la vie d'une annonce est **RÉTROACTIVE** — `publications.expires_at` n'est jamais écrit,
+     l'activité se recalcule à chaque lecture ; la baisser retire de la place, tout de suite, des
+     annonces déjà en ligne ;
+   · la fenêtre d'échange **ne l'est pas** — `conversations.expires_at` est écrit au déblocage, les
+     échanges ouverts gardent leur date.
+
+   Une baisse est **comptée avant d'être écrite** (`annonces_basculant_par_duree`, qui compte ce qui
+   **bascule** et non le total : « 14 seraient expirées » n'alarme personne si 12 le sont déjà), et
+   le nombre d'annonces concernées — **dont celles portant des candidatures dévoilées, donc payées** —
+   est montré avant validation. **On demande confirmation, on ne bloque pas** : un refus définitif
+   aurait obligé à modifier la base à la main, le défaut même qu'on ferme (§E.10).
+
+   Côté code : **argument obligatoire, aucun défaut**, la lecture faite par les routes. Un appel qui
+   oublie la durée **ne compile pas**. Piège découvert en chemin : §E.15.
 2. **Grâce de suppression (90 j)**, **avertissement (23 mois)**, **purge (24 mois)** — contraintes
    légales, donc stables ; mais les rendre lisibles depuis un écran servirait le registre RGPD.
 3. ~~Seuils de `verification_providers`~~ — **CLOS.** `/admin/seuils` les règle, borne **au serveur**

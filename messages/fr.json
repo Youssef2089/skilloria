@@ -2369,7 +2369,8 @@
       "nav_matching": "Mise en relation",
       "nav_ecosystemes": "Écosystèmes",
       "nav_quotas_ia": "Quotas IA",
-      "nav_seuils": "Seuils de jugement"
+      "nav_seuils": "Seuils de jugement",
+      "nav_durees": "Durées de la place"
     },
     "quotas_ia": {
       "title": "Quotas IA",
@@ -3727,6 +3728,38 @@
         "abandonne": "Abandonnée — intervention nécessaire",
         "jamais_tente": "Jamais tentée — le déclencheur n’a pas fonctionné"
       }
+    }
+  },
+  "admin_durees": {
+    "title": "Durées de la place",
+    "intro": "Les deux promesses que la place fait à ses deux côtés : combien de temps une annonce se voit, et combien de temps on a pour se parler une fois le contact payé. Les deux réglages se ressemblent — ils n'agissent pas pareil.",
+    "days": "jours",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saved": "Durées enregistrées.",
+    "save_failed": "L'enregistrement a échoué.",
+    "invalid": "Une durée doit être un nombre entier de jours, entre 1 et 365.",
+    "unavailable": "Les durées n'ont pas pu être lues. Aucun champ n'est pré-rempli : une valeur inventée ici serait écrite au premier enregistrement.",
+    "preview": "{count, plural, =0 {Aucune annonce ne basculerait.} one {# annonce deviendrait expirée, dont {unlocked} avec des candidatures dévoilées.} other {# annonces deviendraient expirées, dont {unlocked} avec des candidatures dévoilées.}}",
+    "last_change": "Dernier changement : {date}",
+    "life": {
+      "title": "Vie d'une annonce",
+      "retroactive_label": "Ce réglage est rétroactif.",
+      "retroactive_body": "L'expiration d'une annonce n'est pas une date écrite : elle se recalcule à chaque lecture, depuis la date de publication. Baisser cette durée retire donc de la place, immédiatement, des annonces déjà en ligne — y compris des annonces sur lesquelles des organisations ont déjà payé pour dévoiler des candidats.",
+      "help": "Le nombre d'annonces concernées est compté avant l'enregistrement, et il vous est montré. Vous pouvez baisser la durée malgré tout : on vous demande de confirmer, on ne vous en empêche pas."
+    },
+    "exchange": {
+      "title": "Fenêtre d'échange",
+      "not_retroactive_label": "Ce réglage n'est pas rétroactif.",
+      "not_retroactive_body": "La fin d'une conversation est une date ÉCRITE au moment du déblocage. Changer cette durée ne raccourcit ni n'allonge aucun échange en cours : les conversations ouvertes gardent la date qu'on leur a promise. Seuls les déblocages à venir suivront la nouvelle valeur.",
+      "help": "C'est la différence avec le réglage ci-dessus, et elle n'est pas un détail d'implémentation : une date écrite ne se recalcule pas."
+    },
+    "confirm": {
+      "title": "À confirmer",
+      "body": "Passer de {from} à {to} jours. {count, plural, one {# annonce visible aujourd'hui deviendrait expirée} other {# annonces visibles aujourd'hui deviendraient expirées}}, dont {unlocked} portant des candidatures dévoilées — donc payées.",
+      "note": "Rien ne vous empêche de le faire. On vous demande seulement de le faire en le sachant. Le changement et ce nombre seront tracés.",
+      "accept": "Je confirme, enregistrer",
+      "cancel": "Annuler"
     }
   },
   "ecosystem_switcher": {

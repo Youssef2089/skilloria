@@ -20,6 +20,7 @@ import {
   parseFacetFilter,
 } from '@/lib/candidatures/facets'
 import { aggregateCandidatures } from '@/lib/candidatures/aggregate'
+import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -96,6 +97,18 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+
+  // ── LES DURÉES SONT LUES ICI, PAR LA ROUTE ───────────────────────────────
+  //  Aucun défaut dans le code (cf. lib/durees.ts) : illisibles, on REFUSE en
+  //  le nommant plutôt que de servir une durée inventée. Même parti pris que
+  //  `matching_settings` — un repli codé en dur devient une seconde source de
+  //  vérité, et elle prend la main le jour où l'on comprend le moins.
+  const lectureDurees = await chargerDurees(auth.supabaseAdmin)
+  if (!lectureDurees.ok) {
+    console.error('[me/candidatures:GET] durées de la place illisibles', lectureDurees.raison)
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
+  }
+  const durees = lectureDurees.durees
 
   const url = new URL(request.url)
   const locale = normalizeLocale(url.searchParams.get('locale'))
@@ -245,7 +258,7 @@ export async function GET(request: NextRequest): Promise<Response> {
           // alimentent la dérivation d'état de vie quelques lignes plus bas.
           is_available: isActivePublished(
             pubRaw as { status?: string | null; published_at?: string | null; expires_at?: string | null },
-            now,
+            { vieAnnonceJours: durees.vieAnnonceJours, now },
           ),
         }
       : null
@@ -280,7 +293,7 @@ export async function GET(request: NextRequest): Promise<Response> {
           ? { expires_at: convExpiryByCand.get(r.id) ?? null }
           : null,
       },
-      now,
+      { ...durees, now },
     )
     return {
       id: r.id,

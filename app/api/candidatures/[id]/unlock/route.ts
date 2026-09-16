@@ -5,6 +5,7 @@ import { markCandidatureViewedServerSide } from '@/lib/candidature-views'
 import { getOrgEntitlements, consumeQuota, monthlyPeriodStart } from '@/lib/entitlements'
 import { performUnlock, ALLOWED_PREVIOUS_STATUSES } from '@/lib/unlock'
 import { deriveLifecycleByCandidature } from '@/lib/candidatures/lifecycle-batch'
+import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -59,6 +60,18 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+
+  // ── LES DURÉES SONT LUES ICI, PAR LA ROUTE ───────────────────────────────
+  //  Aucun défaut dans le code (cf. lib/durees.ts) : illisibles, on REFUSE en
+  //  le nommant plutôt que de servir une durée inventée. Même parti pris que
+  //  `matching_settings` — un repli codé en dur devient une seconde source de
+  //  vérité, et elle prend la main le jour où l'on comprend le moins.
+  const lectureDurees = await chargerDurees(auth.supabaseAdmin)
+  if (!lectureDurees.ok) {
+    console.error('[candidatures/unlock:POST] durées de la place illisibles', lectureDurees.raison)
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
+  }
+  const durees = lectureDurees.durees
   const orgId = auth.organization?.id
   if (!orgId) {
     return json({ error: 'No organization', code: 'org_required' }, 403)
@@ -141,6 +154,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
       published_at: ownPub.published_at,
       expires_at: ownPub.expires_at,
     }]]),
+    durees,
   )
   const lifecycle = lifecycleByCand.get(candidatureId)
   if (lifecycle?.bucket === 'archived') {
@@ -180,6 +194,9 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   const result = await performUnlock(auth.supabaseAdmin, candidatureId, {
     auto: false,
     actorUserId: auth.user.id,
+    // C'est CETTE écriture qui fixe la fin de l'échange — d'où le fait qu'un
+    // changement de réglage ne raccourcit jamais une conversation en cours.
+    fenetreEchangeJours: durees.fenetreEchangeJours,
   })
   if (!result.ok) {
     if (result.code === 'invalid_transition') {

@@ -8,6 +8,7 @@ import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name
 import { disclosurePolicyForCandidatureLifecycle } from '@/lib/expert-disclosure'
 import { signAvatarUrl } from '@/lib/avatar'
 import { isConversationExpired } from '@/lib/conversations/expiry'
+import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 import {
   deriveCandidatureLifecycle,
   parseBucketFilter,
@@ -108,6 +109,18 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+
+  // ── LES DURÉES SONT LUES ICI, PAR LA ROUTE ───────────────────────────────
+  //  Aucun défaut dans le code (cf. lib/durees.ts) : illisibles, on REFUSE en
+  //  le nommant plutôt que de servir une durée inventée. Même parti pris que
+  //  `matching_settings` — un repli codé en dur devient une seconde source de
+  //  vérité, et elle prend la main le jour où l'on comprend le moins.
+  const lectureDurees = await chargerDurees(auth.supabaseAdmin)
+  if (!lectureDurees.ok) {
+    console.error('[me/conversations:GET] durées de la place illisibles', lectureDurees.raison)
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
+  }
+  const durees = lectureDurees.durees
 
   const userId = auth.user.id
   const url = new URL(request.url)
@@ -294,7 +307,7 @@ export async function GET(request: NextRequest): Promise<Response> {
           : null,
         conversation: { expires_at: conv.expires_at },
       },
-      now,
+      { ...durees, now },
     )
 
     // L'user courant est-il l'expert ou l'org ?

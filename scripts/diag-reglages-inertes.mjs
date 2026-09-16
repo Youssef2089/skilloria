@@ -171,8 +171,32 @@ ok(
   reconstruisent.length ? `à faire passer par ${EXPIRY} : ${reconstruisent.join(' · ')}` : undefined,
 )
 
-// Le TTL vit dans le module, et nulle part ailleurs.
-ok(/PUBLICATION_TTL_DAYS = 30/.test(expiry), 'le TTL de 30 jours vit dans le module d’expiration')
+// ── LE TTL A QUITTÉ LE CODE, ET C'EST LE SUJET DE CE DIAGNOSTIC ────────────
+//
+//  Ce contrôle exigeait `PUBLICATION_TTL_DAYS = 30` dans le module. C'était la
+//  bonne exigence tant que la valeur vivait dans le code : UN seul domicile
+//  valait mieux que trois copies.
+//
+//  Mais ce diagnostic s'appelle « réglages inertes », et une constante de
+//  produit qu'aucun écran ne peut changer EST le réglage inerte par
+//  excellence. La durée vit désormais en base (`duree_reglages`) et se règle
+//  sur /admin/durees. L'exigence s'inverse donc : la constante ne doit plus
+//  exister nulle part.
+//
+//  Le détail de la nouvelle règle — aucun défaut, la lecture faite par les
+//  routes, l'asymétrie rétroactive — est tenu par `diag-durees-reglables`. Ici
+//  on vérifie seulement ce qui relève de CE diagnostic : plus de valeur inerte,
+//  et un écran pour la changer.
+ok(
+  !/PUBLICATION_TTL_DAYS/.test(expiry),
+  'le TTL ne vit plus en constante dans le module d’expiration',
+  'une durée de produit qu’aucun écran ne change est le réglage inerte par excellence',
+)
+ok(
+  exists('app/[locale]/admin/durees/page.tsx') && exists('app/api/admin/durees/route.ts'),
+  'la durée de vie d’une annonce a un écran ET une route',
+  'en base sans écran, c’est le pire des deux mondes : ni pratique, ni tracé (§E.10)',
+)
 
 // ═════════════════════════════════════════════════════════════════════════════
 section('B. max_seats : conservé, VISIBLEMENT inactif, et surveillé')

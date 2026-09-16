@@ -12,6 +12,7 @@ import { disclosurePolicyForCandidatureLifecycle } from '@/lib/expert-disclosure
 import { signAvatarUrl } from '@/lib/avatar'
 import { isConversationExpired } from '@/lib/conversations/expiry'
 import { deriveCandidatureLifecycle } from '@/lib/candidatures/lifecycle'
+import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -272,6 +273,18 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     throw err
   }
 
+  // ── LES DURÉES SONT LUES ICI, PAR LA ROUTE ───────────────────────────────
+  //  Aucun défaut dans le code (cf. lib/durees.ts) : illisibles, on REFUSE en
+  //  le nommant plutôt que de servir une durée inventée. Même parti pris que
+  //  `matching_settings` — un repli codé en dur devient une seconde source de
+  //  vérité, et elle prend la main le jour où l'on comprend le moins.
+  const lectureDurees = await chargerDurees(auth.supabaseAdmin)
+  if (!lectureDurees.ok) {
+    console.error('[conversations/messages] durées de la place illisibles', lectureDurees.raison)
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
+  }
+  const durees = lectureDurees.durees
+
   const { id: convId } = await ctx.params
   if (!convId || !UUID_REGEX.test(convId)) {
     return json({ error: 'Invalid id', code: 'invalid_id' }, 400)
@@ -303,7 +316,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
       ? { status: pub.status, published_at: pub.published_at, expires_at: pub.expires_at }
       : null,
     conversation: { expires_at: conv.expires_at },
-  })
+  }, durees)
 
   // ── Charger les messages ────────────────────────────────────────────────
   //

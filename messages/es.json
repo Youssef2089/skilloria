@@ -2369,7 +2369,8 @@
       "nav_matching": "Emparejamiento",
       "nav_ecosystemes": "Ecosistemas",
       "nav_quotas_ia": "Cuotas de IA",
-      "nav_seuils": "Umbrales de decisión"
+      "nav_seuils": "Umbrales de decisión",
+      "nav_durees": "Duraciones del mercado"
     },
     "quotas_ia": {
       "title": "Cuotas de IA",
@@ -3727,6 +3728,38 @@
         "abandonne": "Abandonado: requiere intervención",
         "jamais_tente": "Nunca intentado: el disparador no funcionó"
       }
+    }
+  },
+  "admin_durees": {
+    "title": "Duraciones del mercado",
+    "intro": "Las dos promesas que el mercado hace a sus dos lados: cuánto tiempo se ve un anuncio y cuánto tiempo hay para hablar una vez pagado el contacto. Los dos ajustes se parecen, pero no actúan igual.",
+    "days": "días",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "saved": "Duraciones guardadas.",
+    "save_failed": "No se ha podido guardar.",
+    "invalid": "Una duración debe ser un número entero de días, entre 1 y 365.",
+    "unavailable": "No se han podido leer las duraciones. Ningún campo se rellena previamente: un valor inventado aquí se escribiría al primer guardado.",
+    "preview": "{count, plural, =0 {Ningún anuncio cambiaría.} one {# anuncio pasaría a estar caducado, {unlocked} de ellos con candidaturas desbloqueadas.} other {# anuncios pasarían a estar caducados, {unlocked} de ellos con candidaturas desbloqueadas.}}",
+    "last_change": "Último cambio: {date}",
+    "life": {
+      "title": "Vida de un anuncio",
+      "retroactive_label": "Este ajuste es retroactivo.",
+      "retroactive_body": "La caducidad de un anuncio no es una fecha escrita: se recalcula en cada lectura, a partir de la fecha de publicación. Bajar esta duración retira del mercado, de inmediato, anuncios ya publicados — incluidos aquellos en los que organizaciones ya han pagado por desbloquear candidatos.",
+      "help": "El número de anuncios afectados se cuenta antes de guardar y se le muestra. Puede bajarla igualmente: se le pide confirmación, no se le impide."
+    },
+    "exchange": {
+      "title": "Ventana de intercambio",
+      "not_retroactive_label": "Este ajuste no es retroactivo.",
+      "not_retroactive_body": "El fin de una conversación es una fecha ESCRITA en el momento del desbloqueo. Cambiar esta duración no acorta ni alarga ningún intercambio en curso: las conversaciones abiertas conservan la fecha prometida. Solo los desbloqueos futuros usarán el nuevo valor.",
+      "help": "Esa es la diferencia con el ajuste anterior, y no es un detalle de implementación: una fecha escrita no se recalcula."
+    },
+    "confirm": {
+      "title": "Confirmar",
+      "body": "Pasar de {from} a {to} días. {count, plural, one {# anuncio visible hoy pasaría a estar caducado} other {# anuncios visibles hoy pasarían a estar caducados}}, {unlocked} de ellos con candidaturas desbloqueadas, es decir, pagadas.",
+      "note": "Nada se lo impide. Solo se le pide que lo haga sabiéndolo. El cambio y esta cifra quedarán registrados.",
+      "accept": "Confirmo, guardar",
+      "cancel": "Cancelar"
     }
   },
   "ecosystem_switcher": {

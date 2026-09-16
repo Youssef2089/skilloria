@@ -2369,7 +2369,8 @@
       "nav_matching": "Vermittlung",
       "nav_ecosystemes": "Ökosysteme",
       "nav_quotas_ia": "KI-Kontingente",
-      "nav_seuils": "Entscheidungsschwellen"
+      "nav_seuils": "Entscheidungsschwellen",
+      "nav_durees": "Laufzeiten des Marktplatzes"
     },
     "quotas_ia": {
       "title": "KI-Kontingente",
@@ -3727,6 +3728,38 @@
         "abandonne": "Abgebrochen — Eingreifen nötig",
         "jamais_tente": "Nie versucht — der Auslöser hat nicht ausgelöst"
       }
+    }
+  },
+  "admin_durees": {
+    "title": "Laufzeiten des Marktplatzes",
+    "intro": "Die beiden Zusagen, die der Marktplatz beiden Seiten macht: wie lange eine Anzeige sichtbar ist und wie lange man Zeit hat zu sprechen, sobald der Kontakt bezahlt ist. Die beiden Einstellungen sehen gleich aus – sie wirken es nicht.",
+    "days": "Tage",
+    "save": "Speichern",
+    "saving": "Wird gespeichert…",
+    "saved": "Laufzeiten gespeichert.",
+    "save_failed": "Das Speichern ist fehlgeschlagen.",
+    "invalid": "Eine Laufzeit muss eine ganze Anzahl von Tagen zwischen 1 und 365 sein.",
+    "unavailable": "Die Laufzeiten konnten nicht gelesen werden. Kein Feld ist vorbelegt: ein hier erfundener Wert würde beim ersten Speichern geschrieben.",
+    "preview": "{count, plural, =0 {Keine Anzeige würde umschlagen.} one {# Anzeige würde abgelaufen sein, davon {unlocked} mit freigeschalteten Bewerbungen.} other {# Anzeigen würden abgelaufen sein, davon {unlocked} mit freigeschalteten Bewerbungen.}}",
+    "last_change": "Letzte Änderung: {date}",
+    "life": {
+      "title": "Laufzeit einer Anzeige",
+      "retroactive_label": "Diese Einstellung wirkt rückwirkend.",
+      "retroactive_body": "Der Ablauf einer Anzeige ist kein gespeichertes Datum: er wird bei jedem Lesen aus dem Veröffentlichungsdatum neu berechnet. Diese Laufzeit zu senken nimmt daher bereits veröffentlichte Anzeigen sofort vom Marktplatz – auch solche, für die Organisationen bereits bezahlt haben, um Kandidaten freizuschalten.",
+      "help": "Die Zahl der betroffenen Anzeigen wird vor dem Speichern ermittelt und Ihnen gezeigt. Sie dürfen dennoch senken: Sie werden um Bestätigung gebeten, nicht daran gehindert."
+    },
+    "exchange": {
+      "title": "Austauschfenster",
+      "not_retroactive_label": "Diese Einstellung wirkt nicht rückwirkend.",
+      "not_retroactive_body": "Das Ende eines Gesprächs ist ein beim Freischalten GESCHRIEBENES Datum. Diese Laufzeit zu ändern verkürzt oder verlängert keinen laufenden Austausch: offene Gespräche behalten das zugesagte Datum. Nur künftige Freischaltungen verwenden den neuen Wert.",
+      "help": "Das ist der Unterschied zur Einstellung darüber, und er ist kein Implementierungsdetail: ein geschriebenes Datum wird nicht neu berechnet."
+    },
+    "confirm": {
+      "title": "Bitte bestätigen",
+      "body": "Von {from} auf {to} Tage. {count, plural, one {# heute sichtbare Anzeige würde abgelaufen sein} other {# heute sichtbare Anzeigen würden abgelaufen sein}}, davon {unlocked} mit freigeschalteten – also bezahlten – Bewerbungen.",
+      "note": "Nichts hindert Sie daran. Sie werden nur gebeten, es wissentlich zu tun. Die Änderung und diese Zahl werden protokolliert.",
+      "accept": "Ich bestätige, speichern",
+      "cancel": "Abbrechen"
     }
   },
   "ecosystem_switcher": {

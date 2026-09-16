@@ -12,6 +12,7 @@ import { getOrgEntitlements, consumeQuota, monthlyPeriodStart } from '@/lib/enti
 import { isExpertProfileApproved, PROFILE_NOT_VERIFIED_CODE } from '@/lib/expert-verified-guard'
 import { activePublishedOrClause } from '@/lib/publications/expiry'
 import { missingForPublish } from '@/lib/publications/publishable'
+import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -89,6 +90,18 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+
+  // ── LES DURÉES SONT LUES ICI, PAR LA ROUTE ───────────────────────────────
+  //  Aucun défaut dans le code (cf. lib/durees.ts) : illisibles, on REFUSE en
+  //  le nommant plutôt que de servir une durée inventée. Même parti pris que
+  //  `matching_settings` — un repli codé en dur devient une seconde source de
+  //  vérité, et elle prend la main le jour où l'on comprend le moins.
+  const lectureDurees = await chargerDurees(auth.supabaseAdmin)
+  if (!lectureDurees.ok) {
+    console.error('[publications:publish] durées de la place illisibles', lectureDurees.raison)
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
+  }
+  const durees = lectureDurees.durees
   const orgId = auth.organization?.id
   if (!orgId) {
     return json({ error: 'No organization', code: 'org_required' }, 403)
@@ -213,7 +226,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
       .select('id')
       .eq('organization_id', orgId)
       .eq('status', 'published')
-      .or(activePublishedOrClause())
+      .or(activePublishedOrClause({ vieAnnonceJours: durees.vieAnnonceJours }))
     if (activesErr) {
       // FAIL-CLOSED. On ne sait pas combien d'annonces sont actives : on ne
       // peut pas savoir s'il reste une place. Refuser en disant « plafond

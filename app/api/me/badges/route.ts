@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
+import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 import {
   deriveLifecycleByCandidature,
   loadLifecyclePublicationWindows,
@@ -76,6 +77,18 @@ export async function GET(request: NextRequest): Promise<Response> {
     throw err
   }
 
+  // ── LES DURÉES SONT LUES ICI, PAR LA ROUTE ───────────────────────────────
+  //  Aucun défaut dans le code (cf. lib/durees.ts) : illisibles, on REFUSE en
+  //  le nommant plutôt que de servir une durée inventée. Même parti pris que
+  //  `matching_settings` — un repli codé en dur devient une seconde source de
+  //  vérité, et elle prend la main le jour où l'on comprend le moins.
+  const lectureDurees = await chargerDurees(auth.supabaseAdmin)
+  if (!lectureDurees.ok) {
+    console.error('[me/badges:GET] durées de la place illisibles', lectureDurees.raison)
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
+  }
+  const durees = lectureDurees.durees
+
   const counts: BadgeCounts = {
     missions: 0,
     candidatures_expert: 0,
@@ -108,6 +121,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       select: buildExpertMissionsSelect(),
       count: 'exact',
       head: true,
+      vieAnnonceJours: durees.vieAnnonceJours,
     }).in('status', ['pending', 'notified'])
     if (error) {
       console.error('[me/badges:GET] missions count failed', error.message)
@@ -131,7 +145,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   // compteur qui se tait sur ce qu'il ignore et un compteur qui ment.
   const approximatifs: string[] = []
   if (expertProfile) {
-    const c = await countUnviewedCandidaturesForUser(auth, {
+    const c = await countUnviewedCandidaturesForUser(auth, durees, {
       kind: 'expert',
       profileId: expertProfile.id,
     })
@@ -142,7 +156,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   // ── candidatures_org + annonces_org (org members) ───────────────────────
   const orgId = auth.organization?.id ?? null
   if (orgId) {
-    const orgUnviewed = await countUnviewedCandidaturesForUser(auth, {
+    const orgUnviewed = await countUnviewedCandidaturesForUser(auth, durees, {
       kind: 'org',
       orgId,
     })
@@ -192,6 +206,8 @@ type CompteBadge = { valeur: number; exact: boolean }
 
 async function countUnviewedCandidaturesForUser(
   auth: AuthContext,
+  /** Les deux durées, EXIGÉES — lues par la route (cf. lib/durees.ts). */
+  durees: { vieAnnonceJours: number; fenetreEchangeJours: number },
   scope:
     | { kind: 'expert'; profileId: string }
     | { kind: 'org'; orgId: string },
@@ -267,6 +283,7 @@ async function countUnviewedCandidaturesForUser(
     auth.supabaseAdmin,
     candRowsAll,
     pubWindows,
+    durees,
     now,
   )
   const candRows = candRowsAll.filter((c) => lifecycleByCand.get(c.id)?.bucket === 'active')

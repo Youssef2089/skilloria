@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
+import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 import {
   buildPublicationSynthesis,
   loadReferentielLabels,
@@ -94,6 +95,18 @@ export async function GET(request: NextRequest): Promise<Response> {
     throw err
   }
 
+  // ── LES DURÉES SONT LUES ICI, PAR LA ROUTE ───────────────────────────────
+  //  Aucun défaut dans le code (cf. lib/durees.ts) : illisibles, on REFUSE en
+  //  le nommant plutôt que de servir une durée inventée. Même parti pris que
+  //  `matching_settings` — un repli codé en dur devient une seconde source de
+  //  vérité, et elle prend la main le jour où l'on comprend le moins.
+  const lectureDurees = await chargerDurees(auth.supabaseAdmin)
+  if (!lectureDurees.ok) {
+    console.error('[me/missions:GET] durées de la place illisibles', lectureDurees.raison)
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
+  }
+  const durees = lectureDurees.durees
+
   // ── Contexte d'éligibilité (helper PARTAGÉ avec /api/me/badges) ────────
   //  Lot compteurs : profil, vérification et barrière « Ne pas déranger » sont
   //  lus par lib/missions/feed.ts. Le badge nav consomme EXACTEMENT le même
@@ -136,12 +149,13 @@ export async function GET(request: NextRequest): Promise<Response> {
   //  seniority). Branches/specialities passent par la même jointure pour
   //  obtenir les labels traduits via tBDD.
   //
-  //  Les FILTRES (non décliné, publication publiée, non expirée à 30 j, org
+  //  Les FILTRES (non décliné, publication publiée, non expirée, org
   //  existante) vivent dans expertMissionsQuery — la route ne fournit que ses
   //  colonnes. Le badge nav appelle la même fonction avec un select minimal :
   //  aucune règle n'est recopiée, donc aucune divergence possible.
   const [matchesResult, translations] = await Promise.all([
     expertMissionsQuery(auth.supabaseAdmin, profile.id, {
+      vieAnnonceJours: durees.vieAnnonceJours,
       select: buildExpertMissionsSelect({
         matchColumns: 'id, publication_id, relevance_score, relevance_tier, status, explanation, created_at',
         // SOURCE UNIQUE des colonnes de synthèse : la liste vivait recopiée
