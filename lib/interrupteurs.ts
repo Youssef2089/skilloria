@@ -33,6 +33,18 @@ export type Capacite =
   | 'ENABLE_AI_CV_PARSING'
   | 'ENABLE_AI_CANDIDATURE_ASSESSMENT'
   | 'ENABLE_RERANKING'
+  /**
+   * Le parcours d'achat. Il appliquait DÉJÀ cette règle, mais dans sa propre
+   * fonction (`billingEnabled`, lib/billing/config.ts) — deux écritures de la
+   * même chose, à deux endroits.
+   *
+   * Aucune divergence de comportement à ce jour ; c'est justement pour cela
+   * qu'il faut converger MAINTENANT. Deux implémentations identiques ne
+   * divergent jamais le jour où on les écrit : elles divergent le jour où l'une
+   * des deux est corrigée. `billingEnabled()` reste exporté et délègue ici —
+   * ses appelants ne changent pas d'une ligne.
+   */
+  | 'ENABLE_BILLING'
 
 /**
  * `true` seulement si la variable vaut EXACTEMENT `'true'`.

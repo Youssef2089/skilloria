@@ -2026,6 +2026,7 @@
       "budget_inverted": "Das Mindestbudget darf das Höchstbudget nicht überschreiten.",
       "quota_publications_reached": "Sie haben diesen Monat alle in Ihrem Tarif enthaltenen Anzeigen veröffentlicht. Der Zähler beginnt am 1. des nächsten Monats neu.",
       "active_publications_limit_reached": "Sie haben die Anzahl aktiver Anzeigen Ihres Tarifs erreicht. Schließen Sie eine laufende Anzeige, um eine neue zu veröffentlichen, oder warten Sie, bis sie abläuft.",
+      "active_publications_check_failed": "Wir konnten die Anzahl aktiver Anzeigen Ihres Tarifs nicht prüfen. Es wurde nichts veröffentlicht und nichts angerechnet. Versuchen Sie es in Kürze erneut; besteht das Problem weiterhin, wenden Sie sich an den Support.",
       "verification_failed": "Die automatische Prüfung ist fehlgeschlagen. Bitte erneut versuchen.",
       "db_error": "Technischer Fehler. Bitte erneut versuchen.",
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
@@ -3213,7 +3214,10 @@
       "purged_body": "Dieses Konto wurde endgültig gelöscht und kann nicht mehr verwendet werden.",
       "need_login_title": "Konto deaktiviert",
       "need_login_body": "Ihr Konto ist deaktiviert und wird zum Stichtag endgültig gelöscht. Melden Sie sich erneut an, um es während der Kulanzfrist zu reaktivieren.",
-      "need_login_button": "Erneut anmelden"
+      "need_login_button": "Erneut anmelden",
+      "blocked_title": "Ihr Profil kann so nicht wieder veröffentlicht werden",
+      "blocked_body": "Ihr Konto ist reaktiviert, doch Ihr Profil bleibt verborgen, solange es unvollständig ist. Ergänzen Sie Folgendes und schalten Sie es dann in Ihrem Profil sichtbar:",
+      "reactivate_failed": "Die Reaktivierung ist nicht durchgegangen. Bitte versuchen Sie es gleich erneut."
     }
   },
   "invitation_public": {
@@ -3321,7 +3325,8 @@
     "errors": {
       "org_unavailable": "Ihr Kollaborationsbereich konnte nicht vorbereitet werden. Bitte versuchen Sie es gleich erneut.",
       "create_failed": "Der Bedarf konnte nicht gespeichert werden. Prüfen Sie die Felder und versuchen Sie es erneut.",
-      "publish_failed": "Die Veröffentlichung ist fehlgeschlagen. Bitte versuchen Sie es erneut."
+      "publish_failed": "Die Veröffentlichung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+      "publish_check_failed": "Wir konnten die Anzahl aktiver Anzeigen Ihres Tarifs nicht prüfen. Es wurde nichts veröffentlicht. Versuchen Sie es in Kürze erneut; besteht das Problem weiterhin, wenden Sie sich an den Support."
     },
     "list": {
       "title": "Meine Unterauftrags-Bedarfe",

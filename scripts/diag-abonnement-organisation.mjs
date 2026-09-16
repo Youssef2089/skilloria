@@ -261,11 +261,16 @@ const TRACE_USERS = {
   'app/api/admin/collaboration-orgs/route.ts': 'affiche le nom de l’ecosysteme d’inscription',
   'app/api/admin/get-org/[id]/route.ts': 'affiche le nom de l’ecosysteme d’inscription',
   'app/api/admin/list-orgs/route.ts': 'affiche le nom de l’ecosysteme d’inscription',
-  'app/api/auth/register-org/route.ts': 'ECRIT la ligne de trace a l’inscription',
-  // Second createur de ligne de trace, et le balayage ne le voyait pas : il
-  // vit dans lib/, pas dans app/api. Il y inserait `package_id` — colonne
-  // supprimee — et cassait la creation de l'espace de collaboration.
-  'lib/collaboration/ensure-personal-org.ts': 'ECRIT la ligne de trace de l’org personnelle',
+  // LES DEUX CREATEURS ONT QUITTE CET INVENTAIRE, et c'est un PROGRES, pas une
+  // perte de vue. Ils n'ecrivaient la ligne de trace qu'en troisieme d'une
+  // serie de trois allers-retours non transactionnels — ce qui a produit deux
+  // organisations sans aucun membre (migration 20260915200000). Organisation,
+  // membre administrateur et ligne de trace naissent desormais dans la MEME
+  // transaction, cote base, via `creer_organisation_avec_admin`.
+  //
+  // L'ecriture de la trace n'a donc plus de site applicatif a surveiller : elle
+  // est surveillee LA-BAS, par diag-organisation-sans-membre.mjs, qui exige que
+  // plus aucun chemin de app/ ni lib/ n'insere une organisation en direct.
   // Seul usage DECISIONNEL restant, et il est assume : le slug sert a poser
   // l'invite sur un sous-domaine d'atterrissage. Il ne restreint rien — une
   // fois entre, son organisation lui ouvre tous les ecosystemes actifs.
@@ -303,10 +308,17 @@ const writers = traceUsers.filter((r) => {
 // une autre, plus discrete : une org personnelle sans offre, qui retomberait
 // sur le repli et donnerait des quotas qu'on n'a pas voulus.
 const ENSURE = stripComments(read('lib/collaboration/ensure-personal-org.ts'))
-const insertOrg = ENSURE.slice(ENSURE.indexOf(".from('organizations')"))
-ok(/package_id: pkg\.id/.test(queryBlock(insertOrg, insertOrg.indexOf('.insert('))),
+// La creation est passee dans une RPC transactionnelle (20260915200000) : il
+// n'y a plus d'`.insert()` a inspecter, mais l'exigence est INCHANGEE — l'offre
+// doit etre posee DANS la creation, pas par une mise a jour ensuite. On lit
+// donc le bloc d'arguments de la RPC.
+const iRpcOrg = ENSURE.indexOf("'creer_organisation_avec_admin'")
+ok(iRpcOrg !== -1,
+  'l’org personnelle est creee par la RPC transactionnelle',
+  'un insert direct rouvrirait la fenetre qui a produit deux organisations sans membre')
+ok(iRpcOrg !== -1 && /p_package_id:\s*pkg\.id/.test(ENSURE.slice(iRpcOrg, iRpcOrg + 1400)),
   'l’org personnelle recoit son offre collaboration a la CREATION',
-  'sur `organizations`, dans le meme insert — sinon elle nait sans offre et retombe sur le repli')
+  'dans les arguments de la RPC — sinon elle nait sans offre et retombe sur le repli')
 
 ok(writers.length === 0,
   'aucune route n’ECRIT sur la trace hors de l’inscription',

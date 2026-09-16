@@ -327,9 +327,23 @@ ok(
 section('6. Les deux verrous, dans les deux sens, au SERVEUR')
 
 ok(/ENABLE_BILLING/.test(cfg), 'l\'interrupteur ENABLE_BILLING existe')
+// LA RÈGLE A CONVERGÉ, ELLE N'A PAS CHANGÉ.
+//   Cette assertion cherchait `process.env.ENABLE_BILLING === 'true'` ÉCRIT ICI.
+//   La règle est désormais écrite UNE SEULE FOIS (lib/interrupteurs.ts) et
+//   `billingEnabled()` y délègue — même convention, même fail-closed, mêmes
+//   appelants. Exiger la copie locale reviendrait à exiger la duplication qu'on
+//   vient de supprimer.
+//   Ce qu'on garde, et qui est plus fort : la délégation existe, ET personne ne
+//   réécrit la règle dans son coin.
 ok(
-  /process\.env\.ENABLE_BILLING\s*===\s*'true'/.test(cfg),
-  "ENABLE_BILLING suit la convention de ENABLE_AI_CV_PARSING (=== 'true')",
+  /return capaciteActive\('ENABLE_BILLING'\)/.test(cfg),
+  "billingEnabled() délègue à la règle unique (lib/interrupteurs.ts)",
+  'une seconde écriture de la même règle finit toujours par diverger de la première',
+)
+ok(
+  !/process\.env\.ENABLE_BILLING/.test(cfg),
+  'la règle n\'est pas RÉÉCRITE ici',
+  'deux implémentations ne divergent pas le jour où on les écrit, mais le jour où l\'une est corrigée',
 )
 ok(/isProduction\(\)/.test(cfg), 'le contrôle s\'appuie sur isProduction() (lib/env.ts)')
 ok(

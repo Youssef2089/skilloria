@@ -2026,6 +2026,7 @@
       "budget_inverted": "Le budget minimum ne peut pas être supérieur au maximum.",
       "quota_publications_reached": "Vous avez publié toutes les annonces incluses dans votre offre ce mois-ci. Le compteur repart le 1er du mois prochain.",
       "active_publications_limit_reached": "Vous avez atteint le nombre d'annonces actives de votre offre. Clôturez une annonce en cours pour en publier une nouvelle, ou attendez qu'elle expire.",
+      "active_publications_check_failed": "Nous n'avons pas pu vérifier le nombre d'annonces actives de votre offre. Rien n'a été publié ni décompté. Réessayez dans quelques instants ; si le problème persiste, contactez le support.",
       "verification_failed": "La vérification automatique a échoué. Veuillez réessayer.",
       "db_error": "Erreur technique. Veuillez réessayer.",
       "generic": "Une erreur est survenue. Veuillez réessayer.",
@@ -3213,7 +3214,10 @@
       "purged_body": "Ce compte a été supprimé définitivement et ne peut plus être utilisé.",
       "need_login_title": "Compte désactivé",
       "need_login_body": "Votre compte est désactivé et sera supprimé définitivement à l’échéance. Reconnectez-vous pour le réactiver pendant la période de grâce.",
-      "need_login_button": "Se reconnecter"
+      "need_login_button": "Se reconnecter",
+      "blocked_title": "Votre profil ne peut pas être republié en l’état",
+      "blocked_body": "Votre compte est réactivé, mais votre profil reste masqué tant qu’il est incomplet. Complétez ce qui suit, puis rendez-le visible depuis votre profil :",
+      "reactivate_failed": "La réactivation n’a pas abouti. Réessayez dans un instant."
     }
   },
   "invitation_public": {
@@ -3321,7 +3325,8 @@
     "errors": {
       "org_unavailable": "Votre espace de collaboration n'a pas pu être préparé. Réessayez dans un instant.",
       "create_failed": "Impossible d’enregistrer le besoin. Vérifiez les champs et réessayez.",
-      "publish_failed": "La publication a échoué. Veuillez réessayer."
+      "publish_failed": "La publication a échoué. Veuillez réessayer.",
+      "publish_check_failed": "Nous n'avons pas pu vérifier le nombre d'annonces actives de votre offre. Rien n'a été publié. Réessayez dans quelques instants ; si le problème persiste, contactez le support."
     },
     "list": {
       "title": "Mes besoins de sous-traitance",

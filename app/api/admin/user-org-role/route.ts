@@ -3,7 +3,12 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { requireReauth } from '@/lib/reauth-token'
 import { logAudit } from '@/lib/audit'
-import { isValidOrgRole, countActiveAdmins, wouldRemoveLastAdmin } from '@/lib/org-members'
+import {
+  isValidOrgRole,
+  countActiveAdmins,
+  wouldRemoveLastAdmin,
+  majMembreOrganisation,
+} from '@/lib/org-members'
 import {
   loadAdminActionTarget,
   refuseAdminActionOnTarget,
@@ -152,12 +157,38 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     }
   }
 
-  const { error: upErr } = await auth.supabaseAdmin
-    .from('organization_members')
-    .update({ role_in_org: newRole, updated_at: new Date().toISOString() })
-    .eq('id', member.id)
-  if (upErr) {
-    console.error('[admin:user-org-role] role update failed', upErr.message)
+  // ── L'ÉCRITURE PASSE PAR LA BASE, ET LA PORTE RESTE OUVERTE ─────────────
+  //
+  //  Depuis la migration 20260914200010, une organisation ne peut plus tomber à
+  //  zéro administrateur : l'occupant du SIÈGE ne peut être ni rétrogradé ni
+  //  retiré, garanti par une clé étrangère composite.
+  //
+  //  CETTE ROUTE EST LA SEULE EXCEPTION, ET ELLE DOIT LE RESTER. C'est l'unique
+  //  outil qui répare une organisation déjà bloquée : une garantie qui la
+  //  casserait rendrait le problème irréparable. `p_forcer` transmet exactement
+  //  le `force` déjà exigé ici — re-authentification, modale qui nomme
+  //  l'organisation, et trace d'audit `last_admin_bypassed`. Aucun chemin
+  //  implicite ne l'active : sans `force`, la base refuse comme les routes
+  //  d'organisation.
+  const res = await majMembreOrganisation(auth.supabaseAdmin, {
+    membreId: member.id,
+    nouveauRole: newRole,
+    forcer: lastAdminBypassed,
+  })
+  if (res === 'dernier_admin') {
+    // Sans `force`, le refus applicatif plus haut a déjà répondu : arriver ici
+    // signifie que la base a tranché une course. Même code, même message.
+    return json(
+      {
+        error: 'Would remove last admin',
+        code: 'last_admin',
+        organization: { id: member.organization_id, company_name: org?.company_name ?? null },
+      },
+      409,
+    )
+  }
+  if (res !== 'ok') {
+    console.error('[admin:user-org-role] role update failed', res)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
 

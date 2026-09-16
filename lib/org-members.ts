@@ -170,6 +170,68 @@ export function wouldRemoveLastAdmin(params: {
 }
 
 /**
+ * Résultat de `majMembreOrganisation`. Reprend tels quels les retours de la RPC
+ * `maj_membre_organisation`, plus `erreur` pour un échec d'appel.
+ */
+export type MajMembreResultat = 'ok' | 'dernier_admin' | 'introuvable' | 'inchange' | 'erreur'
+
+/**
+ * LE SEUL CHEMIN D'ÉCRITURE sur le rôle ou le statut d'une appartenance.
+ *
+ * ═══ POURQUOI IL N'Y A PLUS D'ÉCRITURE DIRECTE ════════════════════════════
+ *   Trois routes retiraient un administrateur — changement de rôle, retrait,
+ *   départ volontaire — et toutes les trois comptaient les admins actifs,
+ *   comparaient à 1, puis écrivaient. Deux administrateurs qui se rétrogradent
+ *   au même instant lisent tous deux « il en reste 2 » et écrivent tous deux :
+ *   l'organisation tombe à ZÉRO administrateur, état dont aucun écran ne permet
+ *   de sortir.
+ *
+ *   Aucune vérification avant écriture ne peut fermer ça. La garantie vit
+ *   désormais en base (migration 20260914200010) : l'organisation DÉSIGNE un
+ *   administrateur actif comme occupant le SIÈGE, et une clé étrangère
+ *   composite interdit de le rétrograder ou de le retirer. La RPC transfère le
+ *   siège avant de rétrograder son occupant, dans la MÊME transaction.
+ *
+ * ═══ CE HELPER NE REMPLACE PAS `countActiveAdmins` ════════════════════════
+ *   Les deux étages posent des questions différentes, et ne font pas double
+ *   emploi :
+ *     · la BASE ferme la COURSE — il reste toujours une LIGNE admin/active ;
+ *     · `countActiveAdmins` ferme le FANTÔME — le COMPTE derrière cette ligne
+ *       est-il encore joignable (ni suspendu, ni en grâce, ni anonymisé) ? Une
+ *       purge RGPD laisse la ligne intacte à dessein ; la base ne peut pas voir
+ *       ce cas depuis `organization_members` seul.
+ *   Retirer l'un des deux rouvrirait un trou différent. Les routes gardent donc
+ *   le refus applicatif EN AMONT (message précis, aucun aller-retour inutile),
+ *   et la base tranche EN DERNIER sous concurrence.
+ *
+ * ═══ FAIL-CLOSED ══════════════════════════════════════════════════════════
+ *   Un échec d'appel rend `erreur`, jamais `ok`. Aucune écriture n'a eu lieu :
+ *   la RPC est une transaction unique.
+ */
+export async function majMembreOrganisation(
+  admin: SupabaseClient,
+  params: {
+    membreId: string
+    nouveauRole?: OrgRole | null
+    nouveauStatut?: string | null
+    /** Dépannage plateforme UNIQUEMENT — laisse délibérément l'org sans admin. */
+    forcer?: boolean
+  },
+): Promise<MajMembreResultat> {
+  const { data, error } = await admin.rpc('maj_membre_organisation', {
+    p_membre_id: params.membreId,
+    p_nouveau_role: params.nouveauRole ?? null,
+    p_nouveau_statut: params.nouveauStatut ?? null,
+    p_forcer: params.forcer ?? false,
+  })
+  if (error) {
+    console.error('[org-members] maj_membre_organisation failed', error.message)
+    return 'erreur'
+  }
+  return (data as MajMembreResultat) ?? 'erreur'
+}
+
+/**
  * Codes de refus « ce compte ne peut pas rejoindre l'organisation cible ».
  * Règle projet (figée) : un compte est soit expert, soit entreprise, jamais les
  * deux ; et un compte entreprise appartient toujours à UNE seule organisation.

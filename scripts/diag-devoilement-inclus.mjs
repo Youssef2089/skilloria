@@ -40,7 +40,7 @@
 //
 // LECTURE PURE : ce script n'écrit JAMAIS, et ne joint jamais la base.
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -141,8 +141,37 @@ ok(
 // qu'on peut réinstaller exactement la même inversion sans rien déplacer, en
 // écrivant `if (devoile && revealN !== null)`. La mutation l'a prouvé : un seul
 // contrôle tirait, et la structure restait irréprochable.
-const gardeAppel = (bloc.match(/if\s*\(([^)]*)\)\s*\{\s*\n\s*const res = await performUnlock/) ||
-  [])[1]
+//
+// ⚠️ LE MOTIF NE S'ACCROCHE PLUS À CE QUI SUIT LA GARDE. Il exigeait
+//    `performUnlock` en PREMIÈRE instruction du bloc ; la réservation de place
+//    en base s'est intercalée entre les deux, et le contrôle est passé rouge
+//    alors que la règle qu'il défend n'avait pas bougé d'un caractère.
+//    On remonte donc au `if` le plus proche AVANT l'appel, quoi qu'il y ait
+//    entre les deux : c'est la GARDE qui est surveillée, pas son voisinage.
+//    Et « le `if` le plus proche » ne suffit pas non plus : les refus anticipés
+//    (`if (place !== true) { return }`) sont des blocs FRÈRES, refermés avant
+//    l'appel. Ce qu'on veut est le `if` ENCORE OUVERT à la position de l'appel,
+//    donc un suivi de profondeur d'accolades.
+const gardeAppel = (() => {
+  if (iUnlock === -1) return undefined
+  const avant = bloc.slice(0, iUnlock)
+  const pile = [] // { profondeur, garde }
+  let profondeur = 0
+  const ouvre = /if\s*\(([^)]*)\)\s*\{/g
+  const positions = new Map()
+  for (const m of avant.matchAll(ouvre)) positions.set(m.index + m[0].length - 1, m[1])
+  for (let i = 0; i < avant.length; i++) {
+    const c = avant[i]
+    if (c === '{') {
+      profondeur++
+      if (positions.has(i)) pile.push({ profondeur, garde: positions.get(i) })
+    } else if (c === '}') {
+      while (pile.length > 0 && pile[pile.length - 1].profondeur === profondeur) pile.pop()
+      profondeur--
+    }
+  }
+  return pile.length > 0 ? pile[pile.length - 1].garde : undefined
+})()
 ok(
   gardeAppel !== undefined && gardeAppel.trim() === 'devoile',
   'le dévoilement est gardé par `devoile` SEUL, sans condition ajoutée',
@@ -287,6 +316,154 @@ ok(
   !/revealedCandidatesPerPublication\s*(\?\?|\|\|)\s*\d/.test(src),
   'aucune valeur de repli codée en dur derrière la limite',
   'Un `?? 1` ferait mentir le back-office aussi sûrement que l’inversion.',
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
+section('6. LE MEILLEUR PROFIL N’EST PAS DÉCIDÉ SUR UN CHAMP INCOMPLET')
+//
+//   LE DÉFAUT : le classement trie sur `ai_match_score DESC NULLS LAST`. Une
+//   candidature dont le jugement n'a pas abouti vaut NULL et passe DERNIÈRE. Le
+//   « meilleur profil » n'était donc que le meilleur PARMI CEUX DÉJÀ NOTÉS —
+//   deux experts postulant à quelques secondes d'intervalle étaient départagés
+//   par l'ordre d'arrivée du modèle, pas par leur dossier. C'est une promesse
+//   produit non tenue : l'organisation croit recevoir le meilleur candidat.
+//
+//   IL NE SE MANIFESTE PAS À « ILLIMITÉ » — il attend qu'on mette un nombre. Le
+//   jour où une offre passe à 3 places, il repart sans prévenir.
+
+ok(
+  /FENETRE_JUGEMENT_MS/.test(src),
+  'la fenêtre de jugement est une constante nommée',
+  'Un délai écrit dans l’appel se recopie et diverge.',
+)
+ok(
+  /const FENETRE_JUGEMENT_MS = 45_000/.test(src),
+  'la fenêtre couvre le délai d’attente du modèle (30 s) avec sa marge',
+  'Plus courte, on décide encore trop tôt ; plus longue, la place reste vide pour rien.',
+)
+// LE CONTRÔLE CENTRAL : on refuse de décider tant qu'une autre candidature de
+// cette annonce peut encore recevoir sa note.
+ok(
+  /\.is\('ai_match_score', null\)/.test(src) && /\.neq\('id', candidatureId\)/.test(src),
+  'les candidatures encore non notées de cette annonce sont recherchées',
+  'Sans ce comptage, le départage retombe sur l’ordre d’arrivée du modèle.',
+)
+ok(
+  /if \(\(enAttente \?\? 0\) > 0\) \{[\s\S]{0,320}?return\n/.test(src),
+  'on NE DÉCIDE PAS tant que la cohorte n’est pas stable',
+  'La dernière candidature à finir verra tout le monde noté et tranchera.',
+)
+// LE FILET, ET IL EST OBLIGATOIRE.
+ok(
+  /\.gte\('created_at', limiteFenetre\)/.test(src),
+  'au-delà de la fenêtre, une candidature sans note ne bloque plus rien',
+  'Sans ce filet, un jugement qui n’aboutit jamais laisserait la place VIDE pour toujours.',
+)
+// Et le départage lui-même n'a pas bougé : mêmes tris, même ancienneté.
+ok(
+  /\.order\('ai_match_score', \{ ascending: false, nullsFirst: false \}\)/.test(src) &&
+    /\.order\('created_at', \{ ascending: true \}\)/.test(src),
+  'le départage reste : note décroissante puis ancienneté',
+  'On corrige QUAND on décide, pas COMMENT on départage.',
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
+section('7. UNE PLACE GRATUITE NE PEUT PAS ÊTRE DONNÉE DEUX FOIS')
+//
+//   Le comptage des places est un LIRE-PUIS-ÉCRIRE : deux jugements qui
+//   finissent au même instant lisent tous deux 0, concluent tous deux 0 < 1, et
+//   dévoilent tous deux. Aucune vérification avant écriture ne peut corriger
+//   cela — seule la base le peut.
+//
+//   DEUX SENS, ET IL FAUT LES DEUX : la garantie doit exister, ET le cas
+//   ILLIMITÉ ne doit RIEN se voir refuser. C'est le réglage de lancement ; le
+//   casser serait pire que le défaut qu'on corrige.
+
+const dossierMig = join(ROOT, 'supabase', 'migrations')
+const migPlace = readdirSync(dossierMig).find((f) => f.endsWith('_place_incluse_unique.sql'))
+ok(!!migPlace, 'la migration de la place incluse existe')
+
+if (migPlace) {
+  const brut = readFileSync(join(dossierMig, migPlace), 'utf8').split('\r\n').join('\n')
+  // LE CODE SEUL. Les blocs `comment on ...` décrivent la garantie en toutes
+  // lettres : chercher une clause dans le fichier entier la trouverait dans la
+  // PROSE, et le contrôle resterait vert alors qu'elle aurait quitté le code.
+  // Piège rencontré trois fois sur ce dépôt — il est fermé ici d'emblée.
+  const sql = brut
+    .split('\n')
+    .filter((l) => !l.trim().startsWith('--'))
+    .join('\n')
+    .replace(/comment on [\s\S]*?\$\$;/g, '')
+    .toLowerCase()
+
+  ok(
+    /create unique index if not exists candidatures_place_incluse_unique_idx/.test(sql),
+    'la garantie est un index UNIQUE — déclaratif, pas une relecture',
+    'Un trigger qui recompte voit ce qui est COMMITÉ : deux transactions simultanées passent toutes deux.',
+  )
+  ok(
+    /on public\.candidatures \(publication_id, place_incluse\)/.test(sql),
+    'elle porte sur (annonce, numéro de place)',
+  )
+  // LE SENS INVERSE : partielle, donc muette à ILLIMITÉ.
+  ok(
+    /where place_incluse is not null/.test(sql),
+    'l’index est PARTIEL : il ne voit que les lignes numérotées',
+    'Non partiel, il refuserait des dévoilements à plafond illimité.',
+  )
+  ok(
+    /if p_plafond is null then\s*\n\s*return true;/.test(sql),
+    'à plafond ILLIMITÉ la réservation rend true SANS RIEN ÉCRIRE',
+    'Aucun numéro attribué ⇒ rien à refuser. Le réglage de lancement n’est pas touché.',
+  )
+  ok(
+    /if v_place > p_plafond then\s*\n\s*return false;/.test(sql),
+    'au-delà du plafond, la place est refusée',
+  )
+  ok(
+    /exception when unique_violation then\s*\n\s*return false;/.test(sql),
+    'une place prise au même instant est un REFUS, pas une panne',
+    'Remonter une erreur ferait échouer le after() sur un cas parfaitement normal.',
+  )
+  // ON LIT LA LISTE DE BÉNÉFICIAIRES, PAS UN PRÉFIXE.
+  //   Première version : `to service_role` présent ET `to authenticated` absent.
+  //   Elle laissait passer `to service_role, authenticated` — le préfixe matche,
+  //   et la chaîne « to authenticated » n'apparaît nulle part. La mutation l'a
+  //   prouvé. On capture donc la liste entière et on exige qu'elle soit
+  //   EXACTEMENT `service_role`.
+  const grants = [...sql.matchAll(/grant execute on function public\.(\w+)\([^)]*\) to ([^;]+);/g)]
+  const beneficiaires = new Map(grants.map((g) => [g[1], g[2].trim()]))
+  for (const fn of ['reserver_place_incluse', 'liberer_place_incluse']) {
+    ok(
+      beneficiaires.get(fn) === 'service_role',
+      `${fn} n’est exécutable QUE par le service-role`,
+      `bénéficiaires : « ${beneficiaires.get(fn) ?? 'aucun grant trouvé'} » — exposée à authenticated, elle deviendrait un chemin d’attribution de droits.`,
+    )
+  }
+  ok(
+    /create or replace function public\.liberer_place_incluse/.test(sql),
+    'une place réservée mais non honorée peut repartir',
+    'Sinon elle serait perdue pour toujours.',
+  )
+}
+
+// Et le code s'en sert, aux deux bouts.
+ok(
+  /rpc\(\s*'reserver_place_incluse'/.test(src),
+  'le dévoilement RÉSERVE la place avant de dévoiler',
+  'Réserver après, c’est laisser la course intacte.',
+)
+ok(
+  /if \(place !== true\) \{[\s\S]{0,240}?return\n/.test(src),
+  'un refus de place n’entraîne AUCUN dévoilement',
+)
+ok(
+  /rpc\('liberer_place_incluse'/.test(src),
+  'la place repart si le dévoilement échoue après réservation',
+)
+ok(
+  /p_plafond: revealN/.test(src),
+  'le plafond transmis est celui de l’offre, jamais une valeur recopiée',
 )
 
 console.log(

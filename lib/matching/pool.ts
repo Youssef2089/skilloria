@@ -1,3 +1,4 @@
+import { lectureIncomplete, lireToutesLesLignes } from '@/lib/matching/lecture-paginee'
 import { enTranches, TAILLE_TRANCHE_IDS } from '@/lib/matching/tranches'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AnnonceType } from '@/types/annonce'
@@ -97,61 +98,6 @@ export type CriteresAnnonce = {
   speciality_ids: string[]
   seniorities: string[]
   work_zone_countries: string[]
-}
-
-/** Une page de lecture. Voir `lireToutesLesLignes`. */
-const TAILLE_PAGE = 1000
-
-/**
- * Lit TOUTES les lignes d'une requête, page par page, jusqu'à épuisement.
- *
- * ═══ LE MUR QU'ON SUPPRIME ════════════════════════════════════════════════
- *   Sans `.limit()` ET sans pagination, la requête n'était pas illimitée : elle
- *   était bornée par le réglage « Max rows » du projet — un nombre qui ne figure
- *   nulle part dans le dépôt, pas même dans `config.toml`. Au-delà, les experts
- *   suivants N'EXISTAIENT PAS : aucune erreur, aucune trace, et
- *   `eligible_after_filters` affichait un nombre faux et rassurant.
- *
- *   Un plafond invisible est pire qu'un plafond assumé.
- *
- * ═══ ET ON COMPTE ═════════════════════════════════════════════════════════
- *   Lire par tranches ne suffit pas : il faut savoir si on a tout lu. On
- *   demande donc AUSSI le nombre attendu, et l'appelant confronte les deux. Une
- *   divergence devient un fait, pas une déduction.
- *
- *   Le comptage est fait en UNE requête `head` séparée plutôt que sur chaque
- *   page : compter à chaque page referait le même dénombrement à chaque fois.
- */
-async function lireToutesLesLignes(
-  construire: (options?: { count?: 'exact'; head?: boolean }) => PromiseLike<{
-    data: unknown[] | null
-    error: { message: string } | null
-    count?: number | null
-  }>,
-  contexte: string,
-): Promise<{ lignes: unknown[]; attendu: number | null; erreur?: string }> {
-  const comptage = await construire({ count: 'exact', head: true })
-  if (comptage.error) {
-    return { lignes: [], attendu: null, erreur: `${contexte} : ${comptage.error.message}` }
-  }
-  const attendu = typeof comptage.count === 'number' ? comptage.count : null
-
-  const lignes: unknown[] = []
-  for (let debut = 0; ; debut += TAILLE_PAGE) {
-    const q = construire() as unknown as {
-      range: (a: number, b: number) => PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>
-    }
-    const { data, error } = await q.range(debut, debut + TAILLE_PAGE - 1)
-    if (error) return { lignes, attendu, erreur: `${contexte} : ${error.message}` }
-    const page = data ?? []
-    lignes.push(...page)
-    // Une page incomplète est la fin : il n'y a rien après.
-    if (page.length < TAILLE_PAGE) break
-    // Garde-fou de boucle : si le nombre attendu est connu et déjà atteint, on
-    // s'arrête même si la dernière page était pleine.
-    if (attendu !== null && lignes.length >= attendu) break
-  }
-  return { lignes, attendu }
 }
 
 /**
@@ -270,21 +216,29 @@ export async function chargerVivierPourAnnonce(
   const drapeauOuverture = publicNatif === 'expert_freelance' ? 'open_to_freelance' : 'open_to_cdi'
 
   const [natifsRes, croisesRes] = await Promise.all([
-    lireToutesLesLignes(
-      () => avecDisponibilite(base().eq('users.user_type', publicNatif), publicNatif),
-      `vivier natif (${annonce.id})`,
-    ),
+    lireToutesLesLignes<LigneProfil>({
+      construire: (o) => avecDisponibilite(base(o).eq('users.user_type', publicNatif), publicNatif),
+      // `profiles.id` est la clé primaire : l'ordre devient TOTAL, donc stable
+      // d'une page à l'autre. Sans lui, PostgreSQL peut rendre une même ligne
+      // sur deux pages et en oublier une autre — un expert disparaît du vivier
+      // sans erreur ni trace.
+      departageUnique: 'id',
+      identite: (r) => r.id,
+      contexte: `vivier natif (${annonce.id})`,
+    }),
     // OUVERTURE CROISÉE : l'autre public, mais SEULEMENT ceux qui l'ont
     // explicitement demandée. C'est un critère déclaré, avec sa propre garde de
     // disponibilité.
-    lireToutesLesLignes(
-      () =>
+    lireToutesLesLignes<LigneProfil>({
+      construire: (o) =>
         avecDisponibilite(
-          base().eq('users.user_type', autrePublic).eq(drapeauOuverture, true),
+          base(o).eq('users.user_type', autrePublic).eq(drapeauOuverture, true),
           autrePublic,
         ),
-      `vivier croisé (${annonce.id})`,
-    ),
+      departageUnique: 'id',
+      identite: (r) => r.id,
+      contexte: `vivier croisé (${annonce.id})`,
+    }),
   ])
 
   if (natifsRes.erreur || croisesRes.erreur) {
@@ -293,24 +247,40 @@ export async function chargerVivierPourAnnonce(
     return { ...vide, erreur: `chargement du vivier en échec : ${detail}` }
   }
 
-  // ── LE NOMBRE LU EST CONFRONTÉ AU NOMBRE ATTENDU ─────────────────────────
-  //  Sans cette confrontation, une lecture partielle est rigoureusement
-  //  indistinguable d'une lecture complète : le vivier rend moins de profils,
-  //  et `eligible_after_filters` affiche ce nombre-là — faux, et rassurant.
-  //  Une divergence doit être VISIBLE, pas déduite.
-  const divergence = [natifsRes, croisesRes].find(
-    (r) => r.attendu !== null && r.lignes.length !== r.attendu,
-  )
+  // ── LE NOMBRE DE PROFILS DISTINCTS EST CONFRONTÉ AU NOMBRE ATTENDU ───────
+  //
+  //  ⚠️ ON COMPTE DES PROFILS DISTINCTS, PLUS DES LIGNES. La version précédente
+  //     comparait `lignes.length` à `attendu` — et c'est exactement au moment
+  //     où elle devait parler qu'elle se taisait : une pagination sans ordre
+  //     total rend une même ligne deux fois ET en oublie une autre, donc le
+  //     compte de LIGNES tombe juste pendant que le périmètre est faux. Le
+  //     dédoublonnage absorbait ensuite les doublons en silence.
+  //
+  //  Une garde qui compte la mauvaise chose est pire qu'une absence de garde :
+  //  elle rassure.
+  const divergence = [natifsRes, croisesRes].find(lectureIncomplete)
   if (divergence) {
     console.error('[vivier] LECTURE INCOMPLÈTE — le vivier ne couvre pas tout le périmètre', {
       annonce: annonce.id,
-      lus: divergence.lignes.length,
+      distincts: divergence.distincts,
       attendus: divergence.attendu,
+      doublons: divergence.doublons,
     })
     return {
       ...vide,
-      erreur: `vivier incomplet : ${divergence.lignes.length} profils lus pour ${divergence.attendu} attendus`,
+      erreur: `vivier incomplet : ${divergence.distincts} profils distincts lus pour ${divergence.attendu} attendus`,
     }
+  }
+
+  // Un doublon rendu par la pagination n'est jamais normal : il dit que l'ordre
+  // n'était pas total. Le dédoublonnage l'a absorbé, mais le taire referait le
+  // silence qu'on vient de corriger.
+  const doublons = natifsRes.doublons + croisesRes.doublons
+  if (doublons > 0) {
+    console.error('[vivier] pagination INSTABLE — des lignes ont été rendues deux fois', {
+      annonce: annonce.id,
+      doublons,
+    })
   }
 
   const vues = new Set<string>()
@@ -359,19 +329,51 @@ export async function chargerVivierPourAnnonce(
     // qui dépasse la longueur admise dès quelques centaines de profils. Le
     // filtre est POSITIF, donc l'union des tranches est exactement le résultat
     // entier — contrairement au filtre négatif des décisions, plus haut.
-    const exps: Array<{ profile_id: string; role: string | null; sector: string | null; description: string | null }> = []
+    //
+    // ── ET PAGINÉE, PAS SEULEMENT DÉCOUPÉE ────────────────────────────────
+    //  Découper les identifiants borne la longueur de l'URL, pas le nombre de
+    //  LIGNES RENDUES. 200 profils × 5 expériences font 1 000 lignes : très
+    //  exactement la limite qu'on venait de contourner ailleurs. Au-delà, des
+    //  parcours manquaient — le document envoyé au fournisseur était plus
+    //  pauvre, la note plus basse, et AUCUNE TRACE ne le disait. Un expert mal
+    //  noté parce qu'on n'a pas lu son parcours entier est le pire des défauts
+    //  silencieux : il ressemble à un mauvais dossier.
+    type LigneParcours = {
+      id: string
+      profile_id: string
+      role: string | null
+      sector: string | null
+      description: string | null
+    }
+    const exps: LigneParcours[] = []
     let expErr: { message: string } | null = null
     for (const tranche of enTranches(ids, TAILLE_TRANCHE_IDS)) {
-      const { data, error } = await supabaseAdmin
-        .from('profile_experiences')
-        .select('profile_id, role, sector, description, start_date')
-        .in('profile_id', tranche)
-        .order('start_date', { ascending: false })
-      if (error) {
-        expErr = error
+      const lu = await lireToutesLesLignes<LigneParcours>({
+        construire: (o) =>
+          supabaseAdmin
+            .from('profile_experiences')
+            .select('id, profile_id, role, sector, description, start_date', o)
+            .in('profile_id', tranche)
+            // Le tri MÉTIER reste celui-ci ; le départage unique s'ajoute après
+            // lui et ne le contredit pas — deux expériences de même date sont
+            // simplement rendues dans un ordre désormais reproductible.
+            .order('start_date', { ascending: false }),
+        departageUnique: 'id',
+        identite: (e) => e.id,
+        contexte: `parcours (${tranche.length} profils)`,
+      })
+      if (lu.erreur) {
+        expErr = { message: lu.erreur }
         break
       }
-      exps.push(...((data ?? []) as typeof exps))
+      // Même discipline qu'au vivier : une lecture partielle se DIT.
+      if (lectureIncomplete(lu)) {
+        expErr = {
+          message: `parcours incomplet : ${lu.distincts} expériences distinctes lues pour ${lu.attendu} attendues`,
+        }
+        break
+      }
+      exps.push(...lu.lignes)
     }
     if (expErr) {
       // Le parcours ENRICHIT le document, il ne le conditionne pas. Un profil

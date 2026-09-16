@@ -1,6 +1,10 @@
 import { NextRequest } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { runMatchingForPublication } from '@/lib/matching'
+import { prendreBailRun, rendreBailRun } from '@/lib/cron/bail-de-run'
+
+/** Nom du bail. MÊME valeur pour GET et POST : c'est la TÂCHE qu'on garde. */
+const JOB = 'match_retry'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -65,37 +69,59 @@ async function handle(request: NextRequest): Promise<Response> {
 
   const admin = getAdmin()
 
-  // Le plus ANCIEN d'abord : une annonce oubliée ne doit pas être doublée par
-  // une plus récente à chaque passage.
-  const { data, error } = await admin.rpc('next_unfinished_matching_run', {
-    p_max_attempts: MAX_TENTATIVES,
-  })
-  if (error) {
-    console.error('[match-retry] recherche du run à rejouer en échec', error.message)
-    return json({ error: 'Query failed', code: 'db_error' }, 500)
+  // ── BAIL DE RUN ─────────────────────────────────────────────────────────
+  //  DEUXIÈME ÉTAGE, ET IL NE FAIT PAS DOUBLE EMPLOI. `next_unfinished_matching_run`
+  //  porte déjà un délai de grâce PAR ANNONCE + `for update skip locked` : deux
+  //  runs ne reçoivent jamais la même annonce. Le bail, lui, empêche le RUN en
+  //  double — donc le travail inutile, et le double-clic sur « exécuter
+  //  maintenant » du back-office, que l'advisory lock de `cron_manual_run` ne
+  //  couvre pas (il meurt avec la transaction, le run HTTP commence après).
+  const bail = await prendreBailRun(admin, { job: JOB, maxDurationSec: maxDuration })
+  if (bail === 'occupe') {
+    return json({ ok: true, rejoue: null, note: 'Un run est déjà en cours.' }, 200)
+  }
+  if (bail === 'erreur') {
+    return json({ error: 'Run lease unavailable', code: 'bail_indisponible' }, 503)
   }
 
-  const publicationId = typeof data === 'string' ? data : null
-  if (!publicationId) {
-    // File vide : ce n'est pas un incident, c'est le cas normal.
-    return json({ ok: true, rejoue: null, note: 'Aucun run inachevé à rejouer.' }, 200)
+  try {
+    // Le plus ANCIEN d'abord : une annonce oubliée ne doit pas être doublée par
+    // une plus récente à chaque passage.
+    const { data, error } = await admin.rpc('next_unfinished_matching_run', {
+      p_max_attempts: MAX_TENTATIVES,
+    })
+    if (error) {
+      console.error('[match-retry] recherche du run à rejouer en échec', error.message)
+      return json({ error: 'Query failed', code: 'db_error' }, 500)
+    }
+
+    const publicationId = typeof data === 'string' ? data : null
+    if (!publicationId) {
+      // File vide : ce n'est pas un incident, c'est le cas normal.
+      return json({ ok: true, rejoue: null, note: 'Aucun run inachevé à rejouer.' }, 200)
+    }
+
+    const verdict = await runMatchingForPublication({ supabaseAdmin: admin, publicationId })
+
+    // On rend le verdict TEL QUEL, y compris quand il a échoué. Un pilote qui
+    // répond toujours « ok » rend la supervision aveugle : c'est exactement le
+    // motif que ce projet corrige partout.
+    return json(
+      {
+        ok: verdict.status === 'ok',
+        rejoue: publicationId,
+        status: verdict.status,
+        note: verdict.notes,
+        model: verdict.model,
+      },
+      200,
+    )
+  } finally {
+    // Cadence */5 pour un délai de grâce de dix minutes : sans restitution, un
+    // run court bloquerait le tick suivant et la file se viderait à moitié
+    // vitesse. La garantie ne dépend pas de cet appel — le bail expire seul.
+    await rendreBailRun(admin, JOB)
   }
-
-  const verdict = await runMatchingForPublication({ supabaseAdmin: admin, publicationId })
-
-  // On rend le verdict TEL QUEL, y compris quand il a échoué. Un pilote qui
-  // répond toujours « ok » rend la supervision aveugle : c'est exactement le
-  // motif que ce projet corrige partout.
-  return json(
-    {
-      ok: verdict.status === 'ok',
-      rejoue: publicationId,
-      status: verdict.status,
-      note: verdict.notes,
-      model: verdict.model,
-    },
-    200,
-  )
 }
 
 export async function GET(request: NextRequest): Promise<Response> {

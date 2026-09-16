@@ -5,11 +5,15 @@ import { renderInactivityWarningEmail } from '@/lib/emails/templates'
 import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
 import { expertSiteOrigin } from '@/lib/emails/domain-url'
+import { prendreBailRun, rendreBailRun } from '@/lib/cron/bail-de-run'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 // Envoi des emails d'avertissement via `after()` (best-effort, post-response).
 export const maxDuration = 60
+
+/** Nom du bail. MÊME valeur pour GET et POST : c'est la TÂCHE qu'on garde. */
+const JOB = 'purge_inactive'
 
 /**
  * GET /api/cron/purge-inactive — PURGE RGPD des comptes INACTIFS (règle CNIL
@@ -130,6 +134,34 @@ async function handle(request: NextRequest): Promise<Response> {
     return json({ error: 'Server misconfigured', code: 'missing_env' }, 500)
   }
 
+  // ── BAIL DE RUN ─────────────────────────────────────────────────────────
+  //  Tâche quotidienne : le chevauchement ne peut pas venir de l'ordonnanceur.
+  //  Il vient du déclenchement manuel (bouton back-office, appel porteur de
+  //  `CRON_SECRET`), que l'advisory lock de `cron_manual_run` ne couvre pas —
+  //  celui-ci meurt avec la transaction, ce run HTTP commence après.
+  //
+  //  Deux runs concurrents anonymiseraient les mêmes comptes et enverraient
+  //  l'avertissement d'inactivité EN DOUBLE. L'un est irréversible, l'autre
+  //  part chez l'utilisateur.
+  //
+  //  FAIL-CLOSED : reporter au lendemain ne coûte rien.
+  const bail = await prendreBailRun(admin, { job: JOB, maxDurationSec: maxDuration })
+  if (bail === 'occupe') {
+    return json({ ok: true, note: 'Un run est déjà en cours.', purged: 0, purge_due: 0 }, 200)
+  }
+  if (bail === 'erreur') {
+    return json({ error: 'Run lease unavailable', code: 'bail_indisponible' }, 503)
+  }
+
+  try {
+    return await purgerInactifs(admin)
+  } finally {
+    await rendreBailRun(admin, JOB)
+  }
+}
+
+/** Le traitement lui-même, isolé pour que le bail l'entoure sur TOUS ses chemins. */
+async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
   const now = new Date()
   const warnCutoff = shiftMonths(now, -WARNING_MONTHS).toISOString()
   const purgeCutoff = shiftMonths(now, -PURGE_MONTHS).toISOString()

@@ -531,6 +531,29 @@ export async function POST(request: NextRequest): Promise<Response> {
  * Entièrement NON-BLOQUANT : une erreur ici n'invalide rien — la candidature
  * existe, et l'organisation peut dévoiler à la main.
  */
+/**
+ * Fenêtre pendant laquelle une candidature non notée peut encore l'être.
+ *
+ * QUARANTE-CINQ SECONDES, ET LE CHOIX SE JUSTIFIE DES DEUX CÔTÉS.
+ *   Le jugement appelle le modèle avec un délai d'attente de 30 s
+ *   (TIMEOUT_MS, lib/candidatures/ai-assessment.ts). Une candidature créée il y
+ *   a moins de 30 s peut donc encore recevoir sa note ; au-delà, son appel a
+ *   forcément rendu la main — réussi, échoué, ou expiré. La marge de 15 s
+ *   couvre le temps qui encadre l'appel : insertion, lecture de l'annonce,
+ *   écriture du verdict.
+ *
+ *   TROP COURTE, on déciderait encore trop tôt : c'est exactement le défaut
+ *   qu'on corrige, et il reviendrait sur les candidatures lentes.
+ *   TROP LONGUE, la place resterait vide pendant tout ce temps alors que
+ *   l'organisation attend son candidat — et une place offerte qui reste vide
+ *   est aussi une promesse non tenue.
+ *
+ *   ⚠️ ELLE EST ADOSSÉE AU DÉLAI DU MODÈLE. Si TIMEOUT_MS change, celle-ci doit
+ *      changer avec lui : une fenêtre plus courte que le délai d'attente
+ *      rouvrirait le défaut en silence.
+ */
+const FENETRE_JUGEMENT_MS = 45_000
+
 async function devoilementInclus(
   auth: AuthContext,
   publicationId: string,
@@ -584,6 +607,47 @@ async function devoilementInclus(
           .eq('publication_id', publicationId)
           .in('status', ['unlocked', 'selected'])
         if ((revealedCount ?? 0) < revealN) {
+          // ── ON NE DÉPARTAGE PAS SUR UN CHAMP INCOMPLET ────────────────────
+          //
+          //  LE DÉFAUT : le classement trie sur `ai_match_score DESC NULLS
+          //  LAST`. Une candidature dont le jugement n'a pas encore abouti vaut
+          //  NULL et passe DERNIÈRE. Le « meilleur profil » n'était donc que le
+          //  meilleur PARMI CEUX DÉJÀ NOTÉS : deux experts qui postulent à
+          //  quelques secondes d'intervalle étaient départagés par l'ordre
+          //  d'arrivée du modèle, pas par leur dossier. L'organisation croit
+          //  pourtant recevoir le meilleur candidat.
+          //
+          //  CE QU'ON FAIT : si une AUTRE candidature de cette annonce est
+          //  encore en cours de jugement ET assez récente pour que son jugement
+          //  puisse encore aboutir, on NE DÉCIDE PAS maintenant. Chaque
+          //  candidature appelle ce bloc à la fin de son propre jugement : la
+          //  DERNIÈRE à finir verra tout le monde noté et tranchera sur un
+          //  champ complet. Aucun travail planifié, aucune rétrogradation.
+          //
+          //  LE FILET, ET IL EST OBLIGATOIRE : au-delà de la fenêtre, une
+          //  candidature sans note ne bloque plus rien. Si le dernier jugement
+          //  n'aboutit jamais — modèle en panne, fonction tuée — la place
+          //  serait sinon restée VIDE pour toujours. Passé ce délai, le
+          //  départage retombe sur l'ancienneté, exactement comme lorsqu'un
+          //  jugement échoue.
+          const limiteFenetre = new Date(Date.now() - FENETRE_JUGEMENT_MS).toISOString()
+          const { count: enAttente } = await auth.supabaseAdmin
+            .from('candidatures')
+            .select('id', { count: 'exact', head: true })
+            .eq('publication_id', publicationId)
+            .neq('id', candidatureId)
+            .is('ai_match_score', null)
+            .gte('created_at', limiteFenetre)
+
+          if ((enAttente ?? 0) > 0) {
+            // La cohorte n'est pas stable : celle qui finira après nous décidera.
+            console.log('[candidatures] dévoilement différé — jugements en cours', {
+              publicationId,
+              en_attente: enAttente,
+            })
+            return
+          }
+
           // La candidature qui vient d'être créée est-elle la meilleure note de
           // la publication ? (égalité → la plus ancienne l'emporte.)
           const { data: topRow } = await auth.supabaseAdmin
@@ -600,12 +664,54 @@ async function devoilementInclus(
       }
 
       if (devoile) {
+        // ── LA PLACE EST RÉSERVÉE EN BASE, PAS COMPTÉE EN MÉMOIRE ──────────
+        //
+        //  Le comptage ci-dessus est un lire-puis-écrire : deux jugements qui
+        //  finissent au même instant lisent tous deux « 0 place prise »,
+        //  concluent tous deux qu'il en reste une, et dévoilent tous deux. Une
+        //  organisation à UNE place incluse en obtiendrait DEUX — un droit
+        //  payant donné gratuitement, et non rattrapable puisqu'on ne
+        //  rétrograde jamais.
+        //
+        //  Aucune vérification avant écriture ne peut corriger cela. C'est la
+        //  base qui tranche : un index unique partiel sur le numéro de place
+        //  accepte la première réservation et refuse la seconde.
+        //
+        //  À PLAFOND ILLIMITÉ, la fonction rend `true` sans rien écrire : aucun
+        //  numéro n'est attribué, donc rien ne peut être refusé.
+        const { data: place, error: placeErr } = await auth.supabaseAdmin.rpc(
+          'reserver_place_incluse',
+          { p_candidature_id: candidatureId, p_plafond: revealN },
+        )
+        if (placeErr) {
+          // Une panne de réservation n'accorde RIEN : dans le doute, on ferme.
+          // La candidature existe, c'est le dévoilement qui n'a pas lieu.
+          console.error('[candidatures] réservation de place en échec', placeErr.message)
+          return
+        }
+        if (place !== true) {
+          // REFUS NORMAL, PAS UNE PANNE : la place vient d'être prise par une
+          // candidature concurrente, ou le plafond est atteint.
+          console.log('[candidatures] place incluse non obtenue', { publicationId, candidatureId })
+          return
+        }
+
         const res = await performUnlock(auth.supabaseAdmin, candidatureId, {
           auto: true,
           actorUserId: auth.user.id,
         })
         if (!res.ok) {
           console.warn('[candidatures] dévoilement inclus refusé', res.code)
+          // LA PLACE REPART. Réservée puis non honorée, elle serait perdue pour
+          // toujours. Si cette libération échoue à son tour, on aura
+          // SOUS-attribué — la bonne direction d'échec : on peut donner moins
+          // que le dû, jamais plus.
+          const { error: libErr } = await auth.supabaseAdmin.rpc('liberer_place_incluse', {
+            p_candidature_id: candidatureId,
+          })
+          if (libErr) {
+            console.error('[candidatures] place non libérée — elle restera inutilisée', libErr.message)
+          }
         }
       }
     }

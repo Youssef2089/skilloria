@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
-import { countActiveAdmins } from '@/lib/org-members'
+import { countActiveAdmins, majMembreOrganisation } from '@/lib/org-members'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -63,12 +63,20 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
   }
 
-  const { error: upErr } = await admin
-    .from('organization_members')
-    .update({ status: 'removed', updated_at: new Date().toISOString() })
-    .eq('id', myRow.id)
-  if (upErr) {
-    console.error('[me/leave] leave failed', upErr.message)
+  // L'ÉCRITURE PASSE PAR LA BASE (migration 20260914200010). Le comptage
+  // ci-dessus reste — il pose une question que la base ne peut pas poser, et
+  // donne un refus précis — mais deux derniers administrateurs qui partent au
+  // même instant le franchissaient tous les deux. La RPC transfère le siège
+  // d'administrateur avant le départ de son occupant, dans la même transaction.
+  const res = await majMembreOrganisation(admin, {
+    membreId: myRow.id as string,
+    nouveauStatut: 'removed',
+  })
+  if (res === 'dernier_admin') {
+    return json({ error: 'You are the last admin', code: 'last_admin' }, 409)
+  }
+  if (res !== 'ok') {
+    console.error('[me/leave] leave failed', res)
     return json({ error: 'Leave failed', code: 'db_error' }, 500)
   }
 

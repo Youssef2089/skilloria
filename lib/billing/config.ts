@@ -1,3 +1,4 @@
+import { capaciteActive } from '@/lib/interrupteurs'
 import { isProduction } from '@/lib/env'
 
 /**
@@ -56,12 +57,22 @@ function keyMode(raw: string): 'live' | 'test' | null {
 }
 
 /**
- * L'interrupteur produit. Convention identique à ENABLE_AI_CV_PARSING :
- * la chaîne 'true' EXACTEMENT, rien d'autre. Pas de '1', pas de 'yes' — une
- * seule écriture possible, donc aucune ambiguïté sur ce qui ouvre le mur.
+ * L'interrupteur produit.
+ *
+ * LA RÈGLE N'EST PLUS ÉCRITE ICI, ELLE EST DÉLÉGUÉE. Elle l'était aussi dans
+ * `lib/interrupteurs.ts`, à l'identique — la chaîne 'true' EXACTEMENT, rien
+ * d'autre, fail-closed. Deux implémentations d'une même règle ne divergent
+ * jamais le jour où on les écrit : elles divergent le jour où l'une des deux
+ * est corrigée, et c'est alors le comportement le plus permissif qui gagne
+ * silencieusement.
+ *
+ * CE QUI NE CHANGE PAS : le comportement, à l'identique — `ENABLE_BILLING` doit
+ * valoir exactement 'true'. Cette fonction reste exportée et gardée, pour que
+ * ses appelants n'aient pas à connaître le module d'interrupteurs. Le mur reste
+ * fermé par défaut.
  */
 export function billingEnabled(): boolean {
-  return process.env.ENABLE_BILLING === 'true'
+  return capaciteActive('ENABLE_BILLING')
 }
 
 /**

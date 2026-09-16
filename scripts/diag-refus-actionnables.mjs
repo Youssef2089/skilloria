@@ -206,6 +206,67 @@ for (const chaine of CHAINES) {
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+section('LA RÉACTIVATION — dans le doute on FERME, et le refus dit quoi faire')
+//
+//   Deux défauts, et ils allaient dans le même sens :
+//     1. le snapshot `pre_deletion_visible` était restauré SANS évaluer le
+//        prédicat de visibilité — on republiait un profil devenu incomplet ;
+//     2. le repli sur état inconnu était `true` — sur une information
+//        MANQUANTE, on republiait la personne. L'inverse de la règle du projet.
+//   Et l'échec rendait un `db_error` générique qu'aucun écran n'affichait :
+//   l'expert restait enfermé dans sa période de grâce sans savoir pourquoi.
+
+const REACT_ROUTE = 'app/api/me/account/reactivate/route.ts'
+const REACT_ECRAN = 'app/[locale]/reactivation/page.tsx'
+const react = read(REACT_ROUTE)
+const reactEcran = read(REACT_ECRAN)
+
+ok(
+  /missingForVisibility\(/.test(react),
+  'le prédicat de visibilité est ÉVALUÉ, pas supposé',
+  'Un snapshot dit ce que la personne AVAIT choisi, pas si son profil le mérite encore.',
+)
+ok(
+  /const etaitVisible = p\.pre_deletion_visible === true/.test(react),
+  'le repli sur état inconnu est FERMÉ',
+  'Un snapshot absent valait « visible » : sur une info manquante, on republiait.',
+)
+ok(
+  /restoreVisible = etaitVisible && manquants\.length === 0/.test(react),
+  'la visibilité n’est rendue que si elle était acquise ET encore méritée',
+)
+ok(
+  /code: 'visibility_blocked'/.test(react) && /missing: manquants/.test(react),
+  'le refus NOMME les champs manquants',
+  'Un db_error générique enferme l’expert dans sa grâce sans lui dire pourquoi.',
+)
+ok(
+  !/expRes\.count \?\? 0[\s\S]{0,40}langRes\.count \?\? 0[\s\S]{0,200}error/.test(react) &&
+    /expRes\.error \|\| langRes\.error/.test(react),
+  'un comptage en échec ne vaut PAS zéro',
+  'Un zéro emprunté à une panne fermerait la visibilité de quelqu’un qui a tout saisi.',
+)
+ok(
+  /erreur\.manquants && erreur\.manquants\.length > 0/.test(reactEcran) &&
+    /tChamps\(/.test(reactEcran),
+  'l’écran AFFICHE les champs manquants, traduits',
+  'L’échec était avalé en silence : le bouton se réarmait, et rien n’expliquait pourquoi.',
+)
+ok(
+  /profile_validation\.field_errors/.test(reactEcran),
+  'il réutilise les libellés de champs existants',
+  'Une seconde série de libellés finirait par dire autre chose que la première.',
+)
+for (const langue of ['fr', 'en', 'es', 'de']) {
+  const msg = JSON.parse(read(`messages/${langue}.json`))
+  const r = msg?.settings?.reactivation
+  ok(
+    typeof r?.blocked_title === 'string' && typeof r?.blocked_body === 'string' && typeof r?.reactivate_failed === 'string',
+    `refus de réactivation traduit (${langue})`,
+  )
+}
+
 console.log(
   failures === 0
     ? '\nRÉSULTAT : tout est vert. Chaque refus commerce dit ce qui bloque et quoi faire.\n'

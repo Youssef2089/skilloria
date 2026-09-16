@@ -8,8 +8,18 @@ import {
   platformAdminCountIncludingTarget,
 } from '@/lib/admin/user-actions-guard'
 
+import { prendreBailRun, rendreBailRun } from '@/lib/cron/bail-de-run'
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+// DÉCLARÉ EXPLICITEMENT, et ce n'est pas cosmétique : le délai de grâce du bail
+// de run s'en DÉDUIT. Sans valeur ici, on s'appuierait sur un défaut de
+// plateforme invisible dans le code, et le jour où il changerait le bail
+// deviendrait trop court sans que rien ne le dise.
+export const maxDuration = 300
+
+/** Nom du bail. MÊME valeur pour GET et POST : c'est la TÂCHE qu'on garde. */
+const JOB = 'purge_deletions'
 
 /**
  * GET /api/cron/purge-deletions — PURGE RGPD planifiée (mission S3, section 7).
@@ -81,6 +91,47 @@ async function handle(request: NextRequest): Promise<Response> {
   }
 
   const admin = getAdmin()
+
+  // ── BAIL DE RUN ─────────────────────────────────────────────────────────
+  //
+  //  L'EXPOSITION N'EST PAS LA CADENCE. Cette tâche tourne une fois par jour :
+  //  un chevauchement depuis l'ordonnanceur exigerait un run de vingt-quatre
+  //  heures, ce que `maxDuration` rend impossible.
+  //
+  //  ELLE EST DANS LE DÉCLENCHEMENT MANUEL. Le bouton « exécuter maintenant »
+  //  du back-office et tout appel porteur de `CRON_SECRET` peuvent lancer un
+  //  second run pendant le premier. Le `pg_try_advisory_xact_lock` de
+  //  `cron_manual_run` ne couvre QUE la mise en file : il meurt avec la
+  //  transaction, alors que ce run HTTP commence après.
+  //
+  //  ET ICI C'EST IRRÉVERSIBLE. Deux runs concurrents évaluent chacun la garde
+  //  « dernier administrateur plateforme » sur un état que l'autre est en train
+  //  de changer — sur un chemin qui anonymise définitivement.
+  const bail = await prendreBailRun(admin, { job: JOB, maxDurationSec: maxDuration })
+  if (bail === 'occupe') {
+    return new Response(
+      JSON.stringify({ ok: true, note: 'Un run est déjà en cours.', due: 0, purged: 0 }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    )
+  }
+  if (bail === 'erreur') {
+    // FAIL-CLOSED. Reporter une purge au lendemain ne coûte rien ; la lancer
+    // sans bail est définitif.
+    return new Response(
+      JSON.stringify({ error: 'Run lease unavailable', code: 'bail_indisponible' }),
+      { status: 503, headers: { 'content-type': 'application/json' } },
+    )
+  }
+
+  try {
+    return await purger(admin)
+  } finally {
+    await rendreBailRun(admin, JOB)
+  }
+}
+
+/** Le traitement lui-même, isolé pour que le bail l'entoure sur TOUS ses chemins. */
+async function purger(admin: SupabaseClient): Promise<Response> {
   const nowIso = new Date().toISOString()
 
   // `user_type` est chargé pour la garde « dernier administrateur » ci-dessous.
@@ -129,7 +180,38 @@ async function handle(request: NextRequest): Promise<Response> {
           targetIsActiveAdmin: true,
           activeAdminCount: platformAdminCountIncludingTarget(others),
         })
-      if (unsafe) {
+      // ── LE SIÈGE PLATEFORME EST DÉGAGÉ AVANT D'ANONYMISER ───────────────
+      //
+      //  Depuis la migration 20260915200020, un administrateur qui occupe le
+      //  siège ne peut PAS être anonymisé : la clé étrangère l'interdit.
+      //
+      //  Sans cet appel, le refus GRACIEUX ci-dessous — journalisé, avec
+      //  `deletion_scheduled_at` conservé — deviendrait une erreur technique
+      //  23503 au milieu de la boucle, sur un chemin RGPD irréversible et
+      //  légalement dû. On dégage donc le siège d'abord ; s'il n'y a personne à
+      //  qui le transférer, la fonction rend `dernier_admin` et on rejoint
+      //  EXACTEMENT le chemin `blocked` existant.
+      //
+      //  Une erreur d'appel compte comme `unsafe` : même sens que le comptage
+      //  indisponible — on ne purge pas quand on ne sait pas.
+      let siegeDegage = true
+      if (!unsafe) {
+        const { data: resSiege, error: siegeErr } = await admin.rpc(
+          'liberer_siege_plateforme',
+          { p_user_id: u.id, p_forcer: false },
+        )
+        if (siegeErr) {
+          console.warn('[purge] liberation du siege plateforme en echec — on ne purge pas', {
+            uid: u.id,
+            msg: siegeErr.message,
+          })
+          siegeDegage = false
+        } else if (resSiege !== 'ok') {
+          siegeDegage = false
+        }
+      }
+
+      if (unsafe || !siegeDegage) {
         blocked.push(u.id)
         console.warn('[purge] admin purge blocked — would leave platform without administrator', {
           uid: u.id,
@@ -146,6 +228,13 @@ async function handle(request: NextRequest): Promise<Response> {
             reason: 'last_platform_admin',
             others_available: others,
             deletion_scheduled_at_kept: true,
+            /**
+             * `false` ⇒ le refus vient de la BASE (le siège n'a pas pu être
+             * transféré), pas du comptage applicatif. Les deux mènent au même
+             * refus gracieux, mais la trace doit dire lequel a parlé — sinon on
+             * chercherait la cause du mauvais côté.
+             */
+            siege_plateforme_degage: siegeDegage,
           },
         })
         continue

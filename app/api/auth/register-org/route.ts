@@ -374,27 +374,42 @@ export async function POST(request: NextRequest): Promise<Response> {
       throw new RegisterOrgError('phone_update_failed', 'Could not set verified phone', 500, phoneUpdErr)
     }
 
-    // ── 2. Création organizations ─────────────────────────────────────────
-    // Colonnes legacy `user_id` et `domain_id` droppées par B6_MIGRATION_2
-    // (20260502_archi_orga_b6_migration_2_drop_legacy.sql). La liaison
-    // user↔org passe par `organization_members`, org↔domain par
-    // `organization_domains` (inserts plus bas).
-    const { data: orgRow, error: orgErr } = await supabaseAdmin
-      .from('organizations')
-      .insert({
-        org_type: input.org_type,
-        company_name: input.company_name,
-        country: input.country_code,
-        siren: input.siren,
-        vat_number: input.vat_number,
+    // ── 2. Organisation + membre admin + lien d'écosystème, EN UNE SEULE
+    //       TRANSACTION (migration 20260915200000) ────────────────────────
+    //
+    //  C'ÉTAIT TROIS ALLERS-RETOURS, ET C'EST EXACTEMENT CE QUI A PRODUIT LES
+    //  DEUX ORGANISATIONS ORPHELINES DE STAGING. L'organisation était créée,
+    //  puis le membre, puis le domaine ; le rollback du `catch` supprimait
+    //  `public.users` — dont la CASCADE emportait le membre — mais laissait
+    //  l'organisation. Deux lignes sans aucun membre, que personne ne peut
+    //  atteindre et qu'aucun écran ne montre.
+    //
+    //  Le rollback a été corrigé depuis, mais il reste du code applicatif :
+    //  une fonction TUÉE (dépassement de `maxDuration`, recyclage d'instance,
+    //  déploiement en cours de requête) n'exécute jamais son `catch`. Une
+    //  transaction, elle, n'a simplement jamais été validée.
+    //
+    //  Colonnes legacy `user_id` et `domain_id` droppées par B6_MIGRATION_2 :
+    //  la liaison user↔org passe par `organization_members`, org↔domain par
+    //  `organization_domains`. Aucun `package_id` sur cette dernière —
+    //  l'abonnement vit sur `organizations`, et c'est une simple TRACE.
+    const { data: newOrgId, error: orgErr } = await supabaseAdmin.rpc(
+      'creer_organisation_avec_admin',
+      {
+        p_user_id: user_id,
+        p_domain_id: domainRow.id,
+        p_org_type: input.org_type,
+        p_company_name: input.company_name,
+        p_country: input.country_code,
+        p_siren: input.siren,
+        p_vat_number: input.vat_number,
         // Domaine public → NULL (cohabitation libre, index unique partiel
         // ignore NULL et B4 ne doit jamais auto-rattacher sur NULL).
-        email_domain: isPublicDomain ? null : input.email_domain,
-        verification_status: 'pending_provider_check',
-      })
-      .select('id')
-      .single()
-    if (orgErr || !orgRow) {
+        p_email_domain: isPublicDomain ? null : input.email_domain,
+        p_verification_status: 'pending_provider_check',
+      },
+    )
+    if (orgErr || !newOrgId) {
       throw new RegisterOrgError(
         'org_insert_failed',
         'Could not create organization',
@@ -402,46 +417,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         orgErr,
       )
     }
-    organization_id = orgRow.id as string
-
-    // ── 3. organization_members (admin du nouvel org) ─────────────────────
-    const { error: memberErr } = await supabaseAdmin
-      .from('organization_members')
-      .insert({
-        user_id,
-        organization_id,
-        role_in_org: 'admin',
-        status: 'active',
-        invited_by: null,
-      })
-    if (memberErr) {
-      throw new RegisterOrgError(
-        'member_insert_failed',
-        'Could not link member',
-        500,
-        memberErr,
-      )
-    }
-
-    // ── 4. organization_domains (1 seul domaine V1, package_id=null) ──────
-    const { error: orgDomErr } = await supabaseAdmin
-      .from('organization_domains')
-      .insert({
-        organization_id,
-        domain_id: domainRow.id,
-        active: true,
-        // Aucun `package_id` ici : l'abonnement vit désormais sur
-        // `organizations`, et la colonne a été SUPPRIMÉE de cette table.
-        // Cette ligne n'est plus qu'une TRACE de l'écosystème d'inscription.
-      })
-    if (orgDomErr) {
-      throw new RegisterOrgError(
-        'org_domain_insert_failed',
-        'Could not link domain',
-        500,
-        orgDomErr,
-      )
-    }
+    organization_id = newOrgId as string
 
     // ── 5. Side effects best-effort ──────────────────────────────────────
     // La vérification entreprise (Sirene + IA) tourne à l'étape 2 dans

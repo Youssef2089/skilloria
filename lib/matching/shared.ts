@@ -149,7 +149,20 @@ export async function notifyAndFlip(args: {
     // requête que rien ne borne.
     for (let i = 0; i < rows.length; i += PAQUET_DESTINATAIRES) {
       const tranche = rows.slice(i, i + PAQUET_DESTINATAIRES)
-      const { error: insErr } = await supabaseAdmin.from('notifications').insert(tranche)
+      // ── LE DOUBLON EST REFUSÉ PAR LA BASE, ET IGNORÉ ICI ─────────────────
+      //  Un index unique partiel garde désormais la paire (destinataire,
+      //  annonce) pour ce type (cf. migration verrou_run_et_unicite_...).
+      //  Sans `ignoreDuplicates`, un seul doublon — celui qu'un run concurrent
+      //  vient d'insérer entre notre lecture et notre écriture — ferait échouer
+      //  TOUT LE PAQUET : on aurait échangé une notification en double contre
+      //  cinq cents notifications perdues.
+      //
+      //  La lecture d'idempotence au-dessus reste utile : elle évite d'écrire
+      //  ce qu'on sait déjà présent. L'index, lui, tranche le cas qu'aucun
+      //  lire-puis-écrire ne peut couvrir — deux runs au même instant.
+      const { error: insErr } = await supabaseAdmin
+        .from('notifications')
+        .upsert(tranche, { onConflict: 'user_id,entity_id', ignoreDuplicates: true })
       if (insErr) console.error('[matching] insertion de notifications en échec', insErr.message)
     }
 

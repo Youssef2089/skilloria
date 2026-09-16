@@ -72,16 +72,21 @@ titre('(A) M1 — le vivier est lu EN ENTIER, et le nombre lu est confronté')
 // ═══════════════════════════════════════════════════════════════════════════
 
 const POOL = read('lib/matching/pool.ts')
+// LE LECTEUR A ÉTÉ SORTI DE pool.ts pour être partagé avec le parcours. Ces
+// assertions le suivent : elles visaient un fichier, elles visent maintenant le
+// module qui porte la règle. Rien n'est retiré — la section (A bis) ajoute
+// l'ordre total et le décompte des distincts, qui manquaient.
+const LECTURE = read('lib/matching/lecture-paginee.ts')
 
 ok('la lecture est paginée jusqu’à épuisement',
-  /\.range\(debut, debut \+ TAILLE_PAGE - 1\)/.test(POOL),
+  /\.range\(debut, debut \+ TAILLE_PAGE - 1\)/.test(LECTURE),
   'sans pagination, la borne est le réglage « Max rows » du projet — invisible et non versionné')
-ok('une page incomplète termine la lecture', /page\.length < TAILLE_PAGE/.test(POOL))
+ok('une page incomplète termine la lecture', /page\.length < TAILLE_PAGE/.test(LECTURE))
 ok('le nombre ATTENDU est demandé séparément',
-  /count: 'exact', head: true/.test(POOL),
+  /count: 'exact', head: true/.test(LECTURE),
   'sans comptage, une lecture partielle est indistinguable d’une lecture complète')
 ok('le nombre lu est CONFRONTÉ à l’attendu',
-  /r\.lignes\.length !== r\.attendu/.test(POOL))
+  /l\.distincts !== l\.attendu/.test(LECTURE))
 ok('une divergence INTERROMPT le run au lieu d’être déduite',
   /vivier incomplet/.test(POOL) && /LECTURE INCOMPLÈTE/.test(POOL),
   'un compteur qui ment est pire qu’un compteur absent')
@@ -97,6 +102,124 @@ for (const f of MODULES) {
 }
 ok('aucun plafond de nombre nulle part dans le moteur', avecPlafond.length === 0,
   avecPlafond.join(' | ') + ' — un plafond sans tri est une liste d’autorisés invisible')
+
+// ═══════════════════════════════════════════════════════════════════════════
+titre('(A bis) LA PAGINATION A UN ORDRE TOTAL, ET LA GARDE COMPTE DES ENTITÉS')
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//   Deux défauts jumeaux, et le second cachait le premier.
+//
+//   SANS ORDRE TOTAL, `.range()` n'est pas une pagination : PostgreSQL ne
+//   garantit aucun ordre stable entre deux requêtes, donc des lignes reviennent
+//   DEUX FOIS et d'autres JAMAIS. Un expert disparaît du vivier sans erreur.
+//
+//   ET LA GARDE COMPTAIT DES LIGNES. Or le défaut produit exactement autant de
+//   doublons que d'oublis : le compte de LIGNES tombait juste au moment précis
+//   où le périmètre était faux. Une garde qui compte la mauvaise chose est pire
+//   qu'une absence de garde — elle rassure.
+
+const LECTEUR = read('lib/matching/lecture-paginee.ts')
+
+ok('le lecteur paginé existe en un seul endroit', LECTEUR.length > 0)
+// L'ordre est posé PAR LE LECTEUR : un appelant ne peut pas l'oublier.
+ok(
+  'le tri de départage est appliqué par le lecteur, pas par l’appelant',
+  /\.order\(departageUnique, \{ ascending: true \}\)/.test(LECTEUR),
+  'laissé à l’appelant, il sera oublié — c’est exactement ce qui vient d’arriver',
+)
+ok(
+  'la colonne de départage est un paramètre OBLIGATOIRE',
+  /departageUnique: string/.test(LECTEUR) && !/departageUnique\?:/.test(LECTEUR),
+  'optionnelle, elle redevient oubliable',
+)
+ok(
+  'la confrontation porte sur les DISTINCTS, jamais sur les lignes',
+  /return l\.attendu !== null && l\.distincts !== l\.attendu/.test(LECTEUR),
+  'comparer des lignes rend la garde muette quand les doublons comblent le compte',
+)
+ok('les doublons rendus par la pagination sont comptés', /doublons\+\+/.test(LECTEUR))
+
+// Et les deux lectures du vivier s'en servent, avec une colonne UNIQUE.
+const POOL_CODE = sansCommentaires(POOL)
+ok(
+  'le vivier passe par le lecteur paginé',
+  (POOL_CODE.match(/lireToutesLesLignes</g) ?? []).length >= 2,
+)
+ok(
+  'il départage sur une colonne unique (la clé primaire)',
+  (POOL_CODE.match(/departageUnique: 'id'/g) ?? []).length >= 2,
+  'un tri sur une colonne non unique laisse les ex æquo dans un ordre indéterminé',
+)
+ok(
+  'la garde du vivier confronte les DISTINCTS',
+  /\.find\(lectureIncomplete\)/.test(POOL_CODE) && /divergence\.distincts/.test(POOL_CODE),
+  'comparer lignes.length à attendu ne voit rien quand des doublons comblent le compte',
+)
+ok('une pagination instable est DITE', /pagination INSTABLE/.test(POOL))
+
+// Le parcours : découpé ne suffit pas, il faut paginer le RÉSULTAT.
+ok(
+  'le parcours est PAGINÉ, pas seulement découpé en tranches',
+  /lireToutesLesLignes<LigneParcours>/.test(POOL_CODE),
+  '200 profils × 5 expériences = 1 000 lignes, la limite qu’on croyait avoir contournée',
+)
+ok(
+  'un parcours incomplet est DIT',
+  /parcours incomplet/.test(POOL),
+  'sans trace, un expert est mal noté parce qu’on n’a pas lu son parcours — ça ressemble à un mauvais dossier',
+)
+
+// ═══════════════════════════════════════════════════════════════════════════
+titre('(A ter) LE RUN NE SE CHEVAUCHE PAS, ET LA BASE REFUSE LE DOUBLON')
+// ═══════════════════════════════════════════════════════════════════════════
+
+const migVerrou = readdirSync(join(ROOT, 'supabase', 'migrations')).find((f) =>
+  f.endsWith('_verrou_run_et_unicite_notifications.sql'),
+)
+ok('la migration du verrou et de l’unicité existe', !!migVerrou)
+if (migVerrou) {
+  const sql = readFileSync(join(ROOT, 'supabase', 'migrations', migVerrou), 'utf8').toLowerCase()
+  // LE CORPS DE LA FONCTION, PAS SA DOCUMENTATION. Le `comment on function`
+  // décrit la garde en toutes lettres : chercher la clause dans le fichier
+  // entier la trouvait dans la PROSE, et le contrôle restait vert alors que la
+  // clause avait été retirée du code. Faux positif déjà rencontré ce sprint —
+  // ici il portait sur la garde elle-même.
+  const iCorps = sql.indexOf('as $fn$')
+  const iFin = sql.indexOf('$fn$;', iCorps + 1)
+  const corpsFn = iCorps >= 0 && iFin > iCorps ? sql.slice(iCorps, iFin) : ''
+  ok('le corps de la fonction de sélection est lisible', corpsFn.length > 0)
+  ok(
+    'une annonce en cours de traitement n’est pas re-sélectionnable (délai de grâce)',
+    /matching_attempted_at < now\(\) - p_grace/.test(corpsFn),
+    'cron toutes les 5 min et rejeu de 300 s : le chevauchement est arithmétique',
+  )
+  ok(
+    'les appels simultanés sont départagés (for update skip locked)',
+    /for update skip locked/.test(corpsFn),
+    'le délai de grâce ne couvre pas deux appels avant que le premier ait écrit son horodatage',
+  )
+  ok(
+    'l’ancienne signature sans garde est SUPPRIMÉE',
+    /drop function if exists public\.next_unfinished_matching_run\(integer\)/.test(sql),
+    'sinon elle survit en surcharge, et la version sans garde reste joignable',
+  )
+  ok(
+    'la base refuse le doublon de notification',
+    /create unique index if not exists notifications_match_unique_idx/.test(sql),
+    'un lire-puis-écrire ne peut pas garantir l’unicité sous concurrence',
+  )
+  // LE POINT QUI PROTÈGE LES MESSAGES : l'index doit rester PARTIEL.
+  ok(
+    'l’unicité est RESTREINTE au type de matching',
+    /where type = 'new_match_opportunity'/.test(sql),
+    'une unicité large casserait new_message, qui porte l’identifiant de la CONVERSATION : le 2ᵉ message ne serait plus notifié',
+  )
+}
+ok(
+  'l’insertion tolère le conflit au lieu de perdre le paquet',
+  /ignoreDuplicates: true/.test(sansCommentaires(read('lib/matching/shared.ts'))),
+  'un seul doublon ferait échouer 500 notifications — on aurait échangé un doublon contre des pertes',
+)
 
 // ═══════════════════════════════════════════════════════════════════════════
 titre('(B) M2 — le couperet : notation par vagues, et run reprenable')

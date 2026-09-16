@@ -128,20 +128,31 @@ export async function ensurePersonalOrg(
   let organizationId: string | null = null
   try {
     const nowIso = new Date().toISOString()
-    // 1. Organisation PERSONNELLE. owner_user_id = l'expert. Marquée vérifiée
-    //    d'emblée (elle n'a pas à passer la vérif entreprise) pour ne pas
-    //    apparaître dans les files d'attente admin.
-    const { data: orgRow, error: orgErr } = await admin
-      .from('organizations')
-      .insert({
-        org_type: 'freelance',
-        company_name: companyName,
-        country: 'FR',
-        owner_user_id: userId,
-        is_verified: true,
-        verification_status: 'approved',
-        verified_at: nowIso,
-        setup_completed_at: nowIso,
+    // 1. Organisation PERSONNELLE + membre admin + trace d'écosystème, EN UNE
+    //    SEULE TRANSACTION (migration 20260915200000).
+    //
+    //    C'ÉTAIT TROIS ÉCRITURES SÉPARÉES, avec le même défaut que
+    //    `register-org` : une fonction tuée entre l'organisation et le membre
+    //    laissait une organisation que personne ne peut atteindre. Deux lignes
+    //    de staging sont nées exactement comme ça. Le rattrapage applicatif ne
+    //    peut rien y faire — il ne s'exécute pas quand le processus meurt.
+    //
+    //    owner_user_id = l'expert. Marquée vérifiée d'emblée (elle n'a pas à
+    //    passer la vérif entreprise) pour ne pas apparaître dans les files
+    //    d'attente admin.
+    const { data: newOrgId, error: orgErr } = await admin.rpc(
+      'creer_organisation_avec_admin',
+      {
+        p_user_id: userId,
+        p_domain_id: domains.userDomainId,
+        p_org_type: 'freelance',
+        p_company_name: companyName,
+        p_country: 'FR',
+        p_owner_user_id: userId,
+        p_is_verified: true,
+        p_verification_status: 'approved',
+        p_verified_at: nowIso,
+        p_setup_completed_at: nowIso,
         // L'ABONNEMENT VIT ICI, SUR L'ORGANISATION. Il était posé plus bas, sur
         // la ligne `organization_domains` — et cette colonne a été SUPPRIMÉE
         // par 20260903000000_abonnement_sur_organisation.sql. L'insert échouait
@@ -152,49 +163,21 @@ export async function ensurePersonalOrg(
         //
         // Posé dès l'INSERT plutôt que par une mise à jour ensuite : une
         // écriture de moins, et l'organisation n'existe jamais sans son offre.
-        package_id: pkg.id,
-        package_started_at: nowIso,
-      })
-      .select('id')
-      .single()
-    if (orgErr || !orgRow) {
-      // Course perdue sur l'index unique partiel → on relit et retourne l'existante.
+        p_package_id: pkg.id,
+        p_package_started_at: nowIso,
+      },
+    )
+    if (orgErr || !newOrgId) {
+      // Course perdue sur l'index unique partiel → on relit et retourne
+      // l'existante. La RPC n'avale AUCUNE exception : la violation d'unicité
+      // remonte telle quelle, et ce rattrapage continue de fonctionner.
       if (isUniqueViolation(orgErr)) {
         const raced = await findPersonalOrg(admin, userId)
         if (raced) return { ok: true, organizationId: raced, created: false }
       }
       throw new EnsureOrgError('org_insert_failed', 'Could not create personal org', 500, orgErr)
     }
-    organizationId = orgRow.id as string
-
-    // 2. Membre admin actif = l'expert lui-même.
-    const { error: memberErr } = await admin
-      .from('organization_members')
-      .insert({
-        user_id: userId,
-        organization_id: organizationId,
-        role_in_org: 'admin',
-        status: 'active',
-        invited_by: null,
-      })
-    if (memberErr) {
-      throw new EnsureOrgError('member_insert_failed', 'Could not link member', 500, memberErr)
-    }
-
-    // 3. TRACE de l'écosystème d'inscription — rien d'autre.
-    //    L'offre collaboration est posée sur l'organisation (étape 1) : c'est
-    //    là que `getOrgEntitlements` la lit. Cette ligne ne porte plus aucune
-    //    décision, et ses colonnes d'abonnement n'existent plus.
-    const { error: domErr } = await admin
-      .from('organization_domains')
-      .insert({
-        organization_id: organizationId,
-        domain_id: domains.userDomainId,
-        active: true,
-      })
-    if (domErr) {
-      throw new EnsureOrgError('domain_insert_failed', 'Could not link domain', 500, domErr)
-    }
+    organizationId = newOrgId as string
 
     await logAudit({
       supabaseAdmin: admin,
