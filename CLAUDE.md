@@ -134,6 +134,7 @@ marqués sur place par `⚠️ PÉRIMÉ — voir §M0`.
 | « Model IDs in use: `claude-haiku-4-5-*`, `claude-sonnet-4-6` » | Incomplet. En usage : `claude-haiku-4-5-20251001` (parsing CV, vérifications), `claude-sonnet-4-6` (repli des vérifications), `claude-sonnet-5` (jugement de candidature, pitch). |
 | §Environment variables | Manquent : `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `ENABLE_BILLING`, `VONAGE_SMS_FROM`, `VERCEL_ENV`. |
 | « currently the "microsoft" tenant » | Aucun écosystème n'est codé en dur nulle part. `/admin/ecosystemes` en crée ; `microsoft` n'est qu'un slug de test usuel. |
+| **§P3.3 — « Seuil d'auto-approbation d'expert : défaut 9/10 »** | **FAUX, deux fois.** ① La valeur réelle est **8**. ② Elle ne vit **pas** dans la colonne `confidence_threshold` mais dans **`config->>'auto_approve_threshold'`** (jsonb). Le chemin expert *lit* la colonne puis ne s'en sert **jamais** — j'avais documenté le `DEFAULT 9` de la baseline, qui ne gouverne rien. Établi par requête sur la base réelle, cf. §E.10. |
 
 Tout le reste des sections anglaises a été revérifié et tient.
 
@@ -251,6 +252,22 @@ Tâches planifiées aujourd'hui : `purge_deletions_trigger`, `purge_inactive_tri
 sont des **traces**, elles ne sont pas rejouées. La baseline (`00000000000000_baseline.sql`) crée
 32 tables `_backup_*_20260422` que la migration suivante supprime aussitôt — héritage du dump, pas un
 modèle.
+> ⚠️ **Et l'archive n'était pas que de l'histoire.** Les **seuls** seeds de
+> `verification_providers` y vivaient — donc jamais rejoués. Une base reconstruite les perdait
+> silencieusement. Cf. §E.10.
+
+**⑦ Le paramétrage de production est versionné.** Migration `parametrage_de_production`. La recette
+construisait la **structure** sans **aucune donnée de référence** : une base parfaite et morte, où
+**100 % des inscriptions échouaient** (`handle_new_user` lève sur une table `domains` vide) et où le
+site s'affichait aux couleurs par défaut **sans que rien n'alerte**.
+Sont désormais versionnés, avec leurs **UUID explicites** (sans quoi les 167 traductions seraient
+orphelines) : `domains`, `domain_configs`, `branches`, `specialities`, `countries`,
+`verification_providers`, `translations`, `public_email_domains`.
+`ON CONFLICT DO NOTHING` partout — il **reconstruit**, il n'écrase jamais un réglage ajusté.
+**Ce qui n'y est pas, et ne peut pas y être** : les deux secrets du Vault (`cron_secret`,
+`purge_cron_base_url`), les réglages d'authentification du projet Supabase, les variables
+d'environnement et les sous-domaines Vercel. Ils vivent dans
+[docs/mise-en-production.md](docs/mise-en-production.md).
 
 ---
 
@@ -439,19 +456,25 @@ Ce qui se ferme est le **chemin d'accès permanent**, pas la trace : le corps de
 réécrit, on n'efface aucun historique et on ne prétend pas l'avoir anonymisé. L'en-tête d'un fil
 archivé, lui, re-masque.
 
-**D.6 — L'expert ne voit jamais de score de PERTINENCE chiffré. ⚠️ ÉCART**
+**D.6 — Aucun score de PERTINENCE chiffré à l'expert ; la note de CANDIDATURE sur 10, OUI, et c'est VOULU.**
 Ce qui est vrai et gardé (`diag-score-de-pertinence.mjs`) : `relevance_score` n'est **jamais lu** par
 `/api/me/missions` ni `/api/me/missions/[id]` (il est seulement passé en **chaîne** à `.order()`), et
 les vues expert n'affichent **aucun nombre** de pertinence. Seul le **palier** sort
 (`strong` / `normal`). Deux valeurs et pas trois : une troisième réintroduirait une graduation, donc un
 classement, donc la comparaison entre experts — que le produit interdit.
-**Ce qui est FAUX si l'on énonce la règle plus largement** : la note de **candidature**
-`ai_match_score` **est** servie à l'expert par `/api/me/candidatures` et **affichée sur ses écrans**
-sous la forme `N/10` — [components/dashboard/CandidaturesTrackingView.tsx:291](components/dashboard/CandidaturesTrackingView.tsx#L291),
-monté par `/dashboard/freelance/candidatures` et `/dashboard/cdi/candidatures`, ainsi que par
-`CandidatureDetailPanel` (`timeline.ai_proposed`). Le diagnostic la classe explicitement parmi les
-occurrences **légitimes**. La règle réelle du code est donc :
-**aucun score de pertinence chiffré à l'expert ; la note de candidature sur 10, si.**
+**L'AUTRE MOITIÉ DE LA RÈGLE, ET ELLE EST DÉLIBÉRÉE.** La note de **candidature** `ai_match_score`
+**est** servie à l'expert par `/api/me/candidatures` et **affichée** sous la forme `N/10` —
+[components/dashboard/CandidaturesTrackingView.tsx:291](components/dashboard/CandidaturesTrackingView.tsx#L291),
+monté par `/dashboard/freelance/candidatures` et `/dashboard/cdi/candidatures`, plus
+`CandidatureDetailPanel` (`timeline.ai_proposed`). `diag-score-de-pertinence.mjs` la classe
+explicitement parmi les occurrences **légitimes**.
+**Ce fut un temps signalé ici comme un écart. Ce n'en est pas un : c'est une décision produit,
+arbitrée.** Les deux grandeurs ne disent pas la même chose — la pertinence explique *pourquoi ce
+profil apparaît* et n'est ni calibrée ni comparable d'une annonce à l'autre ; la note de candidature
+dit *ce que vaut ce dossier*, sur une échelle tenue par un texte. La première se compare entre
+experts, la seconde non.
+**La règle, en une phrase : aucun score de PERTINENCE chiffré à l'expert ; la note de CANDIDATURE
+sur 10, oui, et c'est voulu.**
 
 **D.7 — Le commerce se pilote depuis le back-office. Rien en dur.**
 Écrans : `/admin/packages`, `/admin/matching`, `/admin/quotas-ia`, `/admin/organisations/[id]`,
@@ -575,6 +598,59 @@ portait le même motif et passait en vert alors que la condition avait été ret
 mutation**. Règle : **ancrer** l'assertion sur le bloc qu'elle vise, jamais lâcher une regex sur tout le
 fichier.
 
+**E.10 — UNE VALEUR POSÉE À LA MAIN EN BASE NE SURVIT PAS À UNE RECONSTRUCTION, ET PERSONNE NE LE SAIT.**
+C'est le piège le plus coûteux établi à ce jour, parce qu'il ne laisse **aucune trace exploitable**.
+
+Le seuil d'auto-approbation des experts vaut **8**. Le seed l'avait posé à **9**. **Le chiffre 8
+n'existait nulle part dans le dépôt** : ni migration, ni constante, ni commentaire. Il a été posé à
+la main dans l'éditeur SQL le **16 juin 2026** — le commit du jour (`0371a40`, *« seuil sain —
+corrige l'auto-approbation de profils incohérents »*) touche **deux fichiers TypeScript et zéro
+migration**, et seule la colonne `updated_at` de la ligne en portait la marque.
+**Il a fallu croiser un message de commit et un horodatage de base pour le reconstituer.**
+Idem pour `config.blocking_flags`, absent du seed et présent en base.
+
+**Ce que ça produit.** Toutes les écritures sur `verification_providers` vivent dans
+`supabase/_archive/`, dont l'en-tête dit *« À EXÉCUTER MANUELLEMENT — NE PAS APPLIQUER VIA
+`db push` »*. Conséquence en deux temps :
+· **rassurant** — `db push` ne peut pas écraser un réglage ajusté : la table n'est touchée par
+  aucune migration rejouée ;
+· **et c'est le piège** — sur une base reconstruite (`db reset`, nouvelle production), la table est
+  **VIDE**. Aucune erreur, aucun signal. La recette se terminait sur un succès **vert** en
+  produisant une base structurellement parfaite et **fonctionnellement morte**.
+
+**La parade, posée dans la migration `parametrage_de_production`** : le paramétrage de référence est
+**extrait de la base réelle et versionné** — écosystèmes, configurations, branches, spécialités,
+pays, fournisseurs de vérification (seuil **8** compris) et 167 traductions. `ON CONFLICT DO NOTHING`
+partout : il reconstruit, il n'écrase jamais.
+**La règle qui en découle : un réglage qui n'est pas dans le dépôt n'existe pas.** Une valeur posée
+à la main est perdue d'avance — ce n'est pas une question de discipline, c'est une question de
+mécanisme.
+
+**E.11 — Trois replis différents pour une même absence de configuration, dont un qui invente.**
+Les trois chemins de vérification lisent leur seuil en base. Ils se comportaient différemment quand
+la ligne manque :
+
+| Chemin | Configuration absente ⇒ | Verdict |
+|---|---|---|
+| `expert-verification` | `pending_admin_review`, motif nommé, **aucun appel IA** | ✔ |
+| `publication-verification` | `pending_review`, motif nommé, **aucun appel IA** | ✔ |
+| `verification/index` | ~~`FALLBACK_DECISION_THRESHOLD = 7`~~ | ✘ **devinait** |
+
+Le troisième tranchait sur un nombre **que personne n'avait choisi et qu'aucun écran ne montrait** —
+et son propre en-tête annonçait « fallback threshold = **9** » pendant que la constante valait **7**.
+Il fallait lire les deux pour le voir.
+**Aligné** : plus aucun repli, refus explicite avec motif nommé, **avant** toute dépense — on ne paie
+pas une décision qu'on ne saura pas trancher.
+La même famille frappait **l'origine du site** : huit endroits construisaient leurs liens d'e-mail
+sur `NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'`. En production, une variable oubliée envoyait
+à de **vrais destinataires** des liens vers `localhost` — approbation d'expert, refus d'organisation,
+invitation, **toutes** les notifications, et l'avertissement d'inactivité à 23 mois qui est une
+**obligation légale**. L'envoi réussissait, le lien était mort, rien n'alertait.
+Source unique désormais : [lib/site-url.ts](lib/site-url.ts) — repli explicite **hors** production,
+`null` **en** production, et chaque appelant **n'envoie pas** plutôt que d'expédier un lien mort.
+Gardé par [scripts/diag-configuration-absente.mjs](scripts/diag-configuration-absente.mjs), qui
+balaie **`app/` ET `lib/`** (438 fichiers) et vérifie que chacun des 8 appelants garde.
+
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
   acceptée et ne se déclenchera **jamais** : aucune erreur, aucune ligne dans `job_run_details`. D'où le
@@ -649,9 +725,10 @@ Plages **observées dans le dépôt** :
 | `2xxxxx` | S1 | `20260904200000_relance_expert`, `20260911200000_reprise_notation` |
 | `3xxxxx` | S2 | `20260910300000_stripe_socle_serveur`, `20260910300010_quota_analyses_cv` |
 
-> ⚠️ La consigne orale dit « principal **1xxxxx** ». **Le dépôt utilise `0xxxxx` pour le tronc** :
-> aucune migration en `1xxxxx` n'existe. À trancher — soit la consigne est corrigée, soit les
-> prochaines migrations du tronc passent en `1xxxxx`.
+> **TRANCHÉ.** La plage du tronc est **`0xxxxx`**. La consigne orale « 1xxxxx » était fausse, elle
+> est corrigée. Toute migration du tronc porte un suffixe `0xxxxx` **et** un horodatage strictement
+> supérieur au plus récent existant, **tous worktrees confondus** — la vérification se fait sur
+> chaque branche, pas seulement sur HEAD.
 
 Une collision de numéros s'est déjà produite (commit `e33fdab`), et une migration a dû être
 renumérotée **avant application** (`912d437`) : numérotée sous quatre migrations déjà appliquées, elle
@@ -745,16 +822,37 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   anonymiser au regard du registre RGPD.
 - Trois scripts écrivent en base hors du périmètre de la garde (§E.4).
 
+**Mise en production**
+- Le paramétrage de référence est versionné (§B.2 ⑦). **Ce qui ne peut pas l'être** — deux secrets du
+  Vault, réglages d'authentification, variables d'environnement, sous-domaines — est décrit pas à pas
+  dans [docs/mise-en-production.md](docs/mise-en-production.md), pour quelqu'un de non technique.
+- **Quatre** des huit tâches planifiées passent par `trigger_purge_cron` et **lèvent** sans les deux
+  secrets du Vault : `purge_deletions_trigger`, `purge_inactive_trigger`, `matching_retry_trigger`,
+  `expert_relance_trigger`. Les deux premières portent une **obligation légale** (RGPD art. 17 et
+  CNIL). Elles ne se plaignent qu'au journal de la base : rien à l'écran.
+- **`ensure_rls` n'a jamais été exécuté nulle part** — sa branche `create` est sautée par un
+  `if not exists` sur tous les environnements connus. `CREATE EVENT TRIGGER` exige un privilège que
+  le rôle `postgres` de Supabase ne possède pas toujours ; un refus ferait échouer la migration **au
+  4ᵉ fichier sur 51**, et les 47 suivantes ne s'appliqueraient pas. **NON VÉRIFIÉ à ce jour** —
+  éprouver le privilège avant le jour J (cf. la réponse en fin de lot).
+
 **Conformité**
 - L'inscription au **registre des traitements** reste à faire pour `cron_run_log.response_body`, qui
   conserve des UUID de comptes (décision arbitrée au titre de l'art. 5.2, migration
   `cron_run_log_retention`).
 
+**Arbitrages TRANCHÉS — ne pas les rouvrir**
+- **La plage du tronc est `0xxxxx`** (§G.2). La consigne « 1xxxxx » était fausse.
+- **La note sur 10 affichée à l'expert sur ses candidatures est VOULUE** (§D.6). Ce n'était pas un
+  écart, c'est une décision produit.
+
 **Arbitrages en attente (signalés par ce document)**
-- La plage de numérotation du tronc : `0xxxxx` observé vs `1xxxxx` annoncé (§G.2).
-- L'affichage de `ai_match_score` sur les écrans expert (§D.6) : conforme au diagnostic actuel, en écart
-  avec la règle telle qu'elle est énoncée à l'oral.
 - La règle de fusion UNION sur `messages/*.json` n'est imposée par rien (§G.7).
+- Les seuils de `verification_providers` sont en base **sans écran** — le pire des deux mondes, ni
+  tracé ni pratique (§P3.3). L'écran `/admin/seuils` est décidé, pas encore livré.
+- **Cinq des sept points de dépense IA n'enregistrent rien et ne consultent jamais le plafond**
+  (§P4.3) : le « plafond Claude 100 $ » ne compte aujourd'hui que le jugement de candidature et le
+  pitch. Le total est faux **avant** toute répartition par acteur.
 
 ---
 
@@ -1326,8 +1424,11 @@ l'expose**. « Code » = un déploiement est nécessaire.
 | Analyses de CV | **3 / 24 h** | `ai_quotas` | **Back-office** `/admin/quotas-ia` |
 | Taille de CV | 5 Mo, PDF | **Code** | Déploiement |
 | Seuil qualité d'annonce | **7 / 10** | `verification_providers` (`opportunity_quality_check`) | **Base** (aucun écran) |
-| Seuil d'auto-approbation d'expert | par (pays, type), **défaut 9 / 10** | `verification_providers.confidence_threshold` | **Base** (aucun écran) |
-| Seuil de vérification d'entreprise | idem, par pays | `verification_providers` | **Base** (aucun écran) |
+| Seuil d'auto-approbation d'expert | **8 / 10** | `verification_providers.config->>'auto_approve_threshold'` — **le jsonb, PAS la colonne** | **Base** (aucun écran) |
+| Drapeaux disqualifiants d'expert | `CV_PROFILE_INCOHERENT`, `SUSPICIOUS_CONTENT`, `DOMAIN_MISMATCH` | `verification_providers.config->>'blocking_flags'` | **Base** (aucun écran) |
+| `verification_providers.confidence_threshold` sur la ligne expert | 7 — **lue puis JAMAIS utilisée** par le chemin expert | colonne | — |
+| Seuil de vérification d'entreprise | **7 / 10** (`ai_coherence_check`) | `verification_providers.confidence_threshold` | **Base** (aucun écran) |
+| Ligne absente pour un pays | **refus explicite**, revue manuelle, aucun appel IA | **Code** — plus aucun repli (§E.11) | — |
 | « Jamais d'auto-rejet » | — | **Code** — règle métier | Arbitrage |
 | Résumé de profil | **200–800 caractères** | **Code** `lib/profile-visibility.ts` | Déploiement |
 | Document envoyé au moteur | 25 compétences · 6 expériences · 300 car. chacune | **Code** | Déploiement |

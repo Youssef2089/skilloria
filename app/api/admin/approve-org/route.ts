@@ -6,6 +6,7 @@ import { renderWelcomeEmail } from '@/lib/emails/templates'
 import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
 import { resolveLocale } from '@/lib/emails/locales'
+import { siteOriginPourRequete } from '@/lib/site-url'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -37,13 +38,11 @@ function json(data: unknown, status = 200): Response {
 
 type Body = { organization_id?: unknown; site_url?: unknown }
 
-function siteOriginFromRequest(request: NextRequest, body: Body): string {
-  if (typeof body.site_url === 'string' && /^https?:\/\/[^\s/]{1,200}$/.test(body.site_url)) {
-    return body.site_url
-  }
-  const origin = request.headers.get('origin')
-  if (origin && /^https?:\/\//.test(origin)) return origin
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+function siteOriginFromRequest(request: NextRequest, body: Body): string | null {
+  // Origine resolue par la source unique (lib/site-url.ts) : corps > en-tete
+  // Origin > variable d'environnement. Rend NULL en PRODUCTION si la variable
+  // manque — l'appelant N'ENVOIE PAS plutot que d'expedier un lien mort.
+  return siteOriginPourRequete({ fourni: body.site_url, origin: request.headers.get('origin') })
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
@@ -140,8 +139,17 @@ export async function POST(request: NextRequest): Promise<Response> {
   const contactLocale = resolveLocale((userRow as { locale?: string | null } | null)?.locale ?? null)
 
   let emailResult: { ok: boolean; code?: string } = { ok: false, code: 'no_contact' }
-  if (contactEmail) {
-    const origin = siteOriginFromRequest(request, body)
+  // ── ORIGINE INCONNAISSABLE ⇒ ON N'ENVOIE PAS ──────────────────────────────
+  //  `siteOriginFromRequest` rend `null` en PRODUCTION quand NEXT_PUBLIC_SITE_URL
+  //  manque (cf. lib/site-url.ts). Un e-mail parti avec un lien `localhost` est
+  //  pire qu'un e-mail qui ne part pas : le premier se découvre par un
+  //  destinataire, le second par les journaux.
+  const origin = siteOriginFromRequest(request, body)
+  if (contactEmail && !origin) {
+    console.error('[admin:approve-org] e-mail ANNULÉ — origine du site inconnaissable')
+    emailResult = { ok: false, code: 'site_origin_unknown' }
+  }
+  if (contactEmail && origin) {
     const loginUrl = `${origin}/${contactLocale}/connexion`
     // D3 : marque = domaine du DESTINATAIRE (contact org), pas de l'admin.
     const brandName = await resolveEmailBrandName(

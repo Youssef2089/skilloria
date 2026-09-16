@@ -6,6 +6,7 @@ import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
 import { expertSiteOrigin } from '@/lib/emails/domain-url'
 import { prendreBailRun, rendreBailRun } from '@/lib/cron/bail-de-run'
+import { siteOrigin as resoudreSiteOrigin } from '@/lib/site-url'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -165,7 +166,13 @@ async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
   const now = new Date()
   const warnCutoff = shiftMonths(now, -WARNING_MONTHS).toISOString()
   const purgeCutoff = shiftMonths(now, -PURGE_MONTHS).toISOString()
-  const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  // ── ORIGINE INCONNAISSABLE ⇒ ON N'AVERTIT PAS AVEC UN LIEN MORT ──────────
+  //  L'avertissement d'inactivite a 23 mois est une OBLIGATION LEGALE (CNIL).
+  //  Il vaut mieux qu'il ne parte pas — visible dans les journaux et dans le
+  //  compte-rendu du cron — que de partir avec un lien vers 'localhost', qui le
+  //  rendrait inoperant sans que personne ne le sache. La PURGE, elle, n'a
+  //  besoin d'aucun lien et continue.
+  const siteOrigin = resoudreSiteOrigin()
 
   // ── PHASE 1 — PURGE (24 mois, déjà averti) ────────────────────────────────
   const { data: dueRaw, error: dueErr } = await admin
@@ -216,7 +223,15 @@ async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
 
   // Envoi + marquage via after() : hors du chemin de la response (piège Vercel).
   // sent_at posé UNIQUEMENT si l'email part (information préalable garantie).
-  if (warn.length > 0) {
+  if (warn.length > 0 && !siteOrigin) {
+    // L'avertissement CNIL ne part PAS avec un lien mort. Bruyant, et tracé dans
+    // le compte-rendu du cron : c'est une obligation légale, son absence doit se
+    // voir. La purge, elle, n'a besoin d'aucun lien et a déjà eu lieu.
+    console.error(
+      `[cron:purge-inactive] ${warn.length} avertissement(s) NON ENVOYÉ(S) — origine du site inconnaissable`,
+    )
+  }
+  if (warn.length > 0 && siteOrigin) {
     after(async () => {
       for (const u of warn) {
         if (!u.email) continue

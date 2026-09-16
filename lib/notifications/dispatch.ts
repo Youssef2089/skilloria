@@ -22,6 +22,7 @@ import {
   type NotificationEventType,
 } from './catalog'
 import { isChannelEnabled, loadDisabledPreferences, type DisabledSet } from './preferences'
+import { siteOrigin as resoudreSiteOrigin } from '@/lib/site-url'
 
 /**
  * lib/notifications/dispatch.ts — envoi IMMÉDIAT (e-mail + SMS), N événements.
@@ -108,7 +109,17 @@ export async function dispatchNotificationsForUsers(
   if (uniqueUserIds.length === 0) return { emails: 0, sms: 0 }
 
   const types = (opts?.events ?? DISPATCHABLE_EVENT_TYPES) as readonly string[]
-  const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  // ── ORIGINE INCONNAISSABLE ⇒ AUCUN ENVOI ──────────────────────────────────
+  //  Ce dispatcher tourne depuis un cron : aucune requête entrante, donc aucune
+  //  origine à déduire. C'est ici que le repli `localhost` faisait le plus de
+  //  dégâts — TOUTES les notifications par e-mail en héritaient, en silence.
+  //  Cf. lib/site-url.ts : hors production le repli demeure, en production on
+  //  refuse plutôt que d'expédier un lien mort.
+  const siteOrigin = resoudreSiteOrigin()
+  if (!siteOrigin) {
+    console.error('[notifications/dispatch] envoi ANNULÉ — origine du site inconnaissable')
+    return { emails: 0, sms: 0 }
+  }
   const nowIso = new Date().toISOString()
 
   // 1. Notifications EN ATTENTE (au moins un canal) pour ces utilisateurs.

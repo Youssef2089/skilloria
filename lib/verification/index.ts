@@ -25,7 +25,8 @@ import { verifyAiCoherence } from './ai-fallback'
  *   3. Décision finale :
  *      → threshold = confidence_threshold du row provider_type='ai_web_search'
  *        pour ce country_code (sémantique par TYPE, pas par nom — D5/11G)
- *      → fallback threshold = 9 si aucun row trouvé
+ *      → AUCUN row trouvé ⇒ REFUS EXPLICITE : pending_admin_review, motif nommé,
+ *        et AUCUN appel IA. Il n'existe plus de seuil de repli (cf. encadré).
  *      → score >= threshold → 'approved'
  *      → score < threshold  → 'pending_admin_review'
  *      → JAMAIS 'rejected' automatique (règle métier figée)
@@ -38,11 +39,38 @@ import { verifyAiCoherence } from './ai-fallback'
  * last_provider, attempts_count.
  */
 
-// 11G.2 : seuil de décision aligné sur la valeur configurée en BDD pour le
-// row ai_coherence_check (provider_type='ai_web_search'). Cette constante
-// n'est utilisée QUE si aucun row n'est trouvé (cas edge — config BDD vide
-// pour le pays). Source de vérité : verification_providers.confidence_threshold.
-const FALLBACK_DECISION_THRESHOLD = 7
+/**
+ * ═══ IL N'Y A PLUS DE SEUIL DE REPLI, ET C'EST LE SUJET DE CE BLOC ═══════════
+ *
+ * Ce module portait `FALLBACK_DECISION_THRESHOLD = 7`, utilisé quand aucun
+ * provider n'est configuré pour le pays. Trois choses le condamnaient :
+ *
+ *  ① LES DEUX AUTRES CHEMINS DE VÉRIFICATION ÉCHOUENT FERMÉ, ET LE DISENT.
+ *    Configuration absente ⇒ `expert-verification` pose `pending_admin_review`
+ *    avec le motif « provider non configuré » ; `publication-verification` rend
+ *    `pending_review` avec le même genre de note. Seul celui-ci DEVINAIT un
+ *    nombre, et ne le disait pas. Trois replis pour une même absence, dont un
+ *    qui invente.
+ *
+ *  ② UN REPLI CODÉ EN DUR EST UN SECOND RÉGLAGE, INVISIBLE, qui prend la main
+ *    le jour où l'on comprend le moins ce qui se passe. C'est la règle déjà
+ *    écrite pour `matching_settings` : ligne absente ⇒ on refuse, et on le dit.
+ *
+ *  ③ IL MENTAIT DÉJÀ. L'en-tête de ce fichier annonçait « fallback threshold =
+ *    9 » pendant que la constante valait 7. Personne ne pouvait le voir sans
+ *    lire les deux.
+ *
+ * CE QUI SE PASSE DÉSORMAIS, ET POURQUOI ON N'APPELLE MÊME PAS L'IA :
+ *   Sans seuil, aucun score ne peut être tranché — l'appel serait payé pour
+ *   produire une décision qu'on ne sait pas prendre. On rend donc
+ *   `pending_admin_review` AVANT toute dépense, avec un motif nommé, exactement
+ *   comme les deux autres chemins. La règle métier « jamais de rejet
+ *   automatique » est préservée : un refus de configuration n'est pas un refus
+ *   d'organisation.
+ */
+const MOTIF_SANS_SEUIL =
+  "Aucun fournisseur de décision actif pour ce pays (provider_type='ai_web_search') — " +
+  'seuil introuvable, vérification manuelle requise. Aucun appel IA n’a été fait.'
 
 function findDecisionProvider(
   providers: VerificationProviderRow[],
@@ -118,7 +146,27 @@ export async function runVerification(args: {
   const providerList: VerificationProviderRow[] = providers ?? []
   const sireneProvider = findSireneProvider(providerList, input.country_code)
   const decisionProvider = findDecisionProvider(providerList, input.country_code)
-  const threshold = decisionProvider?.confidence_threshold ?? FALLBACK_DECISION_THRESHOLD
+  // ── PAS DE SEUIL ⇒ REFUS EXPLICITE, AVANT TOUTE DÉPENSE ──────────────────
+  //  On sort ICI, avant Sirene et avant l'IA : cf. l'encadré en tête de fichier.
+  if (!decisionProvider) {
+    console.error('[verification:index] aucun provider de décision', {
+      country_code: input.country_code,
+      organization_id,
+    })
+    return {
+      verification_status: 'pending_admin_review',
+      verification_method: null,
+      verification_data: {
+        score: 0,
+        notes: MOTIF_SANS_SEUIL,
+        attempts_count: 0,
+        sirene_data: null,
+        discrepancies: [],
+        sirene_status: 'skipped',
+      },
+    }
+  }
+  const threshold = decisionProvider.confidence_threshold
 
   let attempts_count = 0
   let sireneData: SireneData | null = null

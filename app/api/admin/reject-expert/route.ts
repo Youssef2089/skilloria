@@ -7,6 +7,7 @@ import { renderExpertRejectEmail } from '@/lib/emails/templates'
 import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
 import { expertSiteOrigin } from '@/lib/emails/domain-url'
+import { siteOriginPourRequete } from '@/lib/site-url'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -33,13 +34,11 @@ const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}
 
 type Body = { profile_id?: unknown; reason?: unknown; site_url?: unknown }
 
-function siteOriginFromRequest(request: NextRequest, body: Body): string {
-  if (typeof body.site_url === 'string' && /^https?:\/\/[^\s/]{1,200}$/.test(body.site_url)) {
-    return body.site_url
-  }
-  const origin = request.headers.get('origin')
-  if (origin && /^https?:\/\//.test(origin)) return origin
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+function siteOriginFromRequest(request: NextRequest, body: Body): string | null {
+  // Origine resolue par la source unique (lib/site-url.ts) : corps > en-tete
+  // Origin > variable d'environnement. Rend NULL en PRODUCTION si la variable
+  // manque — l'appelant N'ENVOIE PAS plutot que d'expedier un lien mort.
+  return siteOriginPourRequete({ fourni: body.site_url, origin: request.headers.get('origin') })
 }
 
 function asString(v: unknown): string | null {
@@ -204,6 +203,15 @@ export async function POST(request: NextRequest): Promise<Response> {
             .eq('id', row.domain_id)
             .maybeSingle()
           expertSlug = (dom?.slug as string | null) ?? null
+        }
+        // ── ORIGINE INCONNAISSABLE ⇒ ON N'ENVOIE PAS ────────────────────────
+        //  `siteOriginFromRequest` rend `null` en PRODUCTION quand
+        //  NEXT_PUBLIC_SITE_URL manque (cf. lib/site-url.ts). Un e-mail parti
+        //  avec un lien `localhost` est pire qu’un e-mail qui ne part pas : le
+        //  premier se découvre par un destinataire, le second par les journaux.
+        if (!siteOrigin) {
+          console.error('[admin:reject-expert] e-mail ANNULÉ — origine du site inconnaissable')
+          return
         }
         const baseOrigin = expertSiteOrigin({ origin: siteOrigin, slug: expertSlug })
         contactUrl = `${baseOrigin}/${locale}`

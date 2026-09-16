@@ -6,6 +6,7 @@ import { generateInvitationToken, hashInvitationToken } from '@/lib/invitation-t
 import { renderInvitationEmail } from '@/lib/emails/templates'
 import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
+import { siteOriginPourRequete } from '@/lib/site-url'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -48,10 +49,9 @@ function normalizeLocale(raw: string | null | undefined): string {
 }
 
 /** Origin de base pour construire le lien d'invitation (même logique qu'admin). */
-function siteOriginFromRequest(request: NextRequest): string {
-  const origin = request.headers.get('origin')
-  if (origin && /^https?:\/\//.test(origin)) return origin
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+function siteOriginFromRequest(request: NextRequest): string | null {
+  // Cf. lib/site-url.ts : rend NULL en PRODUCTION si NEXT_PUBLIC_SITE_URL manque.
+  return siteOriginPourRequete({ origin: request.headers.get('origin') })
 }
 
 /** Libellé humain d'un rôle, dans la locale de l'inviteur (pour l'email). */
@@ -222,6 +222,12 @@ export async function POST(request: NextRequest): Promise<Response> {
         expiresLabel,
         domainMismatch: !domainValidationPassed,
       })
+      // ── ORIGINE INCONNAISSABLE ⇒ ON N'ENVOIE PAS ──────────────────────────────
+      //  `siteOriginFromRequest` rend `null` en PRODUCTION quand NEXT_PUBLIC_SITE_URL
+      //  manque (cf. lib/site-url.ts). Un e-mail parti avec un lien `localhost` est
+      //  pire qu'un e-mail qui ne part pas : le premier se découvre par un
+      //  destinataire, le second par les journaux.
+      if (!origin) { console.error('[invitations] e-mail ANNULÉ — origine du site inconnaissable'); return }
       const res = await sendEmail({
         to: email,
         subject: rendered.subject,

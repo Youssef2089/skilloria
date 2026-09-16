@@ -366,7 +366,21 @@ for (const { fichier: f, direct, via } of ecrivains) {
   //    plantait a l'execution sur un identifiant inconnu. Un script qui plante
   //    n'ecrit pas, certes ; mais le controle disait « garde posee » alors
   //    qu'il n'y avait plus de garde.
-  const importeGarde = /import\(\s*'\.\/garde-ecriture\.mjs'\s*\)/.test(code)
+  // DEUX FORMES D'IMPORT, ET LES DEUX SONT LEGITIMES.
+  //   Cette regex ne reconnaissait que la forme DYNAMIQUE
+  //   (`await import('./garde-ecriture.mjs')`). Elle a denonce
+  //   admin-organisations-orphelines.mjs, arrive par une fusion du tronc, qui
+  //   importe la garde en STATIQUE — et dont la conception est POURTANT
+  //   MEILLEURE : un import statique manquant fait echouer le chargement du
+  //   module, avant la moindre ligne. La forme dynamique, elle, ne se plaint
+  //   qu'a l'execution de la ligne.
+  //
+  //   Un detecteur qui denonce la meilleure des deux formes est un detecteur
+  //   qu'on desactive. On accepte les deux, et on n'exige qu'une chose : que la
+  //   garde soit REELLEMENT importee de quelque part.
+  const importeGarde =
+    /import\(\s*'\.\/garde-ecriture\.mjs'\s*\)/.test(code) ||
+    /import\s*\{[^}]*\bexigerAutorisationEcriture\b[^}]*\}\s*from\s*'\.\/garde-ecriture\.mjs'/.test(code)
   ok(iAutorisation !== -1 && (iGarde === -1 || importeGarde),
     `${f} — une autorisation explicite gouverne l’ecriture`,
     iGarde !== -1 && !importeGarde

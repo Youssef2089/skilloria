@@ -5,6 +5,7 @@ import { generateInvitationToken, hashInvitationToken } from '@/lib/invitation-t
 import { renderInvitationEmail } from '@/lib/emails/templates'
 import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
+import { siteOriginPourRequete } from '@/lib/site-url'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -31,10 +32,9 @@ const VALID_LOCALES = ['fr', 'en', 'es', 'de'] as const
 function normalizeLocale(raw: string | null | undefined): string {
   return raw && (VALID_LOCALES as readonly string[]).includes(raw) ? raw : 'fr'
 }
-function siteOriginFromRequest(request: NextRequest): string {
-  const origin = request.headers.get('origin')
-  if (origin && /^https?:\/\//.test(origin)) return origin
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+function siteOriginFromRequest(request: NextRequest): string | null {
+  // Cf. lib/site-url.ts : rend NULL en PRODUCTION si NEXT_PUBLIC_SITE_URL manque.
+  return siteOriginPourRequete({ origin: request.headers.get('origin') })
 }
 const ROLE_LABELS: Record<string, Record<string, string>> = {
   fr: { admin: 'Administrateur', editor: 'Éditeur', viewer: 'Lecteur' },
@@ -154,6 +154,12 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
       const rendered = renderInvitationEmail({
         brandName, locale, companyName, roleLabel, inviteUrl, expiresLabel, domainMismatch,
       })
+      // ── ORIGINE INCONNAISSABLE ⇒ ON N'ENVOIE PAS ──────────────────────────────
+      //  `siteOriginFromRequest` rend `null` en PRODUCTION quand NEXT_PUBLIC_SITE_URL
+      //  manque (cf. lib/site-url.ts). Un e-mail parti avec un lien `localhost` est
+      //  pire qu'un e-mail qui ne part pas : le premier se découvre par un
+      //  destinataire, le second par les journaux.
+      if (!origin) { console.error('[invitations:relance] e-mail ANNULÉ — origine du site inconnaissable'); return }
       const res = await sendEmail({
         to: email,
         subject: rendered.subject,
