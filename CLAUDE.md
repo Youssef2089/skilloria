@@ -720,6 +720,54 @@ dénoncées) ; et la règle « `translations` doit être la **dernière** insert
   **fail-open** (une panne commerciale ne bloque pas l'usage) ; `ai-budget` est **fail-closed**
   (« ne pas savoir combien on a dépensé n'autorise pas à dépenser plus »).
 
+**E.13 — UNE API ASYNCHRONE QUI REND UN IDENTIFIANT DE DEMANDE NE DIT PAS QUE LE MESSAGE EST PARTI.**
+
+**Le piège.** Un fournisseur accepte une demande et rend un identifiant. Le code lit cet identifiant
+comme une confirmation d'envoi, alors qu'il ne confirme que la **réception de la demande**. Ce qui se
+passe ensuite — routage, filtrage, blocage — n'est pas dans cette réponse.
+
+**La preuve, dans ce dépôt.** Vonage **Verify v2** (`api.nexmo.com/v2/verify`) répond `request_id`,
+puis peut bloquer l'envoi. Sur la **Tunisie (+216)**, les journaux Verify affichent `BLOCKED` **après**
+cette réponse. Le code rendait 200, l'écran lançait son compte à rebours et affichait six cases de
+code — pour un SMS qui ne partirait jamais. **Six mois d'inscriptions perdues sans une ligne de log
+côté produit.**
+
+**Ce qui est en place.** Les routes d'envoi rendent `livraison_confirmee: false`, les écrans disent
+« **demande transmise** » et jamais « SMS envoyé », et une **sortie** s'ouvre quand le compte à rebours
+expire : un lien vers le formulaire de contact existant, prérempli avec le numéro et le pays.
+
+**La règle générale.** Un écran qui **affirme plus que ce qu'on sait** est un écran mort : il enferme
+quelqu'un dans une attente qu'aucun événement ne viendra rompre. Quand l'état réel n'est connaissable
+qu'après coup, on dit ce qu'on sait — « transmis » — et on donne une action.
+⚠️ Vaut pour **tout** fournisseur asynchrone, pas seulement les SMS : e-mail, webhook de paiement,
+file de traitement. La question à poser est toujours la même : *cette réponse prouve-t-elle le
+RÉSULTAT, ou seulement la PRISE EN COMPTE ?*
+
+**E.14 — UN CORRECTIF APPLIQUÉ À UN PARCOURS ET NON RÉTROPORTÉ À SON JUMEAU SE LIT COMME CORRIGÉ
+ALORS QU'IL EST VIVANT.**
+
+**Le piège.** Deux écrans font la même chose par deux codes recopiés. On corrige l'un, on documente la
+correction dans **son** commentaire, et le dépôt affirme désormais que le défaut est fermé. Il l'est à
+un endroit sur deux, et la recherche du défaut s'arrête sur le commentaire qui dit qu'il est réglé.
+
+**La preuve, dans ce dépôt.** `PhoneOtpField` portait, en commentaire, l'explication d'une regex
+laxiste corrigée : `/^\+[1-9]\d{6,14}$/` laissait passer un numéro structurellement E.164 mais **non
+attribuable**, le bouton s'activait, le serveur refusait, et l'écran affichait « Service SMS
+indisponible » pour une faute de saisie. Le correctif n'a **jamais** été rétroporté à
+`inscription/organisation`, qui portait la même regex **six mois plus tard**. Et ses ≈200 lignes
+jumelles avaient en plus leur propre table d'erreurs, plus pauvre.
+
+**Pire encore sur le troisième jumeau** — les paramètres du compte — qui avait son propre `toE164` :
+`if (s.startsWith('0')) return '+33' + s.slice(1)`. Un utilisateur marocain qui tapait `0612345678`
+enregistrait un numéro **français** en croyant enregistrer le sien. Le code n'échouait pas : il
+**inventait**, exactement ce que [lib/phone.ts](lib/phone.ts) refuse de faire, en-tête à l'appui.
+
+**Le remède, et c'est le seul qui tienne.** Ce n'est pas « penser à rétroporter » : c'est **supprimer le
+jumeau**. Une saisie de téléphone ([components/phone/SaisieTelephone.tsx](components/phone/SaisieTelephone.tsx)),
+un parcours OTP ([components/PhoneOtpField.tsx](components/PhoneOtpField.tsx)), trois usages.
+`scripts/diag-saisie-telephone.mjs` **rougit** si une seconde implémentation réapparaît — c'est la
+seule forme qui empêche la divergence de revenir.
+
 ---
 
 ## F. La classe de défaut « lire puis écrire »
@@ -845,9 +893,34 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   [docs/stripe-premier-paiement.md](docs/stripe-premier-paiement.md).
 - Aucun repérage automatique d'un `stripe_events` bloqué en `received` (§F).
 
+**Vérification par SMS (OTP d'inscription)**
+- **La Tunisie (+216) est bloquée par Vonage sur l'API Verify, et ce point N'EST PAS DANS LE CODE.**
+  Vérifié : ce n'est ni Fraud Defender Countries (activé sur les deux canaux), ni une Traffic Rule —
+  c'est une **liste de pays restreints propre à Verify**, qui exige un **ticket au support Vonage**.
+  Les journaux Verify affichaient `BLOCKED`, deux fois, sur Orange Tunisie.
+  **Ne cherchez pas la cause dans le dépôt : elle n'y est pas.** Ce qui a été fait ici, c'est rendre
+  l'échec **visible** (§E.13) — le refus est nommé, distinct d'une panne, et il ouvre une sortie.
+  Le déblocage appartient à Youssef.
+- **Le webhook de statut Vonage est un CHOIX DIFFÉRÉ, pas un oubli.** Sans lui, le serveur ne peut
+  pas savoir si un SMS a été **remis** : il ne connaît que l'acceptation de la demande. Cesser
+  d'affirmer qu'il est parti et donner une sortie apporte l'essentiel du bénéfice pour une fraction
+  du travail — un webhook est une **adresse publique à exposer, à sécuriser et à déclarer chez
+  Vonage**. Il viendra si des échecs invisibles sont constatés en production.
+- **`country_code: 'FR'` est CODÉ EN DUR à l'inscription d'une organisation**
+  ([app/[locale]/inscription/organisation/page.tsx](app/[locale]/inscription/organisation/page.tsx),
+  corps envoyé à `/api/auth/register-org`). Ce champ est le pays de **l'entreprise**, pas celui du
+  téléphone — le déduire du numéro serait exactement l'invention silencieuse que §E.14 décrit.
+  Conséquence vérifiable : `verification_providers` choisit le fournisseur sur ce code, donc **une
+  société marocaine est vérifiée contre Sirene**. Ouvrir géographiquement les organisations exige un
+  sélecteur de pays d'entreprise **et** une décision sur la couverture des fournisseurs. **Hors
+  périmètre du lot SMS, et non traité.**
+
 **Moteur**
 - Le canal SMS est fermé au dispatcher (§D.2). Rouvrir exige d'abord de basculer le défaut de préférence
   en **opt-in** et de rendre les interrupteurs aux écrans — ni l'un ni l'autre n'est fait.
+  ⚠️ **Sans rapport avec l'OTP d'inscription** : autre API (Verify v2), autre chemin, aucun point
+  commun. Fermer l'un ne peut pas casser l'autre, et `scripts/diag-canal-sms.mjs` tient cette
+  séparation dans les deux sens.
 - `lib/database.types.ts` est périmé et **inutilisé** (§E.1). Le régénérer et typer les clients
   supprimerait toute la classe E.1 ; personne ne l'a fait.
 
@@ -942,6 +1015,38 @@ chemin entièrement distinct du canal SMS de notification, qui est fermé, cf. �
 Limites : **1 envoi / 60 s** et **3 / heure** par numéro, plus **10 / heure par IP** sur la route
 publique (`rate_limit_check`, atomique en base). La vérification du code est **fail-closed** et
 clée par IP.
+
+**Il CHOISIT SON PAYS, il ne compose pas d'indicatif.** L'écran affichait un badge **« 🇫🇷 » figé** et
+un placeholder `+33` : un expert marocain, tunisien ou canadien ne pouvait pas saisir son numéro, et
+rien ne lui annonçait que le champ exigeait un `+`. Il y a désormais un sélecteur de pays
+([components/phone/SaisieTelephone.tsx](components/phone/SaisieTelephone.tsx)), et **le E.164 est
+composé par le code**, jamais par l'utilisateur.
+- Le référentiel vient de **la base** (`countries`, 64 pays, via `/api/countries`) — aucune liste en
+  dur, et **aucune liste de pays autorisés** : un filtrage géographique éventuel sera un réglage.
+- Le **pays par défaut** vient du `sort_order` du référentiel, pas d'une constante de code.
+- On stocke le **code ISO**, jamais l'indicatif seul : `+1` est partagé par les États-Unis et le Canada.
+- Changer de pays **ne vide jamais** le numéro déjà tapé ; le **placeholder vient du pays choisi**, pas
+  de la langue (les messages prescrivaient `+33` en français, `+34` en espagnol, `+49` en allemand) ;
+  un numéro **collé avec son indicatif** (`+216…`, `00216…`) bascule le sélecteur ; les **chiffres
+  arabes-indiens et persans** sont acceptés.
+- Recherche dans la liste par **nom, code ISO ou indicatif**.
+
+**Ce qu'il voit quand l'envoi échoue, et ce qu'il peut faire.** Le motif réel de Vonage est traduit en
+codes stables ([lib/otp/vonage-refus.ts](lib/otp/vonage-refus.ts)) puis en messages dans les quatre
+langues. Deux refus sont **distincts parce que leurs issues le sont** :
+- **« les SMS ne sont pas disponibles vers ce pays »** — réessayer est inutile, l'issue est de nous
+  écrire (c'est le cas de la Tunisie, cf. §H) ;
+- **« service momentanément indisponible »** — réessayer a du sens, et il n'y a rien d'autre à faire.
+Avant, tout tombait dans le second, y compris un numéro simplement mal saisi.
+
+**L'écran n'affirme pas que le SMS est parti** (§E.13) : il dit « **demande transmise** », et quand le
+compte à rebours expire sans code reçu, il ouvre une **sortie** — un lien vers le formulaire de contact
+existant, prérempli avec le numéro et le pays. **Aucun canal nouveau**, et le sujet transite par un
+**jeton** (`probleme=otp`), jamais du texte libre : cet e-mail part vers l'équipe.
+
+⚠️ Les **trois** parcours — inscription expert, inscription organisation, paramètres du compte —
+utilisent le **même** composant. C'était trois codes recopiés avec trois validations et trois tables
+d'erreurs différentes ; §E.14 raconte ce que ça a coûté.
 Un index **UNIQUE PARTIEL** sur `users(phone) WHERE phone_verified` tient la règle « 1 numéro
 vérifié = 1 compte » : c'est la seule barrière réelle contre la multiplication de comptes — la
 vérification IA d'expertise est franchissable, un recruteur recycle un CV authentique.

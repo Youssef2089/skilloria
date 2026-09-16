@@ -1,4 +1,12 @@
-import { parsePhoneNumberFromString } from 'libphonenumber-js'
+import {
+  parsePhoneNumberFromString,
+  parseDigits,
+  getExampleNumber,
+  getCountryCallingCode,
+  isSupportedCountry,
+  type CountryCode,
+} from 'libphonenumber-js'
+import exemplesMobiles from 'libphonenumber-js/examples.mobile.json'
 
 /**
  * lib/phone.ts — normalisation E.164 STRICTE, source unique.
@@ -50,4 +58,123 @@ export function normalizeE164(raw: unknown): string | null {
 /** `true` si `s` est déjà une chaîne E.164 canonique (`+` puis 7 à 15 chiffres). */
 export function isE164(s: unknown): s is string {
   return typeof s === 'string' && /^\+[1-9]\d{6,14}$/.test(s)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SAISIE : PAYS CHOISI + NUMÉRO NATIONAL
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// L'écran exigeait un « + » que rien n'annonçait, sous un drapeau français
+// figé : un expert marocain ou tunisien ne pouvait pas saisir son numéro. Le
+// motif de toutes les implémentations de référence est l'inverse — on CHOISIT
+// un pays et on tape son numéro national, et c'est le CODE qui compose le
+// E.164, jamais l'utilisateur.
+//
+// Ces helpers vivent ici, avec `normalizeE164`, parce que composer et
+// normaliser sont la même règle vue des deux côtés. Les séparer ferait
+// exactement ce que ce lot corrige : deux implémentations qui divergent.
+
+/** Code ISO 3166-1 alpha-2 reconnu par la bibliothèque. Ré-exporté pour les appelants. */
+export type PaysISO = CountryCode
+
+/** `true` si `iso` est un code pays que la bibliothèque sait traiter. */
+export function estPaysConnu(iso: unknown): iso is PaysISO {
+  return typeof iso === 'string' && iso.length === 2 && isSupportedCountry(iso)
+}
+
+/**
+ * Convertit les chiffres NON LATINS en chiffres latins, et rien d'autre.
+ *
+ * POURQUOI. On ouvre au Maghreb : un utilisateur arabophone peut composer son
+ * numéro en chiffres arabes-indiens (٠١٢٣…) ou persans (۰۱۲۳…), que son clavier
+ * produit naturellement. Les refuser serait un mur invisible — la saisie a
+ * l'air correcte à l'écran et le bouton reste gris.
+ *
+ * ⚠️ `parseDigits` de la bibliothèque fait la conversion, mais il SUPPRIME tout
+ *    ce qui n'est pas un chiffre — y compris le « + ». L'utiliser tel quel sur
+ *    un numéro collé (`+٢١٦…`) détruirait l'indicatif, donc la détection du
+ *    pays. On ne s'en sert donc que caractère par caractère, et on laisse
+ *    passer le reste inchangé.
+ */
+export function chiffresEnLatin(raw: string): string {
+  let sortie = ''
+  for (const c of raw) {
+    const latin = parseDigits(c)
+    sortie += latin.length === 1 ? latin : c
+  }
+  return sortie
+}
+
+/**
+ * Compose un E.164 à partir du pays choisi et du numéro national saisi.
+ * Rend `null` si le résultat n'est pas un numéro valide et complet.
+ *
+ * C'est la SEULE façon d'obtenir un E.164 depuis un formulaire : l'utilisateur
+ * ne tape jamais d'indicatif, donc il ne peut pas se tromper dessus.
+ */
+export function composerE164(iso: unknown, national: string): string | null {
+  if (!estPaysConnu(iso)) return null
+  const chiffres = chiffresEnLatin(national).replace(/\D/g, '')
+  if (chiffres.length === 0) return null
+  const parsed = parsePhoneNumberFromString(chiffres, iso)
+  if (!parsed || !parsed.isValid()) return null
+  return isE164(parsed.number) ? parsed.number : null
+}
+
+/**
+ * Reconnaît un numéro COLLÉ avec son indicatif (`+21620123456`, `0021620…`).
+ * Rend le pays détecté et le numéro national à afficher, ou `null`.
+ *
+ * POURQUOI C'EST OBLIGATOIRE. Quelqu'un qui colle un numéro international dans
+ * un champ « numéro national » verrait sinon son indicatif traité comme le
+ * début du numéro, et un refus incompréhensible. On bascule le sélecteur à sa
+ * place.
+ *
+ * Accepte aussi les chiffres non latins, cf. `chiffresEnLatin`.
+ */
+export function reconnaitreNumeroColle(
+  raw: string,
+): { iso: PaysISO; national: string } | null {
+  const t = chiffresEnLatin(raw).trim()
+  // `00` est la forme internationale composée depuis un poste fixe : très
+  // répandue au Maghreb et en Europe, et illisible pour le parseur sans `+`.
+  const international = t.startsWith('00') ? `+${t.slice(2)}` : t
+  if (!international.startsWith('+')) return null
+  const parsed = parsePhoneNumberFromString(international)
+  if (!parsed || !parsed.country) return null
+  return { iso: parsed.country, national: parsed.nationalNumber }
+}
+
+/**
+ * Exemple de numéro NATIONAL pour ce pays, à utiliser comme placeholder.
+ *
+ * ⚠️ IL VIENT DU PAYS, PAS DE LA LANGUE. Les messages du dépôt prescrivaient le
+ *    format selon la LANGUE de l'interface : `+33…` en français, `+34…` en
+ *    espagnol, `+49…` en allemand. Un Marocain lisant l'espagnol se voyait donc
+ *    prescrire le format espagnol.
+ *
+ * ⚠️ ET IL VIENT DE LA BIBLIOTHÈQUE, pas d'une table écrite à la main : une
+ *    table de formats vieillit en silence à chaque renumérotation nationale.
+ */
+export function exempleNational(iso: unknown): string | null {
+  if (!estPaysConnu(iso)) return null
+  const ex = getExampleNumber(iso, exemplesMobiles)
+  return ex ? ex.formatNational() : null
+}
+
+/** Indicatif téléphonique du pays, préfixé `+` (`FR` → `+33`). */
+export function indicatifDe(iso: unknown): string | null {
+  if (!estPaysConnu(iso)) return null
+  return `+${getCountryCallingCode(iso)}`
+}
+
+/**
+ * Décompose un E.164 en (pays, numéro national) — l'opération inverse de
+ * `composerE164`, pour ré-afficher une valeur déjà enregistrée.
+ */
+export function decomposerE164(e164: unknown): { iso: PaysISO; national: string } | null {
+  if (!isE164(e164)) return null
+  const parsed = parsePhoneNumberFromString(e164)
+  if (!parsed || !parsed.country) return null
+  return { iso: parsed.country, national: parsed.nationalNumber }
 }

@@ -6,6 +6,8 @@ import { usePathname, useRouter } from '@/i18n/navigation'
 import { routing, type Locale } from '@/i18n/routing'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { lienAideOtp } from '@/lib/otp/lien-aide'
+import PhoneOtpField, { type PhoneOtpLabels } from '@/components/PhoneOtpField'
 import ReauthModal from './ReauthModal'
 
 const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
@@ -18,13 +20,13 @@ const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
  *   - `0XXXXXXXXX`→ numéro national : défaut FR → `+33XXXXXXXXX`
  *   - sinon       → laissé tel quel (la validation E.164 tranchera)
  */
-function toE164(raw: string): string {
-  const s = raw.replace(/[\s().\-]/g, '')
-  if (s.startsWith('+')) return s
-  if (s.startsWith('00')) return '+' + s.slice(2)
-  if (s.startsWith('0')) return '+33' + s.slice(1)
-  return s
-}
+// `toE164` A ÉTÉ SUPPRIMÉ, et c'était le pire défaut du parcours SMS.
+//     if (s.startsWith('0')) return '+33' + s.slice(1)
+// Un utilisateur marocain qui tapait `0612345678` enregistrait un numéro
+// FRANÇAIS en croyant enregistrer le sien — une invention silencieuse. C'est
+// exactement l'inférence que lib/phone refuse, et la raison pour laquelle elle
+// la refuse. Le E.164 est désormais composé par le composant partagé, à partir
+// du pays CHOISI par l'utilisateur.
 
 type SectionId = 'identity' | 'email' | 'phone' | 'password' | 'language' | 'security' | 'notifications' | 'deletion'
 // Notifications s'insère entre Sécurité et Suppression (réglages fonctionnels
@@ -224,94 +226,84 @@ function EmailSection({ user, secureFetch, requestReauth, notify }: {
   )
 }
 
-// ─── Section: Téléphone (réutilise le flux OTP Vonage existant) ──────────────
-function PhoneSection({ user, secureFetch, requestReauth, notify, reload }: {
+// ─── Section: Téléphone ──────────────────────────────────────────────────────
+//
+//  CETTE SECTION PORTAIT LE PIRE DÉFAUT DU PARCOURS SMS, et il était silencieux.
+//
+//  Elle avait son PROPRE `toE164`, local, qui faisait ceci :
+//      if (s.startsWith('0')) return '+33' + s.slice(1)
+//  Un utilisateur marocain qui tapait `0612345678` enregistrait donc un numéro
+//  FRANÇAIS en croyant enregistrer le sien. Le code ne se trompait pas : il
+//  INVENTAIT. Et [lib/phone.ts](lib/phone.ts) refuse explicitement cette
+//  inférence, en-tête à l'appui — la règle existait, cette section ne la
+//  suivait pas.
+//
+//  Elle avait aussi sa propre table d'erreurs : seul `rate_limited` était
+//  distingué, tout le reste tombait dans « une erreur est survenue ». Le
+//  namespace `settings.phone` n'avait même pas de clé pour un refus du
+//  fournisseur.
+//
+//  Tout cela a disparu : c'est `PhoneOtpField` qui fait le travail, avec les
+//  routes AUTHENTIFIÉES (jeton de ré-authentification en en-tête) au lieu des
+//  routes publiques d'inscription.
+function PhoneSection({ user, requestReauth, notify, reload }: {
   user: UserData; secureFetch: SecureFetch; requestReauth: RequestReauth; notify: Notify; reload: () => void
 }) {
   const t = useTranslations('settings.phone')
-  const tc = useTranslations('settings.common')
+  const locale = useLocale()
   const [phone, setPhone] = useState('')
-  const [requestId, setRequestId] = useState<string | null>(null)
-  const [code, setCode] = useState('')
-  const [busy, setBusy] = useState(false)
 
-  const sendCode = async () => {
-    const e164 = toE164(phone)
-    if (!/^\+[1-9]\d{6,14}$/.test(e164)) { notify(tc('error_generic'), 'error'); return }
-    const token = await requestReauth()
-    if (!token) return
-    setBusy(true)
-    try {
-      const res = await secureFetch('/api/auth/send-phone-otp', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-reauth-token': token },
-        body: JSON.stringify({ phone: e164 }),
-      })
-      if (!res.ok) {
-        const e = (await res.json().catch(() => null)) as { code?: string } | null
-        notify(e?.code === 'rate_limited' ? t('error_rate_limited') : tc('error_generic'), 'error')
-        setBusy(false); return
-      }
-      const d = (await res.json()) as { request_id?: string }
-      setRequestId(d.request_id ?? null)
-    } catch { notify(tc('error_generic'), 'error') }
-    setBusy(false)
-  }
-
-  const verify = async () => {
-    const e164 = toE164(phone)
-    if (!/^\d{4,6}$/.test(code) || !requestId) { notify(t('error_invalid_code'), 'error'); return }
-    setBusy(true)
-    try {
-      const res = await secureFetch('/api/auth/verify-phone-otp', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ request_id: requestId, code, phone: e164 }),
-      })
-      if (!res.ok) {
-        const d = (await res.json().catch(() => null)) as { code?: string } | null
-        notify(
-          d?.code === 'rate_limited'
-            ? t('error_rate_limited')
-            : d?.code === 'expired'
-              ? t('error_expired')
-              : d?.code === 'phone_already_used'
-                ? t('error_phone_already_used')
-                : t('error_invalid_code'),
-          'error',
-        )
-        setBusy(false)
-        return
-      }
-      notify(t('success'))
-      setRequestId(null); setCode(''); setPhone('')
-      reload()
-    } catch { notify(t('error_failed'), 'error') }
-    setBusy(false)
+  const labels: PhoneOtpLabels = {
+    phone_label: t('new_label'),
+    pays_label: t('pays_label'),
+    send_sms_button: t('send_code'),
+    resend_sms_label: (seconds: number) => t('resend_in', { seconds }),
+    code_label: t('code_label'),
+    code_invalid: t('error_invalid_code'),
+    phone_verified: t('success'),
+    demande_transmise: t('demande_transmise'),
+    invalid_phone: t('error_invalid_phone'),
+    rate_limited: t('error_rate_limited'),
+    vonage_error: t('error_vonage_error'),
+    pays_non_pris_en_charge: t('error_sms_pays_non_pris_en_charge'),
+    verification_en_cours: t('error_verification_en_cours'),
+    pas_recu: t('pas_recu'),
+    edit_number: t('edit_number'),
   }
 
   return (
     <div>
       <SectionHeader title={t('title')} description={t('description')} />
       <FieldRow><Label>{t('current_label')}</Label><Input value={user.phone ?? '—'} disabled style={{ background: '#f8fafc', color: '#64748b' }} /></FieldRow>
-      {!requestId ? (
-        <>
-          <FieldRow><Label>{t('new_label')}</Label><Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t('new_placeholder')} /></FieldRow>
-          <PrimaryButton onClick={() => void sendCode()} disabled={busy}>{busy ? tc('saving') : t('send_code')}</PrimaryButton>
-        </>
-      ) : (
-        <>
-          <p style={{ fontSize: 13, color: '#64748b', maxWidth: 460, lineHeight: 1.5, marginBottom: 12 }}>{t('otp_info')}</p>
-          <FieldRow><Label>{t('code_label')}</Label><Input inputMode="numeric" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} placeholder={t('code_placeholder')} maxLength={6} /></FieldRow>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <PrimaryButton onClick={() => void verify()} disabled={busy}>{busy ? tc('saving') : t('verify')}</PrimaryButton>
-            <button type="button" onClick={() => { setRequestId(null); setCode('') }} style={{ padding: '11px 16px', borderRadius: 10, border: '1.5px solid #e2e8f0', background: '#fff', color: '#0f172a', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: fontJakarta }}>{t('resend')}</button>
-          </div>
-        </>
-      )}
+      <PhoneOtpField
+        phone={phone}
+        onPhoneChange={setPhone}
+        onVerified={() => {
+          // La route AUTHENTIFIÉE de vérification écrit déjà le numéro sur le
+          // compte : il n'y a pas de jeton à porter jusqu'à un submit, comme à
+          // l'inscription. On recharge pour afficher la nouvelle valeur.
+          notify(t('success'))
+          setPhone('')
+          reload()
+        }}
+        verified={false}
+        primaryColor="var(--sk-accent, #0ea5e9)"
+        labels={labels}
+        endpoints={{ send: '/api/auth/send-phone-otp', verify: '/api/auth/verify-phone-otp' }}
+        // La ré-authentification est exigée AVANT l'envoi, comme avant. Rendre
+        // `null` (l'utilisateur renonce) annule l'envoi sans erreur : renoncer
+        // n'est pas un échec.
+        extraHeaders={async () => {
+          const token = await requestReauth()
+          return token ? { 'x-reauth-token': token } : null
+        }}
+        onPhoneTaken={() => notify(t('error_phone_already_used'), 'error')}
+        lienAide={(ph, iso) => lienAideOtp(locale, ph, iso)}
+      />
     </div>
   )
 }
+
 
 // ─── Section: Mot de passe ──────────────────────────────────────────────────
 function PasswordSection({ secureFetch, requestReauth, notify }: {

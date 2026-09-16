@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
+import { normalizeE164 } from '@/lib/phone'
+import { PROBLEME_OTP } from '@/lib/otp/lien-aide'
 
 /**
  * Formulaire de contact PUBLIC (D3).
@@ -40,10 +42,50 @@ const EMPTY: Values = {
   consent: false,
 }
 
+/**
+ * Préremplissage venu de l'écran d'inscription — LA SORTIE quand le code SMS
+ * n'arrive pas.
+ *
+ * ═══ CE QUI PASSE PAR L'URL, ET CE QUI N'Y PASSE PAS ══════════════════════
+ *   L'URL ne transporte QU'UN JETON de sujet (`probleme=otp`), le numéro et le
+ *   code pays. Le TEXTE du message est rédigé ici, depuis les traductions.
+ *
+ *   Laisser passer du texte libre par l'URL permettrait à n'importe qui de
+ *   faire écrire ce qu'il veut dans un e-mail INTERNE — cet e-mail part vers
+ *   l'équipe, pas vers l'expéditeur. C'est une porte qu'on n'ouvre pas.
+ *
+ * ═══ ET LES VALEURS SONT VALIDÉES AVANT D'ÊTRE AFFICHÉES ═════════════════
+ *   Le numéro doit passer `normalizeE164` — la MÊME fonction que le serveur —
+ *   et le pays doit faire deux lettres. Tout le reste est ignoré : un
+ *   préremplissage n'est pas une raison d'afficher n'importe quoi.
+ */
+function prefillDepuisUrl(
+  recherche: string,
+  t: (cle: string, valeurs?: Record<string, string>) => string,
+): Partial<Values> | null {
+  const params = new URLSearchParams(recherche)
+  if (params.get('probleme') !== PROBLEME_OTP) return null
+
+  const phone = normalizeE164(params.get('phone')) ?? ''
+  const paysBrut = (params.get('pays') ?? '').toUpperCase()
+  const pays = /^[A-Z]{2}$/.test(paysBrut) ? paysBrut : ''
+
+  return {
+    phone,
+    message: t('prefill_otp_message', { phone: phone || '—', pays: pays || '—' }),
+  }
+}
+
 export default function ContactForm() {
   const t = useTranslations('contact')
 
-  const [values, setValues] = useState<Values>(EMPTY)
+  // Lu UNE FOIS à l'initialisation : un préremplissage qui se réappliquerait
+  // écraserait ce que la personne est en train d'écrire.
+  const [values, setValues] = useState<Values>(() => {
+    if (typeof window === 'undefined') return EMPTY
+    const prefill = prefillDepuisUrl(window.location.search, t)
+    return prefill ? { ...EMPTY, ...prefill } : EMPTY
+  })
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldName | 'consent', string>>>({})
   const [status, setStatus] = useState<Status>('idle')
   const [formError, setFormError] = useState<string | null>(null)
