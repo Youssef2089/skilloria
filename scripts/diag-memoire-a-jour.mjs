@@ -88,7 +88,20 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const MEMOIRE = 'CLAUDE.md'
+/**
+ * LA MEMOIRE TIENT EN TROIS FICHIERS, et n'importe lequel des trois compte.
+ *
+ *   CLAUDE.md est charge a chaque session : il ne porte que ce qu'on doit
+ *   avoir sous les yeux AVANT d'ecrire (regle de maintenance, §D, §E, §G).
+ *   §A/§B/§C/§F/§H vivent dans docs/architecture.md, §P1 a §P4 dans
+ *   docs/produit.md.
+ *
+ *   Exiger CLAUDE.md pour une migration serait faux depuis le decoupage : la
+ *   migration s'ecrit en §B, donc dans docs/architecture.md. Ce controle
+ *   accepte donc QUE L'UN DES TROIS ait ete touche — se tromper de fichier
+ *   n'est pas grave, ne rien ecrire l'est.
+ */
+const MEMOIRE = ['CLAUDE.md', 'docs/architecture.md', 'docs/produit.md']
 const ECHAPPATOIRE = '[memoire:n/a]'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -154,9 +167,10 @@ try {
 } catch {
   nAPasTourne('Hors depot git : il n’y a aucun commit a examiner.')
 }
-if (!existsSync(join(ROOT, MEMOIRE))) {
+const absents = MEMOIRE.filter((f) => !existsSync(join(ROOT, f)))
+if (absents.length > 0) {
   nAPasTourne(
-    `${MEMOIRE} est introuvable a la racine du depot.`,
+    `${absents.join(', ')} : introuvable(s). La memoire tient en TROIS fichiers.`,
     'Ce controle garde la memoire du projet : sans le fichier, il n’a pas d’objet.',
   )
 }
@@ -214,8 +228,9 @@ for (const sha of commits) {
   // ORDRE SIGNIFIANT : la mise a jour REELLE prime sur l'echappatoire.
   // L'inverse ferait dire « non documente, assume » d'un commit qui a fait le
   // travail — un compte-rendu faux, dans le sens le plus trompeur.
-  if (touches.includes(MEMOIRE)) {
-    ok(true, `${court} — ${declenches.length} ajout(s), ${MEMOIRE} mis a jour dans le meme commit`)
+  const ecrits = MEMOIRE.filter((f) => touches.includes(f))
+  if (ecrits.length > 0) {
+    ok(true, `${court} — ${declenches.length} ajout(s), ${ecrits.join(' + ')} mis a jour dans le meme commit`)
     continue
   }
 
@@ -239,13 +254,14 @@ for (const sha of commits) {
 
   // ON NOMME. Pas « rouge » : ce qui a ete ajoute, et ou ca s'ecrit.
   failures++
-  console.log(`  KO   ${court} — ${declenches.length} ajout(s) sans trace dans ${MEMOIRE}`)
+  console.log(`  KO   ${court} — ${declenches.length} ajout(s) sans trace dans la memoire`)
   console.log(`       ${sujet}`)
   for (const d of declenches) {
     console.log(`         · ${d.fichier}`)
     console.log(`           ${d.libelle} → a decrire en section ${d.section}`)
   }
-  console.log(`       Livrer sans mettre a jour ${MEMOIRE}, c’est livrer a moitie.`)
+  console.log(`       Livrer sans mettre a jour l’un des trois (${MEMOIRE.join(', ')}),`)
+  console.log(`       c’est livrer a moitie.`)
   console.log(`       Si c’est deliberement hors memoire : ${ECHAPPATOIRE} dans le message.`)
 }
 
@@ -277,7 +293,9 @@ if (verifierSections) {
     ['P3', 'les regles metier rassemblees'],
     ['P4', 'ce qui est volontairement inactif'],
   ]
-  const src = readFileSync(join(ROOT, MEMOIRE), 'utf8').split('\r\n').join('\n')
+  // Les trois fichiers concatenes : un chapitre peut vivre dans n'importe
+  // lequel, et le decoupage ne doit pas faire rougir ce controle.
+  const src = MEMOIRE.map((f) => readFileSync(join(ROOT, f), 'utf8').split('\r\n').join('\n')).join('\n')
 
   for (const [lettre, quoi] of CHAPITRES) {
     // Le titre, pas une mention : un `## X.` en debut de ligne.
