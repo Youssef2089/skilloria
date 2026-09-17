@@ -79,7 +79,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   // ── Contact = membre admin le plus ancien ──────────────────────────────
   const { data: memberRow, error: memberErr } = await auth.supabaseAdmin
     .from('organization_members')
-    .select('user_id, joined_at, users(id, first_name, last_name, email, job_title, linkedin_url, civility, locale)')
+    .select('user_id, joined_at, users!organization_members_user_id_fkey(id, first_name, last_name, email, job_title, linkedin_url, civility, locale)')
     .eq('organization_id', id)
     .eq('role_in_org', 'admin')
     .eq('status', 'active')

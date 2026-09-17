@@ -211,7 +211,7 @@ export default function MonEntreprisePage() {
     const { data: memberRow, error } = await supabase
       .from('organization_members')
       .select(
-        'role_in_org, organizations(id, company_name, org_type, siren, vat_number, sector, country, size, description, logo_url, website_url, email_domain, is_verified, verification_status, review_reason)',
+        'role_in_org, organizations!organization_members_organization_id_fkey(id, company_name, org_type, siren, vat_number, sector, country, size, description, logo_url, website_url, email_domain, is_verified, verification_status, review_reason)',
       )
       .eq('user_id', session.user.id)
       .eq('status', 'active')

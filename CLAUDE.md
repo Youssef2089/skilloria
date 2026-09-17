@@ -851,6 +851,52 @@ le rendu** (`if (src !== srcPrecedent) { … }`), **jamais** dans un `useEffect`
 `react-hooks/set-state-in-effect` refuse la seconde forme, et un effet s'exécutant après la peinture
 ferait scintiller le repli.
 
+**E.17 — Une SECONDE clé étrangère entre deux tables casse TOUS les embeds PostgREST entre elles.**
+
+**Trouvé en rejouant les migrations sur une base vierge, puis CONFIRMÉ EN LIGNE SUR STAGING.**
+
+La migration `20260914200010_siege_administrateur` a ajouté `organizations_siege_admin_fkey` — une
+clé étrangère **composite** de `organizations` vers `organization_members`, dans le sens inverse de
+`organization_members_organization_id_fkey` qui existait déjà. À partir de là, **tout** embed
+PostgREST entre ces deux tables répond :
+
+```
+Could not embed because more than one relationship was found
+for 'organization_members' and 'organizations'
+```
+
+**L'effet, et il était total.** `loadOrganizationContext` ([lib/auth-guard.ts](lib/auth-guard.ts))
+retourne `null` **sur erreur**. Donc tout membre d'une organisation devenait *sans organisation*, et
+chaque route gardée répondait **403 `no_organization`**. Le dashboard entreprise entier était mort —
+sur staging **comme sur toute base neuve**. Neuf requêtes étaient concernées, plus **trois** autres
+sur la paire `organization_members ↔ users` (`invited_by` + `user_id`), que le grep initial avait
+manquées et que le contrôle a trouvées.
+
+**Pourquoi personne ne l'a vu** — c'est la famille §E.1, dans sa forme la plus coûteuse :
+- `npx tsc` ne voit rien : l'embed est une **chaîne** ;
+- `next build` non plus, pour la même raison ;
+- la migration s'applique **sans la moindre erreur** — le schéma est parfaitement valide, c'est la
+  **lecture** qui devient ambiguë ;
+- et la panne ne se manifeste qu'**une fois connecté comme membre d'une organisation**, ce qu'aucun
+  contrôle statique ne fait.
+
+**La parade** : nommer le lien à suivre — `organizations!organization_members_organization_id_fkey(…)`.
+Le nom de contrainte **n'est pas décoratif** ; le retirer pour « simplifier » rouvre la panne. Le
+dépôt utilisait déjà cette forme ailleurs (`users!profiles_user_id_fkey`), sans que la raison en soit
+écrite nulle part.
+
+**Le contrôle** : [scripts/diag-embeds-ambigus.mjs](scripts/diag-embeds-ambigus.mjs) reconstruit le
+graphe des clés étrangères **depuis les migrations**, compte les liens par paire de tables, et rougit
+sur tout embed non désambiguïsé entre deux tables doublement liées. Il balaie `app/`, `lib/` **et**
+`components/`. Six paires sont ambiguës aujourd'hui — `organization_members ↔ users`,
+`organization_members ↔ organizations`, `organizations ↔ users`, `profiles ↔ users`,
+`publications ↔ users`, `referrals ↔ users` : **toute** nouvelle lecture entre elles doit nommer sa
+contrainte.
+
+**La leçon qui dépasse le cas** : ajouter une clé étrangère est une opération qu'on croit purement
+additive. Elle ne l'est pas — elle **change la façon dont on a le droit de LIRE** les deux tables
+qu'elle relie, partout, y compris dans du code écrit des mois plus tôt.
+
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
   acceptée et ne se déclenchera **jamais** : aucune erreur, aucune ligne dans `job_run_details`. D'où le

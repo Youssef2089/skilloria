@@ -124,7 +124,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   // ── Email (best-effort) ─────────────────────────────────────────────────
   const { data: memberRow } = await auth.supabaseAdmin
     .from('organization_members')
-    .select('users(email, first_name, locale, domain_id)')
+    .select('users!organization_members_user_id_fkey(email, first_name, locale, domain_id)')
     .eq('organization_id', organization_id)
     .eq('role_in_org', 'admin')
     .eq('status', 'active')
