@@ -2599,7 +2599,11 @@
       "ai_note_label": "KI-Notiz",
       "discrepancies_label": "Erkannte Abweichungen",
       "sirene_unavailable_title": "Sirene nicht verfügbar",
-      "sirene_unavailable_hint": "Die KI lief ohne offizielle INSEE-Daten. Überprüfen Sie die Unternehmensinformationen manuell, bevor Sie entscheiden."
+      "sirene_unavailable_hint": "Die KI lief ohne offizielle INSEE-Daten. Überprüfen Sie die Unternehmensinformationen manuell, bevor Sie entscheiden.",
+      "motif_revue_label": "Grund für die manuelle Prüfung",
+      "motif_pays_sans_decideur": "Für dieses Land ist keine Prüfinstanz konfiguriert. Das Dossier kommt PLANMÄSSIG hierher: Es ist kein Prüffehler, und es wurde nichts berechnet.",
+      "motif_plafond_depense_ia": "Die KI-Ausgabenobergrenze war erreicht: Die Prüfung wurde nicht versucht. Das ist kein Urteil über diese Organisation.",
+      "motif_revue_aide": "INTERNER Grund: Die Organisation sieht ihn nie. Ihr Bildschirm zeigt nur, dass ihr Dossier geprüft wird."
     },
     "status_pending": "Ausstehend",
     "status_approved": "Validiert",

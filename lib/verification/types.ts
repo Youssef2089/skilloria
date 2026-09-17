@@ -117,12 +117,50 @@ export type VerificationOutput = {
 }
 
 /** Verdict final retourné par `runVerification()` au caller. */
+/**
+ * MOTIF INTERNE d'une mise en revue humaine — pourquoi CE dossier-là est
+ * arrivé sur le bureau de l'admin.
+ *
+ * ═══ POURQUOI IL NE POUVAIT PAS RESTER DANS `notes` ═══════════════════════
+ *   `notes` est la NOTE DE L'IA, et la fiche back-office l'affiche sous le
+ *   libellé « Note IA ». Les branches de refus y écrivaient pourtant des
+ *   phrases qu'aucune IA n'a produites — dont « Aucun appel IA n'a été fait »,
+ *   rendu à l'écran sous « Note IA ». La forme mentait sur l'origine du texte.
+ *
+ * ═══ POURQUOI UN CODE, ET PAS SEULEMENT UNE PHRASE ════════════════════════
+ *   L'écran doit pouvoir DIRE CE QUE ÇA VEUT DIRE — « pays sans décideur : le
+ *   dossier arrive ici par conception, ce n'est pas un échec de vérification »
+ *   — en quatre langues. Sur une phrase française libre il faudrait la
+ *   renifler ; sur un code il la traduit. Le code se lit, la prose s'affiche.
+ *
+ * ⚠️ CE MOTIF EST INTERNE. Il n'est exposé qu'à l'admin. Le message rendu à
+ *    l'organisation reste neutre et ne dit rien du pays ni du registre : elle
+ *    n'a pas à connaître le fonctionnement interne pour être traitée.
+ */
+export type MotifRevue = {
+  /** Ce que le code a constaté. Lu par l'écran, jamais affiché tel quel. */
+  code: 'pays_sans_decideur' | 'plafond_depense_ia'
+  /** Détail technique libre (ex. la raison rendue par le plafond). */
+  detail: string
+}
+
 export type VerificationVerdict = {
   verification_status: VerificationStatus
   verification_method: VerificationMethod | null
   verification_data: {
-    score: number
+    /**
+     * Score de confiance rendu par l'IA.
+     *
+     * `null` QUAND RIEN N'A ÉTÉ NOTÉ — pays sans décideur, plafond de dépense
+     * atteint. Ces branches écrivaient `0`, ce que la fiche affichait « 0 » en
+     * rouge : une organisation étrangère au dossier parfait y ressemblait à un
+     * zéro pointé. Un score inventé est pire qu'un score absent.
+     */
+    score: number | null
+    /** Note rédigée par l'IA. Absente quand l'IA n'a pas tourné. */
     notes?: string
+    /** Motif INTERNE de mise en revue humaine. Cf. MotifRevue. */
+    motif_revue?: MotifRevue | null
     last_provider?: string
     attempts_count: number
     /**

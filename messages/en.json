@@ -2599,7 +2599,11 @@
       "ai_note_label": "AI note",
       "discrepancies_label": "Discrepancies detected",
       "sirene_unavailable_title": "Sirene unavailable",
-      "sirene_unavailable_hint": "The AI ran without official INSEE data. Verify the company information manually before deciding."
+      "sirene_unavailable_hint": "The AI ran without official INSEE data. Verify the company information manually before deciding.",
+      "motif_revue_label": "Reason for manual review",
+      "motif_pays_sans_decideur": "No verification decider is configured for this country. The file arrives here BY DESIGN: it is not a verification failure, and nothing was charged.",
+      "motif_plafond_depense_ia": "The AI spending cap had been reached: verification was not attempted. This is not a judgement on this organisation.",
+      "motif_revue_aide": "INTERNAL reason: the organisation never sees it. Its own screen only states that its file is being validated."
     },
     "status_pending": "Pending",
     "status_approved": "Approved",

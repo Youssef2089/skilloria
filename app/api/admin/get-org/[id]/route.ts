@@ -1,6 +1,23 @@
 import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
+import type { MotifRevue } from '@/lib/verification/types'
+
+/**
+ * `verification_data` est du JSON libre en base : une ligne écrite par une
+ * version antérieure peut porter n'importe quoi. On ne rend donc un motif
+ * que s'il a la FORME attendue — un code connu et un détail textuel. Un code
+ * inconnu ne serait pas traduisible par l'écran : on le laisse tomber plutôt
+ * que d'afficher une étiquette vide.
+ */
+const CODES_MOTIF: readonly MotifRevue['code'][] = ['pays_sans_decideur', 'plafond_depense_ia']
+
+function motifRevueValide(brut: unknown): MotifRevue | null {
+  if (!brut || typeof brut !== 'object') return null
+  const { code, detail } = brut as { code?: unknown; detail?: unknown }
+  if (typeof code !== 'string' || !(CODES_MOTIF as readonly string[]).includes(code)) return null
+  return { code: code as MotifRevue['code'], detail: typeof detail === 'string' ? detail : '' }
+}
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -15,7 +32,7 @@ export const dynamic = 'force-dynamic'
  *   - contact : nom/poste/email/linkedin du membre admin le plus ancien
  *     (role_in_org='admin', status='active', ORDER BY joined_at ASC LIMIT 1)
  *   - verification : extrait de verification_data (méthode, score, notes,
- *     had_rejection, rejected_by, last_provider)
+ *     motif_revue, had_rejection, rejected_by, last_provider)
  *
  * Garde admin via requireAdmin. service_role.
  */
@@ -113,8 +130,9 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   const vd =
     (org.verification_data as
       | {
-          score?: number
+          score?: number | null
           notes?: string
+          motif_revue?: MotifRevue | null
           last_provider?: string
           attempts_count?: number
           had_rejection?: boolean
@@ -131,6 +149,12 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     status: org.verification_status as string | null,
     score: typeof vd?.score === 'number' ? vd.score : null,
     notes: vd?.notes ?? null,
+    // MOTIF INTERNE de mise en revue — exposé À L'ADMIN SEUL. Il dit pourquoi
+    // le dossier est ici : un pays sans décideur configuré et un faux négatif
+    // de registre se ressemblaient sur cette fiche, alors qu'ils ne
+    // s'instruisent pas de la même façon. Le message rendu à l'organisation,
+    // lui, ne change pas et reste neutre.
+    motif_revue: motifRevueValide(vd?.motif_revue),
     last_provider: vd?.last_provider ?? null,
     attempts_count: vd?.attempts_count ?? null,
     had_rejection: vd?.had_rejection ?? false,

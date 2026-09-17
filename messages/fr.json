@@ -2599,7 +2599,11 @@
       "ai_note_label": "Note IA",
       "discrepancies_label": "Écarts détectés",
       "sirene_unavailable_title": "Sirene indisponible",
-      "sirene_unavailable_hint": "L'IA a tourné sans données officielles INSEE. Vérifier manuellement les informations de l'entreprise avant de décider."
+      "sirene_unavailable_hint": "L'IA a tourné sans données officielles INSEE. Vérifier manuellement les informations de l'entreprise avant de décider.",
+      "motif_revue_label": "Motif de la mise en revue",
+      "motif_pays_sans_decideur": "Aucun décideur de vérification n'est configuré pour ce pays. Le dossier arrive ici PAR CONCEPTION : ce n'est pas un échec de vérification, et rien n'a été facturé.",
+      "motif_plafond_depense_ia": "Le plafond de dépense IA était atteint : la vérification n'a pas été tentée. Ce n'est pas un jugement porté sur cette organisation.",
+      "motif_revue_aide": "Motif INTERNE : l'organisation ne le voit jamais. Son écran indique seulement que son dossier est en cours de validation."
     },
     "status_pending": "En attente",
     "status_approved": "Validée",

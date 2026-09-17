@@ -2599,7 +2599,11 @@
       "ai_note_label": "Nota IA",
       "discrepancies_label": "Discrepancias detectadas",
       "sirene_unavailable_title": "Sirene no disponible",
-      "sirene_unavailable_hint": "La IA se ejecutó sin datos oficiales INSEE. Verifica manualmente la información de la empresa antes de decidir."
+      "sirene_unavailable_hint": "La IA se ejecutó sin datos oficiales INSEE. Verifica manualmente la información de la empresa antes de decidir.",
+      "motif_revue_label": "Motivo de la revisión manual",
+      "motif_pays_sans_decideur": "No hay ningún decisor de verificación configurado para este país. El expediente llega aquí POR DISEÑO: no es un fallo de verificación y no se ha facturado nada.",
+      "motif_plafond_depense_ia": "Se había alcanzado el tope de gasto de IA: no se intentó la verificación. No es un juicio sobre esta organización.",
+      "motif_revue_aide": "Motivo INTERNO: la organización nunca lo ve. Su pantalla solo indica que su expediente está en proceso de validación."
     },
     "status_pending": "Pendiente",
     "status_approved": "Validada",
