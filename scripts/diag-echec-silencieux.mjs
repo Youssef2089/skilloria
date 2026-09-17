@@ -8,7 +8,8 @@
  * ║  Un `catch` qui rend `null`. Un `if (error)` qui rend `[]`. Un compteur   ║
  * ║  qui rend `0` quand il n'a pas pu compter. Aucun de ces trois n'est un    ║
  * ║  défaut en soi — et c'est précisément ce qui les rend coûteux : sur les   ║
- * ║  quarante et une occurrences balayées, trente-cinq sont légitimes.        ║
+ * ║  trente-sept occurrences mesurees au debut du lot, trente-trois sont      ║
+ * ║  legitimes.                                                              ║
  * ║                                                                          ║
  * ║  Le défaut naît une ligne plus loin, chez l'APPELANT : quand la valeur    ║
  * ║  neutre traverse une GARDE, qui la lit comme un FAIT et en tire un refus  ║
@@ -18,10 +19,15 @@
  * ║  pas une garde qu'on n'a pas pu évaluer. C'est le MOTIF qui ment, et les  ║
  * ║  deux se règlent séparément.                                             ║
  * ║                                                                          ║
- * ║  Cas source : `loadOrganizationContext` (lib/auth-guard.ts). SIX cas au   ║
+ * ║  Cas source : `loadOrganizationContext` (lib/auth-guard.ts). NEUF cas au  ║
  * ║  total — quatre qui refusaient à tort, un qui faisait SAUTER une          ║
- * ║  confirmation sur une action irréversible (la purge), et un qui           ║
- * ║  ADMETTAIT à tort (l'entrée en organisation). Cf. CLAUDE.md §E.22.        ║
+ * ║  confirmation sur une action irréversible (la purge), un qui ADMETTAIT à  ║
+ * ║  tort (l'entrée en organisation), et trois qui affirmaient un FAIT faux   ║
+ * ║  à l'écran ou en base. Cf. CLAUDE.md §E.22.                               ║
+ * ║                                                                          ║
+ * ║  ⚠️ TROIS ONT ÉTÉ TROUVÉS APRÈS UN PREMIER GEL TROP CONFIANT. Le cliquet   ║
+ * ║  ci-dessous fige un inventaire, il ne le JUGE pas : y porter une ligne     ║
+ * ║  sans l'ouvrir, c'est déclarer légitime ce qu'on n'a pas lu.              ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  *
  * CE QU'IL VÉRIFIE
@@ -157,7 +163,7 @@ for (const f of sources) {
  *
  * La dette est FIGÉE fichier par fichier, avec sa forme et sa valeur — jamais
  * par numéro de ligne, qui bouge au premier commentaire ajouté. Le cliquet ne
- * juge pas les 35 occurrences existantes : la plupart sont légitimes (un
+ * juge pas les 33 occurrences existantes : la plupart sont légitimes (un
  * formateur de date qui rend `null`, un pitch best-effort). Il refuse qu'il en
  * apparaisse une NOUVELLE sans qu'on ait regardé ce que l'appelant en fait.
  *
@@ -171,10 +177,12 @@ const GEL = {
   'app/[locale]/dashboard/cdi/mon-profil/page.tsx': { 'catch:null': 1 },
   'app/api/admin/durees/route.ts': { 'erreur:null': 1 },
   'app/api/admin/ecosystemes/[id]/impact/route.ts': { 'erreur:null': 3 },
-  'app/api/admin/org-usage/route.ts': { 'erreur:0': 2 },
+  // Étaient `erreur:0` — un compteur en panne qui affichait zéro. Devenus
+  // `erreur:null` : la forme demeure, le sens s'inverse (§E.22, cas ⑨).
+  'app/api/admin/org-usage/route.ts': { 'erreur:null': 2 },
   'app/api/admin/user-purge/route.ts': { 'erreur:null': 1 },
   'app/api/auth/finalize-org-registration/route.ts': { 'catch:false': 1 },
-  'app/api/me/organisation/offre/route.ts': { 'catch:null': 2, 'erreur:0': 1 },
+  'app/api/me/organisation/offre/route.ts': { 'catch:null': 2, 'erreur:null': 1 },
   'components/NotificationBell.tsx': { 'catch:[]': 1 },
   'components/OrgSetupModal.tsx': { 'catch:false': 1 },
   'lib/admin/admin-invitation.ts': { 'erreur:false': 1, 'catch:false': 1 },
@@ -195,7 +203,9 @@ const GEL = {
   'lib/org-members.ts': { 'erreur:null': 2 },
   'lib/use-org-role.ts': { 'catch:null': 1 },
   'lib/verification/ai-expert-verification.ts': { 'catch:null': 3 },
-  'lib/verification/expert-verification.ts': { 'erreur:null': 2 },
+  // `lib/verification/expert-verification.ts` A QUITTÉ CE GEL : ses deux
+  // `return null` sont devenus des motifs nommés (§E.22, cas ⑦ et ⑧). Ne pas
+  // le remettre « pour mémoire » — une ligne gelée à 0 se lit comme une dette.
 }
 
 section('A. CLIQUET — le recensement de la classe est figé')
@@ -506,6 +516,92 @@ for (const [f, cle] of [
     manquantes.length ? `manque : ${manquantes.join(', ')}` : undefined,
   )
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * G. LA VÉRIFICATION D'EXPERT DIT CE QUI LUI MANQUE
+ *
+ * `loadConfig` rendait `null` pour QUATRE situations — lecture impossible,
+ * non configuré, ambigu, incomplet — et l'appelant écrivait EN BASE, sous les
+ * yeux de l'administrateur, « Provider profile_verification non configuré ».
+ * Sur une panne de lecture, cette phrase envoie configurer ce qui l'est déjà.
+ * `loadProfileForVerification` faisait pire : son propre commentaire nommait la
+ * distinction (« envoie chercher un profil disparu qui se porte très bien »),
+ * puis rendait `null` dans les deux cas — et l'appelant n'écrivait RIEN. Le
+ * profil restait en `pending`, « vérification en cours », indéfiniment, sans
+ * qu'aucun humain soit saisi.
+ * ════════════════════════════════════════════════════════════════════════ */
+
+section("G. La vérification d'expert nomme ce qui manque, et saisit un humain")
+
+const verif = sansCommentaires(read('lib/verification/expert-verification.ts'))
+ok(
+  /MotifConfigAbsente =[^\n]*'lecture_impossible'/.test(verif) &&
+    /'non_configure'/.test(verif) &&
+    /'ambigu'/.test(verif) &&
+    /'incomplet'/.test(verif),
+  'expert-verification : quatre motifs distincts, plus un `null` pour quatre situations',
+)
+{
+  // Les quatre NOTES doivent être distinctes : c'est la note qui est écrite en
+  // base et lue par l'administrateur, pas le motif interne.
+  const bloc = blocApres(verif, verif.indexOf('const NOTE')) ?? ''
+  const notes = [...bloc.matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((m) => m[1]).filter((t) => t.length > 30)
+  ok(
+    notes.length >= 4 && new Set(notes).size === notes.length,
+    'expert-verification : les quatre notes écrites en base sont DISTINCTES',
+    "c'est la note que l'administrateur lit, et elle décide de ce qu'il va regarder",
+  )
+}
+ok(
+  /return 'indisponible'/.test(verif) &&
+    /loaded === 'indisponible'/.test(verif),
+  'expert-verification : la lecture de profil en échec est distinguée de « profil absent »',
+)
+{
+  const bloc = blocApres(verif, verif.indexOf("if (loaded === 'indisponible')")) ?? ''
+  ok(
+    /verification_status: 'pending_admin_review'/.test(bloc) && /\.update\(/.test(bloc),
+    'expert-verification : elle ÉCRIT, et saisit un humain — elle ne se tait plus',
+    "ne rien écrire laissait le profil en `pending` : « en cours », pour toujours",
+  )
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * H. UN COMPTEUR EN PANNE N'AFFICHE PAS ZÉRO
+ *
+ * « 0 / 2 annonces ce mois-ci » lu par l'administrateur qui décide d'attribuer
+ * une offre pilote, et par l'organisation qui croit avoir toute sa place. Le
+ * dépôt portait déjà le bon choix deux fichiers plus loin
+ * (`ecosystemes/[id]/impact` rend `null` et l'écran montre « — ») ; ces deux
+ * compteurs-là rendaient `0`.
+ * ════════════════════════════════════════════════════════════════════════ */
+
+section("H. Un compteur illisible affiche « — », jamais zéro")
+
+for (const [f, label] of [
+  ['app/api/admin/org-usage/route.ts', 'back-office : consommation d’une organisation'],
+  ['app/api/me/organisation/offre/route.ts', 'organisation : sa propre consommation'],
+]) {
+  const code = sansCommentaires(read(f))
+  ok(
+    /Promise<number \| null>/.test(code) && !/return 0\b/.test(code),
+    `${label} — le compteur rend \`null\`, plus \`0\``,
+    'zéro affirme « rien consommé » au moment précis où l’on décide',
+  )
+}
+for (const [f, motif, label] of [
+  ['app/[locale]/admin/organisations/[id]/page.tsx', /used == null \? '—'/, "l'écran back-office"],
+  ['app/[locale]/dashboard/entreprise/offre/page.tsx', /used == null \? '—'/, "l'écran de l'organisation"],
+]) {
+  ok(motif.test(sansCommentaires(read(f))), `${label} — rend « — » sur un compteur illisible`)
+}
+ok(
+  /used != null && limit != null && used >= limit/.test(
+    sansCommentaires(read('app/[locale]/dashboard/entreprise/offre/page.tsx')),
+  ),
+  "l'écran de l'organisation — une consommation inconnue n'est ni « au plafond » ni « à zéro »",
+  'un repli à 0 aurait peint la barre vide et promis de la place non comptée',
+)
 
 /* ══════════════════════════════════════════════════════════════════════════
  * E. LES DEUX COMPTEURS NE SE CONFONDENT PAS

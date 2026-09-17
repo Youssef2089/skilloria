@@ -43,7 +43,7 @@ async function peek(
   orgId: string,
   key: string,
   period: string,
-): Promise<number> {
+): Promise<number | null> {
   const { data, error } = await admin.rpc('usage_peek', {
     p_org: orgId,
     p_key: key,
@@ -51,7 +51,7 @@ async function peek(
   })
   if (error) {
     console.warn('[admin:org-usage] usage_peek error', key, error.message)
-    return 0
+    return null
   }
   return typeof data === 'number' ? data : 0
 }
@@ -66,7 +66,7 @@ async function countActivePublished(
   orgId: string,
   /** Vie d'une annonce, en jours — EXIGÉE, lue par la route (lib/durees.ts). */
   vieAnnonceJours: number,
-): Promise<number> {
+): Promise<number | null> {
   const { count, error } = await admin
     .from('publications')
     .select('id', { count: 'exact', head: true })
@@ -75,7 +75,7 @@ async function countActivePublished(
     .or(activePublishedOrClause({ vieAnnonceJours }))
   if (error) {
     console.warn('[admin:org-usage] active publications count error', error.message)
-    return 0
+    return null
   }
   return count ?? 0
 }

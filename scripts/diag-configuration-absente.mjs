@@ -84,7 +84,13 @@ const CHEMINS = [
   {
     fichier: 'lib/verification/expert-verification.ts',
     quoi: 'verification d’expert',
-    refus: /if\s*\(\s*!\s*config\s*\)/,
+    // ⚠️ L'ancre a suivi un renommage, et elle S'EST RESSERREE.
+    //   `if (!config)` couvrait QUATRE situations — lecture impossible, non
+    //   configure, ambigu, incomplet — sous un seul motif, et l'appelant
+    //   ecrivait « provider non configure » pour les quatre. Le chemin
+    //   distingue desormais (CLAUDE.md §E.22, cas ⑦) : le refus se lit sur le
+    //   type du motif, pas sur la faussete de `config`.
+    refus: /if\s*\(\s*typeof\s+config\s*===\s*'string'\s*\)/,
     statut: /verification_status:\s*'pending_admin_review'/,
     appelIA: /runExpertCoherenceCheck\s*\(/,
   },

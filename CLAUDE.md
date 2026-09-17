@@ -954,10 +954,18 @@ rougirait sur sa propre explication.
 **E.22 — UNE ERREUR TECHNIQUE CONVERTIE EN REFUS MÉTIER : LE REFUS EST JUSTE, LE MOTIF MENT.**
 
 C'est la classe dont §E.18 n'était qu'un **cas particulier** — et elle a été balayée après lui, sur
-`app/`, `lib/` **et** `components/` (457 fichiers). **Quarante et une occurrences** de la forme :
+`app/`, `lib/` **et** `components/` (457 fichiers). **Trente-sept occurrences** de la forme :
 un `catch` qui rend `null`, un `if (error)` qui rend `[]`, un compteur qui rend `0` quand il n'a
-pas pu compter. **Trente-cinq sont légitimes** — un formateur de date, un pitch best-effort — et
-c'est précisément ce qui rend la classe coûteuse : le motif n'est pas un défaut.
+pas pu compter — **mesurées sur l'arbre du commit `c063ad1`, pas déduites**. Trente-trois le sont
+restées, et elles sont **légitimes** : un formateur de date, un pitch best-effort, une validation de
+format qui rend `false` parce que la chaîne n'en est effectivement pas une. C'est précisément ce qui
+rend la classe coûteuse — **le motif n'est pas un défaut**.
+
+> ⚠️ **ET LE BALAYAGE EST UN FILET, PAS UNE PREUVE.** Il cherche une valeur neutre **rendue** dans un
+> bloc d'erreur. Le cas ⑤ ci-dessous ne rend rien du tout : il laisse un tableau **pré-initialisé**
+> à `[]` et sort du bloc `if (memErr)` sans écrire. Aucun motif textuel ne l'attrape ; il a été
+> trouvé en **suivant la valeur jusqu'à l'écran**. Huit des neuf cas sont dans les trente-sept ; le
+> neuvième dit ce que ce genre de balayage ne verra jamais.
 
 **Le défaut naît une ligne plus loin, chez l'APPELANT**, quand la valeur neutre traverse une **garde**
 qui la lit comme un **fait** et en tire un refus **nommé**.
@@ -969,7 +977,7 @@ une seconde clé étrangère a rendu l'embed ambigu (§E.18), cette lecture a co
 **le dashboard entreprise entier est mort en accusant l'utilisateur** : « vous n'appartenez à aucune
 organisation », dit à un membre parfaitement légitime, sur staging et sur toute base neuve.
 
-**LES SIX CAS, ET LEURS TROIS CONSÉQUENCES DIFFÉRENTES.**
+**LES NEUF CAS, ET LEURS QUATRE CONSÉQUENCES DIFFÉRENTES.**
 
 | # | Où | Ce que la valeur neutre produisait | Nature |
 |---|---|---|---|
@@ -979,6 +987,26 @@ organisation », dit à un membre parfaitement légitime, sur staging et sur tou
 | ④ | `loadAdminActionTarget` ([lib/admin/user-actions-guard.ts](lib/admin/user-actions-guard.ts)) | 404 `target_not_found` | « cet utilisateur n'existe pas », dit d'un compte réel |
 | ⑤ | l'avertissement de purge (`app/api/admin/get-user/[id]/route.ts`) | liste vide ⇒ **aucun avertissement affiché** | l'admin décide en croyant qu'il n'y a rien à perdre |
 | ⑥ | `joinBlockReason` ([lib/org-members.ts](lib/org-members.ts)) | `null` = **AUTORISÉ** ⇒ un compte expert entrait dans une organisation | **le seul FAIL-OPEN** |
+| ⑦ | `loadConfig` ([lib/verification/expert-verification.ts](lib/verification/expert-verification.ts)) | note écrite **en base** : « provider non configuré » — sur une panne de **lecture** | motif faux, **persisté**, lu par l'admin |
+| ⑧ | `loadProfileForVerification` (même fichier) | **rien n'était écrit** ⇒ profil figé en `pending`, « vérification en cours » pour toujours | **mensonge par omission** |
+| ⑨ | `usage_peek` ([app/api/admin/org-usage/route.ts](app/api/admin/org-usage/route.ts), [app/api/me/organisation/offre/route.ts](app/api/me/organisation/offre/route.ts)) | `0` ⇒ « 0 / 2 annonces ce mois-ci » | **chiffre faux à l'écran**, au moment de décider |
+
+**⑦ ⑧ ⑨ ONT ÉTÉ TROUVÉS APRÈS COUP, EN RELISANT CE QUE J'AVAIS GELÉ.** Le premier passage avait
+figé `lib/verification/expert-verification.ts` et les deux compteurs de consommation sans les
+ouvrir — au motif qu'ils « ressemblaient » aux autres cas légitimes. Ils ne l'étaient pas.
+**Un cliquet ne dispense pas de lire chaque ligne qu'on y met** : il fige un inventaire, il ne le
+juge pas. C'est la leçon la plus chère de ce lot, et elle vaut pour tous les cliquets du dépôt.
+
+**⑧ est le plus instructif.** Le commentaire du bloc `if (error)` **nommait déjà la distinction** —
+« les confondre envoie chercher un profil disparu qui se porte très bien » — et la ligne suivante
+rendait `null` dans les deux cas. Un commentaire juste au-dessus d'un code qui ne le suit pas est
+**pire qu'un fichier muet** : il fait croire que la question a été traitée (famille §E.7).
+
+**⑨ avait déjà sa réponse dans le dépôt.** `app/api/admin/ecosystemes/[id]/impact/route.ts` rend
+`null` sur exactement le même motif, et son commentaire dit pourquoi : « un compteur en panne qui
+affiche zéro dirait *il n'y a rien à perdre* au moment précis où on décide de couper ». Deux
+fichiers plus loin, le même compteur rendait `0`. **La bonne pratique était écrite ; elle n'était
+pas gardée.**
 
 **② mérite d'être lu deux fois.** L'en-tête de la route écrivait que l'avertissement était
 best-effort, « parce que c'est un AVERTISSEMENT et non une garde ; aucune des trois barrières n'en
@@ -1014,10 +1042,17 @@ ce qui n'a pas marché (une **lecture**), ce qui n'a **pas** été fait (rien n'
 `invitation_public.err_join_check_unavailable`.
 
 **LE CONTRÔLE** : [scripts/diag-echec-silencieux.mjs](scripts/diag-echec-silencieux.mjs) —
-**41 assertions, 11 mutations, 11 détectées**. Six sections : un **cliquet** sur le recensement (une
-occurrence NEUVE rougit, la dette ne peut que décroître) ; les cinq réparations ancrées **sur le bloc
-qu'elles visent** (§E.8) ; l'**ordre** des tests chez chaque appelant ; la parité i18n des motifs ;
-le fail-open ⑥ ; et la non-confusion des deux compteurs d'administrateurs.
+**50 assertions, 16 mutations jouées, 16 détectées**. Huit sections : un **cliquet** sur le
+recensement (une occurrence NEUVE rougit, la dette ne peut que décroître — **33 gelées**, toutes
+relues une par une après l'erreur ci-dessus) ; les réparations ancrées **sur le bloc qu'elles
+visent** (§E.8) ; l'**ordre** des tests chez chaque appelant ; la parité i18n des motifs ; le
+fail-open ⑥ ; les motifs de la vérification d'expert ⑦ ⑧ ; les compteurs ⑨ ; et la non-confusion des
+deux compteurs d'administrateurs.
+
+> **Le cliquet a mordu sur mes propres réparations**, et c'est le signe qu'il fonctionne : en
+> passant les compteurs de `0` à `null`, la forme `erreur:null` est devenue *neuve* dans deux
+> fichiers. Il a fallu rouvrir le GEL et écrire **pourquoi** la même forme y change de sens. Un
+> cliquet qui ne bronche jamais sur une amélioration ne regarde pas ce qu'il prétend regarder.
 
 > **Il ne double pas [scripts/diag-erreurs-avalees.mjs](scripts/diag-erreurs-avalees.mjs)**, qui
 > existait déjà et qui **recense** 143 emplacements en rendant toujours 0 — « ni un contrôle qui

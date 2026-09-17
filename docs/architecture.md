@@ -406,9 +406,13 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   pas.
 
 **Erreurs converties en verdicts (§E.22)**
-- **Les six cas identifiés sont fermés**, et le recensement de la classe est **sous cliquet**
-  ([scripts/diag-echec-silencieux.mjs](../scripts/diag-echec-silencieux.mjs)) : **35 occurrences
-  gelées**, toutes relues, aucune ne traverse une garde. Une NEUVE rougit.
+- **Les neuf cas identifiés sont fermés**, et le recensement de la classe est **sous cliquet**
+  ([scripts/diag-echec-silencieux.mjs](../scripts/diag-echec-silencieux.mjs)) : **37 occurrences
+  au départ** (mesurées sur `c063ad1`), **33 gelées** aujourd'hui, **toutes relues une par une** —
+  aucune ne traverse une garde. Une NEUVE rougit.
+  ⚠️ **Trois des neuf ont été trouvés APRÈS un premier gel trop confiant.** Un cliquet fige un
+  inventaire, il ne le juge pas : y mettre une ligne sans l'ouvrir, c'est déclarer légitime ce
+  qu'on n'a pas lu. La leçon vaut pour tous les cliquets du dépôt.
 - Ce qui reste ouvert, et c'est un **choix de couverture, pas un défaut** :
   [scripts/diag-erreurs-avalees.mjs](../scripts/diag-erreurs-avalees.mjs) recense **143 emplacements
   sur 68 fichiers** de la même famille élargie (erreur **non lue**, erreur **ignorée**, erreur

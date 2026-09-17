@@ -36,7 +36,19 @@ function json(data: unknown, status = 200): Response {
 
 type Admin = Awaited<ReturnType<typeof requireAuth>>['supabaseAdmin']
 
-async function peek(admin: Admin, orgId: string, key: string, period: string): Promise<number> {
+/**
+ * `null` — ET SURTOUT PAS `0`.
+ *
+ *   Un compteur en panne qui affiche zéro dit « cette organisation n'a rien
+ *   consommé ce mois-ci » : une phrase fausse, lue au moment précis où l'on
+ *   décide de lui attribuer une offre pilote. L'écran montre « — ».
+ *
+ *   Le dépôt porte déjà ce choix, deux fichiers plus loin :
+ *   `app/api/admin/ecosystemes/[id]/impact/route.ts` rend `null` sur le même
+ *   motif, avec la même note (« un compteur en panne qui affiche zéro dirait
+ *   qu'il n'y a rien à perdre »). Ici, il rendait `0` (§E.22).
+ */
+async function peek(admin: Admin, orgId: string, key: string, period: string): Promise<number | null> {
   const { data, error } = await admin.rpc('usage_peek', {
     p_org: orgId,
     p_key: key,
@@ -44,7 +56,7 @@ async function peek(admin: Admin, orgId: string, key: string, period: string): P
   })
   if (error) {
     console.warn('[me/organisation/offre] usage_peek error', key, error.message)
-    return 0
+    return null
   }
   return typeof data === 'number' ? data : 0
 }

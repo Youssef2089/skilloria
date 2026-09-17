@@ -144,10 +144,24 @@ ok(
   'Le quota MENSUEL est une autre limite : afficher l’un pour l’autre égare.',
 )
 
+// Le COMPTE illisible ne se remplace pas par zero.
+ok(
+  /const u = used == null \? '—' : String\(used\)/.test(ecranOrg),
+  'un compteur illisible s’affiche « — », jamais 0',
+  'Zero affirme « rien consomme » a celui qui s’apprete a attribuer une offre.',
+)
+
 // « Illimité » doit s'écrire, pas se deviner. Un plafond nul rendu en nombre
 // afficherait « 3 / 0 », et rendu en vide afficherait « 3 / ».
+//
+// ⚠️ LE COMPTE, LUI, PEUT DESORMAIS ETRE INCONNU. `used` est `number | null` :
+//    un compteur en panne affiche « — / 2 » et non « 0 / 2 », qui affirmait
+//    « rien consomme » au moment precis ou l'on decide d'attribuer une offre
+//    (CLAUDE.md §E.22, cas ⑨). Les deux regles sont distinctes et toutes deux
+//    verifiees ici : le PLAFOND absent s'ecrit « illimite », le COMPTE
+//    illisible s'ecrit « — ». Aucune des deux ne se devine.
 ok(
-  /limit == null \? `\$\{used\} \/ \$\{t\('pilot\.unlimited'\)\}`/.test(ecranOrg),
+  /limit == null \? `\$\{u\} \/ \$\{t\('pilot\.unlimited'\)\}`/.test(ecranOrg),
   'un plafond absent s’affiche « illimité », ni 0 ni vide',
   'C’est l’inversion corrigée au lot 3 : un plafond nul veut dire SANS limite.',
 )

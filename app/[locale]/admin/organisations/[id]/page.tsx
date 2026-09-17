@@ -901,7 +901,8 @@ type UsageAvailable = {
     revealedCandidatesPerPublication: number | null
     manualUnlocksPerMonth: number | null
   }
-  usage: { publications: number; manual_unlocks: number; active_published: number }
+  /** `null` = le compteur n'a pas pu être lu. JAMAIS confondu avec `0` (§E.22). */
+  usage: { publications: number | null; manual_unlocks: number | null; active_published: number | null }
   period_start: string
 }
 /**
@@ -959,8 +960,14 @@ function OrgPackageSection({ orgId, orgType }: { orgId: string; orgType: string 
     (p) => p.active && p.scope === 'organization' && p.target_role === targetRole,
   )
 
-  function fmtLimit(used: number, limit: number | null): string {
-    return limit == null ? `${used} / ${t('pilot.unlimited')}` : `${used} / ${limit}`
+  /**
+   * `used === null` ⇒ « — / N ». On ne sait pas ce qui a été consommé, et on
+   * ne le remplace pas par zéro : l'administrateur s'apprête à attribuer une
+   * offre, et « 0 / 2 » lui dirait qu'il reste toute la place (§E.22).
+   */
+  function fmtLimit(used: number | null, limit: number | null): string {
+    const u = used == null ? '—' : String(used)
+    return limit == null ? `${u} / ${t('pilot.unlimited')}` : `${u} / ${limit}`
   }
   function fmtDate(iso: string | null): string {
     if (!iso) return '—'

@@ -109,7 +109,23 @@ function normalizeLocale(raw: string | null | undefined): Locale {
   return 'fr'
 }
 
-async function loadConfig(supabaseAdmin: SupabaseClient): Promise<ExpertVerificationConfig | null> {
+/**
+ * QUATRE SITUATIONS, QUATRE MOTIFS — et elles rendaient toutes `null`.
+ *
+ *   `runExpertVerification` écrivait alors, EN BASE et sous les yeux de
+ *   l'administrateur, « Provider profile_verification non configuré ». Sur une
+ *   erreur de LECTURE ou sur une configuration AMBIGUË, cette phrase est
+ *   fausse : elle envoie configurer un fournisseur qui l'est déjà, et le vrai
+ *   défaut — la panne, ou les deux lignes actives — reste invisible.
+ *
+ *   L'issue ne change pas (revue manuelle, aucun appel IA, aucune
+ *   auto-approbation) : c'est le MOTIF qui devient exact (§E.22).
+ */
+type MotifConfigAbsente = 'lecture_impossible' | 'non_configure' | 'ambigu' | 'incomplet'
+
+async function loadConfig(
+  supabaseAdmin: SupabaseClient,
+): Promise<ExpertVerificationConfig | MotifConfigAbsente> {
   // ── AUCUN `limit(1)` : UNE CONFIGURATION AMBIGUË SE DIT, ELLE NE SE TRANCHE
   //    PAS EN SILENCE ────────────────────────────────────────────────────────
   //
@@ -133,7 +149,7 @@ async function loadConfig(supabaseAdmin: SupabaseClient): Promise<ExpertVerifica
     .order('priority', { ascending: true })
   if (error) {
     console.error('[expert-verification] config load failed', error.message)
-    return null
+    return 'lecture_impossible'
   }
   const lignes = (data ?? []) as unknown as {
     confidence_threshold: number
@@ -141,13 +157,13 @@ async function loadConfig(supabaseAdmin: SupabaseClient): Promise<ExpertVerifica
     config: RawConfig | null
     country_code: string
   }[]
-  if (lignes.length === 0) return null
+  if (lignes.length === 0) return 'non_configure'
   if (lignes.length > 1) {
     console.error('[expert-verification] configuration ambiguë — plusieurs lignes actives', {
       provider_type: PROVIDER_TYPE,
       pays: lignes.map((l) => l.country_code),
     })
-    return null
+    return 'ambigu'
   }
   const row = lignes[0]
   const cfg = (row.config ?? {}) as RawConfig
@@ -198,7 +214,7 @@ async function loadConfig(supabaseAdmin: SupabaseClient): Promise<ExpertVerifica
       web_search_max_uses,
       domain_mismatch_cap,
     })
-    return null
+    return 'incomplet'
   }
   return { model, fallback_model, max_tokens, request_timeout_ms, auto_approve_threshold: auto_approve, web_search_max_uses, domain_mismatch_cap, blocking_flags }
 }
@@ -206,7 +222,11 @@ async function loadConfig(supabaseAdmin: SupabaseClient): Promise<ExpertVerifica
 async function loadProfileForVerification(
   supabaseAdmin: SupabaseClient,
   profileId: string,
-): Promise<{ row: ProfileRow; experiences: ExpertVerificationInput['experiences']; educations: ExpertVerificationInput['educations']; languages: string[]; domain_name: string; domain_tags: string[] } | null> {
+): Promise<
+  | { row: ProfileRow; experiences: ExpertVerificationInput['experiences']; educations: ExpertVerificationInput['educations']; languages: string[]; domain_name: string; domain_tags: string[] }
+  | null
+  | 'indisponible'
+> {
   const { data, error } = await supabaseAdmin
     .from('profiles')
     .select(
@@ -225,7 +245,13 @@ async function loadProfileForVerification(
       profileId,
       message: error.message,
     })
-    return null
+    // ⚠️ LE COMMENTAIRE CI-DESSUS ÉTAIT JUSTE, LE CODE NE LE SUIVAIT PAS.
+    //    Il nommait la distinction puis rendait `null` dans les deux cas :
+    //    l'appelant sortait en `profile_not_found` SANS RIEN ÉCRIRE, et le
+    //    profil restait en `pending` — donc « vérification en cours » à
+    //    l'écran, indéfiniment, sans qu'aucun humain soit saisi. Un mensonge
+    //    par omission coûte plus cher qu'un refus (§E.22).
+    return 'indisponible'
   }
   if (!data) {
     console.warn('[expert-verification] profil introuvable', { profileId })
@@ -346,21 +372,47 @@ export async function runExpertVerification(args: {
 
   // 1. Config
   const config = await loadConfig(supabaseAdmin)
-  if (!config) {
-    // Pas de provider → on remonte le profil en pending_admin_review (jamais auto)
+  if (typeof config === 'string') {
+    // L'ISSUE EST LA MÊME POUR LES QUATRE — revue manuelle, jamais d'auto —
+    // mais la NOTE écrite en base dit laquelle des quatre, parce que c'est elle
+    // que l'administrateur lit sur /admin/experts/[id] et c'est elle qui décide
+    // de ce qu'il va aller regarder.
+    const NOTE: Record<typeof config, string> = {
+      lecture_impossible:
+        'La configuration du fournisseur n’a pas pu être LUE (panne de base). Ce n’est pas un défaut de configuration — vérif manuelle requise, puis relancez.',
+      non_configure:
+        'Provider profile_verification non configuré — vérif manuelle requise.',
+      ambigu:
+        'PLUSIEURS lignes actives pour profile_verification : la configuration est ambiguë et n’a pas été tranchée au hasard. Vérif manuelle requise, puis corrigez /admin/seuils.',
+      incomplet:
+        'La configuration de profile_verification est INCOMPLÈTE (un champ requis manque) — vérif manuelle requise, puis corrigez /admin/seuils.',
+    }
     await supabaseAdmin
       .from('profiles')
       .update({
         verification_status: 'pending_admin_review',
         verification_method: 'manual_only',
-        verification_data: { notes: 'Provider profile_verification non configuré — vérif manuelle requise.' },
+        verification_data: { notes: NOTE[config] },
       })
       .eq('id', profile_id)
-    return { status: 'skipped', verification_status: 'pending_admin_review', score: null, notes: '', flags: [], discrepancies: [], model: null, reason: 'provider_not_configured' }
+    return { status: 'skipped', verification_status: 'pending_admin_review', score: null, notes: '', flags: [], discrepancies: [], model: null, reason: `config_${config}` }
   }
 
   // 2. Profile + tables liées
   const loaded = await loadProfileForVerification(supabaseAdmin, profile_id)
+  if (loaded === 'indisponible') {
+    // ON ÉCRIT. Ne rien écrire laissait le profil en `pending` — « vérification
+    // en cours » à l'écran, pour toujours, et aucun humain saisi.
+    await supabaseAdmin
+      .from('profiles')
+      .update({
+        verification_status: 'pending_admin_review',
+        verification_method: 'manual_only',
+        verification_data: { notes: 'Le profil n’a pas pu être LU pendant la vérification (panne de base). Le profil existe — vérif manuelle requise, puis relancez.' },
+      })
+      .eq('id', profile_id)
+    return { status: 'error', verification_status: 'pending_admin_review', score: null, notes: '', flags: [], discrepancies: [], model: null, reason: 'profile_read_failed' }
+  }
   if (!loaded) {
     return { status: 'skipped', verification_status: null, score: null, notes: '', flags: [], discrepancies: [], model: null, reason: 'profile_not_found' }
   }

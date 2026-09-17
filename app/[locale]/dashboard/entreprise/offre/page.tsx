@@ -35,7 +35,8 @@ type Payload = {
     revealedCandidatesPerPublication: number | null
     manualUnlocksPerMonth: number | null
   }
-  usage?: { publications: number; manual_unlocks: number }
+  /** `null` = compteur illisible. L'écran affiche « — », jamais `0` (§E.22). */
+  usage?: { publications: number | null; manual_unlocks: number | null }
   period_start?: string
   package_valid_until?: string | null
   /**
@@ -210,18 +211,23 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 /** Barre de consommation. `limit` null = illimité → pas de barre. */
 function UsageRow({ label, used, limit, unlimitedLabel }: {
   label: string
-  used: number
+  /** `null` = pas lisible. Ni barre, ni alerte : on n'affirme rien (§E.22). */
+  used: number | null
   limit: number | null
   unlimitedLabel: string
 }) {
-  const pct = limit && limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0
-  const atLimit = limit != null && used >= limit
+  const pct = used != null && limit && limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0
+  // Une consommation inconnue n'est jamais « au plafond » — et pas davantage
+  // « à zéro ». Un `0` de repli aurait peint la barre vide et promis de la
+  // place qui n'a pas été comptée.
+  const atLimit = used != null && limit != null && used >= limit
+  const affiche = used == null ? '—' : String(used)
   return (
     <div style={{ padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, fontSize: 14, marginBottom: limit == null ? 0 : 8 }}>
         <span style={{ color: '#475569' }}>{label}</span>
         <span style={{ color: atLimit ? '#B45309' : '#0f172a', fontWeight: 600 }}>
-          {limit == null ? `${used} · ${unlimitedLabel}` : `${used} / ${limit}`}
+          {limit == null ? `${affiche} · ${unlimitedLabel}` : `${affiche} / ${limit}`}
         </span>
       </div>
       {limit != null && (
@@ -762,13 +768,13 @@ export default function MonOffrePage() {
         <div>
           <UsageRow
             label={t('usage_annonces')}
-            used={usage?.publications ?? 0}
+            used={usage?.publications ?? null}
             limit={limits?.publicationsPerMonth ?? null}
             unlimitedLabel={t('unlimited')}
           />
           <UsageRow
             label={t('usage_manual_unlocks')}
-            used={usage?.manual_unlocks ?? 0}
+            used={usage?.manual_unlocks ?? null}
             limit={limits?.manualUnlocksPerMonth ?? null}
             unlimitedLabel={t('unlimited')}
           />
