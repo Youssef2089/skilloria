@@ -276,8 +276,17 @@ ok('le second `if (!decisionProvider)` mort ne revient pas',
 
 ok('la route admin expose le motif',
   existe(GET_ORG) && /motif_revue/.test(sansCommentaires(read(GET_ORG))))
-ok('et elle refuse un code qu\'elle ne sait pas traduire',
-  existe(GET_ORG) && /CODES_MOTIF/.test(read(GET_ORG)),
+// ANCRE SUR LE SITE D'APPEL, PAS SUR LE NOM DU GARDE. Une première version
+// testait la seule présence de `CODES_MOTIF` : renommer la constante laissait
+// le contrôle vert, puisque le nom survivait à son autre occurrence — et
+// SUPPRIMER l'appel en gardant la constante l'aurait laissé vert aussi. C'est
+// le motif déjà payé au lot précédent : une ancre trop large lit le voisin.
+const GET_ORG_CODE = existe(GET_ORG) ? sansCommentaires(read(GET_ORG)) : ''
+ok('le motif est VALIDÉ avant d\'être exposé',
+  /motif_revue:\s*motifRevueValide\(/.test(GET_ORG_CODE),
+  '`verification_data` est du JSON libre : une ligne ancienne peut porter n\'importe quoi')
+ok('et un code inconnu est écarté, pas rendu',
+  /includes\(code\)\)\s*return null/.test(GET_ORG_CODE),
   'un code inconnu afficherait une étiquette vide sur la fiche')
 ok('la fiche back-office rend le motif',
   existe(FICHE_ADMIN) && /motif_revue_label/.test(read(FICHE_ADMIN)))
