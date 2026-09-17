@@ -3957,6 +3957,10 @@
       "opportunity_quality_check": {
         "name": "Qualität einer Anzeige",
         "effect": "Oberhalb dieser Schwelle wird die Anzeige veröffentlicht. Darunter geht sie in die manuelle Prüfung. Die Kontrolle sucht auch nach Kontaktdaten im Klartext: eine Anzeige, die das Nachrichtensystem umgeht, umgeht die Freischaltung."
+      },
+      "official_api": {
+        "name": "Amtliches Register",
+        "effect": "Fragt das amtliche Register des Landes ab und liefert dessen Daten an die Kohärenzprüfung. Es fällt kein Urteil: Seine Schwellenwertspalte wird von keinem Pfad gelesen."
       }
     },
     "flags": {
@@ -3980,6 +3984,7 @@
       "drapeaux_non_lus": "Dieser Pfad trägt keine Merkmale.",
       "type_non_gere": "Dieser Anbietertyp ist hier nicht einstellbar.",
       "bad_provider": "Anbieter nicht gefunden."
-    }
+    },
+    "no_decisive": "Dieser Anbieter liefert Daten, er entscheidet nicht: hier ist kein Wert ausschlaggebend. Die Entscheidung trifft die Kohärenzprüfung desselben Landes."
   }
 }

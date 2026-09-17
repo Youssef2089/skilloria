@@ -97,6 +97,31 @@ const TYPES = {
     colonne_inerte: false,
     drapeaux: false,
   },
+  /**
+   * Sirene (INSEE) — FOURNISSEUR DE DONNÉES, PAS DÉCIDEUR.
+   *
+   * ═══ SON `confidence_threshold` NE GOUVERNE RIEN, et c'est vérifiable ═════
+   *   La ligne `official_api` porte un seuil de 9 en base. AUCUN chemin ne le
+   *   lit : `runVerification` prend le seuil du fournisseur de DÉCISION
+   *   (`ai_web_search`, seuil 7), Sirene n'apporte que des données que l'IA
+   *   compare ensuite. Un admin qui passerait ce 9 à 3 ne changerait
+   *   strictement rien, et il n'avait aucun moyen de le savoir.
+   *
+   * ═══ POURQUOI ÊTRE DÉCLARÉ PLUTÔT QU'ABSENT ══════════════════════════════
+   *   Un type absent de cette table retombait sur `colonne_inerte: false` —
+   *   le défaut disait donc « cette colonne est lue », soit exactement
+   *   l'inverse de la vérité. Ne pas connaître un type produisait la plus
+   *   rassurante des deux réponses.
+   *
+   *   §D.7 : un réglage règle quelque chose, OU IL LE DIT. Ici il ne règle
+   *   rien, et maintenant il le dit. `cle_decisive: null` parce qu'il n'y en a
+   *   pas : ce fournisseur ne tranche pas, il renseigne.
+   */
+  official_api: {
+    cle_decisive: null,
+    colonne_inerte: true,
+    drapeaux: false,
+  },
 } as const
 
 type TypeGere = keyof typeof TYPES

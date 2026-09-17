@@ -110,31 +110,94 @@ function normalizeLocale(raw: string | null | undefined): Locale {
 }
 
 async function loadConfig(supabaseAdmin: SupabaseClient): Promise<ExpertVerificationConfig | null> {
+  // ── AUCUN `limit(1)` : UNE CONFIGURATION AMBIGUË SE DIT, ELLE NE SE TRANCHE
+  //    PAS EN SILENCE ────────────────────────────────────────────────────────
+  //
+  //  Ce chargement prenait la PREMIÈRE ligne active du type, quel que soit le
+  //  pays. Tant qu'une seule ligne existe, le résultat est juste ; le jour où un
+  //  second pays en obtient une, `order + limit(1)` en choisit une **au hasard
+  //  du tri**, et l'écart ne se voit nulle part.
+  //
+  //  On ne filtre PAS par pays, et c'est DÉLIBÉRÉ : la vérification d'un expert
+  //  porte sur une PERSONNE et son expertise, pas sur un registre national —
+  //  contrairement à la vérification d'entreprise (lib/verification/index.ts),
+  //  qui est scopée `country_code` parce qu'elle interroge un registre.
+  //  Mais « pas de filtre » doit être un choix ÉNONCÉ, pas un effet de bord :
+  //  deux lignes actives ⇒ refus nommé, à l'admin de trancher depuis
+  //  `/admin/seuils`.
   const { data, error } = await supabaseAdmin
     .from('verification_providers')
     .select('confidence_threshold, is_active, config, country_code')
     .eq('provider_type', PROVIDER_TYPE)
     .eq('is_active', true)
     .order('priority', { ascending: true })
-    .limit(1)
-    .maybeSingle()
   if (error) {
     console.error('[expert-verification] config load failed', error.message)
     return null
   }
-  if (!data) return null
-  const row = data as unknown as { confidence_threshold: number; is_active: boolean; config: RawConfig | null }
+  const lignes = (data ?? []) as unknown as {
+    confidence_threshold: number
+    is_active: boolean
+    config: RawConfig | null
+    country_code: string
+  }[]
+  if (lignes.length === 0) return null
+  if (lignes.length > 1) {
+    console.error('[expert-verification] configuration ambiguë — plusieurs lignes actives', {
+      provider_type: PROVIDER_TYPE,
+      pays: lignes.map((l) => l.country_code),
+    })
+    return null
+  }
+  const row = lignes[0]
   const cfg = (row.config ?? {}) as RawConfig
+
+  // ── PLUS AUCUNE VALEUR FABRIQUÉE ────────────────────────────────────────
+  //
+  //  `request_timeout_ms`, `web_search_max_uses` et `domain_mismatch_cap`
+  //  retombaient sur 45000, 4 et 5 quand la clé manquait. Les trois valeurs
+  //  EXISTENT aujourd'hui en base et coïncident exactement avec ces replis —
+  //  ce qui rend l'invention INVISIBLE, et c'est précisément ce qui la rend
+  //  dangereuse : elle ne mordrait que le jour où quelqu'un retirerait une clé,
+  //  en croyant désactiver un réglage.
+  //
+  //  UN RÉGLAGE INVENTÉ EST PIRE QU'UN RÉGLAGE ABSENT : il a l'air d'avoir été
+  //  décidé. Les trois sont désormais EXIGÉES, au même titre que le seuil
+  //  d'auto-approbation — et une clé manquante produit un refus nommé, pas un
+  //  comportement supposé (§D.7).
   const model = typeof cfg.model === 'string' && cfg.model.length > 0 ? cfg.model : null
   const fallback_model = typeof cfg.fallback_model === 'string' && cfg.fallback_model.length > 0 ? cfg.fallback_model : null
   const max_tokens = typeof cfg.max_tokens === 'number' && cfg.max_tokens > 0 ? Math.min(cfg.max_tokens, 8000) : null
-  const request_timeout_ms = typeof cfg.request_timeout_ms === 'number' && cfg.request_timeout_ms > 0 ? Math.min(cfg.request_timeout_ms, 120000) : 45000
+  const request_timeout_ms =
+    typeof cfg.request_timeout_ms === 'number' && cfg.request_timeout_ms > 0
+      ? Math.min(cfg.request_timeout_ms, 120000)
+      : null
   const auto_approve = typeof cfg.auto_approve_threshold === 'number' ? Math.max(0, Math.min(10, cfg.auto_approve_threshold)) : null
-  const web_search_max_uses = typeof cfg.web_search_max_uses === 'number' && cfg.web_search_max_uses > 0 ? Math.min(cfg.web_search_max_uses, 10) : 4
-  const domain_mismatch_cap = typeof cfg.domain_mismatch_cap === 'number' ? Math.max(0, Math.min(10, cfg.domain_mismatch_cap)) : 5
+  const web_search_max_uses =
+    typeof cfg.web_search_max_uses === 'number' && cfg.web_search_max_uses > 0
+      ? Math.min(cfg.web_search_max_uses, 10)
+      : null
+  const domain_mismatch_cap =
+    typeof cfg.domain_mismatch_cap === 'number' ? Math.max(0, Math.min(10, cfg.domain_mismatch_cap)) : null
   const blocking_flags = parseBlockingFlags(cfg.blocking_flags)
-  if (!model || !fallback_model || !max_tokens || auto_approve == null) {
-    console.error('[expert-verification] config incomplete', { model, fallback_model, max_tokens, auto_approve })
+  if (
+    !model ||
+    !fallback_model ||
+    !max_tokens ||
+    auto_approve == null ||
+    request_timeout_ms == null ||
+    web_search_max_uses == null ||
+    domain_mismatch_cap == null
+  ) {
+    console.error('[expert-verification] config incomplete', {
+      model,
+      fallback_model,
+      max_tokens,
+      auto_approve,
+      request_timeout_ms,
+      web_search_max_uses,
+      domain_mismatch_cap,
+    })
     return null
   }
   return { model, fallback_model, max_tokens, request_timeout_ms, auto_approve_threshold: auto_approve, web_search_max_uses, domain_mismatch_cap, blocking_flags }

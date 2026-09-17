@@ -91,7 +91,19 @@ const CHEMINS = [
   {
     fichier: 'lib/verification/publication-verification.ts',
     quoi: 'qualite d’annonce',
-    refus: /if\s*\(\s*!\s*active\s*\)/,
+    // ANCRE SUR LA FORME DU REFUS, PAS SUR UN NOM DE VARIABLE.
+    //
+    //  Ce controle exigeait `if (!active)`. Le chemin rendait alors
+    //  `{ threshold: 0, active: false }` — un nombre FABRIQUE pose a cote de
+    //  son invalidant. Le remplacer par un type somme
+    //  (`{ ok: true, threshold } | { ok: false, raison }`) a supprime le nombre
+    //  invente, ET fait rougir ce controle : il lisait le NOM, pas le refus.
+    //
+    //  Un controle qui casse quand on ameliore le code est un controle qui
+    //  freine. On accepte donc les deux formes — l'ancienne et le type somme —
+    //  parce que ce qui compte est qu'une branche « configuration absente »
+    //  EXISTE et pose un etat de revue, pas comment on l'a nommee.
+    refus: /if\s*\(\s*!\s*(?:active|\w+\.ok)\s*\)/,
     statut: /status:\s*'pending_review'/,
     appelIA: /verifyAiPublicationQuality\s*\(/,
   },

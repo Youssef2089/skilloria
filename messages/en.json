@@ -3957,6 +3957,10 @@
       "opportunity_quality_check": {
         "name": "Listing quality",
         "effect": "Above this threshold, the listing is published. Below it, it goes to manual review. The check also looks for contact details in plain text: a listing that bypasses messaging bypasses unlocking."
+      },
+      "official_api": {
+        "name": "Official registry",
+        "effect": "Queries the country official registry and supplies its data to the coherence analyser. It produces no verdict: its threshold column is read by no path."
       }
     },
     "flags": {
@@ -3980,6 +3984,7 @@
       "drapeaux_non_lus": "This path carries no flags.",
       "type_non_gere": "This provider type is not editable here.",
       "bad_provider": "Provider not found."
-    }
+    },
+    "no_decisive": "This provider supplies data, it does not decide: no value is decisive here. The decision belongs to the coherence analyser for the same country."
   }
 }

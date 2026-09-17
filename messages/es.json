@@ -3957,6 +3957,10 @@
       "opportunity_quality_check": {
         "name": "Calidad de un anuncio",
         "effect": "Por encima de este umbral, el anuncio se publica. Por debajo, pasa a revisión manual. El control también busca datos de contacto en claro: un anuncio que evita la mensajería evita el desbloqueo."
+      },
+      "official_api": {
+        "name": "Registro oficial",
+        "effect": "Consulta el registro oficial del país y aporta sus datos al analizador de coherencia. No emite ningún veredicto: su columna de umbral no la lee ningún camino."
       }
     },
     "flags": {
@@ -3980,6 +3984,7 @@
       "drapeaux_non_lus": "Este camino no lleva señales.",
       "type_non_gere": "Este tipo de proveedor no es configurable aquí.",
       "bad_provider": "Proveedor no encontrado."
-    }
+    },
+    "no_decisive": "Este proveedor aporta datos, no decide: aquí ningún valor es decisivo. La decisión corresponde al analizador de coherencia del mismo país."
   }
 }

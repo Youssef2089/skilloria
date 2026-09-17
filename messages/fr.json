@@ -3957,6 +3957,10 @@
       "opportunity_quality_check": {
         "name": "Qualité d'une annonce",
         "effect": "Au-dessus de ce seuil, l'annonce est publiée. En dessous, elle part en revue manuelle. Le contrôle traque aussi les coordonnées en clair : une annonce qui contourne la messagerie contourne le dévoilement."
+      },
+      "official_api": {
+        "name": "Registre officiel",
+        "effect": "Interroge le registre officiel du pays et fournit ses données à l'analyseur de cohérence. Il ne produit aucun verdict : sa colonne de seuil n'est lue par aucun chemin."
       }
     },
     "flags": {
@@ -3980,6 +3984,7 @@
       "drapeaux_non_lus": "Ce chemin ne porte aucun drapeau.",
       "type_non_gere": "Ce type de fournisseur n'est pas réglable ici.",
       "bad_provider": "Fournisseur introuvable."
-    }
+    },
+    "no_decisive": "Ce fournisseur apporte des données, il ne décide pas : aucune valeur ne tranche ici. La décision revient à l'analyseur de cohérence du même pays."
   }
 }
