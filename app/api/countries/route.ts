@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { COLONNES_REGLE_NUMERO } from '@/lib/pays/numero-identification'
 
 export const runtime = 'nodejs'
 
@@ -25,9 +26,15 @@ export async function GET(): Promise<Response> {
     // Les clients Supabase ne sont PAS typés : une colonne absente ici ne
     // produit aucune erreur, juste un champ `undefined` côté client. C'est
     // exactement comme ça que le manque est passé inaperçu.
+    // Le format du NUMERO D'IDENTIFICATION voyage avec le pays : l'ecran doit
+    // pouvoir nommer le champ (« SIREN »), l'illustrer et le valider avant
+    // l'envoi, sans une seconde requete et sans table en dur.
+    // Source unique des colonnes : lib/pays/numero-identification.
     const { data, error } = await supabase
       .from('countries')
-      .select('code, name_fr, name_en, name_es, name_de, flag_emoji, phone_code, sort_order')
+      .select(
+        `code, name_fr, name_en, name_es, name_de, flag_emoji, phone_code, sort_order, ${COLONNES_REGLE_NUMERO}`,
+      )
       .eq('active', true)
       .order('sort_order', { ascending: true })
 

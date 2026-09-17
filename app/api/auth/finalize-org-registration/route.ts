@@ -2,6 +2,12 @@ import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { runVerification } from '@/lib/verification'
+import {
+  COLONNES_REGLE_NUMERO,
+  normaliserNumeroIdentification,
+  numeroIdentificationAccepte,
+  regleDepuisLignePays,
+} from '@/lib/pays/numero-identification'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -106,12 +112,18 @@ function validate(body: Body): { ok: true; input: ValidatedInput } | { ok: false
     }
     linkedin_url = linkedin_raw
   }
-  const siren_raw = asString(body.siren)
-  if (!siren_raw) {
-    return { ok: false, error: 'invalid_siren' }
-  }
-  const siren = siren_raw.replace(/\s/g, '')
-  if (!/^\d{9}$/.test(siren)) {
+  // LE FORMAT DU NUMÉRO N'EST PAS JUGÉ ICI — cf. le POST, qui le confronte au
+  // RÉFÉRENTIEL DU PAYS de l'organisation.
+  //
+  //  Cette ligne testait `/^\d{9}$/` : la TROISIÈME occurrence du format
+  //  français en dur, après le composant de saisie et la route d'inscription.
+  //  C'est elle qui gardait l'étape 2 — la modale post-connexion — et donc le
+  //  seul endroit où le numéro se saisit réellement.
+  //
+  //  `validate` est synchrone et ne joint pas la base : on normalise et on
+  //  borne, la règle du pays s'applique juste après.
+  const siren = normaliserNumeroIdentification(body.siren)
+  if (!siren || siren.length > 40) {
     return { ok: false, error: 'invalid_siren' }
   }
   // N° TVA intracommunautaire — OBLIGATOIRE. La garantie est ici (serveur) ;
@@ -219,6 +231,51 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Organization not found', code: 'org_not_found' }, 500)
   }
 
+  // ── LE PAYS EST LU, IL N'EST PLUS SUPPOSÉ ───────────────────────────────
+  //
+  //  Ce chemin faisait `(orgRow.country as string) ?? 'FR'`. C'était le SECOND
+  //  « FR » en dur du parcours d'inscription — et le plus discret, parce qu'il
+  //  ne vivait pas dans un formulaire mais juste avant l'appel qui choisit le
+  //  REGISTRE OFFICIEL à interroger. Une organisation sans pays lisible était
+  //  donc cherchée dans Sirene, puis renvoyée en revue comme un faux négatif.
+  //
+  //  `organizations.country` est NOT NULL en base : une valeur absente ici
+  //  signifie que la lecture n'a pas rendu la colonne (les clients Supabase ne
+  //  sont pas typés, §E.1), pas qu'il n'y a pas de pays. On refuse plutôt que
+  //  d'en inventer un.
+  const paysOrg = typeof orgRow.country === 'string' ? orgRow.country.trim() : ''
+  if (!/^[A-Z]{2}$/.test(paysOrg)) {
+    console.error('[finalize-org] pays de l’organisation illisible', {
+      organization_id: org.id,
+      lu: orgRow.country,
+    })
+    return json({ error: 'Organization country missing', code: 'org_country_missing' }, 500)
+  }
+
+  // ── LE NUMÉRO D'IDENTIFICATION SUIT LE PAYS DE L'ORGANISATION ───────────
+  //  Règle lue au RÉFÉRENTIEL, imposée au SERVEUR. Pays sans règle connue ⇒ on
+  //  accepte : on ne refuse jamais sur une règle qu'on n'a pas.
+  const { data: paysRow, error: paysErr } = await auth.supabaseAdmin
+    .from('countries')
+    .select(`code, ${COLONNES_REGLE_NUMERO}`)
+    .eq('code', paysOrg)
+    .maybeSingle()
+  if (paysErr) {
+    console.error('[finalize-org] lecture du referentiel pays', paysErr.message)
+    return json({ error: 'Query failed', code: 'db_error' }, 500)
+  }
+  const regleNumero = regleDepuisLignePays(paysRow as unknown as Record<string, unknown>)
+  if (!numeroIdentificationAccepte(input.siren, regleNumero)) {
+    return json(
+      {
+        error: 'Identification number does not match the country format',
+        code: 'invalid_siren',
+        registre_libelle: regleNumero?.libelle ?? null,
+      },
+      400,
+    )
+  }
+
   // ── 3. UPDATE organizations (siren, org_type, website_url, setup_completed_at) ──
   const nowIso = new Date().toISOString()
   const { error: orgUpdErr } = await auth.supabaseAdmin
@@ -245,7 +302,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       supabaseAdmin: auth.supabaseAdmin,
       organization_id: org.id,
       input: {
-        country_code: (orgRow.country as string) ?? 'FR',
+        country_code: paysOrg,
         company_name: orgRow.company_name as string,
         // `email_domain` est non-null en pratique (rempli à l'inscription
         // par register-org), mais DB-typé nullable. Fallback '' si jamais

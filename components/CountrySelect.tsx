@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { chargerPays, paysEnCache } from '@/lib/pays/referentiel-client'
 
 export type Country = {
   code: string
@@ -43,25 +44,15 @@ type Props = {
   ariaLabel?: string
 }
 
-let countriesCache: Country[] | null = null
-let countriesPromise: Promise<Country[]> | null = null
-
-async function loadCountries(): Promise<Country[]> {
-  if (countriesCache) return countriesCache
-  if (countriesPromise) return countriesPromise
-  countriesPromise = fetch('/api/countries')
-    .then((r) => (r.ok ? r.json() : []))
-    .then((data: unknown) => {
-      const arr = Array.isArray(data) ? (data as Country[]) : []
-      countriesCache = arr
-      return arr
-    })
-    .catch(() => {
-      countriesPromise = null
-      return []
-    })
-  return countriesPromise
-}
+/**
+ * LE CHARGEMENT A DÉMÉNAGÉ dans [lib/pays/referentiel-client](../lib/pays/referentiel-client.ts).
+ *
+ * Il vivait ici, avec son cache privé. TROIS écrans en ont désormais besoin —
+ * ce sélecteur, la saisie du numéro d'identification à l'inscription, et la
+ * même saisie dans la modale post-connexion. Chacun aurait refait son `fetch`,
+ * et le dépôt a déjà payé ce prix trois fois sur la saisie de téléphone
+ * (§E.14). On sort le chargement AVANT qu'il ne se duplique, pas après.
+ */
 
 function nameFor(c: Country, locale: string): string {
   switch (locale) {
@@ -93,8 +84,8 @@ export default function CountrySelect({
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
-  const [countries, setCountries] = useState<Country[] | null>(countriesCache)
-  const [loading, setLoading] = useState(countriesCache === null)
+  const [countries, setCountries] = useState<Country[] | null>(paysEnCache())
+  const [loading, setLoading] = useState(paysEnCache() === null)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -102,13 +93,14 @@ export default function CountrySelect({
 
   useEffect(() => {
     let cancelled = false
-    if (countriesCache) {
-      setCountries(countriesCache)
+    const dejaLa = paysEnCache()
+    if (dejaLa) {
+      setCountries(dejaLa)
       setLoading(false)
       return
     }
     setLoading(true)
-    loadCountries().then((arr) => {
+    chargerPays().then((arr) => {
       if (cancelled) return
       setCountries(arr)
       setLoading(false)
