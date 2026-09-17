@@ -56,11 +56,24 @@ type Contact = {
   locale: string | null
 }
 
+/**
+ * MOTIF INTERNE de mise en revue. Le `code` est LU par l'écran (il choisit la
+ * phrase à afficher, en quatre langues) ; le `detail` est affiché tel quel.
+ * Rien de tout cela ne sort vers l'organisation.
+ */
+type MotifRevue = {
+  code: 'pays_sans_decideur' | 'plafond_depense_ia'
+  detail: string
+}
+
 type Verification = {
   method: string | null
   status: string | null
   score: number | null
+  /** Note rédigée par l'IA. `null` quand l'IA n'a pas tourné. */
   notes: string | null
+  /** Pourquoi ce dossier est ici. Cf. MotifRevue. */
+  motif_revue: MotifRevue | null
   last_provider: string | null
   attempts_count: number | null
   had_rejection: boolean
@@ -76,6 +89,17 @@ type Verification = {
 type LoadedData = { org: Org; contact: Contact | null; verification: Verification }
 
 type ConfirmMode = null | 'approve' | 'reject'
+
+/**
+ * Le CODE du motif choisit la phrase ; il n'est jamais affiché tel quel.
+ * Table explicite plutôt que clé calculée : un code ajouté sans sa traduction
+ * casse la compilation ici, au lieu de s'afficher en `admin_back_office...`
+ * à l'écran.
+ */
+const MOTIF_CLE_I18N: Record<MotifRevue['code'], string> = {
+  pays_sans_decideur: 'detail.motif_pays_sans_decideur',
+  plafond_depense_ia: 'detail.motif_plafond_depense_ia',
+}
 
 function scoreColor(score: number | null): string {
   if (score == null) return 'var(--color-text-tertiary, #94a3b8)'
@@ -466,6 +490,78 @@ export default function AdminOrgDetailPage() {
           >
             {t('detail.section_verification')}
           </h2>
+          {/*
+            ═══ LE MOTIF DE LA MISE EN REVUE — POUR L'ADMIN, ET LUI SEUL ═════
+              Sans lui, deux dossiers que l'admin n'instruit PAS de la même
+              façon se ressemblaient trait pour trait sur cet écran :
+                · une organisation étrangère, dont le pays n'a aucun décideur
+                  configuré — elle arrive ici PAR CONCEPTION, et son dossier
+                  est normal ;
+                · un faux négatif d'un registre officiel — là il y a
+                  effectivement quelque chose à élucider.
+              Tous deux affichaient « Méthode — », « Score 0 » en rouge, et le
+              motif sous le libellé « Note IA » alors qu'aucune IA n'avait
+              tourné. On lisait un zéro pointé là où il n'y avait pas eu
+              d'examen.
+
+              L'ORGANISATION, ELLE, NE VOIT RIEN DE CECI : son écran dit que
+              son dossier est en cours de validation, et rien d'autre.
+          */}
+          {verification.motif_revue && (
+            <div
+              style={{
+                padding: '10px 12px',
+                marginBottom: 12,
+                background: 'var(--color-background-secondary, #f8fafc)',
+                border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+                borderRadius: 8,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 500,
+                  textTransform: 'uppercase',
+                  letterSpacing: '.05em',
+                  color: 'var(--color-text-secondary, #64748b)',
+                  marginBottom: 4,
+                }}
+              >
+                {t('detail.motif_revue_label')}
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  color: 'var(--color-text-primary, #0f172a)',
+                }}
+              >
+                {t(MOTIF_CLE_I18N[verification.motif_revue.code])}
+              </div>
+              {verification.motif_revue.detail && (
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 12,
+                    lineHeight: 1.5,
+                    color: 'var(--color-text-secondary, #64748b)',
+                  }}
+                >
+                  {verification.motif_revue.detail}
+                </div>
+              )}
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 11,
+                  lineHeight: 1.5,
+                  color: 'var(--color-text-tertiary, #94a3b8)',
+                }}
+              >
+                {t('detail.motif_revue_aide')}
+              </div>
+            </div>
+          )}
           {verification.sirene_status === 'error' && (
             <div
               role="alert"

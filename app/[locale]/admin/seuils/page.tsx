@@ -241,35 +241,44 @@ export default function AdminSeuilsPage() {
                   {t(`types.${f.provider_type}.effect`)}
                 </p>
 
-                {/* ── LA VALEUR QUI DÉCIDE ─────────────────────────────────── */}
-                <div style={{ marginBottom: 14 }}>
-                  <label style={etiquette} htmlFor={`decisif-${f.id}`}>
-                    {t('decisive_label')}
-                  </label>
-                  <input
-                    id={`decisif-${f.id}`}
-                    type="number"
-                    min={0}
-                    max={10}
-                    step={1}
-                    style={champ}
-                    value={
-                      f.cle_decisive === 'auto_approve_threshold'
-                        ? (b.auto_approve_threshold ?? f.auto_approve_threshold ?? '')
-                        : (b.confidence_threshold ?? f.confidence_threshold)
-                    }
-                    onChange={(e) => {
-                      const n = Number(e.target.value)
-                      majBrouillon(
-                        f.id,
+                {/* ── LA VALEUR QUI DÉCIDE — quand il y en a une ───────────────
+                    UN FOURNISSEUR DE DONNÉES NE DÉCIDE PAS. Sirene renseigne,
+                    l'IA tranche : sa ligne n'a aucune valeur décisive, et lui
+                    en afficher une inviterait à régler quelque chose qui ne
+                    règle rien — puis l'enregistrement serait refusé.
+                    `cle_decisive: null` est donc un cas RENDU, pas un cas oublié. */}
+                {f.cle_decisive === null ? (
+                  <p style={aide}>{t('no_decisive')}</p>
+                ) : (
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={etiquette} htmlFor={`decisif-${f.id}`}>
+                      {t('decisive_label')}
+                    </label>
+                    <input
+                      id={`decisif-${f.id}`}
+                      type="number"
+                      min={0}
+                      max={10}
+                      step={1}
+                      style={champ}
+                      value={
                         f.cle_decisive === 'auto_approve_threshold'
-                          ? { auto_approve_threshold: n }
-                          : { confidence_threshold: n },
-                      )
-                    }}
-                  />
-                  <p style={aide}>{t('decisive_help', { cle: f.cle_decisive ?? '' })}</p>
-                </div>
+                          ? (b.auto_approve_threshold ?? f.auto_approve_threshold ?? '')
+                          : (b.confidence_threshold ?? f.confidence_threshold)
+                      }
+                      onChange={(e) => {
+                        const n = Number(e.target.value)
+                        majBrouillon(
+                          f.id,
+                          f.cle_decisive === 'auto_approve_threshold'
+                            ? { auto_approve_threshold: n }
+                            : { confidence_threshold: n },
+                        )
+                      }}
+                    />
+                    <p style={aide}>{t('decisive_help', { cle: f.cle_decisive })}</p>
+                  </div>
+                )}
 
                 {/* ── LA COLONNE INERTE, MONTRÉE COMME INERTE ──────────────── */}
                 {f.colonne_inerte && (

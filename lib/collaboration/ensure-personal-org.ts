@@ -124,6 +124,47 @@ export async function ensurePersonalOrg(
   const last = (userRow.last_name as string | null)?.trim() ?? ''
   const companyName = `${first} ${last}`.trim() || 'Espace collaboration'
 
+  // ── LE PAYS DE L'ORGANISATION PERSONNELLE EST CELUI DE L'EXPERT ──────────
+  //
+  //  Cet appel passait `p_country: 'FR'`. C'était le TROISIÈME endroit où le
+  //  pays d'une organisation naissait français sans que personne ne l'ait
+  //  choisi — après le formulaire d'inscription et le défaut de la colonne.
+  //  L'organisation personnelle d'un expert marocain s'affichait « France »
+  //  sur son écran « Mon entreprise », et rien ne le lui disait.
+  //
+  //  Le siège de cette organisation-là n'a rien à deviner : c'est l'adresse
+  //  DÉCLARÉE par l'expert. On la lit.
+  //
+  //  ET SI ELLE EST ABSENTE, ON NE LA REMPLACE PAS. Écrire un pays qu'on
+  //  ignore, c'est produire une donnée fausse qui ne se signale jamais ;
+  //  refuser ici est visible, réparable en un champ, et ne coûte à l'expert
+  //  que d'achever l'adresse qu'il a commencée. Le refus est nommé pour que
+  //  l'écran sache quoi en dire.
+  //  ⚠️ IL VIT SUR `profiles`, PAS SUR `users`. Une première version lisait
+  //  `users.country` : la colonne n'existe pas. Les clients Supabase n'étant
+  //  pas typés (§E.1), ni `tsc` ni `next build` ne l'auraient vu — c'est
+  //  l'appel réel qui aurait échoué, et l'expert aurait perdu sa publication
+  //  sur une colonne fantôme. Vérifié contre la baseline : `profiles.country`,
+  //  `character varying(2)`, indexée `idx_profiles_country`.
+  const { data: profilRow, error: profilErr } = await admin
+    .from('profiles')
+    .select('country')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (profilErr) {
+    console.error('[ensure-org] profile country lookup failed', profilErr.message)
+    return { ok: false, code: 'db_error', message: 'Query failed', status: 500 }
+  }
+  const paysExpert = (profilRow?.country as string | null)?.trim() || null
+  if (!paysExpert) {
+    return {
+      ok: false,
+      code: 'expert_country_missing',
+      message: 'Expert country is required to create the personal organization',
+      status: 409,
+    }
+  }
+
   // ── Création transactionnelle + cleanup atomique ─────────────────────────
   let organizationId: string | null = null
   try {
@@ -147,7 +188,7 @@ export async function ensurePersonalOrg(
         p_domain_id: domains.userDomainId,
         p_org_type: 'freelance',
         p_company_name: companyName,
-        p_country: 'FR',
+        p_country: paysExpert,
         p_owner_user_id: userId,
         p_is_verified: true,
         p_verification_status: 'approved',

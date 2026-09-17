@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { Link, useRouter } from '@/i18n/navigation'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { useDomain } from '@/context/DomainContext'
+import { chargerPays } from '@/lib/pays/referentiel-client'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import EmptyState from '@/components/ui/EmptyState'
@@ -409,9 +410,10 @@ export default function MonProfilPage() {
             .catch(() => ({ branches: [], specialities: [] }))
         : Promise.resolve({ branches: [], specialities: [] })
 
-      const countriesPromise = fetch('/api/countries')
-        .then(r => (r.ok ? r.json() : []))
-        .catch(() => [])
+      // Référentiel pays : par le module partagé, qui met la liste en cache au
+      // niveau du module. Cet écran refaisait son propre `fetch`, et le
+      // `CountrySelect` qu'il monte en refaisait un troisième.
+      const countriesPromise = chargerPays().catch(() => [])
 
       const [taxonomy, countriesData, expsRes, edusRes, langsRes] = await Promise.all([
         taxonomyPromise,

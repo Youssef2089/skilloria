@@ -158,6 +158,36 @@ orphelines) : `domains`, `domain_configs`, `branches`, `specialities`, `countrie
 d'environnement et les sous-domaines Vercel. Ils vivent dans
 [docs/mise-en-production.md](mise-en-production.md).
 
+**⑧ Le format du numéro d'identification quitte le code pour le référentiel pays.**
+Migration `format_numero_identification`. `countries` gagne `registre_numero_libelle`,
+`registre_numero_exemple`, `registre_numero_longueur_min`, `registre_numero_longueur_max`,
+`registre_numero_alphanumerique`. La même migration retire `default 'FR'` de
+`organizations.country` — la colonne reste `NOT NULL`, c'est le **défaut** qui disparaît.
+
+Le numéro était validé par `/^\d{9}$/` — le format **français** — codé en dur **aux deux bouts**,
+client et serveur, libellé « SIREN » et refus « 9 chiffres attendus ». Un *company number*
+britannique (8 alphanumériques) ou un ICE marocain était refusé **à la saisie**, avant toute
+vérification. Un `switch (pays)` en TypeScript aurait fait d'un pays de plus un **déploiement** ;
+le référentiel porte déjà 64 pays, leurs noms en quatre langues, leur indicatif et leur drapeau.
+
+> **Pas de colonne `regex`, et c'est délibéré.** C'était la forme évidente. Écartée pour deux
+> raisons : une expression régulière **lue en base et exécutée côté serveur** ouvre un risque de
+> déni de service par retour arrière catastrophique sur une valeur que le code ne contrôle plus ;
+> et elle inviterait à encoder une **validité** (clé de contrôle, damier) qu'on ne sait pas
+> vérifier, alors qu'on ne cherche qu'une **forme**. On décrit donc la forme : une longueur, et le
+> droit ou non aux lettres.
+
+> **`NULL` veut dire « accepté », jamais « refusé ».** Seule la France est renseignée — la seule
+> règle que le dépôt **prouve**. Les 63 autres restent à `NULL` et leur saisie passe. Les remplir
+> est désormais une **écriture de données**, pas un déploiement : c'est tout l'objet de la
+> migration. Ce n'est pas un travail laissé en plan, c'est le refus d'inscrire dans une table de
+> réglages des formats nationaux que rien ici ne permet de vérifier.
+
+La lecture est partagée : [lib/pays/numero-identification.ts](../lib/pays/numero-identification.ts)
+(serveur **et** client) et [lib/pays/referentiel-client.ts](../lib/pays/referentiel-client.ts) (le
+chargement de `/api/countries`, sorti de `CountrySelect` **avant** de se dupliquer une quatrième
+fois). `scripts/diag-pays-organisation.mjs` tient les deux unicités.
+
 ---
 
 ## C. Les chaînes fonctionnelles, de bout en bout
@@ -349,9 +379,24 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   [docs/stripe-premier-paiement.md](stripe-premier-paiement.md).
 - Aucun repérage automatique d'un `stripe_events` bloqué en `received` (§F).
 
+**Vérification par SMS (OTP d'inscription)**
+- **La Tunisie (+216) est bloquée par Vonage sur l'API Verify, et ce point N'EST PAS DANS LE CODE.**
+  Vérifié : ce n'est ni Fraud Defender Countries (activé sur les deux canaux), ni une Traffic Rule —
+  c'est une **liste de pays restreints propre à Verify**, qui exige un **ticket au support Vonage**.
+  Les journaux Verify affichaient `BLOCKED`, deux fois, sur Orange Tunisie.
+  **Ne cherchez pas la cause dans le dépôt : elle n'y est pas.** Ce qui a été fait, c'est rendre
+  l'échec **visible** (§E.13). Le déblocage appartient à Youssef.
+- **Le webhook de statut Vonage est un CHOIX DIFFÉRÉ, pas un oubli.** Sans lui, le serveur ne peut
+  pas savoir si un SMS a été **remis** : il ne connaît que l'acceptation de la demande. Cesser
+  d'affirmer qu'il est parti et donner une sortie apporte l'essentiel du bénéfice pour une fraction
+  du travail — un webhook est une **adresse publique à exposer, à sécuriser et à déclarer chez
+  Vonage**. Il viendra si des échecs invisibles sont constatés en production.
+
 **Moteur**
 - Le canal SMS est fermé au dispatcher (§D.2). Rouvrir exige d'abord de basculer le défaut de préférence
   en **opt-in** et de rendre les interrupteurs aux écrans — ni l'un ni l'autre n'est fait.
+  ⚠️ **Sans rapport avec l'OTP d'inscription** : autre API (Verify v2), autre chemin, aucun point
+  commun. `scripts/diag-canal-sms.mjs` tient cette séparation dans les deux sens.
 - `lib/database.types.ts` est périmé et **inutilisé** (§E.1). Le régénérer et typer les clients
   supprimerait toute la classe E.1 ; personne ne l'a fait.
 

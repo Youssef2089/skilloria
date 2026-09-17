@@ -91,11 +91,54 @@ const CHEMINS = [
   {
     fichier: 'lib/verification/publication-verification.ts',
     quoi: 'qualite d’annonce',
-    refus: /if\s*\(\s*!\s*active\s*\)/,
+    // ⚠️ ANCRE NOMMEE, ET SURTOUT PAS `\w+\.ok`.
+    //
+    //  Ce controle exigeait `if (!active)`. Le chemin rendait alors
+    //  `{ threshold: 0, active: false }` — un nombre FABRIQUE pose a cote de
+    //  son invalidant. Le type somme a supprime ce nombre, et fait rougir ce
+    //  controle, qui lisait le NOM.
+    //
+    //  PREMIERE CORRECTION, ET ELLE ETAIT PIRE : elargir a `\w+\.ok` pour
+    //  « accepter les deux formes ». Ce motif matche AUSSI `if (!budget.ok)`,
+    //  quinze lignes plus bas. Le controle s'ancrait alors sur la branche
+    //  BUDGET, et TROIS mutations sont passees en vert — dont la suppression
+    //  pure et simple de la branche de configuration.
+    //
+    //  Un motif large ne rend pas un controle tolerant : il le rend AVEUGLE.
+    //  Une ancre nommee qui rougit apres un renommage est honnete — on met le
+    //  controle a jour. Une ancre large qui lit la branche d'a cote ne rougit
+    //  jamais, et ne garde plus rien.
+    refus: /if\s*\(\s*!\s*(?:active|reglage\.ok)\s*\)/,
+    // Le corps du refus ne doit RIEN avoir a voir avec le budget : si ce mot y
+    // apparait, c'est qu'on s'est ancre sur la mauvaise branche.
+    pasDansLeBloc: /budget/,
     statut: /status:\s*'pending_review'/,
     appelIA: /verifyAiPublicationQuality\s*\(/,
   },
 ]
+
+/**
+ * Corps d'un bloc `{ … }` a partir d'une position, par comptage d'accolades.
+ *
+ * POURQUOI PAS UNE FENETRE DE N CARACTERES. Une fenetre deborde sur ce qui
+ * suit, et le controle finit par juger un code qu'il n'a pas ancre — c'est
+ * exactement comme ca qu'une verification de branche s'est mise a lire la
+ * branche BUDGET quinze lignes plus bas, laissant passer trois mutations.
+ * Rend `null` si aucune accolade ouvrante ne suit.
+ */
+function corpsDuBloc(code, depuis) {
+  const debut = code.indexOf('{', depuis)
+  if (debut === -1) return null
+  let profondeur = 0
+  for (let i = debut; i < code.length; i++) {
+    if (code[i] === '{') profondeur++
+    else if (code[i] === '}') {
+      profondeur--
+      if (profondeur === 0) return code.slice(debut, i + 1)
+    }
+  }
+  return null
+}
 
 section('A. Les trois chemins refusent, et refusent AVANT de depenser')
 
@@ -114,6 +157,16 @@ for (const c of CHEMINS) {
   const bloc = code.slice(iRefus, iRefus + 900)
   ok(c.statut.test(bloc), `${c.quoi} — le refus pose un etat de REVUE MANUELLE`,
     'un refus qui ne pose pas d’etat laisse l’objet dans les limbes')
+
+  // ANCRE-T-ON SUR LA BONNE BRANCHE ? On lit le CORPS du `if`, delimite par ses
+  // accolades — pas une fenetre de 900 caracteres, qui deborde sur les
+  // instructions suivantes et fait juger un code qu'on n'a pas ancre.
+  if (c.pasDansLeBloc) {
+    const corps = corpsDuBloc(code, iRefus)
+    ok(corps !== null && !c.pasDansLeBloc.test(corps),
+      `${c.quoi} — l’ancre vise bien la configuration, pas la branche voisine`,
+      'le corps du refus parle d’autre chose : le controle s’est accroche au mauvais `if`')
+  }
 
   // Le refus doit PRECEDER l'appel au modele : on ne paie pas une decision
   // qu'on ne saura pas trancher.
@@ -139,6 +192,38 @@ const MOTIFS_REPLI = [
   {
     re: /(?:confidence_threshold|auto_approve_threshold)[^\n;]{0,80}\?\?\s*-?\d+/i,
     quoi: 'un repli directement sur la colonne ou la cle de config',
+  },
+  // ─── LES DEUX FORMES QUI ONT ECHAPPE A CE CONTROLE ─────────────────────
+  //  Elles sont passees en mutation, et ce ne sont pas des variantes
+  //  exotiques : ce sont EXACTEMENT les deux qui vivaient dans le depot.
+  {
+    // ① UN REGLAGE INVENTE QUI N'EST PAS UN SEUIL.
+    //    `typeof cfg.domain_mismatch_cap === 'number' ? … : 5`
+    //    Les trois cles du chemin expert — request_timeout_ms,
+    //    web_search_max_uses, domain_mismatch_cap — retombaient sur un nombre
+    //    ecrit ici. Ce controle ne cherchait que des « seuils » : il regardait
+    //    a cote. Un reglage invente est pire qu'un reglage absent, quel que
+    //    soit son nom.
+    //
+    //    ⚠️ ANCRE SUR `cfg.` / `config.`, ET SURTOUT PAS SUR `\w+.`. Ecrit
+    //       large, ce motif attrapait `typeof parsed.score === 'number' ? … : 5`
+    //       dans ai-fallback et ai-expert-verification — c'est-a-dire le
+    //       parsing de la REPONSE DU MODELE, ou un repli defensif est
+    //       legitime : un JSON malforme doit donner un score prudent, pas une
+    //       exception. Deux faux positifs sur du code juste, et un controle
+    //       qu'on apprend a ignorer. On traque la CONFIGURATION — ce que
+    //       l'admin a regle — pas ce que le modele a repondu.
+    re: /typeof\s+(?:cfg|config)\.\w+\s*===\s*['"]number['"][^\n]{0,160}\?[^\n]{0,160}:\s*-?\d+(?:\.\d+)?/i,
+    quoi: 'un reglage de configuration qui retombe sur un nombre ecrit dans le code',
+  },
+  {
+    // ② UN NOMBRE RENDU COMME SEUIL.
+    //    `return { ok: true, threshold: 0 }` — la forme qui remplacait
+    //    `{ threshold: 0, active: false }`. Neutralise ou non par un drapeau,
+    //    c'est un seuil que personne n'a choisi, et « 0 » veut dire
+    //    « tout passe » : l'inverse exact du refus voulu.
+    re: /return\s*\{[^}]*\bthreshold\s*:\s*-?\d+(?:\.\d+)?[^}]*\}/i,
+    quoi: 'un seuil NUMERIQUE rendu en dur par une fonction de chargement',
   },
 ]
 

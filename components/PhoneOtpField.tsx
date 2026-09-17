@@ -1,42 +1,71 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { normalizeE164 } from '@/lib/phone'
+import SaisieTelephone from '@/components/phone/SaisieTelephone'
 
 /**
- * PhoneOtpField — champ téléphone + vérification OTP Vonage, autonome.
+ * PhoneOtpField — LE SEUL parcours de vérification de téléphone du dépôt.
  *
- * Porté À L'IDENTIQUE du bloc de inscription/organisation (parcours en
- * production), avec les pièges déjà évités :
+ * ═══ CE QU'IL REMPLACE ════════════════════════════════════════════════════
+ *   Trois parcours faisaient la même chose de trois façons : inscription
+ *   expert (ici), inscription organisation (≈200 lignes recopiées), paramètres
+ *   du compte (un `toE164` local qui inventait un `+33`). Trois validations,
+ *   trois tables d'erreurs, et un correctif de l'un jamais rétroporté à
+ *   l'autre. Ce n'était pas trois défauts : c'était UN défaut recopié.
+ *
+ * ═══ CE QUE L'ÉCRAN AFFIRME, ET CE QU'IL NE PEUT PAS AFFIRMER ════════════
+ *   Vonage Verify v2 est ASYNCHRONE : il rend un `request_id` pour dire que la
+ *   DEMANDE est acceptée, puis peut bloquer l'envoi — c'est ce qui arrive sur
+ *   la Tunisie, où les journaux affichent BLOCKED APRÈS cette réponse.
+ *
+ *   Sans webhook (choix différé, cf. §H de CLAUDE.md), le serveur ne peut pas
+ *   savoir si le message a été remis. L'écran dit donc « demande transmise »,
+ *   pas « SMS envoyé », et OUVRE UNE SORTIE quand le compteur expire : un lien
+ *   vers le formulaire de contact, prérempli avec le numéro et le pays.
+ *   Un utilisateur qui ne reçoit rien doit pouvoir faire quelque chose ; le
+ *   laisser regarder un compteur tourner est un écran mort.
+ *
+ * ═══ PIÈGES DÉJÀ PAYÉS, CONSERVÉS ════════════════════════════════════════
  *   P2 — `previousRequestId` SURVIT au reset de `otpRequestId` (cas mauvais
  *        code → « Renvoyer ») pour que le prochain envoi demande à l'API
  *        d'annuler la session Vonage active (sinon 409 « Concurrent »).
- *   P6 — sur erreur de code : reset `otpRequestId` + cooldown à 0 + cases
+ *   P6 — sur erreur de code : reset `otpRequestId` + compteur à 0 + cases
  *        retirées du DOM, erreur affichée hors du bloc conditionnel.
  *
  * Namespace-agnostique : tous les libellés arrivent via `labels`, si bien que
- * l'org (`inscription_org`) et l'expert (`signup_form`) le réutilisent sans
- * dupliquer le wording. La vérification réussie remonte le `phone_otp_token`
- * au parent via `onVerified` ; le parent détient le token (il en a besoin pour
- * le submit) et passe `verified`.
+ * les trois appelants le réutilisent sans dupliquer le wording.
  */
 
 const COOLDOWN_SECONDS = 60
 const OTP_LENGTH = 6
 
+/** Chemins des routes OTP. L'appelant choisit la paire publique ou authentifiée. */
+export type PhoneOtpEndpoints = {
+  send: string
+  verify: string
+  /** Annulation best-effort de la session Vonage. Absent = pas d'annulation. */
+  cancel?: string
+}
+
 export type PhoneOtpLabels = {
   phone_label: string
-  phone_placeholder: string
+  pays_label: string
   send_sms_button: string
   resend_sms_label: (seconds: number) => string
   code_label: string
   code_invalid: string
   phone_verified: string
-  /** Message « numéro invalide » — distinct de vonage_error (service indispo.). */
+  /** « Demande transmise » — JAMAIS « SMS envoyé », cf. l'en-tête. */
+  demande_transmise: string
   invalid_phone: string
   rate_limited: string
   vonage_error: string
-  /** D4 — lien « Modifier le numéro » (sortie de l'état vérifié). */
+  /** Les SMS ne partent pas vers ce pays : ce refus a une ISSUE. */
+  pays_non_pris_en_charge: string
+  /** Une vérification est déjà en cours sur ce numéro. */
+  verification_en_cours: string
+  /** Lien de sortie, affiché quand le compteur est écoulé. */
+  pas_recu: string
   edit_number: string
 }
 
@@ -49,39 +78,57 @@ export type PhoneOtpFieldProps = {
   verified: boolean
   primaryColor: string
   labels: PhoneOtpLabels
+  /** Routes à appeler. Par défaut : les routes PUBLIQUES d'inscription. */
+  endpoints?: PhoneOtpEndpoints
+  /** En-têtes additionnels (jeton de ré-authentification des paramètres). */
+  extraHeaders?: () => Promise<Record<string, string> | null>
   /** D1/D6 — le numéro est déjà rattaché à un compte (avant tout envoi SMS). */
   onPhoneTaken?: () => void
   /** D4 — l'utilisateur relâche l'état vérifié pour saisir un autre numéro. */
   onEdit?: () => void
+  /** Construit le lien de sortie « je ne reçois pas le code ». */
+  lienAide?: (phone: string, paysIso: string) => string
 }
 
-/**
- * Validation UI ALIGNÉE sur le serveur : le bouton « Envoyer SMS » ne doit être
- * actif que pour un numéro que le serveur (lib/phone.normalizeE164, même
- * bibliothèque) acceptera. Sans cet alignement, un numéro structurellement
- * E.164 mais non attribuable (ex. +3312345678) passait une regex laxiste →
- * bouton actif → le serveur le rejetait (invalid_phone) → le message générique
- * « Service SMS indisponible » s'affichait à tort. On refuse en amont.
- */
-function isPhoneValid(phone: string): boolean {
-  return normalizeE164(phone) !== null
+const ENDPOINTS_PUBLICS: PhoneOtpEndpoints = {
+  send: '/api/auth/public/send-phone-otp',
+  verify: '/api/auth/public/verify-phone-otp',
+  cancel: '/api/auth/public/cancel-phone-otp',
 }
 
 export default function PhoneOtpField(props: PhoneOtpFieldProps) {
-  const { phone, onPhoneChange, onVerified, verified, primaryColor, labels, onPhoneTaken, onEdit } = props
+  const {
+    phone,
+    onPhoneChange,
+    onVerified,
+    verified,
+    primaryColor,
+    labels,
+    endpoints = ENDPOINTS_PUBLICS,
+    extraHeaders,
+    onPhoneTaken,
+    onEdit,
+    lienAide,
+  } = props
 
+  const [paysIso, setPaysIso] = useState('')
   const [otpRequestId, setOtpRequestId] = useState<string | null>(null)
   // Survit au reset de otpRequestId (P2).
   const [previousRequestId, setPreviousRequestId] = useState<string | null>(null)
   const [otpDigits, setOtpDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''))
-  const [otpError, setOtpError] = useState<string | null>(null)
   const [otpSending, setOtpSending] = useState(false)
   const [otpVerifying, setOtpVerifying] = useState(false)
   const [phoneError, setPhoneError] = useState<string | null>(null)
   const [cooldownLeft, setCooldownLeft] = useState(0)
+  /** `true` dès qu'une demande a été TRANSMISE — jamais « le SMS est parti ». */
+  const [demandeTransmise, setDemandeTransmise] = useState(false)
   const otpInputRefs = useRef<Array<HTMLInputElement | null>>([])
 
-  const phoneOk = isPhoneValid(phone)
+  // La validité est celle du composant de saisie : il ne rend un E.164 que
+  // pour un numéro valide et complet. Aucune regex ici — c'est une regex
+  // laxiste recopiée qui a fait afficher « Service SMS indisponible » à des
+  // numéros simplement mal saisis.
+  const phoneOk = phone.length > 0
 
   useEffect(() => {
     if (cooldownLeft <= 0) return
@@ -89,18 +136,6 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
     return () => clearInterval(id)
   }, [cooldownLeft])
 
-  const inputBase: React.CSSProperties = {
-    width: '100%',
-    padding: '11px 14px',
-    fontSize: 14,
-    border: '1px solid #cbd5e1',
-    borderRadius: 8,
-    outline: 'none',
-    fontFamily: 'inherit',
-    background: '#fff',
-    color: '#0f172a',
-    boxSizing: 'border-box',
-  }
   const labelStyle: React.CSSProperties = {
     display: 'block',
     fontSize: 13,
@@ -109,44 +144,73 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
     marginBottom: 6,
   }
 
+  /**
+   * Traduit le code serveur en message AFFICHABLE.
+   *
+   * UNE SEULE table, partagée par les trois appelants. Avant, chacun avait la
+   * sienne : l'organisation faisait tomber `invalid_phone` dans « service
+   * indisponible » alors que la clé existait, et les paramètres du compte
+   * écrasaient tout en « une erreur est survenue ».
+   */
+  function messagePour(code: string | undefined): string {
+    switch (code) {
+      case 'rate_limited':
+        return labels.rate_limited
+      case 'invalid_phone':
+      case 'vonage_invalid_request':
+        return labels.invalid_phone
+      case 'sms_pays_non_pris_en_charge':
+        return labels.pays_non_pris_en_charge
+      case 'verification_en_cours':
+        return labels.verification_en_cours
+      default:
+        return labels.vonage_error
+    }
+  }
+
   async function handleSendSms() {
     setPhoneError(null)
-    setOtpError(null)
     if (!phoneOk) {
-      // Numéro invalide (≠ service SMS indisponible).
       setPhoneError(labels.invalid_phone)
       return
     }
     const prev = previousRequestId
     setPreviousRequestId(null)
     setOtpRequestId(null)
+    setDemandeTransmise(false)
     setOtpDigits(Array(OTP_LENGTH).fill(''))
     setOtpSending(true)
     try {
-      const res = await fetch('/api/auth/public/send-phone-otp', {
+      const entetes: Record<string, string> = { 'content-type': 'application/json' }
+      if (extraHeaders) {
+        const sup = await extraHeaders()
+        // `null` = l'utilisateur a renoncé à la ré-authentification. On ne
+        // part pas sans, et on ne laisse pas non plus un état « en cours ».
+        if (!sup) {
+          setOtpSending(false)
+          return
+        }
+        Object.assign(entetes, sup)
+      }
+      const res = await fetch(endpoints.send, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: entetes,
         body: JSON.stringify({ phone, ...(prev ? { previous_request_id: prev } : {}) }),
       })
       const json = (await res.json().catch(() => ({}))) as { request_id?: string; code?: string }
       if (!res.ok || !json.request_id) {
         // D1/D6 : numéro déjà rattaché à un compte (refus AVANT tout SMS) → on
-        // délègue au parent l'affichage du message de récupération ; pas d'erreur
-        // « technique » ici.
+        // délègue au parent l'affichage du message de récupération.
         if (json.code === 'phone_already_used') {
           onPhoneTaken?.()
           return
         }
-        // Message PRÉCIS selon le code serveur : un numéro rejeté par la
-        // validation stricte (invalid_phone / vonage_invalid_request) ne doit
-        // PAS s'afficher comme « Service SMS indisponible ».
-        if (json.code === 'rate_limited') setPhoneError(labels.rate_limited)
-        else if (json.code === 'invalid_phone' || json.code === 'vonage_invalid_request') setPhoneError(labels.invalid_phone)
-        else setPhoneError(labels.vonage_error)
+        setPhoneError(messagePour(json.code))
         return
       }
       setOtpRequestId(json.request_id)
       setPreviousRequestId(json.request_id)
+      setDemandeTransmise(true)
       setCooldownLeft(COOLDOWN_SECONDS)
       setTimeout(() => otpInputRefs.current[0]?.focus(), 50)
     } catch {
@@ -159,9 +223,8 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
   async function verifyOtp(code: string) {
     if (!otpRequestId) return
     setOtpVerifying(true)
-    setOtpError(null)
     try {
-      const res = await fetch('/api/auth/public/verify-phone-otp', {
+      const res = await fetch(endpoints.verify, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ request_id: otpRequestId, code, phone }),
@@ -178,7 +241,7 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
           setOtpDigits(Array(OTP_LENGTH).fill(''))
           return
         }
-        // P6 : request_id consommé (code faux/expiré) → reset propre + cooldown 0.
+        // P6 : request_id consommé (code faux/expiré) → reset propre + compteur 0.
         if (otpRequestId) setPreviousRequestId(otpRequestId)
         setPhoneError(labels.code_invalid)
         setOtpDigits(Array(OTP_LENGTH).fill(''))
@@ -200,21 +263,19 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
   }
 
   // D4 — « Modifier le numéro » : relâche l'état vérifié SANS toucher aux autres
-  // champs (le parent gère son token via onEdit), redonne le champ saisissable,
-  // réactive « Envoyer SMS », purge la session Vonage courante (best-effort) et
-  // efface les erreurs. Aucun état de formulaire n'est perdu.
+  // champs, redonne le champ saisissable, purge la session Vonage courante
+  // (best-effort) et efface les erreurs.
   function handleEdit() {
     const rid = otpRequestId ?? previousRequestId
     setOtpRequestId(null)
     setPreviousRequestId(null)
     setOtpDigits(Array(OTP_LENGTH).fill(''))
     setPhoneError(null)
-    setOtpError(null)
+    setDemandeTransmise(false)
     setCooldownLeft(0)
     onEdit?.()
-    if (rid) {
-      // Best-effort : jamais bloquant, échec silencieux.
-      void fetch('/api/auth/public/cancel-phone-otp', {
+    if (rid && endpoints.cancel) {
+      void fetch(endpoints.cancel, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ request_id: rid }),
@@ -256,66 +317,79 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
   }
 
   const sendDisabled = otpSending || cooldownLeft > 0 || verified || !phoneOk
+  // La sortie n'apparaît QUE quand attendre a cessé d'être une réponse : une
+  // demande transmise, le compteur écoulé, et toujours pas de numéro vérifié.
+  const montrerSortie = demandeTransmise && !verified && cooldownLeft === 0
 
   return (
     <div>
-      <label htmlFor="phone" style={labelStyle}>
-        {labels.phone_label} *
-      </label>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: 200, display: 'flex', alignItems: 'center' }}>
-          <span aria-hidden style={{ position: 'absolute', left: 12, fontSize: 16, pointerEvents: 'none' }}>
-            🇫🇷
-          </span>
-          <input
-            id="phone"
-            type="tel"
-            value={phone}
-            onChange={(e) => {
-              onPhoneChange(e.target.value)
-              if (phoneError) setPhoneError(null)
-            }}
-            placeholder={labels.phone_placeholder}
-            style={{
-              ...inputBase,
-              paddingLeft: 38,
-              background: verified ? '#f1f5f9' : '#fff',
-              borderColor: verified ? '#22c55e' : '#cbd5e1',
-            }}
-            readOnly={verified}
-            required
-          />
-          {verified && (
-            <span aria-hidden style={{ position: 'absolute', right: 12, color: '#22c55e', fontSize: 18, fontWeight: 700 }}>
-              ✓
-            </span>
-          )}
-        </div>
+      <SaisieTelephone
+        value={phone}
+        onChange={(e164, iso) => {
+          setPaysIso(iso)
+          onPhoneChange(e164)
+          if (phoneError) setPhoneError(null)
+        }}
+        primaryColor={primaryColor}
+        verrouille={verified}
+        hasError={!!phoneError}
+        libelles={{ label: labels.phone_label, pays_label: labels.pays_label }}
+      />
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
         <button
           type="button"
           onClick={handleSendSms}
           disabled={sendDisabled}
           style={{
             padding: '11px 16px',
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: 600,
             color: '#fff',
             background: sendDisabled ? '#94a3b8' : primaryColor,
             border: 'none',
-            borderRadius: 8,
+            borderRadius: 10,
             cursor: sendDisabled ? 'not-allowed' : 'pointer',
             whiteSpace: 'nowrap',
             fontFamily: 'inherit',
+            minHeight: 44,
           }}
         >
           {cooldownLeft > 0 ? labels.resend_sms_label(cooldownLeft) : labels.send_sms_button}
         </button>
       </div>
 
-      {phoneError && <div style={{ fontSize: 12, color: '#b91c1c', marginBottom: 8 }}>{phoneError}</div>}
+      {phoneError && <div style={{ fontSize: 13, color: '#b91c1c', marginTop: 8 }}>{phoneError}</div>}
+
+      {/* « Demande transmise », jamais « SMS envoyé » : on ne sait pas si le
+          message a été remis, et l'affirmer serait un écran mort. */}
+      {demandeTransmise && !verified && !phoneError && (
+        <div style={{ fontSize: 13, color: '#475569', marginTop: 8 }}>{labels.demande_transmise}</div>
+      )}
+
+      {/* LA SORTIE. Aucun canal nouveau : le formulaire de contact existant,
+          prérempli avec le numéro et le pays — sans quoi le support devrait
+          deviner le pays depuis l'indicatif, et « +1 » ne tranche pas entre les
+          États-Unis et le Canada. */}
+      {montrerSortie && lienAide && (
+        <div style={{ marginTop: 8 }}>
+          <a
+            href={lienAide(phone, paysIso)}
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: primaryColor,
+              textDecoration: 'underline',
+              textUnderlineOffset: 2,
+            }}
+          >
+            {labels.pas_recu}
+          </a>
+        </div>
+      )}
 
       {verified && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginTop: 4 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginTop: 8 }}>
           <span style={{ fontSize: 13, color: '#15803d', fontWeight: 600 }}>✓ {labels.phone_verified}</span>
           {/* D4 — sortie de l'état vérifié, sans perte de formulaire. */}
           <button
@@ -342,7 +416,7 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
       {otpRequestId && !verified && (
         <div style={{ marginTop: 12 }}>
           <label style={labelStyle}>{labels.code_label}</label>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'space-between', maxWidth: 320 }}>
             {Array.from({ length: OTP_LENGTH }).map((_, i) => (
               <input
                 key={i}
@@ -357,15 +431,16 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
                 onChange={(e) => handleOtpChange(i, e.target.value)}
                 onKeyDown={(e) => handleOtpKeyDown(i, e)}
                 disabled={otpVerifying}
-                aria-label={`Code digit ${i + 1}`}
+                aria-label={`${labels.code_label} ${i + 1}`}
                 style={{
-                  width: 42,
+                  width: '100%',
+                  minWidth: 0,
                   height: 50,
                   textAlign: 'center',
                   fontSize: 18,
                   fontWeight: 700,
-                  border: `1px solid ${otpError ? '#dc2626' : '#cbd5e1'}`,
-                  borderRadius: 8,
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: 10,
                   outline: 'none',
                   background: '#fff',
                   color: '#0f172a',

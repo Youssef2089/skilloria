@@ -717,7 +717,7 @@
       "contact": {
         "title": "Contact",
         "phone_label": "Phone",
-        "phone_placeholder": "+33 6 12 34 56 78",
+        "phone_placeholder": "Your number, with the country code",
         "birth_year_label": "Year of birth",
         "birth_year_placeholder": "1990",
         "address_label": "Address",
@@ -975,13 +975,16 @@
     "email_placeholder": "you@company.com",
     "section_phone": "Phone verification",
     "phone_label": "Phone",
-    "phone_placeholder": "+33 6 12 34 56 78",
     "send_sms_button": "Send SMS",
     "resend_sms_label": "Resend ({seconds}s)",
     "code_label": "Verification code",
     "code_placeholder": "Code received by SMS",
     "code_invalid": "Invalid code. Click Resend to receive a new code.",
     "phone_verified": "Phone verified",
+    "otp_edit_number": "Change the number",
+    "otp_pas_recu": "I'm not receiving the code",
+    "otp_demande_transmise": "Request sent. The code usually arrives within a minute.",
+    "otp_pays_label": "Number country",
     "edit_number": "Change number",
     "section_account": "Your account",
     "password_label": "Password",
@@ -994,7 +997,7 @@
     "errors": {
       "missing_fields": "Please fill in all required fields.",
       "invalid_email": "Invalid email address.",
-      "invalid_phone": "Invalid phone number (expected format: +33XXXXXXXXX).",
+      "invalid_phone": "Invalid number for the selected country. Check the country and the number.",
       "password_too_short": "Password must contain at least 8 characters.",
       "cgu_required": "You must accept the terms of use.",
       "phone_not_verified": "Please verify your phone via SMS.",
@@ -1003,8 +1006,11 @@
       "email_domain_blocked": "This email domain is not allowed for business registration.",
       "vonage_error": "SMS service temporarily unavailable. Please try again.",
       "rate_limited": "Too many attempts. Please try again shortly.",
+      "verification_en_cours": "A verification is already in progress for this number. Wait a minute, then try again.",
+      "sms_pays_non_pris_en_charge": "Verification texts are currently unavailable for this country. Use another number, or contact us: we will register you manually.",
       "generic": "An error occurred. Please try again.",
-      "phone_already_used": "This phone number is already used by another account."
+      "phone_already_used": "This phone number is already used by another account.",
+      "invalid_country_code": "Select the country of your company registered office."
     },
     "callback": {
       "verifying_title": "Verifying…",
@@ -1050,8 +1056,13 @@
       },
       "vat_label": "Intra-community VAT number",
       "vat_placeholder": "FR12345678901",
-      "vat_hint": "EU format: country code + number. Shown on your invoices and official documents."
-    }
+      "vat_hint": "EU format: country code + number. Shown on your invoices and official documents.",
+      "siren_label_generique": "Company identification number",
+      "siren_hint_pays": "Your {libelle}, as it appears on your official documents.",
+      "siren_hint_generique": "The number identifying your company with the official registry of your country."
+    },
+    "country_label": "Country of registered office",
+    "country_help": "The country where your company is registered. It determines which official registry is consulted during verification."
   },
   "signup_confirmation": {
     "title": "Account created successfully!",
@@ -1087,7 +1098,6 @@
       "password_label": "Password",
       "password_placeholder": "Minimum 8 characters",
       "phone_label": "Phone",
-      "phone_placeholder": "+33 6 12 34 56 78",
       "branch_label": "Branch",
       "branch_placeholder": "Select a branch",
       "speciality_label": "Main speciality",
@@ -1109,9 +1119,11 @@
       "password_too_short": "Password must be at least 8 characters.",
       "rate_limited": "Too many attempts. Please try again shortly.",
       "vonage_error": "SMS service temporarily unavailable. Please try again.",
+      "verification_en_cours": "A verification is already in progress for this number. Wait a minute, then try again.",
+      "sms_pays_non_pris_en_charge": "Verification texts are currently unavailable for this country. Use another number, or contact us: we will register you manually.",
       "phone_not_verified": "Please verify your phone via SMS.",
       "email_taken": "An account already exists with this email address.",
-      "invalid_phone": "Invalid phone number (expected format: +33XXXXXXXXX).",
+      "invalid_phone": "Invalid number for the selected country. Check the country and the number.",
       "generic": "An error occurred. Please try again.",
       "phone_already_used": "This phone number is already used by another account.",
       "otp_expired": "Your verification has expired. Please resend an SMS and re-enter the code.",
@@ -1127,7 +1139,10 @@
       "code_label": "Verification code",
       "code_invalid": "Invalid code. Click Resend to receive a new code.",
       "phone_verified": "Phone verified",
-      "edit_number": "Change number"
+      "edit_number": "Change number",
+      "pas_recu": "I'm not receiving the code",
+      "demande_transmise": "Request sent. The code usually arrives within a minute.",
+      "pays_label": "Number country"
     }
   },
   "dashboard_cdi": {
@@ -1618,7 +1633,7 @@
       "contact": {
         "title": "Contact details",
         "phone_label": "Phone",
-        "phone_placeholder": "+33 6 12 34 56 78",
+        "phone_placeholder": "Your number, with the country code",
         "birth_year_label": "Year of birth",
         "birth_year_placeholder": "1990",
         "address_label": "Address",
@@ -1770,7 +1785,11 @@
       "saving": "Saving…",
       "saved": "Changes saved.",
       "save_error": "Saving failed. Please try again.",
-      "company_name_required": "Company name is required."
+      "company_name_required": "Company name is required.",
+      "country_editable_help": "Editable until your file is validated. It determines which official registry is consulted.",
+      "country_locked_help": "Your file is validated: the country can no longer be changed here. Contact us if needed.",
+      "error_country_locked": "Your file is validated: the country can no longer be changed here. Contact us to correct it.",
+      "error_invalid_country": "Unknown country. Choose one from the list."
     },
     "offre": {
       "loading": "Loading…",
@@ -2594,7 +2613,11 @@
       "ai_note_label": "AI note",
       "discrepancies_label": "Discrepancies detected",
       "sirene_unavailable_title": "Sirene unavailable",
-      "sirene_unavailable_hint": "The AI ran without official INSEE data. Verify the company information manually before deciding."
+      "sirene_unavailable_hint": "The AI ran without official INSEE data. Verify the company information manually before deciding.",
+      "motif_revue_label": "Reason for manual review",
+      "motif_pays_sans_decideur": "No verification decider is configured for this country. The file arrives here BY DESIGN: it is not a verification failure, and nothing was charged.",
+      "motif_plafond_depense_ia": "The AI spending cap had been reached: verification was not attempted. This is not a judgement on this organisation.",
+      "motif_revue_aide": "INTERNAL reason: the organisation never sees it. Its own screen only states that its file is being validated."
     },
     "status_pending": "Pending",
     "status_approved": "Approved",
@@ -3148,19 +3171,18 @@
       "description": "Change your email address. A confirmation email is sent to the new address before the switch.",
       "current_label": "Current email",
       "new_label": "New email",
-      "new_placeholder": "new@address.com",
       "confirmation_info": "A confirmation email will be sent. The change takes effect only after you click the link.",
       "submit": "Send confirmation",
       "success": "Confirmation email sent. Check your inbox.",
       "error_taken": "This email address is already in use.",
-      "error_failed": "Could not change email."
+      "error_failed": "Could not change email.",
+      "new_placeholder": "new@address.com"
     },
     "phone": {
       "title": "Phone",
       "description": "Change your phone number. A verification code will be sent by SMS.",
       "current_label": "Current number",
       "new_label": "New number",
-      "new_placeholder": "+1 555 123 4567",
       "send_code": "Send code",
       "code_label": "Verification code",
       "code_placeholder": "123456",
@@ -3172,7 +3194,16 @@
       "error_expired": "The code has expired. Request a new one.",
       "error_failed": "Could not change the number.",
       "error_rate_limited": "Too many attempts. Please try again shortly.",
-      "error_phone_already_used": "This phone number is already used by another account."
+      "error_phone_already_used": "This phone number is already used by another account.",
+      "error_verification_en_cours": "A verification is already in progress for this number. Wait a minute, then try again.",
+      "error_sms_pays_non_pris_en_charge": "Verification texts are currently unavailable for this country. Use another number, or contact us.",
+      "error_vonage_error": "Verification service temporarily unavailable. Try again in a few minutes.",
+      "error_invalid_phone": "Invalid number for the selected country. Check the country and the number.",
+      "edit_number": "Change the number",
+      "pas_recu": "I'm not receiving the code",
+      "demande_transmise": "Request sent. The code usually arrives within a minute.",
+      "resend_in": "Resend in {seconds}s",
+      "pays_label": "Number country"
     },
     "password": {
       "title": "Password",
@@ -3354,7 +3385,8 @@
       "org_unavailable": "Your collaboration workspace could not be prepared. Please try again shortly.",
       "create_failed": "Could not save the need. Check the fields and try again.",
       "publish_failed": "Publishing failed. Please try again.",
-      "publish_check_failed": "We could not check how many active listings your plan allows. Nothing was posted. Try again in a few moments; if it persists, contact support."
+      "publish_check_failed": "We could not check how many active listings your plan allows. Nothing was posted. Try again in a few moments; if it persists, contact support.",
+      "expert_country_missing": "Your collaboration space uses the address on your profile, and the country is missing there. Fill it in on your profile, then publish again: nothing has been lost."
     },
     "list": {
       "title": "My subcontracting needs",
@@ -3438,6 +3470,8 @@
     "field_company": "Company",
     "field_email": "Email",
     "field_phone": "Phone",
+    "prefill_otp_message": "Hello,\n\nI did not receive the verification code by text message while signing up.\nNumber: {phone}\nCountry: {pays}\n\nThank you for your help.",
+    "prefill_otp_titre": "You are not receiving your verification code",
     "field_message": "Message",
     "optional": "(optional)",
     "consent_label": "I agree that my data may be processed to respond to my request, in accordance with the <link>privacy policy</link>.",
@@ -3966,6 +4000,10 @@
       "opportunity_quality_check": {
         "name": "Listing quality",
         "effect": "Above this threshold, the listing is published. Below it, it goes to manual review. The check also looks for contact details in plain text: a listing that bypasses messaging bypasses unlocking."
+      },
+      "official_api": {
+        "name": "Official registry",
+        "effect": "Queries the country official registry and supplies its data to the coherence analyser. It produces no verdict: its threshold column is read by no path."
       }
     },
     "flags": {
@@ -3989,6 +4027,7 @@
       "drapeaux_non_lus": "This path carries no flags.",
       "type_non_gere": "This provider type is not editable here.",
       "bad_provider": "Provider not found."
-    }
+    },
+    "no_decisive": "This provider supplies data, it does not decide: no value is decisive here. The decision belongs to the coherence analyser for the same country."
   }
 }

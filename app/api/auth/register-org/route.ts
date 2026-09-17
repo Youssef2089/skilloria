@@ -6,6 +6,12 @@ import { verifyPhoneOtpToken } from '@/lib/phone-otp-token'
 import { normalizeE164 } from '@/lib/phone'
 import { signUpWithConfirmation, atomicCleanup, isUniqueViolation } from '@/lib/auth-signup'
 import { CGU_VERSION } from '@/lib/legal'
+import {
+  COLONNES_REGLE_NUMERO,
+  normaliserNumeroIdentification,
+  numeroIdentificationAccepte,
+  regleDepuisLignePays,
+} from '@/lib/pays/numero-identification'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -126,8 +132,17 @@ function validate(body: RegisterOrgBody): { ok: true; input: ValidatedInput } | 
   if (org_type_raw !== 'client' && org_type_raw !== 'cabinet' && org_type_raw !== 'esn') {
     return { ok: false, error: 'invalid_org_type' }
   }
-  const siren = asString(body.siren)
-  if (siren && !/^\d{9}$/.test(siren.replace(/\s/g, ''))) {
+  // LE NUMÉRO D'IDENTIFICATION N'EST PLUS VALIDÉ ICI — il l'est contre le
+  // RÉFÉRENTIEL DU PAYS, après lecture en base (cf. le POST).
+  //
+  //  Cette ligne testait `/^\d{9}$/` : le format FRANÇAIS, en dur, sur toutes
+  //  les organisations du monde. Un numéro britannique ou un ICE marocain était
+  //  refusé avant d'atteindre quoi que ce soit.
+  //
+  //  `validate` est synchrone et ne joint pas la base : on se contente ici de
+  //  NORMALISER et de borner, la règle du pays étant appliquée juste après.
+  const siren = normaliserNumeroIdentification(body.siren) || null
+  if (siren && siren.length > 40) {
     return { ok: false, error: 'invalid_siren' }
   }
   const vat_number = asString(body.vat_number)
@@ -282,7 +297,47 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
   }
 
+  // ── LE PAYS EXISTE-T-IL, ET QUE DIT-IL DU NUMÉRO D'IDENTIFICATION ? ──────
+  //
+  //  LA RÈGLE EST IMPOSÉE AU SERVEUR, jamais par l'écran seul (checklist). Elle
+  //  vient du RÉFÉRENTIEL, pas d'un `switch` : un pays de plus est une écriture
+  //  de données, pas un déploiement (§D.7).
+  //
+  //  Le pays doit être ACTIF au référentiel. Accepter un code arbitraire de
+  //  deux lettres — ce que faisait la validation syntaxique seule — laisserait
+  //  entrer une organisation dans un pays que le produit ne connaît pas, et
+  //  personne ne s'en apercevrait avant la vérification.
+  const { data: paysRow, error: paysErr } = await supabaseAdmin
+    .from('countries')
+    .select(`code, ${COLONNES_REGLE_NUMERO}`)
+    .eq('code', input.country_code)
+    .eq('active', true)
+    .maybeSingle()
+  if (paysErr) {
+    console.error('[register-org] lecture du referentiel pays', paysErr.message)
+    return json({ error: 'Query failed', code: 'db_error' }, 500)
+  }
+  if (!paysRow) {
+    return json({ error: 'Unknown country', code: 'invalid_country_code' }, 400)
+  }
+
   if (input.siren) {
+    // ON NE REFUSE JAMAIS SUR UNE RÈGLE QU'ON N'A PAS : un pays dont le format
+    // est inconnu (colonnes NULL) accepte la saisie, et la revue humaine juge.
+    const regle = regleDepuisLignePays(paysRow as unknown as Record<string, unknown>)
+    if (!numeroIdentificationAccepte(input.siren, regle)) {
+      return json(
+        {
+          error: 'Identification number does not match the country format',
+          code: 'invalid_siren',
+          // L'écran a besoin du NOM local pour formuler son refus : dire
+          // « SIREN invalide » à une organisation britannique n'aurait aucun sens.
+          registre_libelle: regle?.libelle ?? null,
+        },
+        400,
+      )
+    }
+
     const { data: existingSiren } = await supabaseAdmin
       .from('organizations')
       .select('id')

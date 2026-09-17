@@ -348,6 +348,45 @@ le point 2 d'abord.**
 
 ---
 
+### M1 ter — La fusion de `feat/s1-ux-profil`, et les deux écrans partagés
+
+Le 17/09/2026, `feat/s1-ux-profil` a été fusionné. **Deux worktrees avaient travaillé sur LES MÊMES
+ÉCRANS d'organisation sans se croiser** — `feat/s2` sur le logo (déjà sur le tronc), `feat/s1` sur le
+pays du siège et le motif de mise en revue. **Les deux sont justes ; aucun ne remplace l'autre.**
+
+**Cinq conflits, dont trois sur du code.** Pour chacun, la question posée n'a pas été « quel côté
+garder » mais « que fait chaque côté, et comment les deux coexistent ».
+
+| Fichier | Ce que chaque côté faisait | L'union |
+|---|---|---|
+| `app/api/me/organisation/route.ts` | `logo_url` est **préexistant** : S2 l'a **retiré** de la whitelist (c'était une saisie d'URL, §E.17) ; S1 ne l'a pas touché et a **ajouté** `country` | le **retrait** de S2 **et** l'ajout de S1 — vérifié sur la base `392dd07` avant de trancher |
+| `app/api/admin/get-org/[id]/route.ts` | un import chacun, plus un validateur de motif chez S1 | purement additif : les deux |
+| `dashboard/entreprise/organisation/page.tsx` | S2 monte `OrgLogoUpload` ; S1 monte `CountrySelect` et charge le référentiel | les deux composants, et le champ `logo_url` reste **hors** du formulaire |
+| `CLAUDE.md` | les deux avaient mis à jour le **nombre de migrations** — 63 pour le tronc, 64 pour S1 | **65**, mesuré après fusion : aucun des deux n'était bon, et choisir l'un aurait réintroduit le défaut que cette phrase raconte |
+| `docs/produit.md` | deux paragraphes **au même endroit, sur des sujets différents** | les deux, dans l'ordre du parcours — le motif de revue prolonge l'étape 2, le logo ouvre l'étape 2 bis |
+
+**Seconde collision de numéros de section, résolue comme la première.** `feat/s1` portait un §E.13, un
+§E.14 et un §E.17 — les trois déjà pris par le tronc, et **en double dans son propre fichier** (sa
+fusion précédente les avait empilés après §E.9 sans renuméroter). Ils deviennent **§E.19**, **§E.20**
+et **§E.21**, et ils sont **replacés** dans §E, avant le fourre-tout §E.9.
+
+**198 lignes ajoutées par `feat/s1` à la mémoire, toutes présentes** — sauf le paragraphe du nombre
+de migrations, remesuré ci-dessus. Vérifié par script, pas supposé.
+
+**Les `messages/*.json` sont l'union EXACTE** : 3154 à la base, +26 côté tronc, +37 côté `feat/s1`,
+**3217** après fusion, parité exacte sur les quatre langues. **Cinq suppressions délibérées** sont
+propagées — deux du logo (S2 remplace la saisie d'URL par un téléversement), trois de la saisie de
+téléphone (S1 unifie les trois parcours). Une suppression voulue n'est pas une perte, et c'est
+vérifié comme telle.
+
+**Défaut vu pendant la fusion, traité dans la fusion.** Les deux migrations de `feat/s1` portaient un
+suffixe **`1xxxxx`** — la plage que §G.2 déclare fausse, et **la même infraction que celle du tronc**.
+Elles n'étaient appliquées nulle part : elles ont été renumérotées dans la plage de S1
+(`20260917200000`, `20260917210000`), exactement comme `912d437` l'avait fait avant application.
+Toutes les références passent par le **suffixe** (§G.3), donc rien ne casse. Le cliquet de
+`diag-migration-donnees` les avait dénoncées — c'est sa première prise.
+
+
 ## E. Les pièges vérifiés
 
 **E.1 — Les clients Supabase ne sont pas typés. Une colonne supprimée casse au runtime, en silence.**
@@ -517,15 +556,26 @@ la ligne manque :
 
 | Chemin | Configuration absente ⇒ | Verdict |
 |---|---|---|
-| `expert-verification` | `pending_admin_review`, motif nommé, **aucun appel IA** | ✔ |
-| `publication-verification` | `pending_review`, motif nommé, **aucun appel IA** | ✔ |
-| `verification/index` | ~~`FALLBACK_DECISION_THRESHOLD = 7`~~ | ✘ **devinait** |
+| `verification/index` (organisation) | `pending_admin_review`, motif nommé, **aucun appel IA** | ✔ |
+| `expert-verification` | ~~`request_timeout_ms: 45000`, `web_search_max_uses: 4`, `domain_mismatch_cap: 5`~~ | ✘ **inventait trois valeurs** |
+| `publication-verification` | ~~`{ threshold: 0, active: false }`~~ | ✘ **inventait un seuil** |
 
-Le troisième tranchait sur un nombre **que personne n'avait choisi et qu'aucun écran ne montrait** —
-et son propre en-tête annonçait « fallback threshold = **9** » pendant que la constante valait **7**.
-Il fallait lire les deux pour le voir.
-**Aligné** : plus aucun repli, refus explicite avec motif nommé, **avant** toute dépense — on ne paie
-pas une décision qu'on ne saura pas trancher.
+⚠️ **CE TABLEAU A LONGTEMPS DIT L'INVERSE.** Il donnait les deux chemins expert et publication pour
+alignés, et le chemin organisation pour le seul fautif. C'était vrai **une fois le chemin
+organisation corrigé**, et faux pour les deux autres, que personne n'avait relus depuis. Le chemin
+organisation tranchait sur un `FALLBACK_DECISION_THRESHOLD = 7` **que personne n'avait choisi et
+qu'aucun écran ne montrait** — et son propre en-tête annonçait « fallback threshold = **9** »
+pendant que la constante valait **7**. Il fallait lire les deux pour le voir.
+
+**La forme est le piège.** `{ threshold: 0, active: false }` a l'air prudent : `active: false`
+semble tout désamorcer. Mais le zéro est un **seuil valide** ; il suffit qu'un appelant lise
+`threshold` sans regarder `active` pour que **tout passe**. Un réglage inventé est pire qu'un
+réglage absent : **il a l'air d'avoir été décidé.**
+
+**Les trois sont alignés** : plus aucun repli, refus explicite avec motif nommé, **avant** toute
+dépense — on ne paie pas une décision qu'on ne saura pas trancher. Et `expert-verification` a perdu
+son `limit(1)` : **zéro ligne** rend `null`, **plusieurs** rend un refus nommé (configuration
+ambiguë) au lieu d'en élire une silencieusement.
 La même famille frappait **l'origine du site** : huit endroits construisaient leurs liens d'e-mail
 sur `NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'`. En production, une variable oubliée envoyait
 à de **vrais destinataires** des liens vers `localhost` — approbation d'expert, refus d'organisation,
@@ -577,9 +627,13 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **63** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
-16/09/2026 — ce document disait 51 / 35 / 1913 ; les trois chiffres avaient vieilli sans que rien ne
-le signale, et c'est précisément pour ça qu'ils sont désormais **relus par un contrôle**, §E.16).
+Sur les **65** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
+17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois dernières,
+`logo_organisation_bucket`, `format_numero_identification` et `pays_du_profil_sans_defaut`,
+**n'insèrent rien** : elles créent un bucket, ajoutent des colonnes, retirent deux `DEFAULT 'FR'` et
+mettent à jour la seule ligne `FR`, d'où trois compteurs inchangés. Ce document disait 51 / 35 / 1913 ;
+les chiffres avaient vieilli sans que rien ne le signale, et c'est précisément pour ça qu'ils sont
+désormais **relus par un contrôle**, §E.16).
 
 > ⚠️ **ET IL DIT CE QU'IL NE SAIT PAS LIRE.** Les 12 `insert … select … from (values …) cross join`
 > sont déclarées **non analysables**, nommément, plutôt que jugées. Un contrôle qui invente un verdict
@@ -649,7 +703,12 @@ mensonge : chacune était vraie à sa date. C'est ce qui les rend coûteuses —
 **Les quatre familles, et ce qu'elles révèlent :**
 · **un défaut ou une colonne qui ne gouverne rien** — le seuil « 9 » de la vérification d'entreprise
   appartenait à `sirene_insee`, dont le `confidence_threshold` n'est lu nulle part. C'est la
-  **deuxième colonne inerte** du projet, et la mémoire ne la signalait pas ;
+  **troisième occurrence** de cette famille, après la colonne inerte du chemin expert et le
+  `packages.max_seats` affiché sans effet (§P4.4) — et la mémoire ne la signalait pas.
+  **Traitée** : `/admin/seuils` déclare désormais `official_api` avec `cle_decisive: null`, et
+  l'écran affiche « aucune valeur décisive » **au lieu d'un champ éditable** qui aurait présenté le
+  9 inerte comme réglable — et dont l'enregistrement aurait été refusé par la garde de colonne
+  inerte. §D.7 : **un réglage règle quelque chose, ou il le dit** ;
 · **une règle énoncée plus largement qu'elle ne l'est** — « la seule route sans `requireAuth` » :
   elles sont **18 sur 128** ;
 · **un inventaire incomplet, qui se lit comme exhaustif** — 18 tables sur 64 manquaient, dont
@@ -787,6 +846,99 @@ contrainte.
 additive. Elle ne l'est pas — elle **change la façon dont on a le droit de LIRE** les deux tables
 qu'elle relie, partout, y compris dans du code écrit des mois plus tôt.
 
+> **Seconde collision de numeros, resolue comme la premiere — par RENUMEROTATION.**
+> `feat/s1-ux-profil` a ecrit un §E.13, un §E.14 et un §E.17 pendant que le tronc en ecrivait
+> d'autres. Ceux du tronc gardent leur numero (ils sont cites ailleurs) ; ceux de S1 deviennent
+> **§E.19**, **§E.20** et **§E.21**. Et ils sont REPLACES dans §E, avant le fourre-tout §E.9 —
+> la fusion automatique les avait empiles APRES lui, ce qui les sortait de la liste des pieges.
+
+**E.19 — UNE API ASYNCHRONE QUI REND UN IDENTIFIANT DE DEMANDE NE DIT PAS QUE LE MESSAGE EST PARTI.**
+
+**Le piège.** Un fournisseur accepte une demande et rend un identifiant. Le code lit cet identifiant
+comme une confirmation d'envoi, alors qu'il ne confirme que la **réception de la demande**. Ce qui se
+passe ensuite — routage, filtrage, blocage — n'est pas dans cette réponse.
+
+**La preuve, dans ce dépôt.** Vonage **Verify v2** (`api.nexmo.com/v2/verify`) répond `request_id`,
+puis peut bloquer l'envoi. Sur la **Tunisie (+216)**, les journaux Verify affichent `BLOCKED` **après**
+cette réponse. Le code rendait 200, l'écran lançait son compte à rebours et affichait six cases de
+code — pour un SMS qui ne partirait jamais. **Six mois d'inscriptions perdues sans une ligne de log
+côté produit.**
+
+**Ce qui est en place.** Les routes d'envoi rendent `livraison_confirmee: false`, les écrans disent
+« **demande transmise** » et jamais « SMS envoyé », et une **sortie** s'ouvre quand le compte à rebours
+expire : un lien vers le formulaire de contact existant, prérempli avec le numéro et le pays.
+
+**La règle générale.** Un écran qui **affirme plus que ce qu'on sait** est un écran mort : il enferme
+quelqu'un dans une attente qu'aucun événement ne viendra rompre. Quand l'état réel n'est connaissable
+qu'après coup, on dit ce qu'on sait — « transmis » — et on donne une action.
+⚠️ Vaut pour **tout** fournisseur asynchrone, pas seulement les SMS : e-mail, webhook de paiement,
+file de traitement. La question à poser est toujours la même : *cette réponse prouve-t-elle le
+RÉSULTAT, ou seulement la PRISE EN COMPTE ?*
+
+**E.20 — UN CORRECTIF APPLIQUÉ À UN PARCOURS ET NON RÉTROPORTÉ À SON JUMEAU SE LIT COMME CORRIGÉ
+ALORS QU'IL EST VIVANT.**
+
+**Le piège.** Deux écrans font la même chose par deux codes recopiés. On corrige l'un, on documente la
+correction dans **son** commentaire, et le dépôt affirme désormais que le défaut est fermé. Il l'est à
+un endroit sur deux, et la recherche du défaut s'arrête sur le commentaire qui dit qu'il est réglé.
+
+**La preuve, dans ce dépôt.** `PhoneOtpField` portait, en commentaire, l'explication d'une regex
+laxiste corrigée : `/^\+[1-9]\d{6,14}$/` laissait passer un numéro structurellement E.164 mais **non
+attribuable**, le bouton s'activait, le serveur refusait, et l'écran affichait « Service SMS
+indisponible » pour une faute de saisie. Le correctif n'a **jamais** été rétroporté à
+`inscription/organisation`, qui portait la même regex **six mois plus tard**. Et ses ≈200 lignes
+jumelles avaient en plus leur propre table d'erreurs, plus pauvre.
+
+**Pire encore sur le troisième jumeau** — les paramètres du compte — qui avait son propre `toE164` :
+`if (s.startsWith('0')) return '+33' + s.slice(1)`. Un utilisateur marocain qui tapait `0612345678`
+enregistrait un numéro **français** en croyant enregistrer le sien. Le code n'échouait pas : il
+**inventait**, exactement ce que [lib/phone.ts](lib/phone.ts) refuse de faire, en-tête à l'appui.
+
+**Le remède, et c'est le seul qui tienne.** Ce n'est pas « penser à rétroporter » : c'est **supprimer le
+jumeau**. Une saisie de téléphone ([components/phone/SaisieTelephone.tsx](components/phone/SaisieTelephone.tsx)),
+un parcours OTP ([components/PhoneOtpField.tsx](components/PhoneOtpField.tsx)), trois usages.
+`scripts/diag-saisie-telephone.mjs` **rougit** si une seconde implémentation réapparaît — c'est la
+seule forme qui empêche la divergence de revenir.
+
+**E.21 — UN CHAMP QUE LE FORMULAIRE NE DEMANDE PAS REÇOIT UNE VALEUR EN DUR — ET CETTE VALEUR
+CHOISIT UN COMPORTEMENT AILLEURS.**
+Le formulaire d'inscription d'organisation ne demandait **pas** le pays du siège. Il postait
+`country_code: 'FR'` ; la finalisation retombait sur `?? 'FR'` ; la colonne portait
+`default 'FR'`. **Trois endroits**, et aucun choix.
+
+Ça se lit comme cosmétique. Ça ne l'est pas : `verification_providers` **sélectionne le registre
+officiel SUR CE CODE**. Une société marocaine était donc cherchée dans **Sirene**, absente, et
+renvoyée en `pending_admin_review`. Le champ était en **lecture seule** sur son écran : elle ne
+pouvait même pas se corriger. Cul-de-sac parfait, et **invisible** — l'écran affichait « Pays :
+FR », ce qui ressemble à une donnée, pas à une décision du code.
+
+**La question qui a décidé du correctif n'était pas « quels pays ajouter ».** C'était : *la revue
+humaine est-elle un repli acceptable ou un cul-de-sac ?* Réponse lue dans le code : **c'est le repli
+CONÇU** — refus explicite sans dépense, « jamais de rejet automatique », écran qui dit déjà « En
+cours de revue ». Le défaut n'était donc pas d'arriver là ; c'était d'y arriver **pour la mauvaise
+raison**, et que rien ne distingue les deux.
+
+**Le second piège est de FORME, et il est plus retors.** Le motif de mise en revue était écrit dans
+`verification_data.notes` — et la fiche back-office affiche `notes` sous le libellé **« Note IA »**.
+On lisait donc « Aucun appel IA n'a été fait » **sous** « Note IA ». Et ces branches écrivaient
+`score: 0`, rendu **« 0 » en rouge** : une organisation étrangère au dossier parfait ressemblait à un
+zéro pointé. **Rien n'était faux au sens strict — et tout se lisait à l'envers.**
+
+**Ce qu'il faut retenir, et qui vaut au-delà du pays :**
+· une valeur **par défaut** sur un champ non demandé est un **choix fait à la place de quelqu'un**,
+  et il ne se signale jamais ;
+· chercher les autres occurrences **par balayage**, pas de mémoire — l'audit en avait compté deux,
+  le dépôt en portait **cinq** (`register-org`, `finalize-org-registration`, le défaut de colonne,
+  `ensurePersonalOrg`, et les deux écrans de profil expert) ;
+· un **refus** rendu à l'utilisateur et un **motif** destiné à l'exploitant ne sont pas le même
+  texte, et ne doivent pas partager le même champ ;
+· `score: null` quand rien n'a été noté. **Un score inventé a l'air d'avoir été décidé.**
+
+`scripts/diag-pays-organisation.mjs` garde les quatre points, **exceptions nommées** (`sirene.ts`
+garde `country_code !== 'FR'` et ses neuf chiffres : Sirene **est** le registre français), et il lit
+le **code seul** — ce lot cite « FR » partout pour expliquer ce qu'il a retiré, et un contrôle naïf
+rougirait sur sa propre explication.
+
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
   acceptée et ne se déclenchera **jamais** : aucune erreur, aucune ligne dans `job_run_details`. D'où le
@@ -804,7 +956,6 @@ qu'elle relie, partout, y compris dans du code écrit des mois plus tôt.
 - **Le fail-safe n'est pas uniforme, et c'est voulu** : `entitlements` et `rate-limit` sont
   **fail-open** (une panne commerciale ne bloque pas l'usage) ; `ai-budget` est **fail-closed**
   (« ne pas savoir combien on a dépensé n'autorise pas à dépenser plus »).
-
 ---
 
 ## G. Les règles de travail entre worktrees

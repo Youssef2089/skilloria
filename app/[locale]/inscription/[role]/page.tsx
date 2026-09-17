@@ -9,6 +9,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
 import PhoneOtpField, { type PhoneOtpLabels } from '@/components/PhoneOtpField'
 import PhoneTakenNotice from '@/components/auth/PhoneTakenNotice'
 import { LEGAL_PATHS } from '@/lib/legal'
+import { lienAideOtp } from '@/lib/otp/lien-aide'
 
 type RoleKey = 'expert' | 'cdi'
 
@@ -92,24 +93,31 @@ export default function InscriptionRolePage() {
   }
 
   // Téléphone + OTP obligatoire (D1) — le token HMAC prouve la vérification.
-  const [phone, setPhone] = useState('+33')
+  // VIDE au départ, plus `'+33'`. L'utilisateur ne compose plus d'indicatif :
+  // il choisit un pays et tape son numéro national, et c'est le code qui
+  // assemble le E.164 (cf. components/phone/SaisieTelephone).
+  const [phone, setPhone] = useState('')
   const [otpToken, setOtpToken] = useState<string | null>(null)
   const phoneVerified = otpToken !== null
   // D6 — numéro déjà rattaché à un compte (refus avant envoi SMS).
   const [phoneTaken, setPhoneTaken] = useState(false)
 
-  // Libellés OTP tirés du namespace signup_form (copiés d'inscription_org).
+  // Libellés OTP tirés du namespace signup_form.
   const otpLabels: PhoneOtpLabels = {
     phone_label: t('fields.phone_label'),
-    phone_placeholder: t('fields.phone_placeholder'),
+    pays_label: t('otp.pays_label'),
     send_sms_button: t('otp.send_sms_button'),
     resend_sms_label: (seconds: number) => t('otp.resend_sms_label', { seconds }),
     code_label: t('otp.code_label'),
     code_invalid: t('otp.code_invalid'),
     phone_verified: t('otp.phone_verified'),
+    demande_transmise: t('otp.demande_transmise'),
     invalid_phone: t('errors.invalid_phone'),
     rate_limited: t('errors.rate_limited'),
     vonage_error: t('errors.vonage_error'),
+    pays_non_pris_en_charge: t('errors.sms_pays_non_pris_en_charge'),
+    verification_en_cours: t('errors.verification_en_cours'),
+    pas_recu: t('otp.pas_recu'),
     edit_number: t('otp.edit_number'),
   }
 
@@ -406,12 +414,13 @@ export default function InscriptionRolePage() {
             labels={otpLabels}
             onPhoneTaken={() => setPhoneTaken(true)}
             onEdit={() => { setOtpToken(null); setPhoneTaken(false) }}
+            lienAide={(p, iso) => lienAideOtp(locale, p, iso)}
           />
           {/* D6 — numéro déjà rattaché : message de récupération (jamais accusatoire). */}
           {phoneTaken && (
             <PhoneTakenNotice
               primaryColor={domain.primaryColor}
-              onUseAnotherNumber={() => { setPhone('+33'); setOtpToken(null); setPhoneTaken(false) }}
+              onUseAnotherNumber={() => { setPhone(''); setOtpToken(null); setPhoneTaken(false) }}
             />
           )}
         </div>

@@ -717,7 +717,7 @@
       "contact": {
         "title": "Coordonnées",
         "phone_label": "Téléphone",
-        "phone_placeholder": "+33 6 12 34 56 78",
+        "phone_placeholder": "Votre numéro, avec l’indicatif du pays",
         "birth_year_label": "Année de naissance",
         "birth_year_placeholder": "1990",
         "address_label": "Adresse",
@@ -975,13 +975,16 @@
     "email_placeholder": "vous@entreprise.com",
     "section_phone": "Vérification téléphone",
     "phone_label": "Téléphone",
-    "phone_placeholder": "+33 6 12 34 56 78",
     "send_sms_button": "Envoyer SMS",
     "resend_sms_label": "Renvoyer ({seconds}s)",
     "code_label": "Code de vérification",
     "code_placeholder": "Code reçu par SMS",
     "code_invalid": "Code invalide. Cliquez sur Renvoyer pour recevoir un nouveau code.",
     "phone_verified": "Téléphone vérifié",
+    "otp_edit_number": "Modifier le numéro",
+    "otp_pas_recu": "Je ne reçois pas le code",
+    "otp_demande_transmise": "Demande transmise. Le code arrive en général sous une minute.",
+    "otp_pays_label": "Pays du numéro",
     "edit_number": "Modifier le numéro",
     "section_account": "Votre compte",
     "password_label": "Mot de passe",
@@ -994,7 +997,7 @@
     "errors": {
       "missing_fields": "Veuillez remplir tous les champs obligatoires.",
       "invalid_email": "Adresse e-mail invalide.",
-      "invalid_phone": "Numéro de téléphone invalide (format attendu : +33XXXXXXXXX).",
+      "invalid_phone": "Numéro invalide pour le pays sélectionné. Vérifiez le pays et le numéro.",
       "password_too_short": "Le mot de passe doit contenir au moins 8 caractères.",
       "cgu_required": "Vous devez accepter les conditions d'utilisation.",
       "phone_not_verified": "Veuillez vérifier votre téléphone par SMS.",
@@ -1003,8 +1006,11 @@
       "email_domain_blocked": "Ce domaine d'e-mail n'est pas autorisé pour une inscription entreprise.",
       "vonage_error": "Service SMS temporairement indisponible. Veuillez réessayer.",
       "rate_limited": "Trop de tentatives. Reessaie dans un instant.",
+      "verification_en_cours": "Une vérification est déjà en cours sur ce numéro. Patientez une minute, puis réessayez.",
+      "sms_pays_non_pris_en_charge": "Les SMS de vérification ne sont pas disponibles vers ce pays pour le moment. Choisissez un autre numéro, ou écrivez-nous : nous vous inscrivons manuellement.",
       "generic": "Une erreur est survenue. Veuillez réessayer.",
-      "phone_already_used": "Ce numéro est déjà utilisé par un autre compte."
+      "phone_already_used": "Ce numéro est déjà utilisé par un autre compte.",
+      "invalid_country_code": "Sélectionnez le pays du siège de votre entreprise."
     },
     "callback": {
       "verifying_title": "Vérification en cours…",
@@ -1050,8 +1056,13 @@
       },
       "vat_label": "Numéro de TVA intracommunautaire",
       "vat_placeholder": "FR12345678901",
-      "vat_hint": "Format UE : code pays + numéro. Figure sur vos factures et documents officiels."
-    }
+      "vat_hint": "Format UE : code pays + numéro. Figure sur vos factures et documents officiels.",
+      "siren_label_generique": "Numéro d'identification de l'entreprise",
+      "siren_hint_pays": "Votre numéro {libelle}, tel qu’il figure sur vos documents officiels.",
+      "siren_hint_generique": "Le numéro qui identifie votre entreprise auprès du registre officiel de votre pays."
+    },
+    "country_label": "Pays du siège",
+    "country_help": "Le pays où votre entreprise est immatriculée. Il détermine le registre officiel consulté lors de la vérification."
   },
   "signup_confirmation": {
     "title": "Compte créé avec succès !",
@@ -1087,7 +1098,6 @@
       "password_label": "Mot de passe",
       "password_placeholder": "Minimum 8 caractères",
       "phone_label": "Téléphone",
-      "phone_placeholder": "+33 6 12 34 56 78",
       "branch_label": "Branche",
       "branch_placeholder": "Sélectionnez une branche",
       "speciality_label": "Spécialité principale",
@@ -1109,9 +1119,11 @@
       "password_too_short": "Le mot de passe doit contenir au moins 8 caractères.",
       "rate_limited": "Trop de tentatives. Réessaie dans un instant.",
       "vonage_error": "Service SMS temporairement indisponible. Veuillez réessayer.",
+      "verification_en_cours": "Une vérification est déjà en cours sur ce numéro. Patientez une minute, puis réessayez.",
+      "sms_pays_non_pris_en_charge": "Les SMS de vérification ne sont pas disponibles vers ce pays pour le moment. Choisissez un autre numéro, ou écrivez-nous : nous vous inscrivons manuellement.",
       "phone_not_verified": "Veuillez vérifier votre téléphone par SMS.",
       "email_taken": "Un compte existe déjà avec cette adresse e-mail.",
-      "invalid_phone": "Numéro de téléphone invalide (format attendu : +33XXXXXXXXX).",
+      "invalid_phone": "Numéro invalide pour le pays sélectionné. Vérifiez le pays et le numéro.",
       "generic": "Une erreur est survenue. Veuillez réessayer.",
       "phone_already_used": "Ce numéro est déjà utilisé par un autre compte.",
       "otp_expired": "Votre vérification a expiré. Veuillez renvoyer un SMS et re-saisir le code.",
@@ -1127,7 +1139,10 @@
       "code_label": "Code de vérification",
       "code_invalid": "Code invalide. Cliquez sur Renvoyer pour recevoir un nouveau code.",
       "phone_verified": "Téléphone vérifié",
-      "edit_number": "Modifier le numéro"
+      "edit_number": "Modifier le numéro",
+      "pas_recu": "Je ne reçois pas le code",
+      "demande_transmise": "Demande transmise. Le code arrive en général sous une minute.",
+      "pays_label": "Pays du numéro"
     }
   },
   "dashboard_cdi": {
@@ -1618,7 +1633,7 @@
       "contact": {
         "title": "Coordonnées",
         "phone_label": "Téléphone",
-        "phone_placeholder": "+33 6 12 34 56 78",
+        "phone_placeholder": "Votre numéro, avec l’indicatif du pays",
         "birth_year_label": "Année de naissance",
         "birth_year_placeholder": "1990",
         "address_label": "Adresse",
@@ -1770,7 +1785,11 @@
       "saving": "Enregistrement…",
       "saved": "Modifications enregistrées.",
       "save_error": "L'enregistrement a échoué. Réessayez.",
-      "company_name_required": "La raison sociale est obligatoire."
+      "company_name_required": "La raison sociale est obligatoire.",
+      "country_editable_help": "Modifiable tant que votre dossier n'est pas validé. Il détermine le registre officiel consulté.",
+      "country_locked_help": "Votre dossier est validé : le pays ne peut plus être modifié ici. Contactez-nous si nécessaire.",
+      "error_country_locked": "Votre dossier est validé : le pays ne peut plus être modifié ici. Contactez-nous pour le corriger.",
+      "error_invalid_country": "Pays inconnu. Choisissez-en un dans la liste."
     },
     "offre": {
       "loading": "Chargement…",
@@ -2594,7 +2613,11 @@
       "ai_note_label": "Note IA",
       "discrepancies_label": "Écarts détectés",
       "sirene_unavailable_title": "Sirene indisponible",
-      "sirene_unavailable_hint": "L'IA a tourné sans données officielles INSEE. Vérifier manuellement les informations de l'entreprise avant de décider."
+      "sirene_unavailable_hint": "L'IA a tourné sans données officielles INSEE. Vérifier manuellement les informations de l'entreprise avant de décider.",
+      "motif_revue_label": "Motif de la mise en revue",
+      "motif_pays_sans_decideur": "Aucun décideur de vérification n'est configuré pour ce pays. Le dossier arrive ici PAR CONCEPTION : ce n'est pas un échec de vérification, et rien n'a été facturé.",
+      "motif_plafond_depense_ia": "Le plafond de dépense IA était atteint : la vérification n'a pas été tentée. Ce n'est pas un jugement porté sur cette organisation.",
+      "motif_revue_aide": "Motif INTERNE : l'organisation ne le voit jamais. Son écran indique seulement que son dossier est en cours de validation."
     },
     "status_pending": "En attente",
     "status_approved": "Validée",
@@ -3148,19 +3171,18 @@
       "description": "Change ton adresse email. Un email de confirmation est envoyé à la nouvelle adresse avant la bascule.",
       "current_label": "Email actuel",
       "new_label": "Nouvel email",
-      "new_placeholder": "nouvelle@adresse.com",
       "confirmation_info": "Un email de confirmation va être envoyé. Le changement ne sera effectif qu’après validation du lien.",
       "submit": "Envoyer la confirmation",
       "success": "Email de confirmation envoyé. Vérifie ta boîte mail.",
       "error_taken": "Cette adresse email est déjà utilisée.",
-      "error_failed": "Impossible de changer l’email."
+      "error_failed": "Impossible de changer l’email.",
+      "new_placeholder": "nouvelle@adresse.com"
     },
     "phone": {
       "title": "Téléphone",
       "description": "Change ton numéro de téléphone. Un code de vérification te sera envoyé par SMS.",
       "current_label": "Numéro actuel",
       "new_label": "Nouveau numéro",
-      "new_placeholder": "+33 6 12 34 56 78",
       "send_code": "Envoyer le code",
       "code_label": "Code de vérification",
       "code_placeholder": "123456",
@@ -3172,7 +3194,16 @@
       "error_expired": "Le code a expiré. Renvoie un nouveau code.",
       "error_failed": "Impossible de changer le numéro.",
       "error_rate_limited": "Trop de tentatives. Reessaie dans un instant.",
-      "error_phone_already_used": "Ce numéro est déjà utilisé par un autre compte."
+      "error_phone_already_used": "Ce numéro est déjà utilisé par un autre compte.",
+      "error_verification_en_cours": "Une vérification est déjà en cours sur ce numéro. Patientez une minute, puis réessayez.",
+      "error_sms_pays_non_pris_en_charge": "Les SMS de vérification ne sont pas disponibles vers ce pays pour le moment. Choisissez un autre numéro, ou écrivez-nous.",
+      "error_vonage_error": "Service de vérification momentanément indisponible. Réessayez dans quelques minutes.",
+      "error_invalid_phone": "Numéro invalide pour le pays sélectionné. Vérifiez le pays et le numéro.",
+      "edit_number": "Modifier le numéro",
+      "pas_recu": "Je ne reçois pas le code",
+      "demande_transmise": "Demande transmise. Le code arrive en général sous une minute.",
+      "resend_in": "Renvoyer dans {seconds}s",
+      "pays_label": "Pays du numéro"
     },
     "password": {
       "title": "Mot de passe",
@@ -3354,7 +3385,8 @@
       "org_unavailable": "Votre espace de collaboration n'a pas pu être préparé. Réessayez dans un instant.",
       "create_failed": "Impossible d’enregistrer le besoin. Vérifiez les champs et réessayez.",
       "publish_failed": "La publication a échoué. Veuillez réessayer.",
-      "publish_check_failed": "Nous n'avons pas pu vérifier le nombre d'annonces actives de votre offre. Rien n'a été publié. Réessayez dans quelques instants ; si le problème persiste, contactez le support."
+      "publish_check_failed": "Nous n'avons pas pu vérifier le nombre d'annonces actives de votre offre. Rien n'a été publié. Réessayez dans quelques instants ; si le problème persiste, contactez le support.",
+      "expert_country_missing": "Votre espace de collaboration reprend l'adresse de votre profil, et le pays n'y est pas renseigné. Complétez-le dans votre profil, puis republiez : rien n'a été perdu."
     },
     "list": {
       "title": "Mes besoins de sous-traitance",
@@ -3438,6 +3470,8 @@
     "field_company": "Société",
     "field_email": "Email",
     "field_phone": "Téléphone",
+    "prefill_otp_message": "Bonjour,\n\nJe n'ai pas reçu le code de vérification par SMS lors de mon inscription.\nNuméro : {phone}\nPays : {pays}\n\nMerci de votre aide.",
+    "prefill_otp_titre": "Vous ne recevez pas votre code de vérification",
     "field_message": "Message",
     "optional": "(facultatif)",
     "consent_label": "J'accepte que mes données soient traitées pour répondre à ma demande, conformément à la <link>politique de confidentialité</link>.",
@@ -3966,6 +4000,10 @@
       "opportunity_quality_check": {
         "name": "Qualité d'une annonce",
         "effect": "Au-dessus de ce seuil, l'annonce est publiée. En dessous, elle part en revue manuelle. Le contrôle traque aussi les coordonnées en clair : une annonce qui contourne la messagerie contourne le dévoilement."
+      },
+      "official_api": {
+        "name": "Registre officiel",
+        "effect": "Interroge le registre officiel du pays et fournit ses données à l'analyseur de cohérence. Il ne produit aucun verdict : sa colonne de seuil n'est lue par aucun chemin."
       }
     },
     "flags": {
@@ -3989,6 +4027,7 @@
       "drapeaux_non_lus": "Ce chemin ne porte aucun drapeau.",
       "type_non_gere": "Ce type de fournisseur n'est pas réglable ici.",
       "bad_provider": "Fournisseur introuvable."
-    }
+    },
+    "no_decisive": "Ce fournisseur apporte des données, il ne décide pas : aucune valeur ne tranche ici. La décision revient à l'analyseur de cohérence du même pays."
   }
 }

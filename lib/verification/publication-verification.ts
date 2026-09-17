@@ -47,9 +47,23 @@ type ProviderRow = {
   is_active: boolean
 }
 
-async function loadProviderThreshold(
-  supabaseAdmin: SupabaseClient,
-): Promise<{ threshold: number; active: boolean }> {
+/**
+ * Le seuil, ou la RAISON de son absence. Jamais les deux, jamais un nombre
+ * fabriqué à côté d'un drapeau.
+ *
+ * ═══ POURQUOI CETTE FORME ════════════════════════════════════════════════
+ *   Cette fonction rendait `{ threshold: 0, active: false }`. Le `0` était
+ *   neutralisé par le drapeau, donc inoffensif — mais c'est LA FORME qui est le
+ *   piège : un nombre inventé posé à côté de son invalidant survit au premier
+ *   appelant qui lit `threshold` sans lire `active`. Et « seuil 0 » veut dire
+ *   « tout passe », soit exactement l'inverse du refus voulu.
+ *
+ *   Un type somme rend l'erreur IMPOSSIBLE à écrire : il n'y a pas de
+ *   `threshold` à lire quand il n'y en a pas.
+ */
+type Reglage = { ok: true; threshold: number } | { ok: false; raison: string }
+
+async function loadProviderThreshold(supabaseAdmin: SupabaseClient): Promise<Reglage> {
   const { data, error } = await supabaseAdmin
     .from('verification_providers')
     .select('confidence_threshold, is_active')
@@ -61,13 +75,13 @@ async function loadProviderThreshold(
 
   if (error) {
     console.error('[publication-verification] provider lookup failed', error.message)
-    return { threshold: 0, active: false }
+    return { ok: false, raison: `lecture du fournisseur impossible : ${error.message}` }
   }
   if (!data) {
-    return { threshold: 0, active: false }
+    return { ok: false, raison: `aucun fournisseur '${PROVIDER_TYPE}' actif` }
   }
   const row = data as unknown as ProviderRow
-  return { threshold: row.confidence_threshold, active: true }
+  return { ok: true, threshold: row.confidence_threshold }
 }
 
 export async function runPublicationVerification(args: {
@@ -85,16 +99,18 @@ export async function runPublicationVerification(args: {
   const { supabaseAdmin, input } = args
 
   // 1. Provider lookup ─────────────────────────────────────────────────────
-  const { threshold, active } = await loadProviderThreshold(supabaseAdmin)
-  if (!active) {
-    // Provider inactif / absent / lookup en erreur → pending_review sûre.
+  const reglage = await loadProviderThreshold(supabaseAdmin)
+  if (!reglage.ok) {
+    // Provider inactif / absent / lookup en erreur → pending_review sûre, avec
+    // la RAISON exacte plutôt qu'un motif générique : c'est elle qui dit à
+    // l'admin s'il doit activer une ligne ou réparer une panne de lecture.
     return {
       status: 'pending_review',
       score: 0,
       method: 'ai_publication_quality',
       data: {
         score: 0,
-        notes: `Provider IA '${PROVIDER_TYPE}' inactif ou non configuré — passage en revue admin.`,
+        notes: `Contrôle qualité non applicable — ${reglage.raison}. Passage en revue admin.`,
         flags: [],
       },
     }
@@ -138,7 +154,7 @@ export async function runPublicationVerification(args: {
     (BLOCKING_FLAGS as readonly PublicationQualityFlag[]).includes(f),
   )
   const isPublished =
-    ai.result === 'ok' && ai.score >= threshold && !hasBlockingFlag
+    ai.result === 'ok' && ai.score >= reglage.threshold && !hasBlockingFlag
 
   return {
     status: isPublished ? 'published' : 'pending_review',

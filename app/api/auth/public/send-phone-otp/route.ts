@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit, extractClientIp } from '@/lib/rate-limit'
 import { normalizeE164 } from '@/lib/phone'
+import { lireRefusVonage } from '@/lib/otp/vonage-refus'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -196,22 +197,41 @@ export async function POST(request: NextRequest): Promise<Response> {
     | { request_id?: string; title?: string; detail?: string }
     | null
 
-  if (res.status === 429) {
-    return json({ error: 'Too many requests', code: 'rate_limited' }, 429)
-  }
-  if (res.status === 422 || res.status === 400) {
-    return json(
-      {
-        error: payload?.detail ?? 'Vonage rejected the request',
-        code: 'vonage_invalid_request',
-      },
-      400,
-    )
-  }
+  // ── CE QUE VONAGE DIT VRAIMENT ──────────────────────────────────────────
+  //
+  //  AVANT : `detail` n'était renvoyé que sur 400/422, dans un champ `error`
+  //  qu'AUCUN client n'affiche (tous lisent `code`), `title` était jeté, et
+  //  tout autre statut était écrasé en « Service SMS temporairement
+  //  indisponible ». L'utilisateur lisait « réessayez » là où réessayer ne
+  //  changerait jamais rien.
+  //
+  //  MAINTENANT : un seul module reconnaît la situation et rend un code STABLE
+  //  que les écrans traduisent dans les quatre langues — dont
+  //  `sms_pays_non_pris_en_charge`, qui a une ISSUE, distinct de `vonage_error`,
+  //  qui n'en a pas. Le texte brut de Vonage part dans les journaux serveur :
+  //  il est en anglais et écrit pour un intégrateur, pas pour un candidat à
+  //  l'inscription.
   if (!res.ok || !payload?.request_id) {
-    console.error('[public/send-phone-otp] Vonage non-OK', { status: res.status, payload })
-    return json({ error: 'OTP provider error', code: 'vonage_error' }, 502)
+    const refus = lireRefusVonage(res.status, payload)
+    console.error('[public/send-phone-otp] Vonage refus', {
+      status: res.status,
+      code: refus.code,
+      detail: refus.detailFournisseur,
+    })
+    return json({ error: 'OTP provider refused', code: refus.code }, refus.status)
   }
 
-  return json({ request_id: payload.request_id }, 200)
+  // ── `request_id` N'EST PAS UNE LIVRAISON ────────────────────────────────
+  //
+  //  Verify v2 est ASYNCHRONE : ce 202 dit que la DEMANDE est acceptée, pas que
+  //  le SMS est parti. Vonage peut le bloquer ensuite — c'est exactement ce qui
+  //  arrive sur la Tunisie, où les journaux Verify affichent BLOCKED APRÈS
+  //  cette réponse.
+  //
+  //  Sans webhook (choix différé, cf. §H de CLAUDE.md), le serveur NE PEUT PAS
+  //  savoir si le message a été remis. On le dit donc à l'écran plutôt que de
+  //  l'affirmer : `livraison_confirmee: false` est lu par les écrans, qui
+  //  annoncent « demande transmise » et ouvrent une sortie au bout du compteur.
+  //  Un écran qui affirme plus que ce qu'on sait est un écran mort.
+  return json({ request_id: payload.request_id, livraison_confirmee: false }, 200)
 }

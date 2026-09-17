@@ -158,8 +158,11 @@ export async function runVerification(args: {
       verification_status: 'pending_admin_review',
       verification_method: null,
       verification_data: {
-        score: 0,
-        notes: MOTIF_SANS_SEUIL,
+        // RIEN N'A ÉTÉ NOTÉ : `null`, pas `0`. Cf. VerificationVerdict.score.
+        score: null,
+        // Le motif part dans `motif_revue`, PAS dans `notes` : `notes` est la
+        // note de l'IA, et l'IA n'a pas tourné.
+        motif_revue: { code: 'pays_sans_decideur', detail: MOTIF_SANS_SEUIL },
         attempts_count: 0,
         sirene_data: null,
         discrepancies: [],
@@ -198,22 +201,11 @@ export async function runVerification(args: {
   }
 
   // ── 2. IA Claude (DÉCIDEUR systématique) ────────────────────────────────
-  if (!decisionProvider) {
-    // Cas edge : aucun row 'ai_web_search' configuré pour ce pays.
-    // On retourne en review admin avec une note explicite.
-    return {
-      verification_status: 'pending_admin_review',
-      verification_method: null,
-      verification_data: {
-        score: 0,
-        notes: `Aucun analyseur de cohérence IA configuré pour le pays ${input.country_code}`,
-        attempts_count,
-        sirene_data: sireneData,
-        sirene_status: sireneStatus,
-        ...(sireneErrorNote ? { sirene_error_note: sireneErrorNote } : {}),
-      },
-    }
-  }
+  //  Il y avait ICI un second `if (!decisionProvider)`, identique dans son
+  //  intention au refus rendu plus haut — donc INATTEIGNABLE depuis que ce
+  //  refus sort avant Sirene. TypeScript ne le signale pas : une condition
+  //  toujours fausse n'est pas une erreur de type. Supprimé (règle 0), et
+  //  avec lui la seconde rédaction du même motif, qui aurait divergé.
 
   // Passe sireneStatus à l'IA pour qu'elle puisse appliquer le disqualifiant
   // D4 (Sirene indisponible par défaillance technique → score plafonné à 5).
@@ -232,8 +224,12 @@ export async function runVerification(args: {
       verification_status: 'pending_admin_review',
       verification_method: null,
       verification_data: {
-        score: 0,
-        notes: 'Plafond de dépense IA atteint — vérification manuelle requise. ' + budget.raison,
+        // Rien n'a été noté : aucun appel n'a eu lieu.
+        score: null,
+        motif_revue: {
+          code: 'plafond_depense_ia',
+          detail: 'Plafond de dépense IA atteint — vérification manuelle requise. ' + budget.raison,
+        },
         attempts_count,
         sirene_data: sireneData,
         sirene_status: sireneStatus,

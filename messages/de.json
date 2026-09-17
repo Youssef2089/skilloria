@@ -717,7 +717,7 @@
       "contact": {
         "title": "Kontaktdaten",
         "phone_label": "Telefon",
-        "phone_placeholder": "+49 30 1234 5678",
+        "phone_placeholder": "Ihre Nummer, mit Ländervorwahl",
         "birth_year_label": "Geburtsjahr",
         "birth_year_placeholder": "1990",
         "address_label": "Adresse",
@@ -975,13 +975,16 @@
     "email_placeholder": "sie@unternehmen.com",
     "section_phone": "Telefonverifizierung",
     "phone_label": "Telefon",
-    "phone_placeholder": "+49 151 12345678",
     "send_sms_button": "SMS senden",
     "resend_sms_label": "Erneut senden ({seconds}s)",
     "code_label": "Bestätigungscode",
     "code_placeholder": "Per SMS erhaltener Code",
     "code_invalid": "Ungültiger Code. Klicken Sie auf Erneut senden, um einen neuen Code zu erhalten.",
     "phone_verified": "Telefon verifiziert",
+    "otp_edit_number": "Nummer ändern",
+    "otp_pas_recu": "Ich erhalte den Code nicht",
+    "otp_demande_transmise": "Anfrage übermittelt. Der Code kommt meist innerhalb einer Minute.",
+    "otp_pays_label": "Land der Nummer",
     "edit_number": "Nummer ändern",
     "section_account": "Ihr Konto",
     "password_label": "Passwort",
@@ -994,7 +997,7 @@
     "errors": {
       "missing_fields": "Bitte füllen Sie alle Pflichtfelder aus.",
       "invalid_email": "Ungültige E-Mail-Adresse.",
-      "invalid_phone": "Ungültige Telefonnummer (erwartetes Format: +49XXXXXXXXX).",
+      "invalid_phone": "Ungültige Nummer für das gewählte Land. Prüfen Sie Land und Nummer.",
       "password_too_short": "Das Passwort muss mindestens 8 Zeichen enthalten.",
       "cgu_required": "Sie müssen die Nutzungsbedingungen akzeptieren.",
       "phone_not_verified": "Bitte verifizieren Sie Ihr Telefon per SMS.",
@@ -1003,8 +1006,11 @@
       "email_domain_blocked": "Diese E-Mail-Domain ist für die Unternehmensregistrierung nicht zugelassen.",
       "vonage_error": "SMS-Dienst vorübergehend nicht verfügbar. Bitte erneut versuchen.",
       "rate_limited": "Zu viele Versuche. Bitte versuche es gleich erneut.",
+      "verification_en_cours": "Für diese Nummer läuft bereits eine Verifizierung. Warten Sie eine Minute und versuchen Sie es erneut.",
+      "sms_pays_non_pris_en_charge": "Verifizierungs-SMS sind für dieses Land derzeit nicht verfügbar. Verwenden Sie eine andere Nummer oder schreiben Sie uns: Wir melden Sie manuell an.",
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
-      "phone_already_used": "Diese Nummer wird bereits von einem anderen Konto verwendet."
+      "phone_already_used": "Diese Nummer wird bereits von einem anderen Konto verwendet.",
+      "invalid_country_code": "Wählen Sie das Land des Firmensitzes."
     },
     "callback": {
       "verifying_title": "Überprüfung läuft…",
@@ -1050,8 +1056,13 @@
       },
       "vat_label": "Innergemeinschaftliche USt-IdNr.",
       "vat_placeholder": "FR12345678901",
-      "vat_hint": "EU-Format: Ländercode + Nummer. Steht auf Ihren Rechnungen und offiziellen Dokumenten."
-    }
+      "vat_hint": "EU-Format: Ländercode + Nummer. Steht auf Ihren Rechnungen und offiziellen Dokumenten.",
+      "siren_label_generique": "Unternehmens-Identifikationsnummer",
+      "siren_hint_pays": "Ihre {libelle}, wie sie in Ihren amtlichen Dokumenten steht.",
+      "siren_hint_generique": "Die Nummer, unter der Ihr Unternehmen im amtlichen Register Ihres Landes geführt wird."
+    },
+    "country_label": "Land des Firmensitzes",
+    "country_help": "Das Land, in dem Ihr Unternehmen eingetragen ist. Es bestimmt, welches amtliche Register bei der Prüfung herangezogen wird."
   },
   "signup_confirmation": {
     "title": "Konto erfolgreich erstellt!",
@@ -1087,7 +1098,6 @@
       "password_label": "Passwort",
       "password_placeholder": "Mindestens 8 Zeichen",
       "phone_label": "Telefon",
-      "phone_placeholder": "+49 151 12345678",
       "branch_label": "Branche",
       "branch_placeholder": "Branche auswählen",
       "speciality_label": "Hauptfachgebiet",
@@ -1109,9 +1119,11 @@
       "password_too_short": "Das Passwort muss mindestens 8 Zeichen lang sein.",
       "rate_limited": "Zu viele Versuche. Bitte versuche es gleich erneut.",
       "vonage_error": "SMS-Dienst vorübergehend nicht verfügbar. Bitte erneut versuchen.",
+      "verification_en_cours": "Für diese Nummer läuft bereits eine Verifizierung. Warten Sie eine Minute und versuchen Sie es erneut.",
+      "sms_pays_non_pris_en_charge": "Verifizierungs-SMS sind für dieses Land derzeit nicht verfügbar. Verwenden Sie eine andere Nummer oder schreiben Sie uns: Wir melden Sie manuell an.",
       "phone_not_verified": "Bitte verifizieren Sie Ihr Telefon per SMS.",
       "email_taken": "Es existiert bereits ein Konto mit dieser E-Mail-Adresse.",
-      "invalid_phone": "Ungültige Telefonnummer (erwartetes Format: +49XXXXXXXXX).",
+      "invalid_phone": "Ungültige Nummer für das gewählte Land. Prüfen Sie Land und Nummer.",
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
       "phone_already_used": "Diese Nummer wird bereits von einem anderen Konto verwendet.",
       "otp_expired": "Ihre Verifizierung ist abgelaufen. Bitte fordern Sie eine neue SMS an und geben Sie den Code erneut ein.",
@@ -1127,7 +1139,10 @@
       "code_label": "Bestätigungscode",
       "code_invalid": "Ungültiger Code. Klicken Sie auf Erneut senden, um einen neuen Code zu erhalten.",
       "phone_verified": "Telefon verifiziert",
-      "edit_number": "Nummer ändern"
+      "edit_number": "Nummer ändern",
+      "pas_recu": "Ich erhalte den Code nicht",
+      "demande_transmise": "Anfrage übermittelt. Der Code kommt meist innerhalb einer Minute.",
+      "pays_label": "Land der Nummer"
     }
   },
   "dashboard_cdi": {
@@ -1618,7 +1633,7 @@
       "contact": {
         "title": "Kontaktdaten",
         "phone_label": "Telefon",
-        "phone_placeholder": "+49 30 1234567",
+        "phone_placeholder": "Ihre Nummer, mit Ländervorwahl",
         "birth_year_label": "Geburtsjahr",
         "birth_year_placeholder": "1990",
         "address_label": "Adresse",
@@ -1770,7 +1785,11 @@
       "saving": "Wird gespeichert…",
       "saved": "Änderungen gespeichert.",
       "save_error": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
-      "company_name_required": "Der Firmenname ist erforderlich."
+      "company_name_required": "Der Firmenname ist erforderlich.",
+      "country_editable_help": "Änderbar, solange Ihr Dossier nicht freigegeben ist. Es bestimmt das herangezogene amtliche Register.",
+      "country_locked_help": "Ihr Dossier ist freigegeben: Das Land kann hier nicht mehr geändert werden. Kontaktieren Sie uns bei Bedarf.",
+      "error_country_locked": "Ihr Dossier ist freigegeben: Das Land kann hier nicht mehr geändert werden. Kontaktieren Sie uns zur Korrektur.",
+      "error_invalid_country": "Unbekanntes Land. Wählen Sie eines aus der Liste."
     },
     "offre": {
       "loading": "Wird geladen…",
@@ -2594,7 +2613,11 @@
       "ai_note_label": "KI-Notiz",
       "discrepancies_label": "Erkannte Abweichungen",
       "sirene_unavailable_title": "Sirene nicht verfügbar",
-      "sirene_unavailable_hint": "Die KI lief ohne offizielle INSEE-Daten. Überprüfen Sie die Unternehmensinformationen manuell, bevor Sie entscheiden."
+      "sirene_unavailable_hint": "Die KI lief ohne offizielle INSEE-Daten. Überprüfen Sie die Unternehmensinformationen manuell, bevor Sie entscheiden.",
+      "motif_revue_label": "Grund für die manuelle Prüfung",
+      "motif_pays_sans_decideur": "Für dieses Land ist keine Prüfinstanz konfiguriert. Das Dossier kommt PLANMÄSSIG hierher: Es ist kein Prüffehler, und es wurde nichts berechnet.",
+      "motif_plafond_depense_ia": "Die KI-Ausgabenobergrenze war erreicht: Die Prüfung wurde nicht versucht. Das ist kein Urteil über diese Organisation.",
+      "motif_revue_aide": "INTERNER Grund: Die Organisation sieht ihn nie. Ihr Bildschirm zeigt nur, dass ihr Dossier geprüft wird."
     },
     "status_pending": "Ausstehend",
     "status_approved": "Validiert",
@@ -3148,19 +3171,18 @@
       "description": "Ändere deine E-Mail-Adresse. Vor der Umstellung wird eine Bestätigungs-E-Mail an die neue Adresse gesendet.",
       "current_label": "Aktuelle E-Mail",
       "new_label": "Neue E-Mail",
-      "new_placeholder": "neue@adresse.com",
       "confirmation_info": "Eine Bestätigungs-E-Mail wird gesendet. Die Änderung wird erst nach dem Klick auf den Link wirksam.",
       "submit": "Bestätigung senden",
       "success": "Bestätigungs-E-Mail gesendet. Prüfe dein Postfach.",
       "error_taken": "Diese E-Mail-Adresse wird bereits verwendet.",
-      "error_failed": "E-Mail konnte nicht geändert werden."
+      "error_failed": "E-Mail konnte nicht geändert werden.",
+      "new_placeholder": "neue@adresse.com"
     },
     "phone": {
       "title": "Telefon",
       "description": "Ändere deine Telefonnummer. Ein Bestätigungscode wird per SMS gesendet.",
       "current_label": "Aktuelle Nummer",
       "new_label": "Neue Nummer",
-      "new_placeholder": "+49 151 23456789",
       "send_code": "Code senden",
       "code_label": "Bestätigungscode",
       "code_placeholder": "123456",
@@ -3172,7 +3194,16 @@
       "error_expired": "Der Code ist abgelaufen. Fordere einen neuen an.",
       "error_failed": "Nummer konnte nicht geändert werden.",
       "error_rate_limited": "Zu viele Versuche. Bitte versuche es gleich erneut.",
-      "error_phone_already_used": "Diese Nummer wird bereits von einem anderen Konto verwendet."
+      "error_phone_already_used": "Diese Nummer wird bereits von einem anderen Konto verwendet.",
+      "error_verification_en_cours": "Für diese Nummer läuft bereits eine Verifizierung. Warten Sie eine Minute und versuchen Sie es erneut.",
+      "error_sms_pays_non_pris_en_charge": "Verifizierungs-SMS sind für dieses Land derzeit nicht verfügbar. Verwenden Sie eine andere Nummer oder schreiben Sie uns.",
+      "error_vonage_error": "Verifizierungsdienst vorübergehend nicht verfügbar. Versuchen Sie es in einigen Minuten erneut.",
+      "error_invalid_phone": "Ungültige Nummer für das gewählte Land. Prüfen Sie Land und Nummer.",
+      "edit_number": "Nummer ändern",
+      "pas_recu": "Ich erhalte den Code nicht",
+      "demande_transmise": "Anfrage übermittelt. Der Code kommt meist innerhalb einer Minute.",
+      "resend_in": "Erneut in {seconds}s",
+      "pays_label": "Land der Nummer"
     },
     "password": {
       "title": "Passwort",
@@ -3354,7 +3385,8 @@
       "org_unavailable": "Ihr Kollaborationsbereich konnte nicht vorbereitet werden. Bitte versuchen Sie es gleich erneut.",
       "create_failed": "Der Bedarf konnte nicht gespeichert werden. Prüfen Sie die Felder und versuchen Sie es erneut.",
       "publish_failed": "Die Veröffentlichung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
-      "publish_check_failed": "Wir konnten die Anzahl aktiver Anzeigen Ihres Tarifs nicht prüfen. Es wurde nichts veröffentlicht. Versuchen Sie es in Kürze erneut; besteht das Problem weiterhin, wenden Sie sich an den Support."
+      "publish_check_failed": "Wir konnten die Anzahl aktiver Anzeigen Ihres Tarifs nicht prüfen. Es wurde nichts veröffentlicht. Versuchen Sie es in Kürze erneut; besteht das Problem weiterhin, wenden Sie sich an den Support.",
+      "expert_country_missing": "Ihr Kollaborationsbereich übernimmt die Adresse aus Ihrem Profil, und dort fehlt das Land. Ergänzen Sie es in Ihrem Profil und veröffentlichen Sie erneut: Es ist nichts verloren gegangen."
     },
     "list": {
       "title": "Meine Unterauftrags-Bedarfe",
@@ -3438,6 +3470,8 @@
     "field_company": "Unternehmen",
     "field_email": "E-Mail",
     "field_phone": "Telefon",
+    "prefill_otp_message": "Guten Tag,\n\nich habe bei der Anmeldung keinen Bestätigungscode per SMS erhalten.\nNummer: {phone}\nLand: {pays}\n\nVielen Dank für Ihre Hilfe.",
+    "prefill_otp_titre": "Sie erhalten Ihren Bestätigungscode nicht",
     "field_message": "Nachricht",
     "optional": "(optional)",
     "consent_label": "Ich bin damit einverstanden, dass meine Daten zur Beantwortung meiner Anfrage verarbeitet werden, gemäß der <link>Datenschutzerklärung</link>.",
@@ -3966,6 +4000,10 @@
       "opportunity_quality_check": {
         "name": "Qualität einer Anzeige",
         "effect": "Oberhalb dieser Schwelle wird die Anzeige veröffentlicht. Darunter geht sie in die manuelle Prüfung. Die Kontrolle sucht auch nach Kontaktdaten im Klartext: eine Anzeige, die das Nachrichtensystem umgeht, umgeht die Freischaltung."
+      },
+      "official_api": {
+        "name": "Amtliches Register",
+        "effect": "Fragt das amtliche Register des Landes ab und liefert dessen Daten an die Kohärenzprüfung. Es fällt kein Urteil: Seine Schwellenwertspalte wird von keinem Pfad gelesen."
       }
     },
     "flags": {
@@ -3989,6 +4027,7 @@
       "drapeaux_non_lus": "Dieser Pfad trägt keine Merkmale.",
       "type_non_gere": "Dieser Anbietertyp ist hier nicht einstellbar.",
       "bad_provider": "Anbieter nicht gefunden."
-    }
+    },
+    "no_decisive": "Dieser Anbieter liefert Daten, er entscheidet nicht: hier ist kein Wert ausschlaggebend. Die Entscheidung trifft die Kohärenzprüfung desselben Landes."
   }
 }

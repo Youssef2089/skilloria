@@ -376,7 +376,14 @@ export default function CdiValiderProfilPage() {
   const [addressLine, setAddressLine] = useState('')
   const [postalCode, setPostalCode] = useState('')
   const [city, setCity] = useState('')
-  const [country, setCountry] = useState('FR')
+  // ── AUCUN PAYS PRÉSÉLECTIONNÉ ─────────────────────────────────────────────
+  //  Ce champ valait « FR » à l'ouverture, et la lecture du profil retombait
+  //  sur « FR » quand la colonne était vide. Un expert marocain qui ne
+  //  touchait pas au champ ENREGISTRAIT « France » sans l'avoir jamais choisi
+  //  — le formulaire décidait à sa place, puis présentait sa décision comme
+  //  une saisie. Le sélecteur affiche désormais son invite tant que rien n'est
+  //  choisi : le vide se voit, le faux ne se voit pas.
+  const [country, setCountry] = useState('')
 
   const [experiences, setExperiences] = useState<ExperienceItem[]>([])
   const [educations, setEducations] = useState<EducationItem[]>([])
@@ -601,7 +608,7 @@ export default function CdiValiderProfilPage() {
       setAddressLine(p.address_line ?? '')
       setPostalCode(p.postal_code ?? '')
       setCity(p.city ?? '')
-      setCountry(p.country ?? 'FR')
+      setCountry(p.country ?? '')
 
       // ── États CDI (phase 4b) — populate from fetched profile ──
       setCdiStatus((p.cdi_status as CdiStatus | null) ?? null)
