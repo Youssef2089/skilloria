@@ -255,7 +255,21 @@ for (const f of SOURCES) {
       if (!ambigue(table, cible)) continue
       embedsExamines++
       // Desambiguise ? La forme est `cible!nom_de_contrainte(`.
-      const desambiguise = new RegExp(`\\b${cible}\\s*!\\s*\\w+\\s*\\(`).test(texteSelect)
+      // ⚠️ `!inner` ET `!left` NE SONT PAS DES NOMS DE CONTRAINTE.
+      //
+      //   Le motif d'origine acceptait `cible!\w+(` — et `inner` est un `\w+`.
+      //   `users!inner(...)` sur une paire ambigue passait donc pour
+      //   desambiguise, alors que PostgREST refuse toujours de choisir.
+      //   Mesure au moment de la correction : ZERO occurrence reelle, le trou
+      //   n'etait pas exploite. Il l'aurait ete au premier embed ecrit ainsi —
+      //   et c'est la forme la plus naturelle quand on veut une jointure
+      //   stricte sans penser a l'ambiguite.
+      //   Trouve par MUTATION : retirer le nom de contrainte de SELECT_PROFIL
+      //   laissait le controle vert, parce qu'il restait `users!inner(`.
+      const MODIFICATEURS = /^(inner|left)$/i
+      const desambiguise = [
+        ...texteSelect.matchAll(new RegExp(`\\b${cible}\\s*!\\s*(\\w+)\\s*[!(]`, 'g')),
+      ].some((x) => !MODIFICATEURS.test(x[1]))
       if (!desambiguise) {
         fautes.push(
           `${f} — .from('${table}') … select( … ${cible}( … ) : ` +
