@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CountrySelect from '@/components/CountrySelect'
+import { chargerPays } from '@/lib/pays/referentiel-client'
 import {
   chiffresEnLatin,
   composerE164,
@@ -143,11 +144,13 @@ export default function SaisieTelephone(props: SaisieTelephoneProps) {
   useEffect(() => {
     if (defautPose.current || paysIso) return
     let annule = false
-    fetch('/api/countries')
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data: unknown) => {
+    // Le référentiel passe par le module partagé : ce composant refaisait son
+    // propre `fetch('/api/countries')` alors que le `CountrySelect` qu'il
+    // monte juste en dessous chargeait déjà la même liste. Deux requêtes pour
+    // une seule table, et deux replis d'erreur à maintenir.
+    chargerPays()
+      .then((liste) => {
         if (annule || defautPose.current) return
-        const liste = Array.isArray(data) ? (data as { code?: string }[]) : []
         const premier = liste[0]?.code
         if (premier) {
           defautPose.current = true
