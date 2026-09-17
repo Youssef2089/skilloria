@@ -2,6 +2,7 @@ import { Link } from '@/i18n/navigation'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import LegalFooter from '@/components/layout/LegalFooter'
 import LegalArticle from '@/components/legal/LegalArticle'
+import ImageOuRepli from '@/components/ui/ImageOuRepli'
 
 /**
  * Coquille commune aux 3 pages légales PUBLIQUES (hors dashboard).
@@ -41,13 +42,18 @@ export default function LegalPageShell({
       >
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
           <span style={{ width: 28, height: 28, borderRadius: 7, background: primaryColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {logoUrl ? (
-              <img src={logoUrl} alt={domainName} width={16} height={16} />
-            ) : (
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-              </svg>
-            )}
+            {/* Repli sur ABSENCE *et* ÉCHEC — cf. ImageOuRepli. */}
+            <ImageOuRepli
+              src={logoUrl}
+              alt={domainName}
+              width={16}
+              height={16}
+              repli={
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+                </svg>
+              }
+            />
           </span>
           <span style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{domainName}</span>
         </Link>

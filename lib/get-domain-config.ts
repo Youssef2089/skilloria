@@ -3,6 +3,11 @@ import { headers } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import { defaultDomainConfig, resolveAccentColor, type DomainConfig } from './domain-config'
 import { loadTranslations, tBDD } from './translations'
+import {
+  ecosystemeFaviconStoragePath,
+  ecosystemeLogoStoragePath,
+  urlPubliqueEcosysteme,
+} from './org-logo'
 import type { Locale } from '@/i18n/routing'
 import { routing } from '@/i18n/routing'
 
@@ -55,6 +60,9 @@ function readAccentOverride(config: unknown): string | null {
 async function mapRowToDomainConfig(row: DomainRow, locale: Locale): Promise<DomainConfig> {
   const cfg = row.domain_configs
   const translations = await loadTranslations(locale)
+  // Un seul client pour les deux adresses : `getSupabaseAdmin()` construit un
+  // client à chaque appel, et `getPublicUrl` ne fait que composer une chaîne.
+  const stockage = getSupabaseAdmin()
 
   if (!cfg) {
     return {
@@ -76,8 +84,29 @@ async function mapRowToDomainConfig(row: DomainRow, locale: Locale): Promise<Dom
     primaryColor: cfg.primary_color,
     secondaryColor: cfg.secondary_color,
     accentColor: resolveAccentColor(cfg.primary_color, readAccentOverride(cfg)),
-    logoUrl: cfg.logo_url,
-    faviconUrl: cfg.favicon_url,
+    // ⚠️ `cfg.logo_url` / `cfg.favicon_url` SONT DES CHEMINS DE STOCKAGE, plus
+    //    des adresses (migration 20260916300000). Les servir tels quels
+    //    produirait `<img src="<uuid>/logo">` — une adresse relative, donc une
+    //    image cassée sur la Navbar, le Footer et les pages légales.
+    //
+    //    Avant cette migration, c'était pire que cassé : la colonne portait une
+    //    URL SAISIE dans /admin/ecosystemes, servie telle quelle à TOUT
+    //    VISITEUR, y compris non connecté. Un mouchard à l'échelle du site.
+    //
+    //    L'adresse est désormais DÉRIVÉE de `domain_id` et pointe vers notre
+    //    stockage. Publique et non signée, à dessein : ces pages sont publiques
+    //    ET cachées, et une signature de 300 s y serait morte (cf. le
+    //    commentaire de `BUCKET_ECOSYSTEME`).
+    logoUrl: urlPubliqueEcosysteme(
+      stockage,
+      ecosystemeLogoStoragePath(row.id),
+      cfg.logo_url,
+    ),
+    faviconUrl: urlPubliqueEcosysteme(
+      stockage,
+      ecosystemeFaviconStoragePath(row.id),
+      cfg.favicon_url,
+    ),
     isActive: row.active,
     tags: cfg.tags ?? [],
     featuredProducts: cfg.featured_products ?? [],

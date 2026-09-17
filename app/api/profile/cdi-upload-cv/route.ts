@@ -6,6 +6,7 @@ import { logAudit } from '@/lib/audit'
 import { parseCdiCV } from '@/lib/cv-parser-cdi'
 import { loadCvParsingQuota, windowEndsAt, QuotaConfigMissing } from '@/lib/ai-quotas'
 import { budgetDisponible, enregistrerDepenseIA } from '@/lib/ai-budget'
+import { signAvatarUrl } from '@/lib/avatar'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -237,7 +238,9 @@ export async function POST(request: NextRequest): Promise<Response> {
         city: prof.city,
         country: prof.country,
         birth_year: prof.birth_year,
-        photo_url: prof.photo_url,
+        // URL SIGNÉE, jamais la colonne brute — même raison que sur
+        // /api/profile/upload-cv : `photo_url` est un CHEMIN depuis M3.
+        photo_url: await signAvatarUrl(supabaseAdmin, user.id),
         years_total_experience: prof.years_total_experience,
         work_modes: prof.work_modes ?? [],
         experiences: cachedExp ?? [],

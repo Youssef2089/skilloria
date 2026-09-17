@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { isValidEcosystemSlug } from '@/lib/ecosystem-url'
+import EcosystemeVisuelUpload from '@/components/admin/EcosystemeVisuelUpload'
 
 /**
  * /admin/ecosystemes — LE PARC D'ÉCOSYSTÈMES.
@@ -458,13 +459,25 @@ export default function AdminEcosystemesPage() {
                       onChange={(ev) => field(f, ev.target.value)} />
                   </div>
                 ))}
-                {(['logo_url', 'favicon_url'] as const).map((f) => (
-                  <div key={f}>
-                    <label style={label} htmlFor={`${f}-${e.id}`}>{t(`fields.${f}`)}</label>
-                    <input id={`${f}-${e.id}`} style={input}
-                      value={cur(f, (detail.config?.[f] as string) ?? '')}
-                      onChange={(ev) => field(f, ev.target.value)} />
-                  </div>
+                {/*
+                  LES DEUX SAISIES D'URL ONT DISPARU (migration 20260916300000).
+                  Elles acceptaient n'importe quelle adresse, servie telle quelle
+                  à `<img src>` dans la Navbar, le Footer, les pages légales et
+                  contact — donc chez tout visiteur, même non connecté.
+
+                  Le dépôt est HORS du cycle « Enregistrer » : il a sa propre
+                  route, il transporte un fichier, et il vaut validation.
+                */}
+                {(['logo', 'favicon'] as const).map((kind) => (
+                  <EcosystemeVisuelUpload
+                    key={kind}
+                    ecosystemeId={e.id}
+                    kind={kind}
+                    urlActuelle={
+                      (detail.config?.[kind === 'logo' ? 'logo_url' : 'favicon_url'] as string | null) ?? null
+                    }
+                    onChange={() => void openDetail(e.id)}
+                  />
                 ))}
               </div>
 

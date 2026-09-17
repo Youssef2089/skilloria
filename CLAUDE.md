@@ -492,6 +492,26 @@ Exception **assumée et documentée** : le plafond anti-abus de relance (20/h/ex
 de code — « un seuil anti-abus n'est pas un réglage commercial, et le rendre réglable invite à le
 désactiver le jour où il gêne ».
 
+**D.8 — L'organisation PERSONNELLE d'un expert n'a PAS de logo, et c'est délibéré.**
+L'organisation `org_type = 'freelance'` est **technique** : elle existe parce que
+`publications.organization_id` est `NOT NULL` (§P1.2 bis). Le bucket `org-logos` et ses policies la
+couvrent **sans exception** — une exception dans une policy est une dette — mais **aucune surface
+d'édition** ne lui est ouverte, et son état vide reste les **initiales** de `company_name` (qui vaut
+« Prénom Nom » de l'expert).
+
+Le motif, pour que personne ne prenne ça pour un oubli et ne l'ouvre :
+1. **L'expert a DÉJÀ une image, et elle est protégée.** `profiles.photo_url` est servie par URL
+   signée **sous la gate de dévoilement** (`reveal_photo`). Un logo d'organisation personnelle serait
+   une **seconde image de la même personne, SANS gate**.
+2. **Ce serait donc un contournement du masquage**, sur la surface exacte où il compte : les cartes
+   de casting ne masquent que sur `pub.confidential`. Un expert annonceur pourrait poser sa propre
+   photo en « logo » et la faire voir hors de toute gate.
+3. Lui donner une identité visuelle propre reviendrait à en faire une vraie entité — et il faudrait
+   alors lui construire un écran dans un dashboard où elle n'a pas sa place.
+
+Décision prise par Youssef, sur les trois arguments ci-dessus. **Rouvrir ce point suppose de trancher
+le point 2 d'abord.**
+
 ---
 
 ## E. Les pièges vérifiés
@@ -770,6 +790,66 @@ route, le client ne fait qu'afficher.
 **La parade** : `diag-durees-reglables` balaie `app/`, `lib/` **et `components/`**, et rougit sur
 tout fichier `'use client'` qui importe une règle de durée — un client ne lit pas la base, la valeur
 qu'il applique vient forcément d'ailleurs.
+
+**E.16 — Une URL saisie par un utilisateur et servie telle quelle à `<img src>` est un mouchard offert.**
+
+`organizations.logo_url` était une **saisie d'URL libre**. La seule validation de
+`PATCH /api/me/organisation` était : c'est une chaîne, `.trim()`, ≤ 500 caractères. Ni schéma, ni
+liste d'hôtes, ni vérification que la ressource est une image. Et cette valeur partait **telle
+quelle** dans un `<img src>` sur **neuf** surfaces — barre latérale d'organisation, cartes de casting
+côté expert, messagerie, **et les deux écrans d'administration plateforme**.
+
+Conséquence, qui n'est pas une hypothèse : un administrateur d'organisation posait, **par une saisie
+de formulaire**, une adresse que le navigateur de chaque personne voyant sa fiche allait réellement
+interroger — adresse IP, agent utilisateur, horodatage, et un `Referer` qui révèle l'écran admin.
+Un pixel espion posé par un utilisateur dans notre produit, et un transfert de données personnelles
+vers un tiers qu'on ne maîtrise pas.
+
+**CE QUI REND LE DÉFAUT EXPLOITABLE, ET QUI EST TOUJOURS VRAI : il n'y a AUCUNE CSP dans le dépôt.**
+Zéro occurrence de `Content-Security-Policy` et de `img-src` ; [next.config.ts](next.config.ts) ne
+déclare aucun `headers()`. Rien ne borne donc l'hôte que le navigateur ira interroger. Poser une CSP
+est un autre lot ; `diag-logo-organisation` **constate** cette absence à chaque exécution pour que sa
+disparition ne soit jamais une surprise.
+
+> **LA DISTINCTION QUI PIÈGE, ET ELLE A DÉJÀ TROMPÉ UNE FOIS.**
+> `profiles.photo_url` **ressemble** au même problème et n'en est pas un. C'est un **DRAPEAU INERTE** :
+> [lib/avatar.ts](lib/avatar.ts) **redérive** le chemin depuis l'identifiant du compte
+> (`avatarStoragePath(userId)`) et ne lit **jamais** la colonne comme une adresse — une valeur
+> falsifiée n'y donne accès à rien. `logo_url`, elle, **ÉTAIT l'adresse**.
+> **Une colonne qui porte un drapeau et une colonne qui porte une adresse ne se ressemblent que de
+> loin. La question à poser n'est pas « d'où vient la valeur ? » mais « le navigateur va-t-il
+> réellement l'interroger ? ».**
+
+**La parade, en deux verrous volontairement redondants** (migration `20260916300000`) :
+- le **CHECK en base** (`organizations_logo_url_chemin_check` et ses deux jumeaux sur
+  `domain_configs`) refuse d'**ÉCRIRE** toute valeur qui n'est pas le chemin dérivé
+  `<uuid>/logo` — motif **positif**, jamais une liste noire d'interdits, qui s'oublie ;
+- la **redérivation côté serveur** ([lib/org-logo.ts](lib/org-logo.ts)) empêche d'en **SUIVRE** une :
+  le chemin est toujours recalculé depuis l'identifiant, la colonne n'est qu'un drapeau.
+
+**Deux leçons de méthode, payées pendant ce lot :**
+1. **Le contrôle a d'abord rougi sur un NOM, pas sur un danger.** Il refusait tout
+   `<img src={X.photo_url}>` ; or `/admin/experts` reçoit un DTO dont le *champ* s'appelle
+   `photo_url` et dont la *valeur* est déjà signée. Ce qui compte est la **PROVENANCE**, pas le nom —
+   d'où deux règles posées là où la provenance est connue : côté route (aucune projection brute) et
+   côté écran en lecture client-directe (aucune adresse fabriquée). **Trouvé par exécution, pas par
+   relecture.**
+2. **Le contrôle a trouvé deux défauts que l'audit avait manqués** :
+   `/api/profile/upload-cv` et `/api/profile/cdi-upload-cv` servaient `photo_url` **brute** dans le
+   DTO rendu au client. Même classe, même correctif.
+
+**Corollaire — `src` absent et `src` qui ÉCHOUE sont deux choses.** Partout, le motif était
+`{url ? <img/> : <repli/>}` : le repli ne couvrait que l'**absence**, jamais l'**échec de
+chargement**, et une adresse morte donnait l'icône d'image cassée du navigateur — un écran mort,
+interdit par la checklist, et présent **avant** ce lot. `diag-logo-organisation` en a trouvé **dix**.
+C'est devenu structurel : une URL **signée vit 300 s**, donc un onglet resté ouvert au-delà rouvre
+une image expirée — un échec **parfaitement normal**. D'où
+[components/ui/ImageOuRepli.tsx](components/ui/ImageOuRepli.tsx).
+
+**Sous-corollaire React** : la remise à zéro de l'état d'échec quand `src` change s'écrit **pendant
+le rendu** (`if (src !== srcPrecedent) { … }`), **jamais** dans un `useEffect` — la règle
+`react-hooks/set-state-in-effect` refuse la seconde forme, et un effet s'exécutant après la peinture
+ferait scintiller le repli.
 
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
@@ -1086,6 +1166,17 @@ compare **champ par champ** et produit un score de confiance, comparé au
 **Règle métier : jamais d'auto-rejet.** En dessous du seuil → `pending_admin_review`, un humain
 tranche depuis `/admin/organisations/[id]`.
 `requireOrgApproved(ctx)` garde ensuite les routes réservées.
+
+**2 bis. Elle soigne sa fiche.** `/dashboard/entreprise/organisation` →
+`PATCH /api/me/organisation` (whitelist stricte : les champs qui engagent la vérification légale —
+`siren`, `vat_number`, `org_type`, `email_domain` — restent hors d'atteinte).
+**Le logo se TÉLÉVERSE, il ne se saisit plus** : `POST /api/me/organisation/logo`, bucket **privé**
+`org-logos`, chemin dérivé de l'identifiant de l'organisation, lecture par **URL signée** (300 s).
+Garde **admin actif** au serveur *et* en base ; `editor` est traité comme `viewer` (§D.8 pour le cas
+de l'organisation personnelle, §E.16 pour la raison du changement).
+Un fichier est accepté sur sa **signature binaire**, pas sur ce qu'il déclare — 2 Mo, JPEG/PNG/WebP,
+SVG refusé. Un refus dit **lequel** des quatre motifs s'applique, en quatre langues.
+La saisie d'URL a disparu des **deux** côtés : organisation *et* `/admin/ecosystemes`.
 
 **3. Elle rédige.** `/dashboard/entreprise/annonces/nouvelle` → `POST /api/publications`.
 Champs structurants : branche, spécialités (multiples), séniorités (multiples), compétences requises,
@@ -1486,7 +1577,7 @@ deux produits.
 | `candidatures` | Toutes les candidatures reçues, toutes annonces confondues. |
 | `messages` · `messages/[id]` | Messagerie avec les experts dévoilés. |
 | `membres` | Membres, rôles (`admin`/`editor`/`viewer`), invitations. |
-| `organisation` | Fiche et statut de vérification de l'organisation. |
+| `organisation` | Fiche et statut de vérification. **Téléversement du logo** (admin seul ; un non-admin voit le logo et lit pourquoi il ne peut pas). La **saisie d'URL a disparu** — §E.16. |
 | `offre` | Offre en cours, consommation, parcours d'achat (**mur fermé**, §P4). |
 | `parametres` | Compte et préférences du membre. |
 
@@ -1505,7 +1596,7 @@ deux produits.
 | `matching` | Les **deux seuils** par écosystème, le modèle de reranking, la taille de lot, `notify_enabled` ; pannes de rédaction et dépassements de relance. |
 | `quotas-ia` | Les quotas anti-abus IA (analyses de CV). |
 | `taxonomie` · `taxonomie/[id]` | Branches et spécialités, et leurs traductions. |
-| `ecosystemes` · `ecosystemes/[id]` | Créer un écosystème, le traduire, l'ouvrir — **et dire ce qui manque**. |
+| `ecosystemes` · `ecosystemes/[id]` | Créer un écosystème, le traduire, l'ouvrir — **et dire ce qui manque**. Logo et favicon **téléversés** (bucket public `ecosysteme`, chemin dérivé de `domain_id`) ; la saisie d'URL a disparu — §E.16. |
 | `taches-planifiees` · `taches-planifiees/[job_name]` | Supervision pg_cron : activer/désactiver, reprogrammer, déclencher, historique. |
 | `collaboration` | Les organisations personnelles d'experts. |
 
@@ -1560,6 +1651,8 @@ l'expose**. « Code » = un déploiement est nécessaire.
 |---|---|---|---|
 | Analyses de CV | **3 / 24 h** | `ai_quotas` | **Back-office** `/admin/quotas-ia` |
 | Taille de CV | 5 Mo, PDF | **Code** | Déploiement |
+| Taille de logo (organisation **et** écosystème) | **2 Mo**, `image/jpeg` · `png` · `webp` — **SVG refusé** | **Code** [lib/org-logo.ts](lib/org-logo.ts) | Déploiement |
+| Vérification d'un logo | **signature binaire** lue dans les octets, type déclaré confronté au type reniflé, et c'est le **reniflé** qui est servi | **Code** `verifierFichierLogo` | Déploiement |
 | Seuil qualité d'annonce | **7 / 10** | `verification_providers` (`opportunity_quality_check`) | **Back-office** `/admin/seuils` |
 | Seuil d'auto-approbation d'expert | **8 / 10** | `verification_providers.config->>'auto_approve_threshold'` — **le jsonb, PAS la colonne** | **Back-office** `/admin/seuils` |
 | Drapeaux disqualifiants d'expert | `CV_PROFILE_INCOHERENT`, `SUSPICIOUS_CONTENT`, `DOMAIN_MISMATCH` | `verification_providers.config->>'blocking_flags'` | **Back-office** `/admin/seuils` — liste vide **refusée** |
@@ -1592,6 +1685,34 @@ l'expose**. « Code » = un déploiement est nécessaire.
 | « 1 numéro vérifié = 1 compte » | — | index UNIQUE PARTIEL sur `users(phone)` | Migration |
 | Le dernier administrateur d'une organisation | ne peut pas se retirer | policies `organization_members` | Migration |
 | Contact expert (`email`/`phone`) | **jamais exposé**, même après paiement | **Code** `reveal_contact: false` | Arbitrage |
+| Changer le logo d'une organisation | **admin actif SEULEMENT** — `editor` traité comme `viewer` | **Serveur** (403 `not_org_admin`) **ET base** (policies `org_logos_admin_*`) | Arbitrage |
+| Une URL externe dans `logo_url` / `favicon_url` | **impossible à écrire** | **Base** — 3 CHECK de chemin (§E.16) | Migration |
+
+**Les quatre buckets de stockage, et leur confidentialité ATTENDUE** (table figée dans
+`diag-logo-organisation` : un bucket qui change d'état, ou un bucket inconnu, rougit).
+
+| Bucket | Public ? | Contenu | Écriture | Lecture |
+|---|---|---|---|---|
+| `cv` | **non** | CV PDF, 5 Mo | serveur, service-role | serveur |
+| `avatars` | **non** | photo d'expert, 2 Mo | **client-direct** sous policy `auth.uid()` | serveur, URL signée 300 s |
+| `org-logos` | **non** | logo d'organisation, 2 Mo | **serveur** ; policies scopées **`organization_id`**, jamais `auth.uid()` | serveur, URL signée 300 s |
+| `ecosysteme` | **OUI, assumé** | logo + favicon d'écosystème | serveur (admin plateforme), aucune policy | **publique, dérivée** |
+
+> **Pourquoi l'écriture du logo passe par le SERVEUR alors que `avatars` écrit en client-direct** :
+> en client-direct, les octets ne passent jamais par nous, et la vérification du **contenu** du
+> fichier serait impossible — Storage ne sait filtrer que sur le `Content-Type` **déclaré**, donc sur
+> une affirmation du client. Le modèle retenu emprunte l'**écriture** à `cv` et la **lecture** à
+> `avatars`.
+>
+> **Pourquoi `ecosysteme` est public** : ces images vivent sur des pages **publiques et cachées**
+> (Navbar, Footer, pages légales, contact), vues par des visiteurs anonymes ; une URL signée y
+> expirerait en 300 s et laisserait une image cassée. Ce qui ferme le mouchard n'est pas la
+> confidentialité du bucket, c'est que **l'adresse est dérivée de `domain_id`** au lieu d'être saisie.
+>
+> **Aucun cycle RLS possible** (§E.6) : les policies `org-logos` appellent `is_active_admin_of_org` /
+> `is_active_member_of_org`, déjà `SECURITY DEFINER` à `search_path` verrouillé — elles bypassent la
+> RLS et cassent la boucle par construction, et aucune policy de `organization_members` ne lit
+> `storage.objects`.
 
 ### P3.6 — Les huit tâches planifiées (pg_cron, plus aucun cron d'hébergeur)
 | Tâche | Horaire | Ce qu'elle fait |

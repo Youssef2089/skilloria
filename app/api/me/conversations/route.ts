@@ -9,6 +9,7 @@ import { disclosurePolicyForCandidatureLifecycle } from '@/lib/expert-disclosure
 import { signAvatarUrl } from '@/lib/avatar'
 import { isConversationExpired } from '@/lib/conversations/expiry'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
+import { signOrgLogoUrls } from '@/lib/org-logo'
 import {
   deriveCandidatureLifecycle,
   parseBucketFilter,
@@ -275,6 +276,25 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
   }
 
+  // ── Logos d'organisation : URL SIGNÉES, en UN SEUL aller-retour ─────────
+  //
+  // `organizations.logo_url` n'est plus une adresse mais un DRAPEAU de présence
+  // (migration 20260916300000). Servie brute dans `avatar_url`, elle partait
+  // dans un `<img src>` de l'inbox côté expert — une adresse choisie par
+  // l'organisation, donc un mouchard. On signe un chemin DÉRIVÉ.
+  //
+  // EN LOT, et pas une signature par ligne : une inbox est une LISTE, et la
+  // latence grandirait avec le nombre de fils — c'est-à-dire exactement quand
+  // l'utilisateur en a le plus.
+  const orgIdsInbox: string[] = []
+  for (const conv of convRows) {
+    const c = pickRel(conv.candidatures as never) as { publications?: unknown } | null
+    const p = pickRel(c?.publications as never) as { organizations?: unknown } | null
+    const o = pickRel(p?.organizations as never) as { id?: string } | null
+    if (o?.id) orgIdsInbox.push(o.id)
+  }
+  const logosSignes = await signOrgLogoUrls(auth.supabaseAdmin, orgIdsInbox)
+
   // ── DTO : projection correspondant + last_message + unread ──────────────
   // Instant unique pour toute la réponse (cf. /api/me/candidatures).
   const now = new Date()
@@ -320,7 +340,8 @@ export async function GET(request: NextRequest): Promise<Response> {
           // sociale. Le champ est servi quand même pour que le client n'ait
           // qu'une seule forme à traiter.
           is_masked: false,
-          avatar_url: org?.logo_url ?? null,
+          // L'URL SIGNÉE, jamais la valeur de la colonne.
+          avatar_url: (org?.id ? logosSignes.get(org.id) : null) ?? null,
         }
       : await (async () => {
           // L'user courant est l'ORG → le correspondant est l'expert. La

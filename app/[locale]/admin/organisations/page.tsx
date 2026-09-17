@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import LogoOrganisation from '@/components/admin/LogoOrganisation'
 
 /**
  * /admin/organisations — liste des organisations à valider (B5c).
@@ -341,35 +342,16 @@ export default function AdminOrgsListPage() {
               >
                 {/* Entreprise (avatar + nom) */}
                 <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                  {org.logo_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={org.logo_url}
-                      alt={org.company_name ?? ''}
-                      width={32}
-                      height={32}
-                      style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-                    />
-                  ) : (
-                    <span
-                      aria-hidden
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        background: '#DBEAFE',
-                        color: '#00B9FF',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 11,
-                        fontWeight: 500,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {initials}
-                    </span>
-                  )}
+                  {/* `org.logo_url` est ici une URL SIGNÉE servie par
+                      /api/admin/list-orgs — plus jamais l'adresse saisie par
+                      l'organisation examinée. Le repli couvre l'absence ET
+                      l'échec de chargement (signature expirée). */}
+                  <LogoOrganisation
+                    src={org.logo_url}
+                    nom={org.company_name}
+                    taille={32}
+                    taillePolice={11}
+                  />
                   <span
                     style={{
                       overflow: 'hidden',

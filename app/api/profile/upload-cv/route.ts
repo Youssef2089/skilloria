@@ -6,6 +6,7 @@ import { logAudit } from '@/lib/audit'
 import { parseCV } from '@/lib/cv-parser'
 import { loadCvParsingQuota, windowEndsAt, QuotaConfigMissing } from '@/lib/ai-quotas'
 import { budgetDisponible, enregistrerDepenseIA } from '@/lib/ai-budget'
+import { signAvatarUrl } from '@/lib/avatar'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -177,7 +178,13 @@ export async function POST(request: NextRequest): Promise<Response> {
         city: profile.city,
         country: profile.country,
         birth_year: profile.birth_year,
-        photo_url: profile.photo_url,
+        // URL SIGNÉE, jamais la colonne brute : `photo_url` est un CHEMIN de
+        // stockage depuis M3 (bucket `avatars` privé). Servie telle quelle, elle
+        // donnait au client une valeur inutilisable dans un `<img src>` — une
+        // image cassée en puissance, et la même classe de défaut que le logo
+        // d'organisation (cf. lib/org-logo.ts). L'expert a le droit de voir sa
+        // propre photo : on la lui signe.
+        photo_url: await signAvatarUrl(supabaseAdmin, user.id),
         years_total_experience: profile.years_total_experience,
         work_modes: profile.work_modes ?? [],
         experiences: cachedExp ?? [],

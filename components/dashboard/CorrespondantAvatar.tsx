@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 
 /**
  * CorrespondantAvatar — pastille d'un correspondant de messagerie.
@@ -38,12 +39,27 @@ type Props = {
 }
 
 export default function CorrespondantAvatar({ name, isMasked, avatarUrl, size }: Props) {
-  if (avatarUrl) {
+  // Repli sur ABSENCE *et* ÉCHEC. L'avatar du correspondant est servi par URL
+  // SIGNÉE (300 s) : un fil resté ouvert au-delà rouvre une image expirée. Sans
+  // ce repli, la messagerie affichait l'icône d'image cassée à la place du
+  // correspondant — un écran mort, sur la surface la plus consultée.
+  //
+  // Ajusté PENDANT LE RENDU, pas dans un effet — cf. le commentaire détaillé
+  // dans components/ui/ImageOuRepli.tsx.
+  const [echec, setEchec] = useState(false)
+  const [urlPrecedente, setUrlPrecedente] = useState(avatarUrl)
+  if (avatarUrl !== urlPrecedente) {
+    setUrlPrecedente(avatarUrl)
+    setEchec(false)
+  }
+
+  if (avatarUrl && !echec) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={avatarUrl}
         alt=""
+        onError={() => setEchec(true)}
         style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
       />
     )

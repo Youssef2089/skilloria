@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import OrgLogoUpload from '@/components/dashboard/OrgLogoUpload'
 
 /**
  * /dashboard/entreprise/organisation — page « Mon entreprise » (Lot A).
@@ -18,12 +19,20 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  * garde admin côté serveur, applique une whitelist de champs et trace un
  * audit `organization_updated` (cf. commentaire de la route).
  *
- * ⚠️ LOGO : il n'existe aujourd'hui QUE deux buckets Storage (`cv`, `avatars`),
- * et les policies `avatars` sont scopées sur `(storage.foldername(name))[1] =
- * auth.uid()` — donc utilisateur, pas organisation. Aucun bucket `logos` n'est
- * disponible pour un fichier porté par l'ORG. Le Lot A n'introduisant aucune
- * migration, `logo_url` reste une SAISIE D'URL simple ; l'upload façon
- * AvatarUploadModal viendra avec le bucket dédié.
+ * LOGO : la saisie d'URL A DISPARU (migration 20260916300000).
+ *
+ * Ce commentaire décrivait l'état antérieur — deux buckets seulement, tous deux
+ * scopés `auth.uid()`, donc inutilisables pour un objet porté par l'ORG, d'où
+ * un champ texte. Cet état a coûté cher : l'adresse saisie partait telle quelle
+ * dans un `<img src>` sur neuf surfaces, sans CSP nulle part dans le dépôt —
+ * un mouchard posé par un administrateur d'organisation dans le navigateur de
+ * quiconque voyait sa fiche, experts et administrateurs plateforme compris.
+ *
+ * Désormais : bucket `org-logos` PRIVÉ, policies scopées `organization_id`,
+ * dépôt par POST /api/me/organisation/logo (garde admin + vérification du
+ * CONTENU du fichier), lecture par URL signée. La colonne n'est plus qu'un
+ * drapeau de présence, tenu par un CHECK en base.
+ * Le composant : components/dashboard/OrgLogoUpload.tsx.
  */
 
 const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
@@ -38,7 +47,8 @@ type EditableForm = {
   size: string
   description: string
   website_url: string
-  logo_url: string
+  // `logo_url` N'EST PLUS UN CHAMP DE CE FORMULAIRE : il transporte un fichier,
+  // il a sa propre route, et il a été retiré de la whitelist de PATCH.
 }
 
 type Org = {
@@ -164,6 +174,9 @@ export default function MonEntreprisePage() {
 
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [form, setForm] = useState<EditableForm | null>(null)
+  // Présence du logo, pas son adresse. Le composant de téléversement demande
+  // l'URL signée à la route ; cet état ne sert qu'à savoir s'il y a lieu.
+  const [logoPresent, setLogoPresent] = useState(false)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' } | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -181,8 +194,11 @@ export default function MonEntreprisePage() {
       size: org.size ?? '',
       description: org.description ?? '',
       website_url: org.website_url ?? '',
-      logo_url: org.logo_url ?? '',
     })
+    // Le DRAPEAU de présence du logo — jamais une adresse (cf. lib/org-logo.ts).
+    // La colonne contient un chemin de stockage ; l'URL affichable est signée
+    // par la route, elle ne se fabrique pas ici.
+    setLogoPresent(!!(org.logo_url ?? '').trim())
   }, [])
 
   // ── Chargement (client-direct, couvert par la RLS de lecture) ──────────────
@@ -411,15 +427,25 @@ export default function MonEntreprisePage() {
               <ReadOnlyField label={t('field_website_url')} value={org.website_url} fallback={t('not_set')} />
             )}
 
-            {isAdmin ? (
-              <div>
-                <Label>{t('field_logo_url')}</Label>
-                <input style={inputStyle} value={f.logo_url} onChange={set('logo_url')} maxLength={500} inputMode="url" />
-                <Help>{t('logo_url_help')}</Help>
-              </div>
-            ) : (
-              <ReadOnlyField label={t('field_logo_url')} value={org.logo_url} fallback={t('not_set')} />
-            )}
+            {/*
+              LE LOGO N'EST PLUS UN CHAMP DE FORMULAIRE.
+
+              Il ne fait pas partie du `patch` envoyé à PATCH /api/me/organisation
+              (il a été retiré de sa whitelist) : il a sa propre route, parce
+              qu'il transporte un FICHIER et non une chaîne. Il est donc rendu
+              HORS du cycle d'édition — pas de bouton « Enregistrer » à presser,
+              le dépôt vaut validation.
+
+              Le composant est affiché aux DEUX rôles : un membre non-admin voit
+              le logo de son organisation et lit pourquoi il ne peut pas le
+              changer. Un écran qui se contente de masquer la commande laisse
+              croire à un bug.
+            */}
+            <OrgLogoUpload
+              logoPresent={logoPresent}
+              isAdmin={isAdmin}
+              onChange={setLogoPresent}
+            />
           </Grid>
         </div>
       </Card>

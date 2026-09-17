@@ -2,6 +2,11 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import {
+  ecosystemeFaviconStoragePath,
+  ecosystemeLogoStoragePath,
+  urlPubliqueEcosysteme,
+} from '@/lib/org-logo'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -117,7 +122,25 @@ export async function GET(
         active: row.active,
         launch_date: row.launch_date,
       },
-      config: cfg,
+      // `logo_url` / `favicon_url` sont des CHEMINS en base. L'écran a besoin
+      // d'une adresse affichable : on lui sert l'adresse publique DÉRIVÉE de
+      // `domain_id`. L'ordre des clés compte — `...cfg` d'abord, les adresses
+      // ensuite. Un écran ne fabrique jamais une adresse de stockage lui-même.
+      config: cfg
+        ? {
+            ...cfg,
+            logo_url: urlPubliqueEcosysteme(
+              auth.supabaseAdmin,
+              ecosystemeLogoStoragePath(id),
+              (cfg as { logo_url?: string | null }).logo_url,
+            ),
+            favicon_url: urlPubliqueEcosysteme(
+              auth.supabaseAdmin,
+              ecosystemeFaviconStoragePath(id),
+              (cfg as { favicon_url?: string | null }).favicon_url,
+            ),
+          }
+        : cfg,
       translations,
       translatable: TRANSLATABLE,
       branches_count: branches ?? 0,
@@ -169,12 +192,17 @@ export async function PATCH(
       configUpdates[k] = body[k]
     }
   }
-  for (const k of ['logo_url', 'favicon_url'] as const) {
-    if (has(k)) {
-      const v = body[k]
-      configUpdates[k] = typeof v === 'string' && v.trim() ? v.trim() : null
-    }
-  }
+  // ⚠️ `logo_url` ET `favicon_url` NE SONT PLUS ÉDITABLES ICI, et ce n'est pas
+  //    un oubli. C'étaient des SAISIES D'URL LIBRES — `typeof === 'string'`,
+  //    `.trim()`, rien d'autre — servies telles quelles à `<img src>` dans la
+  //    Navbar, le Footer, les pages légales et contact, donc à TOUT VISITEUR,
+  //    y compris non connecté, et sans aucune CSP dans le dépôt.
+  //
+  //    Elles passent désormais par POST /api/admin/ecosystemes/[id]/visuel, qui
+  //    téléverse un FICHIER et n'écrit qu'un chemin dérivé de `domain_id`.
+  //    Les deux chemins NE COEXISTENT PAS. Un CHECK en base
+  //    (`domain_configs_logo_url_chemin_check`) refuse de toute façon toute
+  //    adresse : une réintroduction ici échouerait en 23514, pas en silence.
   for (const k of TRANSLATABLE.domain_configs) {
     if (has(k) && typeof body[k] === 'string' && (body[k] as string).trim()) {
       configUpdates[k] = (body[k] as string).trim().slice(0, 100)

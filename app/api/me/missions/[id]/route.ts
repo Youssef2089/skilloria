@@ -5,6 +5,7 @@ import { routing, type Locale } from '@/i18n/routing'
 import { activePublishedOrClause } from '@/lib/publications/expiry'
 import { loadReferentielLabels } from '@/lib/publication-synthesis'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
+import { signOrgLogoUrl } from '@/lib/org-logo'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -194,6 +195,17 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     .eq('profile_id', profile.id)
     .maybeSingle()
 
+  // Logo de l'organisation : URL SIGNÉE, jamais la valeur de la colonne.
+  //
+  // `organizations.logo_url` n'est plus une adresse mais un DRAPEAU de présence
+  // (migration 20260916300000). Servie brute, elle partait dans un `<img src>`
+  // de l'écran mission — une adresse choisie par l'organisation, donc un
+  // mouchard dans le navigateur de l'expert. On signe un chemin DÉRIVÉ de
+  // l'identifiant. Une annonce confidentielle n'est pas signée du tout.
+  const logoSigne = pub.confidential
+    ? null
+    : await signOrgLogoUrl(auth.supabaseAdmin, orgRaw?.id ?? null, orgRaw?.logo_url ?? null)
+
   // 6. DTO réponse ────────────────────────────────────────────────────────
   const branchLabel = branch
     ? tBDD(translations, 'branches', branch.id, 'name', branch.name)
@@ -244,7 +256,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
       org: pub.confidential
         ? null
         : orgRaw
-          ? { name: orgRaw.company_name ?? null, logo_url: orgRaw.logo_url ?? null }
+          ? { name: orgRaw.company_name ?? null, logo_url: logoSigne }
           : null,
       candidature: existingCand
         ? {

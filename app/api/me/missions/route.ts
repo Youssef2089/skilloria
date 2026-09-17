@@ -3,6 +3,7 @@ import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
+import { signOrgLogoUrls } from '@/lib/org-logo'
 import {
   buildPublicationSynthesis,
   loadReferentielLabels,
@@ -203,6 +204,26 @@ export async function GET(request: NextRequest): Promise<Response> {
     pubsDeLaPage,
   )
 
+  // ─── Logos d'organisation : URL SIGNÉES, en UN SEUL aller-retour ───────────
+  //
+  // `organizations.logo_url` n'est plus une adresse mais un DRAPEAU de présence
+  // (migration 20260916300000). Servie brute, elle partait dans un `<img src>`
+  // de la carte de casting : une adresse choisie par l'organisation, donc un
+  // mouchard dans le navigateur de l'expert. On signe un chemin DÉRIVÉ de
+  // l'identifiant — l'expert ne reçoit qu'une URL de notre stockage.
+  //
+  // Les annonces confidentielles sont exclues AVANT signature : on ne signe pas
+  // ce qu'on n'a pas le droit d'afficher.
+  const orgIdsVisibles = rows
+    .map((row) => {
+      const p = pickRel(row.publications) as { confidential?: boolean; organizations?: unknown } | null
+      if (!p || p.confidential) return null
+      const o = pickRel(p.organizations as never) as { id?: string } | null
+      return o?.id ?? null
+    })
+    .filter((id): id is string => !!id)
+  const logosSignes = await signOrgLogoUrls(auth.supabaseAdmin, orgIdsVisibles)
+
   const missions = rows.map((row) => {
     const pub = pickRel(row.publications)
     if (!pub) return null
@@ -237,7 +258,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       org: (pub as { confidential: boolean }).confidential
         ? null
         : orgRaw
-          ? { name: orgRaw.company_name ?? null, logo_url: orgRaw.logo_url ?? null }
+          // L'URL SIGNÉE, jamais la valeur de la colonne.
+          ? { name: orgRaw.company_name ?? null, logo_url: logosSignes.get(orgRaw.id) ?? null }
           : null,
     }
   }).filter((x): x is NonNullable<typeof x> => x !== null)

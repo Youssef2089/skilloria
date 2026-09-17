@@ -21,6 +21,7 @@ import {
 } from '@/lib/candidatures/facets'
 import { aggregateCandidatures } from '@/lib/candidatures/aggregate'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
+import { signOrgLogoUrls } from '@/lib/org-logo'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -221,6 +222,27 @@ export async function GET(request: NextRequest): Promise<Response> {
   // ne doivent pas être dérivées à des `now` différents.
   const now = new Date()
 
+  // ─── Logos d'organisation : URL SIGNÉES, en UN SEUL aller-retour ───────────
+  //
+  // `organizations.logo_url` ne contient plus une adresse mais un DRAPEAU de
+  // présence (migration 20260916300000). Avant, la valeur brute partait dans un
+  // `<img src>` côté expert : une adresse choisie par l'organisation, donc un
+  // mouchard dans le navigateur du candidat. On signe désormais un chemin
+  // DÉRIVÉ de l'identifiant — l'expert ne reçoit qu'une URL de notre stockage.
+  //
+  // Les organisations confidentielles sont exclues AVANT signature : ne pas
+  // signer ce qu'on n'a pas le droit d'afficher.
+  const orgIdsVisibles = rows
+    .map((r) => {
+      const pub = (r as { publications?: unknown }).publications
+      const pubRow = pickRel(pub as never) as { confidential?: boolean; organizations?: unknown } | null
+      if (!pubRow || pubRow.confidential) return null
+      const o = pickRel(pubRow.organizations as never) as { id?: string } | null
+      return o?.id ?? null
+    })
+    .filter((id): id is string => !!id)
+  const logosSignes = await signOrgLogoUrls(auth.supabaseAdmin, orgIdsVisibles)
+
   const candidatures = rows.map((r) => {
     const pubRaw = pickRel(r.publications as Parameters<typeof buildPublicationSynthesis>[0] | Parameters<typeof buildPublicationSynthesis>[0][] | null)
     const publication = pubRaw
@@ -268,11 +290,15 @@ export async function GET(request: NextRequest): Promise<Response> {
     const isConfidential = !!(pubRaw as { confidential?: boolean } | null)?.confidential
     const orgRaw = pubRaw
       ? (pickRel((pubRaw as { organizations?: unknown }).organizations as never) as
-          | { company_name: string | null; logo_url: string | null }
+          | { id: string | null; company_name: string | null; logo_url: string | null }
           | null)
       : null
     const org = !isConfidential && orgRaw
-      ? { name: orgRaw.company_name ?? null, logo_url: orgRaw.logo_url ?? null }
+      ? {
+          name: orgRaw.company_name ?? null,
+          // L'URL SIGNÉE, jamais la valeur de la colonne.
+          logo_url: (orgRaw.id ? logosSignes.get(orgRaw.id) : null) ?? null,
+        }
       : null
     const skills_required = ((pubRaw as { skills_required?: string[] | null } | null)?.skills_required ?? [])
     const v = viewedAtByCand.get(r.id)

@@ -5,6 +5,7 @@ import { getDomainConfig } from '@/lib/get-domain-config'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import LegalFooter from '@/components/layout/LegalFooter'
 import ContactForm from '@/components/contact/ContactForm'
+import ImageOuRepli from '@/components/ui/ImageOuRepli'
 
 // Page PUBLIQUE (D3) : aucune garde d'auth. On réutilise EXACTEMENT le chrome
 // des pages légales (header logo → accueil + sélecteur de langue, pied légal),
@@ -47,13 +48,18 @@ export default async function ContactPage({ params }: PageParams) {
       >
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
           <span style={{ width: 28, height: 28, borderRadius: 7, background: domain.primaryColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {domain.logoUrl ? (
-              <img src={domain.logoUrl} alt={domain.name} width={16} height={16} />
-            ) : (
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-              </svg>
-            )}
+            {/* Repli sur ABSENCE *et* ÉCHEC — cf. ImageOuRepli. */}
+            <ImageOuRepli
+              src={domain.logoUrl}
+              alt={domain.name}
+              width={16}
+              height={16}
+              repli={
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+                </svg>
+              }
+            />
           </span>
           <span style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{domain.name}</span>
         </Link>

@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { theme } from '@/components/home/theme'
+import ImageOuRepli from '@/components/ui/ImageOuRepli'
 
 /**
  * Pied de page de la vitrine.
@@ -35,13 +36,18 @@ export default function Footer() {
               width: 28, height: 28, borderRadius: 8, background: domain.primaryColor,
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
-              {domain.logoUrl ? (
-                <img src={domain.logoUrl} alt="" width={16} height={16} />
-              ) : (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
-                </svg>
-              )}
+              {/* Repli sur ABSENCE *et* ÉCHEC — cf. ImageOuRepli. */}
+              <ImageOuRepli
+                src={domain.logoUrl}
+                alt=""
+                width={16}
+                height={16}
+                repli={
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
+                  </svg>
+                }
+              />
             </span>
             <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em' }}>{domain.name}</span>
           </div>
