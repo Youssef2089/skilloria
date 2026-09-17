@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
- * LES DEUX DURÉES DU CONTRAT DE LA PLACE — lues en base, jamais supposées.
+ * LES TROIS DURÉES DU CONTRAT DE LA PLACE — lues en base, jamais supposées.
  *
  * ═══ POURQUOI IL N'Y A AUCUNE VALEUR PAR DÉFAUT DANS CE FICHIER ═════════════
  *   Les deux durées vivaient en constantes (`PUBLICATION_TTL_DAYS = 30`,
@@ -35,6 +35,13 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  *   `fenetreEchangeJours`  — NON rétroactive. `conversations.expires_at` est
  *                            écrit au déblocage ; les conversations ouvertes
  *                            gardent leur date.
+ *   `invitationJours`      — NON rétroactive, pour la même raison :
+ *                            `organization_invitations.expires_at` est écrit à
+ *                            la création et réécrit au renvoi.
+ *
+ *   **Une seule des trois rétroagit, et c'est celle qui retire quelque chose.**
+ *   Ce n'est pas un choix d'implémentation qu'on pourrait revoir : c'est ce que
+ *   veut dire « une date écrite » contre « une règle appliquée à la lecture ».
  */
 
 export type Durees = {
@@ -42,6 +49,12 @@ export type Durees = {
   vieAnnonceJours: number
   /** Fenêtre d'échange ouverte au déblocage, en jours. Changement NON rétroactif. */
   fenetreEchangeJours: number
+  /**
+   * Validité d'une invitation d'organisation, en jours. Changement NON
+   * rétroactif : `organization_invitations.expires_at` est ÉCRIT à la création
+   * et RÉÉCRIT au renvoi. Elle vivait EN DUR, et dans DEUX fichiers.
+   */
+  invitationJours: number
 }
 
 export type LectureDurees =
@@ -63,7 +76,7 @@ export async function chargerDurees(supabaseAdmin: SupabaseClient): Promise<Lect
   try {
     const { data, error } = await supabaseAdmin
       .from('duree_reglages')
-      .select('vie_annonce_jours, fenetre_echange_jours')
+      .select('vie_annonce_jours, fenetre_echange_jours, invitation_jours')
       .eq('ligne_unique', true)
       .maybeSingle()
 
@@ -75,18 +88,26 @@ export async function chargerDurees(supabaseAdmin: SupabaseClient): Promise<Lect
       return { ok: false, raison: 'aucune ligne de réglage des durées en base' }
     }
 
-    const r = data as unknown as { vie_annonce_jours: unknown; fenetre_echange_jours: unknown }
+    const r = data as unknown as {
+      vie_annonce_jours: unknown
+      fenetre_echange_jours: unknown
+      invitation_jours: unknown
+    }
     const vie = Number(r.vie_annonce_jours)
     const fenetre = Number(r.fenetre_echange_jours)
+    const invitation = Number(r.invitation_jours)
 
-    if (!estDureeAcceptable(vie) || !estDureeAcceptable(fenetre)) {
-      console.error('[durees] valeurs hors bornes', { vie, fenetre })
+    if (!estDureeAcceptable(vie) || !estDureeAcceptable(fenetre) || !estDureeAcceptable(invitation)) {
+      console.error('[durees] valeurs hors bornes', { vie, fenetre, invitation })
       return {
         ok: false,
-        raison: `durées hors bornes (vie ${String(r.vie_annonce_jours)}, fenêtre ${String(r.fenetre_echange_jours)})`,
+        raison: `durées hors bornes (vie ${String(r.vie_annonce_jours)}, fenêtre ${String(r.fenetre_echange_jours)}, invitation ${String(r.invitation_jours)})`,
       }
     }
-    return { ok: true, durees: { vieAnnonceJours: vie, fenetreEchangeJours: fenetre } }
+    return {
+      ok: true,
+      durees: { vieAnnonceJours: vie, fenetreEchangeJours: fenetre, invitationJours: invitation },
+    }
   } catch (err) {
     console.error('[durees] lecture en échec (exception)', {
       cause: err instanceof Error ? err.message : String(err),

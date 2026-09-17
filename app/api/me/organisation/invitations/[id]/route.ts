@@ -1,7 +1,12 @@
 import { NextRequest, after } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
-import { generateInvitationToken, hashInvitationToken } from '@/lib/invitation-token'
+import {
+  generateInvitationToken,
+  hashInvitationToken,
+  invitationExpiryIso,
+} from '@/lib/invitation-token'
+import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 import { renderInvitationEmail } from '@/lib/emails/templates'
 import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
@@ -53,6 +58,17 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
   } catch (err) {
     if (err instanceof AuthError) return err.toResponse()
     throw err
+  }
+
+  // ── LA DURÉE DE VALIDITÉ EST LUE ICI, PAR LA ROUTE ───────────────────────
+  //  Elle vivait EN DUR, et dans DEUX fichiers (celui-ci et son jumeau).
+  //  Aucun défaut dans le code (cf. lib/durees.ts) : illisible, on refuse en le
+  //  nommant plutôt que d'envoyer une invitation dont personne ne sait combien
+  //  de temps elle vaut.
+  const lectureDurees = await chargerDurees(auth.supabaseAdmin)
+  if (!lectureDurees.ok) {
+    console.error('[invitations/[id]:POST] durées de la place illisibles', lectureDurees.raison)
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
   }
 
   const org = auth.organization
@@ -114,7 +130,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
   // ── Renvoi : nouveau token + nouvelle expiration + email ────────────────────
   const rawToken = generateInvitationToken()
   const tokenHash = hashInvitationToken(rawToken)
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  const expiresAt = invitationExpiryIso({ invitationJours: lectureDurees.durees.invitationJours })
   const { error: upErr } = await admin
     .from('organization_invitations')
     .update({ token: tokenHash, expires_at: expiresAt, updated_at: new Date().toISOString() })

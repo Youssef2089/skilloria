@@ -410,5 +410,76 @@ section('H. La somme peut boucler — les deux fenetres sont identiques')
     'sans elles, le tableau affiche moins que la depense reelle')
 }
 
+section('I. Les deux reglages d’ARGENT se reglent — et l’ecran dit lequel bloque')
+
+/**
+ * LE DEFAUT QU'ON FERME ICI.
+ *   /admin/matching AFFICHAIT le plafond et le seuil d'alerte sans permettre
+ *   de les changer. C'est ce que §D.7 condamne — un reglage qui ne se regle
+ *   pas — au pire endroit possible : de l'argent. Et §E.10 rappelle ce que
+ *   coute une valeur posee a la main en base : elle ne survit pas a une
+ *   reconstruction, et ne laisse aucune trace exploitable.
+ *
+ *   MAIS LES DEUX NE FONT PAS LA MEME CHOSE. Le plafond BLOQUE (fail-closed
+ *   assume) ; le seuil ALERTE et n'arrete rien. Deux champs voisins qui se
+ *   ressemblent sans agir pareil sont un piege — le meme que les durees.
+ */
+{
+  const ROUTE = sansCommentaires(read('app/api/admin/plafonds-ia/route.ts'))
+  const ECRAN = sansCommentaires(read('app/[locale]/admin/matching/page.tsx'))
+  const LECTURE = sansCommentaires(read('app/api/admin/matching-settings/route.ts'))
+
+  ok(/\.from\('ai_spend_caps'\)\s*\.?\s*\n?\s*\.update\(/.test(ROUTE),
+    'le plafond global peut etre ECRIT depuis le back-office',
+    'affiche sans pouvoir etre change, c’est un reglage qui ne regle rien (§D.7)')
+
+  ok(/\.from\('ai_spend_seuils_acteur'\)\s*\.?\s*\n?\s*\.update\(/.test(ROUTE),
+    'le seuil d’alerte par acteur peut etre ECRIT depuis le back-office')
+
+  // LA GARDE EST AU SERVEUR. Griser un champ ne garde rien : un appel forge passe.
+  ok(/function montantValide/.test(ROUTE) && /n >= 0 && n <= 100_000/.test(ROUTE),
+    'les montants sont bornes AU SERVEUR',
+    'une borne posee seulement dans l’input ne garde rien')
+
+  ok(/unknown_provider/.test(ROUTE) && /unknown_actor/.test(ROUTE),
+    'un fournisseur ou un acteur hors catalogue est REFUSE',
+    'sans quoi un appel forge creerait une ligne que rien ne lit')
+
+  // TOUT OU RIEN. Un etat a moitie ecrit serait affiche sans qu'on sache
+  // lequel des champs a pris.
+  const iValide = ROUTE.indexOf('montantValide(valeur)')
+  const iEcrit = ROUTE.indexOf(".from('ai_spend_caps')")
+  ok(iValide > 0 && iEcrit > iValide,
+    'le corps entier est valide AVANT la moindre ecriture',
+    'ecrire les bonnes valeurs et refuser les autres laisse un etat a moitie applique')
+
+  // ET LA TRACE, avec DEUX actions distinctes : un plafond qui bloque et un
+  // seuil qui alerte ne se relisent pas de la meme facon dans un journal.
+  ok(/ai_spend_cap_updated/.test(ROUTE) && /ai_spend_alert_threshold_updated/.test(ROUTE),
+    'les deux changements sont traces sous DEUX actions distinctes',
+    'les confondre ferait chercher une coupure de service dans un changement de bruit')
+
+  ok(/bloque: true/.test(ROUTE) && /bloque: false/.test(ROUTE),
+    'la trace dit lequel des deux BLOQUE',
+    'un journal qui ne distingue pas les deux oblige a relire le code pour le savoir')
+
+  // L'ECRAN DOIT LE DIRE AUSSI, et pas dans une aide qu’on deplie.
+  ok(/money\.cap_blocks_label/.test(ECRAN) && /money\.alert_warns_label/.test(ECRAN),
+    'l’ecran ecrit lequel arrete et lequel previent',
+    'deux champs voisins qui n’agissent pas pareil sont un piege (meme famille que les durees)')
+
+  ok(/seuils_acteur:/.test(LECTURE),
+    'les seuils sont RENDUS par la lecture, donc editables',
+    'sans eux, l’ecran ne pourrait afficher qu’un champ vide')
+
+  // LE SEUIL NE DOIT TOUJOURS RIEN BLOQUER. Le rendre reglable ne change pas
+  // la decision produit : un depassement alerte, il ne bloque pas.
+  const METIER = fichiers.filter((f) => !f.startsWith('app/api/admin/') && !f.includes('admin/matching'))
+  const contamines = METIER.filter((f) => /ai_spend_seuils_acteur/.test(sansCommentaires(read(f))))
+  ok(contamines.length === 0,
+    'le seuil d’alerte ne sort toujours pas de l’ecran d’administration',
+    'lu dans un parcours, il finirait par le conditionner : ' + contamines.join(', '))
+}
+
 console.log(echecs === 0 ? '\n✔ TOUT VERT' : `\n✘ ${echecs} CONTROLE(S) EN ECHEC`)
 process.exit(echecs === 0 ? 0 : 1)

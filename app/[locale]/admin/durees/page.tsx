@@ -5,24 +5,29 @@ import { useTranslations } from 'next-intl'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
- * /admin/durees — LES DEUX DURÉES DU CONTRAT DE LA PLACE.
+ * /admin/durees — LES TROIS DURÉES DU CONTRAT DE LA PLACE.
  *
  * ═══ POURQUOI CET ÉCRAN EXISTE ═════════════════════════════════════════════
- *   La vie d'une annonce (30 j) et la fenêtre d'échange (15 j) vivaient en
- *   CONSTANTES, dans deux fichiers. Les changer demandait un déploiement — et
- *   ce sont les deux promesses que la place fait à ses deux côtés.
+ *   La vie d'une annonce (30 j), la fenêtre d'échange (15 j) et la validité
+ *   d'une invitation (7 j) vivaient en CONSTANTES. Les changer demandait un
+ *   déploiement — et la troisième était écrite DEUX FOIS, dans deux routes,
+ *   ce qui la condamnait à diverger.
  *
  * ═══ CE QUE CET ÉCRAN DOIT DIRE AVANT TOUT ═════════════════════════════════
- *   QUE LES DEUX RÉGLAGES NE SE COMPORTENT PAS PAREIL.
+ *   QUE LES TROIS RÉGLAGES NE SE COMPORTENT PAS PAREIL — et qu'UN SEUL fait
+ *   exception.
  *
  *     · baisser la vie d'une annonce RETIRE des annonces déjà en ligne, tout
  *       de suite, parce que l'activité se recalcule à chaque lecture ;
  *     · baisser la fenêtre d'échange ne raccourcit AUCUNE conversation en
- *       cours, parce que leur date de fin est écrite au déblocage.
+ *       cours, parce que leur date de fin est écrite au déblocage ;
+ *     · baisser la validité d'une invitation ne raccourcit AUCUNE invitation
+ *       déjà partie, pour exactement la même raison.
  *
- *   Deux champs voisins qui se ressemblent et n'agissent pas pareil, c'est un
- *   piège. L'écran l'écrit donc en toutes lettres, à côté de chaque champ, et
- *   pas dans une aide qu'on déplie.
+ *   Trois champs voisins qui se ressemblent et dont un seul rétroagit, c'est un
+ *   piège. L'écran l'écrit donc en toutes lettres, à côté de CHAQUE champ, et
+ *   pas dans une aide qu'on déplie. Les deux non-rétroactifs se suivent ; c'est
+ *   la vie d'une annonce qui est l'exception, et elle est en tête.
  *
  * ═══ ON COMPTE AVANT D'ÉCRIRE, ET ON NE BLOQUE PAS ═════════════════════════
  *   À chaque baisse saisie, l'écran demande au serveur combien d'annonces
@@ -35,6 +40,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 type Charge = {
   vie_annonce_jours: number
   fenetre_echange_jours: number
+  invitation_jours: number
   updated_at: string | null
   simulation: { jours: number; basculent: number; dont_devoilees: number } | null
 }
@@ -80,6 +86,7 @@ export default function AdminDureesPage() {
   const [erreur, setErreur] = useState<string | null>(null)
   const [vie, setVie] = useState('')
   const [fenetre, setFenetre] = useState('')
+  const [invitation, setInvitation] = useState('')
   const [impact, setImpact] = useState<Impact | null>(null)
   const [apercu, setApercu] = useState<{ basculent: number; dont_devoilees: number } | null>(null)
   const [enCours, setEnCours] = useState(false)
@@ -93,6 +100,7 @@ export default function AdminDureesPage() {
       setCharge(data)
       setVie(String(data.vie_annonce_jours))
       setFenetre(String(data.fenetre_echange_jours))
+      setInvitation(String(data.invitation_jours))
       setErreur(null)
     } catch {
       // « Indisponible » n'est pas « 30 et 15 ». Sans lecture, aucun champ
@@ -150,6 +158,7 @@ export default function AdminDureesPage() {
         body: JSON.stringify({
           vie_annonce_jours: Number(vie),
           fenetre_echange_jours: Number(fenetre),
+          invitation_jours: Number(invitation),
           confirme_retroactivite: confirme,
         }),
       })
@@ -267,6 +276,41 @@ export default function AdminDureesPage() {
           <strong>{t('exchange.not_retroactive_label')}</strong> {t('exchange.not_retroactive_body')}
         </p>
         <div style={aide}>{t('exchange.help')}</div>
+      </section>
+
+      {/* ── VALIDITÉ D'UNE INVITATION — l'autre réglage qui ne rétroagit pas ─
+          Rangée ici, sous la fenêtre d'échange, et non ailleurs : les deux se
+          comportent pareil, et c'est la vie d'une annonce qui fait exception.
+          Les séparer ferait croire que l'exception est la règle. */}
+      <section style={carte}>
+        <div style={titreBloc}>{t('invitation.title')}</div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: 'var(--sk-text)' }}>
+          <input
+            type="number"
+            min={1}
+            max={365}
+            value={invitation}
+            onChange={(e) => setInvitation(e.target.value)}
+            style={champ}
+            disabled={!charge}
+          />
+          <span>{t('days')}</span>
+        </label>
+        <p
+          style={{
+            fontSize: 13,
+            color: '#1e40af',
+            background: '#eff6ff',
+            border: '1px solid #bfdbfe',
+            borderRadius: 8,
+            padding: '10px 12px',
+            lineHeight: 1.55,
+            marginTop: 12,
+          }}
+        >
+          <strong>{t('invitation.not_retroactive_label')}</strong> {t('invitation.not_retroactive_body')}
+        </p>
+        <div style={aide}>{t('invitation.help')}</div>
       </section>
 
       {/* ── LA CONFIRMATION — une question, jamais un mur ──────────────── */}

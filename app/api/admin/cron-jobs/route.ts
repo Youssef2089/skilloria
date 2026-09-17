@@ -86,8 +86,12 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   /**
    * TOTAL EXACT, AUCUNE TRONCATURE. La fonction renvoie la totalité de
-   * `cron.job` — il y a cinq tâches, et le chantier matching en ajoutera
-   * quelques-unes. Aucun `LIMIT` n'est posé : sur un écran de supervision,
+   * `cron.job` — HUIT tâches au 16/09/2026. Ce commentaire annonçait « cinq
+   * tâches, et le chantier matching en ajoutera quelques-unes » : il les a
+   * ajoutées, et le commentaire est resté. Un chiffre dans un commentaire
+   * vieillit sans que rien ne le dise — c'est la même famille de défaut que
+   * celle corrigée dans la mémoire du projet (§M1). Aucun `LIMIT` n'est posé :
+   * sur un écran de supervision,
    * une liste tronquée en silence est précisément le défaut qu'on corrige
    * (leçon MAX_ORGS). Le jour où le volume l'exigera, la pagination
    * s'ajoutera AVEC son compteur exact, pas un écrêtage muet.

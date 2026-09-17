@@ -2863,6 +2863,18 @@
         "rate_limit_purge": {
           "label": "Purge des compteurs de débit",
           "description": "Efface les compteurs de limitation de débit de plus de 24 heures."
+        },
+        "matching_retry": {
+          "label": "Reprise des mises en relation inachevées",
+          "description": "Rejoue les runs de mise en relation qui ne se sont pas achevés — fonction interrompue, lot en échec, plafond de dépense atteint. Sans elle, une annonce publiée peut rester sans candidats."
+        },
+        "expert_relance": {
+          "label": "Relances de mise en relation des experts",
+          "description": "Exécute les relances arrivées à échéance après qu'un expert a modifié son profil. Reporter n'est pas annuler : un déclenchement refusé est reprogrammé, jamais perdu."
+        },
+        "notes_partielles_purge": {
+          "label": "Purge des brouillons de notation",
+          "description": "Efface les notes partielles déjà soldées. Elles évitent de REPAYER un lot déjà noté quand un run est interrompu ; une fois le run achevé, elles n'ont plus d'usage."
         }
       },
       "banner_action": "Voir les tâches planifiées",
@@ -3680,6 +3692,19 @@
       "help": "Un dépassement ALERTE, il ne bloque pas : personne n'est privé d'un parcours par cet écran. La somme des lignes égale la dépense du mois — acteurs détaillés, reste regroupé et non imputable compris.",
       "unattributedHelp": "« Non imputable » : des dépenses enregistrées avant que la facture soit découpée par acteur. Elles n'ont pas de déclencheur connu et n'en auront jamais — les répartir sur les autres reviendrait à inventer un chiffre. Cette ligne décroît d'elle-même, la lecture étant mensuelle."
     },
+    "money": {
+      "cap_label": "Plafond mensuel — modifiable",
+      "cap_blocks_label": "Ce plafond BLOQUE.",
+      "cap_blocks_body": "Atteint, la fonctionnalité se dégrade et l'écrit dans la trace du run : elle ne continue pas à dépenser. Le baisser sous la dépense déjà engagée ce mois-ci arrête le moteur immédiatement.",
+      "alert_label": "Seuil d'alerte par acteur — modifiable",
+      "alert_warns_label": "Ce seuil N'ARRÊTE RIEN.",
+      "alert_warns_body": "Il pose un drapeau sur une ligne de ce tableau, recalculé à chaque affichage. Personne n'est privé de quoi que ce soit : une mauvaise valeur produit du bruit, jamais un incident.",
+      "save": "Enregistrer les deux réglages",
+      "saving": "Enregistrement…",
+      "saved": "Plafond et seuil d'alerte enregistrés.",
+      "save_failed": "L'enregistrement a échoué. Aucune des deux valeurs n'a été écrite.",
+      "help": "Les deux sont bornés au serveur (0 à 100 000 $) et tracés dans le journal d'audit, avec la valeur avant et après. Un plafond à 0 coupe toute dépense chez ce fournisseur — c'est un usage prévu."
+    },
     "distribution": {
       "title": "Distribution observée (30 derniers jours)",
       "runs": "{count} exécution(s) observée(s).",
@@ -3772,6 +3797,12 @@
       "not_retroactive_label": "Ce réglage n'est pas rétroactif.",
       "not_retroactive_body": "La fin d'une conversation est une date ÉCRITE au moment du déblocage. Changer cette durée ne raccourcit ni n'allonge aucun échange en cours : les conversations ouvertes gardent la date qu'on leur a promise. Seuls les déblocages à venir suivront la nouvelle valeur.",
       "help": "C'est la différence avec le réglage ci-dessus, et elle n'est pas un détail d'implémentation : une date écrite ne se recalcule pas."
+    },
+    "invitation": {
+      "title": "Validité d'une invitation",
+      "not_retroactive_label": "Ce réglage n'est pas rétroactif.",
+      "not_retroactive_body": "La date de fin d'une invitation est ÉCRITE au moment de l'envoi, et réécrite au renvoi. Changer cette durée ne raccourcit ni n'allonge aucune invitation déjà partie : elles gardent la date qu'on leur a donnée. Seules les invitations à venir suivront la nouvelle valeur.",
+      "help": "Aucun comptage avant enregistrement ici, et ce n'est pas un oubli : il n'y a rien à compter, parce qu'il n'y a rien qui bascule. Cette durée vivait en dur dans deux fichiers, ce qui la condamnait à diverger."
     },
     "confirm": {
       "title": "À confirmer",
