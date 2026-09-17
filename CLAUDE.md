@@ -834,6 +834,26 @@ Une collision de numéros s'est déjà produite (commit `e33fdab`), et une migra
 renumérotée **avant application** (`912d437`) : numérotée sous quatre migrations déjà appliquées, elle
 se serait rejouée **avant** elles sur une base vierge.
 
+> ⚠️ **ET LA RÈGLE A ÉTÉ ENFREINTE PAR LE TRONC LUI-MÊME, QUATRE FOIS.**
+> `20260916100000_tarifs_ia`, `…110000_depense_ia_par_acteur`, `…120000_durees_reglables` et
+> `…130000_duree_invitation` portent un suffixe **`1xxxxx`** — précisément la plage que le
+> paragraphe ci-dessus déclare **fausse et corrigée**. Écrites les 16 et 17 septembre 2026, relues
+> plusieurs fois, et personne ne l'a vu : **rien ne pouvait le voir.**
+>
+> **Aucune collision n'en a résulté** — `1xxxxx` n'est attribuée à aucun worktree, et l'ordre
+> chronologique tient. Mais la plage existe *pour* éviter la collision, et celle-ci a déjà coûté un
+> renumérotage en urgence.
+>
+> **Trois des quatre sont DÉJÀ APPLIQUÉES en base.** Les renommer ferait diverger
+> `supabase_migrations.schema_migrations` du disque, donc **rejouer des migrations déjà passées**.
+> On ne corrige pas le passé : **on l'inscrit, et on ferme l'avenir.**
+>
+> **La parade — un CLIQUET**, dans [scripts/diag-migration-donnees.mjs](scripts/diag-migration-donnees.mjs),
+> même forme que `diag-colonnes-supprimees` : les quatre sont **gelées nommément**, le compte ne peut
+> que **descendre**, et toute **nouvelle** migration hors des plages attribuées fait rougir. Éprouvé
+> par mutation, dans les deux sens : une migration en `4xxxxx` est refusée, une gelée renommée dans
+> la bonne plage est signalée comme sortie du gel.
+
 **G.3 — Jamais de référence à une migration par son numéro, ni par sa position.**
 Un numéro cité vieillit mal et ment ensuite ; « la dernière migration dont le nom contient *stripe* » se
 trompe de fichier dès qu'une migration s'ajoute ou qu'un renumérotage change l'ordre.

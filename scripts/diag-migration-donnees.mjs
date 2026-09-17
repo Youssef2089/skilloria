@@ -632,5 +632,75 @@ section('C. Le detecteur lui-meme est eprouve')
   ok(e2.includes('select 1'), 'une apostrophe dans un commentaire n’avale pas le code qui suit')
 }
 
+section('E. La plage de numerotation du worktree — un CLIQUET')
+
+/**
+ * LE DEFAUT QU'ON FERME, ET IL EST DE LA MAISON.
+ *
+ *   §G.2 est explicite et marque TRANCHE : la plage du tronc est `0xxxxx`, et
+ *   « la consigne orale 1xxxxx etait fausse, elle est corrigee ». Quatre
+ *   migrations du tronc portent pourtant `1xxxxx` — 20260916100000, 110000,
+ *   120000 et 130000, ecrites les 16 et 17 septembre. Personne ne l'a vu, et
+ *   rien ne pouvait le voir.
+ *
+ *   AUCUNE COLLISION N'EN A RESULTE : `1xxxxx` n'est attribuee a aucun
+ *   worktree, et l'ordre chronologique tient. Mais la plage existe POUR
+ *   eviter la collision, et une collision de numeros s'est deja produite sur
+ *   ce depot (e33fdab), suivie d'un renumerotage en urgence (912d437) sur une
+ *   migration qui se serait rejouee AVANT quatre migrations deja appliquees.
+ *
+ *   TROIS DES QUATRE SONT DEJA APPLIQUEES EN BASE. Les renommer ferait
+ *   diverger `supabase_migrations.schema_migrations` du disque, donc REJOUER
+ *   des migrations deja passees. On ne corrige pas le passe : on l'inscrit, et
+ *   on ferme l'avenir.
+ *
+ * LE CLIQUET — meme forme que `diag-colonnes-supprimees`.
+ *   La dette est GELEE, nommement. Le compte ne peut que DESCENDRE : toute
+ *   NOUVELLE migration hors plage fait rougir. Une migration gelee qui serait
+ *   renommee sort du gel, et le controle le lit comme une baisse.
+ */
+{
+  /** Les plages attribuees, telles que §G.2 les fixe. */
+  const PLAGES = { '0': 'tronc', '2': 'S1', '3': 'S2' }
+
+  /**
+   * LA DETTE GELEE — quatre migrations du tronc en `1xxxxx`, dont trois deja
+   * appliquees en base. Elles ne se renomment pas ; elles se disent.
+   */
+  const GEL = new Set([
+    '20260916100000_tarifs_ia.sql',
+    '20260916110000_depense_ia_par_acteur.sql',
+    '20260916120000_durees_reglables.sql',
+    '20260916130000_duree_invitation.sql',
+  ])
+
+  const horsPlage = []
+  for (const f of readdirSync(join(ROOT, 'supabase/migrations')).filter((x) => x.endsWith('.sql'))) {
+    const horodatage = f.split('_')[0]
+    // La baseline n'a pas de suffixe de worktree : elle precede la convention.
+    if (horodatage.length !== 14 || /^0+$/.test(horodatage)) continue
+    const plage = horodatage.slice(8, 9)
+    if (PLAGES[plage]) continue
+    horsPlage.push(f)
+  }
+
+  const nouvelles = horsPlage.filter((f) => !GEL.has(f))
+  const sorties = [...GEL].filter((f) => !horsPlage.includes(f))
+
+  ok(nouvelles.length === 0,
+    `aucune NOUVELLE migration hors des plages attribuees (gel : ${GEL.size})`,
+    nouvelles.map((f) => `${f} — suffixe ${f.split('_')[0].slice(8)}, plage inconnue`).join(' · ') +
+      ' — §G.2 : tronc 0xxxxx, S1 2xxxxx, S2 3xxxxx')
+
+  if (sorties.length > 0) {
+    console.log(`  note ${sorties.length} migration(s) sortie(s) du gel — pensez a les retirer de GEL :`)
+    for (const f of sorties) console.log(`         ${f}`)
+  }
+  if (horsPlage.length > 0) {
+    console.log(`  note dette gelee : ${horsPlage.length} migration(s) du tronc en 1xxxxx,`)
+    console.log('         dont trois DEJA APPLIQUEES en base — irrenommables sans les rejouer.')
+  }
+}
+
 console.log(echecs === 0 ? '\n✔ TOUT VERT' : `\n✘ ${echecs} CONTROLE(S) EN ECHEC`)
 process.exit(echecs === 0 ? 0 : 1)
