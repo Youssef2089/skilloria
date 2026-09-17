@@ -3371,7 +3371,8 @@
       "org_unavailable": "Votre espace de collaboration n'a pas pu être préparé. Réessayez dans un instant.",
       "create_failed": "Impossible d’enregistrer le besoin. Vérifiez les champs et réessayez.",
       "publish_failed": "La publication a échoué. Veuillez réessayer.",
-      "publish_check_failed": "Nous n'avons pas pu vérifier le nombre d'annonces actives de votre offre. Rien n'a été publié. Réessayez dans quelques instants ; si le problème persiste, contactez le support."
+      "publish_check_failed": "Nous n'avons pas pu vérifier le nombre d'annonces actives de votre offre. Rien n'a été publié. Réessayez dans quelques instants ; si le problème persiste, contactez le support.",
+      "expert_country_missing": "Votre espace de collaboration reprend l'adresse de votre profil, et le pays n'y est pas renseigné. Complétez-le dans votre profil, puis republiez : rien n'a été perdu."
     },
     "list": {
       "title": "Mes besoins de sous-traitance",

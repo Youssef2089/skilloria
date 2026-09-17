@@ -152,7 +152,16 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
       })
       const draft = (await draftRes.json().catch(() => ({}))) as { id?: string; code?: string }
       if (!draftRes.ok || !draft.id) {
-        setError(t('errors.create_failed'))
+        // PAYS ABSENT ≠ ÉCHEC D'ENREGISTREMENT. L'espace de collaboration
+        // reprend l'adresse du profil, et cette adresse-là n'a pas de pays.
+        // Le générique « impossible d'enregistrer le besoin — vérifiez les
+        // champs » enverrait l'expert relire un formulaire où il n'y a rien à
+        // corriger. On nomme le champ manquant et l'endroit où il vit.
+        setError(
+          draft.code === 'expert_country_missing'
+            ? t('errors.expert_country_missing')
+            : t('errors.create_failed'),
+        )
         return
       }
 

@@ -3371,7 +3371,8 @@
       "org_unavailable": "Ihr Kollaborationsbereich konnte nicht vorbereitet werden. Bitte versuchen Sie es gleich erneut.",
       "create_failed": "Der Bedarf konnte nicht gespeichert werden. Prüfen Sie die Felder und versuchen Sie es erneut.",
       "publish_failed": "Die Veröffentlichung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
-      "publish_check_failed": "Wir konnten die Anzahl aktiver Anzeigen Ihres Tarifs nicht prüfen. Es wurde nichts veröffentlicht. Versuchen Sie es in Kürze erneut; besteht das Problem weiterhin, wenden Sie sich an den Support."
+      "publish_check_failed": "Wir konnten die Anzahl aktiver Anzeigen Ihres Tarifs nicht prüfen. Es wurde nichts veröffentlicht. Versuchen Sie es in Kürze erneut; besteht das Problem weiterhin, wenden Sie sich an den Support.",
+      "expert_country_missing": "Ihr Kollaborationsbereich übernimmt die Adresse aus Ihrem Profil, und dort fehlt das Land. Ergänzen Sie es in Ihrem Profil und veröffentlichen Sie erneut: Es ist nichts verloren gegangen."
     },
     "list": {
       "title": "Meine Unterauftrags-Bedarfe",

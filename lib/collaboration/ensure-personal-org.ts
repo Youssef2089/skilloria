@@ -68,7 +68,7 @@ export async function ensurePersonalOrg(
   // ── Expert uniquement ────────────────────────────────────────────────────
   const { data: userRow, error: userErr } = await admin
     .from('users')
-    .select('user_type, first_name, last_name')
+    .select('user_type, first_name, last_name, country')
     .eq('id', userId)
     .maybeSingle()
   if (userErr || !userRow) {
@@ -124,6 +124,32 @@ export async function ensurePersonalOrg(
   const last = (userRow.last_name as string | null)?.trim() ?? ''
   const companyName = `${first} ${last}`.trim() || 'Espace collaboration'
 
+  // ── LE PAYS DE L'ORGANISATION PERSONNELLE EST CELUI DE L'EXPERT ──────────
+  //
+  //  Cet appel passait `p_country: 'FR'`. C'était le TROISIÈME endroit où le
+  //  pays d'une organisation naissait français sans que personne ne l'ait
+  //  choisi — après le formulaire d'inscription et le défaut de la colonne.
+  //  L'organisation personnelle d'un expert marocain s'affichait « France »
+  //  sur son écran « Mon entreprise », et rien ne le lui disait.
+  //
+  //  Le siège de cette organisation-là n'a rien à deviner : c'est l'adresse
+  //  DÉCLARÉE par l'expert. On la lit.
+  //
+  //  ET SI ELLE EST ABSENTE, ON NE LA REMPLACE PAS. Écrire un pays qu'on
+  //  ignore, c'est produire une donnée fausse qui ne se signale jamais ;
+  //  refuser ici est visible, réparable en un champ, et ne coûte à l'expert
+  //  que d'achever l'adresse qu'il a commencée. Le refus est nommé pour que
+  //  l'écran sache quoi en dire.
+  const paysExpert = (userRow.country as string | null)?.trim() || null
+  if (!paysExpert) {
+    return {
+      ok: false,
+      code: 'expert_country_missing',
+      message: 'Expert country is required to create the personal organization',
+      status: 409,
+    }
+  }
+
   // ── Création transactionnelle + cleanup atomique ─────────────────────────
   let organizationId: string | null = null
   try {
@@ -147,7 +173,7 @@ export async function ensurePersonalOrg(
         p_domain_id: domains.userDomainId,
         p_org_type: 'freelance',
         p_company_name: companyName,
-        p_country: 'FR',
+        p_country: paysExpert,
         p_owner_user_id: userId,
         p_is_verified: true,
         p_verification_status: 'approved',

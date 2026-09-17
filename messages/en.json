@@ -3371,7 +3371,8 @@
       "org_unavailable": "Your collaboration workspace could not be prepared. Please try again shortly.",
       "create_failed": "Could not save the need. Check the fields and try again.",
       "publish_failed": "Publishing failed. Please try again.",
-      "publish_check_failed": "We could not check how many active listings your plan allows. Nothing was posted. Try again in a few moments; if it persists, contact support."
+      "publish_check_failed": "We could not check how many active listings your plan allows. Nothing was posted. Try again in a few moments; if it persists, contact support.",
+      "expert_country_missing": "Your collaboration space uses the address on your profile, and the country is missing there. Fill it in on your profile, then publish again: nothing has been lost."
     },
     "list": {
       "title": "My subcontracting needs",
