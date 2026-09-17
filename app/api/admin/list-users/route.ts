@@ -189,7 +189,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     const [membersRes, profilesRes] = await Promise.all([
       auth.supabaseAdmin
         .from('organization_members')
-        .select('user_id, organization_id, role_in_org, organizations(id, company_name, org_type)')
+        .select('user_id, organization_id, role_in_org, organizations!organization_members_organization_id_fkey(id, company_name, org_type)')
         .in('user_id', userIds)
         .eq('status', 'active'),
       auth.supabaseAdmin

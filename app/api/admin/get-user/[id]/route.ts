@@ -145,7 +145,7 @@ export async function GET(request: NextRequest, ctx: Ctx): Promise<Response> {
   if (purgeRefusalCode === null) {
     const { data: adminMemberships, error: memErr } = await auth.supabaseAdmin
       .from('organization_members')
-      .select('organization_id, organizations(id, company_name)')
+      .select('organization_id, organizations!organization_members_organization_id_fkey(id, company_name)')
       .eq('user_id', id)
       .eq('role_in_org', 'admin')
       .eq('status', 'active')
@@ -173,7 +173,7 @@ export async function GET(request: NextRequest, ctx: Ctx): Promise<Response> {
   const [memberRes, profileRes, sessionCountRes] = await Promise.all([
     auth.supabaseAdmin
       .from('organization_members')
-      .select('id, organization_id, role_in_org, status, joined_at, organizations(id, company_name, org_type, verification_status)')
+      .select('id, organization_id, role_in_org, status, joined_at, organizations!organization_members_organization_id_fkey(id, company_name, org_type, verification_status)')
       .eq('user_id', id)
       .eq('status', 'active')
       .order('joined_at', { ascending: true })

@@ -173,7 +173,26 @@ async function loadOrganizationContext(
   //   alors résoudre explicitement l'org perso pour les surfaces sous-traitance.
   const { data: memberRow, error: memberErr } = await supabaseAdmin
     .from('organization_members')
-    .select('organization_id, role_in_org, organizations(id, verification_status)')
+    // ⚠️ LE NOM DE CONTRAINTE N'EST PAS DÉCORATIF — NE PAS LE « SIMPLIFIER ».
+    //
+    //   La migration `20260914200010_siege_administrateur` a ajouté un SECOND
+    //   lien entre ces deux tables : `organizations_siege_admin_fkey`, une clé
+    //   étrangère COMPOSITE de `organizations` vers `organization_members`.
+    //   PostgREST voit alors DEUX relations et refuse de choisir :
+    //
+    //     « Could not embed because more than one relationship was found
+    //       for 'organization_members' and 'organizations' »
+    //
+    //   Cette fonction retourne `null` sur erreur — donc TOUT membre d'une
+    //   organisation devenait « sans organisation », et chaque route gardée
+    //   répondait 403 `no_organization`. Le dashboard entreprise entier était
+    //   mort, sur staging comme sur toute base neuve.
+    //
+    //   Ni `tsc` ni `next build` ne pouvaient le voir : l'embed est une CHAÎNE
+    //   (§E.1). Trouvé en rejouant les migrations sur une base vierge.
+    //
+    //   `!<nom_de_contrainte>` désigne explicitement le lien à suivre.
+    .select('organization_id, role_in_org, organizations!organization_members_organization_id_fkey(id, verification_status)')
     .eq('user_id', userId)
     .eq('status', 'active')
     .order('joined_at', { ascending: true })

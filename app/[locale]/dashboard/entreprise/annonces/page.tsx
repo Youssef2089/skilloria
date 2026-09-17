@@ -49,7 +49,7 @@ export default function MesAnnoncesPage() {
     }
     const { data: memberRow, error } = await supabase
       .from('organization_members')
-      .select('organizations(id, company_name, logo_url, verification_status, setup_completed_at, org_type)')
+      .select('organizations!organization_members_organization_id_fkey(id, company_name, logo_url, verification_status, setup_completed_at, org_type)')
       .eq('user_id', session.user.id)
       .eq('status', 'active')
       .order('joined_at', { ascending: true })

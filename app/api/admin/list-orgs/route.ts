@@ -3,6 +3,7 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { targetRoleForOrgType } from '@/lib/org-target-role'
 import { covers, type CoverageTarget } from '@/lib/package-default'
+import { signOrgLogoUrls } from '@/lib/org-logo'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -204,8 +205,27 @@ export async function GET(request: NextRequest): Promise<Response> {
     console.warn('[admin:list-orgs] ecosystem resolution failed', err instanceof Error ? err.message : String(err))
   }
 
+  // ─── Logos : URL SIGNÉES, en UN SEUL aller-retour ──────────────────────────
+  //
+  // C'EST LA SURFACE LA PLUS SENSIBLE DES NEUF. `logo_url` était une adresse
+  // SAISIE PAR L'ORGANISATION, servie telle quelle à `<img src>` dans CET
+  // écran : chaque ouverture de la file d'attente faisait appeler, depuis le
+  // navigateur d'un ADMINISTRATEUR PLATEFORME, une adresse choisie par la
+  // partie même qu'il est en train d'examiner — IP, agent utilisateur, et un
+  // `Referer` qui révèle l'écran d'administration.
+  //
+  // La colonne est désormais un DRAPEAU de présence (migration 20260916300000)
+  // et l'on signe un chemin DÉRIVÉ de l'identifiant.
+  const logosSignes = await signOrgLogoUrls(
+    auth.supabaseAdmin,
+    orgs.map((o) => o.id),
+  )
+
   const result = orgs.map((o) => ({
     ...o,
+    // L'URL SIGNÉE ÉCRASE la valeur brute venue du `select` ci-dessus.
+    // L'ordre des clés compte : `...o` d'abord, l'URL signée ensuite.
+    logo_url: logosSignes.get(o.id) ?? null,
     package: packageByOrg.get(o.id) ?? null,
     ecosystem: ecosystemByOrg.get(o.id) ?? null,
   }))

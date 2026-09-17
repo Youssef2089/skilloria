@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
+import { signOrgLogoUrl } from '@/lib/org-logo'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   // ── Contact = membre admin le plus ancien ──────────────────────────────
   const { data: memberRow, error: memberErr } = await auth.supabaseAdmin
     .from('organization_members')
-    .select('user_id, joined_at, users(id, first_name, last_name, email, job_title, linkedin_url, civility, locale)')
+    .select('user_id, joined_at, users!organization_members_user_id_fkey(id, first_name, last_name, email, job_title, linkedin_url, civility, locale)')
     .eq('organization_id', id)
     .eq('role_in_org', 'admin')
     .eq('status', 'active')
@@ -147,5 +148,22 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     sirene_error_note: vd?.sirene_error_note ?? null,
   }
 
-  return json({ org: { ...org, ecosystem }, contact, verification }, 200)
+  // Logo : URL SIGNÉE, jamais la valeur de la colonne.
+  //
+  // Même raison qu'en liste, en plus resserré : cet écran est celui où un
+  // administrateur plateforme EXAMINE une organisation. Servir l'adresse
+  // qu'elle a saisie ferait appeler, depuis son navigateur, un serveur choisi
+  // par la partie examinée. La colonne est un DRAPEAU (migration
+  // 20260916300000) ; le chemin est DÉRIVÉ de l'identifiant.
+  const logoSigne = await signOrgLogoUrl(
+    auth.supabaseAdmin,
+    (org as { id: string }).id,
+    (org as { logo_url: string | null }).logo_url,
+  )
+
+  // L'ordre des clés compte : `...org` d'abord, l'URL signée ensuite.
+  return json(
+    { org: { ...org, logo_url: logoSigne, ecosystem }, contact, verification },
+    200,
+  )
 }

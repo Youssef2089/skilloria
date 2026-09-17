@@ -118,6 +118,17 @@ compare **champ par champ** et produit un score de confiance, comparé au
 tranche depuis `/admin/organisations/[id]`.
 `requireOrgApproved(ctx)` garde ensuite les routes réservées.
 
+**2 bis. Elle soigne sa fiche.** `/dashboard/entreprise/organisation` →
+`PATCH /api/me/organisation` (whitelist stricte : les champs qui engagent la vérification légale —
+`siren`, `vat_number`, `org_type`, `email_domain` — restent hors d'atteinte).
+**Le logo se TÉLÉVERSE, il ne se saisit plus** : `POST /api/me/organisation/logo`, bucket **privé**
+`org-logos`, chemin dérivé de l'identifiant de l'organisation, lecture par **URL signée** (300 s).
+Garde **admin actif** au serveur *et* en base ; `editor` est traité comme `viewer` (§D.8 pour le cas
+de l'organisation personnelle, §E.17 pour la raison du changement).
+Un fichier est accepté sur sa **signature binaire**, pas sur ce qu'il déclare — 2 Mo, JPEG/PNG/WebP,
+SVG refusé. Un refus dit **lequel** des quatre motifs s'applique, en quatre langues.
+La saisie d'URL a disparu des **deux** côtés : organisation *et* `/admin/ecosystemes`.
+
 **3. Elle rédige.** `/dashboard/entreprise/annonces/nouvelle` → `POST /api/publications`.
 Champs structurants : branche, spécialités (multiples), séniorités (multiples), compétences requises,
 **zones de travail** (multiples), `location_note` (texte libre, ex-`location`).
@@ -528,7 +539,7 @@ deux produits.
 | `candidatures` | Toutes les candidatures reçues, toutes annonces confondues. |
 | `messages` · `messages/[id]` | Messagerie avec les experts dévoilés. |
 | `membres` | Membres, rôles (`admin`/`editor`/`viewer`), invitations. |
-| `organisation` | Fiche et statut de vérification de l'organisation. |
+| `organisation` | Fiche et statut de vérification. **Téléversement du logo** (admin seul ; un non-admin voit le logo et lit pourquoi il ne peut pas). La **saisie d'URL a disparu** — §E.17. |
 | `offre` | Offre en cours, consommation, parcours d'achat (**mur fermé**, §P4). |
 | `parametres` | Compte et préférences du membre. |
 
@@ -547,7 +558,7 @@ deux produits.
 | `matching` | Les **deux seuils** par écosystème, le modèle de reranking, la taille de lot, `notify_enabled` ; pannes de rédaction et dépassements de relance. Et les **deux réglages d'argent** — plafond de dépense (**il bloque**) et seuil d'alerte par acteur (**il alerte**) — chacun dans le bloc qui affiche déjà sa valeur. |
 | `quotas-ia` | Les quotas anti-abus IA (analyses de CV). |
 | `taxonomie` · `taxonomie/[id]` | Branches et spécialités, et leurs traductions. |
-| `ecosystemes` | Créer un écosystème, le traduire, l'ouvrir — **et dire ce qui manque**. Le détail est un **panneau dans la page de liste**, pas un écran : `/admin/ecosystemes/[id]` n'existe pas (seule la **route API** porte ce chemin). Ce tableau l'annonçait comme un écran. |
+| `ecosystemes` | Créer un écosystème, le traduire, l'ouvrir — **et dire ce qui manque**. Logo et favicon **téléversés** (bucket public `ecosysteme`, chemin dérivé de `domain_id`) ; la saisie d'URL a disparu — §E.17. Le détail est un **panneau dans la page de liste**, pas un écran : `/admin/ecosystemes/[id]` n'existe pas (seule la **route API** porte ce chemin). Ce tableau l'annonçait comme un écran. |
 | `durees` | Les **deux durées du contrat de la place** — vie d'une annonce (**rétroactive**) et fenêtre d'échange (**non rétroactive**), §P3.7. |
 | `taches-planifiees` · `taches-planifiees/[job_name]` | Supervision pg_cron : activer/désactiver, reprogrammer, déclencher, historique. |
 | `collaboration` | Les organisations personnelles d'experts. |
@@ -603,6 +614,8 @@ l'expose**. « Code » = un déploiement est nécessaire.
 |---|---|---|---|
 | Analyses de CV | **3 / 24 h** | `ai_quotas` | **Back-office** `/admin/quotas-ia` |
 | Taille de CV | 5 Mo, PDF | **Code** | Déploiement |
+| Taille de logo (organisation **et** écosystème) | **2 Mo**, `image/jpeg` · `png` · `webp` — **SVG refusé** | **Code** [lib/org-logo.ts](../lib/org-logo.ts) | Déploiement |
+| Vérification d'un logo | **signature binaire** lue dans les octets, type déclaré confronté au type reniflé, et c'est le **reniflé** qui est servi | **Code** `verifierFichierLogo` | Déploiement |
 | Seuil qualité d'annonce | **7 / 10** | `verification_providers` (`opportunity_quality_check`) | **Back-office** `/admin/seuils` |
 | Seuil d'auto-approbation d'expert | **8 / 10** | `verification_providers.config->>'auto_approve_threshold'` — **le jsonb, PAS la colonne** | **Back-office** `/admin/seuils` |
 | Drapeaux disqualifiants d'expert | `CV_PROFILE_INCOHERENT`, `SUSPICIOUS_CONTENT`, `DOMAIN_MISMATCH` | `verification_providers.config->>'blocking_flags'` | **Back-office** `/admin/seuils` — liste vide **refusée** |
@@ -637,6 +650,35 @@ l'expose**. « Code » = un déploiement est nécessaire.
 | Le dernier administrateur d'une organisation | ne peut pas se retirer | **trigger** `organizations_cliquet_siege_admin` + RPC `maj_membre_organisation` (migration `siege_administrateur`) — **et non des policies RLS**, comme ce tableau l'a longtemps écrit | Migration |
 | Le dernier administrateur de la PLATEFORME | ne peut pas programmer sa suppression | table `plateforme` + `cliquet_siege_admin()` (migration `siege_admin_plateforme`) | Migration |
 | Contact expert (`email`/`phone`) | **jamais exposé**, même après paiement | **Code** `reveal_contact: false` | Arbitrage |
+| Changer le logo d'une organisation | **admin actif SEULEMENT** — `editor` traité comme `viewer` | **Serveur** (403 `not_org_admin`) **ET base** (policies `org_logos_admin_*`) | Arbitrage |
+| Une URL externe dans `logo_url` / `favicon_url` | **impossible à écrire** | **Base** — 3 CHECK de chemin (§E.17) | Migration |
+
+**Les quatre buckets de stockage, et leur confidentialité ATTENDUE** (table figée dans
+`diag-logo-organisation` : un bucket qui change d'état, ou un bucket inconnu, rougit).
+
+| Bucket | Public ? | Contenu | Écriture | Lecture |
+|---|---|---|---|---|
+| `cv` | **non** | CV PDF, 5 Mo | serveur, service-role | serveur |
+| `avatars` | **non** | photo d'expert, 2 Mo | **client-direct** sous policy `auth.uid()` | serveur, URL signée 300 s |
+| `org-logos` | **non** | logo d'organisation, 2 Mo | **serveur** ; policies scopées **`organization_id`**, jamais `auth.uid()` | serveur, URL signée 300 s |
+| `ecosysteme` | **OUI, assumé** | logo + favicon d'écosystème | serveur (admin plateforme), aucune policy | **publique, dérivée** |
+
+> **Pourquoi l'écriture du logo passe par le SERVEUR alors que `avatars` écrit en client-direct** :
+> en client-direct, les octets ne passent jamais par nous, et la vérification du **contenu** du
+> fichier serait impossible — Storage ne sait filtrer que sur le `Content-Type` **déclaré**, donc sur
+> une affirmation du client. Le modèle retenu emprunte l'**écriture** à `cv` et la **lecture** à
+> `avatars`.
+>
+> **Pourquoi `ecosysteme` est public** : ces images vivent sur des pages **publiques et cachées**
+> (Navbar, Footer, pages légales, contact), vues par des visiteurs anonymes ; une URL signée y
+> expirerait en 300 s et laisserait une image cassée. Ce qui ferme le mouchard n'est pas la
+> confidentialité du bucket, c'est que **l'adresse est dérivée de `domain_id`** au lieu d'être saisie.
+>
+> **Aucun cycle RLS possible** (§E.6) : les policies `org-logos` appellent `is_active_admin_of_org` /
+> `is_active_member_of_org`, déjà `SECURITY DEFINER` à `search_path` verrouillé — elles bypassent la
+> RLS et cassent la boucle par construction, et aucune policy de `organization_members` ne lit
+> `storage.objects`.
+
 
 ### P3.6 — Les huit tâches planifiées (pg_cron, plus aucun cron d'hébergeur)
 | Tâche | Horaire | Ce qu'elle fait |

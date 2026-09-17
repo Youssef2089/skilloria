@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl'
 import { useRouter, Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { theme } from '@/components/home/theme'
+import ImageOuRepli from '@/components/ui/ImageOuRepli'
 
 /**
  * Navigation de la vitrine.
@@ -42,13 +43,20 @@ export default function Navbar() {
           width: 30, height: 30, borderRadius: 8, background: domain.primaryColor,
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
-          {domain.logoUrl ? (
-            <img src={domain.logoUrl} alt="" width={18} height={18} />
-          ) : (
+          {/* Le repli couvre l'ABSENCE et l'ÉCHEC : sans lui, un logo
+              d'écosystème injoignable affichait l'icône d'image cassée en
+              tête de chaque page publique. */}
+          <ImageOuRepli
+            src={domain.logoUrl}
+            alt=""
+            width={18}
+            height={18}
+            repli={
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
             </svg>
-          )}
+            }
+          />
         </span>
         <span style={{ fontSize: 16, fontWeight: 700, color: theme.ink, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
           {domain.name}

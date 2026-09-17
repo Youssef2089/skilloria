@@ -101,7 +101,7 @@ export default function DashboardEntreprise() {
     setFirstName(((uRow as { first_name?: string | null } | null)?.first_name ?? '').trim() || null)
     const { data: memberRow, error } = await supabase
       .from('organization_members')
-      .select('organizations(id, company_name, verification_status, setup_completed_at)')
+      .select('organizations!organization_members_organization_id_fkey(id, company_name, verification_status, setup_completed_at)')
       .eq('user_id', session.user.id)
       .eq('status', 'active')
       .order('joined_at', { ascending: true })

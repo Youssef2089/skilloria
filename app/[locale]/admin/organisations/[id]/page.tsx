@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { Link, useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { targetRoleForOrgType } from '@/lib/org-target-role'
+import LogoOrganisation from '@/components/admin/LogoOrganisation'
 
 /**
  * /admin/organisations/[id] — fiche détail d'une organisation (B5c).
@@ -310,33 +311,15 @@ export default function AdminOrgDetailPage() {
           flexWrap: 'wrap',
         }}
       >
-        {org.logo_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={org.logo_url}
-            alt={org.company_name ?? ''}
-            width={56}
-            height={56}
-            style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover' }}
-          />
-        ) : (
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: '50%',
-              background: '#DBEAFE',
-              color: '#00B9FF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 18,
-              fontWeight: 500,
-            }}
-          >
-            {((org.company_name ?? '').trim().slice(0, 2) || '??').toUpperCase()}
-          </div>
-        )}
+        {/* URL SIGNÉE servie par /api/admin/get-org/[id] — jamais l'adresse
+            saisie par l'organisation examinée. Le repli couvre l'absence ET
+            l'échec de chargement (signature expirée). */}
+        <LogoOrganisation
+          src={org.logo_url}
+          nom={org.company_name}
+          taille={56}
+          taillePolice={18}
+        />
         <div style={{ flex: 1, minWidth: 240 }}>
           <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: 0 }}>
             {org.company_name ?? '—'}

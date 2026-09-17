@@ -130,7 +130,7 @@ async function organizationsLeftWithoutAdmin(
 ): Promise<LockedOutOrg[]> {
   const { data: memberships, error } = await supabaseAdmin
     .from('organization_members')
-    .select('organization_id, organizations(id, company_name)')
+    .select('organization_id, organizations!organization_members_organization_id_fkey(id, company_name)')
     .eq('user_id', targetUserId)
     .eq('role_in_org', 'admin')
     .eq('status', 'active')

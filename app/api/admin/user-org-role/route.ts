@@ -110,7 +110,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   // rattachement : on ne ressuscite pas un membre parti en changeant son rôle.
   const { data: memberRow, error: memberErr } = await auth.supabaseAdmin
     .from('organization_members')
-    .select('id, organization_id, role_in_org, status, organizations(id, company_name)')
+    .select('id, organization_id, role_in_org, status, organizations!organization_members_organization_id_fkey(id, company_name)')
     .eq('user_id', t.id)
     .eq('status', 'active')
     .order('joined_at', { ascending: true })

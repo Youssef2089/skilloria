@@ -15,6 +15,7 @@ import AvatarUploadModal from '@/components/AvatarUploadModal'
 import AvatarEditOverlay from '@/components/dashboard/AvatarEditOverlay'
 import DashboardSidebar from '@/components/shell/DashboardSidebar'
 import { useAvatarUrl } from '@/hooks/useAvatarUrl'
+import ImageOuRepli from '@/components/ui/ImageOuRepli'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -1016,20 +1017,20 @@ export default function MonProfilPage() {
                   recevoir le bouton overlay "Modifier la photo" (entry-point
                   du AvatarUploadModal — qui était jusque-là monté mais inatteignable). */}
               <div style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
-                {ownAvatarUrl ? (
-                  <img
-                    src={ownAvatarUrl}
-                    alt={fullName}
-                    className="profile-hero-avatar"
-                    style={{
-                      width: 120,
-                      height: 120,
-                      borderRadius: '50%',
-                      objectFit: 'cover',
-                      border: `3px solid ${domain.primaryColor}22`,
-                    }}
-                  />
-                ) : (
+                {/* Repli sur ABSENCE *et* ÉCHEC : la photo est servie par URL
+                    signée (300 s). Expirée, on retombe sur les initiales. */}
+                <ImageOuRepli
+                  src={ownAvatarUrl}
+                  alt={fullName}
+                  className="profile-hero-avatar"
+                  style={{
+                    width: 120,
+                    height: 120,
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: `3px solid ${domain.primaryColor}22`,
+                  }}
+                  repli={(
                   <div
                     className="profile-hero-avatar"
                     style={{
@@ -1048,7 +1049,8 @@ export default function MonProfilPage() {
                   >
                     {initials}
                   </div>
-                )}
+                  )}
+                />
                 <AvatarEditOverlay onClick={() => setAvatarModalOpen(true)} />
               </div>
 

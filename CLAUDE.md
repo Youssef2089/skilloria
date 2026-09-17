@@ -192,6 +192,37 @@ promesse de vigilance** : §E.16.
 
 ---
 
+### M1 bis — La fusion de `feat/s2`, et comment la collision a été tranchée
+
+Le 17/09/2026, `feat/s2` a été fusionné dans le tronc. **Les deux côtés avaient écrit dans la mémoire
+du projet le même jour, sans se voir**, et les deux avaient raison. Résolution **en union** : aucune
+section n'a disparu, aucune n'a été arbitrée.
+
+**La collision.** Les deux côtés ont écrit un **§E.16**. Celui du tronc garde son numéro — il était
+déjà cité **cinq fois** dans le fichier découpé ; ceux de `feat/s2` deviennent **§E.17** (l'URL
+saisie servie à `<img src>`) et **§E.18** (l'embed ambigu). Leurs renvois internes ont suivi.
+**On renumérote, on ne choisit pas.**
+
+**Le replacement.** `feat/s2` a écrit contre le fichier **monolithique**, avant le découpage. Ses
+sections ont donc été **replacées**, jamais empilées en fin de fichier : §D.8 dans §D et §E.17/§E.18
+dans §E *ici* ; §P1.2 (« 2 bis »), §P2.3, §P2.4, §P3.3 et §P3.5 dans
+[docs/produit.md](docs/produit.md), chacune à sa place dans son tableau.
+
+**La seule ligne non reprise telle quelle, et pourquoi.** `feat/s2` écrivait
+`` | `ecosystemes` · `ecosystemes/[id]` | `` — or §M1 n°10 a **établi par mesure** que
+`/admin/ecosystemes/[id]` n'existe pas : le détail est un panneau dans la page de liste. La ligne
+fusionnée porte **toute** la substance de `feat/s2` (logo, favicon, bucket public, chemin dérivé de
+`domain_id`, disparition de la saisie d'URL) **et** la correction du tronc. Reprendre la mention de
+l'écran aurait réintroduit l'erreur que §M1 venait de fermer — vérifié par mutation :
+`diag-memoire-exacte` rougit dessus.
+
+**Les quatre `messages/*.json` se sont fusionnés seuls**, et la fusion est l'**union exacte** des
+deux côtés : 3133 clés à la base, +21 côté tronc, +26 côté `feat/s2`, **3180** après fusion, parité
+exacte sur les quatre langues. Deux clés ont disparu — `field_logo_url` et `logo_url_help` — parce
+que `feat/s2` les a **délibérément supprimées** en remplaçant la saisie d'URL par un téléversement.
+Une suppression voulue n'est pas une perte ; elle est vérifiée comme telle, pas supposée.
+
+
 ## D. Les décisions figées
 
 Un worktree ne les rouvre pas sans arbitrage. Chacune a été vérifiée dans le code ; les écarts avec la
@@ -294,6 +325,26 @@ doit pas écraser une valeur ajustée par un admin.
 Exception **assumée et documentée** : le plafond anti-abus de relance (20/h/expert) reste une constante
 de code — « un seuil anti-abus n'est pas un réglage commercial, et le rendre réglable invite à le
 désactiver le jour où il gêne ».
+
+**D.8 — L'organisation PERSONNELLE d'un expert n'a PAS de logo, et c'est délibéré.**
+L'organisation `org_type = 'freelance'` est **technique** : elle existe parce que
+`publications.organization_id` est `NOT NULL` (§P1.2 bis). Le bucket `org-logos` et ses policies la
+couvrent **sans exception** — une exception dans une policy est une dette — mais **aucune surface
+d'édition** ne lui est ouverte, et son état vide reste les **initiales** de `company_name` (qui vaut
+« Prénom Nom » de l'expert).
+
+Le motif, pour que personne ne prenne ça pour un oubli et ne l'ouvre :
+1. **L'expert a DÉJÀ une image, et elle est protégée.** `profiles.photo_url` est servie par URL
+   signée **sous la gate de dévoilement** (`reveal_photo`). Un logo d'organisation personnelle serait
+   une **seconde image de la même personne, SANS gate**.
+2. **Ce serait donc un contournement du masquage**, sur la surface exacte où il compte : les cartes
+   de casting ne masquent que sur `pub.confidential`. Un expert annonceur pourrait poser sa propre
+   photo en « logo » et la faire voir hors de toute gate.
+3. Lui donner une identité visuelle propre reviendrait à en faire une vraie entité — et il faudrait
+   alors lui construire un écran dans un dashboard où elle n'a pas sa place.
+
+Décision prise par Youssef, sur les trois arguments ci-dessus. **Rouvrir ce point suppose de trancher
+le point 2 d'abord.**
 
 ---
 
@@ -526,7 +577,7 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **62** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
+Sur les **63** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
 16/09/2026 — ce document disait 51 / 35 / 1913 ; les trois chiffres avaient vieilli sans que rien ne
 le signale, et c'est précisément pour ça qu'ils sont désormais **relus par un contrôle**, §E.16).
 
@@ -624,6 +675,117 @@ Il tourne **sans base, sans réseau, sans identifiants**.
 > `disclosurePolicyForCandidatureLifecycle` dans un **commentaire**, faisant croire à un sixième
 > consommateur ; et `requireAuth` dans le commentaire de `stripe/webhook` qui énonce précisément la
 > règle contestée. **La vigilance ne se promet pas, elle s'outille.**
+
+> **Collision de numéros, résolue par RENUMÉROTATION.** Le tronc et `feat/s2` ont écrit un §E.16
+> chacun, le même jour, sans se voir. Celui du tronc garde son numéro — il est déjà cité cinq fois
+> dans ce fichier ; les deux de S2 deviennent **§E.17** et **§E.18**. Aucune ligne n'a été arbitrée :
+> les trois pièges sont là, en entier.
+
+**E.17 — Une URL saisie par un utilisateur et servie telle quelle à `<img src>` est un mouchard offert.**
+
+`organizations.logo_url` était une **saisie d'URL libre**. La seule validation de
+`PATCH /api/me/organisation` était : c'est une chaîne, `.trim()`, ≤ 500 caractères. Ni schéma, ni
+liste d'hôtes, ni vérification que la ressource est une image. Et cette valeur partait **telle
+quelle** dans un `<img src>` sur **neuf** surfaces — barre latérale d'organisation, cartes de casting
+côté expert, messagerie, **et les deux écrans d'administration plateforme**.
+
+Conséquence, qui n'est pas une hypothèse : un administrateur d'organisation posait, **par une saisie
+de formulaire**, une adresse que le navigateur de chaque personne voyant sa fiche allait réellement
+interroger — adresse IP, agent utilisateur, horodatage, et un `Referer` qui révèle l'écran admin.
+Un pixel espion posé par un utilisateur dans notre produit, et un transfert de données personnelles
+vers un tiers qu'on ne maîtrise pas.
+
+**CE QUI REND LE DÉFAUT EXPLOITABLE, ET QUI EST TOUJOURS VRAI : il n'y a AUCUNE CSP dans le dépôt.**
+Zéro occurrence de `Content-Security-Policy` et de `img-src` ; [next.config.ts](next.config.ts) ne
+déclare aucun `headers()`. Rien ne borne donc l'hôte que le navigateur ira interroger. Poser une CSP
+est un autre lot ; `diag-logo-organisation` **constate** cette absence à chaque exécution pour que sa
+disparition ne soit jamais une surprise.
+
+> **LA DISTINCTION QUI PIÈGE, ET ELLE A DÉJÀ TROMPÉ UNE FOIS.**
+> `profiles.photo_url` **ressemble** au même problème et n'en est pas un. C'est un **DRAPEAU INERTE** :
+> [lib/avatar.ts](lib/avatar.ts) **redérive** le chemin depuis l'identifiant du compte
+> (`avatarStoragePath(userId)`) et ne lit **jamais** la colonne comme une adresse — une valeur
+> falsifiée n'y donne accès à rien. `logo_url`, elle, **ÉTAIT l'adresse**.
+> **Une colonne qui porte un drapeau et une colonne qui porte une adresse ne se ressemblent que de
+> loin. La question à poser n'est pas « d'où vient la valeur ? » mais « le navigateur va-t-il
+> réellement l'interroger ? ».**
+
+**La parade, en deux verrous volontairement redondants** (migration `20260916300000`) :
+- le **CHECK en base** (`organizations_logo_url_chemin_check` et ses deux jumeaux sur
+  `domain_configs`) refuse d'**ÉCRIRE** toute valeur qui n'est pas le chemin dérivé
+  `<uuid>/logo` — motif **positif**, jamais une liste noire d'interdits, qui s'oublie ;
+- la **redérivation côté serveur** ([lib/org-logo.ts](lib/org-logo.ts)) empêche d'en **SUIVRE** une :
+  le chemin est toujours recalculé depuis l'identifiant, la colonne n'est qu'un drapeau.
+
+**Deux leçons de méthode, payées pendant ce lot :**
+1. **Le contrôle a d'abord rougi sur un NOM, pas sur un danger.** Il refusait tout
+   `<img src={X.photo_url}>` ; or `/admin/experts` reçoit un DTO dont le *champ* s'appelle
+   `photo_url` et dont la *valeur* est déjà signée. Ce qui compte est la **PROVENANCE**, pas le nom —
+   d'où deux règles posées là où la provenance est connue : côté route (aucune projection brute) et
+   côté écran en lecture client-directe (aucune adresse fabriquée). **Trouvé par exécution, pas par
+   relecture.**
+2. **Le contrôle a trouvé deux défauts que l'audit avait manqués** :
+   `/api/profile/upload-cv` et `/api/profile/cdi-upload-cv` servaient `photo_url` **brute** dans le
+   DTO rendu au client. Même classe, même correctif.
+
+**Corollaire — `src` absent et `src` qui ÉCHOUE sont deux choses.** Partout, le motif était
+`{url ? <img/> : <repli/>}` : le repli ne couvrait que l'**absence**, jamais l'**échec de
+chargement**, et une adresse morte donnait l'icône d'image cassée du navigateur — un écran mort,
+interdit par la checklist, et présent **avant** ce lot. `diag-logo-organisation` en a trouvé **dix**.
+C'est devenu structurel : une URL **signée vit 300 s**, donc un onglet resté ouvert au-delà rouvre
+une image expirée — un échec **parfaitement normal**. D'où
+[components/ui/ImageOuRepli.tsx](components/ui/ImageOuRepli.tsx).
+
+**Sous-corollaire React** : la remise à zéro de l'état d'échec quand `src` change s'écrit **pendant
+le rendu** (`if (src !== srcPrecedent) { … }`), **jamais** dans un `useEffect` — la règle
+`react-hooks/set-state-in-effect` refuse la seconde forme, et un effet s'exécutant après la peinture
+ferait scintiller le repli.
+
+**E.18 — Une SECONDE clé étrangère entre deux tables casse TOUS les embeds PostgREST entre elles.**
+
+**Trouvé en rejouant les migrations sur une base vierge, puis CONFIRMÉ EN LIGNE SUR STAGING.**
+
+La migration `20260914200010_siege_administrateur` a ajouté `organizations_siege_admin_fkey` — une
+clé étrangère **composite** de `organizations` vers `organization_members`, dans le sens inverse de
+`organization_members_organization_id_fkey` qui existait déjà. À partir de là, **tout** embed
+PostgREST entre ces deux tables répond :
+
+```
+Could not embed because more than one relationship was found
+for 'organization_members' and 'organizations'
+```
+
+**L'effet, et il était total.** `loadOrganizationContext` ([lib/auth-guard.ts](lib/auth-guard.ts))
+retourne `null` **sur erreur**. Donc tout membre d'une organisation devenait *sans organisation*, et
+chaque route gardée répondait **403 `no_organization`**. Le dashboard entreprise entier était mort —
+sur staging **comme sur toute base neuve**. Neuf requêtes étaient concernées, plus **trois** autres
+sur la paire `organization_members ↔ users` (`invited_by` + `user_id`), que le grep initial avait
+manquées et que le contrôle a trouvées.
+
+**Pourquoi personne ne l'a vu** — c'est la famille §E.1, dans sa forme la plus coûteuse :
+- `npx tsc` ne voit rien : l'embed est une **chaîne** ;
+- `next build` non plus, pour la même raison ;
+- la migration s'applique **sans la moindre erreur** — le schéma est parfaitement valide, c'est la
+  **lecture** qui devient ambiguë ;
+- et la panne ne se manifeste qu'**une fois connecté comme membre d'une organisation**, ce qu'aucun
+  contrôle statique ne fait.
+
+**La parade** : nommer le lien à suivre — `organizations!organization_members_organization_id_fkey(…)`.
+Le nom de contrainte **n'est pas décoratif** ; le retirer pour « simplifier » rouvre la panne. Le
+dépôt utilisait déjà cette forme ailleurs (`users!profiles_user_id_fkey`), sans que la raison en soit
+écrite nulle part.
+
+**Le contrôle** : [scripts/diag-embeds-ambigus.mjs](scripts/diag-embeds-ambigus.mjs) reconstruit le
+graphe des clés étrangères **depuis les migrations**, compte les liens par paire de tables, et rougit
+sur tout embed non désambiguïsé entre deux tables doublement liées. Il balaie `app/`, `lib/` **et**
+`components/`. Six paires sont ambiguës aujourd'hui — `organization_members ↔ users`,
+`organization_members ↔ organizations`, `organizations ↔ users`, `profiles ↔ users`,
+`publications ↔ users`, `referrals ↔ users` : **toute** nouvelle lecture entre elles doit nommer sa
+contrainte.
+
+**La leçon qui dépasse le cas** : ajouter une clé étrangère est une opération qu'on croit purement
+additive. Elle ne l'est pas — elle **change la façon dont on a le droit de LIRE** les deux tables
+qu'elle relie, partout, y compris dans du code écrit des mois plus tôt.
 
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

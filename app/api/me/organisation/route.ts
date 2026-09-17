@@ -39,6 +39,17 @@ function json(data: unknown, status = 200): Response {
  * NON éditables volontairement : siren, vat_number, org_type, email_domain,
  * is_verified, verification_status / _method / _data / _notes, verified_at,
  * verified_by, review_reason, setup_completed_at.
+ *
+ * ⚠️ `logo_url` A ETE RETIREE DE CETTE LISTE, et ce n'est pas un oubli.
+ *    Elle était une SAISIE D'URL LIBRE, servie telle quelle à `<img src>` sur
+ *    neuf surfaces sans CSP dans le dépôt : un mouchard posé par un admin
+ *    d'organisation dans le navigateur de quiconque voyait sa fiche.
+ *    Le logo passe désormais par POST /api/me/organisation/logo, qui téléverse
+ *    un FICHIER dans un bucket privé et n'écrit qu'un chemin dérivé.
+ *    Les deux chemins NE COEXISTENT PAS : deux chemins pour la même donnée
+ *    divergent un jour. La colonne est en outre tenue par un CHECK en base
+ *    (`organizations_logo_url_chemin_check`) qui refuse toute adresse — une
+ *    réintroduction ici échouerait donc en 23514, et non en silence.
  */
 const EDITABLE_FIELDS = [
   'company_name',
@@ -46,7 +57,6 @@ const EDITABLE_FIELDS = [
   'size',
   'description',
   'website_url',
-  'logo_url',
 ] as const
 type EditableField = (typeof EDITABLE_FIELDS)[number]
 
@@ -57,7 +67,6 @@ const MAX_LEN: Record<EditableField, number | null> = {
   size: 20,
   description: null,
   website_url: 500,
-  logo_url: 500,
 }
 
 /** CHECK organizations_size_check de la baseline. */

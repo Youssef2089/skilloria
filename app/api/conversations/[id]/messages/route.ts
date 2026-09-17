@@ -13,6 +13,7 @@ import { signAvatarUrl } from '@/lib/avatar'
 import { isConversationExpired } from '@/lib/conversations/expiry'
 import { deriveCandidatureLifecycle } from '@/lib/candidatures/lifecycle'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
+import { signOrgLogoUrl } from '@/lib/org-logo'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -384,7 +385,14 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         // sociale. Le champ est servi quand même pour que le client n'ait
         // qu'une seule forme à traiter.
         is_masked: false,
-        avatar_url: orgRaw?.logo_url ?? null,
+        // L'URL SIGNÉE, jamais la valeur de la colonne : `logo_url` n'est plus
+        // une adresse mais un DRAPEAU de présence (migration 20260916300000).
+        // Servie brute, elle partait dans un `<img src>` du fil côté expert.
+        avatar_url: await signOrgLogoUrl(
+          auth.supabaseAdmin,
+          orgRaw?.id ?? null,
+          orgRaw?.logo_url ?? null,
+        ),
       }
     : await (async () => {
         const policy = disclosurePolicyForCandidatureLifecycle({

@@ -1,8 +1,10 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
+import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
  * Sidebar du dashboard organisation (B3.5 + B3.5.fix).
@@ -20,6 +22,18 @@ import { useDomain } from '@/context/DomainContext'
  * /parametres ne sont pas encore implémentées. Liens 404 pour l'instant.
  */
 
+/**
+ * ⚠️ `logo_url` EST UN DRAPEAU DE PRÉSENCE, PAS UNE ADRESSE.
+ *
+ * Cette page lit l'organisation en CLIENT-DIRECT, et la colonne contient
+ * désormais un CHEMIN de stockage (`<uuid>/logo`) — jamais une URL
+ * (migration 20260916300000). La poser telle quelle dans un `<img src>`
+ * produirait une adresse relative, donc une image cassée.
+ *
+ * L'URL affichable est SIGNÉE, et seul le serveur peut la signer : elle est
+ * donc demandée à GET /api/me/organisation/logo. Le client ne fabrique aucune
+ * adresse, il affiche celle que la route lui donne (même discipline que §E.15).
+ */
 export type OrganisationLite = {
   id: string
   company_name: string | null
@@ -123,6 +137,49 @@ export default function OrganisationSidebar({
 }: Props) {
   const t = useTranslations('dashboard_entreprise')
   const domain = useDomain()
+  const secureFetch = useSecureFetch()
+
+  // ── L'URL SIGNÉE du logo, demandée à la route ───────────────────────────
+  //
+  // `organization.logo_url` est un drapeau (cf. le type ci-dessus) : il dit
+  // qu'un logo EXISTE, il ne dit pas où. On ne tente la requête que dans ce
+  // cas — inutile d'appeler le serveur pour les organisations sans logo, qui
+  // sont la majorité.
+  //
+  // `null` couvre les trois cas d'un seul coup : pas de logo, signature
+  // impossible, réseau tombé. Tous trois donnent l'ÉTAT VIDE délibéré (les
+  // initiales), jamais une image cassée.
+  const [logoSigne, setLogoSigne] = useState<string | null>(null)
+  const aUnLogo = !!(organization.logo_url ?? '').trim()
+
+  // ⚠️ L'EFFET NE FAIT QUE CHERCHER. Il ne remet rien à zéro de façon
+  //    synchrone : une première version écrivait `if (!aUnLogo) setLogoSigne(null)`
+  //    dans le corps de l'effet, ce que React déconseille (cascade de rendus)
+  //    et que `react-hooks/set-state-in-effect` refuse. Le cas « pas de logo »
+  //    se DÉRIVE au rendu (`urlAffichee` plus bas) : il n'a besoin d'aucun état.
+  useEffect(() => {
+    if (!aUnLogo) return
+    let abandonne = false
+    ;(async () => {
+      try {
+        const res = await secureFetch('/api/me/organisation/logo')
+        if (!res.ok) return
+        const body = (await res.json()) as { logo_url?: string | null }
+        if (!abandonne) setLogoSigne(body.logo_url ?? null)
+      } catch {
+        // Silencieux À DESSEIN : l'absence de logo n'est pas un incident à
+        // signaler à l'utilisateur, et la barre latérale n'est pas l'endroit
+        // où l'on apprend qu'une requête a échoué. L'état vide suffit.
+      }
+    })()
+    return () => {
+      abandonne = true
+    }
+  }, [aUnLogo, organization.id, secureFetch])
+
+  // DÉRIVÉE, pas stockée : sans logo il n'y a rien à afficher, quel que soit ce
+  // qu'une requête précédente avait rapporté.
+  const urlAffichee = aUnLogo ? logoSigne : null
 
   const items: Array<{ key: OrgSidebarNavItem; label: string; href: string }> = [
     { key: 'dashboard', label: t('nav.dashboard'), href: basePath },
@@ -152,13 +209,17 @@ export default function OrganisationSidebar({
     >
       {/* Header avatar + nom */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '4px 4px 18px', borderBottom: '0.5px solid var(--color-border-tertiary, #e5e7eb)', marginBottom: 10 }}>
-        {organization.logo_url ? (
+        {urlAffichee ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={organization.logo_url}
+            src={urlAffichee}
             alt={companyName}
             width={60}
             height={60}
+            // Une URL signée vit 300 s : un onglet resté ouvert au-delà rouvre
+            // une image expirée. C'est NORMAL, et ça ne doit pas se voir comme
+            // une panne — on retombe sur les initiales.
+            onError={() => setLogoSigne(null)}
             style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', marginBottom: 10 }}
           />
         ) : (
@@ -183,25 +244,28 @@ export default function OrganisationSidebar({
         <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', lineHeight: 1.3, wordBreak: 'break-word' }}>
           {companyName}
         </div>
-        {!organization.logo_url && (
-          <button
-            type="button"
-            onClick={() => {
-              /* TODO B4+ : modal upload logo (parallèle AvatarUploadModal) */
-            }}
+        {/*
+          ÉCRAN MORT FERMÉ. Ce bouton portait un `onClick` vide et un
+          « TODO B4+ » : il était cliquable et ne faisait RIEN — un refus muet,
+          ce que la checklist du projet interdit. Le téléversement existe
+          désormais, sur l'écran « organisation » : le lien y conduit.
+
+          Le lien mène à l'écran, pas à une action : c'est là que vit la garde
+          par rôle, et qu'un membre non-admin lit POURQUOI il ne peut pas.
+        */}
+        {!aUnLogo && (
+          <Link
+            href={`${basePath}/organisation`}
             style={{
               marginTop: 8,
-              background: 'transparent',
-              border: 'none',
-              padding: 0,
               fontSize: 11,
               color: '#00B9FF',
-              cursor: 'pointer',
+              textDecoration: 'none',
               fontFamily: 'inherit',
             }}
           >
             {t('add_logo')}
-          </button>
+          </Link>
         )}
       </div>
 

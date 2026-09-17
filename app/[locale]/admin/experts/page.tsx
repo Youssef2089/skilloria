@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import ImageOuRepli from '@/components/ui/ImageOuRepli'
 
 /**
  * /admin/experts — liste des profils experts à valider (mirror B5).
@@ -207,14 +208,20 @@ export default function AdminExpertsListPage() {
                   color: 'inherit',
                 }}
               >
-                {r.photo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={r.photo_url} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#f1f5f9', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
-                    {initials(u?.first_name, u?.last_name, u?.email)}
-                  </div>
-                )}
+                {/* `r.photo_url` est ici une URL SIGNÉE (la route appelle
+                    signAvatarUrl), pas la colonne. Elle vit 300 s : passé ce
+                    délai l'image échoue, ce qui est normal et doit retomber sur
+                    les initiales — jamais sur l'icône d'image cassée. */}
+                <ImageOuRepli
+                  src={r.photo_url}
+                  alt=""
+                  style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }}
+                  repli={
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#f1f5f9', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
+                      {initials(u?.first_name, u?.last_name, u?.email)}
+                    </div>
+                  }
+                />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     <span style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

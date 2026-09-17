@@ -9,6 +9,7 @@ import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
 import { useOrgRole } from '@/lib/use-org-role'
 import type { CandidatureData } from '@/components/dashboard/CandidatureCard'
 import { useCandidatureLifecycleLabel } from '@/lib/candidatures/use-lifecycle-label'
+import ImageOuRepli from '@/components/ui/ImageOuRepli'
 
 /**
  * SpotlightCandidateCard — carte candidat "sous projecteur" du carrousel
@@ -317,17 +318,22 @@ export default function SpotlightCandidateCard({
           overflow: 'hidden',
         }}
       >
-        {photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={photoUrl} alt={displayName} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-        ) : (
+        {/* Repli sur ABSENCE *et* ÉCHEC : la photo d'expert est servie par URL
+            signée (300 s). Expirée, elle doit redonner l'état verrouillé, pas
+            l'icône d'image cassée. */}
+        <ImageOuRepli
+          src={photoUrl}
+          alt={displayName}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          repli={(
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 10, color: '#fff' }} aria-hidden>
             <div style={{ fontSize: 56, opacity: 0.85 }}>🔒</div>
             <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.9, letterSpacing: '.04em', textTransform: 'uppercase' }}>
               {t('locked_profile_label')}
             </div>
           </div>
-        )}
+          )}
+        />
 
         {availability && (
           <span style={{ position: 'absolute', top: 12, left: 12, display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 12px', borderRadius: 999, background: 'rgba(255,255,255,0.96)', color: '#0f172a', fontSize: 12, fontWeight: 600, boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }}>

@@ -3,6 +3,7 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { isValidEcosystemSlug } from '@/lib/ecosystem-url'
+import { ecosystemeLogoStoragePath, urlPubliqueEcosysteme } from '@/lib/org-logo'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -121,7 +122,14 @@ export async function GET(request: NextRequest): Promise<Response> {
       has_config: !!cfg,
       primary_color: cfg?.primary_color ?? null,
       secondary_color: cfg?.secondary_color ?? null,
-      logo_url: cfg?.logo_url ?? null,
+      // L'ADRESSE PUBLIQUE DÉRIVÉE, jamais la valeur de la colonne : celle-ci
+      // est désormais un chemin de stockage (migration 20260916300000), et la
+      // poser dans un `<img src>` donnerait une adresse relative.
+      logo_url: urlPubliqueEcosysteme(
+        auth.supabaseAdmin,
+        ecosystemeLogoStoragePath(r.id),
+        cfg?.logo_url,
+      ),
       counts: {
         branches: nbBranches,
         specialities: specialities.get(r.id) ?? 0,

@@ -30,6 +30,7 @@ import {
 } from '@/lib/hooks/useCdiProfile'
 import CdiSalaryDisplay from '@/components/cdi/CdiSalaryDisplay'
 import CdiPreferencesDisplay from '@/components/cdi/CdiPreferencesDisplay'
+import ImageOuRepli from '@/components/ui/ImageOuRepli'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -849,9 +850,13 @@ function Header({
             flexShrink: 0,
           }}
         >
-          {domainLogo ? (
-            <img src={domainLogo} alt={domainName} width={18} height={18} />
-          ) : (
+          {/* Repli sur ABSENCE *et* ÉCHEC — cf. ImageOuRepli. */}
+          <ImageOuRepli
+            src={domainLogo}
+            alt={domainName}
+            width={18}
+            height={18}
+            repli={(
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path
                 d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19"
@@ -860,7 +865,8 @@ function Header({
                 strokeLinecap="round"
               />
             </svg>
-          )}
+            )}
+          />
         </div>
         <span style={{ fontSize: 17, fontWeight: 700, color: '#0f172a' }}>{domainName}</span>
       </div>
@@ -947,37 +953,38 @@ function ProfileHero({
         >
           {/* Avatar wrappé pour overlay "Modifier la photo" (Lot global C3). */}
           <div style={{ position: 'relative', display: 'inline-block' }}>
-            {effectivePhotoUrl ? (
-              <img
-                src={effectivePhotoUrl}
-                alt={name || 'avatar'}
-                style={{
-                  width: 88,
-                  height: 88,
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: `3px solid ${domainColor}33`,
-                }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: 88,
-                  height: 88,
-                  borderRadius: '50%',
-                  background: `linear-gradient(135deg, ${domainColor}33, ${domainColor}66)`,
-                  color: domainColor,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 30,
-                  fontWeight: 700,
-                  fontFamily: fontJakarta,
-                }}
-              >
-                {initials}
-              </div>
-            )}
+            {/* Repli sur ABSENCE *et* ÉCHEC : la photo est servie par URL
+                signée (300 s). Expirée, on retombe sur les initiales. */}
+            <ImageOuRepli
+              src={effectivePhotoUrl}
+              alt={name || 'avatar'}
+              style={{
+                width: 88,
+                height: 88,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: `3px solid ${domainColor}33`,
+              }}
+              repli={
+                <div
+                  style={{
+                    width: 88,
+                    height: 88,
+                    borderRadius: '50%',
+                    background: `linear-gradient(135deg, ${domainColor}33, ${domainColor}66)`,
+                    color: domainColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 30,
+                    fontWeight: 700,
+                    fontFamily: fontJakarta,
+                  }}
+                >
+                  {initials}
+                </div>
+              }
+            />
             <AvatarEditOverlay onClick={onEditPhoto} />
           </div>
 
