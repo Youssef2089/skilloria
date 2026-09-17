@@ -3,6 +3,25 @@ import { COLONNES_REGLE_NUMERO } from '@/lib/pays/numero-identification'
 
 export const runtime = 'nodejs'
 
+/**
+ * ⚠️ CETTE ROUTE DÉPEND D'UNE MIGRATION. NE LA DÉPLOYEZ PAS SANS ELLE.
+ *
+ *   Le `select` ci-dessous nomme les colonnes `registre_numero_*` de
+ *   `countries` (migration `format_numero_identification`). PostgREST REFUSE
+ *   un `select` qui nomme une colonne absente : sans la migration, cette
+ *   route rend **500**.
+ *
+ *   ET CE 500 N'EST PAS ANODIN. C'est le SEUL référentiel pays du produit :
+ *   plus de sélecteur de pays, plus de sélecteur d'indicatif — donc plus
+ *   d'inscription d'organisation ni de saisie de téléphone. Une panne totale
+ *   du parcours d'entrée, pour une migration oubliée.
+ *
+ *   AUCUN REPLI N'EST POSÉ ICI, DÉLIBÉRÉMENT : un `select` de secours qui
+ *   réussit sans les colonnes masquerait une migration non appliquée aussi
+ *   longtemps que personne ne lit les journaux. L'ordre `db:push` PUIS déploi
+ *   est la garantie ; une béquille permanente n'en est pas une.
+ */
+
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
