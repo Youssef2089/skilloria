@@ -1009,7 +1009,8 @@
       "verification_en_cours": "A verification is already in progress for this number. Wait a minute, then try again.",
       "sms_pays_non_pris_en_charge": "Verification texts are currently unavailable for this country. Use another number, or contact us: we will register you manually.",
       "generic": "An error occurred. Please try again.",
-      "phone_already_used": "This phone number is already used by another account."
+      "phone_already_used": "This phone number is already used by another account.",
+      "invalid_country_code": "Select the country of your company registered office."
     },
     "callback": {
       "verifying_title": "Verifying…",
@@ -1055,8 +1056,13 @@
       },
       "vat_label": "Intra-community VAT number",
       "vat_placeholder": "FR12345678901",
-      "vat_hint": "EU format: country code + number. Shown on your invoices and official documents."
-    }
+      "vat_hint": "EU format: country code + number. Shown on your invoices and official documents.",
+      "siren_label_generique": "Company identification number",
+      "siren_hint_pays": "Your {libelle}, as it appears on your official documents.",
+      "siren_hint_generique": "The number identifying your company with the official registry of your country."
+    },
+    "country_label": "Country of registered office",
+    "country_help": "The country where your company is registered. It determines which official registry is consulted during verification."
   },
   "signup_confirmation": {
     "title": "Account created successfully!",
@@ -1765,7 +1771,11 @@
       "saving": "Saving…",
       "saved": "Changes saved.",
       "save_error": "Saving failed. Please try again.",
-      "company_name_required": "Company name is required."
+      "company_name_required": "Company name is required.",
+      "country_editable_help": "Editable until your file is validated. It determines which official registry is consulted.",
+      "country_locked_help": "Your file is validated: the country can no longer be changed here. Contact us if needed.",
+      "error_country_locked": "Your file is validated: the country can no longer be changed here. Contact us to correct it.",
+      "error_invalid_country": "Unknown country. Choose one from the list."
     },
     "offre": {
       "loading": "Loading…",

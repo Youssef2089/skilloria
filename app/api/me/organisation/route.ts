@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { requireAuth, AuthError } from '@/lib/auth-guard'
+import { requireAuth, AuthError, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 
 export const runtime = 'nodejs'
@@ -47,8 +47,34 @@ const EDITABLE_FIELDS = [
   'description',
   'website_url',
   'logo_url',
+  // `country` est éditable SOUS CONDITION, cf. CHAMPS_JUSQU_A_APPROBATION.
+  'country',
 ] as const
 type EditableField = (typeof EDITABLE_FIELDS)[number]
+
+/**
+ * Champs modifiables TANT QUE la vérification n'est pas approuvée, et plus
+ * ensuite.
+ *
+ * ═══ POURQUOI LE PAYS EN FAIT PARTIE ══════════════════════════════════════
+ *   Il était en LECTURE SEULE, et le formulaire d'inscription ne le demandait
+ *   même pas : toute organisation naissait « FR ». Une société marocaine se
+ *   retrouvait donc figée sur un pays faux, SANS AUCUN MOYEN DE SE CORRIGER —
+ *   un cul-de-sac parfait. Ouvrir le sélecteur sans ouvrir ce champ aurait
+ *   laissé le cul-de-sac intact pour qui se trompe.
+ *
+ * ═══ POURQUOI IL SE REFERME À L'APPROBATION ═══════════════════════════════
+ *   Le pays décide du REGISTRE OFFICIEL interrogé. Le changer après coup
+ *   invaliderait la vérification déjà rendue sans que rien ne la rejoue : une
+ *   organisation approuvée contre Sirene deviendrait « approuvée » sous un
+ *   autre pays, ce qui ne veut plus rien dire. Après approbation, seul le
+ *   back-office tranche.
+ *
+ * ⚠️ LA CONDITION EST IMPOSÉE ICI, AU SERVEUR. L'écran grise le champ pour ne
+ *    pas proposer un geste refusé — mais c'est cette garde-ci qui fait foi, et
+ *    elle ne dépend d'aucun état du navigateur.
+ */
+const CHAMPS_JUSQU_A_APPROBATION = new Set<EditableField>(['country'])
 
 /** Longueurs max alignées sur la baseline (varchar) — description est en text. */
 const MAX_LEN: Record<EditableField, number | null> = {
@@ -58,10 +84,62 @@ const MAX_LEN: Record<EditableField, number | null> = {
   description: null,
   website_url: 500,
   logo_url: 500,
+  country: 2,
 }
 
 /** CHECK organizations_size_check de la baseline. */
 const VALID_SIZES = ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+'] as const
+
+/**
+ * GET /api/me/organisation — l'organisation de l'appelant.
+ *
+ * ═══ POURQUOI IL N'EXISTAIT PAS, ET POURQUOI IL EXISTE MAINTENANT ═════════
+ *   Cette route exposait un `PATCH` sans lecture : les écrans interrogeaient
+ *   `organizations` DIRECTEMENT depuis le navigateur, par un embed Supabase.
+ *   Ça marche tant que l'écran sait quoi demander — mais la modale de
+ *   finalisation a besoin du PAYS de l'organisation pour savoir quel format de
+ *   numéro d'identification exiger, et elle n'avait aucun chemin serveur pour
+ *   l'obtenir.
+ *
+ *   MÊMES GARDES QUE LE PATCH, volontairement : `requireAuth` résout
+ *   l'organisation ET vérifie l'appartenance active. On ne rend que
+ *   l'organisation de l'appelant — l'identifiant n'est jamais un paramètre,
+ *   donc il n'y a rien à deviner ni à forcer.
+ *
+ *   ⚠️ LECTURE seule et colonnes NOMMÉES : pas de `select('*')`. Une colonne
+ *      ajoutée demain ne doit pas sortir toute seule vers le navigateur.
+ */
+export async function GET(request: NextRequest): Promise<Response> {
+  let auth: AuthContext
+  try {
+    auth = await requireAuth(request)
+  } catch (err) {
+    if (err instanceof AuthError) return err.toResponse()
+    throw err
+  }
+
+  const org = auth.organization
+  if (!org) {
+    return json({ error: 'No organization', code: 'no_organization' }, 403)
+  }
+
+  const { data, error } = await auth.supabaseAdmin
+    .from('organizations')
+    .select(
+      'id, company_name, org_type, siren, vat_number, sector, country, size, description, logo_url, website_url, email_domain, is_verified, verification_status, review_reason',
+    )
+    .eq('id', org.id)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[me/organisation] read failed', { orgId: org.id, msg: error.message })
+    return json({ error: 'Query failed', code: 'db_error' }, 500)
+  }
+  if (!data) {
+    return json({ error: 'Organization not found', code: 'not_found' }, 404)
+  }
+  return json({ organization: data }, 200)
+}
 
 export async function PATCH(request: NextRequest): Promise<Response> {
   let auth
@@ -117,6 +195,63 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   // size doit respecter le CHECK de la baseline (sinon 23514 illisible côté UI).
   if (patch.size != null && !(VALID_SIZES as readonly string[]).includes(patch.size)) {
     return json({ error: 'Invalid size', code: 'invalid_size' }, 400)
+  }
+
+  // ── LE PAYS : MODIFIABLE JUSQU'À L'APPROBATION, PAS APRÈS ───────────────
+  //
+  //  UNE SEULE lecture sert les trois contrôles : le pays a-t-il changé, le
+  //  dossier est-il approuvé, le pays visé existe-t-il au référentiel.
+  const champsConditionnels = (Object.keys(patch) as EditableField[]).filter((f) =>
+    CHAMPS_JUSQU_A_APPROBATION.has(f),
+  )
+  if (champsConditionnels.length > 0) {
+    const { data: etat, error: etatErr } = await auth.supabaseAdmin
+      .from('organizations')
+      .select('verification_status, country')
+      .eq('id', org.id)
+      .maybeSingle()
+    if (etatErr || !etat) {
+      console.error('[me/organisation] lecture du statut de verification', etatErr?.message)
+      return json({ error: 'Query failed', code: 'db_error' }, 500)
+    }
+
+    // ── LE REFUS PORTE SUR UN CHANGEMENT, PAS SUR UNE PRÉSENCE ─────────────
+    //  L'écran envoie TOUT le formulaire à chaque enregistrement, pays compris.
+    //  Refuser dès que la clé est là aurait bloqué la moindre correction de
+    //  description sur une organisation approuvée : un verrou posé pour le pays
+    //  aurait fermé la page entière. On compare donc à la valeur en base —
+    //  réécrire le même pays n'est pas un changement, et ne se refuse pas.
+    if (patch.country === etat.country) {
+      delete patch.country
+    } else if (etat.verification_status === 'approved') {
+      // REFUS ACTIONNABLE : il dit ce qui bloque, et l'écran sait quoi en dire.
+      return json(
+        { error: 'Country cannot be changed after approval', code: 'country_locked_after_approval' },
+        409,
+      )
+    } else if (patch.country === null) {
+      // `country` est NOT NULL en base : on refuse de le vider ici plutôt que
+      // de laisser remonter un 23502 illisible.
+      return json({ error: 'Country is required', code: 'country_required' }, 400)
+    } else {
+      // Le pays doit exister et être ACTIF au référentiel — même exigence qu'à
+      // l'inscription. Sans ça, une organisation pourrait se placer dans un
+      // pays que le produit ne connaît pas, et personne ne le verrait avant la
+      // vérification.
+      const { data: paysRow, error: paysErr } = await auth.supabaseAdmin
+        .from('countries')
+        .select('code')
+        .eq('code', patch.country)
+        .eq('active', true)
+        .maybeSingle()
+      if (paysErr) {
+        console.error('[me/organisation] lecture du referentiel pays', paysErr.message)
+        return json({ error: 'Query failed', code: 'db_error' }, 500)
+      }
+      if (!paysRow) {
+        return json({ error: 'Unknown country', code: 'invalid_country_code' }, 400)
+      }
+    }
   }
 
   if (Object.keys(patch).length === 0) {

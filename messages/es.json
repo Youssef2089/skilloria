@@ -1009,7 +1009,8 @@
       "verification_en_cours": "Ya hay una verificación en curso para este número. Espera un minuto y vuelve a intentarlo.",
       "sms_pays_non_pris_en_charge": "Los SMS de verificación no están disponibles para este país por el momento. Usa otro número o escríbenos: te registramos manualmente.",
       "generic": "Ha ocurrido un error. Inténtalo de nuevo.",
-      "phone_already_used": "Este número ya está siendo utilizado por otra cuenta."
+      "phone_already_used": "Este número ya está siendo utilizado por otra cuenta.",
+      "invalid_country_code": "Selecciona el país de la sede de tu empresa."
     },
     "callback": {
       "verifying_title": "Verificando…",
@@ -1055,8 +1056,13 @@
       },
       "vat_label": "Número de IVA intracomunitario",
       "vat_placeholder": "FR12345678901",
-      "vat_hint": "Formato UE: código de país + número. Figura en sus facturas y documentos oficiales."
-    }
+      "vat_hint": "Formato UE: código de país + número. Figura en sus facturas y documentos oficiales.",
+      "siren_label_generique": "Número de identificación de la empresa",
+      "siren_hint_pays": "Tu número {libelle}, tal como figura en tus documentos oficiales.",
+      "siren_hint_generique": "El número que identifica a tu empresa ante el registro oficial de tu país."
+    },
+    "country_label": "País de la sede",
+    "country_help": "El país donde está registrada tu empresa. Determina qué registro oficial se consulta durante la verificación."
   },
   "signup_confirmation": {
     "title": "¡Cuenta creada con éxito!",
@@ -1765,7 +1771,11 @@
       "saving": "Guardando…",
       "saved": "Cambios guardados.",
       "save_error": "No se ha podido guardar. Inténtelo de nuevo.",
-      "company_name_required": "La razón social es obligatoria."
+      "company_name_required": "La razón social es obligatoria.",
+      "country_editable_help": "Editable hasta que se valide tu expediente. Determina qué registro oficial se consulta.",
+      "country_locked_help": "Tu expediente está validado: el país ya no puede cambiarse aquí. Contáctanos si es necesario.",
+      "error_country_locked": "Tu expediente está validado: el país ya no puede cambiarse aquí. Contáctanos para corregirlo.",
+      "error_invalid_country": "País desconocido. Elige uno de la lista."
     },
     "offre": {
       "loading": "Cargando…",

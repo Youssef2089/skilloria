@@ -1009,7 +1009,8 @@
       "verification_en_cours": "Une vérification est déjà en cours sur ce numéro. Patientez une minute, puis réessayez.",
       "sms_pays_non_pris_en_charge": "Les SMS de vérification ne sont pas disponibles vers ce pays pour le moment. Choisissez un autre numéro, ou écrivez-nous : nous vous inscrivons manuellement.",
       "generic": "Une erreur est survenue. Veuillez réessayer.",
-      "phone_already_used": "Ce numéro est déjà utilisé par un autre compte."
+      "phone_already_used": "Ce numéro est déjà utilisé par un autre compte.",
+      "invalid_country_code": "Sélectionnez le pays du siège de votre entreprise."
     },
     "callback": {
       "verifying_title": "Vérification en cours…",
@@ -1055,8 +1056,13 @@
       },
       "vat_label": "Numéro de TVA intracommunautaire",
       "vat_placeholder": "FR12345678901",
-      "vat_hint": "Format UE : code pays + numéro. Figure sur vos factures et documents officiels."
-    }
+      "vat_hint": "Format UE : code pays + numéro. Figure sur vos factures et documents officiels.",
+      "siren_label_generique": "Numéro d'identification de l'entreprise",
+      "siren_hint_pays": "Votre numéro {libelle}, tel qu’il figure sur vos documents officiels.",
+      "siren_hint_generique": "Le numéro qui identifie votre entreprise auprès du registre officiel de votre pays."
+    },
+    "country_label": "Pays du siège",
+    "country_help": "Le pays où votre entreprise est immatriculée. Il détermine le registre officiel consulté lors de la vérification."
   },
   "signup_confirmation": {
     "title": "Compte créé avec succès !",
@@ -1765,7 +1771,11 @@
       "saving": "Enregistrement…",
       "saved": "Modifications enregistrées.",
       "save_error": "L'enregistrement a échoué. Réessayez.",
-      "company_name_required": "La raison sociale est obligatoire."
+      "company_name_required": "La raison sociale est obligatoire.",
+      "country_editable_help": "Modifiable tant que votre dossier n'est pas validé. Il détermine le registre officiel consulté.",
+      "country_locked_help": "Votre dossier est validé : le pays ne peut plus être modifié ici. Contactez-nous si nécessaire.",
+      "error_country_locked": "Votre dossier est validé : le pays ne peut plus être modifié ici. Contactez-nous pour le corriger.",
+      "error_invalid_country": "Pays inconnu. Choisissez-en un dans la liste."
     },
     "offre": {
       "loading": "Chargement…",

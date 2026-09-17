@@ -1009,7 +1009,8 @@
       "verification_en_cours": "Für diese Nummer läuft bereits eine Verifizierung. Warten Sie eine Minute und versuchen Sie es erneut.",
       "sms_pays_non_pris_en_charge": "Verifizierungs-SMS sind für dieses Land derzeit nicht verfügbar. Verwenden Sie eine andere Nummer oder schreiben Sie uns: Wir melden Sie manuell an.",
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
-      "phone_already_used": "Diese Nummer wird bereits von einem anderen Konto verwendet."
+      "phone_already_used": "Diese Nummer wird bereits von einem anderen Konto verwendet.",
+      "invalid_country_code": "Wählen Sie das Land des Firmensitzes."
     },
     "callback": {
       "verifying_title": "Überprüfung läuft…",
@@ -1055,8 +1056,13 @@
       },
       "vat_label": "Innergemeinschaftliche USt-IdNr.",
       "vat_placeholder": "FR12345678901",
-      "vat_hint": "EU-Format: Ländercode + Nummer. Steht auf Ihren Rechnungen und offiziellen Dokumenten."
-    }
+      "vat_hint": "EU-Format: Ländercode + Nummer. Steht auf Ihren Rechnungen und offiziellen Dokumenten.",
+      "siren_label_generique": "Unternehmens-Identifikationsnummer",
+      "siren_hint_pays": "Ihre {libelle}, wie sie in Ihren amtlichen Dokumenten steht.",
+      "siren_hint_generique": "Die Nummer, unter der Ihr Unternehmen im amtlichen Register Ihres Landes geführt wird."
+    },
+    "country_label": "Land des Firmensitzes",
+    "country_help": "Das Land, in dem Ihr Unternehmen eingetragen ist. Es bestimmt, welches amtliche Register bei der Prüfung herangezogen wird."
   },
   "signup_confirmation": {
     "title": "Konto erfolgreich erstellt!",
@@ -1765,7 +1771,11 @@
       "saving": "Wird gespeichert…",
       "saved": "Änderungen gespeichert.",
       "save_error": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
-      "company_name_required": "Der Firmenname ist erforderlich."
+      "company_name_required": "Der Firmenname ist erforderlich.",
+      "country_editable_help": "Änderbar, solange Ihr Dossier nicht freigegeben ist. Es bestimmt das herangezogene amtliche Register.",
+      "country_locked_help": "Ihr Dossier ist freigegeben: Das Land kann hier nicht mehr geändert werden. Kontaktieren Sie uns bei Bedarf.",
+      "error_country_locked": "Ihr Dossier ist freigegeben: Das Land kann hier nicht mehr geändert werden. Kontaktieren Sie uns zur Korrektur.",
+      "error_invalid_country": "Unbekanntes Land. Wählen Sie eines aus der Liste."
     },
     "offre": {
       "loading": "Wird geladen…",

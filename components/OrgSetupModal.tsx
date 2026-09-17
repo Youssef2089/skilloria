@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useDomain } from '@/context/DomainContext'
+import {
+  normaliserNumeroIdentification,
+  numeroIdentificationAccepte,
+  type RegleNumero,
+} from '@/lib/pays/numero-identification'
+import { chargerPays, regleNumeroPour } from '@/lib/pays/referentiel-client'
 import { useSecureFetch, useSecureLogout } from '@/lib/secure-fetch'
 
 /**
@@ -107,7 +113,41 @@ export default function OrgSetupModal({
     if (success) onComplete()
   }, [success, onComplete])
 
-  const sirenValid = /^\d{9}$/.test(form.siren.replace(/\s/g, ''))
+  // ── LA RÈGLE DU NUMÉRO VIENT DU PAYS DE L'ORGANISATION ──────────────────
+  //
+  //  C'était `/^\d{9}$/` — le format FRANÇAIS, en dur, côté client, là où le
+  //  numéro se saisit réellement. Le serveur l'appliquait de son côté, avec sa
+  //  propre copie. Deux copies d'une même règle divergent : le dépôt en porte
+  //  déjà trois preuves (§E.14).
+  //
+  //  On lit le pays de l'organisation, puis sa règle au référentiel, et on
+  //  valide avec la MÊME fonction que le serveur. Pays sans règle connue ⇒
+  //  aucune contrainte : on ne refuse jamais sur une règle qu'on n'a pas.
+  const [regleNumero, setRegleNumero] = useState<RegleNumero | null>(null)
+  useEffect(() => {
+    let annule = false
+    void (async () => {
+      try {
+        const res = await secureFetch('/api/me/organisation')
+        if (!res.ok) return
+        const payload = (await res.json()) as { organization?: { country?: unknown } }
+        const pays = payload?.organization?.country
+        if (typeof pays !== 'string' || pays.length !== 2) return
+        const liste = await chargerPays()
+        if (annule) return
+        setRegleNumero(regleNumeroPour(liste, pays))
+      } catch {
+        // Référentiel indisponible ⇒ aucune règle ⇒ on accepte. Le serveur
+        // reste la barrière : il relira la règle, lui.
+      }
+    })()
+    return () => {
+      annule = true
+    }
+  }, [secureFetch])
+
+  const numeroNormalise = normaliserNumeroIdentification(form.siren)
+  const sirenValid = numeroNormalise.length > 0 && numeroIdentificationAccepte(numeroNormalise, regleNumero)
   const vatValid = isValidVat(form.vat_number)
   const jobTitleValid = form.job_title.trim().length >= 2
   const linkedinValid = !form.linkedin_url || isValidLinkedinUrl(form.linkedin_url)
@@ -168,7 +208,7 @@ export default function OrgSetupModal({
           civility: form.civility,
           job_title: form.job_title.trim(),
           linkedin_url: form.linkedin_url.trim() || null,
-          siren: form.siren.replace(/\s/g, ''),
+          siren: numeroNormalise,
           vat_number: normalizeVat(form.vat_number),
           org_sub_type: form.org_sub_type,
           website: form.website.trim() || null,
@@ -359,24 +399,33 @@ export default function OrgSetupModal({
         <div style={sectionStyle}>
           <div style={sectionTitleStyle}>{t('section_company')}</div>
 
+          {/* ── LE NUMÉRO D'IDENTIFICATION SUIT LE PAYS DE L'ORGANISATION ──
+              Libellé, exemple ET validation viennent du RÉFÉRENTIEL. Avant,
+              les trois étaient français en dur : le libellé disait « SIREN »,
+              le placeholder « 123456789 », et ce champ REFUSAIT les lettres
+              (`replace(/\D/g,'')`) en coupant à neuf caractères. Un numéro
+              britannique était donc mutilé à la frappe.
+
+              Pays sans règle connue ⇒ libellé générique et aucune contrainte :
+              on n'invente pas un refus (la revue humaine juge). */}
           <label htmlFor="siren" style={labelStyle}>
-            {t('siren_label')} *
+            {regleNumero?.libelle ?? t('siren_label_generique')} *
           </label>
           <input
             id="siren"
             type="text"
-            inputMode="numeric"
+            // `numeric` seulement quand le pays exclut les lettres : imposer le
+            // pavé numérique à qui doit taper « SC123456 » est un mur.
+            inputMode={regleNumero && !regleNumero.alphanumerique ? 'numeric' : 'text'}
             value={form.siren}
-            onChange={(e) =>
-              setField('siren', e.target.value.replace(/\D/g, '').slice(0, 9))
-            }
-            placeholder={t('siren_placeholder')}
+            onChange={(e) => setField('siren', e.target.value.slice(0, 40))}
+            placeholder={regleNumero?.exemple ?? ''}
             style={{ ...inputBase, marginBottom: 4 }}
             required
-            maxLength={9}
+            maxLength={40}
           />
           <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 14 }}>
-            {t('siren_hint')}
+            {regleNumero?.libelle ? t('siren_hint_pays', { libelle: regleNumero.libelle }) : t('siren_hint_generique')}
           </div>
 
           {/* N° TVA intracommunautaire — placé juste après le SIREN (les deux

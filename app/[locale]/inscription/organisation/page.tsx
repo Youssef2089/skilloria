@@ -7,6 +7,7 @@ import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import PhoneTakenNotice from '@/components/auth/PhoneTakenNotice'
 import PhoneOtpField, { type PhoneOtpLabels } from '@/components/PhoneOtpField'
+import CountrySelect from '@/components/CountrySelect'
 import { normalizeE164 } from '@/lib/phone'
 import { LEGAL_PATHS } from '@/lib/legal'
 import { lienAideOtp } from '@/lib/otp/lien-aide'
@@ -18,6 +19,8 @@ type FormState = {
   phone: string
   password: string
   company_name: string
+  /** Pays du SIEGE. Vide au depart : aucun defaut, la question est posee. */
+  country_code: string
   cgu: boolean
 }
 
@@ -30,6 +33,7 @@ const initialForm: FormState = {
   phone: '',
   password: '',
   company_name: '',
+  country_code: '',
   cgu: false,
 }
 
@@ -108,7 +112,9 @@ export default function InscriptionOrganisationPage() {
     form.email.trim().length > 0 &&
     form.phone.trim().length > 0 &&
     form.password.length > 0 &&
-    form.company_name.trim().length > 0
+    form.company_name.trim().length > 0 &&
+    // Le pays est EXIGE : sans lui on ne sait pas quel registre interroger.
+    /^[A-Z]{2}$/.test(form.country_code)
 
   const submitDisabled =
     submitting ||
@@ -172,7 +178,7 @@ export default function InscriptionOrganisationPage() {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          country_code: 'FR',
+          country_code: form.country_code,
           company_name: form.company_name.trim(),
           email: form.email.trim().toLowerCase(),
           password: form.password,
@@ -518,6 +524,38 @@ export default function InscriptionOrganisationPage() {
               style={inputBase}
               required
             />
+          </div>
+
+          {/* ── LE PAYS DU SIÈGE — DEMANDÉ, PAS DEVINÉ ────────────────────
+              Il n'y avait AUCUN champ pays à l'écran : le formulaire envoyait
+              `country_code: 'FR'` en dur. Ce n'était donc pas un mauvais
+              réglage, c'était une QUESTION JAMAIS POSÉE — et la route, elle,
+              acceptait déjà n'importe quel pays.
+
+              Conséquence : une société marocaine était interrogée contre
+              Sirene, n'y était évidemment pas trouvée, et arrivait en revue
+              manuelle comme un faux négatif français.
+
+              ⚠️ IL N'EST PAS DÉDUIT DU TÉLÉPHONE. Le siège d'une entreprise et
+              l'indicatif de la personne qui l'inscrit sont deux faits
+              différents — les confondre serait l'invention silencieuse que le
+              lot précédent a supprimée.
+
+              Aucun pays présélectionné : un défaut ici recréerait exactement
+              le « FR » qu'on vient d'enlever. */}
+          <div style={{ marginTop: 14 }}>
+            <label style={labelStyle} id="country-label">
+              {t('country_label')} *
+            </label>
+            <CountrySelect
+              value={form.country_code}
+              onChange={(code) => setField('country_code', code)}
+              primaryColor={domain.primaryColor}
+              ariaLabel={t('country_label')}
+            />
+            <p style={{ fontSize: 12, color: '#64748b', margin: '6px 0 0', lineHeight: 1.5 }}>
+              {t('country_help')}
+            </p>
           </div>
         </div>
 

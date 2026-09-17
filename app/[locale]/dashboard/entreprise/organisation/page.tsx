@@ -1,9 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { useDomain } from '@/context/DomainContext'
+import CountrySelect from '@/components/CountrySelect'
+import { chargerPays, nomPays, type PaysReferentiel } from '@/lib/pays/referentiel-client'
 
 /**
  * /dashboard/entreprise/organisation — page « Mon entreprise » (Lot A).
@@ -39,6 +42,24 @@ type EditableForm = {
   description: string
   website_url: string
   logo_url: string
+  /**
+   * LE PAYS DU SIÈGE — et le cul-de-sac qu'il refermait.
+   *
+   * Il était en lecture seule ici, et le formulaire d'inscription ne le
+   * demandait même pas : toute organisation naissait « FR ». Une société
+   * marocaine arrivait donc sur cet écran avec un pays faux, affiché, et
+   * AUCUN moyen de le corriger. Comme le pays décide du registre officiel
+   * interrogé, elle était vérifiée contre Sirene, introuvable, et renvoyée en
+   * revue humaine — sans que ni elle ni personne ne puisse voir pourquoi.
+   *
+   * Ouvrir le sélecteur à l'inscription sans ouvrir CE champ aurait laissé le
+   * cul-de-sac intact pour quiconque se trompe une fois.
+   *
+   * Il se referme à l'approbation, et c'est LE SERVEUR qui l'impose
+   * (PATCH /api/me/organisation) : l'écran ne fait que ne pas proposer un
+   * geste déjà refusé.
+   */
+  country: string
 }
 
 type Org = {
@@ -160,6 +181,8 @@ const inputStyle: React.CSSProperties = {
 
 export default function MonEntreprisePage() {
   const t = useTranslations('dashboard_entreprise.organisation')
+  const locale = useLocale()
+  const domain = useDomain()
   const secureFetch = useSecureFetch()
 
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -182,7 +205,23 @@ export default function MonEntreprisePage() {
       description: org.description ?? '',
       website_url: org.website_url ?? '',
       logo_url: org.logo_url ?? '',
+      country: org.country ?? '',
     })
+  }, [])
+
+  // ── Référentiel pays ───────────────────────────────────────────────────────
+  //  Sert aux DEUX rendus : le sélecteur quand le pays est modifiable, et le
+  //  NOM du pays quand il ne l'est plus. L'écran affichait « FR » — un code
+  //  ISO brut, que personne n'a choisi de lire.
+  const [listePays, setListePays] = useState<PaysReferentiel[]>([])
+  useEffect(() => {
+    let vivant = true
+    void chargerPays().then((liste) => {
+      if (vivant) setListePays(liste)
+    })
+    return () => {
+      vivant = false
+    }
   }, [])
 
   // ── Chargement (client-direct, couvert par la RLS de lecture) ──────────────
@@ -246,7 +285,16 @@ export default function MonEntreprisePage() {
         body: JSON.stringify(form),
       })
       if (!res.ok) {
-        notify(t('save_error'), 'error')
+        // UN REFUS QUI DIT QUOI FAIRE. Le générique « échec de
+        // l'enregistrement » aurait laissé l'admin rejouer indéfiniment un
+        // geste que le serveur ne laissera jamais passer.
+        const corps = (await res.json().catch(() => null)) as { code?: string } | null
+        notify(
+          corps?.code === 'country_locked_after_approval' ? t('error_country_locked')
+            : corps?.code === 'invalid_country_code' ? t('error_invalid_country')
+              : t('save_error'),
+          'error',
+        )
         return
       }
       const body = (await res.json()) as { organization: Org }
@@ -283,6 +331,16 @@ export default function MonEntreprisePage() {
           : null
 
   const chip = CHIP_COLORS[chipKey]
+
+  // ── Le pays : modifiable, et lisible ───────────────────────────────────────
+  //  `approved` est le SEUL statut qui referme le champ — pas « vérifiée ou
+  //  presque ». La garde serveur teste exactement la même valeur.
+  const paysModifiable = isAdmin && org.verification_status !== 'approved'
+  //  Hors édition, on affiche le NOM du pays, pas son code ISO. Tant que le
+  //  référentiel n'est pas chargé — ou si le code n'y figure plus — on retombe
+  //  sur le code : dégrader, jamais masquer.
+  const lignePays = listePays.find((p) => p.code === org.country)
+  const paysLisible = lignePays ? nomPays(lignePays, locale) : org.country
 
   return (
     // Pleine largeur, aligné gauche, padding 24px. Pas de PageHeader : le titre
@@ -379,8 +437,29 @@ export default function MonEntreprisePage() {
             <ReadOnlyField label={t('field_size')} value={org.size} fallback={t('not_set')} />
           )}
 
-          {/* country n'est pas dans la whitelist éditable : lecture seule. */}
-          <ReadOnlyField label={t('field_country')} value={org.country} fallback={t('not_set')} />
+          {/* ── LE PAYS DU SIÈGE ─────────────────────────────────────────
+              Modifiable TANT QUE le dossier n'est pas approuvé. Cf. le
+              commentaire porté par EditableForm.country : c'est le serveur qui
+              impose la condition, cet écran ne fait que ne pas proposer un
+              geste déjà refusé. */}
+          {paysModifiable ? (
+            <div>
+              <Label>{t('field_country')}</Label>
+              <CountrySelect
+                value={f.country}
+                onChange={(code) => setForm((prev) => (prev ? { ...prev, country: code } : prev))}
+                primaryColor={domain.primaryColor}
+                ariaLabel={t('field_country')}
+                disabled={saving}
+              />
+              <Help>{t('country_editable_help')}</Help>
+            </div>
+          ) : (
+            <div>
+              <ReadOnlyField label={t('field_country')} value={paysLisible} fallback={t('not_set')} />
+              {isAdmin && <Help>{t('country_locked_help')}</Help>}
+            </div>
+          )}
         </Grid>
       </Card>
 
@@ -425,8 +504,11 @@ export default function MonEntreprisePage() {
       </Card>
 
       {/* ─── Informations légales : JAMAIS éditables ────────────────────────
-          Ces champs engagent la vérification légale (Sirene / Companies House
-          + décision IA). Ils sont hors whitelist de la route PATCH. */}
+          Ces champs engagent la vérification légale — le registre officiel du
+          pays quand il en existe un de configuré, puis la décision IA. Ils
+          sont hors whitelist de la route PATCH.
+          (Ce commentaire nommait « Companies House » : ce connecteur était un
+          stub inatteignable, supprimé — cf. lib/verification/.) */}
       <Card title={t('section_legal')}>
         <Grid>
           <ReadOnlyField label={t('field_org_type')} value={orgTypeLabel} fallback={t('not_set')} />
