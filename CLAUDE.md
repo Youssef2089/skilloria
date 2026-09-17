@@ -842,6 +842,18 @@ sur tout embed non désambiguïsé entre deux tables doublement liées. Il balai
 `publications ↔ users`, `referrals ↔ users` : **toute** nouvelle lecture entre elles doit nommer sa
 contrainte.
 
+**⚠️ ET LE CONTRÔLE AVAIT UN TROU — `!inner` N'EST PAS UN NOM DE CONTRAINTE.**
+Le motif d'origine acceptait `cible!\w+(` comme « embed désambiguïsé ». Or `inner` est un `\w+` :
+`users!inner(…)` sur une paire ambiguë **passait pour nommé** alors qu'il ne nomme rien. `!inner` et
+`!left` sont des **modificateurs de jointure** — ils disent *comment* joindre, pas *quel lien
+suivre* ; PostgREST répond exactement la même erreur d'ambiguïté.
+Le cas qui rendait le trou dangereux n'est pas hypothétique : quelqu'un qui « simplifie »
+`users!organization_members_user_id_fkey(…)` en `users!inner(…)` — un raccourci qui a l'air d'une
+optimisation — **rouvrait la panne en laissant le contrôle vert**. Corrigé en excluant explicitement
+les deux modificateurs (`MODIFICATEURS = /^(inner|left)$/i`, commit `9f10635`).
+**Mesuré : zéro occurrence réelle dans le dépôt.** Le trou était donc ouvert et non encore tombé
+dedans — c'est le seul moment où il est bon marché de le fermer.
+
 **La leçon qui dépasse le cas** : ajouter une clé étrangère est une opération qu'on croit purement
 additive. Elle ne l'est pas — elle **change la façon dont on a le droit de LIRE** les deux tables
 qu'elle relie, partout, y compris dans du code écrit des mois plus tôt.
@@ -938,6 +950,89 @@ zéro pointé. **Rien n'était faux au sens strict — et tout se lisait à l'en
 garde `country_code !== 'FR'` et ses neuf chiffres : Sirene **est** le registre français), et il lit
 le **code seul** — ce lot cite « FR » partout pour expliquer ce qu'il a retiré, et un contrôle naïf
 rougirait sur sa propre explication.
+
+**E.22 — UNE ERREUR TECHNIQUE CONVERTIE EN REFUS MÉTIER : LE REFUS EST JUSTE, LE MOTIF MENT.**
+
+C'est la classe dont §E.18 n'était qu'un **cas particulier** — et elle a été balayée après lui, sur
+`app/`, `lib/` **et** `components/` (457 fichiers). **Quarante et une occurrences** de la forme :
+un `catch` qui rend `null`, un `if (error)` qui rend `[]`, un compteur qui rend `0` quand il n'a
+pas pu compter. **Trente-cinq sont légitimes** — un formateur de date, un pitch best-effort — et
+c'est précisément ce qui rend la classe coûteuse : le motif n'est pas un défaut.
+
+**Le défaut naît une ligne plus loin, chez l'APPELANT**, quand la valeur neutre traverse une **garde**
+qui la lit comme un **fait** et en tire un refus **nommé**.
+
+**LE CAS SOURCE : `loadOrganizationContext`** ([lib/auth-guard.ts](lib/auth-guard.ts)). Sur erreur de
+lecture, elle rendait `null` — la même valeur que « cet utilisateur n'appartient à aucune
+organisation ». `requireAuth` traduisait ce `null` en **403 `no_organization`**. Le 14 septembre,
+une seconde clé étrangère a rendu l'embed ambigu (§E.18), cette lecture a commencé à échouer, et
+**le dashboard entreprise entier est mort en accusant l'utilisateur** : « vous n'appartenez à aucune
+organisation », dit à un membre parfaitement légitime, sur staging et sur toute base neuve.
+
+**LES SIX CAS, ET LEURS TROIS CONSÉQUENCES DIFFÉRENTES.**
+
+| # | Où | Ce que la valeur neutre produisait | Nature |
+|---|---|---|---|
+| ① | `loadOrganizationContext` ([lib/auth-guard.ts](lib/auth-guard.ts)) | 403 `no_organization` | **mauvais résultat ET mauvais motif** |
+| ② | `organizationsLeftWithoutAdmin` ([app/api/admin/user-purge/route.ts](app/api/admin/user-purge/route.ts)) | `[]` ⇒ la **barrière d'acquittement sautait en silence** | **garde contournée, action irréversible** |
+| ③ | `expertProfileGate` ([lib/expert-verified-guard.ts](lib/expert-verified-guard.ts)) | 403 « profil non vérifié » | refus **juste**, **motif faux** |
+| ④ | `loadAdminActionTarget` ([lib/admin/user-actions-guard.ts](lib/admin/user-actions-guard.ts)) | 404 `target_not_found` | « cet utilisateur n'existe pas », dit d'un compte réel |
+| ⑤ | l'avertissement de purge (`app/api/admin/get-user/[id]/route.ts`) | liste vide ⇒ **aucun avertissement affiché** | l'admin décide en croyant qu'il n'y a rien à perdre |
+| ⑥ | `joinBlockReason` ([lib/org-members.ts](lib/org-members.ts)) | `null` = **AUTORISÉ** ⇒ un compte expert entrait dans une organisation | **le seul FAIL-OPEN** |
+
+**② mérite d'être lu deux fois.** L'en-tête de la route écrivait que l'avertissement était
+best-effort, « parce que c'est un AVERTISSEMENT et non une garde ; aucune des trois barrières n'en
+dépend ». **C'était faux d'une barrière** — la quatrième, l'acquittement `acknowledge_org_lockout`,
+ne se lève **que si la liste est non vide**. Une liste vide par panne de lecture la faisait donc
+sauter, sans trace, sur la seule action irréversible du back-office. Une justification écrite noir
+sur blanc dans le fichier, et fausse : c'est la famille §E.7 appliquée à un raisonnement, pas à une
+règle.
+
+**LA PARADE, ET ELLE EST UN TYPE, PAS UNE DISCIPLINE.**
+Un **état de plus** dans l'union — `'indisponible'` — ou un `null` dont le sens est **« je ne sais
+pas »** et non « rien ». Le compilateur force alors chaque appelant à répondre. Trois règles en
+sortent :
+1. **Le refus ne se relâche pas.** On n'ouvre pas une porte qu'on n'a pas su vérifier. Ce qui change
+   est le **motif** et le **statut** : **503**, jamais 403 (« cherchez un droit ») ni 404
+   (« le compte a disparu »). Les deux se règlent séparément.
+2. **L'ORDRE DU TEST COMPTE.** Ajouter un état à une union n'est pas gratuit : le jour où
+   `'indisponible'` est apparu, `quota/route.ts` testait `gate === 'not_approved'` — le nouvel état
+   ne correspondait à rien et la garde se serait **OUVERTE** sur une panne, l'inverse exact du
+   correctif. Le compilateur ne dit rien d'une comparaison qui reste possible.
+3. **Une porte par contrat, et une seule lecture.** `isExpertProfileApproved` **délègue** désormais
+   à `expertProfileGate` ; `countActiveAdmins` n'est plus qu'une **façade** sur
+   `activeAdminCountOrUnknown` qui applique le repli prudent (2) pour ses trois appelants
+   **réversibles**. Un appelant **définitif** ne consomme jamais ce repli-là : rendre `2` sur une
+   panne, c'est affirmer « cette organisation a d'autres administrateurs » à celui qui s'apprête à
+   effacer le dernier.
+
+**ET LE MOTIF HONNÊTE DOIT ARRIVER JUSQU'À L'ÉCRAN**, sinon on a remplacé un mensonge précis par un
+silence poli. Cinq clés ajoutées dans les **quatre** langues, et chacune dit les trois mêmes choses —
+ce qui n'a pas marché (une **lecture**), ce qui n'a **pas** été fait (rien n'est perdu), et la suite :
+`err_org_lockout_check_unavailable`, `err_target_lookup_unavailable`,
+`confirm_purge_org_lockout_unknown`, `collaboration.errors.profile_check_failed`,
+`invitation_public.err_join_check_unavailable`.
+
+**LE CONTRÔLE** : [scripts/diag-echec-silencieux.mjs](scripts/diag-echec-silencieux.mjs) —
+**41 assertions, 11 mutations, 11 détectées**. Six sections : un **cliquet** sur le recensement (une
+occurrence NEUVE rougit, la dette ne peut que décroître) ; les cinq réparations ancrées **sur le bloc
+qu'elles visent** (§E.8) ; l'**ordre** des tests chez chaque appelant ; la parité i18n des motifs ;
+le fail-open ⑥ ; et la non-confusion des deux compteurs d'administrateurs.
+
+> **Il ne double pas [scripts/diag-erreurs-avalees.mjs](scripts/diag-erreurs-avalees.mjs)**, qui
+> existait déjà et qui **recense** 143 emplacements en rendant toujours 0 — « ni un contrôle qui
+> échoue, ni un cliquet », dit son propre en-tête, et il ne balaie que `app/` + `lib/`. Celui-ci
+> **échoue**, il est un cliquet, et il balaie **`components/`** aussi. Les deux sont utiles :
+> l'un donne la carte, l'autre ferme la porte.
+
+**Deux faux positifs, trouvés en l'exécutant** — et ils valent d'être nommés, parce qu'un contrôle
+qui crie à tort est désactivé le jour même : le comptage d'accolades était **borné à 4000
+caractères** et coupait le corps de `loadOrganizationContext` (≈5700), si bien que deux assertions
+rougissaient sur du code correct ; et le retrait des commentaires **perdait des lignes**, ce qui
+faisait glisser tous les numéros du recensement. **Une mutation a aussi montré une assertion trop
+lâche** : `/block === 'indisponible'[\s\S]{0,400}?503/` restait verte sur
+`if (false && block === 'indisponible')`. Les conditions sont désormais **ancrées sur leur forme
+exacte**, puis on lit **leur** bloc.
 
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

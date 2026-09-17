@@ -1,6 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { logAudit } from '@/lib/audit'
-import { isExpertProfileApproved, PROFILE_NOT_VERIFIED_CODE } from '@/lib/expert-verified-guard'
+import {
+  expertProfileGate,
+  PROFILE_NOT_VERIFIED_CODE,
+  PROFILE_CHECK_UNAVAILABLE_CODE,
+} from '@/lib/expert-verified-guard'
 
 /**
  * lib/collaboration/ensure-personal-org.ts — CRÉATION LAZY de l'organisation
@@ -83,7 +87,17 @@ export async function ensurePersonalOrg(
   //  Un expert non vérifié ne peut pas créer son espace de collaboration ni,
   //  par ricochet, publier un besoin. Verrou SERVEUR (non contournable par un
   //  appel direct), miroir du lock UI de la sidebar.
-  if (!(await isExpertProfileApproved(admin, userId))) {
+  const gate = await expertProfileGate(admin, userId)
+  if (gate === 'indisponible') {
+    // On ne crée rien sur une lecture en échec — mais on le DIT (§E.22).
+    return {
+      ok: false,
+      code: PROFILE_CHECK_UNAVAILABLE_CODE,
+      message: 'Could not verify profile status',
+      status: 503,
+    }
+  }
+  if (gate !== 'approved') {
     return { ok: false, code: PROFILE_NOT_VERIFIED_CODE, message: 'Profile not verified', status: 403 }
   }
 

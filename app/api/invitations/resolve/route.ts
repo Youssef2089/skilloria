@@ -84,7 +84,15 @@ export async function GET(request: NextRequest): Promise<Response> {
     .ilike('email', inv.email as string)
     .maybeSingle()
   if (existingUser) {
-    blockedReason = await joinBlockReason(admin, existingUser.id as string, inv.organization_id as string)
+    const verdict = await joinBlockReason(
+      admin,
+      existingUser.id as string,
+      inv.organization_id as string,
+    )
+    // « Je n'ai pas pu lire » ⇒ on n'affiche RIEN de particulier. Cet écran ne
+    // garde pas : il annonce. C'est POST accept qui refuse, et qui le dira.
+    // Afficher un blocage ici sur une panne accuserait l'invité à tort.
+    blockedReason = verdict === 'indisponible' ? null : verdict
   }
 
   return json(

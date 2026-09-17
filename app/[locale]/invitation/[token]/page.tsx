@@ -102,7 +102,16 @@ export default function InvitationPage() {
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        setErr(body?.code === 'email_mismatch' ? t('err_email_mismatch') : t('err_generic'))
+        // Trois motifs, trois phrases. `join_check_unavailable` n'accuse pas
+        // le compte : la vérification n'a pas pu être faite, rien n'a été
+        // écrit, et réessayer suffit.
+        setErr(
+          body?.code === 'join_check_unavailable'
+            ? t('err_join_check_unavailable')
+            : body?.code === 'email_mismatch'
+              ? t('err_email_mismatch')
+              : t('err_generic'),
+        )
         return
       }
       setView({ kind: 'accepted' })

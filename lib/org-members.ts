@@ -120,8 +120,23 @@ const SUSPENDED_STATUS = 'suspended'
  *   volontaire) sont tous RÉVERSIBLES. Il diffère volontairement de
  *   `countOtherAvailablePlatformAdmins` (lib/admin/user-actions-guard.ts), qui
  *   renvoie `null` parce que l'un de SES appelants — la purge — est définitif.
+ *
+ * ═══ ET C'EST POURQUOI LE COMPTEUR A DEUX PORTES ═══════════════════════════
+ *   Le repli prudent est juste pour un appelant RÉVERSIBLE et FAUX pour un
+ *   appelant DÉFINITIF : rendre `2` sur une panne, c'est affirmer « cette
+ *   organisation a d'autres administrateurs » à celui qui s'apprête à effacer
+ *   le dernier — et faire sauter, en silence, la barrière d'acquittement de la
+ *   purge, qui ne se lève que si la liste est non vide.
+ *
+ *   La lecture vit donc UNE SEULE FOIS, ici, et dit `null` quand elle ne sait
+ *   pas. `countActiveAdmins` n'est plus qu'une façade qui applique le repli
+ *   prudent pour ses trois appelants réversibles. Un seul raisonnement, deux
+ *   contrats (§E.22).
  */
-export async function countActiveAdmins(admin: SupabaseClient, orgId: string): Promise<number> {
+export async function activeAdminCountOrUnknown(
+  admin: SupabaseClient,
+  orgId: string,
+): Promise<number | null> {
   // 1. Les LIGNES d'appartenance : qui est admin de cette org, sur le papier ?
   const { data: rows, error: memberErr } = await admin
     .from('organization_members')
@@ -130,8 +145,8 @@ export async function countActiveAdmins(admin: SupabaseClient, orgId: string): P
     .eq('role_in_org', 'admin')
     .eq('status', 'active')
   if (memberErr) {
-    console.warn('[org-members] countActiveAdmins members error — garde prudente', memberErr.message)
-    return PRUDENT_COUNT_ON_READ_ERROR
+    console.warn('[org-members] countActiveAdmins members error — compte inconnu', memberErr.message)
+    return null
   }
 
   const userIds = [
@@ -151,10 +166,25 @@ export async function countActiveAdmins(admin: SupabaseClient, orgId: string): P
     .is('deletion_scheduled_at', null)
     .is('anonymized_at', null)
   if (userErr) {
-    console.warn('[org-members] countActiveAdmins users error — garde prudente', userErr.message)
-    return PRUDENT_COUNT_ON_READ_ERROR
+    console.warn('[org-members] countActiveAdmins users error — compte inconnu', userErr.message)
+    return null
   }
   return count ?? 0
+}
+
+/**
+ * Le même compte, avec le REPLI PRUDENT appliqué — la porte des appelants
+ * RÉVERSIBLES (changement de rôle, retrait de membre, départ volontaire).
+ *
+ * Elle DÉLÈGUE : aucune lecture, aucune règle propre. Les deux portes se sont
+ * un jour appelé la même chose, et c'est exactement ce qui a permis à un
+ * appelant définitif de consommer un repli écrit pour du réversible.
+ *
+ * ⚠️ Un appelant IRRÉVERSIBLE ne passe jamais par ici : il prend
+ *    `activeAdminCountOrUnknown` et traite `null`.
+ */
+export async function countActiveAdmins(admin: SupabaseClient, orgId: string): Promise<number> {
+  return (await activeAdminCountOrUnknown(admin, orgId)) ?? PRUDENT_COUNT_ON_READ_ERROR
 }
 
 /**
@@ -249,23 +279,42 @@ export type JoinBlockReason =
  *
  * Filet serveur partagé par : POST invitations (au moment d'inviter), GET
  * resolve (affichage), POST accept (à l'acceptation — un compte a pu être créé
- * entre-temps). Fail-safe : erreur de lecture → null (on ne bloque pas sur une
- * panne ; les autres gardes restent en place).
+ * entre-temps).
+ *
+ * ═══ TROIS RÉPONSES, PARCE QUE `null` EN DISAIT DEUX ═══════════════════════
+ *   `null` = « ce compte peut rejoindre », et c'est une AUTORISATION. Une
+ *   erreur de lecture rendait ce même `null` : la garde s'éteignait en
+ *   silence, et le commentaire de l'appelant (« jamais d'insertion dans
+ *   `organization_members` dans ces cas ») devenait faux au pire moment.
+ *
+ *   C'est le seul FAIL-OPEN de sa classe dans le dépôt — les quatre autres
+ *   refusaient à tort, celui-ci admettait à tort : un compte expert pouvait
+ *   devenir membre d'une organisation, contre une règle figée du produit.
+ *   L'ancien fail-safe s'appuyait sur « les autres gardes restent en place » ;
+ *   il n'y en a pas d'autre sur cette règle-là.
+ *
+ *   `'indisponible'` = « je n'ai pas pu lire ». L'écran d'affichage
+ *   (GET resolve) le traite comme « rien à signaler » — il ne décide de rien ;
+ *   l'ÉCRITURE (POST accept) REFUSE, temporairement et en le disant. Accepter
+ *   une invitation cinq minutes plus tard ne coûte rien (§E.22).
  */
 export async function joinBlockReason(
   admin: SupabaseClient,
   userId: string,
   targetOrgId: string,
-): Promise<JoinBlockReason | null> {
+): Promise<JoinBlockReason | null | 'indisponible'> {
   const { data: u, error } = await admin
     .from('users')
     .select('user_type')
     .eq('id', userId)
     .maybeSingle()
-  if (error || !u) {
-    console.warn('[org-members] joinBlockReason user read error — no block', error?.message)
-    return null
+  if (error) {
+    console.warn('[org-members] joinBlockReason user read error — indisponible', error.message)
+    return 'indisponible'
   }
+  // Compte introuvable : réponse CERTAINE, et elle ne bloque pas — l'invitation
+  // vise alors une adresse sans compte, qui est le cas normal.
+  if (!u) return null
   const ut = (u.user_type as string | null) ?? null
   if (ut === 'expert_freelance' || ut === 'expert_cdi') return 'email_is_expert_account'
   if (ut === 'admin') return 'email_is_admin_account'
@@ -278,8 +327,8 @@ export async function joinBlockReason(
     .eq('user_id', userId)
     .eq('status', 'active')
   if (mErr) {
-    console.warn('[org-members] joinBlockReason membership read error — no block', mErr.message)
-    return null
+    console.warn('[org-members] joinBlockReason membership read error — indisponible', mErr.message)
+    return 'indisponible'
   }
   const inAnotherOrg = (memberships ?? []).some(
     (m) => (m.organization_id as string) !== targetOrgId,

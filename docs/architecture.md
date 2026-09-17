@@ -405,6 +405,19 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   ([lib/expert-disclosure.ts](../lib/expert-disclosure.ts)) : le packaging commerce qui l'ouvrirait n'existe
   pas.
 
+**Erreurs converties en verdicts (§E.22)**
+- **Les six cas identifiés sont fermés**, et le recensement de la classe est **sous cliquet**
+  ([scripts/diag-echec-silencieux.mjs](../scripts/diag-echec-silencieux.mjs)) : **35 occurrences
+  gelées**, toutes relues, aucune ne traverse une garde. Une NEUVE rougit.
+- Ce qui reste ouvert, et c'est un **choix de couverture, pas un défaut** :
+  [scripts/diag-erreurs-avalees.mjs](../scripts/diag-erreurs-avalees.mjs) recense **143 emplacements
+  sur 68 fichiers** de la même famille élargie (erreur **non lue**, erreur **ignorée**, erreur
+  convertie). Il **rend toujours 0** — son en-tête le dit : « ni un contrôle qui échoue, ni un
+  cliquet » — et il ne balaie que `app/` + `lib/`, **pas `components/`**. Les 143 n'ont pas été
+  relus un par un ; les six qui traversaient une garde, si.
+- `joinBlockReason` était le **seul fail-open** de la classe ; il refuse désormais à l'écriture et se
+  tait à l'affichage. Aucun autre n'a été trouvé — **mesuré, pas supposé**.
+
 **Dette nommée dans le code**
 - `metadataRoleFromOrgType` mappe encore `esn → cabinet` ; sans conséquence sur le routing aujourd'hui,
   à revoir si un autre appelant dépend de la distinction ([lib/auth-routing.ts](../lib/auth-routing.ts)).

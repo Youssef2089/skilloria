@@ -6,7 +6,7 @@ import { logAudit } from '@/lib/audit'
 // L'anonymisation elle-même n'est PAS réécrite ici : c'est exactement la même
 // mécanique que les deux purges planifiées (cf. § RÉUTILISATION ci-dessous).
 import { purgeAccount } from '@/lib/account-purge'
-import { countActiveAdmins, wouldRemoveLastAdmin } from '@/lib/org-members'
+import { activeAdminCountOrUnknown, wouldRemoveLastAdmin } from '@/lib/org-members'
 import {
   loadAdminActionTarget,
   refuseAdminActionOnTarget,
@@ -81,11 +81,18 @@ export const dynamic = 'force-dynamic'
  *   organisations et que celui de la plateforme. Trois échelles, un seul
  *   raisonnement.
  *
- *   ⚠️ Cet avertissement est BEST-EFFORT par construction : `countActiveAdmins`
- *      renvoie un compte prudent (2) si sa lecture échoue, ce qui ferait taire
- *      l'avertissement. C'est acceptable ICI, et seulement ici, parce que c'est
- *      un AVERTISSEMENT et non une garde : aucune des trois barrières ci-dessus
- *      n'en dépend.
+ *   ⚠️ CET AVERTISSEMENT N'EST PLUS BEST-EFFORT, ET IL NE POUVAIT PAS L'ÊTRE.
+ *      L'en-tête a longtemps dit : « acceptable, parce que c'est un
+ *      AVERTISSEMENT et non une garde ; aucune des trois barrières n'en
+ *      dépend ». C'était faux d'une barrière — la QUATRIÈME, l'acquittement
+ *      `acknowledge_org_lockout`, qui ne se lève QUE si la liste est non
+ *      vide. Une liste vide par panne de lecture la faisait donc sauter EN
+ *      SILENCE, sur une action irréversible.
+ *      Les deux lectures disent désormais `null` = « je ne sais pas »
+ *      (`activeAdminCountOrUnknown`, et la liste elle-même), et ce `null`
+ *      REFUSE : 503 `org_lockout_check_unavailable`. Refuser une purge
+ *      quelques minutes est réparable ; l'avoir lancée à l'aveugle ne l'est
+ *      pas (§E.22).
  *
  * ═══ TRAÇABILITÉ ═══════════════════════════════════════════════════════════
  *   `purgeAccount` écrit déjà `account_purged` avec `user_id` = LA CIBLE. Elle
@@ -124,10 +131,17 @@ type LockedOutOrg = { id: string; company_name: string | null }
  * exactement la question de `wouldRemoveLastAdmin` — « retirer cette cible
  * viderait-il le dernier admin actif ? » — sans réécrire le prédicat.
  */
+/**
+ * Les organisations que cette purge laisserait SANS administrateur.
+ *
+ * `null` — et non `[]` — quand le comptage est indisponible : les deux ne
+ * veulent pas dire la même chose, et les confondre fait sauter une barrière
+ * de confirmation sur une action irréversible (§E.22).
+ */
 async function organizationsLeftWithoutAdmin(
-  supabaseAdmin: Parameters<typeof countActiveAdmins>[0],
+  supabaseAdmin: Parameters<typeof activeAdminCountOrUnknown>[0],
   targetUserId: string,
-): Promise<LockedOutOrg[]> {
+): Promise<LockedOutOrg[] | null> {
   const { data: memberships, error } = await supabaseAdmin
     .from('organization_members')
     .select('organization_id, organizations!organization_members_organization_id_fkey(id, company_name)')
@@ -135,8 +149,17 @@ async function organizationsLeftWithoutAdmin(
     .eq('role_in_org', 'admin')
     .eq('status', 'active')
   if (error) {
-    console.warn('[admin:user-purge] memberships lookup failed', error.message)
-    return []
+    // ⚠️ UNE LISTE VIDE VEUT DIRE « AUCUNE ORGANISATION NE SERA ORPHELINE ».
+    //
+    //   Sur un échec de lecture, cette fonction rendait `[]` — et la barrière
+    //   de confirmation était donc SAUTÉE EN SILENCE, sur une purge
+    //   IRRÉVERSIBLE. L'administrateur validait sans jamais voir qu'il allait
+    //   laisser des organisations sans administrateur.
+    //
+    //   `null` = « je ne sais pas ». L'appelant refuse, parce qu'une action
+    //   irréversible ne se prend pas sur un comptage indisponible.
+    console.error('[admin:user-purge] memberships lookup failed', error.message)
+    return null
   }
 
   const out: LockedOutOrg[] = []
@@ -146,7 +169,12 @@ async function organizationsLeftWithoutAdmin(
     const org = (Array.isArray(rel) ? rel[0] : rel) as
       | { id: string; company_name: string | null }
       | null
-    const available = await countActiveAdmins(supabaseAdmin, orgId)
+    const available = await activeAdminCountOrUnknown(supabaseAdmin, orgId)
+    // Compte inconnu ⇒ on ne tranche pas cette organisation-là, et on ne
+    // tranche donc plus rien : l'appelant refusera. Pousser l'organisation
+    // dans la liste « par prudence » serait aussi faux — on affirmerait un
+    // lock-out qu'on n'a pas constaté.
+    if (available === null) return null
     if (wouldRemoveLastAdmin({ targetIsActiveAdmin: true, activeAdminCount: available })) {
       out.push({ id: orgId, company_name: org?.company_name ?? null })
     }
@@ -190,8 +218,13 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (refusal) {
     return json({ error: refusal.message, code: refusal.code }, refusalHttpStatus(refusal))
   }
-  // `target` est non-null ici (le refus `target_not_found` l'a garanti).
-  const t = target!
+  // Inatteignable : `refuseAdminActionOnTarget` a déjà répondu pour les deux
+  // autres cas. Filet explicite — il tiendra le jour où quelqu'un touchera à
+  // la garde sans y penser.
+  if (!target || target === 'indisponible') {
+    return json({ error: 'Target unavailable', code: 'target_lookup_unavailable' }, 503)
+  }
+  const t = target
 
   // BARRIÈRE 2 — attention. L'adresse retapée doit être celle de la CIBLE.
   // Revalidée ICI : le champ n'est pas une formalité d'écran.
@@ -227,6 +260,18 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   // AVERTISSEMENT (pas une garde) — organisations laissées sans administrateur.
   const lockedOutOrgs = await organizationsLeftWithoutAdmin(auth.supabaseAdmin, t.id)
+  // COMPTAGE INDISPONIBLE ⇒ ON REFUSE, et on le dit. Une purge est
+  // irréversible : on ne la lance pas sans savoir ce qu'elle laisse derrière.
+  // Le refus est TEMPORAIRE et nommé — ce n'est pas un verdict sur le compte.
+  if (lockedOutOrgs === null) {
+    return json(
+      {
+        error: 'Could not determine whether organizations would be left without an administrator',
+        code: 'org_lockout_check_unavailable',
+      },
+      503,
+    )
+  }
   const acknowledged = body.acknowledge_org_lockout === true
   if (lockedOutOrgs.length > 0 && !acknowledged) {
     return json(

@@ -42,6 +42,9 @@ export type AdminActionRefusal = {
     | 'target_is_admin'
     | 'last_platform_admin'
     | 'target_not_found'
+    // « Je n'ai pas pu lire », et rien d'autre. Distinct de
+    // `target_not_found`, qui affirme que le compte N'EXISTE PAS (§E.22).
+    | 'target_lookup_unavailable'
   /** Message technique (jamais affiché brut à l'utilisateur). */
   message: string
 }
@@ -62,19 +65,30 @@ export type AdminActionTarget = {
  * « hors périmètre » (l'admin plateforme voit tous les écosystèmes, il n'y a
  * pas de fuite à craindre ici, mais la forme reste uniforme).
  */
+/**
+ * Le compte visé, `null` s'il n'existe pas, `'indisponible'` si la lecture a
+ * échoué. Les trois sont des réponses différentes ; les confondre fait dire à
+ * l'écran qu'un compte a disparu (§E.22).
+ */
 export async function loadAdminActionTarget(
   supabaseAdmin: SupabaseClient,
   targetUserId: string,
-): Promise<AdminActionTarget | null> {
+): Promise<AdminActionTarget | null | 'indisponible'> {
   const { data, error } = await supabaseAdmin
     .from('users')
     .select('id, user_type, status, domain_id, email, first_name, last_name')
     .eq('id', targetUserId)
     .maybeSingle()
   if (error) {
+    // ⚠️ UNE LECTURE EN ÉCHEC N'EST PAS UN COMPTE INEXISTANT.
+    //   Cette fonction rendait `null` dans les deux cas, et l'appelant
+    //   traduisait `null` en 404 `target_not_found` : l'administrateur lisait
+    //   « cet utilisateur n'existe pas » sur un compte parfaitement réel.
+    //   Il cherchait alors un compte disparu, pas une panne de base.
     console.error('[admin/user-actions-guard] target lookup failed', error.message)
-    return null
+    return 'indisponible'
   }
+  // ICI seulement, `null` veut dire ce qu'il dit : le compte n'existe pas.
   return (data as AdminActionTarget | null) ?? null
 }
 
@@ -89,10 +103,19 @@ export async function loadAdminActionTarget(
 export async function refuseAdminActionOnTarget(args: {
   supabaseAdmin: SupabaseClient
   adminUserId: string
-  target: AdminActionTarget | null
+  target: AdminActionTarget | null | 'indisponible'
 }): Promise<AdminActionRefusal | null> {
   const { supabaseAdmin, adminUserId, target } = args
 
+  // TRAITÉ ICI, UNE SEULE FOIS. Cinq routes chargent une cible ; cinq blocs
+  // identiques auraient fini par diverger — c'est déjà l'histoire du mappage
+  // des offres sur ce projet.
+  if (target === 'indisponible') {
+    return {
+      code: 'target_lookup_unavailable',
+      message: 'Could not read the target account',
+    }
+  }
   if (!target) {
     return { code: 'target_not_found', message: 'Target user not found' }
   }
@@ -214,5 +237,9 @@ export function platformAdminCountIncludingTarget(othersAvailable: number): numb
 
 /** Statut HTTP à renvoyer pour un refus donné. */
 export function refusalHttpStatus(refusal: AdminActionRefusal): number {
+  // 503 et non 403 : « je n'ai pas pu lire » est une panne de notre côté, pas
+  // un interdit opposé à l'administrateur. Un 403 l'enverrait chercher un
+  // droit manquant ; un 404, un compte disparu (§E.22).
+  if (refusal.code === 'target_lookup_unavailable') return 503
   return refusal.code === 'target_not_found' ? 404 : 403
 }

@@ -9,7 +9,11 @@ import type {
 } from '@/lib/verification/ai-publication-quality'
 import { runMatching } from '@/lib/matching'
 import { getOrgEntitlements, consumeQuota, monthlyPeriodStart } from '@/lib/entitlements'
-import { isExpertProfileApproved, PROFILE_NOT_VERIFIED_CODE } from '@/lib/expert-verified-guard'
+import {
+  expertProfileGate,
+  PROFILE_NOT_VERIFIED_CODE,
+  PROFILE_CHECK_UNAVAILABLE_CODE,
+} from '@/lib/expert-verified-guard'
 import { activePublishedOrClause } from '@/lib/publications/expiry'
 import { missingForPublish } from '@/lib/publications/publishable'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
@@ -175,9 +179,19 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   //  Gate final : même si un draft sous_traitance existait, on refuse la
   //  publication tant que l'expert (created_by = lui) n'est pas approved.
   //  Verrou SERVEUR non contournable ; les mission/offre (vraies orgs) passent.
-  if ((pub.type as string) === 'sous_traitance'
-    && !(await isExpertProfileApproved(auth.supabaseAdmin, auth.user.id))) {
-    return json({ error: 'Profile not verified', code: PROFILE_NOT_VERIFIED_CODE }, 403)
+  if ((pub.type as string) === 'sous_traitance') {
+    const gate = await expertProfileGate(auth.supabaseAdmin, auth.user.id)
+    // Lecture impossible ⇒ on refuse QUAND MÊME (la garde ne se relâche pas),
+    // mais le motif dit la vérité : c'est une panne, pas un verdict (§E.22).
+    if (gate === 'indisponible') {
+      return json(
+        { error: 'Could not verify profile status', code: PROFILE_CHECK_UNAVAILABLE_CODE },
+        503,
+      )
+    }
+    if (gate !== 'approved') {
+      return json({ error: 'Profile not verified', code: PROFILE_NOT_VERIFIED_CODE }, 403)
+    }
   }
 
   // ── GATE COMMERCE (Lot 2) : plafond de publications actives + quota mensuel ─

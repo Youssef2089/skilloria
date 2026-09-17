@@ -183,6 +183,14 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
           setError(t('errors.publish_check_failed'))
           return
         }
+        // MÊME FAMILLE, AUTRE LECTURE. La garde « profil vérifié » refuse aussi
+        // quand elle n'a pas pu LIRE le statut — et ce refus-là n'est pas un
+        // verdict sur le profil. Le générique « la publication a échoué »
+        // enverrait l'expert vérifier un profil qui n'a rien (§E.22).
+        if (pub.code === 'profile_check_unavailable') {
+          setError(t('errors.profile_check_failed'))
+          return
+        }
         setError(t('errors.publish_failed'))
         return
       }

@@ -2,7 +2,11 @@ import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { getOrgEntitlements, getDefaultCollaborationEntitlements } from '@/lib/entitlements'
 import { activePublishedOrClause } from '@/lib/publications/expiry'
-import { expertProfileGate, PROFILE_NOT_VERIFIED_CODE } from '@/lib/expert-verified-guard'
+import {
+  expertProfileGate,
+  PROFILE_NOT_VERIFIED_CODE,
+  PROFILE_CHECK_UNAVAILABLE_CODE,
+} from '@/lib/expert-verified-guard'
 import { billingEnabled } from '@/lib/billing/config'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 
@@ -83,6 +87,16 @@ export async function GET(request: NextRequest): Promise<Response> {
   //  ENTREPRISE, qu'il verrouillerait à tort. On ne bloque que l'expert
   //  réellement non approuvé.
   const gate = await expertProfileGate(auth.supabaseAdmin, auth.user.id)
+  // ⚠️ CE BLOC D'ABORD. Le jour où `indisponible` a été ajouté au type, ce test
+  //    ne le connaissait pas : la lecture en échec serait PASSÉE, et la garde
+  //    se serait OUVERTE — l'inverse exact du correctif. Un état ajouté à une
+  //    union n'est pas gratuit, il faut aller voir chaque comparaison.
+  if (gate === 'indisponible') {
+    return json(
+      { error: 'Could not verify profile status', code: PROFILE_CHECK_UNAVAILABLE_CODE },
+      503,
+    )
+  }
   if (gate === 'not_approved') {
     return json({ error: 'Profile not verified', code: PROFILE_NOT_VERIFIED_CODE }, 403)
   }

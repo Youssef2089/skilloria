@@ -19,23 +19,28 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 export const PROFILE_NOT_VERIFIED_CODE = 'profile_not_verified'
 
 /**
+ * LE REFUS QUI NE MENT PAS. Rendu quand la vérification du profil n'a pas pu
+ * être LUE : la garde reste fermée, mais l'utilisateur lit « nous n'avons pas
+ * pu vérifier, réessayez » et non « votre profil n'est pas vérifié ». Un 503,
+ * pas un 403 — c'est une panne de notre côté, pas un verdict sur lui.
+ */
+export const PROFILE_CHECK_UNAVAILABLE_CODE = 'profile_check_unavailable'
+
+/**
  * Vrai si l'utilisateur a un profil expert en `verification_status='approved'`.
  * `false` si absent de profiles ou statut différent (draft/pending/rejected…).
+ *
+ * ⚠️ NE DISTINGUE PAS une erreur de lecture d'un refus — c'est
+ *    `expertProfileGate` qui le fait. Cette fonction est conservée pour les
+ *    appelants qui n'ont qu'un booléen à rendre, et elle DÉLÈGUE : une seule
+ *    lecture, un seul raisonnement. Un appelant qui doit expliquer son refus
+ *    à un utilisateur prend la porte à quatre états.
  */
 export async function isExpertProfileApproved(
   supabaseAdmin: SupabaseClient,
   userId: string,
 ): Promise<boolean> {
-  const { data, error } = await supabaseAdmin
-    .from('profiles')
-    .select('verification_status')
-    .eq('user_id', userId)
-    .maybeSingle()
-  if (error) {
-    console.error('[expert-verified-guard] profile lookup failed', error.message)
-    return false
-  }
-  return (data as { verification_status: string | null } | null)?.verification_status === 'approved'
+  return (await expertProfileGate(supabaseAdmin, userId)) === 'approved'
 }
 
 /**
@@ -48,7 +53,17 @@ export async function isExpertProfileApproved(
  * en tête de ce module). Ce prédicat distingue « pas un expert » de « expert
  * non approuvé », pour que l'appelant ne verrouille QUE le second.
  */
-export type ExpertProfileGate = 'not_expert' | 'approved' | 'not_approved'
+/**
+ * QUATRE états, et le quatrième n'est pas un verdict.
+ *
+ *   `indisponible` dit « je n'ai pas pu lire », rien d'autre. Il existe parce
+ *   que ce module écrasait l'erreur de lecture en `not_approved` : le refus
+ *   était PRUDENT et JUSTE — on n'ouvre pas une porte qu'on ne sait pas
+ *   vérifier — mais l'utilisateur lisait « votre profil n'est pas vérifié »
+ *   alors que son profil l'était. **Le refus avait raison, le motif mentait.**
+ *   Les deux se règlent séparément (§E.22).
+ */
+export type ExpertProfileGate = 'not_expert' | 'approved' | 'not_approved' | 'indisponible'
 
 export async function expertProfileGate(
   supabaseAdmin: SupabaseClient,
@@ -60,10 +75,10 @@ export async function expertProfileGate(
     .eq('user_id', userId)
     .maybeSingle()
   if (error) {
+    // La garde reste FERMÉE — on ne relâche rien sur une erreur de lecture —
+    // mais elle ne se fait plus passer pour un verdict sur le profil.
     console.error('[expert-verified-guard] profile lookup failed', error.message)
-    // Prudence : on ne relâche pas la garde sur une erreur de lecture. Un
-    // expert verra l'écran verrouillé plutôt qu'un écran ouvert par accident.
-    return 'not_approved'
+    return 'indisponible'
   }
   const row = data as { verification_status: string | null } | null
   if (!row) return 'not_expert'

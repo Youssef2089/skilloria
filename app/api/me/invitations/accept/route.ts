@@ -100,6 +100,16 @@ export async function POST(request: NextRequest): Promise<Response> {
   // admin, ou déjà membre actif d'une AUTRE org — jamais d'insertion dans
   // organization_members dans ces cas.
   const block = await joinBlockReason(admin, auth.user.id, invitation.organization_id)
+  // LECTURE INDISPONIBLE ⇒ REFUS TEMPORAIRE, jamais un passage. Le filet
+  // ci-dessus n'a pas de doublure : sans lui, un compte expert entrait dans
+  // une organisation, contre une règle figée. Le 503 dit que c'est une panne,
+  // pas un verdict sur le compte (§E.22).
+  if (block === 'indisponible') {
+    return json(
+      { error: 'Could not check whether this account can join', code: 'join_check_unavailable' },
+      503,
+    )
+  }
   if (block) {
     return json({ error: 'Account cannot join', code: block }, 403)
   }

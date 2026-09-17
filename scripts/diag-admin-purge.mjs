@@ -137,9 +137,31 @@ ok(
 section('C. Avertissement organisation + acquittement revalidé')
 
 ok(
-  /wouldRemoveLastAdmin\(/.test(purgeRoute) && /countActiveAdmins\(/.test(purgeRoute),
+  /wouldRemoveLastAdmin\(/.test(purgeRoute) && /activeAdminCountOrUnknown\(/.test(purgeRoute),
   'l’avertissement réutilise le prédicat ET le compteur partagés',
   'trois échelles, un seul raisonnement — rien de recalculé sur place',
+)
+/**
+ * ⚠️ ET C'EST LA PORTE QUI DIT « JE NE SAIS PAS », PAS LA FAÇADE PRUDENTE.
+ *
+ *   L'en-tête de cette route a longtemps écrit que l'avertissement était
+ *   best-effort, « parce que c'est un AVERTISSEMENT et non une garde ; aucune
+ *   des trois barrières n'en dépend ». C'était faux d'une barrière : la
+ *   QUATRIÈME, l'acquittement `acknowledge_org_lockout`, ne se lève QUE si la
+ *   liste est non vide. Une liste vide par panne de lecture la faisait donc
+ *   sauter EN SILENCE, sur la seule action irréversible du back-office (§E.22).
+ */
+ok(
+  !/\bcountActiveAdmins\b/.test(purgeRoute),
+  'la purge n’emprunte PAS le repli prudent (2) écrit pour les appelants réversibles',
+  'rendre 2 sur une panne affirme « cette organisation a d’autres administrateurs »',
+)
+ok(
+  /Promise<LockedOutOrg\[\] \| null>/.test(purgeRoute) &&
+    /lockedOutOrgs === null/.test(purgeRoute) &&
+    /org_lockout_check_unavailable/.test(purgeRoute),
+  'comptage indisponible ⇒ REFUS nommé (503), jamais une liste vide',
+  'une liste vide affirme « aucune organisation ne sera orpheline »',
 )
 ok(
   /acknowledge_org_lockout === true/.test(purgeRoute),
@@ -199,6 +221,12 @@ ok(
 ok(
   /purge_org_lockout/.test(getUserRoute) && /wouldRemoveLastAdmin\(/.test(getUserRoute),
   'get-user sert l’avertissement organisation AVANT le clic',
+)
+ok(
+  /purge_org_lockout_unknown/.test(getUserRoute) &&
+    /activeAdminCountOrUnknown\(/.test(getUserRoute),
+  'get-user distingue « aucune organisation » de « je n’ai pas pu lire »',
+  'sans ce drapeau, l’écran n’affiche rien et l’admin décide en croyant qu’il n’y a rien à perdre',
 )
 ok(
   /already_anonymized/.test(getUserRoute),

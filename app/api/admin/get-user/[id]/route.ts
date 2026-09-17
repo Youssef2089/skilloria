@@ -11,7 +11,7 @@ import {
 } from '@/lib/admin/user-actions-guard'
 // Anti-lock-out d'organisation : MÊME prédicat et MÊME compteur que les routes
 // de membres. L'avertissement de purge ne se calcule pas autrement qu'ailleurs.
-import { countActiveAdmins, wouldRemoveLastAdmin } from '@/lib/org-members'
+import { activeAdminCountOrUnknown, wouldRemoveLastAdmin } from '@/lib/org-members'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -142,6 +142,14 @@ export async function GET(request: NextRequest, ctx: Ctx): Promise<Response> {
    * effacer ne paie pas ces requêtes.
    */
   const purgeOrgLockout: { id: string; company_name: string | null }[] = []
+  /**
+   * ⚠️ LISTE VIDE ≠ « AUCUNE ORGANISATION NE SERA ORPHELINE ».
+   *   Ce drapeau porte la différence. Sans lui, une lecture en échec produisait
+   *   une liste vide, l'écran n'affichait AUCUN avertissement, et
+   *   l'administrateur décidait en croyant qu'il n'y avait rien à perdre — sur
+   *   la seule action irréversible du back-office (§E.22).
+   */
+  let purgeOrgLockoutUnknown = false
   if (purgeRefusalCode === null) {
     const { data: adminMemberships, error: memErr } = await auth.supabaseAdmin
       .from('organization_members')
@@ -150,10 +158,12 @@ export async function GET(request: NextRequest, ctx: Ctx): Promise<Response> {
       .eq('role_in_org', 'admin')
       .eq('status', 'active')
     if (memErr) {
-      // Avertissement best-effort : son absence ne doit jamais empêcher
-      // d'afficher la fiche. La route de purge re-pose la question de toute
-      // façon, et c'est ELLE qui exige l'acquittement.
+      // La fiche s'affiche quand même — un avertissement illisible ne doit pas
+      // masquer un compte. Mais elle le DIT : la route de purge refusera
+      // (503 `org_lockout_check_unavailable`), et l'écran ne doit pas laisser
+      // croire au silence rassurant d'une liste vide.
       console.warn('[admin:get-user] org lockout lookup failed', memErr.message)
+      purgeOrgLockoutUnknown = true
     } else {
       for (const row of adminMemberships ?? []) {
         const orgId = (row as { organization_id: string }).organization_id
@@ -161,7 +171,15 @@ export async function GET(request: NextRequest, ctx: Ctx): Promise<Response> {
         const o = (Array.isArray(rel) ? rel[0] : rel) as
           | { id: string; company_name: string | null }
           | null
-        const available = await countActiveAdmins(auth.supabaseAdmin, orgId)
+        // `activeAdminCountOrUnknown` et non `countActiveAdmins` : le repli
+        // prudent (2) de la seconde est écrit pour des appelants RÉVERSIBLES,
+        // et dirait ici « cette organisation a d'autres administrateurs » à
+        // qui s'apprête à effacer le dernier.
+        const available = await activeAdminCountOrUnknown(auth.supabaseAdmin, orgId)
+        if (available === null) {
+          purgeOrgLockoutUnknown = true
+          continue
+        }
         if (wouldRemoveLastAdmin({ targetIsActiveAdmin: true, activeAdminCount: available })) {
           purgeOrgLockout.push({ id: orgId, company_name: o?.company_name ?? null })
         }
@@ -264,6 +282,7 @@ export async function GET(request: NextRequest, ctx: Ctx): Promise<Response> {
        * de purge le revalide et exige l'acquittement.
        */
       purge_org_lockout: purgeOrgLockout,
+      purge_org_lockout_unknown: purgeOrgLockoutUnknown,
       /**
        * RENVOI D'INVITATION — fenêtre volontairement ÉTROITE, et c'est elle qui
        * fait la sécurité (cf. /api/admin/user-resend-invite) : un administrateur

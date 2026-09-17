@@ -200,12 +200,34 @@ async function loadOrganizationContext(
     .maybeSingle()
 
   if (memberErr) {
+    // ⚠️ UNE ERREUR DE LECTURE N'EST PAS UNE ABSENCE D'ORGANISATION.
+    //
+    //   Cette fonction rendait `null` dans LES DEUX CAS. L'appelant ne pouvait
+    //   donc pas les distinguer, et `null` se traduisait en 403
+    //   `no_organization` : « vous n'appartenez à aucune organisation », dit à
+    //   un membre parfaitement légitime.
+    //
+    //   Ce n'est pas une hypothèse. Le 14 septembre, une migration a ajouté une
+    //   seconde clé étrangère entre `organizations` et `organization_members`
+    //   (§E.18) ; l'embed est devenu ambigu, cette lecture a commencé à
+    //   échouer, et LE DASHBOARD ENTREPRISE ENTIER est mort — en ligne, sur
+    //   staging, avec un message qui accusait l'utilisateur.
+    //
+    //   On LÈVE désormais, avec un code à soi. Le refus reste un refus — on
+    //   n'ouvre pas une porte qu'on ne sait pas vérifier — mais il dit « je
+    //   n'ai pas pu lire », et un 503 se lit comme une panne, pas comme un
+    //   verdict sur l'utilisateur.
     console.error('[auth-guard] organization_members lookup error', {
       userId,
       msg: memberErr.message,
     })
-    return null
+    throw new AuthError(503, {
+      error: 'Organization lookup failed',
+      code: 'organization_lookup_failed',
+    })
   }
+  // ICI, et seulement ici, `null` veut dire ce qu'il dit : cet utilisateur
+  // n'appartient à aucune organisation. La réponse est CERTAINE.
   if (!memberRow) return null
 
   const orgRow = Array.isArray(memberRow.organizations)

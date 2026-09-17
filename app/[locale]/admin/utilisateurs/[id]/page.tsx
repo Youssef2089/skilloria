@@ -93,6 +93,7 @@ type AdminRefusalCode =
   | 'target_is_admin'
   | 'last_platform_admin'
   | 'target_not_found'
+  | 'target_lookup_unavailable'
 type ApiActions = {
   can_suspend: boolean
   can_revoke_session: boolean
@@ -102,6 +103,8 @@ type ApiActions = {
   purge_refusal_code: AdminRefusalCode | 'already_anonymized' | null
   /** Organisations que la purge laisserait sans administrateur joignable. */
   purge_org_lockout: { id: string; company_name: string | null }[]
+  /** `true` = le serveur n'a PAS pu établir la liste ci-dessus. Voir l'écran. */
+  purge_org_lockout_unknown?: boolean
   /**
    * Renvoi d'invitation — administrateur JAMAIS connecté. Verdict serveur :
    * l'écran ne recalcule ni le type de compte ni l'absence de connexion.
@@ -213,6 +216,16 @@ export default function AdminUserDetailPage() {
   const canRevoke = actions?.can_revoke_session === true
   const canPurge = actions?.can_purge === true
   const purgeOrgLockout = actions?.purge_org_lockout ?? []
+  /**
+   * `?? true` ET NON `?? false` — c'est tout le correctif côté écran.
+   *
+   * Le drapeau absent (réponse tronquée, ancienne version du serveur) veut dire
+   * « je ne sais pas », jamais « tout va bien » : un défaut optimiste reproduit
+   * exactement le silence qu'on ferme. On l'ignore seulement quand la liste est
+   * déjà non vide — l'avertissement nommé est alors plus précis que le doute.
+   */
+  const purgeOrgLockoutUnknown =
+    purgeOrgLockout.length === 0 && actions !== null && actions.purge_org_lockout_unknown !== false
   const canResendInvite = actions?.can_resend_invite === true
 
   /**
@@ -256,6 +269,11 @@ export default function AdminUserDetailPage() {
         case 'confirm_email_mismatch': return t('err_confirm_email_mismatch')
         case 'already_anonymized': return t('err_already_anonymized')
         case 'purge_failed': return t('err_purge_failed')
+        // Deux refus TEMPORAIRES, et ils ne disent rien du compte visé : les
+        // confondre avec « introuvable » ou « interdit » enverrait
+        // l'administrateur chercher un compte disparu ou un droit manquant.
+        case 'org_lockout_check_unavailable': return t('err_org_lockout_check_unavailable')
+        case 'target_lookup_unavailable': return t('err_target_lookup_unavailable')
         case 'invitation_failed': return t('err_invitation_failed')
         case 'already_signed_in': return t('err_already_signed_in')
         case 'rate_limited': return t('err_rate_limited')
@@ -627,6 +645,18 @@ export default function AdminUserDetailPage() {
                 {/* Avertissement organisation — servi par le SERVEUR avant le
                     clic, pas découvert après. On ne bloque pas : on exige un
                     acquittement, revalidé côté serveur. */}
+                {/* « Je n'ai pas pu vérifier » — dit AVANT le clic. L'absence
+                    d'avertissement ne doit jamais être lue comme une absence de
+                    risque : la purge sera refusée (503) tant que la
+                    vérification n'aura pas abouti. */}
+                {purgeOrgLockoutUnknown && (
+                  <div role="alert" style={{ margin: '0 0 14px', padding: '12px 14px', borderRadius: 10, background: '#FEF3C7', border: '1px solid #FCD34D' }}>
+                    <p style={{ fontSize: 13, color: '#78350F', lineHeight: 1.6, margin: 0 }}>
+                      {t('confirm_purge_org_lockout_unknown')}
+                    </p>
+                  </div>
+                )}
+
                 {purgeOrgLockout.length > 0 && (
                   <div role="alert" style={{ margin: '0 0 14px', padding: '12px 14px', borderRadius: 10, background: '#FEF9C3', border: '1px solid #FDE68A' }}>
                     <p style={{ fontSize: 13, color: '#713F12', lineHeight: 1.6, margin: '0 0 8px' }}>

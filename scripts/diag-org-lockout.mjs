@@ -95,7 +95,20 @@ function bodyOf(src, declaration) {
   return end === -1 ? src.slice(start) : src.slice(start, end)
 }
 
-const counterBody = bodyOf(orgMembersCode, 'export async function countActiveAdmins')
+/**
+ * ⚠️ LE COMPTEUR A DEUX PORTES DEPUIS LE LOT « ÉCHEC SILENCIEUX » (§E.22).
+ *
+ *   La LECTURE vit dans `activeAdminCountOrUnknown`, qui rend `null` quand
+ *   elle ne sait pas. `countActiveAdmins` n'est plus qu'une façade appliquant
+ *   le repli prudent (2) pour ses trois appelants RÉVERSIBLES.
+ *
+ *   C'est cette porte-là qu'il faut inspecter : viser l'autre ferait passer au
+ *   vert des assertions qui ne regardent plus rien. Attention aussi au préfixe
+ *   — `indexOf('export async function countActiveAdmins')` attraperait
+ *   `countActiveAdminsQuelqueChose` si on renommait.
+ */
+const counterBody = bodyOf(orgMembersCode, 'export async function activeAdminCountOrUnknown')
+const facadeBody = bodyOf(orgMembersCode, 'export async function countActiveAdmins(')
 
 // ═══ A. LE COMPTEUR REGARDE LE COMPTE, PAS SEULEMENT LA LIGNE ══════════════
 section('A. countActiveAdmins compte des personnes joignables')
@@ -156,10 +169,29 @@ ok(
 // Les DEUX lectures doivent retomber sur le repli : une seule gardée laisserait
 // la seconde renvoyer 0 et bloquer toute l'organisation sur une panne.
 ok(
-  (counterBody.match(/return PRUDENT_COUNT_ON_READ_ERROR/g) ?? []).length >= 2,
-  'fail-safe : les DEUX requêtes retombent sur le compte prudent',
+  (counterBody.match(/return null/g) ?? []).length >= 2,
+  'fail-safe : les DEUX requêtes disent « je ne sais pas » (`null`)',
   'une seule gardée laisserait l’autre renvoyer 0 et verrouiller l’org sur une panne',
 )
+// LA FAÇADE N'A AUCUNE LOGIQUE PROPRE. Deux lectures jumelles divergent, et
+// c'est la garde qui s'éteint — l'histoire de ce projet, deux fois déjà.
+ok(
+  facadeBody !== '' &&
+    !/\.from\(/.test(facadeBody) &&
+    /activeAdminCountOrUnknown\(/.test(facadeBody) &&
+    /PRUDENT_COUNT_ON_READ_ERROR/.test(facadeBody),
+  'la façade `countActiveAdmins` délègue et applique le repli — rien d’autre',
+)
+// Un appelant DÉFINITIF ne consomme jamais le repli écrit pour du réversible :
+// rendre 2 sur une panne affirme « cette organisation a d'autres admins » à
+// celui qui s'apprête à effacer le dernier (§E.22).
+for (const f of ['app/api/admin/user-purge/route.ts', 'app/api/admin/get-user/[id]/route.ts']) {
+  ok(
+    !/\bcountActiveAdmins\b/.test(stripComments(read(f))) &&
+      /activeAdminCountOrUnknown\(/.test(stripComments(read(f))),
+    `${f} — appelant DÉFINITIF : lit le compteur qui dit \`null\``,
+  )
+}
 // Le cas « aucune ligne admin » est une CERTITUDE, pas une panne.
 ok(
   /if \(userIds\.length === 0\) return 0/.test(counterBody),

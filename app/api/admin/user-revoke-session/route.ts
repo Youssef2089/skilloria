@@ -88,7 +88,13 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (refusal) {
     return json({ error: refusal.message, code: refusal.code }, refusalHttpStatus(refusal))
   }
-  const t = target!
+  // Inatteignable : `refuseAdminActionOnTarget` a déjà répondu pour les deux
+  // autres cas. Filet explicite — il tiendra le jour où quelqu'un touchera à
+  // la garde sans y penser.
+  if (!target || target === 'indisponible') {
+    return json({ error: 'Target unavailable', code: 'target_lookup_unavailable' }, 503)
+  }
+  const t = target
 
   const rot = await setSessionToken({
     supabaseAdmin: auth.supabaseAdmin,
