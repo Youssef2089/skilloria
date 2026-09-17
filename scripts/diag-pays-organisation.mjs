@@ -167,6 +167,29 @@ ok('la colonne `organizations.country` n\'a plus de DÉFAUT en base',
   MIG !== null && /alter\s+column\s+country\s+drop\s+default/i.test(MIG),
   'un défaut en base est un troisième endroit où « FR » réapparaît seul')
 
+// LA QUATRIÈME SOURCE, trouvée en lisant la base et non le code : `profiles`
+// portait le même `DEFAULT 'FR'`. Depuis que l'organisation PERSONNELLE d'un
+// expert prend le pays de son profil, un défaut ici se propage à une
+// organisation — et une organisation à un registre.
+const MIG_PROFIL = migration('pays_du_profil_sans_defaut')
+ok('la colonne `profiles.country` n\'a plus de DÉFAUT en base',
+  MIG_PROFIL !== null && /alter\s+column\s+country\s+drop\s+default/i.test(MIG_PROFIL),
+  'le pays de l\'expert alimente désormais son organisation personnelle')
+
+// ET LA COLONNE LUE DOIT EXISTER. `users.country` n'existe pas ; une première
+// version du correctif la lisait. Les clients Supabase ne sont pas typés
+// (§E.1) : ni `tsc` ni `next build` ne l'auraient vu — l'appel réel aurait
+// échoué et l'expert aurait perdu sa publication sur une colonne fantôme.
+const PERSO = existe('lib/collaboration/ensure-personal-org.ts')
+  ? sansCommentaires(read('lib/collaboration/ensure-personal-org.ts'))
+  : ''
+ok('l\'organisation personnelle lit le pays sur `profiles`, pas sur `users`',
+  /from\('profiles'\)\s*\.select\('country'\)/.test(PERSO) && !/select\('user_type[^']*country'\)/.test(PERSO),
+  '`users.country` n\'existe pas — la lecture échouerait au runtime, en silence')
+ok('et elle REFUSE plutôt que d\'inventer un pays',
+  /expert_country_missing/.test(PERSO),
+  'écrire un pays qu\'on ignore produit une donnée fausse qui ne se signale jamais')
+
 // ═══════════════════════════════════════════════════════════════════════════
 titre('(B) LE FORMAT DU NUMÉRO VIT SUR LE RÉFÉRENTIEL, PAS DANS LE CODE')
 // ═══════════════════════════════════════════════════════════════════════════

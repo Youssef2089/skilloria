@@ -129,11 +129,35 @@ via son **organisation personnelle** (`org_type = 'freelance'`, §P1.2 bis).
 C'est la seule instruction `insert into organization_domains` de tout le dépôt — une ligne, une
 fois, et cette table n'est plus qu'une **trace historique** (§B.2 ①).
 
+Le formulaire **DEMANDE le pays du siège** — sélecteur alimenté par le référentiel `countries`
+(64 pays actifs), **aucun préselectionné**. Il ne le demandait pas : il postait `country_code: 'FR'`
+en dur, et la finalisation retombait sur le même `?? 'FR'`. Ce n'était pas cosmétique — le pays
+**choisit le registre officiel interrogé** (§P3.3) : une société marocaine était cherchée dans
+Sirene, absente, et renvoyée en revue humaine. Le pays reste **modifiable tant que la vérification
+n'est pas approuvée** (`PATCH /api/me/organisation`, condition imposée **au serveur**) ; après, seul
+le back-office tranche.
+
+Le **numéro d'identification suit le pays** : libellé, exemple et longueurs viennent du référentiel
+(`countries.registre_numero_*`), pas d'un `switch` — **un pays de plus n'est pas un déploiement**.
+Seule la France est renseignée, parce que c'est la seule règle que le dépôt prouve (« SIREN »,
+9 chiffres). **Sans règle connue, la saisie est ACCEPTÉE** : on ne refuse jamais sur une règle qu'on
+n'a pas, et c'est la revue humaine qui juge.
+
 **2. Elle est vérifiée.** [lib/verification/](../lib/verification/) — **l'IA est le décideur
-systématique, pas un repli**. Sirene (FR) ou Companies House (UK) fournissent les données ; Claude
-compare **champ par champ** et produit un score de confiance, comparé au
-`confidence_threshold` de la ligne **`provider_type = 'ai_web_search'`** du pays — **7 sur 10**
-(vérifié en base le 16/09/2026).
+systématique, pas un repli**. Sirene fournit les données pour la France ; Claude compare **champ par
+champ** et produit un score de confiance, comparé au `confidence_threshold` de la ligne
+**`provider_type = 'ai_web_search'`** du pays — **7 sur 10** (vérifié en base le 16/09/2026).
+
+> **Companies House n'a jamais existé autrement que sur le papier.** Ce document écrivait
+> « Sirene (FR) ou Companies House (UK) ». Le module était un **stub sans aucun appelant**, et
+> `verification_providers` ne portait **aucune ligne GB** — il n'y avait donc pas un second pays,
+> il y en avait un seul. Le stub a été supprimé (règle 0).
+
+**Un pays sans décideur configuré tombe en revue humaine, et c'est le repli CONÇU** — pas un
+cul-de-sac. Le dispatcher refuse **avant toute dépense IA**, avec un motif nommé, et la règle
+métier « jamais de rejet automatique » est préservée : un refus de configuration n'est pas un refus
+d'organisation. Les 64 pays sont ouverts au sélecteur **sans qu'aucune ligne `verification_providers`
+ne soit créée pour eux** : inventer des seuils qu'on n'a pas décidés serait le défaut d'à côté.
 
 > ⚠️ **Ce document a longtemps écrit « défaut 9 sur 10 » ici. C'était FAUX, et de la MÊME façon que
 > le seuil expert (§E.10).** Le 9 est le `confidence_threshold` de la ligne `sirene_insee`
@@ -144,6 +168,16 @@ compare **champ par champ** et produit un score de confiance, comparé au
 **Règle métier : jamais d'auto-rejet.** En dessous du seuil → `pending_admin_review`, un humain
 tranche depuis `/admin/organisations/[id]`.
 `requireOrgApproved(ctx)` garde ensuite les routes réservées.
+
+**Le refus ne ment pas, et il n'explique rien — mais la distinction existe pour l'admin.**
+L'organisation lit **« En cours de revue »**, et rien d'autre : ni le pays, ni le registre, ni le
+fonctionnement interne. Sur le **bureau de l'admin**, en revanche, une organisation étrangère sans
+décideur configuré et un **faux négatif** d'un registre ne s'instruisent pas de la même façon — et
+elles se ressemblaient trait pour trait : « Méthode — », « Score 0 » en rouge, et le motif affiché
+sous le libellé **« Note IA »** alors qu'aucune IA n'avait tourné. La fiche back-office porte
+désormais un bloc **Motif de la mise en revue** distinct, alimenté par `verification_data.motif_revue`
+(un **code** que l'écran traduit, un **détail** qu'il affiche), et **le score vaut `null` quand rien
+n'a été noté** — un score inventé a l'air d'avoir été décidé.
 
 **3. Elle rédige.** `/dashboard/entreprise/annonces/nouvelle` → `POST /api/publications`.
 Champs structurants : branche, spécialités (multiples), séniorités (multiples), compétences requises,
@@ -636,6 +670,9 @@ l'expose**. « Code » = un déploiement est nécessaire.
 | `verification_providers.confidence_threshold` sur la ligne expert | 7 — **lue puis JAMAIS utilisée** par le chemin expert | colonne | — |
 | Seuil de vérification d'entreprise | **7 / 10** (`ai_coherence_check`) | `verification_providers.confidence_threshold` | **Back-office** `/admin/seuils` |
 | Ligne absente pour un pays | **refus explicite**, revue manuelle, aucun appel IA | **Code** — plus aucun repli (§E.11) | — |
+| Pays ayant un décideur configuré | **la France seule** (`ai_web_search` + `official_api`) | `verification_providers` | **Écriture de données** — plus un déploiement |
+| Format du numéro d'identification | **FR seule renseignée** (« SIREN », 9 chiffres) ; ailleurs **aucune règle ⇒ saisie acceptée** | `countries.registre_numero_*` | **Écriture de données** |
+| Motif de mise en revue | **INTERNE** — `verification_data.motif_revue` (code + détail), lisible **sur la fiche back-office UNIQUEMENT** | **Code** | — |
 | « Jamais d'auto-rejet » | — | **Code** — règle métier | Arbitrage |
 | Résumé de profil | **200–800 caractères** | **Code** `lib/profile-visibility.ts` | Déploiement |
 | Document envoyé au moteur | 25 compétences · 6 expériences · 300 car. chacune | **Code** | Déploiement |

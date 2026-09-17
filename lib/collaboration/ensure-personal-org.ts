@@ -68,7 +68,7 @@ export async function ensurePersonalOrg(
   // ── Expert uniquement ────────────────────────────────────────────────────
   const { data: userRow, error: userErr } = await admin
     .from('users')
-    .select('user_type, first_name, last_name, country')
+    .select('user_type, first_name, last_name')
     .eq('id', userId)
     .maybeSingle()
   if (userErr || !userRow) {
@@ -140,7 +140,22 @@ export async function ensurePersonalOrg(
   //  refuser ici est visible, réparable en un champ, et ne coûte à l'expert
   //  que d'achever l'adresse qu'il a commencée. Le refus est nommé pour que
   //  l'écran sache quoi en dire.
-  const paysExpert = (userRow.country as string | null)?.trim() || null
+  //  ⚠️ IL VIT SUR `profiles`, PAS SUR `users`. Une première version lisait
+  //  `users.country` : la colonne n'existe pas. Les clients Supabase n'étant
+  //  pas typés (§E.1), ni `tsc` ni `next build` ne l'auraient vu — c'est
+  //  l'appel réel qui aurait échoué, et l'expert aurait perdu sa publication
+  //  sur une colonne fantôme. Vérifié contre la baseline : `profiles.country`,
+  //  `character varying(2)`, indexée `idx_profiles_country`.
+  const { data: profilRow, error: profilErr } = await admin
+    .from('profiles')
+    .select('country')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (profilErr) {
+    console.error('[ensure-org] profile country lookup failed', profilErr.message)
+    return { ok: false, code: 'db_error', message: 'Query failed', status: 500 }
+  }
+  const paysExpert = (profilRow?.country as string | null)?.trim() || null
   if (!paysExpert) {
     return {
       ok: false,

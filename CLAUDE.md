@@ -466,15 +466,26 @@ la ligne manque :
 
 | Chemin | Configuration absente ⇒ | Verdict |
 |---|---|---|
-| `expert-verification` | `pending_admin_review`, motif nommé, **aucun appel IA** | ✔ |
-| `publication-verification` | `pending_review`, motif nommé, **aucun appel IA** | ✔ |
-| `verification/index` | ~~`FALLBACK_DECISION_THRESHOLD = 7`~~ | ✘ **devinait** |
+| `verification/index` (organisation) | `pending_admin_review`, motif nommé, **aucun appel IA** | ✔ |
+| `expert-verification` | ~~`request_timeout_ms: 45000`, `web_search_max_uses: 4`, `domain_mismatch_cap: 5`~~ | ✘ **inventait trois valeurs** |
+| `publication-verification` | ~~`{ threshold: 0, active: false }`~~ | ✘ **inventait un seuil** |
 
-Le troisième tranchait sur un nombre **que personne n'avait choisi et qu'aucun écran ne montrait** —
-et son propre en-tête annonçait « fallback threshold = **9** » pendant que la constante valait **7**.
-Il fallait lire les deux pour le voir.
-**Aligné** : plus aucun repli, refus explicite avec motif nommé, **avant** toute dépense — on ne paie
-pas une décision qu'on ne saura pas trancher.
+⚠️ **CE TABLEAU A LONGTEMPS DIT L'INVERSE.** Il donnait les deux chemins expert et publication pour
+alignés, et le chemin organisation pour le seul fautif. C'était vrai **une fois le chemin
+organisation corrigé**, et faux pour les deux autres, que personne n'avait relus depuis. Le chemin
+organisation tranchait sur un `FALLBACK_DECISION_THRESHOLD = 7` **que personne n'avait choisi et
+qu'aucun écran ne montrait** — et son propre en-tête annonçait « fallback threshold = **9** »
+pendant que la constante valait **7**. Il fallait lire les deux pour le voir.
+
+**La forme est le piège.** `{ threshold: 0, active: false }` a l'air prudent : `active: false`
+semble tout désamorcer. Mais le zéro est un **seuil valide** ; il suffit qu'un appelant lise
+`threshold` sans regarder `active` pour que **tout passe**. Un réglage inventé est pire qu'un
+réglage absent : **il a l'air d'avoir été décidé.**
+
+**Les trois sont alignés** : plus aucun repli, refus explicite avec motif nommé, **avant** toute
+dépense — on ne paie pas une décision qu'on ne saura pas trancher. Et `expert-verification` a perdu
+son `limit(1)` : **zéro ligne** rend `null`, **plusieurs** rend un refus nommé (configuration
+ambiguë) au lieu d'en élire une silencieusement.
 La même famille frappait **l'origine du site** : huit endroits construisaient leurs liens d'e-mail
 sur `NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'`. En production, une variable oubliée envoyait
 à de **vrais destinataires** des liens vers `localhost` — approbation d'expert, refus d'organisation,
@@ -526,9 +537,12 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **62** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
-16/09/2026 — ce document disait 51 / 35 / 1913 ; les trois chiffres avaient vieilli sans que rien ne
-le signale, et c'est précisément pour ça qu'ils sont désormais **relus par un contrôle**, §E.16).
+Sur les **64** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
+17/09/2026 — les deux dernières, `format_numero_identification` et `pays_du_profil_sans_defaut`,
+**n'insèrent rien** : elles ajoutent des colonnes, retirent deux `DEFAULT 'FR'` et mettent à jour la
+seule ligne `FR`, d'où trois compteurs inchangés. Ce document disait 51 / 35 / 1913 ; les chiffres
+avaient vieilli sans que rien ne le signale, et c'est précisément pour ça qu'ils sont désormais
+**relus par un contrôle**, §E.16).
 
 > ⚠️ **ET IL DIT CE QU'IL NE SAIT PAS LIRE.** Les 12 `insert … select … from (values …) cross join`
 > sont déclarées **non analysables**, nommément, plutôt que jugées. Un contrôle qui invente un verdict
@@ -598,7 +612,12 @@ mensonge : chacune était vraie à sa date. C'est ce qui les rend coûteuses —
 **Les quatre familles, et ce qu'elles révèlent :**
 · **un défaut ou une colonne qui ne gouverne rien** — le seuil « 9 » de la vérification d'entreprise
   appartenait à `sirene_insee`, dont le `confidence_threshold` n'est lu nulle part. C'est la
-  **deuxième colonne inerte** du projet, et la mémoire ne la signalait pas ;
+  **troisième occurrence** de cette famille, après la colonne inerte du chemin expert et le
+  `packages.max_seats` affiché sans effet (§P4.4) — et la mémoire ne la signalait pas.
+  **Traitée** : `/admin/seuils` déclare désormais `official_api` avec `cle_decisive: null`, et
+  l'écran affiche « aucune valeur décisive » **au lieu d'un champ éditable** qui aurait présenté le
+  9 inerte comme réglable — et dont l'enregistrement aurait été refusé par la garde de colonne
+  inerte. §D.7 : **un réglage règle quelque chose, ou il le dit** ;
 · **une règle énoncée plus largement qu'elle ne l'est** — « la seule route sans `requireAuth` » :
   elles sont **18 sur 128** ;
 · **un inventaire incomplet, qui se lit comme exhaustif** — 18 tables sur 64 manquaient, dont
@@ -690,6 +709,45 @@ jumeau**. Une saisie de téléphone ([components/phone/SaisieTelephone.tsx](comp
 un parcours OTP ([components/PhoneOtpField.tsx](components/PhoneOtpField.tsx)), trois usages.
 `scripts/diag-saisie-telephone.mjs` **rougit** si une seconde implémentation réapparaît — c'est la
 seule forme qui empêche la divergence de revenir.
+
+**E.17 — UN CHAMP QUE LE FORMULAIRE NE DEMANDE PAS REÇOIT UNE VALEUR EN DUR — ET CETTE VALEUR
+CHOISIT UN COMPORTEMENT AILLEURS.**
+Le formulaire d'inscription d'organisation ne demandait **pas** le pays du siège. Il postait
+`country_code: 'FR'` ; la finalisation retombait sur `?? 'FR'` ; la colonne portait
+`default 'FR'`. **Trois endroits**, et aucun choix.
+
+Ça se lit comme cosmétique. Ça ne l'est pas : `verification_providers` **sélectionne le registre
+officiel SUR CE CODE**. Une société marocaine était donc cherchée dans **Sirene**, absente, et
+renvoyée en `pending_admin_review`. Le champ était en **lecture seule** sur son écran : elle ne
+pouvait même pas se corriger. Cul-de-sac parfait, et **invisible** — l'écran affichait « Pays :
+FR », ce qui ressemble à une donnée, pas à une décision du code.
+
+**La question qui a décidé du correctif n'était pas « quels pays ajouter ».** C'était : *la revue
+humaine est-elle un repli acceptable ou un cul-de-sac ?* Réponse lue dans le code : **c'est le repli
+CONÇU** — refus explicite sans dépense, « jamais de rejet automatique », écran qui dit déjà « En
+cours de revue ». Le défaut n'était donc pas d'arriver là ; c'était d'y arriver **pour la mauvaise
+raison**, et que rien ne distingue les deux.
+
+**Le second piège est de FORME, et il est plus retors.** Le motif de mise en revue était écrit dans
+`verification_data.notes` — et la fiche back-office affiche `notes` sous le libellé **« Note IA »**.
+On lisait donc « Aucun appel IA n'a été fait » **sous** « Note IA ». Et ces branches écrivaient
+`score: 0`, rendu **« 0 » en rouge** : une organisation étrangère au dossier parfait ressemblait à un
+zéro pointé. **Rien n'était faux au sens strict — et tout se lisait à l'envers.**
+
+**Ce qu'il faut retenir, et qui vaut au-delà du pays :**
+· une valeur **par défaut** sur un champ non demandé est un **choix fait à la place de quelqu'un**,
+  et il ne se signale jamais ;
+· chercher les autres occurrences **par balayage**, pas de mémoire — l'audit en avait compté deux,
+  le dépôt en portait **cinq** (`register-org`, `finalize-org-registration`, le défaut de colonne,
+  `ensurePersonalOrg`, et les deux écrans de profil expert) ;
+· un **refus** rendu à l'utilisateur et un **motif** destiné à l'exploitant ne sont pas le même
+  texte, et ne doivent pas partager le même champ ;
+· `score: null` quand rien n'a été noté. **Un score inventé a l'air d'avoir été décidé.**
+
+`scripts/diag-pays-organisation.mjs` garde les quatre points, **exceptions nommées** (`sirene.ts`
+garde `country_code !== 'FR'` et ses neuf chiffres : Sirene **est** le registre français), et il lit
+le **code seul** — ce lot cite « FR » partout pour expliquer ce qu'il a retiré, et un contrôle naïf
+rougirait sur sa propre explication.
 
 ---
 
