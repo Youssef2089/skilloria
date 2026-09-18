@@ -1213,12 +1213,15 @@ se serait rejouée **avant** elles sur une base vierge.
 > chronologique tient. Mais la plage existe *pour* éviter la collision, et celle-ci a déjà coûté un
 > renumérotage en urgence.
 >
-> **Les quatre sont DÉSORMAIS APPLIQUÉES en base** — ce paragraphe disait « trois des quatre », et
-> c'était vrai à sa date : la quatrième était alors **renommable**, et le gel ne disait pas laquelle.
-> C'était la seule ligne gelée du dépôt sans raison individuelle (§G.8). **La fenêtre est refermée**
-> depuis que le tronc a été poussé : disque = **65** migrations (mesuré le 18/09/2026), base = 65
-> **déclaré par Youssef, non lu depuis le dépôt** — la requête de vérification est en tête du gel
-> dans [scripts/diag-migration-donnees.mjs](scripts/diag-migration-donnees.mjs). Les renommer ferait diverger
+> **Les quatre sont APPLIQUÉES en base — MESURÉ le 18/09/2026.** Ce paragraphe disait « trois des
+> quatre », et c'était vrai à sa date : la quatrième était alors **renommable**, et le gel ne disait
+> pas laquelle. C'était la seule ligne gelée du dépôt sans raison individuelle (§G.8).
+> **La fenêtre est refermée** : disque = **65** migrations (compté dans le dépôt), et la requête sur
+> `supabase_migrations.schema_migrations` — celle qui est en tête du gel dans
+> [scripts/diag-migration-donnees.mjs](scripts/diag-migration-donnees.mjs) — a rendu **quatre
+> lignes**. Le gel est **définitif**.
+> ⚠️ La mesure vient d'une **lecture humaine sur la base**, pas du dépôt : aucun contrôle ne peut la
+> refaire tout seul (§E.12). Les renommer ferait diverger
 > `supabase_migrations.schema_migrations` du disque, donc **rejouer des migrations déjà passées**.
 > On ne corrige pas le passé : **on l'inscrit, et on ferme l'avenir.**
 >

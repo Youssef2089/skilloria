@@ -680,9 +680,13 @@ section('E. La plage de numerotation du worktree — un CLIQUET')
    *    individuelle. La fenetre est refermee — le tronc a ete pousse depuis, et
    *    les 65 migrations du disque sont appliquees.
    *
-   * ⚠️ ET CET ETAT NE SE LIT PAS DEPUIS LE DEPOT. Ce script tourne sans base,
-   *    par construction (§E.12). L'etat ci-dessus est DECLARE par Youssef le
-   *    18/09/2026, pas mesure ici. Pour le verifier, dans l'editeur SQL :
+   * ✅ ETAT MESURE LE 18/09/2026. La requete ci-dessous a ete jouee sur la base
+   *    de production par Youssef : QUATRE LIGNES. Les quatre sont appliquees,
+   *    LE GEL EST DEFINITIF, et aucune n'est renommable.
+   *
+   *    ⚠️ Ce script, lui, ne peut toujours PAS le lire : il tourne sans base,
+   *    par construction (§E.12). La mesure vient d'une lecture humaine, a sa
+   *    date, et la requete reste ici pour qu'on puisse la refaire :
    *
    *      select version from supabase_migrations.schema_migrations
    *       where version in ('20260916100000','20260916110000',
@@ -726,8 +730,8 @@ section('E. La plage de numerotation du worktree — un CLIQUET')
   if (horsPlage.length > 0) {
     console.log(`  note dette gelee : ${horsPlage.length} migration(s) du tronc en 1xxxxx,`)
     console.log('         APPLIQUEES en base — irrenommables sans les rejouer.')
-    console.log('         (etat DECLARE, non lu d ici : la requete de verification')
-    console.log('          est en tete du gel, dans ce fichier.)')
+    console.log('         (MESURE le 18/09/2026 — quatre lignes en base. Ce script ne')
+    console.log('          sait pas le lire : la requete est en tete du gel.)')
   }
 }
 
