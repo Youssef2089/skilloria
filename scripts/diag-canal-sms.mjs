@@ -58,7 +58,15 @@ const sansCommentaires = (src) =>
     })
     .join('\n')
 
-/** Tous les fichiers .ts de app/ et lib/ — les clients Supabase ne sont pas typés, on balaie les deux. */
+/**
+ * Tous les fichiers .ts/.tsx de app/, lib/ ET components/.
+ *
+ * ⚠️ `components/` A MANQUE JUSQU'AU 18/09/2026, et l'omission n'etait pas
+ *    neutre : c'est precisement la ou vit la branche cliente du canal SMS
+ *    (`SettingsView`). Le controle pouvait donc etre vert en ignorant le seul
+ *    endroit ou un interrupteur SMS s'affiche a un utilisateur. §E.15 : un
+ *    composant client porte parfaitement une regle serveur.
+ */
 function fichiersTs(racine) {
   const out = []
   const parcourir = (rel) => {
@@ -71,10 +79,10 @@ function fichiersTs(racine) {
   parcourir(racine)
   return out
 }
-const SOURCES = [...fichiersTs('app'), ...fichiersTs('lib')]
+const SOURCES = [...fichiersTs('app'), ...fichiersTs('lib'), ...fichiersTs('components')]
 
 console.log('\n━━━ LE CANAL SMS DES NOTIFICATIONS ━━━')
-console.log(`    ${SOURCES.length} fichiers balayés (app/ + lib/)`)
+console.log(`    ${SOURCES.length} fichiers balayés (app/ + lib/ + components/)`)
 
 // ═══════════════════════════════════════════════════════════════════════════
 titre('(A) LE CANAL EST FERMÉ, ET FERMÉ PAR DÉFAUT')
@@ -108,7 +116,9 @@ titre('(C) AUCUN AUTRE CHEMIN N’ATTEINT L’ENVOYEUR DE NOTIFICATION')
 // ═══════════════════════════════════════════════════════════════════════════
 
 //   Le canal peut aussi revenir SANS toucher au dispatcher : il suffit qu'un
-//   nouveau code appelle `sendSms` directement. On balaie donc app/ et lib/.
+//   nouveau code appelle `sendSms` directement. On balaie donc app/, lib/ ET
+//   components/ — un composant qui importerait l'envoyeur rouvrirait la dépense
+//   depuis le navigateur, ce que rien d'autre ici ne verrait.
 const appelants = []
 for (const f of SOURCES) {
   if (f === 'lib/sms/vonage.ts') continue
@@ -182,6 +192,50 @@ ok('le gabarit SMS existe toujours', existe('lib/sms/templates.ts'))
 ok('runChannel sait toujours traiter le canal SMS',
   /channel === 'sms'/.test(DISPATCH),
   'la mécanique doit rester : on coupe l’emprunt du canal, on ne démolit pas la route')
+
+// ═══════════════════════════════════════════════════════════════════════════
+titre('(G) LA BRANCHE CLIENTE EST INATTEIGNABLE — ET LE CONTRÔLE DIT POURQUOI')
+// ═══════════════════════════════════════════════════════════════════════════
+
+//   L'écran des paramètres porte, lui aussi, du code V2 : `SettingsView` sait
+//   rendre une ligne SMS (libellé, numéro, état « indisponible » sans téléphone
+//   vérifié). Un balayage naïf de `components/` la signalerait comme une
+//   promesse non tenue. ELLE N'EN EST PAS UNE : elle est INATTEIGNABLE, et elle
+//   l'est PAR LES DEUX BOUTS, côté serveur :
+//     • en LECTURE  — le GET ne sert que `canauxOuvertsDe(def.channels)` : aucune
+//       ligne de canal fermé n'arrive jamais à l'écran, donc la branche ne se
+//       rend pas ;
+//     • en ÉCRITURE — le PATCH valide par `eventHasChannel`, qui commence par
+//       `canalOuvert(channel)` : une préférence SMS postée à la main est refusée.
+//
+//   POURQUOI LE CONTRÔLE DOIT LE SAVOIR, ET NON L'IGNORER. Un contrôle qui ne
+//   connaît pas un code V2 légitime finit par le faire supprimer : quelqu'un
+//   cherchera du code mort, trouvera cette branche, et la retirera « pour
+//   nettoyer » — en même temps que la moitié du travail à refaire le jour où le
+//   canal rouvre. On l'ÉPROUVE donc dans les deux sens : la branche doit
+//   EXISTER, et les deux fermetures doivent TENIR. Si l'une des deux saute, ce
+//   n'est plus du code conservé, c'est un interrupteur inerte servi à
+//   l'utilisateur.
+const ECRAN_PREFS = 'components/settings/SettingsView.tsx'
+ok(`${ECRAN_PREFS} existe encore`, existe(ECRAN_PREFS))
+if (existe(ECRAN_PREFS)) {
+  const ECRAN = sansCommentaires(read(ECRAN_PREFS))
+  ok('l’écran sait TOUJOURS rendre une ligne SMS (code V2 conservé, pas démoli)',
+    /channel === 'sms'/.test(ECRAN),
+    'retirée, elle sera à réécrire le jour de la réouverture — et §D.2 dit que ce jour viendra')
+  ok('l’écran ne fabrique AUCUNE ligne SMS lui-même : il rend ce que le serveur donne',
+    !/channel:\s*'sms'/.test(ECRAN),
+    'une ligne posée côté client remettrait un interrupteur que rien n’honore')
+}
+// Les deux fermetures qui rendent la branche inatteignable sont déjà éprouvées
+// en (D) — on les NOMME ici pour que le lien entre l'écran et elles soit écrit,
+// et non reconstruit de mémoire par le prochain lecteur.
+ok('fermeture en LECTURE : le GET réduit aux canaux ouverts (cf. section D)',
+  /canauxOuvertsDe\(def\.channels\)/.test(PREFS_ROUTE),
+  'sans elle, la branche SMS de l’écran se rendrait — et promettrait un envoi qui n’aura pas lieu')
+ok('fermeture en ÉCRITURE : le PATCH refuse un canal fermé (cf. section D)',
+  /if \(!canalOuvert\(channel\)\) return false/.test(CATALOG),
+  'sans elle, une préférence SMS serait STOCKÉE, et se lirait plus tard comme un choix de l’utilisateur')
 
 // ═══════════════════════════════════════════════════════════════════════════
 console.log(`\n━━━ ${echecs === 0 ? 'TOUT VERT' : `${echecs} ÉCHEC(S)`} ━━━\n`)

@@ -104,9 +104,25 @@ const dansLes4Langues = (chemin) =>
     return typeof v === 'string' && v.trim().length > 0
   })
 
-// Les sources parcourues couvrent app/ ET lib/ : un client Supabase n'est pas
-// typé, un balayage qui s'arrête à app/ rate la moitié du code qui écrit.
-const sources = ['app', 'lib'].flatMap((d) => fichiers(d))
+// Les sources parcourues couvrent app/, lib/ ET components/ : un client
+// Supabase n'est pas typé, et un balayage qui s'arrête à app/ rate la moitié
+// du code qui écrit.
+//
+// ⚠️ `components/` a manqué ici jusqu'au 18/09/2026, alors que §E.15 est NÉE
+//    de ce dossier : PublicationForm importait PUBLICATION_TTL_DAYS et aurait
+//    annoncé 30 jours pendant que le serveur en appliquait 20. La règle des
+//    durées est gardée depuis (diag-durees-reglables balaie les trois) ; celle
+//    des RÉGLAGES ne l'était pas. Un composant client qui recopie une valeur
+//    réglable la fige dans le bundle, et l'écran diverge du serveur sans que
+//    rien ne le dise.
+//
+//    MESURE AU 18/09/2026 : aucun composant ne reconstruit ni ne recopie une
+//    règle gardée ici. Deux en importent une de `lib/org-logo` — taille et
+//    types de logo — mais celle-là vit en CODE, pas en base : serveur et
+//    client lisent le même module, ils ne peuvent pas diverger. C'est la FORME
+//    de §E.15 sans le défaut ; elle en deviendra un le jour où ce réglage
+//    passera en base, et c'est ce jour-là que ce balayage servira.
+const sources = ['app', 'lib', 'components'].flatMap((d) => fichiers(d))
 
 console.log('\nLOT 4B — LES RÉGLAGES QUI NE RÉGLAIENT RIEN\n')
 

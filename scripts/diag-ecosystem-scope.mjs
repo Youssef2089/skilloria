@@ -311,6 +311,51 @@ ok(libPerimes.length === 0,
   'aucune entree lib/ perimee',
   libPerimes.length ? `declares mais ne touchent plus ces tables : ${libPerimes.join(' · ')}` : undefined)
 
+// ═══ A2 bis. `components/` N'ATTEINT AUCUNE TABLE CLOISONNEE — ZERO, PAS ═════
+// ═══           « DECLARE ». Et ce n'est pas la meme regle qu'en A1 / A2.   ═════
+section('A2 bis. Aucun composant ne lit une table cloisonnee')
+
+//   POURQUOI UNE REGLE PLUS DURE ICI, ET PAS UN INVENTAIRE DE PLUS.
+//   Un composant s'execute dans le NAVIGATEUR, avec la cle anon. S'il lisait
+//   `publications`, `candidatures` ou `conversations`, le filtre d'ecosysteme
+//   serait pose PAR LE CLIENT — c'est-a-dire pas pose du tout : §D.3 rappelle
+//   que `x-subdomain` est falsifiable, et que la garde recroise l'en-tete avec
+//   `users.domain_id` AU SERVEUR. Il n'existe donc aucun mode legitime
+//   (`scoped`, `expert`, `exempt`) pour un composant : la reponse est ZERO.
+//
+//   MESURE AU 18/09/2026 : zero. Cette section ne repare rien — elle GARDE un
+//   etat deja sain, au moment ou c'est gratuit. §E.18 : le seul moment ou il
+//   est bon marche de fermer un trou est celui ou l'on n'est pas encore tombe
+//   dedans. Jusqu'ici ce diagnostic ignorait `components/` : il etait vert
+//   PARCE QU'IL NE REGARDAIT PAS.
+
+function parcourirComposants(dir, out = []) {
+  for (const e of readdirSync(dir)) {
+    const p = join(dir, e)
+    if (statSync(p).isDirectory()) parcourirComposants(p, out)
+    else if (e.endsWith('.ts') || e.endsWith('.tsx')) out.push(p)
+  }
+  return out
+}
+
+const COMPOSANTS_DIR = join(ROOT, 'components')
+const composants = parcourirComposants(COMPOSANTS_DIR)
+  .map((p) => `components/${relative(COMPOSANTS_DIR, p).split('\\').join('/')}`)
+  .sort()
+
+ok(composants.length > 50,
+  `le balayage voit bien components/ (${composants.length} fichiers)`,
+  'un balayage qui ne trouve presque rien passerait pour vert sans rien verifier')
+
+const composantsFautifs = composants.filter((c) => atteintTableCloisonnee(read(c)))
+ok(composantsFautifs.length === 0,
+  'aucun composant ne lit une table cloisonnee directement',
+  composantsFautifs.length
+    ? `${composantsFautifs.join(' · ')} — le cloisonnement se pose au SERVEUR (§D.3). ` +
+      'Passez par une route, qui filtre avec activeEcosystemId(auth).'
+    : undefined)
+
+
 // ═══ A3. LES MODULES `ligne` PORTENT VRAIMENT LEUR FILTRE ══════════════════
 section('A3. Les modules qui LISTENT portent le filtre')
 
