@@ -158,6 +158,25 @@ orphelines) : `domains`, `domain_configs`, `branches`, `specialities`, `countrie
 d'environnement et les sous-domaines Vercel. Ils vivent dans
 [docs/mise-en-production.md](mise-en-production.md).
 
+**⑦ bis — LE PROBLÈME DU JOUR ZÉRO : personne ne pouvait administrer une production neuve.**
+Les deux chemins qu'on croirait ouverts sont fermés, et **aucun des deux ne le dit** :
+`POST /api/admin/create-admin` est gardée par `requireAdmin` **et** exige un jeton de
+re-authentification — il faut déjà en être un ; et une inscription ordinaire ne peut pas produire un
+administrateur, parce que `handle_new_user` ne connaît que expert / cdi / entreprise / cabinet et,
+pour tout autre rôle, fait `RAISE WARNING` puis `RETURN NEW` — compte `auth.users` créé, **aucune**
+ligne `public.users`, aucune erreur remontée : un compte fantôme qui **occupe l'adresse e-mail**.
+L'en-tête de la route l'écrivait déjà — *« ce bootstrap-là est un chantier distinct »* — et le
+chantier n'existait nulle part.
+[scripts/creer-premier-administrateur.mjs](../scripts/creer-premier-administrateur.mjs) le ferme : il
+refait **exactement** ce que fait la route (rôle de pont `entreprise`, vérification du miroir,
+bascule en `user_type='admin'` / `status='active'`, constat que le **siège plateforme** a été pourvu
+par son trigger), sous la garde d'écriture (§E.4), **et il refuse de servir une seconde fois** —
+sinon il serait une porte dérobée permanente, sans re-authentification ni trace nominale.
+Il **n'envoie pas** l'invitation : l'écran « mot de passe oublié » est déjà ce chemin, et en écrire
+un second en ferait un jumeau (§E.20).
+⚠️ Il écrit en base **hors du périmètre** de `diag-scripts-destructeurs` (qui ne balaie que
+`scripts/diag-*.mjs`) : il est **gardé**, pas **découvert** — quatrième cas de l'angle mort de §E.4.
+
 **⑧ Le format du numéro d'identification quitte le code pour le référentiel pays.**
 Migration `format_numero_identification`. `countries` gagne `registre_numero_libelle`,
 `registre_numero_exemple`, `registre_numero_longueur_min`, `registre_numero_longueur_max`,
@@ -441,8 +460,13 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 
 **Mise en production**
 - Le paramétrage de référence est versionné (§B.2 ⑦). **Ce qui ne peut pas l'être** — deux secrets du
-  Vault, réglages d'authentification, variables d'environnement, sous-domaines — est décrit pas à pas
-  dans [docs/mise-en-production.md](mise-en-production.md), pour quelqu'un de non technique.
+  Vault, réglages d'authentification, variables d'environnement, sous-domaines, **et le premier
+  administrateur** — est décrit pas à pas dans [docs/mise-en-production.md](mise-en-production.md),
+  pour quelqu'un de non technique. **Huit** étapes, et l'ordre a été corrigé le 18/09/2026 : la
+  vérification des tâches planifiées demande d'ouvrir le back-office, donc elle suppose les variables
+  d'environnement, les sous-domaines **et un administrateur** — elle était placée en quatrième
+  position, où elle est **inatteignable**. Le document annonçait pourtant « l'ordre compte : chacune
+  suppose la précédente ». Elle est désormais la dernière.
 - **Quatre** des huit tâches planifiées passent par `trigger_purge_cron` et **lèvent** sans les deux
   secrets du Vault : `purge_deletions_trigger`, `purge_inactive_trigger`, `matching_retry_trigger`,
   `expert_relance_trigger`. Les deux premières portent une **obligation légale** (RGPD art. 17 et

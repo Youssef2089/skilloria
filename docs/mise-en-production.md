@@ -19,17 +19,18 @@ Elle couvre **tout ce qui ne peut pas vivre dans le dépôt** : des secrets, des
 
 ## L'ordre des opérations
 
-Sept étapes. **L'ordre compte** : chacune suppose la précédente.
+Huit étapes. **L'ordre compte** : chacune suppose la précédente.
 
 | | Étape | Où |
 |---|---|---|
 | 1 | Appliquer les mises à jour de base | Base de données |
-| 2 | Vérifier que le paramétrage est arrivé | Base de données |
+| 2 | Vérifier que le paramétrage est bien arrivé | Base de données |
 | 3 | Poser les deux secrets du coffre-fort | Supabase → Vault |
-| 4 | Vérifier que les tâches planifiées tournent | Supabase |
-| 5 | Régler l'authentification | Supabase → Authentication |
-| 6 | Poser les variables d'environnement | Vercel |
-| 7 | Brancher les sous-domaines | Vercel |
+| 4 | Régler l'authentification | Supabase → Authentication |
+| 5 | Poser les variables d'environnement | Vercel |
+| 6 | Brancher les sous-domaines | Vercel |
+| 7 | Créer le premier administrateur | Votre machine (une fois) |
+| 8 | Vérifier que les tâches planifiées tournent | Supabase |
 
 ---
 
@@ -118,28 +119,7 @@ Si une ligne manque ou si `longueur` vaut 0, le secret n'est pas posé — repre
 
 ---
 
-# ÉTAPE 4 — Vérifier que les tâches planifiées tournent vraiment
-
-Poser les secrets ne prouve pas qu'ils sont **bons**. Un secret différent de celui de Vercel donnerait un refus poli, invisible.
-
-1. Ouvrez l'application, connectez-vous en administrateur.
-2. Allez sur **/admin/taches-planifiees**.
-3. Vous devez voir **huit** tâches.
-4. Choisissez `matching_retry_trigger` — c'est la moins risquée à déclencher : si elle n'a rien à faire, elle ne fait rien.
-5. Cliquez sur **Exécuter maintenant**.
-6. Attendez une minute, puis ouvrez l'historique de cette tâche.
-
-**Comment savoir que c'est bon :** la dernière exécution montre un appel qui a **abouti**, avec un code de réponse `200`.
-
-**Si vous voyez `401`** : le `cron_secret` du coffre-fort ne correspond pas au `CRON_SECRET` de Vercel. Reprenez l'étape 3, en recopiant la valeur **exactement** (attention aux espaces ajoutés par le copier-coller).
-
-**Si vous voyez une erreur de connexion** : `purge_cron_base_url` est faux, ou porte une barre oblique finale.
-
-> **Pourquoi ce détour ?** La base envoie sa demande et n'attend pas la réponse. La liste des exécutions dirait donc « réussi » même sur un refus. Seul l'historique détaillé porte le vrai code.
-
----
-
-# ÉTAPE 5 — Régler l'authentification
+# ÉTAPE 4 — Régler l'authentification
 
 Ces réglages vivent dans votre compte Supabase et **ne sont pas repris par les mises à jour**. Ils sont à refaire à la main sur chaque environnement.
 
@@ -154,7 +134,6 @@ Supabase → **Authentication** → **URL Configuration** :
    https://microsoft.skilloria.io/de/auth/callback
    ```
    *Remplacez `microsoft` par le sous-domaine de chaque écosystème actif, et répétez les quatre langues.*
-
 Supabase → **Authentication** → **Emails** :
 
 3. **SMTP** : renseignez votre fournisseur d'envoi. Sans SMTP propre, Supabase utilise un service de démonstration **limité à quelques messages par heure** — largement insuffisant, et les inscriptions échoueraient sans message clair.
@@ -164,7 +143,7 @@ Supabase → **Authentication** → **Emails** :
 
 ---
 
-# ÉTAPE 6 — Poser les variables d'environnement
+# ÉTAPE 5 — Poser les variables d'environnement
 
 Vercel → votre projet → **Settings** → **Environment Variables**.
 
@@ -228,7 +207,7 @@ Tant que le lancement est gratuit, **aucune clé Stripe sur Production**. Quand 
 
 ---
 
-# ÉTAPE 7 — Brancher les sous-domaines
+# ÉTAPE 6 — Brancher les sous-domaines
 
 Chaque écosystème est servi par **son propre sous-domaine**. C'est le sous-domaine qui dit à l'application quel écosystème afficher — il n'y a **aucun réglage** pour cela, et aucun nom n'est écrit dans le code.
 
@@ -241,6 +220,79 @@ Pour **chaque** ligne active de la table `domains` :
 **Comment savoir que c'est bon :** ouvrez `https://<slug>.skilloria.io`. Le site s'affiche **aux couleurs de cet écosystème**, avec ses libellés.
 
 > **Si le site s'affiche en gris neutre**, c'est que le sous-domaine n'a pas été reconnu : ou bien il n'est pas branché chez Vercel, ou bien le `slug` ne correspond pas à la ligne de la table `domains`. L'application ne plante pas — elle retombe sur un affichage neutre. **C'est confortable et trompeur : vérifiez toujours les couleurs.**
+
+---
+
+# ÉTAPE 7 — Créer le premier administrateur
+
+**Sur une production neuve, personne ne peut administrer le site.** Il n'y a aucun compte administrateur, et **aucun écran ne permet d'en créer un** : l'écran qui le fait est dans le back-office, et le back-office demande d'être déjà administrateur.
+
+Cette étape est donc la seule de ce document qui ne se fasse pas depuis une interface. Elle se fait **une fois**, et une seule.
+
+> **Pourquoi une inscription normale ne suffit pas.** Si vous créez un compte depuis le site puis essayez de le passer « administrateur », vous obtenez un compte à moitié créé : la base sait créer un expert, un CDI, une entreprise ou un cabinet, et **rien d'autre**. Pour tout autre rôle elle n'échoue pas — elle se tait, et laisse un compte qui ne peut plus se connecter **et qui occupe l'adresse e-mail**. C'est exactement ce que la commande ci-dessous évite.
+
+### Ce dont vous avez besoin
+
+- une copie du dépôt sur votre machine, et `node` installé ;
+- un fichier `.env.local` contenant `NEXT_PUBLIC_SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` **de la production** ;
+- le **slug** de l'écosystème (celui que vous avez vérifié à l'étape 2), par exemple `microsoft` ;
+- l'adresse e-mail réelle du premier administrateur — c'est là qu'arrivera le lien.
+
+### La commande
+
+```bash
+node --env-file=.env.local scripts/creer-premier-administrateur.mjs \
+     --email=vous@exemple.fr --prenom=Prénom --nom=Nom \
+     --ecosysteme=microsoft --db
+```
+
+> **Sans `--db`, rien n'est écrit.** Le script vous annonce d'abord, table par table, ce qu'il ferait, et s'arrête. Lancez-le d'abord sans le drapeau : c'est la relecture, pas une perte de temps.
+
+**L'écosystème n'accorde aucun droit.** Un administrateur est **de la plateforme** : il voit tous les écosystèmes. Le slug sert seulement à rattacher le compte à une ligne existante.
+
+### Comment savoir que c'est bon
+
+Le script affiche `ADMINISTRATEUR CRÉÉ`, avec l'identifiant du compte et la mention **`siège plateforme : POURVU`**.
+
+Ce second point n'est pas décoratif : c'est la garantie « la plateforme ne peut plus tomber à zéro administrateur ». Si vous lisez autre chose, **ne continuez pas** — le compte fonctionne, mais il n'est plus protégé contre sa propre suppression.
+
+### Ouvrir la session
+
+Le compte **n'a pas encore de mot de passe**, et c'est voulu : aucun secret n'a été affiché ni écrit dans un journal.
+
+1. Ouvrez le site, cliquez sur **Mot de passe oublié**.
+2. Saisissez l'adresse que vous venez d'utiliser.
+3. Suivez le lien reçu, choisissez votre mot de passe.
+
+**Si le lien affiche une erreur d'adresse invalide** : il manque les lignes `/nouveau-mot-de-passe` dans les **Redirect URLs** de l'étape 4. C'est le chemin qu'emprunte toute réinitialisation — et toute invitation d'administrateur.
+
+### Et ensuite
+
+Les administrateurs suivants **ne passent plus par là**. Ils se créent depuis **/admin/utilisateurs → Créer un administrateur**, qui demande une re-saisie du mot de passe et laisse une trace nominale — deux choses que cette commande ne peut pas faire, puisqu'au moment où on la lance il n'y a personne pour s'authentifier.
+
+**Le script refuse de servir une seconde fois** : s'il trouve déjà un administrateur, il s'arrête et vous renvoie vers l'écran.
+
+---
+
+
+# ÉTAPE 8 — Vérifier que les tâches planifiées tournent vraiment
+
+Poser les secrets ne prouve pas qu'ils sont **bons**. Un secret différent de celui de Vercel donnerait un refus poli, invisible.
+
+1. Ouvrez l'application, connectez-vous en administrateur.
+2. Allez sur **/admin/taches-planifiees**.
+3. Vous devez voir **huit** tâches.
+4. Choisissez `matching_retry_trigger` — c'est la moins risquée à déclencher : si elle n'a rien à faire, elle ne fait rien.
+5. Cliquez sur **Exécuter maintenant**.
+6. Attendez une minute, puis ouvrez l'historique de cette tâche.
+
+**Comment savoir que c'est bon :** la dernière exécution montre un appel qui a **abouti**, avec un code de réponse `200`.
+
+**Si vous voyez `401`** : le `cron_secret` du coffre-fort ne correspond pas au `CRON_SECRET` de Vercel. Reprenez l'étape 3, en recopiant la valeur **exactement** (attention aux espaces ajoutés par le copier-coller).
+
+**Si vous voyez une erreur de connexion** : `purge_cron_base_url` est faux, ou porte une barre oblique finale.
+
+> **Pourquoi ce détour ?** La base envoie sa demande et n'attend pas la réponse. La liste des exécutions dirait donc « réussi » même sur un refus. Seul l'historique détaillé porte le vrai code.
 
 ---
 
@@ -267,5 +319,5 @@ Pour **chaque** ligne active de la table `domains` :
 
 Deux repères pour situer un problème :
 
-- **Le site s'affiche mais tout est gris** → sous-domaine (étape 7) ou paramétrage (étapes 1-2).
-- **Le site s'affiche bien mais l'inscription échoue** → variables d'environnement (étape 6) ou réglages d'authentification (étape 5).
+- **Le site s'affiche mais tout est gris** → sous-domaine (étape 6) ou paramétrage (étapes 1-2).
+- **Le site s'affiche bien mais l'inscription échoue** → variables d'environnement (étape 5) ou réglages d'authentification (étape 4).
