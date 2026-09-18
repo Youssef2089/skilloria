@@ -584,12 +584,31 @@ invitation, **toutes** les notifications, et l'avertissement d'inactivité à 23
 Source unique désormais : [lib/site-url.ts](lib/site-url.ts) — repli explicite **hors** production,
 `null` **en** production, et chaque appelant **n'envoie pas** plutôt que d'expédier un lien mort.
 Gardé par [scripts/diag-configuration-absente.mjs](scripts/diag-configuration-absente.mjs), qui
-balaie **`app/` ET `lib/`** (**445** fichiers au 16/09/2026 — ce document disait 438) et vérifie que
-chacun des 8 appelants garde.
+balaie **`app/`, `lib/` ET `components/`** — **457** fichiers `.ts`/`.tsx` au 18/09/2026 — et
+vérifie que chacun des 8 appelants garde.
 
-> ⚠️ Et il ne balaie **pas `components/`**, alors que §E.15 a montré qu'un composant client peut
-> parfaitement porter une règle serveur. **NON VÉRIFIÉ** : personne n'a cherché de repli
-> `?? 'http://localhost:3000'` dans `components/`.
+> ✅ **LE « NON VÉRIFIÉ » EST LEVÉ — ET CE QU'IL CACHAIT VAUT PLUS QUE LA RÉPONSE.**
+> Ce paragraphe disait « il ne balaie **pas** `components/` » et laissait un **NON VÉRIFIÉ** sur
+> l'existence d'un repli `localhost` dans ce dossier. **Les deux moitiés étaient fausses, et la
+> seconde l'était à cause de la première.**
+>
+> **Mesuré le 18/09/2026, deux fois :** `RACINES = ['app', 'lib', 'components']`
+> ([scripts/diag-configuration-absente.mjs:299](scripts/diag-configuration-absente.mjs#L299)) — et
+> `git log -L` sur cette ligne montre qu'elle est **dans le fichier depuis sa création** (`a5ccfb9`).
+> Le dossier n'a **jamais** été hors du balayage. Et le comptage indépendant confirme le chiffre du
+> script : `app` + `lib` + `components` = **457** fichiers ; `app` + `lib` seuls = **361**.
+> Occurrences de `localhost` dans `components/` : **zéro**, pas même en commentaire.
+>
+> **Le chiffre était juste, l'étiquette était fausse.** 438 puis 445 étaient les comptes des
+> **trois** racines aux dates dites (vérifié : `a5ccfb9` → 438, `1337324` → 445), pendant que la
+> prose les présentait comme le compte de **deux**. Le `NON VÉRIFIÉ` a donc été écrit **contre un
+> chiffre qui le contredisait déjà**, dans la même phrase.
+>
+> **La famille, et elle est neuve.** §E.16 recense le chiffre qui vieillit ; celle-ci est un chiffre
+> **juste** sous une étiquette **fausse** — plus dangereux, parce que le chiffre rend la phrase
+> crédible et qu'un relecteur vérifie le nombre, pas le nom de ce qu'on a compté. Un avertissement
+> bâti là-dessus fait chercher un défaut **là où il ne peut pas être**, et détourne du vrai
+> (§E.22 ⑨ en `components/` — cf. le sondage du lot 2).
 
 **E.12 — Une migration de DONNÉES n'est validée par rien, et son seul usage est une base que personne n'a sous la main.**
 Même famille que **E.1** (« les clients Supabase ne sont pas typés »), et pour la même raison de fond :
@@ -1193,7 +1212,31 @@ sont touchés par presque tous les lots — c'est le point de conflit structurel
 Plusieurs diagnostics vérifient qu'une clé existe **dans les quatre langues** et qu'aucune clé orpheline
 ne survit (`diag-score-de-pertinence`, `diag-murs-fermes`).
 
----
+**G.8 — UN CLIQUET FIGE UN INVENTAIRE, IL NE LE JUGE PAS — et tous les gels ne se valent pas.**
+Née du lot 1.3 : trois lignes avaient été gelées **sans être ouvertes**, au motif qu'elles
+« ressemblaient » aux autres. Elles ne leur ressemblaient pas — l'une écrivait en base, sous les yeux
+de l'administrateur, un motif faux (§E.22 ⑦).
+
+**La règle, et elle vaut pour tous les cliquets du dépôt : porter une ligne dans un gel sans l'avoir
+lue, c'est déclarer légitime ce qu'on n'a pas regardé.**
+
+**Le critère qui dit lesquels sont dangereux** — il n'était écrit nulle part, et il sépare deux
+choses qui ont la même forme :
+
+| Ce que le gel contient | Ce qu'une ligne y signifie | Ce qu'une ligne non jugée coûte |
+|---|---|---|
+| **des EXEMPTIONS** — `diag-colonnes-supprimees.DETTE`, `diag-echec-silencieux.GEL`, `diag-migration-donnees.GEL`, `diag-lot7-securite.EXCEPTIONS`, `diag-pays-organisation.EXCEPTIONS_FR` | « ce défaut-là est toléré » | **un défaut endormi**, déclaré sain par écrit |
+| **un ÉTAT MESURÉ** — `diag-embeds-ambigus.GEL_AMBIGUES` (les paires ambiguës), `diag-ecosystem-scope.INVENTORY` (le mode de chaque route) | « voici ce qui est, au moment du gel » | rien : le contrôle continue de vérifier **chaque** ligne |
+
+Un gel d'exemptions **exige une raison par entrée** — `diag-lire-comparer-ecrire` l'écrit déjà :
+*« Chaque entrée porterait sa raison — une liste sans raisons devient un tampon qu'on remplit sans
+lire. »* Un gel d'état mesuré n'en a pas besoin, et lui en demander une est du bruit.
+
+**Corollaire, et c'est le vrai piège** : un **recensement** qui ne fige rien et **n'échoue jamais**
+n'est pas un cliquet — c'est une carte. `diag-erreurs-avalees` en est une : **142** emplacements sur
+**68** fichiers (mesuré le 18/09/2026 ; ce document disait 143), aucun jugé, aucun gelé, et
+`app/` + `lib/` seulement. Une carte ne ferme aucune porte, et **personne ne sait depuis quand elle
+n'a pas été relue**.
 
 ---
 
