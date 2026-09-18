@@ -664,10 +664,37 @@ section('E. La plage de numerotation du worktree — un CLIQUET')
   const PLAGES = { '0': 'tronc', '2': 'S1', '3': 'S2' }
 
   /**
-   * LA DETTE GELEE — quatre migrations du tronc en `1xxxxx`, dont trois deja
-   * appliquees en base. Elles ne se renomment pas ; elles se disent.
+   * LA DETTE GELEE — quatre migrations du tronc en `1xxxxx`, plage que §G.2
+   * declare fausse. Chacune porte SA raison : un gel sans raison par entree
+   * devient un tampon qu'on remplit sans lire (§G.8).
+   *
+   * LA RAISON EST LA MEME POUR LES QUATRE, ET ELLE EST DESORMAIS EXACTE :
+   * elles sont APPLIQUEES EN BASE. Les renommer ferait diverger
+   * `supabase_migrations.schema_migrations` du disque, donc rejouer des
+   * migrations deja passees. On ne corrige pas le passe : on l'inscrit, et on
+   * ferme l'avenir.
+   *
+   * ⚠️ CE PARAGRAPHE A DIT « DONT TROIS DEJA APPLIQUEES » — et c'etait vrai a
+   *    sa date. La quatrieme etait donc RENOMMABLE, et le gel ne disait pas
+   *    laquelle : c'etait la seule ligne du depot gelee sans raison
+   *    individuelle. La fenetre est refermee — le tronc a ete pousse depuis, et
+   *    les 65 migrations du disque sont appliquees.
+   *
+   * ⚠️ ET CET ETAT NE SE LIT PAS DEPUIS LE DEPOT. Ce script tourne sans base,
+   *    par construction (§E.12). L'etat ci-dessus est DECLARE par Youssef le
+   *    18/09/2026, pas mesure ici. Pour le verifier, dans l'editeur SQL :
+   *
+   *      select version from supabase_migrations.schema_migrations
+   *       where version in ('20260916100000','20260916110000',
+   *                         '20260916120000','20260916130000')
+   *       order by version;
+   *
+   *    Quatre lignes ⇒ aucune n'est renommable, le gel est definitif.
+   *    Moins de quatre ⇒ celles qui manquent SONT renommables, et doivent
+   *    l'etre dans la plage `0xxxxx` avant d'etre appliquees.
    */
   const GEL = new Set([
+    // Les quatre, meme infraction, meme raison : appliquees, donc figees.
     '20260916100000_tarifs_ia.sql',
     '20260916110000_depense_ia_par_acteur.sql',
     '20260916120000_durees_reglables.sql',
@@ -698,7 +725,9 @@ section('E. La plage de numerotation du worktree — un CLIQUET')
   }
   if (horsPlage.length > 0) {
     console.log(`  note dette gelee : ${horsPlage.length} migration(s) du tronc en 1xxxxx,`)
-    console.log('         dont trois DEJA APPLIQUEES en base — irrenommables sans les rejouer.')
+    console.log('         APPLIQUEES en base — irrenommables sans les rejouer.')
+    console.log('         (etat DECLARE, non lu d ici : la requete de verification')
+    console.log('          est en tete du gel, dans ce fichier.)')
   }
 }
 
