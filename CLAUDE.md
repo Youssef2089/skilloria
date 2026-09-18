@@ -408,6 +408,16 @@ qui fige la dette fichier par fichier et refuse toute **nouvelle** occurrence. L
   clone frais, `tsc` n'a rien à y vérifier.
 Lancer l'un ne dispense donc pas de l'autre. Et **aucun des deux** ne voit E.1.
 
+> ⚠️ **ET CES FICHIERS GÉNÉRÉS PEUVENT FAIRE ROUGIR `tsc` SANS QU'UNE LIGNE DU DÉPÔT AIT BOUGÉ.**
+> Constaté le 18/09/2026 : `npx tsc --noEmit` a rendu **137 erreurs**, *toutes* dans
+> `.next/dev/types/validator.ts` et `.next/dev/types/routes.d.ts` — des fichiers **écrits à moitié**
+> par un serveur de dev (une déclaration coupée en plein milieu, suivie d'un fragment d'une autre
+> écriture). **Zéro erreur hors de `.next/`.** Le réflexe dangereux est de chercher la régression
+> dans le lot en cours ; le bon réflexe est de **séparer les erreurs par dossier d'abord** :
+> `npx tsc --noEmit 2>&1 | grep -v '^\.next/'`. Ces fichiers sont **gitignorés et régénérés** : les
+> supprimer suffit, et `tsc` repasse à 0. Un rouge qui ne vient pas du dépôt est un rouge qu'on
+> apprend à ignorer si on ne sait pas le nommer.
+
 **E.3 — Les fins de ligne CRLF cassent tout motif qui traverse un saut de ligne.**
 Le dépôt n'a **pas de `.gitattributes`** ; les fichiers sortent en CRLF. Un diagnostic dont la regex
 franchit un `\n` était **vert chez son auteur et rouge partout ailleurs** — quinze diagnostics étaient
@@ -1087,6 +1097,65 @@ faisait glisser tous les numéros du recensement. **Une mutation a aussi montré
 lâche** : `/block === 'indisponible'[\s\S]{0,400}?503/` restait verte sur
 `if (false && block === 'indisponible')`. Les conditions sont désormais **ancrées sur leur forme
 exacte**, puis on lit **leur** bloc.
+
+**E.23 — LE COMPTE FANTÔME : `auth.users` créé, `public.users` absent, et AUCUNE ERREUR.**
+C'est §E.22 sur le chemin le plus coûteux du produit — la création de compte — et sa forme la plus
+pure : **rien n'est converti, rien n'est avalé ; le succès lui-même est faux.**
+
+`handle_new_user` mappe `raw_user_meta_data->>'role'` vers `users.user_type`. Il ne connaît que
+`expert` / `cdi` / `entreprise` / `cabinet`. Pour **tout autre rôle — `admin` compris** :
+
+```sql
+IF v_user_type IS NULL THEN
+  RAISE WARNING '[handle_new_user] role inconnu: %, user % - aucun miroir cree', v_role_front, NEW.id;
+  RETURN NEW;
+END IF;
+```
+
+`RAISE WARNING` **n'annule pas la transaction**. Le compte `auth.users` est donc créé, la fonction
+rend la main **sans erreur**, et `public.users` n'a **aucune ligne**. Ce qui suit :
+· le compte passe `requireAuth` (le JWT est valide) puis **échoue partout** — `requireAdmin` lit
+  `users.user_type` et ne trouve rien ;
+· **il OCCUPE l'adresse e-mail** : la seconde tentative répond « déjà utilisée » ;
+· et **rien** ne le signale, ni à l'appelant, ni à l'écran. Seul le journal de la base porte le
+  `WARNING`, que personne ne lit.
+
+**La parade est une LECTURE, pas une confiance.** `/api/admin/create-admin` et
+[scripts/creer-premier-administrateur.mjs](scripts/creer-premier-administrateur.mjs) **relisent le
+miroir** juste après `createUser` et, s'il est absent, **suppriment le compte auth** et échouent
+proprement. Cette relecture **ressemble à une redondance** — c'est exactement le contrôle que
+quelqu'un retirera en croyant simplifier. Elle est gardée par `diag-admin-create` (trois assertions,
+pas une), et la migration est relue au passage : *si le point mort disparaît un jour, le diagnostic
+doit le dire, pas continuer à garder un fantôme.*
+
+**Le contournement assumé qui en découle** : on crée le compte avec `role: 'entreprise'` — le seul
+rôle que le trigger sait traiter et qui ne crée ni profil expert ni organisation — puis on bascule
+`user_type` en base. Écrire `'admin'` produirait le fantôme. **L'alternative propre serait une
+branche `admin` dans le trigger** ; elle n'a pas été prise, et ce paragraphe existe pour que le
+contournement ne se lise pas comme une négligence.
+
+**E.24 — UN CHIFFRE JUSTE SOUS UNE ÉTIQUETTE FAUSSE. Distinct de §E.16, et plus retors.**
+§E.16 recense le chiffre qui **vieillit** : il était vrai, il ne l'est plus, et rien ne le dit.
+Celle-ci est l'inverse : **le chiffre est exact, c'est le nom de ce qu'on a compté qui est faux.**
+
+**Le cas fondateur, mesuré le 18/09/2026.** §E.11 écrivait :
+*« `diag-configuration-absente` balaie `app/` ET `lib/` (445 fichiers) »*, et posait un
+**NON VÉRIFIÉ** sur `components/`. Or `RACINES = ['app', 'lib', 'components']` est dans ce fichier
+**depuis sa création** (`git log -L` sur la ligne, commit `a5ccfb9`), et **445 était le compte des
+trois racines** à la date citée (`app` + `lib` seuls : 354). Le nombre était juste, l'étiquette
+annonçait deux dossiers pour trois.
+
+**Pourquoi c'est plus coûteux qu'un chiffre périmé.** Un relecteur vérifie **le nombre** — il le
+recompte, il tombe juste, il passe. Il ne recompte pas **le nom de ce qu'on a compté**. Le chiffre
+exact sert alors de **caution** à la phrase fausse. Et ici la phrase fausse a produit un
+avertissement (`NON VÉRIFIÉ`) qui envoyait chercher un défaut **là où il ne pouvait pas être**,
+pendant que le vrai défaut de la même classe dormait dans `components/` (§E.22 dans le shell et les
+paramètres, fermé au lot 4.1).
+
+**Ce qu'on en tire, et c'est une règle d'écriture :** un chiffre ne s'écrit **jamais sans dire sur
+quoi il porte**, et l'étiquette se vérifie **en relisant le code qui produit le chiffre** — pas en
+recomptant. Un `NON VÉRIFIÉ` bâti sur une étiquette non relue est pire qu'un silence : il **oriente**
+la recherche, et il l'oriente à côté.
 
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
