@@ -73,13 +73,35 @@ export default function DashboardShell({
     const load = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) return
-      const [{ data: uRow }, { data: pRow }] = await Promise.all([
+      // ⚠️ L'ERREUR SE RÉCUPÈRE, ET « RIEN » N'EST PAS « PANNE » (§E.22).
+      //   Ces deux lectures ignoraient leur `error`. Une panne rendait donc
+      //   `null` — la MÊME valeur que « ce compte n'a pas de profil » — et le
+      //   shell en tirait des affirmations : nom de repli, badge « non vérifié »,
+      //   et `dashboardNavSections` verrouillait un item de navigation. Un
+      //   utilisateur parfaitement approuvé se voyait refuser une entrée de menu
+      //   parce qu'une requête avait échoué, sans une ligne de journal.
+      //   Aggravant : ce `load()` est RELANCÉ sur `sk:availability-changed` et
+      //   `sk:profile-changed` — une panne au refetch EFFAÇAIT un état déjà bon.
+      const [uRes, pRes] = await Promise.all([
         supabase.from('users').select('id, first_name, last_name, user_type').eq('id', session.user.id).maybeSingle(),
         supabase.from('profiles').select('verification_status, visible, availability_status, cdi_status').eq('user_id', session.user.id).maybeSingle(),
       ])
       if (cancelled) return
-      setUser((uRow as UserInfo | null) ?? null)
-      setProfile((pRow as ProfileInfo | null) ?? null)
+
+      // Panne de LECTURE : on garde ce qu'on savait. On n'écrase pas un état
+      // valide par une absence, et on ne fabrique pas une absence au premier
+      // chargement — l'appelant qui décide vraiment, c'est le serveur.
+      if (uRes.error) console.error('[shell] lecture users en panne', uRes.error.message)
+      else setUser((uRes.data as UserInfo | null) ?? null)
+
+      if (pRes.error) console.error('[shell] lecture profiles en panne', pRes.error.message)
+      else setProfile((pRes.data as ProfileInfo | null) ?? null)
+      // NB — le VERROU de navigation sur `userIsVerified` n'est pas touché ici :
+      // ce qu'il faut afficher quand la vérification est INCONNUE est une
+      // décision produit, pas une question de gestion d'erreur. La garde qui
+      // tranche vraiment est au serveur (`expertProfileGate`, qui distingue
+      // déjà `indisponible` → 503). Ce commentaire existe pour que l'absence de
+      // changement ici se lise comme un choix, et non comme un oubli.
     }
     void load()
     // Lot disponibilité — la pill topbar doit refléter en LIVE le statut

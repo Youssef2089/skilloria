@@ -158,27 +158,27 @@ orphelines) : `domains`, `domain_configs`, `branches`, `specialities`, `countrie
 d'environnement et les sous-domaines Vercel. Ils vivent dans
 [docs/mise-en-production.md](mise-en-production.md).
 
-**⑦ bis — CE QUI SE POSE À LA MAIN EST DÉSORMAIS GARDÉ, et le garder a trouvé un défaut.**
-Un réglage non versionnable n'a qu'une trace : la procédure qui le nomme. Ce lien ne tenait sur rien.
-[scripts/diag-parametrage-manuel.mjs](../scripts/diag-parametrage-manuel.mjs) le tient — sans base,
-sans réseau : il reconstruit depuis les migrations **quelle tâche dépend de quel secret**
-(SQL exécutable uniquement : l'en-tête de la migration *nomme* les deux secrets en commentaire, et un
-contrôle qui lirait le texte brut resterait vert après leur disparition — §E.7), puis vérifie que la
-procédure les nomme, que le **nombre de tâches annoncé** est le nombre réel (§E.16), et que le miroir
-`CRON_SECRET` existe aux deux bouts. Éprouvé par **cinq mutations**, cinq détectées.
-
-**Le défaut qu'il a trouvé en naissant** : la procédure ne listait qu'**un** chemin de redirection
-Supabase, `/auth/callback`. Le code en demande **deux** — `/<langue>/nouveau-mot-de-passe` est celui
-de toute réinitialisation de mot de passe **et de toute invitation d'administrateur**
-([lib/admin/admin-invitation.ts](../lib/admin/admin-invitation.ts),
-`app/[locale]/mot-de-passe-oublie/page.tsx`). Supabase **refuse** toute adresse absente de sa liste :
-sur une production neuve, personne n'aurait pu reprendre son compte, **et le premier administrateur
-n'aurait pas pu ouvrir sa session**. Le refus tombe sur l'utilisateur, dans un lien reçu par e-mail,
-et ne laisse aucune trace chez nous. Corrigé dans la procédure, et gardé.
-Le balayage couvre `app/`, `lib/` **et** `components/`, et il distingue par la **forme** : une adresse
-**absolue** part chez Supabase, un chemin **relatif** (`logout({ redirectTo: '/' })`) est un
-`router.push` interne. Les confondre l'aurait fait crier à tort — donc désactiver.
-
+**⑦ bis — CE QUI SE POSE À LA MAIN EST DÉSORMAIS GARDÉ, et le garder a trouvé un défaut.**
+Un réglage non versionnable n'a qu'une trace : la procédure qui le nomme. Ce lien ne tenait sur rien.
+[scripts/diag-parametrage-manuel.mjs](../scripts/diag-parametrage-manuel.mjs) le tient — sans base,
+sans réseau : il reconstruit depuis les migrations **quelle tâche dépend de quel secret**
+(SQL exécutable uniquement : l'en-tête de la migration *nomme* les deux secrets en commentaire, et un
+contrôle qui lirait le texte brut resterait vert après leur disparition — §E.7), puis vérifie que la
+procédure les nomme, que le **nombre de tâches annoncé** est le nombre réel (§E.16), et que le miroir
+`CRON_SECRET` existe aux deux bouts. Éprouvé par **cinq mutations**, cinq détectées.
+
+**Le défaut qu'il a trouvé en naissant** : la procédure ne listait qu'**un** chemin de redirection
+Supabase, `/auth/callback`. Le code en demande **deux** — `/<langue>/nouveau-mot-de-passe` est celui
+de toute réinitialisation de mot de passe **et de toute invitation d'administrateur**
+([lib/admin/admin-invitation.ts](../lib/admin/admin-invitation.ts),
+`app/[locale]/mot-de-passe-oublie/page.tsx`). Supabase **refuse** toute adresse absente de sa liste :
+sur une production neuve, personne n'aurait pu reprendre son compte, **et le premier administrateur
+n'aurait pas pu ouvrir sa session**. Le refus tombe sur l'utilisateur, dans un lien reçu par e-mail,
+et ne laisse aucune trace chez nous. Corrigé dans la procédure, et gardé.
+Le balayage couvre `app/`, `lib/` **et** `components/`, et il distingue par la **forme** : une adresse
+**absolue** part chez Supabase, un chemin **relatif** (`logout({ redirectTo: '/' })`) est un
+`router.push` interne. Les confondre l'aurait fait crier à tort — donc désactiver.
+
 **⑦ ter — LE PROBLÈME DU JOUR ZÉRO : personne ne pouvait administrer une production neuve.**
 Les deux chemins qu'on croirait ouverts sont fermés, et **aucun des deux ne le dit** :
 `POST /api/admin/create-admin` est gardée par `requireAdmin` **et** exige un jeton de
@@ -453,12 +453,44 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   ⚠️ **Trois des neuf ont été trouvés APRÈS un premier gel trop confiant.** Un cliquet fige un
   inventaire, il ne le juge pas : y mettre une ligne sans l'ouvrir, c'est déclarer légitime ce
   qu'on n'a pas lu. La leçon vaut pour tous les cliquets du dépôt.
-- Ce qui reste ouvert, et c'est un **choix de couverture, pas un défaut** :
-  [scripts/diag-erreurs-avalees.mjs](../scripts/diag-erreurs-avalees.mjs) recense **143 emplacements
-  sur 68 fichiers** de la même famille élargie (erreur **non lue**, erreur **ignorée**, erreur
-  convertie). Il **rend toujours 0** — son en-tête le dit : « ni un contrôle qui échoue, ni un
-  cliquet » — et il ne balaie que `app/` + `lib/`, **pas `components/`**. Les 143 n'ont pas été
-  relus un par un ; les six qui traversaient une garde, si.
+- **LA CARTE EST DEVENUE UN CLIQUET** (lot 4.1a).
+  [scripts/diag-erreurs-avalees.mjs](../scripts/diag-erreurs-avalees.mjs) recensait **143
+  emplacements** de la famille élargie et **rendait toujours 0** — son en-tête le disait : « ni un
+  contrôle qui échoue, ni un cliquet ». Une carte ne ferme aucune porte, et personne ne savait
+  depuis quand elle n'avait pas été relue. Trois changements, tous mesurés :
+
+  **① Le balayage passe à `app/` + `lib/` + `components/`** (457 fichiers). Il y a trouvé **trois
+  requêtes, dans deux fichiers**, et les deux conséquences étaient pires qu'une erreur non
+  journalisée :
+  · `components/shell/DashboardShell.tsx` — une panne rendait `null`, et le shell en tirait un badge
+    « non vérifié » **et un VERROU de navigation** (`dashboardNavSections`) : un utilisateur approuvé
+    se voyait refuser une entrée de menu parce qu'une requête avait échoué. Aggravant — ce
+    chargement est **relancé** sur `sk:availability-changed` et `sk:profile-changed`, donc une panne
+    au refetch **effaçait un état déjà bon** ;
+  · `components/settings/SettingsView.tsx` — même motif, mais `loadUser` est passé en `reload` à
+    deux sections : il est rappelé **après un enregistrement réussi**. Une panne à cet instant vidait
+    l'écran juste après un « enregistré », et laissait croire la saisie perdue.
+  Les deux sont fermés : l'erreur est récupérée, journalisée comme **panne** (jamais comme absence),
+  et l'état précédent est **conservé**. Le verrou de navigation sur `userIsVerified` n'est **pas**
+  touché — ce qu'il faut afficher quand la vérification est *inconnue* est une décision produit, pas
+  une question de gestion d'erreur, et la garde qui tranche est au serveur (`expertProfileGate`).
+
+  **② Son motif avait DEUX trous**, et ils couvraient exactement le défaut ci-dessus. Il exigeait
+  `const { … } = await <objet>.` ; lui échappaient `const [{ data: a }] = await Promise.all([…])`
+  (**①-bis**) et `const [aRes] = await Promise.all([…])` suivi de `aRes.data` lu et `aRes.error`
+  jamais (**①-ter**). Un `Promise.all` d'**auxiliaires** est exclu explicitement : son erreur vit
+  dans l'auxiliaire, et les confondre ferait crier à tort.
+
+  **③ Deux listes, pas une** (§G.8) : `JUGÉS` (lus, avec leur raison) et `À JUGER` (**comptés, pas
+  lus**). Geler 158 emplacements d'un coup les déclarerait légitimes sans les avoir ouverts —
+  l'erreur du lot 1.3, en dix fois plus gros. Le cliquet **refuse toute occurrence neuve** (rouge,
+  sortie 1) ; le reliquat est **bruyant mais vert**, parce qu'un contrôle durablement rouge est un
+  contrôle qu'on apprend à ignorer (§E.14) et que celui-là doit survivre aux lots qui le videront.
+
+  **État mesuré au 18/09/2026** : **158 emplacements sur 78 fichiers** — ① 124 · ①-bis 6 · ①-ter 10 ·
+  ② 9 · ③ 9. **JUGÉS : 0. À JUGER : 158.** `components/` est à **zéro**, les trois occurrences ayant
+  été corrigées plutôt que gelées. Répartition du reliquat : `app/api` **120**, `lib` **36**,
+  `app/[locale]` **12**.
 - `joinBlockReason` était le **seul fail-open** de la classe ; il refuse désormais à l'écriture et se
   tait à l'affichage. Aucun autre n'a été trouvé — **mesuré, pas supposé**.
 
@@ -488,8 +520,8 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   d'environnement, les sous-domaines **et un administrateur** — elle était placée en quatrième
   position, où elle est **inatteignable**. Le document annonçait pourtant « l'ordre compte : chacune
   suppose la précédente ». Elle est désormais la dernière.
-  **Gardé** par [scripts/diag-parametrage-manuel.mjs](../scripts/diag-parametrage-manuel.mjs)
-  (§B.2 ⑦ bis) pour tout ce qui est mécaniquement vérifiable ; l'ordre, lui, ne l'est pas.
+  **Gardé** par [scripts/diag-parametrage-manuel.mjs](../scripts/diag-parametrage-manuel.mjs)
+  (§B.2 ⑦ bis) pour tout ce qui est mécaniquement vérifiable ; l'ordre, lui, ne l'est pas.
 - **Quatre** des huit tâches planifiées passent par `trigger_purge_cron` et **lèvent** sans les deux
   secrets du Vault : `purge_deletions_trigger`, `purge_inactive_trigger`, `matching_retry_trigger`,
   `expert_relance_trigger`. Les deux premières portent une **obligation légale** (RGPD art. 17 et

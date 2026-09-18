@@ -730,11 +730,22 @@ export default function SettingsView() {
   const loadUser = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.user) return
-    const { data } = await supabase
+    // ⚠️ L'ERREUR SE RÉCUPÈRE (§E.22). Elle ne l'était pas, et « rien » valait
+    //   « panne » : l'écran des paramètres se vidait, identité et téléphone
+    //   compris. Le pire n'est pas le premier chargement — `loadUser` est passé
+    //   en `reload` à IdentitySection et PhoneSection, donc RAPPELÉ APRÈS UN
+    //   ENREGISTREMENT RÉUSSI. Une panne à ce moment-là effaçait l'écran juste
+    //   après un « enregistré », et laissait croire que la saisie était perdue.
+    const { data, error } = await supabase
       .from('users')
       .select('first_name, last_name, email, phone, phone_verified, locale')
       .eq('id', session.user.id)
       .maybeSingle()
+    if (error) {
+      // On garde ce qu'on savait : ne pas savoir n'est pas « il n'y a rien ».
+      console.error('[parametres] lecture users en panne', error.message)
+      return
+    }
     setUser((data as UserData | null) ?? null)
   }, [])
 
