@@ -126,14 +126,29 @@ Ces réglages vivent dans votre compte Supabase et **ne sont pas repris par les 
 Supabase → **Authentication** → **URL Configuration** :
 
 1. **Site URL** : l'adresse de votre site, par exemple `https://microsoft.skilloria.io`.
-2. **Redirect URLs** : ajoutez une ligne **par écosystème et par langue** — Supabase refuse toute adresse absente de cette liste, et le lien de confirmation d'inscription tomberait dans le vide :
+2. **Redirect URLs** : ajoutez une ligne **par écosystème, par langue et par chemin** — Supabase refuse toute adresse absente de cette liste, et le lien reçu par e-mail tomberait dans le vide.
+
+   Il y a **deux chemins**, et oublier le second est invisible jusqu'au jour où quelqu'un perd son mot de passe :
+
    ```
    https://microsoft.skilloria.io/fr/auth/callback
    https://microsoft.skilloria.io/en/auth/callback
    https://microsoft.skilloria.io/es/auth/callback
    https://microsoft.skilloria.io/de/auth/callback
+   https://microsoft.skilloria.io/fr/nouveau-mot-de-passe
+   https://microsoft.skilloria.io/en/nouveau-mot-de-passe
+   https://microsoft.skilloria.io/es/nouveau-mot-de-passe
+   https://microsoft.skilloria.io/de/nouveau-mot-de-passe
    ```
    *Remplacez `microsoft` par le sous-domaine de chaque écosystème actif, et répétez les quatre langues.*
+
+   | Chemin | Ce qui l'emprunte | Ce qui casse s'il manque |
+   |---|---|---|
+   | `/auth/callback` | confirmation d'inscription | personne ne peut créer de compte |
+   | `/nouveau-mot-de-passe` | mot de passe oublié **et invitation d'un administrateur** | personne ne peut reprendre son compte, **et l'étape 7 ne peut pas aboutir** |
+
+   > **C'est ce second chemin qui rend l'étape 7 possible.** L'invitation d'un administrateur passe exactement par là : sans cette ligne, le lien envoyé au premier administrateur est refusé par Supabase.
+
 Supabase → **Authentication** → **Emails** :
 
 3. **SMTP** : renseignez votre fournisseur d'envoi. Sans SMTP propre, Supabase utilise un service de démonstration **limité à quelques messages par heure** — largement insuffisant, et les inscriptions échoueraient sans message clair.

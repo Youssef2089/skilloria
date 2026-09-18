@@ -158,7 +158,28 @@ orphelines) : `domains`, `domain_configs`, `branches`, `specialities`, `countrie
 d'environnement et les sous-domaines Vercel. Ils vivent dans
 [docs/mise-en-production.md](mise-en-production.md).
 
-**⑦ bis — LE PROBLÈME DU JOUR ZÉRO : personne ne pouvait administrer une production neuve.**
+**⑦ bis — CE QUI SE POSE À LA MAIN EST DÉSORMAIS GARDÉ, et le garder a trouvé un défaut.**
+Un réglage non versionnable n'a qu'une trace : la procédure qui le nomme. Ce lien ne tenait sur rien.
+[scripts/diag-parametrage-manuel.mjs](../scripts/diag-parametrage-manuel.mjs) le tient — sans base,
+sans réseau : il reconstruit depuis les migrations **quelle tâche dépend de quel secret**
+(SQL exécutable uniquement : l'en-tête de la migration *nomme* les deux secrets en commentaire, et un
+contrôle qui lirait le texte brut resterait vert après leur disparition — §E.7), puis vérifie que la
+procédure les nomme, que le **nombre de tâches annoncé** est le nombre réel (§E.16), et que le miroir
+`CRON_SECRET` existe aux deux bouts. Éprouvé par **cinq mutations**, cinq détectées.
+
+**Le défaut qu'il a trouvé en naissant** : la procédure ne listait qu'**un** chemin de redirection
+Supabase, `/auth/callback`. Le code en demande **deux** — `/<langue>/nouveau-mot-de-passe` est celui
+de toute réinitialisation de mot de passe **et de toute invitation d'administrateur**
+([lib/admin/admin-invitation.ts](../lib/admin/admin-invitation.ts),
+`app/[locale]/mot-de-passe-oublie/page.tsx`). Supabase **refuse** toute adresse absente de sa liste :
+sur une production neuve, personne n'aurait pu reprendre son compte, **et le premier administrateur
+n'aurait pas pu ouvrir sa session**. Le refus tombe sur l'utilisateur, dans un lien reçu par e-mail,
+et ne laisse aucune trace chez nous. Corrigé dans la procédure, et gardé.
+Le balayage couvre `app/`, `lib/` **et** `components/`, et il distingue par la **forme** : une adresse
+**absolue** part chez Supabase, un chemin **relatif** (`logout({ redirectTo: '/' })`) est un
+`router.push` interne. Les confondre l'aurait fait crier à tort — donc désactiver.
+
+**⑦ ter — LE PROBLÈME DU JOUR ZÉRO : personne ne pouvait administrer une production neuve.**
 Les deux chemins qu'on croirait ouverts sont fermés, et **aucun des deux ne le dit** :
 `POST /api/admin/create-admin` est gardée par `requireAdmin` **et** exige un jeton de
 re-authentification — il faut déjà en être un ; et une inscription ordinaire ne peut pas produire un
@@ -466,7 +487,9 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   vérification des tâches planifiées demande d'ouvrir le back-office, donc elle suppose les variables
   d'environnement, les sous-domaines **et un administrateur** — elle était placée en quatrième
   position, où elle est **inatteignable**. Le document annonçait pourtant « l'ordre compte : chacune
-  suppose la précédente ». Elle est désormais la dernière.
+  suppose la précédente ». Elle est désormais la dernière.
+  **Gardé** par [scripts/diag-parametrage-manuel.mjs](../scripts/diag-parametrage-manuel.mjs)
+  (§B.2 ⑦ bis) pour tout ce qui est mécaniquement vérifiable ; l'ordre, lui, ne l'est pas.
 - **Quatre** des huit tâches planifiées passent par `trigger_purge_cron` et **lèvent** sans les deux
   secrets du Vault : `purge_deletions_trigger`, `purge_inactive_trigger`, `matching_retry_trigger`,
   `expert_relance_trigger`. Les deux premières portent une **obligation légale** (RGPD art. 17 et
