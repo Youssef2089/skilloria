@@ -21,8 +21,10 @@
 //   ① Les fichiers du lot = `git diff --name-only <base>` + les non suivis.
 //   ② Un diagnostic est CONCERNE s'il cite l'un de ces chemins litteralement.
 //   ③ Un diagnostic qui BALAIE un dossier (readdirSync sur app/, lib/,
-//      supabase/migrations/, messages/) ne cite aucun chemin : il est concerne
-//      des qu'un fichier de ce dossier bouge. Sans cette regle, les controles
+//      components/, supabase/migrations/, messages/, scripts/) ne cite aucun
+//      chemin : il est concerne des qu'un fichier de ce dossier bouge —
+//      `components/` compris, ce qui n'a PAS ete vrai jusqu'au 18/09/2026 (cf.
+//      le commentaire de DOSSIERS_BALAYES). Sans cette regle, les controles
 //      de CLASSE — justement ceux qui attrapent le cas non prevu — ne seraient
 //      jamais proposes.
 //
@@ -92,8 +94,20 @@ const DIAGS = readdirSync(join(ROOT, 'scripts'))
   .filter((f) => f !== 'diag-controles-a-rejouer.mjs')
   .sort()
 
-/** Les dossiers qu'un diagnostic peut BALAYER plutot que citer fichier par fichier. */
-const DOSSIERS_BALAYES = ['app', 'lib', 'supabase/migrations', 'messages', 'scripts']
+/**
+ * Les dossiers qu'un diagnostic peut BALAYER plutot que citer fichier par fichier.
+ *
+ * ⚠️ `components` A MANQUE ICI JUSQU'AU 18/09/2026, ET C'ETAIT LE PIRE ENDROIT.
+ *   Ce script existe pour qu'on cesse de choisir ses diagnostics de memoire.
+ *   Tant qu'il ignorait `components/`, UN LOT QUI NE TOUCHAIT QUE CE DOSSIER NE
+ *   SE VOYAIT PROPOSER AUCUN CONTROLE DE CLASSE — et c'est precisement le
+ *   dossier ou l'angle mort s'est referme quatre fois en une semaine : les neuf
+ *   surfaces du logo (§E.17), la validation de format en dur (§E.20), l'embed
+ *   non desambiguise (§E.18), et §E.15 qui avait nomme la famille avant tout ca.
+ *   Un oubli DANS le mecanisme anti-oubli ne se voit pas : il rend simplement
+ *   une liste plus courte, et une liste courte a l'air d'un lot bien cerne.
+ */
+const DOSSIERS_BALAYES = ['app', 'lib', 'components', 'supabase/migrations', 'messages', 'scripts']
 
 const concernes = []
 for (const d of DIAGS) {
