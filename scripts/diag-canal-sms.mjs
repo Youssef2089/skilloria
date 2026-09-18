@@ -227,6 +227,24 @@ if (existe(ECRAN_PREFS)) {
     !/channel:\s*'sms'/.test(ECRAN),
     'une ligne posée côté client remettrait un interrupteur que rien n’honore')
 }
+
+// ET LA REGLE VAUT POUR TOUT COMPOSANT, PAS POUR CE FICHIER-LA.
+//   L'assertion ci-dessus est ancree sur UN nom de fichier — donc muette sur un
+//   ecran NEUF qui fabriquerait la meme ligne. Trouve par mutation (§G.5) : un
+//   composant posant `channel: 'sms'` laissait le controle VERT.
+//   Le balayage est borne a components/ : le litteral y est sans ambiguite,
+//   alors qu'en app/ il designe aussi le workflow Vonage de l'OTP
+//   (`workflow: [{ channel: 'sms', to: phoneVonage }]`), parfaitement legitime —
+//   un controle qui denoncerait l'OTP serait desactive le jour meme.
+{
+  const fabricants = SOURCES.filter(
+    (f) => f.startsWith('components/') && /channel:\s*'sms'/.test(sansCommentaires(read(f))),
+  )
+  ok('aucun composant ne fabrique de ligne de canal SMS',
+    fabricants.length === 0,
+    `${fabricants.join(', ')} — le serveur ne sert QUE les canaux ouverts ; une ligne posee cote client promet un envoi qui n'aura pas lieu`)
+}
+
 // Les deux fermetures qui rendent la branche inatteignable sont déjà éprouvées
 // en (D) — on les NOMME ici pour que le lien entre l'écran et elles soit écrit,
 // et non reconstruit de mémoire par le prochain lecteur.
