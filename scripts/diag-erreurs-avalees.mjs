@@ -129,9 +129,52 @@ const DESTRUCTURATION = /const\s*\{([^}]*)\}\s*=\s*await\s+([A-Za-z_$][\w$.]*)\s
 /** Une déstructuration en TABLEAU sur `Promise.all` — les deux trous mesurés. */
 const TABLEAU = /const\s*\[([\s\S]{0,500}?)\]\s*=\s*await\s+Promise\.all\(([\s\S]{0,1500}?)\n\s*\]\s*\)/g
 
-/** Le corps autour d'une position — approximation par lignes. */
-function fenetre(src, pos, lignesApres = 25) {
-  return src.slice(pos).split('\n').slice(0, lignesApres).join('\n')
+/**
+ * Ce qui a le droit de se trouver entre les crochets d'une DÉSTRUCTURATION.
+ *
+ * ⚠️ SANS CE FILTRE, `TABLEAU` PART DU MAUVAIS `const [`. Son corps
+ *    `[\s\S]{0,500}?` traverse les sauts de ligne : il accroche le premier
+ *    `const [` qui parvient, en moins de 500 caractères, à atteindre un
+ *    `] = await Promise.all`. Dans `DashboardShell.tsx`, c'était
+ *    `const [user, setUser] = useState(...)` — DIX-SEPT LIGNES PLUS HAUT que le
+ *    `Promise.all` visé, avec un `useEffect` entier avalé au passage.
+ *
+ *    ET C'EST MA PROPRE CORRECTION QUI L'A RÉVÉLÉ : tant que les commentaires
+ *    comptaient, les dix lignes de prose entre les deux faisaient dépasser les
+ *    500 caractères et rien ne matchait. Le trou était là depuis le premier
+ *    jour ; il était masqué par un défaut du même script.
+ *
+ *    La parade est un motif POSITIF, pas une liste d'exclusions : un motif de
+ *    liaison ne contient QUE des identifiants, des virgules, des accolades, des
+ *    deux-points et des espaces. Ni `(`, ni `=`, ni `<` — donc ni appel, ni
+ *    affectation, ni générique. Conséquence assumée et mesurée : une valeur par
+ *    défaut (`const [a = 1] = …`) sortirait du recensement ; le dépôt n'en
+ *    porte aucune sur un `Promise.all`.
+ */
+const MOTIF_DE_LIAISON = /^[\w$\s,{}:.[\]]*$/
+
+/**
+ * Le corps autour d'une position — 25 lignes DE CODE, pas 25 lignes du fichier.
+ *
+ * ⚠️ RETIRER LES COMMENTAIRES NE SUFFISAIT PAS. Ils sont remplacés par des
+ *    lignes VIDES (pour que les numéros rapportés restent ceux du fichier
+ *    réel), si bien qu'une fenêtre comptée en lignes restait remplie de vide.
+ *    `loadOrganizationContext` relit son erreur 28 lignes plus bas, dont
+ *    dix-neuf de commentaire : la fenêtre contenait SIX lignes de code, et le
+ *    site le mieux documenté du dépôt passait pour « erreur ignorée ».
+ *    On compte donc les lignes NON VIDES — la distance qui compte est celle du
+ *    code, pas celle du fichier.
+ */
+function fenetre(src, pos, lignesDeCode = 25) {
+  const suite = src.slice(pos).split('\n')
+  const gardees = []
+  let vues = 0
+  for (const l of suite) {
+    gardees.push(l)
+    if (l.trim() !== '') vues++
+    if (vues >= lignesDeCode) break
+  }
+  return gardees.join('\n')
 }
 
 const RETOUR_MUET = /return\s+(null|\[\]|false|undefined|\{\s*\}|0)\b/
@@ -139,7 +182,28 @@ const RETOUR_MUET = /return\s+(null|\[\]|false|undefined|\{\s*\}|0)\b/
 const trouvailles = []
 
 for (const f of fichiers) {
+  // ⚠️ LES COMMENTAIRES SONT RETIRES AVANT DETECTION — ET LE MOTIF EN AVAIT
+  //    BESOIN POUR UNE RAISON QUI SE LIT COMME UNE BLAGUE.
+  //
+  //    `loadOrganizationContext` (lib/auth-guard.ts) RELIT bien son `memberErr`
+  //    — 28 lignes plus bas. Entre les deux : DIX-NEUF LIGNES DE COMMENTAIRE
+  //    qui expliquent §E.18 et la classe que ce recensement existe pour
+  //    trouver. La fenetre de 25 lignes ne contenait donc que SIX lignes de
+  //    code, la relecture tombait dehors, et le site le mieux documente du
+  //    depot etait compte comme « erreur ignoree ».
+  //
+  //    C'est §E.7 A L'ENVERS : d'habitude un controle est trompe par un
+  //    anti-pattern ECRIT dans un commentaire ; ici il est trompe par la
+  //    DOCUMENTATION DU CORRECTIF. Meme parade : on lit le CODE.
+  //
+  //    Les lignes sont PRESERVEES (un commentaire devient une ligne vide) : les
+  //    numeros rapportes restent ceux du fichier reel, sinon tout le
+  //    recensement designerait des lignes fausses.
   const src = readFileSync(f, 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+    .split('\n')
+    .map((l) => (/^\s*(\/\/|\*)/.test(l) ? '' : l))
+    .join('\n')
   const rel = relative(ROOT, f).replace(/\\/g, '/')
 
   // ─── Formes ①, ② et ③ : la déstructuration objet ──────────────────────────
@@ -175,6 +239,9 @@ for (const f of fichiers) {
   for (const m of src.matchAll(TABLEAU)) {
     const champs = m[1]
     const corps = m[2]
+    // Les crochets doivent porter un MOTIF DE LIAISON, pas dix-sept lignes de
+    // code qu'une regex trop large a traversées (cf. MOTIF_DE_LIAISON).
+    if (!MOTIF_DE_LIAISON.test(champs)) continue
     // Le tableau doit contenir de VRAIES requêtes, pas des auxiliaires.
     if (!/supabase|supabaseAdmin/i.test(corps)) continue
     const ligne = src.slice(0, m.index).split('\n').length
@@ -220,7 +287,41 @@ const par = (forme) => trouvailles.filter((t) => t.forme === forme)
  * `components/` (ils ont donc quitté le recensement au lieu d'y être gelés), et
  * n'a lu aucun des autres. Prétendre le contraire serait la faute qu'on ferme.
  */
-const JUGES = {}
+const JUGES = {
+  // ── LA PARADE, PRISE POUR LE DÉFAUT — ET C'EST STRUCTUREL ────────────────
+  //
+  //   La forme ③ cherche `if (error) { … return null }`. C'est EXACTEMENT la
+  //   forme du correctif : un `null` dont le sens est « je ne sais pas ».
+  //   Le motif ne peut donc pas distinguer la parade de ce qu'elle répare —
+  //   ce n'est pas un réglage à affiner, c'est la limite du procédé. Le
+  //   recensement reste une CARTE ; le verdict se rend en lisant l'appelant.
+  //
+  //   Les trois entrées ci-dessous ont été relues une par une au lot 4.1b.
+  'app/api/admin/user-purge/route.ts': {
+    total: 1,
+    raison:
+      "`organizationsLeftWithoutAdmin` rend `null` = « je ne sais pas », JAMAIS `[]`. " +
+      "C'est le correctif du cas ② de §E.22 : sur `[]`, la barrière d'acquittement " +
+      "`acknowledge_org_lockout` sautait en silence sur la seule action irréversible du " +
+      "back-office. L'appelant REFUSE sur `null`. Relu le 19/09/2026.",
+  },
+  'lib/org-members.ts': {
+    total: 2,
+    raison:
+      "`activeAdminCountOrUnknown` rend `null` = compte inconnu, sur ses DEUX lectures " +
+      "(lignes d'appartenance, puis comptes encore joignables). Les deux journalisent. " +
+      "`countActiveAdmins` n'est qu'une façade qui applique le repli prudent pour ses trois " +
+      "appelants RÉVERSIBLES ; un appelant définitif ne consomme jamais ce repli (§E.22 règle 3). " +
+      "Relu le 19/09/2026.",
+  },
+  'lib/admin/user-actions-guard.ts': {
+    total: 1,
+    raison:
+      "`countOtherAvailablePlatformAdmins` rend `null` = « je ne sais pas », documenté comme " +
+      "tel, et chaque appelant décide PAR RÉVERSIBILITÉ : réversible → on laisse passer, purge → " +
+      "on ne fait rien. C'est l'exemplaire que tout le lot 1.3 cite. Relu le 19/09/2026.",
+  },
+}
 
 /**
  * À JUGER — COMPTÉS, pas lus. Cette liste ne déclare RIEN légitime : elle dit
@@ -234,11 +335,8 @@ const A_JUGER = {
   'app/[locale]/connexion/page.tsx': 1,
   'app/[locale]/dashboard/cdi/page.tsx': 1,
   'app/[locale]/dashboard/cdi/profil/page.tsx': 1,
-  'app/[locale]/dashboard/cdi/profil/valider/page.tsx': 1,
   'app/[locale]/dashboard/entreprise/page.tsx': 2,
-  'app/[locale]/dashboard/freelance/mon-profil/page.tsx': 1,
   'app/[locale]/dashboard/freelance/page.tsx': 1,
-  'app/[locale]/dashboard/freelance/profil/valider/page.tsx': 1,
   'app/[locale]/nouveau-mot-de-passe/page.tsx': 1,
   'app/[locale]/reactivation/page.tsx': 1,
   'app/api/admin/approve-expert/route.ts': 1,
@@ -271,12 +369,12 @@ const A_JUGER = {
   'app/api/billing/offers/route.ts': 1,
   'app/api/candidatures/[id]/pitch/route.ts': 1,
   'app/api/candidatures/[id]/select/route.ts': 1,
-  'app/api/candidatures/route.ts': 8,
+  'app/api/candidatures/route.ts': 7,
   'app/api/conversations/[id]/messages/route.ts': 2,
   'app/api/invitations/resolve/route.ts': 2,
   'app/api/me/badges/route.ts': 1,
   'app/api/me/candidatures/route.ts': 2,
-  'app/api/me/conversations/route.ts': 5,
+  'app/api/me/conversations/route.ts': 4,
   'app/api/me/invitations/accept/route.ts': 2,
   'app/api/me/invitations/pending/route.ts': 1,
   'app/api/me/missions/[id]/route.ts': 1,
@@ -291,25 +389,22 @@ const A_JUGER = {
   'app/api/publications/route.ts': 2,
   'app/api/taxonomy/route.ts': 1,
   'lib/account-purge.ts': 1,
-  'lib/admin/user-actions-guard.ts': 1,
-  'lib/auth-guard.ts': 1,
   'lib/billing/apply.ts': 1,
   'lib/billing/purchase.ts': 1,
   'lib/candidature-org-dto.ts': 7,
   'lib/candidatures/lifecycle-batch.ts': 2,
-  'lib/collaboration/ensure-personal-org.ts': 2,
+  'lib/collaboration/ensure-personal-org.ts': 1,
   'lib/emails/brand.ts': 1,
   'lib/entitlements.ts': 3,
   'lib/home-ecosystem.ts': 1,
-  'lib/hooks/useCdiProfile.ts': 1,
   'lib/matching/relance.ts': 2,
   'lib/notifications/dispatch.ts': 4,
-  'lib/org-members.ts': 2,
   'lib/package-default.ts': 1,
   'lib/publication-synthesis.ts': 1,
   'lib/unlock.ts': 2,
   'lib/verification/expert-verification.ts': 2,
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 

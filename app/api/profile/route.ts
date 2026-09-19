@@ -2,6 +2,7 @@ import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { missingForVisibility } from '@/lib/profile-visibility'
+import { LISTES_DE_PROFIL, estListeDeProfil, type ListeDeProfil } from '@/lib/lecture/liste'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -374,6 +375,79 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     'experiences' in body || 'educations' in body || 'languages_structured' in body
   if (!shouldUpdateScalars && !hasAnyBlock) {
     return json({ error: 'Empty patch', code: 'no_fields' }, 400)
+  }
+
+  // ── BARRIÈRE D'EFFACEMENT DE MASSE — §E.22, DANS SA FORME « ÉCRITURE » ────
+  //
+  //   ⚠️ UNE LECTURE EN PANNE POUVAIT DEVENIR UN PATCH, ET LE PATCH DÉTRUISAIT.
+  //
+  //   Les deux écrans de validation chargeaient leurs listes par
+  //   `(res.data ?? [])`. Une panne rendait donc un formulaire VIDE ; l'expert
+  //   enregistrait son brouillon ; le corps portait `experiences: []` ; et les
+  //   trois blocs ci-dessous appliquent une liste vide par un `delete()` qui
+  //   ne réinsère rien. « Brouillon enregistré » s'affichait à la seconde
+  //   exacte où la carrière entière disparaissait.
+  //
+  //   LES ÉCRANS SONT CORRIGÉS (`lib/lecture/liste.ts` : ils n'envoient plus
+  //   une liste qu'ils n'ont pas su lire). MAIS UN CORRECTIF D'ÉCRAN N'EST PAS
+  //   UNE BARRIÈRE : celle-ci est au SERVEUR, et elle tient si un écran
+  //   régresse, si un troisième apparaît, ou si la route est appelée à la main.
+  //
+  //   LA FORME EST CELLE DE `acknowledge_org_lockout` (§E.22 ②) : une action
+  //   irréversible ne se prend pas sur une liste qu'on n'a pas constatée. Le
+  //   corps DÉCLARE `listes_lues` ; sans cette déclaration, remplacer par le
+  //   VIDE une liste NON VIDE est refusé.
+  //
+  //   CE QUI N'EST PAS REFUSÉ, ET C'EST VOULU : remplacer par une liste non
+  //   vide (rien ne se perd qu'on n'ait décidé), et vider une liste déjà vide
+  //   (il n'y a rien à perdre). La barrière est posée EXACTEMENT sur
+  //   l'irréversible, jamais plus large — une barrière qui gêne le cas normal
+  //   est une barrière qu'on retire.
+  {
+    const declarees = Array.isArray((body as { listes_lues?: unknown }).listes_lues)
+      ? ((body as { listes_lues: unknown[] }).listes_lues.filter(estListeDeProfil) as ListeDeProfil[])
+      : []
+    const TABLE_DE_LA_LISTE: Record<ListeDeProfil, string> = {
+      experiences: 'profile_experiences',
+      educations: 'profile_educations',
+      languages_structured: 'profile_languages',
+    }
+    for (const cle of LISTES_DE_PROFIL) {
+      if (!(cle in body)) continue
+      const envoyee = (body as Record<string, unknown>)[cle]
+      // Non-tableau ou tableau non vide : aucun effacement de masse possible.
+      if (!Array.isArray(envoyee) || envoyee.length > 0) continue
+      if (declarees.includes(cle)) continue
+
+      // Le corps veut VIDER cette liste sans avoir déclaré l'avoir lue.
+      // On compte ce qu'on s'apprête à détruire AVANT de trancher.
+      const { count, error: cntErr } = await supabaseAdmin
+        .from(TABLE_DE_LA_LISTE[cle])
+        .select('id', { count: 'exact', head: true })
+        .eq('profile_id', cp.id)
+      if (cntErr) {
+        // ⚠️ ET ICI ON NE RETOMBE PAS DANS LA CLASSE QU'ON FERME. Ne pas savoir
+        //    combien de lignes on effacerait n'autorise pas à les effacer :
+        //    503, motif nommé, aucune écriture. Même règle que `ai-budget`
+        //    (§E.9) — « ne pas savoir ne permet pas d'agir ».
+        console.error('[profile PATCH] comptage avant effacement indisponible', cle, cntErr.message)
+        return json(
+          { error: 'Could not verify what would be erased', code: 'effacement_verification_indisponible' },
+          503,
+        )
+      }
+      if ((count ?? 0) > 0) {
+        return json(
+          {
+            error: 'Empty list would erase existing rows',
+            code: 'effacement_non_declare',
+            liste: cle,
+            lignes_existantes: count ?? 0,
+          },
+          409,
+        )
+      }
+    }
   }
 
   let updatedProfile: unknown = null

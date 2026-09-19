@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useLocale } from 'next-intl'
 import { supabase } from '@/lib/supabase'
+import { listeLue, lignesOuVide, type ListeDeProfil } from '@/lib/lecture/liste'
 
 export type CdiStatus = 'employed' | 'open_to_work'
 export type NoticePeriod = 'immediate' | '1_month' | '2_months' | '3_months' | 'negotiable'
@@ -120,6 +121,15 @@ export type UseCdiProfileState = {
   experiences: ExperienceItem[]
   educations: EducationItem[]
   languages: LanguageItem[]
+  /**
+   * LES SECTIONS QUE LA LECTURE N'A PAS PU RENDRE.
+   *
+   * ⚠️ Sans ce champ, les trois tableaux ci-dessus mentaient : `(res.data ?? [])`
+   *    donnait `[]` aussi bien pour « cet expert n'a rien saisi » que pour
+   *    « la requête a échoué », et l'écran affichait un profil complet comme
+   *    entièrement vide (§E.22). Vide ici = tout a été lu.
+   */
+  sectionsIndisponibles: ListeDeProfil[]
   branches: Branch[]
   specialities: Speciality[]
 }
@@ -184,6 +194,7 @@ const initialState: UseCdiProfileState = {
   experiences: [],
   educations: [],
   languages: [],
+  sectionsIndisponibles: [],
   branches: [],
   specialities: [],
 }
@@ -299,7 +310,21 @@ export function useCdiProfile(): UseCdiProfileState {
 
         if (cancelled) return
 
-        const experiences: ExperienceItem[] = (expsRes.data ?? []).map((e: any) => ({
+        // Trois états nommés : `lignes` n'existe que dans `'disponible'`, donc
+        // `?? []` n'est plus écrivable ici (cf. lib/lecture/liste.ts).
+        const expsLu = listeLue(expsRes)
+        const edusLu = listeLue(edusRes)
+        const langsLu = listeLue(langsRes)
+        const sectionsIndisponibles: ListeDeProfil[] = [
+          ...(expsLu.etat === 'indisponible' ? (['experiences'] as const) : []),
+          ...(edusLu.etat === 'indisponible' ? (['educations'] as const) : []),
+          ...(langsLu.etat === 'indisponible' ? (['languages_structured'] as const) : []),
+        ]
+        if (sectionsIndisponibles.length > 0) {
+          console.error('[useCdiProfile] lecture de liste en panne', { sectionsIndisponibles })
+        }
+
+        const experiences: ExperienceItem[] = lignesOuVide(expsLu).map((e: any) => ({
           experience_type: (e.experience_type ?? 'career') as 'career' | 'project',
           role: e.role ?? '',
           employer: e.employer ?? '',
@@ -312,7 +337,7 @@ export function useCdiProfile(): UseCdiProfileState {
           sort_order: typeof e.sort_order === 'number' ? e.sort_order : null,
         }))
 
-        const educations: EducationItem[] = (edusRes.data ?? []).map((e: any) => ({
+        const educations: EducationItem[] = lignesOuVide(edusLu).map((e: any) => ({
           school: e.school ?? '',
           degree: e.degree ?? '',
           field: e.field ?? '',
@@ -321,7 +346,7 @@ export function useCdiProfile(): UseCdiProfileState {
           location: e.location ?? '',
         }))
 
-        const languages: LanguageItem[] = (langsRes.data ?? []).map((l: any) => ({
+        const languages: LanguageItem[] = lignesOuVide(langsLu).map((l: any) => ({
           language: l.language ?? '',
           level: (l.level ?? 'B2') as CefrLevel,
           is_primary: !!l.is_primary,
@@ -332,6 +357,7 @@ export function useCdiProfile(): UseCdiProfileState {
           authenticated: true,
           forbidden: false,
           error: null,
+          sectionsIndisponibles,
           user: userTyped,
           profile,
           experiences,

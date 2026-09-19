@@ -583,7 +583,11 @@
       "cv_not_ready": "Dépose ton CV et accepte la vérification IA avant de publier ton profil.",
       "account_load_failed": "Impossible de charger votre compte.",
       "incomplete_check_below": "Profil incomplet, vérifiez les champs surlignés ci-dessous.",
-      "save_failed": "Erreur lors de la sauvegarde, réessayez."
+      "save_failed": "Erreur lors de la sauvegarde, réessayez.",
+      "list_read_failed_title": "Une partie de votre profil n'a pas pu être chargée",
+      "list_read_failed_body": "Ces sections n'ont pas pu être lues : {sections}. Elles ne seront pas modifiées lors de l'enregistrement — rien n'est perdu. Rechargez la page pour réessayer.",
+      "list_read_failed_retry": "Recharger",
+      "erase_not_declared": "L'enregistrement a été refusé pour protéger vos données : une section n'avait pas pu être lue. Rien n'a été modifié. Rechargez la page, puis réessayez."
     },
     "success": {
       "draft_saved": "Brouillon enregistré. Vous pouvez continuer à modifier ou retourner au tableau de bord.",
@@ -788,7 +792,10 @@
         "hidden_intro": "De nouveaux champs sont devenus nécessaires pour que nous puissions vous proposer des missions. Votre profil a été masqué en attendant, il n’a pas été supprimé.",
         "hidden_list_intro": "Il vous reste à compléter :",
         "hidden_cta": "Compléter mon profil"
-      }
+      },
+      "experiences": "Expériences",
+      "educations": "Formations",
+      "languages_structured": "Langues"
     },
     "actions": {
       "reset_cv": "Annuler et retélécharger le CV",
@@ -889,6 +896,11 @@
       "no_branch": "Branche non renseignée.",
       "no_specialty": "Spécialité non renseignée.",
       "no_skills": "Aucune compétence renseignée."
+    },
+    "errors": {
+      "list_read_failed_title": "Une partie de votre profil n'a pas pu être chargée",
+      "list_read_failed_body": "Ces sections n'ont pas pu être lues : {sections}. Ce que vous voyez n'est donc pas complet — rien n'a été perdu. Rechargez la page pour réessayer.",
+      "list_read_failed_retry": "Recharger"
     }
   },
   "login": {
@@ -1352,6 +1364,11 @@
       "no_career_goals": "Aucun objectif de carrière renseigné.",
       "no_search_preferences": "Aucune préférence de recherche renseignée.",
       "no_compensation": "Aucune rémunération renseignée."
+    },
+    "errors": {
+      "list_read_failed_title": "Une partie de votre profil n'a pas pu être chargée",
+      "list_read_failed_body": "Ces sections n'ont pas pu être lues : {sections}. Ce que vous voyez n'est donc pas complet — rien n'a été perdu. Rechargez la page pour réessayer.",
+      "list_read_failed_retry": "Recharger"
     }
   },
   "cdi_profile_upload": {
@@ -1411,7 +1428,11 @@
       "cv_not_ready": "Dépose ton CV et accepte la vérification IA avant de publier ton profil.",
       "account_load_failed": "Impossible de charger votre compte.",
       "incomplete_check_below": "Profil incomplet, vérifiez les champs surlignés ci-dessous.",
-      "save_failed": "Erreur lors de la sauvegarde, réessayez."
+      "save_failed": "Erreur lors de la sauvegarde, réessayez.",
+      "list_read_failed_title": "Une partie de votre profil n'a pas pu être chargée",
+      "list_read_failed_body": "Ces sections n'ont pas pu être lues : {sections}. Elles ne seront pas modifiées lors de l'enregistrement — rien n'est perdu. Rechargez la page pour réessayer.",
+      "list_read_failed_retry": "Recharger",
+      "erase_not_declared": "L'enregistrement a été refusé pour protéger vos données : une section n'avait pas pu être lue. Rien n'a été modifié. Rechargez la page, puis réessayez."
     },
     "success": {
       "draft_saved": "Brouillon enregistré. Vous pouvez continuer à modifier ou retourner au tableau de bord.",
@@ -1657,7 +1678,10 @@
         "hidden_intro": "De nouveaux champs sont devenus nécessaires pour que nous puissions vous proposer des missions. Votre profil a été masqué en attendant, il n’a pas été supprimé.",
         "hidden_list_intro": "Il vous reste à compléter :",
         "hidden_cta": "Compléter mon profil"
-      }
+      },
+      "experiences": "Expériences",
+      "educations": "Formations",
+      "languages_structured": "Langues"
     },
     "actions": {
       "reset_cv": "Annuler et retélécharger le CV",

@@ -15,6 +15,12 @@ import MultiSelectChips from '@/components/ui/MultiSelectChips'
 import WorkZoneSelector from '@/components/ui/WorkZoneSelector'
 import type { WorkZone } from '@/lib/work-zones'
 import {
+  listeLue,
+  lignesOuVide,
+  LISTES_DE_PROFIL,
+  type ListeDeProfil,
+} from '@/lib/lecture/liste'
+import {
   missingForVisibility,
   RESUME_MAX,
   RESUME_MIN,
@@ -385,6 +391,12 @@ export default function CdiValiderProfilPage() {
   //  choisi : le vide se voit, le faux ne se voit pas.
   const [country, setCountry] = useState('')
 
+  // LES LISTES QU'ON A RÉELLEMENT LUES. Tant qu'une liste n'est pas ici, on ne
+  // l'envoie PAS : un formulaire vide par panne de lecture ne doit jamais
+  // pouvoir se transformer en effacement (cf. lib/lecture/liste.ts).
+  // Vide au départ, et c'est le bon défaut : avant le chargement, on n'a rien lu.
+  const [listesLues, setListesLues] = useState<ListeDeProfil[]>([])
+
   const [experiences, setExperiences] = useState<ExperienceItem[]>([])
   const [educations, setEducations] = useState<EducationItem[]>([])
 
@@ -663,7 +675,26 @@ export default function CdiValiderProfilPage() {
       setSpecialities((taxonomy.specialities ?? []) as Speciality[])
       setWorkZones((taxonomy.work_zones ?? []) as WorkZone[])
 
-      const raw: Array<ExperienceItem & { _so: number }> = (expsRes.data ?? []).map(
+      // ⚠️ MÊME DÉFAUT QUE LE JUMEAU FREELANCE, ET IL DÉTRUISAIT PAREIL (§E.20).
+      //    `(expsRes.data ?? [])` faisait d'une panne un formulaire VIDE, et
+      //    l'enregistrer envoyait `experiences: []` — que `PATCH /api/profile`
+      //    applique par un `delete()`. Trois états nommés, et `lignes` n'existe
+      //    que dans la branche `'disponible'` (cf. lib/lecture/liste.ts).
+      const expsLu = listeLue(expsRes)
+      const edusLu = listeLue(edusRes)
+      const langsLu = listeLue(langsRes)
+      const lues: ListeDeProfil[] = []
+      if (expsLu.etat === 'disponible') lues.push('experiences')
+      if (edusLu.etat === 'disponible') lues.push('educations')
+      if (langsLu.etat === 'disponible') lues.push('languages_structured')
+      setListesLues(lues)
+      if (lues.length < LISTES_DE_PROFIL.length) {
+        console.error('[cdi profil valider] lecture de liste en panne', {
+          manquantes: LISTES_DE_PROFIL.filter(c => !lues.includes(c)),
+        })
+      }
+
+      const raw: Array<ExperienceItem & { _so: number }> = lignesOuVide(expsLu).map(
         (e: any) => ({
           _uid: uid(),
           experience_type: (e.experience_type ?? 'career') as ExperienceType,
@@ -692,7 +723,7 @@ export default function CdiValiderProfilPage() {
       setExperiences([...careers, ...projects].map(({ _so, ...rest }) => rest))
 
       setEducations(
-        (edusRes.data ?? []).map((e: any) => ({
+        lignesOuVide(edusLu).map((e: any) => ({
           _uid: uid(),
           school: e.school ?? '',
           degree: e.degree ?? '',
@@ -703,7 +734,7 @@ export default function CdiValiderProfilPage() {
         })),
       )
       setLanguagesStructured(
-        (langsRes.data ?? []).map((l: any) => ({
+        lignesOuVide(langsLu).map((l: any) => ({
           _uid: uid(),
           language: l.language ?? '',
           level: (l.level ?? 'B2') as CefrLevel,
@@ -996,9 +1027,18 @@ export default function CdiValiderProfilPage() {
       city: city.trim() || null,
       country: country || null,
       birth_year: birthYear.trim() === '' ? null : Number(birthYear),
-      experiences: cleanedExperiences,
-      educations: cleanedEducations,
-      languages_structured: cleanedLanguages,
+      // ── UNE LISTE NON LUE NE S'ENVOIE PAS ────────────────────────────────
+      //  `'experiences' in body` est ce qui DÉCLENCHE le remplacement côté
+      //  route. Omettre la clé est donc la seule façon de ne rien toucher —
+      //  envoyer `[]` serait un effacement, pas une abstention.
+      ...(listesLues.includes('experiences') ? { experiences: cleanedExperiences } : {}),
+      ...(listesLues.includes('educations') ? { educations: cleanedEducations } : {}),
+      ...(listesLues.includes('languages_structured')
+        ? { languages_structured: cleanedLanguages }
+        : {}),
+      //  Et on DÉCLARE ce qu'on a lu : la route s'en sert pour refuser un
+      //  remplacement par le vide qu'aucune lecture n'appuie (§E.22 ②).
+      listes_lues: listesLues,
       // CDI fields — 14 colonnes + work_modes informatif
       cdi_status: cdiStatus,
       cdi_notice_period: cdiNoticePeriod || null,
@@ -1037,6 +1077,15 @@ export default function CdiValiderProfilPage() {
           showFieldError(payload.missing)
         } else if (res.status === 400 && payload?.code === 'cv_not_ready') {
           setErrorMsg(tProfile('errors.cv_not_ready'))
+        } else if (
+          // LA BARRIÈRE SERVEUR A MORDU. Elle ne devrait jamais mordre depuis
+          // cet écran — il n'envoie plus une liste qu'il n'a pas lue — mais un
+          // refus muet serait pire que le défaut : on dit ce qui s’est passé,
+          // et on dit que RIEN n’a été perdu.
+          payload?.code === 'effacement_non_declare' ||
+          payload?.code === 'effacement_verification_indisponible'
+        ) {
+          setErrorMsg(tProfile('errors.erase_not_declared'))
         } else {
           setErrorMsg(tProfile('errors.save_failed'))
         }
@@ -1522,6 +1571,59 @@ export default function CdiValiderProfilPage() {
           <>
             {/* Bouton Retour local retiré : le GlobalBackButton du shell est
                 l'unique bouton Retour (règle projet). */}
+            {/* ── UNE SECTION QU'ON N'A PAS SU LIRE LE DIT, ET DONNE UNE SORTIE ──
+                §E.19 : un écran qui affirme plus que ce qu'il sait enferme
+                quelqu'un dans une attente. Ici l'affirmation muette était la
+                pire possible — un formulaire VIDE, qui se lit « vous n'avez
+                rien saisi ». On nomme les sections manquantes, on dit qu'elles
+                ne seront pas touchées, et on donne l'action. */}
+            {listesLues.length < LISTES_DE_PROFIL.length && (
+              <div
+                role="status"
+                aria-live="polite"
+                style={{
+                  background: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  borderRadius: 12,
+                  padding: '12px 16px',
+                  marginBottom: 20,
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 12,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, color: '#92400e', fontSize: 14, marginBottom: 4 }}>
+                    {tProfile('errors.list_read_failed_title')}
+                  </div>
+                  <div style={{ color: '#78350f', fontSize: 13, lineHeight: 1.5 }}>
+                    {tProfile('errors.list_read_failed_body', {
+                      sections: LISTES_DE_PROFIL.filter(c => !listesLues.includes(c))
+                        .map(c => tProfile(`sections.${c}`))
+                        .join(', '),
+                    })}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  style={{
+                    background: '#92400e',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '8px 14px',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  {tProfile('errors.list_read_failed_retry')}
+                </button>
+              </div>
+            )}
             {errorMsg && (
               <div
                 role="alert"

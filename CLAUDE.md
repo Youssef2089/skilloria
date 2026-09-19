@@ -1292,6 +1292,62 @@ une couche plus haut, en quelques heures, chez quelqu'un qui venait de la corrig
 défaut se ferme par un TYPE qui traverse les couches** — ici `etatRepartition()`, trois états nommés,
 éprouvée **en l'exécutant** — pas par une correction locale, si soigneuse soit-elle.
 
+**E.27 — QUAND LA VALEUR NEUTRE EST RÉÉCRITE OU ESTAMPILLÉE, LA PANNE CESSE DE MENTIR : ELLE DEVIENT
+LA VÉRITÉ.**
+
+C'est une **famille à part** de §E.22, et elle est pire que ses neuf cas. Les neuf s'arrêtaient tous
+à une **lecture** — un refus, un message, un compteur. On pouvait recharger la page et voir le vrai.
+Ici, non : la valeur neutre franchit une frontière après laquelle **plus rien n'est rattrapable**.
+
+Deux formes, trouvées au lot 4.1b en ouvrant les 45 emplacements de `lib/` et `app/[locale]`.
+
+**FORME A — LA VALEUR NEUTRE EST CHARGÉE DANS UN FORMULAIRE, PUIS RÉÉCRITE EN BASE.**
+
+Les deux écrans de validation de profil chargeaient expériences, formations et langues par
+`(res.data ?? [])`. Une panne de lecture rendait donc un **formulaire vide** ; l'expert enregistrait ;
+le corps portait `experiences: []` ; et `PATCH /api/profile` applique une liste vide par un
+`delete().eq('profile_id', …)` **qui ne réinsère rien**.
+
+**L'expert lisait « Brouillon enregistré » à la seconde exacte où sa carrière entière disparaissait.**
+
+**Et le chemin sans barrière était le bouton PAR DÉFAUT.** La barrière de complétude de la route ne
+s'arme que sous `body.visible === true`. Qui **publie** était sauvé — 400 `incomplete`, avec un motif
+faux (« expériences manquantes », dit d'un profil qui en a dix) mais rien de perdu. Qui **enregistre
+un brouillon** n'avait **rien du tout**. C'est l'ordre du test, encore : la garde existait, elle était
+simplement sous la mauvaise condition.
+
+**LA PARADE EST UN TYPE, ET IL RÉUTILISE LE VOCABULAIRE EXISTANT.**
+[lib/lecture/liste.ts](lib/lecture/liste.ts) : `ListeLue<T>` = `{ etat: 'indisponible' }` ou
+`{ etat: 'disponible'; lignes: T[] }`. `lignes` **n'existe que dans la seconde branche** — `?? []`
+devient inécrivable. Le discriminant s'appelle `etat` et `'indisponible'` y veut dire **la même chose**
+que dans `etatRepartition` (§E.26) et dans `expertProfileGate` (§E.22) : *la lecture a échoué, on ne
+sait pas*. **Trois noms pour la même idée rouvriraient la confusion qu'ils ferment.**
+
+**ET LA BARRIÈRE EST AU SERVEUR, PARCE QU'UN CORRECTIF D'ÉCRAN N'EST PAS UNE BARRIÈRE.** Le dépôt
+portait **quatre copies** du même chargement (§E.20) — deux qui écrivaient, deux qui affichaient.
+`PATCH /api/profile` refuse désormais un remplacement **par le vide** d'une liste **non vide** que le
+corps n'a pas déclarée lue (`listes_lues`). C'est la forme exacte de `acknowledge_org_lockout`
+(§E.22 ②) : *une action irréversible ne se prend pas sur une liste qu'on n'a pas constatée.*
+La barrière est posée **exactement sur l'irréversible** — remplacer par une liste non vide passe,
+vider une liste déjà vide passe. Une barrière qui gêne le cas normal est une barrière qu'on retire.
+
+> ⚠️ **ET LA BARRIÈRE NE RETOMBE PAS DANS LA CLASSE QU'ELLE FERME.** Elle compte ce qu'elle
+> s'apprête à détruire ; si ce **comptage** échoue, elle refuse — **503**, motif nommé, aucune
+> écriture. Ne pas savoir combien de lignes on effacerait n'autorise pas à les effacer. Sans cela,
+> une seconde panne de lecture aurait contourné la garde posée contre la première.
+
+Gardé par [scripts/diag-effacement-de-masse.mjs](scripts/diag-effacement-de-masse.mjs).
+
+**LA QUESTION QUI GÉNÉRALISE, ET ELLE EST COURTE :** *cette valeur va-t-elle REPARTIR EN ÉCRITURE ?*
+Tant qu'une valeur neutre reste affichée, un rechargement la corrige. Dès qu'un formulaire la porte,
+le prochain enregistrement la **grave**. Tout écran qui charge une liste pour la **renvoyer** est
+concerné, pas seulement ceux-ci.
+
+**FORME B — LA VALEUR NEUTRE ARRIVE APRÈS UN JALON D'IDEMPOTENCE.**
+*Documentée au commit suivant, avec son correctif — `lib/account-purge.ts` et
+`lib/notifications/dispatch.ts`. Le principe : quand un jalon (`anonymized_at`, un tampon de
+réclamation) est déjà posé, « réessayer » ne répare rien, et la panne est définitive.*
+
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
   acceptée et ne se déclenchera **jamais** : aucune erreur, aucune ligne dans `job_run_details`. D'où le

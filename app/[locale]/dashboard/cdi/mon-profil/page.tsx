@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import type { ListeDeProfil } from '@/lib/lecture/liste'
 import { useTranslations, useLocale } from 'next-intl'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Link, useRouter } from '@/i18n/navigation'
@@ -216,6 +217,13 @@ function Pill({ children, color }: { children: React.ReactNode; color: string })
   )
 }
 
+/** Les trois listes de profil, et le titre de section qui les désigne à l'écran. */
+const NOM_DE_SECTION: Record<ListeDeProfil, string> = {
+  experiences: 'career',
+  educations: 'education',
+  languages_structured: 'languages',
+}
+
 export default function CdiMonProfilPage() {
   const t = useTranslations('cdi_profile_view')
   const tRejected = useTranslations('expert_verification.rejected_details')
@@ -233,6 +241,7 @@ export default function CdiMonProfilPage() {
     experiences,
     educations,
     languages,
+    sectionsIndisponibles,
     branches,
     specialities,
   } = state
@@ -618,6 +627,57 @@ export default function CdiMonProfilPage() {
                 {tRejected('cta')}
               </Link>
             </div>
+          </div>
+        )}
+
+        {/* ── CE QU'ON N'A PAS SU LIRE SE DIT, ET NE SE DÉGUISE PAS EN VIDE ──
+            §E.22 : une section absente et une section illisible produisaient le
+            même écran — « aucune expérience » — sur la page où l'expert vient
+            vérifier son profil. Jumeau exact de l'écran freelance (§E.20). */}
+        {sectionsIndisponibles.length > 0 && (
+          <div
+            role="status"
+            aria-live="polite"
+            style={{
+              background: '#fffbeb',
+              border: '1px solid #fde68a',
+              borderRadius: 12,
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 12,
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+              <div style={{ fontWeight: 600, color: '#92400e', fontSize: 14, marginBottom: 4 }}>
+                {t('errors.list_read_failed_title')}
+              </div>
+              <div style={{ color: '#78350f', fontSize: 13, lineHeight: 1.5 }}>
+                {t('errors.list_read_failed_body', {
+                  sections: sectionsIndisponibles
+                    .map(c => t(`sections.${NOM_DE_SECTION[c]}`))
+                    .join(', '),
+                })}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              style={{
+                background: '#92400e',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                padding: '8px 14px',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              {t('errors.list_read_failed_retry')}
+            </button>
           </div>
         )}
 

@@ -583,7 +583,11 @@
       "cv_not_ready": "Laden Sie Ihren Lebenslauf hoch und akzeptieren Sie die KI-Überprüfung, bevor Sie Ihr Profil veröffentlichen.",
       "account_load_failed": "Ihr Konto konnte nicht geladen werden.",
       "incomplete_check_below": "Profil unvollständig, überprüfen Sie die unten markierten Felder.",
-      "save_failed": "Fehler beim Speichern, bitte erneut versuchen."
+      "save_failed": "Fehler beim Speichern, bitte erneut versuchen.",
+      "list_read_failed_title": "Ein Teil Ihres Profils konnte nicht geladen werden",
+      "list_read_failed_body": "Diese Abschnitte konnten nicht gelesen werden: {sections}. Sie werden beim Speichern nicht geändert — es geht nichts verloren. Laden Sie die Seite neu, um es erneut zu versuchen.",
+      "list_read_failed_retry": "Neu laden",
+      "erase_not_declared": "Das Speichern wurde abgelehnt, um Ihre Daten zu schützen: Ein Abschnitt konnte nicht gelesen werden. Es wurde nichts geändert. Laden Sie die Seite neu und versuchen Sie es erneut."
     },
     "success": {
       "draft_saved": "Entwurf gespeichert. Sie können weiter bearbeiten oder zum Dashboard zurückkehren.",
@@ -788,7 +792,10 @@
         "hidden_intro": "Für Projektvorschläge sind neue Angaben nötig geworden. Ihr Profil wurde vorübergehend ausgeblendet — es wurde nicht gelöscht.",
         "hidden_list_intro": "Noch zu ergänzen:",
         "hidden_cta": "Mein Profil vervollständigen"
-      }
+      },
+      "experiences": "Erfahrung",
+      "educations": "Ausbildung",
+      "languages_structured": "Sprachen"
     },
     "actions": {
       "reset_cv": "Abbrechen und Lebenslauf erneut hochladen",
@@ -889,6 +896,11 @@
       "no_branch": "Bereich nicht angegeben.",
       "no_specialty": "Fachgebiet nicht angegeben.",
       "no_skills": "Noch keine Kompetenzen."
+    },
+    "errors": {
+      "list_read_failed_title": "Ein Teil Ihres Profils konnte nicht geladen werden",
+      "list_read_failed_body": "Diese Abschnitte konnten nicht gelesen werden: {sections}. Was Sie sehen, ist daher unvollständig — es ist nichts verloren gegangen. Laden Sie die Seite neu, um es erneut zu versuchen.",
+      "list_read_failed_retry": "Neu laden"
     }
   },
   "login": {
@@ -1352,6 +1364,11 @@
       "no_career_goals": "Noch keine Karriereziele hinterlegt.",
       "no_search_preferences": "Noch keine Suchpräferenzen hinterlegt.",
       "no_compensation": "Noch keine Vergütungsdetails hinterlegt."
+    },
+    "errors": {
+      "list_read_failed_title": "Ein Teil Ihres Profils konnte nicht geladen werden",
+      "list_read_failed_body": "Diese Abschnitte konnten nicht gelesen werden: {sections}. Was Sie sehen, ist daher unvollständig — es ist nichts verloren gegangen. Laden Sie die Seite neu, um es erneut zu versuchen.",
+      "list_read_failed_retry": "Neu laden"
     }
   },
   "cdi_profile_upload": {
@@ -1411,7 +1428,11 @@
       "cv_not_ready": "Laden Sie Ihren Lebenslauf hoch und akzeptieren Sie die KI-Überprüfung, bevor Sie Ihr Profil veröffentlichen.",
       "account_load_failed": "Ihr Konto konnte nicht geladen werden.",
       "incomplete_check_below": "Profil unvollständig, prüfen Sie die hervorgehobenen Felder unten.",
-      "save_failed": "Speichern fehlgeschlagen, bitte erneut versuchen."
+      "save_failed": "Speichern fehlgeschlagen, bitte erneut versuchen.",
+      "list_read_failed_title": "Ein Teil Ihres Profils konnte nicht geladen werden",
+      "list_read_failed_body": "Diese Abschnitte konnten nicht gelesen werden: {sections}. Sie werden beim Speichern nicht geändert — es geht nichts verloren. Laden Sie die Seite neu, um es erneut zu versuchen.",
+      "list_read_failed_retry": "Neu laden",
+      "erase_not_declared": "Das Speichern wurde abgelehnt, um Ihre Daten zu schützen: Ein Abschnitt konnte nicht gelesen werden. Es wurde nichts geändert. Laden Sie die Seite neu und versuchen Sie es erneut."
     },
     "success": {
       "draft_saved": "Entwurf gespeichert. Sie können weiter bearbeiten oder zum Dashboard zurückkehren.",
@@ -1657,7 +1678,10 @@
         "hidden_intro": "Für Projektvorschläge sind neue Angaben nötig geworden. Ihr Profil wurde vorübergehend ausgeblendet — es wurde nicht gelöscht.",
         "hidden_list_intro": "Noch zu ergänzen:",
         "hidden_cta": "Mein Profil vervollständigen"
-      }
+      },
+      "experiences": "Erfahrung",
+      "educations": "Ausbildung",
+      "languages_structured": "Sprachen"
     },
     "actions": {
       "reset_cv": "Abbrechen und Lebenslauf erneut hochladen",

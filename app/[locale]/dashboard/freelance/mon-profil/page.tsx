@@ -16,6 +16,7 @@ import AvatarUploadModal from '@/components/AvatarUploadModal'
 import AvatarEditOverlay from '@/components/dashboard/AvatarEditOverlay'
 import DashboardSidebar from '@/components/shell/DashboardSidebar'
 import { useAvatarUrl } from '@/hooks/useAvatarUrl'
+import { listeLue, lignesOuVide, type ListeDeProfil } from '@/lib/lecture/liste'
 import ImageOuRepli from '@/components/ui/ImageOuRepli'
 
 const jakarta = Plus_Jakarta_Sans({
@@ -293,7 +294,22 @@ function ExpandableDescription({
   )
 }
 
+/**
+ * Les trois listes de profil, et le titre de section qui les désigne à l'écran.
+ * Les clés de gauche sont celles de `LISTES_DE_PROFIL` (bornées, partagées avec
+ * la route) ; celles de droite existaient déjà dans `profile_view.sections`.
+ */
+const NOM_DE_SECTION: Record<ListeDeProfil, string> = {
+  experiences: 'career',
+  educations: 'education',
+  languages_structured: 'languages',
+}
+
 export default function MonProfilPage() {
+  // Les sections que la lecture n'a PAS pu rendre. Vide = tout a été lu ; une
+  // section ici n'est pas « vide », elle est INCONNUE, et l'écran le dit.
+  const [sectionsIndisponibles, setSectionsIndisponibles] = useState<ListeDeProfil[]>([])
+
   const t = useTranslations('profile_view')
   const tVerifBadge = useTranslations('expert_verification.badge')
   const tRejected = useTranslations('expert_verification.rejected_details')
@@ -441,9 +457,23 @@ export default function MonProfilPage() {
       setBranches((taxonomy.branches ?? []) as Branch[])
       setSpecialities((taxonomy.specialities ?? []) as Speciality[])
       setCountries((countriesData ?? []) as Country[])
-      setExperiences((expsRes.data ?? []) as Experience[])
-      setEducations((edusRes.data ?? []) as Education[])
-      setLanguages((langsRes.data ?? []) as LanguageItem[])
+      // ⚠️ JUMEAU DES DEUX ÉCRANS DE VALIDATION (§E.20), MAIS SANS ÉCRITURE.
+      //    Ici la panne ne DÉTRUIT pas — elle AFFIRME. `(res.data ?? [])`
+      //    montrait un profil complet comme entièrement VIDE : ni expérience,
+      //    ni formation, ni langue. L'expert en conclut que son profil a été
+      //    perdu, au moment exact où il vient le vérifier avant de publier.
+      //    On distingue donc « lu et vide » de « pas su lire », et on le DIT.
+      const expsLu = listeLue<Experience>(expsRes)
+      const edusLu = listeLue<Education>(edusRes)
+      const langsLu = listeLue<LanguageItem>(langsRes)
+      setSectionsIndisponibles([
+        ...(expsLu.etat === 'indisponible' ? (['experiences'] as const) : []),
+        ...(edusLu.etat === 'indisponible' ? (['educations'] as const) : []),
+        ...(langsLu.etat === 'indisponible' ? (['languages_structured'] as const) : []),
+      ])
+      setExperiences(lignesOuVide(expsLu))
+      setEducations(lignesOuVide(edusLu))
+      setLanguages(lignesOuVide(langsLu))
 
       setLoading(false)
     }
@@ -1166,6 +1196,46 @@ export default function MonProfilPage() {
               )}
             </div>
           </Card>
+
+          {/* ── CE QU'ON N'A PAS SU LIRE SE DIT, ET NE SE DÉGUISE PAS EN VIDE ──
+              §E.22 : une section absente et une section illisible produisaient
+              le même écran — « aucune expérience » —, sur la page où l'expert
+              vient vérifier son profil avant de publier. */}
+          {sectionsIndisponibles.length > 0 && (
+            <div
+              role="status"
+              aria-live="polite"
+              style={{
+                background: '#fffbeb',
+                border: '1px solid #fde68a',
+                borderRadius: 12,
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+                <div style={{ fontWeight: 600, color: '#92400e', fontSize: 14, marginBottom: 4 }}>
+                  {t('errors.list_read_failed_title')}
+                </div>
+                <div style={{ color: '#78350f', fontSize: 13, lineHeight: 1.5 }}>
+                  {t('errors.list_read_failed_body', {
+                    // Les titres de section existent DÉJÀ dans `sections.*` :
+                    // on les réutilise plutôt que d'ouvrir un second jeu de noms
+                    // pour les mêmes trois blocs — deux noms divergent toujours.
+                    sections: sectionsIndisponibles
+                      .map(c => t(`sections.${NOM_DE_SECTION[c]}`))
+                      .join(', '),
+                  })}
+                </div>
+              </div>
+              <button type="button" onClick={() => window.location.reload()} className="icon-btn">
+                {t('errors.list_read_failed_retry')}
+              </button>
+            </div>
+          )}
 
           {/* ─── 1. Summary ─── */}
           <Card>

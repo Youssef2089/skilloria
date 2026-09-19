@@ -583,7 +583,11 @@
       "cv_not_ready": "Upload your CV and accept the AI verification before publishing your profile.",
       "account_load_failed": "Unable to load your account.",
       "incomplete_check_below": "Profile incomplete, please check the highlighted fields below.",
-      "save_failed": "Error while saving, please try again."
+      "save_failed": "Error while saving, please try again.",
+      "list_read_failed_title": "Part of your profile could not be loaded",
+      "list_read_failed_body": "These sections could not be read: {sections}. They will not be changed when you save — nothing is lost. Reload the page to try again.",
+      "list_read_failed_retry": "Reload",
+      "erase_not_declared": "Saving was refused to protect your data: a section could not be read. Nothing was changed. Reload the page, then try again."
     },
     "success": {
       "draft_saved": "Draft saved. You can keep editing or go back to your dashboard.",
@@ -788,7 +792,10 @@
         "hidden_intro": "New fields became necessary for us to suggest assignments to you. Your profile has been hidden in the meantime — it has not been deleted.",
         "hidden_list_intro": "What is left to complete:",
         "hidden_cta": "Complete my profile"
-      }
+      },
+      "experiences": "Experience",
+      "educations": "Education",
+      "languages_structured": "Languages"
     },
     "actions": {
       "reset_cv": "Cancel and re-upload CV",
@@ -889,6 +896,11 @@
       "no_branch": "Branch not set.",
       "no_specialty": "Specialty not set.",
       "no_skills": "No skills yet."
+    },
+    "errors": {
+      "list_read_failed_title": "Part of your profile could not be loaded",
+      "list_read_failed_body": "These sections could not be read: {sections}. What you see is therefore incomplete — nothing has been lost. Reload the page to try again.",
+      "list_read_failed_retry": "Reload"
     }
   },
   "login": {
@@ -1352,6 +1364,11 @@
       "no_career_goals": "No career goals yet.",
       "no_search_preferences": "No job-search preferences yet.",
       "no_compensation": "No compensation details yet."
+    },
+    "errors": {
+      "list_read_failed_title": "Part of your profile could not be loaded",
+      "list_read_failed_body": "These sections could not be read: {sections}. What you see is therefore incomplete — nothing has been lost. Reload the page to try again.",
+      "list_read_failed_retry": "Reload"
     }
   },
   "cdi_profile_upload": {
@@ -1411,7 +1428,11 @@
       "cv_not_ready": "Upload your CV and accept the AI verification before publishing your profile.",
       "account_load_failed": "Could not load your account.",
       "incomplete_check_below": "Profile incomplete, check the highlighted fields below.",
-      "save_failed": "Save failed, please retry."
+      "save_failed": "Save failed, please retry.",
+      "list_read_failed_title": "Part of your profile could not be loaded",
+      "list_read_failed_body": "These sections could not be read: {sections}. They will not be changed when you save — nothing is lost. Reload the page to try again.",
+      "list_read_failed_retry": "Reload",
+      "erase_not_declared": "Saving was refused to protect your data: a section could not be read. Nothing was changed. Reload the page, then try again."
     },
     "success": {
       "draft_saved": "Draft saved. You can keep editing or return to the dashboard.",
@@ -1657,7 +1678,10 @@
         "hidden_intro": "New fields became necessary for us to suggest assignments to you. Your profile has been hidden in the meantime — it has not been deleted.",
         "hidden_list_intro": "What is left to complete:",
         "hidden_cta": "Complete my profile"
-      }
+      },
+      "experiences": "Experience",
+      "educations": "Education",
+      "languages_structured": "Languages"
     },
     "actions": {
       "reset_cv": "Cancel and re-upload CV",

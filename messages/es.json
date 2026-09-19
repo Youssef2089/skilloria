@@ -583,7 +583,11 @@
       "cv_not_ready": "Sube tu CV y acepta la verificación por IA antes de publicar tu perfil.",
       "account_load_failed": "No se ha podido cargar tu cuenta.",
       "incomplete_check_below": "Perfil incompleto, comprueba los campos destacados de abajo.",
-      "save_failed": "Error al guardar, inténtalo de nuevo."
+      "save_failed": "Error al guardar, inténtalo de nuevo.",
+      "list_read_failed_title": "No se ha podido cargar una parte de tu perfil",
+      "list_read_failed_body": "No se han podido leer estas secciones: {sections}. No se modificarán al guardar — no se pierde nada. Vuelve a cargar la página para reintentarlo.",
+      "list_read_failed_retry": "Recargar",
+      "erase_not_declared": "Se ha rechazado el guardado para proteger tus datos: no se ha podido leer una sección. No se ha modificado nada. Vuelve a cargar la página e inténtalo de nuevo."
     },
     "success": {
       "draft_saved": "Borrador guardado. Puedes seguir editando o volver al panel.",
@@ -788,7 +792,10 @@
         "hidden_intro": "Se han vuelto necesarios nuevos campos para poder proponerte misiones. Tu perfil se ha ocultado mientras tanto — no se ha eliminado.",
         "hidden_list_intro": "Te queda por completar:",
         "hidden_cta": "Completar mi perfil"
-      }
+      },
+      "experiences": "Experiencia",
+      "educations": "Formación",
+      "languages_structured": "Idiomas"
     },
     "actions": {
       "reset_cv": "Cancelar y volver a subir el CV",
@@ -889,6 +896,11 @@
       "no_branch": "Rama no especificada.",
       "no_specialty": "Especialidad no especificada.",
       "no_skills": "Aún no hay competencias."
+    },
+    "errors": {
+      "list_read_failed_title": "No se ha podido cargar una parte de tu perfil",
+      "list_read_failed_body": "No se han podido leer estas secciones: {sections}. Por tanto, lo que ves está incompleto — no se ha perdido nada. Vuelve a cargar la página para reintentarlo.",
+      "list_read_failed_retry": "Recargar"
     }
   },
   "login": {
@@ -1352,6 +1364,11 @@
       "no_career_goals": "Aún no has añadido objetivos.",
       "no_search_preferences": "Aún no has añadido preferencias de búsqueda.",
       "no_compensation": "Aún no has añadido datos de remuneración."
+    },
+    "errors": {
+      "list_read_failed_title": "No se ha podido cargar una parte de tu perfil",
+      "list_read_failed_body": "No se han podido leer estas secciones: {sections}. Por tanto, lo que ves está incompleto — no se ha perdido nada. Vuelve a cargar la página para reintentarlo.",
+      "list_read_failed_retry": "Recargar"
     }
   },
   "cdi_profile_upload": {
@@ -1411,7 +1428,11 @@
       "cv_not_ready": "Sube tu CV y acepta la verificación por IA antes de publicar tu perfil.",
       "account_load_failed": "No se pudo cargar tu cuenta.",
       "incomplete_check_below": "Perfil incompleto, revisa los campos destacados abajo.",
-      "save_failed": "Error al guardar, vuelve a intentarlo."
+      "save_failed": "Error al guardar, vuelve a intentarlo.",
+      "list_read_failed_title": "No se ha podido cargar una parte de tu perfil",
+      "list_read_failed_body": "No se han podido leer estas secciones: {sections}. No se modificarán al guardar — no se pierde nada. Vuelve a cargar la página para reintentarlo.",
+      "list_read_failed_retry": "Recargar",
+      "erase_not_declared": "Se ha rechazado el guardado para proteger tus datos: no se ha podido leer una sección. No se ha modificado nada. Vuelve a cargar la página e inténtalo de nuevo."
     },
     "success": {
       "draft_saved": "Borrador guardado. Puedes seguir editando o volver al panel.",
@@ -1657,7 +1678,10 @@
         "hidden_intro": "Se han vuelto necesarios nuevos campos para poder proponerte misiones. Tu perfil se ha ocultado mientras tanto — no se ha eliminado.",
         "hidden_list_intro": "Te queda por completar:",
         "hidden_cta": "Completar mi perfil"
-      }
+      },
+      "experiences": "Experiencia",
+      "educations": "Formación",
+      "languages_structured": "Idiomas"
     },
     "actions": {
       "reset_cv": "Cancelar y volver a subir el CV",
