@@ -362,9 +362,15 @@ section('G. L’alerte par acteur ALERTE — elle ne bloque rien')
   //    declare le champ sans jamais le rendre passait pour un afficheur.
   //    On exige donc la borne de mot ET qu au moins un CHAMP de la ligne soit
   //    rendu : DECLARER N EST PAS AFFICHER.
+  //    PREMIERE CORRECTION INSUFFISANTE, et la mutation l'a redit : exiger un
+  //    CHAMP de la ligne laissait passer, parce que le TYPE `LigneActeur`
+  //    declare deja `depense_mois` et `acteur_type` dans le meme fichier. Un
+  //    ecran qui ne rend RIEN satisfaisait donc les deux conditions.
+  //    On exige que la liste soit PARCOURUE : un `.map(` est la seule preuve
+  //    qu'on en rend les lignes.
   const afficheurs = PARTOUT.filter(
     ([f, c]) =>
-      /\.tsx$/.test(f) && /\bpar_acteur\b/.test(c) && /\b(depense_mois|acteur_type)\b/.test(c),
+      /\.tsx$/.test(f) && /\bpar_acteur\b\s*\??\.\s*map\(/.test(c),
   ).map(([f]) => f)
   ok(lecteurs.length >= 1,
     'la depense par acteur est LUE quelque part',
