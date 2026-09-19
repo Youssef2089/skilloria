@@ -96,11 +96,23 @@ async function compterDepassement(
   profileId: string,
   origine: OrigineRelance,
 ): Promise<void> {
-  const { data: prof } = await supabaseAdmin
+  // ⚠️ LE BLOC SUIVANT CRIE QUAND L'INSERTION ÉCHOUE — « le compteur va
+  //    sous-estimer » — et se taisait quand l'ÉCOSYSTÈME manquait. La ligne
+  //    partait alors avec `domain_id: null` : comptée globalement, invisible
+  //    dans toute répartition par écosystème. Un chiffre faux sous un label
+  //    juste (§E.24), dans un compteur anti-abus.
+  const { data: prof, error: profErr } = await supabaseAdmin
     .from('profiles')
     .select('domain_id')
     .eq('id', profileId)
     .maybeSingle()
+  if (profErr) {
+    console.error('[relance] écosystème du dépassement INCONNU — la répartition par écosystème sous-estimera', {
+      profileId,
+      origine,
+      message: profErr.message,
+    })
+  }
   const { error } = await supabaseAdmin.from('relance_overruns').insert({
     profile_id: profileId,
     domain_id: (prof as { domain_id?: string | null } | null)?.domain_id ?? null,

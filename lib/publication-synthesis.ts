@@ -151,7 +151,14 @@ export async function loadReferentielLabels(
   // appelant, ce qui l'avait laissé passer.
   supabaseAdmin: {
     from: (t: string) => {
-      select: (c: string) => { in: (col: string, v: string[]) => PromiseLike<{ data: unknown }> }
+      // ⚠️ CE TYPE ÉCRIT À LA MAIN NE PORTAIT PAS `error`, ET L'ERREUR N'ÉTAIT
+      //    DONC PAS « OUBLIÉE » : ELLE ÉTAIT INATTEIGNABLE. Le compilateur
+      //    refusait `specRes.error` — la seule façon d'écrire ce module était
+      //    d'ignorer la panne. Une forme déclarée trop étroite fabrique le
+      //    défaut qu'on reproche ensuite à l'auteur.
+      select: (c: string) => {
+        in: (col: string, v: string[]) => PromiseLike<{ data: unknown; error: { message: string } | null }>
+      }
     }
   },
   translations: TranslationsMap,
@@ -163,11 +170,27 @@ export async function loadReferentielLabels(
   const [specRes, zoneRes] = await Promise.all([
     specIds.length
       ? supabaseAdmin.from('specialities').select('id, name').in('id', specIds)
-      : Promise.resolve({ data: [] }),
+      // `error: null` n'est pas décoratif : sans lui, la branche « rien à lire »
+      // et la branche « requête » n'ont pas la même forme, et le compilateur ne
+      // laisse plus tester l'erreur du tout — c'est ainsi qu'elle a été oubliée.
+      : Promise.resolve({ data: [], error: null }),
     zoneIds.length
       ? supabaseAdmin.from('work_zones').select('id, name').in('id', zoneIds)
-      : Promise.resolve({ data: [] }),
+      : Promise.resolve({ data: [], error: null }),
   ])
+
+  // ⚠️ `libelles()` FILTRE les identifiants sans libellé. Une lecture en panne
+  //    rendait donc une annonce SANS spécialité et SANS zone — elle se lit
+  //    « cette annonce ne vise personne en particulier », ce qui est faux, et
+  //    c'est la synthèse que l'expert consulte pour décider (§E.22).
+  //    Aucun repli ne peut inventer un libellé : on JOURNALISE, pour que
+  //    l'annonce dépouillée ne soit pas un mystère.
+  if (specRes.error || zoneRes.error) {
+    console.error('[publication-synthesis] référentiels illisibles — annonce affichée sans ciblage', {
+      specialites: specRes.error?.message ?? null,
+      zones: zoneRes.error?.message ?? null,
+    })
+  }
 
   const table = (data: unknown, nomTable: 'specialities' | 'work_zones') =>
     new Map(

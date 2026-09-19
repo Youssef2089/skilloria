@@ -101,6 +101,9 @@ export default function DashboardFreelance() {
   const domain = useDomain()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<ProfileData | null>(null)
+  // La lecture du profil a-t-elle échoué ? Vrai = l'écran montre le DERNIER
+  // état connu, pas la vérité du moment — et il le dit.
+  const [lectureProfilEnPanne, setLectureProfilEnPanne] = useState(false)
   const [loading, setLoading] = useState(true)
   const [tjmModalOpen, setTjmModalOpen] = useState(false)
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
@@ -224,7 +227,10 @@ export default function DashboardFreelance() {
         router.push('/connexion')
         return
       }
-      const [{ data: userData }, { data: profileData }] = await Promise.all([
+      // ⚠️ LES RÉSULTATS SONT LIÉS ENTIERS. `const [{ data: x }]` jetait
+      //    l'`error` à l'écriture même de la ligne : il n'y avait plus rien à
+      //    oublier de lire (§E.22, forme ①-bis).
+      const [userRes, profileRes] = await Promise.all([
         supabase
           .from('users')
           .select('*, domains(slug, name)')
@@ -236,16 +242,42 @@ export default function DashboardFreelance() {
           .eq('user_id', session.user.id)
           .maybeSingle(),
       ])
-      setUser(userData)
-      setProfile(profileData ?? { tjm_min: null, tjm_max: null, photo_url: null })
+      // ── UNE PANNE NE DOIT PAS ÉCRASER UN ÉTAT VALIDE ─────────────────────
+      //  Ce chargement est RELANCÉ sur `sk:availability-changed`. Une panne au
+      //  refetch effaçait donc un état déjà bon — le même aggravant que dans
+      //  `DashboardShell`, corrigé au lot précédent (§E.20).
+      if (userRes.error) {
+        console.error('[dashboard/freelance] lecture users en panne', userRes.error.message)
+      } else {
+        setUser(userRes.data)
+      }
+      const profileData = profileRes.error ? null : profileRes.data
+      if (profileRes.error) {
+        console.error('[dashboard/freelance] lecture profiles en panne', profileRes.error.message)
+        setLectureProfilEnPanne(true)
+      } else {
+        setLectureProfilEnPanne(false)
+        // Le profil FABRIQUÉ ne se pose que si la lecture a ABOUTI : un profil
+        // vide inventé sur une panne affichait un TJM disparu et un titre vide
+        // à un expert dont le profil est complet.
+        setProfile(profileRes.data ?? { tjm_min: null, tjm_max: null, photo_url: null })
+      }
       // Sync local availability depuis la DB. Tolérance NULL → 'available'
       // (défaut produit). Réutilisé par le listener sk:availability-changed
       // ci-dessous pour resync après bascule depuis le bouton "Réactiver".
-      const rawAvail = (profileData as { availability_status?: string | null } | null)?.availability_status ?? null
-      const safeAvail: AvailabilityStatus =
-        rawAvail === 'do_not_disturb' ? 'do_not_disturb' : 'available'
-      setAvailability(safeAvail)
-      setOpenToCdi((profileData as { open_to_cdi?: boolean | null } | null)?.open_to_cdi === true)
+      // ⚠️ « TOLÉRANCE NULL → available » EST UN DÉFAUT PRODUIT LÉGITIME — pour
+      //    une colonne RÉELLEMENT nulle. Sur une panne de lecture, il affirmait
+      //    « Disponible » à un expert qui s'était mis en NE PAS DÉRANGER, et le
+      //    faisait au moment exact où il vient de basculer l'interrupteur.
+      //    On ne touche donc à rien quand on n'a pas su lire : l'écran garde le
+      //    dernier état connu, et le bandeau dit pourquoi.
+      if (!profileRes.error) {
+        const rawAvail = (profileData as { availability_status?: string | null } | null)?.availability_status ?? null
+        const safeAvail: AvailabilityStatus =
+          rawAvail === 'do_not_disturb' ? 'do_not_disturb' : 'available'
+        setAvailability(safeAvail)
+        setOpenToCdi((profileData as { open_to_cdi?: boolean | null } | null)?.open_to_cdi === true)
+      }
       setLoading(false)
     }
     void loadUserAndProfile()
@@ -512,6 +544,54 @@ export default function DashboardFreelance() {
           .dashboard-sidebar { display: flex !important; }
         }
       `}</style>
+
+      {/* ── L'ÉCRAN DIT QUAND IL MONTRE UN ÉTAT PÉRIMÉ ──────────────────────
+          Sans ce bandeau, une panne de lecture laissait l'écran afficher son
+          dernier état connu SANS LE DIRE — ce qui est mieux qu'un « Disponible »
+          inventé, mais toujours une affirmation qu'on ne peut pas tenir (§E.19). */}
+      {lectureProfilEnPanne && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            borderRadius: 12,
+            padding: '12px 16px',
+            margin: '0 0 16px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+            <div style={{ fontWeight: 600, color: '#92400e', fontSize: 14, marginBottom: 4 }}>
+              {t('lecture_en_panne.titre')}
+            </div>
+            <div style={{ color: '#78350f', fontSize: 13, lineHeight: 1.5 }}>
+              {t('lecture_en_panne.corps')}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            style={{
+              background: '#92400e',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '8px 14px',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            {t('lecture_en_panne.reessayer')}
+          </button>
+        </div>
+      )}
 
       {/* Lot refonte UX : sidebar + topbar centralisées dans DashboardShell
           (sub-layout parent freelance/layout.tsx). Cette page ne rend plus

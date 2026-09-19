@@ -130,11 +130,19 @@ export async function performUnlock(
   let conversationId: string | null = null
   if (convInsertErr) {
     if ((convInsertErr as { code?: string }).code === '23505') {
-      const { data: existingConv } = await admin
+      const { data: existingConv, error: convReadErr } = await admin
         .from('conversations')
         .select('id')
         .eq('candidature_id', candidatureId)
         .maybeSingle()
+      if (convReadErr) {
+        // La conversation EXISTE — c'est le 23505 qui vient de le dire. Rendre
+        // `null` ici faisait aboutir un déverrouillage PAYÉ sans le fil qu'il
+        // achète : « déverrouillé, et rien à ouvrir ». On refuse plutôt que de
+        // livrer une moitié (§E.22).
+        console.error('[performUnlock] relecture de la conversation en panne', convReadErr.message)
+        return { ok: false, code: 'db_error' }
+      }
       conversationId = (existingConv as { id: string } | null)?.id ?? null
     } else {
       console.error('[performUnlock] conv insert failed', convInsertErr.message)
@@ -164,7 +172,10 @@ export async function performUnlock(
 
   // (3) Notif expert (best-effort) — uniquement au flip réel.
   if (didFlip) {
-    const { data: profileWithUser } = await admin
+    // Best-effort ASSUMÉ : l'expert peut ne pas être notifié, le
+    // déverrouillage lui reste acquis. Mais un silence total ferait chercher un
+    // bug de notification là où il y a une panne de lecture.
+    const { data: profileWithUser, error: pwuErr } = await admin
       .from('profiles')
       .select('id, user_id, users!profiles_user_id_fkey!inner(id, locale, user_type)')
       .eq('id', candRow.profile_id)
@@ -175,6 +186,12 @@ export async function performUnlock(
       users:
         | { id: string; locale: string | null; user_type: string | null }
         | { id: string; locale: string | null; user_type: string | null }[]
+    }
+    if (pwuErr) {
+      console.error('[performUnlock] profil pour notification en panne — expert NON prévenu', {
+        candidatureId,
+        message: pwuErr.message,
+      })
     }
     const pwu = profileWithUser as unknown as ProfUser | null
     if (pwu) {

@@ -524,6 +524,11 @@
           "archived": "Archiviert"
         }
       }
+    },
+    "lecture_en_panne": {
+      "titre": "Ihr Profil konnte nicht neu geladen werden",
+      "corps": "Sie sehen den zuletzt bekannten Stand, nicht unbedingt den aktuellen — insbesondere Ihre Verfügbarkeit. Es wurde nichts geändert.",
+      "reessayer": "Neu laden"
     }
   },
   "profile_upload": {
@@ -920,7 +925,8 @@
       "missing_fields": "E-Mail und Passwort sind erforderlich.",
       "invalid_credentials": "E-Mail oder Passwort falsch.",
       "profile_not_found": "Ihr Profil konnte nicht geladen werden.",
-      "wrong_domain": "Ihr Konto gehört zu einem anderen Skilloria-Bereich. Bitte melden Sie sich unter {subdomain}.skilloria.io an."
+      "wrong_domain": "Ihr Konto gehört zu einem anderen Skilloria-Bereich. Bitte melden Sie sich unter {subdomain}.skilloria.io an.",
+      "routing_unavailable": "Wir konnten Ihr Konto nicht prüfen. Es liegt nicht am Passwort — bitte versuchen Sie es gleich erneut."
     }
   },
   "forgot_password": {
@@ -1413,6 +1419,14 @@
       "unknown_reason": "unbekannter Fehler",
       "parsing_default": "Analyse fehlgeschlagen",
       "timeout": "Zeitüberschreitung, bitte erneut versuchen."
+    },
+    "acces": {
+      "refuse_titre": "Diese Seite ist für Festangestellten-Expertinnen und -Experten",
+      "refuse_corps": "Ihr Konto ist nicht von diesem Typ. Es wurde nichts geändert.",
+      "indisponible_titre": "Wir konnten Ihren Zugang nicht prüfen",
+      "indisponible_corps": "Die Prüfung Ihres Kontos ist fehlgeschlagen. Das ist keine Ablehnung: wir wissen es nicht. Bitte versuchen Sie es gleich erneut.",
+      "reessayer": "Erneut versuchen",
+      "retour_accueil": "Zurück zur Startseite"
     }
   },
   "cdi_profile_validation": {

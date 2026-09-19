@@ -270,6 +270,27 @@ async function loadProfileForVerification(
     // traitée par le caller (pending_admin_review), jamais masquée.
     supabaseAdmin.from('domains').select('name, domain_configs(tags)').eq('id', row.domain_id).maybeSingle(),
   ])
+  // ⚠️ MÊME APPEL, DEUX STANDARDS — ET C'ÉTAIT VISIBLE À L'ŒIL NU.
+  //    Le QUATRIÈME élément de ce `Promise.all` porte, en commentaire, « Pas de
+  //    fallback en dur : un domaine sans nom = anomalie traitée par le caller,
+  //    jamais masquée ». Les TROIS PREMIERS retombaient sur `[]`.
+  //
+  //    Ce que ça produisait : l'IA jugeait un expert à ZÉRO EXPÉRIENCE, sans
+  //    formation et sans langue. Elle notait bas, le score passait sous le
+  //    seuil, et la note — FAUSSE — partait EN BASE, lue ensuite par un
+  //    administrateur. C'est le cas ⑦ de §E.22, sur le chemin des DONNÉES
+  //    cette fois et non de la configuration. Et on PAYAIT l'appel.
+  //
+  //    Une règle écrite à côté d'une ligne ne couvre pas ses voisines.
+  if (expRes.error || eduRes.error || langRes.error) {
+    console.error('[expert-verification] tables structurées en échec — aucun jugement', {
+      profileId,
+      experiences: expRes.error?.message ?? null,
+      educations: eduRes.error?.message ?? null,
+      langues: langRes.error?.message ?? null,
+    })
+    return 'indisponible'
+  }
   const experiences = ((expRes.data ?? []) as unknown as ExpertVerificationInput['experiences'])
   const educations = ((eduRes.data ?? []) as unknown as ExpertVerificationInput['educations'])
   const languages = ((langRes.data ?? []) as { language: string; level?: string }[]).map((l) => l.language)
@@ -461,12 +482,48 @@ export async function runExpertVerification(args: {
   const branch = pickRel(row.branches)
   // Les spécialités sont multiples : l'embed PostgREST n'existe plus (la clé
   // étrangère a disparu), on résout les libellés en une requête.
+  // Même classe que ci-dessus : un expert privé de ses spécialités est jugé
+  // sur un dossier amputé, et la note part en base. `null` = « je n'ai pas su
+  // lire », distinct de « cet expert n'en a déclaré aucune » (tableau vide).
   const specialityNames = await (async () => {
     const ids = row.speciality_ids ?? []
     if (ids.length === 0) return [] as string[]
-    const { data: sps } = await supabaseAdmin.from('specialities').select('name').in('id', ids)
+    const { data: sps, error: spsErr } = await supabaseAdmin
+      .from('specialities')
+      .select('name')
+      .in('id', ids)
+    if (spsErr) {
+      console.error('[expert-verification] libellés de spécialité en échec', {
+        profileId: profile_id,
+        message: spsErr.message,
+      })
+      return null
+    }
     return ((sps ?? []) as Array<{ name: string }>).map((x) => x.name)
   })()
+  if (specialityNames === null) {
+    // On ne dépense pas pour un verdict qu'on sait bâti sur un dossier amputé.
+    // Revue humaine, motif NOMMÉ — le repli CONÇU du produit (§E.21).
+    await supabaseAdmin
+      .from('profiles')
+      .update({
+        verification_status: 'pending_admin_review',
+        verification_data: {
+          notes: 'Lecture des spécialités en échec — aucun jugement IA n’a été fait.',
+        },
+      })
+      .eq('id', profile_id)
+    return {
+      status: 'error',
+      verification_status: 'pending_admin_review',
+      score: null,
+      notes: '',
+      flags: [],
+      discrepancies: [],
+      model: null,
+      reason: 'speciality_read_failed',
+    }
+  }
   const locale = normalizeLocale(user?.locale)
   const input: ExpertVerificationInput = {
     domain_name,

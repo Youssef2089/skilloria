@@ -140,11 +140,24 @@ export default function NouveauMotDePassePage() {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session?.user) {
-          const { data: userData } = await supabase
+          const { data: userData, error: userErr } = await supabase
             .from('users')
             .select('user_type')
             .eq('id', session.user.id)
             .single()
+          // ⚠️ SANS CE TEST, LE MOT DE PASSE ÉTAIT BIEN CHANGÉ ET L'UTILISATEUR
+          //    ATTERRISSAIT SUR UN 404. `userData` nul donnait
+          //    `dashboardUrlForUserType(null)`, donc `FALLBACK_DASHBOARD_URL`,
+          //    c'est-à-dire `/dashboard` — un segment qui n'a PAS de `page.tsx`.
+          //    Le repli de routage lui-même est traité au lot suivant (il vit
+          //    dans `lib/auth-routing.ts`, source unique du routage) ; ce qui
+          //    est fermé ici, c'est qu'une lecture en panne y mène en silence.
+          //    On rejoint la sortie déjà prévue par ce bloc : `/connexion`.
+          if (userErr) {
+            console.error('[nouveau-mot-de-passe] type de compte illisible', userErr.message)
+            router.push('/connexion')
+            return
+          }
           const init = await initSession({ accessToken: session.access_token, subdomain: domain.subdomain })
           // Compte suspendu : réinitialiser son mot de passe ne rend pas l'accès.
           // Sans ce test, la page de reset serait la troisième porte d'entrée

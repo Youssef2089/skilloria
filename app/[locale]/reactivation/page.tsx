@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
+import { dashboardUrlForUserType } from '@/lib/auth-routing'
 import { useSecureFetch, useSecureLogout } from '@/lib/secure-fetch'
 
 const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
@@ -51,7 +52,14 @@ export default function ReactivationPage() {
       // grâce → on lit le type via la fonction SECURITY DEFINER my_account_routing()
       // (accessible en grâce, n'expose que le routage). Sert au redirect
       // post-réactivation vers le bon dashboard.
-      const { data: routingRows } = await supabase.rpc('my_account_routing')
+      const { data: routingRows, error: routingErr } = await supabase.rpc('my_account_routing')
+      if (routingErr) {
+        // Le routage post-réactivation est INCONNU, pas « freelance par
+        // défaut » (§E.22). On laisse `userType` à null et l'effet de
+        // redirection ne tranche pas : mieux vaut rester sur cet écran que
+        // déposer quelqu'un sur un tableau de bord qui n'est pas le sien.
+        console.error('[reactivation] routage du compte en panne', routingErr.message)
+      }
       const u = Array.isArray(routingRows) ? routingRows[0] : routingRows
       if (!cancelled) setUserType((u as { user_type?: string } | null)?.user_type ?? null)
       try {
@@ -77,8 +85,19 @@ export default function ReactivationPage() {
 
   useEffect(() => {
     if (view === 'active') {
-      const dest = userType === 'cdi' ? '/dashboard/cdi' : '/dashboard/freelance'
-      router.replace(dest)
+      // ⚠️ CETTE COMPARAISON N'ÉTAIT JAMAIS VRAIE, PANNE OU PAS.
+      //    `my_account_routing()` rend `users.user_type` tel quel, donc
+      //    'expert_cdi' — jamais 'cdi'. TOUS les experts en CDI réactivés
+      //    atterrissaient sur le tableau de bord freelance. Le compilateur ne
+      //    dit rien d'une comparaison qui reste POSSIBLE (§E.22 règle 2), et
+      //    c'est exactement le piège de `gate === 'not_approved'` au lot 1.3.
+      //
+      //    On délègue à la source unique du routage plutôt que de réécrire le
+      //    mapping ici : une table recopiée diverge, celle-ci a divergé.
+      //    `userType` nul = routage inconnu (lecture en panne) ⇒ ON NE
+      //    REDIRIGE PAS. Rester est un état ; se tromper de dashboard n'en est
+      //    pas un.
+      if (userType) router.replace(dashboardUrlForUserType(userType))
     }
   }, [view, userType, router])
 

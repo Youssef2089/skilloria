@@ -43,7 +43,13 @@ export default function CdiProfilUploadPage() {
 
 
   const [authChecked, setAuthChecked] = useState(false)
-  const [forbidden, setForbidden] = useState(false)
+  // TROIS ÉTATS NOMMÉS, comme partout ailleurs dans ce lot (§E.22) :
+  //   'autorise'     — la lecture a abouti, le type est le bon ;
+  //   'refuse'       — la lecture a abouti, le type n'est PAS le bon ;
+  //   'indisponible' — on n'a pas su lire, et on ne l'invente pas.
+  // Un booléen `forbidden` confondait les deux derniers : une panne de lecture
+  // affichait « 403 » à un expert CDI parfaitement légitime.
+  const [acces, setAcces] = useState<'autorise' | 'refuse' | 'indisponible'>('autorise')
   const [consent, setConsent] = useState(false)
   const [status, setStatus] = useState<UploadStatus>('idle')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -66,14 +72,22 @@ export default function CdiProfilUploadPage() {
         router.push('/connexion')
         return
       }
-      const { data: userRow } = await supabase
+      const { data: userRow, error: userErr } = await supabase
         .from('users')
         .select('user_type')
         .eq('id', session.user.id)
         .maybeSingle()
       if (cancelled) return
-      if ((userRow?.user_type as string | null) !== 'expert_cdi') {
-        setForbidden(true)
+      // ⚠️ L'ORDRE DU TEST COMPTE (§E.22 règle 2). `!== 'expert_cdi'` est vrai
+      //    d'une panne comme d'un mauvais type : la garde restait FERMÉE — donc
+      //    pas de fail-open — mais elle accusait l'utilisateur d'un droit qu'il
+      //    a. On teste la panne D'ABORD, et on ne relâche rien : le refus tient,
+      //    seul le motif change.
+      if (userErr) {
+        console.error('[cdi/profil] lecture du type de compte en panne', userErr.message)
+        setAcces('indisponible')
+      } else if ((userRow?.user_type as string | null) !== 'expert_cdi') {
+        setAcces('refuse')
       }
       setAuthChecked(true)
     }
@@ -223,7 +237,7 @@ export default function CdiProfilUploadPage() {
   }
 
   // ─── Forbidden (user_type !== 'expert_cdi') ──────────────────────────────
-  if (forbidden) {
+  if (acces !== 'autorise') {
     return (
       <div
         style={{
@@ -249,9 +263,37 @@ export default function CdiProfilUploadPage() {
           <div style={{ fontSize: 40, marginBottom: 12 }} aria-hidden>
             🔒
           </div>
+          {/* ── UN ÉCRAN QUI DIT « 403 » ET RIEN D'AUTRE EST UN ÉCRAN MORT. ──
+              Il n'y avait ici qu'un cadenas, un code HTTP et une flèche : aucune
+              phrase, aucune clé i18n, et donc rien qui distingue « cette page
+              n'est pas pour vous » de « nous n'avons pas pu vérifier ». */}
           <div style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
-            403
+            {acces === 'indisponible' ? t('acces.indisponible_titre') : t('acces.refuse_titre')}
           </div>
+          <div style={{ fontSize: 14, color: '#475569', lineHeight: 1.6 }}>
+            {acces === 'indisponible' ? t('acces.indisponible_corps') : t('acces.refuse_corps')}
+          </div>
+          {acces === 'indisponible' && (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              style={{
+                marginTop: 16,
+                marginRight: 8,
+                background: domain.primaryColor,
+                color: '#fff',
+                border: 'none',
+                borderRadius: 10,
+                padding: '10px 18px',
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              {t('acces.reessayer')}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => router.push('/')}
@@ -268,7 +310,7 @@ export default function CdiProfilUploadPage() {
               fontFamily: 'inherit',
             }}
           >
-            ←
+            {t('acces.retour_accueil')}
           </button>
         </div>
       </div>

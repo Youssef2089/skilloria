@@ -288,15 +288,22 @@ const par = (forme) => trouvailles.filter((t) => t.forme === forme)
  * n'a lu aucun des autres. Prétendre le contraire serait la faute qu'on ferme.
  */
 const JUGES = {
-  // ── LA PARADE, PRISE POUR LE DÉFAUT — ET C'EST STRUCTUREL ────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // LOT 4.1b — les 45 emplacements de `lib/` et `app/[locale]`, ouverts un par
+  // un. 29 mentaient et sont corrigés (ils ont quitté le recensement). Les 16
+  // ci-dessous sont LÉGITIMES, et chacun porte SA raison — jamais une raison
+  // collective : « une liste sans raisons devient un tampon qu'on remplit sans
+  // lire » (§G.8).
   //
-  //   La forme ③ cherche `if (error) { … return null }`. C'est EXACTEMENT la
-  //   forme du correctif : un `null` dont le sens est « je ne sais pas ».
-  //   Le motif ne peut donc pas distinguer la parade de ce qu'elle répare —
-  //   ce n'est pas un réglage à affiner, c'est la limite du procédé. Le
-  //   recensement reste une CARTE ; le verdict se rend en lisant l'appelant.
-  //
-  //   Les trois entrées ci-dessous ont été relues une par une au lot 4.1b.
+  // ⚠️ ET LA FORME ③ EST UNE CARTE PAR CONSTRUCTION. Elle cherche
+  //    `if (error) { … return null }` — c'est EXACTEMENT la forme du correctif,
+  //    un `null` qui veut dire « je ne sais pas ». Le motif ne peut pas
+  //    distinguer la parade de ce qu'elle répare. Ce n'est pas un réglage à
+  //    affiner : c'est la limite du procédé, et c'est pourquoi le verdict se
+  //    rend en lisant l'APPELANT, jamais en lisant le motif.
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ── LA PARADE, PRISE POUR LE DÉFAUT (forme ③) ────────────────────────────
   'app/api/admin/user-purge/route.ts': {
     total: 1,
     raison:
@@ -321,6 +328,83 @@ const JUGES = {
       "tel, et chaque appelant décide PAR RÉVERSIBILITÉ : réversible → on laisse passer, purge → " +
       "on ne fait rien. C'est l'exemplaire que tout le lot 1.3 cite. Relu le 19/09/2026.",
   },
+
+  // ── LE MODÈLE : LA GARDE EST UNE CONTRAINTE DE SCHÉMA, PAS UNE LECTURE ───
+  'lib/collaboration/ensure-personal-org.ts': {
+    total: 1,
+    raison:
+      "`findPersonalOrg` rend `null` sur panne, l'appelant CRÉE, et l'INDEX UNIQUE PARTIEL " +
+      "refuse le doublon (23505, rattrapé) ; si la relecture échoue aussi, la fonction LÈVE en " +
+      "500. La valeur neutre ne PEUT PAS produire de doublon, parce que la garde n'est pas la " +
+      "lecture — c'est le schéma. C'est la forme la plus solide du dépôt : elle ne dépend " +
+      "d'aucune discipline, et c'est vers elle qu'on tend partout où c'est possible. " +
+      "Relu le 19/09/2026.",
+  },
+
+  // ── BEST-EFFORT DÉCLARÉS, ET LE REPLI N'AFFIRME RIEN DE FAUX ─────────────
+  'lib/billing/purchase.ts': {
+    total: 1,
+    raison:
+      "E-mail lu pour le REÇU Stripe. Absent, Checkout le redemande — le commentaire le dit sur " +
+      "place. Aucun refus, aucun chiffre, aucun statut ne dépend de cette lecture : rien ne peut " +
+      "en tirer une affirmation fausse. Relu le 19/09/2026.",
+  },
+  'lib/emails/brand.ts': {
+    total: 1,
+    raison:
+      "Nom d'écosystème pour la signature d'e-mail. Le repli est `UMBRELLA_BRAND` = 'Skilloria', " +
+      "qui est VRAI : c'est le nom de la plateforme, pas une valeur inventée. Un e-mail signé " +
+      "Skilloria au lieu de l'écosystème n'affirme rien de faux. Relu le 19/09/2026.",
+  },
+  'app/[locale]/dashboard/entreprise/page.tsx': {
+    total: 2,
+    raison:
+      "Deux lectures sans conséquence affirmative. (1) `redirectByUserType` ne choisit qu'une " +
+      "DESTINATION : toutes les branches mènent à une page valide, et le repli `/` est celui du " +
+      "cas majoritaire (client/cabinet sans organisation). (2) Le prénom est explicitement " +
+      "best-effort — l'accueil s'affiche sans lui. Aucun état n'est affirmé dans les deux cas. " +
+      "Relu le 19/09/2026.",
+  },
+  'lib/matching/relance.ts': {
+    total: 1,
+    raison:
+      "`avant.matching_relance_due_at` sert à écrire « report » ou « première programmation » " +
+      "AU JOURNAL. Le commentaire borne honnêtement la portée — « information de journal, pas " +
+      "une décision » — et la décision est prise par la fonction SQL en une seule écriture. " +
+      "L'autre lecture du fichier (l'écosystème du dépassement) MENTAIT et a été corrigée. " +
+      "Relu le 19/09/2026.",
+  },
+
+  // ── ENRICHISSEMENTS D'AFFICHAGE, SANS GARDE EN AVAL ─────────────────────
+  'lib/candidature-org-dto.ts': {
+    total: 4,
+    raison:
+      "Quatre lectures d'ENRICHISSEMENT dont aucune ne traverse une garde : le pitch IA " +
+      "(décoratif), les badges « non consultée » (dont l'absence montre TOUT comme non consulté, " +
+      "soit le sens prudent), et les libellés de branche et de spécialité. Les TROIS AUTRES " +
+      "lectures de ce fichier — fenêtres d'annonce, fenêtres d'échange, profils déverrouillés — " +
+      "mentaient et rendent désormais `null`, l'appelant refusant en 503. Relu le 19/09/2026.",
+  },
+  'app/[locale]/dashboard/cdi/page.tsx': {
+    total: 1,
+    raison:
+      "Refetch de `cdi_status` sur `sk:availability-changed`. La garde est " +
+      "`if (raw === 'employed' || raw === 'open_to_work')` : sur une panne, RIEN n'est écrit et " +
+      "l'écran garde le dernier état connu. C'est la forme prescrite — on n'écrase pas un état " +
+      "valide par une absence — et non un repli inventé. Relu le 19/09/2026.",
+  },
+
+  // ── L'ERREUR N'EST PAS LUE, MAIS LA DONNÉE L'EST HONNÊTEMENT ────────────
+  'lib/verification/expert-verification.ts': {
+    total: 1,
+    raison:
+      "`domRes` (nom + tags de l'écosystème) : son `.error` n'est pas lu, mais sa DONNÉE l'est " +
+      "sans repli — « Pas de fallback en dur : un domaine sans nom = anomalie traitée par le " +
+      "caller (pending_admin_review), jamais masquée ». Une panne donne un nom vide, donc " +
+      "l'anomalie, donc la revue humaine avec un motif nommé : le chemin est le même et il est " +
+      "juste. Les TROIS AUTRES éléments du même `Promise.all` retombaient sur `[]` et faisaient " +
+      "juger l'IA sur un dossier vide — corrigés. Relu le 19/09/2026.",
+  },
 }
 
 /**
@@ -332,13 +416,6 @@ const JUGES = {
  * Régénérer : `node scripts/diag-erreurs-avalees.mjs --gel`
  */
 const A_JUGER = {
-  'app/[locale]/connexion/page.tsx': 1,
-  'app/[locale]/dashboard/cdi/page.tsx': 1,
-  'app/[locale]/dashboard/cdi/profil/page.tsx': 1,
-  'app/[locale]/dashboard/entreprise/page.tsx': 2,
-  'app/[locale]/dashboard/freelance/page.tsx': 1,
-  'app/[locale]/nouveau-mot-de-passe/page.tsx': 1,
-  'app/[locale]/reactivation/page.tsx': 1,
   'app/api/admin/approve-expert/route.ts': 1,
   'app/api/admin/approve-org/route.ts': 1,
   'app/api/admin/collaboration-orgs/route.ts': 1,
@@ -388,21 +465,6 @@ const A_JUGER = {
   'app/api/profile/upload-cv/route.ts': 6,
   'app/api/publications/route.ts': 2,
   'app/api/taxonomy/route.ts': 1,
-  'lib/account-purge.ts': 1,
-  'lib/billing/apply.ts': 1,
-  'lib/billing/purchase.ts': 1,
-  'lib/candidature-org-dto.ts': 7,
-  'lib/candidatures/lifecycle-batch.ts': 2,
-  'lib/collaboration/ensure-personal-org.ts': 1,
-  'lib/emails/brand.ts': 1,
-  'lib/entitlements.ts': 3,
-  'lib/home-ecosystem.ts': 1,
-  'lib/matching/relance.ts': 2,
-  'lib/notifications/dispatch.ts': 4,
-  'lib/package-default.ts': 1,
-  'lib/publication-synthesis.ts': 1,
-  'lib/unlock.ts': 2,
-  'lib/verification/expert-verification.ts': 2,
 }
 
 

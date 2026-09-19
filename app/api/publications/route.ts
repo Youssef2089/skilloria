@@ -567,6 +567,21 @@ export async function GET(request: NextRequest): Promise<Response> {
           { status: r.status, published_at: r.published_at, expires_at: r.expires_at },
         ]),
       )
+      // ⚠️ CE FICHIER EST DU PÉRIMÈTRE DU LOT 4.1c, ET IL N'EST PAS TRAITÉ ICI.
+      //    `deriveLifecycleByCandidature` sait désormais rendre `null` quand
+      //    l'état de vie est INDÉRIVABLE (lot 4.1b) : les compteurs de cette
+      //    route retombent alors sur `makeEmptyCandidatures()`, donc sur des
+      //    ZÉROS — « 0 candidature » dit à une organisation qui en a reçu dix.
+      //
+      //    C'EST EXACTEMENT LE DÉFAUT QUE PORTE DÉJÀ SON `candErr` VINGT LIGNES
+      //    PLUS HAUT (« best-effort : on continue avec des compteurs vides »),
+      //    et la parade est connue — §E.22 ⑨ : un compteur illisible affiche
+      //    « — », jamais zéro. Elle demande un `candidatures: null` dans le DTO
+      //    et un écran qui le rende, donc l'écran des annonces.
+      //
+      //    LES DEUX SE JUGENT ENSEMBLE AU LOT 4.1c, PAS À MOITIÉ ICI. Ce qui
+      //    est fait dans ce lot-ci : la panne ne se déguise plus en « annonce
+      //    clôturée » — aucune candidature n'est rangée sous un motif inventé.
       const lifecycleByCand = await deriveLifecycleByCandidature(
         auth.supabaseAdmin,
         candidatures,
@@ -581,7 +596,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         // candidature non dérivée est rangée en « annonce terminée » — donc
         // archivée, jamais active : on ne réclame pas une action sur une donnée
         // qu'on n'a pas su lire.
-        const lifecycle = lifecycleByCand.get(c.id) ?? null
+        const lifecycle = lifecycleByCand?.get(c.id) ?? null
         const facet = lifecycle ? facetForLifecycle(lifecycle) : 'publication_ended'
         const bucket = lifecycle?.bucket ?? 'archived'
         agg.facets[facet] += 1

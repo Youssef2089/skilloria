@@ -103,9 +103,24 @@ ok('la coupe précède la dérivation des DTO', iCoupe > 0 && iDerive > 0 && iCo
   'la ligne-sonde atteindrait le DTO et les compteurs')
 
 // Le compilateur DOIT forcer chaque appelant à voir la troncature.
-ok('le retour force les appelants à la voir (objet, pas tableau)',
-  /Promise<\{ dtos: OrgCandidatureDTO\[\]; troncature: Troncature \}>/.test(dto),
+// ⚠️ CETTE ASSERTION ÉPINGLAIT UNE ORTHOGRAPHE, PAS UNE PROPRIÉTÉ.
+//    Elle exigeait la signature au caractère près. Le lot 4.1b a ajouté
+//    « | null » — « je n'ai pas su lire l'état de vie », l'appelant refusant
+//    en 503 — et elle a rougi sur une AMÉLIORATION. Même famille que §E.24 :
+//    ce qu'on vérifie doit être ce qu'on DÉFEND, pas la façon dont c'est
+//    écrit. Ce qu'on défend ici : le retour est un OBJET qui porte
+//    « troncature », donc le compilateur force chaque appelant à la voir.
+ok('le retour force les appelants à voir la troncature (objet, pas tableau)',
+  /Promise<\{[^}]*dtos:\s*OrgCandidatureDTO\[\];\s*troncature:\s*Troncature\s*\}/.test(dto),
   'un tableau nu laisserait la troncature s’oublier en silence')
+
+// ET DEPUIS LE LOT 4.1b, IL FORCE AUSSI À VOIR L'ÉTAT INDÉRIVABLE. Sans
+// « | null », une panne de lecture des fenêtres d'annonce rangeait TOUTES les
+// candidatures en « Annonce clôturée » : le pipeline entier de l'organisation
+// paraissait mort (§E.22). Les deux routes répondent 503 sur ce « null ».
+ok('le retour force les appelants à voir l’état INDÉRIVABLE',
+  /Promise<\{[^}]*\}\s*\|\s*null>/.test(dto),
+  'sans « | null », une lecture en panne redevient « annonce clôturée »')
 
 // Les deux routes la relaient. C'est le point qui compte pour les COMPTEURS :
 // ils sont dérivés du tableau tronqué, donc partiels, et le dire est le

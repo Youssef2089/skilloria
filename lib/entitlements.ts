@@ -154,11 +154,26 @@ export async function getOrgEntitlements(
       !!org?.package_id && (validUntil == null || new Date(validUntil).getTime() > Date.now())
 
     if (subscriptionActive) {
-      const { data: pkg } = await admin
+      const { data: pkg, error: pkgErr } = await admin
         .from('packages')
         .select('id, slug, active')
         .eq('id', org!.package_id as string)
         .maybeSingle()
+      if (pkgErr) {
+        // ⚠️ CE CHEMIN-LÀ N'ÉTAIT PAS FAIL-OPEN, IL ÉTAIT FAIL-CLOSED CONTRE LE
+        //    CLIENT. `pkg` nul faisait glisser l'organisation vers l'offre PAR
+        //    DÉFAUT : une organisation qui PAIE retombait en silence sur les
+        //    limites gratuites, et lisait « 2 / 2 annonces ce mois-ci » alors
+        //    qu'elle en a acheté cinquante (§E.22).
+        //    §E.9 tranche dans l'autre sens : « une panne commerciale ne bloque
+        //    pas l'usage ». On applique donc le MÊME repli que plus bas —
+        //    illimité, bruyant — au lieu d'un déclassement silencieux.
+        console.warn(
+          `[entitlements] lecture de l'offre souscrite EN PANNE pour org ${organizationId} — fail-open (illimité), PAS de déclassement`,
+          pkgErr.message,
+        )
+        return unlimitedEntitlements(pkgSlug)
+      }
       if (pkg && (pkg.active as boolean)) {
         pkgId = pkg.id as string
         pkgSlug = pkg.slug as string
@@ -173,13 +188,23 @@ export async function getOrgEntitlements(
       // 'all' ; si les deux existent, la ligne spécifique l'emporte (réglage
       // fin d'une cible > réglage commun). Pour 'collaboration', 'all' est
       // exclu (cf. fallbackTargetsFor).
-      const { data: defs } = await admin
+      const { data: defs, error: defsErr } = await admin
         .from('packages')
         .select('id, slug, target_role')
         .is('domain_id', null)
         .in('target_role', fallbackTargetsFor(targetRole))
         .eq('is_default', true)
         .eq('active', true)
+      // Le motif du journal doit être VRAI : « catalogue non seedé ? » envoie
+      // vérifier un seed parfaitement en place quand c'est la LECTURE qui a
+      // échoué. Famille ⑦ — un motif faux lu par l'exploitant.
+      if (defsErr) {
+        console.warn(
+          `[entitlements] lecture du catalogue EN PANNE pour org ${organizationId} — fail-open (illimité). Le catalogue n'est PAS en cause.`,
+          defsErr.message,
+        )
+        return unlimitedEntitlements(pkgSlug)
+      }
       const candidates = (defs ?? []) as { id: string; slug: string; target_role: string }[]
       const def =
         candidates.find((c) => c.target_role === targetRole) ??
@@ -267,7 +292,7 @@ export async function getDefaultCollaborationEntitlements(
   admin: SupabaseClient,
 ): Promise<OrgEntitlements> {
   try {
-    const { data: pkg } = await admin
+    const { data: pkg, error: pkgErr } = await admin
       .from('packages')
       .select('id, slug')
       .is('domain_id', null)
@@ -275,6 +300,16 @@ export async function getDefaultCollaborationEntitlements(
       .eq('is_default', true)
       .eq('active', true)
       .maybeSingle()
+    if (pkgErr) {
+      // Le comportement ne change pas — le fail-open est arbitré (§E.9) — mais
+      // le MOTIF cesse de mentir : « pas d'offre de collaboration par défaut »
+      // envoie corriger un catalogue qui va très bien.
+      console.warn(
+        "[entitlements] lecture de l'offre de collaboration EN PANNE — fail-open (illimité). Le catalogue n'est PAS en cause.",
+        pkgErr.message,
+      )
+      return unlimitedEntitlements('free')
+    }
     if (!pkg) {
       console.warn('[entitlements] no default collaboration package — fail-open (unlimited)')
       return unlimitedEntitlements('free')

@@ -112,11 +112,19 @@ export async function applyPackageState(
   // Zéro ligne mise à jour : soit la garde a mordu (événement retardataire),
   // soit l'organisation n'existe pas. On distingue par une lecture SANS la
   // garde — lecture de diagnostic, elle ne décide d'aucune écriture.
-  const { data: exists } = await admin
+  const { data: exists, error: existsErr } = await admin
     .from('organizations')
     .select('id')
     .eq('id', state.organizationId)
     .maybeSingle()
+  if (existsErr) {
+    // ⚠️ `no_row` EST LU PAR `billing/events` COMME « organisation introuvable »,
+    //    ET IL LÈVE AVEC CE MOT. Sur une panne de lecture, le webhook Stripe
+    //    échouait donc en accusant une organisation qui existe — et si Stripe
+    //    épuise ses tentatives, c'est ce motif faux qui reste au dossier
+    //    (§E.22). La panne se nomme, et elle se nomme AUTREMENT.
+    throw new Error(`applyPackageState: diagnostic illisible — ${existsErr.message}`)
+  }
 
   return exists ? 'stale' : 'no_row'
 }

@@ -524,6 +524,11 @@
           "archived": "Archived"
         }
       }
+    },
+    "lecture_en_panne": {
+      "titre": "Your profile could not be reloaded",
+      "corps": "What you see is the last known state, not necessarily the most recent one — your availability in particular. Nothing has been changed.",
+      "reessayer": "Reload"
     }
   },
   "profile_upload": {
@@ -920,7 +925,8 @@
       "missing_fields": "Email and password are required.",
       "invalid_credentials": "Incorrect email or password.",
       "profile_not_found": "Unable to load your profile.",
-      "wrong_domain": "Your account belongs to another Skilloria workspace. Please sign in at {subdomain}.skilloria.io"
+      "wrong_domain": "Your account belongs to another Skilloria workspace. Please sign in at {subdomain}.skilloria.io",
+      "routing_unavailable": "We could not verify your account. This is not a password problem — please try again in a moment."
     }
   },
   "forgot_password": {
@@ -1413,6 +1419,14 @@
       "unknown_reason": "unknown error",
       "parsing_default": "Analysis failed",
       "timeout": "Timeout reached, please retry."
+    },
+    "acces": {
+      "refuse_titre": "This page is for permanent-contract experts",
+      "refuse_corps": "Your account is not of this type. Nothing has been changed.",
+      "indisponible_titre": "We could not verify your access",
+      "indisponible_corps": "Checking your account failed. This is not a refusal: we do not know. Please try again in a moment.",
+      "reessayer": "Try again",
+      "retour_accueil": "Back to home"
     }
   },
   "cdi_profile_validation": {

@@ -156,8 +156,24 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     }]]),
     durees,
   )
+  // ⚠️ ÉTAT INDÉRIVABLE ⇒ REFUS. On ne déverrouille pas — action payante, et
+  //    le dévoilement d'identité ne se reprend pas — sur un état qu'on n'a pas
+  //    su lire. 503, jamais 409 : « archivée » serait un motif inventé.
+  if (lifecycleByCand === null) {
+    return json(
+      { error: 'Lifecycle unavailable', code: 'lifecycle_indisponible' },
+      503,
+    )
+  }
   const lifecycle = lifecycleByCand.get(candidatureId)
-  if (lifecycle?.bucket === 'archived') {
+  // ⚠️ ET L'ORDRE DU TEST COMPTE (§E.22 règle 2). `lifecycle?.bucket === 'archived'`
+  //    laissait PASSER un `undefined` : la garde s'ouvrait sur l'absence d'état,
+  //    exactement à l'envers de ce qu'elle protège. On exige un état, puis on
+  //    le lit.
+  if (!lifecycle) {
+    return json({ error: 'Lifecycle unavailable', code: 'lifecycle_indisponible' }, 503)
+  }
+  if (lifecycle.bucket === 'archived') {
     return json(
       { error: 'Candidature archived', code: 'candidature_archived', reason: lifecycle.reason },
       409,

@@ -524,6 +524,11 @@
           "archived": "Archivée"
         }
       }
+    },
+    "lecture_en_panne": {
+      "titre": "Votre profil n'a pas pu être rechargé",
+      "corps": "Ce que vous voyez est le dernier état connu, pas forcément le plus récent — en particulier votre disponibilité. Rien n'a été modifié.",
+      "reessayer": "Recharger"
     }
   },
   "profile_upload": {
@@ -920,7 +925,8 @@
       "missing_fields": "Email et mot de passe sont obligatoires.",
       "invalid_credentials": "Email ou mot de passe incorrect.",
       "profile_not_found": "Impossible de récupérer votre profil.",
-      "wrong_domain": "Votre compte est associé à un autre espace Skilloria. Veuillez vous connecter sur {subdomain}.skilloria.io"
+      "wrong_domain": "Votre compte est associé à un autre espace Skilloria. Veuillez vous connecter sur {subdomain}.skilloria.io",
+      "routing_unavailable": "Nous n'avons pas pu vérifier votre compte. Ce n'est pas un problème de mot de passe — réessayez dans un instant."
     }
   },
   "forgot_password": {
@@ -1413,6 +1419,14 @@
       "unknown_reason": "erreur inconnue",
       "parsing_default": "Analyse échouée",
       "timeout": "Délai dépassé, réessayez."
+    },
+    "acces": {
+      "refuse_titre": "Cette page est réservée aux experts en CDI",
+      "refuse_corps": "Votre compte n'est pas de ce type. Rien n'a été modifié.",
+      "indisponible_titre": "Nous n'avons pas pu vérifier votre accès",
+      "indisponible_corps": "La vérification de votre compte a échoué. Ce n'est pas un refus : nous ne savons pas. Réessayez dans un instant.",
+      "reessayer": "Réessayer",
+      "retour_accueil": "Retour à l'accueil"
     }
   },
   "cdi_profile_validation": {

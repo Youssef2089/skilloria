@@ -276,6 +276,10 @@ async function countUnviewedCandidaturesForUser(
   //       alimente les compteurs par annonce de /api/publications.
   const pubIdsRef = Array.from(new Set(candRowsAll.map((c) => c.publication_id)))
   const pubWindows = await loadLifecyclePublicationWindows(auth.supabaseAdmin, pubIdsRef)
+  // Fenêtres illisibles ⇒ on ne COMPTE pas. `exact: false` est le mot déjà
+  // employé par cette route pour « ce chiffre n'est pas sûr » : un badge à 0
+  // dirait « rien de neuf » au moment précis où on ne sait pas (§E.22 ⑨).
+  if (pubWindows === null) return { valeur: 0, exact: false }
 
   // 1ter. ARCHIVÉES ÉCARTÉES avant tout comptage (cf. en-tête).
   const now = new Date()
@@ -286,6 +290,7 @@ async function countUnviewedCandidaturesForUser(
     durees,
     now,
   )
+  if (lifecycleByCand === null) return { valeur: 0, exact: false }
   const candRows = candRowsAll.filter((c) => lifecycleByCand.get(c.id)?.bucket === 'active')
   if (candRows.length === 0) return { valeur: 0, exact: tronque ? false : true }
 

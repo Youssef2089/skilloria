@@ -201,7 +201,7 @@ export async function buildOrgCandidatureDTOs(
    * lit et les fait descendre ; ce module ne les suppose jamais.
    */
   durees: { vieAnnonceJours: number; fenetreEchangeJours: number }
-): Promise<{ dtos: OrgCandidatureDTO[]; troncature: Troncature }> {
+): Promise<{ dtos: OrgCandidatureDTO[]; troncature: Troncature } | null> {
   if (publicationIds.length === 0) {
     return { dtos: [], troncature: { plafond: PLAFOND_CANDIDATURES_ORG, atteint: false } }
   }
@@ -259,10 +259,21 @@ export async function buildOrgCandidatureDTOs(
   /** Fenêtre 15 j du fil — décide si un 'unlocked' est encore ouvert. */
   const convExpiryByCand = new Map<string, string | null>()
   if (accessibleCandIds.length > 0) {
-    const { data: convs } = await auth.supabaseAdmin
+    const { data: convs, error: convErr } = await auth.supabaseAdmin
       .from('conversations')
       .select('id, candidature_id, expires_at')
       .in('candidature_id', accessibleCandIds)
+    if (convErr) {
+      // Même classe : sans ces lignes, la fenêtre d'échange est re-dérivée
+      // depuis `unlocked_at` — juste quand la conversation n'existe pas, FAUX
+      // quand elle existe prolongée (le fil paraît expiré) — et le lien vers
+      // la conversation DISPARAÎT d'une candidature pourtant déverrouillée.
+      console.error('[candidature-org-dto] fenêtres d’échange ILLISIBLES', {
+        candidatures: accessibleCandIds.length,
+        message: convErr.message,
+      })
+      return null
+    }
     for (const c of (convs ?? []) as { id: string; candidature_id: string; expires_at: string | null }[]) {
       convIdByCand.set(c.candidature_id, c.id)
       convExpiryByCand.set(c.candidature_id, c.expires_at)
@@ -275,10 +286,24 @@ export async function buildOrgCandidatureDTOs(
   // de la règle 30 j est exactement ce que ce helper existe pour empêcher.
   const pubExpiryById = new Map<string, { status: string | null; published_at: string | null; expires_at: string | null }>()
   {
-    const { data: pubRows } = await auth.supabaseAdmin
+    const { data: pubRows, error: pubErr } = await auth.supabaseAdmin
       .from('publications')
       .select('id, status, published_at, expires_at')
       .in('id', publicationIds)
+    if (pubErr) {
+      // ⚠️ UNE MAP INCOMPLÈTE EST LUE COMME « PUBLICATION INTROUVABLE », donc
+      //    `archived / publication_closed`. Sur une panne, TOUTES les
+      //    candidatures reçues basculaient en « Annonce clôturée » : le
+      //    pipeline entier de l'organisation paraissait mort, et le motif
+      //    accusait ses propres annonces (§E.22).
+      //    On rend `null` — l'appelant refuse. On ne sert pas une liste dont
+      //    chaque ligne ment.
+      console.error('[candidature-org-dto] fenêtres d’annonce ILLISIBLES', {
+        annonces: publicationIds.length,
+        message: pubErr.message,
+      })
+      return null
+    }
     for (const p of (pubRows ?? []) as { id: string; status: string | null; published_at: string | null; expires_at: string | null }[]) {
       pubExpiryById.set(p.id, { status: p.status, published_at: p.published_at, expires_at: p.expires_at })
     }
@@ -354,7 +379,7 @@ export async function buildOrgCandidatureDTOs(
     //   - address_line, postal_code, birth_year, cv_url, linkedin_url, email,
     //     phone : strippés à jamais (reveal_contact: false en V1, jamais
     //     branché tant que le packaging commerce n'aura pas été conçu).
-    const { data: profRows } = await auth.supabaseAdmin
+    const { data: profRows, error: profErr } = await auth.supabaseAdmin
       .from('profiles')
       .select(
         'id, user_id, title, summary, skills, seniorities, expert_type, ' +
@@ -365,6 +390,16 @@ export async function buildOrgCandidatureDTOs(
           'users!profiles_user_id_fkey!inner(id, first_name, last_name, deletion_scheduled_at, anonymized_at)',
       )
       .in('id', Array.from(unlockedProfileIds))
+    if (profErr) {
+      // Ces profils sont ceux de candidatures DÉVERROUILLÉES — l'organisation
+      // a payé pour les voir. Une map vide les rendait masqués, sans un mot :
+      // « rien à montrer » dit de ce qu'on vient d'acheter.
+      console.error('[candidature-org-dto] profils déverrouillés ILLISIBLES', {
+        profils: unlockedProfileIds.size,
+        message: profErr.message,
+      })
+      return null
+    }
     for (const p of (profRows ?? []) as unknown as FullProfile[]) {
       fullProfileById.set(p.id, p)
     }

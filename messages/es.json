@@ -524,6 +524,11 @@
           "archived": "Archivada"
         }
       }
+    },
+    "lecture_en_panne": {
+      "titre": "No se ha podido recargar tu perfil",
+      "corps": "Lo que ves es el último estado conocido, no necesariamente el más reciente — en particular tu disponibilidad. No se ha modificado nada.",
+      "reessayer": "Recargar"
     }
   },
   "profile_upload": {
@@ -920,7 +925,8 @@
       "missing_fields": "El correo y la contraseña son obligatorios.",
       "invalid_credentials": "Correo o contraseña incorrectos.",
       "profile_not_found": "No se ha podido cargar tu perfil.",
-      "wrong_domain": "Tu cuenta está asociada a otro espacio Skilloria. Por favor inicia sesión en {subdomain}.skilloria.io"
+      "wrong_domain": "Tu cuenta está asociada a otro espacio Skilloria. Por favor inicia sesión en {subdomain}.skilloria.io",
+      "routing_unavailable": "No hemos podido verificar tu cuenta. No es un problema de contraseña: inténtalo de nuevo en un momento."
     }
   },
   "forgot_password": {
@@ -1413,6 +1419,14 @@
       "unknown_reason": "error desconocido",
       "parsing_default": "Análisis fallido",
       "timeout": "Tiempo agotado, vuelve a intentarlo."
+    },
+    "acces": {
+      "refuse_titre": "Esta página es para expertos con contrato indefinido",
+      "refuse_corps": "Tu cuenta no es de este tipo. No se ha modificado nada.",
+      "indisponible_titre": "No hemos podido verificar tu acceso",
+      "indisponible_corps": "La verificación de tu cuenta ha fallado. No es un rechazo: no lo sabemos. Inténtalo de nuevo en un momento.",
+      "reessayer": "Reintentar",
+      "retour_accueil": "Volver al inicio"
     }
   },
   "cdi_profile_validation": {

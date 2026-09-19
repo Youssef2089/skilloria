@@ -1408,6 +1408,94 @@ si un jalon déclare le travail fait (forme B), **il n'y en a pas** — et la ga
 **avant**, jamais après.
 
 
+**E.28 — CE QUE 45 EMPLACEMENTS OUVERTS UN PAR UN ONT APPRIS (lot 4.1b).**
+
+Le recensement de §E.22 annonçait **47** emplacements dans `lib/` et `app/[locale]`. Il y en avait
+**45** : deux étaient des faux positifs **du motif lui-même**. Sur les 45, **29 mentaient** et sont
+corrigés, **16 sont légitimes** et gelés avec, chacun, **sa** raison. Ce qui suit est ce que la
+lecture a appris, et qu'aucune mesure n'aurait donné.
+
+**① LE CONTRÔLE ÉTAIT TROMPÉ PAR LA PROSE DE SON PROPRE CORRECTIF. C'est §E.7 À L'ENVERS.**
+D'ordinaire un contrôle est trompé par un anti-pattern **écrit dans un commentaire**. Ici il l'était
+par **la documentation du correctif**. `loadOrganizationContext` ([lib/auth-guard.ts](lib/auth-guard.ts))
+relit bien son `memberErr` — **28 lignes plus bas**, dont **19 de commentaire** expliquant §E.18 et la
+classe même que ce recensement existe pour trouver. La fenêtre de 25 lignes ne contenait donc que
+**six lignes de code**, et **les deux sites les mieux documentés du dépôt étaient comptés fautifs**.
+
+Trois correctifs, et **le troisième n'est apparu qu'une fois les deux premiers posés** : les
+commentaires sont retirés avant détection ; la fenêtre compte des lignes **de code** ; et
+`MOTIF_DE_LIAISON` borne ce qui a le droit de se trouver entre les crochets d'une déstructuration —
+la regex partait du **mauvais `const [`**, dix-sept lignes plus haut, et seule la disparition de la
+prose l'a révélé. **Un défaut du script masquait un autre défaut du même script.**
+
+**Corollaire, et il vaut pour tout recensement : le motif est lui-même un angle mort possible.**
+Deux listes, donc (§G.8) — `JUGÉS`, lus avec leur raison ; `À JUGER`, comptés et **non lus**.
+
+**② LA FORME ③ EST UNE CARTE PAR CONSTRUCTION, ET ÇA NE SE RÉGLERA PAS.**
+Elle cherche `if (error) { … return null }`. **C'est exactement la forme du correctif** — un `null`
+dont le sens est « je ne sais pas ». Trois des seize légitimes sont des parades écrites au lot 1.3,
+dénoncées par le motif qui les cherche. Ce n'est pas un réglage à affiner : **le motif ne peut pas
+distinguer la parade de ce qu'elle répare.** Le verdict se rend en lisant **l'appelant**, jamais en
+lisant le motif — et c'est pourquoi le gel porte une raison **par entrée**.
+
+**③ UNE RÈGLE ÉCRITE À CÔTÉ D'UNE LIGNE NE COUVRE PAS SES VOISINES.**
+Deux asymétries, trouvées à l'œil, et ce sont les prises les plus parlantes du lot :
+
+· `lib/verification/expert-verification.ts` — un `Promise.all` de **quatre** éléments. Le
+  **quatrième** porte, en commentaire : *« Pas de fallback en dur : un domaine sans nom = anomalie
+  traitée par le caller, jamais masquée »*. Les **trois premiers** retombaient sur `[]`. Même appel,
+  deux standards — et l'IA jugeait alors un expert **à zéro expérience**, notait bas, et la note
+  **fausse** partait **en base**, lue ensuite par un administrateur (§E.22 ⑦, sur le chemin des
+  données cette fois). **Et on payait l'appel.**
+· `lib/home-ecosystem.ts` — `branchesRes.error` **est** testé, la section entière disparaît,
+  honnêtement. `specialitiesRes` ne l'était pas, deux lignes plus bas : la page publique affichait
+  les branches **sans aucune spécialité**, c'est-à-dire un écosystème qui a l'air vide.
+  **Le repli partiel est plus trompeur que le repli total.**
+
+**④ UN TYPE DÉCLARÉ TROP ÉTROIT NE FAIT PAS OUBLIER L'ERREUR : IL LA REND INATTEIGNABLE.**
+Forme neuve, et elle disculpe l'auteur. `loadReferentielLabels`
+([lib/publication-synthesis.ts](lib/publication-synthesis.ts)) déclarait son client à la main :
+`PromiseLike<{ data: unknown }>`. **Sans champ `error`.** Le compilateur *refusait* d'écrire
+`specRes.error` : la seule façon d'écrire ce module était d'ignorer la panne. Ce n'est pas une
+négligence, c'est une **forme imposée** — et elle produisait une annonce affichée **sans spécialité
+ni zone**, qui se lit « cette annonce ne vise personne en particulier », sur la synthèse même que
+l'expert consulte pour décider.
+**La leçon : quand on écrit un type structurel pour découpler, on recopie la surface d'ERREUR, pas
+seulement celle du succès.** Un type qui ne peut pas exprimer l'échec le rend impensable.
+
+**⑤ LE MODÈLE, ET IL N'EST PAS DE MOI : LA GARDE EST UNE CONTRAINTE DE SCHÉMA, PAS UNE LECTURE.**
+`findPersonalOrg` ([lib/collaboration/ensure-personal-org.ts](lib/collaboration/ensure-personal-org.ts))
+rend `null` sur panne, l'appelant **crée**, et **l'index unique partiel refuse le doublon** (23505,
+rattrapé) ; si la relecture échoue à son tour, la fonction **lève**. La valeur neutre **ne peut pas**
+produire de doublon, parce que la garde n'est pas la lecture — **c'est le schéma**.
+**C'est la forme la plus solide du dépôt : elle ne dépend d'aucune discipline.** Partout où une règle
+peut descendre en contrainte de base, elle doit y descendre ; le code de garde est le second choix,
+et le commentaire le dernier.
+
+**⑥ ET L'ORDRE DU TEST A ENCORE MORDU, DEUX FOIS.**
+· `app/[locale]/reactivation/page.tsx` testait `userType === 'cdi'`. `my_account_routing()` rend
+  `users.user_type`, donc `'expert_cdi'`. **La comparaison n'était jamais vraie** : *tous* les experts
+  en CDI réactivés atterrissaient sur le tableau de bord freelance — panne ou pas. Le compilateur ne
+  dit rien d'une comparaison qui reste **possible**. Corrigé en **déléguant** à
+  `dashboardUrlForUserType`, source unique du routage : une table recopiée diverge, et celle-ci avait
+  divergé.
+· `app/api/candidatures/[id]/unlock/route.ts` testait `lifecycle?.bucket === 'archived'`. Un
+  `undefined` **ouvrait** la garde — sur une action **payante** dont le dévoilement d'identité ne se
+  reprend pas. On exige l'état, **puis** on le lit.
+
+**⑦ CE QUI RESTE, ET IL EST COMPTÉ.** 125 emplacements, 60 fichiers : **16 jugés**, **109 à juger** —
+les 109 sont dans `app/api`, périmètre des lots 4.1c et 4.1d, **et ils ne sont pas lus**. Le cliquet
+les empêche de grandir ; il ne les déclare pas légitimes.
+
+> ⚠️ **UN DÉFAUT VU ET DÉLIBÉRÉMENT NON TRAITÉ, ÉCRIT ICI POUR QU'IL NE SE PERDE PAS.**
+> `app/api/publications/route.ts` retombe sur des compteurs **à zéro** quand l'état de vie est
+> indérivable — « 0 candidature » dit à une organisation qui en a reçu dix. C'est le même défaut que
+> porte déjà son propre `candErr` (« best-effort : on continue avec des compteurs vides »), et la
+> parade est connue : §E.22 ⑨, un compteur illisible affiche « — », jamais zéro. Elle demande un
+> `candidatures: null` dans le DTO **et** l'écran des annonces. **Les deux se jugent ensemble au lot
+> 4.1c, pas à moitié ici.** Ce que 4.1b a fermé sur ce fichier : plus aucune candidature n'est rangée
+> sous un motif **inventé** (« annonce clôturée » sur une panne).
+
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
   acceptée et ne se déclenchera **jamais** : aucune erreur, aucune ligne dans `job_run_details`. D'où le

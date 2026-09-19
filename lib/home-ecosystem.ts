@@ -69,7 +69,20 @@ export async function loadHomeEcosystem(
         .order('sort_order', { ascending: true }),
     ])
 
+    // ⚠️ L'ASYMÉTRIE ÉTAIT DANS LA MÊME FONCTION, À DEUX LIGNES D'ÉCART.
+    //    `branchesRes.error` était testé — la section entière disparaissait,
+    //    honnêtement. `specialitiesRes` ne l'était pas : la page publique
+    //    affichait alors les branches de l'écosystème AVEC AUCUNE SPÉCIALITÉ,
+    //    c'est-à-dire un écosystème qui a l'air vide. Le repli partiel est plus
+    //    trompeur que le repli total (§E.22).
     if (branchesRes.error || !branchesRes.data) return []
+    if (specialitiesRes.error) {
+      console.error('[home-ecosystem] spécialités en panne — section masquée', {
+        domainId,
+        message: specialitiesRes.error.message,
+      })
+      return []
+    }
 
     const specialities = specialitiesRes.data ?? []
 

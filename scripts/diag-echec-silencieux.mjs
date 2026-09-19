@@ -189,6 +189,32 @@ const GEL = {
   'lib/admin/user-actions-guard.ts': { 'erreur:null': 1 },
   'lib/ai-budget.ts': { 'catch:null': 1 },
   'lib/avatar.ts': { 'erreur:null': 1, 'catch:null': 1 },
+  // ── LOT 4.1b — SIX HAUSSES ASSUMÉES, ET C'EST LE CLIQUET QUI FONCTIONNE ──
+  //   Il a mordu sur mes réparations, comme au lot 1.3. Dans les trois fichiers
+  //   ci-dessous, `null` ne veut PAS dire « rien » : il veut dire « je n'ai pas
+  //   su lire », et chaque appelant REFUSE dessus (503 nommé). La forme est
+  //   celle du défaut, le sens en est l'inverse — le cliquet compte des FORMES,
+  //   pas des verdicts, et c'est pour ça qu'il fait lever les yeux.
+  'lib/candidature-org-dto.ts': {
+    // Fenêtres d'annonce, fenêtres d'échange, profils déverrouillés. Sur une
+    // map incomplète, TOUTES les candidatures de l'organisation basculaient en
+    // « Annonce clôturée » : son pipeline entier paraissait mort, et le motif
+    // accusait ses propres annonces. Les deux routes rendent 503.
+    'erreur:null': 3,
+  },
+  'lib/candidatures/lifecycle-batch.ts': {
+    // Le même défaut, côté EXPERT — le jumeau que §E.20 fait chercher.
+    // `loadLifecyclePublicationWindows` et la fenêtre d'échange rendent `null` ;
+    // `unlock` refuse en 503 plutôt que de déverrouiller (payant, irréversible).
+    'erreur:null': 2,
+  },
+  'lib/verification/expert-verification.ts': {
+    // Libellés de spécialité illisibles ⇒ `null`, puis `pending_admin_review`
+    // avec un motif NOMMÉ et AUCUNE dépense d'IA. On ne paie pas un verdict
+    // qu'on sait bâti sur un dossier amputé (§E.21 : la revue humaine est le
+    // repli CONÇU ; ce qui était faux, c'était d'y arriver sans le dire).
+    'erreur:null': 1,
+  },
   'lib/candidature-pitch-client.ts': { 'catch:null': 1 },
   'lib/candidatures/ai-assessment.ts': { 'catch:null': 1 },
   'lib/emails/domain-url.ts': { 'catch:null': 1 },
@@ -212,9 +238,12 @@ const GEL = {
   'lib/org-members.ts': { 'erreur:null': 2 },
   'lib/use-org-role.ts': { 'catch:null': 1 },
   'lib/verification/ai-expert-verification.ts': { 'catch:null': 3 },
-  // `lib/verification/expert-verification.ts` A QUITTÉ CE GEL : ses deux
-  // `return null` sont devenus des motifs nommés (§E.22, cas ⑦ et ⑧). Ne pas
-  // le remettre « pour mémoire » — une ligne gelée à 0 se lit comme une dette.
+  // `lib/verification/expert-verification.ts` avait QUITTÉ ce gel au lot 1.3 :
+  // ses deux `return null` étaient devenus des motifs nommés (§E.22 ⑦ et ⑧).
+  // Il y REVIENT au lot 4.1b, pour une raison OPPOSÉE — une lecture de plus a
+  // été rendue honnête, et sa forme est `erreur:null`. L'entrée est plus haut,
+  // avec sa raison. Ce n'est pas un retour de dette : c'est la même parade, sur
+  // une troisième lecture du même fichier.
 }
 
 section('A. CLIQUET — le recensement de la classe est figé')

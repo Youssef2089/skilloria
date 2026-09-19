@@ -136,6 +136,15 @@ export async function GET(request: NextRequest): Promise<Response> {
   let troncature: Troncature
   try {
     const bati = await buildOrgCandidatureDTOs(auth, publicationIds, translations, null, locale, durees)
+    if (bati === null) {
+      // ⚠️ 503, PAS 500 NI UNE LISTE VIDE (§E.22 règle 1). Une lecture qu'on
+      //    n'a pas su faire ne devient pas « aucune candidature » ni « annonce
+      //    clôturée » : le refus reste ferme, seul le MOTIF change.
+      return json(
+        { error: 'Candidature lifecycle unavailable', code: 'candidatures_indisponibles' },
+        503,
+      )
+    }
     all = bati.dtos
     troncature = bati.troncature
   } catch {

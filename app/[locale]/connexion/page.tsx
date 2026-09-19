@@ -100,11 +100,22 @@ export default function ConnexionPage() {
         // pas encore (migration C4 pas appliquée), on retombe sur le SELECT direct
         // — non verrouillé tant que la migration n'est pas là. Une fois la
         // migration poussée, la RPC répond et ce fallback n'est plus atteint.
-        const { data: row } = await supabase
+        const { data: row, error: rowErr } = await supabase
           .from('users')
           .select('user_type, domains(slug), deletion_scheduled_at, anonymized_at')
           .eq('id', data.user.id)
           .maybeSingle()
+        // ⚠️ CE REPLI EST LE CHEMIN DÉGRADÉ, ET IL AVALAIT SON ERREUR.
+        //    `row` nul laissait `userData` nul, et vingt lignes plus bas
+        //    l'écran affichait « Profil introuvable » — à un compte
+        //    parfaitement valide, sur l'écran de connexion, au pire moment
+        //    possible (§E.22). Et c'est le chemin qu'on emprunte précisément
+        //    quand quelque chose va déjà mal : la RPC vient d'échouer.
+        if (rowErr) {
+          console.error('[connexion] repli de routage en panne', rowErr.message)
+          setError(t('errors.routing_unavailable'))
+          return
+        }
         if (row) {
           userData = {
             user_type: row.user_type as string | null,
@@ -115,6 +126,10 @@ export default function ConnexionPage() {
         }
       }
 
+      // Ici `userData` nul est un FAIT : les deux lectures ont abouti et
+      // n'ont rien trouvé. Le compte auth existe sans miroir `public.users` —
+      // c'est le compte fantôme de §E.23, et « profil introuvable » le dit
+      // justement.
       if (!userData) {
         setError(t('errors.profile_not_found'))
         return

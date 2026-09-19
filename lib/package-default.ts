@@ -157,7 +157,21 @@ export async function applyDefaultTransfer(
     change_reason: changeReason.slice(0, 200),
   }))
   if (opts.includeTargetSnapshot) {
-    const { data: tgt } = await admin.from('packages').select('*').eq('id', packageId).maybeSingle()
+    const { data: tgt, error: tgtErr } = await admin
+      .from('packages')
+      .select('*')
+      .eq('id', packageId)
+      .maybeSingle()
+    if (tgtErr) {
+      // ⚠️ VINGT LIGNES PLUS BAS, CE FICHIER JURE : « On refuse d'appliquer sans
+      //    trace : le snapshot est la garantie d'auditabilité. » Ce refus ne
+      //    couvrait que l'ÉCHEC D'INSERTION. Une lecture en panne faisait
+      //    disparaître l'instantané de la cible EN SILENCE, et le transfert
+      //    s'appliquait quand même — la garantie était donc fausse d'un cas
+      //    sur deux (§E.7 appliqué à un raisonnement, comme le cas ② du 1.3).
+      console.error('[package-default] instantané de la cible illisible', tgtErr.message)
+      return { ok: false, status: 500, code: 'db_error' }
+    }
     if (tgt) {
       historyRows.push({
         package_id: packageId,
