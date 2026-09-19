@@ -145,7 +145,22 @@ const LIB_INVENTORY = {
   // Recoit des identifiants d'annonces deja filtres par la route appelante.
   'lib/candidature-org-dto.ts': 'cle',
   'lib/candidatures/lifecycle-batch.ts': 'cle',
-  'lib/unlock.ts': 'cle',
+  'lib/unlock.ts': 'cle',
+
+  // ── Administration plateforme ──────────────────────────────────────────
+  // Comptage d'usage d'une BRANCHE — pour l'ecran ET pour la barriere de
+  // suppression, par la meme lecture (§E.36). Il est cleve sur une branche
+  // dont l'appelant a deja resolu l'ecosysteme, et sa seule surface est
+  // l'administration PLATEFORME, qui voit tous les ecosystemes par
+  // construction (§D.3 : admin -> scope 'platform').
+  // Ce sont trois COMPTAGES (`head: true`) clavetes sur `branch_id`, pas un
+  // acces par cle primaire : le controle a raison de refuser 'cle'. Et ils ne
+  // portent pas de filtre `domain_id` — ils n'en ont pas besoin et ne doivent
+  // pas en porter : la seule surface est l'administration PLATEFORME, dont le
+  // scope est 'platform' par construction (§D.3), et la branche elle-meme
+  // appartient a UN ecosysteme que l'appelant a deja resolu. Un filtre ici
+  // masquerait des usages reels et ferait supprimer une branche utilisee.
+  'lib/admin/usage-branche.ts': 'exempt',
 
   // ── Notifications ──────────────────────────────────────────────────────
   // Ne lit que les entites citees par des notifications deja destinees a un

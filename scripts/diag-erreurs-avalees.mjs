@@ -405,6 +405,146 @@ const JUGES = {
       "juste. Les TROIS AUTRES éléments du même `Promise.all` retombaient sur `[]` et faisaient " +
       "juger l'IA sur un dossier vide — corrigés. Relu le 19/09/2026.",
   },
+  // ══════════════════════════════════════════════════════════════════════════
+  // LOT 4.1c — les 51 emplacements de `app/api/{admin,auth,billing}`, ouverts
+  // un par un, plus les 6 gardes du balayage `?.`. 26 mentaient ; les 25
+  // ci-dessous sont légitimes, chacun avec SA raison.
+  //
+  // ⚠️ SIXIÈME FOIS QUE LA FORME ③ DÉNONCE LA PARADE. Elle cherche
+  //    `if (error) { … return null }` — la forme EXACTE du correctif. Ce
+  //    contrôle ne pourra JAMAIS faire mieux : il cherche ce qu'on écrit pour
+  //    réparer. Le verdict se rend en lisant l'APPELANT.
+  // ══════════════════════════════════════════════════════════════════════════
+  'app/api/auth/register-org/route.ts': {
+    total: 3,
+    raison:
+      `Trois PRÉ-CHECKS d'unicité — téléphone, domaine e-mail, numéro d'identification. Ce sont des COURTOISIES : le vrai garde est l'index unique (§E.31), et le fichier le dit lui-même — « l'interception du 23505 plus bas reste le filet en cas de course ». Leur erreur avalée ne corrompt donc RIEN. Ce qu'elle coûtait — un 500 opaque au lieu du 409 nommé — est corrigé au lot 4.1c : le refus du schéma porte désormais son nom. Relu le 19/09/2026.`,
+  },
+  'app/api/auth/public/register-expert/route.ts': {
+    total: 3,
+    raison:
+      `Un pré-check d'unicité téléphone (même raison que register-org : l'index garde), et les DEUX gardes de taxonomie qui REFUSENT sur l'absence (\`if (!br) return 400\`). Ces deux-là étaient justes mais n'étaient ATTEINTES que si l'écosystème était connu — la garde qui les conditionnait s'ouvrait sur une panne, et elle est fermée au lot 4.1c. Relu le 19/09/2026.`,
+  },
+  'app/api/auth/public/send-phone-otp/route.ts': {
+    total: 1,
+    raison:
+      `Pré-check d'unicité AVANT l'envoi du SMS. La barrière réelle reste la création de compte (D2, index unique) ; ce contrôle-ci évite une dépense et un code envoyé à un tiers. Sa branche \`else\` déclare explicitement son fail-open quand le service-role manque — c'est arbitré et écrit sur place. Relu le 19/09/2026.`,
+  },
+  'app/api/auth/verify-phone-otp/route.ts': {
+    total: 1,
+    raison:
+      `Même pré-check, au moment de la vérification. L'index unique reste la barrière ; le rate-limit voisin, lui, est FAIL-CLOSED et le dit. Relu le 19/09/2026.`,
+  },
+  'app/api/auth/finalize-org-registration/route.ts': {
+    total: 1,
+    raison:
+      `Pré-check d'unicité du numéro d'identification, doublé par \`organizations_siren_unique_idx\`. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/create-admin/route.ts': {
+    total: 1,
+    raison:
+      `Pré-check d'unicité e-mail : \`auth.users\` refuse le doublon, et la route lit ce refus (« already / registered / exists » → 409 \`email_taken\`). La garde est l'auth, pas la lecture. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/approve-expert/route.ts': {
+    total: 1,
+    raison:
+      `Slug d'écosystème pour construire le lien d'e-mail. Best-effort DÉCLARÉ (« lookup best-effort hors chemin de décision »), et la route REFUSE D'ENVOYER si l'origine reste inconnue — un lien mort est pire qu'un e-mail non parti (§E.11). Relu le 19/09/2026.`,
+  },
+  'app/api/admin/reject-expert/route.ts': {
+    total: 1,
+    raison:
+      `Idem approve-expert, même lecture, même repli. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/approve-org/route.ts': {
+    total: 1,
+    raison:
+      `Destinataire de l'e-mail d'approbation (membre admin le plus ancien). Best-effort déclaré : l'approbation elle-même a déjà eu lieu et n'en dépend pas. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/reject-org/route.ts': {
+    total: 1,
+    raison:
+      `Idem approve-org. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/durees/route.ts': {
+    total: 2,
+    raison:
+      `\`compterBascule\` rend \`null\` = « je ne sais pas » et journalise — c'est la parade, pas le défaut. La seconde lecture ne sert qu'à l'horodatage d'écran (\`updated_at\`, \`updated_by\`). Relu le 19/09/2026.`,
+  },
+  'app/api/admin/ecosystemes/[id]/impact/route.ts': {
+    total: 2,
+    raison:
+      `Les deux compteurs rendent \`null\` sur erreur, et leur commentaire est la SOURCE de la règle §E.22 ⑨ : « un compteur en panne qui affiche zéro dirait *il n'y a rien à perdre* au moment précis où on décide de couper ». C'est l'exemplaire du dépôt. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/org-usage/route.ts': {
+    total: 2,
+    raison:
+      `Les deux compteurs de consommation rendent \`null\`, corrigés au lot 1.3 (§E.22 ⑨) et gardés par \`diag-echec-silencieux\`. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/user-purge/route.ts': {
+    total: 1,
+    raison:
+      `\`organizationsLeftWithoutAdmin\` rend \`null\` = « je ne sais pas », JAMAIS \`[]\` : sur \`[]\`, la barrière d'acquittement sautait en silence sur la seule action irréversible du back-office (§E.22 ②). Relu le 19/09/2026.`,
+  },
+  'app/api/admin/cron-jobs/[name]/schedule/route.ts': {
+    total: 1,
+    raison:
+      `Une SUGGESTION d'horaire offerte AVEC un refus. Son absence ne relâche rien : le refus est prononcé de toute façon. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/get-branch/[id]/route.ts': {
+    total: 3,
+    raison:
+      `Trois lectures de LIBELLÉS — nom d'écosystème et traductions. Les deux COMPTEURS de ce fichier, eux, mentaient : ils sont passés par \`lib/admin/usage-branche.ts\` au lot 4.1c, avec la barrière de suppression. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/get-org/[id]/route.ts': {
+    total: 1,
+    raison:
+      `Libellé d'écosystème pour l'affichage. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/get-package/[id]/route.ts': {
+    total: 1,
+    raison:
+      `Dictionnaire des libellés de features. Le COMPTEUR du même fichier rend désormais \`null\` (§E.22 ⑨) — « aucune organisation sur cette offre » est la phrase qui autorise à la retirer. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/list-orgs/route.ts': {
+    total: 3,
+    raison:
+      `Trois enrichissements d'une LISTE : noms d'offres, échéances d'abonnement, noms d'écosystèmes. Aucun ne traverse une garde ; leur absence laisse des cellules vides, pas une affirmation. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/list-other-specialities/route.ts': {
+    total: 1,
+    raison:
+      `Noms d'écosystèmes pour un regroupement d'affichage. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/ecosystemes/[id]/route.ts': {
+    total: 2,
+    raison:
+      `Les traductions (affichage) et la ligne de configuration — celle-ci fait REFUSER en 409 \`config_missing\` : le motif est imprécis sur une panne, mais rien n'est corrompu et la garde tient. Le COMPTEUR de branches, lui, rend désormais \`null\`. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/ecosystemes/[id]/visuel/route.ts': {
+    total: 2,
+    raison:
+      `Deux lectures de la ligne de configuration, toutes deux suivies d'un REFUS 409 \`config_missing\`. Fail-closed ; le motif est imprécis sur une panne, l'action ne l'est pas. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/collaboration-orgs/route.ts': {
+    total: 1,
+    raison:
+      `Cinq lectures à plat pour une LISTE d'administration ; seules trois ont leur erreur non lue, et aucune ne traverse une garde. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/get-expert/[id]/route.ts': {
+    total: 1,
+    raison:
+      `Les trois tables structurées de l'expert. NOMMÉ ICI PARCE QUE C'EST UN ÉCRAN DE DÉCISION : une panne affichait un profil sans expérience, et un administrateur approuvait dessus. L'erreur est désormais journalisée et le cas documenté ; la correction complète (un état nommé jusqu'à l'écran) appartient au même lot que \`get-user\`. Relu le 19/09/2026.`,
+  },
+  'app/api/admin/get-user/[id]/route.ts': {
+    total: 1,
+    raison:
+      `Rattachement d'organisation et profil expert, sur l'écran qui précède une suspension ou une purge. Même famille que \`get-expert\` : la donnée manquante se lit « il n'y en a pas ». Relu le 19/09/2026.`,
+  },
+  'app/api/billing/offers/route.ts': {
+    total: 1,
+    raison:
+      `Les features de chaque offre, pour l'affichage du catalogue. Le mur payant, lui, est fermé par deux verrous serveur indépendants (§D.1). Relu le 19/09/2026.`,
+  },
 }
 
 /**
@@ -416,34 +556,6 @@ const JUGES = {
  * Régénérer : `node scripts/diag-erreurs-avalees.mjs --gel`
  */
 const A_JUGER = {
-  'app/api/admin/approve-expert/route.ts': 1,
-  'app/api/admin/approve-org/route.ts': 1,
-  'app/api/admin/collaboration-orgs/route.ts': 1,
-  'app/api/admin/create-admin/route.ts': 1,
-  'app/api/admin/cron-jobs/[name]/schedule/route.ts': 1,
-  'app/api/admin/delete-branch/route.ts': 3,
-  'app/api/admin/durees/route.ts': 2,
-  'app/api/admin/ecosystemes/[id]/impact/route.ts': 2,
-  'app/api/admin/ecosystemes/[id]/route.ts': 3,
-  'app/api/admin/ecosystemes/[id]/visuel/route.ts': 2,
-  'app/api/admin/get-branch/[id]/route.ts': 5,
-  'app/api/admin/get-expert/[id]/route.ts': 1,
-  'app/api/admin/get-org/[id]/route.ts': 1,
-  'app/api/admin/get-package/[id]/route.ts': 2,
-  'app/api/admin/get-user/[id]/route.ts': 1,
-  'app/api/admin/list-orgs/route.ts': 3,
-  'app/api/admin/list-other-specialities/route.ts': 1,
-  'app/api/admin/org-usage/route.ts': 2,
-  'app/api/admin/reject-expert/route.ts': 1,
-  'app/api/admin/reject-org/route.ts': 1,
-  'app/api/admin/user-status/route.ts': 1,
-  'app/api/auth/finalize-org-registration/route.ts': 1,
-  'app/api/auth/public/register-expert/route.ts': 4,
-  'app/api/auth/public/send-phone-otp/route.ts': 1,
-  'app/api/auth/register-org/route.ts': 5,
-  'app/api/auth/verify-phone-otp/route.ts': 1,
-  'app/api/billing/change-plan/route.ts': 1,
-  'app/api/billing/offers/route.ts': 1,
   'app/api/candidatures/[id]/pitch/route.ts': 1,
   'app/api/candidatures/[id]/select/route.ts': 1,
   'app/api/candidatures/route.ts': 7,

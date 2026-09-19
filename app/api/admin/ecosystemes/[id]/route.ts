@@ -106,10 +106,18 @@ export async function GET(
   }
 
   // Sans branche, l'écosystème n'accepte ni inscription ni annonce.
-  const { count: branches } = await auth.supabaseAdmin
+  // ⚠️ `null` = ON NE SAIT PAS, jamais 0. Le commentaire ci-dessus dit ce
+  //    que zéro DÉCLENCHE : « sans branche, l’écosystème n’accepte ni
+  //    inscription ni annonce ». Une panne de lecture affirmait donc cette
+  //    phrase d’un écosystème parfaitement pourvu (§E.22 ⑨).
+  const { count: branches, error: branchesErr } = await auth.supabaseAdmin
     .from('branches')
     .select('id', { count: 'exact', head: true })
     .eq('domain_id', id)
+  if (branchesErr) {
+    console.error('[admin:ecosysteme] comptage des branches illisible', branchesErr.message)
+  }
+  const branchesConnues = branchesErr ? null : (branches ?? 0)
 
   return json(
     {
@@ -144,7 +152,10 @@ export async function GET(
       translations,
       translatable: TRANSLATABLE,
       branches_count: branches ?? 0,
-      ready: (branches ?? 0) > 0,
+      // `null` = on ne sait pas si l'ecosysteme est pret. L'ecran doit le
+      // distinguer de « pas pret » : le premier se recharge, le second se
+      // corrige en creant une branche.
+      ready: branchesConnues === null ? null : branchesConnues > 0,
     },
     200,
   )

@@ -4023,7 +4023,8 @@
       "inactive": "Inactive",
       "not_ready": "Not ready",
       "not_ready_hint": "No branch: neither sign-up nor listing is possible.",
-      "not_ready_detail": "This ecosystem has no branch. Until it has one, nobody can create a profile or post a listing there: both forms require a branch."
+      "not_ready_detail": "This ecosystem has no branch. Until it has one, nobody can create a profile or post a listing there: both forms require a branch.",
+      "ready_unknown": "We could not check whether this ecosystem is ready. That is not “not ready”: we do not know. Reload the page."
     },
     "counts": {
       "branches": "{n, plural, =0 {no branch} one {# branch} other {# branches}}",

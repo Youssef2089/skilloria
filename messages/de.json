@@ -4023,7 +4023,8 @@
       "inactive": "Inaktiv",
       "not_ready": "Nicht bereit",
       "not_ready_hint": "Keine Sparte: weder Registrierung noch Ausschreibung möglich.",
-      "not_ready_detail": "Dieses Ökosystem hat keine Sparte. Solange das so ist, kann niemand dort ein Profil anlegen oder eine Ausschreibung veröffentlichen: beide Formulare verlangen eine Sparte."
+      "not_ready_detail": "Dieses Ökosystem hat keine Sparte. Solange das so ist, kann niemand dort ein Profil anlegen oder eine Ausschreibung veröffentlichen: beide Formulare verlangen eine Sparte.",
+      "ready_unknown": "Wir konnten nicht prüfen, ob dieses Ökosystem bereit ist. Das heißt nicht „nicht bereit“: wir wissen es nicht. Laden Sie die Seite neu."
     },
     "counts": {
       "branches": "{n, plural, =0 {keine Sparte} one {# Sparte} other {# Sparten}}",

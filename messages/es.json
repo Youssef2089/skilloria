@@ -4023,7 +4023,8 @@
       "inactive": "Inactivo",
       "not_ready": "No listo",
       "not_ready_hint": "Sin rama: no es posible registrarse ni publicar.",
-      "not_ready_detail": "Este ecosistema no tiene ninguna rama. Mientras no tenga una, nadie puede crear un perfil ni publicar un anuncio: ambos formularios exigen una rama."
+      "not_ready_detail": "Este ecosistema no tiene ninguna rama. Mientras no tenga una, nadie puede crear un perfil ni publicar un anuncio: ambos formularios exigen una rama.",
+      "ready_unknown": "No hemos podido comprobar si este ecosistema está listo. No significa «no listo»: no lo sabemos. Vuelve a cargar la página."
     },
     "counts": {
       "branches": "{n, plural, =0 {ninguna rama} one {# rama} other {# ramas}}",

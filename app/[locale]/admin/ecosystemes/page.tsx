@@ -54,7 +54,7 @@ type Detail = {
   translations: Record<string, Record<string, string>>
   translatable: { domains: string[]; domain_configs: string[] }
   branches_count: number
-  ready: boolean
+  ready: boolean | null
 }
 
 type Impact = {
@@ -363,7 +363,15 @@ export default function AdminEcosystemesPage() {
           {/* ── PANNEAU D'ÉDITION ──────────────────────────────────────────── */}
           {openId === e.id && detail && (
             <div style={{ marginTop: 18, borderTop: '1px solid #e2e8f0', paddingTop: 18 }}>
-              {!detail.ready && (
+              {detail.ready === null && (
+                <div style={{
+                  padding: '12px 14px', borderRadius: 10, background: '#fffbeb',
+                  border: '1px solid #fde68a', color: '#78350f', fontSize: 13, marginBottom: 16,
+                }}>
+                  {t('state.ready_unknown')}
+                </div>
+              )}
+              {detail.ready === false && (
                 <div style={{
                   padding: '12px 14px', borderRadius: 10, background: '#fffbeb',
                   border: '1px solid #fde68a', color: '#78350f', fontSize: 13, marginBottom: 16,

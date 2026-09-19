@@ -177,6 +177,15 @@ const GEL = {
   'app/[locale]/dashboard/cdi/mon-profil/page.tsx': { 'catch:null': 1 },
   'app/api/admin/durees/route.ts': { 'erreur:null': 1 },
   'app/api/admin/ecosystemes/[id]/impact/route.ts': { 'erreur:null': 3 },
+  // NEUVE au lot 4.1c, et c'est une HAUSSE ASSUMEE — la meme forme, le sens
+  // inverse. `countByDomain` rendait une map VIDE sur erreur, donc un ZERO,
+  // alors que son propre commentaire disait deja « un zero silencieux se lirait
+  // comme rien a perdre ». Ce zero n'alimentait pas qu'une colonne : il
+  // alimentait `ready`, qui AFFIRME « cet ecosysteme n'accepte ni inscription
+  // ni annonce ». Il rend desormais `null`, et l'ecran distingue — comme le
+  // detail, qui le faisait deja : les laisser diverger aurait ete §E.36 dans le
+  // lot qui le ferme.
+  'app/api/admin/ecosystemes/route.ts': { 'erreur:null': 1 },
   // Étaient `erreur:0` — un compteur en panne qui affichait zéro. Devenus
   // `erreur:null` : la forme demeure, le sens s'inverse (§E.22, cas ⑨).
   'app/api/admin/org-usage/route.ts': { 'erreur:null': 2 },

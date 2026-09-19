@@ -46,16 +46,23 @@ async function countByDomain(
   admin: Awaited<ReturnType<typeof requireAdmin>>['supabaseAdmin'],
   table: string,
   ids: string[],
-): Promise<Map<string, number>> {
+): Promise<Map<string, number> | null> {
   const out = new Map<string, number>()
   if (ids.length === 0) return out
   const { data, error } = await admin.from(table).select('domain_id').in('domain_id', ids)
   if (error) {
-    // Best-effort : un compteur en panne ne doit pas priver l'admin de la liste.
-    // Il vaut mieux une colonne vide qu'un écran vide — mais on le journalise,
-    // parce qu'un zéro silencieux se lirait comme « rien à perdre ».
+    // ⚠️ LE COMMENTAIRE D'ORIGINE AVAIT RAISON ET LE CODE NE LE SUIVAIT PAS.
+    //    Il disait déjà « un zéro silencieux se lirait comme rien à perdre »,
+    //    puis rendait une map VIDE — donc exactement ce zéro. Et ce zéro ne
+    //    remplissait pas qu'une colonne : il alimentait `ready`, qui AFFIRME
+    //    « cet écosystème n'est pas prêt, il n'accepte ni inscription ni
+    //    annonce » — dit d'un écosystème parfaitement pourvu.
+    //
+    //    `null` = on ne sait pas. L'appelant distingue, et l'écran le dit.
+    //    Le détail rendait déjà `null` depuis le lot 4.1c : les laisser
+    //    diverger aurait été §E.36 dans le lot qui le ferme.
     console.error(`[admin:ecosystemes] count ${table} failed`, error.message)
-    return out
+    return null
   }
   for (const r of (data ?? []) as { domain_id: string }[]) {
     out.set(r.domain_id, (out.get(r.domain_id) ?? 0) + 1)
@@ -110,7 +117,8 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   const ecosystems = rows.map((r) => {
     const cfg = Array.isArray(r.domain_configs) ? r.domain_configs[0] : r.domain_configs
-    const nbBranches = branches.get(r.id) ?? 0
+      // `null` = comptage indisponible, jamais 0 (§E.22 ⑨).
+      const nbBranches = branches === null ? null : (branches.get(r.id) ?? 0)
     return {
       id: r.id,
       slug: r.slug,
@@ -132,13 +140,15 @@ export async function GET(request: NextRequest): Promise<Response> {
       ),
       counts: {
         branches: nbBranches,
-        specialities: specialities.get(r.id) ?? 0,
-        users: experts.get(r.id) ?? 0,
-        publications: publications.get(r.id) ?? 0,
+        specialities: specialities === null ? null : (specialities.get(r.id) ?? 0),
+        users: experts === null ? null : (experts.get(r.id) ?? 0),
+        publications: publications === null ? null : (publications.get(r.id) ?? 0),
       },
       // « NON PRÊT » — sans branche, ni inscription ni annonce ne sont
       // possibles. L'écosystème existe, il ne sert à rien encore.
-      ready: nbBranches > 0,
+      // MÊME CALCUL QUE LE DÉTAIL, ET MÊME TRAITEMENT DE L’INCONNU : les deux
+      // surfaces doivent tomber ensemble ou pas du tout (§E.36).
+      ready: nbBranches === null ? null : nbBranches > 0,
     }
   })
 

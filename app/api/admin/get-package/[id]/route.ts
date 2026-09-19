@@ -90,10 +90,17 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   // désactivation de l'offre et le refus anti-orphelins sur la cible.
   // On compte des ORGANISATIONS, pas des rattachements : l'abonnement vit sur
   // `organizations` (cf. 20260903000000_abonnement_sur_organisation.sql).
-  const { count: orgCount } = await auth.supabaseAdmin
+  // ⚠️ `null` = ON NE SAIT PAS, jamais 0. « Aucune organisation sur cette
+  //    offre » est exactement la phrase qui autorise à la retirer du
+  //    catalogue — et une panne de lecture la disait (§E.22 ⑨).
+  const { count: orgCount, error: orgCountErr } = await auth.supabaseAdmin
     .from('organizations')
     .select('id', { count: 'exact', head: true })
     .eq('package_id', id)
+  if (orgCountErr) {
+    console.error('[admin:get-package] comptage des organisations illisible', orgCountErr.message)
+  }
+  const orgCountConnu = orgCountErr ? null : (orgCount ?? 0)
 
-  return json({ package: pkg, features, org_count: orgCount ?? 0 }, 200)
+  return json({ package: pkg, features, org_count: orgCountConnu }, 200)
 }

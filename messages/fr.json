@@ -4023,7 +4023,8 @@
       "inactive": "Inactif",
       "not_ready": "Non prêt",
       "not_ready_hint": "Aucune branche : ni inscription ni annonce possible.",
-      "not_ready_detail": "Cet écosystème n'a aucune branche. Tant qu'il n'en a pas, personne ne peut y créer de profil ni y publier d'annonce : le formulaire de profil et celui d'annonce en exigent une."
+      "not_ready_detail": "Cet écosystème n'a aucune branche. Tant qu'il n'en a pas, personne ne peut y créer de profil ni y publier d'annonce : le formulaire de profil et celui d'annonce en exigent une.",
+      "ready_unknown": "Nous n'avons pas pu vérifier si cet écosystème est prêt. Ce n'est pas « pas prêt » : nous ne savons pas. Rechargez la page."
     },
     "counts": {
       "branches": "{n, plural, =0 {aucune branche} one {# branche} other {# branches}}",

@@ -64,6 +64,11 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   }
 
   // Charger tables liées (best-effort)
+  // ⚠️ C'EST L'ÉCRAN OÙ UN ADMINISTRATEUR APPROUVE OU REFUSE UN EXPERT.
+  //    Les trois erreurs n'étaient pas lues : une panne affichait un profil
+  //    SANS expérience, SANS formation et SANS langue — et la décision se
+  //    prenait là-dessus. Même famille que la vérification par IA, avec un
+  //    humain à la place du modèle (§E.22 ⑦).
   const [expRes, eduRes, langRes] = await Promise.all([
     auth.supabaseAdmin.from('profile_experiences').select('role, employer, sector, start_date, end_date, is_current, description').eq('profile_id', id).order('start_date', { ascending: false }).limit(20),
     auth.supabaseAdmin.from('profile_educations').select('school, degree, field, start_year, end_year, location').eq('profile_id', id).order('start_year', { ascending: false }).limit(10),

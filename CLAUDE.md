@@ -1740,6 +1740,107 @@ personne n'appelle.**
 > **Elles n'en avaient déjà aucun AVANT la refonte** (mesuré sur `fd3633b`) : c'est une dette
 > antérieure, pas une conséquence. Elle est nommée ici pour qu'on cesse de la redécouvrir.
 
+**E.36 — DEUX GARDES QUI TOMBENT SUR LA MÊME PANNE N'EN FONT QU'UNE.**
+
+C'est la prise la plus coûteuse du lot 4.1c, et ce n'est pas le fail-open qui la rend coûteuse :
+c'est le **couple**.
+
+`/admin/get-branch` comptait ce qu'une branche porte pour le **montrer**, `/admin/delete-branch` le
+recomptait pour **autoriser**, et l'écran de taxonomie le resommait pour **activer le bouton**.
+**Six lectures, aucune erreur récupérée, toutes en `count ?? 0`.**
+
+**Une seule panne rendait les trois aveugles du même zéro.** L'écran affichait « 0 usage »,
+l'administrateur supprimait en croyant décider en connaissance de cause, le bouton était actif, et la
+barrière `in_use` ne se levait pas parce qu'elle lisait ce zéro.
+**L'humain croyait décider ; la machine croyait qu'il avait décidé.**
+
+**ET LE SCHÉMA NE RATTRAPAIT QU'UN TIERS :**
+
+| Référence | Contrainte | Ce qui arrive |
+|---|---|---|
+| `profiles.branch_id`, `profile_alerts.branch_id` | RESTRICT | ✅ la base refuse |
+| `publications.branch_id` | **ON DELETE SET NULL** | ❌ les annonces perdent leur branche, en silence |
+| `specialities.branch_id` | **ON DELETE CASCADE** | ❌ elles sont **supprimées** avec elle |
+
+Une branche sans profil mais avec des spécialités était donc **effaçable par une panne de lecture**,
+sur le référentiel du produit. **Un tiers de protection n'est pas une protection.**
+
+**LA PARADE N'EST PAS « CORRIGER LES DEUX » : C'EST N'EN AVOIR QU'UN.**
+[lib/admin/usage-branche.ts](lib/admin/usage-branche.ts) — une lecture, un type, trois
+consommateurs. `UsageBranche` est `{ etat: 'indisponible' }` ou
+`{ etat: 'disponible'; profils; publications; specialites }` : les comptes n'existent **que** dans la
+seconde branche, donc `count ?? 0` est inécrivable. Le prédicat `brancheReferencee()` — celui qui
+**montre** et celui qui **autorise** — vit désormais une seule fois.
+**Si l'on ne peut pas savoir, l'écran le DIT et la barrière REFUSE. Jamais l'inverse, et jamais l'un
+sans l'autre** — ils ne lisent plus séparément, donc ils ne peuvent plus diverger.
+
+> ⚠️ **UNE SEULE DES TROIS ERREURS SUFFIT À RENDRE `'indisponible'`.** Rendre deux comptes sur trois
+> serait pire que rien : le total aurait l'air d'un fait et n'en serait pas un — et c'est exactement
+> sur ce genre de total qu'on décide de supprimer.
+
+**LA RÈGLE ÉTAIT DÉJÀ ÉCRITE DANS LE DÉPÔT, DEUX FICHIERS PLUS LOIN.**
+`app/api/admin/ecosystemes/[id]/impact/route.ts` rend `null` sur exactement ce motif, et son
+commentaire dit pourquoi : *« un compteur en panne qui affiche zéro dirait "il n'y a rien à perdre"
+au moment précis où on décide de couper »*. **Une règle écrite à un endroit ne protège pas son
+voisin** — §E.28 ③, **troisième occurrence**.
+
+**CE QUE ÇA DONNE COMME QUESTION, ET ELLE SE POSE PARTOUT OÙ UN ÉCRAN PRÉCÈDE UNE ACTION
+DESTRUCTRICE :**
+
+> *Si cette lecture échoue, combien de gardes tombent ?*
+> **Plus d'une : elles n'en font qu'une, et il faut les fondre.**
+
+Gardé par [scripts/diag-couple-ecran-barriere.mjs](scripts/diag-couple-ecran-barriere.mjs) —
+**12 mutations jouées, 12 détectées** : le type qui perd son état, une erreur sur trois qui ne suffit
+plus, la barrière qui recompte pour son compte, le bouton qui se rallume, l'écran qui cesse de dire
+pourquoi.
+⚠️ Il garde **un** couple. La règle est générale ; rien ne **découvre** les autres — ils se cherchent
+à la lecture.
+
+---
+
+**E.37 — UNE GARDE PEUT NE PAS S'OUVRIR : ELLE PEUT CHOISIR LE MAUVAIS ÉTAT.**
+
+Forme plus discrète que le fail-open, et trouvée au même lot. Rien ne s'ouvre bruyamment : **tout se
+déplace.**
+
+`app/api/admin/user-status/route.ts` : sur `reactivate`, la route lisait `verification_status` pour
+choisir entre `'in_review'` et `'active'`. L'erreur n'était pas récupérée ; la valeur tombait à
+`null` ; et le défaut `'active'` restait. **Un expert en `pending_admin_review` retrouvait donc
+l'accès complet sans la revue.**
+
+Aucune barrière n'a sauté, aucun refus n'a été contourné, aucun code d'erreur n'a menti. Le compte a
+simplement atterri **un cran trop loin**. C'est pour cela qu'on ne la trouve pas en cherchant des
+`return` : **elle vit dans un défaut d'affectation, pas dans une condition.**
+
+**Où la chercher** : partout où une lecture choisit une VALEUR parmi plusieurs, et où l'une d'elles
+est le défaut. `let x = 'permissif'` suivi d'un `if` qui ne se déclenche pas est la même chose qu'une
+garde ouverte — le compilateur, lui, ne voit qu'une affectation parfaitement légale.
+
+---
+
+**E.38 — CE QUI NE SE BALAIE PAS SE DÉCLARE. Deux dettes nommées, plutôt que deux contrôles verts.**
+
+**① LA COMPARAISON QUI N'EST JAMAIS VRAIE N'A AUCUN GARDE-FOU.**
+`userType === 'cdi'` alors que la source rend `'expert_cdi'` (§E.28 ⑥). J'ai écrit le motif — « ce
+littéral est-il **produit** quelque part ? » — et **il échoue sa propre preuve** : `'cdi'` **est**
+produit dans le dépôt, comme valeur de `side` pour le tableau de bord, **pas** comme `user_type`.
+Le littéral est le même, **le domaine ne l'est pas**, et un balayage textuel ne connaît pas les
+domaines. `tsc` ne le dit pas non plus : `TS2367` ne mord que sur une union qui **exclut** le
+littéral, jamais sur un `string` trop large.
+**Cette forme SE LIT, garde par garde. Elle ne se balaie pas — et le dire vaut mieux que livrer un
+zéro qui ne prouve rien.**
+
+**② SEPT MESURES DE SANTÉ N'ONT AUCUN LECTEUR.** `admin_cron_chain_violations`,
+`annonces_expirees_par_duree`, `candidature_ai_health`, `cron_purge_health`, `cron_run_summary`,
+`matching_health`, `matching_relance_health` — **mesuré : elles n'en avaient déjà aucun avant la
+refonte** (§E.35). Dette antérieure, à traiter avec les inventaires.
+
+> **La règle commune aux deux : une propriété qu'on ne sait pas contrôler se NOMME.** Un contrôle qui
+> rend zéro sans pouvoir trouver est pire qu'une dette écrite : le premier rassure, la seconde
+> attend. C'est la même exigence que « le contrôle doit mordre », appliquée à ce qu'on décide de
+> **ne pas** contrôler.
+
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
   acceptée et ne se déclenchera **jamais** : aucune erreur, aucune ligne dans `job_run_details`. D'où le

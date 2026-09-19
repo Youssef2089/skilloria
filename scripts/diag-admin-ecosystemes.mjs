@@ -113,10 +113,20 @@ ok(/cname\.vercel-dns\.com/.test(at(msgs.fr, 'admin_ecosystemes.after_create.ste
 section('C. Sans branche, l’ecosysteme ne sert a rien')
 
 // R3
-ok(/ready: nbBranches > 0/.test(LIST),
+// ⚠️ CES DEUX ASSERTIONS EPINGLAIENT UNE ORTHOGRAPHE DE CALCUL (§E.34), et
+//    elles ont rougi quand le detail a appris a dire « je ne sais pas ».
+//    Ce qu'elles defendent : les DEUX surfaces calculent « pret » sur la
+//    presence d'une branche, ET traitent l'inconnu de la MEME facon. Deux
+//    surfaces qui divergent sur une panne, c’est §E.36 — et il ne fallait pas
+//    le rouvrir dans le lot qui le ferme.
+ok(/ready:[^\n]*nbBranches/.test(LIST),
   'la liste calcule « pret » sur la presence d’au moins une branche')
-ok(/ready: \(branches \?\? 0\) > 0/.test(DETAIL),
-  'le detail calcule « pret » de la meme facon')
+ok(/ready:[^\n]*branches/.test(DETAIL),
+  'le detail calcule « pret » sur la meme chose')
+ok(/ready: nbBranches === null \? null :/.test(LIST) &&
+   /ready: branchesConnues === null \? null :/.test(DETAIL),
+  'et les deux rendent `null` — jamais `false` — quand le comptage est inconnu',
+  'un ecosysteme prêt affiché « non pret » envoie creer une branche qui existe deja')
 // ⚠️ `state.not_ready` est un PREFIXE de `state.not_ready_hint` et de
 //    `state.not_ready_detail`. Le chercher tel quel restait vrai apres
 //    suppression du badge : le controle constatait ses propres voisins.
