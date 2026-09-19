@@ -357,7 +357,15 @@ section('G. L’alerte par acteur ALERTE — elle ne bloque rien')
   const PARTOUT = fichiers.map((f) => [f, sansCommentaires(read(f))])
 
   const lecteurs = PARTOUT.filter(([, c]) => /ai_spend_par_acteur/.test(c)).map(([f]) => f)
-  const afficheurs = PARTOUT.filter(([f, c]) => /\.tsx$/.test(f) && /par_acteur/.test(c)).map(([f]) => f)
+  // ⚠️ MUTATION M2 : /par_acteur/ RESTAIT VRAI SUR « par_acteur_autre », et la
+  //    DECLARATION DE TYPE suffisait a satisfaire l assertion — un ecran qui
+  //    declare le champ sans jamais le rendre passait pour un afficheur.
+  //    On exige donc la borne de mot ET qu au moins un CHAMP de la ligne soit
+  //    rendu : DECLARER N EST PAS AFFICHER.
+  const afficheurs = PARTOUT.filter(
+    ([f, c]) =>
+      /\.tsx$/.test(f) && /\bpar_acteur\b/.test(c) && /\b(depense_mois|acteur_type)\b/.test(c),
+  ).map(([f]) => f)
   ok(lecteurs.length >= 1,
     'la depense par acteur est LUE quelque part',
     'une comptabilite qu aucun ecran ne montre ne sert a rien — et elle a DEJA disparu une fois')
