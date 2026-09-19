@@ -3860,7 +3860,10 @@
     "blocked_empty": "Fill in both filters to save.",
     "blocked_range": "A filter is a number between 0 and 10.",
     "blocked_order": "The notification filter cannot sit below the feed filter: we would notify about an invisible listing.",
-    "blocked_unchanged": "Nothing has changed."
+    "blocked_unchanged": "Nothing has changed.",
+    "technical_title": "Technical parameter",
+    "technical_one_line": "This is not a product decision: batch size changes when the provider changes its limits.",
+    "field_batch": "Batch size sent to the ranking"
   },
   "admin_durees": {
     "title": "Marketplace durations",

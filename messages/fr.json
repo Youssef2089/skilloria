@@ -3860,7 +3860,10 @@
     "blocked_empty": "Renseignez les deux filtres pour enregistrer.",
     "blocked_range": "Un filtre est un nombre entre 0 et 10.",
     "blocked_order": "Le filtre de notification ne peut pas être sous celui du flux : on notifierait pour une annonce invisible.",
-    "blocked_unchanged": "Aucune modification à enregistrer."
+    "blocked_unchanged": "Aucune modification à enregistrer.",
+    "technical_title": "Paramètre technique",
+    "technical_one_line": "Ce n’est pas une décision produit : la taille de lot se change quand le fournisseur change ses limites.",
+    "field_batch": "Taille de lot envoyée au classement"
   },
   "admin_durees": {
     "title": "Durées de la place",

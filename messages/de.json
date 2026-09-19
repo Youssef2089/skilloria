@@ -3860,7 +3860,10 @@
     "blocked_empty": "Füllen Sie beide Filter aus, um zu speichern.",
     "blocked_range": "Ein Filter ist eine Zahl zwischen 0 und 10.",
     "blocked_order": "Der Benachrichtigungsfilter darf nicht unter dem Feed-Filter liegen: Wir würden über eine unsichtbare Anzeige benachrichtigen.",
-    "blocked_unchanged": "Es gibt nichts zu speichern."
+    "blocked_unchanged": "Es gibt nichts zu speichern.",
+    "technical_title": "Technischer Parameter",
+    "technical_one_line": "Das ist keine Produktentscheidung: Die Stapelgröße ändert sich, wenn der Anbieter seine Grenzen ändert.",
+    "field_batch": "An das Ranking gesendete Stapelgröße"
   },
   "admin_durees": {
     "title": "Laufzeiten des Marktplatzes",

@@ -46,6 +46,7 @@ type Reglage = {
   notify_threshold: number
   notify_enabled: boolean
   rerank_model: string
+  rerank_batch_size: number
   domaine: { slug: string; name: string | null } | null
   distribution: Distribution[] | null
 }
@@ -140,7 +141,7 @@ export default function MatchingPage() {
   const [enCours, setEnCours] = useState<string | null>(null)
   /** Saisies par écosystème. */
   const [saisies, setSaisies] = useState<
-    Record<string, { feed: string; notify: string; enabled: boolean; model: string }>
+    Record<string, { feed: string; notify: string; enabled: boolean; model: string; batch: string }>
   >({})
   /** Saisies d'argent, par clé (`cap_rerank`, `alerte_profile`, …). */
   const [argent, setArgent] = useState<Record<string, string>>({})
@@ -165,6 +166,7 @@ export default function MatchingPage() {
               notify: String(r.notify_threshold),
               enabled: r.notify_enabled,
               model: r.rerank_model,
+              batch: String(r.rerank_batch_size),
             },
           ]),
         ),
@@ -201,7 +203,8 @@ export default function MatchingPage() {
       feed === r.feed_threshold &&
       notify === r.notify_threshold &&
       s.enabled === r.notify_enabled &&
-      s.model === r.rerank_model
+      s.model === r.rerank_model &&
+      Number(s.batch) === r.rerank_batch_size
     if (inchange) return t('blocked_unchanged')
     return null
   }
@@ -221,6 +224,7 @@ export default function MatchingPage() {
           notify_threshold: Number(s.notify),
           notify_enabled: s.enabled,
           rerank_model: s.model,
+          rerank_batch_size: Number(s.batch),
         }),
       })
       const body = (await res.json()) as { code?: string }
@@ -387,7 +391,7 @@ export default function MatchingPage() {
 
           {/* ─── LES FILTRES, PAR ÉCOSYSTÈME ──────────────────────────────── */}
           {data?.reglages.map((r) => {
-            const s = saisies[r.domain_id] ?? { feed: '', notify: '', enabled: false, model: '' }
+            const s = saisies[r.domain_id] ?? { feed: '', notify: '', enabled: false, model: '', batch: '' }
             const dist = r.distribution?.[0] ?? null
             const repartition = dist?.repartition ?? null
             const total = Number(dist?.notes_totales ?? 0)
@@ -491,6 +495,36 @@ export default function MatchingPage() {
                     </p>
                   )}
                 </div>
+
+                {/* ─── CE QUI N'EST PAS UNE DÉCISION ────────────────────────
+                    La taille de lot est TECHNIQUE : elle se change quand le
+                    fournisseur change ses limites, pas quand on arbitre quelque
+                    chose. Elle sort donc de la zone de décision — mais elle ne
+                    disparaît pas : un réglage sans écran est exactement ce que
+                    ce lot est venu corriger (§D.7). Elle est ici, à part,
+                    visiblement à part, et en dessous de tout le reste. */}
+                <details style={{ marginTop: 18 }}>
+                  <summary style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', cursor: 'pointer' }}>
+                    {t('technical_title')}
+                  </summary>
+                  <div style={{ marginTop: 10, maxWidth: 260 }}>
+                    <label htmlFor={`b_${r.domain_id}`} style={labelStyle}>
+                      {t('field_batch')}
+                    </label>
+                    <input
+                      id={`b_${r.domain_id}`}
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={1000}
+                      step={1}
+                      value={s.batch}
+                      onChange={(e) => setSaisies((p) => ({ ...p, [r.domain_id]: { ...s, batch: e.target.value } }))}
+                      style={inputStyle}
+                    />
+                    <p style={uneLigne}>{t('technical_one_line')}</p>
+                  </div>
+                </details>
 
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginTop: 18 }}>
                   <button

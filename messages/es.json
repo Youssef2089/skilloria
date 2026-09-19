@@ -3860,7 +3860,10 @@
     "blocked_empty": "Rellene ambos filtros para guardar.",
     "blocked_range": "Un filtro es un número entre 0 y 10.",
     "blocked_order": "El filtro de notificación no puede estar por debajo del filtro del flujo: notificaríamos sobre un anuncio invisible.",
-    "blocked_unchanged": "No hay ningún cambio que guardar."
+    "blocked_unchanged": "No hay ningún cambio que guardar.",
+    "technical_title": "Parámetro técnico",
+    "technical_one_line": "No es una decisión de producto: el tamaño del lote cambia cuando el proveedor cambia sus límites.",
+    "field_batch": "Tamaño del lote enviado a la clasificación"
   },
   "admin_durees": {
     "title": "Duraciones del mercado",
