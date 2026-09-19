@@ -168,6 +168,21 @@ section('A. Toute destination d’ÉCRAN mène quelque part')
 //      frappe. Un 404 propre reste un 404.
 {
   console.log(`  (${ecrans.size} écrans statiques · ${ecransDyn.length} dynamiques · ${attrapeTout.length} attrape-tout EXCLU(S))`)
+  // ⚠️ MUTATION M7 : SANS CETTE LIGNE, LE CONTRÔLE POUVAIT DEVENIR AVEUGLE
+  //    SANS BRONCHER. Si l'attrape-tout cessait d'être reconnu comme tel, il
+  //    rejoignait les routes dynamiques, matchait TOUTE URL, et plus aucune
+  //    destination morte ne pouvait être trouvée — vert sur n'importe quelle
+  //    faute de frappe. Un contrôle doit vérifier la condition qui lui permet
+  //    de VOIR, pas seulement ce qu'il regarde.
+  ok(
+    attrapeTout.length >= 1,
+    'l’attrape-tout est reconnu, donc EXCLU de la résolution',
+    'sans exclusion il matche tout, et ce contrôle ne peut plus rien trouver',
+  )
+  ok(
+    !ecransDyn.some((c) => c.includes('[...')),
+    'aucun attrape-tout n’a glissé parmi les routes dynamiques',
+  )
   const mortes = []
   for (const [c, ou] of [...ciblesEcran].sort()) {
     if (ecrans.has(c)) continue
@@ -208,8 +223,18 @@ section('C. Le repli de routage n’est pas un cul-de-sac')
 //   a été écrit pour fermer se laisse désactiver sans qu'on mesure la perte.
 {
   const routage = sansCommentaires(read('lib/auth-routing.ts'))
+  // ⚠️ MUTATION M4 : CETTE ASSERTION DISAIT « UNE SEULE FOIS » ET NE COMPTAIT
+  //    RIEN. `.exec()` rend la PREMIÈRE correspondance : une seconde
+  //    déclaration passait inaperçue, et deux replis qui divergent sont
+  //    exactement la dette que la phrase prétend interdire (§E.20 : le dépôt
+  //    portait quatre copies du même chargement). On compte.
+  const declarations = [...routage.matchAll(/export const FALLBACK_ROUTE_URL\b/g)]
+  ok(
+    declarations.length === 1,
+    'le repli de routage est déclaré une seule fois, et nommé',
+    `déclarations trouvées : ${declarations.length}`,
+  )
   const repli = /FALLBACK_ROUTE_URL\s*=\s*'([^']+)'/.exec(routage)?.[1] ?? null
-  ok(repli !== null, 'le repli de routage est déclaré une seule fois, et nommé')
   ok(
     repli !== null && (ecrans.has(repli.replace(/(.)\/$/, '$1')) || motifsEcrans.some((r) => r.test(repli))),
     `le repli « ${repli} » mène à un écran qui existe`,
