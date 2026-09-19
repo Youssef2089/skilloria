@@ -285,21 +285,43 @@ section('E. LES DEUX AFFICHEURS — un profil illisible ne se lit pas « vide »
   }
   // Et le hook le fait REMONTER : sans le champ dans l'état, l'écran ne peut
   // pas le dire, et le correctif du hook serait invisible.
+  // ⚠️ MUTATION M17 : CETTE ASSERTION ÉTAIT TROP LÂCHE, ET ELLE EST RESTÉE VERTE.
+  //    Renommer le champ DU TYPE D'ÉTAT ne la faisait pas broncher : la même
+  //    forme `sectionsIndisponibles: ListeDeProfil[]` existe AUSSI en
+  //    VARIABLE LOCALE vingt lignes plus bas, et la regex, lâchée sur tout le
+  //    fichier, attrapait la locale. §E.8 : on ancre sur le BLOC visé — ici la
+  //    déclaration du type d'état, reconnue par ses champs voisins.
   const hook = sansCommentaires(read('lib/hooks/useCdiProfile.ts'))
+  const blocEtat = /experiences:\s*ExperienceItem\[\][\s\S]{0,700}?\n\}/.exec(hook)?.[0] ?? ''
   ok(
-    /sectionsIndisponibles:\s*ListeDeProfil\[\]/.test(hook),
-    'le hook CDI EXPOSE les sections indisponibles dans son état',
+    /sectionsIndisponibles:\s*ListeDeProfil\[\]/.test(blocEtat),
+    'le hook CDI EXPOSE les sections indisponibles dans son TYPE D’ÉTAT',
+    'sans le champ dans l’état, l’écran ne peut pas le dire — le correctif du hook serait invisible',
   )
-  const vue = sansCommentaires(read('app/[locale]/dashboard/cdi/mon-profil/page.tsx'))
   ok(
-    /sectionsIndisponibles\.length\s*>\s*0/.test(vue) && /list_read_failed_title/.test(vue),
-    'la vue CDI consomme ce champ et affiche le bandeau',
+    /\n\s{2,}sectionsIndisponibles,/.test(hook),
+    'le hook RENSEIGNE ce champ quand il répond',
+    'un champ déclaré et jamais posé vaut un champ absent',
   )
-  const vueFl = sansCommentaires(read('app/[locale]/dashboard/freelance/mon-profil/page.tsx'))
-  ok(
-    /sectionsIndisponibles\.length\s*>\s*0/.test(vueFl) && /list_read_failed_title/.test(vueFl),
-    'la vue freelance consomme ce champ et affiche le bandeau',
-  )
+  // ⚠️ MUTATION M18 : « false && sectionsIndisponibles.length > 0 » PASSAIT.
+  //    La regex cherchait la condition n'importe où dans le fichier — et la
+  //    condition y était toujours, simplement DÉSARMÉE. C'est le piège EXACT
+  //    du lot 1.3 (« if (false && block === 'indisponible') »), et j'y suis
+  //    retombé en écrivant le contrôle censé le fermer.
+  //    On ancre donc sur la FORME EXACTE de l’ouverture JSX : l’accolade colle
+  //    à la condition, et plus rien ne peut se glisser devant.
+  const CONDITION_ARMEE = /\{sectionsIndisponibles\.length > 0 && \(/
+  for (const [nom, f] of [
+    ['CDI', 'app/[locale]/dashboard/cdi/mon-profil/page.tsx'],
+    ['freelance', 'app/[locale]/dashboard/freelance/mon-profil/page.tsx'],
+  ]) {
+    const vue = sansCommentaires(read(f))
+    ok(
+      CONDITION_ARMEE.test(vue) && /list_read_failed_title/.test(vue),
+      `la vue ${nom} consomme ce champ et affiche le bandeau, sans garde désarmée`,
+      'une condition précédée de « false && » reste présente dans le fichier et ne fait rien',
+    )
+  }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
