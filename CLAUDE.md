@@ -1343,10 +1343,58 @@ Tant qu'une valeur neutre reste affichée, un rechargement la corrige. Dès qu'u
 le prochain enregistrement la **grave**. Tout écran qui charge une liste pour la **renvoyer** est
 concerné, pas seulement ceux-ci.
 
-**FORME B — LA VALEUR NEUTRE ARRIVE APRÈS UN JALON D'IDEMPOTENCE.**
-*Documentée au commit suivant, avec son correctif — `lib/account-purge.ts` et
-`lib/notifications/dispatch.ts`. Le principe : quand un jalon (`anonymized_at`, un tampon de
-réclamation) est déjà posé, « réessayer » ne répare rien, et la panne est définitive.*
+**FORME B — LA VALEUR NEUTRE ARRIVE APRÈS UN JALON D'IDEMPOTENCE, ET « RÉESSAYER » NE RÉPARE RIEN.**
+
+Un jalon d'idempotence — `anonymized_at`, un tampon de réclamation — existe pour qu'un rejeu ne
+refasse pas le travail. Il produit donc exactement l'inverse de ce qu'on attend quand une panne
+survient **après** lui : le rejeu passe, voit le jalon, et **conclut que c'est fait**.
+
+**LE CAS SOURCE : `purgeAccount`** ([lib/account-purge.ts](lib/account-purge.ts)). Le commentaire de
+l'étape 2 disait *« best-effort, ne bloque pas la purge »*. **C'est vrai de la suppression de
+fichier.** Le même `prof` commandait aussi l'étape 3, **l'anonymisation du profil** — c'est-à-dire
+l'obligation légale elle-même. L'erreur n'était pas récupérée ; `prof` valait `null` ; `if (prof?.id)`
+était faux ; et **tout le bloc était sauté** : résumé, titre, photo, CV, adresse, code postal, année
+de naissance, LinkedIn, téléphone, ville, compétences, langues, certifications **restaient en base**,
+le fichier de CV restait dans le Storage.
+
+L'étape 4 s'exécutait quand même, posait `anonymized_at`, et `logAudit` écrivait `anonymized: true`.
+**Le registre déclarait tenue une obligation qui ne l'était pas, et le jalon interdisait toute
+reprise.**
+
+C'est **§E.22 ② mot pour mot** — une justification écrite noir sur blanc dans le fichier, vraie
+d'**une** chose, et couvrant une garde qui n'était pas best-effort du tout. Et ici ce n'est plus un
+message à l'écran : c'est une obligation légale que le registre déclare remplie.
+
+**La parade** : on **lève**, exactement comme l'en-tête du fichier le promettait déjà pour les échecs
+« auth, profil, user ». `anonymized_at` n'est alors pas posé, et le passage suivant reprend le compte
+— l'idempotence joue enfin dans le bon sens. Et le registre porte désormais `profil_anonymise`,
+`cv_supprime`, `avatar_supprime` : **il dit ce qui a eu lieu, pas ce qu'on espérait.** Un fichier
+resté dans le Storage est un manquement qu'il faut pouvoir *chercher*, donc *tracer*.
+
+**LE SECOND CAS, ET IL M'A OBLIGÉ À CORRIGER MON PROPRE VERDICT.**
+`runChannel` ([lib/notifications/dispatch.ts](lib/notifications/dispatch.ts)) réclame ses
+notifications par un `UPDATE … .is(dispatch_at, null)` atomique, puis trois lectures d'enrichissement
+suivent **après** ce tampon. J'avais conclu « notifications perdues ». **C'est faux, et le fichier le
+disait** : le chemin d'échec pose `attempts: 1` et laisse `dispatch_at` posé — *« échec DÉFINITIF,
+aucun cron pour reprendre »*. Une lecture en panne produit donc **exactement le même résultat** qu'une
+entité réellement disparue.
+
+**Ce qui était perdu n'était pas la notification : c'était LA RAISON.** Personne ne pouvait
+distinguer « l'annonce n'existe plus » d'une panne de base — et les deux appellent des actions
+opposées. Les trois lectures journalisent désormais leur erreur, nommément.
+
+> ⚠️ **ET UNE RÉSERVE RESTE OUVERTE, ÉCRITE DANS LE CODE — NON VÉRIFIÉ.** Sur la réclamation
+> elle-même : si l'`UPDATE` **commite** et que seule la réponse se perd, le tampon est posé sans
+> qu'aucun envoi n'ait eu lieu, et `.is(dispatch_at, null)` interdit la reprise. **Je ne l'ai pas
+> observé ; je le déduis de la forme.** Le réparer demande une écriture en deux temps (réserver,
+> puis confirmer) : c'est un lot à lui seul, et il n'est pas fait. Ce qui est fait : la panne ne se
+> déguise plus en « rien à envoyer ».
+
+**LA QUESTION QUI GÉNÉRALISE LES DEUX FORMES, ET ELLE TIENT EN UNE LIGNE :**
+*après cette valeur neutre, reste-t-il un chemin de retour ?* Si une écriture la grave (forme A) ou
+si un jalon déclare le travail fait (forme B), **il n'y en a pas** — et la garde doit être posée
+**avant**, jamais après.
+
 
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

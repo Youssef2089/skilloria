@@ -194,6 +194,15 @@ const GEL = {
   'lib/emails/domain-url.ts': { 'catch:null': 1 },
   'lib/home-ecosystem.ts': { 'catch:[]': 1 },
   'lib/matching-resync-hint.ts': { 'catch:null': 1 },
+  // NEUF au lot 4.1b, et c'est une HAUSSE ASSUMÉE — même raison qu'`org-members`
+  // ci-dessous : le cliquet compte des FORMES, pas des verdicts.
+  // `runChannel` réclame ses notifications par un UPDATE atomique et ne lisait
+  // pas son erreur : « zéro réclamé » et « je n'ai pas pu réclamer » rendaient
+  // tous deux 0, qui se lit « rien à envoyer » (§E.22). L'erreur est désormais
+  // récupérée et JOURNALISÉE avec l'état du tampon déclaré INCONNU ; le `return 0`
+  // qui subsiste est la seule réponse que le type de retour permette, et il
+  // n'affirme plus rien puisque le journal, lui, parle.
+  'lib/notifications/dispatch.ts': { 'erreur:0': 1 },
   'lib/org-logo.ts': { 'erreur:null': 1, 'catch:null': 1 },
   // 3 depuis ce lot, et c'est une HAUSSE ASSUMÉE : deux `return
   // PRUDENT_COUNT_ON_READ_ERROR` sont devenus `return null`. La forme est la

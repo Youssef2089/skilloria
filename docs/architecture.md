@@ -382,6 +382,52 @@ catalogue : les `Price` Stripe sont immuables.
 L'attribution manuelle (`/api/admin/assign-org-package`) **refuse** de passer par-dessus un abonnement
 Stripe vivant ([lib/billing/attribution-manuelle.ts](../lib/billing/attribution-manuelle.ts)).
 
+### C.8 — Ce que la purge RGPD garantit RÉELLEMENT, et à partir de quel jalon rien n'est rattrapable
+
+`purgeAccount` ([lib/account-purge.ts](../lib/account-purge.ts)) est appelée par deux chemins — la
+suppression demandée (`purge-deletions`) et l'inactivité à deux ans (`purge-inactive`). Elle
+n'efface **aucune ligne** : elle **anonymise**, parce que `messages.sender_id` est
+`ON DELETE CASCADE` et qu'une suppression emporterait l'historique d'interactions des deux côtés.
+
+**Les quatre étapes, et ce que chacune garantit.**
+
+| # | Étape | Échec ⇒ | Ce qui est garanti après |
+|---|---|---|---|
+| 1 | Auth : e-mail placeholder, mot de passe aléatoire, bannissement permanent | **lève** | le compte ne peut plus se connecter, l'adresse d'origine est libérée |
+| 2 | Fichiers : CV (bucket `cv`), avatar (bucket `avatars`) | **journalisé, best-effort** | rien — un fichier peut survivre, et le registre le dit |
+| 3 | `profiles` : toutes les PII vidées, `visible=false` | **lève** | le profil ne porte plus de donnée personnelle |
+| 4 | `users` : nom, téléphone, e-mail miroir, `status='archived'`, **`anonymized_at`** | **lève** | le compte est marqué purgé |
+
+**LE JALON EST `anonymized_at`, ET IL EST POSÉ EN DERNIER — C'EST TOUTE LA MÉCANIQUE.**
+Tant qu'il n'est pas posé, le compte reste éligible et le passage suivant le reprend : **chaque étape
+amont est idempotente**, la rejouer ne coûte rien. Une fois posé, **le compte est hors de portée de
+tout rejeu** — aucune reprise ne reviendra jamais dessus.
+
+> ⚠️ **ET C'EST EXACTEMENT LÀ QU'UN DÉFAUT A VÉCU** (§E.27 forme B). L'étape 2 lisait `profiles` sans
+> récupérer son erreur. Une panne de lecture rendait `prof = null`, **l'étape 3 était sautée en
+> entier**, l'étape 4 s'exécutait, `anonymized_at` était posé, et `logAudit` écrivait
+> `anonymized: true`. **Toutes les PII du profil restaient en base, marquées comme effacées,
+> définitivement hors d'atteinte d'un rejeu.**
+>
+> Corrigé : la lecture lève. Le jalon n'est donc plus posé sur une anonymisation qui n'a pas eu lieu.
+
+**CE QUE LA PURGE NE GARANTIT PAS, ET IL FAUT LE SAVOIR AVANT DE S'EN PRÉVALOIR :**
+
+· **les fichiers ne sont pas garantis supprimés.** L'étape 2 est best-effort par conception — faire
+  échouer une purge entière sur une panne de Storage laisserait les PII de la **base** en place, ce
+  qui est pire. Le registre porte désormais `cv_supprime` et `avatar_supprime` : un fichier survivant
+  est **traçable**, donc rattrapable à la main. Il n'y a **aucune reprise automatique**.
+· **l'historique d'interactions est PRÉSERVÉ**, sous forme anonymisée : candidatures, conversations
+  et messages restent. Le **corps** des messages n'est pas réécrit — on ne prétend pas l'avoir
+  anonymisé (même parti pris qu'en §D.5).
+· **`cron_run_log.response_body` conserve des UUID de comptes** — décision arbitrée au titre de
+  l'art. 5.2, à inscrire au registre des traitements.
+· **rien ne vérifie a posteriori** qu'un compte marqué `anonymized_at` est effectivement anonymisé.
+  Le seul contrôle est celui du chemin ; il n'existe aucun balayage de cohérence sur l'existant.
+  **NON VÉRIFIÉ** : personne n'a compté, sur la base réelle, les comptes portant `anonymized_at` dont
+  le profil porterait encore des PII — ce serait la trace laissée par le défaut ci-dessus, et c'est
+  la seule façon de savoir s'il a frappé.
+
 ---
 
 ## F. La classe de défaut « lire puis écrire »

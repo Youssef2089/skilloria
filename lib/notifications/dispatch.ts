@@ -250,12 +250,33 @@ async function runChannel(
 
   // RÉCLAMATION ATOMIQUE — inchangée. Deux exécutions concurrentes ne peuvent
   // pas réclamer la même ligne : la seconde ne voit plus `IS NULL`.
-  const { data: claimedRaw } = await admin
+  const { data: claimedRaw, error: claimErr } = await admin
     .from('notifications')
     .update({ [col.dispatchAt]: nowIso })
     .in('id', pendingIds)
     .is(col.dispatchAt, null)
     .select('id, entity_id')
+  if (claimErr) {
+    // ⚠️ « ZÉRO RÉCLAMÉ » ET « JE N'AI PAS PU RÉCLAMER » NE SONT PAS LA MÊME
+    //    CHOSE (§E.22). L'erreur n'était pas récupérée : les deux rendaient 0,
+    //    qui se lit « rien à envoyer » — au moment précis où quelque chose
+    //    était à envoyer.
+    //
+    //    NON VÉRIFIÉ, et la réserve est délibérée : si l'UPDATE a COMMITÉ et
+    //    que seule la réponse s'est perdue, le tampon `dispatch_at` est posé
+    //    sans qu'aucun envoi n'ait eu lieu, et `.is(dispatchAt, null)` interdit
+    //    toute reprise. Je n'ai pas OBSERVÉ ce cas ; je le déduis de la forme.
+    //    Il n'est pas réparé ici — le réparer demande une écriture en deux
+    //    temps (réserver, puis confirmer), donc un lot à lui seul.
+    //    Ce qui est réparé : la panne ne se déguise plus en « rien à faire ».
+    console.error('[notifications/dispatch] RÉCLAMATION EN PANNE — état du tampon inconnu', {
+      event,
+      channel,
+      enAttente: pendingIds.length,
+      message: claimErr.message,
+    })
+    return 0
+  }
   const claimed = (claimedRaw ?? []) as Array<{ id: string; entity_id: string | null }>
   if (claimed.length === 0) return 0
 
@@ -352,11 +373,19 @@ async function deliverMatch(
   const profileId = (profileRow as { id: string } | null)?.id ?? null
   const scoreByPub = new Map<string, number>()
   if (profileId) {
-    const { data: matchesRaw } = await ctx.admin
+    const { data: matchesRaw, error: matchesErr } = await ctx.admin
       .from('matches')
       .select('publication_id, score')
       .eq('profile_id', profileId)
       .in('publication_id', entityIds)
+    // Une panne ici prive le digest de ses paliers SANS le dire : tous les
+    // rapprochements retombent au palier bas. On le journalise (§E.22).
+    if (matchesErr) {
+      console.error('[notifications/dispatch] scores du digest EN PANNE — paliers absents', {
+        profileId,
+        message: matchesErr.message,
+      })
+    }
     for (const m of matchesRaw ?? []) scoreByPub.set(m.publication_id as string, Number(m.score))
   }
 
@@ -394,10 +423,22 @@ async function deliverCandidature(
   const candIds = claimed.map((c) => c.entity_id).filter(Boolean) as string[]
   if (candIds.length === 0) return 0
 
-  const { data: candsRaw } = await ctx.admin
+  const { data: candsRaw, error: candsErr } = await ctx.admin
     .from('candidatures')
     .select('id, publication_id, publications!inner(id, title)')
     .in('id', candIds)
+  // ⚠️ SANS CE JOURNAL, DEUX CAUSES OPPOSÉES DONNAIENT LE MÊME RÉSULTAT.
+  //    Map vide ⇒ aucun titre ⇒ zéro envoi ⇒ `attempts: 1`. La notification
+  //    n'est donc pas « perdue » par ce défaut — le chemin d'échec la marque
+  //    de toute façon. Ce qui était perdu, c'est LA RAISON : personne ne
+  //    pouvait distinguer « l'annonce n'existe plus » d'une panne de lecture,
+  //    et les deux appellent des actions opposées.
+  if (candsErr) {
+    console.error('[notifications/dispatch] lecture des candidatures EN PANNE', {
+      reclamees: candIds.length,
+      message: candsErr.message,
+    })
+  }
   const pubByCand = new Map<string, { id: string; title: string }>()
   for (const c of (candsRaw ?? []) as Array<{ id: string; publications: unknown }>) {
     const p = (Array.isArray(c.publications) ? c.publications[0] : c.publications) as
@@ -451,7 +492,9 @@ async function deliverMessage(
   const convIds = claimed.map((c) => c.entity_id).filter(Boolean) as string[]
   if (convIds.length === 0) return 0
 
-  const { data: convsRaw } = await ctx.admin
+  // Même classe, même parade que ci-dessus : la panne se journalise, sinon
+  // elle prend l'apparence d'une conversation disparue.
+  const { data: convsRaw, error: convsErr } = await ctx.admin
     .from('conversations')
     .select(
       'id, candidatures!inner(id, profile_id, ' +
@@ -467,6 +510,12 @@ async function deliverMessage(
     expertUserType: string | null
     /** Titre de l'annonce — DISCRIMINANT de l'objet d'e-mail (cf. plus bas). */
     publicationTitle: string
+  }
+  if (convsErr) {
+    console.error('[notifications/dispatch] lecture des conversations EN PANNE', {
+      reclamees: convIds.length,
+      message: convsErr.message,
+    })
   }
   const ctxByConv = new Map<string, ConvCtx>()
   for (const row of (convsRaw ?? []) as unknown as Array<{ id: string; candidatures: unknown }>) {

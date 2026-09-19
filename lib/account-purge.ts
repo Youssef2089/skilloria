@@ -64,14 +64,51 @@ export async function purgeAccount(admin: SupabaseClient, u: PurgeableUser): Pro
   }
 
   // 2. Suppression des fichiers perso (best-effort, ne bloque pas la purge).
-  const { data: prof } = await admin
+  //
+  // ⚠️ MAIS LA LECTURE, ELLE, N'EST PAS BEST-EFFORT — ET LE COMMENTAIRE
+  //    CI-DESSUS L'A LONGTEMPS LAISSÉ CROIRE (§E.27 forme B).
+  //
+  //    « best-effort » est vrai de la SUPPRESSION DE FICHIER. Le même `prof`
+  //    commande aussi l'étape 3, l'ANONYMISATION DU PROFIL, qui n'a rien de
+  //    best-effort : c'est l'obligation légale elle-même. L'erreur n'était pas
+  //    récupérée ; `prof` valait `null` ; `if (prof?.id)` était faux ; et
+  //    TOUT le bloc d'anonymisation était sauté — résumé, titre, photo, CV,
+  //    adresse, code postal, année de naissance, LinkedIn, téléphone, ville,
+  //    compétences, langues, certifications RESTAIENT EN BASE. Le fichier de
+  //    CV restait dans le Storage.
+  //
+  //    L'étape 4 s'exécutait quand même, posait `anonymized_at`, et
+  //    `logAudit` écrivait `anonymized: true`. LE REGISTRE DÉCLARAIT TENUE UNE
+  //    OBLIGATION QUI NE L'ÉTAIT PAS.
+  //
+  //    ET LE JALON FERMAIT LA PORTE : `anonymized_at` posé, le compte est
+  //    « déjà purgé ». Aucun rejeu ne serait jamais revenu. C'est ce qui
+  //    distingue cette forme des neuf cas de §E.22 — « réessayer » ne répare
+  //    rien quand le jalon d'idempotence est déjà tombé.
+  //
+  //    On LÈVE, comme l'en-tête de ce fichier le promettait déjà pour les
+  //    échecs « auth, profil, user ». `anonymized_at` n'est alors PAS posé, et
+  //    le prochain passage reprend le compte — l'idempotence joue enfin dans
+  //    le bon sens.
+  const { data: prof, error: profLookupErr } = await admin
     .from('profiles')
     .select('id, cv_file_path')
     .eq('user_id', uid)
     .maybeSingle()
+  if (profLookupErr) {
+    throw new Error(`profile_lookup_failed: ${profLookupErr.message}`)
+  }
+  // `prof === null` SANS erreur est un fait, pas une panne : tout compte n'a
+  // pas de profil (une organisation n'en a aucun). On n'anonymise alors rien,
+  // et c'est correct — la distinction est exactement celle que ce lot ferme.
+  // CE QUI SUIT EST VRAIMENT BEST-EFFORT — et le registre dira lequel des deux
+  // a abouti, plutôt que d'affirmer en bloc. Un fichier resté dans le Storage
+  // est un manquement qu'il faut pouvoir CHERCHER, donc TRACER.
+  let cvSupprime: boolean | null = null
   if (prof?.cv_file_path) {
     const { error: cvErr } = await admin.storage.from('cv').remove([prof.cv_file_path])
     if (cvErr) console.error('[purge] cv remove failed', { uid, msg: cvErr.message })
+    cvSupprime = !cvErr
   }
   const { error: avErr } = await admin.storage.from('avatars').remove([`${uid}/avatar.jpg`])
   if (avErr) console.error('[purge] avatar remove failed', { uid, msg: avErr.message })
@@ -131,6 +168,18 @@ export async function purgeAccount(admin: SupabaseClient, u: PurgeableUser): Pro
     action: 'account_purged',
     entity_type: 'user',
     entity_id: uid,
-    detail: { anonymized: true },
+    // ── LE REGISTRE DIT CE QUI A EU LIEU, PAS CE QU'ON ESPÉRAIT ──────────
+    //  `anonymized: true` était écrit inconditionnellement — y compris quand
+    //  le profil entier avait été sauté par une lecture en panne. Un registre
+    //  qui affirme une obligation tenue est PIRE qu'un registre muet : il
+    //  arrête la recherche.
+    //  `profil_anonymise: false` est un FAIT légitime (une organisation n'a pas
+    //  de profil) ; il ne se confond plus avec une panne, puisque la panne lève.
+    detail: {
+      anonymized: true,
+      profil_anonymise: prof?.id != null,
+      cv_supprime: cvSupprime,
+      avatar_supprime: !avErr,
+    },
   })
 }
