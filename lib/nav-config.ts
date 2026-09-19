@@ -264,6 +264,17 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
         iconKey: 'gauge',
       },
       {
+        // LA GRILLE TARIFAIRE. Elle vivait en base sans aucun écran : changer un
+        // prix exigeait une migration et un déploiement — et cette absence a
+        // produit DEUX surévaluations, dont une de 50 % sur le seul point que le
+        // plafond comptait (§E.13). Un réglage qui ne se règle pas n'est pas un
+        // réglage (§D.7), et celui-ci gouverne un chiffre d'argent.
+        key: 'tarifs-ia',
+        href: '/admin/tarifs-ia',
+        labelKey: 'nav_tarifs_ia',
+        iconKey: 'gauge',
+      },
+      {
         // L'écosystème est l'unité de cloisonnement de toute la plateforme :
         // sa création, son vocabulaire et son activation doivent être
         // atteignables sans développeur — sinon ouvrir un marché suppose un

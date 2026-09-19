@@ -2403,7 +2403,8 @@
       "nav_ecosystemes": "Ecosistemas",
       "nav_quotas_ia": "Cuotas de IA",
       "nav_seuils": "Umbrales de decisión",
-      "nav_durees": "Duraciones del mercado"
+      "nav_durees": "Duraciones del mercado",
+      "nav_tarifs_ia": "Tarifas de los modelos"
     },
     "quotas_ia": {
       "title": "Cuotas de IA",
@@ -2967,6 +2968,35 @@
       "run_manual_by": "manual · {who}",
       "run_scheduled": "programada",
       "history_retention_notice": "El informe detallado se borra a los 90 días; la prueba de ejecución —fecha, estado y contadores, sin ningún identificador— se conserva 5 años."
+    },
+    "tarifs_ia": {
+      "title": "Tarifas de los modelos",
+      "intro": "Los precios que el producto aplica para estimar su gasto. Corríjalos en cuanto el proveedor cambie su tarifa, sin necesidad de desplegar.",
+      "devise": "El gasto de IA se muestra en dólares porque los proveedores facturan en dólares. El resto del producto está en euros y no se convierte nada: un tipo de cambio sería un ajuste más, que envejecería en silencio.",
+      "stale_warning": "Ninguna tarifa se ha modificado desde hace {days} días. El contador de gasto es una estimación reconstruida a partir de estos precios: si han cambiado en el proveedor, el contador es falso sin decirlo.",
+      "usage": {
+        "claude": "Redacción y análisis",
+        "rerank": "Clasificación de expertos"
+      },
+      "field_in": "Precio de entrada ($ / millón de tokens)",
+      "field_out": "Precio de salida ($ / millón de tokens)",
+      "field_unit": "Precio unitario ($ / documento clasificado)",
+      "modified_today": "Modificado hoy",
+      "modified_days": "Modificado hace {days} días",
+      "modified_unknown": "Fecha de modificación desconocida",
+      "official_grid": "Ver la tarifa del proveedor",
+      "blocked_empty": "Rellene ambos precios para guardar.",
+      "blocked_invalid": "Un precio debe ser un número positivo.",
+      "blocked_unchanged": "No hay ningún cambio que guardar.",
+      "loading": "Cargando…",
+      "empty": "No hay tarifas en la base de datos. Probablemente no se ha aplicado en este entorno la migración que las crea.",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "saved": "Tarifa de {model} guardada.",
+      "err_load": "No se ha podido leer la tabla de tarifas. Inténtelo de nuevo en un momento.",
+      "err_save": "No se ha podido guardar esta tarifa. Inténtelo de nuevo en un momento.",
+      "err_invalid_price": "Un precio debe ser un número positivo inferior a 10 000.",
+      "err_invalid_shape": "Una tarifa se indica por tokens (entrada y salida) o por unidad, nunca ambas ni ninguna."
     }
   },
   "expert_verification": {

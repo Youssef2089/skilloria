@@ -2403,7 +2403,8 @@
       "nav_ecosystemes": "Ecosystems",
       "nav_quotas_ia": "AI quotas",
       "nav_seuils": "Decision thresholds",
-      "nav_durees": "Marketplace durations"
+      "nav_durees": "Marketplace durations",
+      "nav_tarifs_ia": "Model pricing"
     },
     "quotas_ia": {
       "title": "AI quotas",
@@ -2967,6 +2968,35 @@
       "run_manual_by": "manual · {who}",
       "run_scheduled": "scheduled",
       "history_retention_notice": "The detailed report is erased after 90 days; the proof of execution — date, status and counters, with no identifier — is kept for 5 years."
+    },
+    "tarifs_ia": {
+      "title": "Model pricing",
+      "intro": "The prices the product applies to estimate its spending. Correct them as soon as the provider changes its grid — no deployment needed.",
+      "devise": "AI spending is shown in dollars because providers bill in dollars. The rest of the product is in euros, and nothing is converted: an exchange rate would be one more setting, ageing silently.",
+      "stale_warning": "No price has been changed for {days} days. The spending counter is an estimate rebuilt from these prices: if they changed at the provider, the counter is wrong without saying so.",
+      "usage": {
+        "claude": "Writing and analysis",
+        "rerank": "Expert ranking"
+      },
+      "field_in": "Input price ($ / million tokens)",
+      "field_out": "Output price ($ / million tokens)",
+      "field_unit": "Unit price ($ / ranked document)",
+      "modified_today": "Changed today",
+      "modified_days": "Changed {days} days ago",
+      "modified_unknown": "Change date unknown",
+      "official_grid": "See the provider’s grid",
+      "blocked_empty": "Fill in both prices to save.",
+      "blocked_invalid": "A price must be a positive number.",
+      "blocked_unchanged": "Nothing has changed.",
+      "loading": "Loading…",
+      "empty": "No pricing in the database. The migration that seeds the grid has probably not been applied on this environment.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Pricing for {model} saved.",
+      "err_load": "Could not read the pricing grid. Try again in a moment.",
+      "err_save": "Could not save this price. Try again in a moment.",
+      "err_invalid_price": "A price must be a positive number below 10,000.",
+      "err_invalid_shape": "A price is given either per token (input and output) or per unit — never both, never neither."
     }
   },
   "expert_verification": {

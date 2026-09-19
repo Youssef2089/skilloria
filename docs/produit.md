@@ -618,6 +618,7 @@ deux produits.
 | `packages` · `packages/new` · `packages/[id]` | Catalogue commerce : offres, limites, offre par défaut, synchro Stripe. |
 | `matching` | Les **deux seuils** par écosystème, le modèle de reranking, la taille de lot, `notify_enabled` ; pannes de rédaction et dépassements de relance. Et les **deux réglages d'argent** — plafond de dépense (**il bloque**) et seuil d'alerte par acteur (**il alerte**) — chacun dans le bloc qui affiche déjà sa valeur. |
 | `quotas-ia` | Les quotas anti-abus IA (analyses de CV). |
+| `tarifs-ia` | **La grille tarifaire des modèles**, réglable sans déploiement. Dit en une ligne que le compteur de dépense est une **estimation reconstituée**, pas la facture ; affiche **depuis quand** chaque prix n'a pas été modifié, et **rougit au-delà de 90 jours** ; renvoie à la grille du fournisseur pour comparer sans chercher. Les dépenses restent en **dollars** — les fournisseurs facturent en dollars, et aucune conversion n'est faite. |
 | `taxonomie` · `taxonomie/[id]` | Branches et spécialités, et leurs traductions. |
 | `ecosystemes` | Créer un écosystème, le traduire, l'ouvrir — **et dire ce qui manque**. Logo et favicon **téléversés** (bucket public `ecosysteme`, chemin dérivé de `domain_id`) ; la saisie d'URL a disparu — §E.17. Le détail est un **panneau dans la page de liste**, pas un écran : `/admin/ecosystemes/[id]` n'existe pas (seule la **route API** porte ce chemin). Ce tableau l'annonçait comme un écran. |
 | `durees` | Les **deux durées du contrat de la place** — vie d'une annonce (**rétroactive**) et fenêtre d'échange (**non rétroactive**), §P3.7. |
@@ -691,7 +692,7 @@ fausse. La répartition observée **repart** au déploiement, et l'écran le dit
 | Contrainte `notify_threshold ≥ feed_threshold` | — | CHECK en base | **Personne** — migration |
 | Plafond de dépense mensuel | rerank 200 $ · claude 100 $ | `ai_spend_caps` | **Back-office** `/admin/matching` — **il BLOQUE** |
 | **Alerte** par acteur | organisation **10 $** · expert **2 $** | `ai_spend_seuils_acteur` | **Back-office** `/admin/matching` — **elle SIGNALE, elle ne bloque JAMAIS** |
-| Grille tarifaire par modèle | Sonnet 5 **2/10** · Sonnet 4.6 **3/15** · Haiku 4.5 **1/5** · rerank **0,000002 $/doc** | `ai_model_tarifs` | **Base** (aucun écran) — change quand le fournisseur change ses prix, pas quand on déploie |
+| Grille tarifaire par modèle | Sonnet 5 **2/10** · Sonnet 4.6 **3/15** · Haiku 4.5 **1/5** · rerank **0,000002 $/doc** | `ai_model_tarifs` | **Back-office** `/admin/tarifs-ia` — change quand le fournisseur change ses prix, pas quand on déploie |
 | Lots en parallèle | 4 | **Code** | Déploiement |
 | Délai fournisseur | 10 s | **Code** | Déploiement |
 | Délai de relance | **60 min** | **Code** `DELAI_RELANCE_MINUTES` | Déploiement |

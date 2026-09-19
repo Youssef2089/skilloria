@@ -2403,7 +2403,8 @@
       "nav_ecosystemes": "Écosystèmes",
       "nav_quotas_ia": "Quotas IA",
       "nav_seuils": "Seuils de jugement",
-      "nav_durees": "Durées de la place"
+      "nav_durees": "Durées de la place",
+      "nav_tarifs_ia": "Tarifs des modèles"
     },
     "quotas_ia": {
       "title": "Quotas IA",
@@ -2967,6 +2968,35 @@
       "run_manual_by": "manuelle · {who}",
       "run_scheduled": "planifiée",
       "history_retention_notice": "Le compte-rendu détaillé est effacé au bout de 90 jours ; la preuve d’exécution — date, statut et compteurs, sans aucun identifiant — est conservée 5 ans."
+    },
+    "tarifs_ia": {
+      "title": "Tarifs des modèles",
+      "intro": "Les prix que le produit applique pour estimer sa dépense. À corriger dès que le fournisseur change sa grille — sans déploiement.",
+      "devise": "Les dépenses d’IA sont en dollars parce que les fournisseurs facturent en dollars. Le reste du produit est en euros, et rien n’est converti : un taux de change serait un réglage de plus, qui vieillirait en silence.",
+      "stale_warning": "Aucun tarif n’a été modifié depuis {days} jours. Le compteur de dépense est une estimation reconstituée depuis ces prix : s’ils ont changé chez le fournisseur, le compteur est faux sans le dire.",
+      "usage": {
+        "claude": "Rédaction et analyse",
+        "rerank": "Classement des experts"
+      },
+      "field_in": "Prix en entrée ($ / million de jetons)",
+      "field_out": "Prix en sortie ($ / million de jetons)",
+      "field_unit": "Prix à l’unité ($ / document classé)",
+      "modified_today": "Modifié aujourd’hui",
+      "modified_days": "Modifié il y a {days} jours",
+      "modified_unknown": "Date de modification inconnue",
+      "official_grid": "Voir la grille du fournisseur",
+      "blocked_empty": "Renseignez les deux prix pour enregistrer.",
+      "blocked_invalid": "Un prix doit être un nombre positif.",
+      "blocked_unchanged": "Aucune modification à enregistrer.",
+      "loading": "Chargement…",
+      "empty": "Aucun tarif en base. La migration qui pose la grille n’a probablement pas été appliquée sur cet environnement.",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "saved": "Tarif de {model} enregistré.",
+      "err_load": "Impossible de lire la grille tarifaire. Réessayez dans un instant.",
+      "err_save": "Impossible d’enregistrer ce tarif. Réessayez dans un instant.",
+      "err_invalid_price": "Un prix doit être un nombre positif, inférieur à 10 000.",
+      "err_invalid_shape": "Un tarif se donne soit par jetons (entrée et sortie), soit à l’unité — jamais les deux, jamais aucun."
     }
   },
   "expert_verification": {

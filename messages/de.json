@@ -2403,7 +2403,8 @@
       "nav_ecosystemes": "Ökosysteme",
       "nav_quotas_ia": "KI-Kontingente",
       "nav_seuils": "Entscheidungsschwellen",
-      "nav_durees": "Laufzeiten des Marktplatzes"
+      "nav_durees": "Laufzeiten des Marktplatzes",
+      "nav_tarifs_ia": "Modelltarife"
     },
     "quotas_ia": {
       "title": "KI-Kontingente",
@@ -2967,6 +2968,35 @@
       "run_manual_by": "manuell · {who}",
       "run_scheduled": "geplant",
       "history_retention_notice": "Der ausführliche Bericht wird nach 90 Tagen gelöscht; der Ausführungsnachweis — Datum, Status und Zähler, ohne jede Kennung — wird 5 Jahre aufbewahrt."
+    },
+    "tarifs_ia": {
+      "title": "Modelltarife",
+      "intro": "Die Preise, mit denen das Produkt seine Ausgaben schätzt. Korrigieren Sie sie, sobald der Anbieter seine Preisliste ändert – ohne Deployment.",
+      "devise": "KI-Ausgaben werden in Dollar angezeigt, weil die Anbieter in Dollar abrechnen. Der Rest des Produkts läuft in Euro, und es wird nichts umgerechnet: Ein Wechselkurs wäre eine weitere Einstellung, die still veraltet.",
+      "stale_warning": "Seit {days} Tagen wurde kein Tarif geändert. Der Ausgabenzähler ist eine Schätzung aus diesen Preisen: Haben sie sich beim Anbieter geändert, ist der Zähler falsch, ohne es zu sagen.",
+      "usage": {
+        "claude": "Verfassen und Analysieren",
+        "rerank": "Expertenranking"
+      },
+      "field_in": "Eingabepreis ($ / Million Token)",
+      "field_out": "Ausgabepreis ($ / Million Token)",
+      "field_unit": "Stückpreis ($ / bewertetes Dokument)",
+      "modified_today": "Heute geändert",
+      "modified_days": "Vor {days} Tagen geändert",
+      "modified_unknown": "Änderungsdatum unbekannt",
+      "official_grid": "Preisliste des Anbieters ansehen",
+      "blocked_empty": "Füllen Sie beide Preise aus, um zu speichern.",
+      "blocked_invalid": "Ein Preis muss eine positive Zahl sein.",
+      "blocked_unchanged": "Es gibt nichts zu speichern.",
+      "loading": "Wird geladen…",
+      "empty": "Keine Tarife in der Datenbank. Die Migration, die sie anlegt, wurde in dieser Umgebung wahrscheinlich nicht ausgeführt.",
+      "save": "Speichern",
+      "saving": "Wird gespeichert…",
+      "saved": "Tarif für {model} gespeichert.",
+      "err_load": "Die Preisliste konnte nicht gelesen werden. Versuchen Sie es gleich noch einmal.",
+      "err_save": "Dieser Tarif konnte nicht gespeichert werden. Versuchen Sie es gleich noch einmal.",
+      "err_invalid_price": "Ein Preis muss eine positive Zahl unter 10.000 sein.",
+      "err_invalid_shape": "Ein Tarif wird entweder pro Token (Eingabe und Ausgabe) oder pro Einheit angegeben – nie beides, nie keines."
     }
   },
   "expert_verification": {
