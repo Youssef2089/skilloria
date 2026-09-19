@@ -2404,7 +2404,8 @@
       "nav_quotas_ia": "AI quotas",
       "nav_seuils": "Decision thresholds",
       "nav_durees": "Marketplace durations",
-      "nav_tarifs_ia": "Model pricing"
+      "nav_tarifs_ia": "Model pricing",
+      "nav_supervision": "Monitoring"
     },
     "quotas_ia": {
       "title": "AI quotas",
@@ -2997,6 +2998,101 @@
       "err_save": "Could not save this price. Try again in a moment.",
       "err_invalid_price": "A price must be a positive number below 10,000.",
       "err_invalid_shape": "A price is given either per token (input and output) or per unit — never both, never neither."
+    },
+    "supervision": {
+      "title": "Monitoring",
+      "intro": "What is observed. Settings live on the matching screen.",
+      "loading": "Loading…",
+      "err_load": "Could not read the engine state. Try again in a moment.",
+      "back": "← Back to monitoring",
+      "open": "Open",
+      "since": "since {date}",
+      "problems_title": "What is wrong",
+      "problems_none": "Nothing to report. Matching runs complete, spending is below its caps.",
+      "gravity_blocking": "Blocking",
+      "gravity_attention": "Worth a look",
+      "problem": {
+        "annonces_jamais_tentees": "{count} published listings have NEVER been matched. Both experts and organisations see an empty screen, with no explanation.",
+        "annonces_abandonnees": "{count} listings reached the retry cap: they will not be retried without action.",
+        "plafond_atteint_rerank": "The expert ranking spending cap has been reached: no matching is being scored this month.",
+        "plafond_atteint_claude": "The writing and analysis spending cap has been reached: these features are stopped this month.",
+        "plafond_proche_rerank": "Expert ranking has used {count}% of its monthly cap.",
+        "plafond_proche_claude": "Writing and analysis have used {count}% of their monthly cap.",
+        "resumes_non_produits": "{count} summaries could not be written. The applications exist, their text is missing.",
+        "plafond_relance_depasse": "{count} refresh requests exceeded the hourly cap and were refused.",
+        "experts_non_notes": "{count} eligible experts were not scored: they were left out without being assessed.",
+        "lots_en_echec": "{count} batches could not be scored by the provider.",
+        "tarifs_non_verifies": "No price has been changed for {count} days. All the spending shown here depends on them.",
+        "lecture_indisponible_inacheves": "The matching state could not be read. This is not “all good”: we do not know.",
+        "lecture_indisponible_depense": "This month’s spending could not be read. This is not “zero”: we do not know.",
+        "lecture_indisponible_pannes": "The summary log could not be read. This is not “no failures”: we do not know."
+      },
+      "spread_title": "Score spread",
+      "spread_empty": "No run yet on the new scale. The spread will fill in with the next matching runs.",
+      "spread_intro": "{notes} scores given across {runs} observed runs.",
+      "spread_bar": "Score {from} to {to}: {count} experts",
+      "spend_title": "Spending",
+      "spend_estimate": "This counter is an estimate rebuilt from manually entered prices. No provider is queried: this is not the invoice. Amounts are in dollars because providers bill in dollars.",
+      "spend_missing_price": "{count} operations were recorded with no known price: their cost counts as zero, so the total below is understated.",
+      "spend_amount": "${amount}",
+      "spend_of_cap": "of a {cap} $ cap",
+      "usage": {
+        "claude": "Writing and analysis",
+        "rerank": "Expert ranking"
+      },
+      "history_title": "By month",
+      "by_action_title": "By operation type, this month",
+      "operations_count": "{count} operations",
+      "open_operations": "Open the most expensive operations →",
+      "action": {
+        "cv_parsing": "CV analysis",
+        "matching_pool": "Expert ranking",
+        "candidature_assessment": "Application assessment",
+        "pitch": "Pitch writing",
+        "expert_verification": "Expert verification",
+        "org_verification": "Organisation verification",
+        "publication_quality": "Listing quality",
+        "inconnue": "Uncategorised operation"
+      },
+      "detail_title": {
+        "inacheves": "Unfinished matching runs",
+        "operations": "Most expensive operations",
+        "resumes": "Summaries not produced",
+        "relances": "Refused refreshes"
+      },
+      "detail_intro": {
+        "inacheves": "Published listings whose matching did not complete, oldest first.",
+        "operations": "The most expensive AI calls. No content is shown: no CV, no listing, no message.",
+        "resumes": "The texts the AI could not write, and why.",
+        "relances": "Refresh requests refused by the hourly cap. The expert is identified by an id, never by name."
+      },
+      "detail_empty": "Nothing to open here.",
+      "detail_unknown": "This subject does not exist.",
+      "detail_truncated": "Only the first {limit} rows are shown.",
+      "column": {
+        "etat": "State",
+        "title": "Listing",
+        "published_at": "Published on",
+        "matching_attempts": "Attempts",
+        "matching_attempted_at": "Last attempt",
+        "created_at": "Date",
+        "action": "Operation",
+        "provider": "Provider",
+        "cost_usd": "Cost ($)",
+        "model": "Model",
+        "acteur_type": "Actor type",
+        "acteur_nom": "Organisation",
+        "cause": "Cause",
+        "surface": "Surface",
+        "entity_id": "Object",
+        "origine": "Origin",
+        "profile_id": "Expert (id)"
+      },
+      "state": {
+        "jamais_tente": "Never attempted",
+        "abandonne": "Abandoned",
+        "en_cours": "Will be retried"
+      }
     }
   },
   "expert_verification": {

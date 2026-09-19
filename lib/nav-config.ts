@@ -208,6 +208,17 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
     items: [
       { key: 'matching', href: '/admin/matching', labelKey: 'nav_matching', iconKey: 'matching' },
       {
+        // LA SUPERVISION, SÉPARÉE DU RÉGLAGE. `/admin/matching` portait les
+        // deux, et devant cette page on ne savait plus lequel des deux on était
+        // censé faire : décider, ou constater. Ici on ne règle rien — on
+        // regarde, et on peut OUVRIR une ligne. Un total ne permet d'agir sur
+        // rien : « six mises en relation jamais tentées » ne dit pas lesquelles.
+        key: 'supervision',
+        href: '/admin/supervision',
+        labelKey: 'nav_supervision',
+        iconKey: 'gauge',
+      },
+      {
         // LES SEUILS DE JUGEMENT, rangés à côté des seuils du moteur et non
         // dans « Validation » : ce sont des RÉGLAGES, pas des dossiers à
         // trancher. /admin/experts et /admin/organisations traitent les cas ;

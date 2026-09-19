@@ -2404,7 +2404,8 @@
       "nav_quotas_ia": "Quotas IA",
       "nav_seuils": "Seuils de jugement",
       "nav_durees": "Durées de la place",
-      "nav_tarifs_ia": "Tarifs des modèles"
+      "nav_tarifs_ia": "Tarifs des modèles",
+      "nav_supervision": "Supervision"
     },
     "quotas_ia": {
       "title": "Quotas IA",
@@ -2997,6 +2998,101 @@
       "err_save": "Impossible d’enregistrer ce tarif. Réessayez dans un instant.",
       "err_invalid_price": "Un prix doit être un nombre positif, inférieur à 10 000.",
       "err_invalid_shape": "Un tarif se donne soit par jetons (entrée et sortie), soit à l’unité — jamais les deux, jamais aucun."
+    },
+    "supervision": {
+      "title": "Supervision",
+      "intro": "Ce qui s’observe. Les réglages sont sur l’écran de mise en relation.",
+      "loading": "Chargement…",
+      "err_load": "Impossible de lire l’état du moteur. Réessayez dans un instant.",
+      "back": "← Retour à la supervision",
+      "open": "Ouvrir",
+      "since": "depuis le {date}",
+      "problems_title": "Ce qui ne va pas",
+      "problems_none": "Rien à signaler. Les mises en relation s’achèvent, la dépense est sous ses plafonds.",
+      "gravity_blocking": "Bloquant",
+      "gravity_attention": "À regarder",
+      "problem": {
+        "annonces_jamais_tentees": "{count} annonces publiées n’ont JAMAIS été mises en relation. Côté expert comme côté organisation, l’écran est vide et rien ne l’explique.",
+        "annonces_abandonnees": "{count} annonces ont atteint le plafond de tentatives : elles ne seront plus rejouées sans intervention.",
+        "plafond_atteint_rerank": "Le plafond de dépense du classement des experts est atteint : plus aucune mise en relation n’est notée ce mois-ci.",
+        "plafond_atteint_claude": "Le plafond de dépense de la rédaction et de l’analyse est atteint : ces fonctionnalités sont arrêtées ce mois-ci.",
+        "plafond_proche_rerank": "Le classement des experts a consommé {count} % de son plafond mensuel.",
+        "plafond_proche_claude": "La rédaction et l’analyse ont consommé {count} % de leur plafond mensuel.",
+        "resumes_non_produits": "{count} résumés n’ont pas pu être écrits. Les candidatures existent, leur texte manque.",
+        "plafond_relance_depasse": "{count} demandes de relance ont dépassé le plafond horaire et ont été refusées.",
+        "experts_non_notes": "{count} experts éligibles n’ont pas été notés : ils ont été écartés sans avoir été évalués.",
+        "lots_en_echec": "{count} lots n’ont pas pu être notés par le fournisseur.",
+        "tarifs_non_verifies": "Aucun tarif n’a été modifié depuis {count} jours. Toute la dépense affichée ici en dépend.",
+        "lecture_indisponible_inacheves": "L’état des mises en relation n’a pas pu être lu. Ce n’est pas « tout va bien » : on ne sait pas.",
+        "lecture_indisponible_depense": "La dépense du mois n’a pas pu être lue. Ce n’est pas « zéro » : on ne sait pas.",
+        "lecture_indisponible_pannes": "Le journal des résumés n’a pas pu être lu. Ce n’est pas « aucune panne » : on ne sait pas."
+      },
+      "spread_title": "Répartition des notes",
+      "spread_empty": "Aucune exécution pour l’instant sur la nouvelle échelle. La répartition se remplira aux prochaines mises en relation.",
+      "spread_intro": "{notes} notes attribuées sur {runs} exécutions observées.",
+      "spread_bar": "Note de {from} à {to} : {count} experts",
+      "spend_title": "Consommation",
+      "spend_estimate": "Ce compteur est une estimation reconstituée à partir des tarifs saisis à la main. Aucun fournisseur n’est interrogé : ce n’est pas la facture. Les montants sont en dollars parce que les fournisseurs facturent en dollars.",
+      "spend_missing_price": "{count} opérations ont été enregistrées sans tarif connu : leur coût compte pour zéro, et le total ci-dessous est donc sous-estimé.",
+      "spend_amount": "{amount} $",
+      "spend_of_cap": "sur un plafond de {cap} $",
+      "usage": {
+        "claude": "Rédaction et analyse",
+        "rerank": "Classement des experts"
+      },
+      "history_title": "Par mois",
+      "by_action_title": "Par type d’opération, ce mois-ci",
+      "operations_count": "{count} opérations",
+      "open_operations": "Ouvrir les opérations les plus coûteuses →",
+      "action": {
+        "cv_parsing": "Analyse de CV",
+        "matching_pool": "Classement des experts",
+        "candidature_assessment": "Jugement d’une candidature",
+        "pitch": "Rédaction d’un pitch",
+        "expert_verification": "Vérification d’un expert",
+        "org_verification": "Vérification d’une organisation",
+        "publication_quality": "Qualité d’une annonce",
+        "inconnue": "Opération non catégorisée"
+      },
+      "detail_title": {
+        "inacheves": "Mises en relation inachevées",
+        "operations": "Opérations les plus coûteuses",
+        "resumes": "Résumés non produits",
+        "relances": "Relances refusées"
+      },
+      "detail_intro": {
+        "inacheves": "Les annonces publiées dont la mise en relation ne s’est pas achevée, de la plus ancienne à la plus récente.",
+        "operations": "Les appels d’IA les plus coûteux. Aucun contenu n’est affiché : ni CV, ni annonce, ni message.",
+        "resumes": "Les textes que l’IA n’a pas pu écrire, et pourquoi.",
+        "relances": "Les demandes de relance refusées par le plafond horaire. L’expert est identifié par son identifiant, jamais par son nom."
+      },
+      "detail_empty": "Rien à ouvrir ici.",
+      "detail_unknown": "Ce sujet n’existe pas.",
+      "detail_truncated": "Seules les {limit} premières lignes sont affichées.",
+      "column": {
+        "etat": "État",
+        "title": "Annonce",
+        "published_at": "Publiée le",
+        "matching_attempts": "Tentatives",
+        "matching_attempted_at": "Dernière tentative",
+        "created_at": "Date",
+        "action": "Opération",
+        "provider": "Fournisseur",
+        "cost_usd": "Coût ($)",
+        "model": "Modèle",
+        "acteur_type": "Type d’acteur",
+        "acteur_nom": "Organisation",
+        "cause": "Cause",
+        "surface": "Surface",
+        "entity_id": "Objet",
+        "origine": "Origine",
+        "profile_id": "Expert (identifiant)"
+      },
+      "state": {
+        "jamais_tente": "Jamais tentée",
+        "abandonne": "Abandonnée",
+        "en_cours": "Sera rejouée"
+      }
     }
   },
   "expert_verification": {

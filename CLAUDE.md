@@ -656,7 +656,7 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **66** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
+Sur les **67** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
 17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois dernières,
 `logo_organisation_bucket`, `format_numero_identification` et `pays_du_profil_sans_defaut`,
 **n'insèrent rien** : elles créent un bucket, ajoutent des colonnes, retirent deux `DEFAULT 'FR'` et

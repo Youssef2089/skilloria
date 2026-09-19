@@ -2404,7 +2404,8 @@
       "nav_quotas_ia": "KI-Kontingente",
       "nav_seuils": "Entscheidungsschwellen",
       "nav_durees": "Laufzeiten des Marktplatzes",
-      "nav_tarifs_ia": "Modelltarife"
+      "nav_tarifs_ia": "Modelltarife",
+      "nav_supervision": "Überwachung"
     },
     "quotas_ia": {
       "title": "KI-Kontingente",
@@ -2997,6 +2998,101 @@
       "err_save": "Dieser Tarif konnte nicht gespeichert werden. Versuchen Sie es gleich noch einmal.",
       "err_invalid_price": "Ein Preis muss eine positive Zahl unter 10.000 sein.",
       "err_invalid_shape": "Ein Tarif wird entweder pro Token (Eingabe und Ausgabe) oder pro Einheit angegeben – nie beides, nie keines."
+    },
+    "supervision": {
+      "title": "Überwachung",
+      "intro": "Was beobachtet wird. Die Einstellungen liegen auf dem Matching-Bildschirm.",
+      "loading": "Wird geladen…",
+      "err_load": "Der Zustand des Motors konnte nicht gelesen werden. Versuchen Sie es gleich noch einmal.",
+      "back": "← Zurück zur Überwachung",
+      "open": "Öffnen",
+      "since": "seit dem {date}",
+      "problems_title": "Was nicht stimmt",
+      "problems_none": "Nichts zu melden. Die Matching-Läufe werden abgeschlossen, die Ausgaben liegen unter ihren Obergrenzen.",
+      "gravity_blocking": "Blockierend",
+      "gravity_attention": "Ansehen",
+      "problem": {
+        "annonces_jamais_tentees": "{count} veröffentlichte Anzeigen wurden NIE gematcht. Experten wie Organisationen sehen einen leeren Bildschirm ohne Erklärung.",
+        "annonces_abandonnees": "{count} Anzeigen haben die Versuchsgrenze erreicht: Sie werden ohne Eingriff nicht erneut versucht.",
+        "plafond_atteint_rerank": "Die Ausgabengrenze für das Expertenranking ist erreicht: In diesem Monat wird kein Matching mehr bewertet.",
+        "plafond_atteint_claude": "Die Ausgabengrenze für Verfassen und Analysieren ist erreicht: Diese Funktionen sind diesen Monat gestoppt.",
+        "plafond_proche_rerank": "Das Expertenranking hat {count} % seiner Monatsgrenze verbraucht.",
+        "plafond_proche_claude": "Verfassen und Analysieren haben {count} % ihrer Monatsgrenze verbraucht.",
+        "resumes_non_produits": "{count} Zusammenfassungen konnten nicht geschrieben werden. Die Bewerbungen existieren, ihr Text fehlt.",
+        "plafond_relance_depasse": "{count} Auffrischungsanfragen haben die Stundengrenze überschritten und wurden abgelehnt.",
+        "experts_non_notes": "{count} berechtigte Experten wurden nicht bewertet: Sie wurden ausgeschlossen, ohne beurteilt zu werden.",
+        "lots_en_echec": "{count} Stapel konnten vom Anbieter nicht bewertet werden.",
+        "tarifs_non_verifies": "Seit {count} Tagen wurde kein Tarif geändert. Alle hier angezeigten Ausgaben hängen davon ab.",
+        "lecture_indisponible_inacheves": "Der Matching-Zustand konnte nicht gelesen werden. Das heißt nicht „alles in Ordnung“: Wir wissen es nicht.",
+        "lecture_indisponible_depense": "Die Ausgaben des Monats konnten nicht gelesen werden. Das heißt nicht „null“: Wir wissen es nicht.",
+        "lecture_indisponible_pannes": "Das Protokoll der Zusammenfassungen konnte nicht gelesen werden. Das heißt nicht „keine Störung“: Wir wissen es nicht."
+      },
+      "spread_title": "Verteilung der Bewertungen",
+      "spread_empty": "Noch kein Lauf auf der neuen Skala. Die Verteilung füllt sich mit den nächsten Matching-Läufen.",
+      "spread_intro": "{notes} Bewertungen über {runs} beobachtete Läufe.",
+      "spread_bar": "Bewertung {from} bis {to}: {count} Experten",
+      "spend_title": "Verbrauch",
+      "spend_estimate": "Dieser Zähler ist eine Schätzung aus manuell eingegebenen Tarifen. Kein Anbieter wird abgefragt: Das ist nicht die Rechnung. Die Beträge sind in Dollar, weil die Anbieter in Dollar abrechnen.",
+      "spend_missing_price": "{count} Vorgänge wurden ohne bekannten Tarif erfasst: Ihre Kosten zählen als null, der Gesamtwert unten ist daher zu niedrig.",
+      "spend_amount": "{amount} $",
+      "spend_of_cap": "von einer Grenze von {cap} $",
+      "usage": {
+        "claude": "Verfassen und Analysieren",
+        "rerank": "Expertenranking"
+      },
+      "history_title": "Nach Monat",
+      "by_action_title": "Nach Vorgangsart, diesen Monat",
+      "operations_count": "{count} Vorgänge",
+      "open_operations": "Die teuersten Vorgänge öffnen →",
+      "action": {
+        "cv_parsing": "Lebenslauf-Analyse",
+        "matching_pool": "Expertenranking",
+        "candidature_assessment": "Bewertung einer Bewerbung",
+        "pitch": "Verfassen eines Pitches",
+        "expert_verification": "Prüfung eines Experten",
+        "org_verification": "Prüfung einer Organisation",
+        "publication_quality": "Qualität einer Anzeige",
+        "inconnue": "Nicht kategorisierter Vorgang"
+      },
+      "detail_title": {
+        "inacheves": "Unvollendete Matching-Läufe",
+        "operations": "Teuerste Vorgänge",
+        "resumes": "Nicht erstellte Zusammenfassungen",
+        "relances": "Abgelehnte Auffrischungen"
+      },
+      "detail_intro": {
+        "inacheves": "Veröffentlichte Anzeigen, deren Matching nicht abgeschlossen wurde, älteste zuerst.",
+        "operations": "Die teuersten KI-Aufrufe. Es werden keine Inhalte angezeigt: kein Lebenslauf, keine Anzeige, keine Nachricht.",
+        "resumes": "Die Texte, die die KI nicht schreiben konnte, und warum.",
+        "relances": "Auffrischungsanfragen, die an der Stundengrenze gescheitert sind. Der Experte wird über eine Kennung identifiziert, nie über seinen Namen."
+      },
+      "detail_empty": "Hier gibt es nichts zu öffnen.",
+      "detail_unknown": "Dieses Thema existiert nicht.",
+      "detail_truncated": "Es werden nur die ersten {limit} Zeilen angezeigt.",
+      "column": {
+        "etat": "Zustand",
+        "title": "Anzeige",
+        "published_at": "Veröffentlicht am",
+        "matching_attempts": "Versuche",
+        "matching_attempted_at": "Letzter Versuch",
+        "created_at": "Datum",
+        "action": "Vorgang",
+        "provider": "Anbieter",
+        "cost_usd": "Kosten ($)",
+        "model": "Modell",
+        "acteur_type": "Akteurstyp",
+        "acteur_nom": "Organisation",
+        "cause": "Ursache",
+        "surface": "Oberfläche",
+        "entity_id": "Objekt",
+        "origine": "Herkunft",
+        "profile_id": "Experte (Kennung)"
+      },
+      "state": {
+        "jamais_tente": "Nie versucht",
+        "abandonne": "Abgebrochen",
+        "en_cours": "Wird erneut versucht"
+      }
     }
   },
   "expert_verification": {
