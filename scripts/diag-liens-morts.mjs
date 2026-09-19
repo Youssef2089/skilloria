@@ -228,11 +228,21 @@ section('C. Le repli de routage n’est pas un cul-de-sac')
   //    déclaration passait inaperçue, et deux replis qui divergent sont
   //    exactement la dette que la phrase prétend interdire (§E.20 : le dépôt
   //    portait quatre copies du même chargement). On compte.
-  const declarations = [...routage.matchAll(/export const FALLBACK_ROUTE_URL\b/g)]
+  // ⚠️ ET ON COMPTE SUR TOUT LE DÉPÔT, PAS DANS CE SEUL FICHIER.
+  //    La mutation qui a ouvert ce trou déclarait un second repli AILLEURS :
+  //    c'est le scénario §E.20 — deux copies qui divergent, et la recherche
+  //    s'arrête sur la première. Un repli unique n'est unique que si rien
+  //    d'autre n'en déclare un.
+  const declarations = []
+  for (const f of sources) {
+    for (const m of sansCommentaires(read(f)).matchAll(/export const FALLBACK_ROUTE_URL\b/g)) {
+      declarations.push(`${f}:${m.index}`)
+    }
+  }
   ok(
     declarations.length === 1,
-    'le repli de routage est déclaré une seule fois, et nommé',
-    `déclarations trouvées : ${declarations.length}`,
+    'le repli de routage est déclaré une seule fois, dans tout le dépôt',
+    `déclarations trouvées (${declarations.length}) : ${declarations.join(' · ')}`,
   )
   const repli = /FALLBACK_ROUTE_URL\s*=\s*'([^']+)'/.exec(routage)?.[1] ?? null
   ok(
