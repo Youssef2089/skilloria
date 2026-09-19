@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { usageDeLaBranche, brancheReferencee } from '@/lib/admin/usage-branche'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -59,27 +60,35 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   if (!branch) return json({ error: 'Not found', code: 'not_found' }, 404)
 
-  const { count: profiles } = await auth.supabaseAdmin
-    .from('profiles')
-    .select('id', { count: 'exact', head: true })
-    .eq('branch_id', id)
-  const { count: publications } = await auth.supabaseAdmin
-    .from('publications')
-    .select('id', { count: 'exact', head: true })
-    .eq('branch_id', id)
-  const { count: specialities } = await auth.supabaseAdmin
-    .from('specialities')
-    .select('id', { count: 'exact', head: true })
-    .eq('branch_id', id)
+  // ── CE QUE LA BRANCHE PORTE — LA MÊME LECTURE QUE L’ÉCRAN ──────────────
+  //  Les trois comptes vivaient ici ET dans `get-branch`, et aucune des six
+  //  lectures ne récupérait son erreur : une seule panne rendait l’écran ET
+  //  cette barrière aveugles du même zéro. Lecture unique, type unique.
+  const usage = await usageDeLaBranche(auth.supabaseAdmin, id)
+  const referencee = brancheReferencee(usage)
 
-  if ((profiles ?? 0) > 0 || (publications ?? 0) > 0 || (specialities ?? 0) > 0) {
+  // ⚠️ NE PAS SAVOIR NE VAUT JAMAIS LAISSER PASSER. La suppression emporte
+  //    les spécialités EN CASCADE et détache les annonces EN SILENCE : on ne
+  //    la prend pas sur un comptage indisponible. 503, motif nommé, refus
+  //    TEMPORAIRE — ce n’est pas un verdict sur la branche.
+  if (referencee === null) {
+    return json(
+      {
+        error: 'Could not determine what this branch still carries',
+        code: 'usage_indisponible',
+      },
+      503,
+    )
+  }
+
+  if (referencee) {
     return json(
       {
         error: 'Branch is in use',
         code: 'in_use',
-        profiles: profiles ?? 0,
-        publications: publications ?? 0,
-        specialities: specialities ?? 0,
+        profiles: usage.etat === 'disponible' ? usage.profils : 0,
+        publications: usage.etat === 'disponible' ? usage.publications : 0,
+        specialities: usage.etat === 'disponible' ? usage.specialites : 0,
       },
       409,
     )

@@ -40,8 +40,18 @@ type Branch = {
   description: string | null
   active: boolean
   sort_order: number
-  profiles: number
-  publications: number
+  /**
+   * `null` = LA LECTURE A ÉCHOUÉ, jamais 0.
+   *
+   * ⚠️ Zéro se lit « rien à perdre » au moment précis où l'on décide de
+   *    supprimer — et la suppression emporte les spécialités EN CASCADE.
+   *    Le type force l'écran à répondre : il ne peut plus additionner sans
+   *    avoir traité l'inconnu.
+   */
+  profiles: number | null
+  publications: number | null
+  /** Vrai quand les deux comptes ci-dessus sont inconnus. */
+  usage_indisponible: boolean
   translations: Translations
 }
 
@@ -259,16 +269,30 @@ export default function AdminTaxonomieDetailPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ id: rawId }),
       })
-      const payload = (await res.json().catch(() => ({}))) as { code?: string; profiles?: number; publications?: number; specialities?: number }
+      const payload = (await res.json().catch(() => ({}))) as {
+        code?: string
+        profiles?: number
+        publications?: number
+        specialities?: number
+      }
       if (!res.ok) {
         if (payload.code === 'in_use') {
           setDeleteError(
             t('err_branch_in_use', {
+              // Ici les comptes sont CONNUS : c’est la réponse 409 `in_use`,
+              // que la route ne rend que si la lecture a abouti.
               profiles: payload.profiles ?? 0,
               publications: payload.publications ?? 0,
               specialities: payload.specialities ?? 0,
             }),
           )
+        } else if (payload.code === 'usage_indisponible') {
+          // ⚠️ REFUS TEMPORAIRE, ET IL SE DIT. La barrière n’a pas pu savoir ce
+          //    que la branche porte : elle refuse plutôt que d’autoriser sur
+          //    un comptage indisponible. Sans ce branchement, ce refus-là
+          //    tomberait dans « erreur générique » et on chercherait une
+          //    panne sans nom.
+          setDeleteError(t('err_usage_unavailable'))
         } else {
           setDeleteError(res.status === 403 ? tAdmin('errors.forbidden') : tAdmin('errors.generic'))
         }
@@ -443,11 +467,20 @@ export default function AdminTaxonomieDetailPage() {
     )
   }
 
+  // ── L’USAGE EST-IL SEULEMENT CONNU ? ─────────────────────────────────
+  //  Trois gardes tombaient sur la MÊME panne : l’écran affichait « 0 »,
+  //  ce bouton s’activait, et la barrière serveur autorisait — les trois
+  //  lisaient le même zéro inventé. DEUX GARDES QUI TOMBENT SUR LA MÊME
+  //  PANNE N’EN FONT QU’UNE ; ici il y en avait trois, donc une seule.
+  const usageInconnu = branch?.usage_indisponible === true
   const branchUsage = (branch?.profiles ?? 0) + (branch?.publications ?? 0)
   const willDeactivateBranch = !isNew && !!branch?.active && !active
   const orderedSpecs = [...specialities].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
   // Suppression branche possible seulement à usage 0 ET sans spécialité.
-  const canDeleteBranch = !isNew && branchUsage === 0 && specialities.length === 0
+  // ⚠️ NE PAS SAVOIR NE VAUT JAMAIS AUTORISER. La suppression emporte les
+  //    spécialités EN CASCADE et détache les annonces EN SILENCE.
+  const canDeleteBranch =
+    !isNew && !usageInconnu && branchUsage === 0 && specialities.length === 0
 
   const langNote = (
     <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '10px 0 0' }}>
@@ -525,7 +558,12 @@ export default function AdminTaxonomieDetailPage() {
           {t('field_active')}
         </label>
 
-        {willDeactivateBranch && branchUsage > 0 && (
+        {willDeactivateBranch && usageInconnu && (
+          <div role="alert" style={{ marginTop: 12, padding: '10px 14px', background: '#FEF3C7', border: '1px solid #fde68a', color: '#92400e', fontSize: 12, borderRadius: 8 }}>
+            {t('usage_unavailable_warning')}
+          </div>
+        )}
+        {willDeactivateBranch && !usageInconnu && branchUsage > 0 && (
           <div role="alert" style={{ marginTop: 12, padding: '10px 14px', background: '#FEF3C7', border: '1px solid #fde68a', color: '#92400e', fontSize: 12, borderRadius: 8 }}>
             {t('deactivate_branch_warning', { profiles: branch?.profiles ?? 0, publications: branch?.publications ?? 0 })}
           </div>

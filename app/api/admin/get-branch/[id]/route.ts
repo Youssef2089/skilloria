@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { usageDeLaBranche } from '@/lib/admin/usage-branche'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 
@@ -99,14 +100,14 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   const specIds = specRows.map((s) => s.id)
 
   // ── Usage branche (profils + publications) ──────────────────────────────────
-  const { count: branchProfiles } = await auth.supabaseAdmin
-    .from('profiles')
-    .select('id', { count: 'exact', head: true })
-    .eq('branch_id', id)
-  const { count: branchPublications } = await auth.supabaseAdmin
-    .from('publications')
-    .select('id', { count: 'exact', head: true })
-    .eq('branch_id', id)
+  // ── CE QUE LA BRANCHE PORTE — LA MÊME LECTURE QUE LA BARRIÈRE ──────────
+  //  Ces deux comptes vivaient ici, et `delete-branch` les recomptait pour
+  //  AUTORISER. Aucune des six lectures ne récupérait son erreur : une seule
+  //  panne rendait cet écran ET cette barrière aveugles du même zéro.
+  //  L’écran disait « 0 usage », l’administrateur supprimait en croyant
+  //  décider, et la barrière ne se levait pas parce qu’elle lisait ce zéro.
+  //  DEUX GARDES QUI TOMBENT SUR LA MÊME PANNE N’EN FONT QU’UNE.
+  const usage = await usageDeLaBranche(auth.supabaseAdmin, id)
 
   // ── Usage spécialités (profils + publications, agrégé en mémoire) ────────────
   const specProfiles = new Map<string, number>()
@@ -203,8 +204,14 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         description: br.description,
         active: br.active,
         sort_order: br.sort_order,
-        profiles: branchProfiles ?? 0,
-        publications: branchPublications ?? 0,
+        // ⚠️ `null` = « ON NE SAIT PAS », jamais 0. Zéro se lit « rien à
+        //    perdre » au moment précis où l’on décide de supprimer — et
+        //    c’est la règle que le dépôt portait déjà deux fichiers plus
+        //    loin, dans `ecosystemes/[id]/impact`. Une règle écrite à un
+        //    endroit ne protège pas son voisin (§E.28 ③).
+        profiles: usage.etat === 'disponible' ? usage.profils : null,
+        publications: usage.etat === 'disponible' ? usage.publications : null,
+        usage_indisponible: usage.etat === 'indisponible',
         translations: branchTranslations,
       },
       specialities,

@@ -267,14 +267,37 @@ export async function POST(request: NextRequest): Promise<Response> {
   // que la branche/spécialité fournies appartiennent bien à ce domaine et sont
   // actives — sinon le client (ou un appel forgé) pourrait injecter des ids
   // d'un autre écosystème. On réutilise domainId pour l'audit plus bas.
-  const { data: domainRow } = await supabaseAdmin
+  const { data: domainRow, error: domainErr } = await supabaseAdmin
     .from('domains')
     .select('id')
     .eq('slug', input.domain_slug)
     .eq('active', true)
     .maybeSingle()
+  // ⚠️ NE PAS SAVOIR NE VAUT JAMAIS LAISSER PASSER, ET C’EST UNE ROUTE
+  //    PUBLIQUE. Cette erreur n’était pas récupérée : `domainId` tombait à
+  //    `null`, et les deux gardes ci-dessous — qui vérifient que la branche
+  //    et la spécialité appartiennent bien à CET écosystème — étaient
+  //    SAUTÉES ENTIÈREMENT, parce qu’elles sont conditionnées à `domainId`.
+  //    Leur propre commentaire disait à quoi elles servent : « sinon le
+  //    client (ou un appel forgé) pourrait injecter des ids d’un autre
+  //    écosystème ». Une panne de lecture désactivait donc le cloisonnement
+  //    (§D.3) — l’ordre du test dans sa forme pure (§E.22 règle 2).
+  if (domainErr) {
+    console.error('[public/register-expert] écosystème illisible', domainErr.message)
+    return json({ error: 'Could not resolve ecosystem', code: 'ecosystem_unavailable' }, 503)
+  }
   const domainId = (domainRow?.id as string | undefined) ?? null
 
+  // ⚠️ ET LES DEUX GARDES NE DÉPENDENT PLUS DE `domainId` POUR S’EXÉCUTER.
+  //    Elles étaient justes — `if (!br) return 400` refuse bien — mais elles
+  //    n’étaient ATTEINTES que si l’écosystème était connu. Une garde
+  //    correcte derrière une garde qui s’ouvre ne garde rien.
+  //    L’écosystème inconnu est désormais refusé au-dessus ; si l’on arrive
+  //    ici sans lui, c’est que le slug ne désigne aucun écosystème ACTIF —
+  //    et cela se refuse aussi.
+  if (input.branch_id && !domainId) {
+    return json({ error: 'Unknown ecosystem', code: 'invalid_domain' }, 400)
+  }
   if (input.branch_id && domainId) {
     const { data: br } = await supabaseAdmin
       .from('branches')
@@ -286,6 +309,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (!br) {
       return json({ error: 'Invalid branch', code: 'invalid_branch' }, 400)
     }
+  }
+  if (input.speciality_id && !domainId) {
+    return json({ error: 'Unknown ecosystem', code: 'invalid_domain' }, 400)
   }
   if (input.speciality_id && domainId) {
     const { data: sp } = await supabaseAdmin

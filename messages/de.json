@@ -3745,7 +3745,9 @@
     "err_slug_taken": "Diese Kennung wird in diesem Ökosystem bereits verwendet.",
     "err_invalid_domain": "Wählen Sie ein Ökosystem aus.",
     "err_branch_in_use": "Branche in Verwendung: {profiles} Profil(e), {publications} Veröffentlichung(en), {specialities} Fachgebiet(e).",
-    "err_spec_in_use": "Fachgebiet in Verwendung: {profiles} Profil(e), {publications} Veröffentlichung(en)."
+    "err_spec_in_use": "Fachgebiet in Verwendung: {profiles} Profil(e), {publications} Veröffentlichung(en).",
+    "usage_unavailable_warning": "Wir konnten nicht lesen, was dieser Zweig noch enthält. Das heißt nicht „nichts“: wir wissen es nicht. Laden Sie die Seite neu, bevor Sie entscheiden.",
+    "err_usage_unavailable": "Löschen abgelehnt: Wir konnten nicht prüfen, was dieser Zweig noch enthält. Es wurde nichts gelöscht. Bitte versuchen Sie es gleich erneut."
   },
   "candidature_lifecycle": {
     "filters": {

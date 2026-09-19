@@ -3745,7 +3745,9 @@
     "err_slug_taken": "Cet identifiant est déjà utilisé dans cet écosystème.",
     "err_invalid_domain": "Sélectionnez un écosystème.",
     "err_branch_in_use": "Branche utilisée : {profiles} profil(s), {publications} publication(s), {specialities} spécialité(s).",
-    "err_spec_in_use": "Spécialité utilisée : {profiles} profil(s), {publications} publication(s)."
+    "err_spec_in_use": "Spécialité utilisée : {profiles} profil(s), {publications} publication(s).",
+    "usage_unavailable_warning": "Nous n'avons pas pu lire ce que cette branche porte encore. Ce n'est pas « rien » : nous ne savons pas. Rechargez la page avant de décider.",
+    "err_usage_unavailable": "Suppression refusée : nous n'avons pas pu vérifier ce que cette branche porte encore. Rien n'a été supprimé. Réessayez dans un instant."
   },
   "candidature_lifecycle": {
     "filters": {

@@ -81,11 +81,22 @@ async function cataloguePrice(
   admin: AuthContext['supabaseAdmin'],
   packageId: string,
 ): Promise<number | null> {
-  const { data } = await admin
+  const { data, error } = await admin
     .from('packages')
     .select('price_monthly')
     .eq('id', packageId)
     .maybeSingle()
+  // ⚠️ `null` VEUT DIRE DEUX CHOSES, ET L'APPELANT N'EN TRAITE QU'UNE.
+  //    Sur une panne de lecture, `avant` tombait à `null`, et l’appelant
+  //    en concluait une MONTÉE — donc un prélèvement IMMÉDIAT là où une
+  //    rétrogradation se programme en fin de période. Le commentaire ne
+  //    justifiait que le cas « offre retirée du catalogue » : vrai de celui-là,
+  //    faux de la panne, et il couvrait les deux (§E.29).
+  //    On LÈVE : on ne facture pas sur un prix qu’on n’a pas su lire.
+  if (error) {
+    console.error('[billing:change-plan] tarif catalogue illisible', { packageId, message: error.message })
+    throw new Error(`cataloguePrice: tarif illisible — ${error.message}`)
+  }
   const raw = data?.price_monthly
   if (raw == null) return null
   const n = Number(raw)

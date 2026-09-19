@@ -3745,7 +3745,9 @@
     "err_slug_taken": "Este identificador ya está en uso en este ecosistema.",
     "err_invalid_domain": "Seleccione un ecosistema.",
     "err_branch_in_use": "Rama en uso: {profiles} perfil(es), {publications} publicación(es), {specialities} especialidad(es).",
-    "err_spec_in_use": "Especialidad en uso: {profiles} perfil(es), {publications} publicación(es)."
+    "err_spec_in_use": "Especialidad en uso: {profiles} perfil(es), {publications} publicación(es).",
+    "usage_unavailable_warning": "No hemos podido leer lo que esta rama sigue conteniendo. No significa «nada»: no lo sabemos. Vuelve a cargar la página antes de decidir.",
+    "err_usage_unavailable": "Eliminación rechazada: no hemos podido comprobar lo que esta rama sigue conteniendo. No se ha eliminado nada. Inténtalo de nuevo en un momento."
   },
   "candidature_lifecycle": {
     "filters": {

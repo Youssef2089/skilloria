@@ -129,11 +129,25 @@ export async function POST(request: NextRequest): Promise<Response> {
   // et sans effet de bord : `status` ne gouverne rien d'autre que l'accès.
   let nextStatus: string = 'active'
   if (action === 'reactivate') {
-    const { data: prof } = await auth.supabaseAdmin
+    const { data: prof, error: profErr } = await auth.supabaseAdmin
       .from('profiles')
       .select('verification_status')
       .eq('user_id', t.id)
       .maybeSingle()
+    // ⚠️ CETTE GARDE NE REFUSAIT PAS : ELLE CHOISISSAIT LE MAUVAIS ÉTAT.
+    //    L'erreur n'était pas récupérée ; `vs` tombait à `null` ; et
+    //    `nextStatus` restait 'active'. Un expert en attente de revue
+    //    (`pending_admin_review`) retrouvait donc l’accès COMPLET sans la
+    //    revue. Rien ne s’ouvrait bruyamment — tout se déplaçait.
+    //    On refuse plutôt que de réactiver dans un état qu’on n’a pas su
+    //    déterminer : le refus est temporaire et nommé.
+    if (profErr) {
+      console.error('[admin:user-status] statut de vérification illisible', profErr.message)
+      return json(
+        { error: 'Could not determine the verification state', code: 'verification_state_unavailable' },
+        503,
+      )
+    }
     const vs = (prof as { verification_status?: string | null } | null)?.verification_status ?? null
     if (vs === 'pending_admin_review') nextStatus = 'in_review'
   } else {

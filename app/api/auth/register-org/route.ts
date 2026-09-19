@@ -264,12 +264,24 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   // ── Pré-checks BDD ───────────────────────────────────────────────────────
-  const { data: blocked } = await supabaseAdmin
+  const { data: blocked, error: blockedErr } = await supabaseAdmin
     .from('blocked_email_domains')
     .select('id')
     .ilike('email_domain', input.email_domain)
     .eq('active', true)
     .maybeSingle()
+  // ⚠️ AUCUNE CONTRAINTE DE BASE NE PEUT RATTRAPER CELLE-CI. Une liste noire
+    //  n'est pas une unicité : il n'existe aucun index qui refuserait
+    //  l’inscription d’un domaine bloqué. Cette garde applicative est donc
+    //  la SEULE, et elle doit refuser sur l’INCONNU, pas seulement sur
+    //  l'absence — sinon une panne de lecture inscrit un domaine banni.
+  if (blockedErr) {
+    console.error('[register-org] liste des domaines bloqués illisible', blockedErr.message)
+    return json(
+      { error: 'Could not check the email domain', code: 'domain_check_unavailable' },
+      503,
+    )
+  }
   if (blocked) {
     return json({ error: 'Email domain blocked', code: 'email_domain_blocked' }, 400)
   }
@@ -278,12 +290,27 @@ export async function POST(request: NextRequest): Promise<Response> {
   // pas le domaine. L'org est créée avec email_domain=NULL pour ne pas bloquer
   // les futurs inscrits du même domaine (index unique partiel ignore NULL).
   // Liste gérée en back-office via public.public_email_domains.
-  const { data: publicDomain } = await supabaseAdmin
+  const { data: publicDomain, error: publicErr } = await supabaseAdmin
     .from('public_email_domains')
     .select('id')
     .ilike('email_domain', input.email_domain)
     .eq('active', true)
     .maybeSingle()
+  // ⚠️ L'EFFET DE CETTE PANNE SURVIVAIT DES MOIS À LA PANNE.
+  //    `publicDomain` nul faisait tomber `isPublicDomain` à `false`, donc
+  //    gmail.com était traité comme un domaine PRIVÉ : l’organisation était
+  //    créée avec `email_domain = gmail.com`, l’index unique partiel le
+  //    RÉSERVAIT, et tous les inscrits suivants du même domaine étaient
+  //    refusés `email_domain_taken` — avec un motif faux, indéfiniment.
+  //    Une lecture de quelques millisecondes verrouillait un domaine public
+  //    à vie. On refuse plutôt que de réserver par ignorance.
+  if (publicErr) {
+    console.error('[register-org] liste des domaines publics illisible', publicErr.message)
+    return json(
+      { error: 'Could not check the email domain', code: 'domain_check_unavailable' },
+      503,
+    )
+  }
   const isPublicDomain = !!publicDomain
 
   if (!isPublicDomain) {
@@ -465,6 +492,24 @@ export async function POST(request: NextRequest): Promise<Response> {
       },
     )
     if (orgErr || !newOrgId) {
+      // ⚠️ LE SCHÉMA A REFUSÉ, ET SON REFUS A UN NOM. Les pré-checks
+      //    d'unicité au-dessus avalaient leur erreur ; sur une panne, ils
+      //    laissaient passer et c’est ICI que l’index mordait — mais en
+      //    rendant un 500 générique après un rollback complet. Le refus
+      //    était juste, le motif ne l’était pas : l’utilisateur devait tout
+      //    recommencer sans savoir quoi corriger (§E.22).
+      if (isUniqueViolation(orgErr)) {
+        const detail = `${(orgErr as { message?: string } | null)?.message ?? ''} ${(orgErr as { details?: string } | null)?.details ?? ''}`
+        if (detail.includes('email_domain')) {
+          throw new RegisterOrgError('email_domain_taken', 'Email domain already used', 409, orgErr)
+        }
+        if (detail.includes('siren')) {
+          throw new RegisterOrgError('siren_already_used', 'Identification number already used', 409, orgErr)
+        }
+        // Unicité violée sur une contrainte qu’on ne sait pas nommer : on le
+        // DIT comme tel plutôt que de deviner laquelle.
+        throw new RegisterOrgError('already_registered', 'Organization already registered', 409, orgErr)
+      }
       throw new RegisterOrgError(
         'org_insert_failed',
         'Could not create organization',

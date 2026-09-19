@@ -3745,7 +3745,9 @@
     "err_slug_taken": "This identifier is already used in this ecosystem.",
     "err_invalid_domain": "Select an ecosystem.",
     "err_branch_in_use": "Branch in use: {profiles} profile(s), {publications} publication(s), {specialities} speciality(ies).",
-    "err_spec_in_use": "Speciality in use: {profiles} profile(s), {publications} publication(s)."
+    "err_spec_in_use": "Speciality in use: {profiles} profile(s), {publications} publication(s).",
+    "usage_unavailable_warning": "We could not read what this branch still carries. That is not “nothing”: we do not know. Reload the page before deciding.",
+    "err_usage_unavailable": "Deletion refused: we could not check what this branch still carries. Nothing was deleted. Please try again in a moment."
   },
   "candidature_lifecycle": {
     "filters": {
