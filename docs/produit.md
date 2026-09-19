@@ -641,6 +641,26 @@ Pour chacune : **sa valeur**, **d'où elle vient**, **qui peut la changer**.
 « Back-office » = un écran `/admin` l'expose. « Base » = la valeur est en base mais **aucun écran ne
 l'expose**. « Code » = un déploiement est nécessaire.
 
+### P3.0 ter — CE QUE PAIE CHAQUE BUDGET, USAGE PAR USAGE
+
+Les deux budgets étaient nommés **par fournisseur** — « Classement des experts », « Rédaction et
+analyse ». C'est un découpage de **facturation**, pas d'usage : celui qui cherche « analyse de CV »
+ou « candidature » ne les trouve **nulle part**. Chaque budget dit désormais **ce qu'il paie**, et le
+fournisseur passe en second.
+
+| Budget | Ce qu'il paie | `action` en base | Fournisseur |
+|---|---|---|---|
+| **Matching — classement des experts** | notation des experts face à une annonce publiée | `matching_pool` | Cohere |
+| **Rédaction et vérifications** | résumé de candidature · analyse de CV · vérification d'un expert · vérification d'une entreprise · contrôle d'une annonce | `candidature_assessment`, `pitch`, `cv_parsing`, `expert_verification`, `org_verification`, `publication_quality` | Anthropic |
+
+**Les sept points de dépense sont exactement ceux qui appellent `budgetDisponible` puis
+`enregistrerDepenseIA`** — vérifiable par balayage, pas de mémoire. Le second budget en couvre six ;
+le premier, un seul.
+
+**Les montants restent en dollars**, sur les deux écrans qui les portent : les fournisseurs facturent
+en dollars, et convertir demanderait un taux de change — un réglage de plus, qui vieillirait en
+silence et ferait dériver l'estimation (§E.13). Le reste du produit est en euros.
+
 ### P3.0 bis — LE VOCABULAIRE DES RÉGLAGES : QUATRE MOTS, UN PAR COMPORTEMENT
 
 **Le mot « seuil » ne s'écrit plus dans ce produit.** Il désignait **quatre comportements
@@ -717,7 +737,8 @@ fausse. La répartition observée **repart** au déploiement, et l'écran le dit
 | Modèle de reranking | `rerank-v4.0-fast` | `matching_settings.rerank_model` | **Back-office** |
 | Taille de lot | 200 (borne 1–1000) | `matching_settings.rerank_batch_size` | **Back-office** |
 | Contrainte `notify_threshold ≥ feed_threshold` | — | CHECK en base | **Personne** — migration |
-| Plafond de dépense mensuel | rerank 200 $ · claude 100 $ | `ai_spend_caps` | **Back-office** `/admin/matching` — **il BLOQUE** |
+| **Budget** mensuel — *Matching, classement des experts* | **200 $** | `ai_spend_caps` (`rerank`) | **Back-office** `/admin/matching` — **il BLOQUE** |
+| **Budget** mensuel — *Rédaction et vérifications* | **100 $** | `ai_spend_caps` (`claude`) | **Back-office** `/admin/matching` — **il BLOQUE** |
 | **Alerte** par acteur | organisation **10 $** · expert **2 $** | `ai_spend_seuils_acteur` | **Back-office** `/admin/matching` — **elle SIGNALE, elle ne bloque JAMAIS** |
 | Grille tarifaire par modèle | Sonnet 5 **2/10** · Sonnet 4.6 **3/15** · Haiku 4.5 **1/5** · rerank **0,000002 $/doc** | `ai_model_tarifs` | **Back-office** `/admin/tarifs-ia` — change quand le fournisseur change ses prix, pas quand on déploie |
 | Lots en parallèle | 4 | **Code** | Déploiement |

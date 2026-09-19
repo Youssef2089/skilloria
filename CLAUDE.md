@@ -374,6 +374,29 @@ défaut.** Un worktree qui écrit « seuil » réintroduit le défaut de ce lot.
 > les **noms de contraintes** (aucun lecteur en chaîne — `matching_settings_filtre_flux_check`), et
 > tout code neuf.
 
+**D.11 — UN ÉCRAN DE RÉGLAGE NE MONTRE QUE CE QUI SE DÉCIDE.**
+Un réglage **mort**, **inerte** ou **technique** se **documente** ; il ne s'affiche pas avec un champ
+de saisie et un bouton « Enregistrer » à côté.
+
+**Un champ qui ne règle rien finit par être rempli.** C'est la règle qui manquait, et c'est
+l'absence de cette règle qui a produit **35 réglages dont 16 sans écran et 2 qui ne gouvernent rien**.
+
+**Ce qu'elle interdit, concrètement :**
+· afficher un champ grisé avec trois lignes expliquant qu'il ne décide de rien — on l'a fait pour
+  `sirene_insee`, et le résultat est un écran qu'on ne sait plus lire ;
+· afficher un identifiant de base (`claude_expert_coherence_check`, `ai_coherence_check`) comme
+  **titre** — ce sont des clés, pas des noms ;
+· mêler un paramètre technique aux décisions produit. S'il doit rester réglable (§D.7), il vit
+  **replié**, **à part**, et **en dessous**.
+
+**Ce qu'elle exige en échange, et c'est la moitié qui compte :** l'information ne s'évapore pas.
+La propriété de `/admin/seuils` — **déclarer ce qui ne gouverne rien** — était exemplaire ; elle
+**migre** vers [docs/architecture.md](docs/architecture.md) §B.2 ⑨ et vers un contrôle qui la garde.
+Retirer un champ sans écrire pourquoi ailleurs, c'est perdre la connaissance au lieu de la ranger.
+
+> **La règle complète les deux précédentes** : §D.7 dit qu'un réglage règle quelque chose **ou le
+> dit** ; celle-ci dit **où** il le dit — dans la documentation, jamais dans un champ de saisie.
+
 **D.10 — TOUTE NOTE DU PRODUIT EST SUR 0-10. Il n'y a pas de seconde échelle.**
 Les filtres de pertinence vivaient en **0-1**, les notes de jugement en **0-10**, et rien ne le disait
 à l'écran : **« 1 » signifiait *parfait* d'un côté et *médiocre* de l'autre**, sur la même page.
@@ -696,7 +719,7 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **68** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
+Sur les **69** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
 17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois dernières,
 `logo_organisation_bucket`, `format_numero_identification` et `pays_du_profil_sans_defaut`,
 **n'insèrent rien** : elles créent un bucket, ajoutent des colonnes, retirent deux `DEFAULT 'FR'` et
