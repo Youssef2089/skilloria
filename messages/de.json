@@ -4049,59 +4049,58 @@
   },
   "admin_seuils": {
     "title": "Bewertungsnoten",
-    "intro": "Diese Noten entscheiden, wer ohne menschliches Zutun freigegeben wird. Sie lagen in der Datenbank ohne Bildschirm: Sie zu ändern erforderte direkten Datenbankzugriff und hinterließ keine Spur. Jede hier vorgenommene Änderung wird nun protokolliert.",
+    "intro": "Ab welcher Note die KI ohne Sie freigibt. Darunter landet der Vorgang in Ihrer Warteschlange. Nichts wird jemals automatisch abgelehnt.",
+    "out_of_ten": "/ 10",
     "loading": "Wird geladen…",
+    "err_load": "Die Noten konnten nicht gelesen werden. Versuchen Sie es gleich noch einmal.",
+    "err_save": "Speichern nicht möglich. Versuchen Sie es gleich noch einmal.",
+    "saved": "Note gespeichert und protokolliert.",
     "save": "Speichern",
     "saving": "Wird gespeichert…",
-    "saved": "Note gespeichert und protokolliert.",
-    "not_editable": "Dieser Anbieter ist hier nicht einstellbar: kein Codepfad liest ihn.",
-    "decisive_label": "Entscheidende Note (0 bis 10)",
-    "decisive_help": "Vom Code gelesener Wert: {cle}.",
-    "inert_label": "confidence_threshold (von diesem Pfad nicht gelesen)",
-    "inert_help": "Diese Spalte existiert und wird hier NIE zur Entscheidung verwendet — entschieden wird über auto_approve_threshold. Sie wird schreibgeschützt angezeigt statt versteckt: versteckt würde sie irgendwann von jemandem ausgefüllt, der glaubt, etwas einzustellen.",
-    "flags_label": "Disqualifizierende Merkmale",
-    "flags_help": "Ein Profil mit einem dieser Merkmale geht UNABHÄNGIG von seiner Punktzahl in die manuelle Prüfung. Mindestens eines ist erforderlich: alle abzuwählen schaltet sie nicht ab, der Code fiele auf die Standardliste zurück.",
-    "audit_note": "Jede Änderung wird ins Prüfprotokoll geschrieben: wer, wann, von welchem Wert aus und von welcher Adresse. Genau das fehlte, um den Wechsel der Expertennote von 9 auf 8 im Juni zu verstehen.",
-    "types": {
-      "profile_verification": {
-        "name": "Prüfung einer Fachkraft",
-        "effect": "Über dieser Note und ohne disqualifizierende Markierung wird das Profil OHNE Zutun freigegeben. Darunter landet es in /admin/experts und wird von Hand entschieden. Es wird NIE automatisch abgelehnt."
+    "sujet": {
+      "experts": {
+        "titre": "Experten",
+        "effet": "Über dieser Note wird das Profil ohne Zutun veröffentlicht. Darunter wartet es auf Sie in",
+        "file": "Experten.",
+        "champ": "Allein freigegeben ab"
       },
-      "ai_web_search": {
-        "name": "Prüfung eines Unternehmens",
-        "effect": "Über dieser Note wird die Organisation OHNE Zutun freigegeben. Darunter landet sie in /admin/organisations. Sie wird NIE automatisch abgelehnt. Gibt es für das Land keinen aktiven Anbieter, geht die Prüfung direkt in die manuelle Sichtung, ohne Modellaufruf."
+      "entreprises": {
+        "titre": "Unternehmen",
+        "effet": "Über dieser Note wird das Unternehmen ohne Zutun freigegeben. Darunter wartet es auf Sie in",
+        "file": "Organisationen.",
+        "champ": "Allein freigegeben ab"
       },
-      "opportunity_quality_check": {
-        "name": "Qualität einer Anzeige",
-        "effect": "Über dieser Note wird die Anzeige veröffentlicht. Darunter geht sie in die manuelle Sichtung. Die Prüfung sucht auch nach Kontaktdaten im Klartext: Eine Anzeige, die den Nachrichtenkanal umgeht, umgeht die Offenlegung."
-      },
-      "official_api": {
-        "name": "Amtliches Register",
-        "effect": "Fragt das amtliche Register des Landes ab und liefert seine Daten an die Kohärenzprüfung. Sie erzeugt kein Urteil: Ihre Notenspalte wird von keinem Pfad gelesen."
+      "annonces": {
+        "titre": "Anzeigen",
+        "effet": "Über dieser Note wird die Anzeige ohne Zutun veröffentlicht. Darunter wartet sie in der Sichtung auf Sie.",
+        "file": "",
+        "champ": "Allein veröffentlicht ab"
       }
     },
-    "flags": {
+    "arrived": {
+      "experts": "{count} Profile haben Sie diesen Monat erreicht.",
+      "entreprises": "{count} Unternehmen haben Sie diesen Monat erreicht.",
+      "annonces": "{count} Anzeigen haben Sie diesen Monat erreicht."
+    },
+    "arrived_unknown": "Die Zahl der eingegangenen Vorgänge konnte nicht gelesen werden. Das heißt nicht „keine“.",
+    "flags_title": "Gehen immer über Sie, unabhängig von der Note",
+    "flags_one_must_stay": "Mindestens ein Fall muss angehakt bleiben.",
+    "flag": {
       "DOMAIN_MISMATCH": "Ökosystem passt nicht",
       "CV_PROFILE_INCOHERENT": "Lebenslauf und Profil widersprüchlich",
       "LINKEDIN_UNVERIFIABLE": "LinkedIn nicht überprüfbar",
       "SUSPICIOUS_CONTENT": "Verdächtiger Inhalt"
     },
-    "no_decider": {
-      "title": "Länder ohne Entscheidungsanbieter",
-      "explain": "Für diese Länder kann keine Unternehmensprüfung automatisch entschieden werden: Sie geht in die manuelle Sichtung, ohne Modellaufruf und ohne Ausgaben. Das ist keine Störung – es ist die ausdrückliche Ablehnung, die eine geratene Note ersetzt."
-    },
-    "errors": {
-      "load_failed": "Laden nicht möglich.",
-      "save_failed": "Speichern nicht möglich.",
-      "seuil_invalide": "Die Note muss eine ganze Zahl zwischen 0 und 10 sein.",
-      "colonne_inerte": "Diese Spalte wird von diesem Pfad nicht gelesen: sie einzustellen ändert nichts.",
-      "cle_non_lue": "Dieser Wert wird von diesem Pfad nicht gelesen.",
-      "drapeaux_invalides": "Unbekanntes Merkmal.",
-      "drapeaux_vides": "Mindestens ein Merkmal ist erforderlich: alle abzuwählen schaltet sie nicht ab.",
-      "drapeaux_non_lus": "Dieser Pfad trägt keine Merkmale.",
-      "type_non_gere": "Dieser Anbietertyp ist hier nicht einstellbar.",
-      "bad_provider": "Anbieter nicht gefunden."
-    },
-    "no_decisive": "Dieser Anbieter liefert Daten, er entscheidet nicht: hier ist kein Wert ausschlaggebend. Die Entscheidung trifft die Kohärenzprüfung desselben Landes."
+    "countries_title": "Nur Frankreich hat ein abfragbares amtliches Register",
+    "countries_one_line": "Für jedes andere Land kommt das Unternehmen direkt zu Ihnen, ohne Modellaufruf und ohne Ausgaben. Das ist keine Störung.",
+    "countries_open": "Die {count} betroffenen Länder ansehen",
+    "countries_unavailable": "Die Länderliste konnte nicht gelesen werden. Das heißt nicht „kein Land“.",
+    "blocked_empty": "Füllen Sie die Note aus, um zu speichern.",
+    "blocked_range": "Die Note ist eine ganze Zahl zwischen 0 und 10.",
+    "blocked_unchanged": "Es gibt nichts zu speichern.",
+    "blocked_no_flag": "Mindestens ein Fall muss angehakt bleiben: Sonst würde ein widersprüchliches Profil allein über die Note freigegeben.",
+    "blocked_missing": "Keine aktive Konfiguration für dieses Thema. Nichts einzustellen, solange sie nicht existiert.",
+    "blocked_ambiguous": "Mehrere aktive Konfigurationen für dieses Thema: Wir wählen keine zufällig aus.",
+    "inert_note": "Zwei Werte existieren in der Datenbank, ohne eine Entscheidung zu steuern. Sie sind dokumentiert, nicht hier angezeigt: Ein Feld, das nichts einstellt, wird irgendwann ausgefüllt."
   }
 }

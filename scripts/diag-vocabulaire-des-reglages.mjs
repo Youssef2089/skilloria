@@ -56,18 +56,26 @@ const LANGUES = ['fr', 'en', 'es', 'de']
 /** Le mot interdit, dans les quatre langues du produit. */
 const INTERDIT = /seuil|threshold|umbral|schwelle/i
 
+
 /**
- * LES SEULS TEXTES AUTORISES A PORTER LE MOT, et la raison est la meme pour les
- * deux : ILS CITENT UN NOM DE COLONNE. `/admin/seuils` affiche `confidence_threshold`
- * EN TANT QUE COLONNE, pour dire qu'elle n'est lue par aucun chemin — c'est la
- * propriete la plus precieuse de cet ecran (§P4), et la masquer ferait remplir
- * par quelqu'un qui croirait regler quelque chose.
+ * LES SEULS TEXTES AUTORISES A PORTER LE MOT — ceux qui CITENT UN NOM DE
+ * COLONNE, jamais ceux qui nomment un comportement.
  *
- * Une entree de plus ici se justifie PAR ECRIT, ou elle n'entre pas (§G.8).
+ * Une entree ici se justifie PAR ECRIT, ou elle n'entre pas (§G.8).
  */
 const CITENT_UNE_COLONNE = new Set([
-  'admin_seuils.inert_label',
-  'admin_seuils.inert_help',
+  // VIDE, ET C'EST UN PROGRES MESURE, PAS UN RELACHEMENT.
+  //   Les deux entrees d'hier — `admin_seuils.inert_label` et `.inert_help` —
+  //   citaient la colonne `confidence_threshold` pour dire qu'elle n'est lue
+  //   par aucun chemin. Elles ont disparu AVEC le bloc qui les portait : §D.11
+  //   dit qu'un reglage inerte se DOCUMENTE et ne s'affiche pas. L'information
+  //   vit desormais dans `lib/jugement/sujets.ts` (NE_GOUVERNENT_RIEN) et dans
+  //   docs/architecture.md §B.2 ⑨.
+  //
+  //   C'est LE CONTROLE LUI-MEME qui a signale que l'exception etait devenue
+  //   perimee, a la seconde ou l'ecran a change. Une exception qu'on laisse
+  //   survivre a son objet autorise un texte qui n'existe plus, et rouvre la
+  //   porte sans que personne le voie.
 ])
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -109,6 +117,7 @@ for (const langue of LANGUES) {
     `${perimees.join(' · ')} — ces cles n'existent plus : retirez-les de la liste plutot que de les laisser autoriser un texte qui n'existe pas`,
   )
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 section('B. Les quatre mots sont REELLEMENT employes')

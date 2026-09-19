@@ -403,6 +403,72 @@ for (const k of ['title', 'cv_hint', 'field_max', 'field_window', 'summary', 'er
 }
 ok(dansLes4Langues('admin_back_office.sidebar.nav_quotas_ia'), 'l’entrée de menu existe en 4 langues')
 
+
+// ═════════════════════════════════════════════════════════════════════════════
+section('D. Ce qui ne gouverne rien est DOCUMENTÉ, puisqu’il ne s’affiche plus')
+// ═════════════════════════════════════════════════════════════════════════════
+//
+//   §D.11 : un écran de réglage ne montre que ce qui se DÉCIDE. `/admin/seuils`
+//   affichait deux valeurs qui ne gouvernent rien, chacune avec un champ et
+//   trois lignes d'explication — un champ qui ne règle rien finit par être
+//   rempli.
+//
+//   ELLES ONT QUITTÉ L'ÉCRAN, ET C'EST ICI QUE L'ÉCHANGE SE TIENT : la moitié
+//   qui compte n'est pas le retrait, c'est que l'information soit RANGÉE. Une
+//   valeur morte qui cesse d'être documentée redevient un mystère pour le
+//   prochain lecteur — et c'est ce qui la fait « réparer » par quelqu'un qui
+//   croit régler quelque chose.
+{
+  const SUJETS_TS = 'lib/jugement/sujets.ts'
+  ok(exists(SUJETS_TS), `${SUJETS_TS} existe`)
+  const sujets = exists(SUJETS_TS) ? read(SUJETS_TS) : ''
+
+  ok(
+    /NE_GOUVERNENT_RIEN/.test(sujets),
+    'les valeurs mortes sont DÉCLARÉES à côté des sujets vivants',
+    'sans cette déclaration, la liste des trois sujets se lit comme un oubli des deux autres',
+  )
+  // Chacune porte un POURQUOI. Une liste sans raisons devient un tampon qu'on
+  // remplit sans lire (§G.8).
+  for (const [quoi, motif] of [
+    ['sirene / official_api', /official_api|sirene/i],
+    ['claude_profile_matching', /profile_matching/],
+  ]) {
+    ok(motif.test(sujets), `${quoi} est nommée dans ${SUJETS_TS}`)
+  }
+  ok(
+    (sujets.match(/pourquoi:/g) ?? []).length >= 2,
+    'chaque valeur morte porte sa raison, écrite',
+    'une valeur retirée sans raison écrite sera remise par le prochain lecteur',
+  )
+
+  // ET LA DOCUMENTATION DOIT PORTER LA MÊME CHOSE. Le code déclare, la mémoire
+  // explique : si l'un des deux lâche, l'information est perdue de fait.
+  const ARCHI = 'docs/architecture.md'
+  const archi = exists(ARCHI) ? read(ARCHI) : ''
+  ok(
+    /NE GOUVERNENT RIEN|ne gouvernent rien/.test(archi),
+    `${ARCHI} explique les valeurs qui ne gouvernent rien`,
+    "l'écran ne les porte plus : si la doc ne les porte pas non plus, elles ont disparu du produit",
+  )
+  ok(
+    /profile_matching/.test(archi) && /official_api/.test(archi),
+    `${ARCHI} les nomme toutes les deux`,
+  )
+
+  // ET L'ÉCRAN NE DOIT PLUS LES MONTRER. C'est la moitié qu'on oublie de garder :
+  // documenter sans retirer laisserait le champ en place.
+  const ECRAN = 'app/[locale]/admin/seuils/page.tsx'
+  const ecran = exists(ECRAN) ? sansCommentaires(read(ECRAN)) : ''
+  for (const identifiant of ['profile_matching', 'sirene_insee', 'official_api', 'confidence_threshold']) {
+    ok(
+      !new RegExp(identifiant).test(ecran),
+      `${ECRAN} ne cite plus « ${identifiant} »`,
+      'un identifiant de base affiché à l’écran est une clé, pas un nom — et il ramène le champ avec lui',
+    )
+  }
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 console.log(
   failures === 0

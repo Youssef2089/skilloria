@@ -2,347 +2,359 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
- * /admin/seuils — LES SEUILS DE JUGEMENT.
+ * /admin/seuils — LES NOTES DE JUGEMENT.
  *
- * ═══ POURQUOI CET ÉCRAN EXISTE ═════════════════════════════════════════════
- *   Ces seuils décident qui est approuvé sans intervention humaine, et ils
- *   vivaient EN BASE SANS ÉCRAN. Les changer demandait un accès direct à la
- *   base : ni pratique, ni tracé.
- *   Le passage de 9 à 8 du seuil expert, en juin, n'a laissé AUCUNE trace
- *   exploitable — il a fallu croiser un commit et un `updated_at` pour le
- *   reconstituer. Cet écran existe pour que ça ne se reproduise pas.
+ * ┌─ CE QUI A DISPARU DE CET ÉCRAN, ET OÙ C'EST PARTI ──────────────────────┐
+ * │ Il affichait CINQ blocs, dont DEUX qui ne décident de rien : un champ    │
+ * │ grisé avec trois lignes expliquant qu'il ne gouverne rien, et une ligne  │
+ * │ « non réglable ». §D.11 : un écran de réglage ne montre que ce qui se    │
+ * │ décide — un champ qui ne règle rien finit par être rempli.               │
+ * │                                                                          │
+ * │ L'INFORMATION N'EST PAS PERDUE, elle est rangée : `lib/jugement/sujets`  │
+ * │ la déclare, `docs/architecture.md` §B.2 ⑨ l'explique, et                 │
+ * │ `diag-reglages-inertes` garde le lien.                                   │
+ * │                                                                          │
+ * │ Sont partis avec : les identifiants de base en guise de titres           │
+ * │ (`claude_expert_coherence_check`…), le bandeau de 60 pays en corps 8, et │
+ * │ quatre des cinq boutons « Enregistrer ».                                 │
+ * └────────────────────────────────────────────────────────────────────────┘
  *
- * ═══ UN NOMBRE NU N'EST PAS UN RÉGLAGE ═════════════════════════════════════
- *   Chaque seuil est accompagné de CE QU'IL PRODUIT, en toutes lettres :
- *   « au-dessus, le profil est approuvé sans intervention ; en dessous, il
- *   arrive dans /admin/experts ». Un champ nu invite à bouger un chiffre sans
- *   savoir ce qu'il déclenche.
- *
- * ═══ LA COLONNE INERTE EST MONTRÉE COMME INERTE ════════════════════════════
- *   Sur le chemin expert, `confidence_threshold` est lue puis JAMAIS utilisée :
- *   la décision se prend sur `auto_approve_threshold`, dans le jsonb. On
- *   l'affiche donc EN LECTURE SEULE, avec la raison — cachée, elle serait un
- *   jour renseignée par quelqu'un qui croirait régler quelque chose. Même
- *   parti pris que `packages.max_seats`.
- *
- * ═══ LA GARDE EST AU SERVEUR ═══════════════════════════════════════════════
- *   Les bornes 0–10, le refus d'écrire une clé que le chemin ne lit pas, et le
- *   refus d'une liste de drapeaux vide vivent dans la route. Cet écran prévient
- *   AVANT l'envoi ; il ne garde rien à lui seul.
+ * ═══ L'URL NE CHANGE PAS ═════════════════════════════════════════════════
+ *   `/admin/seuils` reste `/admin/seuils` : une adresse est citée ailleurs —
+ *   liens, signets, inventaire d'écrans de la mémoire. C'est la même raison
+ *   que pour les colonnes (§D.9), et c'est une décision, pas un oubli. Le
+ *   TITRE, lui, dit « Notes de jugement ».
  */
 
-type Fournisseur = {
-  id: string
-  country_code: string
-  provider_type: string
-  provider_name: string
-  is_active: boolean
-  priority: number
-  confidence_threshold: number
-  auto_approve_threshold: number | null
-  blocking_flags: string[] | null
-  updated_at: string | null
-  gere: boolean
-  cle_decisive: string | null
-  colonne_inerte: boolean
-  porte_drapeaux: boolean
+type Drapeau = { cle: string; actif: boolean }
+type SujetCharge = {
+  sujet: 'experts' | 'entreprises' | 'annonces'
+  provider_id: string | null
+  note: number | null
+  ambigu: boolean
+  arrives_ce_mois: number | null
+  drapeaux: Drapeau[] | null
 }
-
-type Charge = {
-  fournisseurs: Fournisseur[]
-  pays_sans_decideur: { code: string; nom: string }[]
-  drapeaux_connus: string[]
-}
-
-type Brouillon = {
-  confidence_threshold?: number
-  auto_approve_threshold?: number
-  blocking_flags?: string[]
-}
+type Reponse = { sujets: SujetCharge[]; pays_sans_verification: string[] | null }
 
 const carte: React.CSSProperties = {
-  background: 'var(--sk-surface)',
-  border: '1px solid var(--sk-border)',
-  borderRadius: 14,
-  padding: '18px 20px',
+  background: 'var(--color-surface, #fff)',
+  border: '1px solid var(--color-border, #e2e8f0)',
+  borderRadius: 12,
+  padding: 20,
   marginBottom: 16,
 }
-const titreBloc: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '.08em',
-  color: 'var(--sk-faint)',
-  marginBottom: 12,
-}
 const champ: React.CSSProperties = {
-  width: '100%',
-  maxWidth: 120,
+  width: 100,
   padding: '9px 11px',
-  border: '1px solid var(--sk-border)',
-  borderRadius: 9,
+  fontSize: 15,
+  border: '1px solid var(--color-border, #e2e8f0)',
+  borderRadius: 8,
+  background: '#fff',
+  color: 'inherit',
+}
+const encart: React.CSSProperties = {
+  background: 'var(--sk-bg, #f8fafc)',
+  border: '1px solid var(--color-border, #e2e8f0)',
+  borderRadius: 10,
+  padding: '14px 16px',
+  margin: '16px 0',
+}
+const bouton = (inactif: boolean): React.CSSProperties => ({
+  padding: '9px 18px',
   fontSize: 14,
-  background: 'var(--sk-surface)',
-  color: 'var(--sk-text)',
-}
-const etiquette: React.CSSProperties = {
-  display: 'block',
-  fontSize: 12,
-  fontWeight: 600,
-  color: 'var(--sk-muted)',
-  marginBottom: 5,
-}
-const aide: React.CSSProperties = {
-  fontSize: 11.5,
-  color: 'var(--sk-faint)',
-  marginTop: 5,
-  lineHeight: 1.5,
-}
-const bouton: React.CSSProperties = {
-  padding: '9px 16px',
-  borderRadius: 9,
-  border: '1px solid var(--sk-border)',
-  background: 'var(--sk-accent-soft)',
-  color: 'var(--sk-accent-ink)',
-  fontSize: 13,
-  fontWeight: 600,
-  cursor: 'pointer',
+  fontWeight: 500,
+  borderRadius: 8,
+  border: 'none',
+  background: 'var(--color-primary, #2563eb)',
+  color: '#fff',
+  cursor: inactif ? 'not-allowed' : 'pointer',
+  opacity: inactif ? 0.6 : 1,
+})
+
+/** Où atterrit un dossier qui n'a pas passé la note. */
+const FILE: Record<string, string | null> = {
+  experts: '/admin/experts',
+  entreprises: '/admin/organisations',
+  annonces: null,
 }
 
-export default function AdminSeuilsPage() {
+export default function NotesDeJugementPage() {
   const t = useTranslations('admin_seuils')
   const secureFetch = useSecureFetch()
 
-  const [charge, setCharge] = useState<Charge | null>(null)
+  const [data, setData] = useState<Reponse | null>(null)
   const [chargement, setChargement] = useState(true)
   const [erreur, setErreur] = useState<string | null>(null)
-  const [succes, setSucces] = useState<string | null>(null)
-  const [brouillons, setBrouillons] = useState<Record<string, Brouillon>>({})
-  const [enregistrement, setEnregistrement] = useState<string | null>(null)
+  const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
+  const [enCours, setEnCours] = useState<string | null>(null)
+  const [notes, setNotes] = useState<Record<string, string>>({})
+  const [drapeaux, setDrapeaux] = useState<Record<string, string[]>>({})
 
-  const lire = useCallback(async () => {
+  const charger = useCallback(async () => {
     setChargement(true)
     setErreur(null)
     try {
-      const res = await secureFetch('/api/admin/seuils', { method: 'GET' })
+      const res = await secureFetch('/api/admin/seuils')
+      const body = (await res.json()) as Reponse
       if (!res.ok) {
-        setErreur(t('errors.load_failed'))
+        setErreur(t('err_load'))
         return
       }
-      setCharge((await res.json()) as Charge)
-      setBrouillons({})
+      setData(body)
+      setNotes(Object.fromEntries(body.sujets.map((s) => [s.sujet, s.note === null ? '' : String(s.note)])))
+      setDrapeaux(
+        Object.fromEntries(
+          body.sujets
+            .filter((s) => s.drapeaux !== null)
+            .map((s) => [s.sujet, (s.drapeaux ?? []).filter((d) => d.actif).map((d) => d.cle)]),
+        ),
+      )
     } catch {
-      setErreur(t('errors.load_failed'))
+      setErreur(t('err_load'))
     } finally {
       setChargement(false)
     }
   }, [secureFetch, t])
 
   useEffect(() => {
-    void lire()
-  }, [lire])
+    void charger()
+  }, [charger])
 
-  const enregistrer = useCallback(
-    async (f: Fournisseur) => {
-      const b = brouillons[f.id]
-      if (!b || Object.keys(b).length === 0) return
-      setEnregistrement(f.id)
-      setErreur(null)
-      setSucces(null)
-      try {
-        const res = await secureFetch('/api/admin/seuils', {
-          method: 'PATCH',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ provider_id: f.id, ...b }),
+  /** UN BOUTON GRISÉ DIT POURQUOI. Jamais un booléen nu. */
+  function motifDeBlocage(s: SujetCharge): string | null {
+    if (s.ambigu) return t('blocked_ambiguous')
+    if (s.note === null) return t('blocked_missing')
+    const saisie = notes[s.sujet] ?? ''
+    if (saisie.trim() === '') return t('blocked_empty')
+    const n = Number(saisie)
+    if (!Number.isInteger(n) || n < 0 || n > 10) return t('blocked_range')
+    const cases = drapeaux[s.sujet]
+    if (s.drapeaux !== null && (cases ?? []).length === 0) return t('blocked_no_flag')
+    const memesDrapeaux =
+      s.drapeaux === null ||
+      ((cases ?? []).length === s.drapeaux.filter((d) => d.actif).length &&
+        (cases ?? []).every((c) => s.drapeaux?.some((d) => d.cle === c && d.actif)))
+    if (n === s.note && memesDrapeaux) return t('blocked_unchanged')
+    return null
+  }
+
+  async function enregistrer(s: SujetCharge) {
+    setEnCours(s.sujet)
+    setMsg(null)
+    try {
+      const res = await secureFetch('/api/admin/seuils', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          sujet: s.sujet,
+          note: Number(notes[s.sujet]),
+          ...(s.drapeaux !== null ? { drapeaux: drapeaux[s.sujet] ?? [] } : {}),
+        }),
+      })
+      const body = (await res.json()) as { code?: string }
+      if (!res.ok) {
+        setMsg({
+          kind: 'err',
+          text:
+            body.code === 'aucun_drapeau'
+              ? t('blocked_no_flag')
+              : body.code === 'config_ambigue'
+                ? t('blocked_ambiguous')
+                : body.code === 'invalid_note'
+                  ? t('blocked_range')
+                  : t('err_save'),
         })
-        if (!res.ok) {
-          const corps = (await res.json().catch(() => null)) as { code?: string } | null
-          // Le serveur NOMME son refus : on rend son motif, jamais un « échec »
-          // générique qui laisserait chercher.
-          const cle = corps?.code ?? 'save_failed'
-          setErreur(t.has(`errors.${cle}`) ? t(`errors.${cle}`) : t('errors.save_failed'))
-          return
-        }
-        setSucces(t('saved'))
-        await lire()
-      } catch {
-        setErreur(t('errors.save_failed'))
-      } finally {
-        setEnregistrement(null)
+        return
       }
-    },
-    [brouillons, secureFetch, t, lire],
-  )
-
-  const majBrouillon = (id: string, patch: Brouillon) =>
-    setBrouillons((b) => ({ ...b, [id]: { ...b[id], ...patch } }))
-
-  if (chargement) {
-    return (
-      <main style={{ padding: '24px 20px', width: '100%' }}>
-        <p style={{ color: 'var(--sk-faint)', fontSize: 14 }}>{t('loading')}</p>
-      </main>
-    )
+      setMsg({ kind: 'ok', text: t('saved') })
+      await charger()
+    } catch {
+      setMsg({ kind: 'err', text: t('err_save') })
+    } finally {
+      setEnCours(null)
+    }
   }
 
   return (
-    <main style={{ padding: '24px 20px', width: '100%', textAlign: 'left' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--sk-text)', margin: '0 0 6px' }}>
+    <div style={{ width: '100%', textAlign: 'left' }}>
+      <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 4px', color: 'var(--color-text-primary, #0f172a)' }}>
         {t('title')}
       </h1>
-      <p style={{ fontSize: 13.5, color: 'var(--sk-muted)', margin: '0 0 20px', maxWidth: 760, lineHeight: 1.6 }}>
+      <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 20px', maxWidth: 760 }}>
         {t('intro')}
       </p>
 
-      {erreur && (
-        <div style={{ ...carte, borderColor: '#b45309', color: '#b45309', fontSize: 13.5 }}>{erreur}</div>
-      )}
-      {succes && (
-        <div style={{ ...carte, borderColor: 'var(--sk-accent-ink)', color: 'var(--sk-accent-ink)', fontSize: 13.5 }}>
-          {succes}
-        </div>
-      )}
-
-      {/* ── LES PAYS SANS FOURNISSEUR DE DÉCISION ─────────────────────────── */}
-      {charge && charge.pays_sans_decideur.length > 0 && (
-        <section style={{ ...carte, borderColor: '#b45309' }}>
-          <div style={{ ...titreBloc, color: '#b45309' }}>{t('no_decider.title')}</div>
-          <p style={{ fontSize: 13.5, color: 'var(--sk-text)', margin: '0 0 8px', lineHeight: 1.6 }}>
-            {t('no_decider.explain')}
-          </p>
-          <p style={{ fontSize: 12.5, color: 'var(--sk-muted)', margin: 0 }}>
-            {charge.pays_sans_decideur.map((p) => `${p.nom} (${p.code})`).join(' · ')}
-          </p>
-        </section>
+      {msg && (
+        <p
+          role={msg.kind === 'err' ? 'alert' : undefined}
+          style={{
+            fontSize: 13,
+            margin: '0 0 14px',
+            color: msg.kind === 'err' ? 'var(--color-error, #dc2626)' : 'var(--color-success, #16a34a)',
+          }}
+        >
+          {msg.text}
+        </p>
       )}
 
-      {(charge?.fournisseurs ?? []).map((f) => {
-        const b = brouillons[f.id] ?? {}
-        const modifie = Object.keys(b).length > 0
-        const flags = b.blocking_flags ?? f.blocking_flags ?? []
-        return (
-          <section key={f.id} style={carte}>
-            <div style={titreBloc}>
-              {t(`types.${f.provider_type}.name`, { default: f.provider_type })} · {f.country_code}
-            </div>
-            <p style={{ fontSize: 13.5, color: 'var(--sk-text)', margin: '0 0 4px', fontWeight: 600 }}>
-              {f.provider_name}
-            </p>
-
-            {!f.gere ? (
-              <p style={aide}>{t('not_editable')}</p>
-            ) : (
-              <>
-                {/* CE QUE LE SEUIL PRODUIT — avant le champ, pas après. */}
-                <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 14px', lineHeight: 1.6, maxWidth: 720 }}>
-                  {t(`types.${f.provider_type}.effect`)}
-                </p>
-
-                {/* ── LA VALEUR QUI DÉCIDE — quand il y en a une ───────────────
-                    UN FOURNISSEUR DE DONNÉES NE DÉCIDE PAS. Sirene renseigne,
-                    l'IA tranche : sa ligne n'a aucune valeur décisive, et lui
-                    en afficher une inviterait à régler quelque chose qui ne
-                    règle rien — puis l'enregistrement serait refusé.
-                    `cle_decisive: null` est donc un cas RENDU, pas un cas oublié. */}
-                {f.cle_decisive === null ? (
-                  <p style={aide}>{t('no_decisive')}</p>
-                ) : (
-                  <div style={{ marginBottom: 14 }}>
-                    <label style={etiquette} htmlFor={`decisif-${f.id}`}>
-                      {t('decisive_label')}
-                    </label>
-                    <input
-                      id={`decisif-${f.id}`}
-                      type="number"
-                      min={0}
-                      max={10}
-                      step={1}
-                      style={champ}
-                      value={
-                        f.cle_decisive === 'auto_approve_threshold'
-                          ? (b.auto_approve_threshold ?? f.auto_approve_threshold ?? '')
-                          : (b.confidence_threshold ?? f.confidence_threshold)
-                      }
-                      onChange={(e) => {
-                        const n = Number(e.target.value)
-                        majBrouillon(
-                          f.id,
-                          f.cle_decisive === 'auto_approve_threshold'
-                            ? { auto_approve_threshold: n }
-                            : { confidence_threshold: n },
-                        )
-                      }}
-                    />
-                    <p style={aide}>{t('decisive_help', { cle: f.cle_decisive })}</p>
+      {chargement ? (
+        <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)' }}>{t('loading')}</p>
+      ) : erreur ? (
+        <p role="alert" style={{ fontSize: 13, color: 'var(--color-error, #dc2626)' }}>
+          {erreur}
+        </p>
+      ) : (
+        <>
+          {data?.sujets.map((s) => {
+            const blocage = motifDeBlocage(s)
+            const file = FILE[s.sujet]
+            return (
+              <section key={s.sujet} style={carte}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: 20,
+                  }}
+                >
+                  <div style={{ flex: '1 1 320px' }}>
+                    {/* UN TITRE EN FRANÇAIS. Jamais un identifiant de base. */}
+                    <h2 style={{ fontSize: 17, fontWeight: 600, margin: '0 0 4px', color: 'var(--color-text-primary, #0f172a)' }}>
+                      {t(`sujet.${s.sujet}.titre` as 'sujet.experts.titre')}
+                    </h2>
+                    <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: 0, maxWidth: 560 }}>
+                      {t(`sujet.${s.sujet}.effet` as 'sujet.experts.effet')}{' '}
+                      {file && (
+                        <Link href={file} style={{ color: 'var(--color-primary, #2563eb)' }}>
+                          {t(`sujet.${s.sujet}.file` as 'sujet.experts.file')}
+                        </Link>
+                      )}
+                      {!file && t('sujet.annonces.file')}
+                    </p>
                   </div>
-                )}
 
-                {/* ── LA COLONNE INERTE, MONTRÉE COMME INERTE ──────────────── */}
-                {f.colonne_inerte && (
-                  <div style={{ marginBottom: 14, opacity: 0.6 }}>
-                    <label style={etiquette} htmlFor={`inerte-${f.id}`}>
-                      {t('inert_label')}
+                  <div style={{ flex: '0 0 auto' }}>
+                    <label
+                      htmlFor={`n_${s.sujet}`}
+                      style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: 'var(--color-text-primary, #0f172a)' }}
+                    >
+                      {t(`sujet.${s.sujet}.champ` as 'sujet.experts.champ')}
                     </label>
-                    <input
-                      id={`inerte-${f.id}`}
-                      type="number"
-                      value={f.confidence_threshold}
-                      disabled
-                      readOnly
-                      style={{ ...champ, background: 'var(--sk-surface-2, #f8fafc)', color: 'var(--sk-faint)' }}
-                    />
-                    <p style={aide}>{t('inert_help')}</p>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        id={`n_${s.sujet}`}
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={10}
+                        step={1}
+                        value={notes[s.sujet] ?? ''}
+                        onChange={(e) => setNotes((p) => ({ ...p, [s.sujet]: e.target.value }))}
+                        style={champ}
+                      />
+                      <span style={{ fontSize: 14, color: 'var(--color-text-secondary, #64748b)' }}>{t('out_of_ten')}</span>
+                    </span>
                   </div>
-                )}
+                </div>
 
-                {/* ── LES DRAPEAUX DISQUALIFIANTS ──────────────────────────── */}
-                {f.porte_drapeaux && (
-                  <div style={{ marginBottom: 14 }}>
-                    <span style={etiquette}>{t('flags_label')}</span>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                      {(charge?.drapeaux_connus ?? []).map((d) => (
-                        <label
-                          key={d}
-                          style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--sk-text)' }}
-                        >
+                {/* LES CAS QUI FORCENT LE PASSAGE PAR L'HUMAIN — experts seuls. */}
+                {s.drapeaux !== null && (
+                  <div style={encart}>
+                    <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary, #0f172a)' }}>
+                      {t('flags_title')}
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 28px' }}>
+                      {s.drapeaux.map((d) => (
+                        <label key={d.cle} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
                           <input
                             type="checkbox"
-                            checked={flags.includes(d)}
-                            onChange={(e) => {
-                              const suivant = e.target.checked
-                                ? [...flags, d]
-                                : flags.filter((x) => x !== d)
-                              majBrouillon(f.id, { blocking_flags: suivant })
-                            }}
+                            checked={(drapeaux[s.sujet] ?? []).includes(d.cle)}
+                            onChange={(e) =>
+                              setDrapeaux((p) => {
+                                const actuels = p[s.sujet] ?? []
+                                return {
+                                  ...p,
+                                  [s.sujet]: e.target.checked
+                                    ? [...actuels, d.cle]
+                                    : actuels.filter((x) => x !== d.cle),
+                                }
+                              })
+                            }
+                            style={{ width: 16, height: 16 }}
                           />
-                          {t(`flags.${d}`)}
+                          {t(`flag.${d.cle}` as 'flag.DOMAIN_MISMATCH')}
                         </label>
                       ))}
                     </div>
-                    <p style={aide}>{t('flags_help')}</p>
+                    <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--color-text-secondary, #64748b)' }}>
+                      {t('flags_one_must_stay')}
+                    </p>
                   </div>
                 )}
 
-                <button
-                  type="button"
-                  style={{ ...bouton, opacity: modifie && enregistrement !== f.id ? 1 : 0.5 }}
-                  disabled={!modifie || enregistrement === f.id}
-                  onClick={() => void enregistrer(f)}
-                >
-                  {enregistrement === f.id ? t('saving') : t('save')}
-                </button>
-              </>
-            )}
-          </section>
-        )
-      })}
+                {/* LES PAYS SANS VÉRIFICATION AUTOMATIQUE — une phrase, et la
+                    liste se déplie. Elle tenait en corps 8 sur toute la largeur. */}
+                {s.sujet === 'entreprises' && (
+                  <div style={encart}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary, #0f172a)' }}>
+                      {t('countries_title')}
+                    </p>
+                    <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--color-text-secondary, #64748b)' }}>
+                      {t('countries_one_line')}
+                    </p>
+                    {data?.pays_sans_verification === null ? (
+                      /* Une lecture en panne ne se lit pas « aucun pays » (§E.22). */
+                      <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--color-error, #dc2626)' }}>
+                        {t('countries_unavailable')}
+                      </p>
+                    ) : (data?.pays_sans_verification?.length ?? 0) > 0 ? (
+                      <details style={{ marginTop: 8 }}>
+                        <summary style={{ fontSize: 12, cursor: 'pointer', color: 'var(--color-primary, #2563eb)' }}>
+                          {t('countries_open', { count: data?.pays_sans_verification?.length ?? 0 })}
+                        </summary>
+                        <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--color-text-secondary, #64748b)', lineHeight: 1.6 }}>
+                          {(data?.pays_sans_verification ?? []).join(' · ')}
+                        </p>
+                      </details>
+                    ) : null}
+                  </div>
+                )}
 
-      <p style={{ fontSize: 12, color: 'var(--sk-faint)', marginTop: 20, maxWidth: 760, lineHeight: 1.6 }}>
-        {t('audit_note')}
-      </p>
-    </main>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginTop: 16 }}>
+                  <button
+                    type="button"
+                    onClick={() => void enregistrer(s)}
+                    disabled={enCours === s.sujet || blocage !== null}
+                    style={bouton(enCours === s.sujet || blocage !== null)}
+                  >
+                    {enCours === s.sujet ? t('saving') : t('save')}
+                  </button>
+                  <span style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)' }}>
+                    {blocage ??
+                      (s.arrives_ce_mois === null
+                        ? /* Un compteur en panne ne rend pas zéro (§E.22). */
+                          t('arrived_unknown')
+                        : t(`arrived.${s.sujet}` as 'arrived.experts', { count: s.arrives_ce_mois }))}
+                  </span>
+                </div>
+              </section>
+            )
+          })}
+
+          {/* CE QUI N'EST PLUS AFFICHÉ, DIT UNE FOIS — sinon son absence se lit
+              comme un oubli, et quelqu'un le remettra. */}
+          <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '4px 0 0', maxWidth: 760 }}>
+            {t('inert_note')}
+          </p>
+        </>
+      )}
+    </div>
   )
 }

@@ -4049,59 +4049,58 @@
   },
   "admin_seuils": {
     "title": "Notas de decisión",
-    "intro": "Estas notas deciden quién se aprueba sin intervención humana. Vivían en la base de datos sin pantalla: cambiarlas exigía acceso directo a la base y no dejaba ninguna traza. Cada modificación hecha aquí queda registrada.",
+    "intro": "A partir de qué nota la IA valida sin usted. Por debajo, el expediente llega a su cola. Nunca se rechaza nada automáticamente.",
+    "out_of_ten": "/ 10",
     "loading": "Cargando…",
+    "err_load": "No se han podido leer las notas. Inténtelo de nuevo en un momento.",
+    "err_save": "No se ha podido guardar. Inténtelo de nuevo en un momento.",
+    "saved": "Nota guardada y registrada.",
     "save": "Guardar",
     "saving": "Guardando…",
-    "saved": "Nota guardada y registrada.",
-    "not_editable": "Este proveedor no es configurable aquí: ningún camino del código lo lee.",
-    "decisive_label": "Nota que decide (0 a 10)",
-    "decisive_help": "Valor leído por el código: {cle}.",
-    "inert_label": "confidence_threshold (no leída por este camino)",
-    "inert_help": "Esta columna existe y NUNCA se usa para decidir aquí — la decisión se toma sobre auto_approve_threshold. Se muestra en solo lectura en vez de ocultarse: oculta, acabaría rellenada por alguien que creería estar configurando algo.",
-    "flags_label": "Señales descalificantes",
-    "flags_help": "Un perfil con cualquiera de estas señales pasa a revisión manual SEA CUAL SEA su puntuación. Se requiere al menos una: desmarcarlas todas no las desactiva, el código volvería a la lista por defecto.",
-    "audit_note": "Cada modificación se escribe en el registro de auditoría: quién, cuándo, desde qué valor y desde qué dirección. Es justo lo que faltaba para entender el paso de 9 a 8 de la nota de experto, en junio.",
-    "types": {
-      "profile_verification": {
-        "name": "Validación de un experto",
-        "effect": "Por encima de esta nota, y sin ninguna marca descalificadora, el perfil se aprueba SIN intervención. Por debajo, llega a /admin/experts para decidirse a mano. NUNCA se rechaza automáticamente."
+    "sujet": {
+      "experts": {
+        "titre": "Expertos",
+        "effet": "Por encima de esta nota, el perfil se publica sin intervención. Por debajo, le espera en",
+        "file": "Expertos.",
+        "champ": "Validado solo a partir de"
       },
-      "ai_web_search": {
-        "name": "Verificación de una empresa",
-        "effect": "Por encima de esta nota, la organización se aprueba SIN intervención. Por debajo, llega a /admin/organisations. NUNCA se rechaza automáticamente. Si no existe ningún proveedor activo para el país, la verificación pasa directamente a revisión manual, sin llamada al modelo."
+      "entreprises": {
+        "titre": "Empresas",
+        "effet": "Por encima de esta nota, la empresa se valida sin intervención. Por debajo, le espera en",
+        "file": "Organizaciones.",
+        "champ": "Validada sola a partir de"
       },
-      "opportunity_quality_check": {
-        "name": "Calidad de un anuncio",
-        "effect": "Por encima de esta nota, el anuncio se publica. Por debajo, pasa a revisión manual. El control también busca datos de contacto en claro: un anuncio que esquiva la mensajería esquiva el desvelado."
-      },
-      "official_api": {
-        "name": "Registro oficial",
-        "effect": "Consulta el registro oficial del país y aporta sus datos al analizador de coherencia. No produce ningún veredicto: su columna de nota no la lee ningún camino."
+      "annonces": {
+        "titre": "Anuncios",
+        "effet": "Por encima de esta nota, el anuncio se publica sin intervención. Por debajo, le espera en revisión.",
+        "file": "",
+        "champ": "Publicado solo a partir de"
       }
     },
-    "flags": {
+    "arrived": {
+      "experts": "{count} perfiles le han llegado este mes.",
+      "entreprises": "{count} empresas le han llegado este mes.",
+      "annonces": "{count} anuncios le han llegado este mes."
+    },
+    "arrived_unknown": "No se ha podido leer el recuento de expedientes recibidos. No es «ninguno».",
+    "flags_title": "Siempre pasan por usted, sea cual sea la nota",
+    "flags_one_must_stay": "Al menos un caso debe quedar marcado.",
+    "flag": {
       "DOMAIN_MISMATCH": "Ecosistema incoherente",
       "CV_PROFILE_INCOHERENT": "CV y perfil incoherentes",
       "LINKEDIN_UNVERIFIABLE": "LinkedIn no verificable",
       "SUSPICIOUS_CONTENT": "Contenido sospechoso"
     },
-    "no_decider": {
-      "title": "Países sin proveedor de decisión",
-      "explain": "Para estos países, ninguna verificación de empresa puede decidirse automáticamente: pasa a revisión manual, sin llamada al modelo y sin gasto. No es una avería — es el rechazo explícito que sustituye a una nota adivinada."
-    },
-    "errors": {
-      "load_failed": "No se pudo cargar.",
-      "save_failed": "No se pudo guardar.",
-      "seuil_invalide": "La nota debe ser un número entero entre 0 y 10.",
-      "colonne_inerte": "Esta columna no se lee en este camino: configurarla no cambiaría nada.",
-      "cle_non_lue": "Este valor no se lee en este camino.",
-      "drapeaux_invalides": "Señal desconocida.",
-      "drapeaux_vides": "Se requiere al menos una señal: desmarcarlas todas no las desactiva.",
-      "drapeaux_non_lus": "Este camino no lleva señales.",
-      "type_non_gere": "Este tipo de proveedor no es configurable aquí.",
-      "bad_provider": "Proveedor no encontrado."
-    },
-    "no_decisive": "Este proveedor aporta datos, no decide: aquí ningún valor es decisivo. La decisión corresponde al analizador de coherencia del mismo país."
+    "countries_title": "Solo Francia tiene un registro oficial consultable",
+    "countries_one_line": "Para cualquier otro país, la empresa pasa directamente por usted, sin llamada al modelo y sin gasto. No es una avería.",
+    "countries_open": "Ver los {count} países afectados",
+    "countries_unavailable": "No se ha podido leer la lista de países. No es «ningún país».",
+    "blocked_empty": "Rellene la nota para guardar.",
+    "blocked_range": "La nota es un número entero entre 0 y 10.",
+    "blocked_unchanged": "No hay ningún cambio que guardar.",
+    "blocked_no_flag": "Al menos un caso debe quedar marcado: sin él, un perfil incoherente se validaría solo con la nota.",
+    "blocked_missing": "No hay ninguna configuración activa para este asunto. Nada que ajustar mientras no exista.",
+    "blocked_ambiguous": "Varias configuraciones activas para este asunto: no elegimos una al azar.",
+    "inert_note": "Dos valores existen en la base sin gobernar ninguna decisión. Están documentados, no se muestran aquí: un campo que no ajusta nada acabaría rellenándose."
   }
 }

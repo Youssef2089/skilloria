@@ -4049,59 +4049,58 @@
   },
   "admin_seuils": {
     "title": "Notes de jugement",
-    "intro": "Ces notes décident qui est approuvé sans intervention humaine. Elles vivaient en base sans écran : les changer demandait un accès direct à la base, et ne laissait aucune trace. Chaque modification faite ici est désormais journalisée.",
+    "intro": "À partir de quelle note l’IA valide sans vous. En dessous, le dossier arrive dans votre file. Rien n’est jamais refusé automatiquement.",
+    "out_of_ten": "/ 10",
     "loading": "Chargement…",
+    "err_load": "Impossible de lire les notes. Réessayez dans un instant.",
+    "err_save": "Impossible d’enregistrer. Réessayez dans un instant.",
+    "saved": "Note enregistrée et journalisée.",
     "save": "Enregistrer",
     "saving": "Enregistrement…",
-    "saved": "Note enregistrée et journalisée.",
-    "not_editable": "Ce fournisseur n'est pas réglable depuis cet écran : aucun chemin du code ne le lit.",
-    "decisive_label": "Note qui décide (0 à 10)",
-    "decisive_help": "Valeur lue par le code : {cle}.",
-    "inert_label": "confidence_threshold (non lue par ce chemin)",
-    "inert_help": "Cette colonne existe et n'est JAMAIS utilisée pour décider ici — la décision se prend sur auto_approve_threshold. Elle est affichée en lecture seule plutôt que cachée : masquée, elle finirait renseignée par quelqu'un qui croirait régler quelque chose.",
-    "flags_label": "Drapeaux disqualifiants",
-    "flags_help": "Un profil portant l'un de ces drapeaux part en validation manuelle QUEL QUE SOIT son score. Au moins un drapeau est requis : tout décocher ne les désarme pas, le code retomberait sur la liste par défaut.",
-    "audit_note": "Chaque modification écrit dans le journal d'audit : qui, quand, depuis quelle valeur, et depuis quelle adresse. C'est ce qui manquait pour comprendre le passage de 9 à 8 de la note expert, en juin.",
-    "types": {
-      "profile_verification": {
-        "name": "Validation d'un expert",
-        "effect": "Au-dessus de cette note, et sans drapeau disqualifiant, le profil est approuvé SANS intervention. En dessous, il arrive dans /admin/experts pour être tranché à la main. Il n'est JAMAIS refusé automatiquement."
+    "sujet": {
+      "experts": {
+        "titre": "Experts",
+        "effet": "Au-dessus de cette note, le profil est publié sans intervention. En dessous, il vous attend dans",
+        "file": "Experts.",
+        "champ": "Validé seul à partir de"
       },
-      "ai_web_search": {
-        "name": "Vérification d'une entreprise",
-        "effect": "Au-dessus de cette note, l'organisation est approuvée SANS intervention. En dessous, elle arrive dans /admin/organisations. Elle n'est JAMAIS refusée automatiquement. Si aucun fournisseur actif n'existe pour le pays, la vérification part directement en revue manuelle, sans appel au modèle."
+      "entreprises": {
+        "titre": "Entreprises",
+        "effet": "Au-dessus de cette note, l’entreprise est validée sans intervention. En dessous, elle vous attend dans",
+        "file": "Organisations.",
+        "champ": "Validée seule à partir de"
       },
-      "opportunity_quality_check": {
-        "name": "Qualité d'une annonce",
-        "effect": "Au-dessus de cette note, l'annonce est publiée. En dessous, elle part en revue manuelle. Le contrôle traque aussi les coordonnées en clair : une annonce qui contourne la messagerie contourne le dévoilement."
-      },
-      "official_api": {
-        "name": "Registre officiel",
-        "effect": "Interroge le registre officiel du pays et fournit ses données à l'analyseur de cohérence. Il ne produit aucun verdict : sa colonne de note n'est lue par aucun chemin."
+      "annonces": {
+        "titre": "Annonces",
+        "effet": "Au-dessus de cette note, l’annonce est publiée sans intervention. En dessous, elle vous attend en revue.",
+        "file": "",
+        "champ": "Publiée seule à partir de"
       }
     },
-    "flags": {
+    "arrived": {
+      "experts": "{count} profils vous sont arrivés ce mois-ci.",
+      "entreprises": "{count} entreprises vous sont arrivées ce mois-ci.",
+      "annonces": "{count} annonces vous sont arrivées ce mois-ci."
+    },
+    "arrived_unknown": "Le compte des dossiers arrivés n’a pas pu être lu. Ce n’est pas « aucun ».",
+    "flags_title": "Passent toujours par vous, quelle que soit la note",
+    "flags_one_must_stay": "Au moins un cas doit rester coché.",
+    "flag": {
       "DOMAIN_MISMATCH": "Écosystème incohérent",
       "CV_PROFILE_INCOHERENT": "CV et profil incohérents",
       "LINKEDIN_UNVERIFIABLE": "LinkedIn invérifiable",
       "SUSPICIOUS_CONTENT": "Contenu suspect"
     },
-    "no_decider": {
-      "title": "Pays sans fournisseur de décision",
-      "explain": "Pour ces pays, aucune vérification d'entreprise ne peut être tranchée automatiquement : elle part en revue manuelle, sans appel au modèle et sans dépense. Ce n'est pas une panne — c'est le refus explicite qui remplace une note devinée."
-    },
-    "errors": {
-      "load_failed": "Lecture impossible.",
-      "save_failed": "Enregistrement impossible.",
-      "seuil_invalide": "La note doit être un nombre entier entre 0 et 10.",
-      "colonne_inerte": "Cette colonne n'est pas lue par ce chemin : la régler ne changerait rien.",
-      "cle_non_lue": "Cette valeur n'est pas lue par ce chemin.",
-      "drapeaux_invalides": "Drapeau inconnu.",
-      "drapeaux_vides": "Au moins un drapeau est requis : tout décocher ne les désarme pas.",
-      "drapeaux_non_lus": "Ce chemin ne porte aucun drapeau.",
-      "type_non_gere": "Ce type de fournisseur n'est pas réglable ici.",
-      "bad_provider": "Fournisseur introuvable."
-    },
-    "no_decisive": "Ce fournisseur apporte des données, il ne décide pas : aucune valeur ne tranche ici. La décision revient à l'analyseur de cohérence du même pays."
+    "countries_title": "Seule la France a un registre officiel interrogeable",
+    "countries_one_line": "Pour tout autre pays, l’entreprise passe directement par vous, sans appel au modèle et sans dépense. Ce n’est pas une panne.",
+    "countries_open": "Voir les {count} pays concernés",
+    "countries_unavailable": "La liste des pays n’a pas pu être lue. Ce n’est pas « aucun pays ».",
+    "blocked_empty": "Renseignez la note pour enregistrer.",
+    "blocked_range": "La note est un nombre entier entre 0 et 10.",
+    "blocked_unchanged": "Aucune modification à enregistrer.",
+    "blocked_no_flag": "Au moins un cas doit rester coché : sans lui, un profil incohérent se validerait sur la seule note.",
+    "blocked_missing": "Aucune configuration active pour ce sujet. Rien à régler tant qu’elle n’existe pas.",
+    "blocked_ambiguous": "Plusieurs configurations actives pour ce sujet : on n’en choisit pas une au hasard.",
+    "inert_note": "Deux valeurs existent en base sans gouverner aucune décision. Elles sont documentées, pas affichées ici : un champ qui ne règle rien finirait par être rempli."
   }
 }

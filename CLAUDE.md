@@ -1256,6 +1256,42 @@ gouverne** — où chaque valeur vit, **qui la lit vraiment** (fichier et ligne)
 deux des prémisses de départ étaient fausses, et la vraie cause n'était pas l'écran mais le
 vocabulaire.
 
+**E.26 — UN ÉCRAN QUI AFFICHE TOUT CE QUI EXISTE EN BASE DEVIENT ILLISIBLE — ET C'EST UNE INSTRUCTION
+D'ARCHITECTE QUI L'A PRODUIT, PAS UN DÉFAUT DE CODE.**
+
+`/admin/seuils` rendait **toutes** les lignes de `verification_providers`. Le code était juste : la
+route lisait bien, l'écran rendait bien, aucun test n'aurait rougi. Le résultat, sur cinq blocs :
+· **deux qui ne décident de rien** — un champ grisé avec trois lignes expliquant qu'il ne gouverne
+  rien, et une ligne « non réglable » ;
+· des **identifiants de base en guise de titres** (`claude_expert_coherence_check`,
+  `ai_coherence_check`) ;
+· un **bandeau de soixante pays en corps 8** pour dire une phrase ;
+· **cinq boutons « Enregistrer »**.
+
+**L'instruction était « montre l'état de la configuration ». La bonne instruction était « fais
+décider ».** Un écran de réglage n'est pas une vue sur une table : c'est une surface de décision.
+D'où **§D.11**, qui manquait.
+
+> **ET LA MOITIÉ QUI COMPTE EST L'ÉCHANGE, PAS LE RETRAIT.** La propriété de cet écran — *déclarer
+> ce qui ne gouverne rien* — était **exemplaire**, et c'est même la seule surface du dépôt qui le
+> faisait. La retirer sans contrepartie aurait perdu la connaissance. Elle est donc **rangée** :
+> `NE_GOUVERNENT_RIEN` dans [lib/jugement/sujets.ts](lib/jugement/sujets.ts), §B.2 ⑨ dans
+> [docs/architecture.md](docs/architecture.md), et une section de `diag-reglages-inertes` qui **exige
+> les trois à la fois** — déclaré, documenté, et **absent de l'écran**. Documenter sans retirer
+> laisserait le champ ; retirer sans documenter perdrait la raison.
+
+**LA RECHUTE, LE MÊME JOUR, ET ELLE EST DE MA MAIN.** Le lot 1.3 a passé une journée à fermer
+§E.22 — une erreur technique convertie en affirmation métier — dans `lib/`. **L'écran livré le même
+jour l'a rouverte** : il annonçait « la lecture a échoué » alors que le moteur n'avait jamais tourné.
+La cause était en SQL (`from runs, generate_series(1,10)` rend `NULL` quand `runs` est vide, donc le
+`null` de « rien à agréger » et celui de « je n'ai pas pu lire » ont **la même forme**).
+
+**Ce que cette rechute enseigne, et c'est plus large que le cas :** fermer une classe **dans une
+couche** ne la ferme pas **dans la suivante**. `lib/` était propre, et la confusion s'est reformée
+une couche plus haut, en quelques heures, chez quelqu'un qui venait de la corriger. **Une classe de
+défaut se ferme par un TYPE qui traverse les couches** — ici `etatRepartition()`, trois états nommés,
+éprouvée **en l'exécutant** — pas par une correction locale, si soigneuse soit-elle.
+
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
   acceptée et ne se déclenchera **jamais** : aucune erreur, aucune ligne dans `job_run_details`. D'où le

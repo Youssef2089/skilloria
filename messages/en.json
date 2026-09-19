@@ -4049,59 +4049,58 @@
   },
   "admin_seuils": {
     "title": "Judgement scores",
-    "intro": "These scores decide who is approved without human review. They lived in the database with no screen: changing one required direct database access, and left no trace. Every change made here is now logged.",
+    "intro": "From which score the AI validates without you. Below it, the case lands in your queue. Nothing is ever rejected automatically.",
+    "out_of_ten": "/ 10",
     "loading": "Loading…",
+    "err_load": "Could not read the scores. Try again in a moment.",
+    "err_save": "Could not save. Try again in a moment.",
+    "saved": "Score saved and logged.",
     "save": "Save",
     "saving": "Saving…",
-    "saved": "Score saved and logged.",
-    "not_editable": "This provider is not editable here: no code path reads it.",
-    "decisive_label": "Deciding score (0 to 10)",
-    "decisive_help": "Value read by the code: {cle}.",
-    "inert_label": "confidence_threshold (not read by this path)",
-    "inert_help": "This column exists and is NEVER used to decide here — the decision is taken on auto_approve_threshold. It is shown read-only rather than hidden: hidden, it would end up filled in by someone who believed they were setting something.",
-    "flags_label": "Disqualifying flags",
-    "flags_help": "A profile carrying any of these flags goes to manual review WHATEVER its score. At least one flag is required: unchecking them all does not disarm them, the code would fall back to the default list.",
-    "audit_note": "Every change writes to the audit log: who, when, from which value, and from which address. That is exactly what was missing to understand the expert score going from 9 to 8 in June.",
-    "types": {
-      "profile_verification": {
-        "name": "Expert validation",
-        "effect": "Above this score, and with no disqualifying flag, the profile is approved WITHOUT review. Below it, it lands in /admin/experts to be decided by hand. It is NEVER rejected automatically."
+    "sujet": {
+      "experts": {
+        "titre": "Experts",
+        "effet": "Above this score, the profile is published without review. Below it, it waits for you in",
+        "file": "Experts.",
+        "champ": "Approved alone from"
       },
-      "ai_web_search": {
-        "name": "Company verification",
-        "effect": "Above this score, the organisation is approved WITHOUT review. Below it, it lands in /admin/organisations. It is NEVER rejected automatically. If no active provider exists for the country, verification goes straight to manual review, with no model call."
+      "entreprises": {
+        "titre": "Companies",
+        "effet": "Above this score, the company is approved without review. Below it, it waits for you in",
+        "file": "Organisations.",
+        "champ": "Approved alone from"
       },
-      "opportunity_quality_check": {
-        "name": "Listing quality",
-        "effect": "Above this score, the listing is published. Below it, it goes to manual review. The check also looks for contact details in plain text: a listing that bypasses messaging bypasses disclosure."
-      },
-      "official_api": {
-        "name": "Official registry",
-        "effect": "Queries the country's official register and feeds its data to the coherence analyser. It produces no verdict: its score column is read by no path."
+      "annonces": {
+        "titre": "Listings",
+        "effet": "Above this score, the listing is published without review. Below it, it waits for you in review.",
+        "file": "",
+        "champ": "Published alone from"
       }
     },
-    "flags": {
+    "arrived": {
+      "experts": "{count} profiles reached you this month.",
+      "entreprises": "{count} companies reached you this month.",
+      "annonces": "{count} listings reached you this month."
+    },
+    "arrived_unknown": "The count of incoming cases could not be read. This is not “none”.",
+    "flags_title": "Always go through you, whatever the score",
+    "flags_one_must_stay": "At least one case must stay checked.",
+    "flag": {
       "DOMAIN_MISMATCH": "Ecosystem mismatch",
       "CV_PROFILE_INCOHERENT": "CV and profile inconsistent",
       "LINKEDIN_UNVERIFIABLE": "LinkedIn unverifiable",
       "SUSPICIOUS_CONTENT": "Suspicious content"
     },
-    "no_decider": {
-      "title": "Countries with no decision provider",
-      "explain": "For these countries, no company verification can be decided automatically: it goes to manual review, with no model call and no spending. This is not a failure — it is the explicit refusal that replaces a guessed score."
-    },
-    "errors": {
-      "load_failed": "Could not load.",
-      "save_failed": "Could not save.",
-      "seuil_invalide": "The score must be a whole number between 0 and 10.",
-      "colonne_inerte": "This column is not read by this path: setting it would change nothing.",
-      "cle_non_lue": "This value is not read by this path.",
-      "drapeaux_invalides": "Unknown flag.",
-      "drapeaux_vides": "At least one flag is required: unchecking them all does not disarm them.",
-      "drapeaux_non_lus": "This path carries no flags.",
-      "type_non_gere": "This provider type is not editable here.",
-      "bad_provider": "Provider not found."
-    },
-    "no_decisive": "This provider supplies data, it does not decide: no value is decisive here. The decision belongs to the coherence analyser for the same country."
+    "countries_title": "Only France has an official register we can query",
+    "countries_one_line": "For any other country, the company comes straight to you, with no model call and no spending. This is not a failure.",
+    "countries_open": "See the {count} countries concerned",
+    "countries_unavailable": "The country list could not be read. This is not “no country”.",
+    "blocked_empty": "Fill in the score to save.",
+    "blocked_range": "The score is a whole number between 0 and 10.",
+    "blocked_unchanged": "Nothing has changed.",
+    "blocked_no_flag": "At least one case must stay checked: without it, an inconsistent profile would be approved on the score alone.",
+    "blocked_missing": "No active configuration for this subject. Nothing to set until it exists.",
+    "blocked_ambiguous": "Several active configurations for this subject: we do not pick one at random.",
+    "inert_note": "Two values exist in the database without governing any decision. They are documented, not shown here: a field that sets nothing ends up being filled in."
   }
 }

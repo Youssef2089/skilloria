@@ -198,6 +198,31 @@ un second en ferait un jumeau (§E.20).
 ⚠️ Il écrit en base **hors du périmètre** de `diag-scripts-destructeurs` (qui ne balaie que
 `scripts/diag-*.mjs`) : il est **gardé**, pas **découvert** — quatrième cas de l'angle mort de §E.4.
 
+**⑨ LES DEUX VALEURS QUI NE GOUVERNENT RIEN — documentées ici parce qu'elles ne s'affichent plus.**
+
+`/admin/seuils` les montrait, chacune avec un champ et trois lignes expliquant qu'elle ne décide de
+rien. **§D.11** les a retirées de l'écran : *un champ qui ne règle rien finit par être rempli*.
+**Elles ne s'évaporent pas pour autant** — sans cette section, leur absence se lirait comme un oubli,
+et quelqu'un les remettrait. Elles sont aussi déclarées dans
+[lib/jugement/sujets.ts](../lib/jugement/sujets.ts) (`NE_GOUVERNENT_RIEN`), lu par
+`diag-reglages-inertes`.
+
+| Valeur | Pourquoi elle ne gouverne rien | Preuve |
+|---|---|---|
+| `verification_providers.confidence_threshold` de la ligne `official_api` (`sirene_insee`), **9** | Sirene est un fournisseur de **DONNÉES**, pas un décideur. Il interroge le registre officiel et remet ses champs à l'analyseur de cohérence ; c'est l'IA qui tranche. | `runVerification` ([lib/verification/index.ts:84](../lib/verification/index.ts#L84)) filtre sur `provider_type === 'ai_web_search'` pour choisir son décideur, puis lit **son** `confidence_threshold` (ligne 173). Aucun chemin ne lit celui d'`official_api`. Un admin qui passerait ce 9 à 3 ne changerait **strictement rien**. |
+| la ligne `claude_profile_matching` (`provider_type = 'profile_matching'`) | C'est le moteur d'**AVANT** le reranking : Claude est sorti de la mise en relation. | **Aucun code ne lit `provider_type = 'profile_matching'`** — balayage de `app/` + `lib/` + `components/`. La migration `parametrage_de_production` l'a **désactivée** (`is_active = false`) **sans la supprimer**, et ne la recrée pas sur une base neuve : elle n'existe que comme vestige. La valeur reste dans le `CHECK` de `provider_type` pour que le type garde une explication. |
+
+> ⚠️ **ET C'EST CETTE LIGNE VESTIGE QUI A PRODUIT LA CLÉ i18n AFFICHÉE BRUTE.** L'écran rendait
+> `t(\`types.${provider_type}.name\`)` — une clé **construite depuis une donnée de base**. Aucune des
+> quatre langues n'a `types.profile_matching.name`, next-intl a rendu le **chemin de la clé**, et
+> `textTransform: 'uppercase'` l'a mis en capitales :
+> `ADMIN_SEUILS.TYPES.PROFILE_MATCHING.NAME`.
+> **Le développeur croyait avoir un repli** : `{ default: provider_type }`. **next-intl n'a pas
+> d'option `default`** — le second argument est l'objet des valeurs d'interpolation. Le repli n'a
+> jamais existé. Gardé par [scripts/diag-cles-i18n.mjs](../scripts/diag-cles-i18n.mjs), qui refuse
+> cette option **et** exige qu'une clé dynamique nourrie par la base soit bornée par une liste
+> déclarée, des deux côtés.
+
 **⑧ Le format du numéro d'identification quitte le code pour le référentiel pays.**
 Migration `format_numero_identification`. `countries` gagne `registre_numero_libelle`,
 `registre_numero_exemple`, `registre_numero_longueur_min`, `registre_numero_longueur_max`,
