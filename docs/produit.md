@@ -641,6 +641,32 @@ Pour chacune : **sa valeur**, **d'où elle vient**, **qui peut la changer**.
 « Back-office » = un écran `/admin` l'expose. « Base » = la valeur est en base mais **aucun écran ne
 l'expose**. « Code » = un déploiement est nécessaire.
 
+### P3.0 bis — LE VOCABULAIRE DES RÉGLAGES : QUATRE MOTS, UN PAR COMPORTEMENT
+
+**Le mot « seuil » ne s'écrit plus dans ce produit.** Il désignait **quatre comportements
+incompatibles** à la fois, et c'est lui qui a rendu `/admin/matching` illisible — au point que le
+propriétaire du produit l'a ouvert sans savoir quoi faire.
+
+| Mot | Ce qu'il fait | Où il vit |
+|---|---|---|
+| **PLAFOND** | il **BLOQUE** : atteint, la fonctionnalité s'arrête | `ai_spend_caps`, `ai_quotas`, `package_features` |
+| **ALERTE** | elle **SIGNALE** : elle marque à l'écran, elle n'empêche rien | `ai_spend_seuils_acteur` |
+| **FILTRE** | il **TRIE** : il décide ce qui est montré | `matching_settings.feed_threshold` / `notify_threshold` |
+| **NOTE** | elle **JUGE** : elle qualifie un dossier | `verification_providers` (auto-approbation, vérification, qualité) |
+
+**Un réglage qui ne rentre dans aucun des quatre se DIT** plutôt que de se faire appeler « seuil »
+par défaut : une **durée** (`duree_reglages`), un **référentiel** (`ai_model_tarifs`), un
+**interrupteur** (`notify_enabled`, `is_active`), un **choix de modèle** (`rerank_model`), un
+**paramètre technique** (`rerank_batch_size`).
+
+> ⚠️ **L'EXCEPTION, DANS LE MÊME PARAGRAPHE — sinon la règle ment au premier `grep`.**
+> **Les colonnes existantes gardent leur nom pour l'instant** : `feed_threshold`, `notify_threshold`,
+> `confidence_threshold`, `auto_approve_threshold`, `seuil_mensuel_usd`. Les clients Supabase ne sont
+> pas typés : une colonne est lue **par son nom, dans une chaîne**, et un renommage **casse au
+> runtime, en silence**. Leur renommage est un **lot à lui seul**, avec son propre contrôle — une
+> décision, pas un oubli. Écrans, documentation, messages et **noms de contraintes** prennent le
+> vocabulaire **dès maintenant**.
+
 ### P3.0 — L'ÉCHELLE UNIQUE : TOUT SE NOTE DE 0 À 10
 
 **Toute note du produit est sur 0-10. Il n'y a pas de seconde échelle.**

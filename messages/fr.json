@@ -2402,7 +2402,7 @@
       "nav_matching": "Mise en relation",
       "nav_ecosystemes": "Écosystèmes",
       "nav_quotas_ia": "Quotas IA",
-      "nav_seuils": "Seuils de jugement",
+      "nav_seuils": "Notes de jugement",
       "nav_durees": "Durées de la place",
       "nav_tarifs_ia": "Tarifs des modèles",
       "nav_supervision": "Supervision"
@@ -3819,120 +3819,48 @@
     "tooltip": "Ce que nous avons compris de votre profil correspond à ce que cette annonce demande. Aucun classement entre experts : chaque profil est examiné pour lui-même."
   },
   "admin_matching": {
-    "title": "Moteur de mise en relation",
-    "intro": "Deux seuils décident de ce que voit un expert et de ce pour quoi il est prévenu. Le score du moteur n'est pas une note sur 10 et ne se devine pas : lisez la distribution observée ci-dessous, puis réglez.",
+    "title": "Réglages de la mise en relation",
+    "intro": "Ce qui se décide : les plafonds de dépense, les alertes, et les filtres de chaque écosystème.",
+    "to_monitoring": "Voir ce qui s’observe → Supervision",
     "loading": "Chargement…",
+    "err_load": "Impossible de lire les réglages. Réessayez dans un instant.",
+    "err_save": "Impossible d’enregistrer. Réessayez dans un instant.",
+    "err_model_without_price": "Ce modèle n’a aucun tarif dans la grille : sa dépense serait comptée pour zéro. Posez son prix dans « Tarifs des modèles » avant de le choisir.",
+    "err_model_requires_filters": "Changer de modèle change l’échelle des notes : les deux filtres doivent être redécidés dans le même geste.",
+    "saved": "Enregistré.",
     "save": "Enregistrer",
     "saving": "Enregistrement…",
-    "saved": "Réglages enregistrés.",
-    "errors": {
-      "load_failed": "Les réglages n'ont pas pu être lus. Rien n'a été modifié.",
-      "save_failed": "L'enregistrement a échoué. Vos modifications n'ont pas été appliquées.",
-      "ordre_seuils": "Le seuil de notification ne peut pas être sous celui du flux : on préviendrait quelqu'un pour une annonce qu'il ne verrait pas en se connectant."
+    "money_title": "Dépense d’intelligence artificielle",
+    "money_currency": "En dollars : les fournisseurs facturent en dollars. Le reste du produit est en euros, et rien n’est converti.",
+    "caps_title": "Plafonds mensuels",
+    "caps_one_line": "Un plafond BLOQUE : atteint, la fonctionnalité s’arrête jusqu’au mois suivant.",
+    "cap_reached": "Plafond atteint ce mois-ci.",
+    "cap_spent": "{amount} $ dépensés ce mois-ci.",
+    "alerts_title": "Alertes par acteur",
+    "alerts_one_line": "Une alerte SIGNALE : elle marque l’acteur à l’écran, elle n’empêche rien.",
+    "usage": {
+      "rerank": "Classement des experts",
+      "claude": "Rédaction et analyse"
     },
-    "spend": {
-      "title": "Dépense du mois",
-      "line": "{spent} $ sur {cap} $",
-      "capped": "plafond atteint",
-      "none": "Aucune dépense enregistrée ce mois-ci.",
-      "unavailable": "La dépense n'a pas pu être lue. Ce n'est pas zéro : c'est inconnu.",
-      "help": "Au plafond, la mise en relation s'arrête et l'écrit dans la trace du run. Elle ne continue pas à dépenser, et elle ne s'arrête pas en silence."
+    "actor": {
+      "organization": "Par organisation",
+      "profile": "Par expert"
     },
-    "spendByActor": {
-      "title": "Qui fait monter la facture",
-      "line": "{spent} $ — {events} événement(s)",
-      "kindOrg": "organisation",
-      "kindExpert": "expert",
-      "alert": "au-dessus du seuil de {threshold} $",
-      "others": "{count} autre(s) acteur(s), regroupé(s)",
-      "unattributed": "Non imputable",
-      "unnamed": "Acteur supprimé",
-      "none": "Aucune dépense enregistrée ce mois-ci.",
-      "unavailable": "Le découpage par acteur n'a pas pu être lu. Ce n'est pas zéro : c'est inconnu.",
-      "help": "Un dépassement ALERTE, il ne bloque pas : personne n'est privé d'un parcours par cet écran. La somme des lignes égale la dépense du mois — acteurs détaillés, reste regroupé et non imputable compris.",
-      "unattributedHelp": "« Non imputable » : des dépenses enregistrées avant que la facture soit découpée par acteur. Elles n'ont pas de déclencheur connu et n'en auront jamais — les répartir sur les autres reviendrait à inventer un chiffre. Cette ligne décroît d'elle-même, la lecture étant mensuelle."
-    },
-    "money": {
-      "cap_label": "Plafond mensuel — modifiable",
-      "cap_blocks_label": "Ce plafond BLOQUE.",
-      "cap_blocks_body": "Atteint, la fonctionnalité se dégrade et l'écrit dans la trace du run : elle ne continue pas à dépenser. Le baisser sous la dépense déjà engagée ce mois-ci arrête le moteur immédiatement.",
-      "alert_label": "Seuil d'alerte par acteur — modifiable",
-      "alert_warns_label": "Ce seuil N'ARRÊTE RIEN.",
-      "alert_warns_body": "Il pose un drapeau sur une ligne de ce tableau, recalculé à chaque affichage. Personne n'est privé de quoi que ce soit : une mauvaise valeur produit du bruit, jamais un incident.",
-      "save": "Enregistrer les deux réglages",
-      "saving": "Enregistrement…",
-      "saved": "Plafond et seuil d'alerte enregistrés.",
-      "save_failed": "L'enregistrement a échoué. Aucune des deux valeurs n'a été écrite.",
-      "help": "Les deux sont bornés au serveur (0 à 100 000 $) et tracés dans le journal d'audit, avec la valeur avant et après. Un plafond à 0 coupe toute dépense chez ce fournisseur — c'est un usage prévu."
-    },
-    "distribution": {
-      "title": "Distribution observée (30 derniers jours)",
-      "runs": "{count} exécution(s) observée(s).",
-      "percentiles": "Score médian {p50} · 9ᵉ décile {p90}.",
-      "notified": "{avg} expert(s) au-dessus du seuil, en moyenne par annonce.",
-      "extremes": "{zero} exécution(s) sans personne au-dessus du seuil, {all} avec tout le monde.",
-      "empty": "Aucune exécution observée : le moteur n'a pas encore tourné, il n'y a rien à lire.",
-      "unavailable": "La distribution n'a pas pu être lue.",
-      "help": "Régler un seuil sans regarder cette distribution revient à choisir un nombre au hasard."
-    },
-    "coverage": {
-      "title": "Couverture",
-      "line": "{complets} exécution(s) complètes sur {total} · {manquants} expert(s) non noté(s).",
-      "empty": "Aucune exécution observée.",
-      "unavailable": "La couverture n'a pas pu être lue.",
-      "help": "Un expert éligible non noté est un expert écarté sans raison. Ce nombre doit rester à zéro."
-    },
-    "fields": {
-      "feed": "Seuil du flux",
-      "feed_help": "En dessous, l'annonce n'apparaît pas dans le flux de l'expert. À 0, tout profil éligible la voit.",
-      "notify": "Seuil de notification",
-      "notify_help": "Au-dessus, l'expert est prévenu et l'annonce est marquée « correspondance forte ».",
-      "batch": "Taille des lots",
-      "batch_help": "Nombre de profils envoyés au moteur par appel.",
-      "notify_enabled": "Activer les notifications",
-      "notify_enabled_help": "Laissé inactif tant que personne n'a lu la distribution : un seuil deviné préviendrait au hasard.",
-      "model": "Modèle : {model}. En changer change l’échelle — les deux seuils deviennent faux."
-    },
-    "failures": {
-      "title": "Résumés non produits (30 derniers jours)",
-      "none": "Tous les résumés demandés ont été écrits.",
-      "unavailable": "Le compteur n'a pas pu être lu. Ce n'est pas zéro : c'est inconnu.",
-      "help": "Trois causes, jamais additionnées : elles n'appellent pas la même action. Une candidature dont le résumé manque est déposée normalement — il lui manque un texte, pas un dossier.",
-      "cause": {
-        "plafond": "Plafond de dépense atteint",
-        "modele_indisponible": "Modèle indisponible",
-        "reponse_illisible": "Réponse illisible"
-      },
-      "surface": {
-        "candidature": "au dépôt",
-        "pitch": "à l'ouverture d'une carte"
-      }
-    },
-    "overruns": {
-      "title": "Plafond de relance dépassé (30 derniers jours)",
-      "none": "Aucun dépassement : personne n'a approché le plafond.",
-      "unavailable": "Le compteur n'a pas pu être lu. Ce n'est pas zéro : c'est inconnu.",
-      "experts": "{count, plural, one {# expert} other {# experts}}",
-      "help": "Le seuil n'est pas réglable ici, et c'est délibéré : un garde anti-abus n'est pas un paramètre commercial. Un dépassement signifie qu'un déclenchement n'a pas été programmé — si ce compteur monte, c'est une boucle côté client qu'il faut regarder, pas le seuil qu'il faut relever.",
-      "origine": {
-        "profil_modifie": "Profil modifié",
-        "ouverture_croisee": "Retour à l’écoute",
-        "disponibilite": "Changement de disponibilité",
-        "cv_reanalyse": "CV réanalysé"
-      }
-    },
-    "unfinished": {
-      "title": "Mises en relation non achevées",
-      "none": "Aucune : toutes les annonces publiées ont été traitées jusqu’au bout.",
-      "unavailable": "Le compteur n'a pas pu être lu. Ce n'est pas zéro : c'est inconnu.",
-      "depuis": "depuis le {date}",
-      "help": "Une mise en relation non achevée ne produit ni candidat pour l'organisation, ni annonce pour l'expert — et rien ne le dit sur leurs écrans. « Abandonnée » est le seul état qui demande une intervention : au-delà du plafond de tentatives, l'annonce n'est plus rejouée toute seule. Les trois états ne sont jamais additionnés : ils n'appellent pas la même action.",
-      "etat": {
-        "en_cours": "Sera rejouée",
-        "abandonne": "Abandonnée — intervention nécessaire",
-        "jamais_tente": "Jamais tentée — le déclencheur n’a pas fonctionné"
-      }
-    }
+    "ecosystem_title": "Écosystème {name}",
+    "filters_one_line": "Un filtre TRIE : il décide ce que l’expert voit, sur une échelle de 0 à 10.",
+    "field_feed": "Filtre du flux — note minimale pour apparaître",
+    "field_notify": "Filtre de notification — note minimale pour être notifié",
+    "field_notify_enabled": "Envoyer les notifications de mise en relation",
+    "field_model": "Modèle de classement",
+    "spread_unavailable": "Répartition indisponible : la lecture a échoué. Ce n’est pas « aucune donnée ».",
+    "spread_none_yet": "Aucune exécution pour l’instant sur cette échelle : la répartition se remplira aux prochaines mises en relation.",
+    "spread_effect": "{included} experts entrent, {excluded} sont écartés — sur {total} notés.",
+    "spread_effect_notify": "{included} experts seraient notifiés, sur {total} notés.",
+    "model_changes_scale": "Changer de modèle change l’échelle des notes : les deux filtres seront réenregistrés avec cette valeur.",
+    "blocked_empty": "Renseignez les deux filtres pour enregistrer.",
+    "blocked_range": "Un filtre est un nombre entre 0 et 10.",
+    "blocked_order": "Le filtre de notification ne peut pas être sous celui du flux : on notifierait pour une annonce invisible.",
+    "blocked_unchanged": "Aucune modification à enregistrer."
   },
   "admin_durees": {
     "title": "Durées de la place",
@@ -4105,36 +4033,36 @@
     "annonces_tronquees": "Cette liste est incomplète : elle affiche vos {plafond} annonces les plus récemment modifiées. Les plus anciennes ne sont pas montrées."
   },
   "admin_seuils": {
-    "title": "Seuils de jugement",
-    "intro": "Ces seuils décident qui est approuvé sans intervention humaine. Ils vivaient en base sans écran : les changer demandait un accès direct à la base, et ne laissait aucune trace. Chaque modification faite ici est désormais journalisée.",
+    "title": "Notes de jugement",
+    "intro": "Ces notes décident qui est approuvé sans intervention humaine. Elles vivaient en base sans écran : les changer demandait un accès direct à la base, et ne laissait aucune trace. Chaque modification faite ici est désormais journalisée.",
     "loading": "Chargement…",
     "save": "Enregistrer",
     "saving": "Enregistrement…",
-    "saved": "Seuil enregistré et journalisé.",
+    "saved": "Note enregistrée et journalisée.",
     "not_editable": "Ce fournisseur n'est pas réglable depuis cet écran : aucun chemin du code ne le lit.",
-    "decisive_label": "Seuil qui décide (0 à 10)",
+    "decisive_label": "Note qui décide (0 à 10)",
     "decisive_help": "Valeur lue par le code : {cle}.",
     "inert_label": "confidence_threshold (non lue par ce chemin)",
     "inert_help": "Cette colonne existe et n'est JAMAIS utilisée pour décider ici — la décision se prend sur auto_approve_threshold. Elle est affichée en lecture seule plutôt que cachée : masquée, elle finirait renseignée par quelqu'un qui croirait régler quelque chose.",
     "flags_label": "Drapeaux disqualifiants",
     "flags_help": "Un profil portant l'un de ces drapeaux part en validation manuelle QUEL QUE SOIT son score. Au moins un drapeau est requis : tout décocher ne les désarme pas, le code retomberait sur la liste par défaut.",
-    "audit_note": "Chaque modification écrit dans le journal d'audit : qui, quand, depuis quelle valeur, et depuis quelle adresse. C'est ce qui manquait pour comprendre le passage de 9 à 8 du seuil expert, en juin.",
+    "audit_note": "Chaque modification écrit dans le journal d'audit : qui, quand, depuis quelle valeur, et depuis quelle adresse. C'est ce qui manquait pour comprendre le passage de 9 à 8 de la note expert, en juin.",
     "types": {
       "profile_verification": {
         "name": "Validation d'un expert",
-        "effect": "Au-dessus de ce seuil, et sans drapeau disqualifiant, le profil est approuvé SANS intervention. En dessous, il arrive dans /admin/experts pour être tranché à la main. Il n'est JAMAIS refusé automatiquement."
+        "effect": "Au-dessus de cette note, et sans drapeau disqualifiant, le profil est approuvé SANS intervention. En dessous, il arrive dans /admin/experts pour être tranché à la main. Il n'est JAMAIS refusé automatiquement."
       },
       "ai_web_search": {
         "name": "Vérification d'une entreprise",
-        "effect": "Au-dessus de ce seuil, l'organisation est approuvée SANS intervention. En dessous, elle arrive dans /admin/organisations. Elle n'est JAMAIS refusée automatiquement. Si aucun fournisseur actif n'existe pour le pays, la vérification part directement en revue manuelle, sans appel au modèle."
+        "effect": "Au-dessus de cette note, l'organisation est approuvée SANS intervention. En dessous, elle arrive dans /admin/organisations. Elle n'est JAMAIS refusée automatiquement. Si aucun fournisseur actif n'existe pour le pays, la vérification part directement en revue manuelle, sans appel au modèle."
       },
       "opportunity_quality_check": {
         "name": "Qualité d'une annonce",
-        "effect": "Au-dessus de ce seuil, l'annonce est publiée. En dessous, elle part en revue manuelle. Le contrôle traque aussi les coordonnées en clair : une annonce qui contourne la messagerie contourne le dévoilement."
+        "effect": "Au-dessus de cette note, l'annonce est publiée. En dessous, elle part en revue manuelle. Le contrôle traque aussi les coordonnées en clair : une annonce qui contourne la messagerie contourne le dévoilement."
       },
       "official_api": {
         "name": "Registre officiel",
-        "effect": "Interroge le registre officiel du pays et fournit ses données à l'analyseur de cohérence. Il ne produit aucun verdict : sa colonne de seuil n'est lue par aucun chemin."
+        "effect": "Interroge le registre officiel du pays et fournit ses données à l'analyseur de cohérence. Il ne produit aucun verdict : sa colonne de note n'est lue par aucun chemin."
       }
     },
     "flags": {
@@ -4145,12 +4073,12 @@
     },
     "no_decider": {
       "title": "Pays sans fournisseur de décision",
-      "explain": "Pour ces pays, aucune vérification d'entreprise ne peut être tranchée automatiquement : elle part en revue manuelle, sans appel au modèle et sans dépense. Ce n'est pas une panne — c'est le refus explicite qui remplace un seuil deviné."
+      "explain": "Pour ces pays, aucune vérification d'entreprise ne peut être tranchée automatiquement : elle part en revue manuelle, sans appel au modèle et sans dépense. Ce n'est pas une panne — c'est le refus explicite qui remplace une note devinée."
     },
     "errors": {
       "load_failed": "Lecture impossible.",
       "save_failed": "Enregistrement impossible.",
-      "seuil_invalide": "Le seuil doit être un nombre entier entre 0 et 10.",
+      "seuil_invalide": "La note doit être un nombre entier entre 0 et 10.",
       "colonne_inerte": "Cette colonne n'est pas lue par ce chemin : la régler ne changerait rien.",
       "cle_non_lue": "Cette valeur n'est pas lue par ce chemin.",
       "drapeaux_invalides": "Drapeau inconnu.",

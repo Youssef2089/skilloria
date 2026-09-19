@@ -2402,7 +2402,7 @@
       "nav_matching": "Emparejamiento",
       "nav_ecosystemes": "Ecosistemas",
       "nav_quotas_ia": "Cuotas de IA",
-      "nav_seuils": "Umbrales de decisión",
+      "nav_seuils": "Notas de decisión",
       "nav_durees": "Duraciones del mercado",
       "nav_tarifs_ia": "Tarifas de los modelos",
       "nav_supervision": "Supervisión"
@@ -3819,120 +3819,48 @@
     "tooltip": "Lo que hemos entendido de tu perfil coincide con lo que pide este anuncio. Sin clasificación entre expertos: cada perfil se examina por sí mismo."
   },
   "admin_matching": {
-    "title": "Motor de emparejamiento",
-    "intro": "Dos umbrales deciden lo que ve un experto y aquello de lo que se le avisa. La puntuación del motor no es una nota sobre 10 y no se adivina: lee la distribución observada más abajo y luego ajústalos.",
+    "title": "Ajustes del emparejamiento",
+    "intro": "Lo que se decide aquí: los límites de gasto, las alertas y los filtros de cada ecosistema.",
+    "to_monitoring": "Ver lo que se observa → Supervisión",
     "loading": "Cargando…",
+    "err_load": "No se han podido leer los ajustes. Inténtelo de nuevo en un momento.",
+    "err_save": "No se ha podido guardar. Inténtelo de nuevo en un momento.",
+    "err_model_without_price": "Este modelo no tiene tarifa en la tabla: su gasto contaría como cero. Indique su precio en «Tarifas de los modelos» antes de elegirlo.",
+    "err_model_requires_filters": "Cambiar de modelo cambia la escala de las notas: hay que volver a decidir ambos filtros en el mismo gesto.",
+    "saved": "Guardado.",
     "save": "Guardar",
     "saving": "Guardando…",
-    "saved": "Ajustes guardados.",
-    "errors": {
-      "load_failed": "No se han podido leer los ajustes. No se ha modificado nada.",
-      "save_failed": "No se ha podido guardar. Tus cambios no se han aplicado.",
-      "ordre_seuils": "El umbral de notificación no puede estar por debajo del umbral del flujo: se avisaría a alguien de un anuncio que no vería al iniciar sesión."
+    "money_title": "Gasto de inteligencia artificial",
+    "money_currency": "En dólares: los proveedores facturan en dólares. El resto del producto está en euros y no se convierte nada.",
+    "caps_title": "Límites mensuales",
+    "caps_one_line": "Un límite BLOQUEA: alcanzado, la función se detiene hasta el mes siguiente.",
+    "cap_reached": "Límite alcanzado este mes.",
+    "cap_spent": "{amount} $ gastados este mes.",
+    "alerts_title": "Alertas por actor",
+    "alerts_one_line": "Una alerta SEÑALA: marca al actor en pantalla, no impide nada.",
+    "usage": {
+      "rerank": "Clasificación de expertos",
+      "claude": "Redacción y análisis"
     },
-    "spend": {
-      "title": "Gasto del mes",
-      "line": "{spent} $ de {cap} $",
-      "capped": "límite alcanzado",
-      "none": "Ningún gasto registrado este mes.",
-      "unavailable": "No se ha podido leer el gasto. No es cero: es desconocido.",
-      "help": "Al alcanzar el límite, el emparejamiento se detiene y lo escribe en la traza de la ejecución. No sigue gastando ni se detiene en silencio."
+    "actor": {
+      "organization": "Por organización",
+      "profile": "Por experto"
     },
-    "spendByActor": {
-      "title": "Quién hace subir la factura",
-      "line": "{spent} $ — {events} evento(s)",
-      "kindOrg": "organización",
-      "kindExpert": "experto",
-      "alert": "por encima del umbral de {threshold} $",
-      "others": "{count} otro(s) actor(es), agrupado(s)",
-      "unattributed": "No imputable",
-      "unnamed": "Actor eliminado",
-      "none": "Ningún gasto registrado este mes.",
-      "unavailable": "No se ha podido leer el desglose por actor. No es cero: es desconocido.",
-      "help": "Superar el umbral GENERA UNA ALERTA, nunca bloquea: esta pantalla no priva a nadie de nada. La suma de las líneas es igual al gasto del mes — actores detallados, resto agrupado y no imputable incluidos.",
-      "unattributedHelp": "«No imputable»: gastos registrados antes de que la factura se desglosara por actor. No tienen un origen conocido y nunca lo tendrán — repartirlos entre los demás sería inventar una cifra. Esta línea disminuye por sí sola, ya que la lectura es mensual."
-    },
-    "money": {
-      "cap_label": "Límite mensual — editable",
-      "cap_blocks_label": "Este límite BLOQUEA.",
-      "cap_blocks_body": "Al alcanzarlo, la funcionalidad se degrada y lo escribe en la traza de la ejecución: no sigue gastando. Bajarlo por debajo del gasto ya comprometido este mes detiene el motor de inmediato.",
-      "alert_label": "Umbral de alerta por actor — editable",
-      "alert_warns_label": "Este umbral NO DETIENE NADA.",
-      "alert_warns_body": "Marca una línea de esta tabla, recalculada en cada carga. Nadie se ve privado de nada: un valor incorrecto genera ruido, nunca un incidente.",
-      "save": "Guardar ambos ajustes",
-      "saving": "Guardando…",
-      "saved": "Límite y umbral de alerta guardados.",
-      "save_failed": "No se ha podido guardar. No se ha escrito ninguno de los dos valores.",
-      "help": "Ambos están acotados en el servidor (de 0 a 100 000 $) y registrados en el historial de auditoría, con el valor anterior y el nuevo. Un límite de 0 corta todo el gasto con ese proveedor: es un uso previsto."
-    },
-    "distribution": {
-      "title": "Distribución observada (últimos 30 días)",
-      "runs": "{count} ejecución(es) observada(s).",
-      "percentiles": "Puntuación mediana {p50} · percentil 90 {p90}.",
-      "notified": "{avg} experto(s) por encima del umbral, de media por anuncio.",
-      "extremes": "{zero} ejecución(es) sin nadie por encima del umbral, {all} con todo el mundo.",
-      "empty": "Ninguna ejecución observada: el motor aún no se ha ejecutado, no hay nada que leer.",
-      "unavailable": "No se ha podido leer la distribución.",
-      "help": "Ajustar un umbral sin mirar esta distribución equivale a elegir un número al azar."
-    },
-    "coverage": {
-      "title": "Cobertura",
-      "line": "{complets} ejecución(es) completas de {total} · {manquants} experto(s) sin puntuar.",
-      "empty": "Ninguna ejecución observada.",
-      "unavailable": "No se ha podido leer la cobertura.",
-      "help": "Un experto elegible sin puntuar es un experto descartado sin motivo. Este número debe permanecer en cero."
-    },
-    "fields": {
-      "feed": "Umbral del flujo",
-      "feed_help": "Por debajo, el anuncio no aparece en el flujo del experto. En 0, lo ve todo perfil elegible.",
-      "notify": "Umbral de notificación",
-      "notify_help": "Por encima, se avisa al experto y el anuncio se marca «correspondencia fuerte».",
-      "batch": "Tamaño de los lotes",
-      "batch_help": "Número de perfiles enviados al motor por llamada.",
-      "notify_enabled": "Activar las notificaciones",
-      "notify_enabled_help": "Se deja inactivo mientras nadie haya leído la distribución: un umbral adivinado avisaría al azar.",
-      "model": "Modelo: {model}. Cambiarlo cambia la escala — ambos umbrales dejan de ser válidos."
-    },
-    "failures": {
-      "title": "Resúmenes no producidos (últimos 30 días)",
-      "none": "Se han escrito todos los resúmenes solicitados.",
-      "unavailable": "No se ha podido leer el contador. No es cero: es desconocido.",
-      "help": "Tres causas, nunca sumadas: no exigen la misma acción. Una candidatura sin resumen se presenta con normalidad: le falta un texto, no un expediente.",
-      "cause": {
-        "plafond": "Límite de gasto alcanzado",
-        "modele_indisponible": "Modelo no disponible",
-        "reponse_illisible": "Respuesta ilegible"
-      },
-      "surface": {
-        "candidature": "al presentar",
-        "pitch": "al abrir una tarjeta"
-      }
-    },
-    "overruns": {
-      "title": "Límite de reactivación superado (últimos 30 días)",
-      "none": "Ningún exceso: nadie se ha acercado al límite.",
-      "unavailable": "No se ha podido leer el contador. No es cero: es desconocido.",
-      "experts": "{count, plural, one {# experto} other {# expertos}}",
-      "help": "El umbral no es ajustable aquí, y es deliberado: una defensa antiabuso no es un parámetro comercial. Un exceso significa que una activación no se programó; si este contador sube, hay que buscar un bucle en el cliente, no subir el umbral.",
-      "origine": {
-        "profil_modifie": "Perfil modificado",
-        "ouverture_croisee": "Vuelta a la escucha",
-        "disponibilite": "Cambio de disponibilidad",
-        "cv_reanalyse": "CV reanalizado"
-      }
-    },
-    "unfinished": {
-      "title": "Emparejamientos no finalizados",
-      "none": "Ninguno: todos los anuncios publicados se han procesado por completo.",
-      "unavailable": "No se ha podido leer el contador. No es cero: es desconocido.",
-      "depuis": "desde el {date}",
-      "help": "Un emparejamiento sin finalizar no produce candidatos para la organización ni anuncios para el experto, y nada lo indica en sus pantallas. «Abandonado» es el único estado que exige intervención: superado el límite de intentos, el anuncio ya no se reintenta solo. Los tres estados nunca se suman: no exigen la misma acción.",
-      "etat": {
-        "en_cours": "Se reintentará",
-        "abandonne": "Abandonado: requiere intervención",
-        "jamais_tente": "Nunca intentado: el disparador no funcionó"
-      }
-    }
+    "ecosystem_title": "Ecosistema {name}",
+    "filters_one_line": "Un filtro CLASIFICA: decide lo que ve el experto, en una escala de 0 a 10.",
+    "field_feed": "Filtro del flujo — nota mínima para aparecer",
+    "field_notify": "Filtro de notificación — nota mínima para ser notificado",
+    "field_notify_enabled": "Enviar las notificaciones de emparejamiento",
+    "field_model": "Modelo de clasificación",
+    "spread_unavailable": "Distribución no disponible: la lectura ha fallado. No es «ningún dato».",
+    "spread_none_yet": "Todavía no hay ninguna ejecución en esta escala: la distribución se llenará con los próximos emparejamientos.",
+    "spread_effect": "{included} expertos entran, {excluded} quedan fuera — de {total} puntuados.",
+    "spread_effect_notify": "{included} expertos serían notificados, de {total} puntuados.",
+    "model_changes_scale": "Cambiar de modelo cambia la escala de las notas: ambos filtros se volverán a guardar con este valor.",
+    "blocked_empty": "Rellene ambos filtros para guardar.",
+    "blocked_range": "Un filtro es un número entre 0 y 10.",
+    "blocked_order": "El filtro de notificación no puede estar por debajo del filtro del flujo: notificaríamos sobre un anuncio invisible.",
+    "blocked_unchanged": "No hay ningún cambio que guardar."
   },
   "admin_durees": {
     "title": "Duraciones del mercado",
@@ -4105,36 +4033,36 @@
     "annonces_tronquees": "Esta lista está incompleta: muestra tus {plafond} anuncios modificados más recientemente. Los más antiguos no aparecen."
   },
   "admin_seuils": {
-    "title": "Umbrales de decisión",
-    "intro": "Estos umbrales deciden quién se aprueba sin intervención humana. Vivían en la base de datos sin pantalla: cambiarlos exigía acceso directo y no dejaba ninguna traza. Cada cambio hecho aquí queda ahora registrado.",
+    "title": "Notas de decisión",
+    "intro": "Estas notas deciden quién se aprueba sin intervención humana. Vivían en la base de datos sin pantalla: cambiarlas exigía acceso directo a la base y no dejaba ninguna traza. Cada modificación hecha aquí queda registrada.",
     "loading": "Cargando…",
     "save": "Guardar",
     "saving": "Guardando…",
-    "saved": "Umbral guardado y registrado.",
+    "saved": "Nota guardada y registrada.",
     "not_editable": "Este proveedor no es configurable aquí: ningún camino del código lo lee.",
-    "decisive_label": "Umbral que decide (0 a 10)",
+    "decisive_label": "Nota que decide (0 a 10)",
     "decisive_help": "Valor leído por el código: {cle}.",
     "inert_label": "confidence_threshold (no leída por este camino)",
     "inert_help": "Esta columna existe y NUNCA se usa para decidir aquí — la decisión se toma sobre auto_approve_threshold. Se muestra en solo lectura en vez de ocultarse: oculta, acabaría rellenada por alguien que creería estar configurando algo.",
     "flags_label": "Señales descalificantes",
     "flags_help": "Un perfil con cualquiera de estas señales pasa a revisión manual SEA CUAL SEA su puntuación. Se requiere al menos una: desmarcarlas todas no las desactiva, el código volvería a la lista por defecto.",
-    "audit_note": "Cada cambio se escribe en el registro de auditoría: quién, cuándo, desde qué valor y desde qué dirección. Es exactamente lo que faltó para entender el paso de 9 a 8 del umbral de expertos, en junio.",
+    "audit_note": "Cada modificación se escribe en el registro de auditoría: quién, cuándo, desde qué valor y desde qué dirección. Es justo lo que faltaba para entender el paso de 9 a 8 de la nota de experto, en junio.",
     "types": {
       "profile_verification": {
         "name": "Validación de un experto",
-        "effect": "Por encima de este umbral, y sin señal descalificante, el perfil se aprueba SIN intervención. Por debajo, llega a /admin/experts para decidirse a mano. NUNCA se rechaza automáticamente."
+        "effect": "Por encima de esta nota, y sin ninguna marca descalificadora, el perfil se aprueba SIN intervención. Por debajo, llega a /admin/experts para decidirse a mano. NUNCA se rechaza automáticamente."
       },
       "ai_web_search": {
         "name": "Verificación de una empresa",
-        "effect": "Por encima de este umbral, la organización se aprueba SIN intervención. Por debajo, llega a /admin/organisations. NUNCA se rechaza automáticamente. Si no existe proveedor activo para el país, la verificación pasa directamente a revisión manual, sin llamada al modelo."
+        "effect": "Por encima de esta nota, la organización se aprueba SIN intervención. Por debajo, llega a /admin/organisations. NUNCA se rechaza automáticamente. Si no existe ningún proveedor activo para el país, la verificación pasa directamente a revisión manual, sin llamada al modelo."
       },
       "opportunity_quality_check": {
         "name": "Calidad de un anuncio",
-        "effect": "Por encima de este umbral, el anuncio se publica. Por debajo, pasa a revisión manual. El control también busca datos de contacto en claro: un anuncio que evita la mensajería evita el desbloqueo."
+        "effect": "Por encima de esta nota, el anuncio se publica. Por debajo, pasa a revisión manual. El control también busca datos de contacto en claro: un anuncio que esquiva la mensajería esquiva el desvelado."
       },
       "official_api": {
         "name": "Registro oficial",
-        "effect": "Consulta el registro oficial del país y aporta sus datos al analizador de coherencia. No emite ningún veredicto: su columna de umbral no la lee ningún camino."
+        "effect": "Consulta el registro oficial del país y aporta sus datos al analizador de coherencia. No produce ningún veredicto: su columna de nota no la lee ningún camino."
       }
     },
     "flags": {
@@ -4145,12 +4073,12 @@
     },
     "no_decider": {
       "title": "Países sin proveedor de decisión",
-      "explain": "Para estos países, ninguna verificación de empresa puede decidirse automáticamente: pasa a revisión manual, sin llamada al modelo y sin gasto. No es una avería — es el rechazo explícito que sustituyó a un umbral adivinado."
+      "explain": "Para estos países, ninguna verificación de empresa puede decidirse automáticamente: pasa a revisión manual, sin llamada al modelo y sin gasto. No es una avería — es el rechazo explícito que sustituye a una nota adivinada."
     },
     "errors": {
       "load_failed": "No se pudo cargar.",
       "save_failed": "No se pudo guardar.",
-      "seuil_invalide": "El umbral debe ser un número entero entre 0 y 10.",
+      "seuil_invalide": "La nota debe ser un número entero entre 0 y 10.",
       "colonne_inerte": "Esta columna no se lee en este camino: configurarla no cambiaría nada.",
       "cle_non_lue": "Este valor no se lee en este camino.",
       "drapeaux_invalides": "Señal desconocida.",

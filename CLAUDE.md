@@ -346,6 +346,46 @@ Le motif, pour que personne ne prenne ça pour un oubli et ne l'ouvre :
 Décision prise par Youssef, sur les trois arguments ci-dessus. **Rouvrir ce point suppose de trancher
 le point 2 d'abord.**
 
+**D.9 — LE MOT « SEUIL » EST INTERDIT. Quatre mots, un par comportement.**
+Trois worktrees ont posé **trente-cinq** réglages sur plusieurs semaines. Chacun a écrit « seuil »
+parce que c'était le mot du moment, et personne n'a imposé de vocabulaire. Résultat : **le
+propriétaire du produit a ouvert `/admin/matching` et n'a pas su quoi faire.** C'est le seul verdict
+qui compte, et il est sans appel.
+
+| Mot | Ce qu'il fait | Exemple |
+|---|---|---|
+| **PLAFOND** | il **BLOQUE** — atteint, la fonctionnalité s'arrête | dépense mensuelle, quota d'analyses de CV |
+| **ALERTE** | elle **SIGNALE** — elle marque, elle n'empêche rien | dépense par organisation, par expert |
+| **FILTRE** | il **TRIE** — il décide ce qui est montré | `feed_threshold`, `notify_threshold` |
+| **NOTE** | elle **JUGE** — elle qualifie un dossier | auto-approbation d'expert, vérification d'entreprise, qualité d'annonce |
+
+**La règle : tout nouveau réglage se nomme plafond, alerte, filtre ou note — à l'écran, dans la doc,
+et dans tout code neuf. Un réglage qui ne rentre dans aucun des quatre SE DIT** (une durée, un
+référentiel, un interrupteur, un choix de modèle) **plutôt que de se faire appeler « seuil » par
+défaut.** Un worktree qui écrit « seuil » réintroduit le défaut de ce lot.
+
+> ⚠️ **L'EXCEPTION, ET ELLE EST DANS LE MÊME PARAGRAPHE — SINON LA RÈGLE MENT AU PREMIER `grep`.**
+> **Les colonnes existantes y échappent encore** : `feed_threshold`, `notify_threshold`,
+> `confidence_threshold`, `auto_approve_threshold`, `seuil_mensuel_usd`. Les clients Supabase ne
+> sont pas typés (§E.1) : une colonne est lue **par son nom, dans une chaîne**, et un renommage
+> **casse au runtime, en silence**, dans tout code qui la cite. Leur renommage est un **lot à lui
+> seul**, avec son propre contrôle. C'est une décision, pas un oubli.
+> Ce qui prend le vocabulaire **dès maintenant** : les écrans, la documentation, les messages i18n,
+> les **noms de contraintes** (aucun lecteur en chaîne — `matching_settings_filtre_flux_check`), et
+> tout code neuf.
+
+**D.10 — TOUTE NOTE DU PRODUIT EST SUR 0-10. Il n'y a pas de seconde échelle.**
+Les filtres de pertinence vivaient en **0-1**, les notes de jugement en **0-10**, et rien ne le disait
+à l'écran : **« 1 » signifiait *parfait* d'un côté et *médiocre* de l'autre**, sur la même page.
+Le reranker produit du 0-1 — c'est sa nature, on n'y touche pas : sa sortie est multipliée par 10
+**au seul point où un score entre dans le système**, la frontière avec le fournisseur
+([lib/matching/rerank.ts](lib/matching/rerank.ts)).
+**Aucune autre conversion n'existe**, et c'est gardé par
+[scripts/diag-echelle-des-notes.mjs](scripts/diag-echelle-des-notes.mjs). Convertir à l'affichage
+laisserait deux représentations ; convertir à la comparaison la mettrait sur **quatre** sites, et en
+oublier un transformerait `score < 7` en `score < 0.7` — tout passe, ou rien ne passe, **en silence**.
+Détail et raisons complets : **§P3.0** dans [docs/produit.md](docs/produit.md).
+
 ---
 
 ### M1 ter — La fusion de `feat/s1-ux-profil`, et les deux écrans partagés
@@ -656,7 +696,7 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **67** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
+Sur les **68** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
 17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois dernières,
 `logo_organisation_bucket`, `format_numero_identification` et `pays_du_profil_sans_defaut`,
 **n'insèrent rien** : elles créent un bucket, ajoutent des colonnes, retirent deux `DEFAULT 'FR'` et
@@ -1159,6 +1199,39 @@ paramètres, fermé au lot 4.1).
 quoi il porte**, et l'étiquette se vérifie **en relisant le code qui produit le chiffre** — pas en
 recomptant. Un `NON VÉRIFIÉ` bâti sur une étiquette non relue est pire qu'un silence : il **oriente**
 la recherche, et il l'oriente à côté.
+
+**E.25 — PLUSIEURS MAINS, AUCUNE CONVENTION : LE PROPRIÉTAIRE NE SAIT PLUS LIRE SON PRODUIT.**
+Ce n'est **pas un défaut de code**. Rien ne plantait, aucun test n'aurait rougi, et chaque réglage
+pris isolément était juste. C'est ce que produit **l'absence de convention quand plusieurs mains
+écrivent en parallèle** — et c'est le seul piège de cette liste qu'aucun contrôle n'aurait pu
+trouver, parce qu'il ne se voit que devant l'écran.
+
+**Les faits, mesurés.** Trois worktrees, plusieurs semaines, **trente-cinq réglages** — quand on en
+comptait **neuf**. Le mot « seuil » désignait **quatre comportements incompatibles** : ce qui bloque,
+ce qui alerte, ce qui trie, ce qui juge. Deux échelles coexistaient sans que rien ne le dise, si bien
+que **« 1 » voulait dire *parfait* d'un côté de la page et *médiocre* de l'autre**. Et **seize**
+valeurs n'avaient **aucun écran** — dont la grille tarifaire, dont dépend tout le compteur d'argent.
+
+**Ce qui est révélateur, c'est la façon dont ça s'est su.** Pas par un audit, pas par un contrôle :
+**Youssef a ouvert `/admin/matching` et n'a rien compris.** Un audit aurait dit « tout est cohérent »,
+parce que chaque morceau l'était.
+
+**Trois leçons, et la troisième est la plus coûteuse à apprendre :**
+1. **Un vocabulaire ne s'installe pas tout seul.** Chacun prend le mot du moment ; les mots
+   divergent ; et la divergence ne se voit qu'une fois qu'elle est partout. §D.9 impose les quatre
+   mots, et nomme l'exception pour que la règle ne mente pas au premier `grep`.
+2. **Une échelle est une convention, donc elle se décide et elle se garde.** §D.10, et le contrôle
+   qui interdit une seconde conversion.
+3. **UN INVENTAIRE NE SE COMPTE PAS DE MÉMOIRE.** Neuf annoncés, trente-cinq trouvés — un facteur
+   quatre. C'est la même famille que §E.16 (« un inventaire incomplet se lit comme exhaustif »),
+   mais à l'échelle du produit entier, et sur ce qu'un propriétaire croit connaître de son propre
+   back-office.
+
+**Ce qui en découle pour la méthode** : avant de refaire un écran, **recenser d'abord ce qu'il
+gouverne** — où chaque valeur vit, **qui la lit vraiment** (fichier et ligne), ce qu'elle fait, son
+échelle, et si un écran l'expose. Le recensement a coûté une phase entière, et il a changé le lot :
+deux des prémisses de départ étaient fausses, et la vraie cause n'était pas l'écran mais le
+vocabulaire.
 
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

@@ -1,31 +1,40 @@
 import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
+import { logAudit } from '@/lib/audit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
- * GET / PATCH /api/admin/matching-settings — les deux seuils, et la dépense.
+ * GET / PATCH /api/admin/matching-settings — CE QUI SE DÉCIDE, ET RIEN D'AUTRE.
  *
- * ═══ POURQUOI CET ÉCRAN EXISTE ═════════════════════════════════════════════
- *   Le score d'un reranker n'est pas calibré : aucun seuil ne peut être deviné,
- *   et aucun ne peut être traduit depuis l'ancienne échelle de Claude (7/10 ne
- *   vaut PAS 0,7). Il faut LIRE la distribution réelle des runs, puis régler.
- *   Sans écran, ce réglage demanderait un développeur à chaque fois — et il
- *   resterait donc au réglage initial, c'est-à-dire à personne notifié.
+ * ┌─ CE QUI A ÉTÉ RETIRÉ D'ICI, ET POURQUOI ────────────────────────────────┐
+ * │ Cette route servait DIX lectures : réglages, distribution, dépense,      │
+ * │ couverture, pannes de rédaction, dépassements de relance, runs           │
+ * │ inachevés, dépense par acteur… L'écran qu'elle alimentait mélangeait le  │
+ * │ RÉGLAGE et la SUPERVISION, et devant cette page on ne savait plus lequel │
+ * │ des deux on était censé faire.                                           │
+ * │ La supervision vit désormais sur `/api/admin/supervision`. Ici ne reste  │
+ * │ que ce qu'on DÉCIDE — plus la distribution, qui n'est pas de la          │
+ * │ supervision mais l'outil sans lequel régler un filtre est un tirage au   │
+ * │ sort.                                                                    │
+ * └────────────────────────────────────────────────────────────────────────┘
  *
- * ═══ CE QUE LA ROUTE REND EN PLUS DES RÉGLAGES ════════════════════════════
- *   La DISTRIBUTION observée (matching_threshold_health) et la DÉPENSE du mois
- *   (ai_spend_status). Un seuil réglé sans voir la distribution est un nombre
- *   choisi au hasard ; un plafond qu'on ne voit pas est un plafond qu'on
- *   découvre atteint.
+ * ═══ LE CHANGEMENT DE MODÈLE NE SE FAIT PLUS SEUL ════════════════════════
+ *   Changer de reranker change l'ÉCHELLE : les deux filtres deviennent faux, et
+ *   les notes anciennes ne sont plus comparables aux nouvelles. L'écran le
+ *   disait — en gris, sous le champ. Une phrase en gris ne protège de rien.
  *
- * ═══ CE QUE LA ROUTE REFUSE ═══════════════════════════════════════════════
- *   Un seuil de notification SOUS celui du flux. On notifierait alors un expert
+ *   La route EXIGE désormais que le même appel repose les deux filtres. Le
+ *   garde-fou n'est plus une phrase, c'est une CONDITION : on ne peut pas
+ *   changer de modèle sans avoir été obligé de redécider ce qu'on filtre.
+ *
+ * ═══ CE QUE LA ROUTE REFUSE, ET POURQUOI ELLE LE DIT ═════════════════════
+ *   Un filtre de notification SOUS celui du flux : on notifierait un expert
  *   pour une annonce qu'il ne verrait pas en se connectant. La base porte la
- *   même contrainte ; on refuse ici pour rendre une raison lisible plutôt qu'une
- *   erreur Postgres.
+ *   même contrainte ; on refuse ici pour rendre une RAISON lisible plutôt
+ *   qu'une erreur Postgres.
  */
 
 function json(data: unknown, status = 200): Response {
@@ -33,6 +42,15 @@ function json(data: unknown, status = 200): Response {
     status,
     headers: { 'content-type': 'application/json' },
   })
+}
+
+const UUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
+
+/** Un nombre fini dans des bornes. `null` si ce n'en est pas un. */
+function nombreDansBornes(v: unknown, min: number, max: number): number | null {
+  const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN
+  if (!Number.isFinite(n) || n < min || n > max) return null
+  return n
 }
 
 export async function GET(request: NextRequest): Promise<Response> {
@@ -45,51 +63,19 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
   const admin = auth.supabaseAdmin
 
-  const [
-    reglagesRes,
-    domainesRes,
-    distributionRes,
-    depenseRes,
-    couvertureRes,
-    pannesRes,
-    depassementsRes,
-    inachevesRes,
-    parActeurRes,
-    seuilsActeurRes,
-  ] = await Promise.all([
-    admin
-      .from('matching_settings')
-      .select('domain_id, feed_threshold, notify_threshold, notify_enabled, rerank_model, rerank_batch_size, updated_at'),
-    admin.from('domains').select('id, slug, name'),
-    admin.rpc('matching_threshold_health'),
-    admin.rpc('ai_spend_status'),
-    admin.rpc('matching_coverage_health'),
-    // LES RÉSUMÉS QUI N'ONT PAS PU ÊTRE ÉCRITS, par cause. Cet écran porte déjà
-    // la dépense Claude — laquelle ne sert QUE la rédaction des résumés, pas la
-    // mise en relation. Le compteur de pannes appartient donc au même bloc :
-    // « ce que l'IA coûte, et ce qu'elle n'a pas pu faire » se lisent ensemble.
-    admin.rpc('redaction_failure_health'),
-    // LES DEPASSEMENTS DU PLAFOND DE RELANCE. Le seuil n'a deliberement AUCUN
-    // champ sur cet ecran — un seuil anti-abus n'est pas un reglage commercial.
-    // En echange, il se LIT ici, a cote du compteur de pannes : un plafond
-    // qu'on ne peut pas observer est un plafond qu'on decouvre par un ticket.
-    admin.rpc('relance_overrun_health'),
-    // LES RUNS DE MISE EN RELATION QUI NE SE SONT JAMAIS ACHEVES. Au-dela du
-    // plafond de tentatives, l'annonce cesse d'etre rejouee et RIEN ne le
-    // disait : un ecran vide sans explication, cote expert comme cote
-    // organisation. On ne change pas la regle de rejeu, on la rend LISIBLE.
-    admin.rpc('matching_runs_inacheves'),
-    // ── QUI FAIT MONTER LA FACTURE ───────────────────────────────────────
-    //  Le plafond global dit COMBIEN ; il ne dit pas QUI. Une seule
-    //  organisation pouvait consommer le budget de tout l'écosystème sans
-    //  qu'aucun écran ne puisse le montrer.
-    //
-    //  RIEN N'EST STOCKÉ : la dépense par acteur est recalculée à CHAQUE
-    //  chargement, et l'alerte se déduit ici, en comparant au seuil. Un état
-    //  « en dépassement » écrit quelque part serait faux la seconde suivante.
-    admin.rpc('ai_spend_par_acteur', { p_limite: 10 }),
-    admin.from('ai_spend_seuils_acteur').select('acteur, seuil_mensuel_usd'),
-  ])
+  const [reglagesRes, domainesRes, depenseRes, seuilsActeurRes, modelesRes] =
+    await Promise.all([
+      admin
+        .from('matching_settings')
+        .select('domain_id, feed_threshold, notify_threshold, notify_enabled, rerank_model, rerank_batch_size, updated_at'),
+      admin.from('domains').select('id, slug, name'),
+      admin.rpc('ai_spend_status'),
+      admin.from('ai_spend_seuils_acteur').select('acteur, seuil_mensuel_usd'),
+      // LES MODÈLES PROPOSABLES SONT CEUX QUI ONT UN TARIF. Un modèle sans
+      // tarif journaliserait sa dépense à ZÉRO, et le plafond cesserait de la
+      // compter — en silence (§E.13). On ne peut donc pas en choisir un.
+      admin.from('ai_model_tarifs').select('model').eq('provider', 'rerank').order('model'),
+    ])
 
   if (reglagesRes.error) {
     console.error('[admin:matching-settings] lecture des réglages en échec', reglagesRes.error.message)
@@ -103,53 +89,29 @@ export async function GET(request: NextRequest): Promise<Response> {
     ]),
   )
 
-  // ── L'ALERTE SE CALCULE ICI, À L'AFFICHAGE ─────────────────────────────
-  //  Décision produit arbitrée : UN DÉPASSEMENT ALERTE, IL NE BLOQUE PAS. Rien
-  //  dans ce bloc n'écrit, ne refuse ni ne dégrade quoi que ce soit — il pose
-  //  un drapeau que l'écran affiche.
-  //
-  //  Les lignes `reste_non_detaille` et `non_imputable` n'ont PAS de seuil et
-  //  ne sont jamais « en alerte » : elles agrègent plusieurs acteurs, ou aucun.
-  //  Leur mettre un drapeau reviendrait à accuser quelqu'un qu'on n'a pas su
-  //  nommer.
-  const seuils = new Map(
-    ((seuilsActeurRes.data ?? []) as Array<{ acteur: string; seuil_mensuel_usd: number | string }>).map(
-      (s) => [s.acteur, Number(s.seuil_mensuel_usd)],
+  // ── LA RÉPARTITION, ÉCOSYSTÈME PAR ÉCOSYSTÈME ─────────────────────────────
+  //  Les filtres se règlent PAR écosystème. Montrer à côté d'eux la répartition
+  //  de tous les autres ferait régler sur une courbe qui n'est pas la sienne —
+  //  et ce serait pire que de ne rien montrer, parce qu'on aurait cru savoir.
+  //  C'est §E.24 : un chiffre juste sous une étiquette fausse.
+  const lignes = (reglagesRes.data ?? []) as Array<Record<string, unknown>>
+  const repartitions = await Promise.all(
+    lignes.map((r) =>
+      admin.rpc('matching_threshold_health', { p_domain_id: r.domain_id as string }),
     ),
   )
-  const parActeur = parActeurRes.error
-    ? null
-    : ((parActeurRes.data ?? []) as Array<Record<string, unknown>>).map((l) => {
-        const type = l.acteur_type as string
-        const seuil = seuils.get(type) ?? null
-        const depense = Number(l.depense_mois)
-        return {
-          ...l,
-          seuil_mensuel_usd: seuil,
-          en_alerte: seuil !== null && depense >= seuil,
-        }
-      })
 
   return json(
     {
-      reglages: ((reglagesRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
+      reglages: lignes.map((r, i) => ({
         ...r,
         domaine: domaines.get(r.domain_id as string) ?? null,
+        // `null` plutôt qu'un tableau vide : vide se lirait « aucune exécution »,
+        // `null` se lit « je n'ai pas pu regarder » (§E.22). L'écran ne dit pas
+        // la même phrase dans les deux cas.
+        distribution: repartitions[i]?.error ? null : (repartitions[i]?.data ?? []),
       })),
-      // Les trois lectures suivantes sont INFORMATIVES : si l'une échoue,
-      // l'écran doit rester utilisable pour régler les seuils. On rend `null`
-      // plutôt qu'un tableau vide — vide se lirait « aucune donnée », null se
-      // lit « indisponible », et ce n'est pas la même chose.
-      distribution: distributionRes.error ? null : (distributionRes.data ?? []),
       depense: depenseRes.error ? null : (depenseRes.data ?? []),
-      couverture: couvertureRes.error ? null : (couvertureRes.data ?? []),
-      pannes: pannesRes.error ? null : (pannesRes.data ?? []),
-      depassements: depassementsRes.error ? null : (depassementsRes.data ?? []),
-      inacheves: inachevesRes.error ? null : (inachevesRes.data ?? []),
-      par_acteur: parActeur,
-      // LES DEUX REGLAGES D ARGENT, rendus pour etre EDITES et non seulement lus.
-      //  Ils etaient affiches sans pouvoir etre changes — le defaut que §D.7
-      //  condamne, sur les deux seuls reglages qui touchent a l argent.
       seuils_acteur: seuilsActeurRes.error
         ? null
         : Object.fromEntries(
@@ -157,25 +119,12 @@ export async function GET(request: NextRequest): Promise<Response> {
               (r) => [r.acteur, Number(r.seuil_mensuel_usd)],
             ),
           ),
+      modeles: modelesRes.error
+        ? null
+        : ((modelesRes.data ?? []) as Array<{ model: string }>).map((m) => m.model),
     },
     200,
   )
-}
-
-type CorpsPatch = {
-  domain_id?: unknown
-  feed_threshold?: unknown
-  notify_threshold?: unknown
-  notify_enabled?: unknown
-  rerank_batch_size?: unknown
-}
-
-const UUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
-
-function nombreDansBornes(v: unknown, min: number, max: number): number | null {
-  const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN
-  if (!Number.isFinite(n) || n < min || n > max) return null
-  return n
 }
 
 export async function PATCH(request: NextRequest): Promise<Response> {
@@ -188,11 +137,18 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   }
   const admin = auth.supabaseAdmin
 
-  let body: CorpsPatch
+  let body: {
+    domain_id?: unknown
+    feed_threshold?: unknown
+    notify_threshold?: unknown
+    notify_enabled?: unknown
+    rerank_model?: unknown
+    rerank_batch_size?: unknown
+  }
   try {
-    body = (await request.json()) as CorpsPatch
+    body = (await request.json()) as typeof body
   } catch {
-    return json({ error: 'Invalid JSON', code: 'invalid_json' }, 400)
+    return json({ error: 'Invalid JSON body', code: 'invalid_json' }, 400)
   }
 
   const domainId = typeof body.domain_id === 'string' && UUID.test(body.domain_id) ? body.domain_id : null
@@ -203,7 +159,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   // au-dessus du filtre de notification sans qu'aucune garde ne le voie.
   const { data: actuel, error: lectureErr } = await admin
     .from('matching_settings')
-    .select('feed_threshold, notify_threshold')
+    .select('feed_threshold, notify_threshold, rerank_model')
     .eq('domain_id', domainId)
     .maybeSingle()
   if (lectureErr) {
@@ -236,6 +192,51 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     patch.notify_enabled = body.notify_enabled === true
   }
 
+  // ── LE CHANGEMENT DE MODÈLE ────────────────────────────────────────────
+  //  Il change l'ÉCHELLE des notes. Les deux filtres en vigueur deviennent
+  //  donc faux — pas « approximatifs » : faux, parce que le nouveau modèle ne
+  //  distribue pas ses notes comme l'ancien.
+  //
+  //  On EXIGE que le même appel repose les deux filtres. Le garde-fou cesse
+  //  d'être une phrase en gris sous un champ : c'est une condition, et on ne
+  //  peut pas la lire de travers.
+  if ('rerank_model' in body) {
+    const modele = typeof body.rerank_model === 'string' ? body.rerank_model.trim() : ''
+    if (!modele) return json({ error: 'Invalid model', code: 'bad_model' }, 400)
+
+    if (modele !== actuel.rerank_model) {
+      // Le modèle doit avoir un TARIF, sinon sa dépense se journaliserait à
+      // zéro et le plafond cesserait de la compter, sans rien dire (§E.13).
+      const { data: tarif, error: tarifErr } = await admin
+        .from('ai_model_tarifs')
+        .select('model')
+        .eq('model', modele)
+        .eq('provider', 'rerank')
+        .maybeSingle()
+      if (tarifErr) {
+        console.error('[admin:matching-settings] lecture du tarif en échec', tarifErr.message)
+        return json({ error: 'Query failed', code: 'db_error' }, 500)
+      }
+      if (!tarif) {
+        return json(
+          { error: 'Model has no price in the grid', code: 'model_without_price' },
+          400,
+        )
+      }
+
+      if (!('feed_threshold' in body) || !('notify_threshold' in body)) {
+        return json(
+          {
+            error: 'Changing the model requires setting both filters in the same request',
+            code: 'model_requires_filters',
+          },
+          400,
+        )
+      }
+      patch.rerank_model = modele
+    }
+  }
+
   if (Object.keys(patch).length === 0) {
     return json({ error: 'No editable field', code: 'invalid_json' }, 400)
   }
@@ -245,26 +246,39 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   if (notifyFinal < feedFinal) {
     return json(
       {
-        error: 'Notification threshold below feed threshold',
-        code: 'ordre_seuils',
-        feed: feedFinal,
-        notify: notifyFinal,
+        error: 'Notification filter below feed filter',
+        code: 'notify_below_feed',
       },
       400,
     )
   }
 
-  patch.updated_at = new Date().toISOString()
-  patch.updated_by = auth.user.id
-
-  const { error: majErr } = await admin
+  const { error } = await admin
     .from('matching_settings')
-    .update(patch)
+    .update({ ...patch, updated_at: new Date().toISOString(), updated_by: auth.user.id })
     .eq('domain_id', domainId)
-  if (majErr) {
-    console.error('[admin:matching-settings] écriture en échec', majErr.message)
+  if (error) {
+    console.error('[admin:matching-settings] update failed', error.message)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
 
-  return json({ ok: true, domain_id: domainId, applique: patch }, 200)
+  await logAudit({
+    supabaseAdmin: admin,
+    user_id: auth.user.id,
+    domain_id: auth.domain.id,
+    action: 'matching_settings_updated',
+    entity_type: 'matching_settings',
+    entity_id: domainId,
+    detail: {
+      ecosysteme: domainId,
+      avant: {
+        feed_threshold: Number(actuel.feed_threshold),
+        notify_threshold: Number(actuel.notify_threshold),
+        rerank_model: actuel.rerank_model,
+      },
+      apres: patch,
+    },
+  })
+
+  return json({ ok: true, domain_id: domainId, ...patch }, 200)
 }
