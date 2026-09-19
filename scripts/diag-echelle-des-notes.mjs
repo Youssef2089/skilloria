@@ -287,11 +287,27 @@ section('E. L estampille est ECRITE, et elle est LUE')
 // ═══════════════════════════════════════════════════════════════════════════
 
 const moteur = sansCommentaires(lire('lib/matching/index.ts'))
-const estampilles = (moteur.match(/echelle:\s*10\b/g) ?? []).length
+
+/**
+ * ⚠️ COMPTER NE SUFFIT PAS — TROUVE PAR MUTATION (§G.5), ET C'EST §E.8.
+ *    Ma premiere version exigeait « au moins deux `echelle: 10` » dans le
+ *    fichier. Or il y en a TROIS : les deux points de sortie, PLUS la
+ *    declaration du type. Retirer l'estampille d'un point de sortie en laissait
+ *    deux, et le controle restait VERT sur la moitie des runs devenus
+ *    illisibles. Une assertion doit etre ANCREE SUR LE BLOC qu'elle vise, pas
+ *    lachee sur le fichier.
+ */
+const blocsDeTrace = [...moteur.matchAll(/construireTrace\(\{([\s\S]{0,1400}?)\n\s*\}\)/g)]
 ok(
-  estampilles >= 2,
-  `le moteur estampille CHAQUE trace (${estampilles} occurrence(s))`,
-  'il y a deux points de sortie — le run sans matiere et le run complet. En estampiller un seul rendrait la moitie des runs invisible a la lecture',
+  blocsDeTrace.length >= 2,
+  `les deux points de sortie du run sont bien trouves (${blocsDeTrace.length})`,
+  'le run sans matiere et le run complet ecrivent chacun une trace ; si ce motif ne les voit plus, ce controle ne garde plus rien',
+)
+const sansEstampille = blocsDeTrace.filter((b) => !/echelle:\s*10\b/.test(b[1])).length
+ok(
+  blocsDeTrace.length >= 2 && sansEstampille === 0,
+  'CHAQUE trace ecrite porte l estampille d echelle',
+  `${sansEstampille} trace(s) sans estampille — les runs correspondants seraient invisibles a la lecture, qui ne prend que les runs estampilles`,
 )
 ok(
   /matching_stats->>'echelle'\)?\s*=\s*'10'/.test(migration),
