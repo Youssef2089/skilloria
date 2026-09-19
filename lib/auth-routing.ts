@@ -25,7 +25,39 @@
  *   un autre call-site finit par dépendre de cette distinction.
  */
 
-export const FALLBACK_DASHBOARD_URL = '/dashboard'
+/**
+ * LA DESTINATION DE REPLI QUAND ON NE SAIT PAS OÙ ENVOYER QUELQU'UN.
+ *
+ * ┌─ ELLE VALAIT `/dashboard`, ET `/dashboard` N'EST PAS UN ÉCRAN ─────────┐
+ * │ `app/[locale]/dashboard/` ne porte PAS de `page.tsx` : seulement un     │
+ * │ `layout.tsx` et quatre sous-dossiers. Ce chemin tombait donc sur        │
+ * │ `[...rest]`, qui appelle `notFound()`.                                  │
+ * │                                                                          │
+ * │ Un 404 PROPRE — mais un 404, servi à quelqu'un qui venait de             │
+ * │ RÉINITIALISER SON MOT DE PASSE AVEC SUCCÈS. C'est aussi le repli d'un     │
+ * │ compte fantôme (§E.23) et de tout type inconnu.                          │
+ * └────────────────────────────────────────────────────────────────────────┘
+ *
+ * ═══ POURQUOI RIEN NE POUVAIT LE VOIR ═══════════════════════════════════
+ *   Une route est une CHAÎNE (famille §E.1) : ni `tsc` ni `next build` n'en
+ *   voient rien. Et un balayage des littéraux AU POINT D'APPEL ne le voyait pas
+ *   non plus — il n'existe aucun `router.push('/dashboard')` dans le dépôt. Le
+ *   chemin vit dans cette constante, rendue par une fonction, appelée ailleurs.
+ *   **C'est exactement ce qui l'a gardé invisible.**
+ *   Gardé désormais par [scripts/diag-liens-morts.mjs](../scripts/diag-liens-morts.mjs),
+ *   qui balaie TOUS les littéraux de chemin — pas les points d'appel.
+ *
+ * ═══ POURQUOI L'ACCUEIL, ET PAS UN TABLEAU DE BORD ══════════════════════
+ *   On arrive ici parce que le type est INCONNU. Choisir un tableau de bord
+ *   serait deviner : la garde de rôle du layout renverrait la personne ailleurs,
+ *   et on aurait seulement DÉPLACÉ le cul-de-sac. L'accueil existe, il
+ *   n'exige aucune population, et il porte la navigation.
+ *
+ * ⚠️ LE NOM A CHANGÉ AVEC LA VALEUR. `FALLBACK_DASHBOARD_URL` pointant sur
+ *    l'accueil aurait été un chiffre juste sous une étiquette fausse (§E.24) —
+ *    et c'est précisément le genre d'écart qui se cite ensuite.
+ */
+export const FALLBACK_ROUTE_URL = '/'
 
 export function dashboardUrlForUserType(userType: string | null | undefined): string {
   switch (userType) {
@@ -40,7 +72,8 @@ export function dashboardUrlForUserType(userType: string | null | undefined): st
     case 'admin':
       return '/admin'
     default:
-      return FALLBACK_DASHBOARD_URL
+      // Type inconnu : on ne devine pas. Cf. le commentaire de la constante.
+      return FALLBACK_ROUTE_URL
   }
 }
 

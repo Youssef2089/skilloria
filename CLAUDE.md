@@ -1496,6 +1496,141 @@ les empêche de grandir ; il ne les déclare pas légitimes.
 > 4.1c, pas à moitié ici.** Ce que 4.1b a fermé sur ce fichier : plus aucune candidature n'est rangée
 > sous un motif **inventé** (« annonce clôturée » sur une panne).
 
+**E.29 — UN COMMENTAIRE VRAI D'UN CAS COUVRE UN CAS VOISIN OÙ IL EST FAUX.**
+
+Ce n'est pas §E.7 — là, le commentaire dit **quelque chose de faux**, et un contrôle s'y trompe.
+Ici le commentaire est **exact**, et c'est ce qui le rend coûteux : il **arrête la recherche**. Le
+lecteur voit que la question a été posée, lit une réponse juste, et passe — sans voir que la ligne
+qu'elle couvre traite **deux cas**, et que la réponse n'en couvre qu'un.
+
+**Trois occurrences, toutes de la classe §E.22, et la troisième a fait le tour du produit :**
+
+| Où | Le commentaire, VRAI de… | …et FAUX du voisin |
+|---|---|---|
+| `app/api/admin/user-purge/route.ts` (§E.22 ②) | « c'est un AVERTISSEMENT, aucune des trois barrières n'en dépend » — vrai des trois | la **quatrième**, l'acquittement, ne se lève que si la liste est non vide |
+| `lib/account-purge.ts` (§E.27 forme B) | « best-effort, ne bloque pas la purge » — vrai de la suppression de **fichier** | le même `prof` commande l'**anonymisation du profil**, qui est l'obligation légale |
+| `lib/candidatures/lifecycle.ts` (lot 4.1b) | « publication introuvable (supprimée / hors scope) : plus rien ne peut en sortir » — vrai d'une **suppression** | **faux d'une panne de lecture** : toute candidature en attente basculait en « Annonce clôturée », des deux côtés à la fois |
+
+**La troisième mérite d'être lue en entier.** Une seule lecture en échec sur `publications` faisait
+paraître **toute la place éteinte** : l'organisation voyait son pipeline mort, l'expert voyait ses
+candidatures clôturées, et le motif accusait **l'annonce**. Le commentaire, lui, disait vrai — de
+l'autre cas.
+
+**La question à poser devant tout commentaire qui justifie un repli : DE QUOI EXACTEMENT
+EST-IL VRAI ?** S'il justifie « absent », il ne justifie pas « illisible ». S'il justifie « supprimé »,
+il ne justifie pas « en panne ». Ces paires ont la même **forme** en mémoire (`null`, `[]`, `0`) et
+jamais le même **sens** — c'est toute §E.22 en une ligne.
+
+> **Et la parade ne peut pas être « mieux commenter ».** Un commentaire plus précis reste un
+> commentaire : il n'empêche rien. Ce qui ferme la porte est le **type** qui rend les deux cas
+> distincts — `lib/lecture/liste.ts`, `etatRepartition`, ou un `null` dont le sens est *je ne sais
+> pas* et que l'appelant doit traiter.
+
+---
+
+**E.30 — UN TYPE DÉCLARÉ SANS CHAMP D'ERREUR REND L'ÉCHEC IMPENSABLE.**
+
+La forme la plus retorse trouvée au lot 4.1b, parce qu'elle **disculpe l'auteur** : il n'a pas
+négligé la panne, **le compilateur lui interdisait de l'écrire**.
+
+**Le cas source.** `loadReferentielLabels`
+([lib/publication-synthesis.ts](lib/publication-synthesis.ts)) déclare son client Supabase à la main,
+pour être appelable sans le vrai client :
+
+```ts
+supabaseAdmin: {
+  from: (t: string) => {
+    select: (c: string) => { in: (col: string, v: string[]) => PromiseLike<{ data: unknown }> }
+  }
+}
+```
+
+**`{ data: unknown }`. Sans `error`.** Écrire `specRes.error` ne compilait pas. La seule façon
+d'écrire ce module était donc d'**ignorer la panne** — et une lecture en échec produisait une annonce
+affichée **sans spécialité ni zone**, qui se lit *« cette annonce ne vise personne en particulier »*,
+sur la synthèse même que l'expert consulte pour décider.
+
+**Pourquoi c'est une classe et pas un cas.** Un type structurel écrit à la main est un **contrat que
+quelqu'un a recopié**, et on recopie ce qu'on utilise : la surface du **succès**. La surface de
+l'**échec** est précisément celle qu'on n'utilise pas encore — donc celle qu'on oublie, et qu'on rend
+alors inutilisable pour toujours.
+
+**La règle : quand on écrit un type structurel pour découpler, on recopie la surface d'ERREUR en
+premier.** Un type qui ne peut pas exprimer l'échec le rend impensable, et l'absence de gestion
+d'erreur cesse d'être un choix.
+
+> **Où chercher, et c'est la consigne pour les 109 emplacements restants** (`app/api`, lots 4.1c et
+> 4.1d) : tout client déclaré à la main, tout type d'emprunt, tout `as` qui rétrécit un résultat de
+> requête. Partout où le type ne peut pas dire « ça a raté », personne ne l'a écrit — et ce n'est pas
+> une négligence à reprocher, c'est une porte à rouvrir.
+
+---
+
+**E.31 — UNE GARDE QUI EST UNE CONTRAINTE DE SCHÉMA NE DÉPEND D'AUCUNE DISCIPLINE.**
+
+Règle **positive**, et elles sont rares : celle-ci dit quoi faire, pas quoi éviter.
+
+**Le modèle, trouvé en jugeant les 45 du lot 4.1b, et il n'est pas de moi.**
+`findPersonalOrg` ([lib/collaboration/ensure-personal-org.ts](lib/collaboration/ensure-personal-org.ts))
+rend `null` sur une panne de lecture. C'est **exactement** la forme de §E.22 — et pourtant rien ne
+casse : l'appelant **crée**, l'**index unique partiel** refuse le doublon (`23505`, rattrapé), et si
+la relecture échoue à son tour la fonction **lève**.
+
+**La valeur neutre ne PEUT PAS produire de doublon, parce que la garde n'est pas la lecture : c'est
+le schéma.**
+
+**Ce que ça change, et c'est la hiérarchie à retenir :**
+
+| Où vit la garde | Ce qui la tient | Ce qui la casse |
+|---|---|---|
+| **une contrainte de base** | le moteur, sur toute écriture, quel que soit l'appelant | une migration qui la retire — visible, versionnée, relue |
+| du **code de garde** | la discipline de chaque appelant | un nouvel appelant qui l'oublie (§E.20 : le dépôt portait **quatre** copies du même chargement) |
+| un **commentaire** | rien | le temps (§E.29) |
+
+**La règle : partout où une règle peut descendre en contrainte de base, elle y descend.** Le code de
+garde est le second choix, le commentaire n'en est pas un. Et c'est cohérent avec ce que le dépôt
+sait déjà : §E.17 posait le CHECK en base **et** la redérivation côté serveur, « deux verrous
+volontairement redondants » — le premier des deux est celui qui ne s'oublie pas.
+
+---
+
+**E.32 — UNE DESTINATION QUI N'EXISTE PAS NE LÈVE RIEN : ELLE REND UN 404.**
+
+`FALLBACK_DASHBOARD_URL` valait `'/dashboard'`. Or `app/[locale]/dashboard/` ne porte **pas** de
+`page.tsx` — seulement un `layout.tsx` et quatre sous-dossiers. Ce chemin tombait donc sur
+`app/[locale]/[...rest]/page.tsx`, qui appelle `notFound()`. **Un 404 propre — mais un 404**, servi
+au repli de `dashboardUrlForUserType()` pour **tout type inconnu** : un compte fantôme (§E.23), une
+lecture de type en panne, et surtout quelqu'un qui venait de **réinitialiser son mot de passe avec
+succès**.
+
+**POURQUOI RIEN NE POUVAIT LE VOIR — et le troisième point est le seul qui compte :**
+· `npx tsc` ne voit rien : une route est une **chaîne** (famille §E.1) ;
+· `next build` non plus, pour la même raison ;
+· et **un balayage des littéraux au point d'appel ne le voyait pas davantage** : il n'existe aucun
+  `router.push('/dashboard')` dans le dépôt. Le chemin vivait dans une **constante**, rendue par une
+  **fonction**, appelée ailleurs. **C'est exactement ce qui l'a gardé invisible.**
+
+**La parade : [scripts/diag-liens-morts.mjs](scripts/diag-liens-morts.mjs)**, qui reconstruit l'arbre
+des routes depuis le disque et confronte **tous les littéraux de chemin**, où qu'ils soient — jamais
+les points d'appel. Il couvre les écrans **et** les routes `/api` (mesuré : **62 écrans statiques**,
+21 dynamiques, **104 routes d'API statiques**, 30 dynamiques ; **aucun chemin `/api` mort**).
+
+> ⚠️ **L'ATTRAPE-TOUT EST EXCLU DE LA RÉSOLUTION, ET C'EST LA MOITIÉ QUI FAIT MARCHER LE CONTRÔLE.**
+> `[...rest]` matche **toute** URL. Le compter comme une route rendait le contrôle vert sur
+> n'importe quelle faute de frappe — il ne pouvait plus rien trouver. Mesuré : avec l'attrape-tout
+> compté comme route, **zéro** destination morte ; sans lui, le cas source apparaît.
+
+> ⚠️ **ET IL A ROUGI SUR SA PROPRE NORMALISATION.** Il retirait la barre oblique finale de chaque
+> chemin ; `'/'` devenait donc la chaîne vide, et **l'accueil — qui existe — passait pour
+> introuvable**. Corrigé, et dit ici parce qu'un contrôle qui crie à tort est désactivé le jour même.
+
+**Le nom a changé avec la valeur** : `FALLBACK_ROUTE_URL = '/'`. Garder `FALLBACK_DASHBOARD_URL` en
+pointant sur l'accueil aurait été un chiffre juste sous une étiquette fausse (§E.24).
+**Et l'accueil plutôt qu'un tableau de bord est un choix, pas un défaut** : on arrive là parce que le
+type est **inconnu** — désigner un tableau de bord serait deviner, la garde de rôle du layout
+renverrait la personne ailleurs, et on aurait seulement **déplacé** le cul-de-sac. Le contrôle garde
+cette propriété nommément.
+
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
   acceptée et ne se déclenchera **jamais** : aucune erreur, aucune ligne dans `job_run_details`. D'où le

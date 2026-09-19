@@ -147,11 +147,13 @@ export default function NouveauMotDePassePage() {
             .single()
           // ⚠️ SANS CE TEST, LE MOT DE PASSE ÉTAIT BIEN CHANGÉ ET L'UTILISATEUR
           //    ATTERRISSAIT SUR UN 404. `userData` nul donnait
-          //    `dashboardUrlForUserType(null)`, donc `FALLBACK_DASHBOARD_URL`,
-          //    c'est-à-dire `/dashboard` — un segment qui n'a PAS de `page.tsx`.
-          //    Le repli de routage lui-même est traité au lot suivant (il vit
-          //    dans `lib/auth-routing.ts`, source unique du routage) ; ce qui
-          //    est fermé ici, c'est qu'une lecture en panne y mène en silence.
+          //    `dashboardUrlForUserType(null)`, donc `FALLBACK_ROUTE_URL`,
+          //    c'est-à-dire `/dashboard` — un segment SANS `page.tsx`, qui
+          //    tombait donc sur l'attrape-tout et son `notFound()`.
+          //    LE REPLI LUI-MÊME EST CORRIGÉ DEPUIS : `FALLBACK_ROUTE_URL` vaut
+          //    `/`, et il est gardé par `diag-liens-morts`. Ce test-ci reste,
+          //    et il garde autre chose : une lecture en panne ne doit pas
+          //    décider d'une destination, même valide.
           //    On rejoint la sortie déjà prévue par ce bloc : `/connexion`.
           if (userErr) {
             console.error('[nouveau-mot-de-passe] type de compte illisible', userErr.message)

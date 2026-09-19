@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
-import { dashboardUrlForUserType, FALLBACK_DASHBOARD_URL } from '@/lib/auth-routing'
+import { dashboardUrlForUserType, FALLBACK_ROUTE_URL } from '@/lib/auth-routing'
 import { initSession } from '@/lib/secure-fetch'
 import SessionHeartbeat from '@/components/SessionHeartbeat'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
@@ -99,7 +99,7 @@ export default function AuthCallbackPage() {
         const target = dashboardUrlForUserType(
           (userRow?.user_type as string | null | undefined) ?? null,
         )
-        setRedirectUrl(target ?? FALLBACK_DASHBOARD_URL)
+        setRedirectUrl(target ?? FALLBACK_ROUTE_URL)
       } catch (err) {
         console.error('[auth/callback] unexpected error', err)
         if (!cancelled) setHasError(true)
