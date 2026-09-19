@@ -57,6 +57,9 @@ const LANGUES = ['fr', 'en', 'es', 'de']
 const INTERDIT = /seuil|threshold|umbral|schwelle/i
 
 
+/** Descend un chemin pointe. Rend `undefined` si une marche manque. */
+const descendre = (o, chemin) =>
+  chemin.split('.').reduce((n, s) => (n && typeof n === 'object' ? n[s] : undefined), o)
 /**
  * LES SEULS TEXTES AUTORISES A PORTER LE MOT — ceux qui CITENT UN NOM DE
  * COLONNE, jamais ceux qui nomment un comportement.
@@ -119,6 +122,42 @@ for (const langue of LANGUES) {
 }
 
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+section('A bis. Les LIBELLES DE NAVIGATION et les TITRES DE PAGE, nommement')
+// ═══════════════════════════════════════════════════════════════════════════
+
+//   La section A balaie DEJA tous les textes des quatre fichiers, donc ceux-ci
+//   y sont. On les REVERIFIE NOMMEMENT quand meme, et ce n'est pas une
+//   redondance : ce sont les deux endroits ou le mot se lit en PREMIER, et
+//   deux intitules divergents — « Seuils de jugement » dans le menu, « Notes
+//   de jugement » sur la page — ont deja coexiste. Une assertion nommee dit
+//   CE QU'ON DEFEND ; une couverture implicite ne le dit pas, et se perd a la
+//   premiere refonte.
+{
+  const sidebar = descendre(JSON.parse(lire('messages/fr.json')), 'admin_back_office.sidebar')
+  const libelles = Object.entries(sidebar ?? {}).filter(([, v]) => typeof v === 'string')
+  ok(libelles.length > 5, `la barre de navigation est lisible (${libelles.length} libelles)`,
+    'si le motif ne la trouve plus, ce controle ne garde plus rien')
+  for (const langue of LANGUES) {
+    const barre = descendre(JSON.parse(lire(`messages/${langue}.json`)), 'admin_back_office.sidebar')
+    const fautifs = Object.entries(barre ?? {})
+      .filter(([, v]) => typeof v === 'string' && INTERDIT.test(v))
+      .map(([k]) => k)
+    ok(fautifs.length === 0, `${langue} : aucun libelle de navigation ne dit « seuil »`, fautifs.join(', '))
+  }
+  // Les TITRES DE PAGE des ecrans de reglage, un par un.
+  const TITRES = ['admin_seuils.title', 'admin_matching.title', 'admin_back_office.tarifs_ia.title',
+                  'admin_back_office.supervision.title', 'admin_back_office.quotas_ia.title']
+  for (const langue of LANGUES) {
+    const m = JSON.parse(lire(`messages/${langue}.json`))
+    const fautifs = TITRES.filter((c) => {
+      const v = descendre(m, c)
+      return typeof v === 'string' && INTERDIT.test(v)
+    })
+    ok(fautifs.length === 0, `${langue} : aucun titre de page ne dit « seuil »`, fautifs.join(', '))
+  }
+}
 // ═══════════════════════════════════════════════════════════════════════════
 section('B. Les quatre mots sont REELLEMENT employes')
 // ═══════════════════════════════════════════════════════════════════════════
