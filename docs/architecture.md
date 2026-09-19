@@ -483,6 +483,59 @@ where u.anonymized_at is not null
 > sur la base, et daté pour la même raison.
 
 
+### C.9 — Ce que `/admin/supervision` doit porter, mesure par mesure
+
+**Pourquoi ce tableau existe.** La refonte de septembre 2026 a séparé ce qui se **décide** de ce qui
+s'**observe** — et la séparation a fait tomber une mesure en route (§E.35). Le réglage crie quand il
+disparaît : il a un champ. La mesure ne crie pas : c'est une ligne dans un tableau, et un écran qui en
+montre moins paraît simplement plus clair.
+
+**Ce tableau est le contrat.** Une prochaine refonte qui déplace ces écrans doit le relire ligne à
+ligne, et vérifier que chaque source est encore **lue**, **affichée**, et **écrite en mots**.
+
+| Source en base | Ce qu'elle mesure | Où elle arrive | « Illisible » se dit |
+|---|---|---|---|
+| `matching_threshold_health` | la répartition des notes — *« à 7, combien entrent »* | bloc « Répartition » | `etatRepartition()` : `indisponible` ≠ `aucune_execution` (§E.26) |
+| `matching_coverage_health` | experts écartés sans avoir été notés | `problemes` → couverture | `couverture === null` |
+| `matching_runs_inacheves` | runs de notation jamais terminés | `problemes` → sujet `inacheves` | `lecture_indisponible_inacheves` |
+| `redaction_failure_health` | résumés d'IA non produits, **par cause et par surface** | `problemes` → sujet `resumes` | `lecture_indisponible_pannes` |
+| `relance_overrun_health` | relances refusées au plafond anti-abus, **par origine** | `problemes` → sujet `relances` | `relances === null` |
+| `ai_spend_status` | dépense du mois par fournisseur, et le budget atteint | bloc « Consommation » | `depense === null` |
+| `ai_depense_par_mois` | l'historique, que deux totaux ne disaient pas | bloc « Consommation » | `historique === null` |
+| `ai_depense_operations` | les dernières opérations payantes | sujet `operations` | `operations === null` |
+| `ai_spend_par_acteur` | **la dépense par compte déclencheur** | bloc « Consommation » → *Par compte* | `par_acteur === null` |
+| `ai_spend_seuils_acteur` | les **alertes** par acteur — réglées ailleurs, **lues ici** | rapprochement à l'affichage | `seuils_acteur === null` |
+| `ai_model_tarifs` | l'âge du tarif le plus ancien | `problemes` → tarif périmé | `tarifs === null` |
+
+> ⚠️ **`ai_spend_par_acteur` EST CELLE QUI ÉTAIT TOMBÉE.** Elle vivait sur `/admin/matching` ; l'écran
+> de réglage a gardé les **seuils d'alerte** (ils ont un champ) et perdu **la dépense qu'ils
+> surveillent** (elle n'en a pas). On pouvait donc régler une alerte sans jamais voir ce qu'elle
+> surveille. Restaurée dans la supervision, avec son alerte **déduite au rapprochement** — jamais
+> stockée : un état « en dépassement » écrit quelque part serait faux la seconde suivante.
+
+**TROIS RÈGLES QUI TIENNENT POUR TOUTE LIGNE DE CE TABLEAU :**
+
+1. **`null` veut dire « je n'ai pas pu regarder », jamais `[]`.** C'est le rôle de `ouNull()` dans
+   `app/api/admin/supervision/route.ts`. Un tableau vide se lit *« rien à voir »* au moment précis où
+   l'on ne sait pas (§E.22 ⑨).
+2. **La gravité se décide au SERVEUR**, dans `classerProblemes()`
+   ([lib/supervision/problemes.ts](../lib/supervision/problemes.ts)). L'écran rend une liste déjà
+   triée ; il ne juge pas.
+3. **Les valeurs s'affichent en MOTS, jamais en identifiants de base** (§E.26). `cause`, `surface`,
+   `origine` et `etat` passent tous par `t()`. Une refonte qui déplace la donnée sans ses libellés
+   laisse `modele_indisponible` s'afficher tel quel sur l'écran où quelqu'un décide — c'est arrivé.
+
+> **Une dette NOMMÉE, pour qu'elle cesse d'être redécouverte.** Sept fonctions de santé existent en
+> base et **ne sont lues nulle part** : `admin_cron_chain_violations`, `annonces_expirees_par_duree`,
+> `candidature_ai_health`, `cron_purge_health`, `cron_run_summary`, `matching_health`,
+> `matching_relance_health`. **Mesuré : elles n'avaient déjà aucun lecteur avant la refonte** — ce
+> n'en est donc pas une conséquence. Leur place naturelle est ce tableau ; tant qu'elles n'y sont
+> pas, ce sont des mesures que personne ne regarde.
+
+> **NON VÉRIFIÉ** : aucun écran ne dit aujourd'hui quels pays n'ont **aucun fournisseur de
+> décision**. Le bandeau qui le faisait a été retiré de `/admin/seuils` par décision (soixante pays en
+> corps 8 sur un écran de décision, §E.26) ; l'information n'a pas été reportée ici.
+
 ---
 
 ## F. La classe de défaut « lire puis écrire »

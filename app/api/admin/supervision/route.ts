@@ -64,6 +64,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     historiqueRes,
     operationsRes,
     tarifsRes,
+    parActeurRes,
+    seuilsActeurRes,
   ] = await Promise.all([
     admin.rpc('matching_threshold_health'),
     admin.rpc('matching_coverage_health'),
@@ -74,6 +76,18 @@ export async function GET(request: NextRequest): Promise<Response> {
     admin.rpc('ai_depense_par_mois', { p_mois: moisDemandes }),
     admin.rpc('ai_depense_operations', { p_limite: 10 }),
     admin.from('ai_model_tarifs').select('model, updated_at'),
+    // ⚠️ LA DÉPENSE PAR ACTEUR REVIENT ICI, ET ELLE AVAIT DISPARU.
+    //    Elle vivait sur `/admin/matching`. En séparant le RÉGLAGE de la
+    //    MESURE (§D.11), l'écran de réglage a gardé ses seuils d'alerte — qui
+    //    ont un champ — et a perdu la dépense qu'ils surveillent, qui n'en a
+    //    pas. **Un réglage sans sa mesure se règle à l'aveugle.**
+    //    Mesuré : c'est la SEULE mesure que la refonte ait perdue.
+    admin.rpc('ai_spend_par_acteur', { p_limite: 10 }),
+    // Les seuils d'ALERTE (§D.9 : une alerte SIGNALE, elle ne bloque pas). Ils
+    // se règlent ailleurs ; ils se LISENT ici, parce que l'alerte se déduit en
+    // comparant à la dépense — et qu'un état « en dépassement » écrit quelque
+    // part serait faux la seconde suivante.
+    admin.from('ai_spend_seuils_acteur').select('acteur, seuil_mensuel_usd'),
   ])
 
   /** `null` = « je n'ai pas pu regarder ». Jamais `[]`, qui dit « rien à voir ». */
@@ -111,6 +125,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       inacheves: sources.inacheves,
       depense: sources.depense,
       historique: ouNull(historiqueRes),
+      par_acteur: ouNull(parActeurRes),
+      seuils_acteur: ouNull(seuilsActeurRes),
       operations: ouNull(operationsRes),
       tarif_plus_ancien: sources.tarifPlusAncien,
       mois: moisDemandes,

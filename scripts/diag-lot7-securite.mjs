@@ -489,25 +489,54 @@ if (migrationPlafond) {
   // Jamais additionnés : les origines n'appellent pas la même action.
   ok('les dépassements ne sont JAMAIS agrégés en un seul nombre', sql.includes('group by o.origine'))
 }
+// ⚠️ CES QUATRE ASSERTIONS S ANCRAIENT SUR DEUX ADRESSES DE FICHIER, et elles
+//    ont rougi quand les dépassements ont DÉMÉNAGÉ — pas quand ils ont
+//    disparu. Ils vivaient sur /admin/matching ; la refonte a séparé le
+//    RÉGLAGE de la MESURE (§D.11) et les a portés à /admin/supervision.
+//
+//    UN CONTRÔLE QUI S ANCRE SUR UN NOM ROUGIT AU PREMIER RENOMMAGE ET
+//    VERDIT AU PREMIER DÉPLACEMENT. On garde la PROPRIÉTÉ : les dépassements
+//    sont lus, ils atteignent un écran, un compteur illisible ne vaut pas
+//    zéro, et les origines sont écrites en MOTS. Où cela vit est un détail.
+const ADMIN_SOURCES = []
+const balayerAdmin = (rel) => {
+  if (!existsSync(join(ROOT, rel))) return
+  for (const e of readdirSync(join(ROOT, rel), { withFileTypes: true })) {
+    const enfant = `${rel}/${e.name}`
+    if (e.isDirectory()) balayerAdmin(enfant)
+    else if (/\.tsx?$/.test(e.name)) ADMIN_SOURCES.push(read(enfant))
+  }
+}
+for (const d of ['app/api/admin', 'app/[locale]/admin']) balayerAdmin(d)
+const surAdmin = (motif) => ADMIN_SOURCES.some((c) => motif.test(c))
+
 ok(
-  "la route d'administration expose les dépassements",
-  routeAdmin.includes("rpc('relance_overrun_health')") && routeAdmin.includes('depassements:'),
+  "les dépassements de relance sont LUS par une surface d'administration",
+  surAdmin(/rpc\('relance_overrun_health'\)/),
 )
 ok(
-  "l'écran /admin/matching les affiche",
-  pageAdmin.includes("t('overruns.title')") && pageAdmin.includes('charge?.depassements'),
+  "ils atteignent un écran",
+  surAdmin(/plafond_relance_depasse|'relances'/),
 )
 // « Indisponible » et « zéro » restent distincts, comme pour les pannes.
 ok(
   "« compteur illisible » ne se lit pas « aucun dépassement »",
-  pageAdmin.includes('charge?.depassements === null') && pageAdmin.includes("t('overruns.unavailable')"),
+  surAdmin(/relances:\s*ouNull\(/) &&
+    read('lib/supervision/problemes.ts').includes('s.relances === null ? null'),
 )
+// ⚠️ ET LES ORIGINES SE LISENT EN MOTS, PAS EN IDENTIFIANTS DE BASE (§E.26).
+//    « profil_modifie » affiché brut sur un écran d'exploitation est une clé.
+ok('les origines sont TRADUITES, jamais rendues brutes', surAdmin(/t\(`origine\.\$\{/))
 for (const langue of ['fr', 'en', 'es', 'de']) {
   const msg = JSON.parse(read(`messages/${langue}.json`))
-  const o = msg?.admin_matching?.overruns
+  const o = msg?.admin_back_office?.supervision
   ok(
     `libellés des dépassements traduits (${langue})`,
-    !!o && typeof o.title === 'string' && typeof o.help === 'string' && !!o.origine?.profil_modifie,
+    !!o?.origine?.profil_modifie &&
+      !!o?.origine?.ouverture_croisee &&
+      !!o?.origine?.disponibilite &&
+      !!o?.origine?.cv_reanalyse &&
+      typeof o?.detail_title?.relances === 'string',
   )
 }
 

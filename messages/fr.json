@@ -3130,6 +3130,29 @@
         "jamais_tente": "Jamais tentée",
         "abandonne": "Abandonnée",
         "en_cours": "Sera rejouée"
+      },
+      "by_actor_title": "Par compte déclencheur",
+      "by_actor_unavailable": "Répartition par compte indisponible — la lecture a échoué. Ce n’est pas « aucune dépense ».",
+      "by_actor_grouped": "(+{count} regroupés)",
+      "by_actor_alert": "Ce compte a atteint son niveau d’alerte. Rien n’est bloqué.",
+      "actor": {
+        "organization": "Organisations",
+        "profile": "Experts"
+      },
+      "cause": {
+        "plafond": "Budget atteint",
+        "modele_indisponible": "Modèle indisponible",
+        "reponse_illisible": "Réponse illisible"
+      },
+      "surface": {
+        "candidature": "Candidature",
+        "pitch": "Argumentaire"
+      },
+      "origine": {
+        "profil_modifie": "Profil modifié",
+        "ouverture_croisee": "Ouverture croisée",
+        "disponibilite": "Disponibilité",
+        "cv_reanalyse": "CV réanalysé"
       }
     }
   },
@@ -4111,7 +4134,6 @@
       "annonces": {
         "titre": "Annonces",
         "effet": "Au-dessus de cette note, l’annonce est publiée sans intervention. En dessous, elle vous attend en revue.",
-        "file": "",
         "champ": "Publiée seule à partir de"
       }
     },

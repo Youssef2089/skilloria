@@ -355,16 +355,39 @@ ok(/'\/admin\/matching'/.test(read('lib/nav-config.ts')),
   const LOCALES = ['fr', 'en', 'es', 'de']
   const MSG = Object.fromEntries(LOCALES.map((l) => [l, JSON.parse(read(`messages/${l}.json`))]))
   const lire = (m, c) => c.split('.').reduce((o, k) => (o == null ? o : o[k]), m)
+  // ⚠️ CE BLOC ÉPINGLAIT QUATRE NOMS DE CLÉS, ET IL A ROUGI SUR UN RENOMMAGE.
+  //    §D.9 a remplacé « seuil » par plafond / alerte / filtre / note ; les
+  //    clés ont suivi, la RÈGLE défendue n'a pas bougé d'une ligne. Troisième
+  //    occurrence de cette famille après diag-plafonds-listes et diag-depense-ia.
+  //
+  //    UN CONTRÔLE QUI S ANCRE SUR UN NOM ROUGIT AU PREMIER RENOMMAGE ET
+  //    VERDIT AU PREMIER DÉPLACEMENT. On garde ce qui doit être vrai : l écran
+  //    a un titre, il est atteignable, et il REFUSE un ordre incohérent.
   for (const cle of [
     'admin_matching.title',
-    'admin_matching.fields.feed_help',
-    'admin_matching.fields.notify_help',
-    'admin_matching.errors.ordre_seuils',
-    'admin_matching.spend.capped',
     'admin_back_office.sidebar.nav_matching',
   ]) {
     const absentes = LOCALES.filter((l) => !lire(MSG[l], cle))
     ok(absentes.length === 0, `${cle} dans les 4 langues`, absentes.join(', ') || undefined)
+  }
+
+  // ── LA RÈGLE, ET C EST ELLE QUI COMPTE ────────────────────────────────
+  //  Le filtre qui NOTIFIE ne peut pas être plus bas que celui qui montre :
+  //  on préviendrait quelqu un pour une annonce qu il ne verrait pas dans son
+  //  flux. L écran doit le REFUSER, pas seulement l expliquer — et il doit le
+  //  dire dans les quatre langues.
+  const ECRAN_MATCHING = read('app/[locale]/admin/matching/page.tsx')
+  ok(/if\s*\(\s*notify\s*<\s*feed\s*\)\s*return/.test(ECRAN_MATCHING),
+    'l écran REFUSE un ordre incohérent entre les deux filtres',
+    'l ASSERTION QUI MANQUAIT : l ancien bloc vérifiait qu un texte EXISTE, jamais que la règle MORD')
+  ok(/feed\s*<\s*0\s*\|\|\s*feed\s*>\s*10/.test(ECRAN_MATCHING) &&
+     /notify\s*<\s*0\s*\|\|\s*notify\s*>\s*10/.test(ECRAN_MATCHING),
+    'et il borne les deux filtres sur 0-10 (§D.10, une seule échelle)')
+  // Les deux refus ont une phrase — sinon le bouton reste inerte sans raison.
+  for (const appel of ['blocked_order', 'blocked_range']) {
+    ok(ECRAN_MATCHING.includes(`t('${appel}')`), `l écran nomme le refus « ${appel} »`)
+    const absentes = LOCALES.filter((l) => !lire(MSG[l], `admin_matching.${appel}`))
+    ok(absentes.length === 0, `admin_matching.${appel} dans les 4 langues`, absentes.join(', ') || undefined)
   }
 }
 

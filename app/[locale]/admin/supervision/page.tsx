@@ -70,12 +70,26 @@ type Operation = {
   acteur_type: string
   acteur_nom: string | null
 }
+/** Dépense du mois imputée à un acteur déclencheur. */
+type LigneActeur = {
+  acteur_type: string
+  acteur_id: string | null
+  acteur_nom: string | null
+  depense_mois: number
+  evenements: number
+  acteurs_regroupes: number
+}
+type SeuilActeur = { acteur: string; seuil_mensuel_usd: number }
+
 type Reponse = {
   problemes: Probleme[]
   distribution: Distribution[] | null
   depense: LigneDepense[] | null
   historique: LigneHistorique[] | null
   operations: Operation[] | null
+  /** `null` = la lecture a échoué. JAMAIS `[]`, qui dirait « aucune dépense ». */
+  par_acteur: LigneActeur[] | null
+  seuils_acteur: SeuilActeur[] | null
   mois: number
 }
 
@@ -366,6 +380,62 @@ export default function SupervisionPage() {
                 </div>
               </>
             )}
+
+            {/* PAR ACTEUR — la question « pour QUI ? », et elle avait disparu.
+                L'ALERTE SE DÉDUIT ICI, à l'affichage, en comparant au seuil. Un
+                état « en dépassement » écrit quelque part serait faux la seconde
+                suivante. Et elle ne fait qu'ALERTER : aucun refus, aucun arrêt
+                n'en dépend (§D.9). */}
+            {data?.par_acteur === null ? (
+              <p style={{ fontSize: 13, color: 'var(--color-text-tertiary, #94a3b8)', margin: '16px 0 0' }}>
+                {t('by_actor_unavailable')}
+              </p>
+            ) : (data?.par_acteur?.length ?? 0) > 0 ? (
+              <>
+                <h3 style={{ fontSize: 13, fontWeight: 600, margin: '18px 0 8px', color: 'var(--color-text-primary, #0f172a)' }}>
+                  {t('by_actor_title')}
+                </h3>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 420 }}>
+                    <tbody>
+                      {data?.par_acteur?.map((a) => {
+                        const seuil =
+                          data?.seuils_acteur?.find((x) => x.acteur === a.acteur_type)?.seuil_mensuel_usd ?? null
+                        const enAlerte = seuil !== null && Number(a.depense_mois) >= Number(seuil)
+                        return (
+                          <tr key={`${a.acteur_type}-${a.acteur_id ?? 'reste'}`}>
+                            <td style={cellule}>
+                              {a.acteur_nom ?? t(`actor.${a.acteur_type}` as 'actor.organization')}
+                              {a.acteurs_regroupes > 1 && (
+                                <span style={{ color: 'var(--color-text-tertiary, #94a3b8)' }}>
+                                  {' '}
+                                  {t('by_actor_grouped', { count: a.acteurs_regroupes })}
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ ...cellule, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                              {t('operations_count', { count: a.evenements })}
+                            </td>
+                            <td
+                              style={{
+                                ...cellule,
+                                textAlign: 'right',
+                                fontVariantNumeric: 'tabular-nums',
+                                color: enAlerte ? 'var(--color-warning, #d97706)' : undefined,
+                                fontWeight: enAlerte ? 600 : undefined,
+                              }}
+                            >
+                              {t('spend_amount', { amount: Number(a.depense_mois).toFixed(2) })}
+                              {enAlerte && <span title={t('by_actor_alert')}> ⚠</span>}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : null}
 
             <p style={{ margin: '16px 0 0' }}>
               <Link

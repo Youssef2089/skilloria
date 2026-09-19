@@ -223,8 +223,26 @@ section('D. CE QUI MANQUE SE COMPTE — trois causes, jamais additionnées')
 
 const SQL_PANNES = read(migration('pannes_de_redaction'))
 const MODULE_PANNES = read('lib/candidatures/pannes-redaction.ts')
-const ADMIN_ROUTE = read('app/api/admin/matching-settings/route.ts')
-const ADMIN_ECRAN = read('app/[locale]/admin/matching/page.tsx')
+// ⚠️ CES DEUX ADRESSES ETAIENT L ANCRAGE, ET ELLES ONT DEMENAGE.
+//    Le compteur de pannes vivait sur /admin/matching. La refonte a separe
+//    le REGLAGE de la MESURE (§D.11) : il est parti a /admin/supervision,
+//    sous le sujet « resumes ». Le controle a rougi sur le demenagement — et
+//    j en ai d abord conclu une PERTE, a tort.
+//    On s ancre desormais sur la PROPRIETE : le compteur est lu quelque part,
+//    son « je ne sais pas » vaut null, et le detail (cause × surface) est
+//    montre quelque part avec des LIBELLES, pas des identifiants de base.
+const SURFACES_ADMIN = ['app/api/admin', 'app/[locale]/admin']
+const ADMIN = []
+const balayerAdmin = (rel) => {
+  if (!existsSync(join(ROOT, rel))) return
+  for (const e of readdirSync(join(ROOT, rel), { withFileTypes: true })) {
+    const enfant = `${rel}/${e.name}`
+    if (e.isDirectory()) balayerAdmin(enfant)
+    else if (/.tsx?$/.test(e.name)) ADMIN.push([enfant, read(enfant)])
+  }
+}
+for (const d of SURFACES_ADMIN) balayerAdmin(d)
+const partoutAdmin = (motif) => ADMIN.some(([, c]) => motif.test(c))
 
 ok(/export type CausePanne = 'plafond' \| 'modele_indisponible' \| 'reponse_illisible'/.test(ASSESSMENT),
   'les trois causes sont un type, pas une chaîne libre')
@@ -250,24 +268,37 @@ ok(!/throw/.test(MODULE_PANNES),
   'faire echouer un depot parce qu on n a pas su COMPTER une panne serait absurde')
 
 console.log('\n— visible depuis l administration\n')
-ok(/redaction_failure_health/.test(ADMIN_ROUTE), 'la route admin lit le compteur')
-ok(/pannes: pannesRes\.error \? null : \(pannesRes\.data \?\? \[\]\)/.test(ADMIN_ROUTE),
+ok(partoutAdmin(/redaction_failure_health/),
+  'le compteur de pannes est LU par une surface d administration',
+  'une mesure qu aucun ecran ne lit est une mesure morte — celle-ci a deja failli l etre')
+ok(partoutAdmin(/pannes:\s*(ouNull\(|\w+Res\.error \? null)/),
   'indisponible rend null, pas un tableau vide',
   'vide se lirait « aucune panne » alors que la verite est « je n ai pas pu lire »')
-ok(/failures\.title/.test(ADMIN_ECRAN), 'l écran affiche le bloc')
+ok(partoutAdmin(/resumes_non_produits|'resumes'/),
+  'le total des resumes non produits atteint un ecran')
+// ET LE DETAIL AUSSI : cause ET surface. Un total sans sa ventilation ne dit
+// pas QUOI reparer, et c est la moitie que la refonte avait laissee en route.
+ok(partoutAdmin(/'cause', 'surface'|cause,\s*surface/),
+  'le detail montre la CAUSE et la SURFACE, pas seulement un total')
+// ⚠️ ET PAS EN IDENTIFIANTS BRUTS (§E.26). « modele_indisponible » sur un
+//    ecran d exploitation est une cle, pas un nom — et c est exactement ce
+//    que la refonte avait laisse s afficher.
+ok(partoutAdmin(/t\(`cause\.\$\{/) && partoutAdmin(/t\(`surface\.\$\{/),
+  'cause et surface sont TRADUITES, jamais rendues brutes')
 {
   const LOCALES = ['fr', 'en', 'es', 'de']
   const MSG = Object.fromEntries(LOCALES.map((l) => [l, JSON.parse(read(`messages/${l}.json`))]))
   const lireCle = (m, c) => c.split('.').reduce((o, k) => (o == null ? o : o[k]), m)
   for (const cle of [
-    'admin_matching.failures.title',
-    'admin_matching.failures.help',
-    'admin_matching.failures.unavailable',
-    'admin_matching.failures.cause.plafond',
-    'admin_matching.failures.cause.modele_indisponible',
-    'admin_matching.failures.cause.reponse_illisible',
-    'admin_matching.failures.surface.candidature',
-    'admin_matching.failures.surface.pitch',
+    // Les trois CAUSES et les deux SURFACES, traduites. Les noms de cles ont
+    // change avec le demenagement ; ce qui est garde, c est qu un exploitant
+    // lise des mots — dans les quatre langues.
+    'admin_back_office.supervision.cause.plafond',
+    'admin_back_office.supervision.cause.modele_indisponible',
+    'admin_back_office.supervision.cause.reponse_illisible',
+    'admin_back_office.supervision.surface.candidature',
+    'admin_back_office.supervision.surface.pitch',
+    'admin_back_office.supervision.detail_title.resumes',
   ]) {
     const absentes = LOCALES.filter((l) => !lireCle(MSG[l], cle))
     ok(absentes.length === 0, `${cle} dans les 4 langues`, absentes.join(', ') || undefined)

@@ -236,7 +236,6 @@ export default function NotesDeJugementPage() {
                           {t(`sujet.${s.sujet}.file` as 'sujet.experts.file')}
                         </Link>
                       )}
-                      {!file && t('sujet.annonces.file')}
                     </p>
                   </div>
 

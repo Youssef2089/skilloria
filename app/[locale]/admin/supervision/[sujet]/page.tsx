@@ -130,11 +130,23 @@ export default function SupervisionDetailPage({ params }: { params: Promise<{ su
                   <tr key={String(l.id ?? i)}>
                     {colonnes.map((c) => (
                       <td key={c} style={cellule}>
+                        {/* ⚠️ UN IDENTIFIANT DE BASE N'EST PAS UN NOM (§E.26).
+                            `cause` et `surface` s'affichaient BRUTS —
+                            « modele_indisponible », « reponse_illisible » —,
+                            c'est-à-dire des clés, sur l'écran où un exploitant
+                            décide. L'ancien écran les traduisait ; la refonte a
+                            gardé la mesure et perdu ses libellés. */}
                         {c === 'etat'
                           ? t(`state.${String(l.etat)}` as 'state.jamais_tente')
                           : c === 'action' && l.action
                             ? t(`action.${String(l.action)}` as 'action.cv_parsing')
-                            : afficher(l[c])}
+                            : c === 'cause' && l.cause
+                              ? t(`cause.${String(l.cause)}` as 'cause.plafond')
+                              : c === 'surface' && l.surface
+                                ? t(`surface.${String(l.surface)}` as 'surface.candidature')
+                                : c === 'origine' && l.origine
+                                  ? t(`origine.${String(l.origine)}` as 'origine.profil_modifie')
+                                  : afficher(l[c])}
                       </td>
                     ))}
                   </tr>

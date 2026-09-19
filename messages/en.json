@@ -3130,6 +3130,29 @@
         "jamais_tente": "Never attempted",
         "abandonne": "Abandoned",
         "en_cours": "Will be retried"
+      },
+      "by_actor_title": "By triggering account",
+      "by_actor_unavailable": "Breakdown by account unavailable — the read failed. This is not “no spend”.",
+      "by_actor_grouped": "(+{count} grouped)",
+      "by_actor_alert": "This account reached the alert level. Nothing is blocked.",
+      "actor": {
+        "organization": "Organisations",
+        "profile": "Experts"
+      },
+      "cause": {
+        "plafond": "Budget reached",
+        "modele_indisponible": "Model unavailable",
+        "reponse_illisible": "Unreadable response"
+      },
+      "surface": {
+        "candidature": "Application",
+        "pitch": "Pitch"
+      },
+      "origine": {
+        "profil_modifie": "Profile updated",
+        "ouverture_croisee": "Cross opening",
+        "disponibilite": "Availability",
+        "cv_reanalyse": "CV re-analysed"
       }
     }
   },
@@ -4111,7 +4134,6 @@
       "annonces": {
         "titre": "Listings",
         "effet": "Above this score, the listing is published without review. Below it, it waits for you in review.",
-        "file": "",
         "champ": "Published alone from"
       }
     },

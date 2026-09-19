@@ -1631,6 +1631,115 @@ type est **inconnu** — désigner un tableau de bord serait deviner, la garde d
 renverrait la personne ailleurs, et on aurait seulement **déplacé** le cul-de-sac. Le contrôle garde
 cette propriété nommément.
 
+**E.33 — UN POINT DE COMPARAISON MAL CHOISI DÉPLACE LA FAUTE.**
+
+Cinq diagnostics étaient rouges. Pour savoir s'ils l'étaient **avant** mon lot, j'ai mesuré sur un
+worktree détaché en `9aec284` — « le commit d'où je suis parti ». Verdict : *déjà rouges, pas de moi*.
+
+**`9aec284` était le HEAD au début de la SESSION, pas le début du lot qui les avait cassés.** Il
+contenait déjà les quatre commits de la refonte de `/admin/matching`. Remesuré en `fd3633b`, le
+parent du premier de ces quatre : **les cinq étaient verts.** Ils étaient de moi, livrés rouges, et
+ma première mesure m'innocentait.
+
+**La règle : « mesurer avant mon lot » exige de savoir OÙ COMMENCE son lot.** Ce n'est pas le HEAD de
+départ de la session, ni la dernière chose qu'on a commitée : c'est le **parent du premier commit qui
+a touché la surface concernée**. `git log --oneline` et `git rev-parse <commit>^` donnent la réponse
+en dix secondes ; l'intuition donne la réponse fausse avec la même assurance.
+
+> **ET LE BIAIS A UN SENS.** Un point de comparaison trop récent **innocente** toujours : tout ce
+> qu'on a cassé entre-temps est déjà dans la référence. C'est l'erreur confortable, donc celle qu'on
+> ne relit pas. Le doute doit porter sur la mesure qui **arrange**, pas sur celle qui accuse.
+
+**Corollaire, payé le même jour : le nombre de contrôles rejoués compte aussi.** Les cinq rouges
+avaient été trouvés en rejouant une liste choisie. En rejouant **les 77 `diag-*` du dépôt**, un
+**sixième** est apparu — `diag-ecran-seuils`, cassé par la réécriture de `/admin/seuils` — plus une
+régression écrite **une heure plus tôt** dans ce lot-ci : j'avais traduit une alerte par « seuil
+d'alerte », le mot que §D.9 interdit. *La série complète n'est pas une formalité de fin de lot :
+c'est le seul moment où l'on apprend ce qu'on ne cherchait pas.*
+
+---
+
+**E.34 — UN CONTRÔLE QUI S'ANCRE SUR UN NOM ROUGIT AU PREMIER RENOMMAGE ET VERDIT AU PREMIER
+DÉPLACEMENT.**
+
+Quatre occurrences en deux lots — c'est une famille, et elle a **deux** faces, dont la seconde est la
+dangereuse.
+
+| Contrôle | Ce qu'il épinglait | Ce qu'il défendait vraiment |
+|---|---|---|
+| `diag-plafonds-listes` | la signature `Promise<{ dtos; troncature }>` au caractère près | le retour est un **objet** qui porte la troncature |
+| `diag-moteur-reranking` | quatre **noms de clés** i18n | l'écran **refuse** un ordre incohérent entre les deux filtres |
+| `diag-depense-ia`, `diag-lot7-securite`, `diag-moteur-echelle` | deux **adresses de fichier** | la mesure est lue, elle atteint un écran, illisible ≠ zéro |
+| `diag-ecran-seuils` | sept **identifiants** (`seuilValide`, `seuil_invalide`, `drapeaux_vides`…) | un validateur existe au serveur, il refuse avec un code, la trace porte l'avant et l'après |
+
+**LA FACE VISIBLE : il rougit sur une amélioration.** `diag-plafonds-listes` a rougi parce qu'on
+ajoutait `| null` — c'est-à-dire parce qu'on fermait un défaut. Un contrôle qui punit le progrès est
+désactivé le jour même.
+
+**LA FACE DANGEREUSE : il VERDIT au déplacement.** Un contrôle ancré sur `fichier X contient Y` reste
+vert si `Y` disparaît de `X` **et** du produit, pourvu qu'on ait aussi changé le contrôle ; et
+inversement, il rougit d'un déménagement sans savoir le distinguer d'une perte. **C'est exactement ce
+qui m'a fait annoncer une perte qui n'en était pas une** : le compteur de résumés non produits avait
+simplement changé d'écran.
+
+**LE CRITÈRE DE RELECTURE, À APPLIQUER À TOUT CONTRÔLE ÉCRIT DÉSORMAIS :**
+
+> *Si je renomme cet identifiant sans rien changer d'autre, le contrôle rougit-il ? Si je déplace
+> cette propriété dans un autre fichier sans rien perdre, rougit-il ?*
+> **Deux fois oui : il est ancré sur un nom. Il doit l'être sur la propriété.**
+
+En pratique : on balaie **un périmètre** (`app/api/admin`, `app/[locale]/admin`, `app/ + lib/ +
+components/`) et on demande *« ceci existe-t-il QUELQUE PART ? »*, plutôt que d'ouvrir deux fichiers
+par leur chemin. Le périmètre est stable ; le nom de fichier ne l'est pas.
+
+> ⚠️ **ET LA TROISIÈME RÉPONSE EXISTE, elle n'est ni « contrôle » ni « code ».** Une assertion peut
+> défendre une propriété qu'on a **délibérément inversée**. `diag-ecran-seuils` exigeait que la
+> valeur inerte soit *montrée en lecture seule* ; §D.11 tranche l'inverse — un champ qui ne règle
+> rien finit par être rempli, **même grisé**. L'assertion n'est pas supprimée : elle est
+> **retournée**, et la raison est écrite sur place. Une assertion qu'on efface sans écrire pourquoi
+> est une règle qu'on perd.
+
+---
+
+**E.35 — SÉPARER LE RÉGLAGE ET LA MESURE FAIT TOMBER LA MESURE.**
+
+La refonte a séparé ce qui se **décide** (`/admin/matching`, `/admin/seuils`) de ce qui s'**observe**
+(`/admin/supervision`). C'était juste, et §D.11 le demande. **Mais la séparation n'est pas
+symétrique, et c'est le piège :**
+
+· **un réglage a un champ.** On le déplace, on le voit, on le teste — il crie s'il disparaît.
+· **une mesure n'a rien.** C'est une ligne dans un tableau. Si elle reste en route, **personne ne
+  s'en aperçoit** : l'écran est plus clair qu'avant, et il l'est parce qu'il montre moins.
+
+**Mesuré sur ce dépôt, en confrontant les sources de lecture de l'ancien écran et de son ancienne
+route à TOUT le dépôt d'aujourd'hui :** une seule mesure est tombée — `ai_spend_par_acteur`, la
+dépense par compte déclencheur. Le **réglage** qui la surveille (les seuils d'alerte par acteur) est
+resté, lui, intact. **On pouvait donc régler une alerte sans jamais voir ce qu'elle surveille** —
+c'est §D.11 par l'autre bout : *un réglage sans sa mesure se règle à l'aveugle.*
+
+**Et deux mesures ont survécu en perdant leurs MOTS**, ce qui est la forme discrète de la même
+chute : les causes de panne (`modele_indisponible`, `reponse_illisible`) et les origines de relance
+(`profil_modifie`…) s'affichaient en **identifiants de base** sur l'écran d'exploitation. La donnée
+était là ; le sens était resté sur l'ancien écran (§E.26).
+
+**CE QU'IL FAUT FAIRE AVANT DE DÉPLACER UN ÉCRAN, ET ÇA TIENT EN TROIS LIGNES :**
+1. lister ce que l'écran **lit** — RPC, vues, colonnes — pas ce qu'il montre ;
+2. après le déplacement, confronter cette liste à **tout le dépôt**, pas à l'écran d'arrivée ;
+3. vérifier que les **libellés** ont suivi la donnée, sinon on a déplacé des clés.
+
+Le point 2 est le seul qui trouve quelque chose : une mesure tombée ne casse rien, ne lève rien, et
+n'apparaît dans aucun test. **La seule trace qu'elle laisse est une fonction de base que plus
+personne n'appelle.**
+
+> **Mesuré, et la distinction vaut d'être écrite** : sur les 65 fonctions et vues définies dans les
+> migrations, **26 ne sont lues par aucune ligne de `app/`, `lib/` ou `components/`**. La plupart
+> sont des *triggers*, des fonctions appelées par `pg_cron`, ou des helpers SQL internes — c'est
+> normal. Mais **sept** sont des mesures de santé sans aucun lecteur :
+> `admin_cron_chain_violations`, `annonces_expirees_par_duree`, `candidature_ai_health`,
+> `cron_purge_health`, `cron_run_summary`, `matching_health`, `matching_relance_health`.
+> **Elles n'en avaient déjà aucun AVANT la refonte** (mesuré sur `fd3633b`) : c'est une dette
+> antérieure, pas une conséquence. Elle est nommée ici pour qu'on cesse de la redécouvrir.
+
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
   acceptée et ne se déclenchera **jamais** : aucune erreur, aucune ligne dans `job_run_details`. D'où le

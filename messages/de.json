@@ -3130,6 +3130,29 @@
         "jamais_tente": "Nie versucht",
         "abandonne": "Abgebrochen",
         "en_cours": "Wird erneut versucht"
+      },
+      "by_actor_title": "Nach auslösendem Konto",
+      "by_actor_unavailable": "Aufschlüsselung nach Konto nicht verfügbar — der Lesevorgang ist fehlgeschlagen. Das heißt nicht „keine Ausgaben“.",
+      "by_actor_grouped": "(+{count} zusammengefasst)",
+      "by_actor_alert": "Dieses Konto hat seine Warnstufe erreicht. Es wird nichts blockiert.",
+      "actor": {
+        "organization": "Organisationen",
+        "profile": "Expertinnen und Experten"
+      },
+      "cause": {
+        "plafond": "Budget erreicht",
+        "modele_indisponible": "Modell nicht verfügbar",
+        "reponse_illisible": "Unlesbare Antwort"
+      },
+      "surface": {
+        "candidature": "Bewerbung",
+        "pitch": "Kurzvorstellung"
+      },
+      "origine": {
+        "profil_modifie": "Profil geändert",
+        "ouverture_croisee": "Gegenseitige Öffnung",
+        "disponibilite": "Verfügbarkeit",
+        "cv_reanalyse": "Lebenslauf neu ausgewertet"
       }
     }
   },
@@ -4111,7 +4134,6 @@
       "annonces": {
         "titre": "Anzeigen",
         "effet": "Über dieser Note wird die Anzeige ohne Zutun veröffentlicht. Darunter wartet sie in der Sichtung auf Sie.",
-        "file": "",
         "champ": "Allein veröffentlicht ab"
       }
     },

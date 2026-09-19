@@ -3130,6 +3130,29 @@
         "jamais_tente": "Nunca intentado",
         "abandonne": "Abandonado",
         "en_cours": "Se reintentará"
+      },
+      "by_actor_title": "Por cuenta que la origina",
+      "by_actor_unavailable": "Desglose por cuenta no disponible: la lectura ha fallado. No significa «sin gasto».",
+      "by_actor_grouped": "(+{count} agrupadas)",
+      "by_actor_alert": "Esta cuenta ha alcanzado el nivel de alerta. No se bloquea nada.",
+      "actor": {
+        "organization": "Organizaciones",
+        "profile": "Expertos"
+      },
+      "cause": {
+        "plafond": "Presupuesto alcanzado",
+        "modele_indisponible": "Modelo no disponible",
+        "reponse_illisible": "Respuesta ilegible"
+      },
+      "surface": {
+        "candidature": "Candidatura",
+        "pitch": "Argumentario"
+      },
+      "origine": {
+        "profil_modifie": "Perfil modificado",
+        "ouverture_croisee": "Apertura cruzada",
+        "disponibilite": "Disponibilidad",
+        "cv_reanalyse": "CV reanalizado"
       }
     }
   },
@@ -4111,7 +4134,6 @@
       "annonces": {
         "titre": "Anuncios",
         "effet": "Por encima de esta nota, el anuncio se publica sin intervención. Por debajo, le espera en revisión.",
-        "file": "",
         "champ": "Publicado solo a partir de"
       }
     },

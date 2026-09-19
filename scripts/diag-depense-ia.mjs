@@ -345,26 +345,57 @@ section('F. Toute depense NOMME son acteur declencheur')
 section('G. L’alerte par acteur ALERTE — elle ne bloque rien')
 
 {
-  const ROUTE = sansCommentaires(read('app/api/admin/matching-settings/route.ts'))
-  const ECRAN = sansCommentaires(read('app/[locale]/admin/matching/page.tsx'))
+  // ⚠️ CETTE SECTION S ANCRAIT SUR DEUX ADRESSES DE FICHIER, et elle a rougi
+  //    quand la mesure a DEMENAGE — pas quand elle a disparu.
+  //    La refonte a separe le REGLAGE de la MESURE (§D.11) : les seuils
+  //    d alerte sont restes a /admin/matching (ils ont un champ), la depense
+  //    est partie a /admin/supervision (elle n en a pas). Le controle a rougi
+  //    sur le demenagement, puis sur une vraie PERTE, sans distinguer les deux.
+  //
+  //    UN CONTROLE QUI S ANCRE SUR UN NOM ROUGIT AU PREMIER RENOMMAGE ET
+  //    VERDIT AU PREMIER DEPLACEMENT. Il s ancre sur ce qu il DEFEND.
+  const PARTOUT = fichiers.map((f) => [f, sansCommentaires(read(f))])
 
-  ok(/ai_spend_par_acteur/.test(ROUTE),
-    'le decoupage par acteur est LU par l’ecran',
-    'une comptabilite qu’aucun ecran ne montre ne sert a rien')
+  const lecteurs = PARTOUT.filter(([, c]) => /ai_spend_par_acteur/.test(c)).map(([f]) => f)
+  const afficheurs = PARTOUT.filter(([f, c]) => /\.tsx$/.test(f) && /par_acteur/.test(c)).map(([f]) => f)
+  ok(lecteurs.length >= 1,
+    'la depense par acteur est LUE quelque part',
+    'une comptabilite qu aucun ecran ne montre ne sert a rien — et elle a DEJA disparu une fois')
+  ok(afficheurs.length >= 1,
+    'et elle est AFFICHEE quelque part',
+    'lue par une route sans ecran, c est une mesure morte — §D.11 par l autre bout')
+  // ET LA LECTURE ILLISIBLE NE VAUT PAS ZERO. C est la moitie qu on perd en
+  // demenageant : la mesure revient, son « je ne sais pas » reste en route.
+  ok(PARTOUT.some(([, c]) => /par_acteur: ouNull\(/.test(c)),
+    'une depense par acteur illisible rend `null`, jamais `[]`',
+    'vide se lirait « aucune depense » au moment ou l on ne sait pas (§E.22 ⑨)')
 
   // RIEN N'EST STOCKE : l'alerte se deduit a chaque chargement.
-  ok(/en_alerte: seuil !== null/.test(ROUTE),
-    'l’alerte est CALCULEE a l’affichage, jamais stockee',
+  const deduite = PARTOUT.some(([, c]) =>
+    /ai_spend_seuils_acteur|seuils_acteur/.test(c) && /(enAlerte|en_alerte)\s*=/.test(c))
+  ok(deduite,
+    'l alerte est CALCULEE au rapprochement, jamais stockee',
+    'aucun fichier ne rapproche la depense du seuil : soit le seuil est mort, soit l alerte est figee')
+  const STOCKEE = /\.(update|insert|upsert)\([^)]*en_alerte/
+  ok(!PARTOUT.some(([, c]) => STOCKEE.test(c)),
+    'et elle n est jamais ECRITE en base',
     'un etat « en depassement » ecrit quelque part serait faux la seconde suivante')
 
   // Le drapeau ne doit exister QUE pour etre affiche. S'il commandait un refus,
   // un `return`, un 4xx ou une degradation, l'alerte serait devenue un blocage.
-  const BLOQUE = /en_alerte[^\n]*\)\s*\{?\s*(return|throw)/
-  ok(!BLOQUE.test(ROUTE) && !BLOQUE.test(ECRAN),
-    'aucun refus, aucun arret ne depend de en_alerte',
-    'la decision produit est arbitree : un depassement ALERTE, il ne bloque pas')
+  // ⚠️ ET LA REGLE S ANCRE SUR UNE CONDITION, PAS SUR UN VOISINAGE (§E.8).
+  //    Sans le « if ( », le \s* traversait le saut de ligne et attrapait le
+  //    « return ( » du JSX qui suit « const enAlerte = … » : le controle
+  //    rougissait sur un affichage parfaitement correct. Ce qu on interdit,
+  //    c est une DECISION prise sur l alerte — pas la presence du mot
+  //    au-dessus d un rendu.
+  const BLOQUE = /if\s*\(\s*!?(enAlerte|en_alerte)\b[^\n]*\)\s*\{?\s*(return|throw)/
+  const bloqueurs = PARTOUT.filter(([, c]) => BLOQUE.test(c)).map(([f]) => f)
+  ok(bloqueurs.length === 0,
+    'aucun refus, aucun arret ne depend de l alerte',
+    'une alerte SIGNALE, elle ne bloque pas (§D.9) : ' + bloqueurs.join(', '))
 
-  const METIER = fichiers.filter((f) => !f.startsWith('app/api/admin/') && !f.includes('admin/matching'))
+  const METIER = fichiers.filter((f) => !f.startsWith('app/api/admin/') && !f.includes('admin/'))
   const contamines = METIER.filter((f) => /\ben_alerte\b|ai_spend_seuils_acteur/.test(sansCommentaires(read(f))))
   ok(contamines.length === 0,
     'le seuil par acteur ne sort pas de l’ecran d’administration',
@@ -426,7 +457,6 @@ section('I. Les deux reglages d’ARGENT se reglent — et l’ecran dit lequel 
  */
 {
   const ROUTE = sansCommentaires(read('app/api/admin/plafonds-ia/route.ts'))
-  const ECRAN = sansCommentaires(read('app/[locale]/admin/matching/page.tsx'))
   const LECTURE = sansCommentaires(read('app/api/admin/matching-settings/route.ts'))
 
   ok(/\.from\('ai_spend_caps'\)\s*\.?\s*\n?\s*\.update\(/.test(ROUTE),
@@ -464,7 +494,17 @@ section('I. Les deux reglages d’ARGENT se reglent — et l’ecran dit lequel 
     'un journal qui ne distingue pas les deux oblige a relire le code pour le savoir')
 
   // L'ECRAN DOIT LE DIRE AUSSI, et pas dans une aide qu’on deplie.
-  ok(/money\.cap_blocks_label/.test(ECRAN) && /money\.alert_warns_label/.test(ECRAN),
+  // ⚠️ ON CHERCHE LE SENS, PLUS DEUX NOMS DE CLES. §D.9 a renomme le
+  //    vocabulaire (« seuil » → plafond/alerte/filtre/note) et ce controle a
+  //    rougi sur le renommage, alors que la phrase qu il defend etait toujours
+  //    la — sous d autres clefs. Ce qui compte : quelque part dans l espace de
+  //    noms de cet ecran, UNE phrase dit qu un budget BLOQUE, et UNE AUTRE dit
+  //    qu une alerte SIGNALE sans bloquer.
+  const textes = Object.values(JSON.parse(read('messages/fr.json')).admin_matching ?? {})
+    .filter((v) => typeof v === 'string')
+  const ditQueCaBloque = textes.some((v) => /\bbloque\b/i.test(v) && /s.arr[êe]te|jusqu.au mois/i.test(v))
+  const ditQueCaSignale = textes.some((v) => /signale/i.test(v) && /rien n.est bloqu/i.test(v))
+  ok(ditQueCaBloque && ditQueCaSignale,
     'l’ecran ecrit lequel arrete et lequel previent',
     'deux champs voisins qui n’agissent pas pareil sont un piege (meme famille que les durees)')
 
@@ -474,7 +514,7 @@ section('I. Les deux reglages d’ARGENT se reglent — et l’ecran dit lequel 
 
   // LE SEUIL NE DOIT TOUJOURS RIEN BLOQUER. Le rendre reglable ne change pas
   // la decision produit : un depassement alerte, il ne bloque pas.
-  const METIER = fichiers.filter((f) => !f.startsWith('app/api/admin/') && !f.includes('admin/matching'))
+  const METIER = fichiers.filter((f) => !f.startsWith('app/api/admin/') && !f.includes('admin/'))
   const contamines = METIER.filter((f) => /ai_spend_seuils_acteur/.test(sansCommentaires(read(f))))
   ok(contamines.length === 0,
     'le seuil d’alerte ne sort toujours pas de l’ecran d’administration',

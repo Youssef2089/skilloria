@@ -475,18 +475,43 @@ if (migration) {
   ok('les runs inachevés sont dénombrables', sql.includes('function public.matching_runs_inacheves'))
   ok('les trois états ne sont JAMAIS additionnés', /group by etat/.test(sql))
 }
-const ROUTE_ADMIN = read('app/api/admin/matching-settings/route.ts')
-const PAGE_ADMIN = read('app/[locale]/admin/matching/page.tsx')
-ok('la route d’administration expose les runs inachevés',
-  /rpc\('matching_runs_inacheves'\)/.test(ROUTE_ADMIN) && /inacheves:/.test(ROUTE_ADMIN))
-ok('l’écran les affiche', /t\('unfinished\.title'\)/.test(PAGE_ADMIN) && /charge\?\.inacheves/.test(PAGE_ADMIN))
+// ⚠️ CES ASSERTIONS S ANCRAIENT SUR DEUX ADRESSES DE FICHIER, et elles ont
+//    rougi quand les runs inachevés ont DÉMÉNAGÉ — pas quand ils ont disparu.
+//    Ils vivaient sur /admin/matching ; la refonte a séparé le RÉGLAGE de la
+//    MESURE (§D.11) et les a portés à /admin/supervision.
+//
+//    UN CONTRÔLE QUI S ANCRE SUR UN NOM ROUGIT AU PREMIER RENOMMAGE ET VERDIT
+//    AU PREMIER DÉPLACEMENT. On garde la PROPRIÉTÉ : la mesure est lue, elle
+//    atteint un écran, « illisible » ne se lit pas « aucun », et les trois
+//    états sont écrits en MOTS. Où cela vit est un détail d’implantation.
+const ADMIN_SOURCES = []
+const balayerAdmin = (rel) => {
+  if (!existsSync(join(ROOT, rel))) return
+  for (const e of readdirSync(join(ROOT, rel), { withFileTypes: true })) {
+    const enfant = `${rel}/${e.name}`
+    if (e.isDirectory()) balayerAdmin(enfant)
+    else if (/\.tsx?$/.test(e.name)) ADMIN_SOURCES.push(read(enfant))
+  }
+}
+for (const d of ['app/api/admin', 'app/[locale]/admin']) balayerAdmin(d)
+const surAdmin = (motif) => ADMIN_SOURCES.some((c) => motif.test(c))
+
+ok('les runs inachevés sont LUS par une surface d’administration',
+  surAdmin(/rpc\('matching_runs_inacheves'\)/))
+ok('ils atteignent un écran',
+  surAdmin(/'inacheves'|inacheves:/) && surAdmin(/detail_title\.|problemes/))
 ok('« illisible » ne se lit pas « aucun »',
-  /charge\?\.inacheves === null/.test(PAGE_ADMIN) && /t\('unfinished\.unavailable'\)/.test(PAGE_ADMIN))
+  surAdmin(/inacheves:\s*ouNull\(/) &&
+    read('lib/supervision/problemes.ts').includes('lecture_indisponible_inacheves'))
+// ⚠️ ET LES TROIS ÉTATS SE LISENT EN MOTS (§E.26) : « abandonne » affiché brut
+//    sur un écran d’exploitation est une clé de base, pas un nom.
+ok('les trois états sont TRADUITS, jamais rendus bruts', surAdmin(/t\(`state\.\$\{/))
 for (const langue of ['fr', 'en', 'es', 'de']) {
   const msg = JSON.parse(read(`messages/${langue}.json`))
-  const u = msg?.admin_matching?.unfinished
+  const u = msg?.admin_back_office?.supervision
   ok(`libellés traduits (${langue})`,
-    !!u && typeof u.title === 'string' && !!u.etat?.abandonne && !!u.etat?.en_cours)
+    !!u?.state?.abandonne && !!u?.state?.en_cours && !!u?.state?.jamais_tente &&
+      typeof u?.detail_title?.inacheves === 'string')
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
