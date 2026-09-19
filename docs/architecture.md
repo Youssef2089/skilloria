@@ -423,10 +423,65 @@ tout rejeu** — aucune reprise ne reviendra jamais dessus.
 · **`cron_run_log.response_body` conserve des UUID de comptes** — décision arbitrée au titre de
   l'art. 5.2, à inscrire au registre des traitements.
 · **rien ne vérifie a posteriori** qu'un compte marqué `anonymized_at` est effectivement anonymisé.
-  Le seul contrôle est celui du chemin ; il n'existe aucun balayage de cohérence sur l'existant.
-  **NON VÉRIFIÉ** : personne n'a compté, sur la base réelle, les comptes portant `anonymized_at` dont
-  le profil porterait encore des PII — ce serait la trace laissée par le défaut ci-dessus, et c'est
-  la seule façon de savoir s'il a frappé.
+  Le seul contrôle est celui du **chemin** ; il n'existe aucun balayage de cohérence sur l'existant,
+  et aucun diagnostic du dépôt ne peut en tenir lieu — **il faut une base** (§E.12).
+
+#### La requête qui dit si le défaut a frappé
+
+**Elle est en tête de ce passage parce qu'elle est la SEULE trace que le défaut laisserait s'il
+revenait.** Un compte dont l'étape 3 a été sautée porte `anonymized_at` **et** des PII : c'est la
+signature exacte, et elle ne s'efface pas d'elle-même.
+
+```sql
+-- Comptes déclarés anonymisés dont le profil porte ENCORE des données personnelles.
+-- Chaque colonne testée est une colonne que l'étape 3 met à NULL (ou vide).
+-- ⚠️ skills / languages sont text[] NOT NULL et certifications jsonb NOT NULL :
+--    ils ne sont JAMAIS null, on les compare donc au VIDE, pas à null.
+select u.id as user_id, p.id as profile_id, u.anonymized_at
+from public.users u
+join public.profiles p on p.user_id = u.id
+where u.anonymized_at is not null
+  and (
+       p.summary        is not null
+    or p.title          is not null
+    or p.photo_url      is not null
+    or p.cv_file_path   is not null
+    or p.cv_url         is not null
+    or p.cv_hash        is not null
+    or p.address_line   is not null
+    or p.postal_code    is not null
+    or p.birth_year     is not null
+    or p.linkedin_url   is not null
+    or p.phone          is not null
+    or p.city           is not null
+    or p.location       is not null
+    or p.skills         <> '{}'
+    or p.languages      <> '{}'
+    or p.certifications <> '[]'::jsonb
+  );
+```
+
+> ✅ **MESURÉ — ZÉRO LIGNE.** Requête passée **par Youssef**, **sur la base réelle** (staging lié,
+> ref `wnayuerhakekxccgimeg`), **le 19 septembre 2026**, après la livraison du correctif de
+> §E.27 forme B.
+>
+> **Ce que la mesure établit :** aucun compte porteur d'`anonymized_at` ne conserve de PII de profil.
+> **Le défaut n'a jamais frappé** — toutes les purges déclarées sont complètes, et le registre ne
+> ment sur aucune ligne existante.
+>
+> **Ce qu'elle n'établit pas, et c'est dit ici pour que la ligne ne se cite pas de travers :**
+> · elle porte sur les **colonnes PII de `profiles`** listées ci-dessus, pas sur les fichiers du
+>   Storage — un CV survivant ne laisse aucune trace en base et n'est **pas** couvert (voir le point
+>   sur les fichiers, plus haut) ;
+> · elle vaut **à sa date**. Aucun contrôle du dépôt ne la rejoue, pour la raison de §E.12 : elle
+>   exige une base, et un diagnostic qui prétendrait la couvrir sans base ferait croire à une
+>   garantie qui n'existe pas. **Elle se repasse à la main** — c'est le prix, et il est assumé.
+>
+> **Par qui, comment, à quelle date : les trois sont écrits, et c'est la règle.** Une mesure sans sa
+> provenance est §E.24 — un chiffre juste sous une étiquette qu'on ne peut plus vérifier. Même
+> discipline que le gel des plages de migrations (§G.2), établi lui aussi par une lecture humaine
+> sur la base, et daté pour la même raison.
+
 
 ---
 

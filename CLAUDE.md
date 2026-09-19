@@ -1371,6 +1371,18 @@ message à l'écran : c'est une obligation légale que le registre déclare remp
 `cv_supprime`, `avatar_supprime` : **il dit ce qui a eu lieu, pas ce qu'on espérait.** Un fichier
 resté dans le Storage est un manquement qu'il faut pouvoir *chercher*, donc *tracer*.
 
+> ✅ **ET LE DÉFAUT N'A JAMAIS FRAPPÉ — MESURÉ, PAS SUPPOSÉ.** La signature d'une étape 3 sautée est
+> exacte et indélébile : un compte porte `anonymized_at` **et** des PII de profil. La requête qui la
+> cherche est en tête de [docs/architecture.md](docs/architecture.md) §C.8 ; passée **par Youssef**,
+> **sur la base réelle** (staging `wnayuerhakekxccgimeg`), **le 19/09/2026**, elle rend **zéro ligne**.
+> Toutes les purges déclarées sont complètes.
+>
+> **Par qui, comment, à quelle date — les trois s'écrivent.** Une mesure sans sa provenance est
+> §E.24 : un chiffre juste sous une étiquette qu'on ne peut plus vérifier. Même discipline que le
+> gel des plages de migrations (§G.2), établi lui aussi par une lecture humaine sur la base.
+> ⚠️ Elle vaut **à sa date** et **aucun contrôle ne la rejoue** : elle exige une base (§E.12). Elle
+> ne couvre pas non plus les **fichiers** du Storage, qui ne laissent aucune trace en base.
+
 **LE SECOND CAS, ET IL M'A OBLIGÉ À CORRIGER MON PROPRE VERDICT.**
 `runChannel` ([lib/notifications/dispatch.ts](lib/notifications/dispatch.ts)) réclame ses
 notifications par un `UPDATE … .is(dispatch_at, null)` atomique, puis trois lectures d'enrichissement
