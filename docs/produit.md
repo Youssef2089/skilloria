@@ -639,6 +639,35 @@ Pour chacune : **sa valeur**, **d'où elle vient**, **qui peut la changer**.
 « Back-office » = un écran `/admin` l'expose. « Base » = la valeur est en base mais **aucun écran ne
 l'expose**. « Code » = un déploiement est nécessaire.
 
+### P3.0 — L'ÉCHELLE UNIQUE : TOUT SE NOTE DE 0 À 10
+
+**Toute note du produit est sur 0-10. Il n'y a pas de seconde échelle.**
+
+Avant le 19/09/2026, les filtres de pertinence vivaient en **0-1** et les notes de jugement en
+**0-10**, et rien ne le disait à l'écran : **« 1 » signifiait *parfait* d'un côté et *médiocre* de
+l'autre**, sur la même page. Le propriétaire du produit a ouvert `/admin/matching` et n'a pas su quoi
+faire — c'est le seul verdict qui compte.
+
+**Le reranker, lui, produit du 0-1 : c'est sa nature, et on n'y touche pas.** Sa sortie est
+multipliée par 10 **au seul point où un score entre dans le système** — la frontière avec le
+fournisseur, [lib/matching/rerank.ts](../lib/matching/rerank.ts). Au-delà, tout est en 0-10 : la
+colonne, les réglages, la comparaison, la trace, l'écran.
+
+> **Il n'existe AUCUNE autre conversion dans le produit, et c'est gardé** par
+> [scripts/diag-echelle-des-notes.mjs](../scripts/diag-echelle-des-notes.mjs). Convertir à
+> l'affichage laisserait deux représentations ; convertir à la comparaison mettrait la conversion sur
+> **quatre** sites, et en oublier un transformerait `score < 7` en `score < 0.7` — tout passe, ou
+> rien ne passe, **en silence**.
+
+**Ce qui a changé de valeur sans changer de sens** : un filtre à `0` reste `0` (« tout passe ») ; un
+filtre à `1` devient `10` (« seul le parfait passe »). La multiplication préserve le sens par
+construction — un `1` ne peut pas devenir « presque tout passe ».
+
+**L'historique n'est pas réécrit, il est daté.** Les runs d'avant la bascule ont enregistré leurs
+statistiques en 0-1. Les nouveaux portent une estampille `echelle: 10`, et la lecture ne prend
+**que** les runs estampillés : moyenner les deux produirait un nombre juste sous une étiquette
+fausse. La répartition observée **repart** au déploiement, et l'écran le dit comme un état.
+
 ### P3.1 — Commerce et quotas
 | Règle | Valeur | Origine | Qui peut la changer |
 |---|---|---|---|
@@ -654,14 +683,14 @@ l'expose**. « Code » = un déploiement est nécessaire.
 ### P3.2 — Moteur de mise en relation
 | Règle | Valeur | Origine | Qui peut la changer |
 |---|---|---|---|
-| Seuil d'entrée dans le flux | **0** (tout profil éligible entre) | `matching_settings.feed_threshold` | **Back-office** `/admin/matching` |
-| Seuil de notification | **1** | `matching_settings.notify_threshold` | **Back-office** |
+| **Filtre** du flux | **0 / 10** (tout profil éligible entre) | `matching_settings.feed_threshold` | **Back-office** `/admin/matching` — **il TRIE** |
+| **Filtre** de notification | **10 / 10** | `matching_settings.notify_threshold` | **Back-office** — **il TRIE** |
 | Notifications actives | **`false`** | `matching_settings.notify_enabled` | **Back-office** (§P4) |
 | Modèle de reranking | `rerank-v4.0-fast` | `matching_settings.rerank_model` | **Back-office** |
 | Taille de lot | 200 (borne 1–1000) | `matching_settings.rerank_batch_size` | **Back-office** |
 | Contrainte `notify_threshold ≥ feed_threshold` | — | CHECK en base | **Personne** — migration |
 | Plafond de dépense mensuel | rerank 200 $ · claude 100 $ | `ai_spend_caps` | **Back-office** `/admin/matching` — **il BLOQUE** |
-| Seuil d'alerte **par acteur** | organisation **10 $** · expert **2 $** | `ai_spend_seuils_acteur` | **Back-office** `/admin/matching` — **il ALERTE, il ne bloque JAMAIS** |
+| **Alerte** par acteur | organisation **10 $** · expert **2 $** | `ai_spend_seuils_acteur` | **Back-office** `/admin/matching` — **elle SIGNALE, elle ne bloque JAMAIS** |
 | Grille tarifaire par modèle | Sonnet 5 **2/10** · Sonnet 4.6 **3/15** · Haiku 4.5 **1/5** · rerank **0,000002 $/doc** | `ai_model_tarifs` | **Base** (aucun écran) — change quand le fournisseur change ses prix, pas quand on déploie |
 | Lots en parallèle | 4 | **Code** | Déploiement |
 | Délai fournisseur | 10 s | **Code** | Déploiement |
@@ -677,7 +706,7 @@ l'expose**. « Code » = un déploiement est nécessaire.
 | Taille de CV | 5 Mo, PDF | **Code** | Déploiement |
 | Taille de logo (organisation **et** écosystème) | **2 Mo**, `image/jpeg` · `png` · `webp` — **SVG refusé** | **Code** [lib/org-logo.ts](../lib/org-logo.ts) | Déploiement |
 | Vérification d'un logo | **signature binaire** lue dans les octets, type déclaré confronté au type reniflé, et c'est le **reniflé** qui est servi | **Code** `verifierFichierLogo` | Déploiement |
-| Seuil qualité d'annonce | **7 / 10** | `verification_providers` (`opportunity_quality_check`) | **Back-office** `/admin/seuils` |
+| **Note** de qualité d'annonce | **7 / 10** | `verification_providers` (`opportunity_quality_check`) | **Back-office** `/admin/seuils` — **elle JUGE** |
 | Seuil d'auto-approbation d'expert | **8 / 10** | `verification_providers.config->>'auto_approve_threshold'` — **le jsonb, PAS la colonne** | **Back-office** `/admin/seuils` |
 | Drapeaux disqualifiants d'expert | `CV_PROFILE_INCOHERENT`, `SUSPICIOUS_CONTENT`, `DOMAIN_MISMATCH` | `verification_providers.config->>'blocking_flags'` | **Back-office** `/admin/seuils` — liste vide **refusée** |
 | `verification_providers.confidence_threshold` sur la ligne expert | 7 — **lue puis JAMAIS utilisée** par le chemin expert | colonne | — |

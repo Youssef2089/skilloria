@@ -8,12 +8,12 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  *   main le jour où la ligne manque — c'est-à-dire le jour où l'on comprend le
  *   moins ce qui se passe. Ligne absente ⇒ on refuse, et on le dit.
  *
- * POURQUOI DEUX SEUILS
+ * POURQUOI DEUX FILTRES, ET LE MOT « SEUIL » N EN EST PAS UN
  *   `feed`   : ce qui entre dans le flux de l'expert.
  *   `notify` : ce qui déclenche une notification.
- *   Le levier est « montrer plus, notifier moins ». Ils étaient déjà deux, mais
- *   le premier vivait dans le prompt et n'était modifiable que par un
- *   développeur.
+ *   Le levier est « montrer plus, notifier moins ». Ces deux réglages TRIENT :
+ *   ils ne bloquent rien et ne jugent personne — d où le mot FILTRE, et non
+ *   « seuil », qui désignait quatre comportements incompatibles dans ce produit.
  *
  * POURQUOI LE MODÈLE VOYAGE AVEC EUX
  *   Changer de reranker change l'échelle. Les deux seuils deviennent alors faux,
@@ -69,20 +69,24 @@ export async function loadMatchingSettings(
   const model = typeof r.rerank_model === 'string' && r.rerank_model.length > 0 ? r.rerank_model : null
 
   // La base porte déjà ces contraintes. On les revérifie ici parce qu'une
-  // contrainte peut être relâchée un jour, et qu'un seuil hors bornes ne
+  // contrainte peut être relâchée un jour, et qu'un filtre hors bornes ne
   // produirait aucune erreur — juste un moteur qui écarte tout le monde, ou
   // personne.
   if (feed == null || notify == null || batch == null || !model) {
     return { ok: false, raison: 'illisible', detail: 'Réglage incomplet en base.' }
   }
-  if (feed < 0 || feed > 1 || notify < 0 || notify > 1) {
-    return { ok: false, raison: 'illisible', detail: `Seuils hors [0,1] : feed=${feed}, notify=${notify}.` }
+  // ÉCHELLE 0-10, la seule du produit. Ce refus est aussi ce qui a rendu la
+  // bascule sûre : pendant la fenêtre entre la migration et le déploiement,
+  // c'est l'ANCIENNE version de ce test (`> 1`) qui faisait refuser le moteur
+  // au lieu de le laisser filtrer dix fois trop large.
+  if (feed < 0 || feed > 10 || notify < 0 || notify > 10) {
+    return { ok: false, raison: 'illisible', detail: `Filtres hors [0,10] : flux=${feed}, notification=${notify}.` }
   }
   if (notify < feed) {
     return {
       ok: false,
       raison: 'illisible',
-      detail: `Le seuil de notification (${notify}) est sous celui du flux (${feed}) : on notifierait pour une annonce invisible.`,
+      detail: `Le filtre de notification (${notify}) est sous celui du flux (${feed}) : on notifierait pour une annonce invisible.`,
     }
   }
 

@@ -92,6 +92,32 @@ type TraceDeRun = {
   score_p50: number | null
   score_p90: number | null
   score_max: number | null
+  /**
+   * L'ESTAMPILLE D'ÉCHELLE. Sans elle, les runs d'avant la bascule (notes en
+   * 0-1) et ceux d'après (0-10) seraient moyennés ensemble par
+   * `matching_threshold_health()` : un nombre juste sous une étiquette fausse.
+   * On ne réécrit pas l'historique, ON LE DATE — et la lecture ne prend que ce
+   * qui porte cette marque.
+   */
+  echelle: 10
+  /**
+   * LA RÉPARTITION — dix entiers, tranche i = [i, i+1), la dixième fermée à 10.
+   *
+   * C'est ce qui manquait pour régler un filtre autrement qu'au hasard :
+   * l'écran l'écrivait lui-même, puis demandait de le faire quand même. La
+   * trace ne portait que p50, p90, max et un comptage au-dessus du filtre EN
+   * VIGUEUR CE JOUR-LÀ — impossible d'en déduire ce que donnerait une AUTRE
+   * valeur.
+   *
+   * ⚠️ ELLE PORTE SUR TOUS LES PROFILS NOTÉS, PAS SUR CEUX QUI PASSENT. Bâtie
+   *    sur les seuls retenus, elle ne saurait pas dire ce qu'un filtre PLUS BAS
+   *    laisserait entrer — c'est-à-dire précisément la question qu'on pose en
+   *    réglant.
+   *
+   * Jamais les notes individuelles : on règle un filtre, on ne constitue pas un
+   * classement nominatif (§D.6).
+   */
+  repartition: number[] | null
   arret: string | null
 }
 
@@ -99,11 +125,25 @@ function construireTrace(t: TraceDeRun): Record<string, unknown> {
   return { ...t }
 }
 
-/** Percentile d'une liste triée croissante. Rendu à 4 décimales, comme la trace. */
+/** Percentile d'une liste triée croissante. Deux décimales : l'échelle est 0-10. */
 function percentile(triee: readonly number[], p: number): number | null {
   if (triee.length === 0) return null
   const i = Math.min(triee.length - 1, Math.max(0, Math.round((triee.length - 1) * p)))
-  return Number(triee[i].toFixed(4))
+  return Number(triee[i].toFixed(2))
+}
+
+/**
+ * Compte les notes par tranche entière de l'échelle 0-10.
+ * Une note de 10 pile tombe dans la dernière tranche, pas dans une onzième.
+ */
+function repartitionParTranche(notes: Iterable<number>): number[] {
+  const tranches = new Array<number>(10).fill(0)
+  for (const n of notes) {
+    if (!Number.isFinite(n)) continue
+    const i = Math.min(9, Math.max(0, Math.floor(n)))
+    tranches[i] += 1
+  }
+  return tranches
 }
 
 async function marquerTentative(
@@ -266,10 +306,13 @@ export async function runMatchingForPublication(args: {
         feed_threshold_used: s.feed_threshold,
         threshold_used: s.notify_threshold,
         // Aucun score n'a été produit : `null` dit « rien à distribuer », là où
-        // un 0 se lirait « tout le monde à zéro ».
+        // un 0 se lirait « tout le monde à zéro ». Même raison pour la
+        // répartition — dix zéros se liraient « tout le monde en bas ».
         score_p50: null,
         score_p90: null,
         score_max: null,
+        echelle: 10,
+        repartition: null,
         arret: null,
       }),
       s.rerank_model,
@@ -397,7 +440,13 @@ export async function runMatchingForPublication(args: {
       threshold_used: s.notify_threshold,
       score_p50: percentile(scores, 0.5),
       score_p90: percentile(scores, 0.9),
-      score_max: scores.length > 0 ? Number(scores[scores.length - 1].toFixed(4)) : null,
+      score_max: scores.length > 0 ? Number(scores[scores.length - 1].toFixed(2)) : null,
+      echelle: 10,
+      // ⚠️ `notation.scores` — TOUS les profils notés — et surtout PAS `scores`,
+      //    qui ne contient que ceux passés au-dessus du filtre du flux. C'est la
+      //    seule forme qui permette de répondre « et si je descendais à 4 ? ».
+      repartition:
+        notation.scores.size > 0 ? repartitionParTranche(notation.scores.values()) : null,
       // Toujours une RAISON NOMMABLE quand le run s'est arrêté. Un run muet
       // envoie chercher un bug pendant deux jours.
       arret: notation.arret ?? null,

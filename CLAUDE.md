@@ -656,11 +656,14 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **65** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
+Sur les **66** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
 17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois dernières,
 `logo_organisation_bucket`, `format_numero_identification` et `pays_du_profil_sans_defaut`,
 **n'insèrent rien** : elles créent un bucket, ajoutent des colonnes, retirent deux `DEFAULT 'FR'` et
-mettent à jour la seule ligne `FR`, d'où trois compteurs inchangés. Ce document disait 51 / 35 / 1913 ;
+mettent à jour la seule ligne `FR`, d'où trois compteurs inchangés — et `echelle_des_notes`
+(19/09/2026) n'insère rien non plus : elle CONVERTIT et remplace une fonction, ce que ce contrôle
+**ne sait pas lire**, d'où le contrôle dédié [diag-echelle-des-notes.mjs](scripts/diag-echelle-des-notes.mjs).
+Ce document disait 51 / 35 / 1913 ;
 les chiffres avaient vieilli sans que rien ne le signale, et c'est précisément pour ça qu'ils sont
 désormais **relus par un contrôle**, §E.16).
 
@@ -1216,7 +1219,8 @@ se serait rejouée **avant** elles sur une base vierge.
 > **Les quatre sont APPLIQUÉES en base — MESURÉ le 18/09/2026.** Ce paragraphe disait « trois des
 > quatre », et c'était vrai à sa date : la quatrième était alors **renommable**, et le gel ne disait
 > pas laquelle. C'était la seule ligne gelée du dépôt sans raison individuelle (§G.8).
-> **La fenêtre est refermée** : disque = **65** migrations (compté dans le dépôt), et la requête sur
+> **La fenêtre est refermée** : au moment de cette mesure le disque portait **65** migrations — il en
+> compte **66** depuis `echelle_des_notes` (19/09/2026) —, et la requête sur
 > `supabase_migrations.schema_migrations` — celle qui est en tête du gel dans
 > [scripts/diag-migration-donnees.mjs](scripts/diag-migration-donnees.mjs) — a rendu **quatre
 > lignes**. Le gel est **définitif**.

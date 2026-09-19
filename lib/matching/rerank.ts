@@ -202,9 +202,29 @@ async function noterUnLot(args: {
     const s = r.relevance_score
     if (typeof i !== 'number' || i < 0 || i >= args.lot.length) continue
     if (typeof s !== 'number' || !Number.isFinite(s)) continue
-    // Le fournisseur annonce [0,1] ; on borne quand même. Un score hors bornes
-    // violerait la contrainte de base et ferait échouer TOUT le lot d'écriture.
-    scores.push({ id: args.lot[i].id, score: Math.max(0, Math.min(1, s)) })
+    // ╔══════════════════════════════════════════════════════════════════════╗
+    // ║ LA FRONTIÈRE. C'EST ICI, ET NULLE PART AILLEURS, QUE L'ÉCHELLE CHANGE.║
+    // ╚══════════════════════════════════════════════════════════════════════╝
+    //   Le fournisseur produit du [0,1] — c'est sa nature, on n'y touche pas.
+    //   Le produit, lui, n'a qu'UNE échelle : 0 à 10, la même que les notes de
+    //   jugement. Avant, les filtres vivaient en 0-1 et les notes en 0-10, sur
+    //   la même page : « 1 » voulait dire PARFAIT d'un côté et MÉDIOCRE de
+    //   l'autre, et rien ne le disait.
+    //
+    //   POURQUOI ICI. Une conversion d'unité se pose là où l'on franchit la
+    //   frontière avec un système externe. La poser à l'AFFICHAGE laisserait
+    //   deux représentations ; la poser à la COMPARAISON la mettrait sur quatre
+    //   sites (index.ts ×2, run-for-expert.ts ×2), et en oublier un
+    //   transformerait `score < 7` en `score < 0.7` — tout passe, ou rien ne
+    //   passe, EN SILENCE.
+    //
+    //   ⚠️ AUCUN AUTRE `* 10` NI `/ 10` SUR UN SCORE N'EXISTE DANS LE PRODUIT,
+    //      et `diag-echelle-des-notes.mjs` rougit si l'un apparaît. En ajouter
+    //      un ailleurs, c'est rouvrir la double représentation que ce lot ferme.
+    //
+    //   On borne AVANT de multiplier : un score hors bornes violerait la
+    //   contrainte de base et ferait échouer TOUT le lot d'écriture.
+    scores.push({ id: args.lot[i].id, score: Math.max(0, Math.min(1, s)) * 10 })
   }
   return { ok: true, scores }
 }

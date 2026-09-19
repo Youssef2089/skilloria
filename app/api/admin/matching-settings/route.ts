@@ -198,9 +198,9 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   const domainId = typeof body.domain_id === 'string' && UUID.test(body.domain_id) ? body.domain_id : null
   if (!domainId) return json({ error: 'Invalid domain', code: 'bad_domain' }, 400)
 
-  // On lit l'existant pour valider l'ORDRE des deux seuils même quand un seul
+  // On lit l'existant pour valider l'ORDRE des deux filtres même quand un seul
   // est envoyé. Sans cela, régler le flux seul pourrait le faire passer
-  // au-dessus du seuil de notification sans qu'aucune garde ne le voie.
+  // au-dessus du filtre de notification sans qu'aucune garde ne le voie.
   const { data: actuel, error: lectureErr } = await admin
     .from('matching_settings')
     .select('feed_threshold, notify_threshold')
@@ -215,13 +215,16 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   const patch: Record<string, unknown> = {}
 
   if ('feed_threshold' in body) {
-    const v = nombreDansBornes(body.feed_threshold, 0, 1)
-    if (v == null) return json({ error: 'feed_threshold hors [0,1]', code: 'bad_threshold' }, 400)
+    // ÉCHELLE 0-10, la seule du produit. La base porte la même borne ; on la
+    // revérifie ici parce qu'une contrainte relâchée ne produirait aucune
+    // erreur — juste un filtre qui écarte tout le monde, ou personne.
+    const v = nombreDansBornes(body.feed_threshold, 0, 10)
+    if (v == null) return json({ error: 'filtre du flux hors [0,10]', code: 'bad_filter' }, 400)
     patch.feed_threshold = v
   }
   if ('notify_threshold' in body) {
-    const v = nombreDansBornes(body.notify_threshold, 0, 1)
-    if (v == null) return json({ error: 'notify_threshold hors [0,1]', code: 'bad_threshold' }, 400)
+    const v = nombreDansBornes(body.notify_threshold, 0, 10)
+    if (v == null) return json({ error: 'filtre de notification hors [0,10]', code: 'bad_filter' }, 400)
     patch.notify_threshold = v
   }
   if ('rerank_batch_size' in body) {
