@@ -693,6 +693,97 @@ for (const f of ['app/api/admin/user-purge/route.ts', 'app/api/admin/get-user/[i
   )
 }
 
+section("I. Une retrogradation ne se decide pas sur un etat qu on n a pas lu")
+
+/*
+ * LA PROPRIÉTÉ, ET ELLE N'EST NI UNE FORME NI UN NOM (§E.34) :
+ *
+ *   « UNE RÉTROGRADATION NE SE DÉCIDE PAS SUR UN ÉTAT QU'ON N'A PAS LU. »
+ *
+ * Le cas source — `app/api/profile/route.ts`, rang 1 du gel 4.1d : l'erreur
+ * de la relecture post-enregistrement n’était pas récupérée, `status`
+ * tombait à `null`, `null !== 'approved'` était VRAI, et la branche DÉMOTION
+ * supprimait les recommandations puis remettait `users.is_verified` à faux.
+ * **Une lecture en panne ÉCRIVAIT EN BASE** (§E.27 forme A), et rien ne le
+ * rattrapait : pour un expert, `is_verified: true` n'est écrit QUE par
+ * `/api/admin/approve-expert`.
+ *
+ * ⚠️ UNE PREMIÈRE VERSION DE CETTE SECTION PORTAIT UNE PHRASE FAUSSE, ET LE
+ *    BALAYAGE L’A DITE FAUSSE DÈS SA PREMIÈRE EXÉCUTION. Elle affirmait
+ *    qu’une rétrogradation décidée par un humain « ne lit aucun statut, donc
+ *    le balayage ne la voit pas ». Il la voit : `reject-expert` et
+ *    `reject-org` lisent bien `verification_status` — pour refuser un 409 si
+ *    le dossier n’est pas en attente. **Ce qui les sépare du cas source n’est
+ *    pas la lecture, c’est la POSITION de la rétrogradation** : chez eux elle
+ *    est INCONDITIONNELLE (elle exécute la demande) ; dans le cas source elle
+ *    vivait SOUS une comparaison NÉGATIVE du statut, là où « je ne sais pas »
+ *    tombe du côté destructeur.
+ *
+ * D’où DEUX exigences, et la seconde ne vaut que pour la forme dangereuse :
+ *   A. toute lecture de statut qui précède une rétrogradation REFUSE sur son
+ *      erreur — vrai des trois, et c’est la garde minimale ;
+ *   B. quand la rétrogradation est SOUS une comparaison négative du statut,
+ *      « illisible » et « disparu » sortent SÉPARÉMENT (§E.29) — sans quoi
+ *      l’inconnu retombe sur la branche qui écrit.
+ *
+ * ⚠️ CE QU’IL NE VOIT PAS : une rétrogradation écrite par un RPC, et le cas
+ *    où la lecture du statut vivrait dans un autre fichier que l’écriture.
+ */
+const RETROGRADE = /is_verified:\s*false|clearExpertRecommendations\s*\(/
+const LIT_LE_STATUT = /\.select\([^)]*verification_status/
+const STATUT_NEGATIF = /!==?\s*'(approved|active)'/
+
+/** Le bloc `{ … }` le plus proche qui contient `pos`, par comptage d’accolades. */
+const blocEnglobant = (code, pos) => {
+  let prof = 0
+  let debutBloc = -1
+  for (let i = pos; i >= 0; i--) {
+    if (code[i] === '}') prof++
+    else if (code[i] === '{') {
+      if (prof === 0) { debutBloc = i; break }
+      prof--
+    }
+  }
+  return debutBloc
+}
+
+const decideurs = sources.filter((f) => {
+  const code = sansCommentaires(read(f))
+  return RETROGRADE.test(code) && LIT_LE_STATUT.test(code)
+})
+
+ok(
+  decideurs.length >= 1,
+  `le motif VOIT (${decideurs.length} fichier(s) rétrogradent après avoir lu un statut)`,
+  'aucun bloc ne correspond : le motif ne prouve plus rien, il faut le relire',
+)
+
+for (const f of decideurs) {
+  const code = sansCommentaires(read(f))
+  const posLecture = code.search(LIT_LE_STATUT)
+  const decalage = code.slice(posLecture).search(RETROGRADE)
+  const posRetro = decalage < 0 ? -1 : posLecture + decalage
+  // On lit ENTRE la lecture et la rétrogradation — jamais le fichier entier
+  // (§E.8) : ailleurs, un `if (err)` sans rapport ferait passer l'assertion.
+  const entreLesDeux = posRetro < 0 ? '' : code.slice(posLecture, posRetro)
+
+  ok(
+    /if\s*\(\s*[^)]*\w*[Ee]rr\w*[^)]*\)\s*\{[\s\S]{0,500}?\breturn\b/.test(entreLesDeux),
+    `${f} — A. la lecture du statut REFUSE sur son erreur, avant toute rétrogradation`,
+    'aucune sortie sur erreur entre la lecture et la rétrogradation : une panne écrirait en base',
+  )
+
+  // B. La rétrogradation vit-elle SOUS une comparaison négative du statut ?
+  const ouvrante = posRetro < 0 ? -1 : blocEnglobant(code, posRetro)
+  const condition = ouvrante < 0 ? '' : code.slice(Math.max(0, ouvrante - 160), ouvrante)
+  const formeDangereuse = STATUT_NEGATIF.test(condition)
+  if (!formeDangereuse) continue
+  ok(
+    /if\s*\(\s*!\s*\w+\s*\)\s*\{[\s\S]{0,500}?\breturn\b/.test(entreLesDeux),
+    `${f} — B. sous comparaison NÉGATIVE : « illisible » et « disparu » sortent séparément`,
+    'l’inconnu retombe du côté qui écrit — c’est exactement le rang 1 du gel 4.1d',
+  )
+}
 /* ════════════════════════════════════════════════════════════════════════ */
 console.log(`\n${'─'.repeat(78)}`)
 console.log(`${vert} vert${vert > 1 ? 's' : ''} · ${rouge} rouge${rouge > 1 ? 's' : ''}`)

@@ -668,12 +668,54 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   // a pu basculer le statut). Coût IA : 1 appel batché par enregistrement.
   after(async () => {
     try {
-      const { data: postUpd } = await supabaseAdmin
+      const { data: postUpd, error: postUpdErr } = await supabaseAdmin
         .from('profiles')
         .select('verification_status, visible, ai_consent_at, cv_parsing_status')
         .eq('id', cp.id)
         .maybeSingle()
-      const status = postUpd?.verification_status ?? null
+
+      // ══════════════════════════════════════════════════════════════════
+      //  ⚠️ CETTE RELECTURE DÉCIDE D'UNE ÉCRITURE. ELLE NE PEUT PAS ÉCHOUER
+      //     EN SILENCE.
+      //
+      //     L'erreur n'était pas récupérée. `postUpd` tombait à `null`,
+      //     `status` valait `null`, `null !== 'approved'` était VRAI, et la
+      //     branche DÉMOTION ci-dessous s’exécutait : les recommandations
+      //     étaient supprimées et `users.is_verified` repassait à FAUX.
+      //
+      //     **UNE LECTURE EN PANNE ÉCRIVAIT EN BASE** — §E.27 forme A, sur
+      //     l'enregistrement d'un simple brouillon par un expert APPROUVÉ.
+      //
+      //     ET RIEN NE LE RATTRAPAIT. Pour un expert, `is_verified: true`
+      //     n'est écrit QUE par `/api/admin/approve-expert` : la colonne
+      //     `verification_status` restait `approved` (donc aucune revue ne
+      //     s'ouvrait), pendant que le badge et les recommandations
+      //     disparaissaient. L'invariant que trois autres routes énoncent —
+      //     `is_verified === (verification_status === 'approved')` — était
+      //     rompu, sans réconciliation et sans trace.
+      //
+      //     ON NE DÉMOTE PAS SUR UN ÉTAT QU'ON N'A PAS LU. Ni démotion, ni
+      //     remise en relation : les deux consomment `status`. Le profil est
+      //     déjà enregistré, la réponse est partie ; ce qui reste à faire
+      //     ici se refera au prochain enregistrement, ou à la ré-approbation.
+      //     Les deux causes sont journalisées SÉPARÉMENT : une lecture en
+      //     panne se rejoue, un profil disparu non (§E.29).
+      // ══════════════════════════════════════════════════════════════════
+      if (postUpdErr) {
+        console.error(
+          '[profile:PATCH] statut post-enregistrement ILLISIBLE — ni démotion, ni mise en relation',
+          { profileId: cp.id, message: postUpdErr.message },
+        )
+        return
+      }
+      if (!postUpd) {
+        console.error(
+          '[profile:PATCH] profil INTROUVABLE juste après son propre enregistrement',
+          { profileId: cp.id },
+        )
+        return
+      }
+      const status = postUpd.verification_status ?? null
 
       if (status !== 'approved') {
         // ── DÉMOTION ───────────────────────────────────────────────────────
@@ -701,10 +743,12 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       // reconcile efface d'abord les matches obsolètes puis insère les frais
       // (sans doublon — contrainte UNIQUE — ni re-spam de notif). Garde les
       // mêmes pré-conditions de "vraiment live" (visible + consent + CV parsé).
+      // `postUpd` est NON NUL ici, par construction : les deux refus
+      // ci-dessus sont sortis. Garder `?.` laisserait croire l'inverse.
       const ready =
-        postUpd?.visible === true &&
-        postUpd?.ai_consent_at != null &&
-        postUpd?.cv_parsing_status === 'done'
+        postUpd.visible === true &&
+        postUpd.ai_consent_at != null &&
+        postUpd.cv_parsing_status === 'done'
       if (!ready) return
 
       // ── ON REPORTE, ON N'EXÉCUTE PAS ───────────────────────────────────

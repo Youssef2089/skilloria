@@ -1999,6 +1999,51 @@ la **fenêtre** de §E.40 faisait entrer et sortir. Les cinq étaient des faux p
 d'entre eux cachaient, deux lignes plus bas, un défaut d'une **autre** classe. *Une mesure dit où
 regarder ; elle ne dit jamais quoi décider.*
 
+**E.43 — UNE RÉTROGRADATION NE SE DÉCIDE PAS SUR UN ÉTAT QU'ON N'A PAS LU.**
+
+C'est §E.27 forme A — la panne qui cesse de mentir et **devient** la vérité — sur la surface la
+plus banale du produit : **un expert qui enregistre un brouillon**.
+
+`PATCH /api/profile` relit le statut après l’enregistrement, dans un `after()`, pour choisir
+entre remettre l’expert en relation et le **rétrograder**. L’erreur de cette relecture n’était
+pas récupérée : `postUpd` tombait à `null`, `status` valait `null`, `null !== 'approved'` était
+VRAI — et la branche **DÉMOTION** s’exécutait. Deux écritures : les recommandations supprimées,
+et `users.is_verified` remis à **faux**.
+
+**CE QUI REND CE CAS LE PLUS GRAVE DU GEL, ET C’EST MESURÉ, PAS DÉDUIT :**
+· pour un expert, **`is_verified: true` n'est écrit QUE par `/api/admin/approve-expert`** —
+  aucune réconciliation, aucun cron, aucun chemin de retour automatique ;
+· `profiles.verification_status` restait **`approved`** : **aucune revue ne s'ouvrait**, donc
+  aucun administrateur ne voyait qu’il y avait quelque chose à re-approuver ;
+· l'invariant que trois autres routes énoncent en toutes lettres —
+  `is_verified === (verification_status === 'approved')` — était **rompu en silence** ;
+· et l’expert, lui, lisait « Brouillon enregistré ».
+
+**LA FORME QUI REND LA CHOSE INVISIBLE : la comparaison est NÉGATIVE.** `!== 'approved'` met
+« je ne sais pas » **du côté qui écrit**. Un test positif (`=== 'approved'`) aurait mis l'inconnu
+du côté qui ne fait rien, et la panne n’aurait rien cassé. **Le même défaut, écrit dans l’autre
+sens, serait passé inaperçu pour une bonne raison : il n’aurait rien fait.**
+
+**LE CORRECTIF** : les deux causes sortent **séparément** avant toute décision — `postUpdErr`
+(une lecture en panne, qui se rejoue au prochain enregistrement) et `!postUpd` (un profil
+introuvable juste après son propre enregistrement, qui ne se rejoue pas) — §E.29. Ni démotion,
+ni remise en relation : **les deux consomment `status`** (§E.41 ①).
+
+**LE CONTRÔLE** — `diag-echec-silencieux`, section I. Il **balaie** (`app/` + `lib/` +
+`components/`) au lieu d’ouvrir deux fichiers par leur chemin, et il tient **deux** exigences :
+· **A** — toute lecture de statut qui précède une rétrogradation refuse sur son erreur ;
+· **B** — quand la rétrogradation vit **sous une comparaison négative** du statut, les deux
+  causes sortent séparément. B ne s’applique qu’à la forme dangereuse, et c’est le point.
+
+> ⚠️ **ET LA PREMIÈRE VERSION DE CE CONTRÔLE PORTAIT UNE PHRASE FAUSSE, QUE SA PROPRE PREMIÈRE
+> EXÉCUTION A DÉMENTIE.** J'avais écrit qu'une rétrogradation décidée par un humain « ne lit
+> aucun statut, donc le balayage ne la voit pas ». Il la voit : `reject-expert` et `reject-org`
+> **lisent** `verification_status` — pour refuser un 409 si le dossier n’est pas en attente.
+> **Ce qui les sépare du cas source n’est pas la lecture, c’est la POSITION de l’écriture** :
+> chez eux la rétrogradation est **inconditionnelle** (elle exécute une demande) ; ici elle
+> vivait **sous** le test du statut. La distinction a été trouvée en EXÉCUTANT, pas en relisant
+> — et elle a rendu le contrôle plus juste que ce que j’en attendais.
+
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
   acceptée et ne se déclenchera **jamais** : aucune erreur, aucune ligne dans `job_run_details`. D'où le
@@ -2173,9 +2218,9 @@ ont ouvert ses emplacements un par un. Au 20/09/2026 : **91 mesurés, 91 jugés,
 > et le contrôle le **compte à voix haute** en fin d'exécution : un gel dont on ne peut pas dire,
 > sans l'ouvrir, combien de défauts il abrite redevient une carte.
 >
-> **Le rang 1 est `app/api/profile/route.ts:671`** : `postUpd` nul ⇒ `status` nul ⇒ la branche
-> **DÉMOTION** s'exécute — les recommandations sont retirées et `users.is_verified` repasse à faux.
-> **Une lecture en panne ÉCRIT EN BASE et dégrade un expert vérifié** (§E.27 forme A).
+> **Le rang 1 était `app/api/profile/route.ts:671` — il est FERMÉ** (20/09/2026, §E.43) : une
+> lecture en panne y ÉCRIVAIT en base et dégradait un expert vérifié. **Quatorze restent**, et
+> ils gardent leur rang.
 
 ---
 
