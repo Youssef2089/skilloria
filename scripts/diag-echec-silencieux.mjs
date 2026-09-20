@@ -747,6 +747,40 @@ const blocEnglobant = (code, pos) => {
   return debutBloc
 }
 
+/**
+ * Le bloc d'un `if` — de son accolade ouvrante a sa fermante, par COMPTAGE.
+ *
+ * ⚠️ IL A FALLU UNE MUTATION POUR L ECRIRE. La premiere version de la
+ *    section demandait `if (<err>) { … } [\s\S]{0,500}? return` : une
+ *    FENETRE DE CARACTERES. La mutation « la branche journalise puis
+ *    CONTINUE » retirait bien le `return` du bloc visé — et l’assertion
+ *    restait verte, parce qu'elle trouvait le `return` du bloc VOISIN,
+ *    trois lignes plus bas. **§E.8, dans le contrôle écrit pour fermer une
+ *    écriture sur panne.** Une fenêtre ne délimite rien ; seules les
+ *    accolades le font.
+ */
+const blocDuIf = (code, posIf) => {
+  const ouvrante = code.indexOf('{', posIf)
+  if (ouvrante < 0) return ''
+  let prof = 0
+  for (let i = ouvrante; i < code.length; i++) {
+    if (code[i] === '{') prof++
+    else if (code[i] === '}') {
+      prof--
+      if (prof === 0) return code.slice(ouvrante, i + 1)
+    }
+  }
+  return ''
+}
+
+/** Le bloc du premier `if` dont la condition satisfait `motifCondition`. */
+const blocDuPremierIf = (zone, motifCondition) => {
+  for (const m of zone.matchAll(/if\s*\(([^)]*)\)/g)) {
+    if (motifCondition.test(m[1])) return blocDuIf(zone, m.index)
+  }
+  return null
+}
+
 const decideurs = sources.filter((f) => {
   const code = sansCommentaires(read(f))
   return RETROGRADE.test(code) && LIT_LE_STATUT.test(code)
@@ -767,10 +801,13 @@ for (const f of decideurs) {
   // (§E.8) : ailleurs, un `if (err)` sans rapport ferait passer l'assertion.
   const entreLesDeux = posRetro < 0 ? '' : code.slice(posLecture, posRetro)
 
+  const blocErreur = blocDuPremierIf(entreLesDeux, /\w*[Ee]rr\w*/)
   ok(
-    /if\s*\(\s*[^)]*\w*[Ee]rr\w*[^)]*\)\s*\{[\s\S]{0,500}?\breturn\b/.test(entreLesDeux),
+    blocErreur !== null && /\breturn\b|\bthrow\b/.test(blocErreur),
     `${f} — A. la lecture du statut REFUSE sur son erreur, avant toute rétrogradation`,
-    'aucune sortie sur erreur entre la lecture et la rétrogradation : une panne écrirait en base',
+    blocErreur === null
+      ? 'aucune branche d’erreur entre la lecture et la rétrogradation : une panne écrirait en base'
+      : 'la branche d’erreur JOURNALISE puis CONTINUE — et la suite consomme ce qui a échoué (§E.41 ①)',
   )
 
   // B. La rétrogradation vit-elle SOUS une comparaison négative du statut ?
@@ -778,8 +815,9 @@ for (const f of decideurs) {
   const condition = ouvrante < 0 ? '' : code.slice(Math.max(0, ouvrante - 160), ouvrante)
   const formeDangereuse = STATUT_NEGATIF.test(condition)
   if (!formeDangereuse) continue
+  const blocAbsence = blocDuPremierIf(entreLesDeux, /^\s*!\s*\w+\s*$/)
   ok(
-    /if\s*\(\s*!\s*\w+\s*\)\s*\{[\s\S]{0,500}?\breturn\b/.test(entreLesDeux),
+    blocAbsence !== null && /\breturn\b|\bthrow\b/.test(blocAbsence),
     `${f} — B. sous comparaison NÉGATIVE : « illisible » et « disparu » sortent séparément`,
     'l’inconnu retombe du côté qui écrit — c’est exactement le rang 1 du gel 4.1d',
   )
