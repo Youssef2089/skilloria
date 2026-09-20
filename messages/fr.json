@@ -572,7 +572,8 @@
       "parsing_failed": "L'analyse a échoué : {reason}. Vous pouvez réessayer ou compléter manuellement.",
       "unknown_reason": "erreur inconnue",
       "parsing_default": "Analyse échouée",
-      "timeout": "Délai dépassé, réessayez."
+      "timeout": "Délai dépassé, réessayez.",
+      "verification_indisponible": "Une vérification n’a pas pu aboutir : ce n’est pas un refus, et votre fichier n’a pas été envoyé. Réessayez dans quelques instants."
     }
   },
   "profile_validation": {
@@ -1421,7 +1422,8 @@
       "parsing_failed": "L'analyse a échoué : {reason}. Vous pouvez réessayer ou compléter manuellement.",
       "unknown_reason": "erreur inconnue",
       "parsing_default": "Analyse échouée",
-      "timeout": "Délai dépassé, réessayez."
+      "timeout": "Délai dépassé, réessayez.",
+      "verification_indisponible": "Une vérification n’a pas pu aboutir : ce n’est pas un refus, et votre fichier n’a pas été envoyé. Réessayez dans quelques instants."
     },
     "acces": {
       "refuse_titre": "Cette page est réservée aux experts en CDI",
@@ -3525,7 +3527,8 @@
     "later_cta": "Plus tard",
     "blocked_email_is_expert_account": "Cette adresse correspond à un compte expert, qui ne peut pas rejoindre une organisation. Contactez l'administrateur qui vous a invité.",
     "blocked_email_is_admin_account": "Cette adresse correspond à un compte administrateur, qui ne peut pas rejoindre une organisation de cette manière.",
-    "blocked_email_already_in_organization": "Cette adresse est déjà rattachée à une autre organisation. Un compte ne peut appartenir qu'à une seule organisation."
+    "blocked_email_already_in_organization": "Cette adresse est déjà rattachée à une autre organisation. Un compte ne peut appartenir qu'à une seule organisation.",
+    "err_compte_verification_indisponible": "Nous n’avons pas pu lire votre compte. Ce n’est pas que votre e-mail n’est pas vérifié : la lecture a échoué, rien n’a été modifié. Réessayez dans quelques instants."
   },
   "verification_status": {
     "draft": "Brouillon",

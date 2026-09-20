@@ -171,6 +171,13 @@ export default function CdiProfilUploadPage() {
           setErrorMsg(t('errors.invalid_format'))
         } else if (code === 'consent_missing') {
           setErrorMsg(t('errors.consent_required'))
+        } else if (
+          code === 'compte_verification_indisponible' ||
+          code === 'profil_verification_indisponible'
+        ) {
+          // Une LECTURE qui n'a pas abouti : ni un refus, ni un problème du
+          // fichier. Le message le dit, et il dit que rien n'a été envoyé.
+          setErrorMsg(t('errors.verification_indisponible'))
         } else {
           // Jamais payload.error (anglais brut) : générique i18n.
           setErrorMsg(t('errors.generic'))

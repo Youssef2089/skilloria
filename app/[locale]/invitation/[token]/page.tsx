@@ -110,7 +110,9 @@ export default function InvitationPage() {
         // l’invitation, la seconde qu’on n’a pas pu vérifier le compte. Les
         // confondre enverrait chercher un défaut là où il n’est pas (§E.29).
         setErr(
-          body?.code === 'invitation_lecture_indisponible'
+          body?.code === 'compte_verification_indisponible'
+            ? t('err_compte_verification_indisponible')
+            : body?.code === 'invitation_lecture_indisponible'
             ? t('err_invitation_lecture_indisponible')
             : body?.code === 'join_check_unavailable'
               ? t('err_join_check_unavailable')

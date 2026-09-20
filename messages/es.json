@@ -572,7 +572,8 @@
       "parsing_failed": "El análisis ha fallado: {reason}. Puedes reintentarlo o completarlo manualmente.",
       "unknown_reason": "error desconocido",
       "parsing_default": "Análisis fallido",
-      "timeout": "Tiempo agotado, vuelve a intentarlo."
+      "timeout": "Tiempo agotado, vuelve a intentarlo.",
+      "verification_indisponible": "No se ha podido completar una verificación: no es un rechazo y su archivo no se ha enviado. Inténtelo de nuevo en unos instantes."
     }
   },
   "profile_validation": {
@@ -1421,7 +1422,8 @@
       "parsing_failed": "El análisis falló: {reason}. Puedes reintentar o completar manualmente.",
       "unknown_reason": "error desconocido",
       "parsing_default": "Análisis fallido",
-      "timeout": "Tiempo agotado, vuelve a intentarlo."
+      "timeout": "Tiempo agotado, vuelve a intentarlo.",
+      "verification_indisponible": "No se ha podido completar una verificación: no es un rechazo y su archivo no se ha enviado. Inténtelo de nuevo en unos instantes."
     },
     "acces": {
       "refuse_titre": "Esta página es para expertos con contrato indefinido",
@@ -3525,7 +3527,8 @@
     "later_cta": "Más tarde",
     "blocked_email_is_expert_account": "Esta dirección corresponde a una cuenta de experto, que no puede unirse a una organización. Contacte con el administrador que le invitó.",
     "blocked_email_is_admin_account": "Esta dirección corresponde a una cuenta de administrador, que no puede unirse a una organización de esta manera.",
-    "blocked_email_already_in_organization": "Esta dirección ya está vinculada a otra organización. Una cuenta solo puede pertenecer a una organización."
+    "blocked_email_already_in_organization": "Esta dirección ya está vinculada a otra organización. Una cuenta solo puede pertenecer a una organización.",
+    "err_compte_verification_indisponible": "No hemos podido leer su cuenta. No significa que su correo no esté verificado: la consulta ha fallado y no se ha modificado nada. Inténtelo de nuevo en unos instantes."
   },
   "verification_status": {
     "draft": "Borrador",

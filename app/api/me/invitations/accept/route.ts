@@ -52,7 +52,21 @@ export async function POST(request: NextRequest): Promise<Response> {
     .select('email, email_verified')
     .eq('id', auth.user.id)
     .maybeSingle()
-  if (meErr || !me || me.email_verified !== true || !me.email) {
+  // ⚠️ QUATRE CAUSES, UN SEUL 403 « e-mail non vérifié » — dont une panne de
+  //    lecture. Dite à quelqu’un dont l’e-mail EST vérifié, cette phrase l’envoie
+  //    chercher un lien de confirmation qui n'existe pas. La panne sort d'abord,
+  //    en 503 ; le refus métier garde son code et son statut.
+  if (meErr) {
+    console.error('[me/invitations/accept] compte ILLISIBLE — acceptation ni faite ni refusée', {
+      userId: auth.user.id,
+      message: meErr.message,
+    })
+    return json(
+      { error: 'Could not read the account', code: 'compte_verification_indisponible' },
+      503,
+    )
+  }
+  if (!me || me.email_verified !== true || !me.email) {
     return json({ error: 'Email not verified', code: 'email_not_verified' }, 403)
   }
   const verifiedEmail = me.email as string

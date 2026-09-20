@@ -572,7 +572,8 @@
       "parsing_failed": "Analysis failed: {reason}. You can retry or fill in manually.",
       "unknown_reason": "unknown error",
       "parsing_default": "Analysis failed",
-      "timeout": "Timed out, please try again."
+      "timeout": "Timed out, please try again.",
+      "verification_indisponible": "A check could not be completed: this is not a refusal, and your file was not sent. Please try again in a moment."
     }
   },
   "profile_validation": {
@@ -1421,7 +1422,8 @@
       "parsing_failed": "Analysis failed: {reason}. You can retry or fill in manually.",
       "unknown_reason": "unknown error",
       "parsing_default": "Analysis failed",
-      "timeout": "Timeout reached, please retry."
+      "timeout": "Timeout reached, please retry.",
+      "verification_indisponible": "A check could not be completed: this is not a refusal, and your file was not sent. Please try again in a moment."
     },
     "acces": {
       "refuse_titre": "This page is for permanent-contract experts",
@@ -3525,7 +3527,8 @@
     "later_cta": "Later",
     "blocked_email_is_expert_account": "This address matches an expert account, which cannot join an organisation. Please contact the administrator who invited you.",
     "blocked_email_is_admin_account": "This address matches an administrator account, which cannot join an organisation this way.",
-    "blocked_email_already_in_organization": "This address is already attached to another organisation. An account can only belong to one organisation."
+    "blocked_email_already_in_organization": "This address is already attached to another organisation. An account can only belong to one organisation.",
+    "err_compte_verification_indisponible": "We could not read your account. This does not mean your email is unverified: the lookup failed and nothing was changed. Please try again in a moment."
   },
   "verification_status": {
     "draft": "Draft",

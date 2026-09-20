@@ -75,7 +75,23 @@ export async function ensurePersonalOrg(
     .select('user_type, first_name, last_name')
     .eq('id', userId)
     .maybeSingle()
-  if (userErr || !userRow) {
+  // Le statut est porté par un objet de retour, et ses deux appelants le
+  // rendent tel quel : un 404 ici devenait « vous n’existez pas » sur la
+  // création de l’espace de collaboration ET sur la publication d’un besoin
+  // (§E.42). La panne sort en 503, séparément de l’absence.
+  if (userErr) {
+    console.error('[ensure-personal-org] compte ILLISIBLE — aucune organisation créée', {
+      userId,
+      message: userErr.message,
+    })
+    return {
+      ok: false,
+      code: 'compte_verification_indisponible',
+      message: 'Could not read the account',
+      status: 503,
+    }
+  }
+  if (!userRow) {
     return { ok: false, code: 'user_missing', message: 'User not found', status: 404 }
   }
   const userType = userRow.user_type as string | null

@@ -66,8 +66,24 @@ export async function POST(request: NextRequest): Promise<Response> {
     .eq('id', user.id)
     .maybeSingle()
 
-  if (userMetaErr || !userMeta) {
-    return json({ error: 'User not found', code: 'user_lookup_failed' }, 403)
+  // ⚠️ « INTERDIT » EST PIRE QU’« INTROUVABLE » : il désigne un DROIT, et la
+  //    personne ne peut rien y faire. Une lecture de `users` en panne rendait
+  //    403 à un expert que `requireAuth` vient d’authentifier — au moment où
+  //    il dépose son CV. 503 sur la panne ; et l’absence réelle, quasi
+  //    impossible ici, cesse de s’appeler « lookup failed » (§E.24) : c’est
+  //    `user_missing`, comme dans requireAuth.
+  if (userMetaErr) {
+    console.error('[cdi-upload-cv] type de compte ILLISIBLE — dépôt refusé temporairement', {
+      userId: user.id,
+      message: userMetaErr.message,
+    })
+    return json(
+      { error: 'Could not read the account', code: 'compte_verification_indisponible' },
+      503,
+    )
+  }
+  if (!userMeta) {
+    return json({ error: 'User not found', code: 'user_missing' }, 404)
   }
   if (userMeta.user_type !== 'expert_cdi') {
     return json(

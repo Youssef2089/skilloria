@@ -572,7 +572,8 @@
       "parsing_failed": "Analyse fehlgeschlagen: {reason}. Sie können es erneut versuchen oder manuell ausfüllen.",
       "unknown_reason": "unbekannter Fehler",
       "parsing_default": "Analyse fehlgeschlagen",
-      "timeout": "Zeitüberschreitung, bitte versuchen Sie es erneut."
+      "timeout": "Zeitüberschreitung, bitte versuchen Sie es erneut.",
+      "verification_indisponible": "Eine Prüfung konnte nicht abgeschlossen werden: das ist keine Ablehnung, und Ihre Datei wurde nicht gesendet. Bitte versuchen Sie es gleich erneut."
     }
   },
   "profile_validation": {
@@ -1421,7 +1422,8 @@
       "parsing_failed": "Analyse fehlgeschlagen: {reason}. Sie können erneut versuchen oder manuell ausfüllen.",
       "unknown_reason": "unbekannter Fehler",
       "parsing_default": "Analyse fehlgeschlagen",
-      "timeout": "Zeitüberschreitung, bitte erneut versuchen."
+      "timeout": "Zeitüberschreitung, bitte erneut versuchen.",
+      "verification_indisponible": "Eine Prüfung konnte nicht abgeschlossen werden: das ist keine Ablehnung, und Ihre Datei wurde nicht gesendet. Bitte versuchen Sie es gleich erneut."
     },
     "acces": {
       "refuse_titre": "Diese Seite ist für Festangestellten-Expertinnen und -Experten",
@@ -3525,7 +3527,8 @@
     "later_cta": "Später",
     "blocked_email_is_expert_account": "Diese Adresse gehört zu einem Expertenkonto, das keiner Organisation beitreten kann. Wenden Sie sich an den Administrator, der Sie eingeladen hat.",
     "blocked_email_is_admin_account": "Diese Adresse gehört zu einem Administratorkonto, das auf diese Weise keiner Organisation beitreten kann.",
-    "blocked_email_already_in_organization": "Diese Adresse ist bereits einer anderen Organisation zugeordnet. Ein Konto kann nur zu einer Organisation gehören."
+    "blocked_email_already_in_organization": "Diese Adresse ist bereits einer anderen Organisation zugeordnet. Ein Konto kann nur zu einer Organisation gehören.",
+    "err_compte_verification_indisponible": "Ihr Konto konnte nicht gelesen werden. Das heißt nicht, dass Ihre E-Mail nicht bestätigt ist: die Abfrage ist fehlgeschlagen und nichts wurde geändert. Bitte versuchen Sie es gleich erneut."
   },
   "verification_status": {
     "draft": "Entwurf",
