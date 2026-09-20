@@ -815,7 +815,7 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   suppose la précédente ». Elle est désormais la dernière.
   **Gardé** par [scripts/diag-parametrage-manuel.mjs](../scripts/diag-parametrage-manuel.mjs)
   (§B.2 ⑦ bis) pour tout ce qui est mécaniquement vérifiable ; l'ordre, lui, ne l'est pas.
-- **Quatre** des huit tâches planifiées passent par `trigger_purge_cron` et **lèvent** sans les deux
+- **Cinq** des neuf tâches planifiées passent par `trigger_purge_cron` et **lèvent** sans les deux
   secrets du Vault : `purge_deletions_trigger`, `purge_inactive_trigger`, `matching_retry_trigger`,
   `expert_relance_trigger`. Les deux premières portent une **obligation légale** (RGPD art. 17 et
   CNIL). Elles ne se plaignent qu'au journal de la base : rien à l'écran.
@@ -851,7 +851,7 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   `duree_reglages` (`invitation_jours`), et la seconde copie a disparu : `invitationExpiryIso()` est
   la source unique. Non rétroactive — la date est **écrite** à l'envoi et réécrite au renvoi — donc
   **aucune garde de comptage**, et l'écran le dit.
-- ~~Trois des huit tâches planifiées ne sont pas dans `cron_job_catalog`~~ — **CLOS.** Les huit sont
+- ~~Trois des huit tâches planifiées ne sont pas dans `cron_job_catalog`~~ — **CLOS.** Les neuf sont
   nommées et traduites en quatre langues.
 - ~~La dépense IA n'est pas répartie par acteur~~ — **CLOS.** Chaque événement nomme son acteur
   **déclencheur** (« qui fait monter la facture »), et **un seul** : contrainte en base

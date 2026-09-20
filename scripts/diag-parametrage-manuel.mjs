@@ -5,7 +5,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // POURQUOI CE CONTROLE
 //
-//   Les migrations posent huit taches pg_cron. Quatre d'entre elles passent par
+//   Les migrations posent neuf taches pg_cron. Cinq d'entre elles passent par
 //   `trigger_purge_cron`, qui lit DEUX secrets dans Supabase Vault :
 //   `cron_secret` et `purge_cron_base_url`. Ces secrets ne peuvent pas etre
 //   versionnes — ils different par environnement. Ils sont donc poses A LA
@@ -36,7 +36,7 @@
 //   (3) Chacun de ces secrets est NOMME dans la procedure de mise en production.
 //   (4) Le nombre de taches annonce PAR la procedure est le nombre reel — un
 //       chiffre dans une prose vieillit sans que rien ne le dise (§E.16), et
-//       celui-la sert a valider l'installation (« vous devez voir huit taches »).
+//       celui-la sert a valider l'installation (« vous devez voir N taches »).
 //   (5) La variable d'environnement dont un secret est le MIROIR est elle aussi
 //       nommee. `cron_secret` sans `CRON_SECRET` en face, ce sont deux valeurs
 //       qu'on fait poser sans point de comparaison.
@@ -314,7 +314,7 @@ if (tousLesSecrets.has('cron_secret')) {
 
 section('D. Le chiffre annonce par la procedure')
 
-// La procedure dit « Vous devez voir **huit** taches ». Ce chiffre SERT a
+// La procedure annonce un nombre de taches a voir. Ce chiffre SERT a
 // valider l'installation : faux, il fait accepter une installation incomplete.
 // Famille §E.16 — un chiffre juste a sa date, que rien ne relit.
 const MOTS = {

@@ -823,7 +823,7 @@ fausse. La répartition observée **repart** au déploiement, et l'écran le dit
 > `storage.objects`.
 
 
-### P3.6 — Les huit tâches planifiées (pg_cron, plus aucun cron d'hébergeur)
+### P3.6 — Les neuf tâches planifiées (pg_cron, plus aucun cron d'hébergeur)
 | Tâche | Horaire | Ce qu'elle fait |
 |---|---|---|
 | `purge_deletions_trigger` | 03:00 | Efface les comptes dont la grâce de 90 j est échue (RGPD art. 17). |
@@ -834,6 +834,7 @@ fausse. La répartition observée **repart** au déploiement, et l'écran le dit
 | `matching_retry_trigger` | toutes les 5 min | Reprend les runs de matching inachevés. |
 | `expert_relance_trigger` | toutes les 5 min | Exécute les relances arrivées à échéance. |
 | `matching_notes_partielles_purge` | 04:30 | Purge les brouillons de notation soldés. |
+| `stripe_reconcile_trigger` | 02:40 | Compare les événements produits par Stripe aux dernières 24 h avec ceux que le journal a reçus. **Elle signale, elle ne retraite rien.** L'horaire n'est pas esthétique : il est **contraint** par `cron_run_reconcile` (03:15) et le TTL d'environ 6 h de pg_net — posée après 03:45, sa réponse HTTP aurait expiré avant d'être recopiée, et l'écran l'afficherait éternellement « aucune réponse observée ». |
 
 > Une tâche **invisible** a déjà tourné des mois sans que personne sache ce qu'elle faisait :
 > planifiée en SQL inline, absente du journal applicatif et de la liste codée en dur. D'où
@@ -841,7 +842,7 @@ fausse. La répartition observée **repart** au déploiement, et l'écran le dit
 >
 > Il n'en nommait longtemps que **cinq sur huit** : les trois tâches du moteur, ajoutées après,
 > paraissaient à l'écran **sans libellé ni description** — visibles, et muettes. C'était exactement
-> le défaut que ce catalogue prétend fermer. **CLOS** : les huit sont nommées et traduites en quatre
+> le défaut que ce catalogue prétend fermer. **CLOS** : les neuf sont nommées et traduites en quatre
 > langues (migration `duree_invitation`), les trois nouvelles classées `technical` — aucune n'est
 > portée par une obligation légale, et les confondre ferait passer une purge RGPD et une reprise de
 > run pour la même chose.
