@@ -1454,6 +1454,24 @@ fixtures et sa campagne ; seul le *où chercher* est mis en commun.
 > ne lisait le verbe que collé à `method:`. Deux faux positifs, trouvés en exécutant, fermés avant
 > de livrer.
 
+**LE LOT C4b (20/09/2026) — SIX DÉCISIONS, UNE PAR CONTRÔLE, ET CE QUE LES BALAYAGES ONT TROUVÉ.**
+Rapport rendu contrôle par contrôle AVANT d’y toucher ; l’architecte a tranché les six : deux
+convertis, deux mixtes (la propriété générale en balayage, l’invariant d’un écran gardé nommé —
+une adresse de route est un contrat), deux **non touchés** (`admin-create`, `admin-purge`,
+`admin-ecosystemes` : la propriété est celle d’une chaîne précise ; `candidature-lifecycle` : une
+table pure exécutée).
+
+| Contrôle | Décision | Après | Ce que le balayage a trouvé |
+|---|---|---|---|
+| `login-loading` | **convertir** | « un drapeau de chargement posé avant un `await` se relâche dans un `finally` » vaut pour **tous** les écrans : **61 gestionnaires** trouvés (188 fichiers) — 40 `finally`, 5 `finally` + énumération, 16 énumération. Clé de gel « appel discriminant \| setter », jamais un numéro de ligne | **21 défauts nommés, LUS un par un** — dont **4 qui FIGENT** aujourd’hui (aucun `catch` : `mot-de-passe-oublie`, écran sœur de `/connexion` ; le chargeur de `freelance/mon-profil` ; `PublicationForm` enregistrer ; `DndEmptyState`) et 17 fragiles (énumération complète, ou un `finally` doublé de relâchements épars). Le motif est éprouvé sur six fixtures, dont le `setTrue` imbriqué qui doit remonter au GESTIONNAIRE et non au bloc |
+| `expert-name-masking` | **mixte** : garder l’exécution, convertir la projection | §D.4 dit *aucun chemin serveur* : toute chaîne de `select` qui embarque l’identité (`profiles(…)`, `users!…(…)`) et cite `email` / `phone` / `linkedin_url` / `cv_url` est un candidat — **24 sur 288 fichiers** ; légitime si admin (`requireAdmin`), cron, ou lecture de soi-même ; 8 gelés LÉGITIME avec raison (dispatcher, vérification IA, garde admin, achat Stripe, hook client…) | rien de rouge : **aucune route hors admin ne projette le contact d’un expert** — et c’est la première fois que c’est mesuré sur toutes les routes, pas sur cinq fichiers |
+| `admin-users` | **famille A seulement** | le numéro cherché dans **54 routes admin** (plus six), le jeton de session dans **136 routes** ; B et C restent nommés | **un défaut nommé** : `admin/get-expert/[id]` sert `phone` dans l’embed `users!profiles_user_id_fkey`, et la fiche d’approbation l’affiche. La décision « aucun numéro pour administrer un compte » (list-users) ne dit pas si l’approbation d’un professionnel en a besoin — **arbitrage produit**, pas correctif d’office |
+| `selecteur-ecosysteme` | **mixte** : R1 et R5 en balayage | R1 : les appelants d’`init-session` dans tout le code client sont un **état mesuré** gelé (les trois écrans qui OUVRENT une session, et eux seuls) ; R5 : toute route qui **LISTE** `domains` (pas une lecture unitaire par slug) filtre par `ecosystemAccessScope` ou est admin — 16 routes lisent `domains`, 6 en liste | rien de rouge |
+
+> **Ce que le lot C4a + C4b laisse au gel, en tout : 36 défauts nommés** — 14 de `plafonds-listes`,
+> 21 de `login-loading`, 1 de `admin-users`. Aucun destructeur ; tous lus ; tous rendus à
+> l’arbitrage après la recette 3.3, comme décidé.
+
 
 
 ---
