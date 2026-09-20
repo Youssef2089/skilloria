@@ -1432,7 +1432,7 @@ fixtures et sa campagne ; seul le *où chercher* est mis en commun.
 
 | Contrôle | Avant | Après | Ce que le balayage a trouvé que le nom cachait |
 |---|---|---|---|
-| `score-de-pertinence` | 2 routes + 4 vues nommées | **136 routes, 188 fichiers client** ; le palier exigé sur *toute* route qui ordonne par le score ou le sélectionne, **au moins deux** | rien de rouge — et c’est mesuré, pas supposé : le périmètre a été multiplié par quarante |
+| `score-de-pertinence` | 2 routes + 4 vues nommées | **136 routes, 188 fichiers client** ; le palier exigé sur *toute* route qui ordonne par le score ou le sélectionne, **au moins deux** | rien de rouge sur le code — mesuré, pas supposé. **Mais la campagne a trouvé un trou dans le MOTIF** : `(r as X).relevance_score` passait vert (le motif exigeait un identifiant devant le point). 7 mutations : 5 détectées, 2 déplacements de fichier tus (§E.34) |
 
 
 ---

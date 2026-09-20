@@ -93,8 +93,14 @@ function nombresDePertinence(src) {
 /** Une comparaison du score à un seuil — le palier recalculé à l'affichage. */
 const comparaisonsDeScore = (src) =>
   [...src.matchAll(new RegExp(`(?:${NOMS_DE_SCORE})[a-zA-Z_$]*\\s*(?:>=|>|<|<=)\\s*[\\w.]+`, 'g'))].map((m) => m[0])
-/** Une LECTURE de la valeur du score dans du code serveur : `row.relevance_score`. */
-const lecturesDeScore = (src) => [...src.matchAll(/\b\w+\.relevance_score\b/g)].map((m) => m[0])
+/**
+ * Une LECTURE de la valeur du score dans du code serveur : `row.relevance_score`,
+ * mais aussi `(r as X).relevance_score` ou `rows[0].relevance_score` — tout
+ * accès de propriété, quel que soit ce qui précède le point. La première
+ * version exigeait un identifiant devant le point, et une mutation
+ * `(r as { relevance_score: number }).relevance_score` est passée VERTE.
+ */
+const lecturesDeScore = (src) => [...src.matchAll(/[\w)\]]\s*\.relevance_score\b/g)].map((m) => m[0].trim())
 
 {
   const doitTrouver = [
@@ -122,6 +128,8 @@ const lecturesDeScore = (src) => [...src.matchAll(/\b\w+\.relevance_score\b/g)].
   ok(comparaisonsDeScore("relevance_tier === 'strong'").length === 0, 'ignore : une comparaison du PALIER')
   ok(lecturesDeScore('relevance_tier: row.relevance_tier, x: row.relevance_score').length === 1, 'détecte : une lecture `row.relevance_score`')
   ok(lecturesDeScore("order('relevance_score', { ascending: false })").length === 0, 'ignore : le nom passé en CHAÎNE à order()')
+  ok(lecturesDeScore('(r as { relevance_score: number }).relevance_score').length === 1, 'détecte : une lecture derrière un cast `(r as X).relevance_score` — la mutation qui était passée verte')
+  ok(lecturesDeScore('  relevance_score: number | null').length === 0, 'ignore : une déclaration de type')
 }
 
 // ══════════════════════════════════════════════════════════════════════════
