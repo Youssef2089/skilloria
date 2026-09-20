@@ -19,195 +19,167 @@
 //   voit — c'est ce que fait celui-ci.
 //
 // CE QU'IL VÉRIFIE
-//   1. Tout code de refus COMMERCE émis par une route a un message dans l'écran
-//      qui appelle cette route. Les codes sont DÉCOUVERTS dans les routes, pas
-//      recopiés : une quatrième limite ajoutée demain fera échouer ce contrôle
-//      tant que son message n'existe pas.
-//   2. Chaque message dit CE QUI BLOQUE **et** CE QU'ON PEUT FAIRE — jamais
-//      seulement l'un des deux.
+//   1. Tout code de refus COMMERCE émis en 402 par UNE ROUTE, QUELLE QU'ELLE
+//      SOIT, a un message dans CHAQUE écran qui appelle cette route. Les codes
+//      sont DÉCOUVERTS dans les routes, les écrans sont DÉCOUVERTS par le
+//      chemin qu'ils appellent : rien n'est recopié ici.
+//   2. Chaque message dit CE QUI BLOQUE **et** CE QU'ON PEUT FAIRE.
 //   3. Les quatre langues, à l'identique.
-//   4. Aucune VALEUR commerciale n'est écrite dans les messages : les quotas
-//      vivent au catalogue, les recopier ici les figerait.
+//   4. Aucune VALEUR commerciale n'est écrite dans les messages.
 //   5. Le verrou reste fermé : aucun bouton de paiement sur ces refus.
+//   6. La réactivation : dans le doute on FERME, et le refus dit quoi faire.
 //
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ┌─ CONVERTI EN BALAYAGE (lot C4a, 20/09/2026) ────────────────────────────┐
+// │ Il connaissait DEUX chaînes route → écran, écrites à la main. Or quatre │
+// │ écrans appellent ces deux routes, et le quatrième — `CandidatureCard`  │
+// │ — jette `unlock_limit_reached` dans « une erreur est survenue » :        │
+// │ EXACTEMENT le défaut que ce contrôle est né pour fermer, sur un écran   │
+// │ qu'il n'ouvrait pas (§E.34). Les routes sont désormais trouvées par ce  │
+// │ qu'elles émettent (un 402), les écrans par ce qu'ils appellent.         │
+// └─────────────────────────────────────────────────────────────────────────┘
+//
 //   node scripts/diag-refus-actionnables.mjs   → contrôles statiques.
 //                                                AUCUN accès base.
 //
 // LECTURE PURE : ce script n'écrit JAMAIS et ne joint jamais la base.
 
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import {
+  RACINES_CLIENT, LOCALES, lire, sansCommentaires, fichiers, routesApi, consommateurs,
+  messages, lireCle, clesFinissantPar, localesManquantes, bilan,
+} from './balayage-promesse.mjs'
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+const { ok, section, info, fin } = bilan()
+
 /**
- * Fins de ligne NORMALISEES. Le depot sort les fichiers en CRLF : un controle
- * dont le motif traverse une fin de ligne (`...\n\s+...`) ne matche jamais sur
- * une copie de travail fraichement extraite, et le diagnostic vire au rouge
- * sans qu'aucun code n'ait change. Un diagnostic dont le resultat depend de la
- * machine qui l'execute ne dit pas si le code est juste : il dit d'ou il vient.
+ * GEL — lu, nommé, non acquitté (§G.8). Un défaut nommé est rendu à
+ * l'arbitrage, pas corrigé ici.
  */
-const read = (p) => readFileSync(join(ROOT, p), 'utf8').split('\r\n').join('\n')
-
-let failures = 0
-const ok = (cond, label, hint) => {
-  if (cond) console.log(`  ok   ${label}`)
-  else {
-    failures++
-    console.log(`  KO   ${label}${hint ? `\n       → ${hint}` : ''}`)
-  }
+const GEL = {
+  'components/dashboard/CandidatureCard.tsx | unlock_limit_reached':
+    'DÉFAUT NOMMÉ — appelle POST /api/candidatures/[id]/unlock et ne traite que candidature_archived, ' +
+    'invalid_transition et not_found : le 402 `unlock_limit_reached` tombe dans error_generic. ' +
+    'L’organisation qui a épuisé ses dévoilements lit « une erreur est survenue » sur cette carte, et ' +
+    'l’encart actionnable sur l’autre (SpotlightCandidateCard). Le message existe déjà ' +
+    '(candidatures.card.error_unlock_limit_reached) : le correctif est une branche de plus dans la table.',
 }
-const info = (l) => console.log(`  ··   ${l}`)
-const section = (s) => console.log(`\n═══ ${s} ═══\n`)
+const gele = (cle) => cle in GEL
+const defautsNommes = Object.values(GEL).filter((r) => r.startsWith('DÉFAUT NOMMÉ')).length
 
-/**
- * OÙ CHAQUE REFUS EST ÉMIS, ET OÙ IL DOIT ÊTRE LU.
- *
- * La route est la SOURCE : les codes y sont découverts, jamais recopiés ici.
- * L'écran est le LECTEUR : c'est lui qui doit savoir les traduire.
- */
-const CHAINES = [
-  {
-    route: 'app/api/publications/[id]/publish/route.ts',
-    ecran: 'components/dashboard/PublicationForm.tsx',
-    espace: 'publications.errors',
-  },
-  {
-    route: 'app/api/candidatures/[id]/unlock/route.ts',
-    ecran: 'components/dashboard/SpotlightCandidateCard.tsx',
-    espace: 'candidatures.card',
-    // Cet écran nomme ses clés `error_<code>` là où l'autre les nomme `<code>`.
-    prefixe: 'error_',
-  },
-]
+// ══════════════════════════════════════════════════════════════════════════
+// LES MOTIFS — éprouvés AVANT le balayage (§E.33)
+// ══════════════════════════════════════════════════════════════════════════
 
-/** Les codes de refus COMMERCE émis en 402 par une route. */
-function codesEmis(sourceRoute) {
+/** Les codes de refus COMMERCE émis en 402 par une route — sur une ou plusieurs lignes. */
+function codesEmis(src) {
   const codes = new Set()
-  // `return json({ error: '…', code: 'xxx' }, 402)` — sur une ou plusieurs lignes.
-  for (const m of sourceRoute.matchAll(/code:\s*'([a-z_]+)'\s*\}[\s\S]{0,40}?402/g)) {
-    codes.add(m[1])
-  }
+  for (const m of src.matchAll(/code:\s*'([a-z_]+)'\s*\}[\s\S]{0,40}?\b402\b/g)) codes.add(m[1])
   return [...codes]
 }
+/**
+ * L'écran TRAITE-t-il ce code ? La simple présence ne prouve rien (le code
+ * survit dans un `new Set([...])` ou dans une clé i18n). On exige la forme qui
+ * traite : une entrée de table `<code>: t(` ou une comparaison `=== '<code>'`.
+ */
+const traite = (src, code) => new RegExp(`===\\s*'${code}'|\\b${code}\\s*:\\s*t\\(`).test(src)
+/** Deux temps : le constat, puis l'issue — au moins deux phrases, et de la longueur. */
+const actionnable = (txt) => typeof txt === 'string' && txt.length > 60 && (txt.match(/[.!?]/g) || []).length >= 2
+const CHIFFRES = /\b\d+\s*(annonce|publication|profil|dévoilement|listing|post|reveal|Anzeige|anuncio)/i
 
-const messages = Object.fromEntries(
-  ['fr', 'en', 'es', 'de'].map((l) => [l, JSON.parse(read(`messages/${l}.json`))]),
-)
-const cle = (obj, chemin) => chemin.split('.').reduce((o, k) => (o == null ? o : o[k]), obj)
+section('ÉPREUVE DES MOTIFS — avant de leur faire confiance')
+{
+  ok(codesEmis("return json(\n  { error: 'x', code: 'quota_a' },\n  402,\n)").join() === 'quota_a', 'détecte : un 402 sur plusieurs lignes')
+  ok(codesEmis("return json({ error: 'x', code: 'quota_b' }, 402)").join() === 'quota_b', 'détecte : un 402 sur une ligne')
+  ok(codesEmis("return json({ error: 'x', code: 'not_found' }, 404)").length === 0, 'ignore : un 404 — pas un refus commerce')
+  ok(traite("if (code === 'quota_a') setError(t('e'))", 'quota_a'), 'détecte : une comparaison qui traite le code')
+  ok(traite('const M = { quota_a: t("errors.quota_a") }', 'quota_a'), 'détecte : une entrée de table qui traite le code')
+  ok(!traite("const S = new Set(['quota_a'])\nsetError(t('error_quota_a'))", 'quota_a'), 'ignore : le code présent sans être TRAITÉ (Set, clé i18n) — les deux mutations qui étaient passées vertes')
+  ok(actionnable('Vous avez atteint votre quota mensuel de publications. Contactez-nous pour en discuter.'), 'détecte : un constat puis une issue')
+  ok(!actionnable('Quota atteint.'), 'refuse : un constat seul, en cinq mots')
+  ok(CHIFFRES.test('Vous avez 2 annonces actives.'), 'détecte : une quantité écrite en dur')
+}
 
-console.log('\nREFUS ACTIONNABLES — dire ce qui bloque ET quoi faire\n')
+// ══════════════════════════════════════════════════════════════════════════
+const ECRANS = fichiers(RACINES_CLIENT)
+const ROUTES = routesApi()
+const MSG = messages()
 
-// ─────────────────────────────────────────────────────────────────────────────
-section('1. Tout refus commerce émis est traité par son écran')
-
+section('1. Tout refus commerce émis est traité par CHAQUE écran qui appelle sa route')
+const emetteurs = ROUTES.map((r) => ({ ...r, codes: codesEmis(sansCommentaires(lire(r.rel))) })).filter((r) => r.codes.length)
+info(`${ROUTES.length} routes balayées · ${emetteurs.length} émettent un refus 402 · ${ECRANS.length} fichiers client`)
+ok(emetteurs.length >= 2, 'au moins deux routes émettent un refus commerce (publication, dévoilement)',
+  'découverte vide : le motif ne reconnaît plus les refus')
+const clesDeRefus = []
 let totalCodes = 0
-for (const chaine of CHAINES) {
-  const route = read(chaine.route)
-  const ecran = read(chaine.ecran)
-  const codes = codesEmis(route)
-  const nomRoute = chaine.route.split('/').slice(-2).join('/')
-
-  ok(codes.length > 0, `${nomRoute} émet au moins un refus 402`, 'Découverte vide : le motif ne reconnaît plus les refus.')
-  for (const code of codes) {
+for (const r of emetteurs) {
+  const lecteurs = consommateurs(r.chemin, ECRANS)
+  ok(lecteurs.length >= 1, `${r.chemin} est appelé par au moins un écran (${lecteurs.length})`,
+    'une route sans appelant : le chemin a changé, ou le résolveur ne le reconnaît plus')
+  for (const code of r.codes) {
     totalCodes++
-    // ⚠️ Chercher la simple PRÉSENCE du code ne prouve rien, et la mutation l'a
-    //    montré deux fois : le code survit ailleurs dans le fichier — dans un
-    //    `new Set([...])` qui pilote l'appel à l'action, ou à l'intérieur d'une
-    //    clé i18n `error_<code>`. Les deux mutations qui SUPPRIMAIENT le
-    //    traitement laissaient le contrôle vert.
-    //
-    //    On exige donc la FORME qui traite réellement le code :
-    //      · une entrée de table  →  `<code>: t(`
-    //      · une comparaison      →  `=== '<code>'`
-    const traite = new RegExp(`===\\s*'${code}'|\\b${code}\\s*:\\s*t\\(`).test(ecran)
-    ok(traite, `« ${code} » est traité par ${chaine.ecran.split('/').pop()}`,
-      "Le serveur nomme la cause ; l'écran la jette et affiche « une erreur est survenue ».")
-    const cheminCle = `${chaine.espace}.${chaine.prefixe ?? ''}${code}`
-    ok(typeof cle(messages.fr, cheminCle) === 'string', `« ${code} » a un message (${cheminCle})`)
+    // Le message : une clé dont la feuille se termine par le code (`<code>` ou `error_<code>`), découverte.
+    const cles = clesFinissantPar(MSG.fr, code)
+    ok(cles.length >= 1, `« ${code} » a un message (${cles.join(', ') || 'AUCUNE clé ne se termine par ce code'})`)
+    clesDeRefus.push(...cles)
+    for (const e of lecteurs) {
+      const src = sansCommentaires(lire(e))
+      const t = traite(src, code)
+      const cle = `${e} | ${code}`
+      if (!t && gele(cle)) info(`${e.split('/').pop()} ne traite PAS « ${code} » — GELÉ, ${GEL[cle].slice(0, 12)}…`)
+      else ok(t, `« ${code} » est traité par ${e.split('/').pop()}`,
+        "Le serveur nomme la cause ; l'écran la jette et affiche « une erreur est survenue ».")
+    }
   }
 }
 info(`${totalCodes} code(s) de refus commerce découvert(s) dans les routes`)
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════
 section('2. Chaque message dit ce qui BLOQUE et ce qu’on peut FAIRE')
-
-const MESSAGES = [
-  'publications.errors.quota_publications_reached',
-  'publications.errors.active_publications_limit_reached',
-  'candidatures.card.error_unlock_limit_reached',
-]
-// Un message actionnable comporte DEUX temps : le constat, puis l'issue. Deux
-// phrases au minimum — un constat seul laisse l'utilisateur devant un mur.
-for (const c of MESSAGES) {
-  const txt = cle(messages.fr, c)
-  ok(typeof txt === 'string' && txt.length > 60, `${c} : message étoffé`, 'Un refus tenant en cinq mots ne dit jamais quoi faire.')
-  ok(
-    typeof txt === 'string' && (txt.match(/[.!?]/g) || []).length >= 2,
-    `${c} : constat PUIS issue (au moins deux phrases)`,
-    `« ${txt} » — il manque ce qu'on peut faire.`,
-  )
+for (const c of clesDeRefus) {
+  const txt = lireCle(MSG.fr, c)
+  ok(actionnable(txt), `${c} : constat PUIS issue (deux phrases, étoffé)`, `« ${txt} » — il manque ce qu'on peut faire.`)
 }
-
 // L'appel à l'action est PARTAGÉ, donc jamais recopié dans chaque message.
-ok(
-  typeof cle(messages.fr, 'commerce.need_more_contact') === 'string',
-  'l’appel à l’action vit dans un espace partagé (commerce.*)',
-)
-ok(
-  MESSAGES.every((c) => !/[Cc]ontact/.test(String(cle(messages.fr, c)))),
-  'aucun message ne recopie l’appel à l’action',
-  "Recopié, il faudrait le changer en trois endroits le jour où le verrou s'ouvre.",
-)
+ok(typeof lireCle(MSG.fr, 'commerce.need_more_contact') === 'string', 'l’appel à l’action vit dans un espace partagé (commerce.*)')
+ok(clesDeRefus.every((c) => !/[Cc]ontact/.test(String(lireCle(MSG.fr, c)))), 'aucun message ne recopie l’appel à l’action',
+  "Recopié, il faudrait le changer en trois endroits le jour où le verrou s'ouvre.")
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════
 section('3. Les quatre langues, à l’identique')
-
-for (const c of [...MESSAGES, 'commerce.need_more_contact', 'commerce.need_more_upgrade']) {
-  const manquantes = ['fr', 'en', 'es', 'de'].filter((l) => typeof cle(messages[l], c) !== 'string')
+for (const c of [...clesDeRefus, 'commerce.need_more_contact', 'commerce.need_more_upgrade']) {
+  const manquantes = localesManquantes(MSG, c)
   ok(manquantes.length === 0, `${c} : 4 langues`, manquantes.length ? `absente en ${manquantes.join(', ')}` : undefined)
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════
 section('4. Rien en dur — les valeurs vivent au catalogue')
-
-const CHIFFRES = /\b\d+\s*(annonce|publication|profil|dévoilement|listing|post|reveal|Anzeige|anuncio)/i
-for (const c of MESSAGES) {
-  for (const l of ['fr', 'en', 'es', 'de']) {
-    const txt = String(cle(messages[l], c) ?? '')
+for (const c of clesDeRefus) {
+  for (const l of LOCALES) {
+    const txt = String(lireCle(MSG[l], c) ?? '')
     ok(!CHIFFRES.test(txt), `${c} [${l}] : aucune quantité écrite en dur`,
       `« ${txt} » — un quota recopié dans une traduction ment dès qu'on le règle au back-office.`)
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════
 section('5. Le verrou reste fermé : aucun chemin de paiement sur un refus')
-
-for (const chaine of CHAINES) {
-  const ecran = read(chaine.ecran)
-  const nom = chaine.ecran.split('/').pop()
-  ok(
-    !/billing\/checkout|billing\/change-plan|billing\/portal/.test(ecran),
-    `${nom} n’ouvre aucun parcours de paiement`,
-    'Le lancement est gratuit : un refus propose de nous contacter, pas de payer.',
-  )
-  ok(
-    !/NEXT_PUBLIC_[A-Z_]*(STRIPE|BILLING)/.test(ecran),
-    `${nom} ne lit aucune variable publique de facturation`,
-  )
+const ecransDesRefus = [...new Set(emetteurs.flatMap((r) => consommateurs(r.chemin, ECRANS)))]
+for (const e of ecransDesRefus) {
+  const src = sansCommentaires(lire(e))
+  const nom = e.split('/').pop()
+  ok(!/billing\/checkout|billing\/change-plan|billing\/portal/.test(src), `${nom} n’ouvre aucun parcours de paiement`,
+    'Le lancement est gratuit : un refus propose de nous contacter, pas de payer.')
+  ok(!/NEXT_PUBLIC_[A-Z_]*(STRIPE|BILLING)/.test(src), `${nom} ne lit aucune variable publique de facturation`)
 }
-// Le libellé servi aujourd'hui est bien celui du verrou FERMÉ.
-for (const chaine of CHAINES) {
-  const ecran = read(chaine.ecran)
-  ok(
-    /need_more_contact/.test(ecran),
-    `${chaine.ecran.split('/').pop()} affiche l’issue « contactez-nous »`,
-  )
+// Le libellé servi aujourd'hui est bien celui du verrou FERMÉ — sur chaque écran qui TRAITE un refus.
+for (const e of ecransDesRefus) {
+  const src = sansCommentaires(lire(e))
+  if (emetteurs.some((r) => r.codes.some((c) => traite(src, c)))) {
+    ok(/need_more_contact/.test(src), `${e.split('/').pop()} affiche l’issue « contactez-nous »`)
+  }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-section('LA RÉACTIVATION — dans le doute on FERME, et le refus dit quoi faire')
+// ══════════════════════════════════════════════════════════════════════════
+section('6. LA RÉACTIVATION — dans le doute on FERME, et le refus dit quoi faire')
 //
 //   Deux défauts, et ils allaient dans le même sens :
 //     1. le snapshot `pre_deletion_visible` était restauré SANS évaluer le
@@ -216,60 +188,48 @@ section('LA RÉACTIVATION — dans le doute on FERME, et le refus dit quoi faire
 //        MANQUANTE, on republiait la personne. L'inverse de la règle du projet.
 //   Et l'échec rendait un `db_error` générique qu'aucun écran n'affichait :
 //   l'expert restait enfermé dans sa période de grâce sans savoir pourquoi.
+//
+//   La route est trouvée par ce qu'elle ÉMET (`visibility_blocked`), l'écran
+//   par ce qu'il APPELLE — plus aucun chemin écrit ici.
 
-const REACT_ROUTE = 'app/api/me/account/reactivate/route.ts'
-const REACT_ECRAN = 'app/[locale]/reactivation/page.tsx'
-const react = read(REACT_ROUTE)
-const reactEcran = read(REACT_ECRAN)
-
-ok(
-  /missingForVisibility\(/.test(react),
-  'le prédicat de visibilité est ÉVALUÉ, pas supposé',
-  'Un snapshot dit ce que la personne AVAIT choisi, pas si son profil le mérite encore.',
-)
-ok(
-  /const etaitVisible = p\.pre_deletion_visible === true/.test(react),
-  'le repli sur état inconnu est FERMÉ',
-  'Un snapshot absent valait « visible » : sur une info manquante, on republiait.',
-)
-ok(
-  /restoreVisible = etaitVisible && manquants\.length === 0/.test(react),
-  'la visibilité n’est rendue que si elle était acquise ET encore méritée',
-)
-ok(
-  /code: 'visibility_blocked'/.test(react) && /missing: manquants/.test(react),
-  'le refus NOMME les champs manquants',
-  'Un db_error générique enferme l’expert dans sa grâce sans lui dire pourquoi.',
-)
-ok(
-  !/expRes\.count \?\? 0[\s\S]{0,40}langRes\.count \?\? 0[\s\S]{0,200}error/.test(react) &&
-    /expRes\.error \|\| langRes\.error/.test(react),
-  'un comptage en échec ne vaut PAS zéro',
-  'Un zéro emprunté à une panne fermerait la visibilité de quelqu’un qui a tout saisi.',
-)
-ok(
-  /erreur\.manquants && erreur\.manquants\.length > 0/.test(reactEcran) &&
-    /tChamps\(/.test(reactEcran),
-  'l’écran AFFICHE les champs manquants, traduits',
-  'L’échec était avalé en silence : le bouton se réarmait, et rien n’expliquait pourquoi.',
-)
-ok(
-  /profile_validation\.field_errors/.test(reactEcran),
-  'il réutilise les libellés de champs existants',
-  'Une seconde série de libellés finirait par dire autre chose que la première.',
-)
-for (const langue of ['fr', 'en', 'es', 'de']) {
-  const msg = JSON.parse(read(`messages/${langue}.json`))
-  const r = msg?.settings?.reactivation
-  ok(
-    typeof r?.blocked_title === 'string' && typeof r?.blocked_body === 'string' && typeof r?.reactivate_failed === 'string',
-    `refus de réactivation traduit (${langue})`,
-  )
+const routesReact = ROUTES.filter((r) => /code:\s*'visibility_blocked'/.test(sansCommentaires(lire(r.rel))))
+ok(routesReact.length === 1, `une route émet \`visibility_blocked\` (${routesReact.map((r) => r.chemin).join(', ') || 'aucune'})`)
+for (const r of routesReact) {
+  const react = sansCommentaires(lire(r.rel))
+  ok(/missingForVisibility\(/.test(react), 'le prédicat de visibilité est ÉVALUÉ, pas supposé',
+    'Un snapshot dit ce que la personne AVAIT choisi, pas si son profil le mérite encore.')
+  ok(/pre_deletion_visible === true/.test(react), 'le repli sur état inconnu est FERMÉ (`=== true`)',
+    'Un snapshot absent valait « visible » : sur une info manquante, on republiait.')
+  ok(/\bmanquants\.length === 0/.test(react), 'la visibilité n’est rendue que si elle était acquise ET encore méritée')
+  ok(/missing: manquants/.test(react), 'le refus NOMME les champs manquants',
+    'Un db_error générique enferme l’expert dans sa grâce sans lui dire pourquoi.')
+  ok(!/\.count \?\? 0[\s\S]{0,40}\.count \?\? 0[\s\S]{0,200}error/.test(react) && /Res\.error \|\| \w+Res\.error/.test(react),
+    'un comptage en échec ne vaut PAS zéro', 'Un zéro emprunté à une panne fermerait la visibilité de quelqu’un qui a tout saisi.')
+  const ecrans = consommateurs(r.chemin, ECRANS)
+  ok(ecrans.length >= 1, `${r.chemin} est appelé par un écran (${ecrans.length})`)
+  for (const e of ecrans) {
+    const src = sansCommentaires(lire(e))
+    ok(/=== 'visibility_blocked'/.test(src) || /manquants/.test(src), `${e.split('/').pop()} traite \`visibility_blocked\` et AFFICHE les champs manquants`,
+      'L’échec était avalé en silence : le bouton se réarmait, et rien n’expliquait pourquoi.')
+    ok(/profile_validation\.field_errors/.test(src), `${e.split('/').pop()} réutilise les libellés de champs existants`,
+      'Une seconde série de libellés finirait par dire autre chose que la première.')
+  }
+}
+for (const l of LOCALES) {
+  const r = MSG[l]?.settings?.reactivation
+  ok(typeof r?.blocked_title === 'string' && typeof r?.blocked_body === 'string' && typeof r?.reactivate_failed === 'string',
+    `refus de réactivation traduit (${l})`)
 }
 
-console.log(
-  failures === 0
-    ? '\nRÉSULTAT : tout est vert. Chaque refus commerce dit ce qui bloque et quoi faire.\n'
-    : `\nRÉSULTAT : ${failures} contrôle(s) en échec.\n`,
-)
-process.exit(failures === 0 ? 0 : 1)
+// ══════════════════════════════════════════════════════════════════════════
+section('GEL — relu à chaque exécution')
+// Pas de `\b` après un « É » : hors drapeau `u`, un caractère accentué n'est pas
+// un caractère de mot en JS, et « DÉFAUT NOMMÉ » ne passait jamais.
+ok(Object.values(GEL).every((r) => /^(LÉGITIME|DÉFAUT NOMMÉ)( |$)/.test(r)), 'chaque raison du gel commence par LÉGITIME ou DÉFAUT NOMMÉ (§G.8)')
+for (const cle of Object.keys(GEL)) {
+  const [f, code] = cle.split(' | ')
+  ok(!traite(sansCommentaires(lire(f)), code), `l’entrée « ${f.split('/').pop()} ne traite pas ${code} » est encore vraie — sinon la retirer du gel`)
+}
+info(`${defautsNommes} DÉFAUT(S) NOMMÉ(S) au gel — lus, pas acquittés, rendus à l’arbitrage`)
+
+fin(`Chaque refus commerce dit ce qui bloque et quoi faire — sur tout le périmètre. ${defautsNommes} défaut(s) nommé(s) attendent un arbitrage.`)
