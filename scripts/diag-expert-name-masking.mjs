@@ -28,6 +28,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { expertNameCode, firstLetters } from '../lib/expert-name-code.ts'
+import { fichiers, lire, sansCommentaires as sansComm } from './balayage-promesse.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /**
@@ -186,6 +187,80 @@ ok(!stripComments(read('lib/expert-name-code.ts')).includes('toLocaleUpperCase')
   "sans argument, la variante locale suit la locale du runtime : 'i' → 'İ' en turc")
 
 // ═══ D. LIBELLÉS DE REPLI — TRADUITS, PLUS EN DUR ══════════════════════════
+// ═══ C bis. §D.4 — AUCUN CHEMIN SERVEUR NE PROJETTE L'IDENTITÉ DE CONTACT ══
+section('C bis. §D.4 — e-mail, téléphone, LinkedIn, CV : projetés par AUCUNE route hors admin et hors soi-même')
+//
+// ┌─ CONVERTI EN BALAYAGE (lot C4b, 20/09/2026) ────────────────────────────┐
+// │ §D.4 dit « aucun chemin serveur ». Le contrôle nommait cinq fichiers.   │
+// │ Il balaie désormais `app/api/` + `lib/` : toute chaîne de `select(…)`   │
+// │ qui EMBARQUE l'identité d'un expert (`profiles(…)`, `users!…(…)`, ou    │
+// │ une lecture de `profiles`/`users`) et y cite `email`, `phone`,          │
+// │ `linkedin_url` ou `cv_url` est un CANDIDAT. Il est légitime si :         │
+// │   · la route est ADMIN (`requireAdmin(`) — l'administrateur voit tout ;  │
+// │   · la lecture est celle du compte APPELANT (`auth.user.id`, `user.id`) ;│
+// │   · c'est un cron (`CRON_SECRET`) ou une fonction interne de `lib/` qui  │
+// │     ne construit pas une réponse — chacune LUE et gelée avec sa raison.  │
+// │ Tout le reste est rouge : c'est un profil expert qui part vers une       │
+// │ organisation avec son contact.                                            │
+// └─────────────────────────────────────────────────────────────────────────┘
+
+const CHAMPS_CONTACT = /\b(email|phone|linkedin_url|cv_url)\b/
+const IDENTITE = /\b(profiles|users)\b/
+/** Les chaînes de select d'un source qui embarquent l'identité ET un champ de contact. */
+function selectsSensibles(src) {
+  const out = []
+  for (const m of src.matchAll(/\.select\(\s*((?:'[^']*'\s*\+?\s*)+)/g)) {
+    const chaine = m[1]
+    if (IDENTITE.test(chaine) && CHAMPS_CONTACT.test(chaine)) out.push(chaine.replace(/\s+/g, ' ').slice(0, 90))
+  }
+  // et la lecture directe d'une table d'identité dont le select cite un champ de contact
+  for (const m of src.matchAll(/\.from\(\s*'(profiles|users)'\s*\)[\s\S]{0,400}?\.select\(\s*((?:'[^']*'\s*\+?\s*)+)/g)) {
+    if (CHAMPS_CONTACT.test(m[2])) out.push(`${m[1]} → ${m[2].replace(/\s+/g, ' ').slice(0, 80)}`)
+  }
+  return [...new Set(out)]
+}
+const estAdmin = (src) => /\brequireAdmin\(/.test(src)
+const estCron = (src) => /CRON_SECRET/.test(src)
+const litSoiMeme = (src) => /\.eq\(\s*'(?:id|user_id)'\s*,\s*(?:auth\.)?user\.id\s*\)/.test(src) || /\.eq\(\s*'user_id'\s*,\s*userId\s*\)/.test(src)
+
+/** GEL — lib et routes LUES, une raison chacune (§G.8). */
+const GEL_D4 = {
+  'lib/notifications/dispatch.ts': 'LÉGITIME — le dispatcher lit l’e-mail du DESTINATAIRE pour lui envoyer sa notification ; jamais projeté vers un tiers',
+  'lib/verification/expert-verification.ts': 'LÉGITIME — la vérification IA lit linkedin_url comme entrée du jugement ; le résultat est une note, pas un profil servi',
+  'lib/hooks/useCdiProfile.ts': 'LÉGITIME — hook CLIENT qui lit le compte de l’utilisateur connecté (son propre e-mail) ; pas une projection vers une organisation',
+  'lib/admin/user-actions-guard.ts': 'LÉGITIME — garde des actions du BACK-OFFICE : l’e-mail identifie la cible pour l’audit, et ses appelants sont des routes requireAdmin',
+  'lib/billing/purchase.ts': 'LÉGITIME — l’e-mail de l’ACHETEUR lui-même, transmis à Stripe comme e-mail client ; rien ne part vers une organisation tierce',
+  'app/api/profile/upload-cv/route.ts': 'LÉGITIME — dépôt de CV : le profil de l’appelant (rendu à lui-même)',
+  'app/api/profile/cv-status/[jobId]/route.ts': 'LÉGITIME — suivi d’analyse du CV de l’appelant',
+  'app/api/me/organisation/members/route.ts': 'LÉGITIME — les e-mails des MEMBRES de sa propre organisation, pas un profil expert',
+}
+// (account-purge, profile/route.ts, cdi-upload-cv, cv/reset lisent aussi l’identité de
+//  l’appelant mais n’entrent pas dans le motif — écritures, ou lecture reconnue « soi-même » ;
+//  on ne gèle pas ce que le motif ne dénonce pas.)
+{
+  const cibles = fichiers(['app/api', 'lib'])
+  const candidats = []
+  for (const f of cibles) {
+    const src = sansComm(lire(f))
+    const s = selectsSensibles(src)
+    if (s.length) candidats.push({ f, src, selects: s })
+  }
+  const admin = candidats.filter((c) => estAdmin(c.src) || estCron(c.src))
+  const restants = candidats.filter((c) => !estAdmin(c.src) && !estCron(c.src))
+  console.log(`  ··   ${cibles.length} fichiers · ${candidats.length} lisent un champ de contact avec l’identité · ${admin.length} admin/cron`)
+  ok(candidats.length >= 5, 'le balayage voit les lectures de contact (au moins cinq)', 'un inventaire vide : le motif `select(` ne lit plus le code')
+  const rouges = restants.filter((c) => !(c.f in GEL_D4) && !litSoiMeme(c.src))
+  for (const c of restants.filter((c) => c.f in GEL_D4)) console.log(`  ··   ${c.f} — GELÉ, ${GEL_D4[c.f].slice(0, 12)}…`)
+  ok(rouges.length === 0, 'aucune route hors admin ne projette e-mail / téléphone / LinkedIn / CV d’un expert vers un tiers',
+    rouges.map((c) => `${c.f} : ${c.selects[0]}`).join('\n       ') || undefined)
+  const sorties = Object.keys(GEL_D4).filter((k) => !restants.some((c) => c.f === k))
+  ok(sorties.length === 0, 'aucune entrée du gel §D.4 n’a cessé d’être vraie sans qu’on le dise', sorties.join(' ; ') || undefined)
+  ok(Object.values(GEL_D4).every((r) => /^(LÉGITIME|DÉFAUT NOMMÉ)( |$)/.test(r)), 'chaque raison du gel §D.4 commence par LÉGITIME ou DÉFAUT NOMMÉ')
+  // Et le module de divulgation lui-même ne rend jamais le contact.
+  const disclosure = sansComm(lire('lib/expert-disclosure.ts'))
+  ok(/reveal_contact:\s*false/.test(disclosure) && !/reveal_contact:\s*true/.test(disclosure), 'lib/expert-disclosure.ts : reveal_contact vaut false, partout, toujours')
+}
+
 section('D. Libellés de repli')
 
 const masking = read('lib/expert-name-masking.ts')
