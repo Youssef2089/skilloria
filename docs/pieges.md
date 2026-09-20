@@ -91,9 +91,12 @@ Sous garde aujourd'hui : `diag-lot-expert-verification`, `diag-lot2b-expert`, `d
 `diag-lot3-messagerie`, `diag-suspension`. Le balayage
 [scripts/diag-scripts-destructeurs.mjs](../scripts/diag-scripts-destructeurs.mjs) **découvre** les
 écrivains au lieu de tenir une liste.
-⚠️ **Angle mort vérifié** : ce balayage ne couvre que `scripts/diag-*.mjs`. Trois scripts écrivent en
-base **hors** de son périmètre et **sans garde** : `scripts/cleanup-test-data.mjs` (suppression
-irréversible), `scripts/verify-test-profile-once.mjs`, `scripts/backfill-matching-experts.mts`.
+⚠️ **Angle mort vérifié** : ce balayage ne couvre que `scripts/diag-*.mjs`. **Cinq** scripts écrivent en
+base **hors** de son périmètre : trois **sans garde** — `scripts/cleanup-test-data.mjs` (suppression
+irréversible), `scripts/verify-test-profile-once.mjs`, `scripts/backfill-matching-experts.mts` — et
+deux **sous garde**, dits dans le commit qui les a livrés :
+`scripts/creer-premier-administrateur.mjs` (le jour zéro) et `scripts/recette-3-3.mjs` (la recette,
+§C.12 — elle crée six comptes, deux organisations, un écosystème de passage, et les supprime).
 
 <a id="e5"></a>
 ### E.5 — Le couperet de Vercel tue tout travail d'après-réponse hors d'un `after()`.

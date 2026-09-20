@@ -682,6 +682,62 @@ nom de langue) ne supprime rien non plus, et **le dit** : `liste_illisible` côt
 journalisation nommée côté analyse de CV. Détail de la forme et de son cas fondateur : **§E.39**
 dans [CLAUDE.md](../CLAUDE.md).
 
+### C.12 — La recette 3.3 : ce qu’elle prouve, ce qu’elle NE prouve PAS, et ce qu’il lui faut
+
+[scripts/recette-3-3.mjs](../scripts/recette-3-3.mjs), livrée le 20/09/2026 **sans avoir jamais tourné**
+**contre une base** — volontairement, et écrit en tête du script : c’est l’état exact de la migration
+de §E.12, et la seule façon honnête de la livrer est de le dire. Elle prouvera quelque chose le jour
+où Youssef ouvre la session sur un projet jetable.
+
+**Ce qu’elle prouve.** Contre un vrai serveur et une vraie base, pour **chaque route du**
+**cloisonnement** — dérivées de [scripts/inventaire-cloisonnement.mjs](../scripts/inventaire-cloisonnement.mjs),
+sorti de `diag-ecosystem-scope` pour que la matrice ne soit **jamais écrite à la main** (une route
+ajoutée y entre toute seule, ou le diagnostic rougit) — et pour **chaque population** (anonyme, expert
+freelance, expert CDI, client, cabinet, administrateur), sous **quatre écosystèmes** (le sien, un autre
+actif, un inactif, un inconnu) : le statut HTTP rendu est celui attendu, **les refus autant que les**
+**succès**. Puis le **parcours métier, une fois** : publier → mise en relation → candidature →
+dévoilement → conversation, avec les deux assertions de §D.4 sur ce que l’organisation reçoit (un code,
+jamais l’e-mail ni le téléphone).
+
+**D’où viennent les attendus.** `ATTENDUS`, dans le même module que l’inventaire : le *mode* dit **où**
+la route cloisonne, `ATTENDUS` dit **ce qu’elle doit répondre** — dérivé des gardes que chaque route
+appelle, lues dans le code (`requireOrgRole` → expert 403, admin 403 ; accès par identifiant → 404 hors
+organisation ou hors écosystème, jamais 403 ; expert hors de son écosystème → 403, §D.3). Un attendu
+`null` est **observé et dit, jamais compté** : c’est la liste à promouvoir après la première séance.
+Une action **à effet** (clôturer, refuser, dévoiler, publier, appeler l’IA) est prouvée **une fois** dans
+le parcours et **jamais rejouée** dans la matrice pour son propriétaire — la rejouer détruirait les
+fixtures des cellules suivantes ; ses refus pour les autres populations, eux, sont joués (un refus ne
+mute rien).
+
+**Ce qu’elle NE prouve PAS — et une recette dont on croit qu’elle couvre tout est pire qu’aucune :**
+· rien du **rendu**, de l’**i18n**, de l’**UX** — elle ne rend pas une page ;
+· rien des **Redirect URLs** : gardées par `diag-parametrage-manuel`, pas par elle ;
+· rien de **Vonage** ni du **SMTP** : l’OTP est **signé par la recette** avec le même secret que
+  `verify-phone-otp` (les vraies routes `register-expert` / `register-org` sont appelées, seul le SMS
+  est court-circuité), et l’e-mail est confirmé par l’API admin — `email_confirm: true`, arbitrage
+  de l’architecte du 20/09/2026 ;
+· le **premier administrateur** n’est pas créé par une route (aucune n’existe) : c’est le contournement
+  §E.23, le même que `creer-premier-administrateur` ;
+· le **moteur** : sans `ENABLE_RERANKING=true` et `COHERE_API_KEY`, aucun match ne naît, la candidature
+  répond 403 `not_matched`, et la recette marque candidature → dévoilement → conversation **non joués**
+  — elle ne les compte ni verts ni rouges.
+
+**Ce qu’il lui faut** (l’en-tête du script le répète, c’est lui qui fait foi) : un projet Supabase
+**jetable**, migrations et seed de production appliqués ; un `npm run dev` qui pointe dessus ; dans
+l’environnement du script `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY`, `PHONE_OTP_HMAC_SECRET` (ou `SUPABASE_JWT_SECRET`), `DEV_DOMAIN_SLUG`,
+et `RECETTE_BASE_URL` si le serveur n’est pas sur `localhost:3000` ; un projet qui **accepte le**
+**signUp anon** (SMTP configuré ou confirmation désactivée) ; et, pour le parcours, le moteur allumé.
+
+**Ses garde-fous.** Sous `garde-ecriture` (`--db`, sinon code 2 et la liste de ce qu’elle écrirait) ;
+`--base-jetable=<ref>` **obligatoire et égal** au ref du projet visé — on ne crée pas des comptes sur
+une base par accident ; tout ce qu’elle crée porte un identifiant de passage et est **supprimé à la**
+**fin** (sauf `--garder`), les traces d’audit d’abord (leur clé vers `users` est `RESTRICT`), en disant
+ce qui reste. Trois codes de sortie : `0` vert · `1` rouge · `2` n’a pas tourné.
+
+> **C’est le cinquième script qui écrit en base hors du périmètre de `diag-scripts-destructeurs`**
+> (§E.4) — dit ici et dans le commit qui le livre, comme pour `creer-premier-administrateur`.
+
 ## F. La classe de défaut « lire puis écrire »
 
 > **DETTE NOMMÉE, NON OUVERTE — `extendValidity` (20/09/2026).**
