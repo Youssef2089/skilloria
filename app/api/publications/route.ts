@@ -549,6 +549,13 @@ export async function GET(request: NextRequest): Promise<Response> {
   //  résolues par le helper partagé. Instant UNIQUE pour tout le lot.
   const pubIds = rows.map((r) => r.id)
   const aggByPub = new Map<string, AnnonceCandidatures>()
+  // ⚠️ « 0 CANDIDATURE » DIT À UNE ORGANISATION QUI EN A REÇU DIX.
+  //    Deux chemins produisaient ce zéro — la lecture des candidatures en
+  //    panne, et l’état de vie indérivable — et les DEUX retombaient sur
+  //    `makeEmptyCandidatures()`. C'est le compteur de §E.22 ⑨, sur l'écran
+  //    où une organisation décide de relancer, de republier, ou de renoncer.
+  //    Un seul drapeau pour les deux causes : on ne sait pas, on le DIT.
+  let comptesConnus = true
   if (pubIds.length > 0) {
     const { data: candRows, error: candErr } = await auth.supabaseAdmin
       .from('candidatures')
@@ -556,7 +563,10 @@ export async function GET(request: NextRequest): Promise<Response> {
       .in('publication_id', pubIds)
     if (candErr) {
       console.error('[publications:GET] candidatures agg failed', candErr.message)
-      // best-effort : on continue avec des compteurs vides
+      // Le commentaire d’origine disait « best-effort : on continue avec des
+      // compteurs vides ». Des compteurs vides ne sont pas du best-effort :
+      // c’est une affirmation fausse au moment de décider.
+      comptesConnus = false
     } else {
       const candidatures = (candRows ?? []) as {
         id: string; publication_id: string; status: string; unlocked_at: string | null
@@ -644,7 +654,9 @@ export async function GET(request: NextRequest): Promise<Response> {
       verification_score: row.verification_score,
       created_at: row.created_at,
       published_at: row.published_at,
-      candidatures: aggByPub.get(row.id) ?? makeEmptyCandidatures(),
+      // `null` = ON NE SAIT PAS. Jamais un objet de zéros : l’écran doit
+      // pouvoir écrire « — » et non « 0 » (§E.22 ⑨).
+      candidatures: comptesConnus ? (aggByPub.get(row.id) ?? makeEmptyCandidatures()) : null,
       // Lot synthèse parlante
       location_note: row.location_note,
       work_mode: row.work_mode,

@@ -97,7 +97,24 @@ export type Annonce = {
   created_at: string
   /** ISO. Null si la publi n'a jamais été passée en 'published'. */
   published_at: string | null
-  candidatures: AnnonceCandidatures
+  /**
+
+   * `null` = LES COMPTEURS SONT INCONNUS, jamais un objet de zeros.
+
+   *
+
+   * ⚠️ « 0 candidature » dit a une organisation qui en a recu dix est la
+
+   *    phrase qui la fait renoncer. Deux causes produisaient ce zero — la
+
+   *    lecture des candidatures en panne, et l'etat de vie inderivable — et
+
+   *    les deux retombaient sur un objet de zeros. Le type force desormais
+
+   *    l'ecran a distinguer « aucune » de « on ne sait pas » (§E.22 ⑨).
+
+   */
+  candidatures: AnnonceCandidatures | null
   /** Lot synthèse parlante — champs publi enrichis pour <PublicationSynthesisLine>. */
   /**
    * ZONES DE TRAVAIL — libellés déjà traduits, prêts à afficher.

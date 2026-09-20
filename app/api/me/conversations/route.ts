@@ -141,41 +141,65 @@ export async function GET(request: NextRequest): Promise<Response> {
   //   (2) candidatures conversables sur des publis de mon org (membre)
   //  Puis on charge les conversations correspondantes en une 3e query.
 
+  // ⚠️ QUATRE LECTURES, UN SEUL FAIT : la liste des conversations visibles.
+  //    Aucune ne recuperait son erreur, et chacune retombait sur `[]`. Une
+  //    seule panne — cote expert OU cote organisation — produisait donc
+  //    « vous n'avez aucune conversation », dit a quelqu'un qui en a.
+  //    Une liste INCOMPLETE qui se presente comme COMPLETE est une
+  //    affirmation, pas une absence. On ne sert pas la moitie d’une reponse.
+  let listeComplete = true
+
   // (1) Expert
   const candIdsExpert: string[] = []
-  const { data: myProfile } = await auth.supabaseAdmin
+  const { data: myProfile, error: myProfileErr } = await auth.supabaseAdmin
     .from('profiles')
     .select('id')
     .eq('user_id', userId)
     .maybeSingle()
+  if (myProfileErr) listeComplete = false
   if (myProfile) {
-    const { data: rows } = await auth.supabaseAdmin
+    const { data: rows, error: rowsErr } = await auth.supabaseAdmin
       .from('candidatures')
       .select('id')
       .eq('profile_id', (myProfile as { id: string }).id)
       .in('status', CONVERSATION_STATUSES as unknown as string[])
+    if (rowsErr) listeComplete = false
     for (const r of (rows ?? []) as { id: string }[]) candIdsExpert.push(r.id)
   }
 
   // (2) Org membre actif
   const candIdsOrg: string[] = []
   if (auth.organization?.id) {
-    const { data: pubs } = await auth.supabaseAdmin
+    const { data: pubs, error: pubsErr } = await auth.supabaseAdmin
       .from('publications')
       .select('id')
       // CLOISONNEMENT — côté organisation uniquement : les conversations suivent
       // l'annonce, donc son écosystème.
       .eq('organization_id', auth.organization.id)
       .eq('domain_id', activeEcosystemId(auth))
+    if (pubsErr) listeComplete = false
     const pubIds = ((pubs ?? []) as { id: string }[]).map((p) => p.id)
     if (pubIds.length > 0) {
-      const { data: rows } = await auth.supabaseAdmin
+      const { data: rows, error: rowsErr } = await auth.supabaseAdmin
         .from('candidatures')
         .select('id')
         .in('publication_id', pubIds)
         .in('status', CONVERSATION_STATUSES as unknown as string[])
+      if (rowsErr) listeComplete = false
       for (const r of (rows ?? []) as { id: string }[]) candIdsOrg.push(r.id)
     }
+  }
+
+  // ⚠️ LE REFUS EST UNIQUE, ET IL EST ICI : les quatre lectures repondent a
+  //    la meme question, donc elles echouent ensemble ou pas du tout.
+  //    503, motif nomme, refus TEMPORAIRE — « aucune conversation » serait
+  //    un verdict.
+  if (!listeComplete) {
+    console.error('[me/conversations] liste INCOMPLETE — aucune reponse servie', { userId })
+    return json(
+      { error: 'Could not list conversations', code: 'conversations_indisponibles' },
+      503,
+    )
   }
 
   const candIds = Array.from(new Set([...candIdsExpert, ...candIdsOrg]))

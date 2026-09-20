@@ -147,12 +147,18 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
   // facettes existent (échange clos, annonce terminée, retirée) et sont
   // comptées dans le total en lead. Ne pas les faire « s'additionner au
   // total » — c'est ce raccourci qui avait produit la tuile morte.
+  // ⚠️ `null` = LES COMPTEURS SONT INCONNUS, ET « 0 » SERAIT UN MENSONGE.
+  //    Deux causes le produisent — la lecture des candidatures en panne, et
+  //    l’état de vie indérivable — et la route les dit désormais pareil.
+  //    « 0 candidature » dit à une organisation qui en a reçu dix est la
+  //    phrase qui la fait renoncer (§E.22 ⑨). On écrit « — ».
   const c = annonce.candidatures
-  const counters: Array<{ key: string; label: string; value: number; color?: string }> = [
-    { key: 'to_review', label: t('funnel.to_review'), value: Math.round(c.facets.awaiting_review), color: domain.primaryColor },
-    { key: 'in_progress', label: t('funnel.in_progress'), value: Math.round(c.facets.exchange_open) },
-    { key: 'accepted', label: t('funnel.accepted'), value: Math.round(c.facets.selected), color: '#16A34A' },
-    { key: 'rejected', label: t('funnel.rejected'), value: Math.round(c.facets.rejected) },
+  const chiffre = (v: number | undefined) => (c === null || v === undefined ? null : Math.round(v))
+  const counters: Array<{ key: string; label: string; value: number | null; color?: string }> = [
+    { key: 'to_review', label: t('funnel.to_review'), value: chiffre(c?.facets.awaiting_review), color: domain.primaryColor },
+    { key: 'in_progress', label: t('funnel.in_progress'), value: chiffre(c?.facets.exchange_open) },
+    { key: 'accepted', label: t('funnel.accepted'), value: chiffre(c?.facets.selected), color: '#16A34A' },
+    { key: 'rejected', label: t('funnel.rejected'), value: chiffre(c?.facets.rejected) },
   ]
 
   return (
@@ -286,7 +292,7 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
         {/* Total en lead */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexShrink: 0 }}>
           <span style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-text-primary, #0f172a)', lineHeight: 1, letterSpacing: '-0.5px' }}>
-            {Math.round(c.total)}
+            {c === null ? '—' : Math.round(c.total)}
           </span>
           <span style={{ fontSize: 11, color: 'var(--color-text-secondary, #64748b)', fontWeight: 500 }}>
             {t('funnel.total_suffix')}
@@ -303,7 +309,7 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
             return (
               <div key={cnt.key} style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 16, fontWeight: 600, color: valueColor, lineHeight: 1 }}>
-                  {cnt.value}
+                  {cnt.value === null ? '—' : cnt.value}
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--color-text-secondary, #64748b)', marginTop: 4 }}>
                   {cnt.label}
