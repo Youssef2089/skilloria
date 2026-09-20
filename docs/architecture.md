@@ -61,7 +61,8 @@ avec le seed) : `publications_per_month`, `active_publications_max`,
 `conversations`, `messages`, `notifications`, `notification_preferences`.
 
 **Commerce** — `packages`, `package_features`, `package_history`, `subscription_history`,
-`transactions`, `usage_counters`, `promo_codes`, `promo_code_uses`, `stripe_events`.
+`transactions`, `usage_counters`, `promo_codes`, `promo_code_uses`, `stripe_events`,
+`stripe_reconciliation_runs` (§C.10).
 
 **Taxonomie** — `branches`, `specialities`, `public_email_domains`, `blocked_email_domains`.
 
@@ -483,36 +484,6 @@ where u.anonymized_at is not null
 > sur la base, et daté pour la même raison.
 
 
-### C.10 — Les TROIS écrivains des listes de profil, et la propriété qui les tient
-
-**Pourquoi cette section existe.** `profile_experiences`, `profile_educations` et
-`profile_languages` sont écrites par **trois** routes, et toutes les trois procèdent par
-**suppression puis réinsertion**. C'est la forme la plus dangereuse du dépôt : si la réinsertion
-n'écrit rien, la suppression, elle, a bien eu lieu — et ce qu'un expert a saisi à la main a
-disparu, sans erreur et sans trace.
-
-| Route | Origine des listes | Comment la propriété est tenue |
-|---|---|---|
-| `POST /api/profile/upload-cv` | l'analyse de CV (freelance) | **garde locale** : la liste normalisée est testée avant le `delete` |
-| `POST /api/profile/cdi-upload-cv` | l'analyse de CV (CDI) | **garde locale**, identique |
-| `PATCH /api/profile` | le formulaire du profil | **barrière en amont** : 400 `liste_illisible` si une liste non vide n'a aucune entrée écrivable ; et 409 `effacement_non_declare` si un vide remplace une liste non vide sans que le corps déclare `listes_lues` |
-
-**LA PROPRIÉTÉ, une phrase, et elle vaut pour tout écrivain futur :**
-> **La liste qui sera RÉINSÉRÉE est testée AVANT la SUPPRESSION.**
-
-Elle ne dit **pas** *comment*. Une garde locale et une barrière en amont la tiennent aussi bien, et
-exiger la forme locale ferait rougir le seul écrivain qui se protège autrement (§E.34). Le
-contrôle [`diag-garde-et-action`](../scripts/diag-garde-et-action.mjs) est donc ancré sur la
-propriété, et l'exemption du troisième écrivain porte une **sentinelle** : si la barrière
-disparaît, l'exemption tombe.
-
-**Ce que le CV peut et ne peut pas effacer, pour qu'il n'y ait pas de doute :** un CV analysé dont
-une liste ressort **vide** ne supprime rien — ni les expériences, ni les formations, ni les
-langues. Une liste **non vide mais entièrement illisible** (des entrées sans rôle, sans école, sans
-nom de langue) ne supprime rien non plus, et **le dit** : `liste_illisible` côté formulaire, une
-journalisation nommée côté analyse de CV. Détail de la forme et de son cas fondateur : **§E.39**
-dans [CLAUDE.md](../CLAUDE.md).
-
 ### C.9 — Ce que `/admin/supervision` doit porter, mesure par mesure
 
 **Pourquoi ce tableau existe.** La refonte de septembre 2026 a séparé ce qui se **décide** de ce qui
@@ -567,6 +538,149 @@ ligne, et vérifier que chaque source est encore **lue**, **affichée**, et **é
 > corps 8 sur un écran de décision, §E.26) ; l'information n'a pas été reportée ici.
 
 ---
+
+### C.10 — Le module Stripe d'exploitation : ce qu'il garantit, ce qu'il NE garantit pas
+
+> État établi le **20/09/2026**, par lecture du code et **une lecture de la base de recette**
+> (`wnayuerhakekxccgimeg`). Les chiffres qui suivent portent leur date, et aucun n'est déduit.
+
+#### Pourquoi on ne recopie PAS Stripe — et c'est la moitié du lot
+
+Stripe fournit déjà, et mieux : les **paiements**, les **factures**, les **remboursements** et les
+**litiges**. Ils vivent dans son tableau de bord. Le module d'exploitation n'en montre **aucun** :
+`/admin/facturation` porte **un lien** vers ce tableau de bord, et c'est tout ce qu'il en dit.
+
+La raison n'est pas l'économie d'effort. **Un écran qui recopie Stripe diverge de Stripe** — pas le
+jour où on l'écrit, mais le jour où une synchronisation saute, et alors deux chiffres coexistent
+sans que rien ne dise lequel fait foi. C'est la double source de vérité que tout le socle commerce
+évite déjà (`resolvePackageByPrice` ne lit jamais un montant chez Stripe : il traduit un
+**identifiant de prix** en offre du **catalogue local**, qui fait foi — décision figée).
+
+La gestion d'abonnement **côté client** ne se refait pas non plus : le portail client Stripe est
+hébergé et co-brandé, et `/api/billing/portal` l'ouvre déjà.
+
+**Ce qui reste, et que Stripe ne peut PAS savoir : l'état de NOTRE base en regard du sien.**
+
+#### Les quatre surfaces, et la raison qu'il n'y en ait qu'UNE route
+
+| Surface | Ce qu'elle répond |
+|---|---|
+| Le **journal** | ce que Stripe nous a envoyé, et ce que ce site en a fait |
+| Les **écarts** | quelles organisations ont des droits qui ne correspondent pas à leur abonnement |
+| La **santé du raccordement** | le tuyau est-il branché, et depuis quand est-il muet |
+| La **vérification nocturne** | qu'est-ce qui existe chez Stripe et n'est jamais arrivé ici |
+
+Les trois premières lisent la **même source**. Trois routes qui liraient séparément tomberaient
+ensemble sur la même panne — et l'une afficherait « rien à signaler » pendant que l'autre dirait
+« je ne sais pas ». C'est **§E.36 mot pour mot**, et le remède n'est pas de corriger les trois :
+c'est de n'en avoir **qu'une**, [app/api/admin/facturation/route.ts](../app/api/admin/facturation/route.ts).
+Une lecture, un type, trois consommateurs.
+
+`/admin/supervision` **n'appelle jamais Stripe** : il lit le **verdict** de la nuit, en local. L'y
+faire appeler Stripe en aurait fait un quatrième consommateur de la même lecture.
+
+#### CE QUE LE MODULE GARANTIT
+
+1. **« Zéro écart » et « je n'ai pas pu comparer » ne se confondent jamais.** `EtatEcarts`
+   ([lib/stripe-exploitation/ecarts.ts](../lib/stripe-exploitation/ecarts.ts)) n'expose `ecarts` que
+   dans sa branche `'compare'` : l'écran ne PEUT PAS écrire « aucun écart » sur une lecture en
+   panne, le compilateur l'interdit. La même garde existe **en base** sur
+   `stripe_reconciliation_runs` — sur `etat = 'impossible'`, les trois compteurs sont `NULL`, et une
+   contrainte le refuse autrement (§E.31 : une garde qui est une contrainte de schéma ne dépend
+   d'aucune discipline).
+2. **Le mur fermé est un état NORMAL.** `ENABLE_BILLING` absent ⇒ motif `billing_disabled`, affiché
+   en gris avec son propre texte, et la tâche nocturne répond **200**. Peindre en rouge le
+   fonctionnement normal apprend à ignorer le rouge.
+3. **Le rapprochement se fait sur l'identifiant CLIENT.** Le Customer survit à une résiliation, à
+   une re-souscription, à un changement d'offre ; l'abonnement, non. Un **repli documenté** sur
+   l'identifiant d'abonnement couvre le désordre de livraison (un `subscription.created` peut
+   arriver avant le `checkout.session.completed` qui attache le customer). Plusieurs abonnements
+   pour un client sont **classés par statut**, jamais pris dans l'ordre de pagination.
+4. **Lecture seule, partout.** La route n'exporte aucun verbe d'écriture ; la tâche nocturne
+   n'appelle aucun traitement d'événement. Les deux propriétés sont **gardées**.
+5. **Une attribution manuelle n'est pas un écart.** Discriminant : `package_source_event_at IS NULL`
+   **et** aucun identifiant Stripe — donc aucun événement n'a jamais écrit cette ligne. Sans cette
+   exclusion, l'écran aurait annoncé « accès sans paiement » sur un compte pilote dès sa première
+   nuit. *Mesuré le 20/09/2026 : 4 organisations, une avec une offre, **zéro** avec un identifiant
+   Stripe.*
+6. **La tâche nocturne figure au catalogue**, nommée : 8 tâches avant elle, 9 après.
+
+#### CE QU'IL NE GARANTIT PAS — et il faut le lire avant de s'y fier
+
+- **Il ne retraite rien.** Un événement manqué est **signalé**, jamais rejoué. Le retraitement
+  automatique d'un événement de paiement est un lot à lui seul : que faire d'un `invoice.paid`
+  vieux de trois jours dont l'abonnement a été résilié depuis est un **arbitrage d'argent**.
+- **Il ne corrige aucun écart.** L'écran constate. Corriger automatiquement un écart qu'on ne
+  comprend pas encore, c'est rétablir des droits qu'on aurait dû retirer, ou retirer des droits
+  payés — irréversible dans les deux sens.
+- **Il ne voit rien au-delà de 30 jours.** L'API Events de Stripe ne conserve pas plus. Passé ce
+  délai, un événement manqué est **introuvable** : c'est ce qui impose une cadence quotidienne.
+- **Il ne sait pas combien de signatures ont échoué.** L'objet `webhook_endpoint` de Stripe expose
+  son URL, son statut et ses types souscrits — **ni** compteur d'échecs, **ni** date de dernière
+  tentative. L'écran dit donc ce qu'il sait : le point est actif, et rien n'arrive. **NON VÉRIFIÉ**
+  au-delà de la surface de cet objet : aucune autre ressource de l'API n'a été cherchée.
+- **Les résultats sont BORNÉS.** La pagination s'arrête à 1000 ; au-delà, l'écran affiche
+  « tronqué » plutôt que de se dire complet.
+- **Il ne prouve pas que le journal est complet.** Une ligne absente ne prouve pas qu'aucun
+  événement n'est arrivé : elle prouve qu'on n'en a pas trace. Seule la vérification nocturne
+  distingue les deux.
+- **Deux JUMEAUX sont assumés** (§E.20) : `STATUTS_OUVRANTS` et la liste des six types traités sont
+  recopiés de [lib/billing/events.ts](../lib/billing/events.ts), qui ne les exporte pas. Un contrôle
+  lit les **deux** listes dans le source et échoue si elles divergent. Le jour où `events.ts` les
+  exporte, les copies disparaissent.
+
+#### LA PROCÉDURE — que faire quand un écart apparaît
+
+**Règle zéro : on ne corrige rien tant qu'on n'a pas compris.** L'écran est en lecture seule
+précisément pour empêcher le geste réflexe.
+
+1. **Lire l'ÉTAT avant le compte.** « 0 écart » et « je n'ai pas pu comparer » ne sont pas la même
+   page. Si l'état est `impossible`, le motif dit de quel côté regarder — `lecture_locale` désigne
+   notre base, les motifs `stripe_*` désignent Stripe ou la clé, `billing_disabled` ne désigne rien
+   (le mur est fermé, c'est normal).
+2. **Regarder les quatre lignes du raccordement.** Un écart massif et soudain vient presque toujours
+   de là : secret désaccordé, endpoint désactivé, endpoints croisés entre les deux modes.
+3. **Chercher l'événement dans le journal.** Chaque nature d'écart porte sa phrase d'action.
+   · `failed` → le motif est écrit, et l'événement est **rejouable** (Stripe le renverra, ou on le
+   renvoie depuis son tableau de bord) ;
+   · **coincé en `received`** → il ne se rejouera **jamais** seul, voir §E.27 dans CLAUDE.md ;
+   · **absent** → la vérification nocturne le nommera, si elle a moins de 30 jours de retard.
+4. **Si rien n'explique l'écart**, c'est que le webhook a fonctionné et que l'accès est faux quand
+   même : offre écrasée à la main, événement écarté comme retardataire (`package_source_event_at`
+   plus récent que l'événement), ou prix changé chez Stripe sans changer au catalogue.
+5. **Corriger à la main, et tracer.** Pour un droit : `/admin/organisations/[id]`. Pour un prix
+   désaccordé : `/admin/packages`. Jamais en base directement — **un réglage qui n'est pas dans le
+   dépôt n'existe pas** (§E.10).
+
+### C.11 — Les TROIS écrivains des listes de profil, et la propriété qui les tient
+
+**Pourquoi cette section existe.** `profile_experiences`, `profile_educations` et
+`profile_languages` sont écrites par **trois** routes, et toutes les trois procèdent par
+**suppression puis réinsertion**. C'est la forme la plus dangereuse du dépôt : si la réinsertion
+n'écrit rien, la suppression, elle, a bien eu lieu — et ce qu'un expert a saisi à la main a
+disparu, sans erreur et sans trace.
+
+| Route | Origine des listes | Comment la propriété est tenue |
+|---|---|---|
+| `POST /api/profile/upload-cv` | l'analyse de CV (freelance) | **garde locale** : la liste normalisée est testée avant le `delete` |
+| `POST /api/profile/cdi-upload-cv` | l'analyse de CV (CDI) | **garde locale**, identique |
+| `PATCH /api/profile` | le formulaire du profil | **barrière en amont** : 400 `liste_illisible` si une liste non vide n'a aucune entrée écrivable ; et 409 `effacement_non_declare` si un vide remplace une liste non vide sans que le corps déclare `listes_lues` |
+
+**LA PROPRIÉTÉ, une phrase, et elle vaut pour tout écrivain futur :**
+> **La liste qui sera RÉINSÉRÉE est testée AVANT la SUPPRESSION.**
+
+Elle ne dit **pas** *comment*. Une garde locale et une barrière en amont la tiennent aussi bien, et
+exiger la forme locale ferait rougir le seul écrivain qui se protège autrement (§E.34). Le
+contrôle [`diag-garde-et-action`](../scripts/diag-garde-et-action.mjs) est donc ancré sur la
+propriété, et l'exemption du troisième écrivain porte une **sentinelle** : si la barrière
+disparaît, l'exemption tombe.
+
+**Ce que le CV peut et ne peut pas effacer, pour qu'il n'y ait pas de doute :** un CV analysé dont
+une liste ressort **vide** ne supprime rien — ni les expériences, ni les formations, ni les
+langues. Une liste **non vide mais entièrement illisible** (des entrées sans rôle, sans école, sans
+nom de langue) ne supprime rien non plus, et **le dit** : `liste_illisible` côté formulaire, une
+journalisation nommée côté analyse de CV. Détail de la forme et de son cas fondateur : **§E.39**
+dans [CLAUDE.md](../CLAUDE.md).
 
 ## F. La classe de défaut « lire puis écrire »
 
@@ -623,6 +737,14 @@ l'objet est créé **deux fois**.
 Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 
 **Commerce / Stripe**
+- ⛔ **`packages.stripe_price_id_monthly` est NULL SUR LES QUATRE OFFRES — MESURÉ PAR S1 SUR LA
+  BASE RÉELLE, le 20/09/2026.** C’est **la première action avant d’ouvrir l’encaissement**, avant
+  même `ENABLE_BILLING` : sans ce raccordement, **le premier abonnement réel sortirait « hors
+  catalogue »** — un paiement encaissé que rien dans le produit ne sait rattacher à une offre.
+  La synchronisation sortante **existe**, dans `/admin/packages` ; elle **n’a jamais tourné sur
+  cette base**. Ce n’est donc pas du code à écrire : c’est une action à exécuter, et à vérifier.
+  ⚠️ Mesure faite par une **lecture humaine sur la base**, à cette date : aucun contrôle du dépôt
+  ne peut la refaire seul (§E.12), et elle vaut **à sa date**.
 - `ENABLE_BILLING` n'est pas posé : le mur est fermé, rien n'encaisse (§D.1). La date d'ouverture n'est
   pas fixée. La marche à suivre pour le premier paiement est écrite dans
   [docs/stripe-premier-paiement.md](stripe-premier-paiement.md).
@@ -731,7 +853,7 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   suppose la précédente ». Elle est désormais la dernière.
   **Gardé** par [scripts/diag-parametrage-manuel.mjs](../scripts/diag-parametrage-manuel.mjs)
   (§B.2 ⑦ bis) pour tout ce qui est mécaniquement vérifiable ; l'ordre, lui, ne l'est pas.
-- **Quatre** des huit tâches planifiées passent par `trigger_purge_cron` et **lèvent** sans les deux
+- **Cinq** des neuf tâches planifiées passent par `trigger_purge_cron` et **lèvent** sans les deux
   secrets du Vault : `purge_deletions_trigger`, `purge_inactive_trigger`, `matching_retry_trigger`,
   `expert_relance_trigger`. Les deux premières portent une **obligation légale** (RGPD art. 17 et
   CNIL). Elles ne se plaignent qu'au journal de la base : rien à l'écran.
@@ -767,7 +889,7 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   `duree_reglages` (`invitation_jours`), et la seconde copie a disparu : `invitationExpiryIso()` est
   la source unique. Non rétroactive — la date est **écrite** à l'envoi et réécrite au renvoi — donc
   **aucune garde de comptage**, et l'écran le dit.
-- ~~Trois des huit tâches planifiées ne sont pas dans `cron_job_catalog`~~ — **CLOS.** Les huit sont
+- ~~Trois des huit tâches planifiées ne sont pas dans `cron_job_catalog`~~ — **CLOS.** Les neuf sont
   nommées et traduites en quatre langues.
 - ~~La dépense IA n'est pas répartie par acteur~~ — **CLOS.** Chaque événement nomme son acteur
   **déclencheur** (« qui fait monter la facture »), et **un seul** : contrainte en base

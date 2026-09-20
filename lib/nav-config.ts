@@ -301,6 +301,20 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
         labelKey: 'nav_taches_planifiees',
         iconKey: 'clock',
       },
+      {
+        // LE RACCORDEMENT STRIPE, rangé dans « Exploitation » et non dans
+        // « Commerce » : on n'y vend rien et on n'y règle rien. On y CONSTATE
+        // que ce qui a été encaissé correspond à ce qui a été ouvert — et
+        // qu'aucun événement de paiement ne s'est perdu en route.
+        //
+        // Ce n'est pas une copie du tableau de bord Stripe : paiements,
+        // factures et litiges y restent. Ici vit la seule chose que Stripe ne
+        // peut pas savoir, l'état de NOTRE base en regard du sien.
+        key: 'facturation',
+        href: '/admin/facturation',
+        labelKey: 'nav_facturation',
+        iconKey: 'link',
+      },
     ],
   },
 ] as const

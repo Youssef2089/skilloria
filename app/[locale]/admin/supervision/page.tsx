@@ -35,6 +35,12 @@ type Probleme = {
   compte: number | null
   depuis: string | null
   sujet: string | null
+  /**
+   * Un écran du back-office, quand le détail ne vit pas sous
+   * `/admin/supervision/[sujet]` — cas du raccordement Stripe, dont l'écran
+   * est à part entière. `sujet` et `lien` ne se cumulent jamais.
+   */
+  lien?: string | null
 }
 type Distribution = {
   runs_observes: number
@@ -245,9 +251,12 @@ export default function SupervisionPage() {
                           </span>
                         )}
                       </span>
-                      {p.sujet && (
+                      {/* UN problème ouvre UN endroit. `lien` d'abord parce
+                          qu'il est plus spécifique ; les deux ne sont jamais
+                          servis ensemble par le serveur. */}
+                      {(p.lien ?? p.sujet) && (
                         <Link
-                          href={`/admin/supervision/${p.sujet}`}
+                          href={p.lien ?? `/admin/supervision/${p.sujet}`}
                           style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-primary, #2563eb)' }}
                         >
                           {t('open')}

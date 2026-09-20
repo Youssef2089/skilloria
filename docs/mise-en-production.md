@@ -71,7 +71,7 @@ C'est ce qui crée les tables, les fonctions, **et le paramétrage** : l'écosys
 
 **C'est l'étape la plus facile à oublier, et la plus coûteuse.**
 
-La base déclenche elle-même quatre tâches en appelant l'application par Internet. Pour cela, il lui faut deux informations qui **changent d'un environnement à l'autre** et qui ne doivent donc **jamais** être écrites dans le dépôt :
+La base déclenche elle-même cinq tâches en appelant l'application par Internet. Pour cela, il lui faut deux informations qui **changent d'un environnement à l'autre** et qui ne doivent donc **jamais** être écrites dans le dépôt :
 
 | Nom du secret | Ce que c'est |
 |---|---|
@@ -80,7 +80,7 @@ La base déclenche elle-même quatre tâches en appelant l'application par Inter
 
 ### Ce qui se passe si vous les oubliez
 
-**Quatre** des huit tâches planifiées s'arrêtent net à chaque déclenchement :
+**Cinq** des neuf tâches planifiées s'arrêtent net à chaque déclenchement :
 
 | Tâche | Ce qu'elle fait | Conséquence si elle ne tourne pas |
 |---|---|---|
@@ -88,6 +88,7 @@ La base déclenche elle-même quatre tâches en appelant l'application par Inter
 | `purge_inactive_trigger` | avertit à 23 mois, efface à 24 | **Obligation légale (CNIL)** non tenue |
 | `matching_retry_trigger` | reprend les mises en relation inachevées | des annonces sans candidats, sans explication |
 | `expert_relance_trigger` | applique les modifications de profil en attente | des experts dont les changements ne sont jamais pris en compte |
+| `stripe_reconcile_trigger` | compare chaque nuit les événements de paiement produits par Stripe à ceux que le site a reçus | un événement de paiement perdu **n'est jamais signalé** — et Stripe ne conserve les siens que 30 jours, au-delà il est introuvable |
 
 Ces tâches **ne se plaignent pas à l'écran**. Elles lèvent une erreur que seul le journal technique de la base porte. **Vous pourriez ne rien remarquer pendant des mois.**
 
@@ -296,7 +297,7 @@ Poser les secrets ne prouve pas qu'ils sont **bons**. Un secret différent de ce
 
 1. Ouvrez l'application, connectez-vous en administrateur.
 2. Allez sur **/admin/taches-planifiees**.
-3. Vous devez voir **huit** tâches.
+3. Vous devez voir **neuf** tâches.
 4. Choisissez `matching_retry_trigger` — c'est la moins risquée à déclencher : si elle n'a rien à faire, elle ne fait rien.
 5. Cliquez sur **Exécuter maintenant**.
 6. Attendez une minute, puis ouvrez l'historique de cette tâche.

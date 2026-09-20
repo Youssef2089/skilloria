@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { classerProblemes, type SourcesSupervision } from '@/lib/supervision/problemes'
+import { MINUTES_AVANT_COINCE } from '@/lib/stripe-exploitation/journal'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -66,6 +67,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     tarifsRes,
     parActeurRes,
     seuilsActeurRes,
+    nuitStripeRes,
+    coincesRes,
   ] = await Promise.all([
     admin.rpc('matching_threshold_health'),
     admin.rpc('matching_coverage_health'),
@@ -88,6 +91,25 @@ export async function GET(request: NextRequest): Promise<Response> {
     // comparant à la dépense — et qu'un état « en dépassement » écrit quelque
     // part serait faux la seconde suivante.
     admin.from('ai_spend_seuils_acteur').select('acteur, seuil_mensuel_usd'),
+    // ── LE RACCORDEMENT STRIPE, LU EN LOCAL ET SEULEMENT EN LOCAL ─────────
+    //  On lit le VERDICT de la dernière nuit, jamais Stripe. Interroger Stripe
+    //  ici ferait de cet écran un second consommateur de la même lecture que
+    //  `/admin/facturation` : une seule panne rendrait les deux aveugles, l'un
+    //  disant « rien à signaler » et l'autre « je ne sais pas » (§E.36).
+    admin
+      .from('stripe_reconciliation_runs')
+      .select('etat, manquants, ran_at')
+      .order('ran_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    //  Les événements réclamés et jamais clôturés. `head: true` + `count` :
+    //  on ne veut QUE le nombre, et une page de lignes pour le compter serait
+    //  bornée — donc un compte faux au-delà de la borne.
+    admin
+      .from('stripe_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'received')
+      .lt('received_at', new Date(Date.now() - MINUTES_AVANT_COINCE * 60_000).toISOString()),
   ])
 
   /** `null` = « je n'ai pas pu regarder ». Jamais `[]`, qui dit « rien à voir ». */
@@ -97,6 +119,24 @@ export async function GET(request: NextRequest): Promise<Response> {
   const tarifs = tarifsRes.error
     ? null
     : ((tarifsRes.data ?? []) as Array<{ model: string; updated_at: string }>)
+
+  // ── LES TROIS ÉTATS DU VERDICT NOCTURNE ─────────────────────────────────
+  //  `maybeSingle()` rend `data: null` SANS erreur quand il n'y a aucune ligne.
+  //  Confondre ce `null`-là avec celui d'une erreur ferait dire « la lecture a
+  //  échoué » à une base où la vérification n'a simplement jamais tourné — et
+  //  la phrase, ayant menti une fois, ne serait plus crue (même défaut que la
+  //  répartition du moteur, §E.26).
+  const verificationStripe: SourcesSupervision['verificationStripe'] = nuitStripeRes.error
+    ? { etat: 'indisponible' }
+    : nuitStripeRes.data === null
+      ? { etat: 'jamais_tentee' }
+      : {
+          etat: 'disponible',
+          nuit: nuitStripeRes.data.etat === 'impossible' ? 'impossible' : 'compare',
+          manquants:
+            nuitStripeRes.data.manquants === null ? null : Number(nuitStripeRes.data.manquants),
+          ranAt: nuitStripeRes.data.ran_at as string,
+        }
 
   const sources: SourcesSupervision = {
     inacheves: ouNull(inachevesRes),
@@ -111,6 +151,10 @@ export async function GET(request: NextRequest): Promise<Response> {
         : tarifs.length === 0
           ? null
           : tarifs.reduce((a, l) => (l.updated_at < a ? l.updated_at : a), tarifs[0].updated_at),
+    verificationStripe,
+    // `null` sur erreur, JAMAIS `0` : « aucun événement coincé » et « je n'ai
+    // pas pu compter » sont deux faits, et le premier est rassurant.
+    evenementsStripeCoinces: coincesRes.error ? null : (coincesRes.count ?? 0),
   }
 
   return json(

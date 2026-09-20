@@ -94,6 +94,21 @@ const ADMIN_NAV_ICONS: Record<string, React.ReactNode> = {
       <path d="M12 7v5l3 2" />
     </svg>
   ),
+  // Raccordement Stripe — deux MAILLONS de chaîne. Distinct de `package`
+  // (offres), de `gauge` (quotas, tarifs, supervision) et de `clock` (tâches) :
+  // le layout pose la règle et elle tient — une entrée qui reprend l'icône
+  // d'une voisine rend la sidebar illisible. Ici l'image dit ce que l'écran
+  // fait : il regarde le LIEN entre notre base et Stripe, pas l'argent.
+  //
+  // ⚠️ `ADMIN_NAV_ICONS[item.iconKey]` n'a AUCUN repli : une clé absente rend
+  //    `undefined`, donc une entrée sans icône, sans la moindre erreur. Toute
+  //    entrée ajoutée à `ADMIN_NAV_SECTIONS` doit poser son icône ici.
+  link: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10 13a5 5 0 0 0 7.1.1l2.9-2.9a5 5 0 0 0-7.1-7.1L11.2 4.8" />
+      <path d="M14 11a5 5 0 0 0-7.1-.1L4 13.8a5 5 0 0 0 7.1 7.1l1.7-1.7" />
+    </svg>
+  ),
 }
 
 /**

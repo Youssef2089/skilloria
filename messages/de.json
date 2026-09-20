@@ -2444,7 +2444,8 @@
       "nav_seuils": "Bewertungsnoten",
       "nav_durees": "Laufzeiten des Marktplatzes",
       "nav_tarifs_ia": "Modelltarife",
-      "nav_supervision": "Überwachung"
+      "nav_supervision": "Überwachung",
+      "nav_facturation": "Abrechnung"
     },
     "quotas_ia": {
       "title": "KI-Kontingente",
@@ -2947,6 +2948,10 @@
         "notes_partielles_purge": {
           "label": "Bereinigung der Bewertungsentwürfe",
           "description": "Löscht bereits abgerechnete Teilbewertungen. Sie verhindern, dass ein bereits bewerteter Stapel bei einem Abbruch ERNEUT BEZAHLT wird; nach Abschluss des Laufs haben sie keinen Zweck mehr."
+        },
+        "stripe_reconcile": {
+          "label": "Prüfung der Stripe-Anbindung",
+          "description": "Vergleicht jede Nacht die Ereignisse, die Stripe in den letzten 24 Stunden erzeugt hat, mit denen, die unser Protokoll empfangen hat. Jede Abweichung weist auf ein verpasstes Ereignis oder einen Verarbeitungsfehler hin. Sie MELDET und verarbeitet nichts nach: Stripe bewahrt seine Ereignisse 30 Tage auf, danach ist ein fehlendes nicht mehr auffindbar."
         }
       },
       "banner_action": "Geplante Aufgaben ansehen",
@@ -3064,7 +3069,14 @@
         "tarifs_non_verifies": "Seit {count} Tagen wurde kein Tarif geändert. Alle hier angezeigten Ausgaben hängen davon ab.",
         "lecture_indisponible_inacheves": "Der Matching-Zustand konnte nicht gelesen werden. Das heißt nicht „alles in Ordnung“: Wir wissen es nicht.",
         "lecture_indisponible_depense": "Die Ausgaben des Monats konnten nicht gelesen werden. Das heißt nicht „null“: Wir wissen es nicht.",
-        "lecture_indisponible_pannes": "Das Protokoll der Zusammenfassungen konnte nicht gelesen werden. Das heißt nicht „keine Störung“: Wir wissen es nicht."
+        "lecture_indisponible_pannes": "Das Protokoll der Zusammenfassungen konnte nicht gelesen werden. Das heißt nicht „keine Störung“: Wir wissen es nicht.",
+        "verification_stripe_muette": "Die nächtliche Prüfung der Stripe-Anbindung läuft seit {count} Tagen nicht mehr. Stripe bewahrt seine Ereignisse nur 30 Tage auf: danach ist ein fehlendes nicht mehr auffindbar.",
+        "verification_stripe_impossible": "Die letzte nächtliche Prüfung der Stripe-Anbindung konnte nichts vergleichen. Das ist nicht „keine Abweichung“: wir wissen es nicht.",
+        "lecture_indisponible_facturation": "Der Zustand der Stripe-Ereignisse konnte nicht gelesen werden. Das ist nicht „kein Ereignis verloren“: wir wissen es nicht.",
+        "evenements_stripe_manques": "{count} von Stripe erzeugte Zahlungsereignis(se) sind hier nie eingegangen. Entweder ging die Zustellung verloren oder die Verarbeitung schlug fehl: in beiden Fällen wurde nicht angewendet, was sie trugen.",
+        "evenements_stripe_coinces": "{count} Zahlungsereignis(se) beansprucht und nie abgeschlossen. Sie laufen nicht von selbst erneut: die Sicherung, die eine Doppelbuchung verhindert, weist auch Stripes weitere Versuche ab.",
+        "verification_stripe_jamais": "Die nächtliche Prüfung der Stripe-Anbindung ist nie gelaufen. Solange sie nicht läuft, kann niemand sagen, ob ein Zahlungsereignis verloren ging.",
+        "verification_stripe_indisponible": "Der Verlauf der Prüfung der Stripe-Anbindung konnte nicht gelesen werden. Das ist nicht „alles in Ordnung“: wir wissen es nicht."
       },
       "spread_title": "Verteilung der Bewertungen",
       "spread_empty": "Noch kein Lauf auf der neuen Skala. Die Verteilung füllt sich mit den nächsten Matching-Läufen.",
@@ -4166,5 +4178,134 @@
     "blocked_missing": "Keine aktive Konfiguration für dieses Thema. Nichts einzustellen, solange sie nicht existiert.",
     "blocked_ambiguous": "Mehrere aktive Konfigurationen für dieses Thema: Wir wählen keine zufällig aus.",
     "inert_note": "Zwei Werte existieren in der Datenbank, ohne eine Entscheidung zu steuern. Sie sind dokumentiert, nicht hier angezeigt: Ein Feld, das nichts einstellt, wird irgendwann ausgefüllt."
+  },
+  "admin_facturation": {
+    "title": "Abrechnung — was Stripe nicht wissen kann",
+    "intro": "Dieser Bildschirm bildet Stripe nicht nach. Zahlungen, Rechnungen, Erstattungen und Streitfälle leben im Stripe-Dashboard, und ein Bildschirm, der sie kopierte, würde davon abdriften. Gezeigt wird hier das Einzige, was Stripe nicht sehen kann: der Zustand UNSERER Datenbank gegenüber seiner. Von dieser Seite aus wird nichts korrigiert.",
+    "loading": "Wird gelesen…",
+    "err_load": "Dieser Bildschirm konnte nicht geladen werden.",
+    "err_load_hint": "Das ist nicht „keine Abweichung“: es konnte nichts verglichen werden. Laden Sie die Seite neu; hält die Ablehnung an, ist entweder die Datenbank oder der Stripe-Zugriff gestört.",
+    "open_stripe": "Stripe-Dashboard öffnen",
+    "open_stripe_hint": "Zahlungen, Rechnungen, Erstattungen und Streitfälle finden sich dort — hier werden sie bewusst nirgends nachgebildet.",
+    "gravity_blocking": "Blockierend",
+    "gravity_attention": "Zu prüfen",
+    "sante": {
+      "title": "Die Anbindung",
+      "intro": "Der häufigste stille Verlust: Das Signaturgeheimnis wird auf einer Seite geändert und bei Stripe nicht nachgezogen. Jedes Ereignis kommt an, die Signatur schlägt fehl, wir antworten mit 400, und nichts wird gespeichert. Diese vier Zeilen gibt es, damit dieser Fall lesbar ist statt erschlossen werden zu müssen.",
+      "secret_label": "Signaturgeheimnis",
+      "secret_present": "In dieser Umgebung vorhanden",
+      "secret_absent": "FEHLT — kein Ereignis kann geprüft oder gespeichert werden",
+      "mode_label": "Modus",
+      "mode_production": "Produktion (echte Ereignisse)",
+      "mode_test": "Außerhalb der Produktion (Testereignisse)",
+      "endpoint_label": "Empfangspunkt",
+      "endpoint_ok": "Bei Stripe aktiv",
+      "endpoint_disabled": "Bei Stripe deaktiviert — es wird nichts mehr ankommen",
+      "endpoint_none": "Kein Empfangspunkt zeigt auf diese Website",
+      "endpoint_unknown": "Nicht gelesen — Stripe konnte nicht abgefragt werden",
+      "last_event_label": "Zuletzt empfangenes Ereignis",
+      "last_event_never": "Nie. Das Protokoll hat bis heute nichts empfangen.",
+      "last_event_days": "Vor {count} Tag(en) — am {date}",
+      "last_event_today": "Heute, um {date}",
+      "last_event_unknown": "Nicht gelesen — das Protokoll konnte nicht abgefragt werden",
+      "alerte": {
+        "secret_absent": "In dieser Umgebung ist kein Signaturgeheimnis gesetzt. Die Route weist jedes Ereignis ab, bevor sie es speichert: das Protokoll bleibt leer, was auch geschieht. Setzen Sie STRIPE_WEBHOOK_SECRET auf den Wert des Empfangspunkts DIESER Umgebung.",
+        "endpoint_desactive": "Stripe hat den Empfangspunkt deaktiviert. Es kommt kein Ereignis mehr an, solange er nicht im Stripe-Dashboard wieder aktiviert wird.",
+        "aucun_endpoint": "Keiner der {count} bei Stripe deklarierten Empfangspunkte zeigt auf diese Website. Die Ereignisse gehen anderswohin.",
+        "actif_mais_muet": "Der Empfangspunkt ist bei Stripe AKTIV, und unser Protokoll hat nie etwas empfangen. Das ist die Signatur eines nicht übereinstimmenden Geheimnisses: prüfen Sie, ob der hier gesetzte Wert zu diesem Empfangspunkt gehört.",
+        "silence_prolonge": "Seit {count} Tagen kein Ereignis, während bei Stripe Abonnements aktiv sind. Stripe gibt seine Wiederholungen nach drei Tagen auf: was nicht angekommen ist, kann nicht mehr ankommen.",
+        "mode_croise": "Das zuletzt empfangene Ereignis gehört nicht zum Modus dieser Umgebung. Die beiden Empfangspunkte sind vertauscht: die echten Ereignisse gehen anderswohin.",
+        "types_manquants": "Der Empfangspunkt hat {count} der Typen, die diese Website verarbeitet, nicht abonniert. Diese Ereignisse werden nie gesendet.",
+        "endpoints_illisibles": "Die Empfangspunkte konnten bei Stripe nicht gelesen werden. Das ist nicht „kein Empfangspunkt“: wir wissen es nicht."
+      }
+    },
+    "ecarts": {
+      "title": "Die Abweichungen",
+      "intro": "Organisationen, deren Rechte in der Datenbank nicht zu ihrem Stripe-Abonnement passen. Die meisten Abrechnungsfehler werden als Webhook-Fehler beschrieben, obwohl der Webhook funktioniert hat und der Zugang trotzdem falsch ist. Dieser Bildschirm STELLT FEST; er korrigiert nichts.",
+      "none": "Keine Abweichung.",
+      "none_hint": "{orgs} Organisation(en) mit {subs} Stripe-Abonnement(s) verglichen. Jede Organisation hat in der Datenbank genau die Rechte, die ihr Abonnement beschreibt.",
+      "impossible": "Der Vergleich konnte nicht stattfinden.",
+      "impossible_hint": "Das ist NICHT „keine Abweichung“. Solange dieser Zustand anhält, weiß niemand, ob die Rechte in der Datenbank zu den Abonnements passen.",
+      "impossible_normal": "Es gibt nichts abzugleichen.",
+      "impossible_normal_hint": "Die Bezahlschranke ist geschlossen: es wird nichts eingezogen, also existiert kein Abonnement. Das ist heute der erwartete Zustand, keine Störung.",
+      "compared": "{orgs} Organisation(en) mit {subs} Stripe-Abonnement(s) verglichen.",
+      "manual": "{count} Organisation(en) haben ein von Hand vergebenes Angebot und wurden nie von Stripe berührt: sie bleiben bewusst außerhalb des Vergleichs.",
+      "truncated": "Das Lesen der Abonnements hat seine Grenze erreicht: der Abgleich erfasst nur einen Teil, und dieser Bildschirm kann sich nicht als vollständig bezeichnen.",
+      "col_org": "Organisation",
+      "col_nature": "Abweichung",
+      "col_stripe": "Bei Stripe",
+      "col_local": "Hier",
+      "col_until": "Gültigkeit",
+      "no_org": "Keine Organisation zugeordnet",
+      "no_package": "Kein Angebot",
+      "nature": {
+        "paie_sans_acces": "Zahlt ohne Zugang",
+        "acces_sans_paiement": "Hat Zugang, ohne zu zahlen",
+        "offre_differente": "Auf beiden Seiten ein anderes Angebot",
+        "validite_en_retard": "Gültigkeit hinter dem bezahlten Zeitraum",
+        "client_sans_organisation": "Stripe-Kunde ohne zugeordnete Organisation",
+        "prix_hors_catalogue": "Preis fehlt im Katalog",
+        "statut_inconnu": "Stripe-Status dieser Website unbekannt",
+        "plusieurs_abonnements": "Mehrere Abonnements für einen Kunden"
+      },
+      "nature_action": {
+        "paie_sans_acces": "Stripe zieht ein, und die Datenbank öffnet nichts. Suchen Sie das zugehörige Abonnement-Ereignis im Protokoll unten: fehlt es, benennt die nächtliche Prüfung es; ist es fehlgeschlagen, steht sein Grund dort.",
+        "acces_sans_paiement": "Die Datenbank öffnet Rechte, für die Stripe nichts mehr einzieht. Prüfen Sie, ob das Kündigungsereignis angekommen ist; sonst steckt es womöglich im Protokoll fest.",
+        "offre_differente": "Beide Seiten sind aktiv, aber nicht auf demselben Angebot. Für das Gewährte gilt der lokale Katalog; für das Berechnete gilt Stripe. Vergleichen Sie die dem Angebot zugeordnete Preiskennung.",
+        "validite_en_retard": "Die Organisation hat einen Zeitraum bezahlt, den wir ihr nicht gewähren. Das ist geschuldeter, nicht geöffneter Zugang.",
+        "client_sans_organisation": "Es kommt Geld für einen Kunden herein, den keine Organisation beansprucht. Das ist die einzige Abweichung, die die Datenbank allein nicht sehen kann.",
+        "prix_hors_catalogue": "Diesen Preis gibt es im lokalen Katalog nicht: kein künftiges Ereignis wird ihn in ein Angebot übersetzen können. Ordnen Sie die Preiskennung einem Angebot zu.",
+        "statut_inconnu": "Stripe hat einen Status geliefert, den diese Website nicht kennt. Auf dieser Grundlage wurde kein Recht gewährt — wir raten nicht, was ein unbekannter Status erlaubt.",
+        "plusieurs_abonnements": "Der Kunde hat mehrere Abonnements. Die angewandten Rechte stammen von dem, das am meisten gewährt; die übrigen sind für diese Website unsichtbar."
+      }
+    },
+    "journal": {
+      "title": "Das Protokoll der empfangenen Ereignisse",
+      "intro": "Was Stripe uns gesendet hat und was diese Website damit gemacht hat. Eine fehlende Zeile beweist nicht, dass kein Ereignis angekommen ist: sie beweist, dass wir keine Spur davon haben. Die nächtliche Prüfung, und nur sie, unterscheidet beides.",
+      "empty": "Kein Ereignis gespeichert.",
+      "empty_hint": "Das Protokoll ist leer. Zwei gegensätzliche Ursachen erzeugen genau diese Seite: es kam nichts an, oder es kam alles an und die Signatur schlug fehl, bevor irgendetwas gespeichert wurde. Die vier Zeilen zur Anbindung oben sagen, welche.",
+      "unavailable": "Das Protokoll konnte nicht gelesen werden.",
+      "unavailable_hint": "Das ist nicht „kein Ereignis“: wir wissen nicht, was darin steht. Laden Sie die Seite neu.",
+      "resume": "{total} Ereignis(se) — {traites} verarbeitet, {ignores} bewusst übergangen, {echoues} fehlgeschlagen.",
+      "stuck_title": "{count} Ereignis(se) beansprucht und nie abgeschlossen",
+      "stuck_text": "Ein beanspruchtes Ereignis, dessen Verarbeitung nie abgeschlossen wurde, bleibt hängen: die Idempotenz-Sperre, die eine Doppelbuchung verhindert, weist auch jeden Stripe-Wiederholungsversuch ab. Stripe gibt nach drei Tagen auf. Diese Ereignisse laufen nicht von selbst erneut und verlangen eine Entscheidung.",
+      "filter_label": "Filtern",
+      "filter_all": "Alle Ergebnisse",
+      "truncated": "Nur die {count} neuesten.",
+      "col_event": "Ereignis",
+      "col_type": "Typ",
+      "col_status": "Ergebnis",
+      "col_received": "Angekommen am",
+      "col_org": "Organisation",
+      "col_error": "Grund",
+      "statut": {
+        "received": "Beansprucht",
+        "processed": "Verarbeitet",
+        "ignored": "Bewusst übergangen",
+        "failed": "Fehlgeschlagen"
+      },
+      "statut_stuck": "Hängengeblieben"
+    },
+    "nuit": {
+      "title": "Die letzte nächtliche Prüfung",
+      "never": "Sie ist nie gelaufen.",
+      "never_hint": "Solange sie nicht läuft, kann niemand sagen, ob ein Ereignis verpasst wurde. Stripe bewahrt seine Ereignisse 30 Tage auf: danach ist ein fehlendes nicht mehr auffindbar.",
+      "unavailable": "Ihr Verlauf konnte nicht gelesen werden.",
+      "impossible": "In der Nacht zum {date}: der Vergleich konnte nicht stattfinden.",
+      "compare_ok": "In der Nacht zum {date}: {stripe} Ereignis(se) bei Stripe, alle im Protokoll vorhanden.",
+      "compare_gap": "In der Nacht zum {date}: {count} Ereignis(se) bei Stripe und in unserem Protokoll nicht vorhanden.",
+      "window": "Untersuchtes Fenster: vom {debut} bis zum {fin}.",
+      "truncated": "Das Lesen hat seine Grenze erreicht: diese Feststellung deckt nicht das ganze Fenster ab."
+    },
+    "motif": {
+      "billing_disabled": "Die Bezahlschranke ist in dieser Umgebung geschlossen: es wird nichts eingezogen, also gibt es nichts abzugleichen.",
+      "billing_key_missing": "In dieser Umgebung ist kein Stripe-Schlüssel gesetzt. Bei Stripe kann nichts gelesen werden.",
+      "billing_key_malformed": "Der hier gesetzte Stripe-Schlüssel wird weder als Test- noch als Produktionsschlüssel erkannt.",
+      "billing_key_env_mismatch": "Der Stripe-Schlüssel passt nicht zu dieser Umgebung. Die Ablehnung ist gewollt: ein Produktionsschlüssel außerhalb der Produktion würde echte Karten belasten.",
+      "billing_webhook_secret_missing": "Es ist kein Signaturgeheimnis gesetzt: kein Ereignis kann geprüft oder gespeichert werden.",
+      "stripe_injoignable": "Stripe hat nicht geantwortet oder mit einem Fehler geantwortet. Versuchen Sie es erneut; hält es an, prüfen Sie den Stripe-Dienststatus.",
+      "stripe_permission": "Stripe hat den Lesezugriff verweigert. Der verwendete Schlüssel darf diese Ressource nicht lesen.",
+      "lecture_locale": "Ein Lesezugriff auf unsere eigene Datenbank ist fehlgeschlagen. Stripe ist hier nicht die Ursache."
+    }
   }
 }

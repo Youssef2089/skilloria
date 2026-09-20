@@ -450,6 +450,55 @@ Toutes les références passent par le **suffixe** (§G.3), donc rien ne casse. 
 `diag-migration-donnees` les avait dénoncées — c'est sa première prise.
 
 
+### M1 quater — La fusion du module Stripe d’exploitation (20/09/2026), et la collision QUI N’A PAS FAIT DE CONFLIT
+
+Le 20/09/2026, `feat/s1-ux-profil` a été fusionné une seconde fois : il portait le **module
+Stripe d’exploitation** — `/admin/facturation`, `/admin/facturation/ecarts`, **une seule** route
+API pour les trois surfaces, un cron de vérification nocturne, `lib/stripe-exploitation/*`, et une
+migration `2xxxxx`. **Fichiers neufs uniquement** : aucune route de `app/api/billing/` ni de
+`app/api/stripe/` n’a été touchée, et la fusion le confirme — **aucun conflit de code**.
+
+**DEUX COLLISIONS DE NUMÉROS, ET LA SECONDE EST LA PLUS INSTRUCTIVE.**
+
+| Où | Ce qui est entré en collision | Résolution |
+|---|---|---|
+| `CLAUDE.md` | les deux côtés ont écrit un **§E.39** | git a levé un **CONFLIT** : celui du tronc garde son numéro (il est **cité** par §E.38 ③), celui de S1 devient **§E.44** |
+| `docs/architecture.md` | les deux côtés ont écrit un **§C.10** | **git n'a rien signalé** — insertions à des endroits différents, fusion automatique réussie, et **deux sections du même numéro** dans le fichier |
+
+> ⚠️ **UNE COLLISION QUI NE PRODUIT PAS DE CONFLIT EST PIRE QU'UNE QUI EN PRODUIT.** Un conflit
+> arrête la fusion et exige une décision. Celle-ci a produit un fichier **valide, cohérent à la
+> lecture, et faux à la citation** : deux §C.10, dont un cité deux fois — `architecture.md:65` et
+> `produit.md:628`. Rien dans git, rien dans `tsc`, rien dans `next build`. Elle a été trouvée en
+> **recomptant les sections des deux côtés après la fusion**, pas en lisant le rapport de merge.
+> *Vérifier une fusion, ce n’est pas relire ses conflits : c’est recompter ce que les deux côtés
+> ont ajouté.*
+
+**Même convention que M1 bis et M1 ter : CELUI QUI EST DÉJÀ CITÉ GARDE SON NUMÉRO.** Le §C.10 de
+S1 (module Stripe) est cité deux fois → il garde `C.10`. Celui du tronc (les trois écrivains des
+listes de profil) n’est cité nulle part → il devient **`C.11`**. Et les deux sont **replacées** :
+la fusion automatique laissait l'ordre `C.1-6, C.10, C.8, C.10, C.9` ; il est rendu croissant.
+**Vérifié par script — 897 lignes avant, 897 après**, et aucune ligne altérée hors des deux
+en-têtes renumérotées.
+
+**Les quatre `messages/*.json` se sont fusionnés seuls, et la fusion est l’UNION EXACTE** :
+**3341** à la base, **+1** côté tronc, **+119** côté S1, **3461** après fusion, parité stricte sur
+les quatre langues — **zéro clé manquante, zéro clé en trop**. Et **aucune suppression délibérée
+d’aucun côté** : vérifié en confrontant chaque côté à la base, pas supposé (c’est le piège que
+M1 bis avait dû trancher à la main).
+
+**CE QUE S1 RENVOIE AU TRONC, ET QUI N’EST PAS TRAITÉ DANS LA FUSION** — quatre points, aucun
+bloquant, ordonnés avec les quatorze défauts nommés du gel 4.1d :
+① `stripe_event_claim` — un processus mort **entre la réclamation et la clôture** laisse la ligne
+   en `received`, et la garde `where status = 'failed'` refuse alors **tous** les réessais de
+   Stripe, définitivement. S1 le **signale à l’écran** et n’y touche pas : c’est un arbitrage
+   d’**argent**, pas de code. Proposition rendue à l’architecte, décision non prise seul.
+② `lib/billing/events.ts` doit **exporter** `STATUTS_OUVRANTS` et la liste des six types du
+   `switch` — S1 les a recopiés (jumeaux assumés, §E.20) et son contrôle échoue s’ils divergent.
+③ Deux commentaires **faux** dans `app/api/stripe/webhook/route.ts` — « la seule route sans
+   `requireAuth` » (elles sont **18 sur 128**, §M1 n°3) et « zéro cron » (**4 routes, 9 tâches**) —
+   le second **répété** dans `20260901000000_stripe_fondations.sql`.
+④ L’en-tête de `lib/billing/stripe.ts` : `getStripe()` a maintenant **quatre** appelants.
+
 ## E. Les pièges vérifiés
 
 **E.1 — Les clients Supabase ne sont pas typés. Une colonne supprimée casse au runtime, en silence.**
@@ -719,8 +768,11 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **69** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
-17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois dernières,
+Sur les **70** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
+20/09/2026, à l'exécution — la 70ᵉ, `verification_nocturne_stripe`, apporte l'insertion et la ligne
+de plus : son entrée au catalogue des tâches planifiées, six valeurs. Les chiffres précédents,
+**69 / 51 / 39 / 1962**, dataient du 17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois
+dernières d'alors,
 `logo_organisation_bucket`, `format_numero_identification` et `pays_du_profil_sans_defaut`,
 **n'insèrent rien** : elles créent un bucket, ajoutent des colonnes, retirent deux `DEFAULT 'FR'` et
 mettent à jour la seule ligne `FR`, d'où trois compteurs inchangés — et `echelle_des_notes`
@@ -1402,6 +1454,40 @@ opposées. Les trois lectures journalisent désormais leur erreur, nommément.
 > puis confirmer) : c'est un lot à lui seul, et il n'est pas fait. Ce qui est fait : la panne ne se
 > déguise plus en « rien à envoyer ».
 
+**LE TROISIÈME CAS DE LA FORME B, ET IL EST DANS LE CHEMIN DE L'ARGENT — TROUVÉ LE 20/09/2026.**
+
+`stripe_event_claim()` ([supabase/migrations/20260901000000_stripe_fondations.sql](supabase/migrations/20260901000000_stripe_fondations.sql), §5.a)
+est le jalon d'idempotence du webhook Stripe, et **il est juste** : un unique `insert … on conflict`
+dont la clé primaire est l'identifiant `evt_…`, et dont la garde `where se.status = 'failed'` est
+précisément ce qui empêche un **double crédit** sur un événement rejoué. On n'y touche pas.
+
+**Mais si le processus meurt APRÈS la réclamation et AVANT la clôture** — plafond de durée atteint,
+fonction tuée — la ligne reste en `'received'`, et **cette même garde refuse TOUS les réessais de
+Stripe**. Le jalon produit alors l'inverse exact de ce qu'on attend de lui : il déclare fait un
+travail qui n'a pas eu lieu, et « réessayer » ne répare plus rien. **Stripe abandonne au bout de
+trois jours** ; passé ce délai, l'effet de cet événement — un droit ouvert, une validité prolongée,
+une pièce comptable — ne sera **jamais** appliqué.
+
+La migration **nommait déjà le risque** dans son commentaire (« ⚠ ÉVÉNEMENT BLOQUÉ EN `received` »),
+et le tranchait correctement : *« mieux vaut un événement non appliqué et VISIBLE qu'un double
+crédit »*. **Visible par qui ?** Mesuré le 20/09/2026 par balayage de `app/`, `lib/`, `components/`
+et `scripts/` : les seuls accès applicatifs à `stripe_events` étaient les deux RPC du webhook.
+**Aucun écran, aucune route ne lisait cette table.** Le commentaire promettait une visibilité que
+rien ne fournissait — famille §E.7, appliquée à une garantie plutôt qu'à une règle.
+
+**Ce qui est fait** : `/admin/facturation` en fait une ligne **rouge** et non une ligne parmi
+d'autres, le compte remonte dans `/admin/supervision` comme **bloquant**, et le délai au-delà duquel
+un `'received'` devient un incident **se déduit** du `maxDuration` du webhook plutôt que de se
+choisir ([lib/stripe-exploitation/journal.ts](lib/stripe-exploitation/journal.ts)).
+**Ce qui n'est PAS fait, et délibérément** : rouvrir le rejeu en repassant la ligne en `'failed'`.
+C'est un arbitrage d'**argent** dans une RPC du socle — on le **signale**, on ne le tranche pas.
+
+> **Mesuré le 20/09/2026 sur la base de recette `wnayuerhakekxccgimeg` : `stripe_events` contient
+> ZÉRO ligne.** Donc zéro événement coincé — mais **pour la bonne raison, et il faut l'écrire** :
+> aucun événement n'est jamais arrivé (`ENABLE_BILLING` n'est pas posé, rien n'encaisse). « Zéro
+> coincé » et « zéro reçu » ne sont pas le même fait, et publier le premier sans le second serait
+> exactement §E.24 — un chiffre juste sous une étiquette qui rassure.
+
 **LA QUESTION QUI GÉNÉRALISE LES DEUX FORMES, ET ELLE TIENT EN UNE LIGNE :**
 *après cette valeur neutre, reste-t-il un chemin de retour ?* Si une écriture la grave (forme A) ou
 si un jalon déclare le travail fait (forme B), **il n'y en a pas** — et la garde doit être posée
@@ -2043,6 +2129,65 @@ ni remise en relation : **les deux consomment `status`** (§E.41 ①).
 > chez eux la rétrogradation est **inconditionnelle** (elle exécute une demande) ; ici elle
 > vivait **sous** le test du statut. La distinction a été trouvée en EXÉCUTANT, pas en relisant
 > — et elle a rendu le contrôle plus juste que ce que j’en attendais.
+
+> **TROISIÈME COLLISION DE NUMÉROS, RÉSOLUE COMME LES DEUX PREMIÈRES — PAR RENUMÉROTATION.**
+> Le tronc (lot 4.1d) et `feat/s1-ux-profil` (module Stripe d'exploitation) ont écrit un **§E.39**
+> chacun, le même jour, sans se voir. Celui du tronc garde son numéro : il est **cité** par
+> §E.38 ③ (« LA QUATRIÈME, ELLE, SE BALAIE — et c’est §E.39 »). Celui de S1 devient **§E.44** —
+> `git grep` sur toute sa branche confirme qu'il n'était cité nulle part ailleurs, ni en prose,
+> ni dans un commentaire de code. **Aucune ligne n’a été arbitrée : les six pièges sont là, en
+> entier.**
+
+---
+
+**E.44 — UN CONSTAT PÉRISSABLE NE SE PERSISTE PAS : IL SE REJOUE. UN ÉVÉNEMENT DATÉ, SI.**
+
+Établi au lot « module Stripe d'exploitation », et la question s'est posée trois fois dans le même
+lot — c'est ce qui en fait une règle et non un cas.
+
+**LE PIÈGE.** Une mesure coûteuse invite à être mise en cache. On crée une table, on y écrit le
+résultat, l'écran le relit. **Et le résultat continue de vieillir pendant qu'il est affiché.**
+La table ne ment pas le jour où on l'écrit : elle ment le lendemain, avec l'autorité de quelque
+chose qui a été enregistré — et plus personne ne sait de quand date ce qu'il lit.
+
+**LE CAS QUI TRANCHE, ET IL EST NET.** Un « écart de facturation » — une organisation dont les
+droits en base ne correspondent pas à son abonnement Stripe — **cesse d'être vrai à la seconde où
+le webhook suivant arrive**. Le persister, c'est garantir qu'un matin l'écran affichera un écart
+déjà refermé, et qu'on ira chercher un défaut qui n'existe plus. **Il se recalcule à l'affichage,
+et il ne se stocke nulle part.**
+
+**LA CONTRE-ÉPREUVE, DANS LE MÊME LOT.** Le résultat de la vérification **nocturne**, lui, EST
+persisté — et ce n'est pas une contradiction, c'est le critère :
+
+> *Cette affirmation reste-t-elle vraie demain sans qu'on la refasse ?*
+> **Un CONSTAT** (« il y a N écarts ») vieillit dès que la réalité bouge → il se **rejoue**.
+> **Un ÉVÉNEMENT DATÉ** (« cette nuit-là, on a comparé et vu ceci ») ne vieillit jamais : il n'est
+> vrai qu'une fois, il ne se recalcule pas, et sans lui personne ne peut dire le matin si la
+> vérification a seulement tourné → il s'**écrit**.
+
+**ET LE COROLLAIRE EST LE PLUS UTILE.** Ce qu'on écrit doit porter **l'état de la mesure avant son
+résultat**. `stripe_reconciliation_runs` déclare `etat` (`compare` / `impossible`) **avant** ses
+compteurs, et une **contrainte de base** refuse un compteur posé à côté d'un état `impossible`
+(§E.31). Sans elle, un `manquants = 0` écrit sur une nuit où l'on n'a rien pu comparer se lirait
+« zéro écart » pour toujours — **la forme la plus durable du mensonge de §E.36**, parce qu'elle est
+enregistrée.
+
+**Le troisième cas, refusé lui aussi** : ne pas recopier les factures, montants et litiges de
+Stripe. Même raisonnement, appliqué à une source externe — une copie locale diverge de sa source,
+pas le jour où on l'écrit, mais le jour où une synchronisation saute. Ce qu'un tiers détient
+s'atteint par **un lien**, pas par une table.
+
+Gardé par [scripts/diag-ecarts-stripe.mjs](scripts/diag-ecarts-stripe.mjs) — 87 assertions,
+**18 mutations jouées, 18 détectées**. Il n'appelle ni Stripe ni la base : les trois modules de
+règle n'importent que des **types**, effacés par le dépouillement de types de Node, donc il les
+**exécute** en Node nu depuis n'importe quel worktree (§E.3).
+
+> ⚠️ **ET LA DIX-HUITIÈME MUTATION A SURVÉCU AU PREMIER PASSAGE — dans mon CONTRÔLE, pas dans le
+> code.** Le motif `public\.cron_job_catalog` matchait encore `public.cron_job_catalog_DESACTIVE` :
+> la tâche pouvait sortir du catalogue sans que rien ne rougisse. `\b` n'aurait rien changé — `_`
+> **est** un caractère de mot, exactement le piège de §G.3 sur les horodatages. Et le même motif
+> traversait le `;` pour lire l'instruction voisine. **Un contrôle écrit, relu et vert gardait une
+> porte ouverte ; seule la mutation l'a montré.**
 
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
