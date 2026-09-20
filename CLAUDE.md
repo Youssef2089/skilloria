@@ -2153,10 +2153,29 @@ Un gel d'exemptions **exige une raison par entrée** — `diag-lire-comparer-ecr
 lire. »* Un gel d'état mesuré n'en a pas besoin, et lui en demander une est du bruit.
 
 **Corollaire, et c'est le vrai piège** : un **recensement** qui ne fige rien et **n'échoue jamais**
-n'est pas un cliquet — c'est une carte. `diag-erreurs-avalees` en est une : **142** emplacements sur
-**68** fichiers (mesuré le 18/09/2026 ; ce document disait 143), aucun jugé, aucun gelé, et
-`app/` + `lib/` seulement. Une carte ne ferme aucune porte, et **personne ne sait depuis quand elle
-n'a pas été relue**.
+n'est pas un cliquet — c'est une carte. `diag-erreurs-avalees` **en était une** : 142 emplacements
+sur 68 fichiers, aucun jugé, aucun gelé, et `app/` + `lib/` seulement. Une carte ne ferme aucune
+porte, et **personne ne sait depuis quand elle n'a pas été relue**.
+
+**ELLE EST DEVENUE UN CLIQUET, ET LE PARCOURS COMPLET VAUT D'ÊTRE LU.** Les lots 4.1b, 4.1c et 4.1d
+ont ouvert ses emplacements un par un. Au 20/09/2026 : **91 mesurés, 91 jugés, 0 à juger**, sur
+`app/` + `lib/` **et** `components/`.
+
+> **ET « JUGÉ » NE VEUT PAS DIRE « LÉGITIME ». IL VEUT DIRE *LU*.**
+> C'est la distinction que le lot 4.1d a dû introduire, parce qu'elle manquait et que le mot avait
+> commencé à dériver : tant que le gel ne contenait que des emplacements sains, « jugé » s'était mis
+> à vouloir dire **acquitté**. Trente-sept emplacements ont été ouverts ; **quinze mentent**, et ils
+> sont dans le gel — avec leur mécanisme, leur conséquence et leur **rang**.
+>
+> **Les laisser en `A_JUGER`** aurait dit « pas encore regardés », ce qui est **faux**.
+> **Les corriger sans arbitrage** aurait élargi le lot tout seul — la faute inverse de celle qu'on
+> ferme. Chaque raison commence donc par **LÉGITIME** ou par **DÉFAUT NOMMÉ, NON CORRIGÉ (rang N)**,
+> et le contrôle le **compte à voix haute** en fin d'exécution : un gel dont on ne peut pas dire,
+> sans l'ouvrir, combien de défauts il abrite redevient une carte.
+>
+> **Le rang 1 est `app/api/profile/route.ts:671`** : `postUpd` nul ⇒ `status` nul ⇒ la branche
+> **DÉMOTION** s'exécute — les recommandations sont retirées et `users.is_verified` repasse à faux.
+> **Une lecture en panne ÉCRIT EN BASE et dégrade un expert vérifié** (§E.27 forme A).
 
 ---
 
