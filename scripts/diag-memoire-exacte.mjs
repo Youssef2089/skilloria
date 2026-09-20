@@ -331,5 +331,93 @@ section('E. Le detecteur lui-meme est eprouve')
     'le motif des tables de sauvegarde du dump reconnait bien leur forme')
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+section('F. Aucun numero de section n est porte deux fois')
+// ═════════════════════════════════════════════════════════════════════════════
+/*
+ * NE DE LA FUSION DU 20/09/2026, ET DE CE QUE GIT N'A PAS DIT.
+ *
+ * Le tronc et `feat/s1-ux-profil` ont ecrit un §C.10 chacun, dans
+ * `docs/architecture.md`, a des endroits DIFFERENTS du fichier. La fusion
+ * automatique a donc REUSSI — aucun conflit, aucun marqueur — et produit un
+ * fichier valide, coherent a la lecture, et FAUX A LA CITATION : deux
+ * sections du meme numero, dont l'une citee deux fois ailleurs.
+ *
+ * UNE COLLISION QUI NE PRODUIT PAS DE CONFLIT EST PIRE QU'UNE QUI EN PRODUIT :
+ * un conflit arrete la fusion et exige une decision ; celle-ci ne laisse
+ * aucune trace. Elle a ete trouvee en RECOMPTANT les sections des deux cotes,
+ * pas en lisant le rapport de merge (§E.45).
+ *
+ * ⚠️ CE QU IL NE VERIFIE PAS : que les numeros se SUIVENT. Un §C.8 suivi d un
+ *    §C.10 sans §C.7 ne rougit pas — un numero peut avoir ete retire
+ *    volontairement, et l'exiger ferait crier le controle a chaque
+ *    suppression legitime.
+ */
+
+// `bis` / `ter` / `quater` sont des sections A PART ENTIERE, sur les DEUX
+// formes : `M1 bis` comme `G.5 bis`. Une premiere version ne les portait que
+// sur la forme sans point, et denoncait trois sections saines — `G.5 bis`,
+// `P1.2 bis`, `P3.0 bis/ter`. Un controle qui crie a tort est desactive le
+// jour meme (§E.16).
+const SUFFIXE = String.raw`(?: (?:bis|ter|quater))?`
+const EN_TETE_NUMEROTEE = new RegExp(
+  String.raw`^(?:#{2,4} |\*\*)([A-Z]\d*\.\d+` + SUFFIXE + String.raw`|[A-Z]\d+` + SUFFIXE + String.raw`)(?![\w.])`,
+)
+
+/** Rend une Map identifiant → lignes ou il apparait comme EN-TETE. */
+function numerosDeSection(texte) {
+  const vus = new Map()
+  texte.split('\n').forEach((ligne, i) => {
+    const m = EN_TETE_NUMEROTEE.exec(ligne)
+    if (!m) return
+    if (!vus.has(m[1])) vus.set(m[1], [])
+    vus.get(m[1]).push(i + 1)
+  })
+  return vus
+}
+const doublons = (texte) =>
+  [...numerosDeSection(texte)].filter(([, lignes]) => lignes.length > 1)
+
+// ── LE MOTIF EST EPROUVE SUR SON CAS CONNU, AVANT TOUT BALAYAGE ──────────
+//    Le temoin est CE QUI A DISPARU (§E.33) : l etat de `docs/architecture.md`
+//    JUSTE APRES la fusion automatique, avant la renumerotation.
+const TEMOIN_COLLISION = [
+  '### C.9 — Ce que `/admin/supervision` doit porter, mesure par mesure',
+  '',
+  "### C.10 — Le module Stripe d'exploitation : ce qu'il garantit",
+  '',
+  '### C.10 — Les TROIS ecrivains des listes de profil',
+].join('\n')
+
+const prises = doublons(TEMOIN_COLLISION)
+ok(
+  prises.length === 1 && prises[0][0] === 'C.10' && prises[0][1].length === 2,
+  'le motif VOIT la collision telle qu elle etait (deux §C.10)',
+  `attendu un doublon C.10, obtenu ${JSON.stringify(prises)}`,
+)
+
+const TEMOIN_SAIN = [
+  '**G.5 — Le diagnostic s eprouve par MUTATION.**',
+  '**G.5 bis — La regle de maintenance est GARDEE PAR DEUX CONTROLES.**',
+  '### P3.0 — L ECHELLE UNIQUE',
+  '### P3.0 bis — LE VOCABULAIRE DES REGLAGES',
+  '### P3.0 ter — CE QUE PAIE CHAQUE BUDGET',
+].join('\n')
+ok(
+  doublons(TEMOIN_SAIN).length === 0,
+  'le motif se TAIT sur `bis` / `ter` — ce sont des sections a part entiere',
+  `denonce a tort : ${JSON.stringify(doublons(TEMOIN_SAIN))}`,
+)
+
+// ── LE BALAYAGE ──────────────────────────────────────────────────────────
+for (const doc of DOCS) {
+  const trouves = doublons(read(doc))
+  ok(
+    trouves.length === 0,
+    `${doc} — aucun numero de section porte deux fois`,
+    trouves.map(([id, lignes]) => `§${id} aux lignes ${lignes.join(', ')}`).join(' · '),
+  )
+}
+
 console.log(echecs === 0 ? '\n✔ TOUT VERT' : `\n✘ ${echecs} CONTROLE(S) EN ECHEC`)
 process.exit(echecs === 0 ? 0 : 1)

@@ -1736,6 +1736,28 @@ en dix secondes ; l'intuition donne la réponse fausse avec la même assurance.
 > qu'on a cassé entre-temps est déjà dans la référence. C'est l'erreur confortable, donc celle qu'on
 > ne relit pas. Le doute doit porter sur la mesure qui **arrange**, pas sur celle qui accuse.
 
+**LE BANC S’ÉPROUVE SUR CE DÉPÔT, PAS SUR UN DÉPÔT IDÉAL — ET LA CAUSE EST MÉCANIQUE.**
+Troisième occurrence de la même famille, et les trois sont des **propriétés de l’environnement**,
+jamais des fautes de raisonnement :
+
+| # | Ce qui a faussé le banc | Ce que ça produisait |
+|---|---|---|
+| ① | `execSync` passe par **cmd.exe**, où `^` est le caractère d’échappement : `<sha>^` lisait le commit **corrigé**, pas son parent | deux motifs sains paraissaient **muets**. Parade : les SHA sont **résolus** (`git rev-parse`) avant usage |
+| ② | un point de comparaison pris au **HEAD de la session** et non au parent du lot | la mesure **innocentait** son auteur (ci-dessus) |
+| ③ | les motifs d’un runner de mutation écrits sur `\n` alors que **le dépôt est en CRLF** (§E.3) | `\n      }\n` ne matchait jamais : **la mutation ne mutait pas**, ne retirait qu’une moitié de garde, et le contrôle restait vert — **il paraissait aveugle alors qu’il voyait** |
+
+**③ est le plus retors des trois, parce qu’il accuse le bon outil.** Un contrôle qui reste vert sur
+une mutation se lit immédiatement comme un contrôle troué ; on part le réparer, et on le rend plus
+laxiste pour qu’il « morde ». **La question à poser d’abord n’est pas « pourquoi le contrôle n’a
+rien vu ? » mais « la mutation a-t-elle réellement muté ? »** — et elle se vérifie, elle ne se
+suppose pas : un runner de mutation compare le texte AVANT et APRÈS **et** vérifie que la garde
+visée a bien disparu, par une empreinte **bornée au bloc** (§E.8 — une empreinte lâchée sur le
+fichier retrouve toujours un `return` plus bas, et déclare incomplète une mutation parfaite).
+
+**La règle : un banc d’essai est du code, et il porte les mêmes pièges que le code qu’il éprouve.**
+CRLF, échappement du shell, portée d’une regex — §E.3 et §E.8 valent **dans les scripts de
+mutation**, pas seulement dans les diagnostics.
+
 **Corollaire, payé le même jour : le nombre de contrôles rejoués compte aussi.** Les cinq rouges
 avaient été trouvés en rejouant une liste choisie. En rejouant **les 77 `diag-*` du dépôt**, un
 **sixième** est apparu — `diag-ecran-seuils`, cassé par la réécriture de `/admin/seuils` — plus une
@@ -2188,6 +2210,48 @@ règle n'importent que des **types**, effacés par le dépouillement de types de
 > **est** un caractère de mot, exactement le piège de §G.3 sur les horodatages. Et le même motif
 > traversait le `;` pour lire l'instruction voisine. **Un contrôle écrit, relu et vert gardait une
 > porte ouverte ; seule la mutation l'a montré.**
+
+**E.45 — UNE COLLISION QUI NE PRODUIT PAS DE CONFLIT EST PIRE QU'UNE QUI EN PRODUIT.**
+
+Le 20/09/2026, le tronc et `feat/s1-ux-profil` ont écrit **chacun un §C.10** dans
+`docs/architecture.md`. **Git n’a rien signalé** : les deux insertions étaient à des endroits
+différents du fichier, la fusion automatique a donc parfaitement réussi.
+
+**Le fichier obtenu est valide, cohérent à la lecture, et FAUX À LA CITATION** : deux sections du
+même numéro, dont l’une est citée deux fois ailleurs (`architecture.md:65`, `produit.md:628`).
+Rien dans `git`, rien dans `tsc`, rien dans `next build` — et rien dans le rapport de merge, qui
+ne parle que de ce qui a **échoué**.
+
+**CE QUI REND CETTE FORME PLUS COÛTEUSE QU’UN CONFLIT, ET C’EST CONTRE-INTUITIF :**
+· **un conflit ARRÊTE la fusion** et exige une décision de quelqu’un. Il est bruyant, donc traité ;
+· **une collision silencieuse laisse la décision NON PRISE**, et personne ne sait qu’il y en avait
+  une à prendre. La mémoire du projet se met alors à se citer de travers — exactement la faute que
+  §E.16 décrit : *une mémoire fausse ne se voit pas, elle se cite.*
+
+**Elle a été trouvée en RECOMPTANT les sections ajoutées par chaque côté après la fusion**, pas en
+lisant le rapport de merge. D’où la règle de méthode :
+
+> **Vérifier une fusion, ce n’est pas relire ses conflits : c’est recompter ce que les deux côtés
+> ont ajouté.** Le rapport de merge ne décrit que les endroits où git a renoncé ; tout ce qu’il a
+> réussi à combiner sort sans commentaire, y compris ce qu’il n’avait pas les moyens de juger.
+
+**La résolution reste celle de M1 bis** : celui qui est **déjà cité** garde son numéro, l’autre est
+renuméroté, et les deux sont **replacées** dans l’ordre. On renumérote, on ne choisit pas.
+
+**LE CONTRÔLE** : [scripts/diag-memoire-exacte.mjs](scripts/diag-memoire-exacte.mjs) section F —
+aucun numéro de section porté deux fois, sur les **trois** fichiers de mémoire. Il est **éprouvé
+sur son cas connu avant tout balayage** (§E.33) : le témoin est l’état du fichier **juste après la
+fusion automatique**, et il vérifie les deux sens — il voit les deux §C.10, et il se tait sur
+`bis` / `ter` / `quater`, qui sont des sections à part entière.
+
+> ⚠️ **ET IL A FAILLI DÉNONCER TROIS SECTIONS SAINES.** Sa première version ne portait le suffixe
+> que sur la forme sans point (`M1 bis`) et pas sur la forme pointée : `G.5 bis`, `P1.2 bis` et
+> `P3.0 bis`/`ter` apparaissaient comme des doublons de `G.5`, `P1.2` et `P3.0`. **Un contrôle qui
+> crie à tort est désactivé le jour même** — mesuré avant de livrer, pas après.
+
+> **Ce qu’il ne vérifie pas, et c’est dit** : que les numéros se **suivent**. Un §C.8 suivi d’un
+> §C.10 sans §C.9 ne rougit pas — un numéro peut avoir été retiré volontairement, et l’exiger
+> ferait crier le contrôle à chaque suppression légitime.
 
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
