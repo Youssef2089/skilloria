@@ -74,18 +74,46 @@ for (const f of ALL_ROUTES) {
   ok(existsSync(join(ROOT, f)), `${f} existe`)
 }
 
+// ┌─ FAMILLE A CONVERTIE EN BALAYAGE (lot C4b, 20/09/2026) ─────────────────┐
+// │ « Téléphone et jeton de session : aucune route ne les sort » vaut pour   │
+// │ TOUTES les routes d'administration, pas pour six. Le numéro est cherché  │
+// │ dans `app/api/admin/**` ; le jeton dans TOUT `app/api` — c'est un secret │
+// │ d'authentification, aucune réponse ne le porte. B et C restent nommés :  │
+// │ ce sont les invariants d'UN écran, et son adresse est un contrat.        │
+// └─────────────────────────────────────────────────────────────────────────┘
+import { fichiers as balayer, lire as lireRel, sansCommentaires as sansComm } from './balayage-promesse.mjs'
+
+const ROUTES_ADMIN = balayer(['app/api/admin'], /route\.ts$/)
+const TOUTES_ROUTES = balayer(['app/api'], /route\.ts$/)
+// Le NUMÉRO de téléphone n'est jamais sélectionné ni projeté. Seul
+// `phone_verified` (booléen) l'est — d'où l'exclusion du mot composé.
+const PHONE = /(^|[^_a-zA-Z])phone(?!_verified|_otp|Otp|OTP|_number)/
+/** GEL — LU, une raison par entrée (§G.8). */
+const GEL_PHONE = {
+  'app/api/admin/get-expert/[id]/route.ts':
+    'DÉFAUT NOMMÉ — la fiche d’APPROBATION d’un expert sert `phone` (embed users!profiles_user_id_fkey) et l’écran l’affiche (admin/experts/[id]:253). La décision « aucun numéro pour administrer un compte » (list-users) ne dit pas si l’approbation d’un professionnel en a besoin : arbitrage produit, pas correctif d’office',
+}
+const servantPhone = ROUTES_ADMIN.filter((f) => PHONE.test(sansComm(lireRel(f))))
+console.log(`  ··   ${ROUTES_ADMIN.length} routes admin balayées · ${servantPhone.length} citent le numéro de téléphone`)
+for (const f of servantPhone.filter((f) => f in GEL_PHONE)) console.log(`  ··   ${f} — GELÉ, ${GEL_PHONE[f].slice(0, 12)}…`)
+ok(servantPhone.filter((f) => !(f in GEL_PHONE)).length === 0, 'aucune route admin ne sert le numéro de téléphone (hors gel lu)',
+  servantPhone.filter((f) => !(f in GEL_PHONE)).join(', ') || undefined)
+ok(Object.keys(GEL_PHONE).every((k) => servantPhone.includes(k)), 'aucune entrée du gel téléphone n’a cessé d’être vraie sans qu’on le dise')
+ok(Object.values(GEL_PHONE).every((r) => /^(LÉGITIME|DÉFAUT NOMMÉ)( |$)/.test(r)), 'chaque raison du gel commence par LÉGITIME ou DÉFAUT NOMMÉ')
+
+// Le jeton : dans TOUT app/api, aucune chaîne de select ni de réponse ne le porte.
+// (Les routes d'auth l'ÉCRIVENT — `setSessionToken`, `clearSessionToken` — via lib ; le nom
+// de colonne ne doit apparaître dans une route que s'il est écrit, jamais lu ni rendu.)
+const jetonLu = TOUTES_ROUTES.filter((f) => {
+  const code = sansComm(lireRel(f))
+  return /select\([^)]*last_session_token|last_session_token\s*:/.test(code)
+})
+console.log(`  ··   ${TOUTES_ROUTES.length} routes balayées pour le jeton de session`)
+ok(jetonLu.length === 0, 'aucune route ne lit ni ne projette last_session_token', jetonLu.join(', ') || undefined)
+
+// Les routes de gestion de COMPTE (contrat : ce sont les six de l'écran) ne servent aucune donnée de profil détaillée.
 for (const f of ALL_ROUTES) {
   const code = stripComments(read(f))
-  // Le NUMÉRO de téléphone n'est jamais sélectionné ni projeté. Seul
-  // `phone_verified` (booléen) l'est — d'où l'exclusion du mot composé.
-  const selectsPhone = /(^|[^_a-z])phone(?!_verified)/.test(code)
-  ok(!selectsPhone, `${f} : ne sert JAMAIS le numéro de téléphone`,
-    'décision produit : « vérifié oui/non » suffit à administrer un compte')
-  ok(
-    !/last_session_token/.test(code),
-    `${f} : ne lit ni ne projette JAMAIS last_session_token`,
-    "c'est un secret d'authentification, il ne quitte pas le serveur",
-  )
   ok(!/cv_url|linkedin_url|address_line/.test(code), `${f} : aucune donnée de profil détaillée`)
 }
 
