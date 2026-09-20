@@ -19,49 +19,47 @@
 // CE QUE CE SCRIPT VÉRIFIE — et il ÉCHOUE, ce n'est pas un recensement
 //   A. la migration sépare les deux grandeurs, et les borne chacune ;
 //   B. le score de pertinence NE SORT PAS de l'API — seul le palier sort ;
-//   C. aucun nombre de pertinence n'atteint l'écran de l'expert ;
+//   C. aucun nombre de pertinence n'atteint AUCUN écran ;
 //   D. le palier n'est jamais RECALCULÉ à l'affichage ;
 //   E. les deux échelles ne se croisent nulle part.
 //
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ┌─ CONVERTI EN BALAYAGE (lot C4a, 20/09/2026) ────────────────────────────┐
+// │ Il ouvrait DEUX routes et QUATRE vues par leur chemin. Un cinquième     │
+// │ écran qui aurait affiché `{relevance_score}` n'aurait pas été regardé,  │
+// │ et déplacer `MissionCard.tsx` l'aurait fait rougir sans qu'un nombre    │
+// │ n'apparaisse (§E.34 : ancré sur un nom, il rougit au renommage et       │
+// │ verdit au déplacement). Il balaie désormais `components/` +             │
+// │ `app/[locale]/` côté écran, `app/api/` côté API, et il demande « ceci   │
+// │ existe-t-il QUELQUE PART ? ». Ses motifs restent éprouvés sur fixtures  │
+// │ AVANT le balayage.                                                       │
+// └─────────────────────────────────────────────────────────────────────────┘
+//
 //   node scripts/diag-score-de-pertinence.mjs
 //
 // AUCUN accès base, AUCUN réseau.
 
-import { readFileSync, readdirSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { readdirSync } from 'node:fs'
+import { join } from 'node:path'
+import {
+  ROOT, RACINES_CLIENT, LOCALES, lire, sansCommentaires, fichiers, messages, lireCle, bilan,
+} from './balayage-promesse.mjs'
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const read = (p) => readFileSync(join(ROOT, p), 'utf8')
+const { ok, section, info, fin } = bilan()
 
 /**
- * Une migration se retrouve par son SUFFIXE DESCRIPTIF, jamais par son numéro.
- * Les numéros ont déjà été réattribués une fois pour éviter une collision entre
- * copies de travail, et ce script avait alors cessé de pointer sur quoi que ce
- * soit — silencieusement.
+ * Une migration se retrouve par son SUFFIXE DESCRIPTIF, jamais par son numéro
+ * (§G.3). Zéro ou deux correspondances : on refuse de tourner.
  */
 function migration(suffixe) {
   const dossier = join(ROOT, 'supabase', 'migrations')
-  const f = readdirSync(dossier).find((x) => x.endsWith(`_${suffixe}.sql`))
-  if (!f) {
-    console.error(`\n❌ Migration introuvable : *_${suffixe}.sql`)
+  const trouvees = readdirSync(dossier).filter((x) => x.endsWith(`_${suffixe}.sql`))
+  if (trouvees.length !== 1) {
+    console.error(`\n❌ Migration *_${suffixe}.sql : ${trouvees.length} correspondance(s)`)
     process.exit(2)
   }
-  return join('supabase', 'migrations', f)
+  return join('supabase', 'migrations', trouvees[0])
 }
-
-let failures = 0
-const ok = (cond, label, hint) => {
-  if (!cond) failures++
-  console.log(`  ${cond ? 'ok  ' : 'KO  '} ${label}`)
-  if (!cond && hint) console.log(`       → ${hint}`)
-}
-const section = (s) => console.log(`\n═══ ${s} ═══\n`)
-
-/** Retire commentaires de ligne et blocs `$$…$$` : on ne lit que le code. */
-const sansCommentaires = (sql) =>
-  sql.split('\n').filter((l) => !l.trimStart().startsWith('--')).join('\n')
+const sansCommentairesSql = (sql) => sql.split('\n').filter((l) => !l.trimStart().startsWith('--')).join('\n')
 
 // ══════════════════════════════════════════════════════════════════════════
 section('ÉPREUVE DU DÉTECTEUR — avant de lui faire confiance')
@@ -92,6 +90,11 @@ function nombresDePertinence(src) {
   for (const m of motifs) for (const t of src.matchAll(m)) trouves.push(t[0].replace(/\s+/g, ' '))
   return trouves
 }
+/** Une comparaison du score à un seuil — le palier recalculé à l'affichage. */
+const comparaisonsDeScore = (src) =>
+  [...src.matchAll(new RegExp(`(?:${NOMS_DE_SCORE})[a-zA-Z_$]*\\s*(?:>=|>|<|<=)\\s*[\\w.]+`, 'g'))].map((m) => m[0])
+/** Une LECTURE de la valeur du score dans du code serveur : `row.relevance_score`. */
+const lecturesDeScore = (src) => [...src.matchAll(/\b\w+\.relevance_score\b/g)].map((m) => m[0])
 
 {
   const doitTrouver = [
@@ -105,6 +108,7 @@ function nombresDePertinence(src) {
     ["order('relevance_score', { ascending: false })", 'un TRI par le score, jamais affiché'],
     ['  relevance_score: number | null', 'une DÉCLARATION de type, qui ne sort rien'],
     ['relevance_tier === "strong"', 'le palier, qui n est pas un nombre'],
+    ["tPub('badges.ai_score', { score: Math.round(annonce.verification_score) })", 'la clé i18n `ai_score` d une AUTRE échelle (qualité d annonce)'],
   ]
   for (const [src, libelle] of doitTrouver) {
     ok(nombresDePertinence(src).length > 0, `détecte : ${libelle}`,
@@ -114,13 +118,17 @@ function nombresDePertinence(src) {
     ok(nombresDePertinence(src).length === 0, `ignore : ${libelle}`,
       'faux positif : un contrôle qui crie au loup finit ignoré')
   }
+  ok(comparaisonsDeScore('const strong = relevance_score >= 0.7').length === 1, 'détecte : un palier recalculé (`score >= seuil`)')
+  ok(comparaisonsDeScore("relevance_tier === 'strong'").length === 0, 'ignore : une comparaison du PALIER')
+  ok(lecturesDeScore('relevance_tier: row.relevance_tier, x: row.relevance_score').length === 1, 'détecte : une lecture `row.relevance_score`')
+  ok(lecturesDeScore("order('relevance_score', { ascending: false })").length === 0, 'ignore : le nom passé en CHAÎNE à order()')
 }
 
 // ══════════════════════════════════════════════════════════════════════════
 section('A. LA MIGRATION SÉPARE LES DEUX GRANDEURS')
 // ══════════════════════════════════════════════════════════════════════════
 
-const SQL = sansCommentaires(read(migration('score_de_pertinence')))
+const SQL = sansCommentairesSql(lire(migration('score_de_pertinence')))
 
 ok(/drop column if exists score\b/.test(SQL),
   'l ancienne note de matching est SUPPRIMÉE',
@@ -133,17 +141,14 @@ ok(/relevance_score >= 0 and relevance_score <= 1/.test(SQL),
 ok(/add column if not exists relevance_model/.test(SQL),
   'le modèle qui a produit le score est conservé',
   'changer de reranker change l échelle : un score sans son modèle est illisible')
-
 ok(/add column if not exists relevance_tier/.test(SQL),
   'le PALIER affiché existe en base')
 ok(/relevance_tier in \('strong', 'normal'\)/.test(SQL),
   'le palier est borné à deux valeurs',
   'une troisième valeur réintroduirait une graduation, donc un classement')
-
 ok(/ai_match_score >= 0 and ai_match_score <= 10/.test(SQL),
   'la note de candidature reste bornée à [0,10]',
   'c est une AUTRE échelle : les deux bornes doivent rester distinctes')
-
 ok(/create index if not exists matches_profile_relevance_idx/.test(SQL),
   'l index du flux porte sur la nouvelle colonne')
 ok(/drop index if exists public\.matches_profile_score_idx/.test(SQL),
@@ -151,75 +156,78 @@ ok(/drop index if exists public\.matches_profile_score_idx/.test(SQL),
   'un index sur une colonne supprimée fait échouer la migration')
 
 // ══════════════════════════════════════════════════════════════════════════
-section('B. LE SCORE NE SORT PAS DE L API')
+section('B. LE SCORE NE SORT D AUCUNE ROUTE — balayage de app/api')
 // ══════════════════════════════════════════════════════════════════════════
+//
+// Le moteur (`lib/matching/`) PRODUIT le score : il a le droit de le lire et
+// de l'écrire. Une ROUTE, elle, ne fait que servir — et servir la valeur,
+// c'est la voir finir affichée. Le score peut être TRIÉ (son nom passe alors
+// en chaîne à `.order()`) mais jamais LU.
 
-const ROUTES_FLUX = [
-  'app/api/me/missions/route.ts',
-  'app/api/me/missions/[id]/route.ts',
-]
-for (const r of ROUTES_FLUX) {
-  const src = read(r)
-  ok(/relevance_tier:/.test(src), `${r} rend le PALIER`)
-  // Le score peut être TRIÉ (son nom passe alors en chaîne à `.order()`) mais
-  // jamais LU. Le déclarer dans un type ne le sort pas non plus — seule une
-  // lecture de la valeur, `row.relevance_score`, peut finir dans une réponse.
-  const lectures = [...src.matchAll(/\b\w+\.relevance_score\b/g)].map((m) => m[0])
-  ok(lectures.length === 0, `${r} ne LIT jamais la valeur du score`,
-    lectures.length
-      ? `trouvé : ${lectures.join(' ; ')} — sorti de l API, un nombre finit affiché`
-      : undefined)
+const ROUTES = fichiers(['app/api'], /route\.ts$/)
+const routesQuiLisent = []
+const routesQuiOrdonnent = []
+for (const r of ROUTES) {
+  const src = sansCommentaires(lire(r))
+  if (/order\(\s*'relevance_score'/.test(src)) routesQuiOrdonnent.push(r)
+  const lectures = lecturesDeScore(src)
+  if (lectures.length) routesQuiLisent.push(`${r} : ${lectures.join(' ; ')}`)
 }
-ok(/order\('relevance_score'/.test(read('app/api/me/missions/route.ts')),
-  'le flux est ORDONNÉ par le score',
-  'ordonner reste juste : c est afficher qui ne l est pas')
-
-// ══════════════════════════════════════════════════════════════════════════
-section('C. AUCUN NOMBRE DE PERTINENCE À L ÉCRAN')
-// ══════════════════════════════════════════════════════════════════════════
-
-const VUES_EXPERT = [
-  'components/dashboard/MissionCard.tsx',
-  'components/dashboard/MissionCastingCard.tsx',
-  'components/dashboard/MissionDetailView.tsx',
-  'components/dashboard/CastingCarousel.tsx',
-]
-for (const v of VUES_EXPERT) {
-  const trouves = nombresDePertinence(read(v))
-  ok(trouves.length === 0, `${v.split('/').pop()} n affiche aucun nombre`,
-    trouves.length ? `trouvé : ${trouves.slice(0, 3).join(' ; ')}` : undefined)
+info(`${ROUTES.length} routes balayées · ${routesQuiOrdonnent.length} ordonnent par le score`)
+ok(routesQuiLisent.length === 0, 'aucune route ne LIT la valeur du score',
+  routesQuiLisent.join('\n       ') || undefined)
+ok(routesQuiOrdonnent.length >= 1, 'au moins une route ORDONNE par le score — le flux',
+  'ordonner reste juste : c est afficher qui ne l est pas. Zéro route ordonnée = le motif ne voit plus le flux')
+// Le PALIER est ce qui explique à l'expert pourquoi ce profil apparaît, sans
+// nombre. Toute route qui ordonne par le score (le flux) ou qui SÉLECTIONNE le
+// palier (le détail) doit le RENDRE — et il en existe au moins deux, le flux et
+// le détail : une route de détail qui cesserait de le lire ferait tomber le
+// compte, pas seulement disparaître de la liste.
+const routesDuPalier = ROUTES.filter((r) => {
+  const src = sansCommentaires(lire(r))
+  return routesQuiOrdonnent.includes(r) || /['"][^'"]*\brelevance_tier\b[^'"]*['"]/.test(src)
+})
+ok(routesDuPalier.length >= 2, `au moins deux routes servent le palier — le flux et le détail (${routesDuPalier.length})`,
+  'une route de détail a cessé de lire le palier : l expert perd l explication sur la fiche')
+for (const r of routesDuPalier) {
+  ok(/relevance_tier:/.test(sansCommentaires(lire(r))), `${r} rend le PALIER`)
 }
 
-const LOCALES = ['fr', 'en', 'es', 'de']
-const MSG = Object.fromEntries(LOCALES.map((l) => [l, JSON.parse(read(`messages/${l}.json`))]))
-const lire = (m, chemin) => chemin.split('.').reduce((o, k) => (o == null ? o : o[k]), m)
+// ══════════════════════════════════════════════════════════════════════════
+section('C. AUCUN NOMBRE DE PERTINENCE SUR AUCUN ÉCRAN — balayage de components/ + app/[locale]/')
+// ══════════════════════════════════════════════════════════════════════════
 
+const ECRANS = fichiers(RACINES_CLIENT)
+const ecransFautifs = []
+for (const v of ECRANS) {
+  const trouves = nombresDePertinence(sansCommentaires(lire(v)))
+  if (trouves.length) ecransFautifs.push(`${v} : ${trouves.slice(0, 3).join(' ; ')}`)
+}
+info(`${ECRANS.length} fichiers client balayés`)
+ok(ecransFautifs.length === 0, 'aucun écran n affiche un nombre de pertinence',
+  ecransFautifs.join('\n       ') || undefined)
+
+const MSG = messages()
 // Un libellé qui contient encore « {score} » est une invitation permanente à
 // réafficher le nombre. Il ne doit plus exister dans AUCUNE langue.
 for (const chemin of ['missions.card.ai_score', 'missions.detail.ai_score_label', 'missions.casting.top_match']) {
-  const survivantes = LOCALES.filter((l) => lire(MSG[l], chemin) !== undefined)
+  const survivantes = LOCALES.filter((l) => lireCle(MSG[l], chemin) !== undefined)
   ok(survivantes.length === 0, `« ${chemin} » n existe plus`,
-    survivantes.length
-      ? `encore présent en : ${survivantes.join(', ')} — quelqu un le réutilisera`
-      : undefined)
+    survivantes.length ? `encore présent en : ${survivantes.join(', ')} — quelqu un le réutilisera` : undefined)
 }
-
 for (const cle of ['strong', 'normal', 'tooltip']) {
-  const absentes = LOCALES.filter((l) => !lire(MSG[l], `matching_badge.${cle}`))
-  ok(absentes.length === 0, `matching_badge.${cle} dans les 4 langues`,
-    absentes.join(', ') || undefined)
+  const absentes = LOCALES.filter((l) => !lireCle(MSG[l], `matching_badge.${cle}`))
+  ok(absentes.length === 0, `matching_badge.${cle} dans les 4 langues`, absentes.join(', ') || undefined)
 }
 for (const l of LOCALES) {
   for (const cle of ['strong', 'normal']) {
-    const v = String(lire(MSG[l], `matching_badge.${cle}`) ?? '')
-    ok(!/\{\s*score\s*\}|\d+\s*\/\s*10|%/.test(v),
-      `matching_badge.${cle} (${l}) ne porte aucun nombre`,
-      `libellé : « ${v} »`)
+    const v = String(lireCle(MSG[l], `matching_badge.${cle}`) ?? '')
+    ok(!/\{\s*score\s*\}|\d+\s*\/\s*10|%/.test(v), `matching_badge.${cle} (${l}) ne porte aucun nombre`, `libellé : « ${v} »`)
   }
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-section('D. LE PALIER N EST JAMAIS RECALCULÉ À L AFFICHAGE')
+section('D. LE PALIER N EST JAMAIS RECALCULÉ À L AFFICHAGE — même balayage')
 // ══════════════════════════════════════════════════════════════════════════
 //
 // Le seuil est réglable et les scores ne sont pas comparables entre deux runs.
@@ -227,34 +235,43 @@ section('D. LE PALIER N EST JAMAIS RECALCULÉ À L AFFICHAGE')
 // anciens : un expert verrait « forte » redevenir « correspondance » sans que
 // rien n'ait changé pour lui.
 
-for (const v of VUES_EXPERT) {
-  const src = read(v)
-  const comparaisons = [
-    ...src.matchAll(new RegExp(`(?:${NOMS_DE_SCORE})[a-zA-Z_$]*\\s*(?:>=|>|<|<=)\\s*[\\w.]+`, 'g')),
-  ].map((m) => m[0])
-  ok(comparaisons.length === 0, `${v.split('/').pop()} ne compare aucun score à un seuil`,
-    comparaisons.length ? `trouvé : ${comparaisons.join(' ; ')}` : undefined)
-  ok(!/TOP_MATCH_THRESHOLD\s*=/.test(src), `${v.split('/').pop()} ne redéfinit aucun seuil local`,
-    'un seuil dans une vue est un second réglage que personne ne sait retrouver')
+const recalculs = []
+const seuilsLocaux = []
+for (const v of ECRANS) {
+  const src = sansCommentaires(lire(v))
+  const c = comparaisonsDeScore(src)
+  if (c.length) recalculs.push(`${v} : ${c.join(' ; ')}`)
+  if (/TOP_MATCH_THRESHOLD\s*=/.test(src)) seuilsLocaux.push(v)
 }
+ok(recalculs.length === 0, 'aucun écran ne compare un score à un seuil', recalculs.join('\n       ') || undefined)
+ok(seuilsLocaux.length === 0, 'aucun écran ne redéfinit un seuil local',
+  seuilsLocaux.length ? `${seuilsLocaux.join(', ')} — un seuil dans une vue est un second réglage que personne ne sait retrouver` : undefined)
 
 // ══════════════════════════════════════════════════════════════════════════
-section('E. LES DEUX ÉCHELLES NE SE CROISENT PAS')
+section('E. LES DEUX ÉCHELLES NE SE CROISENT PAS — balayage de app/api + lib')
 // ══════════════════════════════════════════════════════════════════════════
+//
+// Ranger un score de pertinence dans une note sur 10 le ferait lire « 0,73 / 10 ».
+// La frontière est le SEUL point de conversion (§D.10) ; ailleurs, la note de
+// candidature ne se copie jamais depuis le matching, et l'ancienne colonne
+// `score` n'est plus lue.
 
-const CANDIDATURES = read('app/api/candidatures/route.ts')
-ok(/ai_match_score: null/.test(CANDIDATURES),
-  'la note de candidature n est plus recopiée depuis le matching',
-  'ranger un score de pertinence dans une échelle sur 10 le ferait lire « 0,73 / 10 »')
-ok(!/ai_match_score:\s*matchRow\./.test(CANDIDATURES),
-  'aucune reprise du score de match dans la note de candidature')
-ok(!/\bmatchRow\.score\b/.test(CANDIDATURES),
-  'plus aucune lecture de l ancienne colonne')
+const SERVEUR = fichiers(['app/api', 'lib'])
+const croisements = []
+const anciennes = []
+for (const f of SERVEUR) {
+  const src = sansCommentaires(lire(f))
+  const m = src.match(/ai_match_score:\s*\w+\.(?:relevance_score|score)\b/g)
+  if (m) croisements.push(`${f} : ${m.join(' ; ')}`)
+  const a = src.match(/\bmatchRow\.score\b/g)
+  if (a) anciennes.push(f)
+}
+ok(croisements.length === 0, 'la note de candidature n est copiée depuis aucun score de match',
+  croisements.join('\n       ') || undefined)
+ok(anciennes.length === 0, 'plus aucune lecture de l ancienne colonne `score` d un match', anciennes.join(', ') || undefined)
+// Le dépôt de candidature pose la note à `null` : elle sera JUGÉE, pas copiée.
+const depots = SERVEUR.filter((f) => /ai_match_score:\s*null/.test(sansCommentaires(lire(f))))
+ok(depots.length >= 1, 'au dépôt d une candidature, la note est posée à null — elle sera jugée, pas héritée',
+  'aucun fichier ne pose `ai_match_score: null` : le motif ne voit plus le dépôt')
 
-// ══════════════════════════════════════════════════════════════════════════
-console.log(
-  failures === 0
-    ? '\n✅ Le score a bien changé de nature : une grandeur, une colonne, un palier.\n'
-    : `\n❌ ${failures} contrôle(s) en échec.\n`,
-)
-process.exit(failures === 0 ? 0 : 1)
+fin('Le score a bien changé de nature : une grandeur, une colonne, un palier — sur tout le périmètre.')
