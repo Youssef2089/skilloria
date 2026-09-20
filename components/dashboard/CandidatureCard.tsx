@@ -154,6 +154,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
   // geo_mobility_options) pour ne pas dupliquer les valeurs en i18n.
   const tCdi = useTranslations('cdi_profile_view')
   const tPub = useTranslations('publications')
+  const tCommerce = useTranslations('commerce')
   // SITE DE RENDU 4/5 — libellé d'état par la RAISON dérivée, point de vue org.
   const lifecycleLabel = useCandidatureLifecycleLabel('org')
   const locale = useLocale()
@@ -163,6 +164,10 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
 
   const [busy, setBusy] = useState<'unlock' | 'reject' | 'select' | 'view' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Une limite d’offre n’est pas une panne : la ligne d’issue est portée à part,
+  // pour ne pas recopier l’appel à l’action dans chaque message (jumeau de
+  // SpotlightCandidateCard — ce composant l’avait oublié, §E.34).
+  const [limiteAtteinte, setLimiteAtteinte] = useState(false)
   const [confirmReject, setConfirmReject] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   // Lot état 'selected' : confirmation explicite avant l'action irréversible.
@@ -220,6 +225,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
   const handleUnlock = async () => {
     setBusy('unlock')
     setError(null)
+    setLimiteAtteinte(false)
     try {
       const res = await secureFetch(`/api/candidatures/${candidature.id}/unlock`, { method: 'POST' })
       const payload = (await res.json().catch(() => ({} as { code?: string }))) as { code?: string }
@@ -230,7 +236,12 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
         if (payload.code === 'candidature_archived') setError(t('error_candidature_archived'))
         else if (payload.code === 'invalid_transition') setError(t('error_invalid_transition'))
         else if (payload.code === 'not_found') setError(t('error_not_found'))
-        else setError(t('error_generic'))
+        else if (payload.code === 'unlock_limit_reached') {
+          // Le serveur NOMME la cause (402) : l’organisation a épuisé ses
+          // dévoilements inclus. Elle lisait « une erreur est survenue ».
+          setError(t('error_unlock_limit_reached'))
+          setLimiteAtteinte(true)
+        } else setError(t('error_generic'))
         return
       }
       // Auto-mark vu côté serveur (route unlock) + optimiste côté UI :
@@ -706,8 +717,26 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
 
       {/* Error banner */}
       {error && (
-        <div role="alert" style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B', padding: '10px 12px', borderRadius: 10, fontSize: 12, marginBottom: 12 }}>
+        <div
+          role="alert"
+          style={{
+            background: limiteAtteinte ? '#FFFBEB' : '#FEF2F2',
+            border: `1px solid ${limiteAtteinte ? '#FDE68A' : '#FECACA'}`,
+            color: limiteAtteinte ? '#92400E' : '#991B1B',
+            padding: '10px 12px',
+            borderRadius: 10,
+            fontSize: 12,
+            marginBottom: 12,
+          }}
+        >
           {error}
+          {/* Ambre plutôt que rouge, et l’issue qui reste quand la carte ne peut
+              rien corriger. AUCUN bouton de paiement — le verrou est fermé (§D.1). */}
+          {limiteAtteinte && (
+            <p style={{ margin: '5px 0 0', fontSize: 11.5, color: '#A16207' }}>
+              {tCommerce('need_more_contact')}
+            </p>
+          )}
         </div>
       )}
 

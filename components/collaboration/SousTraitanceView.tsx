@@ -81,7 +81,11 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
         if (p.code === 'profile_not_verified') { setPhase('locked'); return }
         // Autre échec : best-effort, on n'empêche pas la saisie — on retire
         // seulement le récapitulatif chiffré (comportement d'avant ce lot).
+        // Mais un quota ILLISIBLE referme le verrou : best-effort sur les droits,
+        // jamais sur l’ouverture d’un chemin de paiement (jumeau de DetailView,
+        // rétroporté au lot C4a — §E.20).
         setLimits(null)
+        setBillingEnabled(false)
         setPhase('ready')
         return
       }

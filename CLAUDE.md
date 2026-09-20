@@ -728,6 +728,25 @@ ont ouvert ses emplacements un par un. Au 20/09/2026 : **91 mesurés, 91 jugés,
 > redevient propre. Le jour où un défaut nommé y reviendra, la règle doit déjà être là : **chaque
 > raison commence par LÉGITIME ou par DÉFAUT NOMMÉ, et le contrôle les compte à voix haute.**
 
+**G.9 — UN TEXTE DE MÉMOIRE NE S’ÉCRIT JAMAIS PAR UNE CHAÎNE SHELL. Outil d’écriture, toujours.**
+Le 20/09/2026, un paragraphe de `docs/pieges.md` a été écrit par `node -e "…"` entre guillemets
+doubles : chaque `` `identifiant` `` du texte a été **exécuté comme une commande** par bash, remplacé
+par sa sortie — rien — et le script a imprimé `ok`. Le commit est parti mutilé ; il a été vu en
+relisant `git show`, pas la sortie (§E.33 ⑤). **Aucun contrôle ne le voit** : `diag-memoire-exacte`
+vérifie des liens et des numéros, pas des phrases. La règle est donc de **méthode**, pas d’outil :
+un texte destiné à la mémoire — et tout texte qui porte des backticks, un dollar, des guillemets —
+passe par un fichier écrit avec l’outil d’écriture, que l’on exécute ensuite. Le shell a une
+grammaire, elle s’applique **avant** le programme, et le programme ne peut pas savoir ce qu’il n’a
+pas reçu.
+
+> **Et le programme a la sienne, payée le même jour en écrivant CE paragraphe.** Le texte de
+> remplacement de `String.prototype.replace` interprète `$&`, `$1`, `` $` `` et `$'` ; la première
+> version de cette règle contenait « des `` `$` `` », soit `` $` `` — « le texte AVANT la
+> correspondance » — et **tout le début de CLAUDE.md a été réinséré** (740 lignes, deux fois chaque
+> section). Vu par `diag-memoire-exacte` (numéro de section en double, budget crevé), pas à l’œil.
+> **Un remplacement textuel passe par une fonction** — `s.replace(a, () => b)` — jamais par une
+> chaîne : la fonction n’a pas de grammaire.
+
 ---
 
 ## Les trois autres fichiers de la mémoire

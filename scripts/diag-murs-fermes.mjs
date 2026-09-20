@@ -111,19 +111,11 @@ section('ÉPREUVE DES MOTIFS — avant de leur faire confiance')
  * Un défaut nommé n'est pas corrigé ici — c'est un arbitrage rendu à
  * l'architecte, pas un élargissement du lot.
  */
-const GEL = {
-  'components/collaboration/SousTraitanceView.tsx | referme':
-    'DÉFAUT NOMMÉ — sur un quota illisible (réponse non-ok autre que profile_not_verified), le verrou ' +
-    'garde sa valeur PRÉCÉDENTE : `setLimits(null)` sans `setBillingEnabled(false)`. Le jumeau ' +
-    'SousTraitanceDetailView referme, celui-ci non (§E.20, correctif non rétroporté). Sans effet ' +
-    'aujourd’hui — le verrou est toujours fermé en production — mais la propriété est violée. ' +
-    'Correctif : une ligne, celle du jumeau.',
-  'messages | collaboration.wall_contact':
-    'DÉFAUT NOMMÉ — clé orpheline dans les quatre langues depuis c4b6916 (« Besoin de plus ? ' +
-    'Contactez-nous. ») : aucun écran ne l’affiche, l’issue du mur passe par commerce.need_more_*. ' +
-    'Correctif : la retirer des quatre dictionnaires, en le disant (une suppression voulue n’est pas ' +
-    'une perte — M1 bis).',
-}
+// Le gel a porté deux DÉFAUTS NOMMÉS le jour de la conversion (20/09/2026) —
+// SousTraitanceView qui ne refermait pas le verrou, et la clé orpheline
+// `collaboration.wall_contact`. Les deux ont été corrigés le même jour sur
+// arbitrage ; le gel est VIDE, et la convention reste écrite pour le prochain.
+const GEL = {}
 const gele = (cle) => cle in GEL
 const defautsNommes = Object.values(GEL).filter((r) => r.startsWith('DÉFAUT NOMMÉ')).length
 
@@ -230,10 +222,12 @@ for (const l of LOCALES) {
 
 // Le gel ne dort pas : une entrée dont le défaut a disparu doit sortir du gel.
 section('GEL — relu à chaque exécution')
-ok(!/setBillingEnabled\(false\)/.test(lu.get('components/collaboration/SousTraitanceView.tsx') ?? 'setBillingEnabled(false)') || !gele('components/collaboration/SousTraitanceView.tsx | referme'),
-  'l’entrée « SousTraitanceView ne referme pas » est encore vraie — sinon la retirer du gel')
-ok(!CLES_MUR.includes('collaboration.wall_contact') ? !gele('messages | collaboration.wall_contact') : true,
-  'l’entrée « wall_contact orpheline » est encore vraie — sinon la retirer du gel')
+// Une entrée du gel dont le défaut a disparu doit en sortir : on relit chaque clé.
+for (const k of Object.keys(GEL)) {
+  const [f, quoi] = k.split(' | ')
+  if (f === 'messages') ok(CLES_MUR.includes(quoi) && !new RegExp(`['"]${quoi.split('.').pop()}['"]`).test(codeClient), `l’entrée « ${quoi} orpheline » est encore vraie — sinon la retirer du gel`)
+  else ok(lu.has(f) && !/setBillingEnabled\(false\)/.test(lu.get(f)), `l’entrée « ${f.split('/').pop()} ne referme pas » est encore vraie — sinon la retirer du gel`)
+}
 // Pas de `\b` après un « É » : hors drapeau `u`, un caractère accentué n'est pas
 // un caractère de mot en JS, et « DÉFAUT NOMMÉ » ne passait jamais.
 ok(Object.values(GEL).every((r) => /^(LÉGITIME|DÉFAUT NOMMÉ)( |$)/.test(r)), 'chaque raison du gel commence par LÉGITIME ou DÉFAUT NOMMÉ (§G.8)')

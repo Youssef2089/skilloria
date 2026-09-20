@@ -54,14 +54,11 @@ const { ok, section, info, fin } = bilan()
  * GEL — lu, nommé, non acquitté (§G.8). Un défaut nommé est rendu à
  * l'arbitrage, pas corrigé ici.
  */
-const GEL = {
-  'components/dashboard/CandidatureCard.tsx | unlock_limit_reached':
-    'DÉFAUT NOMMÉ — appelle POST /api/candidatures/[id]/unlock et ne traite que candidature_archived, ' +
-    'invalid_transition et not_found : le 402 `unlock_limit_reached` tombe dans error_generic. ' +
-    'L’organisation qui a épuisé ses dévoilements lit « une erreur est survenue » sur cette carte, et ' +
-    'l’encart actionnable sur l’autre (SpotlightCandidateCard). Le message existe déjà ' +
-    '(candidatures.card.error_unlock_limit_reached) : le correctif est une branche de plus dans la table.',
-}
+// Le jour de la conversion (20/09/2026) le gel a porté UN défaut nommé — et
+// c'était le défaut fondateur du contrôle : `CandidatureCard` jetait le 402
+// `unlock_limit_reached` dans « une erreur est survenue ». Corrigé le même jour
+// sur arbitrage. Le gel est VIDE ; la convention reste pour le prochain.
+const GEL = {}
 const gele = (cle) => cle in GEL
 const defautsNommes = Object.values(GEL).filter((r) => r.startsWith('DÉFAUT NOMMÉ')).length
 
