@@ -21,216 +21,222 @@
 //   pas lisible, le mur doit rester fermé. `=== true`, jamais une vérité simple.
 //
 // CE QU'IL VÉRIFIE
-//   1. Aucun bouton désactivé sur un mur de conversion.
-//   2. Le verrou vient du SERVEUR, transmis en prop, jamais lu par carte.
-//   3. Il est FERMÉ par défaut, à chaque étage de la chaîne.
+//   1. Aucun bouton désactivé sur AUCUN mur de conversion.
+//   2. Le verrou vient du SERVEUR : toute route qui le sert le calcule, et tout
+//      écran qui appelle une telle route le lit en `=== true`.
+//   3. Il est FERMÉ par défaut, partout : aucune forme ouverte par ignorance,
+//      et un quota illisible referme.
 //   4. L'issue bascule avec lui : contact quand c'est fermé, offres quand
 //      c'est ouvert — et les deux libellés existent dans les 4 langues.
-//   5. Aucune clé i18n orpheline laissée derrière.
+//   5. Aucune clé de mur orpheline, dans un sens ni dans l'autre.
 //   6. Aucun chiffre commercial écrit dans un mur.
 //
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ┌─ CONVERTI EN BALAYAGE (lot C4a, 20/09/2026) ────────────────────────────┐
+// │ Il ouvrait CINQ fichiers par leur chemin. Un sixième mur, un sixième    │
+// │ lecteur du verrou, une septième clé `wall_*` n'étaient pas regardés     │
+// │ (§E.34). Il balaie désormais `components/` + `app/[locale]/` côté écran │
+// │ et `app/api/` côté serveur ; les MURS sont trouvés par la clé qui les   │
+// │ nomme (`wall_title` — un contrat i18n, pas un nom de fichier), les      │
+// │ LECTEURS du verrou par le champ qu'ils lisent (`billing_enabled`), et   │
+// │ les écrans qui appellent une route par son CHEMIN.                      │
+// └─────────────────────────────────────────────────────────────────────────┘
+//
 //   node scripts/diag-murs-fermes.mjs   → contrôles statiques. AUCUN accès base.
 //
 // LECTURE PURE : ce script n'écrit JAMAIS et ne joint jamais la base.
 
-import { readFileSync, existsSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import {
+  RACINES_CLIENT, LOCALES, lire, sansCommentaires, fichiers, routesApi, consommateurs,
+  messages, lireCle, clesPlates, localesManquantes, bilan,
+} from './balayage-promesse.mjs'
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+const { ok, section, info, fin } = bilan()
+
+// ══════════════════════════════════════════════════════════════════════════
+// LES MOTIFS — et leurs preuves, AVANT le balayage (§E.33)
+// ══════════════════════════════════════════════════════════════════════════
+
 /**
- * Fins de ligne NORMALISEES. Le depot sort les fichiers en CRLF : un controle
- * dont le motif traverse une fin de ligne ne matche jamais sur une copie de
- * travail fraichement extraite, et le diagnostic vire au rouge sans qu'aucun
- * code n'ait change.
+ * Les murs d'un fichier : de chaque référence à `wall_title` jusqu'à la ligne
+ * d'issue qui suit (`need_more_contact` / `need_more_upgrade`). Un mur sans
+ * issue rend `null` pour `issue` : c'est un mur mort, et ça se dit.
  */
-const read = (p) => readFileSync(join(ROOT, p), 'utf8').split('\r\n').join('\n')
-const exists = (p) => existsSync(join(ROOT, p))
+function murs(src) {
+  const out = []
+  for (const m of src.matchAll(/['"]wall_title['"]/g)) {
+    const reste = src.slice(m.index)
+    const issue = reste.search(/need_more_(?:contact|upgrade)/)
+    out.push({ debut: m.index, issue: issue < 0 ? null : issue, bloc: issue < 0 ? reste.slice(0, 1500) : reste.slice(0, issue) })
+  }
+  return out
+}
+const boutonMort = (bloc) => /<button\b/.test(bloc) || /aria-disabled/.test(bloc) || /not-allowed/.test(bloc)
 
-/** Retire les commentaires : un anti-pattern doit pouvoir être DOCUMENTÉ. */
-const sansCommentaires = (src) =>
-  src
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .split('\n')
-    .filter((l) => {
-      const t = l.trimStart()
-      return !t.startsWith('//') && !t.startsWith('*')
-    })
-    .join('\n')
+/** Les lectures du champ SERVEUR `billing_enabled` qui ne sont ni un type ni un `=== true`. */
+function lecturesNonFermees(src) {
+  const out = []
+  for (const m of src.matchAll(/\bbilling_enabled\b/g)) {
+    const ligne = src.slice(src.lastIndexOf('\n', m.index) + 1, src.indexOf('\n', m.index) === -1 ? undefined : src.indexOf('\n', m.index))
+    const estType = /\bbilling_enabled\??\s*:\s*boolean\b/.test(ligne)
+    const estFerme = /\bbilling_enabled\s*===\s*true\b/.test(ligne)
+    const estServeur = /\bbilling_enabled:\s*billingEnabled\(\)/.test(ligne)
+    if (!estType && !estFerme && !estServeur) out.push(ligne.trim())
+  }
+  return out
+}
+/** Une forme OUVERTE PAR IGNORANCE : l'absence ou l'échec vaudrait « ouvert ». */
+const OUVERTURES = /\bbilling(?:_e|E)nabled\b[^;\n]{0,40}(?:\?\?\s*true|!==?\s*false)|useState(?:<boolean>)?\(\s*true\s*\)\s*$/m
+const ouvertParIgnorance = (src) => OUVERTURES.test(src)
 
-let failures = 0
-const ok = (cond, label, hint) => {
-  if (cond) console.log(`  ok   ${label}`)
-  else {
-    failures++
-    console.log(`  KO   ${label}${hint ? `\n       → ${hint}` : ''}`)
+section('ÉPREUVE DES MOTIFS — avant de leur faire confiance')
+{
+  const murMort = `<span>{t('wall_title')}</span><p>{t('wall_body')}</p><button disabled>Bientôt</button><span>{tCommerce('need_more_contact')}</span>`
+  const murSain = `<span>{t('wall_title')}</span><p>{t('wall_body')}</p><span>{tCommerce('need_more_contact')}</span>{x && <button onClick={go}>Ouvrir</button>}`
+  const murSansIssue = `<span>{t('wall_title')}</span><p>{t('wall_body')}</p></div>`
+  ok(murs(murMort).length === 1 && boutonMort(murs(murMort)[0].bloc), 'détecte : un bouton désactivé DANS le mur')
+  ok(murs(murSain).length === 1 && !boutonMort(murs(murSain)[0].bloc), 'ignore : un bouton APRÈS la ligne d’issue (il n’est pas dans le mur)')
+  ok(murs(murSansIssue)[0].issue === null, 'détecte : un mur sans ligne d’issue')
+  ok(lecturesNonFermees("if (q?.billing_enabled) open()").length === 1, 'détecte : une lecture du champ serveur sans `=== true`')
+  ok(lecturesNonFermees("billing_enabled?: boolean\nconst v = q.billing_enabled === true").length === 0, 'ignore : un type et une lecture fermée')
+  ok(ouvertParIgnorance('const open = data.billing_enabled ?? true'), 'détecte : `?? true` — l’absence ouvrirait')
+  ok(ouvertParIgnorance('if (billingEnabled !== false) show()'), 'détecte : `!== false` — l’inconnu ouvrirait')
+  ok(!ouvertParIgnorance('const [billingEnabled, setBillingEnabled] = useState(false)\nif (billingEnabled === true) show()'), 'ignore : fermé par défaut')
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+/**
+ * GEL — ce que le balayage a trouvé que les cinq noms cachaient, LU et NOMMÉ
+ * (§G.8 : « jugé » veut dire lu, pas acquitté). Chaque raison commence par
+ * LÉGITIME ou par DÉFAUT NOMMÉ ; le contrôle compte les seconds à voix haute.
+ * Un défaut nommé n'est pas corrigé ici — c'est un arbitrage rendu à
+ * l'architecte, pas un élargissement du lot.
+ */
+const GEL = {
+  'components/collaboration/SousTraitanceView.tsx | referme':
+    'DÉFAUT NOMMÉ — sur un quota illisible (réponse non-ok autre que profile_not_verified), le verrou ' +
+    'garde sa valeur PRÉCÉDENTE : `setLimits(null)` sans `setBillingEnabled(false)`. Le jumeau ' +
+    'SousTraitanceDetailView referme, celui-ci non (§E.20, correctif non rétroporté). Sans effet ' +
+    'aujourd’hui — le verrou est toujours fermé en production — mais la propriété est violée. ' +
+    'Correctif : une ligne, celle du jumeau.',
+  'messages | collaboration.wall_contact':
+    'DÉFAUT NOMMÉ — clé orpheline dans les quatre langues depuis c4b6916 (« Besoin de plus ? ' +
+    'Contactez-nous. ») : aucun écran ne l’affiche, l’issue du mur passe par commerce.need_more_*. ' +
+    'Correctif : la retirer des quatre dictionnaires, en le disant (une suppression voulue n’est pas ' +
+    'une perte — M1 bis).',
+}
+const gele = (cle) => cle in GEL
+const defautsNommes = Object.values(GEL).filter((r) => r.startsWith('DÉFAUT NOMMÉ')).length
+
+const ECRANS = fichiers(RACINES_CLIENT)
+const ROUTES = routesApi()
+const MSG = messages()
+const lu = new Map(ECRANS.map((f) => [f, sansCommentaires(lire(f))]))
+
+section('1. Aucun bouton mort sur AUCUN mur — balayage de components/ + app/[locale]/')
+const fichiersAvecMur = ECRANS.filter((f) => murs(lu.get(f)).length > 0)
+info(`${ECRANS.length} fichiers client · ${fichiersAvecMur.length} portent un mur`)
+ok(fichiersAvecMur.length >= 2, 'au moins deux murs existent (dévoilement, sous-traitance)',
+  'zéro mur trouvé : la clé `wall_title` a changé de nom, ou le motif ne voit plus les murs')
+for (const f of fichiersAvecMur) {
+  for (const [i, mur] of murs(lu.get(f)).entries()) {
+    const nom = `${f.split('/').pop()}${i ? ` (mur ${i + 1})` : ''}`
+    ok(mur.issue !== null, `${nom} : le mur porte une ligne d’issue`,
+      'un mur sans issue est un cul-de-sac : ni bouton, ni contact, ni offre')
+    ok(!boutonMort(mur.bloc), `${nom} : aucun bouton dans le mur`,
+      "Un bouton qu'on ne peut pas cliquer promet une porte qui n'existe pas.")
   }
 }
-const section = (s) => console.log(`\n═══ ${s} ═══\n`)
 
-const CARTE = 'components/dashboard/SpotlightCandidateCard.tsx'
-const CARROUSEL = 'components/dashboard/CastingCarousel.tsx'
-const VUE = 'components/collaboration/SousTraitanceView.tsx'
-const DETAIL = 'components/collaboration/SousTraitanceDetailView.tsx'
-const QUOTA = 'app/api/me/collaboration/quota/route.ts'
-
-const messages = Object.fromEntries(
-  ['fr', 'en', 'es', 'de'].map((l) => [l, JSON.parse(read(`messages/${l}.json`))]),
-)
-const cle = (o, c) => c.split('.').reduce((x, k) => (x == null ? x : x[k]), o)
-
-console.log('\nLES MURS RESTENT DES MURS\n')
-
-// ─────────────────────────────────────────────────────────────────────────────
-section('0. Présence des artefacts')
-for (const f of [CARTE, CARROUSEL, VUE, DETAIL, QUOTA]) ok(exists(f), `${f} existe`)
-
-const carte = sansCommentaires(read(CARTE))
-const carrousel = sansCommentaires(read(CARROUSEL))
-const vue = sansCommentaires(read(VUE))
-const detail = sansCommentaires(read(DETAIL))
-const quota = sansCommentaires(read(QUOTA))
-
-// ─────────────────────────────────────────────────────────────────────────────
-section('1. Aucun bouton mort sur un mur')
-
-/**
- * Le bloc du mur de dévoilement, isolé du reste de la carte.
- *
- * Borné sur le bloc SUIVANT (`conversionMode === 'unlock'`), et non sur le
- * premier `</div>` : le mur en contient un à l'intérieur, et découper là
- * coupait avant la ligne d'issue — le contrôle criait au loup sur du code
- * correct. Cette borne-ci exclut bien les boutons du bloc « unlock », qui
- * viennent après.
- */
-const iMur = carte.search(/conversionMode === 'wall'/)
-const iSuivant = carte.search(/conversionMode === 'unlock'/)
-const mur =
-  iMur === -1 ? '' : carte.slice(iMur, iSuivant > iMur ? iSuivant : carte.length)
-ok(iMur !== -1, 'le mur de dévoilement existe dans la carte')
-ok(
-  !/<button/.test(mur),
-  'le mur ne contient AUCUN bouton',
-  "Il portait un bouton désactivé « Bientôt disponible » : un bouton qu'on ne peut pas cliquer promet une porte qui n'existe pas.",
-)
-ok(
-  !/aria-disabled/.test(mur) && !/cursor: 'not-allowed'/.test(mur),
-  'le mur ne simule pas une action indisponible',
-)
-ok(
-  /need_more_contact|need_more_upgrade/.test(mur),
-  'le mur porte une ligne d’issue plutôt qu’un bouton',
-)
-
-// ─────────────────────────────────────────────────────────────────────────────
-section('2. Le verrou vient du SERVEUR')
-
-ok(
-  /billingEnabled\(\)/.test(quota) && /billing_enabled/.test(quota),
-  'la route quota sert billing_enabled, calculé au serveur',
-)
-// Les TROIS points de sortie de la route doivent le porter : un écran servi par
-// une branche muette retomberait sur « fermé », mais autant qu'il soit dit.
-const sorties = (quota.match(/billing_enabled: billingEnabled\(\)/g) || []).length
-ok(sorties >= 3, `les ${sorties} points de sortie de la route portent le verrou`)
-
-ok(
-  /billingEnabled\?: boolean/.test(carte) && /billingEnabled\?: boolean/.test(carrousel),
-  'le verrou descend en PROP jusqu’à la carte',
-  'Une lecture par carte interrogerait le serveur autant de fois qu’il y a de candidats.',
-)
-ok(
-  !/secureFetch\([^)]*billing/.test(carte),
-  'la carte n’interroge pas le serveur elle-même',
-)
-
-// Aucune fuite publique, dans TOUT le code client.
-const fuites = [CARTE, CARROUSEL, VUE, DETAIL, QUOTA].filter((f) =>
-  /NEXT_PUBLIC_[A-Z_0-9]*(STRIPE|BILLING)/.test(read(f)),
-)
-ok(fuites.length === 0, 'aucune variable NEXT_PUBLIC_ de facturation', fuites.join(', '))
-
-// ─────────────────────────────────────────────────────────────────────────────
-section('3. FERMÉ par défaut, à chaque étage')
-
-ok(
-  /billingEnabled === true/.test(carte),
-  'la carte teste `=== true` (une prop absente vaut FERMÉ)',
-  "`undefined` ne doit jamais ouvrir un chemin de paiement.",
-)
-for (const [nom, src] of [['SousTraitanceView', vue], ['SousTraitanceDetailView', detail]]) {
-  ok(
-    /useState\(false\)/.test(src) || /useState<boolean>\(false\)/.test(src),
-    `${nom} initialise le verrou à FERMÉ`,
-  )
-  ok(
-    /billing_enabled === true/.test(src),
-    `${nom} n’ouvre que sur un \`=== true\` explicite`,
-  )
+// ══════════════════════════════════════════════════════════════════════════
+section('2. Le verrou vient du SERVEUR — les routes qui le servent, et les écrans qui les appellent')
+const routesDuVerrou = ROUTES.filter((r) => /\bbilling_enabled\s*:/.test(sansCommentaires(lire(r.rel))))
+info(`${ROUTES.length} routes · ${routesDuVerrou.length} servent \`billing_enabled\``)
+ok(routesDuVerrou.length >= 1, 'au moins une route sert le verrou', 'aucune route ne rend `billing_enabled` : l’UI ne peut plus l’apprendre du serveur')
+for (const r of routesDuVerrou) {
+  const src = sansCommentaires(lire(r.rel))
+  const valeurs = [...src.matchAll(/\bbilling_enabled\s*:\s*([^,}\n]+)/g)].map((m) => m[1].trim())
+  ok(valeurs.every((v) => /^billingEnabled\(\)$/.test(v)), `${r.rel} : chaque \`billing_enabled\` vaut \`billingEnabled()\` — calculé au serveur`,
+    `trouvé : ${valeurs.join(' ; ')}`)
+  const lecteurs = consommateurs(r.chemin, ECRANS)
+  for (const e of lecteurs) {
+    ok(/\bbilling_enabled\s*===\s*true\b/.test(lu.get(e)) || !/\bbilling_enabled\b/.test(lu.get(e)),
+      `${e.split('/').pop()} (appelle ${r.chemin}) lit le verrou en \`=== true\` — ou ne le lit pas`,
+      'une lecture par vérité simple ouvrirait sur `undefined`')
+  }
 }
-// Un quota illisible ne doit pas ouvrir.
-ok(
-  /setBillingEnabled\(false\)/.test(detail),
-  'un quota illisible referme le verrou',
-  "Best-effort sur les droits, oui — mais pas sur l'ouverture d'un chemin de paiement.",
-)
+// Aucune fuite publique, dans TOUT le code — serveur compris.
+const fuites = fichiers(['app', 'lib', 'components']).filter((f) => /NEXT_PUBLIC_[A-Z_0-9]*(STRIPE|BILLING)/.test(sansCommentaires(lire(f))))
+ok(fuites.length === 0, 'aucune variable NEXT_PUBLIC_ de facturation, nulle part', fuites.join(', ') || undefined)
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════
+section('3. FERMÉ par défaut — partout où le verrou est lu')
+const lecteursDuVerrou = ECRANS.filter((f) => /\bbilling_enabled\b|\bbillingEnabled\b/.test(lu.get(f)))
+info(`${lecteursDuVerrou.length} fichiers client lisent le verrou`)
+for (const f of lecteursDuVerrou) {
+  const src = lu.get(f)
+  const nues = lecturesNonFermees(src)
+  ok(nues.length === 0, `${f.split('/').pop()} : toute lecture du champ serveur est \`=== true\``, nues.join(' | ') || undefined)
+  ok(!ouvertParIgnorance(src), `${f.split('/').pop()} : aucune forme ouverte par ignorance (\`?? true\`, \`!== false\`, \`useState(true)\`)`)
+  // Un état local qui porte le verrou naît fermé, et un quota illisible le referme.
+  if (/setBillingEnabled\(/.test(src)) {
+    ok(/\[billingEnabled, setBillingEnabled\] = useState(?:<boolean>)?\(false\)/.test(src), `${f.split('/').pop()} : l’état local du verrou naît FERMÉ`)
+    const referme = /setBillingEnabled\(false\)/.test(src)
+    if (!referme && gele(`${f} | referme`)) info(`${f.split('/').pop()} : ne referme pas — GELÉ, ${GEL[`${f} | referme`].slice(0, 12)}…`)
+    else ok(referme, `${f.split('/').pop()} : un quota illisible REFERME le verrou`,
+      "Best-effort sur les droits, oui — mais pas sur l'ouverture d'un chemin de paiement.")
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 section('4. L’issue bascule avec le verrou')
-
-for (const [nom, src] of [['la carte', carte], ['SousTraitanceView', vue]]) {
-  ok(
-    /need_more_upgrade/.test(src) && /need_more_contact/.test(src),
-    `${nom} porte les DEUX libellés d’issue`,
-    'Un seul libellé, et le jour de l’ouverture il faudrait revenir modifier l’écran.',
-  )
+for (const f of fichiersAvecMur) {
+  const src = lu.get(f)
+  ok(/need_more_upgrade/.test(src) && /need_more_contact/.test(src), `${f.split('/').pop()} porte les DEUX libellés d’issue`,
+    'Un seul libellé, et le jour de l’ouverture il faudrait revenir modifier l’écran.')
 }
 for (const c of ['commerce.need_more_contact', 'commerce.need_more_upgrade']) {
-  const manquantes = ['fr', 'en', 'es', 'de'].filter((l) => typeof cle(messages[l], c) !== 'string')
-  ok(manquantes.length === 0, `${c} : 4 langues`, manquantes.join(', '))
+  const manquantes = localesManquantes(MSG, c)
+  ok(manquantes.length === 0, `${c} : 4 langues`, manquantes.join(', ') || undefined)
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-section('5. Aucune clé orpheline')
-
-// Les clés du mur retirées de l'écran doivent l'être aussi des traductions :
-// une clé que plus personne n'affiche est du texte qu'on maintiendra pour rien.
-const sourceComplete = read(CARTE) + read(CARROUSEL) + read(VUE) + read(DETAIL)
-for (const k of ['wall_cta', 'wall_cta_hint']) {
-  const dansTraductions = ['fr', 'en', 'es', 'de'].some((l) =>
-    JSON.stringify(messages[l]).includes(`"${k}"`),
-  )
-  const dansCode = sourceComplete.includes(`'${k}'`)
-  ok(
-    !dansTraductions && !dansCode,
-    `« ${k} » a disparu du code ET des 4 traductions`,
-    dansTraductions ? 'encore dans les traductions' : 'encore dans le code',
-  )
+// ══════════════════════════════════════════════════════════════════════════
+section('5. Aucune clé de mur orpheline — dans les deux sens')
+const CLES_MUR = clesPlates(MSG.fr).filter((k) => /(^|\.)wall_[a-z_]+$/.test(k))
+const codeClient = [...lu.values()].join('\n')
+info(`${CLES_MUR.length} clés \`wall_*\` dans les traductions`)
+for (const k of CLES_MUR) {
+  const feuille = k.split('.').pop()
+  const affichee = new RegExp(`['"]${feuille}['"]`).test(codeClient)
+  if (!affichee && gele(`messages | ${k}`)) info(`« ${k} » n’est affichée nulle part — GELÉ, ${GEL[`messages | ${k}`].slice(0, 12)}…`)
+  else ok(affichee, `« ${k} » est affichée par un écran`,
+    'une clé que plus personne n’affiche est du texte qu’on maintiendra pour rien')
+  const manquantes = localesManquantes(MSG, k)
+  ok(manquantes.length === 0, `« ${k} » : 4 langues`, manquantes.join(', ') || undefined)
 }
-// Et les clés encore affichées doivent exister.
-for (const k of ['candidatures.card.wall_title', 'candidatures.card.wall_body']) {
-  ok(typeof cle(messages.fr, k) === 'string', `${k} existe toujours`)
+for (const feuille of new Set([...codeClient.matchAll(/['"](wall_[a-z_]+)['"]/g)].map((m) => m[1]))) {
+  ok(CLES_MUR.some((k) => k.endsWith(`.${feuille}`)), `« ${feuille} » (citée par un écran) existe dans les traductions`)
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════
 section('6. Aucun chiffre commercial dans un mur')
-
-const CHIFFRE = /\b\d+\s*(profil|candidat|dévoilement|annonce|publication|reveal|listing)/i
-for (const l of ['fr', 'en', 'es', 'de']) {
-  for (const k of ['candidatures.card.wall_body', 'collaboration.wall_body']) {
-    const txt = String(cle(messages[l], k) ?? '')
-    ok(
-      !CHIFFRE.test(txt),
-      `${k} [${l}] : aucune quantité écrite en dur`,
-      `« ${txt} » — un quota recopié ment dès qu'on le règle au back-office.`,
-    )
+const CHIFFRE = /\b\d+\s*(profil|candidat|dévoilement|annonce|publication|reveal|listing|Anzeige|anuncio|Kandidat|perfil)/i
+for (const l of LOCALES) {
+  for (const k of CLES_MUR) {
+    const txt = String(lireCle(MSG[l], k) ?? '')
+    ok(!CHIFFRE.test(txt), `${k} [${l}] : aucune quantité écrite en dur`,
+      `« ${txt} » — un quota recopié ment dès qu'on le règle au back-office.`)
   }
 }
 
-console.log(
-  failures === 0
-    ? '\nRÉSULTAT : tout est vert. Les murs restent des murs, et aucun n’est mort.\n'
-    : `\nRÉSULTAT : ${failures} contrôle(s) en échec.\n`,
-)
-process.exit(failures === 0 ? 0 : 1)
+// Le gel ne dort pas : une entrée dont le défaut a disparu doit sortir du gel.
+section('GEL — relu à chaque exécution')
+ok(!/setBillingEnabled\(false\)/.test(lu.get('components/collaboration/SousTraitanceView.tsx') ?? 'setBillingEnabled(false)') || !gele('components/collaboration/SousTraitanceView.tsx | referme'),
+  'l’entrée « SousTraitanceView ne referme pas » est encore vraie — sinon la retirer du gel')
+ok(!CLES_MUR.includes('collaboration.wall_contact') ? !gele('messages | collaboration.wall_contact') : true,
+  'l’entrée « wall_contact orpheline » est encore vraie — sinon la retirer du gel')
+// Pas de `\b` après un « É » : hors drapeau `u`, un caractère accentué n'est pas
+// un caractère de mot en JS, et « DÉFAUT NOMMÉ » ne passait jamais.
+ok(Object.values(GEL).every((r) => /^(LÉGITIME|DÉFAUT NOMMÉ)( |$)/.test(r)), 'chaque raison du gel commence par LÉGITIME ou DÉFAUT NOMMÉ (§G.8)')
+info(`${defautsNommes} DÉFAUT(S) NOMMÉ(S) au gel — lus, pas acquittés, rendus à l’arbitrage`)
+
+fin(`Les murs restent des murs, et aucun n’est mort — sur tout le périmètre. ${defautsNommes} défaut(s) nommé(s) attendent un arbitrage.`)

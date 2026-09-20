@@ -1433,6 +1433,18 @@ fixtures et sa campagne ; seul le *où chercher* est mis en commun.
 | Contrôle | Avant | Après | Ce que le balayage a trouvé que le nom cachait |
 |---|---|---|---|
 | `score-de-pertinence` | 2 routes + 4 vues nommées | **136 routes, 188 fichiers client** ; le palier exigé sur *toute* route qui ordonne par le score ou le sélectionne, **au moins deux** | rien de rouge sur le code — mesuré, pas supposé. **Mais la campagne a trouvé un trou dans le MOTIF** : `(r as X).relevance_score` passait vert (le motif exigeait un identifiant devant le point). 7 mutations : 5 détectées, 2 déplacements de fichier tus (§E.34) |
+| `murs-fermes` | 5 composants nommés | **188 fichiers client, 136 routes** ; les murs trouvés par la clé qui les nomme (`wall_title`), les lecteurs du verrou par le champ qu’ils lisent (`billing_enabled`), les écrans par le chemin de la route qu’ils appellent | **deux défauts nommés, gelés** : `SousTraitanceView` ne referme pas le verrou sur un quota illisible (le jumeau `DetailView` le fait — §E.20, non rétroporté) ; `collaboration.wall_contact`, clé orpheline dans les quatre langues depuis `c4b6916`. Et un **troisième appelant** de la route quota est apparu (`SousTraitanceListView`) |
+> **LE RÉSOLVEUR A RENDU ZÉRO APPELANT PARTOUT, ET UN CONTRÔLE « POUR CHAQUE APPELANT » EST PASSÉ
+> VERT.** `routesApi()` construisait `/app/api/x/[id]/y` au lieu de `/api/x/[id]/y` : aucun écran
+> n’appelle ce chemin, `consommateurs()` rendait `[]`, et la boucle « chaque écran qui appelle la
+> route lit le verrou en `=== true` » n’a rien vérifié — en vert. C’est §E.33 ④ sous une autre
+> forme : **une boucle sur un ensemble vide est une preuve à vide.** Ce qui l’a révélé n’est pas
+> `murs-fermes`, c’est `refus-actionnables`, qui exige qu’une route émettrice ait **au moins un**
+> appelant — et a rougi. **Tout balayage qui itère sur un ensemble découvert affirme d’abord que
+> l’ensemble n’est pas vide** : c’est la ligne qui distingue « rien à redire » de « rien regardé ».
+> Second défaut du même commit : `/^(DÉFAUT NOMMÉ)\b/` ne matchait jamais — hors drapeau `u`, un
+> `É` n’est pas un caractère de mot en JS, donc pas de frontière après lui.
+
 
 
 ---

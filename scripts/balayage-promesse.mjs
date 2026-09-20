@@ -60,7 +60,10 @@ export function fichiers(racines, motif = /\.tsx?$/) {
 export function routesApi() {
   return fichiers(['app/api'], /route\.ts$/).map((rel) => ({
     rel,
-    chemin: '/' + rel.replace(/\/route\.ts$/, ''),
+    // `app/api/x/[id]/y/route.ts` → `/api/x/[id]/y`. La première version gardait
+    // `app/` : aucun écran n'appelle `/app/api/…`, le résolveur rendait ZÉRO
+    // appelant partout, et un contrôle « pour chaque appelant » passait à vide.
+    chemin: rel.replace(/^app/, '').replace(/\/route\.ts$/, ''),
   }))
 }
 
