@@ -64,7 +64,20 @@ export async function POST(request: NextRequest): Promise<Response> {
     .select('deletion_scheduled_at, anonymized_at, user_type')
     .eq('id', auth.user.id)
     .maybeSingle()
-  if (userErr || !userRow) {
+  // Même lecture, même classe que `reactivate` (§E.42) : une panne devenait
+  // « vous n'existez pas », ici sur le chemin RGPD. 503 sur la panne, 404 sur
+  // l'absence réelle — les deux causes ne se réparent pas pareil (§E.29).
+  if (userErr) {
+    console.error('[me/account/delete] compte ILLISIBLE — suppression non programmée', {
+      userId: auth.user.id,
+      message: userErr.message,
+    })
+    return json(
+      { error: 'Could not read the account', code: 'compte_verification_indisponible' },
+      503,
+    )
+  }
+  if (!userRow) {
     return json({ error: 'User not found', code: 'user_missing' }, 404)
   }
   if (userRow.anonymized_at) {

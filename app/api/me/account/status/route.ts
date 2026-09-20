@@ -25,7 +25,17 @@ export async function GET(request: NextRequest): Promise<Response> {
     .select('deletion_scheduled_at, anonymized_at')
     .eq('id', auth.user.id)
     .maybeSingle()
-  if (error || !userRow) {
+  // L'écran de grâce lit ce statut pour décider quoi afficher. Une panne rendue
+  // 404 se lisait « compte actif » (§E.42) — l'écran doit pouvoir dire « je ne
+  // sais pas », donc le code doit le lui dire.
+  if (error) {
+    console.error('[me/account/status] compte ILLISIBLE', { userId: auth.user.id, message: error.message })
+    return new Response(
+      JSON.stringify({ error: 'Could not read the account', code: 'compte_verification_indisponible' }),
+      { status: 503, headers: { 'content-type': 'application/json' } },
+    )
+  }
+  if (!userRow) {
     return new Response(JSON.stringify({ error: 'User not found', code: 'user_missing' }), {
       status: 404,
       headers: { 'content-type': 'application/json' },

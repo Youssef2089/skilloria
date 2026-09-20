@@ -283,7 +283,14 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
       userId: userInfo.user.id,
       msg: userErr.message,
     })
-    throw new AuthError(403, { error: 'User not found', code: 'user_lookup_failed' })
+    // ⚠️ C’ÉTAIT UN 403, ET C’EST LA RACINE DE TOUTE LA FAMILLE A DE §E.42.
+    //    Le JWT est valide — la personne EST authentifiée — et une lecture de
+    //    `users` en panne répondait « interdit » sur CHAQUE route gardée. Le
+    //    code distinguait déjà la panne de l’absence (`user_lookup_failed` /
+    //    `user_missing`) ; le STATUT, lui, ne le faisait pas. 503 : la même
+    //    requête, une minute plus tard, réussit — un 403 se lit comme un droit
+    //    perdu, et se garde en cache.
+    throw new AuthError(503, { error: 'Could not read the account', code: 'compte_verification_indisponible' })
   }
   if (!userRow) {
     throw new AuthError(403, { error: 'User not found', code: 'user_missing' })

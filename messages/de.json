@@ -3457,7 +3457,8 @@
       "warning_immediate": "Ihr Konto wird deaktiviert, Sie verschwinden aus dem Matching und werden abgemeldet.",
       "warning_delayed_label": "Nach 90 Tagen:",
       "warning_delayed": "Ihre personenbezogenen Daten werden endgültig anonymisiert. Vor diesem Termin können Sie Ihr Konto jederzeit durch erneute Anmeldung reaktivieren.",
-      "error_last_platform_admin": "Sie sind der letzte Administrator der Plattform. Ernennen Sie eine andere Person als Administrator, bevor Sie Ihr Konto löschen."
+      "error_last_platform_admin": "Sie sind der letzte Administrator der Plattform. Ernennen Sie eine andere Person als Administrator, bevor Sie Ihr Konto löschen.",
+      "error_indisponible": "Das Lesen Ihres Kontos ist fehlgeschlagen. Die Löschung wurde nicht geplant – nichts hat sich geändert. Bitte versuchen Sie es gleich erneut."
     },
     "reauth": {
       "title": "Bestätige deine Identität",
@@ -3484,7 +3485,11 @@
       "need_login_button": "Erneut anmelden",
       "blocked_title": "Ihr Profil kann so nicht wieder veröffentlicht werden",
       "blocked_body": "Ihr Konto ist reaktiviert, doch Ihr Profil bleibt verborgen, solange es unvollständig ist. Ergänzen Sie Folgendes und schalten Sie es dann in Ihrem Profil sichtbar:",
-      "reactivate_failed": "Die Reaktivierung ist nicht durchgegangen. Bitte versuchen Sie es gleich erneut."
+      "reactivate_failed": "Die Reaktivierung ist nicht durchgegangen. Bitte versuchen Sie es gleich erneut.",
+      "indisponible_title": "Ihr Kontostatus konnte nicht gelesen werden",
+      "indisponible_body": "Das ist kein Urteil über Ihr Konto: die Abfrage ist fehlgeschlagen. Nichts hat sich geändert – weder Löschung noch Reaktivierung. Bitte versuchen Sie es gleich erneut.",
+      "indisponible_retry": "Erneut versuchen",
+      "reactivate_indisponible": "Die Reaktivierung konnte nicht geprüft werden: das Lesen Ihres Kontos ist fehlgeschlagen. Sie wurde weder durchgeführt noch abgelehnt – bitte versuchen Sie es gleich erneut. Ihre Frist läuft weiter."
     }
   },
   "invitation_public": {

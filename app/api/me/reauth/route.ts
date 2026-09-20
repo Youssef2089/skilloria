@@ -58,7 +58,17 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   const { data: liveUser, error: liveErr } = await auth.supabaseAdmin.auth.getUser(accessToken)
   const email = liveUser?.user?.email
-  if (liveErr || !email) {
+  // `auth.getUser` en panne n'est pas un compte absent : 503, et l'écran dit
+  // déjà « erreur serveur » sur tout ce qui n'est pas 401 — il ne dira plus
+  // « introuvable » d'un compte connecté (§E.42).
+  if (liveErr) {
+    console.error('[me/reauth] compte ILLISIBLE côté Auth', { userId: auth.user.id, message: liveErr.message })
+    return json(
+      { error: 'Could not read the account', code: 'compte_verification_indisponible' },
+      503,
+    )
+  }
+  if (!email) {
     return json({ error: 'User not found', code: 'user_missing' }, 404)
   }
 

@@ -470,7 +470,9 @@ function DeletionSection({ secureFetch, requestReauth, notify }: {
         notify(
           payload?.code === 'last_platform_admin'
             ? t('error_last_platform_admin')
-            : t('error_failed'),
+            : payload?.code === 'compte_verification_indisponible'
+              ? t('error_indisponible')
+              : t('error_failed'),
           'error',
         )
         setBusy(false)

@@ -3457,7 +3457,8 @@
       "warning_immediate": "ton compte est désactivé, tu disparais du matching et tu es déconnecté.",
       "warning_delayed_label": "Au bout de 90 jours :",
       "warning_delayed": "tes données personnelles sont définitivement anonymisées. Avant cette échéance, tu peux réactiver ton compte à tout moment en te reconnectant.",
-      "error_last_platform_admin": "Vous êtes le dernier administrateur de la plateforme. Nommez un autre administrateur avant de supprimer votre compte."
+      "error_last_platform_admin": "Vous êtes le dernier administrateur de la plateforme. Nommez un autre administrateur avant de supprimer votre compte.",
+      "error_indisponible": "La lecture de votre compte a échoué. La suppression n’a pas été programmée — rien n’a changé. Réessayez dans quelques instants."
     },
     "reauth": {
       "title": "Confirme ton identité",
@@ -3484,7 +3485,11 @@
       "need_login_button": "Se reconnecter",
       "blocked_title": "Votre profil ne peut pas être republié en l’état",
       "blocked_body": "Votre compte est réactivé, mais votre profil reste masqué tant qu’il est incomplet. Complétez ce qui suit, puis rendez-le visible depuis votre profil :",
-      "reactivate_failed": "La réactivation n’a pas abouti. Réessayez dans un instant."
+      "reactivate_failed": "La réactivation n’a pas abouti. Réessayez dans un instant.",
+      "indisponible_title": "Nous n’avons pas pu lire l’état de votre compte",
+      "indisponible_body": "Ce n’est pas un verdict sur votre compte : la lecture a échoué. Rien n’a changé — ni suppression, ni réactivation. Réessayez dans quelques instants.",
+      "indisponible_retry": "Réessayer",
+      "reactivate_indisponible": "La réactivation n’a pas pu être vérifiée : la lecture de votre compte a échoué. Elle n’a été ni faite ni refusée — réessayez dans quelques instants. Votre période de grâce court toujours."
     }
   },
   "invitation_public": {

@@ -52,7 +52,24 @@ export async function POST(request: NextRequest): Promise<Response> {
     .select('deletion_scheduled_at, anonymized_at')
     .eq('id', auth.user.id)
     .maybeSingle()
-  if (userErr || !userRow) {
+  // ⚠️ LA SEULE IRRÉVERSIBLE DE LA CLASSE. Cette personne ANNULE sa suppression :
+  //    la fenêtre de grâce court, et on lui répondait 404 « User not found » sur
+  //    une lecture en panne — « vous n’existez pas », dit à quelqu’un que
+  //    `requireAuth` vient d'authentifier. Le jour où la fenêtre expire, la purge
+  //    s'exécute sur quelqu'un qui a essayé de l'annuler et qu'on a renvoyé.
+  //    Le refus reste (on ne réactive pas un compte qu’on n’a pas su lire) ; le
+  //    STATUT change : 503, qui se réessaie, jamais 404, qui se croit (§E.42).
+  if (userErr) {
+    console.error('[me/account/reactivate] compte ILLISIBLE — réactivation ni faite ni refusée', {
+      userId: auth.user.id,
+      message: userErr.message,
+    })
+    return json(
+      { error: 'Could not read the account', code: 'compte_verification_indisponible' },
+      503,
+    )
+  }
+  if (!userRow) {
     return json({ error: 'User not found', code: 'user_missing' }, 404)
   }
   // Trop tard : déjà purgé/anonymisé → irréversible.

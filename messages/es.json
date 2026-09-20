@@ -3457,7 +3457,8 @@
       "warning_immediate": "tu cuenta se desactiva, desapareces del emparejamiento y se cierra tu sesión.",
       "warning_delayed_label": "A los 90 días:",
       "warning_delayed": "tus datos personales se anonimizan de forma definitiva. Antes de esa fecha, puedes reactivar tu cuenta en cualquier momento volviendo a iniciar sesión.",
-      "error_last_platform_admin": "Eres el último administrador de la plataforma. Nombra a otro administrador antes de eliminar tu cuenta."
+      "error_last_platform_admin": "Eres el último administrador de la plataforma. Nombra a otro administrador antes de eliminar tu cuenta.",
+      "error_indisponible": "La lectura de su cuenta ha fallado. La eliminación no se ha programado; nada ha cambiado. Inténtelo de nuevo en unos instantes."
     },
     "reauth": {
       "title": "Confirma tu identidad",
@@ -3484,7 +3485,11 @@
       "need_login_button": "Volver a iniciar sesión",
       "blocked_title": "Tu perfil no puede volver a publicarse tal cual",
       "blocked_body": "Tu cuenta está reactivada, pero tu perfil permanece oculto mientras esté incompleto. Completa lo siguiente y luego hazlo visible desde tu perfil:",
-      "reactivate_failed": "La reactivación no se ha completado. Inténtalo de nuevo en un momento."
+      "reactivate_failed": "La reactivación no se ha completado. Inténtalo de nuevo en un momento.",
+      "indisponible_title": "No hemos podido leer el estado de su cuenta",
+      "indisponible_body": "No es un veredicto sobre su cuenta: la consulta ha fallado. Nada ha cambiado, ni eliminación ni reactivación. Inténtelo de nuevo en unos instantes.",
+      "indisponible_retry": "Reintentar",
+      "reactivate_indisponible": "No se ha podido verificar la reactivación: la lectura de su cuenta ha fallado. No se ha realizado ni rechazado; inténtelo de nuevo en unos instantes. Su periodo de gracia sigue corriendo."
     }
   },
   "invitation_public": {

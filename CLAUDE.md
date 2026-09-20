@@ -558,7 +558,7 @@ bloquant, ordonnés avec les quatorze défauts nommés du gel 4.1d :
 | [E.39](docs/pieges.md#e39) | LA GARDE TESTE `X`, L'ACTION CONSOMME `f(X)` : §E.36 À L'INTÉRIEUR D'UNE SEULE FONCTION. |
 | [E.40](docs/pieges.md#e40) | UNE FENÊTRE DE VOISINAGE MESURE LA DISTANCE AU TRAITEMENT, PAS SON ABSENCE. |
 | [E.41](docs/pieges.md#e41) | LES TROIS PHRASES DU LOT 4.1d. Chacune tient parce qu'elle a un cas MESURÉ derrière. |
-| [E.42](docs/pieges.md#e42) | `if (err || !x)` : LA GARDE QUI CONFOND LA PANNE ET L'ABSENCE. 18 verdicts métier, MESURÉS. |
+| [E.42](docs/pieges.md#e42) | LA CLASSE VOISINE : UNE LECTURE EN ÉCHEC REND UN VERDICT MÉTIER, ET LE STATUT HTTP LE REND DÉFINITIF. |
 | [E.43](docs/pieges.md#e43) | UNE RÉTROGRADATION NE SE DÉCIDE PAS SUR UN ÉTAT QU'ON N'A PAS LU. |
 | [E.44](docs/pieges.md#e44) | UN CONSTAT PÉRISSABLE NE SE PERSISTE PAS : IL SE REJOUE. UN ÉVÉNEMENT DATÉ, SI. |
 | [E.45](docs/pieges.md#e45) | UNE COLLISION QUI NE PRODUIT PAS DE CONFLIT EST PIRE QU'UNE QUI EN PRODUIT. |

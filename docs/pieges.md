@@ -1326,6 +1326,16 @@ fichier retrouve toujours un `return` plus bas, et déclare incomplète une muta
 CRLF, échappement du shell, portée d’une regex — §E.3 et §E.8 valent **dans les scripts de
 mutation**, pas seulement dans les diagnostics.
 
+> **④ — LA QUATRIÈME OCCURRENCE, LA PLUS BÊTE, DONC LA PLUS PROBABLE.** En éprouvant le motif de
+> §E.42, le banc appelait `eprouve(label, cond)` avec les arguments **inversés** : la condition
+> testée était la **chaîne du libellé**, toujours vraie. **Trois preuves passaient à vide** — le
+> banc affichait `ok false`, et il fallait le lire pour voir que le mot après `ok` était la
+> valeur de la condition. Un banc vert qui ne prouve rien **vaut moins qu’aucun banc : il
+> autorise à se croire.** Ce qui l’a révélé n’est pas la relecture, c’est la sortie : un `ok`
+> suivi de `false` ne se lit pas comme un succès quand on regarde la ligne. **La première ligne
+> d’un banc à écrire est celle qui le fait échouer** — sur la fixture du défaut, avant la fixture
+> du correctif.
+
 **Corollaire, payé le même jour : le nombre de contrôles rejoués compte aussi.** Les cinq rouges
 avaient été trouvés en rejouant une liste choisie. En rejouant **les 77 `diag-*` du dépôt**, un
 **sixième** est apparu — `diag-ecran-seuils`, cassé par la réécriture de `/admin/seuils` — plus une
@@ -1699,32 +1709,80 @@ parce que les quatre répondent à la **même question** : elles échouent ensem
 > partagent **un seul drapeau**. *On ne multiplie pas les états quand l'action à mener est la même.*
 
 <a id="e42"></a>
-### E.42 — `if (err || !x)` : LA GARDE QUI CONFOND LA PANNE ET L'ABSENCE. 18 verdicts métier, MESURÉS.
+### E.42 — LA CLASSE VOISINE : UNE LECTURE EN ÉCHEC REND UN VERDICT MÉTIER, ET LE STATUT HTTP LE REND DÉFINITIF.
 
-C'est **§E.22 ④** — « cet utilisateur n'existe pas », dit d'un compte réel — mais sous une forme
-que le recensement de la classe **ne cherche pas** : rien n'est converti en valeur neutre, la
-branche d'erreur **sort** correctement. Ce qui ment est le **statut** qu'elle rend.
+**Ce n’est pas §E.22, et la différence est ce qui la rend dangereuse.** Dans §E.22 la valeur est
+**neutre** — `null`, `[]`, `0` — et le défaut naît chez l’appelant qui la lit comme un fait. Ici
+la valeur n’est pas neutre : **elle est FAUSSE, et elle porte une AUTORITÉ** — un **404** (« cet
+objet n’existe pas ») ou un **403** (« vous n’y avez pas droit ») rendu sur une **lecture en**
+**panne**. « Introuvable » dit d’un objet qui existe. « Interdit » dit d’un membre légitime.
 
-**Mesuré le 20/09/2026** sur `app/` + `lib/` + `components/` : **49 occurrences** de
-`if (<erreur> || !<donnée>)` sur 39 fichiers.
+**Pourquoi le statut compte plus que le message.** Un 404 **se met en cache**, **se redirige**, et
+**se lit par le navigateur comme un fait** — l’écran affiche sa page « introuvable », le client
+cesse de réessayer, l’utilisateur cherche ailleurs. Un 503, lui, dit *réessayez* — et la même
+requête, une minute plus tard, réussit. **Le refus est le même ; c’est sa durée de vie qui change.**
 
-| Statut rendu | Nombre | Verdict |
+**LE CAS QUI A DÉCIDÉ DE L’ORDRE — `me/account/reactivate:55`, la seule irréversible.** Une personne
+**annule sa suppression**. La lecture de son compte échoue ; la route répond 404 « User not found »
+à quelqu’un que `requireAuth` vient d’authentifier. La fenêtre de grâce **court pendant qu’on lui
+dit qu’elle n’existe pas** — et le jour où elle expire, **la purge s’exécute sur quelqu’un qui a
+essayé de l’annuler et qu’on a renvoyé.**
+
+**ET LA RACINE ÉTAIT DANS `requireAuth` LUI-MÊME** (`lib/auth-guard.ts`) : une lecture de `users` en
+panne levait **403 `user_lookup_failed`** — le code distinguait déjà la panne de l’absence
+(`user_lookup_failed` / `user_missing`), **le statut ne le faisait pas**. Toute route gardée héritait
+donc d’un « interdit » sur une panne. C’est §E.22 ① (`loadOrganizationContext`, 403
+`no_organization`) **sur la lecture d’à côté** — deux lignes plus haut dans le même fichier.
+
+**LA MÉTHODE, ET POURQUOI `if (err || !x)` NE SUFFISAIT PAS.** C’est une **forme**, et elle rate la
+moitié de la classe : celle où l’erreur n’est **même pas dans la condition**, parce qu’elle a été
+**avalée en amont** et que la garde ne voit plus qu’un `!x`. On part donc de la **garde**, pas du
+refus : chaque `if (…)` (parenthèses équilibrées), son bloc (comptage d’accolades, §E.8), *rend-il*
+*404/403 ?*, puis la condition — nomme-t-elle l’erreur d’une **lecture** (CONFONDUE) ? teste-t-elle
+`!x` où `x` sort d’une lecture dont l’erreur n’est pas prise (**AVALÉE EN AMONT**) ?
+
+> **LE DÉFAUT VIT UN SAUT PLUS LOIN QUE LA FORME.** La garde teste `!invitation`, mais `invitation`
+> n’est pas ce qui sort de la lecture : `const { data } = await admin…` puis `invitation = data ??`
+> `null`. Un résolveur sans saut rendait **zéro sur le défaut même** que le recensement existe pour
+> trouver. C’est la leçon du `select` non littéral et de la constante rendue par une fonction
+> (§E.32) : **on suit un saut de réaffectation — un seul, et c’est déclaré.**
+
+**MESURÉ le 20/09/2026** sur `app/` + `lib/` + `components/` : **151 gardes rendant 404/403** —
+26 CONFONDUE, 54 erreur prise ailleurs, 71 hors classe. Réconcilié avec le premier compte (49
+occurrences de `if (err || !x)`, 18 verdicts) : les 18 sont un sous-ensemble des 26, et le
+nouveau motif **résout deux des treize « sans statut HTTP »** (`new Response(…, {status:404})`, et
+un statut porté dans un objet de retour).
+
+| Verdict | Nombre | |
 |---|---|---|
-| **404** | **15** | « cet objet n'existe pas » — **ment** sur une panne de lecture |
-| **403** | **3** | « vous n'y avez pas droit » — **ment** de même |
-| 500 / 409 / 401 | 17 | **légitimes** : une panne EST une panne serveur, le motif ne ment pas |
-| autres (pas de statut HTTP) | 13 | hors routes API — à lire séparément |
+| **Défauts** | **20** (+ la racine `requireAuth`) | trois familles : le **compte** authentifié déclaré inexistant (7), le **profil** expert déclaré inexistant (9), l’**objet** métier déclaré inexistant (4) |
+| Faux positifs du motif | 5 | voir ci-dessous — **une forme légitime, nommée** |
+| Légitime, avec réserve | 1 | `invitations/resolve:52` |
+| Aucun fail-open | 0 | **structurel** : la classe est définie par un refus |
 
-**Les dix-huit sont NOMMÉS, pas corrigés dans ce lot** : huit vivent dans le périmètre 4.1d
-(`app/api/profile/**` ×6, `app/api/candidatures` ×2), les dix autres dans des périmètres déjà
-clos (`register-org`, `me/account`, `me/reauth`, `me/missions`, `me/sync-matching`,
-`me/invitations`). **Les rouvrir sans arbitrage serait élargir un lot tout seul.**
+**LA FORME LÉGITIME QUE LE MOTIF NE SAIT PAS LIRE — une RPC qui rend son motif dans son message.**
+`cron-jobs/run`, `schedule`, `toggle` ×2 et `package-default` rendent 404 **uniquement** si le message
+de la RPC contient `cron_job_not_found` / `package_not_found`. **L’erreur PORTE le fait métier :**
+**c’est un contrat, pas une panne.** L’échec générique, lui, rend 503/500. Le motif voit « la
+condition nomme une erreur » et ne lit pas le `msg.includes(…)` imbriqué. Ces cinq sont **rangés**
+avec leur raison dans le contrôle, pas corrigés — et la forme est ajoutée à §E.38 ③.
 
-**Comment ils ont été trouvés, et c'est la leçon de méthode** : en lisant les cinq emplacements que
-la **fenêtre** de §E.40 faisait entrer et sortir. Les cinq étaient des faux positifs — et quatre
-d'entre eux cachaient, deux lignes plus bas, un défaut d'une **autre** classe. *Une mesure dit où
-regarder ; elle ne dit jamais quoi décider.*
+**`invitations/resolve:52` — réponse volontairement UNIFORME, et on ne la rouvre pas.** Un attaquant
+qui sonde des jetons ne doit pas distinguer « invalide » de « expiré » de « lecture en panne » : c’est
+une décision de sécurité juste. **Mais le silence vers l’extérieur ne justifie pas le silence vers**
+**l’intérieur** : la panne est désormais **journalisée côté exploitant**, sans rien changer à ce que
+l’attaquant voit.
 
+**UN SEUL CODE PAR NATURE, 503, JAMAIS 404 NI 403 :** `compte_verification_indisponible` (une
+lecture de `users`), `profil_verification_indisponible` (une lecture de `profiles` — il existait,
+réutilisé), `objet_verification_indisponible` (l’annonce, le suivi d’analyse), et
+`ecosysteme_indisponible` (réutilisé) pour l’inscription. **Le motif honnête arrive jusqu’à
+l’écran** : l’écran de réactivation a une vue « je ne sais pas », qui n’est ni « actif » ni « purgé ».
+
+> **CE QUI RESTE DÉCLARÉ, PAS ABSENT (§E.38).** Dix gardes « erreur prise ailleurs » que le résolveur
+> à un saut **ne remonte pas** — une chaîne de réaffectations plus longue. Elles sont **nommées**
+> dans le contrôle comme dette, jamais comptées comme saines. Et le couple §E.39 a été cherché sur
+> les 54 : **44 refusent avant la garde, zéro couple, dix non résolus.**
 <a id="e43"></a>
 ### E.43 — UNE RÉTROGRADATION NE SE DÉCIDE PAS SUR UN ÉTAT QU'ON N'A PAS LU.
 

@@ -9,7 +9,9 @@ import { useSecureFetch, useSecureLogout } from '@/lib/secure-fetch'
 
 const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
 
-type View = 'loading' | 'grace' | 'purged' | 'active' | 'need_login'
+// `indisponible` : le statut du compte n’a pas pu être LU. Ce n’est ni « actif »
+// ni « purgé » — les deux seraient des affirmations sur une panne (§E.42).
+type View = 'loading' | 'grace' | 'purged' | 'active' | 'need_login' | 'indisponible'
 
 /**
  * Écran de réactivation (mission S3, section 7).
@@ -34,7 +36,8 @@ export default function ReactivationPage() {
   const [userType, setUserType] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   /** `manquants` non nul = le profil ne remplit plus les conditions ; on les NOMME. */
-  const [erreur, setErreur] = useState<{ manquants: string[] | null } | null>(null)
+  /** `indisponible` = la relecture du compte a échoué : ni refus, ni succès. */
+  const [erreur, setErreur] = useState<{ manquants: string[] | null; indisponible?: boolean } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -67,6 +70,10 @@ export default function ReactivationPage() {
         if (cancelled) return
         if (!res.ok) {
           const d = (await res.json().catch(() => null)) as { code?: string } | null
+          // Une panne de lecture n'est PAS « compte actif » : on le dit, et on
+          // laisse réessayer. Afficher « actif » enverrait la personne au tableau
+          // de bord pendant que sa fenêtre de grâce court.
+          if (d?.code === 'compte_verification_indisponible') { setView('indisponible'); return }
           setView(d?.code === 'account_anonymized' ? 'purged' : 'active')
           return
         }
@@ -121,7 +128,9 @@ export default function ReactivationPage() {
         setErreur(
           charge.code === 'visibility_blocked'
             ? { manquants: charge.missing ?? [] }
-            : { manquants: null },
+            : charge.code === 'compte_verification_indisponible'
+              ? { manquants: null, indisponible: true }
+              : { manquants: null },
         )
         setBusy(false)
         return
@@ -160,6 +169,22 @@ export default function ReactivationPage() {
     )
   }
 
+  if (view === 'indisponible') {
+    return shell(
+      <>
+        <div style={{ fontSize: 36, marginBottom: 8 }} aria-hidden>⏳</div>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#0f172a' }}>{t('indisponible_title')}</h1>
+        <p style={{ margin: '10px 0 24px', fontSize: 14.5, color: '#64748b', lineHeight: 1.6 }}>{t('indisponible_body')}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          style={{ width: '100%', padding: '13px 20px', borderRadius: 12, border: 'none', background: 'var(--sk-accent, #0ea5e9)', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
+        >
+          {t('indisponible_retry')}
+        </button>
+      </>,
+    )
+  }
   if (view === 'need_login') {
     return shell(
       <>
@@ -217,6 +242,8 @@ export default function ReactivationPage() {
                   ))}
                 </ul>
               </>
+            ) : erreur.indisponible ? (
+              t('reactivate_indisponible')
             ) : (
               t('reactivate_failed')
             )}

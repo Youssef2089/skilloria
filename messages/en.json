@@ -3457,7 +3457,8 @@
       "warning_immediate": "your account is deactivated, you disappear from matching, and you are signed out.",
       "warning_delayed_label": "After 90 days:",
       "warning_delayed": "your personal data is permanently anonymized. Before that deadline, you can reactivate your account at any time by signing back in.",
-      "error_last_platform_admin": "You are the last administrator on the platform. Appoint another administrator before deleting your account."
+      "error_last_platform_admin": "You are the last administrator on the platform. Appoint another administrator before deleting your account.",
+      "error_indisponible": "Reading your account failed. Deletion was not scheduled — nothing has changed. Please try again in a moment."
     },
     "reauth": {
       "title": "Confirm your identity",
@@ -3484,7 +3485,11 @@
       "need_login_button": "Sign back in",
       "blocked_title": "Your profile cannot be republished as it stands",
       "blocked_body": "Your account is reactivated, but your profile stays hidden while it is incomplete. Complete the following, then make it visible from your profile:",
-      "reactivate_failed": "Reactivation did not go through. Please try again shortly."
+      "reactivate_failed": "Reactivation did not go through. Please try again shortly.",
+      "indisponible_title": "We could not read your account status",
+      "indisponible_body": "This is not a verdict on your account: the lookup failed. Nothing has changed — no deletion, no reactivation. Please try again in a moment.",
+      "indisponible_retry": "Try again",
+      "reactivate_indisponible": "Reactivation could not be verified: reading your account failed. It was neither done nor refused — please try again in a moment. Your grace period is still running."
     }
   },
   "invitation_public": {
