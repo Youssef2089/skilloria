@@ -1824,6 +1824,28 @@ par leur chemin. Le périmètre est stable ; le nom de fichier ne l'est pas.
 > **retournée**, et la raison est écrite sur place. Une assertion qu'on efface sans écrire pourquoi
 > est une règle qu'on perd.
 
+**LA CONTRE-MUTATION DOIT ÊTRE AUSSI ÉPROUVÉE QUE LA MUTATION.**
+
+Le critère ci-dessus se vérifie par une **contre-mutation** : on renomme, et le contrôle doit rester
+**vert**. Encore faut-il que le renommage ne perde vraiment rien — et c’est là que la contre-mutation
+peut mentir à son tour.
+
+**Le cas, mesuré le 20/09/2026.** Pour éprouver le contrôle du bouton de reprise (§E.46), la
+contre-mutation renommait la variable `motif` en `raison`. Le contrôle a rougi. Premier réflexe :
+*il est ancré sur un nom.* **Faux.** Le remplacement était global, et il avait donc aussi renommé le
+**code d’erreur `motif_requis`** — une valeur **rendue au client**, sur laquelle l’écran s’aligne.
+
+> **Un renommage qui atteint un contrat n’est pas un renommage neutre, et un contrôle qui rougit**
+> **dessus a raison.** Le nom d’une variable locale ne quitte pas le fichier ; un code d’erreur, un
+> nom de colonne, un chemin de route, une clé i18n, une action d'audit **traversent la frontière** et
+> quelqu’un dehors s’y adosse. Le premier se renomme librement, les seconds se **négocient**.
+
+**Ce que ça change dans la manière d’écrire une contre-mutation** : elle vise **la variable et rien
+d’autre** (`/\bmotif\b(?!_requis)/`), et elle porte une **empreinte** qui vérifie qu’elle a bien
+muté ce qu’elle prétendait muter — la même exigence que pour une mutation (§E.33 ③). Une
+contre-mutation trop large **accuse un contrôle sain**, et on désarme alors la seule chose qui
+marchait.
+
 ---
 
 **E.35 — SÉPARER LE RÉGLAGE ET LA MESURE FAIT TOMBER LA MESURE.**
