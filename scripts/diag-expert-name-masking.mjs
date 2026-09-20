@@ -207,21 +207,31 @@ section('C bis. §D.4 — e-mail, téléphone, LinkedIn, CV : projetés par AUCU
 const CHAMPS_CONTACT = /\b(email|phone|linkedin_url|cv_url)\b/
 const IDENTITE = /\b(profiles|users)\b/
 /** Les chaînes de select d'un source qui embarquent l'identité ET un champ de contact. */
+/**
+ * Chaque select est jugé AVEC SA CHAÎNE DE REQUÊTE (les 500 caractères qui le
+ * suivent) : c'est là que se lit « la lecture est celle de l'appelant »
+ * (`.eq('id', auth.user.id)`). La première version le lisait au FICHIER entier,
+ * et un `.eq('user_id', auth.user.id)` posé ailleurs dans le fichier blanchissait
+ * un select qui, lui, projetait le contact d'un AUTRE — la mutation l'a montré.
+ */
 function selectsSensibles(src) {
   const out = []
+  const pousser = (m, chaine, prefixe = '') => {
+    const suite = src.slice(m.index, m.index + m[0].length + 500)
+    const soiMeme = /\.eq\(\s*'(?:id|user_id)'\s*,\s*(?:auth\.)?user\.id\s*\)/.test(suite) || /\.eq\(\s*'user_id'\s*,\s*userId\s*\)/.test(suite)
+    out.push({ texte: `${prefixe}${chaine.replace(/\s+/g, ' ').slice(0, 90)}`, soiMeme })
+  }
   for (const m of src.matchAll(/\.select\(\s*((?:'[^']*'\s*\+?\s*)+)/g)) {
-    const chaine = m[1]
-    if (IDENTITE.test(chaine) && CHAMPS_CONTACT.test(chaine)) out.push(chaine.replace(/\s+/g, ' ').slice(0, 90))
+    if (IDENTITE.test(m[1]) && CHAMPS_CONTACT.test(m[1])) pousser(m, m[1])
   }
   // et la lecture directe d'une table d'identité dont le select cite un champ de contact
   for (const m of src.matchAll(/\.from\(\s*'(profiles|users)'\s*\)[\s\S]{0,400}?\.select\(\s*((?:'[^']*'\s*\+?\s*)+)/g)) {
-    if (CHAMPS_CONTACT.test(m[2])) out.push(`${m[1]} → ${m[2].replace(/\s+/g, ' ').slice(0, 80)}`)
+    if (CHAMPS_CONTACT.test(m[2])) pousser(m, m[2], `${m[1]} → `)
   }
-  return [...new Set(out)]
+  return out
 }
 const estAdmin = (src) => /\brequireAdmin\(/.test(src)
 const estCron = (src) => /CRON_SECRET/.test(src)
-const litSoiMeme = (src) => /\.eq\(\s*'(?:id|user_id)'\s*,\s*(?:auth\.)?user\.id\s*\)/.test(src) || /\.eq\(\s*'user_id'\s*,\s*userId\s*\)/.test(src)
 
 /** GEL — lib et routes LUES, une raison chacune (§G.8). */
 const GEL_D4 = {
@@ -249,10 +259,11 @@ const GEL_D4 = {
   const restants = candidats.filter((c) => !estAdmin(c.src) && !estCron(c.src))
   console.log(`  ··   ${cibles.length} fichiers · ${candidats.length} lisent un champ de contact avec l’identité · ${admin.length} admin/cron`)
   ok(candidats.length >= 5, 'le balayage voit les lectures de contact (au moins cinq)', 'un inventaire vide : le motif `select(` ne lit plus le code')
-  const rouges = restants.filter((c) => !(c.f in GEL_D4) && !litSoiMeme(c.src))
+  // Rouge : un select hors gel qui n'est pas la lecture de soi-même — jugé select par select.
+  const rouges = restants.filter((c) => !(c.f in GEL_D4) && c.selects.some((s) => !s.soiMeme))
   for (const c of restants.filter((c) => c.f in GEL_D4)) console.log(`  ··   ${c.f} — GELÉ, ${GEL_D4[c.f].slice(0, 12)}…`)
   ok(rouges.length === 0, 'aucune route hors admin ne projette e-mail / téléphone / LinkedIn / CV d’un expert vers un tiers',
-    rouges.map((c) => `${c.f} : ${c.selects[0]}`).join('\n       ') || undefined)
+    rouges.map((c) => `${c.f} : ${c.selects.find((s) => !s.soiMeme).texte}`).join('\n       ') || undefined)
   const sorties = Object.keys(GEL_D4).filter((k) => !restants.some((c) => c.f === k))
   ok(sorties.length === 0, 'aucune entrée du gel §D.4 n’a cessé d’être vraie sans qu’on le dise', sorties.join(' ; ') || undefined)
   ok(Object.values(GEL_D4).every((r) => /^(LÉGITIME|DÉFAUT NOMMÉ)( |$)/.test(r)), 'chaque raison du gel §D.4 commence par LÉGITIME ou DÉFAUT NOMMÉ')
