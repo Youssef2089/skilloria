@@ -1,7 +1,7 @@
 # Architecture — Skilloria
 
 > **Deuxième des trois fichiers de la mémoire du projet.** Les deux autres :
-> [CLAUDE.md](../CLAUDE.md) (règle de maintenance, décisions figées §D, pièges §E, worktrees §G) et
+> [CLAUDE.md](../CLAUDE.md) (règle de maintenance, décisions figées §D, worktrees §G, index des pièges), [pieges.md](pieges.md) (les pièges §E) et
 > [docs/produit.md](produit.md) (les parcours, les écrans, les règles métier).
 >
 > Écrit depuis le code, les migrations et les diagnostics — pas depuis une conversation. Chaque
@@ -643,7 +643,7 @@ précisément pour empêcher le geste réflexe.
 3. **Chercher l'événement dans le journal.** Chaque nature d'écart porte sa phrase d'action.
    · `failed` → le motif est écrit, et l'événement est **rejouable** (Stripe le renverra, ou on le
    renvoie depuis son tableau de bord) ;
-   · **coincé en `received`** → il ne se rejouera **jamais** seul, voir §E.27 dans CLAUDE.md ;
+   · **coincé en `received`** → il ne se rejouera **jamais** seul, voir §E.27 dans [pieges.md](pieges.md) ;
    · **absent** → la vérification nocturne le nommera, si elle a moins de 30 jours de retard.
 4. **Si rien n'explique l'écart**, c'est que le webhook a fonctionné et que l'accès est faux quand
    même : offre écrasée à la main, événement écarté comme retardataire (`package_source_event_at`

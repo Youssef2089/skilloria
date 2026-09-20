@@ -89,7 +89,7 @@ import { dirname, join } from 'node:path'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /**
- * LA MEMOIRE TIENT EN TROIS FICHIERS, et n'importe lequel des trois compte.
+ * LA MEMOIRE TIENT EN QUATRE FICHIERS, et n'importe lequel des quatre compte.
  *
  *   CLAUDE.md est charge a chaque session : il ne porte que ce qu'on doit
  *   avoir sous les yeux AVANT d'ecrire (regle de maintenance, §D, §E, §G).
@@ -101,7 +101,9 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
  *   accepte donc QUE L'UN DES TROIS ait ete touche — se tromper de fichier
  *   n'est pas grave, ne rien ecrire l'est.
  */
-const MEMOIRE = ['CLAUDE.md', 'docs/architecture.md', 'docs/produit.md']
+// Quatre depuis le 20/09/2026 : les §E ont quitte CLAUDE.md pour docs/pieges.md
+// (CLAUDE.md depassait la limite chargee — voir diag-memoire-exacte, section G).
+const MEMOIRE = ['CLAUDE.md', 'docs/architecture.md', 'docs/produit.md', 'docs/pieges.md']
 const ECHAPPATOIRE = '[memoire:n/a]'
 
 // ─────────────────────────────────────────────────────────────────────────────

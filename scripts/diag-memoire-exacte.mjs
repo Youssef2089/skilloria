@@ -68,7 +68,7 @@ const section = (s) => console.log(`\n═══ ${s} ═══\n`)
 // LES FICHIERS DE MEMOIRE. Le decoupage en trois est prevu ; on lit ce qui est
 // present, pour que ce controle survive au decoupage sans etre retouche.
 // ─────────────────────────────────────────────────────────────────────────────
-const CANDIDATS = ['CLAUDE.md', 'docs/produit.md', 'docs/architecture.md']
+const CANDIDATS = ['CLAUDE.md', 'docs/produit.md', 'docs/architecture.md', 'docs/pieges.md']
 const DOCS = CANDIDATS.filter(existe)
 const MEMOIRE = DOCS.map(read).join('\n')
 
@@ -416,6 +416,34 @@ for (const doc of DOCS) {
     trouves.length === 0,
     `${doc} — aucun numero de section porte deux fois`,
     trouves.map(([id, lignes]) => `§${id} aux lignes ${lignes.join(', ')}`).join(' · '),
+  )
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+section('G. CLAUDE.md tient dans son budget — il est charge a chaque session')
+// ═════════════════════════════════════════════════════════════════════════════
+/*
+ * LE 20/09/2026, CLAUDE.md FAISAIT 190k CARACTERES. Claude Code n'en charge que
+ * 150k : la memoire arrivait TRONQUEE, et rien ne disait quelle section
+ * manquait. On l'a su par un avertissement de terminal — c'est-a-dire par
+ * hasard, et tard. Le decoupage en trois fichiers (1929 → 756 lignes) avait
+ * ferme ce piege ; il s etait reforme en dix jours, par les §E.
+ *
+ * Les §E vivent desormais dans docs/pieges.md ; CLAUDE.md n'en garde que
+ * l'index. Et ce controle tient le BUDGET : 100k, soit deux tiers de la
+ * limite — la marge est la pour que la prochaine derive se voie ici, pas dans
+ * un terminal. Le seuil est un choix, pas une mesure ; il est ecrit ici, et il
+ * se change ici.
+ */
+{
+  const LIMITE_CHARGEE = 150_000
+  const BUDGET = 100_000
+  const taille = readFileSync(join(ROOT, 'CLAUDE.md'), 'utf8').length
+  const pct = Math.round((taille / LIMITE_CHARGEE) * 100)
+  ok(
+    taille <= BUDGET,
+    `CLAUDE.md fait ${taille.toLocaleString('fr-FR')} caracteres — ${pct} % de la limite chargee, budget ${BUDGET.toLocaleString('fr-FR')}`,
+    'au-dela du budget, on rouvre le decoupage : ce qui a grossi sort vers docs/, avec un index ici',
   )
 }
 

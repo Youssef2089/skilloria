@@ -1,7 +1,7 @@
 # Le produit — Skilloria
 
 > **Troisième des trois fichiers de la mémoire du projet.** Les deux autres :
-> [CLAUDE.md](../CLAUDE.md) (règle de maintenance, décisions figées §D, pièges §E, worktrees §G) et
+> [CLAUDE.md](../CLAUDE.md) (règle de maintenance, décisions figées §D, worktrees §G, index des pièges), [pieges.md](pieges.md) (les pièges §E) et
 > [docs/architecture.md](architecture.md) (modèle de données, chaînes, dette ouverte).
 >
 > Ce que Skilloria **fait**, écran par écran et règle par règle. §A à §H décrivent *où vivent les
