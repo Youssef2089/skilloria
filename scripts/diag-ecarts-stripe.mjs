@@ -605,21 +605,55 @@ const AVEC = (motif) => SOURCES.filter((f) => motif.test(sansCommentaires(lire(f
 }
 
 {
-  // La surface d'exploitation n'expose aucun verbe d'ecriture. On cherche la
-  // PROPRIETE (« un export POST/PATCH/PUT/DELETE dans un fichier qui compare »)
-  // et non un chemin, qui vieillirait au premier renommage.
+  // ⚠️ CETTE ASSERTION A ETE RETOURNEE, PAS SUPPRIMEE (§E.34, troisieme
+  //    reponse). Elle exigeait que la surface d exploitation n expose AUCUN
+  //    verbe d ecriture, et elle avait raison le jour ou elle a ete ecrite :
+  //    corriger automatiquement un ecart qu on ne comprend pas encore est
+  //    irreversible dans les deux sens.
+  //
+  //    LE 20/09/2026, UNE PROPRIETE A ETE DELIBEREMENT CHANGEE : un evenement
+  //    coince en `received` ne se rejouera JAMAIS seul, et jusque-la la seule
+  //    reprise possible etait un UPDATE a la main en base — precisement ce que
+  //    §E.10 interdit. Arbitrage de Youssef : une reprise EXPLICITE, TRACEE,
+  //    declenchee par un humain. Le delai de grace automatique est REFUSE.
+  //
+  //    Ce qui reste vrai, et ce que cette assertion garde maintenant : il y a
+  //    EXACTEMENT UN verbe d ecriture, et il ne corrige AUCUN ecart. Une
+  //    assertion qu on efface sans ecrire pourquoi est une regle qu on perd.
   const routes = SOURCES.filter(
     (f) => f.includes('/facturation/') && f.endsWith('route.ts'),
   )
   ok(routes.length >= 1, 'la route d\'exploitation existe', routes.join(', '))
-  const avecEcriture = routes.filter((f) =>
-    /export\s+async\s+function\s+(POST|PATCH|PUT|DELETE)\b/.test(sansCommentaires(lire(f))),
+  const verbes = routes.flatMap((f) =>
+    [...sansCommentaires(lire(f)).matchAll(/export\s+async\s+function\s+(POST|PATCH|PUT|DELETE)\b/g)].map(
+      (m) => `${f}:${m[1]}`,
+    ),
   )
   ok(
-    avecEcriture.length === 0,
-    'elle n\'exporte AUCUN verbe d\'ecriture — l\'ecran constate, il ne corrige pas',
-    avecEcriture.join(', '),
+    verbes.length <= 1,
+    'elle n\'expose AU PLUS UN verbe d\'ecriture — la reprise, et rien d\'autre',
+    verbes.join(', '),
   )
+  // ET CE VERBE NE CORRIGE RIEN. Il ne touche qu au JOURNAL des evenements :
+  // aucune ecriture de droits, aucune ecriture de transaction, aucun appel au
+  // traitement d evenement. Sans cette moitie, « un seul verbe » ne dit rien.
+  for (const f of routes) {
+    const code = sansCommentaires(lire(f))
+    const ecrituresInterdites = [
+      ...code.matchAll(/\.from\(\s*['"](organizations|transactions|packages)['"]\s*\)[\s\S]{0,200}?\.(update|upsert|insert|delete)\s*\(/g),
+    ]
+    ok(
+      ecrituresInterdites.length === 0,
+      `${f} — la reprise n ecrit NI droit, NI transaction, NI catalogue`,
+      ecrituresInterdites.map((m) => m[1]).join(', '),
+    )
+    const rejoue = /handleStripeEvent|applyPackageState|extendValidity/.test(code)
+    ok(
+      !rejoue,
+      `${f} — la reprise ne REJOUE pas l evenement, elle le rend rejouable`,
+      'la route appelle un traitement d evenement : c est une autre decision, et elle n a pas ete prise',
+    )
+  }
 }
 
 {

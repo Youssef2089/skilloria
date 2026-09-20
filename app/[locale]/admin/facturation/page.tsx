@@ -190,6 +190,26 @@ const cellule: React.CSSProperties = {
   verticalAlign: 'top',
 }
 
+/**
+ * L'UNIQUE BOUTON QUI ÉCRIT DE TOUT CET ÉCRAN.
+ *
+ * Le reste est en LECTURE SEULE, délibérément : corriger automatiquement un
+ * écart qu'on ne comprend pas encore est irréversible dans les deux sens.
+ * Celui-ci ne corrige aucun écart — il rend UNE ligne rejouable, et rien
+ * d'autre.
+ */
+const boutonReprise: React.CSSProperties = {
+  padding: '4px 10px',
+  fontSize: 12,
+  fontWeight: 600,
+  borderRadius: 6,
+  cursor: 'pointer',
+  border: '1px solid var(--color-border, #e2e8f0)',
+  background: 'var(--color-surface, #ffffff)',
+  color: 'var(--color-text-primary, #0f172a)',
+  whiteSpace: 'nowrap',
+}
+
 const enTete: React.CSSProperties = {
   ...cellule,
   fontSize: 11,
@@ -251,6 +271,15 @@ export default function AdminFacturationPage() {
   const [erreur, setErreur] = useState<boolean>(false)
   const [chargement, setChargement] = useState(true)
   const [filtre, setFiltre] = useState<'' | StatutEvenement>('')
+  // ⚠️ LA REPRISE EST EXPLICITE, TRACÉE, ET ELLE EXIGE UNE RAISON ÉCRITE.
+  //    Le délai de grâce automatique a été REFUSÉ : il ouvrirait une course
+  //    avec un processus lent mais vivant, et transformerait une propriété
+  //    vérifiable en pari sur un chronomètre. Arbitrage du 20/09/2026.
+  const [reprise, setReprise] = useState<string | null>(null)
+  const [motif, setMotif] = useState('')
+  const [repriseEtat, setRepriseEtat] = useState<
+    { kind: 'idle' } | { kind: 'envoi' } | { kind: 'erreur'; code: string } | { kind: 'fait' }
+  >({ kind: 'idle' })
 
   const lire = useCallback(async () => {
     setChargement(true)
@@ -271,6 +300,33 @@ export default function AdminFacturationPage() {
       setChargement(false)
     }
   }, [secureFetch, filtre])
+
+  const rouvrir = useCallback(
+    async (evenementId: string, raison: string) => {
+      setRepriseEtat({ kind: 'envoi' })
+      try {
+        const res = await secureFetch('/api/admin/facturation', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ evenement_id: evenementId, motif: raison }),
+        })
+        const corps = (await res.json().catch(() => ({}))) as { code?: string }
+        if (!res.ok) {
+          // Le code est RENDU tel quel a l'ecran : « deja cloture ou trop
+          // recent » (409) et « je n ai pas pu ecrire » (503) appellent des
+          // suites opposees, et un message unique les confondrait.
+          setRepriseEtat({ kind: 'erreur', code: corps.code ?? 'inconnu' })
+          return
+        }
+        setRepriseEtat({ kind: 'fait' })
+        setReprise(null)
+        setMotif('')
+      } catch {
+        setRepriseEtat({ kind: 'erreur', code: 'reseau' })
+      }
+    },
+    [secureFetch],
+  )
 
   useEffect(() => {
     void lire()
@@ -794,6 +850,7 @@ export default function AdminFacturationPage() {
                           <th style={enTete}>{t('journal.col_status')}</th>
                           <th style={enTete}>{t('journal.col_received')}</th>
                           <th style={enTete}>{t('journal.col_error')}</th>
+                          <th style={enTete}>{t('journal.col_action')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -826,12 +883,95 @@ export default function AdminFacturationPage() {
                               <td style={{ ...cellule, color: 'var(--color-text-secondary, #64748b)' }}>
                                 {l.erreur ?? '—'}
                               </td>
+                              <td style={cellule}>
+                                {/* Le bouton n’apparaît QUE sur une ligne coincée.
+                                    Ailleurs il n’y a rien à rouvrir, et un bouton
+                                    inerte promet une porte qui n’existe pas (§D.1). */}
+                                {l.coince ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setRepriseEtat({ kind: 'idle' })
+                                      setReprise(l.id)
+                                      setMotif('')
+                                    }}
+                                    style={boutonReprise}
+                                  >
+                                    {t('journal.reopen_action')}
+                                  </button>
+                                ) : ('—')}
+                              </td>
                             </tr>
                           )
                         })}
                       </tbody>
                     </table>
                   </div>
+                )}
+
+                {reprise !== null && (
+                  <div
+                    style={{
+                      marginTop: 14,
+                      padding: '12px 14px',
+                      borderRadius: 8,
+                      border: '1px solid var(--color-border, #e2e8f0)',
+                      background: 'var(--color-surface-subtle, #f8fafc)',
+                    }}
+                  >
+                    <p style={{ fontSize: 13, fontWeight: 650, margin: '0 0 4px' }}>
+                      {t('journal.reopen_title', { id: reprise })}
+                    </p>
+                    <p style={{ ...sousTitre, margin: '0 0 10px' }}>{t('journal.reopen_help')}</p>
+                    <textarea
+                      value={motif}
+                      onChange={(e) => setMotif(e.target.value)}
+                      placeholder={t('journal.reopen_placeholder')}
+                      rows={3}
+                      style={{
+                        width: '100%',
+                        fontSize: 13,
+                        padding: '8px 10px',
+                        borderRadius: 6,
+                        border: '1px solid var(--color-border, #e2e8f0)',
+                        resize: 'vertical',
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => void rouvrir(reprise, motif.trim())}
+                        disabled={motif.trim().length < 10 || repriseEtat.kind === 'envoi'}
+                        style={{
+                          ...boutonReprise,
+                          opacity: motif.trim().length < 10 || repriseEtat.kind === 'envoi' ? 0.55 : 1,
+                        }}
+                      >
+                        {repriseEtat.kind === 'envoi'
+                          ? t('journal.reopen_sending')
+                          : t('journal.reopen_confirm')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setReprise(null); setMotif('') }}
+                        style={boutonReprise}
+                      >
+                        {t('journal.reopen_cancel')}
+                      </button>
+                    </div>
+                    {repriseEtat.kind === 'erreur' && (
+                      <p style={{ ...sousTitre, margin: '10px 0 0', color: 'var(--color-error, #dc2626)' }}>
+                        {repriseEtat.code === 'evenement_non_coince'
+                          ? t('journal.reopen_err_not_stuck')
+                          : repriseEtat.code === 'reouverture_indisponible'
+                            ? t('journal.reopen_err_unavailable')
+                            : t('journal.reopen_err_generic')}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {repriseEtat.kind === 'fait' && (
+                  <p style={{ ...sousTitre, margin: '10px 0 0' }}>{t('journal.reopen_done')}</p>
                 )}
 
                 {data.journal.lignes.length >= data.journal_limite && (

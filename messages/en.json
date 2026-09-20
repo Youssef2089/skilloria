@@ -4290,7 +4290,19 @@
         "ignored": "Deliberately ignored",
         "failed": "Failed"
       },
-      "statut_stuck": "Stuck"
+      "statut_stuck": "Stuck",
+      "col_action": "Action",
+      "reopen_action": "Reopen",
+      "reopen_title": "Reopen event {id}",
+      "reopen_help": "This event was claimed but never closed: Stripe will not retry it. Reopening makes it replayable — it does not replay anything itself, and changes no entitlement. A written reason is required: it is recorded with your name.",
+      "reopen_placeholder": "Why reopen this event? (10 characters minimum)",
+      "reopen_confirm": "Reopen",
+      "reopen_cancel": "Cancel",
+      "reopen_sending": "Reopening…",
+      "reopen_done": "Event reopened. It will be picked up on Stripe’s next retry, or on a manual resend from the Stripe dashboard.",
+      "reopen_err_not_stuck": "This event is no longer stuck: it has since been closed, or it is too recent. Nothing was changed.",
+      "reopen_err_unavailable": "The write did not go through. Nothing was changed — please try again in a moment.",
+      "reopen_err_generic": "Reopening failed. Nothing was changed."
     },
     "nuit": {
       "title": "The last nightly check",

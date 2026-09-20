@@ -4290,7 +4290,19 @@
         "ignored": "Bewusst übergangen",
         "failed": "Fehlgeschlagen"
       },
-      "statut_stuck": "Hängengeblieben"
+      "statut_stuck": "Hängengeblieben",
+      "col_action": "Aktion",
+      "reopen_action": "Erneut öffnen",
+      "reopen_title": "Ereignis {id} erneut öffnen",
+      "reopen_help": "Dieses Ereignis wurde beansprucht, aber nie abgeschlossen: Stripe versucht es nicht erneut. Das erneute Öffnen macht es wiederholbar – es wiederholt selbst nichts und ändert keine Berechtigung. Eine schriftliche Begründung ist erforderlich: sie wird mit Ihrem Namen gespeichert.",
+      "reopen_placeholder": "Warum dieses Ereignis erneut öffnen? (mindestens 10 Zeichen)",
+      "reopen_confirm": "Erneut öffnen",
+      "reopen_cancel": "Abbrechen",
+      "reopen_sending": "Wird geöffnet…",
+      "reopen_done": "Ereignis erneut geöffnet. Es wird beim nächsten Stripe-Versuch oder bei einem manuellen erneuten Senden aus dem Stripe-Dashboard aufgegriffen.",
+      "reopen_err_not_stuck": "Dieses Ereignis hängt nicht mehr: es wurde inzwischen abgeschlossen oder ist zu neu. Es wurde nichts geändert.",
+      "reopen_err_unavailable": "Der Schreibvorgang ist fehlgeschlagen. Es wurde nichts geändert – bitte versuchen Sie es gleich erneut.",
+      "reopen_err_generic": "Das erneute Öffnen ist fehlgeschlagen. Es wurde nichts geändert."
     },
     "nuit": {
       "title": "Die letzte nächtliche Prüfung",

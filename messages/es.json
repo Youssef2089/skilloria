@@ -4290,7 +4290,19 @@
         "ignored": "Ignorado deliberadamente",
         "failed": "Fallido"
       },
-      "statut_stuck": "Atascado"
+      "statut_stuck": "Atascado",
+      "col_action": "Acción",
+      "reopen_action": "Reabrir",
+      "reopen_title": "Reabrir el evento {id}",
+      "reopen_help": "Este evento fue reclamado pero nunca cerrado: Stripe ya no lo reintentará. Reabrirlo lo hace reproducible; no reproduce nada por sí mismo ni modifica ningún derecho. Se exige un motivo escrito: queda registrado con su nombre.",
+      "reopen_placeholder": "¿Por qué reabrir este evento? (mínimo 10 caracteres)",
+      "reopen_confirm": "Reabrir",
+      "reopen_cancel": "Cancelar",
+      "reopen_sending": "Reabriendo…",
+      "reopen_done": "Evento reabierto. Se retomará en el próximo reintento de Stripe, o mediante un reenvío manual desde el panel de Stripe.",
+      "reopen_err_not_stuck": "Este evento ya no está bloqueado: se ha cerrado mientras tanto, o es demasiado reciente. No se ha modificado nada.",
+      "reopen_err_unavailable": "La escritura no se ha completado. No se ha modificado nada; inténtelo de nuevo en unos instantes.",
+      "reopen_err_generic": "La reapertura ha fallado. No se ha modificado nada."
     },
     "nuit": {
       "title": "La última verificación nocturna",

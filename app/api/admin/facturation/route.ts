@@ -14,6 +14,8 @@ import {
   type DroitLocal,
 } from '@/lib/stripe-exploitation/ecarts'
 import { etatRaccordement } from '@/lib/stripe-exploitation/raccordement'
+import { MINUTES_AVANT_COINCE } from '@/lib/stripe-exploitation/journal'
+import { logAudit } from '@/lib/audit'
 import { lireAbonnements, lireEndpoints } from '@/lib/stripe-exploitation/lecture-stripe'
 
 export const runtime = 'nodejs'
@@ -252,4 +254,119 @@ export async function GET(request: NextRequest): Promise<Response> {
     abonnements_tronques:
       abonnementsLus.etat === 'disponible' ? abonnementsLus.valeur.tronque : null,
   })
+}
+
+/**
+ * POST /api/admin/facturation — ROUVRIR UN ÉVÉNEMENT COINCÉ.
+ *
+ * ┌─ CE QUE CE BOUTON FAIT, ET CE QU’IL NE FAIT PAS ───────────────────────┐
+ * │ Il repasse UNE ligne de `'received'` à `'failed'`. Rien d'autre : il    │
+ * │ ne rejoue pas l’événement, il ne touche à aucun droit, il n’écrit ni    │
+ * │ abonnement ni transaction. Il REND la ligne réclamable par             │
+ * │ `stripe_event_claim`, dont le `where se.status = 'failed'` est la       │
+ * │ garde d’idempotence — elle reste intacte.                               │
+ * └────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─ POURQUOI UN HUMAIN, ET PAS UN DÉLAI DE GRÂCE AUTOMATIQUE ─────────────┐
+ * │ Un `received` qui redeviendrait réclamable tout seul au bout de N       │
+ * │ minutes ouvrirait une course avec un processus LENT MAIS VIVANT — et    │
+ * │ transformerait une propriété vérifiable en pari sur un chronomètre.     │
+ * │ Arbitrage rendu par Youssef le 20/09/2026 : reprise EXPLICITE, tracée,  │
+ * │ déclenchée par un humain. Le délai automatique est REFUSÉ.              │
+ * └────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─ LA CONDITION QUI REND CE BOUTON ACCEPTABLE, ET ELLE EST MESURÉE ──────┐
+ * │ Rejouer un événement doit être INOFFENSIF. Ça l’est aujourd’hui, par    │
+ * │ construction et non par chance :                                        │
+ * │  · `applyPackageState` écrit l’ÉTAT ABSOLU, jamais un delta, sous la    │
+ * │    garde `package_source_event_at` — son en-tête dit lui-même « c’est   │
+ * │    ce qui rend un rejeu inoffensif » ;                                  │
+ * │  · `extendValidity` rend `'stale'` si un événement plus récent a écrit ; │
+ * │  · l’écriture de `transactions` est un `upsert` adossé à un INDEX       │
+ * │    UNIQUE PARTIEL sur `stripe_invoice_id` (§E.31 : la garde est dans le │
+ * │    schéma, elle ne dépend d’aucune discipline).                          │
+ * │                                                                          │
+ * │ D’où le cas que l’architecte a posé — un `invoice.paid` de trois jours  │
+ * │ dont l’abonnement est résilié depuis : le rejeu écrit la transaction    │
+ * │ (c’est un FAIT, l’argent a été pris) et la prolongation de validité     │
+ * │ rend `'stale'`, parce que la résiliation est plus récente.              │
+ * │ **L’abonnement résilié ne ressuscite pas.**                              │
+ * │                                                                          │
+ * │ ⚠️ CETTE PROPRIÉTÉ EST GARDÉE PAR `diag-billing-socle`, ET SANS CE      │
+ * │    CONTRÔLE CE BOUTON N’EXISTERAIT PAS. Un SEPTIÈME gestionnaire qui    │
+ * │    écrirait un delta — un remboursement, un avoir, un compteur — la     │
+ * │    casserait EN SILENCE, et la reprise deviendrait un double crédit.    │
+ * └────────────────────────────────────────────────────────────────────────┘
+ */
+export async function POST(request: NextRequest): Promise<Response> {
+  let auth
+  try {
+    auth = await requireAdmin(request)
+  } catch (err) {
+    if (err instanceof AuthError) return err.toResponse()
+    throw err
+  }
+
+  let corps: { evenement_id?: unknown; motif?: unknown }
+  try {
+    corps = (await request.json()) as { evenement_id?: unknown; motif?: unknown }
+  } catch {
+    return json({ error: 'Invalid body', code: 'bad_request' }, 400)
+  }
+  const evenementId = typeof corps.evenement_id === 'string' ? corps.evenement_id.trim() : ''
+  const motif = typeof corps.motif === 'string' ? corps.motif.trim() : ''
+  if (!evenementId) {
+    return json({ error: 'Missing event id', code: 'evenement_id_manquant' }, 400)
+  }
+  // LE MOTIF EST EXIGÉ, et ce n’est pas une formalité : une reprise d’argent
+  // sans raison écrite est une reprise que personne ne saura expliquer dans
+  // six mois. C’est la moitié « tracée » de l’arbitrage.
+  if (motif.length < 10) {
+    return json({ error: 'A reason is required', code: 'motif_requis' }, 400)
+  }
+
+  // ⚠️ LA GARDE EST DANS LE `WHERE`, PAS DANS UNE LECTURE PRÉALABLE (§E.31).
+  //    Lire puis écrire laisserait une fenêtre où le processus d’origine
+  //    clôture entre les deux — et on rouvrirait un événement déjà traité.
+  //    Les trois conditions sont portées par l'UPDATE lui-même : la ligne est
+  //    encore en `'received'`, et elle l'est depuis plus longtemps que le
+  //    plafond de durée du webhook ne le permet.
+  const limite = new Date(Date.now() - MINUTES_AVANT_COINCE * 60_000).toISOString()
+  const { data: rouvertes, error: majErr } = await auth.supabaseAdmin
+    .from('stripe_events')
+    .update({ status: 'failed', error: `rouvert manuellement — ${motif}` })
+    .eq('id', evenementId)
+    .eq('status', 'received')
+    .lt('received_at', limite)
+    .select('id, type, received_at')
+
+  if (majErr) {
+    console.error('[admin:facturation] réouverture en panne', { evenementId, message: majErr.message })
+    return json(
+      { error: 'Could not reopen the event', code: 'reouverture_indisponible' },
+      503,
+    )
+  }
+  // Zéro ligne : la ligne n’est plus coincée — déjà clôturée, ou trop récente.
+  // Ce n’est PAS une erreur, et ce n’est pas un succès : on le dit.
+  if (!rouvertes || rouvertes.length === 0) {
+    return json(
+      { error: 'Event is not stuck (any more)', code: 'evenement_non_coince' },
+      409,
+    )
+  }
+
+  const ligne = rouvertes[0] as { id: string; type: string; received_at: string }
+  await logAudit({
+    supabaseAdmin: auth.supabaseAdmin,
+    user_id: auth.user.id,
+    domain_id: auth.domain.id,
+    action: 'stripe_event_reouvert',
+    entity_type: 'stripe_event',
+    entity_id: ligne.id,
+    detail: { type: ligne.type, recu_le: ligne.received_at, motif },
+    request,
+  })
+
+  return json({ rouvert: true, evenement_id: ligne.id, type: ligne.type }, 200)
 }

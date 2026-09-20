@@ -2290,6 +2290,64 @@ fusion automatique**, et il vérifie les deux sens — il voit les deux §C.10, 
 > §C.10 sans §C.9 ne rougit pas — un numéro peut avoir été retiré volontairement, et l’exiger
 > ferait crier le contrôle à chaque suppression légitime.
 
+**E.46 — UNE REPRISE MANUELLE NE S'AUTORISE QUE SI « REJOUER » EST INOFFENSIF — ET ÇA SE MESURE.**
+
+**Le problème.** `stripe_event_claim` ne laisse repasser que les lignes en `failed` : c'est la
+garde d'idempotence, et elle est juste. Mais un processus qui meurt **entre la réclamation et la**
+**clôture** laisse la ligne en `received`, et cette même garde refuse alors **tous** les réessais de
+Stripe — définitivement, puisque Stripe abandonne au bout de trois jours. **§E.27 forme B** : le
+jalon d'idempotence déclare fait un travail qui n'a pas eu lieu.
+
+**Le commentaire de la fonction disait : « mieux vaut un événement non appliqué et VISIBLE qu'un**
+**double crédit ».** Cette phrase a gouverné la conception, et elle méritait d'être **vérifiée**
+avant de décider quoi que ce soit. Mesuré, en lisant les six gestionnaires : **le double crédit
+n'est pas atteignable par eux.**
+
+| Écriture | Ce qui la rend rejouable | Où vit la garde |
+|---|---|---|
+| droits d’abonnement (`applyPackageState`) | **état ABSOLU, jamais un delta** ; son propre en-tête dit « c’est ce qui rend un rejeu inoffensif » | dans le `WHERE` : `package_source_event_at` |
+| prolongation de validité (`extendValidity`) | un événement plus ancien rend `stale` | dans le code |
+| transaction (`invoice.paid`) | `upsert` sur `stripe_invoice_id` | **INDEX UNIQUE PARTIEL en base** (§E.31) |
+
+**D'où la réponse au cas qui faisait hésiter** — un `invoice.paid` de trois jours dont l'abonnement
+est résilié depuis : le rejeu écrit la transaction (c’est un **fait**, l’argent a été pris) et la
+prolongation de validité rend `stale`, parce que la résiliation est plus récente. **L’abonnement
+résilié ne ressuscite pas.**
+
+**CE QUI A ÉTÉ DÉCIDÉ, ET CE QUI A ÉTÉ REFUSÉ.**
+· **Retenu** — une reprise **explicite, tracée, déclenchée par un humain** : un bouton qui repasse
+  une ligne `received` en `failed` au-delà du délai, avec **un motif écrit exigé** et une entrée
+  d'audit nommant qui et pourquoi. Jusque-là, la seule reprise possible était un `UPDATE` à la main
+  dans l'éditeur SQL — précisément ce que **§E.10** interdit.
+· **Refusé** — le **délai de grâce automatique** (`received` redevenant réclamable seul au bout de
+  N minutes). Il ouvre une course avec un processus **lent mais vivant**, et **transforme une**
+  **propriété vérifiable en pari sur un chronomètre**.
+
+**LA CONDITION EST LA PARTIE QUI COMPTE, ET ELLE EST DANS LE MÊME COMMIT QUE LE BOUTON.**
+« Rejouer est inoffensif » tient aujourd'hui **par construction**. Un **septième gestionnaire** —
+un remboursement, un avoir, un compteur — qui écrirait un **delta** la casserait **en silence**, et
+la reprise deviendrait le double crédit qu’on cherchait à éviter. `diag-billing-socle` garde donc
+les quatre propriétés : aucun delta (arithmétique, `+=`, RPC d’incrémentation), la garde d’ordre,
+le `stale`, et l'index unique derrière chaque `onConflict`. **Sans ce contrôle, le bouton
+n'existerait pas** — et c'est la condition que l'architecte a posée en l'acceptant.
+
+**Éprouvé par mutation — neuf, dont un FAUX SEPTIÈME GESTIONNAIRE sous ses trois formes** :
+incrémenter un compteur, composer avec l’état antérieur (`+=`), insérer sans `onConflict`. Plus
+les deux propriétés qui portent le bouton (garde d’ordre, `stale`), les trois du bouton lui-même
+(condition dans le `WHERE`, motif exigé, trace), et **une contre-mutation** : renommer la variable
+`motif` ne doit **pas** faire rougir.
+
+> ⚠️ **ET LA CONTRE-MUTATION ÉTAIT FAUSSE AVANT DE PASSER.** Elle renommait `motif` **partout**,
+> donc aussi le **code d'erreur** `motif_requis` — qui fait partie du contrat rendu au client. Le
+> contrôle avait raison de rougir. **Un renommage qui touche un contrat n'est pas un renommage
+> neutre**, et une contre-mutation mal écrite accuse un contrôle sain.
+
+> **ET UNE ASSERTION DE `diag-ecarts-stripe` A ÉTÉ RETOURNÉE, PAS SUPPRIMÉE** (§E.34, troisième
+> réponse). Elle exigeait que la surface d'exploitation n'expose **aucun** verbe d'écriture — et
+> elle avait raison le jour où elle a été écrite. La propriété a été **délibérément changée** ;
+> l'assertion garde désormais ce qui reste vrai : **au plus UN** verbe d'écriture, qui n'écrit ni
+> droit, ni transaction, ni catalogue, et qui **ne rejoue pas** l'événement — il le rend rejouable.
+
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
   acceptée et ne se déclenchera **jamais** : aucune erreur, aucune ligne dans `job_run_details`. D'où le

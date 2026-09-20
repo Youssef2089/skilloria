@@ -684,6 +684,23 @@ dans [CLAUDE.md](../CLAUDE.md).
 
 ## F. La classe de défaut « lire puis écrire »
 
+> **DETTE NOMMÉE, NON OUVERTE — `extendValidity` (20/09/2026).**
+> `applyPackageState` écrit en **un seul statement**, garde comprise : sa condition
+> d'antériorité (`package_source_event_at`) vit dans le `WHERE`, donc deux livraisons
+> concurrentes sont arbitrées par la base. **`extendValidity`, lui, LIT puis ÉCRIT** : il relit
+> `package_valid_until` et `package_source_event_at`, compare en mémoire, puis écrit. C'est la
+> classe que cette section recense.
+>
+> **Ce qui le tient aujourd'hui est le verrou de réclamation** : `stripe_event_claim` sérialise les
+> livraisons du même événement, et deux événements **différents** portent des horodatages
+> différents. La fenêtre est donc étroite — mais **elle n'est pas fermée par le schéma**, et c'est
+> la différence avec son voisin.
+>
+> **Relevée en instruisant le bouton de reprise de `/admin/facturation`** (§E.46), et **laissée
+> ouverte sur décision de l'architecte** : la fermer suppose de descendre la comparaison dans le
+> `WHERE`, comme `applyPackageState` — un lot à lui seul. Elle est écrite ici pour ne pas être
+> redécouverte.
+
 **Le motif.** L'applicatif lit une ligne, décide, puis écrit. Entre les deux, une autre exécution passe.
 Le client Supabase JS **ne sait pas ouvrir de transaction multi-requêtes** : la fenêtre ne peut pas être
 fermée côté code. Rien ne lève, rien ne casse — une des deux écritures est simplement **perdue**, ou

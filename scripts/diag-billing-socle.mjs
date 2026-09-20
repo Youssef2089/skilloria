@@ -642,6 +642,115 @@ if (process.argv.includes('--db')) {
   }
 }
 
+section('REJOUER UN EVENEMENT EST INOFFENSIF — la condition du bouton de reprise')
+
+/*
+ * ┌─ POURQUOI CETTE SECTION EXISTE ────────────────────────────────────────┐
+ * │ `/admin/facturation` porte un bouton qui repasse un evenement coince   │
+ * │ de 'received' a 'failed', pour le rendre rejouable. Il n'est acceptable │
+ * │ QUE parce que rejouer est inoffensif — et ca l est aujourd hui par     │
+ * │ CONSTRUCTION, pas par chance :                                          │
+ * │  · on ecrit l ETAT ABSOLU, jamais un delta ;                            │
+ * │  · un evenement retardataire est ecarte par un horodatage de source ;   │
+ * │  · la transaction est un upsert adosse a un index unique.               │
+ * │                                                                          │
+ * │ UN SEPTIEME GESTIONNAIRE QUI ECRIRAIT UN DELTA CASSERAIT CETTE          │
+ * │ PROPRIETE EN SILENCE, et la reprise deviendrait un double credit.       │
+ * │ **Sans cette section, le bouton n existerait pas.**                      │
+ * └────────────────────────────────────────────────────────────────────────┘
+ */
+
+// ⚠️ ON REUTILISE LES LIAISONS DU FICHIER PLUTOT QUE DE LES REDECLARER.
+//    Une premiere version relisait les deux modules ici sous de nouveaux noms :
+//    le lint a signale la copie inutilisee, et DEUX LECTURES DU MEME FICHIER
+//    SOUS DEUX NOMS sont exactement la forme qui finit par diverger (§E.20).
+const ecritures = `${events}\n${apply}`
+
+// ① AUCUN DELTA. Une ecriture qui compose avec l etat anterieur ne se rejoue
+//    pas : elle s'ajoute. On cherche l arithmetique ET les increments RPC.
+const DELTAS = [
+  { motif: /\+\+|--(?!\s*>)/, quoi: 'incrementation (`++` / `--`)' },
+  { motif: /\+=|-=/, quoi: 'affectation composee (`+=` / `-=`)' },
+  { motif: /\brpc\(\s*'[^']*(increment|decrement|add_|bump)/i, quoi: 'RPC d incrementation' },
+  // `x: <qqch> + 1` dans une charge utile d ecriture.
+  { motif: /^\s*\w+:\s*[^,\n]*\b[A-Za-z_$][\w$.?\[\]]*\s*[+-]\s*\d+\s*,?\s*$/m, quoi: 'delta dans une charge utile' },
+]
+for (const { motif, quoi } of DELTAS) {
+  const trouve = motif.exec(ecritures)
+  ok(
+    trouve === null,
+    `aucun ${quoi} dans le chemin d ecriture des evenements`,
+    trouve ? `trouve : ${trouve[0].trim().slice(0, 80)}` : undefined,
+  )
+}
+
+// ② L ETAT ABSOLU, ET LA GARDE D ORDRE. Stripe ne garantit aucun ordre : un
+//    evenement retardataire ne doit jamais ecraser un plus recent, sinon un
+//    rejeu ressusciterait un abonnement resilie.
+ok(
+  /package_source_event_at/.test(apply),
+  'apply.ts porte la garde d ordre `package_source_event_at`',
+  'sans elle, rejouer un evenement ancien ecrase un etat plus recent',
+)
+ok(
+  /JAMAIS DE DELTA|ETAT ABSOLU|État ABSOLU|ÉTAT ABSOLU/.test(read('lib/billing/apply.ts')),
+  'apply.ts DECLARE ecrire l etat absolu — la regle est ecrite la ou elle s applique',
+)
+ok(
+  /return 'stale'/.test(apply),
+  'une ecriture plus ancienne est ECARTEE (`stale`), pas appliquee',
+)
+
+// ③ LA SEULE INSERTION EST UN UPSERT, ET SA CLE EST UNIQUE EN BASE (§E.31).
+const insertionsNues = [...ecritures.matchAll(/\.insert\(/g)]
+ok(
+  insertionsNues.length === 0,
+  'aucune insertion NUE dans le chemin d ecriture (un rejeu la doublerait)',
+  `${insertionsNues.length} occurrence(s) de \`.insert(\``,
+)
+const upserts = [...ecritures.matchAll(/\.upsert\([\s\S]{0,2000}?onConflict:\s*'([a-z_]+)'/g)]
+ok(
+  upserts.length >= 1,
+  'les ecritures de transaction passent par un `upsert` avec `onConflict`',
+)
+for (const u of upserts) {
+  const colonne = u[1]
+  // §G.3 — JAMAIS par le numero. Le controle qui garde cette regle est dans
+  //        CE fichier, et il m a pris sur cette ligne meme : un numero cite
+  //        vieillit mal et ment ensuite. On resout par SUFFIXE DESCRIPTIF.
+  const sql = stripSql(read(migration('stripe_fondations')))
+  const uniq = new RegExp(`create unique index[\\s\\S]{0,200}?\\(\\s*${colonne}\\s*\\)`, 'i')
+  ok(
+    uniq.test(sql),
+    `\`${colonne}\` porte un index UNIQUE en base — la garde est dans le schema`,
+    'sans contrainte, `onConflict` echoue au runtime (42P10) et le doublon passe',
+  )
+}
+
+// ④ LE BOUTON LUI-MEME : la garde est dans le WHERE, et le motif est exige.
+const routeFacturation = stripJs(read('app/api/admin/facturation/route.ts'))
+ok(
+  /\.update\(\{\s*status:\s*'failed'[\s\S]{0,400}?\.eq\('status',\s*'received'\)[\s\S]{0,200}?\.lt\('received_at'/.test(
+    routeFacturation,
+  ),
+  'la reouverture porte ses trois conditions dans le WHERE, pas dans une lecture prealable',
+  'lire puis ecrire laisse une fenetre ou le processus d origine cloture entre les deux',
+)
+ok(
+  // ⚠️ ON N ANCRE PAS SUR LE NOM DE LA VARIABLE (§E.34) : une contre-mutation
+  //    l a dit — renommer `motif` en `raison` ne perd rien, et l assertion
+  //    rougissait. Le CODE D ERREUR, lui, fait partie du contrat rendu au
+  //    client : le renommer est un changement, pas un renommage neutre. On
+  //    ancre donc sur le REFUS, et on exige qu une mesure de longueur le
+  //    precede.
+  /\.length\s*<\s*\d+[\s\S]{0,300}?motif_requis/.test(routeFacturation),
+  'la reouverture EXIGE un motif ecrit — une reprise d argent sans raison ne s explique pas',
+)
+ok(
+  /logAudit\(/.test(routeFacturation) && /stripe_event_reouvert/.test(routeFacturation),
+  'la reouverture est TRACEE : qui, quand, pourquoi',
+)
+
 console.log(
   failures === 0
     ? '\nRÉSULTAT : tout est vert. Le socle tient, le mur reste fermé.\n'

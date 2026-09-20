@@ -4290,7 +4290,19 @@
         "ignored": "Ignoré volontairement",
         "failed": "En échec"
       },
-      "statut_stuck": "Coincé"
+      "statut_stuck": "Coincé",
+      "col_action": "Action",
+      "reopen_action": "Rouvrir",
+      "reopen_title": "Rouvrir l’événement {id}",
+      "reopen_help": "Cet événement a été réclamé mais jamais clôturé : Stripe ne le réessaiera plus. Le rouvrir le rend rejouable — il ne rejoue rien lui-même, et ne modifie aucun droit. Une raison écrite est exigée : elle est enregistrée avec votre nom.",
+      "reopen_placeholder": "Pourquoi rouvrir cet événement ? (10 caractères minimum)",
+      "reopen_confirm": "Rouvrir",
+      "reopen_cancel": "Annuler",
+      "reopen_sending": "Réouverture…",
+      "reopen_done": "Événement rouvert. Il sera repris au prochain réessai de Stripe, ou lors d’un renvoi manuel depuis le tableau de bord Stripe.",
+      "reopen_err_not_stuck": "Cet événement n’est plus coincé : il a été clôturé entre-temps, ou il est trop récent. Rien n’a été modifié.",
+      "reopen_err_unavailable": "L’écriture n’a pas abouti. Rien n’a été modifié — réessayez dans quelques instants.",
+      "reopen_err_generic": "La réouverture a échoué. Rien n’a été modifié."
     },
     "nuit": {
       "title": "La dernière vérification nocturne",
