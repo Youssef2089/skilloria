@@ -61,7 +61,8 @@ avec le seed) : `publications_per_month`, `active_publications_max`,
 `conversations`, `messages`, `notifications`, `notification_preferences`.
 
 **Commerce** — `packages`, `package_features`, `package_history`, `subscription_history`,
-`transactions`, `usage_counters`, `promo_codes`, `promo_code_uses`, `stripe_events`.
+`transactions`, `usage_counters`, `promo_codes`, `promo_code_uses`, `stripe_events`,
+`stripe_reconciliation_runs` (§C.10).
 
 **Taxonomie** — `branches`, `specialities`, `public_email_domains`, `blocked_email_domains`.
 

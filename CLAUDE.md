@@ -719,8 +719,11 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **69** migrations : **51 insertions vues, 39 analysées, 1962 valeurs confrontées** (mesuré le
-17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois dernières,
+Sur les **70** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
+20/09/2026, à l'exécution — la 70ᵉ, `verification_nocturne_stripe`, apporte l'insertion et la ligne
+de plus : son entrée au catalogue des tâches planifiées, six valeurs. Les chiffres précédents,
+**69 / 51 / 39 / 1962**, dataient du 17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois
+dernières d'alors,
 `logo_organisation_bucket`, `format_numero_identification` et `pays_du_profil_sans_defaut`,
 **n'insèrent rien** : elles créent un bucket, ajoutent des colonnes, retirent deux `DEFAULT 'FR'` et
 mettent à jour la seule ligne `FR`, d'où trois compteurs inchangés — et `echelle_des_notes`
