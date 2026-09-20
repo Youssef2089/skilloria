@@ -382,7 +382,20 @@ export async function POST(request: NextRequest): Promise<Response> {
     .eq('slug', input.domain_slug)
     .eq('active', true)
     .maybeSingle()
-  if (domainErr || !domainRow) {
+  // PREMIERE ETAPE DU PARCOURS D'ACQUISITION : « cet ecosysteme n'existe pas »
+  // sur une lecture en panne, a quelqu'un qui vient d'arriver (§E.42). Meme
+  // code que /api/taxonomy pour la meme nature.
+  if (domainErr) {
+    console.error('[register-org] ecosysteme ILLISIBLE — inscription non commencee', {
+      slug: input.domain_slug,
+      message: domainErr.message,
+    })
+    return json(
+      { error: 'Could not resolve the ecosystem', code: 'ecosysteme_indisponible' },
+      503,
+    )
+  }
+  if (!domainRow) {
     return json({ error: 'Domain not found', code: 'domain_not_found' }, 404)
   }
 

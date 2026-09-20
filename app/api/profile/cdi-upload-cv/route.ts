@@ -167,11 +167,20 @@ export async function POST(request: NextRequest): Promise<Response> {
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (profileErr || !profile) {
-    console.error('[cdi-upload-cv] profile lookup failed', {
+  // La trace existait deja ; le MOTIF mentait quand meme : « profil introuvable »
+  // sur une panne, au depot du CV (§E.42). 503 sur la panne, 404 sur l'absence.
+  if (profileErr) {
+    console.error('[cdi-upload-cv] profil ILLISIBLE — depot refuse temporairement', {
       userId: user.id,
-      err: profileErr?.message,
+      message: profileErr.message,
     })
+    return json(
+      { error: 'Could not read the profile', code: 'profil_verification_indisponible' },
+      503,
+    )
+  }
+  if (!profile) {
+    console.error('[cdi-upload-cv] profile lookup failed', { userId: user.id })
     return json({ error: 'Profile not found', code: 'profile_missing' }, 404)
   }
 

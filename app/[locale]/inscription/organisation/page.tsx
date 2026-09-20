@@ -203,6 +203,7 @@ export default function InscriptionOrganisationPage() {
         else if (c === 'invalid_email') setSubmitError(t('errors.invalid_email'))
         else if (c === 'invalid_phone') setSubmitError(t('errors.invalid_phone'))
         else if (c === 'invalid_password') setSubmitError(t('errors.password_too_short'))
+        else if (c === 'ecosysteme_indisponible') setSubmitError(t('errors.ecosysteme_indisponible'))
         else if (c === 'create_user_failed' && (json.error ?? '').toLowerCase().includes('already')) {
           setSubmitError(t('errors.email_taken'))
         } else {

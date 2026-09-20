@@ -35,7 +35,17 @@ export async function GET(
     .eq('id', jobId)
     .maybeSingle()
 
-  if (profErr || !profile) {
+  // Le suivi d'analyse est INTERROGE EN BOUCLE par l'ecran : une panne rendue
+  // 404 se lisait « ce suivi n'existe pas ». En 503, l'ecran continue de
+  // sonder — ce qui est exactement ce qu il faut faire sur une panne (§E.42).
+  if (profErr) {
+    console.error('[cv-status] suivi ILLISIBLE', { jobId, message: profErr.message })
+    return json(
+      { error: 'Could not read the job', code: 'objet_verification_indisponible' },
+      503,
+    )
+  }
+  if (!profile) {
     return json({ error: 'Job not found', code: 'not_found' }, 404)
   }
 

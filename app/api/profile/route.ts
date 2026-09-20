@@ -209,7 +209,16 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     .select(profileSelect)
     .eq('user_id', user.id)
     .maybeSingle()
-  if (fetchErr || !currentProfile) {
+  // Une lecture de `profiles` en panne n'est pas un profil absent (§E.42) :
+  // 503 qui se reessaie, jamais le 404 qui se croit. L'absence reelle garde son code.
+  if (fetchErr) {
+    console.error('[profile PATCH] profil ILLISIBLE', { userId: user.id, message: fetchErr.message })
+    return json(
+      { error: 'Could not read the profile', code: 'profil_verification_indisponible' },
+      503,
+    )
+  }
+  if (!currentProfile) {
     return json({ error: 'Profile not found', code: 'profile_missing' }, 404)
   }
   // Cast nécessaire car `profileSelect` est une chaîne dynamique

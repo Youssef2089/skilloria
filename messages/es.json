@@ -1031,7 +1031,8 @@
       "sms_pays_non_pris_en_charge": "Los SMS de verificación no están disponibles para este país por el momento. Usa otro número o escríbenos: te registramos manualmente.",
       "generic": "Ha ocurrido un error. Inténtalo de nuevo.",
       "phone_already_used": "Este número ya está siendo utilizado por otra cuenta.",
-      "invalid_country_code": "Selecciona el país de la sede de tu empresa."
+      "invalid_country_code": "Selecciona el país de la sede de tu empresa.",
+      "ecosysteme_indisponible": "No hemos podido verificar el ecosistema de esta dirección. No es un rechazo: no se ha creado nada. Inténtelo de nuevo en unos instantes."
     },
     "callback": {
       "verifying_title": "Verificando…",
@@ -2417,7 +2418,8 @@
       "error_not_published": "Esta oportunidad ya no está disponible.",
       "error_cover_too_long": "Tu mensaje supera los 2000 caracteres.",
       "error_cannot_apply_own_need": "No puede postularse a su propia necesidad.",
-      "error_type_not_candidatable": "Este tipo de oportunidad no acepta candidaturas."
+      "error_type_not_candidatable": "Este tipo de oportunidad no acepta candidaturas.",
+      "error_verification_indisponible": "No se ha podido completar una verificación: no es un rechazo ni una oferta desaparecida. No se ha guardado nada; inténtelo de nuevo en unos instantes."
     },
     "recommendations_updated": "Tus recomendaciones se han actualizado."
   },

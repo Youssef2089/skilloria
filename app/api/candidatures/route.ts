@@ -163,7 +163,16 @@ export async function POST(request: NextRequest): Promise<Response> {
     )
     .eq('user_id', auth.user.id)
     .maybeSingle()
-  if (pErr || !profile) {
+  // Une lecture de `profiles` en panne n'est pas un profil absent (§E.42) :
+  // 503 qui se reessaie, jamais le 404 qui se croit. L'absence reelle garde son code.
+  if (pErr) {
+    console.error('[candidatures] profil ILLISIBLE', { userId: auth.user.id, message: pErr.message })
+    return json(
+      { error: 'Could not read the profile', code: 'profil_verification_indisponible' },
+      503,
+    )
+  }
+  if (!profile) {
     return json({ error: 'Profile not found', code: 'profile_missing' }, 404)
   }
   const profileRow = profile as unknown as Record<string, unknown> & { id: string; domain_id: string }
@@ -195,7 +204,16 @@ export async function POST(request: NextRequest): Promise<Response> {
     )
     .eq('id', publicationId)
     .maybeSingle()
-  if (pubErr || !pub) {
+  // « Cette annonce n'existe pas », dit d'une annonce reelle au moment de
+  // postuler (§E.42). La panne sort en 503, l absence garde son 404.
+  if (pubErr) {
+    console.error('[candidatures] annonce ILLISIBLE', { publicationId, message: pubErr.message })
+    return json(
+      { error: 'Could not read the publication', code: 'objet_verification_indisponible' },
+      503,
+    )
+  }
+  if (!pub) {
     return json({ error: 'Publication not found', code: 'not_found' }, 404)
   }
   const pubRow = pub as unknown as {

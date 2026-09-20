@@ -782,8 +782,12 @@ export default function ValiderProfilPage() {
         // Message LOCALISÉ (4 langues) — on n'affiche jamais l'erreur serveur
         // brute (anglais générique « Update failed »). L'utilisateur comprend
         // qu'il s'agit de l'effacement du CV et qu'il peut réessayer.
-        await res.json().catch(() => ({}))
-        setErrorMsg(tProfile('errors.reset_failed'))
+        const corps = (await res.json().catch(() => ({}))) as { code?: string }
+        setErrorMsg(
+          corps.code === 'profil_verification_indisponible'
+            ? tProfile('errors.verification_indisponible')
+            : tProfile('errors.reset_failed'),
+        )
         setResetting(false)
         return
       }

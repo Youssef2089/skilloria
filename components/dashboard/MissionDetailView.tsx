@@ -135,6 +135,9 @@ export default function MissionDetailView({
         const code = payload.code as string | undefined
         const message =
           code === 'not_found' ? t('error_not_found') :
+          // Une LECTURE en panne n'est pas « introuvable » : le message le dit,
+          // et il dit de reessayer (§E.42).
+          code === 'profil_verification_indisponible' ? t('error_verification_indisponible') :
           code === 'org_required' ? t('error_generic') :
           t('error_generic')
         setState({ kind: 'error', message })
@@ -178,6 +181,10 @@ export default function MissionDetailView({
         else if (payload.code === 'cannot_apply_own_need') setErrorBanner(t('error_cannot_apply_own_need'))
         else if (payload.code === 'type_not_candidatable') setErrorBanner(t('error_type_not_candidatable'))
         else if (payload.code === 'invalid_cover_message') setErrorBanner(t('error_cover_too_long'))
+        else if (
+          payload.code === 'profil_verification_indisponible' ||
+          payload.code === 'objet_verification_indisponible'
+        ) setErrorBanner(t('error_verification_indisponible'))
         else setErrorBanner(t('error_generic'))
         return
       }
@@ -203,7 +210,14 @@ export default function MissionDetailView({
     try {
       const res = await secureFetch(`/api/me/missions/${pubId}/dismiss`, { method: 'POST' })
       if (res.ok) router.push(feedPath)
-      else setErrorBanner(t('error_generic'))
+      else {
+        const corps = (await res.json().catch(() => ({}))) as { code?: string }
+        setErrorBanner(
+          corps.code === 'profil_verification_indisponible'
+            ? t('error_verification_indisponible')
+            : t('error_generic'),
+        )
+      }
     } catch (err) {
       console.error('[mission dismiss] threw', err)
       setErrorBanner(t('error_generic'))

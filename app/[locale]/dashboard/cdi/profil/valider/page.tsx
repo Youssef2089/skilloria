@@ -883,8 +883,12 @@ export default function CdiValiderProfilPage() {
       if (!res.ok) {
         // Message LOCALISÉ (4 langues) — jamais l'anglais serveur brut. Miroir
         // exact du correctif freelance.
-        await res.json().catch(() => ({}))
-        setErrorMsg(tProfile('errors.reset_failed'))
+        const corps = (await res.json().catch(() => ({}))) as { code?: string }
+        setErrorMsg(
+          corps.code === 'profil_verification_indisponible'
+            ? tProfile('errors.verification_indisponible')
+            : tProfile('errors.reset_failed'),
+        )
         setResetting(false)
         return
       }

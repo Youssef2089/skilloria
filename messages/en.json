@@ -1031,7 +1031,8 @@
       "sms_pays_non_pris_en_charge": "Verification texts are currently unavailable for this country. Use another number, or contact us: we will register you manually.",
       "generic": "An error occurred. Please try again.",
       "phone_already_used": "This phone number is already used by another account.",
-      "invalid_country_code": "Select the country of your company registered office."
+      "invalid_country_code": "Select the country of your company registered office.",
+      "ecosysteme_indisponible": "We could not verify the ecosystem for this address. This is not a refusal: nothing was created. Please try again in a moment."
     },
     "callback": {
       "verifying_title": "Verifying…",
@@ -2417,7 +2418,8 @@
       "error_not_published": "This opportunity is no longer available.",
       "error_cover_too_long": "Your message exceeds 2000 characters.",
       "error_cannot_apply_own_need": "You can't apply to your own need.",
-      "error_type_not_candidatable": "This type of opportunity does not accept applications."
+      "error_type_not_candidatable": "This type of opportunity does not accept applications.",
+      "error_verification_indisponible": "A check could not be completed: this is neither a refusal nor a missing offer. Nothing was saved — please try again in a moment."
     },
     "recommendations_updated": "Your recommendations have been updated."
   },

@@ -58,7 +58,16 @@ export async function POST(request: NextRequest): Promise<Response> {
     .select('id, open_to_cdi, open_to_freelance, last_matching_scope, users!profiles_user_id_fkey!inner(user_type)')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (pErr || !profile) {
+  // Une lecture de `profiles` en panne n'est pas un profil absent (§E.42) :
+  // 503 qui se reessaie, jamais le 404 qui se croit. L'absence reelle garde son code.
+  if (pErr) {
+    console.error('[me/sync-matching] profil ILLISIBLE', { userId: user.id, message: pErr.message })
+    return json(
+      { error: 'Could not read the profile', code: 'profil_verification_indisponible' },
+      503,
+    )
+  }
+  if (!profile) {
     return json({ ok: false, code: 'profile_not_found' }, 404)
   }
   const prof = profile as unknown as {
