@@ -49,6 +49,18 @@ export async function GET(request: NextRequest): Promise<Response> {
     .maybeSingle()
 
   // Réponse uniforme pour tout ce qui n'est pas une invitation acceptable.
+  // ⚠️ DÉCISION (20/09/2026, §E.42) : la réponse reste UNIFORME vers l'extérieur — un
+  //    attaquant qui sonde des jetons ne doit pas distinguer « invalide » de
+  //    « expiré » de « lecture en panne ». Mais le silence vers l'attaquant ne
+  //    justifie pas le silence vers l'exploitant : une panne de lecture est
+  //    JOURNALISÉE ici, et c'est la seule différence entre les quatre causes.
+  //    `diag-verdict-sur-panne` exempte ce 404 à cette condition, et à elle seule.
+  if (error) {
+    console.error('[invitations/resolve] lecture ILLISIBLE — réponse uniforme conservée', {
+      message: error.message,
+      code: error.code,
+    })
+  }
   if (error || !inv || inv.status !== 'pending' || new Date(inv.expires_at).getTime() <= Date.now()) {
     return json({ valid: false, code: 'invalid' }, 404)
   }

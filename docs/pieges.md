@@ -1579,6 +1579,15 @@ croire un contrôle vert.
 | ② | **Le couple §E.36 ENTRE FICHIERS** — deux gardes qui tombent sur la même panne | les deux moitiés sont saines **chacune dans son fichier** ; c'est leur *conjonction* qui est le défaut, et elle n'est écrite nulle part | `delete-branch` + `get-branch` (4.1c) |
 | ③ | **§E.37 — la garde qui choisit le MAUVAIS ÉTAT** | rien ne s'ouvre, rien ne rend une valeur neutre : la garde se ferme correctement, sur le mauvais motif. Il n'y a pas de valeur suspecte à chercher | `expertProfileGate` et l'ordre du test |
 
+> **ET UNE FORME LÉGITIME QUE LE MOTIF DE §E.42 PRENAIT POUR UN DÉFAUT — la RPC qui rend son motif
+> dans son MESSAGE.** `if (rpcErr) { if (msg.includes('cron_job_not_found')) return 404 ; return 500 }`
+> a la forme exacte d’une garde confondue : la condition nomme une erreur, le bloc rend 404. Mais
+> l’erreur **PORTE** le fait métier — `cron_job_not_found`, `package_not_found` sont le **contrat**
+> de la fonction SQL, pas une panne — et l’échec générique, lui, rend 500. Cinq occurrences
+> (`cron-jobs/run`, `schedule`, `toggle` ×2, `package-default`). **Elle se reconnaît par sa
+> propriété** (le statut vit sous le test du message), et c’est ainsi que le contrôle la range —
+> pas par une liste de chemins.
+
 **LA QUATRIÈME, ELLE, SE BALAIE — et c'est §E.39.** Le couple §E.36 **à l'intérieur d'une seule
 fonction** a une signature textuelle : une garde teste `X`, une action consomme `f(X)`. Deux
 lectures suffisent ; il n'a pas besoin de deux fichiers. **La différence entre ② et la quatrième
@@ -1747,11 +1756,15 @@ refus : chaque `if (…)` (parenthèses équilibrées), son bloc (comptage d’a
 > trouver. C’est la leçon du `select` non littéral et de la constante rendue par une fonction
 > (§E.32) : **on suit un saut de réaffectation — un seul, et c’est déclaré.**
 
-**MESURÉ le 20/09/2026** sur `app/` + `lib/` + `components/` : **151 gardes rendant 404/403** —
-26 CONFONDUE, 54 erreur prise ailleurs, 71 hors classe. Réconcilié avec le premier compte (49
-occurrences de `if (err || !x)`, 18 verdicts) : les 18 sont un sous-ensemble des 26, et le
-nouveau motif **résout deux des treize « sans statut HTTP »** (`new Response(…, {status:404})`, et
-un statut porté dans un objet de retour).
+**MESURÉ le 20/09/2026, AVANT correction** sur `app/` + `lib/` + `components/` : **151 gardes
+rendant 404/403** — 26 CONFONDUE, 54 erreur prise ailleurs, 71 hors classe. Réconcilié avec le
+premier compte (49 occurrences de `if (err || !x)`, 18 verdicts) : les 18 sont un sous-ensemble
+des 26, et le nouveau motif **résout deux des treize « sans statut HTTP »**
+(`new Response(…, {status:404})`, et un statut porté dans un objet de retour).
+**APRÈS, par le contrôle livré** ([scripts/diag-verdict-sur-panne.mjs](../scripts/diag-verdict-sur-panne.mjs)) :
+**164 gardes** — le motif compte désormais aussi `AuthError(403|404`, la forme de la racine
+(§E.24 : un chiffre ne s’écrit pas sans dire sur quoi il porte) — **79 erreur prise ailleurs,
+72 hors classe, 7 non résolues, 5 portées par la RPC, 1 CONFONDUE** (l’exemptée ci-dessous).
 
 | Verdict | Nombre | |
 |---|---|---|
@@ -1779,10 +1792,35 @@ réutilisé), `objet_verification_indisponible` (l’annonce, le suivi d’analy
 `ecosysteme_indisponible` (réutilisé) pour l’inscription. **Le motif honnête arrive jusqu’à
 l’écran** : l’écran de réactivation a une vue « je ne sais pas », qui n’est ni « actif » ni « purgé ».
 
-> **CE QUI RESTE DÉCLARÉ, PAS ABSENT (§E.38).** Dix gardes « erreur prise ailleurs » que le résolveur
-> à un saut **ne remonte pas** — une chaîne de réaffectations plus longue. Elles sont **nommées**
-> dans le contrôle comme dette, jamais comptées comme saines. Et le couple §E.39 a été cherché sur
-> les 54 : **44 refusent avant la garde, zéro couple, dix non résolus.**
+**LE CONTRÔLE — [scripts/diag-verdict-sur-panne.mjs](../scripts/diag-verdict-sur-panne.mjs).** Il est
+**éprouvé sur ses cas connus avant tout balayage** (§E.33) : trois témoins qui sont *ce qui a
+disparu* — `reactivate:55`, `accept:94` (valeur renommée), `auth-guard:279` (`AuthError(403)`) —
+plus le correctif (il se tait), la forme RPC (il la reconnaît) et une validation de format (il ne
+crie pas). Il reconnaît la forme légitime **par sa propriété** — le 404 vit sous un
+`includes('…not_found')` sur le message — et non par cinq chemins de fichiers : un sixième
+appelant de la même RPC sera classé de lui-même (§E.34). L’exemption de `resolve:52` porte une
+**sentinelle** : si la panne cesse d’être journalisée, l’exemption tombe.
+
+> **DEUX PIÈGES PAYÉS EN L’ÉCRIVANT.** ① Le motif de refus est lâche — `json(…, 404` sur deux cents
+> caractères — et il **démarrait sur le `json(` voisin** : dans `cron-jobs/run`, un 409
+> (`already_running`) précède le 404 dans le même bloc, la coupe tombait avant le `includes(…)`,
+> et la forme légitime était comptée CONFONDUE. On coupe à la **fin** du match, pas à son début
+> (§E.8 : ancrer sur le bloc qu’on vise). ② `const org = auth.organization` puis `if (!org) → 403`
+> — **vingt occurrences** — sortaient en « non résolues ». Elles sont **hors classe**, mais pour
+> une raison qui vit dans un autre fichier : `loadOrganizationContext` **lève 503** sur
+> `memberErr` (§E.22 ①), donc `null` y veut dire « aucune organisation » et rien d’autre. La règle
+> porte sa **sentinelle** sur cette levée : si elle disparaît, les vingt redeviennent des verdicts
+> sur une panne, et le contrôle rougit.
+
+> **CE QUI RESTE DÉCLARÉ, PAS ABSENT (§E.38).** Sept gardes `!x` (six entrées, `messages` en porte
+> deux) dont le résolveur à un saut **ne remonte pas** l’origine — une destructuration de tableau
+> (`Promise.all`), un objet dérivé deux fois, un booléen sorti d’un contexte. **Toutes les sept ont
+> été LUES**, et chacune est légitime : l’erreur sort en 500 plus haut dans le même fichier, ou
+> c’est un format, ou `'indisponible'` est testé la ligne d’avant. Elles sont gelées **nommément**
+> — clé fichier + condition, jamais un numéro de ligne — avec une raison par entrée qui commence
+> par LÉGITIME (§G.8) ; une garde neuve que le motif ne résout pas rougit, et le compte ne se
+> relève pas : on lit, puis on ajoute. Le couple §E.39 a été cherché sur les 54 « erreur prise
+> ailleurs » d’avant correction : **44 refusent avant la garde, zéro couple.**
 <a id="e43"></a>
 ### E.43 — UNE RÉTROGRADATION NE SE DÉCIDE PAS SUR UN ÉTAT QU'ON N'A PAS LU.
 
