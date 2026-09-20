@@ -83,11 +83,28 @@ async function resolvePackageRow(
       !!linkPackageId && (linkValidUntil == null || new Date(linkValidUntil).getTime() > Date.now())
 
     if (linkActive) {
-      const { data: pkg } = await admin
+      const { data: pkg, error: pkgErr } = await admin
         .from('packages')
         .select('name, price_monthly, currency, active')
         .eq('id', linkPackageId as string)
         .maybeSingle()
+    // ⚠️ LE MENSONGE LE PLUS VISIBLE DU LOT, ET IL EST SUR L'ÉCRAN OÙ L'ON
+    //    DÉCIDE DE RESTER OU DE RÉSILIER. L’erreur n’était pas récupérée :
+    //    `pkg` tombait à `null`, on filait au repli du catalogue, et une
+    //    organisation QUI PAIE lisait le nom et le prix de l'offre
+    //    GRATUITE comme étant la sienne.
+    //    Rien n'est perdu en base — et c'est bien le problème : rien ne
+    //    signale que le chiffre affiché n’est pas le sien.
+    //    On LÈVE : l’appelant rend « offre indisponible » plutôt qu’une
+    //    offre qui n’est pas la bonne. Une absence se recharge ; un faux
+    //    prix se croit.
+    if (pkgErr) {
+      console.error('[me/organisation/offre] offre souscrite ILLISIBLE', {
+        packageId: linkPackageId,
+        message: pkgErr.message,
+      })
+      throw new Error(`offre souscrite illisible — ${pkgErr.message}`)
+    }
       if (pkg && pkg.active === true) {
         return {
           name: pkg.name as string,

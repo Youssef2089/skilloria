@@ -419,14 +419,27 @@ export async function POST(request: NextRequest): Promise<Response> {
           .maybeSingle()
         ownerUserType = (ownerRow as { user_type: string | null } | null)?.user_type ?? null
       }
-      const { data: members } = await auth.supabaseAdmin
+      const { data: members, error: membersErr } = await auth.supabaseAdmin
         .from('organization_members')
         // `role` ajouté : il départage la CLOCHE (tous les membres actifs) des
         // envois externes (admin/editor seulement, cf. plus bas).
         .select('user_id, role, users!organization_members_user_id_fkey(id, locale)')
         .eq('organization_id', pubInfo.organization_id)
         .eq('status', 'active')
-      type Member = {
+      // ⚠️ UNE PANNE ICI, ET L'ORGANISATION N'APPREND JAMAIS QU'UNE
+    //    CANDIDATURE EST ARRIVEE. C'est l'evenement central du produit : la
+    //    liste des membres a prevenir tombait a `[]`, personne n'etait
+    //    notifie, et rien ne le disait. Le depot d'une candidature, lui,
+    //    reussissait — donc l'expert croit avoir postule aupres de quelqu'un.
+    //    On ne bloque PAS le depot pour autant (il est deja acquis) : on
+    //    journalise, bruyamment, parce que ce silence-la ne se voit nulle part.
+    if (membersErr) {
+      console.error('[candidatures] membres a prevenir ILLISIBLES — personne ne sera notifie', {
+        publicationId,
+        message: membersErr.message,
+      })
+    }
+    type Member = {
         user_id: string
         role: string | null
         users: { id: string; locale: string | null } | { id: string; locale: string | null }[]

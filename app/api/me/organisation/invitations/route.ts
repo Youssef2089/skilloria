@@ -127,11 +127,25 @@ export async function POST(request: NextRequest): Promise<Response> {
   // AVANT tout envoi d'email. Justification : un compte entreprise est toujours
   // créé AVEC son organisation (register-org), donc déjà rattaché ; un expert
   // (ou un admin) ne peut pas rejoindre une organisation ; 1 compte = 1 org.
-  const { data: existingUser } = await admin
+  const { data: existingUser, error: existingUserErr } = await admin
     .from('users')
     .select('id, user_type')
     .ilike('email', email)
     .maybeSingle()
+  // ⚠️ `existingUser` NUL SAUTAIT TOUTES LES VÉRIFICATIONS D’UN COUP.
+  //    Le type de compte, l’appartenance à CETTE organisation, l’invitation
+  //    en double : les trois vivent dans le `if (existingUser)` qui suit.
+  //    Une panne de lecture les désarmait ensemble — c'est §E.36 : une
+  //    seule panne, plusieurs gardes.
+  //    On refuse : une invitation qu’on n’a pas su vérifier part à quelqu’un
+  //    qui ne pourra peut-être pas l’accepter, et consomme un e-mail.
+  if (existingUserErr) {
+    console.error('[me/invitations] lecture du compte invité en panne', existingUserErr.message)
+    return json(
+      { error: 'Could not check the invited account', code: 'invite_check_unavailable' },
+      503,
+    )
+  }
   if (existingUser) {
     const ut = (existingUser.user_type as string | null) ?? null
     if (ut === 'expert_freelance' || ut === 'expert_cdi') {
