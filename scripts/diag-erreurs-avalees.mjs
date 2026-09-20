@@ -165,6 +165,49 @@ const MOTIF_DE_LIAISON = /^[\w$\s,{}:.[\]]*$/
  *    On compte donc les lignes NON VIDES — la distance qui compte est celle du
  *    code, pas celle du fichier.
  */
+/**
+ * LA FENETRE NE MESURE PAS CE QU ON CROYAIT, ET LA MESURE L A IMPOSE.
+ *
+ * On l attendait comme un cadran de DETECTION : plus large, plus de prises.
+ * Mesure, sur les six reglages 15 / 20 / 25 / 30 / 40 / 50 :
+ *
+ *     15 → 106     20 → 98     25 → 96     30 → 95     40 → 93     50 → 91
+ *
+ * Elle fait L INVERSE. L elargir RETIRE des emplacements, et les dix qui
+ * entrent a 15 comme les cinq qui sortent a 50 sont TOUS de la forme ②
+ * (« recuperee puis jamais relue »). C est mecanique : la forme ② cherche
+ * une RELECTURE ; une fenetre trop courte ne la voit pas et ACCUSE du code
+ * qui traite parfaitement son erreur. La fenetre est un cadran de FAUX
+ * POSITIFS, pas de detection.
+ *
+ * LES CINQ, LUS UN PAR UN — les cinq que 50 faisait sortir :
+ *   publications:301      `insertErr` relu +26 lignes → 500. Le `.insert({…})`
+ *                         fait 26 lignes : la relecture tombait dehors.
+ *   upload-cv:347         `finalErr` relu +33 lignes. Le `.update({…})` en
+ *                         fait 32.
+ *   cdi-upload-cv:111     `profileErr` relu +41 lignes. Le `.select([…])`
+ *                         enumere 40 colonnes.
+ *   cdi-upload-cv:415     `finalErr` relu +44 lignes.
+ *   cv/reset:76           `updErr` relu +50 lignes → 500. Le `.update({…})`
+ *                         efface 46 colonnes.
+ *
+ * LES CINQ SONT DES FAUX POSITIFS. Ce qui les separe de leur relecture n est
+ * pas du code qui oublie : c est une LISTE DE COLONNES. Un recensement qui
+ * compte les lignes d une charge utile comme de la distance accuse les
+ * routes qui ecrivent le plus de champs — exactement celles qui comptent.
+ *
+ * LE REGLAGE, DONC, N EST PAS UN NOMBRE. La question « l erreur est-elle
+ * traitee ? » se pose sur TOUT LE RESTE DU FICHIER — et c est deja la regle
+ * que la forme ①-ter applique vingt lignes plus bas, dans ce meme script.
+ * La fenetre ne sert plus qu a la forme ③, qui cherche un `if` LOCAL :
+ * « est-ce traite ? » est une question de PORTEE, « comment est-ce traite ? »
+ * une question de VOISINAGE. Les deux ne se bornent pas pareil.
+ *
+ * ⚠️ ET CE QUE CE REGLAGE COUTE SE DIT (§E.38) : une erreur dont le nom est
+ *    reutilise plus loin dans le fichier pour une AUTRE requete passe
+ *    desormais pour relue. C est le prix de la portee, il est assume, et la
+ *    forme ② est eprouvee par mutation dans diag-echec-silencieux.
+ */
 function fenetre(src, pos, lignesDeCode = 25) {
   const suite = src.slice(pos).split('\n')
   const gardees = []
@@ -223,7 +266,9 @@ for (const f of fichiers) {
     }
 
     const apres = suite.slice(m[0].length)
-    const relue = new RegExp(`\\b${nomErreur}\\b`).test(apres)
+    // PORTEE, pas voisinage : cf. l en-tete de `fenetre()`. Meme regle que
+    // la forme ①-ter plus bas, qui lit deja tout le reste du fichier.
+    const relue = new RegExp(`\\b${nomErreur}\\b`).test(src.slice(m.index + m[0].length))
     if (!relue) {
       trouvailles.push({ rel, ligne, forme: 'ignorée', extrait: `{ …, ${nomErreur} } jamais relu` })
       continue

@@ -1819,7 +1819,7 @@ garde ouverte — le compilateur, lui, ne voit qu'une affectation parfaitement l
 
 ---
 
-**E.38 — CE QUI NE SE BALAIE PAS SE DÉCLARE. Deux dettes nommées, plutôt que deux contrôles verts.**
+**E.38 — CE QUI NE SE BALAIE PAS SE DÉCLARE. Trois dettes nommées, plutôt que trois contrôles verts.**
 
 **① LA COMPARAISON QUI N'EST JAMAIS VRAIE N'A AUCUN GARDE-FOU.**
 `userType === 'cdi'` alors que la source rend `'expert_cdi'` (§E.28 ⑥). J'ai écrit le motif — « ce
@@ -1836,10 +1836,168 @@ zéro qui ne prouve rien.**
 `matching_health`, `matching_relance_health` — **mesuré : elles n'en avaient déjà aucun avant la
 refonte** (§E.35). Dette antérieure, à traiter avec les inventaires.
 
-> **La règle commune aux deux : une propriété qu'on ne sait pas contrôler se NOMME.** Un contrôle qui
+**③ LA LISTE DE LECTURE — TROIS FORMES QUI SE LISENT, GARDE PAR GARDE, ET NE SE BALAIENT PAS.**
+Établie au lot 4.1d, en refusant de compter quatorze prises là où le motif n'en voyait aucune.
+Elle sert à une chose : **savoir quoi lire à la main quand on ouvre un fichier**, plutôt que de
+croire un contrôle vert.
+
+| # | La forme | Pourquoi aucun motif ne la voit | Le cas fondateur |
+|---|---|---|---|
+| ① | **La comparaison qui n'est jamais vraie** — `userType === 'cdi'` quand la source rend `'expert_cdi'` | le littéral **est** produit ailleurs dans le dépôt, dans un autre domaine (`side`) ; un balayage textuel ne connaît pas les domaines | §E.28 ⑥ |
+| ② | **Le couple §E.36 ENTRE FICHIERS** — deux gardes qui tombent sur la même panne | les deux moitiés sont saines **chacune dans son fichier** ; c'est leur *conjonction* qui est le défaut, et elle n'est écrite nulle part | `delete-branch` + `get-branch` (4.1c) |
+| ③ | **§E.37 — la garde qui choisit le MAUVAIS ÉTAT** | rien ne s'ouvre, rien ne rend une valeur neutre : la garde se ferme correctement, sur le mauvais motif. Il n'y a pas de valeur suspecte à chercher | `expertProfileGate` et l'ordre du test |
+
+**LA QUATRIÈME, ELLE, SE BALAIE — et c'est §E.39.** Le couple §E.36 **à l'intérieur d'une seule
+fonction** a une signature textuelle : une garde teste `X`, une action consomme `f(X)`. Deux
+lectures suffisent ; il n'a pas besoin de deux fichiers. **La différence entre ② et la quatrième
+n'est pas la gravité, c'est la PORTÉE** — et la portée décide si un motif peut exister.
+
+> **La règle commune aux trois : une propriété qu'on ne sait pas contrôler se NOMME.** Un contrôle qui
 > rend zéro sans pouvoir trouver est pire qu'une dette écrite : le premier rassure, la seconde
 > attend. C'est la même exigence que « le contrôle doit mordre », appliquée à ce qu'on décide de
 > **ne pas** contrôler.
+
+**E.39 — LA GARDE TESTE `X`, L'ACTION CONSOMME `f(X)` : §E.36 À L'INTÉRIEUR D'UNE SEULE FONCTION.**
+
+**Le couple n'a pas besoin de deux fichiers pour exister. Il lui suffit de DEUX LECTURES.**
+
+**Le cas fondateur, et il efface des données saisies à la main.** Les deux analyseurs de CV
+écrivaient les langues ainsi : la garde testait `parsed.languages_structured.length > 0` — la liste
+**brute** rendue par le modèle ; puis un `delete` vidait `profile_languages` ; puis la réinsertion
+consommait `normalised`, la liste **dédoublonnée et filtrée**. Un modèle qui rend
+`[{ language: "  " }]` — une réponse non vide mais illisible, cause que ce dépôt nomme déjà
+`reponse_illisible` — **passait la garde, déclenchait la suppression, et réinsérait zéro ligne.**
+Toutes les langues saisies à la main disparaissaient, et le dépôt du CV répondait 200.
+
+**Ce qui rend la forme coûteuse : les deux moitiés sont justes.** La garde est juste (« il y a
+quelque chose à écrire »), le filtre est juste (« une langue sans nom n'est pas une langue »). Le
+défaut est **entre les deux**, et il n'est écrit nulle part.
+
+**LA PROPRIÉTÉ, ET ELLE N'EST PAS UNE FORME :** *la liste qui sera RÉINSÉRÉE est testée AVANT la
+SUPPRESSION.* Peu importe comment. Les trois écrivains la tiennent par **deux mécanismes
+différents**, et c'est délibéré :
+· `upload-cv` et `cdi-upload-cv` → une **garde locale** sur `normalised` ;
+· `PATCH /api/profile` → une **barrière en amont** qui compte les entrées *écrivables* avec le même
+  prédicat que les `.filter()`, et refuse **400 `liste_illisible`** avant d'atteindre les blocs.
+Un contrôle ancré sur la forme locale aurait rougi sur le seul écrivain qui se protège autrement
+(§E.34). Il est donc ancré sur la propriété, et l'exemption du troisième porte une **sentinelle** :
+si la barrière disparaît, l'exemption tombe et le contrôle rougit.
+
+**LE MOTIF, ÉPROUVÉ AVANT D'ÊTRE CRU** (scripts/diag-garde-et-action.mjs) : pour chaque
+`.delete()`, il résout la liste que l'`.insert()` suivant consomme, et vérifie qu'un test de
+**cette** liste précède la suppression. Il est **prouvé sur son cas connu avant tout balayage** —
+le témoin est le bloc langues **tel qu'il était** (§E.33 : un témoin doit être ce qui a disparu, pas
+ce qui entourait le défaut), et le contrôle vérifie **les deux sens** : il voit le défaut d'avant,
+il se tait sur le correctif.
+
+**Ce qu'il ne voit pas, et c'est écrit dans son en-tête** : il ne suit qu'**une** indirection
+(`const rows = <B>`), il ne distingue pas `.map()` — qui conserve la longueur — de `.filter()` —
+qui la réduit —, et une suppression passée par un RPC lui est invisible.
+
+> **Deux pièges payés en l'écrivant, et les deux sont dans cette même section §E.**
+> ① Le résolveur rendait `normalised.map` au lieu de `normalised`, et allait donc chercher
+> `normalised.map.length` : **tout le dépôt rougissait**, pour six faux positifs. ② L'ancre de la
+> troisième section était `indexOf("from('profile_languages')")` — qui tombait sur la **lecture du
+> cache**, trois cents lignes plus haut, et examinait une zone qui ne contenait pas le bloc visé
+> (§E.8 : on ancre sur le bloc qu'on vise, jamais une regex lâchée sur le fichier).
+
+**E.40 — UNE FENÊTRE DE VOISINAGE MESURE LA DISTANCE AU TRAITEMENT, PAS SON ABSENCE.**
+
+`diag-erreurs-avalees` cherchait une relecture de l'erreur dans une **fenêtre de 25 lignes de
+code**. On attendait de cette fenêtre un cadran de **détection** : plus large, plus de prises.
+**Mesuré, sur six réglages :**
+
+| fenêtre | 15 | 20 | 25 | 30 | 40 | 50 |
+|---|---|---|---|---|---|---|
+| emplacements | 106 | 98 | **96** | 95 | 93 | 91 |
+
+**Elle fait l'inverse.** L'élargir **retire** des emplacements, et les dix qui entrent à 15 comme
+les cinq qui sortent à 50 sont **tous** de la forme ② (« récupérée puis jamais relue »). C'est
+mécanique : la forme ② cherche une **relecture** ; une fenêtre trop courte ne la voit pas et
+**accuse du code qui traite parfaitement son erreur**.
+
+**LES CINQ, LUS UN PAR UN — et les cinq sont des FAUX POSITIFS :**
+
+| Emplacement | L'erreur est relue | Ce qui l'en séparait |
+|---|---|---|
+| `publications:301` | +26 lignes → **500** | un `.insert({…})` de 26 lignes |
+| `upload-cv:347` | +33 lignes | un `.update({…})` de 32 lignes |
+| `cdi-upload-cv:111` | +41 lignes → 404 | un `.select([…])` qui énumère **40 colonnes** |
+| `cdi-upload-cv:415` | +44 lignes | un `.update({…})` de 44 lignes |
+| `cv/reset:76` | +50 lignes → **500** | un `.update({…})` qui efface **46 colonnes** |
+
+**Ce qui les sépare de leur relecture n'est pas du code qui oublie : c'est une LISTE DE COLONNES.**
+Un recensement qui compte les lignes d'une charge utile comme de la distance accuse les routes qui
+écrivent le plus de champs — **exactement celles qui comptent**.
+
+**LE RÉGLAGE N'EST DONC PAS UN NOMBRE.** « L'erreur est-elle traitée ? » est une question de
+**PORTÉE** : elle se pose sur tout le reste du fichier — et c'est **déjà** la règle que la forme
+①-ter applique vingt lignes plus bas **dans le même script**. « **Comment** est-elle traitée ? »
+reste une question de **VOISINAGE**, et garde sa fenêtre. Les deux ne se bornent pas pareil.
+**Résultat mesuré : la forme ② passe de 5 à ZÉRO**, et zéro entrant.
+
+> ⚠️ **ET LE PRIX SE DIT (§E.38)** : une erreur dont le nom est réutilisé plus loin dans le fichier
+> pour une autre requête passe désormais pour relue. C'est le prix de la portée, il est assumé, et
+> la forme ② est **éprouvée par mutation** — sans quoi un zéro ne prouverait rien.
+
+**E.41 — LES TROIS PHRASES DU LOT 4.1d. Chacune tient parce qu'elle a un cas MESURÉ derrière.**
+
+**①  « UNE BRANCHE D'ERREUR DOIT SORTIR QUAND LA SUITE CONSOMME CE QUI A ÉCHOUÉ. »**
+Née d'un demi-correctif de ma main : `candidatures:656` journalisait la cohorte incomplète **puis
+continuait**, et la suite consommait précisément la cohorte. La première formulation — « une
+branche d'erreur qui ne sort pas n'est pas une branche d'erreur » — était **trop large** : l'audit
+de trente-quatre branches a montré qu'une branche qui **journalise et continue** est légitime
+quand la continuation **ne consomme pas** ce qui a échoué. C'est la mesure qui a imposé la
+formulation, pas l'inverse.
+**L'exception se DÉCLARE, et il y en a une** : `candidatures:415`. `ownerUserType` ne choisit que
+le *segment* du lien de la cloche ; inconnu, la garde de routage redirige le propriétaire vers son
+propre tableau de bord — il arrive **ailleurs**, pas **nulle part** — et ne pas notifier du tout
+coûterait infiniment plus cher. Une exception écrite n'affaiblit pas la règle : elle l'empêche
+d'être contournée en silence.
+
+**②  « UNE ABSENCE SE RECHARGE ; UN FAUX PRIX SE CROIT. »**
+`me/organisation/offre` : sur une lecture en panne, une organisation **qui paie** lisait le nom et
+le prix de l'offre **gratuite** comme étant la sienne. Rien n'était perdu en base — et c'est le
+problème : **rien ne signalait que le chiffre affiché n'était pas le sien**. La route rend
+désormais l'absence, et l'écran l'écrit : le slug en repli, et `price_undefined` — **jamais
+« Gratuit »**, les deux y étaient déjà distingués.
+
+**③  « UNE LISTE INCOMPLÈTE QUI SE PRÉSENTE COMME COMPLÈTE EST UNE AFFIRMATION, PAS UNE ABSENCE. »**
+*(Cette troisième est de moi, pas de l'architecte — elle est notée ici parce qu'une règle sans son
+auteur se cite mal.)* `me/conversations` construisait sa réponse avec **quatre** lectures, chacune
+retombant sur `[]`. Une seule panne produisait « vous n'avez aucune conversation », dit à quelqu'un
+qui en a. **Un seul drapeau pour les quatre, un seul refus** — 503 `conversations_indisponibles` —
+parce que les quatre répondent à la **même question** : elles échouent ensemble ou pas du tout.
+
+> **Corollaire d'arbitrage, tiré du même lot** : `publications` avait **deux causes** — la lecture
+> des candidatures en panne, et un état de vie indérivable — produisant **la même ignorance**. Elles
+> partagent **un seul drapeau**. *On ne multiplie pas les états quand l'action à mener est la même.*
+
+**E.42 — `if (err || !x)` : LA GARDE QUI CONFOND LA PANNE ET L'ABSENCE. 18 verdicts métier, MESURÉS.**
+
+C'est **§E.22 ④** — « cet utilisateur n'existe pas », dit d'un compte réel — mais sous une forme
+que le recensement de la classe **ne cherche pas** : rien n'est converti en valeur neutre, la
+branche d'erreur **sort** correctement. Ce qui ment est le **statut** qu'elle rend.
+
+**Mesuré le 20/09/2026** sur `app/` + `lib/` + `components/` : **49 occurrences** de
+`if (<erreur> || !<donnée>)` sur 39 fichiers.
+
+| Statut rendu | Nombre | Verdict |
+|---|---|---|
+| **404** | **15** | « cet objet n'existe pas » — **ment** sur une panne de lecture |
+| **403** | **3** | « vous n'y avez pas droit » — **ment** de même |
+| 500 / 409 / 401 | 17 | **légitimes** : une panne EST une panne serveur, le motif ne ment pas |
+| autres (pas de statut HTTP) | 13 | hors routes API — à lire séparément |
+
+**Les dix-huit sont NOMMÉS, pas corrigés dans ce lot** : huit vivent dans le périmètre 4.1d
+(`app/api/profile/**` ×6, `app/api/candidatures` ×2), les dix autres dans des périmètres déjà
+clos (`register-org`, `me/account`, `me/reauth`, `me/missions`, `me/sync-matching`,
+`me/invitations`). **Les rouvrir sans arbitrage serait élargir un lot tout seul.**
+
+**Comment ils ont été trouvés, et c'est la leçon de méthode** : en lisant les cinq emplacements que
+la **fenêtre** de §E.40 faisait entrer et sortir. Les cinq étaient des faux positifs — et quatre
+d'entre eux cachaient, deux lignes plus bas, un défaut d'une **autre** classe. *Une mesure dit où
+regarder ; elle ne dit jamais quoi décider.*
 
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

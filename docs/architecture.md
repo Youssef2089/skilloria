@@ -483,6 +483,36 @@ where u.anonymized_at is not null
 > sur la base, et daté pour la même raison.
 
 
+### C.10 — Les TROIS écrivains des listes de profil, et la propriété qui les tient
+
+**Pourquoi cette section existe.** `profile_experiences`, `profile_educations` et
+`profile_languages` sont écrites par **trois** routes, et toutes les trois procèdent par
+**suppression puis réinsertion**. C'est la forme la plus dangereuse du dépôt : si la réinsertion
+n'écrit rien, la suppression, elle, a bien eu lieu — et ce qu'un expert a saisi à la main a
+disparu, sans erreur et sans trace.
+
+| Route | Origine des listes | Comment la propriété est tenue |
+|---|---|---|
+| `POST /api/profile/upload-cv` | l'analyse de CV (freelance) | **garde locale** : la liste normalisée est testée avant le `delete` |
+| `POST /api/profile/cdi-upload-cv` | l'analyse de CV (CDI) | **garde locale**, identique |
+| `PATCH /api/profile` | le formulaire du profil | **barrière en amont** : 400 `liste_illisible` si une liste non vide n'a aucune entrée écrivable ; et 409 `effacement_non_declare` si un vide remplace une liste non vide sans que le corps déclare `listes_lues` |
+
+**LA PROPRIÉTÉ, une phrase, et elle vaut pour tout écrivain futur :**
+> **La liste qui sera RÉINSÉRÉE est testée AVANT la SUPPRESSION.**
+
+Elle ne dit **pas** *comment*. Une garde locale et une barrière en amont la tiennent aussi bien, et
+exiger la forme locale ferait rougir le seul écrivain qui se protège autrement (§E.34). Le
+contrôle [`diag-garde-et-action`](../scripts/diag-garde-et-action.mjs) est donc ancré sur la
+propriété, et l'exemption du troisième écrivain porte une **sentinelle** : si la barrière
+disparaît, l'exemption tombe.
+
+**Ce que le CV peut et ne peut pas effacer, pour qu'il n'y ait pas de doute :** un CV analysé dont
+une liste ressort **vide** ne supprime rien — ni les expériences, ni les formations, ni les
+langues. Une liste **non vide mais entièrement illisible** (des entrées sans rôle, sans école, sans
+nom de langue) ne supprime rien non plus, et **le dit** : `liste_illisible` côté formulaire, une
+journalisation nommée côté analyse de CV. Détail de la forme et de son cas fondateur : **§E.39**
+dans [CLAUDE.md](../CLAUDE.md).
+
 ### C.9 — Ce que `/admin/supervision` doit porter, mesure par mesure
 
 **Pourquoi ce tableau existe.** La refonte de septembre 2026 a séparé ce qui se **décide** de ce qui
