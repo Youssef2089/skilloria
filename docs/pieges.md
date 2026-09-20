@@ -1800,6 +1800,12 @@ crie pas). Il reconnaît la forme légitime **par sa propriété** — le 404 vi
 `includes('…not_found')` sur le message — et non par cinq chemins de fichiers : un sixième
 appelant de la même RPC sera classé de lui-même (§E.34). L’exemption de `resolve:52` porte une
 **sentinelle** : si la panne cesse d’être journalisée, l’exemption tombe.
+**Éprouvé par mutation, après commit (§G.5) — 6 jouées, 6 détectées, 1 contre-mutation tue** : la garde
+confondue de `reactivate` réintroduite, la racine `AuthError(403)` remise, le journal de `resolve` retiré,
+la levée 503 de `loadOrganizationContext` redescendue en 403, la forme RPC privée de son `includes(…)`,
+une garde `!x` neuve non résolue — toutes rouges ; et renommer `userErr` reste vert (§E.34).
+**C’est la preuve demandée : `reactivate` ne peut plus renvoyer quelqu’un qui existe sans que le
+contrôle le dise.**
 
 > **DEUX PIÈGES PAYÉS EN L’ÉCRIVANT.** ① Le motif de refus est lâche — `json(…, 404` sur deux cents
 > caractères — et il **démarrait sur le `json(` voisin** : dans `cron-jobs/run`, un 409
