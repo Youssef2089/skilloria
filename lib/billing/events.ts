@@ -1,4 +1,7 @@
 import type Stripe from 'stripe'
+import {
+  STATUTS_OUVRANTS as PERIMETRE_STATUTS,
+} from '@/lib/billing/perimetre-du-socle'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { stripeTsToIso } from '@/lib/billing/stripe'
 import {
@@ -53,7 +56,17 @@ export type EventOutcome = {
 }
 
 /** Les statuts d'abonnement Stripe qui ouvrent des droits. */
-const STATUTS_OUVRANTS = new Set(['active', 'trialing', 'past_due'])
+/**
+ * LES STATUTS D'ABONNEMENT QUI OUVRENT DES DROITS.
+ *
+ * ⚠️ LA LISTE N’EST PLUS ÉCRITE ICI : elle vient de
+ *    `lib/billing/perimetre-du-socle`, un module qui **n’importe rien** et
+ *    reste donc atteignable depuis un diagnostic exécuté en Node nu
+ *    (corollaire de §E.3). Ce fichier-ci importe le SDK Stripe et le client
+ *    Supabase : y laisser la liste obligeait le module d’exploitation à en
+ *    tenir une copie, et un contrôle à comparer deux copies.
+ */
+const STATUTS_OUVRANTS = new Set<string>(PERIMETRE_STATUTS)
 
 /**
  * Fin de période d'un abonnement.

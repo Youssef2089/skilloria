@@ -10,6 +10,17 @@ import { resolveBillingKey, type BillingRefusal } from '@/lib/billing/config'
  * `new Stripe(...)` directement : c'est ce qui garantit qu'aucun chemin ne
  * contourne le contrôle de cohérence clé/environnement.
  *
+ * `getStripe()` a QUATRE appelants — mesuré le 20/09/2026, pas supposé :
+ *   · `app/api/stripe/webhook` — le socle d'encaissement ;
+ *   · `lib/billing/catalogue` — la synchronisation sortante du catalogue ;
+ *   · `lib/billing/purchase` — la création de session de paiement ;
+ *   · `lib/stripe-exploitation/lecture-stripe` — la lecture du raccordement
+ *     et la vérification nocturne (trois appels), arrivée avec le module
+ *     d'exploitation.
+ * Le nombre est écrit parce qu’un en-tête qui dit « un seul » vieillit en
+ * silence (§E.16) ; ce qui ne vieillit pas est la règle au-dessus — **aucun
+ * `new Stripe(...)` ailleurs**, et elle, elle est gardée.
+ *
  * ⚠️ `apiVersion` n'est PAS passée. C'est délibéré : le SDK envoie alors la
  *    version d'API sur laquelle IL est figé (stripe@22). Le comportement est
  *    donc déterministe et lié au lockfile — mettre une chaîne à la main

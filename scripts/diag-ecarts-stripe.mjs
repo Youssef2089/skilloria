@@ -79,6 +79,10 @@ const { etatJournal, estCoince, MINUTES_AVANT_COINCE, MAX_DURATION_WEBHOOK_SECON
   await import('../lib/stripe-exploitation/journal.ts')
 const { classerRaccordement, TYPES_TRAITES, JOURS_DE_SILENCE_TOLERES } =
   await import('../lib/stripe-exploitation/raccordement.ts')
+// LA SOURCE, importee comme une VALEUR et non lue par une regex sur du code
+// source. `lib/billing/perimetre-du-socle` n'importe RIEN : Node nu le charge
+// depuis n importe quel worktree, sans alias et sans reseau.
+const PERIMETRE = await import('../lib/billing/perimetre-du-socle.ts')
 
 const MAINTENANT = new Date('2026-09-20T12:00:00.000Z')
 const PLUS_TARD = '2026-12-01T00:00:00.000Z'
@@ -324,38 +328,60 @@ section('D. LE RAPPROCHEMENT — sur le CLIENT, avec le repli documente')
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-section('E. LES DEUX JUMEAUX ASSUMES NE PEUVENT PAS DIVERGER (§E.20)')
-// `lib/billing/events.ts` appartient a un autre chantier et n'exporte ni sa
-// liste de statuts ouvrants, ni sa liste de types traites. On les recopie — et
-// on lit les DEUX dans le source pour qu'une divergence rougisse ici.
+section('E. LA SOURCE UNIQUE, ET LE SEUL JUMEAU QUI RESTE (§E.20)')
+// ⚠️ CE QUI A CHANGE, ET POURQUOI IL EN RESTE UN.
+//
+//    Les deux listes ne sont plus ecrites dans `lib/billing/events.ts` : elles
+//    vivent dans `lib/billing/perimetre-du-socle`, un module SANS AUCUN import,
+//    que ce controle charge comme une VALEUR. La comparaison ne passe donc plus
+//    par une regex sur du code source — qui cassait a la premiere reformulation
+//    et ne prouvait rien de ce qui est reellement execute.
+//
+//    `lib/stripe-exploitation/raccordement.ts` en garde une COPIE, et c'est
+//    MESURE : ce module doit rester sans import executable pour que ce
+//    controle tourne en Node nu (corollaire de §E.3) — `@/…` n'y resout pas, et
+//    un chemin relatif exigerait `.ts`, donc `allowImportingTsExtensions` dans
+//    le tsconfig de TOUT le depot (`tsc` rend TS5097). La copie reste, sa
+//    raison est ecrite, et elle est confrontee a la SOURCE.
 // ══════════════════════════════════════════════════════════════════════════
 
 const events = sansCommentaires(lire('lib/billing/events.ts'))
 
 {
-  const m = events.match(/STATUTS_OUVRANTS\s*=\s*new Set\(\[([^\]]*)\]/)
-  ok(Boolean(m), 'la liste des statuts ouvrants est lisible dans lib/billing/events.ts')
-  if (m) {
-    const chezLui = [...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]).sort()
-    const chezNous = [...STATUTS_OUVRANTS].sort()
-    ok(
-      JSON.stringify(chezLui) === JSON.stringify(chezNous),
-      'les statuts ouvrants sont IDENTIQUES des deux cotes',
-      `events.ts : ${chezLui.join(', ')}\n       ecarts.ts : ${chezNous.join(', ')}`,
-    )
-  }
+  const source = [...PERIMETRE.STATUTS_OUVRANTS].sort()
+  const copie = [...STATUTS_OUVRANTS].sort()
+  ok(
+    JSON.stringify(source) === JSON.stringify(copie),
+    'les statuts ouvrants : la copie de `ecarts.ts` EST la source',
+    `perimetre-du-socle : ${source.join(', ')}\n       ecarts.ts : ${copie.join(', ')}`,
+  )
+  // Et la source est bien celle que le socle CONSOMME — sinon on comparerait
+  // deux listes justes qui ne gouvernent rien (§E.16, la colonne inerte).
+  ok(
+    /new Set<string>\(PERIMETRE_STATUTS\)/.test(events),
+    'lib/billing/events.ts CONSOMME la source, il ne la recopie pas',
+    'events.ts porte encore sa propre liste littérale',
+  )
 }
 
 {
-  // Les types traites : on lit les `case` du switch d'aiguillage, hors `default`.
-  const bloc = events.slice(events.indexOf('switch (event.type)'))
-  const chezLui = [...bloc.matchAll(/case\s+'([a-z_.]+)'/g)].map((x) => x[1]).sort()
-  ok(chezLui.length > 0, 'les types traites sont lisibles dans le switch d\'aiguillage')
-  const chezNous = [...TYPES_TRAITES].sort()
+  const source = [...PERIMETRE.TYPES_TRAITES].sort()
+  const copie = [...TYPES_TRAITES].sort()
   ok(
-    JSON.stringify(chezLui) === JSON.stringify(chezNous),
-    `les ${chezNous.length} types traites sont IDENTIQUES des deux cotes`,
-    `events.ts : ${chezLui.join(', ')}\n       raccordement.ts : ${chezNous.join(', ')}`,
+    JSON.stringify(source) === JSON.stringify(copie),
+    `les ${source.length} types traites : la copie de \`raccordement.ts\` EST la source`,
+    `perimetre-du-socle : ${source.join(', ')}\n       raccordement.ts : ${copie.join(', ')}`,
+  )
+  // ⚠️ ET LA SOURCE DOIT DIRE CE QUE LE `switch` FAIT REELLEMENT. Une liste
+  //    exacte a cote d un switch qui traite autre chose est une colonne inerte :
+  //    elle a l air decidee, et elle ne gouverne rien.
+  const bloc = events.slice(events.indexOf('switch (event.type)'))
+  const cases = [...bloc.matchAll(/case\s+'([a-z_.]+)'/g)].map((x) => x[1]).sort()
+  ok(cases.length > 0, 'les `case` du switch d\'aiguillage sont lisibles')
+  ok(
+    JSON.stringify(cases) === JSON.stringify(source),
+    'le `switch` d\'aiguillage traite EXACTEMENT les types que la source declare',
+    `switch : ${cases.join(', ')}\n       perimetre-du-socle : ${source.join(', ')}`,
   )
 }
 
