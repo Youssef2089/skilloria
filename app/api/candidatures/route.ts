@@ -623,12 +623,27 @@ async function devoilementInclus(
       let devoile = revealN === null
 
       if (revealN !== null) {
-        const { count: revealedCount } = await auth.supabaseAdmin
+        const { count: revealedCount, error: revealedErr } = await auth.supabaseAdmin
           .from('candidatures')
           .select('id', { count: 'exact', head: true })
           .eq('publication_id', publicationId)
           .in('status', ['unlocked', 'selected'])
-        if ((revealedCount ?? 0) < revealN) {
+        // ⚠️ `(revealedCount ?? 0) < revealN` ÉTAIT VRAI SUR UNE PANNE.
+        //    Le compteur tombait à `null`, donc à 0, donc « la place est
+        //    libre » — et un (N+1)ᵉ profil était dévoilé. C'est le plafond
+        //    de dévoilement par annonce, c'est-à-dire le cœur du modèle
+        //    économique ET une identité livrée : un dévoilement NE SE
+        //    REPREND PAS (§D.5 ferme le chemin d'accès, il ne défait pas ce
+        //    qui a été vu).
+        //    NE PAS SAVOIR NE VAUT JAMAIS DÉVOILER : on ne dévoile pas, et
+        //    on le journalise. La candidature existe, elle attend — rien
+        //    n'est perdu, contrairement à un dévoilement de trop.
+        if (revealedErr) {
+          console.error('[candidatures] plafond de dévoilement ILLISIBLE — aucun dévoilement', {
+            publicationId,
+            message: revealedErr.message,
+          })
+        } else if ((revealedCount ?? 0) < revealN) {
           // ── ON NE DÉPARTAGE PAS SUR UN CHAMP INCOMPLET ────────────────────
           //
           //  LE DÉFAUT : le classement trie sur `ai_match_score DESC NULLS
@@ -653,7 +668,7 @@ async function devoilementInclus(
           //  départage retombe sur l'ancienneté, exactement comme lorsqu'un
           //  jugement échoue.
           const limiteFenetre = new Date(Date.now() - FENETRE_JUGEMENT_MS).toISOString()
-          const { count: enAttente } = await auth.supabaseAdmin
+          const { count: enAttente, error: enAttenteErr } = await auth.supabaseAdmin
             .from('candidatures')
             .select('id', { count: 'exact', head: true })
             .eq('publication_id', publicationId)
@@ -661,7 +676,26 @@ async function devoilementInclus(
             .is('ai_match_score', null)
             .gte('created_at', limiteFenetre)
 
-          if ((enAttente ?? 0) > 0) {
+          // ⚠️ ET LE COMMENTAIRE CI-DESSUS DÉCLARE CE DÉFAUT FERMÉ, EN
+          //    MAJUSCULES : « ON NE DÉPARTAGE PAS SUR UN CHAMP INCOMPLET ».
+          //    C'est vrai du chemin conçu. C'était FAUX de la panne :
+          //    `(enAttente ?? 0) > 0` valait `false` quand le comptage
+          //    échouait, donc le report ne se faisait pas, donc on
+          //    départageait exactement sur la cohorte incomplète que ce
+          //    bloc existe pour attendre.
+          //    UN COMMENTAIRE QUI AFFIRME QU’UN DÉFAUT EST FERMÉ DÉCRIT
+          //    L'INTENTION, JAMAIS L'ÉTAT (§E.29, cinquième occurrence).
+          //    Cohorte inconnue ⇒ on DIFFÈRE, comme si elle était instable.
+          if (enAttenteErr) {
+            console.error('[candidatures] cohorte de jugement ILLISIBLE — dévoilement différé', {
+              publicationId,
+              message: enAttenteErr.message,
+            })
+            // ⚠️ LE `return` EST LA MOITIE QUI COMPTE. Journaliser puis
+            //    continuer, c'est departager quand meme — le demi-correctif
+            //    aurait laisse le defaut intact avec un log rassurant.
+            return
+          } else if ((enAttente ?? 0) > 0) {
             // La cohorte n'est pas stable : celle qui finira après nous décidera.
             console.log('[candidatures] dévoilement différé — jugements en cours', {
               publicationId,

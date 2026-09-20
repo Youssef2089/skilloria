@@ -460,13 +460,26 @@ export async function POST(request: NextRequest): Promise<Response> {
       return { ...l, is_primary: false }
     })
 
-    const { error: delErr } = await supabaseAdmin
-      .from('profile_languages')
-      .delete()
-      .eq('profile_id', profile.id)
-    if (delErr) {
-      console.error('[upload-cv] languages delete failed', delErr)
+    // ⚠️ LA GARDE ET L’ACTION DOIVENT LIRE LA MÊME LISTE.
+    //    La garde ci-dessus teste la liste BRUTE ; le `delete` qui suit
+    //    agissait sur `normalised`, la liste FILTRÉE. Un modèle qui rend
+    //    `[{ language: "  " }]` — une réponse non vide mais illisible, cause
+    //    que ce dépôt nomme déjà `reponse_illisible` — passait la garde,
+    //    déclenchait la suppression, et réinsérait ZÉRO ligne : toutes les
+    //    langues saisies disparaissaient.
+    //    §E.36 À L’INTÉRIEUR D’UNE FONCTION : il suffit de deux lectures.
+    //    `PATCH /api/profile` portait déjà cette garde, et il était SEUL des
+    //    trois écrivains à la porter — le trou qu’on croit fermé.
+    if (normalised.length === 0) {
+      console.error(`[upload-cv] langues illisibles — aucune suppression`, { profileId: profile.id })
     } else {
+      const { error: delErr } = await supabaseAdmin
+        .from('profile_languages')
+        .delete()
+        .eq('profile_id', profile.id)
+      if (delErr) {
+        console.error('[upload-cv] languages delete failed', delErr)
+      } else {
       const rows = normalised.map(l => ({
         profile_id: profile.id,
         language: l.language.trim(),
@@ -477,6 +490,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         .from('profile_languages')
         .insert(rows)
       if (insErr) console.error('[upload-cv] languages insert failed', insErr)
+      }
     }
   }
 

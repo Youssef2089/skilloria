@@ -367,6 +367,45 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     }
   }
 
+  // ── LA GARDE LIT LA LISTE QUI SERA ÉCRITE, PAS CELLE QUI EST ENVOYÉE ──
+  //
+  //  ⚠️ LA BARRIÈRE DU LOT 4.1b NE COUVRAIT QUE LE VIDE ENVOYÉ.
+  //     Les trois blocs ci-dessous FILTRENT avant d’insérer — un rôle vide,
+  //     une école sans diplôme, une langue sans nom disparaissent. Une liste
+  //     NON VIDE qui se filtre à rien passait donc la barrière, déclenchait
+  //     le `delete` (inconditionnel, ici), et ne réinsérait RIEN.
+  //
+  //     C’est §E.36 À L’INTÉRIEUR D’UNE FONCTION : la garde teste `X`,
+  //     l’action consomme `f(X)`. Il suffit de deux lectures — pas besoin de
+  //     deux fichiers. Les deux analyseurs de CV portaient le même défaut sur
+  //     leur bloc langues ; les TROIS écrivains portent désormais la même
+  //     garde, sur la liste qui sera écrite.
+  {
+    /** Ce qui, dans une entree, la rend ECRIVABLE — exactement le predicat des
+     *  trois `.filter()` ci-dessous. Recopie ici, il divergerait ; il est donc
+     *  le MEME, ecrit une fois. */
+    type Entree = Record<string, unknown>
+    const texte = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
+    const utilisables: Record<ListeDeProfil, (l: Entree[]) => number> = {
+      experiences: (l) => l.filter((e) => texte(e.role)).length,
+      educations: (l) => l.filter((e) => texte(e.school) && texte(e.degree)).length,
+      languages_structured: (l) => l.filter((x) => texte(x.language)).length,
+    }
+    for (const cle of LISTES_DE_PROFIL) {
+      if (!(cle in body)) continue
+      const envoyee = (body as Record<string, unknown>)[cle]
+      if (!Array.isArray(envoyee) || envoyee.length === 0) continue
+      if (utilisables[cle](envoyee as Entree[]) > 0) continue
+      // Non vide, et pourtant rien d’écrivable : on ne supprime pas. Le refus
+      // est NOMMÉ — « vide » et « illisible » ne se disent pas pareil.
+      console.error('[profile PATCH] liste non vide mais entièrement illisible', { liste: cle })
+      return json(
+        { error: 'List has no usable entry', code: 'liste_illisible', liste: cle },
+        400,
+      )
+    }
+  }
+
   const touchedBlocks: string[] = []
   const shouldUpdateScalars = Object.keys(patch).length > 0
 
