@@ -1336,6 +1336,20 @@ mutation**, pas seulement dans les diagnostics.
 > d’un banc à écrire est celle qui le fait échouer** — sur la fixture du défaut, avant la fixture
 > du correctif.
 
+> **⑤ — LE SHELL A RÉÉCRIT LA MÉMOIRE, ET LE SCRIPT A DIT « ok ».** Le 20/09/2026, un paragraphe
+> de ce fichier a été écrit par `node -e "…"` dans une chaîne bash **entre guillemets doubles**.
+> Chaque `` `identifiant` `` du texte était pour bash une **substitution de commande** : `reactivate`,
+> `userErr`, `AuthError(403)` ont été exécutés comme des commandes, ont échoué (`command not
+> found`), et ont été remplacés par **leur sortie — rien**. Le script a reçu un texte à trous, l’a
+> écrit, a imprimé `ok`, et le commit est parti avec « confondue de  réintroduite, la racine
+> remise ». **Aucun contrôle ne le voit** : `diag-memoire-exacte` vérifie des liens et des numéros de
+> section, pas des phrases (§G.5 bis). Trouvé en relisant le `git show` du commit, pas la sortie de
+> la commande.
+> La règle, et elle est mécanique : **un texte qui porte des backticks ne traverse jamais une
+> chaîne shell** — il s’écrit dans un fichier par un outil d’écriture, et ce fichier s’exécute. C’est
+> la même famille que ① (cmd.exe et `^`) : le shell a une grammaire, elle s’applique **avant** le
+> programme, et le programme ne peut pas savoir ce qu’il n’a pas reçu.
+
 **Corollaire, payé le même jour : le nombre de contrôles rejoués compte aussi.** Les cinq rouges
 avaient été trouvés en rejouant une liste choisie. En rejouant **les 77 `diag-*` du dépôt**, un
 **sixième** est apparu — `diag-ecran-seuils`, cassé par la réécriture de `/admin/seuils` — plus une
