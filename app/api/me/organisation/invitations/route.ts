@@ -156,13 +156,30 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
     // Compte entreprise (client/cabinet). Membre actif de CETTE org → already_member,
     // sinon (autre org, ou compte entreprise flottant) → email_already_in_organization.
-    const { data: thisOrgMember } = await admin
+    const { data: thisOrgMember, error: thisOrgMemberErr } = await admin
       .from('organization_members')
       .select('id')
       .eq('organization_id', org.id)
       .eq('user_id', existingUser.id)
       .eq('status', 'active')
       .maybeSingle()
+    // ⚠️ ICI LE REFUS EST JUSTE DES DEUX CÔTÉS — C’EST LE MOTIF QUI MENT.
+    //    `thisOrgMember` nul par panne tombait sur
+    //    `email_already_in_organization` : « cette adresse appartient à une
+    //    AUTRE organisation », dit d’un membre de CELLE-CI. L’invitation ne
+    //    part pas dans les deux cas, donc rien ne s’ouvre ; mais on envoie
+    //    l’administrateur chercher un compte ailleurs, et il n’y a rien à
+    //    y trouver (§E.22 ③ : refus juste, motif faux).
+    if (thisOrgMemberErr) {
+      console.error('[me/invitations] appartenance à cette org ILLISIBLE', {
+        organizationId: org.id,
+        message: thisOrgMemberErr.message,
+      })
+      return json(
+        { error: 'Could not check the invited account', code: 'invite_check_unavailable' },
+        503,
+      )
+    }
     if (thisOrgMember) {
       return json({ error: 'Already a member', code: 'already_member' }, 400)
     }
@@ -173,7 +190,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   // ── Anti-doublon : invitation pending non expirée déjà présente ? ───────────
   const nowIso = new Date().toISOString()
-  const { data: dupe } = await admin
+  const { data: dupe, error: dupeErr } = await admin
     .from('organization_invitations')
     .select('id')
     .eq('organization_id', org.id)
@@ -181,6 +198,23 @@ export async function POST(request: NextRequest): Promise<Response> {
     .eq('status', 'pending')
     .gt('expires_at', nowIso)
     .maybeSingle()
+  // ⚠️ CELUI-CI, LUI, S’OUVRE. `dupe` nul par panne se lit « aucune
+  //    invitation en cours » : on crée une SECONDE invitation, avec un
+  //    second jeton, et on expédie un second e-mail. La garde anti-doublon
+  //    est la seule chose qui sépare une relance d’un envoi en boucle —
+  //    une panne de lecture la désarmait.
+  //    Refus temporaire, même motif que ci-dessus : ce qu’on n’a pas su
+  //    vérifier, on ne l’affirme pas.
+  if (dupeErr) {
+    console.error('[me/invitations] anti-doublon ILLISIBLE — aucune invitation créée', {
+      organizationId: org.id,
+      message: dupeErr.message,
+    })
+    return json(
+      { error: 'Could not check the invited account', code: 'invite_check_unavailable' },
+      503,
+    )
+  }
   if (dupe) {
     return json({ error: 'Already invited', code: 'already_invited' }, 409)
   }

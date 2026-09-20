@@ -1921,7 +1921,8 @@
       "retry": "Reintentar",
       "err_email_is_expert_account": "Esta dirección pertenece a una cuenta de experto. Un experto no puede unirse a una organización.",
       "err_email_is_admin_account": "Esta dirección pertenece a una cuenta de administrador y no se puede invitar.",
-      "err_email_already_in_organization": "Esta dirección ya pertenece a una cuenta vinculada a una organización."
+      "err_email_already_in_organization": "Esta dirección ya pertenece a una cuenta vinculada a una organización.",
+      "err_invite_check_unavailable": "No se ha podido verificar esta dirección. No se ha enviado ninguna invitación ni se ha guardado nada: inténtelo de nuevo en unos instantes."
     }
   },
   "publications": {

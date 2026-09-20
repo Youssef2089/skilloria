@@ -1921,7 +1921,8 @@
       "retry": "Retry",
       "err_email_is_expert_account": "This address belongs to an expert account. An expert cannot join an organisation.",
       "err_email_is_admin_account": "This address belongs to an administrator account and cannot be invited.",
-      "err_email_already_in_organization": "This address already belongs to an account attached to an organisation."
+      "err_email_already_in_organization": "This address already belongs to an account attached to an organisation.",
+      "err_invite_check_unavailable": "This address could not be checked. No invitation was sent and nothing was saved — please try again in a moment."
     }
   },
   "publications": {

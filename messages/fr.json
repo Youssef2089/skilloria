@@ -1921,7 +1921,8 @@
       "retry": "Réessayer",
       "err_email_is_expert_account": "Cette adresse appartient à un compte expert. Un expert ne peut pas rejoindre une organisation.",
       "err_email_is_admin_account": "Cette adresse appartient à un compte administrateur et ne peut pas être invitée.",
-      "err_email_already_in_organization": "Cette adresse appartient déjà à un compte rattaché à une organisation."
+      "err_email_already_in_organization": "Cette adresse appartient déjà à un compte rattaché à une organisation.",
+      "err_invite_check_unavailable": "La vérification de cette adresse n’a pas pu aboutir. Aucune invitation n’a été envoyée et rien n’a été enregistré — réessayez dans un instant."
     }
   },
   "publications": {

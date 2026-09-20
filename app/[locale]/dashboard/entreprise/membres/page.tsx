@@ -140,6 +140,10 @@ export default function MembresPage() {
       case 'email_is_expert_account': return t('err_email_is_expert_account')
       case 'email_is_admin_account': return t('err_email_is_admin_account')
       case 'email_already_in_organization': return t('err_email_already_in_organization')
+      // Une VÉRIFICATION en panne, pas un refus : le message le dit, et il
+      // dit surtout que rien n’est parti. `err_generic` aurait laissé
+      // croire à un rejet de l’adresse (§E.22).
+      case 'invite_check_unavailable': return t('err_invite_check_unavailable')
       default: return t('err_generic')
     }
   }

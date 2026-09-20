@@ -10,6 +10,7 @@ import { isActivePublished } from '@/lib/publications/expiry'
 import { deriveLifecycleByCandidature } from '@/lib/candidatures/lifecycle-batch'
 import { emptyFacetCounts, facetForLifecycle } from '@/lib/candidatures/facets'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
+import { loadReferentielLabels } from '@/lib/publication-synthesis'
 import type {
   Annonce,
   AnnonceBudgetUnit,
@@ -517,27 +518,28 @@ export async function GET(request: NextRequest): Promise<Response> {
   //  résout donc en DEUX requêtes groupées pour toute la page — ce qui est
   //  d'ailleurs préférable : une jointure de moins sur un chemin lu à chaque
   //  affichage du tableau de bord.
-  const specIds = [...new Set(rows.flatMap((r) => r.speciality_ids ?? []))]
-  const zoneIds = [...new Set(rows.flatMap((r) => r.work_zone_ids ?? []))]
-  const [specRes, zoneRes] = await Promise.all([
-    specIds.length
-      ? auth.supabaseAdmin.from('specialities').select('id, name').in('id', specIds)
-      : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
-    zoneIds.length
-      ? auth.supabaseAdmin.from('work_zones').select('id, name').in('id', zoneIds)
-      : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
-  ])
-  const specLabel = new Map(
-    ((specRes.data ?? []) as Array<{ id: string; name: string }>).map((x) => [
-      x.id,
-      tBDD(translations, 'specialities', x.id, 'name', x.name),
-    ]),
-  )
-  const zoneLabel = new Map(
-    ((zoneRes.data ?? []) as Array<{ id: string; name: string }>).map((x) => [
-      x.id,
-      tBDD(translations, 'work_zones', x.id, 'name', x.name),
-    ]),
+  // ⚠️ CE BLOC ÉTAIT LE JUMEAU EXACT DE `loadReferentielLabels`, ET LE
+  //    CORRECTIF DU LOT 4.1b N’AVAIT ÉTÉ POSÉ QUE SUR L’AUTRE. Ici,
+  //    l'erreur n'était pas récupérée du tout : `specRes.data` tombait à
+  //    `null`, les deux Map restaient vides, et `libelles()` FILTRE les
+  //    identifiants sans libellé — l’annonce sortait donc SANS spécialité
+  //    et SANS zone, ce qui se lit « elle ne vise personne en
+  //    particulier ». C’est faux, et c’est le tableau de bord sur lequel
+  //    une organisation juge son propre ciblage (§E.22, §E.28 ③).
+  //    On ne recopie pas la parade : on APPELLE le helper qui la porte.
+  //    Un jumeau se supprime, il ne se rétroporte pas (§E.20) — et ce
+  //    fichier était le TROISIÈME lecteur de ces deux référentiels, le seul
+  //    resté sur sa propre copie. La journalisation vit là-bas, une fois.
+  //    ⚠️ LE DOUBLE TRANSTYPAGE N’EST PAS UNE COQUETTERIE : la comparaison
+  //    structurelle entre `SupabaseClient` et le type écrit à la main du
+  //    helper fait rendre `TS2589` au compilateur. Les deux autres
+  //    appelants portent exactement la même ligne ; c’est la convention du
+  //    dépôt, pas une invention locale. La rendre inutile suppose de retyper
+  //    le helper — un lot à lui seul.
+  const { specialities: specLabel, workZones: zoneLabel } = await loadReferentielLabels(
+    auth.supabaseAdmin as unknown as Parameters<typeof loadReferentielLabels>[0],
+    translations,
+    rows,
   )
 
   // ── Agrégat candidatures par publication (Lot 2c) ─────────────────────
@@ -643,10 +645,10 @@ export async function GET(request: NextRequest): Promise<Response> {
         ? tBDD(translations, 'branches', branch.id, 'name', branch.name)
         : null,
       speciality_labels: (row.speciality_ids ?? [])
-        .map((id) => specLabel.get(id))
+        .map((id) => specLabel?.get(id))
         .filter((n): n is string => !!n),
       work_zone_labels: (row.work_zone_ids ?? [])
-        .map((id) => zoneLabel.get(id))
+        .map((id) => zoneLabel?.get(id))
         .filter((n): n is string => !!n),
       budget_min: row.budget_min,
       budget_max: row.budget_max,

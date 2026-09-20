@@ -70,7 +70,19 @@ async function peek(admin: Admin, orgId: string, key: string, period: string): P
  * d'unicité est (domain_id, slug, target_role), donc le slug est ambigu. On
  * rejoue donc la même sélection en deux branches que le moteur.
  *
- * Fail-safe : toute erreur → null (la page retombe sur le slug).
+ * CE QUE `null` VEUT DIRE ICI, ET C'EST MESURÉ CHEZ L'APPELANT :
+ *   `name: null` → l'écran affiche le SLUG en repli (jamais vide) ;
+ *   `price_monthly: null` → l’écran affiche `price_undefined`, et surtout
+ *     PAS « Gratuit » — les deux y sont déjà distingués.
+ *
+ * Autrement dit : une lecture en panne produit une ABSENCE lisible, pas une
+ * offre qui n’est pas la sienne. Une absence se recharge ; un faux prix se
+ * croit.
+ *
+ * ⚠️ ET LE `catch` DE CETTE FONCTION REPREND TOUT CE QU’ON Y JETTERAIT.
+ *    Une branche d’erreur qui `throw` ici ne sort pas de la fonction : elle
+ *    revient en `null` quelques lignes plus bas. On écrit donc `return null`,
+ *    qui dit ce qui se passe vraiment.
  */
 async function resolvePackageRow(
   admin: Admin,
@@ -88,23 +100,20 @@ async function resolvePackageRow(
         .select('name, price_monthly, currency, active')
         .eq('id', linkPackageId as string)
         .maybeSingle()
-    // ⚠️ LE MENSONGE LE PLUS VISIBLE DU LOT, ET IL EST SUR L'ÉCRAN OÙ L'ON
-    //    DÉCIDE DE RESTER OU DE RÉSILIER. L’erreur n’était pas récupérée :
-    //    `pkg` tombait à `null`, on filait au repli du catalogue, et une
-    //    organisation QUI PAIE lisait le nom et le prix de l'offre
-    //    GRATUITE comme étant la sienne.
-    //    Rien n'est perdu en base — et c'est bien le problème : rien ne
-    //    signale que le chiffre affiché n’est pas le sien.
-    //    On LÈVE : l’appelant rend « offre indisponible » plutôt qu’une
-    //    offre qui n’est pas la bonne. Une absence se recharge ; un faux
-    //    prix se croit.
-    if (pkgErr) {
-      console.error('[me/organisation/offre] offre souscrite ILLISIBLE', {
-        packageId: linkPackageId,
-        message: pkgErr.message,
-      })
-      throw new Error(`offre souscrite illisible — ${pkgErr.message}`)
-    }
+      // ⚠️ LE MENSONGE LE PLUS VISIBLE DU LOT, ET IL EST SUR L'ÉCRAN OÙ L'ON
+      //    DÉCIDE DE RESTER OU DE RÉSILIER. L’erreur n’était pas récupérée :
+      //    `pkg` tombait à `null`, on filait au REPLI DU CATALOGUE, et une
+      //    organisation QUI PAIE lisait le nom et le prix de l'offre
+      //    GRATUITE comme étant la sienne.
+      //    On sort AVANT le repli : le repli existe pour une organisation
+      //    SANS abonnement, pas pour une lecture en panne.
+      if (pkgErr) {
+        console.error('[me/organisation/offre] offre souscrite ILLISIBLE', {
+          packageId: linkPackageId,
+          message: pkgErr.message,
+        })
+        return null
+      }
       if (pkg && pkg.active === true) {
         return {
           name: pkg.name as string,
@@ -115,11 +124,23 @@ async function resolvePackageRow(
     }
 
     // Fallback : package is_default du catalogue pour le target_role de l'org.
-    const { data: org } = await admin
+    const { data: org, error: orgErr } = await admin
       .from('organizations')
       .select('org_type')
       .eq('id', orgId)
       .maybeSingle()
+    // ⚠️ `org_type` EST LA CIBLE DU REPLI, PAS UN ORNEMENT. Illisible, il
+    //    tombait à `null`, `targetRoleForOrgType` rendait son défaut, et on
+    //    affichait l’offre par défaut d’une AUTRE population — un nom et un
+    //    prix justes pour quelqu’un d’autre. Même écran, même argent que
+    //    ci-dessus, et le même arbitrage : on rend l’absence.
+    if (orgErr) {
+      console.error('[me/organisation/offre] type d organisation ILLISIBLE', {
+        orgId,
+        message: orgErr.message,
+      })
+      return null
+    }
     const targetRole = targetRoleForOrgType((org?.org_type as string | null) ?? null)
 
     // Cibles de repli : la ligne spécifique, plus 'all' — SAUF pour
@@ -128,13 +149,27 @@ async function resolvePackageRow(
     const fallbackTargets =
       targetRole === 'collaboration' ? ['collaboration'] : [targetRole, 'all']
 
-    const { data: defs } = await admin
+    const { data: defs, error: defsErr } = await admin
       .from('packages')
       .select('name, price_monthly, currency, target_role')
       .is('domain_id', null)
       .in('target_role', fallbackTargets)
       .eq('is_default', true)
       .eq('active', true)
+    // ⚠️ CELUI-CI NE CHANGE PAS DE RÉSULTAT, ET C’EST POUR ÇA QU’IL EST ICI.
+    //    `defs` nul ⇒ aucun candidat ⇒ `def` nul ⇒ `null` : l’issue était
+    //    DÉJÀ l’absence honnête. Ce qui manquait n’était pas le verdict,
+    //    c’était la RAISON — rien ne distinguait « le catalogue ne répond
+    //    pas » de « le catalogue n’a pas d’offre par défaut pour cette
+    //    population », et la seconde est un défaut de paramétrage qu’il faut
+    //    pouvoir voir. On journalise les deux, séparément.
+    if (defsErr) {
+      console.error('[me/organisation/offre] catalogue de repli ILLISIBLE', {
+        targetRole,
+        message: defsErr.message,
+      })
+      return null
+    }
     const candidates = (defs ?? []) as {
       name: string
       price_monthly: number | null
@@ -146,9 +181,14 @@ async function resolvePackageRow(
       candidates.find((c) => c.target_role === targetRole) ??
       candidates.find((c) => c.target_role === 'all') ??
       null
-    return def
-      ? { name: def.name, price_monthly: def.price_monthly ?? null, currency: def.currency ?? 'EUR' }
-      : null
+    if (!def) {
+      console.warn('[me/organisation/offre] aucune offre par défaut pour cette cible', {
+        targetRole,
+        fallbackTargets,
+      })
+      return null
+    }
+    return { name: def.name, price_monthly: def.price_monthly ?? null, currency: def.currency ?? 'EUR' }
   } catch (err) {
     console.warn('[me/organisation/offre] resolvePackageRow threw — affichage dégradé', err)
     return null

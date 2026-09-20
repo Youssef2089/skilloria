@@ -191,7 +191,21 @@ const GEL = {
   'app/api/admin/org-usage/route.ts': { 'erreur:null': 2 },
   'app/api/admin/user-purge/route.ts': { 'erreur:null': 1 },
   'app/api/auth/finalize-org-registration/route.ts': { 'catch:false': 1 },
-  'app/api/me/organisation/offre/route.ts': { 'catch:null': 2, 'erreur:null': 1 },
+  // HAUSSE ASSUMEE au lot 4.1d, de 1 a 4 `erreur:null` — la meme forme, et
+  // le sens exactement inverse. Ici `null` ne veut pas dire « pas de ligne » :
+  // il veut dire « je ne sais pas », et ce que l APPELANT en fait est mesure
+  // (name → le slug en repli, price_monthly → `price_undefined`, jamais
+  // « Gratuit »). Une raison PAR ENTREE, §G.8 :
+  //   1. `pkgErr` — l offre SOUSCRITE illisible tombait sur le repli du
+  //      catalogue : une organisation qui paie lisait le nom et le prix de
+  //      l offre GRATUITE. On sort AVANT le repli.
+  //   2. `orgErr` — `org_type` illisible choisissait la mauvaise CIBLE de
+  //      repli, donc l offre par defaut d une AUTRE population.
+  //   3. `defsErr` — le catalogue illisible rendait DEJA l absence ; ce qui
+  //      manquait etait la raison. Meme issue, trace en plus.
+  //   4. `!def` — aucune offre par defaut pour cette cible : un defaut de
+  //      parametrage, qui ne se distinguait pas d une panne de lecture.
+  'app/api/me/organisation/offre/route.ts': { 'catch:null': 2, 'erreur:null': 4 },
   'components/NotificationBell.tsx': { 'catch:[]': 1 },
   'components/OrgSetupModal.tsx': { 'catch:false': 1 },
   'lib/admin/admin-invitation.ts': { 'erreur:false': 1, 'catch:false': 1 },

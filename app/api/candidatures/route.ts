@@ -391,11 +391,29 @@ export async function POST(request: NextRequest): Promise<Response> {
     //  A4 : on charge aussi le TYPE d'org (+ propriétaire pour l'org perso) afin
     //  de dériver un deep-link joignable par le propriétaire (org cliente →
     //  dashboard entreprise ; org personnelle freelance → dashboard expert).
-    const { data: pubOrg } = await auth.supabaseAdmin
+    const { data: pubOrg, error: pubOrgErr } = await auth.supabaseAdmin
       .from('publications')
       .select('id, organization_id, title, organizations(org_type, owner_user_id)')
       .eq('id', publicationId)
       .maybeSingle()
+    // ⚠️ CETTE PANNE-LÀ EST PIRE QUE CELLE DES MEMBRES, TRENTE LIGNES PLUS
+    //    BAS : `pubInfo` nul saute le bloc ENTIER — pas de destinataires,
+    //    pas de cloche, pas d’e-mail, et pas une ligne de journal. Le dépôt,
+    //    lui, a répondu 201 : l’expert croit avoir postulé auprès de
+    //    quelqu’un qui ne saura jamais qu’il existe.
+    //    Le dépôt est acquis, on ne le défait pas — on JOURNALISE, et on
+    //    sépare les deux causes, parce qu’elles ne se réparent pas pareil :
+    //    une lecture en panne se rejoue, une annonce disparue non.
+    if (pubOrgErr) {
+      console.error('[candidatures] annonce ILLISIBLE — PERSONNE ne sera notifié', {
+        publicationId,
+        message: pubOrgErr.message,
+      })
+    } else if (!pubOrg) {
+      console.error('[candidatures] annonce INTROUVABLE — personne ne sera notifié', {
+        publicationId,
+      })
+    }
     const pubInfo = pubOrg as {
       id: string
       organization_id: string
@@ -412,11 +430,30 @@ export async function POST(request: NextRequest): Promise<Response> {
       // user_type du propriétaire (org personnelle uniquement) → segment expert.
       let ownerUserType: string | null = null
       if (orgType === 'freelance' && orgRel?.owner_user_id) {
-        const { data: ownerRow } = await auth.supabaseAdmin
+        const { data: ownerRow, error: ownerErr } = await auth.supabaseAdmin
           .from('users')
           .select('user_type')
           .eq('id', orgRel.owner_user_id)
           .maybeSingle()
+        // ⚠️ EXCEPTION DÉCLARÉE, ET C’EST LA SEULE DU LOT : ON CONTINUE
+        //    ALORS QUE LA SUITE CONSOMME CE QUI A ÉCHOUÉ.
+        //    `ownerUserType` ne sert qu’à choisir le SEGMENT du lien
+        //    (`freelance` | `cdi`) ; inconnu, `expertDashboardSegment` rend
+        //    son défaut prudent `freelance`. Pour un propriétaire `cdi`, le
+        //    lien pointe donc sur le mauvais segment — et la garde de
+        //    routage le REDIRIGE vers son propre tableau de bord. Il arrive
+        //    ailleurs que sur la candidature ; il n’arrive pas nulle part.
+        //    L’alternative — ne pas notifier du tout — coûte infiniment plus
+        //    cher : la cloche est le seul signal de l’événement central du
+        //    produit. On continue, et on journalise pour que le lien de
+        //    travers ait une trace.
+        if (ownerErr) {
+          console.error('[candidatures] user_type du propriétaire ILLISIBLE — lien de la cloche potentiellement sur le mauvais segment', {
+            publicationId,
+            ownerUserId: orgRel.owner_user_id,
+            message: ownerErr.message,
+          })
+        }
         ownerUserType = (ownerRow as { user_type: string | null } | null)?.user_type ?? null
       }
       const { data: members, error: membersErr } = await auth.supabaseAdmin
@@ -439,7 +476,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         message: membersErr.message,
       })
     }
-    type Member = {
+      type Member = {
         user_id: string
         role: string | null
         users: { id: string; locale: string | null } | { id: string; locale: string | null }[]
@@ -595,11 +632,27 @@ async function devoilementInclus(
   fenetreEchangeJours: number,
 ): Promise<void> {
   try {
-    const { data: pubForEnts } = await auth.supabaseAdmin
+    const { data: pubForEnts, error: pubForEntsErr } = await auth.supabaseAdmin
       .from('publications')
       .select('organization_id, domain_id')
       .eq('id', publicationId)
       .maybeSingle()
+    // ⚠️ UNE PRESTATION PAYÉE, SAUTÉE SANS UNE LIGNE DE JOURNAL.
+    //    `pubEnts` nul saute tout le bloc : aucun dévoilement automatique,
+    //    alors que c’est précisément ce que l’offre vend — « les N
+    //    meilleurs candidats sont dévoilés automatiquement ». L’organisation
+    //    ne voit pas un refus, elle voit une place vide, et elle paiera un
+    //    dévoilement manuel pour ce qui lui était dû.
+    //    Ce chemin tourne dans un `after()` : il n’y a plus de réponse à
+    //    changer. Ce qui manquait est la TRACE — sans elle, ce silence-là
+    //    n’apparaît nulle part, jamais.
+    if (pubForEntsErr) {
+      console.error('[candidatures] annonce ILLISIBLE — dévoilement inclus NON APPLIQUÉ', {
+        publicationId,
+        candidatureId,
+        message: pubForEntsErr.message,
+      })
+    }
     const pubEnts = pubForEnts as { organization_id: string; domain_id: string } | null
     if (pubEnts) {
       const ents = await getOrgEntitlements(auth.supabaseAdmin, pubEnts.organization_id)
