@@ -282,43 +282,56 @@ ok(
  *
  * Ancre sur le BLOC vise (§E.8), jamais une regex lachee sur le fichier.
  * ════════════════════════════════════════════════════════════════════════ */
-section('C. LES TROIS ECRIVAINS DE `profile_languages`')
+section('C. L INVENTAIRE DES ECRIVAINS DE `profile_languages`')
 
-const ECRIVAINS = [
+/*
+ * ⚠️ CETTE SECTION S ETAIT ANCREE SUR UN NOM, ET LA MUTATION L A DIT.
+ *
+ *    Elle exigeait le litteral `normalised` et le test `normalised.length
+ *    === 0`. La contre-mutation de §E.34 — RENOMMER la liste en `aEcrire`
+ *    sans rien perdre — la faisait rougir : le controle defendait un
+ *    identifiant, pas une propriete. C'est §E.34 dans le controle ecrit pour
+ *    fermer §E.36, et c est exactement la raison pour laquelle on mute.
+ *
+ *    Ce que cette section garde maintenant est un INVENTAIRE (§G.8, etat
+ *    mesure : chaque ligne reste verifiee, aucune raison par entree n est
+ *    due) — QUI ecrit cette table par suppression + reinsertion. La
+ *    PROPRIETE, elle, est verifiee par la section B pour tout le depot.
+ *    Un QUATRIEME ecrivain fait rougir : il doit etre lu, pas devine.
+ */
+const ECRIVAINS_ATTENDUS = [
   ['app/api/profile/upload-cv/route.ts', 'analyse de CV — freelance'],
   ['app/api/profile/cdi-upload-cv/route.ts', 'analyse de CV — CDI'],
-  ['app/api/profile/route.ts', 'PATCH du profil (protege en amont)'],
+  ['app/api/profile/route.ts', 'PATCH du profil'],
 ]
 
-for (const [rel, label] of ECRIVAINS) {
-  const code = sansCommentaires(lire(join(ROOT, rel)))
-  // ⚠️ ON ANCRE SUR LA SUPPRESSION, PAS SUR LA PREMIERE MENTION DE LA TABLE.
-  //    Les deux analyseurs de CV LISENT `profile_languages` trois cents
-  //    lignes plus haut (le cache des listes) : `indexOf` tombait dessus, et
-  //    la zone examinee ne contenait pas le bloc vise. §E.8 — on ancre sur le
-  //    bloc qu'on vise, jamais une regex lachee sur le fichier.
-  const pos = code.search(/from\('profile_languages'\)\s*\n?\s*\.delete\(/)
+const ecrivainsTrouves = []
+for (const f of fichiers) {
+  const code = sansCommentaires(lire(f))
+  if (/from\('profile_languages'\)\s*\n?\s*\.delete\(/.test(code)) {
+    ecrivainsTrouves.push(relative(ROOT, f).replace(/\\/g, '/'))
+  }
+}
+
+for (const [rel, label] of ECRIVAINS_ATTENDUS) {
   ok(
-    pos > 0,
-    `${label} — la suppression des langues existe`,
-    `aucun \`from('profile_languages').delete()\` dans ${rel}`,
+    ecrivainsTrouves.includes(rel),
+    `${label} — supprime puis reinsere \`profile_languages\``,
+    `${rel} ne porte plus cette suppression : l inventaire a bouge, relisez-le`,
   )
-  if (pos < 0) continue
-  const zone = code.slice(Math.max(0, pos - 2000), pos + 1500)
-  // La liste ECRITE est nommee `normalised` dans les trois : c'est la sortie du
-  // meme traitement (dedoublonnage + une seule langue principale).
   ok(
-    /normalised/.test(zone),
-    `${label} — la liste ecrite est bien la liste NORMALISEE`,
-    'le nom a change : verifier que la garde suit',
-  )
-  const exempte = rel in EXEMPTIONS
-  ok(
-    exempte || /normalised\.length\s*===?\s*0/.test(zone),
-    `${label} — ${exempte ? 'protege par la barriere en amont' : 'la liste normalisee est testee AVANT la suppression'}`,
-    'ni garde locale, ni exemption declaree',
+    !prisesParFichier.has(rel) || rel in EXEMPTIONS,
+    `${label} — la propriete est tenue (garde locale, ou barriere declaree)`,
+    'la liste reinseree n est testee nulle part avant la suppression',
   )
 }
+
+const inconnus = ecrivainsTrouves.filter((r) => !ECRIVAINS_ATTENDUS.some(([x]) => x === r))
+ok(
+  inconnus.length === 0,
+  'aucun QUATRIEME ecrivain n est apparu sans avoir ete lu',
+  inconnus.join(', '),
+)
 
 /* ══════════════════════════════════════════════════════════════════════════ */
 console.log('')
