@@ -1405,6 +1405,40 @@ opposées. Les trois lectures journalisent désormais leur erreur, nommément.
 > puis confirmer) : c'est un lot à lui seul, et il n'est pas fait. Ce qui est fait : la panne ne se
 > déguise plus en « rien à envoyer ».
 
+**LE TROISIÈME CAS DE LA FORME B, ET IL EST DANS LE CHEMIN DE L'ARGENT — TROUVÉ LE 20/09/2026.**
+
+`stripe_event_claim()` ([supabase/migrations/20260901000000_stripe_fondations.sql](supabase/migrations/20260901000000_stripe_fondations.sql), §5.a)
+est le jalon d'idempotence du webhook Stripe, et **il est juste** : un unique `insert … on conflict`
+dont la clé primaire est l'identifiant `evt_…`, et dont la garde `where se.status = 'failed'` est
+précisément ce qui empêche un **double crédit** sur un événement rejoué. On n'y touche pas.
+
+**Mais si le processus meurt APRÈS la réclamation et AVANT la clôture** — plafond de durée atteint,
+fonction tuée — la ligne reste en `'received'`, et **cette même garde refuse TOUS les réessais de
+Stripe**. Le jalon produit alors l'inverse exact de ce qu'on attend de lui : il déclare fait un
+travail qui n'a pas eu lieu, et « réessayer » ne répare plus rien. **Stripe abandonne au bout de
+trois jours** ; passé ce délai, l'effet de cet événement — un droit ouvert, une validité prolongée,
+une pièce comptable — ne sera **jamais** appliqué.
+
+La migration **nommait déjà le risque** dans son commentaire (« ⚠ ÉVÉNEMENT BLOQUÉ EN `received` »),
+et le tranchait correctement : *« mieux vaut un événement non appliqué et VISIBLE qu'un double
+crédit »*. **Visible par qui ?** Mesuré le 20/09/2026 par balayage de `app/`, `lib/`, `components/`
+et `scripts/` : les seuls accès applicatifs à `stripe_events` étaient les deux RPC du webhook.
+**Aucun écran, aucune route ne lisait cette table.** Le commentaire promettait une visibilité que
+rien ne fournissait — famille §E.7, appliquée à une garantie plutôt qu'à une règle.
+
+**Ce qui est fait** : `/admin/facturation` en fait une ligne **rouge** et non une ligne parmi
+d'autres, le compte remonte dans `/admin/supervision` comme **bloquant**, et le délai au-delà duquel
+un `'received'` devient un incident **se déduit** du `maxDuration` du webhook plutôt que de se
+choisir ([lib/stripe-exploitation/journal.ts](lib/stripe-exploitation/journal.ts)).
+**Ce qui n'est PAS fait, et délibérément** : rouvrir le rejeu en repassant la ligne en `'failed'`.
+C'est un arbitrage d'**argent** dans une RPC du socle — on le **signale**, on ne le tranche pas.
+
+> **Mesuré le 20/09/2026 sur la base de recette `wnayuerhakekxccgimeg` : `stripe_events` contient
+> ZÉRO ligne.** Donc zéro événement coincé — mais **pour la bonne raison, et il faut l'écrire** :
+> aucun événement n'est jamais arrivé (`ENABLE_BILLING` n'est pas posé, rien n'encaisse). « Zéro
+> coincé » et « zéro reçu » ne sont pas le même fait, et publier le premier sans le second serait
+> exactement §E.24 — un chiffre juste sous une étiquette qui rassure.
+
 **LA QUESTION QUI GÉNÉRALISE LES DEUX FORMES, ET ELLE TIENT EN UNE LIGNE :**
 *après cette valeur neutre, reste-t-il un chemin de retour ?* Si une écriture la grave (forme A) ou
 si un jalon déclare le travail fait (forme B), **il n'y en a pas** — et la garde doit être posée
