@@ -1395,6 +1395,23 @@ Tant qu'une valeur neutre reste affichée, un rechargement la corrige. Dès qu'u
 le prochain enregistrement la **grave**. Tout écran qui charge une liste pour la **renvoyer** est
 concerné, pas seulement ceux-ci.
 
+> **TROISIÈME OCCURRENCE DE LA FORME A, ET ELLE PORTE UN TAMPON DE SUCCÈS** — les deux analyseurs
+> de CV, fermés le 20/09/2026. Sur un **cache hit** (même empreinte, analyse déjà `done`), les trois
+> listes du profil étaient relues pour être **renvoyées à l’écran**. Aucune des trois lectures ne
+> récupérait son erreur — c'est la forme ①-bis, où le motif objet du `Promise.all` ne porte même pas
+> `error` (§E.30). Une panne rendait donc les trois listes à `[]`, **et la réponse annonçait**
+> **`status: 'done', cached: true`**.
+>
+> **Ce n'est pas un affichage dégradé : c'est un FAIT FAUX QUI SE CROIT.** L'expert vient de
+> redéposer son CV et lit que l'analyse a réussi et n'a rien trouvé. Le formulaire qu'il ouvre
+> ensuite est prérempli avec ce vide, et le prochain enregistrement l’**écrit** — la boucle exacte
+> de la forme A, avec en plus un **tampon de succès** qui décourage de recommencer.
+>
+> **La question de la forme A s'applique donc en deux temps** : *cette valeur va-t-elle repartir en
+> écriture ?* — oui, par le formulaire ; et *qu'affirme-t-on en la servant ?* — ici, qu'elle est le
+> résultat d’un travail réussi. **Un cache ne sert pas ce qu’il n’a pas su lire** : 503, et le
+> prochain dépôt refait le travail. Rien n’est perdu, rien n’est écrit.
+
 **FORME B — LA VALEUR NEUTRE ARRIVE APRÈS UN JALON D'IDEMPOTENCE, ET « RÉESSAYER » NE RÉPARE RIEN.**
 
 Un jalon d'idempotence — `anonymized_at`, un tampon de réclamation — existe pour qu'un rejeu ne
@@ -1925,6 +1942,26 @@ simplement atterri **un cran trop loin**. C'est pour cela qu'on ne la trouve pas
 est le défaut. `let x = 'permissif'` suivi d'un `if` qui ne se déclenche pas est la même chose qu'une
 garde ouverte — le compilateur, lui, ne voit qu'une affectation parfaitement légale.
 
+**LE CAS SOURCE, ET C'EST LA SEULE OCCURRENCE RÉELLE TROUVÉE À CE JOUR** — `PATCH /api/profile`,
+fermé le 20/09/2026. Une lecture de `users.user_type` décidait de tout le reste :
+
+```ts
+const userType = (userMetaRow?.user_type as string | null) ?? null
+const isCdi = userType === 'expert_cdi'
+```
+
+L'erreur n'était pas récupérée. `isCdi` tombait à **faux**, et le PATCH d'un expert **CDI** était
+alors validé avec la **liste blanche FREELANCE** : ses champs `cdi_*` n'étaient pas retenus, et le
+prédicat de visibilité s'appliquait avec le mauvais parcours. **Aucun refus contourné, aucun code
+d'erreur menteur, aucune valeur neutre rendue** — le profil part simplement un cran à côté, et
+l'expert lit « enregistré ».
+
+**Ce qui rend cette occurrence instructive : sa forme est une AFFECTATION.** Les balayages de la
+classe §E.22 cherchent une valeur neutre **rendue** (`return null`, `?? []`, `count ?? 0`) ; ici la
+valeur neutre est **consommée sur place** par un `===` dont le résultat est parfaitement légal.
+C'est pourquoi elle figure dans la LISTE DE LECTURE de §E.38 ③ : **elle se lit, elle ne se balaie**
+**pas**. Elle a été trouvée en ouvrant les 59 emplacements un par un, pas par un motif.
+
 ---
 
 **E.38 — CE QUI NE SE BALAIE PAS SE DÉCLARE. Trois dettes nommées, plutôt que trois contrôles verts.**
@@ -2418,18 +2455,20 @@ ont ouvert ses emplacements un par un. Au 20/09/2026 : **91 mesurés, 91 jugés,
 > **ET « JUGÉ » NE VEUT PAS DIRE « LÉGITIME ». IL VEUT DIRE *LU*.**
 > C'est la distinction que le lot 4.1d a dû introduire, parce qu'elle manquait et que le mot avait
 > commencé à dériver : tant que le gel ne contenait que des emplacements sains, « jugé » s'était mis
-> à vouloir dire **acquitté**. Trente-sept emplacements ont été ouverts ; **quinze mentent**, et ils
-> sont dans le gel — avec leur mécanisme, leur conséquence et leur **rang**.
+> à vouloir dire **acquitté**. Trente-sept emplacements ont été ouverts ; **quinze mentaient**, et
+> ils ont été portés dans le gel avec leur mécanisme, leur conséquence et leur **rang** — plutôt que
+> laissés en `A_JUGER` (ce qui aurait dit « pas encore regardés », et c'était faux) ou corrigés sans
+> arbitrage (ce qui aurait élargi le lot tout seul, la faute inverse de celle qu'on ferme).
 >
-> **Les laisser en `A_JUGER`** aurait dit « pas encore regardés », ce qui est **faux**.
-> **Les corriger sans arbitrage** aurait élargi le lot tout seul — la faute inverse de celle qu'on
-> ferme. Chaque raison commence donc par **LÉGITIME** ou par **DÉFAUT NOMMÉ, NON CORRIGÉ (rang N)**,
-> et le contrôle le **compte à voix haute** en fin d'exécution : un gel dont on ne peut pas dire,
-> sans l'ouvrir, combien de défauts il abrite redevient une carte.
+> **LES QUINZE SONT FERMÉS — 20/09/2026.** Le rang 1 (`profile:671`, une lecture en panne qui
+> **écrivait en base**) d’abord et seul ; les quatorze autres ensuite, groupés par correctif, dans
+> l'ordre rendu à l'architecte et validé par lui. Onze fichiers ont quitté ce gel avec eux : au
+> **20/09/2026, 62 emplacements mesurés, 62 jugés, 0 à juger, et plus aucun défaut nommé.**
 >
-> **Le rang 1 était `app/api/profile/route.ts:671` — il est FERMÉ** (20/09/2026, §E.43) : une
-> lecture en panne y ÉCRIVAIT en base et dégradait un expert vérifié. **Quatorze restent**, et
-> ils gardent leur rang.
+> **La convention reste écrite alors qu'elle ne sert plus, et c'est délibéré.** Le glissement de
+> sens qui a produit §G.8 — « jugé » devenu « acquitté » — se reforme précisément quand le gel
+> redevient propre. Le jour où un défaut nommé y reviendra, la règle doit déjà être là : **chaque
+> raison commence par LÉGITIME ou par DÉFAUT NOMMÉ, et le contrôle les compte à voix haute.**
 
 ---
 

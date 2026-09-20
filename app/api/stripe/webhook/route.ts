@@ -20,10 +20,26 @@ export const maxDuration = 30
  * │ par un fait, au même titre qu'un POST utilisateur : il traite UN         │
  * │ événement, au moment où il arrive, sans parcourir quoi que ce soit.      │
  * │ C'est même ce qui ÉVITE de balayer périodiquement les abonnements pour   │
- * │ savoir qui a payé. La règle « zéro batch, zéro cron » est tenue.         │
+ * │ savoir qui a payé : CE chemin-ci ne parcourt rien.                       │
+ * │                                                                          │
+ * │ ⚠️ « ZÉRO CRON » ÉTAIT FAUX, ET LE RESTE ENCORE PLUS DEPUIS LE MODULE    │
+ * │    D'EXPLOITATION. Mesuré le 20/09/2026 : le dépôt porte QUATRE routes   │
+ * │    sous `app/api/cron/` et NEUF tâches planifiées, dont                  │
+ * │    `stripe_reconcile_trigger`, qui compare chaque nuit les événements    │
+ * │    produits par Stripe à ceux que le site a reçus. Ce qui est vrai est   │
+ * │    plus étroit : **l’ENCAISSEMENT ne dépend d’aucun balayage** — la      │
+ * │    vérification nocturne CONSTATE, elle n’applique aucun droit.         │
+ * │    Une règle énoncée plus largement qu’elle ne l’est finit citée telle   │
+ * │    quelle (§E.16), et le même énoncé était répété dans la migration      │
+ * │    `stripe_fondations`.                                                  │
  * └────────────────────────────────────────────────────────────────────────┘
  *
- * ┌─ LA SEULE ROUTE DE L'APPLICATION SANS `requireAuth` ────────────────────┐
+ * ┌─ UNE ROUTE SANS `requireAuth`, ET LA SEULE QUI ACCORDE DES DROITS ──────┐
+ * │ ⚠️ « LA SEULE ROUTE SANS `requireAuth` » ÉTAIT FAUX : elles sont         │
+ * │    DIX-HUIT sur 128 (mesuré, §M1 n°3) — les référentiels publics,        │
+ * │    l'inscription, les OTP. La phrase juste est plus étroite et plus      │
+ * │    utile : **c’est la seule qui ACCORDE DES DROITS sans identité.**      │
+ * │                                                                          │
  * │ Ce n'est pas un oubli et ce n'est pas à « corriger ». L'appelant est     │
  * │ Stripe, pas un utilisateur : il n'a ni session, ni jeton, ni domaine.    │
  * │ L'authentification se fait par SIGNATURE CRYPTOGRAPHIQUE du corps.       │

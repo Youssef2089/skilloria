@@ -604,69 +604,36 @@ const JUGES = {
       `Les features de chaque offre, pour l'affichage du catalogue. Le mur payant, lui, est fermé par deux verrous serveur indépendants (§D.1). Relu le 19/09/2026.`,
   },
 
+
   // ══════════════════════════════════════════════════════════════════════════
   // LOT 4.1d — les 59 emplacements de `app/api/{me,profile,candidatures,
-  // conversations,invitations,notifications,publications,taxonomy}`, ouverts un
-  // par un. VINGT-DEUX ont ete corriges et ont donc QUITTE le recensement ; les
-  // TRENTE-SEPT ci-dessous y restent, et chacun porte SA raison.
+  // conversations,invitations,notifications,publications,taxonomy}`.
   //
-  // ⚠️ « JUGE » NE VEUT PAS DIRE « LEGITIME ». Il veut dire LU, avec sa raison.
-  //    Quinze des trente-sept sont des DEFAUTS NOMMES, non corriges : ils
-  //    sortent du perimetre des huit emplacements ordonnes, et elargir un lot
-  //    tout seul est la faute inverse de celle qu'on ferme. Ils portent leur
-  //    RANG, pour que la prochaine campagne parte d une liste et non d une
-  //    memoire. Le plus grave est `app/api/profile/route.ts:671` — rang 1 : une
-  //    lecture en panne DEMOTE un expert verifie, en base.
+  // LES QUINZE DEFAUTS NOMMES SONT FERMES (20/09/2026). Ils ont donc QUITTE le
+  // recensement, et onze fichiers sont sortis de ce gel avec eux. Ce qui reste
+  // ci-dessous est LEGITIME, une raison par entree — et « legitime » veut dire
+  // LU ET JUGE TEL, pas « pas encore regarde ».
+  //
+  // ⚠️ LA DISTINCTION RESTE ECRITE MEME QUAND ELLE NE SERT PLUS. Tant que ce
+  //    gel ne contenait que des lignes saines, le mot « juge » s'etait mis a
+  //    vouloir dire « acquitte » — c'est ce glissement qui avait laisse trois
+  //    lignes non ouvertes au lot 1.3 (§G.8). Le jour ou un defaut nomme
+  //    reviendra ici, la convention doit deja etre la.
 
   'app/api/candidatures/[id]/pitch/route.ts': {
     total: 1,
     raison:
       ":169 `expRows` — LEGITIME. Les experiences alimentent le TEXTE du pitch, une proposition regeneree a la demande et jamais presentee comme un releve. Une lecture en panne appauvrit la redaction ; elle ne produit aucune affirmation metier et ne franchit aucune garde. Lu le 20/09/2026.",
   },
-  'app/api/candidatures/[id]/select/route.ts': {
-    total: 1,
-    raison:
-      ":189 `profileWithUser` — DEFAUT NOMME, NON CORRIGE (rang 3). `null` saute le `if (pwu)` : l'expert n'est JAMAIS prevenu qu'il a ete RETENU. C'est la notification la plus importante du produit cote expert, et rien ne la rejoue. Meme famille que candidatures:394, ferme au meme lot. Lu le 20/09/2026.",
-  },
-  'app/api/candidatures/route.ts': {
-    total: 1,
-    raison:
-      ":775 `topRow` — DEFAUT NOMME, NON CORRIGE (rang 5). `null` rend `devoile = false` : le devoilement INCLUS DANS L OFFRE ne se declenche pas, en silence. Jumeau de :585, journalise au meme lot — celui-ci ne l a pas ete parce qu il vit dans une AUTRE fonction. Lu le 20/09/2026.",
-  },
-  'app/api/conversations/[id]/messages/route.ts': {
-    total: 2,
-    raison:
-      ":190 `member` — DEFAUT NOMME, NON CORRIGE (rang 4) : `isOrg` reste faux, et la route rend 404 `not_found` — « cette conversation n'existe pas », dit a un membre actif. §E.22 ④. · :208 `orgMember` — DEFAUT NOMME (rang 8) : `otherUserId` reste nul, et l'autre partie n'est jamais notifiee du message. Lus le 20/09/2026.",
-  },
   'app/api/invitations/resolve/route.ts': {
-    total: 2,
-    raison:
-      ":61 `od` — DEFAUT NOMME, NON CORRIGE (rang 12) : `domainSlug` nul prive l'ecran d'acceptation du sous-domaine herite. · :81 `existingUser` — LEGITIME, et sa raison est DEJA ECRITE dans le fichier : cet ecran ANNONCE, il ne garde pas ; c'est POST accept qui refuse, et qui le dit. Afficher un blocage sur une panne accuserait l'invite a tort. Lus le 20/09/2026.",
-  },
-  'app/api/me/badges/route.ts': {
     total: 1,
     raison:
-      ":241 `pubsRaw` — DEFAUT NOMME, NON CORRIGE (rang 7). `[]` rend `{ valeur: 0, exact: true }` : le badge AFFIRME « zero, exactement » sur une panne de lecture. Le DTO porte deja le champ `exact` qui saurait dire le contraire — la parade existe, elle n'est pas branchee. ⚠️ ET LE MEME FICHIER PORTE LA MEME FAUTE EN :254 SUR `cErr`, que ce recensement NE VOIT PAS : la valeur rendue est un objet, pas `null`/`[]`/`0`, donc `RETOUR_MUET` ne mord pas (§E.38). Lu le 20/09/2026.",
+      ":81 `existingUser` — LEGITIME, et sa raison est DEJA ECRITE dans le fichier : cet ecran ANNONCE, il ne garde pas ; c'est POST accept qui refuse, et qui le dit. Afficher un blocage sur une panne accuserait l'invite a tort. (:61 est ferme — il journalise desormais.) Lu le 20/09/2026.",
   },
   'app/api/me/candidatures/route.ts': {
-    total: 2,
-    raison:
-      ":179 `convs` — DEFAUT NOMME, NON CORRIGE (rang 11) : sans lien de conversation, l'expert perd l'acces au fil depuis sa candidature. · :195 `viewsRaw` — LEGITIME : la carte « consultee » se remet a « non consultee », un badge qui SUR-signale. Aucune affirmation metier, aucune ecriture, et l'etat revient au rechargement suivant. Lus le 20/09/2026.",
-  },
-  'app/api/me/invitations/accept/route.ts': {
-    total: 2,
-    raison:
-      ":74 et :82 `data` — DEFAUT NOMME, NON CORRIGE (rang 2). Les DEUX branches (par jeton, et par e-mail verifie) tombent sur `invitation = null`, et la route rend 404 « Invitation not found » : une panne de lecture dit a quelqu'un que son invitation n'existe pas, sur le chemin ou il rejoint son organisation. §E.22 ④, et §E.36 — deux lectures, une seule panne suffit. Lus le 20/09/2026.",
-  },
-  'app/api/me/invitations/pending/route.ts': {
     total: 1,
     raison:
-      ":52 `inv` — DEFAUT NOMME, NON CORRIGE (rang 13). `null` rend `{ invitation: null }` en 200 : « vous n'avez aucune invitation ». Plus doux que le rang 2 — aucun refus, la banniere ne s'affiche pas — mais c'est la meme affirmation. Lu le 20/09/2026.",
-  },
-  'app/api/me/missions/[id]/route.ts': {
-    total: 1,
-    raison:
-      ":191 `existingCand` — DEFAUT NOMME, NON CORRIGE (rang 14). `null` fait reapparaitre le bouton « candidater » a un expert qui a deja candidate. Le serveur, lui, refuse toujours : l'ecran ment, la garde tient. Lu le 20/09/2026.",
+      ":195 `viewsRaw` — LEGITIME : la carte « consultee » se remet a « non consultee », un badge qui SUR-signale. Aucune affirmation metier, aucune ecriture, et l'etat revient au rechargement suivant. (:179 est ferme.) Lu le 20/09/2026.",
   },
   'app/api/me/organisation/invitations/route.ts': {
     total: 1,
@@ -687,26 +654,6 @@ const JUGES = {
     total: 1,
     raison:
       ":62 `user` — LEGITIME. Le desabonnement, lui, a REUSSI et son echec est teste separement (`res.ok`). Seuls la langue et le segment de la redirection de courtoisie retombent sur un defaut ; la garde de routage corrige le segment. Lu le 20/09/2026.",
-  },
-  'app/api/profile/cdi-upload-cv/route.ts': {
-    total: 5,
-    raison:
-      ":199 cache (①-bis, l'erreur n'est meme pas recuperee) — DEFAUT NOMME (rang 9) : sur un cache hit, les trois listes tombent a `[]` et la reponse dit `status: done, cached: true` avec un profil VIDE. · :302 referentiel du domaine — DEFAUT NOMME (rang 10) : branches, specialites et tags vides, donc l'analyse de CV est PAYEE puis rendue inclassable. · :382 `br` et :394 `sps` — DEFAUT NOMME (rang 15) : le commentaire voisin justifie d'ignorer un slug INVENTE par le modele ; une panne de LECTURE n'est pas un slug invente, et le commentaire couvre un cas ou il est faux (§E.29). · :596 `postUpd` — DEFAUT NOMME (rang 6) : la mise en relation n'est pas rejouee apres l'analyse, sans une ligne de journal. Lus le 20/09/2026.",
-  },
-  'app/api/profile/route.ts': {
-    total: 6,
-    raison:
-      "RANG 1 FERMÉ (:671, corrigé le 20/09/2026 — il a QUITTÉ le recensement). :134 `userMetaRow` — DEFAUT NOMME (rang 3 bis) : `isCdi` retombe a faux, et le PATCH d'un expert CDI est valide avec la liste blanche FREELANCE — une garde qui ne s'ouvre pas mais CHOISIT LE MAUVAIS ETAT (§E.37). · :205 `br`, :227 `sps`, :255 `wzs` — DEFAUT NOMME (rang 12 bis) : 400 `bad_branch` / `bad_speciality` / `bad_work_zone` — « cette branche n'existe pas », dit d'une branche reelle ; l'expert est bloque a l'enregistrement. · :312 et :326 `count` — DEFAUT NOMME (rang 4 bis) : `?? 0` fait conclure a la garde de visibilite que le profil n'a ni experience ni langue, et l'expert ne PEUT PLUS se rendre visible. Lus le 20/09/2026.",
-  },
-  'app/api/profile/upload-cv/route.ts': {
-    total: 5,
-    raison:
-      ":144, :241, :315, :328, :522 — JUMEAUX EXACTS des cinq de `cdi-upload-cv` ci-dessus, memes rangs, meme mecanique (cache, referentiel du domaine, branche, specialites, mise en relation apres analyse). Ils sont comptes ici pour que la correction ne ferme jamais un seul des deux parcours (§E.20). Lus le 20/09/2026.",
-  },
-  'app/api/taxonomy/route.ts': {
-    total: 1,
-    raison:
-      ":59 `dom` — DEFAUT NOMME, NON CORRIGE (rang 12 ter). `null` rend 400 `missing_domain_id` : « vous n'avez pas fourni d'ecosysteme », dit a un appelant qui en a fourni un, valide. Refus juste, motif faux (§E.22 ③). Lu le 20/09/2026.",
   },
 }
 

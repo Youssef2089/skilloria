@@ -56,12 +56,23 @@ export async function GET(req: NextRequest) {
         req.headers.get('x-subdomain') ||
         resolveSubdomainFromHost(req.headers.get('host') ?? req.headers.get('x-forwarded-host'))
       if (subdomain) {
-        const { data: dom } = await supabase
+        const { data: dom, error: domErr } = await supabase
           .from('domains')
           .select('id')
           .eq('slug', subdomain)
           .eq('active', true)
           .maybeSingle()
+        // ⚠️ `null` TOMBAIT SUR 400 `missing_domain_id` — « vous n’avez pas
+        //    fourni d’écosystème », dit à un appelant qui en a fourni un,
+        //    valide. Refus juste, motif faux (§E.22 ③) : on ne sert pas une
+        //    taxonomie qu’on n’a pas su rattacher, mais 503.
+        if (domErr) {
+          console.error('[taxonomy] résolution de l’écosystème en panne', { subdomain, message: domErr.message })
+          return json(
+            { error: 'Could not resolve the ecosystem', code: 'ecosysteme_indisponible' },
+            503,
+          )
+        }
         domainId = dom?.id ?? null
       }
     }

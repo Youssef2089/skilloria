@@ -58,13 +58,22 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   // Slug du domaine actif de l'org (hérité par l'invité — il ne le choisit pas).
   let domainSlug: string | null = null
-  const { data: od } = await admin
+  const { data: od, error: odErr } = await admin
     .from('organization_domains')
     .select('domains(slug)')
     .eq('organization_id', inv.organization_id)
     .eq('active', true)
     .limit(1)
     .maybeSingle()
+  // Sans slug, l’écran d’acceptation perd le sous-domaine hérité. On
+  // journalise plutôt que de refuser : l’invitation reste lisible, et la
+  // résolution se refait au rechargement.
+  if (odErr) {
+    console.error('[invitations/resolve] écosystème de l’organisation ILLISIBLE', {
+      organizationId: inv.organization_id,
+      message: odErr.message,
+    })
+  }
   if (od) {
     const d = Array.isArray(od.domains) ? od.domains[0] : od.domains
     domainSlug = (d as { slug?: string | null } | null)?.slug ?? null

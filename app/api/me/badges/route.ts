@@ -238,14 +238,28 @@ async function countUnviewedCandidaturesForUser(
   if (scope.kind === 'expert') {
     candQuery = candQuery.eq('profile_id', scope.profileId)
   } else {
-    const { data: pubsRaw } = await auth.supabaseAdmin
+    const { data: pubsRaw, error: pubsErr } = await auth.supabaseAdmin
       .from('publications')
       .select('id')
       // CLOISONNEMENT — un badge qui compte les deux écosystèmes afficherait un
       // nombre ne correspondant à rien de ce que l'écran montre.
       .eq('organization_id', scope.orgId)
       .eq('domain_id', activeEcosystemId(auth))
+    // ⚠️ « ZÉRO, EXACTEMENT » DIT SUR UNE PANNE — ET LA PARADE ÉTAIT DÉJÀ
+    //    LÀ, À DOUZE LIGNES. Ce DTO porte `exact`, et deux retours plus bas
+    //    s'en servent (`pubWindows === null`, `lifecycleByCand === null`).
+    //    Ici la liste des annonces tombait à `[]` sans que l’erreur soit même
+    //    récupérée, et le badge affirmait un zéro EXACT. La bonne pratique
+    //    était écrite dans le fichier ; elle n’était pas gardée (§E.22 ⑨).
+    if (pubsErr) {
+      console.error('[me/badges] annonces de l’organisation ILLISIBLES — compte inconnu', {
+        organizationId: scope.orgId,
+        message: pubsErr.message,
+      })
+      return { valeur: 0, exact: false }
+    }
     const pubIds = ((pubsRaw ?? []) as { id: string }[]).map((p) => p.id)
+    // Zéro annonce est un FAIT, lui : il reste exact.
     if (pubIds.length === 0) return { valeur: 0, exact: true }
     candQuery = candQuery.in('publication_id', pubIds)
   }
@@ -253,7 +267,12 @@ async function countUnviewedCandidaturesForUser(
   const { data: candRowsRaw, error: cErr } = await candQuery
   if (cErr) {
     console.error('[me/badges] candidatures scope query failed', cErr.message)
-    return { valeur: 0, exact: true }
+    // ⚠️ MÊME FAUTE, DEUX LIGNES PLUS BAS, ET LE RECENSEMENT NE LA VOIT PAS :
+    //    la valeur rendue est un OBJET, pas `null` / `[]` / `0`, donc le
+    //    motif de `diag-erreurs-avalees` ne mord pas dessus (§E.38). Elle a
+    //    été trouvée en lisant sa voisine — et c’est exactement pourquoi on
+    //    cherche toujours le jumeau (§E.28 ③).
+    return { valeur: 0, exact: false }
   }
   const candRowsAll = (candRowsRaw ?? []) as {
     id: string; updated_at: string; status: string

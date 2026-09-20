@@ -176,10 +176,20 @@ export async function GET(request: NextRequest): Promise<Response> {
   // échange 'unlocked' est encore ouvert ou archivé (cf. lifecycle.ts §3).
   const convExpiryByCand = new Map<string, string | null>()
   if (accessibleCandIds.length > 0) {
-    const { data: convs } = await auth.supabaseAdmin
+    const { data: convs, error: convsErr } = await auth.supabaseAdmin
       .from('conversations')
       .select('id, candidature_id, expires_at')
       .in('candidature_id', accessibleCandIds)
+    // ⚠️ SANS CES LIENS, L'EXPERT PERD L'ACCÈS À SES FILS depuis ses
+    //    candidatures — la conversation existe, elle est simplement
+    //    injoignable depuis l’écran où il la cherche. On journalise : la
+    //    liste des candidatures, elle, est complète et vaut mieux que rien,
+    //    et la messagerie reste atteignable par son propre onglet.
+    if (convsErr) {
+      console.error('[me/candidatures] conversations ILLISIBLES — candidatures servies sans lien de fil', {
+        message: convsErr.message,
+      })
+    }
     for (const c of ((convs ?? []) as { id: string; candidature_id: string; expires_at: string | null }[])) {
       convByCand.set(c.candidature_id, c.id)
       convExpiryByCand.set(c.candidature_id, c.expires_at)

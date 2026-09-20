@@ -49,7 +49,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   const nowIso = new Date().toISOString()
-  const { data: inv } = await admin
+  const { data: inv, error: invErr } = await admin
     .from('organization_invitations')
     .select('id, organization_id, role_in_org, expires_at, organizations(company_name, org_type)')
     .ilike('email', me.email as string)
@@ -59,6 +59,21 @@ export async function GET(request: NextRequest): Promise<Response> {
     .limit(1)
     .maybeSingle()
 
+  // ⚠️ `{ invitation: null }` EN 200, C'EST « VOUS N'AVEZ AUCUNE INVITATION ».
+  //    Plus doux que le 404 de la route d’acceptation — aucune porte ne se
+  //    ferme, la bannière ne s’affiche simplement pas — mais c’est la même
+  //    affirmation, et l’invité ne saura jamais qu’il fallait revenir.
+  //    503 : la bannière ne s’affiche pas non plus, et l’écran peut le dire.
+  if (invErr) {
+    console.error('[me/invitations/pending] invitation en attente ILLISIBLE', {
+      userId: auth.user.id,
+      message: invErr.message,
+    })
+    return json(
+      { error: 'Could not read pending invitations', code: 'invitation_lecture_indisponible' },
+      503,
+    )
+  }
   if (!inv) return json({ invitation: null }, 200)
 
   const orgRow = Array.isArray(inv.organizations) ? inv.organizations[0] : inv.organizations

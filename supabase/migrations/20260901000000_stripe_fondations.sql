@@ -441,7 +441,12 @@ create trigger transactions_block_delete
 -- │ titre qu'un POST utilisateur. Il traite UN événement, au moment où il    │
 -- │ arrive. Il ne parcourt aucune ligne, n'est ordonnancé par rien. C'est    │
 -- │ même ce qui ÉVITE d'avoir à balayer périodiquement les abonnements pour  │
--- │ savoir qui a payé. La contrainte « zéro batch, zéro cron » est tenue.    │
+-- │ savoir qui a payé : CE chemin-ci ne parcourt rien.                       │
+-- │                                                                          │
+-- │ ⚠️ « ZERO CRON » EST FAUX A L ECHELLE DU DEPOT — mesure le 20/09/2026 :  │
+-- │    QUATRE routes sous app/api/cron/ et NEUF taches planifiees. Ce qui    │
+-- │    est vrai est plus etroit : l'ENCAISSEMENT ne depend d'aucun           │
+-- │    balayage. Meme correction dans l en-tete de la route (§E.16).         │
 -- └────────────────────────────────────────────────────────────────────────┘
 --
 -- IDEMPOTENCE PAR CONTRAINTE DE BASE, JAMAIS PAR LECTURE-PUIS-ÉCRITURE.

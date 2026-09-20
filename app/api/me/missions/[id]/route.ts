@@ -188,12 +188,24 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   }
 
   // 5. Check si l'expert a déjà candidaté (pour bouton UI) ────────────────
-  const { data: existingCand } = await auth.supabaseAdmin
+  const { data: existingCand, error: existingCandErr } = await auth.supabaseAdmin
     .from('candidatures')
     .select('id, status, created_at, cover_message')
     .eq('publication_id', publicationId)
     .eq('profile_id', profile.id)
     .maybeSingle()
+  // ⚠️ `null` FAIT RÉAPPARAÎTRE LE BOUTON « CANDIDATER » à un expert qui a
+  //    déjà candidaté. L’écran ment, la garde tient : le dépôt sera refusé
+  //    côté serveur. Le coût est une promesse non tenue, pas une double
+  //    candidature — on journalise, on ne refuse pas l’affichage de
+  //    l’annonce pour autant.
+  if (existingCandErr) {
+    console.error('[me/missions] candidature existante ILLISIBLE — le bouton peut réapparaître à tort', {
+      publicationId,
+      profileId: profile.id,
+      message: existingCandErr.message,
+    })
+  }
 
   // Logo de l'organisation : URL SIGNÉE, jamais la valeur de la colonne.
   //

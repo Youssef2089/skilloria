@@ -141,20 +141,49 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   if (profile.cv_hash === hash && profile.cv_parsing_status === 'done') {
-    const [{ data: cachedExp }, { data: cachedEdu }, { data: cachedLang }] =
-      await Promise.all([
-        supabaseAdmin
-          .from('profile_experiences')
-          .select('*')
-          .eq('profile_id', profile.id)
-          .order('sort_order', { ascending: true }),
-        supabaseAdmin
-          .from('profile_educations')
-          .select('*')
-          .eq('profile_id', profile.id)
-          .order('end_year', { ascending: false, nullsFirst: true }),
-        supabaseAdmin.from('profile_languages').select('*').eq('profile_id', profile.id),
-      ])
+    // ⚠️ UN CACHE QUI SERT DU VIDE AVEC UN TAMPON DE SUCCES.
+    //
+    //    Aucune des trois lectures ne récupérait son erreur (forme ①-bis : le
+    //    motif objet du `Promise.all` ne porte même pas `error`). Une panne
+    //    rendait donc les trois listes à `[]` — et la réponse annonçait
+    //    `status: 'done', cached: true` avec un profil VIDE.
+    //
+    //    Ce n'est pas un affichage dégradé : c'est un FAIT FAUX QUI SE CROIT.
+    //    L’expert vient de redéposer son CV et lit que l’analyse a réussi et
+    //    n’a rien trouvé. Le formulaire qu’il ouvre ensuite est prérempli avec
+    //    ce vide, et le prochain enregistrement l'ÉCRIT — §E.27 forme A, la
+    //    panne cesse de mentir et devient la vérité.
+    //
+    //    On ne sert donc pas un cache qu’on n’a pas su lire : 503, et le
+    //    prochain dépôt refera le travail. Rien n’est perdu, rien n’est écrit.
+    const [expRes, eduRes, langRes] = await Promise.all([
+      supabaseAdmin
+        .from('profile_experiences')
+        .select('*')
+        .eq('profile_id', profile.id)
+        .order('sort_order', { ascending: true }),
+      supabaseAdmin
+        .from('profile_educations')
+        .select('*')
+        .eq('profile_id', profile.id)
+        .order('end_year', { ascending: false, nullsFirst: true }),
+      supabaseAdmin.from('profile_languages').select('*').eq('profile_id', profile.id),
+    ])
+    if (expRes.error || eduRes.error || langRes.error) {
+      console.error('[upload-cv] cache ILLISIBLE — aucune réponse servie', {
+        profileId: profile.id,
+        experiences: expRes.error?.message ?? null,
+        educations: eduRes.error?.message ?? null,
+        langues: langRes.error?.message ?? null,
+      })
+      return json(
+        { error: 'Could not read the cached analysis', code: 'cache_indisponible' },
+        503,
+      )
+    }
+    const cachedExp = expRes.data
+    const cachedEdu = eduRes.data
+    const cachedLang = langRes.data
 
     return json({
       jobId: profile.id,
@@ -238,21 +267,39 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
 
-  const [{ data: branchRows }, { data: specialityRows }, { data: configRow }] =
-    await Promise.all([
-      supabaseAdmin.from('branches').select('slug').eq('domain_id', user.domain_id),
-      supabaseAdmin.from('specialities').select('slug').eq('domain_id', user.domain_id),
-      supabaseAdmin
-        .from('domain_configs')
-        .select('tags')
-        .eq('domain_id', user.domain_id)
-        .maybeSingle(),
-    ])
+  // ⚠️ SANS CE REFERENTIEL, L ANALYSE EST PAYEE PUIS RENDUE INCLASSABLE.
+  //    Les trois lectures tombaient à `[]` sans récupérer leur erreur : le
+  //    modèle recevait un catalogue VIDE, ne pouvait rattacher le CV à aucune
+  //    branche ni spécialité, et le profil ressortait sans son axe — pendant
+  //    qu'on payait l'appel et qu'on consommait le quota d'analyses.
+  //    On refuse AVANT de dépenser, comme les trois chemins de vérification
+  //    (§E.11) : on ne paie pas une décision qu'on ne saura pas rattacher.
+  const [branchRes, specialityRes, configRes] = await Promise.all([
+    supabaseAdmin.from('branches').select('slug').eq('domain_id', user.domain_id),
+    supabaseAdmin.from('specialities').select('slug').eq('domain_id', user.domain_id),
+    supabaseAdmin
+      .from('domain_configs')
+      .select('tags')
+      .eq('domain_id', user.domain_id)
+      .maybeSingle(),
+  ])
+  if (branchRes.error || specialityRes.error || configRes.error) {
+    console.error('[upload-cv] référentiel du domaine ILLISIBLE — aucun appel au modèle', {
+      domainId: user.domain_id,
+      branches: branchRes.error?.message ?? null,
+      specialites: specialityRes.error?.message ?? null,
+      config: configRes.error?.message ?? null,
+    })
+    return json(
+      { error: 'Reference data unavailable', code: 'referentiel_indisponible' },
+      503,
+    )
+  }
 
   const domainCtx = {
-    tags: (configRow?.tags as string[] | null) ?? [],
-    branches: (branchRows ?? []).map((b: any) => b.slug as string),
-    specialities: (specialityRows ?? []).map((s: any) => s.slug as string),
+    tags: (configRes.data?.tags as string[] | null) ?? [],
+    branches: (branchRes.data ?? []).map((b: any) => b.slug as string),
+    specialities: (specialityRes.data ?? []).map((s: any) => s.slug as string),
   }
 
   // ── LE PLAFOND EST CONSULTÉ AVANT D'APPELER ──────────────────────────────
@@ -312,12 +359,22 @@ export async function POST(request: NextRequest): Promise<Response> {
   let branchId: string | null = null
   let specialityIds: string[] = []
   if (parsed.branch_slug) {
-    const { data: br } = await supabaseAdmin
+    const { data: br, error: brErr } = await supabaseAdmin
       .from('branches')
       .select('id')
       .eq('domain_id', user.domain_id)
       .eq('slug', parsed.branch_slug)
       .maybeSingle()
+    // ⚠️ LE COMMENTAIRE VOISIN JUSTIFIE D’IGNORER UN SLUG **INVENTÉ** PAR LE
+    //    MODÈLE. Une panne de LECTURE n’est pas un slug inventé : il est vrai
+    //    d’un cas et faux de celui-ci (§E.29). Le profil ressort sans son axe
+    //    pour une raison qui n’a rien à voir avec le CV.
+    if (brErr) {
+      console.error('[upload-cv] branche ILLISIBLE — profil rattaché à aucune branche', {
+        slug: parsed.branch_slug,
+        message: brErr.message,
+      })
+    }
     branchId = br?.id ?? null
   }
   // SPÉCIALITÉS multiples. On résout en LOT, et un slug que le modèle aurait
@@ -325,12 +382,18 @@ export async function POST(request: NextRequest): Promise<Response> {
   // a pas d'utilisateur à qui rendre une erreur — c'est une extraction, pas une
   // saisie. Le profil reste modifiable à l'écran.
   if (parsed.speciality_slugs.length > 0) {
-    const { data: sps } = await supabaseAdmin
+    const { data: sps, error: spsErr } = await supabaseAdmin
       .from('specialities')
       .select('id')
       .eq('domain_id', user.domain_id)
       .eq('active', true)
       .in('slug', parsed.speciality_slugs)
+    if (spsErr) {
+      console.error('[upload-cv] spécialités ILLISIBLES — profil rattaché à aucune spécialité', {
+        slugs: parsed.speciality_slugs,
+        message: spsErr.message,
+      })
+    }
     specialityIds = ((sps ?? []) as Array<{ id: string }>).map((x) => x.id)
   }
 
@@ -519,11 +582,27 @@ export async function POST(request: NextRequest): Promise<Response> {
   // faut after() pour garantir l'exécution de bout en bout.
   after(async () => {
     try {
-      const { data: postUpd } = await supabaseAdmin
+      const { data: postUpd, error: postUpdErr } = await supabaseAdmin
         .from('profiles')
         .select('verification_status, visible, ai_consent_at, cv_parsing_status')
         .eq('id', profile.id)
         .maybeSingle()
+      // ⚠️ SANS CETTE LECTURE, LA MISE EN RELATION N'EST PAS REJOUÉE — et le
+      //    silence était total. Les quatre `postUpd?.` retombent sur `null`,
+      //    la condition est vraie, on `return`, et l'expert ne comprend pas
+      //    pourquoi son flux reste vide après avoir redéposé son CV : c’est
+      //    précisément le « faux défaut qu’on passe des heures à
+      //    diagnostiquer » que ce fichier nomme déjà ailleurs.
+      //    On ne relance PAS sur un état inconnu — la suite consomme ce qui a
+      //    échoué (§E.41 ①) — et on journalise, pour que l’absence de flux ait
+      //    une cause lisible.
+      if (postUpdErr) {
+        console.error('[upload-cv] état post-analyse ILLISIBLE — mise en relation NON rejouée', {
+          profileId: profile.id,
+          message: postUpdErr.message,
+        })
+        return
+      }
       if (
         postUpd?.verification_status !== 'approved' ||
         postUpd?.visible !== true ||
