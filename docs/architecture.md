@@ -383,6 +383,119 @@ catalogue : les `Price` Stripe sont immuables.
 L'attribution manuelle (`/api/admin/assign-org-package`) **refuse** de passer par-dessus un abonnement
 Stripe vivant ([lib/billing/attribution-manuelle.ts](../lib/billing/attribution-manuelle.ts)).
 
+### C.10 — Le module Stripe d'exploitation : ce qu'il garantit, ce qu'il NE garantit pas
+
+> État établi le **20/09/2026**, par lecture du code et **une lecture de la base de recette**
+> (`wnayuerhakekxccgimeg`). Les chiffres qui suivent portent leur date, et aucun n'est déduit.
+
+#### Pourquoi on ne recopie PAS Stripe — et c'est la moitié du lot
+
+Stripe fournit déjà, et mieux : les **paiements**, les **factures**, les **remboursements** et les
+**litiges**. Ils vivent dans son tableau de bord. Le module d'exploitation n'en montre **aucun** :
+`/admin/facturation` porte **un lien** vers ce tableau de bord, et c'est tout ce qu'il en dit.
+
+La raison n'est pas l'économie d'effort. **Un écran qui recopie Stripe diverge de Stripe** — pas le
+jour où on l'écrit, mais le jour où une synchronisation saute, et alors deux chiffres coexistent
+sans que rien ne dise lequel fait foi. C'est la double source de vérité que tout le socle commerce
+évite déjà (`resolvePackageByPrice` ne lit jamais un montant chez Stripe : il traduit un
+**identifiant de prix** en offre du **catalogue local**, qui fait foi — décision figée).
+
+La gestion d'abonnement **côté client** ne se refait pas non plus : le portail client Stripe est
+hébergé et co-brandé, et `/api/billing/portal` l'ouvre déjà.
+
+**Ce qui reste, et que Stripe ne peut PAS savoir : l'état de NOTRE base en regard du sien.**
+
+#### Les quatre surfaces, et la raison qu'il n'y en ait qu'UNE route
+
+| Surface | Ce qu'elle répond |
+|---|---|
+| Le **journal** | ce que Stripe nous a envoyé, et ce que ce site en a fait |
+| Les **écarts** | quelles organisations ont des droits qui ne correspondent pas à leur abonnement |
+| La **santé du raccordement** | le tuyau est-il branché, et depuis quand est-il muet |
+| La **vérification nocturne** | qu'est-ce qui existe chez Stripe et n'est jamais arrivé ici |
+
+Les trois premières lisent la **même source**. Trois routes qui liraient séparément tomberaient
+ensemble sur la même panne — et l'une afficherait « rien à signaler » pendant que l'autre dirait
+« je ne sais pas ». C'est **§E.36 mot pour mot**, et le remède n'est pas de corriger les trois :
+c'est de n'en avoir **qu'une**, [app/api/admin/facturation/route.ts](../app/api/admin/facturation/route.ts).
+Une lecture, un type, trois consommateurs.
+
+`/admin/supervision` **n'appelle jamais Stripe** : il lit le **verdict** de la nuit, en local. L'y
+faire appeler Stripe en aurait fait un quatrième consommateur de la même lecture.
+
+#### CE QUE LE MODULE GARANTIT
+
+1. **« Zéro écart » et « je n'ai pas pu comparer » ne se confondent jamais.** `EtatEcarts`
+   ([lib/stripe-exploitation/ecarts.ts](../lib/stripe-exploitation/ecarts.ts)) n'expose `ecarts` que
+   dans sa branche `'compare'` : l'écran ne PEUT PAS écrire « aucun écart » sur une lecture en
+   panne, le compilateur l'interdit. La même garde existe **en base** sur
+   `stripe_reconciliation_runs` — sur `etat = 'impossible'`, les trois compteurs sont `NULL`, et une
+   contrainte le refuse autrement (§E.31 : une garde qui est une contrainte de schéma ne dépend
+   d'aucune discipline).
+2. **Le mur fermé est un état NORMAL.** `ENABLE_BILLING` absent ⇒ motif `billing_disabled`, affiché
+   en gris avec son propre texte, et la tâche nocturne répond **200**. Peindre en rouge le
+   fonctionnement normal apprend à ignorer le rouge.
+3. **Le rapprochement se fait sur l'identifiant CLIENT.** Le Customer survit à une résiliation, à
+   une re-souscription, à un changement d'offre ; l'abonnement, non. Un **repli documenté** sur
+   l'identifiant d'abonnement couvre le désordre de livraison (un `subscription.created` peut
+   arriver avant le `checkout.session.completed` qui attache le customer). Plusieurs abonnements
+   pour un client sont **classés par statut**, jamais pris dans l'ordre de pagination.
+4. **Lecture seule, partout.** La route n'exporte aucun verbe d'écriture ; la tâche nocturne
+   n'appelle aucun traitement d'événement. Les deux propriétés sont **gardées**.
+5. **Une attribution manuelle n'est pas un écart.** Discriminant : `package_source_event_at IS NULL`
+   **et** aucun identifiant Stripe — donc aucun événement n'a jamais écrit cette ligne. Sans cette
+   exclusion, l'écran aurait annoncé « accès sans paiement » sur un compte pilote dès sa première
+   nuit. *Mesuré le 20/09/2026 : 4 organisations, une avec une offre, **zéro** avec un identifiant
+   Stripe.*
+6. **La tâche nocturne figure au catalogue**, nommée : 8 tâches avant elle, 9 après.
+
+#### CE QU'IL NE GARANTIT PAS — et il faut le lire avant de s'y fier
+
+- **Il ne retraite rien.** Un événement manqué est **signalé**, jamais rejoué. Le retraitement
+  automatique d'un événement de paiement est un lot à lui seul : que faire d'un `invoice.paid`
+  vieux de trois jours dont l'abonnement a été résilié depuis est un **arbitrage d'argent**.
+- **Il ne corrige aucun écart.** L'écran constate. Corriger automatiquement un écart qu'on ne
+  comprend pas encore, c'est rétablir des droits qu'on aurait dû retirer, ou retirer des droits
+  payés — irréversible dans les deux sens.
+- **Il ne voit rien au-delà de 30 jours.** L'API Events de Stripe ne conserve pas plus. Passé ce
+  délai, un événement manqué est **introuvable** : c'est ce qui impose une cadence quotidienne.
+- **Il ne sait pas combien de signatures ont échoué.** L'objet `webhook_endpoint` de Stripe expose
+  son URL, son statut et ses types souscrits — **ni** compteur d'échecs, **ni** date de dernière
+  tentative. L'écran dit donc ce qu'il sait : le point est actif, et rien n'arrive. **NON VÉRIFIÉ**
+  au-delà de la surface de cet objet : aucune autre ressource de l'API n'a été cherchée.
+- **Les résultats sont BORNÉS.** La pagination s'arrête à 1000 ; au-delà, l'écran affiche
+  « tronqué » plutôt que de se dire complet.
+- **Il ne prouve pas que le journal est complet.** Une ligne absente ne prouve pas qu'aucun
+  événement n'est arrivé : elle prouve qu'on n'en a pas trace. Seule la vérification nocturne
+  distingue les deux.
+- **Deux JUMEAUX sont assumés** (§E.20) : `STATUTS_OUVRANTS` et la liste des six types traités sont
+  recopiés de [lib/billing/events.ts](../lib/billing/events.ts), qui ne les exporte pas. Un contrôle
+  lit les **deux** listes dans le source et échoue si elles divergent. Le jour où `events.ts` les
+  exporte, les copies disparaissent.
+
+#### LA PROCÉDURE — que faire quand un écart apparaît
+
+**Règle zéro : on ne corrige rien tant qu'on n'a pas compris.** L'écran est en lecture seule
+précisément pour empêcher le geste réflexe.
+
+1. **Lire l'ÉTAT avant le compte.** « 0 écart » et « je n'ai pas pu comparer » ne sont pas la même
+   page. Si l'état est `impossible`, le motif dit de quel côté regarder — `lecture_locale` désigne
+   notre base, les motifs `stripe_*` désignent Stripe ou la clé, `billing_disabled` ne désigne rien
+   (le mur est fermé, c'est normal).
+2. **Regarder les quatre lignes du raccordement.** Un écart massif et soudain vient presque toujours
+   de là : secret désaccordé, endpoint désactivé, endpoints croisés entre les deux modes.
+3. **Chercher l'événement dans le journal.** Chaque nature d'écart porte sa phrase d'action.
+   · `failed` → le motif est écrit, et l'événement est **rejouable** (Stripe le renverra, ou on le
+   renvoie depuis son tableau de bord) ;
+   · **coincé en `received`** → il ne se rejouera **jamais** seul, voir §E.27 dans CLAUDE.md ;
+   · **absent** → la vérification nocturne le nommera, si elle a moins de 30 jours de retard.
+4. **Si rien n'explique l'écart**, c'est que le webhook a fonctionné et que l'accès est faux quand
+   même : offre écrasée à la main, événement écarté comme retardataire (`package_source_event_at`
+   plus récent que l'événement), ou prix changé chez Stripe sans changer au catalogue.
+5. **Corriger à la main, et tracer.** Pour un droit : `/admin/organisations/[id]`. Pour un prix
+   désaccordé : `/admin/packages`. Jamais en base directement — **un réglage qui n'est pas dans le
+   dépôt n'existe pas** (§E.10).
+
 ### C.8 — Ce que la purge RGPD garantit RÉELLEMENT, et à partir de quel jalon rien n'est rattrapable
 
 `purgeAccount` ([lib/account-purge.ts](../lib/account-purge.ts)) est appelée par deux chemins — la
