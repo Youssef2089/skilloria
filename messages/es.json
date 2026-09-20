@@ -2443,7 +2443,8 @@
       "nav_seuils": "Notas de decisión",
       "nav_durees": "Duraciones del mercado",
       "nav_tarifs_ia": "Tarifas de los modelos",
-      "nav_supervision": "Supervisión"
+      "nav_supervision": "Supervisión",
+      "nav_facturation": "Facturación"
     },
     "quotas_ia": {
       "title": "Cuotas de IA",
@@ -2946,6 +2947,10 @@
         "notes_partielles_purge": {
           "label": "Purga de borradores de puntuación",
           "description": "Borra las puntuaciones parciales ya saldadas. Evitan VOLVER A PAGAR un lote ya puntuado cuando una ejecución se interrumpe; una vez completada, no sirven para nada."
+        },
+        "stripe_reconcile": {
+          "label": "Verificación de la conexión con Stripe",
+          "description": "Cada noche compara los eventos que Stripe ha producido en las últimas 24 horas con los que ha recibido nuestro registro. Cualquier diferencia indica un evento perdido o un fallo de procesamiento. SEÑALA y no reprocesa nada: Stripe conserva sus eventos 30 días, pasados los cuales uno perdido resulta imposible de encontrar."
         }
       },
       "banner_action": "Ver las tareas programadas",
@@ -3063,7 +3068,12 @@
         "tarifs_non_verifies": "Ninguna tarifa se ha modificado desde hace {count} días. Todo el gasto mostrado aquí depende de ellas.",
         "lecture_indisponible_inacheves": "No se ha podido leer el estado de los emparejamientos. No es «todo va bien»: no lo sabemos.",
         "lecture_indisponible_depense": "No se ha podido leer el gasto del mes. No es «cero»: no lo sabemos.",
-        "lecture_indisponible_pannes": "No se ha podido leer el registro de resúmenes. No es «ningún fallo»: no lo sabemos."
+        "lecture_indisponible_pannes": "No se ha podido leer el registro de resúmenes. No es «ningún fallo»: no lo sabemos.",
+        "ecarts_facturation": "{count} organización(es) cuyos derechos en la base no corresponden a su suscripción de Stripe. Alguien paga sin tener acceso, o tiene acceso sin pagar.",
+        "raccordement_stripe": "{count} problema(s) en la conexión con Stripe: los eventos de pago pueden dejar de llegar por completo.",
+        "verification_stripe_muette": "La verificación nocturna de la conexión con Stripe no se ejecuta desde hace {count} días. Un evento perdido resulta imposible de encontrar pasados 30 días.",
+        "verification_stripe_impossible": "La última verificación nocturna no pudo comparar nada. Esto no es «ninguna diferencia»: no lo sabemos.",
+        "lecture_indisponible_facturation": "No se ha podido leer el estado de la conexión con Stripe. Esto no es «todo va bien»: no lo sabemos."
       },
       "spread_title": "Distribución de las notas",
       "spread_empty": "Todavía no hay ninguna ejecución en la nueva escala. La distribución se llenará con los próximos emparejamientos.",
@@ -4165,5 +4175,134 @@
     "blocked_missing": "No hay ninguna configuración activa para este asunto. Nada que ajustar mientras no exista.",
     "blocked_ambiguous": "Varias configuraciones activas para este asunto: no elegimos una al azar.",
     "inert_note": "Dos valores existen en la base sin gobernar ninguna decisión. Están documentados, no se muestran aquí: un campo que no ajusta nada acabaría rellenándose."
+  },
+  "admin_facturation": {
+    "title": "Facturación — lo que Stripe no puede saber",
+    "intro": "Esta pantalla no copia Stripe. Los pagos, las facturas, los reembolsos y las disputas viven en el panel de Stripe, y una pantalla que los copiara acabaría divergiendo. Aquí se muestra lo único que Stripe no puede ver: el estado de NUESTRA base frente a la suya. Nada se corrige desde esta página.",
+    "loading": "Leyendo…",
+    "err_load": "No se ha podido cargar esta pantalla.",
+    "err_load_hint": "Esto no es «ninguna diferencia»: no se ha podido comparar nada. Recargue la página; si el rechazo persiste, la lectura de la base o la de Stripe está caída.",
+    "open_stripe": "Abrir el panel de Stripe",
+    "open_stripe_hint": "Los pagos, las facturas, los reembolsos y las disputas están allí — aquí no se copian deliberadamente en ningún sitio.",
+    "gravity_blocking": "Bloqueante",
+    "gravity_attention": "Para revisar",
+    "sante": {
+      "title": "La conexión",
+      "intro": "La pérdida silenciosa más frecuente: se cambia el secreto de firma de un lado y no se actualiza en Stripe. Cada evento llega, la firma falla, respondemos 400 y no se registra nada. Estas cuatro líneas existen para que ese caso sea legible en lugar de deducible.",
+      "secret_label": "Secreto de firma",
+      "secret_present": "Presente en este entorno",
+      "secret_absent": "AUSENTE — ningún evento puede verificarse ni registrarse",
+      "mode_label": "Modo",
+      "mode_production": "Producción (eventos reales)",
+      "mode_test": "Fuera de producción (eventos de prueba)",
+      "endpoint_label": "Punto de recepción",
+      "endpoint_ok": "Activo en Stripe",
+      "endpoint_disabled": "Desactivado en Stripe — ya no llegará nada",
+      "endpoint_none": "Ningún punto de recepción apunta a este sitio",
+      "endpoint_unknown": "No leído — no se ha podido consultar Stripe",
+      "last_event_label": "Último evento recibido",
+      "last_event_never": "Nunca. El registro no ha recibido nada hasta la fecha.",
+      "last_event_days": "Hace {count} día(s) — el {date}",
+      "last_event_today": "Hoy, a las {date}",
+      "last_event_unknown": "No leído — no se ha podido consultar el registro",
+      "alerte": {
+        "secret_absent": "No hay ningún secreto de firma en este entorno. La ruta rechaza cada evento antes de registrarlo: el registro quedará vacío pase lo que pase. Defina STRIPE_WEBHOOK_SECRET con el valor del punto de recepción de ESTE entorno.",
+        "endpoint_desactive": "Stripe ha desactivado el punto de recepción. No llegará ningún evento mientras no se reactive desde el panel de Stripe.",
+        "aucun_endpoint": "Ninguno de los {count} puntos de recepción declarados en Stripe apunta a este sitio. Los eventos van a otra parte.",
+        "actif_mais_muet": "El punto de recepción está ACTIVO en Stripe y nuestro registro nunca ha recibido nada. Es la firma del secreto desajustado: compruebe que el valor definido aquí es el de ese punto de recepción.",
+        "silence_prolonge": "Ningún evento desde hace {count} días, mientras hay suscripciones vivas en Stripe. Stripe abandona sus reintentos al cabo de tres días: lo que no ha llegado ya no puede llegar.",
+        "mode_croise": "El último evento recibido no es del modo de este entorno. Los dos puntos de recepción están cruzados: los eventos reales van a otra parte.",
+        "types_manquants": "El punto de recepción no está suscrito a {count} de los tipos que este sitio trata. Esos eventos nunca se enviarán.",
+        "endpoints_illisibles": "No se han podido leer los puntos de recepción en Stripe. Esto no es «ningún punto»: no lo sabemos."
+      }
+    },
+    "ecarts": {
+      "title": "Las diferencias",
+      "intro": "Organizaciones cuyos derechos en la base no corresponden a su suscripción de Stripe. La mayoría de los fallos de facturación se describen como fallos de webhook cuando el webhook funcionó y el acceso es erróneo igualmente. Esta pantalla CONSTATA; no corrige nada.",
+      "none": "Ninguna diferencia.",
+      "none_hint": "{orgs} organización(es) comparadas con {subs} suscripción(es) de Stripe. Cada organización tiene en la base exactamente los derechos que describe su suscripción.",
+      "impossible": "La comparación no ha podido realizarse.",
+      "impossible_hint": "Esto NO es «ninguna diferencia». Mientras dure este estado, nadie sabe si los derechos en la base corresponden a las suscripciones.",
+      "impossible_normal": "No hay nada que conciliar.",
+      "impossible_normal_hint": "El muro de pago está cerrado: no se cobra nada, así que no existe ninguna suscripción. Es el estado esperado hoy, no una avería.",
+      "compared": "{orgs} organización(es) comparadas con {subs} suscripción(es) de Stripe.",
+      "manual": "{count} organización(es) tienen una oferta asignada a mano y Stripe nunca las ha tocado: quedan deliberadamente fuera de la comparación.",
+      "truncated": "La lectura de las suscripciones ha alcanzado su límite: la conciliación cubre solo una parte, y esta pantalla no puede declararse completa.",
+      "col_org": "Organización",
+      "col_nature": "Diferencia",
+      "col_stripe": "En Stripe",
+      "col_local": "Aquí",
+      "col_until": "Validez",
+      "no_org": "Ninguna organización vinculada",
+      "no_package": "Ninguna oferta",
+      "nature": {
+        "paie_sans_acces": "Paga sin tener acceso",
+        "acces_sans_paiement": "Tiene acceso sin pagar",
+        "offre_differente": "Oferta distinta en cada lado",
+        "validite_en_retard": "Validez por detrás del periodo pagado",
+        "client_sans_organisation": "Cliente de Stripe sin organización vinculada",
+        "prix_hors_catalogue": "Precio ausente del catálogo",
+        "statut_inconnu": "Estado de Stripe desconocido para este sitio",
+        "plusieurs_abonnements": "Varias suscripciones para un mismo cliente"
+      },
+      "nature_action": {
+        "paie_sans_acces": "Stripe cobra y la base no abre nada. Busque el evento de suscripción correspondiente en el registro de abajo: si falta, la verificación nocturna lo nombrará; si falló, su motivo está escrito.",
+        "acces_sans_paiement": "La base abre derechos que Stripe ya no cobra. Compruebe si llegó el evento de cancelación; si no, puede estar atascado en el registro.",
+        "offre_differente": "Ambos lados están vivos pero no en la misma oferta. El catálogo local manda sobre lo que se concede; Stripe manda sobre lo que se factura. Compare el identificador de precio vinculado a la oferta.",
+        "validite_en_retard": "La organización ha pagado un periodo que no le estamos concediendo. Es un acceso debido y no abierto.",
+        "client_sans_organisation": "Entra dinero por un cliente que ninguna organización reclama. Es la única diferencia que la base por sí sola no puede ver.",
+        "prix_hors_catalogue": "Este precio no existe en el catálogo local: ningún evento futuro sabrá traducirlo en oferta. Vincule el identificador de precio a una oferta.",
+        "statut_inconnu": "Stripe ha devuelto un estado que este sitio no conoce. No se ha concedido ningún derecho sobre esa base — no adivinamos lo que permite un estado desconocido.",
+        "plusieurs_abonnements": "El cliente tiene varias suscripciones. Los derechos aplicados provienen de la que más concede; las demás son invisibles para este sitio."
+      }
+    },
+    "journal": {
+      "title": "El registro de eventos recibidos",
+      "intro": "Lo que Stripe nos ha enviado y lo que este sitio ha hecho con ello. Una línea ausente no demuestra que no haya llegado ningún evento: demuestra que no tenemos rastro. La verificación nocturna, y solo ella, distingue ambos casos.",
+      "empty": "Ningún evento registrado.",
+      "empty_hint": "El registro está vacío. Dos causas opuestas producen exactamente esta página: no llegó nada, o llegó todo y la firma falló antes de registrarse nada. Las cuatro líneas de la conexión, arriba, dicen cuál.",
+      "unavailable": "No se ha podido leer el registro.",
+      "unavailable_hint": "Esto no es «ningún evento»: no sabemos qué contiene. Recargue la página.",
+      "resume": "{total} evento(s) — {traites} tratado(s), {ignores} ignorado(s) deliberadamente, {echoues} fallido(s).",
+      "stuck_title": "{count} evento(s) reclamados y nunca cerrados",
+      "stuck_text": "Un evento reclamado cuyo procesamiento nunca terminó queda bloqueado: la garantía de idempotencia, que impide un doble cargo, rechaza también todos los reintentos de Stripe. Stripe abandona al cabo de tres días. Estos eventos no se repetirán solos y requieren una decisión.",
+      "filter_label": "Filtrar",
+      "filter_all": "Todos los resultados",
+      "truncated": "Solo los {count} más recientes.",
+      "col_event": "Evento",
+      "col_type": "Tipo",
+      "col_status": "Resultado",
+      "col_received": "Llegó el",
+      "col_org": "Organización",
+      "col_error": "Motivo",
+      "statut": {
+        "received": "Reclamado",
+        "processed": "Tratado",
+        "ignored": "Ignorado deliberadamente",
+        "failed": "Fallido"
+      },
+      "statut_stuck": "Atascado"
+    },
+    "nuit": {
+      "title": "La última verificación nocturna",
+      "never": "Nunca se ha ejecutado.",
+      "never_hint": "Mientras no se ejecute, nadie puede decir si se ha perdido un evento. Stripe conserva sus eventos 30 días: pasado ese plazo, uno perdido resulta imposible de encontrar.",
+      "unavailable": "No se ha podido leer su historial.",
+      "impossible": "La noche del {date}: la comparación no ha podido realizarse.",
+      "compare_ok": "La noche del {date}: {stripe} evento(s) en Stripe, todos presentes en el registro.",
+      "compare_gap": "La noche del {date}: {count} evento(s) en Stripe y ausentes de nuestro registro.",
+      "window": "Ventana examinada: del {debut} al {fin}.",
+      "truncated": "La lectura ha alcanzado su límite: esta constatación no cubre toda la ventana."
+    },
+    "motif": {
+      "billing_disabled": "El muro de pago está cerrado en este entorno: no se cobra nada, así que no hay nada que conciliar.",
+      "billing_key_missing": "No hay ninguna clave de Stripe en este entorno. No se puede leer nada en Stripe.",
+      "billing_key_malformed": "La clave de Stripe definida aquí no se reconoce ni como clave de prueba ni como clave de producción.",
+      "billing_key_env_mismatch": "La clave de Stripe no corresponde a este entorno. El rechazo es deliberado: una clave de producción fuera de producción cargaría tarjetas reales.",
+      "billing_webhook_secret_missing": "No hay ningún secreto de firma: ningún evento puede verificarse ni registrarse.",
+      "stripe_injoignable": "Stripe no ha respondido, o ha respondido con un error. Inténtelo de nuevo; si persiste, consulte el estado del servicio de Stripe.",
+      "stripe_permission": "Stripe ha rechazado la lectura. La clave utilizada no tiene permiso para leer este recurso.",
+      "lecture_locale": "Ha fallado una lectura de nuestra propia base. Stripe no tiene nada que ver."
+    }
   }
 }

@@ -2443,7 +2443,8 @@
       "nav_seuils": "Judgement scores",
       "nav_durees": "Marketplace durations",
       "nav_tarifs_ia": "Model pricing",
-      "nav_supervision": "Monitoring"
+      "nav_supervision": "Monitoring",
+      "nav_facturation": "Billing"
     },
     "quotas_ia": {
       "title": "AI quotas",
@@ -2946,6 +2947,10 @@
         "notes_partielles_purge": {
           "label": "Purge of scoring drafts",
           "description": "Deletes partial scores that have already been settled. They avoid PAYING AGAIN for a batch already scored when a run is interrupted; once the run completes they serve no purpose."
+        },
+        "stripe_reconcile": {
+          "label": "Stripe connection check",
+          "description": "Each night, compares the events Stripe produced over the last 24 hours with those our log received. Any gap points to a missed event or a processing fault. It REPORTS and reprocesses nothing: Stripe keeps its events for 30 days, after which a missing one becomes unfindable."
         }
       },
       "banner_action": "View scheduled tasks",
@@ -3063,7 +3068,12 @@
         "tarifs_non_verifies": "No price has been changed for {count} days. All the spending shown here depends on them.",
         "lecture_indisponible_inacheves": "The matching state could not be read. This is not “all good”: we do not know.",
         "lecture_indisponible_depense": "This month’s spending could not be read. This is not “zero”: we do not know.",
-        "lecture_indisponible_pannes": "The summary log could not be read. This is not “no failures”: we do not know."
+        "lecture_indisponible_pannes": "The summary log could not be read. This is not “no failures”: we do not know.",
+        "ecarts_facturation": "{count} organisation(s) whose rights in our database do not match their Stripe subscription. Someone is paying without access, or has access without paying.",
+        "raccordement_stripe": "{count} problem(s) with the Stripe connection: payment events may no longer arrive at all.",
+        "verification_stripe_muette": "The nightly Stripe connection check has not run for {count} days. A missed event becomes unfindable after 30 days.",
+        "verification_stripe_impossible": "The last nightly check could not compare anything. This is not “no gap”: we do not know.",
+        "lecture_indisponible_facturation": "The state of the Stripe connection could not be read. This is not “all is well”: we do not know."
       },
       "spread_title": "Score spread",
       "spread_empty": "No run yet on the new scale. The spread will fill in with the next matching runs.",
@@ -4165,5 +4175,134 @@
     "blocked_missing": "No active configuration for this subject. Nothing to set until it exists.",
     "blocked_ambiguous": "Several active configurations for this subject: we do not pick one at random.",
     "inert_note": "Two values exist in the database without governing any decision. They are documented, not shown here: a field that sets nothing ends up being filled in."
+  },
+  "admin_facturation": {
+    "title": "Billing — what Stripe cannot know",
+    "intro": "This screen does not duplicate Stripe. Payments, invoices, refunds and disputes live in the Stripe dashboard, and a screen that copied them would eventually drift from them. What is shown here is the one thing Stripe cannot see: the state of OUR database against its own. Nothing is corrected from this page.",
+    "loading": "Reading…",
+    "err_load": "This screen could not be loaded.",
+    "err_load_hint": "This is not “no gap”: nothing could be compared. Reload the page; if the refusal persists, either the database or the Stripe read is down.",
+    "open_stripe": "Open the Stripe dashboard",
+    "open_stripe_hint": "Payments, invoices, refunds and disputes are there — they are deliberately duplicated nowhere here.",
+    "gravity_blocking": "Blocking",
+    "gravity_attention": "Worth a look",
+    "sante": {
+      "title": "The connection",
+      "intro": "The most common silent loss: the signing secret is changed on one side and not updated at Stripe. Every event arrives, the signature fails, we answer 400, and nothing is recorded. These four lines exist so that this case is readable rather than inferred.",
+      "secret_label": "Signing secret",
+      "secret_present": "Present on this environment",
+      "secret_absent": "MISSING — no event can be verified or recorded",
+      "mode_label": "Mode",
+      "mode_production": "Production (real events)",
+      "mode_test": "Non-production (test events)",
+      "endpoint_label": "Receiving endpoint",
+      "endpoint_ok": "Enabled at Stripe",
+      "endpoint_disabled": "Disabled at Stripe — nothing will arrive any more",
+      "endpoint_none": "No receiving endpoint points to this site",
+      "endpoint_unknown": "Not read — Stripe could not be queried",
+      "last_event_label": "Last event received",
+      "last_event_never": "Never. The log has received nothing to date.",
+      "last_event_days": "{count} day(s) ago — on {date}",
+      "last_event_today": "Today, at {date}",
+      "last_event_unknown": "Not read — the log could not be queried",
+      "alerte": {
+        "secret_absent": "No signing secret is set on this environment. The route rejects every event before recording it: the log will stay empty whatever happens. Set STRIPE_WEBHOOK_SECRET to the value of THIS environment’s receiving endpoint.",
+        "endpoint_desactive": "Stripe has disabled the receiving endpoint. No event will arrive until it is re-enabled from the Stripe dashboard.",
+        "aucun_endpoint": "None of the {count} receiving endpoints declared at Stripe points to this site. Events are going elsewhere.",
+        "actif_mais_muet": "The receiving endpoint is ENABLED at Stripe, and our log has never received anything. This is the signature of a mismatched secret: check that the value set here is the one for that endpoint.",
+        "silence_prolonge": "No event for {count} days, while subscriptions are live at Stripe. Stripe gives up retrying after three days: what has not arrived can no longer arrive.",
+        "mode_croise": "The last event received is not in this environment’s mode. The two endpoints are crossed: the real events are going elsewhere.",
+        "types_manquants": "The receiving endpoint does not subscribe to {count} of the types this site handles. Those events will never be sent.",
+        "endpoints_illisibles": "The receiving endpoints could not be read at Stripe. This is not “no endpoint”: we do not know."
+      }
+    },
+    "ecarts": {
+      "title": "The gaps",
+      "intro": "Organisations whose rights in our database do not match their Stripe subscription. Most billing faults are described as webhook faults when the webhook worked and access is wrong anyway. This screen OBSERVES; it corrects nothing.",
+      "none": "No gap.",
+      "none_hint": "{orgs} organisation(s) compared against {subs} Stripe subscription(s). Each organisation holds exactly the rights its subscription describes.",
+      "impossible": "The comparison could not take place.",
+      "impossible_hint": "This is NOT “no gap”. While this state lasts, nobody knows whether rights in the database match the subscriptions.",
+      "impossible_normal": "There is nothing to reconcile.",
+      "impossible_normal_hint": "The paywall is closed: nothing is charged, so no subscription exists. This is the expected state today, not a failure.",
+      "compared": "{orgs} organisation(s) compared against {subs} Stripe subscription(s).",
+      "manual": "{count} organisation(s) are on a manually granted plan and have never been touched by Stripe: they are deliberately out of scope.",
+      "truncated": "The subscription read hit its bound: the reconciliation covers only part of them, and this screen cannot claim to be complete.",
+      "col_org": "Organisation",
+      "col_nature": "Gap",
+      "col_stripe": "At Stripe",
+      "col_local": "Here",
+      "col_until": "Valid until",
+      "no_org": "No organisation attached",
+      "no_package": "No plan",
+      "nature": {
+        "paie_sans_acces": "Pays without access",
+        "acces_sans_paiement": "Has access without paying",
+        "offre_differente": "Different plan on each side",
+        "validite_en_retard": "Validity behind the paid period",
+        "client_sans_organisation": "Stripe customer attached to no organisation",
+        "prix_hors_catalogue": "Price absent from the catalogue",
+        "statut_inconnu": "Stripe status unknown to this site",
+        "plusieurs_abonnements": "Several subscriptions for one customer"
+      },
+      "nature_action": {
+        "paie_sans_acces": "Stripe is charging and the database opens nothing. Look for the matching subscription event in the log below: if it is missing, the nightly check will name it; if it failed, its reason is written down.",
+        "acces_sans_paiement": "The database opens rights Stripe no longer charges for. Check whether the cancellation event arrived; if not, it may be stuck in the log.",
+        "offre_differente": "Both sides are live but not on the same plan. The local catalogue is authoritative for what is granted; Stripe is authoritative for what is billed. Compare the price identifier attached to the plan.",
+        "validite_en_retard": "The organisation paid for a period we are not granting. This is access owed and not opened.",
+        "client_sans_organisation": "Money is coming in for a customer no organisation claims. This is the only gap the database alone cannot see.",
+        "prix_hors_catalogue": "This price does not exist in the local catalogue: no future event will be able to translate it into a plan. Attach the price identifier to a plan.",
+        "statut_inconnu": "Stripe returned a status this site does not know. No rights were granted on that basis — we do not guess what an unknown status allows.",
+        "plusieurs_abonnements": "The customer holds several subscriptions. The rights applied come from the one granting the most; the others are invisible to this site."
+      }
+    },
+    "journal": {
+      "title": "The log of received events",
+      "intro": "What Stripe sent us, and what this site did with it. A missing line does not prove that no event arrived: it proves we have no trace of one. The nightly check, and only it, tells the two apart.",
+      "empty": "No event recorded.",
+      "empty_hint": "The log is empty. Two opposite causes produce exactly this page: nothing arrived, or everything arrived and the signature failed before anything was recorded. The four connection lines above say which.",
+      "unavailable": "The log could not be read.",
+      "unavailable_hint": "This is not “no event”: we do not know what it contains. Reload the page.",
+      "resume": "{total} event(s) — {traites} processed, {ignores} deliberately ignored, {echoues} failed.",
+      "stuck_title": "{count} event(s) claimed and never closed",
+      "stuck_text": "A claimed event whose processing never completed stays stuck: the idempotency guard that prevents a double charge also refuses every Stripe retry. Stripe gives up after three days. These events will not replay on their own and need a decision.",
+      "filter_label": "Filter",
+      "filter_all": "All outcomes",
+      "truncated": "The {count} most recent only.",
+      "col_event": "Event",
+      "col_type": "Type",
+      "col_status": "Outcome",
+      "col_received": "Arrived",
+      "col_org": "Organisation",
+      "col_error": "Reason",
+      "statut": {
+        "received": "Claimed",
+        "processed": "Processed",
+        "ignored": "Deliberately ignored",
+        "failed": "Failed"
+      },
+      "statut_stuck": "Stuck"
+    },
+    "nuit": {
+      "title": "The last nightly check",
+      "never": "It has never run.",
+      "never_hint": "Until it runs, nobody can say whether an event was missed. Stripe keeps its events for 30 days: after that, a missing one becomes unfindable.",
+      "unavailable": "Its history could not be read.",
+      "impossible": "On the night of {date}: the comparison could not take place.",
+      "compare_ok": "On the night of {date}: {stripe} event(s) at Stripe, all present in the log.",
+      "compare_gap": "On the night of {date}: {count} event(s) at Stripe and absent from our log.",
+      "window": "Window examined: from {debut} to {fin}.",
+      "truncated": "The read hit its bound: this finding does not cover the whole window."
+    },
+    "motif": {
+      "billing_disabled": "The paywall is closed on this environment: nothing is charged, so there is nothing to reconcile.",
+      "billing_key_missing": "No Stripe key is set on this environment. Nothing can be read from Stripe.",
+      "billing_key_malformed": "The Stripe key set here is recognised neither as a test key nor as a production key.",
+      "billing_key_env_mismatch": "The Stripe key does not match this environment. The refusal is deliberate: a production key outside production would charge real cards.",
+      "billing_webhook_secret_missing": "No signing secret is set: no event can be verified or recorded.",
+      "stripe_injoignable": "Stripe did not answer, or answered with an error. Try again; if it persists, check the Stripe service status.",
+      "stripe_permission": "Stripe refused the read. The key in use is not allowed to read this resource.",
+      "lecture_locale": "A read of our own database failed. Stripe is not at fault here."
+    }
   }
 }
