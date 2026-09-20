@@ -105,12 +105,18 @@ export default function InvitationPage() {
         // Trois motifs, trois phrases. `join_check_unavailable` n'accuse pas
         // le compte : la vérification n'a pas pu être faite, rien n'a été
         // écrit, et réessayer suffit.
+        // `invitation_lecture_indisponible` et `join_check_unavailable` sont
+        // DEUX phrases, pas une : la première dit qu’on n’a pas pu lire
+        // l’invitation, la seconde qu’on n’a pas pu vérifier le compte. Les
+        // confondre enverrait chercher un défaut là où il n’est pas (§E.29).
         setErr(
-          body?.code === 'join_check_unavailable'
-            ? t('err_join_check_unavailable')
-            : body?.code === 'email_mismatch'
-              ? t('err_email_mismatch')
-              : t('err_generic'),
+          body?.code === 'invitation_lecture_indisponible'
+            ? t('err_invitation_lecture_indisponible')
+            : body?.code === 'join_check_unavailable'
+              ? t('err_join_check_unavailable')
+              : body?.code === 'email_mismatch'
+                ? t('err_email_mismatch')
+                : t('err_generic'),
         )
         return
       }

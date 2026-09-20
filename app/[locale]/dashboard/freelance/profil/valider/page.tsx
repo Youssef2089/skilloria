@@ -962,6 +962,14 @@ export default function ValiderProfilPage() {
           payload?.code === 'effacement_verification_indisponible'
         ) {
           setErrorMsg(tProfile('errors.erase_not_declared'))
+        } else if (
+          // Une LECTURE qui n’a pas abouti, pas un refus de la saisie. Le
+          // message le dit, et il dit que rien n’a été modifié.
+          payload?.code === 'referentiel_indisponible' ||
+          payload?.code === 'completude_indisponible' ||
+          payload?.code === 'profil_verification_indisponible'
+        ) {
+          setErrorMsg(tProfile('errors.verification_indisponible'))
         } else {
           setErrorMsg(tProfile('errors.save_failed'))
         }

@@ -592,7 +592,8 @@
       "list_read_failed_title": "Part of your profile could not be loaded",
       "list_read_failed_body": "These sections could not be read: {sections}. They will not be changed when you save — nothing is lost. Reload the page to try again.",
       "list_read_failed_retry": "Reload",
-      "erase_not_declared": "Saving was refused to protect your data: a section could not be read. Nothing was changed. Reload the page, then try again."
+      "erase_not_declared": "Saving was refused to protect your data: a section could not be read. Nothing was changed. Reload the page, then try again.",
+      "verification_indisponible": "A check could not be completed: this is not a rejection of your profile. Nothing was changed — please try again in a moment."
     },
     "success": {
       "draft_saved": "Draft saved. You can keep editing or go back to your dashboard.",
@@ -828,7 +829,8 @@
       "success": "Profile published, verification in progress.",
       "error_cv": "Upload your CV and accept the AI verification before publishing your profile.",
       "error_incomplete": "Complete your profile before publishing it.",
-      "error_generic": "Publishing failed. Please try again."
+      "error_generic": "Publishing failed. Please try again.",
+      "error_verification_indisponible": "A check could not be completed: this is not a rejection of your profile. Nothing was changed — please try again in a moment."
     },
     "page_title": "My profile",
     "page_subtitle": "Read-only view of your profile as clients will see it.",
@@ -1260,7 +1262,8 @@
       "success": "Profile published, verification in progress.",
       "error_cv": "Upload your CV and accept the AI verification before publishing your profile.",
       "error_incomplete": "Complete your profile before publishing it.",
-      "error_generic": "Publishing failed. Please try again."
+      "error_generic": "Publishing failed. Please try again.",
+      "error_verification_indisponible": "A check could not be completed: this is not a rejection of your profile. Nothing was changed — please try again in a moment."
     },
     "loading": "Loading your profile…",
     "error_loading": "Could not load your profile. Please retry.",
@@ -1446,7 +1449,8 @@
       "list_read_failed_title": "Part of your profile could not be loaded",
       "list_read_failed_body": "These sections could not be read: {sections}. They will not be changed when you save — nothing is lost. Reload the page to try again.",
       "list_read_failed_retry": "Reload",
-      "erase_not_declared": "Saving was refused to protect your data: a section could not be read. Nothing was changed. Reload the page, then try again."
+      "erase_not_declared": "Saving was refused to protect your data: a section could not be read. Nothing was changed. Reload the page, then try again.",
+      "verification_indisponible": "A check could not be completed: this is not a rejection of your profile. Nothing was changed — please try again in a moment."
     },
     "success": {
       "draft_saved": "Draft saved. You can keep editing or return to the dashboard.",
@@ -3497,6 +3501,7 @@
     "invite_title": "Join {company}",
     "invite_body": "{company} invites you to join their organisation as {role}.",
     "err_join_check_unavailable": "We could not check whether this account can join the organisation. This is not a refusal: nothing was saved. Please try again in a few moments.",
+    "err_invitation_lecture_indisponible": "We could not read your invitation. This does not mean it does not exist: the lookup failed and nothing was changed. Please try again in a moment.",
     "err_email_mismatch": "This invitation does not match your account’s email.",
     "err_generic": "Something went wrong. Please try again.",
     "err_cgu": "You must accept the terms of use.",

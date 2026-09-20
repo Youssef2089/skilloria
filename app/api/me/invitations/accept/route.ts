@@ -70,16 +70,32 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   let invitation: Inv | null = null
 
+  // ⚠️ DEUX LECTURES, UNE SEULE PANNE SUFFIT (§E.36). Aucune des deux ne
+  //    récupérait son erreur : `invitation` tombait à `null`, et la route
+  //    répondait **404 « Invitation not found »** — « votre invitation
+  //    n’existe pas », dit à quelqu’un dont elle existe, sur le chemin où il
+  //    rejoint son organisation. Le compte est déjà créé et vérifié à ce
+  //    stade : il n’a aucun autre moyen d’entrer, et rien ne lui dit de
+  //    réessayer.
+  //    Le refus ne se relâche pas — on n'accepte pas une invitation qu'on
+  //    n’a pas su lire. Ce qui change est le MOTIF et le STATUT : 503,
+  //    jamais 404 (§E.22 règle 1).
+  let lectureEnPanne = false
+
   if (token) {
-    const { data } = await admin
+    const { data, error } = await admin
       .from('organization_invitations')
       .select(COLS)
       .eq('token', hashInvitationToken(token))
       .maybeSingle()
+    if (error) {
+      console.error('[me/invitations/accept] lecture par jeton en panne', error.message)
+      lectureEnPanne = true
+    }
     invitation = (data as unknown as Inv | null) ?? null
   } else {
     const nowIso = new Date().toISOString()
-    const { data } = await admin
+    const { data, error } = await admin
       .from('organization_invitations')
       .select(COLS)
       .ilike('email', verifiedEmail)
@@ -88,9 +104,19 @@ export async function POST(request: NextRequest): Promise<Response> {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
+    if (error) {
+      console.error('[me/invitations/accept] lecture par e-mail en panne', error.message)
+      lectureEnPanne = true
+    }
     invitation = (data as unknown as Inv | null) ?? null
   }
 
+  if (lectureEnPanne) {
+    return json(
+      { error: 'Could not read the invitation', code: 'invitation_lecture_indisponible' },
+      503,
+    )
+  }
   if (!invitation) {
     return json({ error: 'Invitation not found', code: 'not_found' }, 404)
   }

@@ -622,12 +622,21 @@ export default function MonProfilPage() {
       const payload = await res.json().catch(() => ({} as Record<string, unknown>))
       if (!res.ok) {
         const code = (payload as { code?: string }).code
+        // ⚠️ UN 503 N’EST PAS UN REFUS DU PROFIL. Les trois codes ci-dessous
+        //    disent qu’une LECTURE n’a pas abouti — la complétude n’a pas pu
+        //    être comptée, un référentiel n’a pas répondu, le type de compte
+        //    n’a pas pu être lu. Les laisser tomber sur « la publication a
+        //    échoué » enverrait corriger un profil qui n’a rien à corriger.
         const text =
           code === 'cv_not_ready'
             ? t('publish.error_cv')
             : code === 'incomplete'
               ? t('publish.error_incomplete')
-              : t('publish.error_generic') /* jamais payload.error brut */
+              : code === 'completude_indisponible' ||
+                  code === 'referentiel_indisponible' ||
+                  code === 'profil_verification_indisponible'
+                ? t('publish.error_verification_indisponible')
+                : t('publish.error_generic') /* jamais payload.error brut */
         setPublishMsg({ kind: 'error', text })
         setPublishing(false)
         return

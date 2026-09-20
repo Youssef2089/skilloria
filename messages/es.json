@@ -592,7 +592,8 @@
       "list_read_failed_title": "No se ha podido cargar una parte de tu perfil",
       "list_read_failed_body": "No se han podido leer estas secciones: {sections}. No se modificarán al guardar — no se pierde nada. Vuelve a cargar la página para reintentarlo.",
       "list_read_failed_retry": "Recargar",
-      "erase_not_declared": "Se ha rechazado el guardado para proteger tus datos: no se ha podido leer una sección. No se ha modificado nada. Vuelve a cargar la página e inténtalo de nuevo."
+      "erase_not_declared": "Se ha rechazado el guardado para proteger tus datos: no se ha podido leer una sección. No se ha modificado nada. Vuelve a cargar la página e inténtalo de nuevo.",
+      "verification_indisponible": "No se ha podido completar una verificación: no es un rechazo de su perfil. No se ha modificado nada; inténtelo de nuevo en unos instantes."
     },
     "success": {
       "draft_saved": "Borrador guardado. Puedes seguir editando o volver al panel.",
@@ -828,7 +829,8 @@
       "success": "Perfil publicado, verificación en curso.",
       "error_cv": "Sube tu CV y acepta la verificación por IA antes de publicar tu perfil.",
       "error_incomplete": "Completa tu perfil antes de publicarlo.",
-      "error_generic": "La publicación falló. Inténtalo de nuevo."
+      "error_generic": "La publicación falló. Inténtalo de nuevo.",
+      "error_verification_indisponible": "No se ha podido completar una verificación: no es un rechazo de su perfil. No se ha modificado nada; inténtelo de nuevo en unos instantes."
     },
     "page_title": "Mi perfil",
     "page_subtitle": "Vista de solo lectura de tu perfil tal como lo verán los clientes.",
@@ -1260,7 +1262,8 @@
       "success": "Perfil publicado, verificación en curso.",
       "error_cv": "Sube tu CV y acepta la verificación por IA antes de publicar tu perfil.",
       "error_incomplete": "Completa tu perfil antes de publicarlo.",
-      "error_generic": "La publicación falló. Inténtalo de nuevo."
+      "error_generic": "La publicación falló. Inténtalo de nuevo.",
+      "error_verification_indisponible": "No se ha podido completar una verificación: no es un rechazo de su perfil. No se ha modificado nada; inténtelo de nuevo en unos instantes."
     },
     "loading": "Cargando tu perfil…",
     "error_loading": "No se pudo cargar tu perfil. Vuelve a intentarlo.",
@@ -1446,7 +1449,8 @@
       "list_read_failed_title": "No se ha podido cargar una parte de tu perfil",
       "list_read_failed_body": "No se han podido leer estas secciones: {sections}. No se modificarán al guardar — no se pierde nada. Vuelve a cargar la página para reintentarlo.",
       "list_read_failed_retry": "Recargar",
-      "erase_not_declared": "Se ha rechazado el guardado para proteger tus datos: no se ha podido leer una sección. No se ha modificado nada. Vuelve a cargar la página e inténtalo de nuevo."
+      "erase_not_declared": "Se ha rechazado el guardado para proteger tus datos: no se ha podido leer una sección. No se ha modificado nada. Vuelve a cargar la página e inténtalo de nuevo.",
+      "verification_indisponible": "No se ha podido completar una verificación: no es un rechazo de su perfil. No se ha modificado nada; inténtelo de nuevo en unos instantes."
     },
     "success": {
       "draft_saved": "Borrador guardado. Puedes seguir editando o volver al panel.",
@@ -3497,6 +3501,7 @@
     "invite_title": "Unirse a {company}",
     "invite_body": "{company} le invita a unirse a su organización como {role}.",
     "err_join_check_unavailable": "No hemos podido comprobar si esta cuenta puede unirse a la organización. No es un rechazo: no se ha guardado nada. Inténtelo de nuevo en unos instantes.",
+    "err_invitation_lecture_indisponible": "No hemos podido leer su invitación. No significa que no exista: la consulta ha fallado y no se ha modificado nada. Inténtelo de nuevo en unos instantes.",
     "err_email_mismatch": "Esta invitación no coincide con el correo de su cuenta.",
     "err_generic": "Se ha producido un error. Inténtelo de nuevo.",
     "err_cgu": "Debe aceptar las condiciones de uso.",

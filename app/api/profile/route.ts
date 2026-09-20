@@ -20,6 +20,43 @@ function json(data: unknown, status = 200): Response {
   })
 }
 
+/**
+ * LES DEUX REFUS TEMPORAIRES DE CETTE ROUTE, ÉCRITS UNE FOIS.
+ *
+ * Trois lectures de référentiel et deux comptages de complétude tombaient
+ * chacun sur un refus MÉTIER — « cette branche n’existe pas », « expériences
+ * manquantes » — alors que la cause était une lecture en panne. Cinq sites,
+ * une seule nature : **on ne sait pas**.
+ *
+ * Le refus ne se relâche pas : on n’écrit pas un identifiant qu’on n’a pas
+ * résolu, et on ne publie pas un profil dont on n’a pas pu vérifier la
+ * complétude. Ce qui change est le MOTIF et le STATUT — **503**, jamais 400
+ * (§E.22 règle 1). Un 400 envoie corriger une saisie qui est bonne.
+ *
+ * DEUX CODES ET NON UN : ils n’appellent pas la même suite. « Le référentiel
+ * ne répond pas » concerne une SAISIE en cours ; « je n’ai pas pu vérifier la
+ * complétude » concerne une PUBLICATION. On ne multiplie pas les états quand
+ * l’action est la même — ici elle ne l’est pas.
+ */
+function referentielIndisponible(message: string, table: string): Response {
+  console.error('[profile PATCH] référentiel ILLISIBLE — aucune résolution possible', { table, message })
+  return json(
+    { error: 'Reference data unavailable', code: 'referentiel_indisponible' },
+    503,
+  )
+}
+
+function completudeIndisponible(message: string, table: string): Response {
+  console.error('[profile PATCH] complétude ILLISIBLE — publication ni accordée ni refusée sur le fond', {
+    table,
+    message,
+  })
+  return json(
+    { error: 'Could not verify profile completeness', code: 'completude_indisponible' },
+    503,
+  )
+}
+
 type ExperienceInput = {
   experience_type: 'career' | 'project'
   role: string
@@ -131,11 +168,30 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
   // ── Branchement user_type pour valider/whitelister selon le rôle ──
   // (Lecture isolée : ne touche pas requireAuth() pour rester chirurgical.)
-  const { data: userMetaRow } = await supabaseAdmin
+  const { data: userMetaRow, error: userMetaErr } = await supabaseAdmin
     .from('users')
     .select('user_type')
     .eq('id', user.id)
     .maybeSingle()
+  // ⚠️ RIEN NE S’OUVRAIT ICI : LA GARDE CHOISISSAIT LE MAUVAIS ÉTAT (§E.37).
+  //    `userType` tombait à `null`, `isCdi` à faux, et le PATCH d'un expert
+  //    **CDI** était validé avec la liste blanche **FREELANCE** — champs
+  //    `cdi_*` non retenus, et le prédicat de visibilité appliqué avec le
+  //    mauvais parcours. Aucun refus contourné, aucun code d’erreur menteur :
+  //    le profil part simplement un cran à côté.
+  //    C’est la seule occurrence réelle de §E.37 trouvée à ce jour, et sa
+  //    forme est celle d’une AFFECTATION, pas d’une condition — c’est
+  //    pourquoi aucun balayage de `return` ne la voit.
+  if (userMetaErr) {
+    console.error('[profile PATCH] type de compte ILLISIBLE — aucune validation appliquée', {
+      userId: user.id,
+      message: userMetaErr.message,
+    })
+    return json(
+      { error: 'Could not read the account type', code: 'profil_verification_indisponible' },
+      503,
+    )
+  }
   const userType = (userMetaRow?.user_type as string | null) ?? null
   const isCdi = userType === 'expert_cdi'
 
@@ -202,12 +258,18 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     if (body.branch_slug === null) {
       patch.branch_id = null
     } else if (body.branch_slug) {
-      const { data: br } = await supabaseAdmin
+      const { data: br, error: brErr } = await supabaseAdmin
         .from('branches')
         .select('id')
         .eq('domain_id', user.domain_id)
         .eq('slug', body.branch_slug)
         .maybeSingle()
+      // ⚠️ « CETTE BRANCHE N’EXISTE PAS », DIT D’UNE BRANCHE RÉELLE.
+      //    Le refus est juste — on n’écrit pas un identifiant qu’on n’a pas
+      //    résolu — mais 400 `bad_branch` envoie l’expert corriger une
+      //    saisie qui est bonne, et il est **bloqué à l’enregistrement**
+      //    sans aucun moyen d’avancer (§E.22 ③).
+      if (brErr) return referentielIndisponible(brErr.message, 'branches')
       if (!br) return json({ error: 'Unknown branch', code: 'bad_branch' }, 400)
       patch.branch_id = br.id
     }
@@ -224,12 +286,15 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     if (slugs.length === 0) {
       patch.speciality_ids = []
     } else {
-      const { data: sps } = await supabaseAdmin
+      const { data: sps, error: spsErr } = await supabaseAdmin
         .from('specialities')
         .select('id, slug')
         .eq('domain_id', user.domain_id)
         .eq('active', true)
         .in('slug', slugs)
+      // Même chose, en pire : la comparaison de longueur transforme une
+      // lecture vide en « TOUTES vos spécialités sont inconnues ».
+      if (spsErr) return referentielIndisponible(spsErr.message, 'specialities')
       const trouves = (sps ?? []) as Array<{ id: string; slug: string }>
       if (trouves.length !== slugs.length) {
         const inconnus = slugs.filter((s) => !trouves.some((t) => t.slug === s))
@@ -252,11 +317,12 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     if (codes.length === 0) {
       patch.work_zone_ids = []
     } else {
-      const { data: wzs } = await supabaseAdmin
+      const { data: wzs, error: wzsErr } = await supabaseAdmin
         .from('work_zones')
         .select('id, code')
         .eq('active', true)
         .in('code', codes)
+      if (wzsErr) return referentielIndisponible(wzsErr.message, 'work_zones')
       const trouvees = (wzs ?? []) as Array<{ id: string; code: string }>
       if (trouvees.length !== codes.length) {
         const inconnus = codes.filter((c) => !trouvees.some((t) => t.code === c))
@@ -309,10 +375,17 @@ export async function PATCH(request: NextRequest): Promise<Response> {
         ? body.experiences.filter(e => e.role?.trim()).length
         : 0
     } else {
-      const { count } = await supabaseAdmin
+      const { count, error: cErr } = await supabaseAdmin
         .from('profile_experiences')
         .select('id', { count: 'exact', head: true })
         .eq('profile_id', cur.id)
+      // ⚠️ `?? 0` FAISAIT CONCLURE À LA GARDE QUE LE PROFIL EST VIDE.
+      //    L'expert lisait « expériences manquantes » — et **ne pouvait plus
+      //    se rendre visible** — avec dix expériences en base. C’est le
+      //    compteur de §E.22 ⑨, cette fois dans une BARRIÈRE et plus
+      //    seulement à l’écran : un zéro qu’on n’a pas su compter devient un
+      //    refus de publication.
+      if (cErr) return completudeIndisponible(cErr.message, 'profile_experiences')
       experiencesCount = count ?? 0
     }
 
@@ -323,10 +396,11 @@ export async function PATCH(request: NextRequest): Promise<Response> {
         ? body.languages_structured.filter(l => l.language?.trim()).length
         : 0
     } else {
-      const { count } = await supabaseAdmin
+      const { count, error: cErr } = await supabaseAdmin
         .from('profile_languages')
         .select('id', { count: 'exact', head: true })
         .eq('profile_id', cur.id)
+      if (cErr) return completudeIndisponible(cErr.message, 'profile_languages')
       languagesCount = count ?? 0
     }
 

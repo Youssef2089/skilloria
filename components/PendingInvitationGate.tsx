@@ -62,7 +62,8 @@ export default function PendingInvitationGate() {
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         const code = body?.code as string | undefined
-        if (code === 'join_check_unavailable') setErr(t('err_join_check_unavailable'))
+        if (code === 'invitation_lecture_indisponible') setErr(t('err_invitation_lecture_indisponible'))
+        else if (code === 'join_check_unavailable') setErr(t('err_join_check_unavailable'))
         else if (code === 'email_mismatch') setErr(t('err_email_mismatch'))
         else if (code === 'email_is_expert_account' || code === 'email_is_admin_account' || code === 'email_already_in_organization') {
           setErr(t(`blocked_${code}` as 'blocked_email_is_expert_account'))
