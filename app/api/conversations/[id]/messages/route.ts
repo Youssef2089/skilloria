@@ -187,13 +187,26 @@ async function loadConvAsParticipant(
   if (!isExpert && !isOrg) {
     // Vérifie tout de même en BDD que userId est bien membre actif (cas auth.org
     // pas chargée mais user effectivement membre — défensif)
-    const { data: member } = await supabaseAdmin
+    const { data: member, error: memberErr } = await supabaseAdmin
       .from('organization_members')
       .select('user_id')
       .eq('user_id', userId)
       .eq('organization_id', pub.organization_id)
       .eq('status', 'active')
       .maybeSingle()
+    // ⚠️ CETTE LECTURE EST LA DERNIERE CHANCE D'ETRE RECONNU, et son echec
+    //    se lisait « cette conversation n’existe pas ». §E.22 ④ : un 404 dit
+    //    à un membre actif que l’objet a disparu, alors que c’est la
+    //    vérification qui n’a pas abouti. Le refus reste — on n’ouvre pas un
+    //    fil qu’on n’a pas su rattacher — mais 503, jamais 404.
+    if (memberErr) {
+      console.error('[conversations:messages] appartenance ILLISIBLE', {
+        userId,
+        organizationId: pub.organization_id,
+        message: memberErr.message,
+      })
+      return { ok: false, status: 503, code: 'appartenance_indisponible' }
+    }
     if (member) isOrg = true
   }
   if (!isExpert && !isOrg) return { ok: false, status: 404, code: 'not_found' }
@@ -205,7 +218,7 @@ async function loadConvAsParticipant(
   let otherUserLocale = 'fr'
   if (role === 'expert') {
     // L'autre = l'org (1 admin/membre actif — on prend le 1er actif par joined_at)
-    const { data: orgMember } = await supabaseAdmin
+    const { data: orgMember, error: orgMemberErr } = await supabaseAdmin
       .from('organization_members')
       .select('user_id, users!organization_members_user_id_fkey(id, locale)')
       .eq('organization_id', pub.organization_id)
@@ -213,6 +226,17 @@ async function loadConvAsParticipant(
       .order('joined_at', { ascending: true })
       .limit(1)
       .maybeSingle()
+    // ⚠️ ICI LE MESSAGE PART QUAND MEME — et c'est voulu : il est écrit, il
+    //    est lisible dans le fil, et refuser l’envoi parce qu’on ne sait pas
+    //    QUI prévenir serait pire. Ce qui se perd est la NOTIFICATION, et
+    //    elle se perdait en silence. On journalise : l’organisation ne verra
+    //    le message qu’en ouvrant la messagerie.
+    if (orgMemberErr) {
+      console.error('[conversations:messages] destinataire ILLISIBLE — message écrit, personne prévenu', {
+        organizationId: pub.organization_id,
+        message: orgMemberErr.message,
+      })
+    }
     const om = orgMember as { user_id: string; users: { id: string; locale: string | null } | { id: string; locale: string | null }[] } | null
     if (om) {
       otherUserId = om.user_id

@@ -110,7 +110,18 @@ export default function ConversationView({ convId, side, embedded = false }: { c
       )
       const payload = (await res.json().catch(() => ({} as { code?: string }))) as { code?: string } & Partial<ConvHeader>
       if (!res.ok) {
-        if (!silent) setState({ kind: 'error', message: payload.code === 'not_found' ? t('error_not_found') : t('error_generic') })
+        // « introuvable » et « je n ai pas pu verifier » ne se disent pas
+        // pareil : le premier est un verdict, le second un incident qui se
+        // rejoue. Les confondre ferait fermer l onglet (§E.22 ③).
+        if (!silent) {
+          const message =
+            payload.code === 'appartenance_indisponible'
+              ? t('error_appartenance_indisponible')
+              : payload.code === 'not_found'
+                ? t('error_not_found')
+                : t('error_generic')
+          setState({ kind: 'error', message })
+        }
         return
       }
       setState({ kind: 'ready', data: payload as ConvHeader })

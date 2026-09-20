@@ -2349,7 +2349,8 @@
       "error_expired": "Austausch beendet (15 Tage überschritten). Senden nicht möglich.",
       "error_closed": "Austausch geschlossen. Senden nicht möglich.",
       "error_invalid_content": "Nachricht ist leer oder zu lang (max. 5000 Zeichen).",
-      "error_too_long": "Nachricht überschreitet 5000 Zeichen."
+      "error_too_long": "Nachricht überschreitet 5000 Zeichen.",
+      "error_appartenance_indisponible": "Ihr Zugriff auf diesen Verlauf konnte nicht geprüft werden. Das ist keine Ablehnung: die Prüfung ist fehlgeschlagen und nichts hat sich geändert. Bitte versuchen Sie es gleich erneut."
     }
   },
   "expert_dnd_empty": {

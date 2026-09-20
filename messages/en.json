@@ -2349,7 +2349,8 @@
       "error_expired": "Exchange closed (15 days exceeded). Cannot send.",
       "error_closed": "Exchange closed. Cannot send.",
       "error_invalid_content": "Message is empty or too long (5000 characters max).",
-      "error_too_long": "Message exceeds 5000 characters."
+      "error_too_long": "Message exceeds 5000 characters.",
+      "error_appartenance_indisponible": "We could not verify your access to this thread. This is not a refusal: the check failed and nothing changed. Please try again in a moment."
     }
   },
   "expert_dnd_empty": {

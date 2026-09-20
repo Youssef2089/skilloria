@@ -772,7 +772,7 @@ async function devoilementInclus(
 
           // La candidature qui vient d'être créée est-elle la meilleure note de
           // la publication ? (égalité → la plus ancienne l'emporte.)
-          const { data: topRow } = await auth.supabaseAdmin
+          const { data: topRow, error: topErr } = await auth.supabaseAdmin
             .from('candidatures')
             .select('id')
             .eq('publication_id', publicationId)
@@ -780,6 +780,22 @@ async function devoilementInclus(
             .order('created_at', { ascending: true })
             .limit(1)
             .maybeSingle()
+          // ⚠️ JUMEAU DE :585, ET IL AVAIT ECHAPPE AU MEME CORRECTIF PARCE
+          //    QU’IL VIT DANS UNE AUTRE FONCTION (§E.20). `topRow` nul rend
+          //    `devoile = false` : le dévoilement INCLUS DANS L’OFFRE ne se
+          //    déclenche pas, et l’organisation voit une place vide au lieu
+          //    d’un candidat auquel elle a droit. Elle paiera un dévoilement
+          //    manuel pour ce qui lui était dû.
+          //    Ce chemin tourne dans un `after()` : il n’y a plus de réponse
+          //    à changer, ce qui manquait est la TRACE — ce silence-là
+          //    n’apparaît nulle part.
+          if (topErr) {
+            console.error('[candidatures] départage ILLISIBLE — dévoilement inclus NON APPLIQUÉ', {
+              publicationId,
+              candidatureId,
+              message: topErr.message,
+            })
+          }
           const top = topRow as { id: string } | null
           devoile = top !== null && top.id === candidatureId
         }

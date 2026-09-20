@@ -2349,7 +2349,8 @@
       "error_expired": "L'échange est clôturé (15 jours dépassés). Envoi impossible.",
       "error_closed": "L'échange est fermé. Envoi impossible.",
       "error_invalid_content": "Le message est vide ou trop long (5000 caractères max).",
-      "error_too_long": "Le message dépasse 5000 caractères."
+      "error_too_long": "Le message dépasse 5000 caractères.",
+      "error_appartenance_indisponible": "Nous n’avons pas pu vérifier votre accès à ce fil. Ce n’est pas un refus : la vérification a échoué et rien n’a changé. Réessayez dans quelques instants."
     }
   },
   "expert_dnd_empty": {

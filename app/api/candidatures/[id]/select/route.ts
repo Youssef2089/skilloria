@@ -186,11 +186,30 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   // ── Notif expert (best-effort) ─────────────────────────────────────────
   //  Notif UNIQUEMENT au flip (didFlip). Re-run sur selected ne renotifie pas.
   if (didFlip) {
-    const { data: profileWithUser } = await auth.supabaseAdmin
+    const { data: profileWithUser, error: profileWithUserErr } = await auth.supabaseAdmin
       .from('profiles')
       .select('id, user_id, users!profiles_user_id_fkey!inner(id, locale, user_type)')
       .eq('id', candRow.profile_id)
       .maybeSingle()
+    // ⚠️ C'EST LA NOTIFICATION LA PLUS IMPORTANTE DU PRODUIT COTE EXPERT, ET
+    //    ELLE DISPARAISSAIT SANS UNE LIGNE DE JOURNAL. `null` sautait le
+    //    `if (pwu)` qui suit : pas de cloche, pas d’e-mail, rien. La
+    //    sélection, elle, est déjà écrite et la réponse est partie — on ne la
+    //    défait pas. Ce qui manquait est la TRACE, et les deux causes se
+    //    réparent différemment (§E.29) : une lecture en panne se rejoue, un
+    //    profil disparu non.
+    if (profileWithUserErr) {
+      console.error('[candidatures:select] expert ILLISIBLE — il n’apprendra PAS qu’il est retenu', {
+        candidatureId: candRow.id,
+        profileId: candRow.profile_id,
+        message: profileWithUserErr.message,
+      })
+    } else if (!profileWithUser) {
+      console.error('[candidatures:select] expert INTROUVABLE — aucune notification de sélection', {
+        candidatureId: candRow.id,
+        profileId: candRow.profile_id,
+      })
+    }
     type ProfUser = {
       id: string
       user_id: string

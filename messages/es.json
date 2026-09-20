@@ -2349,7 +2349,8 @@
       "error_expired": "Intercambio cerrado (15 días superados). No se puede enviar.",
       "error_closed": "Intercambio cerrado. No se puede enviar.",
       "error_invalid_content": "Mensaje vacío o demasiado largo (máx. 5000 caracteres).",
-      "error_too_long": "El mensaje supera los 5000 caracteres."
+      "error_too_long": "El mensaje supera los 5000 caracteres.",
+      "error_appartenance_indisponible": "No hemos podido verificar su acceso a esta conversación. No es un rechazo: la comprobación ha fallado y nada ha cambiado. Inténtelo de nuevo en unos instantes."
     }
   },
   "expert_dnd_empty": {
