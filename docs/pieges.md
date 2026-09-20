@@ -1435,6 +1435,7 @@ fixtures et sa campagne ; seul le *où chercher* est mis en commun.
 | `score-de-pertinence` | 2 routes + 4 vues nommées | **136 routes, 188 fichiers client** ; le palier exigé sur *toute* route qui ordonne par le score ou le sélectionne, **au moins deux** | rien de rouge sur le code — mesuré, pas supposé. **Mais la campagne a trouvé un trou dans le MOTIF** : `(r as X).relevance_score` passait vert (le motif exigeait un identifiant devant le point). 7 mutations : 5 détectées, 2 déplacements de fichier tus (§E.34) |
 | `murs-fermes` | 5 composants nommés | **188 fichiers client, 136 routes** ; les murs trouvés par la clé qui les nomme (`wall_title`), les lecteurs du verrou par le champ qu’ils lisent (`billing_enabled`), les écrans par le chemin de la route qu’ils appellent | **deux défauts nommés, gelés** : `SousTraitanceView` ne referme pas le verrou sur un quota illisible (le jumeau `DetailView` le fait — §E.20, non rétroporté) ; `collaboration.wall_contact`, clé orpheline dans les quatre langues depuis `c4b6916`. Et un **troisième appelant** de la route quota est apparu (`SousTraitanceListView`) |
 | `refus-actionnables` | 2 chaînes route → écran écrites à la main | les routes trouvées par ce qu’elles **émettent** (un 402), les écrans par ce qu’ils **appellent**, les messages par la clé qui se termine par le code : **2 routes émettrices, 4 écrans appelants** | **un défaut nommé, gelé — et c’est le défaut fondateur du contrôle** : `CandidatureCard` appelle `/unlock` et jette `unlock_limit_reached` dans « une erreur est survenue », sur un écran que les deux chaînes n’ouvraient pas. Le message existe déjà ; le correctif est une branche de plus |
+| `plafonds-listes` | 6 fichiers nommés — les deux listes qu’un lot avait rendues honnêtes | **tous les `.limit(` de `app/api` + `lib` : 47**, classés — 18 lookups, 12 annoncés (le fichier compte ou rend le plafond), 2 sondés, **15 muets tous lus** : 8 légitimes (entrées de jugement IA, lots par passes, un flux), **6 défauts nommés** ; puis côté écran, tout **lecteur** (pas écrivain) d’une route qui rend `troncature`/`truncated`/`has_more` doit le lire | **14 défauts nommés, gelés** : `me/candidatures` 200, `me/conversations` 200, le fil de messages 500, les trois listes de la fiche expert admin — servis comme complets, coupés en silence ; et **8 écrans** qui lisent une route qui DIT sa troncature et la taisent (l’accueil entreprise pour les compteurs ET les annonces, la page Candidatures, les candidatures d’une annonce, deux vues de sous-traitance, un bloc de tableau de bord, la fiche utilisateur admin). Le socle est trouvé par ce qu’il **exporte** |
 > **LE RÉSOLVEUR A RENDU ZÉRO APPELANT PARTOUT, ET UN CONTRÔLE « POUR CHAQUE APPELANT » EST PASSÉ
 > VERT.** `routesApi()` construisait `/app/api/x/[id]/y` au lieu de `/api/x/[id]/y` : aucun écran
 > n’appelle ce chemin, `consommateurs()` rendait `[]`, et la boucle « chaque écran qui appelle la
@@ -1445,6 +1446,13 @@ fixtures et sa campagne ; seul le *où chercher* est mis en commun.
 > l’ensemble n’est pas vide** : c’est la ligne qui distingue « rien à redire » de « rien regardé ».
 > Second défaut du même commit : `/^(DÉFAUT NOMMÉ)\b/` ne matchait jamais — hors drapeau `u`, un
 > `É` n’est pas un caractère de mot en JS, donc pas de frontière après lui.
+
+> **UN APPELANT N’EST PAS UN LECTEUR.** `PublicationForm` appelle `/api/publications` — en `POST`,
+> pour créer. Lui reprocher de ne pas afficher la troncature de la LISTE était un faux positif, et le
+> résolveur a appris le **verbe** : un appel dont le `method:` porte `POST`/`PATCH`/`PUT`/`DELETE`
+> n’est pas une lecture. Y compris `method: isCreating ? 'POST' : 'PATCH'` — la première version
+> ne lisait le verbe que collé à `method:`. Deux faux positifs, trouvés en exécutant, fermés avant
+> de livrer.
 
 
 

@@ -90,6 +90,29 @@ export function consommateurs(chemin, candidats) {
   return candidats.filter((rel) => motif.test(sansCommentaires(lire(rel))))
 }
 
+/**
+ * Les APPELS à une route dans un source, avec leur verbe. `ecrit` vaut vrai si
+ * un `method: 'POST' | 'PATCH' | 'PUT' | 'DELETE'` suit l'appel dans les 200
+ * caractères. Un écran qui n'appelle une route qu'en écriture ne LIT pas sa
+ * réponse de liste : lui reprocher de ne pas afficher une troncature serait un
+ * faux positif — et un contrôle qui crie à tort est désactivé le jour même.
+ */
+export function appelsDeRoute(src, chemin) {
+  const motif = new RegExp(motifDeRoute(chemin).source, 'g')
+  // `method: isCreating ? 'POST' : 'PATCH'` et `const method = … ; { method, }`
+  // sont des écritures aussi : on lit le verbe sur la ligne qui DÉFINIT
+  // `method` (`:` ou `=`), dans les 300 caractères qui suivent le chemin.
+  return [...src.matchAll(motif)].map((m) => {
+    const suite = src.slice(m.index, m.index + 300)
+    const verbe = /\bmethod\b\s*[:=]([^\n]{0,80})/.exec(suite)?.[1] ?? ''
+    return { index: m.index, ecrit: /['"](?:POST|PATCH|PUT|DELETE)['"]/.test(verbe) && !/['"]GET['"]/.test(verbe) }
+  })
+}
+/** Les fichiers client qui LISENT cette route (au moins un appel qui n'est pas une écriture). */
+export function lecteurs(chemin, candidats) {
+  return candidats.filter((rel) => appelsDeRoute(sansCommentaires(lire(rel)), chemin).some((a) => !a.ecrit))
+}
+
 /** Les quatre dictionnaires, et deux lecteurs. */
 export const messages = () => Object.fromEntries(LOCALES.map((l) => [l, JSON.parse(lire(`messages/${l}.json`))]))
 export const lireCle = (obj, chemin) => chemin.split('.').reduce((o, k) => (o == null ? o : o[k]), obj)
