@@ -655,9 +655,23 @@ section('I. LA GARDE EN BASE — une contrainte, pas une discipline (§E.31)')
     )
     // LA TACHE EST AU CATALOGUE. Une tache qui n'y figure pas est une tache que
     // personne ne surveille — le catalogue en a deja oublie trois.
+    //
+    // ⚠️ DEUX DEFAUTS DE CE CONTROLE, TROUVES PAR MUTATION, ET ILS SONT LA MEME
+    //    FAMILLE — un motif qu'on ne borne pas lit autre chose que ce qu'il vise.
+    //    ① `public\.cron_job_catalog` sans borne de fin matchait encore
+    //       `public.cron_job_catalog_DESACTIVE` : la mutation SURVIVAIT. Il faut
+    //       une anticipation negative sur les caracteres de mot — `\b` ne sert a
+    //       rien ici, `_` EST un caractere de mot (meme piege que §G.3).
+    //    ② `[\s\S]{0,600}?` pouvait traverser le `;` et lire l'instruction
+    //       VOISINE. On coupe donc l'instruction a son `;` et on cherche DEDANS.
+    const debutInsert = sql.search(/insert\s+into\s+public\.cron_job_catalog(?![A-Za-z0-9_])/i)
+    const instruction =
+      debutInsert < 0 ? '' : sql.slice(debutInsert, sql.indexOf(';', debutInsert) + 1)
+    ok(debutInsert >= 0, 'la migration insere bien dans public.cron_job_catalog (et non dans une table voisine)')
     ok(
-      /insert\s+into\s+public\.cron_job_catalog[\s\S]{0,600}?stripe_reconcile/i.test(sql),
+      /'stripe_reconcile_trigger'/.test(instruction),
       'la tache entre au catalogue des taches planifiees, NOMMEE',
+      'cherchee DANS l\'instruction d\'insertion, pas dans le fichier entier',
     )
     ok(
       /select\s+cron\.schedule\(\s*\n?\s*'stripe_reconcile_trigger'/i.test(sql),

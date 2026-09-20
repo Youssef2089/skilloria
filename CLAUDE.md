@@ -1878,6 +1878,57 @@ refonte** (§E.35). Dette antérieure, à traiter avec les inventaires.
 > attend. C'est la même exigence que « le contrôle doit mordre », appliquée à ce qu'on décide de
 > **ne pas** contrôler.
 
+---
+
+**E.39 — UN CONSTAT PÉRISSABLE NE SE PERSISTE PAS : IL SE REJOUE. UN ÉVÉNEMENT DATÉ, SI.**
+
+Établi au lot « module Stripe d'exploitation », et la question s'est posée trois fois dans le même
+lot — c'est ce qui en fait une règle et non un cas.
+
+**LE PIÈGE.** Une mesure coûteuse invite à être mise en cache. On crée une table, on y écrit le
+résultat, l'écran le relit. **Et le résultat continue de vieillir pendant qu'il est affiché.**
+La table ne ment pas le jour où on l'écrit : elle ment le lendemain, avec l'autorité de quelque
+chose qui a été enregistré — et plus personne ne sait de quand date ce qu'il lit.
+
+**LE CAS QUI TRANCHE, ET IL EST NET.** Un « écart de facturation » — une organisation dont les
+droits en base ne correspondent pas à son abonnement Stripe — **cesse d'être vrai à la seconde où
+le webhook suivant arrive**. Le persister, c'est garantir qu'un matin l'écran affichera un écart
+déjà refermé, et qu'on ira chercher un défaut qui n'existe plus. **Il se recalcule à l'affichage,
+et il ne se stocke nulle part.**
+
+**LA CONTRE-ÉPREUVE, DANS LE MÊME LOT.** Le résultat de la vérification **nocturne**, lui, EST
+persisté — et ce n'est pas une contradiction, c'est le critère :
+
+> *Cette affirmation reste-t-elle vraie demain sans qu'on la refasse ?*
+> **Un CONSTAT** (« il y a N écarts ») vieillit dès que la réalité bouge → il se **rejoue**.
+> **Un ÉVÉNEMENT DATÉ** (« cette nuit-là, on a comparé et vu ceci ») ne vieillit jamais : il n'est
+> vrai qu'une fois, il ne se recalcule pas, et sans lui personne ne peut dire le matin si la
+> vérification a seulement tourné → il s'**écrit**.
+
+**ET LE COROLLAIRE EST LE PLUS UTILE.** Ce qu'on écrit doit porter **l'état de la mesure avant son
+résultat**. `stripe_reconciliation_runs` déclare `etat` (`compare` / `impossible`) **avant** ses
+compteurs, et une **contrainte de base** refuse un compteur posé à côté d'un état `impossible`
+(§E.31). Sans elle, un `manquants = 0` écrit sur une nuit où l'on n'a rien pu comparer se lirait
+« zéro écart » pour toujours — **la forme la plus durable du mensonge de §E.36**, parce qu'elle est
+enregistrée.
+
+**Le troisième cas, refusé lui aussi** : ne pas recopier les factures, montants et litiges de
+Stripe. Même raisonnement, appliqué à une source externe — une copie locale diverge de sa source,
+pas le jour où on l'écrit, mais le jour où une synchronisation saute. Ce qu'un tiers détient
+s'atteint par **un lien**, pas par une table.
+
+Gardé par [scripts/diag-ecarts-stripe.mjs](scripts/diag-ecarts-stripe.mjs) — 87 assertions,
+**18 mutations jouées, 18 détectées**. Il n'appelle ni Stripe ni la base : les trois modules de
+règle n'importent que des **types**, effacés par le dépouillement de types de Node, donc il les
+**exécute** en Node nu depuis n'importe quel worktree (§E.3).
+
+> ⚠️ **ET LA DIX-HUITIÈME MUTATION A SURVÉCU AU PREMIER PASSAGE — dans mon CONTRÔLE, pas dans le
+> code.** Le motif `public\.cron_job_catalog` matchait encore `public.cron_job_catalog_DESACTIVE` :
+> la tâche pouvait sortir du catalogue sans que rien ne rougisse. `\b` n'aurait rien changé — `_`
+> **est** un caractère de mot, exactement le piège de §G.3 sur les horodatages. Et le même motif
+> traversait le `;` pour lire l'instruction voisine. **Un contrôle écrit, relu et vert gardait une
+> porte ouverte ; seule la mutation l'a montré.**
+
 **E.9 — Autres pièges nommés dans le dépôt, à connaître.**
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
   acceptée et ne se déclenchera **jamais** : aucune erreur, aucune ligne dans `job_run_details`. D'où le
