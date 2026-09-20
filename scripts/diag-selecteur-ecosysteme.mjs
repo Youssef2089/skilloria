@@ -72,6 +72,7 @@ const {
   parseEcosystemScreenParams, ECOSYSTEM_SCREEN_CODES, ECOSYSTEM_UNAVAILABLE_PATH,
 } = await import('../lib/ecosystem-url.ts')
 const { resolveSubdomainFromHost } = await import('../lib/subdomain.ts')
+const { fichiers: balayer, lire: lireRel, sansCommentaires: sansComm, RACINES_CLIENT } = await import('./balayage-promesse.mjs')
 
 // ═══ A. L'URL, SEULE SOURCE DE VERITE ══════════════════════════════════════
 section('A. Construction d’adresse, executee')
@@ -162,6 +163,22 @@ const SW = strip(read('components/shell/EcosystemSwitcher.tsx'))
 ok(!/init-session|initSession/.test(SW),
   'le selecteur n’appelle JAMAIS init-session',
   'init-session fait tourner last_session_token : tous les autres onglets seraient ejectes en session_superseded')
+// ┌─ R1 EN BALAYAGE (lot C4b, 20/09/2026) ──────────────────────────────────┐
+// │ Le selecteur n'est pas le seul composant qui pourrait rappeler           │
+// │ init-session par reflexe. La regle vaut pour TOUT le code client : seuls  │
+// │ les ecrans qui OUVRENT une session l'appellent. L'ensemble est MESURE et  │
+// │ gele (§G.8, etat mesure) : un appelant de plus rougit et se lit.          │
+// └─────────────────────────────────────────────────────────────────────────┘
+const APPELANTS_LEGITIMES = {
+  'app/[locale]/connexion/page.tsx': 'ouvre la session apres le mot de passe / l OTP',
+  'app/[locale]/auth/callback/page.tsx': 'ouvre la session au retour du lien magique / de la confirmation',
+  'app/[locale]/nouveau-mot-de-passe/page.tsx': 'ouvre la session apres la reinitialisation du mot de passe',
+}
+const appelants = balayer(RACINES_CLIENT).filter((f) => /init-session|initSession\(/.test(sansComm(lireRel(f))))
+console.log(`  ··   ${appelants.length} fichier(s) client appellent init-session : ${appelants.map((f) => f.split('/').slice(-2).join('/')).join(', ')}`)
+ok(appelants.every((f) => f in APPELANTS_LEGITIMES), 'seuls les ecrans qui OUVRENT une session appellent init-session — aucun autre composant',
+  appelants.filter((f) => !(f in APPELANTS_LEGITIMES)).join(', ') || undefined)
+ok(Object.keys(APPELANTS_LEGITIMES).every((f) => appelants.includes(f)), 'les trois ecrans d ouverture l appellent toujours (sinon relire le gel)')
 ok(/window\.location\.assign\(/.test(SW),
   'la bascule est une navigation COMPLETE',
   'on change d’origine : un push client ne relirait pas x-subdomain cote serveur')
@@ -192,6 +209,23 @@ ok(/ecosystemAccessScope\(auth\.user\.user_type\)/.test(ROUTE),
 // R5 — l'expert ne voit que le sien.
 ok(/if \(scope === 'own'\) query = query\.eq\('id', auth\.user\.domain_id\)/.test(ROUTE),
   'un expert ne recoit QUE son ecosysteme')
+// ┌─ R5 EN BALAYAGE (lot C4b, 20/09/2026) ──────────────────────────────────┐
+// │ « Servir la liste complete au lieu de ce que l'appelant peut » n'est pas │
+// │ propre a cette route : toute route qui LISTE `domains` (pas une lecture   │
+// │ unitaire par slug ou id) doit filtrer par ecosystemAccessScope — ou etre  │
+// │ admin, et l'administrateur voit tout, y compris les desactives (§D.3).    │
+// └─────────────────────────────────────────────────────────────────────────┘
+const routesDomains = balayer(['app/api'], /route\.ts$/).map((f) => ({ f, src: sansComm(lireRel(f)) })).filter((r) => /\.from\(\s*'domains'\s*\)/.test(r.src))
+const listes = routesDomains.filter((r) => {
+  // une lecture UNITAIRE se reconnait a son .maybeSingle()/.single() apres le from('domains')
+  const i = r.src.indexOf(".from('domains')")
+  return !/\.(maybeSingle|single)\(\)/.test(r.src.slice(i, i + 600))
+})
+console.log(`  ··   ${routesDomains.length} routes lisent domains · ${listes.length} en LISTE`)
+const fautives = listes.filter((r) => !/requireAdmin\(/.test(r.src) && !/ecosystemAccessScope\(/.test(r.src))
+ok(fautives.length === 0, 'toute route non-admin qui LISTE les ecosystemes filtre par ecosystemAccessScope',
+  fautives.map((r) => r.f).join(', ') || undefined)
+ok(listes.some((r) => /ecosystemAccessScope\(/.test(r.src)), 'au moins une liste non-admin filtree existe — le motif voit /api/me/ecosystemes')
 ok(/if \(scope === null\)[\s\S]{0,220}?403\)/.test(ROUTE),
   'un user_type inconnu fait ECHOUER la liste',
   'plutot que de tout servir « puisque de toute facon la garde refusera »')
