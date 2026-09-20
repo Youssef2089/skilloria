@@ -117,7 +117,7 @@ const anon = () => createClient(SUPABASE_URL, ANON, { auth: { persistSession: fa
 // Le serveur répond-il, et sur CE projet ?
 {
   let r
-  try { r = await fetch(`${BASE}/api/countries`, { headers: { 'x-subdomain': ECO } }) } catch (e) { r = null }
+  try { r = await fetch(`${BASE}/api/countries`, { headers: { 'x-subdomain': ECO } }) } catch { r = null }
   if (!r || !r.ok) {
     console.error(`\n✘ Le serveur ${BASE} ne répond pas (GET /api/countries → ${r ? r.status : 'injoignable'}). Lancez \`npm run dev\` sur le projet jetable.\n`)
     process.exit(2)
