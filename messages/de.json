@@ -3069,11 +3069,13 @@
         "lecture_indisponible_inacheves": "Der Matching-Zustand konnte nicht gelesen werden. Das heißt nicht „alles in Ordnung“: Wir wissen es nicht.",
         "lecture_indisponible_depense": "Die Ausgaben des Monats konnten nicht gelesen werden. Das heißt nicht „null“: Wir wissen es nicht.",
         "lecture_indisponible_pannes": "Das Protokoll der Zusammenfassungen konnte nicht gelesen werden. Das heißt nicht „keine Störung“: Wir wissen es nicht.",
-        "ecarts_facturation": "{count} Organisation(en), deren Rechte in der Datenbank nicht zu ihrem Stripe-Abonnement passen. Jemand zahlt ohne Zugang oder hat Zugang, ohne zu zahlen.",
-        "raccordement_stripe": "{count} Problem(e) mit der Stripe-Anbindung: Zahlungsereignisse kommen möglicherweise gar nicht mehr an.",
-        "verification_stripe_muette": "Die nächtliche Prüfung der Stripe-Anbindung läuft seit {count} Tagen nicht mehr. Ein verpasstes Ereignis ist nach 30 Tagen nicht mehr auffindbar.",
-        "verification_stripe_impossible": "Die letzte nächtliche Prüfung konnte nichts vergleichen. Das ist nicht „keine Abweichung“: wir wissen es nicht.",
-        "lecture_indisponible_facturation": "Der Zustand der Stripe-Anbindung konnte nicht gelesen werden. Das ist nicht „alles in Ordnung“: wir wissen es nicht."
+        "verification_stripe_muette": "Die nächtliche Prüfung der Stripe-Anbindung läuft seit {count} Tagen nicht mehr. Stripe bewahrt seine Ereignisse nur 30 Tage auf: danach ist ein fehlendes nicht mehr auffindbar.",
+        "verification_stripe_impossible": "Die letzte nächtliche Prüfung der Stripe-Anbindung konnte nichts vergleichen. Das ist nicht „keine Abweichung“: wir wissen es nicht.",
+        "lecture_indisponible_facturation": "Der Zustand der Stripe-Ereignisse konnte nicht gelesen werden. Das ist nicht „kein Ereignis verloren“: wir wissen es nicht.",
+        "evenements_stripe_manques": "{count} von Stripe erzeugte Zahlungsereignis(se) sind hier nie eingegangen. Entweder ging die Zustellung verloren oder die Verarbeitung schlug fehl: in beiden Fällen wurde nicht angewendet, was sie trugen.",
+        "evenements_stripe_coinces": "{count} Zahlungsereignis(se) beansprucht und nie abgeschlossen. Sie laufen nicht von selbst erneut: die Sicherung, die eine Doppelbuchung verhindert, weist auch Stripes weitere Versuche ab.",
+        "verification_stripe_jamais": "Die nächtliche Prüfung der Stripe-Anbindung ist nie gelaufen. Solange sie nicht läuft, kann niemand sagen, ob ein Zahlungsereignis verloren ging.",
+        "verification_stripe_indisponible": "Der Verlauf der Prüfung der Stripe-Anbindung konnte nicht gelesen werden. Das ist nicht „alles in Ordnung“: wir wissen es nicht."
       },
       "spread_title": "Verteilung der Bewertungen",
       "spread_empty": "Noch kein Lauf auf der neuen Skala. Die Verteilung füllt sich mit den nächsten Matching-Läufen.",

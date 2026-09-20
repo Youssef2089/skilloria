@@ -3069,11 +3069,13 @@
         "lecture_indisponible_inacheves": "No se ha podido leer el estado de los emparejamientos. No es «todo va bien»: no lo sabemos.",
         "lecture_indisponible_depense": "No se ha podido leer el gasto del mes. No es «cero»: no lo sabemos.",
         "lecture_indisponible_pannes": "No se ha podido leer el registro de resúmenes. No es «ningún fallo»: no lo sabemos.",
-        "ecarts_facturation": "{count} organización(es) cuyos derechos en la base no corresponden a su suscripción de Stripe. Alguien paga sin tener acceso, o tiene acceso sin pagar.",
-        "raccordement_stripe": "{count} problema(s) en la conexión con Stripe: los eventos de pago pueden dejar de llegar por completo.",
-        "verification_stripe_muette": "La verificación nocturna de la conexión con Stripe no se ejecuta desde hace {count} días. Un evento perdido resulta imposible de encontrar pasados 30 días.",
-        "verification_stripe_impossible": "La última verificación nocturna no pudo comparar nada. Esto no es «ninguna diferencia»: no lo sabemos.",
-        "lecture_indisponible_facturation": "No se ha podido leer el estado de la conexión con Stripe. Esto no es «todo va bien»: no lo sabemos."
+        "verification_stripe_muette": "La verificación nocturna de la conexión con Stripe no se ejecuta desde hace {count} días. Stripe conserva sus eventos solo 30 días: pasado ese plazo, uno perdido resulta imposible de encontrar.",
+        "verification_stripe_impossible": "La última verificación nocturna de la conexión con Stripe no pudo comparar nada. Esto no es «ninguna diferencia»: no lo sabemos.",
+        "lecture_indisponible_facturation": "No se ha podido leer el estado de los eventos de Stripe. Esto no es «ningún evento perdido»: no lo sabemos.",
+        "evenements_stripe_manques": "{count} evento(s) de pago producidos por Stripe nunca se han recibido aquí. O bien se perdió la entrega, o bien falló el procesamiento: en ambos casos, lo que llevaban no se ha aplicado.",
+        "evenements_stripe_coinces": "{count} evento(s) de pago reclamados y nunca cerrados. No se repetirán solos: la garantía que impide un doble cobro rechaza también los nuevos intentos de Stripe.",
+        "verification_stripe_jamais": "La verificación nocturna de la conexión con Stripe nunca se ha ejecutado. Mientras no se ejecute, nadie puede decir si se ha perdido un evento de pago.",
+        "verification_stripe_indisponible": "No se ha podido leer el historial de la verificación de la conexión con Stripe. Esto no es «todo va bien»: no lo sabemos."
       },
       "spread_title": "Distribución de las notas",
       "spread_empty": "Todavía no hay ninguna ejecución en la nueva escala. La distribución se llenará con los próximos emparejamientos.",

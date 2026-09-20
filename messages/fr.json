@@ -3069,11 +3069,13 @@
         "lecture_indisponible_inacheves": "L’état des mises en relation n’a pas pu être lu. Ce n’est pas « tout va bien » : on ne sait pas.",
         "lecture_indisponible_depense": "La dépense du mois n’a pas pu être lue. Ce n’est pas « zéro » : on ne sait pas.",
         "lecture_indisponible_pannes": "Le journal des résumés n’a pas pu être lu. Ce n’est pas « aucune panne » : on ne sait pas.",
-        "ecarts_facturation": "{count} organisation(s) dont les droits en base ne correspondent pas à leur abonnement Stripe. Quelqu’un paie sans avoir accès, ou a accès sans payer.",
-        "raccordement_stripe": "{count} problème(s) sur le raccordement Stripe : les événements de paiement peuvent ne plus arriver du tout.",
-        "verification_stripe_muette": "La vérification nocturne du raccordement Stripe n’a pas tourné depuis {count} jours. Un événement manqué devient introuvable au bout de 30 jours.",
-        "verification_stripe_impossible": "La dernière vérification nocturne n’a pas pu comparer. Ce n’est pas « aucun écart » : on ne sait pas.",
-        "lecture_indisponible_facturation": "L’état du raccordement Stripe n’a pas pu être lu. Ce n’est pas « tout va bien » : on ne sait pas."
+        "verification_stripe_muette": "La vérification nocturne du raccordement Stripe n’a pas tourné depuis {count} jours. Stripe ne conserve ses événements que 30 jours : passé ce délai, un manque devient introuvable.",
+        "verification_stripe_impossible": "La dernière vérification nocturne du raccordement Stripe n’a pas pu comparer. Ce n’est pas « aucun écart » : on ne sait pas.",
+        "lecture_indisponible_facturation": "L’état des événements Stripe n’a pas pu être lu. Ce n’est pas « aucun événement perdu » : on ne sait pas.",
+        "evenements_stripe_manques": "{count} événement(s) de paiement produits par Stripe n’ont jamais été reçus ici. Soit la livraison s’est perdue, soit le traitement a échoué : dans les deux cas, ce qu’ils portaient n’a pas été appliqué.",
+        "evenements_stripe_coinces": "{count} événement(s) de paiement réclamés et jamais clôturés. Ils ne se rejoueront pas d’eux-mêmes : la garantie qui empêche un double encaissement refuse aussi les nouvelles tentatives de Stripe.",
+        "verification_stripe_jamais": "La vérification nocturne du raccordement Stripe n’a jamais tourné. Tant qu’elle ne tourne pas, personne ne peut dire si un événement de paiement s’est perdu.",
+        "verification_stripe_indisponible": "L’historique de la vérification du raccordement Stripe n’a pas pu être lu. Ce n’est pas « tout va bien » : on ne sait pas."
       },
       "spread_title": "Répartition des notes",
       "spread_empty": "Aucune exécution pour l’instant sur la nouvelle échelle. La répartition se remplira aux prochaines mises en relation.",

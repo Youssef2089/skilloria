@@ -625,6 +625,7 @@ deux produits.
 | `durees` | Les **deux durées du contrat de la place** — vie d'une annonce (**rétroactive**) et fenêtre d'échange (**non rétroactive**), §P3.7. |
 | `taches-planifiees` · `taches-planifiees/[job_name]` | Supervision pg_cron : activer/désactiver, reprogrammer, déclencher, historique. |
 | `collaboration` | Les organisations personnelles d'experts. |
+| `facturation` | **Ce que Stripe ne peut pas savoir**, et rien d'autre. Ni paiement, ni facture, ni remboursement, ni litige — ils vivent dans le tableau de bord Stripe, vers lequel l'écran porte **un lien** ; les recopier ferait diverger une copie de sa source. Quatre blocs : la **santé du raccordement** (secret, mode, point de réception, et « aucun événement depuis N jours » écrit en toutes lettres plutôt que déductible), les **écarts** entre les droits en base et l'abonnement Stripe, la **dernière vérification nocturne**, et le **journal des événements reçus** — où un événement réclamé et jamais clôturé est une ligne **rouge**, parce qu'il ne se rejouera jamais seul. **LECTURE SEULE : aucun champ de saisie, aucun bouton qui écrit.** Corriger automatiquement un écart qu'on ne comprend pas encore est irréversible dans les deux sens. Détail complet en [architecture §C.10](architecture.md). |
 
 | `seuils` | **Les seuils de jugement** : auto-approbation d'expert, vérification d'entreprise, qualité d'annonce — par pays et par type. Dit **ce que chaque seuil produit**, montre la colonne inerte **comme inerte**, et **journalise** chaque modification. |
 

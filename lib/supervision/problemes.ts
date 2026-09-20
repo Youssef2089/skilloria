@@ -44,6 +44,19 @@ export type Probleme = {
   depuis: string | null
   /** Le sujet à ouvrir pour voir le détail. `null` = rien à ouvrir. */
   sujet: string | null
+  /**
+   * Un écran du back-office à ouvrir, quand le détail ne vit PAS sous
+   * `/admin/supervision/[sujet]`.
+   *
+   * Ajouté pour le raccordement Stripe, dont le détail est un écran à part
+   * entière (`/admin/facturation`). L'alternative aurait été de créer un sujet
+   * de supervision qui ne fait que rediriger — un écran fantôme de plus, et
+   * §M1 ⑩ en recense déjà un.
+   *
+   * ⚠️ `sujet` et `lien` ne se cumulent pas : un problème ouvre UN endroit.
+   *    Deux liens sur la même ligne obligeraient à choisir sans savoir.
+   */
+  lien?: string | null
 }
 
 export type SourcesSupervision = {
@@ -55,7 +68,47 @@ export type SourcesSupervision = {
   distribution: Array<{ runs_observes: number }> | null
   /** Horodatage du tarif le plus anciennement modifié. */
   tarifPlusAncien: string | null
+  /** Le verdict de la dernière vérification nocturne du raccordement Stripe. */
+  verificationStripe: VerificationStripe
+  /**
+   * Événements Stripe réclamés et jamais clôturés. `null` = lecture en panne —
+   * et surtout PAS `0`, qui dirait « aucun événement perdu » au moment précis
+   * où l'on ne sait plus rien (§E.22).
+   */
+  evenementsStripeCoinces: number | null
 }
+
+/**
+ * TROIS ÉTATS, ET LE DEUXIÈME EST CELUI QU'ON OUBLIE.
+ *
+ * Même vocabulaire que `etatRepartition` — et pour la même raison exactement :
+ * « la vérification n'a jamais tourné » et « je n'ai pas pu lire son historique »
+ * ont la même forme en base (aucune ligne) et appellent des actions opposées.
+ * Accuser une panne quand il n'y a rien à lire envoie chercher un défaut qui
+ * n'existe pas, et use le signal pour le jour où il dira vrai.
+ */
+export type VerificationStripe =
+  /** La lecture de l'historique a échoué. On ne sait pas. C'est un PROBLÈME. */
+  | { etat: 'indisponible' }
+  /** La lecture a réussi : la vérification n'a jamais tourné. C'est un ÉTAT. */
+  | { etat: 'jamais_tentee' }
+  /** On a un verdict. `manquants` n'existe que si la nuit a pu comparer. */
+  | {
+      etat: 'disponible'
+      nuit: 'compare' | 'impossible'
+      manquants: number | null
+      ranAt: string
+    }
+
+/**
+ * AU-DELÀ, LA FENÊTRE DE RATTRAPAGE DE STRIPE EST FERMÉE.
+ *
+ * Ce n'est pas un choix : l'API Events conserve 30 jours. Une vérification qui
+ * ne tourne plus depuis un mois ne peut plus rien retrouver — le trou, s'il y
+ * en a un, est devenu définitif. On prévient bien avant : trois jours, la durée
+ * pendant laquelle Stripe réessaie encore de livrer.
+ */
+const JOURS_VERIFICATION_MUETTE = 3
 
 /** Au-delà, une grille tarifaire n'a plus de valeur probante — cf. /admin/tarifs-ia. */
 const JOURS_TARIF_PERIME = 90
@@ -161,6 +214,92 @@ export function classerProblemes(s: SourcesSupervision): Probleme[] {
     const jours = Math.floor((Date.now() - Date.parse(s.tarifPlusAncien)) / 86_400_000)
     if (Number.isFinite(jours) && jours >= JOURS_TARIF_PERIME) {
       out.push({ cle: 'tarifs_non_verifies', gravite: 'attention', compte: jours, depuis: s.tarifPlusAncien, sujet: 'tarifs' })
+    }
+  }
+
+  // ── 6. LE RACCORDEMENT STRIPE ──────────────────────────────────────────
+  //  Ce bloc ne lit PAS Stripe : il lit le VERDICT de la nuit. Interroger
+  //  Stripe ici ferait de cet écran un second consommateur de la même lecture
+  //  que `/admin/facturation` — deux surfaces qui tomberaient ensemble sur la
+  //  même panne, et l'une dirait « rien à signaler » pendant que l'autre dirait
+  //  « je ne sais pas » (§E.36). La comparaison vivante vit là-bas, une fois.
+  const LIEN_FACTURATION = '/admin/facturation'
+
+  if (s.evenementsStripeCoinces === null) {
+    out.push({
+      cle: 'lecture_indisponible_facturation',
+      gravite: 'attention',
+      compte: null,
+      depuis: null,
+      sujet: null,
+      lien: LIEN_FACTURATION,
+    })
+  } else if (s.evenementsStripeCoinces > 0) {
+    // Réclamé et jamais clôturé : la garde d'idempotence refuse tous les
+    // réessais de Stripe, DÉFINITIVEMENT. Ce n'est pas un retard, c'est un
+    // paiement dont l'effet ne sera jamais appliqué sans intervention.
+    out.push({
+      cle: 'evenements_stripe_coinces',
+      gravite: 'bloquant',
+      compte: s.evenementsStripeCoinces,
+      depuis: null,
+      sujet: null,
+      lien: LIEN_FACTURATION,
+    })
+  }
+
+  if (s.verificationStripe.etat === 'indisponible') {
+    out.push({
+      cle: 'verification_stripe_indisponible',
+      gravite: 'attention',
+      compte: null,
+      depuis: null,
+      sujet: null,
+      lien: LIEN_FACTURATION,
+    })
+  } else if (s.verificationStripe.etat === 'jamais_tentee') {
+    out.push({
+      cle: 'verification_stripe_jamais',
+      gravite: 'attention',
+      compte: null,
+      depuis: null,
+      sujet: null,
+      lien: LIEN_FACTURATION,
+    })
+  } else {
+    const v = s.verificationStripe
+    if (v.nuit === 'impossible') {
+      out.push({
+        cle: 'verification_stripe_impossible',
+        gravite: 'attention',
+        compte: null,
+        depuis: v.ranAt,
+        sujet: null,
+        lien: LIEN_FACTURATION,
+      })
+    } else if ((v.manquants ?? 0) > 0) {
+      // LE SIGNAL QUE CETTE TÂCHE EXISTE POUR PRODUIRE. Un événement produit
+      // par Stripe et jamais reçu, c'est soit une livraison perdue, soit un
+      // défaut de traitement : dans les deux cas quelque chose NE SE FAIT PAS.
+      out.push({
+        cle: 'evenements_stripe_manques',
+        gravite: 'bloquant',
+        compte: v.manquants ?? 0,
+        depuis: v.ranAt,
+        sujet: null,
+        lien: LIEN_FACTURATION,
+      })
+    }
+    const jours = Math.floor((Date.now() - Date.parse(v.ranAt)) / 86_400_000)
+    if (Number.isFinite(jours) && jours > JOURS_VERIFICATION_MUETTE) {
+      out.push({
+        cle: 'verification_stripe_muette',
+        gravite: 'attention',
+        compte: jours,
+        depuis: v.ranAt,
+        sujet: null,
+        lien: LIEN_FACTURATION,
+      })
     }
   }
 

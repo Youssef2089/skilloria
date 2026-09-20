@@ -3069,11 +3069,13 @@
         "lecture_indisponible_inacheves": "The matching state could not be read. This is not “all good”: we do not know.",
         "lecture_indisponible_depense": "This month’s spending could not be read. This is not “zero”: we do not know.",
         "lecture_indisponible_pannes": "The summary log could not be read. This is not “no failures”: we do not know.",
-        "ecarts_facturation": "{count} organisation(s) whose rights in our database do not match their Stripe subscription. Someone is paying without access, or has access without paying.",
-        "raccordement_stripe": "{count} problem(s) with the Stripe connection: payment events may no longer arrive at all.",
-        "verification_stripe_muette": "The nightly Stripe connection check has not run for {count} days. A missed event becomes unfindable after 30 days.",
-        "verification_stripe_impossible": "The last nightly check could not compare anything. This is not “no gap”: we do not know.",
-        "lecture_indisponible_facturation": "The state of the Stripe connection could not be read. This is not “all is well”: we do not know."
+        "verification_stripe_muette": "The nightly check of the Stripe connection has not run for {count} days. Stripe keeps its events for only 30 days: past that, a missing one becomes unfindable.",
+        "verification_stripe_impossible": "The last nightly check of the Stripe connection could not compare anything. This is not “no gap”: we do not know.",
+        "lecture_indisponible_facturation": "The state of Stripe events could not be read. This is not “no event lost”: we do not know.",
+        "evenements_stripe_manques": "{count} payment event(s) produced by Stripe were never received here. Either the delivery was lost or the processing failed: either way, what they carried was not applied.",
+        "evenements_stripe_coinces": "{count} payment event(s) claimed and never closed. They will not replay on their own: the guarantee that prevents a double charge also refuses Stripe’s further attempts.",
+        "verification_stripe_jamais": "The nightly check of the Stripe connection has never run. Until it does, nobody can say whether a payment event was lost.",
+        "verification_stripe_indisponible": "The history of the Stripe connection check could not be read. This is not “all is well”: we do not know."
       },
       "spread_title": "Score spread",
       "spread_empty": "No run yet on the new scale. The spread will fill in with the next matching runs.",
