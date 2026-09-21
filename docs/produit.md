@@ -613,7 +613,7 @@ deux produits.
 |---|---|
 | `/admin` | Tableau de bord plateforme. |
 | `utilisateurs` · `utilisateurs/[id]` | Comptes : statut, rôle d'organisation, sessions, purge, ré-invitation. |
-| `experts` · `experts/[id]` | Modération des vérifications d'experts (approuver / refuser avec motif). |
+| `experts` · `experts/[id]` | Modération des vérifications d'experts (approuver / refuser avec motif). **Le numéro de téléphone de l'expert y est visible, et c'est une finalité** (arbitré le 21/09/2026) : l'administrateur peut **appeler** l'expert en cas de doute avant de trancher — la donnée sert à la décision. C'est la seule surface d'administration qui le montre ; les écrans de gestion de **compte** (`utilisateurs`) n'en ont pas besoin pour suspendre ou révoquer, et ne le servent pas (`diag-admin-users`, famille A). |
 | `organisations` · `organisations/[id]` | Modération des organisations ; attribution manuelle d'offre ; consommation. |
 | `packages` · `packages/new` · `packages/[id]` | Catalogue commerce : offres, limites, offre par défaut, synchro Stripe. |
 | `matching` | Les **deux seuils** par écosystème, le modèle de reranking, la taille de lot, `notify_enabled` ; pannes de rédaction et dépassements de relance. Et les **deux réglages d'argent** — plafond de dépense (**il bloque**) et seuil d'alerte par acteur (**il alerte**) — chacun dans le bloc qui affiche déjà sa valeur. |

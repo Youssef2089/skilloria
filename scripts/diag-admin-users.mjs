@@ -91,7 +91,7 @@ const PHONE = /(^|[^_a-zA-Z])phone(?!_verified|_otp|Otp|OTP|_number)/
 /** GEL — LU, une raison par entrée (§G.8). */
 const GEL_PHONE = {
   'app/api/admin/get-expert/[id]/route.ts':
-    'DÉFAUT NOMMÉ — la fiche d’APPROBATION d’un expert sert `phone` (embed users!profiles_user_id_fkey) et l’écran l’affiche (admin/experts/[id]:253). La décision « aucun numéro pour administrer un compte » (list-users) ne dit pas si l’approbation d’un professionnel en a besoin : arbitrage produit, pas correctif d’office',
+    'LÉGITIME — la fiche d’APPROBATION d’un expert sert `phone` (embed users!profiles_user_id_fkey) et l’écran l’affiche : VOULU, arbitré le 21/09/2026. L’administrateur APPELLE l’expert en cas de doute avant de valider — la donnée sert à la décision, c’est une FINALITÉ, pas une tolérance (produit §P2.4). La décision « aucun numéro pour administrer un COMPTE » (list-users, get-user) reste entière : suspendre ou révoquer n’en a pas besoin',
 }
 const servantPhone = ROUTES_ADMIN.filter((f) => PHONE.test(sansComm(lireRel(f))))
 console.log(`  ··   ${ROUTES_ADMIN.length} routes admin balayées · ${servantPhone.length} citent le numéro de téléphone`)
