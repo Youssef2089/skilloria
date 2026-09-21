@@ -44,6 +44,29 @@
 // │    désactivée dans Auth) — sinon register-* échoue avant tout.            │
 // └─────────────────────────────────────────────────────────────────────────┘
 //
+// ┌─ CE QUE JE M'ATTENDS À VOIR ROUGIR À LA PREMIÈRE EXÉCUTION (relu le 21/09) ─┐
+// │ Relu contre chaque route appelée. Ce qui est VÉRIFIÉ dans le code :          │
+// │   · POST /api/admin/ecosystemes rend { ok, id, slug } (201) — lu tel quel ;  │
+// │   · PATCH [id] { active: true } passe sans `name` ;                          │
+// │   · POST /api/publications rend { id, status } ; POST /api/candidatures      │
+// │     rend { id } ; /api/taxonomy résout l'écosystème par x-subdomain ;        │
+// │   · le SIREN n'est validé qu'en FORMAT (9 chiffres), pas en clé de Luhn ;    │
+// │   · le cookie s'appelle ss_token (suffixé _staging sur un hôte staging).     │
+// │ Ce qui RISQUE de rougir, et qu'on lira dans la sortie :                      │
+// │   1. le signUp anon (SMTP du projet jetable) — avant tout le reste ;         │
+// │   2. approve-org : la vérification tourne en after(), le statut peut être    │
+// │      encore `pending` → 409 already_processed ; et si `publish` exige une    │
+// │      organisation approuvée, le parcours s'arrête là ;                       │
+// │   3. le CORPS MINIMAL de POST /api/publications puis /publish : 400          │
+// │      `missing_fields` probable (zones, durée, date de début…) — la liste     │
+// │      `missing` rendue dit exactement quoi ajouter ;                          │
+// │   4. les attendus exacts : `unknown_domain` est-il 403 ou 404 ; GET          │
+// │      /api/publications pour un expert/admin, 403 ou 200 vide ; les 'refus'   │
+// │      tolérants sont là pour ça — les exacts se promeuvent après lecture ;    │
+// │   5. le nettoyage : une clé étrangère RESTRICT non prévue (candidatures →    │
+// │      profils, organization_members) fera parler `restes` — c'est son rôle.   │
+// └─────────────────────────────────────────────────────────────────────────────┘
+//
 // GARDE-FOUS
 //   · sous garde-ecriture : sans --db, refus en code 2, et la liste de ce qu'elle
 //     écrirait ;
