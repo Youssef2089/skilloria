@@ -5,7 +5,6 @@ import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { Link, usePathname, useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
-import { type OrganisationLite } from '@/components/dashboard/OrganisationSidebar'
 import AnnonceCard from '@/components/dashboard/AnnonceCard'
 import { useNavBadges } from '@/hooks/useNavBadges'
 import { useOrgRole } from '@/lib/use-org-role'
@@ -53,6 +52,24 @@ export const TAB_STATUS_MAP: Record<TabKey, readonly AnnonceStatus[]> = {
  * en prop pour différenciation future des fonctionnalités par sous-type
  * (B4+). Non utilisé dans le rendu V1.
  */
+
+/**
+ * Le NOYAU d une organisation, tel que les ecrans en ont besoin.
+ *
+ * ⚠️ IL VIVAIT DANS `OrganisationSidebar`, UN COMPOSANT QUE PLUS AUCUNE PAGE
+ *    NE MONTAIT. Trois cent trente-huit lignes de code mort, retenues au
+ *    depot par ce SEUL import de type — et donc invisibles a tout controle qui
+ *    chercherait un composant "jamais utilise", puisqu il l etait.
+ *
+ * Le type est rapatrie ici, chez son unique consommateur, et le composant est
+ * supprime (regle 0). Le cadre vient de `DashboardShell`, pour les 66 pages
+ * de l espace connecte.
+ */
+export type OrganisationLite = {
+  id: string
+  company_name: string | null
+  logo_url: string | null
+}
 
 export type OrganisationFull = OrganisationLite & {
   verification_status: string | null

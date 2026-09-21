@@ -363,7 +363,7 @@ export default function DashboardFreelance() {
   //  Plus de useEffect manuel.
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontSize: 16, color: 'var(--sk-muted)' }}>
+    <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontSize: 16, color: 'var(--sk-muted)' }}>
       {t('loading')}
     </div>
   )

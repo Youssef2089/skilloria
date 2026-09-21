@@ -34,7 +34,24 @@ export default function DashboardTopbar({
       style={{
         height: 60,
         flexShrink: 0,
-        background: 'var(--sk-surface)',
+        // ── L'EN-TÊTE EST BEIGE, COMME LA BARRE LATÉRALE ──────────────────
+        //
+        //  Il était en `--sk-surface`, c'est-à-dire la couleur des CARTES —
+        //  blanc. Youssef a choisi le beige pour le cadre (barre latérale ET
+        //  en-tête) au lot palette ; la barre latérale l'avait pris, l'en-tête
+        //  non. Deux surfaces du même cadre, deux couleurs : c'est ce qu'il a
+        //  vu en testant.
+        //
+        //  ⚠️ `--sk-bandeau`, PAS `--sk-surface-2`. Les deux portent aujourd'hui
+        //     la même valeur, mais ils ne disent pas la même chose : `bandeau`
+        //     nomme le CADRE, `surface-2` nomme un fond secondaire DANS une
+        //     carte. Le jour où un écosystème les distinguera, l'en-tête doit
+        //     suivre la barre latérale, pas les encarts.
+        //
+        //  Les deux couleurs de texte posées dessus sont déjà gardées :
+        //  `principal_sur_bandeau` et `secondaire_sur_bandeau` font partie des
+        //  sept paires que `verifierContraste()` REFUSE sous 4,5 (§D.12).
+        background: 'var(--sk-bandeau)',
         borderBottom: '1px solid var(--sk-border)',
         display: 'flex',
         alignItems: 'center',

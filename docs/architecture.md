@@ -884,6 +884,59 @@ rafraîchissement suivant. *Ce qui expire est l'attente, pas le travail.*
 > en `moteur_indisponible` ou `plafond_atteint`, et `/admin/supervision` affiche les deux causes
 > **en bloquant, séparément**. Détail et raisons : **§E.51** et **§E.52**.
 
+### C.15 — LA COQUILLE DE L'ESPACE CONNECTÉ : qui la monte, qui en héritait, et ce qui reste
+
+Recensé le 21/09/2026, page par page. **85 pages** sous `app/[locale]/`, dont **66 connectées**.
+
+#### Ce qui monte le cadre, et à quel étage
+
+| Fichier | Ce qu'il porte |
+|---|---|
+| `app/layout.tsx` | rien — `return children` (motif next-intl) |
+| `app/[locale]/layout.tsx` | le document, les fournisseurs, et **la palette posée sur `<html>`** (§C.13) |
+| `app/[locale]/dashboard/layout.tsx` | **aucun cadre visuel** : battement de session, garde de suppression, pied de page légal, garde de rôle serveur |
+| `…/dashboard/{freelance,cdi,entreprise}/layout.tsx` | **montent `DashboardShell`** — 39 pages |
+| `app/[locale]/admin/layout.tsx` | le cadre **admin**, écrit en ligne — 24 pages |
+
+**`DashboardShell`** assemble `DashboardSidebar` (248 px, `--sk-bandeau`), `DashboardTopbar` (60 px,
+`--sk-bandeau` depuis ce lot), le `<main>` et `GlobalBackButton`.
+
+#### Les quatre cadres qui ont disparu
+
+| Ce qui existait | Pages | Ce qui s'est passé |
+|---|---|---|
+| coquille recopiée dans `freelance/mon-profil`, **en trois exemplaires dans le même fichier** | 1 | supprimée — la page prend le cadre partagé |
+| en-tête maison dans `cdi/mon-profil`, **sans barre latérale** | 1 | supprimé — la page prend le cadre partagé |
+| `OrganisationSidebar` — 338 lignes | **0** | supprimée (règle 0) ; son type `OrganisationLite` est rapatrié chez son unique consommateur |
+| deux listes d'exclusion (`LEGACY_SHELL_ROUTES`) | — | supprimées |
+
+**Ce qui a été DÉPLACÉ, pas perdu.** Les deux en-têtes maison portaient des informations que la
+coquille partagée ne porte pas : la **pastille de vérification** (les deux écrans) et le **statut de
+marché** « en poste / en recherche » (CDI). Les deux suivent désormais le **titre de la page**. Les
+retirer en silence aurait ôté, sur la page consacrée au profil, l'endroit même où l'expert lit son
+état.
+
+#### Les trois pages connectées SANS cadre, et pourquoi
+
+| Page | Pourquoi |
+|---|---|
+| `dashboard/cabinet/page.tsx` | **redirection pure** vers `/dashboard/entreprise` (décision produit B3.5.fix : un seul tableau de bord organisation pour `client` / `esn` / `cabinet`). Conservée pour que les anciens signets ne tombent pas en 404. Elle ne s'affiche jamais plus d'un instant. |
+| `reactivation/page.tsx` | vit **hors** de `/dashboard`, délibérément : sous la garde de suppression, elle produirait une boucle de redirection. |
+| `invitation/[token]/page.tsx` | le destinataire n'est pas encore membre — il n'a pas de cadre à recevoir. |
+
+#### La dette qui reste, nommée
+
+> **LE CADRE ADMIN NE SUIT AUCUNE PALETTE D'ÉCOSYSTÈME, et c'est mesuré.** Il lit cinq jetons —
+> `--color-background-secondary`, `--color-border-tertiary`, `--color-text-primary`,
+> `--color-text-secondary`, `--color-text-tertiary` — qui **ne sont définis nulle part** dans le
+> dépôt : ni `app/globals.css` (qui ne déclare que `--color-background` et `--color-foreground`), ni
+> `lib/palette.ts` (qui n'émet que des `--sk-*`). Ils retombent donc **systématiquement** sur leurs
+> valeurs de secours en dur — `#f8fafc`, `#e5e7eb`, `#0f172a`, `#64748b`, `#94a3b8` — auxquelles
+> s'ajoutent un `#fff` sur la barre latérale et un `#00B9FF` sur un bouton.
+>
+> Il n'a **pas de barre supérieure** non plus. Sa migration est un lot à lui seul : le cadre reste le
+> même par décision produit, seul le **contenu du menu** diffère.
+
 ## F. La classe de défaut « lire puis écrire »
 
 > **DETTE NOMMÉE, NON OUVERTE — `extendValidity` (20/09/2026).**

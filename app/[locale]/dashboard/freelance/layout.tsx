@@ -1,37 +1,34 @@
 'use client'
 
-import { usePathname } from '@/i18n/navigation'
 import DashboardShell from '@/components/shell/DashboardShell'
 
 /**
  * Sub-layout freelance — Lot refonte UX.
  *
- * Mount DashboardShell pleine largeur pour les pages refactorisées.
+ * Mount DashboardShell pleine largeur. AUCUNE EXCEPTION.
  *
- * Seule /mon-profil conserve son shell inline custom (elle rend DashboardSidebar
- * elle-même) → pass-through pour éviter un double-shell empilé.
- *
- * CORRECTIF (bug parcours profil) : /profil (import CV) et /profil/valider
- * étaient ELLES AUSSI en pass-through alors qu'elles NE rendent PAS de shell
- * inline → elles s'affichaient nues (sans sidebar, sans navigation, sans bouton
- * Retour), enfermant l'utilisateur. Elles sont désormais enveloppées par le
- * DashboardShell partagé (comme toute page de détail : sidebar + topbar +
- * GlobalBackButton, dont les titres shell.page_titles.profil / profil_valider
- * étaient déjà prêts).
- *
- * Cette guard list est TEMPORAIRE — à supprimer dès que /mon-profil est
- * refactorisée pour utiliser les primitives partagées.
+ * ┌─ LA LISTE D'EXCLUSION EST PARTIE, ET SON HISTOIRE VAUT D'ÊTRE LUE ──────┐
+ * │ Elle se décrivait elle-même comme « TEMPORAIRE — à supprimer dès que    │
+ * │ /mon-profil est refactorisée ». Elle a tenu assez longtemps pour que    │
+ * │ deux pages VOISINES y tombent par erreur : /profil et /profil/valider,  │
+ * │ qui ne rendaient AUCUN cadre, s'affichaient nues — sans barre latérale, │
+ * │ sans navigation, sans bouton Retour. Un correctif antérieur les en a    │
+ * │ sorties ; la liste, elle, est restée.                                   │
+ * │                                                                         │
+ * │ C'est la forme même du défaut : une exception ouverte pour UNE page     │
+ * │ devient un endroit où d'autres tombent, et le cadre cesse d'être une    │
+ * │ garantie pour devenir une habitude.                                     │
+ * │                                                                         │
+ * │ /mon-profil rebâtissait sa coquille en TROIS exemplaires dans le même   │
+ * │ fichier — un squelette de chargement, un helper, le rendu principal —   │
+ * │ avec un en-tête de 58 px là où la coquille en fait 60, et sans le       │
+ * │ bouton Retour, la cloche, ni les messages. Elle prend la coquille       │
+ * │ partagée, et les trois copies disparaissent avec.                       │
+ * └─────────────────────────────────────────────────────────────────────────┘
  */
 
-const LEGACY_SHELL_ROUTES = [
-  '/dashboard/freelance/mon-profil',
-] as const
-
 export default function FreelanceLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-  const isLegacy = LEGACY_SHELL_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'))
   // DeletionGate est monté au layout parent commun (/dashboard) → couverture
-  // universelle, y compris ces routes legacy. Plus besoin ici (C3).
-  if (isLegacy) return <>{children}</>
+  // universelle. Rien à ajouter ici.
   return <DashboardShell side="freelance">{children}</DashboardShell>
 }

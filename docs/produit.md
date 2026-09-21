@@ -611,6 +611,22 @@ deux produits.
 | `/cgu` · `/mentions-legales` · `/politique-de-confidentialite` | Documents légaux, servis depuis `docs/legal/*.md`. |
 
 ### P2.2 — Expert freelance et expert CDI
+> **LES 66 ÉCRANS DE L'ESPACE CONNECTÉ PORTENT LE MÊME CADRE — depuis le 21/09/2026 seulement.**
+> Barre latérale, en-tête, bouton Retour : c'est `DashboardShell`, monté par les sub-layouts. Avant
+> ce lot, ils étaient **cinq cadres différents**, et deux pages n'en avaient aucun.
+>
+> **`cdi/mon-profil` était une impasse.** Ni barre latérale, ni navigation, ni bouton Retour : un
+> expert qui ouvrait son profil n'avait plus aucun lien vers le reste du produit. L'exclusion qui
+> l'y condamnait était justifiée par un commentaire **faux** (§E.53).
+>
+> **L'en-tête est BEIGE**, comme la barre latérale. Il était blanc — la couleur des cartes — sur le
+> cadre que Youssef avait choisi en beige. C'est ce qu'il a vu en premier en testant.
+>
+> **Les numéros de section ne sont plus verts, ambre ou rouges.** Ces trois couleurs disent un
+> **état** ; un numéro de section n'en est pas un, et un formulaire dont la section 5 est rouge dit
+> à celui qui le remplit qu'il s'y est trompé (§E.54). Ce qui reste coloré parce que c'est
+> vraiment un état : le statut de marché d'un expert CDI, « en poste » / « en recherche ».
+
 **Parité vérifiée : 14 écrans de chaque côté, aucun manquant ni d'un côté ni de l'autre.**
 
 | Écran (× 2 : `/dashboard/freelance/…` et `/dashboard/cdi/…`) | À quoi il sert |

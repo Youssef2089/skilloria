@@ -9,8 +9,10 @@ import { useRelativeTime } from '@/lib/use-relative-time'
 /**
  * NotificationBell — cloche + dropdown du centre de notifications.
  *
- * Réutilisable côté expert (topbar /dashboard/freelance) et côté org
- * (intégrée dans OrganisationSidebar).
+ * Montée UNE SEULE FOIS, par la barre supérieure de la coquille partagée
+ * (DashboardTopbar) — donc sur les trois espaces, expert comme organisation.
+ * Le commentaire précédent la disait « intégrée dans OrganisationSidebar » :
+ * ce composant ne montait plus rien depuis des mois, et a été supprimé.
  *
  * Fonctions :
  *   - Affiche un badge avec le nombre de notifications non lues

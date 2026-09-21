@@ -11,13 +11,12 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 import EmptyState from '@/components/ui/EmptyState'
 import { deriveVerificationUiState, verificationChipColors } from '@/lib/verification-state'
 import VerificationStatusPill from '@/components/dashboard/VerificationStatusPill'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import AvatarEditOverlay from '@/components/dashboard/AvatarEditOverlay'
-import DashboardSidebar from '@/components/shell/DashboardSidebar'
 import { useAvatarUrl } from '@/hooks/useAvatarUrl'
 import { listeLue, lignesOuVide, type ListeDeProfil } from '@/lib/lecture/liste'
 import ImageOuRepli from '@/components/ui/ImageOuRepli'
+import SectionHeader from '@/components/dashboard/SectionHeader'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -129,17 +128,6 @@ const LOCALE_DATE_MAP: Record<string, string> = {
   de: 'de-DE',
 }
 
-const SECTION_PALETTE = {
-  summary: 'var(--sk-accent)',
-  expertise: 'var(--sk-accent)',
-  certifications: 'var(--sk-accent)',
-  career: 'var(--sk-accent)',
-  missions: 'var(--sk-red)',
-  education: 'var(--sk-accent)',
-  languages: 'var(--sk-amber)',
-  availability: 'var(--sk-success)',
-  links: 'var(--sk-accent)',
-} as const
 
 const AVAILABILITY_COLOR: Record<AvailabilityStatus, string> = {
   available: 'var(--sk-success)',
@@ -155,58 +143,6 @@ function safeDate(ymd: string | null | undefined): Date | null {
   return d
 }
 
-function SectionHeader({
-  n,
-  color,
-  title,
-}: {
-  n: number
-  color: string
-  title: React.ReactNode
-}) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 16,
-      }}
-    >
-      <span
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minWidth: 28,
-          height: 28,
-          padding: '0 9px',
-          borderRadius: 999,
-          fontSize: 12,
-          fontWeight: 800,
-          color: 'var(--sk-sur-accent)',
-          background: color,
-          fontFamily: fontJakarta,
-          flexShrink: 0,
-        }}
-      >
-        {n}
-      </span>
-      <div
-        style={{
-          flex: 1,
-          fontSize: 16,
-          fontWeight: 700,
-          color: 'var(--sk-text)',
-          letterSpacing: '-0.2px',
-          fontFamily: fontJakarta,
-        }}
-      >
-        {title}
-      </div>
-    </div>
-  )
-}
 
 function EmptyText({ children }: { children: React.ReactNode }) {
   return (
@@ -314,7 +250,6 @@ export default function MonProfilPage() {
   const tVerifBadge = useTranslations('expert_verification.badge')
   const tRejected = useTranslations('expert_verification.rejected_details')
   const tDash = useTranslations('dashboard_freelance')
-  const tShell = useTranslations('shell')
   const tCommon = useTranslations('common')
   const locale = useLocale()
   const router = useRouter()
@@ -584,9 +519,8 @@ export default function MonProfilPage() {
     ((firstName[0] ?? '') + (lastName[0] ?? '')).toUpperCase() ||
     fullName.substring(0, 2).toUpperCase() ||
     '??'
-  // D1 : « profil vérifié » (pilote la sidebar via userIsVerified) = source de
-  // vérité verification_status === 'approved', jamais users.is_verified.
-  const isVerified = (profile?.verification_status ?? null) === 'approved'
+  // `isVerified` a disparu avec l en-tete maison : c est la coquille partagee
+  // qui pilote desormais la barre laterale, et elle lit le profil elle-meme.
   // Lot bandeau vérif : badge piloté par l'état réel (plus de vert affiché
   // à tort quand pending_admin_review).
   const verifState = deriveVerificationUiState({
@@ -758,27 +692,23 @@ export default function MonProfilPage() {
   )
 
   // ── Loading skeleton ──
+  //
+  //  LE SQUELETTE NE DESSINE PLUS DE FAUSSE COQUILLE. Il en peignait une : un
+  //  faux en-tête de 58 px et une fausse barre latérale de 248 px, tous deux en
+  //  `--sk-surface`. Or la VRAIE barre latérale est en `--sk-bandeau`, et le
+  //  vrai en-tête fait 60 px : au moment où les données arrivaient, le cadre
+  //  SAUTAIT de couleur et de deux pixels, sous les yeux de l'utilisateur.
+  //
+  //  La coquille partagée est désormais montée autour de cette page. Il ne
+  //  reste donc à esquisser que le CONTENU.
   if (loading) {
     return (
-      <div className={jakarta.variable} style={{ minHeight: '100vh', background: 'var(--sk-surface-2)', fontFamily: fontJakarta }}>
+      <div className={jakarta.variable} style={{ fontFamily: fontJakarta, padding: 24 }}>
         {sharedStyles}
-        <div className="ds-header-pad" style={{ background: 'var(--sk-surface)', borderBottom: '1px solid var(--sk-border)', padding: '0 28px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div className="skel" style={{ width: 140, height: 24 }} />
-          <div className="skel" style={{ width: 80, height: 36 }} />
-        </div>
-        <div className="ds-layout" style={{ display: 'flex', minHeight: 'calc(100vh - 58px)' }}>
-          <div className="ds-sidebar" style={{ width: 248, background: 'var(--sk-surface)', borderRight: '1px solid var(--sk-border)', padding: '22px 16px' }}>
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="skel" style={{ height: 36, marginBottom: 8 }} />
-            ))}
-          </div>
-          <div className="ds-main" style={{ flex: 1, padding: 24 }}>
-            <div className="skel" style={{ height: 56, marginBottom: 16 }} />
-            <div className="skel" style={{ height: 180, marginBottom: 16 }} />
-            <div className="skel" style={{ height: 140, marginBottom: 16 }} />
-            <div className="skel" style={{ height: 140, marginBottom: 16 }} />
-          </div>
-        </div>
+        <div className="skel" style={{ height: 56, marginBottom: 16 }} />
+        <div className="skel" style={{ height: 180, marginBottom: 16 }} />
+        <div className="skel" style={{ height: 140, marginBottom: 16 }} />
+        <div className="skel" style={{ height: 140, marginBottom: 16 }} />
       </div>
     )
   }
@@ -786,7 +716,7 @@ export default function MonProfilPage() {
   // ── Forbidden (not freelance) ──
   if (forbidden) {
     return (
-      <div className={jakarta.variable} style={{ minHeight: '100vh', background: 'var(--sk-surface-2)', fontFamily: fontJakarta, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div className={jakarta.variable} style={{ fontFamily: fontJakarta, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         {sharedStyles}
         <div style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-red-soft)', borderRadius: 16, padding: 32, maxWidth: 480, textAlign: 'center' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>🔒</div>
@@ -803,7 +733,7 @@ export default function MonProfilPage() {
   // ── Hard error ──
   if (errorMsg && !profile) {
     return (
-      <div className={jakarta.variable} style={{ minHeight: '100vh', background: 'var(--sk-surface-2)', fontFamily: fontJakarta, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div className={jakarta.variable} style={{ fontFamily: fontJakarta, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         {sharedStyles}
         <div style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-red-soft)', borderRadius: 16, padding: 32, maxWidth: 480, textAlign: 'center' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
@@ -820,31 +750,20 @@ export default function MonProfilPage() {
     )
   }
 
-  // ── Coquille inline (header + sidebar + main) réutilisable pour les écrans
-  // de blocage (CV manquant) : c'est une page de MENU, elle doit garder la
-  // sidebar et le header — jamais un plein-écran orphelin qui piège l'user.
+  // ── LE HELPER NE CONSTRUIT PLUS DE COQUILLE — il n'en reste que la marge.
+  //
+  //  Il en bâtissait une entière : en-tête de 58 px, `DashboardSidebar` montée
+  //  à la main, conteneur plein écran. Son commentaire disait exactement la
+  //  bonne chose — « c'est une page de MENU, elle doit garder la sidebar et le
+  //  header, jamais un plein-écran orphelin qui piège l'user » — et la façon
+  //  de l'obtenir était de la RECONSTRUIRE, donc de la laisser diverger.
+  //
+  //  La coquille partagée est maintenant montée par le sub-layout : la page ne
+  //  peut plus être orpheline, et elle ne peut plus dériver non plus.
   const renderWithShell = (main: React.ReactNode) => (
-    <div className={jakarta.variable} style={{ minHeight: '100vh', background: 'var(--sk-surface-2)', fontFamily: fontJakarta }}>
+    <div className={jakarta.variable} style={{ fontFamily: fontJakarta, padding: 24, width: '100%' }}>
       {sharedStyles}
-      <div
-        className="ds-header-pad"
-        style={{ background: 'var(--sk-surface)', borderBottom: '1px solid var(--sk-border)', padding: '0 28px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-      >
-        <div />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <LanguageSwitcher />
-        </div>
-      </div>
-      <div className="ds-layout" style={{ display: 'flex', minHeight: 'calc(100vh - 58px)' }}>
-        <DashboardSidebar
-          side="freelance"
-          userName={fullName}
-          userPhotoUrl={ownAvatarUrl}
-          userIsVerified={isVerified}
-          userSubtitle={tShell('user_subtitle.freelance', { ecosystem: domain.ecosystemName })}
-        />
-        <div className="ds-main" style={{ flex: 1, padding: 24, width: '100%' }}>{main}</div>
-      </div>
+      {main}
     </div>
   )
 
@@ -920,51 +839,21 @@ export default function MonProfilPage() {
     </div>
   ) : null
 
+  // ── LA COQUILLE VIENT DU SUB-LAYOUT, PLUS DE CETTE PAGE ──────────────────
+  //  Ce qui était bâti ici — en-tête de 58 px, `DashboardSidebar` montée à la
+  //  main, conteneur plein écran — est désormais fourni une seule fois, pour
+  //  les soixante-six pages de l'espace connecté. La page ne rend plus que son
+  //  contenu.
+  //
+  //  ⚠️ La PASTILLE DE VÉRIFICATION, elle, reste — déplacée sous le titre.
+  //     Elle vivait dans l'en-tête supprimé ; la coquille partagée n'en porte
+  //     pas. La laisser partir aurait retiré, sans le dire, l'unique endroit où
+  //     l'expert lit l'état de son profil sur la page qui lui est consacrée.
   return (
-    <div className={jakarta.variable} style={{ minHeight: '100vh', background: 'var(--sk-surface-2)', fontFamily: fontJakarta }}>
+    <div className={jakarta.variable} style={{ fontFamily: fontJakarta, width: '100%' }}>
       {sharedStyles}
 
-      {/* ─── Top header (logo + LanguageSwitcher) ─── */}
-      <div
-        className="ds-header-pad"
-        style={{
-          background: 'var(--sk-surface)',
-          borderBottom: '1px solid var(--sk-border)',
-          padding: '0 28px',
-          height: 58,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          animation: 'fadeIn 0.3s ease',
-        }}
-      >
-        {/* Brand retiré : la sidebar partagée (<DashboardSidebar/>) rend déjà
-            le logo en haut → on évite le double logo. Spacer pour garder les
-            actions (langue + badge) alignées à droite via space-between. */}
-        <div />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <LanguageSwitcher />
-          {/* C6 : pastille de statut = SOURCE UNIQUE (VerificationStatusPill),
-              rendue par les 5 états réels. Fini le binaire approved/En attente
-              qui affichait « En attente » sur un brouillon. */}
-          <VerificationStatusPill state={verifState} />
-        </div>
-      </div>
-
-      <div className="ds-layout" style={{ display: 'flex', minHeight: 'calc(100vh - 58px)' }}>
-        {/* ─── Sidebar partagée (source unique de vérité, alignée sur le
-            tableau de bord : Missions/Candidatures déverrouillées, vrais
-            liens, alert/sous-traitance lockées si non vérifié). ─── */}
-        <DashboardSidebar
-          side="freelance"
-          userName={fullName}
-          userPhotoUrl={ownAvatarUrl}
-          userIsVerified={isVerified}
-          userSubtitle={tShell('user_subtitle.freelance', { ecosystem: domain.ecosystemName })}
-        />
-
-        {/* ─── Main ─── */}
-        <div className="ds-main" style={{ flex: 1, padding: 24, width: '100%' }}>
+      <div style={{ padding: 24, width: '100%' }}>
           {/* En-tête : titre à gauche, actions à droite sur la même rangée */}
           <div
             className="top-actions"
@@ -982,9 +871,15 @@ export default function MonProfilPage() {
             }}
           >
             <div style={{ minWidth: 0 }}>
-              <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--sk-text)', margin: 0, marginBottom: 6, letterSpacing: '-0.4px' }}>
-                {t('page_title')}
-              </h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
+                <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--sk-text)', margin: 0, letterSpacing: '-0.4px' }}>
+                  {t('page_title')}
+                </h1>
+                {/* La pastille de vérification suit le titre depuis que l'en-tête
+                    maison a disparu. Source UNIQUE (VerificationStatusPill),
+                    rendue par les cinq états réels — parité stricte avec CDI. */}
+                <VerificationStatusPill state={verifState} />
+              </div>
               <p style={{ fontSize: 14, color: 'var(--sk-muted)', margin: 0 }}>{t('page_subtitle')}</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1252,7 +1147,7 @@ export default function MonProfilPage() {
 
           {/* ─── 1. Summary ─── */}
           <Card>
-            <SectionHeader n={1} color={SECTION_PALETTE.summary} title={t('sections.summary')} />
+            <SectionHeader n={1} title={t('sections.summary')} />
             {profile.summary?.trim() ? (
               <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}>
                 {profile.summary.trim()}
@@ -1264,7 +1159,7 @@ export default function MonProfilPage() {
 
           {/* ─── 2. Expertise ─── */}
           <Card>
-            <SectionHeader n={2} color={SECTION_PALETTE.expertise} title={t('sections.expertise')} />
+            <SectionHeader n={2} title={t('sections.expertise')} />
             {hasExpertise ? (
               <div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: skills.length > 0 ? 18 : 0 }}>
@@ -1317,7 +1212,7 @@ export default function MonProfilPage() {
 
           {/* ─── 3. Certifications ─── */}
           <Card>
-            <SectionHeader n={3} color={SECTION_PALETTE.certifications} title={t('sections.certifications')} />
+            <SectionHeader n={3} title={t('sections.certifications')} />
             {certifications.length > 0 ? (
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {certifications.map((c, i) => (
@@ -1331,7 +1226,7 @@ export default function MonProfilPage() {
                       borderBottom: i < certifications.length - 1 ? '1px solid var(--sk-surface-2)' : 'none',
                     }}
                   >
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: SECTION_PALETTE.certifications, flexShrink: 0 }} aria-hidden />
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--sk-accent)', flexShrink: 0 }} aria-hidden />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--sk-text)' }}>{c.name}</div>
                       {(c.issuer || c.year) && (
@@ -1352,7 +1247,7 @@ export default function MonProfilPage() {
 
           {/* ─── 4. Career ─── */}
           <Card>
-            <SectionHeader n={4} color={SECTION_PALETTE.career} title={t('sections.career')} />
+            <SectionHeader n={4} title={t('sections.career')} />
             {careerSorted.length > 0 ? (
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {careerSorted.map((e, i) => {
@@ -1376,7 +1271,7 @@ export default function MonProfilPage() {
                           width: 8,
                           height: 8,
                           borderRadius: '50%',
-                          background: SECTION_PALETTE.career,
+                          background: 'var(--sk-accent)',
                         }}
                       />
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -1397,8 +1292,8 @@ export default function MonProfilPage() {
                               fontWeight: 600,
                               padding: '3px 8px',
                               borderRadius: 999,
-                              background: `color-mix(in srgb, ${SECTION_PALETTE.career} 11%, transparent)`,
-                              color: SECTION_PALETTE.career,
+                              background: `color-mix(in srgb, var(--sk-accent) 11%, transparent)`,
+                              color: 'var(--sk-accent)',
                               whiteSpace: 'nowrap',
                             }}
                           >
@@ -1426,7 +1321,7 @@ export default function MonProfilPage() {
 
           {/* ─── 5. Missions / Projects ─── */}
           <Card>
-            <SectionHeader n={5} color={SECTION_PALETTE.missions} title={t('sections.missions')} />
+            <SectionHeader n={5} title={t('sections.missions')} />
             {projectsSorted.length > 0 ? (
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {projectsSorted.map((e, i) => {
@@ -1450,7 +1345,7 @@ export default function MonProfilPage() {
                           width: 8,
                           height: 8,
                           borderRadius: '50%',
-                          background: SECTION_PALETTE.missions,
+                          background: 'var(--sk-accent)',
                         }}
                       />
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -1471,8 +1366,8 @@ export default function MonProfilPage() {
                               fontWeight: 600,
                               padding: '3px 8px',
                               borderRadius: 999,
-                              background: `color-mix(in srgb, ${SECTION_PALETTE.missions} 11%, transparent)`,
-                              color: SECTION_PALETTE.missions,
+                              background: `color-mix(in srgb, var(--sk-accent) 11%, transparent)`,
+                              color: 'var(--sk-accent)',
                               whiteSpace: 'nowrap',
                             }}
                           >
@@ -1500,7 +1395,7 @@ export default function MonProfilPage() {
 
           {/* ─── 6. Education ─── */}
           <Card>
-            <SectionHeader n={6} color={SECTION_PALETTE.education} title={t('sections.education')} />
+            <SectionHeader n={6} title={t('sections.education')} />
             {educations.length > 0 ? (
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {educations.map((edu, i) => (
@@ -1514,7 +1409,7 @@ export default function MonProfilPage() {
                       borderBottom: i < educations.length - 1 ? '1px solid var(--sk-surface-2)' : 'none',
                     }}
                   >
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: SECTION_PALETTE.education, flexShrink: 0, marginTop: 6 }} aria-hidden />
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--sk-accent)', flexShrink: 0, marginTop: 6 }} aria-hidden />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sk-text)' }}>
                         {edu.degree || '—'}
@@ -1545,7 +1440,7 @@ export default function MonProfilPage() {
 
           {/* ─── 7. Languages ─── */}
           <Card>
-            <SectionHeader n={7} color={SECTION_PALETTE.languages} title={t('sections.languages')} />
+            <SectionHeader n={7} title={t('sections.languages')} />
             {languagesSorted.length > 0 ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {languagesSorted.map((l, i) => (
@@ -1553,9 +1448,9 @@ export default function MonProfilPage() {
                     key={`lang-${i}`}
                     className="pill"
                     style={{
-                      background: `color-mix(in srgb, ${SECTION_PALETTE.languages} 8%, transparent)`,
+                      background: `color-mix(in srgb, var(--sk-accent) 8%, transparent)`,
                       color: 'var(--sk-amber)',
-                      border: `1px solid color-mix(in srgb, ${SECTION_PALETTE.languages} 33%, transparent)`,
+                      border: `1px solid color-mix(in srgb, var(--sk-accent) 33%, transparent)`,
                     }}
                   >
                     <span style={{ fontWeight: 600 }}>{l.language}</span>
@@ -1569,7 +1464,7 @@ export default function MonProfilPage() {
                           fontWeight: 700,
                           padding: '1px 6px',
                           borderRadius: 6,
-                          background: SECTION_PALETTE.languages,
+                          background: 'var(--sk-accent)',
                           color: 'var(--sk-sur-accent)',
                         }}
                       >
@@ -1586,7 +1481,7 @@ export default function MonProfilPage() {
 
           {/* ─── 8. Availability ─── */}
           <Card>
-            <SectionHeader n={8} color={SECTION_PALETTE.availability} title={t('sections.availability')} />
+            <SectionHeader n={8} title={t('sections.availability')} />
             {hasAvailability ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {workModes.length > 0 && (
@@ -1600,9 +1495,9 @@ export default function MonProfilPage() {
                           key={m}
                           className="pill"
                           style={{
-                            background: `color-mix(in srgb, ${SECTION_PALETTE.availability} 8%, transparent)`,
+                            background: `color-mix(in srgb, var(--sk-accent) 8%, transparent)`,
                             color: 'var(--sk-success)',
-                            border: `1px solid color-mix(in srgb, ${SECTION_PALETTE.availability} 33%, transparent)`,
+                            border: `1px solid color-mix(in srgb, var(--sk-accent) 33%, transparent)`,
                           }}
                         >
                           {t(`labels.work_mode_${m}`)}
@@ -1636,7 +1531,7 @@ export default function MonProfilPage() {
 
           {/* ─── 9. Links ─── */}
           <Card style={{ marginBottom: 30 }}>
-            <SectionHeader n={9} color={SECTION_PALETTE.links} title={t('sections.links')} />
+            <SectionHeader n={9} title={t('sections.links')} />
             {hasLinks ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 <a
@@ -1667,7 +1562,6 @@ export default function MonProfilPage() {
             </Link>
           </div>
         </div>
-      </div>
 
       {/* Lot global C3 : modal d'upload photo (entry-point unique).
           Le modal s'occupe lui-même de l'upload Storage + PATCH /api/profile.

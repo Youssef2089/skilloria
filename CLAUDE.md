@@ -465,6 +465,31 @@ affichée indéfiniment, et l'écran **refuse de compiler** sur une issue non tr
 10 détections — et par [`diag-relance-expert`](scripts/diag-relance-expert.mjs), dont deux sections
 ont été **réécrites** parce qu'elles défendaient l'ancienne règle et se contredisaient entre elles.
 
+**D.14 — UNE SEULE COQUILLE POUR TOUT L'ESPACE CONNECTÉ. AUCUNE EXCEPTION.**
+Les **66 pages** connectées portent le même cadre : `DashboardShell` — barre latérale, en-tête,
+bouton Retour. Il est monté par les **sub-layouts**, jamais par une page.
+
+**L'en-tête et la barre latérale sont BEIGES**, tous deux en `--sk-bandeau`. L'en-tête était en
+`--sk-surface`, c'est-à-dire le **blanc des cartes** : deux surfaces du même cadre, deux couleurs.
+`--sk-surface-2` porte aujourd'hui la même valeur mais ne dit pas la même chose — il nomme un fond
+**dans** une carte, pas le cadre.
+
+**Ce que la règle interdit, et qui existait :**
+· une **liste d'exclusion** dans un sub-layout — il y en avait deux, dont une justifiée par un
+  commentaire **faux** qui laissait une page sans aucune navigation (§E.53) ;
+· une page qui **rebâtit** son cadre — trois copies dans un seul fichier ;
+· un **second plein écran** (`minHeight: 100vh`) sous un en-tête de 60 px ;
+· un **numéro de section** peint en vert, en ambre ou en rouge : ce sont des états (§E.54).
+
+> **L'ADMIN GARDE LE MÊME CADRE ; SEUL LE CONTENU DE SON MENU DIFFÈRE.** Décision de Youssef. Sa
+> migration a son propre commit, parce qu'elle porte une dette à part : cinq jetons `--color-*` qui
+> **ne sont définis nulle part** dans le dépôt, donc cinq valeurs de secours en dur — le back-office
+> ne suit **aucune palette d'écosystème**.
+
+**Gardé par [`diag-coquille-unique`](scripts/diag-coquille-unique.mjs)** — 7 mutations, 7 détections.
+Il s'ancre sur le **comportement**, pas sur un nom (§E.34) : ce qui est refusé, c'est un layout qui
+rend `children` nus, et plus en amont qu'un layout de cadre **consulte le chemin**.
+
 **D.10 — TOUTE NOTE DU PRODUIT EST SUR 0-10. Il n'y a pas de seconde échelle.**
 Les filtres de pertinence vivaient en **0-1**, les notes de jugement en **0-10**, et rien ne le disait
 à l'écran : **« 1 » signifiait *parfait* d'un côté et *médiocre* de l'autre**, sur la même page.
@@ -633,6 +658,8 @@ bloquant, ordonnés avec les quatorze défauts nommés du gel 4.1d :
 | [E.50](docs/pieges.md#e50) | UN SUFFIXE D'OPACITÉ COLLÉ À UNE COULEUR CESSE DE MARCHER LE JOUR OÙ LA COULEUR DEVIENT UN JETON. |
 | [E.51](docs/pieges.md#e51) | UN ÉCRAN QUI SIMULE UNE ANALYSE QUI N'A PAS LIEU FINIT PAR ANNONCER UN RÉSULTAT QU'IL N'A PAS. |
 | [E.52](docs/pieges.md#e52) | UN SIGNAL BLOQUANT QU'AUCUNE ACTION NE PEUT ÉTEINDRE APPREND À ÊTRE IGNORÉ. |
+| [E.53](docs/pieges.md#e53) | UNE EXCEPTION OUVERTE POUR UNE PAGE DEVIENT UN ENDROIT OÙ D'AUTRES TOMBENT. |
+| [E.54](docs/pieges.md#e54) | UNE COULEUR D'ÉTAT POSÉE SUR UN ÉLÉMENT DÉCORATIF DIT QUELQUE CHOSE. ELLE MENT. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

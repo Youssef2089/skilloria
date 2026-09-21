@@ -221,8 +221,7 @@ export default function CdiProfilUploadPage() {
     return (
       <div
         style={{
-          minHeight: '100vh',
-          background: 'var(--sk-surface-2)',
+          minHeight: '60vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -249,8 +248,7 @@ export default function CdiProfilUploadPage() {
     return (
       <div
         style={{
-          minHeight: '100vh',
-          background: 'var(--sk-surface-2)',
+          minHeight: '60vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

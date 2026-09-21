@@ -110,7 +110,6 @@ const GEL = {
   'app/[locale]/inscription/page.tsx': 14,
   'lib/emails/templates.ts': 14,
   'components/admin/EcosystemeVisuelUpload.tsx': 13,
-  'components/dashboard/OrganisationSidebar.tsx': 13,
   'components/PendingInvitationGate.tsx': 13,
   'app/[locale]/auth/callback/page.tsx': 12,
   'app/[locale]/admin/supervision/[sujet]/page.tsx': 9,

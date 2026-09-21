@@ -23,6 +23,7 @@ import {
   RESUME_MAX,
   RESUME_MIN,
 } from '@/lib/profile-visibility'
+import SectionHeader from '@/components/dashboard/SectionHeader'
 
 // =============================================================================
 // Page de validation profil CDI — phase 4a (sections COMMUNES + placeholders)
@@ -192,77 +193,7 @@ function emptyCertification(): Certification {
   return { _uid: uid(), name: '', issuer: null, year: null }
 }
 
-function SectionHeader({
-  n,
-  color,
-  title,
-  action,
-}: {
-  n: string
-  color: string
-  title: React.ReactNode
-  action?: React.ReactNode
-}) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 18,
-      }}
-    >
-      <span
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minWidth: 28,
-          height: 28,
-          padding: '0 9px',
-          borderRadius: 999,
-          fontSize: 12,
-          fontWeight: 800,
-          color: 'var(--sk-sur-accent)',
-          background: color,
-          fontFamily: fontJakarta,
-          flexShrink: 0,
-        }}
-      >
-        {n}
-      </span>
-      <div
-        style={{
-          flex: 1,
-          fontSize: 16,
-          fontWeight: 700,
-          color: 'var(--sk-text)',
-          letterSpacing: '-0.2px',
-          fontFamily: fontJakarta,
-        }}
-      >
-        {title}
-      </div>
-      {action}
-    </div>
-  )
-}
 
-const SECTION_COLORS = {
-  expertise: 'var(--sk-accent)',
-  certifications: 'var(--sk-accent)',
-  languages: 'var(--sk-success)',
-  liens: 'var(--sk-accent)',
-  coordonnees: 'var(--sk-amber)',
-  parcours: 'var(--sk-accent)',
-  missions: 'var(--sk-red)',
-  formation: 'var(--sk-accent)',
-  // Sections CDI (phase 4b)
-  status: 'var(--sk-amber)',
-  compensation: 'var(--sk-amber)',
-  preferences: 'var(--sk-accent)',
-  motivations: 'var(--sk-accent)',
-} as const
 
 export default function CdiValiderProfilPage() {
   const router = useRouter()
@@ -1453,8 +1384,7 @@ export default function CdiValiderProfilPage() {
       <div
         className={jakarta.variable}
         style={{
-          minHeight: '100vh',
-          background: 'var(--sk-surface-2)',
+          minHeight: '60vh',
           fontFamily: fontInter,
           display: 'flex',
           alignItems: 'center',
@@ -1819,7 +1749,6 @@ export default function CdiValiderProfilPage() {
             <div style={sectionStyle}>
               <SectionHeader
                 n="1"
-                color={'var(--sk-accent)'}
                 title={tProfile('sections.identity.title')}
               />
 
@@ -1950,7 +1879,7 @@ export default function CdiValiderProfilPage() {
             <div style={sectionStyle}>
               <SectionHeader
                 n="2"
-                color={SECTION_COLORS.expertise}
+               
                 title={tProfile('sections.expertise.title')}
               />
 
@@ -2111,7 +2040,7 @@ export default function CdiValiderProfilPage() {
             >
               <SectionHeader
                 n="3"
-                color={SECTION_COLORS.status}
+               
                 title={tProfile('sections.status_availability.title')}
               />
 
@@ -2242,7 +2171,7 @@ export default function CdiValiderProfilPage() {
             <div style={sectionStyle}>
               <SectionHeader
                 n="4"
-                color={SECTION_COLORS.compensation}
+               
                 title={tProfile('sections.compensation.title')}
               />
 
@@ -2375,7 +2304,7 @@ export default function CdiValiderProfilPage() {
             <div style={sectionStyle}>
               <SectionHeader
                 n="5"
-                color={SECTION_COLORS.preferences}
+               
                 title={tProfile('sections.preferences.title')}
               />
 
@@ -2474,7 +2403,7 @@ export default function CdiValiderProfilPage() {
             <div style={sectionStyle}>
               <SectionHeader
                 n="6"
-                color={SECTION_COLORS.motivations}
+               
                 title={tProfile('sections.motivations.title')}
               />
 
@@ -2511,7 +2440,7 @@ export default function CdiValiderProfilPage() {
             <div style={sectionStyle}>
               <SectionHeader
                 n="7"
-                color={SECTION_COLORS.certifications}
+               
                 title={tProfile('sections.certifications.title')}
                 action={
                   <button type="button" onClick={addCert} style={inlineAddBtnStyle}>
@@ -2551,7 +2480,7 @@ export default function CdiValiderProfilPage() {
                     onRequestDelete={() => requestDelete(c._uid!)}
                     onConfirmDelete={confirmDeleteAndRun(c._uid!, () => removeCert(i))}
                     onCancelDelete={cancelDelete}
-                    accentColor={SECTION_COLORS.certifications}
+                    accentColor={'var(--sk-accent)'}
                   >
                     <div
                       className="profil-row"
@@ -2622,7 +2551,7 @@ export default function CdiValiderProfilPage() {
             >
               <SectionHeader
                 n="8"
-                color={SECTION_COLORS.parcours}
+               
                 title={tProfile('sections.career.title')}
                 action={
                   <button
@@ -2674,7 +2603,7 @@ export default function CdiValiderProfilPage() {
                       removeExperience(entry._idx),
                     )}
                     onCancelDelete={cancelDelete}
-                    accentColor={SECTION_COLORS.parcours}
+                    accentColor={'var(--sk-accent)'}
                   >
                     {renderExperienceFields(entry, entry._idx, 'career')}
                   </CompactListItem>
@@ -2692,7 +2621,7 @@ export default function CdiValiderProfilPage() {
             <div style={sectionStyle}>
               <SectionHeader
                 n="9"
-                color={SECTION_COLORS.missions}
+               
                 title={tProfile('sections.missions.title')}
                 action={
                   <button
@@ -2743,7 +2672,7 @@ export default function CdiValiderProfilPage() {
                       removeExperience(entry._idx),
                     )}
                     onCancelDelete={cancelDelete}
-                    accentColor={SECTION_COLORS.missions}
+                    accentColor={'var(--sk-accent)'}
                   >
                     {renderExperienceFields(entry, entry._idx, 'project')}
                   </CompactListItem>
@@ -2761,7 +2690,7 @@ export default function CdiValiderProfilPage() {
             <div style={sectionStyle}>
               <SectionHeader
                 n="10"
-                color={SECTION_COLORS.formation}
+               
                 title={tProfile('sections.education.title')}
                 action={
                   <button type="button" onClick={addEducation} style={inlineAddBtnStyle}>
@@ -2807,7 +2736,7 @@ export default function CdiValiderProfilPage() {
                     onRequestDelete={() => requestDelete(edu._uid!)}
                     onConfirmDelete={confirmDeleteAndRun(edu._uid!, () => removeEducation(i))}
                     onCancelDelete={cancelDelete}
-                    accentColor={SECTION_COLORS.formation}
+                    accentColor={'var(--sk-accent)'}
                   >
                     <div
                       className="profil-row"
@@ -2933,7 +2862,7 @@ export default function CdiValiderProfilPage() {
             >
               <SectionHeader
                 n="11"
-                color={SECTION_COLORS.languages}
+               
                 title={tProfile('sections.languages.title')}
                 action={
                   <button type="button" onClick={addLanguage} style={inlineAddBtnStyle}>
@@ -2989,7 +2918,7 @@ export default function CdiValiderProfilPage() {
                     onRequestDelete={() => requestDelete(l._uid!)}
                     onConfirmDelete={confirmDeleteAndRun(l._uid!, () => removeLanguage(i))}
                     onCancelDelete={cancelDelete}
-                    accentColor={SECTION_COLORS.languages}
+                    accentColor={'var(--sk-accent)'}
                   >
                     <div
                       className="profil-row"
@@ -3058,7 +2987,7 @@ export default function CdiValiderProfilPage() {
             <div style={sectionStyle}>
               <SectionHeader
                 n="12"
-                color={SECTION_COLORS.liens}
+               
                 title={tProfile('sections.links.title')}
               />
               <label style={labelStyle}>{tProfile('sections.links.linkedin_label')}</label>
@@ -3076,7 +3005,7 @@ export default function CdiValiderProfilPage() {
             <div style={sectionStyle}>
               <SectionHeader
                 n="13"
-                color={SECTION_COLORS.coordonnees}
+               
                 title={tProfile('sections.contact.title')}
               />
 

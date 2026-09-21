@@ -5,12 +5,10 @@ import type { ListeDeProfil } from '@/lib/lecture/liste'
 import { useTranslations, useLocale } from 'next-intl'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Link, useRouter } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import EmptyState from '@/components/ui/EmptyState'
 import { deriveVerificationUiState } from '@/lib/verification-state'
 import VerificationStatusPill from '@/components/dashboard/VerificationStatusPill'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import { useAvatarUrl } from '@/hooks/useAvatarUrl'
 import AvatarEditOverlay from '@/components/dashboard/AvatarEditOverlay'
@@ -32,6 +30,7 @@ import {
 import CdiSalaryDisplay from '@/components/cdi/CdiSalaryDisplay'
 import CdiPreferencesDisplay from '@/components/cdi/CdiPreferencesDisplay'
 import ImageOuRepli from '@/components/ui/ImageOuRepli'
+import SectionHeader from '@/components/dashboard/SectionHeader'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -48,20 +47,6 @@ const STATUS_BADGE_COLORS: Record<CdiStatus, string> = {
   open_to_work: 'var(--sk-success)',
 }
 
-const SECTION_COLORS = [
-  'var(--sk-accent)',
-  'var(--sk-accent)',
-  'var(--sk-success)',
-  'var(--sk-amber)',
-  'var(--sk-accent)',
-  'var(--sk-accent)',
-  'var(--sk-accent)',
-  'var(--sk-red)',
-  'var(--sk-accent)',
-  'var(--sk-success)',
-  'var(--sk-accent)',
-  'var(--sk-accent)',
-] as const
 
 const LOCALE_DATE_MAP: Record<string, string> = {
   fr: 'fr-FR',
@@ -113,58 +98,6 @@ function formatMonth(dateStr: string, locale: string): string {
   }
 }
 
-function SectionHeader({
-  n,
-  color,
-  title,
-}: {
-  n: number
-  color: string
-  title: string
-}) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 16,
-      }}
-    >
-      <span
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minWidth: 28,
-          height: 28,
-          padding: '0 9px',
-          borderRadius: 999,
-          fontSize: 12,
-          fontWeight: 800,
-          color: 'var(--sk-sur-accent)',
-          background: color,
-          fontFamily: fontJakarta,
-          flexShrink: 0,
-        }}
-      >
-        {n}
-      </span>
-      <div
-        style={{
-          flex: 1,
-          fontSize: 16,
-          fontWeight: 700,
-          color: 'var(--sk-text)',
-          letterSpacing: '-0.2px',
-          fontFamily: fontJakarta,
-        }}
-      >
-        {title}
-      </div>
-    </div>
-  )
-}
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
@@ -229,7 +162,6 @@ export default function CdiMonProfilPage() {
   const tRejected = useTranslations('expert_verification.rejected_details')
   const locale = useLocale()
   const router = useRouter()
-  const domain = useDomain()
   const state = useCdiProfile()
   const {
     loading,
@@ -322,8 +254,6 @@ export default function CdiMonProfilPage() {
       <div
         className={jakarta.variable}
         style={{
-          minHeight: '100vh',
-          background: 'var(--sk-surface-2)',
           fontFamily: 'Inter, system-ui, sans-serif',
           display: 'flex',
           alignItems: 'center',
@@ -355,8 +285,6 @@ export default function CdiMonProfilPage() {
       <div
         className={jakarta.variable}
         style={{
-          minHeight: '100vh',
-          background: 'var(--sk-surface-2)',
           fontFamily: 'Inter, system-ui, sans-serif',
           display: 'flex',
           alignItems: 'center',
@@ -411,13 +339,10 @@ export default function CdiMonProfilPage() {
       <div
         className={jakarta.variable}
         style={{
-          minHeight: '100vh',
-          background: 'var(--sk-surface-2)',
           fontFamily: 'Inter, system-ui, sans-serif',
           padding: 24,
         }}
       >
-        <Header user={user} profile={null} domainName={domain.name} domainColor={'var(--sk-accent)'} domainLogo={domain.logoUrl} t={t} />
         <div
           style={{
             maxWidth: 720,
@@ -448,12 +373,9 @@ export default function CdiMonProfilPage() {
       <div
         className={jakarta.variable}
         style={{
-          minHeight: '100vh',
-          background: 'var(--sk-surface-2)',
           fontFamily: 'Inter, system-ui, sans-serif',
         }}
       >
-        <Header user={user} profile={null} domainName={domain.name} domainColor={'var(--sk-accent)'} domainLogo={domain.logoUrl} t={t} />
         <div style={{ padding: 24 }}>
           <EmptyState
             icon="📄"
@@ -490,8 +412,6 @@ export default function CdiMonProfilPage() {
     <div
       className={jakarta.variable}
       style={{
-        minHeight: '100vh',
-        background: 'var(--sk-surface-2)',
         fontFamily: 'Inter, system-ui, sans-serif',
       }}
     >
@@ -506,14 +426,6 @@ export default function CdiMonProfilPage() {
         }
       `}</style>
 
-      <Header
-        user={user}
-        profile={profile}
-        domainName={domain.name}
-        domainColor={'var(--sk-accent)'}
-        domainLogo={domain.logoUrl}
-        t={t}
-      />
 
       <main className="sk-page-main" style={{ width: '100%', padding: '24px 24px 56px' }}>
         {/* En-tête : titre à gauche, actions à droite sur la même rangée */}
@@ -527,9 +439,49 @@ export default function CdiMonProfilPage() {
             gap: 16,
           }}
         >
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--sk-text)', margin: 0, letterSpacing: '-0.4px' }}>
-            {t('page_title')}
-          </h1>
+          {/* LA PASTILLE DE VÉRIFICATION SUIT LE TITRE, ELLE NE DISPARAÎT PAS.
+              Elle vivait dans l'en-tête maison que cette page rendait
+              elle-même. Cet en-tête part — la coquille partagée en fournit un —
+              mais la coquille ne porte pas cette pastille : la retirer sans
+              rien dire aurait fait perdre au passage l'information que l'expert
+              vient justement chercher ici, l'état de son profil. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--sk-text)', margin: 0, letterSpacing: '-0.4px' }}>
+              {t('page_title')}
+            </h1>
+            <VerificationStatusPill state={verifState} />
+            {/* LE STATUT DE MARCHÉ SUIT, LUI AUSSI. « En poste » / « en
+                recherche » vivait dans l'en-tête maison. C'est un ÉTAT — ses
+                couleurs vert et rouge sont donc légitimes ici, au contraire des
+                numéros de section (§D.12). */}
+            {profile?.cdi_status && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: `color-mix(in srgb, ${STATUS_BADGE_COLORS[profile.cdi_status as CdiStatus]} 8%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${STATUS_BADGE_COLORS[profile.cdi_status as CdiStatus]} 33%, transparent)`,
+                  padding: '5px 12px',
+                  borderRadius: 999,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: STATUS_BADGE_COLORS[profile.cdi_status as CdiStatus],
+                }}
+              >
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: STATUS_BADGE_COLORS[profile.cdi_status as CdiStatus],
+                  }}
+                  aria-hidden
+                />
+                <span>{t(`status_badges.${profile.cdi_status}`)}</span>
+              </div>
+            )}
+          </div>
           <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
             {/* Édition — secondaire (outline) ; garde le lien existant. */}
             <Link
@@ -692,7 +644,7 @@ export default function CdiMonProfilPage() {
         {/* 1. RÉSUMÉ */}
         <div className="sk-card">
           <Card>
-            <SectionHeader n={1} color={SECTION_COLORS[0]} title={t('sections.summary')} />
+            <SectionHeader n={1} title={t('sections.summary')} />
             {profile.summary ? (
               <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
                 {profile.summary}
@@ -706,7 +658,7 @@ export default function CdiMonProfilPage() {
         {/* 2. EXPERTISE */}
         <div className="sk-card">
           <Card>
-            <SectionHeader n={2} color={SECTION_COLORS[1]} title={t('sections.expertise')} />
+            <SectionHeader n={2} title={t('sections.expertise')} />
             <ExpertiseSection
               profile={profile}
               branches={branches}
@@ -720,7 +672,7 @@ export default function CdiMonProfilPage() {
         {/* 3. RECHERCHE */}
         <div className="sk-card">
           <Card>
-            <SectionHeader n={3} color={SECTION_COLORS[2]} title={t('sections.search_preferences')} />
+            <SectionHeader n={3} title={t('sections.search_preferences')} />
             <CdiPreferencesDisplay
               contractTypes={profile.cdi_contract_types}
               workModes={profile.work_modes}
@@ -735,7 +687,7 @@ export default function CdiMonProfilPage() {
         {/* 4. RÉMUNÉRATION */}
         <div className="sk-card">
           <Card>
-            <SectionHeader n={4} color={SECTION_COLORS[3]} title={t('sections.compensation')} />
+            <SectionHeader n={4} title={t('sections.compensation')} />
             <CdiSalaryDisplay
               min={profile.cdi_salary_min}
               max={profile.cdi_salary_max}
@@ -747,7 +699,7 @@ export default function CdiMonProfilPage() {
         {/* 5. CERTIFICATIONS */}
         <div className="sk-card">
           <Card>
-            <SectionHeader n={5} color={SECTION_COLORS[4]} title={t('sections.certifications')} />
+            <SectionHeader n={5} title={t('sections.certifications')} />
             <CertificationsSection certifications={profile.certifications ?? []} t={t} />
           </Card>
         </div>
@@ -755,7 +707,7 @@ export default function CdiMonProfilPage() {
         {/* 6. PARCOURS PROFESSIONNEL */}
         <div className="sk-card">
           <Card>
-            <SectionHeader n={6} color={SECTION_COLORS[5]} title={t('sections.career')} />
+            <SectionHeader n={6} title={t('sections.career')} />
             <ExperiencesSection
               experiences={experiences.filter(e => e.experience_type === 'career')}
               locale={locale}
@@ -768,7 +720,7 @@ export default function CdiMonProfilPage() {
         {/* 7. MISSIONS / PROJETS */}
         <div className="sk-card">
           <Card>
-            <SectionHeader n={7} color={SECTION_COLORS[6]} title={t('sections.missions')} />
+            <SectionHeader n={7} title={t('sections.missions')} />
             <ExperiencesSection
               experiences={experiences.filter(e => e.experience_type === 'project')}
               locale={locale}
@@ -782,7 +734,7 @@ export default function CdiMonProfilPage() {
         {/* 8. FORMATION */}
         <div className="sk-card">
           <Card>
-            <SectionHeader n={8} color={SECTION_COLORS[7]} title={t('sections.education')} />
+            <SectionHeader n={8} title={t('sections.education')} />
             <EducationSection educations={educations} t={t} />
           </Card>
         </div>
@@ -790,7 +742,7 @@ export default function CdiMonProfilPage() {
         {/* 9. LANGUES */}
         <div className="sk-card">
           <Card>
-            <SectionHeader n={9} color={SECTION_COLORS[8]} title={t('sections.languages')} />
+            <SectionHeader n={9} title={t('sections.languages')} />
             <LanguagesSection
               languages={languages}
               fallbackLanguages={profile.languages}
@@ -803,7 +755,7 @@ export default function CdiMonProfilPage() {
         {/* 10. CAREER GOALS */}
         <div className="sk-card">
           <Card>
-            <SectionHeader n={10} color={SECTION_COLORS[9]} title={t('sections.career_goals')} />
+            <SectionHeader n={10} title={t('sections.career_goals')} />
             {profile.cdi_career_goals ? (
               <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
                 {profile.cdi_career_goals}
@@ -817,7 +769,7 @@ export default function CdiMonProfilPage() {
         {/* 11. CONFIDENTIALITÉ */}
         <div className="sk-card">
           <Card>
-            <SectionHeader n={11} color={SECTION_COLORS[10]} title={t('sections.confidentiality')} />
+            <SectionHeader n={11} title={t('sections.confidentiality')} />
             {profile.cdi_confidential_mode ? (
               <div
                 style={{
@@ -846,7 +798,7 @@ export default function CdiMonProfilPage() {
         {/* 12. LIENS */}
         <div className="sk-card">
           <Card>
-            <SectionHeader n={12} color={SECTION_COLORS[11]} title={t('sections.links')} />
+            <SectionHeader n={12} title={t('sections.links')} />
             <LinksSection profile={profile} domainColor={'var(--sk-accent)'} t={t} />
           </Card>
         </div>
@@ -866,115 +818,6 @@ export default function CdiMonProfilPage() {
 }
 
 // =========================================================================
-// HEADER (top bar avec logo + LanguageSwitcher + status badge)
-// =========================================================================
-function Header({
-  user,
-  profile,
-  domainName,
-  domainColor,
-  domainLogo,
-  t,
-}: {
-  user: CdiUser | null
-  profile: CdiProfile | null
-  domainName: string
-  domainColor: string
-  domainLogo: string | null
-  t: ReturnType<typeof useTranslations<'cdi_profile_view'>>
-}) {
-  const status: CdiStatus | null = profile?.cdi_status ?? null
-  const statusColor = status ? STATUS_BADGE_COLORS[status] : null
-  // Lot bandeau vérif : badge piloté par l'état réel (plus de vert affiché à
-  // tort quand pending_admin_review). Le badge "marché" cdi_status est distinct.
-  const verifState = deriveVerificationUiState({
-    visible: profile?.visible ?? null,
-    verificationStatus: profile?.verification_status ?? null,
-  })
-
-  return (
-    <div
-      className="sk-header-row"
-      style={{
-        background: 'var(--sk-surface)',
-        borderBottom: '1px solid var(--sk-border)',
-        padding: '0 24px',
-        height: 58,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 9,
-            background: domainColor,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          {/* Repli sur ABSENCE *et* ÉCHEC — cf. ImageOuRepli. */}
-          <ImageOuRepli
-            src={domainLogo}
-            alt={domainName}
-            width={18}
-            height={18}
-            repli={(
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19"
-                stroke="white"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </svg>
-            )}
-          />
-        </div>
-        <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--sk-text)' }}>{domainName}</span>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <LanguageSwitcher />
-        {/* C6 : pastille de statut = SOURCE UNIQUE (VerificationStatusPill),
-            rendue par les 5 états réels. Parité stricte avec freelance. */}
-        <VerificationStatusPill state={verifState} />
-        {status && statusColor && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              background: `color-mix(in srgb, ${statusColor} 8%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${statusColor} 33%, transparent)`,
-              padding: '5px 12px',
-              borderRadius: 999,
-              fontSize: 12,
-              fontWeight: 600,
-              color: statusColor,
-            }}
-          >
-            <span
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: '50%',
-                background: statusColor,
-              }}
-              aria-hidden
-            />
-            <span>{t(`status_badges.${status}`)}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
 
 // =========================================================================
 // HERO PROFIL (avatar + nom + headline + métadonnées CDI)

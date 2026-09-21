@@ -2393,6 +2393,103 @@ retrouveraient (§E.24).
 `matching_attempted_at` reste `NULL`, leur histoire reste lisible. Ce qui change est ce que la
 supervision **réclame** : une action possible, jamais une action impossible.
 
+<a id="e53"></a>
+### E.53 — UNE EXCEPTION OUVERTE POUR UNE PAGE DEVIENT UN ENDROIT OÙ D'AUTRES TOMBENT.
+
+**Le cas, mesuré le 21/09/2026.** L'espace connecté compte **66 pages** et portait **cinq cadres
+différents** :
+
+| Cadre | Pages | Ce qu'il portait |
+|---|---|---|
+| `DashboardShell` | 38 | barre latérale + en-tête + bouton Retour |
+| le layout admin, en ligne | 24 | barre latérale seule, **aucun en-tête** |
+| une coquille recopiée dans `freelance/mon-profil` | 1 | en-tête maison de **58 px**, `DashboardSidebar` montée à la main — **en trois exemplaires dans le même fichier** |
+| un en-tête maison dans `cdi/mon-profil` | 1 | **ni barre latérale, ni navigation, ni bouton Retour** |
+| `OrganisationSidebar` | **0** | 338 lignes montées par personne |
+
+**LE PIRE EST LE QUATRIÈME.** Une liste d'exclusion sortait `cdi/mon-profil` du cadre partagé, et sa
+justification était écrite dans le layout, en toutes lettres : *« Seule /mon-profil conserve son shell
+inline custom (**elle rend DashboardSidebar elle-même**) »*.
+
+> **C'ÉTAIT FAUX, ET MESURABLE EN UN `grep`.** `DashboardSidebar` n'était importée nulle part dans
+> cette page. L'expert qui ouvrait son profil n'avait plus **aucun lien** vers le reste du produit —
+> seulement le bouton « précédent » du navigateur. Le commentaire avait **survécu au code qu'il
+> décrivait**, et c'est lui qui défendait l'exclusion (§E.7 : un commentaire n'a jamais rendu une
+> barre latérale).
+
+**LA FORME DU DÉFAUT, ET C'EST ELLE QU'IL FAUT RETENIR.** La liste se décrivait elle-même comme
+« **TEMPORAIRE** — à supprimer dès que /mon-profil est refactorisée ». Elle a tenu assez longtemps
+pour que **deux pages voisines y tombent par accident** : `/profil` et `/profil/valider`, qui ne
+rendaient aucun cadre, se sont affichées **nues** — le commentaire du correctif qui les en a sorties
+le raconte. La liste, elle, est restée.
+
+*Une exception ouverte pour UNE page devient un endroit où d'autres tombent, et le cadre cesse
+d'être une garantie pour devenir une habitude.*
+
+**Trois défauts plus discrets, trouvés en tirant sur le fil :**
+① **Le squelette de chargement peignait une FAUSSE coquille** — faux en-tête de 58 px, fausse barre
+   latérale de 248 px, tous deux en `--sk-surface`. Or la vraie barre est en `--sk-bandeau` et le vrai
+   en-tête fait 60 px : à l'arrivée des données, **le cadre sautait de couleur et de deux pixels**.
+② **Trois pages déjà DANS la coquille peignaient un second plein écran** (`minHeight: 100vh`). Sous
+   un en-tête de 60 px, la page acquiert une barre de défilement de soixante pixels qui ne mène nulle
+   part, et un état de chargement centré passe sous la ligne de flottaison.
+③ **L'en-tête était blanc et la barre latérale beige.** Deux surfaces du même cadre, deux couleurs :
+   `--sk-surface` nomme les **cartes**, `--sk-bandeau` nomme le **cadre**. C'est ce que le
+   propriétaire du produit a vu en premier, et il avait choisi le beige.
+
+**La parade.** Les deux listes d'exclusion sont **supprimées**, les trois coquilles recopiées aussi,
+et `OrganisationSidebar` avec (**règle 0** — elle n'était retenue au dépôt que par un import de
+**type**, donc invisible à toute recherche de « composant jamais utilisé », puisqu'il l'était).
+
+**Contrôle** : [scripts/diag-coquille-unique.mjs](../scripts/diag-coquille-unique.mjs) — **7
+mutations, 7 détections**. Il balaie les 66 pages et refuse : un layout qui rend `children` nus, une
+page qui monte la barre latérale elle-même, une barre de la hauteur d'un en-tête, un second plein
+écran, un en-tête dont le fond diffère de celui de la barre latérale, et le retour du code mort.
+
+> ⚠️ **IL S'ANCRE SUR LE COMPORTEMENT, PAS SUR `LEGACY_SHELL_ROUTES` (§E.34).** Interdire ce nom
+> serait contourné par un renommage. Ce qui est interdit, c'est **le retour sans coquille** —
+> `return <>{children}</>` — et, plus en amont, qu'un layout de cadre **consulte le chemin** :
+> lire `usePathname()` là n'a qu'un usage, faire une exception.
+
+<a id="e54"></a>
+### E.54 — UNE COULEUR D'ÉTAT POSÉE SUR UN ÉLÉMENT DÉCORATIF DIT QUELQUE CHOSE. ELLE MENT.
+
+**Le cas, mesuré le même jour.** Les **quatre** pages de profil expert numérotaient leurs sections
+avec une pastille colorée, et chacune portait **sa propre table de couleurs**, sous trois noms
+différents (`SECTION_PALETTE`, `SECTION_COLORS`, `SECTION_COLORS`) :
+
+| Écran | Ce que peignaient les couleurs d'état |
+|---|---|
+| `freelance/mon-profil` | « Missions » en **ROUGE**, « Langues » en **AMBRE**, « Disponibilité » en **VERT** |
+| `cdi/mon-profil` | deux **VERTS**, un **AMBRE**, un **ROUGE** sur douze sections |
+| `freelance/profil/valider` | « Coordonnées » en **AMBRE**, « Missions » en **ROUGE** |
+| `cdi/profil/valider` | trois **AMBRE**, un **VERT**, un **ROUGE** |
+
+**§D.12 réserve ces trois couleurs à un ÉTAT** — *« les rendre réglables inviterait à peindre une
+erreur en vert »*. Un formulaire dont la section 5 est rouge dit à celui qui le remplit qu'il s'y est
+trompé. **Elle ne disait rien du tout : le rouge y était décoratif.**
+
+Et ce n'était pas seulement le numéro : la même table peignait **des pastilles de frise, des puces de
+liste et des étiquettes** — quatorze usages sur la seule page freelance.
+
+**Ce que la première tentative de correctif a raté, et ce que ça enseigne.** Le script supprimait les
+tables, en supposant qu'elles ne servaient qu'aux en-têtes. `tsc` a répondu en une seconde
+(« Cannot find name 'SECTION_PALETTE' ») et a trouvé au passage un `action` que le composant partagé
+n'avait pas. *Une supposition sur l'usage d'un symbole se vérifie en comptant ses lecteurs, pas en
+lisant son nom.*
+
+**La parade n'est pas une consigne, c'est l'ABSENCE DU CHAMP.** Il existe désormais **un** composant
+([components/dashboard/SectionHeader.tsx](../components/dashboard/SectionHeader.tsx)) pour les quatre
+écrans, et **il n'accepte pas de couleur**. Les quatre tables ont disparu avec : une table qui rend
+toujours la même valeur n'est plus une table, c'est une **invitation** — elle a exactement la forme
+qu'il faut pour qu'on y remette du vert, et c'est comme ça qu'il y est arrivé (§E.31).
+
+> **CE QUI RESTE LÉGITIME, ET QUI EST DIT PLUTÔT QUE BALAYÉ (§E.38).** Le statut de marché d'un
+> expert CDI — « en poste » en rouge, « en recherche » en vert — **est** un état : ses couleurs sont
+> justes, et la pastille a été **déplacée**, pas supprimée, quand l'en-tête maison qui la portait a
+> disparu. Aucun motif ne distingue une couleur d'état d'une couleur décorative : cette moitié-là se
+> lit écran par écran, exactement comme la règle `--sk-faint` de §D.12.
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
