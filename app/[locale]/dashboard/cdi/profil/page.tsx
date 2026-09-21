@@ -604,7 +604,7 @@ export default function CdiProfilUploadPage() {
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
                 {t('card_linkedin.dropzone_label')}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--sk-faint)', fontWeight: 500 }}>
+              <div style={{ fontSize: 11, color: 'var(--sk-muted)', fontWeight: 500 }}>
                 {t('card_linkedin.dropzone_hint')}
               </div>
             </button>

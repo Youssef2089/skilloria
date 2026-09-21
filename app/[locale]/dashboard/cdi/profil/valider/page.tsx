@@ -1807,7 +1807,7 @@ export default function CdiValiderProfilPage() {
                       summary.trim().length > 0 &&
                       (summary.trim().length < RESUME_MIN || summary.trim().length > RESUME_MAX)
                         ? 'var(--sk-red)'
-                        : 'var(--sk-faint)',
+                        : 'var(--sk-muted)',
                     marginTop: 4,
                     fontFamily: fontJakarta,
                   }}
@@ -1964,7 +1964,7 @@ export default function CdiValiderProfilPage() {
               >
                 <label style={labelStyle}>
                   {tWorkZones('label')}{' '}
-                  <span style={{ color: 'var(--sk-faint)', fontWeight: 400 }}>· {tWorkZones('hint')}</span>
+                  <span style={{ color: 'var(--sk-muted)', fontWeight: 400 }}>· {tWorkZones('hint')}</span>
                 </label>
                 <WorkZoneSelector
                   zones={workZones}
@@ -1982,7 +1982,7 @@ export default function CdiValiderProfilPage() {
               >
                 <label style={labelStyle}>
                   {tProfile('sections.expertise.skills_label')}{' '}
-                  <span style={{ color: 'var(--sk-faint)', fontWeight: 400 }}>
+                  <span style={{ color: 'var(--sk-muted)', fontWeight: 400 }}>
                     · {skills.length}{' '}
                     {skills.length < 3 ? tProfile('sections.expertise.skills_min_hint') : ''}
                   </span>
@@ -2108,7 +2108,7 @@ export default function CdiValiderProfilPage() {
                   <div
                     style={{
                       fontSize: 11,
-                      color: 'var(--sk-faint)',
+                      color: 'var(--sk-muted)',
                       marginTop: 4,
                       fontFamily: fontJakarta,
                     }}
@@ -2290,7 +2290,7 @@ export default function CdiValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 11,
-                    color: 'var(--sk-faint)',
+                    color: 'var(--sk-muted)',
                     marginTop: 4,
                     fontFamily: fontJakarta,
                   }}
@@ -2385,7 +2385,7 @@ export default function CdiValiderProfilPage() {
               <div>
                 <label style={labelStyle}>
                   {tProfile('sections.preferences.work_modes_label')}{' '}
-                  <span style={{ color: 'var(--sk-faint)', fontWeight: 400 }}>
+                  <span style={{ color: 'var(--sk-muted)', fontWeight: 400 }}>
                     · {tProfile('sections.preferences.work_modes_hint')}
                   </span>
                 </label>
@@ -2453,7 +2453,7 @@ export default function CdiValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 13,
-                    color: 'var(--sk-faint)',
+                    color: 'var(--sk-muted)',
                     padding: '10px 0 14px',
                     fontFamily: fontJakarta,
                   }}
@@ -2569,7 +2569,7 @@ export default function CdiValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 13,
-                    color: 'var(--sk-faint)',
+                    color: 'var(--sk-muted)',
                     padding: '4px 0 12px',
                     fontFamily: fontJakarta,
                   }}
@@ -2638,7 +2638,7 @@ export default function CdiValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 13,
-                    color: 'var(--sk-faint)',
+                    color: 'var(--sk-muted)',
                     padding: '4px 0 12px',
                     fontFamily: fontJakarta,
                   }}
@@ -2703,7 +2703,7 @@ export default function CdiValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 13,
-                    color: 'var(--sk-faint)',
+                    color: 'var(--sk-muted)',
                     padding: '4px 0 14px',
                     fontFamily: fontJakarta,
                   }}
@@ -2875,7 +2875,7 @@ export default function CdiValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 13,
-                    color: 'var(--sk-faint)',
+                    color: 'var(--sk-muted)',
                     padding: '4px 0 10px',
                     fontFamily: fontJakarta,
                   }}
@@ -3158,7 +3158,7 @@ export default function CdiValiderProfilPage() {
                       style={{
                         flex: 1,
                         background: canPublish ? 'var(--sk-accent)' : 'var(--sk-surface-2)',
-                        color: canPublish ? 'var(--sk-sur-accent)' : 'var(--sk-faint)',
+                        color: canPublish ? 'var(--sk-sur-accent)' : 'var(--sk-muted)',
                         border: canPublish ? 'none' : '1px solid var(--sk-border)',
                         borderRadius: 12,
                         padding: 13,

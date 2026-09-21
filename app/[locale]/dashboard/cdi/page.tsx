@@ -697,7 +697,7 @@ export default function DashboardCDI() {
               {/* C3 : lien désactivé tant que non vérifié (rien à voir avant
                   validation), même traitement que côté freelance. */}
               {!isVerified
-                ? <span style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-faint)', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('suggestions_section.locked_chip')}</span>
+                ? <span style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-muted)', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('suggestions_section.locked_chip')}</span>
                 : <Link href="/dashboard/cdi/missions" style={{ color: 'var(--sk-accent)', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>{t('suggestions_section.see_all')}</Link>}
             </div>
             {!isApprovedState ? (
@@ -822,7 +822,7 @@ export default function DashboardCDI() {
                   padding: 20,
                   textAlign: 'center',
                   fontSize: 14,
-                  color: 'var(--sk-faint)',
+                  color: 'var(--sk-muted)',
                 }}
               >
                 {t('loading')}

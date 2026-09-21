@@ -733,7 +733,7 @@ export default function DashboardFreelance() {
               {/* C3 : lien désactivé tant que non vérifié (rien à voir avant
                   validation), même traitement que le bloc Collaboration. */}
               {!isVerified
-                ? <span style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-faint)', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('cards.locked_chip')}</span>
+                ? <span style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-muted)', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('cards.locked_chip')}</span>
                 : <Link href="/dashboard/freelance/missions" className="voir-tout" style={{ color: 'var(--sk-accent)' }}>{t('cards.see_all')}</Link>}
             </div>
             {!isApproved ? (
@@ -824,7 +824,7 @@ export default function DashboardFreelance() {
                 <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--sk-text)' }}>{t('cards.your_candidatures.title')}</span>
                 {/* C3 : lien désactivé tant que non vérifié. */}
                 {!isVerified
-                  ? <span style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-faint)', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('cards.locked_chip')}</span>
+                  ? <span style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-muted)', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('cards.locked_chip')}</span>
                   : <Link href="/dashboard/freelance/candidatures" className="voir-tout" style={{ color: 'var(--sk-accent)' }}>{t('cards.see_all')}</Link>}
               </div>
               {recentCandidatures === null ? (

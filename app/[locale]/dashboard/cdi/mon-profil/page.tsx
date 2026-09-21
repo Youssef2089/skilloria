@@ -120,7 +120,7 @@ function Empty({ text }: { text: string }) {
     <div
       style={{
         fontSize: 14,
-        color: 'var(--sk-faint)',
+        color: 'var(--sk-muted)',
         fontStyle: 'italic',
         padding: '4px 0',
       }}
@@ -798,7 +798,7 @@ export default function CdiMonProfilPage() {
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize: 14, color: 'var(--sk-faint)', fontStyle: 'italic' }}>
+              <div style={{ fontSize: 14, color: 'var(--sk-muted)', fontStyle: 'italic' }}>
                 {t('labels.confidential_mode_active')} — Off
               </div>
             )}
@@ -1085,7 +1085,7 @@ function MetaItem({ label, value }: { label: string; value: string | null }) {
       >
         {label}
       </div>
-      <div style={{ fontSize: 14, color: value ? 'var(--sk-text)' : 'var(--sk-faint)', fontStyle: value ? 'normal' : 'italic' }}>
+      <div style={{ fontSize: 14, color: value ? 'var(--sk-text)' : 'var(--sk-muted)', fontStyle: value ? 'normal' : 'italic' }}>
         {value ?? '—'}
       </div>
     </div>

@@ -149,7 +149,7 @@ function EmptyText({ children }: { children: React.ReactNode }) {
     <div
       style={{
         fontSize: 14,
-        color: 'var(--sk-faint)',
+        color: 'var(--sk-muted)',
         fontStyle: 'italic',
         lineHeight: 1.6,
       }}
@@ -1055,12 +1055,12 @@ export default function MonProfilPage() {
                   )}
                 </div>
                 <div style={{ fontSize: 15, color: 'var(--sk-muted)', fontWeight: 500, marginBottom: 8 }}>
-                  {headline ?? <span style={{ fontStyle: 'italic', color: 'var(--sk-faint)' }}>{t('header.no_title')}</span>}
+                  {headline ?? <span style={{ fontStyle: 'italic', color: 'var(--sk-muted)' }}>{t('header.no_title')}</span>}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', fontSize: 13, color: 'var(--sk-muted)' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                     {country?.flag_emoji ? <span aria-hidden style={{ fontSize: 16 }}>{country.flag_emoji}</span> : <span aria-hidden>📍</span>}
-                    {cityCountry ?? <span style={{ fontStyle: 'italic', color: 'var(--sk-faint)' }}>{t('header.location_unknown')}</span>}
+                    {cityCountry ?? <span style={{ fontStyle: 'italic', color: 'var(--sk-muted)' }}>{t('header.location_unknown')}</span>}
                   </span>
                   {yearsExperience != null && (
                     <>
