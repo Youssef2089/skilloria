@@ -345,7 +345,7 @@ export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
             style={{
               background: 'transparent',
               border: 'none',
-              color: 'var(--sk-faint)',
+              color: 'var(--sk-muted)',
               fontSize: 22,
               lineHeight: 1,
               cursor: saving ? 'not-allowed' : 'pointer',

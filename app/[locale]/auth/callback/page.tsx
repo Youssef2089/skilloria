@@ -130,7 +130,7 @@ export default function AuthCallbackPage() {
       <div
       style={{
         minHeight: '100vh',
-        background: '#f8fafc',
+        background: 'var(--sk-surface-2)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -171,7 +171,7 @@ export default function AuthCallbackPage() {
               />
             </svg>
           </div>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
+          <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--sk-text)' }}>
             {domain.name}
           </span>
         </div>
@@ -180,13 +180,13 @@ export default function AuthCallbackPage() {
 
       <div
         style={{
-          background: '#fff',
+          background: 'var(--sk-surface)',
           borderRadius: 24,
-          border: '1px solid #e2e8f0',
+          border: '1px solid var(--sk-border)',
           padding: '48px 40px',
           width: '100%',
           maxWidth: 440,
-          boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+          boxShadow: '0 4px 24px color-mix(in srgb, var(--sk-encre) 6%, transparent)',
           textAlign: 'center',
         }}
       >
@@ -206,11 +206,11 @@ export default function AuthCallbackPage() {
               }}
             />
             <h1
-              style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}
+              style={{ fontSize: 20, fontWeight: 800, color: 'var(--sk-text)', marginBottom: 8 }}
             >
               {t('verifying_title')}
             </h1>
-            <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.6 }}>
               {t('verifying_subtitle')}
             </p>
             <style>{`
@@ -227,7 +227,7 @@ export default function AuthCallbackPage() {
                 width: 72,
                 height: 72,
                 borderRadius: '50%',
-                background: '#fef2f2',
+                background: 'var(--sk-red-soft)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -237,7 +237,7 @@ export default function AuthCallbackPage() {
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
                 <path
                   d="M12 8v5M12 16h.01M3 12a9 9 0 1018 0 9 9 0 00-18 0z"
-                  stroke="#dc2626"
+                  style={{ stroke: 'var(--sk-red)' }}
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -245,14 +245,14 @@ export default function AuthCallbackPage() {
               </svg>
             </div>
             <h1
-              style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}
+              style={{ fontSize: 20, fontWeight: 800, color: 'var(--sk-text)', marginBottom: 8 }}
             >
               {t('error_title')}
             </h1>
             <p
               style={{
                 fontSize: 14,
-                color: '#64748b',
+                color: 'var(--sk-muted)',
                 lineHeight: 1.6,
                 marginBottom: 28,
               }}
@@ -266,7 +266,7 @@ export default function AuthCallbackPage() {
                 width: '100%',
                 padding: 13,
                 background: domain.primaryColor,
-                color: '#fff',
+                color: 'var(--sk-surface)',
                 border: 'none',
                 borderRadius: 12,
                 fontSize: 15,

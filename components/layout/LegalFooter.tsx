@@ -31,7 +31,7 @@ export default function LegalFooter() {
         alignItems: 'center',
         justifyContent: 'space-between',
         fontSize: 11,
-        color: 'var(--color-text-tertiary, var(--sk-faint))',
+        color: 'var(--color-text-tertiary, var(--sk-muted))',
       }}
     >
       <span>{t('copyright', { year, name: domain.name })}</span>

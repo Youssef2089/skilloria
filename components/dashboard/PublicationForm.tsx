@@ -566,45 +566,45 @@ export default function PublicationForm(props: Props) {
     display: 'block',
     fontSize: 13,
     fontWeight: 600,
-    color: '#334155',
+    color: 'var(--sk-text)',
     marginBottom: 6,
   }
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '11px 14px',
     fontSize: 14,
-    border: '1px solid #cbd5e1',
+    border: '1px solid var(--sk-border)',
     borderRadius: 8,
     outline: 'none',
     fontFamily: 'inherit',
-    background: '#fff',
-    color: '#0f172a',
+    background: 'var(--sk-surface)',
+    color: 'var(--sk-text)',
     boxSizing: 'border-box',
   }
-  const errorInputBorder = '1px solid #dc2626'
+  const errorInputBorder = '1px solid var(--sk-red)'
   const sectionTitleStyle: React.CSSProperties = {
     fontSize: 12,
     fontWeight: 700,
     textTransform: 'uppercase',
     letterSpacing: '.08em',
-    color: '#64748b',
+    color: 'var(--sk-muted)',
     marginBottom: 14,
   }
   const sectionStyle: React.CSSProperties = {
-    background: '#fff',
-    border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+    background: 'var(--sk-surface)',
+    border: '0.5px solid var(--color-border-tertiary, var(--sk-border))',
     borderRadius: 14,
     padding: '22px 24px',
     marginBottom: 18,
   }
   const fieldErrorStyle: React.CSSProperties = {
     fontSize: 12,
-    color: '#dc2626',
+    color: 'var(--sk-red)',
     marginTop: 4,
   }
   const helpStyle: React.CSSProperties = {
     fontSize: 12,
-    color: '#94a3b8',
+    color: 'var(--sk-muted)',
     marginTop: 4,
   }
   function radioPill(active: boolean): React.CSSProperties {
@@ -613,13 +613,13 @@ export default function PublicationForm(props: Props) {
       alignItems: 'center',
       gap: 8,
       padding: '10px 16px',
-      border: `1.5px solid ${active ? domain.primaryColor : '#cbd5e1'}`,
+      border: `1.5px solid ${active ? domain.primaryColor : 'var(--sk-border)'}`,
       borderRadius: 10,
-      background: active ? `color-mix(in srgb, ${domain.primaryColor} 6%, transparent)` : '#fff',
+      background: active ? `color-mix(in srgb, ${domain.primaryColor} 6%, transparent)` : 'var(--sk-surface)',
       cursor: 'pointer',
       fontSize: 13,
       fontWeight: 600,
-      color: active ? domain.primaryColor : '#475569',
+      color: active ? domain.primaryColor : 'var(--sk-muted)',
       userSelect: 'none',
     }
   }
@@ -634,8 +634,8 @@ export default function PublicationForm(props: Props) {
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 20px', textAlign: 'center' }}>
         <div
           style={{
-            background: outcome.kind === 'published' ? '#DCFCE7' : '#FEF9C3',
-            border: `1px solid ${outcome.kind === 'published' ? '#86EFAC' : '#FDE047'}`,
+            background: outcome.kind === 'published' ? 'var(--sk-success-soft)' : 'var(--sk-amber-soft)',
+            border: `1px solid ${outcome.kind === 'published' ? 'var(--sk-success-soft)' : 'var(--sk-amber-soft)'}`,
             borderRadius: 16,
             padding: '36px 28px',
             marginBottom: 24,
@@ -645,16 +645,16 @@ export default function PublicationForm(props: Props) {
             style={{
               fontSize: 20,
               fontWeight: 700,
-              color: outcome.kind === 'published' ? '#166534' : '#854D0E',
+              color: outcome.kind === 'published' ? 'var(--sk-success)' : 'var(--sk-amber)',
               marginBottom: 8,
             }}
           >
             {outcome.kind === 'published' ? t('gate.published_title') : t('gate.pending_title')}
           </div>
-          <div style={{ fontSize: 14, color: '#475569', lineHeight: 1.6, marginBottom: 16 }}>
+          <div style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.6, marginBottom: 16 }}>
             {outcome.kind === 'published' ? t('gate.published_body') : t('gate.pending_body')}
           </div>
-          <div style={{ fontSize: 13, color: '#64748b' }}>
+          <div style={{ fontSize: 13, color: 'var(--sk-muted)' }}>
             {t('gate.score_label', { score: Math.round(outcome.score) })}
           </div>
         </div>
@@ -664,7 +664,7 @@ export default function PublicationForm(props: Props) {
           style={{
             padding: '12px 22px',
             background: domain.primaryColor,
-            color: '#fff',
+            color: 'var(--sk-surface)',
             border: 'none',
             borderRadius: 10,
             fontSize: 14,
@@ -682,15 +682,15 @@ export default function PublicationForm(props: Props) {
   // ── Form principal ─────────────────────────────────────────────────────
   return (
     <div style={{ maxWidth: 880, padding: '24px 26px 40px', fontFamily: 'inherit' }}>
-      <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', marginBottom: 6, letterSpacing: '-0.3px' }}>
+      <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 6, letterSpacing: '-0.3px' }}>
         {headerTitle}
       </h1>
-      <p style={{ fontSize: 14, color: '#64748b', marginBottom: 24, lineHeight: 1.55 }}>
+      <p style={{ fontSize: 14, color: 'var(--sk-muted)', marginBottom: 24, lineHeight: 1.55 }}>
         {t('form.subtitle')}
       </p>
 
       {taxonomyError && (
-        <div role="alert" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 18 }}>
+        <div role="alert" style={{ background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 18 }}>
           {t('errors.generic')}
         </div>
       )}
@@ -699,9 +699,9 @@ export default function PublicationForm(props: Props) {
         <div
           role="alert"
           style={{
-            background: LIMITES_COMMERCE.has(errorCode ?? '') ? '#fffbeb' : '#fef2f2',
-            border: `1px solid ${LIMITES_COMMERCE.has(errorCode ?? '') ? '#fde68a' : '#fecaca'}`,
-            color: LIMITES_COMMERCE.has(errorCode ?? '') ? '#92400e' : '#b91c1c',
+            background: LIMITES_COMMERCE.has(errorCode ?? '') ? 'var(--sk-amber-soft)' : 'var(--sk-red-soft)',
+            border: `1px solid ${LIMITES_COMMERCE.has(errorCode ?? '') ? 'var(--sk-amber-soft)' : 'var(--sk-red-soft)'}`,
+            color: LIMITES_COMMERCE.has(errorCode ?? '') ? 'var(--sk-amber)' : 'var(--sk-red)',
             padding: '10px 14px',
             borderRadius: 8,
             fontSize: 13,
@@ -714,7 +714,7 @@ export default function PublicationForm(props: Props) {
               et elle porte l'issue qui reste quand le formulaire ne peut rien
               corriger. Aucun bouton de paiement — le verrou est fermé. */}
           {LIMITES_COMMERCE.has(errorCode ?? '') && (
-            <p style={{ margin: '6px 0 0', fontSize: 12.5, color: '#a16207' }}>
+            <p style={{ margin: '6px 0 0', fontSize: 12.5, color: 'var(--sk-amber)' }}>
               {tCommerce('need_more_contact')}
             </p>
           )}
@@ -722,7 +722,7 @@ export default function PublicationForm(props: Props) {
       )}
 
       {successMsg && (
-        <div role="status" style={{ background: '#DCFCE7', border: '1px solid #86EFAC', color: '#166534', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 18 }}>
+        <div role="status" style={{ background: 'var(--sk-success-soft)', border: '1px solid var(--sk-success-soft)', color: 'var(--sk-success)', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 18 }}>
           {successMsg}
         </div>
       )}
@@ -930,7 +930,7 @@ export default function PublicationForm(props: Props) {
               style={{
                 padding: '0 18px',
                 background: domain.primaryColor,
-                color: '#fff',
+                color: 'var(--sk-surface)',
                 border: 'none',
                 borderRadius: 8,
                 fontSize: 13,
@@ -951,8 +951,8 @@ export default function PublicationForm(props: Props) {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 6,
-                    background: '#f1f5f9',
-                    color: '#334155',
+                    background: 'var(--sk-surface-2)',
+                    color: 'var(--sk-text)',
                     padding: '4px 10px',
                     borderRadius: 12,
                     fontSize: 12,
@@ -964,7 +964,7 @@ export default function PublicationForm(props: Props) {
                     type="button"
                     onClick={() => removeSkill(skill)}
                     aria-label={t('form.field_skills_remove_aria', { skill })}
-                    style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1 }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--sk-border)', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1 }}
                   >×</button>
                 </span>
               ))}
@@ -1052,14 +1052,14 @@ export default function PublicationForm(props: Props) {
               onChange={(e) => setField('confidential', e.target.checked)}
               style={{ marginTop: 3, accentColor: domain.primaryColor }}
             />
-            <span style={{ fontSize: 13, color: '#334155', lineHeight: 1.55 }}>
+            <span style={{ fontSize: 13, color: 'var(--sk-text)', lineHeight: 1.55 }}>
               <strong>{t('form.field_confidential')}</strong>
-              <span style={{ display: 'block', color: '#64748b', marginTop: 4 }}>
+              <span style={{ display: 'block', color: 'var(--sk-muted)', marginTop: 4 }}>
                 {t('form.field_confidential_help')}
               </span>
             </span>
           </label>
-          <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.5 }}>
             {t('form.completion_hint')}
           </div>
         </div>
@@ -1071,7 +1071,7 @@ export default function PublicationForm(props: Props) {
             disabled={saving || publishing}
             style={{
               padding: '12px 22px',
-              background: '#fff',
+              background: 'var(--sk-surface)',
               color: domain.primaryColor,
               border: `1.5px solid ${domain.primaryColor}`,
               borderRadius: 10,
@@ -1091,8 +1091,8 @@ export default function PublicationForm(props: Props) {
             title={!canPublish ? t('form.publish_disabled_reason', { status: tStatus(status) }) : ''}
             style={{
               padding: '12px 22px',
-              background: !canPublish || saving ? '#94a3b8' : domain.primaryColor,
-              color: '#fff',
+              background: !canPublish || saving ? 'var(--sk-muted)' : domain.primaryColor,
+              color: 'var(--sk-surface)',
               border: 'none',
               borderRadius: 10,
               fontSize: 14,
@@ -1113,32 +1113,32 @@ export default function PublicationForm(props: Props) {
           aria-modal="true"
           aria-labelledby="sk-confirm-title"
           style={{
-            position: 'fixed', inset: 0, background: 'rgba(15,23,42,.65)',
+            position: 'fixed', inset: 0, background: 'color-mix(in srgb, var(--sk-encre) 65%, transparent)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: '24px 16px', zIndex: 9999,
           }}
         >
-          <div style={{ background: '#fff', borderRadius: 16, padding: '28px 26px', width: '100%', maxWidth: 520 }}>
-            <h2 id="sk-confirm-title" style={{ fontSize: 19, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
+          <div style={{ background: 'var(--sk-surface)', borderRadius: 16, padding: '28px 26px', width: '100%', maxWidth: 520 }}>
+            <h2 id="sk-confirm-title" style={{ fontSize: 19, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 8 }}>
               {t('form.confirm_publish_title')}
             </h2>
-            <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.6, marginBottom: 14 }}>
+            <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.6, marginBottom: 14 }}>
               {t('form.confirm_publish_body_p1')}
             </p>
-            <ul style={{ fontSize: 13, color: '#475569', lineHeight: 1.6, paddingLeft: 18, marginBottom: 14 }}>
+            <ul style={{ fontSize: 13, color: 'var(--sk-muted)', lineHeight: 1.6, paddingLeft: 18, marginBottom: 14 }}>
               <li>{t('form.confirm_publish_rule_clear')}</li>
               <li>{t('form.confirm_publish_rule_no_contact')}</li>
               <li>{t('form.confirm_publish_rule_no_discrimination')}</li>
               <li>{t('form.confirm_publish_rule_legal')}</li>
             </ul>
-            <p style={{ fontSize: 13, color: '#854D0E', background: '#FEF9C3', border: '1px solid #FDE047', borderRadius: 8, padding: '10px 12px', lineHeight: 1.55, marginBottom: 12 }}>
+            <p style={{ fontSize: 13, color: 'var(--sk-amber)', background: 'var(--sk-amber-soft)', border: '1px solid var(--sk-amber-soft)', borderRadius: 8, padding: '10px 12px', lineHeight: 1.55, marginBottom: 12 }}>
               {t('form.confirm_publish_warning')}
             </p>
             {/* Avertissement d'expiration : date calculée à partir de la durée
                 RÉGLÉE, lue au serveur. Absente ⇒ la phrase n'est pas affichée,
                 plutôt qu'affichée avec une date que le serveur ne tiendra pas. */}
             {vieAnnonceJours !== null && (
-              <p style={{ fontSize: 13, color: '#334155', lineHeight: 1.55, marginBottom: 18 }}>
+              <p style={{ fontSize: 13, color: 'var(--sk-text)', lineHeight: 1.55, marginBottom: 18 }}>
                 {t('form.confirm_publish_expiry', {
                   date: new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(
                     new Date(Date.now() + vieAnnonceJours * 24 * 60 * 60 * 1000),
@@ -1153,8 +1153,8 @@ export default function PublicationForm(props: Props) {
                 style={{
                   padding: '10px 18px',
                   background: 'transparent',
-                  color: '#64748b',
-                  border: '1px solid #cbd5e1',
+                  color: 'var(--sk-muted)',
+                  border: '1px solid var(--sk-border)',
                   borderRadius: 10,
                   fontSize: 13,
                   fontWeight: 600,
@@ -1170,7 +1170,7 @@ export default function PublicationForm(props: Props) {
                 style={{
                   padding: '10px 18px',
                   background: domain.primaryColor,
-                  color: '#fff',
+                  color: 'var(--sk-surface)',
                   border: 'none',
                   borderRadius: 10,
                   fontSize: 13,

@@ -88,7 +88,7 @@ export default function ExpertOnboardingGuide({
           const isCurrent = step.state === 'current'
           const isDone = step.state === 'done'
           const dotBg = isDone ? 'var(--sk-success)' : isCurrent ? 'var(--sk-accent)' : 'var(--sk-border)'
-          const dotFg = isDone || isCurrent ? 'var(--sk-sur-accent)' : 'var(--sk-faint)'
+          const dotFg = isDone || isCurrent ? 'var(--sk-sur-accent)' : 'var(--sk-muted)'
           const href = STEP_HREF[step.key]
           const dotSize = isCurrent ? 26 : 22
           return (
@@ -116,12 +116,12 @@ export default function ExpertOnboardingGuide({
                 {isDone ? '✓' : i + 1}
               </span>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: isCurrent ? 700 : 600, color: isDone ? 'var(--sk-muted)' : isCurrent ? 'var(--sk-text)' : 'var(--sk-faint)' }}>
+                <div style={{ fontSize: 14, fontWeight: isCurrent ? 700 : 600, color: isDone ? 'var(--sk-muted)' : isCurrent ? 'var(--sk-text)' : 'var(--sk-muted)' }}>
                   {t(`steps.${step.key}.title`)}
                 </div>
                 {/* Description/statut : UNIQUEMENT sur l'étape courante. */}
                 {isCurrent && (
-                  <div style={{ fontSize: 12, color: 'var(--sk-faint)', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 2 }}>
                     {step.inProgress ? t('status.in_progress') : t('status.current')}
                   </div>
                 )}

@@ -34,7 +34,7 @@ export default async function ContactPage({ params }: PageParams) {
   ])
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#fff', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--sk-surface)', fontFamily: 'Inter, system-ui, sans-serif' }}>
       {/* Header public minimal — identique aux pages légales (LegalPageShell). */}
       <header
         style={{
@@ -43,7 +43,7 @@ export default async function ContactPage({ params }: PageParams) {
           justifyContent: 'space-between',
           gap: 16,
           padding: '16px 24px',
-          borderBottom: '1px solid #eef2f6',
+          borderBottom: '1px solid var(--sk-surface-2)',
         }}
       >
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
@@ -61,7 +61,7 @@ export default async function ContactPage({ params }: PageParams) {
               }
             />
           </span>
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{domain.name}</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--sk-text)' }}>{domain.name}</span>
         </Link>
         <LanguageSwitcher />
       </header>
@@ -69,23 +69,23 @@ export default async function ContactPage({ params }: PageParams) {
       {/* Contenu : pleine largeur, aligné gauche, colonne de lecture bornée. */}
       <main style={{ flex: 1, padding: '32px 24px 56px' }}>
         <div style={{ maxWidth: 640 }}>
-          <h1 style={{ fontSize: 30, fontWeight: 800, color: '#0f172a', lineHeight: 1.25, margin: '0 0 12px' }}>
+          <h1 style={{ fontSize: 30, fontWeight: 800, color: 'var(--sk-text)', lineHeight: 1.25, margin: '0 0 12px' }}>
             {t('title')}
           </h1>
-          <p style={{ fontSize: 15, lineHeight: 1.7, color: '#475569', margin: '0 0 28px' }}>
+          <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--sk-muted)', margin: '0 0 28px' }}>
             {t('intro')}
           </p>
           {locale !== 'fr' && (
             <div
               role="note"
               style={{
-                background: '#f1f5f9',
-                border: '1px solid #e2e8f0',
+                background: 'var(--sk-surface-2)',
+                border: '1px solid var(--sk-border)',
                 borderRadius: 10,
                 padding: '12px 16px',
                 marginBottom: 28,
                 fontSize: 13,
-                color: '#475569',
+                color: 'var(--sk-muted)',
                 lineHeight: 1.5,
               }}
             >

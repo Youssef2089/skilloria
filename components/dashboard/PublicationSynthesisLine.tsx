@@ -158,7 +158,7 @@ export default function PublicationSynthesisLine({
             whiteSpace: 'nowrap',
           }}
         >
-          <span style={{ color: 'var(--sk-faint)', display: 'inline-flex' }}>{c.icon}</span>
+          <span style={{ color: 'var(--sk-muted)', display: 'inline-flex' }}>{c.icon}</span>
           {c.label}
         </span>
       ))}

@@ -62,7 +62,7 @@ export default function CollaborationDashboardBlock({ basePath, isVerified }: Pr
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--sk-text)' }}>{t('title')}</span>
         {!isVerified ? (
-          <span style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-faint)', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('locked_chip')}</span>
+          <span style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-muted)', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('locked_chip')}</span>
         ) : (
           <Link href={`${basePath}/sous-traitance`} style={{ color: 'var(--sk-accent)', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
             {t('see_all')}

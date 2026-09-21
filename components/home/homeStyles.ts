@@ -23,7 +23,7 @@ export function homeStyles(): string {
     @media (min-width:900px){.skh-tabs{padding-top:56px}}
     .skh-tab{appearance:none;font:inherit;cursor:pointer;border-radius:100px;padding:9px 18px;font-size:14px;font-weight:600;
       background:transparent;color:var(--sk-muted);border:1px solid var(--sk-border);transition:background .2s,color .2s,border-color .2s}
-    .skh-tab:hover{color:var(--sk-text);border-color:var(--sk-faint)}
+    .skh-tab:hover{color:var(--sk-text);border-color:var(--sk-muted)}
     .skh-tab[aria-selected="true"]{background:var(--sk-accent);color:var(--sk-sur-accent);border-color:var(--sk-accent)}
     .skh-tab:focus-visible{outline:2px solid var(--sk-accent);outline-offset:2px}
 
@@ -34,7 +34,7 @@ export function homeStyles(): string {
     @media (min-width:1040px){.skh-hero-copy{min-height:330px;display:flex;flex-direction:column;justify-content:center}}
     .skh-h1{font-size:clamp(38px,8vw,60px);font-weight:800;line-height:1.04;letter-spacing:${tightTracking};margin:0 0 18px}
     .skh-lead{font-size:clamp(16px,2.4vw,18px);line-height:1.65;color:var(--sk-muted);margin:0 0 28px;max-width:34ch}
-    .skh-proof{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:16px;font-size:13px;color:var(--sk-faint)}
+    .skh-proof{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:16px;font-size:13px;color:var(--sk-muted)}
 
     .skh-cta{appearance:none;font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:10px;
       background:var(--sk-accent);color:var(--sk-sur-accent);border:1px solid var(--sk-accent);border-radius:100px;

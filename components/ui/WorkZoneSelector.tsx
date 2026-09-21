@@ -147,7 +147,7 @@ export default function WorkZoneSelector({
           >
             {t('suggestion_confirm')}
           </button>
-          <span style={{ fontSize: 12, color: 'var(--sk-faint)' }}>{t('suggestion_not_applied')}</span>
+          <span style={{ fontSize: 12, color: 'var(--sk-muted)' }}>{t('suggestion_not_applied')}</span>
         </div>
       ) : null}
 
@@ -172,7 +172,7 @@ export default function WorkZoneSelector({
             style={styleBouton(selected.includes(c.id))}
           >
             {c.name}
-            <span style={{ color: 'var(--sk-faint)', fontWeight: 400 }}>
+            <span style={{ color: 'var(--sk-muted)', fontWeight: 400 }}>
               · {t('country_count', { count: countryCountOf(liste, c.id) })}
             </span>
           </button>

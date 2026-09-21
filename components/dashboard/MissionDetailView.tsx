@@ -322,30 +322,30 @@ export default function MissionDetailView({
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, fontSize: 13 }}>
           {pub.seniorities.length > 0 && (
-            <div><div style={{ color: 'var(--sk-faint)', fontSize: 11, marginBottom: 2 }}>{tForm('field_seniority')}</div><div>{pub.seniorities.map((s) => translateSeniority(s, tForm)).join(', ')}</div></div>
+            <div><div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 2 }}>{tForm('field_seniority')}</div><div>{pub.seniorities.map((s) => translateSeniority(s, tForm)).join(', ')}</div></div>
           )}
           {pub.work_mode && (
-            <div><div style={{ color: 'var(--sk-faint)', fontSize: 11, marginBottom: 2 }}>{tForm('field_work_mode')}</div><div>{translateWorkMode(pub.work_mode, tForm)}</div></div>
+            <div><div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 2 }}>{tForm('field_work_mode')}</div><div>{translateWorkMode(pub.work_mode, tForm)}</div></div>
           )}
           {pub.work_zone_labels.length > 0 && (
-            <div><div style={{ color: 'var(--sk-faint)', fontSize: 11, marginBottom: 2 }}>{tForm('field_work_zones')}</div><div>{pub.work_zone_labels.join(', ')}</div></div>
+            <div><div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 2 }}>{tForm('field_work_zones')}</div><div>{pub.work_zone_labels.join(', ')}</div></div>
           )}
           {pub.location_note && (
-            <div><div style={{ color: 'var(--sk-faint)', fontSize: 11, marginBottom: 2 }}>{tForm('field_location_note')}</div><div>{pub.location_note}</div></div>
+            <div><div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 2 }}>{tForm('field_location_note')}</div><div>{pub.location_note}</div></div>
           )}
           {pub.duration && (
-            <div><div style={{ color: 'var(--sk-faint)', fontSize: 11, marginBottom: 2 }}>{tForm('field_duration')}</div><div>{pub.duration}</div></div>
+            <div><div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 2 }}>{tForm('field_duration')}</div><div>{pub.duration}</div></div>
           )}
           {pub.start_date && (
-            <div><div style={{ color: 'var(--sk-faint)', fontSize: 11, marginBottom: 2 }}>{tForm('field_start_date')}</div><div>{pub.start_date}</div></div>
+            <div><div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 2 }}>{tForm('field_start_date')}</div><div>{pub.start_date}</div></div>
           )}
           {budgetText && (
-            <div><div style={{ color: 'var(--sk-faint)', fontSize: 11, marginBottom: 2 }}>{t('budget_label')}</div><div>{budgetText}</div></div>
+            <div><div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 2 }}>{t('budget_label')}</div><div>{budgetText}</div></div>
           )}
         </div>
         {pub.skills_required.length > 0 && (
           <div style={{ marginTop: 16 }}>
-            <div style={{ color: 'var(--sk-faint)', fontSize: 11, marginBottom: 6 }}>{tForm('field_skills')}</div>
+            <div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 6 }}>{tForm('field_skills')}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {pub.skills_required.map((skill) => (
                 <span key={skill} style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-text)', padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 500 }}>{skill}</span>

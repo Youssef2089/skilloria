@@ -243,19 +243,19 @@ export default function OrgSetupModal({
     width: '100%',
     padding: '11px 14px',
     fontSize: 14,
-    border: '1px solid #cbd5e1',
+    border: '1px solid var(--sk-border)',
     borderRadius: 8,
     outline: 'none',
     fontFamily: 'inherit',
-    background: '#fff',
-    color: '#0f172a',
+    background: 'var(--sk-surface)',
+    color: 'var(--sk-text)',
     boxSizing: 'border-box',
   }
   const labelStyle: React.CSSProperties = {
     display: 'block',
     fontSize: 13,
     fontWeight: 600,
-    color: '#334155',
+    color: 'var(--sk-text)',
     marginBottom: 6,
   }
   const sectionTitleStyle: React.CSSProperties = {
@@ -263,7 +263,7 @@ export default function OrgSetupModal({
     fontWeight: 700,
     textTransform: 'uppercase',
     letterSpacing: '.08em',
-    color: '#64748b',
+    color: 'var(--sk-muted)',
     marginBottom: 12,
   }
   const sectionStyle: React.CSSProperties = { marginBottom: 24 }
@@ -274,13 +274,13 @@ export default function OrgSetupModal({
       alignItems: 'center',
       gap: 8,
       padding: '10px 14px',
-      border: `1.5px solid ${active ? domain.primaryColor : '#cbd5e1'}`,
+      border: `1.5px solid ${active ? domain.primaryColor : 'var(--sk-border)'}`,
       borderRadius: 10,
-      background: active ? `color-mix(in srgb, ${domain.primaryColor} 6%, transparent)` : '#fff',
+      background: active ? `color-mix(in srgb, ${domain.primaryColor} 6%, transparent)` : 'var(--sk-surface)',
       cursor: 'pointer',
       fontSize: 13,
       fontWeight: 600,
-      color: active ? domain.primaryColor : '#475569',
+      color: active ? domain.primaryColor : 'var(--sk-muted)',
       userSelect: 'none',
     }
   }
@@ -294,7 +294,7 @@ export default function OrgSetupModal({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(15, 23, 42, .65)',
+        background: 'color-mix(in srgb, var(--sk-encre) 65%, transparent)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -307,23 +307,23 @@ export default function OrgSetupModal({
       <form
         onSubmit={handleSubmit}
         style={{
-          background: '#fff',
+          background: 'var(--sk-surface)',
           borderRadius: 20,
           padding: '32px 28px',
           width: '100%',
           maxWidth: 560,
-          boxShadow: '0 20px 50px rgba(0,0,0,.25)',
+          boxShadow: '0 20px 50px color-mix(in srgb, var(--sk-encre) 25%, transparent)',
           marginTop: 'auto',
           marginBottom: 'auto',
         }}
       >
         <h2
           id="org-setup-modal-title"
-          style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', marginBottom: 6 }}
+          style={{ fontSize: 22, fontWeight: 800, color: 'var(--sk-text)', marginBottom: 6 }}
         >
           {t('title')}
         </h2>
-        <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>
+        <p style={{ fontSize: 13, color: 'var(--sk-muted)', marginBottom: 24 }}>
           {t('subtitle')}
         </p>
 
@@ -331,9 +331,9 @@ export default function OrgSetupModal({
           <div
             role="alert"
             style={{
-              background: '#fef2f2',
-              border: '1px solid #fecaca',
-              color: '#b91c1c',
+              background: 'var(--sk-red-soft)',
+              border: '1px solid var(--sk-red-soft)',
+              color: 'var(--sk-red)',
               padding: '10px 14px',
               borderRadius: 8,
               fontSize: 13,
@@ -424,7 +424,7 @@ export default function OrgSetupModal({
             required
             maxLength={40}
           />
-          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: 'var(--sk-muted)', marginBottom: 14 }}>
             {regleNumero?.libelle ? t('siren_hint_pays', { libelle: regleNumero.libelle }) : t('siren_hint_generique')}
           </div>
 
@@ -443,7 +443,7 @@ export default function OrgSetupModal({
             required
             maxLength={15}
           />
-          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: 'var(--sk-muted)', marginBottom: 14 }}>
             {t('vat_hint')}
           </div>
 
@@ -489,8 +489,8 @@ export default function OrgSetupModal({
             padding: '14px',
             fontSize: 15,
             fontWeight: 700,
-            color: '#fff',
-            background: submitDisabled ? '#94a3b8' : domain.primaryColor,
+            color: 'var(--sk-surface)',
+            background: submitDisabled ? 'var(--sk-muted)' : domain.primaryColor,
             border: 'none',
             borderRadius: 10,
             cursor: submitDisabled ? 'not-allowed' : 'pointer',
@@ -502,7 +502,7 @@ export default function OrgSetupModal({
           {submitting ? t('submitting') : t('submit_button')}
         </button>
 
-        <p style={{ fontSize: 12, color: '#64748b', textAlign: 'center', marginBottom: 12 }}>
+        <p style={{ fontSize: 12, color: 'var(--sk-muted)', textAlign: 'center', marginBottom: 12 }}>
           {t('security_notice')}
         </p>
 
@@ -514,7 +514,7 @@ export default function OrgSetupModal({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#64748b',
+              color: 'var(--sk-muted)',
               fontSize: 12,
               fontWeight: 600,
               cursor: submitting ? 'not-allowed' : 'pointer',

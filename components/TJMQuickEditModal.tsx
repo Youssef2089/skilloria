@@ -282,7 +282,7 @@ export default function TJMQuickEditModal({
             style={{
               background: 'transparent',
               border: 'none',
-              color: 'var(--sk-faint)',
+              color: 'var(--sk-muted)',
               fontSize: 22,
               lineHeight: 1,
               cursor: saving ? 'not-allowed' : 'pointer',

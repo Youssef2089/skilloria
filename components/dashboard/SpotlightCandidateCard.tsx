@@ -396,7 +396,7 @@ export default function SpotlightCandidateCard({
               )
             })}
             {expertSkills.length > skillsToShow.length && (
-              <span style={{ fontSize: 11.5, color: 'var(--sk-faint)', alignSelf: 'center' }}>
+              <span style={{ fontSize: 11.5, color: 'var(--sk-muted)', alignSelf: 'center' }}>
                 +{expertSkills.length - skillsToShow.length}
               </span>
             )}

@@ -635,7 +635,7 @@ export default function AdminUserDetailPage() {
             <div
               role="dialog"
               aria-modal="true"
-              style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 60 }}
+              style={{ position: 'fixed', inset: 0, background: 'color-mix(in srgb, var(--sk-encre) 45%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 60 }}
             >
               <div style={{ background: 'var(--sk-surface)', borderRadius: 14, padding: '22px 24px', maxWidth: 560, width: '100%' }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 10px', color: 'var(--sk-red)' }}>
@@ -741,7 +741,7 @@ export default function AdminUserDetailPage() {
             <div
               role="dialog"
               aria-modal="true"
-              style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 60 }}
+              style={{ position: 'fixed', inset: 0, background: 'color-mix(in srgb, var(--sk-encre) 45%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 60 }}
             >
               <div style={{ background: 'var(--sk-surface)', borderRadius: 14, padding: '22px 24px', maxWidth: 520, width: '100%' }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 10px', color: 'var(--sk-text)' }}>

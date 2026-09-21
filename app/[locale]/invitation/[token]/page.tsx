@@ -161,52 +161,52 @@ export default function InvitationPage() {
 
   // ── Rendu ───────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 24, fontFamily: font }}>
+    <div style={{ minHeight: '100vh', background: 'var(--sk-surface-2)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 24, fontFamily: font }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>{domain.name}</span>
+        <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--sk-text)' }}>{domain.name}</span>
         <LanguageSwitcher />
       </div>
 
-      <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #e2e8f0', padding: 36, width: '100%', maxWidth: 460, boxShadow: '0 4px 24px rgba(0,0,0,0.05)' }}>
-        {view.kind === 'loading' && <p style={{ color: '#64748b', margin: 0 }}>{t('loading')}</p>}
+      <div style={{ background: 'var(--sk-surface)', borderRadius: 20, border: '1px solid var(--sk-border)', padding: 36, width: '100%', maxWidth: 460, boxShadow: '0 4px 24px color-mix(in srgb, var(--sk-encre) 5%, transparent)' }}>
+        {view.kind === 'loading' && <p style={{ color: 'var(--sk-muted)', margin: 0 }}>{t('loading')}</p>}
 
         {view.kind === 'invalid' && (
           <>
-            <h1 style={{ fontSize: 19, fontWeight: 800, color: '#0f172a', margin: '0 0 10px' }}>{t('invalid_title')}</h1>
-            <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.55, margin: '0 0 20px' }}>{t('invalid_body')}</p>
+            <h1 style={{ fontSize: 19, fontWeight: 800, color: 'var(--sk-text)', margin: '0 0 10px' }}>{t('invalid_title')}</h1>
+            <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.55, margin: '0 0 20px' }}>{t('invalid_body')}</p>
             <button type="button" onClick={() => router.push('/')} style={primaryBtn(domain.primaryColor)}>{t('go_home')}</button>
           </>
         )}
 
         {view.kind === 'accepted' && (
           <>
-            <h1 style={{ fontSize: 19, fontWeight: 800, color: '#0f172a', margin: '0 0 10px' }}>{t('accepted_title')}</h1>
-            <p style={{ fontSize: 14, color: '#64748b', margin: 0 }}>{t('accepted_body')}</p>
+            <h1 style={{ fontSize: 19, fontWeight: 800, color: 'var(--sk-text)', margin: '0 0 10px' }}>{t('accepted_title')}</h1>
+            <p style={{ fontSize: 14, color: 'var(--sk-muted)', margin: 0 }}>{t('accepted_body')}</p>
           </>
         )}
 
         {view.kind === 'signup_sent' && (
           <>
-            <h1 style={{ fontSize: 19, fontWeight: 800, color: '#0f172a', margin: '0 0 10px' }}>{t('signup_sent_title')}</h1>
-            <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.55, margin: 0 }}>{t('signup_sent_body')}</p>
+            <h1 style={{ fontSize: 19, fontWeight: 800, color: 'var(--sk-text)', margin: '0 0 10px' }}>{t('signup_sent_title')}</h1>
+            <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.55, margin: 0 }}>{t('signup_sent_body')}</p>
           </>
         )}
 
         {view.kind === 'ready' && (
           <>
-            <h1 style={{ fontSize: 19, fontWeight: 800, color: '#0f172a', margin: '0 0 8px' }}>
+            <h1 style={{ fontSize: 19, fontWeight: 800, color: 'var(--sk-text)', margin: '0 0 8px' }}>
               {t('invite_title', { company: view.data.company_name ?? '—' })}
             </h1>
-            <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.55, margin: '0 0 20px' }}>
+            <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.55, margin: '0 0 20px' }}>
               {t('invite_body', { company: view.data.company_name ?? '—', role: roleLabel(view.data.role_in_org) })}
             </p>
 
-            {err && <p style={{ fontSize: 13, color: '#B91C1C', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '8px 12px', margin: '0 0 16px' }}>{err}</p>}
+            {err && <p style={{ fontSize: 13, color: 'var(--sk-red)', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', borderRadius: 8, padding: '8px 12px', margin: '0 0 16px' }}>{err}</p>}
 
             {/* BLOCAGE (filet serveur) : compte expert/admin ou déjà dans une
                 autre org → message explicite, aucune action d'acceptation. */}
             {view.data.blocked_reason && (
-              <p role="alert" style={{ fontSize: 13.5, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '12px 14px', margin: 0, lineHeight: 1.55 }}>
+              <p role="alert" style={{ fontSize: 13.5, color: 'var(--sk-amber)', background: 'var(--sk-amber-soft)', border: '1px solid var(--sk-amber-soft)', borderRadius: 10, padding: '12px 14px', margin: 0, lineHeight: 1.55 }}>
                 {t(`blocked_${view.data.blocked_reason}` as 'blocked_email_is_expert_account')}
               </p>
             )}
@@ -221,7 +221,7 @@ export default function InvitationPage() {
             {/* CAS "compte existant non connecté" → invitation à se connecter. */}
             {!view.data.blocked_reason && !view.hasSession && view.data.email_already_exists && (
               <>
-                <p style={{ fontSize: 13.5, color: '#475569', margin: '0 0 12px', lineHeight: 1.5 }}>{t('existing_account_body')}</p>
+                <p style={{ fontSize: 13.5, color: 'var(--sk-muted)', margin: '0 0 12px', lineHeight: 1.5 }}>{t('existing_account_body')}</p>
                 <button type="button" onClick={() => router.push('/connexion')} style={primaryBtn(domain.primaryColor)}>{t('signin_cta')}</button>
               </>
             )}
@@ -230,7 +230,7 @@ export default function InvitationPage() {
             {!view.data.blocked_reason && !view.hasSession && !view.data.email_already_exists && (
               <form onSubmit={signup} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <Field label={t('email_label')}>
-                  <input value={view.data.email} readOnly style={{ ...inputStyle, background: '#f1f5f9', color: '#64748b' }} />
+                  <input value={view.data.email} readOnly style={{ ...inputStyle, background: 'var(--sk-surface-2)', color: 'var(--sk-muted)' }} />
                 </Field>
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                   <Field label={t('firstname_label')} style={{ flex: '1 1 140px' }}>
@@ -243,7 +243,7 @@ export default function InvitationPage() {
                 <Field label={t('password_label')}>
                   <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} placeholder={t('password_placeholder')} />
                 </Field>
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: '#475569', lineHeight: 1.45 }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: 'var(--sk-muted)', lineHeight: 1.45 }}>
                   <input type="checkbox" checked={cgu} onChange={(e) => setCgu(e.target.checked)} style={{ marginTop: 2 }} />
                   <span>{t('cgu_label')}</span>
                 </label>
@@ -258,17 +258,17 @@ export default function InvitationPage() {
 }
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1.5px solid #e2e8f0',
+  width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1.5px solid var(--sk-border)',
   borderRadius: 10, fontSize: 14, fontFamily: font, outline: 'none',
 }
 function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <div style={style}>
-      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>{label}</label>
+      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>{label}</label>
       {children}
     </div>
   )
 }
 function primaryBtn(color: string): React.CSSProperties {
-  return { border: 'none', borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 700, fontFamily: font, color: '#fff', background: color, cursor: 'pointer', width: '100%' }
+  return { border: 'none', borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 700, fontFamily: font, color: 'var(--sk-surface)', background: color, cursor: 'pointer', width: '100%' }
 }

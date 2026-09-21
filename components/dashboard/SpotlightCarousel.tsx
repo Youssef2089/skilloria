@@ -245,7 +245,7 @@ export default function SpotlightCarousel<T>({
         <div style={{ fontSize: 13, color: 'var(--sk-muted)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}>
           <span>{labels.formatCounter(centerIdx + 1, items.length)}</span>
           {labels.sortedByScore && (
-            <span style={{ color: 'var(--sk-faint)', fontWeight: 500 }}>· {labels.sortedByScore}</span>
+            <span style={{ color: 'var(--sk-muted)', fontWeight: 500 }}>· {labels.sortedByScore}</span>
           )}
         </div>
         <div role="tablist" aria-label={labels.paginationAria} style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap', maxWidth: '60%', justifyContent: 'flex-end' }}>

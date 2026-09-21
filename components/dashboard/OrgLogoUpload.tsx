@@ -174,7 +174,7 @@ export default function OrgLogoUpload({
 
   return (
     <div>
-      <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sk-muted)', marginBottom: 6 }}>
         {t('field_logo')}
       </div>
 
@@ -190,7 +190,7 @@ export default function OrgLogoUpload({
             // Une URL signée vit 300 s. Expirée, on retombe sur l'état vide :
             // c'est normal, ce n'est pas une panne.
             onError={() => setUrl(null)}
-            style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', border: '1px solid #e2e8f0' }}
+            style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', border: '1px solid var(--sk-border)' }}
           />
         ) : (
           <div
@@ -199,13 +199,13 @@ export default function OrgLogoUpload({
               width: 64,
               height: 64,
               borderRadius: 12,
-              border: '1px dashed #cbd5e1',
-              background: '#f8fafc',
+              border: '1px dashed var(--sk-border)',
+              background: 'var(--sk-surface-2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: 11,
-              color: '#94a3b8',
+              color: 'var(--sk-muted)',
               textAlign: 'center',
               padding: 4,
             }}
@@ -231,15 +231,15 @@ export default function OrgLogoUpload({
             <label
               htmlFor="org-logo-input"
               style={{
-                border: '1px solid #cbd5e1',
+                border: '1px solid var(--sk-border)',
                 borderRadius: 10,
                 padding: '9px 16px',
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: enCours ? 'default' : 'pointer',
                 opacity: enCours ? 0.6 : 1,
-                background: '#fff',
-                color: '#0f172a',
+                background: 'var(--sk-surface)',
+                color: 'var(--sk-text)',
               }}
             >
               {enCours ? t('logo_en_cours') : url ? t('logo_remplacer') : t('logo_deposer')}
@@ -251,14 +251,14 @@ export default function OrgLogoUpload({
                 onClick={() => void retirer()}
                 disabled={enCours}
                 style={{
-                  border: '1px solid #fecaca',
+                  border: '1px solid var(--sk-red-soft)',
                   borderRadius: 10,
                   padding: '9px 16px',
                   fontSize: 13,
                   fontWeight: 600,
                   cursor: enCours ? 'default' : 'pointer',
-                  background: '#fff',
-                  color: '#b91c1c',
+                  background: 'var(--sk-surface)',
+                  color: 'var(--sk-red)',
                   fontFamily: 'inherit',
                 }}
               >
@@ -271,7 +271,7 @@ export default function OrgLogoUpload({
 
       {/* Les bornes sont ANNONCÉES AVANT le dépôt : on ne laisse pas quelqu'un
           découvrir la limite en se la prenant. */}
-      <p style={{ margin: '8px 0 0', fontSize: 12, color: '#64748b' }}>
+      <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--sk-muted)' }}>
         {isAdmin ? t('logo_aide', { formats, taille: tailleMax }) : t('logo_aide_lecture')}
       </p>
 
@@ -282,9 +282,9 @@ export default function OrgLogoUpload({
           style={{
             margin: '8px 0 0',
             fontSize: 13,
-            color: '#b91c1c',
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
+            color: 'var(--sk-red)',
+            background: 'var(--sk-red-soft)',
+            border: '1px solid var(--sk-red-soft)',
             borderRadius: 8,
             padding: '8px 10px',
           }}

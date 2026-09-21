@@ -274,7 +274,7 @@ export default function DashboardEntreprise() {
         .sk-dash-tile.is-link { cursor: pointer; }
         .sk-dash-tile.is-link:hover {
           border-color: var(--sk-accent);
-          box-shadow: 0 1px 3px rgba(15, 23, 42, .08);
+          box-shadow: 0 1px 3px color-mix(in srgb, var(--sk-encre) 8%, transparent);
         }
         .sk-dash-tile.is-link:focus-visible {
           outline: 2px solid var(--sk-accent);
@@ -401,8 +401,8 @@ export default function DashboardEntreprise() {
               rien plutôt que de se heurter à un chiffre inerte. */}
           <PubTile label={t('overview.pub_published')} value={pubCounts.published} dot="var(--sk-success)" loading={isLoadingData} tab="published" />
           <PubTile label={t('overview.pub_review')} value={pubCounts.review} dot="var(--sk-amber)" loading={isLoadingData} tab="review" />
-          <PubTile label={t('overview.pub_drafts')} value={pubCounts.drafts} dot="var(--sk-faint)" loading={isLoadingData} tab="drafts" />
-          <PubTile label={t('overview.pub_closed')} value={pubCounts.closed} dot="var(--sk-faint)" loading={isLoadingData} tab="closed" />
+          <PubTile label={t('overview.pub_drafts')} value={pubCounts.drafts} dot="var(--sk-muted)" loading={isLoadingData} tab="drafts" />
+          <PubTile label={t('overview.pub_closed')} value={pubCounts.closed} dot="var(--sk-muted)" loading={isLoadingData} tab="closed" />
         </div>
       </section>
 

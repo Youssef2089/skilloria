@@ -334,7 +334,7 @@ export default function ConversationView({ convId, side, embedded = false }: { c
                     }}
                   >
                     {m.content}
-                    <div style={{ fontSize: 10, color: me ? 'color-mix(in srgb, var(--sk-surface) 78%, transparent)' : 'var(--sk-faint)', marginTop: 4, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 4 }}>
+                    <div style={{ fontSize: 10, color: me ? 'color-mix(in srgb, var(--sk-surface) 78%, transparent)' : 'var(--sk-muted)', marginTop: 4, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 4 }}>
                       <span>{formatTime(m.created_at, locale)}</span>
                       {me && (
                         <span aria-hidden title={m.read_at ? t('read_at_tooltip') : t('sent_tooltip')}>
@@ -371,7 +371,7 @@ export default function ConversationView({ convId, side, embedded = false }: { c
               border: '1px solid var(--sk-border)', borderRadius: 10,
               outline: 'none', fontFamily: 'inherit',
               background: canWrite ? 'var(--sk-surface)' : 'var(--sk-surface-2)',
-              color: canWrite ? 'var(--sk-text)' : 'var(--sk-faint)',
+              color: canWrite ? 'var(--sk-text)' : 'var(--sk-muted)',
               cursor: canWrite ? 'text' : 'not-allowed',
               boxSizing: 'border-box',
             }}
@@ -398,7 +398,7 @@ export default function ConversationView({ convId, side, embedded = false }: { c
             {sending ? t('sending') : t('send')}
           </button>
         </div>
-        <div style={{ fontSize: 11, color: 'var(--sk-faint)', marginTop: 6, display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: 11, color: 'var(--sk-muted)', marginTop: 6, display: 'flex', justifyContent: 'space-between' }}>
           <span>{t('input_hint')}</span>
           <span>{draft.length} / 5000</span>
         </div>

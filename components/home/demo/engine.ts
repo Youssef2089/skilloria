@@ -98,7 +98,7 @@ function buildStyles(): string {
     .skh-progress{background:var(--sk-surface);border:1px solid var(--sk-border-soft);border-radius:14px;padding:10px 12px;flex-shrink:0}
     @media (min-width:760px){.skh-progress{width:186px;align-self:flex-start;padding:12px}}
 
-    .skh-progress-title{font-size:11px;font-weight:600;color:var(--sk-faint);letter-spacing:.06em;text-transform:uppercase;margin-bottom:9px;display:none}
+    .skh-progress-title{font-size:11px;font-weight:600;color:var(--sk-muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:9px;display:none}
     @media (min-width:760px){.skh-progress-title{display:block}}
 
     .skh-steps{display:flex;flex-direction:row;gap:6px;overflow-x:auto;scrollbar-width:none}
@@ -106,8 +106,8 @@ function buildStyles(): string {
     @media (min-width:760px){.skh-steps{flex-direction:column;gap:2px;overflow:visible}}
 
     .skh-step{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;transition:background .35s ease,color .35s ease;flex-shrink:0}
-    .skh-snum{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;background:var(--sk-bg);color:var(--sk-faint);transition:background .35s ease,color .35s ease}
-    .skh-slbl{font-size:12px;font-weight:500;line-height:1.3;color:var(--sk-faint);white-space:nowrap;transition:color .35s ease}
+    .skh-snum{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;background:var(--sk-bg);color:var(--sk-muted);transition:background .35s ease,color .35s ease}
+    .skh-slbl{font-size:12px;font-weight:500;line-height:1.3;color:var(--sk-muted);white-space:nowrap;transition:color .35s ease}
     @media (min-width:760px){.skh-slbl{white-space:normal}}
     .skh-step.is-active{background:var(--sk-accent-soft)}
     .skh-step.is-active .skh-snum{background:var(--sk-accent);color:var(--sk-sur-accent)}
@@ -144,7 +144,7 @@ function buildStyles(): string {
     @keyframes skh-dot{0%,80%,100%{transform:scale(.6);opacity:.3}40%{transform:scale(1);opacity:1}}
     @keyframes skh-live{0%,100%{opacity:1}50%{opacity:.35}}
     .skh-spin{animation:skh-spin 1.2s linear infinite}
-    .skh-dot{width:5px;height:5px;border-radius:50%;background:var(--sk-faint);animation:skh-dot 1.2s infinite}
+    .skh-dot{width:5px;height:5px;border-radius:50%;background:var(--sk-muted);animation:skh-dot 1.2s infinite}
     .skh-live{width:7px;height:7px;border-radius:50%;background:var(--sk-success);animation:skh-live 2s infinite;flex-shrink:0}
 
     /* Mouvement réduit : plus de boucle, plus de curseur, plus d'apparitions. */

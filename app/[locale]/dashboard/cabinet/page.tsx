@@ -13,7 +13,7 @@ import type { Locale } from '@/i18n/routing'
  * │ Elle redirigeait dans un `useEffect`, donc APRÈS un premier rendu. Ce    │
  * │ rendu était une page NUE : ni barre latérale, ni en-tête, un « … » gris  │
  * │ centré sur un fond blanc — et une couleur écrite en toutes lettres       │
- * │ (`#64748b`), hors palette.                                              │
+ * │ (`var(--sk-muted)`), hors palette.                                              │
  * │                                                                          │
  * │ C'était la seule page de l'espace connecté sans cadre dont l'absence de  │
  * │ cadre n'était pas justifiée par une contrainte (les deux autres le sont :│

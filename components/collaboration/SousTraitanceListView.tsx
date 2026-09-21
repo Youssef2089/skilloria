@@ -111,7 +111,7 @@ export default function SousTraitanceListView({ basePath }: { basePath: string }
             disabled
             aria-disabled
             title={quotaMessage}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', background: 'var(--sk-border)', color: 'var(--sk-faint)', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'not-allowed', flexShrink: 0, fontFamily: 'inherit' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', background: 'var(--sk-border)', color: 'var(--sk-border)', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'not-allowed', flexShrink: 0, fontFamily: 'inherit' }}
           >
             + {t('new_cta')}
           </button>
@@ -219,7 +219,7 @@ function NeedCard({
           <h2 style={{ fontSize: 16.5, fontWeight: 700, color: 'var(--sk-text)', margin: '0 0 4px', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {need.title}
           </h2>
-          <div style={{ fontSize: 12.5, color: 'var(--sk-faint)' }}>
+          <div style={{ fontSize: 12.5, color: 'var(--sk-muted)' }}>
             {t('published_at', { date: new Date(publishedDate).toLocaleDateString(locale) })}
           </div>
         </div>

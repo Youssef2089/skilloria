@@ -346,7 +346,7 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
             fontSize: 14,
             fontWeight: 600,
             color: 'var(--sk-sur-accent)',
-            background: sendDisabled ? 'var(--sk-faint)' : primaryColor,
+            background: sendDisabled ? 'var(--sk-muted)' : primaryColor,
             border: 'none',
             borderRadius: 10,
             cursor: sendDisabled ? 'not-allowed' : 'pointer',

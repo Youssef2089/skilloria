@@ -80,7 +80,7 @@ export default function CorrespondantAvatar({ name, isMasked, avatarUrl, size }:
         height: size,
         borderRadius: '50%',
         background: 'var(--sk-surface-2)',
-        color: 'var(--sk-faint)',
+        color: 'var(--sk-muted)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

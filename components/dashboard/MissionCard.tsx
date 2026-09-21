@@ -116,7 +116,7 @@ export default function MissionCard({
             {pub.published_at && (
               <>
                 <span aria-hidden style={{ color: 'var(--sk-faint)' }}>·</span>
-                <span style={{ color: 'var(--sk-faint)' }}>{tPub('dates.published_ago', { time: relTime(pub.published_at) })}</span>
+                <span style={{ color: 'var(--sk-muted)' }}>{tPub('dates.published_ago', { time: relTime(pub.published_at) })}</span>
               </>
             )}
           </div>
@@ -156,7 +156,7 @@ export default function MissionCard({
       {/* Branche · spécialité — reléguées en ligne discrète bottom.
           Utiles pour le matching IA mais visuellement secondaires. */}
       {(pub.branch_label || pub.speciality_labels.length > 0) && (
-        <div style={{ fontSize: 11, color: 'var(--sk-faint)', marginBottom: 10 }}>
+        <div style={{ fontSize: 11, color: 'var(--sk-muted)', marginBottom: 10 }}>
           {[pub.branch_label, ...pub.speciality_labels].filter(Boolean).join(' · ')}
         </div>
       )}

@@ -28,7 +28,7 @@ export default function LegalPageShell({
   content: string
 }) {
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#fff', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--sk-surface)', fontFamily: 'Inter, system-ui, sans-serif' }}>
       {/* Header public minimal */}
       <header
         style={{
@@ -37,7 +37,7 @@ export default function LegalPageShell({
           justifyContent: 'space-between',
           gap: 16,
           padding: '16px 24px',
-          borderBottom: '1px solid #eef2f6',
+          borderBottom: '1px solid var(--sk-surface-2)',
         }}
       >
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
@@ -55,7 +55,7 @@ export default function LegalPageShell({
               }
             />
           </span>
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{domainName}</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--sk-text)' }}>{domainName}</span>
         </Link>
         <LanguageSwitcher />
       </header>
@@ -67,13 +67,13 @@ export default function LegalPageShell({
             <div
               role="note"
               style={{
-                background: '#f1f5f9',
-                border: '1px solid #e2e8f0',
+                background: 'var(--sk-surface-2)',
+                border: '1px solid var(--sk-border)',
                 borderRadius: 10,
                 padding: '12px 16px',
                 marginBottom: 28,
                 fontSize: 13,
-                color: '#475569',
+                color: 'var(--sk-muted)',
                 lineHeight: 1.5,
               }}
             >

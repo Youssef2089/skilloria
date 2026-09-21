@@ -105,7 +105,7 @@ export default function MultiSelectChips({
             />
             {o.label}
             {o.hint ? (
-              <span style={{ color: 'var(--sk-faint)', fontWeight: 400 }}>· {o.hint}</span>
+              <span style={{ color: 'var(--sk-muted)', fontWeight: 400 }}>· {o.hint}</span>
             ) : null}
           </label>
         )

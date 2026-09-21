@@ -143,7 +143,7 @@ function scoreColor(score: number, domainPrimary: string): string {
   if (score >= 9) return 'var(--sk-success)'
   if (score >= 7) return domainPrimary
   if (score >= 5) return 'var(--sk-amber)'
-  return 'var(--sk-faint)'
+  return 'var(--sk-muted)'
 }
 
 export default function CandidatureCard({ candidature, publicationType, onMutated }: Props) {
@@ -364,7 +364,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
           toujours l'initiale (du pseudo post-unlock, '?' avant). */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--sk-surface-2)', color: 'var(--sk-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 600, flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--sk-surface-2)', color: 'var(--sk-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 600, flexShrink: 0 }}>
             {isUnlocked && unlocked_profile?.display_name ? unlocked_profile.display_name[0]?.toUpperCase() ?? '?' : '?'}
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
@@ -455,7 +455,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
             <span key={s} style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-muted)', padding: '3px 9px', borderRadius: 10, fontSize: 11, fontWeight: 500 }}>{s}</span>
           ))}
           {preview.skills.length > 12 && (
-            <span style={{ color: 'var(--sk-faint)', fontSize: 11 }}>+{preview.skills.length - 12}</span>
+            <span style={{ color: 'var(--sk-muted)', fontSize: 11 }}>+{preview.skills.length - 12}</span>
           )}
         </div>
       )}
@@ -613,7 +613,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
                 style={{
                   padding: '8px 14px',
                   background: 'var(--sk-surface)',
-                  color: 'var(--sk-faint)',
+                  color: 'var(--sk-muted)',
                   border: '1px solid var(--sk-border)',
                   borderRadius: 8,
                   fontSize: 12,

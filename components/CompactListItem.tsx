@@ -117,7 +117,7 @@ export default function CompactListItem({
         />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--sk-text)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {title || <span style={{ color: 'var(--sk-faint)', fontWeight: 400, fontStyle: 'italic' }}>—</span>}
+            {title || <span style={{ color: 'var(--sk-muted)', fontWeight: 400, fontStyle: 'italic' }}>—</span>}
           </div>
           {subtitle && (
             <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

@@ -190,7 +190,7 @@ export default function NouveauMotDePassePage() {
             <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2" strokeLinecap="round"/>
           </svg>
         </div>
-        <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>{domain.name}</span>
+        <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--sk-text)' }}>{domain.name}</span>
       </div>
       <LanguageSwitcher />
     </div>
@@ -198,17 +198,17 @@ export default function NouveauMotDePassePage() {
 
   const shell = (children: React.ReactNode) => (
     <div style={{
-      minHeight: '100vh', background: '#f8fafc',
+      minHeight: '100vh', background: 'var(--sk-surface-2)',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'flex-start',
       padding: '24px', fontFamily: 'Inter, sans-serif',
     }}>
       {header}
       <div style={{
-        background: '#fff', borderRadius: 24,
-        border: '1px solid #e2e8f0', padding: '40px',
+        background: 'var(--sk-surface)', borderRadius: 24,
+        border: '1px solid var(--sk-border)', padding: '40px',
         width: '100%', maxWidth: 440,
-        boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+        boxShadow: '0 4px 24px color-mix(in srgb, var(--sk-encre) 6%, transparent)',
       }}>
         {children}
       </div>
@@ -227,7 +227,7 @@ export default function NouveauMotDePassePage() {
             animation: 'reset-pw-spin 0.9s linear infinite',
           }}
         />
-        <p style={{ fontSize: 14, color: '#64748b' }}>{t('loading')}</p>
+        <p style={{ fontSize: 14, color: 'var(--sk-muted)' }}>{t('loading')}</p>
         <style>{`@keyframes reset-pw-spin { to { transform: rotate(360deg); } }`}</style>
       </div>,
     )
@@ -237,22 +237,22 @@ export default function NouveauMotDePassePage() {
   if (phase === 'invalid') {
     return shell(
       <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--sk-red-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-            <path d="M12 8v5M12 16h.01M3 12a9 9 0 1018 0 9 9 0 00-18 0z" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M12 8v5M12 16h.01M3 12a9 9 0 1018 0 9 9 0 00-18 0z" style={{ stroke: 'var(--sk-red)' }} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </div>
-        <h1 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--sk-text)', marginBottom: 8 }}>
           {t('invalid_title')}
         </h1>
-        <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6, marginBottom: 28 }}>
+        <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.6, marginBottom: 28 }}>
           {t('invalid_message')}
         </p>
         <button
           onClick={() => router.push('/mot-de-passe-oublie')}
           style={{
             width: '100%', padding: 13,
-            background: domain.primaryColor, color: '#fff', border: 'none',
+            background: domain.primaryColor, color: 'var(--sk-surface)', border: 'none',
             borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
@@ -265,16 +265,16 @@ export default function NouveauMotDePassePage() {
   // ── État : prêt (formulaire) ─────────────────────────────────────────────
   return shell(
     <>
-      <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginBottom: 6 }}>
+      <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--sk-text)', marginBottom: 6 }}>
         {t('title')}
       </h1>
-      <p style={{ fontSize: 14, color: '#64748b', marginBottom: 28 }}>
+      <p style={{ fontSize: 14, color: 'var(--sk-muted)', marginBottom: 28 }}>
         {t('subtitle')}
       </p>
 
       {/* Nouveau mot de passe */}
       <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
           {t('new_password_label')}
         </label>
         <input
@@ -284,15 +284,15 @@ export default function NouveauMotDePassePage() {
           onChange={e => setPw(e.target.value)}
           style={{
             width: '100%', padding: '10px 14px',
-            border: '1.5px solid #e2e8f0', borderRadius: 10,
-            fontSize: 14, color: '#0f172a', outline: 'none',
+            border: '1.5px solid var(--sk-border)', borderRadius: 10,
+            fontSize: 14, color: 'var(--sk-text)', outline: 'none',
           }}
         />
       </div>
 
       {/* Confirmation */}
       <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
           {t('confirm_label')}
         </label>
         <input
@@ -303,15 +303,15 @@ export default function NouveauMotDePassePage() {
           onKeyDown={e => { if (e.key === 'Enter' && !submitting) void handleSubmit() }}
           style={{
             width: '100%', padding: '10px 14px',
-            border: '1.5px solid #e2e8f0', borderRadius: 10,
-            fontSize: 14, color: '#0f172a', outline: 'none',
+            border: '1.5px solid var(--sk-border)', borderRadius: 10,
+            fontSize: 14, color: 'var(--sk-text)', outline: 'none',
           }}
         />
       </div>
 
       {/* Erreur */}
       {error && (
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#dc2626' }}>
+        <div style={{ background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: 'var(--sk-red)' }}>
           {error}
         </div>
       )}
@@ -322,8 +322,8 @@ export default function NouveauMotDePassePage() {
         disabled={submitting}
         style={{
           width: '100%', padding: 13,
-          background: submitting ? '#7dd3fc' : domain.primaryColor,
-          color: '#fff', border: 'none',
+          background: submitting ? 'var(--sk-accent-soft)' : domain.primaryColor,
+          color: 'var(--sk-surface)', border: 'none',
           borderRadius: 12, fontSize: 15,
           fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer',
         }}

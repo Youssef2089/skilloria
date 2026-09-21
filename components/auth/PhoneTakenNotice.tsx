@@ -35,13 +35,13 @@ export default function PhoneTakenNotice({
     <div
       role="status"
       style={{
-        background: '#eff6ff',
-        border: '1px solid #bfdbfe',
+        background: 'var(--sk-accent-soft)',
+        border: '1px solid var(--sk-accent-soft)',
         borderRadius: 10,
         padding: '12px 14px',
         marginTop: 8,
         fontSize: 13,
-        color: '#1e3a5f',
+        color: 'var(--sk-accent)',
         lineHeight: 1.55,
       }}
     >

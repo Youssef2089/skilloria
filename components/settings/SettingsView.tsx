@@ -590,7 +590,7 @@ function NotificationsSection({ user, secureFetch, notify, goToPhone }: {
     return (
       <div>
         <SectionHeader title={t('title')} description={t('description')} />
-        <div style={{ padding: 24, color: 'var(--sk-faint)', fontSize: 13.5 }}>{tc('loading')}</div>
+        <div style={{ padding: 24, color: 'var(--sk-muted)', fontSize: 13.5 }}>{tc('loading')}</div>
       </div>
     )
   }
@@ -618,7 +618,7 @@ function NotificationsSection({ user, secureFetch, notify, goToPhone }: {
               {t(`${keyBase}.label` as 'events.new_message.label')}
             </div>
             {/* Chaque réglage dit CE QU'IL DÉCLENCHE, en clair. */}
-            <div style={{ fontSize: 12.5, color: 'var(--sk-faint)', marginTop: 3, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12.5, color: 'var(--sk-muted)', marginTop: 3, lineHeight: 1.5 }}>
               {t(`${keyBase}.description` as 'events.new_message.description')}
             </div>
 
@@ -633,10 +633,10 @@ function NotificationsSection({ user, secureFetch, notify, goToPhone }: {
                     style={{ ...rowStyle, borderBottom: j === arr.length - 1 ? 'none' : rowStyle.borderBottom }}
                   >
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: unavailable ? 'var(--sk-faint)' : 'var(--sk-text)' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: unavailable ? 'var(--sk-muted)' : 'var(--sk-text)' }}>
                         {isSms ? t('sms_label') : t('email_label')}
                       </div>
-                      <div style={{ fontSize: 12.5, color: 'var(--sk-faint)', marginTop: 3, wordBreak: 'break-all' }}>
+                      <div style={{ fontSize: 12.5, color: 'var(--sk-muted)', marginTop: 3, wordBreak: 'break-all' }}>
                         {isSms
                           ? (phoneVerified ? (user.phone ?? '—') : t('sms_unavailable'))
                           : (user.email ?? '—')}
@@ -676,7 +676,7 @@ function NotificationsSection({ user, secureFetch, notify, goToPhone }: {
             envoie un seul e-mail/SMS pour les N opportunités en attente d'un
             même cycle. On corrige donc la formulation ET le public, en lisant
             le mode d'envoi servi — pas le type de compte. */}
-        <p style={{ margin: '18px 0 0', fontSize: 12.5, color: 'var(--sk-faint)', lineHeight: 1.5 }}>
+        <p style={{ margin: '18px 0 0', fontSize: 12.5, color: 'var(--sk-muted)', lineHeight: 1.5 }}>
           {settings.some((s) => s.grouping === 'digest')
             ? t('grouping_note_digest')
             : t('grouping_note_per_item')}

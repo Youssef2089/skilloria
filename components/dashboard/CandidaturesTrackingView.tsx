@@ -314,7 +314,7 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
                         <StatusPill kind={pk} icon={<PIcon size={14} />} size="sm">
                           {lifecycleLabel(c.lifecycle, c.publication?.type)}
                         </StatusPill>
-                        <span style={{ color: 'var(--sk-faint)', fontSize: 12 }}>{t('candidated_ago', { time: relTime(c.created_at) })}</span>
+                        <span style={{ color: 'var(--sk-muted)', fontSize: 12 }}>{t('candidated_ago', { time: relTime(c.created_at) })}</span>
                       </div>
                     </button>
                   )

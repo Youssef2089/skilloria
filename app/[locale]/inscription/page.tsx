@@ -22,7 +22,7 @@ export default function InscriptionPage() {
       id: 'entreprise',
       href: '/inscription/organisation',
       icon: '🏢',
-      bg: '#dbeafe',
+      bg: 'var(--sk-accent-soft)',
       title: t('roles.entreprise.title'),
       subtitle: t('roles.entreprise.subtitle'),
     },
@@ -30,21 +30,21 @@ export default function InscriptionPage() {
       id: 'expert',
       href: '/inscription/expert',
       icon: '💼',
-      bg: '#ede9fe',
+      bg: 'var(--sk-accent-soft)',
       title: t('roles.expert.title'),
     },
     {
       id: 'cdi',
       href: '/inscription/cdi',
       icon: '🎓',
-      bg: '#dcfce7',
+      bg: 'var(--sk-success-soft)',
       title: t('roles.cdi.title'),
     },
   ]
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#f8fafc',
+      minHeight: '100vh', background: 'var(--sk-surface-2)',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'flex-start',
       padding: '24px 24px 48px', fontFamily: 'Inter, sans-serif',
@@ -58,20 +58,20 @@ export default function InscriptionPage() {
               <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </div>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>{domain.name}</span>
+          <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--sk-text)' }}>{domain.name}</span>
         </div>
         <LanguageSwitcher />
       </div>
 
       {/* Titre */}
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
-        <div style={{ display: 'inline-block', background: domain.primaryColor, color: '#fff', fontSize: 16, fontWeight: 700, padding: '7px 20px', borderRadius: 100, marginBottom: 14, letterSpacing: '.05em' }}>
+        <div style={{ display: 'inline-block', background: domain.primaryColor, color: 'var(--sk-surface)', fontSize: 16, fontWeight: 700, padding: '7px 20px', borderRadius: 100, marginBottom: 14, letterSpacing: '.05em' }}>
           {t('welcome_badge')}
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', lineHeight: 1.2, marginBottom: 8 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--sk-text)', lineHeight: 1.2, marginBottom: 8 }}>
           {t('title')}
         </h1>
-        <p style={{ fontSize: 14, color: '#64748b' }}>
+        <p style={{ fontSize: 14, color: 'var(--sk-muted)' }}>
           {t('subtitle')}
         </p>
       </div>
@@ -83,7 +83,7 @@ export default function InscriptionPage() {
             key={role.id}
             onClick={() => router.push(role.href)}
             style={{
-              background: '#fff', border: '2px solid #e2e8f0',
+              background: 'var(--sk-surface)', border: '2px solid var(--sk-border)',
               borderRadius: 20, padding: '32px 24px',
               textAlign: 'center', cursor: 'pointer',
               flex: 1, minWidth: 180, maxWidth: 220,
@@ -97,7 +97,7 @@ export default function InscriptionPage() {
             }}
             onMouseLeave={e => {
               const el = e.currentTarget
-              el.style.borderColor = '#e2e8f0'
+              el.style.borderColor = 'var(--sk-border)'
               el.style.transform = 'translateY(0)'
               el.style.boxShadow = 'none'
             }}
@@ -110,11 +110,11 @@ export default function InscriptionPage() {
             }}>
               {role.icon}
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', marginBottom: role.subtitle ? 6 : 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--sk-text)', marginBottom: role.subtitle ? 6 : 0 }}>
               {role.title}
             </div>
             {role.subtitle && (
-              <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
+              <div style={{ fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.5 }}>
                 {role.subtitle}
               </div>
             )}
@@ -123,7 +123,7 @@ export default function InscriptionPage() {
       </div>
 
       {/* Déjà un compte */}
-      <p style={{ fontSize: 13, color: '#64748b' }}>
+      <p style={{ fontSize: 13, color: 'var(--sk-muted)' }}>
         {t('already_account')}{' '}
         <span
           onClick={() => router.push('/connexion')}

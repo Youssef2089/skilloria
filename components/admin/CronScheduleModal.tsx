@@ -136,7 +136,7 @@ export default function CronScheduleModal({
     <div
       role="dialog"
       aria-modal="true"
-      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 60, overflowY: 'auto' }}
+      style={{ position: 'fixed', inset: 0, background: 'color-mix(in srgb, var(--sk-encre) 45%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 60, overflowY: 'auto' }}
     >
       <div style={{ background: 'var(--sk-surface)', borderRadius: 14, padding: '22px 24px', maxWidth: 560, width: '100%' }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 6px', color: 'var(--sk-text)' }}>

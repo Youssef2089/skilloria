@@ -198,7 +198,7 @@ export default function ConnexionPage() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#f8fafc',
+      minHeight: '100vh', background: 'var(--sk-surface-2)',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'flex-start',
       padding: '24px', fontFamily: 'Inter, sans-serif',
@@ -212,7 +212,7 @@ export default function ConnexionPage() {
               <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </div>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>{domain.name}</span>
+          <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--sk-text)' }}>{domain.name}</span>
         </div>
         <LanguageSwitcher />
       </div>
@@ -226,17 +226,17 @@ export default function ConnexionPage() {
             maxWidth: 440,
             marginBottom: 16,
             padding: '14px 18px',
-            background: '#FEF9C3',
-            border: '1px solid #FDE047',
-            color: '#713F12',
+            background: 'var(--sk-amber-soft)',
+            border: '1px solid var(--sk-amber-soft)',
+            color: 'var(--sk-amber)',
             borderRadius: 12,
             fontSize: 13,
             lineHeight: 1.55,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            boxShadow: '0 1px 3px color-mix(in srgb, var(--sk-encre) 4%, transparent)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: '#CA8A04' }} />
+            <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--sk-amber)' }} />
             <strong style={{ fontWeight: 600 }}>
               {bannerKind === 'suspended' ? tSession('suspended_title') : tSession('superseded_title')}
             </strong>
@@ -249,22 +249,22 @@ export default function ConnexionPage() {
 
       {/* Card */}
       <div style={{
-        background: '#fff', borderRadius: 24,
-        border: '1px solid #e2e8f0', padding: '40px',
+        background: 'var(--sk-surface)', borderRadius: 24,
+        border: '1px solid var(--sk-border)', padding: '40px',
         width: '100%', maxWidth: 440,
-        boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+        boxShadow: '0 4px 24px color-mix(in srgb, var(--sk-encre) 6%, transparent)',
       }}>
 
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginBottom: 6 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--sk-text)', marginBottom: 6 }}>
           {t('title')}
         </h1>
-        <p style={{ fontSize: 14, color: '#64748b', marginBottom: 28 }}>
+        <p style={{ fontSize: 14, color: 'var(--sk-muted)', marginBottom: 28 }}>
           {t('subtitle', { name: domain.name })}
         </p>
 
         {/* Email */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
             {t('email_label')}
           </label>
           <input
@@ -274,15 +274,15 @@ export default function ConnexionPage() {
             onChange={e => setForm({ ...form, email: e.target.value })}
             style={{
               width: '100%', padding: '10px 14px',
-              border: '1.5px solid #e2e8f0', borderRadius: 10,
-              fontSize: 14, color: '#0f172a', outline: 'none',
+              border: '1.5px solid var(--sk-border)', borderRadius: 10,
+              fontSize: 14, color: 'var(--sk-text)', outline: 'none',
             }}
           />
         </div>
 
         {/* Mot de passe */}
         <div style={{ marginBottom: 8 }}>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
             {t('password_label')}
           </label>
           <input
@@ -292,8 +292,8 @@ export default function ConnexionPage() {
             onChange={e => setForm({ ...form, password: e.target.value })}
             style={{
               width: '100%', padding: '10px 14px',
-              border: '1.5px solid #e2e8f0', borderRadius: 10,
-              fontSize: 14, color: '#0f172a', outline: 'none',
+              border: '1.5px solid var(--sk-border)', borderRadius: 10,
+              fontSize: 14, color: 'var(--sk-text)', outline: 'none',
             }}
           />
         </div>
@@ -310,7 +310,7 @@ export default function ConnexionPage() {
 
         {/* Erreur */}
         {error && (
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#dc2626' }}>
+          <div style={{ background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: 'var(--sk-red)' }}>
             {error}
           </div>
         )}
@@ -321,8 +321,8 @@ export default function ConnexionPage() {
           disabled={loading}
           style={{
             width: '100%', padding: 13,
-            background: loading ? '#7dd3fc' : domain.primaryColor,
-            color: '#fff', border: 'none',
+            background: loading ? 'var(--sk-accent-soft)' : domain.primaryColor,
+            color: 'var(--sk-surface)', border: 'none',
             borderRadius: 12, fontSize: 15,
             fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
             marginBottom: 20,
@@ -333,13 +333,13 @@ export default function ConnexionPage() {
 
         {/* Séparateur */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div style={{ flex: 1, height: 1, background: '#e2e8f0' }}></div>
-          <span style={{ fontSize: 12, color: '#94a3b8' }}>{t('separator_or')}</span>
-          <div style={{ flex: 1, height: 1, background: '#e2e8f0' }}></div>
+          <div style={{ flex: 1, height: 1, background: 'var(--sk-border)' }}></div>
+          <span style={{ fontSize: 12, color: 'var(--sk-muted)' }}>{t('separator_or')}</span>
+          <div style={{ flex: 1, height: 1, background: 'var(--sk-border)' }}></div>
         </div>
 
         {/* Créer un compte */}
-        <p style={{ textAlign: 'center', fontSize: 13, color: '#64748b' }}>
+        <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--sk-muted)' }}>
           {t('no_account')}{' '}
           <span
             onClick={() => router.push('/inscription')}

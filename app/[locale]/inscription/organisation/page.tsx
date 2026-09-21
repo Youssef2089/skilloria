@@ -224,12 +224,12 @@ export default function InscriptionOrganisationPage() {
     width: '100%',
     padding: '11px 14px',
     fontSize: 14,
-    border: '1px solid #cbd5e1',
+    border: '1px solid var(--sk-border)',
     borderRadius: 8,
     outline: 'none',
     fontFamily: 'inherit',
-    background: '#fff',
-    color: '#0f172a',
+    background: 'var(--sk-surface)',
+    color: 'var(--sk-text)',
     boxSizing: 'border-box',
   }
 
@@ -237,7 +237,7 @@ export default function InscriptionOrganisationPage() {
     display: 'block',
     fontSize: 13,
     fontWeight: 600,
-    color: '#334155',
+    color: 'var(--sk-text)',
     marginBottom: 6,
   }
 
@@ -246,7 +246,7 @@ export default function InscriptionOrganisationPage() {
     fontWeight: 700,
     textTransform: 'uppercase',
     letterSpacing: '.08em',
-    color: '#64748b',
+    color: 'var(--sk-muted)',
     marginBottom: 12,
   }
 
@@ -256,7 +256,7 @@ export default function InscriptionOrganisationPage() {
 
   const sectionPhoneStyle: React.CSSProperties = {
     ...sectionStyle,
-    background: '#f1f5f9',
+    background: 'var(--sk-surface-2)',
     padding: '20px',
     borderRadius: 12,
   }
@@ -265,7 +265,7 @@ export default function InscriptionOrganisationPage() {
     <div
       style={{
         minHeight: '100vh',
-        background: '#f8fafc',
+        background: 'var(--sk-surface-2)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -305,7 +305,7 @@ export default function InscriptionOrganisationPage() {
               />
             </svg>
           </div>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
+          <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--sk-text)' }}>
             {domain.name}
           </span>
         </div>
@@ -318,17 +318,17 @@ export default function InscriptionOrganisationPage() {
         style={{
           width: '100%',
           maxWidth: 520,
-          background: '#fff',
+          background: 'var(--sk-surface)',
           borderRadius: 16,
           padding: '32px 28px',
-          boxShadow: '0 1px 3px rgba(15,23,42,.08), 0 8px 32px rgba(15,23,42,.04)',
+          boxShadow: '0 1px 3px color-mix(in srgb, var(--sk-encre) 8%, transparent), 0 8px 32px color-mix(in srgb, var(--sk-encre) 4%, transparent)',
         }}
       >
         <h1
           style={{
             fontSize: 22,
             fontWeight: 800,
-            color: '#0f172a',
+            color: 'var(--sk-text)',
             marginBottom: 6,
             textAlign: 'center',
           }}
@@ -338,7 +338,7 @@ export default function InscriptionOrganisationPage() {
         <p
           style={{
             fontSize: 13,
-            color: '#64748b',
+            color: 'var(--sk-muted)',
             textAlign: 'center',
             marginBottom: 28,
           }}
@@ -362,9 +362,9 @@ export default function InscriptionOrganisationPage() {
           <div
             role="alert"
             style={{
-              background: '#fef2f2',
-              border: '1px solid #fecaca',
-              color: '#b91c1c',
+              background: 'var(--sk-red-soft)',
+              border: '1px solid var(--sk-red-soft)',
+              color: 'var(--sk-red)',
               padding: '10px 14px',
               borderRadius: 8,
               fontSize: 13,
@@ -503,7 +503,7 @@ export default function InscriptionOrganisationPage() {
                   cursor: 'pointer',
                   fontSize: 16,
                   padding: 6,
-                  color: '#64748b',
+                  color: 'var(--sk-muted)',
                   lineHeight: 1,
                 }}
               >
@@ -554,7 +554,7 @@ export default function InscriptionOrganisationPage() {
               primaryColor={domain.primaryColor}
               ariaLabel={t('country_label')}
             />
-            <p style={{ fontSize: 12, color: '#64748b', margin: '6px 0 0', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '6px 0 0', lineHeight: 1.5 }}>
               {t('country_help')}
             </p>
           </div>
@@ -567,7 +567,7 @@ export default function InscriptionOrganisationPage() {
             alignItems: 'flex-start',
             gap: 10,
             fontSize: 13,
-            color: '#475569',
+            color: 'var(--sk-muted)',
             marginBottom: 20,
             cursor: 'pointer',
           }}
@@ -603,8 +603,8 @@ export default function InscriptionOrganisationPage() {
             padding: '14px',
             fontSize: 15,
             fontWeight: 700,
-            color: '#fff',
-            background: submitDisabled ? '#94a3b8' : domain.primaryColor,
+            color: 'var(--sk-surface)',
+            background: submitDisabled ? 'var(--sk-muted)' : domain.primaryColor,
             border: 'none',
             borderRadius: 10,
             cursor: submitDisabled ? 'not-allowed' : 'pointer',

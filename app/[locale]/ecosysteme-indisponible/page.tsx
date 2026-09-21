@@ -73,7 +73,7 @@ export default async function EcosystemUnavailablePage({ params, searchParams }:
         alignItems: 'center',
         justifyContent: 'center',
         padding: '32px 20px',
-        background: 'var(--sk-bg, #f8fafc)',
+        background: 'var(--sk-bg, var(--sk-surface-2))',
         fontFamily: 'var(--font-jakarta), system-ui, sans-serif',
       }}
     >
@@ -81,11 +81,11 @@ export default async function EcosystemUnavailablePage({ params, searchParams }:
         style={{
           width: '100%',
           maxWidth: 520,
-          background: '#fff',
-          border: '1px solid #e2e8f0',
+          background: 'var(--sk-surface)',
+          border: '1px solid var(--sk-border)',
           borderRadius: 16,
           padding: '34px 32px',
-          boxShadow: '0 10px 30px rgba(15, 23, 42, 0.06)',
+          boxShadow: '0 10px 30px color-mix(in srgb, var(--sk-encre) 6%, transparent)',
         }}
       >
         <div
@@ -97,15 +97,15 @@ export default async function EcosystemUnavailablePage({ params, searchParams }:
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#fff7ed',
-            border: '1px solid #fed7aa',
+            background: 'var(--sk-amber-soft)',
+            border: '1px solid var(--sk-amber-soft)',
             marginBottom: 18,
           }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path
               d="M12 8v5m0 3.5h.01M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"
-              stroke="#ea580c"
+              style={{ stroke: 'var(--sk-amber)' }}
               strokeWidth="1.7"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -119,7 +119,7 @@ export default async function EcosystemUnavailablePage({ params, searchParams }:
             fontSize: 21,
             fontWeight: 700,
             letterSpacing: '-0.4px',
-            color: '#0f172a',
+            color: 'var(--sk-text)',
             textWrap: 'balance',
           }}
         >
@@ -130,7 +130,7 @@ export default async function EcosystemUnavailablePage({ params, searchParams }:
             margin: '12px 0 0',
             fontSize: 14.5,
             lineHeight: 1.65,
-            color: '#475569',
+            color: 'var(--sk-muted)',
           }}
         >
           {body}
@@ -144,8 +144,8 @@ export default async function EcosystemUnavailablePage({ params, searchParams }:
               marginTop: 22,
               padding: '14px 16px',
               borderRadius: 12,
-              background: '#f0f9ff',
-              border: '1px solid #bae6fd',
+              background: 'var(--sk-accent-soft)',
+              border: '1px solid var(--sk-accent-soft)',
             }}
           >
             <div
@@ -154,7 +154,7 @@ export default async function EcosystemUnavailablePage({ params, searchParams }:
                 fontWeight: 600,
                 letterSpacing: '.06em',
                 textTransform: 'uppercase',
-                color: '#0369a1',
+                color: 'var(--sk-accent)',
                 marginBottom: 6,
               }}
             >
@@ -164,7 +164,7 @@ export default async function EcosystemUnavailablePage({ params, searchParams }:
               style={{
                 fontSize: 15,
                 fontWeight: 700,
-                color: '#0c4a6e',
+                color: 'var(--sk-accent)',
                 fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
                 wordBreak: 'break-all',
               }}
@@ -181,8 +181,8 @@ export default async function EcosystemUnavailablePage({ params, searchParams }:
                   marginTop: 12,
                   padding: '9px 15px',
                   borderRadius: 9,
-                  background: '#0ea5e9',
-                  color: '#fff',
+                  background: 'var(--sk-accent)',
+                  color: 'var(--sk-surface)',
                   fontSize: 13.5,
                   fontWeight: 600,
                   textDecoration: 'none',
@@ -192,7 +192,7 @@ export default async function EcosystemUnavailablePage({ params, searchParams }:
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
                   <path
                     d="M5 12h14m-6-6 6 6-6 6"
-                    stroke="#fff"
+                    style={{ stroke: 'var(--sk-surface)' }}
                     strokeWidth="2.2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -202,7 +202,7 @@ export default async function EcosystemUnavailablePage({ params, searchParams }:
             ) : (
               // L'hôte ne permet pas de fabriquer l'adresse (développement
               // local). On le dit plutôt que d'afficher un bouton mort.
-              <p style={{ margin: '10px 0 0', fontSize: 13, color: '#0369a1' }}>
+              <p style={{ margin: '10px 0 0', fontSize: 13, color: 'var(--sk-accent)' }}>
                 {t('domain_mismatch.no_link')}
               </p>
             )}
@@ -216,7 +216,7 @@ export default async function EcosystemUnavailablePage({ params, searchParams }:
             marginTop: 24,
             fontSize: 13.5,
             fontWeight: 600,
-            color: '#64748b',
+            color: 'var(--sk-muted)',
             textDecoration: 'none',
           }}
         >

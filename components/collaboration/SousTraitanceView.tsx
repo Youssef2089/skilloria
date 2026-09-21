@@ -303,7 +303,7 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
           <div style={{ marginBottom: 16 }}>
             <label htmlFor="st_desc" style={labelStyle}>{t('form.description_label')} *</label>
             <textarea id="st_desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={10_000} rows={6} placeholder={t('form.description_placeholder')} style={{ ...inputStyle, resize: 'vertical' }} />
-            <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '6px 0 0' }}>{t('form.description_hint')}</p>
+            <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '6px 0 0' }}>{t('form.description_hint')}</p>
           </div>
           <div style={{ marginBottom: 16 }}>
             <label htmlFor="st_skills" style={labelStyle}>{t('form.skills_label')}</label>
@@ -337,7 +337,7 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
           {/* Récapitulatif chiffré de l'offre, juste avant l'action. Alimenté
               par le catalogue — jamais écrit en dur dans les traductions. */}
           {offerSummary && (
-            <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '12px 0 0' }}>{offerSummary}</p>
+            <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '12px 0 0' }}>{offerSummary}</p>
           )}
         </div>
       )}

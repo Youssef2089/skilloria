@@ -179,7 +179,7 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
                     // C'est aussi ce qui retire du chemin les deux jetons derives,
                     // ceux qui restaient figes sur la valeur de secours.
                     color: disabled
-                      ? 'var(--sk-faint)'
+                      ? 'var(--sk-muted)'
                       : active
                         ? 'var(--sk-sur-accent)'
                         : isLink ? 'var(--sk-accent)' : 'var(--sk-muted)',
@@ -210,7 +210,7 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
                     <span
                       style={{
                         fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap',
-                        color: 'var(--sk-faint)', background: 'var(--sk-surface-2)',
+                        color: 'var(--sk-muted)', background: 'var(--sk-surface-2)',
                         border: '1px solid var(--sk-border)',
                         padding: '2px 7px', borderRadius: 999,
                       }}

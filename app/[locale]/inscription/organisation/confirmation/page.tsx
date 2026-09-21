@@ -24,7 +24,7 @@ export default function InscriptionOrganisationConfirmationPage() {
     <div
       style={{
         minHeight: '100vh',
-        background: '#f8fafc',
+        background: 'var(--sk-surface-2)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -65,7 +65,7 @@ export default function InscriptionOrganisationConfirmationPage() {
               />
             </svg>
           </div>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
+          <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--sk-text)' }}>
             {domain.name}
           </span>
         </div>
@@ -75,13 +75,13 @@ export default function InscriptionOrganisationConfirmationPage() {
       {/* Card */}
       <div
         style={{
-          background: '#fff',
+          background: 'var(--sk-surface)',
           borderRadius: 24,
-          border: '1px solid #e2e8f0',
+          border: '1px solid var(--sk-border)',
           padding: '48px 40px',
           width: '100%',
           maxWidth: 480,
-          boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+          boxShadow: '0 4px 24px color-mix(in srgb, var(--sk-encre) 6%, transparent)',
           textAlign: 'center',
         }}
       >
@@ -91,7 +91,7 @@ export default function InscriptionOrganisationConfirmationPage() {
             width: 72,
             height: 72,
             borderRadius: '50%',
-            background: '#dcfce7',
+            background: 'var(--sk-success-soft)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -101,7 +101,7 @@ export default function InscriptionOrganisationConfirmationPage() {
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
             <path
               d="M5 13l4 4L19 7"
-              stroke="#16a34a"
+              style={{ stroke: 'var(--sk-success)' }}
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -109,11 +109,11 @@ export default function InscriptionOrganisationConfirmationPage() {
           </svg>
         </div>
 
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--sk-text)', marginBottom: 12 }}>
           {t('title')}
         </h1>
 
-        <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, marginBottom: 32 }}>
+        <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.7, marginBottom: 32 }}>
           {t('message_line1')}
           <br />
           {t('message_line2')}
@@ -122,13 +122,13 @@ export default function InscriptionOrganisationConfirmationPage() {
         {/* Info */}
         <div
           style={{
-            background: '#f0f9ff',
-            border: '1px solid #bae6fd',
+            background: 'var(--sk-accent-soft)',
+            border: '1px solid var(--sk-accent-soft)',
             borderRadius: 12,
             padding: '14px 18px',
             marginBottom: 32,
             fontSize: 13,
-            color: '#0369a1',
+            color: 'var(--sk-accent)',
             textAlign: 'left',
             lineHeight: 1.6,
           }}
@@ -145,7 +145,7 @@ export default function InscriptionOrganisationConfirmationPage() {
             width: '100%',
             padding: 13,
             background: domain.primaryColor,
-            color: '#fff',
+            color: 'var(--sk-surface)',
             border: 'none',
             borderRadius: 12,
             fontSize: 15,
@@ -156,7 +156,7 @@ export default function InscriptionOrganisationConfirmationPage() {
           {t('back_to_home')}
         </button>
 
-        <p style={{ fontSize: 13, color: '#64748b', marginTop: 16 }}>
+        <p style={{ fontSize: 13, color: 'var(--sk-muted)', marginTop: 16 }}>
           {t('already_confirmed')}{' '}
           <span
             onClick={() => router.push('/connexion')}

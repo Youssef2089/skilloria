@@ -205,11 +205,11 @@ export default function OrganisationDashboard({
 
   // Dots sémantiques par onglet (statuts groupés). 'all' en première position.
   const tabs: Array<{ key: TabKey; label: string; count: number; dot: string }> = [
-    { key: 'all',       label: tPub('list.tab_all'),       count: counts.all,       dot: '#94a3b8' },
-    { key: 'drafts',    label: tPub('list.tab_drafts'),    count: counts.drafts,    dot: '#94a3b8' },
-    { key: 'review',    label: tPub('list.tab_review'),    count: counts.review,    dot: '#CA8A04' },
-    { key: 'published', label: tPub('list.tab_published'), count: counts.published, dot: '#16A34A' },
-    { key: 'closed',    label: tPub('list.tab_closed'),    count: counts.closed,    dot: '#94a3b8' },
+    { key: 'all',       label: tPub('list.tab_all'),       count: counts.all,       dot: 'var(--sk-muted)' },
+    { key: 'drafts',    label: tPub('list.tab_drafts'),    count: counts.drafts,    dot: 'var(--sk-muted)' },
+    { key: 'review',    label: tPub('list.tab_review'),    count: counts.review,    dot: 'var(--sk-amber)' },
+    { key: 'published', label: tPub('list.tab_published'), count: counts.published, dot: 'var(--sk-success)' },
+    { key: 'closed',    label: tPub('list.tab_closed'),    count: counts.closed,    dot: 'var(--sk-muted)' },
   ]
 
   const showEmptyZeroState =
@@ -277,16 +277,16 @@ export default function OrganisationDashboard({
               alignItems: 'center',
               gap: 8,
               padding: '6px 14px',
-              background: '#FEF9C3',
-              border: '1px solid #FDE047',
+              background: 'var(--sk-amber-soft)',
+              border: '1px solid var(--sk-amber-soft)',
               borderRadius: 16,
-              color: '#713F12',
+              color: 'var(--sk-amber)',
               fontSize: 12,
               fontWeight: 500,
               marginBottom: 20,
             }}
           >
-            <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: '#CA8A04' }} />
+            <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--sk-amber)' }} />
             {t('verification_pending')}
           </div>
         )}
@@ -301,7 +301,7 @@ export default function OrganisationDashboard({
             marginBottom: 32,
           }}
         >
-          <h1 style={{ fontSize: 28, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: 0 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 500, color: 'var(--color-text-primary, var(--sk-text))', margin: 0 }}>
             {t('greeting')} 👋
           </h1>
 
@@ -314,7 +314,7 @@ export default function OrganisationDashboard({
                 gap: 8,
                 padding: '10px 18px',
                 background: domain.primaryColor,
-                color: '#fff',
+                color: 'var(--sk-surface)',
                 fontSize: 13,
                 fontWeight: 500,
                 borderRadius: 10,
@@ -337,7 +337,7 @@ export default function OrganisationDashboard({
                 gap: 8,
                 padding: '10px 18px',
                 background: domain.primaryColor,
-                color: '#fff',
+                color: 'var(--sk-surface)',
                 fontSize: 13,
                 fontWeight: 500,
                 borderRadius: 10,
@@ -357,8 +357,8 @@ export default function OrganisationDashboard({
             BoundedScrollList interne prenne la hauteur restante. */}
         <section
           style={{
-            background: 'var(--color-background-primary, #fff)',
-            border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+            background: 'var(--color-background-primary, var(--sk-surface))',
+            border: '0.5px solid var(--color-border-tertiary, var(--sk-border))',
             borderRadius: 14,
             padding: '20px 24px',
             flex: 1,
@@ -376,7 +376,7 @@ export default function OrganisationDashboard({
               marginBottom: 16,
             }}
           >
-            <h2 style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: 0 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary, var(--sk-text))', margin: 0 }}>
               {t('my_annonces')}
             </h2>
             <div
@@ -392,7 +392,7 @@ export default function OrganisationDashboard({
                 style={{
                   position: 'absolute',
                   left: 10,
-                  color: 'var(--color-text-tertiary, #94a3b8)',
+                  color: 'var(--color-text-tertiary, var(--sk-muted))',
                   display: 'flex',
                   pointerEvents: 'none',
                 }}
@@ -409,12 +409,12 @@ export default function OrganisationDashboard({
                   width: 240,
                   padding: '8px 12px 8px 32px',
                   fontSize: 13,
-                  border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+                  border: '0.5px solid var(--color-border-tertiary, var(--sk-border))',
                   borderRadius: 8,
                   outline: 'none',
                   fontFamily: 'inherit',
-                  background: 'var(--color-background-secondary, #f8fafc)',
-                  color: 'var(--color-text-primary, #0f172a)',
+                  background: 'var(--color-background-secondary, var(--sk-surface-2))',
+                  color: 'var(--color-text-primary, var(--sk-text))',
                   boxSizing: 'border-box',
                 }}
               />
@@ -427,7 +427,7 @@ export default function OrganisationDashboard({
             style={{
               display: 'flex',
               gap: 4,
-              borderBottom: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+              borderBottom: '0.5px solid var(--color-border-tertiary, var(--sk-border))',
               marginBottom: 20,
               overflowX: 'auto',
             }}
@@ -452,8 +452,8 @@ export default function OrganisationDashboard({
                       ? `2px solid ${domain.primaryColor}`
                       : '2px solid transparent',
                     color: active
-                      ? 'var(--color-text-primary, #0f172a)'
-                      : 'var(--color-text-secondary, #64748b)',
+                      ? 'var(--color-text-primary, var(--sk-text))'
+                      : 'var(--color-text-secondary, var(--sk-muted))',
                     fontSize: 13,
                     fontWeight: active ? 500 : 400,
                     cursor: 'pointer',
@@ -494,7 +494,7 @@ export default function OrganisationDashboard({
                   width: 72,
                   height: 72,
                   borderRadius: '50%',
-                  background: '#DBEAFE',
+                  background: 'var(--sk-accent-soft)',
                   color: domain.primaryColor,
                   display: 'flex',
                   alignItems: 'center',
@@ -508,7 +508,7 @@ export default function OrganisationDashboard({
                 style={{
                   fontSize: 16,
                   fontWeight: 500,
-                  color: 'var(--color-text-primary, #0f172a)',
+                  color: 'var(--color-text-primary, var(--sk-text))',
                   marginBottom: 6,
                 }}
               >
@@ -517,7 +517,7 @@ export default function OrganisationDashboard({
               <p
                 style={{
                   fontSize: 13,
-                  color: 'var(--color-text-secondary, #64748b)',
+                  color: 'var(--color-text-secondary, var(--sk-muted))',
                   marginBottom: 20,
                   maxWidth: 320,
                   lineHeight: 1.5,
@@ -534,7 +534,7 @@ export default function OrganisationDashboard({
                     gap: 8,
                     padding: '10px 18px',
                     background: domain.primaryColor,
-                    color: '#fff',
+                    color: 'var(--sk-surface)',
                     fontSize: 13,
                     fontWeight: 500,
                     borderRadius: 10,
@@ -556,7 +556,7 @@ export default function OrganisationDashboard({
                     gap: 8,
                     padding: '10px 18px',
                     background: domain.primaryColor,
-                    color: '#fff',
+                    color: 'var(--sk-surface)',
                     fontSize: 13,
                     fontWeight: 500,
                     borderRadius: 10,
@@ -577,7 +577,7 @@ export default function OrganisationDashboard({
                 padding: '32px 20px',
                 textAlign: 'center',
                 fontSize: 13,
-                color: 'var(--color-text-secondary, #64748b)',
+                color: 'var(--color-text-secondary, var(--sk-muted))',
               }}
             >
               {tPub(`list.empty_subtitle_${emptyStateKey}`)}

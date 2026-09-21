@@ -134,7 +134,7 @@ export default function CandidatureCastingCard({
         </div>
 
         {metaParts.length > 0 && (
-          <div style={{ fontSize: 11.5, color: 'var(--sk-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: 11.5, color: 'var(--sk-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {metaParts.join(' · ')}
           </div>
         )}

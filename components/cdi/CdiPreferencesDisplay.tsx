@@ -110,7 +110,7 @@ export default function CdiPreferencesDisplay(props: Props) {
 
   if (!hasContract && !hasWorkMode && !hasGeo && !hasCompany && !hasSectors && !hasBenefits) {
     return (
-      <div style={{ fontSize: 14, color: 'var(--sk-faint)', fontStyle: 'italic' }}>
+      <div style={{ fontSize: 14, color: 'var(--sk-muted)', fontStyle: 'italic' }}>
         {t('empty_states.no_search_preferences')}
       </div>
     )

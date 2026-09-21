@@ -143,7 +143,7 @@ export default function InscriptionRolePage() {
     expert: {
       title: t('roles.expert.form_title'),
       icon: '💼',
-      color: '#ede9fe',
+      color: 'var(--sk-accent-soft)',
       fields: [
         { id: 'firstname', label: t('fields.firstname_label'), type: 'text', placeholder: t('fields.firstname_placeholder') },
         { id: 'lastname', label: t('fields.lastname_label'), type: 'text', placeholder: t('fields.lastname_placeholder') },
@@ -154,7 +154,7 @@ export default function InscriptionRolePage() {
     cdi: {
       title: t('roles.cdi.form_title'),
       icon: '🎓',
-      color: '#dcfce7',
+      color: 'var(--sk-success-soft)',
       fields: [
         { id: 'firstname', label: t('fields.firstname_label'), type: 'text', placeholder: t('fields.firstname_placeholder') },
         { id: 'lastname', label: t('fields.lastname_label'), type: 'text', placeholder: t('fields.lastname_placeholder') },
@@ -257,7 +257,7 @@ export default function InscriptionRolePage() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#f8fafc',
+      minHeight: '100vh', background: 'var(--sk-surface-2)',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'flex-start',
       padding: '24px', fontFamily: 'Inter, sans-serif',
@@ -271,17 +271,17 @@ export default function InscriptionRolePage() {
               <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </div>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>{domain.name}</span>
+          <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--sk-text)' }}>{domain.name}</span>
         </div>
         <LanguageSwitcher />
       </div>
 
       {/* Card */}
       <div style={{
-        background: '#fff', borderRadius: 24,
-        border: '1px solid #e2e8f0', padding: '40px',
+        background: 'var(--sk-surface)', borderRadius: 24,
+        border: '1px solid var(--sk-border)', padding: '40px',
         width: '100%', maxWidth: 480,
-        boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+        boxShadow: '0 4px 24px color-mix(in srgb, var(--sk-encre) 6%, transparent)',
       }}>
 
         {/* En-tête */}
@@ -290,8 +290,8 @@ export default function InscriptionRolePage() {
             {cfg.icon}
           </div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>{cfg.title}</div>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sk-text)' }}>{cfg.title}</div>
+            <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 2 }}>
               <span onClick={() => router.push('/inscription')} style={{ color: domain.primaryColor, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>
                 {t('change_profile')}
               </span>
@@ -303,7 +303,7 @@ export default function InscriptionRolePage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {cfg.fields.map((field) => (
             <div key={field.id}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
                 {field.label}
               </label>
               <input
@@ -313,8 +313,8 @@ export default function InscriptionRolePage() {
                 onChange={e => setForm({ ...form, [field.id]: e.target.value })}
                 style={{
                   width: '100%', padding: '10px 14px',
-                  border: '1.5px solid #e2e8f0', borderRadius: 10,
-                  fontSize: 14, color: '#0f172a', outline: 'none',
+                  border: '1.5px solid var(--sk-border)', borderRadius: 10,
+                  fontSize: 14, color: 'var(--sk-text)', outline: 'none',
                 }}
               />
             </div>
@@ -323,15 +323,15 @@ export default function InscriptionRolePage() {
           {/* D5/D6 : Branche → Spécialité (cascade) + option « Autre ». Libellés
               génériques (aucun nom d'écosystème en dur). Couvre expert ET cdi. */}
           {taxonomyLoading ? (
-            <div style={{ fontSize: 13, color: '#64748b' }}>{t('fields.taxonomy_loading')}</div>
+            <div style={{ fontSize: 13, color: 'var(--sk-muted)' }}>{t('fields.taxonomy_loading')}</div>
           ) : taxonomyError ? (
-            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#92400e', lineHeight: 1.5 }}>
+            <div style={{ background: 'var(--sk-amber-soft)', border: '1px solid var(--sk-amber-soft)', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: 'var(--sk-amber)', lineHeight: 1.5 }}>
               {t('errors.taxonomy_unavailable')}
             </div>
           ) : (
           <>
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
               {t('fields.branch_label')}
             </label>
             <select
@@ -339,20 +339,20 @@ export default function InscriptionRolePage() {
               onChange={e => onBranchChange(e.target.value)}
               style={{
                 width: '100%', padding: '10px 14px',
-                border: '1.5px solid #e2e8f0', borderRadius: 10,
-                fontSize: 14, color: branchId ? '#0f172a' : '#94a3b8',
-                outline: 'none', background: '#fff', cursor: 'pointer',
+                border: '1.5px solid var(--sk-border)', borderRadius: 10,
+                fontSize: 14, color: branchId ? 'var(--sk-text)' : 'var(--sk-muted)',
+                outline: 'none', background: 'var(--sk-surface)', cursor: 'pointer',
               }}
             >
               <option value="">{t('fields.branch_placeholder')}</option>
               {branches.map(b => (
-                <option key={b.id} value={b.id} style={{ color: '#0f172a' }}>{b.name}</option>
+                <option key={b.id} value={b.id} style={{ color: 'var(--sk-text)' }}>{b.name}</option>
               ))}
             </select>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
               {t('fields.speciality_label')}
             </label>
             <select
@@ -361,25 +361,25 @@ export default function InscriptionRolePage() {
               disabled={!branchId}
               style={{
                 width: '100%', padding: '10px 14px',
-                border: '1.5px solid #e2e8f0', borderRadius: 10,
-                fontSize: 14, color: specialityId ? '#0f172a' : '#94a3b8',
-                outline: 'none', background: branchId ? '#fff' : '#f1f5f9',
+                border: '1.5px solid var(--sk-border)', borderRadius: 10,
+                fontSize: 14, color: specialityId ? 'var(--sk-text)' : 'var(--sk-muted)',
+                outline: 'none', background: branchId ? 'var(--sk-surface)' : 'var(--sk-surface-2)',
                 cursor: branchId ? 'pointer' : 'not-allowed',
               }}
             >
               <option value="">{t('fields.speciality_placeholder')}</option>
               {filteredSpecialities.map(s => (
-                <option key={s.id} value={s.id} style={{ color: '#0f172a' }}>{s.name}</option>
+                <option key={s.id} value={s.id} style={{ color: 'var(--sk-text)' }}>{s.name}</option>
               ))}
               {branchId ? (
-                <option value={SPECIALITY_OTHER} style={{ color: '#0f172a' }}>{t('fields.speciality_other_option')}</option>
+                <option value={SPECIALITY_OTHER} style={{ color: 'var(--sk-text)' }}>{t('fields.speciality_other_option')}</option>
               ) : null}
             </select>
           </div>
 
           {specialityId === SPECIALITY_OTHER && (
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
                 {t('fields.speciality_other_label')}
               </label>
               <input
@@ -390,8 +390,8 @@ export default function InscriptionRolePage() {
                 maxLength={100}
                 style={{
                   width: '100%', padding: '10px 14px',
-                  border: '1.5px solid #e2e8f0', borderRadius: 10,
-                  fontSize: 14, color: '#0f172a', outline: 'none',
+                  border: '1.5px solid var(--sk-border)', borderRadius: 10,
+                  fontSize: 14, color: 'var(--sk-text)', outline: 'none',
                 }}
               />
             </div>
@@ -434,7 +434,7 @@ export default function InscriptionRolePage() {
             onChange={e => setCgu(e.target.checked)}
             style={{ marginTop: 2, flexShrink: 0 }}
           />
-          <label htmlFor="cgu" style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
+          <label htmlFor="cgu" style={{ fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.5 }}>
             {t.rich('cgu', {
               // Vrais liens vers les pages légales, ouverts dans un NOUVEL ONGLET
               // (point B) : l'utilisateur ne perd pas le formulaire en cours.
@@ -452,7 +452,7 @@ export default function InscriptionRolePage() {
 
         {/* Erreur */}
         {error && (
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#dc2626' }}>
+          <div style={{ background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: 'var(--sk-red)' }}>
             {error}
           </div>
         )}
@@ -463,8 +463,8 @@ export default function InscriptionRolePage() {
           disabled={loading || !phoneVerified}
           style={{
             width: '100%', padding: 13,
-            background: loading || !phoneVerified ? '#94a3b8' : domain.primaryColor,
-            color: '#fff', border: 'none',
+            background: loading || !phoneVerified ? 'var(--sk-muted)' : domain.primaryColor,
+            color: 'var(--sk-surface)', border: 'none',
             borderRadius: 12, fontSize: 15,
             fontWeight: 700, cursor: loading || !phoneVerified ? 'not-allowed' : 'pointer',
           }}
@@ -473,7 +473,7 @@ export default function InscriptionRolePage() {
         </button>
 
         {/* Déjà un compte */}
-        <p style={{ textAlign: 'center', fontSize: 13, color: '#64748b', marginTop: 20 }}>
+        <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--sk-muted)', marginTop: 20 }}>
           {t('already_account')}{' '}
           <span onClick={() => router.push('/connexion')} style={{ color: domain.primaryColor, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>
             {t('sign_in')}

@@ -240,7 +240,7 @@ export default function NotificationBell({ ariaLabel }: { ariaLabel?: string }) 
                     <div style={{ minWidth: 0, flex: 1 }}>
                       {n.title && <div style={{ fontSize: 13, fontWeight: isUnread ? 700 : 600, color: 'var(--sk-text)', lineHeight: 1.35 }}>{n.title}</div>}
                       {n.body && <div style={{ fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.5, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{n.body}</div>}
-                      <div style={{ fontSize: 11, color: 'var(--sk-faint)', marginTop: 4 }}>{relTime(n.created_at)}</div>
+                      <div style={{ fontSize: 11, color: 'var(--sk-muted)', marginTop: 4 }}>{relTime(n.created_at)}</div>
                     </div>
                     {isUnread && (
                       <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--sk-accent)', flexShrink: 0, marginTop: 6 }} />

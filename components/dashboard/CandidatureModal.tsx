@@ -114,7 +114,7 @@ export default function CandidatureModal({
             color: 'var(--sk-text)',
           }}
         />
-        <div style={{ fontSize: 11, color: 'var(--sk-faint)', marginBottom: 14 }}>
+        <div style={{ fontSize: 11, color: 'var(--sk-muted)', marginBottom: 14 }}>
           {coverMessage.length} / 2000
         </div>
 

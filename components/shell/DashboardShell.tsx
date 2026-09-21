@@ -137,7 +137,7 @@ export default function DashboardShell({
   //      · et la dérivation ne suivait pas cette surcharge — une propriété
   //        personnalisée est substituée là où elle est déclarée, donc les deux
   //        dérivés restaient figés sur la valeur de secours de `:root`.
-  //        MESURÉ : menu actif en #2553BB sur #E6EDFD, logo en #0EA5E9.
+  //        MESURÉ : menu actif en #2553BB sur #E6EDFD, logo en var(--sk-accent).
   //
   //    Les jetons viennent maintenant de `<html>`, posés par le layout racine
   //    depuis la palette de l'écosystème. Il n'y a plus qu'un seul endroit.

@@ -147,27 +147,27 @@ export default function ReactivationPage() {
   }
 
   const shell = (children: React.ReactNode) => (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: '#f8fafc', fontFamily: fontJakarta }}>
-      <div style={{ width: '100%', maxWidth: 460, background: '#fff', borderRadius: 20, padding: 32, boxShadow: '0 20px 50px rgba(15,23,42,0.12)', textAlign: 'center' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'var(--sk-surface-2)', fontFamily: fontJakarta }}>
+      <div style={{ width: '100%', maxWidth: 460, background: 'var(--sk-surface)', borderRadius: 20, padding: 32, boxShadow: '0 20px 50px color-mix(in srgb, var(--sk-encre) 12%, transparent)', textAlign: 'center' }}>
         {children}
       </div>
     </div>
   )
 
   if (view === 'loading') {
-    return shell(<p style={{ color: '#64748b', fontSize: 14 }}>…</p>)
+    return shell(<p style={{ color: 'var(--sk-muted)', fontSize: 14 }}>…</p>)
   }
 
   if (view === 'purged') {
     return shell(
       <>
         <div style={{ fontSize: 36, marginBottom: 8 }} aria-hidden>🗑️</div>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#0f172a' }}>{t('purged_title')}</h1>
-        <p style={{ margin: '10px 0 24px', fontSize: 14.5, color: '#64748b', lineHeight: 1.6 }}>{t('purged_body')}</p>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--sk-text)' }}>{t('purged_title')}</h1>
+        <p style={{ margin: '10px 0 24px', fontSize: 14.5, color: 'var(--sk-muted)', lineHeight: 1.6 }}>{t('purged_body')}</p>
         <button
           type="button"
           onClick={() => void logout({ redirectTo: '/' })}
-          style={{ padding: '12px 20px', borderRadius: 12, border: '1.5px solid #e2e8f0', background: '#fff', color: '#0f172a', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: fontJakarta }}
+          style={{ padding: '12px 20px', borderRadius: 12, border: '1.5px solid var(--sk-border)', background: 'var(--sk-surface)', color: 'var(--sk-text)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: fontJakarta }}
         >
           {t('logout')}
         </button>
@@ -179,12 +179,12 @@ export default function ReactivationPage() {
     return shell(
       <>
         <div style={{ fontSize: 36, marginBottom: 8 }} aria-hidden>⏳</div>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#0f172a' }}>{t('indisponible_title')}</h1>
-        <p style={{ margin: '10px 0 24px', fontSize: 14.5, color: '#64748b', lineHeight: 1.6 }}>{t('indisponible_body')}</p>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--sk-text)' }}>{t('indisponible_title')}</h1>
+        <p style={{ margin: '10px 0 24px', fontSize: 14.5, color: 'var(--sk-muted)', lineHeight: 1.6 }}>{t('indisponible_body')}</p>
         <button
           type="button"
           onClick={() => window.location.reload()}
-          style={{ width: '100%', padding: '13px 20px', borderRadius: 12, border: 'none', background: 'var(--sk-accent, #0ea5e9)', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
+          style={{ width: '100%', padding: '13px 20px', borderRadius: 12, border: 'none', background: 'var(--sk-accent, var(--sk-accent))', color: 'var(--sk-surface)', fontWeight: 700, cursor: 'pointer' }}
         >
           {t('indisponible_retry')}
         </button>
@@ -195,12 +195,12 @@ export default function ReactivationPage() {
     return shell(
       <>
         <div style={{ fontSize: 36, marginBottom: 8 }} aria-hidden>🔒</div>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#0f172a' }}>{t('need_login_title')}</h1>
-        <p style={{ margin: '10px 0 24px', fontSize: 14.5, color: '#64748b', lineHeight: 1.6 }}>{t('need_login_body')}</p>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--sk-text)' }}>{t('need_login_title')}</h1>
+        <p style={{ margin: '10px 0 24px', fontSize: 14.5, color: 'var(--sk-muted)', lineHeight: 1.6 }}>{t('need_login_body')}</p>
         <button
           type="button"
           onClick={() => router.replace('/connexion')}
-          style={{ width: '100%', padding: '13px 20px', borderRadius: 12, border: 'none', background: 'var(--sk-accent, #0ea5e9)', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: fontJakarta }}
+          style={{ width: '100%', padding: '13px 20px', borderRadius: 12, border: 'none', background: 'var(--sk-accent, var(--sk-accent))', color: 'var(--sk-surface)', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: fontJakarta }}
         >
           {t('need_login_button')}
         </button>
@@ -212,11 +212,11 @@ export default function ReactivationPage() {
     return shell(
       <>
         <div style={{ fontSize: 36, marginBottom: 8 }} aria-hidden>⏳</div>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#0f172a' }}>{t('title')}</h1>
-        <p style={{ margin: '10px 0 6px', fontSize: 14.5, color: '#64748b', lineHeight: 1.6 }}>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--sk-text)' }}>{t('title')}</h1>
+        <p style={{ margin: '10px 0 6px', fontSize: 14.5, color: 'var(--sk-muted)', lineHeight: 1.6 }}>
           {t('body', { date: date ? fmt(date) : '' })}
         </p>
-        <p style={{ margin: '0 0 24px', fontSize: 13, fontWeight: 700, color: '#b91c1c' }}>
+        <p style={{ margin: '0 0 24px', fontSize: 13, fontWeight: 700, color: 'var(--sk-red)' }}>
           {t('scheduled_for', { date: date ? fmt(date) : '' })}
         </p>
         {/* ── UN REFUS QUI DIT QUOI FAIRE ────────────────────────────────
@@ -230,9 +230,9 @@ export default function ReactivationPage() {
               margin: '0 0 14px',
               padding: '12px 14px',
               borderRadius: 12,
-              background: '#fffbeb',
-              border: '1px solid #fde68a',
-              color: '#92400e',
+              background: 'var(--sk-amber-soft)',
+              border: '1px solid var(--sk-amber-soft)',
+              color: 'var(--sk-amber)',
               fontSize: 13.5,
               lineHeight: 1.55,
               textAlign: 'left',
@@ -259,14 +259,14 @@ export default function ReactivationPage() {
           type="button"
           onClick={() => void reactivate()}
           disabled={busy}
-          style={{ width: '100%', padding: '13px 20px', borderRadius: 12, border: 'none', background: 'var(--sk-accent, #0ea5e9)', color: '#fff', fontSize: 15, fontWeight: 800, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.7 : 1, fontFamily: fontJakarta }}
+          style={{ width: '100%', padding: '13px 20px', borderRadius: 12, border: 'none', background: 'var(--sk-accent, var(--sk-accent))', color: 'var(--sk-surface)', fontSize: 15, fontWeight: 800, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.7 : 1, fontFamily: fontJakarta }}
         >
           {t('reactivate_button')}
         </button>
         <button
           type="button"
           onClick={() => void logout({ redirectTo: '/' })}
-          style={{ marginTop: 12, padding: '10px 16px', borderRadius: 10, border: 'none', background: 'transparent', color: '#64748b', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: fontJakarta }}
+          style={{ marginTop: 12, padding: '10px 16px', borderRadius: 10, border: 'none', background: 'transparent', color: 'var(--sk-muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: fontJakarta }}
         >
           {t('logout')}
         </button>
@@ -274,5 +274,5 @@ export default function ReactivationPage() {
     )
   }
 
-  return shell(<p style={{ color: '#64748b', fontSize: 14 }}>…</p>)
+  return shell(<p style={{ color: 'var(--sk-muted)', fontSize: 14 }}>…</p>)
 }

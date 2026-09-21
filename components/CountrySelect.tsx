@@ -315,7 +315,7 @@ export default function CountrySelect({
                 style={{
                   padding: '12px 14px',
                   fontSize: 13,
-                  color: 'var(--sk-faint)',
+                  color: 'var(--sk-muted)',
                   textAlign: 'center',
                   fontFamily: 'var(--font-jakarta), system-ui, sans-serif',
                 }}
@@ -329,7 +329,7 @@ export default function CountrySelect({
                 style={{
                   padding: '12px 14px',
                   fontSize: 13,
-                  color: 'var(--sk-faint)',
+                  color: 'var(--sk-muted)',
                   textAlign: 'center',
                   fontFamily: 'var(--font-jakarta), system-ui, sans-serif',
                 }}

@@ -575,7 +575,7 @@ export default function MonEntreprisePage() {
             position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', zIndex: 900,
             padding: '12px 20px', borderRadius: 12, fontSize: 14, fontWeight: 600, fontFamily: fontJakarta,
             color: 'var(--sk-surface)', background: toast.kind === 'error' ? 'var(--sk-red)' : 'var(--sk-success)',
-            boxShadow: '0 10px 30px rgba(15,23,42,0.2)',
+            boxShadow: '0 10px 30px color-mix(in srgb, var(--sk-encre) 20%, transparent)',
           }}
         >
           {toast.msg}

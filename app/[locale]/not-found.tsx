@@ -35,7 +35,7 @@ export default function LocaleNotFound() {
           fontSize: 13,
           fontWeight: 600,
           letterSpacing: '.14em',
-          color: 'var(--color-text-tertiary, #94a3b8)',
+          color: 'var(--color-text-tertiary, var(--sk-muted))',
           marginBottom: 14,
         }}
       >
@@ -45,7 +45,7 @@ export default function LocaleNotFound() {
         style={{
           fontSize: 22,
           fontWeight: 500,
-          color: 'var(--color-text-primary, #0f172a)',
+          color: 'var(--color-text-primary, var(--sk-text))',
           margin: '0 0 8px',
         }}
       >
@@ -54,7 +54,7 @@ export default function LocaleNotFound() {
       <p
         style={{
           fontSize: 14,
-          color: 'var(--color-text-secondary, #64748b)',
+          color: 'var(--color-text-secondary, var(--sk-muted))',
           margin: '0 0 24px',
           maxWidth: 420,
           lineHeight: 1.55,
@@ -66,8 +66,8 @@ export default function LocaleNotFound() {
         href="/"
         style={{
           padding: '10px 18px',
-          background: '#00B9FF',
-          color: '#fff',
+          background: 'var(--sk-accent)',
+          color: 'var(--sk-surface)',
           borderRadius: 10,
           fontSize: 13,
           fontWeight: 500,

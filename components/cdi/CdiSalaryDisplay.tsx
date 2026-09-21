@@ -26,7 +26,7 @@ export default function CdiSalaryDisplay({ min, max, variablePct }: Props) {
 
   if (!hasSalary && !hasVariable) {
     return (
-      <div style={{ fontSize: 14, color: 'var(--sk-faint)', fontStyle: 'italic' }}>
+      <div style={{ fontSize: 14, color: 'var(--sk-muted)', fontStyle: 'italic' }}>
         {tEmpty('no_compensation')}
       </div>
     )

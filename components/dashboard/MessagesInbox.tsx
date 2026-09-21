@@ -442,17 +442,17 @@ export default function MessagesInbox({
                               </span>
                             </span>
                             {c.last_message?.created_at && (
-                              <span style={{ fontSize: 10, color: 'var(--sk-faint)', flexShrink: 0 }}>{relTime(c.last_message.created_at)}</span>
+                              <span style={{ fontSize: 10, color: 'var(--sk-muted)', flexShrink: 0 }}>{relTime(c.last_message.created_at)}</span>
                             )}
                           </div>
                           <div style={{ fontSize: 12, color: c.unread_count > 0 ? 'var(--sk-text)' : 'var(--sk-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: c.unread_count > 0 ? 600 : 400 }}>
                             {c.last_message ? (
                               <>
-                                {c.last_message.sender_is_me && <span style={{ color: 'var(--sk-faint)' }}>{t('sender_me')} </span>}
+                                {c.last_message.sender_is_me && <span style={{ color: 'var(--sk-muted)' }}>{t('sender_me')} </span>}
                                 {c.last_message.content}
                               </>
                             ) : (
-                              <span style={{ fontStyle: 'italic', color: 'var(--sk-faint)' }}>{t('no_messages_yet')}</span>
+                              <span style={{ fontStyle: 'italic', color: 'var(--sk-muted)' }}>{t('no_messages_yet')}</span>
                             )}
                           </div>
                           {/* ÉTAT DE VIE, en clair, sur chaque ligne. C'est
@@ -466,7 +466,7 @@ export default function MessagesInbox({
                               style={{
                                 fontSize: 10.5,
                                 marginTop: 3,
-                                color: isArchived ? 'var(--sk-faint)' : 'var(--sk-success)',
+                                color: isArchived ? 'var(--sk-muted)' : 'var(--sk-success)',
                                 fontWeight: 600,
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',

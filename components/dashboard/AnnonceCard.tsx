@@ -36,7 +36,7 @@ const STATUS_STYLES: Record<AnnonceStatus, StatusVisual> = {
   draft: {
     bg: 'var(--color-background-secondary, var(--sk-surface-2))',
     color: 'var(--color-text-secondary, var(--sk-muted))',
-    dot: 'var(--color-text-tertiary, var(--sk-faint))',
+    dot: 'var(--color-text-tertiary, var(--sk-muted))',
   },
   // En revue : amber warning
   pending_review: { bg: 'var(--sk-amber-soft)', color: 'var(--sk-amber)', dot: 'var(--sk-amber)' },
@@ -46,17 +46,17 @@ const STATUS_STYLES: Record<AnnonceStatus, StatusVisual> = {
   suspended: {
     bg: 'var(--color-background-secondary, var(--sk-surface-2))',
     color: 'var(--color-text-secondary, var(--sk-muted))',
-    dot: 'var(--color-text-tertiary, var(--sk-faint))',
+    dot: 'var(--color-text-tertiary, var(--sk-muted))',
   },
   expired: {
     bg: 'var(--color-background-secondary, var(--sk-surface-2))',
     color: 'var(--color-text-secondary, var(--sk-muted))',
-    dot: 'var(--color-text-tertiary, var(--sk-faint))',
+    dot: 'var(--color-text-tertiary, var(--sk-muted))',
   },
   archived: {
     bg: 'var(--color-background-secondary, var(--sk-surface-2))',
     color: 'var(--color-text-secondary, var(--sk-muted))',
-    dot: 'var(--color-text-tertiary, var(--sk-faint))',
+    dot: 'var(--color-text-tertiary, var(--sk-muted))',
   },
   // Refusée : rouge danger
   rejected: { bg: 'var(--sk-red-soft)', color: 'var(--sk-red)', dot: 'var(--sk-red)' },
@@ -235,7 +235,7 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
       <div
         style={{
           fontSize: 12,
-          color: 'var(--color-text-tertiary, var(--sk-faint))',
+          color: 'var(--color-text-tertiary, var(--sk-muted))',
           marginBottom: 10,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -302,7 +302,7 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
           {counters.map((cnt) => {
             const isZero = cnt.value === 0
             const valueColor = isZero
-              ? 'var(--color-text-tertiary, var(--sk-faint))'
+              ? 'var(--color-text-tertiary, var(--sk-muted))'
               : cnt.color ?? 'var(--color-text-primary, var(--sk-text))'
             return (
               <div key={cnt.key} style={{ textAlign: 'center' }}>

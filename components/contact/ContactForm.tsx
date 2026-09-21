@@ -173,8 +173,8 @@ export default function ContactForm() {
       <div
         role="status"
         style={{
-          background: '#f0fdf4',
-          border: '1px solid #bbf7d0',
+          background: 'var(--sk-success-soft)',
+          border: '1px solid var(--sk-success-soft)',
           borderRadius: 12,
           padding: '20px 22px',
         }}
@@ -183,7 +183,7 @@ export default function ContactForm() {
           <span
             aria-hidden
             style={{
-              width: 26, height: 26, borderRadius: '50%', background: '#16a34a',
+              width: 26, height: 26, borderRadius: '50%', background: 'var(--sk-success)',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}
           >
@@ -191,9 +191,9 @@ export default function ContactForm() {
               <path d="M5 13l4 4L19 7" stroke="white" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#14532d' }}>{t('success_title')}</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--sk-success)' }}>{t('success_title')}</span>
         </div>
-        <p style={{ fontSize: 14, lineHeight: 1.6, color: '#166534', margin: '0 0 16px' }}>
+        <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--sk-success)', margin: '0 0 16px' }}>
           {t('success_body')}
         </p>
         <button
@@ -201,9 +201,9 @@ export default function ContactForm() {
           onClick={() => setStatus('idle')}
           className="skc-btn-secondary"
           style={{
-            appearance: 'none', background: '#fff', border: '1.5px solid #bbf7d0',
+            appearance: 'none', background: 'var(--sk-surface)', border: '1.5px solid var(--sk-success-soft)',
             borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 600,
-            color: '#166534', cursor: 'pointer',
+            color: 'var(--sk-success)', cursor: 'pointer',
           }}
         >
           {t('success_again')}
@@ -217,10 +217,10 @@ export default function ContactForm() {
       {/* Styles de focus/hover scopés (parité avec le reste du chrome public). */}
       <style>{`
         .skc-field { transition: border-color .15s ease, box-shadow .15s ease; }
-        .skc-field:hover { border-color: #cbd5e1; }
-        .skc-field:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
-        .skc-field[aria-invalid="true"] { border-color: #dc2626; }
-        .skc-field[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px rgba(220,38,38,.15); }
+        .skc-field:hover { border-color: var(--sk-muted); }
+        .skc-field:focus { outline: none; border-color: var(--sk-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sk-accent) 15%, transparent); }
+        .skc-field[aria-invalid="true"] { border-color: var(--sk-red); }
+        .skc-field[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--sk-red) 15%, transparent); }
         .skc-submit:not(:disabled):hover { filter: brightness(1.06); }
         .skc-submit:disabled { opacity: .6; cursor: not-allowed; }
       `}</style>
@@ -229,8 +229,8 @@ export default function ContactForm() {
         <div
           role="alert"
           style={{
-            background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10,
-            padding: '12px 16px', fontSize: 14, color: '#b91c1c', lineHeight: 1.5,
+            background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', borderRadius: 10,
+            padding: '12px 16px', fontSize: 14, color: 'var(--sk-red)', lineHeight: 1.5,
           }}
         >
           {formError}
@@ -320,14 +320,14 @@ export default function ContactForm() {
             required
             aria-invalid={fieldErrors.consent ? 'true' : undefined}
             aria-describedby={fieldErrors.consent ? 'consent-err' : undefined}
-            style={{ width: 18, height: 18, marginTop: 2, accentColor: '#2563eb', flexShrink: 0, cursor: 'pointer' }}
+            style={{ width: 18, height: 18, marginTop: 2, accentColor: 'var(--sk-accent)', flexShrink: 0, cursor: 'pointer' }}
           />
-          <span style={{ fontSize: 13.5, lineHeight: 1.55, color: '#475569' }}>
+          <span style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--sk-muted)' }}>
             {t.rich('consent_label', {
               link: chunks => (
                 <Link
                   href="/politique-de-confidentialite"
-                  style={{ color: '#2563eb', textDecoration: 'underline', textUnderlineOffset: 2 }}
+                  style={{ color: 'var(--sk-accent)', textDecoration: 'underline', textUnderlineOffset: 2 }}
                 >
                   {chunks}
                 </Link>
@@ -345,7 +345,7 @@ export default function ContactForm() {
           disabled={sending}
           style={{
             appearance: 'none', border: 'none', borderRadius: 10,
-            background: '#2563eb', color: '#fff', fontSize: 15, fontWeight: 700,
+            background: 'var(--sk-accent)', color: 'var(--sk-surface)', fontSize: 15, fontWeight: 700,
             padding: '13px 22px', cursor: 'pointer', minHeight: 48,
             display: 'inline-flex', alignItems: 'center', gap: 10,
             transition: 'filter .15s ease',
@@ -356,7 +356,7 @@ export default function ContactForm() {
               aria-hidden
               style={{
                 width: 16, height: 16, borderRadius: '50%',
-                border: '2px solid rgba(255,255,255,.4)', borderTopColor: '#fff',
+                border: '2px solid color-mix(in srgb, var(--sk-surface) 40%, transparent)', borderTopColor: 'var(--sk-surface)',
                 display: 'inline-block', animation: 'skc-spin .7s linear infinite',
               }}
             />
@@ -373,18 +373,18 @@ export default function ContactForm() {
 const labelStyle: React.CSSProperties = {
   fontSize: 13.5,
   fontWeight: 600,
-  color: '#0f172a',
+  color: 'var(--sk-text)',
 }
-const requiredMark: React.CSSProperties = { color: '#dc2626', fontWeight: 700 }
+const requiredMark: React.CSSProperties = { color: 'var(--sk-red)', fontWeight: 700 }
 const inputStyle: React.CSSProperties = {
   width: '100%',
   boxSizing: 'border-box',
-  border: '1.5px solid #e2e8f0',
+  border: '1.5px solid var(--sk-border)',
   borderRadius: 10,
   padding: '11px 14px',
   fontSize: 15,
-  color: '#0f172a',
-  background: '#fff',
+  color: 'var(--sk-text)',
+  background: 'var(--sk-surface)',
   fontFamily: 'inherit',
 }
 
@@ -417,7 +417,7 @@ function TextField({
         {required
           ? <span aria-hidden style={requiredMark}>*</span>
           : optionalLabel
-            ? <span style={{ color: '#94a3b8', fontWeight: 500 }}>{optionalLabel}</span>
+            ? <span style={{ color: 'var(--sk-muted)', fontWeight: 500 }}>{optionalLabel}</span>
             : null}
       </label>
       <input
@@ -440,7 +440,7 @@ function TextField({
 
 function FieldError({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <span id={id} role="alert" style={{ fontSize: 12.5, color: '#dc2626', lineHeight: 1.4 }}>
+    <span id={id} role="alert" style={{ fontSize: 12.5, color: 'var(--sk-red)', lineHeight: 1.4 }}>
       {children}
     </span>
   )

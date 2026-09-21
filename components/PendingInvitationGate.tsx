@@ -86,23 +86,23 @@ export default function PendingInvitationGate() {
     <div
       role="dialog"
       aria-modal="true"
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: font }}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'color-mix(in srgb, var(--sk-encre) 45%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: font }}
     >
-      <div style={{ background: '#fff', borderRadius: 20, padding: 32, width: '100%', maxWidth: 440, boxShadow: '0 20px 60px rgba(15,23,42,0.3)' }}>
-        <h1 style={{ fontSize: 19, fontWeight: 800, color: '#0f172a', margin: '0 0 8px' }}>
+      <div style={{ background: 'var(--sk-surface)', borderRadius: 20, padding: 32, width: '100%', maxWidth: 440, boxShadow: '0 20px 60px color-mix(in srgb, var(--sk-encre) 30%, transparent)' }}>
+        <h1 style={{ fontSize: 19, fontWeight: 800, color: 'var(--sk-text)', margin: '0 0 8px' }}>
           {t('invite_title', { company: pending.company_name ?? '—' })}
         </h1>
-        <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.55, margin: '0 0 20px' }}>
+        <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.55, margin: '0 0 20px' }}>
           {t('invite_body', { company: pending.company_name ?? '—', role: roleLabel(pending.role_in_org) })}
         </p>
 
-        {err && <p style={{ fontSize: 13, color: '#B91C1C', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '8px 12px', margin: '0 0 16px' }}>{err}</p>}
+        {err && <p style={{ fontSize: 13, color: 'var(--sk-red)', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', borderRadius: 8, padding: '8px 12px', margin: '0 0 16px' }}>{err}</p>}
 
         <div style={{ display: 'flex', gap: 10 }}>
-          <button type="button" disabled={busy} onClick={accept} style={{ flex: 1, border: 'none', borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 700, fontFamily: font, color: '#fff', background: 'var(--sk-accent, #0369a1)', cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>
+          <button type="button" disabled={busy} onClick={accept} style={{ flex: 1, border: 'none', borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 700, fontFamily: font, color: 'var(--sk-surface)', background: 'var(--sk-accent, var(--sk-accent))', cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>
             {t('accept_cta')}
           </button>
-          <button type="button" disabled={busy} onClick={dismiss} style={{ border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 600, fontFamily: font, color: '#334155', background: '#fff', cursor: 'pointer' }}>
+          <button type="button" disabled={busy} onClick={dismiss} style={{ border: '1.5px solid var(--sk-border)', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 600, fontFamily: font, color: 'var(--sk-text)', background: 'var(--sk-surface)', cursor: 'pointer' }}>
             {t('later_cta')}
           </button>
         </div>

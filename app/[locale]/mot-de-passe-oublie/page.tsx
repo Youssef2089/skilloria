@@ -73,7 +73,7 @@ export default function MotDePasseOubliePage() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#f8fafc',
+      minHeight: '100vh', background: 'var(--sk-surface-2)',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'flex-start',
       padding: '24px', fontFamily: 'Inter, sans-serif',
@@ -86,30 +86,30 @@ export default function MotDePasseOubliePage() {
               <path d="M12 2L12 22M2 12L22 12M5 5L19 19M19 5L5 19" stroke="white" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </div>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>{domain.name}</span>
+          <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--sk-text)' }}>{domain.name}</span>
         </div>
         <LanguageSwitcher />
       </div>
 
       {/* Card */}
       <div style={{
-        background: '#fff', borderRadius: 24,
-        border: '1px solid #e2e8f0', padding: '40px',
+        background: 'var(--sk-surface)', borderRadius: 24,
+        border: '1px solid var(--sk-border)', padding: '40px',
         width: '100%', maxWidth: 440,
-        boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+        boxShadow: '0 4px 24px color-mix(in srgb, var(--sk-encre) 6%, transparent)',
       }}>
         {!sent ? (
           <>
-            <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginBottom: 6 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--sk-text)', marginBottom: 6 }}>
               {t('title')}
             </h1>
-            <p style={{ fontSize: 14, color: '#64748b', marginBottom: 28 }}>
+            <p style={{ fontSize: 14, color: 'var(--sk-muted)', marginBottom: 28 }}>
               {t('subtitle')}
             </p>
 
             {/* Email */}
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
                 {tLogin('email_label')}
               </label>
               <input
@@ -120,15 +120,15 @@ export default function MotDePasseOubliePage() {
                 onKeyDown={e => { if (e.key === 'Enter' && !loading) void handleSubmit() }}
                 style={{
                   width: '100%', padding: '10px 14px',
-                  border: '1.5px solid #e2e8f0', borderRadius: 10,
-                  fontSize: 14, color: '#0f172a', outline: 'none',
+                  border: '1.5px solid var(--sk-border)', borderRadius: 10,
+                  fontSize: 14, color: 'var(--sk-text)', outline: 'none',
                 }}
               />
             </div>
 
             {/* Erreur */}
             {error && (
-              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: '#dc2626' }}>
+              <div style={{ background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: 'var(--sk-red)' }}>
                 {error}
               </div>
             )}
@@ -139,8 +139,8 @@ export default function MotDePasseOubliePage() {
               disabled={loading}
               style={{
                 width: '100%', padding: 13,
-                background: loading ? '#7dd3fc' : domain.primaryColor,
-                color: '#fff', border: 'none',
+                background: loading ? 'var(--sk-accent-soft)' : domain.primaryColor,
+                color: 'var(--sk-surface)', border: 'none',
                 borderRadius: 12, fontSize: 15,
                 fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
                 marginBottom: 20,
@@ -152,15 +152,15 @@ export default function MotDePasseOubliePage() {
         ) : (
           <>
             {/* Écran neutre post-envoi (anti-énumération) */}
-            <div style={{ width: 56, height: 56, margin: '0 auto 20px', borderRadius: '50%', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 56, height: 56, margin: '0 auto 20px', borderRadius: '50%', background: 'var(--sk-success-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                <path d="M4 6l8 6 8-6M4 6h16v12H4V6z" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M4 6l8 6 8-6M4 6h16v12H4V6z" style={{ stroke: 'var(--sk-success)' }} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', marginBottom: 8, textAlign: 'center' }}>
+            <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--sk-text)', marginBottom: 8, textAlign: 'center' }}>
               {t('sent_title')}
             </h1>
-            <p style={{ fontSize: 14, color: '#64748b', marginBottom: 24, textAlign: 'center', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: 'var(--sk-muted)', marginBottom: 24, textAlign: 'center', lineHeight: 1.6 }}>
               {t('sent_message')}
             </p>
           </>

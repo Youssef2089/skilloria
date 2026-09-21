@@ -207,7 +207,7 @@ export default function EcosystemSwitcher() {
           padding: '8px 12px',
           fontSize: 13,
           fontWeight: 600,
-          color: swappable ? 'var(--sk-text)' : 'var(--sk-faint)',
+          color: swappable ? 'var(--sk-text)' : 'var(--sk-muted)',
           cursor: swappable ? 'pointer' : 'not-allowed',
           minHeight: 36,
           boxShadow: '0 1px 3px color-mix(in srgb, var(--sk-text) 4%, transparent)',
@@ -274,7 +274,7 @@ export default function EcosystemSwitcher() {
               fontWeight: 600,
               letterSpacing: '.06em',
               textTransform: 'uppercase',
-              color: 'var(--sk-faint)',
+              color: 'var(--sk-muted)',
             }}
           >
             {t('label')}
