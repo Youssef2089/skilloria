@@ -1,5 +1,6 @@
 import { getEmailMessages, interpolate, resolveLocale, type Locale } from './locales'
 import { renderEmailHtml, renderEmailText, stripHtml } from './layout'
+import { COULEURS_EMAIL } from './couleurs'
 
 /**
  * Templates des 2 emails admin (B5) — bienvenue (org approuvée) et refus.
@@ -108,7 +109,7 @@ export function renderRejectEmail(params: RejectEmailParams): RenderedEmail {
   const helloLine = interpolate(m.hello, variables)
   const bodyP1Html = interpolate(m.body_p1, variables)
   const reasonP2Html = params.reason
-    ? `<p style="margin:0 0 12px;color:#475569;">${interpolate(m.body_with_reason_p2, variables)}</p>`
+    ? `<p style="margin:0 0 12px;color:${COULEURS_EMAIL.texteSecondaire};">${interpolate(m.body_with_reason_p2, variables)}</p>`
     : ''
   const bodyP3Html = m.body_p3
 
@@ -235,7 +236,7 @@ export function renderExpertRejectEmail(params: ExpertRejectEmailParams): Render
   const helloLine = interpolate(m.hello, variables)
   const bodyP1Html = m.body_p1
   const reasonP2Html = params.reason
-    ? `<p style="margin:0 0 12px;color:#475569;">${interpolate(m.body_with_reason_p2, variables)}</p>`
+    ? `<p style="margin:0 0 12px;color:${COULEURS_EMAIL.texteSecondaire};">${interpolate(m.body_with_reason_p2, variables)}</p>`
     : ''
   const bodyP3Html = m.body_p3
 
@@ -320,14 +321,14 @@ export function renderInvitationEmail(params: InvitationEmailParams): RenderedEm
   const bodyRoleHtml = interpolate(m.body_role, variables)
   const bodyExpiresHtml = interpolate(m.body_expires, variables)
   const domainWarnHtml = params.domainMismatch
-    ? `<p style="margin:0 0 12px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;">${m.body_domain_warning}</p>`
+    ? `<p style="margin:0 0 12px;color:${COULEURS_EMAIL.avertissement};background:${COULEURS_EMAIL.avertissementDoux};border:1px solid ${COULEURS_EMAIL.avertissementDoux};border-radius:8px;padding:10px 12px;">${m.body_domain_warning}</p>`
     : ''
 
   const bodyHtml = `<p style="margin:0 0 12px;">${m.hello}</p>
 <p style="margin:0 0 12px;">${bodyP1Html}</p>
 <p style="margin:0 0 12px;">${bodyRoleHtml}</p>
 ${domainWarnHtml}
-<p style="margin:0;color:#475569;">${bodyExpiresHtml}</p>`
+<p style="margin:0;color:${COULEURS_EMAIL.texteSecondaire};">${bodyExpiresHtml}</p>`
 
   const bodyTextParts = [
     stripHtml(m.hello),
@@ -490,13 +491,13 @@ export function renderMatchDigestEmail(params: MatchDigestEmailParams): Rendered
     .join('')
 
   const unsubscribeHtml = interpolate(
-    '<p style="margin:18px 0 0;font-size:12px;color:#94a3b8;"><a href="{url}" style="color:#94a3b8;text-decoration:underline;">{label}</a></p>',
+    '<p style="margin:18px 0 0;font-size:12px;color:${COULEURS_EMAIL.texteTenu};"><a href="{url}" style="color:${COULEURS_EMAIL.texteTenu};text-decoration:underline;">{label}</a></p>',
     { url: params.unsubscribeUrl, label: m.unsubscribe },
   )
 
   const bodyHtml = `<p style="margin:0 0 12px;">${helloLine}</p>
 <p style="margin:0 0 12px;">${introHtml}</p>
-<ul style="margin:0 0 12px;padding-left:20px;color:#334155;">${itemsHtml}</ul>
+<ul style="margin:0 0 12px;padding-left:20px;color:${COULEURS_EMAIL.texte};">${itemsHtml}</ul>
 ${unsubscribeHtml}`
 
   const itemsText = params.items
@@ -590,11 +591,11 @@ export function renderNewMessageEmail(params: NewMessageEmailParams): RenderedEm
   // `interpolate` échappe chaque valeur (lib/emails/escape.ts, fix E1) : le nom
   // d'expéditeur vient d'un profil utilisateur, donc non fiable.
   const introHtml = interpolate(m.intro, vars)
-  const noticeHtml = interpolate('<p style="margin:0 0 12px;color:#64748b;">{notice}</p>', {
+  const noticeHtml = interpolate(`<p style="margin:0 0 12px;color:${COULEURS_EMAIL.texteSecondaire};">{notice}</p>`, {
     notice: m.notice,
   })
   const unsubscribeHtml = interpolate(
-    '<p style="margin:18px 0 0;font-size:12px;color:#94a3b8;"><a href="{url}" style="color:#94a3b8;text-decoration:underline;">{label}</a></p>',
+    '<p style="margin:18px 0 0;font-size:12px;color:${COULEURS_EMAIL.texteTenu};"><a href="{url}" style="color:${COULEURS_EMAIL.texteTenu};text-decoration:underline;">{label}</a></p>',
     { url: params.unsubscribeUrl, label: m.unsubscribe },
   )
 
@@ -661,7 +662,7 @@ export function renderNewCandidatureEmail(params: NewCandidatureEmailParams): Re
   // Titre d'annonce = saisie libre d'une organisation → échappé par interpolate.
   const introHtml = interpolate(m.intro, vars)
   const unsubscribeHtml = interpolate(
-    '<p style="margin:18px 0 0;font-size:12px;color:#94a3b8;"><a href="{url}" style="color:#94a3b8;text-decoration:underline;">{label}</a></p>',
+    '<p style="margin:18px 0 0;font-size:12px;color:${COULEURS_EMAIL.texteTenu};"><a href="{url}" style="color:${COULEURS_EMAIL.texteTenu};text-decoration:underline;">{label}</a></p>',
     { url: params.unsubscribeUrl, label: m.unsubscribe },
   )
 

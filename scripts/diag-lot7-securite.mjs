@@ -186,6 +186,18 @@ const EXCEPTIONS = new Set([
 function estSur(expr) {
   if (/^(escapeText|escapeHtml|interpolate|stripHtml)\(/.test(expr)) return true
   if (/^[A-Z][A-Z0-9_]*$/.test(expr)) return true // constante de style (PRIMARY, BG…)
+  // ── LES COULEURS DE LA PALETTE ──────────────────────────────────────────
+  //
+  //  `COULEURS_EMAIL.*` est un objet CONSTANT de `lib/emails/couleurs.ts`,
+  //  résolu depuis `lib/palette.ts`. Aucune de ses valeurs ne vient d'une
+  //  saisie : ce sont des hexadécimaux écrits dans le dépôt, vérifiés par le
+  //  contrôle de contraste et par le cliquet des couleurs littérales.
+  //
+  //  ⚠️ L'EXEMPTION EST BORNÉE À CET OBJET, pas à « tout ce qui ressemble à
+  //     une couleur ». Un jour où une couleur viendrait de la base — la
+  //     palette d'un écosystème, par exemple — elle devra être échappée comme
+  //     n'importe quelle autre valeur, et cette ligne ne la couvrira pas.
+  if (/^COULEURS_EMAIL\.[a-zA-Z]+$/.test(expr)) return true
   // Sorties d'interpolate : la convention de nommage du fichier. `…Html`
   // (fragment assemblé) et `…Line` (ligne interpolée).
   if (/(Html|Line)$/.test(expr)) return true

@@ -62,12 +62,27 @@ const SOURCES = {
    Le nombre est celui mesuré ; il est la LIMITE HAUTE de chaque fichier.
    Un fichier qui descend sous son compte est signalé pour que le gel suive —
    sans faire rougir : on n'empêche pas quelqu'un de faire mieux. */
-const GEL = {
-  'lib/emails/templates.ts': 14,
-  'lib/emails/layout.ts': 7,
-  'app/api/contact/route.ts': 5,
-  'app/api/admin/ecosystemes/route.ts': 2,
-}
+/**
+ * ╔════════════════════════════════════════════════════════════════════════╗
+ * ║ LE GEL EST VIDE. C'EST L'ÉTAT D'ARRIVÉE, PAS UN OUBLI.                 ║
+ * ╚════════════════════════════════════════════════════════════════════════╝
+ *
+ * Parti de **3 180 couleurs dans 125 fichiers** (audit du 21/09/2026 au
+ * matin), descendu à **1 929 / 66** par le lot palette, puis à **zéro** par le
+ * parcours complet — espace par espace, un commit chacun.
+ *
+ * ⚠️ UN GEL VIDE NE SE SUPPRIME PAS, ET LA DIFFÉRENCE EST TOUT LE SUJET.
+ *    Retirer le cliquet parce qu'il n'a plus rien à tolérer, c'est rouvrir la
+ *    porte : la prochaine couleur écrite à la main passerait sans un mot. Le
+ *    gel reste, vide, et toute entrée qui y apparaîtrait serait une DETTE
+ *    NOUVELLE — nommée, datée, et à justifier (§G.8).
+ *
+ * Les deux exemptions déclarées, elles, ne sont PAS ici : ce sont des sources
+ * autorisées (`lib/palette.ts`, `lib/portraits-demo.ts`), pas des défauts
+ * tolérés. La distinction est celle que §G.8 pose entre un gel d'exemptions et
+ * un état mesuré.
+ */
+const GEL = {}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LE MOTIF

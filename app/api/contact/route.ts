@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit, extractClientIp } from '@/lib/rate-limit'
 import { sendEmail } from '@/lib/emails/resend'
+import { COULEURS_EMAIL } from '@/lib/emails/couleurs'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -145,15 +146,15 @@ export async function POST(request: NextRequest): Promise<Response> {
   const text = rows.map(([k, v]) => `${k} : ${v}`).join('\n')
 
   const html = `
-    <div style="font-family:Inter,system-ui,sans-serif;font-size:14px;color:#0f172a;line-height:1.6;">
+    <div style="font-family:Inter,system-ui,sans-serif;font-size:14px;color:${COULEURS_EMAIL.texte};line-height:1.6;">
       <h2 style="font-size:18px;margin:0 0 16px;">Nouveau message de contact</h2>
       <table style="border-collapse:collapse;width:100%;max-width:560px;">
         ${rows
           .map(
             ([k, v]) => `
         <tr>
-          <td style="padding:8px 12px;border-bottom:1px solid #eef2f6;font-weight:600;color:#475569;vertical-align:top;white-space:nowrap;">${escapeHtml(k)}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #eef2f6;color:#0f172a;white-space:pre-wrap;">${escapeHtml(v)}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid ${COULEURS_EMAIL.bordure};font-weight:600;color:${COULEURS_EMAIL.texteSecondaire};vertical-align:top;white-space:nowrap;">${escapeHtml(k)}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid ${COULEURS_EMAIL.bordure};color:${COULEURS_EMAIL.texte};white-space:pre-wrap;">${escapeHtml(v)}</td>
         </tr>`,
           )
           .join('')}

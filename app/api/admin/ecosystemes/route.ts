@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { isValidEcosystemSlug } from '@/lib/ecosystem-url'
 import { ecosystemeLogoStoragePath, urlPubliqueEcosysteme } from '@/lib/org-logo'
+import { PALETTE_REFERENCE } from '@/lib/palette'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -185,13 +186,29 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Invalid slug', code: 'invalid_slug' }, 400)
   }
 
+  // ── LES DEUX VALEURS PAR DÉFAUT VIENNENT DE LA PALETTE ─────────────────
+  //
+  //  Elles étaient écrites ici : `#0078D4` et `#005A9E`, le bleu et le bleu
+  //  foncé de Microsoft. Un écosystème créé aujourd'hui naissait donc aux
+  //  couleurs d'un tenant particulier — dans un produit dont la règle
+  //  première est qu'aucun écosystème n'est codé en dur (§M0).
+  //
+  //  ⚠️ CE SONT DES DONNÉES, PAS DU STYLE. Ces deux valeurs partent en base et
+  //     deviennent la marque de l'écosystème ; un jeton `var(--sk-…)` y serait
+  //     stocké tel quel et n'aurait aucun sens au moment de le peindre. Elles
+  //     restent donc LITTÉRALES — mais résolues depuis la source unique.
+  //
+  //  `secondary` est INERTE : `lib/domain-config.ts` dit en toutes lettres que
+  //  la colonne « reste en base et n'est plus lue ». On lui donne la même
+  //  valeur que la marque plutôt qu'une seconde teinte inventée, exactement
+  //  comme le fait `defaultDomainConfig`.
   const HEX = /^#[0-9a-fA-F]{6}$/
   const primary = typeof body.primary_color === 'string' && HEX.test(body.primary_color)
     ? body.primary_color
-    : '#0078D4'
+    : PALETTE_REFERENCE.marque
   const secondary = typeof body.secondary_color === 'string' && HEX.test(body.secondary_color)
     ? body.secondary_color
-    : '#005A9E'
+    : PALETTE_REFERENCE.marque
 
   // ── L'écosystème naît DÉSACTIVÉ ────────────────────────────────────────────
   // Il lui manque son sous-domaine et sa taxonomie : l'ouvrir aux organisations

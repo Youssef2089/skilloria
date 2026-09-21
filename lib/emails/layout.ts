@@ -8,16 +8,27 @@
  */
 
 import { escapeHtml } from './escape'
+import { COULEURS_EMAIL } from './couleurs'
 
 // Ré-export pour la découvrabilité : l'échappement des valeurs d'emails vit
 // dans ./escape (source unique). Voir interpolate() dans ./locales.
 export { escapeHtml } from './escape'
 
-const PRIMARY = '#00B9FF'
-const TEXT_PRIMARY = '#0f172a'
-const TEXT_SECONDARY = '#64748b'
-const BG = '#f8fafc'
-const BORDER = '#e2e8f0'
+// ⚠️ CES CINQ VALEURS ÉTAIENT ÉCRITES ICI, EN DUR, ET ELLES N ÉTAIENT PLUS
+//    CELLES DU PRODUIT. Le bleu #00B9FF n est la marque de personne depuis le
+//    lot palette, et la gamme ardoise a quitté tous les écrans. Un e-mail
+//    envoyé aujourd hui portait donc des couleurs qu on ne voit nulle part.
+//
+//    Elles viennent maintenant de `lib/palette.ts`, la source unique (§D.12),
+//    RÉSOLUES en littéraux — un client de messagerie ne sait pas lire une
+//    propriété personnalisée (cf. `./couleurs`).
+const PRIMARY = COULEURS_EMAIL.accent
+const TEXT_PRIMARY = COULEURS_EMAIL.texte
+const TEXT_SECONDARY = COULEURS_EMAIL.texteSecondaire
+const BG = COULEURS_EMAIL.fond
+const BORDER = COULEURS_EMAIL.bordure
+const CARTE = COULEURS_EMAIL.carte
+const SUR_ACCENT = COULEURS_EMAIL.surAccent
 // Slogan de pied d'email — générique, non spécifique à un écosystème (le NOM
 // de marque, lui, est dynamique via params.brandName / D3).
 const TAGLINE = 'La marketplace premium des experts certifiés.'
@@ -40,7 +51,7 @@ export function renderEmailHtml(params: EmailLayoutParams): string {
       ? `<tr>
           <td align="center" style="padding:24px 0 8px;">
             <a href="${escapeHtml(params.ctaUrl)}"
-               style="display:inline-block;padding:12px 24px;background:${PRIMARY};color:#fff;font-weight:500;border-radius:8px;text-decoration:none;font-size:14px;">
+               style="display:inline-block;padding:12px 24px;background:${PRIMARY};color:${SUR_ACCENT};font-weight:500;border-radius:8px;text-decoration:none;font-size:14px;">
               ${escapeText(params.ctaLabel)}
             </a>
           </td>
@@ -59,7 +70,7 @@ export function renderEmailHtml(params: EmailLayoutParams): string {
     <tr>
       <td align="center">
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0"
-               style="max-width:560px;background:#fff;border:1px solid ${BORDER};border-radius:14px;padding:32px 36px;">
+               style="max-width:560px;background:${CARTE};border:1px solid ${BORDER};border-radius:14px;padding:32px 36px;">
           <tr>
             <td style="font-size:18px;font-weight:500;color:${TEXT_PRIMARY};letter-spacing:-.01em;padding-bottom:18px;">
               ${escapeText(params.brandName)}

@@ -404,11 +404,23 @@ Retirer un champ sans écrire pourquoi ailleurs, c'est perdre la connaissance au
 **D.12 — AUCUNE COULEUR LITTÉRALE DANS UN COMPOSANT. Une seule source, réglée par écosystème.**
 Une couleur se lit dans un jeton `--sk-*`, jamais écrite en toutes lettres. La source unique est
 [lib/palette.ts](lib/palette.ts) ; les jetons sont posés **au serveur**, en littéral, sur `<html>`
-par le layout racine. **Gardé par [`diag-couleurs-litterales`](scripts/diag-couleurs-litterales.mjs)**
-(cliquet : le gel est un inventaire de MIGRATION par fichier, raison collective, le compte ne peut
-que descendre), par [`diag-svg-couleurs`](scripts/diag-svg-couleurs.mjs) pour le piège §E.48, et par
+par le layout racine. **Gardé par [`diag-couleurs-litterales`](scripts/diag-couleurs-litterales.mjs)**,
+par [`diag-svg-couleurs`](scripts/diag-svg-couleurs.mjs) pour le piège §E.48, et par
 [`diag-opacite-concatenee`](scripts/diag-opacite-concatenee.mjs) pour §E.50 — un suffixe d'opacité
 ne se colle JAMAIS à une couleur, on écrit `color-mix`.
+
+> ⛔ **LE GEL DU CLIQUET EST VIDE — 21/09/2026.** Parti de **3 180 couleurs dans 125 fichiers**,
+> descendu à zéro espace par espace, un commit chacun. **Toute entrée qui y apparaîtra est une dette
+> NOUVELLE**, à nommer et à justifier ; elle ne se glisse plus dans un inventaire existant.
+> Il **reste en place**, vide : le retirer parce qu'il n'a plus rien à tolérer rouvrirait la porte.
+>
+> **LES E-MAILS SONT L'EXCEPTION, ET ELLE EST STRUCTURELLE.** Les clients de messagerie ne lisent
+> **pas** les propriétés personnalisées : `color: var(--sk-text)` y est ignoré, et le texte tombe sur
+> la couleur par défaut du client. Un e-mail ne porte donc que des **littéraux** — mais **résolus**
+> depuis `lib/palette.ts` par [lib/emails/couleurs.ts](lib/emails/couleurs.ts), jamais recopiés.
+> Ils portaient encore `#00B9FF`, qui n'est la marque de personne depuis ce lot.
+> **Ce qui reste ouvert et se dit** : ce sont les valeurs de la palette **de référence**, pas celles
+> de l'écosystème du destinataire — le point d'envoi ne reçoit que le nom de marque.
 
 **Les valeurs sont celles de l'accueil**, mesurées le 21/09/2026
 ([docs/audit-couleurs.html](docs/audit-couleurs.html)) : c'était la seule surface du produit qui

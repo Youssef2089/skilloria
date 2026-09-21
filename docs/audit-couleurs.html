@@ -809,6 +809,71 @@ règle du projet lui interdit de porter une information. Cinquante-cinq occurren
 sans rien dire de ce que le texte raconte. C'est pour ça que les 212 usages se lisent
 <strong>un par un</strong>, après la conversion et pas à sa place.</p>
 
+<h2><span class="num">8</span>Le parcours est fini : le gel est à zéro</h2>
+<p class="sub">Le point 7 ouvrait l'inventaire. Celui-ci le referme. <strong>Aucune couleur n'est plus
+écrite à la main dans le produit</strong> — hors les deux sources déclarées, qui sont la palette
+elle-même et les couleurs d'illustration des portraits de démonstration.</p>
+
+<div class="cards">
+  <div class="card"><div class="big-n">3 180 → 0</div>
+    <div class="lbl">couleurs écrites à la main, depuis la mesure du 21 septembre au matin</div></div>
+  <div class="card"><div class="big-n">125 → 0</div>
+    <div class="lbl">fichiers qui en portaient</div></div>
+  <div class="card"><div class="big-n">212 → 33</div>
+    <div class="lbl">usages de <span class="mono">--sk-faint</span>, et <strong>les 33 sont légitimes</strong> : 31 étiquettes de structure, la définition du jeton, une pastille d'état</div></div>
+  <div class="card"><div class="big-n">7</div>
+    <div class="lbl">icônes qui seraient devenues invisibles, attrapées par le contrôle SVG</div></div>
+</div>
+
+<h3>Espace par espace, un commit chacun</h3>
+<div class="scroll"><table>
+<thead><tr><th>Espace</th><th>Couleurs converties</th><th><span class="mono">--sk-faint</span> ouverts</th><th>Ce qui s'y est trouvé</th></tr></thead>
+<tbody>
+<tr><td><strong>Organisation</strong></td><td class="val">183</td><td class="val">18</td>
+  <td>un fond de bouton en texte tenu : le libellé « Enregistrement… » était illisible pendant l'attente</td></tr>
+<tr><td><strong>Experts (freelance + CDI)</strong></td><td class="val">0 <span class="pill p-aaa">déjà propre</span></td><td class="val">40</td>
+  <td>un compteur de caractères, et le libellé du bouton « Publier » quand il est désactivé</td></tr>
+<tr><td><strong>Administration</strong></td><td class="val">662</td><td class="val">104</td>
+  <td>six bordures peintes avec un jeton de texte</td></tr>
+<tr><td><strong>Public, authentification, composants</strong></td><td class="val">470</td><td class="val">132</td>
+  <td>sept attributs SVG rendus muets par ma propre migration</td></tr>
+<tr><td><strong>E-mails</strong></td><td class="val">28</td><td class="val">0</td>
+  <td>le bleu <span class="mono">#00B9FF</span>, qui n'est plus la marque de personne</td></tr>
+</tbody>
+</table></div>
+
+<h3 id="emails">Les e-mails : littéraux, et c'est une contrainte</h3>
+<p class="note warn"><strong>Les clients de messagerie ne lisent pas les propriétés
+personnalisées.</strong> Outlook (moteur Word), les webmails qui réécrivent le HTML, les
+applications mobiles : <span class="mono">color: var(--sk-text)</span> y est ignoré, et le texte
+tombe sur la couleur par défaut du client — souvent noir sur blanc, parfois blanc sur blanc en thème
+sombre. Un e-mail ne peut porter que des valeurs <strong>littérales</strong>.</p>
+
+<p><strong>« Littérales » ne veut pas dire « écrites deux fois ».</strong> Ces valeurs étaient
+recopiées à la main dans le gabarit et dans les modèles : l'ancienne gamme ardoise, plus le bleu
+<span class="mono">#00B9FF</span> qui n'est la marque de personne depuis le lot palette. <em>Un
+e-mail envoyé hier portait des couleurs que plus aucun écran n'utilisait.</em> Elles sont désormais
+résolues depuis la palette, au même endroit que les écrans.</p>
+
+<p class="note"><strong>Ce qui reste ouvert, et qui est dit plutôt que caché.</strong> Ces couleurs
+sont celles de la palette <em>de référence</em>, pas celles de l'écosystème du destinataire. Les
+rendre dynamiques demande de faire descendre la palette jusqu'au point d'envoi, qui ne reçoit
+aujourd'hui que le nom de marque. C'est un lot à soi, et il n'est pas fait.</p>
+
+<h3>Ce que le cliquet ne vérifiera jamais</h3>
+<p>Le gel est vide, et <strong>il reste en place</strong>. Le retirer parce qu'il n'a plus rien à
+tolérer rouvrirait la porte : la prochaine couleur écrite à la main passerait sans un mot. Toute
+entrée qui y apparaîtrait désormais serait une dette <em>nouvelle</em> — nommée, datée, à justifier.</p>
+<p>Et trois choses lui échappent par nature, dites ici plutôt que promises :</p>
+<ul>
+  <li>que le jeton choisi soit le <strong>bon</strong>. <span class="mono">var(--sk-red)</span> sur
+  un état de succès est vert au contrôle et faux à l'écran ;</li>
+  <li>la règle du texte tenu — <span class="mono">--sk-faint</span> vaut 3,63 et ne doit porter
+  aucune information. Rien ne distingue un repère qu'on balaie d'un texte qu'on lit ;</li>
+  <li>les attributs de présentation SVG, que <span class="mono">diag-svg-couleurs</span> tient à
+  part — et qui ont attrapé sept icônes pendant ce parcours.</li>
+</ul>
+
 <footer class="doc">
   <p><strong>Points 1 à 5</strong> mesurés le 21 septembre 2026 au matin sur
   <code>feat/sprint-archi-orga</code>, commit <code>5558f86</code>,
