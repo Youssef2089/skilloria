@@ -556,7 +556,7 @@ deux produits.
 ### P2.1 — Public (hors session)
 | Écran | À quoi il sert |
 |---|---|
-| `/` | Accueil de l'écosystème servi par le sous-domaine (branding, couleurs, libellés, produits mis en avant). |
+| `/` | Accueil de l'écosystème servi par le sous-domaine (branding, couleurs, libellés, produits mis en avant). **C'est la RÉFÉRENCE VISUELLE du produit** : depuis le 21/09/2026, tout le site porte sa palette, aux mêmes valeurs — §P3.8. |
 | `/qui-sommes-nous` · `/contact` | Présentation ; formulaire de contact. |
 | `/inscription` · `/inscription/[role]` · `/inscription/confirmation` | Inscription expert (branche + spécialité **structurées**, CGU horodatées, OTP téléphone). |
 | `/inscription/organisation` (+ `/confirmation`) | Inscription organisation (SIREN/numéro, vérification à suivre). |
@@ -621,7 +621,7 @@ deux produits.
 | `supervision` · `supervision/[sujet]` | **Ce qui s'observe, séparé de ce qui se décide.** Les problèmes **en premier et déjà triés par le serveur** ([lib/supervision/problemes.ts](../lib/supervision/problemes.ts)) — le rouge ne sert plus à expliquer un fonctionnement normal. Répartition des notes, consommation **par mois et par type d'opération**, opérations les plus coûteuses. Chaque problème s'**ouvre** : `inacheves`, `operations`, `resumes`, `relances` — un total ne permet d'agir sur rien. Aucun contenu utilisateur n'y est affiché, et **jamais l'identité d'un expert** (§D.4). |
 | `tarifs-ia` | **La grille tarifaire des modèles**, réglable sans déploiement. Dit en une ligne que le compteur de dépense est une **estimation reconstituée**, pas la facture ; affiche **depuis quand** chaque prix n'a pas été modifié, et **rougit au-delà de 90 jours** ; renvoie à la grille du fournisseur pour comparer sans chercher. Les dépenses restent en **dollars** — les fournisseurs facturent en dollars, et aucune conversion n'est faite. |
 | `taxonomie` · `taxonomie/[id]` | Branches et spécialités, et leurs traductions. |
-| `ecosystemes` | Créer un écosystème, le traduire, l'ouvrir — **et dire ce qui manque**. Logo et favicon **téléversés** (bucket public `ecosysteme`, chemin dérivé de `domain_id`) ; la saisie d'URL a disparu — §E.17. Le détail est un **panneau dans la page de liste**, pas un écran : `/admin/ecosystemes/[id]` n'existe pas (seule la **route API** porte ce chemin). Ce tableau l'annonçait comme un écran. |
+| `ecosystemes` | Créer un écosystème, le traduire, l'ouvrir, **CHOISIR SES COULEURS** — et dire ce qui manque. Le panneau « Les couleurs de cet écosystème » porte **un sélecteur par rôle**, un **aperçu en direct**, et une garde qui **REFUSE d'enregistrer** une combinaison illisible en nommant la paire fautive, son ratio et le minimum (§P3.8). Logo et favicon **téléversés** (bucket public `ecosysteme`, chemin dérivé de `domain_id`) ; la saisie d'URL a disparu — §E.17. Le détail est un **panneau dans la page de liste**, pas un écran : `/admin/ecosystemes/[id]` n'existe pas (seule la **route API** porte ce chemin). Ce tableau l'annonçait comme un écran. |
 | `durees` | Les **deux durées du contrat de la place** — vie d'une annonce (**rétroactive**) et fenêtre d'échange (**non rétroactive**), §P3.7. |
 | `taches-planifiees` · `taches-planifiees/[job_name]` | Supervision pg_cron : activer/désactiver, reprogrammer, déclencher, historique. |
 | `collaboration` | Les organisations personnelles d'experts. |
@@ -918,6 +918,66 @@ Nommées, comme demandé. Chacune exige aujourd'hui un **déploiement** :
 6. **Taille de CV (5 Mo)**, **longueur de message (5000)**, **bornes du résumé (200–800)** — bornes de
    produit, en code. Les deux dernières sont **liées au moteur** (au-delà de 800, le texte n'est plus
    lu) : les rendre réglables sans rappeler ce lien serait un piège.
+
+### P3.8 — LES COULEURS : L'ACCUEIL EST LA RÉFÉRENCE, ET ELLE SE RÈGLE PAR ÉCOSYSTÈME
+
+**Ce qui a changé le 21/09/2026, et pourquoi.** Un audit a mesuré ce que le produit utilisait
+vraiment : **184 teintes distinctes, 3180 couleurs écrites à la main dans 125 fichiers sur 479**, et
+**aucune classe Tailwind**. L'accueil, lui, tenait en **quinze couleurs** déclarées dans un seul
+fichier, avec une règle écrite qui disait laquelle avait le droit d'y entrer. Les deux moitiés du
+produit ne partageaient **aucune couleur**, le blanc mis à part.
+
+Décision : **c'est la palette de l'accueil qui gagne**, aux mêmes valeurs, pour tout le produit.
+
+**Les huit rôles, nommés par ce qu'ils colorent.** Chacun se règle, par écosystème, dans
+`/admin/ecosystemes` :
+
+| Rôle | Ce qu'il colore | Valeur de référence |
+|---|---|---|
+| Fond de page | le fond de toutes les pages, derrière les cartes | `#FDFBF7` |
+| Bandeau et barre latérale | l'en-tête et le menu de gauche des tableaux de bord | `#F6F2EA` |
+| Cartes | la surface des cartes, **et le libellé posé sur un bouton plein** | `#FFFFFF` |
+| Traits | le contour des cartes et la séparation des sections | `#E7E2D8` |
+| Texte principal | tout le texte qui porte, **et le fond du pied de page** | `#1A1815` |
+| Texte secondaire | sous-titres, textes de carte, **et tout message d'état vide** | `#6B655C` |
+| Couleur de marque | **le logo, et rien d'autre** | `#0EA5E9` |
+| Boutons et éléments actifs | boutons, liens, onglet et menu actifs | **calculée** → `#085A7F` |
+
+**« Calculée » est le mot qui compte.** La couleur des boutons est dérivée de la marque en abaissant
+sa luminance — teinte et saturation conservées — jusqu'à franchir **7 pour 1** contre le fond de page
+de cet écosystème. Sur la marque de référence, `#0EA5E9` vaut **2,68** contre la crème : illisible.
+La dérivation rend `#085A7F`, à **7,31**. Un administrateur peut la choisir lui-même ; par défaut,
+elle se calcule, et c'est ce qui garantit qu'**aucun écosystème futur ne produit une page illisible**.
+
+**Ce qui NE se règle pas, et ce n'est pas un oubli :**
+· le **vert**, l'**ambre** et le **rouge**. Ils disent *vérifié*, *attention*, *en échec* — un ÉTAT,
+  pas une marque. Les rendre réglables inviterait à peindre une erreur en vert ;
+· le **texte tenu** et la **bordure douce**, mesurés sur l'accueil et non dérivables des autres.
+
+> ⚠️ **LE ROUGE D'ERREUR EST LA SEULE COULEUR DU PRODUIT QUI N'A PAS ÉTÉ MESURÉE.** L'accueil n'a
+> aucun état d'erreur. `#C32116` a été **construit** par la même méthode que le vert et l'ambre —
+> même bande de contraste sur le fond de page, même saturation — puis **choisi par Youssef parmi
+> trois candidats** le 21/09/2026. Il vaut 5,72 sur le fond de page et 5,92 sur une carte.
+
+**LA GARDE : l'écran REFUSE d'enregistrer une combinaison illisible.** Sept paires sont vérifiées —
+le texte principal et le texte secondaire sur chacune des trois surfaces, plus le libellé d'un bouton
+sur son bouton. Sous **4,5 pour 1**, rien n'est écrit, et le refus **nomme** la paire fautive, son
+ratio et le minimum. L'écran affiche le verdict de chaque paire pendant qu'on choisit ; **c'est le
+serveur qui refuse**.
+
+> **Les bordures ne sont PAS gardées, à dessein.** La bordure de référence vaut **1,25** contre le
+> fond de page. Exiger 3 pour 1 ferait rougir la palette de l'accueil elle-même dès le premier jour,
+> et un contrôle qui refuse la référence qu'il défend est désactivé le jour même.
+
+> ⚠️ **UNE COULEUR NE PORTE PAS TOUJOURS UNE INFORMATION, ET LA DISTINCTION EST UNE DÉCISION.**
+> Le **texte tenu** (`#8A8377`) vaut **3,63** — sous le minimum. Il est réservé aux **libellés de
+> structure** : titres de groupes, survols, séparateurs ; des repères qu'on balaie. Un **état vide**
+> dit quelque chose, et quelqu'un vient le lire : il prend le **texte secondaire**, à 5,58.
+> Arbitrage de Youssef du 21/09/2026.
+
+**Ajouter un écosystème ne demande AUCUN déploiement.** Sa ligne naît aux couleurs de la référence,
+il est lisible dès la première seconde, et l'écran montre ses couleurs le premier jour. Détail du
+chemin technique : [architecture §C.13](architecture.md).
 
 ---
 

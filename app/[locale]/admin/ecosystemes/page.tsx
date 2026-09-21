@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { isValidEcosystemSlug } from '@/lib/ecosystem-url'
+import PalettePanel from '@/components/admin/PalettePanel'
+import { PALETTE_REFERENCE } from '@/lib/palette'
 import EcosystemeVisuelUpload from '@/components/admin/EcosystemeVisuelUpload'
 
 /**
@@ -127,7 +129,7 @@ export default function AdminEcosystemesPage() {
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
 
   const [creating, setCreating] = useState(false)
-  const [form, setForm] = useState({ name: '', slug: '', tagline: '', primary_color: '#0078D4' })
+  const [form, setForm] = useState({ name: '', slug: '', tagline: '', primary_color: PALETTE_REFERENCE.marque })
   const [justCreated, setJustCreated] = useState<{ slug: string; name: string } | null>(null)
 
   const [openId, setOpenId] = useState<string | null>(null)
@@ -188,7 +190,7 @@ export default function AdminEcosystemesPage() {
         return
       }
       setJustCreated({ slug: form.slug.trim().toLowerCase(), name: form.name.trim() })
-      setForm({ name: '', slug: '', tagline: '', primary_color: '#0078D4' })
+      setForm({ name: '', slug: '', tagline: '', primary_color: PALETTE_REFERENCE.marque })
       await load()
     } catch {
       setMsg({ kind: 'err', text: t('errors.generic') })
@@ -458,15 +460,24 @@ export default function AdminEcosystemesPage() {
               </div>
 
               <h3 style={sectionTitle}>{t('sections.branding')}</h3>
+
+              {/*
+                LES DEUX SELECTEURS DE COULEUR ONT DISPARU D'ICI, remplaces par
+                le panneau de palette ci-dessous.
+
+                « Couleur principale » et « couleur secondaire » ne disaient pas
+                ce qu'elles coloraient — et la seconde ne colore plus rien du
+                tout depuis le lot palette (architecture §B.2 ⑪). Un champ qui
+                ne regle rien finit par etre rempli (§D.11) : elle est
+                documentee, elle n'est plus affichee.
+              */}
+              <PalettePanel
+                ecosystemeId={e.id}
+                config={detail.config as Record<string, unknown> | null}
+                onSaved={() => void openDetail(e.id)}
+              />
+
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 18 }}>
-                {(['primary_color', 'secondary_color'] as const).map((f) => (
-                  <div key={f}>
-                    <label style={label} htmlFor={`${f}-${e.id}`}>{t(`fields.${f}`)}</label>
-                    <input id={`${f}-${e.id}`} type="color" style={{ ...input, padding: 4, height: 38 }}
-                      value={cur(f, (detail.config?.[f] as string) ?? '#0078D4')}
-                      onChange={(ev) => field(f, ev.target.value)} />
-                  </div>
-                ))}
                 {/*
                   LES DEUX SAISIES D'URL ONT DISPARU (migration 20260916300000).
                   Elles acceptaient n'importe quelle adresse, servie telle quelle

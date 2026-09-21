@@ -4342,5 +4342,76 @@
       "stripe_permission": "Stripe ha rechazado la lectura. La clave utilizada no tiene permiso para leer este recurso.",
       "lecture_locale": "Ha fallado una lectura de nuestra propia base. Stripe no tiene nada que ver."
     }
+  },
+  "admin_palette": {
+    "title": "Los colores de este ecosistema",
+    "intro": "Cada color se nombra por lo que pinta. Los estados — verificado, atención, fallido — no se ajustan: significan lo mismo en todos los ecosistemas.",
+    "derive": "calculado",
+    "rendre_derive": "volver al cálculo",
+    "enregistrer": "Guardar los colores",
+    "enregistrement": "Guardando…",
+    "enregistre": "Colores guardados.",
+    "roles": {
+      "fond_page": {
+        "nom": "Fondo de página",
+        "quoi": "El fondo de todas las páginas, detrás de las tarjetas."
+      },
+      "bandeau": {
+        "nom": "Cabecera y barra lateral",
+        "quoi": "La barra superior y el menú izquierdo de los paneles."
+      },
+      "cartes": {
+        "nom": "Tarjetas",
+        "quoi": "La superficie de tarjetas y paneles, y el texto sobre un botón sólido."
+      },
+      "bordures": {
+        "nom": "Trazos",
+        "quoi": "El contorno de las tarjetas y la separación de secciones."
+      },
+      "texte_principal": {
+        "nom": "Texto principal",
+        "quoi": "Todo el texto que informa, y el fondo del pie de página."
+      },
+      "texte_secondaire": {
+        "nom": "Texto secundario",
+        "quoi": "Subtítulos, texto de tarjeta y todo mensaje de estado vacío."
+      },
+      "marque": {
+        "nom": "Color de marca",
+        "quoi": "El logotipo, y nada más. Es vivo: no pasa ningún control de legibilidad, porque ningún texto se apoya en él."
+      },
+      "boutons": {
+        "nom": "Botones y elementos activos",
+        "quoi": "Calculado a partir del color de marca, oscurecido hasta ser legible. Puede elegirlo usted mismo."
+      }
+    },
+    "apercu": {
+      "titre": "Vista previa",
+      "carte_titre": "Un título de tarjeta",
+      "carte_texte": "El texto secundario de una tarjeta, tal como se leerá.",
+      "bouton": "Un botón"
+    },
+    "controle": {
+      "titre": "Legibilidad",
+      "paires": {
+        "principal_sur_fond": "Texto principal sobre el fondo de página",
+        "principal_sur_cartes": "Texto principal sobre una tarjeta",
+        "principal_sur_bandeau": "Texto principal sobre la cabecera",
+        "secondaire_sur_fond": "Texto secundario sobre el fondo de página",
+        "secondaire_sur_cartes": "Texto secundario sobre una tarjeta",
+        "secondaire_sur_bandeau": "Texto secundario sobre la cabecera",
+        "libelle_sur_boutons": "El texto de un botón sobre su botón"
+      },
+      "minimum": "Cada par debe alcanzar {minimum} a 1. Por debajo, los colores no se guardan.",
+      "sous_minimum": "· por debajo de {minimum}"
+    },
+    "refus": {
+      "contraste_insuffisant": "Al menos un par es ilegible: no se ha guardado nada.",
+      "couleur_invalide": "Un color no tiene el formato correcto.",
+      "config_missing": "Este ecosistema aún no tiene configuración.",
+      "lecture_indisponible": "No se pudo leer la configuración. No se guardó nada; inténtelo de nuevo.",
+      "db_error": "No se pudo guardar.",
+      "reseau": "La solicitud no se envió. Inténtelo de nuevo."
+    }
   }
 }

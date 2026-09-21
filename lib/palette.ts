@@ -106,11 +106,11 @@ export const PALETTE_REFERENCE: Record<Exclude<RolePalette, 'boutons'>, string> 
  * ⚠️ `texteTenu` EST RÉSERVÉ AUX LIBELLÉS DE STRUCTURE, et c'est une décision
  *    de Youssef du 21/09/2026, pas une préférence.
  *
- *    Il vaut **3,63 contre le fond de page** — sous le seuil du texte courant.
+ *    Il vaut **3,63 contre le fond de page** — sous le minimum de lisibilité.
  *    Il colore donc les titres de groupes de la barre latérale et les survols :
  *    des repères qu'on ne LIT pas, on les balaie. **Jamais un texte qui porte
  *    une information.** Un état vide dit quelque chose — il utilise
- *    `texte_secondaire`, qui passe le seuil.
+ *    `texte_secondaire`, qui passe le minimum.
  *
  *    Cette règle NE SE BALAIE PAS : aucun motif ne distingue un libellé de
  *    structure d'un texte d'information. Elle se lit, écran par écran (§E.38).
@@ -239,8 +239,14 @@ export function resolvePalette(config: unknown): Palette {
    4. LA GARDE DE CONTRASTE
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/** Seuil du texte courant, WCAG 2.1 AA. */
-export const SEUIL_TEXTE = 4.5
+/**
+ * LE MINIMUM DE LISIBILITÉ d'un texte, WCAG 2.1 AA.
+ *
+ * Ce n'est pas un réglage — ni un plafond, ni une alerte, ni un filtre, ni une
+ * note (§D.9) : c'est une EXIGENCE, fixée hors de ce produit. Elle se dit donc
+ * par ce qu'elle est, et le mot « seuil » n'a pas à revenir ici.
+ */
+export const MINIMUM_LISIBILITE = 4.5
 
 /**
  * Les paires VÉRIFIÉES avant tout enregistrement.
@@ -272,7 +278,7 @@ export type VerdictPaire = {
   texte: string
   fond: string
   ratio: number
-  seuil: number
+  minimum: number
   passe: boolean
 }
 
@@ -304,7 +310,7 @@ export function verifierContraste(palette: Palette): {
     const texte = valeurParRole[p.texte]
     const fond = valeurParRole[p.fond]
     const ratio = Math.round(contrastRatio(texte, fond) * 100) / 100
-    return { cle: p.cle, texte, fond, ratio, seuil: SEUIL_TEXTE, passe: ratio >= SEUIL_TEXTE }
+    return { cle: p.cle, texte, fond, ratio, minimum: MINIMUM_LISIBILITE, passe: ratio >= MINIMUM_LISIBILITE }
   })
 
   const echecs = paires.filter((p) => !p.passe)

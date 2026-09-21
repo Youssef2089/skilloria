@@ -4342,5 +4342,76 @@
       "stripe_permission": "Stripe a refusé la lecture. La clé utilisée n’a pas le droit de lire cette ressource.",
       "lecture_locale": "Une lecture de notre propre base a échoué. Ce n’est pas Stripe qui est en cause."
     }
+  },
+  "admin_palette": {
+    "title": "Les couleurs de cet écosystème",
+    "intro": "Chaque couleur ci-dessous est nommée par ce qu'elle colore. Les états — vérifié, attention, en échec — ne se règlent pas : ils veulent dire la même chose sur tous les écosystèmes.",
+    "derive": "calculée",
+    "rendre_derive": "revenir au calcul",
+    "enregistrer": "Enregistrer les couleurs",
+    "enregistrement": "Enregistrement…",
+    "enregistre": "Couleurs enregistrées.",
+    "roles": {
+      "fond_page": {
+        "nom": "Fond de page",
+        "quoi": "Le fond de toutes les pages, derrière les cartes."
+      },
+      "bandeau": {
+        "nom": "Bandeau et barre latérale",
+        "quoi": "L'en-tête et le menu de gauche des tableaux de bord."
+      },
+      "cartes": {
+        "nom": "Cartes",
+        "quoi": "La surface des cartes et des panneaux, et le texte posé sur un bouton plein."
+      },
+      "bordures": {
+        "nom": "Traits",
+        "quoi": "Le contour des cartes et la séparation des sections."
+      },
+      "texte_principal": {
+        "nom": "Texte principal",
+        "quoi": "Tout le texte qui porte, et le fond du pied de page."
+      },
+      "texte_secondaire": {
+        "nom": "Texte secondaire",
+        "quoi": "Sous-titres, textes de carte, et tout message d'état vide."
+      },
+      "marque": {
+        "nom": "Couleur de marque",
+        "quoi": "Le logo, et rien d'autre. Elle est vive : elle ne passe aucun contrôle de lisibilité, parce qu'aucun texte ne s'y pose."
+      },
+      "boutons": {
+        "nom": "Boutons et éléments actifs",
+        "quoi": "Calculée depuis la couleur de marque, assombrie jusqu'à devenir lisible. Vous pouvez la choisir vous-même."
+      }
+    },
+    "apercu": {
+      "titre": "Aperçu",
+      "carte_titre": "Un titre de carte",
+      "carte_texte": "Le texte secondaire d'une carte, tel qu'il sera lu.",
+      "bouton": "Un bouton"
+    },
+    "controle": {
+      "titre": "Lisibilité",
+      "paires": {
+        "principal_sur_fond": "Texte principal sur le fond de page",
+        "principal_sur_cartes": "Texte principal sur une carte",
+        "principal_sur_bandeau": "Texte principal sur le bandeau",
+        "secondaire_sur_fond": "Texte secondaire sur le fond de page",
+        "secondaire_sur_cartes": "Texte secondaire sur une carte",
+        "secondaire_sur_bandeau": "Texte secondaire sur le bandeau",
+        "libelle_sur_boutons": "Le texte d'un bouton sur son bouton"
+      },
+      "minimum": "Chaque paire doit atteindre {minimum} pour 1. En dessous, les couleurs ne sont pas enregistrées.",
+      "sous_minimum": "· sous {minimum}"
+    },
+    "refus": {
+      "contraste_insuffisant": "Une paire au moins est illisible : rien n'a été enregistré.",
+      "couleur_invalide": "Une couleur n'est pas au bon format.",
+      "config_missing": "Cet écosystème n'a pas encore de configuration.",
+      "lecture_indisponible": "La configuration n'a pas pu être lue. Rien n'a été enregistré ; réessayez.",
+      "db_error": "L'enregistrement a échoué.",
+      "reseau": "La demande n'est pas partie. Réessayez."
+    }
   }
 }

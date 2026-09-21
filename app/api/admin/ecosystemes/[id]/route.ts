@@ -3,6 +3,13 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import {
+  COLONNE_PAR_ROLE,
+  ROLES_PALETTE,
+  MINIMUM_LISIBILITE,
+  resolvePalette,
+  verifierContraste,
+} from '@/lib/palette'
+import {
   ecosystemeFaviconStoragePath,
   ecosystemeLogoStoragePath,
   urlPubliqueEcosysteme,
@@ -198,10 +205,26 @@ export async function PATCH(
   }
 
   const configUpdates: Record<string, unknown> = {}
-  for (const k of ['primary_color', 'secondary_color'] as const) {
-    if (has(k) && typeof body[k] === 'string' && HEX.test(body[k] as string)) {
-      configUpdates[k] = body[k]
+
+  // ╔════════════════════════════════════════════════════════════════════════╗
+  // ║ LA PALETTE DE L'ÉCOSYSTÈME — huit rôles, et une garde qui REFUSE.      ║
+  // ║                                                                        ║
+  // ║ `secondary_color` A QUITTÉ CETTE LISTE, et ce n'est pas un oubli : la  ║
+  // ║ colonne ne gouverne plus rien depuis le lot palette (architecture      ║
+  // ║ §B.2 ⑪). Accepter une écriture sur une valeur inerte, c'est inviter    ║
+  // ║ quelqu'un à croire qu'elle décide de quelque chose (§D.11).            ║
+  // ╚════════════════════════════════════════════════════════════════════════╝
+  const COLONNES_PALETTE = ROLES_PALETTE.map((r) => COLONNE_PAR_ROLE[r])
+  for (const k of COLONNES_PALETTE) {
+    if (!has(k)) continue
+    const v = body[k]
+    // `accent_color` est la seule qui accepte `null`, et son `null` a un sens
+    // PLEIN : « dérive la couleur depuis la marque ». Ce n'est pas une absence.
+    if (v === null && k === 'accent_color') { configUpdates[k] = null; continue }
+    if (typeof v !== 'string' || !HEX.test(v)) {
+      return json({ error: 'Invalid color', code: 'couleur_invalide', champ: k }, 400)
     }
+    configUpdates[k] = v.toUpperCase()
   }
   // ⚠️ `logo_url` ET `favicon_url` NE SONT PLUS ÉDITABLES ICI, et ce n'est pas
   //    un oubli. C'étaient des SAISIES D'URL LIBRES — `typeof === 'string'`,
@@ -225,6 +248,60 @@ export async function PATCH(
       .map((t) => t.trim().slice(0, 60))
   }
 
+  // ── La ligne de configuration, lue AVANT toute écriture ────────────────────
+  let configId: string | null = null
+  let configActuelle: Record<string, unknown> | null = null
+  if (Object.keys(configUpdates).length > 0 || has('translations')) {
+    const { data: cfgRow, error: cfgErr } = await auth.supabaseAdmin
+      .from('domain_configs')
+      .select('*')
+      .eq('domain_id', id)
+      .maybeSingle()
+    // ⚠️ UNE LECTURE EN PANNE N'EST PAS UNE LIGNE ABSENTE (§E.22). Les confondre
+    //    rendrait ici un 409 « cet écosystème n'a pas de configuration », dit
+    //    d'un écosystème qui en a une — et la garde de contraste ci-dessous
+    //    s'appliquerait à une palette vide, donc à la référence, donc elle
+    //    passerait. Une garde qui s'ouvre sur une panne est le pire des cas.
+    if (cfgErr) {
+      console.error('[admin:ecosysteme] lecture de la configuration en panne', cfgErr.message)
+      return json({ error: 'Read failed', code: 'lecture_indisponible' }, 503)
+    }
+    configActuelle = (cfgRow as Record<string, unknown> | null) ?? null
+    configId = (configActuelle?.id as string | undefined) ?? null
+  }
+
+  // ╔════════════════════════════════════════════════════════════════════════╗
+  // ║ LA GARDE DE CONTRASTE — ELLE REFUSE, ELLE N'AVERTIT PAS.               ║
+  // ║                                                                        ║
+  // ║ Elle s'applique à la palette TELLE QU'ELLE SERA : l'existant fusionné  ║
+  // ║ avec ce que l'écran envoie, dérivations comprises. Vérifier les seules ║
+  // ║ valeurs reçues laisserait HORS DE LA GARDE le rôle « boutons » quand   ║
+  // ║ il est dérivé — précisément celui que personne ne choisit, donc celui  ║
+  // ║ que personne ne regarde.                                               ║
+  // ║                                                                        ║
+  // ║ Et elle est ICI, au serveur, parce que c'est ici que ça compte :       ║
+  // ║ l'écran calcule le même verdict pour le dire tout de suite, mais un    ║
+  // ║ aperçu n'a jamais refusé personne (§E.15).                             ║
+  // ║                                                                        ║
+  // ║ Le refus NOMME la paire fautive, son ratio et le minimum. Un refus qui ║
+  // ║ ne nomme rien envoie chercher au hasard.                                ║
+  // ╚════════════════════════════════════════════════════════════════════════╝
+  const toucheLaPalette = COLONNES_PALETTE.some((k) => k in configUpdates)
+  if (toucheLaPalette) {
+    const verdict = verifierContraste(resolvePalette({ ...(configActuelle ?? {}), ...configUpdates }))
+    if (!verdict.valide) {
+      return json(
+        {
+          error: 'Contrast too low',
+          code: 'contraste_insuffisant',
+          minimum: MINIMUM_LISIBILITE,
+          echecs: verdict.echecs,
+        },
+        400,
+      )
+    }
+  }
+
   // ── Écritures ──────────────────────────────────────────────────────────────
   if (Object.keys(domainUpdates).length > 0) {
     const { error } = await auth.supabaseAdmin.from('domains').update(domainUpdates).eq('id', id)
@@ -232,16 +309,6 @@ export async function PATCH(
       console.error('[admin:ecosysteme] domain update failed', error.message)
       return json({ error: 'Update failed', code: 'db_error' }, 500)
     }
-  }
-
-  let configId: string | null = null
-  if (Object.keys(configUpdates).length > 0 || has('translations')) {
-    const { data: cfgRow } = await auth.supabaseAdmin
-      .from('domain_configs')
-      .select('id')
-      .eq('domain_id', id)
-      .maybeSingle()
-    configId = (cfgRow as { id: string } | null)?.id ?? null
   }
   if (Object.keys(configUpdates).length > 0) {
     if (!configId) {

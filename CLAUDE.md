@@ -401,6 +401,37 @@ Retirer un champ sans écrire pourquoi ailleurs, c'est perdre la connaissance au
 > **La règle complète les deux précédentes** : §D.7 dit qu'un réglage règle quelque chose **ou le
 > dit** ; celle-ci dit **où** il le dit — dans la documentation, jamais dans un champ de saisie.
 
+**D.12 — AUCUNE COULEUR LITTÉRALE DANS UN COMPOSANT. Une seule source, réglée par écosystème.**
+Une couleur se lit dans un jeton `--sk-*`, jamais écrite en toutes lettres. La source unique est
+[lib/palette.ts](lib/palette.ts) ; les jetons sont posés **au serveur**, en littéral, sur `<html>`
+par le layout racine. **Gardé par [`diag-couleurs-litterales`](scripts/diag-couleurs-litterales.mjs)**
+(cliquet : le gel est un inventaire de MIGRATION par fichier, raison collective, le compte ne peut
+que descendre), et par [`diag-svg-couleurs`](scripts/diag-svg-couleurs.mjs) pour le piège §E.48.
+
+**Les valeurs sont celles de l'accueil**, mesurées le 21/09/2026
+([docs/audit-couleurs.html](docs/audit-couleurs.html)) : c'était la seule surface du produit qui
+tenait en quinze couleurs déclarées à un seul endroit, contre 184 teintes et 3180 littéraux ailleurs.
+
+| Ce qui se règle | Ce qui ne se règle pas |
+|---|---|
+| les **huit rôles** — fond de page, bandeau, cartes, bordures, texte principal, texte secondaire, marque, boutons — par écosystème, dans `/admin/ecosystemes` | le **vert**, l'**ambre** et le **rouge** : ils disent un ÉTAT, pas une marque. Les rendre réglables inviterait à peindre une erreur en vert. |
+| | le **texte tenu** et la **bordure douce** : mesurés sur l'accueil, non dérivables, et sans variation d'un écosystème à l'autre. |
+
+**La garde de contraste REFUSE, et elle refuse au serveur.** Sept paires, minimum 4,5. Le refus nomme
+la paire, son ratio et le minimum ([`diag-palette-contraste`](scripts/diag-palette-contraste.mjs)).
+**Les bordures en sont exclues, à dessein** : la bordure de référence vaut 1,25, et l'exiger à 3
+ferait rougir la palette de l'accueil elle-même dès le premier jour (§E.14).
+
+> ⚠️ **`--sk-faint` (le texte tenu) vaut 3,63 : il ne porte JAMAIS d'information.** Titres de
+> groupes, survols, séparateurs — des repères qu'on balaie. Un état vide **dit** quelque chose : il
+> prend `--sk-muted`. **Cette règle ne se balaie pas** — aucun motif ne distingue un repère d'un
+> texte qu'on lit — elle se lit écran par écran (§E.38).
+
+> **Deux exemptions, nommées avec leur raison** : [lib/portraits-demo.ts](lib/portraits-demo.ts)
+> (couleurs d'ILLUSTRATION : carnations, chevelures, vêtements — la garde de contraste n'a rien à
+> dire d'une couleur de cheveux) et `MARQUES_TIERCES` dans `lib/palette.ts` (le logo d'un tiers garde
+> SA couleur : la recolorer afficherait un logo LinkedIn qui n'est pas celui de LinkedIn).
+
 **D.10 — TOUTE NOTE DU PRODUIT EST SUR 0-10. Il n'y a pas de seconde échelle.**
 Les filtres de pertinence vivaient en **0-1**, les notes de jugement en **0-10**, et rien ne le disait
 à l'écran : **« 1 » signifiait *parfait* d'un côté et *médiocre* de l'autre**, sur la même page.
@@ -563,6 +594,9 @@ bloquant, ordonnés avec les quatorze défauts nommés du gel 4.1d :
 | [E.44](docs/pieges.md#e44) | UN CONSTAT PÉRISSABLE NE SE PERSISTE PAS : IL SE REJOUE. UN ÉVÉNEMENT DATÉ, SI. |
 | [E.45](docs/pieges.md#e45) | UNE COLLISION QUI NE PRODUIT PAS DE CONFLIT EST PIRE QU'UNE QUI EN PRODUIT. |
 | [E.46](docs/pieges.md#e46) | UNE REPRISE MANUELLE NE S'AUTORISE QUE SI « REJOUER » EST INOFFENSIF — ET ÇA SE MESURE. |
+| [E.47](docs/pieges.md#e47) | UNE RÈGLE JUSTE, APPLIQUÉE À UNE SEULE SURFACE, SE LIT COMME APPLIQUÉE PARTOUT. |
+| [E.48](docs/pieges.md#e48) | UNE VARIABLE CSS NE RÉSOUT PAS DANS UN ATTRIBUT SVG. Elle ne peint RIEN, et rien ne le dit. |
+| [E.49](docs/pieges.md#e49) | UNE PROPRIÉTÉ PERSONNALISÉE EST SUBSTITUÉE LÀ OÙ ELLE EST DÉCLARÉE, PAS LÀ OÙ ELLE EST LUE. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

@@ -4342,5 +4342,76 @@
       "stripe_permission": "Stripe refused the read. The key in use is not allowed to read this resource.",
       "lecture_locale": "A read of our own database failed. Stripe is not at fault here."
     }
+  },
+  "admin_palette": {
+    "title": "This ecosystem’s colours",
+    "intro": "Each colour below is named after what it paints. States — verified, warning, failed — are not adjustable: they mean the same thing on every ecosystem.",
+    "derive": "calculated",
+    "rendre_derive": "back to calculated",
+    "enregistrer": "Save colours",
+    "enregistrement": "Saving…",
+    "enregistre": "Colours saved.",
+    "roles": {
+      "fond_page": {
+        "nom": "Page background",
+        "quoi": "The background of every page, behind the cards."
+      },
+      "bandeau": {
+        "nom": "Header and sidebar",
+        "quoi": "The top bar and the left-hand menu of the dashboards."
+      },
+      "cartes": {
+        "nom": "Cards",
+        "quoi": "The surface of cards and panels, and the label on a solid button."
+      },
+      "bordures": {
+        "nom": "Lines",
+        "quoi": "Card outlines and section separators."
+      },
+      "texte_principal": {
+        "nom": "Main text",
+        "quoi": "All the text that carries, and the footer background."
+      },
+      "texte_secondaire": {
+        "nom": "Secondary text",
+        "quoi": "Subtitles, card text, and every empty-state message."
+      },
+      "marque": {
+        "nom": "Brand colour",
+        "quoi": "The logo, and nothing else. It is vivid: it passes no legibility check, because no text sits on it."
+      },
+      "boutons": {
+        "nom": "Buttons and active items",
+        "quoi": "Calculated from the brand colour, darkened until it is legible. You can choose it yourself."
+      }
+    },
+    "apercu": {
+      "titre": "Preview",
+      "carte_titre": "A card title",
+      "carte_texte": "The secondary text of a card, as it will be read.",
+      "bouton": "A button"
+    },
+    "controle": {
+      "titre": "Legibility",
+      "paires": {
+        "principal_sur_fond": "Main text on the page background",
+        "principal_sur_cartes": "Main text on a card",
+        "principal_sur_bandeau": "Main text on the header",
+        "secondaire_sur_fond": "Secondary text on the page background",
+        "secondaire_sur_cartes": "Secondary text on a card",
+        "secondaire_sur_bandeau": "Secondary text on the header",
+        "libelle_sur_boutons": "A button’s label on its button"
+      },
+      "minimum": "Each pair must reach {minimum} to 1. Below that, the colours are not saved.",
+      "sous_minimum": "· below {minimum}"
+    },
+    "refus": {
+      "contraste_insuffisant": "At least one pair is illegible: nothing was saved.",
+      "couleur_invalide": "One colour is not in the right format.",
+      "config_missing": "This ecosystem has no configuration yet.",
+      "lecture_indisponible": "The configuration could not be read. Nothing was saved; try again.",
+      "db_error": "Saving failed.",
+      "reseau": "The request did not go through. Try again."
+    }
   }
 }

@@ -4342,5 +4342,76 @@
       "stripe_permission": "Stripe hat den Lesezugriff verweigert. Der verwendete Schlüssel darf diese Ressource nicht lesen.",
       "lecture_locale": "Ein Lesezugriff auf unsere eigene Datenbank ist fehlgeschlagen. Stripe ist hier nicht die Ursache."
     }
+  },
+  "admin_palette": {
+    "title": "Die Farben dieses Ökosystems",
+    "intro": "Jede Farbe ist danach benannt, was sie einfärbt. Zustände — geprüft, Achtung, fehlgeschlagen — sind nicht einstellbar: Sie bedeuten in jedem Ökosystem dasselbe.",
+    "derive": "berechnet",
+    "rendre_derive": "zurück zur Berechnung",
+    "enregistrer": "Farben speichern",
+    "enregistrement": "Wird gespeichert…",
+    "enregistre": "Farben gespeichert.",
+    "roles": {
+      "fond_page": {
+        "nom": "Seitenhintergrund",
+        "quoi": "Der Hintergrund aller Seiten, hinter den Karten."
+      },
+      "bandeau": {
+        "nom": "Kopfleiste und Seitenleiste",
+        "quoi": "Die obere Leiste und das linke Menü der Dashboards."
+      },
+      "cartes": {
+        "nom": "Karten",
+        "quoi": "Die Fläche von Karten und Panels sowie die Beschriftung auf einer gefüllten Schaltfläche."
+      },
+      "bordures": {
+        "nom": "Linien",
+        "quoi": "Kartenumrisse und Abschnittstrenner."
+      },
+      "texte_principal": {
+        "nom": "Haupttext",
+        "quoi": "Aller tragende Text sowie der Hintergrund der Fußzeile."
+      },
+      "texte_secondaire": {
+        "nom": "Sekundärtext",
+        "quoi": "Untertitel, Kartentexte und jede Meldung bei leerem Zustand."
+      },
+      "marque": {
+        "nom": "Markenfarbe",
+        "quoi": "Das Logo, und sonst nichts. Sie ist kräftig: Sie besteht keine Lesbarkeitsprüfung, weil kein Text auf ihr liegt."
+      },
+      "boutons": {
+        "nom": "Schaltflächen und aktive Elemente",
+        "quoi": "Aus der Markenfarbe berechnet und abgedunkelt, bis sie lesbar ist. Sie können sie selbst wählen."
+      }
+    },
+    "apercu": {
+      "titre": "Vorschau",
+      "carte_titre": "Ein Kartentitel",
+      "carte_texte": "Der Sekundärtext einer Karte, so wie er gelesen wird.",
+      "bouton": "Eine Schaltfläche"
+    },
+    "controle": {
+      "titre": "Lesbarkeit",
+      "paires": {
+        "principal_sur_fond": "Haupttext auf dem Seitenhintergrund",
+        "principal_sur_cartes": "Haupttext auf einer Karte",
+        "principal_sur_bandeau": "Haupttext auf der Kopfleiste",
+        "secondaire_sur_fond": "Sekundärtext auf dem Seitenhintergrund",
+        "secondaire_sur_cartes": "Sekundärtext auf einer Karte",
+        "secondaire_sur_bandeau": "Sekundärtext auf der Kopfleiste",
+        "libelle_sur_boutons": "Die Beschriftung einer Schaltfläche auf ihrer Schaltfläche"
+      },
+      "minimum": "Jedes Paar muss {minimum} zu 1 erreichen. Darunter werden die Farben nicht gespeichert.",
+      "sous_minimum": "· unter {minimum}"
+    },
+    "refus": {
+      "contraste_insuffisant": "Mindestens ein Paar ist unlesbar: Es wurde nichts gespeichert.",
+      "couleur_invalide": "Eine Farbe hat nicht das richtige Format.",
+      "config_missing": "Dieses Ökosystem hat noch keine Konfiguration.",
+      "lecture_indisponible": "Die Konfiguration konnte nicht gelesen werden. Es wurde nichts gespeichert; bitte erneut versuchen.",
+      "db_error": "Das Speichern ist fehlgeschlagen.",
+      "reseau": "Die Anfrage ist nicht angekommen. Bitte erneut versuchen."
+    }
   }
 }

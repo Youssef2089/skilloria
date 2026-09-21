@@ -306,8 +306,11 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **70** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
-20/09/2026, à l'exécution — la 70ᵉ, `verification_nocturne_stripe`, apporte l'insertion et la ligne
+Sur les **71** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
+21/09/2026, à l'exécution — la 71ᵉ, `palette_par_ecosysteme`, laisse les trois autres compteurs
+**inchangés**, et c'est le point : elle ajoute six colonnes avec un `DEFAULT`, qui remplit les lignes
+existantes. **Elle n'insère rien**, donc elle échappe par construction à la classe que cette section
+décrit. Au 20/09/2026, la 70ᵉ, `verification_nocturne_stripe`, apportait l'insertion et la ligne
 de plus : son entrée au catalogue des tâches planifiées, six valeurs. Les chiffres précédents,
 **69 / 51 / 39 / 1962**, dataient du 17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois
 dernières d'alors,
@@ -2105,6 +2108,124 @@ les deux propriétés qui portent le bouton (garde d’ordre, `stale`), les troi
 > elle avait raison le jour où elle a été écrite. La propriété a été **délibérément changée** ;
 > l'assertion garde désormais ce qui reste vrai : **au plus UN** verbe d'écriture, qui n'écrit ni
 > droit, ni transaction, ni catalogue, et qui **ne rejoue pas** l'événement — il le rend rejouable.
+
+<a id="e47"></a>
+### E.47 — UNE RÈGLE JUSTE, APPLIQUÉE À UNE SEULE SURFACE, SE LIT COMME APPLIQUÉE PARTOUT.
+
+C'est **§E.28 ③ à l'échelle du produit** — *une règle écrite à côté d'une ligne ne protège pas ses
+voisines* — et la démonstration la plus chère qu'en ait donnée ce dépôt.
+
+**LA RÈGLE ÉTAIT EXCELLENTE.** [lib/couleur.ts](../lib/couleur.ts) (alors dans `domain-config`)
+porte une fonction de trente lignes, commentée sur dix-huit, qui abaisse la luminance de la couleur
+de marque **à teinte et saturation constantes** jusqu'à franchir un contraste de 7 pour 1. Son
+commentaire explique même pourquoi un assombrissement à taux fixe ne vaut rien : *« le même retrait
+de luminance donne des ratios très différents selon la teinte »*. Elle conclut qu'ainsi
+**« AUCUN écosystème futur ne pourra produire une page inaccessible »**.
+
+**ELLE NE PROTÉGEAIT QU'UNE PAGE.** Mesuré le 21/09/2026 : la couleur corrigée était lue par
+**trois fichiers**, tous les trois l'accueil. La couleur de marque **BRUTE** était lue par
+**59 fichiers, 339 fois** — dont **66 fois en couleur de TEXTE**, à **2,77 contre du blanc**.
+
+| | fichiers | usage |
+|---|---|---|
+| l'accent **corrigé** (7,31) | **3** | l'accueil, et rien d'autre |
+| la marque **brute** (2,77) | **59** | boutons, liens, bordures, et du texte |
+
+**POURQUOI PERSONNE NE L'A VU, ET C'EST LA PARTIE UTILE.** Rien ne manquait. La fonction existait,
+elle était juste, elle était commentée, et son commentaire était vrai. Un lecteur qui tombe dessus
+lit *« aucun écosystème futur ne pourra produire une page inaccessible »*, constate que c'est exact,
+et **arrête de chercher** — exactement §E.29 : *un commentaire vrai d'un cas couvre un cas voisin où
+il est faux*. Ici le cas voisin, c'était **tout le reste du produit**.
+
+**CE QUI L'A TROUVÉ** n'est pas une relecture : c'est un **balayage qui a compté les lecteurs**.
+Trois contre cinquante-neuf est un rapport qu'aucune lecture ne donne, et qu'aucun compilateur ne
+signale — `domain.primaryColor` est un accès de propriété parfaitement légal.
+
+> **LA QUESTION QUI GÉNÉRALISE :** *cette règle a-t-elle des lecteurs, et COMBIEN ?* Une règle sans
+> lecteur est une intention ; une règle avec **trois** lecteurs sur soixante-deux est une intention
+> qui se croit une garantie. Le compte se mesure, il ne se suppose pas.
+
+**LA PARADE** n'est pas d'appeler la fonction partout : c'est de retirer la possibilité de ne pas
+l'appeler. La couleur corrigée est désormais un **jeton** — `--sk-accent` — posé une fois sur
+`<html>`, et la marque brute n'est plus accessible qu'à travers `--sk-marque`, dont le seul lecteur
+est le logo. Gardé par [scripts/diag-couleurs-litterales.mjs](../scripts/diag-couleurs-litterales.mjs).
+
+<a id="e48"></a>
+### E.48 — UNE VARIABLE CSS NE RÉSOUT PAS DANS UN ATTRIBUT DE PRÉSENTATION SVG. Elle ne peint RIEN.
+
+`stroke="var(--sk-muted)"` n'est pas une couleur invalide qui lèverait, et ce n'est pas non plus une
+couleur par défaut : c'est un attribut que le navigateur **ignore**. Le trait disparaît. Ni `tsc`, ni
+`next build`, ni la console n'en disent un mot.
+
+La raison est dans la spécification et elle est nette : `var()` est substitué **au temps du calcul
+d'une PROPRIÉTÉ CSS**. Un attribut de présentation SVG n'est pas une propriété — c'est une valeur
+d'attribut, lue avant toute cascade.
+
+**LE CAS FONDATEUR EST DE MA MAIN, ET IL A MORDU DEUX FOIS DANS LE MÊME LOT.**
+La conversion de la palette remplaçait chaque couleur par son jeton. Elle a mordu :
+· d'abord sur **neuf attributs** existants — chevrons de sélecteurs, coches, icône d'alerte —
+  repérés **avant** la conversion, et convertis en propriété ;
+· puis sur **le curseur de la démonstration de l'accueil**, que ma propre première passe venait
+  d'introduire. Celui-là n'a pas été vu en relisant le code : la ligne a l'air juste. Il a été vu
+  **en relisant le rendu**.
+
+**DEUX FORMES CORRECTES, ET IL FAUT CHOISIR SELON CE DONT ON DISPOSE :**
+· la **PROPRIÉTÉ** plutôt que l'attribut — `style={{ stroke: 'var(--sk-muted)' }}` ;
+· la **VALEUR** plutôt que le jeton — `fill={palette.cartes}` — quand le code a la palette résolue
+  sous la main. C'est le cas de la démonstration, qui construit son SVG en chaînes : elle reçoit
+  `ctx.palette` entière et n'écrit toujours aucun littéral.
+
+**Le contrôle** : [scripts/diag-svg-couleurs.mjs](../scripts/diag-svg-couleurs.mjs). Il retire les
+commentaires avant de chercher (§E.7 : sinon il rougirait sur son propre en-tête, qui cite le défaut
+qu'il défend). **Éprouvé par mutation, dont le cas fondateur rejoué tel qu'il était cassé.**
+⚠️ Ce qu'il ne voit pas, et c'est écrit : `fill={x}` où `x` est une chaîne `var(…)` construite
+ailleurs. Suivre la valeur demanderait d'exécuter le code ; cette forme **se lit** (§E.38).
+
+<a id="e49"></a>
+### E.49 — UNE PROPRIÉTÉ PERSONNALISÉE EST SUBSTITUÉE LÀ OÙ ELLE EST DÉCLARÉE, PAS LÀ OÙ ELLE EST LUE.
+
+Le défaut le plus discret de la série, parce que le code **a l'air** de dire le contraire.
+
+```css
+:root {
+  --sk-accent:      #2F6BF0;                                    /* valeur de secours */
+  --sk-accent-soft: color-mix(in srgb, var(--sk-accent) 12%, white);
+}
+```
+
+Puis, plus bas dans la page, le shell posait `--sk-accent: <couleur de l'écosystème>` en ligne, et
+comptait sur `--sk-accent-soft` pour suivre.
+
+**Elle ne suit pas.** `--sk-accent-soft` est calculée **sur `:root`**, avec la valeur de `--sk-accent`
+**telle qu'elle est sur `:root`**. Ce que les enfants héritent est ce résultat déjà figé. La
+surcharge posée plus bas change `--sk-accent` pour qui la lit directement, et **rien d'autre**.
+
+**MESURÉ, DANS UN VRAI NAVIGATEUR**, sur un témoin reproduisant la cascade mot pour mot :
+
+| ce qui lit | résultat | suit l'écosystème ? |
+|---|---|---|
+| `var(--sk-accent)` — la bordure | `#0EA5E9` | **oui** |
+| `var(--sk-accent-soft)` — le fond | `#E6EDFD` | **non**, c'est le dérivé de `#2F6BF0` |
+| `var(--sk-accent-ink)` — le texte | `#2553BB` | **non**, idem |
+
+À l'écran : l'entrée de menu active sortait **en bleu indigo** pendant que le logo et les liens
+sortaient **en bleu ciel**, à quinze pixels d'écart. Le commentaire du shell affirmait l'inverse —
+*« un domaine non-bleu reste cohérent »*.
+
+**CE QUI REND CE DÉFAUT COÛTEUX : il a l'air d'un réglage.** Trois déclarations cohérentes, une
+surcharge au bon endroit, aucune erreur nulle part. Il ne se voit ni en lisant le CSS, ni en lisant
+le composant : **il ne se voit qu'en lisant la valeur CALCULÉE**.
+
+**LA PARADE N'EST PAS DE CORRIGER LA DÉRIVATION : C'EST DE N'EN AVOIR AUCUNE.** Tout est calculé
+**au serveur** et posé **en littéral** sur `<html>`. Il n'y a plus rien à dériver au navigateur, donc
+plus rien qui puisse se figer au mauvais endroit. La classe entière disparaît ; elle n'est pas
+contournée. C'est la même hiérarchie que §E.31 : *une garde qui est une contrainte de schéma ne
+dépend d'aucune discipline* — ici, une palette qui ne se dérive nulle part ne peut pas se dériver mal.
+
+> ⚠️ **ET IL N'Y A AUCUN CONTRÔLE DESSUS, C'EST DIT.** Un motif qui chercherait `color-mix` dans une
+> feuille ne saurait pas dire si la variable citée est surchargée plus bas — c'est une propriété de
+> la CASCADE, pas du texte. Ce qui ferme la porte ici est **structurel** : `globals.css` ne déclare
+> plus aucune couleur, et `diag-couleurs-litterales` le tient.
 
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
