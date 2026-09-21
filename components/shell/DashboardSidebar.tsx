@@ -76,7 +76,10 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
 
   const sections = dashboardNavSections(side, { userIsVerified })
 
-  const accent = domain.primaryColor
+  // ⚠️ PLUS AUCUNE COULEUR LUE DEPUIS LE DOMAINE ICI. La marque, l'accent et
+  //    les etats viennent des jetons `--sk-*` poses sur `<html>` par le layout
+  //    racine. Lire `domain.primaryColor` rendait la marque BRUTE — 2,77 contre
+  //    du blanc — et la posait sur du texte de navigation.
   const isItemActive = (href: string): boolean => {
     if (href === pathname) return true
     // Special case : item "dashboard" est active sur l'URL racine /dashboard/{side}
@@ -91,7 +94,7 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
       style={{
         width: 248,
         flexShrink: 0,
-        background: 'var(--sk-surface)',
+        background: 'var(--sk-bandeau)',
         borderRight: '1px solid var(--sk-border)',
         display: 'flex',
         flexDirection: 'column',
@@ -114,7 +117,7 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
         <span
           style={{
             width: 30, height: 30, borderRadius: 8,
-            background: accent, color: '#fff',
+            background: 'var(--sk-marque)', color: 'var(--sk-sur-accent)',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
@@ -131,7 +134,9 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 5, color: 'var(--sk-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userName ?? t('user_fallback')}</span>
-            {userIsVerified && <IconRosetteDiscountCheck size={15} color={accent} />}
+            {/* La coche est un ÉTAT, pas une marque : le produit a deja un vert
+                qui signifie « verifie » (lib/palette.ts, COULEURS_FIXES.succes). */}
+            {userIsVerified && <IconRosetteDiscountCheck size={15} color="var(--sk-success)" />}
           </div>
           <div style={{ color: 'var(--sk-muted)', fontSize: 12, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {userSubtitle}
@@ -169,8 +174,16 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
                     gap: 11,
                     padding: '9px 10px',
                     borderRadius: 9,
-                    color: disabled ? 'var(--sk-faint)' : active ? 'var(--sk-accent-ink)' : isLink ? accent : '#33414F',
-                    background: active ? 'var(--sk-accent-soft)' : 'transparent',
+                    // Même forme que l'onglet actif de l'accueil : un APLAT de la
+                    // couleur « boutons », libelle dans la couleur des cartes.
+                    // C'est aussi ce qui retire du chemin les deux jetons derives,
+                    // ceux qui restaient figes sur la valeur de secours.
+                    color: disabled
+                      ? 'var(--sk-faint)'
+                      : active
+                        ? 'var(--sk-sur-accent)'
+                        : isLink ? 'var(--sk-accent)' : 'var(--sk-muted)',
+                    background: active ? 'var(--sk-accent)' : 'transparent',
                     textDecoration: 'none',
                     fontSize: 14,
                     fontWeight: 500,
@@ -197,8 +210,8 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
                     <span
                       style={{
                         fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap',
-                        color: 'var(--sk-faint)', background: 'var(--sk-surface-2, #f1f5f9)',
-                        border: '1px solid var(--sk-border, #e2e8f0)',
+                        color: 'var(--sk-faint)', background: 'var(--sk-surface-2)',
+                        border: '1px solid var(--sk-border)',
                         padding: '2px 7px', borderRadius: 999,
                       }}
                     >
@@ -209,7 +222,7 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
                     <span
                       aria-label={`${badge}`}
                       style={{
-                        background: '#EF4D58', color: '#fff',
+                        background: 'var(--sk-red)', color: 'var(--sk-sur-accent)',
                         fontSize: 11, fontWeight: 600,
                         minWidth: 18, height: 18, borderRadius: 9,
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -235,7 +248,7 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
             display: 'flex', alignItems: 'center', gap: 11,
             width: '100%', padding: '9px 10px',
             background: 'transparent', border: 'none',
-            color: '#EF4D58', fontSize: 14, fontWeight: 500,
+            color: 'var(--sk-red)', fontSize: 14, fontWeight: 500,
             cursor: 'pointer', borderRadius: 9, fontFamily: 'inherit',
             textAlign: 'left',
           }}

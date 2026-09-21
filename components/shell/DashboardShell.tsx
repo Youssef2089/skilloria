@@ -125,10 +125,23 @@ export default function DashboardShell({
     }
   }, [])
 
-  // Multi-tenant : pose --sk-accent dynamiquement. color-mix() dans globals.css
-  // dérivera automatiquement --sk-accent-soft et --sk-accent-ink.
+  // ⚠️ LE SHELL NE POSE PLUS AUCUNE COULEUR, et c'est le correctif du lot
+  //    palette (21/09/2026).
+  //
+  //    Il posait `--sk-accent: domain.primaryColor` ici — la couleur de marque
+  //    BRUTE, celle du logo, à 2,77 contre du blanc — et comptait sur un
+  //    `color-mix()` de `globals.css` pour en dériver le fond et l'encre de
+  //    l'entrée active. Deux défauts en un :
+  //      · la marque brute n'est pas une couleur de bouton ; l'accueil, lui,
+  //        l'assombrit jusqu'à 7 pour 1 avant de s'en servir ;
+  //      · et la dérivation ne suivait pas cette surcharge — une propriété
+  //        personnalisée est substituée là où elle est déclarée, donc les deux
+  //        dérivés restaient figés sur la valeur de secours de `:root`.
+  //        MESURÉ : menu actif en #2553BB sur #E6EDFD, logo en #0EA5E9.
+  //
+  //    Les jetons viennent maintenant de `<html>`, posés par le layout racine
+  //    depuis la palette de l'écosystème. Il n'y a plus qu'un seul endroit.
   const shellRootStyle: React.CSSProperties = {
-    ['--sk-accent' as string]: domain.primaryColor,
     display: 'flex',
     height: '100vh',
     overflow: 'hidden',
@@ -209,8 +222,8 @@ export default function DashboardShell({
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 7,
             fontSize: 13, fontWeight: 600,
-            color: '#b91c1c',
-            background: '#fee2e2',
+            color: 'var(--sk-red)',
+            background: 'var(--sk-red-soft)',
             padding: '7px 13px', borderRadius: 999, whiteSpace: 'nowrap',
           }}
         >
