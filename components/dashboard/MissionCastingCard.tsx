@@ -81,19 +81,19 @@ export default function MissionCastingCard({
         overflow: 'hidden',
         textDecoration: 'none',
         color: 'inherit',
-        boxShadow: '0 1px 2px rgba(15,23,42,0.05)',
+        boxShadow: '0 1px 2px color-mix(in srgb, var(--sk-text) 5%, transparent)',
         transition: 'box-shadow .15s, transform .15s',
       }}
     >
       {/* Bandeau lavande pastel : logo + pastille score */}
       <div style={{ background: castingTheme.accentSoft, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <span style={{ display: 'inline-flex', padding: 4, background: '#fff', border: `1px solid ${castingTheme.logoBorder}`, borderRadius: 11, boxShadow: '0 1px 3px rgba(15,23,42,0.12)' }}>
+        <span style={{ display: 'inline-flex', padding: 4, background: 'var(--sk-surface)', border: `1px solid ${castingTheme.logoBorder}`, borderRadius: 11, boxShadow: '0 1px 3px color-mix(in srgb, var(--sk-text) 12%, transparent)' }}>
           <Avatar src={logoUrl} name={orgName} size={34} variant="neutral" />
         </span>
         {/* La pastille « N /10 » a disparu avec le nombre qu'elle affichait. */}
         <span
           title={tBadge('tooltip')}
-          style={{ display: 'inline-flex', alignItems: 'center', background: '#fff', padding: '4px 10px', borderRadius: 999, boxShadow: '0 1px 3px rgba(15,23,42,0.12)', fontSize: 11, fontWeight: 700, color: isTopMatch ? castingTheme.scoreGreen : 'var(--sk-muted)' }}
+          style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--sk-surface)', padding: '4px 10px', borderRadius: 999, boxShadow: '0 1px 3px color-mix(in srgb, var(--sk-text) 12%, transparent)', fontSize: 11, fontWeight: 700, color: isTopMatch ? castingTheme.scoreGreen : 'var(--sk-muted)' }}
         >
           {tBadge(relevance_tier)}
         </span>

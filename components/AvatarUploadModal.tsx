@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Cropper, { type Area } from 'react-easy-crop'
 import { useTranslations } from 'next-intl'
-import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
@@ -53,7 +52,6 @@ async function getCroppedBlob(imageSrc: string, area: Area): Promise<Blob> {
 
 export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
   const t = useTranslations('dashboard_freelance.avatar_modal')
-  const domain = useDomain()
   const secureFetch = useSecureFetch()
   const [mounted, setMounted] = useState(false)
   const [show, setShow] = useState(false)
@@ -223,7 +221,7 @@ export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: show ? 'rgba(15,23,42,0.55)' : 'rgba(15,23,42,0)',
+        background: show ? 'color-mix(in srgb, var(--sk-text) 55%, transparent)' : 'color-mix(in srgb, var(--sk-text) 0%, transparent)',
         transition: `background ${ANIM_MS}ms ease`,
         backdropFilter: show ? 'blur(3px)' : 'blur(0px)',
         fontFamily: 'Inter, system-ui, sans-serif',
@@ -242,20 +240,20 @@ export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
           to { opacity: 1; transform: translateY(0); }
         }
         .avatar-modal {
-          background: #fff;
-          border: 1px solid #e2e8f0;
+          background: var(--sk-surface);
+          border: 1px solid var(--sk-border);
           border-radius: 16px;
           width: 100%;
           max-width: 460px;
           padding: 24px 26px 22px;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+          box-shadow: 0 20px 60px color-mix(in srgb, var(--sk-text) 18%, transparent);
           animation: avatar-modal-in-desktop ${ANIM_MS}ms ease both;
         }
         .avatar-cropper-area {
           position: relative;
           width: 100%;
           height: 320px;
-          background: #0f172a;
+          background: var(--sk-text);
           border-radius: 12px;
           overflow: hidden;
           margin-bottom: 12px;
@@ -266,10 +264,10 @@ export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
           gap: 10px;
           margin-bottom: 14px;
         }
-        .avatar-zoom-row span { font-size: 12px; font-weight: 600; color: #475569; min-width: 40px; }
+        .avatar-zoom-row span { font-size: 12px; font-weight: 600; color: var(--sk-muted); min-width: 40px; }
         .avatar-zoom-row input[type=range] {
           flex: 1;
-          accent-color: var(--avatar-primary, #0ea5e9);
+          accent-color: var(--avatar-primary, var(--sk-accent));
         }
         .avatar-modal-btn {
           height: 42px;
@@ -285,21 +283,21 @@ export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
         .avatar-modal-btn:hover:not(:disabled) { transform: translateY(-1px); }
         .avatar-modal-btn:disabled { opacity: 0.6; cursor: not-allowed; }
         .avatar-modal-btn-secondary {
-          background: #fff;
-          border-color: #e2e8f0;
-          color: #475569;
+          background: var(--sk-surface);
+          border-color: var(--sk-border);
+          color: var(--sk-muted);
         }
-        .avatar-modal-btn-secondary:hover:not(:disabled) { background: #f8fafc; }
+        .avatar-modal-btn-secondary:hover:not(:disabled) { background: var(--sk-surface-2); }
         .avatar-modal-btn-primary {
-          background: var(--avatar-primary, #0ea5e9);
-          color: #fff;
+          background: var(--avatar-primary, var(--sk-accent));
+          color: var(--sk-sur-accent);
         }
         .avatar-modal-btn-primary:hover:not(:disabled) {
-          box-shadow: 0 6px 16px var(--avatar-primary-soft, rgba(14,165,233,0.24));
+          box-shadow: 0 6px 16px var(--avatar-primary-soft, color-mix(in srgb, var(--sk-accent) 24%, transparent));
         }
         .avatar-empty-state {
-          background: #f8fafc;
-          border: 2px dashed #cbd5e1;
+          background: var(--sk-surface-2);
+          border: 2px dashed var(--sk-border);
           border-radius: 12px;
           padding: 36px 18px;
           text-align: center;
@@ -325,19 +323,19 @@ export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
         style={{
           opacity: show ? 1 : 0,
           transition: `opacity ${ANIM_MS}ms ease`,
-          ['--avatar-primary' as string]: domain.primaryColor,
-          ['--avatar-primary-soft' as string]: `${domain.primaryColor}28`,
+          ['--avatar-primary' as string]: 'var(--sk-accent)',
+          ['--avatar-primary-soft' as string]: `color-mix(in srgb, var(--sk-accent) 16%, transparent)`,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
           <div>
             <h2
               id="avatar-modal-title"
-              style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.2px', margin: 0 }}
+              style={{ fontSize: 18, fontWeight: 800, color: 'var(--sk-text)', letterSpacing: '-0.2px', margin: 0 }}
             >
               {t('title')}
             </h2>
-            <p style={{ fontSize: 13, color: '#64748b', marginTop: 4, marginBottom: 0 }}>{t('subtitle')}</p>
+            <p style={{ fontSize: 13, color: 'var(--sk-muted)', marginTop: 4, marginBottom: 0 }}>{t('subtitle')}</p>
           </div>
           <button
             type="button"
@@ -347,7 +345,7 @@ export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sk-faint)',
               fontSize: 22,
               lineHeight: 1,
               cursor: saving ? 'not-allowed' : 'pointer',
@@ -413,13 +411,13 @@ export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
           <div
             role="alert"
             style={{
-              background: '#fef2f2',
-              border: '1px solid #fecaca',
+              background: 'var(--sk-red-soft)',
+              border: '1px solid var(--sk-red-soft)',
               borderRadius: 10,
               padding: '10px 12px',
               marginBottom: 14,
               fontSize: 13,
-              color: '#b91c1c',
+              color: 'var(--sk-red)',
               lineHeight: 1.5,
             }}
           >

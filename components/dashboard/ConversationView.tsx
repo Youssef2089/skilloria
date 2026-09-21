@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import CorrespondantAvatar from '@/components/dashboard/CorrespondantAvatar'
 import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
@@ -89,7 +88,6 @@ export default function ConversationView({ convId, side, embedded = false }: { c
   const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
   const router = useRouter()
-  const domain = useDomain()
   const secureFetch = useSecureFetch()
 
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -193,16 +191,16 @@ export default function ConversationView({ convId, side, embedded = false }: { c
   }
 
   if (state.kind === 'loading') {
-    return <div style={{ padding: 48, textAlign: 'center', color: '#64748b', fontFamily: 'Inter, sans-serif' }}>{t('loading')}</div>
+    return <div style={{ padding: 48, textAlign: 'center', color: 'var(--sk-muted)', fontFamily: 'Inter, sans-serif' }}>{t('loading')}</div>
   }
   if (state.kind === 'error') {
     return (
       <div style={{ maxWidth: 560, margin: '60px auto', padding: '0 24px', textAlign: 'center', fontFamily: 'Inter, sans-serif' }}>
-        <p style={{ fontSize: 14, color: '#b91c1c', marginBottom: 18 }}>{state.message}</p>
+        <p style={{ fontSize: 14, color: 'var(--sk-red)', marginBottom: 18 }}>{state.message}</p>
         <button
           type="button"
           onClick={() => router.push(`${basePath}/messages`)}
-          style={{ padding: '10px 18px', background: domain.primaryColor, color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+          style={{ padding: '10px 18px', background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
         >
           {t('back_to_inbox')}
         </button>
@@ -268,7 +266,7 @@ export default function ConversationView({ convId, side, embedded = false }: { c
       )}
 
       {/* Header conv : correspondant + publication */}
-      <header style={{ display: 'flex', alignItems: 'center', gap: 14, paddingBottom: 14, borderBottom: '0.5px solid #e5e7eb', marginBottom: 14 }}>
+      <header style={{ display: 'flex', alignItems: 'center', gap: 14, paddingBottom: 14, borderBottom: '0.5px solid var(--sk-border)', marginBottom: 14 }}>
         <CorrespondantAvatar
           name={correspondant.name}
           isMasked={correspondant.is_masked === true}
@@ -276,9 +274,9 @@ export default function ConversationView({ convId, side, embedded = false }: { c
           size={44}
         />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{correspondant.name ?? t('unknown_correspondant')}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--sk-text)' }}>{correspondant.name ?? t('unknown_correspondant')}</div>
           {publication && (
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+            <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 2 }}>
               {tPub(`type.${publication.type}`)} · {publication.title}
             </div>
           )}
@@ -290,7 +288,7 @@ export default function ConversationView({ convId, side, embedded = false }: { c
         <div
           role="status"
           style={{
-            background: '#FEF9C3', border: '1px solid #FACC15', color: '#854D0E',
+            background: 'var(--sk-amber-soft)', border: '1px solid var(--sk-amber)', color: 'var(--sk-amber)',
             padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8,
           }}
         >
@@ -304,18 +302,18 @@ export default function ConversationView({ convId, side, embedded = false }: { c
         ref={listRef}
         style={{
           flex: 1, overflowY: 'auto', minHeight: 320, maxHeight: 'calc(100vh - 320px)',
-          background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 12, padding: '14px 16px',
+          background: 'var(--sk-surface)', border: '0.5px solid var(--sk-border)', borderRadius: 12, padding: '14px 16px',
           display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 12,
         }}
       >
         {messages.length === 0 && (
-          <div style={{ padding: 30, textAlign: 'center', color: '#94a3b8', fontSize: 14, fontStyle: 'italic' }}>
+          <div style={{ padding: 30, textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14, fontStyle: 'italic' }}>
             {t('empty_no_messages')}
           </div>
         )}
         {groups.map((g) => (
           <div key={g.day} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ alignSelf: 'center', fontSize: 11, color: '#94a3b8', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.06em', padding: '4px 0' }}>
+            <div style={{ alignSelf: 'center', fontSize: 11, color: 'var(--sk-faint)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.06em', padding: '4px 0' }}>
               {formatDate(g.day, locale)}
             </div>
             {g.items.map((m) => {
@@ -325,8 +323,8 @@ export default function ConversationView({ convId, side, embedded = false }: { c
                   <div
                     style={{
                       maxWidth: '70%',
-                      background: me ? domain.primaryColor : '#f1f5f9',
-                      color: me ? '#fff' : '#0f172a',
+                      background: me ? 'var(--sk-accent)' : 'var(--sk-surface-2)',
+                      color: me ? 'var(--sk-sur-accent)' : 'var(--sk-text)',
                       padding: '9px 13px',
                       borderRadius: me ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
                       fontSize: 13.5,
@@ -336,7 +334,7 @@ export default function ConversationView({ convId, side, embedded = false }: { c
                     }}
                   >
                     {m.content}
-                    <div style={{ fontSize: 10, color: me ? 'rgba(255,255,255,0.78)' : '#94a3b8', marginTop: 4, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 4 }}>
+                    <div style={{ fontSize: 10, color: me ? 'color-mix(in srgb, var(--sk-surface) 78%, transparent)' : 'var(--sk-faint)', marginTop: 4, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 4 }}>
                       <span>{formatTime(m.created_at, locale)}</span>
                       {me && (
                         <span aria-hidden title={m.read_at ? t('read_at_tooltip') : t('sent_tooltip')}>
@@ -353,9 +351,9 @@ export default function ConversationView({ convId, side, embedded = false }: { c
       </div>
 
       {/* Input */}
-      <div style={{ background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 12, padding: '10px 12px' }}>
+      <div style={{ background: 'var(--sk-surface)', border: '0.5px solid var(--sk-border)', borderRadius: 12, padding: '10px 12px' }}>
         {sendError && (
-          <div role="alert" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '8px 12px', borderRadius: 8, fontSize: 12, marginBottom: 8 }}>
+          <div role="alert" style={{ background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', padding: '8px 12px', borderRadius: 8, fontSize: 12, marginBottom: 8 }}>
             {sendError}
           </div>
         )}
@@ -370,10 +368,10 @@ export default function ConversationView({ convId, side, embedded = false }: { c
             style={{
               flex: 1, resize: 'vertical', padding: '10px 12px',
               fontSize: 14, lineHeight: 1.5,
-              border: '1px solid #cbd5e1', borderRadius: 10,
+              border: '1px solid var(--sk-border)', borderRadius: 10,
               outline: 'none', fontFamily: 'inherit',
-              background: canWrite ? '#fff' : '#f8fafc',
-              color: canWrite ? '#0f172a' : '#94a3b8',
+              background: canWrite ? 'var(--sk-surface)' : 'var(--sk-surface-2)',
+              color: canWrite ? 'var(--sk-text)' : 'var(--sk-faint)',
               cursor: canWrite ? 'text' : 'not-allowed',
               boxSizing: 'border-box',
             }}
@@ -390,8 +388,8 @@ export default function ConversationView({ convId, side, embedded = false }: { c
             disabled={!canWrite || sending || draft.trim().length === 0}
             style={{
               padding: '10px 18px',
-              background: !canWrite || draft.trim().length === 0 ? '#cbd5e1' : domain.primaryColor,
-              color: '#fff', border: 'none', borderRadius: 10,
+              background: !canWrite || draft.trim().length === 0 ? 'var(--sk-border)' : 'var(--sk-accent)',
+              color: 'var(--sk-sur-accent)', border: 'none', borderRadius: 10,
               fontSize: 13, fontWeight: 700,
               cursor: (canWrite && draft.trim().length > 0 && !sending) ? 'pointer' : 'not-allowed',
               fontFamily: 'inherit', opacity: sending ? 0.6 : 1, flexShrink: 0,
@@ -400,7 +398,7 @@ export default function ConversationView({ convId, side, embedded = false }: { c
             {sending ? t('sending') : t('send')}
           </button>
         </div>
-        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6, display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: 11, color: 'var(--sk-faint)', marginTop: 6, display: 'flex', justifyContent: 'space-between' }}>
           <span>{t('input_hint')}</span>
           <span>{draft.length} / 5000</span>
         </div>

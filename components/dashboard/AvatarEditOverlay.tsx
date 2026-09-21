@@ -38,9 +38,9 @@ export default function AvatarEditOverlay({ onClick, ariaLabel }: Props) {
         width: 36,
         height: 36,
         borderRadius: '50%',
-        background: '#fff',
+        background: 'var(--sk-surface)',
         border: '1.5px solid var(--sk-border)',
-        boxShadow: '0 4px 12px rgba(15, 23, 42, 0.12)',
+        boxShadow: '0 4px 12px color-mix(in srgb, var(--sk-text) 12%, transparent)',
         cursor: 'pointer',
         display: 'inline-flex',
         alignItems: 'center',
@@ -52,11 +52,11 @@ export default function AvatarEditOverlay({ onClick, ariaLabel }: Props) {
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'scale(1.08)'
-        e.currentTarget.style.boxShadow = '0 6px 18px rgba(15, 23, 42, 0.18)'
+        e.currentTarget.style.boxShadow = '0 6px 18px color-mix(in srgb, var(--sk-text) 18%, transparent)'
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'scale(1)'
-        e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 23, 42, 0.12)'
+        e.currentTarget.style.boxShadow = '0 4px 12px color-mix(in srgb, var(--sk-text) 12%, transparent)'
       }}
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

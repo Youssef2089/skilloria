@@ -79,19 +79,19 @@ export default function ReauthModal({
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(15,23,42,0.45)', padding: 16, fontFamily: fontJakarta,
+        background: 'color-mix(in srgb, var(--sk-text) 45%, transparent)', padding: 16, fontFamily: fontJakarta,
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: '100%', maxWidth: 420, background: '#fff', borderRadius: 16,
-          padding: 24, boxShadow: '0 20px 50px rgba(15,23,42,0.25)',
+          width: '100%', maxWidth: 420, background: 'var(--sk-surface)', borderRadius: 16,
+          padding: 24, boxShadow: '0 20px 50px color-mix(in srgb, var(--sk-text) 25%, transparent)',
         }}
       >
-        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#0f172a' }}>{t('title')}</h2>
-        <p style={{ margin: '8px 0 18px', fontSize: 14, color: '#64748b', lineHeight: 1.5 }}>{t('description')}</p>
-        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>
+        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--sk-text)' }}>{t('title')}</h2>
+        <p style={{ margin: '8px 0 18px', fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.5 }}>{t('description')}</p>
+        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
           {t('password_label')}
         </label>
         <input
@@ -103,18 +103,18 @@ export default function ReauthModal({
           placeholder={t('password_placeholder')}
           style={{
             width: '100%', boxSizing: 'border-box', padding: '11px 13px',
-            border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 14, outline: 'none',
+            border: '1.5px solid var(--sk-border)', borderRadius: 10, fontSize: 14, outline: 'none',
           }}
         />
-        {error && <p style={{ margin: '10px 0 0', fontSize: 13, color: '#b91c1c' }}>{error}</p>}
+        {error && <p style={{ margin: '10px 0 0', fontSize: 13, color: 'var(--sk-red)' }}>{error}</p>}
         <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
           <button
             type="button"
             onClick={close}
             disabled={loading}
             style={{
-              padding: '10px 16px', borderRadius: 10, border: '1.5px solid #e2e8f0',
-              background: '#fff', color: '#0f172a', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              padding: '10px 16px', borderRadius: 10, border: '1.5px solid var(--sk-border)',
+              background: 'var(--sk-surface)', color: 'var(--sk-text)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
             }}
           >
             {t('cancel')}
@@ -125,7 +125,7 @@ export default function ReauthModal({
             disabled={loading}
             style={{
               padding: '10px 18px', borderRadius: 10, border: 'none',
-              background: 'var(--sk-accent, #0ea5e9)', color: '#fff', fontSize: 14, fontWeight: 700,
+              background: 'var(--sk-accent, var(--sk-accent))', color: 'var(--sk-sur-accent)', fontSize: 14, fontWeight: 700,
               cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.7 : 1,
             }}
           >

@@ -391,7 +391,7 @@ export default function DashboardFreelance() {
   //  Plus de useEffect manuel.
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontSize: 16, color: '#6b7280' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontSize: 16, color: 'var(--sk-muted)' }}>
       {t('loading')}
     </div>
   )
@@ -445,7 +445,7 @@ export default function DashboardFreelance() {
         .nav-item {
           padding: 11px 16px;
           font-size: 14px;
-          color: #4b5563;
+          color: var(--sk-muted);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -455,18 +455,18 @@ export default function DashboardFreelance() {
           transition: background 0.18s, transform 0.18s;
           animation: slideInLeft 0.35s ease both;
         }
-        .nav-item:hover { background: #f9fafb; transform: translateX(4px); }
+        .nav-item:hover { background: var(--sk-surface-2); transform: translateX(4px); }
         .nav-item-active {
           padding: 11px 16px;
           font-size: 14px;
-          color: #111827;
+          color: var(--sk-text);
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: space-between;
           border-radius: 8px;
           margin: 2px 8px;
-          background: #f3f4f6;
+          background: var(--sk-surface-2);
           font-weight: 500;
           animation: slideInLeft 0.35s ease both;
         }
@@ -479,24 +479,24 @@ export default function DashboardFreelance() {
         }
         .stat-card:hover {
           transform: translateY(-4px);
-          box-shadow: 0 8px 24px rgba(0,0,0,0.09);
+          box-shadow: 0 8px 24px color-mix(in srgb, var(--sk-text) 9%, transparent);
         }
         /* Tuile cliquable : affordance + focus clavier portés par le <a>. */
         .stat-card.is-link { cursor: pointer; }
         .stat-card.is-link:focus-visible {
-          outline: 2px solid ${domain.primaryColor};
+          outline: 2px solid var(--sk-accent);
           outline-offset: 2px;
         }
         .main-card {
-          background: #fff;
+          background: var(--sk-surface);
           border-radius: 14px;
-          border: 1px solid #e5e7eb;
+          border: 1px solid var(--sk-border);
           padding: 22px 26px;
           margin-bottom: 18px;
           animation: fadeInUp 0.5s ease both;
           transition: box-shadow 0.2s;
         }
-        .main-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+        .main-card:hover { box-shadow: 0 4px 20px color-mix(in srgb, var(--sk-text) 6%, transparent); }
         .voir-tout {
           font-size: 13px;
           font-weight: 500;
@@ -522,7 +522,7 @@ export default function DashboardFreelance() {
           animation: fadeIn 0.5s ease;
         }
         .avatar:hover { transform: scale(1.06); }
-        .progress-bar { height: 7px; background: #f3f4f6; border-radius: 10px; overflow: hidden; }
+        .progress-bar { height: 7px; background: var(--sk-surface-2); border-radius: 10px; overflow: hidden; }
         .progress-fill {
           height: 100%;
           border-radius: 10px;
@@ -554,8 +554,8 @@ export default function DashboardFreelance() {
           role="status"
           aria-live="polite"
           style={{
-            background: '#fffbeb',
-            border: '1px solid #fde68a',
+            background: 'var(--sk-amber-soft)',
+            border: '1px solid var(--sk-amber-soft)',
             borderRadius: 12,
             padding: '12px 16px',
             margin: '0 0 16px',
@@ -566,10 +566,10 @@ export default function DashboardFreelance() {
           }}
         >
           <div style={{ flex: '1 1 260px', minWidth: 0 }}>
-            <div style={{ fontWeight: 600, color: '#92400e', fontSize: 14, marginBottom: 4 }}>
+            <div style={{ fontWeight: 600, color: 'var(--sk-amber)', fontSize: 14, marginBottom: 4 }}>
               {t('lecture_en_panne.titre')}
             </div>
-            <div style={{ color: '#78350f', fontSize: 13, lineHeight: 1.5 }}>
+            <div style={{ color: 'var(--sk-amber)', fontSize: 13, lineHeight: 1.5 }}>
               {t('lecture_en_panne.corps')}
             </div>
           </div>
@@ -577,8 +577,8 @@ export default function DashboardFreelance() {
             type="button"
             onClick={() => window.location.reload()}
             style={{
-              background: '#92400e',
-              color: '#fff',
+              background: 'var(--sk-amber)',
+              color: 'var(--sk-sur-accent)',
               border: 'none',
               borderRadius: 8,
               padding: '8px 14px',
@@ -606,13 +606,13 @@ export default function DashboardFreelance() {
           <ProfilMasqueBanner
             namespace="profile_validation"
             href="/dashboard/freelance/profil/valider"
-            accentColor={domain.primaryColor}
+            accentColor={'var(--sk-accent)'}
           />
 
           {/* Lot A : tuile "Score IA" retirée (UI placeholder vide qui
               n'alimentait rien). Le titre garde le même bloc d'en-tête. */}
           <div style={{ marginBottom: 26, animation: 'fadeInUp 0.4s ease' }}>
-            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginBottom: 8 }}>{t('greeting', { firstName: greetingName })}</h1>
+            <h1 style={{ fontSize: 28, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 8 }}>{t('greeting', { firstName: greetingName })}</h1>
             {/* C6 : statut de vérification = même pastille que la topbar « Mon
                 Profil » (source unique). C10 : greeting personnalisé. */}
             <div style={{ animation: 'fadeIn 0.6s ease 0.3s both' }}>
@@ -651,18 +651,18 @@ export default function DashboardFreelance() {
               { label: t('stats.active_applications'), value: apps.stats?.total,                   facet: null,              delay: '0.1s'  },
               { label: t('stats.in_discussion'),       value: apps.stats?.facets.exchange_open,    facet: 'exchange_open',   delay: '0.13s' },
               { label: t('stats.awaiting'),            value: apps.stats?.facets.awaiting_review,  facet: 'awaiting_review', delay: '0.15s' },
-              { label: t('stats.retained'),            value: apps.stats?.facets.selected,         facet: 'selected',        delay: '0.17s', accent: '#D97706' },
+              { label: t('stats.retained'),            value: apps.stats?.facets.selected,         facet: 'selected',        delay: '0.17s', accent: 'var(--sk-amber)' },
             ].map((stat) => {
               const text = !isVerified ? '—' : (stat.value ?? '…').toString()
               const body = (
                 <>
-                  <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>{stat.label}</div>
-                  <div style={{ fontSize: 28, fontWeight: 700, color: !isVerified ? '#d1d5db' : (stat.accent ?? '#111827'), animation: `countUp 0.5s ease ${stat.delay} both` }}>{text}</div>
+                  <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginBottom: 10 }}>{stat.label}</div>
+                  <div style={{ fontSize: 28, fontWeight: 700, color: !isVerified ? 'var(--sk-border)' : (stat.accent ?? 'var(--sk-text)'), animation: `countUp 0.5s ease ${stat.delay} both` }}>{text}</div>
                 </>
               )
               if (!isVerified) {
                 return (
-                  <div key={stat.label} className="stat-card" style={{ background: '#f3f4f6', animationDelay: stat.delay }}>
+                  <div key={stat.label} className="stat-card" style={{ background: 'var(--sk-surface-2)', animationDelay: stat.delay }}>
                     {body}
                   </div>
                 )
@@ -672,15 +672,15 @@ export default function DashboardFreelance() {
                   key={stat.label}
                   href={`/dashboard/freelance/candidatures?filter=active${stat.facet ? `&facet=${stat.facet}` : ''}`}
                   className="stat-card is-link"
-                  style={{ background: '#f3f4f6', animationDelay: stat.delay, textDecoration: 'none', color: 'inherit', display: 'block' }}
+                  style={{ background: 'var(--sk-surface-2)', animationDelay: stat.delay, textDecoration: 'none', color: 'inherit', display: 'block' }}
                 >
                   {body}
                 </Link>
               )
             })}
-            <div className="stat-card" style={{ background: '#fff', border: `1px solid ${domain.primaryColor}55`, animationDelay: '0.25s' }}>
-              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>{t('stats.daily_rate')}</div>
-              <div style={{ fontSize: profile?.tjm_min != null && profile?.tjm_max != null ? 18 : 24, fontWeight: 700, color: domain.primaryColor }}>
+            <div className="stat-card" style={{ background: 'var(--sk-surface)', border: `1px solid color-mix(in srgb, var(--sk-accent) 33%, transparent)`, animationDelay: '0.25s' }}>
+              <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginBottom: 10 }}>{t('stats.daily_rate')}</div>
+              <div style={{ fontSize: profile?.tjm_min != null && profile?.tjm_max != null ? 18 : 24, fontWeight: 700, color: 'var(--sk-accent)' }}>
                 {profile?.tjm_min != null && profile?.tjm_max != null
                   ? t('stats.daily_rate_range', { min: profile.tjm_min, max: profile.tjm_max })
                   : '— €'}
@@ -688,7 +688,7 @@ export default function DashboardFreelance() {
               <button
                 type="button"
                 onClick={() => setTjmModalOpen(true)}
-                style={{ background: 'transparent', border: 'none', padding: 0, fontSize: 12, color: domain.primaryColor, cursor: 'pointer', marginTop: 6, fontFamily: 'inherit', fontWeight: 500 }}
+                style={{ background: 'transparent', border: 'none', padding: 0, fontSize: 12, color: 'var(--sk-accent)', cursor: 'pointer', marginTop: 6, fontFamily: 'inherit', fontWeight: 500 }}
               >
                 {t('stats.daily_rate_set')}
               </button>
@@ -700,10 +700,10 @@ export default function DashboardFreelance() {
               appliquée côté serveur (lib/matching/index.ts + /api/me/missions). */}
           <div className="main-card" style={{ animationDelay: '0.28s' }}>
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 16, fontWeight: 600, color: '#111827', marginBottom: 6 }}>
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
                 {t('availability_card.title')}
               </div>
-              <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.55 }}>
+              <div style={{ fontSize: 13, color: 'var(--sk-muted)', lineHeight: 1.55 }}>
                 {t('availability_card.description')}
               </div>
             </div>
@@ -718,22 +718,22 @@ export default function DashboardFreelance() {
               label={t('availability_card.cross_open_label')}
               hint={t('availability_card.cross_open_hint')}
               disabled={crossOpenUpdating || analyzing || !user || !isApproved}
-              accentColor={domain.primaryColor}
+              accentColor={'var(--sk-accent)'}
             />
           </div>
 
           {/* Complétion profil */}
-          <div className="main-card" style={{ borderColor: `${domain.primaryColor}55`, animationDelay: '0.3s' }}>
+          <div className="main-card" style={{ borderColor: `color-mix(in srgb, var(--sk-accent) 33%, transparent)`, animationDelay: '0.3s' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--sk-text)' }}>
                 {t('completion.title', { percent: completionPct })}
               </div>
-              <Link href="/dashboard/freelance/profil/valider" className="voir-tout" style={{ color: domain.primaryColor }}>{t('completion.cta')}</Link>
+              <Link href="/dashboard/freelance/profil/valider" className="voir-tout" style={{ color: 'var(--sk-accent)' }}>{t('completion.cta')}</Link>
             </div>
             <div className="progress-bar">
-              <div className="progress-fill" style={{ background: `linear-gradient(90deg, ${domain.primaryColor}, ${domain.secondaryColor})`, width: `${completionPct}%` }}></div>
+              <div className="progress-fill" style={{ background: `linear-gradient(90deg, var(--sk-accent), ${'var(--sk-accent)'})`, width: `${completionPct}%` }}></div>
             </div>
-            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 10, lineHeight: 1.6 }}>{t('completion.hint')}</div>
+            <div style={{ fontSize: 13, color: 'var(--sk-muted)', marginTop: 10, lineHeight: 1.6 }}>{t('completion.hint')}</div>
           </div>
 
           {/* Missions recommandées — section TOUJOURS visible (parité avec les
@@ -743,21 +743,21 @@ export default function DashboardFreelance() {
           <div className="main-card" style={{ animationDelay: '0.35s' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>{t('cards.recommended_missions.title')}</span>
-                <span style={{ background: '#ede9fe', color: '#6d28d9', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 20 }}>{t('cards.recommended_missions.ai_badge')}</span>
+                <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--sk-text)' }}>{t('cards.recommended_missions.title')}</span>
+                <span style={{ background: 'var(--sk-accent-soft)', color: 'var(--sk-accent)', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 20 }}>{t('cards.recommended_missions.ai_badge')}</span>
               </div>
               {/* C3 : lien désactivé tant que non vérifié (rien à voir avant
                   validation), même traitement que le bloc Collaboration. */}
               {!isVerified
-                ? <span style={{ background: '#f3f4f6', color: '#9ca3af', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('cards.locked_chip')}</span>
-                : <Link href="/dashboard/freelance/missions" className="voir-tout" style={{ color: domain.primaryColor }}>{t('cards.see_all')}</Link>}
+                ? <span style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-faint)', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('cards.locked_chip')}</span>
+                : <Link href="/dashboard/freelance/missions" className="voir-tout" style={{ color: 'var(--sk-accent)' }}>{t('cards.see_all')}</Link>}
             </div>
             {!isApproved ? (
-              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
+              <div style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.8 }}>
                 {t('cards.recommended_missions.empty_unverified')}
               </div>
             ) : (recommendedMissions === null) ? (
-              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af' }}>
+              <div style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: 'var(--sk-muted)' }}>
                 {t('loading')}
               </div>
             ) : recommendedMissions.length === 0 ? (
@@ -773,13 +773,13 @@ export default function DashboardFreelance() {
                   role="status"
                   aria-live="polite"
                   style={{
-                    background: '#f9fafb',
-                    border: '1px solid #e5e7eb',
+                    background: 'var(--sk-surface-2)',
+                    border: '1px solid var(--sk-border)',
                     borderRadius: 10,
                     padding: 22,
                     textAlign: 'center',
                     fontSize: 14,
-                    color: '#475569',
+                    color: 'var(--sk-muted)',
                     lineHeight: 1.8,
                     display: 'flex',
                     flexDirection: 'column',
@@ -792,8 +792,8 @@ export default function DashboardFreelance() {
                     style={{
                       width: 18,
                       height: 18,
-                      border: `2px solid ${domain.primaryColor}44`,
-                      borderTopColor: domain.primaryColor,
+                      border: `2px solid color-mix(in srgb, var(--sk-accent) 27%, transparent)`,
+                      borderTopColor: 'var(--sk-accent)',
                       borderRadius: '50%',
                       animation: 'sk-spin 0.8s linear infinite',
                     }}
@@ -802,7 +802,7 @@ export default function DashboardFreelance() {
                   <style>{`@keyframes sk-spin { to { transform: rotate(360deg) } }`}</style>
                 </div>
               ) : (
-                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
+                <div style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.8 }}>
                   {t('cards.recommended_missions.empty_verified', { ecosystem: domain.ecosystemName })}
                 </div>
               )
@@ -815,11 +815,11 @@ export default function DashboardFreelance() {
                   <div
                     role="status"
                     aria-live="polite"
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, color: '#475569' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, color: 'var(--sk-muted)' }}
                   >
                     <span
                       aria-hidden
-                      style={{ width: 15, height: 15, border: `2px solid ${domain.primaryColor}44`, borderTopColor: domain.primaryColor, borderRadius: '50%', animation: 'sk-spin 0.8s linear infinite' }}
+                      style={{ width: 15, height: 15, border: `2px solid color-mix(in srgb, var(--sk-accent) 27%, transparent)`, borderTopColor: 'var(--sk-accent)', borderRadius: '50%', animation: 'sk-spin 0.8s linear infinite' }}
                     />
                     <span>{t('cards.recommended_missions.analyzing_update')}</span>
                     <style>{`@keyframes sk-spin { to { transform: rotate(360deg) } }`}</style>
@@ -844,18 +844,18 @@ export default function DashboardFreelance() {
               vérif → renvoie [] et l'état vide s'affiche proprement. */}
             <div className="main-card" style={{ animationDelay: '0.38s' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <span style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>{t('cards.your_candidatures.title')}</span>
+                <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--sk-text)' }}>{t('cards.your_candidatures.title')}</span>
                 {/* C3 : lien désactivé tant que non vérifié. */}
                 {!isVerified
-                  ? <span style={{ background: '#f3f4f6', color: '#9ca3af', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('cards.locked_chip')}</span>
-                  : <Link href="/dashboard/freelance/candidatures" className="voir-tout" style={{ color: domain.primaryColor }}>{t('cards.see_all')}</Link>}
+                  ? <span style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-faint)', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('cards.locked_chip')}</span>
+                  : <Link href="/dashboard/freelance/candidatures" className="voir-tout" style={{ color: 'var(--sk-accent)' }}>{t('cards.see_all')}</Link>}
               </div>
               {recentCandidatures === null ? (
-                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af' }}>
+                <div style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: 'var(--sk-muted)' }}>
                   {t('loading')}
                 </div>
               ) : recentCandidatures.length === 0 ? (
-                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
+                <div style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.8 }}>
                   {t('cards.your_candidatures.empty')}
                 </div>
               ) : (
@@ -905,14 +905,14 @@ export default function DashboardFreelance() {
             top: 76,
             right: 24,
             zIndex: 1001,
-            background: '#dcfce7',
-            border: '1px solid #bbf7d0',
-            color: '#15803d',
+            background: 'var(--sk-success-soft)',
+            border: '1px solid var(--sk-success-soft)',
+            color: 'var(--sk-success)',
             padding: '12px 18px',
             borderRadius: 12,
             fontSize: 14,
             fontWeight: 600,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
+            boxShadow: '0 8px 24px color-mix(in srgb, var(--sk-text) 10%, transparent)',
             animation: 'fadeInUp 0.3s ease',
             display: 'flex',
             alignItems: 'center',

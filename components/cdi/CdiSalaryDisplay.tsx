@@ -26,7 +26,7 @@ export default function CdiSalaryDisplay({ min, max, variablePct }: Props) {
 
   if (!hasSalary && !hasVariable) {
     return (
-      <div style={{ fontSize: 14, color: '#94a3b8', fontStyle: 'italic' }}>
+      <div style={{ fontSize: 14, color: 'var(--sk-faint)', fontStyle: 'italic' }}>
         {tEmpty('no_compensation')}
       </div>
     )
@@ -51,7 +51,7 @@ export default function CdiSalaryDisplay({ min, max, variablePct }: Props) {
           style={{
             fontSize: 20,
             fontWeight: 700,
-            color: '#0f172a',
+            color: 'var(--sk-text)',
             letterSpacing: '-0.3px',
           }}
         >
@@ -59,7 +59,7 @@ export default function CdiSalaryDisplay({ min, max, variablePct }: Props) {
         </div>
       )}
       {hasVariable && (
-        <div style={{ fontSize: 13, color: '#64748b' }}>
+        <div style={{ fontSize: 13, color: 'var(--sk-muted)' }}>
           {t('variable_pct', { pct: variablePct as number })}
         </div>
       )}

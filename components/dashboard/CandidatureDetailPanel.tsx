@@ -127,8 +127,8 @@ export default function CandidatureDetailPanel({
           aria-live="polite"
           style={{
             marginTop: 16,
-            background: '#FEF3C7',
-            border: '1.5px solid #F59E0B',
+            background: 'var(--sk-amber-soft)',
+            border: '1.5px solid var(--sk-amber)',
             borderRadius: 'var(--sk-r-lg)',
             padding: '14px 16px',
             display: 'flex',
@@ -138,10 +138,10 @@ export default function CandidatureDetailPanel({
         >
           <div style={{ fontSize: 24, lineHeight: 1 }} aria-hidden>🏆</div>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#92400E', letterSpacing: '-0.2px' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--sk-amber)', letterSpacing: '-0.2px' }}>
               {t(isMission ? 'selected_banner_title_mission' : 'selected_banner_title_offre')}
             </div>
-            <div style={{ fontSize: 13, color: '#92400E', marginTop: 4, lineHeight: 1.55 }}>
+            <div style={{ fontSize: 13, color: 'var(--sk-amber)', marginTop: 4, lineHeight: 1.55 }}>
               {t(isMission ? 'selected_banner_body_mission' : 'selected_banner_body_offre')}
             </div>
           </div>
@@ -244,7 +244,7 @@ export default function CandidatureDetailPanel({
             href={`/dashboard/${side}/messages/${c.conversation_id}`}
             style={{
               padding: '11px 20px', borderRadius: 11,
-              background: 'var(--sk-accent)', color: '#fff',
+              background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)',
               border: 'none', fontWeight: 600, fontSize: 14,
               cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8,
               textDecoration: 'none',

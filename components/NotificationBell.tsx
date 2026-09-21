@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { useRelativeTime } from '@/lib/use-relative-time'
 
@@ -51,7 +50,6 @@ export default function NotificationBell({ ariaLabel }: { ariaLabel?: string }) 
   const t = useTranslations('notifications')
   const relTime = useRelativeTime()
   const router = useRouter()
-  const domain = useDomain()
   const secureFetch = useSecureFetch()
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<Notification[] | null>(null)
@@ -159,9 +157,9 @@ export default function NotificationBell({ ariaLabel }: { ariaLabel?: string }) 
           position: 'relative', width: 38, height: 38, borderRadius: 10,
           background: 'transparent', border: 'none', cursor: 'pointer',
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          color: '#475569', transition: 'background .15s',
+          color: 'var(--sk-muted)', transition: 'background .15s',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--sk-surface-2)' }}
         onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -174,7 +172,7 @@ export default function NotificationBell({ ariaLabel }: { ariaLabel?: string }) 
             style={{
               position: 'absolute', top: 4, right: 4,
               minWidth: 16, height: 16, padding: '0 4px',
-              background: '#DC2626', color: '#fff',
+              background: 'var(--sk-red)', color: 'var(--sk-sur-accent)',
               fontSize: 10, fontWeight: 700, lineHeight: '16px',
               textAlign: 'center', borderRadius: 999,
               boxSizing: 'border-box',
@@ -192,30 +190,30 @@ export default function NotificationBell({ ariaLabel }: { ariaLabel?: string }) 
           style={{
             position: 'absolute', top: 'calc(100% + 8px)', right: 0,
             width: 360, maxHeight: 480, overflowY: 'auto',
-            background: '#fff', border: '0.5px solid #e5e7eb',
-            borderRadius: 12, boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
+            background: 'var(--sk-surface)', border: '0.5px solid var(--sk-border)',
+            borderRadius: 12, boxShadow: '0 10px 25px color-mix(in srgb, var(--sk-text) 8%, transparent)',
             zIndex: 50, fontFamily: 'Inter, sans-serif',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: '0.5px solid #e5e7eb' }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{t('title')}</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: '0.5px solid var(--sk-border)' }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--sk-text)' }}>{t('title')}</span>
             {unread > 0 && (
               <button
                 type="button"
                 onClick={() => void handleReadAll()}
-                style={{ background: 'transparent', border: 'none', color: domain.primaryColor, fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--sk-accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}
               >
                 {t('read_all')}
               </button>
             )}
           </div>
           {items === null ? (
-            <div style={{ padding: 24, textAlign: 'center', fontSize: 13, color: '#94a3b8' }}>{t('loading')}</div>
+            <div style={{ padding: 24, textAlign: 'center', fontSize: 13, color: 'var(--sk-muted)' }}>{t('loading')}</div>
           ) : items.length === 0 ? (
             <div style={{ padding: 32, textAlign: 'center' }}>
               <div style={{ fontSize: 28, marginBottom: 6 }} aria-hidden>🔔</div>
-              <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600, marginBottom: 4 }}>{t('empty_title')}</div>
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>{t('empty_body')}</div>
+              <div style={{ fontSize: 13, color: 'var(--sk-muted)', fontWeight: 600, marginBottom: 4 }}>{t('empty_title')}</div>
+              <div style={{ fontSize: 12, color: 'var(--sk-muted)' }}>{t('empty_body')}</div>
             </div>
           ) : (
             <div>
@@ -230,20 +228,20 @@ export default function NotificationBell({ ariaLabel }: { ariaLabel?: string }) 
                       width: '100%', textAlign: 'left',
                       display: 'flex', gap: 12, alignItems: 'flex-start',
                       padding: '12px 14px',
-                      background: isUnread ? `${domain.primaryColor}0A` : 'transparent',
-                      borderTop: '0.5px solid #f1f5f9',
-                      border: 'none', borderLeft: isUnread ? `3px solid ${domain.primaryColor}` : '3px solid transparent',
+                      background: isUnread ? `color-mix(in srgb, var(--sk-accent) 4%, transparent)` : 'transparent',
+                      borderTop: '0.5px solid var(--sk-surface-2)',
+                      border: 'none', borderLeft: isUnread ? `3px solid var(--sk-accent)` : '3px solid transparent',
                       cursor: 'pointer', fontFamily: 'inherit',
                     }}
                   >
                     <span aria-hidden style={{ fontSize: 18, flexShrink: 0, marginTop: 2 }}>{emoji(n.type)}</span>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      {n.title && <div style={{ fontSize: 13, fontWeight: isUnread ? 700 : 600, color: '#0f172a', lineHeight: 1.35 }}>{n.title}</div>}
-                      {n.body && <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{n.body}</div>}
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{relTime(n.created_at)}</div>
+                      {n.title && <div style={{ fontSize: 13, fontWeight: isUnread ? 700 : 600, color: 'var(--sk-text)', lineHeight: 1.35 }}>{n.title}</div>}
+                      {n.body && <div style={{ fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.5, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{n.body}</div>}
+                      <div style={{ fontSize: 11, color: 'var(--sk-faint)', marginTop: 4 }}>{relTime(n.created_at)}</div>
                     </div>
                     {isUnread && (
-                      <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: domain.primaryColor, flexShrink: 0, marginTop: 6 }} />
+                      <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--sk-accent)', flexShrink: 0, marginTop: 6 }} />
                     )}
                   </button>
                 )

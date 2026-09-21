@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import type { VerificationUiState } from '@/lib/verification-state'
 
 /**
@@ -33,7 +32,6 @@ export default function ExpertOnboardingGuide({
   verifState: VerificationUiState
 }) {
   const t = useTranslations('expert_onboarding')
-  const domain = useDomain()
 
   // Publication : 'in_progress' pendant la vérif (pending/admin_review),
   // 'done' si approuvé (cas non rendu ici), sinon à faire.
@@ -66,8 +64,8 @@ export default function ExpertOnboardingGuide({
     <div
       style={{
         width: '100%',
-        background: '#fff',
-        border: `1px solid ${domain.primaryColor}33`,
+        background: 'var(--sk-surface)',
+        border: `1px solid color-mix(in srgb, var(--sk-accent) 20%, transparent)`,
         borderRadius: 16,
         padding: '22px 24px',
         marginBottom: 22,
@@ -75,10 +73,10 @@ export default function ExpertOnboardingGuide({
       }}
     >
       <div style={{ marginBottom: 16 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: '0 0 4px', letterSpacing: '-0.2px' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--sk-text)', margin: '0 0 4px', letterSpacing: '-0.2px' }}>
           {t('title')}
         </h2>
-        <p style={{ fontSize: 13.5, color: '#64748b', margin: 0, lineHeight: 1.55 }}>{t('subtitle')}</p>
+        <p style={{ fontSize: 13.5, color: 'var(--sk-muted)', margin: 0, lineHeight: 1.55 }}>{t('subtitle')}</p>
       </div>
 
       {/* D5 — compaction progressive : SEULE l'étape courante est détaillée
@@ -89,8 +87,8 @@ export default function ExpertOnboardingGuide({
         {steps.map((step, i) => {
           const isCurrent = step.state === 'current'
           const isDone = step.state === 'done'
-          const dotBg = isDone ? '#22c55e' : isCurrent ? domain.primaryColor : '#e2e8f0'
-          const dotFg = isDone || isCurrent ? '#fff' : '#94a3b8'
+          const dotBg = isDone ? 'var(--sk-success)' : isCurrent ? 'var(--sk-accent)' : 'var(--sk-border)'
+          const dotFg = isDone || isCurrent ? 'var(--sk-sur-accent)' : 'var(--sk-faint)'
           const href = STEP_HREF[step.key]
           const dotSize = isCurrent ? 26 : 22
           return (
@@ -102,8 +100,8 @@ export default function ExpertOnboardingGuide({
                 gap: 12,
                 padding: isCurrent ? '12px 14px' : '7px 14px',
                 borderRadius: 12,
-                background: isCurrent ? `${domain.primaryColor}0A` : 'transparent',
-                border: isCurrent ? `1px solid ${domain.primaryColor}33` : '1px solid transparent',
+                background: isCurrent ? `color-mix(in srgb, var(--sk-accent) 4%, transparent)` : 'transparent',
+                border: isCurrent ? `1px solid color-mix(in srgb, var(--sk-accent) 20%, transparent)` : '1px solid transparent',
               }}
             >
               <span
@@ -118,12 +116,12 @@ export default function ExpertOnboardingGuide({
                 {isDone ? '✓' : i + 1}
               </span>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: isCurrent ? 700 : 600, color: isDone ? '#64748b' : isCurrent ? '#0f172a' : '#94a3b8' }}>
+                <div style={{ fontSize: 14, fontWeight: isCurrent ? 700 : 600, color: isDone ? 'var(--sk-muted)' : isCurrent ? 'var(--sk-text)' : 'var(--sk-faint)' }}>
                   {t(`steps.${step.key}.title`)}
                 </div>
                 {/* Description/statut : UNIQUEMENT sur l'étape courante. */}
                 {isCurrent && (
-                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: 'var(--sk-faint)', marginTop: 2 }}>
                     {step.inProgress ? t('status.in_progress') : t('status.current')}
                   </div>
                 )}
@@ -137,7 +135,7 @@ export default function ExpertOnboardingGuide({
                     flexShrink: 0,
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '8px 14px', borderRadius: 9,
-                    background: domain.primaryColor, color: '#fff',
+                    background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)',
                     fontSize: 13, fontWeight: 700, textDecoration: 'none',
                   }}
                 >
@@ -149,7 +147,7 @@ export default function ExpertOnboardingGuide({
         })}
       </ol>
 
-      <p style={{ fontSize: 12.5, color: '#64748b', margin: '16px 0 0', lineHeight: 1.55 }}>
+      <p style={{ fontSize: 12.5, color: 'var(--sk-muted)', margin: '16px 0 0', lineHeight: 1.55 }}>
         💡 {t('unlock')}
       </p>
     </div>

@@ -94,27 +94,27 @@ export default function ProfilMasqueBanner({ namespace, href, accentColor }: Pro
     <section
       role="status"
       style={{
-        border: '1px solid #fed7aa',
-        background: '#fff7ed',
+        border: '1px solid var(--sk-amber-soft)',
+        background: 'var(--sk-amber-soft)',
         borderRadius: 14,
         padding: '16px 18px',
         marginBottom: 18,
       }}
     >
-      <div style={{ fontSize: 14, fontWeight: 700, color: '#9a3412', marginBottom: 6 }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sk-amber)', marginBottom: 6 }}>
         {etaitApprouve
           ? t('sections.summary_matching.hidden_title')
           : t('sections.summary_matching.incomplete_title')}
       </div>
-      <p style={{ fontSize: 13, color: '#7c2d12', lineHeight: 1.55, margin: '0 0 10px' }}>
+      <p style={{ fontSize: 13, color: 'var(--sk-amber)', lineHeight: 1.55, margin: '0 0 10px' }}>
         {etaitApprouve
           ? t('sections.summary_matching.hidden_intro')
           : t('sections.summary_matching.incomplete_intro')}
       </p>
-      <div style={{ fontSize: 12, fontWeight: 600, color: '#7c2d12', marginBottom: 6 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sk-amber)', marginBottom: 6 }}>
         {t('sections.summary_matching.hidden_list_intro')}
       </div>
-      <ul style={{ margin: '0 0 14px', paddingLeft: 18, fontSize: 13, color: '#7c2d12', lineHeight: 1.7 }}>
+      <ul style={{ margin: '0 0 14px', paddingLeft: 18, fontSize: 13, color: 'var(--sk-amber)', lineHeight: 1.7 }}>
         {manquants.map((champ) => (
           <li key={champ}>
             {/* Les bornes du résumé sont passées en paramètres : écrites en dur
@@ -133,7 +133,7 @@ export default function ProfilMasqueBanner({ namespace, href, accentColor }: Pro
           display: 'inline-block',
           padding: '9px 16px',
           background: accentColor,
-          color: '#fff',
+          color: 'var(--sk-sur-accent)',
           borderRadius: 9,
           fontSize: 13,
           fontWeight: 600,

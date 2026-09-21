@@ -104,13 +104,13 @@ export default function CandidatureCastingCard({
         overflow: 'hidden',
         textDecoration: 'none',
         color: 'inherit',
-        boxShadow: '0 1px 2px rgba(15,23,42,0.05)',
+        boxShadow: '0 1px 2px color-mix(in srgb, var(--sk-text) 5%, transparent)',
         transition: 'box-shadow .15s, transform .15s',
       }}
     >
       {/* Bandeau lavande pastel : logo + pastille statut (sémantique) */}
       <div style={{ background: castingTheme.accentSoft, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <span style={{ display: 'inline-flex', padding: 4, background: '#fff', border: `1px solid ${castingTheme.logoBorder}`, borderRadius: 11, boxShadow: '0 1px 3px rgba(15,23,42,0.12)' }}>
+        <span style={{ display: 'inline-flex', padding: 4, background: 'var(--sk-surface)', border: `1px solid ${castingTheme.logoBorder}`, borderRadius: 11, boxShadow: '0 1px 3px color-mix(in srgb, var(--sk-text) 12%, transparent)' }}>
           <Avatar src={logoUrl} name={orgName} size={34} variant="neutral" />
         </span>
         <StatusPill kind={pillKind} icon={<PillIcon size={13} />} size="sm">{statusLabel}</StatusPill>

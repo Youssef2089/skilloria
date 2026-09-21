@@ -20,7 +20,7 @@ const styleMap: Record<StatusPillKind, { bg: string; color: string }> = {
   // Lot état 'selected' : palette dorée. Pas de token dédié en V1 → on
   // inline les hex (amber 100 / amber 800) plutôt que de polluer le
   // theming. Si le token --sk-gold-* est introduit plus tard, basculer ici.
-  won:     { bg: '#FEF3C7',                 color: '#92400E' },
+  won:     { bg: 'var(--sk-amber-soft)',                 color: 'var(--sk-amber)' },
   wait:    { bg: 'var(--sk-amber-soft)',   color: 'var(--sk-amber)' },
   refused: { bg: 'var(--sk-red-soft)',     color: 'var(--sk-red)' },
   neutral: { bg: 'var(--sk-surface-2)',    color: 'var(--sk-muted)' },

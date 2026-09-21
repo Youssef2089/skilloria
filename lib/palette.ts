@@ -144,6 +144,21 @@ export const COULEURS_FIXES = {
   surEncreBordure: '#332F2A',
 } as const
 
+/**
+ * LES COULEURS QUI NE NOUS APPARTIENNENT PAS.
+ *
+ * Le logo d'un tiers garde SA couleur. La recolorer au jeton du produit ne
+ * serait pas une harmonisation : ce serait afficher un logo LinkedIn qui n'est
+ * pas celui de LinkedIn. Aucune garde de contraste ne s'y applique non plus —
+ * nous ne décidons pas de la marque d'un autre.
+ *
+ * C'est la seule raison pour laquelle une couleur peut entrer ici sans être un
+ * rôle : elle n'est pas à nous.
+ */
+export const MARQUES_TIERCES = {
+  linkedin: '#0A66C2',
+} as const
+
 /* ═══════════════════════════════════════════════════════════════════════════
    3. RÉSOLUTION
    ═══════════════════════════════════════════════════════════════════════════ */

@@ -44,23 +44,23 @@ const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
 
 // Lot disponibilité : 2 statuts uniquement (cf. components/cdi/CdiStatusToggle).
 const STATUS_BADGE_COLORS: Record<CdiStatus, string> = {
-  employed: '#ef4444',
-  open_to_work: '#10b981',
+  employed: 'var(--sk-red)',
+  open_to_work: 'var(--sk-success)',
 }
 
 const SECTION_COLORS = [
-  '#6366f1',
-  '#a855f7',
-  '#10b981',
-  '#f59e0b',
-  '#ec4899',
-  '#06b6d4',
-  '#14b8a6',
-  '#f43f5e',
-  '#3b82f6',
-  '#84cc16',
-  '#0ea5e9',
-  '#d946ef',
+  'var(--sk-accent)',
+  'var(--sk-accent)',
+  'var(--sk-success)',
+  'var(--sk-amber)',
+  'var(--sk-accent)',
+  'var(--sk-accent)',
+  'var(--sk-accent)',
+  'var(--sk-red)',
+  'var(--sk-accent)',
+  'var(--sk-success)',
+  'var(--sk-accent)',
+  'var(--sk-accent)',
 ] as const
 
 const LOCALE_DATE_MAP: Record<string, string> = {
@@ -142,7 +142,7 @@ function SectionHeader({
           borderRadius: 999,
           fontSize: 12,
           fontWeight: 800,
-          color: '#fff',
+          color: 'var(--sk-sur-accent)',
           background: color,
           fontFamily: fontJakarta,
           flexShrink: 0,
@@ -155,7 +155,7 @@ function SectionHeader({
           flex: 1,
           fontSize: 16,
           fontWeight: 700,
-          color: '#0f172a',
+          color: 'var(--sk-text)',
           letterSpacing: '-0.2px',
           fontFamily: fontJakarta,
         }}
@@ -170,8 +170,8 @@ function Card({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        background: '#fff',
-        border: '1px solid #e2e8f0',
+        background: 'var(--sk-surface)',
+        border: '1px solid var(--sk-border)',
         borderRadius: 16,
         padding: '22px 24px',
         marginBottom: 16,
@@ -187,7 +187,7 @@ function Empty({ text }: { text: string }) {
     <div
       style={{
         fontSize: 14,
-        color: '#94a3b8',
+        color: 'var(--sk-faint)',
         fontStyle: 'italic',
         padding: '4px 0',
       }}
@@ -323,7 +323,7 @@ export default function CdiMonProfilPage() {
         className={jakarta.variable}
         style={{
           minHeight: '100vh',
-          background: '#f8fafc',
+          background: 'var(--sk-surface-2)',
           fontFamily: 'Inter, system-ui, sans-serif',
           display: 'flex',
           alignItems: 'center',
@@ -337,13 +337,13 @@ export default function CdiMonProfilPage() {
               width: 40,
               height: 40,
               borderRadius: '50%',
-              border: `3px solid ${domain.primaryColor}22`,
-              borderTopColor: domain.primaryColor,
+              border: `3px solid color-mix(in srgb, var(--sk-accent) 13%, transparent)`,
+              borderTopColor: 'var(--sk-accent)',
               margin: '0 auto 12px',
               animation: 'sk-spin 0.9s linear infinite',
             }}
           />
-          <div style={{ fontSize: 14, color: '#64748b' }}>{t('loading')}</div>
+          <div style={{ fontSize: 14, color: 'var(--sk-muted)' }}>{t('loading')}</div>
         </div>
       </div>
     )
@@ -356,7 +356,7 @@ export default function CdiMonProfilPage() {
         className={jakarta.variable}
         style={{
           minHeight: '100vh',
-          background: '#f8fafc',
+          background: 'var(--sk-surface-2)',
           fontFamily: 'Inter, system-ui, sans-serif',
           display: 'flex',
           alignItems: 'center',
@@ -366,8 +366,8 @@ export default function CdiMonProfilPage() {
       >
         <div
           style={{
-            background: '#fff',
-            border: '1px solid #e2e8f0',
+            background: 'var(--sk-surface)',
+            border: '1px solid var(--sk-border)',
             borderRadius: 16,
             padding: 32,
             maxWidth: 440,
@@ -377,18 +377,18 @@ export default function CdiMonProfilPage() {
           <div style={{ fontSize: 40, marginBottom: 12 }} aria-hidden>
             🔒
           </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 8 }}>
             403
           </div>
-          <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6, marginBottom: 20 }}>
+          <div style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.6, marginBottom: 20 }}>
             {t('error_loading')}
           </div>
           <button
             type="button"
             onClick={() => router.push('/')}
             style={{
-              background: domain.primaryColor,
-              color: '#fff',
+              background: 'var(--sk-accent)',
+              color: 'var(--sk-sur-accent)',
               border: 'none',
               borderRadius: 10,
               padding: '10px 18px',
@@ -412,21 +412,21 @@ export default function CdiMonProfilPage() {
         className={jakarta.variable}
         style={{
           minHeight: '100vh',
-          background: '#f8fafc',
+          background: 'var(--sk-surface-2)',
           fontFamily: 'Inter, system-ui, sans-serif',
           padding: 24,
         }}
       >
-        <Header user={user} profile={null} domainName={domain.name} domainColor={domain.primaryColor} domainLogo={domain.logoUrl} t={t} />
+        <Header user={user} profile={null} domainName={domain.name} domainColor={'var(--sk-accent)'} domainLogo={domain.logoUrl} t={t} />
         <div
           style={{
             maxWidth: 720,
             margin: '32px auto',
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
+            background: 'var(--sk-red-soft)',
+            border: '1px solid var(--sk-red-soft)',
             borderRadius: 12,
             padding: 20,
-            color: '#991b1b',
+            color: 'var(--sk-red)',
             fontSize: 14,
             lineHeight: 1.6,
           }}
@@ -449,11 +449,11 @@ export default function CdiMonProfilPage() {
         className={jakarta.variable}
         style={{
           minHeight: '100vh',
-          background: '#f8fafc',
+          background: 'var(--sk-surface-2)',
           fontFamily: 'Inter, system-ui, sans-serif',
         }}
       >
-        <Header user={user} profile={null} domainName={domain.name} domainColor={domain.primaryColor} domainLogo={domain.logoUrl} t={t} />
+        <Header user={user} profile={null} domainName={domain.name} domainColor={'var(--sk-accent)'} domainLogo={domain.logoUrl} t={t} />
         <div style={{ padding: 24 }}>
           <EmptyState
             icon="📄"
@@ -463,8 +463,8 @@ export default function CdiMonProfilPage() {
               <Link
                 href="/dashboard/cdi/profil"
                 style={{
-                  background: domain.primaryColor,
-                  color: '#fff',
+                  background: 'var(--sk-accent)',
+                  color: 'var(--sk-sur-accent)',
                   border: 'none',
                   borderRadius: 10,
                   padding: '10px 18px',
@@ -491,7 +491,7 @@ export default function CdiMonProfilPage() {
       className={jakarta.variable}
       style={{
         minHeight: '100vh',
-        background: '#f8fafc',
+        background: 'var(--sk-surface-2)',
         fontFamily: 'Inter, system-ui, sans-serif',
       }}
     >
@@ -510,7 +510,7 @@ export default function CdiMonProfilPage() {
         user={user}
         profile={profile}
         domainName={domain.name}
-        domainColor={domain.primaryColor}
+        domainColor={'var(--sk-accent)'}
         domainLogo={domain.logoUrl}
         t={t}
       />
@@ -527,7 +527,7 @@ export default function CdiMonProfilPage() {
             gap: 16,
           }}
         >
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.4px' }}>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--sk-text)', margin: 0, letterSpacing: '-0.4px' }}>
             {t('page_title')}
           </h1>
           <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -535,9 +535,9 @@ export default function CdiMonProfilPage() {
             <Link
               href="/dashboard/cdi/profil/valider"
               style={{
-                background: '#fff',
-                color: domain.primaryColor,
-                border: `1.5px solid ${domain.primaryColor}`,
+                background: 'var(--sk-surface)',
+                color: 'var(--sk-accent)',
+                border: `1.5px solid var(--sk-accent)`,
                 borderRadius: 10,
                 padding: '8px 14px',
                 fontSize: 13,
@@ -559,8 +559,8 @@ export default function CdiMonProfilPage() {
               onClick={handlePublish}
               disabled={publishing}
               style={{
-                background: domain.primaryColor,
-                color: '#fff',
+                background: 'var(--sk-accent)',
+                color: 'var(--sk-sur-accent)',
                 border: 'none',
                 borderRadius: 10,
                 padding: '8px 16px',
@@ -587,9 +587,9 @@ export default function CdiMonProfilPage() {
               borderRadius: 10,
               fontSize: 13.5,
               lineHeight: 1.5,
-              background: publishMsg.kind === 'success' ? '#dcfce7' : '#fef2f2',
-              border: `1px solid ${publishMsg.kind === 'success' ? '#bbf7d0' : '#fecaca'}`,
-              color: publishMsg.kind === 'success' ? '#166534' : '#991b1b',
+              background: publishMsg.kind === 'success' ? 'var(--sk-success-soft)' : 'var(--sk-red-soft)',
+              border: `1px solid ${publishMsg.kind === 'success' ? 'var(--sk-success-soft)' : 'var(--sk-red-soft)'}`,
+              color: publishMsg.kind === 'success' ? 'var(--sk-success)' : 'var(--sk-red)',
             }}
           >
             {publishMsg.text}
@@ -602,7 +602,7 @@ export default function CdiMonProfilPage() {
           profile={profile}
           localPhotoUrl={ownAvatarUrl}
           locale={locale}
-          domainColor={domain.primaryColor}
+          domainColor={'var(--sk-accent)'}
           t={t}
           onEditPhoto={() => setAvatarModalOpen(true)}
         />
@@ -614,9 +614,9 @@ export default function CdiMonProfilPage() {
           <div
             role="alert"
             style={{
-              background: '#FEF2F2',
-              border: '1px solid #FECACA',
-              color: '#991B1B',
+              background: 'var(--sk-red-soft)',
+              border: '1px solid var(--sk-red-soft)',
+              color: 'var(--sk-red)',
               borderRadius: 10,
               padding: '10px 14px',
               marginBottom: 20,
@@ -630,7 +630,7 @@ export default function CdiMonProfilPage() {
             <div style={{ marginTop: 8 }}>
               <Link
                 href="/dashboard/cdi/profil/valider"
-                style={{ fontSize: 13, fontWeight: 600, color: '#991B1B', textDecoration: 'underline' }}
+                style={{ fontSize: 13, fontWeight: 600, color: 'var(--sk-red)', textDecoration: 'underline' }}
               >
                 {tRejected('cta')}
               </Link>
@@ -647,8 +647,8 @@ export default function CdiMonProfilPage() {
             role="status"
             aria-live="polite"
             style={{
-              background: '#fffbeb',
-              border: '1px solid #fde68a',
+              background: 'var(--sk-amber-soft)',
+              border: '1px solid var(--sk-amber-soft)',
               borderRadius: 12,
               padding: '12px 16px',
               display: 'flex',
@@ -658,10 +658,10 @@ export default function CdiMonProfilPage() {
             }}
           >
             <div style={{ flex: '1 1 260px', minWidth: 0 }}>
-              <div style={{ fontWeight: 600, color: '#92400e', fontSize: 14, marginBottom: 4 }}>
+              <div style={{ fontWeight: 600, color: 'var(--sk-amber)', fontSize: 14, marginBottom: 4 }}>
                 {t('errors.list_read_failed_title')}
               </div>
-              <div style={{ color: '#78350f', fontSize: 13, lineHeight: 1.5 }}>
+              <div style={{ color: 'var(--sk-amber)', fontSize: 13, lineHeight: 1.5 }}>
                 {t('errors.list_read_failed_body', {
                   sections: sectionsIndisponibles
                     .map(c => t(`sections.${NOM_DE_SECTION[c]}`))
@@ -673,8 +673,8 @@ export default function CdiMonProfilPage() {
               type="button"
               onClick={() => window.location.reload()}
               style={{
-                background: '#92400e',
-                color: '#fff',
+                background: 'var(--sk-amber)',
+                color: 'var(--sk-sur-accent)',
                 border: 'none',
                 borderRadius: 8,
                 padding: '8px 14px',
@@ -694,7 +694,7 @@ export default function CdiMonProfilPage() {
           <Card>
             <SectionHeader n={1} color={SECTION_COLORS[0]} title={t('sections.summary')} />
             {profile.summary ? (
-              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
+              <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
                 {profile.summary}
               </p>
             ) : (
@@ -711,7 +711,7 @@ export default function CdiMonProfilPage() {
               profile={profile}
               branches={branches}
               specialities={specialities}
-              domainColor={domain.primaryColor}
+              domainColor={'var(--sk-accent)'}
               t={t}
             />
           </Card>
@@ -794,7 +794,7 @@ export default function CdiMonProfilPage() {
             <LanguagesSection
               languages={languages}
               fallbackLanguages={profile.languages}
-              domainColor={domain.primaryColor}
+              domainColor={'var(--sk-accent)'}
               t={t}
             />
           </Card>
@@ -805,7 +805,7 @@ export default function CdiMonProfilPage() {
           <Card>
             <SectionHeader n={10} color={SECTION_COLORS[9]} title={t('sections.career_goals')} />
             {profile.cdi_career_goals ? (
-              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
+              <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
                 {profile.cdi_career_goals}
               </p>
             ) : (
@@ -824,19 +824,19 @@ export default function CdiMonProfilPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 10,
-                  background: '#fef9c3',
-                  border: '1px solid #fde68a',
+                  background: 'var(--sk-amber-soft)',
+                  border: '1px solid var(--sk-amber-soft)',
                   borderRadius: 10,
                   padding: '12px 14px',
                 }}
               >
                 <div style={{ fontSize: 18 }} aria-hidden>🔒</div>
-                <div style={{ fontSize: 13, color: '#92400e', fontWeight: 600 }}>
+                <div style={{ fontSize: 13, color: 'var(--sk-amber)', fontWeight: 600 }}>
                   {t('labels.confidential_mode_active')}
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize: 14, color: '#94a3b8', fontStyle: 'italic' }}>
+              <div style={{ fontSize: 14, color: 'var(--sk-faint)', fontStyle: 'italic' }}>
                 {t('labels.confidential_mode_active')} — Off
               </div>
             )}
@@ -847,7 +847,7 @@ export default function CdiMonProfilPage() {
         <div className="sk-card">
           <Card>
             <SectionHeader n={12} color={SECTION_COLORS[11]} title={t('sections.links')} />
-            <LinksSection profile={profile} domainColor={domain.primaryColor} t={t} />
+            <LinksSection profile={profile} domainColor={'var(--sk-accent)'} t={t} />
           </Card>
         </div>
       </main>
@@ -896,8 +896,8 @@ function Header({
     <div
       className="sk-header-row"
       style={{
-        background: '#fff',
-        borderBottom: '1px solid #e2e8f0',
+        background: 'var(--sk-surface)',
+        borderBottom: '1px solid var(--sk-border)',
         padding: '0 24px',
         height: 58,
         display: 'flex',
@@ -936,7 +936,7 @@ function Header({
             )}
           />
         </div>
-        <span style={{ fontSize: 17, fontWeight: 700, color: '#0f172a' }}>{domainName}</span>
+        <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--sk-text)' }}>{domainName}</span>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -1031,7 +1031,7 @@ function ProfileHero({
                 height: 88,
                 borderRadius: '50%',
                 objectFit: 'cover',
-                border: `3px solid ${domainColor}33`,
+                border: `3px solid color-mix(in srgb, var(--sk-accent) 20%, transparent)`,
               }}
               repli={
                 <div
@@ -1039,7 +1039,7 @@ function ProfileHero({
                     width: 88,
                     height: 88,
                     borderRadius: '50%',
-                    background: `linear-gradient(135deg, ${domainColor}33, ${domainColor}66)`,
+                    background: `linear-gradient(135deg, color-mix(in srgb, var(--sk-accent) 20%, transparent), color-mix(in srgb, var(--sk-accent) 40%, transparent))`,
                     color: domainColor,
                     display: 'flex',
                     alignItems: 'center',
@@ -1063,7 +1063,7 @@ function ProfileHero({
                 style={{
                   fontSize: 22,
                   fontWeight: 800,
-                  color: '#0f172a',
+                  color: 'var(--sk-text)',
                   letterSpacing: '-0.4px',
                   fontFamily: fontJakarta,
                   marginBottom: 4,
@@ -1073,7 +1073,7 @@ function ProfileHero({
               </div>
             )}
             {profile.title && (
-              <div style={{ fontSize: 15, color: '#475569', marginBottom: 6 }}>
+              <div style={{ fontSize: 15, color: 'var(--sk-muted)', marginBottom: 6 }}>
                 {profile.title}
               </div>
             )}
@@ -1081,7 +1081,7 @@ function ProfileHero({
               <div
                 style={{
                   fontSize: 13,
-                  color: '#64748b',
+                  color: 'var(--sk-muted)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
@@ -1103,17 +1103,17 @@ function ProfileHero({
             style={{
               marginTop: 18,
               paddingTop: 16,
-              borderTop: '1px solid #f1f5f9',
+              borderTop: '1px solid var(--sk-surface-2)',
               display: 'flex',
               flexWrap: 'wrap',
               gap: 18,
               fontSize: 13,
-              color: '#475569',
+              color: 'var(--sk-muted)',
             }}
           >
             {noticeLabel && (
               <div>
-                <span style={{ fontWeight: 600, color: '#64748b' }}>
+                <span style={{ fontWeight: 600, color: 'var(--sk-muted)' }}>
                   {t('labels.notice_period')} ·{' '}
                 </span>
                 <span>{noticeLabel}</span>
@@ -1121,7 +1121,7 @@ function ProfileHero({
             )}
             {availabilityFormatted && (
               <div>
-                <span style={{ fontWeight: 600, color: '#64748b' }}>
+                <span style={{ fontWeight: 600, color: 'var(--sk-muted)' }}>
                   {t('labels.available_from', { date: availabilityFormatted })}
                 </span>
               </div>
@@ -1192,7 +1192,7 @@ function ExpertiseSection({
           style={{
             fontSize: 11,
             fontWeight: 700,
-            color: '#64748b',
+            color: 'var(--sk-muted)',
             textTransform: 'uppercase',
             letterSpacing: '0.06em',
             marginTop: 6,
@@ -1224,7 +1224,7 @@ function MetaItem({ label, value }: { label: string; value: string | null }) {
         style={{
           fontSize: 11,
           fontWeight: 700,
-          color: '#64748b',
+          color: 'var(--sk-muted)',
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
           marginBottom: 4,
@@ -1232,7 +1232,7 @@ function MetaItem({ label, value }: { label: string; value: string | null }) {
       >
         {label}
       </div>
-      <div style={{ fontSize: 14, color: value ? '#0f172a' : '#94a3b8', fontStyle: value ? 'normal' : 'italic' }}>
+      <div style={{ fontSize: 14, color: value ? 'var(--sk-text)' : 'var(--sk-faint)', fontStyle: value ? 'normal' : 'italic' }}>
         {value ?? '—'}
       </div>
     </div>
@@ -1258,14 +1258,14 @@ function CertificationsSection({
         <li
           key={`${c.name}-${i}`}
           style={{
-            border: '1px solid #f1f5f9',
+            border: '1px solid var(--sk-surface-2)',
             borderRadius: 10,
             padding: '10px 14px',
-            background: '#fafafa',
+            background: 'var(--sk-surface-2)',
           }}
         >
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{c.name}</div>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--sk-text)' }}>{c.name}</div>
+          <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 2 }}>
             {[c.issuer, c.year != null ? String(c.year) : null].filter(Boolean).join(' · ')}
           </div>
         </li>
@@ -1306,21 +1306,21 @@ function ExperiencesSection({
           <li
             key={`${e.role}-${i}`}
             style={{
-              border: '1px solid #f1f5f9',
+              border: '1px solid var(--sk-surface-2)',
               borderRadius: 10,
               padding: '12px 14px',
-              background: '#fff',
+              background: 'var(--sk-surface)',
             }}
           >
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{heading || '—'}</div>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sk-text)' }}>{heading || '—'}</div>
+            <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 4 }}>
               {[range, e.sector].filter(Boolean).join(' · ')}
             </div>
             {e.description && (
               <p
                 style={{
                   fontSize: 13,
-                  color: '#475569',
+                  color: 'var(--sk-muted)',
                   lineHeight: 1.6,
                   marginTop: 8,
                   whiteSpace: 'pre-wrap',
@@ -1358,16 +1358,16 @@ function EducationSection({
           <li
             key={`${e.school}-${i}`}
             style={{
-              border: '1px solid #f1f5f9',
+              border: '1px solid var(--sk-surface-2)',
               borderRadius: 10,
               padding: '10px 14px',
-              background: '#fafafa',
+              background: 'var(--sk-surface-2)',
             }}
           >
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--sk-text)' }}>
               {heading || e.school || '—'}
             </div>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+            <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 2 }}>
               {[e.school, e.location, range].filter(Boolean).join(' · ')}
             </div>
           </li>
@@ -1453,7 +1453,7 @@ function LinksSection({
               wordBreak: 'break-all',
             }}
           >
-            {item.label} ↗ <span style={{ color: '#64748b', fontWeight: 400 }}>{item.href}</span>
+            {item.label} ↗ <span style={{ color: 'var(--sk-muted)', fontWeight: 400 }}>{item.href}</span>
           </a>
         </li>
       ))}

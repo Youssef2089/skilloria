@@ -226,12 +226,12 @@ export default function SaisieTelephone(props: SaisieTelephoneProps) {
     width: '100%',
     padding: '11px 14px',
     fontSize: 16, // 16 px : en dessous, iOS zoome sur le champ au focus.
-    border: `1.5px solid ${hasError ? '#dc2626' : verrouille ? '#22c55e' : '#e2e8f0'}`,
+    border: `1.5px solid ${hasError ? 'var(--sk-red)' : verrouille ? 'var(--sk-success)' : 'var(--sk-border)'}`,
     borderRadius: 10,
     outline: 'none',
     fontFamily: 'inherit',
-    background: verrouille ? '#f1f5f9' : '#fff',
-    color: '#0f172a',
+    background: verrouille ? 'var(--sk-surface-2)' : 'var(--sk-surface)',
+    color: 'var(--sk-text)',
     boxSizing: 'border-box',
     minHeight: 44,
   }
@@ -240,7 +240,7 @@ export default function SaisieTelephone(props: SaisieTelephoneProps) {
     <div>
       <label
         htmlFor={id}
-        style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}
+        style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-muted)', marginBottom: 6 }}
       >
         {libelles.label} *
       </label>
@@ -280,7 +280,7 @@ export default function SaisieTelephone(props: SaisieTelephoneProps) {
           {verrouille && (
             <span
               aria-hidden
-              style={{ position: 'absolute', right: 12, top: 12, color: '#22c55e', fontSize: 18, fontWeight: 700 }}
+              style={{ position: 'absolute', right: 12, top: 12, color: 'var(--sk-success)', fontSize: 18, fontWeight: 700 }}
             >
               ✓
             </span>

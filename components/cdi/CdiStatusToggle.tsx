@@ -19,8 +19,8 @@ import { useTranslations } from 'next-intl'
 export type CdiStatus = 'employed' | 'open_to_work'
 
 const STATUS_COLORS: Record<CdiStatus, string> = {
-  employed: '#ef4444',
-  open_to_work: '#10b981',
+  employed: 'var(--sk-red)',
+  open_to_work: 'var(--sk-success)',
 }
 
 const STATUS_ICONS: Record<CdiStatus, string> = {
@@ -62,8 +62,8 @@ export default function CdiStatusToggle({ value, onChange, disabled }: Props) {
             onClick={() => onChange(opt)}
             style={{
               textAlign: 'left',
-              background: active ? `${color}10` : '#fff',
-              border: `2px solid ${active ? color : '#e2e8f0'}`,
+              background: active ? `${color}10` : 'var(--sk-surface)',
+              border: `2px solid ${active ? color : 'var(--sk-border)'}`,
               borderRadius: 14,
               padding: '14px 16px',
               cursor: disabled ? 'not-allowed' : 'pointer',
@@ -81,14 +81,14 @@ export default function CdiStatusToggle({ value, onChange, disabled }: Props) {
               style={{
                 fontSize: 14,
                 fontWeight: 700,
-                color: active ? color : '#0f172a',
+                color: active ? color : 'var(--sk-text)',
                 marginBottom: 4,
                 letterSpacing: '-0.2px',
               }}
             >
               {t(`${opt}_label` as 'employed_label' | 'open_to_work_label')}
             </div>
-            <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.5 }}>
               {t(`${opt}_hint` as 'employed_hint' | 'open_to_work_hint')}
             </div>
           </button>

@@ -23,7 +23,7 @@ export default function LegalFooter() {
   return (
     <footer
       style={{
-        borderTop: '1px solid var(--color-border-tertiary, #e5e7eb)',
+        borderTop: '1px solid var(--color-border-tertiary, var(--sk-border))',
         padding: '14px 24px',
         display: 'flex',
         flexWrap: 'wrap',
@@ -31,7 +31,7 @@ export default function LegalFooter() {
         alignItems: 'center',
         justifyContent: 'space-between',
         fontSize: 11,
-        color: 'var(--color-text-tertiary, #94a3b8)',
+        color: 'var(--color-text-tertiary, var(--sk-faint))',
       }}
     >
       <span>{t('copyright', { year, name: domain.name })}</span>
@@ -40,7 +40,7 @@ export default function LegalFooter() {
           <Link
             key={key}
             href={path}
-            style={{ color: 'var(--color-text-secondary, #64748b)', textDecoration: 'none' }}
+            style={{ color: 'var(--color-text-secondary, var(--sk-muted))', textDecoration: 'none' }}
           >
             {t(`legal.${key}`)}
           </Link>

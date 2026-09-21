@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { Plus_Jakarta_Sans } from 'next/font/google'
-import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { markMatchingTriggered } from '@/lib/matching-resync-hint'
@@ -178,7 +177,7 @@ function SectionHeader({
           borderRadius: 999,
           fontSize: 12,
           fontWeight: 800,
-          color: '#fff',
+          color: 'var(--sk-sur-accent)',
           background: color,
           fontFamily: fontJakarta,
           flexShrink: 0,
@@ -191,7 +190,7 @@ function SectionHeader({
           flex: 1,
           fontSize: 16,
           fontWeight: 700,
-          color: '#0f172a',
+          color: 'var(--sk-text)',
           letterSpacing: '-0.2px',
           fontFamily: fontJakarta,
         }}
@@ -205,19 +204,18 @@ function SectionHeader({
 
 const SECTION_COLORS = {
   identite: '',
-  expertise: '#6366f1',
-  certifications: '#a855f7',
-  disponibilite: '#10b981',
-  liens: '#06b6d4',
-  coordonnees: '#f59e0b',
-  parcours: '#ec4899',
-  missions: '#f43f5e',
-  formation: '#14b8a6',
+  expertise: 'var(--sk-accent)',
+  certifications: 'var(--sk-accent)',
+  disponibilite: 'var(--sk-success)',
+  liens: 'var(--sk-accent)',
+  coordonnees: 'var(--sk-amber)',
+  parcours: 'var(--sk-accent)',
+  missions: 'var(--sk-red)',
+  formation: 'var(--sk-accent)',
 } as const
 
 export default function ValiderProfilPage() {
   const router = useRouter()
-  const domain = useDomain()
   const secureFetch = useSecureFetch()
   const tProfile = useTranslations('profile_validation')
   const tWorkZones = useTranslations('work_zones')
@@ -426,7 +424,7 @@ export default function ValiderProfilPage() {
       <div
         style={{
           fontSize: 12,
-          color: '#dc2626',
+          color: 'var(--sk-red)',
           marginTop: 6,
           display: 'flex',
           alignItems: 'center',
@@ -1013,12 +1011,12 @@ export default function ValiderProfilPage() {
   const inputStyle = (field?: string): React.CSSProperties => ({
     width: '100%',
     padding: '10px 14px',
-    border: `1.5px solid ${field && isMissing(field) ? '#dc2626' : '#e2e8f0'}`,
+    border: `1.5px solid ${field && isMissing(field) ? 'var(--sk-red)' : 'var(--sk-border)'}`,
     borderRadius: 10,
     fontSize: 14,
-    color: '#0f172a',
+    color: 'var(--sk-text)',
     outline: 'none',
-    background: '#fff',
+    background: 'var(--sk-surface)',
     fontFamily: 'inherit',
   })
 
@@ -1026,14 +1024,14 @@ export default function ValiderProfilPage() {
     display: 'block',
     fontSize: 13,
     fontWeight: 600,
-    color: '#374151',
+    color: 'var(--sk-muted)',
     marginBottom: 6,
     fontFamily: fontJakarta,
   }
 
   const sectionStyle: React.CSSProperties = {
-    background: '#fff',
-    border: '1px solid #e2e8f0',
+    background: 'var(--sk-surface)',
+    border: '1px solid var(--sk-border)',
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
@@ -1041,8 +1039,8 @@ export default function ValiderProfilPage() {
   }
 
   const primaryAddBtnStyle: React.CSSProperties = {
-    background: domain.primaryColor,
-    color: '#fff',
+    background: 'var(--sk-accent)',
+    color: 'var(--sk-sur-accent)',
     border: 'none',
     borderRadius: 10,
     padding: '10px 18px',
@@ -1054,9 +1052,9 @@ export default function ValiderProfilPage() {
   }
 
   const inlineAddBtnStyle: React.CSSProperties = {
-    background: `${domain.primaryColor}14`,
-    color: domain.primaryColor,
-    border: `1px solid ${domain.primaryColor}33`,
+    background: `color-mix(in srgb, var(--sk-accent) 8%, transparent)`,
+    color: 'var(--sk-accent)',
+    border: `1px solid color-mix(in srgb, var(--sk-accent) 20%, transparent)`,
     borderRadius: 8,
     padding: '6px 12px',
     fontSize: 13,
@@ -1086,8 +1084,8 @@ export default function ValiderProfilPage() {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 6,
-    background: `${domain.primaryColor}15`,
-    color: domain.primaryColor,
+    background: `color-mix(in srgb, var(--sk-accent) 8%, transparent)`,
+    color: 'var(--sk-accent)',
     padding: '4px 10px',
     borderRadius: 999,
     fontSize: 12,
@@ -1120,8 +1118,8 @@ export default function ValiderProfilPage() {
           display: 'block',
           margin: '12px auto 0',
           background: 'transparent',
-          color: domain.primaryColor,
-          border: `1px solid ${domain.primaryColor}33`,
+          color: 'var(--sk-accent)',
+          border: `1px solid color-mix(in srgb, var(--sk-accent) 20%, transparent)`,
           borderRadius: 999,
           padding: '8px 18px',
           fontSize: 14,
@@ -1247,7 +1245,7 @@ export default function ValiderProfilPage() {
             marginBottom: 12,
             cursor: 'pointer',
             fontSize: 13,
-            color: '#374151',
+            color: 'var(--sk-muted)',
             fontWeight: 500,
             fontFamily: fontJakarta,
           }}
@@ -1261,7 +1259,7 @@ export default function ValiderProfilPage() {
                 end_date: e.target.checked ? '' : exp.end_date,
               })
             }
-            style={{ accentColor: domain.primaryColor }}
+            style={{ accentColor: 'var(--sk-accent)' }}
           />
           {isCareer
             ? tProfile('sections.career.is_current_label')
@@ -1293,13 +1291,13 @@ export default function ValiderProfilPage() {
   return (
     <div
       className={jakarta.variable}
-      style={{ minHeight: '100%', background: '#f8fafc', fontFamily: fontInter }}
+      style={{ minHeight: '100%', background: 'var(--sk-surface-2)', fontFamily: fontInter }}
     >
       <style>{`
         @keyframes sk-spin { to { transform: rotate(360deg); } }
         @keyframes sk-focus-ring {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
-          50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.25); }
+          0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sk-red) 0%, transparent); }
+          50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--sk-red) 25%, transparent); }
         }
         .sk-focus-highlight { animation: sk-focus-ring 0.7s ease-out 2; border-radius: 10px; }
         @keyframes sk-fade-in {
@@ -1307,7 +1305,7 @@ export default function ValiderProfilPage() {
           to { opacity: 1; transform: translateY(0); }
         }
         .compact-extra { animation: sk-fade-in 200ms ease-out both; }
-        .show-more-btn:hover { transform: translateY(-1px); background: ${domain.primaryColor}10; }
+        .show-more-btn:hover { transform: translateY(-1px); background: color-mix(in srgb, var(--sk-accent) 6%, transparent); }
         @media (max-width: 767px) {
           .profil-main { padding: 18px !important; }
           .profil-title { font-size: 26px !important; }
@@ -1316,7 +1314,7 @@ export default function ValiderProfilPage() {
           .profil-actions {
             position: sticky; bottom: 0; z-index: 20;
             margin-left: -18px; margin-right: -18px;
-            border-radius: 0; border-top: 1px solid #e2e8f0;
+            border-radius: 0; border-top: 1px solid var(--sk-border);
             padding: 14px 18px;
             flex-direction: column-reverse;
           }
@@ -1336,7 +1334,7 @@ export default function ValiderProfilPage() {
               alignItems: 'center',
               justifyContent: 'center',
               padding: 80,
-              color: '#64748b',
+              color: 'var(--sk-muted)',
               fontSize: 14,
               fontFamily: fontJakarta,
             }}
@@ -1346,8 +1344,8 @@ export default function ValiderProfilPage() {
                 width: 40,
                 height: 40,
                 borderRadius: '50%',
-                border: `3px solid ${domain.primaryColor}22`,
-                borderTopColor: domain.primaryColor,
+                border: `3px solid color-mix(in srgb, var(--sk-accent) 13%, transparent)`,
+                borderTopColor: 'var(--sk-accent)',
                 marginBottom: 16,
                 animation: 'sk-spin 0.9s linear infinite',
               }}
@@ -1369,8 +1367,8 @@ export default function ValiderProfilPage() {
                 role="status"
                 aria-live="polite"
                 style={{
-                  background: '#fffbeb',
-                  border: '1px solid #fde68a',
+                  background: 'var(--sk-amber-soft)',
+                  border: '1px solid var(--sk-amber-soft)',
                   borderRadius: 12,
                   padding: '12px 16px',
                   marginBottom: 20,
@@ -1381,10 +1379,10 @@ export default function ValiderProfilPage() {
                 }}
               >
                 <div style={{ flex: '1 1 260px', minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, color: '#92400e', fontSize: 14, marginBottom: 4 }}>
+                  <div style={{ fontWeight: 600, color: 'var(--sk-amber)', fontSize: 14, marginBottom: 4 }}>
                     {tProfile('errors.list_read_failed_title')}
                   </div>
-                  <div style={{ color: '#78350f', fontSize: 13, lineHeight: 1.5 }}>
+                  <div style={{ color: 'var(--sk-amber)', fontSize: 13, lineHeight: 1.5 }}>
                     {tProfile('errors.list_read_failed_body', {
                       sections: LISTES_DE_PROFIL.filter(c => !listesLues.includes(c))
                         .map(c => tProfile(`sections.${c}`))
@@ -1396,8 +1394,8 @@ export default function ValiderProfilPage() {
                   type="button"
                   onClick={() => window.location.reload()}
                   style={{
-                    background: '#92400e',
-                    color: '#fff',
+                    background: 'var(--sk-amber)',
+                    color: 'var(--sk-sur-accent)',
                     border: 'none',
                     borderRadius: 8,
                     padding: '8px 14px',
@@ -1419,20 +1417,20 @@ export default function ValiderProfilPage() {
                   position: 'sticky',
                   top: 16,
                   zIndex: 50,
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
+                  background: 'var(--sk-red-soft)',
+                  border: '1px solid var(--sk-red-soft)',
                   borderRadius: 12,
                   padding: '12px 16px',
                   marginBottom: 20,
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: 12,
-                  boxShadow: '0 6px 24px rgba(220, 38, 38, 0.08)',
+                  boxShadow: '0 6px 24px color-mix(in srgb, var(--sk-red) 8%, transparent)',
                 }}
               >
                 <div
                   style={{
-                    color: '#dc2626',
+                    color: 'var(--sk-red)',
                     fontSize: 13,
                     flex: 1,
                     lineHeight: 1.55,
@@ -1459,7 +1457,7 @@ export default function ValiderProfilPage() {
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#991b1b',
+                    color: 'var(--sk-red)',
                     fontSize: 20,
                     cursor: 'pointer',
                     lineHeight: 1,
@@ -1479,20 +1477,20 @@ export default function ValiderProfilPage() {
                   position: 'sticky',
                   top: 16,
                   zIndex: 50,
-                  background: '#ecfdf5',
-                  border: '1px solid #a7f3d0',
+                  background: 'var(--sk-success-soft)',
+                  border: '1px solid var(--sk-success-soft)',
                   borderRadius: 12,
                   padding: '12px 16px',
                   marginBottom: 20,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 12,
-                  boxShadow: '0 6px 24px rgba(16, 185, 129, 0.10)',
+                  boxShadow: '0 6px 24px color-mix(in srgb, var(--sk-success) 10%, transparent)',
                 }}
               >
                 <div
                   style={{
-                    color: '#065f46',
+                    color: 'var(--sk-success)',
                     fontSize: 13,
                     flex: 1,
                     lineHeight: 1.55,
@@ -1506,8 +1504,8 @@ export default function ValiderProfilPage() {
                   type="button"
                   onClick={() => router.push('/dashboard/freelance')}
                   style={{
-                    background: '#10b981',
-                    color: '#fff',
+                    background: 'var(--sk-success)',
+                    color: 'var(--sk-sur-accent)',
                     border: 'none',
                     borderRadius: 8,
                     padding: '8px 14px',
@@ -1527,7 +1525,7 @@ export default function ValiderProfilPage() {
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#065f46',
+                    color: 'var(--sk-success)',
                     fontSize: 20,
                     cursor: 'pointer',
                     lineHeight: 1,
@@ -1542,13 +1540,13 @@ export default function ValiderProfilPage() {
             {parsingFailed && !errorMsg && !successMsg && (
               <div
                 style={{
-                  background: '#fff7ed',
-                  border: '1px solid #fed7aa',
+                  background: 'var(--sk-amber-soft)',
+                  border: '1px solid var(--sk-amber-soft)',
                   borderRadius: 12,
                   padding: '12px 16px',
                   marginBottom: 20,
                   fontSize: 13,
-                  color: '#9a3412',
+                  color: 'var(--sk-amber)',
                   lineHeight: 1.55,
                   fontFamily: fontJakarta,
                 }}
@@ -1562,7 +1560,7 @@ export default function ValiderProfilPage() {
               style={{
                 fontSize: 32,
                 fontWeight: 800,
-                color: '#0f172a',
+                color: 'var(--sk-text)',
                 letterSpacing: '-0.3px',
                 marginBottom: 8,
                 fontFamily: fontJakarta,
@@ -1573,7 +1571,7 @@ export default function ValiderProfilPage() {
             <p
               style={{
                 fontSize: 15,
-                color: '#64748b',
+                color: 'var(--sk-muted)',
                 lineHeight: 1.6,
                 marginBottom: 20,
                 maxWidth: 640,
@@ -1585,13 +1583,13 @@ export default function ValiderProfilPage() {
 
             <div
               style={{
-                background: `${domain.primaryColor}10`,
-                border: `1px solid ${domain.primaryColor}33`,
+                background: `color-mix(in srgb, var(--sk-accent) 6%, transparent)`,
+                border: `1px solid color-mix(in srgb, var(--sk-accent) 20%, transparent)`,
                 borderRadius: 12,
                 padding: '12px 16px',
                 marginBottom: 24,
                 fontSize: 13,
-                color: domain.primaryColor,
+                color: 'var(--sk-accent)',
                 fontWeight: 500,
                 fontFamily: fontJakarta,
               }}
@@ -1603,7 +1601,7 @@ export default function ValiderProfilPage() {
             <div className="profil-sections" style={{ columnCount: 2, columnGap: 24 }}>
             {/* Section 1 — Identité pro */}
             <div style={sectionStyle}>
-              <SectionHeader n="1" color={domain.primaryColor} title={tProfile('sections.identity.title')} />
+              <SectionHeader n="1" color={'var(--sk-accent)'} title={tProfile('sections.identity.title')} />
 
               <div style={{ marginBottom: 14 }}>
                 <label style={labelStyle}>{tProfile('sections.identity.title_label')}</label>
@@ -1625,7 +1623,7 @@ export default function ValiderProfilPage() {
                 <p
                   style={{
                     fontSize: 12,
-                    color: '#475569',
+                    color: 'var(--sk-muted)',
                     margin: '0 0 8px',
                     fontFamily: fontJakarta,
                     lineHeight: 1.5,
@@ -1655,8 +1653,8 @@ export default function ValiderProfilPage() {
                     color:
                       summary.trim().length > 0 &&
                       (summary.trim().length < RESUME_MIN || summary.trim().length > RESUME_MAX)
-                        ? '#dc2626'
-                        : '#94a3b8',
+                        ? 'var(--sk-red)'
+                        : 'var(--sk-faint)',
                     marginTop: 4,
                     fontFamily: fontJakarta,
                   }}
@@ -1780,7 +1778,7 @@ export default function ValiderProfilPage() {
               >
                 <label style={labelStyle}>
                   {tWorkZones('label')}{' '}
-                  <span style={{ color: '#94a3b8', fontWeight: 400 }}>· {tWorkZones('hint')}</span>
+                  <span style={{ color: 'var(--sk-faint)', fontWeight: 400 }}>· {tWorkZones('hint')}</span>
                 </label>
                 <WorkZoneSelector
                   zones={workZones}
@@ -1798,7 +1796,7 @@ export default function ValiderProfilPage() {
               >
                 <label style={labelStyle}>
                   {tProfile('sections.expertise.skills_label')}{' '}
-                  <span style={{ color: '#94a3b8', fontWeight: 400 }}>
+                  <span style={{ color: 'var(--sk-faint)', fontWeight: 400 }}>
                     · {skills.length}{' '}
                     {skills.length < 3 ? tProfile('sections.expertise.skills_min_hint') : ''}
                   </span>
@@ -1832,7 +1830,7 @@ export default function ValiderProfilPage() {
                         style={{
                           background: 'transparent',
                           border: 'none',
-                          color: domain.primaryColor,
+                          color: 'var(--sk-accent)',
                           cursor: 'pointer',
                           fontSize: 14,
                           lineHeight: 1,
@@ -1865,7 +1863,7 @@ export default function ValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 13,
-                    color: '#94a3b8',
+                    color: 'var(--sk-faint)',
                     padding: '10px 0 14px',
                     fontFamily: fontJakarta,
                   }}
@@ -1960,7 +1958,7 @@ export default function ValiderProfilPage() {
               >
                 <label style={labelStyle}>
                   {tProfile('sections.availability.work_modes_label')}{' '}
-                  <span style={{ color: '#94a3b8', fontWeight: 400 }}>
+                  <span style={{ color: 'var(--sk-faint)', fontWeight: 400 }}>
                     · {tProfile('sections.availability.work_modes_hint')}
                   </span>
                 </label>
@@ -1977,17 +1975,17 @@ export default function ValiderProfilPage() {
                           padding: '10px 14px',
                           border: `1.5px solid ${
                             active
-                              ? domain.primaryColor
+                              ? 'var(--sk-accent)'
                               : isMissing('work_modes')
-                                ? '#dc2626'
-                                : '#e2e8f0'
+                                ? 'var(--sk-red)'
+                                : 'var(--sk-border)'
                           }`,
                           borderRadius: 10,
-                          background: active ? `${domain.primaryColor}10` : '#fff',
+                          background: active ? `color-mix(in srgb, var(--sk-accent) 6%, transparent)` : 'var(--sk-surface)',
                           cursor: 'pointer',
                           fontSize: 13,
                           fontWeight: 600,
-                          color: active ? domain.primaryColor : '#374151',
+                          color: active ? 'var(--sk-accent)' : 'var(--sk-muted)',
                           fontFamily: fontJakarta,
                         }}
                       >
@@ -1995,7 +1993,7 @@ export default function ValiderProfilPage() {
                           type="checkbox"
                           checked={active}
                           onChange={() => toggleWorkMode(m)}
-                          style={{ accentColor: domain.primaryColor }}
+                          style={{ accentColor: 'var(--sk-accent)' }}
                         />
                         {WORK_MODE_LABELS[m]}
                       </label>
@@ -2067,7 +2065,7 @@ export default function ValiderProfilPage() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <label style={{ ...labelStyle, marginBottom: 0 }}>
                     {tProfile('sections.availability.languages_label')}{' '}
-                    <span style={{ color: '#94a3b8', fontWeight: 400 }}>
+                    <span style={{ color: 'var(--sk-faint)', fontWeight: 400 }}>
                       · {languagesStructured.filter(l => l.language.trim()).length}
                       {languagesStructured.filter(l => l.language.trim()).length < 1
                         ? ' ' + tProfile('sections.availability.languages_min_hint')
@@ -2083,7 +2081,7 @@ export default function ValiderProfilPage() {
                   <div
                     style={{
                       fontSize: 13,
-                      color: '#94a3b8',
+                      color: 'var(--sk-faint)',
                       padding: '4px 0 10px',
                       fontFamily: fontJakarta,
                     }}
@@ -2106,7 +2104,7 @@ export default function ValiderProfilPage() {
                       <>
                         {l.language || tProfile('sections.availability.language_placeholder')}
                         {l.is_primary && (
-                          <span style={{ marginLeft: 8, fontSize: 11, color: domain.primaryColor, fontWeight: 700 }}>★</span>
+                          <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--sk-accent)', fontWeight: 700 }}>★</span>
                         )}
                       </>
                     }
@@ -2117,7 +2115,7 @@ export default function ValiderProfilPage() {
                     onRequestDelete={() => requestDelete(l._uid!)}
                     onConfirmDelete={confirmDeleteAndRun(l._uid!, () => removeLanguage(i))}
                     onCancelDelete={cancelDelete}
-                    accentColor={domain.primaryColor}
+                    accentColor={'var(--sk-accent)'}
                   >
                     <div
                       className="profil-row"
@@ -2150,7 +2148,7 @@ export default function ValiderProfilPage() {
                           gap: 6,
                           fontSize: 12,
                           fontWeight: 600,
-                          color: l.is_primary ? domain.primaryColor : '#64748b',
+                          color: l.is_primary ? 'var(--sk-accent)' : 'var(--sk-muted)',
                           cursor: 'pointer',
                           whiteSpace: 'nowrap',
                           fontFamily: fontJakarta,
@@ -2161,7 +2159,7 @@ export default function ValiderProfilPage() {
                           name="language_primary"
                           checked={l.is_primary}
                           onChange={() => setLanguagePrimary(i)}
-                          style={{ accentColor: domain.primaryColor }}
+                          style={{ accentColor: 'var(--sk-accent)' }}
                         />
                         {tProfile('sections.availability.primary_label')}
                       </label>
@@ -2282,7 +2280,7 @@ export default function ValiderProfilPage() {
                 <CountrySelect
                   value={country}
                   onChange={setCountry}
-                  primaryColor={domain.primaryColor}
+                  primaryColor={'var(--sk-accent)'}
                 />
               </div>
             </div>
@@ -2313,7 +2311,7 @@ export default function ValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 13,
-                    color: '#94a3b8',
+                    color: 'var(--sk-faint)',
                     padding: '4px 0 12px',
                     fontFamily: fontJakarta,
                   }}
@@ -2380,7 +2378,7 @@ export default function ValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 13,
-                    color: '#94a3b8',
+                    color: 'var(--sk-faint)',
                     padding: '4px 0 12px',
                     fontFamily: fontJakarta,
                   }}
@@ -2443,7 +2441,7 @@ export default function ValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 13,
-                    color: '#94a3b8',
+                    color: 'var(--sk-faint)',
                     padding: '4px 0 14px',
                     fontFamily: fontJakarta,
                   }}
@@ -2612,8 +2610,8 @@ export default function ValiderProfilPage() {
                       style={{
                         flex: 1,
                         background: 'var(--sk-surface)',
-                        color: domain.primaryColor,
-                        border: `1.5px solid ${domain.primaryColor}`,
+                        color: 'var(--sk-accent)',
+                        border: `1.5px solid var(--sk-accent)`,
                         borderRadius: 12,
                         padding: 13,
                         fontSize: 14,
@@ -2633,8 +2631,8 @@ export default function ValiderProfilPage() {
                       title={!canPublish ? tProfile('actions.publish_disabled_tooltip') : undefined}
                       style={{
                         flex: 1,
-                        background: canPublish ? domain.primaryColor : 'var(--sk-surface-2)',
-                        color: canPublish ? '#fff' : 'var(--sk-faint)',
+                        background: canPublish ? 'var(--sk-accent)' : 'var(--sk-surface-2)',
+                        color: canPublish ? 'var(--sk-sur-accent)' : 'var(--sk-faint)',
                         border: canPublish ? 'none' : '1px solid var(--sk-border)',
                         borderRadius: 12,
                         padding: 13,
@@ -2736,8 +2734,8 @@ export default function ValiderProfilPage() {
                             disabled={resetting}
                             style={{
                               flex: 1,
-                              background: '#991b1b',
-                              color: '#fff',
+                              background: 'var(--sk-red)',
+                              color: 'var(--sk-sur-accent)',
                               border: 'none',
                               borderRadius: 10,
                               padding: 11,

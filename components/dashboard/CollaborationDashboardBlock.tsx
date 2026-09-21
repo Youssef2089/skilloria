@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import type { Annonce } from '@/types/annonce'
 import AnnonceCard from '@/components/dashboard/AnnonceCard'
@@ -26,7 +25,6 @@ export default function CollaborationDashboardBlock({ basePath, isVerified }: Pr
   const tList = useTranslations('collaboration.list')
   const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
-  const domain = useDomain()
   const secureFetch = useSecureFetch()
 
   const [needs, setNeeds] = useState<Annonce[] | null>(null)
@@ -51,8 +49,8 @@ export default function CollaborationDashboardBlock({ basePath, isVerified }: Pr
 
   const card: React.CSSProperties = {
     width: '100%',
-    background: '#fff',
-    border: '1px solid #e5e7eb',
+    background: 'var(--sk-surface)',
+    border: '1px solid var(--sk-border)',
     borderRadius: 16,
     padding: '20px 22px',
     marginBottom: 0,
@@ -62,28 +60,28 @@ export default function CollaborationDashboardBlock({ basePath, isVerified }: Pr
   return (
     <div style={card}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>{t('title')}</span>
+        <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--sk-text)' }}>{t('title')}</span>
         {!isVerified ? (
-          <span style={{ background: '#f3f4f6', color: '#9ca3af', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('locked_chip')}</span>
+          <span style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-faint)', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('locked_chip')}</span>
         ) : (
-          <Link href={`${basePath}/sous-traitance`} style={{ color: domain.primaryColor, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+          <Link href={`${basePath}/sous-traitance`} style={{ color: 'var(--sk-accent)', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
             {t('see_all')}
           </Link>
         )}
       </div>
 
       {!isVerified ? (
-        <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
+        <div style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.8 }}>
           {t('locked_message')}
         </div>
       ) : needs === null ? (
-        <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af' }}>
+        <div style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: 'var(--sk-muted)' }}>
           {tList('loading')}
         </div>
       ) : needs.length === 0 ? (
-        <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: '24px 22px', textAlign: 'center' }}>
-          <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, marginBottom: 14 }}>{t('empty_body')}</div>
-          <Link href={`${basePath}/sous-traitance/nouveau`} style={{ display: 'inline-flex', padding: '10px 16px', background: domain.primaryColor, color: '#fff', borderRadius: 10, fontSize: 13.5, fontWeight: 700, textDecoration: 'none' }}>
+        <div style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', borderRadius: 10, padding: '24px 22px', textAlign: 'center' }}>
+          <div style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.7, marginBottom: 14 }}>{t('empty_body')}</div>
+          <Link href={`${basePath}/sous-traitance/nouveau`} style={{ display: 'inline-flex', padding: '10px 16px', background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)', borderRadius: 10, fontSize: 13.5, fontWeight: 700, textDecoration: 'none' }}>
             + {t('publish_cta')}
           </Link>
         </div>

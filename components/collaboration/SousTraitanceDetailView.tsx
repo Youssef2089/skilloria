@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { type CandidatureData } from '@/components/dashboard/CandidatureCard'
 import CastingCarousel from '@/components/dashboard/CastingCarousel'
@@ -76,7 +75,6 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
   const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
   const router = useRouter()
-  const domain = useDomain()
   const secureFetch = useSecureFetch()
 
   const [pubId, setPubId] = useState<string | null>(null)
@@ -193,7 +191,7 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
         <button
           type="button"
           onClick={() => router.push(`${basePath}/sous-traitance`)}
-          style={{ padding: '10px 18px', background: domain.primaryColor, color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+          style={{ padding: '10px 18px', background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
         >
           {t('back_to_list')}
         </button>
@@ -223,7 +221,7 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
       <header style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', borderRadius: 14, padding: '18px 22px', marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
-            <span style={{ padding: '4px 10px', borderRadius: 999, background: `${domain.primaryColor}14`, color: domain.primaryColor, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            <span style={{ padding: '4px 10px', borderRadius: 999, background: `color-mix(in srgb, var(--sk-accent) 8%, transparent)`, color: 'var(--sk-accent)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>
               {t('type_label')}
             </span>
             <span style={{ padding: '4px 10px', borderRadius: 999, background: 'var(--sk-surface-2)', color: 'var(--sk-muted)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>
@@ -237,7 +235,7 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
           <button
             type="button"
             onClick={() => { setConfirmClose(true); setCloseError(null) }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 9, border: '1px solid #fca5a5', color: '#b91c1c', background: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 9, border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', background: 'var(--sk-surface)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
           >
             {tClose('cta')}
           </button>
@@ -246,17 +244,17 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
 
       {/* Confirmation de clôture */}
       {isPublished && confirmClose && (
-        <div style={{ background: '#FEF2F2', border: '1.5px solid #FECACA', borderRadius: 12, padding: '16px 18px', marginBottom: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#991B1B', marginBottom: 6 }}>{tClose('confirm_title')}</div>
-          <p style={{ fontSize: 13, color: '#7f1d1d', lineHeight: 1.55, margin: '0 0 14px' }}>{tClose('confirm_body')}</p>
+        <div style={{ background: 'var(--sk-red-soft)', border: '1.5px solid var(--sk-red-soft)', borderRadius: 12, padding: '16px 18px', marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sk-red)', marginBottom: 6 }}>{tClose('confirm_title')}</div>
+          <p style={{ fontSize: 13, color: 'var(--sk-red)', lineHeight: 1.55, margin: '0 0 14px' }}>{tClose('confirm_body')}</p>
           {closeError && (
-            <div role="alert" style={{ fontSize: 12.5, color: '#b91c1c', marginBottom: 10 }}>{closeError}</div>
+            <div role="alert" style={{ fontSize: 12.5, color: 'var(--sk-red)', marginBottom: 10 }}>{closeError}</div>
           )}
           <div style={{ display: 'flex', gap: 10 }}>
-            <button type="button" onClick={() => setConfirmClose(false)} disabled={closing} style={{ padding: '9px 16px', background: 'transparent', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: closing ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+            <button type="button" onClick={() => setConfirmClose(false)} disabled={closing} style={{ padding: '9px 16px', background: 'transparent', color: 'var(--sk-muted)', border: '1px solid var(--sk-border)', borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: closing ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
               {tClose('cancel')}
             </button>
-            <button type="button" onClick={() => void doClose()} disabled={closing} style={{ padding: '9px 16px', background: '#DC2626', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: closing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: closing ? 0.6 : 1 }}>
+            <button type="button" onClick={() => void doClose()} disabled={closing} style={{ padding: '9px 16px', background: 'var(--sk-red)', color: 'var(--sk-sur-accent)', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: closing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: closing ? 0.6 : 1 }}>
               {closing ? tClose('closing') : tClose('confirm_cta')}
             </button>
           </div>
@@ -265,7 +263,7 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
 
       {/* Bandeau besoin clôturé */}
       {isClosed && (
-        <div role="status" style={{ background: '#f8fafc', border: '1px solid var(--sk-border)', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: 'var(--sk-muted)', lineHeight: 1.5 }}>
+        <div role="status" style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: 'var(--sk-muted)', lineHeight: 1.5 }}>
           {t('closed_notice')}
         </div>
       )}
@@ -292,7 +290,7 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
         {pub.skills_required.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {pub.skills_required.map((s) => (
-              <span key={s} style={{ padding: '4px 10px', background: `${domain.primaryColor}14`, color: domain.primaryColor, fontSize: 12, fontWeight: 600, borderRadius: 8, border: `1px solid ${domain.primaryColor}33` }}>{s}</span>
+              <span key={s} style={{ padding: '4px 10px', background: `color-mix(in srgb, var(--sk-accent) 8%, transparent)`, color: 'var(--sk-accent)', fontSize: 12, fontWeight: 600, borderRadius: 8, border: `1px solid color-mix(in srgb, var(--sk-accent) 20%, transparent)` }}>{s}</span>
             ))}
           </div>
         )}
@@ -331,8 +329,8 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
           })}
         </div>
         {candidatures.length === 0 ? (
-          <div style={{ background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 14, padding: '40px 24px', textAlign: 'center', color: '#64748b', fontSize: 14, lineHeight: 1.6 }}>
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>
+          <div style={{ background: 'var(--sk-surface)', border: '0.5px solid var(--sk-border)', borderRadius: 14, padding: '40px 24px', textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
               {bucket === 'archived' ? tLifecycle('empty_archived_title') : t('candidatures_empty_title')}
             </div>
             <div>{bucket === 'archived' ? tLifecycle('empty_archived_body') : t('candidatures_empty_body')}</div>

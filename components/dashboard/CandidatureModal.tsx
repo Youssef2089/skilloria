@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useDomain } from '@/context/DomainContext'
 
 /**
  * CandidatureModal — modal réutilisable pour postuler à une mission/offre
@@ -35,7 +34,6 @@ export default function CandidatureModal({
   error?: string | null
 }) {
   const t = useTranslations('missions.detail')
-  const domain = useDomain()
   const [coverMessage, setCoverMessage] = useState('')
 
   // Reset à l'ouverture
@@ -64,7 +62,7 @@ export default function CandidatureModal({
       aria-labelledby="sk-candidature-modal-title"
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(15, 23, 42, 0.55)',
+        background: 'color-mix(in srgb, var(--sk-text) 55%, transparent)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 20, fontFamily: 'inherit',
       }}
@@ -76,7 +74,7 @@ export default function CandidatureModal({
           borderRadius: 'var(--sk-r-lg)',
           width: '100%', maxWidth: 560,
           padding: '24px 26px',
-          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+          boxShadow: '0 25px 50px -12px color-mix(in srgb, var(--sk-text) 25%, transparent)',
           maxHeight: 'calc(100vh - 40px)',
           overflowY: 'auto',
         }}
@@ -151,8 +149,8 @@ export default function CandidatureModal({
             disabled={busy}
             style={{
               padding: '10px 22px',
-              background: domain.primaryColor,
-              color: '#fff',
+              background: 'var(--sk-accent)',
+              color: 'var(--sk-sur-accent)',
               border: 'none',
               borderRadius: 10,
               fontSize: 13,

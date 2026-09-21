@@ -140,7 +140,7 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
     display: 'block',
     fontSize: 13,
     fontWeight: 600,
-    color: '#334155',
+    color: 'var(--sk-muted)',
     marginBottom: 6,
   }
 
@@ -345,8 +345,8 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
             padding: '11px 16px',
             fontSize: 14,
             fontWeight: 600,
-            color: '#fff',
-            background: sendDisabled ? '#94a3b8' : primaryColor,
+            color: 'var(--sk-sur-accent)',
+            background: sendDisabled ? 'var(--sk-faint)' : primaryColor,
             border: 'none',
             borderRadius: 10,
             cursor: sendDisabled ? 'not-allowed' : 'pointer',
@@ -359,12 +359,12 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
         </button>
       </div>
 
-      {phoneError && <div style={{ fontSize: 13, color: '#b91c1c', marginTop: 8 }}>{phoneError}</div>}
+      {phoneError && <div style={{ fontSize: 13, color: 'var(--sk-red)', marginTop: 8 }}>{phoneError}</div>}
 
       {/* « Demande transmise », jamais « SMS envoyé » : on ne sait pas si le
           message a été remis, et l'affirmer serait un écran mort. */}
       {demandeTransmise && !verified && !phoneError && (
-        <div style={{ fontSize: 13, color: '#475569', marginTop: 8 }}>{labels.demande_transmise}</div>
+        <div style={{ fontSize: 13, color: 'var(--sk-muted)', marginTop: 8 }}>{labels.demande_transmise}</div>
       )}
 
       {/* LA SORTIE. Aucun canal nouveau : le formulaire de contact existant,
@@ -390,7 +390,7 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
 
       {verified && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginTop: 8 }}>
-          <span style={{ fontSize: 13, color: '#15803d', fontWeight: 600 }}>✓ {labels.phone_verified}</span>
+          <span style={{ fontSize: 13, color: 'var(--sk-success)', fontWeight: 600 }}>✓ {labels.phone_verified}</span>
           {/* D4 — sortie de l'état vérifié, sans perte de formulaire. */}
           <button
             type="button"
@@ -439,11 +439,11 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
                   textAlign: 'center',
                   fontSize: 18,
                   fontWeight: 700,
-                  border: '1.5px solid #e2e8f0',
+                  border: '1.5px solid var(--sk-border)',
                   borderRadius: 10,
                   outline: 'none',
-                  background: '#fff',
-                  color: '#0f172a',
+                  background: 'var(--sk-surface)',
+                  color: 'var(--sk-text)',
                   boxSizing: 'border-box',
                 }}
               />

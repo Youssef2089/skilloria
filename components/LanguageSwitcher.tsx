@@ -112,16 +112,16 @@ export default function LanguageSwitcher() {
           display: 'inline-flex',
           alignItems: 'center',
           gap: 8,
-          background: '#fff',
-          border: '1.5px solid #e2e8f0',
+          background: 'var(--sk-surface)',
+          border: '1.5px solid var(--sk-border)',
           borderRadius: 10,
           padding: '8px 12px',
           fontSize: 13,
           fontWeight: 600,
-          color: '#0f172a',
+          color: 'var(--sk-text)',
           cursor: 'pointer',
           minHeight: 36,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          boxShadow: '0 1px 3px color-mix(in srgb, var(--sk-text) 4%, transparent)',
         }}
       >
         <span aria-hidden style={{ fontSize: 14 }}>🌐</span>
@@ -133,7 +133,7 @@ export default function LanguageSwitcher() {
           viewBox="0 0 12 12"
           style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.18s ease' }}
         >
-          <path d="M2 4l4 4 4-4" stroke="#64748b" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M2 4l4 4 4-4" style={{ stroke: 'var(--sk-muted)' }} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
@@ -149,10 +149,10 @@ export default function LanguageSwitcher() {
             top: 'calc(100% + 6px)',
             right: 0,
             minWidth: 180,
-            background: '#fff',
-            border: '1px solid #e2e8f0',
+            background: 'var(--sk-surface)',
+            border: '1px solid var(--sk-border)',
             borderRadius: 12,
-            boxShadow: '0 10px 28px rgba(15, 23, 42, 0.12)',
+            boxShadow: '0 10px 28px color-mix(in srgb, var(--sk-text) 12%, transparent)',
             padding: 6,
             margin: 0,
             listStyle: 'none',
@@ -181,11 +181,11 @@ export default function LanguageSwitcher() {
                   borderRadius: 8,
                   fontSize: 13,
                   fontWeight: active ? 700 : 500,
-                  color: active ? '#0ea5e9' : '#0f172a',
+                  color: active ? 'var(--sk-accent)' : 'var(--sk-text)',
                   background: active
-                    ? '#f0f9ff'
+                    ? 'var(--sk-accent-soft)'
                     : focused
-                      ? '#f8fafc'
+                      ? 'var(--sk-surface-2)'
                       : 'transparent',
                   cursor: 'pointer',
                   minHeight: 40,
@@ -195,7 +195,7 @@ export default function LanguageSwitcher() {
                 <span>{LOCALE_LABELS[loc]}</span>
                 {active && (
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                    <path d="M5 13l4 4L19 7" stroke="#0ea5e9" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M5 13l4 4L19 7" style={{ stroke: 'var(--sk-accent)' }} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 )}
               </li>

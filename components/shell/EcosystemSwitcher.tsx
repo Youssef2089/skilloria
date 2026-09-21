@@ -170,7 +170,7 @@ export default function EcosystemSwitcher() {
         height: 8,
         borderRadius: 999,
         flexShrink: 0,
-        background: color ?? 'var(--sk-border, #cbd5e1)',
+        background: color ?? 'var(--sk-border, var(--sk-border))',
         boxShadow: color ? `0 0 0 2px ${color}22` : undefined,
       }}
     />
@@ -195,16 +195,16 @@ export default function EcosystemSwitcher() {
           display: 'inline-flex',
           alignItems: 'center',
           gap: 8,
-          background: '#fff',
-          border: '1.5px solid #e2e8f0',
+          background: 'var(--sk-surface)',
+          border: '1.5px solid var(--sk-border)',
           borderRadius: 10,
           padding: '8px 12px',
           fontSize: 13,
           fontWeight: 600,
-          color: swappable ? '#0f172a' : '#94a3b8',
+          color: swappable ? 'var(--sk-text)' : 'var(--sk-faint)',
           cursor: swappable ? 'pointer' : 'not-allowed',
           minHeight: 36,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          boxShadow: '0 1px 3px color-mix(in srgb, var(--sk-text) 4%, transparent)',
           maxWidth: 220,
         }}
       >
@@ -227,7 +227,7 @@ export default function EcosystemSwitcher() {
         >
           <path
             d="M2 4l4 4 4-4"
-            stroke="#64748b"
+            style={{ stroke: 'var(--sk-muted)' }}
             strokeWidth="1.6"
             fill="none"
             strokeLinecap="round"
@@ -247,10 +247,10 @@ export default function EcosystemSwitcher() {
             top: 'calc(100% + 6px)',
             right: 0,
             minWidth: 240,
-            background: '#fff',
-            border: '1px solid #e2e8f0',
+            background: 'var(--sk-surface)',
+            border: '1px solid var(--sk-border)',
             borderRadius: 12,
-            boxShadow: '0 10px 28px rgba(15, 23, 42, 0.12)',
+            boxShadow: '0 10px 28px color-mix(in srgb, var(--sk-text) 12%, transparent)',
             padding: 6,
             margin: 0,
             listStyle: 'none',
@@ -268,7 +268,7 @@ export default function EcosystemSwitcher() {
               fontWeight: 600,
               letterSpacing: '.06em',
               textTransform: 'uppercase',
-              color: '#94a3b8',
+              color: 'var(--sk-faint)',
             }}
           >
             {t('label')}
@@ -291,8 +291,8 @@ export default function EcosystemSwitcher() {
                   borderRadius: 8,
                   fontSize: 13,
                   fontWeight: active ? 700 : 500,
-                  color: active ? '#0ea5e9' : '#0f172a',
-                  background: active ? '#f0f9ff' : focused ? '#f8fafc' : 'transparent',
+                  color: active ? 'var(--sk-accent)' : 'var(--sk-text)',
+                  background: active ? 'var(--sk-accent-soft)' : focused ? 'var(--sk-surface-2)' : 'transparent',
                   cursor: 'pointer',
                   minHeight: 40,
                   transition: 'background 0.12s ease',
@@ -304,7 +304,7 @@ export default function EcosystemSwitcher() {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
                     <path
                       d="M5 13l4 4L19 7"
-                      stroke="#0ea5e9"
+                      style={{ stroke: 'var(--sk-accent)' }}
                       strokeWidth="2.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"

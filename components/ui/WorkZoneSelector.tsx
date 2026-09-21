@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useDomain } from '@/context/DomainContext'
 import {
   buildWorkZoneTree,
   continentsOf,
@@ -64,7 +63,6 @@ export default function WorkZoneSelector({
   suggestedZoneId = null,
   invalid = false,
 }: Props) {
-  const domain = useDomain()
   const t = useTranslations('work_zones')
   const [ouverts, setOuverts] = useState<Set<string>>(new Set())
 
@@ -104,19 +102,19 @@ export default function WorkZoneSelector({
     alignItems: 'center',
     gap: 8,
     padding: '10px 14px',
-    border: `1.5px solid ${actif ? domain.primaryColor : invalid ? '#dc2626' : '#e2e8f0'}`,
+    border: `1.5px solid ${actif ? 'var(--sk-accent)' : invalid ? 'var(--sk-red)' : 'var(--sk-border)'}`,
     borderRadius: 10,
-    background: actif ? `${domain.primaryColor}10` : '#fff',
+    background: actif ? `color-mix(in srgb, var(--sk-accent) 6%, transparent)` : 'var(--sk-surface)',
     cursor: 'pointer',
     fontSize: 13,
     fontWeight: 600,
-    color: actif ? domain.primaryColor : '#374151',
+    color: actif ? 'var(--sk-accent)' : 'var(--sk-muted)',
     fontFamily: fontJakarta,
   })
 
   if (liste.length === 0) {
     return (
-      <p style={{ margin: 0, fontSize: 13, color: '#64748b', fontFamily: fontJakarta }}>
+      <p style={{ margin: 0, fontSize: 13, color: 'var(--sk-muted)', fontFamily: fontJakarta }}>
         {t('empty')}
       </p>
     )
@@ -134,12 +132,12 @@ export default function WorkZoneSelector({
             gap: 10,
             padding: '10px 12px',
             marginBottom: 12,
-            border: '1px dashed #cbd5e1',
+            border: '1px dashed var(--sk-border)',
             borderRadius: 10,
-            background: '#f8fafc',
+            background: 'var(--sk-surface-2)',
           }}
         >
-          <span style={{ fontSize: 13, color: '#475569' }}>
+          <span style={{ fontSize: 13, color: 'var(--sk-muted)' }}>
             {t('suggestion_label', { zone: suggestion.name })}
           </span>
           <button
@@ -149,7 +147,7 @@ export default function WorkZoneSelector({
           >
             {t('suggestion_confirm')}
           </button>
-          <span style={{ fontSize: 12, color: '#94a3b8' }}>{t('suggestion_not_applied')}</span>
+          <span style={{ fontSize: 12, color: 'var(--sk-faint)' }}>{t('suggestion_not_applied')}</span>
         </div>
       ) : null}
 
@@ -174,7 +172,7 @@ export default function WorkZoneSelector({
             style={styleBouton(selected.includes(c.id))}
           >
             {c.name}
-            <span style={{ color: '#94a3b8', fontWeight: 400 }}>
+            <span style={{ color: 'var(--sk-faint)', fontWeight: 400 }}>
               · {t('country_count', { count: countryCountOf(liste, c.id) })}
             </span>
           </button>
@@ -203,7 +201,7 @@ export default function WorkZoneSelector({
                   cursor: 'pointer',
                   fontSize: 13,
                   fontWeight: 600,
-                  color: '#475569',
+                  color: 'var(--sk-muted)',
                   fontFamily: fontJakarta,
                   textAlign: 'left',
                 }}
@@ -222,7 +220,7 @@ export default function WorkZoneSelector({
                   }}
                 >
                   {couvertParLeContinent ? (
-                    <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                    <p style={{ margin: 0, fontSize: 12, color: 'var(--sk-muted)' }}>
                       {t('covered_by_continent', { continent: noeud.zone.name })}
                     </p>
                   ) : (
@@ -237,7 +235,7 @@ export default function WorkZoneSelector({
                             type="checkbox"
                             checked={actif}
                             onChange={() => basculer(enfant.zone.id)}
-                            style={{ accentColor: domain.primaryColor }}
+                            style={{ accentColor: 'var(--sk-accent)' }}
                           />
                           {enfant.zone.name}
                         </label>
@@ -256,7 +254,7 @@ export default function WorkZoneSelector({
         style={{
           margin: '10px 0 0',
           fontSize: 12,
-          color: selected.length === 0 ? '#dc2626' : '#64748b',
+          color: selected.length === 0 ? 'var(--sk-red)' : 'var(--sk-muted)',
         }}
       >
         {selected.length === 0

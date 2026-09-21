@@ -1,7 +1,6 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useDomain } from '@/context/DomainContext'
 
 type ContractTypeKey = 'cdi' | 'cdd' | 'alternance'
 type GeoMobilityKey = 'local' | 'regional' | 'national' | 'international'
@@ -51,14 +50,14 @@ function Row({
         flexDirection: 'column',
         gap: 8,
         padding: '14px 0',
-        borderBottom: '1px solid #f1f5f9',
+        borderBottom: '1px solid var(--sk-surface-2)',
       }}
     >
       <div
         style={{
           fontSize: 11,
           fontWeight: 700,
-          color: '#64748b',
+          color: 'var(--sk-muted)',
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
         }}
@@ -93,8 +92,7 @@ function Pill({ children, color }: { children: React.ReactNode; color: string })
 export default function CdiPreferencesDisplay(props: Props) {
   const t = useTranslations('cdi_profile_view')
   const tWorkMode = useTranslations('profile_validation.sections.availability')
-  const domain = useDomain()
-  const c = domain.primaryColor
+  const c = 'var(--sk-accent)'
 
   const contractTypes = (props.contractTypes ?? []) as ContractTypeKey[]
   const workModes = props.workModes ?? []
@@ -112,7 +110,7 @@ export default function CdiPreferencesDisplay(props: Props) {
 
   if (!hasContract && !hasWorkMode && !hasGeo && !hasCompany && !hasSectors && !hasBenefits) {
     return (
-      <div style={{ fontSize: 14, color: '#94a3b8', fontStyle: 'italic' }}>
+      <div style={{ fontSize: 14, color: 'var(--sk-faint)', fontStyle: 'italic' }}>
         {t('empty_states.no_search_preferences')}
       </div>
     )

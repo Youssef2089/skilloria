@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import CandidatureModal from '@/components/dashboard/CandidatureModal'
 
@@ -110,7 +109,6 @@ export default function MissionDetailView({
   const tForm = useTranslations('publications.form')
   const locale = useLocale()
   const router = useRouter()
-  const domain = useDomain()
   const secureFetch = useSecureFetch()
 
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -238,7 +236,7 @@ export default function MissionDetailView({
           type="button"
           onClick={() => router.push(feedPath)}
           style={{
-            padding: '10px 18px', background: domain.primaryColor, color: '#fff',
+            padding: '10px 18px', background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)',
             border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
@@ -286,7 +284,7 @@ export default function MissionDetailView({
           title={t('ai_score_tooltip')}
           style={{
             display: 'inline-flex', alignItems: 'center', padding: '6px 14px',
-            background: `${domain.primaryColor}1A`, color: domain.primaryColor,
+            background: `color-mix(in srgb, var(--sk-accent) 10%, transparent)`, color: 'var(--sk-accent)',
             fontSize: 13, fontWeight: 700, borderRadius: 14, flexShrink: 0,
           }}
         >
@@ -297,12 +295,12 @@ export default function MissionDetailView({
       {match.ai_reason && (
         <div
           style={{
-            background: `${domain.primaryColor}0A`, border: `1px solid ${domain.primaryColor}33`,
+            background: `color-mix(in srgb, var(--sk-accent) 4%, transparent)`, border: `1px solid color-mix(in srgb, var(--sk-accent) 20%, transparent)`,
             borderRadius: 12, padding: '14px 16px', fontSize: 13,
             color: 'var(--sk-text)', lineHeight: 1.6, marginBottom: 22,
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: domain.primaryColor, marginBottom: 6 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-accent)', marginBottom: 6 }}>
             {t('why_match_label')}
           </div>
           {match.ai_reason}
@@ -383,7 +381,7 @@ export default function MissionDetailView({
             type="button"
             onClick={() => setCoverOpen(true)}
             style={{
-              padding: '12px 22px', background: domain.primaryColor, color: '#fff',
+              padding: '12px 22px', background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)',
               border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700,
               cursor: 'pointer', fontFamily: 'inherit',
             }}

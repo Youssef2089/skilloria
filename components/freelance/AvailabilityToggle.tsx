@@ -24,8 +24,8 @@ import { useTranslations } from 'next-intl'
 export type AvailabilityStatus = 'available' | 'do_not_disturb'
 
 const STATUS_COLORS: Record<AvailabilityStatus, string> = {
-  available: '#22c55e',
-  do_not_disturb: '#ef4444',
+  available: 'var(--sk-success)',
+  do_not_disturb: 'var(--sk-red)',
 }
 
 const STATUS_ICONS: Record<AvailabilityStatus, string> = {
@@ -67,8 +67,8 @@ export default function AvailabilityToggle({ value, onChange, disabled }: Props)
             onClick={() => onChange(opt)}
             style={{
               textAlign: 'left',
-              background: active ? `${color}10` : '#fff',
-              border: `2px solid ${active ? color : '#e2e8f0'}`,
+              background: active ? `${color}10` : 'var(--sk-surface)',
+              border: `2px solid ${active ? color : 'var(--sk-border)'}`,
               borderRadius: 14,
               padding: '14px 16px',
               cursor: disabled ? 'not-allowed' : 'pointer',
@@ -86,14 +86,14 @@ export default function AvailabilityToggle({ value, onChange, disabled }: Props)
               style={{
                 fontSize: 14,
                 fontWeight: 700,
-                color: active ? color : '#0f172a',
+                color: active ? color : 'var(--sk-text)',
                 marginBottom: 4,
                 letterSpacing: '-0.2px',
               }}
             >
               {t(`${opt}_label` as 'available_label' | 'do_not_disturb_label')}
             </div>
-            <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.5 }}>
               {t(`${opt}_hint` as 'available_hint' | 'do_not_disturb_hint')}
             </div>
           </button>

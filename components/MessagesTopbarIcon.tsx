@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import { useNavBadges } from '@/hooks/useNavBadges'
 
 /**
@@ -18,7 +17,6 @@ import { useNavBadges } from '@/hooks/useNavBadges'
 
 export default function MessagesTopbarIcon({ side }: { side: 'freelance' | 'entreprise' | 'cdi' }) {
   const t = useTranslations('messages.topbar')
-  const domain = useDomain()
   const badges = useNavBadges()
   const unread = badges.messages_unread ?? 0
   // SC7b : 'cdi' partage la même base path pattern que 'freelance'.
@@ -31,9 +29,9 @@ export default function MessagesTopbarIcon({ side }: { side: 'freelance' | 'entr
       style={{
         position: 'relative', width: 38, height: 38, borderRadius: 10,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        color: '#475569', textDecoration: 'none', transition: 'background .15s',
+        color: 'var(--sk-muted)', textDecoration: 'none', transition: 'background .15s',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9' }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--sk-surface-2)' }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -45,7 +43,7 @@ export default function MessagesTopbarIcon({ side }: { side: 'freelance' | 'entr
           style={{
             position: 'absolute', top: 4, right: 4,
             minWidth: 16, height: 16, padding: '0 4px',
-            background: domain.primaryColor, color: '#fff',
+            background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)',
             fontSize: 10, fontWeight: 700, lineHeight: '16px',
             textAlign: 'center', borderRadius: 999,
             boxSizing: 'border-box',

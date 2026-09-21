@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslations } from 'next-intl'
-import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
 type Props = {
@@ -24,7 +23,6 @@ export default function TJMQuickEditModal({
   onSaved,
 }: Props) {
   const t = useTranslations('dashboard_freelance.tjm_modal')
-  const domain = useDomain()
   const secureFetch = useSecureFetch()
   const [mounted, setMounted] = useState(false)
   const [show, setShow] = useState(false)
@@ -159,7 +157,7 @@ export default function TJMQuickEditModal({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: show ? 'rgba(15,23,42,0.55)' : 'rgba(15,23,42,0)',
+        background: show ? 'color-mix(in srgb, var(--sk-text) 55%, transparent)' : 'color-mix(in srgb, var(--sk-text) 0%, transparent)',
         transition: `background ${ANIM_MS}ms ease`,
         backdropFilter: show ? 'blur(3px)' : 'blur(0px)',
         fontFamily: 'Inter, system-ui, sans-serif',
@@ -178,13 +176,13 @@ export default function TJMQuickEditModal({
           to { opacity: 1; transform: translateY(0); }
         }
         .tjm-modal {
-          background: #fff;
-          border: 1px solid #e2e8f0;
+          background: var(--sk-surface);
+          border: 1px solid var(--sk-border);
           border-radius: 16px;
           width: 100%;
           max-width: 460px;
           padding: 24px 26px 22px;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+          box-shadow: 0 20px 60px color-mix(in srgb, var(--sk-text) 18%, transparent);
           animation: tjm-modal-in-desktop ${ANIM_MS}ms ease both;
         }
         .tjm-modal-input {
@@ -192,24 +190,24 @@ export default function TJMQuickEditModal({
           height: 44px;
           padding: 0 44px 0 14px;
           border-radius: 10px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--sk-border);
           font-size: 15px;
-          color: #0f172a;
+          color: var(--sk-text);
           outline: none;
           transition: border-color 0.15s, box-shadow 0.15s;
           font-family: inherit;
-          background: #fff;
+          background: var(--sk-surface);
         }
         .tjm-modal-input:focus {
-          border-color: var(--tjm-primary, #0ea5e9);
-          box-shadow: 0 0 0 3px var(--tjm-primary-soft, rgba(14,165,233,0.16));
+          border-color: var(--tjm-primary, var(--sk-accent));
+          box-shadow: 0 0 0 3px var(--tjm-primary-soft, color-mix(in srgb, var(--sk-accent) 16%, transparent));
         }
         .tjm-modal-suffix {
           position: absolute;
           right: 14px;
           top: 50%;
           transform: translateY(-50%);
-          color: #64748b;
+          color: var(--sk-muted);
           font-size: 14px;
           font-weight: 500;
           pointer-events: none;
@@ -228,17 +226,17 @@ export default function TJMQuickEditModal({
         .tjm-modal-btn:hover:not(:disabled) { transform: translateY(-1px); }
         .tjm-modal-btn:disabled { opacity: 0.6; cursor: not-allowed; }
         .tjm-modal-btn-secondary {
-          background: #fff;
-          border-color: #e2e8f0;
-          color: #475569;
+          background: var(--sk-surface);
+          border-color: var(--sk-border);
+          color: var(--sk-muted);
         }
-        .tjm-modal-btn-secondary:hover:not(:disabled) { background: #f8fafc; }
+        .tjm-modal-btn-secondary:hover:not(:disabled) { background: var(--sk-surface-2); }
         .tjm-modal-btn-primary {
-          background: var(--tjm-primary, #0ea5e9);
-          color: #fff;
+          background: var(--tjm-primary, var(--sk-accent));
+          color: var(--sk-sur-accent);
         }
         .tjm-modal-btn-primary:hover:not(:disabled) {
-          box-shadow: 0 6px 16px var(--tjm-primary-soft, rgba(14,165,233,0.24));
+          box-shadow: 0 6px 16px var(--tjm-primary-soft, color-mix(in srgb, var(--sk-accent) 24%, transparent));
         }
         @media (max-width: 767px) {
           .tjm-modal-wrap {
@@ -262,19 +260,19 @@ export default function TJMQuickEditModal({
           opacity: show ? 1 : 0,
           transition: `opacity ${ANIM_MS}ms ease`,
           // CSS variables consumed by the inline <style> above
-          ['--tjm-primary' as string]: domain.primaryColor,
-          ['--tjm-primary-soft' as string]: `${domain.primaryColor}28`,
+          ['--tjm-primary' as string]: 'var(--sk-accent)',
+          ['--tjm-primary-soft' as string]: `color-mix(in srgb, var(--sk-accent) 16%, transparent)`,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
           <div>
             <h2
               id="tjm-modal-title"
-              style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.2px', margin: 0 }}
+              style={{ fontSize: 18, fontWeight: 800, color: 'var(--sk-text)', letterSpacing: '-0.2px', margin: 0 }}
             >
               {t('title')}
             </h2>
-            <p style={{ fontSize: 13, color: '#64748b', marginTop: 4, marginBottom: 0 }}>{t('subtitle')}</p>
+            <p style={{ fontSize: 13, color: 'var(--sk-muted)', marginTop: 4, marginBottom: 0 }}>{t('subtitle')}</p>
           </div>
           <button
             type="button"
@@ -284,7 +282,7 @@ export default function TJMQuickEditModal({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--sk-faint)',
               fontSize: 22,
               lineHeight: 1,
               cursor: saving ? 'not-allowed' : 'pointer',
@@ -297,7 +295,7 @@ export default function TJMQuickEditModal({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
           <label style={{ display: 'block' }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sk-muted)', display: 'block', marginBottom: 6 }}>
               {t('min_label')}
             </span>
             <span style={{ position: 'relative', display: 'block' }}>
@@ -316,7 +314,7 @@ export default function TJMQuickEditModal({
             </span>
           </label>
           <label style={{ display: 'block' }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sk-muted)', display: 'block', marginBottom: 6 }}>
               {t('max_label')}
             </span>
             <span style={{ position: 'relative', display: 'block' }}>
@@ -339,13 +337,13 @@ export default function TJMQuickEditModal({
           <div
             role="alert"
             style={{
-              background: '#fef2f2',
-              border: '1px solid #fecaca',
+              background: 'var(--sk-red-soft)',
+              border: '1px solid var(--sk-red-soft)',
               borderRadius: 10,
               padding: '10px 12px',
               marginBottom: 14,
               fontSize: 13,
-              color: '#b91c1c',
+              color: 'var(--sk-red)',
               lineHeight: 1.5,
             }}
           >

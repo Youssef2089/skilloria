@@ -63,7 +63,7 @@ export default function NewItemsPill({
           fontWeight: 600,
           cursor: 'pointer',
           fontFamily: 'inherit',
-          boxShadow: '0 8px 20px rgba(0, 0, 0, 0.08)',
+          boxShadow: '0 8px 20px color-mix(in srgb, var(--sk-text) 8%, transparent)',
           animation: 'sk-pill-in 240ms ease-out',
         }}
         aria-live="polite"

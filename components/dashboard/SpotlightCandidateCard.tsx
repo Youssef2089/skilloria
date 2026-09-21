@@ -3,7 +3,6 @@
 import { useLocale, useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Link } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
 import { useOrgRole } from '@/lib/use-org-role'
@@ -75,9 +74,9 @@ type Props = {
 
 function scoreColor(score: number | null): { bg: string; fg: string } | null {
   if (score == null || Number.isNaN(score)) return null
-  if (score >= 8) return { bg: '#DCFCE7', fg: '#166534' }
-  if (score >= 5) return { bg: '#FEF3C7', fg: '#92400E' }
-  return { bg: '#F1F5F9', fg: '#475569' }
+  if (score >= 8) return { bg: 'var(--sk-success-soft)', fg: 'var(--sk-success)' }
+  if (score >= 5) return { bg: 'var(--sk-amber-soft)', fg: 'var(--sk-amber)' }
+  return { bg: 'var(--sk-surface-2)', fg: 'var(--sk-muted)' }
 }
 
 function rateText(min: number | null, max: number | null, unit: string): string {
@@ -111,7 +110,6 @@ export default function SpotlightCandidateCard({
   // SITE DE RENDU 5/5 — libellé d'état par la RAISON dérivée, point de vue org.
   const lifecycleLabel = useCandidatureLifecycleLabel('org')
   const locale = useLocale()
-  const domain = useDomain()
   const secureFetch = useSecureFetch()
   const markViewed = useMarkCandidatureViewed()
 
@@ -157,13 +155,13 @@ export default function SpotlightCandidateCard({
   const availability: { label: string; color: string } | null = (() => {
     if (publicationType === 'offre') {
       const cs = (preview.cdi_status ?? null) as string | null
-      if (cs === 'open_to_work' || cs == null) return { label: tCdi('open_to_work'), color: '#16A34A' }
-      if (cs === 'employed') return { label: tCdi('employed'), color: '#DC2626' }
+      if (cs === 'open_to_work' || cs == null) return { label: tCdi('open_to_work'), color: 'var(--sk-success)' }
+      if (cs === 'employed') return { label: tCdi('employed'), color: 'var(--sk-red)' }
       return null
     }
     const av = preview.availability_status as string | null
-    if (av === 'available' || av == null) return { label: tAvail('available'), color: '#16A34A' }
-    if (av === 'do_not_disturb') return { label: tAvail('do_not_disturb'), color: '#DC2626' }
+    if (av === 'available' || av == null) return { label: tAvail('available'), color: 'var(--sk-success)' }
+    if (av === 'do_not_disturb') return { label: tAvail('do_not_disturb'), color: 'var(--sk-red)' }
     return null
   })()
 
@@ -292,18 +290,18 @@ export default function SpotlightCandidateCard({
   return (
     <article
       style={{
-        background: '#fff',
+        background: 'var(--sk-surface)',
         border: isUnviewed && !isClosed
-          ? `2px solid ${domain.primaryColor}`
+          ? `2px solid var(--sk-accent)`
           : isUnlocked
-            ? `1.5px solid ${domain.primaryColor}`
-            : '1px solid #e5e7eb',
+            ? `1.5px solid var(--sk-accent)`
+            : '1px solid var(--sk-border)',
         borderRadius: 18,
         overflow: 'hidden',
         opacity: isClosed ? 0.65 : 1,
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 10px 30px rgba(15, 23, 42, 0.10), 0 2px 6px rgba(15, 23, 42, 0.05)',
+        boxShadow: '0 10px 30px color-mix(in srgb, var(--sk-text) 10%, transparent), 0 2px 6px color-mix(in srgb, var(--sk-text) 5%, transparent)',
         width: '100%',
         maxWidth: 420,
       }}
@@ -314,7 +312,7 @@ export default function SpotlightCandidateCard({
           position: 'relative',
           width: '100%',
           aspectRatio: '4 / 3',
-          background: photoUrl ? '#0f172a' : `linear-gradient(135deg, ${domain.primaryColor}22, ${domain.primaryColor}44)`,
+          background: photoUrl ? 'var(--sk-text)' : `linear-gradient(135deg, color-mix(in srgb, var(--sk-accent) 13%, transparent), color-mix(in srgb, var(--sk-accent) 27%, transparent))`,
           overflow: 'hidden',
         }}
       >
@@ -326,7 +324,7 @@ export default function SpotlightCandidateCard({
           alt={displayName}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           repli={(
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 10, color: '#fff' }} aria-hidden>
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 10, color: 'var(--sk-sur-accent)' }} aria-hidden>
             <div style={{ fontSize: 56, opacity: 0.85 }}>🔒</div>
             <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.9, letterSpacing: '.04em', textTransform: 'uppercase' }}>
               {t('locked_profile_label')}
@@ -336,18 +334,18 @@ export default function SpotlightCandidateCard({
         />
 
         {availability && (
-          <span style={{ position: 'absolute', top: 12, left: 12, display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 12px', borderRadius: 999, background: 'rgba(255,255,255,0.96)', color: '#0f172a', fontSize: 12, fontWeight: 600, boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }}>
+          <span style={{ position: 'absolute', top: 12, left: 12, display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 12px', borderRadius: 999, background: 'color-mix(in srgb, var(--sk-surface) 96%, transparent)', color: 'var(--sk-text)', fontSize: 12, fontWeight: 600, boxShadow: '0 1px 4px color-mix(in srgb, var(--sk-text) 18%, transparent)' }}>
             <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: availability.color }} />
             {availability.label}
           </span>
         )}
         {score && ai_match_score != null && (
-          <span title={t('ai_score_tooltip')} style={{ position: 'absolute', top: 12, right: 12, padding: '6px 12px', borderRadius: 999, background: score.bg, color: score.fg, fontSize: 12.5, fontWeight: 800, boxShadow: '0 1px 4px rgba(0,0,0,0.12)' }}>
+          <span title={t('ai_score_tooltip')} style={{ position: 'absolute', top: 12, right: 12, padding: '6px 12px', borderRadius: 999, background: score.bg, color: score.fg, fontSize: 12.5, fontWeight: 800, boxShadow: '0 1px 4px color-mix(in srgb, var(--sk-text) 12%, transparent)' }}>
             {Math.round(ai_match_score)}/10
           </span>
         )}
         {isUnviewed && !isClosed && (
-          <span style={{ position: 'absolute', bottom: 12, right: 12, padding: '5px 10px', borderRadius: 999, background: domain.primaryColor, color: '#fff', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }}>
+          <span style={{ position: 'absolute', bottom: 12, right: 12, padding: '5px 10px', borderRadius: 999, background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', boxShadow: '0 1px 4px color-mix(in srgb, var(--sk-text) 18%, transparent)' }}>
             {t('new_label')}
           </span>
         )}
@@ -356,19 +354,19 @@ export default function SpotlightCandidateCard({
       {/* CORPS */}
       <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
         <div>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: 0, lineHeight: 1.3, letterSpacing: '-0.3px' }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--sk-text)', margin: 0, lineHeight: 1.3, letterSpacing: '-0.3px' }}>
             {displayName}
           </h3>
           {(preview.title as string | null) && (
-            <div style={{ fontSize: 13.5, color: '#475569', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 13.5, color: 'var(--sk-muted)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {preview.title as string}
             </div>
           )}
         </div>
 
         {(rate || preview.city || preview.country) && (
-          <div style={{ fontSize: 13, color: '#475569', display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            {rate && <span style={{ fontWeight: 700, color: '#0f172a' }}>{rate}</span>}
+          <div style={{ fontSize: 13, color: 'var(--sk-muted)', display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {rate && <span style={{ fontWeight: 700, color: 'var(--sk-text)' }}>{rate}</span>}
             {(preview.city || preview.country) && (
               <span>📍 {[preview.city, preview.country].filter(Boolean).join(', ')}</span>
             )}
@@ -385,12 +383,12 @@ export default function SpotlightCandidateCard({
                   title={matched ? t('skill_matched_tooltip') : undefined}
                   style={{
                     padding: '4px 10px',
-                    background: matched ? `${domain.primaryColor}1A` : '#f1f5f9',
-                    color: matched ? domain.primaryColor : '#475569',
+                    background: matched ? `color-mix(in srgb, var(--sk-accent) 10%, transparent)` : 'var(--sk-surface-2)',
+                    color: matched ? 'var(--sk-accent)' : 'var(--sk-muted)',
                     fontSize: 11.5,
                     fontWeight: matched ? 700 : 500,
                     borderRadius: 8,
-                    border: matched ? `1px solid ${domain.primaryColor}55` : '1px solid transparent',
+                    border: matched ? `1px solid color-mix(in srgb, var(--sk-accent) 33%, transparent)` : '1px solid transparent',
                   }}
                 >
                   {s}
@@ -398,7 +396,7 @@ export default function SpotlightCandidateCard({
               )
             })}
             {expertSkills.length > skillsToShow.length && (
-              <span style={{ fontSize: 11.5, color: '#94a3b8', alignSelf: 'center' }}>
+              <span style={{ fontSize: 11.5, color: 'var(--sk-faint)', alignSelf: 'center' }}>
                 +{expertSkills.length - skillsToShow.length}
               </span>
             )}
@@ -406,8 +404,8 @@ export default function SpotlightCandidateCard({
         )}
 
         {ai_pitch && (
-          <div style={{ background: `${domain.primaryColor}0F`, border: `1px solid ${domain.primaryColor}33`, borderRadius: 10, padding: '10px 12px', fontSize: 12.5, color: '#0f172a', lineHeight: 1.55 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: domain.primaryColor, marginBottom: 4 }}>
+          <div style={{ background: `color-mix(in srgb, var(--sk-accent) 6%, transparent)`, border: `1px solid color-mix(in srgb, var(--sk-accent) 20%, transparent)`, borderRadius: 10, padding: '10px 12px', fontSize: 12.5, color: 'var(--sk-text)', lineHeight: 1.55 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-accent)', marginBottom: 4 }}>
               ✨ {t('ai_pitch_label')}
             </div>
             {ai_pitch}
@@ -423,8 +421,8 @@ export default function SpotlightCandidateCard({
             <span
               style={{
                 padding: '5px 11px',
-                background: isSelected ? '#FEF3C7' : isRejected ? '#FEE2E2' : '#f1f5f9',
-                color: isSelected ? '#92400E' : isRejected ? '#991B1B' : '#475569',
+                background: isSelected ? 'var(--sk-amber-soft)' : isRejected ? 'var(--sk-red-soft)' : 'var(--sk-surface-2)',
+                color: isSelected ? 'var(--sk-amber)' : isRejected ? 'var(--sk-red)' : 'var(--sk-muted)',
                 fontSize: 11.5,
                 fontWeight: 700,
                 borderRadius: 999,
@@ -440,9 +438,9 @@ export default function SpotlightCandidateCard({
           <div
             role="alert"
             style={{
-              background: limiteAtteinte ? '#FFFBEB' : '#FEF2F2',
-              border: `1px solid ${limiteAtteinte ? '#FDE68A' : '#FECACA'}`,
-              color: limiteAtteinte ? '#92400E' : '#991B1B',
+              background: limiteAtteinte ? 'var(--sk-amber-soft)' : 'var(--sk-red-soft)',
+              border: `1px solid ${limiteAtteinte ? 'var(--sk-amber-soft)' : 'var(--sk-red-soft)'}`,
+              color: limiteAtteinte ? 'var(--sk-amber)' : 'var(--sk-red)',
               padding: '9px 11px',
               borderRadius: 9,
               fontSize: 12,
@@ -454,7 +452,7 @@ export default function SpotlightCandidateCard({
                 et l'issue qui reste quand la carte ne peut rien corriger.
                 AUCUN bouton de paiement — le verrou est fermé. */}
             {limiteAtteinte && (
-              <p style={{ margin: '5px 0 0', fontSize: 11.5, color: '#A16207' }}>
+              <p style={{ margin: '5px 0 0', fontSize: 11.5, color: 'var(--sk-amber)' }}>
                 {tCommerce('need_more_contact')}
               </p>
             )}
@@ -467,7 +465,7 @@ export default function SpotlightCandidateCard({
         {/* C7 : viewer = lecture seule. On masque toute action d'écriture et on
             affiche une note explicative. La garde serveur reste la garantie. */}
         {!roleLoading && !canManage && (canAct || (isUnlocked && !isClosed)) && (
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 9, padding: '9px 11px', fontSize: 12, color: '#64748b', textAlign: 'center' }}>
+          <div style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', borderRadius: 9, padding: '9px 11px', fontSize: 12, color: 'var(--sk-muted)', textAlign: 'center' }}>
             {t('read_only_role')}
           </div>
         )}
@@ -483,13 +481,13 @@ export default function SpotlightCandidateCard({
                par défaut : un quota illisible ne doit pas ouvrir un chemin de
                paiement. */}
         {canAct && conversionMode === 'wall' && canManage && (
-          <div style={{ background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: 12, padding: '14px 14px 12px' }}>
+          <div style={{ background: 'var(--sk-amber-soft)', border: '1.5px solid var(--sk-amber-soft)', borderRadius: 12, padding: '14px 14px 12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <span aria-hidden style={{ fontSize: 18 }}>🔒</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#92400E' }}>{t('wall_title')}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--sk-amber)' }}>{t('wall_title')}</span>
             </div>
-            <p style={{ margin: '0 0 8px', fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>{t('wall_body')}</p>
-            <p style={{ margin: 0, fontSize: 11.5, color: '#A16207', lineHeight: 1.5 }}>
+            <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--sk-amber)', lineHeight: 1.5 }}>{t('wall_body')}</p>
+            <p style={{ margin: 0, fontSize: 11.5, color: 'var(--sk-amber)', lineHeight: 1.5 }}>
               {billingEnabled === true
                 ? tCommerce('need_more_upgrade')
                 : tCommerce('need_more_contact')}
@@ -499,15 +497,15 @@ export default function SpotlightCandidateCard({
 
         {canAct && conversionMode === 'unlock' && canManage && !confirmReject && (
           <>
-            <button type="button" onClick={handleUnlock} disabled={disabled} style={{ width: '100%', padding: '12px 16px', background: domain.primaryColor, color: '#fff', border: 'none', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: busy === 'unlock' ? 0.6 : 1 }}>
+            <button type="button" onClick={handleUnlock} disabled={disabled} style={{ width: '100%', padding: '12px 16px', background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)', border: 'none', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: busy === 'unlock' ? 0.6 : 1 }}>
               {busy === 'unlock' ? t('button_unlocking') : `🔓 ${t('button_unlock')}`}
             </button>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" onClick={() => setConfirmReject(true)} disabled={disabled} style={{ flex: 1, padding: '9px 12px', background: '#fff', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: 9, fontSize: 12.5, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+              <button type="button" onClick={() => setConfirmReject(true)} disabled={disabled} style={{ flex: 1, padding: '9px 12px', background: 'var(--sk-surface)', color: 'var(--sk-muted)', border: '1px solid var(--sk-border)', borderRadius: 9, fontSize: 12.5, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                 {t('button_reject')}
               </button>
               {isUnviewed && (
-                <button type="button" onClick={() => void handleMarkViewed()} disabled={disabled} style={{ padding: '9px 12px', background: 'transparent', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 12, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                <button type="button" onClick={() => void handleMarkViewed()} disabled={disabled} style={{ padding: '9px 12px', background: 'transparent', color: 'var(--sk-muted)', border: '1px solid var(--sk-border)', borderRadius: 9, fontSize: 12, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                   {busy === 'view' ? t('mark_viewed_busy') : `✓ ${t('mark_viewed_cta')}`}
                 </button>
               )}
@@ -516,14 +514,14 @@ export default function SpotlightCandidateCard({
         )}
 
         {canAct && conversionMode === 'unlock' && canManage && confirmReject && (
-          <div style={{ background: '#FEF2F2', border: '1.5px solid #FECACA', borderRadius: 10, padding: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#991B1B', marginBottom: 8 }}>{t('reject_confirm_title')}</div>
-            <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t('reject_reason_placeholder')} maxLength={2000} rows={3} style={{ width: '100%', padding: '8px 10px', fontSize: 12, border: '1px solid #FECACA', borderRadius: 8, outline: 'none', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.5, marginBottom: 10 }} />
+          <div style={{ background: 'var(--sk-red-soft)', border: '1.5px solid var(--sk-red-soft)', borderRadius: 10, padding: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sk-red)', marginBottom: 8 }}>{t('reject_confirm_title')}</div>
+            <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t('reject_reason_placeholder')} maxLength={2000} rows={3} style={{ width: '100%', padding: '8px 10px', fontSize: 12, border: '1px solid var(--sk-red-soft)', borderRadius: 8, outline: 'none', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.5, marginBottom: 10 }} />
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => { setConfirmReject(false); setRejectReason(''); setError(null); setLimiteAtteinte(false) }} disabled={disabled} style={{ padding: '7px 14px', background: 'transparent', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+              <button type="button" onClick={() => { setConfirmReject(false); setRejectReason(''); setError(null); setLimiteAtteinte(false) }} disabled={disabled} style={{ padding: '7px 14px', background: 'transparent', color: 'var(--sk-muted)', border: '1px solid var(--sk-border)', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                 {t('reject_cancel')}
               </button>
-              <button type="button" onClick={handleReject} disabled={disabled} style={{ padding: '7px 14px', background: '#DC2626', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: busy === 'reject' ? 0.6 : 1 }}>
+              <button type="button" onClick={handleReject} disabled={disabled} style={{ padding: '7px 14px', background: 'var(--sk-red)', color: 'var(--sk-sur-accent)', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: busy === 'reject' ? 0.6 : 1 }}>
                 {busy === 'reject' ? t('button_rejecting') : t('reject_confirm')}
               </button>
             </div>
@@ -533,33 +531,33 @@ export default function SpotlightCandidateCard({
         {isUnlocked && !isClosed && (
           <>
             {candidature.conversation_id && (
-              <Link href={`${messagesBasePath}/messages/${candidature.conversation_id}`} style={{ width: '100%', padding: '12px 16px', background: domain.primaryColor, color: '#fff', border: 'none', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', textDecoration: 'none', textAlign: 'center', display: 'block', pointerEvents: disabled ? 'none' : 'auto', opacity: disabled ? 0.6 : 1 }}>
+              <Link href={`${messagesBasePath}/messages/${candidature.conversation_id}`} style={{ width: '100%', padding: '12px 16px', background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)', border: 'none', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', textDecoration: 'none', textAlign: 'center', display: 'block', pointerEvents: disabled ? 'none' : 'auto', opacity: disabled ? 0.6 : 1 }}>
                 💬 {t('conversation_button')}
               </Link>
             )}
             {canSelect && canManage && !confirmSelect && (
-              <button type="button" onClick={() => setConfirmSelect(true)} disabled={disabled} style={{ width: '100%', padding: '9px 14px', background: '#fff', color: '#92400E', border: '1.5px solid #F59E0B', borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+              <button type="button" onClick={() => setConfirmSelect(true)} disabled={disabled} style={{ width: '100%', padding: '9px 14px', background: 'var(--sk-surface)', color: 'var(--sk-amber)', border: '1.5px solid var(--sk-amber)', borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                 🏆 {t('button_select')}
               </button>
             )}
             {canSelect && canManage && confirmSelect && (
-              <div style={{ background: '#FEF3C7', border: '1.5px solid #F59E0B', borderRadius: 10, padding: 12 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: '#92400E', marginBottom: 5 }}>{t('select_confirm_title')}</div>
-                <div style={{ fontSize: 12, color: '#92400E', lineHeight: 1.5, marginBottom: 10 }}>
+              <div style={{ background: 'var(--sk-amber-soft)', border: '1.5px solid var(--sk-amber)', borderRadius: 10, padding: 12 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--sk-amber)', marginBottom: 5 }}>{t('select_confirm_title')}</div>
+                <div style={{ fontSize: 12, color: 'var(--sk-amber)', lineHeight: 1.5, marginBottom: 10 }}>
                   {t(publicationType === 'mission' ? 'select_confirm_body_mission' : 'select_confirm_body_offre')}
                 </div>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                  <button type="button" onClick={() => { setConfirmSelect(false); setError(null); setLimiteAtteinte(false) }} disabled={disabled} style={{ padding: '7px 11px', background: 'transparent', color: '#92400E', border: '1px solid #FCD34D', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                  <button type="button" onClick={() => { setConfirmSelect(false); setError(null); setLimiteAtteinte(false) }} disabled={disabled} style={{ padding: '7px 11px', background: 'transparent', color: 'var(--sk-amber)', border: '1px solid var(--sk-amber-soft)', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                     {t('select_cancel')}
                   </button>
-                  <button type="button" onClick={handleSelect} disabled={disabled} style={{ padding: '7px 11px', background: '#D97706', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: busy === 'select' ? 0.6 : 1 }}>
+                  <button type="button" onClick={handleSelect} disabled={disabled} style={{ padding: '7px 11px', background: 'var(--sk-amber)', color: 'var(--sk-sur-accent)', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: busy === 'select' ? 0.6 : 1 }}>
                     {busy === 'select' ? t('button_selecting') : t('select_confirm')}
                   </button>
                 </div>
               </div>
             )}
             {isUnviewed && (
-              <button type="button" onClick={() => void handleMarkViewed()} disabled={disabled} style={{ padding: '7px 11px', background: 'transparent', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 11.5, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', alignSelf: 'flex-end' }}>
+              <button type="button" onClick={() => void handleMarkViewed()} disabled={disabled} style={{ padding: '7px 11px', background: 'transparent', color: 'var(--sk-muted)', border: '1px solid var(--sk-border)', borderRadius: 9, fontSize: 11.5, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', alignSelf: 'flex-end' }}>
                 {busy === 'view' ? t('mark_viewed_busy') : `✓ ${t('mark_viewed_cta')}`}
               </button>
             )}

@@ -3,7 +3,6 @@
 import { useLocale, useTranslations } from 'next-intl'
 import { useRelativeTime } from '@/lib/use-relative-time'
 import { Link } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import type { Annonce, AnnonceStatus } from '@/types/annonce'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from './PublicationSynthesisLine'
 
@@ -35,32 +34,32 @@ type StatusVisual = { bg: string; color: string; dot: string }
 const STATUS_STYLES: Record<AnnonceStatus, StatusVisual> = {
   // Brouillon : neutre
   draft: {
-    bg: 'var(--color-background-secondary, #f1f5f9)',
-    color: 'var(--color-text-secondary, #475569)',
-    dot: 'var(--color-text-tertiary, #94a3b8)',
+    bg: 'var(--color-background-secondary, var(--sk-surface-2))',
+    color: 'var(--color-text-secondary, var(--sk-muted))',
+    dot: 'var(--color-text-tertiary, var(--sk-faint))',
   },
   // En revue : amber warning
-  pending_review: { bg: '#FEF9C3', color: '#854D0E', dot: '#CA8A04' },
+  pending_review: { bg: 'var(--sk-amber-soft)', color: 'var(--sk-amber)', dot: 'var(--sk-amber)' },
   // Publiée : vert succès
-  published: { bg: '#DCFCE7', color: '#166534', dot: '#16A34A' },
+  published: { bg: 'var(--sk-success-soft)', color: 'var(--sk-success)', dot: 'var(--sk-success)' },
   // Suspendue / expirée / archivée : neutre
   suspended: {
-    bg: 'var(--color-background-secondary, #f1f5f9)',
-    color: 'var(--color-text-secondary, #475569)',
-    dot: 'var(--color-text-tertiary, #94a3b8)',
+    bg: 'var(--color-background-secondary, var(--sk-surface-2))',
+    color: 'var(--color-text-secondary, var(--sk-muted))',
+    dot: 'var(--color-text-tertiary, var(--sk-faint))',
   },
   expired: {
-    bg: 'var(--color-background-secondary, #f1f5f9)',
-    color: 'var(--color-text-secondary, #475569)',
-    dot: 'var(--color-text-tertiary, #94a3b8)',
+    bg: 'var(--color-background-secondary, var(--sk-surface-2))',
+    color: 'var(--color-text-secondary, var(--sk-muted))',
+    dot: 'var(--color-text-tertiary, var(--sk-faint))',
   },
   archived: {
-    bg: 'var(--color-background-secondary, #f1f5f9)',
-    color: 'var(--color-text-secondary, #475569)',
-    dot: 'var(--color-text-tertiary, #94a3b8)',
+    bg: 'var(--color-background-secondary, var(--sk-surface-2))',
+    color: 'var(--color-text-secondary, var(--sk-muted))',
+    dot: 'var(--color-text-tertiary, var(--sk-faint))',
   },
   // Refusée : rouge danger
-  rejected: { bg: '#FEE2E2', color: '#991B1B', dot: '#DC2626' },
+  rejected: { bg: 'var(--sk-red-soft)', color: 'var(--sk-red)', dot: 'var(--sk-red)' },
 }
 
 const FADED_STATUSES: readonly AnnonceStatus[] = ['suspended', 'expired', 'archived', 'rejected']
@@ -99,7 +98,6 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
   const tPub = useTranslations('publications')
   const locale = useLocale()
   const relTime = useRelativeTime()
-  const domain = useDomain()
 
   const statusStyle = STATUS_STYLES[annonce.status]
   const faded = (FADED_STATUSES as readonly string[]).includes(annonce.status)
@@ -132,7 +130,7 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
   if (annonce.speciality_labels.length > 0) metaParts.push(annonce.speciality_labels.join(' · '))
   const metaLine = metaParts.join(' · ')
 
-  // - À consulter en accent useDomain (action requise côté org)
+  // - À consulter en accent (action requise côté org)
   // - Acceptées en vert succès
   // - Refusées en rouge tertiaire (faible visibilité, c'est un état clos)
   // Codes DB intacts ; libellés via i18n dashboard_entreprise.funnel.*.
@@ -155,17 +153,17 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
   const c = annonce.candidatures
   const chiffre = (v: number | undefined) => (c === null || v === undefined ? null : Math.round(v))
   const counters: Array<{ key: string; label: string; value: number | null; color?: string }> = [
-    { key: 'to_review', label: t('funnel.to_review'), value: chiffre(c?.facets.awaiting_review), color: domain.primaryColor },
+    { key: 'to_review', label: t('funnel.to_review'), value: chiffre(c?.facets.awaiting_review), color: 'var(--sk-accent)' },
     { key: 'in_progress', label: t('funnel.in_progress'), value: chiffre(c?.facets.exchange_open) },
-    { key: 'accepted', label: t('funnel.accepted'), value: chiffre(c?.facets.selected), color: '#16A34A' },
+    { key: 'accepted', label: t('funnel.accepted'), value: chiffre(c?.facets.selected), color: 'var(--sk-success)' },
     { key: 'rejected', label: t('funnel.rejected'), value: chiffre(c?.facets.rejected) },
   ]
 
   return (
     <article
       style={{
-        background: 'var(--color-background-primary, #fff)',
-        border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+        background: 'var(--color-background-primary, var(--sk-surface))',
+        border: '0.5px solid var(--color-border-tertiary, var(--sk-border))',
         borderRadius: 12,
         padding: '14px 18px',
         opacity: faded ? 0.7 : 1,
@@ -179,7 +177,7 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
             style={{
               fontSize: 14,
               fontWeight: 500,
-              color: 'var(--color-text-primary, #0f172a)',
+              color: 'var(--color-text-primary, var(--sk-text))',
               marginBottom: 4,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -188,7 +186,7 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
           >
             {annonce.title}
           </h3>
-          <div style={{ fontSize: 12, color: 'var(--color-text-secondary, #64748b)' }}>
+          <div style={{ fontSize: 12, color: 'var(--color-text-secondary, var(--sk-muted))' }}>
             {subtitle}
           </div>
         </div>
@@ -201,8 +199,8 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
                 display: 'inline-flex',
                 alignItems: 'center',
                 padding: '4px 10px',
-                background: 'var(--color-background-secondary, #f1f5f9)',
-                color: 'var(--color-text-secondary, #475569)',
+                background: 'var(--color-background-secondary, var(--sk-surface-2))',
+                color: 'var(--color-text-secondary, var(--sk-muted))',
                 fontSize: 11,
                 fontWeight: 500,
                 borderRadius: 12,
@@ -237,7 +235,7 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
       <div
         style={{
           fontSize: 12,
-          color: 'var(--color-text-tertiary, #94a3b8)',
+          color: 'var(--color-text-tertiary, var(--sk-faint))',
           marginBottom: 10,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -274,7 +272,7 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
       })()}
 
       {/* Section candidatures — chiffre lead (total) + 4 buckets exclusifs */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, color: 'var(--color-text-secondary, #64748b)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, color: 'var(--color-text-secondary, var(--sk-muted))' }}>
         <IconUsers size={12} />
         <span
           style={{
@@ -291,10 +289,10 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14, flexWrap: 'wrap' }}>
         {/* Total en lead */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexShrink: 0 }}>
-          <span style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-text-primary, #0f172a)', lineHeight: 1, letterSpacing: '-0.5px' }}>
+          <span style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-text-primary, var(--sk-text))', lineHeight: 1, letterSpacing: '-0.5px' }}>
             {c === null ? '—' : Math.round(c.total)}
           </span>
-          <span style={{ fontSize: 11, color: 'var(--color-text-secondary, #64748b)', fontWeight: 500 }}>
+          <span style={{ fontSize: 11, color: 'var(--color-text-secondary, var(--sk-muted))', fontWeight: 500 }}>
             {t('funnel.total_suffix')}
           </span>
         </div>
@@ -304,14 +302,14 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
           {counters.map((cnt) => {
             const isZero = cnt.value === 0
             const valueColor = isZero
-              ? 'var(--color-text-tertiary, #94a3b8)'
-              : cnt.color ?? 'var(--color-text-primary, #0f172a)'
+              ? 'var(--color-text-tertiary, var(--sk-faint))'
+              : cnt.color ?? 'var(--color-text-primary, var(--sk-text))'
             return (
               <div key={cnt.key} style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 16, fontWeight: 600, color: valueColor, lineHeight: 1 }}>
                   {cnt.value === null ? '—' : cnt.value}
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--color-text-secondary, #64748b)', marginTop: 4 }}>
+                <div style={{ fontSize: 10, color: 'var(--color-text-secondary, var(--sk-muted))', marginTop: 4 }}>
                   {cnt.label}
                 </div>
               </div>
@@ -339,7 +337,7 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
           }
           style={{
             fontSize: 12,
-            color: 'var(--color-text-secondary, #475569)',
+            color: 'var(--color-text-secondary, var(--sk-muted))',
             fontWeight: 500,
             textDecoration: 'none',
           }}

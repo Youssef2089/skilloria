@@ -1,6 +1,5 @@
 'use client'
 
-import { useDomain } from '@/context/DomainContext'
 
 const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
 
@@ -49,7 +48,6 @@ export default function MultiSelectChips({
   emptyLabel,
   ariaLabel,
 }: Props) {
-  const domain = useDomain()
 
   const basculer = (value: string) => {
     onChange(
@@ -63,7 +61,7 @@ export default function MultiSelectChips({
     // Un sélecteur vide sans explication laisse croire à une panne. On dit ce
     // qu'il en est, ou rien ne s'affiche du tout.
     return emptyLabel ? (
-      <p style={{ margin: 0, fontSize: 13, color: '#64748b', fontFamily: fontJakarta }}>
+      <p style={{ margin: 0, fontSize: 13, color: 'var(--sk-muted)', fontFamily: fontJakarta }}>
         {emptyLabel}
       </p>
     ) : null
@@ -86,15 +84,15 @@ export default function MultiSelectChips({
               gap: 8,
               padding: '10px 14px',
               border: `1.5px solid ${
-                actif ? domain.primaryColor : invalid ? '#dc2626' : '#e2e8f0'
+                actif ? 'var(--sk-accent)' : invalid ? 'var(--sk-red)' : 'var(--sk-border)'
               }`,
               borderRadius: 10,
-              background: actif ? `${domain.primaryColor}10` : '#fff',
+              background: actif ? `color-mix(in srgb, var(--sk-accent) 6%, transparent)` : 'var(--sk-surface)',
               cursor: o.disabled ? 'not-allowed' : 'pointer',
               opacity: o.disabled ? 0.5 : 1,
               fontSize: 13,
               fontWeight: 600,
-              color: actif ? domain.primaryColor : '#374151',
+              color: actif ? 'var(--sk-accent)' : 'var(--sk-muted)',
               fontFamily: fontJakarta,
             }}
           >
@@ -103,11 +101,11 @@ export default function MultiSelectChips({
               checked={actif}
               disabled={o.disabled}
               onChange={() => basculer(o.value)}
-              style={{ accentColor: domain.primaryColor }}
+              style={{ accentColor: 'var(--sk-accent)' }}
             />
             {o.label}
             {o.hint ? (
-              <span style={{ color: '#94a3b8', fontWeight: 400 }}>· {o.hint}</span>
+              <span style={{ color: 'var(--sk-faint)', fontWeight: 400 }}>· {o.hint}</span>
             ) : null}
           </label>
         )

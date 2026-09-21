@@ -161,18 +161,18 @@ export default function CastingRow<T>({ items, getKey, renderItem, labels, cardW
           transform: translateY(-50%);
           width: 40px; height: 40px;
           border-radius: 50%;
-          background: #fff;
+          background: var(--sk-surface);
           border: 1px solid var(--sk-border);
           color: var(--sk-text);
           cursor: pointer;
           display: inline-flex; align-items: center; justify-content: center;
-          box-shadow: 0 4px 14px rgba(15,23,42,0.12);
+          box-shadow: 0 4px 14px color-mix(in srgb, var(--sk-text) 12%, transparent);
           font-family: inherit; font-size: 18px;
           z-index: 5;
           transition: opacity .15s, box-shadow .15s;
         }
         .sk-castrow-arrow:disabled { opacity: 0; pointer-events: none; }
-        .sk-castrow-arrow:not(:disabled):hover { box-shadow: 0 6px 18px rgba(15,23,42,0.16); }
+        .sk-castrow-arrow:not(:disabled):hover { box-shadow: 0 6px 18px color-mix(in srgb, var(--sk-text) 16%, transparent); }
         .sk-castrow-arrow.left { left: -6px; }
         .sk-castrow-arrow.right { right: -6px; }
         @media (max-width: 768px) { .sk-castrow-arrow { display: none; } }

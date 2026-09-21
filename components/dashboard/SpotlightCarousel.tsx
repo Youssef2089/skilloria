@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { useDomain } from '@/context/DomainContext'
 
 /**
  * SpotlightCarousel — shell « casting sous projecteur » AGNOSTIQUE du contenu.
@@ -92,7 +91,6 @@ export default function SpotlightCarousel<T>({
   sceneMaxWidth,
   sidePeek = '12%',
 }: Props<T>) {
-  const domain = useDomain()
   const containerRef = useRef<HTMLDivElement | null>(null)
 
   const [centerIdx, setCenterIdx] = useState(initialIndex)
@@ -217,18 +215,18 @@ export default function SpotlightCarousel<T>({
           transform: translateY(-50%);
           width: 44px; height: 44px;
           border-radius: 50%;
-          background: #fff;
+          background: var(--sk-surface);
           border: 1px solid var(--sk-border);
           color: var(--sk-text);
           cursor: pointer;
           display: inline-flex; align-items: center; justify-content: center;
-          box-shadow: 0 4px 14px rgba(15,23,42,0.10);
+          box-shadow: 0 4px 14px color-mix(in srgb, var(--sk-text) 10%, transparent);
           font-family: inherit; font-size: 18px;
           z-index: 5;
           transition: transform .12s, box-shadow .15s, opacity .15s;
         }
         .sk-spotlight-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
-        .sk-spotlight-arrow:not(:disabled):hover { transform: translateY(-50%) scale(1.06); box-shadow: 0 6px 18px rgba(15,23,42,0.14); }
+        .sk-spotlight-arrow:not(:disabled):hover { transform: translateY(-50%) scale(1.06); box-shadow: 0 6px 18px color-mix(in srgb, var(--sk-text) 14%, transparent); }
         .sk-spotlight-arrow.left { left: 10px; }
         .sk-spotlight-arrow.right { right: 10px; }
         @media (max-width: 1024px) {
@@ -263,7 +261,7 @@ export default function SpotlightCarousel<T>({
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
-                background: i === centerIdx ? domain.primaryColor : 'var(--sk-border)',
+                background: i === centerIdx ? 'var(--sk-accent)' : 'var(--sk-border)',
                 border: 'none',
                 padding: 0,
                 cursor: 'pointer',

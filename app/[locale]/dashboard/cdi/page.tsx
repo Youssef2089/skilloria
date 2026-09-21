@@ -61,8 +61,8 @@ const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
 // 'employed' = "Ne pas déranger" (rouge — barrière matching + feed).
 // 'open_to_work' = "À l'écoute du marché" (vert).
 const STATUS_BADGE_COLORS: Record<CdiStatus, string> = {
-  employed: '#ef4444',
-  open_to_work: '#10b981',
+  employed: 'var(--sk-red)',
+  open_to_work: 'var(--sk-success)',
 }
 
 // Complétude RÉELLE (C2) — 8 blocs de CONTENU, PARITÉ STRICTE avec la home
@@ -345,7 +345,7 @@ export default function DashboardCDI() {
           <div
             style={{
               width: 40, height: 40, borderRadius: '50%',
-              border: `3px solid ${domain.primaryColor}22`, borderTopColor: domain.primaryColor,
+              border: `3px solid color-mix(in srgb, var(--sk-accent) 13%, transparent)`, borderTopColor: 'var(--sk-accent)',
               margin: '0 auto 12px', animation: 'sk-spin 0.9s linear infinite',
             }}
           />
@@ -366,7 +366,7 @@ export default function DashboardCDI() {
             type="button"
             onClick={() => router.push('/')}
             style={{
-              background: domain.primaryColor, color: '#fff', border: 'none',
+              background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)', border: 'none',
               borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'inherit',
             }}
@@ -393,21 +393,21 @@ export default function DashboardCDI() {
         .stat-card {
           border-radius: 14px;
           padding: 18px 20px;
-          background: #fff;
-          border: 1px solid #e2e8f0;
+          background: var(--sk-surface);
+          border: 1px solid var(--sk-border);
           transition: transform 0.2s, box-shadow 0.2s;
           animation: fadeInUp 0.4s ease both;
         }
-        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px color-mix(in srgb, var(--sk-text) 6%, transparent); }
         /* Tuile cliquable : affordance + focus clavier portés par le <a>. */
         .stat-card.is-link { cursor: pointer; }
         .stat-card.is-link:focus-visible {
-          outline: 2px solid ${domain.primaryColor};
+          outline: 2px solid var(--sk-accent);
           outline-offset: 2px;
         }
         .main-card {
-          background: #fff;
-          border: 1px solid #e2e8f0;
+          background: var(--sk-surface);
+          border: 1px solid var(--sk-border);
           border-radius: 16px;
           padding: 22px 24px;
           margin-bottom: 16px;
@@ -421,7 +421,7 @@ export default function DashboardCDI() {
         }
         .progress-bar {
           height: 8px;
-          background: #f1f5f9;
+          background: var(--sk-surface-2);
           border-radius: 999px;
           overflow: hidden;
         }
@@ -450,19 +450,19 @@ export default function DashboardCDI() {
           <ProfilMasqueBanner
             namespace="cdi_profile_validation"
             href="/dashboard/cdi/profil/valider"
-            accentColor={domain.primaryColor}
+            accentColor={'var(--sk-accent)'}
           />
 
           {error && (
             <div
               role="alert"
               style={{
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
+                background: 'var(--sk-red-soft)',
+                border: '1px solid var(--sk-red-soft)',
                 borderRadius: 12,
                 padding: '12px 16px',
                 marginBottom: 16,
-                color: '#991b1b',
+                color: 'var(--sk-red)',
                 fontSize: 13,
                 lineHeight: 1.55,
               }}
@@ -490,7 +490,7 @@ export default function DashboardCDI() {
                 style={{
                   fontSize: 26,
                   fontWeight: 800,
-                  color: '#0f172a',
+                  color: 'var(--sk-text)',
                   letterSpacing: '-0.4px',
                   fontFamily: fontJakarta,
                   marginBottom: 8,
@@ -557,7 +557,7 @@ export default function DashboardCDI() {
                 style={{
                   fontSize: 16,
                   fontWeight: 700,
-                  color: '#0f172a',
+                  color: 'var(--sk-text)',
                   letterSpacing: '-0.2px',
                   fontFamily: fontJakarta,
                   marginBottom: 6,
@@ -565,7 +565,7 @@ export default function DashboardCDI() {
               >
                 {t('market_status_card.title')}
               </div>
-              <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.55 }}>
+              <div style={{ fontSize: 13, color: 'var(--sk-muted)', lineHeight: 1.55 }}>
                 {t('market_status_card.description')}
               </div>
             </div>
@@ -580,7 +580,7 @@ export default function DashboardCDI() {
               label={t('market_status_card.cross_open_label')}
               hint={t('market_status_card.cross_open_hint')}
               disabled={crossOpenUpdating || analyzing || !profile || !isApprovedState}
-              accentColor={domain.primaryColor}
+              accentColor={'var(--sk-accent)'}
             />
           </div>
 
@@ -603,7 +603,7 @@ export default function DashboardCDI() {
               label={t('kpis.active_applications')}
               value={!isVerified ? '—' : apps.loading ? '…' : String(apps.stats?.total ?? 0)}
               delay="0.1s"
-              accentColor={domain.primaryColor}
+              accentColor={'var(--sk-accent)'}
               isPlaceholder={!isVerified}
               href={isVerified ? '/dashboard/cdi/candidatures?filter=active' : undefined}
             />
@@ -625,14 +625,14 @@ export default function DashboardCDI() {
               label={t('kpis.retained')}
               value={!isVerified ? '—' : apps.loading ? '…' : String(apps.stats?.facets.selected ?? 0)}
               delay="0.2s"
-              accentColor="#D97706"
+              accentColor="var(--sk-amber)"
               isPlaceholder={!isVerified}
               href={isVerified ? '/dashboard/cdi/candidatures?filter=active&facet=selected' : undefined}
             />
           </div>
 
           {/* SECTION 6 — Profil X% complet */}
-          <div className="main-card" style={{ animationDelay: '0.25s', borderColor: `${domain.primaryColor}55` }}>
+          <div className="main-card" style={{ animationDelay: '0.25s', borderColor: `color-mix(in srgb, var(--sk-accent) 33%, transparent)` }}>
             <div
               style={{
                 display: 'flex',
@@ -647,7 +647,7 @@ export default function DashboardCDI() {
                 style={{
                   fontSize: 15,
                   fontWeight: 700,
-                  color: '#0f172a',
+                  color: 'var(--sk-text)',
                   fontFamily: fontJakarta,
                 }}
               >
@@ -658,7 +658,7 @@ export default function DashboardCDI() {
                 style={{
                   fontSize: 13,
                   fontWeight: 600,
-                  color: domain.primaryColor,
+                  color: 'var(--sk-accent)',
                   textDecoration: 'none',
                 }}
               >
@@ -669,12 +669,12 @@ export default function DashboardCDI() {
               <div
                 className="progress-fill"
                 style={{
-                  background: `linear-gradient(90deg, ${domain.primaryColor}, ${domain.secondaryColor})`,
+                  background: `linear-gradient(90deg, var(--sk-accent), ${'var(--sk-accent)'})`,
                   width: `${completionPercent}%`,
                 }}
               />
             </div>
-            <div style={{ fontSize: 13, color: '#64748b', marginTop: 10, lineHeight: 1.55 }}>
+            <div style={{ fontSize: 13, color: 'var(--sk-muted)', marginTop: 10, lineHeight: 1.55 }}>
               {t('profile_completion.hint')}
             </div>
           </div>
@@ -693,25 +693,25 @@ export default function DashboardCDI() {
           <div className="main-card" style={{ animationDelay: '0.3s' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.2px', fontFamily: fontJakarta }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--sk-text)', letterSpacing: '-0.2px', fontFamily: fontJakarta }}>
                   {t('suggestions_section.title')}
                 </span>
-                <span style={{ background: '#ede9fe', color: '#6d28d9', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 20 }}>
+                <span style={{ background: 'var(--sk-accent-soft)', color: 'var(--sk-accent)', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 20 }}>
                   {t('suggestions_section.ai_badge')}
                 </span>
               </div>
               {/* C3 : lien désactivé tant que non vérifié (rien à voir avant
                   validation), même traitement que côté freelance. */}
               {!isVerified
-                ? <span style={{ background: '#f3f4f6', color: '#9ca3af', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('suggestions_section.locked_chip')}</span>
-                : <Link href="/dashboard/cdi/missions" style={{ color: domain.primaryColor, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>{t('suggestions_section.see_all')}</Link>}
+                ? <span style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-faint)', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('suggestions_section.locked_chip')}</span>
+                : <Link href="/dashboard/cdi/missions" style={{ color: 'var(--sk-accent)', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>{t('suggestions_section.see_all')}</Link>}
             </div>
             {!isApprovedState ? (
-              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
+              <div style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.8 }}>
                 {t('suggestions_section.empty_unverified')}
               </div>
             ) : (recommendedOffres === null) ? (
-              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af' }}>
+              <div style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: 'var(--sk-muted)' }}>
                 {t('loading')}
               </div>
             ) : recommendedOffres.length === 0 ? (
@@ -727,13 +727,13 @@ export default function DashboardCDI() {
                   role="status"
                   aria-live="polite"
                   style={{
-                    background: '#f9fafb',
-                    border: '1px solid #e5e7eb',
+                    background: 'var(--sk-surface-2)',
+                    border: '1px solid var(--sk-border)',
                     borderRadius: 10,
                     padding: 22,
                     textAlign: 'center',
                     fontSize: 14,
-                    color: '#475569',
+                    color: 'var(--sk-muted)',
                     lineHeight: 1.8,
                     display: 'flex',
                     flexDirection: 'column',
@@ -746,8 +746,8 @@ export default function DashboardCDI() {
                     style={{
                       width: 18,
                       height: 18,
-                      border: `2px solid ${domain.primaryColor}44`,
-                      borderTopColor: domain.primaryColor,
+                      border: `2px solid color-mix(in srgb, var(--sk-accent) 27%, transparent)`,
+                      borderTopColor: 'var(--sk-accent)',
                       borderRadius: '50%',
                       animation: 'sk-spin 0.8s linear infinite',
                     }}
@@ -756,7 +756,7 @@ export default function DashboardCDI() {
                   <style>{`@keyframes sk-spin { to { transform: rotate(360deg) } }`}</style>
                 </div>
               ) : (
-                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: '#9ca3af', lineHeight: 1.8 }}>
+                <div style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.8 }}>
                   {t('suggestions_section.empty_verified')}
                 </div>
               )
@@ -769,11 +769,11 @@ export default function DashboardCDI() {
                   <div
                     role="status"
                     aria-live="polite"
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, color: '#475569' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, color: 'var(--sk-muted)' }}
                   >
                     <span
                       aria-hidden
-                      style={{ width: 15, height: 15, border: `2px solid ${domain.primaryColor}44`, borderTopColor: domain.primaryColor, borderRadius: '50%', animation: 'sk-spin 0.8s linear infinite' }}
+                      style={{ width: 15, height: 15, border: `2px solid color-mix(in srgb, var(--sk-accent) 27%, transparent)`, borderTopColor: 'var(--sk-accent)', borderRadius: '50%', animation: 'sk-spin 0.8s linear infinite' }}
                     />
                     <span>{t('suggestions_section.analyzing_update')}</span>
                     <style>{`@keyframes sk-spin { to { transform: rotate(360deg) } }`}</style>
@@ -807,7 +807,7 @@ export default function DashboardCDI() {
                 style={{
                   fontSize: 16,
                   fontWeight: 700,
-                  color: '#0f172a',
+                  color: 'var(--sk-text)',
                   letterSpacing: '-0.2px',
                   fontFamily: fontJakarta,
                 }}
@@ -818,7 +818,7 @@ export default function DashboardCDI() {
                 style={{
                   fontSize: 13,
                   fontWeight: 600,
-                  color: domain.primaryColor,
+                  color: 'var(--sk-accent)',
                   cursor: 'not-allowed',
                   opacity: 0.6,
                 }}
@@ -829,13 +829,13 @@ export default function DashboardCDI() {
             {apps.loading ? (
               <div
                 style={{
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
+                  background: 'var(--sk-surface-2)',
+                  border: '1px solid var(--sk-border)',
                   borderRadius: 10,
                   padding: 20,
                   textAlign: 'center',
                   fontSize: 14,
-                  color: '#94a3b8',
+                  color: 'var(--sk-faint)',
                 }}
               >
                 {t('loading')}
@@ -843,13 +843,13 @@ export default function DashboardCDI() {
             ) : apps.items.length === 0 ? (
               <div
                 style={{
-                  background: '#f8fafc',
-                  border: '1px dashed #cbd5e1',
+                  background: 'var(--sk-surface-2)',
+                  border: '1px dashed var(--sk-border)',
                   borderRadius: 10,
                   padding: 22,
                   textAlign: 'center',
                   fontSize: 14,
-                  color: '#64748b',
+                  color: 'var(--sk-muted)',
                   lineHeight: 1.6,
                 }}
               >
@@ -908,14 +908,14 @@ export default function DashboardCDI() {
             top: 76,
             right: 24,
             zIndex: 1001,
-            background: toast.type === 'success' ? '#dcfce7' : '#fef2f2',
-            border: `1px solid ${toast.type === 'success' ? '#bbf7d0' : '#fecaca'}`,
-            color: toast.type === 'success' ? '#15803d' : '#991b1b',
+            background: toast.type === 'success' ? 'var(--sk-success-soft)' : 'var(--sk-red-soft)',
+            border: `1px solid ${toast.type === 'success' ? 'var(--sk-success-soft)' : 'var(--sk-red-soft)'}`,
+            color: toast.type === 'success' ? 'var(--sk-success)' : 'var(--sk-red)',
             padding: '12px 18px',
             borderRadius: 12,
             fontSize: 14,
             fontWeight: 600,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
+            boxShadow: '0 8px 24px color-mix(in srgb, var(--sk-text) 10%, transparent)',
             display: 'flex',
             alignItems: 'center',
             gap: 8,
@@ -960,7 +960,7 @@ function KpiCard({
       <div
         style={{
           fontSize: 12,
-          color: '#64748b',
+          color: 'var(--sk-muted)',
           fontWeight: 600,
           marginBottom: 8,
           textTransform: 'uppercase',
@@ -973,7 +973,7 @@ function KpiCard({
         style={{
           fontSize: 28,
           fontWeight: 800,
-          color: isPlaceholder ? '#cbd5e1' : (accentColor ?? '#0f172a'),
+          color: isPlaceholder ? 'var(--sk-border)' : (accentColor ?? 'var(--sk-text)'),
           fontFamily: fontJakarta,
           letterSpacing: '-0.5px',
         }}

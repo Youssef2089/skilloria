@@ -52,13 +52,13 @@ export default function CompactListItem({
       className="compact-card"
       style={{
         position: 'relative',
-        background: '#fff',
-        border: `1px solid ${isExpanded ? `${accentColor}55` : '#e2e8f0'}`,
+        background: 'var(--sk-surface)',
+        border: `1px solid ${isExpanded ? `color-mix(in srgb, var(--sk-accent) 33%, transparent)` : 'var(--sk-border)'}`,
         borderRadius: 12,
         padding: '12px 14px',
         marginBottom: 8,
         transition: 'border-color 200ms ease, box-shadow 200ms ease',
-        boxShadow: isExpanded ? `0 4px 16px ${accentColor}14` : 'none',
+        boxShadow: isExpanded ? `0 4px 16px color-mix(in srgb, var(--sk-accent) 8%, transparent)` : 'none',
       }}
     >
       <style>{`
@@ -71,7 +71,7 @@ export default function CompactListItem({
           overflow: hidden;
           padding-top: 14px;
           margin-top: 12px;
-          border-top: 1px solid #f1f5f9;
+          border-top: 1px solid var(--sk-surface-2);
         }
         .compact-icon-btn {
           width: 30px; height: 30px;
@@ -80,7 +80,7 @@ export default function CompactListItem({
           justify-content: center;
           border: none;
           background: transparent;
-          color: #64748b;
+          color: var(--sk-muted);
           cursor: pointer;
           border-radius: 8px;
           font-size: 14px;
@@ -88,12 +88,12 @@ export default function CompactListItem({
           padding: 0;
         }
         .compact-icon-btn:hover:not(:disabled) {
-          background: #f1f5f9;
-          color: #0f172a;
+          background: var(--sk-surface-2);
+          color: var(--sk-text);
         }
         .compact-icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
         .compact-icon-btn-active { color: var(--compact-accent) !important; background: var(--compact-accent-soft); }
-        .compact-icon-btn-danger:hover:not(:disabled) { color: #dc2626 !important; background: #fef2f2; }
+        .compact-icon-btn-danger:hover:not(:disabled) { color: var(--sk-red) !important; background: var(--sk-red-soft); }
       `}</style>
 
       <div
@@ -102,7 +102,7 @@ export default function CompactListItem({
           alignItems: 'center',
           gap: 12,
           ['--compact-accent' as string]: accentColor,
-          ['--compact-accent-soft' as string]: `${accentColor}1c`,
+          ['--compact-accent-soft' as string]: `color-mix(in srgb, var(--sk-accent) 11%, transparent)`,
         }}
       >
         <div
@@ -116,11 +116,11 @@ export default function CompactListItem({
           }}
         />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {title || <span style={{ color: '#94a3b8', fontWeight: 400, fontStyle: 'italic' }}>—</span>}
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--sk-text)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {title || <span style={{ color: 'var(--sk-faint)', fontWeight: 400, fontStyle: 'italic' }}>—</span>}
           </div>
           {subtitle && (
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {subtitle}
             </div>
           )}
@@ -157,8 +157,8 @@ export default function CompactListItem({
           style={{
             marginTop: 12,
             padding: '12px 14px',
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
+            background: 'var(--sk-red-soft)',
+            border: '1px solid var(--sk-red-soft)',
             borderRadius: 10,
             display: 'flex',
             flexWrap: 'wrap',
@@ -168,7 +168,7 @@ export default function CompactListItem({
             animation: 'compact-expand 200ms ease-out both',
           }}
         >
-          <div style={{ fontSize: 13, color: '#991b1b', fontWeight: 600, flex: '1 1 auto' }}>
+          <div style={{ fontSize: 13, color: 'var(--sk-red)', fontWeight: 600, flex: '1 1 auto' }}>
             ⚠️ {t('confirm_delete_question')}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -179,9 +179,9 @@ export default function CompactListItem({
               style={{
                 height: 34,
                 padding: '0 14px',
-                background: '#fff',
-                border: '1px solid #e2e8f0',
-                color: '#475569',
+                background: 'var(--sk-surface)',
+                border: '1px solid var(--sk-border)',
+                color: 'var(--sk-muted)',
                 borderRadius: 8,
                 fontSize: 13,
                 fontWeight: 600,
@@ -197,9 +197,9 @@ export default function CompactListItem({
               style={{
                 height: 34,
                 padding: '0 14px',
-                background: '#dc2626',
-                border: '1px solid #dc2626',
-                color: '#fff',
+                background: 'var(--sk-red)',
+                border: '1px solid var(--sk-red)',
+                color: 'var(--sk-sur-accent)',
                 borderRadius: 8,
                 fontSize: 13,
                 fontWeight: 600,

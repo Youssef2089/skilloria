@@ -130,20 +130,20 @@ const LOCALE_DATE_MAP: Record<string, string> = {
 }
 
 const SECTION_PALETTE = {
-  summary: '#0ea5e9',
-  expertise: '#6366f1',
-  certifications: '#a855f7',
-  career: '#ec4899',
-  missions: '#f43f5e',
-  education: '#14b8a6',
-  languages: '#f59e0b',
-  availability: '#10b981',
-  links: '#06b6d4',
+  summary: 'var(--sk-accent)',
+  expertise: 'var(--sk-accent)',
+  certifications: 'var(--sk-accent)',
+  career: 'var(--sk-accent)',
+  missions: 'var(--sk-red)',
+  education: 'var(--sk-accent)',
+  languages: 'var(--sk-amber)',
+  availability: 'var(--sk-success)',
+  links: 'var(--sk-accent)',
 } as const
 
 const AVAILABILITY_COLOR: Record<AvailabilityStatus, string> = {
-  available: '#22c55e',
-  do_not_disturb: '#ef4444',
+  available: 'var(--sk-success)',
+  do_not_disturb: 'var(--sk-red)',
 }
 
 const TRUNCATE_DESC = 220
@@ -184,7 +184,7 @@ function SectionHeader({
           borderRadius: 999,
           fontSize: 12,
           fontWeight: 800,
-          color: '#fff',
+          color: 'var(--sk-sur-accent)',
           background: color,
           fontFamily: fontJakarta,
           flexShrink: 0,
@@ -197,7 +197,7 @@ function SectionHeader({
           flex: 1,
           fontSize: 16,
           fontWeight: 700,
-          color: '#0f172a',
+          color: 'var(--sk-text)',
           letterSpacing: '-0.2px',
           fontFamily: fontJakarta,
         }}
@@ -213,7 +213,7 @@ function EmptyText({ children }: { children: React.ReactNode }) {
     <div
       style={{
         fontSize: 14,
-        color: '#94a3b8',
+        color: 'var(--sk-faint)',
         fontStyle: 'italic',
         lineHeight: 1.6,
       }}
@@ -233,8 +233,8 @@ function Card({
   return (
     <div
       style={{
-        background: '#fff',
-        border: '1px solid #e2e8f0',
+        background: 'var(--sk-surface)',
+        border: '1px solid var(--sk-border)',
         borderRadius: 16,
         padding: '22px 24px',
         marginBottom: 16,
@@ -262,7 +262,7 @@ function ExpandableDescription({
 }) {
   if (text.length <= TRUNCATE_DESC) {
     return (
-      <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.65, marginTop: 8, whiteSpace: 'pre-wrap' }}>
+      <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.65, marginTop: 8, whiteSpace: 'pre-wrap' }}>
         {text}
       </p>
     )
@@ -270,7 +270,7 @@ function ExpandableDescription({
   const shown = expanded ? text : text.slice(0, TRUNCATE_DESC).trimEnd() + '…'
   return (
     <div style={{ marginTop: 8 }}>
-      <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.65, whiteSpace: 'pre-wrap', margin: 0 }}>
+      <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.65, whiteSpace: 'pre-wrap', margin: 0 }}>
         {shown}
       </p>
       <button
@@ -283,7 +283,7 @@ function ExpandableDescription({
           padding: 0,
           fontSize: 13,
           fontWeight: 600,
-          color: '#0ea5e9',
+          color: 'var(--sk-accent)',
           cursor: 'pointer',
           fontFamily: 'inherit',
         }}
@@ -683,7 +683,7 @@ export default function MonProfilPage() {
       .nav-item {
         padding: 11px 16px;
         font-size: 14px;
-        color: #4b5563;
+        color: var(--sk-muted);
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -693,23 +693,23 @@ export default function MonProfilPage() {
         transition: background 0.18s, transform 0.18s;
         text-decoration: none;
       }
-      .nav-item:hover { background: #f9fafb; transform: translateX(4px); }
+      .nav-item:hover { background: var(--sk-surface-2); transform: translateX(4px); }
       .nav-item-active {
         padding: 11px 16px;
         font-size: 14px;
-        color: #111827;
+        color: var(--sk-text);
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: space-between;
         border-radius: 8px;
         margin: 2px 8px;
-        background: #f3f4f6;
+        background: var(--sk-surface-2);
         font-weight: 500;
         text-decoration: none;
       }
       .skel {
-        background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%);
+        background: linear-gradient(90deg, var(--sk-surface-2) 0%, var(--sk-border) 50%, var(--sk-surface-2) 100%);
         background-size: 800px 100%;
         animation: shimmer 1.4s infinite linear;
         border-radius: 8px;
@@ -723,23 +723,23 @@ export default function MonProfilPage() {
         border-radius: 999px;
         transition: transform 0.18s ease, box-shadow 0.18s ease;
       }
-      .pill:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(15,23,42,0.06); }
+      .pill:hover { transform: translateY(-1px); box-shadow: 0 4px 12px color-mix(in srgb, var(--sk-text) 6%, transparent); }
       .icon-btn {
         display: inline-flex;
         align-items: center;
         gap: 6px;
         padding: 8px 12px;
         border-radius: 10px;
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        color: #475569;
+        background: var(--sk-surface);
+        border: 1px solid var(--sk-border);
+        color: var(--sk-muted);
         font-size: 13px;
         font-weight: 600;
         cursor: pointer;
         text-decoration: none;
         transition: all 0.18s ease;
       }
-      .icon-btn:hover { border-color: #cbd5e1; background: #f8fafc; }
+      .icon-btn:hover { border-color: var(--sk-border); background: var(--sk-surface-2); }
       @media (max-width: 767px) {
         .ds-layout { flex-direction: column !important; }
         .ds-sidebar { display: none !important; }
@@ -760,14 +760,14 @@ export default function MonProfilPage() {
   // ── Loading skeleton ──
   if (loading) {
     return (
-      <div className={jakarta.variable} style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: fontJakarta }}>
+      <div className={jakarta.variable} style={{ minHeight: '100vh', background: 'var(--sk-surface-2)', fontFamily: fontJakarta }}>
         {sharedStyles}
-        <div className="ds-header-pad" style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '0 28px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="ds-header-pad" style={{ background: 'var(--sk-surface)', borderBottom: '1px solid var(--sk-border)', padding: '0 28px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="skel" style={{ width: 140, height: 24 }} />
           <div className="skel" style={{ width: 80, height: 36 }} />
         </div>
         <div className="ds-layout" style={{ display: 'flex', minHeight: 'calc(100vh - 58px)' }}>
-          <div className="ds-sidebar" style={{ width: 248, background: '#fff', borderRight: '1px solid #e2e8f0', padding: '22px 16px' }}>
+          <div className="ds-sidebar" style={{ width: 248, background: 'var(--sk-surface)', borderRight: '1px solid var(--sk-border)', padding: '22px 16px' }}>
             {[1, 2, 3, 4, 5].map(i => (
               <div key={i} className="skel" style={{ height: 36, marginBottom: 8 }} />
             ))}
@@ -786,12 +786,12 @@ export default function MonProfilPage() {
   // ── Forbidden (not freelance) ──
   if (forbidden) {
     return (
-      <div className={jakarta.variable} style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: fontJakarta, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div className={jakarta.variable} style={{ minHeight: '100vh', background: 'var(--sk-surface-2)', fontFamily: fontJakarta, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         {sharedStyles}
-        <div style={{ background: '#fff', border: '1px solid #fecaca', borderRadius: 16, padding: 32, maxWidth: 480, textAlign: 'center' }}>
+        <div style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-red-soft)', borderRadius: 16, padding: 32, maxWidth: 480, textAlign: 'center' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>🔒</div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#991b1b', margin: 0, marginBottom: 10 }}>{t('error')}</h1>
-          <p style={{ fontSize: 14, color: '#7f1d1d', marginBottom: 20 }}>{t('not_freelance')}</p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--sk-red)', margin: 0, marginBottom: 10 }}>{t('error')}</h1>
+          <p style={{ fontSize: 14, color: 'var(--sk-red)', marginBottom: 20 }}>{t('not_freelance')}</p>
           <Link href="/" className="icon-btn" style={{ display: 'inline-flex' }}>
             ← {t('back_to_dashboard')}
           </Link>
@@ -803,11 +803,11 @@ export default function MonProfilPage() {
   // ── Hard error ──
   if (errorMsg && !profile) {
     return (
-      <div className={jakarta.variable} style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: fontJakarta, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div className={jakarta.variable} style={{ minHeight: '100vh', background: 'var(--sk-surface-2)', fontFamily: fontJakarta, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         {sharedStyles}
-        <div style={{ background: '#fff', border: '1px solid #fecaca', borderRadius: 16, padding: 32, maxWidth: 480, textAlign: 'center' }}>
+        <div style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-red-soft)', borderRadius: 16, padding: 32, maxWidth: 480, textAlign: 'center' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#991b1b', margin: 0, marginBottom: 16 }}>{errorMsg}</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--sk-red)', margin: 0, marginBottom: 16 }}>{errorMsg}</h1>
           <button
             type="button"
             onClick={() => window.location.reload()}
@@ -824,11 +824,11 @@ export default function MonProfilPage() {
   // de blocage (CV manquant) : c'est une page de MENU, elle doit garder la
   // sidebar et le header — jamais un plein-écran orphelin qui piège l'user.
   const renderWithShell = (main: React.ReactNode) => (
-    <div className={jakarta.variable} style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: fontJakarta }}>
+    <div className={jakarta.variable} style={{ minHeight: '100vh', background: 'var(--sk-surface-2)', fontFamily: fontJakarta }}>
       {sharedStyles}
       <div
         className="ds-header-pad"
-        style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '0 28px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+        style={{ background: 'var(--sk-surface)', borderBottom: '1px solid var(--sk-border)', padding: '0 28px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
       >
         <div />
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -862,8 +862,8 @@ export default function MonProfilPage() {
             href="/dashboard/freelance/profil"
             style={{
               display: 'inline-block',
-              background: domain.primaryColor,
-              color: '#fff',
+              background: 'var(--sk-accent)',
+              color: 'var(--sk-sur-accent)',
               borderRadius: 10,
               padding: '10px 18px',
               fontSize: 14,
@@ -896,9 +896,9 @@ export default function MonProfilPage() {
     <div
       role="alert"
       style={{
-        background: '#FEF2F2',
-        border: '1px solid #FECACA',
-        color: '#991B1B',
+        background: 'var(--sk-red-soft)',
+        border: '1px solid var(--sk-red-soft)',
+        color: 'var(--sk-red)',
         borderRadius: 10,
         padding: '10px 14px',
         marginBottom: 20,
@@ -912,7 +912,7 @@ export default function MonProfilPage() {
       <div style={{ marginTop: 8 }}>
         <Link
           href="/dashboard/freelance/profil/valider"
-          style={{ fontSize: 13, fontWeight: 600, color: '#991B1B', textDecoration: 'underline' }}
+          style={{ fontSize: 13, fontWeight: 600, color: 'var(--sk-red)', textDecoration: 'underline' }}
         >
           {tRejected('cta')}
         </Link>
@@ -921,15 +921,15 @@ export default function MonProfilPage() {
   ) : null
 
   return (
-    <div className={jakarta.variable} style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: fontJakarta }}>
+    <div className={jakarta.variable} style={{ minHeight: '100vh', background: 'var(--sk-surface-2)', fontFamily: fontJakarta }}>
       {sharedStyles}
 
       {/* ─── Top header (logo + LanguageSwitcher) ─── */}
       <div
         className="ds-header-pad"
         style={{
-          background: '#fff',
-          borderBottom: '1px solid #e2e8f0',
+          background: 'var(--sk-surface)',
+          borderBottom: '1px solid var(--sk-border)',
           padding: '0 28px',
           height: 58,
           display: 'flex',
@@ -972,7 +972,7 @@ export default function MonProfilPage() {
               position: 'sticky',
               top: 0,
               zIndex: 10,
-              background: '#f8fafc',
+              background: 'var(--sk-surface-2)',
               padding: '12px 0',
               marginBottom: 12,
               display: 'flex',
@@ -982,10 +982,10 @@ export default function MonProfilPage() {
             }}
           >
             <div style={{ minWidth: 0 }}>
-              <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', margin: 0, marginBottom: 6, letterSpacing: '-0.4px' }}>
+              <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--sk-text)', margin: 0, marginBottom: 6, letterSpacing: '-0.4px' }}>
                 {t('page_title')}
               </h1>
-              <p style={{ fontSize: 14, color: '#64748b', margin: 0 }}>{t('page_subtitle')}</p>
+              <p style={{ fontSize: 14, color: 'var(--sk-muted)', margin: 0 }}>{t('page_subtitle')}</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               {/* Édition — secondaire (outline) ; garde le lien existant. */}
@@ -997,9 +997,9 @@ export default function MonProfilPage() {
                   gap: 6,
                   padding: '10px 18px',
                   borderRadius: 10,
-                  background: '#fff',
-                  color: domain.primaryColor,
-                  border: `1.5px solid ${domain.primaryColor}`,
+                  background: 'var(--sk-surface)',
+                  color: 'var(--sk-accent)',
+                  border: `1.5px solid var(--sk-accent)`,
                   fontSize: 14,
                   fontWeight: 600,
                   textDecoration: 'none',
@@ -1019,15 +1019,15 @@ export default function MonProfilPage() {
                   gap: 6,
                   padding: '10px 18px',
                   borderRadius: 10,
-                  background: domain.primaryColor,
-                  color: '#fff',
+                  background: 'var(--sk-accent)',
+                  color: 'var(--sk-sur-accent)',
                   border: 'none',
                   fontSize: 14,
                   fontWeight: 600,
                   cursor: publishing ? 'not-allowed' : 'pointer',
                   opacity: publishing ? 0.6 : 1,
                   fontFamily: fontJakarta,
-                  boxShadow: `0 6px 20px ${domain.primaryColor}33`,
+                  boxShadow: `0 6px 20px color-mix(in srgb, var(--sk-accent) 20%, transparent)`,
                 }}
               >
                 {publishing ? t('publish.publishing') : t('publish.button')}
@@ -1043,9 +1043,9 @@ export default function MonProfilPage() {
                 borderRadius: 10,
                 fontSize: 13.5,
                 lineHeight: 1.5,
-                background: publishMsg.kind === 'success' ? '#dcfce7' : '#fef2f2',
-                border: `1px solid ${publishMsg.kind === 'success' ? '#bbf7d0' : '#fecaca'}`,
-                color: publishMsg.kind === 'success' ? '#166534' : '#991b1b',
+                background: publishMsg.kind === 'success' ? 'var(--sk-success-soft)' : 'var(--sk-red-soft)',
+                border: `1px solid ${publishMsg.kind === 'success' ? 'var(--sk-success-soft)' : 'var(--sk-red-soft)'}`,
+                color: publishMsg.kind === 'success' ? 'var(--sk-success)' : 'var(--sk-red)',
               }}
             >
               {publishMsg.text}
@@ -1073,7 +1073,7 @@ export default function MonProfilPage() {
                     height: 120,
                     borderRadius: '50%',
                     objectFit: 'cover',
-                    border: `3px solid ${domain.primaryColor}22`,
+                    border: `3px solid color-mix(in srgb, var(--sk-accent) 13%, transparent)`,
                   }}
                   repli={(
                   <div
@@ -1087,9 +1087,9 @@ export default function MonProfilPage() {
                       justifyContent: 'center',
                       fontSize: 40,
                       fontWeight: 700,
-                      background: `linear-gradient(135deg, ${domain.primaryColor}44, ${domain.secondaryColor}44)`,
-                      color: domain.primaryColor,
-                      border: `3px solid ${domain.primaryColor}22`,
+                      background: `linear-gradient(135deg, color-mix(in srgb, var(--sk-accent) 27%, transparent), ${'var(--sk-accent)'}44)`,
+                      color: 'var(--sk-accent)',
+                      border: `3px solid color-mix(in srgb, var(--sk-accent) 13%, transparent)`,
                     }}
                   >
                     {initials}
@@ -1101,7 +1101,7 @@ export default function MonProfilPage() {
 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
-                  <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', margin: 0, letterSpacing: '-0.4px' }}>
+                  <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--sk-text)', margin: 0, letterSpacing: '-0.4px' }}>
                     {fullName}
                   </h2>
                   {verifState === 'approved' ? (
@@ -1110,9 +1110,9 @@ export default function MonProfilPage() {
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 5,
-                        background: `${domain.primaryColor}14`,
-                        color: domain.primaryColor,
-                        border: `1px solid ${domain.primaryColor}40`,
+                        background: `color-mix(in srgb, var(--sk-accent) 8%, transparent)`,
+                        color: 'var(--sk-accent)',
+                        border: `1px solid color-mix(in srgb, var(--sk-accent) 25%, transparent)`,
                         borderRadius: 999,
                         padding: '3px 10px',
                         fontSize: 12,
@@ -1120,7 +1120,7 @@ export default function MonProfilPage() {
                       }}
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="10" fill={domain.primaryColor} />
+                        <circle cx="12" cy="12" r="10" fill={domain.palette.boutons} />
                         <path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                       {t('header.verified_badge')}
@@ -1149,17 +1149,17 @@ export default function MonProfilPage() {
                     })()
                   )}
                 </div>
-                <div style={{ fontSize: 15, color: '#475569', fontWeight: 500, marginBottom: 8 }}>
-                  {headline ?? <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>{t('header.no_title')}</span>}
+                <div style={{ fontSize: 15, color: 'var(--sk-muted)', fontWeight: 500, marginBottom: 8 }}>
+                  {headline ?? <span style={{ fontStyle: 'italic', color: 'var(--sk-faint)' }}>{t('header.no_title')}</span>}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', fontSize: 13, color: '#64748b' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', fontSize: 13, color: 'var(--sk-muted)' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                     {country?.flag_emoji ? <span aria-hidden style={{ fontSize: 16 }}>{country.flag_emoji}</span> : <span aria-hidden>📍</span>}
-                    {cityCountry ?? <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>{t('header.location_unknown')}</span>}
+                    {cityCountry ?? <span style={{ fontStyle: 'italic', color: 'var(--sk-faint)' }}>{t('header.location_unknown')}</span>}
                   </span>
                   {yearsExperience != null && (
                     <>
-                      <span style={{ color: '#cbd5e1' }}>·</span>
+                      <span style={{ color: 'var(--sk-border)' }}>·</span>
                       <span>{t('header.years_experience', { count: yearsExperience })}</span>
                     </>
                   )}
@@ -1168,7 +1168,7 @@ export default function MonProfilPage() {
             </div>
 
             {/* Hero chips: TJM | availability */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 18, paddingTop: 18, borderTop: '1px solid #f1f5f9' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 18, paddingTop: 18, borderTop: '1px solid var(--sk-surface-2)' }}>
               <div
                 style={{
                   display: 'inline-flex',
@@ -1176,11 +1176,11 @@ export default function MonProfilPage() {
                   gap: 8,
                   padding: '8px 14px',
                   borderRadius: 10,
-                  background: `${domain.primaryColor}10`,
-                  border: `1px solid ${domain.primaryColor}33`,
+                  background: `color-mix(in srgb, var(--sk-accent) 6%, transparent)`,
+                  border: `1px solid color-mix(in srgb, var(--sk-accent) 20%, transparent)`,
                   fontSize: 13,
                   fontWeight: 600,
-                  color: domain.primaryColor,
+                  color: 'var(--sk-accent)',
                 }}
               >
                 <span aria-hidden>💶</span>
@@ -1196,11 +1196,11 @@ export default function MonProfilPage() {
                     gap: 8,
                     padding: '8px 14px',
                     borderRadius: 10,
-                    background: '#fff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--sk-surface)',
+                    border: '1px solid var(--sk-border)',
                     fontSize: 13,
                     fontWeight: 600,
-                    color: '#0f172a',
+                    color: 'var(--sk-text)',
                   }}
                 >
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: AVAILABILITY_COLOR[availabilityKey] }} aria-hidden />
@@ -1219,8 +1219,8 @@ export default function MonProfilPage() {
               role="status"
               aria-live="polite"
               style={{
-                background: '#fffbeb',
-                border: '1px solid #fde68a',
+                background: 'var(--sk-amber-soft)',
+                border: '1px solid var(--sk-amber-soft)',
                 borderRadius: 12,
                 padding: '12px 16px',
                 display: 'flex',
@@ -1230,10 +1230,10 @@ export default function MonProfilPage() {
               }}
             >
               <div style={{ flex: '1 1 260px', minWidth: 0 }}>
-                <div style={{ fontWeight: 600, color: '#92400e', fontSize: 14, marginBottom: 4 }}>
+                <div style={{ fontWeight: 600, color: 'var(--sk-amber)', fontSize: 14, marginBottom: 4 }}>
                   {t('errors.list_read_failed_title')}
                 </div>
-                <div style={{ color: '#78350f', fontSize: 13, lineHeight: 1.5 }}>
+                <div style={{ color: 'var(--sk-amber)', fontSize: 13, lineHeight: 1.5 }}>
                   {t('errors.list_read_failed_body', {
                     // Les titres de section existent DÉJÀ dans `sections.*` :
                     // on les réutilise plutôt que d'ouvrir un second jeu de noms
@@ -1254,7 +1254,7 @@ export default function MonProfilPage() {
           <Card>
             <SectionHeader n={1} color={SECTION_PALETTE.summary} title={t('sections.summary')} />
             {profile.summary?.trim() ? (
-              <p style={{ fontSize: 14, color: '#334155', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}>
+              <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}>
                 {profile.summary.trim()}
               </p>
             ) : (
@@ -1269,25 +1269,25 @@ export default function MonProfilPage() {
               <div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: skills.length > 0 ? 18 : 0 }}>
                   <div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600, marginBottom: 4 }}>
+                    <div style={{ fontSize: 11, color: 'var(--sk-faint)', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600, marginBottom: 4 }}>
                       {t('labels.branch')}
                     </div>
-                    <div style={{ fontSize: 14, color: '#0f172a', fontWeight: 500 }}>
+                    <div style={{ fontSize: 14, color: 'var(--sk-text)', fontWeight: 500 }}>
                       {branchName ?? <EmptyText>{t('empty_states.no_branch')}</EmptyText>}
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600, marginBottom: 4 }}>
+                    <div style={{ fontSize: 11, color: 'var(--sk-faint)', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600, marginBottom: 4 }}>
                       {t('labels.specialty')}
                     </div>
-                    <div style={{ fontSize: 14, color: '#0f172a', fontWeight: 500 }}>
+                    <div style={{ fontSize: 14, color: 'var(--sk-text)', fontWeight: 500 }}>
                       {specialityName ?? <EmptyText>{t('empty_states.no_specialty')}</EmptyText>}
                     </div>
                   </div>
                 </div>
                 {skills.length > 0 ? (
                   <div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600, marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, color: 'var(--sk-faint)', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600, marginBottom: 8 }}>
                       {t('labels.skills')}
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -1296,9 +1296,9 @@ export default function MonProfilPage() {
                           key={s}
                           className="pill"
                           style={{
-                            background: `${domain.primaryColor}14`,
-                            color: domain.primaryColor,
-                            border: `1px solid ${domain.primaryColor}33`,
+                            background: `color-mix(in srgb, var(--sk-accent) 8%, transparent)`,
+                            color: 'var(--sk-accent)',
+                            border: `1px solid color-mix(in srgb, var(--sk-accent) 20%, transparent)`,
                           }}
                         >
                           {s}
@@ -1328,14 +1328,14 @@ export default function MonProfilPage() {
                       alignItems: 'center',
                       gap: 10,
                       padding: '10px 0',
-                      borderBottom: i < certifications.length - 1 ? '1px solid #f1f5f9' : 'none',
+                      borderBottom: i < certifications.length - 1 ? '1px solid var(--sk-surface-2)' : 'none',
                     }}
                   >
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: SECTION_PALETTE.certifications, flexShrink: 0 }} aria-hidden />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{c.name}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--sk-text)' }}>{c.name}</div>
                       {(c.issuer || c.year) && (
-                        <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+                        <div style={{ fontSize: 13, color: 'var(--sk-muted)', marginTop: 2 }}>
                           {c.issuer && <span>{c.issuer}</span>}
                           {c.issuer && c.year && <span> · </span>}
                           {c.year && <span>{c.year}</span>}
@@ -1364,7 +1364,7 @@ export default function MonProfilPage() {
                       style={{
                         position: 'relative',
                         padding: '14px 0 14px 16px',
-                        borderBottom: i < careerSorted.length - 1 ? '1px solid #f1f5f9' : 'none',
+                        borderBottom: i < careerSorted.length - 1 ? '1px solid var(--sk-surface-2)' : 'none',
                       }}
                     >
                       <span
@@ -1381,11 +1381,11 @@ export default function MonProfilPage() {
                       />
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sk-text)' }}>
                             {e.role || '—'}
-                            {e.employer && <span style={{ fontWeight: 500, color: '#475569' }}> · {e.employer}</span>}
+                            {e.employer && <span style={{ fontWeight: 500, color: 'var(--sk-muted)' }}> · {e.employer}</span>}
                           </div>
-                          <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+                          <div style={{ fontSize: 13, color: 'var(--sk-muted)', marginTop: 2 }}>
                             {formatYearRange(e.start_date, e.end_date, e.is_current)}
                             {e.sector && <span> · {e.sector}</span>}
                           </div>
@@ -1438,7 +1438,7 @@ export default function MonProfilPage() {
                       style={{
                         position: 'relative',
                         padding: '14px 0 14px 16px',
-                        borderBottom: i < projectsSorted.length - 1 ? '1px solid #f1f5f9' : 'none',
+                        borderBottom: i < projectsSorted.length - 1 ? '1px solid var(--sk-surface-2)' : 'none',
                       }}
                     >
                       <span
@@ -1455,11 +1455,11 @@ export default function MonProfilPage() {
                       />
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sk-text)' }}>
                             {e.role || '—'}
-                            {e.client_name && <span style={{ fontWeight: 500, color: '#475569' }}> · {t('labels.client')} : {e.client_name}</span>}
+                            {e.client_name && <span style={{ fontWeight: 500, color: 'var(--sk-muted)' }}> · {t('labels.client')} : {e.client_name}</span>}
                           </div>
-                          <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+                          <div style={{ fontSize: 13, color: 'var(--sk-muted)', marginTop: 2 }}>
                             {formatYearRange(e.start_date, e.end_date, e.is_current)}
                             {e.sector && <span> · {t('labels.sector')} : {e.sector}</span>}
                           </div>
@@ -1511,16 +1511,16 @@ export default function MonProfilPage() {
                       alignItems: 'flex-start',
                       gap: 10,
                       padding: '12px 0',
-                      borderBottom: i < educations.length - 1 ? '1px solid #f1f5f9' : 'none',
+                      borderBottom: i < educations.length - 1 ? '1px solid var(--sk-surface-2)' : 'none',
                     }}
                   >
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: SECTION_PALETTE.education, flexShrink: 0, marginTop: 6 }} aria-hidden />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sk-text)' }}>
                         {edu.degree || '—'}
-                        {edu.field && <span style={{ fontWeight: 500, color: '#475569' }}> · {edu.field}</span>}
+                        {edu.field && <span style={{ fontWeight: 500, color: 'var(--sk-muted)' }}> · {edu.field}</span>}
                       </div>
-                      <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+                      <div style={{ fontSize: 13, color: 'var(--sk-muted)', marginTop: 2 }}>
                         {edu.school && <span>{edu.school}</span>}
                         {(edu.start_year || edu.end_year) && (
                           <span>
@@ -1554,7 +1554,7 @@ export default function MonProfilPage() {
                     className="pill"
                     style={{
                       background: `${SECTION_PALETTE.languages}14`,
-                      color: '#92400e',
+                      color: 'var(--sk-amber)',
                       border: `1px solid ${SECTION_PALETTE.languages}55`,
                     }}
                   >
@@ -1570,7 +1570,7 @@ export default function MonProfilPage() {
                           padding: '1px 6px',
                           borderRadius: 6,
                           background: SECTION_PALETTE.languages,
-                          color: '#fff',
+                          color: 'var(--sk-sur-accent)',
                         }}
                       >
                         ★
@@ -1591,7 +1591,7 @@ export default function MonProfilPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {workModes.length > 0 && (
                   <div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600, marginBottom: 6 }}>
+                    <div style={{ fontSize: 11, color: 'var(--sk-faint)', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600, marginBottom: 6 }}>
                       {t('labels.work_modes')}
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -1601,7 +1601,7 @@ export default function MonProfilPage() {
                           className="pill"
                           style={{
                             background: `${SECTION_PALETTE.availability}14`,
-                            color: '#065f46',
+                            color: 'var(--sk-success)',
                             border: `1px solid ${SECTION_PALETTE.availability}55`,
                           }}
                         >
@@ -1612,18 +1612,18 @@ export default function MonProfilPage() {
                   </div>
                 )}
                 {profile.availability_date && (
-                  <div style={{ fontSize: 14, color: '#0f172a' }}>
+                  <div style={{ fontSize: 14, color: 'var(--sk-text)' }}>
                     📅 {t('labels.available_from', { date: formatFullDate(profile.availability_date) ?? profile.availability_date })}
                   </div>
                 )}
                 {availabilityKey && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#0f172a' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--sk-text)' }}>
                     <span style={{ width: 10, height: 10, borderRadius: '50%', background: AVAILABILITY_COLOR[availabilityKey] }} aria-hidden />
                     {t(`availability_status.${availabilityKey}`)}
                   </div>
                 )}
                 {cityCountry && (
-                  <div style={{ fontSize: 14, color: '#475569' }}>
+                  <div style={{ fontSize: 14, color: 'var(--sk-muted)' }}>
                     {country?.flag_emoji ? <span aria-hidden>{country.flag_emoji} </span> : '📍 '}
                     {cityCountry}
                   </div>
@@ -1650,7 +1650,7 @@ export default function MonProfilPage() {
                     <path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5V8h3v11zM6.5 6.7a1.7 1.7 0 110-3.4 1.7 1.7 0 010 3.4zM19 19h-3v-5.6c0-1.4-.5-2.4-1.7-2.4a1.9 1.9 0 00-1.8 1.3c-.1.2-.1.5-.1.8V19h-3V8h3v1.3a3 3 0 012.7-1.5c2 0 3.5 1.3 3.5 4V19z" />
                   </svg>
                   {t('labels.linkedin')}
-                  <span aria-hidden style={{ marginLeft: 4, fontSize: 11, color: '#94a3b8' }}>↗</span>
+                  <span aria-hidden style={{ marginLeft: 4, fontSize: 11, color: 'var(--sk-faint)' }}>↗</span>
                 </a>
               </div>
             ) : (
@@ -1661,7 +1661,7 @@ export default function MonProfilPage() {
           <div style={{ textAlign: 'center', padding: '20px 0 30px' }}>
             <Link
               href="/dashboard/freelance/profil/valider"
-              style={{ fontSize: 13, color: domain.primaryColor, textDecoration: 'none', fontWeight: 600 }}
+              style={{ fontSize: 13, color: 'var(--sk-accent)', textDecoration: 'none', fontWeight: 600 }}
             >
               {t('edit_button')}
             </Link>

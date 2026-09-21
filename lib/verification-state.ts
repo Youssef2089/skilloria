@@ -60,11 +60,11 @@ export function verificationStatusLabelKey(state: VerificationUiState): 'draft' 
 /** Couleur de la pastille (point) par état — cohérente avec verificationChipColors. */
 export function verificationDotColor(state: VerificationUiState): string {
   switch (state) {
-    case 'approved': return '#22c55e'
-    case 'pending': return '#3b82f6'
-    case 'admin_review': return '#eab308'
-    case 'rejected': return '#ef4444'
-    default: return '#94a3b8'
+    case 'approved': return 'var(--sk-success)'
+    case 'pending': return 'var(--sk-accent)'
+    case 'admin_review': return 'var(--sk-amber)'
+    case 'rejected': return 'var(--sk-red)'
+    default: return 'var(--sk-faint)'
   }
 }
 
@@ -76,14 +76,14 @@ export function verificationChipColors(state: VerificationUiState): {
 } {
   switch (state) {
     case 'approved':
-      return { bg: '#DCFCE7', border: '#BBF7D0', fg: '#15803D' }
+      return { bg: 'var(--sk-success-soft)', border: 'var(--sk-success-soft)', fg: 'var(--sk-success)' }
     case 'pending':
-      return { bg: '#DBEAFE', border: '#93C5FD', fg: '#1E40AF' }
+      return { bg: 'var(--sk-accent-soft)', border: 'var(--sk-accent-soft)', fg: 'var(--sk-accent)' }
     case 'admin_review':
-      return { bg: '#FEF9C3', border: '#FACC15', fg: '#854D0E' }
+      return { bg: 'var(--sk-amber-soft)', border: 'var(--sk-amber)', fg: 'var(--sk-amber)' }
     case 'rejected':
-      return { bg: '#FEE2E2', border: '#FECACA', fg: '#991B1B' }
+      return { bg: 'var(--sk-red-soft)', border: 'var(--sk-red-soft)', fg: 'var(--sk-red)' }
     default:
-      return { bg: '#F1F5F9', border: '#CBD5E1', fg: '#475569' }
+      return { bg: 'var(--sk-surface-2)', border: 'var(--sk-border)', fg: 'var(--sk-muted)' }
   }
 }

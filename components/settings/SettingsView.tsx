@@ -78,7 +78,7 @@ type SecureFetch = ReturnType<typeof useSecureFetch>
 
 // ─── primitives UI ──────────────────────────────────────────────────────────
 function Label({ children }: { children: React.ReactNode }) {
-  return <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>{children}</label>
+  return <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>{children}</label>
 }
 function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
@@ -86,7 +86,7 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
       {...props}
       style={{
         width: '100%', boxSizing: 'border-box', padding: '11px 13px',
-        border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 14, outline: 'none',
+        border: '1.5px solid var(--sk-border)', borderRadius: 10, fontSize: 14, outline: 'none',
         fontFamily: fontJakarta, ...(props.style || {}),
       }}
     />
@@ -99,7 +99,7 @@ function PrimaryButton({ children, ...rest }: React.ButtonHTMLAttributes<HTMLBut
       {...rest}
       style={{
         padding: '11px 18px', borderRadius: 10, border: 'none',
-        background: 'var(--sk-accent, #0ea5e9)', color: '#fff', fontSize: 14, fontWeight: 700,
+        background: 'var(--sk-accent, var(--sk-accent))', color: 'var(--sk-sur-accent)', fontSize: 14, fontWeight: 700,
         cursor: rest.disabled ? 'default' : 'pointer', opacity: rest.disabled ? 0.55 : 1,
         fontFamily: fontJakarta, ...(rest.style || {}),
       }}
@@ -111,8 +111,8 @@ function PrimaryButton({ children, ...rest }: React.ButtonHTMLAttributes<HTMLBut
 function SectionHeader({ title, description }: { title: string; description: string }) {
   return (
     <div style={{ marginBottom: 22 }}>
-      <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#0f172a' }}>{title}</h2>
-      <p style={{ margin: '6px 0 0', fontSize: 14, color: '#64748b', lineHeight: 1.5 }}>{description}</p>
+      <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: 'var(--sk-text)' }}>{title}</h2>
+      <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.5 }}>{description}</p>
     </div>
   )
 }
@@ -130,7 +130,7 @@ function Switch({ checked, disabled, onChange }: { checked: boolean; disabled?: 
       style={{
         width: 46, height: 27, borderRadius: 999, border: 'none', padding: 0, flexShrink: 0,
         cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative',
-        background: checked ? 'var(--sk-accent, #0ea5e9)' : '#cbd5e1', opacity: disabled ? 0.45 : 1,
+        background: checked ? 'var(--sk-accent, var(--sk-accent))' : 'var(--sk-border)', opacity: disabled ? 0.45 : 1,
         transition: 'background .15s',
       }}
     >
@@ -138,7 +138,7 @@ function Switch({ checked, disabled, onChange }: { checked: boolean; disabled?: 
         aria-hidden
         style={{
           position: 'absolute', top: 3, left: checked ? 22 : 3, width: 21, height: 21, borderRadius: '50%',
-          background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.25)', transition: 'left .15s',
+          background: 'var(--sk-surface)', boxShadow: '0 1px 3px color-mix(in srgb, var(--sk-text) 25%, transparent)', transition: 'left .15s',
         }}
       />
     </button>
@@ -217,9 +217,9 @@ function EmailSection({ user, secureFetch, requestReauth, notify }: {
   return (
     <div>
       <SectionHeader title={t('title')} description={t('description')} />
-      <FieldRow><Label>{t('current_label')}</Label><Input value={user.email ?? ''} disabled style={{ background: '#f8fafc', color: '#64748b' }} /></FieldRow>
+      <FieldRow><Label>{t('current_label')}</Label><Input value={user.email ?? ''} disabled style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-muted)' }} /></FieldRow>
       <FieldRow><Label>{t('new_label')}</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('new_placeholder')} /></FieldRow>
-      <p style={{ fontSize: 13, color: '#64748b', maxWidth: 460, lineHeight: 1.5, marginTop: -4, marginBottom: 16 }}>{t('confirmation_info')}</p>
+      <p style={{ fontSize: 13, color: 'var(--sk-muted)', maxWidth: 460, lineHeight: 1.5, marginTop: -4, marginBottom: 16 }}>{t('confirmation_info')}</p>
       <PrimaryButton onClick={() => void submit()} disabled={busy}>{busy ? tc('saving') : t('submit')}</PrimaryButton>
     </div>
   )
@@ -273,7 +273,7 @@ function PhoneSection({ user, requestReauth, notify, reload }: {
   return (
     <div>
       <SectionHeader title={t('title')} description={t('description')} />
-      <FieldRow><Label>{t('current_label')}</Label><Input value={user.phone ?? '—'} disabled style={{ background: '#f8fafc', color: '#64748b' }} /></FieldRow>
+      <FieldRow><Label>{t('current_label')}</Label><Input value={user.phone ?? '—'} disabled style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-muted)' }} /></FieldRow>
       <PhoneOtpField
         phone={phone}
         onPhoneChange={setPhone}
@@ -286,7 +286,7 @@ function PhoneSection({ user, requestReauth, notify, reload }: {
           reload()
         }}
         verified={false}
-        primaryColor="var(--sk-accent, #0ea5e9)"
+        primaryColor="var(--sk-accent, var(--sk-accent))"
         labels={labels}
         endpoints={{ send: '/api/auth/send-phone-otp', verify: '/api/auth/verify-phone-otp' }}
         // La ré-authentification est exigée AVANT l'envoi, comme avant. Rendre
@@ -390,13 +390,13 @@ function LanguageSection({ secureFetch, notify }: {
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '13px 16px', borderRadius: 12, cursor: 'pointer', fontFamily: fontJakarta,
-                border: active ? '2px solid var(--sk-accent, #0ea5e9)' : '1.5px solid #e2e8f0',
-                background: active ? 'color-mix(in srgb, var(--sk-accent, #0ea5e9) 8%, #fff)' : '#fff',
-                fontSize: 14, fontWeight: active ? 700 : 500, color: '#0f172a',
+                border: active ? '2px solid var(--sk-accent, var(--sk-accent))' : '1.5px solid var(--sk-border)',
+                background: active ? 'color-mix(in srgb, var(--sk-accent, var(--sk-accent)) 8%, var(--sk-surface))' : 'var(--sk-surface)',
+                fontSize: 14, fontWeight: active ? 700 : 500, color: 'var(--sk-text)',
               }}
             >
               <span>{LOCALE_LABELS[loc]}</span>
-              {active && <span aria-hidden style={{ color: 'var(--sk-accent, #0ea5e9)' }}>✓</span>}
+              {active && <span aria-hidden style={{ color: 'var(--sk-accent, var(--sk-accent))' }}>✓</span>}
             </button>
           )
         })}
@@ -426,9 +426,9 @@ function SecuritySection({ secureFetch, notify }: {
   return (
     <div>
       <SectionHeader title={t('title')} description={t('description')} />
-      <div style={{ maxWidth: 560, padding: 18, border: '1.5px solid #e2e8f0', borderRadius: 14 }}>
-        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{t('revoke_title')}</h3>
-        <p style={{ margin: '6px 0 14px', fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>{t('revoke_desc')}</p>
+      <div style={{ maxWidth: 560, padding: 18, border: '1.5px solid var(--sk-border)', borderRadius: 14 }}>
+        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--sk-text)' }}>{t('revoke_title')}</h3>
+        <p style={{ margin: '6px 0 14px', fontSize: 13, color: 'var(--sk-muted)', lineHeight: 1.5 }}>{t('revoke_desc')}</p>
         <PrimaryButton onClick={() => void revoke()} disabled={busy}>{t('revoke_button')}</PrimaryButton>
       </div>
     </div>
@@ -488,14 +488,14 @@ function DeletionSection({ secureFetch, requestReauth, notify }: {
   return (
     <div>
       <SectionHeader title={t('title')} description={t('description')} />
-      <div style={{ maxWidth: 560, padding: 18, border: '1.5px solid #fecaca', background: '#fef2f2', borderRadius: 14 }}>
-        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#b91c1c' }}>{t('warning_title')}</h3>
+      <div style={{ maxWidth: 560, padding: 18, border: '1.5px solid var(--sk-red-soft)', background: 'var(--sk-red-soft)', borderRadius: 14 }}>
+        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--sk-red)' }}>{t('warning_title')}</h3>
         {/* C5 : deux temporalités SÉPARÉES — immédiat vs 90 jours. */}
         <div style={{ margin: '10px 0 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <p style={{ margin: 0, fontSize: 13.5, color: '#7f1d1d', lineHeight: 1.55 }}>
+          <p style={{ margin: 0, fontSize: 13.5, color: 'var(--sk-red)', lineHeight: 1.55 }}>
             <strong>{t('warning_immediate_label')} </strong>{t('warning_immediate')}
           </p>
-          <p style={{ margin: 0, fontSize: 13.5, color: '#7f1d1d', lineHeight: 1.55 }}>
+          <p style={{ margin: 0, fontSize: 13.5, color: 'var(--sk-red)', lineHeight: 1.55 }}>
             <strong>{t('warning_delayed_label')} </strong>{t('warning_delayed')}
           </p>
         </div>
@@ -508,7 +508,7 @@ function DeletionSection({ secureFetch, requestReauth, notify }: {
             disabled={!armed || busy}
             style={{
               padding: '11px 18px', borderRadius: 10, border: 'none', fontFamily: fontJakarta,
-              background: '#dc2626', color: '#fff', fontSize: 14, fontWeight: 700,
+              background: 'var(--sk-red)', color: 'var(--sk-sur-accent)', fontSize: 14, fontWeight: 700,
               cursor: armed && !busy ? 'pointer' : 'default', opacity: armed && !busy ? 1 : 0.5,
             }}
           >
@@ -583,14 +583,14 @@ function NotificationsSection({ user, secureFetch, notify, goToPhone }: {
 
   const rowStyle: React.CSSProperties = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
-    padding: '16px 0', borderBottom: '1px solid #f1f5f9',
+    padding: '16px 0', borderBottom: '1px solid var(--sk-surface-2)',
   }
 
   if (settings === null) {
     return (
       <div>
         <SectionHeader title={t('title')} description={t('description')} />
-        <div style={{ padding: 24, color: '#94a3b8', fontSize: 13.5 }}>{tc('loading')}</div>
+        <div style={{ padding: 24, color: 'var(--sk-faint)', fontSize: 13.5 }}>{tc('loading')}</div>
       </div>
     )
   }
@@ -614,11 +614,11 @@ function NotificationsSection({ user, secureFetch, notify, goToPhone }: {
       <div style={{ maxWidth: 560 }}>
         {events.map(({ event, keyBase }, i) => (
           <div key={event} style={{ marginBottom: i === events.length - 1 ? 0 : 26 }}>
-            <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0f172a' }}>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--sk-text)' }}>
               {t(`${keyBase}.label` as 'events.new_message.label')}
             </div>
             {/* Chaque réglage dit CE QU'IL DÉCLENCHE, en clair. */}
-            <div style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 3, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12.5, color: 'var(--sk-faint)', marginTop: 3, lineHeight: 1.5 }}>
               {t(`${keyBase}.description` as 'events.new_message.description')}
             </div>
 
@@ -633,10 +633,10 @@ function NotificationsSection({ user, secureFetch, notify, goToPhone }: {
                     style={{ ...rowStyle, borderBottom: j === arr.length - 1 ? 'none' : rowStyle.borderBottom }}
                   >
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: unavailable ? '#94a3b8' : '#0f172a' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: unavailable ? 'var(--sk-faint)' : 'var(--sk-text)' }}>
                         {isSms ? t('sms_label') : t('email_label')}
                       </div>
-                      <div style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 3, wordBreak: 'break-all' }}>
+                      <div style={{ fontSize: 12.5, color: 'var(--sk-faint)', marginTop: 3, wordBreak: 'break-all' }}>
                         {isSms
                           ? (phoneVerified ? (user.phone ?? '—') : t('sms_unavailable'))
                           : (user.email ?? '—')}
@@ -647,7 +647,7 @@ function NotificationsSection({ user, secureFetch, notify, goToPhone }: {
                           onClick={goToPhone}
                           style={{
                             marginTop: 6, padding: 0, background: 'none', border: 'none', cursor: 'pointer',
-                            color: 'var(--sk-accent, #0ea5e9)', fontSize: 12.5, fontWeight: 600, fontFamily: fontJakarta,
+                            color: 'var(--sk-accent, var(--sk-accent))', fontSize: 12.5, fontWeight: 600, fontFamily: fontJakarta,
                             textDecoration: 'underline',
                           }}
                         >
@@ -676,7 +676,7 @@ function NotificationsSection({ user, secureFetch, notify, goToPhone }: {
             envoie un seul e-mail/SMS pour les N opportunités en attente d'un
             même cycle. On corrige donc la formulation ET le public, en lisant
             le mode d'envoi servi — pas le type de compte. */}
-        <p style={{ margin: '18px 0 0', fontSize: 12.5, color: '#94a3b8', lineHeight: 1.5 }}>
+        <p style={{ margin: '18px 0 0', fontSize: 12.5, color: 'var(--sk-faint)', lineHeight: 1.5 }}>
           {settings.some((s) => s.grouping === 'digest')
             ? t('grouping_note_digest')
             : t('grouping_note_per_item')}
@@ -801,8 +801,8 @@ export default function SettingsView() {
                 style={{
                   textAlign: 'left', padding: '10px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
                   fontFamily: fontJakarta, fontSize: 14, fontWeight: on ? 700 : 500,
-                  color: on ? 'var(--sk-accent-ink, #0369a1)' : '#475569',
-                  background: on ? 'var(--sk-accent-soft, #f0f9ff)' : 'transparent',
+                  color: on ? 'var(--sk-accent-ink, var(--sk-accent))' : 'var(--sk-muted)',
+                  background: on ? 'var(--sk-accent-soft, var(--sk-accent-soft))' : 'transparent',
                 }}
               >
                 {tn(s)}
@@ -812,7 +812,7 @@ export default function SettingsView() {
         </nav>
 
         {/* Panneau droit */}
-        <div style={{ flex: '1 1 480px', minWidth: 0, background: '#fff', border: '1.5px solid #eef2f7', borderRadius: 18, padding: 'clamp(18px, 3vw, 30px)' }}>
+        <div style={{ flex: '1 1 480px', minWidth: 0, background: 'var(--sk-surface)', border: '1.5px solid var(--sk-border)', borderRadius: 18, padding: 'clamp(18px, 3vw, 30px)' }}>
           {sectionNode}
         </div>
       </div>
@@ -823,8 +823,8 @@ export default function SettingsView() {
           style={{
             position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', zIndex: 900,
             padding: '12px 20px', borderRadius: 12, fontSize: 14, fontWeight: 600, fontFamily: fontJakarta,
-            color: '#fff', background: toast.kind === 'error' ? '#dc2626' : '#16a34a',
-            boxShadow: '0 10px 30px rgba(15,23,42,0.2)',
+            color: 'var(--sk-sur-accent)', background: toast.kind === 'error' ? 'var(--sk-red)' : 'var(--sk-success)',
+            boxShadow: '0 10px 30px color-mix(in srgb, var(--sk-text) 20%, transparent)',
           }}
         >
           {toast.msg}

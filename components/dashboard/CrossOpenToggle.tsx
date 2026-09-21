@@ -19,7 +19,7 @@ type Props = {
   /** Description courte → title/tooltip (optionnel). */
   hint?: string
   disabled?: boolean
-  /** Couleur de l'état actif (tenant-aware — domain.primaryColor). */
+  /** Couleur de l'état actif (tenant-aware — 'var(--sk-accent)'). */
   accentColor?: string
 }
 
@@ -29,7 +29,7 @@ export default function CrossOpenToggle({
   label,
   hint,
   disabled = false,
-  accentColor = '#10b981',
+  accentColor = 'var(--sk-success)',
 }: Props) {
   const toggle = () => {
     if (!disabled) onChange(!checked)
@@ -40,7 +40,7 @@ export default function CrossOpenToggle({
       style={{
         marginTop: 14,
         paddingTop: 14,
-        borderTop: '1px solid #e5e7eb',
+        borderTop: '1px solid var(--sk-border)',
         display: 'inline-flex',
         alignItems: 'center',
         gap: 10,
@@ -62,7 +62,7 @@ export default function CrossOpenToggle({
           padding: 0,
           border: 'none',
           borderRadius: 999,
-          background: checked ? accentColor : '#cbd5e1',
+          background: checked ? accentColor : 'var(--sk-border)',
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.6 : 1,
           transition: 'background .18s ease',
@@ -77,8 +77,8 @@ export default function CrossOpenToggle({
             width: 18,
             height: 18,
             borderRadius: '50%',
-            background: '#fff',
-            boxShadow: '0 1px 2px rgba(0,0,0,.2)',
+            background: 'var(--sk-surface)',
+            boxShadow: '0 1px 2px color-mix(in srgb, var(--sk-text) 20%, transparent)',
             transition: 'left .18s ease',
           }}
         />
@@ -89,7 +89,7 @@ export default function CrossOpenToggle({
         style={{
           fontSize: 13,
           fontWeight: 500,
-          color: '#334155',
+          color: 'var(--sk-muted)',
           cursor: disabled ? 'not-allowed' : 'pointer',
           userSelect: 'none',
         }}

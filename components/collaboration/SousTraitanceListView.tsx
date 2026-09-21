@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import type { Annonce } from '@/types/annonce'
 import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
@@ -31,7 +30,6 @@ export default function SousTraitanceListView({ basePath }: { basePath: string }
   const tPub = useTranslations('publications')
   const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
-  const domain = useDomain()
   const secureFetch = useSecureFetch()
 
   const [phase, setPhase] = useState<Phase>('loading')
@@ -96,14 +94,14 @@ export default function SousTraitanceListView({ basePath }: { basePath: string }
   const header = (
     <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
       <div>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', margin: '0 0 6px', letterSpacing: '-0.4px' }}>{t('title')}</h1>
-        <p style={{ fontSize: 14, color: '#64748b', margin: 0, maxWidth: 640 }}>{t('subtitle')}</p>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--sk-text)', margin: '0 0 6px', letterSpacing: '-0.4px' }}>{t('title')}</h1>
+        <p style={{ fontSize: 14, color: 'var(--sk-muted)', margin: 0, maxWidth: 640 }}>{t('subtitle')}</p>
       </div>
       {phase === 'ready' && (
         canPublish ? (
           <Link
             href={`${basePath}/sous-traitance/nouveau`}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', background: domain.primaryColor, color: '#fff', borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)', borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}
           >
             + {t('new_cta')}
           </Link>
@@ -113,7 +111,7 @@ export default function SousTraitanceListView({ basePath }: { basePath: string }
             disabled
             aria-disabled
             title={quotaMessage}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', background: '#e2e8f0', color: '#94a3b8', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'not-allowed', flexShrink: 0, fontFamily: 'inherit' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', background: 'var(--sk-border)', color: 'var(--sk-faint)', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'not-allowed', flexShrink: 0, fontFamily: 'inherit' }}
           >
             + {t('new_cta')}
           </button>
@@ -130,42 +128,42 @@ export default function SousTraitanceListView({ basePath }: { basePath: string }
       )}
 
       {phase === 'loading' && (
-        <div style={{ padding: 40, color: '#64748b', fontSize: 14 }}>{t('loading')}</div>
+        <div style={{ padding: 40, color: 'var(--sk-muted)', fontSize: 14 }}>{t('loading')}</div>
       )}
 
       {phase === 'locked' && (
-        <div style={{ maxWidth: 640, border: '1px solid #fde68a', background: '#fffbeb', borderRadius: 16, padding: 28 }}>
+        <div style={{ maxWidth: 640, border: '1px solid var(--sk-amber-soft)', background: 'var(--sk-amber-soft)', borderRadius: 16, padding: 28 }}>
           <div style={{ fontSize: 30, marginBottom: 10 }} aria-hidden>🔒</div>
-          <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: '#92400e' }}>{t('locked_title')}</h2>
-          <p style={{ margin: '0 0 18px', fontSize: 14, color: '#a16207', lineHeight: 1.6 }}>{t('locked_body')}</p>
-          <Link href={`${basePath}/profil/valider`} style={{ display: 'inline-flex', padding: '10px 16px', background: domain.primaryColor, color: '#fff', borderRadius: 10, fontSize: 13.5, fontWeight: 700, textDecoration: 'none' }}>
+          <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: 'var(--sk-amber)' }}>{t('locked_title')}</h2>
+          <p style={{ margin: '0 0 18px', fontSize: 14, color: 'var(--sk-amber)', lineHeight: 1.6 }}>{t('locked_body')}</p>
+          <Link href={`${basePath}/profil/valider`} style={{ display: 'inline-flex', padding: '10px 16px', background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)', borderRadius: 10, fontSize: 13.5, fontWeight: 700, textDecoration: 'none' }}>
             {t('locked_cta')}
           </Link>
         </div>
       )}
 
       {phase === 'org_error' && (
-        <div style={{ maxWidth: 640, border: '1px solid #fecaca', background: '#fef2f2', borderRadius: 16, padding: 24 }}>
-          <p style={{ margin: '0 0 14px', fontSize: 14, color: '#991b1b' }}>{t('error')}</p>
-          <button type="button" onClick={() => void load()} style={{ padding: '10px 16px', background: domain.primaryColor, color: '#fff', border: 'none', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <div style={{ maxWidth: 640, border: '1px solid var(--sk-red-soft)', background: 'var(--sk-red-soft)', borderRadius: 16, padding: 24 }}>
+          <p style={{ margin: '0 0 14px', fontSize: 14, color: 'var(--sk-red)' }}>{t('error')}</p>
+          <button type="button" onClick={() => void load()} style={{ padding: '10px 16px', background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)', border: 'none', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
             {t('retry')}
           </button>
         </div>
       )}
 
       {phase === 'ready' && !canPublish && (
-        <div role="status" style={{ maxWidth: 720, border: '1px solid #fde68a', background: '#fffbeb', borderRadius: 12, padding: '14px 16px', marginBottom: 18 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: '#92400e', marginBottom: 3 }}>{t('quota_reached_title')}</div>
-          <div style={{ fontSize: 13, color: '#a16207', lineHeight: 1.5 }}>{quotaMessage}</div>
+        <div role="status" style={{ maxWidth: 720, border: '1px solid var(--sk-amber-soft)', background: 'var(--sk-amber-soft)', borderRadius: 12, padding: '14px 16px', marginBottom: 18 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--sk-amber)', marginBottom: 3 }}>{t('quota_reached_title')}</div>
+          <div style={{ fontSize: 13, color: 'var(--sk-amber)', lineHeight: 1.5 }}>{quotaMessage}</div>
         </div>
       )}
 
       {phase === 'ready' && needs.length === 0 && (
-        <div style={{ maxWidth: 640, border: '1px dashed #cbd5e1', background: '#f8fafc', borderRadius: 16, padding: '40px 28px', textAlign: 'center' }}>
+        <div style={{ maxWidth: 640, border: '1px dashed var(--sk-border)', background: 'var(--sk-surface-2)', borderRadius: 16, padding: '40px 28px', textAlign: 'center' }}>
           <div style={{ fontSize: 34, marginBottom: 10 }} aria-hidden>🤝</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>{t('empty_title')}</div>
-          <p style={{ fontSize: 13.5, color: '#64748b', lineHeight: 1.6, margin: '0 auto 18px', maxWidth: 420 }}>{t('empty_body')}</p>
-          <Link href={`${basePath}/sous-traitance/nouveau`} style={{ display: 'inline-flex', padding: '11px 18px', background: domain.primaryColor, color: '#fff', borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 6 }}>{t('empty_title')}</div>
+          <p style={{ fontSize: 13.5, color: 'var(--sk-muted)', lineHeight: 1.6, margin: '0 auto 18px', maxWidth: 420 }}>{t('empty_body')}</p>
+          <Link href={`${basePath}/sous-traitance/nouveau`} style={{ display: 'inline-flex', padding: '11px 18px', background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)', borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
             + {t('new_cta')}
           </Link>
         </div>
@@ -174,7 +172,7 @@ export default function SousTraitanceListView({ basePath }: { basePath: string }
       {phase === 'ready' && needs.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {needs.map((n) => (
-            <NeedCard key={n.id} need={n} basePath={basePath} locale={locale} accent={domain.primaryColor} tPub={tPub} t={t} />
+            <NeedCard key={n.id} need={n} basePath={basePath} locale={locale} accent={'var(--sk-accent)'} tPub={tPub} t={t} />
           ))}
         </div>
       )}

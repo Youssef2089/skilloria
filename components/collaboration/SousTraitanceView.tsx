@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
@@ -41,7 +40,6 @@ type QuotaLimits = {
 export default function SousTraitanceView({ basePath }: { basePath: string }) {
   const t = useTranslations('collaboration')
   const tCommerce = useTranslations('commerce')
-  const domain = useDomain()
   const secureFetch = useSecureFetch()
 
   const [phase, setPhase] = useState<Phase>('loading')
@@ -208,8 +206,8 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
 
   // ── Styles (pattern dashboard, pleine largeur gauche) ────────────────────
   const card: React.CSSProperties = {
-    background: '#fff',
-    border: '1px solid #e2e8f0',
+    background: 'var(--sk-surface)',
+    border: '1px solid var(--sk-border)',
     borderRadius: 16,
     padding: 24,
     maxWidth: 640,
@@ -218,28 +216,28 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
     display: 'block',
     fontSize: 13,
     fontWeight: 600,
-    color: '#334155',
+    color: 'var(--sk-muted)',
     marginBottom: 6,
   }
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '10px 12px',
     fontSize: 14,
-    border: '1px solid #cbd5e1',
+    border: '1px solid var(--sk-border)',
     borderRadius: 10,
     outline: 'none',
     fontFamily: 'inherit',
     boxSizing: 'border-box',
-    color: '#0f172a',
-    background: '#fff',
+    color: 'var(--sk-text)',
+    background: 'var(--sk-surface)',
   }
 
   const header = (
     <div style={{ marginBottom: 20 }}>
-      <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', margin: '0 0 6px', letterSpacing: '-0.4px' }}>
+      <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--sk-text)', margin: '0 0 6px', letterSpacing: '-0.4px' }}>
         {t('page_title')}
       </h1>
-      <p style={{ fontSize: 14, color: '#64748b', margin: 0, maxWidth: 640 }}>{t('page_subtitle')}</p>
+      <p style={{ fontSize: 14, color: 'var(--sk-muted)', margin: 0, maxWidth: 640 }}>{t('page_subtitle')}</p>
     </div>
   )
 
@@ -248,34 +246,34 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
       {header}
 
       {phase === 'loading' && (
-        <div style={{ ...card, color: '#64748b', fontSize: 14 }}>{t('loading')}</div>
+        <div style={{ ...card, color: 'var(--sk-muted)', fontSize: 14 }}>{t('loading')}</div>
       )}
 
       {phase === 'org_error' && (
-        <div style={{ ...card, borderColor: '#fecaca', background: '#fef2f2' }}>
-          <p style={{ margin: '0 0 14px', fontSize: 14, color: '#991b1b' }}>{t('errors.org_unavailable')}</p>
-          <button type="button" onClick={() => void ensureOrg()} style={btn(domain.primaryColor)}>
+        <div style={{ ...card, borderColor: 'var(--sk-red-soft)', background: 'var(--sk-red-soft)' }}>
+          <p style={{ margin: '0 0 14px', fontSize: 14, color: 'var(--sk-red)' }}>{t('errors.org_unavailable')}</p>
+          <button type="button" onClick={() => void ensureOrg()} style={btn('var(--sk-accent)')}>
             {t('retry')}
           </button>
         </div>
       )}
 
       {phase === 'locked' && (
-        <div style={{ ...card, borderColor: '#fde68a', background: '#fffbeb' }}>
+        <div style={{ ...card, borderColor: 'var(--sk-amber-soft)', background: 'var(--sk-amber-soft)' }}>
           <div style={{ fontSize: 30, marginBottom: 8 }} aria-hidden>🔒</div>
-          <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: '#92400e' }}>{t('list.locked_title')}</h2>
-          <p style={{ margin: 0, fontSize: 14, color: '#a16207', lineHeight: 1.6 }}>{t('list.locked_body')}</p>
+          <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: 'var(--sk-amber)' }}>{t('list.locked_title')}</h2>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--sk-amber)', lineHeight: 1.6 }}>{t('list.locked_body')}</p>
         </div>
       )}
 
       {phase === 'published' && (
-        <div style={{ ...card, borderColor: '#bbf7d0', background: '#f0fdf4' }}>
+        <div style={{ ...card, borderColor: 'var(--sk-success-soft)', background: 'var(--sk-success-soft)' }}>
           <div style={{ fontSize: 32, marginBottom: 8 }} aria-hidden>✅</div>
-          <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: '#166534' }}>{t('published_title')}</h2>
-          <p style={{ margin: '0 0 16px', fontSize: 14, color: '#15803d', lineHeight: 1.55 }}>{t('published_body')}</p>
+          <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: 'var(--sk-success)' }}>{t('published_title')}</h2>
+          <p style={{ margin: '0 0 16px', fontSize: 14, color: 'var(--sk-success)', lineHeight: 1.55 }}>{t('published_body')}</p>
           <Link
             href={`${basePath}/sous-traitance`}
-            style={{ display: 'inline-flex', padding: '10px 16px', background: domain.primaryColor, color: '#fff', borderRadius: 10, fontSize: 13.5, fontWeight: 700, textDecoration: 'none' }}
+            style={{ display: 'inline-flex', padding: '10px 16px', background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)', borderRadius: 10, fontSize: 13.5, fontWeight: 700, textDecoration: 'none' }}
           >
             {t('published_cta')}
           </Link>
@@ -283,14 +281,14 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
       )}
 
       {phase === 'wall' && (
-        <div style={{ ...card, borderColor: '#fde68a', background: '#fffbeb' }}>
+        <div style={{ ...card, borderColor: 'var(--sk-amber-soft)', background: 'var(--sk-amber-soft)' }}>
           <div style={{ fontSize: 32, marginBottom: 8 }} aria-hidden>🔒</div>
-          <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: '#92400e' }}>{t('wall_title')}</h2>
-          <p style={{ margin: '0 0 6px', fontSize: 14, color: '#92400e', lineHeight: 1.55 }}>{t('wall_body')}</p>
+          <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: 'var(--sk-amber)' }}>{t('wall_title')}</h2>
+          <p style={{ margin: '0 0 6px', fontSize: 14, color: 'var(--sk-amber)', lineHeight: 1.55 }}>{t('wall_body')}</p>
           {/* L'issue depend du VERROU, pas d'une phrase figee : « contactez-nous »
               tant qu'il est ferme, « decouvrez nos offres » le jour ou il s'ouvre.
               Ferme par defaut — un quota illisible n'ouvre aucun chemin. */}
-          <p style={{ margin: 0, fontSize: 13, color: '#a16207' }}>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--sk-amber)' }}>
             {billingEnabled ? tCommerce('need_more_upgrade') : tCommerce('need_more_contact')}
           </p>
         </div>
@@ -305,7 +303,7 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
           <div style={{ marginBottom: 16 }}>
             <label htmlFor="st_desc" style={labelStyle}>{t('form.description_label')} *</label>
             <textarea id="st_desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={10_000} rows={6} placeholder={t('form.description_placeholder')} style={{ ...inputStyle, resize: 'vertical' }} />
-            <p style={{ fontSize: 12, color: '#94a3b8', margin: '6px 0 0' }}>{t('form.description_hint')}</p>
+            <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '6px 0 0' }}>{t('form.description_hint')}</p>
           </div>
           <div style={{ marginBottom: 16 }}>
             <label htmlFor="st_skills" style={labelStyle}>{t('form.skills_label')}</label>
@@ -323,7 +321,7 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
           </div>
 
           {error && (
-            <div role="alert" style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13, borderRadius: 10, marginBottom: 14 }}>
+            <div role="alert" style={{ padding: '10px 14px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 13, borderRadius: 10, marginBottom: 14 }}>
               {error}
             </div>
           )}
@@ -332,14 +330,14 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
             type="button"
             onClick={() => void publish()}
             disabled={!canSubmit}
-            style={{ ...btn(domain.primaryColor), opacity: canSubmit ? 1 : 0.5, cursor: canSubmit ? 'pointer' : 'not-allowed' }}
+            style={{ ...btn('var(--sk-accent)'), opacity: canSubmit ? 1 : 0.5, cursor: canSubmit ? 'pointer' : 'not-allowed' }}
           >
             {submitting ? t('form.submitting') : t('form.submit')}
           </button>
           {/* Récapitulatif chiffré de l'offre, juste avant l'action. Alimenté
               par le catalogue — jamais écrit en dur dans les traductions. */}
           {offerSummary && (
-            <p style={{ fontSize: 12, color: '#94a3b8', margin: '12px 0 0' }}>{offerSummary}</p>
+            <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '12px 0 0' }}>{offerSummary}</p>
           )}
         </div>
       )}
@@ -351,7 +349,7 @@ function btn(color: string): React.CSSProperties {
   return {
     padding: '11px 18px',
     background: color,
-    color: '#fff',
+    color: 'var(--sk-sur-accent)',
     border: 'none',
     borderRadius: 10,
     fontSize: 14,

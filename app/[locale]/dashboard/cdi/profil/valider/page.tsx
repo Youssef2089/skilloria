@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { Plus_Jakarta_Sans } from 'next/font/google'
-import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { markMatchingTriggered } from '@/lib/matching-resync-hint'
@@ -225,7 +224,7 @@ function SectionHeader({
           borderRadius: 999,
           fontSize: 12,
           fontWeight: 800,
-          color: '#fff',
+          color: 'var(--sk-sur-accent)',
           background: color,
           fontFamily: fontJakarta,
           flexShrink: 0,
@@ -238,7 +237,7 @@ function SectionHeader({
           flex: 1,
           fontSize: 16,
           fontWeight: 700,
-          color: '#0f172a',
+          color: 'var(--sk-text)',
           letterSpacing: '-0.2px',
           fontFamily: fontJakarta,
         }}
@@ -251,24 +250,23 @@ function SectionHeader({
 }
 
 const SECTION_COLORS = {
-  expertise: '#6366f1',
-  certifications: '#a855f7',
-  languages: '#10b981',
-  liens: '#06b6d4',
-  coordonnees: '#f59e0b',
-  parcours: '#ec4899',
-  missions: '#f43f5e',
-  formation: '#14b8a6',
+  expertise: 'var(--sk-accent)',
+  certifications: 'var(--sk-accent)',
+  languages: 'var(--sk-success)',
+  liens: 'var(--sk-accent)',
+  coordonnees: 'var(--sk-amber)',
+  parcours: 'var(--sk-accent)',
+  missions: 'var(--sk-red)',
+  formation: 'var(--sk-accent)',
   // Sections CDI (phase 4b)
-  status: '#f97316',
-  compensation: '#eab308',
-  preferences: '#8b5cf6',
-  motivations: '#db2777',
+  status: 'var(--sk-amber)',
+  compensation: 'var(--sk-amber)',
+  preferences: 'var(--sk-accent)',
+  motivations: 'var(--sk-accent)',
 } as const
 
 export default function CdiValiderProfilPage() {
   const router = useRouter()
-  const domain = useDomain()
   const secureFetch = useSecureFetch()
   const SPECIALITY_OTHER = '__other__'
   const tProfile = useTranslations('cdi_profile_validation')
@@ -505,7 +503,7 @@ export default function CdiValiderProfilPage() {
       <div
         style={{
           fontSize: 12,
-          color: '#dc2626',
+          color: 'var(--sk-red)',
           marginTop: 6,
           display: 'flex',
           alignItems: 'center',
@@ -1133,12 +1131,12 @@ export default function CdiValiderProfilPage() {
   const inputStyle = (field?: string): React.CSSProperties => ({
     width: '100%',
     padding: '10px 14px',
-    border: `1.5px solid ${field && isMissing(field) ? '#dc2626' : '#e2e8f0'}`,
+    border: `1.5px solid ${field && isMissing(field) ? 'var(--sk-red)' : 'var(--sk-border)'}`,
     borderRadius: 10,
     fontSize: 14,
-    color: '#0f172a',
+    color: 'var(--sk-text)',
     outline: 'none',
-    background: '#fff',
+    background: 'var(--sk-surface)',
     fontFamily: 'inherit',
   })
 
@@ -1146,14 +1144,14 @@ export default function CdiValiderProfilPage() {
     display: 'block',
     fontSize: 13,
     fontWeight: 600,
-    color: '#374151',
+    color: 'var(--sk-muted)',
     marginBottom: 6,
     fontFamily: fontJakarta,
   }
 
   const sectionStyle: React.CSSProperties = {
-    background: '#fff',
-    border: '1px solid #e2e8f0',
+    background: 'var(--sk-surface)',
+    border: '1px solid var(--sk-border)',
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
@@ -1161,8 +1159,8 @@ export default function CdiValiderProfilPage() {
   }
 
   const primaryAddBtnStyle: React.CSSProperties = {
-    background: domain.primaryColor,
-    color: '#fff',
+    background: 'var(--sk-accent)',
+    color: 'var(--sk-sur-accent)',
     border: 'none',
     borderRadius: 10,
     padding: '10px 18px',
@@ -1174,9 +1172,9 @@ export default function CdiValiderProfilPage() {
   }
 
   const inlineAddBtnStyle: React.CSSProperties = {
-    background: `${domain.primaryColor}14`,
-    color: domain.primaryColor,
-    border: `1px solid ${domain.primaryColor}33`,
+    background: `color-mix(in srgb, var(--sk-accent) 8%, transparent)`,
+    color: 'var(--sk-accent)',
+    border: `1px solid color-mix(in srgb, var(--sk-accent) 20%, transparent)`,
     borderRadius: 8,
     padding: '6px 12px',
     fontSize: 13,
@@ -1205,8 +1203,8 @@ export default function CdiValiderProfilPage() {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 6,
-    background: `${domain.primaryColor}15`,
-    color: domain.primaryColor,
+    background: `color-mix(in srgb, var(--sk-accent) 8%, transparent)`,
+    color: 'var(--sk-accent)',
     padding: '4px 10px',
     borderRadius: 999,
     fontSize: 12,
@@ -1239,8 +1237,8 @@ export default function CdiValiderProfilPage() {
           display: 'block',
           margin: '12px auto 0',
           background: 'transparent',
-          color: domain.primaryColor,
-          border: `1px solid ${domain.primaryColor}33`,
+          color: 'var(--sk-accent)',
+          border: `1px solid color-mix(in srgb, var(--sk-accent) 20%, transparent)`,
           borderRadius: 999,
           padding: '8px 18px',
           fontSize: 14,
@@ -1370,7 +1368,7 @@ export default function CdiValiderProfilPage() {
             marginBottom: 12,
             cursor: 'pointer',
             fontSize: 13,
-            color: '#374151',
+            color: 'var(--sk-muted)',
             fontWeight: 500,
             fontFamily: fontJakarta,
           }}
@@ -1384,7 +1382,7 @@ export default function CdiValiderProfilPage() {
                 end_date: e.target.checked ? '' : exp.end_date,
               })
             }
-            style={{ accentColor: domain.primaryColor }}
+            style={{ accentColor: 'var(--sk-accent)' }}
           />
           {isCareer
             ? tProfile('sections.career.is_current_label')
@@ -1441,12 +1439,12 @@ export default function CdiValiderProfilPage() {
             onClick={() => onToggle(opt)}
             style={{
               padding: '8px 14px',
-              border: `1.5px solid ${active ? primaryColor : '#e2e8f0'}`,
+              border: `1.5px solid ${active ? primaryColor : 'var(--sk-border)'}`,
               borderRadius: 999,
-              background: active ? `${primaryColor}10` : '#fff',
+              background: active ? `color-mix(in srgb, var(--sk-accent) 6%, transparent)` : 'var(--sk-surface)',
               fontSize: 13,
               fontWeight: 600,
-              color: active ? primaryColor : '#374151',
+              color: active ? primaryColor : 'var(--sk-muted)',
               cursor: 'pointer',
               fontFamily: fontJakarta,
               transition: 'all 0.15s ease',
@@ -1466,7 +1464,7 @@ export default function CdiValiderProfilPage() {
         className={jakarta.variable}
         style={{
           minHeight: '100vh',
-          background: '#f8fafc',
+          background: 'var(--sk-surface-2)',
           fontFamily: fontInter,
           display: 'flex',
           alignItems: 'center',
@@ -1476,8 +1474,8 @@ export default function CdiValiderProfilPage() {
       >
         <div
           style={{
-            background: '#fff',
-            border: '1px solid #e2e8f0',
+            background: 'var(--sk-surface)',
+            border: '1px solid var(--sk-border)',
             borderRadius: 16,
             padding: 32,
             maxWidth: 440,
@@ -1488,7 +1486,7 @@ export default function CdiValiderProfilPage() {
             🔒
           </div>
           <div
-            style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}
+            style={{ fontSize: 18, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 8 }}
           >
             403
           </div>
@@ -1497,8 +1495,8 @@ export default function CdiValiderProfilPage() {
             onClick={() => router.push('/')}
             style={{
               marginTop: 16,
-              background: domain.primaryColor,
-              color: '#fff',
+              background: 'var(--sk-accent)',
+              color: 'var(--sk-sur-accent)',
               border: 'none',
               borderRadius: 10,
               padding: '10px 18px',
@@ -1519,13 +1517,13 @@ export default function CdiValiderProfilPage() {
   return (
     <div
       className={jakarta.variable}
-      style={{ minHeight: '100%', background: '#f8fafc', fontFamily: fontInter }}
+      style={{ minHeight: '100%', background: 'var(--sk-surface-2)', fontFamily: fontInter }}
     >
       <style>{`
         @keyframes sk-spin { to { transform: rotate(360deg); } }
         @keyframes sk-focus-ring {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
-          50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.25); }
+          0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sk-red) 0%, transparent); }
+          50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--sk-red) 25%, transparent); }
         }
         .sk-focus-highlight { animation: sk-focus-ring 0.7s ease-out 2; border-radius: 10px; }
         @keyframes sk-fade-in {
@@ -1533,7 +1531,7 @@ export default function CdiValiderProfilPage() {
           to { opacity: 1; transform: translateY(0); }
         }
         .compact-extra { animation: sk-fade-in 200ms ease-out both; }
-        .show-more-btn:hover { transform: translateY(-1px); background: ${domain.primaryColor}10; }
+        .show-more-btn:hover { transform: translateY(-1px); background: color-mix(in srgb, var(--sk-accent) 6%, transparent); }
         @media (max-width: 767px) {
           .profil-main { padding: 18px !important; }
           .profil-title { font-size: 26px !important; }
@@ -1542,7 +1540,7 @@ export default function CdiValiderProfilPage() {
           .profil-actions {
             position: sticky; bottom: 0; z-index: 20;
             margin-left: -18px; margin-right: -18px;
-            border-radius: 0; border-top: 1px solid #e2e8f0;
+            border-radius: 0; border-top: 1px solid var(--sk-border);
             padding: 14px 18px;
             flex-direction: column-reverse;
           }
@@ -1562,7 +1560,7 @@ export default function CdiValiderProfilPage() {
               alignItems: 'center',
               justifyContent: 'center',
               padding: 80,
-              color: '#64748b',
+              color: 'var(--sk-muted)',
               fontSize: 14,
               fontFamily: fontJakarta,
             }}
@@ -1572,8 +1570,8 @@ export default function CdiValiderProfilPage() {
                 width: 40,
                 height: 40,
                 borderRadius: '50%',
-                border: `3px solid ${domain.primaryColor}22`,
-                borderTopColor: domain.primaryColor,
+                border: `3px solid color-mix(in srgb, var(--sk-accent) 13%, transparent)`,
+                borderTopColor: 'var(--sk-accent)',
                 marginBottom: 16,
                 animation: 'sk-spin 0.9s linear infinite',
               }}
@@ -1595,8 +1593,8 @@ export default function CdiValiderProfilPage() {
                 role="status"
                 aria-live="polite"
                 style={{
-                  background: '#fffbeb',
-                  border: '1px solid #fde68a',
+                  background: 'var(--sk-amber-soft)',
+                  border: '1px solid var(--sk-amber-soft)',
                   borderRadius: 12,
                   padding: '12px 16px',
                   marginBottom: 20,
@@ -1607,10 +1605,10 @@ export default function CdiValiderProfilPage() {
                 }}
               >
                 <div style={{ flex: '1 1 260px', minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, color: '#92400e', fontSize: 14, marginBottom: 4 }}>
+                  <div style={{ fontWeight: 600, color: 'var(--sk-amber)', fontSize: 14, marginBottom: 4 }}>
                     {tProfile('errors.list_read_failed_title')}
                   </div>
-                  <div style={{ color: '#78350f', fontSize: 13, lineHeight: 1.5 }}>
+                  <div style={{ color: 'var(--sk-amber)', fontSize: 13, lineHeight: 1.5 }}>
                     {tProfile('errors.list_read_failed_body', {
                       sections: LISTES_DE_PROFIL.filter(c => !listesLues.includes(c))
                         .map(c => tProfile(`sections.${c}`))
@@ -1622,8 +1620,8 @@ export default function CdiValiderProfilPage() {
                   type="button"
                   onClick={() => window.location.reload()}
                   style={{
-                    background: '#92400e',
-                    color: '#fff',
+                    background: 'var(--sk-amber)',
+                    color: 'var(--sk-sur-accent)',
                     border: 'none',
                     borderRadius: 8,
                     padding: '8px 14px',
@@ -1645,20 +1643,20 @@ export default function CdiValiderProfilPage() {
                   position: 'sticky',
                   top: 16,
                   zIndex: 50,
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
+                  background: 'var(--sk-red-soft)',
+                  border: '1px solid var(--sk-red-soft)',
                   borderRadius: 12,
                   padding: '12px 16px',
                   marginBottom: 20,
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: 12,
-                  boxShadow: '0 6px 24px rgba(220, 38, 38, 0.08)',
+                  boxShadow: '0 6px 24px color-mix(in srgb, var(--sk-red) 8%, transparent)',
                 }}
               >
                 <div
                   style={{
-                    color: '#dc2626',
+                    color: 'var(--sk-red)',
                     fontSize: 13,
                     flex: 1,
                     lineHeight: 1.55,
@@ -1685,7 +1683,7 @@ export default function CdiValiderProfilPage() {
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#991b1b',
+                    color: 'var(--sk-red)',
                     fontSize: 20,
                     cursor: 'pointer',
                     lineHeight: 1,
@@ -1705,20 +1703,20 @@ export default function CdiValiderProfilPage() {
                   position: 'sticky',
                   top: 16,
                   zIndex: 50,
-                  background: '#ecfdf5',
-                  border: '1px solid #a7f3d0',
+                  background: 'var(--sk-success-soft)',
+                  border: '1px solid var(--sk-success-soft)',
                   borderRadius: 12,
                   padding: '12px 16px',
                   marginBottom: 20,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 12,
-                  boxShadow: '0 6px 24px rgba(16, 185, 129, 0.10)',
+                  boxShadow: '0 6px 24px color-mix(in srgb, var(--sk-success) 10%, transparent)',
                 }}
               >
                 <div
                   style={{
-                    color: '#065f46',
+                    color: 'var(--sk-success)',
                     fontSize: 13,
                     flex: 1,
                     lineHeight: 1.55,
@@ -1732,8 +1730,8 @@ export default function CdiValiderProfilPage() {
                   type="button"
                   onClick={() => router.push('/dashboard/cdi')}
                   style={{
-                    background: '#10b981',
-                    color: '#fff',
+                    background: 'var(--sk-success)',
+                    color: 'var(--sk-sur-accent)',
                     border: 'none',
                     borderRadius: 8,
                     padding: '8px 14px',
@@ -1753,7 +1751,7 @@ export default function CdiValiderProfilPage() {
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#065f46',
+                    color: 'var(--sk-success)',
                     fontSize: 20,
                     cursor: 'pointer',
                     lineHeight: 1,
@@ -1768,13 +1766,13 @@ export default function CdiValiderProfilPage() {
             {parsingFailed && !errorMsg && !successMsg && (
               <div
                 style={{
-                  background: '#fff7ed',
-                  border: '1px solid #fed7aa',
+                  background: 'var(--sk-amber-soft)',
+                  border: '1px solid var(--sk-amber-soft)',
                   borderRadius: 12,
                   padding: '12px 16px',
                   marginBottom: 20,
                   fontSize: 13,
-                  color: '#9a3412',
+                  color: 'var(--sk-amber)',
                   lineHeight: 1.55,
                   fontFamily: fontJakarta,
                 }}
@@ -1788,7 +1786,7 @@ export default function CdiValiderProfilPage() {
               style={{
                 fontSize: 32,
                 fontWeight: 800,
-                color: '#0f172a',
+                color: 'var(--sk-text)',
                 letterSpacing: '-0.3px',
                 marginBottom: 8,
                 fontFamily: fontJakarta,
@@ -1799,7 +1797,7 @@ export default function CdiValiderProfilPage() {
             <p
               style={{
                 fontSize: 15,
-                color: '#64748b',
+                color: 'var(--sk-muted)',
                 lineHeight: 1.6,
                 marginBottom: 20,
                 maxWidth: 640,
@@ -1811,13 +1809,13 @@ export default function CdiValiderProfilPage() {
 
             <div
               style={{
-                background: `${domain.primaryColor}10`,
-                border: `1px solid ${domain.primaryColor}33`,
+                background: `color-mix(in srgb, var(--sk-accent) 6%, transparent)`,
+                border: `1px solid color-mix(in srgb, var(--sk-accent) 20%, transparent)`,
                 borderRadius: 12,
                 padding: '12px 16px',
                 marginBottom: 24,
                 fontSize: 13,
-                color: domain.primaryColor,
+                color: 'var(--sk-accent)',
                 fontWeight: 500,
                 fontFamily: fontJakarta,
               }}
@@ -1831,7 +1829,7 @@ export default function CdiValiderProfilPage() {
             <div style={sectionStyle}>
               <SectionHeader
                 n="1"
-                color={domain.primaryColor}
+                color={'var(--sk-accent)'}
                 title={tProfile('sections.identity.title')}
               />
 
@@ -1859,7 +1857,7 @@ export default function CdiValiderProfilPage() {
                 <p
                   style={{
                     fontSize: 12,
-                    color: '#475569',
+                    color: 'var(--sk-muted)',
                     margin: '0 0 8px',
                     fontFamily: fontJakarta,
                     lineHeight: 1.5,
@@ -1889,8 +1887,8 @@ export default function CdiValiderProfilPage() {
                     color:
                       summary.trim().length > 0 &&
                       (summary.trim().length < RESUME_MIN || summary.trim().length > RESUME_MAX)
-                        ? '#dc2626'
-                        : '#94a3b8',
+                        ? 'var(--sk-red)'
+                        : 'var(--sk-faint)',
                     marginTop: 4,
                     fontFamily: fontJakarta,
                   }}
@@ -2047,7 +2045,7 @@ export default function CdiValiderProfilPage() {
               >
                 <label style={labelStyle}>
                   {tWorkZones('label')}{' '}
-                  <span style={{ color: '#94a3b8', fontWeight: 400 }}>· {tWorkZones('hint')}</span>
+                  <span style={{ color: 'var(--sk-faint)', fontWeight: 400 }}>· {tWorkZones('hint')}</span>
                 </label>
                 <WorkZoneSelector
                   zones={workZones}
@@ -2065,7 +2063,7 @@ export default function CdiValiderProfilPage() {
               >
                 <label style={labelStyle}>
                   {tProfile('sections.expertise.skills_label')}{' '}
-                  <span style={{ color: '#94a3b8', fontWeight: 400 }}>
+                  <span style={{ color: 'var(--sk-faint)', fontWeight: 400 }}>
                     · {skills.length}{' '}
                     {skills.length < 3 ? tProfile('sections.expertise.skills_min_hint') : ''}
                   </span>
@@ -2099,7 +2097,7 @@ export default function CdiValiderProfilPage() {
                         style={{
                           background: 'transparent',
                           border: 'none',
-                          color: domain.primaryColor,
+                          color: 'var(--sk-accent)',
                           cursor: 'pointer',
                           fontSize: 14,
                           lineHeight: 1,
@@ -2134,7 +2132,7 @@ export default function CdiValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 12,
-                    color: '#64748b',
+                    color: 'var(--sk-muted)',
                     marginBottom: 10,
                     fontFamily: fontJakarta,
                   }}
@@ -2191,7 +2189,7 @@ export default function CdiValiderProfilPage() {
                   <div
                     style={{
                       fontSize: 11,
-                      color: '#94a3b8',
+                      color: 'var(--sk-faint)',
                       marginTop: 4,
                       fontFamily: fontJakarta,
                     }}
@@ -2207,10 +2205,10 @@ export default function CdiValiderProfilPage() {
                   alignItems: 'flex-start',
                   gap: 12,
                   padding: '12px 14px',
-                  border: '1px solid #e2e8f0',
+                  border: '1px solid var(--sk-border)',
                   borderRadius: 10,
                   cursor: 'pointer',
-                  background: cdiConfidentialMode ? '#fef9c3' : '#fff',
+                  background: cdiConfidentialMode ? 'var(--sk-amber-soft)' : 'var(--sk-surface)',
                   transition: 'background 0.18s',
                 }}
               >
@@ -2221,7 +2219,7 @@ export default function CdiValiderProfilPage() {
                   style={{
                     marginTop: 3,
                     flexShrink: 0,
-                    accentColor: domain.primaryColor,
+                    accentColor: 'var(--sk-accent)',
                   }}
                 />
                 <div>
@@ -2229,7 +2227,7 @@ export default function CdiValiderProfilPage() {
                     style={{
                       fontSize: 14,
                       fontWeight: 700,
-                      color: '#0f172a',
+                      color: 'var(--sk-text)',
                       fontFamily: fontJakarta,
                     }}
                   >
@@ -2238,7 +2236,7 @@ export default function CdiValiderProfilPage() {
                   <div
                     style={{
                       fontSize: 12,
-                      color: '#64748b',
+                      color: 'var(--sk-muted)',
                       marginTop: 4,
                       lineHeight: 1.55,
                       fontFamily: fontJakarta,
@@ -2306,10 +2304,10 @@ export default function CdiValiderProfilPage() {
                     style={{
                       ...inputStyle('cdi_salary_min'),
                       borderColor: salaryRangeError
-                        ? '#dc2626'
+                        ? 'var(--sk-red)'
                         : isMissing('cdi_salary_min')
-                          ? '#dc2626'
-                          : '#e2e8f0',
+                          ? 'var(--sk-red)'
+                          : 'var(--sk-border)',
                     }}
                   />
                   <FieldError field="cdi_salary_min" />
@@ -2329,10 +2327,10 @@ export default function CdiValiderProfilPage() {
                     style={{
                       ...inputStyle('cdi_salary_max'),
                       borderColor: salaryRangeError
-                        ? '#dc2626'
+                        ? 'var(--sk-red)'
                         : isMissing('cdi_salary_max')
-                          ? '#dc2626'
-                          : '#e2e8f0',
+                          ? 'var(--sk-red)'
+                          : 'var(--sk-border)',
                     }}
                   />
                   <FieldError field="cdi_salary_max" />
@@ -2344,7 +2342,7 @@ export default function CdiValiderProfilPage() {
                   role="alert"
                   style={{
                     fontSize: 12,
-                    color: '#dc2626',
+                    color: 'var(--sk-red)',
                     marginBottom: 14,
                     display: 'flex',
                     alignItems: 'center',
@@ -2373,7 +2371,7 @@ export default function CdiValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 11,
-                    color: '#94a3b8',
+                    color: 'var(--sk-faint)',
                     marginTop: 4,
                     fontFamily: fontJakarta,
                   }}
@@ -2402,7 +2400,7 @@ export default function CdiValiderProfilPage() {
                     setCdiContractTypes(toggleArrayItem(cdiContractTypes, v))
                   }
                   getLabel={v => tView(`contract_types_options.${v}`)}
-                  primaryColor={domain.primaryColor}
+                  primaryColor={'var(--sk-accent)'}
                 />
               </div>
 
@@ -2435,7 +2433,7 @@ export default function CdiValiderProfilPage() {
                   options={COMPANY_SIZE_VALUES}
                   onToggle={v => setCdiCompanySize(toggleArrayItem(cdiCompanySize, v))}
                   getLabel={v => tView(`company_size_options.${v}`)}
-                  primaryColor={domain.primaryColor}
+                  primaryColor={'var(--sk-accent)'}
                 />
               </div>
 
@@ -2448,7 +2446,7 @@ export default function CdiValiderProfilPage() {
                   options={SECTOR_VALUES}
                   onToggle={v => setCdiSectors(toggleArrayItem(cdiSectors, v))}
                   getLabel={v => tView(`sectors_options.${v}`)}
-                  primaryColor={domain.primaryColor}
+                  primaryColor={'var(--sk-accent)'}
                 />
               </div>
 
@@ -2461,14 +2459,14 @@ export default function CdiValiderProfilPage() {
                   options={BENEFIT_VALUES}
                   onToggle={v => setCdiBenefits(toggleArrayItem(cdiBenefits, v))}
                   getLabel={v => tView(`benefits_options.${v}`)}
-                  primaryColor={domain.primaryColor}
+                  primaryColor={'var(--sk-accent)'}
                 />
               </div>
 
               <div>
                 <label style={labelStyle}>
                   {tProfile('sections.preferences.work_modes_label')}{' '}
-                  <span style={{ color: '#94a3b8', fontWeight: 400 }}>
+                  <span style={{ color: 'var(--sk-faint)', fontWeight: 400 }}>
                     · {tProfile('sections.preferences.work_modes_hint')}
                   </span>
                 </label>
@@ -2477,7 +2475,7 @@ export default function CdiValiderProfilPage() {
                   options={WORK_MODE_VALUES}
                   onToggle={v => setWorkModes(toggleArrayItem(workModes, v))}
                   getLabel={v => tProfile(`sections.preferences.work_mode_${v}`)}
-                  primaryColor={domain.primaryColor}
+                  primaryColor={'var(--sk-accent)'}
                 />
               </div>
             </div>
@@ -2536,7 +2534,7 @@ export default function CdiValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 13,
-                    color: '#94a3b8',
+                    color: 'var(--sk-faint)',
                     padding: '10px 0 14px',
                     fontFamily: fontJakarta,
                   }}
@@ -2652,7 +2650,7 @@ export default function CdiValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 13,
-                    color: '#94a3b8',
+                    color: 'var(--sk-faint)',
                     padding: '4px 0 12px',
                     fontFamily: fontJakarta,
                   }}
@@ -2721,7 +2719,7 @@ export default function CdiValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 13,
-                    color: '#94a3b8',
+                    color: 'var(--sk-faint)',
                     padding: '4px 0 12px',
                     fontFamily: fontJakarta,
                   }}
@@ -2786,7 +2784,7 @@ export default function CdiValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 13,
-                    color: '#94a3b8',
+                    color: 'var(--sk-faint)',
                     padding: '4px 0 14px',
                     fontFamily: fontJakarta,
                   }}
@@ -2958,7 +2956,7 @@ export default function CdiValiderProfilPage() {
                 <div
                   style={{
                     fontSize: 13,
-                    color: '#94a3b8',
+                    color: 'var(--sk-faint)',
                     padding: '4px 0 10px',
                     fontFamily: fontJakarta,
                   }}
@@ -2985,7 +2983,7 @@ export default function CdiValiderProfilPage() {
                             style={{
                               marginLeft: 8,
                               fontSize: 11,
-                              color: domain.primaryColor,
+                              color: 'var(--sk-accent)',
                               fontWeight: 700,
                             }}
                           >
@@ -3037,7 +3035,7 @@ export default function CdiValiderProfilPage() {
                           gap: 6,
                           fontSize: 12,
                           fontWeight: 600,
-                          color: l.is_primary ? domain.primaryColor : '#64748b',
+                          color: l.is_primary ? 'var(--sk-accent)' : 'var(--sk-muted)',
                           cursor: 'pointer',
                           whiteSpace: 'nowrap',
                           fontFamily: fontJakarta,
@@ -3048,7 +3046,7 @@ export default function CdiValiderProfilPage() {
                           name="cdi_language_primary"
                           checked={l.is_primary}
                           onChange={() => setLanguagePrimary(i)}
-                          style={{ accentColor: domain.primaryColor }}
+                          style={{ accentColor: 'var(--sk-accent)' }}
                         />
                         {tProfile('sections.languages.primary_label')}
                       </label>
@@ -3184,7 +3182,7 @@ export default function CdiValiderProfilPage() {
                 <CountrySelect
                   value={country}
                   onChange={setCountry}
-                  primaryColor={domain.primaryColor}
+                  primaryColor={'var(--sk-accent)'}
                 />
               </div>
             </div>
@@ -3219,8 +3217,8 @@ export default function CdiValiderProfilPage() {
                       style={{
                         flex: 1,
                         background: 'var(--sk-surface)',
-                        color: domain.primaryColor,
-                        border: `1.5px solid ${domain.primaryColor}`,
+                        color: 'var(--sk-accent)',
+                        border: `1.5px solid var(--sk-accent)`,
                         borderRadius: 12,
                         padding: 13,
                         fontSize: 14,
@@ -3240,8 +3238,8 @@ export default function CdiValiderProfilPage() {
                       title={!canPublish ? tProfile('actions.publish_disabled_tooltip') : undefined}
                       style={{
                         flex: 1,
-                        background: canPublish ? domain.primaryColor : 'var(--sk-surface-2)',
-                        color: canPublish ? '#fff' : 'var(--sk-faint)',
+                        background: canPublish ? 'var(--sk-accent)' : 'var(--sk-surface-2)',
+                        color: canPublish ? 'var(--sk-sur-accent)' : 'var(--sk-faint)',
                         border: canPublish ? 'none' : '1px solid var(--sk-border)',
                         borderRadius: 12,
                         padding: 13,
@@ -3343,8 +3341,8 @@ export default function CdiValiderProfilPage() {
                             disabled={resetting}
                             style={{
                               flex: 1,
-                              background: '#991b1b',
-                              color: '#fff',
+                              background: 'var(--sk-red)',
+                              color: 'var(--sk-sur-accent)',
                               border: 'none',
                               borderRadius: 10,
                               padding: 11,

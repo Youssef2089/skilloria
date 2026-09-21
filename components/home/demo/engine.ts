@@ -169,7 +169,12 @@ export function mountDemo(root: HTMLElement, options: DemoOptions): () => void {
 
   const cursor = document.createElement('div')
   cursor.className = 'skh-cursor'
-  cursor.innerHTML = `<svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 2L3 15.5L6.8 11.5L9.5 17L11.2 16.1L8.5 10.5L13.5 10.5Z" fill="var(--sk-text)" stroke="var(--sk-surface)" stroke-width="1.2" stroke-linejoin="round"/></svg>`
+  // ⚠️ LES VALEURS, PAS LES JETONS. Un attribut de présentation SVG ne résout
+  //    pas `var()` : `fill="var(--sk-text)"` n'échoue pas, il ne peint RIEN, et
+  //    le curseur de la démonstration disparaît sans une ligne de journal.
+  //    La conversion de ce lot l'avait introduit ici ; c'est la palette résolue
+  //    qui le referme, comme pour tout le reste du SVG de la démo.
+  cursor.innerHTML = `<svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 2L3 15.5L6.8 11.5L9.5 17L11.2 16.1L8.5 10.5L13.5 10.5Z" fill="${palette.textePrincipal}" stroke="${palette.cartes}" stroke-width="1.2" stroke-linejoin="round"/></svg>`
   root.appendChild(cursor)
 
   const layout = document.createElement('div')

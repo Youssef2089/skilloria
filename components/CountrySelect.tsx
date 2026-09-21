@@ -203,12 +203,12 @@ export default function CountrySelect({
     justifyContent: 'space-between',
     gap: compact ? 6 : 10,
     padding: compact ? '10px 10px' : '10px 14px',
-    border: `1.5px solid ${hasError ? '#dc2626' : '#e2e8f0'}`,
+    border: `1.5px solid ${hasError ? 'var(--sk-red)' : 'var(--sk-border)'}`,
     borderRadius: 10,
     fontSize: 14,
-    color: disabled ? '#64748b' : '#0f172a',
+    color: disabled ? 'var(--sk-muted)' : 'var(--sk-text)',
     outline: 'none',
-    background: disabled ? '#f1f5f9' : '#fff',
+    background: disabled ? 'var(--sk-surface-2)' : 'var(--sk-surface)',
     cursor: disabled ? 'not-allowed' : 'pointer',
     // 44 px : cible tactile minimale recommandée. Un sélecteur de pays est un
     // point de friction classique sur téléphone, et c'est le premier geste de
@@ -239,7 +239,7 @@ export default function CountrySelect({
               </span>
             </>
           ) : (
-            <span style={{ color: '#94a3b8' }}>{t('country_placeholder')}</span>
+            <span style={{ color: 'var(--sk-muted)' }}>{t('country_placeholder')}</span>
           )}
         </span>
         <svg
@@ -249,7 +249,7 @@ export default function CountrySelect({
           viewBox="0 0 12 12"
           style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.18s ease' }}
         >
-          <path d="M2 4l4 4 4-4" stroke="#64748b" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M2 4l4 4 4-4" style={{ stroke: 'var(--sk-muted)' }} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
@@ -266,17 +266,17 @@ export default function CountrySelect({
             ...(compact
               ? { minWidth: 260, maxWidth: 'min(320px, calc(100vw - 32px))' }
               : { right: 0 }),
-            background: '#fff',
-            border: '1px solid #e2e8f0',
+            background: 'var(--sk-surface)',
+            border: '1px solid var(--sk-border)',
             borderRadius: 12,
-            boxShadow: '0 10px 28px rgba(15, 23, 42, 0.12)',
+            boxShadow: '0 10px 28px color-mix(in srgb, var(--sk-text) 12%, transparent)',
             zIndex: 200,
             overflow: 'hidden',
             animation: 'sk-country-pop 0.16s ease-out',
           }}
         >
           <style>{`@keyframes sk-country-pop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-          <div style={{ padding: 8, borderBottom: '1px solid #f1f5f9' }}>
+          <div style={{ padding: 8, borderBottom: '1px solid var(--sk-surface-2)' }}>
             <input
               ref={searchRef}
               type="text"
@@ -288,12 +288,12 @@ export default function CountrySelect({
               style={{
                 width: '100%',
                 padding: '8px 12px',
-                border: '1px solid #e2e8f0',
+                border: '1px solid var(--sk-border)',
                 borderRadius: 8,
                 fontSize: 13,
-                color: '#0f172a',
+                color: 'var(--sk-text)',
                 outline: 'none',
-                background: '#f8fafc',
+                background: 'var(--sk-surface-2)',
                 fontFamily: 'inherit',
               }}
             />
@@ -315,7 +315,7 @@ export default function CountrySelect({
                 style={{
                   padding: '12px 14px',
                   fontSize: 13,
-                  color: '#94a3b8',
+                  color: 'var(--sk-faint)',
                   textAlign: 'center',
                   fontFamily: 'var(--font-jakarta), system-ui, sans-serif',
                 }}
@@ -329,7 +329,7 @@ export default function CountrySelect({
                 style={{
                   padding: '12px 14px',
                   fontSize: 13,
-                  color: '#94a3b8',
+                  color: 'var(--sk-faint)',
                   textAlign: 'center',
                   fontFamily: 'var(--font-jakarta), system-ui, sans-serif',
                 }}
@@ -358,11 +358,11 @@ export default function CountrySelect({
                       borderRadius: 8,
                       fontSize: 13,
                       fontWeight: isSelected ? 700 : 500,
-                      color: isSelected ? primaryColor : '#0f172a',
+                      color: isSelected ? primaryColor : 'var(--sk-text)',
                       background: isSelected
-                        ? `${primaryColor}10`
+                        ? `color-mix(in srgb, var(--sk-accent) 6%, transparent)`
                         : isActive
-                          ? '#f8fafc'
+                          ? 'var(--sk-surface-2)'
                           : 'transparent',
                       cursor: 'pointer',
                       minHeight: 40,
@@ -378,7 +378,7 @@ export default function CountrySelect({
                           compact : c'est ce qui permet de reconnaître son pays
                           quand on ne se souvient que de son indicatif. */}
                       {compact && c.phone_code && (
-                        <span style={{ color: '#64748b', fontWeight: 500, flexShrink: 0 }}>{c.phone_code}</span>
+                        <span style={{ color: 'var(--sk-muted)', fontWeight: 500, flexShrink: 0 }}>{c.phone_code}</span>
                       )}
                     </span>
                     {isSelected && (

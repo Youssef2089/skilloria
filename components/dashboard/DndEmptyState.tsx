@@ -92,8 +92,8 @@ export default function DndEmptyState({ side, userId }: Props) {
     <div
       role="status"
       style={{
-        background: '#FEF2F2',
-        border: '1.5px solid #FCA5A5',
+        background: 'var(--sk-red-soft)',
+        border: '1.5px solid var(--sk-red-soft)',
         borderRadius: 12,
         padding: '18px 20px',
         display: 'flex',
@@ -108,7 +108,7 @@ export default function DndEmptyState({ side, userId }: Props) {
             style={{
               fontSize: 14,
               fontWeight: 700,
-              color: '#991B1B',
+              color: 'var(--sk-red)',
               marginBottom: 6,
               letterSpacing: '-0.1px',
               lineHeight: 1.4,
@@ -116,14 +116,14 @@ export default function DndEmptyState({ side, userId }: Props) {
           >
             {t('title')}
           </div>
-          <div style={{ fontSize: 13, color: '#991B1B', opacity: 0.9, lineHeight: 1.55 }}>
+          <div style={{ fontSize: 13, color: 'var(--sk-red)', opacity: 0.9, lineHeight: 1.55 }}>
             {t('body')}
           </div>
         </div>
       </div>
 
       {error && (
-        <div role="alert" style={{ fontSize: 12, color: '#7F1D1D', background: '#FECACA', padding: '8px 12px', borderRadius: 8 }}>
+        <div role="alert" style={{ fontSize: 12, color: 'var(--sk-red)', background: 'var(--sk-red-soft)', padding: '8px 12px', borderRadius: 8 }}>
           {error}
         </div>
       )}
@@ -135,8 +135,8 @@ export default function DndEmptyState({ side, userId }: Props) {
           disabled={busy}
           style={{
             padding: '9px 16px',
-            background: '#DC2626',
-            color: '#fff',
+            background: 'var(--sk-red)',
+            color: 'var(--sk-sur-accent)',
             border: 'none',
             borderRadius: 9,
             fontSize: 13,

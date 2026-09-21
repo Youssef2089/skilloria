@@ -4,7 +4,6 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useRelativeTime } from '@/lib/use-relative-time'
 import { useState } from 'react'
 import { Link } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
 import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
@@ -141,10 +140,10 @@ function formatRate(min: number | null, max: number | null, unit: string): strin
 }
 
 function scoreColor(score: number, domainPrimary: string): string {
-  if (score >= 9) return '#16A34A'
+  if (score >= 9) return 'var(--sk-success)'
   if (score >= 7) return domainPrimary
-  if (score >= 5) return '#CA8A04'
-  return '#94a3b8'
+  if (score >= 5) return 'var(--sk-amber)'
+  return 'var(--sk-faint)'
 }
 
 export default function CandidatureCard({ candidature, publicationType, onMutated }: Props) {
@@ -159,7 +158,6 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
   const lifecycleLabel = useCandidatureLifecycleLabel('org')
   const locale = useLocale()
   const relTime = useRelativeTime()
-  const domain = useDomain()
   const secureFetch = useSecureFetch()
 
   const [busy, setBusy] = useState<'unlock' | 'reject' | 'select' | 'view' | null>(null)
@@ -197,10 +195,10 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
   const canAct = !isClosed && (status === 'received' || status === 'in_review' || status === 'shortlisted')
   const statusTone = ((): { bg: string; fg: string } => {
     switch (lifecycle?.reason) {
-      case 'selected':        return { bg: '#FEF3C7', fg: '#92400E' }
-      case 'exchange_open':   return { bg: '#DCFCE7', fg: '#166534' }
-      case 'rejected':        return { bg: '#FEE2E2', fg: '#991B1B' }
-      default:                return { bg: '#f1f5f9', fg: '#475569' }
+      case 'selected':        return { bg: 'var(--sk-amber-soft)', fg: 'var(--sk-amber)' }
+      case 'exchange_open':   return { bg: 'var(--sk-success-soft)', fg: 'var(--sk-success)' }
+      case 'rejected':        return { bg: 'var(--sk-red-soft)', fg: 'var(--sk-red)' }
+      default:                return { bg: 'var(--sk-surface-2)', fg: 'var(--sk-muted)' }
     }
   })()
   // Bouton "Accepter" : visible UNIQUEMENT en 'unlocked' (l'org a déjà
@@ -349,12 +347,12 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
   return (
     <article
       style={{
-        background: '#fff',
+        background: 'var(--sk-surface)',
         // Lot bascule badges par item : accent border si non consultée
         // (et pas fermée). Cohérent avec MissionCard.
         border: isUnlocked || (isUnviewed && !isClosed)
-          ? `1.5px solid ${domain.primaryColor}`
-          : '0.5px solid #e5e7eb',
+          ? `1.5px solid var(--sk-accent)`
+          : '0.5px solid var(--sk-border)',
         borderRadius: 14,
         padding: '18px 20px',
         opacity: isClosed ? 0.65 : 1,
@@ -366,14 +364,14 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
           toujours l'initiale (du pseudo post-unlock, '?' avant). */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#f1f5f9', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 600, flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--sk-surface-2)', color: 'var(--sk-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 600, flexShrink: 0 }}>
             {isUnlocked && unlocked_profile?.display_name ? unlocked_profile.display_name[0]?.toUpperCase() ?? '?' : '?'}
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', marginBottom: 2, lineHeight: 1.35 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 2, lineHeight: 1.35 }}>
               {displayName}
             </h3>
-            <div style={{ fontSize: 12, color: '#64748b', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 12, color: 'var(--sk-muted)', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
               {preview.title && <span>{preview.title}</span>}
               {preview.seniorities.length > 0 && (<><span aria-hidden>·</span><span>{preview.seniorities.join(', ')}</span></>)}
               {(preview.years_experience ?? preview.years_total_experience) != null && (
@@ -391,14 +389,14 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
                 alignItems: 'center',
                 gap: 6,
                 padding: '4px 10px',
-                background: `${scoreColor(ai_match_score, domain.primaryColor)}1A`,
-                color: scoreColor(ai_match_score, domain.primaryColor),
+                background: `${scoreColor(ai_match_score, 'var(--sk-accent)')}1A`,
+                color: scoreColor(ai_match_score, 'var(--sk-accent)'),
                 fontSize: 11,
                 fontWeight: 600,
                 borderRadius: 12,
               }}
             >
-              <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: scoreColor(ai_match_score, domain.primaryColor) }} />
+              <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: scoreColor(ai_match_score, 'var(--sk-accent)') }} />
               {t('ai_score', { score: Math.round(ai_match_score) })}
             </span>
           )}
@@ -426,7 +424,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
               style={{
                 fontSize: 10,
                 fontWeight: 700,
-                color: domain.primaryColor,
+                color: 'var(--sk-accent)',
                 textTransform: 'uppercase',
                 letterSpacing: '.05em',
               }}
@@ -438,7 +436,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
       </div>
 
       {/* Méta : ville / pays / disponibilité (preview) */}
-      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 12, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginBottom: 12, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         {(preview.city ?? preview.country) && (
           <span>📍 {[preview.city, preview.country].filter(Boolean).join(', ')}</span>
         )}
@@ -454,10 +452,10 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
       {preview.skills.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
           {preview.skills.slice(0, 12).map((s) => (
-            <span key={s} style={{ background: '#f1f5f9', color: '#334155', padding: '3px 9px', borderRadius: 10, fontSize: 11, fontWeight: 500 }}>{s}</span>
+            <span key={s} style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-muted)', padding: '3px 9px', borderRadius: 10, fontSize: 11, fontWeight: 500 }}>{s}</span>
           ))}
           {preview.skills.length > 12 && (
-            <span style={{ color: '#94a3b8', fontSize: 11 }}>+{preview.skills.length - 12}</span>
+            <span style={{ color: 'var(--sk-faint)', fontSize: 11 }}>+{preview.skills.length - 12}</span>
           )}
         </div>
       )}
@@ -526,31 +524,31 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
       {ai_pitch ? (
         <div
           style={{
-            background: `${domain.primaryColor}0F`,
-            border: `1px solid ${domain.primaryColor}33`,
+            background: `color-mix(in srgb, var(--sk-accent) 6%, transparent)`,
+            border: `1px solid color-mix(in srgb, var(--sk-accent) 20%, transparent)`,
             borderRadius: 10,
             padding: '11px 14px',
             fontSize: 13,
-            color: '#0f172a',
+            color: 'var(--sk-text)',
             lineHeight: 1.55,
             marginBottom: 12,
           }}
         >
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: domain.primaryColor, marginBottom: 5 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-accent)', marginBottom: 5 }}>
             ✨ {t('ai_pitch_label')}
           </div>
           {ai_pitch}
         </div>
       ) : preview.summary && (
-        <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, margin: '0 0 12px 0' }}>
+        <p style={{ fontSize: 13, color: 'var(--sk-muted)', lineHeight: 1.5, margin: '0 0 12px 0' }}>
           {preview.summary.length > 220 ? `${preview.summary.slice(0, 220)}…` : preview.summary}
         </p>
       )}
 
       {/* Cover message expert */}
       {cover_message && (
-        <div style={{ background: `${domain.primaryColor}0A`, border: `1px solid ${domain.primaryColor}22`, borderRadius: 10, padding: '10px 12px', fontSize: 12, color: '#334155', lineHeight: 1.55, marginBottom: 12, whiteSpace: 'pre-wrap' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: domain.primaryColor, marginBottom: 4 }}>
+        <div style={{ background: `color-mix(in srgb, var(--sk-accent) 4%, transparent)`, border: `1px solid color-mix(in srgb, var(--sk-accent) 13%, transparent)`, borderRadius: 10, padding: '10px 12px', fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.55, marginBottom: 12, whiteSpace: 'pre-wrap' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-accent)', marginBottom: 4 }}>
             {t('cover_message_label')}
           </div>
           {cover_message}
@@ -562,8 +560,8 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
       {(isUnlocked || isSelected) && unlocked_profile && (
         <div
           style={{
-            background: isSelected ? '#FEF3C730' : '#DCFCE730',
-            border: `1px solid ${isSelected ? '#FCD34D' : '#86EFAC'}`,
+            background: isSelected ? 'color-mix(in srgb, var(--sk-amber-soft) 19%, transparent)' : 'color-mix(in srgb, var(--sk-success-soft) 19%, transparent)',
+            border: `1px solid ${isSelected ? 'var(--sk-amber-soft)' : 'var(--sk-success-soft)'}`,
             borderRadius: 12,
             padding: '14px 16px',
             marginBottom: 12,
@@ -575,7 +573,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '.06em',
-              color: isSelected ? '#92400E' : '#166534',
+              color: isSelected ? 'var(--sk-amber)' : 'var(--sk-success)',
               marginBottom: 10,
             }}
           >
@@ -594,8 +592,8 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
                 style={{
                   display: 'inline-block',
                   padding: '8px 14px',
-                  background: domain.primaryColor,
-                  color: '#fff',
+                  background: 'var(--sk-accent)',
+                  color: 'var(--sk-sur-accent)',
                   border: 'none',
                   borderRadius: 8,
                   fontSize: 12,
@@ -614,9 +612,9 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
                 title={t('conversation_unavailable_tooltip')}
                 style={{
                   padding: '8px 14px',
-                  background: '#fff',
-                  color: '#94a3b8',
-                  border: '1px solid #cbd5e1',
+                  background: 'var(--sk-surface)',
+                  color: 'var(--sk-faint)',
+                  border: '1px solid var(--sk-border)',
                   borderRadius: 8,
                   fontSize: 12,
                   fontWeight: 600,
@@ -637,9 +635,9 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
                 disabled={busy !== null}
                 style={{
                   padding: '8px 14px',
-                  background: '#fff',
-                  color: '#92400E',
-                  border: '1.5px solid #F59E0B',
+                  background: 'var(--sk-surface)',
+                  color: 'var(--sk-amber)',
+                  border: '1.5px solid var(--sk-amber)',
                   borderRadius: 8,
                   fontSize: 12,
                   fontWeight: 700,
@@ -659,16 +657,16 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
               aria-label={t('select_confirm_title')}
               style={{
                 marginTop: 12,
-                background: '#FEF3C7',
-                border: '1.5px solid #F59E0B',
+                background: 'var(--sk-amber-soft)',
+                border: '1.5px solid var(--sk-amber)',
                 borderRadius: 10,
                 padding: '12px 14px',
               }}
             >
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#92400E', marginBottom: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sk-amber)', marginBottom: 6 }}>
                 {t('select_confirm_title')}
               </div>
-              <div style={{ fontSize: 12, color: '#92400E', lineHeight: 1.55, marginBottom: 12 }}>
+              <div style={{ fontSize: 12, color: 'var(--sk-amber)', lineHeight: 1.55, marginBottom: 12 }}>
                 {t(publicationType === 'mission' ? 'select_confirm_body_mission' : 'select_confirm_body_offre')}
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -676,7 +674,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
                   type="button"
                   onClick={() => { setConfirmSelect(false); setError(null) }}
                   disabled={busy !== null}
-                  style={{ padding: '8px 14px', background: 'transparent', color: '#92400E', border: '1px solid #FCD34D', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+                  style={{ padding: '8px 14px', background: 'transparent', color: 'var(--sk-amber)', border: '1px solid var(--sk-amber-soft)', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
                 >
                   {t('select_cancel')}
                 </button>
@@ -686,8 +684,8 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
                   disabled={busy !== null}
                   style={{
                     padding: '8px 14px',
-                    background: '#D97706',
-                    color: '#fff',
+                    background: 'var(--sk-amber)',
+                    color: 'var(--sk-sur-accent)',
                     border: 'none',
                     borderRadius: 8,
                     fontSize: 12,
@@ -707,8 +705,8 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
 
       {/* Refus : raison */}
       {isRejected && status_reason && (
-        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '10px 12px', fontSize: 12, color: '#991B1B', lineHeight: 1.5, marginBottom: 12 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#991B1B', marginBottom: 4 }}>
+        <div style={{ background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', borderRadius: 10, padding: '10px 12px', fontSize: 12, color: 'var(--sk-red)', lineHeight: 1.5, marginBottom: 12 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-red)', marginBottom: 4 }}>
             {t('rejection_reason_label')}
           </div>
           {status_reason}
@@ -720,9 +718,9 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
         <div
           role="alert"
           style={{
-            background: limiteAtteinte ? '#FFFBEB' : '#FEF2F2',
-            border: `1px solid ${limiteAtteinte ? '#FDE68A' : '#FECACA'}`,
-            color: limiteAtteinte ? '#92400E' : '#991B1B',
+            background: limiteAtteinte ? 'var(--sk-amber-soft)' : 'var(--sk-red-soft)',
+            border: `1px solid ${limiteAtteinte ? 'var(--sk-amber-soft)' : 'var(--sk-red-soft)'}`,
+            color: limiteAtteinte ? 'var(--sk-amber)' : 'var(--sk-red)',
             padding: '10px 12px',
             borderRadius: 10,
             fontSize: 12,
@@ -733,7 +731,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
           {/* Ambre plutôt que rouge, et l’issue qui reste quand la carte ne peut
               rien corriger. AUCUN bouton de paiement — le verrou est fermé (§D.1). */}
           {limiteAtteinte && (
-            <p style={{ margin: '5px 0 0', fontSize: 11.5, color: '#A16207' }}>
+            <p style={{ margin: '5px 0 0', fontSize: 11.5, color: 'var(--sk-amber)' }}>
               {tCommerce('need_more_contact')}
             </p>
           )}
@@ -756,8 +754,8 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
             style={{
               padding: '6px 12px',
               background: 'transparent',
-              color: '#64748b',
-              border: '1px solid #e2e8f0',
+              color: 'var(--sk-muted)',
+              border: '1px solid var(--sk-border)',
               borderRadius: 8,
               fontSize: 11.5,
               fontWeight: 600,
@@ -780,8 +778,8 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
             style={{
               padding: '9px 16px',
               background: 'transparent',
-              color: '#64748b',
-              border: '1px solid #cbd5e1',
+              color: 'var(--sk-muted)',
+              border: '1px solid var(--sk-border)',
               borderRadius: 9,
               fontSize: 12,
               fontWeight: 600,
@@ -797,8 +795,8 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
             disabled={busy !== null}
             style={{
               padding: '9px 18px',
-              background: domain.primaryColor,
-              color: '#fff',
+              background: 'var(--sk-accent)',
+              color: 'var(--sk-sur-accent)',
               border: 'none',
               borderRadius: 9,
               fontSize: 12,
@@ -815,8 +813,8 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
 
       {/* Confirm reject inline form */}
       {canAct && confirmReject && (
-        <div style={{ background: '#FEF2F2', border: '1.5px solid #FECACA', borderRadius: 10, padding: '14px 16px', marginTop: 4 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#991B1B', marginBottom: 8 }}>{t('reject_confirm_title')}</div>
+        <div style={{ background: 'var(--sk-red-soft)', border: '1.5px solid var(--sk-red-soft)', borderRadius: 10, padding: '14px 16px', marginTop: 4 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--sk-red)', marginBottom: 8 }}>{t('reject_confirm_title')}</div>
           <textarea
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
@@ -827,7 +825,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
               width: '100%',
               padding: '8px 10px',
               fontSize: 12,
-              border: '1px solid #FECACA',
+              border: '1px solid var(--sk-red-soft)',
               borderRadius: 8,
               outline: 'none',
               fontFamily: 'inherit',
@@ -842,7 +840,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
               type="button"
               onClick={() => { setConfirmReject(false); setRejectReason(''); setError(null) }}
               disabled={busy !== null}
-              style={{ padding: '8px 14px', background: 'transparent', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+              style={{ padding: '8px 14px', background: 'transparent', color: 'var(--sk-muted)', border: '1px solid var(--sk-border)', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
             >
               {t('reject_cancel')}
             </button>
@@ -850,7 +848,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
               type="button"
               onClick={handleReject}
               disabled={busy !== null}
-              style={{ padding: '8px 14px', background: '#DC2626', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: busy === 'reject' ? 0.6 : 1 }}
+              style={{ padding: '8px 14px', background: 'var(--sk-red)', color: 'var(--sk-sur-accent)', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: busy === 'reject' ? 0.6 : 1 }}
             >
               {busy === 'reject' ? t('button_rejecting') : t('reject_confirm')}
             </button>

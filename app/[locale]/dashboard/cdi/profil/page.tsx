@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
+import { MARQUES_TIERCES } from '@/lib/palette'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { LEGAL_PATHS } from '@/lib/legal'
@@ -221,7 +222,7 @@ export default function CdiProfilUploadPage() {
       <div
         style={{
           minHeight: '100vh',
-          background: '#f8fafc',
+          background: 'var(--sk-surface-2)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -234,8 +235,8 @@ export default function CdiProfilUploadPage() {
             width: 36,
             height: 36,
             borderRadius: '50%',
-            border: `3px solid ${domain.primaryColor}22`,
-            borderTopColor: domain.primaryColor,
+            border: `3px solid color-mix(in srgb, var(--sk-accent) 13%, transparent)`,
+            borderTopColor: 'var(--sk-accent)',
             animation: 'sk-spin 0.9s linear infinite',
           }}
         />
@@ -249,7 +250,7 @@ export default function CdiProfilUploadPage() {
       <div
         style={{
           minHeight: '100vh',
-          background: '#f8fafc',
+          background: 'var(--sk-surface-2)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -259,8 +260,8 @@ export default function CdiProfilUploadPage() {
       >
         <div
           style={{
-            background: '#fff',
-            border: '1px solid #e2e8f0',
+            background: 'var(--sk-surface)',
+            border: '1px solid var(--sk-border)',
             borderRadius: 16,
             padding: 32,
             maxWidth: 440,
@@ -274,10 +275,10 @@ export default function CdiProfilUploadPage() {
               Il n'y avait ici qu'un cadenas, un code HTTP et une flèche : aucune
               phrase, aucune clé i18n, et donc rien qui distingue « cette page
               n'est pas pour vous » de « nous n'avons pas pu vérifier ». */}
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 8 }}>
             {acces === 'indisponible' ? t('acces.indisponible_titre') : t('acces.refuse_titre')}
           </div>
-          <div style={{ fontSize: 14, color: '#475569', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.6 }}>
             {acces === 'indisponible' ? t('acces.indisponible_corps') : t('acces.refuse_corps')}
           </div>
           {acces === 'indisponible' && (
@@ -287,8 +288,8 @@ export default function CdiProfilUploadPage() {
               style={{
                 marginTop: 16,
                 marginRight: 8,
-                background: domain.primaryColor,
-                color: '#fff',
+                background: 'var(--sk-accent)',
+                color: 'var(--sk-sur-accent)',
                 border: 'none',
                 borderRadius: 10,
                 padding: '10px 18px',
@@ -306,8 +307,8 @@ export default function CdiProfilUploadPage() {
             onClick={() => router.push('/')}
             style={{
               marginTop: 16,
-              background: domain.primaryColor,
-              color: '#fff',
+              background: 'var(--sk-accent)',
+              color: 'var(--sk-sur-accent)',
               border: 'none',
               borderRadius: 10,
               padding: '10px 18px',
@@ -326,7 +327,7 @@ export default function CdiProfilUploadPage() {
 
   // ─── Main render ─────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100%', background: '#f8fafc', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ minHeight: '100%', background: 'var(--sk-surface-2)', fontFamily: 'Inter, sans-serif' }}>
       <style>{`
         @keyframes sk-spin { to { transform: rotate(360deg); } }
         @media (max-width: 767px) {
@@ -347,8 +348,8 @@ export default function CdiProfilUploadPage() {
           <div
             role="alert"
             style={{
-              background: '#fef2f2',
-              border: '1px solid #fecaca',
+              background: 'var(--sk-red-soft)',
+              border: '1px solid var(--sk-red-soft)',
               borderRadius: 12,
               padding: '12px 16px',
               marginBottom: 20,
@@ -357,7 +358,7 @@ export default function CdiProfilUploadPage() {
               gap: 12,
             }}
           >
-            <div style={{ color: '#dc2626', fontSize: 13, flex: 1, lineHeight: 1.55 }}>
+            <div style={{ color: 'var(--sk-red)', fontSize: 13, flex: 1, lineHeight: 1.55 }}>
               {errorMsg}
             </div>
             <button
@@ -367,7 +368,7 @@ export default function CdiProfilUploadPage() {
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#991b1b',
+                color: 'var(--sk-red)',
                 fontSize: 20,
                 cursor: 'pointer',
                 lineHeight: 1,
@@ -384,7 +385,7 @@ export default function CdiProfilUploadPage() {
           style={{
             fontSize: 32,
             fontWeight: 800,
-            color: '#0f172a',
+            color: 'var(--sk-text)',
             letterSpacing: '-0.3px',
             marginBottom: 8,
           }}
@@ -394,7 +395,7 @@ export default function CdiProfilUploadPage() {
         <p
           style={{
             fontSize: 15,
-            color: '#64748b',
+            color: 'var(--sk-muted)',
             lineHeight: 1.6,
             marginBottom: 32,
             maxWidth: 640,
@@ -416,9 +417,9 @@ export default function CdiProfilUploadPage() {
           <div
             style={{
               position: 'relative',
-              background: '#fff',
+              background: 'var(--sk-surface)',
               borderRadius: 16,
-              border: `2px solid ${domain.primaryColor}`,
+              border: `2px solid var(--sk-accent)`,
               padding: 24,
               opacity: busy ? 0.55 : 1,
               pointerEvents: busy ? 'none' : 'auto',
@@ -430,8 +431,8 @@ export default function CdiProfilUploadPage() {
                 position: 'absolute',
                 top: 16,
                 right: 16,
-                background: domain.primaryColor,
-                color: '#fff',
+                background: 'var(--sk-accent)',
+                color: 'var(--sk-sur-accent)',
                 fontSize: 10,
                 fontWeight: 700,
                 letterSpacing: '0.05em',
@@ -447,7 +448,7 @@ export default function CdiProfilUploadPage() {
                 width: 52,
                 height: 52,
                 borderRadius: 14,
-                background: `${domain.primaryColor}15`,
+                background: `color-mix(in srgb, var(--sk-accent) 8%, transparent)`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -457,7 +458,7 @@ export default function CdiProfilUploadPage() {
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
                 <path
                   d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                  stroke={domain.primaryColor}
+                  stroke={domain.palette.boutons}
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -465,7 +466,7 @@ export default function CdiProfilUploadPage() {
                 <polyline
                   points="14 2 14 8 20 8"
                   fill="none"
-                  stroke={domain.primaryColor}
+                  stroke={domain.palette.boutons}
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -477,14 +478,14 @@ export default function CdiProfilUploadPage() {
               style={{
                 fontSize: 18,
                 fontWeight: 800,
-                color: '#0f172a',
+                color: 'var(--sk-text)',
                 marginBottom: 6,
                 letterSpacing: '-0.3px',
               }}
             >
               {t('card_cv.title')}
             </h2>
-            <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.55, marginBottom: 18 }}>
+            <p style={{ fontSize: 13, color: 'var(--sk-muted)', lineHeight: 1.55, marginBottom: 18 }}>
               {t('card_cv.subtitle')}
             </p>
 
@@ -494,11 +495,11 @@ export default function CdiProfilUploadPage() {
               disabled={busy}
               style={{
                 width: '100%',
-                background: `${domain.primaryColor}08`,
-                border: `2px dashed ${domain.primaryColor}66`,
+                background: `color-mix(in srgb, var(--sk-accent) 3%, transparent)`,
+                border: `2px dashed color-mix(in srgb, var(--sk-accent) 40%, transparent)`,
                 borderRadius: 12,
                 padding: '22px 16px',
-                color: domain.primaryColor,
+                color: 'var(--sk-accent)',
                 cursor: busy ? 'not-allowed' : 'pointer',
                 textAlign: 'center',
                 fontFamily: 'inherit',
@@ -507,7 +508,7 @@ export default function CdiProfilUploadPage() {
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
                 {t('card_cv.dropzone_label')}
               </div>
-              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 500 }}>
+              <div style={{ fontSize: 11, color: 'var(--sk-muted)', fontWeight: 500 }}>
                 {t('card_cv.dropzone_hint')}
               </div>
             </button>
@@ -523,9 +524,9 @@ export default function CdiProfilUploadPage() {
           {/* LinkedIn card */}
           <div
             style={{
-              background: '#fff',
+              background: 'var(--sk-surface)',
               borderRadius: 16,
-              border: '1px solid #e2e8f0',
+              border: '1px solid var(--sk-border)',
               padding: 24,
               opacity: busy ? 0.55 : 1,
               pointerEvents: busy ? 'none' : 'auto',
@@ -537,14 +538,14 @@ export default function CdiProfilUploadPage() {
                 width: 52,
                 height: 52,
                 borderRadius: 14,
-                background: '#e0e7ff',
+                background: 'var(--sk-accent-soft)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: 16,
               }}
             >
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="#0a66c2">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill={MARQUES_TIERCES.linkedin}>
                 <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.024-3.037-1.852-3.037-1.853 0-2.136 1.446-2.136 2.94v5.666H9.352V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.602 0 4.268 2.37 4.268 5.455v6.286zM5.337 7.433a2.063 2.063 0 0 1-2.063-2.065 2.063 2.063 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452z" />
               </svg>
             </div>
@@ -553,21 +554,21 @@ export default function CdiProfilUploadPage() {
               style={{
                 fontSize: 18,
                 fontWeight: 800,
-                color: '#0f172a',
+                color: 'var(--sk-text)',
                 marginBottom: 6,
                 letterSpacing: '-0.3px',
               }}
             >
               {t('card_linkedin.title')}
             </h2>
-            <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.55, marginBottom: 14 }}>
+            <p style={{ fontSize: 13, color: 'var(--sk-muted)', lineHeight: 1.55, marginBottom: 14 }}>
               {t('card_linkedin.subtitle')}
             </p>
 
             <ol
               style={{
                 fontSize: 12,
-                color: '#475569',
+                color: 'var(--sk-muted)',
                 lineHeight: 1.7,
                 paddingLeft: 18,
                 marginBottom: 18,
@@ -592,11 +593,11 @@ export default function CdiProfilUploadPage() {
               disabled={busy}
               style={{
                 width: '100%',
-                background: '#f8fafc',
-                border: '2px dashed #cbd5e1',
+                background: 'var(--sk-surface-2)',
+                border: '2px dashed var(--sk-border)',
                 borderRadius: 12,
                 padding: '22px 16px',
-                color: '#475569',
+                color: 'var(--sk-muted)',
                 cursor: busy ? 'not-allowed' : 'pointer',
                 textAlign: 'center',
                 fontFamily: 'inherit',
@@ -605,7 +606,7 @@ export default function CdiProfilUploadPage() {
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
                 {t('card_linkedin.dropzone_label')}
               </div>
-              <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
+              <div style={{ fontSize: 11, color: 'var(--sk-faint)', fontWeight: 500 }}>
                 {t('card_linkedin.dropzone_hint')}
               </div>
             </button>
@@ -626,8 +627,8 @@ export default function CdiProfilUploadPage() {
             alignItems: 'flex-start',
             gap: 12,
             padding: 16,
-            background: '#fff',
-            border: '1px solid #e2e8f0',
+            background: 'var(--sk-surface)',
+            border: '1px solid var(--sk-border)',
             borderRadius: 12,
             marginBottom: 20,
             cursor: 'pointer',
@@ -637,9 +638,9 @@ export default function CdiProfilUploadPage() {
             type="checkbox"
             checked={consent}
             onChange={e => setConsent(e.target.checked)}
-            style={{ marginTop: 3, flexShrink: 0, accentColor: domain.primaryColor }}
+            style={{ marginTop: 3, flexShrink: 0, accentColor: 'var(--sk-accent)' }}
           />
-          <span style={{ fontSize: 12, color: '#475569', lineHeight: 1.6 }}>
+          <span style={{ fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.6 }}>
             {t.rich('consent.text', {
               // « En savoir plus » = vrai lien vers la politique de confidentialité
               // (point D), ouvert dans un NOUVEL ONGLET pour ne pas perdre le
@@ -651,7 +652,7 @@ export default function CdiProfilUploadPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={e => e.stopPropagation()}
-                  style={{ color: domain.primaryColor, fontWeight: 600, textDecoration: 'underline' }}
+                  style={{ color: 'var(--sk-accent)', fontWeight: 600, textDecoration: 'underline' }}
                 >
                   {chunks}
                 </a>
@@ -663,8 +664,8 @@ export default function CdiProfilUploadPage() {
         {/* Yellow locked banner */}
         <div
           style={{
-            background: '#fef9c3',
-            border: '1px solid #fde68a',
+            background: 'var(--sk-amber-soft)',
+            border: '1px solid var(--sk-amber-soft)',
             borderRadius: 12,
             padding: 16,
             display: 'flex',
@@ -677,7 +678,7 @@ export default function CdiProfilUploadPage() {
               width: 32,
               height: 32,
               borderRadius: '50%',
-              background: '#fef08a',
+              background: 'var(--sk-amber-soft)',
               flexShrink: 0,
               display: 'flex',
               alignItems: 'center',
@@ -687,14 +688,14 @@ export default function CdiProfilUploadPage() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path
                 d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"
-                stroke="#92400e"
+                style={{ stroke: 'var(--sk-amber)' }}
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
             </svg>
           </div>
-          <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 13, color: 'var(--sk-amber)', lineHeight: 1.6 }}>
             {t.rich('locked_banner', {
               strong: chunks => <strong>{chunks}</strong>,
             })}
@@ -708,7 +709,7 @@ export default function CdiProfilUploadPage() {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(15,23,42,0.55)',
+            background: 'color-mix(in srgb, var(--sk-text) 55%, transparent)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -718,12 +719,12 @@ export default function CdiProfilUploadPage() {
         >
           <div
             style={{
-              background: '#fff',
+              background: 'var(--sk-surface)',
               borderRadius: 16,
               padding: '28px 32px',
               textAlign: 'center',
               maxWidth: 340,
-              boxShadow: '0 20px 50px rgba(0,0,0,0.2)',
+              boxShadow: '0 20px 50px color-mix(in srgb, var(--sk-text) 20%, transparent)',
             }}
           >
             <div
@@ -731,16 +732,16 @@ export default function CdiProfilUploadPage() {
                 width: 44,
                 height: 44,
                 borderRadius: '50%',
-                border: `3px solid ${domain.primaryColor}22`,
-                borderTopColor: domain.primaryColor,
+                border: `3px solid color-mix(in srgb, var(--sk-accent) 13%, transparent)`,
+                borderTopColor: 'var(--sk-accent)',
                 margin: '0 auto 14px',
                 animation: 'sk-spin 0.9s linear infinite',
               }}
             />
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 6 }}>
               {t('parsing_overlay.title')}
             </div>
-            <div style={{ fontSize: 13, color: '#64748b' }}>{t('parsing_overlay.duration')}</div>
+            <div style={{ fontSize: 13, color: 'var(--sk-muted)' }}>{t('parsing_overlay.duration')}</div>
           </div>
         </div>
       )}
@@ -751,7 +752,7 @@ export default function CdiProfilUploadPage() {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(15,23,42,0.45)',
+            background: 'color-mix(in srgb, var(--sk-text) 45%, transparent)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -760,12 +761,12 @@ export default function CdiProfilUploadPage() {
         >
           <div
             style={{
-              background: '#fff',
+              background: 'var(--sk-surface)',
               borderRadius: 16,
               padding: '22px 28px',
               fontSize: 15,
               fontWeight: 600,
-              color: '#0f172a',
+              color: 'var(--sk-text)',
             }}
           >
             {statusMsg}

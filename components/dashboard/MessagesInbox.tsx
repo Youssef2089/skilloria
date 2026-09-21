@@ -314,7 +314,7 @@ export default function MessagesInbox({
         >
           {/* Deux buckets, actives par défaut. Le clic re-demande au serveur —
               le client ne re-trie rien localement. */}
-          <div style={{ display: 'flex', gap: 8, padding: '12px 14px', borderBottom: '0.5px solid #e5e7eb', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 8, padding: '12px 14px', borderBottom: '0.5px solid var(--sk-border)', flexShrink: 0 }}>
             {/* Pendant un chargement, `counts` n'est pas connu : libellé SANS
                 nombre plutôt qu'un « (0) » faux. Un libellé nu ne ment pas.
                 Les chips, elles, restent en place — elles sont hors des
@@ -356,17 +356,17 @@ export default function MessagesInbox({
             })}
           </div>
           {state.kind === 'loading' && (
-            <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 13 }}>{t('loading')}</div>
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--sk-muted)', fontSize: 13 }}>{t('loading')}</div>
           )}
           {state.kind === 'error' && (
-            <div role="alert" style={{ padding: 16, color: '#b91c1c', fontSize: 13 }}>{state.message}</div>
+            <div role="alert" style={{ padding: 16, color: 'var(--sk-red)', fontSize: 13 }}>{state.message}</div>
           )}
           {state.kind === 'ready' && groups.length === 0 && (
             <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
                 {tLifecycle(bucket === 'archived' ? 'messages_empty_archived_title' : 'messages_empty_active_title')}
               </div>
-              <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.55 }}>
+              <div style={{ fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.55 }}>
                 {tLifecycle(bucket === 'archived' ? 'messages_empty_archived_body' : 'messages_empty_active_body')}
               </div>
             </div>
@@ -382,11 +382,11 @@ export default function MessagesInbox({
               {groups.map((g) => (
                 <div key={g.publication?.id ?? '__no_pub__'}>
                   {/* En-tête groupe : titre de la mission/annonce */}
-                  <div style={{ padding: '12px 14px 6px', background: '#f8fafc', borderBottom: '0.5px solid #e5e7eb' }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: '#94a3b8', marginBottom: 2 }}>
+                  <div style={{ padding: '12px 14px 6px', background: 'var(--sk-surface-2)', borderBottom: '0.5px solid var(--sk-border)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-faint)', marginBottom: 2 }}>
                       {g.publication ? tPub(`type.${g.publication.type}`) : t('group_no_publication')}
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {g.publication?.title ?? t('group_no_publication_title')}
                     </div>
                   </div>
@@ -409,10 +409,10 @@ export default function MessagesInbox({
                           display: 'flex', alignItems: 'flex-start', gap: 10,
                           padding: '12px 14px',
                           width: '100%',
-                          background: active ? `${domain.primaryColor}0F` : 'transparent',
+                          background: active ? `color-mix(in srgb, var(--sk-accent) 6%, transparent)` : 'transparent',
                           borderTop: 'none', borderRight: 'none',
-                          borderBottom: '0.5px solid #f1f5f9',
-                          borderLeft: active ? `3px solid ${domain.primaryColor}` : '3px solid transparent',
+                          borderBottom: '0.5px solid var(--sk-surface-2)',
+                          borderLeft: active ? `3px solid var(--sk-accent)` : '3px solid transparent',
                           textDecoration: 'none', color: 'inherit',
                           textAlign: 'left',
                           fontFamily: 'inherit',
@@ -430,29 +430,29 @@ export default function MessagesInbox({
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6 }}>
                             <span style={{ minWidth: 0, display: 'inline-flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
-                              <span style={{ fontSize: 13, fontWeight: c.unread_count > 0 ? 700 : 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: 13, fontWeight: c.unread_count > 0 ? 700 : 600, color: 'var(--sk-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {c.correspondant.name ?? t('unknown_correspondant')}
                               </span>
                               {/* A5 : étiquette de rôle SOBRE dérivée de correspondant.kind.
                                   kind='expert' ⇒ le correspondant est un expert ⇒ JE recrute.
                                   kind='org'    ⇒ le correspondant est une org  ⇒ JE candidate.
                                   Utile pour l'expert publiant dont l'inbox mêle les deux rôles. */}
-                              <span style={{ flexShrink: 0, fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: '#64748b', background: '#f1f5f9', border: '0.5px solid #e2e8f0', borderRadius: 6, padding: '1px 6px', lineHeight: 1.6 }}>
+                              <span style={{ flexShrink: 0, fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--sk-muted)', background: 'var(--sk-surface-2)', border: '0.5px solid var(--sk-border)', borderRadius: 6, padding: '1px 6px', lineHeight: 1.6 }}>
                                 {c.correspondant.kind === 'expert' ? t('role_recruiter') : t('role_applicant')}
                               </span>
                             </span>
                             {c.last_message?.created_at && (
-                              <span style={{ fontSize: 10, color: '#94a3b8', flexShrink: 0 }}>{relTime(c.last_message.created_at)}</span>
+                              <span style={{ fontSize: 10, color: 'var(--sk-faint)', flexShrink: 0 }}>{relTime(c.last_message.created_at)}</span>
                             )}
                           </div>
-                          <div style={{ fontSize: 12, color: c.unread_count > 0 ? '#0f172a' : '#64748b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: c.unread_count > 0 ? 600 : 400 }}>
+                          <div style={{ fontSize: 12, color: c.unread_count > 0 ? 'var(--sk-text)' : 'var(--sk-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: c.unread_count > 0 ? 600 : 400 }}>
                             {c.last_message ? (
                               <>
-                                {c.last_message.sender_is_me && <span style={{ color: '#94a3b8' }}>{t('sender_me')} </span>}
+                                {c.last_message.sender_is_me && <span style={{ color: 'var(--sk-faint)' }}>{t('sender_me')} </span>}
                                 {c.last_message.content}
                               </>
                             ) : (
-                              <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>{t('no_messages_yet')}</span>
+                              <span style={{ fontStyle: 'italic', color: 'var(--sk-faint)' }}>{t('no_messages_yet')}</span>
                             )}
                           </div>
                           {/* ÉTAT DE VIE, en clair, sur chaque ligne. C'est
@@ -466,7 +466,7 @@ export default function MessagesInbox({
                               style={{
                                 fontSize: 10.5,
                                 marginTop: 3,
-                                color: isArchived ? '#94a3b8' : '#166534',
+                                color: isArchived ? 'var(--sk-faint)' : 'var(--sk-success)',
                                 fontWeight: 600,
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
@@ -479,7 +479,7 @@ export default function MessagesInbox({
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>
                           {c.unread_count > 0 && (
-                            <span style={{ background: domain.primaryColor, color: '#fff', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 9 }}>
+                            <span style={{ background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 9 }}>
                               {c.unread_count}
                             </span>
                           )}

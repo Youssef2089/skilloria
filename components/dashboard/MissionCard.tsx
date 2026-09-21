@@ -3,7 +3,6 @@
 import { useLocale, useTranslations } from 'next-intl'
 import { useRelativeTime } from '@/lib/use-relative-time'
 import { Link } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from './PublicationSynthesisLine'
 
 /**
@@ -60,7 +59,7 @@ function formatBudget(min: number | null, max: number | null, type: string, loca
 // Deux paliers, deux traitements. Plus d'échelle de couleurs : une échelle
 // suggère une graduation, donc un nombre, donc une comparaison.
 function tierColor(tier: 'strong' | 'normal', domainPrimary: string): string {
-  return tier === 'strong' ? domainPrimary : '#64748b'
+  return tier === 'strong' ? domainPrimary : 'var(--sk-muted)'
 }
 
 export default function MissionCard({
@@ -76,7 +75,6 @@ export default function MissionCard({
   const tPub = useTranslations('publications')
   const locale = useLocale()
   const relTime = useRelativeTime()
-  const domain = useDomain()
 
   const { publication: pub, org, relevance_tier, ai_reason, match_status, matched_at } = mission
   void formatBudget
@@ -92,8 +90,8 @@ export default function MissionCard({
       href={`/dashboard/${side}/missions/${pub.id}`}
       style={{
         display: 'block',
-        background: '#fff',
-        border: isUnread ? `1.5px solid ${domain.primaryColor}` : '0.5px solid #e5e7eb',
+        background: 'var(--sk-surface)',
+        border: isUnread ? `1.5px solid var(--sk-accent)` : '0.5px solid var(--sk-border)',
         borderRadius: 14,
         padding: '18px 20px',
         textDecoration: 'none',
@@ -131,18 +129,18 @@ export default function MissionCard({
               alignItems: 'center',
               gap: 6,
               padding: '4px 10px',
-              background: `${tierColor(relevance_tier, domain.primaryColor)}1A`,
-              color: tierColor(relevance_tier, domain.primaryColor),
+              background: `${tierColor(relevance_tier, 'var(--sk-accent)')}1A`,
+              color: tierColor(relevance_tier, 'var(--sk-accent)'),
               fontSize: 11,
               fontWeight: 600,
               borderRadius: 12,
             }}
           >
-            <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: tierColor(relevance_tier, domain.primaryColor) }} />
+            <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: tierColor(relevance_tier, 'var(--sk-accent)') }} />
             {tBadge(relevance_tier)}
           </span>
           {isUnread && (
-            <span style={{ fontSize: 10, fontWeight: 600, color: domain.primaryColor, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--sk-accent)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
               {t('new_label')}
             </span>
           )}
@@ -167,17 +165,17 @@ export default function MissionCard({
       {ai_reason && (
         <div
           style={{
-            background: 'var(--color-background-secondary, #f8fafc)',
-            border: '0.5px solid #e5e7eb',
+            background: 'var(--color-background-secondary, var(--sk-surface-2))',
+            border: '0.5px solid var(--sk-border)',
             borderRadius: 10,
             padding: '10px 12px',
             fontSize: 12,
-            color: '#334155',
+            color: 'var(--sk-muted)',
             lineHeight: 1.5,
             marginBottom: 12,
           }}
         >
-          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: '#64748b', marginBottom: 4 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-muted)', marginBottom: 4 }}>
             {t('why_match_label')}
           </div>
           <div>{ai_reason}</div>
@@ -195,8 +193,8 @@ export default function MissionCard({
             alignItems: 'center',
             gap: 6,
             padding: '8px 14px',
-            background: domain.primaryColor,
-            color: '#fff',
+            background: 'var(--sk-accent)',
+            color: 'var(--sk-sur-accent)',
             fontSize: 12.5,
             fontWeight: 700,
             borderRadius: 10,
