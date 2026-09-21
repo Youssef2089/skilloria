@@ -36,6 +36,10 @@ export default function MotDePasseOubliePage() {
   const [error, setError] = useState('')
 
   const handleSubmit = async () => {
+    // Garde de RÉ-ENTRANCE (motif de /connexion) : elle couvre aussi le bref
+    // instant où le `finally` a relâché le drapeau alors que la navigation de
+    // succès n'a pas encore démonté l'écran.
+    if (loading) return
     if (!email.trim()) {
       setError(t('errors.missing_email'))
       return
@@ -43,22 +47,28 @@ export default function MotDePasseOubliePage() {
     setLoading(true)
     setError('')
 
-    const redirectTo = `${window.location.origin}/${locale}/nouveau-mot-de-passe`
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo,
-    })
+    // ⚠️ ÉCRAN SŒUR DE /connexion, MÊME DÉFAUT FONDATEUR : sans try/finally, une
+    //    exception réseau de resetPasswordForEmail laissait « envoi en cours… »
+    //    pour toujours. Le drapeau se relâche dans le finally, et là seulement.
+    try {
+      const redirectTo = `${window.location.origin}/${locale}/nouveau-mot-de-passe`
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo,
+      })
 
-    // Anti-énumération : on n'affiche PAS si l'email existe. On ne montre une
-    // erreur que pour une vraie panne technique (réseau / 5xx), pas pour un
-    // "email inconnu" (que Supabase ne signale de toute façon pas).
-    if (resetError) {
+      // Anti-énumération : on n'affiche PAS si l'email existe. On ne montre une
+      // erreur que pour une vraie panne technique (réseau / 5xx), pas pour un
+      // "email inconnu" (que Supabase ne signale de toute façon pas).
+      if (resetError) {
+        setError(t('errors.generic'))
+        return
+      }
+      setSent(true)
+    } catch {
       setError(t('errors.generic'))
+    } finally {
       setLoading(false)
-      return
     }
-
-    setSent(true)
-    setLoading(false)
   }
 
   return (

@@ -90,7 +90,9 @@ export function gestionnaires(src) {
     if (!g) { out.push({ setter, ligne, classe: 'NON RÉSOLU', cle: `? | ${setter}` }); continue }
     if (!/\bawait\b/.test(g.corps.slice(m.index - g.debut))) continue // aucune attente : pas un chargement
     const relache = new RegExp(`\\b${setter}\\(false\\)`, 'g')
-    const iFinally = g.corps.lastIndexOf('} finally {')
+    // `} finally {` sur une ligne, ou `}` puis `finally {` à la ligne suivante : la même chose.
+    const mFinally = [...g.corps.matchAll(/\}\s*finally\s*\{/g)].at(-1)
+    const iFinally = mFinally ? mFinally.index : -1
     const dansFinally = iFinally >= 0 && relache.test(g.corps.slice(iFinally))
     const epars = (g.corps.slice(0, iFinally < 0 ? undefined : iFinally).match(relache) ?? []).length
     const classe = dansFinally && epars === 0 ? 'FINALLY' : dansFinally ? 'FINALLY + ÉNUMÉRATION' : epars > 0 ? 'ÉNUMÉRATION' : 'JAMAIS RELÂCHÉ'
@@ -129,7 +131,21 @@ section('ÉPREUVE DU MOTIF — avant de lui faire confiance')
  *              et des relâchements épars le doublent) : le prochain chemin ajouté
  *              sera oublié. C'est exactement le défaut fondateur de /connexion.
  */
+// ┌─ LE GEL EST VIDE DEPUIS LE 21/09/2026 ──────────────────────────────────┐
+// │ Le jour de la conversion (20/09) il portait 21 DÉFAUTS NOMMÉS, lus un    │
+// │ par un — dont 4 qui FIGEAIENT (aucun catch). Tous corrigés le 21/09 sur  │
+// │ arbitrage : chaque gestionnaire relâche dans un `finally`, et là          │
+// │ seulement, avec une garde de ré-entrance là où une navigation de succès  │
+// │ suit. La convention reste écrite pour le prochain : clé « appel          │
+// │ discriminant | setter », raison LÉGITIME ou DÉFAUT NOMMÉ, gravité FIGE / │
+// │ FRAGILE. Une entrée neuve rougit ; on lit, puis on corrige ou on gèle.   │
+// └─────────────────────────────────────────────────────────────────────────┘
 const GEL = {
+  // Exemple de forme (aucune entrée aujourd'hui) :
+  // 'components/x/Y.tsx | /api/x | setSaving':
+  //   'DÉFAUT NOMMÉ — FIGE : aucun try/catch ; une exception réseau laisse « … » pour toujours',
+}
+const GEL_ANCIEN_20_09 = {
   // ── FIGE : un chemin laisse le bouton en « … en cours » ───────────────────
   'app/[locale]/mot-de-passe-oublie/page.tsx | supabase.auth.resetPasswordForEmail | setLoading':
     'DÉFAUT NOMMÉ — FIGE : aucun try/catch ; une exception réseau de resetPasswordForEmail laisse « envoi en cours » pour toujours. Écran SŒUR de /connexion, même défaut fondateur',
@@ -176,6 +192,9 @@ const GEL = {
   'components/dashboard/PublicationForm.tsx | /api/publications | setPublishing':
     'DÉFAUT NOMMÉ — FRAGILE : finally présent, deux relâchements épars',
 }
+// L'ancien gel n'est plus un gel : c'est la liste de ce qui a été corrigé, gardée
+// pour que la prochaine entrée neuve se compare à une forme déjà jugée. Il n'exempte rien.
+void GEL_ANCIEN_20_09
 const defautsNommes = Object.values(GEL).filter((r) => r.startsWith('DÉFAUT NOMMÉ')).length
 const figent = Object.values(GEL).filter((r) => /DÉFAUT NOMMÉ — FIGE/.test(r)).length
 

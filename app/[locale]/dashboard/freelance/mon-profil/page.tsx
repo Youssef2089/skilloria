@@ -360,6 +360,11 @@ export default function MonProfilPage() {
       setErrorMsg(null)
       setForbidden(false)
 
+      // ⚠️ LE CHARGEUR N’AVAIT AUCUN catch : chaque branche d’erreur relâchait
+      //    le drapeau, l’EXCEPTION jamais — et un squelette qui ne se relâche
+      //    pas est un écran mort. Le relâchement vit dans le finally (gardé par
+      //    `cancelled` : on n’écrit pas dans un composant démonté).
+      try {
       const {
         data: { session },
       } = await supabase.auth.getSession()
@@ -378,13 +383,11 @@ export default function MonProfilPage() {
 
       if (userErr || !userRow) {
         setErrorMsg(t('error'))
-        setLoading(false)
         return
       }
 
       if ((userRow.user_type as string) !== 'expert_freelance') {
         setForbidden(true)
-        setLoading(false)
         return
       }
 
@@ -402,7 +405,6 @@ export default function MonProfilPage() {
 
       if (profileErr) {
         setErrorMsg(t('error'))
-        setLoading(false)
         return
       }
 
@@ -411,7 +413,6 @@ export default function MonProfilPage() {
       // silencieuse ni de profil vide affiché.
       if (!profileData || !(profileData as { cv_file_path?: string | null }).cv_file_path) {
         setNeedsCv(true)
-        setLoading(false)
         return
       }
 
@@ -474,8 +475,12 @@ export default function MonProfilPage() {
       setExperiences(lignesOuVide(expsLu))
       setEducations(lignesOuVide(edusLu))
       setLanguages(lignesOuVide(langsLu))
-
-      setLoading(false)
+      } catch (err) {
+        console.error('[mon-profil] chargement en échec', err)
+        if (!cancelled) setErrorMsg(t('error'))
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
 
     load()
@@ -638,7 +643,6 @@ export default function MonProfilPage() {
                 ? t('publish.error_verification_indisponible')
                 : t('publish.error_generic') /* jamais payload.error brut */
         setPublishMsg({ kind: 'error', text })
-        setPublishing(false)
         return
       }
       // Succès : profil visible (vérif IA déjà lancée côté serveur, inline).

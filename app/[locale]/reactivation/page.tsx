@@ -113,6 +113,7 @@ export default function ReactivationPage() {
   }
 
   const reactivate = async () => {
+    if (busy) return
     setBusy(true)
     try {
       const res = await secureFetch('/api/me/account/reactivate', { method: 'POST' })
@@ -132,12 +133,17 @@ export default function ReactivationPage() {
               ? { manquants: null, indisponible: true }
               : { manquants: null },
         )
-        setBusy(false)
         return
       }
       const dest = userType === 'cdi' ? '/dashboard/cdi' : '/dashboard/freelance'
       router.replace(dest)
-    } catch { setBusy(false) }
+    } catch {
+      // Une exception n’est pas un refus nommé : le message générique, et le
+      // bouton se réarme par le finally.
+      setErreur({ manquants: null })
+    } finally {
+      setBusy(false)
+    }
   }
 
   const shell = (children: React.ReactNode) => (

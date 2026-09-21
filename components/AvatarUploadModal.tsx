@@ -151,7 +151,7 @@ export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
   }
 
   const handleSave = async () => {
-    if (!imageSrc || !croppedAreaPixels) return
+    if (!imageSrc || !croppedAreaPixels || saving) return
     setSaving(true)
     setError(null)
     try {
@@ -160,7 +160,6 @@ export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
       } = await supabase.auth.getSession()
       if (!session) {
         setError(t('error_save'))
-        setSaving(false)
         return
       }
       const blob = await getCroppedBlob(imageSrc, croppedAreaPixels)
@@ -172,7 +171,6 @@ export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
       if (uploadErr) {
         console.error('[avatar upload]', uploadErr.message)
         setError(t('error_save'))
-        setSaving(false)
         return
       }
 
@@ -189,7 +187,6 @@ export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
       })
       if (!res.ok) {
         setError(t('error_save'))
-        setSaving(false)
         return
       }
 
@@ -206,6 +203,7 @@ export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
     } catch (err) {
       console.error('[avatar upload] exception', err)
       setError(t('error_save'))
+    } finally {
       setSaving(false)
     }
   }

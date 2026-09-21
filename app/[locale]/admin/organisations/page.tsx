@@ -85,12 +85,10 @@ export default function AdminOrgsListPage() {
       })
       if (res.status === 403) {
         setError(t('errors.forbidden'))
-        setLoading(false)
         return
       }
       if (!res.ok) {
         setError(t('errors.generic'))
-        setLoading(false)
         return
       }
       const json = (await res.json()) as {

@@ -142,17 +142,14 @@ export default function AdminOrgDetailPage() {
       })
       if (res.status === 404) {
         setError('not_found')
-        setLoading(false)
         return
       }
       if (res.status === 403) {
         setError(t('errors.forbidden'))
-        setLoading(false)
         return
       }
       if (!res.ok) {
         setError(t('errors.generic'))
-        setLoading(false)
         return
       }
       const json = (await res.json()) as LoadedData

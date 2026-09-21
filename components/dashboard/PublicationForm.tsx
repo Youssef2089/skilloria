@@ -478,11 +478,20 @@ export default function PublicationForm(props: Props) {
       setErrorMsg(t('errors.generic'))
       return
     }
+    if (saving) return
     setSaving(true)
-    const res = await saveDraft(form)
-    setSaving(false)
-    if (res.ok) {
-      setSuccessMsg(isEdit ? t('form.success_draft_updated') : t('form.success_draft_created'))
+    // saveDraft appelle secureFetch sans catch : une exception réseau laissait
+    // « enregistrement… » pour toujours. Le finally relâche, le catch dit.
+    try {
+      const res = await saveDraft(form)
+      if (res.ok) {
+        setSuccessMsg(isEdit ? t('form.success_draft_updated') : t('form.success_draft_created'))
+      }
+    } catch (err) {
+      console.error('[PublicationForm] saveDraft threw', err)
+      setErrorMsg(t('errors.generic'))
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -501,19 +510,17 @@ export default function PublicationForm(props: Props) {
   }
 
   const handlePublish = async () => {
+    if (publishing) return
     setConfirmOpen(false)
     setErrorMsg(null)
     setErrorCode(null)
     setSuccessMsg(null)
     setPublishing(true)
-    // 1. Save first
-    const saveRes = await saveDraft(form)
-    if (!saveRes.ok) {
-      setPublishing(false)
-      return
-    }
-    // 2. Then publish
     try {
+      // 1. Save first — DANS le try : saveDraft peut lever, et le finally relâche.
+      const saveRes = await saveDraft(form)
+      if (!saveRes.ok) return
+      // 2. Then publish
       const res = await secureFetch(`/api/publications/${saveRes.id}/publish`, {
         method: 'POST',
         headers: { 'x-locale': locale },
@@ -525,7 +532,6 @@ export default function PublicationForm(props: Props) {
         // manquante laisse l'organisation sans rien à corriger.
         setErrorMsg(messageChampsManquants(payload.missing) ?? apiErrorMessage(payload.code))
         setErrorCode(payload.code ?? null)
-        setPublishing(false)
         return
       }
       const finalStatus = payload.status === 'published' ? 'published' : 'pending_review'

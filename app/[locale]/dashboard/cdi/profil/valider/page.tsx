@@ -1101,7 +1101,6 @@ export default function CdiValiderProfilPage() {
         } else {
           setErrorMsg(tProfile('errors.save_failed'))
         }
-        setSaving(false)
         return
       }
 
@@ -1120,11 +1119,13 @@ export default function CdiValiderProfilPage() {
       }
 
       setSuccessMsg(tProfile('success.draft_saved'))
-      setSaving(false)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       console.error('[cdi profil valider] patch error', err)
       setErrorMsg(tProfile('errors.save_failed'))
+    } finally {
+      // Un seul point de relâchement (motif de /connexion) ; la garde
+      // `saving` en tête couvre la navigation de succès encore en vol.
       setSaving(false)
     }
   }

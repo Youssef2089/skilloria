@@ -157,6 +157,7 @@ function IdentitySection({ user, secureFetch, requestReauth, notify, reload }: {
 
   const save = async () => {
     if (!first.trim() || !last.trim()) { notify(tc('required'), 'error'); return }
+    if (busy) return
     const token = await requestReauth()
     if (!token) return
     setBusy(true)
@@ -166,11 +167,10 @@ function IdentitySection({ user, secureFetch, requestReauth, notify, reload }: {
         headers: { 'content-type': 'application/json', 'x-reauth-token': token },
         body: JSON.stringify({ first_name: first.trim(), last_name: last.trim() }),
       })
-      if (!res.ok) { notify(tc('error_generic'), 'error'); setBusy(false); return }
+      if (!res.ok) { notify(tc('error_generic'), 'error'); return }
       notify(t('success'))
       reload()
-    } catch { notify(tc('error_generic'), 'error') }
-    setBusy(false)
+    } catch { notify(tc('error_generic'), 'error') } finally { setBusy(false) }
   }
 
   return (
@@ -194,6 +194,7 @@ function EmailSection({ user, secureFetch, requestReauth, notify }: {
 
   const submit = async () => {
     if (!email.trim()) { notify(tc('required'), 'error'); return }
+    if (busy) return
     const token = await requestReauth()
     if (!token) return
     setBusy(true)
@@ -206,13 +207,11 @@ function EmailSection({ user, secureFetch, requestReauth, notify }: {
       if (!res.ok) {
         const d = (await res.json().catch(() => null)) as { code?: string } | null
         notify(d?.code === 'email_taken' ? t('error_taken') : t('error_failed'), 'error')
-        setBusy(false)
         return
       }
       notify(t('success'))
       setEmail('')
-    } catch { notify(t('error_failed'), 'error') }
-    setBusy(false)
+    } catch { notify(t('error_failed'), 'error') } finally { setBusy(false) }
   }
 
   return (
@@ -318,6 +317,7 @@ function PasswordSection({ secureFetch, requestReauth, notify }: {
   const submit = async () => {
     if (pwd.length < 8) { notify(t('error_weak'), 'error'); return }
     if (pwd !== confirm) { notify(t('error_mismatch'), 'error'); return }
+    if (busy) return
     const token = await requestReauth()
     if (!token) return
     setBusy(true)
@@ -330,13 +330,11 @@ function PasswordSection({ secureFetch, requestReauth, notify }: {
       if (!res.ok) {
         const d = (await res.json().catch(() => null)) as { code?: string } | null
         notify(d?.code === 'password_same_as_old' ? t('error_same') : t('error_failed'), 'error')
-        setBusy(false)
         return
       }
       notify(t('success'))
       setPwd(''); setConfirm('')
-    } catch { notify(t('error_failed'), 'error') }
-    setBusy(false)
+    } catch { notify(t('error_failed'), 'error') } finally { setBusy(false) }
   }
 
   return (
@@ -371,10 +369,10 @@ function LanguageSection({ secureFetch, notify }: {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ locale: loc }),
       })
-      if (!res.ok) { notify(tc('error_generic'), 'error'); setBusy(false); return }
+      if (!res.ok) { notify(tc('error_generic'), 'error'); return }
       notify(t('success'))
       router.replace(pathname, { locale: loc })
-    } catch { setBusy(false) }
+    } catch { notify(tc('error_generic'), 'error') } finally { setBusy(false) }
   }
 
   return (
@@ -416,13 +414,13 @@ function SecuritySection({ secureFetch, notify }: {
   const [busy, setBusy] = useState(false)
 
   const revoke = async () => {
+    if (busy) return
     setBusy(true)
     try {
       const res = await secureFetch('/api/me/sessions/revoke-others', { method: 'POST' })
-      if (!res.ok) { notify(tc('error_generic'), 'error'); setBusy(false); return }
+      if (!res.ok) { notify(tc('error_generic'), 'error'); return }
       notify(t('revoke_success'))
-    } catch { setBusy(false) }
-    setBusy(false)
+    } catch { notify(tc('error_generic'), 'error') } finally { setBusy(false) }
   }
 
   return (
@@ -449,7 +447,7 @@ function DeletionSection({ secureFetch, requestReauth, notify }: {
   const armed = typed.trim().toUpperCase() === word.toUpperCase()
 
   const del = async () => {
-    if (!armed) return
+    if (!armed || busy) return
     const token = await requestReauth()
     if (!token) return
     setBusy(true)
@@ -475,7 +473,6 @@ function DeletionSection({ secureFetch, requestReauth, notify }: {
               : t('error_failed'),
           'error',
         )
-        setBusy(false)
         return
       }
       // C1 : la route delete a révoqué la session serveur (signOut global +
@@ -485,7 +482,7 @@ function DeletionSection({ secureFetch, requestReauth, notify }: {
       // l'absence de session et invite à se reconnecter pour réactiver.
       await supabase.auth.signOut()
       router.replace('/reactivation')
-    } catch { notify(t('error_failed'), 'error'); setBusy(false) }
+    } catch { notify(t('error_failed'), 'error') } finally { setBusy(false) }
   }
 
   return (

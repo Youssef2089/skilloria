@@ -295,7 +295,6 @@ export default function CdiMonProfilPage() {
                 ? t('publish.error_verification_indisponible')
                 : t('publish.error_generic') /* jamais payload.error brut */
         setPublishMsg({ kind: 'error', text })
-        setPublishing(false)
         return
       }
       setPublishMsg({ kind: 'success', text: t('publish.success') })

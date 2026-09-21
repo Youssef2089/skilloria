@@ -41,6 +41,7 @@ export default function ReauthModal({
       setError(t('error_required'))
       return
     }
+    if (loading) return
     setLoading(true)
     setError(null)
     try {
@@ -54,20 +55,18 @@ export default function ReauthModal({
         // `reauth_server_error`, etc.) est une erreur serveur : on NE la masque
         // PAS en « mot de passe incorrect ».
         setError(res.status === 401 ? t('error_invalid') : t('error_server'))
-        setLoading(false)
         return
       }
       const data = (await res.json()) as { reauth_token?: string }
       if (!data.reauth_token) {
         setError(t('error_server'))
-        setLoading(false)
         return
       }
       setPassword('')
-      setLoading(false)
       onConfirm(data.reauth_token)
     } catch {
       setError(t('error_invalid'))
+    } finally {
       setLoading(false)
     }
   }

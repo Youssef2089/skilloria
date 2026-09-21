@@ -123,6 +123,7 @@ export default function TJMQuickEditModal({
       return
     }
 
+    if (saving) return
     setSaving(true)
     try {
       const res = await secureFetch('/api/profile', {
@@ -132,7 +133,6 @@ export default function TJMQuickEditModal({
       })
       if (!res.ok) {
         setError(t('error_save'))
-        setSaving(false)
         return
       }
       onSaved(minNum, maxNum)
@@ -140,6 +140,7 @@ export default function TJMQuickEditModal({
       window.setTimeout(onClose, ANIM_MS)
     } catch {
       setError(t('error_save'))
+    } finally {
       setSaving(false)
     }
   }

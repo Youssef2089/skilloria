@@ -48,6 +48,11 @@ export default function DndEmptyState({ side, userId }: Props) {
     if (busy) return
     setBusy(true)
     setError(null)
+    // Aucun catch ici auparavant : une exception de getSession ou de
+    // setExpertListening laissait le bouton en « … » pour toujours. Le
+    // finally relâche ; le parent revalide et démonte ce composant au
+    // prochain tick, et la garde `busy` couvre l’instant entre les deux.
+    try {
     let effectiveUserId = userId
     if (!effectiveUserId) {
       // Fallback : récupère la session si la page parente ne nous l'a pas
@@ -57,14 +62,12 @@ export default function DndEmptyState({ side, userId }: Props) {
       effectiveUserId = session?.user?.id
       if (!effectiveUserId) {
         setError(t('error_generic'))
-        setBusy(false)
         return
       }
     }
     const res = await setExpertListening(supabase, side, effectiveUserId, true)
     if (!res.ok) {
       setError(t('error_generic'))
-      setBusy(false)
       return
     }
     // Sortie du DND → ré-entrée pool : ping /api/me/sync-matching pour
@@ -77,10 +80,12 @@ export default function DndEmptyState({ side, userId }: Props) {
     void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
       console.warn('[DndEmptyState] sync-matching ping failed (non-blocking)', err)
     })
-    // Pas de setBusy(false) : useLiveResource va revalider et le composant
-    // va se démonter (missions non vides → autre branche du parent). Si
-    // l'utilisateur tombe sur un vrai "0 match", le parent affichera
-    // l'empty-state gris (busy était local au composant rouge).
+    } catch (err) {
+      console.error('[DndEmptyState] resume threw', err)
+      setError(t('error_generic'))
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
