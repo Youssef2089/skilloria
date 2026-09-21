@@ -182,6 +182,16 @@ export default function CdiMonProfilPage() {
     visible: profile?.visible ?? null,
     verificationStatus: profile?.verification_status ?? null,
   })
+  // « Vérifié » et « visible » ne sont pas la même chose : un profil approuvé
+  // peut avoir été MASQUÉ depuis, parce que de nouveaux champs sont devenus
+  // nécessaires. Le bandeau l'explique en tête d'écran ; sans ce drapeau, la
+  // pastille affichait « Profil vérifié » en VERT juste en dessous, et les
+  // deux se lisaient comme une contradiction.
+  //
+  // ⚠️ `=== false`, jamais `!visible` : une lecture en panne rend `null`, et
+  //    `!null` vaut `true` — on annoncerait « masqué » à quelqu'un dont on n'a
+  //    pas pu lire l'état (§E.22).
+  const profilMasque = verifState === 'approved' && profile?.visible === false
   // Lot global C3 : modal upload photo (entry-point unique côté CDI).
   // useCdiProfile ne renvoie pas de setter — au succès on patch un mirror
   // local et on l'utilise pour rendre l'avatar tant que le hook ne refetch
@@ -449,7 +459,7 @@ export default function CdiMonProfilPage() {
             <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--sk-text)', margin: 0, letterSpacing: '-0.4px' }}>
               {t('page_title')}
             </h1>
-            <VerificationStatusPill state={verifState} />
+            <VerificationStatusPill state={verifState} masque={profilMasque} />
             {/* LE STATUT DE MARCHÉ SUIT, LUI AUSSI. « En poste » / « en
                 recherche » vivait dans l'en-tête maison. C'est un ÉTAT — ses
                 couleurs vert et rouge sont donc légitimes ici, au contraire des

@@ -611,6 +611,16 @@ deux produits.
 | `/cgu` · `/mentions-legales` · `/politique-de-confidentialite` | Documents légaux, servis depuis `docs/legal/*.md`. |
 
 ### P2.2 — Expert freelance et expert CDI
+> **QUATRE CONTRADICTIONS DU TABLEAU DE BORD, FERMÉES LE 21/09/2026.** Toutes de la même famille :
+> rien n'était faux, et l'écran mentait quand même (§E.55).
+>
+> | Ce que l'expert lisait | Ce qu'il lit maintenant |
+> |---|---|
+> | « Profil complété à **100 %** » … et « **Compléter →** » | « Profil complet » · « Modifier → » |
+> | « Votre profil n'est plus visible » **et** ● Profil vérifié | ● **Vérifié · profil masqué**, en ambre, d'accord avec le bandeau |
+> | « **5x** plus de propositions » (freelance) · « **3×** plus de recruteurs » (CDI) | la même phrase des deux côtés, **sans chiffre** — aucune mesure ne soutenait ni l'un ni l'autre |
+> | « **Score IA** 7/10 » sur une annonce de sous-traitance | « **Qualité de l'annonce** 7/10 », et l'explication dit qu'elle **ne juge aucun expert** (§D.6, §D.9) |
+
 > **LES 66 ÉCRANS DE L'ESPACE CONNECTÉ PORTENT LE MÊME CADRE — depuis le 21/09/2026 seulement.**
 > Barre latérale, en-tête, bouton Retour : c'est `DashboardShell`, monté par les sub-layouts. Avant
 > ce lot, ils étaient **cinq cadres différents**, et deux pages n'en avaient aucun.

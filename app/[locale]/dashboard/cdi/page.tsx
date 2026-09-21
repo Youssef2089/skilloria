@@ -121,6 +121,16 @@ export default function DashboardCDI() {
     visible: (profile?.visible ?? null) as boolean | null,
     verificationStatus: (profile?.verification_status ?? null) as string | null,
   })
+  // « Vérifié » et « visible » ne sont pas la même chose : un profil approuvé
+  // peut avoir été MASQUÉ depuis, parce que de nouveaux champs sont devenus
+  // nécessaires. Le bandeau l'explique en tête d'écran ; sans ce drapeau, la
+  // pastille affichait « Profil vérifié » en VERT juste en dessous, et les
+  // deux se lisaient comme une contradiction.
+  //
+  // ⚠️ `=== false`, jamais `!visible` : une lecture en panne rend `null`, et
+  //    `!null` vaut `true` — on annoncerait « masqué » à quelqu'un dont on n'a
+  //    pas pu lire l'état (§E.22).
+  const profilMasque = verifState === 'approved' && profile?.visible === false
   const isApprovedState = verifState === 'approved'
 
   // ── CE QUI A DISPARU D'ICI, ET POURQUOI ────────────────────────────────
@@ -480,7 +490,7 @@ export default function DashboardCDI() {
               {/* C6 : pastille de statut = SOURCE UNIQUE (même que la topbar
                   « Mon Profil » et la home freelance), rendue par les 5 états. */}
               <div style={{ display: 'inline-flex', marginRight: 8, animation: 'fadeIn 0.6s ease 0.3s both' }}>
-                <VerificationStatusPill state={verifState} />
+                <VerificationStatusPill state={verifState} masque={profilMasque} />
               </div>
 
               {/* Status écoute marché badge (existant) */}
@@ -629,7 +639,9 @@ export default function DashboardCDI() {
                   fontFamily: fontJakarta,
                 }}
               >
-                {t('profile_completion.title', { percent: completionPercent })}
+                {completionPercent >= 100
+                  ? t('profile_completion.title_complete')
+                  : t('profile_completion.title', { percent: completionPercent })}
               </div>
               <Link
                 href="/dashboard/cdi/mon-profil"
@@ -640,7 +652,9 @@ export default function DashboardCDI() {
                   textDecoration: 'none',
                 }}
               >
-                {t('profile_completion.cta')}
+                {completionPercent >= 100
+                  ? t('profile_completion.cta_complete')
+                  : t('profile_completion.cta')}
               </Link>
             </div>
             <div className="progress-bar">
@@ -653,7 +667,9 @@ export default function DashboardCDI() {
               />
             </div>
             <div style={{ fontSize: 13, color: 'var(--sk-muted)', marginTop: 10, lineHeight: 1.55 }}>
-              {t('profile_completion.hint')}
+              {completionPercent >= 100
+                ? t('profile_completion.hint_complete')
+                : t('profile_completion.hint')}
             </div>
           </div>
 

@@ -486,7 +486,10 @@
     "completion": {
       "title": "Profil zu {percent} % abgeschlossen",
       "cta": "Vervollständigen →",
-      "hint": "Ein vollständiges Profil generiert 5-mal mehr Missionsangebote."
+      "hint": "Je vollständiger Ihr Profil, desto besser passen die vorgeschlagenen Missionen dazu.",
+      "title_complete": "Profil vollständig",
+      "cta_complete": "Bearbeiten →",
+      "hint_complete": "Alle nötigen Angaben sind vorhanden. Sie können sie jederzeit ändern."
     },
     "cards": {
       "see_all": "Alle anzeigen →",
@@ -1243,7 +1246,10 @@
     "profile_completion": {
       "title": "Profil zu {percent}% vollständig",
       "cta": "Profil vervollständigen →",
-      "hint": "Ein vollständiges Profil zieht 3× mehr Recruiter an."
+      "hint": "Je vollständiger Ihr Profil, desto besser passen die vorgeschlagenen Angebote dazu.",
+      "title_complete": "Profil vollständig",
+      "cta_complete": "Bearbeiten →",
+      "hint_complete": "Alle nötigen Angaben sind vorhanden. Sie können sie jederzeit ändern."
     },
     "toast": {
       "status_updated": "Status aktualisiert",
@@ -1978,8 +1984,8 @@
       "contract_label_cdi": "Festanstellung"
     },
     "badges": {
-      "ai_score": "KI-Score {score}/10",
-      "ai_score_tooltip": "Qualitätsscore von der KI-Prüfung"
+      "ai_score": "Qualität der Anzeige {score}/10",
+      "ai_score_tooltip": "Bewertung des TEXTES dieser Anzeige bei Veröffentlichung: Klarheit, Genauigkeit, nützliche Angaben. Sie bewertet keine Expertinnen und Experten."
     },
     "dates": {
       "created_ago": "Vor {time} erstellt",
@@ -3538,7 +3544,8 @@
     "draft": "Entwurf",
     "pending": "Verifizierung ausstehend",
     "approved": "Verifiziertes Profil",
-    "rejected": "Profil abgelehnt"
+    "rejected": "Profil abgelehnt",
+    "approved_hidden": "Geprüft · Profil ausgeblendet"
   },
   "expert_onboarding": {
     "title": "Willkommen! So starten Sie",

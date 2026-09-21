@@ -486,7 +486,10 @@
     "completion": {
       "title": "Perfil completado al {percent} %",
       "cta": "Completar →",
-      "hint": "Un perfil completo genera 5 veces más propuestas de misiones."
+      "hint": "Cuanto más completo esté tu perfil, mejor se ajustarán las misiones que te propongamos.",
+      "title_complete": "Perfil completo",
+      "cta_complete": "Modificar →",
+      "hint_complete": "Toda la información necesaria está completa. Puedes modificarla cuando quieras."
     },
     "cards": {
       "see_all": "Ver todo →",
@@ -1243,7 +1246,10 @@
     "profile_completion": {
       "title": "Perfil completado al {percent}%",
       "cta": "Completar mi perfil →",
-      "hint": "Un perfil completo atrae 3× más reclutadores."
+      "hint": "Cuanto más completo esté tu perfil, mejor se ajustarán las ofertas que te mostremos.",
+      "title_complete": "Perfil completo",
+      "cta_complete": "Modificar →",
+      "hint_complete": "Toda la información necesaria está completa. Puedes modificarla cuando quieras."
     },
     "toast": {
       "status_updated": "Estado actualizado",
@@ -1978,8 +1984,8 @@
       "contract_label_cdi": "Contrato indefinido"
     },
     "badges": {
-      "ai_score": "Puntuación IA {score}/10",
-      "ai_score_tooltip": "Puntuación de calidad asignada por el analizador IA"
+      "ai_score": "Calidad del anuncio {score}/10",
+      "ai_score_tooltip": "Nota otorgada al TEXTO de este anuncio al publicarse: claridad, precisión, información útil. No juzga a ningún experto."
     },
     "dates": {
       "created_ago": "Creada hace {time}",
@@ -3538,7 +3544,8 @@
     "draft": "Borrador",
     "pending": "Pendiente de verificación",
     "approved": "Perfil verificado",
-    "rejected": "Perfil rechazado"
+    "rejected": "Perfil rechazado",
+    "approved_hidden": "Verificado · perfil oculto"
   },
   "expert_onboarding": {
     "title": "¡Bienvenido! Así puede empezar",

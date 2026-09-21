@@ -527,6 +527,16 @@ export default function MonProfilPage() {
     visible: profile?.visible ?? null,
     verificationStatus: profile?.verification_status ?? null,
   })
+  // « Vérifié » et « visible » ne sont pas la même chose : un profil approuvé
+  // peut avoir été MASQUÉ depuis, parce que de nouveaux champs sont devenus
+  // nécessaires. Le bandeau l'explique en tête d'écran ; sans ce drapeau, la
+  // pastille affichait « Profil vérifié » en VERT juste en dessous, et les
+  // deux se lisaient comme une contradiction.
+  //
+  // ⚠️ `=== false`, jamais `!visible` : une lecture en panne rend `null`, et
+  //    `!null` vaut `true` — on annoncerait « masqué » à quelqu'un dont on n'a
+  //    pas pu lire l'état (§E.22).
+  const profilMasque = verifState === 'approved' && profile?.visible === false
   const headline = profile?.title?.trim() || null
   const cityCountry = (() => {
     const parts: string[] = []
@@ -878,7 +888,7 @@ export default function MonProfilPage() {
                 {/* La pastille de vérification suit le titre depuis que l'en-tête
                     maison a disparu. Source UNIQUE (VerificationStatusPill),
                     rendue par les cinq états réels — parité stricte avec CDI. */}
-                <VerificationStatusPill state={verifState} />
+                <VerificationStatusPill state={verifState} masque={profilMasque} />
               </div>
               <p style={{ fontSize: 14, color: 'var(--sk-muted)', margin: 0 }}>{t('page_subtitle')}</p>
             </div>

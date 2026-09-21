@@ -486,7 +486,10 @@
     "completion": {
       "title": "Profile {percent}% complete",
       "cta": "Complete →",
-      "hint": "A complete profile generates 5x more mission opportunities."
+      "hint": "The more complete your profile, the better the missions you are offered match it.",
+      "title_complete": "Profile complete",
+      "cta_complete": "Edit →",
+      "hint_complete": "Everything we need is filled in. You can change it at any time."
     },
     "cards": {
       "see_all": "See all →",
@@ -1243,7 +1246,10 @@
     "profile_completion": {
       "title": "Profile {percent}% complete",
       "cta": "Complete my profile →",
-      "hint": "A complete profile attracts 3× more recruiters."
+      "hint": "The more complete your profile, the better the offers you are shown match it.",
+      "title_complete": "Profile complete",
+      "cta_complete": "Edit →",
+      "hint_complete": "Everything we need is filled in. You can change it at any time."
     },
     "toast": {
       "status_updated": "Status updated",
@@ -1978,8 +1984,8 @@
       "contract_label_cdi": "Permanent contract"
     },
     "badges": {
-      "ai_score": "AI score {score}/10",
-      "ai_score_tooltip": "Quality score attributed by the AI checker"
+      "ai_score": "Advert quality {score}/10",
+      "ai_score_tooltip": "A score given to the TEXT of this advert when it was published: clarity, precision, useful detail. It says nothing about any expert."
     },
     "dates": {
       "created_ago": "Created {time} ago",
@@ -3538,7 +3544,8 @@
     "draft": "Draft",
     "pending": "Pending verification",
     "approved": "Verified profile",
-    "rejected": "Profile rejected"
+    "rejected": "Profile rejected",
+    "approved_hidden": "Verified · profile hidden"
   },
   "expert_onboarding": {
     "title": "Welcome! Here's how to get started",

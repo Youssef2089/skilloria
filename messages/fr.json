@@ -486,7 +486,10 @@
     "completion": {
       "title": "Profil complété à {percent} %",
       "cta": "Compléter →",
-      "hint": "Un profil complet génère 5x plus de propositions de missions."
+      "hint": "Plus votre profil est complet, plus les missions qui vous sont proposées lui correspondent.",
+      "title_complete": "Profil complet",
+      "cta_complete": "Modifier →",
+      "hint_complete": "Toutes les informations nécessaires sont renseignées. Vous pouvez les modifier à tout moment."
     },
     "cards": {
       "see_all": "Voir tout →",
@@ -1243,7 +1246,10 @@
     "profile_completion": {
       "title": "Profil {percent}% complet",
       "cta": "Compléter mon profil →",
-      "hint": "Un profil complet attire 3× plus de recruteurs."
+      "hint": "Plus votre profil est complet, plus les offres qui vous sont proposées lui correspondent.",
+      "title_complete": "Profil complet",
+      "cta_complete": "Modifier →",
+      "hint_complete": "Toutes les informations nécessaires sont renseignées. Vous pouvez les modifier à tout moment."
     },
     "toast": {
       "status_updated": "Statut mis à jour",
@@ -1978,8 +1984,8 @@
       "contract_label_cdi": "CDI"
     },
     "badges": {
-      "ai_score": "Score IA {score}/10",
-      "ai_score_tooltip": "Score qualité attribué par l'analyseur IA"
+      "ai_score": "Qualité de l’annonce {score}/10",
+      "ai_score_tooltip": "Note attribuée au TEXTE de cette annonce à sa publication : clarté, précision, informations utiles. Elle ne porte aucun jugement sur les experts."
     },
     "dates": {
       "created_ago": "Créée il y a {time}",
@@ -3538,7 +3544,8 @@
     "draft": "Brouillon",
     "pending": "En attente de vérification",
     "approved": "Profil vérifié",
-    "rejected": "Profil refusé"
+    "rejected": "Profil refusé",
+    "approved_hidden": "Vérifié · profil masqué"
   },
   "expert_onboarding": {
     "title": "Bienvenue ! Voici comment démarrer",

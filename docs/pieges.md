@@ -2490,6 +2490,68 @@ qu'il faut pour qu'on y remette du vert, et c'est comme ça qu'il y est arrivé 
 > disparu. Aucun motif ne distingue une couleur d'état d'une couleur décorative : cette moitié-là se
 > lit écran par écran, exactement comme la règle `--sk-faint` de §D.12.
 
+<a id="e55"></a>
+### E.55 — DEUX PHRASES VRAIES, L'UNE SOUS L'AUTRE, PEUVENT SE LIRE COMME UNE CONTRADICTION.
+
+**Le cas, vu par le propriétaire du produit sur son propre tableau de bord, le 21/09/2026.** Quatre
+défauts, tous de la même famille : **rien n'est faux, et l'écran ment quand même.**
+
+**① Un profil complet à qui on demande de se compléter.**
+> « Profil complété à **100 %** »  ·  « **Compléter →** »
+> « Un profil complet génère 5x plus de propositions de missions. »
+
+Les trois textes sont écrits pour un profil **inachevé** et s'affichent sur un profil **achevé**. Le
+bouton demande de faire ce qui est fait ; la phrase vante un état qu'on a déjà atteint. L'expert en
+conclut que le 100 % est faux — c'est la seule lecture cohérente qui lui reste.
+
+**② « Votre profil n'est plus visible » · ● Profil vérifié.**
+Le bandeau en tête d'écran, la pastille verte juste en dessous. **Les deux sont vraies.** La
+vérification dit qu'un administrateur a approuvé le dossier ; la visibilité dit que de **nouveaux
+champs** sont devenus nécessaires depuis, et que le profil est masqué en attendant.
+
+> **Côte à côte, l'expert conclut que l'un des deux ment, et il n'a aucun moyen de savoir lequel.**
+> C'est ce qui distingue cette famille de §E.24 : là-bas, un chiffre juste porte une étiquette
+> fausse ; ici, **deux énoncés exacts se détruisent par voisinage**.
+
+**③ Deux multiplicateurs, pour la même promesse.** « **5x** plus de propositions » côté freelance,
+« **3×** plus de recruteurs » côté CDI. Aucune mesure derrière, ni d'un côté ni de l'autre — rien
+dans le dépôt ne les soutient. La règle de maintenance l'écrit pour la mémoire : *une affirmation non
+vérifiable ne s'écrit pas.* Elle vaut **à plus forte raison face à l'utilisateur**, qui ne peut rien
+vérifier du tout. L'incitation reste, le chiffre part.
+
+**④ « Score IA 7/10 » sur une annonce de sous-traitance.** Le nombre est **juste** : c'est la note de
+qualité du **texte de l'annonce**, produite à sa publication. L'étiquette ne dit pas ce qu'elle note —
+et sur l'écran d'un **expert**, « Score IA » se lit comme une note portée **sur lui**, c'est-à-dire
+exactement ce que §D.6 interdit. §D.9 tranche le mot : c'est une **NOTE**, elle juge un dossier, et
+son libellé doit dire lequel. Elle s'appelle désormais « Qualité de l'annonce ».
+
+**Ce que les quatre ont en commun, et c'est la phrase à retenir.**
+> *Un écran ne se relit pas énoncé par énoncé : il se lit d'un coup d'œil. Deux vérités qui se
+> touchent forment une troisième affirmation, que personne n'a écrite et que personne ne relit.*
+
+**Les parades.**
+① Le pourcentage **choisit** le texte — trois clés séparées, branchées sur `>= 100`.
+② La pastille reçoit un drapeau `masque` et prend alors les couleurs de l'**attente**, avec son
+propre libellé (« Vérifié · profil masqué »). **`masque` est un argument, pas un sixième état** :
+ajouter `approved_hidden` à `VerificationUiState` aurait changé le sens de tous les `=== 'approved'`
+du dépôt — barre latérale, verrous de section, garde du flux — et un profil vérifié serait devenu
+« non vérifié » pour du code qui n'a rien demandé.
+③ Le chiffre disparaît des quatre langues ; le contrôle refuse tout `N× plus`.
+④ Le libellé nomme son objet, et l'explication dit en toutes lettres qu'elle **ne juge aucun expert**.
+
+> ⚠️ **`=== false`, JAMAIS `!visible` (§E.22).** Une lecture en panne rend `null`, et `!null` vaut
+> `true` : on annoncerait « profil masqué » à quelqu'un dont on n'a simplement pas pu lire l'état.
+> **Le doute ne se peint pas en avertissement.**
+
+**Contrôle** : [scripts/diag-ecran-qui-se-contredit.mjs](../scripts/diag-ecran-qui-se-contredit.mjs)
+— **7 mutations, 7 détections**. Il lit le **branchement**, pas la présence de la clé : une clé
+déclarée et jamais lue ne change rien à l'écran (§E.8).
+
+> **ET IL DIT CE QU'IL NE PEUT PAS FAIRE.** Il ne relit pas les phrases : **aucune machine ne dira
+> qu'un texte en contredit un autre.** Les quatre cas ont été trouvés par un humain devant son écran,
+> et c'est la seule façon. Ce qui est gardé, c'est la **mécanique** qui les a fermés — que les deux
+> voies la partagent, et qu'elle ne disparaisse pas au prochain lot (§E.38).
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

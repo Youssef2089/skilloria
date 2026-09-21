@@ -378,6 +378,16 @@ export default function DashboardFreelance() {
     visible: (profile?.visible ?? null) as boolean | null,
     verificationStatus: (profile?.verification_status ?? null) as string | null,
   })
+  // « Vérifié » et « visible » ne sont pas la même chose : un profil approuvé
+  // peut avoir été MASQUÉ depuis, parce que de nouveaux champs sont devenus
+  // nécessaires. Le bandeau l'explique en tête d'écran ; sans ce drapeau, la
+  // pastille affichait « Profil vérifié » en VERT juste en dessous, et les
+  // deux se lisaient comme une contradiction.
+  //
+  // ⚠️ `=== false`, jamais `!visible` : une lecture en panne rend `null`, et
+  //    `!null` vaut `true` — on annoncerait « masqué » à quelqu'un dont on n'a
+  //    pas pu lire l'état (§E.22).
+  const profilMasque = verifState === 'approved' && profile?.visible === false
   const isApprovedState = verifState === 'approved'
   const firstName = (user?.first_name ?? '').trim()
   const lastName = (user?.last_name ?? '').trim()
@@ -588,7 +598,7 @@ export default function DashboardFreelance() {
             {/* C6 : statut de vérification = même pastille que la topbar « Mon
                 Profil » (source unique). C10 : greeting personnalisé. */}
             <div style={{ animation: 'fadeIn 0.6s ease 0.3s both' }}>
-              <VerificationStatusPill state={verifState} />
+              <VerificationStatusPill state={verifState} masque={profilMasque} />
             </div>
           </div>
 
@@ -698,14 +708,16 @@ export default function DashboardFreelance() {
           <div className="main-card" style={{ borderColor: `color-mix(in srgb, var(--sk-accent) 33%, transparent)`, animationDelay: '0.3s' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--sk-text)' }}>
-                {t('completion.title', { percent: completionPct })}
+                {completionPct >= 100
+                  ? t('completion.title_complete')
+                  : t('completion.title', { percent: completionPct })}
               </div>
-              <Link href="/dashboard/freelance/profil/valider" className="voir-tout" style={{ color: 'var(--sk-accent)' }}>{t('completion.cta')}</Link>
+              <Link href="/dashboard/freelance/profil/valider" className="voir-tout" style={{ color: 'var(--sk-accent)' }}>{completionPct >= 100 ? t('completion.cta_complete') : t('completion.cta')}</Link>
             </div>
             <div className="progress-bar">
               <div className="progress-fill" style={{ background: `linear-gradient(90deg, var(--sk-accent), ${'var(--sk-accent)'})`, width: `${completionPct}%` }}></div>
             </div>
-            <div style={{ fontSize: 13, color: 'var(--sk-muted)', marginTop: 10, lineHeight: 1.6 }}>{t('completion.hint')}</div>
+            <div style={{ fontSize: 13, color: 'var(--sk-muted)', marginTop: 10, lineHeight: 1.6 }}>{completionPct >= 100 ? t('completion.hint_complete') : t('completion.hint')}</div>
           </div>
 
           {/* Missions recommandées — section TOUJOURS visible (parité avec les
