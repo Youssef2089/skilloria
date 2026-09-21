@@ -134,13 +134,13 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   return (
     <section
       style={{
-        background: '#fff',
-        border: '1.5px solid #eef2f7',
+        background: 'var(--sk-surface)',
+        border: '1.5px solid var(--sk-surface-2)',
         borderRadius: 18,
         padding: 'clamp(18px, 3vw, 26px)',
       }}
     >
-      <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{title}</h2>
+      <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: 'var(--sk-text)' }}>{title}</h2>
       {children}
     </section>
   )
@@ -165,9 +165,9 @@ function Bandeau({
   children?: React.ReactNode
 }) {
   const palette = {
-    succes: { bg: '#F0FDF4', bord: '#BBF7D0', titre: '#166534', texte: '#15803D' },
-    neutre: { bg: '#F8FAFC', bord: '#E2E8F0', titre: '#334155', texte: '#475569' },
-    alerte: { bg: '#FFFBEB', bord: '#FDE68A', titre: '#92400E', texte: '#A16207' },
+    succes: { bg: 'var(--sk-success-soft)', bord: 'var(--sk-success-soft)', titre: 'var(--sk-success)', texte: 'var(--sk-success)' },
+    neutre: { bg: 'var(--sk-surface-2)', bord: 'var(--sk-border)', titre: 'var(--sk-text)', texte: 'var(--sk-muted)' },
+    alerte: { bg: 'var(--sk-amber-soft)', bord: 'var(--sk-amber-soft)', titre: 'var(--sk-amber)', texte: 'var(--sk-amber)' },
   }[ton]
   return (
     <section
@@ -198,12 +198,12 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
         alignItems: 'baseline',
         gap: 16,
         padding: '10px 0',
-        borderBottom: '1px solid #f1f5f9',
+        borderBottom: '1px solid var(--sk-surface-2)',
         fontSize: 14,
       }}
     >
-      <span style={{ color: '#475569' }}>{label}</span>
-      <span style={{ color: '#0f172a', fontWeight: 600, textAlign: 'right' }}>{value}</span>
+      <span style={{ color: 'var(--sk-muted)' }}>{label}</span>
+      <span style={{ color: 'var(--sk-text)', fontWeight: 600, textAlign: 'right' }}>{value}</span>
     </div>
   )
 }
@@ -223,21 +223,21 @@ function UsageRow({ label, used, limit, unlimitedLabel }: {
   const atLimit = used != null && limit != null && used >= limit
   const affiche = used == null ? '—' : String(used)
   return (
-    <div style={{ padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
+    <div style={{ padding: '12px 0', borderBottom: '1px solid var(--sk-surface-2)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, fontSize: 14, marginBottom: limit == null ? 0 : 8 }}>
-        <span style={{ color: '#475569' }}>{label}</span>
-        <span style={{ color: atLimit ? '#B45309' : '#0f172a', fontWeight: 600 }}>
+        <span style={{ color: 'var(--sk-muted)' }}>{label}</span>
+        <span style={{ color: atLimit ? 'var(--sk-amber)' : 'var(--sk-text)', fontWeight: 600 }}>
           {limit == null ? `${affiche} · ${unlimitedLabel}` : `${affiche} / ${limit}`}
         </span>
       </div>
       {limit != null && (
-        <div style={{ height: 6, borderRadius: 999, background: '#f1f5f9', overflow: 'hidden' }}>
+        <div style={{ height: 6, borderRadius: 999, background: 'var(--sk-surface-2)', overflow: 'hidden' }}>
           <div
             style={{
               width: `${pct}%`,
               height: '100%',
               borderRadius: 999,
-              background: atLimit ? '#F59E0B' : 'var(--sk-accent, #0369a1)',
+              background: atLimit ? 'var(--sk-amber)' : 'var(--sk-accent, var(--sk-accent))',
             }}
           />
         </div>
@@ -403,13 +403,13 @@ export default function MonOffrePage() {
   )
 
   if (state.kind === 'loading') {
-    return <div style={{ padding: 24, fontFamily: fontJakarta, color: '#64748b' }}>{t('loading')}</div>
+    return <div style={{ padding: 24, fontFamily: fontJakarta, color: 'var(--sk-muted)' }}>{t('loading')}</div>
   }
   if (state.kind === 'error') {
-    return <div style={{ padding: 24, fontFamily: fontJakarta, color: '#991B1B' }}>{t('error_load')}</div>
+    return <div style={{ padding: 24, fontFamily: fontJakarta, color: 'var(--sk-red)' }}>{t('error_load')}</div>
   }
   if (!state.data.available) {
-    return <div style={{ padding: 24, fontFamily: fontJakarta, color: '#64748b' }}>{t('unavailable')}</div>
+    return <div style={{ padding: 24, fontFamily: fontJakarta, color: 'var(--sk-muted)' }}>{t('unavailable')}</div>
   }
 
   const { package: pkg, limits, usage, package_valid_until: validUntil } = state.data
@@ -519,8 +519,8 @@ export default function MonOffrePage() {
               style={{
                 marginTop: 12,
                 padding: '9px 16px',
-                background: '#92400E',
-                color: '#fff',
+                background: 'var(--sk-amber)',
+                color: 'var(--sk-surface)',
                 border: 'none',
                 borderRadius: 8,
                 fontSize: 13,
@@ -538,13 +538,13 @@ export default function MonOffrePage() {
       {/* ─── Offre courante ─────────────────────────────────────────────────── */}
       <Card title={t('current_plan')}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 22, fontWeight: 800, color: '#0f172a' }}>
+          <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--sk-text)' }}>
             {/* name null (lookup dégradé) → repli sur le slug, jamais vide. */}
             {pkg?.name || pkg?.slug}
           </span>
           {/* ABONNÉE : le montant prélevé, jamais le prix catalogue. NON
               ABONNÉE : le prix catalogue, qui est alors la vérité. */}
-          <span style={{ fontSize: 14, fontWeight: 600, color: '#475569' }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--sk-muted)' }}>
             {abonnee ? (montantPreleve ?? '—') : priceLabel}
           </span>
         </div>
@@ -554,18 +554,18 @@ export default function MonOffrePage() {
             panne, alors qu'il signale simplement qu'aucun paiement n'a encore
             été confirmé. */}
         {abonnee && (
-          <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#64748b', lineHeight: 1.5 }}>
+          <p style={{ margin: '8px 0 0', fontSize: 12.5, color: 'var(--sk-muted)', lineHeight: 1.5 }}>
             {montantPreleve
               ? `${t('billed_label')} · ${t('billed_note')}`
               : t('billed_pending')}
           </p>
         )}
         {!abonnee && price != null && Number(price) !== 0 && (
-          <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#64748b' }}>{t('catalog_note')}</p>
+          <p style={{ margin: '8px 0 0', fontSize: 12.5, color: 'var(--sk-muted)' }}>{t('catalog_note')}</p>
         )}
 
         {validUntilLabel && (
-          <p style={{ margin: '10px 0 0', fontSize: 12.5, color: '#64748b' }}>{validUntilLabel}</p>
+          <p style={{ margin: '10px 0 0', fontSize: 12.5, color: 'var(--sk-muted)' }}>{validUntilLabel}</p>
         )}
 
         {/* ── VERROU FERMÉ : une ligne de contact, pas un bouton mort ──────
@@ -573,7 +573,7 @@ export default function MonOffrePage() {
             bouton grisé « Changer d'offre » serait pire que pas de bouton : il
             promet une porte qui n'existe pas. */}
         {!verrouOuvert && (
-          <p style={{ margin: '14px 0 0', fontSize: 13, color: '#475569' }}>
+          <p style={{ margin: '14px 0 0', fontSize: 13, color: 'var(--sk-muted)' }}>
             {t('contact_to_change')}
           </p>
         )}
@@ -594,8 +594,8 @@ export default function MonOffrePage() {
               aria-expanded={offresOuvertes}
               style={{
                 padding: '9px 16px',
-                background: 'var(--sk-accent, #0369a1)',
-                color: '#fff',
+                background: 'var(--sk-accent, var(--sk-accent))',
+                color: 'var(--sk-surface)',
                 border: 'none',
                 borderRadius: 8,
                 fontSize: 13,
@@ -612,9 +612,9 @@ export default function MonOffrePage() {
               disabled={portailEnCours}
               style={{
                 padding: '9px 16px',
-                background: '#fff',
-                color: '#334155',
-                border: '1px solid #cbd5e1',
+                background: 'var(--sk-surface)',
+                color: 'var(--sk-text)',
+                border: '1px solid var(--sk-border)',
                 borderRadius: 8,
                 fontSize: 13,
                 fontWeight: 600,
@@ -628,7 +628,7 @@ export default function MonOffrePage() {
         )}
 
         {portailErreur && (
-          <p role="alert" style={{ margin: '10px 0 0', fontSize: 12.5, color: '#B91C1C' }}>
+          <p role="alert" style={{ margin: '10px 0 0', fontSize: 12.5, color: 'var(--sk-red)' }}>
             {t('portal_failed')}
           </p>
         )}
@@ -636,7 +636,7 @@ export default function MonOffrePage() {
         {/* L'issue reste la même des deux côtés du verrou, seul son libellé
             change — d'où deux clés dans un espace partagé plutôt qu'une phrase
             recopiée dans chaque écran. */}
-        <p style={{ margin: '12px 0 0', fontSize: 12.5, color: '#64748b' }}>
+        <p style={{ margin: '12px 0 0', fontSize: 12.5, color: 'var(--sk-muted)' }}>
           {verrouOuvert ? tCommerce('need_more_upgrade') : tCommerce('need_more_contact')}
         </p>
       </Card>
@@ -647,15 +647,15 @@ export default function MonOffrePage() {
       {verrouOuvert && offresOuvertes && (
         <Card title={t('offers_title')}>
           {offres.kind === 'loading' && (
-            <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>{t('offers_loading')}</p>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--sk-muted)' }}>{t('offers_loading')}</p>
           )}
           {offres.kind === 'error' && (
-            <p role="alert" style={{ margin: 0, fontSize: 13, color: '#B91C1C' }}>
+            <p role="alert" style={{ margin: 0, fontSize: 13, color: 'var(--sk-red)' }}>
               {t('offers_failed')}
             </p>
           )}
           {offres.kind === 'ready' && offres.data.offers.length === 0 && (
-            <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>{t('offers_empty')}</p>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--sk-muted)' }}>{t('offers_empty')}</p>
           )}
           {offres.kind === 'ready' && offres.data.offers.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -671,7 +671,7 @@ export default function MonOffrePage() {
                   <div
                     key={o.id}
                     style={{
-                      border: `1.5px solid ${enCours ? 'var(--sk-accent, #0369a1)' : '#e2e8f0'}`,
+                      border: `1.5px solid ${enCours ? 'var(--sk-accent, var(--sk-accent))' : 'var(--sk-border)'}`,
                       borderRadius: 12,
                       padding: 14,
                       display: 'flex',
@@ -683,8 +683,8 @@ export default function MonOffrePage() {
                   >
                     <div style={{ minWidth: 0, flex: '1 1 260px' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{o.name}</span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>{prix}</span>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--sk-text)' }}>{o.name}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--sk-muted)' }}>{prix}</span>
                       </div>
                       <ul style={{ margin: '8px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 3 }}>
                         {LIMITES_OFFRE.map(([code, labelKey]) => {
@@ -693,9 +693,9 @@ export default function MonOffrePage() {
                           if (!(code in o.limits)) return null
                           const v = o.limits[code] ?? null
                           return (
-                            <li key={code} style={{ fontSize: 12.5, color: '#64748b' }}>
+                            <li key={code} style={{ fontSize: 12.5, color: 'var(--sk-muted)' }}>
                               {t(labelKey as 'limit_annonces_per_month')} :{' '}
-                              <strong style={{ color: '#334155' }}>
+                              <strong style={{ color: 'var(--sk-text)' }}>
                                 {v == null ? t('unlimited') : v}
                               </strong>
                             </li>
@@ -704,7 +704,7 @@ export default function MonOffrePage() {
                       </ul>
                     </div>
                     {enCours ? (
-                      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--sk-accent, #0369a1)', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--sk-accent, var(--sk-accent))', whiteSpace: 'nowrap' }}>
                         {t('offer_current')}
                       </span>
                     ) : (
@@ -714,8 +714,8 @@ export default function MonOffrePage() {
                         disabled={choixEnCours !== null}
                         style={{
                           padding: '8px 14px',
-                          background: 'var(--sk-accent, #0369a1)',
-                          color: '#fff',
+                          background: 'var(--sk-accent, var(--sk-accent))',
+                          color: 'var(--sk-surface)',
                           border: 'none',
                           borderRadius: 8,
                           fontSize: 12.5,
@@ -735,12 +735,12 @@ export default function MonOffrePage() {
           )}
 
           {choixErreur && (
-            <p role="alert" style={{ margin: '12px 0 0', fontSize: 12.5, color: '#B91C1C' }}>
+            <p role="alert" style={{ margin: '12px 0 0', fontSize: 12.5, color: 'var(--sk-red)' }}>
               {t('offer_failed')}
             </p>
           )}
           {choixProgramme && (
-            <p style={{ margin: '12px 0 0', fontSize: 12.5, color: '#166534' }}>
+            <p style={{ margin: '12px 0 0', fontSize: 12.5, color: 'var(--sk-success)' }}>
               {choixProgramme === 'a_echeance' ? t('offer_scheduled') : t('offer_applied')}
             </p>
           )}

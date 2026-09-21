@@ -185,7 +185,7 @@ export default function GlobalCandidaturesPage() {
           type="button"
           onClick={() => router.push('/dashboard/entreprise')}
           style={{
-            padding: '10px 18px', background: domain.primaryColor, color: '#fff',
+            padding: '10px 18px', background: domain.primaryColor, color: 'var(--sk-surface)',
             border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer',
             fontFamily: 'inherit',
           }}

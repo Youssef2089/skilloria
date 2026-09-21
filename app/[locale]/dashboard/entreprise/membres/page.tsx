@@ -49,9 +49,9 @@ const ROLES = ['admin', 'editor', 'viewer'] as const
 // ─── primitives ──────────────────────────────────────────────────────────────
 function Card({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section style={{ background: '#fff', border: '1.5px solid #eef2f7', borderRadius: 18, padding: 'clamp(16px, 3vw, 24px)' }}>
+    <section style={{ background: 'var(--sk-surface)', border: '1.5px solid var(--sk-surface-2)', borderRadius: 18, padding: 'clamp(16px, 3vw, 24px)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{title}</h2>
+        <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--sk-text)' }}>{title}</h2>
         {action}
       </div>
       {children}
@@ -61,21 +61,21 @@ function Card({ title, action, children }: { title: string; action?: React.React
 
 function RoleBadge({ role, label }: { role: string; label: string }) {
   const c =
-    role === 'admin' ? { bg: '#EEF2FF', fg: '#3730A3' }
-      : role === 'editor' ? { bg: '#ECFEFF', fg: '#155E75' }
-        : { bg: '#F1F5F9', fg: '#475569' }
+    role === 'admin' ? { bg: 'var(--sk-accent-soft)', fg: 'var(--sk-accent)' }
+      : role === 'editor' ? { bg: 'var(--sk-accent-soft)', fg: 'var(--sk-accent)' }
+        : { bg: 'var(--sk-surface-2)', fg: 'var(--sk-muted)' }
   return (
     <span style={{ background: c.bg, color: c.fg, borderRadius: 999, padding: '3px 10px', fontSize: 12, fontWeight: 700 }}>{label}</span>
   )
 }
 
 const btnBase: React.CSSProperties = {
-  border: '1.5px solid #e2e8f0', background: '#fff', borderRadius: 9, padding: '7px 12px',
-  fontSize: 13, fontWeight: 600, fontFamily: fontJakarta, cursor: 'pointer', color: '#334155',
+  border: '1.5px solid var(--sk-border)', background: 'var(--sk-surface)', borderRadius: 9, padding: '7px 12px',
+  fontSize: 13, fontWeight: 600, fontFamily: fontJakarta, cursor: 'pointer', color: 'var(--sk-text)',
 }
-const btnDanger: React.CSSProperties = { ...btnBase, borderColor: '#FECACA', color: '#B91C1C' }
+const btnDanger: React.CSSProperties = { ...btnBase, borderColor: 'var(--sk-red-soft)', color: 'var(--sk-red)' }
 const btnPrimary: React.CSSProperties = {
-  ...btnBase, border: 'none', background: 'var(--sk-accent, #0369a1)', color: '#fff',
+  ...btnBase, border: 'none', background: 'var(--sk-accent, var(--sk-accent))', color: 'var(--sk-surface)',
 }
 
 export default function MembresPage() {
@@ -236,7 +236,7 @@ export default function MembresPage() {
     }
   }
 
-  if (state.kind === 'loading') return <div style={{ padding: 24, fontFamily: fontJakarta, color: '#64748b' }}>{t('loading')}</div>
+  if (state.kind === 'loading') return <div style={{ padding: 24, fontFamily: fontJakarta, color: 'var(--sk-muted)' }}>{t('loading')}</div>
   if (state.kind === 'error') {
     // Message exploitable : on distingue les cas connus et on expose la
     // référence technique (code + statut HTTP) pour le diagnostic.
@@ -246,9 +246,9 @@ export default function MembresPage() {
     const ref = [state.code, state.status ? `HTTP ${state.status}` : null].filter(Boolean).join(' · ')
     return (
       <div style={{ padding: 24, fontFamily: fontJakarta, maxWidth: 560 }}>
-        <p style={{ margin: '0 0 8px', color: '#991B1B', fontWeight: 600 }}>{known}</p>
+        <p style={{ margin: '0 0 8px', color: 'var(--sk-red)', fontWeight: 600 }}>{known}</p>
         {ref && (
-          <p style={{ margin: '0 0 14px', fontSize: 12.5, color: '#94a3b8' }}>
+          <p style={{ margin: '0 0 14px', fontSize: 12.5, color: 'var(--sk-muted)' }}>
             {t('error_ref', { ref })}
           </p>
         )}
@@ -264,7 +264,7 @@ export default function MembresPage() {
   return (
     <div style={{ fontFamily: fontJakarta, display: 'flex', flexDirection: 'column', gap: 18, width: '100%', padding: '24px 26px 28px', boxSizing: 'border-box' }}>
       {!isAdmin && (
-        <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>{t('read_only_notice')}</p>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--sk-muted)' }}>{t('read_only_notice')}</p>
       )}
 
       {/* ─── Inviter (admin) ─────────────────────────────────────────────────── */}
@@ -272,20 +272,20 @@ export default function MembresPage() {
         <Card title={t('invite_title')}>
           <form onSubmit={doInvite} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div style={{ flex: '1 1 260px', minWidth: 0 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>{t('invite_email_label')}</label>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>{t('invite_email_label')}</label>
               <input
                 type="email" required value={inviteEmail}
                 onChange={(e) => { setInviteEmail(e.target.value); if (inviteErr) setInviteErr('') }}
                 placeholder={t('invite_email_placeholder')}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: `1.5px solid ${inviteErr ? '#FCA5A5' : '#e2e8f0'}`, borderRadius: 10, fontSize: 14, fontFamily: fontJakarta, outline: 'none' }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: `1.5px solid ${inviteErr ? 'var(--sk-red-soft)' : 'var(--sk-border)'}`, borderRadius: 10, fontSize: 14, fontFamily: fontJakarta, outline: 'none' }}
               />
               {inviteErr && (
-                <p role="alert" style={{ margin: '6px 0 0', fontSize: 12.5, color: '#B91C1C', lineHeight: 1.45 }}>{inviteErr}</p>
+                <p role="alert" style={{ margin: '6px 0 0', fontSize: 12.5, color: 'var(--sk-red)', lineHeight: 1.45 }}>{inviteErr}</p>
               )}
             </div>
             <div style={{ flex: '0 0 auto' }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>{t('invite_role_label')}</label>
-              <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)} style={{ padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 14, fontFamily: fontJakarta, background: '#fff' }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>{t('invite_role_label')}</label>
+              <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)} style={{ padding: '10px 12px', border: '1.5px solid var(--sk-border)', borderRadius: 10, fontSize: 14, fontFamily: fontJakarta, background: 'var(--sk-surface)' }}>
                 {ROLES.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
               </select>
             </div>
@@ -300,14 +300,14 @@ export default function MembresPage() {
           {members.map((m) => {
             const isSelf = m.user_id === me
             return (
-              <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap' }}>
+              <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--sk-surface-2)', flexWrap: 'wrap' }}>
                 <div style={{ flex: '1 1 220px', minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>
-                    {displayName(m)} {isSelf && <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500 }}>· {t('you')}</span>}
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--sk-text)' }}>
+                    {displayName(m)} {isSelf && <span style={{ fontSize: 12, color: 'var(--sk-muted)', fontWeight: 500 }}>· {t('you')}</span>}
                   </div>
-                  <div style={{ fontSize: 12.5, color: '#64748b' }}>{m.email}</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--sk-muted)' }}>{m.email}</div>
                 </div>
-                <div style={{ fontSize: 12.5, color: '#94a3b8', flex: '0 0 auto' }}>{t('joined_on', { date: fmtDate(m.joined_at) })}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--sk-muted)', flex: '0 0 auto' }}>{t('joined_on', { date: fmtDate(m.joined_at) })}</div>
 
                 {/* Actions admin, jamais sur soi-même (RLS M4). */}
                 {isAdmin && !isSelf ? (
@@ -334,10 +334,10 @@ export default function MembresPage() {
           {!leaveOpen ? (
             <button type="button" onClick={() => setLeaveOpen(true)} style={btnDanger}>{t('leave_cta')}</button>
           ) : (
-            <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '12px 14px', maxWidth: 520 }}>
-              <p style={{ margin: '0 0 10px', fontSize: 13, color: '#991B1B', lineHeight: 1.5 }}>{t('leave_confirm')}</p>
+            <div style={{ background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', borderRadius: 10, padding: '12px 14px', maxWidth: 520 }}>
+              <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--sk-red)', lineHeight: 1.5 }}>{t('leave_confirm')}</p>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button type="button" disabled={busy} onClick={leaveOrg} style={{ ...btnDanger, background: '#DC2626', color: '#fff', border: 'none' }}>{t('leave_confirm_cta')}</button>
+                <button type="button" disabled={busy} onClick={leaveOrg} style={{ ...btnDanger, background: 'var(--sk-red)', color: 'var(--sk-surface)', border: 'none' }}>{t('leave_confirm_cta')}</button>
                 <button type="button" disabled={busy} onClick={() => setLeaveOpen(false)} style={btnBase}>{t('cancel')}</button>
               </div>
             </div>
@@ -349,21 +349,21 @@ export default function MembresPage() {
       {isAdmin && (
         <Card title={t('invitations_title', { count: invitations.length })}>
           {invitations.length === 0 ? (
-            <p style={{ margin: 0, fontSize: 13.5, color: '#94a3b8' }}>{t('invitations_empty')}</p>
+            <p style={{ margin: 0, fontSize: 13.5, color: 'var(--sk-muted)' }}>{t('invitations_empty')}</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {invitations.map((inv) => (
-                <div key={inv.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap' }}>
+                <div key={inv.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--sk-surface-2)', flexWrap: 'wrap' }}>
                   <div style={{ flex: '1 1 220px', minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--sk-text)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       {inv.email}
                       {!inv.domain_validation_passed && (
-                        <span title={t('domain_warning')} style={{ background: '#FFFBEB', color: '#92400E', border: '1px solid #FDE68A', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>
+                        <span title={t('domain_warning')} style={{ background: 'var(--sk-amber-soft)', color: 'var(--sk-amber)', border: '1px solid var(--sk-amber-soft)', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>
                           {t('domain_warning_badge')}
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: 12.5, color: '#64748b' }}>
+                    <div style={{ fontSize: 12.5, color: 'var(--sk-muted)' }}>
                       {t('invited_on', { date: fmtDate(inv.created_at) })} · {t('expires_on', { date: fmtDate(inv.expires_at) })}
                     </div>
                   </div>
@@ -380,7 +380,7 @@ export default function MembresPage() {
       )}
 
       {toast && (
-        <div role="status" style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', zIndex: 900, padding: '12px 20px', borderRadius: 12, fontSize: 14, fontWeight: 600, fontFamily: fontJakarta, color: '#fff', background: toast.kind === 'error' ? '#dc2626' : '#16a34a', boxShadow: '0 10px 30px rgba(15,23,42,0.2)' }}>
+        <div role="status" style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', zIndex: 900, padding: '12px 20px', borderRadius: 12, fontSize: 14, fontWeight: 600, fontFamily: fontJakarta, color: 'var(--sk-surface)', background: toast.kind === 'error' ? 'var(--sk-red)' : 'var(--sk-success)', boxShadow: '0 10px 30px rgba(15,23,42,0.2)' }}>
           {toast.msg}
         </div>
       )}

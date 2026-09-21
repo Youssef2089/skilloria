@@ -110,7 +110,7 @@ export default function MesAnnoncesPage() {
 
   if (state.kind === 'loading' || state.kind === 'no_org' || needsRedirect) {
     return (
-      <div style={{ padding: 48, textAlign: 'center', fontFamily: 'Inter, system-ui, sans-serif', color: '#64748b' }}>
+      <div style={{ padding: 48, textAlign: 'center', fontFamily: 'Inter, system-ui, sans-serif', color: 'var(--sk-muted)' }}>
         …
       </div>
     )
@@ -136,9 +136,9 @@ export default function MesAnnoncesPage() {
             margin: '0 0 12px',
             padding: '10px 14px',
             borderRadius: 10,
-            background: '#fffbeb',
-            border: '1px solid #fde68a',
-            color: '#92400e',
+            background: 'var(--sk-amber-soft)',
+            border: '1px solid var(--sk-amber-soft)',
+            color: 'var(--sk-amber)',
             fontSize: 13,
             lineHeight: 1.5,
           }}

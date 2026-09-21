@@ -67,7 +67,7 @@ export default function ModifierAnnoncePage({ params }: Props) {
 
   if (state.kind === 'loading') {
     return (
-      <div style={{ padding: 48, textAlign: 'center', fontFamily: 'Inter, sans-serif', color: '#64748b', fontSize: 14 }}>
+      <div style={{ padding: 48, textAlign: 'center', fontFamily: 'Inter, sans-serif', color: 'var(--sk-muted)', fontSize: 14 }}>
         …
       </div>
     )
@@ -76,14 +76,14 @@ export default function ModifierAnnoncePage({ params }: Props) {
   if (state.kind === 'error') {
     return (
       <div style={{ maxWidth: 560, margin: '60px auto', padding: '0 24px', textAlign: 'center', fontFamily: 'Inter, sans-serif' }}>
-        <p style={{ fontSize: 14, color: '#b91c1c', marginBottom: 18 }}>{state.message}</p>
+        <p style={{ fontSize: 14, color: 'var(--sk-red)', marginBottom: 18 }}>{state.message}</p>
         <button
           type="button"
           onClick={() => router.push('/dashboard/entreprise')}
           style={{
             padding: '10px 18px',
             background: domain.primaryColor,
-            color: '#fff',
+            color: 'var(--sk-surface)',
             border: 'none',
             borderRadius: 10,
             fontSize: 13,

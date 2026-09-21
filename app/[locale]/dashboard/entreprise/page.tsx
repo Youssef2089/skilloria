@@ -199,7 +199,7 @@ export default function DashboardEntreprise() {
     : null
 
   if (state.kind === 'loading' || state.kind === 'no_org' || needsRedirect) {
-    return <div style={{ padding: 48, textAlign: 'center', color: '#64748b' }}>…</div>
+    return <div style={{ padding: 48, textAlign: 'center', color: 'var(--sk-muted)' }}>…</div>
   }
   // Setup non terminé : bloque l'écran avec le modal de setup, comme avant.
   if (state.kind === 'needs_setup') {
@@ -209,12 +209,12 @@ export default function DashboardEntreprise() {
     return (
       <div style={{ padding: 48, textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
         <div style={{ fontSize: 32, marginBottom: 14 }} aria-hidden>🔒</div>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>{t('errors.session_expired_title')}</h1>
-        <p style={{ fontSize: 14, color: '#64748b', marginBottom: 20, lineHeight: 1.6 }}>{t('errors.session_expired_body')}</p>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 8 }}>{t('errors.session_expired_title')}</h1>
+        <p style={{ fontSize: 14, color: 'var(--sk-muted)', marginBottom: 20, lineHeight: 1.6 }}>{t('errors.session_expired_body')}</p>
         <button
           type="button"
           onClick={async () => { await supabase.auth.signOut(); router.replace('/connexion') }}
-          style={{ padding: '10px 20px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+          style={{ padding: '10px 20px', background: 'var(--sk-text)', color: 'var(--sk-surface)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
         >
           {t('errors.reconnect_cta')}
         </button>
@@ -225,12 +225,12 @@ export default function DashboardEntreprise() {
     return (
       <div style={{ padding: 48, textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
         <div style={{ fontSize: 32, marginBottom: 14 }} aria-hidden>⚠️</div>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>{t('errors.technical_title')}</h1>
-        <p style={{ fontSize: 14, color: '#64748b', marginBottom: 20, lineHeight: 1.6 }}>{t('errors.technical_body')}</p>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 8 }}>{t('errors.technical_title')}</h1>
+        <p style={{ fontSize: 14, color: 'var(--sk-muted)', marginBottom: 20, lineHeight: 1.6 }}>{t('errors.technical_body')}</p>
         <button
           type="button"
           onClick={() => void refresh()}
-          style={{ padding: '10px 20px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+          style={{ padding: '10px 20px', background: 'var(--sk-text)', color: 'var(--sk-surface)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
         >
           {tCommon('retry')}
         </button>
@@ -293,17 +293,17 @@ export default function DashboardEntreprise() {
             alignItems: 'center',
             gap: 8,
             padding: '6px 14px',
-            background: '#FEF9C3',
-            border: '1px solid #FDE047',
+            background: 'var(--sk-amber-soft)',
+            border: '1px solid var(--sk-amber-soft)',
             borderRadius: 16,
-            color: '#713F12',
+            color: 'var(--sk-amber)',
             fontSize: 12,
             fontWeight: 500,
             marginBottom: 16,
             alignSelf: 'flex-start',
           }}
         >
-          <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: '#CA8A04' }} />
+          <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--sk-amber)' }} />
           {t('verification_pending')}
         </div>
       )}
@@ -332,7 +332,7 @@ export default function DashboardEntreprise() {
               gap: 8,
               padding: '10px 18px',
               background: domain.primaryColor,
-              color: '#fff',
+              color: 'var(--sk-surface)',
               fontSize: 13,
               fontWeight: 600,
               borderRadius: 10,
@@ -353,7 +353,7 @@ export default function DashboardEntreprise() {
               gap: 8,
               padding: '10px 18px',
               background: domain.primaryColor,
-              color: '#fff',
+              color: 'var(--sk-surface)',
               fontSize: 13,
               fontWeight: 600,
               borderRadius: 10,
@@ -399,10 +399,10 @@ export default function DashboardEntreprise() {
               — elle ouvre la liste vide correspondante, correctement libellée,
               pour que l'utilisateur puisse vérifier qu'il n'a effectivement
               rien plutôt que de se heurter à un chiffre inerte. */}
-          <PubTile label={t('overview.pub_published')} value={pubCounts.published} dot="#16A34A" loading={isLoadingData} tab="published" />
-          <PubTile label={t('overview.pub_review')} value={pubCounts.review} dot="#CA8A04" loading={isLoadingData} tab="review" />
-          <PubTile label={t('overview.pub_drafts')} value={pubCounts.drafts} dot="#94a3b8" loading={isLoadingData} tab="drafts" />
-          <PubTile label={t('overview.pub_closed')} value={pubCounts.closed} dot="#94a3b8" loading={isLoadingData} tab="closed" />
+          <PubTile label={t('overview.pub_published')} value={pubCounts.published} dot="var(--sk-success)" loading={isLoadingData} tab="published" />
+          <PubTile label={t('overview.pub_review')} value={pubCounts.review} dot="var(--sk-amber)" loading={isLoadingData} tab="review" />
+          <PubTile label={t('overview.pub_drafts')} value={pubCounts.drafts} dot="var(--sk-faint)" loading={isLoadingData} tab="drafts" />
+          <PubTile label={t('overview.pub_closed')} value={pubCounts.closed} dot="var(--sk-faint)" loading={isLoadingData} tab="closed" />
         </div>
       </section>
 
@@ -448,7 +448,7 @@ export default function DashboardEntreprise() {
         >
           <FunnelTile label={t('funnel.to_review')} facet="awaiting_review" facets={candFacets} accent />
           <FunnelTile label={t('funnel.in_progress')} facet="exchange_open" facets={candFacets} color="var(--sk-text)" />
-          <FunnelTile label={t('funnel.accepted')} facet="selected" facets={candFacets} color="#16A34A" />
+          <FunnelTile label={t('funnel.accepted')} facet="selected" facets={candFacets} color="var(--sk-success)" />
           <FunnelTile
             label={t('funnel.rejected')}
             facet="rejected"
@@ -460,7 +460,7 @@ export default function DashboardEntreprise() {
       </section>
 
       {!isApproved && annonces.length === 0 && (
-        <p style={{ fontSize: 12, color: 'var(--sk-faint)', marginTop: 18, textAlign: 'center' }}>
+        <p style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 18, textAlign: 'center' }}>
           {t('publish_disabled_tooltip')}
         </p>
       )}

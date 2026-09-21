@@ -106,39 +106,39 @@ const VERIF_STATUSES = [
 
 /** Palette du chip de statut — sobriété alignée sur le pattern expert. */
 const CHIP_COLORS: Record<string, { bg: string; fg: string; bd: string }> = {
-  approved: { bg: '#ECFDF5', fg: '#065F46', bd: '#A7F3D0' },
-  pending_provider_check: { bg: '#FFFBEB', fg: '#92400E', bd: '#FDE68A' },
-  pending_admin_review: { bg: '#FFFBEB', fg: '#92400E', bd: '#FDE68A' },
-  requires_more_info: { bg: '#FFFBEB', fg: '#92400E', bd: '#FDE68A' },
-  rejected: { bg: '#FEF2F2', fg: '#991B1B', bd: '#FECACA' },
-  unknown: { bg: '#F1F5F9', fg: '#475569', bd: '#E2E8F0' },
+  approved: { bg: 'var(--sk-success-soft)', fg: 'var(--sk-success)', bd: 'var(--sk-success-soft)' },
+  pending_provider_check: { bg: 'var(--sk-amber-soft)', fg: 'var(--sk-amber)', bd: 'var(--sk-amber-soft)' },
+  pending_admin_review: { bg: 'var(--sk-amber-soft)', fg: 'var(--sk-amber)', bd: 'var(--sk-amber-soft)' },
+  requires_more_info: { bg: 'var(--sk-amber-soft)', fg: 'var(--sk-amber)', bd: 'var(--sk-amber-soft)' },
+  rejected: { bg: 'var(--sk-red-soft)', fg: 'var(--sk-red)', bd: 'var(--sk-red-soft)' },
+  unknown: { bg: 'var(--sk-surface-2)', fg: 'var(--sk-muted)', bd: 'var(--sk-border)' },
 }
 
 // ─── primitives UI (alignées sur components/settings/SettingsView.tsx) ───────
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>
+    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
       {children}
     </label>
   )
 }
 
 function Help({ children }: { children: React.ReactNode }) {
-  return <p style={{ margin: '6px 0 0', fontSize: 12, lineHeight: 1.5, color: '#64748b' }}>{children}</p>
+  return <p style={{ margin: '6px 0 0', fontSize: 12, lineHeight: 1.5, color: 'var(--sk-muted)' }}>{children}</p>
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section
       style={{
-        background: '#fff',
-        border: '1.5px solid #eef2f7',
+        background: 'var(--sk-surface)',
+        border: '1.5px solid var(--sk-surface-2)',
         borderRadius: 18,
         padding: 'clamp(18px, 3vw, 26px)',
       }}
     >
-      <h2 style={{ margin: '0 0 18px', fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{title}</h2>
+      <h2 style={{ margin: '0 0 18px', fontSize: 15, fontWeight: 700, color: 'var(--sk-text)' }}>{title}</h2>
       {children}
     </section>
   )
@@ -162,11 +162,11 @@ function ReadOnlyField({ label, value, fallback }: { label: string; value: strin
         style={{
           margin: 0,
           padding: '11px 13px',
-          border: '1.5px solid #f1f5f9',
-          background: '#f8fafc',
+          border: '1.5px solid var(--sk-surface-2)',
+          background: 'var(--sk-surface-2)',
           borderRadius: 10,
           fontSize: 14,
-          color: value ? '#0f172a' : '#94a3b8',
+          color: value ? 'var(--sk-text)' : 'var(--sk-muted)',
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
         }}
@@ -181,12 +181,12 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   boxSizing: 'border-box',
   padding: '11px 13px',
-  border: '1.5px solid #e2e8f0',
+  border: '1.5px solid var(--sk-border)',
   borderRadius: 10,
   fontSize: 14,
   outline: 'none',
   fontFamily: fontJakarta,
-  background: '#fff',
+  background: 'var(--sk-surface)',
 }
 
 export default function MonEntreprisePage() {
@@ -326,13 +326,13 @@ export default function MonEntreprisePage() {
   }
 
   if (state.kind === 'loading') {
-    return <div style={{ padding: 24, fontFamily: fontJakarta, color: '#64748b' }}>{t('loading')}</div>
+    return <div style={{ padding: 24, fontFamily: fontJakarta, color: 'var(--sk-muted)' }}>{t('loading')}</div>
   }
   if (state.kind === 'error') {
-    return <div style={{ padding: 24, fontFamily: fontJakarta, color: '#991B1B' }}>{t('error_load')}</div>
+    return <div style={{ padding: 24, fontFamily: fontJakarta, color: 'var(--sk-red)' }}>{t('error_load')}</div>
   }
   if (state.kind === 'no_org') {
-    return <div style={{ padding: 24, fontFamily: fontJakarta, color: '#64748b' }}>{t('no_org')}</div>
+    return <div style={{ padding: 24, fontFamily: fontJakarta, color: 'var(--sk-muted)' }}>{t('no_org')}</div>
   }
 
   const { org, isAdmin } = state
@@ -400,9 +400,9 @@ export default function MonEntreprisePage() {
           <div
             role="alert"
             style={{
-              background: '#FEF2F2',
-              border: '1px solid #FECACA',
-              color: '#991B1B',
+              background: 'var(--sk-red-soft)',
+              border: '1px solid var(--sk-red-soft)',
+              color: 'var(--sk-red)',
               borderRadius: 10,
               padding: '10px 14px',
               fontSize: 13,
@@ -416,7 +416,7 @@ export default function MonEntreprisePage() {
         )}
 
         {!isAdmin && (
-          <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>{t('read_only_notice')}</p>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--sk-muted)' }}>{t('read_only_notice')}</p>
         )}
       </div>
 
@@ -557,8 +557,9 @@ export default function MonEntreprisePage() {
               fontSize: 14,
               fontWeight: 700,
               fontFamily: fontJakarta,
-              color: '#fff',
-              background: saving ? '#94a3b8' : 'var(--sk-accent, #0369a1)',
+              color: 'var(--sk-surface)',
+              background: 'var(--sk-accent)',
+              opacity: saving ? 0.55 : 1,
               cursor: saving ? 'default' : 'pointer',
             }}
           >
@@ -573,7 +574,7 @@ export default function MonEntreprisePage() {
           style={{
             position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', zIndex: 900,
             padding: '12px 20px', borderRadius: 12, fontSize: 14, fontWeight: 600, fontFamily: fontJakarta,
-            color: '#fff', background: toast.kind === 'error' ? '#dc2626' : '#16a34a',
+            color: 'var(--sk-surface)', background: toast.kind === 'error' ? 'var(--sk-red)' : 'var(--sk-success)',
             boxShadow: '0 10px 30px rgba(15,23,42,0.2)',
           }}
         >

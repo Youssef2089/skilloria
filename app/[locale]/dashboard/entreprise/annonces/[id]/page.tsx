@@ -114,7 +114,7 @@ export default function AnnonceDetailPage({ params }: Props) {
           type="button"
           onClick={() => router.push('/dashboard/entreprise/annonces')}
           style={{
-            padding: '10px 18px', background: domain.primaryColor, color: '#fff',
+            padding: '10px 18px', background: domain.primaryColor, color: 'var(--sk-surface)',
             border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer',
             fontFamily: 'inherit',
           }}
@@ -223,7 +223,7 @@ export default function AnnonceDetailPage({ params }: Props) {
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '9px 14px', borderRadius: 9,
                 background: domain.primaryColor,
-                color: '#fff', textDecoration: 'none',
+                color: 'var(--sk-surface)', textDecoration: 'none',
                 fontSize: 13, fontWeight: 700,
               }}
             >
@@ -239,7 +239,7 @@ export default function AnnonceDetailPage({ params }: Props) {
           {t('section_description')}
         </div>
         <div style={{ fontSize: 14, color: 'var(--sk-text)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
-          {pub.description || <span style={{ color: 'var(--sk-faint)', fontStyle: 'italic' }}>{t('description_empty')}</span>}
+          {pub.description || <span style={{ color: 'var(--sk-muted)', fontStyle: 'italic' }}>{t('description_empty')}</span>}
         </div>
       </section>
 
@@ -311,7 +311,7 @@ export default function AnnonceDetailPage({ params }: Props) {
         )}
       </section>
 
-      <div style={{ fontSize: 11, color: 'var(--sk-faint)', textAlign: 'center' }}>
+      <div style={{ fontSize: 11, color: 'var(--sk-muted)', textAlign: 'center' }}>
         {t('footer_pub_id', { id: pub.id })}
       </div>
     </div>
