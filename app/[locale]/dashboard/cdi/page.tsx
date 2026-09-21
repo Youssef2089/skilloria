@@ -144,7 +144,12 @@ export default function DashboardCDI() {
     ? MATCHING_TRIGGER_FAST_POLL_MS
     : MATCHING_TRIGGER_NORMAL_POLL_MS
 
-  // Lot A : `expert_status.is_dnd` pour l'empty-state rouge.
+  // `expert_status.is_dnd` fait partie du CONTRAT de /api/me/missions et reste
+  // déclaré ici pour que le type dise la vérité sur la réponse. Il n'est PLUS
+  // LU par cet écran : la disponibilité se lit sur la page, une seule fois
+  // (cf. le bandeau plus bas). Le commentaire d'avant disait « pour l'empty-state
+  // rouge » — il était vrai, et c'est précisément ce qui rendait le défaut
+  // invisible (§E.29).
   const missionsLive = useLiveResource<
     {
       missions: MissionCardData[]
@@ -720,7 +725,29 @@ export default function DashboardCDI() {
               //   matching IA en cours (fenêtre <120s) → état TRANSITOIRE
               //     "Analyse en cours…" (Lot UX refetch auto).
               //   sinon 0 match → GRIS neutre.
-              missionsLive.data?.expert_status?.is_dnd && user?.id ? (
+              // ⚠️ LA DISPONIBILITÉ SE LIT SUR LA PAGE, PAS SUR LE RÉSEAU.
+              //
+              //    Cette ligne lisait `missionsLive.data.expert_status.is_dnd`,
+              //    c'est-à-dire la réponse de /api/me/missions. Trois lecteurs
+              //    du même fait coexistaient : le bouton (état local), la
+              //    pastille de l'en-tête (requête propre du shell), et ce
+              //    bandeau. Les deux premiers basculaient au clic ; le
+              //    troisième, jamais.
+              //
+              //    LA CAUSE ÉTAIT EXACTE ET MESURÉE : useLiveResource ne met
+              //    `displayed` à jour que si la LISTE change. Un expert sans
+              //    mission a une liste vide avant ET après : le hook ne voyait
+              //    « aucun changement métier » et gardait l'ancienne métadonnée.
+              //    Le bandeau n'apparaissait qu'au changement de page, qui
+              //    remonte le composant.
+              //
+              //    La parade du hook — `metadataHash` — existait, et son
+              //    commentaire nomme littéralement `expert_status.is_dnd`. Elle
+              //    avait été appliquée aux pages /missions et PAS aux deux
+              //    tableaux de bord, c'est-à-dire pas aux deux pages qui
+              //    portent le bouton (§E.20). Elle n'est plus nécessaire ici :
+              //    la page ne lit plus cette métadonnée du tout.
+              status === 'employed' && user?.id ? (
                 <DndEmptyState side="cdi" userId={user.id} />
               ) : matchingInWindow ? (
                 <div
