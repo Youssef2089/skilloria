@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Audit des couleurs — accueil et application</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --doc-bg:#fbfbfa; --doc-surface:#ffffff; --doc-ink:#14161a; --doc-muted:#5c6470;
+    --doc-faint:#8b93a0; --doc-line:#e4e6ea; --doc-line-soft:#eef0f3;
+    --doc-accent:#1f4f7a; --doc-warn-bg:#fdf6e6; --doc-warn-line:#e8d4a0;
+    --doc-bad-bg:#fdf0ee; --doc-bad-line:#f0c8c0; --doc-ok-bg:#eef7f2; --doc-ok-line:#bfe0ce;
+    --doc-sans:'Plus Jakarta Sans','Segoe UI',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    --doc-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    /* Thème clair UNIQUEMENT, et c'est un choix, pas un oubli : ce document mesure
+       des couleurs sur un fond connu. Un thème sombre recolorerait les surfaces
+       mêmes contre lesquelles les ratios ont été calculés, et les rendrait faux. */
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--doc-bg);color:var(--doc-ink);
+    font:400 16px/1.65 var(--doc-sans);
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px;padding-block:40px}
+  header.doc{border-bottom:2px solid var(--doc-ink);padding-bottom:22px;margin-bottom:34px}
+  h1{font-size:clamp(26px,4.2vw,38px);line-height:1.15;letter-spacing:-.022em;margin:0 0 10px;font-weight:800}
+  .kicker{font-size:12px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+    color:var(--doc-accent);margin:0 0 12px}
+  .lede{font-size:17px;color:var(--doc-muted);margin:0;max-width:66ch}
+  h2{font-size:clamp(20px,2.8vw,26px);letter-spacing:-.018em;margin:52px 0 6px;font-weight:800;
+    padding-top:22px;border-top:1px solid var(--doc-line)}
+  h2 .num{color:var(--doc-faint);font-weight:700;margin-right:10px}
+  h3{font-size:16px;font-weight:700;margin:30px 0 8px;letter-spacing:-.01em}
+  p{margin:0 0 14px;max-width:74ch}
+  .sub{color:var(--doc-muted);margin-top:0;max-width:74ch}
+  code{font-family:var(--doc-mono);font-size:.86em;
+    background:var(--doc-line-soft);padding:1px 5px;border-radius:4px}
+  .scroll{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--doc-line);border-radius:10px;
+    background:var(--doc-surface)}
+  table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--doc-line-soft);vertical-align:top}
+  th{background:#f5f6f8;font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--doc-muted);white-space:nowrap;position:sticky;top:0}
+  tr:last-child td{border-bottom:none}
+  td.mono,th.mono,.mono{font-family:var(--doc-mono);font-size:12.5px;white-space:nowrap;
+    font-variant-numeric:tabular-nums}
+  .sw{display:inline-block;width:38px;height:20px;border-radius:4px;border:1px solid rgba(0,0,0,.16);
+    vertical-align:-5px;margin-right:9px}
+  /* ⚠ Jamais display:flex sur un <td> : la cellule quitte l'algorithme de tableau
+     et la colonne suivante se replie dessous. Flux en ligne, uniquement. */
+  .val{line-height:2}
+  .val .mono{margin-right:6px}
+  .where{color:var(--doc-muted);font-size:12px;font-family:var(--doc-mono);font-variant-numeric:tabular-nums}
+  .note{border-left:3px solid var(--doc-accent);background:var(--doc-surface);padding:14px 18px;
+    margin:18px 0;border-radius:0 8px 8px 0}
+  .note.warn{border-left-color:#c08a1e;background:var(--doc-warn-bg)}
+  .note.bad{border-left-color:#c0503b;background:var(--doc-bad-bg)}
+  .note.ok{border-left-color:#3f8f66;background:var(--doc-ok-bg)}
+  .note p:last-child{margin-bottom:0}
+  .note .t{font-weight:800;display:block;margin-bottom:6px;font-size:14px;letter-spacing:-.01em}
+  .cards{display:grid;grid-template-columns:1fr;gap:14px;margin:18px 0 8px}
+  @media(min-width:620px){.cards{grid-template-columns:repeat(2,1fr)}}
+  @media(min-width:960px){.cards{grid-template-columns:repeat(4,1fr)}}
+  .card{background:var(--doc-surface);border:1px solid var(--doc-line);border-radius:10px;padding:16px}
+  .card .big-n{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums}
+  .card .lbl{font-size:12.5px;color:var(--doc-muted);margin-top:4px;line-height:1.45}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;font-variant-numeric:tabular-nums;
+    letter-spacing:.03em;white-space:nowrap}
+  .p-aaa{background:#e4f2e9;color:#1d6440}.p-aa{background:#e9f0f8;color:#1f4f7a}
+  .p-lg{background:#fdf3e0;color:#8a5f11}.p-ko{background:#fbe6e2;color:#a03a27}
+  .p-dec{background:#eef0f3;color:#5c6470}
+  ul{margin:0 0 16px;padding-left:22px;max-width:74ch}li{margin-bottom:7px}
+  .meta{font-size:13px;color:var(--doc-faint);margin-top:10px}
+  .dark-demo{background:#1A1815;color:#F4F0E8;padding:14px 16px;border-radius:8px;font-size:14px}
+  footer.doc{margin-top:56px;padding-top:20px;border-top:1px solid var(--doc-line);
+    font-size:13px;color:var(--doc-faint)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <p class="kicker">Audit · lecture seule · 21 septembre 2026</p>
+  <h1>Les couleurs de l'accueil, et celles du reste du site</h1>
+  <p class="lede">Ce document mesure. Il ne propose aucune palette et ne recommande rien.
+  Chaque valeur qui suit a été lue dans le dépôt, à l'adresse indiquée, ou calculée avec
+  l'algorithme même du projet. Ce qui n'a pas pu être vérifié est écrit
+  <strong>NON VÉRIFIÉ</strong>, en toutes lettres.</p>
+  <p class="meta">Branche <code>feat/sprint-archi-orga</code>, arbre propre au commit <code>5558f86</code>.
+  Aucune écriture en base, aucun accès réseau, aucune modification de code.</p>
+</header>
+
+<div class="cards">
+  <div class="card"><div class="big-n">184</div>
+    <div class="lbl">couleurs littérales distinctes dans <code>app/</code>, <code>lib/</code>, <code>components/</code></div></div>
+  <div class="card"><div class="big-n">3 180</div>
+    <div class="lbl">fois qu'une couleur est écrite en dur, dans 125 fichiers sur 479</div></div>
+  <div class="card"><div class="big-n">0</div>
+    <div class="lbl">classe de couleur Tailwind utilisée dans tout le code</div></div>
+  <div class="card"><div class="big-n">15</div>
+    <div class="lbl">couleurs sur l'accueil entier, contre 105 sur le reste du site</div></div>
+</div>
+
+<div class="note">
+  <span class="t">La phrase qui résume l'écart</span>
+  <p>L'accueil tient en <strong>quinze couleurs, déclarées dans un seul fichier</strong>, avec une règle
+  écrite qui dit laquelle a le droit d'y entrer. Le reste du site tient en <strong>cent cinq couleurs
+  recopiées à la main</strong>, sans fichier de référence, et <strong>aucune des deux moitiés ne partage
+  une seule teinte avec l'autre</strong>. Ce ne sont pas deux réglages d'une même palette : ce sont deux
+  produits différents, collés l'un à l'autre.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ 1 -->
+<h2><span class="num">1</span>La palette de l'accueil</h2>
+<p class="sub">Tout ce qui s'affiche sur <code>/</code> descend de deux fichiers :
+<code>components/home/theme.ts</code> pour le décor, et <code>lib/domain-config.ts</code> pour la couleur
+d'accent. Les composants eux-mêmes n'écrivent aucune couleur — ils posent des classes que
+<code>components/home/homeStyles.ts</code> remplit depuis ce décor.</p>
+
+<h3>Le décor — identique sur tous les écosystèmes</h3>
+<p class="sub">Le fichier porte sa propre règle d'admission, en tête :
+<em>« une couleur qui varie d'un écosystème à l'autre n'a rien à faire dans ce fichier »</em>.
+Classées par surface couverte, de la plus grande à la plus petite.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>Couleur</th><th class="mono">Valeur</th><th>Ce qu'elle couvre</th><th>Déclarée à</th></tr></thead>
+<tbody>
+<tr><td class="val"><span class="sw" style="background:#FDFBF7"></span>Crème</td><td class="mono">#FDFBF7</td>
+  <td>Fond de toute la page, des onglets et de la barre de navigation</td>
+  <td class="where">lib/domain-config.ts:47 → theme.ts:24</td></tr>
+<tr><td class="val"><span class="sw" style="background:#FFFFFF"></span>Blanc</td><td class="mono">#FFFFFF</td>
+  <td>Sections « Fonctionnalités » et « Domaines », cartes, texte des boutons pleins</td>
+  <td class="where">theme.ts:25</td></tr>
+<tr><td class="val"><span class="sw" style="background:#1A1815"></span>Encre</td><td class="mono">#1A1815</td>
+  <td>Tout le texte principal, <strong>et le fond du pied de page</strong></td>
+  <td class="where">lib/domain-config.ts:50 → theme.ts:29 et 38</td></tr>
+<tr><td class="val"><span class="sw" style="background:#F6F2EA"></span>Beige</td><td class="mono">#F6F2EA</td>
+  <td>Section « Étapes » et bandeau supérieur</td><td class="where">theme.ts:26</td></tr>
+<tr><td class="val"><span class="sw" style="background:#6B655C"></span>Gris de texte</td><td class="mono">#6B655C</td>
+  <td>Chapôs, sous-titres, textes de carte, onglets inactifs, liens de navigation</td>
+  <td class="where">theme.ts:30</td></tr>
+<tr><td class="val"><span class="sw" style="background:#8A8377"></span>Gris tenu</td><td class="mono">#8A8377</td>
+  <td>Ligne de preuves sous le héros, survol de bordure d'onglet</td><td class="where">theme.ts:31</td></tr>
+<tr><td class="val"><span class="sw" style="background:#E7E2D8"></span>Bordure</td><td class="mono">#E7E2D8</td>
+  <td>Contour des cartes, séparation des sections, bas de la navigation</td><td class="where">theme.ts:34</td></tr>
+<tr><td class="val"><span class="sw" style="background:#EFE9DD"></span>Bordure douce</td><td class="mono">#EFE9DD</td>
+  <td>Fond de survol des liens de navigation</td><td class="where">theme.ts:35</td></tr>
+<tr><td class="val"><span class="sw" style="background:#F4F0E8"></span>Sur encre</td><td class="mono">#F4F0E8</td>
+  <td>Texte et liens du pied de page</td><td class="where">theme.ts:39</td></tr>
+<tr><td class="val"><span class="sw" style="background:#9A938A"></span>Sur encre, tenu</td><td class="mono">#9A938A</td>
+  <td>Titres de colonnes et mention de copyright du pied de page</td><td class="where">theme.ts:40</td></tr>
+<tr><td class="val"><span class="sw" style="background:#332F2A"></span>Sur encre, bordure</td><td class="mono">#332F2A</td>
+  <td>Filet au-dessus du bas de pied de page</td><td class="where">theme.ts:41</td></tr>
+<tr><td class="val"><span class="sw" style="background:#0F6E56"></span>Vert de validation</td><td class="mono">#0F6E56</td>
+  <td>Démonstration animée — signifie « vérifié », jamais une marque</td><td class="where">theme.ts:44</td></tr>
+<tr><td class="val"><span class="sw" style="background:#E1F5EE"></span>Vert doux</td><td class="mono">#E1F5EE</td>
+  <td>Fond des pastilles de validation</td><td class="where">theme.ts:45</td></tr>
+<tr><td class="val"><span class="sw" style="background:#8A6100"></span>Ambre d'avertissement</td><td class="mono">#8A6100</td>
+  <td>Démonstration animée — signifie « attention »</td><td class="where">theme.ts:46</td></tr>
+<tr><td class="val"><span class="sw" style="background:#FBF0DA"></span>Ambre doux</td><td class="mono">#FBF0DA</td>
+  <td>Fond des pastilles d'avertissement</td><td class="where">theme.ts:47</td></tr>
+</tbody></table></div>
+
+<h3>L'accent — la seule couleur qui change d'un écosystème à l'autre</h3>
+<p class="sub">Il n'est écrit nulle part. Il est <strong>calculé au serveur</strong> depuis la couleur de
+marque de l'écosystème servi, et abaissé en luminance jusqu'à franchir un contraste de 7 pour 1 contre
+la crème. Sur le seul écosystème réellement configuré dans le dépôt, la marque vaut
+<code>#0ea5e9</code> et la colonne <code>accent_color</code> est <strong>vide</strong> : l'accent est donc
+entièrement dérivé.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>Étape</th><th class="mono">Valeur</th><th>Contraste sur la crème</th><th>Ce qu'elle couvre</th></tr></thead>
+<tbody>
+<tr><td class="val"><span class="sw" style="background:#0ea5e9"></span>Marque de l'écosystème</td>
+  <td class="mono">#0EA5E9</td><td><span class="pill p-ko">2,68 : 1</span> illisible</td>
+  <td>Uniquement la pastille du logo, en haut et dans le pied de page</td></tr>
+<tr><td class="val"><span class="sw" style="background:#085a7f"></span><strong>Accent servi</strong></td>
+  <td class="mono">#085A7F</td><td><span class="pill p-aaa">7,31 : 1</span></td>
+  <td>Boutons pleins, sur-titres, numéros et filets d'étapes, contours de focus, onglet actif</td></tr>
+<tr><td class="val"><span class="sw" style="background:#06425d"></span>Accent survolé</td>
+  <td class="mono">#06425D</td><td><span class="pill p-aaa">10,80 : 1</span></td>
+  <td>Survol des deux boutons pleins</td></tr>
+<tr><td class="val"><span class="sw" style="background:#e9f2f7"></span>Accent très clair</td>
+  <td class="mono">#E9F2F7</td><td><span class="pill p-dec">décor</span></td>
+  <td>Fond des pastilles d'icônes des cartes « Fonctionnalités »</td></tr>
+</tbody></table></div>
+
+<div class="note warn">
+  <span class="t">Un écart de documentation, mineur mais réel</span>
+  <p>Le commentaire de <code>lib/domain-config.ts:140</code> annonce que l'accent « ressort à ~#085F87, 7:1 ».
+  La fonction produit en réalité <code>#085A7F</code>, à 7,31 pour 1. La valeur écrite dans le commentaire,
+  <code>#085F87</code>, ne vaut que <strong>6,78 pour 1</strong> — c'est-à-dire sous la cible que la fonction
+  elle-même impose. Le code est juste ; c'est son commentaire qui a vieilli.</p>
+</div>
+
+<div class="note bad">
+  <span class="t">Seize couleurs qui ne servent à rien, dans le fichier de l'accueil</span>
+  <p><code>productPalette</code> (<code>theme.ts:81</code>) déclare huit paires fond + texte pour
+  « distinguer les produits les uns des autres ». <strong>Aucune ligne du dépôt ne la lit</strong> — balayage
+  de <code>app/</code>, <code>lib/</code> et <code>components/</code>. Le commentaire qui la présente est
+  d'ailleurs séparé d'elle par deux autres déclarations : il décrit en fait les portraits.</p>
+</div>
+
+<p class="sub">Le reste de <code>theme.ts</code> — 33 couleurs sur 62 — dessine les
+<strong>portraits en SVG</strong> de la démonstration animée : six carnations, six chevelures, six
+vêtements, plus trois traits communs. Ce sont des couleurs d'illustration, pas des couleurs d'interface,
+et elles ne figurent volontairement pas dans le tableau du décor.</p>
+
+<!-- ══════════════════════════════════════════════════════════ 2 -->
+<h2><span class="num">2</span>La palette de l'application</h2>
+<p class="sub">Les tableaux de bord experts se lisent en <strong>deux couches qui ne communiquent pas</strong> :
+la coquille, qui suit des jetons déclarés une fois ; et les pages, qui écrivent leurs couleurs à la main,
+écran par écran.</p>
+
+<h3>Couche A — la coquille : barre latérale et en-tête</h3>
+<p class="sub">Quinze jetons déclarés dans <code>app/globals.css</code>, utilisés environ 430 fois à travers
+le produit. C'est la seule couche du site qui ressemble à un système.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>Jeton</th><th class="mono">Valeur</th><th>Ce qu'il couvre</th><th>Déclaré à</th></tr></thead>
+<tbody>
+<tr><td class="val"><span class="sw" style="background:#F6F7F9"></span><code>--sk-bg</code></td><td class="mono">#F6F7F9</td>
+  <td>Fond de toute la zone de travail, derrière le contenu de chaque page</td><td class="where">globals.css:18</td></tr>
+<tr><td class="val"><span class="sw" style="background:#FFFFFF"></span><code>--sk-surface</code></td><td class="mono">#FFFFFF</td>
+  <td>Barre latérale et en-tête, sur toute leur hauteur</td><td class="where">globals.css:19</td></tr>
+<tr><td class="val"><span class="sw" style="background:#F8FAFC"></span><code>--sk-surface-2</code></td><td class="mono">#F8FAFC</td>
+  <td>Fonds de second plan, pastilles de compteur de la navigation</td><td class="where">globals.css:20</td></tr>
+<tr><td class="val"><span class="sw" style="background:#E7E9ED"></span><code>--sk-border</code></td><td class="mono">#E7E9ED</td>
+  <td>Filet à droite de la barre latérale, filet sous l'en-tête</td><td class="where">globals.css:21</td></tr>
+<tr><td class="val"><span class="sw" style="background:#EEF0F3"></span><code>--sk-border-soft</code></td><td class="mono">#EEF0F3</td>
+  <td>Séparation sous le bloc d'identité de l'utilisateur</td><td class="where">globals.css:22</td></tr>
+<tr><td class="val"><span class="sw" style="background:#161A20"></span><code>--sk-text</code></td><td class="mono">#161A20</td>
+  <td>Nom de l'utilisateur, titre de la page dans l'en-tête</td><td class="where">globals.css:23</td></tr>
+<tr><td class="val"><span class="sw" style="background:#697586"></span><code>--sk-muted</code></td><td class="mono">#697586</td>
+  <td>Sous-titre de l'utilisateur (« Freelance · Microsoft »)</td><td class="where">globals.css:24</td></tr>
+<tr><td class="val"><span class="sw" style="background:#9AA3B0"></span><code>--sk-faint</code></td><td class="mono">#9AA3B0</td>
+  <td>Titres de groupes de la navigation, entrées désactivées</td><td class="where">globals.css:25</td></tr>
+<tr><td class="val"><span class="sw" style="background:#0F9D6B"></span><code>--sk-success</code></td><td class="mono">#0F9D6B</td>
+  <td>Pastille « Disponible » / « À l'écoute » dans l'en-tête</td><td class="where">globals.css:28</td></tr>
+<tr><td class="val"><span class="sw" style="background:#E6F6EF"></span><code>--sk-success-soft</code></td><td class="mono">#E6F6EF</td>
+  <td>Fond de cette pastille</td><td class="where">globals.css:29</td></tr>
+<tr><td class="val"><span class="sw" style="background:#0B7A53"></span><code>--sk-success-ink</code></td><td class="mono">#0B7A53</td>
+  <td>Déclaré ; deux usages dans tout le produit</td><td class="where">globals.css:30</td></tr>
+<tr><td class="val"><span class="sw" style="background:#B7791F"></span><code>--sk-amber</code></td><td class="mono">#B7791F</td>
+  <td>Pastilles d'attente</td><td class="where">globals.css:31</td></tr>
+<tr><td class="val"><span class="sw" style="background:#FBF1DF"></span><code>--sk-amber-soft</code></td><td class="mono">#FBF1DF</td>
+  <td>Fond de ces pastilles</td><td class="where">globals.css:32</td></tr>
+<tr><td class="val"><span class="sw" style="background:#C0392B"></span><code>--sk-red</code></td><td class="mono">#C0392B</td>
+  <td>Pastilles de refus</td><td class="where">globals.css:33</td></tr>
+<tr><td class="val"><span class="sw" style="background:#FBEBE9"></span><code>--sk-red-soft</code></td><td class="mono">#FBEBE9</td>
+  <td>Fond de ces pastilles</td><td class="where">globals.css:34</td></tr>
+</tbody></table></div>
+
+<h3>Et trois couleurs de la coquille qui ne sont pas des jetons</h3>
+<div class="scroll"><table>
+<thead><tr><th>Couleur</th><th class="mono">Valeur</th><th>Ce qu'elle couvre</th><th>Écrite à</th></tr></thead>
+<tbody>
+<tr><td class="val"><span class="sw" style="background:#33414F"></span>Ardoise</td><td class="mono">#33414F</td>
+  <td><strong>Texte de toutes les entrées de navigation ordinaires</strong>, quand elles ne sont ni actives
+  ni verrouillées — une teinte qui n'existe nulle part ailleurs dans le dépôt</td>
+  <td class="where">DashboardSidebar.tsx:172</td></tr>
+<tr><td class="val"><span class="sw" style="background:#0ea5e9"></span>Marque, brute</td><td class="mono">#0EA5E9</td>
+  <td>Pastille du logo, coche « vérifié », et le texte de la <strong>seule</strong> entrée de type lien —
+  « Sous-traitance », lorsque le profil est vérifié</td>
+  <td class="where">DashboardSidebar.tsx:79, 117, 134, 172</td></tr>
+<tr><td class="val"><span class="sw" style="background:#EF4D58"></span>Rouge corail</td><td class="mono">#EF4D58</td>
+  <td>Badge de messages non lus, bouton « Se déconnecter » — une teinte unique dans tout le dépôt</td>
+  <td class="where">DashboardSidebar.tsx:212, 238</td></tr>
+</tbody></table></div>
+
+<h3>Couche B — les pages : freelance et CDI</h3>
+<p class="sub">Aucune des deux ne lit les jetons de la coquille. Elles écrivent leurs couleurs directement
+dans le code, et <strong>chacune a choisi une famille de gris différente</strong> : la voie freelance est
+en gris neutre, la voie CDI en gris bleuté. Les deux écrans sont censés être jumeaux.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>Rôle</th><th>Freelance</th><th>CDI</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td>Fond de page</td>
+  <td class="val"><span class="sw" style="background:#F6F7F9"></span><span class="mono">#F6F7F9</span></td>
+  <td class="val"><span class="sw" style="background:#F6F7F9"></span><span class="mono">#F6F7F9</span></td>
+  <td>identique — il vient de la coquille</td></tr>
+<tr><td>Titre de bienvenue</td>
+  <td class="val"><span class="sw" style="background:#111827"></span><span class="mono">#111827</span></td>
+  <td class="val"><span class="sw" style="background:#0F172A"></span><span class="mono">#0F172A</span></td>
+  <td><strong>divergent</strong></td></tr>
+<tr><td>Carte principale, fond</td>
+  <td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td>
+  <td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td>
+  <td>identique</td></tr>
+<tr><td>Carte principale, bordure</td>
+  <td class="val"><span class="sw" style="background:#E5E7EB"></span><span class="mono">#E5E7EB</span></td>
+  <td class="val"><span class="sw" style="background:#E2E8F0"></span><span class="mono">#E2E8F0</span></td>
+  <td><strong>divergent</strong></td></tr>
+<tr><td>Tuile de compteur</td>
+  <td class="val"><span class="sw" style="background:#F3F4F6"></span><span class="mono">#F3F4F6</span> sans bordure</td>
+  <td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span> + bordure</td>
+  <td><strong>divergent, jusqu'à la forme</strong></td></tr>
+<tr><td>Texte secondaire</td>
+  <td class="val"><span class="sw" style="background:#6B7280"></span><span class="mono">#6B7280</span></td>
+  <td class="val"><span class="sw" style="background:#64748B"></span><span class="mono">#64748B</span></td>
+  <td><strong>divergent</strong></td></tr>
+<tr><td>Texte d'état vide</td>
+  <td class="val"><span class="sw" style="background:#9CA3AF"></span><span class="mono">#9CA3AF</span></td>
+  <td class="val"><span class="sw" style="background:#94A3B8"></span><span class="mono">#94A3B8</span></td>
+  <td><strong>divergent</strong></td></tr>
+<tr><td>Fond d'état vide</td>
+  <td class="val"><span class="sw" style="background:#F9FAFB"></span><span class="mono">#F9FAFB</span></td>
+  <td class="val"><span class="sw" style="background:#F8FAFC"></span><span class="mono">#F8FAFC</span></td>
+  <td><strong>divergent</strong></td></tr>
+<tr><td>Lien et bouton d'action</td>
+  <td class="val"><span class="sw" style="background:#0ea5e9"></span><span class="mono">#0EA5E9</span></td>
+  <td class="val"><span class="sw" style="background:#0ea5e9"></span><span class="mono">#0EA5E9</span></td>
+  <td>identique — la marque, brute</td></tr>
+</tbody></table></div>
+
+<p class="sub">Mesuré sur les deux arbres : la voie freelance écrit <strong>103 couleurs de famille
+ardoise et 47 de famille grise</strong> ; la voie CDI, <strong>117 ardoise et 16 grises</strong>. Les deux
+familles cohabitent des deux côtés, dans des proportions différentes. Personne n'a choisi : les deux se
+sont installées.</p>
+
+<div class="note bad">
+  <span class="t">Cinq noirs différents, et ils se croisent sur le même écran</span>
+  <p>Le produit écrit son texte principal avec <strong>cinq couleurs distinctes</strong> :
+  <span class="sw" style="background:#171717;width:20px;height:14px;margin:0 4px"></span><code>#171717</code>
+  posé sur <code>&lt;body&gt;</code> par le gabarit d'origine de Next.js ;
+  <span class="sw" style="background:#1A1815;width:20px;height:14px;margin:0 4px"></span><code>#1A1815</code>
+  sur l'accueil ;
+  <span class="sw" style="background:#161A20;width:20px;height:14px;margin:0 4px"></span><code>#161A20</code>
+  dans la coquille ;
+  <span class="sw" style="background:#0F172A;width:20px;height:14px;margin:0 4px"></span><code>#0F172A</code>
+  sur les pages CDI ;
+  <span class="sw" style="background:#111827;width:20px;height:14px;margin:0 4px"></span><code>#111827</code>
+  sur les pages freelance. Sur le tableau de bord freelance, trois d'entre eux sont visibles
+  <strong>en même temps</strong> : le titre de l'en-tête, le titre de bienvenue, et le texte des cartes.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ 3 -->
+<h2><span class="num">3</span>L'écart, côte à côte</h2>
+<p class="sub">Même rôle, deux moitiés du produit. La colonne de droite dit si la couleur de l'accueil
+survit au passage dans l'application.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>Rôle</th><th>Accueil</th><th>Application</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td><strong>Fond de page</strong></td>
+  <td class="val"><span class="sw" style="background:#FDFBF7"></span><span class="mono">#FDFBF7</span> crème chaude</td>
+  <td class="val"><span class="sw" style="background:#F6F7F9"></span><span class="mono">#F6F7F9</span> gris froid</td>
+  <td><span class="pill p-ko">divergent</span> le fond change de température</td></tr>
+<tr><td><strong>En-tête</strong></td>
+  <td class="val"><span class="sw" style="background:#FDFBF7"></span><span class="mono">#FDFBF7</span> fondu dans la page</td>
+  <td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span> détaché</td>
+  <td><span class="pill p-ko">divergent</span></td></tr>
+<tr><td><strong>Carte / surface</strong></td>
+  <td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td>
+  <td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td>
+  <td><span class="pill p-aaa">coïncident</span> la seule coïncidence exacte</td></tr>
+<tr><td><strong>Bordure</strong></td>
+  <td class="val"><span class="sw" style="background:#E7E2D8"></span><span class="mono">#E7E2D8</span> beige</td>
+  <td class="val"><span class="sw" style="background:#E7E9ED"></span><span class="mono">#E7E9ED</span> gris
+    <br><span class="sw" style="background:#E2E8F0"></span><span class="mono">#E2E8F0</span> ardoise
+    <br><span class="sw" style="background:#E5E7EB"></span><span class="mono">#E5E7EB</span> gris neutre</td>
+  <td><span class="pill p-ko">divergent</span> une contre trois</td></tr>
+<tr><td><strong>Texte principal</strong></td>
+  <td class="val"><span class="sw" style="background:#1A1815"></span><span class="mono">#1A1815</span> encre chaude</td>
+  <td class="val"><span class="sw" style="background:#161A20"></span><span class="mono">#161A20</span>
+    <br><span class="sw" style="background:#0F172A"></span><span class="mono">#0F172A</span>
+    <br><span class="sw" style="background:#111827"></span><span class="mono">#111827</span></td>
+  <td><span class="pill p-ko">divergent</span> une contre trois</td></tr>
+<tr><td><strong>Texte secondaire</strong></td>
+  <td class="val"><span class="sw" style="background:#6B655C"></span><span class="mono">#6B655C</span> taupe</td>
+  <td class="val"><span class="sw" style="background:#697586"></span><span class="mono">#697586</span>
+    <br><span class="sw" style="background:#64748B"></span><span class="mono">#64748B</span>
+    <br><span class="sw" style="background:#6B7280"></span><span class="mono">#6B7280</span></td>
+  <td><span class="pill p-ko">divergent</span> la même valeur claire, trois teintes</td></tr>
+<tr><td><strong>Bouton principal</strong></td>
+  <td class="val"><span class="sw" style="background:#085a7f"></span><span class="mono">#085A7F</span> accent corrigé</td>
+  <td class="val"><span class="sw" style="background:#0ea5e9"></span><span class="mono">#0EA5E9</span> marque brute</td>
+  <td><span class="pill p-ko">divergent</span> <strong>c'est l'écart central</strong></td></tr>
+<tr><td><strong>Lien / accent de texte</strong></td>
+  <td class="val"><span class="sw" style="background:#085a7f"></span><span class="mono">#085A7F</span></td>
+  <td class="val"><span class="sw" style="background:#0ea5e9"></span><span class="mono">#0EA5E9</span></td>
+  <td><span class="pill p-ko">divergent</span></td></tr>
+<tr><td><strong>Succès</strong></td>
+  <td class="val"><span class="sw" style="background:#0F6E56"></span><span class="mono">#0F6E56</span></td>
+  <td class="val"><span class="sw" style="background:#0F9D6B"></span><span class="mono">#0F9D6B</span> coquille
+    <br><span class="sw" style="background:#166534"></span><span class="mono">#166534</span> pages</td>
+  <td><span class="pill p-ko">divergent</span> trois verts</td></tr>
+<tr><td><strong>Avertissement</strong></td>
+  <td class="val"><span class="sw" style="background:#8A6100"></span><span class="mono">#8A6100</span></td>
+  <td class="val"><span class="sw" style="background:#B7791F"></span><span class="mono">#B7791F</span> coquille
+    <br><span class="sw" style="background:#92400E"></span><span class="mono">#92400E</span> pages</td>
+  <td><span class="pill p-ko">divergent</span> trois ambres</td></tr>
+<tr><td><strong>Erreur</strong></td>
+  <td>aucune — l'accueil n'a pas d'état d'erreur</td>
+  <td class="val"><span class="sw" style="background:#C0392B"></span><span class="mono">#C0392B</span>
+    <br><span class="sw" style="background:#DC2626"></span><span class="mono">#DC2626</span>
+    <br><span class="sw" style="background:#991B1B"></span><span class="mono">#991B1B</span>
+    <br><span class="sw" style="background:#EF4D58"></span><span class="mono">#EF4D58</span></td>
+  <td><span class="pill p-ko">sans équivalent</span> quatre rouges</td></tr>
+<tr><td><strong>Pied de page</strong></td>
+  <td><span class="dark-demo">Encre <span class="mono">#1A1815</span>, texte <span class="mono">#F4F0E8</span></span></td>
+  <td>aucun — un simple filet de liens légaux</td>
+  <td><span class="pill p-ko">sans équivalent</span></td></tr>
+</tbody></table></div>
+
+<div class="note">
+  <span class="t">Le compte exact</span>
+  <p>Sur les douze rôles ci-dessus, <strong>un seul coïncide</strong> : le blanc des cartes. Les onze autres
+  divergent ou n'ont pas d'équivalent. Et l'intersection des teintes est encore plus nette :
+  <strong>le décor de l'accueil et celui de l'application ne partagent aucune couleur</strong>, blanc mis à
+  part. Les quinze couleurs de l'accueil n'apparaissent nulle part ailleurs dans le produit, et
+  réciproquement.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ 4 -->
+<h2><span class="num">4</span>D'où viennent-elles</h2>
+
+<h3>Tailwind ? Oui, mais jamais comme Tailwind</h3>
+<p>Tailwind 4 est installé et actif. Il n'y a pas de <code>tailwind.config</code> : la configuration vit
+dans <code>app/globals.css</code>, et son bloc <code>@theme</code> ne déclare que quatre entrées — deux
+couleurs héritées du gabarit d'origine, et deux polices. <strong>Aucune classe de couleur Tailwind
+n'est utilisée dans tout le dépôt</strong> : zéro <code>bg-slate-50</code>, zéro <code>text-gray-500</code>,
+zéro sur les vingt-deux familles de la palette.</p>
+
+<p>Et pourtant les couleurs de Tailwind sont partout — <strong>recopiées à la main, en hexadécimal</strong> :</p>
+<div class="scroll"><table>
+<thead><tr><th>Origine</th><th>Teintes distinctes</th><th>Occurrences</th><th>Part</th></tr></thead>
+<tbody>
+<tr><td>Valeurs de la palette Tailwind, écrites en dur</td><td>105</td><td>2 684</td><td><strong>84 %</strong></td></tr>
+<tr><td>Couleurs propres au projet (accueil, jetons, portraits, back-office)</td><td>77</td><td>137</td><td>4 %</td></tr>
+<tr><td>Blanc et noir</td><td>2</td><td>359</td><td>11 %</td></tr>
+</tbody></table></div>
+<p class="sub">Autrement dit : le projet utilise bien la palette de Tailwind, mais en la retapant.
+Elle n'est référencée nulle part, donc elle n'est modifiable nulle part.</p>
+
+<h3>Un fichier de thème ? Deux, et ils ne se connaissent pas</h3>
+<ul>
+  <li><code>components/home/theme.ts</code> — le décor de l'accueil, avec sa règle d'admission écrite.
+    Lu par les huit fichiers de l'accueil, et par personne d'autre.</li>
+  <li><code>app/globals.css</code> — quinze jetons <code>--sk-*</code>, utilisés environ 430 fois.
+    Ils couvrent la coquille et une partie du côté organisation ; les tableaux de bord experts les
+    ignorent presque entièrement.</li>
+</ul>
+<p class="sub">Les deux fichiers ont été écrits séparément et ne partagent aucune valeur. Il n'existe
+aucun troisième fichier au-dessus d'eux.</p>
+
+<h3>Des classes en dur dans chaque composant ? C'est le cas général</h3>
+<div class="scroll"><table>
+<thead><tr><th>Racine</th><th>Occurrences en dur</th><th>Teintes distinctes</th></tr></thead>
+<tbody>
+<tr><td><code>app/</code></td><td>2 190</td><td>120</td></tr>
+<tr><td><code>components/</code></td><td>934</td><td>117</td></tr>
+<tr><td><code>lib/</code></td><td>56</td><td>43</td></tr>
+<tr><td><strong>Total</strong></td><td><strong>3 180</strong>, dans 125 fichiers sur 479</td><td><strong>184</strong></td></tr>
+</tbody></table></div>
+<p class="sub">Les dix fichiers les plus chargés portent à eux seuls <strong>855 couleurs</strong>, soit plus
+du quart du total. En tête : la fiche d'organisation du back-office (122), les deux écrans
+« mon profil » (110 et 87), la validation de profil CDI et la fiche expert du back-office (86 chacune).</p>
+
+<h3><code>domain_configs.accent_color</code> — qui la lit, où elle arrive, où elle n'arrive pas</h3>
+<p>C'est la question la plus importante de cet audit, parce que la réponse explique l'écart du point 3.</p>
+<div class="scroll"><table>
+<thead><tr><th>Étape</th><th>Ce qui se passe</th><th>Où</th></tr></thead>
+<tbody>
+<tr><td>1. En base</td><td>Colonne facultative sur <code>domain_configs</code>. Sur le seul écosystème
+  configuré dans le dépôt, elle est <strong>vide</strong>.</td><td class="where">migration 20260710000001</td></tr>
+<tr><td>2. Au serveur</td><td>Si elle est renseignée, elle est servie telle quelle. Sinon, l'accent est
+  <strong>dérivé</strong> de la couleur de marque jusqu'à franchir 7 pour 1.</td>
+  <td class="where">lib/get-domain-config.ts:86</td></tr>
+<tr><td>3. Vers le navigateur</td><td>La valeur calculée voyage jusqu'au client, qui ne décide de rien.</td>
+  <td class="where">context/DomainContext.tsx</td></tr>
+<tr><td>4. À l'écran</td><td><strong>Trois fichiers la lisent. Tous les trois sont l'accueil.</strong></td>
+  <td class="where">HomeView.tsx:35 · HomeFeatures.tsx:41 · DemoStage.tsx:54</td></tr>
+</tbody></table></div>
+
+<div class="note bad">
+  <span class="t">L'accent corrigé s'arrête à l'accueil</span>
+  <p>La couleur corrigée pour le contraste est lue par <strong>3 fichiers</strong>. La couleur de marque
+  brute, elle, est lue par <strong>59 fichiers, 339 fois</strong>. Parmi ces lectures : 90 la posent en
+  fond, <strong>66 la posent en couleur de texte</strong>, 60 en bordure, et 80 lui accolent un suffixe de
+  transparence recopié à la main — <code>14</code>, <code>22</code>, <code>33</code>, <code>55</code>…
+  quinze valeurs différentes. Ces comptes se recoupent et ne forment pas un partage du total.</p>
+  <p>Toute la mécanique de contraste du projet — une fonction de trente lignes, commentée sur dix-huit,
+  qui garantit qu'<em>« aucun écosystème futur ne pourra produire une page inaccessible »</em> — ne
+  protège donc qu'une seule page. <strong>Partout ailleurs, la couleur de marque est posée telle
+  quelle</strong>, y compris sur du texte.</p>
+</div>
+
+<div class="note bad">
+  <span class="t">Et dans la coquille, l'accent dérivé ne suit pas le locataire — mesuré</span>
+  <p>La barre latérale colore son entrée active avec <code>--sk-accent-soft</code> et
+  <code>--sk-accent-ink</code>, deux jetons calculés dans <code>globals.css</code> à partir de
+  <code>--sk-accent</code>. Or <code>--sk-accent</code> y vaut d'abord <code>#2F6BF0</code>, une valeur de
+  secours, et n'est remplacée par la couleur de l'écosystème que <strong>plus bas dans la page</strong>,
+  par la coquille.</p>
+  <p><strong>Les deux jetons dérivés gardent la valeur de secours.</strong> Éprouvé sur un témoin isolé qui
+  reproduit les déclarations mot pour mot, exécuté dans un vrai navigateur : la bordure, qui lit
+  <code>--sk-accent</code> directement, sort bien à <code>#0EA5E9</code> ; le fond sort à
+  <span class="sw" style="background:#E6EDFD;width:20px;height:14px;margin:0 4px"></span><code>#E6EDFD</code>
+  et le texte à
+  <span class="sw" style="background:#2553BB;width:20px;height:14px;margin:0 4px"></span><code>#2553BB</code>,
+  qui sont les dérivés de <code>#2F6BF0</code> et non ceux de la marque. Le commentaire de
+  <code>DashboardShell.tsx:24</code> affirme l'inverse : <em>« un domaine non-bleu reste cohérent »</em>.</p>
+  <p>Conséquence visible aujourd'hui : dans la barre latérale, l'entrée active est
+  <strong>bleu indigo</strong> pendant que les entrées inactives et le logo sont <strong>bleu ciel</strong>.
+  Deux bleus, côte à côte, à quinze pixels d'écart.</p>
+  <p class="meta"><strong>NON VÉRIFIÉ</strong> : le témoin reproduit la cascade exacte du fichier, pas
+  l'application elle-même. Pour le confirmer sur le produit, ouvrir un tableau de bord et lire la couleur
+  calculée de l'entrée de menu active.</p>
+</div>
+
+<div class="note warn">
+  <span class="t">Un troisième accent, qui n'écoute personne</span>
+  <p>Le back-office écrit
+  <span class="sw" style="background:#00B9FF;width:20px;height:14px;margin:0 4px"></span><code>#00B9FF</code>
+  en dur, <strong>36 fois dans 13 fichiers</strong>. Cette couleur n'est ni la marque de l'écosystème, ni
+  l'accent dérivé, ni un jeton : elle ne change jamais, quel que soit l'écosystème servi. Le produit porte
+  donc <strong>trois accents indépendants</strong> — l'accueil, l'application, l'administration.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ 5 -->
+<h2><span class="num">5</span>Le contraste, tel qu'il est aujourd'hui</h2>
+<p class="sub">Ratios calculés selon la formule WCAG 2.1, avec la fonction du projet elle-même
+(<code>contrastRatio</code>). Les seuils de référence : <strong>4,5 : 1</strong> pour du texte courant,
+<strong>3 : 1</strong> pour du gros texte ou un élément d'interface, <strong>7 : 1</strong> pour le niveau
+le plus exigeant.</p>
+
+<h3>Où c'est clair, où c'est foncé</h3>
+<div class="scroll"><table>
+<thead><tr><th>Zone</th><th>Clair ou foncé</th><th>Fond</th></tr></thead>
+<tbody>
+<tr><td>Accueil — corps de page, navigation, sections</td><td>clair</td>
+  <td class="val"><span class="sw" style="background:#FDFBF7"></span><span class="mono">#FDFBF7</span> · <span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span> · <span class="sw" style="background:#F6F2EA"></span><span class="mono">#F6F2EA</span></td></tr>
+<tr><td><strong>Accueil — pied de page</strong></td><td><strong>foncé</strong></td>
+  <td class="val"><span class="sw" style="background:#1A1815"></span><span class="mono">#1A1815</span></td></tr>
+<tr><td>Tableaux de bord experts — fond de travail</td><td>clair</td>
+  <td class="val"><span class="sw" style="background:#F6F7F9"></span><span class="mono">#F6F7F9</span></td></tr>
+<tr><td>Tableaux de bord experts — barre latérale, en-tête, cartes</td><td>clair</td>
+  <td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td></tr>
+<tr><td>Tableaux de bord experts — tuiles, états vides</td><td>clair</td>
+  <td class="val"><span class="sw" style="background:#F3F4F6"></span><span class="mono">#F3F4F6</span> · <span class="sw" style="background:#F9FAFB"></span><span class="mono">#F9FAFB</span> · <span class="sw" style="background:#F8FAFC"></span><span class="mono">#F8FAFC</span></td></tr>
+</tbody></table></div>
+<p class="sub"><strong>Il n'existe aucune zone foncée dans les deux tableaux de bord experts.</strong>
+Balayage complet des deux arbres : pas un seul fond sombre. Le mode sombre est explicitement écarté, et
+<code>globals.css</code> le dit. Les seules surfaces sombres du produit sont le pied de page de l'accueil
+et trois boutons isolés, sur le côté organisation et le back-office.</p>
+
+<h3>Accueil — ratios mesurés</h3>
+<div class="scroll"><table>
+<thead><tr><th>Élément</th><th class="mono">Texte</th><th class="mono">Fond</th><th>Ratio</th></tr></thead>
+<tbody>
+<tr><td>Texte principal sur la crème</td><td class="val"><span class="sw" style="background:#1A1815"></span><span class="mono">#1A1815</span></td><td class="val"><span class="sw" style="background:#FDFBF7"></span><span class="mono">#FDFBF7</span></td><td><span class="pill p-aaa">17,14</span></td></tr>
+<tr><td>Texte de carte sur blanc</td><td class="val"><span class="sw" style="background:#1A1815"></span><span class="mono">#1A1815</span></td><td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td><td><span class="pill p-aaa">17,72</span></td></tr>
+<tr><td>Pied de page — texte sur encre</td><td class="val"><span class="sw" style="background:#F4F0E8"></span><span class="mono">#F4F0E8</span></td><td class="val"><span class="sw" style="background:#1A1815"></span><span class="mono">#1A1815</span></td><td><span class="pill p-aaa">15,59</span></td></tr>
+<tr><td>Blanc sur bouton survolé</td><td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td><td class="val"><span class="sw" style="background:#06425d"></span><span class="mono">#06425D</span></td><td><span class="pill p-aaa">10,80</span></td></tr>
+<tr><td>Blanc sur bouton principal</td><td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td><td class="val"><span class="sw" style="background:#085a7f"></span><span class="mono">#085A7F</span></td><td><span class="pill p-aaa">7,56</span></td></tr>
+<tr><td>Sur-titre d'accent</td><td class="val"><span class="sw" style="background:#085a7f"></span><span class="mono">#085A7F</span></td><td class="val"><span class="sw" style="background:#FDFBF7"></span><span class="mono">#FDFBF7</span></td><td><span class="pill p-aaa">7,31</span></td></tr>
+<tr><td>Pied de page — titres de colonne</td><td class="val"><span class="sw" style="background:#9A938A"></span><span class="mono">#9A938A</span></td><td class="val"><span class="sw" style="background:#1A1815"></span><span class="mono">#1A1815</span></td><td><span class="pill p-aa">5,83</span></td></tr>
+<tr><td>Texte de carte, secondaire</td><td class="val"><span class="sw" style="background:#6B655C"></span><span class="mono">#6B655C</span></td><td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td><td><span class="pill p-aa">5,77</span></td></tr>
+<tr><td>Chapô sur la crème</td><td class="val"><span class="sw" style="background:#6B655C"></span><span class="mono">#6B655C</span></td><td class="val"><span class="sw" style="background:#FDFBF7"></span><span class="mono">#FDFBF7</span></td><td><span class="pill p-aa">5,58</span></td></tr>
+<tr><td>Ambre sur son fond doux</td><td class="val"><span class="sw" style="background:#8A6100"></span><span class="mono">#8A6100</span></td><td class="val"><span class="sw" style="background:#FBF0DA"></span><span class="mono">#FBF0DA</span></td><td><span class="pill p-aa">4,90</span></td></tr>
+<tr><td>Ligne de preuves sous le héros</td><td class="val"><span class="sw" style="background:#8A8377"></span><span class="mono">#8A8377</span></td><td class="val"><span class="sw" style="background:#FDFBF7"></span><span class="mono">#FDFBF7</span></td><td><span class="pill p-lg">3,63</span> gros texte seulement</td></tr>
+</tbody></table></div>
+<p class="sub">Dix lignes sur onze passent le seuil du texte courant ; six passent même le seuil le plus
+exigeant. La seule sous le seuil est la ligne de preuves, en 13 pixels — donc concernée par la règle du
+texte courant.</p>
+
+<h3>Coquille des tableaux de bord — ratios mesurés</h3>
+<div class="scroll"><table>
+<thead><tr><th>Élément</th><th class="mono">Texte</th><th class="mono">Fond</th><th>Ratio</th></tr></thead>
+<tbody>
+<tr><td>Titre de page dans l'en-tête</td><td class="val"><span class="sw" style="background:#161A20"></span><span class="mono">#161A20</span></td><td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td><td><span class="pill p-aaa">17,46</span></td></tr>
+<tr><td>Entrée de navigation ordinaire</td><td class="val"><span class="sw" style="background:#33414F"></span><span class="mono">#33414F</span></td><td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td><td><span class="pill p-aaa">10,45</span></td></tr>
+<tr><td>Entrée de navigation active <span class="pill p-dec">valeurs réellement calculées</span></td><td class="val"><span class="sw" style="background:#2553BB"></span><span class="mono">#2553BB</span></td><td class="val"><span class="sw" style="background:#E6EDFD"></span><span class="mono">#E6EDFD</span></td><td><span class="pill p-aa">5,90</span></td></tr>
+<tr><td>Pastille « Ne pas déranger »</td><td class="val"><span class="sw" style="background:#B91C1C"></span><span class="mono">#B91C1C</span></td><td class="val"><span class="sw" style="background:#FEE2E2"></span><span class="mono">#FEE2E2</span></td><td><span class="pill p-aa">5,30</span></td></tr>
+<tr><td>Sous-titre de l'utilisateur</td><td class="val"><span class="sw" style="background:#697586"></span><span class="mono">#697586</span></td><td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td><td><span class="pill p-aa">4,68</span></td></tr>
+<tr><td>Bouton « Se déconnecter »</td><td class="val"><span class="sw" style="background:#EF4D58"></span><span class="mono">#EF4D58</span></td><td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td><td><span class="pill p-lg">3,58</span></td></tr>
+<tr><td>Blanc sur le badge de messages</td><td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td><td class="val"><span class="sw" style="background:#EF4D58"></span><span class="mono">#EF4D58</span></td><td><span class="pill p-lg">3,58</span></td></tr>
+<tr><td>Pastille « Disponible »</td><td class="val"><span class="sw" style="background:#0F9D6B"></span><span class="mono">#0F9D6B</span></td><td class="val"><span class="sw" style="background:#E6F6EF"></span><span class="mono">#E6F6EF</span></td><td><span class="pill p-lg">3,10</span></td></tr>
+<tr><td>Titres de groupes de navigation</td><td class="val"><span class="sw" style="background:#9AA3B0"></span><span class="mono">#9AA3B0</span></td><td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td><td><span class="pill p-ko">2,55</span></td></tr>
+<tr><td><strong>Entrée « Sous-traitance »</strong></td><td class="val"><span class="sw" style="background:#0ea5e9"></span><span class="mono">#0EA5E9</span></td><td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td><td><span class="pill p-ko">2,77</span></td></tr>
+</tbody></table></div>
+
+<h3>Pages experts — ratios mesurés</h3>
+<div class="scroll"><table>
+<thead><tr><th>Élément</th><th class="mono">Texte</th><th class="mono">Fond</th><th>Ratio</th></tr></thead>
+<tbody>
+<tr><td>Titre et texte de carte</td><td class="val"><span class="sw" style="background:#0F172A"></span><span class="mono">#0F172A</span></td><td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td><td><span class="pill p-aaa">17,85</span></td></tr>
+<tr><td>Chiffre d'une tuile de compteur</td><td class="val"><span class="sw" style="background:#111827"></span><span class="mono">#111827</span></td><td class="val"><span class="sw" style="background:#F3F4F6"></span><span class="mono">#F3F4F6</span></td><td><span class="pill p-aaa">16,12</span></td></tr>
+<tr><td>Bandeau de refus</td><td class="val"><span class="sw" style="background:#991B1B"></span><span class="mono">#991B1B</span></td><td class="val"><span class="sw" style="background:#FEF2F2"></span><span class="mono">#FEF2F2</span></td><td><span class="pill p-aaa">7,60</span></td></tr>
+<tr><td>Libellé d'une tuile de compteur</td><td class="val"><span class="sw" style="background:#4B5563"></span><span class="mono">#4B5563</span></td><td class="val"><span class="sw" style="background:#F3F4F6"></span><span class="mono">#F3F4F6</span></td><td><span class="pill p-aaa">6,87</span></td></tr>
+<tr><td>Bandeau d'alerte de profil</td><td class="val"><span class="sw" style="background:#92400E"></span><span class="mono">#92400E</span></td><td class="val"><span class="sw" style="background:#FFFBEB"></span><span class="mono">#FFFBEB</span></td><td><span class="pill p-aaa">6,84</span></td></tr>
+<tr><td>Bandeau de succès</td><td class="val"><span class="sw" style="background:#166534"></span><span class="mono">#166534</span></td><td class="val"><span class="sw" style="background:#DCFCE7"></span><span class="mono">#DCFCE7</span></td><td><span class="pill p-aaa">6,49</span></td></tr>
+<tr><td>Badge « suggéré par l'IA »</td><td class="val"><span class="sw" style="background:#6D28D9"></span><span class="mono">#6D28D9</span></td><td class="val"><span class="sw" style="background:#EDE9FE"></span><span class="mono">#EDE9FE</span></td><td><span class="pill p-aaa">5,98</span></td></tr>
+<tr><td>Message d'erreur en ligne</td><td class="val"><span class="sw" style="background:#DC2626"></span><span class="mono">#DC2626</span></td><td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td><td><span class="pill p-aa">4,83</span></td></tr>
+<tr><td>Texte secondaire de carte</td><td class="val"><span class="sw" style="background:#64748B"></span><span class="mono">#64748B</span></td><td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td><td><span class="pill p-aa">4,76</span></td></tr>
+<tr><td><strong>Lien et bouton d'action</strong></td><td class="val"><span class="sw" style="background:#0ea5e9"></span><span class="mono">#0EA5E9</span></td><td class="val"><span class="sw" style="background:#FFFFFF"></span><span class="mono">#FFFFFF</span></td><td><span class="pill p-ko">2,77</span></td></tr>
+<tr><td>Texte d'état vide (ardoise)</td><td class="val"><span class="sw" style="background:#94A3B8"></span><span class="mono">#94A3B8</span></td><td class="val"><span class="sw" style="background:#F8FAFC"></span><span class="mono">#F8FAFC</span></td><td><span class="pill p-ko">2,45</span></td></tr>
+<tr><td>Texte d'état vide (gris)</td><td class="val"><span class="sw" style="background:#9CA3AF"></span><span class="mono">#9CA3AF</span></td><td class="val"><span class="sw" style="background:#F9FAFB"></span><span class="mono">#F9FAFB</span></td><td><span class="pill p-ko">2,43</span></td></tr>
+<tr><td>Badge « verrouillé »</td><td class="val"><span class="sw" style="background:#9CA3AF"></span><span class="mono">#9CA3AF</span></td><td class="val"><span class="sw" style="background:#F3F4F6"></span><span class="mono">#F3F4F6</span></td><td><span class="pill p-ko">2,31</span></td></tr>
+</tbody></table></div>
+
+<div class="note">
+  <span class="t">Ce que le contraste dit, en une phrase</span>
+  <p>Les <strong>textes noirs et les bandeaux de statut</strong> sont largement au-dessus des seuils, des
+  deux côtés du produit : c'est la partie saine, et elle est solide. Ce qui passe sous les seuils est
+  toujours de la même nature — <strong>la couleur de marque posée sur du blanc</strong> (2,77), et
+  <strong>les gris clairs des textes tenus</strong> (2,31 à 2,55). Sur l'accueil, le premier problème
+  n'existe pas, parce que l'accent y est corrigé avant d'être servi.</p>
+</div>
+
+<footer class="doc">
+  <p>Mesuré le 21 septembre 2026 sur <code>feat/sprint-archi-orga</code>, commit <code>5558f86</code>,
+  arbre propre. Comptes de couleurs obtenus par balayage de <code>app/</code>, <code>lib/</code> et
+  <code>components/</code> (fichiers <code>.ts</code>, <code>.tsx</code>, <code>.css</code>). Ratios
+  calculés avec <code>contrastRatio</code> de <code>lib/domain-config.ts</code>. Valeur de l'accent
+  dérivé obtenue en exécutant <code>deriveAccentColor</code> sur la couleur de marque effectivement
+  présente dans la migration de paramétrage. Comportement des jetons dérivés éprouvé dans un navigateur,
+  sur un témoin reproduisant la cascade du fichier.</p>
+  <p>Ce document ne propose aucune palette et ne recommande aucun changement.</p>
+</footer>
+
+</div>
+</body>
+</html>
