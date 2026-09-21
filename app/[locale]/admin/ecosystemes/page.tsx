@@ -91,17 +91,17 @@ const input: React.CSSProperties = {
   width: '100%',
   padding: '9px 11px',
   borderRadius: 8,
-  border: '1px solid #e2e8f0',
+  border: '1px solid var(--sk-border)',
   fontSize: 13.5,
   fontFamily: 'inherit',
-  background: '#fff',
-  color: '#0f172a',
+  background: 'var(--sk-surface)',
+  color: 'var(--sk-text)',
 }
 const label: React.CSSProperties = {
   display: 'block',
   fontSize: 12,
   fontWeight: 600,
-  color: '#475569',
+  color: 'var(--sk-muted)',
   marginBottom: 5,
 }
 const btn = (kind: 'primary' | 'ghost' | 'danger'): React.CSSProperties => ({
@@ -110,9 +110,9 @@ const btn = (kind: 'primary' | 'ghost' | 'danger'): React.CSSProperties => ({
   fontSize: 13.5,
   fontWeight: 600,
   cursor: 'pointer',
-  border: kind === 'ghost' ? '1px solid #e2e8f0' : 'none',
-  background: kind === 'primary' ? '#0ea5e9' : kind === 'danger' ? '#dc2626' : '#fff',
-  color: kind === 'ghost' ? '#0f172a' : '#fff',
+  border: kind === 'ghost' ? '1px solid var(--sk-border)' : 'none',
+  background: kind === 'primary' ? 'var(--sk-accent)' : kind === 'danger' ? 'var(--sk-red)' : 'var(--sk-surface)',
+  color: kind === 'ghost' ? 'var(--sk-text)' : 'var(--sk-surface)',
 })
 
 /** Un compteur en panne vaut `null` : on affiche « — », jamais un zéro trompeur. */
@@ -241,7 +241,7 @@ export default function AdminEcosystemesPage() {
       <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.4px', margin: '0 0 6px' }}>
         {t('page_title')}
       </h1>
-      <p style={{ fontSize: 13.5, color: '#64748b', margin: '0 0 22px' }}>{t('subtitle')}</p>
+      <p style={{ fontSize: 13.5, color: 'var(--sk-muted)', margin: '0 0 22px' }}>{t('subtitle')}</p>
 
       {msg && (
         <div
@@ -249,9 +249,9 @@ export default function AdminEcosystemesPage() {
           style={{
             ...card,
             marginBottom: 14,
-            background: msg.kind === 'ok' ? '#f0fdf4' : '#fef2f2',
-            borderColor: msg.kind === 'ok' ? '#bbf7d0' : '#fecaca',
-            color: msg.kind === 'ok' ? '#166534' : '#991b1b',
+            background: msg.kind === 'ok' ? 'var(--sk-success-soft)' : 'var(--sk-red-soft)',
+            borderColor: msg.kind === 'ok' ? 'var(--sk-success-soft)' : 'var(--sk-red-soft)',
+            color: msg.kind === 'ok' ? 'var(--sk-success)' : 'var(--sk-red)',
             fontSize: 13.5,
           }}
         >
@@ -261,12 +261,12 @@ export default function AdminEcosystemesPage() {
 
       {/* ── CE QU'IL RESTE À FAIRE, après création ─────────────────────────── */}
       {justCreated && (
-        <div style={{ ...card, background: '#fffbeb', borderColor: '#fde68a' }}>
-          <h2 style={{ ...sectionTitle, color: '#92400e' }}>{t('after_create.title')}</h2>
-          <p style={{ fontSize: 13.5, color: '#78350f', margin: '0 0 12px' }}>
+        <div style={{ ...card, background: 'var(--sk-amber-soft)', borderColor: 'var(--sk-amber-soft)' }}>
+          <h2 style={{ ...sectionTitle, color: 'var(--sk-amber)' }}>{t('after_create.title')}</h2>
+          <p style={{ fontSize: 13.5, color: 'var(--sk-amber)', margin: '0 0 12px' }}>
             {t('after_create.intro', { name: justCreated.name })}
           </p>
-          <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13.5, color: '#78350f', lineHeight: 1.7 }}>
+          <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13.5, color: 'var(--sk-amber)', lineHeight: 1.7 }}>
             <li>{t('after_create.step_host', { slug: justCreated.slug })}</li>
             <li>{t('after_create.step_dns', { slug: justCreated.slug })}</li>
             <li>{t('after_create.step_branch')}</li>
@@ -294,7 +294,7 @@ export default function AdminEcosystemesPage() {
             {/* Validation INLINE : le slug est un sous-domaine, une faute ici
                 produit un écosystème injoignable. On le dit à la saisie. */}
             {form.slug.trim() !== '' && !isValidEcosystemSlug(form.slug.trim().toLowerCase()) && (
-              <p style={{ fontSize: 12, color: '#b91c1c', margin: '5px 0 0' }}>{t('errors.invalid_slug')}</p>
+              <p style={{ fontSize: 12, color: 'var(--sk-red)', margin: '5px 0 0' }}>{t('errors.invalid_slug')}</p>
             )}
           </div>
           <div>
@@ -309,7 +309,7 @@ export default function AdminEcosystemesPage() {
               onChange={(e) => setForm((f) => ({ ...f, primary_color: e.target.value }))} />
           </div>
         </div>
-        <p style={{ fontSize: 12.5, color: '#64748b', margin: '12px 0 0' }}>{t('create.born_inactive')}</p>
+        <p style={{ fontSize: 12.5, color: 'var(--sk-muted)', margin: '12px 0 0' }}>{t('create.born_inactive')}</p>
         <button type="button" onClick={() => void create()} disabled={creating}
           style={{ ...btn('primary'), marginTop: 12, opacity: creating ? 0.6 : 1 }}>
           {creating ? t('create.pending') : t('create.submit')}
@@ -317,24 +317,24 @@ export default function AdminEcosystemesPage() {
       </div>
 
       {/* ── LISTE ──────────────────────────────────────────────────────────── */}
-      {error && <div style={{ ...card, color: '#991b1b' }}>{error}</div>}
-      {!error && list === null && <div style={{ ...card, color: '#64748b', fontSize: 13.5 }}>{t('loading')}</div>}
-      {list?.length === 0 && <div style={{ ...card, color: '#64748b', fontSize: 13.5 }}>{t('empty')}</div>}
+      {error && <div style={{ ...card, color: 'var(--sk-red)' }}>{error}</div>}
+      {!error && list === null && <div style={{ ...card, color: 'var(--sk-muted)', fontSize: 13.5 }}>{t('loading')}</div>}
+      {list?.length === 0 && <div style={{ ...card, color: 'var(--sk-muted)', fontSize: 13.5 }}>{t('empty')}</div>}
 
       {list?.map((e) => (
         <div key={e.id} style={card}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <span aria-hidden style={{
               width: 12, height: 12, borderRadius: 999, flexShrink: 0,
-              background: e.primary_color ?? '#cbd5e1',
+              background: e.primary_color ?? 'var(--sk-muted)',
             }} />
             <strong style={{ fontSize: 15.5 }}>{e.name}</strong>
-            <code style={{ fontSize: 12.5, color: '#64748b' }}>{e.slug}</code>
+            <code style={{ fontSize: 12.5, color: 'var(--sk-muted)' }}>{e.slug}</code>
 
             <span style={{
               fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999,
-              background: e.active ? '#dcfce7' : '#f1f5f9',
-              color: e.active ? '#166534' : '#64748b',
+              background: e.active ? 'var(--sk-success-soft)' : 'var(--sk-surface-2)',
+              color: e.active ? 'var(--sk-success)' : 'var(--sk-muted)',
             }}>
               {e.active ? t('state.active') : t('state.inactive')}
             </span>
@@ -343,7 +343,7 @@ export default function AdminEcosystemesPage() {
             {!e.ready && (
               <span title={t('state.not_ready_hint')} style={{
                 fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999,
-                background: '#fef3c7', color: '#92400e',
+                background: 'var(--sk-amber-soft)', color: 'var(--sk-amber)',
               }}>
                 {t('state.not_ready')}
               </span>
@@ -355,7 +355,7 @@ export default function AdminEcosystemesPage() {
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: 20, marginTop: 12, fontSize: 12.5, color: '#64748b', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 20, marginTop: 12, fontSize: 12.5, color: 'var(--sk-muted)', flexWrap: 'wrap' }}>
             <span>{t('counts.branches', { n: e.counts.branches })}</span>
             <span>{t('counts.specialities', { n: e.counts.specialities })}</span>
             <span>{t('counts.users', { n: e.counts.users })}</span>
@@ -364,19 +364,19 @@ export default function AdminEcosystemesPage() {
 
           {/* ── PANNEAU D'ÉDITION ──────────────────────────────────────────── */}
           {openId === e.id && detail && (
-            <div style={{ marginTop: 18, borderTop: '1px solid #e2e8f0', paddingTop: 18 }}>
+            <div style={{ marginTop: 18, borderTop: '1px solid var(--sk-border)', paddingTop: 18 }}>
               {detail.ready === null && (
                 <div style={{
-                  padding: '12px 14px', borderRadius: 10, background: '#fffbeb',
-                  border: '1px solid #fde68a', color: '#78350f', fontSize: 13, marginBottom: 16,
+                  padding: '12px 14px', borderRadius: 10, background: 'var(--sk-amber-soft)',
+                  border: '1px solid var(--sk-amber-soft)', color: 'var(--sk-amber)', fontSize: 13, marginBottom: 16,
                 }}>
                   {t('state.ready_unknown')}
                 </div>
               )}
               {detail.ready === false && (
                 <div style={{
-                  padding: '12px 14px', borderRadius: 10, background: '#fffbeb',
-                  border: '1px solid #fde68a', color: '#78350f', fontSize: 13, marginBottom: 16,
+                  padding: '12px 14px', borderRadius: 10, background: 'var(--sk-amber-soft)',
+                  border: '1px solid var(--sk-amber-soft)', color: 'var(--sk-amber)', fontSize: 13, marginBottom: 16,
                 }}>
                   {t('state.not_ready_detail')}
                 </div>
@@ -405,7 +405,7 @@ export default function AdminEcosystemesPage() {
                       permettait de le renseigner — une traduction impossible à
                       saisir est une traduction qui n'existera jamais. */}
                   <label style={label}>{t('fields.ecosystem_name')}</label>
-                  <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 5px' }}>
+                  <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '0 0 5px' }}>
                     {t('fields.ecosystem_name_hint')}
                   </p>
                   <TrRow keyName="domains.ecosystem_name" tr={tr} onChange={trField} t={t} />
@@ -440,9 +440,9 @@ export default function AdminEcosystemesPage() {
                 </div>
                 <div>
                   <label style={label} htmlFor={`sl-${e.id}`}>{t('fields.slug')}</label>
-                  <input id={`sl-${e.id}`} style={{ ...input, background: '#f8fafc', color: '#64748b' }}
+                  <input id={`sl-${e.id}`} style={{ ...input, background: 'var(--sk-surface-2)', color: 'var(--sk-muted)' }}
                     value={detail.ecosystem.slug} readOnly />
-                  <p style={{ fontSize: 12, color: '#64748b', margin: '5px 0 0' }}>{t('fields.slug_locked')}</p>
+                  <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '5px 0 0' }}>{t('fields.slug_locked')}</p>
                 </div>
               </div>
 
@@ -521,26 +521,26 @@ export default function AdminEcosystemesPage() {
               {confirmOff && (
                 <div style={{
                   marginTop: 16, padding: '16px 18px', borderRadius: 12,
-                  background: '#fef2f2', border: '1px solid #fecaca',
+                  background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)',
                 }}>
-                  <h3 style={{ ...sectionTitle, color: '#991b1b' }}>{t('deactivate.title')}</h3>
+                  <h3 style={{ ...sectionTitle, color: 'var(--sk-red)' }}>{t('deactivate.title')}</h3>
                   {!impact ? (
-                    <p style={{ fontSize: 13, color: '#7f1d1d', margin: 0 }}>{t('loading')}</p>
+                    <p style={{ fontSize: 13, color: 'var(--sk-red)', margin: 0 }}>{t('loading')}</p>
                   ) : (
                     <>
-                      <p style={{ fontSize: 13.5, color: '#7f1d1d', margin: '0 0 12px', lineHeight: 1.6 }}>
+                      <p style={{ fontSize: 13.5, color: 'var(--sk-red)', margin: '0 0 12px', lineHeight: 1.6 }}>
                         {t('deactivate.keeps', { n: impact.keeps_access.experts ?? 0 })}
                       </p>
-                      <p style={{ fontSize: 13.5, color: '#7f1d1d', margin: '0 0 12px', lineHeight: 1.6 }}>
+                      <p style={{ fontSize: 13.5, color: 'var(--sk-red)', margin: '0 0 12px', lineHeight: 1.6 }}>
                         {t('deactivate.loses', { n: impact.loses_access.organisation_accounts ?? 0 })}
                       </p>
-                      <ul style={{ margin: '0 0 12px', paddingLeft: 20, fontSize: 13, color: '#7f1d1d', lineHeight: 1.7 }}>
+                      <ul style={{ margin: '0 0 12px', paddingLeft: 20, fontSize: 13, color: 'var(--sk-red)', lineHeight: 1.7 }}>
                         <li>{t('deactivate.published')} : <strong><Num v={impact.preserved.published} /></strong></li>
                         <li>{t('deactivate.publications')} : <strong><Num v={impact.preserved.publications} /></strong></li>
                         <li>{t('deactivate.candidatures')} : <strong><Num v={impact.preserved.candidatures} /></strong></li>
                         <li>{t('deactivate.conversations')} : <strong><Num v={impact.preserved.conversations} /></strong></li>
                       </ul>
-                      <p style={{ fontSize: 13, color: '#7f1d1d', margin: '0 0 14px' }}>{t('deactivate.reversible')}</p>
+                      <p style={{ fontSize: 13, color: 'var(--sk-red)', margin: '0 0 14px' }}>{t('deactivate.reversible')}</p>
                       <div style={{ display: 'flex', gap: 10 }}>
                         <button type="button" onClick={() => void save({ active: false })} disabled={saving} style={btn('danger')}>
                           {t('deactivate.confirm')}
@@ -579,7 +579,7 @@ function TrRow({
         <div key={loc}>
           <label
             htmlFor={`${keyName}-${loc}`}
-            style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', display: 'block', marginBottom: 3 }}
+            style={{ fontSize: 11, fontWeight: 600, color: 'var(--sk-muted)', display: 'block', marginBottom: 3 }}
           >
             {loc.toUpperCase()}
           </label>

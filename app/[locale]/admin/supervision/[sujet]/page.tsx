@@ -158,7 +158,7 @@ export default function SupervisionDetailPage({ params }: { params: Promise<{ su
               croire qu'on a tout vu — et c'est sur ce genre d'écran qu'on
               décide de ne rien faire. */}
           {(data?.lignes.length ?? 0) >= (data?.limite ?? 0) && (
-            <p style={{ fontSize: 12, color: 'var(--sk-faint)', marginTop: 12 }}>
+            <p style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 12 }}>
               {t('detail_truncated', { limit: data?.limite ?? 0 })}
             </p>
           )}

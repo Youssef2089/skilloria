@@ -80,7 +80,7 @@ const sectionTitle: React.CSSProperties = {
 }
 const hintStyle: React.CSSProperties = {
   fontSize: 12,
-  color: 'var(--sk-faint)',
+  color: 'var(--sk-muted)',
   margin: '6px 0 0',
 }
 
@@ -254,7 +254,7 @@ export default function AdminPackageNewPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 14 }}>{t('loading')}</div>
+    return <div style={{ padding: 40, textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14 }}>{t('loading')}</div>
   }
 
   const nameMissing = name.trim() === ''
@@ -274,7 +274,7 @@ export default function AdminPackageNewPage() {
       </p>
 
       {loadError && (
-        <div role="alert" style={{ padding: 16, background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13, borderRadius: 10, marginBottom: 16 }}>
+        <div role="alert" style={{ padding: 16, background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 13, borderRadius: 10, marginBottom: 16 }}>
           {loadError}
         </div>
       )}
@@ -291,7 +291,7 @@ export default function AdminPackageNewPage() {
               onChange={(e) => onNameChange(e.target.value)}
               maxLength={100}
               aria-invalid={nameMissing}
-              style={{ ...inputStyle, borderColor: nameMissing && confirming ? '#fecaca' : undefined }}
+              style={{ ...inputStyle, borderColor: nameMissing && confirming ? 'var(--sk-red-soft)' : undefined }}
             />
           </div>
           <div>
@@ -379,7 +379,7 @@ export default function AdminPackageNewPage() {
                   onChange={(e) => setValues((prev) => ({ ...prev, [l.code]: e.target.value }))}
                   disabled={unlimited}
                   placeholder={unlimited ? '∞' : '0'}
-                  style={{ ...inputStyle, background: unlimited ? 'var(--sk-surface-2)' : undefined, color: unlimited ? 'var(--sk-faint)' : undefined }}
+                  style={{ ...inputStyle, background: unlimited ? 'var(--sk-surface-2)' : undefined, color: unlimited ? 'var(--sk-muted)' : undefined }}
                 />
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--sk-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                   <input type="checkbox" checked={unlimited} onChange={(e) => toggleUnlimited(l.code, e.target.checked)} />
@@ -427,12 +427,12 @@ export default function AdminPackageNewPage() {
       {/* Création */}
       <section style={cardStyle}>
         {saveError && (
-          <div role="alert" style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
+          <div role="alert" style={{ padding: '8px 12px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
             {saveError}
           </div>
         )}
         {confirming && nameMissing && (
-          <div role="alert" style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
+          <div role="alert" style={{ padding: '8px 12px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
             {t('packages.err_invalid_name')}
           </div>
         )}
@@ -444,7 +444,7 @@ export default function AdminPackageNewPage() {
               type="button"
               onClick={() => void create()}
               disabled={saving}
-              style={{ padding: '9px 16px', background: '#00B9FF', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1, fontFamily: 'inherit' }}
+              style={{ padding: '9px 16px', background: 'var(--sk-accent)', color: 'var(--sk-surface)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1, fontFamily: 'inherit' }}
             >
               {saving ? t('loading') : t('packages.confirm_yes')}
             </button>
@@ -461,7 +461,7 @@ export default function AdminPackageNewPage() {
           <button
             type="button"
             onClick={() => { setSaveError(null); setConfirming(true) }}
-            style={{ padding: '10px 18px', background: '#00B9FF', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ padding: '10px 18px', background: 'var(--sk-accent)', color: 'var(--sk-surface)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
           >
             {t('packages.create')}
           </button>

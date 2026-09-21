@@ -59,7 +59,7 @@ const titreBloc: React.CSSProperties = {
   fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: '.08em',
-  color: 'var(--sk-faint)',
+  color: 'var(--sk-muted)',
   marginBottom: 12,
 }
 const champ: React.CSSProperties = {
@@ -194,12 +194,12 @@ export default function AdminDureesPage() {
       </p>
 
       {erreur && (
-        <div role="alert" style={{ ...carte, background: '#fef2f2', borderColor: '#fecaca', color: '#991b1b', fontSize: 13 }}>
+        <div role="alert" style={{ ...carte, background: 'var(--sk-red-soft)', borderColor: 'var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 13 }}>
           {erreur}
         </div>
       )}
       {succes && (
-        <div role="status" style={{ ...carte, background: '#f0fdf4', borderColor: '#bbf7d0', color: '#166534', fontSize: 13 }}>
+        <div role="status" style={{ ...carte, background: 'var(--sk-success-soft)', borderColor: 'var(--sk-success-soft)', color: 'var(--sk-success)', fontSize: 13 }}>
           {succes}
         </div>
       )}
@@ -226,9 +226,9 @@ export default function AdminDureesPage() {
         <p
           style={{
             fontSize: 13,
-            color: '#854D0E',
-            background: '#FEF9C3',
-            border: '1px solid #FDE047',
+            color: 'var(--sk-amber)',
+            background: 'var(--sk-amber-soft)',
+            border: '1px solid var(--sk-amber-soft)',
             borderRadius: 8,
             padding: '10px 12px',
             lineHeight: 1.55,
@@ -239,7 +239,7 @@ export default function AdminDureesPage() {
         </p>
 
         {apercu && (
-          <p style={{ fontSize: 13.5, color: '#b45309', marginTop: 10, fontWeight: 600 }}>
+          <p style={{ fontSize: 13.5, color: 'var(--sk-amber)', marginTop: 10, fontWeight: 600 }}>
             {t('preview', { count: apercu.basculent, unlocked: apercu.dont_devoilees })}
           </p>
         )}
@@ -264,9 +264,9 @@ export default function AdminDureesPage() {
         <p
           style={{
             fontSize: 13,
-            color: '#1e40af',
-            background: '#eff6ff',
-            border: '1px solid #bfdbfe',
+            color: 'var(--sk-accent)',
+            background: 'var(--sk-accent-soft)',
+            border: '1px solid var(--sk-accent-soft)',
             borderRadius: 8,
             padding: '10px 12px',
             lineHeight: 1.55,
@@ -299,9 +299,9 @@ export default function AdminDureesPage() {
         <p
           style={{
             fontSize: 13,
-            color: '#1e40af',
-            background: '#eff6ff',
-            border: '1px solid #bfdbfe',
+            color: 'var(--sk-accent)',
+            background: 'var(--sk-accent-soft)',
+            border: '1px solid var(--sk-accent-soft)',
             borderRadius: 8,
             padding: '10px 12px',
             lineHeight: 1.55,
@@ -318,10 +318,10 @@ export default function AdminDureesPage() {
         <section
           role="alertdialog"
           aria-label={t('confirm.title')}
-          style={{ ...carte, background: '#FFFBEB', borderColor: '#FDE047' }}
+          style={{ ...carte, background: 'var(--sk-amber-soft)', borderColor: 'var(--sk-amber-soft)' }}
         >
-          <div style={{ ...titreBloc, color: '#92400e' }}>{t('confirm.title')}</div>
-          <p style={{ fontSize: 14, color: '#78350f', lineHeight: 1.6, marginBottom: 6 }}>
+          <div style={{ ...titreBloc, color: 'var(--sk-amber)' }}>{t('confirm.title')}</div>
+          <p style={{ fontSize: 14, color: 'var(--sk-amber)', lineHeight: 1.6, marginBottom: 6 }}>
             {t('confirm.body', {
               from: impact.de_jours,
               to: impact.a_jours,
@@ -329,7 +329,7 @@ export default function AdminDureesPage() {
               unlocked: impact.dont_devoilees,
             })}
           </p>
-          <p style={{ fontSize: 13, color: '#78350f', lineHeight: 1.55, marginBottom: 14 }}>
+          <p style={{ fontSize: 13, color: 'var(--sk-amber)', lineHeight: 1.55, marginBottom: 14 }}>
             {t('confirm.note')}
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -339,8 +339,8 @@ export default function AdminDureesPage() {
               disabled={enCours}
               style={{
                 padding: '10px 18px',
-                background: '#b45309',
-                color: '#fff',
+                background: 'var(--sk-amber)',
+                color: 'var(--sk-surface)',
                 border: 'none',
                 borderRadius: 8,
                 fontSize: 14,
@@ -377,7 +377,7 @@ export default function AdminDureesPage() {
         style={{
           padding: '11px 22px',
           background: charge && !enCours ? 'var(--sk-text)' : 'var(--sk-border)',
-          color: charge && !enCours ? 'var(--sk-surface)' : 'var(--sk-faint)',
+          color: charge && !enCours ? 'var(--sk-surface)' : 'var(--sk-muted)',
           border: 'none',
           borderRadius: 8,
           fontSize: 14,

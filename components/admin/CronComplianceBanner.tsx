@@ -63,11 +63,11 @@ export default function CronComplianceBanner() {
       role="alert"
       style={{
         marginBottom: 18, padding: '14px 18px', borderRadius: 12,
-        background: '#FEE2E2', border: '1.5px solid #FCA5A5', color: '#991B1B',
+        background: 'var(--sk-red-soft)', border: '1.5px solid var(--sk-red-soft)', color: 'var(--sk-red)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-        <span aria-hidden style={{ width: 9, height: 9, borderRadius: '50%', background: '#DC2626' }} />
+        <span aria-hidden style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--sk-red)' }} />
         <strong style={{ fontSize: 14, fontWeight: 700 }}>{t('banner_title')}</strong>
       </div>
       <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
@@ -80,7 +80,7 @@ export default function CronComplianceBanner() {
         href="/admin/taches-planifiees"
         style={{
           display: 'inline-block', marginTop: 10, fontSize: 13, fontWeight: 700,
-          color: '#991B1B', textDecoration: 'underline',
+          color: 'var(--sk-red)', textDecoration: 'underline',
         }}
       >
         {t('banner_action')}

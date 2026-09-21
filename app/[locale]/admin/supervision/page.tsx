@@ -245,7 +245,7 @@ export default function SupervisionPage() {
                       <span style={{ fontSize: 13, color: 'var(--sk-text)', flex: '1 1 260px' }}>
                         {t(`problem.${p.cle}` as 'problem.annonces_jamais_tentees', { count: p.compte ?? 0 })}
                         {p.depuis && (
-                          <span style={{ color: 'var(--sk-faint)' }}>
+                          <span style={{ color: 'var(--sk-muted)' }}>
                             {' '}
                             {t('since', { date: new Date(p.depuis).toLocaleDateString() })}
                           </span>
@@ -292,12 +292,12 @@ export default function SupervisionPage() {
                           title={t('spread_bar', { from: i, to: i + 1, count: Number(n) })}
                           style={{
                             height: `${Math.max(2, hauteur)}%`,
-                            background: 'var(--sk-accent, #2563eb)',
+                            background: 'var(--sk-accent, var(--sk-accent))',
                             borderRadius: '4px 4px 0 0',
                             opacity: 0.85,
                           }}
                         />
-                        <span style={{ fontSize: 10, color: 'var(--sk-faint)' }}>{i}</span>
+                        <span style={{ fontSize: 10, color: 'var(--sk-muted)' }}>{i}</span>
                       </div>
                     )
                   })}
@@ -310,7 +310,7 @@ export default function SupervisionPage() {
           <section style={cardStyle}>
             <h2 style={h2Style}>{t('spend_title')}</h2>
             {/* CE QUE LE COMPTEUR EST, en une ligne. */}
-            <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '0 0 14px', maxWidth: 720 }}>
+            <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '0 0 14px', maxWidth: 720 }}>
               {t('spend_estimate')}
             </p>
 
@@ -333,7 +333,7 @@ export default function SupervisionPage() {
                     <p style={{ fontSize: 20, fontWeight: 600, margin: '6px 0 0', color: 'var(--sk-text)' }}>
                       {t('spend_amount', { amount: Number(d.depense_mois).toFixed(2) })}
                     </p>
-                    <p style={{ fontSize: 12, margin: '2px 0 0', color: 'var(--sk-faint)' }}>
+                    <p style={{ fontSize: 12, margin: '2px 0 0', color: 'var(--sk-muted)' }}>
                       {t('spend_of_cap', { cap: Number(d.monthly_cap_usd).toFixed(2) })}
                     </p>
                   </div>
@@ -396,7 +396,7 @@ export default function SupervisionPage() {
                 suivante. Et elle ne fait qu'ALERTER : aucun refus, aucun arrêt
                 n'en dépend (§D.9). */}
             {data?.par_acteur === null ? (
-              <p style={{ fontSize: 13, color: 'var(--sk-faint)', margin: '16px 0 0' }}>
+              <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '16px 0 0' }}>
                 {t('by_actor_unavailable')}
               </p>
             ) : (data?.par_acteur?.length ?? 0) > 0 ? (
@@ -416,7 +416,7 @@ export default function SupervisionPage() {
                             <td style={cellule}>
                               {a.acteur_nom ?? t(`actor.${a.acteur_type}` as 'actor.organization')}
                               {a.acteurs_regroupes > 1 && (
-                                <span style={{ color: 'var(--sk-faint)' }}>
+                                <span style={{ color: 'var(--sk-muted)' }}>
                                   {' '}
                                   {t('by_actor_grouped', { count: a.acteurs_regroupes })}
                                 </span>

@@ -54,11 +54,11 @@ const champ: React.CSSProperties = {
   fontSize: 15,
   border: '1px solid var(--sk-border)',
   borderRadius: 8,
-  background: '#fff',
+  background: 'var(--sk-surface)',
   color: 'inherit',
 }
 const encart: React.CSSProperties = {
-  background: 'var(--sk-bg, #f8fafc)',
+  background: 'var(--sk-bg, var(--sk-surface-2))',
   border: '1px solid var(--sk-border)',
   borderRadius: 10,
   padding: '14px 16px',
@@ -71,7 +71,7 @@ const bouton = (inactif: boolean): React.CSSProperties => ({
   borderRadius: 8,
   border: 'none',
   background: 'var(--sk-accent)',
-  color: '#fff',
+  color: 'var(--sk-surface)',
   cursor: inactif ? 'not-allowed' : 'pointer',
   opacity: inactif ? 0.6 : 1,
 })
@@ -335,7 +335,7 @@ export default function NotesDeJugementPage() {
                   >
                     {enCours === s.sujet ? t('saving') : t('save')}
                   </button>
-                  <span style={{ fontSize: 12, color: 'var(--sk-faint)' }}>
+                  <span style={{ fontSize: 12, color: 'var(--sk-muted)' }}>
                     {blocage ??
                       (s.arrives_ce_mois === null
                         ? /* Un compteur en panne ne rend pas zéro (§E.22). */
@@ -349,7 +349,7 @@ export default function NotesDeJugementPage() {
 
           {/* CE QUI N'EST PLUS AFFICHÉ, DIT UNE FOIS — sinon son absence se lit
               comme un oubli, et quelqu'un le remettra. */}
-          <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '4px 0 0', maxWidth: 760 }}>
+          <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '4px 0 0', maxWidth: 760 }}>
             {t('inert_note')}
           </p>
         </>

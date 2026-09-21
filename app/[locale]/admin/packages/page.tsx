@@ -241,7 +241,7 @@ export default function AdminPackagesPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 14 }}>
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14 }}>
         {t('loading')}
       </div>
     )
@@ -249,7 +249,7 @@ export default function AdminPackagesPage() {
 
   if (error) {
     return (
-      <div role="alert" style={{ padding: 16, background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13, borderRadius: 10 }}>
+      <div role="alert" style={{ padding: 16, background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 13, borderRadius: 10 }}>
         {error}
       </div>
     )
@@ -261,7 +261,7 @@ export default function AdminPackagesPage() {
     fontWeight: 500,
     textTransform: 'uppercase',
     letterSpacing: '.06em',
-    color: 'var(--sk-faint)',
+    color: 'var(--sk-muted)',
     padding: '14px 14px 10px',
     whiteSpace: 'nowrap',
   }
@@ -304,8 +304,8 @@ export default function AdminPackagesPage() {
           href="/admin/packages/new"
           style={{
             padding: '9px 16px',
-            background: '#00B9FF',
-            color: '#fff',
+            background: 'var(--sk-accent)',
+            color: 'var(--sk-surface)',
             borderRadius: 10,
             fontSize: 13,
             fontWeight: 500,
@@ -318,13 +318,13 @@ export default function AdminPackagesPage() {
       </div>
 
       {defaultDone && (
-        <div style={{ padding: '9px 14px', background: '#DCFCE7', border: '1px solid #bbf7d0', color: '#166534', fontSize: 13, borderRadius: 10, marginBottom: 16 }}>
+        <div style={{ padding: '9px 14px', background: 'var(--sk-success-soft)', border: '1px solid var(--sk-success-soft)', color: 'var(--sk-success)', fontSize: 13, borderRadius: 10, marginBottom: 16 }}>
           {defaultDone}
         </div>
       )}
       {/* Erreur hors confirmation (la ligne a pu être refermée par le refresh). */}
       {defaultError && confirmingId === null && (
-        <div role="alert" style={{ padding: '9px 14px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13, borderRadius: 10, marginBottom: 16 }}>
+        <div role="alert" style={{ padding: '9px 14px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 13, borderRadius: 10, marginBottom: 16 }}>
           {defaultError}
         </div>
       )}
@@ -362,7 +362,7 @@ export default function AdminPackagesPage() {
                   <span style={{ display: 'block', fontWeight: 500 }}>{p.name}</span>
                   {/* Identifiant technique, en retrait : utile pour rapprocher
                       une ligne des journaux/Stripe sans encombrer la lecture. */}
-                  <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-faint)', marginTop: 2 }}>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-muted)', marginTop: 2 }}>
                     {p.slug}
                   </span>
                 </td>
@@ -377,15 +377,15 @@ export default function AdminPackagesPage() {
                         fontSize: 11,
                         padding: '2px 8px',
                         borderRadius: 10,
-                        background: p.active ? '#DCFCE7' : '#F1F5F9',
-                        color: p.active ? '#166534' : '#64748b',
+                        background: p.active ? 'var(--sk-success-soft)' : 'var(--sk-surface-2)',
+                        color: p.active ? 'var(--sk-success)' : 'var(--sk-muted)',
                         whiteSpace: 'nowrap',
                       }}
                     >
                       {p.active ? t('packages.active_yes') : t('packages.active_no')}
                     </span>
                     {p.is_default && (
-                      <span style={{ fontSize: 11, padding: '2px 8px', background: '#DBEAFE', color: '#1e40af', borderRadius: 10, whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 11, padding: '2px 8px', background: 'var(--sk-accent-soft)', color: 'var(--sk-accent)', borderRadius: 10, whiteSpace: 'nowrap' }}>
                         {t('packages.default_badge')}
                       </span>
                     )}
@@ -432,8 +432,8 @@ export default function AdminPackagesPage() {
                         padding: '7px 14px',
                         fontSize: 12,
                         fontWeight: 500,
-                        color: '#00B9FF',
-                        border: '0.5px solid #00B9FF',
+                        color: 'var(--sk-accent)',
+                        border: '0.5px solid var(--sk-accent)',
                         borderRadius: 8,
                         textDecoration: 'none',
                       }}
@@ -464,8 +464,8 @@ export default function AdminPackagesPage() {
                         disabled={settingId === p.id}
                         style={{
                           padding: '8px 14px',
-                          background: '#00B9FF',
-                          color: '#fff',
+                          background: 'var(--sk-accent)',
+                          color: 'var(--sk-surface)',
                           border: 'none',
                           borderRadius: 8,
                           fontSize: 12,
@@ -497,7 +497,7 @@ export default function AdminPackagesPage() {
                       </button>
                     </div>
                     {defaultError && (
-                      <div role="alert" style={{ marginTop: 10, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 12, borderRadius: 8 }}>
+                      <div role="alert" style={{ marginTop: 10, padding: '8px 12px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 12, borderRadius: 8 }}>
                         {defaultError}
                       </div>
                     )}
@@ -534,7 +534,7 @@ export default function AdminPackagesPage() {
         <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 6px' }}>
           {t('packages.migrate_subtitle')}
         </p>
-        <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '0 0 14px' }}>
+        <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '0 0 14px' }}>
           {t('packages.migrate_intro')}
         </p>
 
@@ -582,12 +582,12 @@ export default function AdminPackagesPage() {
         </div>
 
         {migError && (
-          <div role="alert" style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
+          <div role="alert" style={{ padding: '8px 12px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
             {migError}
           </div>
         )}
         {migDone && (
-          <div style={{ padding: '8px 12px', background: '#DCFCE7', border: '1px solid #bbf7d0', color: '#166534', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
+          <div style={{ padding: '8px 12px', background: 'var(--sk-success-soft)', border: '1px solid var(--sk-success-soft)', color: 'var(--sk-success)', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
             {migDone}
           </div>
         )}
@@ -600,8 +600,8 @@ export default function AdminPackagesPage() {
             style={{
               padding: '9px 16px',
               background: 'transparent',
-              color: !migFrom || !migTo ? 'var(--sk-faint)' : '#00B9FF',
-              border: `0.5px solid ${!migFrom || !migTo ? 'var(--sk-border)' : '#00B9FF'}`,
+              color: !migFrom || !migTo ? 'var(--sk-muted)' : 'var(--sk-accent)',
+              border: `0.5px solid ${!migFrom || !migTo ? 'var(--sk-border)' : 'var(--sk-accent)'}`,
               borderRadius: 10,
               fontSize: 13,
               fontWeight: 500,
@@ -626,8 +626,8 @@ export default function AdminPackagesPage() {
               disabled={migBusy || migPreview === 0}
               style={{
                 padding: '9px 16px',
-                background: '#00B9FF',
-                color: '#fff',
+                background: 'var(--sk-accent)',
+                color: 'var(--sk-surface)',
                 border: 'none',
                 borderRadius: 10,
                 fontSize: 13,

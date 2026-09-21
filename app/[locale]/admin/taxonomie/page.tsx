@@ -131,7 +131,7 @@ export default function AdminTaxonomiePage() {
 
   if (loading) {
     return (
-      <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 14 }}>
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14 }}>
         {tAdmin('loading')}
       </div>
     )
@@ -139,7 +139,7 @@ export default function AdminTaxonomiePage() {
 
   if (error) {
     return (
-      <div role="alert" style={{ padding: 16, background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13, borderRadius: 10 }}>
+      <div role="alert" style={{ padding: 16, background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 13, borderRadius: 10 }}>
         {error}
       </div>
     )
@@ -151,7 +151,7 @@ export default function AdminTaxonomiePage() {
     fontWeight: 500,
     textTransform: 'uppercase',
     letterSpacing: '.06em',
-    color: 'var(--sk-faint)',
+    color: 'var(--sk-muted)',
     padding: '14px 14px 10px',
     whiteSpace: 'nowrap',
   }
@@ -210,8 +210,8 @@ export default function AdminTaxonomiePage() {
           href="/admin/taxonomie/new"
           style={{
             padding: '9px 16px',
-            background: '#00B9FF',
-            color: '#fff',
+            background: 'var(--sk-accent)',
+            color: 'var(--sk-surface)',
             borderRadius: 10,
             fontSize: 13,
             fontWeight: 500,
@@ -236,7 +236,7 @@ export default function AdminTaxonomiePage() {
           <p style={{ fontSize: 14, color: 'var(--sk-muted)', margin: '0 0 4px' }}>
             {t('empty_title')}
           </p>
-          <p style={{ fontSize: 13, color: 'var(--sk-faint)', margin: 0 }}>
+          <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: 0 }}>
             {t('empty_hint')}
           </p>
         </div>
@@ -265,13 +265,13 @@ export default function AdminTaxonomiePage() {
               {list.map((b) => (
                 <tr key={b.id}>
                   <td style={{ ...tdStyle }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: '#3730a3', background: '#eef2ff', border: '0.5px solid #c7d2fe', borderRadius: 6, padding: '1px 7px', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--sk-accent)', background: 'var(--sk-accent-soft)', border: '0.5px solid var(--sk-accent-soft)', borderRadius: 6, padding: '1px 7px', whiteSpace: 'nowrap' }}>
                       {b.ecosystem ?? '—'}
                     </span>
                   </td>
                   <td style={tdStyle}>
                     <span style={{ display: 'block', fontWeight: 500 }}>{b.name}</span>
-                    <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-faint)', marginTop: 2 }}>
+                    <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-muted)', marginTop: 2 }}>
                       {b.slug}
                     </span>
                   </td>
@@ -284,8 +284,8 @@ export default function AdminTaxonomiePage() {
                         fontSize: 11,
                         padding: '2px 8px',
                         borderRadius: 10,
-                        background: b.active ? '#DCFCE7' : '#F1F5F9',
-                        color: b.active ? '#166534' : '#64748b',
+                        background: b.active ? 'var(--sk-success-soft)' : 'var(--sk-surface-2)',
+                        color: b.active ? 'var(--sk-success)' : 'var(--sk-muted)',
                         whiteSpace: 'nowrap',
                       }}
                     >
@@ -327,8 +327,8 @@ export default function AdminTaxonomiePage() {
                         padding: '7px 14px',
                         fontSize: 12,
                         fontWeight: 500,
-                        color: '#00B9FF',
-                        border: '0.5px solid #00B9FF',
+                        color: 'var(--sk-accent)',
+                        border: '0.5px solid var(--sk-accent)',
                         borderRadius: 8,
                         textDecoration: 'none',
                       }}
@@ -356,7 +356,7 @@ export default function AdminTaxonomiePage() {
         <h2 style={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--sk-muted)', marginBottom: 6 }}>
           {t('other_title')}
         </h2>
-        <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '0 0 14px' }}>
+        <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '0 0 14px' }}>
           {t('other_hint')}
         </p>
 
@@ -381,7 +381,7 @@ export default function AdminTaxonomiePage() {
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                   {o.domain_name && (
-                    <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: '#3730a3', background: '#eef2ff', border: '0.5px solid #c7d2fe', borderRadius: 6, padding: '1px 7px', whiteSpace: 'nowrap' }}>
+                    <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: 'var(--sk-accent)', background: 'var(--sk-accent-soft)', border: '0.5px solid var(--sk-accent-soft)', borderRadius: 6, padding: '1px 7px', whiteSpace: 'nowrap' }}>
                       {o.domain_name}
                     </span>
                   )}

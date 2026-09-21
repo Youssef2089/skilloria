@@ -126,9 +126,9 @@ export default function CronScheduleModal({
   }
   const chip = (on: boolean): React.CSSProperties => ({
     padding: '5px 9px', borderRadius: 8, fontSize: 12.5, fontWeight: 600,
-    border: on ? '1px solid #0f172a' : '1px solid var(--sk-border)',
-    background: on ? '#0f172a' : 'var(--sk-surface)',
-    color: on ? '#fff' : 'var(--sk-muted)',
+    border: on ? '1px solid var(--sk-text)' : '1px solid var(--sk-border)',
+    background: on ? 'var(--sk-text)' : 'var(--sk-surface)',
+    color: on ? 'var(--sk-surface)' : 'var(--sk-muted)',
     cursor: 'pointer', fontFamily: 'inherit',
   })
 
@@ -138,17 +138,17 @@ export default function CronScheduleModal({
       aria-modal="true"
       style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 60, overflowY: 'auto' }}
     >
-      <div style={{ background: '#fff', borderRadius: 14, padding: '22px 24px', maxWidth: 560, width: '100%' }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 6px', color: '#0f172a' }}>
+      <div style={{ background: 'var(--sk-surface)', borderRadius: 14, padding: '22px 24px', maxWidth: 560, width: '100%' }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 6px', color: 'var(--sk-text)' }}>
           {t('reschedule_title')}
         </h3>
-        <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6, margin: '0 0 14px' }}>
+        <p style={{ fontSize: 13.5, color: 'var(--sk-muted)', lineHeight: 1.6, margin: '0 0 14px' }}>
           {t('reschedule_body', { name: jobLabel })}
         </p>
 
         {/* Refus de chaîne : NOMME la contrainte et PROPOSE un horaire valide. */}
         {chainError && (
-          <div role="alert" style={{ margin: '0 0 14px', padding: '12px 14px', borderRadius: 10, background: '#FEE2E2', border: '1px solid #FCA5A5', color: '#991B1B', fontSize: 13, lineHeight: 1.6 }}>
+          <div role="alert" style={{ margin: '0 0 14px', padding: '12px 14px', borderRadius: 10, background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 13, lineHeight: 1.6 }}>
             {t('chain_violation_body', { other: chainError.otherJobLabel, minutes: chainError.minGap })}
             {chainError.suggested && (
               <div style={{ marginTop: 6, fontWeight: 600 }}>
@@ -158,7 +158,7 @@ export default function CronScheduleModal({
           </div>
         )}
 
-        <label style={{ display: 'block', fontSize: 12.5, color: '#475569', marginBottom: 5 }}>
+        <label style={{ display: 'block', fontSize: 12.5, color: 'var(--sk-muted)', marginBottom: 5 }}>
           {t('field_frequency')}
         </label>
         <select
@@ -171,7 +171,7 @@ export default function CronScheduleModal({
           <option value="monthly">{t('frequency_monthly')}</option>
         </select>
 
-        <label style={{ display: 'block', fontSize: 12.5, color: '#475569', marginBottom: 5 }}>
+        <label style={{ display: 'block', fontSize: 12.5, color: 'var(--sk-muted)', marginBottom: 5 }}>
           {t('field_hour_utc')}
         </label>
         <select
@@ -184,7 +184,7 @@ export default function CronScheduleModal({
           ))}
         </select>
 
-        <label style={{ display: 'block', fontSize: 12.5, color: '#475569', marginBottom: 5 }}>
+        <label style={{ display: 'block', fontSize: 12.5, color: 'var(--sk-muted)', marginBottom: 5 }}>
           {t('field_minutes')}
         </label>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -213,7 +213,7 @@ export default function CronScheduleModal({
 
         {draft.frequency === 'weekly' && (
           <>
-            <label style={{ display: 'block', fontSize: 12.5, color: '#475569', marginBottom: 5 }}>
+            <label style={{ display: 'block', fontSize: 12.5, color: 'var(--sk-muted)', marginBottom: 5 }}>
               {t('field_days_of_week')}
             </label>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -244,7 +244,7 @@ export default function CronScheduleModal({
 
         {draft.frequency === 'monthly' && (
           <>
-            <label style={{ display: 'block', fontSize: 12.5, color: '#475569', marginBottom: 5 }}>
+            <label style={{ display: 'block', fontSize: 12.5, color: 'var(--sk-muted)', marginBottom: 5 }}>
               {t('field_day_of_month')}
             </label>
             <select
@@ -256,7 +256,7 @@ export default function CronScheduleModal({
             </select>
             {/* On DIT pourquoi la liste s'arrête à 28 — sinon la borne passe
                 pour une limitation arbitraire et quelqu'un la « corrigera ». */}
-            <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '0 0 12px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '0 0 12px', lineHeight: 1.5 }}>
               {t('day_of_month_hint')}
             </p>
           </>
@@ -264,10 +264,10 @@ export default function CronScheduleModal({
 
         <div style={{ fontSize: 12.5, color: 'var(--sk-muted)', marginBottom: 14, lineHeight: 1.6 }}>
           {t('preview_utc', { times: preview.utc })}
-          <span style={{ color: 'var(--sk-faint)' }}> · {preview.local}</span>
+          <span style={{ color: 'var(--sk-muted)' }}> · {preview.local}</span>
         </div>
 
-        <label style={{ display: 'block', fontSize: 13, color: '#475569', marginBottom: 6 }}>
+        <label style={{ display: 'block', fontSize: 13, color: 'var(--sk-muted)', marginBottom: 6 }}>
           {t('confirm_type_name', { name: jobName })}
         </label>
         <input
@@ -288,7 +288,7 @@ export default function CronScheduleModal({
             onClick={() => onSubmit(draft, confirmName.trim())}
             style={{
               padding: '8px 14px', borderRadius: 9, border: 'none',
-              background: 'var(--sk-text)', color: '#fff',
+              background: 'var(--sk-text)', color: 'var(--sk-surface)',
               fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
               cursor: canSubmit ? 'pointer' : 'not-allowed', opacity: canSubmit ? 1 : 0.5,
             }}

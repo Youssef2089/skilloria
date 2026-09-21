@@ -41,10 +41,10 @@ function pickRel<T>(value: T | T[] | null | undefined): T | null {
 }
 
 function scoreColor(score: number | null | undefined): string {
-  if (score == null) return '#94a3b8'
-  if (score < 5) return '#dc2626'
-  if (score < 9) return '#d97706'
-  return '#16a34a'
+  if (score == null) return 'var(--sk-muted)'
+  if (score < 5) return 'var(--sk-red)'
+  if (score < 9) return 'var(--sk-amber)'
+  return 'var(--sk-success)'
 }
 
 function initials(first: string | null | undefined, last: string | null | undefined, email: string | null | undefined): string {
@@ -122,16 +122,16 @@ export default function AdminExpertsListPage() {
   useEffect(() => { void loadCounts() }, [loadCounts])
 
   const tabs: Array<{ key: TabKey; label: string; dot: string }> = useMemo(() => [
-    { key: 'pending', label: t('tab_pending'), dot: '#d97706' },
-    { key: 'approved', label: t('tab_approved'), dot: '#16a34a' },
-    { key: 'rejected', label: t('tab_rejected'), dot: '#dc2626' },
-    { key: 'all', label: t('tab_all'), dot: '#94a3b8' },
+    { key: 'pending', label: t('tab_pending'), dot: 'var(--sk-amber)' },
+    { key: 'approved', label: t('tab_approved'), dot: 'var(--sk-success)' },
+    { key: 'rejected', label: t('tab_rejected'), dot: 'var(--sk-red)' },
+    { key: 'all', label: t('tab_all'), dot: 'var(--sk-muted)' },
   ], [t])
 
   return (
     <div>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>{t('page_title')}</h1>
-      <p style={{ fontSize: 13, color: '#64748b', marginBottom: 22 }}>{t('page_subtitle')}</p>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 6 }}>{t('page_title')}</h1>
+      <p style={{ fontSize: 13, color: 'var(--sk-muted)', marginBottom: 22 }}>{t('page_subtitle')}</p>
 
       {/* Bandeau de troncature — le plafond ne doit jamais être muet. */}
       {truncation && (
@@ -139,7 +139,7 @@ export default function AdminExpertsListPage() {
           role="status"
           style={{
             marginBottom: 16, padding: '11px 15px', borderRadius: 10,
-            background: '#FEF9C3', border: '1px solid #FDE047', color: '#713F12',
+            background: 'var(--sk-amber-soft)', border: '1px solid var(--sk-amber-soft)', color: 'var(--sk-amber)',
             fontSize: 12.5, lineHeight: 1.55,
           }}
         >
@@ -148,7 +148,7 @@ export default function AdminExpertsListPage() {
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid #e5e7eb', marginBottom: 18, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid var(--sk-border)', marginBottom: 18, flexWrap: 'wrap' }}>
         {tabs.map((tabDef) => {
           const active = tab === tabDef.key
           const count = counts[tabDef.key]
@@ -159,8 +159,8 @@ export default function AdminExpertsListPage() {
               onClick={() => setTab(tabDef.key)}
               style={{
                 padding: '10px 14px', background: 'transparent', border: 'none',
-                borderBottom: active ? '2px solid #0f172a' : '2px solid transparent',
-                color: active ? '#0f172a' : '#64748b',
+                borderBottom: active ? '2px solid var(--sk-text)' : '2px solid transparent',
+                color: active ? 'var(--sk-text)' : 'var(--sk-muted)',
                 fontSize: 13, fontWeight: active ? 600 : 500, cursor: 'pointer',
                 fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 6,
                 marginBottom: -1,
@@ -174,21 +174,21 @@ export default function AdminExpertsListPage() {
       </div>
 
       {error && (
-        <div role="alert" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '12px 16px', borderRadius: 10, fontSize: 13 }}>{error}</div>
+        <div role="alert" style={{ background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', padding: '12px 16px', borderRadius: 10, fontSize: 13 }}>{error}</div>
       )}
 
       {rows === null && !error && (
-        <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 14 }}>{t('loading')}</div>
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14 }}>{t('loading')}</div>
       )}
 
       {rows !== null && rows.length === 0 && (
-        <div style={{ background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 14, padding: '40px 24px', textAlign: 'center', color: '#64748b', fontSize: 14 }}>
+        <div style={{ background: 'var(--sk-surface)', border: '0.5px solid var(--sk-border)', borderRadius: 14, padding: '40px 24px', textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14 }}>
           {t('empty')}
         </div>
       )}
 
       {rows !== null && rows.length > 0 && (
-        <div style={{ background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 14, overflowX: 'auto' }}>
+        <div style={{ background: 'var(--sk-surface)', border: '0.5px solid var(--sk-border)', borderRadius: 14, overflowX: 'auto' }}>
           {rows.map((r, i) => {
             const u = pickRel(r.users)
             const name = [u?.first_name, u?.last_name].filter(Boolean).join(' ').trim()
@@ -203,7 +203,7 @@ export default function AdminExpertsListPage() {
                   gap: 14,
                   alignItems: 'center',
                   padding: '14px 18px',
-                  borderTop: i === 0 ? 'none' : '0.5px solid #e5e7eb',
+                  borderTop: i === 0 ? 'none' : '0.5px solid var(--sk-border)',
                   textDecoration: 'none',
                   color: 'inherit',
                 }}
@@ -217,28 +217,28 @@ export default function AdminExpertsListPage() {
                   alt=""
                   style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }}
                   repli={
-                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#f1f5f9', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--sk-surface-2)', color: 'var(--sk-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
                       {initials(u?.first_name, u?.last_name, u?.email)}
                     </div>
                   }
                 />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--sk-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {name || u?.email || '—'}
                     </span>
                     {/* D1 : écosystème de l'expert (admin plateforme multi-écosystème). */}
                     {r.ecosystem && (
-                      <span title={tAdmin('ecosystem_label')} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: '#3730a3', background: '#eef2ff', border: '0.5px solid #c7d2fe', borderRadius: 6, padding: '1px 7px', whiteSpace: 'nowrap' }}>
+                      <span title={tAdmin('ecosystem_label')} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: 'var(--sk-accent)', background: 'var(--sk-accent-soft)', border: '0.5px solid var(--sk-accent-soft)', borderRadius: 6, padding: '1px 7px', whiteSpace: 'nowrap' }}>
                         {r.ecosystem}
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 12, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: 'var(--sk-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
                     {[r.title, r.seniority, r.years_experience != null ? `${r.years_experience} an(s)` : null].filter(Boolean).join(' · ')}
                   </div>
                 </div>
-                <div style={{ fontSize: 12, color: '#64748b', textAlign: 'right' }}>
+                <div style={{ fontSize: 12, color: 'var(--sk-muted)', textAlign: 'right' }}>
                   {r.expert_type === 'expert_cdi' ? 'CDI' : 'Freelance'}
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -248,7 +248,7 @@ export default function AdminExpertsListPage() {
                     </span>
                   )}
                 </div>
-                <div style={{ fontSize: 11, color: '#94a3b8', textAlign: 'right' }}>
+                <div style={{ fontSize: 11, color: 'var(--sk-muted)', textAlign: 'right' }}>
                   {r.verification_status === 'approved' || r.verification_status === 'rejected'
                     ? formatDate(r.verified_at, locale)
                     : formatDate(r.updated_at, locale)}

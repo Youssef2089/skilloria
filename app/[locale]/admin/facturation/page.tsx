@@ -216,7 +216,7 @@ const enTete: React.CSSProperties = {
   fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: 0.4,
-  color: 'var(--sk-faint)',
+  color: 'var(--sk-muted)',
   whiteSpace: 'nowrap',
 }
 
@@ -243,7 +243,7 @@ function Ligne({ label, valeur, alerte }: { label: string; valeur: string; alert
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: 0.4,
-          color: 'var(--sk-faint)',
+          color: 'var(--sk-muted)',
           flex: '0 0 180px',
         }}
       >
@@ -365,7 +365,7 @@ export default function AdminFacturationPage() {
           style={{
             display: 'block',
             fontSize: 12,
-            color: 'var(--sk-faint)',
+            color: 'var(--sk-muted)',
             marginTop: 4,
             maxWidth: 760,
           }}
@@ -589,7 +589,7 @@ export default function AdminFacturationPage() {
                                   style={{
                                     ...mono,
                                     display: 'block',
-                                    color: 'var(--sk-faint)',
+                                    color: 'var(--sk-muted)',
                                   }}
                                 >
                                   {e.stripeCustomerId}
@@ -630,7 +630,7 @@ export default function AdminFacturationPage() {
                                   style={{
                                     ...mono,
                                     display: 'block',
-                                    color: 'var(--sk-faint)',
+                                    color: 'var(--sk-muted)',
                                   }}
                                 >
                                   {e.stripeSubscriptionId}
@@ -644,7 +644,7 @@ export default function AdminFacturationPage() {
                                 <span
                                   style={{
                                     display: 'block',
-                                    color: 'var(--sk-faint)',
+                                    color: 'var(--sk-muted)',
                                   }}
                                 >
                                   {dateCourte(e.finDePeriodeStripe)}
@@ -821,7 +821,7 @@ export default function AdminFacturationPage() {
                     <option value="failed">{t('journal.statut.failed')}</option>
                     <option value="received">{t('journal.statut.received')}</option>
                   </select>
-                  <span style={{ fontSize: 12, color: 'var(--sk-faint)' }}>
+                  <span style={{ fontSize: 12, color: 'var(--sk-muted)' }}>
                     {t('journal.resume', {
                       total: data.journal.resume.total,
                       traites: data.journal.resume.traites,

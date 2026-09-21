@@ -90,11 +90,11 @@ const champ: React.CSSProperties = {
   fontSize: 15,
   border: '1px solid var(--sk-border)',
   borderRadius: 8,
-  background: '#fff',
+  background: 'var(--sk-surface)',
   color: 'inherit',
 }
 const encart: React.CSSProperties = {
-  background: 'var(--sk-bg, #f8fafc)',
+  background: 'var(--sk-bg, var(--sk-surface-2))',
   border: '1px solid var(--sk-border)',
   borderRadius: 10,
   padding: '12px 14px',
@@ -107,7 +107,7 @@ const bouton = (inactif: boolean): React.CSSProperties => ({
   borderRadius: 8,
   border: 'none',
   background: 'var(--sk-accent)',
-  color: '#fff',
+  color: 'var(--sk-surface)',
   cursor: inactif ? 'not-allowed' : 'pointer',
   opacity: inactif ? 0.6 : 1,
 })
@@ -386,7 +386,7 @@ export default function MatchingPage() {
               >
                 {enCours === 'argent' ? t('saving') : t('save')}
               </button>
-              <span style={{ fontSize: 12, color: 'var(--sk-faint)' }}>{t('audited')}</span>
+              <span style={{ fontSize: 12, color: 'var(--sk-muted)' }}>{t('audited')}</span>
             </div>
           </section>
 
@@ -572,7 +572,7 @@ export default function MatchingPage() {
                     {enCours === r.domain_id ? t('saving') : t('save')}
                   </button>
                   {/* UN BOUTON GRISÉ DIT POURQUOI. */}
-                  <span style={{ fontSize: 12, color: 'var(--sk-faint)' }}>
+                  <span style={{ fontSize: 12, color: 'var(--sk-muted)' }}>
                     {blocage ?? t('audited')}
                   </span>
                 </div>

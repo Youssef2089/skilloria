@@ -366,15 +366,15 @@ export default function AdminUserDetailPage() {
   const btn = (danger?: boolean): React.CSSProperties => ({
     padding: '9px 15px',
     borderRadius: 9,
-    border: danger ? '1px solid #FCA5A5' : '1px solid var(--sk-border)',
-    background: danger ? '#FEE2E2' : 'var(--sk-surface)',
-    color: danger ? '#991B1B' : 'var(--sk-text)',
+    border: danger ? '1px solid var(--sk-red-soft)' : '1px solid var(--sk-border)',
+    background: danger ? 'var(--sk-red-soft)' : 'var(--sk-surface)',
+    color: danger ? 'var(--sk-red)' : 'var(--sk-text)',
     fontSize: 13, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer',
     opacity: busy ? 0.6 : 1, fontFamily: 'inherit',
   })
   const rowStyle: React.CSSProperties = {
     display: 'flex', justifyContent: 'space-between', gap: 14,
-    padding: '8px 0', fontSize: 13, borderBottom: '1px solid #f1f5f9',
+    padding: '8px 0', fontSize: 13, borderBottom: '1px solid var(--sk-surface-2)',
   }
 
   return (
@@ -387,7 +387,7 @@ export default function AdminUserDetailPage() {
       {loading ? (
         <div style={{ padding: 48, textAlign: 'center', color: 'var(--sk-muted)' }}>{t('loading')}</div>
       ) : error || !u ? (
-        <div role="alert" style={{ padding: '28px 20px', textAlign: 'center', background: '#FEE2E2', color: '#991B1B', borderRadius: 12, fontSize: 14 }}>
+        <div role="alert" style={{ padding: '28px 20px', textAlign: 'center', background: 'var(--sk-red-soft)', color: 'var(--sk-red)', borderRadius: 12, fontSize: 14 }}>
           {error ?? tErr('generic')}
         </div>
       ) : (
@@ -397,8 +397,8 @@ export default function AdminUserDetailPage() {
               role="status"
               style={{
                 marginBottom: 14, padding: '12px 16px', borderRadius: 10, fontSize: 13,
-                background: toast.kind === 'error' ? '#FEE2E2' : '#DCFCE7',
-                color: toast.kind === 'error' ? '#991B1B' : '#166534',
+                background: toast.kind === 'error' ? 'var(--sk-red-soft)' : 'var(--sk-success-soft)',
+                color: toast.kind === 'error' ? 'var(--sk-red)' : 'var(--sk-success)',
               }}
             >
               {toast.msg}
@@ -407,12 +407,12 @@ export default function AdminUserDetailPage() {
 
           {/* Cycle de vie suppression : l'admin doit le savoir AVANT d'agir. */}
           {u.anonymized_at && (
-            <div role="note" style={{ marginBottom: 14, padding: '12px 16px', borderRadius: 10, background: '#f1f5f9', color: '#475569', fontSize: 13 }}>
+            <div role="note" style={{ marginBottom: 14, padding: '12px 16px', borderRadius: 10, background: 'var(--sk-surface-2)', color: 'var(--sk-muted)', fontSize: 13 }}>
               {t('anonymized_notice')}
             </div>
           )}
           {!u.anonymized_at && u.deletion_scheduled_at && (
-            <div role="note" style={{ marginBottom: 14, padding: '12px 16px', borderRadius: 10, background: '#FEF9C3', color: '#713F12', fontSize: 13 }}>
+            <div role="note" style={{ marginBottom: 14, padding: '12px 16px', borderRadius: 10, background: 'var(--sk-amber-soft)', color: 'var(--sk-amber)', fontSize: 13 }}>
               {t('deletion_scheduled_notice', { date: dateFmt.format(new Date(u.deletion_scheduled_at)) })}
             </div>
           )}
@@ -428,7 +428,7 @@ export default function AdminUserDetailPage() {
               role="note"
               style={{
                 marginBottom: 14, padding: '12px 16px', borderRadius: 10,
-                background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#1E3A8A',
+                background: 'var(--sk-accent-soft)', border: '1px solid var(--sk-accent-soft)', color: 'var(--sk-accent)',
                 fontSize: 13, lineHeight: 1.6,
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 gap: 14, flexWrap: 'wrap',
@@ -465,7 +465,7 @@ export default function AdminUserDetailPage() {
                 role="note"
                 style={{
                   margin: 0, maxWidth: 380, padding: '11px 14px', borderRadius: 10,
-                  background: '#f1f5f9', color: '#475569', fontSize: 13, lineHeight: 1.55,
+                  background: 'var(--sk-surface-2)', color: 'var(--sk-muted)', fontSize: 13, lineHeight: 1.55,
                 }}
               >
                 {blockedReason}
@@ -502,7 +502,7 @@ export default function AdminUserDetailPage() {
               <div style={rowStyle}><span>{t('field_locale')}</span><strong>{u.locale ?? '—'}</strong></div>
               <div style={{ ...rowStyle, borderBottom: 'none' }}><span>{t('field_created')}</span><strong>{dateFmt.format(new Date(u.created_at))}</strong></div>
               {detail?.profile && (
-                <Link href={`/admin/experts/${detail.profile.id}`} style={{ display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 600, color: 'var(--sk-accent, #0ea5e9)', textDecoration: 'none' }}>
+                <Link href={`/admin/experts/${detail.profile.id}`} style={{ display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 600, color: 'var(--sk-accent, var(--sk-accent))', textDecoration: 'none' }}>
                   {t('link_expert_profile')}
                 </Link>
               )}
@@ -533,7 +533,7 @@ export default function AdminUserDetailPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>{org.company_name ?? '—'}</div>
-                  <Link href={`/admin/organisations/${org.id}`} style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--sk-accent, #0ea5e9)', textDecoration: 'none' }}>
+                  <Link href={`/admin/organisations/${org.id}`} style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--sk-accent, var(--sk-accent))', textDecoration: 'none' }}>
                     {t('link_organization')}
                   </Link>
                 </div>
@@ -565,7 +565,7 @@ export default function AdminUserDetailPage() {
             ) : (
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {timeline.map((e, i) => (
-                  <li key={`${e.at}-${i}`} style={{ display: 'flex', gap: 12, padding: '9px 0', borderBottom: i === timeline.length - 1 ? 'none' : '1px solid #f1f5f9', fontSize: 12.5, flexWrap: 'wrap' }}>
+                  <li key={`${e.at}-${i}`} style={{ display: 'flex', gap: 12, padding: '9px 0', borderBottom: i === timeline.length - 1 ? 'none' : '1px solid var(--sk-surface-2)', fontSize: 12.5, flexWrap: 'wrap' }}>
                     <span style={{ color: 'var(--sk-muted)', minWidth: 150 }}>{dateTimeFmt.format(new Date(e.at))}</span>
                     <span style={{ fontWeight: 600, flex: '1 1 220px' }}>
                       {e.kind === 'login'
@@ -576,7 +576,7 @@ export default function AdminUserDetailPage() {
                             ? t('session_revoked_by_self')
                             : t('session_revoked_by_admin')}
                     </span>
-                    <span style={{ color: 'var(--sk-faint)' }}>{e.ip_address ?? '—'}</span>
+                    <span style={{ color: 'var(--sk-muted)' }}>{e.ip_address ?? '—'}</span>
                   </li>
                 ))}
               </ul>
@@ -592,15 +592,15 @@ export default function AdminUserDetailPage() {
             style={{
               ...card,
               marginTop: 14,
-              borderColor: '#FCA5A5',
-              background: '#FFF7F7',
+              borderColor: 'var(--sk-red-soft)',
+              background: 'var(--sk-red-soft)',
             }}
             aria-label={t('section_danger')}
           >
-            <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#991B1B', margin: '0 0 8px' }}>
+            <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-red)', margin: '0 0 8px' }}>
               {t('section_danger')}
             </h2>
-            <p style={{ fontSize: 13, color: '#7F1D1D', lineHeight: 1.6, margin: '0 0 12px' }}>
+            <p style={{ fontSize: 13, color: 'var(--sk-red)', lineHeight: 1.6, margin: '0 0 12px' }}>
               {t('purge_section_body')}
             </p>
             {purgeBlockedReason ? (
@@ -608,8 +608,8 @@ export default function AdminUserDetailPage() {
                 role="note"
                 style={{
                   margin: 0, padding: '11px 14px', borderRadius: 10,
-                  background: '#fff', border: '1px solid #FECACA',
-                  color: '#7F1D1D', fontSize: 13, lineHeight: 1.55,
+                  background: 'var(--sk-surface)', border: '1px solid var(--sk-red-soft)',
+                  color: 'var(--sk-red)', fontSize: 13, lineHeight: 1.55,
                 }}
               >
                 {purgeBlockedReason}
@@ -637,14 +637,14 @@ export default function AdminUserDetailPage() {
               aria-modal="true"
               style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 60 }}
             >
-              <div style={{ background: '#fff', borderRadius: 14, padding: '22px 24px', maxWidth: 560, width: '100%' }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 10px', color: '#991B1B' }}>
+              <div style={{ background: 'var(--sk-surface)', borderRadius: 14, padding: '22px 24px', maxWidth: 560, width: '100%' }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 10px', color: 'var(--sk-red)' }}>
                   {t('confirm_purge_title')}
                 </h3>
-                <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6, margin: '0 0 12px' }}>
+                <p style={{ fontSize: 13.5, color: 'var(--sk-muted)', lineHeight: 1.6, margin: '0 0 12px' }}>
                   {t('confirm_purge_body', { name: fullName })}
                 </p>
-                <p style={{ fontSize: 13, color: '#7F1D1D', background: '#FEE2E2', borderRadius: 10, padding: '11px 14px', lineHeight: 1.6, margin: '0 0 14px' }}>
+                <p style={{ fontSize: 13, color: 'var(--sk-red)', background: 'var(--sk-red-soft)', borderRadius: 10, padding: '11px 14px', lineHeight: 1.6, margin: '0 0 14px' }}>
                   {t('confirm_purge_irreversible')}
                 </p>
 
@@ -656,23 +656,23 @@ export default function AdminUserDetailPage() {
                     risque : la purge sera refusée (503) tant que la
                     vérification n'aura pas abouti. */}
                 {purgeOrgLockoutUnknown && (
-                  <div role="alert" style={{ margin: '0 0 14px', padding: '12px 14px', borderRadius: 10, background: '#FEF3C7', border: '1px solid #FCD34D' }}>
-                    <p style={{ fontSize: 13, color: '#78350F', lineHeight: 1.6, margin: 0 }}>
+                  <div role="alert" style={{ margin: '0 0 14px', padding: '12px 14px', borderRadius: 10, background: 'var(--sk-amber-soft)', border: '1px solid var(--sk-amber-soft)' }}>
+                    <p style={{ fontSize: 13, color: 'var(--sk-amber)', lineHeight: 1.6, margin: 0 }}>
                       {t('confirm_purge_org_lockout_unknown')}
                     </p>
                   </div>
                 )}
 
                 {purgeOrgLockout.length > 0 && (
-                  <div role="alert" style={{ margin: '0 0 14px', padding: '12px 14px', borderRadius: 10, background: '#FEF9C3', border: '1px solid #FDE68A' }}>
-                    <p style={{ fontSize: 13, color: '#713F12', lineHeight: 1.6, margin: '0 0 8px' }}>
+                  <div role="alert" style={{ margin: '0 0 14px', padding: '12px 14px', borderRadius: 10, background: 'var(--sk-amber-soft)', border: '1px solid var(--sk-amber-soft)' }}>
+                    <p style={{ fontSize: 13, color: 'var(--sk-amber)', lineHeight: 1.6, margin: '0 0 8px' }}>
                       {t('confirm_purge_org_lockout', {
                         orgs: purgeOrgLockout
                           .map((o) => o.company_name ?? t('purge_org_unnamed'))
                           .join(', '),
                       })}
                     </p>
-                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#713F12', cursor: 'pointer' }}>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: 'var(--sk-amber)', cursor: 'pointer' }}>
                       <input
                         type="checkbox"
                         checked={purgeAck}
@@ -684,7 +684,7 @@ export default function AdminUserDetailPage() {
                   </div>
                 )}
 
-                <label style={{ display: 'block', fontSize: 13, color: '#475569', marginBottom: 6 }}>
+                <label style={{ display: 'block', fontSize: 13, color: 'var(--sk-muted)', marginBottom: 6 }}>
                   {t('confirm_purge_email_label', { email: u.email ?? '—' })}
                 </label>
                 <input
@@ -743,14 +743,14 @@ export default function AdminUserDetailPage() {
               aria-modal="true"
               style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 60 }}
             >
-              <div style={{ background: '#fff', borderRadius: 14, padding: '22px 24px', maxWidth: 520, width: '100%' }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 10px', color: '#0f172a' }}>
+              <div style={{ background: 'var(--sk-surface)', borderRadius: 14, padding: '22px 24px', maxWidth: 520, width: '100%' }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 10px', color: 'var(--sk-text)' }}>
                   {confirming.kind === 'role' ? t('confirm_role_title')
                     : confirming.kind === 'revoke' ? t('confirm_revoke_title')
                       : confirming.kind === 'suspend' ? t('confirm_suspend_title')
                         : t('confirm_reactivate_title')}
                 </h3>
-                <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6, margin: '0 0 12px' }}>
+                <p style={{ fontSize: 13.5, color: 'var(--sk-muted)', lineHeight: 1.6, margin: '0 0 12px' }}>
                   {confirming.kind === 'role'
                     ? t('confirm_role_body', {
                         name: fullName,
@@ -764,7 +764,7 @@ export default function AdminUserDetailPage() {
                 </p>
                 {/* Anti-lock-out : on DIT ce qui arrive à l'organisation. */}
                 {confirming.kind === 'role' && confirming.force && (
-                  <p role="alert" style={{ fontSize: 13, color: '#991B1B', background: '#FEE2E2', borderRadius: 10, padding: '11px 14px', lineHeight: 1.6, margin: '0 0 12px' }}>
+                  <p role="alert" style={{ fontSize: 13, color: 'var(--sk-red)', background: 'var(--sk-red-soft)', borderRadius: 10, padding: '11px 14px', lineHeight: 1.6, margin: '0 0 12px' }}>
                     {t('confirm_role_last_admin_warning', { org: org?.company_name ?? '—' })}
                   </p>
                 )}

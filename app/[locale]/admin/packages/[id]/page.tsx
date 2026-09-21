@@ -321,7 +321,7 @@ export default function AdminPackageEditPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 14 }}>{t('loading')}</div>
+    return <div style={{ padding: 40, textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14 }}>{t('loading')}</div>
   }
 
   if (error === 'not_found') {
@@ -337,7 +337,7 @@ export default function AdminPackageEditPage() {
   if (error) {
     return (
       <div>
-        <div role="alert" style={{ padding: 16, background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13, borderRadius: 10 }}>
+        <div role="alert" style={{ padding: 16, background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 13, borderRadius: 10 }}>
           {error}
         </div>
       </div>
@@ -372,7 +372,7 @@ export default function AdminPackageEditPage() {
           {targetRoleLabel}
         </span>
         {pkg.is_default && (
-          <span style={{ fontSize: 11, padding: '2px 8px', background: '#DBEAFE', color: '#1e40af', borderRadius: 10 }}>
+          <span style={{ fontSize: 11, padding: '2px 8px', background: 'var(--sk-accent-soft)', color: 'var(--sk-accent)', borderRadius: 10 }}>
             {t('packages.default_badge')}
           </span>
         )}
@@ -383,7 +383,7 @@ export default function AdminPackageEditPage() {
       {defaultRefusedOnCreate && (
         <div
           role="alert"
-          style={{ padding: '10px 14px', background: '#FEF3C7', border: '1px solid #fde68a', color: '#92400e', fontSize: 13, borderRadius: 10, marginBottom: 16 }}
+          style={{ padding: '10px 14px', background: 'var(--sk-amber-soft)', border: '1px solid var(--sk-amber-soft)', color: 'var(--sk-amber)', fontSize: 13, borderRadius: 10, marginBottom: 16 }}
         >
           {t('packages.created_default_refused', { targets: targetRoleLabel })}
         </div>
@@ -406,12 +406,12 @@ export default function AdminPackageEditPage() {
             </p>
 
             {defaultError && (
-              <div role="alert" style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
+              <div role="alert" style={{ padding: '8px 12px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
                 {defaultError}
               </div>
             )}
             {defaultDone && (
-              <div style={{ padding: '8px 12px', background: '#DCFCE7', border: '1px solid #bbf7d0', color: '#166534', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
+              <div style={{ padding: '8px 12px', background: 'var(--sk-success-soft)', border: '1px solid var(--sk-success-soft)', color: 'var(--sk-success)', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
                 {t('packages.default_set')}
               </div>
             )}
@@ -419,7 +419,7 @@ export default function AdminPackageEditPage() {
             {!pkg.active ? (
               // Un défaut doit être actif : on explique plutôt que d'exposer un
               // bouton que le serveur refuserait.
-              <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: 0 }}>
+              <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: 0 }}>
                 {t('packages.err_package_inactive')}
               </p>
             ) : confirmingDefault ? (
@@ -431,7 +431,7 @@ export default function AdminPackageEditPage() {
                   type="button"
                   onClick={() => void setAsDefault()}
                   disabled={settingDefault}
-                  style={{ padding: '9px 16px', background: '#00B9FF', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: settingDefault ? 'not-allowed' : 'pointer', opacity: settingDefault ? 0.6 : 1, fontFamily: 'inherit' }}
+                  style={{ padding: '9px 16px', background: 'var(--sk-accent)', color: 'var(--sk-surface)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: settingDefault ? 'not-allowed' : 'pointer', opacity: settingDefault ? 0.6 : 1, fontFamily: 'inherit' }}
                 >
                   {settingDefault ? t('loading') : t('packages.confirm_yes')}
                 </button>
@@ -448,7 +448,7 @@ export default function AdminPackageEditPage() {
               <button
                 type="button"
                 onClick={() => { setDefaultDone(false); setDefaultError(null); setConfirmingDefault(true) }}
-                style={{ padding: '9px 16px', background: 'transparent', color: '#00B9FF', border: '0.5px solid #00B9FF', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ padding: '9px 16px', background: 'transparent', color: 'var(--sk-accent)', border: '0.5px solid var(--sk-accent)', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
               >
                 {t('packages.action_set_default')}
               </button>
@@ -487,7 +487,7 @@ export default function AdminPackageEditPage() {
             >
               {pkg.slug}
             </div>
-            <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '6px 0 0' }}>
+            <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '6px 0 0' }}>
               {t('packages.slug_readonly_hint')}
             </p>
           </div>
@@ -509,7 +509,7 @@ export default function AdminPackageEditPage() {
                 >
                   {targetRoleLabel}
                 </div>
-                <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '6px 0 0' }}>
+                <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '6px 0 0' }}>
                   {t('packages.target_collaboration_locked_hint')}
                 </p>
               </>
@@ -526,7 +526,7 @@ export default function AdminPackageEditPage() {
                   <option value="cabinet">{t('packages.target_cabinet')}</option>
                   <option value="all">{t('packages.target_all')}</option>
                 </select>
-                <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '6px 0 0' }}>
+                <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '6px 0 0' }}>
                   {t('packages.target_editable_help')}
                 </p>
               </>
@@ -539,14 +539,14 @@ export default function AdminPackageEditPage() {
             <label htmlFor="pm" style={labelStyle}>{t('packages.field_price_monthly')}</label>
             <div style={{ position: 'relative' }}>
               <input id="pm" type="number" min={0} step={1} inputMode="decimal" value={priceMonthly} onChange={(e) => setPriceMonthly(e.target.value)} placeholder={t('packages.price_free')} style={{ ...inputStyle, paddingRight: 46 }} />
-              <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--sk-faint)', pointerEvents: 'none' }}>{pkg.currency}</span>
+              <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--sk-muted)', pointerEvents: 'none' }}>{pkg.currency}</span>
             </div>
           </div>
           <div>
             <label htmlFor="py" style={labelStyle}>{t('packages.field_price_yearly')}</label>
             <div style={{ position: 'relative' }}>
               <input id="py" type="number" min={0} step={1} inputMode="decimal" value={priceYearly} onChange={(e) => setPriceYearly(e.target.value)} placeholder={t('packages.price_free')} style={{ ...inputStyle, paddingRight: 46 }} />
-              <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--sk-faint)', pointerEvents: 'none' }}>{pkg.currency}</span>
+              <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--sk-muted)', pointerEvents: 'none' }}>{pkg.currency}</span>
             </div>
           </div>
         </div>
@@ -572,7 +572,7 @@ export default function AdminPackageEditPage() {
         {/* Décocher remplace la suppression : retire de la vente sans casser
             les organisations rattachées. L'offre PAR DÉFAUT fait exception —
             la désactiver priverait les inscriptions d'offre (refus serveur). */}
-        <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '6px 0 0 24px' }}>
+        <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '6px 0 0 24px' }}>
           {pkg.is_default ? t('packages.default_cannot_deactivate') : t('packages.active_help')}
         </p>
 
@@ -584,15 +584,15 @@ export default function AdminPackageEditPage() {
             style={{
               marginTop: 12,
               padding: '10px 14px',
-              background: '#FEF3C7',
-              border: '1px solid #fde68a',
-              color: '#92400e',
+              background: 'var(--sk-amber-soft)',
+              border: '1px solid var(--sk-amber-soft)',
+              color: 'var(--sk-amber)',
               fontSize: 12,
               borderRadius: 8,
             }}
           >
             {t('packages.deactivate_warning', { count: orgCount })}{' '}
-            <Link href="/admin/packages#migrate" style={{ color: '#92400e', fontWeight: 500 }}>
+            <Link href="/admin/packages#migrate" style={{ color: 'var(--sk-amber)', fontWeight: 500 }}>
               {t('packages.deactivate_warning_link')}
             </Link>
           </div>
@@ -602,7 +602,7 @@ export default function AdminPackageEditPage() {
       {/* Limites */}
       <section style={cardStyle}>
         <h2 style={sectionTitle}>{t('packages.section_limits')}</h2>
-        <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '0 0 14px' }}>{t('packages.limits_hint')}</p>
+        <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '0 0 14px' }}>{t('packages.limits_hint')}</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {features.map((f) => {
             const unlimited = isUnlimited(f.feature_code)
@@ -621,7 +621,7 @@ export default function AdminPackageEditPage() {
                   onChange={(e) => setNumeric(f.feature_code, e.target.value)}
                   disabled={unlimited}
                   placeholder={unlimited ? '∞' : '0'}
-                  style={{ ...inputStyle, background: unlimited ? 'var(--sk-surface-2)' : '#fff', color: unlimited ? 'var(--sk-faint)' : 'inherit' }}
+                  style={{ ...inputStyle, background: unlimited ? 'var(--sk-surface-2)' : 'var(--sk-surface)', color: unlimited ? 'var(--sk-muted)' : 'inherit' }}
                 />
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--sk-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                   <input type="checkbox" checked={unlimited} onChange={(e) => toggleUnlimited(f.feature_code, e.target.checked)} />
@@ -655,13 +655,13 @@ export default function AdminPackageEditPage() {
               disabled
               readOnly
               placeholder="—"
-              style={{ ...inputStyle, background: 'var(--sk-surface-2)', color: 'var(--sk-faint)' }}
+              style={{ ...inputStyle, background: 'var(--sk-surface-2)', color: 'var(--sk-muted)' }}
             />
-            <span style={{ fontSize: 12, color: 'var(--sk-faint)', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 12, color: 'var(--sk-muted)', whiteSpace: 'nowrap' }}>
               {t('packages.max_seats_badge')}
             </span>
           </div>
-          <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: 0, maxWidth: 640 }}>
+          <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: 0, maxWidth: 640 }}>
             {t('packages.max_seats_inactive')}
           </p>
         </div>
@@ -673,12 +673,12 @@ export default function AdminPackageEditPage() {
         <textarea id="reason" value={changeReason} onChange={(e) => setChangeReason(e.target.value)} placeholder={t('packages.change_reason_placeholder')} maxLength={200} rows={2} style={{ ...inputStyle, resize: 'vertical', marginBottom: 12 }} />
 
         {saveError && (
-          <div role="alert" style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
+          <div role="alert" style={{ padding: '8px 12px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
             {saveError}
           </div>
         )}
         {saved && (
-          <div style={{ padding: '8px 12px', background: '#DCFCE7', border: '1px solid #bbf7d0', color: '#166534', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
+          <div style={{ padding: '8px 12px', background: 'var(--sk-success-soft)', border: '1px solid var(--sk-success-soft)', color: 'var(--sk-success)', fontSize: 12, borderRadius: 8, marginBottom: 12 }}>
             {t('packages.saved')}
           </div>
         )}
@@ -690,7 +690,7 @@ export default function AdminPackageEditPage() {
               type="button"
               onClick={() => void save()}
               disabled={saving}
-              style={{ padding: '9px 16px', background: '#00B9FF', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1, fontFamily: 'inherit' }}
+              style={{ padding: '9px 16px', background: 'var(--sk-accent)', color: 'var(--sk-surface)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1, fontFamily: 'inherit' }}
             >
               {saving ? t('loading') : t('packages.confirm_yes')}
             </button>
@@ -707,7 +707,7 @@ export default function AdminPackageEditPage() {
           <button
             type="button"
             onClick={() => { setSaved(false); setSaveError(null); setConfirming(true) }}
-            style={{ padding: '10px 18px', background: '#00B9FF', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ padding: '10px 18px', background: 'var(--sk-accent)', color: 'var(--sk-surface)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
           >
             {t('packages.save')}
           </button>

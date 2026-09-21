@@ -210,7 +210,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           alignItems: 'center',
           justifyContent: 'center',
           fontFamily: 'Inter, system-ui, sans-serif',
-          color: '#64748b',
+          color: 'var(--sk-muted)',
           fontSize: 14,
         }}
       >
@@ -231,7 +231,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }}
       >
         <div style={{ textAlign: 'center', maxWidth: 360 }}>
-          <p style={{ fontSize: 14, color: '#b91c1c', marginBottom: 12 }}>
+          <p style={{ fontSize: 14, color: 'var(--sk-red)', marginBottom: 12 }}>
             {t('errors.generic')}
           </p>
           <button
@@ -239,8 +239,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             onClick={() => router.replace('/')}
             style={{
               padding: '10px 18px',
-              background: '#00B9FF',
-              color: '#fff',
+              background: 'var(--sk-accent)',
+              color: 'var(--sk-surface)',
               border: 'none',
               borderRadius: 10,
               fontSize: 13,
@@ -296,7 +296,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         style={{
           // MÊMES VALEURS QUE `DashboardSidebar` : 248 px, `--sk-bandeau`,
           // une bordure d'un pixel. Elle faisait 220 px et était peinte en
-          // `#fff` — un blanc écrit en toutes lettres, qui ne suivait donc
+          // `var(--sk-surface)` — un blanc écrit en toutes lettres, qui ne suivait donc
           // aucune palette d'écosystème (§D.12).
           width: 248,
           flexShrink: 0,
@@ -370,7 +370,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 fontWeight: 500,
                 textTransform: 'uppercase',
                 letterSpacing: '.08em',
-                color: 'var(--sk-faint)',
+                color: 'var(--sk-muted)',
                 padding: '14px 12px 6px',
               }}
             >

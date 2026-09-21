@@ -73,13 +73,13 @@ const GRID = 'minmax(220px, 2.2fr) 130px 120px minmax(120px, 1fr) minmax(140px, 
 function statusStyle(status: string | null): { bg: string; fg: string; dot: string } {
   switch (status) {
     case 'active':
-      return { bg: '#DCFCE7', fg: '#166534', dot: '#16A34A' }
+      return { bg: 'var(--sk-success-soft)', fg: 'var(--sk-success)', dot: 'var(--sk-success)' }
     case 'suspended':
-      return { bg: '#FEE2E2', fg: '#991B1B', dot: '#DC2626' }
+      return { bg: 'var(--sk-red-soft)', fg: 'var(--sk-red)', dot: 'var(--sk-red)' }
     case 'in_review':
-      return { bg: '#FEF9C3', fg: '#854D0E', dot: '#CA8A04' }
+      return { bg: 'var(--sk-amber-soft)', fg: 'var(--sk-amber)', dot: 'var(--sk-amber)' }
     default:
-      return { bg: '#f1f5f9', fg: '#475569', dot: '#94a3b8' }
+      return { bg: 'var(--sk-surface-2)', fg: 'var(--sk-muted)', dot: 'var(--sk-muted)' }
   }
 }
 
@@ -279,8 +279,8 @@ export default function AdminUsersListPage() {
           role="status"
           style={{
             marginBottom: 14, padding: '12px 16px', borderRadius: 10, fontSize: 13, lineHeight: 1.55,
-            background: toast.kind === 'error' ? '#FEE2E2' : toast.kind === 'warn' ? '#FEF9C3' : '#DCFCE7',
-            color: toast.kind === 'error' ? '#991B1B' : toast.kind === 'warn' ? '#713F12' : '#166534',
+            background: toast.kind === 'error' ? 'var(--sk-red-soft)' : toast.kind === 'warn' ? 'var(--sk-amber-soft)' : 'var(--sk-success-soft)',
+            color: toast.kind === 'error' ? 'var(--sk-red)' : toast.kind === 'warn' ? 'var(--sk-amber)' : 'var(--sk-success)',
           }}
         >
           {toast.msg}
@@ -303,7 +303,7 @@ export default function AdminUsersListPage() {
           onClick={() => { setToast(null); setCreateOpen(true) }}
           style={{
             padding: '9px 15px', borderRadius: 9, border: 'none',
-            background: 'var(--sk-text)', color: '#fff',
+            background: 'var(--sk-text)', color: 'var(--sk-surface)',
             fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
           }}
         >
@@ -367,7 +367,7 @@ export default function AdminUsersListPage() {
       </div>
 
       {error ? (
-        <div role="alert" style={{ padding: '28px 20px', textAlign: 'center', background: '#FEE2E2', color: '#991B1B', borderRadius: 12, fontSize: 14 }}>
+        <div role="alert" style={{ padding: '28px 20px', textAlign: 'center', background: 'var(--sk-red-soft)', color: 'var(--sk-red)', borderRadius: 12, fontSize: 14 }}>
           {error}
         </div>
       ) : !loading && users.length === 0 ? (
@@ -482,15 +482,15 @@ export default function AdminUsersListPage() {
           aria-modal="true"
           style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 60 }}
         >
-          <div style={{ background: '#fff', borderRadius: 14, padding: '22px 24px', maxWidth: 520, width: '100%' }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 8px', color: '#0f172a' }}>
+          <div style={{ background: 'var(--sk-surface)', borderRadius: 14, padding: '22px 24px', maxWidth: 520, width: '100%' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 8px', color: 'var(--sk-text)' }}>
               {t('create_admin_title')}
             </h3>
-            <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.6, margin: '0 0 16px' }}>
+            <p style={{ fontSize: 13, color: 'var(--sk-muted)', lineHeight: 1.6, margin: '0 0 16px' }}>
               {t('create_admin_body')}
             </p>
 
-            <label style={{ display: 'block', fontSize: 12.5, color: '#475569', marginBottom: 5 }}>
+            <label style={{ display: 'block', fontSize: 12.5, color: 'var(--sk-muted)', marginBottom: 5 }}>
               {t('create_admin_email')}
             </label>
             <input
@@ -503,20 +503,20 @@ export default function AdminUsersListPage() {
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <div style={{ flex: '1 1 180px', minWidth: 0 }}>
-                <label style={{ display: 'block', fontSize: 12.5, color: '#475569', marginBottom: 5 }}>
+                <label style={{ display: 'block', fontSize: 12.5, color: 'var(--sk-muted)', marginBottom: 5 }}>
                   {t('create_admin_first_name')}
                 </label>
                 <input value={createFirstName} onChange={(e) => setCreateFirstName(e.target.value)} style={inputStyle} />
               </div>
               <div style={{ flex: '1 1 180px', minWidth: 0 }}>
-                <label style={{ display: 'block', fontSize: 12.5, color: '#475569', marginBottom: 5 }}>
+                <label style={{ display: 'block', fontSize: 12.5, color: 'var(--sk-muted)', marginBottom: 5 }}>
                   {t('create_admin_last_name')}
                 </label>
                 <input value={createLastName} onChange={(e) => setCreateLastName(e.target.value)} style={inputStyle} />
               </div>
             </div>
 
-            <label style={{ display: 'block', fontSize: 12.5, color: '#475569', marginBottom: 5 }}>
+            <label style={{ display: 'block', fontSize: 12.5, color: 'var(--sk-muted)', marginBottom: 5 }}>
               {t('create_admin_ecosystem')}
             </label>
             <select
@@ -531,7 +531,7 @@ export default function AdminUsersListPage() {
                 <option key={d.id} value={d.slug ?? ''}>{d.name ?? d.slug}</option>
               ))}
             </select>
-            <p style={{ fontSize: 12, color: '#64748b', lineHeight: 1.55, margin: '0 0 16px' }}>
+            <p style={{ fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.55, margin: '0 0 16px' }}>
               {t('create_admin_ecosystem_hint')}
             </p>
 
@@ -554,7 +554,7 @@ export default function AdminUsersListPage() {
                 onClick={() => { setCreateOpen(false); setReauthOpen(true) }}
                 style={{
                   padding: '9px 15px', borderRadius: 9, border: 'none',
-                  background: 'var(--sk-text)', color: '#fff',
+                  background: 'var(--sk-text)', color: 'var(--sk-surface)',
                   fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
                   cursor: createBusy ? 'not-allowed' : 'pointer',
                   opacity:

@@ -55,7 +55,7 @@ const inputStyle: React.CSSProperties = {
   fontSize: 14,
   border: '1px solid var(--sk-border)',
   borderRadius: 8,
-  background: '#fff',
+  background: 'var(--sk-surface)',
   color: 'inherit',
 }
 
@@ -141,7 +141,7 @@ export default function QuotasIaPage() {
 
       <section style={cardStyle}>
         <h2 style={sectionTitle}>{t('cv_title')}</h2>
-        <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '0 0 16px', maxWidth: 640 }}>
+        <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '0 0 16px', maxWidth: 640 }}>
           {t('cv_hint')}
         </p>
 
@@ -219,7 +219,7 @@ export default function QuotasIaPage() {
                 borderRadius: 8,
                 border: 'none',
                 background: 'var(--sk-accent)',
-                color: '#fff',
+                color: 'var(--sk-surface)',
                 cursor: enregistrement ? 'not-allowed' : 'pointer',
                 opacity: enregistrement ? 0.6 : 1,
               }}

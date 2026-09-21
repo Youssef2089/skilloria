@@ -19,7 +19,7 @@ import { useState } from 'react'
  *
  * Pourquoi pas `components/ui/Avatar` : sa palette de repli est celle du
  * produit (variables `--sk-*`), celle-ci est celle de l'administration
- * (#DBEAFE / #00B9FF). Le comportement est identique, l'apparence ne l'est pas,
+ * (var(--sk-accent-soft) / var(--sk-accent)). Le comportement est identique, l'apparence ne l'est pas,
  * et changer l'apparence de l'administration n'était pas l'objet du lot.
  */
 export default function LogoOrganisation({
@@ -77,8 +77,8 @@ export default function LogoOrganisation({
         width: taille,
         height: taille,
         borderRadius: '50%',
-        background: '#DBEAFE',
-        color: '#00B9FF',
+        background: 'var(--sk-accent-soft)',
+        color: 'var(--sk-accent)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

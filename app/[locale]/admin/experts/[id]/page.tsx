@@ -78,10 +78,10 @@ function pickRel<T>(value: T | T[] | null | undefined): T | null {
 }
 
 function scoreColor(score: number | null | undefined): string {
-  if (score == null) return '#94a3b8'
-  if (score < 5) return '#dc2626'
-  if (score < 9) return '#d97706'
-  return '#16a34a'
+  if (score == null) return 'var(--sk-muted)'
+  if (score < 5) return 'var(--sk-red)'
+  if (score < 9) return 'var(--sk-amber)'
+  return 'var(--sk-success)'
 }
 
 export default function AdminExpertDetailPage({ params }: Props) {
@@ -165,13 +165,13 @@ export default function AdminExpertDetailPage({ params }: Props) {
   }
 
   if (!data && !error) {
-    return <div style={{ padding: 48, textAlign: 'center', color: '#64748b', fontFamily: 'Inter, sans-serif' }}>{t('loading')}</div>
+    return <div style={{ padding: 48, textAlign: 'center', color: 'var(--sk-muted)', fontFamily: 'Inter, sans-serif' }}>{t('loading')}</div>
   }
   if (error && !data) {
     return (
       <div>
-        <p style={{ color: '#b91c1c', marginBottom: 18 }}>{error}</p>
-        <button type="button" onClick={() => router.push('/admin/experts')} style={{ padding: '10px 18px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{t('back')}</button>
+        <p style={{ color: 'var(--sk-red)', marginBottom: 18 }}>{error}</p>
+        <button type="button" onClick={() => router.push('/admin/experts')} style={{ padding: '10px 18px', background: 'var(--sk-text)', color: 'var(--sk-surface)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{t('back')}</button>
       </div>
     )
   }
@@ -186,32 +186,32 @@ export default function AdminExpertDetailPage({ params }: Props) {
   return (
     <div>
       {error && (
-        <div role="alert" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 14px', borderRadius: 10, fontSize: 12, marginBottom: 16 }}>{error}</div>
+        <div role="alert" style={{ background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', padding: '10px 14px', borderRadius: 10, fontSize: 12, marginBottom: 16 }}>{error}</div>
       )}
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18 }}>
-        <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#f1f5f9', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, flexShrink: 0 }}>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--sk-surface-2)', color: 'var(--sk-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, flexShrink: 0 }}>
           {((user?.first_name?.[0] ?? '') + (user?.last_name?.[0] ?? '')).toUpperCase() || '?'}
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>{fullName || user?.email || '—'}</h1>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 4 }}>{fullName || user?.email || '—'}</h1>
             {/* D1 : écosystème de l'expert (admin plateforme multi-écosystème). */}
             {e.ecosystem && (
-              <span title={tAdmin('ecosystem_label')} style={{ fontSize: 11, fontWeight: 700, color: '#3730a3', background: '#eef2ff', border: '0.5px solid #c7d2fe', borderRadius: 7, padding: '2px 9px', whiteSpace: 'nowrap' }}>
+              <span title={tAdmin('ecosystem_label')} style={{ fontSize: 11, fontWeight: 700, color: 'var(--sk-accent)', background: 'var(--sk-accent-soft)', border: '0.5px solid var(--sk-accent-soft)', borderRadius: 7, padding: '2px 9px', whiteSpace: 'nowrap' }}>
                 {e.ecosystem}
               </span>
             )}
           </div>
-          <div style={{ fontSize: 13, color: '#64748b' }}>
+          <div style={{ fontSize: 13, color: 'var(--sk-muted)' }}>
             {[e.title, e.seniority, e.years_experience != null ? `${e.years_experience} an(s)` : null].filter(Boolean).join(' · ')}
           </div>
         </div>
         <span style={{
           padding: '6px 14px', fontSize: 12, fontWeight: 700, borderRadius: 12,
-          background: status === 'approved' ? '#DCFCE7' : status === 'rejected' ? '#FEE2E2' : status === 'pending_admin_review' ? '#FEF9C3' : '#f1f5f9',
-          color: status === 'approved' ? '#166534' : status === 'rejected' ? '#991B1B' : status === 'pending_admin_review' ? '#854D0E' : '#475569',
+          background: status === 'approved' ? 'var(--sk-success-soft)' : status === 'rejected' ? 'var(--sk-red-soft)' : status === 'pending_admin_review' ? 'var(--sk-amber-soft)' : 'var(--sk-surface-2)',
+          color: status === 'approved' ? 'var(--sk-success)' : status === 'rejected' ? 'var(--sk-red)' : status === 'pending_admin_review' ? 'var(--sk-amber)' : 'var(--sk-muted)',
           textTransform: 'uppercase', letterSpacing: '.05em',
         }}>
           {t(`status_${status}` as 'status_pending_admin_review')}
@@ -220,64 +220,64 @@ export default function AdminExpertDetailPage({ params }: Props) {
 
       {/* Score IA + verdict */}
       {aiData && (
-        <section style={{ background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
+        <section style={{ background: 'var(--sk-surface)', border: '0.5px solid var(--sk-border)', borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#64748b' }}>{t('section_ai_verdict')}</h2>
+            <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-muted)' }}>{t('section_ai_verdict')}</h2>
             {e.verification_score != null && (
               <span style={{ padding: '4px 12px', background: `color-mix(in srgb, ${scoreColor(e.verification_score)} 10%, transparent)`, color: scoreColor(e.verification_score), fontSize: 13, fontWeight: 700, borderRadius: 12 }}>
                 {Math.round(e.verification_score)}/10
               </span>
             )}
           </div>
-          {aiData.notes && <p style={{ fontSize: 13, color: '#334155', lineHeight: 1.55, whiteSpace: 'pre-wrap', marginBottom: 10 }}>{aiData.notes}</p>}
+          {aiData.notes && <p style={{ fontSize: 13, color: 'var(--sk-text)', lineHeight: 1.55, whiteSpace: 'pre-wrap', marginBottom: 10 }}>{aiData.notes}</p>}
           {aiData.flags && aiData.flags.length > 0 && (
             <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600, marginBottom: 4 }}>{t('flags')}</div>
+              <div style={{ fontSize: 11, color: 'var(--sk-faint)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600, marginBottom: 4 }}>{t('flags')}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {aiData.flags.map((f) => (
-                  <span key={f} style={{ background: '#FEE2E2', color: '#991B1B', padding: '3px 9px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{f}</span>
+                  <span key={f} style={{ background: 'var(--sk-red-soft)', color: 'var(--sk-red)', padding: '3px 9px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{f}</span>
                 ))}
               </div>
             </div>
           )}
           {aiData.discrepancies && aiData.discrepancies.length > 0 && (
             <div>
-              <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600, marginBottom: 4 }}>{t('discrepancies')}</div>
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: '#475569', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 11, color: 'var(--sk-faint)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600, marginBottom: 4 }}>{t('discrepancies')}</div>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.6 }}>
                 {aiData.discrepancies.map((d, i) => <li key={i}>{d}</li>)}
               </ul>
             </div>
           )}
-          <div style={{ marginTop: 10, fontSize: 11, color: '#94a3b8' }}>
+          <div style={{ marginTop: 10, fontSize: 11, color: 'var(--sk-muted)' }}>
             {aiData.model_used ?? '—'} {aiData.web_search_used ? '· web_search ✓' : ''}
           </div>
         </section>
       )}
 
       {/* Identité + contact */}
-      <section style={{ background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
-        <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#64748b', marginBottom: 10 }}>{t('section_identity')}</h2>
+      <section style={{ background: 'var(--sk-surface)', border: '0.5px solid var(--sk-border)', borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
+        <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-muted)', marginBottom: 10 }}>{t('section_identity')}</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, fontSize: 13 }}>
-          <div><div style={{ color: '#94a3b8', fontSize: 11 }}>{t('email')}</div><div>{user?.email}</div></div>
-          <div><div style={{ color: '#94a3b8', fontSize: 11 }}>{t('phone')}</div><div>{user?.phone ?? '—'}</div></div>
-          <div><div style={{ color: '#94a3b8', fontSize: 11 }}>LinkedIn (profil)</div><div>{e.linkedin_url ? <a href={e.linkedin_url} target="_blank" rel="noreferrer">{e.linkedin_url}</a> : '—'}</div></div>
-          <div><div style={{ color: '#94a3b8', fontSize: 11 }}>CV</div><div>{e.cv_url ? <a href={e.cv_url} target="_blank" rel="noreferrer">↗ {t('download_cv')}</a> : '—'}</div></div>
+          <div><div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>{t('email')}</div><div>{user?.email}</div></div>
+          <div><div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>{t('phone')}</div><div>{user?.phone ?? '—'}</div></div>
+          <div><div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>LinkedIn (profil)</div><div>{e.linkedin_url ? <a href={e.linkedin_url} target="_blank" rel="noreferrer">{e.linkedin_url}</a> : '—'}</div></div>
+          <div><div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>CV</div><div>{e.cv_url ? <a href={e.cv_url} target="_blank" rel="noreferrer">↗ {t('download_cv')}</a> : '—'}</div></div>
         </div>
       </section>
 
       {/* Profil pro */}
-      <section style={{ background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
-        <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#64748b', marginBottom: 10 }}>{t('section_profile')}</h2>
-        <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.6, marginBottom: 10, whiteSpace: 'pre-wrap' }}>{e.summary ?? '—'}</div>
+      <section style={{ background: 'var(--sk-surface)', border: '0.5px solid var(--sk-border)', borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
+        <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-muted)', marginBottom: 10 }}>{t('section_profile')}</h2>
+        <div style={{ fontSize: 13, color: 'var(--sk-text)', lineHeight: 1.6, marginBottom: 10, whiteSpace: 'pre-wrap' }}>{e.summary ?? '—'}</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, fontSize: 13 }}>
-          <div><div style={{ color: '#94a3b8', fontSize: 11 }}>{t('branch')}</div><div>{(pickRel(e.branches) as { name: string } | null)?.name ?? '—'}</div></div>
-          <div><div style={{ color: '#94a3b8', fontSize: 11 }}>{t('speciality')}</div><div>{(pickRel(e.specialities) as { name: string } | null)?.name ?? (e.speciality_other ? t('speciality_other_prefix', { value: e.speciality_other }) : '—')}</div></div>
+          <div><div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>{t('branch')}</div><div>{(pickRel(e.branches) as { name: string } | null)?.name ?? '—'}</div></div>
+          <div><div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>{t('speciality')}</div><div>{(pickRel(e.specialities) as { name: string } | null)?.name ?? (e.speciality_other ? t('speciality_other_prefix', { value: e.speciality_other }) : '—')}</div></div>
         </div>
         {e.skills && e.skills.length > 0 && (
           <div style={{ marginTop: 12 }}>
-            <div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 6 }}>{t('skills')}</div>
+            <div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 6 }}>{t('skills')}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {e.skills.map((s) => <span key={s} style={{ background: '#f1f5f9', color: '#334155', padding: '3px 9px', borderRadius: 10, fontSize: 11, fontWeight: 500 }}>{s}</span>)}
+              {e.skills.map((s) => <span key={s} style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-text)', padding: '3px 9px', borderRadius: 10, fontSize: 11, fontWeight: 500 }}>{s}</span>)}
             </div>
           </div>
         )}
@@ -285,14 +285,14 @@ export default function AdminExpertDetailPage({ params }: Props) {
 
       {/* Expériences */}
       {experiences.length > 0 && (
-        <section style={{ background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
-          <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#64748b', marginBottom: 10 }}>{t('section_experiences')}</h2>
+        <section style={{ background: 'var(--sk-surface)', border: '0.5px solid var(--sk-border)', borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
+          <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-muted)', marginBottom: 10 }}>{t('section_experiences')}</h2>
           {troncature?.experiences.atteint && <BandeauTroncature texte={tPlafond('fiche_expert_liste_tronquee', { plafond: troncature.experiences.plafond })} />}
           {experiences.map((x, i) => (
-            <div key={i} style={{ paddingBottom: 12, marginBottom: 12, borderBottom: i === experiences.length - 1 ? 'none' : '1px dashed #e5e7eb' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{x.role ?? '—'} <span style={{ color: '#64748b', fontWeight: 400 }}>· {x.employer ?? '—'}</span></div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{x.sector ?? ''} · {x.start_date ?? '?'} → {x.is_current ? t('current') : x.end_date ?? '?'}</div>
-              {x.description && <p style={{ fontSize: 12, color: '#475569', marginTop: 6, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{x.description}</p>}
+            <div key={i} style={{ paddingBottom: 12, marginBottom: 12, borderBottom: i === experiences.length - 1 ? 'none' : '1px dashed var(--sk-border)' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--sk-text)' }}>{x.role ?? '—'} <span style={{ color: 'var(--sk-muted)', fontWeight: 400 }}>· {x.employer ?? '—'}</span></div>
+              <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 2 }}>{x.sector ?? ''} · {x.start_date ?? '?'} → {x.is_current ? t('current') : x.end_date ?? '?'}</div>
+              {x.description && <p style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 6, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{x.description}</p>}
             </div>
           ))}
         </section>
@@ -300,11 +300,11 @@ export default function AdminExpertDetailPage({ params }: Props) {
 
       {/* Formations */}
       {educations.length > 0 && (
-        <section style={{ background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
-          <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#64748b', marginBottom: 10 }}>{t('section_educations')}</h2>
+        <section style={{ background: 'var(--sk-surface)', border: '0.5px solid var(--sk-border)', borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
+          <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-muted)', marginBottom: 10 }}>{t('section_educations')}</h2>
           {troncature?.educations.atteint && <BandeauTroncature texte={tPlafond('fiche_expert_liste_tronquee', { plafond: troncature.educations.plafond })} />}
           {educations.map((x, i) => (
-            <div key={i} style={{ marginBottom: 8, fontSize: 13, color: '#334155' }}>
+            <div key={i} style={{ marginBottom: 8, fontSize: 13, color: 'var(--sk-text)' }}>
               <span style={{ fontWeight: 600 }}>{x.degree ?? '—'}</span> {x.field ? `· ${x.field}` : ''} — {x.school ?? '—'} ({x.start_year ?? '?'}-{x.end_year ?? '?'})
             </div>
           ))}
@@ -313,12 +313,12 @@ export default function AdminExpertDetailPage({ params }: Props) {
 
       {/* Langues */}
       {languages_structured.length > 0 && (
-        <section style={{ background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
-          <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#64748b', marginBottom: 10 }}>{t('section_languages')}</h2>
+        <section style={{ background: 'var(--sk-surface)', border: '0.5px solid var(--sk-border)', borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
+          <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-muted)', marginBottom: 10 }}>{t('section_languages')}</h2>
           {troncature?.languages.atteint && <BandeauTroncature texte={tPlafond('fiche_expert_liste_tronquee', { plafond: troncature.languages.plafond })} />}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {languages_structured.map((l, i) => (
-              <span key={i} style={{ background: '#f1f5f9', color: '#334155', padding: '4px 12px', borderRadius: 10, fontSize: 12, fontWeight: 500 }}>
+              <span key={i} style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-text)', padding: '4px 12px', borderRadius: 10, fontSize: 12, fontWeight: 500 }}>
                 {l.language} {l.level ? `(${l.level})` : ''}
               </span>
             ))}
@@ -328,11 +328,11 @@ export default function AdminExpertDetailPage({ params }: Props) {
 
       {/* Décision admin antérieure (si appliquée) */}
       {(status === 'approved' || status === 'rejected') && (
-        <section style={{ background: status === 'approved' ? '#DCFCE730' : '#FEE2E230', border: status === 'approved' ? '1px solid #86EFAC' : '1px solid #FECACA', borderRadius: 14, padding: '14px 18px', marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: status === 'approved' ? '#166534' : '#991B1B', marginBottom: 6 }}>
+        <section style={{ background: status === 'approved' ? 'color-mix(in srgb, var(--sk-success-soft) 19%, transparent)' : 'color-mix(in srgb, var(--sk-red-soft) 19%, transparent)', border: status === 'approved' ? '1px solid var(--sk-success-soft)' : '1px solid var(--sk-red-soft)', borderRadius: 14, padding: '14px 18px', marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: status === 'approved' ? 'var(--sk-success)' : 'var(--sk-red)', marginBottom: 6 }}>
             {status === 'approved' ? t('admin_approved_label') : t('admin_rejected_label')}
           </div>
-          {e.review_reason && <p style={{ fontSize: 13, color: '#334155', whiteSpace: 'pre-wrap', margin: 0 }}>{e.review_reason}</p>}
+          {e.review_reason && <p style={{ fontSize: 13, color: 'var(--sk-text)', whiteSpace: 'pre-wrap', margin: 0 }}>{e.review_reason}</p>}
         </section>
       )}
 
@@ -341,16 +341,16 @@ export default function AdminExpertDetailPage({ params }: Props) {
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
           {!showReject ? (
             <>
-              <button type="button" onClick={() => setShowReject(true)} disabled={busy !== null} style={{ padding: '10px 18px', background: 'transparent', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>{t('button_reject')}</button>
-              <button type="button" onClick={handleApprove} disabled={busy !== null} style={{ padding: '10px 22px', background: '#16A34A', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: busy === 'approve' ? 0.6 : 1 }}>{busy === 'approve' ? t('button_approving') : t('button_approve')}</button>
+              <button type="button" onClick={() => setShowReject(true)} disabled={busy !== null} style={{ padding: '10px 18px', background: 'transparent', color: 'var(--sk-muted)', border: '1px solid var(--sk-border)', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>{t('button_reject')}</button>
+              <button type="button" onClick={handleApprove} disabled={busy !== null} style={{ padding: '10px 22px', background: 'var(--sk-success)', color: 'var(--sk-surface)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: busy === 'approve' ? 0.6 : 1 }}>{busy === 'approve' ? t('button_approving') : t('button_approve')}</button>
             </>
           ) : (
-            <div style={{ flex: 1, background: '#FEF2F2', border: '1.5px solid #FECACA', borderRadius: 12, padding: '14px 16px' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#991B1B', marginBottom: 8 }}>{t('reject_title')}</div>
-              <textarea value={reason} onChange={(ev) => setReason(ev.target.value)} placeholder={t('reject_placeholder')} maxLength={2000} rows={4} style={{ width: '100%', padding: '8px 10px', fontSize: 13, border: '1px solid #FECACA', borderRadius: 8, outline: 'none', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box', marginBottom: 10 }} />
+            <div style={{ flex: 1, background: 'var(--sk-red-soft)', border: '1.5px solid var(--sk-red-soft)', borderRadius: 12, padding: '14px 16px' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sk-red)', marginBottom: 8 }}>{t('reject_title')}</div>
+              <textarea value={reason} onChange={(ev) => setReason(ev.target.value)} placeholder={t('reject_placeholder')} maxLength={2000} rows={4} style={{ width: '100%', padding: '8px 10px', fontSize: 13, border: '1px solid var(--sk-red-soft)', borderRadius: 8, outline: 'none', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box', marginBottom: 10 }} />
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => { setShowReject(false); setReason('') }} disabled={busy !== null} style={{ padding: '8px 14px', background: 'transparent', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>{tCommon('cancel')}</button>
-                <button type="button" onClick={handleReject} disabled={busy !== null} style={{ padding: '8px 14px', background: '#DC2626', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: busy === 'reject' ? 0.6 : 1 }}>{busy === 'reject' ? t('button_rejecting') : t('reject_confirm')}</button>
+                <button type="button" onClick={() => { setShowReject(false); setReason('') }} disabled={busy !== null} style={{ padding: '8px 14px', background: 'transparent', color: 'var(--sk-muted)', border: '1px solid var(--sk-border)', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>{tCommon('cancel')}</button>
+                <button type="button" onClick={handleReject} disabled={busy !== null} style={{ padding: '8px 14px', background: 'var(--sk-red)', color: 'var(--sk-surface)', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: busy === 'reject' ? 0.6 : 1 }}>{busy === 'reject' ? t('button_rejecting') : t('reject_confirm')}</button>
               </div>
             </div>
           )}

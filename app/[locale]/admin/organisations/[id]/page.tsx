@@ -102,18 +102,18 @@ const MOTIF_CLE_I18N: Record<MotifRevue['code'], string> = {
 }
 
 function scoreColor(score: number | null): string {
-  if (score == null) return 'var(--sk-faint)'
-  if (score < 5) return '#dc2626'
-  if (score < 9) return '#d97706'
-  return '#16a34a'
+  if (score == null) return 'var(--sk-muted)'
+  if (score < 5) return 'var(--sk-red)'
+  if (score < 9) return 'var(--sk-amber)'
+  return 'var(--sk-success)'
 }
 
 function statusBadge(
   status: string | null,
 ): { bg: string; color: string; dot: string } {
-  if (status === 'approved') return { bg: '#DCFCE7', color: '#166534', dot: '#16A34A' }
-  if (status === 'rejected') return { bg: '#FEE2E2', color: '#991b1b', dot: '#dc2626' }
-  return { bg: '#FEF9C3', color: '#713F12', dot: '#CA8A04' }
+  if (status === 'approved') return { bg: 'var(--sk-success-soft)', color: 'var(--sk-success)', dot: 'var(--sk-success)' }
+  if (status === 'rejected') return { bg: 'var(--sk-red-soft)', color: 'var(--sk-red)', dot: 'var(--sk-red)' }
+  return { bg: 'var(--sk-amber-soft)', color: 'var(--sk-amber)', dot: 'var(--sk-amber)' }
 }
 
 export default function AdminOrgDetailPage() {
@@ -215,7 +215,7 @@ export default function AdminOrgDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 14 }}>
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14 }}>
         {t('loading')}
       </div>
     )
@@ -226,7 +226,7 @@ export default function AdminOrgDetailPage() {
       <div>
         <Link
           href="/admin/organisations"
-          style={{ fontSize: 13, color: '#00B9FF', textDecoration: 'none', marginBottom: 24, display: 'inline-block' }}
+          style={{ fontSize: 13, color: 'var(--sk-accent)', textDecoration: 'none', marginBottom: 24, display: 'inline-block' }}
         >
           {t('detail.back')}
         </Link>
@@ -255,7 +255,7 @@ export default function AdminOrgDetailPage() {
       <div>
         <Link
           href="/admin/organisations"
-          style={{ fontSize: 13, color: '#00B9FF', textDecoration: 'none', marginBottom: 24, display: 'inline-block' }}
+          style={{ fontSize: 13, color: 'var(--sk-accent)', textDecoration: 'none', marginBottom: 24, display: 'inline-block' }}
         >
           {t('detail.back')}
         </Link>
@@ -263,9 +263,9 @@ export default function AdminOrgDetailPage() {
           role="alert"
           style={{
             padding: 16,
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            color: '#b91c1c',
+            background: 'var(--sk-red-soft)',
+            border: '1px solid var(--sk-red-soft)',
+            color: 'var(--sk-red)',
             fontSize: 13,
             borderRadius: 10,
           }}
@@ -299,7 +299,7 @@ export default function AdminOrgDetailPage() {
           {value
             ? isLink
               ? (
-                <a href={value} target="_blank" rel="noreferrer" style={{ color: '#00B9FF', textDecoration: 'underline' }}>
+                <a href={value} target="_blank" rel="noreferrer" style={{ color: 'var(--sk-accent)', textDecoration: 'underline' }}>
                   {value}
                 </a>
               )
@@ -552,7 +552,7 @@ export default function AdminOrgDetailPage() {
                   marginTop: 8,
                   fontSize: 11,
                   lineHeight: 1.5,
-                  color: 'var(--sk-faint)',
+                  color: 'var(--sk-muted)',
                 }}
               >
                 {t('detail.motif_revue_aide')}
@@ -568,15 +568,15 @@ export default function AdminOrgDetailPage() {
                 alignItems: 'flex-start',
                 padding: '10px 12px',
                 marginBottom: 12,
-                background: '#FEF9C3',
-                border: '1px solid #FDE047',
+                background: 'var(--sk-amber-soft)',
+                border: '1px solid var(--sk-amber-soft)',
                 borderRadius: 8,
                 fontSize: 12,
-                color: '#713F12',
+                color: 'var(--sk-amber)',
                 lineHeight: 1.5,
               }}
             >
-              <span aria-hidden style={{ flexShrink: 0, marginTop: 2, width: 6, height: 6, borderRadius: '50%', background: '#CA8A04' }} />
+              <span aria-hidden style={{ flexShrink: 0, marginTop: 2, width: 6, height: 6, borderRadius: '50%', background: 'var(--sk-amber)' }} />
               <span>
                 <strong style={{ fontWeight: 500 }}>{t('detail.sirene_unavailable_title')}</strong>
                 <br />
@@ -655,8 +655,8 @@ export default function AdminOrgDetailPage() {
                   fontSize: 13,
                   lineHeight: 1.6,
                   color: 'var(--sk-text)',
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
+                  background: 'var(--sk-red-soft)',
+                  border: '1px solid var(--sk-red-soft)',
                   padding: '10px 12px 10px 28px',
                   borderRadius: 8,
                   listStyle: 'disc',
@@ -691,9 +691,9 @@ export default function AdminOrgDetailPage() {
               role="alert"
               style={{
                 padding: '8px 12px',
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
-                color: '#b91c1c',
+                background: 'var(--sk-red-soft)',
+                border: '1px solid var(--sk-red-soft)',
+                color: 'var(--sk-red)',
                 fontSize: 12,
                 borderRadius: 8,
                 marginBottom: 12,
@@ -713,8 +713,8 @@ export default function AdminOrgDetailPage() {
                   alignItems: 'center',
                   gap: 8,
                   padding: '10px 18px',
-                  background: '#16a34a',
-                  color: '#fff',
+                  background: 'var(--sk-success)',
+                  color: 'var(--sk-surface)',
                   border: 'none',
                   borderRadius: 10,
                   fontSize: 13,
@@ -733,9 +733,9 @@ export default function AdminOrgDetailPage() {
                   alignItems: 'center',
                   gap: 8,
                   padding: '10px 18px',
-                  background: '#fff',
-                  color: '#dc2626',
-                  border: '1px solid #dc2626',
+                  background: 'var(--sk-surface)',
+                  color: 'var(--sk-red)',
+                  border: '1px solid var(--sk-red)',
                   borderRadius: 10,
                   fontSize: 13,
                   fontWeight: 500,
@@ -763,8 +763,8 @@ export default function AdminOrgDetailPage() {
                   disabled={submitting}
                   style={{
                     padding: '10px 18px',
-                    background: '#16a34a',
-                    color: '#fff',
+                    background: 'var(--sk-success)',
+                    color: 'var(--sk-surface)',
                     border: 'none',
                     borderRadius: 10,
                     fontSize: 13,
@@ -839,8 +839,8 @@ export default function AdminOrgDetailPage() {
                   disabled={submitting}
                   style={{
                     padding: '10px 18px',
-                    background: '#dc2626',
-                    color: '#fff',
+                    background: 'var(--sk-red)',
+                    color: 'var(--sk-surface)',
                     border: 'none',
                     borderRadius: 10,
                     fontSize: 13,
@@ -1027,7 +1027,7 @@ function OrgPackageSection({ orgId, orgType }: { orgId: string; orgType: string 
     return (
       <div style={cardStyle}>
         <h2 style={titleStyle}>{t('pilot.section_title')}</h2>
-        <div style={{ fontSize: 13, color: '#64748b' }}>{t('loading')}</div>
+        <div style={{ fontSize: 13, color: 'var(--sk-muted)' }}>{t('loading')}</div>
       </div>
     )
   }
@@ -1091,9 +1091,9 @@ function OrgPackageSection({ orgId, orgType }: { orgId: string; orgType: string 
                 borderRadius: 8,
                 fontSize: 12,
                 marginBottom: 12,
-                background: msg.kind === 'err' ? '#fef2f2' : '#DCFCE7',
-                border: `1px solid ${msg.kind === 'err' ? '#fecaca' : '#bbf7d0'}`,
-                color: msg.kind === 'err' ? '#b91c1c' : '#166534',
+                background: msg.kind === 'err' ? 'var(--sk-red-soft)' : 'var(--sk-success-soft)',
+                border: `1px solid ${msg.kind === 'err' ? 'var(--sk-red-soft)' : 'var(--sk-success-soft)'}`,
+                color: msg.kind === 'err' ? 'var(--sk-red)' : 'var(--sk-success)',
               }}
             >
               {msg.text}
@@ -1114,7 +1114,7 @@ function OrgPackageSection({ orgId, orgType }: { orgId: string; orgType: string 
                   id="assign_pkg"
                   value={selectedPkg}
                   onChange={(e) => setSelectedPkg(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', fontSize: 13, border: '0.5px solid var(--sk-border)', borderRadius: 8, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff' }}
+                  style={{ width: '100%', padding: '9px 12px', fontSize: 13, border: '0.5px solid var(--sk-border)', borderRadius: 8, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: 'var(--sk-surface)' }}
                 >
                   <option value="">—</option>
                   {assignable.map((p) => (
@@ -1135,7 +1135,7 @@ function OrgPackageSection({ orgId, orgType }: { orgId: string; orgType: string 
                   onChange={(e) => setValidUntil(e.target.value)}
                   style={{ width: '100%', padding: '9px 12px', fontSize: 13, border: '0.5px solid var(--sk-border)', borderRadius: 8, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
                 />
-                <div style={{ fontSize: 11, color: 'var(--sk-faint)', marginTop: 4 }}>{t('pilot.assign_valid_until_hint')}</div>
+                <div style={{ fontSize: 11, color: 'var(--sk-muted)', marginTop: 4 }}>{t('pilot.assign_valid_until_hint')}</div>
               </div>
             </div>
 
@@ -1146,8 +1146,8 @@ function OrgPackageSection({ orgId, orgType }: { orgId: string; orgType: string 
                 disabled={!selectedPkg}
                 style={{
                   padding: '10px 18px',
-                  background: selectedPkg ? '#00B9FF' : '#e5e7eb',
-                  color: selectedPkg ? '#fff' : '#94a3b8',
+                  background: selectedPkg ? 'var(--sk-accent)' : 'var(--sk-border)',
+                  color: selectedPkg ? 'var(--sk-surface)' : 'var(--sk-muted)',
                   border: 'none',
                   borderRadius: 10,
                   fontSize: 13,
@@ -1166,7 +1166,7 @@ function OrgPackageSection({ orgId, orgType }: { orgId: string; orgType: string 
                     type="button"
                     onClick={() => void assign()}
                     disabled={submitting}
-                    style={{ padding: '10px 18px', background: '#00B9FF', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.6 : 1, fontFamily: 'inherit' }}
+                    style={{ padding: '10px 18px', background: 'var(--sk-accent)', color: 'var(--sk-surface)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.6 : 1, fontFamily: 'inherit' }}
                   >
                     {submitting ? t('loading') : t('confirm_yes')}
                   </button>

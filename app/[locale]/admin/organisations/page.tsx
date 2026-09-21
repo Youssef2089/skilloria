@@ -55,10 +55,10 @@ function initialsOf(name: string | null | undefined): string {
 }
 
 function scoreColor(score: number | null | undefined): string {
-  if (score == null) return 'var(--sk-faint)'
-  if (score < 5) return '#dc2626'
-  if (score < 9) return '#d97706'
-  return '#16a34a'
+  if (score == null) return 'var(--sk-muted)'
+  if (score < 5) return 'var(--sk-red)'
+  if (score < 9) return 'var(--sk-amber)'
+  return 'var(--sk-success)'
 }
 
 export default function AdminOrgsListPage() {
@@ -147,10 +147,10 @@ export default function AdminOrgsListPage() {
   const showDecidedColumn = activeTab === 'approved' || activeTab === 'rejected'
 
   const tabs: Array<{ key: TabKey; label: string; count: number; dot: string }> = [
-    { key: 'pending', label: t('orgs.tab_pending'), count: counts.pending, dot: '#d97706' },
-    { key: 'approved', label: t('orgs.tab_approved'), count: counts.approved, dot: '#16a34a' },
-    { key: 'rejected', label: t('orgs.tab_rejected'), count: counts.rejected, dot: '#dc2626' },
-    { key: 'all', label: t('orgs.tab_all'), count: counts.all, dot: '#94a3b8' },
+    { key: 'pending', label: t('orgs.tab_pending'), count: counts.pending, dot: 'var(--sk-amber)' },
+    { key: 'approved', label: t('orgs.tab_approved'), count: counts.approved, dot: 'var(--sk-success)' },
+    { key: 'rejected', label: t('orgs.tab_rejected'), count: counts.rejected, dot: 'var(--sk-red)' },
+    { key: 'all', label: t('orgs.tab_all'), count: counts.all, dot: 'var(--sk-muted)' },
   ]
 
   const emptyKey =
@@ -195,7 +195,7 @@ export default function AdminOrgsListPage() {
           role="status"
           style={{
             marginBottom: 16, padding: '11px 15px', borderRadius: 10,
-            background: '#FEF9C3', border: '1px solid #FDE047', color: '#713F12',
+            background: 'var(--sk-amber-soft)', border: '1px solid var(--sk-amber-soft)', color: 'var(--sk-amber)',
             fontSize: 12.5, lineHeight: 1.55,
           }}
         >
@@ -230,7 +230,7 @@ export default function AdminOrgsListPage() {
                 padding: '8px 14px 10px',
                 background: 'transparent',
                 border: 'none',
-                borderBottom: active ? '2px solid #00B9FF' : '2px solid transparent',
+                borderBottom: active ? '2px solid var(--sk-accent)' : '2px solid transparent',
                 color: active
                   ? 'var(--sk-text)'
                   : 'var(--sk-muted)',
@@ -253,7 +253,7 @@ export default function AdminOrgsListPage() {
 
       {/* Contenu */}
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 14 }}>
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14 }}>
           {t('loading')}
         </div>
       ) : error ? (
@@ -261,9 +261,9 @@ export default function AdminOrgsListPage() {
           role="alert"
           style={{
             padding: 16,
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            color: '#b91c1c',
+            background: 'var(--sk-red-soft)',
+            border: '1px solid var(--sk-red-soft)',
+            color: 'var(--sk-red)',
             fontSize: 13,
             borderRadius: 10,
           }}
@@ -362,7 +362,7 @@ export default function AdminOrgsListPage() {
                   </span>
                   {/* D1 : écosystème de l'org (admin plateforme multi-écosystème). */}
                   {org.ecosystem && (
-                    <span title={t('ecosystem_label')} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: '#3730a3', background: '#eef2ff', border: '0.5px solid #c7d2fe', borderRadius: 6, padding: '1px 7px', whiteSpace: 'nowrap' }}>
+                    <span title={t('ecosystem_label')} style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: 'var(--sk-accent)', background: 'var(--sk-accent-soft)', border: '0.5px solid var(--sk-accent-soft)', borderRadius: 6, padding: '1px 7px', whiteSpace: 'nowrap' }}>
                       {org.ecosystem}
                     </span>
                   )}
@@ -390,12 +390,12 @@ export default function AdminOrgsListPage() {
                     {org.package?.name ?? '—'}
                   </span>
                   {org.package?.expired && (
-                    <span style={{ fontSize: 10, padding: '1px 6px', background: '#FEF3C7', color: '#92400e', borderRadius: 8, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    <span style={{ fontSize: 10, padding: '1px 6px', background: 'var(--sk-amber-soft)', color: 'var(--sk-amber)', borderRadius: 8, whiteSpace: 'nowrap', flexShrink: 0 }}>
                       {t('packages.org_package_expired')}
                     </span>
                   )}
                   {org.package?.fallback && !org.package.expired && (
-                    <span style={{ fontSize: 10, padding: '1px 6px', background: '#F1F5F9', color: '#64748b', borderRadius: 8, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    <span style={{ fontSize: 10, padding: '1px 6px', background: 'var(--sk-surface-2)', color: 'var(--sk-muted)', borderRadius: 8, whiteSpace: 'nowrap', flexShrink: 0 }}>
                       {t('packages.org_package_default')}
                     </span>
                   )}

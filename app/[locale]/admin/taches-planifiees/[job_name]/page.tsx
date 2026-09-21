@@ -176,7 +176,7 @@ export default function AdminScheduledTaskDetailPage() {
           et un seul (règle projet). */}
 
       {pendingMigration !== null && (
-        <div role="note" style={{ ...card, background: '#FEFCE8', borderColor: '#FDE68A', color: '#713F12', marginBottom: 14 }}>
+        <div role="note" style={{ ...card, background: 'var(--sk-amber-soft)', borderColor: 'var(--sk-amber-soft)', color: 'var(--sk-amber)', marginBottom: 14 }}>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>{t('migration_pending_title')}</div>
           <div style={{ fontSize: 13, lineHeight: 1.6 }}>
             {t('migration_pending_body', { migration: pendingMigration })}
@@ -185,14 +185,14 @@ export default function AdminScheduledTaskDetailPage() {
       )}
 
       {notFound && (
-        <div role="alert" style={{ ...card, background: '#FEE2E2', borderColor: '#FCA5A5', color: '#991B1B' }}>
+        <div role="alert" style={{ ...card, background: 'var(--sk-red-soft)', borderColor: 'var(--sk-red-soft)', color: 'var(--sk-red)' }}>
           <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 5 }}>{t('not_found_title')}</div>
           <div style={{ fontSize: 13, lineHeight: 1.6 }}>{t('not_found_body', { name: jobName })}</div>
         </div>
       )}
 
       {error && !notFound && (
-        <div role="alert" style={{ ...card, background: '#FEE2E2', borderColor: '#FCA5A5', color: '#991B1B' }}>
+        <div role="alert" style={{ ...card, background: 'var(--sk-red-soft)', borderColor: 'var(--sk-red-soft)', color: 'var(--sk-red)' }}>
           {error}
         </div>
       )}
@@ -209,7 +209,7 @@ export default function AdminScheduledTaskDetailPage() {
               </p>
             )}
             {job?.legal_basis_key && (
-              <p style={{ fontSize: 12.5, color: '#991B1B', margin: '6px 0 0', fontWeight: 600 }}>
+              <p style={{ fontSize: 12.5, color: 'var(--sk-red)', margin: '6px 0 0', fontWeight: 600 }}>
                 {t(job.legal_basis_key as 'title')}
               </p>
             )}
@@ -235,7 +235,7 @@ export default function AdminScheduledTaskDetailPage() {
                 {t('runs_count', { count: total })}
               </span>
             </div>
-            <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '0 0 12px', lineHeight: 1.55 }}>
+            <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '0 0 12px', lineHeight: 1.55 }}>
               {t('history_depth_notice')}
               <br />
               {t('history_retention_notice')}
@@ -267,7 +267,7 @@ export default function AdminScheduledTaskDetailPage() {
                   key={`${r.run_started_at}-${i}`}
                   style={{
                     display: 'flex', gap: 12, padding: '10px 0', flexWrap: 'wrap',
-                    borderBottom: i === runs.length - 1 ? 'none' : '1px solid #f1f5f9',
+                    borderBottom: i === runs.length - 1 ? 'none' : '1px solid var(--sk-surface-2)',
                     fontSize: 12.5,
                   }}
                 >
@@ -279,19 +279,19 @@ export default function AdminScheduledTaskDetailPage() {
                       secours serait le seul absent de l'historique. */}
                   <span style={{ minWidth: 150 }}>
                     {r.trigger_source === 'manual' ? (
-                      <span style={{ fontWeight: 600, color: '#5B21B6' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--sk-accent)' }}>
                         {r.triggered_by_email
                           ? t('run_manual_by', { who: r.triggered_by_email })
                           : t('run_manual')}
                       </span>
                     ) : (
-                      <span style={{ color: 'var(--sk-faint)' }}>{t('run_scheduled')}</span>
+                      <span style={{ color: 'var(--sk-muted)' }}>{t('run_scheduled')}</span>
                     )}
                   </span>
                   <span style={{ minWidth: 90, color: 'var(--sk-muted)' }}>
                     {duration(r.duration_ms)}
                   </span>
-                  <span style={{ minWidth: 100, fontWeight: 600, color: bad ? '#991B1B' : '#166534' }}>
+                  <span style={{ minWidth: 100, fontWeight: 600, color: bad ? 'var(--sk-red)' : 'var(--sk-success)' }}>
                     {r.status ?? '—'}
                   </span>
                   {/* Verdict HTTP servi UNIQUEMENT pour les tâches qui en produisent
@@ -299,7 +299,7 @@ export default function AdminScheduledTaskDetailPage() {
                       même sur un 401. Pour les tâches SQL pures, cette colonne
                       n'existe pas — l'afficher vide serait un faux signal. */}
                   {job?.writes_run_log && (
-                    <span style={{ minWidth: 110, color: httpKo ? '#991B1B' : 'var(--sk-muted)' }}>
+                    <span style={{ minWidth: 110, color: httpKo ? 'var(--sk-red)' : 'var(--sk-muted)' }}>
                       {r.http_status !== null
                         ? `${t('field_http')} ${r.http_status}`
                         : r.http_requested_at
@@ -308,7 +308,7 @@ export default function AdminScheduledTaskDetailPage() {
                       {r.http_timed_out ? ' · timeout' : ''}
                     </span>
                   )}
-                  <span style={{ flex: '1 1 240px', minWidth: 0, color: bad ? '#991B1B' : 'var(--sk-faint)', wordBreak: 'break-word' }}>
+                  <span style={{ flex: '1 1 240px', minWidth: 0, color: bad ? 'var(--sk-red)' : 'var(--sk-muted)', wordBreak: 'break-word' }}>
                     {/* Le detail s'efface a 90 jours ; le RESUME reste 5 ans.
                         Sans ce repli, une ligne au-dela de 90 jours paraitrait
                         vide alors que la preuve est juste a cote — une preuve

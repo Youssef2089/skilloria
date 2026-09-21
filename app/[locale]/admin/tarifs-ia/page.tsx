@@ -70,7 +70,7 @@ const inputStyle: React.CSSProperties = {
   fontSize: 14,
   border: '1px solid var(--sk-border)',
   borderRadius: 8,
-  background: '#fff',
+  background: 'var(--sk-surface)',
   color: 'inherit',
 }
 
@@ -286,14 +286,14 @@ export default function TarifsIaPage() {
                       style={{
                         fontSize: 12,
                         margin: '2px 0 0',
-                        color: 'var(--sk-faint)',
+                        color: 'var(--sk-muted)',
                         wordBreak: 'break-all',
                       }}
                     >
                       {ligne.model}
                     </p>
                   </div>
-                  <p style={{ fontSize: 12, margin: 0, color: 'var(--sk-faint)' }}>
+                  <p style={{ fontSize: 12, margin: 0, color: 'var(--sk-muted)' }}>
                     {jours === null
                       ? t('modified_unknown')
                       : jours === 0
@@ -380,7 +380,7 @@ export default function TarifsIaPage() {
                       borderRadius: 8,
                       border: 'none',
                       background: 'var(--sk-accent)',
-                      color: '#fff',
+                      color: 'var(--sk-surface)',
                       cursor: enCours === ligne.model || blocage !== null ? 'not-allowed' : 'pointer',
                       opacity: enCours === ligne.model || blocage !== null ? 0.6 : 1,
                     }}
@@ -390,7 +390,7 @@ export default function TarifsIaPage() {
                   {/* UN BOUTON GRISÉ DIT POURQUOI. Sans ce motif, on reste
                       devant un bouton mort sans savoir ce qu'on a mal fait. */}
                   {blocage && (
-                    <span style={{ fontSize: 12, color: 'var(--sk-faint)' }}>{blocage}</span>
+                    <span style={{ fontSize: 12, color: 'var(--sk-muted)' }}>{blocage}</span>
                   )}
                   {grille && (
                     <a

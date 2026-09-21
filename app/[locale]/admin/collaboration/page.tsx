@@ -246,7 +246,7 @@ export default function AdminCollaborationPage() {
     fontWeight: 500,
     textTransform: 'uppercase',
     letterSpacing: '.06em',
-    color: 'var(--sk-faint)',
+    color: 'var(--sk-muted)',
     padding: '14px 14px 10px',
     whiteSpace: 'nowrap',
   }
@@ -276,7 +276,7 @@ export default function AdminCollaborationPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 14 }}>
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14 }}>
         {t('loading')}
       </div>
     )
@@ -286,7 +286,7 @@ export default function AdminCollaborationPage() {
     return (
       <div
         role="alert"
-        style={{ padding: 16, background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13, borderRadius: 10 }}
+        style={{ padding: 16, background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 13, borderRadius: 10 }}
       >
         {error}
       </div>
@@ -322,7 +322,7 @@ export default function AdminCollaborationPage() {
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: .06em;
-            color: var(--sk-faint);
+            color: var(--sk-muted);
             flex: 0 0 auto;
           }
           .sk-collab-table td[data-label=""]::before { content: none; }
@@ -352,8 +352,8 @@ export default function AdminCollaborationPage() {
           href="/admin/packages/new?target=collaboration"
           style={{
             padding: '9px 16px',
-            background: '#00B9FF',
-            color: '#fff',
+            background: 'var(--sk-accent)',
+            color: 'var(--sk-surface)',
             borderRadius: 10,
             fontSize: 13,
             fontWeight: 500,
@@ -375,15 +375,15 @@ export default function AdminCollaborationPage() {
           style={{
             marginTop: 16,
             padding: '12px 16px',
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
+            background: 'var(--sk-red-soft)',
+            border: '1px solid var(--sk-red-soft)',
             borderRadius: 10,
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 500, color: '#b91c1c', marginBottom: 3 }}>
+          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--sk-red)', marginBottom: 3 }}>
             {t('collaboration.anomaly_title', { count: anomalies.length })}
           </div>
-          <div style={{ fontSize: 12.5, color: '#b91c1c', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 12.5, color: 'var(--sk-red)', lineHeight: 1.5 }}>
             {t('collaboration.anomaly_body')}
           </div>
         </div>
@@ -400,27 +400,27 @@ export default function AdminCollaborationPage() {
           style={{
             marginTop: 16,
             padding: '12px 16px',
-            background: '#fffbeb',
-            border: '1px solid #fde68a',
+            background: 'var(--sk-amber-soft)',
+            border: '1px solid var(--sk-amber-soft)',
             borderRadius: 10,
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 500, color: '#92400e', marginBottom: 3 }}>
+          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--sk-amber)', marginBottom: 3 }}>
             {t('collaboration.truncated_title', { shown: experts.length, total: truncation.total })}
           </div>
-          <div style={{ fontSize: 12.5, color: '#92400e', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 12.5, color: 'var(--sk-amber)', lineHeight: 1.5 }}>
             {t('collaboration.truncated_body')}
           </div>
         </div>
       )}
 
       {defaultDone && (
-        <div style={{ marginTop: 16, padding: '9px 14px', background: '#DCFCE7', border: '1px solid #bbf7d0', color: '#166534', fontSize: 13, borderRadius: 10 }}>
+        <div style={{ marginTop: 16, padding: '9px 14px', background: 'var(--sk-success-soft)', border: '1px solid var(--sk-success-soft)', color: 'var(--sk-success)', fontSize: 13, borderRadius: 10 }}>
           {defaultDone}
         </div>
       )}
       {defaultError && confirmingId === null && (
-        <div role="alert" style={{ marginTop: 16, padding: '9px 14px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13, borderRadius: 10 }}>
+        <div role="alert" style={{ marginTop: 16, padding: '9px 14px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 13, borderRadius: 10 }}>
           {defaultError}
         </div>
       )}
@@ -436,7 +436,7 @@ export default function AdminCollaborationPage() {
           <div style={{ marginBottom: 16, lineHeight: 1.6 }}>{t('collaboration.offers_empty_body')}</div>
           <Link
             href="/admin/packages/new?target=collaboration"
-            style={{ display: 'inline-block', padding: '9px 16px', background: '#00B9FF', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 500, textDecoration: 'none' }}
+            style={{ display: 'inline-block', padding: '9px 16px', background: 'var(--sk-accent)', color: 'var(--sk-surface)', borderRadius: 10, fontSize: 13, fontWeight: 500, textDecoration: 'none' }}
           >
             {t('collaboration.action_new_offer')}
           </Link>
@@ -463,7 +463,7 @@ export default function AdminCollaborationPage() {
                     <tr>
                       <td style={tdStyle} data-label={t('packages.col_offer')}>
                         <span style={{ display: 'block', fontWeight: 500 }}>{p.name}</span>
-                        <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-faint)', marginTop: 2 }}>
+                        <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-muted)', marginTop: 2 }}>
                           {p.slug}
                         </span>
                       </td>
@@ -472,11 +472,11 @@ export default function AdminCollaborationPage() {
                       </td>
                       <td style={tdStyle} data-label={t('packages.col_status')}>
                         <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
-                          <span style={badge(p.active ? '#DCFCE7' : '#F1F5F9', p.active ? '#166534' : '#64748b')}>
+                          <span style={badge(p.active ? 'var(--sk-success-soft)' : 'var(--sk-surface-2)', p.active ? 'var(--sk-success)' : 'var(--sk-muted)')}>
                             {p.active ? t('packages.active_yes') : t('packages.active_no')}
                           </span>
                           {p.is_default && (
-                            <span style={badge('#DBEAFE', '#1e40af')}>{t('packages.default_badge')}</span>
+                            <span style={badge('var(--sk-accent-soft)', 'var(--sk-accent)')}>{t('packages.default_badge')}</span>
                           )}
                         </span>
                       </td>
@@ -521,8 +521,8 @@ export default function AdminCollaborationPage() {
                               padding: '7px 14px',
                               fontSize: 12,
                               fontWeight: 500,
-                              color: '#00B9FF',
-                              border: '0.5px solid #00B9FF',
+                              color: 'var(--sk-accent)',
+                              border: '0.5px solid var(--sk-accent)',
                               borderRadius: 8,
                               textDecoration: 'none',
                             }}
@@ -552,7 +552,7 @@ export default function AdminCollaborationPage() {
                               type="button"
                               onClick={() => void setDefault(p)}
                               disabled={settingId === p.id}
-                              style={{ padding: '8px 14px', background: '#00B9FF', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 500, fontFamily: 'inherit', cursor: settingId === p.id ? 'not-allowed' : 'pointer', opacity: settingId === p.id ? 0.6 : 1 }}
+                              style={{ padding: '8px 14px', background: 'var(--sk-accent)', color: 'var(--sk-surface)', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 500, fontFamily: 'inherit', cursor: settingId === p.id ? 'not-allowed' : 'pointer', opacity: settingId === p.id ? 0.6 : 1 }}
                             >
                               {settingId === p.id ? t('loading') : t('packages.confirm_yes')}
                             </button>
@@ -566,7 +566,7 @@ export default function AdminCollaborationPage() {
                             </button>
                           </div>
                           {defaultError && (
-                            <div role="alert" style={{ marginTop: 10, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 12, borderRadius: 8 }}>
+                            <div role="alert" style={{ marginTop: 10, padding: '8px 12px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 12, borderRadius: 8 }}>
                               {defaultError}
                             </div>
                           )}
@@ -602,7 +602,7 @@ export default function AdminCollaborationPage() {
                 </option>
               ))}
             </select>
-            <span style={{ fontSize: 12, color: 'var(--sk-faint)' }}>
+            <span style={{ fontSize: 12, color: 'var(--sk-muted)' }}>
               {t('collaboration.experts_count', { count: visibleExperts.length })}
             </span>
           </div>
@@ -636,7 +636,7 @@ export default function AdminCollaborationPage() {
                   <td style={tdStyle} data-label={t('collaboration.col_expert')}>
                     <span style={{ display: 'block', fontWeight: 500 }}>{expertName(e)}</span>
                     {e.email && e.full_name && (
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-faint)', marginTop: 2 }}>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-muted)', marginTop: 2 }}>
                         {e.email}
                       </span>
                     )}
@@ -649,24 +649,24 @@ export default function AdminCollaborationPage() {
                   <td style={tdStyle} data-label={t('collaboration.col_effective_offer')}>
                     <span style={{ display: 'block' }}>{e.package?.name ?? '—'}</span>
                     {e.state === 'linked' && e.valid_until && (
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-faint)', marginTop: 2 }}>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-muted)', marginTop: 2 }}>
                         {t('collaboration.valid_until', { date: fmtDate(e.valid_until) })}
                       </span>
                     )}
                     {e.state === 'fallback' && (
-                      <span style={{ ...badge('#FEF3C7', '#92400e'), display: 'inline-block', marginTop: 4 }}>
+                      <span style={{ ...badge('var(--sk-amber-soft)', 'var(--sk-amber)'), display: 'inline-block', marginTop: 4 }}>
                         {e.expired_at
                           ? t('collaboration.state_expired', { date: fmtDate(e.expired_at) })
                           : t('collaboration.state_fallback')}
                       </span>
                     )}
                     {e.state === 'foreign' && (
-                      <span style={{ ...badge('#FEE2E2', '#b91c1c'), display: 'inline-block', marginTop: 4 }}>
+                      <span style={{ ...badge('var(--sk-red-soft)', 'var(--sk-red)'), display: 'inline-block', marginTop: 4 }}>
                         {t('collaboration.state_foreign')}
                       </span>
                     )}
                     {e.state === 'none' && (
-                      <span style={{ ...badge('#FEE2E2', '#b91c1c'), display: 'inline-block', marginTop: 4 }}>
+                      <span style={{ ...badge('var(--sk-red-soft)', 'var(--sk-red)'), display: 'inline-block', marginTop: 4 }}>
                         {t('collaboration.state_none')}
                       </span>
                     )}

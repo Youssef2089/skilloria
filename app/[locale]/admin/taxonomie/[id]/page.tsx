@@ -90,7 +90,7 @@ const sectionTitle: React.CSSProperties = {
   marginBottom: 12,
 }
 const btnPrimary: React.CSSProperties = {
-  padding: '9px 16px', background: '#00B9FF', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+  padding: '9px 16px', background: 'var(--sk-accent)', color: 'var(--sk-surface)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
 }
 const btnGhost: React.CSSProperties = {
   padding: '9px 16px', background: 'transparent', color: 'var(--sk-muted)', border: '0.5px solid var(--sk-border)', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
@@ -446,7 +446,7 @@ export default function AdminTaxonomieDetailPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 14 }}>{tAdmin('loading')}</div>
+    return <div style={{ padding: 40, textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14 }}>{tAdmin('loading')}</div>
   }
 
   if (error === 'not_found') {
@@ -461,7 +461,7 @@ export default function AdminTaxonomieDetailPage() {
 
   if (error) {
     return (
-      <div role="alert" style={{ padding: 16, background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13, borderRadius: 10 }}>
+      <div role="alert" style={{ padding: 16, background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 13, borderRadius: 10 }}>
         {error}
       </div>
     )
@@ -483,7 +483,7 @@ export default function AdminTaxonomieDetailPage() {
     !isNew && !usageInconnu && branchUsage === 0 && specialities.length === 0
 
   const langNote = (
-    <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '10px 0 0' }}>
+    <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '10px 0 0' }}>
       {t('lang_fallback_note')}
     </p>
   )
@@ -495,7 +495,7 @@ export default function AdminTaxonomieDetailPage() {
           {isNew ? t('new_title') : branch?.name}
         </h1>
         {!isNew && branch?.ecosystem && (
-          <span style={{ fontSize: 10.5, fontWeight: 700, color: '#3730a3', background: '#eef2ff', border: '0.5px solid #c7d2fe', borderRadius: 6, padding: '1px 7px', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--sk-accent)', background: 'var(--sk-accent-soft)', border: '0.5px solid var(--sk-accent-soft)', borderRadius: 6, padding: '1px 7px', whiteSpace: 'nowrap' }}>
             {branch.ecosystem}
           </span>
         )}
@@ -522,7 +522,7 @@ export default function AdminTaxonomieDetailPage() {
             <div style={{ ...inputStyle, background: 'var(--sk-surface-2)', color: 'var(--sk-muted)' }}>
               {branch?.ecosystem ?? '—'}
             </div>
-            <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '6px 0 0' }}>{t('ecosystem_locked_hint')}</p>
+            <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '6px 0 0' }}>{t('ecosystem_locked_hint')}</p>
           </div>
         )}
 
@@ -559,23 +559,23 @@ export default function AdminTaxonomieDetailPage() {
         </label>
 
         {willDeactivateBranch && usageInconnu && (
-          <div role="alert" style={{ marginTop: 12, padding: '10px 14px', background: '#FEF3C7', border: '1px solid #fde68a', color: '#92400e', fontSize: 12, borderRadius: 8 }}>
+          <div role="alert" style={{ marginTop: 12, padding: '10px 14px', background: 'var(--sk-amber-soft)', border: '1px solid var(--sk-amber-soft)', color: 'var(--sk-amber)', fontSize: 12, borderRadius: 8 }}>
             {t('usage_unavailable_warning')}
           </div>
         )}
         {willDeactivateBranch && !usageInconnu && branchUsage > 0 && (
-          <div role="alert" style={{ marginTop: 12, padding: '10px 14px', background: '#FEF3C7', border: '1px solid #fde68a', color: '#92400e', fontSize: 12, borderRadius: 8 }}>
+          <div role="alert" style={{ marginTop: 12, padding: '10px 14px', background: 'var(--sk-amber-soft)', border: '1px solid var(--sk-amber-soft)', color: 'var(--sk-amber)', fontSize: 12, borderRadius: 8 }}>
             {t('deactivate_branch_warning', { profiles: branch?.profiles ?? 0, publications: branch?.publications ?? 0 })}
           </div>
         )}
 
         {saveError && (
-          <div role="alert" style={{ marginTop: 12, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 12, borderRadius: 8 }}>
+          <div role="alert" style={{ marginTop: 12, padding: '8px 12px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 12, borderRadius: 8 }}>
             {saveError}
           </div>
         )}
         {saved && (
-          <div style={{ marginTop: 12, padding: '8px 12px', background: '#DCFCE7', border: '1px solid #bbf7d0', color: '#166534', fontSize: 12, borderRadius: 8 }}>
+          <div style={{ marginTop: 12, padding: '8px 12px', background: 'var(--sk-success-soft)', border: '1px solid var(--sk-success-soft)', color: 'var(--sk-success)', fontSize: 12, borderRadius: 8 }}>
             {t('saved')}
           </div>
         )}
@@ -615,7 +615,7 @@ export default function AdminTaxonomieDetailPage() {
           </div>
 
           {specError && (
-            <div role="alert" style={{ marginBottom: 12, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 12, borderRadius: 8 }}>
+            <div role="alert" style={{ marginBottom: 12, padding: '8px 12px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 12, borderRadius: 8 }}>
               {specError}
             </div>
           )}
@@ -636,7 +636,7 @@ export default function AdminTaxonomieDetailPage() {
           {orderedSpecs.length === 0 && editingSpecId !== 'new' ? (
             <div style={{ padding: '28px 16px', textAlign: 'center', border: '1px dashed var(--sk-border)', borderRadius: 10 }}>
               <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 4px' }}>{t('spec_empty_title')}</p>
-              <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: 0 }}>{t('spec_empty_hint')}</p>
+              <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: 0 }}>{t('spec_empty_hint')}</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -665,11 +665,11 @@ export default function AdminTaxonomieDetailPage() {
                             </span>
                             <span style={{ minWidth: 0 }}>
                               <span style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--sk-text)' }}>{s.name}</span>
-                              <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-faint)', marginTop: 2 }}>
+                              <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-muted)', marginTop: 2 }}>
                                 {s.slug} · {t('usage_summary', { profiles: s.profiles, publications: s.publications })}
                               </span>
                             </span>
-                            <span style={{ flexShrink: 0, fontSize: 11, padding: '2px 8px', borderRadius: 10, background: s.active ? '#DCFCE7' : '#F1F5F9', color: s.active ? '#166534' : '#64748b' }}>
+                            <span style={{ flexShrink: 0, fontSize: 11, padding: '2px 8px', borderRadius: 10, background: s.active ? 'var(--sk-success-soft)' : 'var(--sk-surface-2)', color: s.active ? 'var(--sk-success)' : 'var(--sk-muted)' }}>
                               {s.active ? t('status_active') : t('status_inactive')}
                             </span>
                           </span>
@@ -691,7 +691,7 @@ export default function AdminTaxonomieDetailPage() {
                               onClick={() => { setConfirmDeleteSpec(s.id); setConfirmDeactivateSpec(null); setSpecError(null) }}
                               disabled={usage > 0}
                               title={usage > 0 ? t('delete_disabled_hint') : undefined}
-                              style={{ ...linkBtn, color: usage > 0 ? 'var(--sk-faint)' : '#b91c1c', cursor: usage > 0 ? 'not-allowed' : 'pointer' }}
+                              style={{ ...linkBtn, color: usage > 0 ? 'var(--sk-muted)' : 'var(--sk-red)', cursor: usage > 0 ? 'not-allowed' : 'pointer' }}
                             >
                               {t('action_delete')}
                             </button>
@@ -699,8 +699,8 @@ export default function AdminTaxonomieDetailPage() {
                         </div>
 
                         {confirmDeactivateSpec === s.id && (
-                          <div style={{ marginTop: 10, padding: '10px 14px', background: '#FEF3C7', border: '1px solid #fde68a', borderRadius: 8 }}>
-                            <p style={{ fontSize: 12, color: '#92400e', margin: '0 0 10px' }}>
+                          <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--sk-amber-soft)', border: '1px solid var(--sk-amber-soft)', borderRadius: 8 }}>
+                            <p style={{ fontSize: 12, color: 'var(--sk-amber)', margin: '0 0 10px' }}>
                               {t('deactivate_spec_warning', { profiles: s.profiles, publications: s.publications })}
                             </p>
                             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -711,10 +711,10 @@ export default function AdminTaxonomieDetailPage() {
                         )}
 
                         {confirmDeleteSpec === s.id && (
-                          <div style={{ marginTop: 10, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8 }}>
-                            <p style={{ fontSize: 12, color: '#b91c1c', margin: '0 0 10px' }}>{t('confirm_delete_spec')}</p>
+                          <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', borderRadius: 8 }}>
+                            <p style={{ fontSize: 12, color: 'var(--sk-red)', margin: '0 0 10px' }}>{t('confirm_delete_spec')}</p>
                             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                              <button type="button" onClick={() => void deleteSpec(s)} disabled={specBusy} style={{ padding: '7px 13px', background: '#b91c1c', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>{t('confirm_yes')}</button>
+                              <button type="button" onClick={() => void deleteSpec(s)} disabled={specBusy} style={{ padding: '7px 13px', background: 'var(--sk-red)', color: 'var(--sk-surface)', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>{t('confirm_yes')}</button>
                               <button type="button" onClick={() => setConfirmDeleteSpec(null)} disabled={specBusy} style={{ ...btnGhost, padding: '7px 13px', fontSize: 12 }}>{t('confirm_cancel')}</button>
                             </div>
                           </div>
@@ -738,7 +738,7 @@ export default function AdminTaxonomieDetailPage() {
           </p>
 
           {deleteError && (
-            <div role="alert" style={{ marginBottom: 12, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 12, borderRadius: 8 }}>
+            <div role="alert" style={{ marginBottom: 12, padding: '8px 12px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 12, borderRadius: 8 }}>
               {deleteError}
             </div>
           )}
@@ -746,7 +746,7 @@ export default function AdminTaxonomieDetailPage() {
           {confirmDelete ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 13, color: 'var(--sk-text)' }}>{t('confirm_delete_branch')}</span>
-              <button type="button" onClick={() => void deleteBranch()} disabled={deleting} style={{ padding: '9px 16px', background: '#b91c1c', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1, fontFamily: 'inherit' }}>
+              <button type="button" onClick={() => void deleteBranch()} disabled={deleting} style={{ padding: '9px 16px', background: 'var(--sk-red)', color: 'var(--sk-surface)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1, fontFamily: 'inherit' }}>
                 {deleting ? tAdmin('loading') : t('confirm_yes')}
               </button>
               <button type="button" onClick={() => setConfirmDelete(false)} disabled={deleting} style={btnGhost}>{t('confirm_cancel')}</button>
@@ -757,7 +757,7 @@ export default function AdminTaxonomieDetailPage() {
               onClick={() => { setDeleteError(null); setConfirmDelete(true) }}
               disabled={!canDeleteBranch}
               title={!canDeleteBranch ? t('delete_disabled_hint') : undefined}
-              style={{ padding: '9px 16px', background: 'transparent', color: canDeleteBranch ? '#b91c1c' : 'var(--sk-faint)', border: `0.5px solid ${canDeleteBranch ? '#fecaca' : 'var(--sk-border)'}`, borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: canDeleteBranch ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}
+              style={{ padding: '9px 16px', background: 'transparent', color: canDeleteBranch ? 'var(--sk-red)' : 'var(--sk-border)', border: `0.5px solid ${canDeleteBranch ? 'var(--sk-red-soft)' : 'var(--sk-border)'}`, borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: canDeleteBranch ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}
             >
               {t('action_delete_branch')}
             </button>

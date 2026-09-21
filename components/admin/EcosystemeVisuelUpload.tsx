@@ -123,7 +123,7 @@ export default function EcosystemeVisuelUpload({
 
   return (
     <div>
-      <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sk-muted)', marginBottom: 6 }}>
         {t(`fields.${kind === 'logo' ? 'logo_url' : 'favicon_url'}`)}
       </div>
 
@@ -138,7 +138,7 @@ export default function EcosystemeVisuelUpload({
             // État vide délibéré si le fichier ne se charge pas — jamais
             // l'icône d'image cassée du navigateur.
             onError={() => setUrl(null)}
-            style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', border: '1px solid #e2e8f0' }}
+            style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--sk-border)' }}
           />
         ) : (
           <div
@@ -147,8 +147,8 @@ export default function EcosystemeVisuelUpload({
               width: 40,
               height: 40,
               borderRadius: 8,
-              border: '1px dashed #cbd5e1',
-              background: '#f8fafc',
+              border: '1px dashed var(--sk-border)',
+              background: 'var(--sk-surface-2)',
             }}
           />
         )}
@@ -168,14 +168,14 @@ export default function EcosystemeVisuelUpload({
         <label
           htmlFor={inputId}
           style={{
-            border: '1px solid #cbd5e1',
+            border: '1px solid var(--sk-border)',
             borderRadius: 8,
             padding: '7px 13px',
             fontSize: 12,
             fontWeight: 600,
             cursor: enCours ? 'default' : 'pointer',
             opacity: enCours ? 0.6 : 1,
-            background: '#fff',
+            background: 'var(--sk-surface)',
           }}
         >
           {enCours ? t('visuel.en_cours') : url ? t('visuel.remplacer') : t('visuel.deposer')}
@@ -187,14 +187,14 @@ export default function EcosystemeVisuelUpload({
             onClick={() => void retirer()}
             disabled={enCours}
             style={{
-              border: '1px solid #fecaca',
+              border: '1px solid var(--sk-red-soft)',
               borderRadius: 8,
               padding: '7px 13px',
               fontSize: 12,
               fontWeight: 600,
               cursor: enCours ? 'default' : 'pointer',
-              background: '#fff',
-              color: '#b91c1c',
+              background: 'var(--sk-surface)',
+              color: 'var(--sk-red)',
               fontFamily: 'inherit',
             }}
           >
@@ -203,7 +203,7 @@ export default function EcosystemeVisuelUpload({
         )}
       </div>
 
-      <p style={{ margin: '6px 0 0', fontSize: 11, color: '#64748b' }}>
+      <p style={{ margin: '6px 0 0', fontSize: 11, color: 'var(--sk-muted)' }}>
         {t('visuel.aide', { formats, taille: tailleMax })}
       </p>
 
@@ -213,9 +213,9 @@ export default function EcosystemeVisuelUpload({
           style={{
             margin: '6px 0 0',
             fontSize: 12,
-            color: '#b91c1c',
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
+            color: 'var(--sk-red)',
+            background: 'var(--sk-red-soft)',
+            border: '1px solid var(--sk-red-soft)',
             borderRadius: 6,
             padding: '6px 8px',
           }}

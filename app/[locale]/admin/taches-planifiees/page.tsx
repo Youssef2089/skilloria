@@ -82,10 +82,10 @@ const SEVERITY: Record<CronJob['health'], 'red' | 'amber' | 'grey' | 'green'> = 
 }
 
 const TONE: Record<'red' | 'amber' | 'grey' | 'green', { bg: string; border: string; fg: string; dot: string }> = {
-  red: { bg: '#FEF2F2', border: '#FCA5A5', fg: '#991B1B', dot: '#DC2626' },
-  amber: { bg: '#FEFCE8', border: '#FDE68A', fg: '#713F12', dot: '#CA8A04' },
-  grey: { bg: '#F8FAFC', border: '#E2E8F0', fg: '#475569', dot: '#94A3B8' },
-  green: { bg: 'var(--sk-surface)', border: '#E2E8F0', fg: '#166534', dot: '#16A34A' },
+  red: { bg: 'var(--sk-red-soft)', border: 'var(--sk-red-soft)', fg: 'var(--sk-red)', dot: 'var(--sk-red)' },
+  amber: { bg: 'var(--sk-amber-soft)', border: 'var(--sk-amber-soft)', fg: 'var(--sk-amber)', dot: 'var(--sk-amber)' },
+  grey: { bg: 'var(--sk-surface-2)', border: 'var(--sk-border)', fg: 'var(--sk-muted)', dot: 'var(--sk-border)' },
+  green: { bg: 'var(--sk-surface)', border: 'var(--sk-border)', fg: 'var(--sk-success)', dot: 'var(--sk-success)' },
 }
 
 export default function AdminScheduledTasksPage() {
@@ -300,9 +300,9 @@ export default function AdminScheduledTasksPage() {
   const actionBtn = (danger: boolean): React.CSSProperties => ({
     padding: '8px 13px',
     borderRadius: 9,
-    border: danger ? '1px solid #FCA5A5' : '1px solid var(--sk-border)',
-    background: danger ? '#FEE2E2' : 'var(--sk-surface)',
-    color: danger ? '#991B1B' : 'var(--sk-text)',
+    border: danger ? '1px solid var(--sk-red-soft)' : '1px solid var(--sk-border)',
+    background: danger ? 'var(--sk-red-soft)' : 'var(--sk-surface)',
+    color: danger ? 'var(--sk-red)' : 'var(--sk-text)',
     fontSize: 12.5, fontWeight: 600, fontFamily: 'inherit',
     cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1,
   })
@@ -320,8 +320,8 @@ export default function AdminScheduledTasksPage() {
           role="status"
           style={{
             marginBottom: 14, padding: '12px 16px', borderRadius: 10, fontSize: 13, lineHeight: 1.55,
-            background: toast.kind === 'error' ? '#FEE2E2' : '#DCFCE7',
-            color: toast.kind === 'error' ? '#991B1B' : '#166534',
+            background: toast.kind === 'error' ? 'var(--sk-red-soft)' : 'var(--sk-success-soft)',
+            color: toast.kind === 'error' ? 'var(--sk-red)' : 'var(--sk-success)',
           }}
         >
           {toast.msg}
@@ -335,14 +335,14 @@ export default function AdminScheduledTasksPage() {
         <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '4px 0 0', lineHeight: 1.55, maxWidth: 760 }}>
           {t('subtitle')}
         </p>
-        <p style={{ fontSize: 12.5, color: 'var(--sk-faint)', margin: '6px 0 0' }}>
+        <p style={{ fontSize: 12.5, color: 'var(--sk-muted)', margin: '6px 0 0' }}>
           {t('utc_hint')}
         </p>
       </header>
 
       {/* Migration non poussée : on DIT quoi faire. Jamais un écran mort. */}
       {pendingMigration !== null && (
-        <div role="note" style={{ ...card, background: '#FEFCE8', borderColor: '#FDE68A', color: '#713F12' }}>
+        <div role="note" style={{ ...card, background: 'var(--sk-amber-soft)', borderColor: 'var(--sk-amber-soft)', color: 'var(--sk-amber)' }}>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>{t('migration_pending_title')}</div>
           <div style={{ fontSize: 13, lineHeight: 1.6 }}>
             {t('migration_pending_body', { migration: pendingMigration })}
@@ -357,13 +357,13 @@ export default function AdminScheduledTasksPage() {
       )}
 
       {!loading && error && (
-        <div role="alert" style={{ ...card, background: '#FEE2E2', borderColor: '#FCA5A5', color: '#991B1B' }}>
+        <div role="alert" style={{ ...card, background: 'var(--sk-red-soft)', borderColor: 'var(--sk-red-soft)', color: 'var(--sk-red)' }}>
           {error}
         </div>
       )}
 
       {!loading && !error && pendingMigration === null && jobs?.length === 0 && (
-        <div style={{ ...card, background: '#F8FAFC', borderColor: '#E2E8F0' }}>
+        <div style={{ ...card, background: 'var(--sk-surface-2)', borderColor: 'var(--sk-border)' }}>
           <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 5 }}>
             {t('empty_title')}
           </div>
@@ -418,7 +418,7 @@ export default function AdminScheduledTasksPage() {
                   </p>
                 )}
                 {!j.catalogued && (
-                  <p style={{ fontSize: 13, color: '#713F12', margin: '0 0 6px', lineHeight: 1.55 }}>
+                  <p style={{ fontSize: 13, color: 'var(--sk-amber)', margin: '0 0 6px', lineHeight: 1.55 }}>
                     {t('uncatalogued_body')}
                   </p>
                 )}
@@ -430,7 +430,7 @@ export default function AdminScheduledTasksPage() {
                     <code style={{ fontSize: 12 }}>{j.schedule ?? '—'}</code>
                     {j.period_minutes === null && ` · ${t('schedule_advanced')}`}
                     {local && (
-                      <span style={{ color: 'var(--sk-faint)' }}> · {local}</span>
+                      <span style={{ color: 'var(--sk-muted)' }}> · {local}</span>
                     )}
                   </div>
                   <div>
@@ -457,7 +457,7 @@ export default function AdminScheduledTasksPage() {
                     </div>
                   )}
                   {j.depends_on.length > 0 && (
-                    <div style={{ color: 'var(--sk-faint)' }}>
+                    <div style={{ color: 'var(--sk-muted)' }}>
                       {t('chain_notice', {
                         minutes: j.min_gap_minutes,
                         jobs: j.depends_on
@@ -518,11 +518,11 @@ export default function AdminScheduledTasksPage() {
           aria-modal="true"
           style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 60 }}
         >
-          <div style={{ background: '#fff', borderRadius: 14, padding: '22px 24px', maxWidth: 560, width: '100%' }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 10px', color: toggling.next ? '#0f172a' : '#991B1B' }}>
+          <div style={{ background: 'var(--sk-surface)', borderRadius: 14, padding: '22px 24px', maxWidth: 560, width: '100%' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 10px', color: toggling.next ? 'var(--sk-text)' : 'var(--sk-red)' }}>
               {toggling.next ? t('confirm_enable_title') : t('confirm_disable_title')}
             </h3>
-            <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6, margin: '0 0 12px' }}>
+            <p style={{ fontSize: 13.5, color: 'var(--sk-muted)', lineHeight: 1.6, margin: '0 0 12px' }}>
               {toggling.next
                 ? t('confirm_enable_body', { name: labelOf(toggling.job) })
                 : t('confirm_disable_body', { name: labelOf(toggling.job) })}
@@ -530,14 +530,14 @@ export default function AdminScheduledTasksPage() {
 
             {/* L'obligation est NOMMÉE, jamais résumée en « tâche critique ». */}
             {toggling.job.criticality === 'legal' && toggling.job.legal_basis_key && (
-              <p role="alert" style={{ fontSize: 13, color: '#991B1B', background: '#FEE2E2', borderRadius: 10, padding: '11px 14px', lineHeight: 1.6, margin: '0 0 14px' }}>
+              <p role="alert" style={{ fontSize: 13, color: 'var(--sk-red)', background: 'var(--sk-red-soft)', borderRadius: 10, padding: '11px 14px', lineHeight: 1.6, margin: '0 0 14px' }}>
                 {toggling.next
                   ? t('confirm_enable_legal', { basis: t(toggling.job.legal_basis_key as 'title') })
                   : t('confirm_disable_legal', { basis: t(toggling.job.legal_basis_key as 'title') })}
               </p>
             )}
 
-            <label style={{ display: 'block', fontSize: 13, color: '#475569', marginBottom: 6 }}>
+            <label style={{ display: 'block', fontSize: 13, color: 'var(--sk-muted)', marginBottom: 6 }}>
               {t('confirm_type_name', { name: toggling.job.job_name })}
             </label>
             <input
@@ -587,24 +587,24 @@ export default function AdminScheduledTasksPage() {
           aria-modal="true"
           style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 60 }}
         >
-          <div style={{ background: '#fff', borderRadius: 14, padding: '22px 24px', maxWidth: 520, width: '100%' }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 10px', color: '#0f172a' }}>
+          <div style={{ background: 'var(--sk-surface)', borderRadius: 14, padding: '22px 24px', maxWidth: 520, width: '100%' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 10px', color: 'var(--sk-text)' }}>
               {t('confirm_run_title')}
             </h3>
-            <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6, margin: '0 0 12px' }}>
+            <p style={{ fontSize: 13.5, color: 'var(--sk-muted)', lineHeight: 1.6, margin: '0 0 12px' }}>
               {t('confirm_run_body', { name: labelOf(running) })}
             </p>
             {running.criticality === 'legal' && running.legal_basis_key && (
-              <p style={{ fontSize: 13, color: '#713F12', background: '#FEF9C3', borderRadius: 10, padding: '11px 14px', lineHeight: 1.6, margin: '0 0 12px' }}>
+              <p style={{ fontSize: 13, color: 'var(--sk-amber)', background: 'var(--sk-amber-soft)', borderRadius: 10, padding: '11px 14px', lineHeight: 1.6, margin: '0 0 12px' }}>
                 {t('confirm_run_legal', { basis: t(running.legal_basis_key as 'title') })}
               </p>
             )}
             {!running.active && (
-              <p role="alert" style={{ fontSize: 13, color: '#991B1B', background: '#FEE2E2', borderRadius: 10, padding: '11px 14px', lineHeight: 1.6, margin: '0 0 12px' }}>
+              <p role="alert" style={{ fontSize: 13, color: 'var(--sk-red)', background: 'var(--sk-red-soft)', borderRadius: 10, padding: '11px 14px', lineHeight: 1.6, margin: '0 0 12px' }}>
                 {t('confirm_run_disabled')}
               </p>
             )}
-            <p style={{ fontSize: 12.5, color: 'var(--sk-faint)', lineHeight: 1.55, margin: '0 0 16px' }}>
+            <p style={{ fontSize: 12.5, color: 'var(--sk-muted)', lineHeight: 1.55, margin: '0 0 16px' }}>
               {t('confirm_run_async')}
             </p>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -617,7 +617,7 @@ export default function AdminScheduledTasksPage() {
                 onClick={() => { const j = running; setRunning(null); void runNow(j) }}
                 style={{
                   padding: '8px 14px', borderRadius: 9, border: 'none',
-                  background: 'var(--sk-text)', color: '#fff',
+                  background: 'var(--sk-text)', color: 'var(--sk-surface)',
                   fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
                   cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1,
                 }}
@@ -662,9 +662,9 @@ export default function AdminScheduledTasksPage() {
 
 function Badge({ tone, children }: { tone: 'legal' | 'warn' | 'neutral'; children: React.ReactNode }) {
   const c =
-    tone === 'legal' ? { bg: '#EDE9FE', fg: '#5B21B6' }
-      : tone === 'warn' ? { bg: '#FEF9C3', fg: '#713F12' }
-        : { bg: '#F1F5F9', fg: '#475569' }
+    tone === 'legal' ? { bg: 'var(--sk-accent-soft)', fg: 'var(--sk-accent)' }
+      : tone === 'warn' ? { bg: 'var(--sk-amber-soft)', fg: 'var(--sk-amber)' }
+        : { bg: 'var(--sk-surface-2)', fg: 'var(--sk-muted)' }
   return (
     <span style={{
       fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em',
