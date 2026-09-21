@@ -743,6 +743,72 @@ du milieu : c'est ça, la preuve.</strong></p>
   nommément, et le compte ne peut que descendre.</p>
 </div>
 
+<h2><span class="num">7</span>Le parcours complet : ce qui reste, écran par écran</h2>
+<p class="sub">Le point 6 mesurait la fin du lot « palette ». Ce point-ci ouvre le parcours complet —
+chaque espace, chaque page, ce qu'il lui reste. <strong>On ne commence pas par corriger : on commence
+par savoir.</strong> Mesuré le 21 septembre 2026 au soir, après les commits de la coquille unique et
+du back-office.</p>
+
+<div class="cards">
+  <div class="card"><div class="big-n">1 843 → 1 340</div>
+    <div class="lbl">couleurs écrites à la main. <strong>503 sont parties sans qu'on relise un seul style</strong> : c'étaient les valeurs de secours des jetons fantômes du back-office</div></div>
+  <div class="card"><div class="big-n">574 → 0</div>
+    <div class="lbl">lectures de jetons <span class="mono">--color-*</span> dans l'admin. Ils n'étaient définis nulle part, et retombaient en silence sur leur secours</div></div>
+  <div class="card"><div class="big-n">5 → 1</div>
+    <div class="lbl">cadres différents dans l'espace connecté, pour 66 pages</div></div>
+  <div class="card"><div class="big-n">212</div>
+    <div class="lbl">usages de <span class="mono">--sk-faint</span> à lire un par un — il vaut 3,63 et ne doit <em>jamais</em> porter d'information</div></div>
+</div>
+
+<h3>Ce qui reste, par espace</h3>
+
+<div class="scroll"><table>
+<thead><tr><th>Espace</th><th>Fichiers à toucher</th><th>Couleurs littérales</th><th>Usages de <span class="mono">--sk-faint</span></th></tr></thead>
+<tbody>
+<tr><td><strong>Expert freelance</strong></td><td>4</td><td class="val">0 <span class="pill p-aaa">propre</span></td><td class="val">22</td></tr>
+<tr><td><strong>Expert CDI</strong></td><td>4</td><td class="val">0 <span class="pill p-aaa">propre</span></td><td class="val">18</td></tr>
+<tr><td><strong>Organisation</strong></td><td>9</td><td class="val">186</td><td class="val">9</td></tr>
+<tr><td><strong>Administration</strong></td><td>24</td><td class="val">618</td><td class="val">~90</td></tr>
+<tr><td><strong>Public / authentification</strong></td><td>14</td><td class="val">270</td><td class="val">~15</td></tr>
+<tr><td><strong>Composants partagés</strong></td><td>13</td><td class="val">238</td><td class="val">~40</td></tr>
+<tr><td><strong>Bibliothèque (e-mails)</strong></td><td>4</td><td class="val">21</td><td class="val">2</td></tr>
+</tbody>
+</table></div>
+
+<p><strong>Les deux espaces experts ne portent plus aucune couleur écrite à la main.</strong> C'était
+le périmètre du lot « palette » ; il tient. Ce qu'il leur reste est d'une autre nature : quarante
+usages de <span class="mono">--sk-faint</span>, qu'aucun motif ne peut juger — il faut lire ce que le
+texte dit.</p>
+
+<h3>Les quatre-vingts teintes qui restent, et ce qu'elles sont</h3>
+<p class="sub">Ce ne sont pas quatre-vingts intentions : c'est une palette d'outil, posée écran par
+écran pendant des mois. Les vingt premières font plus des deux tiers du total, et chacune a son
+équivalent exact dans la palette de l'accueil.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>Teinte</th><th>Occurrences</th><th>Ce qu'elle est</th><th>Son jeton</th></tr></thead>
+<tbody>
+<tr><td class="val"><span class="sw" style="background:#fff;border:1px solid #E7E2D8"></span><span class="mono">#fff</span></td><td>151</td><td>le blanc des cartes</td><td class="mono">--sk-surface</td></tr>
+<tr><td class="val"><span class="sw" style="background:#64748b"></span><span class="mono">#64748b</span></td><td>121</td><td>texte secondaire (ardoise 500)</td><td class="mono">--sk-muted</td></tr>
+<tr><td class="val"><span class="sw" style="background:#0f172a"></span><span class="mono">#0f172a</span></td><td>106</td><td>texte principal (ardoise 900)</td><td class="mono">--sk-text</td></tr>
+<tr><td class="val"><span class="sw" style="background:#475569"></span><span class="mono">#475569</span></td><td>56</td><td>texte secondaire, seconde nuance</td><td class="mono">--sk-muted</td></tr>
+<tr><td class="val"><span class="sw" style="background:#94a3b8"></span><span class="mono">#94a3b8</span></td><td>55</td><td>texte tenu (ardoise 400)</td><td class="mono">--sk-faint</td></tr>
+<tr><td class="val"><span class="sw" style="background:#b91c1c"></span><span class="mono">#b91c1c</span></td><td>55</td><td>erreur</td><td class="mono">--sk-red</td></tr>
+<tr><td class="val"><span class="sw" style="background:#fecaca"></span><span class="mono">#fecaca</span></td><td>55</td><td>fond d'erreur</td><td class="mono">--sk-red-soft</td></tr>
+<tr><td class="val"><span class="sw" style="background:#e2e8f0"></span><span class="mono">#e2e8f0</span></td><td>46</td><td>bordure</td><td class="mono">--sk-border</td></tr>
+<tr><td class="val"><span class="sw" style="background:#00b9ff"></span><span class="mono">#00b9ff</span></td><td>34</td><td>l'ancien bleu de marque, écrit en dur</td><td class="mono">--sk-accent</td></tr>
+<tr><td class="val"><span class="sw" style="background:#166534"></span><span class="mono">#166534</span></td><td>29</td><td>succès</td><td class="mono">--sk-success</td></tr>
+<tr><td class="val"><span class="sw" style="background:#92400e"></span><span class="mono">#92400e</span></td><td>25</td><td>avertissement</td><td class="mono">--sk-amber</td></tr>
+</tbody>
+</table></div>
+
+<p class="note warn"><strong>Ce qu'une correspondance mécanique ne peut PAS décider.</strong>
+<span class="mono">#94a3b8</span> devient <span class="mono">--sk-faint</span> parce que c'est la même
+couleur — mais <span class="mono">--sk-faint</span> vaut <strong>3,63</strong> de contraste, et la
+règle du projet lui interdit de porter une information. Cinquante-cinq occurrences se convertissent
+sans rien dire de ce que le texte raconte. C'est pour ça que les 212 usages se lisent
+<strong>un par un</strong>, après la conversion et pas à sa place.</p>
+
 <footer class="doc">
   <p><strong>Points 1 à 5</strong> mesurés le 21 septembre 2026 au matin sur
   <code>feat/sprint-archi-orga</code>, commit <code>5558f86</code>,
