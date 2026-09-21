@@ -100,8 +100,8 @@ type Reponse = {
 }
 
 const cardStyle: React.CSSProperties = {
-  background: 'var(--color-surface, #fff)',
-  border: '1px solid var(--color-border, #e2e8f0)',
+  background: 'var(--sk-surface)',
+  border: '1px solid var(--sk-border)',
   borderRadius: 12,
   padding: 20,
   marginBottom: 16,
@@ -110,12 +110,12 @@ const h2Style: React.CSSProperties = {
   fontSize: 15,
   fontWeight: 600,
   margin: '0 0 12px',
-  color: 'var(--color-text-primary, #0f172a)',
+  color: 'var(--sk-text)',
 }
 const cellule: React.CSSProperties = {
   padding: '8px 10px',
   fontSize: 13,
-  borderBottom: '1px solid var(--color-border, #e2e8f0)',
+  borderBottom: '1px solid var(--sk-border)',
   textAlign: 'left',
 }
 
@@ -189,17 +189,17 @@ export default function SupervisionPage() {
 
   return (
     <div style={{ width: '100%', textAlign: 'left' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 4px', color: 'var(--color-text-primary, #0f172a)' }}>
+      <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 4px', color: 'var(--sk-text)' }}>
         {t('title')}
       </h1>
-      <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 20px', maxWidth: 720 }}>
+      <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 20px', maxWidth: 720 }}>
         {t('intro')}
       </p>
 
       {chargement ? (
-        <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)' }}>{t('loading')}</p>
+        <p style={{ fontSize: 13, color: 'var(--sk-muted)' }}>{t('loading')}</p>
       ) : erreur ? (
-        <p role="alert" style={{ fontSize: 13, color: 'var(--color-error, #dc2626)' }}>
+        <p role="alert" style={{ fontSize: 13, color: 'var(--sk-red)' }}>
           {erreur}
         </p>
       ) : (
@@ -209,7 +209,7 @@ export default function SupervisionPage() {
             <h2 style={h2Style}>{t('problems_title')}</h2>
             {(data?.problemes.length ?? 0) === 0 ? (
               /* Le cas normal ne crie pas. Aucune couleur, une phrase. */
-              <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: 0 }}>
+              <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: 0 }}>
                 {t('problems_none')}
               </p>
             ) : (
@@ -227,8 +227,8 @@ export default function SupervisionPage() {
                         gap: 10,
                         padding: '10px 12px',
                         borderRadius: 8,
-                        border: `1px solid ${bloquant ? 'var(--color-error, #dc2626)' : 'var(--color-warning, #d97706)'}`,
-                        background: bloquant ? 'var(--color-error-soft, #fef2f2)' : 'var(--color-warning-soft, #fffbeb)',
+                        border: `1px solid ${bloquant ? 'var(--sk-red)' : 'var(--sk-amber)'}`,
+                        background: bloquant ? 'var(--sk-red-soft)' : 'var(--sk-amber-soft)',
                       }}
                     >
                       <span
@@ -237,15 +237,15 @@ export default function SupervisionPage() {
                           fontWeight: 700,
                           textTransform: 'uppercase',
                           letterSpacing: 0.4,
-                          color: bloquant ? 'var(--color-error, #dc2626)' : 'var(--color-warning, #d97706)',
+                          color: bloquant ? 'var(--sk-red)' : 'var(--sk-amber)',
                         }}
                       >
                         {bloquant ? t('gravity_blocking') : t('gravity_attention')}
                       </span>
-                      <span style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)', flex: '1 1 260px' }}>
+                      <span style={{ fontSize: 13, color: 'var(--sk-text)', flex: '1 1 260px' }}>
                         {t(`problem.${p.cle}` as 'problem.annonces_jamais_tentees', { count: p.compte ?? 0 })}
                         {p.depuis && (
-                          <span style={{ color: 'var(--color-text-tertiary, #94a3b8)' }}>
+                          <span style={{ color: 'var(--sk-faint)' }}>
                             {' '}
                             {t('since', { date: new Date(p.depuis).toLocaleDateString() })}
                           </span>
@@ -257,7 +257,7 @@ export default function SupervisionPage() {
                       {(p.lien ?? p.sujet) && (
                         <Link
                           href={p.lien ?? `/admin/supervision/${p.sujet}`}
-                          style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-primary, #2563eb)' }}
+                          style={{ fontSize: 12, fontWeight: 600, color: 'var(--sk-accent)' }}
                         >
                           {t('open')}
                         </Link>
@@ -274,12 +274,12 @@ export default function SupervisionPage() {
             <h2 style={h2Style}>{t('spread_title')}</h2>
             {!repartition || totalNotes === 0 ? (
               /* UN ÉTAT, PAS UN REPROCHE. */
-              <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: 0 }}>
+              <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: 0 }}>
                 {t('spread_empty')}
               </p>
             ) : (
               <>
-                <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 14px' }}>
+                <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 14px' }}>
                   {t('spread_intro', { runs: distribution?.runs_observes ?? 0, notes: totalNotes })}
                 </p>
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
@@ -297,7 +297,7 @@ export default function SupervisionPage() {
                             opacity: 0.85,
                           }}
                         />
-                        <span style={{ fontSize: 10, color: 'var(--color-text-tertiary, #94a3b8)' }}>{i}</span>
+                        <span style={{ fontSize: 10, color: 'var(--sk-faint)' }}>{i}</span>
                       </div>
                     )
                   })}
@@ -310,14 +310,14 @@ export default function SupervisionPage() {
           <section style={cardStyle}>
             <h2 style={h2Style}>{t('spend_title')}</h2>
             {/* CE QUE LE COMPTEUR EST, en une ligne. */}
-            <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '0 0 14px', maxWidth: 720 }}>
+            <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '0 0 14px', maxWidth: 720 }}>
               {t('spend_estimate')}
             </p>
 
             {sansTarif > 0 && (
               <p
                 role="alert"
-                style={{ fontSize: 13, color: 'var(--color-warning, #d97706)', margin: '0 0 14px' }}
+                style={{ fontSize: 13, color: 'var(--sk-amber)', margin: '0 0 14px' }}
               >
                 {t('spend_missing_price', { count: sansTarif })}
               </p>
@@ -326,14 +326,14 @@ export default function SupervisionPage() {
             {(data?.depense?.length ?? 0) > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 14, marginBottom: 18 }}>
                 {data?.depense?.map((d) => (
-                  <div key={d.provider} style={{ border: '1px solid var(--color-border, #e2e8f0)', borderRadius: 10, padding: 14 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, margin: 0, color: 'var(--color-text-primary, #0f172a)' }}>
+                  <div key={d.provider} style={{ border: '1px solid var(--sk-border)', borderRadius: 10, padding: 14 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, margin: 0, color: 'var(--sk-text)' }}>
                       {t(`usage.${d.provider}` as 'usage.claude')}
                     </p>
-                    <p style={{ fontSize: 20, fontWeight: 600, margin: '6px 0 0', color: 'var(--color-text-primary, #0f172a)' }}>
+                    <p style={{ fontSize: 20, fontWeight: 600, margin: '6px 0 0', color: 'var(--sk-text)' }}>
                       {t('spend_amount', { amount: Number(d.depense_mois).toFixed(2) })}
                     </p>
-                    <p style={{ fontSize: 12, margin: '2px 0 0', color: 'var(--color-text-tertiary, #94a3b8)' }}>
+                    <p style={{ fontSize: 12, margin: '2px 0 0', color: 'var(--sk-faint)' }}>
                       {t('spend_of_cap', { cap: Number(d.monthly_cap_usd).toFixed(2) })}
                     </p>
                   </div>
@@ -344,7 +344,7 @@ export default function SupervisionPage() {
             {/* L'HISTORIQUE — ce que deux totaux ne pouvaient pas dire. */}
             {mois.length > 0 && (
               <>
-                <h3 style={{ fontSize: 13, fontWeight: 600, margin: '0 0 8px', color: 'var(--color-text-primary, #0f172a)' }}>
+                <h3 style={{ fontSize: 13, fontWeight: 600, margin: '0 0 8px', color: 'var(--sk-text)' }}>
                   {t('history_title')}
                 </h3>
                 <div style={{ overflowX: 'auto', marginBottom: 18 }}>
@@ -367,7 +367,7 @@ export default function SupervisionPage() {
             {/* PAR TYPE D'ACTION — la question « de quoi ? ». */}
             {parAction.length > 0 && (
               <>
-                <h3 style={{ fontSize: 13, fontWeight: 600, margin: '0 0 8px', color: 'var(--color-text-primary, #0f172a)' }}>
+                <h3 style={{ fontSize: 13, fontWeight: 600, margin: '0 0 8px', color: 'var(--sk-text)' }}>
                   {t('by_action_title')}
                 </h3>
                 <div style={{ overflowX: 'auto' }}>
@@ -396,12 +396,12 @@ export default function SupervisionPage() {
                 suivante. Et elle ne fait qu'ALERTER : aucun refus, aucun arrêt
                 n'en dépend (§D.9). */}
             {data?.par_acteur === null ? (
-              <p style={{ fontSize: 13, color: 'var(--color-text-tertiary, #94a3b8)', margin: '16px 0 0' }}>
+              <p style={{ fontSize: 13, color: 'var(--sk-faint)', margin: '16px 0 0' }}>
                 {t('by_actor_unavailable')}
               </p>
             ) : (data?.par_acteur?.length ?? 0) > 0 ? (
               <>
-                <h3 style={{ fontSize: 13, fontWeight: 600, margin: '18px 0 8px', color: 'var(--color-text-primary, #0f172a)' }}>
+                <h3 style={{ fontSize: 13, fontWeight: 600, margin: '18px 0 8px', color: 'var(--sk-text)' }}>
                   {t('by_actor_title')}
                 </h3>
                 <div style={{ overflowX: 'auto' }}>
@@ -416,7 +416,7 @@ export default function SupervisionPage() {
                             <td style={cellule}>
                               {a.acteur_nom ?? t(`actor.${a.acteur_type}` as 'actor.organization')}
                               {a.acteurs_regroupes > 1 && (
-                                <span style={{ color: 'var(--color-text-tertiary, #94a3b8)' }}>
+                                <span style={{ color: 'var(--sk-faint)' }}>
                                   {' '}
                                   {t('by_actor_grouped', { count: a.acteurs_regroupes })}
                                 </span>
@@ -430,7 +430,7 @@ export default function SupervisionPage() {
                                 ...cellule,
                                 textAlign: 'right',
                                 fontVariantNumeric: 'tabular-nums',
-                                color: enAlerte ? 'var(--color-warning, #d97706)' : undefined,
+                                color: enAlerte ? 'var(--sk-amber)' : undefined,
                                 fontWeight: enAlerte ? 600 : undefined,
                               }}
                             >
@@ -449,7 +449,7 @@ export default function SupervisionPage() {
             <p style={{ margin: '16px 0 0' }}>
               <Link
                 href="/admin/supervision/operations"
-                style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-primary, #2563eb)' }}
+                style={{ fontSize: 13, fontWeight: 600, color: 'var(--sk-accent)' }}
               >
                 {t('open_operations')}
               </Link>

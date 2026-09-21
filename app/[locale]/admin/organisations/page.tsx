@@ -55,7 +55,7 @@ function initialsOf(name: string | null | undefined): string {
 }
 
 function scoreColor(score: number | null | undefined): string {
-  if (score == null) return 'var(--color-text-tertiary, #94a3b8)'
+  if (score == null) return 'var(--sk-faint)'
   if (score < 5) return '#dc2626'
   if (score < 9) return '#d97706'
   return '#16a34a'
@@ -181,7 +181,7 @@ export default function AdminOrgsListPage() {
         style={{
           fontSize: 22,
           fontWeight: 500,
-          color: 'var(--color-text-primary, #0f172a)',
+          color: 'var(--sk-text)',
           marginBottom: 24,
         }}
       >
@@ -209,7 +209,7 @@ export default function AdminOrgsListPage() {
         style={{
           display: 'flex',
           gap: 4,
-          borderBottom: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+          borderBottom: '0.5px solid var(--sk-border)',
           marginBottom: 20,
           overflowX: 'auto',
         }}
@@ -232,8 +232,8 @@ export default function AdminOrgsListPage() {
                 border: 'none',
                 borderBottom: active ? '2px solid #00B9FF' : '2px solid transparent',
                 color: active
-                  ? 'var(--color-text-primary, #0f172a)'
-                  : 'var(--color-text-secondary, #64748b)',
+                  ? 'var(--sk-text)'
+                  : 'var(--sk-muted)',
                 fontSize: 13,
                 fontWeight: active ? 500 : 400,
                 cursor: 'pointer',
@@ -275,10 +275,10 @@ export default function AdminOrgsListPage() {
           style={{
             padding: 40,
             textAlign: 'center',
-            color: 'var(--color-text-secondary, #64748b)',
+            color: 'var(--sk-muted)',
             fontSize: 14,
-            background: 'var(--color-background-primary, #fff)',
-            border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+            background: 'var(--sk-surface)',
+            border: '0.5px solid var(--sk-border)',
             borderRadius: 12,
           }}
         >
@@ -287,8 +287,8 @@ export default function AdminOrgsListPage() {
       ) : (
         <div
           style={{
-            background: 'var(--color-background-primary, #fff)',
-            border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+            background: 'var(--sk-surface)',
+            border: '0.5px solid var(--sk-border)',
             borderRadius: 12,
             overflowX: 'auto',
           }}
@@ -300,11 +300,11 @@ export default function AdminOrgsListPage() {
               minWidth: 780,
               gap: 0,
               padding: '10px 18px',
-              borderBottom: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
-              background: 'var(--color-background-secondary, #f8fafc)',
+              borderBottom: '0.5px solid var(--sk-border)',
+              background: 'var(--sk-surface-2)',
               fontSize: 11,
               fontWeight: 500,
-              color: 'var(--color-text-secondary, #64748b)',
+              color: 'var(--sk-muted)',
               textTransform: 'uppercase',
               letterSpacing: '.05em',
             }}
@@ -330,9 +330,9 @@ export default function AdminOrgsListPage() {
               minWidth: 780,
                   gap: 0,
                   padding: '14px 18px',
-                  borderBottom: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+                  borderBottom: '0.5px solid var(--sk-border)',
                   textDecoration: 'none',
-                  color: 'var(--color-text-primary, #0f172a)',
+                  color: 'var(--sk-text)',
                   fontSize: 13,
                   alignItems: 'center',
                   transition: 'background .12s',
@@ -368,11 +368,11 @@ export default function AdminOrgsListPage() {
                   )}
                 </span>
 
-                <span style={{ color: 'var(--color-text-secondary, #64748b)' }}>
+                <span style={{ color: 'var(--sk-muted)' }}>
                   {org.siren ?? '—'}
                 </span>
 
-                <span style={{ color: 'var(--color-text-secondary, #64748b)' }}>
+                <span style={{ color: 'var(--sk-muted)' }}>
                   {org.org_type ?? '—'}
                 </span>
 
@@ -384,7 +384,7 @@ export default function AdminOrgsListPage() {
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
-                      color: 'var(--color-text-secondary, #64748b)',
+                      color: 'var(--sk-muted)',
                     }}
                   >
                     {org.package?.name ?? '—'}
@@ -405,7 +405,7 @@ export default function AdminOrgsListPage() {
                   {score == null ? '—' : Math.round(score)}
                 </span>
 
-                <span style={{ color: 'var(--color-text-secondary, #64748b)' }}>
+                <span style={{ color: 'var(--sk-muted)' }}>
                   {formatDate(showDecidedColumn ? org.verified_at : org.created_at)}
                 </span>
               </Link>
@@ -422,10 +422,10 @@ export default function AdminOrgsListPage() {
           style={{
             padding: '6px 12px',
             background: 'transparent',
-            border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+            border: '0.5px solid var(--sk-border)',
             borderRadius: 8,
             fontSize: 12,
-            color: 'var(--color-text-secondary, #64748b)',
+            color: 'var(--sk-muted)',
             cursor: 'pointer',
             fontFamily: 'inherit',
           }}

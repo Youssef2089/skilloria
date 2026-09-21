@@ -160,8 +160,8 @@ type Charge = {
 }
 
 const carte: React.CSSProperties = {
-  background: 'var(--color-surface, #fff)',
-  border: '1px solid var(--color-border, #e2e8f0)',
+  background: 'var(--sk-surface)',
+  border: '1px solid var(--sk-border)',
   borderRadius: 12,
   padding: '16px 18px',
   marginBottom: 16,
@@ -171,12 +171,12 @@ const titreSection: React.CSSProperties = {
   fontSize: 15,
   fontWeight: 650,
   margin: '0 0 6px',
-  color: 'var(--color-text-primary, #0f172a)',
+  color: 'var(--sk-text)',
 }
 
 const sousTitre: React.CSSProperties = {
   fontSize: 12.5,
-  color: 'var(--color-text-secondary, #64748b)',
+  color: 'var(--sk-muted)',
   lineHeight: 1.55,
   margin: '0 0 14px',
   maxWidth: 760,
@@ -186,7 +186,7 @@ const cellule: React.CSSProperties = {
   padding: '8px 10px',
   fontSize: 12.5,
   textAlign: 'left',
-  borderBottom: '1px solid var(--color-border, #e2e8f0)',
+  borderBottom: '1px solid var(--sk-border)',
   verticalAlign: 'top',
 }
 
@@ -204,9 +204,9 @@ const boutonReprise: React.CSSProperties = {
   fontWeight: 600,
   borderRadius: 6,
   cursor: 'pointer',
-  border: '1px solid var(--color-border, #e2e8f0)',
-  background: 'var(--color-surface, #ffffff)',
-  color: 'var(--color-text-primary, #0f172a)',
+  border: '1px solid var(--sk-border)',
+  background: 'var(--sk-surface)',
+  color: 'var(--sk-text)',
   whiteSpace: 'nowrap',
 }
 
@@ -216,7 +216,7 @@ const enTete: React.CSSProperties = {
   fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: 0.4,
-  color: 'var(--color-text-tertiary, #94a3b8)',
+  color: 'var(--sk-faint)',
   whiteSpace: 'nowrap',
 }
 
@@ -234,7 +234,7 @@ function Ligne({ label, valeur, alerte }: { label: string; valeur: string; alert
         flexWrap: 'wrap',
         gap: 8,
         padding: '7px 0',
-        borderBottom: '1px solid var(--color-border, #e2e8f0)',
+        borderBottom: '1px solid var(--sk-border)',
       }}
     >
       <span
@@ -243,7 +243,7 @@ function Ligne({ label, valeur, alerte }: { label: string; valeur: string; alert
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: 0.4,
-          color: 'var(--color-text-tertiary, #94a3b8)',
+          color: 'var(--sk-faint)',
           flex: '0 0 180px',
         }}
       >
@@ -253,7 +253,7 @@ function Ligne({ label, valeur, alerte }: { label: string; valeur: string; alert
         style={{
           fontSize: 13,
           flex: '1 1 240px',
-          color: alerte ? 'var(--color-error, #dc2626)' : 'var(--color-text-primary, #0f172a)',
+          color: alerte ? 'var(--sk-red)' : 'var(--sk-text)',
           fontWeight: alerte ? 600 : 400,
         }}
       >
@@ -344,7 +344,7 @@ export default function AdminFacturationPage() {
           fontSize: 20,
           fontWeight: 600,
           margin: '0 0 4px',
-          color: 'var(--color-text-primary, #0f172a)',
+          color: 'var(--sk-text)',
         }}
       >
         {t('title')}
@@ -357,7 +357,7 @@ export default function AdminFacturationPage() {
           href="https://dashboard.stripe.com/"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-primary, #2563eb)' }}
+          style={{ fontSize: 13, fontWeight: 600, color: 'var(--sk-accent)' }}
         >
           {t('open_stripe')}
         </a>
@@ -365,7 +365,7 @@ export default function AdminFacturationPage() {
           style={{
             display: 'block',
             fontSize: 12,
-            color: 'var(--color-text-tertiary, #94a3b8)',
+            color: 'var(--sk-faint)',
             marginTop: 4,
             maxWidth: 760,
           }}
@@ -375,17 +375,17 @@ export default function AdminFacturationPage() {
       </p>
 
       {chargement ? (
-        <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)' }}>{t('loading')}</p>
+        <p style={{ fontSize: 13, color: 'var(--sk-muted)' }}>{t('loading')}</p>
       ) : erreur || data === null ? (
         <div
           role="alert"
           style={{
             ...carte,
-            borderColor: 'var(--color-error, #dc2626)',
-            background: 'var(--color-error-soft, #fef2f2)',
+            borderColor: 'var(--sk-red)',
+            background: 'var(--sk-red-soft)',
           }}
         >
-          <p style={{ ...titreSection, color: 'var(--color-error, #dc2626)' }}>{t('err_load')}</p>
+          <p style={{ ...titreSection, color: 'var(--sk-red)' }}>{t('err_load')}</p>
           <p style={{ ...sousTitre, margin: 0 }}>{t('err_load_hint')}</p>
         </div>
       ) : (
@@ -453,10 +453,10 @@ export default function AdminFacturationPage() {
                       style={{
                         padding: '10px 12px',
                         borderRadius: 8,
-                        border: `1px solid ${bloquant ? 'var(--color-error, #dc2626)' : 'var(--color-warning, #d97706)'}`,
+                        border: `1px solid ${bloquant ? 'var(--sk-red)' : 'var(--sk-amber)'}`,
                         background: bloquant
-                          ? 'var(--color-error-soft, #fef2f2)'
-                          : 'var(--color-warning-soft, #fffbeb)',
+                          ? 'var(--sk-red-soft)'
+                          : 'var(--sk-amber-soft)',
                       }}
                     >
                       <span
@@ -467,12 +467,12 @@ export default function AdminFacturationPage() {
                           textTransform: 'uppercase',
                           letterSpacing: 0.4,
                           marginBottom: 4,
-                          color: bloquant ? 'var(--color-error, #dc2626)' : 'var(--color-warning, #d97706)',
+                          color: bloquant ? 'var(--sk-red)' : 'var(--sk-amber)',
                         }}
                       >
                         {bloquant ? t('gravity_blocking') : t('gravity_attention')}
                       </span>
-                      <span style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>
+                      <span style={{ fontSize: 13, color: 'var(--sk-text)' }}>
                         {t(`sante.alerte.${a.nature}` as 'sante.alerte.secret_absent', {
                           count: a.compte ?? 0,
                         })}
@@ -501,13 +501,13 @@ export default function AdminFacturationPage() {
                   borderRadius: 8,
                   border: `1px solid ${
                     data.ecarts.motif === 'billing_disabled'
-                      ? 'var(--color-border, #e2e8f0)'
-                      : 'var(--color-error, #dc2626)'
+                      ? 'var(--sk-border)'
+                      : 'var(--sk-red)'
                   }`,
                   background:
                     data.ecarts.motif === 'billing_disabled'
-                      ? 'var(--color-surface-subtle, #f8fafc)'
-                      : 'var(--color-error-soft, #fef2f2)',
+                      ? 'var(--sk-surface-2)'
+                      : 'var(--sk-red-soft)',
                 }}
               >
                 <p
@@ -517,8 +517,8 @@ export default function AdminFacturationPage() {
                     margin: '0 0 6px',
                     color:
                       data.ecarts.motif === 'billing_disabled'
-                        ? 'var(--color-text-primary, #0f172a)'
-                        : 'var(--color-error, #dc2626)',
+                        ? 'var(--sk-text)'
+                        : 'var(--sk-red)',
                   }}
                 >
                   {data.ecarts.motif === 'billing_disabled'
@@ -544,7 +544,7 @@ export default function AdminFacturationPage() {
                     fontSize: 13.5,
                     fontWeight: 600,
                     margin: '0 0 6px',
-                    color: 'var(--color-text-primary, #0f172a)',
+                    color: 'var(--sk-text)',
                   }}
                 >
                   {t('ecarts.none')}
@@ -589,7 +589,7 @@ export default function AdminFacturationPage() {
                                   style={{
                                     ...mono,
                                     display: 'block',
-                                    color: 'var(--color-text-tertiary, #94a3b8)',
+                                    color: 'var(--sk-faint)',
                                   }}
                                 >
                                   {e.stripeCustomerId}
@@ -601,8 +601,8 @@ export default function AdminFacturationPage() {
                                 style={{
                                   fontWeight: 650,
                                   color: bloquant
-                                    ? 'var(--color-error, #dc2626)'
-                                    : 'var(--color-warning, #d97706)',
+                                    ? 'var(--sk-red)'
+                                    : 'var(--sk-amber)',
                                 }}
                               >
                                 {t(`ecarts.nature.${e.nature}` as 'ecarts.nature.paie_sans_acces')}
@@ -614,7 +614,7 @@ export default function AdminFacturationPage() {
                                 style={{
                                   display: 'block',
                                   marginTop: 3,
-                                  color: 'var(--color-text-secondary, #64748b)',
+                                  color: 'var(--sk-muted)',
                                   lineHeight: 1.5,
                                 }}
                               >
@@ -630,7 +630,7 @@ export default function AdminFacturationPage() {
                                   style={{
                                     ...mono,
                                     display: 'block',
-                                    color: 'var(--color-text-tertiary, #94a3b8)',
+                                    color: 'var(--sk-faint)',
                                   }}
                                 >
                                   {e.stripeSubscriptionId}
@@ -644,7 +644,7 @@ export default function AdminFacturationPage() {
                                 <span
                                   style={{
                                     display: 'block',
-                                    color: 'var(--color-text-tertiary, #94a3b8)',
+                                    color: 'var(--sk-faint)',
                                   }}
                                 >
                                   {dateCourte(e.finDePeriodeStripe)}
@@ -668,7 +668,7 @@ export default function AdminFacturationPage() {
               </p>
             )}
             {data.abonnements_tronques === true && (
-              <p role="alert" style={{ ...sousTitre, margin: '8px 0 0', color: 'var(--color-warning, #d97706)' }}>
+              <p role="alert" style={{ ...sousTitre, margin: '8px 0 0', color: 'var(--sk-amber)' }}>
                 {t('ecarts.truncated')}
               </p>
             )}
@@ -694,8 +694,8 @@ export default function AdminFacturationPage() {
                     color:
                       data.derniere_nuit.etat === 'impossible' ||
                       (data.derniere_nuit.manquants ?? 0) > 0
-                        ? 'var(--color-error, #dc2626)'
-                        : 'var(--color-text-primary, #0f172a)',
+                        ? 'var(--sk-red)'
+                        : 'var(--sk-text)',
                   }}
                 >
                   {data.derniere_nuit.etat === 'impossible'
@@ -717,12 +717,12 @@ export default function AdminFacturationPage() {
                   })}
                 </p>
                 {data.derniere_nuit.ids_manquants.length > 0 && (
-                  <p style={{ ...mono, margin: '8px 0 0', color: 'var(--color-error, #dc2626)' }}>
+                  <p style={{ ...mono, margin: '8px 0 0', color: 'var(--sk-red)' }}>
                     {data.derniere_nuit.ids_manquants.join(' · ')}
                   </p>
                 )}
                 {data.derniere_nuit.tronque && (
-                  <p style={{ ...sousTitre, margin: '8px 0 0', color: 'var(--color-warning, #d97706)' }}>
+                  <p style={{ ...sousTitre, margin: '8px 0 0', color: 'var(--sk-amber)' }}>
                     {t('nuit.truncated')}
                   </p>
                 )}
@@ -741,8 +741,8 @@ export default function AdminFacturationPage() {
                 style={{
                   padding: '12px 14px',
                   borderRadius: 8,
-                  border: '1px solid var(--color-error, #dc2626)',
-                  background: 'var(--color-error-soft, #fef2f2)',
+                  border: '1px solid var(--sk-red)',
+                  background: 'var(--sk-red-soft)',
                 }}
               >
                 <p
@@ -750,7 +750,7 @@ export default function AdminFacturationPage() {
                     fontSize: 13.5,
                     fontWeight: 650,
                     margin: '0 0 6px',
-                    color: 'var(--color-error, #dc2626)',
+                    color: 'var(--sk-red)',
                   }}
                 >
                   {t('journal.unavailable')}
@@ -769,8 +769,8 @@ export default function AdminFacturationPage() {
                       padding: '12px 14px',
                       borderRadius: 8,
                       marginBottom: 14,
-                      border: '1px solid var(--color-error, #dc2626)',
-                      background: 'var(--color-error-soft, #fef2f2)',
+                      border: '1px solid var(--sk-red)',
+                      background: 'var(--sk-red-soft)',
                     }}
                   >
                     <p
@@ -778,7 +778,7 @@ export default function AdminFacturationPage() {
                         fontSize: 13.5,
                         fontWeight: 650,
                         margin: '0 0 6px',
-                        color: 'var(--color-error, #dc2626)',
+                        color: 'var(--sk-red)',
                       }}
                     >
                       {t('journal.stuck_title', { count: data.journal.resume.coinces })}
@@ -798,7 +798,7 @@ export default function AdminFacturationPage() {
                 >
                   <label
                     htmlFor="filtre-statut"
-                    style={{ fontSize: 12, color: 'var(--color-text-secondary, #64748b)' }}
+                    style={{ fontSize: 12, color: 'var(--sk-muted)' }}
                   >
                     {t('journal.filter_label')}
                   </label>
@@ -809,10 +809,10 @@ export default function AdminFacturationPage() {
                     style={{
                       padding: '6px 8px',
                       fontSize: 12.5,
-                      border: '1px solid var(--color-border, #e2e8f0)',
+                      border: '1px solid var(--sk-border)',
                       borderRadius: 7,
-                      background: 'var(--color-surface, #fff)',
-                      color: 'var(--color-text-primary, #0f172a)',
+                      background: 'var(--sk-surface)',
+                      color: 'var(--sk-text)',
                     }}
                   >
                     <option value="">{t('journal.filter_all')}</option>
@@ -821,7 +821,7 @@ export default function AdminFacturationPage() {
                     <option value="failed">{t('journal.statut.failed')}</option>
                     <option value="received">{t('journal.statut.received')}</option>
                   </select>
-                  <span style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)' }}>
+                  <span style={{ fontSize: 12, color: 'var(--sk-faint)' }}>
                     {t('journal.resume', {
                       total: data.journal.resume.total,
                       traites: data.journal.resume.traites,
@@ -870,8 +870,8 @@ export default function AdminFacturationPage() {
                                   style={{
                                     fontWeight: mauvais ? 650 : 400,
                                     color: mauvais
-                                      ? 'var(--color-error, #dc2626)'
-                                      : 'var(--color-text-primary, #0f172a)',
+                                      ? 'var(--sk-red)'
+                                      : 'var(--sk-text)',
                                   }}
                                 >
                                   {l.coince
@@ -880,7 +880,7 @@ export default function AdminFacturationPage() {
                                 </span>
                               </td>
                               <td style={cellule}>{dateLongue(l.recuLe)}</td>
-                              <td style={{ ...cellule, color: 'var(--color-text-secondary, #64748b)' }}>
+                              <td style={{ ...cellule, color: 'var(--sk-muted)' }}>
                                 {l.erreur ?? '—'}
                               </td>
                               <td style={cellule}>
@@ -915,8 +915,8 @@ export default function AdminFacturationPage() {
                       marginTop: 14,
                       padding: '12px 14px',
                       borderRadius: 8,
-                      border: '1px solid var(--color-border, #e2e8f0)',
-                      background: 'var(--color-surface-subtle, #f8fafc)',
+                      border: '1px solid var(--sk-border)',
+                      background: 'var(--sk-surface-2)',
                     }}
                   >
                     <p style={{ fontSize: 13, fontWeight: 650, margin: '0 0 4px' }}>
@@ -933,7 +933,7 @@ export default function AdminFacturationPage() {
                         fontSize: 13,
                         padding: '8px 10px',
                         borderRadius: 6,
-                        border: '1px solid var(--color-border, #e2e8f0)',
+                        border: '1px solid var(--sk-border)',
                         resize: 'vertical',
                       }}
                     />
@@ -960,7 +960,7 @@ export default function AdminFacturationPage() {
                       </button>
                     </div>
                     {repriseEtat.kind === 'erreur' && (
-                      <p style={{ ...sousTitre, margin: '10px 0 0', color: 'var(--color-error, #dc2626)' }}>
+                      <p style={{ ...sousTitre, margin: '10px 0 0', color: 'var(--sk-red)' }}>
                         {repriseEtat.code === 'evenement_non_coince'
                           ? t('journal.reopen_err_not_stuck')
                           : repriseEtat.code === 'reouverture_indisponible'

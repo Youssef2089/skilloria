@@ -22,11 +22,56 @@ export default function DashboardTopbar({
   title,
   statusPill,
 }: {
-  side: 'freelance' | 'entreprise' | 'cdi'
+  /**
+   * `'admin'` inclus depuis le 21/09/2026, et c'est le point de ce lot.
+   *
+   * ┌─ CE QUE LE BACK-OFFICE N'AVAIT PAS ────────────────────────────────┐
+   * │ AUCUNE BARRE SUPÉRIEURE. Vingt-quatre écrans d'administration sans │
+   * │ en-tête, quand les quarante-deux autres en avaient un — et donc     │
+   * │ sans titre de page, sans sélecteur de langue à sa place habituelle. │
+   * └────────────────────────────────────────────────────────────────────┘
+   *
+   * ⚠️ IL LUI EN FALLAIT UNE, PAS UNE SECONDE IMPLÉMENTATION. Écrire un
+   *    `AdminTopbar` de soixante pixels à côté de celui-ci aurait produit
+   *    deux barres jumelles : corriger la hauteur, la couleur ou le
+   *    rembourrage de l'une aurait laissé l'autre derrière, et la seconde
+   *    se serait lue comme corrigée (§E.20). Il n'y en a qu'une, et elle
+   *    sert les quatre espaces.
+   */
+  side: 'freelance' | 'entreprise' | 'cdi' | 'admin'
   title: string
   /** Pill statut à droite (ex. "Disponible" expert vérifié). Optionnel. */
   statusPill?: React.ReactNode
 }) {
+  // L'ADMIN NE PORTE QUE LE TITRE ET LA LANGUE, et c'est une décision, pas un
+  // oubli : un administrateur n'a ni missions recommandées, ni messagerie
+  // d'expert, ni écosystème à choisir depuis ici — les lui montrer serait
+  // proposer des portes qui n'existent pas pour lui (§D.1, même esprit).
+  if (side === 'admin') {
+    return (
+      <header
+        style={{
+          height: 60,
+          flexShrink: 0,
+          background: 'var(--sk-bandeau)',
+          borderBottom: '1px solid var(--sk-border)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          padding: '0 22px',
+        }}
+      >
+        <span style={{ fontWeight: 700, fontSize: 18, letterSpacing: '-0.3px', color: 'var(--sk-text)' }}>
+          {title}
+        </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <LanguageSwitcher />
+          {statusPill}
+        </div>
+      </header>
+    )
+  }
+
   // SC7b : 'cdi' passe son propre side à l'icône messages → base path /dashboard/cdi/messages.
   const messagesSide: 'freelance' | 'entreprise' | 'cdi' = side
   return (

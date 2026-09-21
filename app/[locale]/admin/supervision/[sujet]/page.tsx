@@ -32,7 +32,7 @@ const COLONNES: Record<string, string[]> = {
 const cellule: React.CSSProperties = {
   padding: '8px 10px',
   fontSize: 13,
-  borderBottom: '1px solid var(--color-border, #e2e8f0)',
+  borderBottom: '1px solid var(--sk-border)',
   textAlign: 'left',
   verticalAlign: 'top',
 }
@@ -83,26 +83,26 @@ export default function SupervisionDetailPage({ params }: { params: Promise<{ su
   return (
     <div style={{ width: '100%', textAlign: 'left' }}>
       <p style={{ margin: '0 0 10px' }}>
-        <Link href="/admin/supervision" style={{ fontSize: 13, color: 'var(--color-primary, #2563eb)' }}>
+        <Link href="/admin/supervision" style={{ fontSize: 13, color: 'var(--sk-accent)' }}>
           {t('back')}
         </Link>
       </p>
-      <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 4px', color: 'var(--color-text-primary, #0f172a)' }}>
+      <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 4px', color: 'var(--sk-text)' }}>
         {t(`detail_title.${sujet}` as 'detail_title.inacheves')}
       </h1>
-      <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 20px', maxWidth: 720 }}>
+      <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 20px', maxWidth: 720 }}>
         {t(`detail_intro.${sujet}` as 'detail_intro.inacheves')}
       </p>
 
       {chargement ? (
-        <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)' }}>{t('loading')}</p>
+        <p style={{ fontSize: 13, color: 'var(--sk-muted)' }}>{t('loading')}</p>
       ) : erreur ? (
-        <p role="alert" style={{ fontSize: 13, color: 'var(--color-error, #dc2626)' }}>
+        <p role="alert" style={{ fontSize: 13, color: 'var(--sk-red)' }}>
           {erreur}
         </p>
       ) : (data?.lignes.length ?? 0) === 0 ? (
         /* VIDE EST UN ÉTAT, et ici c'est même une bonne nouvelle : rien à ouvrir. */
-        <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)' }}>{t('detail_empty')}</p>
+        <p style={{ fontSize: 13, color: 'var(--sk-muted)' }}>{t('detail_empty')}</p>
       ) : (
         <>
           <div style={{ overflowX: 'auto' }}>
@@ -115,7 +115,7 @@ export default function SupervisionDetailPage({ params }: { params: Promise<{ su
                       style={{
                         ...cellule,
                         fontWeight: 600,
-                        color: 'var(--color-text-secondary, #64748b)',
+                        color: 'var(--sk-muted)',
                         fontSize: 12,
                         whiteSpace: 'nowrap',
                       }}
@@ -158,7 +158,7 @@ export default function SupervisionDetailPage({ params }: { params: Promise<{ su
               croire qu'on a tout vu — et c'est sur ce genre d'écran qu'on
               décide de ne rien faire. */}
           {(data?.lignes.length ?? 0) >= (data?.limite ?? 0) && (
-            <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', marginTop: 12 }}>
+            <p style={{ fontSize: 12, color: 'var(--sk-faint)', marginTop: 12 }}>
               {t('detail_truncated', { limit: data?.limite ?? 0 })}
             </p>
           )}

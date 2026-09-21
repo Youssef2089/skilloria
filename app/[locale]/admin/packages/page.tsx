@@ -261,15 +261,15 @@ export default function AdminPackagesPage() {
     fontWeight: 500,
     textTransform: 'uppercase',
     letterSpacing: '.06em',
-    color: 'var(--color-text-tertiary, #94a3b8)',
+    color: 'var(--sk-faint)',
     padding: '14px 14px 10px',
     whiteSpace: 'nowrap',
   }
   const tdStyle: React.CSSProperties = {
     fontSize: 13,
-    color: 'var(--color-text-primary, #0f172a)',
+    color: 'var(--sk-text)',
     padding: '14px',
-    borderTop: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+    borderTop: '0.5px solid var(--sk-border)',
     verticalAlign: 'middle',
   }
   // Le bloc de migration n'a de sens que si au moins une organisation est
@@ -280,23 +280,23 @@ export default function AdminPackagesPage() {
     width: '100%',
     padding: '9px 12px',
     fontSize: 13,
-    border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+    border: '0.5px solid var(--sk-border)',
     borderRadius: 8,
     outline: 'none',
     fontFamily: 'inherit',
     boxSizing: 'border-box',
-    background: 'var(--color-background-primary, #fff)',
-    color: 'var(--color-text-primary, #0f172a)',
+    background: 'var(--sk-surface)',
+    color: 'var(--sk-text)',
   }
 
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: '0 0 4px' }}>
+          <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--sk-text)', margin: '0 0 4px' }}>
             {t('packages.page_title')}
           </h1>
-          <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: 0 }}>
+          <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: 0 }}>
             {t('packages.subtitle')}
           </p>
         </div>
@@ -331,8 +331,8 @@ export default function AdminPackagesPage() {
 
       <div
         style={{
-          background: 'var(--color-background-primary, #fff)',
-          border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+          background: 'var(--sk-surface)',
+          border: '0.5px solid var(--sk-border)',
           borderRadius: 12,
           overflowX: 'auto',
         }}
@@ -362,11 +362,11 @@ export default function AdminPackagesPage() {
                   <span style={{ display: 'block', fontWeight: 500 }}>{p.name}</span>
                   {/* Identifiant technique, en retrait : utile pour rapprocher
                       une ligne des journaux/Stripe sans encombrer la lecture. */}
-                  <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary, #94a3b8)', marginTop: 2 }}>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-faint)', marginTop: 2 }}>
                     {p.slug}
                   </span>
                 </td>
-                <td style={{ ...tdStyle, color: 'var(--color-text-secondary, #64748b)' }}>
+                <td style={{ ...tdStyle, color: 'var(--sk-muted)' }}>
                   {targetLabel(p.target_role)}
                 </td>
                 <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>{formatPrice(p)}</td>
@@ -392,10 +392,10 @@ export default function AdminPackagesPage() {
                   </span>
                 </td>
                 {/* Compteur d'organisations rattachées (vue d'ensemble). */}
-                <td style={{ ...tdStyle, color: 'var(--color-text-secondary, #64748b)', whiteSpace: 'nowrap' }}>
+                <td style={{ ...tdStyle, color: 'var(--sk-muted)', whiteSpace: 'nowrap' }}>
                   {t('packages.org_count', { count: p.org_count })}
                 </td>
-                <td style={{ ...tdStyle, color: 'var(--color-text-secondary, #64748b)', minWidth: 240 }}>
+                <td style={{ ...tdStyle, color: 'var(--sk-muted)', minWidth: 240 }}>
                   {summarizeLimits(p.features)}
                 </td>
                 <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -416,7 +416,7 @@ export default function AdminPackagesPage() {
                           padding: 0,
                           fontSize: 12,
                           fontFamily: 'inherit',
-                          color: 'var(--color-text-secondary, #64748b)',
+                          color: 'var(--sk-muted)',
                           textDecoration: 'underline',
                           textUnderlineOffset: 3,
                           cursor: 'pointer',
@@ -448,9 +448,9 @@ export default function AdminPackagesPage() {
                   statut) avant tout transfert. */}
               {confirmingId === p.id && (
                 <tr>
-                  <td colSpan={7} style={{ padding: '0 14px 14px', background: 'var(--color-background-secondary, #f8fafc)' }}>
+                  <td colSpan={7} style={{ padding: '0 14px 14px', background: 'var(--sk-surface-2)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', paddingTop: 12 }}>
-                      <span style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>
+                      <span style={{ fontSize: 13, color: 'var(--sk-text)' }}>
                         {previous
                           ? t('packages.confirm_set_default', {
                               target: targetLabel(p.target_role),
@@ -484,8 +484,8 @@ export default function AdminPackagesPage() {
                         style={{
                           padding: '8px 14px',
                           background: 'transparent',
-                          color: 'var(--color-text-secondary, #64748b)',
-                          border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+                          color: 'var(--sk-muted)',
+                          border: '0.5px solid var(--sk-border)',
                           borderRadius: 8,
                           fontSize: 12,
                           fontWeight: 500,
@@ -521,26 +521,26 @@ export default function AdminPackagesPage() {
         id="migrate"
         style={{
           scrollMarginTop: 24,
-          background: 'var(--color-background-primary, #fff)',
-          border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+          background: 'var(--sk-surface)',
+          border: '0.5px solid var(--sk-border)',
           borderRadius: 12,
           padding: '18px 22px',
           marginTop: 20,
         }}
       >
-        <h2 style={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--color-text-secondary, #64748b)', marginBottom: 6 }}>
+        <h2 style={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--sk-muted)', marginBottom: 6 }}>
           {t('packages.section_migrate')}
         </h2>
-        <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 6px' }}>
+        <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 6px' }}>
           {t('packages.migrate_subtitle')}
         </p>
-        <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '0 0 14px' }}>
+        <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '0 0 14px' }}>
           {t('packages.migrate_intro')}
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
           <div>
-            <label htmlFor="mig_from" style={{ display: 'block', fontSize: 12, color: 'var(--color-text-secondary, #64748b)', fontWeight: 500, marginBottom: 6 }}>
+            <label htmlFor="mig_from" style={{ display: 'block', fontSize: 12, color: 'var(--sk-muted)', fontWeight: 500, marginBottom: 6 }}>
               {t('packages.field_migrate_from')}
             </label>
             <select
@@ -558,7 +558,7 @@ export default function AdminPackagesPage() {
             </select>
           </div>
           <div>
-            <label htmlFor="mig_to" style={{ display: 'block', fontSize: 12, color: 'var(--color-text-secondary, #64748b)', fontWeight: 500, marginBottom: 6 }}>
+            <label htmlFor="mig_to" style={{ display: 'block', fontSize: 12, color: 'var(--sk-muted)', fontWeight: 500, marginBottom: 6 }}>
               {t('packages.field_migrate_to')}
             </label>
             <select
@@ -600,8 +600,8 @@ export default function AdminPackagesPage() {
             style={{
               padding: '9px 16px',
               background: 'transparent',
-              color: !migFrom || !migTo ? 'var(--color-text-tertiary, #94a3b8)' : '#00B9FF',
-              border: `0.5px solid ${!migFrom || !migTo ? 'var(--color-border-tertiary, #e5e7eb)' : '#00B9FF'}`,
+              color: !migFrom || !migTo ? 'var(--sk-faint)' : '#00B9FF',
+              border: `0.5px solid ${!migFrom || !migTo ? 'var(--sk-border)' : '#00B9FF'}`,
               borderRadius: 10,
               fontSize: 13,
               fontWeight: 500,
@@ -613,7 +613,7 @@ export default function AdminPackagesPage() {
           </button>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>
+            <span style={{ fontSize: 13, color: 'var(--sk-text)' }}>
               {t('packages.migrate_preview_result', {
                 count: migPreview,
                 from: nameOf(migFrom),
@@ -646,8 +646,8 @@ export default function AdminPackagesPage() {
               style={{
                 padding: '9px 16px',
                 background: 'transparent',
-                color: 'var(--color-text-secondary, #64748b)',
-                border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+                color: 'var(--sk-muted)',
+                border: '0.5px solid var(--sk-border)',
                 borderRadius: 10,
                 fontSize: 13,
                 fontWeight: 500,

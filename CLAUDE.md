@@ -481,10 +481,20 @@ bouton Retour. Il est monté par les **sub-layouts**, jamais par une page.
 · un **second plein écran** (`minHeight: 100vh`) sous un en-tête de 60 px ;
 · un **numéro de section** peint en vert, en ambre ou en rouge : ce sont des états (§E.54).
 
-> **L'ADMIN GARDE LE MÊME CADRE ; SEUL LE CONTENU DE SON MENU DIFFÈRE.** Décision de Youssef. Sa
-> migration a son propre commit, parce qu'elle porte une dette à part : cinq jetons `--color-*` qui
-> **ne sont définis nulle part** dans le dépôt, donc cinq valeurs de secours en dur — le back-office
-> ne suit **aucune palette d'écosystème**.
+> **L'ADMIN GARDE LE MÊME CADRE ; SEUL LE CONTENU DE SON MENU DIFFÈRE.** Décision de Youssef,
+> **appliquée le 21/09/2026** : barre latérale de 248 px en `--sk-bandeau`, barre supérieure — il
+> n'en avait **aucune** —, et le même modèle de défilement.
+> Sa dette est payée avec : **574 occurrences** de jetons `--color-*` qui n'étaient **définis nulle
+> part** et retombaient en silence sur des valeurs en dur. Le back-office ne suivait **aucune palette
+> d'écosystème**. Détail et correspondance en **§C.15** ([architecture](docs/architecture.md)).
+
+> **UN JETON QUI NE RÉSOUT NULLE PART NE SE VOIT PAS.** `var(--truc)` non défini prend sa valeur de
+> secours, **sans erreur ni style manquant** — famille de §E.48. Le contrôle vérifie donc la
+> **définition** de chaque propriété lue, jamais un préfixe de nom (§E.34) : un jeton inventé demain
+> est attrapé sans qu'on l'ajoute à une liste. **48 occurrences restent, hors admin, gelées
+> nommément** dans six fichiers ; le compte ne peut que descendre.
+> Deux exemptions déclarées : les `--font-*` (posées par `next/font` dans une feuille générée au
+> build) et celles qu'un composant pose **sur sa propre racine** et relit dans son `<style>`.
 
 **Gardé par [`diag-coquille-unique`](scripts/diag-coquille-unique.mjs)** — 7 mutations, 7 détections.
 Il s'ancre sur le **comportement**, pas sur un nom (§E.34) : ce qui est refusé, c'est un layout qui

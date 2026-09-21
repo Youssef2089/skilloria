@@ -30,8 +30,8 @@ type Reponse = {
 }
 
 const cardStyle: React.CSSProperties = {
-  background: 'var(--color-surface, #fff)',
-  border: '1px solid var(--color-border, #e2e8f0)',
+  background: 'var(--sk-surface)',
+  border: '1px solid var(--sk-border)',
   borderRadius: 12,
   padding: 20,
   marginBottom: 16,
@@ -40,20 +40,20 @@ const sectionTitle: React.CSSProperties = {
   fontSize: 15,
   fontWeight: 600,
   margin: '0 0 4px',
-  color: 'var(--color-text-primary, #0f172a)',
+  color: 'var(--sk-text)',
 }
 const labelStyle: React.CSSProperties = {
   display: 'block',
   fontSize: 12,
   fontWeight: 500,
   marginBottom: 6,
-  color: 'var(--color-text-secondary, #64748b)',
+  color: 'var(--sk-muted)',
 }
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '9px 11px',
   fontSize: 14,
-  border: '1px solid var(--color-border, #e2e8f0)',
+  border: '1px solid var(--sk-border)',
   borderRadius: 8,
   background: '#fff',
   color: 'inherit',
@@ -132,23 +132,23 @@ export default function QuotasIaPage() {
 
   return (
     <div style={{ width: '100%', textAlign: 'left' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 4px', color: 'var(--color-text-primary, #0f172a)' }}>
+      <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 4px', color: 'var(--sk-text)' }}>
         {t('title')}
       </h1>
-      <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 20px', maxWidth: 640 }}>
+      <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 20px', maxWidth: 640 }}>
         {t('intro')}
       </p>
 
       <section style={cardStyle}>
         <h2 style={sectionTitle}>{t('cv_title')}</h2>
-        <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '0 0 16px', maxWidth: 640 }}>
+        <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '0 0 16px', maxWidth: 640 }}>
           {t('cv_hint')}
         </p>
 
         {chargement ? (
-          <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)' }}>{t('loading')}</p>
+          <p style={{ fontSize: 13, color: 'var(--sk-muted)' }}>{t('loading')}</p>
         ) : erreurChargement ? (
-          <p role="alert" style={{ fontSize: 13, color: 'var(--color-error, #dc2626)' }}>
+          <p role="alert" style={{ fontSize: 13, color: 'var(--sk-red)' }}>
             {erreurChargement}
           </p>
         ) : (
@@ -190,7 +190,7 @@ export default function QuotasIaPage() {
 
             {/* La phrase que le réglage produit, en toutes lettres : un nombre
                 et une durée dans deux champs séparés se lisent mal. */}
-            <p style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)', margin: '14px 0 0' }}>
+            <p style={{ fontSize: 13, color: 'var(--sk-text)', margin: '14px 0 0' }}>
               {t('summary', { max: Number(max) || 0, hours: Number(fenetre) || 0 })}
             </p>
 
@@ -200,7 +200,7 @@ export default function QuotasIaPage() {
                 style={{
                   fontSize: 13,
                   margin: '12px 0 0',
-                  color: msg.kind === 'err' ? 'var(--color-error, #dc2626)' : 'var(--color-success, #16a34a)',
+                  color: msg.kind === 'err' ? 'var(--sk-red)' : 'var(--sk-success)',
                 }}
               >
                 {msg.text}
@@ -218,7 +218,7 @@ export default function QuotasIaPage() {
                 fontWeight: 500,
                 borderRadius: 8,
                 border: 'none',
-                background: 'var(--color-primary, #2563eb)',
+                background: 'var(--sk-accent)',
                 color: '#fff',
                 cursor: enregistrement ? 'not-allowed' : 'pointer',
                 opacity: enregistrement ? 0.6 : 1,

@@ -924,18 +924,77 @@ retirer en silence aurait ôté, sur la page consacrée au profil, l'endroit mê
 | `reactivation/page.tsx` | vit **hors** de `/dashboard`, délibérément : sous la garde de suppression, elle produirait une boucle de redirection. |
 | `invitation/[token]/page.tsx` | le destinataire n'est pas encore membre — il n'a pas de cadre à recevoir. |
 
-#### La dette qui reste, nommée
+#### Le cadre ADMIN, et la dette qu'il portait
 
-> **LE CADRE ADMIN NE SUIT AUCUNE PALETTE D'ÉCOSYSTÈME, et c'est mesuré.** Il lit cinq jetons —
-> `--color-background-secondary`, `--color-border-tertiary`, `--color-text-primary`,
-> `--color-text-secondary`, `--color-text-tertiary` — qui **ne sont définis nulle part** dans le
-> dépôt : ni `app/globals.css` (qui ne déclare que `--color-background` et `--color-foreground`), ni
-> `lib/palette.ts` (qui n'émet que des `--sk-*`). Ils retombent donc **systématiquement** sur leurs
-> valeurs de secours en dur — `#f8fafc`, `#e5e7eb`, `#0f172a`, `#64748b`, `#94a3b8` — auxquelles
-> s'ajoutent un `#fff` sur la barre latérale et un `#00B9FF` sur un bouton.
->
-> Il n'a **pas de barre supérieure** non plus. Sa migration est un lot à lui seul : le cadre reste le
-> même par décision produit, seul le **contenu du menu** diffère.
+Migré le 21/09/2026. Décision de Youssef : **le même cadre que le reste, seul le contenu du menu
+diffère.**
+
+| | Avant | Après |
+|---|---|---|
+| Barre latérale | **220 px**, peinte `#fff` **en dur** | 248 px, `--sk-bandeau` |
+| Barre supérieure | **aucune** | la même que partout, `side="admin"` |
+| Fond de page | `--color-background-secondary` (non défini) | `--sk-bg` |
+| Défilement | `minHeight: 100vh` en grille — **la page entière défilait, menu compris** | le `<main>` défile, le cadre reste |
+| Sélecteur de langue | en bas de la barre latérale | dans la barre supérieure, comme partout |
+
+**LA BARRE SUPÉRIEURE EST LA MÊME, PAS UNE SECONDE.** `DashboardTopbar` accepte désormais
+`side="admin"` et rend alors le titre et la langue, sans cloche, sans messagerie, sans sélecteur
+d'écosystème — un administrateur n'a rien à faire de ces trois-là. Écrire un `AdminTopbar` à côté
+aurait produit deux barres jumelles : corriger la hauteur de l'une aurait laissé l'autre derrière, et
+la seconde se serait lue comme corrigée (§E.20).
+
+**LE TITRE VIENT DU MENU, PAS D'UNE SECONDE LISTE.** `ADMIN_NAV_SECTIONS` porte déjà le nom de chaque
+écran. Une table « chemin → titre » aurait créé deux inventaires des mêmes écrans, et le second aurait
+vieilli seul : une entrée ajoutée au menu serait apparue à gauche et pas en haut.
+
+#### Les jetons qui ne résolvaient nulle part — 574 occurrences
+
+Le back-office lisait cinq propriétés `--color-*` **définies nulle part** : ni dans `app/globals.css`
+(qui ne déclare que `--color-background` et `--color-foreground`), ni dans `lib/palette.ts` (qui
+n'émet que des `--sk-*`). Elles retombaient donc **systématiquement** sur leur valeur de secours en
+dur, et **le back-office ne suivait aucune palette d'écosystème**.
+
+> **ET ÇA NE LÈVE RIEN.** Un `var()` dont la propriété n'existe pas prend sa valeur de secours, en
+> silence : ni erreur, ni avertissement, ni style manquant. C'est la famille de §E.48 — une variable
+> qui ne résout pas ne se voit pas.
+
+**La correspondance n'a pas été devinée : elle était déjà écrite dans le dépôt.** Six de ces jetons
+portaient **déjà** un `var(--sk-*)` en valeur de secours à certains endroits — la trace d'une
+migration commencée et jamais finie. C'est donc le dépôt qui a dit vers quoi chacun allait.
+
+| Jeton | Devient | Occurrences |
+|---|---|---|
+| `--color-text-secondary` | `--sk-muted` | 163 |
+| `--color-text-primary` | `--sk-text` | 110 |
+| `--color-text-tertiary` | `--sk-faint` | 75 |
+| `--color-border-tertiary` · `--color-border` | `--sk-border` | 96 |
+| `--color-background-primary` · `--color-surface` | `--sk-surface` | 43 |
+| `--color-background-secondary` · `--color-surface-subtle` | `--sk-surface-2` | 19 |
+| `--color-error` · `--color-error-soft` | `--sk-red` · `--sk-red-soft` | 40 |
+| `--color-primary` | `--sk-accent` | 12 |
+| `--color-warning` · `--color-warning-soft` | `--sk-amber` · `--sk-amber-soft` | 12 |
+| `--color-success` | `--sk-success` | 4 |
+
+**Les valeurs de secours ont DISPARU avec, et c'est le point** : un jeton `--sk-*` est toujours défini
+— posé sur `<html>` par le layout racine — donc un secours n'aurait plus servi qu'à masquer une faute
+de frappe dans un nom.
+
+> ⚠️ **LES 75 `--sk-faint` DE L'ADMIN RESTENT À LIRE UN PAR UN.** La correspondance est mécanique et
+> préserve l'intention visuelle (le gris ardoise `#94a3b8` ≈ le texte tenu), mais §D.12 interdit à
+> `--sk-faint` de porter **une information** : il vaut 3,63 de contraste. Aucun motif ne distingue un
+> repère d'un texte qu'on lit — cette moitié-là se lit écran par écran (§E.38).
+
+**48 occurrences restent hors de l'espace admin**, dans six fichiers, gelées nommément dans
+`diag-coquille-unique` : `AnnonceCard` (26), `OrganisationDashboard` (14), `not-found` (3),
+`LegalFooter` (3), `MissionCard` (1), `PublicationForm` (1). Gel d'**état mesuré** (§G.8) : le compte
+ne peut que descendre, et tout fichier NOUVEAU fait rougir.
+
+**Deux exemptions déclarées, avec leur raison** : les propriétés `--font-*`, posées par `next/font`
+dans une feuille générée au build que le contrôle ne peut pas lire ; et les propriétés qu'un composant
+pose **sur sa propre racine** et relit dans son `<style>` (`--avatar-primary`, `--tjm-primary`,
+`--compact-accent`) — un usage local parfaitement valide, que le compter comme orphelin ferait crier
+à tort, donc désactiver dans la semaine (§E.14).
+
 
 ## F. La classe de défaut « lire puis écrire »
 

@@ -243,9 +243,9 @@ export default function AdminUsersListPage() {
   const selectStyle: React.CSSProperties = {
     padding: '8px 10px',
     borderRadius: 9,
-    border: '1px solid var(--color-border-tertiary, #e5e7eb)',
-    background: 'var(--color-background-primary, #fff)',
-    color: 'var(--color-text-primary, #0f172a)',
+    border: '1px solid var(--sk-border)',
+    background: 'var(--sk-surface)',
+    color: 'var(--sk-text)',
     fontSize: 13,
     fontFamily: 'inherit',
   }
@@ -260,7 +260,7 @@ export default function AdminUsersListPage() {
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit' }}>
       <style>{`
-        .sk-users-row:hover { background: var(--color-background-secondary, #f8fafc); }
+        .sk-users-row:hover { background: var(--sk-surface-2); }
         @media (max-width: 900px) {
           /* Mobile-first : le tableau devient une pile de cartes lisibles. */
           .sk-users-head { display: none !important; }
@@ -289,10 +289,10 @@ export default function AdminUsersListPage() {
 
       <header style={{ marginBottom: 18, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary, #0f172a)', margin: 0, letterSpacing: '-0.2px' }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--sk-text)', margin: 0, letterSpacing: '-0.2px' }}>
             {t('title')}
           </h1>
-          <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '4px 0 0', lineHeight: 1.55 }}>
+          <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '4px 0 0', lineHeight: 1.55 }}>
             {t('subtitle')}
           </p>
         </div>
@@ -303,7 +303,7 @@ export default function AdminUsersListPage() {
           onClick={() => { setToast(null); setCreateOpen(true) }}
           style={{
             padding: '9px 15px', borderRadius: 9, border: 'none',
-            background: 'var(--color-text-primary, #0f172a)', color: '#fff',
+            background: 'var(--sk-text)', color: '#fff',
             fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
           }}
         >
@@ -354,7 +354,7 @@ export default function AdminUsersListPage() {
           <button
             type="button"
             onClick={() => setParams({ type: null, status: null, domain_id: null, verification: null, q: null })}
-            style={{ ...selectStyle, cursor: 'pointer', fontWeight: 600, color: 'var(--color-text-secondary, #64748b)' }}
+            style={{ ...selectStyle, cursor: 'pointer', fontWeight: 600, color: 'var(--sk-muted)' }}
           >
             {t('filter_reset')}
           </button>
@@ -362,7 +362,7 @@ export default function AdminUsersListPage() {
       </form>
 
       {/* Compteur : décrit la requête FILTRÉE, jamais la table entière. */}
-      <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary, #64748b)', marginBottom: 10 }}>
+      <div style={{ fontSize: 12.5, color: 'var(--sk-muted)', marginBottom: 10 }}>
         {loading ? t('loading') : t('count_total', { count: total })}
       </div>
 
@@ -371,19 +371,19 @@ export default function AdminUsersListPage() {
           {error}
         </div>
       ) : !loading && users.length === 0 ? (
-        <div style={{ padding: '48px 24px', textAlign: 'center', background: 'var(--color-background-primary, #fff)', border: '0.5px solid var(--color-border-tertiary, #e5e7eb)', borderRadius: 12 }}>
-          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-text-primary, #0f172a)', marginBottom: 6 }}>{t('empty_title')}</div>
-          <div style={{ fontSize: 13.5, color: 'var(--color-text-secondary, #64748b)' }}>{t('empty_body')}</div>
+        <div style={{ padding: '48px 24px', textAlign: 'center', background: 'var(--sk-surface)', border: '0.5px solid var(--sk-border)', borderRadius: 12 }}>
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>{t('empty_title')}</div>
+          <div style={{ fontSize: 13.5, color: 'var(--sk-muted)' }}>{t('empty_body')}</div>
         </div>
       ) : (
-        <div style={{ background: 'var(--color-background-primary, #fff)', border: '0.5px solid var(--color-border-tertiary, #e5e7eb)', borderRadius: 12, overflowX: 'auto' }}>
+        <div style={{ background: 'var(--sk-surface)', border: '0.5px solid var(--sk-border)', borderRadius: 12, overflowX: 'auto' }}>
           <div
             className="sk-users-head"
             style={{
               display: 'grid', gridTemplateColumns: GRID, minWidth: 880,
-              padding: '10px 18px', borderBottom: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
-              background: 'var(--color-background-secondary, #f8fafc)', fontSize: 11, fontWeight: 500,
-              color: 'var(--color-text-secondary, #64748b)', textTransform: 'uppercase', letterSpacing: '.05em',
+              padding: '10px 18px', borderBottom: '0.5px solid var(--sk-border)',
+              background: 'var(--sk-surface-2)', fontSize: 11, fontWeight: 500,
+              color: 'var(--sk-muted)', textTransform: 'uppercase', letterSpacing: '.05em',
             }}
           >
             <span>{t('col_user')}</span>
@@ -404,8 +404,8 @@ export default function AdminUsersListPage() {
                 className="sk-users-row"
                 style={{
                   display: 'grid', gridTemplateColumns: GRID, minWidth: 880,
-                  padding: '13px 18px', borderBottom: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
-                  textDecoration: 'none', color: 'var(--color-text-primary, #0f172a)',
+                  padding: '13px 18px', borderBottom: '0.5px solid var(--sk-border)',
+                  textDecoration: 'none', color: 'var(--sk-text)',
                   fontSize: 13, alignItems: 'center', transition: 'background .12s',
                 }}
               >
@@ -413,11 +413,11 @@ export default function AdminUsersListPage() {
                   <span style={{ display: 'block', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {fullName || '—'}
                   </span>
-                  <span style={{ display: 'block', fontSize: 12, color: 'var(--color-text-secondary, #64748b)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ display: 'block', fontSize: 12, color: 'var(--sk-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {u.email ?? '—'}
                   </span>
                 </span>
-                <span className="sk-users-meta" style={{ fontSize: 12.5, color: 'var(--color-text-secondary, #475569)' }}>
+                <span className="sk-users-meta" style={{ fontSize: 12.5, color: 'var(--sk-muted)' }}>
                   {u.user_type ? t(`type_${u.user_type}` as 'type_admin') : '—'}
                 </span>
                 <span>
@@ -426,15 +426,15 @@ export default function AdminUsersListPage() {
                     {u.status ? t(`status_${u.status}` as 'status_active') : '—'}
                   </span>
                 </span>
-                <span style={{ fontSize: 12.5, color: 'var(--color-text-secondary, #475569)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 12.5, color: 'var(--sk-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {u.ecosystem?.name ?? u.ecosystem?.slug ?? '—'}
                 </span>
-                <span style={{ fontSize: 12.5, color: 'var(--color-text-secondary, #475569)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 12.5, color: 'var(--sk-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {u.organization
                     ? `${u.organization.company_name ?? '—'} (${t(`role_${u.organization.role_in_org}` as 'role_admin')})`
                     : t('no_organization')}
                 </span>
-                <span style={{ fontSize: 12.5, color: 'var(--color-text-secondary, #64748b)' }}>
+                <span style={{ fontSize: 12.5, color: 'var(--sk-muted)' }}>
                   {u.last_login_at ? dateFmt.format(new Date(u.last_login_at)) : t('never_logged_in')}
                 </span>
               </Link>
@@ -446,7 +446,7 @@ export default function AdminUsersListPage() {
       {/* ── Pagination : « X sur Y » exact, jamais de troncature muette ─── */}
       {!error && total > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 14, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12.5, color: 'var(--color-text-secondary, #64748b)' }}>
+          <span style={{ fontSize: 12.5, color: 'var(--sk-muted)' }}>
             {t('showing', { shown: users.length, total })} · {t('page_of', { page })}
           </span>
           <span style={{ display: 'flex', gap: 8 }}>
@@ -554,7 +554,7 @@ export default function AdminUsersListPage() {
                 onClick={() => { setCreateOpen(false); setReauthOpen(true) }}
                 style={{
                   padding: '9px 15px', borderRadius: 9, border: 'none',
-                  background: 'var(--color-text-primary, #0f172a)', color: '#fff',
+                  background: 'var(--sk-text)', color: '#fff',
                   fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
                   cursor: createBusy ? 'not-allowed' : 'pointer',
                   opacity:

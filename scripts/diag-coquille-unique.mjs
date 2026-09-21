@@ -49,7 +49,7 @@
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { dirname, join, relative, sep } from 'node:path'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -187,21 +187,35 @@ section('D. L en-tête et la barre latérale portent la MÊME couleur')
   const topbar = sansCommentaires(lire('components/shell/DashboardTopbar.tsx'))
   const sidebar = sansCommentaires(lire('components/shell/DashboardSidebar.tsx'))
 
-  const fondDe = (src, balise) => {
-    const i = src.indexOf(balise)
-    if (i < 0) return null
-    const m = src.slice(i, i + 700).match(/background: '(var\(--sk-[a-z0-9-]+\))'/)
-    return m ? m[1] : null
-  }
-  const fondTopbar = fondDe(topbar, '<header')
-  const fondSidebar = fondDe(sidebar, '<aside')
+  // ⚠️ TOUS LES `<header>`, PAS LE PREMIER (§E.8).
+  //
+  //    La première version lisait `indexOf('<header')` — le PREMIER. Depuis
+  //    que la barre supérieure sert aussi l'admin, ce fichier en contient
+  //    DEUX : repeindre le second en blanc serait passé inaperçu, et le
+  //    contrôle aurait déclaré vert un cadre à deux couleurs. Exactement la
+  //    panne qu'il est écrit pour empêcher.
+  const fondsDe = (src, balise) =>
+    src
+      .split(balise)
+      .slice(1)
+      .map((bloc) => {
+        const m = bloc.slice(0, 700).match(/background: '(var\(--sk-[a-z0-9-]+\))'/)
+        return m ? m[1] : null
+      })
 
-  ok(fondTopbar !== null && fondSidebar !== null,
-    `les deux fonds sont lisibles (en-tête ${fondTopbar} · barre ${fondSidebar})`)
-  ok(fondTopbar === fondSidebar,
-    'et ils sont IDENTIQUES',
+  const fondsTopbar = fondsDe(topbar, '<header')
+  const fondsSidebar = fondsDe(sidebar, '<aside')
+
+  ok(fondsTopbar.length > 0 && fondsTopbar.every((f) => f !== null),
+    `les ${fondsTopbar.length} en-tête(s) déclarent un fond (${fondsTopbar.join(' · ')})`)
+  ok(fondsSidebar.length > 0 && fondsSidebar.every((f) => f !== null),
+    `la barre latérale aussi (${fondsSidebar.join(' · ')})`)
+
+  const tous = [...fondsTopbar, ...fondsSidebar]
+  ok(new Set(tous).size === 1,
+    'et TOUS portent la MÊME couleur',
     'l en-tete etait en --sk-surface (le blanc des CARTES) pendant que la barre laterale etait en --sk-bandeau : deux surfaces du meme cadre, deux couleurs')
-  ok(fondTopbar === 'var(--sk-bandeau)',
+  ok(tous.every((f) => f === 'var(--sk-bandeau)'),
     'et c est le BEIGE du cadre, choisi par le propriétaire du produit',
     '--sk-surface-2 porte aujourd hui la meme valeur mais ne dit pas la meme chose : il nomme un fond DANS une carte')
 }
@@ -241,6 +255,115 @@ section('D bis. Les pages SANS cadre sont celles-là, et pas une de plus')
   for (const [p, raison] of Object.entries(SANS_CADRE)) {
     ok(existsSync(join(ROOT, p)), `${p.replace(`${ESPACE}/`, '')} existe — ${raison}`)
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+section('D ter. Aucun jeton qui ne résout NULLE PART')
+// ══════════════════════════════════════════════════════════════════════════
+//
+//  ┌─ LE DÉFAUT ─────────────────────────────────────────────────────────┐
+//  │ Le cadre admin lisait cinq jetons `--color-*` qui n'étaient définis  │
+//  │ NULLE PART. Ils retombaient donc systématiquement sur leur valeur de │
+//  │ secours en dur, et le back-office ne suivait AUCUNE palette          │
+//  │ d'écosystème — 574 occurrences sur 22 fichiers.                      │
+//  │                                                                      │
+//  │ ET ÇA NE LÈVE RIEN. Un `var()` dont la propriété n'existe pas prend  │
+//  │ sa valeur de secours, en silence : ni erreur, ni style manquant.     │
+//  │ C'est la famille de §E.48 — une variable qui ne résout pas ne se     │
+//  │ voit pas.                                                            │
+//  └──────────────────────────────────────────────────────────────────────┘
+//
+//  ⚠️ LE CONTRÔLE VÉRIFIE LA DÉFINITION, PAS UN NOM (§E.34). Il ne cherche
+//     pas « --color- » : il relève CHAQUE jeton lu, et exige que chacun soit
+//     défini quelque part. Un jeton `--truc-machin` inventé demain serait
+//     attrapé par la même règle, sans qu'on ait à l'ajouter à une liste.
+{
+  const DEFINITIONS = [
+    lire('app/globals.css'),
+    lire('lib/palette.ts'),
+  ].join('\n')
+
+  const racines = [
+    join(ROOT, 'app'),
+    join(ROOT, 'components'),
+    join(ROOT, 'lib'),
+  ]
+  const sources = []
+  const balayer = (d) => {
+    for (const e of readdirSync(d)) {
+      const p = join(d, e)
+      if (statSync(p).isDirectory()) balayer(p)
+      else if (/\.(tsx|ts|css)$/.test(e)) sources.push(p)
+    }
+  }
+  racines.forEach(balayer)
+
+  // GEL D'ÉTAT MESURÉ (§G.8) : voici les fichiers qui portent encore des
+  // jetons non définis, au 21/09/2026. Ils vivent HORS de l'espace admin —
+  // un commit par espace — et le lot du parcours complet les videra. Le
+  // compte ne peut que DESCENDRE.
+  const GEL_NON_RESOLUS = {
+    'components/dashboard/AnnonceCard.tsx': 26,
+    'components/dashboard/OrganisationDashboard.tsx': 14,
+    'app/[locale]/not-found.tsx': 3,
+    'components/layout/LegalFooter.tsx': 3,
+    'components/dashboard/MissionCard.tsx': 1,
+    'components/dashboard/PublicationForm.tsx': 1,
+  }
+
+  // ── CE QUI COMPTE COMME « DÉFINI », ET POURQUOI ────────────────────────
+  //
+  //  ① `app/globals.css` et `lib/palette.ts` — les deux sources de jetons.
+  //  ② LE FICHIER LUI-MÊME. Plusieurs composants posent une propriété sur
+  //     leur propre racine (`['--avatar-primary']: 'var(--sk-accent)'`) et la
+  //     lisent dans leur `<style>`. C'est un usage LOCAL parfaitement valide,
+  //     et le compter comme orphelin ferait crier le contrôle à tort — donc
+  //     le ferait désactiver dans la semaine (§E.14).
+  //  ③ LES POLICES. `--font-jakarta` et ses semblables sont déclarées par
+  //     `next/font` dans une feuille générée au build, que ce contrôle ne
+  //     peut pas lire. EXEMPTION DÉCLARÉE, avec sa raison (§E.38) — et
+  //     bornée au préfixe `--font-`, pas ouverte à tout.
+  const estUnePolice = (j) => j.startsWith('--font-')
+
+  const mesure = {}
+  for (const p of sources) {
+    const rel = relative(ROOT, p).split(sep).join('/')
+    if (rel === 'app/globals.css' || rel === 'lib/palette.ts') continue
+    const src = sansCommentaires(readFileSync(p, 'utf8').split('\r\n').join('\n'))
+    const lus = [...src.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1])
+    const orphelins = lus.filter(
+      (j) =>
+        !estUnePolice(j) &&
+        !DEFINITIONS.includes(`'${j}'`) &&
+        !DEFINITIONS.includes(`${j}:`) &&
+        // Posé par le fichier lui-même, sur sa propre racine.
+        !src.includes(`'${j}' as string`) &&
+        !src.includes(`['${j}']`),
+    )
+    if (orphelins.length > 0) mesure[rel] = orphelins.length
+  }
+
+  const nouveaux = Object.keys(mesure).filter((f) => !(f in GEL_NON_RESOLUS))
+  ok(nouveaux.length === 0,
+    'aucun FICHIER NOUVEAU ne lit un jeton qui ne résout nulle part',
+    `vu dans : ${nouveaux.join(', ')} — un var() sans definition prend son secours EN SILENCE`)
+
+  const remontes = Object.entries(mesure).filter(([f, n]) => f in GEL_NON_RESOLUS && n > GEL_NON_RESOLUS[f])
+  ok(remontes.length === 0,
+    'et aucun fichier gelé n en a GAGNÉ',
+    `${remontes.map(([f, n]) => `${f} : ${GEL_NON_RESOLUS[f]} → ${n}`).join(' · ')}`)
+
+  const totalGel = Object.values(GEL_NON_RESOLUS).reduce((a, b) => a + b, 0)
+  const totalMesure = Object.values(mesure).reduce((a, b) => a + b, 0)
+  ok(totalMesure <= totalGel,
+    `le compte ne remonte pas (${totalMesure} mesurés, ${totalGel} gelés)`)
+
+  const vides = Object.keys(GEL_NON_RESOLUS).filter((f) => !(f in mesure))
+  if (vides.length > 0) {
+    note(`✔ ${vides.length} fichier(s) ont quitté le gel : ${vides.join(', ')}`)
+    note('  → faites descendre GEL_NON_RESOLUS dans ce fichier.')
+  }
+  note(`espace admin : ${Object.keys(mesure).filter((f) => f.includes('/admin')).length} fichier(s) restant(s) — attendu 0`)
 }
 
 // ══════════════════════════════════════════════════════════════════════════

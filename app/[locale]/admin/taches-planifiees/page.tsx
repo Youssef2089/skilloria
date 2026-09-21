@@ -85,7 +85,7 @@ const TONE: Record<'red' | 'amber' | 'grey' | 'green', { bg: string; border: str
   red: { bg: '#FEF2F2', border: '#FCA5A5', fg: '#991B1B', dot: '#DC2626' },
   amber: { bg: '#FEFCE8', border: '#FDE68A', fg: '#713F12', dot: '#CA8A04' },
   grey: { bg: '#F8FAFC', border: '#E2E8F0', fg: '#475569', dot: '#94A3B8' },
-  green: { bg: 'var(--color-background-primary, #fff)', border: '#E2E8F0', fg: '#166534', dot: '#16A34A' },
+  green: { bg: 'var(--sk-surface)', border: '#E2E8F0', fg: '#166534', dot: '#16A34A' },
 }
 
 export default function AdminScheduledTasksPage() {
@@ -300,9 +300,9 @@ export default function AdminScheduledTasksPage() {
   const actionBtn = (danger: boolean): React.CSSProperties => ({
     padding: '8px 13px',
     borderRadius: 9,
-    border: danger ? '1px solid #FCA5A5' : '1px solid var(--color-border-tertiary, #e5e7eb)',
-    background: danger ? '#FEE2E2' : 'var(--color-background-primary, #fff)',
-    color: danger ? '#991B1B' : 'var(--color-text-primary, #0f172a)',
+    border: danger ? '1px solid #FCA5A5' : '1px solid var(--sk-border)',
+    background: danger ? '#FEE2E2' : 'var(--sk-surface)',
+    color: danger ? '#991B1B' : 'var(--sk-text)',
     fontSize: 12.5, fontWeight: 600, fontFamily: 'inherit',
     cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1,
   })
@@ -329,13 +329,13 @@ export default function AdminScheduledTasksPage() {
       )}
 
       <header style={{ marginBottom: 18 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary, #0f172a)', margin: 0, letterSpacing: '-0.2px' }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--sk-text)', margin: 0, letterSpacing: '-0.2px' }}>
           {t('title')}
         </h1>
-        <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '4px 0 0', lineHeight: 1.55, maxWidth: 760 }}>
+        <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '4px 0 0', lineHeight: 1.55, maxWidth: 760 }}>
           {t('subtitle')}
         </p>
-        <p style={{ fontSize: 12.5, color: 'var(--color-text-tertiary, #94a3b8)', margin: '6px 0 0' }}>
+        <p style={{ fontSize: 12.5, color: 'var(--sk-faint)', margin: '6px 0 0' }}>
           {t('utc_hint')}
         </p>
       </header>
@@ -351,7 +351,7 @@ export default function AdminScheduledTasksPage() {
       )}
 
       {loading && (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-text-secondary, #64748b)', fontSize: 14 }}>
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14 }}>
           {t('loading')}
         </div>
       )}
@@ -364,10 +364,10 @@ export default function AdminScheduledTasksPage() {
 
       {!loading && !error && pendingMigration === null && jobs?.length === 0 && (
         <div style={{ ...card, background: '#F8FAFC', borderColor: '#E2E8F0' }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary, #0f172a)', marginBottom: 5 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 5 }}>
             {t('empty_title')}
           </div>
-          <div style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 13, color: 'var(--sk-muted)', lineHeight: 1.6 }}>
             {t('empty_body')}
           </div>
         </div>
@@ -393,7 +393,7 @@ export default function AdminScheduledTasksPage() {
                     href={`/admin/taches-planifiees/${encodeURIComponent(j.job_name)}`}
                     style={{
                       fontSize: 15, fontWeight: 700,
-                      color: 'var(--color-text-primary, #0f172a)', textDecoration: 'none',
+                      color: 'var(--sk-text)', textDecoration: 'none',
                     }}
                   >
                     {labelOf(j)}
@@ -408,7 +408,7 @@ export default function AdminScheduledTasksPage() {
                 </div>
 
                 {j.description_key && (
-                  <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 6px', lineHeight: 1.55 }}>
+                  <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 6px', lineHeight: 1.55 }}>
                     {t(j.description_key as 'title')}
                   </p>
                 )}
@@ -424,13 +424,13 @@ export default function AdminScheduledTasksPage() {
                 )}
 
                 {/* Faits bruts : horaire, dernière exécution, verdict HTTP. */}
-                <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary, #64748b)', lineHeight: 1.7 }}>
+                <div style={{ fontSize: 12.5, color: 'var(--sk-muted)', lineHeight: 1.7 }}>
                   <div>
                     <strong style={{ fontWeight: 600 }}>{t('field_schedule')}</strong>{' '}
                     <code style={{ fontSize: 12 }}>{j.schedule ?? '—'}</code>
                     {j.period_minutes === null && ` · ${t('schedule_advanced')}`}
                     {local && (
-                      <span style={{ color: 'var(--color-text-tertiary, #94a3b8)' }}> · {local}</span>
+                      <span style={{ color: 'var(--sk-faint)' }}> · {local}</span>
                     )}
                   </div>
                   <div>
@@ -457,7 +457,7 @@ export default function AdminScheduledTasksPage() {
                     </div>
                   )}
                   {j.depends_on.length > 0 && (
-                    <div style={{ color: 'var(--color-text-tertiary, #94a3b8)' }}>
+                    <div style={{ color: 'var(--sk-faint)' }}>
                       {t('chain_notice', {
                         minutes: j.min_gap_minutes,
                         jobs: j.depends_on
@@ -547,7 +547,7 @@ export default function AdminScheduledTasksPage() {
               placeholder={toggling.job.job_name}
               style={{
                 width: '100%', boxSizing: 'border-box', padding: '9px 12px', borderRadius: 9,
-                border: '1px solid var(--color-border-tertiary, #e5e7eb)', fontSize: 13,
+                border: '1px solid var(--sk-border)', fontSize: 13,
                 fontFamily: 'inherit', marginBottom: 16,
               }}
             />
@@ -604,7 +604,7 @@ export default function AdminScheduledTasksPage() {
                 {t('confirm_run_disabled')}
               </p>
             )}
-            <p style={{ fontSize: 12.5, color: 'var(--color-text-tertiary, #94a3b8)', lineHeight: 1.55, margin: '0 0 16px' }}>
+            <p style={{ fontSize: 12.5, color: 'var(--sk-faint)', lineHeight: 1.55, margin: '0 0 16px' }}>
               {t('confirm_run_async')}
             </p>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -617,7 +617,7 @@ export default function AdminScheduledTasksPage() {
                 onClick={() => { const j = running; setRunning(null); void runNow(j) }}
                 style={{
                   padding: '8px 14px', borderRadius: 9, border: 'none',
-                  background: 'var(--color-text-primary, #0f172a)', color: '#fff',
+                  background: 'var(--sk-text)', color: '#fff',
                   fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
                   cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1,
                 }}

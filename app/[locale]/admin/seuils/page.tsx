@@ -42,8 +42,8 @@ type SujetCharge = {
 type Reponse = { sujets: SujetCharge[]; pays_sans_verification: string[] | null }
 
 const carte: React.CSSProperties = {
-  background: 'var(--color-surface, #fff)',
-  border: '1px solid var(--color-border, #e2e8f0)',
+  background: 'var(--sk-surface)',
+  border: '1px solid var(--sk-border)',
   borderRadius: 12,
   padding: 20,
   marginBottom: 16,
@@ -52,14 +52,14 @@ const champ: React.CSSProperties = {
   width: 100,
   padding: '9px 11px',
   fontSize: 15,
-  border: '1px solid var(--color-border, #e2e8f0)',
+  border: '1px solid var(--sk-border)',
   borderRadius: 8,
   background: '#fff',
   color: 'inherit',
 }
 const encart: React.CSSProperties = {
   background: 'var(--sk-bg, #f8fafc)',
-  border: '1px solid var(--color-border, #e2e8f0)',
+  border: '1px solid var(--sk-border)',
   borderRadius: 10,
   padding: '14px 16px',
   margin: '16px 0',
@@ -70,7 +70,7 @@ const bouton = (inactif: boolean): React.CSSProperties => ({
   fontWeight: 500,
   borderRadius: 8,
   border: 'none',
-  background: 'var(--color-primary, #2563eb)',
+  background: 'var(--sk-accent)',
   color: '#fff',
   cursor: inactif ? 'not-allowed' : 'pointer',
   opacity: inactif ? 0.6 : 1,
@@ -182,10 +182,10 @@ export default function NotesDeJugementPage() {
 
   return (
     <div style={{ width: '100%', textAlign: 'left' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 4px', color: 'var(--color-text-primary, #0f172a)' }}>
+      <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 4px', color: 'var(--sk-text)' }}>
         {t('title')}
       </h1>
-      <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 20px', maxWidth: 760 }}>
+      <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 20px', maxWidth: 760 }}>
         {t('intro')}
       </p>
 
@@ -195,7 +195,7 @@ export default function NotesDeJugementPage() {
           style={{
             fontSize: 13,
             margin: '0 0 14px',
-            color: msg.kind === 'err' ? 'var(--color-error, #dc2626)' : 'var(--color-success, #16a34a)',
+            color: msg.kind === 'err' ? 'var(--sk-red)' : 'var(--sk-success)',
           }}
         >
           {msg.text}
@@ -203,9 +203,9 @@ export default function NotesDeJugementPage() {
       )}
 
       {chargement ? (
-        <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)' }}>{t('loading')}</p>
+        <p style={{ fontSize: 13, color: 'var(--sk-muted)' }}>{t('loading')}</p>
       ) : erreur ? (
-        <p role="alert" style={{ fontSize: 13, color: 'var(--color-error, #dc2626)' }}>
+        <p role="alert" style={{ fontSize: 13, color: 'var(--sk-red)' }}>
           {erreur}
         </p>
       ) : (
@@ -226,13 +226,13 @@ export default function NotesDeJugementPage() {
                 >
                   <div style={{ flex: '1 1 320px' }}>
                     {/* UN TITRE EN FRANÇAIS. Jamais un identifiant de base. */}
-                    <h2 style={{ fontSize: 17, fontWeight: 600, margin: '0 0 4px', color: 'var(--color-text-primary, #0f172a)' }}>
+                    <h2 style={{ fontSize: 17, fontWeight: 600, margin: '0 0 4px', color: 'var(--sk-text)' }}>
                       {t(`sujet.${s.sujet}.titre` as 'sujet.experts.titre')}
                     </h2>
-                    <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: 0, maxWidth: 560 }}>
+                    <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: 0, maxWidth: 560 }}>
                       {t(`sujet.${s.sujet}.effet` as 'sujet.experts.effet')}{' '}
                       {file && (
-                        <Link href={file} style={{ color: 'var(--color-primary, #2563eb)' }}>
+                        <Link href={file} style={{ color: 'var(--sk-accent)' }}>
                           {t(`sujet.${s.sujet}.file` as 'sujet.experts.file')}
                         </Link>
                       )}
@@ -242,7 +242,7 @@ export default function NotesDeJugementPage() {
                   <div style={{ flex: '0 0 auto' }}>
                     <label
                       htmlFor={`n_${s.sujet}`}
-                      style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: 'var(--color-text-primary, #0f172a)' }}
+                      style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: 'var(--sk-text)' }}
                     >
                       {t(`sujet.${s.sujet}.champ` as 'sujet.experts.champ')}
                     </label>
@@ -258,7 +258,7 @@ export default function NotesDeJugementPage() {
                         onChange={(e) => setNotes((p) => ({ ...p, [s.sujet]: e.target.value }))}
                         style={champ}
                       />
-                      <span style={{ fontSize: 14, color: 'var(--color-text-secondary, #64748b)' }}>{t('out_of_ten')}</span>
+                      <span style={{ fontSize: 14, color: 'var(--sk-muted)' }}>{t('out_of_ten')}</span>
                     </span>
                   </div>
                 </div>
@@ -266,7 +266,7 @@ export default function NotesDeJugementPage() {
                 {/* LES CAS QUI FORCENT LE PASSAGE PAR L'HUMAIN — experts seuls. */}
                 {s.drapeaux !== null && (
                   <div style={encart}>
-                    <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary, #0f172a)' }}>
+                    <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)' }}>
                       {t('flags_title')}
                     </p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 28px' }}>
@@ -292,7 +292,7 @@ export default function NotesDeJugementPage() {
                         </label>
                       ))}
                     </div>
-                    <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--color-text-secondary, #64748b)' }}>
+                    <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--sk-muted)' }}>
                       {t('flags_one_must_stay')}
                     </p>
                   </div>
@@ -302,23 +302,23 @@ export default function NotesDeJugementPage() {
                     liste se déplie. Elle tenait en corps 8 sur toute la largeur. */}
                 {s.sujet === 'entreprises' && (
                   <div style={encart}>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary, #0f172a)' }}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--sk-text)' }}>
                       {t('countries_title')}
                     </p>
-                    <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--color-text-secondary, #64748b)' }}>
+                    <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--sk-muted)' }}>
                       {t('countries_one_line')}
                     </p>
                     {data?.pays_sans_verification === null ? (
                       /* Une lecture en panne ne se lit pas « aucun pays » (§E.22). */
-                      <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--color-error, #dc2626)' }}>
+                      <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--sk-red)' }}>
                         {t('countries_unavailable')}
                       </p>
                     ) : (data?.pays_sans_verification?.length ?? 0) > 0 ? (
                       <details style={{ marginTop: 8 }}>
-                        <summary style={{ fontSize: 12, cursor: 'pointer', color: 'var(--color-primary, #2563eb)' }}>
+                        <summary style={{ fontSize: 12, cursor: 'pointer', color: 'var(--sk-accent)' }}>
                           {t('countries_open', { count: data?.pays_sans_verification?.length ?? 0 })}
                         </summary>
-                        <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--color-text-secondary, #64748b)', lineHeight: 1.6 }}>
+                        <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.6 }}>
                           {(data?.pays_sans_verification ?? []).join(' · ')}
                         </p>
                       </details>
@@ -335,7 +335,7 @@ export default function NotesDeJugementPage() {
                   >
                     {enCours === s.sujet ? t('saving') : t('save')}
                   </button>
-                  <span style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)' }}>
+                  <span style={{ fontSize: 12, color: 'var(--sk-faint)' }}>
                     {blocage ??
                       (s.arrives_ce_mois === null
                         ? /* Un compteur en panne ne rend pas zéro (§E.22). */
@@ -349,7 +349,7 @@ export default function NotesDeJugementPage() {
 
           {/* CE QUI N'EST PLUS AFFICHÉ, DIT UNE FOIS — sinon son absence se lit
               comme un oubli, et quelqu'un le remettra. */}
-          <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '4px 0 0', maxWidth: 760 }}>
+          <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '4px 0 0', maxWidth: 760 }}>
             {t('inert_note')}
           </p>
         </>

@@ -119,16 +119,16 @@ export default function CronScheduleModal({
 
   const field: React.CSSProperties = {
     padding: '8px 10px', borderRadius: 9,
-    border: '1px solid var(--color-border-tertiary, #e5e7eb)',
-    background: 'var(--color-background-primary, #fff)',
-    color: 'var(--color-text-primary, #0f172a)',
+    border: '1px solid var(--sk-border)',
+    background: 'var(--sk-surface)',
+    color: 'var(--sk-text)',
     fontSize: 13, fontFamily: 'inherit',
   }
   const chip = (on: boolean): React.CSSProperties => ({
     padding: '5px 9px', borderRadius: 8, fontSize: 12.5, fontWeight: 600,
-    border: on ? '1px solid #0f172a' : '1px solid var(--color-border-tertiary, #e5e7eb)',
-    background: on ? '#0f172a' : 'var(--color-background-primary, #fff)',
-    color: on ? '#fff' : 'var(--color-text-secondary, #64748b)',
+    border: on ? '1px solid #0f172a' : '1px solid var(--sk-border)',
+    background: on ? '#0f172a' : 'var(--sk-surface)',
+    color: on ? '#fff' : 'var(--sk-muted)',
     cursor: 'pointer', fontFamily: 'inherit',
   })
 
@@ -256,15 +256,15 @@ export default function CronScheduleModal({
             </select>
             {/* On DIT pourquoi la liste s'arrête à 28 — sinon la borne passe
                 pour une limitation arbitraire et quelqu'un la « corrigera ». */}
-            <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '0 0 12px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '0 0 12px', lineHeight: 1.5 }}>
               {t('day_of_month_hint')}
             </p>
           </>
         )}
 
-        <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary, #64748b)', marginBottom: 14, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 12.5, color: 'var(--sk-muted)', marginBottom: 14, lineHeight: 1.6 }}>
           {t('preview_utc', { times: preview.utc })}
-          <span style={{ color: 'var(--color-text-tertiary, #94a3b8)' }}> · {preview.local}</span>
+          <span style={{ color: 'var(--sk-faint)' }}> · {preview.local}</span>
         </div>
 
         <label style={{ display: 'block', fontSize: 13, color: '#475569', marginBottom: 6 }}>
@@ -288,7 +288,7 @@ export default function CronScheduleModal({
             onClick={() => onSubmit(draft, confirmName.trim())}
             style={{
               padding: '8px 14px', borderRadius: 9, border: 'none',
-              background: 'var(--color-text-primary, #0f172a)', color: '#fff',
+              background: 'var(--sk-text)', color: '#fff',
               fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
               cursor: canSubmit ? 'pointer' : 'not-allowed', opacity: canSubmit ? 1 : 0.5,
             }}

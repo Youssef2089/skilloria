@@ -52,8 +52,8 @@ type Reponse = {
 }
 
 const carte: React.CSSProperties = {
-  background: 'var(--color-surface, #fff)',
-  border: '1px solid var(--color-border, #e2e8f0)',
+  background: 'var(--sk-surface)',
+  border: '1px solid var(--sk-border)',
   borderRadius: 12,
   padding: 20,
   marginBottom: 16,
@@ -62,12 +62,12 @@ const titreBloc: React.CSSProperties = {
   fontSize: 16,
   fontWeight: 600,
   margin: '0 0 2px',
-  color: 'var(--color-text-primary, #0f172a)',
+  color: 'var(--sk-text)',
 }
 /** UNE ligne. Jamais un paragraphe. */
 const uneLigne: React.CSSProperties = {
   fontSize: 13,
-  color: 'var(--color-text-secondary, #64748b)',
+  color: 'var(--sk-muted)',
   margin: '0 0 18px',
   maxWidth: 760,
 }
@@ -76,11 +76,11 @@ const etiquette: React.CSSProperties = {
   fontSize: 13,
   fontWeight: 600,
   marginBottom: 4,
-  color: 'var(--color-text-primary, #0f172a)',
+  color: 'var(--sk-text)',
 }
 const sousEtiquette: React.CSSProperties = {
   fontSize: 12,
-  color: 'var(--color-text-secondary, #64748b)',
+  color: 'var(--sk-muted)',
   margin: '0 0 8px',
   lineHeight: 1.5,
 }
@@ -88,14 +88,14 @@ const champ: React.CSSProperties = {
   width: 130,
   padding: '9px 11px',
   fontSize: 15,
-  border: '1px solid var(--color-border, #e2e8f0)',
+  border: '1px solid var(--sk-border)',
   borderRadius: 8,
   background: '#fff',
   color: 'inherit',
 }
 const encart: React.CSSProperties = {
   background: 'var(--sk-bg, #f8fafc)',
-  border: '1px solid var(--color-border, #e2e8f0)',
+  border: '1px solid var(--sk-border)',
   borderRadius: 10,
   padding: '12px 14px',
   marginTop: 14,
@@ -106,7 +106,7 @@ const bouton = (inactif: boolean): React.CSSProperties => ({
   fontWeight: 500,
   borderRadius: 8,
   border: 'none',
-  background: 'var(--color-primary, #2563eb)',
+  background: 'var(--sk-accent)',
   color: '#fff',
   cursor: inactif ? 'not-allowed' : 'pointer',
   opacity: inactif ? 0.6 : 1,
@@ -116,7 +116,7 @@ const bouton = (inactif: boolean): React.CSSProperties => ({
 function Montant({ children }: { children: React.ReactNode }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ fontSize: 15, color: 'var(--color-text-secondary, #64748b)' }}>$</span>
+      <span style={{ fontSize: 15, color: 'var(--sk-muted)' }}>$</span>
       {children}
     </span>
   )
@@ -271,12 +271,12 @@ export default function MatchingPage() {
 
   return (
     <div style={{ width: '100%', textAlign: 'left' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 4px', color: 'var(--color-text-primary, #0f172a)' }}>
+      <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 4px', color: 'var(--sk-text)' }}>
         {t('title')}
       </h1>
-      <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 6px', maxWidth: 760 }}>
+      <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 6px', maxWidth: 760 }}>
         {t('intro')}{' '}
-        <Link href="/admin/supervision" style={{ color: 'var(--color-primary, #2563eb)' }}>
+        <Link href="/admin/supervision" style={{ color: 'var(--sk-accent)' }}>
           {t('to_monitoring')}
         </Link>
       </p>
@@ -287,7 +287,7 @@ export default function MatchingPage() {
           style={{
             fontSize: 13,
             margin: '14px 0',
-            color: msg.kind === 'err' ? 'var(--color-error, #dc2626)' : 'var(--color-success, #16a34a)',
+            color: msg.kind === 'err' ? 'var(--sk-red)' : 'var(--sk-success)',
           }}
         >
           {msg.text}
@@ -295,9 +295,9 @@ export default function MatchingPage() {
       )}
 
       {chargement ? (
-        <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', marginTop: 20 }}>{t('loading')}</p>
+        <p style={{ fontSize: 13, color: 'var(--sk-muted)', marginTop: 20 }}>{t('loading')}</p>
       ) : erreur ? (
-        <p role="alert" style={{ fontSize: 13, color: 'var(--color-error, #dc2626)', marginTop: 20 }}>
+        <p role="alert" style={{ fontSize: 13, color: 'var(--sk-red)', marginTop: 20 }}>
           {erreur}
         </p>
       ) : (
@@ -338,7 +338,7 @@ export default function MatchingPage() {
                         style={{
                           fontSize: 12,
                           margin: '8px 0 0',
-                          color: d.au_plafond ? 'var(--color-error, #dc2626)' : 'var(--color-text-secondary, #64748b)',
+                          color: d.au_plafond ? 'var(--sk-red)' : 'var(--sk-muted)',
                         }}
                       >
                         {d.au_plafond
@@ -386,7 +386,7 @@ export default function MatchingPage() {
               >
                 {enCours === 'argent' ? t('saving') : t('save')}
               </button>
-              <span style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)' }}>{t('audited')}</span>
+              <span style={{ fontSize: 12, color: 'var(--sk-faint)' }}>{t('audited')}</span>
             </div>
           </section>
 
@@ -404,7 +404,7 @@ export default function MatchingPage() {
                     fontSize: 17,
                     fontWeight: 600,
                     margin: '28px 0 2px',
-                    color: 'var(--color-text-primary, #0f172a)',
+                    color: 'var(--sk-text)',
                   }}
                 >
                   {t('ecosystem_title', { name: r.domaine?.name ?? r.domaine?.slug ?? r.domain_id })}
@@ -431,10 +431,10 @@ export default function MatchingPage() {
                       onChange={(e) => setSaisies((p) => ({ ...p, [r.domain_id]: { ...s, feed: e.target.value } }))}
                       style={{ ...champ, width: 100 }}
                     />
-                    <span style={{ fontSize: 14, color: 'var(--color-text-secondary, #64748b)' }}>{t('out_of_ten')}</span>
+                    <span style={{ fontSize: 14, color: 'var(--sk-muted)' }}>{t('out_of_ten')}</span>
                   </span>
                   {Number(s.feed) === 0 && (
-                    <p style={{ fontSize: 12, color: 'var(--color-text-secondary, #64748b)', margin: '8px 0 0' }}>
+                    <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '8px 0 0' }}>
                       {t('feed_at_zero')}
                     </p>
                   )}
@@ -442,20 +442,20 @@ export default function MatchingPage() {
                   {/* TROIS ÉTATS, ET LE COMPILATEUR FORCE À RÉPONDRE AUX TROIS. */}
                   <div style={encart}>
                     {etat.etat === 'indisponible' ? (
-                      <p role="alert" style={{ margin: 0, fontSize: 13, color: 'var(--color-error, #dc2626)' }}>
+                      <p role="alert" style={{ margin: 0, fontSize: 13, color: 'var(--sk-red)' }}>
                         {t('spread_unavailable')}
                       </p>
                     ) : etat.etat === 'aucune_execution' ? (
                       <>
-                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary, #0f172a)' }}>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--sk-text)' }}>
                           {t('spread_none_yet_title')}
                         </p>
-                        <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--color-text-secondary, #64748b)' }}>
+                        <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--sk-muted)' }}>
                           {t('spread_none_yet_help')}
                         </p>
                       </>
                     ) : (
-                      <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>
+                      <p style={{ margin: 0, fontSize: 13, color: 'var(--sk-text)' }}>
                         {t('spread_effect', {
                           ...inclusExclus(etat.tranches, Number(s.feed)),
                           total: etat.total,
@@ -503,10 +503,10 @@ export default function MatchingPage() {
                         onChange={(e) => setSaisies((p) => ({ ...p, [r.domain_id]: { ...s, notify: e.target.value } }))}
                         style={{ ...champ, width: 100 }}
                       />
-                      <span style={{ fontSize: 14, color: 'var(--color-text-secondary, #64748b)' }}>{t('out_of_ten')}</span>
+                      <span style={{ fontSize: 14, color: 'var(--sk-muted)' }}>{t('out_of_ten')}</span>
                     </span>
                     {!s.enabled && (
-                      <p style={{ fontSize: 12, color: 'var(--color-text-secondary, #64748b)', margin: '8px 0 0' }}>
+                      <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '8px 0 0' }}>
                         {t('notify_inactive')}
                       </p>
                     )}
@@ -516,7 +516,7 @@ export default function MatchingPage() {
                 {/* PARAMÈTRES TECHNIQUES — REPLIÉS. Ce ne sont pas des décisions
                     produit ; ils ne disparaissent pas pour autant (§D.7). */}
                 <details style={carte}>
-                  <summary style={{ fontSize: 14, fontWeight: 600, cursor: 'pointer', color: 'var(--color-text-primary, #0f172a)' }}>
+                  <summary style={{ fontSize: 14, fontWeight: 600, cursor: 'pointer', color: 'var(--sk-text)' }}>
                     {t('technical_title')}
                   </summary>
                   <p style={{ ...uneLigne, margin: '8px 0 14px' }}>{t('technical_one_line')}</p>
@@ -538,7 +538,7 @@ export default function MatchingPage() {
                         ))}
                       </select>
                       {modeleChange && (
-                        <p role="alert" style={{ fontSize: 12, margin: '8px 0 0', color: 'var(--color-warning, #d97706)' }}>
+                        <p role="alert" style={{ fontSize: 12, margin: '8px 0 0', color: 'var(--sk-amber)' }}>
                           {t('model_changes_scale')}
                         </p>
                       )}
@@ -572,7 +572,7 @@ export default function MatchingPage() {
                     {enCours === r.domain_id ? t('saving') : t('save')}
                   </button>
                   {/* UN BOUTON GRISÉ DIT POURQUOI. */}
-                  <span style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)' }}>
+                  <span style={{ fontSize: 12, color: 'var(--sk-faint)' }}>
                     {blocage ?? t('audited')}
                   </span>
                 </div>

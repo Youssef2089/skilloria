@@ -58,8 +58,8 @@ type Branch = {
 type DomainOpt = { id: string; name: string; slug: string; active: boolean }
 
 const cardStyle: React.CSSProperties = {
-  background: 'var(--color-background-primary, #fff)',
-  border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+  background: 'var(--sk-surface)',
+  border: '0.5px solid var(--sk-border)',
   borderRadius: 12,
   padding: '18px 22px',
   marginBottom: 16,
@@ -67,7 +67,7 @@ const cardStyle: React.CSSProperties = {
 const labelStyle: React.CSSProperties = {
   display: 'block',
   fontSize: 12,
-  color: 'var(--color-text-secondary, #64748b)',
+  color: 'var(--sk-muted)',
   fontWeight: 500,
   marginBottom: 6,
 }
@@ -75,7 +75,7 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '9px 12px',
   fontSize: 13,
-  border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+  border: '0.5px solid var(--sk-border)',
   borderRadius: 8,
   outline: 'none',
   fontFamily: 'inherit',
@@ -86,14 +86,14 @@ const sectionTitle: React.CSSProperties = {
   fontWeight: 500,
   textTransform: 'uppercase',
   letterSpacing: '.08em',
-  color: 'var(--color-text-secondary, #64748b)',
+  color: 'var(--sk-muted)',
   marginBottom: 12,
 }
 const btnPrimary: React.CSSProperties = {
   padding: '9px 16px', background: '#00B9FF', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
 }
 const btnGhost: React.CSSProperties = {
-  padding: '9px 16px', background: 'transparent', color: 'var(--color-text-secondary, #64748b)', border: '0.5px solid var(--color-border-tertiary, #e5e7eb)', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+  padding: '9px 16px', background: 'transparent', color: 'var(--sk-muted)', border: '0.5px solid var(--sk-border)', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
 }
 
 // Formulaire de traductions FR (base) + EN/ES/DE. Réutilisé branche & spécialité.
@@ -453,7 +453,7 @@ export default function AdminTaxonomieDetailPage() {
     return (
       <div>
         <div style={{ ...cardStyle, textAlign: 'center' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)' }}>{t('not_found_title')}</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 500, color: 'var(--sk-text)' }}>{t('not_found_title')}</h2>
         </div>
       </div>
     )
@@ -483,7 +483,7 @@ export default function AdminTaxonomieDetailPage() {
     !isNew && !usageInconnu && branchUsage === 0 && specialities.length === 0
 
   const langNote = (
-    <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '10px 0 0' }}>
+    <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '10px 0 0' }}>
       {t('lang_fallback_note')}
     </p>
   )
@@ -491,7 +491,7 @@ export default function AdminTaxonomieDetailPage() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: 0 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--sk-text)', margin: 0 }}>
           {isNew ? t('new_title') : branch?.name}
         </h1>
         {!isNew && branch?.ecosystem && (
@@ -519,10 +519,10 @@ export default function AdminTaxonomieDetailPage() {
         ) : (
           <div style={{ marginBottom: 14 }}>
             <span style={labelStyle}>{tAdmin('ecosystem_label')}</span>
-            <div style={{ ...inputStyle, background: 'var(--color-background-secondary, #f8fafc)', color: 'var(--color-text-secondary, #64748b)' }}>
+            <div style={{ ...inputStyle, background: 'var(--sk-surface-2)', color: 'var(--sk-muted)' }}>
               {branch?.ecosystem ?? '—'}
             </div>
-            <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '6px 0 0' }}>{t('ecosystem_locked_hint')}</p>
+            <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '6px 0 0' }}>{t('ecosystem_locked_hint')}</p>
           </div>
         )}
 
@@ -553,7 +553,7 @@ export default function AdminTaxonomieDetailPage() {
         </div>
         {langNote}
 
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-text-primary, #0f172a)', cursor: 'pointer', marginTop: 16 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--sk-text)', cursor: 'pointer', marginTop: 16 }}>
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
           {t('field_active')}
         </label>
@@ -583,7 +583,7 @@ export default function AdminTaxonomieDetailPage() {
         <div style={{ marginTop: 16 }}>
           {confirming ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>{t('confirm_save')}</span>
+              <span style={{ fontSize: 13, color: 'var(--sk-text)' }}>{t('confirm_save')}</span>
               <button type="button" onClick={() => void saveBranch()} disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1, cursor: saving ? 'not-allowed' : 'pointer' }}>
                 {saving ? tAdmin('loading') : t('confirm_yes')}
               </button>
@@ -622,7 +622,7 @@ export default function AdminTaxonomieDetailPage() {
 
           {/* Formulaire de création */}
           {editingSpecId === 'new' && (
-            <div style={{ border: '0.5px solid var(--color-border-tertiary, #e5e7eb)', borderRadius: 10, padding: 16, marginBottom: 14, background: 'var(--color-background-secondary, #f8fafc)' }}>
+            <div style={{ border: '0.5px solid var(--sk-border)', borderRadius: 10, padding: 16, marginBottom: 14, background: 'var(--sk-surface-2)' }}>
               <SpecEditor form={specForm} setForm={setSpecForm} t={t} langNote={langNote} />
               <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
                 <button type="button" onClick={() => void saveSpec()} disabled={specBusy || !specForm.name.trim()} style={{ ...btnPrimary, padding: '8px 14px', fontSize: 12, opacity: specBusy || !specForm.name.trim() ? 0.5 : 1, cursor: specBusy || !specForm.name.trim() ? 'not-allowed' : 'pointer' }}>
@@ -634,9 +634,9 @@ export default function AdminTaxonomieDetailPage() {
           )}
 
           {orderedSpecs.length === 0 && editingSpecId !== 'new' ? (
-            <div style={{ padding: '28px 16px', textAlign: 'center', border: '1px dashed var(--color-border-tertiary, #e5e7eb)', borderRadius: 10 }}>
-              <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 4px' }}>{t('spec_empty_title')}</p>
-              <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: 0 }}>{t('spec_empty_hint')}</p>
+            <div style={{ padding: '28px 16px', textAlign: 'center', border: '1px dashed var(--sk-border)', borderRadius: 10 }}>
+              <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 4px' }}>{t('spec_empty_title')}</p>
+              <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: 0 }}>{t('spec_empty_hint')}</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -644,7 +644,7 @@ export default function AdminTaxonomieDetailPage() {
                 const usage = s.profiles + s.publications
                 const editing = editingSpecId === s.id
                 return (
-                  <div key={s.id} style={{ border: '0.5px solid var(--color-border-tertiary, #e5e7eb)', borderRadius: 10, padding: editing ? 16 : '10px 14px', background: editing ? 'var(--color-background-secondary, #f8fafc)' : 'transparent' }}>
+                  <div key={s.id} style={{ border: '0.5px solid var(--sk-border)', borderRadius: 10, padding: editing ? 16 : '10px 14px', background: editing ? 'var(--sk-surface-2)' : 'transparent' }}>
                     {editing ? (
                       <>
                         <SpecEditor form={specForm} setForm={setSpecForm} t={t} langNote={langNote} />
@@ -664,8 +664,8 @@ export default function AdminTaxonomieDetailPage() {
                               <button type="button" onClick={() => void reorderSpec(s, 'down')} disabled={i === orderedSpecs.length - 1 || reorderBusy} aria-label={t('reorder_down')} title={t('reorder_down')} style={{ ...iconBtnSmall, opacity: i === orderedSpecs.length - 1 || reorderBusy ? 0.4 : 1, cursor: i === orderedSpecs.length - 1 || reorderBusy ? 'not-allowed' : 'pointer' }}>↓</button>
                             </span>
                             <span style={{ minWidth: 0 }}>
-                              <span style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)' }}>{s.name}</span>
-                              <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary, #94a3b8)', marginTop: 2 }}>
+                              <span style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--sk-text)' }}>{s.name}</span>
+                              <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-faint)', marginTop: 2 }}>
                                 {s.slug} · {t('usage_summary', { profiles: s.profiles, publications: s.publications })}
                               </span>
                             </span>
@@ -691,7 +691,7 @@ export default function AdminTaxonomieDetailPage() {
                               onClick={() => { setConfirmDeleteSpec(s.id); setConfirmDeactivateSpec(null); setSpecError(null) }}
                               disabled={usage > 0}
                               title={usage > 0 ? t('delete_disabled_hint') : undefined}
-                              style={{ ...linkBtn, color: usage > 0 ? 'var(--color-text-tertiary, #94a3b8)' : '#b91c1c', cursor: usage > 0 ? 'not-allowed' : 'pointer' }}
+                              style={{ ...linkBtn, color: usage > 0 ? 'var(--sk-faint)' : '#b91c1c', cursor: usage > 0 ? 'not-allowed' : 'pointer' }}
                             >
                               {t('action_delete')}
                             </button>
@@ -733,7 +733,7 @@ export default function AdminTaxonomieDetailPage() {
       {!isNew && (
         <section style={cardStyle}>
           <h2 style={sectionTitle}>{t('section_danger')}</h2>
-          <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 12px' }}>
+          <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 12px' }}>
             {canDeleteBranch ? t('delete_branch_explain') : t('delete_branch_blocked')}
           </p>
 
@@ -745,7 +745,7 @@ export default function AdminTaxonomieDetailPage() {
 
           {confirmDelete ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>{t('confirm_delete_branch')}</span>
+              <span style={{ fontSize: 13, color: 'var(--sk-text)' }}>{t('confirm_delete_branch')}</span>
               <button type="button" onClick={() => void deleteBranch()} disabled={deleting} style={{ padding: '9px 16px', background: '#b91c1c', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1, fontFamily: 'inherit' }}>
                 {deleting ? tAdmin('loading') : t('confirm_yes')}
               </button>
@@ -757,7 +757,7 @@ export default function AdminTaxonomieDetailPage() {
               onClick={() => { setDeleteError(null); setConfirmDelete(true) }}
               disabled={!canDeleteBranch}
               title={!canDeleteBranch ? t('delete_disabled_hint') : undefined}
-              style={{ padding: '9px 16px', background: 'transparent', color: canDeleteBranch ? '#b91c1c' : 'var(--color-text-tertiary, #94a3b8)', border: `0.5px solid ${canDeleteBranch ? '#fecaca' : 'var(--color-border-tertiary, #e5e7eb)'}`, borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: canDeleteBranch ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}
+              style={{ padding: '9px 16px', background: 'transparent', color: canDeleteBranch ? '#b91c1c' : 'var(--sk-faint)', border: `0.5px solid ${canDeleteBranch ? '#fecaca' : 'var(--sk-border)'}`, borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: canDeleteBranch ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}
             >
               {t('action_delete_branch')}
             </button>
@@ -770,12 +770,12 @@ export default function AdminTaxonomieDetailPage() {
 
 const iconBtnSmall: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24,
-  border: '0.5px solid var(--color-border-tertiary, #e5e7eb)', borderRadius: 6, background: 'transparent',
-  color: 'var(--color-text-secondary, #64748b)', fontFamily: 'inherit', fontSize: 12, lineHeight: 1,
+  border: '0.5px solid var(--sk-border)', borderRadius: 6, background: 'transparent',
+  color: 'var(--sk-muted)', fontFamily: 'inherit', fontSize: 12, lineHeight: 1,
 }
 const linkBtn: React.CSSProperties = {
   background: 'none', border: 'none', padding: 0, fontSize: 12, fontFamily: 'inherit',
-  color: 'var(--color-text-secondary, #64748b)', textDecoration: 'underline', textUnderlineOffset: 3, cursor: 'pointer',
+  color: 'var(--sk-muted)', textDecoration: 'underline', textUnderlineOffset: 3, cursor: 'pointer',
 }
 
 // Éditeur de libellés d'une spécialité (FR base + EN/ES/DE + slug + actif).
@@ -817,7 +817,7 @@ function SpecEditor({
         </div>
       </div>
       {langNote}
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-text-primary, #0f172a)', cursor: 'pointer', marginTop: 12 }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--sk-text)', cursor: 'pointer', marginTop: 12 }}>
         <input type="checkbox" checked={form.active} onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))} />
         {t('field_active')}
       </label>

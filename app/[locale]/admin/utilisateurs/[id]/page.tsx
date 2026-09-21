@@ -358,17 +358,17 @@ export default function AdminUserDetailPage() {
   )
 
   const card: React.CSSProperties = {
-    background: 'var(--color-background-primary, #fff)',
-    border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+    background: 'var(--sk-surface)',
+    border: '0.5px solid var(--sk-border)',
     borderRadius: 12,
     padding: '18px 20px',
   }
   const btn = (danger?: boolean): React.CSSProperties => ({
     padding: '9px 15px',
     borderRadius: 9,
-    border: danger ? '1px solid #FCA5A5' : '1px solid var(--color-border-tertiary, #e5e7eb)',
-    background: danger ? '#FEE2E2' : 'var(--color-background-primary, #fff)',
-    color: danger ? '#991B1B' : 'var(--color-text-primary, #0f172a)',
+    border: danger ? '1px solid #FCA5A5' : '1px solid var(--sk-border)',
+    background: danger ? '#FEE2E2' : 'var(--sk-surface)',
+    color: danger ? '#991B1B' : 'var(--sk-text)',
     fontSize: 13, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer',
     opacity: busy ? 0.6 : 1, fontFamily: 'inherit',
   })
@@ -385,7 +385,7 @@ export default function AdminUserDetailPage() {
           page — exactement ce que la règle projet interdit. */}
 
       {loading ? (
-        <div style={{ padding: 48, textAlign: 'center', color: 'var(--color-text-secondary, #64748b)' }}>{t('loading')}</div>
+        <div style={{ padding: 48, textAlign: 'center', color: 'var(--sk-muted)' }}>{t('loading')}</div>
       ) : error || !u ? (
         <div role="alert" style={{ padding: '28px 20px', textAlign: 'center', background: '#FEE2E2', color: '#991B1B', borderRadius: 12, fontSize: 14 }}>
           {error ?? tErr('generic')}
@@ -449,10 +449,10 @@ export default function AdminUserDetailPage() {
           {/* En-tête : identité + actions */}
           <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 18 }}>
             <div style={{ minWidth: 0 }}>
-              <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary, #0f172a)', margin: 0, letterSpacing: '-0.2px' }}>
+              <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--sk-text)', margin: 0, letterSpacing: '-0.2px' }}>
                 {fullName}
               </h1>
-              <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '4px 0 0' }}>
+              <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '4px 0 0' }}>
                 {u.email ?? '—'} · {u.user_type ? t(`type_${u.user_type}` as 'type_admin') : '—'}
                 {u.ecosystem?.name ? ` · ${u.ecosystem.name}` : ''}
               </p>
@@ -493,7 +493,7 @@ export default function AdminUserDetailPage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14, marginBottom: 14 }}>
             <section style={card} aria-label={t('section_identity')}>
-              <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--color-text-secondary, #64748b)', margin: '0 0 10px' }}>
+              <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-muted)', margin: '0 0 10px' }}>
                 {t('section_identity')}
               </h2>
               <div style={rowStyle}><span>{t('field_type')}</span><strong>{u.user_type ? t(`type_${u.user_type}` as 'type_admin') : '—'}</strong></div>
@@ -509,7 +509,7 @@ export default function AdminUserDetailPage() {
             </section>
 
             <section style={card} aria-label={t('section_access')}>
-              <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--color-text-secondary, #64748b)', margin: '0 0 10px' }}>
+              <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-muted)', margin: '0 0 10px' }}>
                 {t('section_access')}
               </h2>
               {/* « Jamais connecté » vient de session_logs, pas de last_login_at :
@@ -527,7 +527,7 @@ export default function AdminUserDetailPage() {
 
           {org && (
             <section style={{ ...card, marginBottom: 14 }} aria-label={t('section_organization')}>
-              <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--color-text-secondary, #64748b)', margin: '0 0 10px' }}>
+              <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-muted)', margin: '0 0 10px' }}>
                 {t('section_organization')}
               </h2>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
@@ -538,12 +538,12 @@ export default function AdminUserDetailPage() {
                   </Link>
                 </div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                  <span style={{ color: 'var(--color-text-secondary, #64748b)' }}>{t('field_role')}</span>
+                  <span style={{ color: 'var(--sk-muted)' }}>{t('field_role')}</span>
                   <select
                     value={org.role_in_org}
                     disabled={busy}
                     onChange={(e) => setConfirming({ kind: 'role', role: e.target.value, force: false })}
-                    style={{ padding: '7px 10px', borderRadius: 9, border: '1px solid var(--color-border-tertiary, #e5e7eb)', fontSize: 13, fontFamily: 'inherit', background: 'var(--color-background-primary, #fff)', color: 'var(--color-text-primary, #0f172a)' }}
+                    style={{ padding: '7px 10px', borderRadius: 9, border: '1px solid var(--sk-border)', fontSize: 13, fontFamily: 'inherit', background: 'var(--sk-surface)', color: 'var(--sk-text)' }}
                   >
                     {ROLES.map((r) => (
                       <option key={r} value={r}>{t(`role_${r}` as 'role_admin')}</option>
@@ -556,17 +556,17 @@ export default function AdminUserDetailPage() {
 
           {/* Frise UNIFIÉE connexions + invalidations (fusionnée serveur). */}
           <section style={card} aria-label={t('section_sessions')}>
-            <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--color-text-secondary, #64748b)', margin: '0 0 10px' }}>
+            <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-muted)', margin: '0 0 10px' }}>
               {t('section_sessions')} · {t('sessions_count', { count: loginCount })}
             </h2>
             {sessionsTroncature?.atteint && <BandeauTroncature texte={tPlafond('sessions_tronquees', { plafond: sessionsTroncature.plafond })} />}
             {timeline.length === 0 ? (
-              <div style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', padding: '10px 0' }}>{t('sessions_empty')}</div>
+              <div style={{ fontSize: 13, color: 'var(--sk-muted)', padding: '10px 0' }}>{t('sessions_empty')}</div>
             ) : (
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {timeline.map((e, i) => (
                   <li key={`${e.at}-${i}`} style={{ display: 'flex', gap: 12, padding: '9px 0', borderBottom: i === timeline.length - 1 ? 'none' : '1px solid #f1f5f9', fontSize: 12.5, flexWrap: 'wrap' }}>
-                    <span style={{ color: 'var(--color-text-secondary, #64748b)', minWidth: 150 }}>{dateTimeFmt.format(new Date(e.at))}</span>
+                    <span style={{ color: 'var(--sk-muted)', minWidth: 150 }}>{dateTimeFmt.format(new Date(e.at))}</span>
                     <span style={{ fontWeight: 600, flex: '1 1 220px' }}>
                       {e.kind === 'login'
                         ? t('session_login')
@@ -576,7 +576,7 @@ export default function AdminUserDetailPage() {
                             ? t('session_revoked_by_self')
                             : t('session_revoked_by_admin')}
                     </span>
-                    <span style={{ color: 'var(--color-text-tertiary, #94a3b8)' }}>{e.ip_address ?? '—'}</span>
+                    <span style={{ color: 'var(--sk-faint)' }}>{e.ip_address ?? '—'}</span>
                   </li>
                 ))}
               </ul>
@@ -695,7 +695,7 @@ export default function AdminUserDetailPage() {
                   placeholder={u.email ?? ''}
                   style={{
                     width: '100%', boxSizing: 'border-box', padding: '9px 12px', borderRadius: 9,
-                    border: '1px solid var(--color-border-tertiary, #e5e7eb)', fontSize: 13,
+                    border: '1px solid var(--sk-border)', fontSize: 13,
                     fontFamily: 'inherit', marginBottom: 16,
                   }}
                 />

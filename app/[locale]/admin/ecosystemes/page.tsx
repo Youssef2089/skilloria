@@ -73,8 +73,8 @@ type Impact = {
 }
 
 const card: React.CSSProperties = {
-  background: 'var(--color-background-primary, #fff)',
-  border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+  background: 'var(--sk-surface)',
+  border: '0.5px solid var(--sk-border)',
   borderRadius: 12,
   padding: '18px 22px',
   marginBottom: 18,
@@ -84,7 +84,7 @@ const sectionTitle: React.CSSProperties = {
   fontWeight: 500,
   textTransform: 'uppercase',
   letterSpacing: '.08em',
-  color: 'var(--color-text-secondary, #64748b)',
+  color: 'var(--sk-muted)',
   marginBottom: 12,
 }
 const input: React.CSSProperties = {

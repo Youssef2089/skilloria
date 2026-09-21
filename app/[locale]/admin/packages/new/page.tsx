@@ -45,8 +45,8 @@ const UNLIMITED = 'unlimited'
 const TARGETS = ['client', 'cabinet', 'all', 'collaboration'] as const
 
 const cardStyle: React.CSSProperties = {
-  background: 'var(--color-background-primary, #fff)',
-  border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+  background: 'var(--sk-surface)',
+  border: '0.5px solid var(--sk-border)',
   borderRadius: 12,
   padding: '18px 22px',
   marginBottom: 16,
@@ -54,7 +54,7 @@ const cardStyle: React.CSSProperties = {
 const labelStyle: React.CSSProperties = {
   display: 'block',
   fontSize: 12,
-  color: 'var(--color-text-secondary, #64748b)',
+  color: 'var(--sk-muted)',
   fontWeight: 500,
   marginBottom: 6,
 }
@@ -62,25 +62,25 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '9px 12px',
   fontSize: 13,
-  border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+  border: '0.5px solid var(--sk-border)',
   borderRadius: 8,
   outline: 'none',
   fontFamily: 'inherit',
   boxSizing: 'border-box',
-  background: 'var(--color-background-primary, #fff)',
-  color: 'var(--color-text-primary, #0f172a)',
+  background: 'var(--sk-surface)',
+  color: 'var(--sk-text)',
 }
 const sectionTitle: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 500,
   textTransform: 'uppercase',
   letterSpacing: '.08em',
-  color: 'var(--color-text-secondary, #64748b)',
+  color: 'var(--sk-muted)',
   marginBottom: 12,
 }
 const hintStyle: React.CSSProperties = {
   fontSize: 12,
-  color: 'var(--color-text-tertiary, #94a3b8)',
+  color: 'var(--sk-faint)',
   margin: '6px 0 0',
 }
 
@@ -266,10 +266,10 @@ export default function AdminPackageNewPage() {
           second, empilé, et pointait vers une cible FIGÉE là où le global
           ramène à la page réellement quittée (catalogue ou collaboration). */}
 
-      <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: '0 0 4px' }}>
+      <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--sk-text)', margin: '0 0 4px' }}>
         {t('packages.new_title')}
       </h1>
-      <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 20px' }}>
+      <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 20px' }}>
         {t('packages.new_subtitle')}
       </p>
 
@@ -311,7 +311,7 @@ export default function AdminPackageNewPage() {
           <span style={labelStyle}>{t('packages.field_target')}</span>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             {TARGETS.map((tr) => (
-              <label key={tr} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--color-text-primary, #0f172a)', cursor: 'pointer' }}>
+              <label key={tr} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'var(--sk-text)', cursor: 'pointer' }}>
                 <input
                   type="radio"
                   name="target_role"
@@ -366,7 +366,7 @@ export default function AdminPackageNewPage() {
             const unlimited = isUnlimited(l.code)
             return (
               <div key={l.code} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 130px auto', gap: 12, alignItems: 'center' }}>
-                <label htmlFor={`f_${l.code}`} style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>
+                <label htmlFor={`f_${l.code}`} style={{ fontSize: 13, color: 'var(--sk-text)' }}>
                   {t(`packages.${l.labelKey}`)}
                 </label>
                 <input
@@ -379,9 +379,9 @@ export default function AdminPackageNewPage() {
                   onChange={(e) => setValues((prev) => ({ ...prev, [l.code]: e.target.value }))}
                   disabled={unlimited}
                   placeholder={unlimited ? '∞' : '0'}
-                  style={{ ...inputStyle, background: unlimited ? 'var(--color-background-secondary, #f8fafc)' : undefined, color: unlimited ? 'var(--color-text-tertiary, #94a3b8)' : undefined }}
+                  style={{ ...inputStyle, background: unlimited ? 'var(--sk-surface-2)' : undefined, color: unlimited ? 'var(--sk-faint)' : undefined }}
                 />
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--color-text-secondary, #64748b)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--sk-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                   <input type="checkbox" checked={unlimited} onChange={(e) => toggleUnlimited(l.code, e.target.checked)} />
                   {t('packages.field_unlimited')}
                 </label>
@@ -395,7 +395,7 @@ export default function AdminPackageNewPage() {
       <section style={cardStyle}>
         <h2 style={sectionTitle}>{t('packages.col_status')}</h2>
 
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-text-primary, #0f172a)', cursor: 'pointer' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--sk-text)', cursor: 'pointer' }}>
           <input
             type="checkbox"
             checked={active}
@@ -410,7 +410,7 @@ export default function AdminPackageNewPage() {
         </label>
         <p style={{ ...hintStyle, marginLeft: 24 }}>{t('packages.active_help')}</p>
 
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-text-primary, #0f172a)', cursor: active ? 'pointer' : 'not-allowed', marginTop: 14, opacity: active ? 1 : 0.5 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--sk-text)', cursor: active ? 'pointer' : 'not-allowed', marginTop: 14, opacity: active ? 1 : 0.5 }}>
           <input
             type="checkbox"
             checked={isDefault}
@@ -439,7 +439,7 @@ export default function AdminPackageNewPage() {
 
         {confirming && !nameMissing ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>{t('packages.confirm_create')}</span>
+            <span style={{ fontSize: 13, color: 'var(--sk-text)' }}>{t('packages.confirm_create')}</span>
             <button
               type="button"
               onClick={() => void create()}
@@ -452,7 +452,7 @@ export default function AdminPackageNewPage() {
               type="button"
               onClick={() => setConfirming(false)}
               disabled={saving}
-              style={{ padding: '9px 16px', background: 'transparent', color: 'var(--color-text-secondary, #64748b)', border: '0.5px solid var(--color-border-tertiary, #e5e7eb)', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ padding: '9px 16px', background: 'transparent', color: 'var(--sk-muted)', border: '0.5px solid var(--sk-border)', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
             >
               {t('packages.confirm_cancel')}
             </button>

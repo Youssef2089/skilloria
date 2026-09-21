@@ -5,10 +5,10 @@ import { useTranslations } from 'next-intl'
 import { Link, useRouter, usePathname } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
 import SessionHeartbeat from '@/components/SessionHeartbeat'
 import DeletionGate from '@/components/DeletionGate'
 import GlobalBackButton from '@/components/shell/GlobalBackButton'
+import DashboardTopbar from '@/components/shell/DashboardTopbar'
 import CronComplianceBanner from '@/components/admin/CronComplianceBanner'
 import LegalFooter from '@/components/layout/LegalFooter'
 import { ADMIN_NAV_SECTIONS } from '@/lib/nav-config'
@@ -142,6 +142,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const domain = useDomain()
 
+  // ── LE TITRE DE LA BARRE SUPÉRIEURE VIENT DU MENU, PAS D'UNE SECONDE LISTE
+  //
+  //  `ADMIN_NAV_SECTIONS` porte déjà le nom de chaque écran — c'est lui que la
+  //  barre latérale affiche. Écrire ici une table « chemin → titre » aurait
+  //  créé deux inventaires des mêmes écrans, et le second aurait vieilli tout
+  //  seul : une entrée ajoutée au menu serait apparue à gauche et pas en haut
+  //  (§E.20). On dérive, on ne recopie pas.
+  //
+  //  La correspondance prend l'entrée dont le chemin est le PLUS LONG parmi
+  //  celles qui préfixent la page courante : `/admin/packages/new` doit donner
+  //  « Offres » et non l'entrée racine. Aucun repli inventé — une page hors
+  //  menu affiche le nom du back-office.
+  const titreDePage = (() => {
+    const entrees = ADMIN_NAV_SECTIONS.flatMap((sec) => sec.items)
+    const trouvee = entrees
+      .filter((i) => pathname === i.href || pathname.startsWith(i.href + '/') || (i.extraActivePaths ?? []).includes(pathname))
+      .sort((a, b) => b.href.length - a.href.length)[0]
+    return trouvee
+      ? t(`sidebar.${trouvee.labelKey}` as 'sidebar.nav_organisations')
+      : t('sidebar.title')
+  })()
+
   const [state, setState] = useState<GuardState>({ kind: 'loading' })
 
   const checkAdmin = useCallback(async () => {
@@ -241,22 +263,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <SessionHeartbeat />
       {/* C3 : couverture de l'admin (hors /dashboard) par le gate de suppression. */}
       <DeletionGate />
+      {/* ── LE CADRE ADMIN EST CELUI DE LA COQUILLE PARTAGÉE ──────────────
+          Même modèle de défilement : la FENÊTRE ne défile pas, le `<main>`
+          défile. Une grille `minHeight: 100vh` faisait défiler la page
+          entière, barre latérale comprise — le menu s'en allait vers le haut
+          dès qu'on descendait dans une longue liste d'organisations. */}
       <div
       className="admin-layout"
       style={{
-        minHeight: '100vh',
-        display: 'grid',
-        gridTemplateColumns: '220px 1fr',
-        background: 'var(--color-background-secondary, #f8fafc)',
+        display: 'flex',
+        height: '100vh',
+        overflow: 'hidden',
+        background: 'var(--sk-bg)',
+        color: 'var(--sk-text)',
         fontFamily: 'Inter, system-ui, sans-serif',
       }}
     >
       <style>{`
         @media (max-width: 767px) {
-          .admin-layout { grid-template-columns: 1fr !important; }
+          .admin-layout { flex-direction: column !important; height: auto !important; overflow: visible !important; }
           .admin-sidebar {
+            width: 100% !important;
             border-right: none !important;
-            border-bottom: 0.5px solid var(--color-border-tertiary, #e5e7eb) !important;
+            border-bottom: 1px solid var(--sk-border) !important;
           }
           .admin-main { padding: 20px !important; }
         }
@@ -265,8 +294,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside
         className="admin-sidebar"
         style={{
-          background: '#fff',
-          borderRight: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+          // MÊMES VALEURS QUE `DashboardSidebar` : 248 px, `--sk-bandeau`,
+          // une bordure d'un pixel. Elle faisait 220 px et était peinte en
+          // `#fff` — un blanc écrit en toutes lettres, qui ne suivait donc
+          // aucune palette d'écosystème (§D.12).
+          width: 248,
+          flexShrink: 0,
+          overflowY: 'auto',
+          background: 'var(--sk-bandeau)',
+          borderRight: '1px solid var(--sk-border)',
           padding: '24px 14px',
           display: 'flex',
           flexDirection: 'column',
@@ -282,7 +318,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             alignItems: 'center',
             gap: 8,
             padding: '0 6px 18px',
-            borderBottom: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+            borderBottom: '0.5px solid var(--sk-border)',
             marginBottom: 12,
             textDecoration: 'none',
             transition: 'opacity .15s',
@@ -315,7 +351,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             style={{
               fontSize: 13,
               fontWeight: 500,
-              color: 'var(--color-text-primary, #0f172a)',
+              color: 'var(--sk-text)',
               lineHeight: 1.3,
             }}
           >
@@ -334,7 +370,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 fontWeight: 500,
                 textTransform: 'uppercase',
                 letterSpacing: '.08em',
-                color: 'var(--color-text-tertiary, #94a3b8)',
+                color: 'var(--sk-faint)',
                 padding: '14px 12px 6px',
               }}
             >
@@ -357,10 +393,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     fontSize: 13,
                     fontWeight: active ? 500 : 400,
                     color: active
-                      ? 'var(--color-text-primary, #0f172a)'
-                      : 'var(--color-text-secondary, #64748b)',
+                      ? 'var(--sk-text)'
+                      : 'var(--sk-muted)',
                     background: active
-                      ? 'var(--color-background-secondary, #f1f5f9)'
+                      ? 'var(--sk-surface-2)'
                       : 'transparent',
                     borderRadius: 8,
                     textDecoration: 'none',
@@ -375,13 +411,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         ))}
 
-        {/* Switcher locale en bas */}
-        <div style={{ marginTop: 'auto', paddingTop: 14 }}>
-          <LanguageSwitcher />
-        </div>
       </aside>
 
-      <main className="admin-main" style={{ padding: '24px 26px', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {/* ── LA BARRE SUPÉRIEURE QUI MANQUAIT ─────────────────────────────
+            Vingt-quatre écrans d'administration n'en avaient AUCUNE, quand
+            les quarante-deux autres en avaient une. Ni titre de page, ni
+            sélecteur de langue à sa place habituelle.
+            C'est le MÊME composant que partout ailleurs — écrire un
+            `AdminTopbar` à côté aurait produit deux barres jumelles, dont la
+            seconde se serait lue comme corrigée le jour où on corrige la
+            première (§E.20). */}
+        <DashboardTopbar side="admin" title={titreDePage} />
+      <main className="admin-main" style={{ flex: 1, overflow: 'auto', minHeight: 0, padding: '24px 26px', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <GlobalBackButton />
         {/* Conformité : une obligation légale désactivée est justement ce qu'on
             n'ira pas vérifier spontanément. Le bandeau vit donc ICI, sur toutes
@@ -394,6 +436,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <LegalFooter />
         </div>
       </main>
+      </div>
       </div>
     </>
   )

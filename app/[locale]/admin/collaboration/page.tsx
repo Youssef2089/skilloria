@@ -227,8 +227,8 @@ export default function AdminCollaborationPage() {
 
   // ── Styles (pattern listes admin) ──────────────────────────────────────────
   const cardStyle: React.CSSProperties = {
-    background: 'var(--color-background-primary, #fff)',
-    border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+    background: 'var(--sk-surface)',
+    border: '0.5px solid var(--sk-border)',
     borderRadius: 12,
     overflowX: 'auto',
   }
@@ -237,7 +237,7 @@ export default function AdminCollaborationPage() {
     fontWeight: 500,
     textTransform: 'uppercase',
     letterSpacing: '.08em',
-    color: 'var(--color-text-secondary, #64748b)',
+    color: 'var(--sk-muted)',
     margin: '28px 0 12px',
   }
   const thStyle: React.CSSProperties = {
@@ -246,24 +246,24 @@ export default function AdminCollaborationPage() {
     fontWeight: 500,
     textTransform: 'uppercase',
     letterSpacing: '.06em',
-    color: 'var(--color-text-tertiary, #94a3b8)',
+    color: 'var(--sk-faint)',
     padding: '14px 14px 10px',
     whiteSpace: 'nowrap',
   }
   const tdStyle: React.CSSProperties = {
     fontSize: 13,
-    color: 'var(--color-text-primary, #0f172a)',
+    color: 'var(--sk-text)',
     padding: '14px',
-    borderTop: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+    borderTop: '0.5px solid var(--sk-border)',
     verticalAlign: 'middle',
   }
   const emptyStyle: React.CSSProperties = {
-    background: 'var(--color-background-primary, #fff)',
-    border: '0.5px dashed var(--color-border-tertiary, #e5e7eb)',
+    background: 'var(--sk-surface)',
+    border: '0.5px dashed var(--sk-border)',
     borderRadius: 12,
     padding: '32px 24px',
     fontSize: 13,
-    color: 'var(--color-text-secondary, #64748b)',
+    color: 'var(--sk-muted)',
   }
   const badge = (bg: string, fg: string): React.CSSProperties => ({
     fontSize: 11,
@@ -306,7 +306,7 @@ export default function AdminCollaborationPage() {
           }
           .sk-collab-table thead { display: none; }
           .sk-collab-table tr {
-            border-top: 0.5px solid var(--color-border-tertiary, #e5e7eb);
+            border-top: 0.5px solid var(--sk-border);
             padding: 6px 0;
           }
           .sk-collab-table td {
@@ -322,7 +322,7 @@ export default function AdminCollaborationPage() {
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: .06em;
-            color: var(--color-text-tertiary, #94a3b8);
+            color: var(--sk-faint);
             flex: 0 0 auto;
           }
           .sk-collab-table td[data-label=""]::before { content: none; }
@@ -341,10 +341,10 @@ export default function AdminCollaborationPage() {
         }}
       >
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: '0 0 4px' }}>
+          <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--sk-text)', margin: '0 0 4px' }}>
             {t('collaboration.page_title')}
           </h1>
-          <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: 0 }}>
+          <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: 0 }}>
             {t('collaboration.subtitle')}
           </p>
         </div>
@@ -430,7 +430,7 @@ export default function AdminCollaborationPage() {
 
       {pkgs.length === 0 ? (
         <div style={emptyStyle}>
-          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', marginBottom: 6 }}>
+          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--sk-text)', marginBottom: 6 }}>
             {t('collaboration.offers_empty_title')}
           </div>
           <div style={{ marginBottom: 16, lineHeight: 1.6 }}>{t('collaboration.offers_empty_body')}</div>
@@ -463,7 +463,7 @@ export default function AdminCollaborationPage() {
                     <tr>
                       <td style={tdStyle} data-label={t('packages.col_offer')}>
                         <span style={{ display: 'block', fontWeight: 500 }}>{p.name}</span>
-                        <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary, #94a3b8)', marginTop: 2 }}>
+                        <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-faint)', marginTop: 2 }}>
                           {p.slug}
                         </span>
                       </td>
@@ -483,10 +483,10 @@ export default function AdminCollaborationPage() {
                       {/* Experts dont l'offre EFFECTIVE est celle-ci : inclut
                           les replis, donc plus fidèle que le simple compte des
                           rattachements explicites. */}
-                      <td style={{ ...tdStyle, color: 'var(--color-text-secondary, #64748b)', whiteSpace: 'nowrap' }} data-label={t('collaboration.col_experts')}>
+                      <td style={{ ...tdStyle, color: 'var(--sk-muted)', whiteSpace: 'nowrap' }} data-label={t('collaboration.col_experts')}>
                         {t('collaboration.experts_count', { count: effectiveCount(p.id) })}
                       </td>
-                      <td style={{ ...tdStyle, color: 'var(--color-text-secondary, #64748b)', minWidth: 240 }} className="sk-collab-min" data-label={t('packages.col_limits')}>
+                      <td style={{ ...tdStyle, color: 'var(--sk-muted)', minWidth: 240 }} className="sk-collab-min" data-label={t('packages.col_limits')}>
                         {summarizeLimits(p.features)}
                       </td>
                       <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }} data-label="">
@@ -505,7 +505,7 @@ export default function AdminCollaborationPage() {
                                 padding: 0,
                                 fontSize: 12,
                                 fontFamily: 'inherit',
-                                color: 'var(--color-text-secondary, #64748b)',
+                                color: 'var(--sk-muted)',
                                 textDecoration: 'underline',
                                 textUnderlineOffset: 3,
                                 cursor: 'pointer',
@@ -536,9 +536,9 @@ export default function AdminCollaborationPage() {
                     {/* Confirmation inline : impact explicite avant transfert. */}
                     {confirmingId === p.id && (
                       <tr>
-                        <td colSpan={6} style={{ padding: '0 14px 14px', background: 'var(--color-background-secondary, #f8fafc)' }} data-label="">
+                        <td colSpan={6} style={{ padding: '0 14px 14px', background: 'var(--sk-surface-2)' }} data-label="">
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', paddingTop: 12 }}>
-                            <span style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)' }}>
+                            <span style={{ fontSize: 13, color: 'var(--sk-text)' }}>
                               {previous
                                 ? t('packages.confirm_set_default', {
                                     target: t('packages.target_collaboration'),
@@ -560,7 +560,7 @@ export default function AdminCollaborationPage() {
                               type="button"
                               onClick={() => setConfirmingId(null)}
                               disabled={settingId === p.id}
-                              style={{ padding: '8px 14px', background: 'transparent', color: 'var(--color-text-secondary, #64748b)', border: '0.5px solid var(--color-border-tertiary, #e5e7eb)', borderRadius: 8, fontSize: 12, fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer' }}
+                              style={{ padding: '8px 14px', background: 'transparent', color: 'var(--sk-muted)', border: '0.5px solid var(--sk-border)', borderRadius: 8, fontSize: 12, fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer' }}
                             >
                               {t('packages.confirm_cancel')}
                             </button>
@@ -586,14 +586,14 @@ export default function AdminCollaborationPage() {
         <h2 style={sectionTitle}>{t('collaboration.section_experts')}</h2>
         {experts.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <label htmlFor="filter_pkg" style={{ fontSize: 12, color: 'var(--color-text-secondary, #64748b)' }}>
+            <label htmlFor="filter_pkg" style={{ fontSize: 12, color: 'var(--sk-muted)' }}>
               {t('collaboration.filter_offer')}
             </label>
             <select
               id="filter_pkg"
               value={filterPkg}
               onChange={(e) => setFilterPkg(e.target.value)}
-              style={{ padding: '7px 10px', fontSize: 13, border: '0.5px solid var(--color-border-tertiary, #e5e7eb)', borderRadius: 8, outline: 'none', fontFamily: 'inherit', background: 'var(--color-background-primary, #fff)', color: 'var(--color-text-primary, #0f172a)' }}
+              style={{ padding: '7px 10px', fontSize: 13, border: '0.5px solid var(--sk-border)', borderRadius: 8, outline: 'none', fontFamily: 'inherit', background: 'var(--sk-surface)', color: 'var(--sk-text)' }}
             >
               <option value={ALL}>{t('collaboration.filter_all')}</option>
               {pkgs.map((p) => (
@@ -602,7 +602,7 @@ export default function AdminCollaborationPage() {
                 </option>
               ))}
             </select>
-            <span style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)' }}>
+            <span style={{ fontSize: 12, color: 'var(--sk-faint)' }}>
               {t('collaboration.experts_count', { count: visibleExperts.length })}
             </span>
           </div>
@@ -611,7 +611,7 @@ export default function AdminCollaborationPage() {
 
       {experts.length === 0 ? (
         <div style={emptyStyle}>
-          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', marginBottom: 6 }}>
+          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--sk-text)', marginBottom: 6 }}>
             {t('collaboration.experts_empty_title')}
           </div>
           <div style={{ lineHeight: 1.6 }}>{t('collaboration.experts_empty_body')}</div>
@@ -636,12 +636,12 @@ export default function AdminCollaborationPage() {
                   <td style={tdStyle} data-label={t('collaboration.col_expert')}>
                     <span style={{ display: 'block', fontWeight: 500 }}>{expertName(e)}</span>
                     {e.email && e.full_name && (
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary, #94a3b8)', marginTop: 2 }}>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-faint)', marginTop: 2 }}>
                         {e.email}
                       </span>
                     )}
                   </td>
-                  <td style={{ ...tdStyle, color: 'var(--color-text-secondary, #64748b)' }} data-label={t('ecosystem_label')}>
+                  <td style={{ ...tdStyle, color: 'var(--sk-muted)' }} data-label={t('ecosystem_label')}>
                     {e.ecosystem ?? '—'}
                   </td>
                   {/* Offre effective + état de rattachement. Le repli est
@@ -649,7 +649,7 @@ export default function AdminCollaborationPage() {
                   <td style={tdStyle} data-label={t('collaboration.col_effective_offer')}>
                     <span style={{ display: 'block' }}>{e.package?.name ?? '—'}</span>
                     {e.state === 'linked' && e.valid_until && (
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary, #94a3b8)', marginTop: 2 }}>
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-faint)', marginTop: 2 }}>
                         {t('collaboration.valid_until', { date: fmtDate(e.valid_until) })}
                       </span>
                     )}

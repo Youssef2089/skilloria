@@ -151,15 +151,15 @@ export default function AdminTaxonomiePage() {
     fontWeight: 500,
     textTransform: 'uppercase',
     letterSpacing: '.06em',
-    color: 'var(--color-text-tertiary, #94a3b8)',
+    color: 'var(--sk-faint)',
     padding: '14px 14px 10px',
     whiteSpace: 'nowrap',
   }
   const tdStyle: React.CSSProperties = {
     fontSize: 13,
-    color: 'var(--color-text-primary, #0f172a)',
+    color: 'var(--sk-text)',
     padding: '14px',
-    borderTop: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+    borderTop: '0.5px solid var(--sk-border)',
     verticalAlign: 'middle',
   }
   const iconBtn: React.CSSProperties = {
@@ -168,10 +168,10 @@ export default function AdminTaxonomiePage() {
     justifyContent: 'center',
     width: 26,
     height: 26,
-    border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+    border: '0.5px solid var(--sk-border)',
     borderRadius: 7,
     background: 'transparent',
-    color: 'var(--color-text-secondary, #64748b)',
+    color: 'var(--sk-muted)',
     cursor: 'pointer',
     fontFamily: 'inherit',
     fontSize: 13,
@@ -199,10 +199,10 @@ export default function AdminTaxonomiePage() {
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary, #0f172a)', margin: '0 0 4px' }}>
+          <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--sk-text)', margin: '0 0 4px' }}>
             {t('page_title')}
           </h1>
-          <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: 0 }}>
+          <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: 0 }}>
             {t('subtitle')}
           </p>
         </div>
@@ -226,25 +226,25 @@ export default function AdminTaxonomiePage() {
       {list.length === 0 ? (
         <div
           style={{
-            background: 'var(--color-background-primary, #fff)',
-            border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+            background: 'var(--sk-surface)',
+            border: '0.5px solid var(--sk-border)',
             borderRadius: 12,
             padding: '40px 24px',
             textAlign: 'center',
           }}
         >
-          <p style={{ fontSize: 14, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 4px' }}>
+          <p style={{ fontSize: 14, color: 'var(--sk-muted)', margin: '0 0 4px' }}>
             {t('empty_title')}
           </p>
-          <p style={{ fontSize: 13, color: 'var(--color-text-tertiary, #94a3b8)', margin: 0 }}>
+          <p style={{ fontSize: 13, color: 'var(--sk-faint)', margin: 0 }}>
             {t('empty_hint')}
           </p>
         </div>
       ) : (
         <div
           style={{
-            background: 'var(--color-background-primary, #fff)',
-            border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+            background: 'var(--sk-surface)',
+            border: '0.5px solid var(--sk-border)',
             borderRadius: 12,
             overflowX: 'auto',
           }}
@@ -271,11 +271,11 @@ export default function AdminTaxonomiePage() {
                   </td>
                   <td style={tdStyle}>
                     <span style={{ display: 'block', fontWeight: 500 }}>{b.name}</span>
-                    <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary, #94a3b8)', marginTop: 2 }}>
+                    <span style={{ display: 'block', fontSize: 11, color: 'var(--sk-faint)', marginTop: 2 }}>
                       {b.slug}
                     </span>
                   </td>
-                  <td style={{ ...tdStyle, color: 'var(--color-text-secondary, #64748b)', whiteSpace: 'nowrap' }}>
+                  <td style={{ ...tdStyle, color: 'var(--sk-muted)', whiteSpace: 'nowrap' }}>
                     {t('speciality_count', { count: b.speciality_count })}
                   </td>
                   <td style={tdStyle}>
@@ -292,7 +292,7 @@ export default function AdminTaxonomiePage() {
                       {b.active ? t('status_active') : t('status_inactive')}
                     </span>
                   </td>
-                  <td style={{ ...tdStyle, color: 'var(--color-text-secondary, #64748b)', whiteSpace: 'nowrap' }}>
+                  <td style={{ ...tdStyle, color: 'var(--sk-muted)', whiteSpace: 'nowrap' }}>
                     {t('usage_summary', { profiles: b.profiles, publications: b.publications })}
                   </td>
                   <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
@@ -346,22 +346,22 @@ export default function AdminTaxonomiePage() {
       {/* ── Spécialités hors référentiel ─────────────────────────────────────── */}
       <section
         style={{
-          background: 'var(--color-background-primary, #fff)',
-          border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+          background: 'var(--sk-surface)',
+          border: '0.5px solid var(--sk-border)',
           borderRadius: 12,
           padding: '18px 22px',
           marginTop: 20,
         }}
       >
-        <h2 style={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--color-text-secondary, #64748b)', marginBottom: 6 }}>
+        <h2 style={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--sk-muted)', marginBottom: 6 }}>
           {t('other_title')}
         </h2>
-        <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '0 0 14px' }}>
+        <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '0 0 14px' }}>
           {t('other_hint')}
         </p>
 
         {(others ?? []).length === 0 ? (
-          <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: 0 }}>
+          <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: 0 }}>
             {t('other_empty')}
           </p>
         ) : (
@@ -375,7 +375,7 @@ export default function AdminTaxonomiePage() {
                   justifyContent: 'space-between',
                   gap: 12,
                   padding: '10px 14px',
-                  border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+                  border: '0.5px solid var(--sk-border)',
                   borderRadius: 8,
                 }}
               >
@@ -385,11 +385,11 @@ export default function AdminTaxonomiePage() {
                       {o.domain_name}
                     </span>
                   )}
-                  <span style={{ fontSize: 13, color: 'var(--color-text-primary, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 13, color: 'var(--sk-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {o.value}
                   </span>
                 </span>
-                <span style={{ flexShrink: 0, fontSize: 12, color: 'var(--color-text-secondary, #64748b)', whiteSpace: 'nowrap' }}>
+                <span style={{ flexShrink: 0, fontSize: 12, color: 'var(--sk-muted)', whiteSpace: 'nowrap' }}>
                   {t('other_count', { count: o.count })}
                 </span>
               </div>

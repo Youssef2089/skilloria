@@ -157,16 +157,16 @@ export default function AdminScheduledTaskDetailPage() {
   const label = job?.label_key ? t(job.label_key as 'title') : jobName
 
   const card: React.CSSProperties = {
-    background: 'var(--color-background-primary, #fff)',
-    border: '0.5px solid var(--color-border-tertiary, #e5e7eb)',
+    background: 'var(--sk-surface)',
+    border: '0.5px solid var(--sk-border)',
     borderRadius: 12,
     padding: '18px 20px',
   }
   const pageBtn: React.CSSProperties = {
     padding: '8px 12px', borderRadius: 9,
-    border: '1px solid var(--color-border-tertiary, #e5e7eb)',
-    background: 'var(--color-background-primary, #fff)',
-    color: 'var(--color-text-primary, #0f172a)',
+    border: '1px solid var(--sk-border)',
+    background: 'var(--sk-surface)',
+    color: 'var(--sk-text)',
     fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
   }
 
@@ -200,11 +200,11 @@ export default function AdminScheduledTaskDetailPage() {
       {!notFound && !error && pendingMigration === null && (
         <>
           <header style={{ marginBottom: 16 }}>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text-primary, #0f172a)', margin: 0, letterSpacing: '-0.2px' }}>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--sk-text)', margin: 0, letterSpacing: '-0.2px' }}>
               {label}
             </h1>
             {job?.description_key && (
-              <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '4px 0 0', lineHeight: 1.55, maxWidth: 760 }}>
+              <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '4px 0 0', lineHeight: 1.55, maxWidth: 760 }}>
                 {t(job.description_key as 'title')}
               </p>
             )}
@@ -214,7 +214,7 @@ export default function AdminScheduledTaskDetailPage() {
               </p>
             )}
             {job && (
-              <p style={{ fontSize: 12.5, color: 'var(--color-text-secondary, #64748b)', margin: '8px 0 0' }}>
+              <p style={{ fontSize: 12.5, color: 'var(--sk-muted)', margin: '8px 0 0' }}>
                 <code>{job.schedule ?? '—'}</code>
                 {job.period_minutes === null && ` · ${t('schedule_advanced')}`}
                 {' · '}
@@ -227,32 +227,32 @@ export default function AdminScheduledTaskDetailPage() {
 
           <section style={card} aria-label={t('history_title')}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
-              <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--color-text-secondary, #64748b)', margin: 0 }}>
+              <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--sk-muted)', margin: 0 }}>
                 {t('history_title')}
               </h2>
               {/* Total EXACT, jamais un écrêtage muet (leçon MAX_ORGS). */}
-              <span style={{ fontSize: 12.5, color: 'var(--color-text-secondary, #64748b)' }}>
+              <span style={{ fontSize: 12.5, color: 'var(--sk-muted)' }}>
                 {t('runs_count', { count: total })}
               </span>
             </div>
-            <p style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)', margin: '0 0 12px', lineHeight: 1.55 }}>
+            <p style={{ fontSize: 12, color: 'var(--sk-faint)', margin: '0 0 12px', lineHeight: 1.55 }}>
               {t('history_depth_notice')}
               <br />
               {t('history_retention_notice')}
             </p>
 
             {loading && (
-              <div style={{ padding: 28, textAlign: 'center', color: 'var(--color-text-secondary, #64748b)', fontSize: 14 }}>
+              <div style={{ padding: 28, textAlign: 'center', color: 'var(--sk-muted)', fontSize: 14 }}>
                 {t('loading')}
               </div>
             )}
 
             {!loading && runs.length === 0 && (
               <div style={{ padding: '18px 0' }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary, #0f172a)', marginBottom: 4 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 4 }}>
                   {t('history_empty_title')}
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', lineHeight: 1.6 }}>
+                <div style={{ fontSize: 13, color: 'var(--sk-muted)', lineHeight: 1.6 }}>
                   {t('history_empty_body')}
                 </div>
               </div>
@@ -271,7 +271,7 @@ export default function AdminScheduledTaskDetailPage() {
                     fontSize: 12.5,
                   }}
                 >
-                  <span style={{ minWidth: 190, color: 'var(--color-text-secondary, #64748b)' }}>
+                  <span style={{ minWidth: 190, color: 'var(--sk-muted)' }}>
                     {dateFmt.format(new Date(r.run_started_at))}
                   </span>
                   {/* Provenance. Un declenchement manuel ne produit AUCUNE ligne
@@ -285,10 +285,10 @@ export default function AdminScheduledTaskDetailPage() {
                           : t('run_manual')}
                       </span>
                     ) : (
-                      <span style={{ color: 'var(--color-text-tertiary, #94a3b8)' }}>{t('run_scheduled')}</span>
+                      <span style={{ color: 'var(--sk-faint)' }}>{t('run_scheduled')}</span>
                     )}
                   </span>
-                  <span style={{ minWidth: 90, color: 'var(--color-text-secondary, #64748b)' }}>
+                  <span style={{ minWidth: 90, color: 'var(--sk-muted)' }}>
                     {duration(r.duration_ms)}
                   </span>
                   <span style={{ minWidth: 100, fontWeight: 600, color: bad ? '#991B1B' : '#166534' }}>
@@ -299,7 +299,7 @@ export default function AdminScheduledTaskDetailPage() {
                       même sur un 401. Pour les tâches SQL pures, cette colonne
                       n'existe pas — l'afficher vide serait un faux signal. */}
                   {job?.writes_run_log && (
-                    <span style={{ minWidth: 110, color: httpKo ? '#991B1B' : 'var(--color-text-secondary, #64748b)' }}>
+                    <span style={{ minWidth: 110, color: httpKo ? '#991B1B' : 'var(--sk-muted)' }}>
                       {r.http_status !== null
                         ? `${t('field_http')} ${r.http_status}`
                         : r.http_requested_at
@@ -308,7 +308,7 @@ export default function AdminScheduledTaskDetailPage() {
                       {r.http_timed_out ? ' · timeout' : ''}
                     </span>
                   )}
-                  <span style={{ flex: '1 1 240px', minWidth: 0, color: bad ? '#991B1B' : 'var(--color-text-tertiary, #94a3b8)', wordBreak: 'break-word' }}>
+                  <span style={{ flex: '1 1 240px', minWidth: 0, color: bad ? '#991B1B' : 'var(--sk-faint)', wordBreak: 'break-word' }}>
                     {/* Le detail s'efface a 90 jours ; le RESUME reste 5 ans.
                         Sans ce repli, une ligne au-dela de 90 jours paraitrait
                         vide alors que la preuve est juste a cote — une preuve
@@ -335,7 +335,7 @@ export default function AdminScheduledTaskDetailPage() {
                 >
                   {t('prev')}
                 </button>
-                <span style={{ fontSize: 12.5, color: 'var(--color-text-secondary, #64748b)' }}>
+                <span style={{ fontSize: 12.5, color: 'var(--sk-muted)' }}>
                   {t('page_of', { page, pages: Math.max(1, Math.ceil(total / perPage)) })}
                 </span>
                 <button

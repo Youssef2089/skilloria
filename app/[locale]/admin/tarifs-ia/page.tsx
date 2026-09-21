@@ -51,8 +51,8 @@ const GRILLE_OFFICIELLE: Record<string, string> = {
 }
 
 const cardStyle: React.CSSProperties = {
-  background: 'var(--color-surface, #fff)',
-  border: '1px solid var(--color-border, #e2e8f0)',
+  background: 'var(--sk-surface)',
+  border: '1px solid var(--sk-border)',
   borderRadius: 12,
   padding: 20,
   marginBottom: 16,
@@ -62,13 +62,13 @@ const labelStyle: React.CSSProperties = {
   fontSize: 12,
   fontWeight: 500,
   marginBottom: 6,
-  color: 'var(--color-text-secondary, #64748b)',
+  color: 'var(--sk-muted)',
 }
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '9px 11px',
   fontSize: 14,
-  border: '1px solid var(--color-border, #e2e8f0)',
+  border: '1px solid var(--sk-border)',
   borderRadius: 8,
   background: '#fff',
   color: 'inherit',
@@ -192,15 +192,15 @@ export default function TarifsIaPage() {
 
   return (
     <div style={{ width: '100%', textAlign: 'left' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 4px', color: 'var(--color-text-primary, #0f172a)' }}>
+      <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 4px', color: 'var(--sk-text)' }}>
         {t('title')}
       </h1>
       {/* UNE LIGNE, pas un paragraphe. C'est la seule chose qu'il faut savoir
           avant de toucher à un prix. */}
-      <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 8px', maxWidth: 720 }}>
+      <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 8px', maxWidth: 720 }}>
         {t('intro')}
       </p>
-      <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', margin: '0 0 20px', maxWidth: 720 }}>
+      <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 20px', maxWidth: 720 }}>
         {t('devise')}
       </p>
 
@@ -215,9 +215,9 @@ export default function TarifsIaPage() {
             margin: '0 0 20px',
             padding: '10px 12px',
             borderRadius: 8,
-            background: 'var(--color-error-soft, #fef2f2)',
-            color: 'var(--color-error, #dc2626)',
-            border: '1px solid var(--color-error, #dc2626)',
+            background: 'var(--sk-red-soft)',
+            color: 'var(--sk-red)',
+            border: '1px solid var(--sk-red)',
             maxWidth: 720,
           }}
         >
@@ -226,15 +226,15 @@ export default function TarifsIaPage() {
       )}
 
       {chargement ? (
-        <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)' }}>{t('loading')}</p>
+        <p style={{ fontSize: 13, color: 'var(--sk-muted)' }}>{t('loading')}</p>
       ) : erreurChargement ? (
-        <p role="alert" style={{ fontSize: 13, color: 'var(--color-error, #dc2626)' }}>
+        <p role="alert" style={{ fontSize: 13, color: 'var(--sk-red)' }}>
           {erreurChargement}
         </p>
       ) : (tarifs?.length ?? 0) === 0 ? (
         /* ÉTAT VIDE, dit comme un état. Une grille vide n'accuse personne : elle
            dit que la migration qui la pose n'a pas été appliquée ici. */
-        <p style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)' }}>{t('empty')}</p>
+        <p style={{ fontSize: 13, color: 'var(--sk-muted)' }}>{t('empty')}</p>
       ) : (
         <>
           {msg && (
@@ -243,7 +243,7 @@ export default function TarifsIaPage() {
               style={{
                 fontSize: 13,
                 margin: '0 0 14px',
-                color: msg.kind === 'err' ? 'var(--color-error, #dc2626)' : 'var(--color-success, #16a34a)',
+                color: msg.kind === 'err' ? 'var(--sk-red)' : 'var(--sk-success)',
               }}
             >
               {msg.text}
@@ -274,7 +274,7 @@ export default function TarifsIaPage() {
                         fontSize: 15,
                         fontWeight: 600,
                         margin: 0,
-                        color: 'var(--color-text-primary, #0f172a)',
+                        color: 'var(--sk-text)',
                       }}
                     >
                       {t(`usage.${ligne.provider}` as 'usage.claude')}
@@ -286,14 +286,14 @@ export default function TarifsIaPage() {
                       style={{
                         fontSize: 12,
                         margin: '2px 0 0',
-                        color: 'var(--color-text-tertiary, #94a3b8)',
+                        color: 'var(--sk-faint)',
                         wordBreak: 'break-all',
                       }}
                     >
                       {ligne.model}
                     </p>
                   </div>
-                  <p style={{ fontSize: 12, margin: 0, color: 'var(--color-text-tertiary, #94a3b8)' }}>
+                  <p style={{ fontSize: 12, margin: 0, color: 'var(--sk-faint)' }}>
                     {jours === null
                       ? t('modified_unknown')
                       : jours === 0
@@ -379,7 +379,7 @@ export default function TarifsIaPage() {
                       fontWeight: 500,
                       borderRadius: 8,
                       border: 'none',
-                      background: 'var(--color-primary, #2563eb)',
+                      background: 'var(--sk-accent)',
                       color: '#fff',
                       cursor: enCours === ligne.model || blocage !== null ? 'not-allowed' : 'pointer',
                       opacity: enCours === ligne.model || blocage !== null ? 0.6 : 1,
@@ -390,14 +390,14 @@ export default function TarifsIaPage() {
                   {/* UN BOUTON GRISÉ DIT POURQUOI. Sans ce motif, on reste
                       devant un bouton mort sans savoir ce qu'on a mal fait. */}
                   {blocage && (
-                    <span style={{ fontSize: 12, color: 'var(--color-text-tertiary, #94a3b8)' }}>{blocage}</span>
+                    <span style={{ fontSize: 12, color: 'var(--sk-faint)' }}>{blocage}</span>
                   )}
                   {grille && (
                     <a
                       href={grille}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ fontSize: 12, color: 'var(--color-primary, #2563eb)' }}
+                      style={{ fontSize: 12, color: 'var(--sk-accent)' }}
                     >
                       {t('official_grid')}
                     </a>
