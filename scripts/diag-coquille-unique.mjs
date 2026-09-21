@@ -207,6 +207,43 @@ section('D. L en-tête et la barre latérale portent la MÊME couleur')
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+section('D bis. Les pages SANS cadre sont celles-là, et pas une de plus')
+// ══════════════════════════════════════════════════════════════════════════
+//
+//  UN GEL D'ÉTAT MESURÉ, PAS D'EXEMPTIONS (§G.8). Il ne dit pas « ce défaut
+//  est toléré » : il dit « voici les pages qui n'ont pas de cadre, au moment
+//  du gel, CHACUNE avec sa raison ». Le contrôle continue de vérifier chaque
+//  ligne, et toute NOUVELLE page sans cadre le fait rougir.
+{
+  // Une page a un cadre si elle est sous un sub-layout qui monte la coquille.
+  // Les trois exceptions ci-dessous n'en ont pas — et chacune dit pourquoi.
+  const SANS_CADRE = {
+    [`${ESPACE}/dashboard/cabinet/page.tsx`]:
+      "REDIRECTION SERVEUR : elle ne rend RIEN, le navigateur ne la dessine jamais",
+    [`${ESPACE}/reactivation/page.tsx`]:
+      "vit HORS de /dashboard : sous la garde de suppression, elle bouclerait",
+    [`${ESPACE}/invitation/[token]/page.tsx`]:
+      "le destinataire n'est pas encore membre — il n'a pas de cadre à recevoir",
+  }
+
+  // `dashboard/cabinet` est la seule des trois qui soit SOUS `/dashboard` :
+  // les deux autres ne sont pas dans le périmètre balayé. On vérifie donc
+  // celle-là par sa PROPRIÉTÉ — elle ne doit rien rendre — et non par sa
+  // présence dans une liste (§E.34).
+  const cabinet = sansCommentaires(lire(`${ESPACE}/dashboard/cabinet/page.tsx`))
+  ok(/redirect\(\{/.test(cabinet) && !/'use client'/.test(cabinet),
+    'dashboard/cabinet redirige au SERVEUR, sans rien rendre',
+    'elle redirigeait dans un useEffect, donc APRES un premier rendu : une page nue, un « … » gris centre, et une couleur ecrite en toutes lettres')
+  ok(!/<div|<span|return \(/.test(cabinet),
+    'et elle ne dessine aucun élément',
+    'lui donner la coquille aurait ete la mauvaise reponse : peindre un cadre complet pour le retirer dans la milliseconde')
+
+  for (const [p, raison] of Object.entries(SANS_CADRE)) {
+    ok(existsSync(join(ROOT, p)), `${p.replace(`${ESPACE}/`, '')} existe — ${raison}`)
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 section('E. Pas de code mort de coquille')
 // ══════════════════════════════════════════════════════════════════════════
 

@@ -126,7 +126,6 @@ const GEL = {
   'app/api/admin/ecosystemes/route.ts': 2,
   'app/[locale]/dashboard/entreprise/annonces/[id]/page.tsx': 2,
   'components/admin/LogoOrganisation.tsx': 2,
-  'app/[locale]/dashboard/cabinet/page.tsx': 1,
   'app/[locale]/dashboard/entreprise/candidatures/page.tsx': 1,
 }
 
