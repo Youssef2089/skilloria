@@ -4137,7 +4137,15 @@
     }
   },
   "plafonds": {
-    "annonces_tronquees": "This list is incomplete: it shows your {plafond} most recently updated postings. Older ones are not displayed."
+    "annonces_tronquees": "This list is incomplete: it shows your {plafond} most recently updated postings. Older ones are not displayed.",
+    "candidatures_tronquees": "This list is incomplete: it shows your {plafond} highest-rated applications, and the counters are computed on this part only.",
+    "compteurs_partiels": "Application counters are computed on your {plafond} highest-rated applications: beyond that, they are partial.",
+    "candidatures_expert_tronquees": "This tracking is incomplete: it shows your {plafond} most recent applications. Older ones are not shown.",
+    "conversations_tronquees": "This inbox is incomplete: it shows your {plafond} most recent conversations. Older ones are not shown.",
+    "messages_tronques": "This thread is incomplete: it shows the {plafond} most recent messages. Older ones are not shown.",
+    "besoins_tronques": "This list is incomplete: it shows your {plafond} most recently updated needs. Older ones are not shown.",
+    "sessions_tronquees": "This log is incomplete: only the {plafond} most recent events are shown.",
+    "fiche_expert_liste_tronquee": "List cut off: only the {plafond} most recent entries are shown."
   },
   "admin_seuils": {
     "title": "Judgement scores",

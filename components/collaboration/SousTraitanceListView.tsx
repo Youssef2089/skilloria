@@ -6,6 +6,7 @@ import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import type { Annonce } from '@/types/annonce'
+import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
 
 /**
  * SousTraitanceListView — « Mes besoins de sous-traitance » (page de MENU, pas
@@ -28,6 +29,7 @@ type Quota = { activePublicationsMax: number | null; activePublishedCount: numbe
 export default function SousTraitanceListView({ basePath }: { basePath: string }) {
   const t = useTranslations('collaboration.list')
   const tPub = useTranslations('publications')
+  const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
   const domain = useDomain()
   const secureFetch = useSecureFetch()
@@ -35,6 +37,7 @@ export default function SousTraitanceListView({ basePath }: { basePath: string }
   const [phase, setPhase] = useState<Phase>('loading')
   const [needs, setNeeds] = useState<Annonce[]>([])
   const [quota, setQuota] = useState<Quota | null>(null)
+  const [troncature, setTroncature] = useState<Troncature | null>(null)
 
   const load = useCallback(async () => {
     setPhase('loading')
@@ -61,8 +64,9 @@ export default function SousTraitanceListView({ basePath }: { basePath: string }
       }
 
       if (!pubsRes.ok) { setPhase('org_error'); return }
-      const pubsPayload = (await pubsRes.json().catch(() => ({}))) as { publications?: Annonce[] }
+      const pubsPayload = (await pubsRes.json().catch(() => ({}))) as { publications?: Annonce[]; troncature?: Troncature }
       const all = pubsPayload.publications ?? []
+      setTroncature(pubsPayload.troncature ?? null)
       setNeeds(all.filter((p) => p.type === 'sous_traitance'))
 
       if (quotaRes.ok) {
@@ -121,6 +125,9 @@ export default function SousTraitanceListView({ basePath }: { basePath: string }
   return (
     <div style={{ padding: '24px 24px 56px', width: '100%' }}>
       {header}
+      {phase === 'ready' && troncature?.atteint && (
+        <BandeauTroncature texte={tPlafond('besoins_tronques', { plafond: troncature.plafond })} />
+      )}
 
       {phase === 'loading' && (
         <div style={{ padding: 40, color: '#64748b', fontSize: 14 }}>{t('loading')}</div>

@@ -30,11 +30,13 @@
 // │   · MUET        rien de tout ça — et un plafond muet est soit LU et    │
 // │                 GELÉ avec sa raison (§G.8), soit ROUGE.                 │
 // │ Le balayage a trouvé 47 plafonds là où le contrôle en connaissait 2 :  │
-// │ 18 lookups, 12 annoncés, 2 sondés, 15 MUETS — tous lus : 8 légitimes   │
-// │ (9 occurrences), 6 DÉFAUTS NOMMÉS rendus à l'arbitrage. Et côté ÉCRAN, │
-// │ 8 lecteurs d'une route qui DIT sa troncature ne la LISENT pas — nommés  │
-// │ aussi. Le classement est fait au FICHIER (un signal de compte ailleurs  │
-// │ dans le fichier range son plafond en ANNONCÉ) : c'est grossier, c'est   │
+// │ le 20/09 : 18 lookups, 12 annoncés, 2 sondés, 15 MUETS — tous lus :     │
+// │ 8 légitimes (9 occurrences), 6 DÉFAUTS NOMMÉS ; et côté ÉCRAN, 8        │
+// │ lecteurs d'une route qui DIT sa troncature la taisaient.                │
+// │ Le 21/09, sur arbitrage : les 6 sont SONDÉS (8 sondés désormais) et les │
+// │ 8 écrans montrent le bandeau (components/ui/BandeauTroncature). Restent │
+// │ 9 muets, tous LÉGITIMES. Le classement est fait au FICHIER (un signal de │
+// │ compte ailleurs range son plafond en ANNONCÉ) : c'est grossier, c'est    │
 // │ dit, et ça se relit dans le gel.                                         │
 // └─────────────────────────────────────────────────────────────────────────┘
 //
@@ -55,6 +57,12 @@ const { ok, section, info, fin } = bilan()
  * LÉGITIME ou par DÉFAUT NOMMÉ ; un plafond muet NEUF rougit ; une entrée
  * dont le plafond a disparu ou cessé d'être muet doit sortir du gel.
  */
+// ┌─ 21/09/2026 : LES SIX DÉFAUTS NOMMÉS SONT SORTIS DU GEL — corrigés ─────┐
+// │ me/candidatures 200, me/conversations 200, le fil de messages 500 et les │
+// │ trois listes de la fiche expert sont SONDÉS (limiteSondee +               │
+// │ couperEtSignaler) et relaient `troncature`. Ne restent que les LÉGITIMES : │
+// │ entrées de jugement, lots par passes, un flux.                            │
+// └─────────────────────────────────────────────────────────────────────────┘
 const GEL = {
   // ── Entrées d'un JUGEMENT, pas des listes servies ────────────────────────
   //   (`candidatures/route.ts .limit(20)` est du même usage, mais son fichier
@@ -81,19 +89,6 @@ const GEL = {
   //   (`me/notifications .limit(50)` : la cloche montre les 50 plus récentes et le
   //   seul chiffre qu'elle promet — les non-lues — vient d'un `count: 'exact'` à
   //   part ; ce compte range le fichier en ANNONCÉ, pour la bonne raison.)
-  // ── DÉFAUTS NOMMÉS : des listes servies comme complètes, coupées en silence ─
-  'app/api/me/candidatures/route.ts | 200':
-    'DÉFAUT NOMMÉ — le suivi des candidatures d’un EXPERT : 200 les plus récentes, sans sonde ni compte. Un expert très actif verrait ses candidatures anciennes disparaître de son suivi sans un mot. Correctif connu : limiteSondee + couperEtSignaler, comme les deux listes d’organisation',
-  'app/api/me/conversations/route.ts | 200':
-    'DÉFAUT NOMMÉ — la boîte de réception : 200 conversations les plus récentes, sans sonde. Même correctif',
-  'app/api/conversations/[id]/messages/route.ts | 500':
-    'DÉFAUT NOMMÉ — un fil de 500 messages : le BON bout est gardé (les plus récents, tri descendant puis renversé), mais personne n’apprend que des messages plus anciens existent. Une ligne-sonde suffit',
-  'app/api/admin/get-expert/[id]/route.ts | 20':
-    'DÉFAUT NOMMÉ — l’écran où un administrateur APPROUVE un expert : 20 expériences, 10 formations, 15 langues, coupées en silence. Rare, mais la décision se prend sur la liste affichée (§E.22 ⑦ a fermé la PANNE sur ces trois lectures ; la TRONCATURE reste muette)',
-  'app/api/admin/get-expert/[id]/route.ts | 10':
-    'DÉFAUT NOMMÉ — idem, formations',
-  'app/api/admin/get-expert/[id]/route.ts | 15':
-    'DÉFAUT NOMMÉ — idem, langues',
 }
 /**
  * GEL DES ÉCRANS MUETS — des écrans qui LISENT une route qui DIT sa troncature,
@@ -101,24 +96,14 @@ const GEL = {
  * l'écran l'affiche ; « le champ serait servi mais jamais montré : muet à
  * l'écran, donc muet tout court ». Clé : écran + chemin de la route.
  */
-const GEL_ECRANS = {
-  'components/collaboration/SousTraitanceListView.tsx | /api/publications':
-    'DÉFAUT NOMMÉ — la liste des besoins de sous-traitance d’un expert ignore `troncature` (plafond 500) ; l’écran des annonces d’organisation, lui, l’affiche',
-  'components/dashboard/CollaborationDashboardBlock.tsx | /api/publications':
-    'DÉFAUT NOMMÉ — le bloc de tableau de bord réutilise GET /api/publications et n’affiche pas la troncature',
-  'app/[locale]/dashboard/entreprise/page.tsx | /api/publications':
-    'DÉFAUT NOMMÉ — l’accueil entreprise lit la liste des annonces et n’en dit pas la troncature ; la page Annonces, servie par la même route, la dit',
-  'app/[locale]/dashboard/entreprise/candidatures/page.tsx | /api/me/candidatures-org':
-    'DÉFAUT NOMMÉ — la page Candidatures de l’organisation : la route dit que la liste ET les compteurs sont partiels (plafond 2000), la page ne le dit pas',
-  'app/[locale]/dashboard/entreprise/page.tsx | /api/me/candidatures-org':
-    'DÉFAUT NOMMÉ — l’accueil entreprise affiche les COMPTEURS de candidatures comme exacts ; au-delà du plafond ils sont partiels et la route le dit',
-  'app/[locale]/dashboard/entreprise/annonces/[id]/candidatures/page.tsx | /api/publications/[id]/candidatures':
-    'DÉFAUT NOMMÉ — les candidatures d’une annonce : même route-famille, même silence à l’écran',
-  'components/collaboration/SousTraitanceDetailView.tsx | /api/publications/[id]/candidatures':
-    'DÉFAUT NOMMÉ — le détail d’un besoin de sous-traitance lit la même liste et ignore `troncature`',
-  'app/[locale]/admin/utilisateurs/[id]/page.tsx | /api/admin/get-user/[id]/sessions':
-    'DÉFAUT NOMMÉ — la fiche utilisateur du back-office ne lit pas `has_more` : le journal de sessions paraît complet quand il est coupé',
-}
+// ┌─ 21/09/2026 : LES HUIT ÉCRANS MUETS SONT SORTIS DU GEL — corrigés ──────┐
+// │ Chacun lit le drapeau et le montre par components/ui/BandeauTroncature   │
+// │ (le modèle de la page Annonces, mutualisé). L'accueil entreprise en       │
+// │ premier : c'est là qu'une organisation décide. Le gel est VIDE ; la       │
+// │ convention reste : clé « écran | chemin », raison LÉGITIME ou DÉFAUT     │
+// │ NOMMÉ, et un écran neuf qui tait une troncature rougit.                   │
+// └─────────────────────────────────────────────────────────────────────────┘
+const GEL_ECRANS = {}
 const defautsNommes =
   Object.values(GEL).filter((r) => r.startsWith('DÉFAUT NOMMÉ')).length +
   Object.values(GEL_ECRANS).filter((r) => r.startsWith('DÉFAUT NOMMÉ')).length
@@ -202,9 +187,11 @@ for (const p of inventaire.filter((p) => p.classe === 'SONDÉ')) {
   const nom = p.f.split('/').slice(-2).join('/')
   // La coupe DOIT précéder toute dérivation : une ligne-sonde qui atteint un
   // DTO serait servie, et un plafond de 2000 en rendrait 2001.
-  const iCoupe = p.src.indexOf('couperEtSignaler(')
-  const iDerive = p.src.indexOf('deriveCandidatureLifecycle(')
-  if (iDerive > 0) ok(iCoupe < iDerive, `${nom} : la coupe précède la dérivation des DTO`, 'la ligne-sonde atteindrait le DTO et les compteurs')
+  const iCoupe = p.src.indexOf('couperEtSignaler(', p.index)
+  const iDerive = p.src.indexOf('deriveCandidatureLifecycle(', p.index)
+  // Une dérivation qui vient AVANT la sonde (le fil de messages dérive l'état de
+  // vie de la conversation, puis lit les messages) ne consomme pas la liste sondée.
+  if (iDerive > 0) ok(iCoupe > 0 && iCoupe < iDerive, `${nom} : la coupe précède la dérivation des DTO`, 'la ligne-sonde atteindrait le DTO et les compteurs')
   // LE SENS. Un tri ascendant garderait les plus anciens et ferait disparaître
   // les vivants — la faute exacte corrigée sur le fil de messagerie.
   const ordre = ordreAvant(p.src, p.index)
@@ -213,7 +200,13 @@ for (const p of inventaire.filter((p) => p.classe === 'SONDÉ')) {
   // Le retour porte la troncature comme OBJET (pas un tableau nu), pour que le
   // compilateur force chaque appelant à la voir — §E.34 : on vérifie la forme
   // « objet qui porte troncature », pas une signature au caractère près.
-  if (/Promise<\{/.test(p.src)) ok(/Promise<\{[^}]*\btroncature\b/.test(p.src), `${nom} : le retour est un OBJET qui porte la troncature`, 'un tableau nu laisserait la troncature s’oublier en silence')
+  // Un HELPER qui rend des DTO à des routes (signature `Promise<{ dtos… }>`) doit
+  // porter la troncature dans son objet de retour, pour que le compilateur force
+  // chaque appelant à la voir. Une route, elle, la met dans sa réponse (section D).
+  const signatures = p.src.match(/Promise<\{[^}]*\}/g) ?? []
+  for (const sig of signatures.filter((x) => /\bdtos\b/.test(x))) {
+    ok(/\btroncature\b/.test(sig), `${nom} : le retour du helper est un OBJET qui porte la troncature`, 'un tableau nu laisserait la troncature s’oublier en silence')
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -259,6 +252,6 @@ for (const k of clesTronc) {
 
 // ══════════════════════════════════════════════════════════════════════════
 section('GEL — compté à voix haute')
-info(`${defautsNommes} DÉFAUT(S) NOMMÉ(S) au gel — 6 plafonds serveur muets, 8 écrans qui taisent une troncature que le serveur dit — rendus à l’arbitrage`)
+info(`${defautsNommes} DÉFAUT(S) NOMMÉ(S) au gel (${Object.keys(GEL).length} plafonds gelés LÉGITIMES, ${Object.keys(GEL_ECRANS).length} écran(s) gelé(s))`)
 
 fin(`Aucun plafond du serveur n’est muet sans avoir été lu. ${defautsNommes} défaut(s) nommé(s) attendent un arbitrage.`)

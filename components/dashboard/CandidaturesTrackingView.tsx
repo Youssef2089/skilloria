@@ -35,6 +35,7 @@ import {
 } from '@/lib/candidatures/facets'
 import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
 import { useRelativeTime } from '@/lib/use-relative-time'
+import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
 
 /**
  * CandidaturesTrackingView — vue tracking des candidatures côté expert
@@ -91,6 +92,7 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
   const locale = useLocale()
   const relTime = useRelativeTime()
   const tLifecycle = useTranslations('candidature_lifecycle')
+  const tPlafond = useTranslations('plafonds')
   const lifecycleLabel = useCandidatureLifecycleLabel('expert')
   const facetLabels = useCandidatureFacetLabels('expert')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -124,6 +126,7 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
       counts?: { active: number; archived: number }
       facets?: CandidatureFacetCounts
       stats?: CandidaturesStatsPayload
+      troncature?: Troncature
     },
     Candidature
   >({
@@ -199,6 +202,9 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
       <StatsStrip stats={stats} />
+      {live.data?.troncature?.atteint && (
+        <BandeauTroncature texte={tPlafond('candidatures_expert_tronquees', { plafond: live.data.troncature.plafond })} style={{ margin: '12px 0 0' }} />
+      )}
 
       {/* MasterDetail rendu INCONDITIONNELLEMENT. Auparavant un ternaire sur
           `list.length === 0` renvoyait vers un empty-state global : les chips

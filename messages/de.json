@@ -4137,7 +4137,15 @@
     }
   },
   "plafonds": {
-    "annonces_tronquees": "Diese Liste ist unvollständig: Sie zeigt Ihre {plafond} zuletzt geänderten Anzeigen. Ältere werden nicht angezeigt."
+    "annonces_tronquees": "Diese Liste ist unvollständig: Sie zeigt Ihre {plafond} zuletzt geänderten Anzeigen. Ältere werden nicht angezeigt.",
+    "candidatures_tronquees": "Diese Liste ist unvollständig: Sie zeigt Ihre {plafond} bestbewerteten Bewerbungen, und die Zähler beziehen sich nur auf diesen Teil.",
+    "compteurs_partiels": "Die Bewerbungszähler beziehen sich auf Ihre {plafond} bestbewerteten Bewerbungen: darüber hinaus sind sie unvollständig.",
+    "candidatures_expert_tronquees": "Diese Übersicht ist unvollständig: Sie zeigt Ihre {plafond} neuesten Bewerbungen. Ältere werden nicht angezeigt.",
+    "conversations_tronquees": "Dieser Posteingang ist unvollständig: Er zeigt Ihre {plafond} neuesten Unterhaltungen. Ältere werden nicht angezeigt.",
+    "messages_tronques": "Dieser Verlauf ist unvollständig: Er zeigt die {plafond} neuesten Nachrichten. Ältere werden nicht angezeigt.",
+    "besoins_tronques": "Diese Liste ist unvollständig: Sie zeigt Ihre {plafond} zuletzt geänderten Bedarfe. Ältere werden nicht angezeigt.",
+    "sessions_tronquees": "Dieses Protokoll ist unvollständig: Es werden nur die {plafond} neuesten Ereignisse angezeigt.",
+    "fiche_expert_liste_tronquee": "Liste gekürzt: Es werden nur die {plafond} neuesten Einträge angezeigt."
   },
   "admin_seuils": {
     "title": "Bewertungsnoten",

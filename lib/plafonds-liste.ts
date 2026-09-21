@@ -39,6 +39,21 @@ export const PLAFOND_CANDIDATURES_ORG = 2000
  */
 export const PLAFOND_PUBLICATIONS_ORG = 500
 
+/**
+ * Les six plafonds qui étaient MUETS (trouvés par le balayage de
+ * diag-plafonds-listes, 20/09/2026 ; sondés le 21/09) — tous coupent la QUEUE
+ * de l’histoire, jamais sa tête : le tri qui précède chaque sonde est
+ * descendant, et le contrôle le vérifie.
+ */
+/** Candidatures servies à un EXPERT (son suivi). Tri : `created_at` décroissant. */
+export const PLAFOND_CANDIDATURES_EXPERT = 200
+/** Conversations d’une boîte de réception (expert ou organisation). Tri : dernier message décroissant. */
+export const PLAFOND_CONVERSATIONS = 200
+/** Messages d’un fil. Les PLUS RÉCENTS sont gardés, puis rendus dans l’ordre chronologique. */
+export const PLAFOND_MESSAGES = 500
+/** Les trois listes de la fiche d’approbation d’un expert (back-office). */
+export const PLAFOND_FICHE_EXPERT = { experiences: 20, educations: 10, languages: 15 } as const
+
 export type Troncature = {
   /** Le plafond appliqué, pour que l'écran puisse le nommer. */
   plafond: number

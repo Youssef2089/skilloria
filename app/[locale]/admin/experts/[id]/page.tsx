@@ -5,6 +5,7 @@ import { use } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
 
 /**
  * /admin/experts/[id] — fiche détaillée + actions Approve/Reject.
@@ -62,7 +63,14 @@ type Experience = { role: string | null; employer: string | null; sector: string
 type Education = { school: string | null; degree: string | null; field: string | null; start_year: string | null; end_year: string | null; location: string | null }
 type LanguageItem = { language: string; level: string | null; is_primary: boolean | null }
 
-type Payload = { expert: ExpertFull; experiences: Experience[]; educations: Education[]; languages_structured: LanguageItem[] }
+type Payload = {
+  expert: ExpertFull
+  experiences: Experience[]
+  educations: Education[]
+  languages_structured: LanguageItem[]
+  /** Par liste : le serveur dit si elle est coupée à son plafond. */
+  troncature?: { experiences: Troncature; educations: Troncature; languages: Troncature }
+}
 
 function pickRel<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null
@@ -81,6 +89,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
   const t = useTranslations('admin_back_office.experts')
   const tCommon = useTranslations('common')
   const tAdmin = useTranslations('admin_back_office')
+  const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
   const router = useRouter()
   const secureFetch = useSecureFetch()
@@ -168,7 +177,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
   }
   if (!data) return null
 
-  const { expert: e, experiences, educations, languages_structured } = data
+  const { expert: e, experiences, educations, languages_structured, troncature } = data
   const user = e.users
   const fullName = user ? [user.first_name, user.last_name].filter(Boolean).join(' ').trim() : ''
   const status = e.verification_status ?? 'pending'
@@ -278,6 +287,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
       {experiences.length > 0 && (
         <section style={{ background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
           <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#64748b', marginBottom: 10 }}>{t('section_experiences')}</h2>
+          {troncature?.experiences.atteint && <BandeauTroncature texte={tPlafond('fiche_expert_liste_tronquee', { plafond: troncature.experiences.plafond })} />}
           {experiences.map((x, i) => (
             <div key={i} style={{ paddingBottom: 12, marginBottom: 12, borderBottom: i === experiences.length - 1 ? 'none' : '1px dashed #e5e7eb' }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{x.role ?? '—'} <span style={{ color: '#64748b', fontWeight: 400 }}>· {x.employer ?? '—'}</span></div>
@@ -292,6 +302,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
       {educations.length > 0 && (
         <section style={{ background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
           <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#64748b', marginBottom: 10 }}>{t('section_educations')}</h2>
+          {troncature?.educations.atteint && <BandeauTroncature texte={tPlafond('fiche_expert_liste_tronquee', { plafond: troncature.educations.plafond })} />}
           {educations.map((x, i) => (
             <div key={i} style={{ marginBottom: 8, fontSize: 13, color: '#334155' }}>
               <span style={{ fontWeight: 600 }}>{x.degree ?? '—'}</span> {x.field ? `· ${x.field}` : ''} — {x.school ?? '—'} ({x.start_year ?? '?'}-{x.end_year ?? '?'})
@@ -304,6 +315,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
       {languages_structured.length > 0 && (
         <section style={{ background: '#fff', border: '0.5px solid #e5e7eb', borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
           <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#64748b', marginBottom: 10 }}>{t('section_languages')}</h2>
+          {troncature?.languages.atteint && <BandeauTroncature texte={tPlafond('fiche_expert_liste_tronquee', { plafond: troncature.languages.plafond })} />}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {languages_structured.map((l, i) => (
               <span key={i} style={{ background: '#f1f5f9', color: '#334155', padding: '4px 12px', borderRadius: 10, fontSize: 12, fontWeight: 500 }}>

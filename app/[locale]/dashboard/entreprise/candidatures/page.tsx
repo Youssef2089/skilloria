@@ -14,6 +14,7 @@ import CandidatureFilterChips, {
 import { useCandidatureFacetLabels } from '@/lib/candidatures/use-facet-label'
 import { parseFacetFilter, type CandidatureFacetCounts } from '@/lib/candidatures/facets'
 import { IconExternalLink } from '@tabler/icons-react'
+import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
 
 /**
  * /dashboard/entreprise/candidatures — vue GLOBALE master-detail.
@@ -59,6 +60,7 @@ type State =
       publications: PublicationInfo[]
       counts: BucketCounts
       facets: CandidatureFacetCounts | null
+      troncature: Troncature | null
     }
 
 export default function GlobalCandidaturesPage() {
@@ -66,6 +68,7 @@ export default function GlobalCandidaturesPage() {
   const tCasting = useTranslations('candidatures.casting')
   const tPub = useTranslations('publications.type')
   const tLifecycle = useTranslations('candidature_lifecycle')
+  const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -108,6 +111,7 @@ export default function GlobalCandidaturesPage() {
         publications?: PublicationInfo[]
         counts?: BucketCounts
         facets?: CandidatureFacetCounts
+        troncature?: Troncature
       }
       if (!res.ok) {
         setState({ kind: 'error', message: t('error_generic') })
@@ -119,6 +123,7 @@ export default function GlobalCandidaturesPage() {
         publications: payload.publications ?? [],
         counts: payload.counts ?? { active: 0, archived: 0 },
         facets: payload.facets ?? null,
+        troncature: payload.troncature ?? null,
       })
     } catch (err) {
       console.error('[global candidatures] fetch threw', err)
@@ -198,6 +203,9 @@ export default function GlobalCandidaturesPage() {
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+      {state.kind === 'ready' && state.troncature?.atteint && (
+        <BandeauTroncature texte={tPlafond('candidatures_tronquees', { plafond: state.troncature.plafond })} />
+      )}
       <style>{`
         /* Layout master-detail responsive */
         .sk-cand-layout {

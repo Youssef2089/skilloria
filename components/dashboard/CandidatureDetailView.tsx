@@ -6,6 +6,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import CandidatureDetailPanel, { type Candidature } from '@/components/dashboard/CandidatureDetailPanel'
 import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
 
 /**
  * CandidatureDetailView — page de DÉTAIL d'une candidature (route dédiée
@@ -25,7 +26,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 type State =
   | { kind: 'loading' }
   | { kind: 'error' }
-  | { kind: 'not_found' }
+  | { kind: 'not_found'; troncature: Troncature | null }
   | { kind: 'ready'; candidature: Candidature }
 
 export default function CandidatureDetailView({
@@ -36,6 +37,7 @@ export default function CandidatureDetailView({
   side: 'freelance' | 'cdi'
 }) {
   const t = useTranslations('candidatures_tracking')
+  const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
   const secureFetch = useSecureFetch()
   const markCandidatureViewed = useMarkCandidatureViewed()
@@ -69,7 +71,9 @@ export default function CandidatureDetailView({
         const list: Candidature[] = data.candidatures ?? []
         const found = list.find((c) => c.id === candidatureId) ?? null
         if (cancelled) return
-        setState(found ? { kind: 'ready', candidature: found } : { kind: 'not_found' })
+        // Si la liste servie est COUPÉE, « introuvable » n'est pas un fait : la
+        // candidature peut exister au-delà du plafond. On garde le drapeau pour le dire.
+        setState(found ? { kind: 'ready', candidature: found } : { kind: 'not_found', troncature: (data.troncature as Troncature | undefined) ?? null })
       } catch {
         if (!cancelled) setState({ kind: 'error' })
       }
@@ -97,6 +101,9 @@ export default function CandidatureDetailView({
     return (
       <div style={{ padding: '24px 26px' }}>
         <EmptyState icon="📭" title={t('detail_not_found_title')} body={t('detail_not_found_body')} surface="card" />
+        {state.troncature?.atteint && (
+          <BandeauTroncature texte={tPlafond('candidatures_expert_tronquees', { plafond: state.troncature.plafond })} style={{ margin: '12px 0 0' }} />
+        )}
       </div>
     )
   }

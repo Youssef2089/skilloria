@@ -13,6 +13,7 @@ import { TAB_STATUS_MAP, type TabKey } from '@/components/dashboard/Organisation
 import type { CandidatureFacet, CandidatureFacetCounts } from '@/lib/candidatures/facets'
 import { FACET_BUCKET } from '@/lib/candidatures/facets'
 import type { Annonce } from '@/types/annonce'
+import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
 
 /**
  * Dashboard entreprise (Lot refonte tableau de bord).
@@ -59,6 +60,7 @@ export default function DashboardEntreprise() {
   const locale = useLocale()
   const t = useTranslations('dashboard_entreprise')
   const tCommon = useTranslations('common')
+  const tPlafond = useTranslations('plafonds')
   const domain = useDomain()
   // C7 : viewer = lecture seule → bouton « Publier » masqué/désactivé (garde
   // serveur = garantie). canManage vrai pour editor/admin.
@@ -143,7 +145,7 @@ export default function DashboardEntreprise() {
   const annoncesUrl = state.kind === 'ready'
     ? `/api/publications?locale=${encodeURIComponent(locale)}`
     : null
-  const annoncesLive = useLiveResource<{ publications: Annonce[] }, Annonce>({
+  const annoncesLive = useLiveResource<{ publications: Annonce[]; troncature?: Troncature }, Annonce>({
     url: annoncesUrl,
     itemsOf: (d) => d.publications ?? [],
     identityOf: (a) => a.id,
@@ -182,7 +184,7 @@ export default function DashboardEntreprise() {
     ? `/api/me/candidatures-org?locale=${encodeURIComponent(locale)}&filter=all`
     : null
   const candLive = useLiveResource<
-    { candidatures: { id: string }[]; counts?: { active: number; archived: number }; facets?: CandidatureFacetCounts },
+    { candidatures: { id: string }[]; counts?: { active: number; archived: number }; facets?: CandidatureFacetCounts; troncature?: Troncature },
     { id: string }
   >({
     url: candUrl,
@@ -242,6 +244,16 @@ export default function DashboardEntreprise() {
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+      {/* UN PLAFOND MUET EST UN MENSONGE DIFFÉRÉ — et c’est ICI qu’une organisation
+          décide. Les deux listes qui alimentent cet écran disent leur troncature ;
+          on la montre : les annonces d’abord, puis les compteurs de candidatures
+          (calculés par le serveur sur la partie servie, donc partiels au-delà). */}
+      {annoncesLive.data?.troncature?.atteint && (
+        <BandeauTroncature texte={tPlafond('annonces_tronquees', { plafond: annoncesLive.data.troncature.plafond })} />
+      )}
+      {candLive.data?.troncature?.atteint && (
+        <BandeauTroncature texte={tPlafond('compteurs_partiels', { plafond: candLive.data.troncature.plafond })} />
+      )}
       <style>{`
         .sk-dash-tile {
           background: var(--sk-surface);

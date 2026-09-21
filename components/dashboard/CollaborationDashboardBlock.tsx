@@ -7,6 +7,7 @@ import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import type { Annonce } from '@/types/annonce'
 import AnnonceCard from '@/components/dashboard/AnnonceCard'
+import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
 
 /**
  * CollaborationDashboardBlock — bloc « Collaboration experts » du tableau de
@@ -23,18 +24,21 @@ type Props = { basePath: string; isVerified: boolean }
 export default function CollaborationDashboardBlock({ basePath, isVerified }: Props) {
   const t = useTranslations('collaboration_dashboard')
   const tList = useTranslations('collaboration.list')
+  const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
   const domain = useDomain()
   const secureFetch = useSecureFetch()
 
   const [needs, setNeeds] = useState<Annonce[] | null>(null)
+  const [troncature, setTroncature] = useState<Troncature | null>(null)
 
   const load = useCallback(async () => {
     try {
       const res = await secureFetch(`/api/publications?locale=${encodeURIComponent(locale)}`, { method: 'GET' })
       if (!res.ok) { setNeeds([]); return }
-      const payload = (await res.json().catch(() => ({}))) as { publications?: Annonce[] }
+      const payload = (await res.json().catch(() => ({}))) as { publications?: Annonce[]; troncature?: Troncature }
       setNeeds((payload.publications ?? []).filter((p) => p.type === 'sous_traitance'))
+      setTroncature(payload.troncature ?? null)
     } catch {
       setNeeds([])
     }
@@ -88,6 +92,9 @@ export default function CollaborationDashboardBlock({ basePath, isVerified }: Pr
         // (titre, statut, compteurs de candidatures, date, action vers le détail).
         // Le lien pointe vers la page de détail sous-traitance ({role}).
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {troncature?.atteint && (
+            <BandeauTroncature texte={tPlafond('besoins_tronques', { plafond: troncature.plafond })} style={{ margin: 0 }} />
+          )}
           {needs.slice(0, 3).map((n) => (
             <AnnonceCard
               key={n.id}

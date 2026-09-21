@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { signAvatarUrl } from '@/lib/avatar'
+import { PLAFOND_FICHE_EXPERT, couperEtSignaler, limiteSondee } from '@/lib/plafonds-liste'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -70,9 +71,9 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   //    prenait là-dessus. Même famille que la vérification par IA, avec un
   //    humain à la place du modèle (§E.22 ⑦).
   const [expRes, eduRes, langRes] = await Promise.all([
-    auth.supabaseAdmin.from('profile_experiences').select('role, employer, sector, start_date, end_date, is_current, description').eq('profile_id', id).order('start_date', { ascending: false }).limit(20),
-    auth.supabaseAdmin.from('profile_educations').select('school, degree, field, start_year, end_year, location').eq('profile_id', id).order('start_year', { ascending: false }).limit(10),
-    auth.supabaseAdmin.from('profile_languages').select('language, level, is_primary').eq('profile_id', id).limit(15),
+    auth.supabaseAdmin.from('profile_experiences').select('role, employer, sector, start_date, end_date, is_current, description').eq('profile_id', id).order('start_date', { ascending: false }).limit(limiteSondee(PLAFOND_FICHE_EXPERT.experiences)),
+    auth.supabaseAdmin.from('profile_educations').select('school, degree, field, start_year, end_year, location').eq('profile_id', id).order('start_year', { ascending: false }).limit(limiteSondee(PLAFOND_FICHE_EXPERT.educations)),
+    auth.supabaseAdmin.from('profile_languages').select('language, level, is_primary').eq('profile_id', id).order('is_primary', { ascending: false }).limit(limiteSondee(PLAFOND_FICHE_EXPERT.languages)),
   ])
 
   // M3 : photo_url est un chemin storage. Admin voit tout -> URL signée (300s)
@@ -86,12 +87,19 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     ecosystem: (profDom as { name?: string | null } | null)?.name ?? null,
   }
 
+  // L'ÉCRAN OÙ UN ADMINISTRATEUR APPROUVE : trois listes coupées en silence à
+  // 20 / 10 / 15 (§E.22 ⑦ avait fermé la PANNE ; la TRONCATURE restait muette).
+  // Une ligne-sonde par liste, et la réponse dit laquelle est coupée.
+  const exp = couperEtSignaler(expRes.data ?? [], PLAFOND_FICHE_EXPERT.experiences, 'admin/get-expert experiences')
+  const edu = couperEtSignaler(eduRes.data ?? [], PLAFOND_FICHE_EXPERT.educations, 'admin/get-expert educations')
+  const lang = couperEtSignaler(langRes.data ?? [], PLAFOND_FICHE_EXPERT.languages, 'admin/get-expert languages')
   return json(
     {
       expert,
-      experiences: expRes.data ?? [],
-      educations: eduRes.data ?? [],
-      languages_structured: langRes.data ?? [],
+      experiences: exp.lignes,
+      educations: edu.lignes,
+      languages_structured: lang.lignes,
+      troncature: { experiences: exp.troncature, educations: edu.troncature, languages: lang.troncature },
     },
     200,
   )

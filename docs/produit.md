@@ -636,6 +636,15 @@ deux produits.
 
 ---
 
+> **Toute liste servie avec un plafond DIT sa troncature, et l’écran la montre** (21/09/2026). Le
+> serveur lit une ligne de plus que son plafond (`lib/plafonds-liste`) ; chaque écran qui reçoit le
+> drapeau affiche le même bandeau ambre ([components/ui/BandeauTroncature.tsx](../components/ui/BandeauTroncature.tsx)),
+> avec la phrase qui dit **ce qui est coupé et quel bout tombe** : annonces (les plus anciennement
+> modifiées), candidatures d’organisation (les moins bien notées — et les compteurs sont alors
+> partiels), suivi expert et boîte de réception (les plus anciennes), fil de messages (les plus
+> anciens), journal de sessions et fiche d’approbation (les entrées les plus anciennes). Un plafond
+> qui ne se dit pas est un mensonge différé ; `diag-plafonds-listes` rougit sur un écran qui le tait.
+
 ## P3. Les règles métier, rassemblées
 
 Pour chacune : **sa valeur**, **d'où elle vient**, **qui peut la changer**.

@@ -7,6 +7,7 @@ import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import CorrespondantAvatar from '@/components/dashboard/CorrespondantAvatar'
 import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
+import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
 
 /**
  * Vue d'une conversation (Lot 3).
@@ -43,6 +44,8 @@ type ConvHeader = {
   publication: { id: string; type: string; title: string } | null
   correspondant: Correspondant
   me: { user_id: string; role: 'expert' | 'org' }
+  /** Le fil est coupé aux messages les plus récents ; le serveur le dit. */
+  troncature?: Troncature
   messages: Message[]
 }
 
@@ -83,6 +86,7 @@ export default function ConversationView({ convId, side, embedded = false }: { c
   // Les phrases qui décrivent l'ÉTAT DE VIE vivent toutes dans le même
   // namespace que les libellés dérivés du lot — une seule source de vocabulaire.
   const tLifecycle = useTranslations('candidature_lifecycle')
+  const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -259,6 +263,9 @@ export default function ConversationView({ convId, side, embedded = false }: { c
           empilé au-dessus — exactement ce que la règle projet interdit. Le
           bouton de la branche d'erreur, lui, RESTE : il est de récupération
           (état sans coquille exploitable), pas de navigation. */}
+      {state.kind === 'ready' && state.data.troncature?.atteint && (
+        <BandeauTroncature texte={tPlafond('messages_tronques', { plafond: state.data.troncature.plafond })} />
+      )}
 
       {/* Header conv : correspondant + publication */}
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, paddingBottom: 14, borderBottom: '0.5px solid #e5e7eb', marginBottom: 14 }}>

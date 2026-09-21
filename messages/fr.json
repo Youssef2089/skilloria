@@ -4137,7 +4137,15 @@
     }
   },
   "plafonds": {
-    "annonces_tronquees": "Cette liste est incomplète : elle affiche vos {plafond} annonces les plus récemment modifiées. Les plus anciennes ne sont pas montrées."
+    "annonces_tronquees": "Cette liste est incomplète : elle affiche vos {plafond} annonces les plus récemment modifiées. Les plus anciennes ne sont pas montrées.",
+    "candidatures_tronquees": "Cette liste est incomplète : elle affiche vos {plafond} candidatures les mieux notées, et les compteurs sont calculés sur cette partie seulement.",
+    "compteurs_partiels": "Les compteurs de candidatures sont calculés sur vos {plafond} candidatures les mieux notées : au-delà, ils sont partiels.",
+    "candidatures_expert_tronquees": "Ce suivi est incomplet : il affiche vos {plafond} candidatures les plus récentes. Les plus anciennes ne sont pas montrées.",
+    "conversations_tronquees": "Cette boîte de réception est incomplète : elle affiche vos {plafond} conversations les plus récentes. Les plus anciennes ne sont pas montrées.",
+    "messages_tronques": "Ce fil est incomplet : il affiche les {plafond} messages les plus récents. Les plus anciens ne sont pas montrés.",
+    "besoins_tronques": "Cette liste est incomplète : elle affiche vos {plafond} besoins les plus récemment modifiés. Les plus anciens ne sont pas montrés.",
+    "sessions_tronquees": "Ce journal est incomplet : seuls les {plafond} événements les plus récents sont affichés.",
+    "fiche_expert_liste_tronquee": "Liste coupée : seules les {plafond} entrées les plus récentes sont affichées."
   },
   "admin_seuils": {
     "title": "Notes de jugement",

@@ -13,6 +13,7 @@ import { useLiveResource } from '@/hooks/useLiveResource'
 import NewItemsPill from '@/components/ui/NewItemsPill'
 import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
 import { useCandidatureLifecycleLabel } from '@/lib/candidatures/use-lifecycle-label'
+import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
 
 /**
  * Inbox messagerie LAYOUT 2 PANNEAUX (Point 6 finitions UX).
@@ -120,6 +121,7 @@ export default function MessagesInbox({
   const t = useTranslations('messages.inbox')
   const tPub = useTranslations('publications')
   const tLifecycle = useTranslations('candidature_lifecycle')
+  const tPlafond = useTranslations('plafonds')
   // Le correspondant décide du point de vue : l'org côté expert, l'expert
   // côté org. L'inbox d'un expert PUBLIANT mêle les deux — d'où la résolution
   // par conversation, pas par page.
@@ -207,6 +209,7 @@ export default function MessagesInbox({
       counts?: { active: number; archived: number }
       /** Bucket EFFECTIVEMENT servi. Fait autorité côté client. */
       filter?: string
+      troncature?: Troncature
     },
     Conversation
   >({
@@ -268,6 +271,9 @@ export default function MessagesInbox({
   void router; void domain
   return (
     <div style={{ padding: '0', fontFamily: 'inherit', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      {live.data?.troncature?.atteint && (
+        <BandeauTroncature texte={tPlafond('conversations_tronquees', { plafond: live.data.troncature.plafond })} style={{ margin: '12px 16px 0' }} />
+      )}
       {/* Layout 3 zones */}
       <div
         style={{

@@ -15,6 +15,7 @@ import {
   parseBucketFilter,
   type CandidatureLifecycle,
 } from '@/lib/candidatures/lifecycle'
+import { PLAFOND_CONVERSATIONS, couperEtSignaler, limiteSondee } from '@/lib/plafonds-liste'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -236,12 +237,18 @@ export async function GET(request: NextRequest): Promise<Response> {
     .in('candidature_id', candIds)
     .order('last_message_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
-    .limit(200)
+    .limit(limiteSondee(PLAFOND_CONVERSATIONS))
   if (convErr) {
     console.error('[me/conversations:GET] query failed', convErr.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
-  const convRows = (convs ?? []) as unknown as ConversationRow[]
+  // Une ligne de plus que le plafond a été lue : si elle existe, la boîte de
+  // réception est incomplète et la réponse le DIT (lib/plafonds-liste).
+  const { lignes: convRows, troncature } = couperEtSignaler(
+    (convs ?? []) as unknown as ConversationRow[],
+    PLAFOND_CONVERSATIONS,
+    'me/conversations',
+  )
 
   // ── Pour chaque conv : last message + unread count ─────────────────────
   const convIds = convRows.map((c) => c.id)
@@ -477,5 +484,5 @@ export async function GET(request: NextRequest): Promise<Response> {
     ? conversations.filter((c) => (c.lifecycle as CandidatureLifecycle).bucket === effectiveFilter)
     : conversations
 
-  return json({ conversations: visible, counts, filter: effectiveFilter ?? 'all' }, 200)
+  return json({ conversations: visible, counts, filter: effectiveFilter ?? 'all', troncature }, 200)
 }

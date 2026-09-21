@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import ReauthModal from '@/components/settings/ReauthModal'
+import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
 
 /**
  * /admin/utilisateurs/[id] — fiche d'un compte.
@@ -139,6 +140,7 @@ type PendingAction =
 export default function AdminUserDetailPage() {
   const t = useTranslations('admin_back_office.users')
   const tErr = useTranslations('admin_back_office.errors')
+  const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
   const secureFetch = useSecureFetch()
   const params = useParams<{ id: string }>()
@@ -151,6 +153,7 @@ export default function AdminUserDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' } | null>(null)
   const [busy, setBusy] = useState(false)
+  const [sessionsTroncature, setSessionsTroncature] = useState<Troncature | null>(null)
 
   // Confirmation → ré-auth → exécution. Trois états distincts pour que l'admin
   // sache toujours ce qu'il s'apprête à faire AVANT de saisir son mot de passe.
@@ -179,8 +182,10 @@ export default function AdminUserDetailPage() {
       if (!dRes.ok) { setError(tErr('generic')); return }
       setDetail((await dRes.json()) as Detail)
       if (sRes.ok) {
-        const s = (await sRes.json()) as { entries: TimelineEntry[]; login_count: number }
+        const s = (await sRes.json()) as { entries: TimelineEntry[]; login_count: number; has_more?: boolean; limit?: number }
         setTimeline(s.entries ?? [])
+        // La route DIT que le journal est coupé (`has_more`) et à combien (`limit`) ; on le montre.
+        setSessionsTroncature(s.has_more === true ? { plafond: s.limit ?? (s.entries ?? []).length, atteint: true } : null)
         setLoginCount(s.login_count ?? 0)
       }
     } catch {
@@ -554,6 +559,7 @@ export default function AdminUserDetailPage() {
             <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--color-text-secondary, #64748b)', margin: '0 0 10px' }}>
               {t('section_sessions')} · {t('sessions_count', { count: loginCount })}
             </h2>
+            {sessionsTroncature?.atteint && <BandeauTroncature texte={tPlafond('sessions_tronquees', { plafond: sessionsTroncature.plafond })} />}
             {timeline.length === 0 ? (
               <div style={{ fontSize: 13, color: 'var(--color-text-secondary, #64748b)', padding: '10px 0' }}>{t('sessions_empty')}</div>
             ) : (

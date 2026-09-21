@@ -4137,7 +4137,15 @@
     }
   },
   "plafonds": {
-    "annonces_tronquees": "Esta lista está incompleta: muestra tus {plafond} anuncios modificados más recientemente. Los más antiguos no aparecen."
+    "annonces_tronquees": "Esta lista está incompleta: muestra tus {plafond} anuncios modificados más recientemente. Los más antiguos no aparecen.",
+    "candidatures_tronquees": "Esta lista está incompleta: muestra sus {plafond} candidaturas mejor valoradas, y los contadores se calculan solo sobre esta parte.",
+    "compteurs_partiels": "Los contadores de candidaturas se calculan sobre sus {plafond} candidaturas mejor valoradas: más allá, son parciales.",
+    "candidatures_expert_tronquees": "Este seguimiento está incompleto: muestra sus {plafond} candidaturas más recientes. Las más antiguas no se muestran.",
+    "conversations_tronquees": "Esta bandeja de entrada está incompleta: muestra sus {plafond} conversaciones más recientes. Las más antiguas no se muestran.",
+    "messages_tronques": "Este hilo está incompleto: muestra los {plafond} mensajes más recientes. Los más antiguos no se muestran.",
+    "besoins_tronques": "Esta lista está incompleta: muestra sus {plafond} necesidades modificadas más recientemente. Las más antiguas no se muestran.",
+    "sessions_tronquees": "Este registro está incompleto: solo se muestran los {plafond} eventos más recientes.",
+    "fiche_expert_liste_tronquee": "Lista recortada: solo se muestran las {plafond} entradas más recientes."
   },
   "admin_seuils": {
     "title": "Notas de decisión",

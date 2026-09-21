@@ -22,6 +22,7 @@ import {
 import { aggregateCandidatures } from '@/lib/candidatures/aggregate'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 import { signOrgLogoUrls } from '@/lib/org-logo'
+import { PLAFOND_CANDIDATURES_EXPERT, couperEtSignaler, limiteSondee } from '@/lib/plafonds-liste'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -157,14 +158,21 @@ export async function GET(request: NextRequest): Promise<Response> {
       .eq('profile_id', (profile as { id: string }).id)
       .neq('status', 'withdrawn')
       .order('created_at', { ascending: false })
-      .limit(200),
+      .limit(limiteSondee(PLAFOND_CANDIDATURES_EXPERT)),
     loadTranslations(locale),
   ])
   if (candResult.error) {
     console.error('[me/candidatures:GET] candidatures query failed', candResult.error.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
-  const rows = (candResult.data ?? []) as unknown as CandRow[]
+  // UN PLAFOND MUET EST UN MENSONGE DIFFÉRÉ (lib/plafonds-liste) : on a lu une
+  // ligne de plus que le plafond ; si elle existe, la liste est incomplète et
+  // la réponse le DIT — le suivi de l’expert affiche le bandeau.
+  const { lignes: rows, troncature } = couperEtSignaler(
+    (candResult.data ?? []) as unknown as CandRow[],
+    PLAFOND_CANDIDATURES_EXPERT,
+    'me/candidatures',
+  )
 
   // Conversation_id pour les unlocked OU selected (batch query).
   //  Lot 'selected' : la conversation reste accessible côté expert après
@@ -420,6 +428,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   return json(
     {
       candidatures: visible,
+      troncature,
       counts,
       facets,
       stats,

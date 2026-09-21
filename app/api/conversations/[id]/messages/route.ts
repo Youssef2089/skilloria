@@ -14,6 +14,7 @@ import { isConversationExpired } from '@/lib/conversations/expiry'
 import { deriveCandidatureLifecycle } from '@/lib/candidatures/lifecycle'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 import { signOrgLogoUrl } from '@/lib/org-logo'
+import { PLAFOND_MESSAGES, couperEtSignaler, limiteSondee } from '@/lib/plafonds-liste'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -365,14 +366,21 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     .eq('conversation_id', convId)
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
-    .limit(500)
+    .limit(limiteSondee(PLAFOND_MESSAGES))
   if (mErr) {
     console.error('[conversations/[id]/messages:GET] msgs failed', mErr.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
   // Retour à l'ordre chronologique : le fil se lit du plus ancien au plus
   // récent, comme avant. Seule la SÉLECTION a changé.
-  const messages = ((msgs ?? []) as { id: string; conversation_id: string; sender_id: string; content: string; read_at: string | null; created_at: string }[]).reverse()
+  // Le bon bout était gardé (les plus récents) mais personne n’apprenait que
+  // des messages plus anciens existaient : une ligne-sonde le dit désormais.
+  const { lignes: recents, troncature } = couperEtSignaler(
+    (msgs ?? []) as { id: string; conversation_id: string; sender_id: string; content: string; read_at: string | null; created_at: string }[],
+    PLAFOND_MESSAGES,
+    'conversations/[id]/messages',
+  )
+  const messages = recents.reverse()
 
   // ── Flip read_at uniquement sur les messages REÇUS et non lus ──────────
   //  (cf. précision Lot 3, point 2 : jamais sur ses propres messages)
@@ -463,6 +471,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
       publication: pub ? { id: pub.id, type: pub.type, title: pub.title } : null,
       correspondant,
       me: { user_id: auth.user.id, role },
+      troncature,
       messages: messages.map((m) => ({
         id: m.id,
         sender_id: m.sender_id,

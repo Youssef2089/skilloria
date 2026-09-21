@@ -7,6 +7,7 @@ import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { type CandidatureData } from '@/components/dashboard/CandidatureCard'
 import CastingCarousel from '@/components/dashboard/CastingCarousel'
+import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
 
 /**
  * SousTraitanceDetailView — DÉTAIL d'un besoin de sous-traitance + candidatures
@@ -63,7 +64,7 @@ type BucketKey = 'active' | 'archived'
 type State =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
-  | { kind: 'ready'; publication: PublicationDetail; candidatures: CandidatureData[]; counts: BucketCounts }
+  | { kind: 'ready'; publication: PublicationDetail; candidatures: CandidatureData[]; counts: BucketCounts; troncature: Troncature | null }
 
 type Props = { basePath: string; params: Promise<{ id: string }> }
 
@@ -72,6 +73,7 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
   const tClose = useTranslations('collaboration.close')
   const tPub = useTranslations('publications')
   const tLifecycle = useTranslations('candidature_lifecycle')
+  const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -133,12 +135,14 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
       const candPayload = (await candRes.json().catch(() => ({}))) as {
         candidatures?: CandidatureData[]
         counts?: BucketCounts
+        troncature?: Troncature
       }
       setState({
         kind: 'ready',
         publication: pubPayload.publication,
         candidatures: candRes.ok ? (candPayload.candidatures ?? []) : [],
         counts: (candRes.ok ? candPayload.counts : null) ?? { active: 0, archived: 0 },
+        troncature: (candRes.ok ? candPayload.troncature : null) ?? null,
       })
     } catch {
       setState({ kind: 'error', message: t('error_generic') })
@@ -212,6 +216,9 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+      {state.kind === 'ready' && state.troncature?.atteint && (
+        <BandeauTroncature texte={tPlafond('candidatures_tronquees', { plafond: state.troncature.plafond })} />
+      )}
       {/* En-tête : statut + titre + action clôture */}
       <header style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', borderRadius: 14, padding: '18px 22px', marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 0 }}>

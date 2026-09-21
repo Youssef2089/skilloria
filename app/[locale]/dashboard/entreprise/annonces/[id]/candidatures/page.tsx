@@ -7,6 +7,7 @@ import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { type CandidatureData } from '@/components/dashboard/CandidatureCard'
 import CastingCarousel from '@/components/dashboard/CastingCarousel'
+import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
 
 /**
  * /dashboard/entreprise/annonces/[id]/candidatures — vue casting per-annonce.
@@ -31,13 +32,14 @@ type BucketKey = 'active' | 'archived'
 type State =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
-  | { kind: 'ready'; publication: PublicationInfo; candidatures: CandidatureData[]; counts: BucketCounts }
+  | { kind: 'ready'; publication: PublicationInfo; candidatures: CandidatureData[]; counts: BucketCounts; troncature: Troncature | null }
 
 export default function CandidaturesPage({ params }: Props) {
   const t = useTranslations('candidatures.feed')
   const tCasting = useTranslations('candidatures.casting')
   const tPub = useTranslations('publications.type')
   const tLifecycle = useTranslations('candidature_lifecycle')
+  const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -60,6 +62,7 @@ export default function CandidaturesPage({ params }: Props) {
         publication?: PublicationInfo
         candidatures?: CandidatureData[]
         counts?: BucketCounts
+        troncature?: Troncature
       }
       if (!res.ok) {
         setState({
@@ -73,6 +76,7 @@ export default function CandidaturesPage({ params }: Props) {
         publication: payload.publication ?? { id, type: 'mission', title: '', status: 'published' },
         candidatures: payload.candidatures ?? [],
         counts: payload.counts ?? { active: 0, archived: 0 },
+        troncature: payload.troncature ?? null,
       })
     } catch (err) {
       console.error('[candidatures page] fetch threw', err)
@@ -129,10 +133,13 @@ export default function CandidaturesPage({ params }: Props) {
     )
   }
 
-  const { publication, candidatures, counts: bucketCounts } = state
+  const { publication, candidatures, counts: bucketCounts, troncature } = state
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+      {troncature?.atteint && (
+        <BandeauTroncature texte={tPlafond('candidatures_tronquees', { plafond: troncature.plafond })} />
+      )}
       {/* En-tête annonce */}
       <div
         style={{
