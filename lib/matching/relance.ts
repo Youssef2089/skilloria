@@ -128,32 +128,74 @@ async function compterDepassement(
 }
 
 /**
+ * LE PLAFOND HORAIRE, CONSOMMÉ — une seule implémentation, deux appelants.
+ *
+ * ═══ POURQUOI IL SORT DE `programmerRelance` ══════════════════════════════
+ *   Depuis le 21/09/2026, la bascule de disponibilité N'ÉCHELONNE PLUS : elle
+ *   exécute le moteur tout de suite (cf. `/api/me/sync-matching`). Le plafond,
+ *   lui, doit continuer de s'appliquer — il borne les écritures qu'un client
+ *   peut déclencher, et un run direct en déclenche autant qu'une relance.
+ *
+ *   Le recopier dans la route aurait produit deux plafonds portant le même nom
+ *   et vieillissant séparément : relever l'un laisserait l'autre en place, et
+ *   le code ressemblerait à un plafond unique. C'est exactement le défaut que
+ *   §E.20 décrit. Il n'y en a donc qu'un, et il est ici.
+ *
+ * ═══ FAIL-OPEN, ET C'EST DÉLIBÉRÉ ════════════════════════════════════════
+ *   L'inverse de la vérification d'un code OTP, parce que ce n'est pas la même
+ *   sorte de garde. Refuser à cause d'un limiteur cassé ferait PERDRE un
+ *   déclenchement, c'est-à-dire ré-introduirait très exactement le défaut que
+ *   le lot 6 a corrigé. `checkRateLimit` porte ce contrat.
+ *
+ * `true` = le geste est autorisé. Un refus est DÉJÀ compté et journalisé ici :
+ * l'appelant n'a qu'à le rendre à l'écran.
+ */
+export async function consommerPlafondHoraire(
+  supabaseAdmin: SupabaseClient,
+  profileId: string,
+  origine: OrigineRelance,
+): Promise<boolean> {
+  const autorise = await checkRateLimit(
+    supabaseAdmin,
+    'relance_programmation',
+    profileId,
+    RELANCE_FENETRE_S,
+    RELANCE_MAX_PAR_HEURE,
+  )
+  if (autorise) return true
+
+  await compterDepassement(supabaseAdmin, profileId, origine)
+  console.warn('[relance] plafond horaire atteint — geste REFUSÉ', {
+    profileId,
+    origine,
+    plafond: RELANCE_MAX_PAR_HEURE,
+  })
+  return false
+}
+
+/**
  * Programme une relance, ou REPORTE celle qui attend déjà.
  *
  * L'écriture est faite EN BASE, en une seule instruction : lire puis écrire
  * depuis ici laisserait une fenêtre entre les deux, et deux modifications
  * simultanées se marcheraient dessus — l'une des deux serait perdue, c'est-à-dire
  * exactement le défaut que ce mécanisme corrige.
+ *
+ * ⚠️ CE CHEMIN EST CELUI DES MODIFICATIONS DE PROFIL, ET SEULEMENT LUI.
+ *    Mesuré le 21/09/2026 : les deux appelants sont `/api/profile` (origine
+ *    `profil_modifie`, à chaque enregistrement) et, jusqu'à ce jour,
+ *    `/api/me/sync-matching`. Le premier est bien une rafale — un expert
+ *    reprend son profil en dix passes, et dix runs coûtent dix fois. Le second
+ *    ne l'était pas : un interrupteur à deux positions ne produit pas de
+ *    rafale, et l'heure d'attente n'y absorbait rien. Elle a été retirée de là.
  */
 export async function programmerRelance(
   supabaseAdmin: SupabaseClient,
   profileId: string,
   origine: OrigineRelance,
 ): Promise<Programmation> {
-  // ── Plafond horaire, AVANT toute écriture ────────────────────────────────
-  //
-  //  FAIL-OPEN, et c'est l'inverse de la vérification d'un code OTP — parce que
-  //  ce n'est pas la même sorte de garde. Ici, refuser à cause d'un limiteur
-  //  cassé ferait PERDRE un déclenchement, c'est-à-dire ré-introduirait très
-  //  exactement le défaut que le lot 6 a corrigé. Un limiteur indisponible doit
-  //  donc laisser passer : `checkRateLimit` porte ce contrat.
-  if (!(await checkRateLimit(supabaseAdmin, 'relance_programmation', profileId, RELANCE_FENETRE_S, RELANCE_MAX_PAR_HEURE))) {
-    await compterDepassement(supabaseAdmin, profileId, origine)
-    console.warn('[relance] plafond horaire atteint — relance NON programmée', {
-      profileId,
-      origine,
-      plafond: RELANCE_MAX_PAR_HEURE,
-    })
+  // Plafond horaire, AVANT toute écriture.
+  if (!(await consommerPlafondHoraire(supabaseAdmin, profileId, origine))) {
     return { ok: false, raison: 'plafond_horaire' }
   }
 

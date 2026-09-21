@@ -3085,7 +3085,9 @@
         "evenements_stripe_manques": "{count} payment event(s) produced by Stripe were never received here. Either the delivery was lost or the processing failed: either way, what they carried was not applied.",
         "evenements_stripe_coinces": "{count} payment event(s) claimed and never closed. They will not replay on their own: the guarantee that prevents a double charge also refuses Stripe’s further attempts.",
         "verification_stripe_jamais": "The nightly check of the Stripe connection has never run. Until it does, nobody can say whether a payment event was lost.",
-        "verification_stripe_indisponible": "The history of the Stripe connection check could not be read. This is not “all is well”: we do not know."
+        "verification_stripe_indisponible": "The history of the Stripe connection check could not be read. This is not “all is well”: we do not know.",
+        "moteur_interrupteur_ferme": "The matching engine is OFF: no expert and no organisation receives any suggestion, in any ecosystem. The ENABLE_RERANKING switch must be exactly “true”.",
+        "moteur_cle_absente": "The matching provider key is missing: no expert and no organisation receives any suggestion, in any ecosystem. The COHERE_API_KEY variable must be set."
       },
       "spread_title": "Score spread",
       "spread_empty": "No run yet on the new scale. The spread will fill in with the next matching runs.",
@@ -4412,6 +4414,30 @@
       "lecture_indisponible": "The configuration could not be read. Nothing was saved; try again.",
       "db_error": "Saving failed.",
       "reseau": "The request did not go through. Try again."
+    }
+  },
+  "recherche_de_missions": {
+    "en_cours": "Searching for {ecosystem} missions…",
+    "aucune": "No missions match your profile yet. As soon as a {ecosystem} mission matches, it will appear here.",
+    "ineligible": {
+      "profil_non_visible": "Your profile is not visible: no mission can be offered to you until it is complete.",
+      "cv_non_analyse": "Your CV has not been analysed yet: no mission can be offered to you until it is.",
+      "consentement_absent": "You have not allowed your profile to be analysed: no mission can be offered to you without that consent.",
+      "profil_non_approuve": "Your profile is being reviewed. Your {ecosystem} missions will appear here as soon as it is approved.",
+      "ne_pas_deranger": "You are set to “do not disturb”: no mission is offered to you while that status is active.",
+      "non_en_recherche": "You are not open to work: no offer is sent to you while that status is active."
+    },
+    "echec": {
+      "moteur_indisponible": "The search could not complete: the matching engine is unavailable. Our team has been notified.",
+      "plafond_atteint": "The search could not complete: this ecosystem’s analysis capacity is temporarily exhausted. Please try again later.",
+      "reglages_absents": "The search could not complete: this ecosystem is not configured for matching yet.",
+      "lecture_en_panne": "The search could not complete. Nothing is lost: please try again in a moment.",
+      "trop_de_demandes": "Too many searches in a row. Please wait a minute before trying again.",
+      "trop_long": "The search is taking longer than expected. It is still running: your missions will appear here as soon as it completes."
+    },
+    "action": {
+      "completer_profil": "Complete my profile",
+      "reessayer": "Try again"
     }
   }
 }

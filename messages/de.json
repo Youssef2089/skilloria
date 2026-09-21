@@ -3085,7 +3085,9 @@
         "evenements_stripe_manques": "{count} von Stripe erzeugte Zahlungsereignis(se) sind hier nie eingegangen. Entweder ging die Zustellung verloren oder die Verarbeitung schlug fehl: in beiden Fällen wurde nicht angewendet, was sie trugen.",
         "evenements_stripe_coinces": "{count} Zahlungsereignis(se) beansprucht und nie abgeschlossen. Sie laufen nicht von selbst erneut: die Sicherung, die eine Doppelbuchung verhindert, weist auch Stripes weitere Versuche ab.",
         "verification_stripe_jamais": "Die nächtliche Prüfung der Stripe-Anbindung ist nie gelaufen. Solange sie nicht läuft, kann niemand sagen, ob ein Zahlungsereignis verloren ging.",
-        "verification_stripe_indisponible": "Der Verlauf der Prüfung der Stripe-Anbindung konnte nicht gelesen werden. Das ist nicht „alles in Ordnung“: wir wissen es nicht."
+        "verification_stripe_indisponible": "Der Verlauf der Prüfung der Stripe-Anbindung konnte nicht gelesen werden. Das ist nicht „alles in Ordnung“: wir wissen es nicht.",
+        "moteur_interrupteur_ferme": "Der Matching-Dienst ist AUS: Kein Experte und keine Organisation erhält Vorschläge, in keinem Ökosystem. Der Schalter ENABLE_RERANKING muss exakt „true“ lauten.",
+        "moteur_cle_absente": "Der Schlüssel des Matching-Anbieters fehlt: Kein Experte und keine Organisation erhält Vorschläge, in keinem Ökosystem. Die Variable COHERE_API_KEY muss gesetzt sein."
       },
       "spread_title": "Verteilung der Bewertungen",
       "spread_empty": "Noch kein Lauf auf der neuen Skala. Die Verteilung füllt sich mit den nächsten Matching-Läufen.",
@@ -4412,6 +4414,30 @@
       "lecture_indisponible": "Die Konfiguration konnte nicht gelesen werden. Es wurde nichts gespeichert; bitte erneut versuchen.",
       "db_error": "Das Speichern ist fehlgeschlagen.",
       "reseau": "Die Anfrage ist nicht angekommen. Bitte erneut versuchen."
+    }
+  },
+  "recherche_de_missions": {
+    "en_cours": "Suche nach {ecosystem}-Missionen läuft…",
+    "aucune": "Aktuell passt noch keine Mission zu Ihrem Profil. Sobald eine {ecosystem}-Mission passt, erscheint sie hier.",
+    "ineligible": {
+      "profil_non_visible": "Ihr Profil ist nicht sichtbar: Solange es nicht vollständig ist, kann Ihnen keine Mission vorgeschlagen werden.",
+      "cv_non_analyse": "Ihr Lebenslauf wurde noch nicht ausgewertet: Solange das nicht geschehen ist, kann Ihnen keine Mission vorgeschlagen werden.",
+      "consentement_absent": "Sie haben der Auswertung Ihres Profils nicht zugestimmt: Ohne diese Zustimmung kann Ihnen keine Mission vorgeschlagen werden.",
+      "profil_non_approuve": "Ihr Profil wird geprüft. Ihre {ecosystem}-Missionen erscheinen hier, sobald es freigegeben ist.",
+      "ne_pas_deranger": "Sie stehen auf „nicht stören“: Solange dieser Status aktiv ist, wird Ihnen keine Mission vorgeschlagen.",
+      "non_en_recherche": "Sie sind nicht auf Jobsuche: Solange dieser Status aktiv ist, wird Ihnen kein Angebot vorgeschlagen."
+    },
+    "echec": {
+      "moteur_indisponible": "Die Suche konnte nicht abgeschlossen werden: Der Matching-Dienst ist nicht verfügbar. Unser Team ist informiert.",
+      "plafond_atteint": "Die Suche konnte nicht abgeschlossen werden: Die Auswertungskapazität dieses Ökosystems ist vorerst erschöpft. Bitte später erneut versuchen.",
+      "reglages_absents": "Die Suche konnte nicht abgeschlossen werden: Dieses Ökosystem ist noch nicht für das Matching eingerichtet.",
+      "lecture_en_panne": "Die Suche konnte nicht abgeschlossen werden. Es ist nichts verloren: Bitte versuchen Sie es gleich erneut.",
+      "trop_de_demandes": "Zu viele Suchen hintereinander. Bitte warten Sie eine Minute, bevor Sie es erneut versuchen.",
+      "trop_long": "Die Suche dauert länger als erwartet. Sie läuft weiter: Ihre Missionen erscheinen hier, sobald sie abgeschlossen ist."
+    },
+    "action": {
+      "completer_profil": "Mein Profil vervollständigen",
+      "reessayer": "Erneut versuchen"
     }
   }
 }

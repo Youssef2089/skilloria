@@ -5,7 +5,6 @@ import { useTranslations } from 'next-intl'
 import { supabase } from '@/lib/supabase'
 import { setExpertListening, type ExpertSide } from '@/lib/availability-actions'
 import { useSecureFetch } from '@/lib/secure-fetch'
-import { markMatchingTriggered } from '@/lib/matching-resync-hint'
 
 /**
  * DndEmptyState — bloc rouge affiché quand l'expert est en "Ne pas déranger"
@@ -36,9 +35,25 @@ type Props = {
    * Pratique pour les pages qui ne fetchent pas déjà la session (page Offres).
    */
   userId?: string
+  /**
+   * LA RECHERCHE DE LA PAGE PARENTE, quand elle en porte une.
+   *
+   * ⚠️ CE COMPOSANT EST DÉMONTÉ À LA SECONDE OÙ L'EXPERT REPASSE « À
+   *    L'ÉCOUTE » : la page parente remplace ce bloc rouge par sa section de
+   *    missions. Une recherche lancée DEPUIS ICI n'aurait donc personne pour
+   *    afficher son issue — l'expert verrait « aucune mission ne correspond »
+   *    pendant que le moteur tourne, c'est-à-dire l'exact défaut que ce lot
+   *    ferme.
+   *
+   *    Les deux tableaux de bord passent donc leur propre déclencheur : c'est
+   *    leur hook qui attend et qui affiche. Les deux pages « Missions », qui
+   *    n'en ont pas, gardent l'envoi sans attente — elles n'ont pas de section
+   *    où l'afficher, et le dire serait mentir sur ce qu'elles savent.
+   */
+  onReprise?: () => void
 }
 
-export default function DndEmptyState({ side, userId }: Props) {
+export default function DndEmptyState({ side, userId, onReprise }: Props) {
   const t = useTranslations('expert_dnd_empty')
   const secureFetch = useSecureFetch()
   const [busy, setBusy] = useState(false)
@@ -70,16 +85,26 @@ export default function DndEmptyState({ side, userId }: Props) {
       setError(t('error_generic'))
       return
     }
-    // Sortie du DND → ré-entrée pool : ping /api/me/sync-matching pour
-    // réconcilier les matches côté serveur. Fire-and-forget : le serveur
-    // accuse réception et le matching IA tourne en BG via `after()` ;
-    // useLiveResource revalide /api/me/missions au prochain tick et la
-    // liste apparaît. On marque aussi le hint client pour que la home
-    // affiche l'état transitoire "Analyse en cours…" + fast-poll 3s.
-    markMatchingTriggered(effectiveUserId)
-    void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
-      console.warn('[DndEmptyState] sync-matching ping failed (non-blocking)', err)
-    })
+    // ── SORTIE DU « NE PAS DÉRANGER » : LA RECHERCHE PART POUR DE VRAI ─────
+    //
+    //  Ce bloc posait un jalon dans `sessionStorage` pour que la page d'accueil
+    //  affiche « analyse en cours » pendant cent vingt secondes, puis lançait
+    //  la requête sans jamais lire sa réponse. Or la route ne lançait rien :
+    //  elle posait une échéance à SOIXANTE MINUTES. Le message d'analyse était
+    //  donc faux du début à la fin, et l'écran concluait ensuite « aucune
+    //  mission ne correspond » — un résultat affirmé sans recherche.
+    //
+    //  Quand la page parente porte une recherche, C'EST ELLE QUI LANCE : elle
+    //  survit au démontage de ce bloc et affichera l'issue. Sinon, l'envoi part
+    //  d'ici sans attente — la page n'a aucune section où dire l'issue, et en
+    //  inventer une serait mentir sur ce qu'elle sait.
+    if (onReprise) {
+      onReprise()
+    } else {
+      void secureFetch('/api/me/sync-matching', { method: 'POST' }).catch((err) => {
+        console.warn('[DndEmptyState] recherche de missions non lancée', err)
+      })
+    }
     } catch (err) {
       console.error('[DndEmptyState] resume threw', err)
       setError(t('error_generic'))

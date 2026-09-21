@@ -3085,7 +3085,9 @@
         "evenements_stripe_manques": "{count} evento(s) de pago producidos por Stripe nunca se han recibido aquí. O bien se perdió la entrega, o bien falló el procesamiento: en ambos casos, lo que llevaban no se ha aplicado.",
         "evenements_stripe_coinces": "{count} evento(s) de pago reclamados y nunca cerrados. No se repetirán solos: la garantía que impide un doble cobro rechaza también los nuevos intentos de Stripe.",
         "verification_stripe_jamais": "La verificación nocturna de la conexión con Stripe nunca se ha ejecutado. Mientras no se ejecute, nadie puede decir si se ha perdido un evento de pago.",
-        "verification_stripe_indisponible": "No se ha podido leer el historial de la verificación de la conexión con Stripe. Esto no es «todo va bien»: no lo sabemos."
+        "verification_stripe_indisponible": "No se ha podido leer el historial de la verificación de la conexión con Stripe. Esto no es «todo va bien»: no lo sabemos.",
+        "moteur_interrupteur_ferme": "El motor de emparejamiento está APAGADO: ningún experto ni ninguna organización recibe propuestas, en ningún ecosistema. El interruptor ENABLE_RERANKING debe valer exactamente «true».",
+        "moteur_cle_absente": "Falta la clave del proveedor de emparejamiento: ningún experto ni ninguna organización recibe propuestas, en ningún ecosistema. Debe definirse la variable COHERE_API_KEY."
       },
       "spread_title": "Distribución de las notas",
       "spread_empty": "Todavía no hay ninguna ejecución en la nueva escala. La distribución se llenará con los próximos emparejamientos.",
@@ -4412,6 +4414,30 @@
       "lecture_indisponible": "No se pudo leer la configuración. No se guardó nada; inténtelo de nuevo.",
       "db_error": "No se pudo guardar.",
       "reseau": "La solicitud no se envió. Inténtelo de nuevo."
+    }
+  },
+  "recherche_de_missions": {
+    "en_cours": "Buscando misiones {ecosystem}…",
+    "aucune": "Aún no hay misiones que coincidan con tu perfil. En cuanto una misión {ecosystem} coincida, aparecerá aquí.",
+    "ineligible": {
+      "profil_non_visible": "Tu perfil no es visible: no se te puede proponer ninguna misión mientras no esté completo.",
+      "cv_non_analyse": "Tu CV aún no ha sido analizado: no se te puede proponer ninguna misión mientras no lo esté.",
+      "consentement_absent": "No has autorizado el análisis de tu perfil: no se te puede proponer ninguna misión sin ese consentimiento.",
+      "profil_non_approuve": "Tu perfil está en revisión. Tus misiones {ecosystem} aparecerán aquí en cuanto sea aprobado.",
+      "ne_pas_deranger": "Estás en «no molestar»: no se te propone ninguna misión mientras ese estado esté activo.",
+      "non_en_recherche": "No estás en búsqueda: no se te propone ninguna oferta mientras ese estado esté activo."
+    },
+    "echec": {
+      "moteur_indisponible": "La búsqueda no pudo completarse: el motor de emparejamiento no está disponible. Nuestro equipo ya lo sabe.",
+      "plafond_atteint": "La búsqueda no pudo completarse: la capacidad de análisis de este ecosistema está agotada por ahora. Inténtalo más tarde.",
+      "reglages_absents": "La búsqueda no pudo completarse: este ecosistema todavía no está configurado para el emparejamiento.",
+      "lecture_en_panne": "La búsqueda no pudo completarse. No se ha perdido nada: inténtalo de nuevo en un momento.",
+      "trop_de_demandes": "Demasiadas búsquedas seguidas. Espera un minuto antes de volver a intentarlo.",
+      "trop_long": "La búsqueda está tardando más de lo previsto. Sigue en curso: tus misiones aparecerán aquí en cuanto termine."
+    },
+    "action": {
+      "completer_profil": "Completar mi perfil",
+      "reessayer": "Reintentar"
     }
   }
 }

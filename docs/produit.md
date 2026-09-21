@@ -299,6 +299,39 @@ La trace est construite par **un seul** constructeur pour les deux chemins de so
 chacun écrivait son objet, l'un pouvait oublier une clé — et une clé absente se lit `null`, qu'une
 somme SQL affiche **zéro**. La supervision aurait dit « tout va bien » sur un moteur muet.
 
+**Ce que l'expert VOIT quand il bascule sa disponibilité, et en combien de temps.** Ce paragraphe
+existe parce que, mesuré le 21/09/2026, l'écran disait **deux choses fausses** — et que la seconde
+était la plus coûteuse.
+
+| Ce qu'il fait | Ce qu'il voit | Quand |
+|---|---|---|
+| Il passe en **« ne pas déranger »** | l'état bascule, le bandeau rouge apparaît | **instantanément** — aucune recherche n'est lancée, il n'y a rien à attendre |
+| Il repasse **« à l'écoute »**, profil complet | une recherche annoncée, puis **ses missions** ou **« aucune mission ne correspond »** | à la **fin du moteur**, quelques secondes |
+| Il repasse **« à l'écoute »**, profil **non visible** | *« Votre profil n'est pas visible : aucune mission ne peut vous être proposée tant qu'il n'est pas complété »*, **avec le bouton pour le compléter** | **au clic** — aucune roue, aucune attente : la réponse était connue avant de lancer quoi que ce soit |
+| Idem, **CV non analysé** / **consentement absent** / **profil en cours de validation** | la phrase correspondante, et le bouton quand elle se corrige depuis le profil | **au clic** |
+| Il bascule, mais **le moteur est éteint** | *« La recherche n'a pas pu aboutir : le moteur de mise en relation est indisponible »* | **au clic** — et **jamais** « aucune mission ne correspond » : une panne de configuration n'est pas un verdict sur son profil |
+| Il bascule **dix fois en une heure** | *« Trop de recherches lancées coup sur coup »* | au onzième au-delà du plafond — un refus **dit**, jamais un silence |
+| La recherche dépasse **45 secondes** | *« La recherche prend plus de temps que prévu. Elle se poursuit : vos missions apparaîtront ici dès qu'elle aura abouti »* | à 45 s — **le run n'est pas interrompu**, seule l'attente l'est |
+
+> **CE QUE L'ÉCRAN DISAIT AVANT, ET POURQUOI C'ÉTAIT PIRE QU'UN RETARD.**
+> *« Analyse de votre profil en cours… vos missions arrivent dans quelques instants »*, pendant que
+> la route posait une échéance à **soixante minutes** et rendait la main. Puis, **cent vingt
+> secondes** plus tard : *« Aucune mission ne correspond à votre profil pour le moment. »*
+>
+> La première phrase annonçait un travail qui n'avait pas commencé. La seconde annonçait un
+> **résultat** — « on a cherché, il n'y a rien » — qu'on n'avait pas. Et le moteur était **éteint** :
+> même après soixante minutes, rien ne serait sorti.
+>
+> La fin de « l'analyse » était décidée par **deux chronomètres** (75 s et 120 s) qui ne savaient
+> rien du moteur : ils mesuraient le **temps**. Ils sont supprimés, pas désactivés.
+> Détail complet : **§E.51** et **§D.13**.
+
+**Les mêmes phrases des deux côtés, par construction.** Les tableaux de bord freelance et CDI
+montent **le même composant**, qui lit **le même espace de traduction** — les douze raisons sont
+écrites une fois, dans les quatre langues. Deux blocs jumeaux dans deux espaces séparés auraient
+dérivé : une phrase corrigée d'un côté serait restée fausse de l'autre, et le second se lirait comme
+corrigé (§E.20).
+
 **La relance : reporter n'est pas annuler.** Un expert modifie son profil, le moteur tourne ; il le
 modifie à nouveau dans l'heure, et l'ancien garde-fou de débit **refusait** — le déclenchement était
 **perdu**, ses dernières modifications jamais notées, et rien ne le signalait. Désormais on
@@ -307,6 +340,17 @@ modifie à nouveau dans l'heure, et l'ancien garde-fou de débit **refusait** �
 dû** — un déclenchement arrivé pendant le run n'est pas effacé.
 Délai **60 minutes**, attente totale bornée à **6 heures**, tâche `expert_relance_trigger` toutes les
 5 minutes.
+
+> ⚠️ **LE REPORT NE VAUT QUE LÀ OÙ LA RAFALE EXISTE — mesuré, et corrigé le 21/09/2026.**
+> Il avait deux appelants : l'**enregistrement d'un profil** (un expert reprend son profil en dix
+> passes : dix runs coûtent dix fois — la rafale est là) et la **bascule de disponibilité** (un
+> interrupteur à deux positions : **aucune rafale**, et une heure d'attente qui n'absorbait rien).
+> Il reste sur le premier, il est **retiré** du second.
+> Il ne s'applique pas non plus à l'**approbation** : la règle « immédiat à l'approbation » était
+> écrite dans le module depuis le lot 6, et le code ne l'appliquait pas — un expert fraîchement
+> approuvé lisait « aucune mission ne correspond à votre profil ».
+> **Le plafond horaire, lui, s'applique à tous ces chemins**, et c'est le même code. L'inventaire
+> complet des déclencheurs est en **§C.14** ([architecture](architecture.md)).
 Un plafond anti-abus de **20 programmations / heure / expert** protège l'**écriture** (pas le coût :
 la temporisation borne déjà le coût). Il vit en **constante nommée dans le code**, et n'a
 **volontairement aucun champ** dans `/admin/matching` — *un seuil anti-abus n'est pas un réglage

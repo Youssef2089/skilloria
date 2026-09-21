@@ -434,6 +434,37 @@ ferait rougir la palette de l'accueil elle-même dès le premier jour (§E.14).
 > dire d'une couleur de cheveux) et `MARQUES_TIERCES` dans `lib/palette.ts` (le logo d'un tiers garde
 > SA couleur : la recolorer afficherait un logo LinkedIn qui n'est pas celui de LinkedIn).
 
+**D.13 — UN ÉCRAN NE SIMULE JAMAIS UN TRAVAIL. Il l'attend, ou il dit ce qu'il sait déjà.**
+Une recherche de missions a **quatre issues nommées**, et aucune autre :
+`trouvees` · `aucune` · `ineligible` · `echec` ([lib/matching/issue-de-recherche.ts](lib/matching/issue-de-recherche.ts)).
+L'union est **fermée** : il n'existe aucune branche « on ne sait pas encore » qui pourrait rester
+affichée indéfiniment, et l'écran **refuse de compiler** sur une issue non traitée.
+
+**Trois règles, et chacune ferme un défaut mesuré le 21/09/2026** (§E.51) :
+
+① **La réponse connue au clic se dit AU CLIC.** Profil non visible, CV non analysé, consentement
+  absent, profil non approuvé : quatre refus lisibles en **une lecture de ligne**. Ils sortent
+  immédiatement, avec le bouton pour y remédier — jamais après une roue qui tourne.
+② **Ce qui se lance s'attend.** La bascule de disponibilité **exécute** le moteur dans la requête.
+  Aucun chronomètre ne décide de la fin d'une recherche : les deux qui le faisaient (75 s et 120 s)
+  sont **supprimés**, pas désactivés.
+③ **« Aucune mission » ne s'écrit que sur une recherche ACHEVÉE.** Un empêchement, un refus de
+  débit, une panne de configuration : chacun dit ce qu'il est. Affirmer un résultat qu'on n'a pas
+  est le défaut, pas le retard.
+
+> **Le report de 60 minutes garde son rôle — sur le SEUL chemin où la rafale existe.** Mesuré : ses
+> deux appelants étaient `/api/profile` (un expert reprend son profil en dix passes, et dix runs
+> coûtent dix fois) et la bascule de disponibilité (**un interrupteur à deux positions ne produit
+> aucune rafale**). Il reste sur le premier, il est retiré du second. Et il ne s'applique pas à
+> l'**approbation** : `lib/matching/relance.ts` l'énonce depuis le lot 6, le code ne l'appliquait
+> pas, et un expert fraîchement approuvé lisait « aucune mission ne correspond ».
+> **Le plafond horaire, lui, s'applique partout** — et c'est le MÊME (`consommerPlafondHoraire`),
+> pas une copie (§E.20).
+
+**Gardé par [`diag-issue-de-recherche`](scripts/diag-issue-de-recherche.mjs)** — 10 mutations,
+10 détections — et par [`diag-relance-expert`](scripts/diag-relance-expert.mjs), dont deux sections
+ont été **réécrites** parce qu'elles défendaient l'ancienne règle et se contredisaient entre elles.
+
 **D.10 — TOUTE NOTE DU PRODUIT EST SUR 0-10. Il n'y a pas de seconde échelle.**
 Les filtres de pertinence vivaient en **0-1**, les notes de jugement en **0-10**, et rien ne le disait
 à l'écran : **« 1 » signifiait *parfait* d'un côté et *médiocre* de l'autre**, sur la même page.
@@ -600,6 +631,8 @@ bloquant, ordonnés avec les quatorze défauts nommés du gel 4.1d :
 | [E.48](docs/pieges.md#e48) | UNE VARIABLE CSS NE RÉSOUT PAS DANS UN ATTRIBUT SVG. Elle ne peint RIEN, et rien ne le dit. |
 | [E.49](docs/pieges.md#e49) | UNE PROPRIÉTÉ PERSONNALISÉE EST SUBSTITUÉE LÀ OÙ ELLE EST DÉCLARÉE, PAS LÀ OÙ ELLE EST LUE. |
 | [E.50](docs/pieges.md#e50) | UN SUFFIXE D'OPACITÉ COLLÉ À UNE COULEUR CESSE DE MARCHER LE JOUR OÙ LA COULEUR DEVIENT UN JETON. |
+| [E.51](docs/pieges.md#e51) | UN ÉCRAN QUI SIMULE UNE ANALYSE QUI N'A PAS LIEU FINIT PAR ANNONCER UN RÉSULTAT QU'IL N'A PAS. |
+| [E.52](docs/pieges.md#e52) | UN SIGNAL BLOQUANT QU'AUCUNE ACTION NE PEUT ÉTEINDRE APPREND À ÊTRE IGNORÉ. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

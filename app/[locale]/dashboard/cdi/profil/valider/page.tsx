@@ -6,7 +6,6 @@ import { useRouter } from '@/i18n/navigation'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
-import { markMatchingTriggered } from '@/lib/matching-resync-hint'
 import CountrySelect from '@/components/CountrySelect'
 import CompactListItem from '@/components/CompactListItem'
 import CdiStatusToggle, { type CdiStatus } from '@/components/cdi/CdiStatusToggle'
@@ -1101,15 +1100,6 @@ export default function CdiValiderProfilPage() {
         }
         return
       }
-
-      // Lot UX refetch auto post-matching (parité freelance) : tout PATCH
-      // /api/profile réussi peut déclencher un runMatchingForExpert en
-      // `after()`. On pose le hint sessionStorage pour que la home CDI
-      // affiche "Analyse en cours…" et passe en fast-poll.
-      try {
-        const { data: { session: postSession } } = await supabase.auth.getSession()
-        if (postSession?.user?.id) markMatchingTriggered(postSession.user.id)
-      } catch { /* SSR-safe / privacy noop */ }
 
       if (visible) {
         router.push('/dashboard/cdi')

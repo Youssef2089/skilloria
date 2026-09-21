@@ -59,7 +59,38 @@ export type Probleme = {
   lien?: string | null
 }
 
+/**
+ * LE MOTEUR DE MISE EN RELATION EST-IL SEULEMENT ALLUMÉ ?
+ *
+ * ┌─ LE DÉFAUT QU'ON FERME, ET IL EST LE PLUS GRAVE DE CET ÉCRAN ───────────┐
+ * │ Mesuré le 21/09/2026 : `ENABLE_RERANKING` et `COHERE_API_KEY` étaient   │
+ * │ absents. Le moteur s'arrêtait proprement, en quelques millisecondes, et │
+ * │ écrivait sa raison dans une note de journal que PERSONNE ne lit.        │
+ * │                                                                         │
+ * │ Conséquence exacte : AUCUN expert, AUCUNE organisation, dans AUCUN      │
+ * │ écosystème, ne recevait quoi que ce soit — et chaque écran l'annonçait  │
+ * │ comme un résultat : « aucune mission ne correspond à votre profil ».    │
+ * │                                                                         │
+ * │ Tous les autres signaux de cet écran restaient VERTS : zéro panne, zéro │
+ * │ lot en échec, zéro dépassement — parce que rien n'était tenté. Un       │
+ * │ moteur éteint ne produit aucune erreur ; c'est ce qui le rend invisible.│
+ * └────────────────────────────────────────────────────────────────────────┘
+ *
+ * ⚠️ AUCUNE VALEUR NEUTRE. Ce type n'a pas de troisième état « on ne sait
+ *    pas » : la lecture est celle de deux variables d'environnement au
+ *    serveur, elle ne peut pas échouer. Lui donner un repli inventerait un
+ *    doute là où il n'y en a aucun (§E.27).
+ */
+export type EtatDuMoteur = {
+  /** `ENABLE_RERANKING` vaut exactement `'true'` (cf. lib/interrupteurs.ts). */
+  interrupteurOuvert: boolean
+  /** `COHERE_API_KEY` est présente et non vide. */
+  clePresente: boolean
+}
+
 export type SourcesSupervision = {
+  /** L'interrupteur et la clé du moteur — lus au serveur, jamais devinés. */
+  moteur: EtatDuMoteur
   inacheves: Array<{ etat: string; publications: number; plus_ancien: string | null }> | null
   couverture: Array<{ experts_non_notes: number; lots_rerank_en_echec: number }> | null
   pannes: Array<{ cause: string; surface: string; pannes: number; derniere: string | null }> | null
@@ -122,6 +153,24 @@ const nombre = (v: unknown): number => {
 
 export function classerProblemes(s: SourcesSupervision): Probleme[] {
   const out: Probleme[] = []
+
+  // ── 0. LE MOTEUR EST-IL ALLUMÉ ? ────────────────────────────────────────
+  //
+  //  EN PREMIER, PARCE QUE ÇA REND TOUT LE RESTE FAUX. Moteur éteint, les
+  //  compteurs de pannes, de lots en échec et de dépassements tombent tous à
+  //  zéro — non pas parce que tout va bien, mais parce que RIEN N'EST TENTÉ.
+  //  Un écran qui afficherait ces zéros sans dire ça se lit « tout va bien »
+  //  au moment précis où la fonction centrale du produit est arrêtée.
+  //
+  //  Les deux causes sont SÉPARÉES, et c'est délibéré : les confondre enverrait
+  //  chercher une clé absente alors que c'est l'interrupteur qui est fermé, et
+  //  inversement. Deux actions différentes méritent deux phrases (§E.29).
+  if (!s.moteur.interrupteurOuvert) {
+    out.push({ cle: 'moteur_interrupteur_ferme', gravite: 'bloquant', compte: null, depuis: null, sujet: null })
+  }
+  if (!s.moteur.clePresente) {
+    out.push({ cle: 'moteur_cle_absente', gravite: 'bloquant', compte: null, depuis: null, sujet: null })
+  }
 
   // ── 1. LES MISES EN RELATION QUI NE SE FERONT PAS ──────────────────────
   //  `en_cours` n'est PAS un problème : le rattrapage les reprendra. Les

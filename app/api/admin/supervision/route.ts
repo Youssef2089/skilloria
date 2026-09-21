@@ -3,6 +3,7 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { classerProblemes, type SourcesSupervision } from '@/lib/supervision/problemes'
 import { MINUTES_AVANT_COINCE } from '@/lib/stripe-exploitation/journal'
+import { capaciteActive } from '@/lib/interrupteurs'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -139,6 +140,14 @@ export async function GET(request: NextRequest): Promise<Response> {
         }
 
   const sources: SourcesSupervision = {
+    // LE MOTEUR, LU ICI ET NULLE PART AILLEURS. `capaciteActive` est la SEULE
+    // implémentation de la convention « exactement 'true' » (§E.9) : la
+    // recopier ici ferait deux interrupteurs portant le même nom et
+    // vieillissant séparément (§E.20).
+    moteur: {
+      interrupteurOuvert: capaciteActive('ENABLE_RERANKING'),
+      clePresente: (process.env.COHERE_API_KEY ?? '').trim().length > 0,
+    },
     inacheves: ouNull(inachevesRes),
     couverture: ouNull(couvertureRes),
     pannes: ouNull(pannesRes),

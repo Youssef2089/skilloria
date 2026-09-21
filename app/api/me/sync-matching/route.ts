@@ -1,27 +1,78 @@
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { checkRateLimit } from '@/lib/rate-limit'
+import type { IssueDeRecherche } from '@/lib/matching/issue-de-recherche'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 /**
- * POST /api/me/sync-matching — déclenche la réconciliation matching pour
- * l'EXPERT courant (best-effort, idempotent).
+ * POST /api/me/sync-matching — LA RECHERCHE DE MISSIONS DE L'EXPERT COURANT.
  *
- * Cas d'usage : événements expert qui changent l'éligibilité ou les critères
- * et qui s'exécutent côté client (pas via une route serveur dédiée). Le seul
- * cas V1 est la bascule availability "Ne pas déranger" → "À l'écoute" (gérée
- * client-side via supabase + RLS dans lib/availability-actions.ts).
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║ CE QUE CETTE ROUTE FAISAIT, ET CE QUE L'EXPERT VOYAIT — mesuré 21/09/26. ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
  *
- * Garde : requireAuth (le caller est l'expert lui-même). On scope la
- * réconciliation à son profile_id — pas de paramètre d'entrée.
+ *   Elle POSAIT UNE ÉCHÉANCE À SOIXANTE MINUTES et rendait la main en quelques
+ *   millisecondes. Rien ne partait. L'écran, lui, affichait « Analyse de votre
+ *   profil en cours… », puis, soixante-quinze secondes plus tard, retirait le
+ *   message en silence, et cent vingt secondes plus tard annonçait « Aucune
+ *   mission ne correspond à votre profil pour le moment ».
  *
- * Retour rapide : on ne BLOQUE PAS le caller sur l'appel IA (~15s). On fire-
- * and-forget la promesse côté serveur ; côté client useLiveResource revalide
- * /api/me/missions et reflète la nouvelle liste dès qu'elle est en BDD.
+ *   LES DEUX PHRASES ÉTAIENT FAUSSES, et la seconde était la plus coûteuse :
+ *   elle annonçait un RÉSULTAT — « on a cherché, il n'y a rien » — alors que la
+ *   recherche n'avait pas commencé et ne commencerait pas avant une heure.
+ *
+ *   Le report avait une bonne raison — absorber une rafale d'enregistrements de
+ *   profil — mais elle ne valait PAS ICI : un interrupteur à deux positions ne
+ *   produit pas de rafale. Le report a donc été retiré de ce chemin et gardé
+ *   sur `/api/profile`, où la rafale existe (cf. `lib/matching/relance.ts`).
+ *
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║ CE QU'ELLE FAIT MAINTENANT : ELLE CHERCHE, ET ELLE DIT CE QU'ELLE TROUVE.║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
+ *
+ *   ① LA RÉPONSE CONNUE AU CLIC SE DIT AU CLIC. Profil non visible, CV non
+ *      analysé, consentement absent, profil non approuvé : ces réponses
+ *      existent en UNE LECTURE DE LIGNE. Elles sortent en `ineligible`, sans
+ *      run, sans roue qui tourne, sans attente d'aucune sorte.
+ *
+ *   ② LE MOTEUR TOURNE DANS LA REQUÊTE. La réponse porte l'issue RÉELLE du run
+ *      (`IssueDeRecherche`), jamais un « c'est parti » que rien ne vérifie.
+ *
+ *   ③ LE PLAFOND HORAIRE S'APPLIQUE TOUJOURS — le même, pas une copie :
+ *      `consommerPlafondHoraire()`. Il borne les écritures qu'un client peut
+ *      déclencher, et un run direct en déclenche autant qu'une relance.
+ *
+ *   ④ L'ÉLAGAGE RESTE À PART. Un périmètre qui RÉTRÉCIT ne demande aucune
+ *      notation : c'est une suppression SQL, et elle ne rend pas d'issue —
+ *      il n'y a rien à annoncer à l'expert, sa liste se raccourcit, c'est tout.
+ *
+ * Garde : `requireAuth` (le caller est l'expert lui-même). Le périmètre est son
+ * `profile_id` ; aucun paramètre d'entrée n'est accepté.
  */
+
+/**
+ * LA MARGE SOUS LE COUPERET.
+ *
+ * `maxDuration = 60` est le plafond de l'hébergement (§E.5). Au-delà, Vercel
+ * tue la requête : le client reçoit une connexion morte, et l'écran ne peut
+ * plus rien dire de vrai. On s'arrête AVANT, à quarante-cinq secondes, pour
+ * rendre une issue NOMMÉE plutôt qu'une absence de réponse.
+ *
+ * ⚠️ LE RUN, LUI, N'EST PAS INTERROMPU. Il est confié à `after()` — sans quoi
+ *    le couperet le tuerait à la seconde où l'on répond (§E.5) — et il ira
+ *    jusqu'au bout, notera, et écrira ses recommandations. L'expert les verra
+ *    au prochain rafraîchissement. Ce qui expire ici, c'est L'ATTENTE, pas le
+ *    travail.
+ *
+ * Mesuré : un run expert note les annonces publiées de son écosystème qui
+ * partagent sa branche et ses zones — quelques dizaines de documents, en lots
+ * parallèles, avec mémorisation des notes déjà acquises. Les quarante-cinq
+ * secondes sont une sécurité, pas un budget nominal.
+ */
+const ATTENTE_MAX_MS = 45_000
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -86,8 +137,9 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   // ── SENS DÉRIVÉ SERVEUR ────────────────────────────────────────────────
   //  RÉTRÉCI (crossOpen true → false) : le pool n'a fait que se réduire → un
-  //  simple élagage SQL suffit (ZÉRO Claude). On le sort du cooldown IA et on
-  //  lui applique un rate-limit PERMISSIF (10/min) : le coût est purement DB.
+  //  simple élagage SQL suffit (ZÉRO notation). On le sort du plafond de
+  //  relance et on lui applique un rate-limit PERMISSIF (10/min) : le coût est
+  //  purement DB.
   //  La trace DOIT exister et valoir true, l'état courant DOIT être false.
   if (traceCrossOpen && !currentCrossOpen) {
     const allowedPrune = await checkRateLimit(supabaseAdmin, 'matching_prune_60s', user.id, 60, 10)
@@ -97,52 +149,107 @@ export async function POST(request: NextRequest): Promise<Response> {
       try {
         const { runPruneForExpert } = await import('@/lib/matching')
         const r = await runPruneForExpert({ supabaseAdmin, profileId: prof.id })
-        console.log('[me/sync-matching] prune done', { profileId: prof.id, ok: r.ok, deleted: r.deleted, kept: r.kept, hint: clientReason })
+        console.log('[me/sync-matching] élagage fait', { profileId: prof.id, ok: r.ok, deleted: r.deleted, kept: r.kept, hint: clientReason })
       } catch (err) {
-        console.error('[me/sync-matching] prune threw (after)', err)
+        console.error('[me/sync-matching] élagage en échec (after)', err)
       }
     })
 
-    return json({ ok: true, profile_id: prof.id, queued: true, mode: 'prune' }, 200)
+    // PAS D'ISSUE : rien n'a été cherché. L'écran ne doit donc rien annoncer —
+    // la liste se raccourcit d'elle-même, et prétendre le contraire serait la
+    // même faute qu'on vient de corriger, dans l'autre sens.
+    return json({ ok: true, profile_id: prof.id, mode: 'elagage' }, 200)
   }
 
-  // ── CHEMIN COMPLET : ON REPORTE, ON NE REFUSE PLUS ─────────────────────
+  // ── L'ORIGINE, DÉRIVÉE DU SERVEUR ET NON DU CLIENT ──────────────────────
   //
-  //  ÉLARGI (false → true), trace absente, ou périmètre inchangé (retour de
-  //  « ne pas déranger ») : il faut renoter, et renoter coûte.
+  //  Le périmètre s'est ÉLARGI (trace à false ou absente, état à true) ⇒ c'est
+  //  l'interrupteur d'ouverture croisée. Il est INCHANGÉ ⇒ c'est la bascule de
+  //  disponibilité, seule autre surface qui appelle cette route.
   //
-  //  CE QUI CHANGE, ET C'EST LE SUJET DE CE LOT :
-  //    Deux garde-fous de débit refusaient ici — 1 par minute, 10 par heure —
-  //    et un refus PERDAIT le déclenchement. Un expert qui basculait sa
-  //    disponibilité deux fois de suite voyait le second changement ignoré, et
-  //    son flux rester celui d'avant. Rien ne le lui disait.
-  //
-  //    On pose désormais une échéance à une heure, REPOUSSÉE à chaque nouveau
-  //    déclenchement. On attend qu'il ait fini de changer d'avis, puis on note
-  //    UNE fois, sur son état final. Le coût reste borné — mieux qu'avant,
-  //    puisqu'une rafale ne produit plus qu'un seul run — et plus rien n'est
-  //    perdu.
-  //
-  //    Les deux garde-fous de débit disparaissent donc : ils ne protégeaient
-  //    plus rien que la temporisation ne protège mieux, et leur seul effet
-  //    restant aurait été d'empêcher de PROGRAMMER une relance.
-  const { programmerRelance } = await import('@/lib/matching/relance')
-  const prog = await programmerRelance(supabaseAdmin, prof.id, 'ouverture_croisee')
-  if (!prog.ok) {
-    // Le plafond horaire (garde d'ÉCRITURE, cf. lib/matching/relance.ts) est un
-    // refus DÉLIBÉRÉ, pas une panne : il mérite son propre code et un 429. Le
-    // confondre avec une erreur serveur ferait chercher une panne inexistante.
-    if (prog.raison === 'plafond_horaire') {
-      return json({ ok: false, code: 'relance_plafond' }, 429)
+  //  `'disponibilite'` existait dans `OrigineRelance` et n'était appelée nulle
+  //  part : tout partait sous `'ouverture_croisee'`, y compris les bascules de
+  //  disponibilité. Les dépassements de plafond étaient donc comptés sous une
+  //  étiquette fausse — un chiffre juste sous un mauvais label (§E.24), dans le
+  //  seul compteur qui dise qui heurte le plafond.
+  const origine = currentCrossOpen !== traceCrossOpen ? 'ouverture_croisee' : 'disponibilite'
+
+  // ── ① LA RÉPONSE CONNUE AU CLIC SE DIT AU CLIC ──────────────────────────
+  const { raisonIneligibilite } = await import('@/lib/matching/run-for-expert')
+  const eligibilite = await raisonIneligibilite(supabaseAdmin, prof.id)
+  if (eligibilite.etat === 'indisponible') {
+    // Une lecture en panne n'est PAS une inéligibilité (§E.22) : on ne dit pas
+    // à un expert parfaitement en règle que son profil ne l'est pas.
+    console.error('[me/sync-matching] éligibilité ILLISIBLE', { profileId: prof.id, detail: eligibilite.detail })
+    return json({ error: 'Could not read the profile', code: 'profil_verification_indisponible' }, 503)
+  }
+  if (eligibilite.etat === 'ineligible') {
+    const issue: IssueDeRecherche = { etat: 'ineligible', raison: eligibilite.raison }
+    console.log('[me/sync-matching] inéligible — aucune recherche lancée', {
+      profileId: prof.id,
+      raison: eligibilite.raison,
+      origine,
+      hint: clientReason,
+    })
+    return json({ ok: true, profile_id: prof.id, mode: 'direct', issue }, 200)
+  }
+
+  // ── ③ LE PLAFOND HORAIRE, LE MÊME QUE CELUI DES RELANCES ────────────────
+  const { consommerPlafondHoraire } = await import('@/lib/matching/relance')
+  if (!(await consommerPlafondHoraire(supabaseAdmin, prof.id, origine))) {
+    const issue: IssueDeRecherche = { etat: 'echec', raison: 'trop_de_demandes' }
+    return json({ ok: false, profile_id: prof.id, mode: 'direct', issue, code: 'relance_plafond' }, 429)
+  }
+
+  // ── ② LE MOTEUR TOURNE ICI, ET L'ÉCRAN ATTEND SA FIN ────────────────────
+  const debutRun = new Date()
+  const { runMatchingForExpert } = await import('@/lib/matching')
+  const { issueDepuisVerdict } = await import('@/lib/matching/issue-de-recherche')
+  const { solderRelance } = await import('@/lib/matching/relance')
+
+  const course = (async () => {
+    const verdict = await runMatchingForExpert({ supabaseAdmin, profileId: prof.id })
+    // Une relance en attente porterait sur un profil qu'on vient de noter : la
+    // solder évite de repayer le même travail dans l'heure. `debutRun` protège
+    // un déclenchement arrivé PENDANT le run — il ne sera pas soldé.
+    await solderRelance(supabaseAdmin, prof.id, debutRun)
+    console.log('[me/sync-matching] run direct terminé', {
+      profileId: prof.id,
+      origine,
+      status: verdict.status,
+      retenues: verdict.proposals.length,
+      ms: Date.now() - debutRun.getTime(),
+      notes: verdict.notes,
+      hint: clientReason,
+    })
+    return verdict
+  })()
+
+  // LE RUN SURVIT À LA RÉPONSE, QUOI QU'IL ARRIVE. Sans cet `after()`, une
+  // réponse rendue sur expiration de l'attente tuerait le run en cours (§E.5)
+  // et l'expert perdrait à la fois l'attente ET le travail.
+  after(async () => {
+    try {
+      await course
+    } catch (err) {
+      console.error('[me/sync-matching] run direct en ÉCHEC (after)', err)
     }
-    // Une relance non programmée est un changement qui ne sera jamais pris en
-    // compte. On rend une erreur plutôt qu'un « ok » : l'écran doit pouvoir le
-    // dire, et non laisser croire que c'est parti.
-    return json({ ok: false, code: 'relance_non_programmee' }, 500)
+  })
+
+  let issue: IssueDeRecherche
+  try {
+    issue = await Promise.race([
+      course.then(issueDepuisVerdict),
+      new Promise<IssueDeRecherche>((resolve) =>
+        setTimeout(() => resolve({ etat: 'echec', raison: 'trop_long' }), ATTENTE_MAX_MS),
+      ),
+    ])
+  } catch (err) {
+    // Le moteur a levé. C'est un ÉCHEC NOMMÉ, pas « aucune mission » : annoncer
+    // un résultat qu'on n'a pas est exactement ce que ce lot corrige.
+    console.error('[me/sync-matching] run direct a levé', { profileId: prof.id, err })
+    issue = { etat: 'echec', raison: 'lecture_en_panne' }
   }
 
-  return json(
-    { ok: true, profile_id: prof.id, queued: true, mode: 'reportee', due_at: prog.due_at, reportee: prog.reportee },
-    200,
-  )
+  return json({ ok: true, profile_id: prof.id, mode: 'direct', issue }, 200)
 }

@@ -73,14 +73,62 @@ ok(/solderRelance\(auth\.supabaseAdmin, profileId, debutRun\)/.test(APPROB),
 section('B. REPORTÉ ENSUITE — ET RIEN N EST PERDU')
 // ══════════════════════════════════════════════════════════════════════════
 
-ok(/programmerRelance\(supabaseAdmin, cp\.id, 'profil_modifie'\)/.test(PROFIL),
-  'l enregistrement du profil PROGRAMME, il n exécute plus')
-ok(!/runMatchingForExpert\(\{ supabaseAdmin, profileId: cp\.id \}\)/.test(PROFIL),
-  'et il ne lance plus le moteur en direct',
-  'dix enregistrements produisaient dix runs, ou un run et neuf refus')
+// ── L'ENREGISTREMENT DE PROFIL : DEUX CAS, ET UN SEUL EST UNE RAFALE ───────
+//
+//  ⚠️ CE BLOC A ÉTÉ RÉÉCRIT LE 21/09/2026, ET IL AVAIT RAISON DE ROUGIR.
+//     Il défendait « l enregistrement PROGRAMME, il n exécute plus » — sans
+//     distinguer le cas de l'APPROBATION, que la section A ci-dessus déclare
+//     pourtant immédiat depuis le lot 6. Les deux sections se contredisaient :
+//     A exigeait l'exécution à l'approbation, B l'interdisait ici. Le code
+//     suivait B, et un expert fraîchement approuvé lisait « aucune mission ne
+//     correspond à votre profil » — un refus, là où rien n'avait tourné.
+//
+//     La règle est maintenant CELLE DE LA TRANSITION, et elle est vérifiée
+//     dans les deux sens : approbation → run direct, tout le reste → report.
+{
+  const iBranche = PROFIL.indexOf("const etaitApprouve = (cp.verification_status ?? null) === 'approved'")
+  const iRun = PROFIL.indexOf('runMatchingForExpert({ supabaseAdmin, profileId: cp.id })')
+  const iProg = PROFIL.indexOf("programmerRelance(supabaseAdmin, cp.id, 'profil_modifie')")
 
-ok(/programmerRelance\(supabaseAdmin, prof\.id/.test(SYNC),
-  'la synchronisation programme elle aussi')
+  ok(iBranche !== -1,
+    'l enregistrement distingue l APPROBATION du reste',
+    'sans cette distinction, l approbation partait a soixante minutes comme une simple retouche')
+  // §E.8 : on ancre sur l'ORDRE, pas sur deux présences séparées. Les deux
+  // appels peuvent coexister ; ce qui compte est lequel est sous la branche.
+  ok(iBranche !== -1 && iRun > iBranche && iProg > iRun,
+    'le run direct est SOUS la branche, et le report vient après',
+    'programmer sous la branche d approbation ferait exactement l inverse de ce qui est voulu')
+  ok(iProg !== -1,
+    'un enregistrement ORDINAIRE programme toujours, il n exécute pas',
+    'dix enregistrements produiraient dix runs, ou un run et neuf refus')
+}
+
+// ── LA BASCULE DE DISPONIBILITÉ : ELLE EXÉCUTE, ELLE NE PROGRAMME PLUS ─────
+//
+//  ⚠️ RÉÉCRIT LE 21/09/2026, POUR LA MÊME RAISON. Ce bloc exigeait que la
+//     synchronisation PROGRAMME. Mesuré : un interrupteur à deux positions ne
+//     produit AUCUNE rafale — la temporisation d'une heure n'y absorbait rien,
+//     et l'écran affichait « analyse en cours » sur un travail qui ne
+//     commencerait pas avant soixante minutes.
+ok(/runMatchingForExpert\(\{ supabaseAdmin, profileId: prof\.id \}\)/.test(SYNC),
+  'la bascule de disponibilité EXÉCUTE le moteur',
+  'la reponse existe au clic : la faire attendre une heure etait le defaut')
+ok(!/programmerRelance\(supabaseAdmin, prof\.id/.test(SYNC),
+  'et elle ne programme plus rien',
+  'reporter ici rendait fausses les deux phrases que l ecran affichait ensuite')
+ok(/consommerPlafondHoraire\(supabaseAdmin, prof\.id, origine\)/.test(SYNC),
+  'le plafond horaire s applique TOUJOURS, et c est LE MÊME',
+  'un plafond recopie porterait le meme nom et vieillirait separement (§E.20)')
+ok(/export async function consommerPlafondHoraire/.test(MODULE) &&
+   /if \(!\(await consommerPlafondHoraire\(supabaseAdmin, profileId, origine\)\)\)/.test(MODULE),
+  'et programmerRelance consomme exactement le même',
+  'deux implementations du meme plafond en feraient deux plafonds')
+ok(/'ouverture_croisee' : 'disponibilite'/.test(SYNC),
+  'l origine « disponibilite » est enfin ENREGISTRÉE',
+  'tout partait sous « ouverture_croisee » : les depassements etaient comptes sous une etiquette fausse (§E.24)')
+ok(/solderRelance\(supabaseAdmin, prof\.id, debutRun\)/.test(SYNC),
+  'une relance en attente est soldée par ce run',
+  'sinon le moteur tournerait une seconde fois dans l heure, pour rien')
 ok(!/matching_sync_60s|matching_sync_1h/.test(SYNC),
   'les deux garde-fous qui REFUSAIENT ont disparu',
   'ils ne protegeaient plus rien que la temporisation ne protege mieux, et leur seul effet restant aurait ete d empecher de PROGRAMMER')

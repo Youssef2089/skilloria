@@ -306,11 +306,12 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **71** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
-21/09/2026, à l'exécution — la 71ᵉ, `palette_par_ecosysteme`, laisse les trois autres compteurs
-**inchangés**, et c'est le point : elle ajoute six colonnes avec un `DEFAULT`, qui remplit les lignes
-existantes. **Elle n'insère rien**, donc elle échappe par construction à la classe que cette section
-décrit. Au 20/09/2026, la 70ᵉ, `verification_nocturne_stripe`, apportait l'insertion et la ligne
+Sur les **72** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
+21/09/2026, à l'exécution — les 71ᵉ et 72ᵉ laissent les trois autres compteurs **inchangés**, et
+c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
+lignes existantes ; `inacheves_hors_annonces_expirees` ne fait que remplacer le corps d'une fonction
+de lecture. **Ni l'une ni l'autre n'insère quoi que ce soit**, donc elles échappent par construction
+à la classe que cette section décrit. Au 20/09/2026, la 70ᵉ, `verification_nocturne_stripe`, apportait l'insertion et la ligne
 de plus : son entrée au catalogue des tâches planifiées, six valeurs. Les chiffres précédents,
 **69 / 51 / 39 / 1962**, dataient du 17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois
 dernières d'alors,
@@ -2281,6 +2282,116 @@ palette. Les laisser aurait été programmer la même panne en sachant qu'elle v
 > Le motif exige **exactement deux** caractères hexadécimaux : accepter un seul
 > ferait mordre sur `` `${jours}j` `` et `` `${n}h` ``, et un contrôle qui crie à
 > tort est désactivé le jour même (§E.14).
+
+<a id="e51"></a>
+### E.51 — UN ÉCRAN QUI SIMULE UNE ANALYSE QUI N'A PAS LIEU FINIT PAR ANNONCER UN RÉSULTAT QU'IL N'A PAS.
+
+**Le cas, mesuré le 21/09/2026 sur les deux tableaux de bord experts.** Youssef bascule sa
+disponibilité sur « à l'écoute ». L'écran affiche une roue et « Analyse de votre profil en cours…
+vos missions arrivent dans quelques instants ». Deux minutes plus tard : « Aucune mission ne
+correspond à votre profil pour le moment. »
+
+**Les deux phrases étaient fausses, et la seconde est la plus coûteuse.**
+
+| Ce que l'écran disait | Ce qui se passait |
+|---|---|
+| « analyse en cours » | `/api/me/sync-matching` posait une **échéance à 60 minutes** (`programmerRelance`) et rendait la main en quelques millisecondes. Rien n'avait commencé. |
+| « vos missions arrivent dans quelques instants » | le pilote `expert_relance_trigger` passe toutes les 5 min, mais ne prend que les échéances **dues** : la première exécution possible était à **T+60 min**. |
+| « aucune mission ne correspond à votre profil » | **un RÉSULTAT affirmé sans recherche.** Pire : le moteur était **éteint** (`ENABLE_RERANKING` et `COHERE_API_KEY` absentes) — même à T+60 min, rien ne serait sorti. |
+
+**LA FIN DE « L'ANALYSE » ÉTAIT DÉCIDÉE PAR DEUX CHRONOMÈTRES.** `useMatchingAnalyzing` s'arrêtait à
+**75 s** (« retrait silencieux », dit son propre commentaire) ; `matching-resync-hint` tenait une
+fenêtre de **120 s** en `sessionStorage`. Ni l'un ni l'autre ne savait quoi que ce soit du moteur :
+**ils mesuraient le temps.** Le travail, lui, était à 60 minutes. Les deux expiraient donc
+**toujours** avant que rien ne se produise.
+
+**La phrase à retenir.** *Un écran qui simule un travail finit par en affirmer le résultat. La
+simulation est l'erreur ; la fausse conclusion n'en est que la conséquence.*
+
+**Trois défauts distincts, et ils se renforcent.**
+① **La réponse existait au clic et n'a pas été dite.** Profil non visible, CV non analysé,
+   consentement absent, profil non approuvé : quatre refus lisibles en **une lecture de ligne**.
+   L'expert attendait 60 minutes pour apprendre ce qu'on savait immédiatement.
+② **Un chronomètre remplaçait un signal.** Aucune des deux minuteries ne pouvait dire si le moteur
+   avait tourné, trouvé, ou refusé de partir.
+③ **Une panne de configuration était présentée comme un verdict sur le profil.** Reranking éteint →
+   « aucune mission ne correspond ». Le moteur écrivait pourtant sa raison — dans une note de
+   journal **dont le type dit en toutes lettres qu'elle n'est jamais affichée à un utilisateur**.
+
+**La parade est un TYPE, pas une discipline.** `IssueDeRecherche`
+([lib/matching/issue-de-recherche.ts](../lib/matching/issue-de-recherche.ts)) est une union fermée :
+`trouvees` · `aucune` · `ineligible` · `echec`. Il n'existe **aucune branche « on ne sait pas
+encore »** qui pourrait rester affichée indéfiniment, et l'écran **refuse de compiler** sur une issue
+non traitée (`assertJamais`). La route exécute le moteur **dans la requête** et rend l'issue réelle.
+
+**Et l'issue se lit sur une VALEUR, jamais sur une phrase (§E.24).** La première version de
+`issueDepuisVerdict` distinguait « moteur éteint » de « aucune mission » par une **expression
+régulière sur la note de journal**. Corriger un accent dans cette phrase aurait suffi à faire
+annoncer « aucune mission » sur une panne de configuration, en silence et en production. Le reranker
+rend donc un `arret_code` typé, le verdict porte un `empechement` structuré, et
+`Exclude<ArretDeNotation, 'aucun_document'>` interdit **à la compilation** de présenter un vivier
+vide comme une panne (§E.31).
+
+**Ce que l'attente maximale ne fait pas.** La route s'arrête à **45 s**, sous le couperet de 60 s
+(§E.5), et rend `trop_long` — une issue **nommée**. Le run, lui, **n'est pas interrompu** : il est
+confié à `after()`, sans quoi la réponse le tuerait. *Ce qui expire est l'attente, pas le travail*,
+et la phrase affichée le dit.
+
+**Contrôle** : [scripts/diag-issue-de-recherche.mjs](../scripts/diag-issue-de-recherche.mjs) —
+**10 mutations, 10 détections**. Il vérifie que l'éligibilité est consultée **avant** le run (§E.8 :
+ancré sur l'ordre, pas sur deux présences), qu'aucun minuteur ne subsiste, que « aucune mission »
+passe **après** la recherche dans l'ordre de rendu, qu'aucune assertion ne lit `notes`, et que les
+douze raisons ont leur phrase **dans les quatre langues**.
+
+> **Le corollaire de supervision, et il vaut pour tout le dépôt.**
+> **UN MOTEUR ÉTEINT NE PRODUIT AUCUNE ERREUR — C'EST CE QUI LE REND INVISIBLE.** Le jour de la
+> mesure, `/admin/supervision` était **vert partout** : zéro panne, zéro lot en échec, zéro
+> dépassement — parce que **rien n'était tenté**. Un écran qui ne surveille que les échecs ne voit
+> pas l'absence de tentative. Depuis, l'interrupteur fermé et la clé absente sont **deux problèmes
+> bloquants distincts**, en tête de liste
+> ([lib/supervision/problemes.ts](../lib/supervision/problemes.ts)), et
+> `diag-parametrage-manuel` exige que la procédure de mise en production le dise **dans un encadré**
+> — pas dans une cellule de tableau. *Cette dernière précision a été trouvée par mutation* : la
+> première assertion cherchait le mot « BLOQUANT » n'importe où dans le voisinage, et **attrapait la
+> ligne de tableau voisine** pendant que l'encadré s'affadissait (§E.8, encore).
+
+<a id="e52"></a>
+### E.52 — UN SIGNAL BLOQUANT QU'AUCUNE ACTION NE PEUT ÉTEINDRE APPREND À ÊTRE IGNORÉ.
+
+**Le cas, mesuré le même jour.** `/admin/supervision` affichait, en rouge et en bloquant :
+« **6 annonces publiées n'ont JAMAIS été mises en relation**, depuis le 4 juin 2026 ».
+
+**La cause n'était pas une panne — et c'est tout le sujet.** Les six ont été publiées entre le
+**4 juin et le 28 juillet 2026**. La colonne `matching_attempted_at` n'existait pas : elle est créée
+par `…_reprise_apres_couperet` (**1ᵉʳ septembre**), et l'écriture qui la renseigne — `marquerTentative` —
+a été posée **deux jours plus tard**. Leur `matching_attempted_at` est donc `NULL` parce que
+**personne ne pouvait l'écrire**, pas parce qu'un run a échoué.
+
+> **La vue lisait une absence d'INSTRUMENTATION comme une absence de TRAVAIL.** Les deux ont la même
+> forme en base — une colonne vide — et appellent des actions opposées. C'est la famille de §E.22,
+> appliquée au passé : *toute colonne ajoutée après coup a un avant, et cet avant n'est pas une
+> panne.*
+
+**Et les six sont expirées depuis des mois.** Le moteur ne note que les annonces `published` **et
+non expirées** : le signal réclamait donc **une action qui n'existe pas**. Un administrateur ne
+pouvait ni les relancer, ni les faire disparaître — seulement apprendre à ne plus les voir.
+
+**Ce que ça a coûté, concrètement.** Le jour de la mesure, la vraie panne — **le moteur était
+éteint** — n'avait aucune place où s'afficher : six lignes rouges permanentes depuis juin occupaient
+déjà la tête de l'écran. `lib/supervision/problemes.ts` portait pourtant la règle en toutes lettres
+depuis sa création : *« un écran qui signale le fonctionnement normal enseigne à ignorer ses
+signaux »*. Elle était écrite ; elle n'était pas **gardée**.
+
+**La parade.** `matching_runs_inacheves` filtre désormais sur l'activité de l'annonce
+(`…_inacheves_hors_annonces_expirees`), avec **l'expression exacte** de la lecture —
+`coalesce(expires_at, published_at + vie_annonce_jours)` — et la durée **lue dans `duree_reglages`**,
+jamais écrite en dur (§D.7). Une troisième expression aurait annoncé un compte que ni
+`annonces_expirees_par_duree` ni [lib/publications/expiry.ts](../lib/publications/expiry.ts) ne
+retrouveraient (§E.24).
+
+**Aucune ligne de `publications` n'a été touchée.** Les six annonces existent, leur
+`matching_attempted_at` reste `NULL`, leur histoire reste lisible. Ce qui change est ce que la
+supervision **réclame** : une action possible, jamais une action impossible.
 
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.

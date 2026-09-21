@@ -15,7 +15,8 @@ import {
 import { useExpertApplications } from '@/lib/hooks/useExpertApplications'
 import CdiStatusToggle from '@/components/cdi/CdiStatusToggle'
 import CrossOpenToggle from '@/components/dashboard/CrossOpenToggle'
-import { useMatchingAnalyzing } from '@/hooks/useMatchingAnalyzing'
+import EtatDeRecherche from '@/components/dashboard/EtatDeRecherche'
+import { useRechercheDeMissions } from '@/hooks/useRechercheDeMissions'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import DndEmptyState from '@/components/dashboard/DndEmptyState'
 import VerificationStatusPill from '@/components/dashboard/VerificationStatusPill'
@@ -23,15 +24,6 @@ import ExpertOnboardingGuide from '@/components/dashboard/ExpertOnboardingGuide'
 import CollaborationDashboardBlock from '@/components/dashboard/CollaborationDashboardBlock'
 import { deriveVerificationUiState } from '@/lib/verification-state'
 import { emitAvailabilityChanged } from '@/lib/availability-actions'
-import { useSecureFetch } from '@/lib/secure-fetch'
-import {
-  MATCHING_TRIGGER_FAST_POLL_MS,
-  MATCHING_TRIGGER_NORMAL_POLL_MS,
-  clearMatchingTrigger,
-  isWithinMatchingWindow,
-  markMatchingTriggered,
-  readMatchingTrigger,
-} from '@/lib/matching-resync-hint'
 import MissionCastingCard from '@/components/dashboard/MissionCastingCard'
 import CandidatureCastingCard from '@/components/dashboard/CandidatureCastingCard'
 import CastingRow from '@/components/dashboard/CastingRow'
@@ -130,19 +122,26 @@ export default function DashboardCDI() {
     verificationStatus: (profile?.verification_status ?? null) as string | null,
   })
   const isApprovedState = verifState === 'approved'
-  // Lot UX refetch auto post-matching (parité freelance) : pendant la fenêtre
-  // d'analyse (verified_at récent OU trigger client récent), on poll vite (3s)
-  // et on affiche un état transitoire "Analyse en cours". Hors fenêtre = 30s.
-  const [matchingTick, setMatchingTick] = useState<number>(() => Date.now())
-  const lastTriggerMs = readMatchingTrigger(user?.id ?? null)
-  const matchingInWindow = isWithinMatchingWindow({
-    now: matchingTick,
-    verifiedAt: (profile as { verified_at?: string | null } | null)?.verified_at ?? null,
-    lastTriggerMs,
-  })
-  const missionsPollMs = matchingInWindow
-    ? MATCHING_TRIGGER_FAST_POLL_MS
-    : MATCHING_TRIGGER_NORMAL_POLL_MS
+
+  // ── CE QUI A DISPARU D'ICI, ET POURQUOI ────────────────────────────────
+  //
+  //  Deux chronomètres décidaient de ce que l'expert voyait :
+  //    · une fenêtre de CENT VINGT SECONDES en `sessionStorage`
+  //      (`matching-resync-hint`), pendant laquelle l'écran affichait
+  //      « analyse en cours » et sondait toutes les trois secondes ;
+  //    · une roue de SOIXANTE-QUINZE SECONDES (`useMatchingAnalyzing`),
+  //      retirée « en silence » à l'expiration.
+  //
+  //  AUCUN DES DEUX NE MESURAIT UN TRAVAIL : ils mesuraient le temps. Et le
+  //  travail, lui, était programmé pour SOIXANTE MINUTES plus tard. Les deux
+  //  chronomètres expiraient donc systématiquement avant que rien ne se
+  //  produise, et l'écran concluait « aucune offre ne correspond à votre
+  //  profil » — un résultat affirmé sans recherche.
+  //
+  //  La recherche attend désormais la fin du moteur et rend une issue nommée.
+  //  Le sondage rapide n'a plus d'objet : quand la réponse arrive, le travail
+  //  est fini.
+  const missionsPollMs = 30_000
 
   // `expert_status.is_dnd` fait partie du CONTRAT de /api/me/missions et reste
   // déclaré ici pour que le type dise la vérité sur la réponse. Il n'est PLUS
@@ -171,32 +170,21 @@ export default function DashboardCDI() {
     () => missionsLive.data?.missions ?? null,
     [missionsLive.data],
   )
-  // État "analyse en cours" visible même quand la liste est déjà non vide.
-  const offresSignature = (recommendedOffres ?? []).map((m) => m.match_id).join('|')
-  const { analyzing, startAnalyzing, scheduleRetry } = useMatchingAnalyzing(offresSignature)
 
-  // Relance matching serveur AVEC lecture de la réponse (F2) — remplace le
-  // fire-and-forget aveugle. `analyzing` est déjà démarré par l'appelant.
-  //   - 2xx           → rien à faire, le poll révèlera la nouvelle liste.
-  //   - 429           → lit retry_after_seconds (fallback 60) et programme UN
-  //                     retry unique du POST après ce délai (allowRetry=false).
-  //   - autre / réseau → warn, on laisse le timeout du hook finir silencieusement.
-  // JAMAIS de boucle : le retry est appelé avec allowRetry=false.
-  const runSyncMatching = (allowRetry: boolean): void => {
-    void secureFetch('/api/me/sync-matching', { method: 'POST' })
-      .then(async (res) => {
-        if (res.ok) return
-        if (res.status === 429 && allowRetry) {
-          const body = (await res.json().catch(() => null)) as { retry_after_seconds?: number } | null
-          const delaySec = typeof body?.retry_after_seconds === 'number' ? body.retry_after_seconds : 60
-          scheduleRetry(() => runSyncMatching(false), delaySec * 1000)
-          return
-        }
-        console.warn('[dashboard:cdi] sync-matching non-ok', res.status)
-      })
-      .catch((err) => {
-        console.warn('[dashboard:cdi] sync-matching ping failed', err)
-      })
+  // LA RECHERCHE, LANCÉE PAR UN GESTE ET ATTENDUE JUSQU'AU BOUT.
+  //
+  //  Ce bloc lisait la réponse pour un seul motif : reprogrammer le POST après
+  //  un 429. Un refus de débit y était donc traité, et TOUTES les autres
+  //  réponses passaient en `warn` — y compris l'inéligibilité, qui était déjà
+  //  connue au clic. C'est le hook qui porte désormais le cycle complet, et il
+  //  ne reprogramme rien : un refus se DIT (« trop de recherches coup sur
+  //  coup »), il ne se contourne pas en silence une minute plus tard.
+  const lancerRecherche = (): void => {
+    void recherche.chercher().then(() => {
+      // Le moteur a fini d'écrire : on va chercher la liste qu'il vient de
+      // produire, tout de suite, au lieu d'attendre le prochain sondage.
+      void missionsLive.refresh()
+    })
   }
 
   const [status, setStatus] = useState<CdiStatus | null>(null)
@@ -204,7 +192,8 @@ export default function DashboardCDI() {
   // Ouverture croisée : voir aussi les missions freelance matchées (opt-in, défaut false).
   const [openToFreelance, setOpenToFreelance] = useState(false)
   const [crossOpenUpdating, setCrossOpenUpdating] = useState(false)
-  const secureFetch = useSecureFetch()
+  // LA RECHERCHE DE MISSIONS — elle attend la fin du moteur, pas un chronomètre.
+  const recherche = useRechercheDeMissions()
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
 
@@ -255,18 +244,6 @@ export default function DashboardCDI() {
     return () => window.clearTimeout(id)
   }, [toast])
 
-  // Lot UX refetch auto post-matching : tick 3s pendant la fenêtre d'analyse
-  // (re-évaluation de isWithinMatchingWindow), clear quand missions arrivent
-  // ou que la fenêtre est écoulée.
-  useEffect(() => {
-    if (!matchingInWindow) {
-      if (user?.id) clearMatchingTrigger(user.id)
-      return
-    }
-    const id = window.setInterval(() => setMatchingTick(Date.now()), MATCHING_TRIGGER_FAST_POLL_MS)
-    return () => window.clearInterval(id)
-  }, [matchingInWindow, user?.id])
-
 
   const handleStatusChange = async (next: CdiStatus) => {
     if (!user || !profile || statusUpdating || next === status) return
@@ -287,14 +264,13 @@ export default function DashboardCDI() {
         // /api/me/missions → home Suggestions + page Offres se mettent à
         // jour SANS reload. Toggle ↔ liste vidée/repeuplée, instantané).
         emitAvailabilityChanged()
-        // Lot matching réconcilié : sortie du DND → ping sync-matching
-        // côté serveur pour aligner les matches avec les offres publiées.
-        // Lecture de la réponse + retry unique sur 429 (F2).
+        // ── L'ÉTAT BASCULE ICI, LA RECHERCHE PART ICI ───────────────────
+        //  Les deux sont instantanés et indépendants : le bouton ne s'est
+        //  jamais fait attendre par le moteur, et n'attend pas davantage.
+        //  Ce qui change, c'est que la recherche part POUR DE VRAI, au lieu
+        //  d'une échéance posée à soixante minutes.
         if (next === 'open_to_work' && previous === 'employed') {
-          if (user?.id) markMatchingTriggered(user.id)
-          startAnalyzing()
-          setMatchingTick(Date.now())
-          runSyncMatching(true)
+          lancerRecherche()
         }
       }
     } catch {
@@ -322,14 +298,11 @@ export default function DashboardCDI() {
         setToast({ type: 'error', text: t('toast.status_error') })
       } else {
         setToast({ type: 'success', text: t('toast.status_updated') })
-        // Le pool matching change → on relance et on rafraîchit le feed.
-        // Lecture de la réponse + retry unique sur 429 (F2) : c'est LE cas du
-        // décochage rapide qui heurtait le cooldown M2 et restait sans élagage.
+        // Le périmètre change → on cherche. Si l'ouverture croisée se FERME,
+        // la route dérive le sens côté serveur et se contente d'un élagage
+        // SQL : elle ne rend alors aucune issue, et rien ne s'affiche ici.
         emitAvailabilityChanged()
-        markMatchingTriggered(user.id)
-        startAnalyzing()
-        setMatchingTick(Date.now())
-        runSyncMatching(true)
+        lancerRecherche()
       }
     } catch {
       setOpenToFreelance(previous)
@@ -577,14 +550,14 @@ export default function DashboardCDI() {
             <CdiStatusToggle
               value={currentStatus}
               onChange={handleStatusChange}
-              disabled={statusUpdating || analyzing || !profile || !isApprovedState}
+              disabled={statusUpdating || recherche.enCours || !profile || !isApprovedState}
             />
             <CrossOpenToggle
               checked={openToFreelance}
               onChange={handleCrossOpenChange}
               label={t('market_status_card.cross_open_label')}
               hint={t('market_status_card.cross_open_hint')}
-              disabled={crossOpenUpdating || analyzing || !profile || !isApprovedState}
+              disabled={crossOpenUpdating || recherche.enCours || !profile || !isApprovedState}
               accentColor={'var(--sk-accent)'}
             />
           </div>
@@ -747,66 +720,37 @@ export default function DashboardCDI() {
               //    tableaux de bord, c'est-à-dire pas aux deux pages qui
               //    portent le bouton (§E.20). Elle n'est plus nécessaire ici :
               //    la page ne lit plus cette métadonnée du tout.
+              // ⚠️ L'ORDRE DIT LA PRIORITÉ, ET LA RECHERCHE PASSE AVANT LE VIDE.
+              //    Le bloc « aucune offre ne correspond » ne s'affiche plus
+              //    QUE lorsque rien d'autre n'a quelque chose à dire : ni un
+              //    « en poste » actif, ni une recherche en cours, ni une issue
+              //    nommée. Il affirme un résultat — il ne doit donc jamais
+              //    boucher un trou.
               status === 'employed' && user?.id ? (
-                <DndEmptyState side="cdi" userId={user.id} />
-              ) : matchingInWindow ? (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  style={{
-                    background: 'var(--sk-surface-2)',
-                    border: '1px solid var(--sk-border)',
-                    borderRadius: 10,
-                    padding: 22,
-                    textAlign: 'center',
-                    fontSize: 14,
-                    color: 'var(--sk-muted)',
-                    lineHeight: 1.8,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 10,
-                  }}
-                >
-                  <span
-                    aria-hidden
-                    style={{
-                      width: 18,
-                      height: 18,
-                      border: `2px solid color-mix(in srgb, var(--sk-accent) 27%, transparent)`,
-                      borderTopColor: 'var(--sk-accent)',
-                      borderRadius: '50%',
-                      animation: 'sk-spin 0.8s linear infinite',
-                    }}
-                  />
-                  <span>{t('suggestions_section.analyzing', { ecosystem: domain.ecosystemName })}</span>
-                  <style>{`@keyframes sk-spin { to { transform: rotate(360deg) } }`}</style>
-                </div>
+                <DndEmptyState side="cdi" userId={user.id} onReprise={lancerRecherche} />
+              ) : recherche.etat.phase !== 'repos' ? (
+                <EtatDeRecherche
+                  etat={recherche.etat}
+                  side="cdi"
+                  ecosystem={domain.ecosystemName}
+                  onReessayer={lancerRecherche}
+                />
               ) : (
                 <div style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.8 }}>
                   {t('suggestions_section.empty_verified')}
                 </div>
               )
             ) : (
-              // Liste non vide : bandeau "Analyse en cours…" en tête de section
-              // pendant le matching (toggle croisé/dispo), cartes atténuées à
-              // 0.35, jamais vidées. L'empty-state, lui, reste inchangé.
+              // Liste non vide : la recherche s'annonce en tête de section,
+              // cartes atténuées à 0.35, jamais vidées.
               <>
-                {analyzing && (
-                  <div
-                    role="status"
-                    aria-live="polite"
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, color: 'var(--sk-muted)' }}
-                  >
-                    <span
-                      aria-hidden
-                      style={{ width: 15, height: 15, border: `2px solid color-mix(in srgb, var(--sk-accent) 27%, transparent)`, borderTopColor: 'var(--sk-accent)', borderRadius: '50%', animation: 'sk-spin 0.8s linear infinite' }}
-                    />
-                    <span>{t('suggestions_section.analyzing_update')}</span>
-                    <style>{`@keyframes sk-spin { to { transform: rotate(360deg) } }`}</style>
-                  </div>
-                )}
-                <div style={{ opacity: analyzing ? 0.35 : 1, transition: 'opacity .2s ease' }}>
+                <EtatDeRecherche
+                  etat={recherche.etat}
+                  side="cdi"
+                  ecosystem={domain.ecosystemName}
+                  onReessayer={lancerRecherche}
+                />
+                <div style={{ opacity: recherche.enCours ? 0.35 : 1, transition: 'opacity .2s ease' }}>
                   <CastingRow<MissionCardData>
                     items={recommendedOffres}
                     getKey={(m) => m.match_id}

@@ -834,16 +834,47 @@ export async function PATCH(request: NextRequest): Promise<Response> {
         postUpd.cv_parsing_status === 'done'
       if (!ready) return
 
-      // ── ON REPORTE, ON N'EXÉCUTE PAS ───────────────────────────────────
+      // ══════════════════════════════════════════════════════════════════
+      //  DEUX CAS, ET UN SEUL EST UNE RAFALE.
       //
-      //  Le moteur tournait ici, à chaque enregistrement. Un expert qui reprend
-      //  son profil en dix fois déclenchait dix runs — ou, pire, un seul suivi
-      //  de neuf refus de débit, et ses neuf dernières modifications n'étaient
-      //  JAMAIS notées.
+      //  ① LE PROFIL VIENT D'ÊTRE APPROUVÉ → ON EXÉCUTE, TOUT DE SUITE.
+      //     `lib/matching/relance.ts` énonce cette règle en toutes lettres
+      //     depuis le lot 6 — « IMMÉDIAT À L'APPROBATION. C'est le moment qui
+      //     compte pour l'expert : son profil vient d'être validé, il doit
+      //     voir des annonces tout de suite. » — et le code ne l'appliquait
+      //     PAS : tout partait en relance à soixante minutes.
       //
-      //  On pose donc une échéance, repoussée à chaque nouvel enregistrement.
-      //  On attend qu'il ait fini, puis on note UNE fois, sur son état final.
-      //  Rien n'est perdu, et rien n'est payé dix fois.
+      //     La conséquence se lisait à l'écran, mesurée le 21/09/2026 : la
+      //     page de validation posait un jalon « analyse en cours », le
+      //     tableau de bord l'affichait deux minutes, puis annonçait « aucune
+      //     mission ne correspond à votre profil ». Un expert fraîchement
+      //     approuvé lisait donc un REFUS là où rien n'avait encore tourné.
+      //
+      //     Ce n'est pas une rafale : on ne se fait approuver qu'une fois. Le
+      //     report n'y absorbait rien et ne protégeait aucun coût.
+      //
+      //  ② TOUT AUTRE ENREGISTREMENT → ON REPORTE.
+      //     Le moteur tournait ici à CHAQUE enregistrement. Un expert qui
+      //     reprend son profil en dix fois déclenchait dix runs — ou, pire, un
+      //     seul suivi de neuf refus de débit, et ses neuf dernières
+      //     modifications n'étaient JAMAIS notées. L'échéance est repoussée à
+      //     chaque nouvel enregistrement : on attend qu'il ait fini, puis on
+      //     note UNE fois, sur son état final. Rien n'est perdu, et rien n'est
+      //     payé dix fois. C'est ici, et seulement ici, que la rafale existe.
+      // ══════════════════════════════════════════════════════════════════
+      const etaitApprouve = (cp.verification_status ?? null) === 'approved'
+      if (!etaitApprouve) {
+        const { runMatchingForExpert } = await import('@/lib/matching')
+        const v = await runMatchingForExpert({ supabaseAdmin, profileId: cp.id })
+        console.log('[profile:PATCH] approbation — mise en relation IMMÉDIATE', {
+          profileId: cp.id,
+          status: v.status,
+          retenues: v.proposals.length,
+          notes: v.notes,
+        })
+        return
+      }
+
       const { programmerRelance } = await import('@/lib/matching/relance')
       const prog = await programmerRelance(supabaseAdmin, cp.id, 'profil_modifie')
       if (!prog.ok) {

@@ -310,6 +310,101 @@ if (tousLesSecrets.has('cron_secret')) {
   }
 }
 
+// ─── (3 bis) LE MOTEUR DE MISE EN RELATION SE POSE A LA MAIN, LUI AUSSI ─────
+//
+//  ET SON ABSENCE EST LA PLUS COUTEUSE DU DEPOT. Sans `ENABLE_RERANKING` a
+//  `true` et sans `COHERE_API_KEY`, plus AUCUN expert et plus AUCUNE
+//  organisation ne recoit de proposition, dans AUCUN ecosysteme.
+//
+//  MESURE LE 21/09/2026 : les deux etaient absentes. Le moteur s'arretait
+//  proprement, en quelques millisecondes, et ecrivait sa raison dans une note
+//  de journal que personne ne lit. Tous les compteurs de supervision restaient
+//  VERTS — zero panne, zero lot en echec, zero depassement — parce que rien
+//  n'etait tente. Un moteur eteint ne produit aucune erreur : c'est ce qui le
+//  rend invisible.
+//
+//  MEME CLASSE QUE §E.10, ET MEME PARADE : ces deux valeurs ne sont pas
+//  versionnables, donc le seul substitut honnete est qu'elles soient NOMMEES
+//  dans la procedure — et que ce lien soit garde. Ici on exige plus qu'une
+//  mention : la procedure doit dire que c'est BLOQUANT, parce qu'une ligne de
+//  tableau au milieu de douze autres ne se lit pas comme un arret du produit.
+
+section('C bis. Le moteur de mise en relation')
+
+const MOTEUR_ATTENDU = ['ENABLE_RERANKING', 'COHERE_API_KEY']
+for (const v of MOTEUR_ATTENDU) {
+  ok(
+    procedure.includes(v),
+    `« ${v} » est nommee dans ${PROCEDURE}`,
+    'sans elle, plus personne ne recoit rien, et aucun ecran ne le dit',
+  )
+}
+
+// L'ENCADRE, PAS SEULEMENT LA MENTION. Le mot BLOQUANT doit figurer dans le
+// voisinage immediat des deux noms — c'est ce qui distingue « cette variable
+// existe » de « sans elle le produit est arrete ».
+{
+  const i = procedure.indexOf('ENABLE_RERANKING')
+  const j = procedure.indexOf('COHERE_API_KEY')
+  const debut = Math.max(0, Math.min(i, j) - 200)
+  const fin = Math.max(i, j) + 2400
+  const voisinage = procedure.slice(debut, fin)
+  // ⚠️ ANCRE SUR L'ENCADRE, PAS SUR LE MOT (§E.8, §E.34).
+  //
+  //    La premiere version cherchait « BLOQUANT » n'importe ou dans le
+  //    voisinage — et la CELLULE DE TABLEAU de la meme variable porte deja ce
+  //    mot. La mutation qui affadissait le titre de l'encadre en « a poser »
+  //    laissait donc le controle VERT : il attrapait le voisin, pas la regle
+  //    qu'il defend. Trouve par mutation, pas a la lecture.
+  //
+  //    On exige donc le mot dans une ligne de CITATION (`>`), c'est-a-dire
+  //    dans l'encadre lui-meme : une ligne de tableau ne commence jamais par
+  //    `>`, et c'est precisement ce qui distingue « cette variable existe »
+  //    de « sans elle le produit est arrete ».
+  ok(
+    /^>.*BLOQUANT/m.test(voisinage) || /^>.*NE FAIT PLUS RIEN/m.test(voisinage),
+    'et la procedure dit que leur absence est BLOQUANTE, DANS UN ENCADRE',
+    "une ligne de tableau parmi douze ne se lit pas comme un arret du produit",
+  )
+  ok(
+    /aucun expert et aucune organisation/i.test(voisinage),
+    'elle enonce la CONSEQUENCE, pas seulement le nom de la variable',
+    "« la mise en relation » ne dit pas qu'il ne se passe plus rien pour personne",
+  )
+}
+
+// LE CODE ET LA PROCEDURE PARLENT-ILS DES MEMES VARIABLES ? §E.34 : on ancre
+// sur le comportement, pas sur un nom qu'on aurait recopie des deux cotes.
+{
+  const RERANK = sansCommentaires(lire('lib/matching/rerank.ts'))
+  ok(
+    /capaciteActive\('ENABLE_RERANKING'\)/.test(RERANK),
+    "le moteur lit bien ENABLE_RERANKING par la convention unique",
+    'une lecture directe de process.env reintroduirait la convention laxiste que §E.9 a fermee',
+  )
+  ok(
+    /process\.env\.COHERE_API_KEY/.test(RERANK),
+    'et il lit bien COHERE_API_KEY',
+    'si le code changeait de variable, la procedure ferait poser une valeur morte',
+  )
+}
+
+// LA SUPERVISION LE DIT-ELLE ? Une procedure qu'on lit une fois ne rattrape
+// pas une variable retiree six mois plus tard. L'ecran, si.
+{
+  const PROBLEMES = sansCommentaires(lire('lib/supervision/problemes.ts'))
+  ok(
+    /cle: 'moteur_interrupteur_ferme', gravite: 'bloquant'/.test(PROBLEMES),
+    "l'ecran de supervision signale l'interrupteur ferme, en BLOQUANT",
+    'sans ce signal, la panne ne se voit qu en relisant la procedure de mise en production',
+  )
+  ok(
+    /cle: 'moteur_cle_absente', gravite: 'bloquant'/.test(PROBLEMES),
+    "et la cle absente, separement",
+    'les confondre enverrait chercher une cle alors que c est l interrupteur qui est ferme',
+  )
+}
+
 // ─── (4) LE CHIFFRE DE LA PROCEDURE EST LE CHIFFRE REEL ─────────────────────
 
 section('D. Le chiffre annonce par la procedure')

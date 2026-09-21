@@ -836,6 +836,54 @@ libellé d'un bouton sur son bouton. **Les bordures n'y sont pas, et c'est déli
 référence vaut **1,25** contre le fond de page, et exiger 3 pour 1 ferait rougir la palette de
 l'accueil elle-même dès le premier jour (§E.14). On ne garde que ce qui a été nommé.
 
+### C.14 — QUI DÉCLENCHE LE MOTEUR EXPERT, ET QUI ATTEND SA FIN
+
+Mesuré le 21/09/2026, puis corrigé le même jour. Le tableau ci-dessous est **l'inventaire complet**
+des chemins qui mettent un expert en relation avec des annonces — il n'y en a pas d'autre.
+
+| Déclencheur | Ce qui part | Qui attend | Pourquoi |
+|---|---|---|---|
+| **Bascule de disponibilité** (`/api/me/sync-matching`) | le moteur, **dans la requête** | **l'écran**, jusqu'à l'issue | un interrupteur à deux positions ne produit **aucune rafale** : l'heure d'attente n'y absorbait rien |
+| **Ouverture croisée qui S'ÉLARGIT** (même route) | le moteur, dans la requête | l'écran | le périmètre grandit : il faut renoter |
+| **Ouverture croisée qui SE FERME** (même route) | un **élagage SQL** dans `after()` | personne | rien n'est noté, rien n'est dépensé, **aucune issue n'est rendue** — la liste se raccourcit, c'est tout |
+| **Approbation d'un profil** (`/api/profile`, transition vers `approved`) | le moteur, dans `after()` | personne | on ne se fait approuver qu'une fois : ce n'est pas une rafale, et c'est **le moment qui compte** pour l'expert |
+| **Approbation par un admin** (`/api/admin/approve-expert`) | le moteur, dans `after()` | personne | idem |
+| **Ré-analyse d'un CV** (`/api/profile/upload-cv`, `…/cdi-upload-cv`) | le moteur, dans `after()` | personne | le document qui décrit l'expert a changé |
+| **Enregistrement ORDINAIRE du profil** (`/api/profile`, déjà approuvé) | une **relance à 60 min**, repoussée à chaque enregistrement | personne | **c'est ici, et seulement ici, que la rafale existe** : dix passes sur un profil produisaient dix runs |
+| **Pilote `expert_relance_trigger`** (pg_cron, 5 min) | la relance la plus ancienne **due** | personne | il ne prend que les échéances échues : une relance posée à T+60 ne part pas avant T+60 |
+
+**LE PLAFOND HORAIRE S'APPLIQUE AUX DEUX PREMIERS COMME AUX RELANCES**, et c'est **le même** —
+`consommerPlafondHoraire()` ([lib/matching/relance.ts](../lib/matching/relance.ts)), une seule
+implémentation, extraite de `programmerRelance` le jour où un second appelant est apparu. Le
+recopier aurait produit deux plafonds portant le même nom et vieillissant séparément (§E.20).
+
+**L'ORIGINE EST DÉRIVÉE DU SERVEUR, JAMAIS DU CLIENT.** La route compare le périmètre courant à la
+trace du dernier run (`profiles.last_matching_scope`) : différents ⇒ `ouverture_croisee`, identiques
+⇒ `disponibilite`. Cette seconde origine **existait dans le type et n'était appelée nulle part** :
+tout partait sous `ouverture_croisee`, y compris les bascules de disponibilité — les dépassements de
+plafond étaient donc comptés sous une étiquette fausse, dans le seul compteur qui dise qui heurte le
+plafond (§E.24).
+
+**CE QUE LA ROUTE REND, ET CE QU'ELLE NE REND PAS.** La réponse porte une `IssueDeRecherche`
+([lib/matching/issue-de-recherche.ts](../lib/matching/issue-de-recherche.ts)) — quatre états fermés,
+douze raisons nommées, traduites dans les quatre langues. **L'élagage n'en rend aucune** : il n'a
+rien cherché, et prétendre le contraire serait la faute symétrique de celle que §E.51 décrit.
+
+**L'ATTENTE EST BORNÉE À 45 SECONDES, LE TRAVAIL NE L'EST PAS.** `maxDuration = 60` est le plafond de
+l'hébergement (§E.5) ; au-delà la requête est tuée et l'écran ne peut plus rien dire de vrai. On
+s'arrête donc avant, en rendant `trop_long` — une issue **nommée**. Le run, lui, est confié à
+`after()` : il va jusqu'au bout, note, écrit ses recommandations, et l'expert les voit au
+rafraîchissement suivant. *Ce qui expire est l'attente, pas le travail.*
+
+> **CE QUE LE MOTEUR NE PEUT PAS FAIRE SANS CONFIGURATION, ET COMMENT ON LE SAIT MAINTENANT.**
+> `ENABLE_RERANKING` doit valoir exactement `'true'` et `COHERE_API_KEY` doit être posée. Sans
+> elles, `rerankerTout` s'arrête en quelques millisecondes, **sans erreur** — et le 21/09/2026 c'est
+> exactement ce qui se passait, en silence, tous les compteurs de supervision au vert.
+> Depuis : le reranker rend un `arret_code` **typé** (`interrupteur_ferme`, `cle_absente`,
+> `aucun_document`, `plafond_atteint`), le verdict le porte dans `empechement`, l'écran le traduit
+> en `moteur_indisponible` ou `plafond_atteint`, et `/admin/supervision` affiche les deux causes
+> **en bloquant, séparément**. Détail et raisons : **§E.51** et **§E.52**.
+
 ## F. La classe de défaut « lire puis écrire »
 
 > **DETTE NOMMÉE, NON OUVERTE — `extendValidity` (20/09/2026).**

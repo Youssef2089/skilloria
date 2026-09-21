@@ -101,8 +101,34 @@ export type ResultatRerank = {
   lots_en_echec: number
   /** Renseigné quand le moteur s'est arrêté : toujours une raison NOMMABLE. */
   arret?: string
+  /**
+   * LA MÊME RAISON, EN VALEUR — parce qu'`arret` est une phrase de JOURNAL.
+   *
+   * Depuis le 21/09/2026 un écran dépend de cet arrêt : quand le moteur ne
+   * tourne pas, l'expert doit lire « la recherche n'a pas pu aboutir », et non
+   * « aucune mission ne correspond à votre profil ». La première version lisait
+   * `arret` AU MOTIF — une expression régulière sur du français. Reformuler la
+   * phrase, corriger sa faute d'accent, la traduire : chacun de ces gestes
+   * aurait rendu l'écran menteur sans que rien ne rougisse (§E.24).
+   *
+   * La phrase reste, pour le journal. Le code est ce qu'on lit.
+   */
+  arret_code?: ArretDeNotation
   model: string
 }
+
+/**
+ * Les raisons pour lesquelles la notation ne produit AUCUN score.
+ *
+ * `aucun_document` n'est pas une panne : c'est un vivier vide, donc un
+ * résultat. Les trois autres sont des empêchements, et ne doivent jamais être
+ * présentées comme un résultat.
+ */
+export type ArretDeNotation =
+  | 'interrupteur_ferme'
+  | 'cle_absente'
+  | 'aucun_document'
+  | 'plafond_atteint'
 
 type ReponseCohere = {
   results?: Array<{ index?: number; relevance_score?: number }>
@@ -278,21 +304,30 @@ export async function rerankerTout(args: {
   // ENABLE_RERANKING=0 / =off / =FALSE laissait le reranking actif — et
   // DÉPENSER. Une dépense ne part jamais sur une faute de frappe.
   if (!capaciteActive('ENABLE_RERANKING')) {
-    return { ...vide, arret: 'reranking désactivé par interrupteur (ENABLE_RERANKING=false)' }
+    return {
+      ...vide,
+      arret: 'reranking désactivé par interrupteur (ENABLE_RERANKING=false)',
+      arret_code: 'interrupteur_ferme',
+    }
   }
   const cle = process.env.COHERE_API_KEY
   if (!cle) {
     console.error('[rerank] COHERE_API_KEY absente — aucun profil ne sera noté')
-    return { ...vide, arret: 'clé du fournisseur de reranking absente de l environnement' }
+    return {
+      ...vide,
+      arret: 'clé du fournisseur de reranking absente de l environnement',
+      arret_code: 'cle_absente',
+    }
   }
   if (args.documents.length === 0) {
-    return { ...vide, arret: 'aucun document à noter' }
+    return { ...vide, arret: 'aucun document à noter', arret_code: 'aucun_document' }
   }
 
   const scores = new Map<string, number>()
   let notes = 0
   let lotsEnEchec = 0
   let arret: string | undefined
+  let arretCode: ArretDeNotation | undefined
 
   const lots = enLots(args.documents, args.tailleLot)
 
@@ -313,6 +348,7 @@ export async function rerankerTout(args: {
     const budget = await budgetDisponible(args.supabaseAdmin, 'rerank')
     if (!budget.ok) {
       arret = budget.raison
+      arretCode = 'plafond_atteint'
       break
     }
 
@@ -367,5 +403,5 @@ export async function rerankerTout(args: {
     }
   }
 
-  return { scores, notes, lots_en_echec: lotsEnEchec, arret, model: args.model }
+  return { scores, notes, lots_en_echec: lotsEnEchec, arret, arret_code: arretCode, model: args.model }
 }

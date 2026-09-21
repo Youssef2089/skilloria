@@ -200,8 +200,30 @@ Ces quatre variables **doivent valoir exactement le mot `true`**, en minuscules.
 |---|---|
 | `ENABLE_AI_CV_PARSING` | l'analyse des CV |
 | `ENABLE_AI_CANDIDATURE_ASSESSMENT` | le résumé d'une candidature |
-| `ENABLE_RERANKING` | la mise en relation |
+| `ENABLE_RERANKING` | **la mise en relation — voir l'encadré ci-dessous, c'est BLOQUANT** |
 | `ENABLE_BILLING` | **le paiement — à laisser absente tant que le lancement est gratuit** |
+
+> ### ⛔ `ENABLE_RERANKING` et `COHERE_API_KEY` — SANS ELLES, LE PRODUIT NE FAIT PLUS RIEN
+>
+> Ce n'est pas une fonction parmi d'autres : c'est **la** fonction. Sans ces deux variables,
+> **aucun expert et aucune organisation ne reçoit la moindre proposition, dans aucun écosystème**.
+>
+> **Et rien ne le dit.** C'est ce qui rend cette panne différente des autres, et c'est mesuré :
+> le 21/09/2026, les deux étaient absentes sur l'environnement de test. Le moteur s'arrêtait
+> proprement, en quelques millisecondes, en écrivant sa raison dans une note de journal que
+> personne ne lit. Tous les compteurs de supervision restaient **verts** — zéro panne, zéro lot en
+> échec, zéro dépassement — parce que **rien n'était tenté**. Et chaque écran présentait ce silence
+> comme un verdict : « aucune mission ne correspond à votre profil ».
+>
+> **Un moteur éteint ne produit aucune erreur. C'est exactement ce qui le rend invisible.**
+>
+> Depuis, `/admin/supervision` affiche les deux cas **en BLOQUANT, en tête de liste**, séparément —
+> l'interrupteur fermé et la clé absente appellent deux gestes différents.
+>
+> **À vérifier le jour de la mise en production, avant tout le reste :**
+> 1. `ENABLE_RERANKING` vaut **exactement `true`**, sur Production **et** sur Preview.
+> 2. `COHERE_API_KEY` est posée, sur les deux environnements.
+> 3. Ouvrez `/admin/supervision` : **aucune ligne rouge ne doit mentionner le moteur.**
 
 > **Une variable absente éteint la fonction.** C'est délibéré : laisser une intelligence artificielle tourner par accident coûte de l'argent et envoie des données à un tiers ; la laisser éteinte par accident ne fait que priver d'une fonction, visiblement, et se corrige en une variable.
 > Conséquence : il faut les poser **sur Production ET sur Preview** pour qu'elles fonctionnent des deux côtés.

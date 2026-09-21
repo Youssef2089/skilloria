@@ -8,6 +8,7 @@ import { rerankerTout, type DocumentANoter } from './rerank'
 import { reconcileMatches, type ReconcileDesired } from './reconcile'
 import { notifyAndFlip, pickRel, type NotifySpec } from './shared'
 import type { MatchingVerdict } from './types'
+import type { RaisonIneligible } from './issue-de-recherche'
 
 /**
  * MISE EN RELATION — sens EXPERT → ANNONCES.
@@ -71,22 +72,49 @@ const SELECT_PROFIL =
   'users!profiles_user_id_fkey!inner(user_type, locale)'
 
 /**
+ * LE JOURNAL DE CHAQUE RAISON — dérivé du CODE, jamais écrit à côté.
+ *
+ * Le moteur a besoin d'une phrase française pour sa note ; l'écran a besoin
+ * d'un code qu'il traduit dans les quatre langues. Les deux existaient, et la
+ * traduction de l'un vers l'autre se faisait par une chaîne de comparaisons
+ * dont la dernière branche était un REPLI : une garde ajoutée plus tard serait
+ * sortie sous l'étiquette de sa voisine, sans que rien ne le dise (§E.22).
+ *
+ * Ici il n'y a plus de repli : le code est la valeur produite, la phrase s'en
+ * déduit par cette table, et TypeScript refuse un code absent de la table.
+ */
+const JOURNAL_PAR_RAISON: Record<RaisonIneligible, string> = {
+  profil_non_visible: 'profil non visible',
+  cv_non_analyse: 'CV non analysé',
+  consentement_absent: 'consentement IA absent',
+  profil_non_approuve: 'profil non approuvé',
+  ne_pas_deranger: 'expert en « ne pas déranger »',
+  non_en_recherche: 'expert non en recherche',
+}
+
+/**
  * L'expert est-il éligible à recevoir des recommandations ?
  *
  * Exactement les mêmes conditions que côté vivier — écrites une seule fois ici
  * pour ce sens, et vérifiées AVANT toute dépense. Un profil non éligible qu'on
  * noterait quand même serait de l'argent dépensé pour un résultat qu'on jette.
+ *
+ * ⚠️ C'EST AUSSI CE QUE L'ÉCRAN AFFICHE AU CLIC. `raisonIneligibilite()`
+ *    ci-dessous rend cette garde atteignable depuis une route SANS rien
+ *    lancer — la réponse existe en une lecture de ligne, et la faire attendre
+ *    soixante minutes était le défaut. Une seconde liste de conditions
+ *    divergerait (§E.20) : il n'y en a qu'une, et c'est celle-ci.
  */
-function expertEligible(p: LigneProfil, kind: ExpertKind): { ok: true } | { ok: false; raison: string } {
-  if (p.visible !== true) return { ok: false, raison: 'profil non visible' }
-  if (p.cv_parsing_status !== 'done') return { ok: false, raison: 'CV non analysé' }
-  if (!p.ai_consent_at) return { ok: false, raison: 'consentement IA absent' }
-  if (p.verification_status !== 'approved') return { ok: false, raison: 'profil non approuvé' }
+function expertEligible(p: LigneProfil, kind: ExpertKind): { ok: true } | { ok: false; raison: RaisonIneligible } {
+  if (p.visible !== true) return { ok: false, raison: 'profil_non_visible' }
+  if (p.cv_parsing_status !== 'done') return { ok: false, raison: 'cv_non_analyse' }
+  if (!p.ai_consent_at) return { ok: false, raison: 'consentement_absent' }
+  if (p.verification_status !== 'approved') return { ok: false, raison: 'profil_non_approuve' }
   if (kind === 'expert_freelance' && p.availability_status === 'do_not_disturb') {
-    return { ok: false, raison: 'expert en « ne pas déranger »' }
+    return { ok: false, raison: 'ne_pas_deranger' }
   }
   if (kind === 'expert_cdi' && p.cdi_status === 'employed') {
-    return { ok: false, raison: 'expert non en recherche' }
+    return { ok: false, raison: 'non_en_recherche' }
   }
   return { ok: true }
 }
@@ -106,6 +134,41 @@ async function ecrireTraceDePerimetre(
 
 function ouvertureCroiseeDe(p: LigneProfil, kind: ExpertKind): boolean {
   return kind === 'expert_freelance' ? p.open_to_cdi === true : p.open_to_freelance === true
+}
+
+/**
+ * LA RAISON POUR LAQUELLE CET EXPERT NE RECEVRA RIEN — connue en UNE LECTURE.
+ *
+ * Appelée AVANT de lancer quoi que ce soit, pour que l'écran dise au clic ce
+ * qu'il savait déjà au clic. Elle n'appelle aucun fournisseur, ne dépense rien,
+ * et ne touche à aucune ligne.
+ *
+ * ⚠️ UNE LECTURE EN PANNE N'EST PAS UNE INÉLIGIBILITÉ. Elle remonte en
+ *    `indisponible`, et l'appelant décide — confondre les deux ferait dire à
+ *    un expert parfaitement éligible que son profil ne l'est pas, sur une
+ *    panne de base (§E.22, §E.42).
+ */
+export async function raisonIneligibilite(
+  supabaseAdmin: SupabaseClient,
+  profileId: string,
+): Promise<
+  | { etat: 'eligible' }
+  | { etat: 'ineligible'; raison: RaisonIneligible }
+  | { etat: 'indisponible'; detail: string }
+> {
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .select(SELECT_PROFIL)
+    .eq('id', profileId)
+    .maybeSingle()
+  if (error) return { etat: 'indisponible', detail: error.message }
+  if (!data) return { etat: 'indisponible', detail: 'profil introuvable' }
+
+  const p = data as unknown as LigneProfil
+  const kind: ExpertKind = pickRel(p.users)?.user_type === 'expert_cdi' ? 'expert_cdi' : 'expert_freelance'
+
+  const verdict = expertEligible(p, kind)
+  return verdict.ok ? { etat: 'eligible' } : { etat: 'ineligible', raison: verdict.raison }
 }
 
 export async function runMatchingForExpert(args: {
@@ -135,7 +198,13 @@ export async function runMatchingForExpert(args: {
 
   const eligibilite = expertEligible(p, kind)
   if (!eligibilite.ok) {
-    return { status: 'empty_pool', proposals: [], notes: `Expert non éligible : ${eligibilite.raison}.`, model: null }
+    return {
+      status: 'empty_pool',
+      proposals: [],
+      notes: `Expert non éligible : ${JOURNAL_PAR_RAISON[eligibilite.raison]}.`,
+      model: null,
+      empechement: { quoi: 'ineligible', raison: eligibilite.raison },
+    }
   }
 
   // ── 2. Les réglages ──────────────────────────────────────────────────────
@@ -344,6 +413,12 @@ export async function runMatchingForExpert(args: {
     proposals: desired.map((d) => ({ profile_id: d.profile_id, relevance_score: d.relevance_score })),
     notes: resume,
     model: notation.model,
+    // `aucun_document` n'est PAS un empêchement : c'est un vivier vide, donc un
+    // résultat que l'écran a le droit d'annoncer comme tel.
+    empechement:
+      notation.arret_code && notation.arret_code !== 'aucun_document'
+        ? { quoi: 'arret_de_notation', code: notation.arret_code }
+        : undefined,
   }
 }
 

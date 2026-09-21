@@ -404,43 +404,69 @@ ok(
   /RELANCE_MAX_PAR_HEURE = 20\b/.test(relance) && /RELANCE_FENETRE_S = 3600\b/.test(relance),
 )
 
-// (ii) La garde est posée dans programmerRelance — donc sur TOUS les appelants,
+// (ii) LA GARDE EST DANS UNE FONCTION PARTAGÉE — donc sur TOUS les appelants,
 //   pas seulement sur la route qu'on avait en tête le jour du correctif.
+//
+//   ⚠️ CE BLOC LISAIT LE CORPS DE `programmerRelance`, ET IL A ROUGI LE
+//      21/09/2026. À raison : la garde a été EXTRAITE dans
+//      `consommerPlafondHoraire`, parce qu'un second appelant est apparu — la
+//      bascule de disponibilité, qui exécute désormais le moteur au lieu de
+//      programmer une relance (§D.13). La propriété défendue n'a pas changé
+//      d'un mot ; elle a changé d'ENDROIT.
+//
+//      On lit donc le corps de la garde, ET on vérifie que `programmerRelance`
+//      passe par elle. C'est STRICTEMENT PLUS FORT qu'avant : avant, un second
+//      appelant pouvait recopier la règle sans que rien ne le voie.
+const debutGarde = relance.indexOf('export async function consommerPlafondHoraire')
+const finGarde = relance.indexOf('export async function programmerRelance')
+const corpsGarde = debutGarde >= 0 && finGarde > debutGarde ? relance.slice(debutGarde, finGarde) : ''
 const debutProg = relance.indexOf('export async function programmerRelance')
 const finProg = relance.indexOf('export async function solderRelance')
 const corpsProg = debutProg >= 0 && finProg > debutProg ? relance.slice(debutProg, finProg) : ''
 ok('programmerRelance existe', corpsProg.length > 0)
+ok('la garde de plafond est une fonction PARTAGÉE', corpsGarde.length > 0)
 
 // On lit L'APPEL, pas le fichier. Chercher un nom de constante n'importe où
 // dans la fonction ne prouve rien : il survit dans le message de journal juste
 // en dessous, et remplacer les constantes par des nombres au point d'appel
 // laissait le contrôle vert. C'est l'invocation qui décide, pas la prose.
-const appelGarde = corpsProg.match(/checkRateLimit\(([^)]*)\)/)
+const appelGarde = corpsGarde.match(/checkRateLimit\(([\s\S]*?)\)\n/)
 ok(
-  'la garde est DANS programmerRelance (tous les appelants sont bornés)',
+  'la garde est DANS la fonction partagée (tous les appelants sont bornés)',
   !!appelGarde && appelGarde[1].includes("'relance_programmation'"),
 )
 if (appelGarde) {
   ok(
     "l'appel utilise les constantes nommées, pas des nombres posés là",
     appelGarde[1].includes('RELANCE_FENETRE_S') && appelGarde[1].includes('RELANCE_MAX_PAR_HEURE'),
-    `arguments trouvés : ${appelGarde[1].trim()}`,
-  )
-  // Elle passe AVANT l'écriture : garder après ne garderait rien.
-  ok(
-    "la garde précède l'écriture",
-    corpsProg.indexOf(appelGarde[0]) < corpsProg.indexOf("rpc('programmer_relance_expert'"),
+    `arguments trouvés : ${appelGarde[1].trim().replace(/\s+/g, ' ')}`,
   )
 }
-// Et elle s'appuie sur la même fonction SQL — aucun limiteur parallèle.
-ok('elle utilise le limiteur partagé', corpsProg.includes('checkRateLimit('))
+// `programmerRelance` la CONSOMME, et AVANT d'écrire : garder après ne
+// garderait rien. §E.8 — on ancre sur l'ordre, pas sur deux présences.
+ok(
+  "programmerRelance passe par la garde partagée, AVANT d'écrire",
+  corpsProg.includes('consommerPlafondHoraire(supabaseAdmin, profileId, origine)') &&
+    corpsProg.indexOf('consommerPlafondHoraire(') <
+      corpsProg.indexOf("rpc('programmer_relance_expert'"),
+)
+// ET ELLE NE RECOPIE PAS LA RÈGLE. Deux invocations du limiteur sous la même
+// clé seraient deux plafonds portant le même nom, vieillissant séparément.
+{
+  const n = (relance.match(/checkRateLimit\(/g) ?? []).length
+  ok(
+    `le limiteur n'est invoqué qu'UNE fois dans tout le module (vu ${n} fois)`,
+    n === 1,
+    'un second appel serait un second plafond, sous le meme nom (§E.20)',
+  )
+}
 
 // (iii) FAIL-OPEN ici, et c'est l'inverse de l'OTP — pour une bonne raison :
 //   refuser sur limiteur cassé ferait PERDRE un déclenchement, soit exactement
 //   le défaut corrigé au lot 6.
 ok(
   "le plafond de relance reste fail-open (checkRateLimit, pas evaluerLimite)",
-  corpsProg.includes('checkRateLimit(') && !corpsProg.includes('evaluerLimite('),
+  corpsGarde.includes('checkRateLimit(') && !corpsGarde.includes('evaluerLimite('),
   'un limiteur cassé perdrait des déclenchements — le défaut corrigé au lot 6',
 )
 
@@ -466,10 +492,15 @@ ok("le plafond n'a pas été ajouté aux réglages en base", !colonneReglage)
 // compteur à zéro pour toujours, et zéro se lit « tout va bien ».
 ok(
   'le dépassement est compté SUR LE CHEMIN DU REFUS',
-  /return \{ ok: false, raison: 'plafond_horaire' \}/.test(corpsProg) &&
-    corpsProg.indexOf('compterDepassement(') >= 0 &&
-    corpsProg.indexOf('compterDepassement(') < corpsProg.indexOf("raison: 'plafond_horaire'"),
+  corpsGarde.indexOf('compterDepassement(') >= 0 &&
+    corpsGarde.indexOf('compterDepassement(') < corpsGarde.indexOf('return false'),
   'la fonction de comptage existe peut-être encore, mais plus personne ne l’appelle',
+)
+// Et le refus remonte bien jusqu'à l'appelant sous son nom métier : confondre
+// « plafond atteint » avec une panne ferait chercher un défaut inexistant.
+ok(
+  "le refus garde son nom métier jusqu'à l'appelant",
+  /return \{ ok: false, raison: 'plafond_horaire' \}/.test(corpsProg),
 )
 ok(
   'le comptage écrit bien dans relance_overruns',
@@ -542,9 +573,22 @@ for (const langue of ['fr', 'en', 'es', 'de']) {
 
 // (vi) Le refus est un refus DÉLIBÉRÉ, pas une panne : il ne doit pas se
 //   confondre avec une erreur serveur, sinon on cherche une panne inexistante.
+//
+//   ⚠️ CE CONTRÔLE A ROUGI LE 21/09/2026, ET IL AVAIT RAISON. `sync-matching`
+//      ne PROGRAMME plus rien : il exécute le moteur (§D.13). Il n'y a donc
+//      plus de `prog.raison` à lire. La propriété défendue, elle, est
+//      identique — et même renforcée : le refus ne se distingue plus seulement
+//      par un code HTTP, il porte une ISSUE NOMMÉE que l'écran affiche.
 ok(
   'sync-matching distingue le plafond (429) de la panne (500)',
-  sync.includes("prog.raison === 'plafond_horaire'") && sync.includes("code: 'relance_plafond'"),
+  sync.includes('consommerPlafondHoraire(supabaseAdmin, prof.id, origine)') &&
+    sync.includes("code: 'relance_plafond'") &&
+    /429\)/.test(sync),
+)
+ok(
+  "et le refus porte une issue NOMMÉE, pas seulement un code HTTP",
+  sync.includes("etat: 'echec', raison: 'trop_de_demandes'"),
+  "un 429 sans phrase laisse l'ecran inventer la sienne",
 )
 
 // ═══════════════════════════════════════════════════════════════════════════

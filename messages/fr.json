@@ -3085,7 +3085,9 @@
         "evenements_stripe_manques": "{count} événement(s) de paiement produits par Stripe n’ont jamais été reçus ici. Soit la livraison s’est perdue, soit le traitement a échoué : dans les deux cas, ce qu’ils portaient n’a pas été appliqué.",
         "evenements_stripe_coinces": "{count} événement(s) de paiement réclamés et jamais clôturés. Ils ne se rejoueront pas d’eux-mêmes : la garantie qui empêche un double encaissement refuse aussi les nouvelles tentatives de Stripe.",
         "verification_stripe_jamais": "La vérification nocturne du raccordement Stripe n’a jamais tourné. Tant qu’elle ne tourne pas, personne ne peut dire si un événement de paiement s’est perdu.",
-        "verification_stripe_indisponible": "L’historique de la vérification du raccordement Stripe n’a pas pu être lu. Ce n’est pas « tout va bien » : on ne sait pas."
+        "verification_stripe_indisponible": "L’historique de la vérification du raccordement Stripe n’a pas pu être lu. Ce n’est pas « tout va bien » : on ne sait pas.",
+        "moteur_interrupteur_ferme": "Le moteur de mise en relation est ÉTEINT : plus aucun expert et plus aucune organisation ne reçoit de proposition, dans aucun écosystème. L’interrupteur ENABLE_RERANKING doit valoir exactement « true ».",
+        "moteur_cle_absente": "La clé du fournisseur de mise en relation est absente : plus aucun expert et plus aucune organisation ne reçoit de proposition, dans aucun écosystème. La variable COHERE_API_KEY doit être posée."
       },
       "spread_title": "Répartition des notes",
       "spread_empty": "Aucune exécution pour l’instant sur la nouvelle échelle. La répartition se remplira aux prochaines mises en relation.",
@@ -4412,6 +4414,30 @@
       "lecture_indisponible": "La configuration n'a pas pu être lue. Rien n'a été enregistré ; réessayez.",
       "db_error": "L'enregistrement a échoué.",
       "reseau": "La demande n'est pas partie. Réessayez."
+    }
+  },
+  "recherche_de_missions": {
+    "en_cours": "Recherche de missions {ecosystem} en cours…",
+    "aucune": "Aucune mission ne correspond à votre profil pour le moment. Dès qu'une mission {ecosystem} correspondra, elle apparaîtra ici.",
+    "ineligible": {
+      "profil_non_visible": "Votre profil n'est pas visible : aucune mission ne peut vous être proposée tant qu'il n'est pas complété.",
+      "cv_non_analyse": "Votre CV n'a pas encore été analysé : aucune mission ne peut vous être proposée tant qu'il ne l'est pas.",
+      "consentement_absent": "Vous n'avez pas autorisé l'analyse de votre profil : aucune mission ne peut vous être proposée sans cet accord.",
+      "profil_non_approuve": "Votre profil est en cours de validation. Vos missions {ecosystem} apparaîtront ici dès qu'il sera approuvé.",
+      "ne_pas_deranger": "Vous êtes en « ne pas déranger » : aucune mission ne vous est proposée tant que ce statut est actif.",
+      "non_en_recherche": "Vous n'êtes pas en recherche : aucune offre ne vous est proposée tant que ce statut est actif."
+    },
+    "echec": {
+      "moteur_indisponible": "La recherche n'a pas pu aboutir : le moteur de mise en relation est indisponible. Nos équipes en sont informées.",
+      "plafond_atteint": "La recherche n'a pas pu aboutir : la capacité d'analyse de cet écosystème est momentanément épuisée. Réessayez plus tard.",
+      "reglages_absents": "La recherche n'a pas pu aboutir : cet écosystème n'est pas encore configuré pour la mise en relation.",
+      "lecture_en_panne": "La recherche n'a pas pu aboutir. Vos missions ne sont pas perdues : réessayez dans un instant.",
+      "trop_de_demandes": "Trop de recherches lancées coup sur coup. Patientez une minute avant de réessayer.",
+      "trop_long": "La recherche prend plus de temps que prévu. Elle se poursuit : vos missions apparaîtront ici dès qu'elle aura abouti."
+    },
+    "action": {
+      "completer_profil": "Compléter mon profil",
+      "reessayer": "Réessayer"
     }
   }
 }
