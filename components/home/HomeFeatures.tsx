@@ -1,8 +1,6 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useDomain } from '@/context/DomainContext'
-import { theme } from './theme'
 import HomeIcon, { type HomeIconName } from './HomeIcon'
 import type { HomeAudience } from './audience'
 
@@ -25,11 +23,10 @@ const FEATURES: Record<HomeAudience, Array<{ key: string; icon: HomeIconName }>>
 }
 
 export default function HomeFeatures({ audience }: { audience: HomeAudience }) {
-  const domain = useDomain()
   const t = useTranslations('homepage.features')
 
   return (
-    <section id="fonctionnalites" style={{ background: theme.white, borderTop: `1px solid ${theme.border}` }}>
+    <section id="fonctionnalites" style={{ background: 'var(--sk-surface)', borderTop: `1px solid ${'var(--sk-border)'}` }}>
       <p className="skh-eyebrow">{t('eyebrow')}</p>
       <h2 className="skh-h2">{t(`${audience}.title`)}</h2>
       <p className="skh-sub">{t(`${audience}.subtitle`)}</p>
@@ -38,7 +35,7 @@ export default function HomeFeatures({ audience }: { audience: HomeAudience }) {
         {FEATURES[audience].map(feature => (
           <article key={feature.key} className="skh-cell">
             <span className="skh-cell-icon">
-              <HomeIcon name={feature.icon} color={domain.accentColor} />
+              <HomeIcon name={feature.icon} color="var(--sk-accent)" />
             </span>
             <h3 className="skh-cell-title">{t(`${audience}.items.${feature.key}.title`)}</h3>
             <p className="skh-cell-text">{t(`${audience}.items.${feature.key}.description`)}</p>

@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useDomain } from '@/context/DomainContext'
-import { accentTint } from '@/lib/domain-config'
 import { mountDemo } from './engine'
 import {
   companyScenario,
@@ -51,8 +50,12 @@ export default function DemoStage({ audience }: { audience: DemoAudience }) {
     const root = containerRef.current
     if (!root || reducedMotion === null) return
 
-    const accent = domain.accentColor
-    const accentSoft = accentTint(accent)
+
+    // La palette RÉSOLUE au serveur, telle que l'écosystème servi la définit.
+    // La démo la reçoit ENTIÈRE plutôt que deux couleurs choisies : elle dessine
+    // du SVG en chaînes, où une variable CSS ne résout pas, et elle a besoin de
+    // bien plus que l'accent — le vert de validation, l'ambre, les surfaces.
+    const palette = domain.palette
 
     // Produits affichés dans les données fictives : issus du domaine courant, avec
     // repli sur le nom de l'écosystème. Aucun nom de produit n'est écrit en dur.
@@ -116,10 +119,9 @@ export default function DemoStage({ audience }: { audience: DemoAudience }) {
       }
 
       return mountDemo(root, {
+        palette,
         steps: ['s1', 's2', 's3', 's4', 's5'].map(s => t(`company.steps.${s}`)),
         progressLabel: t('company.progress_label'),
-        accent,
-        accentSoft,
         reduced: reducedMotion,
         scenario: companyScenario(labels),
       })
@@ -167,10 +169,9 @@ export default function DemoStage({ audience }: { audience: DemoAudience }) {
     }
 
     return mountDemo(root, {
+      palette,
       steps: ['s1', 's2', 's3', 's4'].map(s => t(`expert.steps.${s}`)),
       progressLabel: t('expert.progress_label'),
-      accent,
-      accentSoft,
       reduced: reducedMotion,
       scenario: expertScenario(labels),
     })

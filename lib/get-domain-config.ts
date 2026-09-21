@@ -1,7 +1,8 @@
 // lib/get-domain-config.ts
 import { headers } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
-import { defaultDomainConfig, resolveAccentColor, type DomainConfig } from './domain-config'
+import { defaultDomainConfig, type DomainConfig } from './domain-config'
+import { resolvePalette } from './palette'
 import { loadTranslations, tBDD } from './translations'
 import {
   ecosystemeFaviconStoragePath,
@@ -45,18 +46,14 @@ type DomainRow = {
 }
 
 /**
- * Lit l'override d'accent sans jamais casser si la colonne n'existe pas encore.
- *
- * La migration 20260710000001 est additive et peut ne pas être appliquée dans un
- * environnement donné ; la sélection imbriquée `domain_configs (*)` renvoie alors
- * simplement une ligne sans `accent_color`, et l'accent est dérivé de la couleur
- * primaire. Aucune requête supplémentaire, aucune erreur PostgREST.
+ * ⚠️ `readAccentOverride` A DISPARU ICI, et ce n'est pas une perte : sa lecture
+ * tolérante — une colonne qui peut ne pas exister encore — vit désormais dans
+ * `resolvePalette`, qui traite les HUIT rôles de la même façon. La sélection
+ * imbriquée reste `domain_configs (*)` pour la même raison qu'avant : nommer
+ * les colonnes ferait échouer la requête ENTIÈRE sur un environnement où la
+ * migration n'est pas passée, et la page publique retomberait sur le domaine
+ * par défaut — une panne totale pour une colonne manquante.
  */
-function readAccentOverride(config: unknown): string | null {
-  const value = (config as { accent_color?: unknown } | null)?.accent_color
-  return typeof value === 'string' && value.trim() !== '' ? value : null
-}
-
 async function mapRowToDomainConfig(row: DomainRow, locale: Locale): Promise<DomainConfig> {
   const cfg = row.domain_configs
   const translations = await loadTranslations(locale)
@@ -75,15 +72,22 @@ async function mapRowToDomainConfig(row: DomainRow, locale: Locale): Promise<Dom
     }
   }
 
+  // LA PALETTE EST RÉSOLUE ICI, AU SERVEUR, ET UNE SEULE FOIS.
+  // `accentColor` n'est plus calculée à part : elle EST `palette.boutons`.
+  // Deux calculs auraient été deux jumeaux qui divergent (§E.20) — et celui-ci
+  // dépend du fond de page de l'écosystème, que seule la palette connaît.
+  const palette = resolvePalette(cfg)
+
   return {
     id: row.id,
     subdomain: row.slug,
     name: tBDD(translations, 'domains', row.id, 'name', row.name),
     ecosystemName: tBDD(translations, 'domains', row.id, 'ecosystem_name', row.name),
     tagline: tBDD(translations, 'domains', row.id, 'tagline', row.tagline ?? ''),
-    primaryColor: cfg.primary_color,
+    primaryColor: palette.marque,
     secondaryColor: cfg.secondary_color,
-    accentColor: resolveAccentColor(cfg.primary_color, readAccentOverride(cfg)),
+    accentColor: palette.boutons,
+    palette,
     // ⚠️ `cfg.logo_url` / `cfg.favicon_url` SONT DES CHEMINS DE STOCKAGE, plus
     //    des adresses (migration 20260916300000). Les servir tels quels
     //    produirait `<img src="<uuid>/logo">` — une adresse relative, donc une

@@ -1,21 +1,25 @@
 // lib/domain-config.ts
 //
-// Configuration de domaine + dérivation de la couleur d'accent.
+// LA CONFIGURATION D'UN ÉCOSYSTÈME, TELLE QUE LE NAVIGATEUR LA REÇOIT.
 //
-// ACCENT : la plateforme est multi-écosystème (un sous-domaine = un écosystème).
-// La couleur d'accent des surfaces publiques ne peut donc pas être une constante.
-// Elle est résolue en deux temps, côté serveur uniquement :
-//   1. `domain_configs.accent_color` si la marque de l'écosystème impose sa teinte
-//      au pixel (migration 20260710000001_domain_accent_color.sql, colonne NULLABLE) ;
-//   2. sinon, elle est DÉRIVÉE de `primary_color` en abaissant la luminance à
-//      teinte et saturation constantes jusqu'à franchir un seuil de contraste WCAG
-//      contre la surface publique.
+// ⚠️ CE FICHIER NE PORTE PLUS AUCUNE COULEUR, et c'est le changement du lot
+//    « palette unique » (21/09/2026). Il en portait quatre, plus deux dans des
+//    commentaires — dont un qui MENTAIT : il annonçait un accent dérivé à
+//    « ~#085F87, 7:1 », quand la fonction produit #085A7F ; la valeur écrite
+//    valait 6,78, sous la cible de 7 que la fonction impose elle-même.
+//    Les valeurs vivent désormais dans `lib/palette.ts`, le calcul dans
+//    `lib/couleur.ts`, et il n'y a plus qu'un seul endroit où se tromper.
 //
-// Le point 2 est ce qui rend la règle durable : un assombrissement à taux fixe ne
-// garantit rien (le même retrait de luminance donne des ratios très différents
-// selon la teinte), alors qu'un abaissement piloté par le ratio garantit qu'AUCUN
-// écosystème futur ne pourra produire une page inaccessible, quelle que soit la
-// couleur de marque qu'on lui confie.
+// Ce qui reste ici : le TYPE que reçoit le client, et le repli de secours.
+
+import { accentStrong, accentTint, contrastRatio, deriveAccentColor } from './couleur'
+import { PALETTE_REFERENCE, resolvePalette, type Palette } from './palette'
+
+// Réexportés pour les appelants historiques : le calcul a déménagé dans
+// `lib/couleur.ts`, son adresse publique reste celle-ci le temps que les
+// appelants suivent. Un jumeau serait de recopier les fonctions (§E.20) ;
+// une réexportation n'en est pas un — il n'y a toujours qu'une implémentation.
+export { contrastRatio, accentTint, accentStrong }
 
 export type DomainConfig = {
   id: string
@@ -24,9 +28,20 @@ export type DomainConfig = {
   ecosystemName: string
   tagline: string
   primaryColor: string
+  /**
+   * ⚠️ NE GOUVERNE PLUS RIEN. Elle colorait la seconde moitié de trois dégradés
+   * de barre de progression, dans les deux tableaux de bord experts ; ces trois
+   * dégradés sont devenus des aplats de la couleur « boutons » au lot palette.
+   * La colonne `domain_configs.secondary_color` reste en base et n'est plus
+   * lue par aucune ligne de `app/`, `lib/` ou `components/` — documentée comme
+   * telle dans architecture §B.2 ⑨ plutôt que retirée : retirer une colonne
+   * que des chaînes citent est la classe §E.1, et c'est un lot à soi seul.
+   */
   secondaryColor: string
-  /** Accent des surfaces publiques : override de marque, sinon dérivé de primaryColor. */
+  /** Rôle « boutons » de la palette. Alias conservé pour les appelants. */
   accentColor: string
+  /** LA PALETTE RÉSOLUE de cet écosystème. Source unique : lib/palette.ts. */
+  palette: Palette
   logoUrl: string | null
   faviconUrl: string | null
   isActive: boolean
@@ -41,203 +56,69 @@ export type DomainConfig = {
 }
 
 /**
- * Surface des pages publiques. Chrome Skilloria : identique sur tous les
- * écosystèmes, donc constante légitime. Sert de référence au calcul de contraste.
- */
-export const PUBLIC_SURFACE = '#FDFBF7'
-
-/** Encre Skilloria. Chrome, identique sur tous les écosystèmes. */
-export const PUBLIC_INK = '#1A1815'
-
-/** Cible AAA pour le texte d'accent ; le plancher AA (4.5) est le filet de sécurité. */
-const ACCENT_TARGET_RATIO = 7
-const ACCENT_FLOOR_RATIO = 4.5
-
-type Rgb = { r: number; g: number; b: number }
-type Hsl = { h: number; s: number; l: number }
-
-function parseHex(hex: string): Rgb | null {
-  const match = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim())
-  if (!match) return null
-  const raw = match[1].length === 3
-    ? match[1].split('').map(c => c + c).join('')
-    : match[1]
-  return {
-    r: parseInt(raw.slice(0, 2), 16),
-    g: parseInt(raw.slice(2, 4), 16),
-    b: parseInt(raw.slice(4, 6), 16),
-  }
-}
-
-function toHex({ r, g, b }: Rgb): string {
-  const channel = (n: number) =>
-    Math.round(Math.min(255, Math.max(0, n))).toString(16).padStart(2, '0')
-  return `#${channel(r)}${channel(g)}${channel(b)}`
-}
-
-/** Luminance relative WCAG 2.1 (sRGB linéarisé). */
-function relativeLuminance({ r, g, b }: Rgb): number {
-  const linear = (v: number) => {
-    const s = v / 255
-    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
-  }
-  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
-}
-
-/** Ratio de contraste WCAG entre deux couleurs hexadécimales. */
-export function contrastRatio(a: string, b: string): number {
-  const rgbA = parseHex(a)
-  const rgbB = parseHex(b)
-  if (!rgbA || !rgbB) return 1
-  const lumA = relativeLuminance(rgbA)
-  const lumB = relativeLuminance(rgbB)
-  const [high, low] = lumA >= lumB ? [lumA, lumB] : [lumB, lumA]
-  return (high + 0.05) / (low + 0.05)
-}
-
-function rgbToHsl({ r, g, b }: Rgb): Hsl {
-  const rn = r / 255
-  const gn = g / 255
-  const bn = b / 255
-  const max = Math.max(rn, gn, bn)
-  const min = Math.min(rn, gn, bn)
-  const l = (max + min) / 2
-  const delta = max - min
-  if (delta === 0) return { h: 0, s: 0, l }
-
-  const s = delta / (1 - Math.abs(2 * l - 1))
-  let h: number
-  if (max === rn) h = 60 * (((gn - bn) / delta) % 6)
-  else if (max === gn) h = 60 * ((bn - rn) / delta + 2)
-  else h = 60 * ((rn - gn) / delta + 4)
-  if (h < 0) h += 360
-  return { h, s, l }
-}
-
-function hslToRgb({ h, s, l }: Hsl): Rgb {
-  const c = (1 - Math.abs(2 * l - 1)) * s
-  const sector = ((((h % 360) + 360) % 360) / 60)
-  const x = c * (1 - Math.abs((sector % 2) - 1))
-  let base: [number, number, number]
-  if (sector < 1) base = [c, x, 0]
-  else if (sector < 2) base = [x, c, 0]
-  else if (sector < 3) base = [0, c, x]
-  else if (sector < 4) base = [0, x, c]
-  else if (sector < 5) base = [x, 0, c]
-  else base = [c, 0, x]
-  const m = l - c / 2
-  return { r: (base[0] + m) * 255, g: (base[1] + m) * 255, b: (base[2] + m) * 255 }
-}
-
-/**
- * Dérive l'accent d'un écosystème depuis sa couleur primaire.
- *
- * Teinte et saturation sont conservées (l'accent reste reconnaissable comme la
- * couleur de la marque) ; seule la luminance descend, par pas de 1 %, jusqu'à ce
- * que le contraste contre `background` atteigne `targetRatio`.
- *
- * Exemple sur le domaine par défaut : #0ea5e9 contraste 2,68:1 sur #FDFBF7 —
- * illisible — et ressort à ~#085F87, 7:1, teinte inchangée (H≈199°).
- */
-export function deriveAccentColor(
-  primaryColor: string,
-  background: string = PUBLIC_SURFACE,
-  targetRatio: number = ACCENT_TARGET_RATIO,
-): string {
-  const rgb = parseHex(primaryColor)
-  if (!rgb) return PUBLIC_INK
-
-  const normalized = toHex(rgb)
-  if (contrastRatio(normalized, background) >= targetRatio) return normalized
-
-  const hsl = rgbToHsl(rgb)
-  let fallback = PUBLIC_INK
-  for (let l = hsl.l; l >= 0.04; l -= 0.01) {
-    const candidate = toHex(hslToRgb({ ...hsl, l }))
-    const ratio = contrastRatio(candidate, background)
-    if (ratio >= targetRatio) return candidate
-    if (ratio >= ACCENT_FLOOR_RATIO) fallback = candidate
-  }
-  // Teinte si claire qu'elle n'atteint jamais la cible : on garde le meilleur
-  // candidat conforme AA, à défaut l'encre (toujours conforme).
-  return fallback
-}
-
-/**
- * Teinte très claire du même accent, pour les fonds de pastilles et de badges.
- * Saturation plafonnée : une teinte pleine à 94 % de luminance vibre à l'écran.
- */
-export function accentTint(accentColor: string, lightness = 0.94): string {
-  const rgb = parseHex(accentColor)
-  if (!rgb) return PUBLIC_SURFACE
-  const hsl = rgbToHsl(rgb)
-  return toHex(hslToRgb({ h: hsl.h, s: Math.min(hsl.s, 0.45), l: lightness }))
-}
-
-/** Variante plus dense de l'accent, pour les états survolés et pressés. */
-export function accentStrong(accentColor: string, delta = 0.07): string {
-  const rgb = parseHex(accentColor)
-  if (!rgb) return PUBLIC_INK
-  const hsl = rgbToHsl(rgb)
-  return toHex(hslToRgb({ ...hsl, l: Math.max(0.04, hsl.l - delta) }))
-}
-
-/**
- * Résout l'accent d'un domaine : override de marque s'il existe, dérivation sinon.
- * Appelée exclusivement côté serveur (cf. getDomainConfig) — le client reçoit une
- * valeur déjà calculée et ne décide de rien.
+ * Résout le rôle « boutons » : override de marque s'il existe, dérivation
+ * sinon. Appelée exclusivement au serveur — le client reçoit une valeur déjà
+ * calculée et ne décide de rien (§E.15).
  */
 export function resolveAccentColor(
   primaryColor: string,
   accentOverride?: string | null,
+  background: string = PALETTE_REFERENCE.fond_page,
 ): string {
-  if (accentOverride && parseHex(accentOverride)) return toHex(parseHex(accentOverride)!)
-  return deriveAccentColor(primaryColor)
+  const override = typeof accentOverride === 'string' && accentOverride.trim()
+    ? accentOverride.trim()
+    : null
+  if (override && /^#[0-9a-fA-F]{6}$/.test(override)) return override
+  return deriveAccentColor(primaryColor, background, PALETTE_REFERENCE.texte_principal)
 }
-
-const DEFAULT_PRIMARY = '#0ea5e9'
 
 /**
  * ⚠️ REPLI DE SECOURS — PAS une configuration par défaut à enrichir.
  *
- * Cette valeur n'est servie QUE lorsque le domaine est IRRÉSOLVABLE : base
- * Supabase injoignable, ou sous-domaine inconnu (cf. getDomainConfig). Sur une
- * plateforme MULTI-ÉCOSYSTÈME, y mettre le moindre nom d'écosystème ou produit
- * ferait afficher le MAUVAIS écosystème à un utilisateur d'un autre (ex. du
- * Microsoft sur sap.skilloria.io lors d'une panne BDD).
+ * Servi UNIQUEMENT quand le domaine est IRRÉSOLVABLE : base injoignable, ou
+ * sous-domaine inconnu. Sur une plateforme MULTI-ÉCOSYSTÈME, y mettre le
+ * moindre nom d'écosystème ou de produit ferait afficher le MAUVAIS écosystème
+ * à l'utilisateur d'un autre (du Microsoft sur sap.skilloria.io pendant une
+ * panne de base).
  *
- * → Ce repli est donc volontairement NEUTRE : marque ombrelle « Skilloria »,
- *   aucun nom d'écosystème, aucun produit. Fail-safe cohérent avec le trigger
- *   handle_new_user durci (une inscription depuis un domaine irrésolvable
- *   échoue proprement plutôt que de rattacher au mauvais écosystème).
+ * → Volontairement NEUTRE : marque ombrelle « Skilloria », aucun nom
+ *   d'écosystème, aucun produit. Cohérent avec `handle_new_user` durci, qui
+ *   fait échouer proprement une inscription venue d'un domaine irrésolvable
+ *   plutôt que de la rattacher au mauvais écosystème.
  *
- * ❌ NE PAS y remettre de produits/noms d'écosystème (Azure, Dynamics, SAP…).
- *    La vraie config par écosystème vit en base (domains + domain_configs).
+ * ❌ NE PAS y remettre de produits ni de noms d'écosystème (Azure, SAP…).
+ *    La vraie configuration vit en base (`domains` + `domain_configs`).
+ *
+ * Sa PALETTE, en revanche, est celle de la référence : un écran servi pendant
+ * une panne doit rester lisible, et la référence est la palette du produit.
  */
 export const defaultDomainConfig: DomainConfig = {
   id: 'default',
-  // Slug NEUTRE (pas 'microsoft') : sur un domaine irrésolvable, un signup/
-  // invitation enverrait domain_slug='default' → le trigger durci rejette
+  // Slug NEUTRE (pas 'microsoft') : sur un domaine irrésolvable, une
+  // inscription enverrait domain_slug='default' → le trigger durci refuse
   // proprement au lieu de rattacher silencieusement au mauvais écosystème.
   subdomain: 'default',
-  name: 'Skilloria',            // marque ombrelle, sans '365' ni écosystème
-  ecosystemName: 'Skilloria',   // neutre : « experts Skilloria » se lit correctement (4 langues)
+  name: 'Skilloria',
+  ecosystemName: 'Skilloria',
   tagline: '',
-  primaryColor: DEFAULT_PRIMARY,   // chrome Skilloria (identique tous écosystèmes), pas un écosystème
-  secondaryColor: '#6366f1',
-  accentColor: deriveAccentColor(DEFAULT_PRIMARY),
+  primaryColor: PALETTE_REFERENCE.marque,
+  // Inerte (cf. le commentaire du type). Aligné sur la marque plutôt que sur
+  // une teinte propre : une valeur que rien ne lit n'a pas à être distincte.
+  secondaryColor: PALETTE_REFERENCE.marque,
+  accentColor: resolveAccentColor(PALETTE_REFERENCE.marque),
+  palette: resolvePalette(null),
   logoUrl: null,
   faviconUrl: null,
   isActive: true,
-  tags: [],                        // aucun produit (HomeEcosystem masque la section si vide)
-  // ⚠️ ecosystemTerms n'est plus consommé nulle part (aucune lecture dans app/
-  //    components/lib — vérifié). Neutralisé par principe ; à SUPPRIMER lors
-  //    d'un prochain nettoyage du type DomainConfig, ou laissé inerte.
+  tags: [],
+  // ⚠️ `ecosystemTerms` n'est consommé nulle part (aucune lecture dans app/,
+  //    components/ ou lib/ — vérifié). Neutralisé par principe ; à supprimer
+  //    lors d'un prochain nettoyage du type, ou laissé inerte.
   ecosystemTerms: {
     expertLabel: 'experts certifiés',
     communityLabel: 'la communauté',
     specialityLabel: 'Spécialité principale',
     domainSearchLabel: 'Domaine recherché',
   },
-  featuredProducts: [],            // aucun produit ; DemoStage retombe sur ecosystemName
+  featuredProducts: [],
 }

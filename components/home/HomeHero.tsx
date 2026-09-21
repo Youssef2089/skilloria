@@ -3,7 +3,6 @@
 import { useTranslations } from 'next-intl'
 import { useDomain } from '@/context/DomainContext'
 import { useRouter } from '@/i18n/navigation'
-import { theme } from './theme'
 import DemoStage from './demo/DemoStage'
 import type { HomeAudience } from './audience'
 
@@ -21,7 +20,7 @@ export default function HomeHero({ audience }: { audience: HomeAudience }) {
   const t = useTranslations('homepage.hero')
 
   return (
-    <section className="skh-hero" style={{ background: theme.cream }}>
+    <section className="skh-hero" style={{ background: 'var(--sk-bg)' }}>
       <div className="skh-hero-copy">
         <h1 className="skh-h1">{t(`${audience}.title`, { ecosystem: domain.ecosystemName })}</h1>
         <p className="skh-lead">{t(`${audience}.subtitle`)}</p>
@@ -42,7 +41,7 @@ export default function HomeHero({ audience }: { audience: HomeAudience }) {
         <p className="skh-proof">
           {PROOFS.map((proof, index) => (
             <span key={proof}>
-              {index > 0 ? <span aria-hidden="true" style={{ margin: '0 8px', color: theme.border }}>·</span> : null}
+              {index > 0 ? <span aria-hidden="true" style={{ margin: '0 8px', color: 'var(--sk-border)' }}>·</span> : null}
               {t(`${audience}.${proof}`)}
             </span>
           ))}

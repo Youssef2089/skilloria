@@ -7,7 +7,7 @@
 // donc la démo se rhabille toute seule sur un autre écosystème).
 
 import { esc, type DemoContext, type DemoScenario } from './engine'
-import { theme } from '../theme'
+import type { Palette } from '@/lib/palette'
 
 export type DemoPerson = {
   /** Index du portrait SVG — une même personne garde son visage d'une démo à l'autre. */
@@ -92,14 +92,14 @@ const sectionHeader = (ctx: DemoContext, avatarHtml: string, title: string, subt
   ctx.make(
     `${avatarHtml}
      <div style="min-width:0">
-       <div style="font-size:13px;font-weight:600;color:${theme.ink}">${esc(title)}</div>
+       <div style="font-size:13px;font-weight:600;color:${ctx.palette.textePrincipal}">${esc(title)}</div>
        <div style="font-size:11px;font-weight:500;color:${subtitleColor}">${esc(subtitle)}</div>
      </div>`,
     'display:flex;align-items:center;gap:10px;margin-bottom:13px',
   )
 
-const verifiedMark = (size = 13) =>
-  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="${theme.success}"/><path d="M8 12l3 3 5-5" stroke="${theme.white}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+const verifiedMark = (p: Palette, size = 13) =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="${p.succes}"/><path d="M8 12l3 3 5-5" stroke="${p.cartes}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`
 
 const aiGlyph = (accent: string, size = 22) =>
   `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -112,8 +112,8 @@ const aiGlyph = (accent: string, size = 22) =>
      <line x1="19" y1="10" x2="20.5" y2="10" stroke="${accent}" stroke-width="1.5" stroke-linecap="round"/>
    </svg>`
 
-const sendGlyph = () =>
-  `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z" stroke="${theme.white}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+const sendGlyph = (p: Palette) =>
+  `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z" stroke="${p.cartes}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
 
 /* ------------------------------------------------------------------ */
 /* Parcours ENTREPRISE — publier, l'IA notifie, scorer, choisir, échanger */
@@ -121,7 +121,9 @@ const sendGlyph = () =>
 
 export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
   return async ctx => {
-    const { panel, accent } = ctx
+    const { panel } = ctx
+    const p = ctx.palette
+    const accent = p.boutons
 
     /* 1 — publier le besoin */
     await ctx.fadeTransition()
@@ -141,7 +143,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     const fieldNodes: HTMLElement[] = []
     for (const field of fields) {
       const wrap = ctx.make(
-        `<div style="font-size:11px;color:${theme.faint};margin-bottom:3px">${esc(field.label)}</div>`,
+        `<div style="font-size:11px;color:${p.texteTenu};margin-bottom:3px">${esc(field.label)}</div>`,
         'margin-bottom:9px',
       )
       const input = document.createElement('div')
@@ -152,7 +154,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     }
 
     const descWrap = ctx.make(
-      `<div style="font-size:11px;color:${theme.faint};margin-bottom:3px">${esc(labels.mission.descriptionLabel)}</div>`,
+      `<div style="font-size:11px;color:${p.texteTenu};margin-bottom:3px">${esc(labels.mission.descriptionLabel)}</div>`,
       'margin-bottom:9px',
     )
     const descInput = document.createElement('div')
@@ -163,7 +165,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     const tagRow = ctx.make('', 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;min-height:22px')
     panel.appendChild(tagRow)
 
-    const publish = ctx.make(esc(labels.mission.publishButton), `padding:10px;background:${accent};color:${theme.white};border-radius:9px;font-size:13px;font-weight:600;text-align:center;opacity:.35;transition:opacity .3s`)
+    const publish = ctx.make(esc(labels.mission.publishButton), `padding:10px;background:${accent};color:${p.cartes};border-radius:9px;font-size:13px;font-weight:600;text-align:center;opacity:.35;transition:opacity .3s`)
     panel.appendChild(publish)
 
     await ctx.sleep(200)
@@ -218,10 +220,10 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     const scanCard = ctx.make(
       `<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
          <svg class="skh-spin" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="${accent}" stroke-width="2" stroke-linecap="round"/></svg>
-         <div style="font-size:12px;font-weight:600;color:${theme.ink}">${esc(labels.matching.criteria)}</div>
+         <div style="font-size:12px;font-weight:600;color:${p.textePrincipal}">${esc(labels.matching.criteria)}</div>
        </div>
-       <div style="height:5px;background:${theme.border};border-radius:10px;overflow:hidden"><i style="display:block;height:100%;width:0;background:${accent};border-radius:10px;transition:width .3s ease"></i></div>`,
-      `padding:11px;background:${ctx.accentSoft};border:1px solid ${theme.borderSoft};border-radius:10px;margin-bottom:11px`,
+       <div style="height:5px;background:${p.bordures};border-radius:10px;overflow:hidden"><i style="display:block;height:100%;width:0;background:${accent};border-radius:10px;transition:width .3s ease"></i></div>`,
+      `padding:11px;background:${p.boutonsDoux};border:1px solid ${p.bordureDouce};border-radius:10px;margin-bottom:11px`,
     )
     panel.appendChild(scanCard)
     const scanFill = scanCard.querySelector<HTMLElement>('i')!
@@ -237,8 +239,8 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
       const row = ctx.make(
         `${ctx.portrait(person.portrait, 28)}
          <div style="flex:1;min-width:0">
-           <div style="font-size:12px;font-weight:600;color:${theme.ink}">${esc(person.name)}</div>
-           <div style="font-size:11px;color:${theme.muted}">${esc(person.specShort)}</div>
+           <div style="font-size:12px;font-weight:600;color:${p.textePrincipal}">${esc(person.name)}</div>
+           <div style="font-size:11px;color:${p.texteSecondaire}">${esc(person.specShort)}</div>
          </div>
          <div style="font-size:13px;font-weight:700;color:${accent}">${esc(person.score)}</div>
          <span class="skh-tag" style="white-space:nowrap">${esc(labels.matching.notifiedBadge)}</span>`,
@@ -256,7 +258,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
 
     panel.appendChild(
       ctx.make(
-        `<div style="font-size:13px;font-weight:600;color:${theme.ink}">${esc(labels.candidatesTitle)}</div>`,
+        `<div style="font-size:13px;font-weight:600;color:${p.textePrincipal}">${esc(labels.candidatesTitle)}</div>`,
         'margin-bottom:11px',
       ),
     )
@@ -269,18 +271,18 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
         `${ctx.portrait(person.portrait, 38)}
          <div style="flex:1;min-width:0">
            <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
-             <span style="font-size:13px;font-weight:600;color:${theme.ink}">${esc(person.name)}</span>
-             ${person.verified ? verifiedMark(13) : ''}
+             <span style="font-size:13px;font-weight:600;color:${p.textePrincipal}">${esc(person.name)}</span>
+             ${person.verified ? verifiedMark(p, 13) : ''}
            </div>
-           <div style="font-size:11px;color:${theme.muted}">${esc(person.specLong)}</div>
+           <div style="font-size:11px;color:${p.texteSecondaire}">${esc(person.specLong)}</div>
            <div style="display:flex;gap:9px;margin-top:2px">
-             <span style="font-size:11px;font-weight:500;color:${theme.ink}">${esc(person.tjm)}</span>
-             <span style="font-size:11px;color:${theme.faint}">${esc(person.availability)}</span>
+             <span style="font-size:11px;font-weight:500;color:${p.textePrincipal}">${esc(person.tjm)}</span>
+             <span style="font-size:11px;color:${p.texteTenu}">${esc(person.availability)}</span>
            </div>
          </div>
          <div style="text-align:right;flex-shrink:0">
-           <div style="font-size:15px;font-weight:700;color:${theme.success}">${esc(person.score)}</div>
-           <div style="font-size:10px;color:${theme.faint}">${esc(labels.matchLabel)}</div>
+           <div style="font-size:15px;font-weight:700;color:${p.succes}">${esc(person.score)}</div>
+           <div style="font-size:10px;color:${p.texteTenu}">${esc(labels.matchLabel)}</div>
          </div>`,
       )
       card.className = 'skh-row skh-in-up'
@@ -295,7 +297,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     ctx.activateStep(4)
     ctx.setBar(80, 2800)
     panel.insertBefore(
-      sectionHeader(ctx, ctx.portrait(labels.recruiter.portrait, 32), labels.recruiter.name, labels.recruiter.selectingLine, theme.warn),
+      sectionHeader(ctx, ctx.portrait(labels.recruiter.portrait, 32), labels.recruiter.name, labels.recruiter.selectingLine, p.avertissement),
       panel.firstChild,
     )
     await ctx.sleep(220)
@@ -305,8 +307,8 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     await ctx.sleep(120)
     panel.appendChild(
       ctx.make(
-        `${verifiedMark(16)}<span style="font-size:13px;font-weight:600;color:${theme.success}">${esc(labels.selectionConfirmed)}</span>`,
-        `display:flex;align-items:center;gap:8px;padding:10px 12px;background:${theme.successSoft};border:1px solid ${theme.success}33;border-radius:9px;margin-top:10px`,
+        `${verifiedMark(p, 16)}<span style="font-size:13px;font-weight:600;color:${p.succes}">${esc(labels.selectionConfirmed)}</span>`,
+        `display:flex;align-items:center;gap:8px;padding:10px 12px;background:${p.succesDoux};border:1px solid ${p.succes}33;border-radius:9px;margin-top:10px`,
       ),
     ).classList.add('skh-in-up')
     await ctx.sleep(360)
@@ -321,28 +323,28 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     panel.appendChild(
       ctx.make(
         esc(labels.chat.title),
-        `font-size:11px;font-weight:600;color:${theme.faint};letter-spacing:.05em;text-transform:uppercase;margin-bottom:9px`,
+        `font-size:11px;font-weight:600;color:${p.texteTenu};letter-spacing:.05em;text-transform:uppercase;margin-bottom:9px`,
       ),
     )
 
     const chat = ctx.make(
-      `<div style="background:${theme.white};border-bottom:1px solid ${theme.borderSoft};padding:10px 12px;display:flex;align-items:center;gap:9px">
+      `<div style="background:${p.cartes};border-bottom:1px solid ${p.bordureDouce};padding:10px 12px;display:flex;align-items:center;gap:9px">
          ${ctx.portrait(chosen.portrait, 30)}
          <div style="flex:1;min-width:0">
-           <div style="font-size:13px;font-weight:600;color:${theme.ink}">${esc(chosen.name)}</div>
+           <div style="font-size:13px;font-weight:600;color:${p.textePrincipal}">${esc(chosen.name)}</div>
            <div style="display:flex;align-items:center;gap:5px">
              <span class="skh-live"></span>
-             <span style="font-size:11px;color:${theme.muted}">${esc(labels.chat.onlineLabel)}</span>
+             <span style="font-size:11px;color:${p.texteSecondaire}">${esc(labels.chat.onlineLabel)}</span>
            </div>
          </div>
          <span class="skh-tag">${esc(labels.chat.scoreLabel)}</span>
        </div>
-       <div style="margin:9px 10px;background:${theme.white};border:1px solid ${theme.borderSoft};border-radius:9px;padding:10px 11px">
-         <div style="font-size:11px;font-weight:600;color:${theme.faint};margin-bottom:4px">${esc(labels.chat.sharedMissionLabel)}</div>
-         <div style="font-size:12px;font-weight:600;color:${theme.ink};margin-bottom:3px">${esc(labels.mission.titleValue)} · ${esc(labels.mission.durationShort)}</div>
+       <div style="margin:9px 10px;background:${p.cartes};border:1px solid ${p.bordureDouce};border-radius:9px;padding:10px 11px">
+         <div style="font-size:11px;font-weight:600;color:${p.texteTenu};margin-bottom:4px">${esc(labels.chat.sharedMissionLabel)}</div>
+         <div style="font-size:12px;font-weight:600;color:${p.textePrincipal};margin-bottom:3px">${esc(labels.mission.titleValue)} · ${esc(labels.mission.durationShort)}</div>
          <div style="display:flex;gap:5px;flex-wrap:wrap">${labels.tags.map(t => `<span class="skh-tag">${esc(t)}</span>`).join('')}</div>
        </div>`,
-      `background:${theme.cream};border:1px solid ${theme.borderSoft};border-radius:11px;overflow:hidden`,
+      `background:${p.fondPage};border:1px solid ${p.bordureDouce};border-radius:11px;overflow:hidden`,
     )
     chat.classList.add('skh-pop')
 
@@ -351,9 +353,9 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
 
     const composer = ctx.make(
       `${ctx.portrait(labels.recruiter.portrait, 26)}
-       <div class="skh-composer" style="flex:1;background:${theme.white};border:1px solid ${theme.border};border-radius:20px;padding:7px 12px;font-size:12px;color:${theme.ink};min-height:30px;white-space:pre-wrap;word-break:break-word"></div>
-       <div class="skh-send" style="width:28px;height:28px;border-radius:50%;background:${accent};display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:.35;transition:opacity .3s">${sendGlyph()}</div>`,
-      `padding:9px 10px;border-top:1px solid ${theme.borderSoft};display:flex;align-items:center;gap:8px;background:${theme.white}`,
+       <div class="skh-composer" style="flex:1;background:${p.cartes};border:1px solid ${p.bordures};border-radius:20px;padding:7px 12px;font-size:12px;color:${p.textePrincipal};min-height:30px;white-space:pre-wrap;word-break:break-word"></div>
+       <div class="skh-send" style="width:28px;height:28px;border-radius:50%;background:${accent};display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:.35;transition:opacity .3s">${sendGlyph(p)}</div>`,
+      `padding:9px 10px;border-top:1px solid ${p.bordureDouce};display:flex;align-items:center;gap:8px;background:${p.cartes}`,
     )
     chat.appendChild(composer)
     panel.appendChild(chat)
@@ -372,11 +374,11 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     await ctx.clickEl(send, 150)
     if (ctx.cancelled()) return
     input.innerHTML = ''
-    input.style.borderColor = theme.border
+    input.style.borderColor = p.bordures
     send.style.opacity = '.35'
 
     const outgoing = ctx.make(
-      `<div style="max-width:82%;padding:9px 11px;border-radius:11px 11px 2px 11px;background:${accent};color:${theme.white};font-size:12px;line-height:1.55">${esc(labels.chat.messageFromCompany)}</div>`,
+      `<div style="max-width:82%;padding:9px 11px;border-radius:11px 11px 2px 11px;background:${accent};color:${p.cartes};font-size:12px;line-height:1.55">${esc(labels.chat.messageFromCompany)}</div>`,
       'display:flex;justify-content:flex-end;margin-bottom:7px',
     )
     outgoing.classList.add('skh-in-up')
@@ -384,7 +386,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     await ctx.sleep(240)
 
     const typing = ctx.make(
-      `<div style="display:flex;align-items:center;gap:3px;padding:7px 11px;background:${theme.cream};border:1px solid ${theme.borderSoft};border-radius:11px 11px 11px 2px"><span class="skh-dot"></span><span class="skh-dot" style="animation-delay:.15s"></span><span class="skh-dot" style="animation-delay:.3s"></span></div>`,
+      `<div style="display:flex;align-items:center;gap:3px;padding:7px 11px;background:${p.fondPage};border:1px solid ${p.bordureDouce};border-radius:11px 11px 11px 2px"><span class="skh-dot"></span><span class="skh-dot" style="animation-delay:.15s"></span><span class="skh-dot" style="animation-delay:.3s"></span></div>`,
       'display:flex;justify-content:flex-start;margin-bottom:7px',
     )
     thread.appendChild(typing)
@@ -392,7 +394,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     typing.remove()
 
     const incoming = ctx.make(
-      `<div style="max-width:82%;padding:9px 11px;border-radius:11px 11px 11px 2px;background:${theme.cream};border:1px solid ${theme.borderSoft};color:${theme.ink};font-size:12px;line-height:1.55">${esc(labels.chat.messageFromExpert)}</div>`,
+      `<div style="max-width:82%;padding:9px 11px;border-radius:11px 11px 11px 2px;background:${p.fondPage};border:1px solid ${p.bordureDouce};color:${p.textePrincipal};font-size:12px;line-height:1.55">${esc(labels.chat.messageFromExpert)}</div>`,
       'display:flex;justify-content:flex-start;margin-bottom:7px',
     )
     incoming.classList.add('skh-in-up')
@@ -407,7 +409,9 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
 
 export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
   return async ctx => {
-    const { panel, accent } = ctx
+    const { panel } = ctx
+    const p = ctx.palette
+    const accent = p.boutons
 
     /* 1 — le profil est vérifié */
     await ctx.fadeTransition()
@@ -421,18 +425,18 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
          ${ctx.portrait(labels.profile.portrait, 44)}
          <div style="min-width:0">
            <div style="display:flex;align-items:center;gap:6px">
-             <span style="font-size:14px;font-weight:700;color:${theme.ink}">${esc(labels.profile.name)}</span>
-             <span class="skh-badge" style="display:inline-flex;opacity:0;transition:opacity .4s">${verifiedMark(15)}</span>
+             <span style="font-size:14px;font-weight:700;color:${p.textePrincipal}">${esc(labels.profile.name)}</span>
+             <span class="skh-badge" style="display:inline-flex;opacity:0;transition:opacity .4s">${verifiedMark(p, 15)}</span>
            </div>
-           <div style="font-size:11px;color:${theme.muted}">${esc(labels.profile.headline)}</div>
+           <div style="font-size:11px;color:${p.texteSecondaire}">${esc(labels.profile.headline)}</div>
          </div>
        </div>
        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:11px">${labels.profile.skills.map(s => `<span class="skh-tag">${esc(s)}</span>`).join('')}</div>
-       <div class="skh-state" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:9px;background:${theme.cream};border:1px solid ${theme.borderSoft}">
+       <div class="skh-state" style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:9px;background:${p.fondPage};border:1px solid ${p.bordureDouce}">
          <svg class="skh-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="${accent}" stroke-width="2" stroke-linecap="round"/></svg>
-         <span style="font-size:12px;font-weight:600;color:${theme.muted}">${esc(labels.profile.checkingLabel)}</span>
+         <span style="font-size:12px;font-weight:600;color:${p.texteSecondaire}">${esc(labels.profile.checkingLabel)}</span>
        </div>`,
-      `padding:13px;border:1px solid ${theme.border};border-radius:12px;background:${theme.white}`,
+      `padding:13px;border:1px solid ${p.bordures};border-radius:12px;background:${p.cartes}`,
     )
     profile.classList.add('skh-in-up')
     panel.appendChild(profile)
@@ -441,14 +445,14 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
     if (ctx.cancelled()) return
     profile.querySelector<HTMLElement>('.skh-badge')!.style.opacity = '1'
     const state = profile.querySelector<HTMLElement>('.skh-state')!
-    state.style.background = theme.successSoft
-    state.style.borderColor = `${theme.success}33`
-    state.innerHTML = `${verifiedMark(15)}<span style="font-size:12px;font-weight:600;color:${theme.success}">${esc(labels.profile.verifiedBadge)}</span>`
+    state.style.background = p.succesDoux
+    state.style.borderColor = `${p.succes}33`
+    state.innerHTML = `${verifiedMark(p, 15)}<span style="font-size:12px;font-weight:600;color:${p.succes}">${esc(labels.profile.verifiedBadge)}</span>`
     await ctx.sleep(360)
 
     panel.appendChild(
       ctx.make(
-        `<span class="skh-live"></span><span style="font-size:11px;color:${theme.muted}">${esc(labels.profile.availabilityLabel)}</span>`,
+        `<span class="skh-live"></span><span style="font-size:11px;color:${p.texteSecondaire}">${esc(labels.profile.availabilityLabel)}</span>`,
         'display:flex;align-items:center;gap:7px;margin-top:11px',
       ),
     ).classList.add('skh-in')
@@ -471,30 +475,30 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
     const mission = ctx.make(
       `<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
          <div style="flex:1;min-width:0">
-           <div style="font-size:14px;font-weight:700;color:${theme.ink};line-height:1.3;margin-bottom:3px">${esc(labels.mission.title)}</div>
-           <div style="font-size:11px;color:${theme.muted}">${esc(labels.mission.company)}</div>
+           <div style="font-size:14px;font-weight:700;color:${p.textePrincipal};line-height:1.3;margin-bottom:3px">${esc(labels.mission.title)}</div>
+           <div style="font-size:11px;color:${p.texteSecondaire}">${esc(labels.mission.company)}</div>
          </div>
          <div style="text-align:right;flex-shrink:0">
-           <div style="font-size:18px;font-weight:700;color:${theme.success};line-height:1">${esc(labels.mission.score)}</div>
-           <div style="font-size:10px;color:${theme.faint}">${esc(labels.mission.scoreLabel)}</div>
+           <div style="font-size:18px;font-weight:700;color:${p.succes};line-height:1">${esc(labels.mission.score)}</div>
+           <div style="font-size:10px;color:${p.texteTenu}">${esc(labels.mission.scoreLabel)}</div>
          </div>
        </div>
        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px">
-         <div><div style="font-size:10px;color:${theme.faint}">${esc(labels.mission.tjmLabel)}</div><div style="font-size:12px;font-weight:600;color:${theme.ink}">${esc(labels.mission.tjmValue)}</div></div>
-         <div><div style="font-size:10px;color:${theme.faint}">${esc(labels.mission.locationLabel)}</div><div style="font-size:12px;font-weight:600;color:${theme.ink}">${esc(labels.mission.locationValue)}</div></div>
+         <div><div style="font-size:10px;color:${p.texteTenu}">${esc(labels.mission.tjmLabel)}</div><div style="font-size:12px;font-weight:600;color:${p.textePrincipal}">${esc(labels.mission.tjmValue)}</div></div>
+         <div><div style="font-size:10px;color:${p.texteTenu}">${esc(labels.mission.locationLabel)}</div><div style="font-size:12px;font-weight:600;color:${p.textePrincipal}">${esc(labels.mission.locationValue)}</div></div>
        </div>
-       <div style="display:flex;align-items:flex-start;gap:8px;padding:9px 11px;border-radius:9px;background:${ctx.accentSoft}">
+       <div style="display:flex;align-items:flex-start;gap:8px;padding:9px 11px;border-radius:9px;background:${p.boutonsDoux}">
          <span style="flex-shrink:0;margin-top:1px">${aiGlyph(accent, 14)}</span>
-         <span style="font-size:11px;line-height:1.5;color:${theme.muted}">${esc(labels.mission.matchExplanation)}</span>
+         <span style="font-size:11px;line-height:1.5;color:${p.texteSecondaire}">${esc(labels.mission.matchExplanation)}</span>
        </div>`,
-      `padding:13px;border:1px solid ${theme.border};border-radius:12px;background:${theme.white}`,
+      `padding:13px;border:1px solid ${p.bordures};border-radius:12px;background:${p.cartes}`,
     )
     mission.classList.add('skh-slide')
     panel.appendChild(mission)
 
     const apply = ctx.make(
       esc(labels.mission.applyButton),
-      `margin-top:11px;padding:10px;background:${accent};color:${theme.white};border-radius:9px;font-size:13px;font-weight:600;text-align:center`,
+      `margin-top:11px;padding:10px;background:${accent};color:${p.cartes};border-radius:9px;font-size:13px;font-weight:600;text-align:center`,
     )
     panel.appendChild(apply)
     // Carte la plus dense de la démo (score, TJM, lieu, explication du match).
@@ -516,20 +520,20 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
 
     const sent = ctx.make(
       `<div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
-         ${verifiedMark(18)}
-         <span style="font-size:14px;font-weight:700;color:${theme.ink}">${esc(labels.apply.sentTitle)}</span>
+         ${verifiedMark(p, 18)}
+         <span style="font-size:14px;font-weight:700;color:${p.textePrincipal}">${esc(labels.apply.sentTitle)}</span>
        </div>
-       <div style="font-size:12px;line-height:1.55;color:${theme.muted}">${esc(labels.apply.sentBody)}</div>`,
-      `padding:13px;border:1px solid ${theme.success}33;border-radius:12px;background:${theme.successSoft}`,
+       <div style="font-size:12px;line-height:1.55;color:${p.texteSecondaire}">${esc(labels.apply.sentBody)}</div>`,
+      `padding:13px;border:1px solid ${p.succes}33;border-radius:12px;background:${p.succesDoux}`,
     )
     sent.classList.add('skh-pop')
     panel.appendChild(sent)
 
     await ctx.sleep(420)
     const anonymity = ctx.make(
-      `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="flex-shrink:0;margin-top:1px"><rect x="4" y="10" width="16" height="10" rx="2.5" stroke="${theme.warn}" stroke-width="1.9"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10" stroke="${theme.warn}" stroke-width="1.9" stroke-linecap="round"/></svg>
-       <span style="font-size:11px;line-height:1.55;color:${theme.warn}">${esc(labels.apply.anonymityNote)}</span>`,
-      `display:flex;align-items:flex-start;gap:8px;margin-top:11px;padding:10px 11px;border-radius:9px;background:${theme.warnSoft};border:1px solid ${theme.warn}26`,
+      `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="flex-shrink:0;margin-top:1px"><rect x="4" y="10" width="16" height="10" rx="2.5" stroke="${p.avertissement}" stroke-width="1.9"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10" stroke="${p.avertissement}" stroke-width="1.9" stroke-linecap="round"/></svg>
+       <span style="font-size:11px;line-height:1.55;color:${p.avertissement}">${esc(labels.apply.anonymityNote)}</span>`,
+      `display:flex;align-items:flex-start;gap:8px;margin-top:11px;padding:10px 11px;border-radius:9px;background:${p.avertissementDoux};border:1px solid ${p.avertissement}26`,
     )
     anonymity.classList.add('skh-in-up')
     panel.appendChild(anonymity)
@@ -544,27 +548,27 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
     panel.appendChild(
       ctx.make(
         esc(labels.chat.title),
-        `font-size:11px;font-weight:600;color:${theme.faint};letter-spacing:.05em;text-transform:uppercase;margin-bottom:9px`,
+        `font-size:11px;font-weight:600;color:${p.texteTenu};letter-spacing:.05em;text-transform:uppercase;margin-bottom:9px`,
       ),
     )
 
     const conversation = ctx.make(
-      `<div style="background:${theme.white};border-bottom:1px solid ${theme.borderSoft};padding:10px 12px;display:flex;align-items:center;gap:9px">
+      `<div style="background:${p.cartes};border-bottom:1px solid ${p.bordureDouce};padding:10px 12px;display:flex;align-items:center;gap:9px">
          ${ctx.portrait(labels.chat.recruiterPortrait, 30)}
          <div style="flex:1;min-width:0">
-           <div style="font-size:13px;font-weight:600;color:${theme.ink}">${esc(labels.chat.recruiterName)}</div>
+           <div style="font-size:13px;font-weight:600;color:${p.textePrincipal}">${esc(labels.chat.recruiterName)}</div>
            <div style="display:flex;align-items:center;gap:5px">
              <span class="skh-live"></span>
-             <span style="font-size:11px;color:${theme.muted}">${esc(labels.chat.onlineLabel)} · ${esc(labels.chat.recruiterRole)}</span>
+             <span style="font-size:11px;color:${p.texteSecondaire}">${esc(labels.chat.onlineLabel)} · ${esc(labels.chat.recruiterRole)}</span>
            </div>
          </div>
        </div>
        <div class="skh-thread" style="padding:11px 11px 4px;display:flex;flex-direction:column"></div>
-       <div style="padding:9px 10px;border-top:1px solid ${theme.borderSoft};display:flex;align-items:center;gap:8px;background:${theme.white}">
-         <div style="flex:1;background:${theme.cream};border:1px solid ${theme.border};border-radius:20px;padding:7px 12px;font-size:12px;color:${theme.faint}">${esc(labels.chat.replyPlaceholder)}</div>
-         <div style="width:28px;height:28px;border-radius:50%;background:${accent};display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:.35">${sendGlyph()}</div>
+       <div style="padding:9px 10px;border-top:1px solid ${p.bordureDouce};display:flex;align-items:center;gap:8px;background:${p.cartes}">
+         <div style="flex:1;background:${p.fondPage};border:1px solid ${p.bordures};border-radius:20px;padding:7px 12px;font-size:12px;color:${p.texteTenu}">${esc(labels.chat.replyPlaceholder)}</div>
+         <div style="width:28px;height:28px;border-radius:50%;background:${accent};display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:.35">${sendGlyph(p)}</div>
        </div>`,
-      `background:${theme.cream};border:1px solid ${theme.borderSoft};border-radius:11px;overflow:hidden`,
+      `background:${p.fondPage};border:1px solid ${p.bordureDouce};border-radius:11px;overflow:hidden`,
     )
     conversation.classList.add('skh-pop')
     panel.appendChild(conversation)
@@ -573,7 +577,7 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
     await ctx.sleep(440)
 
     const typing = ctx.make(
-      `<div style="display:flex;align-items:center;gap:3px;padding:7px 11px;background:${theme.white};border:1px solid ${theme.borderSoft};border-radius:11px 11px 11px 2px"><span class="skh-dot"></span><span class="skh-dot" style="animation-delay:.15s"></span><span class="skh-dot" style="animation-delay:.3s"></span></div>`,
+      `<div style="display:flex;align-items:center;gap:3px;padding:7px 11px;background:${p.cartes};border:1px solid ${p.bordureDouce};border-radius:11px 11px 11px 2px"><span class="skh-dot"></span><span class="skh-dot" style="animation-delay:.15s"></span><span class="skh-dot" style="animation-delay:.3s"></span></div>`,
       'display:flex;justify-content:flex-start;margin-bottom:7px',
     )
     thread.appendChild(typing)
@@ -581,7 +585,7 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
     typing.remove()
 
     const incoming = ctx.make(
-      `<div style="max-width:86%;padding:9px 11px;border-radius:11px 11px 11px 2px;background:${theme.white};border:1px solid ${theme.borderSoft};color:${theme.ink};font-size:12px;line-height:1.55">${esc(labels.chat.message)}</div>`,
+      `<div style="max-width:86%;padding:9px 11px;border-radius:11px 11px 11px 2px;background:${p.cartes};border:1px solid ${p.bordureDouce};color:${p.textePrincipal};font-size:12px;line-height:1.55">${esc(labels.chat.message)}</div>`,
       'display:flex;justify-content:flex-start;margin-bottom:9px',
     )
     incoming.classList.add('skh-in-up')
@@ -590,7 +594,7 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
 
     thread.appendChild(
       ctx.make(
-        `<span style="font-size:11px;color:${theme.faint};line-height:1.5">${esc(labels.chat.internalNote)}</span>`,
+        `<span style="font-size:11px;color:${p.texteTenu};line-height:1.5">${esc(labels.chat.internalNote)}</span>`,
         'display:flex;justify-content:center;text-align:center;padding:0 8px 4px',
       ),
     ).classList.add('skh-in')

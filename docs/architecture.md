@@ -254,6 +254,36 @@ La lecture est partagée : [lib/pays/numero-identification.ts](../lib/pays/numer
 chargement de `/api/countries`, sorti de `CountrySelect` **avant** de se dupliquer une quatrième
 fois). `scripts/diag-pays-organisation.mjs` tient les deux unicités.
 
+**⑩ LA PALETTE QUITTE LES COMPOSANTS POUR LA BASE.**
+Migration `palette_par_ecosysteme` (21/09/2026). `domain_configs` gagne **six** colonnes de chrome —
+`couleur_fond_page`, `couleur_bandeau`, `couleur_cartes`, `couleur_bordures`,
+`couleur_texte_principal`, `couleur_texte_secondaire` — chacune `NOT NULL` avec, pour `DEFAULT`, la
+valeur **mesurée sur l'accueil**. Un `CHECK` de forme par colonne garde l'hexadécimal à six chiffres,
+en base, pour tout appelant (§E.31).
+
+**Six et non huit** : les deux rôles qui manquent réutilisent des colonnes existantes.
+`primary_color` **est** déjà la couleur de marque, `accent_color` **est** déjà l'override de la
+couleur dérivée. En créer deux de plus aurait fait deux jumeaux qui divergent (§E.20), et personne
+n'aurait su laquelle fait foi. Leurs noms anglais restent : une colonne se lit par son nom dans une
+chaîne (§E.1), et les renommer est un lot à soi seul.
+
+Le `DEFAULT` **remplit les lignes existantes**, donc cette migration n'a **aucune insertion** — elle
+échappe par construction à la classe §E.12. `accent_color` reste nullable, et son `null` a un sens
+plein : *dérive la couleur depuis la marque jusqu'au contraste cible*.
+
+> ⚠️ **PLAGE DE NUMÉROTATION : `0xxxxx`, ALORS QUE LA CONSIGNE DU LOT DISAIT `1xxxxx`.**
+> §G.2 déclare la consigne `1xxxxx` **fausse et tranchée** : la plage du tronc est `0xxxxx`, et
+> `1xxxxx` est **gelée nommément** sur quatre migrations déjà appliquées. Une cinquième y ferait
+> rougir le cliquet de `diag-migration-donnees`. Le dépôt fait foi, et le choix est écrit dans
+> l'en-tête de la migration pour qu'il se lise.
+
+**⑪ `domain_configs.secondary_color` NE GOUVERNE PLUS RIEN** — à ranger avec les deux valeurs
+inertes de §B.2 ⑨. Elle colorait la seconde moitié de **trois** dégradés de barre de progression,
+dans les deux tableaux de bord experts ; le lot palette les a rendus aplats de la couleur
+« boutons ». **Mesuré : plus aucune ligne de `app/`, `lib/` ou `components/` ne la lit.** La colonne
+reste — retirer une colonne que des chaînes citent est exactement §E.1 — et `DomainConfig` garde le
+champ, documenté comme inerte sur place.
+
 ---
 
 ## C. Les chaînes fonctionnelles, de bout en bout
@@ -737,6 +767,74 @@ ce qui reste. Trois codes de sortie : `0` vert · `1` rouge · `2` n’a pas tou
 
 > **C’est le cinquième script qui écrit en base hors du périmètre de `diag-scripts-destructeurs`**
 > (§E.4) — dit ici et dans le commit qui le livre, comme pour `creer-premier-administrateur`.
+
+### C.13 — LA PALETTE : où elle vit, comment elle atteint l'écran, comment on ajoute un écosystème
+
+> Établi au lot « palette unique » (21/09/2026), sur la mesure de
+> [docs/audit-couleurs.html](audit-couleurs.html) : **184 teintes distinctes, 3180 couleurs écrites
+> à la main dans 125 fichiers sur 479, zéro classe Tailwind**. L'accueil, lui, tenait en **quinze**
+> couleurs déclarées dans un seul fichier. Décision : c'est cette palette-là qui gagne.
+
+#### Les trois étages, et il n'y en a pas un quatrième
+
+| Étage | Fichier | Ce qu'il porte |
+|---|---|---|
+| **Le calcul** | [lib/couleur.ts](../lib/couleur.ts) | Luminance WCAG, contraste, conversions TSL, dérivation d'accent. **Aucune couleur** — que des fonctions. C'est ce qui le rend importable sans cycle, et exécutable tel quel par un diagnostic (§E.3). |
+| **Les valeurs** | [lib/palette.ts](../lib/palette.ts) | Les **huit rôles**, les **valeurs de référence**, les **couleurs fixes**, la **garde de contraste**, et les **jetons CSS**. Le seul fichier d'interface autorisé à écrire une couleur. |
+| **Le réglage** | `domain_configs` | Ce qui change d'un écosystème à l'autre (§B.2 ⑩). |
+
+**Une seule exception déclarée** : [lib/portraits-demo.ts](../lib/portraits-demo.ts), les 33 couleurs
+des portraits SVG de la démonstration. Ce sont des couleurs d'**illustration** — carnations,
+chevelures, vêtements —, pas d'interface : elles ne se règlent pas, ne portent aucun état, et la
+garde de contraste n'a rien à dire d'une couleur de cheveux. L'exemption est **nommée, avec sa
+raison**, dans le contrôle (§G.8 : une exemption sans raison est un tampon qu'on remplit sans lire).
+
+#### LE CHEMIN, EN UNE LIGNE, ET C'EST TOUT L'INTÉRÊT
+
+`domain_configs` → `resolvePalette()` **au serveur** → `stylePalette()` → **un style en ligne sur
+`<html>`** ([app/[locale]/layout.tsx](../app/[locale]/layout.tsx)) → les jetons `--sk-*` → tout
+l'écran.
+
+**Pourquoi sur `<html>` et pas dans une feuille de style :**
+· `<html>` **est** `:root` : les jetons naissent là où tout le monde les lit ;
+· un style en ligne l'emporte sur toute feuille — il n'existe donc **aucun second endroit** où une
+  couleur pourrait vivre, et c'est la propriété qu'on cherchait ;
+· il arrive dans le HTML initial : la page n'est **jamais** peinte sans sa palette ;
+· et il ferme **par construction** le défaut mesuré ci-dessous.
+
+> ⚠️ **LE DÉFAUT QU'IL FERME, ET IL ÉTAIT INVISIBLE DEPUIS DES MOIS.**
+> `globals.css` déclarait `--sk-accent` avec une valeur de secours, puis dérivait
+> `--sk-accent-soft` et `--sk-accent-ink` par `color-mix(in srgb, var(--sk-accent) …)` **sur
+> `:root`** — en comptant sur la surcharge que `<DashboardShell>` posait plus bas.
+>
+> **Ça n'a jamais marché.** Une propriété personnalisée est substituée **à l'endroit où elle est
+> déclarée** : les deux dérivés se figeaient sur la valeur de secours et n'ont jamais suivi
+> l'écosystème. **Mesuré dans un navigateur le 21/09/2026**, sur un témoin reproduisant la cascade
+> mot pour mot : bordure `#0EA5E9` (elle lit `--sk-accent` directement, elle suit), fond
+> `#E6EDFD` et texte `#2553BB` (les dérivés d'un bleu que personne n'avait choisi). L'entrée de
+> menu active sortait **en indigo** pendant que le logo était **en bleu ciel**, à quinze pixels
+> d'écart. Le commentaire de `DashboardShell` affirmait *« un domaine non-bleu reste cohérent »*.
+>
+> **La parade n'est pas de corriger la dérivation : c'est de N'EN AVOIR AUCUNE.** Tout est calculé
+> au serveur et posé en littéral. La classe entière disparaît, elle n'est pas contournée.
+
+#### AJOUTER UN ÉCOSYSTÈME — ce qu'il faut faire, et ce qu'il ne faut PAS faire
+
+1. Le créer dans `/admin/ecosystemes`. Sa ligne `domain_configs` naît **aux couleurs de la
+   référence**, par le `DEFAULT` des colonnes : il est lisible dès la première seconde, et
+   l'écran les montre le premier jour.
+2. Y régler la **couleur de marque** (le logo) et, si la marque l'impose au pixel, les autres rôles.
+3. Ne rien régler d'autre : `boutons` se **dérive** de la marque jusqu'au contraste cible contre le
+   fond de page de **cet** écosystème. Un écosystème dont le fond n'est pas celui de la référence
+   obtient donc quand même un bouton lisible — c'est tout l'objet de la dérivation.
+4. **Ne toucher à aucun fichier.** Un écosystème de plus n'est pas un déploiement, et c'est la
+   propriété que ce lot achète.
+
+**Ce qui est vérifié avant d'écrire, et ce qui ne l'est pas.** `verifierContraste()` refuse
+**sept paires** — le texte principal et le texte secondaire sur chacune des trois surfaces, plus le
+libellé d'un bouton sur son bouton. **Les bordures n'y sont pas, et c'est délibéré** : la bordure de
+référence vaut **1,25** contre le fond de page, et exiger 3 pour 1 ferait rougir la palette de
+l'accueil elle-même dès le premier jour (§E.14). On ne garde que ce qui a été nommé.
 
 ## F. La classe de défaut « lire puis écrire »
 

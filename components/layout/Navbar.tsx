@@ -3,7 +3,6 @@
 import { useTranslations } from 'next-intl'
 import { useRouter, Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
-import { theme } from '@/components/home/theme'
 import ImageOuRepli from '@/components/ui/ImageOuRepli'
 
 /**
@@ -15,7 +14,7 @@ import ImageOuRepli from '@/components/ui/ImageOuRepli'
  * deux VRAIES pages publiques — « Qui sommes-nous » et « Contact » — via le
  * <Link> i18n (préfixe automatique de la locale).
  *
- * Le logo conserve `domain.primaryColor` : c'est la marque du domaine, elle ne
+ * Le logo porte `--sk-marque` : c'est la marque du domaine, elle ne
  * suit pas l'accent de la page.
  */
 const PAGE_LINKS = [
@@ -40,7 +39,7 @@ export default function Navbar() {
         }}
       >
         <span style={{
-          width: 30, height: 30, borderRadius: 8, background: domain.primaryColor,
+          width: 30, height: 30, borderRadius: 8, background: 'var(--sk-marque)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
           {/* Le repli couvre l'ABSENCE et l'ÉCHEC : sans lui, un logo
@@ -58,7 +57,7 @@ export default function Navbar() {
             }
           />
         </span>
-        <span style={{ fontSize: 16, fontWeight: 700, color: theme.ink, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--sk-text)', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
           {domain.name}
         </span>
       </button>

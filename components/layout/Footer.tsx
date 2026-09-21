@@ -3,7 +3,6 @@
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
-import { theme } from '@/components/home/theme'
 import ImageOuRepli from '@/components/ui/ImageOuRepli'
 
 /**
@@ -33,7 +32,7 @@ export default function Footer() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
             <span style={{
-              width: 28, height: 28, borderRadius: 8, background: domain.primaryColor,
+              width: 28, height: 28, borderRadius: 8, background: 'var(--sk-marque)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
               {/* Repli sur ABSENCE *et* ÉCHEC — cf. ImageOuRepli. */}
@@ -51,7 +50,7 @@ export default function Footer() {
             </span>
             <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em' }}>{domain.name}</span>
           </div>
-          <p style={{ fontSize: 14, lineHeight: 1.65, color: theme.onInkMuted, margin: 0, maxWidth: '32ch' }}>
+          <p style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--sk-sur-encre-tenu)', margin: 0, maxWidth: '32ch' }}>
             {t('tagline', { ecosystem: domain.ecosystemName })}
           </p>
         </div>

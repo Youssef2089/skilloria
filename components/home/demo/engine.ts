@@ -10,14 +10,15 @@
 // Contraintes tenues ici :
 //   - aucune bibliothèque d'animation, aucune ressource externe : DOM impératif
 //     et keyframes CSS injectées, comme la démo d'origine ;
-//   - tout est porté par la couleur d'accent du domaine courant, rien en dur ;
+//   - tout est porté par la palette de l'écosystème servi (ctx.palette pour
+//     le SVG, les jetons --sk-* pour le CSS), rien en dur ;
 //   - `prefers-reduced-motion` coupe la boucle et les déplacements : le scénario
 //     se joue une seule fois, instantanément, et s'arrête sur son état final ;
 //   - démontage propre : chaque timer et chaque intervalle est suivi puis
 //     annulé, et tout est scopé à la racine (deux démos peuvent coexister le
 //     temps d'une bascule d'onglet sans se marcher dessus).
 
-import { theme } from '../theme'
+import type { Palette } from '@/lib/palette'
 import { portrait } from './portraits'
 
 /**
@@ -38,8 +39,15 @@ const TEMPO = 1.0
 export type DemoContext = {
   /** Panneau de gauche : la scène où chaque phase se dessine. */
   panel: HTMLElement
-  accent: string
-  accentSoft: string
+  /**
+   * La palette RESOLUE de l ecosysteme servi.
+   *
+   * La demo dessine du SVG en chaines, et un attribut de presentation SVG
+   * (fill=, stroke=) ne resout PAS une variable CSS. Elle a donc besoin des
+   * VALEURS, pas des jetons — sans pour autant ecrire un litteral : la source
+   * reste lib/palette.ts.
+   */
+  palette: Palette
   /** Vrai dès que le composant est démonté : à tester avant tout effet long. */
   cancelled: () => boolean
   reduced: boolean
@@ -61,8 +69,7 @@ export type DemoScenario = (ctx: DemoContext) => Promise<void>
 export type DemoOptions = {
   steps: string[]
   progressLabel: string
-  accent: string
-  accentSoft: string
+  palette: Palette
   reduced: boolean
   scenario: DemoScenario
 }
@@ -76,9 +83,9 @@ export function esc(value: string): string {
     .replace(/"/g, '&quot;')
 }
 
-function buildStyles(accent: string, accentSoft: string): string {
+function buildStyles(): string {
   return `
-    .skh-demo{position:relative;height:560px;border-radius:18px;overflow:hidden;border:1px solid ${theme.border};background:${theme.cream};font-family:inherit}
+    .skh-demo{position:relative;height:560px;border-radius:18px;overflow:hidden;border:1px solid var(--sk-border);background:var(--sk-bg);font-family:inherit}
     @media (min-width:760px){.skh-demo{height:520px}}
 
     .skh-demo *{box-sizing:border-box}
@@ -86,12 +93,12 @@ function buildStyles(accent: string, accentSoft: string): string {
     @media (min-width:760px){.skh-layout{flex-direction:row;gap:12px;padding:14px}}
 
     .skh-panelwrap{flex:1;min-width:0;min-height:0}
-    .skh-panel{background:${theme.white};border:1px solid ${theme.borderSoft};border-radius:14px;padding:13px;height:100%;overflow:hidden;transition:opacity .3s ease}
+    .skh-panel{background:var(--sk-surface);border:1px solid var(--sk-border-soft);border-radius:14px;padding:13px;height:100%;overflow:hidden;transition:opacity .3s ease}
 
-    .skh-progress{background:${theme.white};border:1px solid ${theme.borderSoft};border-radius:14px;padding:10px 12px;flex-shrink:0}
+    .skh-progress{background:var(--sk-surface);border:1px solid var(--sk-border-soft);border-radius:14px;padding:10px 12px;flex-shrink:0}
     @media (min-width:760px){.skh-progress{width:186px;align-self:flex-start;padding:12px}}
 
-    .skh-progress-title{font-size:11px;font-weight:600;color:${theme.faint};letter-spacing:.06em;text-transform:uppercase;margin-bottom:9px;display:none}
+    .skh-progress-title{font-size:11px;font-weight:600;color:var(--sk-faint);letter-spacing:.06em;text-transform:uppercase;margin-bottom:9px;display:none}
     @media (min-width:760px){.skh-progress-title{display:block}}
 
     .skh-steps{display:flex;flex-direction:row;gap:6px;overflow-x:auto;scrollbar-width:none}
@@ -99,29 +106,29 @@ function buildStyles(accent: string, accentSoft: string): string {
     @media (min-width:760px){.skh-steps{flex-direction:column;gap:2px;overflow:visible}}
 
     .skh-step{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;transition:background .35s ease,color .35s ease;flex-shrink:0}
-    .skh-snum{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;background:${theme.cream};color:${theme.faint};transition:background .35s ease,color .35s ease}
-    .skh-slbl{font-size:12px;font-weight:500;line-height:1.3;color:${theme.faint};white-space:nowrap;transition:color .35s ease}
+    .skh-snum{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;background:var(--sk-bg);color:var(--sk-faint);transition:background .35s ease,color .35s ease}
+    .skh-slbl{font-size:12px;font-weight:500;line-height:1.3;color:var(--sk-faint);white-space:nowrap;transition:color .35s ease}
     @media (min-width:760px){.skh-slbl{white-space:normal}}
-    .skh-step.is-active{background:${accentSoft}}
-    .skh-step.is-active .skh-snum{background:${accent};color:${theme.white}}
-    .skh-step.is-active .skh-slbl{color:${accent};font-weight:700}
-    .skh-step.is-done .skh-snum{background:${theme.successSoft};color:${theme.success}}
-    .skh-step.is-done .skh-slbl{color:${theme.muted};font-weight:500}
+    .skh-step.is-active{background:var(--sk-accent-soft)}
+    .skh-step.is-active .skh-snum{background:var(--sk-accent);color:var(--sk-sur-accent)}
+    .skh-step.is-active .skh-slbl{color:var(--sk-accent);font-weight:700}
+    .skh-step.is-done .skh-snum{background:var(--sk-success-soft);color:var(--sk-success)}
+    .skh-step.is-done .skh-slbl{color:var(--sk-muted);font-weight:500}
 
     .skh-barwrap{padding:0 12px 12px}
-    .skh-bar{height:3px;background:${theme.border};border-radius:10px;overflow:hidden}
-    .skh-bar>i{display:block;height:100%;width:0;background:${accent};border-radius:10px}
+    .skh-bar{height:3px;background:var(--sk-border);border-radius:10px;overflow:hidden}
+    .skh-bar>i{display:block;height:100%;width:0;background:var(--sk-accent);border-radius:10px}
 
     .skh-cursor{position:absolute;width:18px;height:18px;pointer-events:none;z-index:20;left:50%;top:50%;transition:left .38s cubic-bezier(.25,.1,.25,1),top .38s cubic-bezier(.25,.1,.25,1)}
 
-    .skh-card{background:${theme.white};border:1px solid ${theme.border};border-radius:11px}
-    .skh-field{background:${theme.cream};border:1.5px solid ${theme.border};border-radius:9px;padding:8px 11px;font-size:13px;color:${theme.ink};min-height:34px;white-space:pre-wrap;word-break:break-word;transition:border-color .2s,background .2s}
-    .skh-field.is-focus{border-color:${accent};background:${theme.white}}
+    .skh-card{background:var(--sk-surface);border:1px solid var(--sk-border);border-radius:11px}
+    .skh-field{background:var(--sk-bg);border:1.5px solid var(--sk-border);border-radius:9px;padding:8px 11px;font-size:13px;color:var(--sk-text);min-height:34px;white-space:pre-wrap;word-break:break-word;transition:border-color .2s,background .2s}
+    .skh-field.is-focus{border-color:var(--sk-accent);background:var(--sk-surface)}
     .skh-area{height:64px;overflow:hidden;line-height:1.5}
-    .skh-tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;background:${theme.cream};color:${theme.muted};border:1px solid ${theme.border}}
-    .skh-avatar{border-radius:50%;background:${accentSoft};color:${accent};display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
-    .skh-row{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid ${theme.border};border-radius:10px;background:${theme.white};transition:border-color .25s,background .25s}
-    .skh-row.is-sel{border-color:${theme.success};background:${theme.successSoft}}
+    .skh-tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;background:var(--sk-bg);color:var(--sk-muted);border:1px solid var(--sk-border)}
+    .skh-avatar{border-radius:50%;background:var(--sk-accent-soft);color:var(--sk-accent);display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+    .skh-row{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--sk-border);border-radius:10px;background:var(--sk-surface);transition:border-color .25s,background .25s}
+    .skh-row.is-sel{border-color:var(--sk-success);background:var(--sk-success-soft)}
 
     .skh-in-up{animation:skh-inUp .32s ease both}
     .skh-in{animation:skh-in .3s ease both}
@@ -137,8 +144,8 @@ function buildStyles(accent: string, accentSoft: string): string {
     @keyframes skh-dot{0%,80%,100%{transform:scale(.6);opacity:.3}40%{transform:scale(1);opacity:1}}
     @keyframes skh-live{0%,100%{opacity:1}50%{opacity:.35}}
     .skh-spin{animation:skh-spin 1.2s linear infinite}
-    .skh-dot{width:5px;height:5px;border-radius:50%;background:${theme.faint};animation:skh-dot 1.2s infinite}
-    .skh-live{width:7px;height:7px;border-radius:50%;background:${theme.success};animation:skh-live 2s infinite;flex-shrink:0}
+    .skh-dot{width:5px;height:5px;border-radius:50%;background:var(--sk-faint);animation:skh-dot 1.2s infinite}
+    .skh-live{width:7px;height:7px;border-radius:50%;background:var(--sk-success);animation:skh-live 2s infinite;flex-shrink:0}
 
     /* Mouvement réduit : plus de boucle, plus de curseur, plus d'apparitions. */
     .skh-demo.is-static .skh-cursor{display:none}
@@ -147,7 +154,7 @@ function buildStyles(accent: string, accentSoft: string): string {
 }
 
 export function mountDemo(root: HTMLElement, options: DemoOptions): () => void {
-  const { steps, progressLabel, accent, accentSoft, reduced, scenario } = options
+  const { steps, progressLabel, palette, reduced, scenario } = options
 
   let cancelled = false
   const timeouts = new Set<ReturnType<typeof setTimeout>>()
@@ -157,12 +164,12 @@ export function mountDemo(root: HTMLElement, options: DemoOptions): () => void {
   root.className = reduced ? 'skh-demo is-static' : 'skh-demo'
 
   const style = document.createElement('style')
-  style.textContent = buildStyles(accent, accentSoft)
+  style.textContent = buildStyles()
   root.appendChild(style)
 
   const cursor = document.createElement('div')
   cursor.className = 'skh-cursor'
-  cursor.innerHTML = `<svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 2L3 15.5L6.8 11.5L9.5 17L11.2 16.1L8.5 10.5L13.5 10.5Z" fill="${theme.ink}" stroke="${theme.white}" stroke-width="1.2" stroke-linejoin="round"/></svg>`
+  cursor.innerHTML = `<svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 2L3 15.5L6.8 11.5L9.5 17L11.2 16.1L8.5 10.5L13.5 10.5Z" fill="var(--sk-text)" stroke="var(--sk-surface)" stroke-width="1.2" stroke-linejoin="round"/></svg>`
   root.appendChild(cursor)
 
   const layout = document.createElement('div')
@@ -233,7 +240,7 @@ export function mountDemo(root: HTMLElement, options: DemoOptions): () => void {
     if (!target || cancelled || reduced) return
     const point = centerOf(target)
     const ripple = document.createElement('div')
-    ripple.style.cssText = `position:absolute;left:${point.x - 10}px;top:${point.y - 10}px;width:20px;height:20px;border-radius:50%;background:${accentSoft};transform:scale(0);animation:skh-ripple .35s ease-out forwards;pointer-events:none;z-index:19`
+    ripple.style.cssText = `position:absolute;left:${point.x - 10}px;top:${point.y - 10}px;width:20px;height:20px;border-radius:50%;background:var(--sk-accent-soft);transform:scale(0);animation:skh-ripple .35s ease-out forwards;pointer-events:none;z-index:19`
     root.appendChild(ripple)
     target.style.transform = 'scale(.98)'
     await sleep(duration)
@@ -250,7 +257,7 @@ export function mountDemo(root: HTMLElement, options: DemoOptions): () => void {
     return new Promise(resolve => {
       const node = document.createTextNode('')
       const caret = document.createElement('span')
-      caret.style.cssText = `border-right:2px solid ${accent};animation:skh-blink .8s infinite;display:inline-block;width:1px;height:1.1em;vertical-align:text-bottom;margin-left:1px`
+      caret.style.cssText = `border-right:2px solid var(--sk-accent);animation:skh-blink .8s infinite;display:inline-block;width:1px;height:1.1em;vertical-align:text-bottom;margin-left:1px`
       target.innerHTML = ''
       target.appendChild(node)
       target.appendChild(caret)
@@ -292,7 +299,7 @@ export function mountDemo(root: HTMLElement, options: DemoOptions): () => void {
       const number = stepNumbers[i]
       node.classList.toggle('is-active', position === index)
       node.classList.toggle('is-done', position < index)
-      number.innerHTML = position < index ? checkMark(theme.success) : String(position)
+      number.innerHTML = position < index ? checkMark('var(--sk-success)') : String(position)
     })
     // Sur mobile la colonne de progression devient une bande horizontale : on y
     // recentre l'étape courante. Le défilement est appliqué à la bande elle-même,
@@ -333,8 +340,7 @@ export function mountDemo(root: HTMLElement, options: DemoOptions): () => void {
 
   const context: DemoContext = {
     panel,
-    accent,
-    accentSoft,
+    palette,
     cancelled: () => cancelled,
     reduced,
     sleep,

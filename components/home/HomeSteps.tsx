@@ -1,7 +1,6 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { theme } from './theme'
 import type { HomeAudience } from './audience'
 
 /**
@@ -18,7 +17,7 @@ export default function HomeSteps({ audience }: { audience: HomeAudience }) {
   const steps = STEPS[audience]
 
   return (
-    <section id="etapes" style={{ background: theme.beige, borderTop: `1px solid ${theme.border}` }}>
+    <section id="etapes" style={{ background: 'var(--sk-bandeau)', borderTop: `1px solid ${'var(--sk-border)'}` }}>
       <h2 className="skh-h2">{t(`${audience}.title`)}</h2>
 
       <ol className="skh-steps-grid" style={{ listStyle: 'none', padding: 0 }}>

@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl'
 import { useDomain } from '@/context/DomainContext'
-import { theme } from './theme'
 import type { EcosystemBranch } from '@/lib/home-ecosystem'
 
 /**
@@ -25,7 +24,7 @@ export default function HomeEcosystem({ branches }: { branches: EcosystemBranch[
   if (branches.length === 0) return null
 
   return (
-    <section id="domaines" style={{ background: theme.white, borderTop: `1px solid ${theme.border}` }}>
+    <section id="domaines" style={{ background: 'var(--sk-surface)', borderTop: `1px solid ${'var(--sk-border)'}` }}>
       <h2 className="skh-h2">{t('title', { ecosystem: domain.ecosystemName })}</h2>
       <p className="skh-sub">{t('subtitle', { ecosystem: domain.ecosystemName })}</p>
 

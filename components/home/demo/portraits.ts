@@ -13,7 +13,7 @@
 // Chaque portrait est déterministe : un index donne toujours le même visage, donc
 // une même personne fictive garde son visage d'une démonstration à l'autre.
 
-import { portraitInk, portraitPresets } from '../theme'
+import { portraitInk, portraitPresets } from '@/lib/portraits-demo'
 
 // Les identifiants de clipPath doivent être uniques dans le document : plusieurs
 // portraits coexistent, et deux démos peuvent se croiser lors d'une bascule d'onglet.

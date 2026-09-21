@@ -6,6 +6,7 @@ import { getMessages, getTranslations } from "next-intl/server";
 import { DomainProvider } from "@/context/DomainContext";
 import NavHistoryProvider from "@/components/shell/NavHistoryProvider";
 import { getDomainConfig } from "@/lib/get-domain-config";
+import { stylePalette } from "@/lib/palette";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 
@@ -64,8 +65,27 @@ export default async function LocaleLayout({
     getMessages(),
   ]);
 
+  // ╔════════════════════════════════════════════════════════════════════════╗
+  // ║ LA PALETTE EST POSÉE ICI, SUR `<html>`, ET NULLE PART AILLEURS.        ║
+  // ║                                                                        ║
+  // ║ C'est `:root` lui-même : tous les jetons `--sk-*` du produit naissent   ║
+  // ║ de cette ligne, résolus au serveur pour l'écosystème servi.            ║
+  // ║                                                                        ║
+  // ║ Pourquoi un style EN LIGNE plutôt qu'une feuille :                      ║
+  // ║  · il l'emporte sur toute feuille, donc il n'existe aucun second        ║
+  // ║    endroit où une couleur pourrait vivre ;                              ║
+  // ║  · il arrive dans le HTML initial, donc la page n'est jamais peinte     ║
+  // ║    sans sa palette ;                                                    ║
+  // ║  · et surtout il ferme par CONSTRUCTION le défaut mesuré le 21/09/2026 : ║
+  // ║    `globals.css` dérivait deux jetons par `color-mix()` sur `:root`,    ║
+  // ║    et une propriété personnalisée est substituée LÀ OÙ ELLE EST         ║
+  // ║    DÉCLARÉE. Les dérivés se figeaient donc sur la valeur de secours et  ║
+  // ║    ignoraient la surcharge posée plus bas par le shell — le menu actif  ║
+  // ║    sortait en indigo pendant que le logo était en bleu ciel. Ici, tout  ║
+  // ║    est déjà calculé : il n'y a plus rien à dériver au navigateur.       ║
+  // ╚════════════════════════════════════════════════════════════════════════╝
   return (
-    <html lang={locale}>
+    <html lang={locale} style={stylePalette(domainConfig.palette)}>
       <body className={`${geistSans.variable} ${geistMono.variable} ${plusJakarta.variable} min-h-full flex flex-col`}>
         <NextIntlClientProvider messages={messages} locale={locale}>
           <DomainProvider config={domainConfig}>

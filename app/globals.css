@@ -1,46 +1,41 @@
 @import "tailwindcss";
 
 /* ===========================================================================
-   Skilloria — Design tokens (Lot refonte UX/layout dashboard)
-   ---------------------------------------------------------------------------
-   Tokens partagés par le shell + primitives UI. Couleurs neutres / surfaces /
-   radii / texte. L'accent est multi-tenant (useDomain().primaryColor) —
-   --accent est défini DYNAMIQUEMENT au runtime par <DashboardShell> via
-   un style inline sur le root du shell, puis --accent-soft / --accent-ink
-   sont DÉRIVÉS via color-mix(in srgb, var(--accent) X%, white/black).
-   Cela préserve le multi-tenant : un domaine non-bleu reste cohérent.
+   Skilloria — ce qui n'est PAS une couleur.
+
+   ⚠️ CE FICHIER NE DÉCLARE PLUS AUCUNE COULEUR, et c'est le changement du lot
+      « palette unique » (21/09/2026). Il en portait dix-huit.
+
+   Les jetons `--sk-*` sont désormais posés sur `<html>` par le layout racine
+   ([app/[locale]/layout.tsx]), résolus AU SERVEUR depuis la palette de
+   l'écosystème servi ([lib/palette.ts]). Les redéclarer ici en ferait un
+   second endroit où une couleur vit — et le second endroit finit toujours par
+   diverger du premier (§E.20).
+
+   ┌─ CE QUE LE DÉPLACEMENT A RÉPARÉ, ET CE N'EST PAS UN DÉTAIL ────────────┐
+   │ Ce fichier dérivait `--sk-accent-soft` et `--sk-accent-ink` par         │
+   │ `color-mix(in srgb, var(--sk-accent) …)` sur `:root`, en comptant sur   │
+   │ la surcharge de `--sk-accent` posée plus bas par <DashboardShell>.      │
+   │                                                                        │
+   │ Ça ne marchait pas. Une propriété personnalisée est substituée À        │
+   │ L'ENDROIT OÙ ELLE EST DÉCLARÉE : les deux dérivés se figeaient sur la   │
+   │ valeur de secours de `:root` et n'ont jamais suivi l'écosystème.        │
+   │ MESURÉ dans un navigateur le 21/09/2026 : l'entrée de menu active       │
+   │ sortait en #2553BB sur #E6EDFD — les dérivés d'un bleu que personne     │
+   │ n'avait choisi — pendant que le logo, qui lit `--sk-accent`             │
+   │ directement, sortait bien à la couleur de l'écosystème.                 │
+   │                                                                        │
+   │ La parade n'est pas de corriger la dérivation : c'est de N'EN AVOIR     │
+   │ AUCUNE. Tout est calculé au serveur et posé en littéral.                │
+   └────────────────────────────────────────────────────────────────────────┘
+
+   Pas de mode sombre en V1 : tous les écrans sont conçus pour des fonds
+   clairs, et la seule surface foncée du produit est le pied de page de
+   l'accueil, qui porte ses propres jetons.
    =========================================================================== */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-
-  /* Surfaces neutres alignées maquettes (skilloria-*-apercu.html) */
-  --sk-bg:           #F6F7F9;
-  --sk-surface:      #FFFFFF;
-  --sk-surface-2:    #F8FAFC;
-  --sk-border:       #E7E9ED;
-  --sk-border-soft:  #EEF0F3;
-  --sk-text:         #161A20;
-  --sk-muted:        #697586;
-  --sk-faint:        #9AA3B0;
-
-  /* Statuts sémantiques (StatusPill : open / wait / refused) */
-  --sk-success:      #0F9D6B;
-  --sk-success-soft: #E6F6EF;
-  --sk-success-ink:  #0B7A53;
-  --sk-amber:        #B7791F;
-  --sk-amber-soft:   #FBF1DF;
-  --sk-red:          #C0392B;
-  --sk-red-soft:     #FBEBE9;
-
-  /* Accent multi-tenant — fallback si <DashboardShell> n'a pas encore monté.
-     ⚠ Ne pas dépendre de ce fallback dans les pages : le shell le surcharge
-     via un style inline en fonction de useDomain().primaryColor. */
-  --sk-accent:       #2F6BF0;
-  --sk-accent-soft:  color-mix(in srgb, var(--sk-accent) 12%, white);
-  --sk-accent-ink:   color-mix(in srgb, var(--sk-accent) 78%, black);
-
-  /* Rayons */
+  /* Rayons. Ce ne sont pas des couleurs : ils restent ici. */
   --sk-r:    10px;
   --sk-r-lg: 14px;
 }
@@ -52,9 +47,6 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Pas de dark mode en V1 — pin sur le mode clair, tous les écrans sont conçus
-   pour des fonds clairs (skilloria-*-apercu.html). Préviens les surprises sur
-   les laptops en dark system. */
 body {
   background: var(--background);
   color: var(--foreground);

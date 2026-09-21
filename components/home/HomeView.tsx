@@ -2,8 +2,6 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useDomain } from '@/context/DomainContext'
-import { accentStrong, accentTint } from '@/lib/domain-config'
 import Topbar from '@/components/layout/Topbar'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
@@ -26,15 +24,15 @@ import type { EcosystemBranch } from '@/lib/home-ecosystem'
  * réellement la démo précédente (nettoyage des timers) avant de monter l'autre.
  */
 export default function HomeView({ ecosystem }: { ecosystem: EcosystemBranch[] }) {
-  const domain = useDomain()
   const t = useTranslations('homepage')
   const [audience, setAudience] = useState<HomeAudience>(DEFAULT_AUDIENCE)
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
-  const styles = useMemo(() => {
-    const accent = domain.accentColor
-    return homeStyles(accent, accentTint(accent), accentStrong(accent))
-  }, [domain.accentColor])
+  // La feuille ne dépend plus d'aucune couleur : elle ne cite que des jetons
+  // `--sk-*`, posés sur `<html>` par le layout racine. Elle est donc CONSTANTE,
+  // et la mémoïsation n'a plus de dépendance — changer d'écosystème change les
+  // jetons, pas la feuille.
+  const styles = useMemo(() => homeStyles(), [])
 
   function onTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, index: number) {
     const moves: Record<string, number> = {
