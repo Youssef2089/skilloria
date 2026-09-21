@@ -243,7 +243,7 @@ export default function AdminExpertsListPage() {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   {r.verification_score != null && (
-                    <span style={{ display: 'inline-block', padding: '3px 9px', background: `${scoreColor(r.verification_score)}1A`, color: scoreColor(r.verification_score), fontSize: 11, fontWeight: 700, borderRadius: 10 }}>
+                    <span style={{ display: 'inline-block', padding: '3px 9px', background: `color-mix(in srgb, ${scoreColor(r.verification_score)} 10%, transparent)`, color: scoreColor(r.verification_score), fontSize: 11, fontWeight: 700, borderRadius: 10 }}>
                       {Math.round(r.verification_score)}/10
                     </span>
                   )}

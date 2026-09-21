@@ -170,8 +170,14 @@ export default function EcosystemSwitcher() {
         height: 8,
         borderRadius: 999,
         flexShrink: 0,
-        background: color ?? 'var(--sk-border, var(--sk-border))',
-        boxShadow: color ? `0 0 0 2px ${color}22` : undefined,
+        background: color ?? 'var(--sk-border)',
+        // ⚠️ `${color}22` MARCHAIT ICI, et c'est justement pourquoi on le change :
+        //    `color` est la couleur de marque d'un écosystème, lue en base, donc
+        //    un hexadécimal — la concaténation produisait `#RRGGBB22`, valide.
+        //    Le jour où quelqu'un passe un jeton à `dot()`, elle produirait
+        //    `var(--sk-x)22`, que le navigateur ignore SANS RIEN DIRE.
+        //    `color-mix` accepte les deux et ne peut pas se taire.
+        boxShadow: color ? `0 0 0 2px color-mix(in srgb, ${color} 13%, transparent)` : undefined,
       }}
     />
   )

@@ -75,7 +75,7 @@ function Pill({ children, color }: { children: React.ReactNode; color: string })
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        background: `${color}14`,
+        background: `color-mix(in srgb, ${color} 8%, transparent)`,
         color,
         padding: '5px 12px',
         borderRadius: 999,

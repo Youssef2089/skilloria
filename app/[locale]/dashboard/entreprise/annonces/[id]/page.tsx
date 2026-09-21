@@ -165,7 +165,7 @@ export default function AnnonceDetailPage({ params }: Props) {
                 display: 'inline-flex',
                 padding: '4px 10px',
                 borderRadius: 999,
-                background: `${domain.primaryColor}14`,
+                background: `color-mix(in srgb, ${domain.primaryColor} 8%, transparent)`,
                 color: domain.primaryColor,
                 fontSize: 11,
                 fontWeight: 700,
@@ -295,12 +295,12 @@ export default function AnnonceDetailPage({ params }: Props) {
                   key={s}
                   style={{
                     padding: '4px 10px',
-                    background: `${domain.primaryColor}14`,
+                    background: `color-mix(in srgb, ${domain.primaryColor} 8%, transparent)`,
                     color: domain.primaryColor,
                     fontSize: 12,
                     fontWeight: 600,
                     borderRadius: 8,
-                    border: `1px solid ${domain.primaryColor}33`,
+                    border: `1px solid color-mix(in srgb, ${domain.primaryColor} 20%, transparent)`,
                   }}
                 >
                   {s}

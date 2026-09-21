@@ -160,7 +160,7 @@ export default function CandidaturesPage({ params }: Props) {
             alignItems: 'center',
             padding: '5px 11px',
             borderRadius: 999,
-            background: `${domain.primaryColor}14`,
+            background: `color-mix(in srgb, ${domain.primaryColor} 8%, transparent)`,
             color: domain.primaryColor,
             fontSize: 11.5,
             fontWeight: 700,

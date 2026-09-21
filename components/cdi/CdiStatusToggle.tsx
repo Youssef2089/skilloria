@@ -62,7 +62,7 @@ export default function CdiStatusToggle({ value, onChange, disabled }: Props) {
             onClick={() => onChange(opt)}
             style={{
               textAlign: 'left',
-              background: active ? `${color}10` : 'var(--sk-surface)',
+              background: active ? `color-mix(in srgb, ${color} 6%, transparent)` : 'var(--sk-surface)',
               border: `2px solid ${active ? color : 'var(--sk-border)'}`,
               borderRadius: 14,
               padding: '14px 16px',
@@ -71,7 +71,7 @@ export default function CdiStatusToggle({ value, onChange, disabled }: Props) {
               transition: 'all 0.2s ease',
               fontFamily: 'inherit',
               outline: 'none',
-              boxShadow: active ? `0 4px 14px ${color}33` : 'none',
+              boxShadow: active ? `0 4px 14px color-mix(in srgb, ${color} 20%, transparent)` : 'none',
             }}
           >
             <div style={{ fontSize: 22, marginBottom: 6 }} aria-hidden>

@@ -406,7 +406,9 @@ Une couleur se lit dans un jeton `--sk-*`, jamais écrite en toutes lettres. La 
 [lib/palette.ts](lib/palette.ts) ; les jetons sont posés **au serveur**, en littéral, sur `<html>`
 par le layout racine. **Gardé par [`diag-couleurs-litterales`](scripts/diag-couleurs-litterales.mjs)**
 (cliquet : le gel est un inventaire de MIGRATION par fichier, raison collective, le compte ne peut
-que descendre), et par [`diag-svg-couleurs`](scripts/diag-svg-couleurs.mjs) pour le piège §E.48.
+que descendre), par [`diag-svg-couleurs`](scripts/diag-svg-couleurs.mjs) pour le piège §E.48, et par
+[`diag-opacite-concatenee`](scripts/diag-opacite-concatenee.mjs) pour §E.50 — un suffixe d'opacité
+ne se colle JAMAIS à une couleur, on écrit `color-mix`.
 
 **Les valeurs sont celles de l'accueil**, mesurées le 21/09/2026
 ([docs/audit-couleurs.html](docs/audit-couleurs.html)) : c'était la seule surface du produit qui
@@ -597,6 +599,7 @@ bloquant, ordonnés avec les quatorze défauts nommés du gel 4.1d :
 | [E.47](docs/pieges.md#e47) | UNE RÈGLE JUSTE, APPLIQUÉE À UNE SEULE SURFACE, SE LIT COMME APPLIQUÉE PARTOUT. |
 | [E.48](docs/pieges.md#e48) | UNE VARIABLE CSS NE RÉSOUT PAS DANS UN ATTRIBUT SVG. Elle ne peint RIEN, et rien ne le dit. |
 | [E.49](docs/pieges.md#e49) | UNE PROPRIÉTÉ PERSONNALISÉE EST SUBSTITUÉE LÀ OÙ ELLE EST DÉCLARÉE, PAS LÀ OÙ ELLE EST LUE. |
+| [E.50](docs/pieges.md#e50) | UN SUFFIXE D'OPACITÉ COLLÉ À UNE COULEUR CESSE DE MARCHER LE JOUR OÙ LA COULEUR DEVIENT UN JETON. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

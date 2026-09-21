@@ -211,7 +211,7 @@ function NeedCard({
               {tPub(`status.${need.status}` as 'status.published')}
             </span>
             {toReview > 0 && (
-              <span style={{ padding: '3px 9px', borderRadius: 999, background: `${accent}18`, color: accent, fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+              <span style={{ padding: '3px 9px', borderRadius: 999, background: `color-mix(in srgb, ${accent} 9%, transparent)`, color: accent, fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>
                 {t('new_badge')}
               </span>
             )}

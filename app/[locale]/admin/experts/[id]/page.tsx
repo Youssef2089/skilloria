@@ -224,7 +224,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <h2 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#64748b' }}>{t('section_ai_verdict')}</h2>
             {e.verification_score != null && (
-              <span style={{ padding: '4px 12px', background: `${scoreColor(e.verification_score)}1A`, color: scoreColor(e.verification_score), fontSize: 13, fontWeight: 700, borderRadius: 12 }}>
+              <span style={{ padding: '4px 12px', background: `color-mix(in srgb, ${scoreColor(e.verification_score)} 10%, transparent)`, color: scoreColor(e.verification_score), fontSize: 13, fontWeight: 700, borderRadius: 12 }}>
                 {Math.round(e.verification_score)}/10
               </span>
             )}

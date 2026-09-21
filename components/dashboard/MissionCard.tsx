@@ -129,7 +129,7 @@ export default function MissionCard({
               alignItems: 'center',
               gap: 6,
               padding: '4px 10px',
-              background: `${tierColor(relevance_tier, 'var(--sk-accent)')}1A`,
+              background: `color-mix(in srgb, ${tierColor(relevance_tier, 'var(--sk-accent)')} 10%, transparent)`,
               color: tierColor(relevance_tier, 'var(--sk-accent)'),
               fontSize: 11,
               fontWeight: 600,

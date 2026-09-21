@@ -308,7 +308,7 @@ export function companyScenario(labels: CompanyDemoLabels): DemoScenario {
     panel.appendChild(
       ctx.make(
         `${verifiedMark(p, 16)}<span style="font-size:13px;font-weight:600;color:${p.succes}">${esc(labels.selectionConfirmed)}</span>`,
-        `display:flex;align-items:center;gap:8px;padding:10px 12px;background:${p.succesDoux};border:1px solid ${p.succes}33;border-radius:9px;margin-top:10px`,
+        `display:flex;align-items:center;gap:8px;padding:10px 12px;background:${p.succesDoux};border:1px solid color-mix(in srgb, ${p.succes} 20%, transparent);border-radius:9px;margin-top:10px`,
       ),
     ).classList.add('skh-in-up')
     await ctx.sleep(360)
@@ -446,7 +446,7 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
     profile.querySelector<HTMLElement>('.skh-badge')!.style.opacity = '1'
     const state = profile.querySelector<HTMLElement>('.skh-state')!
     state.style.background = p.succesDoux
-    state.style.borderColor = `${p.succes}33`
+    state.style.borderColor = `color-mix(in srgb, ${p.succes} 20%, transparent)`
     state.innerHTML = `${verifiedMark(p, 15)}<span style="font-size:12px;font-weight:600;color:${p.succes}">${esc(labels.profile.verifiedBadge)}</span>`
     await ctx.sleep(360)
 
@@ -524,7 +524,7 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
          <span style="font-size:14px;font-weight:700;color:${p.textePrincipal}">${esc(labels.apply.sentTitle)}</span>
        </div>
        <div style="font-size:12px;line-height:1.55;color:${p.texteSecondaire}">${esc(labels.apply.sentBody)}</div>`,
-      `padding:13px;border:1px solid ${p.succes}33;border-radius:12px;background:${p.succesDoux}`,
+      `padding:13px;border:1px solid color-mix(in srgb, ${p.succes} 20%, transparent);border-radius:12px;background:${p.succesDoux}`,
     )
     sent.classList.add('skh-pop')
     panel.appendChild(sent)
@@ -533,7 +533,7 @@ export function expertScenario(labels: ExpertDemoLabels): DemoScenario {
     const anonymity = ctx.make(
       `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="flex-shrink:0;margin-top:1px"><rect x="4" y="10" width="16" height="10" rx="2.5" stroke="${p.avertissement}" stroke-width="1.9"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10" stroke="${p.avertissement}" stroke-width="1.9" stroke-linecap="round"/></svg>
        <span style="font-size:11px;line-height:1.55;color:${p.avertissement}">${esc(labels.apply.anonymityNote)}</span>`,
-      `display:flex;align-items:flex-start;gap:8px;margin-top:11px;padding:10px 11px;border-radius:9px;background:${p.avertissementDoux};border:1px solid ${p.avertissement}26`,
+      `display:flex;align-items:flex-start;gap:8px;margin-top:11px;padding:10px 11px;border-radius:9px;background:${p.avertissementDoux};border:1px solid color-mix(in srgb, ${p.avertissement} 15%, transparent)`,
     )
     anonymity.classList.add('skh-in-up')
     panel.appendChild(anonymity)

@@ -389,7 +389,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
                 alignItems: 'center',
                 gap: 6,
                 padding: '4px 10px',
-                background: `${scoreColor(ai_match_score, 'var(--sk-accent)')}1A`,
+                background: `color-mix(in srgb, ${scoreColor(ai_match_score, 'var(--sk-accent)')} 10%, transparent)`,
                 color: scoreColor(ai_match_score, 'var(--sk-accent)'),
                 fontSize: 11,
                 fontWeight: 600,

@@ -200,7 +200,7 @@ export default function AuthCallbackPage() {
                 height: 56,
                 margin: '0 auto 24px',
                 borderRadius: '50%',
-                border: `4px solid ${domain.primaryColor}33`,
+                border: `4px solid color-mix(in srgb, ${domain.primaryColor} 20%, transparent)`,
                 borderTopColor: domain.primaryColor,
                 animation: 'auth-callback-spin 0.9s linear infinite',
               }}

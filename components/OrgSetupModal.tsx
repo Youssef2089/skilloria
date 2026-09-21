@@ -276,7 +276,7 @@ export default function OrgSetupModal({
       padding: '10px 14px',
       border: `1.5px solid ${active ? domain.primaryColor : '#cbd5e1'}`,
       borderRadius: 10,
-      background: active ? `${domain.primaryColor}10` : '#fff',
+      background: active ? `color-mix(in srgb, ${domain.primaryColor} 6%, transparent)` : '#fff',
       cursor: 'pointer',
       fontSize: 13,
       fontWeight: 600,

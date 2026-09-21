@@ -2227,6 +2227,61 @@ dépend d'aucune discipline* — ici, une palette qui ne se dérive nulle part n
 > la CASCADE, pas du texte. Ce qui ferme la porte ici est **structurel** : `globals.css` ne déclare
 > plus aucune couleur, et `diag-couleurs-litterales` le tient.
 
+<a id="e50"></a>
+### E.50 — UN SUFFIXE D'OPACITÉ COLLÉ À UNE COULEUR CESSE DE MARCHER LE JOUR OÙ LA COULEUR DEVIENT UN JETON.
+
+**La forme.** `` `${couleur}33` `` — deux caractères hexadécimaux collés à une
+couleur pour l'afficher à 20 %. Elle marche parfaitement tant que `couleur`
+porte un hexadécimal : la chaîne produit `#RRGGBB33`.
+
+**Ce qui la casse.** Le jour où `couleur` porte un JETON, la chaîne produit
+`var(--sk-red)33`. Ce n'est pas une couleur. Le navigateur **ignore la
+déclaration**, sans erreur, sans avertissement, sans rien : le fond disparaît,
+l'ombre disparaît, la bordure disparaît.
+
+**LE CAS FONDATEUR EST DE MA MAIN, ET IL EST INSTRUCTIF PARCE QUE LA PARADE
+EXISTAIT DÉJÀ DANS LE MÊME LOT.** Le codemod de la palette traitait ce cas
+nommément — il rendait `` `${domain.primaryColor}NN` `` en `color-mix`, et son
+commentaire expliquait pourquoi. Il ne l'a pas traité pour les variables
+**locales** qui reçoivent un jeton : `STATUS_COLORS[opt]`, `SECTION_PALETTE`,
+`statusColor`, `statusBadgeColor`, `accent`, `c`.
+
+**Vingt déclarations sont devenues invalides**, dont — et c'est là que ça se
+paie — **le fond teinté et l'ombre de la carte SÉLECTIONNÉE du bouton de
+disponibilité**, des deux côtés. C'est le bouton que le propriétaire du produit
+était en train de tester. §E.28 ③, une fois de plus : *une règle écrite à côté
+d'une ligne ne protège pas sa voisine.*
+
+**POURQUOI RIEN NE POUVAIT LE VOIR.** Il n'y a aucun littéral — le contrôle des
+couleurs littérales est vert. `tsc` ne lit pas une chaîne de style. `next build`
+non plus. Et le rendu ne casse pas : il **manque** quelque chose, ce qui ne se
+voit qu'en sachant ce qui devrait être là.
+
+**LA PARADE EST UNE FORME QUI NE PEUT PAS SE TAIRE.**
+`color-mix(in srgb, <couleur> N%, transparent)` accepte un hexadécimal **comme**
+un jeton. Une couleur invalide y est une erreur de syntaxe, pas un silence.
+
+**LE CONTRÔLE, ET SA RÈGLE EST PLUS LARGE QUE LE DÉFAUT — DÉLIBÉRÉMENT.**
+[scripts/diag-opacite-concatenee.mjs](../scripts/diag-opacite-concatenee.mjs)
+refuse le suffixe collé **même quand la variable porte un hexadécimal**, là où
+il marche encore. Deux raisons, et la seconde est la vraie :
+· savoir si une variable porte un jeton demanderait de suivre sa valeur à
+  travers les props, les fonctions et les fichiers — la résolution que §E.42 a
+  appris à ne pas croire ;
+· **une forme qui marche « tant que » est une forme qui cassera.** Elle a déjà
+  cassé une fois, en masse, sans un mot.
+
+Seize occurrences encore valides ont donc été converties avec les vingt cassées.
+Elles auraient cassé au lot suivant, au moment exact où leur fichier passe à la
+palette. Les laisser aurait été programmer la même panne en sachant qu'elle vient.
+
+> ⚠️ **CE QU'IL NE VÉRIFIE PAS, ET C'EST DIT** : une concaténation hors gabarit
+> (`couleur + '33'`), qui n'existe pas dans ce dépôt ; et la JUSTESSE du
+> pourcentage — il vérifie qu'une déclaration est valide, pas qu'elle est jolie.
+> Le motif exige **exactement deux** caractères hexadécimaux : accepter un seul
+> ferait mordre sur `` `${jours}j` `` et `` `${n}h` ``, et un contrôle qui crie à
+> tort est désactivé le jour même (§E.14).
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

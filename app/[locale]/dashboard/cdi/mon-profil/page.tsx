@@ -202,7 +202,7 @@ function Pill({ children, color }: { children: React.ReactNode; color: string })
     <span
       style={{
         display: 'inline-block',
-        background: `${color}14`,
+        background: `color-mix(in srgb, ${color} 8%, transparent)`,
         color,
         padding: '5px 12px',
         borderRadius: 999,
@@ -950,8 +950,8 @@ function Header({
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              background: `${statusColor}15`,
-              border: `1px solid ${statusColor}55`,
+              background: `color-mix(in srgb, ${statusColor} 8%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${statusColor} 33%, transparent)`,
               padding: '5px 12px',
               borderRadius: 999,
               fontSize: 12,

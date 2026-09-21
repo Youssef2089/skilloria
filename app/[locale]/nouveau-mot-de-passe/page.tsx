@@ -223,7 +223,7 @@ export default function NouveauMotDePassePage() {
           aria-label="loading"
           style={{
             width: 48, height: 48, margin: '0 auto 20px', borderRadius: '50%',
-            border: `4px solid ${domain.primaryColor}33`, borderTopColor: domain.primaryColor,
+            border: `4px solid color-mix(in srgb, ${domain.primaryColor} 20%, transparent)`, borderTopColor: domain.primaryColor,
             animation: 'reset-pw-spin 0.9s linear infinite',
           }}
         />

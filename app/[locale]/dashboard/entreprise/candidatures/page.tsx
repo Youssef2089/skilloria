@@ -333,7 +333,7 @@ export default function GlobalCandidaturesPage() {
                         alignSelf: 'flex-start',
                         padding: '3px 8px',
                         borderRadius: 999,
-                        background: `${domain.primaryColor}14`,
+                        background: `color-mix(in srgb, ${domain.primaryColor} 8%, transparent)`,
                         color: domain.primaryColor,
                         fontSize: 10.5,
                         fontWeight: 700,

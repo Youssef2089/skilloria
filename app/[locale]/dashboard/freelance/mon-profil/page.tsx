@@ -1087,7 +1087,7 @@ export default function MonProfilPage() {
                       justifyContent: 'center',
                       fontSize: 40,
                       fontWeight: 700,
-                      background: `linear-gradient(135deg, color-mix(in srgb, var(--sk-accent) 27%, transparent), ${'var(--sk-accent)'}44)`,
+                      background: `linear-gradient(135deg, color-mix(in srgb, var(--sk-accent) 27%, transparent), color-mix(in srgb, var(--sk-accent) 27%, transparent))`,
                       color: 'var(--sk-accent)',
                       border: `3px solid color-mix(in srgb, var(--sk-accent) 13%, transparent)`,
                     }}
@@ -1397,7 +1397,7 @@ export default function MonProfilPage() {
                               fontWeight: 600,
                               padding: '3px 8px',
                               borderRadius: 999,
-                              background: `${SECTION_PALETTE.career}1c`,
+                              background: `color-mix(in srgb, ${SECTION_PALETTE.career} 11%, transparent)`,
                               color: SECTION_PALETTE.career,
                               whiteSpace: 'nowrap',
                             }}
@@ -1471,7 +1471,7 @@ export default function MonProfilPage() {
                               fontWeight: 600,
                               padding: '3px 8px',
                               borderRadius: 999,
-                              background: `${SECTION_PALETTE.missions}1c`,
+                              background: `color-mix(in srgb, ${SECTION_PALETTE.missions} 11%, transparent)`,
                               color: SECTION_PALETTE.missions,
                               whiteSpace: 'nowrap',
                             }}
@@ -1553,9 +1553,9 @@ export default function MonProfilPage() {
                     key={`lang-${i}`}
                     className="pill"
                     style={{
-                      background: `${SECTION_PALETTE.languages}14`,
+                      background: `color-mix(in srgb, ${SECTION_PALETTE.languages} 8%, transparent)`,
                       color: 'var(--sk-amber)',
-                      border: `1px solid ${SECTION_PALETTE.languages}55`,
+                      border: `1px solid color-mix(in srgb, ${SECTION_PALETTE.languages} 33%, transparent)`,
                     }}
                   >
                     <span style={{ fontWeight: 600 }}>{l.language}</span>
@@ -1600,9 +1600,9 @@ export default function MonProfilPage() {
                           key={m}
                           className="pill"
                           style={{
-                            background: `${SECTION_PALETTE.availability}14`,
+                            background: `color-mix(in srgb, ${SECTION_PALETTE.availability} 8%, transparent)`,
                             color: 'var(--sk-success)',
-                            border: `1px solid ${SECTION_PALETTE.availability}55`,
+                            border: `1px solid color-mix(in srgb, ${SECTION_PALETTE.availability} 33%, transparent)`,
                           }}
                         >
                           {t(`labels.work_mode_${m}`)}

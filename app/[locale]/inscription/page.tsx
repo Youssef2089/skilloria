@@ -93,7 +93,7 @@ export default function InscriptionPage() {
               const el = e.currentTarget
               el.style.borderColor = domain.primaryColor
               el.style.transform = 'translateY(-4px)'
-              el.style.boxShadow = `0 12px 32px ${domain.primaryColor}26`
+              el.style.boxShadow = `0 12px 32px color-mix(in srgb, ${domain.primaryColor} 15%, transparent)`
             }}
             onMouseLeave={e => {
               const el = e.currentTarget
