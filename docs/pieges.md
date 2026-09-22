@@ -306,11 +306,12 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **72** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
-21/09/2026, à l'exécution — les 71ᵉ et 72ᵉ laissent les trois autres compteurs **inchangés**, et
+Sur les **73** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
+22/09/2026, à l'exécution — les 71ᵉ, 72ᵉ et 73ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
 lignes existantes ; `inacheves_hors_annonces_expirees` ne fait que remplacer le corps d'une fonction
-de lecture. **Ni l'une ni l'autre n'insère quoi que ce soit**, donc elles échappent par construction
+de lecture ; `empreinte_des_notes` **vide** une table éphémère et lui ajoute une colonne.
+**Aucune des trois n'insère quoi que ce soit**, donc elles échappent par construction
 à la classe que cette section décrit. Au 20/09/2026, la 70ᵉ, `verification_nocturne_stripe`, apportait l'insertion et la ligne
 de plus : son entrée au catalogue des tâches planifiées, six valeurs. Les chiffres précédents,
 **69 / 51 / 39 / 1962**, dataient du 17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois
@@ -2722,6 +2723,75 @@ et une entrée sans raison **le dit** au lieu d'en inventer une (§G.8).
 > **UN OUTIL DE VÉRIFICATION SE VÉRIFIE D'ABORD LUI-MÊME. Ce qu'il exige des autres — trois états,
 > un inventaire complet, une propriété plutôt qu'un nom — vaut pour lui, et c'est chez lui que
 > personne ne regarde, parce qu'on lit ce qu'il affiche au lieu de ce qu'il fait.**
+
+
+<a id="e58"></a>
+### E.58 — UN CACHE CLÉ SUR L'IDENTITÉ SERT UNE VALEUR CALCULÉE SUR UN CONTENU QUI N'EXISTE PLUS.
+
+**Le cas, mesuré le 22/09/2026.** `matching_notes_partielles` — le brouillon qui évite de repayer la
+notation d'un run interrompu — était indexé par `(publication_id, profile_id)`, plus le modèle en
+colonne. **Trois identités, aucun contenu.**
+
+Un expert modifiait son profil ; le moteur repartait ; `notesDejaAcquisesPourAnnonces` retrouvait
+« sa » note et ne la repayait pas. **C'était la note du profil d'AVANT.** Aucune exception, aucun
+journal, aucune ligne rouge : la note servie était simplement fausse, jusqu'à la purge — **24 heures**.
+
+> **ET LE MÊME TROU EXISTAIT DU CÔTÉ ANNONCE, PAR UN CHEMIN PLUS COURT QU'IL N'Y PARAÎT.** Le run
+> d'une annonce **solde** son brouillon quand il s'achève — donc, seul, il ne laissait rien traîner.
+> Mais le brouillon **sert les deux sens**, et c'est écrit et voulu : *« une note acquise ici épargne
+> aussi le run de l'annonce correspondante. »* Une note périmée écrite par le sens expert était donc
+> **servie au sens annonce**. Deux mécanismes sains séparément ; le défaut naît de leur **partage**.
+
+**Ce que la mesure a corrigé dans le raisonnement, et c'est la partie instructive.** Le module de
+relance justifiait son report d'une heure par le **coût** — *« dix runs coûtent dix fois »*. Mesuré,
+c'était **faux** : la reprise par identité rendait un second run presque **gratuit**, puisqu'il
+réutilisait tout. **La raison affichée était fausse ; la vraie raison était la JUSTESSE** — attendre
+l'état final était la seule façon de ne pas noter un profil périmé.
+
+Et le report ne fermait même pas cette fenêtre : **il la rétrécissait**. Une modification à
+T+61 minutes relançait un run qui reprenait la note écrite à T+60.
+
+**La décision — arbitrée par Youssef le 22/09/2026, entre deux sorties qui n'ont pas la même nature.**
+
+| Sortie | Ce qu'elle vaut |
+|---|---|
+| **Solder le brouillon** en fin de run | une **DISCIPLINE** : elle dépend de la fin du run. Un run qui meurt à mi-chemin laisse des notes périmées derrière lui — exactement le cas où le brouillon sert. |
+| **Cléer sur le CONTENU** | **JUSTE PAR CONSTRUCTION** : un profil modifié a une autre empreinte, donc d'autres notes ; un profil inchangé réutilise les siennes. Rien à attendre, aucun ordre à respecter. |
+
+> **UNE GARDE QUI EST UNE CLÉ NE DÉPEND D'AUCUNE DISCIPLINE ([§E.31](#e31)).** C'est la seconde qui
+> a été retenue, et la colonne est `not null` **sans défaut** : une ligne sans empreinte n'est pas
+> déconseillée, elle est **impossible**.
+
+**Le piège dans la parade, et il coûtait de l'argent.** L'empreinte porte le couple *(texte annonce,
+texte profil)* — mais les deux sens n'appellent pas le reranker dans le même ordre : l'un interroge
+avec l'annonce, l'autre avec le profil. **Hacher dans l'ordre de l'APPEL** aurait donné deux
+empreintes différentes pour le même couple de textes, et **supprimé le partage entre les deux sens** —
+une régression de coût décidée par accident, en écrivant un correctif de justesse. L'ordre est donc
+**canonique**, annonce d'abord, quel que soit l'appelant.
+
+> ⚠️ **CE QUE CE PARTAGE SUPPOSE, ET QUI N'EST TOUJOURS PAS VÉRIFIÉ.** Il suppose que la note de
+> *(requête = annonce, document = profil)* vaut celle de *(requête = profil, document = annonce)*.
+> **Un reranker ne le garantit pas.** Cette supposition **préexiste** à l'empreinte — elle est écrite
+> en toutes lettres dans `run-for-expert.ts` — et le correctif la **conserve à l'identique** plutôt
+> que de la trancher au passage. Elle est **nommée pour être arbitrable**, pas corrigée en douce
+> (§E.38).
+
+**Le délai a changé de raison, donc de valeur.** Il ne porte plus la justesse : il ne garde que
+l'anti-rafale. Et cette raison-là, **fausse quand elle était écrite, est devenue vraie** le jour où
+la clé a porté le contenu — dix modifications font désormais dix empreintes neuves, donc dix runs
+réellement payants. **60 minutes → 10 minutes** : les cinquante autres payaient la justesse, que la
+clé donne gratuitement, et coûtaient à l'expert une heure d'invisibilité.
+
+**Contrôle** : [scripts/diag-empreinte-des-notes.mjs](../scripts/diag-empreinte-des-notes.mjs) —
+il **exécute** `empreinteDeNote` (module pur, §E.33) et vérifie sur la vraie fonction qu'un texte
+modifié change l'empreinte, qu'un texte identique la conserve, et que **les deux sens produisent la
+même**. Il vérifie ensuite que **chaque lecture** du brouillon compare l'empreinte et que **chaque
+écriture** en fournit une — ancré sur la propriété, jamais sur un nom de fonction (§E.34).
+
+> **CE QU'IL NE VÉRIFIE PAS, ET IL LE DIT.** Il ne prouve pas que le texte haché soit **celui** qui
+> part au reranker : il vérifie que c'est la **même expression**, dans la même portée. Une refonte
+> qui recalculerait le texte autrement entre les deux lignes passerait — et c'est le seul endroit où
+> la justesse redeviendrait une discipline.
 
 
 <a id="e9"></a>

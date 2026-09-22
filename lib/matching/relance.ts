@@ -17,11 +17,33 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  *   profil vient d'être validé, il doit voir des annonces tout de suite. Aucune
  *   temporisation ne s'applique là.
  *
- *   REPORTÉ ENSUITE. Tout déclenchement ultérieur pose une échéance à une
- *   heure. Un nouveau déclenchement pendant l'attente la REPOUSSE : on attend
- *   que l'expert ait fini de modifier son profil, puis on note UNE fois, sur
- *   son état final. Une note au lieu de cinq, et surtout aucune modification
- *   perdue.
+ *   REPORTÉ ENSUITE. Tout déclenchement ultérieur pose une échéance. Un nouveau
+ *   déclenchement pendant l'attente la REPOUSSE : une rafale de modifications
+ *   ne produit qu'un run, et aucune modification n'est perdue.
+ *
+ * ═══ CE QUE LE REPORT NE FAIT PLUS, ET C'EST LE POINT ═════════════════════
+ *   IL NE PORTE PLUS LA JUSTESSE. Il l'a portée tant que le brouillon de
+ *   notation ignorait le contenu : une note s'y retrouvait par identité, et
+ *   attendre « l'état final » était la seule façon de ne pas servir une note
+ *   calculée sur le profil d'avant. C'était une DISCIPLINE — et elle ne fermait
+ *   pas la fenêtre, elle la rétrécissait : une modification juste après
+ *   l'échéance reprenait la note qui venait d'être écrite.
+ *
+ *   Depuis le 22/09/2026, la note est clée sur l'EMPREINTE des textes qui l'ont
+ *   produite ([lib/matching/empreinte.ts](./empreinte.ts)). Un profil modifié a
+ *   une autre empreinte, donc d'autres notes — **juste par construction**, sans
+ *   rien attendre (§E.31). Le report n'a plus à garantir quoi que ce soit.
+ *
+ * ═══ CE QU'IL GARDE : L'ANTI-RAFALE, ET RIEN D'AUTRE ══════════════════════
+ *   Dix modifications de suite font dix empreintes neuves, donc dix runs
+ *   PAYANTS : plus aucune note n'est reprise d'une version antérieure du
+ *   profil. Le report les ramène à un.
+ *
+ *   ⚠️ CETTE RAISON N'ÉTAIT PAS VRAIE AVANT, ET ELLE L'EST DEVENUE. Ce module
+ *   a longtemps justifié l'attente par le coût, alors que la reprise par
+ *   identité rendait un second run presque gratuit : l'argument était faux au
+ *   moment où il était écrit, et il est devenu exact le jour où on a fermé le
+ *   défaut qu'il ignorait. Mesuré, pas supposé — cf. §E.58.
  *
  * ═══ LE PIÈGE DU REPORT, ET IL EST BORNÉ ══════════════════════════════════
  *   Reporter indéfiniment, c'est ne jamais exécuter. Un expert qui modifie son
@@ -38,8 +60,32 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  *   des deux doit bouger quand on change d'avis.
  */
 
-/** La temporisation nominale : on attend que l'expert ait fini. */
-export const DELAI_RELANCE_MINUTES = 60
+/**
+ * LA TEMPORISATION NOMINALE — dix minutes, et voici pourquoi ce nombre.
+ *
+ * Elle n'a plus qu'un travail : **ramener une rafale de modifications à un seul
+ * run** (cf. en-tête). Elle se règle donc sur la seule grandeur qui compte
+ * désormais — la durée des PAUSES à l'intérieur d'une séance d'édition — et
+ * plus du tout sur « combien de temps attendre avant d'être sûr que l'expert a
+ * fini », qui était la question d'avant l'empreinte.
+ *
+ * Dix minutes couvrent largement ces pauses : on enchaîne les enregistrements
+ * en quelques secondes à quelques minutes, on ne reprend pas son profil une fois
+ * par quart d'heure pendant une heure.
+ *
+ * ELLE VALAIT SOIXANTE, ET LES CINQUANTE AUTRES N'ACHÈTENT PLUS RIEN. Elles
+ * payaient la justesse — plus l'attente était longue, plus l'état noté avait de
+ * chances d'être le dernier. La clé la donne désormais gratuitement, tandis que
+ * l'heure d'attente, elle, coûte : l'expert reste une heure sans voir les
+ * annonces que son profil mis à jour lui ouvre.
+ *
+ * ⚠️ PROPOSITION, PAS MESURE. Aucune donnée du dépôt ne dit la durée réelle
+ *    d'une séance d'édition — il faudrait horodater les enregistrements
+ *    successifs, ce qu'on ne fait pas. Dix minutes est un choix ARGUMENTÉ, et
+ *    il se change en une ligne ; ce qui ne se change pas en une ligne, c'est la
+ *    justesse, et elle ne dépend plus de ce nombre.
+ */
+export const DELAI_RELANCE_MINUTES = 10
 
 /**
  * L'attente maximale, quels que soient les reports.
@@ -185,9 +231,10 @@ export async function consommerPlafondHoraire(
  *    Mesuré le 21/09/2026 : les deux appelants sont `/api/profile` (origine
  *    `profil_modifie`, à chaque enregistrement) et, jusqu'à ce jour,
  *    `/api/me/sync-matching`. Le premier est bien une rafale — un expert
- *    reprend son profil en dix passes, et dix runs coûtent dix fois. Le second
- *    ne l'était pas : un interrupteur à deux positions ne produit pas de
- *    rafale, et l'heure d'attente n'y absorbait rien. Elle a été retirée de là.
+ *    reprend son profil en dix passes, et chacune produit une empreinte neuve,
+ *    donc un run payant. Le second ne l'était pas : un interrupteur à deux
+ *    positions ne produit pas de rafale, et l'attente n'y absorbait rien. Elle
+ *    a été retirée de là.
  */
 export async function programmerRelance(
   supabaseAdmin: SupabaseClient,

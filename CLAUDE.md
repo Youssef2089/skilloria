@@ -473,12 +473,14 @@ affichée indéfiniment, et l'écran **refuse de compiler** sur une issue non tr
   débit, une panne de configuration : chacun dit ce qu'il est. Affirmer un résultat qu'on n'a pas
   est le défaut, pas le retard.
 
-> **Le report de 60 minutes garde son rôle — sur le SEUL chemin où la rafale existe.** Mesuré : ses
-> deux appelants étaient `/api/profile` (un expert reprend son profil en dix passes, et dix runs
-> coûtent dix fois) et la bascule de disponibilité (**un interrupteur à deux positions ne produit
-> aucune rafale**). Il reste sur le premier, il est retiré du second. Et il ne s'applique pas à
-> l'**approbation** : `lib/matching/relance.ts` l'énonce depuis le lot 6, le code ne l'appliquait
-> pas, et un expert fraîchement approuvé lisait « aucune mission ne correspond ».
+> **Le report garde son rôle — sur le SEUL chemin où la rafale existe.** Mesuré : ses deux appelants
+> étaient `/api/profile` (un expert reprend son profil en dix passes) et la bascule de disponibilité
+> (**un interrupteur à deux positions ne produit aucune rafale**). Il reste sur le premier, il est
+> retiré du second. Et il ne s'applique pas à l'**approbation** : `lib/matching/relance.ts` l'énonce
+> depuis le lot 6, le code ne l'appliquait pas, et un expert fraîchement approuvé lisait « aucune
+> mission ne correspond ».
+> ⚠️ **Sa durée est passée à 10 minutes, et sa raison a changé — §D.15.** Il ne porte plus la
+> justesse (la clé du brouillon la donne par construction) ; il ne garde que l'anti-rafale.
 > **Le plafond horaire, lui, s'applique partout** — et c'est le MÊME (`consommerPlafondHoraire`),
 > pas une copie (§E.20).
 
@@ -529,6 +531,45 @@ mêmes clés de comportement.
 > ⚠️ **Il ne dit PAS que les deux écrans se ressemblent à l'œil** — deux pages peuvent monter les
 > mêmes composants et disposer leurs blocs autrement. Ce qu'il garde, c'est qu'aucune des deux voies
 > ne **perde** ce que l'autre a : la forme exacte que prend une dérive de parité (§E.20).
+
+**D.15 — UNE NOTE APPARTIENT AUX TEXTES QUI L'ONT PRODUITE. La clé porte le CONTENU.**
+Le brouillon de notation (`matching_notes_partielles`) était indexé par `(publication_id,
+profile_id)` + le modèle : **trois identités, aucun contenu**. Un profil modifié retrouvait « sa »
+note — celle calculée sur le profil d'avant — pendant les **24 h** de vie du brouillon, **sans que
+rien ne lève**. Le report de 60 minutes ne fermait pas cette fenêtre : **il la rétrécissait**.
+
+Arbitré par Youssef le 22/09/2026, entre deux sorties **qui n'ont pas la même nature** :
+
+| Sortie | Ce qu'elle vaut |
+|---|---|
+| **solder** le brouillon en fin de run | une **DISCIPLINE** — elle dépend de la fin du run, et un run qui meurt à mi-chemin laisse des notes périmées : le cas même où le brouillon sert |
+| **cléer sur le contenu** | **JUSTE PAR CONSTRUCTION** — profil modifié ⇒ autre empreinte ⇒ autres notes ; profil inchangé ⇒ ses notes. Rien à attendre, aucun ordre à respecter |
+
+**La seconde. Une garde qui est une CLÉ ne dépend d'aucune discipline (§E.31).**
+Colonne `empreinte`, `not null` **et sans défaut** : une ligne sans empreinte n'est pas déconseillée,
+elle est **impossible**. Calcul dans [lib/matching/empreinte.ts](lib/matching/empreinte.ts) — module
+**pur**, exécuté tel quel par son contrôle (§E.33).
+
+> ⚠️ **L'ORDRE EST CANONIQUE — ANNONCE D'ABORD — ET JAMAIS CELUI DE L'APPEL.** Les deux sens
+> interrogent le reranker à l'envers l'un de l'autre. Hacher dans l'ordre de l'appel donnerait **deux
+> empreintes pour le même couple de textes** et supprimerait le **partage entre les deux sens**, qui
+> est délibéré — une régression de coût décidée par accident, en écrivant un correctif de justesse.
+> Ce partage suppose que la note est **symétrique**, ce qu'un reranker ne garantit pas : la
+> supposition **préexiste**, elle est conservée à l'identique et **nommée pour être arbitrable**
+> (§E.38), pas tranchée au passage.
+
+**Le délai de relance a changé de raison, donc de valeur : 60 → 10 minutes.** Il ne porte plus la
+justesse, il ne garde que l'**anti-rafale** — et cette raison-là, **fausse quand elle était écrite**
+(la reprise par identité rendait un second run presque gratuit), **est devenue vraie** avec
+l'empreinte : dix modifications font dix empreintes neuves, donc dix runs réellement payants.
+Les cinquante minutes retirées payaient la justesse, que la clé donne gratuitement, et coûtaient à
+l'expert une heure d'invisibilité. **Dix minutes est une PROPOSITION argumentée, pas une mesure** :
+rien dans le dépôt ne dit la durée d'une séance d'édition. Elle se change en une ligne ; la justesse,
+elle, ne dépend plus de ce nombre.
+
+**Gardé par [`diag-empreinte-des-notes`](scripts/diag-empreinte-des-notes.mjs)** — 8 mutations,
+8 détections. Détail et mesure : **§E.58**.
+
 
 **D.10 — TOUTE NOTE DU PRODUIT EST SUR 0-10. Il n'y a pas de seconde échelle.**
 Les filtres de pertinence vivaient en **0-1**, les notes de jugement en **0-10**, et rien ne le disait
@@ -703,6 +744,7 @@ bloquant, ordonnés avec les quatorze défauts nommés du gel 4.1d :
 | [E.55](docs/pieges.md#e55) | DEUX PHRASES VRAIES, L'UNE SOUS L'AUTRE, PEUVENT SE LIRE COMME UNE CONTRADICTION. |
 | [E.56](docs/pieges.md#e56) | UN LOT QUI CONVERTIT UNE SYNTAXE HÉRITE D'UNE SÉMANTIQUE QUI N'EXISTAIT PAS AVANT LUI. « J'avais vérifié le contrôle, pas l'écran. » |
 | [E.57](docs/pieges.md#e57) | L'OUTIL QUI LANCE LES CONTRÔLES N'AVAIT JAMAIS TOURNÉ — 219 COMMITS. Un outil de vérification se vérifie d'abord lui-même. |
+| [E.58](docs/pieges.md#e58) | UN CACHE CLÉ SUR L'IDENTITÉ SERT UNE VALEUR CALCULÉE SUR UN CONTENU QUI N'EXISTE PLUS. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

@@ -1,4 +1,5 @@
 import { memoriserNotes, notesDejaAcquises, solderBrouillon } from '@/lib/matching/reprise'
+import { empreinteDeNote } from '@/lib/matching/empreinte'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AnnonceType } from '@/types/annonce'
 import { estTypeAnnonce, expertKindForAnnonce, type ExpertKind } from '@/lib/annonces/audience'
@@ -328,7 +329,14 @@ export async function runMatchingForPublication(args: {
   //  rejouable — mais repartait de zéro, REPAYANT les lots déjà payés, jusqu'à
   //  l'abandon au bout de cinq tentatives. Paralléliser repousse ce mur ; seule
   //  la reprise le supprime.
-  const acquises = await notesDejaAcquises(supabaseAdmin, publicationId, s.rerank_model)
+  //
+  //  ET UNE NOTE APPARTIENT AUX TEXTES QUI L'ONT PRODUITE. L'empreinte est
+  //  calculée sur le couple (texte de l'annonce, texte du profil) — ceux-là
+  //  MÊMES qui partent au reranker quelques lignes plus bas, pas une seconde
+  //  lecture de la base qui pourrait en différer (§E.33). Un profil modifié a
+  //  une autre empreinte : sa note d'avant n'est pas reprise.
+  const empreintes = new Map(documents.map((d) => [d.id, empreinteDeNote(requete, d.texte)]))
+  const acquises = await notesDejaAcquises(supabaseAdmin, publicationId, s.rerank_model, empreintes)
   const aNoter = acquises.size > 0 ? documents.filter((d) => !acquises.has(d.id)) : documents
 
   const notation = await rerankerTout({
@@ -342,7 +350,8 @@ export async function runMatchingForPublication(args: {
     // notation de tout le vivier. C'est le poste le plus cher du moteur.
     acteur: { type: 'organization', id: pub.organization_id },
     contexte: { publication_id: publicationId },
-    memoriser: (notes) => memoriserNotes(supabaseAdmin, publicationId, s.rerank_model, notes),
+    memoriser: (notes) =>
+      memoriserNotes(supabaseAdmin, publicationId, s.rerank_model, notes, empreintes),
   })
 
   // Les notes reprises rejoignent celles du run : la suite ne fait aucune

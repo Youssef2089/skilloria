@@ -35,15 +35,23 @@ const TABLE = 'matching_notes_partielles'
  * Un modèle DIFFÉRENT invalide la reprise : deux modèles ne produisent pas des
  * notes comparables, et mélanger leurs échelles ferait un classement qui
  * n'existe nulle part. On repart alors de zéro, ce qui est le comportement sûr.
+ *
+ * ⚠️ UNE EMPREINTE DIFFÉRENTE L'INVALIDE AUSSI, ET POUR LA MÊME RAISON.
+ *    `empreintes` porte, pour chaque profil, l'empreinte des textes qu'on
+ *    s'apprête à noter. Une ligne dont l'empreinte diffère a été calculée sur
+ *    d'AUTRES textes : elle est périmée, et elle est ignorée. Le profil est
+ *    alors renoté, et l'`upsert` écrasera la ligne périmée.
+ *    Voir [lib/matching/empreinte.ts](./empreinte.ts) pour la décision.
  */
 export async function notesDejaAcquises(
   supabaseAdmin: SupabaseClient,
   publicationId: string,
   model: string,
+  empreintes: ReadonlyMap<string, string>,
 ): Promise<Map<string, number>> {
   const { data, error } = await supabaseAdmin
     .from(TABLE)
-    .select('profile_id, score, model')
+    .select('profile_id, score, model, empreinte')
     .eq('publication_id', publicationId)
     .eq('model', model)
   if (error) {
@@ -55,29 +63,58 @@ export async function notesDejaAcquises(
     return new Map()
   }
   const acquises = new Map<string, number>()
-  for (const r of (data ?? []) as Array<{ profile_id: string; score: number }>) {
+  let perimees = 0
+  for (const r of (data ?? []) as Array<{ profile_id: string; score: number; empreinte: string }>) {
+    if (r.empreinte !== empreintes.get(r.profile_id)) {
+      perimees++
+      continue
+    }
     acquises.set(r.profile_id, r.score)
   }
-  if (acquises.size > 0) {
-    console.log('[reprise] run repris', { publicationId, deja_notes: acquises.size, model })
+  if (acquises.size > 0 || perimees > 0) {
+    // On journalise les DEUX : une reprise qui ne reprend rien parce que tout
+    // est périmé se lit autrement qu'un brouillon vide.
+    console.log('[reprise] run repris', {
+      publicationId,
+      deja_notes: acquises.size,
+      perimees,
+      model,
+    })
   }
   return acquises
 }
 
-/** Mémorise les notes d'UN lot, juste après qu'il a été payé. */
+/**
+ * Mémorise les notes d'UN lot, juste après qu'il a été payé.
+ *
+ * ⚠️ UNE NOTE NE S'ÉCRIT JAMAIS SANS SON EMPREINTE. La colonne est `not null`
+ *    sans défaut : une ligne sans empreinte est refusée par le schéma, pas par
+ *    une relecture (§E.31). Ici, une note dont l'empreinte manquerait serait
+ *    donc rejetée par la base — on l'écarte en amont, en le disant, plutôt que
+ *    de faire échouer tout le lot pour une note.
+ */
 export async function memoriserNotes(
   supabaseAdmin: SupabaseClient,
   publicationId: string,
   model: string,
   notes: ReadonlyArray<{ id: string; score: number }>,
+  empreintes: ReadonlyMap<string, string>,
 ): Promise<void> {
   if (notes.length === 0) return
-  const lignes = notes.map((n) => ({
-    publication_id: publicationId,
-    profile_id: n.id,
-    score: n.score,
-    model,
-  }))
+  const lignes = notes
+    .filter((n) => {
+      if (empreintes.has(n.id)) return true
+      console.warn('[reprise] note sans empreinte — NON mémorisée', { publicationId, id: n.id })
+      return false
+    })
+    .map((n) => ({
+      publication_id: publicationId,
+      profile_id: n.id,
+      score: n.score,
+      model,
+      empreinte: empreintes.get(n.id),
+    }))
+  if (lignes.length === 0) return
   const { error } = await supabaseAdmin.from(TABLE).upsert(lignes, {
     onConflict: 'publication_id,profile_id',
   })
@@ -124,14 +161,23 @@ export async function memoriserNotesParAnnonce(
   profileId: string,
   model: string,
   notes: ReadonlyArray<{ id: string; score: number }>,
+  empreintes: ReadonlyMap<string, string>,
 ): Promise<void> {
   if (notes.length === 0) return
-  const lignes = notes.map((n) => ({
-    publication_id: n.id,
-    profile_id: profileId,
-    score: n.score,
-    model,
-  }))
+  const lignes = notes
+    .filter((n) => {
+      if (empreintes.has(n.id)) return true
+      console.warn('[reprise] note sans empreinte — NON mémorisée', { profileId, id: n.id })
+      return false
+    })
+    .map((n) => ({
+      publication_id: n.id,
+      profile_id: profileId,
+      score: n.score,
+      model,
+      empreinte: empreintes.get(n.id),
+    }))
+  if (lignes.length === 0) return
   const { error } = await supabaseAdmin.from(TABLE).upsert(lignes, {
     onConflict: 'publication_id,profile_id',
   })
@@ -155,12 +201,14 @@ export async function notesDejaAcquisesPourAnnonces(
   publicationIds: readonly string[],
   profileId: string,
   model: string,
+  empreintes: ReadonlyMap<string, string>,
 ): Promise<Map<string, number>> {
   const acquises = new Map<string, number>()
+  let perimees = 0
   for (const tranche of enTranches(publicationIds, TAILLE_TRANCHE_IDS)) {
     const { data, error } = await supabaseAdmin
       .from(TABLE)
-      .select('publication_id, score')
+      .select('publication_id, score, empreinte')
       .in('publication_id', tranche)
       .eq('profile_id', profileId)
       .eq('model', model)
@@ -168,9 +216,29 @@ export async function notesDejaAcquisesPourAnnonces(
       console.warn('[reprise] brouillon illisible — le run repart de zéro', { message: error.message })
       return new Map()
     }
-    for (const r of (data ?? []) as Array<{ publication_id: string; score: number }>) {
+    for (const r of (data ?? []) as Array<{
+      publication_id: string
+      score: number
+      empreinte: string
+    }>) {
+      // ⚠️ MÊME RÈGLE QUE DANS L'AUTRE SENS, ET C'EST LE POINT : une note
+      //    périmée écrite par un sens était jusqu'ici servie à l'autre, le
+      //    brouillon étant partagé. L'empreinte la referme des deux côtés à la
+      //    fois, parce qu'elle porte les DEUX textes.
+      if (r.empreinte !== empreintes.get(r.publication_id)) {
+        perimees++
+        continue
+      }
       acquises.set(r.publication_id, r.score)
     }
+  }
+  if (acquises.size > 0 || perimees > 0) {
+    console.log('[reprise] run expert repris', {
+      profileId,
+      deja_notes: acquises.size,
+      perimees,
+      model,
+    })
   }
   return acquises
 }

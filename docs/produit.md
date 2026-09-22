@@ -338,13 +338,22 @@ modifie à nouveau dans l'heure, et l'ancien garde-fou de débit **refusait** �
 **reporte** : `programmer_relance_expert()` écrit l'échéance **en une seule instruction en base**
 (§F), `prochaine_relance_expert()` la réclame, `solder_relance_expert()` ne solde **que ce qui était
 dû** — un déclenchement arrivé pendant le run n'est pas effacé.
-Délai **60 minutes**, attente totale bornée à **6 heures**, tâche `expert_relance_trigger` toutes les
+Délai **10 minutes**, attente totale bornée à **6 heures**, tâche `expert_relance_trigger` toutes les
 5 minutes.
+
+> **Le délai valait 60 minutes jusqu'au 22/09/2026, et il a changé de RAISON avant de changer de
+> valeur.** Il garantissait alors la **justesse** — noter une fois, sur l'état final — parce que le
+> brouillon de notation retrouvait ses notes par identité, sans regarder le contenu. Depuis §D.15,
+> la note est clée sur l'**empreinte des textes** : un profil modifié a d'autres notes, par
+> construction. Le report ne garde que l'**anti-rafale**, et dix minutes couvrent les pauses d'une
+> séance d'édition. Les cinquante minutes retirées coûtaient à l'expert une heure d'invisibilité et
+> n'achetaient plus rien. **C'est une proposition argumentée, pas une mesure** : rien dans le dépôt
+> ne dit la durée réelle d'une séance d'édition.
 
 > ⚠️ **LE REPORT NE VAUT QUE LÀ OÙ LA RAFALE EXISTE — mesuré, et corrigé le 21/09/2026.**
 > Il avait deux appelants : l'**enregistrement d'un profil** (un expert reprend son profil en dix
-> passes : dix runs coûtent dix fois — la rafale est là) et la **bascule de disponibilité** (un
-> interrupteur à deux positions : **aucune rafale**, et une heure d'attente qui n'absorbait rien).
+> passes — la rafale est là) et la **bascule de disponibilité** (un interrupteur à deux positions :
+> **aucune rafale**, et une attente qui n'absorbait rien).
 > Il reste sur le premier, il est **retiré** du second.
 > Il ne s'applique pas non plus à l'**approbation** : la règle « immédiat à l'approbation » était
 > écrite dans le module depuis le lot 6, et le code ne l'appliquait pas — un expert fraîchement

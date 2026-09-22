@@ -343,6 +343,21 @@ constructeur (deux chemins qui écrivaient chacun leur objet pouvaient oublier u
 absente se lit `null`, qu'une somme SQL affiche zéro : la supervision aurait dit « tout va bien »).
 Un run interrompu reste **INACHEVÉ**, donc visible et rejouable ; la reprise s'appuie sur
 `matching_notes_partielles` (ce qui est noté ne se renote pas — migration `reprise_notation`).
+
+> **UNE NOTE APPARTIENT AUX TEXTES QUI L'ONT PRODUITE — migration `empreinte_des_notes`
+> (22/09/2026).** Le brouillon était indexé par `(publication_id, profile_id)` + le modèle : trois
+> identités, **aucun contenu**. Un profil modifié retrouvait « sa » note — celle calculée sur le
+> profil d'avant — pendant les 24 h de vie du brouillon, **sans que rien ne lève**. Le report de
+> 60 minutes ne fermait pas cette fenêtre, il la **rétrécissait**.
+> La colonne `empreinte` (`not null`, **sans défaut** : une ligne sans empreinte est impossible,
+> §E.31) porte le sha-256 du couple *(texte annonce, texte profil)* réellement envoyé au reranker.
+> Une note n'est reprise que si l'empreinte recalculée est **identique**.
+> ⚠️ **L'ordre est canonique — annonce d'abord — et jamais celui de l'appel.** Les deux sens
+> interrogent le reranker à l'envers l'un de l'autre ; hacher dans l'ordre de l'appel donnerait deux
+> empreintes pour le même couple de textes et **supprimerait le partage entre les deux sens**, qui
+> est délibéré (une note acquise par le run d'un expert épargne celui de l'annonce). Calcul dans
+> [lib/matching/empreinte.ts](../lib/matching/empreinte.ts), pur et sans autre import, donc exécuté
+> tel quel par son contrôle (§E.33). Détail et mesure : **§E.58** ([pieges](pieges.md#e58)).
 **Relance** (migration `relance_expert`) : un déclenchement refusé n'est plus perdu, il est
 **reporté** ; RPC `programmer_relance_expert` / `solder_relance_expert` / `prochaine_relance_expert`.
 Plafond anti-abus **20/heure/expert**, en constante nommée dans le code, **volontairement sans champ

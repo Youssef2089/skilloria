@@ -1,4 +1,5 @@
 import { memoriserNotesParAnnonce, notesDejaAcquisesPourAnnonces } from '@/lib/matching/reprise'
+import { empreinteDeNote } from '@/lib/matching/empreinte'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AnnonceType } from '@/types/annonce'
 import { annonceTypesForExpert, type ExpertKind } from '@/lib/annonces/audience'
@@ -312,11 +313,20 @@ export async function runMatchingForExpert(args: {
   //  MÊME REPRISE QUE DANS L'AUTRE SENS. Le brouillon est indexé par le couple
   //  (annonce, profil) : il sert donc les deux directions sans distinction, et
   //  une note acquise ici épargne aussi le run de l'annonce correspondante.
+  //
+  //  ⚠️ L'EMPREINTE EST CALCULÉE DANS L'ORDRE (ANNONCE, PROFIL), PAS DANS
+  //     L'ORDRE DE L'APPEL. Ici la requête est le PROFIL et les documents sont
+  //     les ANNONCES — l'inverse de l'autre sens. Hacher dans l'ordre de
+  //     l'appel donnerait deux empreintes différentes pour le même couple de
+  //     textes, et supprimerait le partage que le paragraphe ci-dessus décrit :
+  //     une régression de coût, décidée par accident.
+  const empreintes = new Map(documents.map((d) => [d.id, empreinteDeNote(d.texte, requete)]))
   const acquises = await notesDejaAcquisesPourAnnonces(
     supabaseAdmin,
     documents.map((d) => d.id),
     profileId,
     s.rerank_model,
+    empreintes,
   )
   const aNoter = acquises.size > 0 ? documents.filter((d) => !acquises.has(d.id)) : documents
 
@@ -335,7 +345,7 @@ export async function runMatchingForExpert(args: {
     // Ici l'identifiant noté est celui de l'ANNONCE, et le profil est fixe :
     // c'est l'inverse de l'autre sens, mais la même clé de brouillon.
     memoriser: (notes) =>
-      memoriserNotesParAnnonce(supabaseAdmin, profileId, s.rerank_model, notes),
+      memoriserNotesParAnnonce(supabaseAdmin, profileId, s.rerank_model, notes, empreintes),
   })
 
   for (const [publicationId, score] of acquises) {
