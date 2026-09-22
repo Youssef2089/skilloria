@@ -19,6 +19,37 @@
 //   l'API admin (`email_confirm: true` — arbitrage de l'architecte, 20/09/2026).
 //   Une recette dont on croit qu'elle couvre tout est pire qu'aucune.
 //
+// ┌─ CE QUE LA RECETTE DOIT MESURER, ET QU'ELLE NE MESURE PAS ENCORE ───────────┐
+// │ Liste tenue ICI parce que c'est ici qu'on la relit avant de lancer. Chaque   │
+// │ entrée dit CE QU'ON VEUT SAVOIR et CE QUI DÉCIDE — pas ce qu'on croit déjà.  │
+// │                                                                              │
+// │ ① LA SYMÉTRIE DE LA NOTE — ouverte le 22/09/2026 (§E.58, §D.15).            │
+// │    Le brouillon de notation sert LES DEUX SENS : une note acquise par le run │
+// │    d'un expert épargne celui de l'annonce correspondante. Ce partage SUPPOSE │
+// │    que la note de (requête = annonce, document = profil) vaut celle de       │
+// │    (requête = profil, document = annonce). UN RERANKER NE LE GARANTIT PAS,   │
+// │    et rien dans le dépôt ne l'a jamais mesuré — la supposition est là depuis │
+// │    l'origine du brouillon, écrite en toutes lettres dans run-for-expert.ts.  │
+// │                                                                              │
+// │    À MESURER : sur un échantillon de couples RÉELS, les DEUX notes et leur   │
+// │    ÉCART. Exige la base jetable ET la clé Cohere (ENABLE_RERANKING=true) —   │
+// │    c'est pour ça que ça vit dans la recette et pas dans un diagnostic.       │
+// │                                                                              │
+// │    CE QUI DÉCIDE : que l'écart change un CLASSEMENT, pas qu'il soit non nul. │
+// │    Deux notes qui diffèrent de 0,1 sans jamais réordonner ne coûtent rien ;  │
+// │    deux notes qui permutent deux experts, si.                                │
+// │                                                                              │
+// │    SI ÇA CHANGE UN CLASSEMENT : on impose un sens canonique DE CALCUL, et on │
+// │    paie ce qu'il coûte — le partage entre les deux sens tombe alors, et      │
+// │    c'est un arbitrage d'ARGENT, pas de code. PAS AVANT D'AVOIR LE CHIFFRE.   │
+// │    Décision de Youssef, 22/09/2026.                                          │
+// │                                                                              │
+// │ ⚠️ CE QUE LA RECETTE NE MESURERA PAS, ET QUI EST DÉJÀ TRANCHÉ : le délai de  │
+// │    relance (10 minutes). C'est une PROPOSITION ARGUMENTÉE, pas une mesure ;  │
+// │    aucune base jetable ne dira la durée d'une séance d'édition — seul        │
+// │    l'usage réel le dira (§D.15).                                             │
+// └──────────────────────────────────────────────────────────────────────────────┘
+//
 // CE QU'ELLE N'A PAS ENCORE PROUVÉ — ÉTAT AU 20/09/2026
 //   ⚠️ ELLE N'A JAMAIS TOURNÉ CONTRE UNE BASE. Livrée NON VERTE, volontairement :
 //   c'est l'état exact de la migration de §E.12, et la seule façon honnête de

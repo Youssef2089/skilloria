@@ -2794,6 +2794,61 @@ même**. Il vérifie ensuite que **chaque lecture** du brouillon compare l'empre
 > la justesse redeviendrait une discipline.
 
 
+<a id="e59"></a>
+### E.59 — UN CORRECTIF DE JUSTESSE QUI CHANGE SILENCIEUSEMENT UN COÛT.
+
+**Le cas, évité de justesse le 22/09/2026, en écrivant la parade de [§E.58](#e58).**
+
+Il fallait cléer les notes du brouillon sur le **contenu** des textes. Le geste naturel — celui
+qu'on écrit sans y penser — est de hacher les arguments **dans l'ordre où on les a sous la main** :
+
+```
+sens annonce → experts :  empreinte(requete, document)   // requête = annonce, document = profil
+sens expert → annonces :  empreinte(requete, document)   // requête = PROFIL, document = ANNONCE
+```
+
+Deux lignes identiques, dans deux fichiers, **et deux empreintes différentes pour le même couple de
+textes** — parce que les deux sens interrogent le reranker à l'envers l'un de l'autre.
+
+**Ce que cela aurait fait, et ce que cela n'aurait PAS fait.** Le brouillon **sert les deux sens**,
+délibérément : une note acquise par le run d'un expert épargne celui de l'annonce correspondante.
+Des empreintes divergentes auraient **supprimé ce partage** — chaque sens repayant ce que l'autre
+venait de payer.
+
+| Ce qui aurait été **juste** | Ce qui aurait **changé, sans rien dire** |
+|---|---|
+| plus aucune note périmée, des deux côtés | la facture du reranker, **à la hausse** |
+| `tsc` vert, `next build` vert | aucun type, aucune assertion, aucun écran ne bouge |
+| le contrôle de §E.58 **vert** — il mesure la justesse | rien ne mesure un coût |
+
+**LA CLASSE, ET ELLE EST PLUS LARGE QUE LES COULEURS OU LES CACHES.**
+> **Un correctif qui vise une propriété qui LÈVE (la justesse, un type, un statut) peut déplacer une
+> propriété qui NE LÈVE PAS — l'argent, la latence, la charge, le nombre d'appels sortants. Les
+> secondes n'ont pas de compilateur : rien ne les vérifie, et leur dégradation n'apparaît que sur une
+> facture, un mois plus tard, sans rien pour la relier au commit qui l'a causée.**
+
+**Ce qui l'a attrapé, et ce n'était pas un contrôle.** C'était de **relire le commentaire qui
+décrivait le partage** avant de toucher à la clé — six lignes dans `run-for-expert.ts` qui disent en
+toutes lettres *« il sert donc les deux directions sans distinction »*. Sans elles, l'ordre de
+l'appel passait sans que personne s'en aperçoive.
+
+**La parade, en deux temps.**
+① **Avant de changer la clé d'un partage, on nomme ce qui est partagé et avec qui.** Un cache, une
+mémoïsation, une déduplication, un réessai : tous partagent quelque chose avec quelqu'un, et la clé
+est le contrat de ce partage. La changer sans lire le contrat, c'est le réécrire à l'aveugle.
+② **L'ordre devient CANONIQUE, et un contrôle le tient.** L'empreinte se calcule toujours dans
+l'ordre *(annonce, profil)*, quel que soit l'appelant ; [`diag-empreinte-des-notes`](../scripts/diag-empreinte-des-notes.mjs)
+vérifie **les deux appelants nommément**, et sa mutation ⑧ — remplacer l'ordre canonique par celui
+de l'appel — le fait rougir.
+
+> **ET CE QUI RESTE OUVERT EST ÉCRIT LÀ OÙ ON LE RELIRA.** Le partage entre les deux sens suppose que
+> la note est **symétrique**. La supposition **préexiste** au correctif, qui l'a conservée à
+> l'identique plutôt que de la trancher au passage — mais elle n'a **jamais été mesurée**, et aucun
+> diagnostic ne le peut : il faut une base jetable et une clé Cohere. Elle est donc portée en tête de
+> [scripts/recette-3-3.mjs](../scripts/recette-3-3.mjs), avec **ce qui décide** : que l'écart change
+> un **classement**, pas qu'il soit non nul. Décision de Youssef : *pas avant d'avoir le chiffre.*
+
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

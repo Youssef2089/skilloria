@@ -745,6 +745,7 @@ bloquant, ordonnés avec les quatorze défauts nommés du gel 4.1d :
 | [E.56](docs/pieges.md#e56) | UN LOT QUI CONVERTIT UNE SYNTAXE HÉRITE D'UNE SÉMANTIQUE QUI N'EXISTAIT PAS AVANT LUI. « J'avais vérifié le contrôle, pas l'écran. » |
 | [E.57](docs/pieges.md#e57) | L'OUTIL QUI LANCE LES CONTRÔLES N'AVAIT JAMAIS TOURNÉ — 219 COMMITS. Un outil de vérification se vérifie d'abord lui-même. |
 | [E.58](docs/pieges.md#e58) | UN CACHE CLÉ SUR L'IDENTITÉ SERT UNE VALEUR CALCULÉE SUR UN CONTENU QUI N'EXISTE PLUS. |
+| [E.59](docs/pieges.md#e59) | UN CORRECTIF DE JUSTESSE QUI CHANGE SILENCIEUSEMENT UN COÛT. Les secondes et l'argent n'ont pas de compilateur. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---
