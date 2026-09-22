@@ -527,9 +527,21 @@ for (const r of [
   'app/api/admin/update-package/route.ts',
 ]) {
   const src = sansCommentaires(lire(r))
+  /* ⚠️ DEUX OCCURRENCES AU MOINS : LA DECLARATION **ET** L'APPEL.
+        Premiere version : `/coherenceGratuite\(/`. Elle restait VERTE quand on
+        supprimait l'appel — la DECLARATION de la fonction suffisait a la
+        satisfaire. Un motif qui attrape la declaration au lieu de l'usage ne
+        mesure pas ce qu'on croit (§E.7) : la mutation l'a montre, le controle
+        ne l'aurait jamais dit. */
   ok(
-    /coherenceGratuite\(/.test(src),
+    (src.match(/coherenceGratuite\(/g) ?? []).length >= 2,
     `${r.replace('app/api/admin/', '')} : vérifie que la case et le prix ne se contredisent pas`,
+    'la fonction est déclarée mais jamais appelée : le refus n’existe pas',
+  )
+  ok(
+    /coherence\.ok/.test(src),
+    `${r.replace('app/api/admin/', '')} : et son verdict est LU`,
+    'appeler sans lire le résultat ne refuse rien (§E.8)',
   )
   ok(
     /free_with_price/.test(src) && /paid_without_price/.test(src),
