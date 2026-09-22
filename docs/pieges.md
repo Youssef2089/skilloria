@@ -1185,6 +1185,34 @@ jamais le même **sens** — c'est toute §E.22 en une ligne.
 
 ---
 
+
+> ⚠️ **QUATRIÈME OCCURRENCE — 21/09/2026, ET CELLE-CI A CACHÉ UNE HEURE D'ATTENTE.**
+>
+> `lib/matching-resync-hint.ts` s'ouvrait sur cette phrase :
+>
+> > *« Plusieurs actions côté client déclenchent un `runMatchingForExpert` côté serveur via
+> > `after()` (**~8-15s**) »*
+>
+> **Elle était vraie — de l'approbation d'un expert et de la réanalyse d'un CV**, deux chemins qui
+> exécutent effectivement le moteur dans un `after()`. Elle était **fausse de la sortie de « ne pas
+> déranger »**, citée deux lignes plus bas dans la même liste : ce chemin-là posait une échéance à
+> **soixante minutes**.
+>
+> **C'est le commentaire qui a rendu le défaut invisible**, et exactement de la façon que cette
+> section décrit : il arrête la recherche. Un lecteur qui se demande « combien de temps ça prend ? »
+> trouve une réponse chiffrée, plausible, écrite par quelqu'un qui a manifestement regardé — et il
+> passe. Le fichier tout entier — une fenêtre de 120 s, un sondage à 3 s — est **dimensionné sur ce
+> chiffre**. Il ne pouvait pas l'être : le travail était à une heure.
+>
+> **Ce que cette occurrence ajoute aux trois autres.** Les trois premières couvraient un cas d'erreur
+> voisin ; celle-ci couvre un **chemin d'exécution** voisin. La question reste la même — *de quoi
+> exactement est-il vrai ?* — mais la réponse ne se lit plus dans le fichier : elle est à l'autre bout
+> d'une route d'API. **Un commentaire qui chiffre une durée ne peut être vrai que d'un chemin à la
+> fois, et il ne dit jamais lequel.**
+>
+> Le fichier a été **supprimé** avec le défaut (§E.51) : ni le chiffre ni la fenêtre n'ont de raison
+> d'être quand l'écran attend la vraie fin du moteur.
+
 <a id="e30"></a>
 ### E.30 — UN TYPE DÉCLARÉ SANS CHAMP D'ERREUR REND L'ÉCHEC IMPENSABLE.
 

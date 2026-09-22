@@ -508,9 +508,18 @@ bouton Retour. Il est monté par les **sub-layouts**, jamais par une page.
 > Deux exemptions déclarées : les `--font-*` (posées par `next/font` dans une feuille générée au
 > build) et celles qu'un composant pose **sur sa propre racine** et relit dans son `<style>`.
 
-**Gardé par [`diag-coquille-unique`](scripts/diag-coquille-unique.mjs)** — 7 mutations, 7 détections.
-Il s'ancre sur le **comportement**, pas sur un nom (§E.34) : ce qui est refusé, c'est un layout qui
-rend `children` nus, et plus en amont qu'un layout de cadre **consulte le chemin**.
+**Gardé par [`diag-coquille-unique`](scripts/diag-coquille-unique.mjs)** — 10 mutations,
+10 détections. Il s'ancre sur le **comportement**, pas sur un nom (§E.34) : ce qui est refusé, c'est
+un layout qui rend `children` nus, et plus en amont qu'un layout de cadre **consulte le chemin**.
+
+**ET LA PARITÉ EXPERT EST GARDÉE À PART** — [`diag-parite-expert`](scripts/diag-parite-expert.mjs),
+7 mutations, 7 détections. Décision de Youssef : *« l'espace CDI prend EXACTEMENT l'ergonomie de
+l'espace freelance — parité intégrale, pas un rapprochement. »* Le contrôle vérifie **14 écrans
+jumeaux** : même inventaire, même cadre, mêmes primitives partagées, même traitement du texte tenu,
+mêmes clés de comportement.
+> ⚠️ **Il ne dit PAS que les deux écrans se ressemblent à l'œil** — deux pages peuvent monter les
+> mêmes composants et disposer leurs blocs autrement. Ce qu'il garde, c'est qu'aucune des deux voies
+> ne **perde** ce que l'autre a : la forme exacte que prend une dérive de parité (§E.20).
 
 **D.10 — TOUTE NOTE DU PRODUIT EST SUR 0-10. Il n'y a pas de seconde échelle.**
 Les filtres de pertinence vivaient en **0-1**, les notes de jugement en **0-10**, et rien ne le disait

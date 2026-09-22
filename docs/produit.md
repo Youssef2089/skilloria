@@ -611,6 +611,19 @@ deux produits.
 | `/cgu` · `/mentions-legales` · `/politique-de-confidentialite` | Documents légaux, servis depuis `docs/legal/*.md`. |
 
 ### P2.2 — Expert freelance et expert CDI
+> **LA MÊME PALETTE SUR TOUT LE PRODUIT — 21/09/2026.** Les 66 écrans de l'espace connecté, les
+> 19 écrans publics et les e-mails prennent les couleurs de l'accueil. **Plus aucune couleur n'est
+> écrite à la main** : 3 180 littéraux dans 125 fichiers au matin, **zéro** le soir.
+>
+> **Ce que l'utilisateur voit changer** : le cadre passe du blanc au **beige**, les pages du gris
+> froid au **crème**, et les 543 lectures de jetons inexistants du back-office cessent de retomber
+> sur une gamme ardoise que plus aucun écran n'employait.
+>
+> **Ce qui reste volontairement fixe** : le vert, l'ambre et le rouge disent un **état**, pas une
+> marque — les rendre réglables inviterait à peindre une erreur en vert (§D.12). Et les **e-mails**
+> portent des valeurs littérales, parce qu'aucun client de messagerie ne lit une propriété
+> personnalisée — mais résolues depuis la même palette, jamais recopiées (§C.16).
+
 > **QUATRE CONTRADICTIONS DU TABLEAU DE BORD, FERMÉES LE 21/09/2026.** Toutes de la même famille :
 > rien n'était faux, et l'écran mentait quand même (§E.55).
 >

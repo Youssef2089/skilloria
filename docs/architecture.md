@@ -996,6 +996,56 @@ pose **sur sa propre racine** et relit dans son `<style>` (`--avatar-primary`, `
 à tort, donc désactiver dans la semaine (§E.14).
 
 
+### C.16 — LES E-MAILS : pourquoi ils n'ont pas de jetons, et d'où viennent leurs couleurs
+
+**LA CONTRAINTE, MESURÉE.** Les clients de messagerie **ne lisent pas les propriétés
+personnalisées**. Outlook rend le HTML avec le moteur de Word, les webmails réécrivent la feuille de
+style, les applications mobiles en gardent un sous-ensemble : `color: var(--sk-text)` y est **ignoré**,
+et le texte tombe sur la couleur par défaut du client — souvent noir sur blanc, **parfois blanc sur
+blanc en thème sombre**.
+
+> C'est la famille de **§E.48** — une variable qui ne résout pas ne se voit pas — mais pour une raison
+> différente. Là-bas, c'est la **syntaxe** qui l'interdit (un attribut de présentation SVG n'est pas
+> une propriété CSS). Ici, c'est le **destinataire** qui ne sait pas la lire, et nous ne saurons jamais
+> lequel il utilise.
+
+**Un e-mail ne peut donc porter que des valeurs littérales. « Littérales » ne veut pas dire « écrites
+deux fois. »**
+
+| | Avant le 21/09/2026 | Après |
+|---|---|---|
+| Où vivaient les couleurs | recopiées à la main dans `lib/emails/layout.ts` **et** dans `lib/emails/templates.ts` | résolues par [lib/emails/couleurs.ts](../lib/emails/couleurs.ts) depuis `lib/palette.ts` |
+| Ce qu'elles valaient | la gamme ardoise, plus `#00B9FF` — **qui n'est la marque de personne** depuis le lot palette | les valeurs de `PALETTE_REFERENCE` |
+| Ce que ça produisait | **un e-mail envoyé portait des couleurs que plus aucun écran n'utilisait** | la même palette que les écrans |
+
+#### Le piège de l'interpolation, et pourquoi le script a refusé
+
+Huit de ces couleurs vivaient dans des chaînes entre **apostrophes**, passées à `interpolate()`. Une
+apostrophe n'interpole pas : y écrire `${…}` aurait produit le texte littéral
+`${COULEURS_EMAIL.texte}` **dans l'e-mail du destinataire**.
+
+Trois chaînes ont été converties en chaînes modèles — mais **seulement après vérification** qu'elles
+ne contiennent ni backtick ni `${`. Leurs marqueurs à elles sont des `{url}` / `{label}` en accolades
+simples, que `interpolate()` remplace et qu'une chaîne modèle laisse tranquilles. Les deux dernières
+ont été faites à la main.
+
+#### L'exemption de sécurité, et sa borne
+
+`diag-lot7-securite` exige que **toute valeur interpolée dans du HTML d'e-mail soit échappée ou
+nommée en exception**. Les `${COULEURS_EMAIL.x}` ne sont pas échappés : ce sont des constantes du
+dépôt, vérifiées par la garde de contraste et par le cliquet des couleurs littérales.
+
+> ⚠️ **L'EXEMPTION EST BORNÉE À CET OBJET**, pas à « tout ce qui ressemble à une couleur ». Le jour
+> où une couleur viendra de la **base** — la palette d'un écosystème, par exemple — elle devra être
+> échappée comme n'importe quelle autre valeur, et cette ligne ne la couvrira pas.
+
+#### Ce qui reste ouvert, et qui se dit plutôt que se cache
+
+Ces couleurs sont celles de la palette **de référence**, pas celles de l'écosystème du destinataire.
+Les rendre dynamiques demande de faire descendre la palette jusqu'au point d'envoi, qui ne reçoit
+aujourd'hui que le **nom de marque** (`brandName`). C'est un lot à soi, et il n'est pas fait — l'écrire
+est plus honnête que de laisser croire le contraire (§E.38).
+
 ## F. La classe de défaut « lire puis écrire »
 
 > **DETTE NOMMÉE, NON OUVERTE — `extendValidity` (20/09/2026).**
