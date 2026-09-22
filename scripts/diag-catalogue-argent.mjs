@@ -153,10 +153,29 @@ for (const [nom, f] of [['édition', 'app/[locale]/admin/packages/[id]/page.tsx'
 // ─────────────────────────────────────────────────────────────────────────────
 section('B. Verrou fermé : le back-office n’est PAS gelé')
 
+/* ⚠️ CETTE ASSERTION S'ANCRAIT SUR L'EXPRESSION, PAS SUR LA PROPRIETE.
+      Elle exigeait littéralement `if (!billingEnabled()) return { ok: true,
+      ignoree: true }`. Le 22/09/2026, §D.16 a remplacé ce verrou par
+      `resolveCatalogueKey().ok` — RELIER N'EST PAS ENCAISSER — et elle a rougi
+      sur un comportement INCHANGÉ : sans clé, rien n'est tenté, la
+      modification passe. C'est §E.34 dans un contrôle de ce dépôt.
+
+      La propriété défendue, elle, n'a pas bougé : QUAND AUCUNE SYNCHRO N'EST
+      POSSIBLE SUR CET ENVIRONNEMENT, ON NE TENTE RIEN ET ON N'EMPÊCHE RIEN.
+      C'est donc elle qu'on vérifie — le premier refus de la fonction rend
+      `ignoree: true`, quel que soit le nom de la condition. */
+const premierRefus = garde.match(
+  /export async function synchroniserAvantEcriture\([\s\S]*?\)\s*:\s*Promise<Synchro>\s*\{\s*\n\s*(if \([^)]*\)[^\n]*)/,
+)
 ok(
-  /if \(!billingEnabled\(\)\) return \{ ok: true, ignoree: true \}/.test(garde),
-  'verrou fermé → aucune synchro tentée, la modification passe',
-  "Appliquer la règle telle quelle en V0 gèlerait le back-office : aucune clé Stripe, donc plus aucune modification d'offre possible.",
+  Boolean(premierRefus) && /return \{ ok: true, ignoree: true \}/.test(premierRefus[1]),
+  'rien à synchroniser sur cet environnement → aucune tentative, la modification passe',
+  "Appliquer la règle telle quelle gèlerait le back-office : sans clé Stripe, plus aucune modification d'offre possible.",
+)
+ok(
+  Boolean(premierRefus) && /resolveCatalogueKey\(\)/.test(premierRefus[1]),
+  '… et la condition est la CLÉ de catalogue, pas l’interrupteur d’encaissement (§D.16)',
+  'exiger ENABLE_BILLING pour relier recrée la dépendance circulaire : relier suppose alors d’avoir déjà ouvert l’encaissement',
 )
 // Une offre NON VENDABLE n'est pas un échec : il n'y a rien à pousser.
 ok(
