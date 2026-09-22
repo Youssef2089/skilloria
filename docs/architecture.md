@@ -1185,6 +1185,22 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   Vonage**. Il viendra si des échecs invisibles sont constatés en production.
 
 **Moteur**
+- **L'AUDIT DU MOTEUR DU 22/09/2026 EST RENDU, ET RIEN N'Y EST CORRIGÉ** —
+  [docs/audit-moteur.html](audit-moteur.html), lecture seule, commit `46971b3`, base de staging lue
+  le jour même. **Douze défauts**, dont un **bloquant** : `GET /api/me/missions/[id]` sélectionne
+  `matches.score`, colonne supprimée par `…_score_de_pertinence` — la base répond
+  `column matches.score does not exist`, aucune mission ne s'ouvre, donc **personne ne peut postuler**
+  (le dépôt part de la seule vue qui charge cette route). Deux écarts à l'architecture figée : les
+  deux sens notent des **annonces expirées** (aucun lecteur du filtre d'expiration dans
+  `lib/matching/`, ni dans `next_unfinished_matching_run`), et une **relance dont le run échoue est
+  soldée quand même** (`cron/expert-relance:101-102`, `me/sync-matching:211-215`). Puis : le tarif
+  du reranker sans source fournisseur et compté par document, les recherches web de la vérification
+  non comptées, aucun bail par profil sur le chemin direct, un jugement de candidature jamais rejoué,
+  deux définitions d'« éligible », le jugement toujours en français, un profil masqué qui postule
+  encore, un plafond de dépense commun à tous les acteurs, et 73 % des passages des pilotes cron sans
+  verdict HTTP. **Onze arbitrages** sont listés en tête du document ; aucun n'a été tranché.
+  ⚠️ La base de staging **n'a jamais fait tourner le moteur actuel** (0 dépense, 0 brouillon,
+  0 match noté par le reranker) : le comportement réel reste à mesurer par la recette.
 - Le canal SMS est fermé au dispatcher (§D.2). Rouvrir exige d'abord de basculer le défaut de préférence
   en **opt-in** et de rendre les interrupteurs aux écrans — ni l'un ni l'autre n'est fait.
   ⚠️ **Sans rapport avec l'OTP d'inscription** : autre API (Verify v2), autre chemin, aucun point

@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Audit du moteur de mise en relation</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --doc-bg:#fbfbfa; --doc-surface:#ffffff; --doc-ink:#14161a; --doc-muted:#5c6470;
+    --doc-faint:#8b93a0; --doc-line:#e4e6ea; --doc-line-soft:#eef0f3;
+    --doc-accent:#1f4f7a; --doc-warn-bg:#fdf6e6; --doc-warn-line:#e8d4a0;
+    --doc-bad-bg:#fdf0ee; --doc-bad-line:#f0c8c0; --doc-ok-bg:#eef7f2; --doc-ok-line:#bfe0ce;
+    --doc-sans:'Plus Jakarta Sans','Segoe UI',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    --doc-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    /* Thème clair uniquement, comme l'audit des couleurs dont ce document reprend la forme :
+       un document de mesure se lit sur un fond connu. */
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--doc-bg);color:var(--doc-ink);
+    font:400 16px/1.65 var(--doc-sans);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px;padding-block:40px}
+  header.doc{border-bottom:2px solid var(--doc-ink);padding-bottom:22px;margin-bottom:34px}
+  h1{font-size:clamp(26px,4.2vw,38px);line-height:1.15;letter-spacing:-.022em;margin:0 0 10px;font-weight:800;text-wrap:balance}
+  .kicker{font-size:12px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--doc-accent);margin:0 0 12px}
+  .lede{font-size:17px;color:var(--doc-muted);margin:0;max-width:66ch}
+  h2{font-size:clamp(20px,2.8vw,26px);letter-spacing:-.018em;margin:52px 0 6px;font-weight:800;padding-top:22px;border-top:1px solid var(--doc-line);text-wrap:balance}
+  h2 .num{color:var(--doc-faint);font-weight:700;margin-right:10px}
+  h3{font-size:16px;font-weight:700;margin:30px 0 8px;letter-spacing:-.01em}
+  p{margin:0 0 14px;max-width:74ch}
+  .sub{color:var(--doc-muted);margin-top:0;max-width:74ch}
+  code{font-family:var(--doc-mono);font-size:.86em;background:var(--doc-line-soft);padding:1px 5px;border-radius:4px}
+  .scroll{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--doc-line);border-radius:10px;background:var(--doc-surface)}
+  table{border-collapse:collapse;width:100%;font-size:14px;min-width:720px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--doc-line-soft);vertical-align:top}
+  th{background:#f5f6f8;font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--doc-muted);white-space:nowrap;position:sticky;top:0}
+  tr:last-child td{border-bottom:none}
+  td.mono,.mono{font-family:var(--doc-mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+  .where{color:var(--doc-muted);font-size:12px;font-family:var(--doc-mono);font-variant-numeric:tabular-nums}
+  .note{border-left:3px solid var(--doc-accent);background:var(--doc-surface);padding:14px 18px;margin:18px 0;border-radius:0 8px 8px 0;max-width:none}
+  .note.warn{border-left-color:#c08a1e;background:var(--doc-warn-bg)}
+  .note.bad{border-left-color:#c0503b;background:var(--doc-bad-bg)}
+  .note.ok{border-left-color:#3f8f66;background:var(--doc-ok-bg)}
+  .note p:last-child{margin-bottom:0}
+  .note .t{font-weight:800;display:block;margin-bottom:6px;font-size:14px;letter-spacing:-.01em}
+  .cards{display:grid;grid-template-columns:1fr;gap:14px;margin:18px 0 8px}
+  @media(min-width:620px){.cards{grid-template-columns:repeat(2,1fr)}}
+  @media(min-width:960px){.cards{grid-template-columns:repeat(4,1fr)}}
+  .card{background:var(--doc-surface);border:1px solid var(--doc-line);border-radius:10px;padding:16px}
+  .card .big-n{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums}
+  .card .lbl{font-size:12.5px;color:var(--doc-muted);margin-top:4px;line-height:1.45}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.03em;white-space:nowrap}
+  .p-blq{background:#fbe6e2;color:#a03a27}.p-att{background:#fdf3e0;color:#8a5f11}
+  .p-ok{background:#e4f2e9;color:#1d6440}.p-fait{background:#eef0f3;color:#5c6470}.p-nv{background:#e9f0f8;color:#1f4f7a}
+  ul{margin:0 0 16px;padding-left:22px;max-width:74ch}li{margin-bottom:7px}
+  .meta{font-size:13px;color:var(--doc-faint);margin-top:10px}
+  footer.doc{margin-top:56px;padding-top:20px;border-top:1px solid var(--doc-line);font-size:13px;color:var(--doc-faint)}
+  .tight td{padding:7px 10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <p class="kicker">Audit · lecture seule · 22 septembre 2026</p>
+  <h1>Le moteur de mise en relation, dans tous les sens, pour toutes les populations</h1>
+  <p class="lede">Ce document mesure. Il ne corrige rien et ne recommande rien d'autre que ce qu'il
+  faut trancher. Chaque affirmation a été lue dans le code, à l'adresse indiquée, ou dans la base,
+  par une lecture datée. Ce qui n'a pas pu être vérifié est écrit <strong>NON VÉRIFIÉ</strong>, en
+  toutes lettres.</p>
+  <p class="meta">Branche <code>feat/sprint-archi-orga</code>, arbre propre au commit <code>46971b3</code>.
+  Base de staging <code>wnayuerhakekxccgimeg</code> lue le 22/09/2026 à 18 h 14 UTC, en lecture seule
+  (sélections, comptages, et huit fonctions dont la définition a été lue et est <code>stable</code>).
+  Aucune écriture en base, aucun push, aucune ligne de code modifiée.</p>
+</header>
+
+<div class="cards">
+  <div class="card"><div class="big-n">1</div>
+    <div class="lbl">défaut <strong>bloquant</strong> : aucune mission ne s'ouvre, donc personne ne peut postuler — la route lit une colonne qui n'existe plus</div></div>
+  <div class="card"><div class="big-n">0 / 0</div>
+    <div class="lbl">expert éligible / annonce active dans la base lue : <strong>le moteur actuel n'y a jamais tourné</strong></div></div>
+  <div class="card"><div class="big-n">≈ 2,1 $</div>
+    <div class="lbl">par jour, ce que le plafond compterait pour la journée demandée — dont <strong>0,005 $</strong> de reranking (estimation, §8)</div></div>
+  <div class="card"><div class="big-n">× 64</div>
+    <div class="lbl">écart possible entre ce que le plafond du reranker compte et ce que la facture dirait si le fournisseur facture par unité de recherche — <strong>NON VÉRIFIÉ</strong></div></div>
+</div>
+
+<div class="note">
+  <span class="t">La phrase qui résume</span>
+  <p>Sur ses trois points figés — filtres SQL, puis Cohere, Claude seulement au dépôt ; notes 0-10 converties une fois ;
+  notes clées sur l'empreinte — <strong>le moteur est conforme</strong>. Mais l'expert ne peut pas s'en servir aujourd'hui :
+  l'écran qui ouvre une mission demande à la base une colonne supprimée le 1<sup>er</sup> septembre, et c'est le seul écran
+  d'où l'on postule. Derrière, ce que le moteur coûte est <strong>mal compté</strong> — le tarif du reranker n'a pas de source,
+  les recherches web de la vérification ne sont pas comptées —, et une relance dont le run échoue est <strong>soldée quand même</strong>.
+  Le reste de ce document dit où, avec quelle preuve, et ce qui reste à trancher.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ 1 -->
+<h2><span class="num">1</span>Les défauts, par gravité</h2>
+<p class="sub">Ordre demandé : ce qui s'ouvre ou se tait d'abord, les écarts à l'architecture figée ensuite, puis le reste.
+« Ce que l'utilisateur vit » est écrit du point de vue de la personne devant l'écran, jamais du code.
+<strong>Aucun de ces défauts n'est corrigé par cet audit.</strong></p>
+
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Gravité</th><th>Ce que l'utilisateur vit</th><th>Où, et la preuve</th><th>À trancher</th></tr></thead>
+<tbody>
+<tr><td class="mono">D1</td><td><span class="pill p-blq">BLOQUANT</span></td>
+  <td><strong>Aucune mission ne s'ouvre.</strong> L'expert clique une opportunité de son flux : l'écran affiche une erreur
+  générique. Comme le bouton « Postuler » n'existe que sur cet écran, <strong>personne ne peut postuler</strong>, aucun match ne
+  passe jamais en « vu », et le jugement de Claude au dépôt est inatteignable depuis le produit. Les deux voies sont touchées
+  à l'identique (freelance et CDI).</td>
+  <td>La route <span class="where">app/api/me/missions/[id]/route.ts:121</span> sélectionne <code>score</code>, colonne supprimée
+  par <span class="where">20260901000014_score_de_pertinence.sql:81</span>. <strong>La base l'a confirmé</strong> à la sélection exacte
+  de la route : <code>column matches.score does not exist</code>. L'écran <span class="where">components/dashboard/MissionDetailView.tsx:128</span>
+  (monté par <code>dashboard/{freelance,cdi}/missions/[id]</code>) appelle cette route ; le dépôt de candidature part de la même vue
+  (<span class="where">:166</span>). Secondaire, même route : <code>relevance_tier</code> est lu (<span class="where">:252</span>) sans être
+  sélectionné → « normal » toujours. <strong>Aucun contrôle ne le voit</strong> : <code>diag-colonnes-supprimees</code> ne connaît pas
+  <code>matches.score</code> (0 occurrence).</td>
+  <td>Rien à trancher : une ligne à corriger, et le cliquet des colonnes supprimées à compléter. Depuis quand ? La colonne est tombée
+  le 01/09 ; les 18 matches de la base datent d'avant le 05/08 : <strong>NON VÉRIFIÉ</strong> qu'un expert ait ouvert une mission
+  depuis le 01/09 sur cet environnement.</td></tr>
+
+<tr><td class="mono">D2</td><td><span class="pill p-blq">ÉCART À L'ARCHITECTURE</span></td>
+  <td>Rien de visible — c'est le problème. Le flux cache les annonces expirées, mais <strong>le moteur les note et les paie</strong>
+  dans les deux sens, et crée des matches vers des annonces mortes. Une annonce expirée dont le run est resté inachevé est rejouée
+  jusqu'à cinq fois par le rattrapage.</td>
+  <td>Sens expert → annonces : <span class="where">lib/matching/run-for-expert.ts:227-241</span> ne filtre que <code>status = 'published'</code>.
+  Rattrapage : <code>next_unfinished_matching_run</code> (<span class="where">20260912200000_verrou_run_et_unicite_notifications.sql:65-77</span>)
+  idem. Sens annonce → experts : <span class="where">lib/matching/index.ts:207-234</span> ne teste ni le statut ni l'expiration de l'annonce.
+  Mesuré : <strong>12 lecteurs</strong> du filtre d'expiration (<code>activePublishedOrClause</code> / <code>isActivePublished</code>) dans
+  <code>app/</code> + <code>lib/</code>, <strong>0 dans <code>lib/matching/</code></strong>. Base : 6 annonces publiées, <strong>6 expirées</strong>,
+  0 active. La règle « le moteur ne note que published ET non expirées » est écrite dans <span class="where">20260921000010_inacheves_hors_annonces_expirees.sql:26-28</span>
+  — le code ne l'applique pas (§E.29).</td>
+  <td>Rien à trancher sur le fond : le filtre SQL « gratuit » manque des deux côtés. À décider : le rattrapage abandonne-t-il une
+  annonce expirée en cours de rejeu (elle sort alors de la supervision par construction) ?</td></tr>
+
+<tr><td class="mono">D3</td><td><span class="pill p-blq">ZÉRO FOIS · SILENCE</span></td>
+  <td>« J'ai modifié mon profil, aucune annonce n'arrive, et personne ne le sait. » Une relance dont le run <strong>échoue</strong>
+  (interrupteur fermé, clé absente, plafond, lot en échec) est <strong>soldée quand même</strong> : rien ne la rejoue. Avec le moteur
+  éteint — l'état de cet environnement — chaque relance est consommée par un run qui s'arrête à la première garde. Le sens annonce fait
+  l'inverse et rejoue.</td>
+  <td><span class="where">app/api/cron/expert-relance/route.ts:101-102</span> et <span class="where">app/api/me/sync-matching/route.ts:211-215</span> :
+  <code>solderRelance</code> après le run, quel que soit <code>verdict.status</code>. Rien n'équivaut, côté profil, à
+  <code>matching_completed_at</code> ; <code>matching_relance_health()</code> ne voit donc rien. Côté annonce :
+  <span class="where">lib/matching/index.ts:436-465</span> laisse le run inachevé, rejoué ≤ 5 fois.</td>
+  <td><strong>Arbitrage 1.</strong> Que devient une relance dont le run est empêché ou partiel : la garder (donc la rejouer toutes les
+  5 min tant que le moteur est éteint) ou la solder en le disant à l'expert ?</td></tr>
+
+<tr><td class="mono">D4</td><td><span class="pill p-att">SUPERVISION MUETTE</span></td>
+  <td>L'administrateur ne peut pas savoir si les deux pilotes du moteur (rattrapage, relance) atteignent l'application, sauf pour la
+  tranche 21 h – 4 h. Le reste de la journée, le journal n'a <strong>aucun verdict HTTP</strong>.</td>
+  <td>Base : <strong>9 853</strong> lignes pour les deux pilotes depuis le 03/09, <strong>7 201 jamais réconciliées (73 %)</strong>. La
+  réconciliation ne passe qu'à 03 h 15 et 03 h 45 (<span class="where">20260823000000_purges_rgpd_pg_cron.sql:346-364</span>), et la réponse
+  pg_net disparaît en ~6 h (<span class="where">:176</span>) : un passage de 10 h du matin n'a plus de réponse à copier la nuit suivante.
+  Les lignes réconciliées disent <code>200</code>, « Aucun run inachevé », « Aucune relance ».</td>
+  <td><strong>Arbitrage 2.</strong> Réconcilier plus souvent pour les tâches à 5 minutes (au prix de lignes dans le journal pg_cron), ou
+  accepter un journal aveugle aux trois quarts et l'écrire.</td></tr>
+
+<tr><td class="mono">D5</td><td><span class="pill p-att">COÛT INVISIBLE</span></td>
+  <td>Le plafond du reranker (200 $/mois) protège d'un montant qu'il ne sait pas compter : <strong>le tarif n'a pas de source
+  fournisseur</strong>, et l'unité journalisée est le document.</td>
+  <td>Base, <code>ai_model_tarifs</code> : <code>rerank-v4.0-fast</code>, <code>0,000002 $</code>, source = <em>« Valeur retenue par le code
+  depuis lib/matching/rerank.ts »</em> — la ligne dit elle-même qu'elle ne vient pas d'une grille. Code :
+  <span class="where">lib/matching/rerank.ts:390</span> journalise <code>unites: lot.length</code> (des documents).
+  <strong>NON VÉRIFIÉ</strong> dans le dépôt : la grille Cohere. Si elle facture par <em>unité de recherche</em> (une requête × jusqu'à 100
+  documents, un document long comptant plusieurs fois), la journée normale coûterait ≈ 0,32 $ contre 0,005 $ comptés (§8).</td>
+  <td><strong>Arbitrage 3.</strong> Relire la grille, poser <code>usd_par_unite</code> avec sa source, et décider si l'unité
+  journalisée reste le document ou devient l'unité de recherche. Le signal <code>tarifs_non_verifies</code> de la supervision existe ;
+  il ne dit pas lequel des quatre tarifs est faux.</td></tr>
+
+<tr><td class="mono">D6</td><td><span class="pill p-att">COÛT INVISIBLE</span></td>
+  <td>Chaque « Publier mon profil » lance une vérification Claude avec jusqu'à <strong>4 recherches web</strong> ; <strong>les recherches
+  ne sont pas comptées</strong> par le plafond, seuls les jetons le sont.</td>
+  <td><span class="where">lib/verification/expert-verification.ts:597-604</span> enregistre <code>aiOut.usage</code> ; la seule forme de
+  consommation possible est jetons ou unités (<span class="where">lib/ai-consommation.ts:31-35</span>). Base : <code>web_search_max_uses = 4</code>.
+  Déclencheur : <span class="where">app/api/profile/route.ts:699-731</span>, à <strong>toute</strong> requête <code>visible: true</code>
+  (bouton « publier », <span class="where">dashboard/freelance/mon-profil/page.tsx:566-569</span> ; CDI :
+  <span class="where">cdi/mon-profil/page.tsx:216-219</span>). <strong>NON VÉRIFIÉ</strong> : le prix d'une recherche web chez Anthropic.</td>
+  <td><strong>Arbitrage 4.</strong> Modéliser une troisième forme de consommation (recherches), ou accepter la sous-estimation et l'écrire
+  dans <code>lib/ai-consommation.ts</code>, où le cas des jetons de cache est déjà déclaré.</td></tr>
+
+<tr><td class="mono">D7</td><td><span class="pill p-att">DEUX FOIS</span></td>
+  <td>Deux recherches lancées à quelques secondes pour le <strong>même expert</strong> (deux onglets, bascule puis ouverture croisée,
+  relance cron pendant un run direct) <strong>paient deux fois</strong> Cohere, et l'une des deux peut finir en « la recherche n'a pas pu
+  aboutir » sans raison visible.</td>
+  <td>Le chemin direct n'a <strong>aucun bail par profil</strong> (<span class="where">app/api/me/sync-matching/route.ts:197-237</span>) ; l'écran
+  désactive les interrupteurs pendant la recherche (<span class="where">dashboard/freelance/page.tsx:695,702</span>) — un seul onglet.
+  Le cron, lui, est protégé (<span class="where">20260915200010_bail_de_run_cron.sql:205-228</span>) mais ignore les runs directs.
+  Deux réconciliations concurrentes insèrent la même paire : <code>UNIQUE (publication_id, profile_id)</code>
+  (<span class="where">00000000000000_baseline.sql:1949</span>) → 23505 → run en erreur → issue <code>lecture_en_panne</code>.
+  La reprise (<code>matching_notes_partielles</code>) atténue le double paiement sans le fermer.</td>
+  <td><strong>Arbitrage 5.</strong> Un bail par profil sur le chemin direct (même forme que <code>cron_run_leases</code>), ou accepter
+  le double paiement borné par le plafond horaire (20/h).</td></tr>
+
+<tr><td class="mono">D8</td><td><span class="pill p-att">ZÉRO FOIS</span></td>
+  <td>Une candidature dont le jugement <strong>n'a pas eu lieu</strong> parce que la fonction a été tuée reste <strong>sans note, sans pitch,
+  et la place incluse n'est pas attribuée</strong> — sans compteur ni rattrapage. L'organisation voit une place vide et paiera un
+  dévoilement manuel pour ce qui lui était dû.</td>
+  <td><span class="where">app/api/candidatures/route.ts:301-401</span> : un seul <code>after()</code>, aucun rejeu ; la panne n'est comptée
+  que si le modèle a <em>répondu</em> non (<span class="where">:354-368</span>) ; <code>devoilementInclus</code> est sauté avec le jugement.
+  Le code nomme lui-même ce silence pour un cas voisin (<span class="where">:658-666</span>).</td>
+  <td><strong>Arbitrage 6.</strong> Un rattrapage des candidatures sans note de plus de 45 s (la fenêtre de jugement,
+  <span class="where">:638</span>) — ou accepter que le dépôt tienne sans note.</td></tr>
+
+<tr><td class="mono">D9</td><td><span class="pill p-att">PARITÉ DES DEUX SENS</span></td>
+  <td>Aucun vécu aujourd'hui (0 expert visible). Potentiel : un compte <strong>suspendu</strong> ou en suppression dont une relance attend
+  est noté et reçoit des matches qu'il ne verra jamais.</td>
+  <td>« Éligible » est écrit <strong>deux fois</strong> : le vivier exclut suspendus / suppression / anonymisés
+  (<span class="where">lib/matching/pool.ts:174-176</span>) ; <code>expertEligible</code> ne les teste pas
+  (<span class="where">lib/matching/run-for-expert.ts:109-121</span>). Les zones : exigées par recoupement côté annonce
+  (<span class="where">pool.ts:189-191</span>), appliquées seulement si l'expert en a côté expert (<span class="where">run-for-expert.ts:237-239</span>).
+  Base : 6 profils sur 6 sans zone dérivée, 0 visible — cohérent, la visibilité exige des zones.</td>
+  <td><strong>Arbitrage 7.</strong> Une seule définition, lue par les deux sens (§E.20) — ou déclarer l'écart.</td></tr>
+
+<tr><td class="mono">D10</td><td><span class="pill p-att">LANGUE</span></td>
+  <td>Un expert anglophone lit la raison de son jugement <strong>en français</strong> ; une organisation allemande lit un pitch français au
+  dépôt, puis allemand si elle ouvre la carte plus tard.</td>
+  <td><span class="where">app/api/candidatures/route.ts:328</span> : <code>locale: 'fr'</code> en dur. La route du pitch, elle, lit
+  <code>?locale</code> (<span class="where">app/api/candidatures/[id]/pitch/route.ts:175</span>).</td>
+  <td><strong>Arbitrage 8.</strong> Deux destinataires, deux langues (celle de l'expert pour <code>reason</code>, celle de l'organisation pour
+  <code>pitch_org</code>) — et un seul appel aujourd'hui.</td></tr>
+
+<tr><td class="mono">D11</td><td><span class="pill p-fait">FAIT À ARBITRER</span></td>
+  <td>Un expert qui <strong>masque</strong> son profil garde toutes ses recommandations et <strong>peut encore postuler</strong>.
+  Il sort seulement des viviers des annonces futures.</td>
+  <td>Invisible ⇒ rien ne se passe (<span class="where">app/api/profile/route.ts:831-835</span>) ; le flux ne lit ni <code>visible</code>
+  ni rien d'autre que approuvé / ne-pas-déranger (<span class="where">lib/missions/feed.ts:110-119</span>) ; le dépôt ne teste pas la
+  visibilité (<span class="where">app/api/candidatures/route.ts:180-249</span>).</td>
+  <td><strong>Arbitrage 9.</strong> « Masqué » veut-il dire « hors marché » ? Décision produit, pas de code.</td></tr>
+
+<tr><td class="mono">D12</td><td><span class="pill p-att">PLAFOND PARTAGÉ</span></td>
+  <td><strong>Un seul compte peut fermer l'IA pour tout le monde.</strong> Les plafonds sont globaux par fournisseur ; par acteur il
+  n'existe que des alertes. Une organisation sur l'offre <em>business</em> (publications illimitées, 5 actives) qui publie, clôture et
+  republie en boucle consomme le plafond Claude de la plateforme — et, au plafond, l'analyse de CV refuse, les vérifications partent en
+  revue manuelle, les annonces partent en revue, les candidatures restent sans note.</td>
+  <td><code>ai_spend_status()</code> somme tous les écosystèmes et tous les acteurs
+  (<span class="where">20260903000020_reglages_matching_et_depense.sql:188-218</span>) ; seuils par acteur = ALERTE
+  (base : 10 $/organisation, 2 $/profil) ; offre <em>business</em> en base : <code>publications_per_month = unlimited</code>. Comportement
+  au plafond : <span class="where">lib/verification/publication-verification.ts:126-137</span> (revue), <span class="where">expert-verification.ts:555-566</span>,
+  <span class="where">app/api/profile/upload-cv/route.ts:335-339</span> (503), <span class="where">lib/candidatures/ai-assessment.ts:275-279</span>.</td>
+  <td><strong>Arbitrage 10.</strong> Un PLAFOND par acteur ou par écosystème (§D.9 : un plafond bloque, une alerte signale), ou garder le
+  plafond commun en sachant qu'il est commun.</td></tr>
+</tbody></table></div>
+
+<h3>Ce que la lecture a trouvé dans la mémoire, en passant</h3>
+<ul>
+  <li><code>docs/produit.md:848</code> et <code>docs/architecture.md:867</code> disent « relance à <strong>60 min</strong> » ; le code dit
+  <strong>10</strong> (<code>lib/matching/relance.ts:88</code>, depuis le 22/09).</li>
+  <li><code>docs/produit.md:1173</code> et <code>docs/architecture.md:1258</code> disent <code>scripts/diag.mjs</code> « cassé et inachevé » ;
+  il est réparé depuis le 22/09 (commit <code>3162197</code>).</li>
+  <li>Les migrations du moteur parlent d'un « rattrapage à la lecture » (<code>20260901000012_matching_trace_et_reprise.sql:99-100</code>) :
+  il n'existe plus — les <strong>9</strong> appels du moteur hors <code>lib/matching</code> sont tous nommés en §4, aucun n'est une lecture.</li>
+  <li>La base porte encore une ligne <code>verification_providers.profile_matching</code>, inactive, avec un modèle Claude en configuration :
+  la trace de l'ancien moteur. Elle ne gouverne rien (§D.11 : un réglage mort se documente).</li>
+  <li><code>matching_health()</code> écrit <code>interval '30 days'</code> en dur (<code>20260901000012:144</code>) au lieu de lire
+  <code>duree_reglages</code> ; elle n'a aucun lecteur (déjà recensée en §E.38 ②).</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════════════════ 2 -->
+<h2><span class="num">2</span>Les arbitrages, en une liste</h2>
+<p class="sub">Youssef est absent ; rien n'a été tranché à sa place. Chaque ligne dit ce qui est en jeu, pas ce qu'il faut choisir.</p>
+<ol style="max-width:80ch">
+  <li><strong>Relance et run empêché</strong> (D3) — rejouer, ou solder en le disant.</li>
+  <li><strong>Journal des pilotes</strong> (D4) — réconcilier plus souvent, ou écrire qu'il est aveugle aux trois quarts.</li>
+  <li><strong>Tarif du reranker</strong> (D5) — grille, source, et unité journalisée.</li>
+  <li><strong>Recherches web</strong> (D6) — les compter, ou déclarer la sous-estimation.</li>
+  <li><strong>Bail par profil</strong> (D7) — sérialiser le chemin direct, ou accepter le double paiement borné.</li>
+  <li><strong>Candidature sans jugement</strong> (D8) — un rattrapage, ou un dépôt qui tient sans note.</li>
+  <li><strong>Une seule définition d'éligible</strong> (D9).</li>
+  <li><strong>Langue du jugement</strong> (D10) — deux destinataires, deux langues.</li>
+  <li><strong>« Masqué » et « hors marché »</strong> (D11) — décision produit.</li>
+  <li><strong>Plafond commun ou par acteur</strong> (D12) — argent.</li>
+  <li><strong>La symétrie de la note</strong> (§5) — déjà ouverte le 22/09 ; la recette doit la mesurer avant toute décision. Ce document
+  ajoute <em>ce que l'asymétrie ferait</em>, pas une décision.</li>
+</ol>
+
+<!-- ══════════════════════════════════════════════════════════ 3 -->
+<h2><span class="num">3</span>L'architecture figée, point par point</h2>
+<p class="sub">Ce qui a été donné comme figé, confronté au code lu en entier (<code>lib/matching/*</code>, 16 fichiers, 3 743 lignes) et aux routes qui l'appellent.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>Point figé</th><th>Ce que le code fait</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td><strong>Filtres SQL (gratuits)</strong> d'abord</td>
+  <td>Sens annonce : domaine, visible, CV analysé, consentement, approuvé, compte ni suspendu ni en suppression, branche, spécialités, séniorités,
+  zones (recoupement), auteur exclu pour la sous-traitance, disponibilité du type d'expert ; les décisions déjà prises (décliné, postulé) sont
+  retirées en mémoire — filtre négatif indécoupable (<span class="where">lib/matching/pool.ts:113-321</span>). Sens expert : domaine, publié,
+  types autorisés (ouverture croisée), branche, zones, pas son propre besoin ; spécialités et séniorités recoupées en mémoire
+  (<span class="where">run-for-expert.ts:227-280</span>). <strong>Manque des deux côtés : l'expiration</strong> (D2).</td>
+  <td><span class="pill p-ok">CONFORME</span> sauf D2</td></tr>
+<tr><td><strong>Cohere</strong> note ce qui reste</td>
+  <td>Un appel HTTP direct (<span class="where">lib/matching/rerank.ts:163-174</span>), par lots de <code>rerank_batch_size</code> (base : 200),
+  quatre lots à la fois, délai 10 s, un seul nouvel essai sur panne transitoire, plafond relu <strong>entre chaque vague</strong>
+  (<span class="where">:347-353</span>). Chaque couple est noté indépendamment (<code>top_n</code> = taille du lot).</td>
+  <td><span class="pill p-ok">CONFORME</span></td></tr>
+<tr><td><strong>Claude</strong> uniquement quand l'expert postule, et pour le pitch à la demande</td>
+  <td>Deux appelants : <code>jugerCandidature</code> (<span class="where">app/api/candidatures/route.ts:321</span>) et <code>redigerPitchOrg</code>
+  (<span class="where">app/api/candidatures/[id]/pitch/route.ts:177</span>). <strong>Aucun import Anthropic dans <code>lib/matching/</code></strong>
+  (lu fichier par fichier). Claude intervient ailleurs, <em>hors</em> du chemin de notation : porte de qualité à la publication (Haiku,
+  <span class="where">publish/route.ts:332</span>), vérification d'expert à <code>visible: true</code> (Haiku + recherche web,
+  <span class="where">profile/route.ts:717</span>), analyse de CV (Haiku). Ce sont des portes <em>avant</em> le moteur, pas des notes de pertinence.</td>
+  <td><span class="pill p-ok">CONFORME</span></td></tr>
+<tr><td><strong>Notes en 0-10</strong>, converties une fois à la frontière</td>
+  <td>Une seule multiplication, <span class="where">rerank.ts:253</span>, bornée avant. Filtres en base contraints à [0,10]
+  (<span class="where">20260919000000_echelle_des_notes.sql:144-158</span>), matches contraints à [0,10] (<span class="where">:132-134</span>),
+  brouillon stocké déjà converti. Base : flux 0, notification 8.</td>
+  <td><span class="pill p-ok">CONFORME</span></td></tr>
+<tr><td><strong>Notes clées sur l'empreinte</strong>, annonce d'abord</td>
+  <td><code>empreinteDeNote(texteAnnonce, texteProfil)</code> (<span class="where">lib/matching/empreinte.ts:72-76</span>) ; ordre canonique aux
+  deux appelants (<span class="where">index.ts:338</span>, <span class="where">run-for-expert.ts:323</span>) ; colonne <code>not null</code> sans défaut
+  (<span class="where">20260922000000_empreinte_des_notes.sql</span>) ; lecture qui compare, écriture qui fournit
+  (<span class="where">reprise.ts:52-73, 96-128, 159-233</span>).</td>
+  <td><span class="pill p-ok">CONFORME</span></td></tr>
+</tbody></table></div>
+
+<!-- ══════════════════════════════════════════════════════════ 4 -->
+<h2><span class="num">4</span>Les neuf déclencheurs, un par un</h2>
+<p class="sub">Pour chacun : le chemin complet, ce qui est synchrone et ce qui est différé, ce qui part chez un tiers, ce que ça coûte,
+ce qui se passe si ça casse au milieu, et la parité. Les coûts unitaires sont ceux de <code>ai_model_tarifs</code> lus en base ;
+les volumes de jetons sont des <strong>estimations</strong> (aucun événement de dépense n'existe en base pour les mesurer).</p>
+
+<h3>① Publier une annonce — mission, emploi, sous-traitance — par un client, un cabinet, une ESN</h3>
+<div class="scroll"><table class="tight">
+<thead><tr><th>Étape</th><th>Où</th><th>Quand</th><th>Ce qui se passe</th></tr></thead>
+<tbody>
+<tr><td>Brouillon</td><td class="where">app/api/publications/route.ts:200-348</td><td>synchrone</td>
+  <td>Organisation résolue par le <strong>type</strong> : la sous-traitance crée l'organisation personnelle de l'expert
+  (<span class="where">:232-258</span>) ; mission/offre exigent une organisation et le rôle <em>editor</em>. Statut forcé <code>draft</code>. Zones résolues par code.</td></tr>
+<tr><td>Publication</td><td class="where">app/api/publications/[id]/publish/route.ts:88-443</td><td>synchrone</td>
+  <td>Durées (503 si illisibles) → organisation → rôle → cloisonnement <strong>dans la recherche</strong> (404) → publiabilité nommée →
+  garde « profil approuvé » pour la sous-traitance → place active réservée en base (fail-closed) → quota mensuel → <strong>porte de qualité
+  Claude</strong> (Haiku, repli Sonnet 4.6 ; au plafond : revue admin) → statut → audit → réponse.</td></tr>
+<tr><td>Mise en relation</td><td class="where">publish/route.ts:423-440 → lib/matching/index.ts:200-485</td><td><strong>différé</strong> (<code>after()</code>, 60 s)</td>
+  <td>Réglages (refus nommé si absents) → tentative marquée → vivier SQL (paginé, complet ou refus) → documents → reprise par empreinte →
+  Cohere par vagues → réconciliation idempotente → notifications <strong>si activées</strong> (base : non) → trace <code>matching_stats</code> → brouillon soldé si achevé.</td></tr>
+<tr><td>Ce qui part chez un tiers</td><td class="where">document.ts:69-123</td><td></td>
+  <td>Chez Cohere : <em>requête</em> = titre + description + « Compétences attendues : … » ; <em>documents</em> = titre, résumé, compétences (≤ 25),
+  expérience totale, nombre de certifications, parcours (≤ 6 : rôle — secteur : description ≤ 300). Aucune colonne nominative ; le texte libre part tel quel (§7).</td></tr>
+<tr><td>Coût</td><td></td><td></td>
+  <td>1 appel Haiku (≈ 0,004 $, estimation) + <em>V</em> documents Cohere (<em>V</em> = taille du vivier) × 0,000002 $ (tarif base, D5). Un vivier de 10 000 experts = 0,02 $ comptés.</td></tr>
+<tr><td>Si ça casse au milieu</td><td></td><td></td>
+  <td>Vérification en échec → 500 <code>verification_failed</code>, place rendue. Moteur en échec → run <strong>inachevé</strong>, rejoué par le cron ≤ 5 fois
+  (grâce 10 min, <code>skip locked</code>), puis <em>abandonné</em> et bloquant en supervision. <strong>L'organisation ne sait rien</strong> : la liste de ses annonces ne porte
+  aucune colonne de mise en relation (<span class="where">app/api/publications/route.ts:481-483</span>).</td></tr>
+<tr><td>Parité client / cabinet / ESN</td><td class="where">lib/org-target-role.ts:27-30</td><td></td>
+  <td>Même route, même moteur ; seuls les droits diffèrent par <code>target_role</code> (ESN → cabinet). Base : les quatre offres sont <code>all</code> ou
+  <code>collaboration</code> — client, cabinet et ESN reçoivent la même offre par défaut (<em>free</em> : 2 publications/mois, 2 actives, 1 dévoilé, 2 manuels).</td></tr>
+</tbody></table></div>
+
+<h3>② Modifier, dépublier, expiration</h3>
+<div class="scroll"><table class="tight">
+<thead><tr><th>Geste</th><th>Où</th><th>Ce qui se passe</th></tr></thead>
+<tbody>
+<tr><td>Modifier une annonce publiée</td><td class="where">app/api/publications/[id]/route.ts:50, 321-326</td>
+  <td><strong>Impossible</strong> : seuls <code>draft</code>, <code>suspended</code>, <code>archived</code> sont éditables (409 sinon). Le rerun après
+  édition d'une annonce publiée (<span class="where">:361-374</span>) est une branche dormante. Pour changer une annonce en ligne, l'organisation la clôture et en
+  crée une autre — un quota consommé, un vivier entier renoté.</td></tr>
+<tr><td>Clôturer</td><td class="where">app/api/publications/[id]/close/route.ts:101-115</td>
+  <td><code>published → archived</code>, rien d'autre : aucun appel au moteur, les matches restent en base, le flux les cache par le statut. Les candidatures et
+  conversations ne sont pas touchées. Coût 0.</td></tr>
+<tr><td>Expiration</td><td class="where">lib/publications/expiry.ts</td>
+  <td>Calculée <strong>à la lecture</strong> (<code>published_at</code> + <code>vie_annonce_jours</code>, base : 30 j) ; <code>expires_at</code> n'est jamais écrit (0 ligne en base).
+  Aucun travail, aucun coût — <strong>mais le moteur ne la connaît pas</strong> (D2). Postuler à une annonce expirée → 409.</td></tr>
+</tbody></table></div>
+
+<h3>③ Téléverser un CV — freelance et CDI</h3>
+<div class="scroll"><table class="tight">
+<thead><tr><th>Étape</th><th>Freelance</th><th>CDI</th></tr></thead>
+<tbody>
+<tr><td>Gardes</td><td class="where">app/api/profile/upload-cv/route.ts:40-166</td><td class="where">cdi-upload-cv/route.ts:54-220</td></tr>
+<tr><td colspan="3">Interrupteur <code>ENABLE_AI_CV_PARSING</code> (503 fermé) → type de compte → consentement explicite → quota lu en base (3 / 24 h, 429) → cache par empreinte du fichier → référentiel du domaine (503 si illisible) → <strong>plafond Claude consulté avant l'appel</strong> (503).</td></tr>
+<tr><td>Analyse</td><td class="where">upload-cv:341-357</td><td class="where">cdi-upload-cv:396-418</td></tr>
+<tr><td colspan="3">Haiku 4.5, synchrone (≈ 30 s), dépense enregistrée <strong>que l'analyse ait abouti ou non</strong>. Coût estimé ≈ 0,018 $ par CV (8 000 jetons entrants, 2 000 sortants — estimation). Le quota de 3/24 h borne un même expert à ≈ 0,054 $/jour.</td></tr>
+<tr><td>Mise en relation</td><td class="where">upload-cv:608-643</td><td class="where">cdi-upload-cv:682-717</td></tr>
+<tr><td colspan="3"><strong>Différée</strong>, et seulement si le profil est <em>approuvé, visible, consenti, analysé</em> (relu après écriture, panne = pas de run, journalisée). Alors <strong>run immédiat</strong> (pas de relance) : <em>A</em> annonces × 0,000002 $. Les deux blocs sont ligne pour ligne identiques : <span class="pill p-ok">PARITÉ</span>.</td></tr>
+<tr><td>Si ça casse</td><td colspan="2">Analyse en échec → <code>cv_parsing_status = failed</code>, l'expert le voit. Moteur en échec → journal serveur seulement, <strong>aucun rejeu</strong> (le sens expert n'a pas d'« inachevé »). Un CV redéposé relance un run complet — les notes reprises par empreinte évitent de repayer ce qui n'a pas changé.</td></tr>
+</tbody></table></div>
+
+<h3>④ Modifier son profil, champ par champ</h3>
+<div class="scroll"><table class="tight">
+<thead><tr><th>Étape</th><th>Où</th><th>Ce qui se passe</th></tr></thead>
+<tbody>
+<tr><td>Écriture</td><td class="where">app/api/profile/route.ts:150-741</td>
+  <td>Une seule route pour les deux voies ; liste blanche <code>cdi_*</code> selon le type lu en base (503 si illisible). Si <code>visible: true</code> : barrière CV,
+  prédicat de visibilité unique (<span class="where">lib/profile-visibility.ts:99-125</span>), puis <strong>vérification Claude synchrone</strong> (Haiku + recherche web, 30-60 s ; D6).</td></tr>
+<tr><td>Décision, différée</td><td class="where">profile/route.ts:752-898</td>
+  <td>Relecture du statut (panne = ni démotion ni relance, journalisée). Non approuvé → recommandations retirées, <code>is_verified = false</code>. Approuvé et prêt :
+  <strong>vient d'être approuvé</strong> → run immédiat ; <strong>déjà approuvé</strong> → relance à <strong>10 min</strong>, repoussée à chaque enregistrement, plafond 20/h/expert
+  (<span class="where">lib/matching/relance.ts:88, 115</span>), exécutée par le cron dans les 5 min suivant l'échéance, jamais au-delà de 6 h.</td></tr>
+<tr><td>Coût</td><td></td>
+  <td>Une rafale de dix enregistrements = <strong>un</strong> run (<em>A</em> documents). Chaque « publier » = une vérification Claude (jetons comptés, recherches non — D6).</td></tr>
+<tr><td>Si ça casse</td><td></td>
+  <td>Relance non programmée → journal serveur, l'expert lit « enregistré ». Run de la relance en échec → <strong>relance soldée quand même</strong> (D3).</td></tr>
+</tbody></table></div>
+
+<h3>⑤ Recharger, republier, se rendre visible ou invisible</h3>
+<div class="scroll"><table class="tight">
+<thead><tr><th>Geste</th><th>Où</th><th>Ce qui se passe</th></tr></thead>
+<tbody>
+<tr><td>Recharger la page</td><td class="where">app/api/me/missions/route.ts, lib/missions/feed.ts</td>
+  <td><strong>Aucun appel au moteur</strong> : le flux lit <code>matches</code> (non déclinés, annonce publiée et non expirée, ≤ 200, triés par note sans jamais la servir). Coût 0.</td></tr>
+<tr><td>Republier (<code>visible: true</code>)</td><td class="where">profile/route.ts:699-731</td>
+  <td>Vérification Claude à chaque fois, quel que soit le statut ; peut faire redescendre un profil approuvé en revue. Puis ④.</td></tr>
+<tr><td>Se rendre invisible</td><td class="where">profile/route.ts:831-835</td>
+  <td>Rien : ni retrait, ni relance. Les recommandations restent et le flux les sert (D11). L'expert sort des viviers des annonces futures ; ses matches existants sont
+  retirés au prochain run de chacune de ces annonces (hors vivier ⇒ suppression, sauf décliné ou candidaté — <span class="where">reconcile.ts:229-254</span>).</td></tr>
+</tbody></table></div>
+
+<h3>⑥ La bascule de disponibilité, dans les deux sens</h3>
+<div class="scroll"><table class="tight">
+<thead><tr><th>Sens</th><th>Freelance</th><th>CDI</th><th>Ce qui se passe</th></tr></thead>
+<tbody>
+<tr><td>Vers « à l'écoute »</td><td class="where">dashboard/freelance/page.tsx:292-325</td><td class="where">dashboard/cdi/page.tsx:260-290</td>
+  <td>Écriture <strong>directe</strong> de <code>profiles</code> par le navigateur (RLS), puis <code>lancerRecherche()</code> → <span class="where">hooks/useRechercheDeMissions.ts:80</span>
+  → <code>POST /api/me/sync-matching</code> → refus connus dits au clic (<span class="where">sync-matching:177-195</span>) → plafond 20/h → <strong>le moteur tourne dans la requête</strong>,
+  l'écran attend son issue (≤ 45 s, puis <code>trop_long</code> ; le run survit dans <code>after()</code>). Coût : <em>A</em> documents.</td></tr>
+<tr><td>Vers « ne pas déranger »</td><td colspan="2">mêmes fichiers</td>
+  <td>Écriture directe seulement. <strong>Aucun appel au moteur</strong>, aucune relance, les matches restent ; le flux les cache (<span class="where">feed.ts:111</span>). Coût 0.</td></tr>
+<tr><td>« Repasser à l'écoute » depuis l'état vide</td><td colspan="2" class="where">components/dashboard/DndEmptyState.tsx:62-114</td>
+  <td>Même chemin ; la page lance la recherche si elle sait afficher l'issue, sinon envoi sans attente.</td></tr>
+<tr><td>Ouverture croisée</td><td class="where">freelance/page.tsx:329-350</td><td class="where">cdi/page.tsx:300-316</td>
+  <td>Ouvrir → run direct (origine <code>ouverture_croisee</code>). Fermer → <strong>élagage SQL seul</strong>, sans notation, sans issue affichée (<span class="where">sync-matching:144-162</span>).</td></tr>
+<tr><td>Parité</td><td colspan="3"><span class="pill p-ok">PARITÉ</span> : même hook, même route, le type d'expert est dérivé au serveur (<span class="where">sync-matching:131-136</span>) ; disponibilité lue dans le champ du type (<span class="where">feed.ts:111</span>, <span class="where">pool.ts:209-212</span>, <span class="where">run-for-expert.ts:114-119</span>).</td></tr>
+</tbody></table></div>
+
+<h3>⑦ Collaboration entre experts (sous-traitance)</h3>
+<div class="scroll"><table class="tight">
+<thead><tr><th>Étape</th><th>Où</th><th>Ce qui se passe</th></tr></thead>
+<tbody>
+<tr><td>Organisation personnelle</td><td class="where">app/api/publications/route.ts:232-258 → lib/collaboration/ensure-personal-org.ts</td>
+  <td>Créée <strong>à la première publication</strong>, jamais à l'ouverture d'un écran ; index unique partiel contre le doublon (§E.31). Offre <em>collaboration</em> :
+  1 publication/mois, 1 active, 1 dévoilé, 0 manuel (base).</td></tr>
+<tr><td>Publier</td><td class="where">publish/route.ts:182-195</td>
+  <td>Garde « profil approuvé » (503 si illisible, 403 sinon), puis exactement ①. Public natif : freelances (<span class="where">lib/annonces/audience.ts:31-35</span>) ;
+  un CDI ne la voit qu'avec l'ouverture croisée.</td></tr>
+<tr><td>L'auteur</td><td class="where">pool.ts:194-196 ; run-for-expert.ts:241 ; candidatures/route.ts:247-249</td>
+  <td>Exclu de son propre vivier dans les deux sens, et refusé au dépôt (403). Trois gardes, dont une seule est une clé — les deux autres sont du code.</td></tr>
+<tr><td>Coût</td><td></td><td>Identique à une annonce d'organisation ; porté à l'organisation personnelle (acteur <code>organization</code>).</td></tr>
+</tbody></table></div>
+
+<h3>⑧ Postuler</h3>
+<div class="scroll"><table class="tight">
+<thead><tr><th>Étape</th><th>Où</th><th>Ce qui se passe</th></tr></thead>
+<tbody>
+<tr><td>Depuis l'écran</td><td class="where">components/dashboard/MissionDetailView.tsx:166</td>
+  <td><strong>Inatteignable aujourd'hui</strong> : la vue ne se charge pas (D1).</td></tr>
+<tr><td>Dépôt</td><td class="where">app/api/candidatures/route.ts:112-288</td>
+  <td>Durées → profil (503/404) → <strong>match exigé</strong> (403 <code>not_matched</code> : la curation est la frontière) → annonce publiée et non expirée (409) →
+  type candidatable → pas son propre besoin → insertion ; <code>UNIQUE (publication_id, profile_id)</code> → 409 <code>already_applied</code>. La note reste <code>null</code> au dépôt.</td></tr>
+<tr><td>Jugement, différé</td><td class="where">candidatures/route.ts:301-401 → lib/candidatures/ai-assessment.ts:317-361</td>
+  <td>Interrupteur → clé → plafond → <strong>Sonnet 5</strong>, 30 s, aucun second essai, en français (D10). Écrit <code>ai_match_score</code> (0-10) et deux textes.
+  Échec du modèle → compté avec sa cause (<code>ai_redaction_failures</code>), le dossier tient. Fonction tuée → rien (D8).</td></tr>
+<tr><td>Dévoilement inclus</td><td class="where">candidatures/route.ts:640-878</td>
+  <td>Après le jugement ; attend les jugements en cours (45 s) ; place réservée par <strong>index unique partiel</strong> ; « illimité » dévoile tout le monde.</td></tr>
+<tr><td>Coût</td><td></td><td>≈ 0,005 $ par jugement (1 300 jetons entrants, 250 sortants — estimation) ; un pitch à la demande, écrit une fois et relu ensuite, ≈ 0,005 $.</td></tr>
+<tr><td>Parité</td><td></td><td>Une route pour les trois types d'annonce et les deux voies ; l'organisation est notifiée (in-app + e-mail), membre par membre.</td></tr>
+</tbody></table></div>
+
+<h3>⑨ Les tâches planifiées</h3>
+<div class="scroll"><table class="tight">
+<thead><tr><th>Tâche</th><th>Cadence · où</th><th>Ce qu'elle fait</th><th>Mesuré en base</th></tr></thead>
+<tbody>
+<tr><td><code>matching_retry_trigger</code></td><td class="mono">*/5 · app/api/cron/match-retry/route.ts</td>
+  <td>Un bail par tâche (grâce 600 s), <strong>une</strong> annonce inachevée par passage (grâce 10 min par annonce + <code>skip locked</code>), ≤ 5 tentatives, verdict rendu tel quel. Pas de filtre d'expiration (D2).</td>
+  <td>Bail rendu en ~0,7 s à 18 h 10 ; réponses réconciliées : <code>200</code>, « Aucun run inachevé ».</td></tr>
+<tr><td><code>expert_relance_trigger</code></td><td class="mono">*/5 · app/api/cron/expert-relance/route.ts</td>
+  <td>Même bail ; <strong>une</strong> relance due par passage (grâce 10 min sur le premier déclenchement, <code>skip locked</code>, attente max 6 h) ; solde après le run — même en échec (D3).</td>
+  <td>Bail rendu en ~0,4 s ; réponses réconciliées : <code>200</code>, « Aucune relance ».</td></tr>
+<tr><td><code>matching_notes_partielles_purge</code></td><td class="mono">30 4 * * * · SQL</td>
+  <td>Supprime les brouillons de notes de plus de 24 h.</td><td>0 brouillon en base.</td></tr>
+<tr><td>Journal</td><td class="mono">cron_run_reconcile 15,45 3 * * *</td><td>Copie les verdicts HTTP avant la purge pg_net.</td><td>73 % des passages des deux pilotes sans verdict (D4).</td></tr>
+</tbody></table></div>
+<p class="sub"><strong>NON VÉRIFIÉ</strong> : le plan Vercel du projet. Les deux routes déclarent <code>maxDuration = 300</code> ; la route du profil écrit
+« au max compatible Hobby (60 s) ». Si le plan plafonne à 60 s, un rejeu de grand vivier est tué et repris par la reprise des notes — sans que rien ne le dise.</p>
+
+<!-- ══════════════════════════════════════════════════════════ 5 -->
+<h2><span class="num">5</span>Question A — où les deux sens se rejoignent, et ce qu'une asymétrie ferait</h2>
+<p>Le point de rencontre est <strong>une table</strong>, <code>matching_notes_partielles</code> : clé primaire <code>(publication_id, profile_id)</code>,
+colonne <code>model</code>, colonne <code>empreinte</code> (<span class="where">20260911200000_reprise_notation.sql:28-35</span> ; <span class="where">20260922000000_empreinte_des_notes.sql</span>).
+Les deux sens y écrivent après chaque lot payé (<span class="where">reprise.ts:96-128, 159-191</span>) et y lisent avant de payer, en <strong>ignorant</strong> toute
+ligne d'un autre modèle ou d'une autre empreinte (<span class="where">:52-73, 199-233</span>). Le sens annonce <strong>solde</strong> son brouillon quand son run s'achève
+(<span class="where">index.ts:467-471</span>) ; le sens expert ne solde jamais — la purge de 24 h s'en charge.</p>
+<p>Conséquence mesurée sur le partage lui-même : il est <strong>surtout à sens unique</strong>. Une note écrite par un run d'expert sert un run d'annonce qui suit
+dans les 24 h ; une note écrite par un run d'annonce disparaît à la fin de ce run, et ne sert donc à aucun run d'expert.</p>
+
+<div class="note warn">
+  <span class="t">Si la symétrie est fausse — ce que le dépôt suppose et n'a jamais mesuré (recette ①)</span>
+  <p>La note de <em>(requête = annonce, document = profil)</em> et celle de <em>(requête = profil, document = annonce)</em> ne seraient pas les mêmes. Alors, pour une
+  même annonce : <strong>① deux familles de notes dans un seul classement</strong> — les profils notés par le run de l'annonce et ceux dont la note a été reprise d'un run
+  d'expert ne seraient plus comparables entre eux, ce qui rouvre à l'intérieur d'une annonce la comparaison que le fournisseur interdit entre deux requêtes ;
+  <strong>② un palier qui bascule sans qu'aucun texte ait changé</strong> — la réconciliation <em>met à jour</em> la note et le palier d'un match existant
+  (<span class="where">reconcile.ts:208-226</span>), donc un run de l'autre sens peut faire passer un match de « forte » à « normale », et inversement ; <strong>③ une
+  notification décidée par le sens qui a tourné en premier</strong>, puisque « forte » déclenche l'envoi. Ce qui décide, comme la recette l'écrit : que l'écart
+  <em>réordonne</em>, pas qu'il soit non nul.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ 6 -->
+<h2><span class="num">6</span>Question B — le cloisonnement, à chaque étape</h2>
+<div class="scroll"><table class="tight">
+<thead><tr><th>Étape</th><th>Le filtre d'écosystème</th><th>Où</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td>Vivier d'une annonce</td><td><code>profiles.domain_id = annonce.domain_id</code></td><td class="where">pool.ts:155</td><td><span class="pill p-ok">OK</span></td></tr>
+<tr><td>Annonces d'un expert</td><td><code>publications.domain_id = profil.domain_id</code></td><td class="where">run-for-expert.ts:233</td><td><span class="pill p-ok">OK</span></td></tr>
+<tr><td>Réglages</td><td>une ligne par écosystème, créée par déclencheur, refus nommé si absente</td><td class="where">settings.ts:36-60</td><td><span class="pill p-ok">OK</span></td></tr>
+<tr><td>Écriture des matches</td><td><code>domain_id</code> de l'annonce (sens annonce) ou du profil (sens expert) — égaux par construction</td><td class="where">reconcile.ts:195</td><td><span class="pill p-ok">OK</span></td></tr>
+<tr><td>Notifications</td><td><code>domain_id</code> de l'annonce</td><td class="where">shared.ts:136</td><td><span class="pill p-ok">OK</span></td></tr>
+<tr><td>Publier, modifier, clôturer</td><td><code>activeEcosystemId(auth)</code> <strong>dans la recherche</strong> (404, jamais 403)</td><td class="where">publish:133-134 ; [id]:306-307,334-335 ; close:78-79,107-108</td><td><span class="pill p-ok">OK</span></td></tr>
+<tr><td>Postuler</td><td>match exigé — un match n'existe qu'en écosystème ; <code>candidatures.domain_id</code> = celui du profil</td><td class="where">candidatures/route.ts:180-193, 259</td><td><span class="pill p-ok">OK</span></td></tr>
+<tr><td>Pitch</td><td><code>candidatures.domain_id = activeEcosystemId(auth)</code> dans la recherche</td><td class="where">pitch/route.ts:82-83</td><td><span class="pill p-ok">OK</span></td></tr>
+<tr><td>Flux et détail expert</td><td>par son propre profil ; le détail exige le match</td><td class="where">me/missions:158 ; [id]:119-131</td><td><span class="pill p-ok">OK</span></td></tr>
+<tr><td>Recherche directe, relance</td><td>par son propre profil</td><td class="where">sync-matching:107-111</td><td><span class="pill p-ok">OK</span></td></tr>
+<tr><td>Pilotes cron</td><td>aucun — ils sont de plateforme, par construction</td><td class="where">match-retry:90 ; expert-relance:91</td><td><span class="pill p-fait">FAIT</span></td></tr>
+<tr><td><strong>Plafond de dépense</strong></td><td><strong>aucun</strong> : la somme est globale par fournisseur ; <code>domain_id</code> est journalisé mais ne borne rien</td><td class="where">20260903000020:202-217</td><td><span class="pill p-att">D12</span></td></tr>
+</tbody></table></div>
+<p class="sub">L'en-tête <code>x-subdomain</code> reste falsifiable sur <code>/api</code> et recroisé par la garde (§D.3) — non remesuré ici, gardé par
+<code>diag-cloisonnement-ecosysteme</code> et <code>diag-ecosystem-scope</code>. Base : un seul écosystème actif (<code>microsoft</code>) — le cloisonnement n'a rien
+eu à séparer sur cet environnement.</p>
+
+<!-- ══════════════════════════════════════════════════════════ 7 -->
+<h2><span class="num">7</span>Question C — le masquage, surface par surface, et ce qui part chez un tiers</h2>
+<div class="scroll"><table class="tight">
+<thead><tr><th>Surface</th><th>Ce qui sort</th><th>Où</th></tr></thead>
+<tbody>
+<tr><td>Chez <strong>Cohere</strong> (les deux sens)</td>
+  <td>Aucune colonne nominative : ni nom, ni e-mail, ni téléphone, ni employeur (absent par construction du type). <strong>Mais le texte libre part intact</strong> — résumé
+  du profil, descriptions de parcours, description de l'annonce — et rien ne le nettoie. Une annonce <em>confidentielle</em> part avec ce que l'organisation a écrit dedans.</td>
+  <td class="where">document.ts:34-49, 69-123</td></tr>
+<tr><td>Chez <strong>Claude</strong> au dépôt et au pitch</td>
+  <td>Titre, description, compétences, séniorités de l'annonce ; titre, résumé, compétences, séniorités, années, rôles et secteurs du profil. Les interdits
+  (dates, employeurs, personnes, lieux) vivent <strong>dans le prompt</strong>, pas dans une barrière de sortie — décision écrite.</td>
+  <td class="where">ai-assessment.ts:105-124, 158-207</td></tr>
+<tr><td>Organisation ← candidatures (liste par annonce, vue globale)</td>
+  <td>Instantané <code>preview</code> gelé au dépôt (titre, résumé, compétences, tarifs, <strong>pays, ville</strong>, disponibilité…) ; identité et photo seulement si dévoilée
+  <em>et</em> encore active ; contact jamais.</td>
+  <td class="where">lib/candidature-org-dto.ts:29-60, 454-469 ; candidatures/route.ts:159</td></tr>
+<tr><td>Organisation ← messagerie, e-mails</td>
+  <td>Même politique de dévoilement, même masque de nom — quatre modules la traversent, aucun ne décide seul.</td>
+  <td class="where">me/conversations:384-406 ; conversations/[id]/messages:264, 430-449 ; notifications/dispatch.ts:554</td></tr>
+<tr><td>Expert ← flux et détail</td>
+  <td>Aucun nombre de pertinence, deux paliers ; organisation masquée si l'annonce est confidentielle ; logo par URL signée.</td>
+  <td class="where">me/missions:246, 258-263 ; [id]:252, 277-281</td></tr>
+<tr><td>Expert ← suivi de candidatures</td><td>La note de candidature <code>N/10</code>, voulue (§D.6).</td><td class="where">§D.6</td></tr>
+</tbody></table></div>
+<div class="note">
+  <span class="t">Ce qui ne se balaie pas, et se dit</span>
+  <p>Qu'un résumé contienne un nom, un numéro ou un employeur ne se voit à aucun motif : la garantie est <em>structurelle sur les colonnes</em>, et
+  <em>absente sur le contenu</em>. La ville sort avant dévoilement ; §D.4 ne l'interdit pas, et ce document ne tranche pas.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ 8 -->
+<h2><span class="num">8</span>Question D — ce que coûte une journée normale, et quel plafond mord en premier</h2>
+<p class="sub">Journée demandée : 10 annonces publiées, 100 experts qui déposent un CV, 50 modifications de profil, 20 candidatures. Hypothèses écrites :
+<em>V</em> = 100 experts dans le vivier de chaque annonce (majorant : tous), <em>A</em> = 10 annonces actives, une modification sur cinq est un « publier »
+(donc une vérification), chaque CV déposé par un expert approuvé et visible. Tarifs : ceux lus en base. Volumes de jetons : <strong>estimations</strong> —
+la base ne contient <strong>aucun</strong> événement de dépense pour les mesurer.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>Déclencheur</th><th>Appels</th><th>Ce que le plafond compte (tarif base)</th><th>Ce qu'une facture pourrait dire</th></tr></thead>
+<tbody>
+<tr><td>10 annonces — porte de qualité</td><td class="mono">10 × Haiku</td><td class="mono">≈ 0,04 $</td><td class="mono">idem</td></tr>
+<tr><td>10 annonces — notation du vivier</td><td class="mono">10 × 100 documents</td><td class="mono">1 000 × 0,000002 = 0,002 $</td><td class="mono">10 unités de recherche — NON VÉRIFIÉ</td></tr>
+<tr><td>100 CV — analyse</td><td class="mono">100 × Haiku</td><td class="mono">≈ 1,80 $</td><td class="mono">idem</td></tr>
+<tr><td>100 CV — run immédiat de l'expert</td><td class="mono">100 × 10 documents</td><td class="mono">0,002 $</td><td class="mono">100 unités — NON VÉRIFIÉ</td></tr>
+<tr><td>50 modifications — relances (≤ 50 runs)</td><td class="mono">≤ 50 × 10 documents</td><td class="mono">0,001 $</td><td class="mono">≤ 50 unités — NON VÉRIFIÉ</td></tr>
+<tr><td>10 « publier » — vérification d'expert</td><td class="mono">10 × Haiku + ≤ 40 recherches web</td><td class="mono">≈ 0,09 $ (jetons seuls)</td><td class="mono">+ recherches : NON VÉRIFIÉ, non comptées (D6)</td></tr>
+<tr><td>20 candidatures — jugement</td><td class="mono">20 × Sonnet 5</td><td class="mono">≈ 0,10 $</td><td class="mono">idem</td></tr>
+<tr><td>≤ 20 pitchs ouverts par les organisations</td><td class="mono">≤ 20 × Sonnet 5</td><td class="mono">≈ 0,10 $</td><td class="mono">idem</td></tr>
+<tr><td>Tâches planifiées (2 × 288 passages)</td><td class="mono">0 appel IA</td><td class="mono">0 $</td><td class="mono">invocations Vercel + pg_net : NON VÉRIFIÉ</td></tr>
+<tr><td><strong>Total, par jour</strong></td><td></td><td class="mono"><strong>≈ 2,1 $ Claude · 0,005 $ reranking</strong></td><td class="mono">reranking ≈ 0,32 $ si 2 $ / 1 000 unités — NON VÉRIFIÉ</td></tr>
+<tr><td><strong>Sur 30 jours</strong></td><td></td><td class="mono"><strong>≈ 64 $ Claude (64 % de 100) · 0,15 $ reranking (0,1 % de 200)</strong></td><td class="mono">reranking ≈ 10 $</td></tr>
+</tbody></table></div>
+
+<h3>Quel plafond mord en premier</h3>
+<ul>
+  <li><strong>Aucun plafond d'argent ne mord dans une journée normale.</strong> Le plafond Claude (100 $/mois) est le premier menacé, et c'est <strong>l'analyse de CV</strong>
+  qui le consomme, pas le moteur : ≈ 150 CV par jour le feraient franchir dans le mois. Le plafond du reranker est inatteignable au tarif de la base.</li>
+  <li>Ce qui mord en premier, ce sont les <strong>gardes anti-abus</strong> : 3 analyses de CV par 24 h et par expert (429), 20 déclenchements par heure et par expert
+  (429, compté dans <code>relance_overruns</code>), et le fournisseur lui-même (429 → un seul nouvel essai, puis le lot est perdu et le run inachevé).</li>
+  <li>Les alertes par acteur (2 $/profil, 10 $/organisation) ne se déclenchent pas dans ce scénario ; elles ne bloquent rien de toute façon.</li>
+</ul>
+
+<h3>Les déclencheurs sans plafond</h3>
+<ul>
+  <li><strong>Publier</strong> sur une offre à publications illimitées (<em>business</em>, <em>elite</em>) : chaque publication = un vivier entier + une porte Claude. Publier, clôturer, republier
+  mille fois dans la journée coûte ≈ 4 $ de Claude et 0,2 $ de reranking comptés (≈ 2 $ si facturé à l'unité, NON VÉRIFIÉ) — et c'est <strong>le plafond commun</strong> qui
+  finit par fermer l'IA pour tous (D12).</li>
+  <li><strong>Approuver un expert</strong> (admin) : un run par approbation, sans temporisation — un administrateur qui approuve cent profils lance cent runs.</li>
+  <li><strong>Le rattrapage</strong> : jusqu'à cinq runs pour une annonce qui échoue, atténués par la reprise des notes.</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════════════════ 9 -->
+<h2><span class="num">9</span>Question E — ce qui peut arriver deux fois, ou zéro fois</h2>
+<p class="sub">Pour chaque événement : la garde, et sa nature — une <strong>clé</strong> en base tient toute seule, une <strong>discipline</strong> de code dépend de chaque appelant (§E.31).</p>
+<div class="scroll"><table class="tight">
+<thead><tr><th>Événement</th><th>Deux fois ?</th><th>Zéro fois ?</th><th>La garde</th><th>Nature</th></tr></thead>
+<tbody>
+<tr><td>Un même couple (annonce, profil) dans <code>matches</code></td><td>non</td><td>—</td><td><code>UNIQUE (publication_id, profile_id)</code> <span class="where">baseline:1949</span> ; une insertion concurrente fait échouer le run (D7)</td><td><span class="pill p-ok">clé</span></td></tr>
+<tr><td>Une candidature</td><td>non (409)</td><td>—</td><td><code>UNIQUE</code> <span class="where">baseline:1874</span></td><td><span class="pill p-ok">clé</span></td></tr>
+<tr><td>Une notification de match</td><td>non</td><td>possible : une seule tranche illisible ⇒ aucun envoi ce run, rattrapé au suivant</td><td>index unique partiel <span class="where">20260912200000:125-127</span> + <code>ignoreDuplicates</code></td><td><span class="pill p-ok">clé</span></td></tr>
+<tr><td>Deux runs de la même annonce (cron)</td><td>non</td><td>—</td><td>grâce 10 min sur <code>matching_attempted_at</code> + <code>for update skip locked</code> ; bail par tâche</td><td><span class="pill p-ok">clé</span></td></tr>
+<tr><td>Deux runs du même expert</td><td><strong>oui</strong> sur le chemin direct</td><td>—</td><td>cron : grâce + <code>skip locked</code> ; direct : interrupteurs désactivés à l'écran, plafond 20/h (D7)</td><td><span class="pill p-att">discipline</span></td></tr>
+<tr><td>Une relance perdue par deux modifications simultanées</td><td>—</td><td>non</td><td>une seule instruction SQL <span class="where">20260904200000:112-138</span></td><td><span class="pill p-ok">clé</span></td></tr>
+<tr><td>Une relance dont le run échoue</td><td>—</td><td><strong>oui</strong></td><td>aucune (D3)</td><td><span class="pill p-blq">absente</span></td></tr>
+<tr><td>Un lot Cohere payé deux fois</td><td>possible</td><td>—</td><td>un seul nouvel essai sur panne transitoire <span class="where">rerank.ts:358-364</span> : si le fournisseur avait servi le premier appel, il facture deux fois et la base n'en compte qu'un</td><td><span class="pill p-att">discipline</span></td></tr>
+<tr><td>Une dépense non enregistrée</td><td>—</td><td>possible</td><td>insertion best-effort, journalisée « le plafond va dériver » <span class="where">ai-budget.ts:115-147</span></td><td><span class="pill p-att">discipline</span></td></tr>
+<tr><td>Un tarif inconnu</td><td>—</td><td>compté à 0</td><td>drapeau <code>tarif_manquant</code>, unités brutes conservées <span class="where">ai-budget.ts:264-284</span></td><td><span class="pill p-att">discipline</span></td></tr>
+<tr><td>Le jugement d'une candidature</td><td>non</td><td><strong>oui</strong> si la fonction meurt</td><td>aucune reprise (D8)</td><td><span class="pill p-blq">absente</span></td></tr>
+<tr><td>Un pitch</td><td>si l'écriture échoue, régénéré et repayé — journalisé</td><td>—</td><td>relecture de <code>explanation.pitch_org</code> <span class="where">pitch/route.ts:135-146, 240-248</span></td><td><span class="pill p-att">discipline</span></td></tr>
+<tr><td>Une place incluse</td><td>non</td><td>possible (panne = on ne dévoile pas)</td><td>index unique partiel <span class="where">20260913200000</span>, libération sur refus</td><td><span class="pill p-ok">clé</span></td></tr>
+<tr><td>Une note du brouillon</td><td>non (upsert)</td><td>—</td><td>clé primaire + <code>empreinte not null</code></td><td><span class="pill p-ok">clé</span></td></tr>
+<tr><td>Le run d'une annonce tué par le couperet</td><td>—</td><td>non : inachevé ⇒ rejoué</td><td>colonnes <code>matching_*</code> écrites au démarrage</td><td><span class="pill p-ok">base</span></td></tr>
+<tr><td>Le run d'un expert tué par le couperet (CV, approbation, direct)</td><td>—</td><td><strong>oui</strong></td><td>aucune trace d'« inachevé » côté profil ; atténué pour les annonces <em>futures</em> par le sens annonce</td><td><span class="pill p-blq">absente</span></td></tr>
+</tbody></table></div>
+
+<!-- ══════════════════════════════════════════════════════════ 10 -->
+<h2><span class="num">10</span>Ce qui était déjà su — vérifié, et passé</h2>
+<div class="scroll"><table class="tight">
+<thead><tr><th>Énoncé</th><th>Vérification</th><th></th></tr></thead>
+<tbody>
+<tr><td>Les six annonces « jamais tentées » sont expirées et ne réclament plus rien</td><td>Base : 6 publiées, 6 expirées, 6 sans tentative ; <code>matching_runs_inacheves()</code> rend <strong>zéro ligne</strong>, <code>matching_health()</code> compte 0 active</td><td><span class="pill p-ok">PASSÉ</span></td></tr>
+<tr><td>La bascule de disponibilité exécute le moteur au clic</td><td>page → <code>useRechercheDeMissions</code> → <code>POST /api/me/sync-matching</code> → run dans la requête (<span class="where">sync-matching:204-254</span>)</td><td><span class="pill p-ok">PASSÉ</span></td></tr>
+<tr><td>Relance à 10 minutes, retirée de la bascule</td><td><span class="where">relance.ts:88</span> ; un seul appelant de <code>programmerRelance</code> : <span class="where">profile/route.ts:879</span></td><td><span class="pill p-ok">PASSÉ</span></td></tr>
+<tr><td>Empreinte canonique, annonce d'abord</td><td>§3</td><td><span class="pill p-ok">PASSÉ</span></td></tr>
+<tr><td><code>ENABLE_RERANKING</code> et <code>COHERE_API_KEY</code> absents ici — que fait chaque chemin ?</td>
+  <td>Le reranker s'arrête <strong>avant tout appel</strong> (<span class="where">rerank.ts:306-321</span>) avec un code. <em>Sens annonce</em> : run inachevé, rejoué toutes les 5 min
+  jusqu'à 5 tentatives, puis <em>abandonné</em> (bloquant en supervision, avec l'interrupteur fermé et la clé absente en tête de liste). <em>Sens expert, direct</em> : l'expert lit
+  « la recherche n'a pas pu aboutir », jamais « aucune mission ». <em>Sens expert, relance</em> : la relance est <strong>soldée</strong> (D3). Base : 0 dépense, 0 brouillon, 0 match
+  produit par le moteur actuel — les 18 matches datent de l'ancien moteur (palier et modèle nuls, note 0).</td><td><span class="pill p-ok">MESURÉ</span></td></tr>
+</tbody></table></div>
+
+<!-- ══════════════════════════════════════════════════════════ 11 -->
+<h2><span class="num">11</span>L'état de la base, tel que lu</h2>
+<div class="scroll"><table class="tight">
+<thead><tr><th>Quoi</th><th>Valeur lue le 22/09/2026 à 18 h 14 UTC</th></tr></thead>
+<tbody>
+<tr><td>Écosystèmes</td><td>1 actif : <code>microsoft</code></td></tr>
+<tr><td>Réglages du moteur</td><td>flux 0 · notification 8 · notifications <strong>fermées</strong> · <code>rerank-v4.0-fast</code> · lots de 200</td></tr>
+<tr><td>Plafonds</td><td>reranking 200 $ · Claude 100 $ · consommés : <strong>0 $ et 0 $</strong> (0 événement de dépense, depuis toujours)</td></tr>
+<tr><td>Tarifs</td><td>Sonnet 5 : 2 / 10 · Sonnet 4.6 : 3 / 15 · Haiku 4.5 : 1 / 5 $ par million de jetons · reranker : 0,000002 $ l'unité, <em>source = le code</em></td></tr>
+<tr><td>Quotas et alertes</td><td>CV : 3 / 24 h · alerte 2 $ par profil, 10 $ par organisation · vie d'une annonce 30 j · fenêtre d'échange 15 j</td></tr>
+<tr><td>Vérification d'expert</td><td>Haiku 4.5, repli Sonnet 4.6, 2 500 jetons, 45 s, <strong>4 recherches web</strong>, auto-approbation à 8</td></tr>
+<tr><td>Profils</td><td>6 (5 freelance, 1 CDI) · 0 visible · 6 CV analysés · 6 consentements · 5 approuvés, 1 rejeté · <strong>0 éligible au moteur</strong> · 1 en « ne pas déranger » · 1 ouverture croisée · 0 relance en attente · 2 déjà passés par le moteur</td></tr>
+<tr><td>Annonces</td><td>7 (1 brouillon, 6 publiées) · 4 missions, 2 offres, 1 sous-traitance · <strong>6 publiées, 6 expirées, 0 active</strong> · 0 confidentielle · 0 tentative de mise en relation</td></tr>
+<tr><td>Matches</td><td>18 (11 notifiés, 7 vus) sur 6 annonces et 5 profils · palier et modèle <strong>nuls</strong> partout, note 0 partout, tous avec un pitch — le plus récent du 05/08/2026</td></tr>
+<tr><td>Candidatures</td><td>4, toutes dévoilées, sans modèle de jugement — la plus récente du 05/06/2026</td></tr>
+<tr><td>Notifications</td><td>21 de match sur 46</td></tr>
+<tr><td>Brouillons, dépassements, pannes de rédaction</td><td>0 · 0 · 0</td></tr>
+<tr><td>Journal des pilotes</td><td>9 853 lignes depuis le 03/09 · 7 201 sans verdict · verdicts connus : <code>200</code></td></tr>
+<tr><td>Baux</td><td><code>match_retry</code> et <code>expert_relance</code> pris et rendus à 18 h 10 en moins d'une seconde</td></tr>
+<tr><td>La colonne <code>matches.score</code></td><td><code>column matches.score does not exist</code></td></tr>
+</tbody></table></div>
+<div class="note bad">
+  <span class="t">Ce que cet état veut dire</span>
+  <p>La base de staging <strong>n'a jamais fait tourner le moteur actuel</strong> : pas une dépense, pas un brouillon, pas un match noté par le reranker. Tout ce que ce document
+  affirme sur le comportement du moteur vient du code ; la base n'a servi qu'à vérifier les réglages, les tarifs, les gardes de schéma, et à répondre aux deux questions
+  qu'un fichier ne pouvait pas trancher (la colonne, les verdicts des pilotes). La recette contre une base jetable avec une clé Cohere reste la seule mesure du comportement réel.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ 12 -->
+<h2><span class="num">12</span>Comment j'ai cherché, et ce que chaque motif a prouvé</h2>
+<ul>
+  <li><strong>Lecture entière</strong> de <code>lib/matching/*</code> (16 fichiers), des 19 routes qui l'appellent ou le servent, des 12 migrations qui le portent, et des quatre fichiers de mémoire. Aucun commentaire n'a servi de preuve (§E.7) : chaque phrase renvoie à une ligne de code ou à une valeur lue.</li>
+  <li><strong>Les appelants du moteur</strong> : motif <code>runMatching(ForPublication|ForExpert)?\(</code> sur <code>app/ lib/ components/ hooks/</code>, hors <code>lib/matching</code> → <strong>9 appels dans 9 fichiers</strong>. Éprouvé sur un cas connu : il retrouve <code>publish/route.ts:426</code>.</li>
+  <li><strong>Le différé</strong> : <code>after(</code> dans ces 8 fichiers ; chaque bloc a été lu jusqu'à son <code>catch</code>.</li>
+  <li><strong>L'expiration</strong> : motif <code>activePublishedOrClause|isActivePublished</code> → 12 lecteurs, 0 dans <code>lib/matching</code> ; puis <code>expires_at</code> dans <code>lib/matching</code> → 0. Éprouvé : il retrouve <code>me/missions/[id]/route.ts:159</code>.</li>
+  <li><strong>Le masquage</strong> : motif <code>maskExpertNameForOrg|disclosurePolicyForCandidatureLifecycle</code> → 4 modules consommateurs, aucune surface d'organisation en dehors.</li>
+  <li><strong>Les colonnes</strong> : un motif textuel ne sait pas quelle colonne existe ; <strong>la base a été interrogée</strong> avec la chaîne exacte de la route (§E.56 : on mesure la chose, pas son texte).</li>
+  <li><strong>L'angle mort de mon premier balayage, dit plutôt que tu</strong> : le motif <code>sync-matching</code> ne trouvait aucun appelant dans <code>app/</code> — parce que le périmètre excluait <code>hooks/</code>. Le motif était juste, le périmètre non ; corrigé, il trouve <code>hooks/useRechercheDeMissions.ts:80</code>.</li>
+  <li><strong>Fins de ligne</strong> : les fichiers lus sont en LF (vérifié sur trois d'entre eux) ; aucun motif de cet audit ne traverse un saut de ligne.</li>
+  <li><strong>La base</strong> : un script de lecture seule, hors du dépôt, qui ne fait que des sélections, des comptages et huit appels à des fonctions dont la définition lue est <code>stable</code>. Aucune clé imprimée, aucune écriture.</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════════════════ 13 -->
+<h2><span class="num">13</span>Ce que cet audit ne mesure pas</h2>
+<ul>
+  <li>Le <strong>comportement réel</strong> du reranker : notes, symétrie, temps de réponse, limites de débit — il faut une clé et une base jetable (recette).</li>
+  <li>Les <strong>grilles des fournisseurs</strong> (Cohere par unité, Anthropic par recherche web) et le <strong>plan Vercel</strong> : hors du dépôt.</li>
+  <li>Les <strong>volumes de jetons</strong> réels : aucun événement de dépense en base ; les coûts du §8 sont des ordres de grandeur, écrits comme tels.</li>
+  <li>Ce que la vérification d'expert envoie exactement à Claude (<code>lib/verification/ai-expert-verification.ts</code>, non ouvert) : hors du chemin de mise en relation, seul son coût est traité.</li>
+  <li>Le contenu des textes libres qui partent chez les tiers.</li>
+  <li>Le rendu des écrans : le défaut D1 a été prouvé par la base, pas en ouvrant la page.</li>
+</ul>
+
+<footer class="doc">
+  Audit du moteur de mise en relation — lecture seule, 22 septembre 2026, commit <code>46971b3</code>. Aucune correction, aucun push, aucune écriture en base.
+  Les numéros de section §D, §E, §P renvoient à <code>CLAUDE.md</code>, <code>docs/pieges.md</code> et <code>docs/produit.md</code>.
+</footer>
+
+</div>
+</body>
+</html>
