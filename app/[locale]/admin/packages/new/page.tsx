@@ -119,6 +119,11 @@ export default function AdminPackageNewPage() {
   )
   const [priceMonthly, setPriceMonthly] = useState('')
   const [priceYearly, setPriceYearly] = useState('')
+  /**
+   * L'INTENTION, DÉCLARÉE. Une offre nouvelle est PAYANTE par défaut : le
+   * défaut le plus sûr est celui qui n'offre rien par inadvertance (§D.18).
+   */
+  const [isFree, setIsFree] = useState(false)
   const [active, setActive] = useState(true)
   const [isDefault, setIsDefault] = useState(false)
   const [copyFrom, setCopyFrom] = useState('')
@@ -208,6 +213,7 @@ export default function AdminPackageNewPage() {
         name: name.trim(),
         slug: slug.trim() || undefined,
         target_role: targetRole,
+        is_free: isFree,
         price_monthly: priceMonthly.trim() === '' ? null : priceMonthly.trim(),
         price_yearly: priceYearly.trim() === '' ? null : priceYearly.trim(),
         active,
@@ -329,14 +335,50 @@ export default function AdminPackageNewPage() {
       {/* Tarification */}
       <section style={cardStyle}>
         <h2 style={sectionTitle}>{t('packages.section_pricing')}</h2>
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 10,
+            marginBottom: 14,
+            cursor: 'pointer',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={isFree}
+            onChange={(e) => {
+              const coche = e.target.checked
+              setIsFree(coche)
+              // COCHER MET LES PRIX À ZÉRO, ET C'EST LE POINT : l'intention
+              // et le prix ne peuvent pas se contredire, en base comme à
+              // l'écran. Laisser l'ancien prix affiché sous une case cochée
+              // ferait lire « gratuite à 349 € ».
+              if (coche) {
+                setPriceMonthly('0')
+                setPriceYearly('0')
+              }
+            }}
+            style={{ marginTop: 2 }}
+          />
+          <span>
+            <span style={{ fontSize: 13, color: 'var(--sk-text)', fontWeight: 500 }}>
+              {t('packages.field_is_free')}
+            </span>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--sk-muted)', marginTop: 2 }}>
+              {t('packages.is_free_hint')}
+            </span>
+          </span>
+        </label>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
           <div>
             <label htmlFor="pm" style={labelStyle}>{t('packages.field_price_monthly')}</label>
-            <input id="pm" type="number" min={0} step={1} inputMode="decimal" value={priceMonthly} onChange={(e) => setPriceMonthly(e.target.value)} placeholder={t('packages.price_free')} style={inputStyle} />
+            <input id="pm" type="number" min={0} step={1} inputMode="decimal" value={priceMonthly} onChange={(e) => setPriceMonthly(e.target.value)} placeholder={t('packages.price_free')} disabled={isFree} style={{ ...inputStyle, opacity: isFree ? 0.55 : 1 }} />
           </div>
           <div>
             <label htmlFor="py" style={labelStyle}>{t('packages.field_price_yearly')}</label>
-            <input id="py" type="number" min={0} step={1} inputMode="decimal" value={priceYearly} onChange={(e) => setPriceYearly(e.target.value)} placeholder={t('packages.price_free')} style={inputStyle} />
+            <input id="py" type="number" min={0} step={1} inputMode="decimal" value={priceYearly} onChange={(e) => setPriceYearly(e.target.value)} placeholder={t('packages.price_free')} disabled={isFree} style={{ ...inputStyle, opacity: isFree ? 0.55 : 1 }} />
           </div>
         </div>
       </section>

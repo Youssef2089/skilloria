@@ -64,6 +64,7 @@ type Body = {
   name?: unknown
   target_role?: unknown
   price_monthly?: unknown
+  is_free?: unknown
   price_yearly?: unknown
   active?: unknown
   features?: unknown
@@ -96,6 +97,30 @@ function validateFeatureValue(v: unknown): { ok: true; value: string } | { ok: f
     if (/^\d+$/.test(t)) return { ok: true, value: String(parseInt(t, 10)) }
   }
   return { ok: false }
+}
+
+/**
+ * LA CASE « GRATUITE » ET LE PRIX NE SE CONTREDISENT PAS.
+ *
+ * ┌─ POURQUOI CE CONTRÔLE EXISTE ALORS QUE LA BASE LE GARANTIT ────────────┐
+ * │ La contrainte `packages_gratuite_coherente` est la VRAIE garde : elle   │
+ * │ tient quel que soit le chemin (§E.31). Mais elle rend une erreur        │
+ * │ Postgres, que la route traduirait en 500 « db_error » — un message qui  │
+ * │ n'apprend rien à l'administrateur.                                      │
+ * │                                                                          │
+ * │ Ce contrôle-ci ne garde RIEN de plus : il EXPLIQUE, en 400, ce que la   │
+ * │ base refuserait de toute façon.                                         │
+ * └────────────────────────────────────────────────────────────────────────┘
+ */
+function coherenceGratuite(
+  isFree: boolean,
+  pm: number | null,
+  py: number | null,
+): { ok: true } | { ok: false; code: string } {
+  const positif = (v: number | null) => v !== null && v > 0
+  if (isFree && (positif(pm) || positif(py))) return { ok: false, code: 'free_with_price' }
+  if (!isFree && !positif(pm) && !positif(py)) return { ok: false, code: 'paid_without_price' }
+  return { ok: true }
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
@@ -168,6 +193,39 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (!r.ok) return json({ error: 'Invalid price_yearly', code: 'invalid_price' }, 400)
     packageUpdates.price_yearly = r.value
   }
+  if (has('is_free')) {
+    if (typeof body.is_free !== 'boolean') {
+      return json({ error: 'Invalid is_free', code: 'invalid_is_free' }, 400)
+    }
+    packageUpdates.is_free = body.is_free
+  }
+
+  // ⚠️ SUR L'ÉTAT FINAL, PAS SUR LE CORPS REÇU. Une modification est
+  //    PARTIELLE : cocher « gratuite » sans toucher au prix est un corps
+  //    valide et contradictoire avec la ligne en base. On compose donc
+  //    l'existant écrasé par ce que le corps porte, et c'est LUI qu'on
+  //    vérifie — sinon la contradiction passerait, et la base rendrait un 500.
+  const ligne = pkg as { is_free: boolean; price_monthly: string | number | null; price_yearly: string | number | null }
+  const nombreOuNull = (v: unknown): number | null => {
+    if (v === null || v === undefined) return null
+    const n = typeof v === 'string' ? Number(v) : (v as number)
+    return Number.isFinite(n) ? n : null
+  }
+  const finalIsFree =
+    'is_free' in packageUpdates ? (packageUpdates.is_free as boolean) : Boolean(ligne.is_free)
+  const finalPm =
+    'price_monthly' in packageUpdates
+      ? (packageUpdates.price_monthly as number | null)
+      : nombreOuNull(ligne.price_monthly)
+  const finalPy =
+    'price_yearly' in packageUpdates
+      ? (packageUpdates.price_yearly as number | null)
+      : nombreOuNull(ligne.price_yearly)
+  const coherence = coherenceGratuite(finalIsFree, finalPm, finalPy)
+  if (!coherence.ok) {
+    return json({ error: 'Price contradicts the free flag', code: coherence.code }, 400)
+  }
+
   if (has('active')) {
     if (typeof body.active !== 'boolean') {
       return json({ error: 'Invalid active', code: 'invalid_active' }, 400)

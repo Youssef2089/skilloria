@@ -75,6 +75,8 @@ type PackageRow = {
   price_monthly: string | number | null
   currency: string
   is_default: boolean
+  /** L'intention DÉCLARÉE. C'est elle qui décide, jamais le prix (§D.18). */
+  is_free: boolean
   active: boolean
   target_role: string
 }
@@ -86,7 +88,7 @@ type PackageRow = {
  *    pas dire si son contenu existait en test ou en live.
  */
 const COLUMNS =
-  'id, slug, name, description, price_monthly, currency, is_default, active, target_role'
+  'id, slug, name, description, price_monthly, currency, is_default, is_free, active, target_role'
 
 /**
  * Une offre est-elle VENDABLE ?
@@ -108,7 +110,7 @@ const COLUMNS =
  *    MIEUX : il suffit de lui poser un prix positif.
  */
 function sellability(pkg: PackageRow): { ok: true } | { ok: false; reason: string } {
-  const v = vendabilite({ price_monthly: pkg.price_monthly, active: pkg.active })
+  const v = vendabilite({ is_free: pkg.is_free, active: pkg.active })
   return v.vendable ? { ok: true } : { ok: false, reason: raisonNonVendable(v.raison) }
 }
 
@@ -260,7 +262,9 @@ export async function syncPackage(
    * │ divergence qu'on veut interdire.                                      │
    * └──────────────────────────────────────────────────────────────────────┘
    */
-  voulu?: Partial<Pick<PackageRow, 'name' | 'description' | 'price_monthly' | 'currency' | 'active'>>,
+  voulu?: Partial<
+    Pick<PackageRow, 'name' | 'description' | 'price_monthly' | 'currency' | 'active' | 'is_free'>
+  >,
 ): Promise<{ ok: true; result: SyncResult } | { ok: false; refusal: SyncRefusal }> {
   const handle = getStripeCatalogue()
   if (!handle.ok) {

@@ -432,12 +432,35 @@ ok(
   'les offres non vendables sont refusées explicitement, AVEC leur raison',
   'la règle vit dans lib/billing/vendabilite.ts — une seule implémentation',
 )
-ok(
-  /price_monthly === null/.test(stripJs(read('lib/billing/vendabilite.ts'))) &&
-    /n <= 0/.test(stripJs(read('lib/billing/vendabilite.ts'))),
-  '… et elle écarte le tarif ABSENT comme le tarif à ZÉRO',
-  'un Price récurrent à 0,00 € n’encaisse rien et apparaîtrait pourtant comme une offre réelle',
+/* ⚠️ LA PROPRIETE A CHANGE DE LIEU, ELLE N'A PAS DISPARU — et c'est la
+      troisieme fois dans ce lot qu'une assertion s'ancre la ou la regle ETAIT.
+
+      Celle-ci exigeait que `vendabilite.ts` ecarte le tarif absent comme le
+      tarif a zero. Le module ne lit PLUS AUCUN PRIX : la gratuite est
+      desormais une INTENTION DECLAREE (`packages.is_free`), et c'est la BASE
+      qui garantit qu'intention et prix ne se contredisent pas.
+
+      On ne supprime donc pas l'assertion — on la deplace la ou la garantie
+      vit maintenant. La supprimer aurait laissé croire que la propriete avait
+      ete abandonnee ; la laisser ici la faisait rougir sur un code plus sur
+      qu'avant. */
+const migGratuite = readdirSync(join(ROOT, 'supabase/migrations')).filter((f) =>
+  f.endsWith('_offre_gratuite_explicite.sql'),
 )
+ok(migGratuite.length === 1, 'la migration de la case « gratuite » existe')
+if (migGratuite.length === 1) {
+  const sqlGratuite = read(`supabase/migrations/${migGratuite[0]}`)
+  ok(
+    /not is_free[\s\S]{0,160}?coalesce\(price_monthly, 0\) > 0/.test(sqlGratuite),
+    '… et une offre NON gratuite exige un prix strictement positif, EN BASE',
+    'un Price récurrent à 0,00 € n’encaisse rien et apparaîtrait pourtant comme une offre réelle',
+  )
+  ok(
+    /\(is_free[\s\S]{0,160}?coalesce\(price_monthly, 0\) = 0/.test(sqlGratuite),
+    '… et une offre gratuite ne peut porter aucun prix',
+    'une offre affichée gratuite qui facture est la faute la plus chère des deux',
+  )
+}
 ok(
   /toMinorUnits/.test(catalogue) && /toMinorUnits/.test(stripeMod),
   'la conversion euros → centimes vit dans un seul module',

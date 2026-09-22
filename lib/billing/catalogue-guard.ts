@@ -59,7 +59,9 @@ export type Synchro =
 export function toucheAuCatalogueStripe(champs: Record<string, unknown>): boolean {
   // `active` et `name` voyagent aussi : le Product Stripe porte le libellé, et
   // une offre retirée de la vente doit l'être des deux côtés.
-  return ['price_monthly', 'price_yearly', 'currency', 'name', 'description', 'active'].some(
+  // `is_free` EN FAIT PARTIE : cocher la case retire l'offre de la vente chez
+  // Stripe, la decocher l'y remet. C'est un changement de ce qui est VENDU.
+  return ['price_monthly', 'price_yearly', 'currency', 'name', 'description', 'active', 'is_free'].some(
     (c) => c in champs,
   )
 }
@@ -87,6 +89,7 @@ export async function synchroniserAvantEcriture(
       price_monthly: voulu.price_monthly as string | number | null | undefined,
       currency: voulu.currency as string | undefined,
       active: voulu.active as boolean | undefined,
+      is_free: voulu.is_free as boolean | undefined,
     })
     if (out.ok) return { ok: true, ignoree: false, raison: out.result.actions.join(', ') }
 

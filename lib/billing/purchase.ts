@@ -4,6 +4,7 @@ import type { AuthContext } from '@/lib/auth-guard'
 import { getStripe } from '@/lib/billing/stripe'
 import { syncPackage } from '@/lib/billing/catalogue'
 import { lireLiaison, modeDeLaCle } from '@/lib/billing/catalogue-stripe'
+import { raisonNonVendable, vendabilite } from '@/lib/billing/vendabilite'
 import { attachCustomer } from '@/lib/billing/apply'
 import { META_DOMAIN, META_ORGANIZATION, META_PACKAGE_SLUG, META_USER } from '@/lib/billing/resolve'
 
@@ -144,11 +145,28 @@ export async function resolveSellablePrice(
 ): Promise<{ priceId: string; slug: string } | PurchaseError> {
   const { data, error } = await admin
     .from('packages')
-    .select('id, slug')
+    .select('id, slug, is_free, active')
     .eq('id', packageId)
     .maybeSingle()
   if (error) throw new Error(`lecture packages: ${error.message}`)
   if (!data) return { code: 'package_not_found', message: 'Offre introuvable au catalogue.' }
+
+  // ⚠️ UNE OFFRE GRATUITE NE PASSE JAMAIS PAR STRIPE, ET CE REFUS VIENT EN
+  //    PREMIER — AVANT toute lecture de liaison (§D.18).
+  //
+  //    LE TROU QU'IL FERME, ET IL ÉTAIT RÉEL : une offre payante RELIÉE, puis
+  //    passée en gratuite, garde sa ligne dans `packages_stripe`. La liaison
+  //    aurait donc rendu un prix, et le parcours d'achat aurait ouvert un
+  //    checkout — AU PRIX D'AVANT — sur une offre que le catalogue déclare
+  //    gratuite. Le client aurait payé ce qui est affiché comme gratuit.
+  //
+  //    La synchronisation, elle, refuse déjà une offre gratuite ; mais elle
+  //    n'est consultée qu'en l'ABSENCE de liaison. Refuser ici est donc le
+  //    seul endroit qui ferme les deux chemins.
+  const v = vendabilite({ is_free: Boolean(data.is_free), active: Boolean(data.active) })
+  if (!v.vendable) {
+    return { code: 'package_not_sellable', message: raisonNonVendable(v.raison) }
+  }
 
   // ⚠️ LE MODE EST CELUI DE LA CLÉ QUI VA OUVRIR LA SESSION DE PAIEMENT.
   //    C'est le seul endroit où le mode de la clé est la bonne origine : on

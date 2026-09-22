@@ -19,7 +19,7 @@
 //     appel reseau. C'est la recette, et l'ecran des ecarts, qui le disent.
 //   · Que la base porte bien les lignes : aucun acces base ici (§E.12).
 //
-// EPROUVE PAR MUTATION (§G.5) — 14 mutations, 14 detections, le 22/09/2026.
+// EPROUVE PAR MUTATION (§G.5) — 18 mutations, 18 detections, le 22/09/2026.
 //
 //   node scripts/diag-relier-nest-pas-encaisser.mjs
 //   Aucune base, aucun reseau, aucune ecriture. Lecture seule.
@@ -347,28 +347,28 @@ const { vendabilite } = await import(
   new URL('../lib/billing/vendabilite.ts', import.meta.url).href
 )
 
-ok(vendabilite({ price_monthly: 349, active: true }).vendable, 'une offre payante est vendable')
 ok(
-  !vendabilite({ price_monthly: null, active: true }).vendable,
-  'un tarif ABSENT n’a rien à relier',
+  vendabilite({ is_free: false, active: true }).vendable,
+  'une offre DÉCLARÉE payante est vendable',
 )
 ok(
-  !vendabilite({ price_monthly: 0, active: true }).vendable,
-  'un tarif à ZÉRO n’a rien à relier non plus — une offre gratuite reste gratuite',
+  !vendabilite({ is_free: true, active: true }).vendable,
+  'une offre DÉCLARÉE gratuite n’a rien à relier',
 )
 ok(
-  vendabilite({ price_monthly: 0, active: true }).vendable === false &&
-    vendabilite({ price_monthly: 0, active: true }).raison === 'gratuite',
-  '… et sa raison est « gratuite », pas « tarif illisible »',
-)
-ok(
-  !vendabilite({ price_monthly: 349, active: false }).vendable,
+  !vendabilite({ is_free: false, active: false }).vendable,
   'une offre retirée de la vente n’a rien à relier',
 )
+
+/* ⚠️ LA DECISION NE REGARDE PLUS LE PRIX DU TOUT, ET C'EST LE POINT (§D.18).
+      Tant qu'elle le deduisait, une offre payante saisie a 0 par erreur sortait
+      de la vente EN SILENCE. On verifie donc que le module n'a AUCUN moyen de
+      lire un prix : son type d'entree ne le porte pas. */
+const sourceVendabilite = sansCommentaires(lire('lib/billing/vendabilite.ts'))
 ok(
-  vendabilite({ price_monthly: 'abc', active: true }).vendable === false &&
-    vendabilite({ price_monthly: 'abc', active: true }).raison === 'tarif_illisible',
-  'un tarif ILLISIBLE a sa propre raison — confondu avec zéro, il sortirait de la vente en silence',
+  !/price_monthly|price_yearly/.test(sourceVendabilite),
+  'le module ne lit AUCUN prix — l’intention seule décide',
+  'une offre payante saisie à 0 sortirait de la vente en silence',
 )
 
 /* ⚠️ LA REGLE N'EXISTE QU'UNE FOIS — et la premiere version de CETTE assertion
@@ -456,6 +456,87 @@ ok(
   /vendabilite\(/.test(routeSupervision),
   '… et sur la même règle de vendabilité que partout ailleurs',
 )
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   C quinquies. UNE OFFRE GRATUITE NE PASSE JAMAIS PAR STRIPE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+section('C quinquies. Ni synchronisation, ni paiement')
+
+/**
+ * LA SYNCHRONISATION refuse déjà une offre gratuite — c'est `sellability`.
+ * LE PAIEMENT, lui, avait un trou RÉEL : une offre payante RELIÉE, puis passée
+ * en gratuite, garde sa ligne dans `packages_stripe`. La liaison rendait donc
+ * un prix, et le checkout s'ouvrait AU PRIX D'AVANT sur une offre déclarée
+ * gratuite. Le refus doit donc venir AVANT toute lecture de liaison.
+ */
+const achat = sansCommentaires(lire('lib/billing/purchase.ts'))
+ok(/vendabilite\(/.test(achat), 'le parcours d’achat consulte la vendabilité')
+
+const posVendabilite = achat.indexOf('vendabilite({')
+const posLiaison = achat.indexOf('lireLiaison(')
+ok(
+  posVendabilite > 0 && posLiaison > 0 && posVendabilite < posLiaison,
+  '… AVANT de lire la liaison Stripe',
+  'une offre devenue gratuite garde sa liaison : la lire d’abord rouvrirait un checkout au prix d’avant',
+)
+ok(
+  /return \{ code: 'package_not_sellable'/.test(achat),
+  '… et refuse explicitement, avec la raison',
+)
+
+/* LA BASE, ELLE, NE DEPEND D'AUCUNE DISCIPLINE (§E.31). */
+const migGratuite = readdirSync(join(ROOT, 'supabase/migrations')).filter((f) =>
+  f.endsWith('_offre_gratuite_explicite.sql'),
+)
+ok(migGratuite.length === 1, `la migration de la case existe et est unique (${migGratuite.length})`)
+if (migGratuite.length === 1) {
+  const sql = lire(`supabase/migrations/${migGratuite[0]}`)
+  ok(
+    /add column if not exists is_free boolean not null/.test(sql),
+    'la colonne `is_free` est `not null`',
+  )
+  ok(
+    /\(is_free[\s\S]{0,160}?coalesce\(price_monthly, 0\) = 0/.test(sql),
+    'gratuite ⇒ les deux prix sont nuls',
+  )
+  ok(
+    /not is_free[\s\S]{0,160}?coalesce\(price_monthly, 0\) > 0/.test(sql),
+    'non gratuite ⇒ au moins un prix strictement positif',
+    "sans ce sens-là, une offre payante à 0 resterait écrivable",
+  )
+  ok(
+    /packages_default_must_be_free check \(\s*is_default = false or is_free\s*\)/.test(sql),
+    'l’offre par défaut est un CAS de la gratuité, exprimé une seule fois',
+  )
+  ok(
+    /raise exception/.test(sql) && /PAR DEFAUT portant un prix/.test(sql),
+    'elle REFUSE de tourner sur un état qu’elle ne peut pas trancher, en nommant les offres',
+  )
+  ok(
+    /20260922000030/.test(migGratuite[0]),
+    'elle porte un suffixe 0xxxxx — la plage du tronc (§G.2)',
+    'la plage 1xxxxx est celle que §G.2 déclare fausse, et que diag-migration-donnees refuse',
+  )
+}
+
+/* LES DEUX ROUTES EXIGENT L'INTENTION, ET VERIFIENT LA COHERENCE. */
+for (const r of [
+  'app/api/admin/create-package/route.ts',
+  'app/api/admin/update-package/route.ts',
+]) {
+  const src = sansCommentaires(lire(r))
+  ok(
+    /coherenceGratuite\(/.test(src),
+    `${r.replace('app/api/admin/', '')} : vérifie que la case et le prix ne se contredisent pas`,
+  )
+  ok(
+    /free_with_price/.test(src) && /paid_without_price/.test(src),
+    `${r.replace('app/api/admin/', '')} : les deux contradictions ont leur propre code`,
+    'un refus sans motif envoie chercher au hasard',
+  )
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    D. L'IDEMPOTENCE — EXECUTEE, PAS RELUE (§E.33)

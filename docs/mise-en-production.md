@@ -380,6 +380,19 @@ Un bandeau rouge nomme l'offre et l'erreur exacte. Relancez après avoir corrig�
 
 > **Pourquoi deux modes ?** Un identifiant de prix créé en test **n'existe pas** en production, et réciproquement. Ce sont deux catalogues séparés chez Stripe, et ils le sont aussi chez nous. **Il faut donc cliquer DEUX FOIS dans la vie du produit** : une fois en test, une fois en production — avec la clé de chacun.
 
+### La case « Offre gratuite »
+
+Chaque offre porte une case **Offre gratuite**, à la création comme à la modification.
+
+- **Cochée** : les prix sont à zéro, les champs sont grisés, et l'offre ne passe **jamais** par Stripe — ni synchronisation, ni paiement.
+- **Décochée** : un prix strictement positif est **obligatoire**.
+
+La base refuse toute contradiction entre la case et le prix, **dans les deux sens**. Vous ne pouvez donc plus rendre une offre payante gratuite par une saisie à zéro : l'enregistrement est refusé et vous dit pourquoi.
+
+> **Pourquoi une case plutôt qu'un prix à zéro ?** Parce qu'une erreur de frappe ne doit pas décider. Avant, une offre à 349 € passée à 0 par mégarde sortait de la vente **sans un mot** : plus personne ne pouvait y souscrire, et rien ne le signalait.
+
+---
+
 ### Au quotidien, vous n'aurez plus à cliquer
 
 **Créer une offre payante la relie à Stripe dans la même action**, et modifier son prix aussi. Si Stripe refuse, l'action est **refusée avec la raison** et rien n'est enregistré — une offre n'existe jamais à moitié, payante et non reliée.

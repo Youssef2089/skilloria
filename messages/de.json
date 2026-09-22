@@ -2591,7 +2591,9 @@
       "sync_running": "Verbindung läuft…",
       "sync_done": "{count} Paket(e) mit Stripe verbunden, im Modus {mode}.",
       "sync_nothing_to_link": "Nichts zu verbinden für:",
-      "sync_hint": "Nur Nachholen: Ein Paket wird beim Anlegen oder Ändern automatisch verbunden. Diese Schaltfläche ist für Pakete, die vor dem Stripe-Schlüssel angelegt wurden, und für den Produktivgang."
+      "sync_hint": "Nur Nachholen: Ein Paket wird beim Anlegen oder Ändern automatisch verbunden. Diese Schaltfläche ist für Pakete, die vor dem Stripe-Schlüssel angelegt wurden, und für den Produktivgang.",
+      "field_is_free": "Kostenloses Paket",
+      "is_free_hint": "Angehakt sind die Preise null und das Paket läuft nie über Stripe. Nicht angehakt ist ein strikt positiver Preis Pflicht."
     },
     "collaboration": {
       "page_title": "Kollaboration zwischen Experten",

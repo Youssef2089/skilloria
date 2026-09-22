@@ -1,43 +1,43 @@
 /**
- * lib/billing/vendabilite.ts — CE QUI SE VEND SE DÉCIDE SUR LE PRIX.
+ * lib/billing/vendabilite.ts — CE QUI SE VEND SE DÉCIDE SUR UNE INTENTION.
  *
- * ┌─ LA PROPRIÉTÉ, JAMAIS LE NOM NI LE STATUT ──────────────────────────────┐
- * │ Une offre a quelque chose à relier chez Stripe **si et seulement si on   │
- * │ peut la facturer** : elle est en vente, et son prix mensuel est          │
- * │ strictement positif. Rien d'autre n'entre dans la décision — ni le slug, │
- * │ ni le nom, ni le fait d'être l'offre par défaut.                         │
+ * ┌─ LA CASE « GRATUITE », PAS LE PRIX ─────────────────────────────────────┐
+ * │ Une offre a quelque chose à relier chez Stripe si et seulement si elle   │
+ * │ est **en vente** et **déclarée payante**. La décision se lit dans une    │
+ * │ intention écrite — `packages.is_free` — et non plus dans une déduction.  │
  * └────────────────────────────────────────────────────────────────────────┘
  *
- * ┌─ POURQUOI `is_default` A DISPARU DU CRITÈRE ────────────────────────────┐
- * │ Il y était, et il était REDONDANT : la contrainte de base                │
- * │ `packages_default_must_be_free` impose                                   │
- * │ `is_default ⇒ coalesce(price_monthly, 0) = 0`. Toute offre par défaut    │
- * │ est donc déjà gratuite, donc déjà écartée par le prix.                    │
+ * ┌─ POURQUOI LA DÉDUCTION NE SUFFISAIT PAS ────────────────────────────────┐
+ * │ La règle a d'abord été « prix nul ou zéro ⇒ gratuite ». Exacte, et       │
+ * │ IMPLICITE : l'intention n'était écrite nulle part.                       │
  * │                                                                          │
- * │ Le garder faisait croire que le STATUT décide, alors que c'est le PRIX.  │
- * │ Et cette croyance a un coût : elle laissait penser que « free » et       │
- * │ « collaboration » sont des cas particuliers, alors qu'une offre payante  │
- * │ qu'on rendrait gratuite demain doit sortir de la vente **toute seule**.  │
- * └────────────────────────────────────────────────────────────────────────┘
- *
- * ┌─ ZÉRO EST GRATUIT, ET N'A DONC RIEN À RELIER ───────────────────────────┐
- * │ `price_monthly = 0` était traité comme « gratuite ET vendable » : la     │
- * │ synchronisation aurait créé chez Stripe un abonnement récurrent à 0,00 € │
- * │ — un objet qui n'encaisse rien, qu'aucun parcours n'ouvre, et qui        │
- * │ apparaîtrait pourtant dans le catalogue Stripe comme une offre réelle.   │
+ * │ Conséquence, et elle se paie en argent : **une offre payante saisie à 0  │
+ * │ par erreur sortait de la vente EN SILENCE** — aucun refus, aucune        │
+ * │ alerte, elle cessait simplement d'être reliée, et le premier client qui  │
+ * │ voulait y souscrire ne pouvait plus. Dans l'autre sens, rien n'empêchait │
+ * │ une offre déclarée gratuite de porter un prix.                           │
  * │                                                                          │
- * │ Décision de Youssef, 22/09/2026 : **une offre gratuite n'a rien à        │
- * │ relier, quelle qu'elle soit** — que son prix soit `NULL` ou `0`.         │
- * │ Le commentaire de colonne qui disait l'inverse est corrigé par la        │
- * │ migration `commentaire_offre_gratuite`.                                  │
+ * │ L'intention se dit maintenant, et la BASE garantit qu'elle et le prix ne │
+ * │ se contredisent jamais (`packages_gratuite_coherente`, dans les deux     │
+ * │ sens). Le code n'a donc pas à re-vérifier le prix : ce serait une        │
+ * │ seconde règle, qui divergerait de la première (§E.20, §E.31).            │
  * └────────────────────────────────────────────────────────────────────────┘
  *
- * ⚠️ UNE SEULE IMPLÉMENTATION, ET C'EST TOUT L'OBJET DE CE FICHIER. La règle
- *    vivait en DEUX exemplaires — dans la synchronisation et dans l'écran
- *    d'exploitation — écrits le même jour, déjà différents sur le zéro. Deux
- *    jumeaux ne divergent pas le jour où on les écrit : ils divergent le jour
- *    où l'un des deux est corrigé (§E.20). Ici, la divergence aurait fait dire
- *    à l'écran « rien à relier » sur une offre que la synchro poussait.
+ * ┌─ CE QUI A DISPARU AVEC LE PRIX, ET POURQUOI C'EST JUSTE ────────────────┐
+ * │ · `is_default` n'a jamais été un critère valide : la contrainte          │
+ * │   `packages_default_must_be_free` dit désormais `is_default ⇒ is_free`,  │
+ * │   donc une offre par défaut est écartée **parce qu'elle est gratuite**.  │
+ * │ · `tarif_illisible` n'a plus lieu d'être : ce cas existait parce qu'on   │
+ * │   lisait un nombre arrivé en chaîne depuis PostgREST. On ne lit plus de  │
+ * │   nombre du tout. La cohérence du prix est garantie en base, et un       │
+ * │   montant impossible à convertir est refusé **au moment de pousser**,    │
+ * │   par `toMinorUnits`, avec sa propre erreur.                             │
+ * └────────────────────────────────────────────────────────────────────────┘
+ *
+ * ⚠️ UNE SEULE IMPLÉMENTATION. La règle vivait en deux exemplaires — la
+ *    synchronisation et l'écran d'exploitation — déjà différents sur le zéro.
+ *    Deux jumeaux ne divergent pas le jour où on les écrit, mais le jour où
+ *    l'un des deux est corrigé (§E.20).
  *
  * ⚠️ MODULE PUR — aucun import, aucun accès base. Le diagnostic l'EXÉCUTE, il
  *    ne relit pas une copie de la règle (§E.33).
@@ -45,32 +45,26 @@
 
 /** Ce que la décision a besoin de savoir d'une offre. Rien de plus. */
 export type OffreAVendre = {
-  /** Unité MAJEURE (euros). `null` = aucun tarif défini. */
-  price_monthly: string | number | null
+  /** L'intention DÉCLARÉE : cette offre est gratuite. Jamais déduite du prix. */
+  is_free: boolean
   /** Retirée de la vente ? */
   active: boolean
 }
 
 export type Vendabilite =
   | { vendable: true }
-  | { vendable: false; raison: 'gratuite' | 'inactive' | 'tarif_illisible' }
+  | { vendable: false; raison: 'gratuite' | 'inactive' }
 
 /**
  * Cette offre a-t-elle quelque chose à relier chez Stripe ?
  *
- * ⚠️ UN TARIF ILLISIBLE N'EST PAS UNE OFFRE GRATUITE. `Number('abc')` rend
- *    `NaN`, et `NaN > 0` est `false` : confondu avec zéro, un tarif corrompu
- *    sortirait SILENCIEUSEMENT de la vente. Il a donc sa propre raison, et
- *    l'écran la montre — c'est une donnée à corriger, pas une offre gratuite.
+ * L'ordre compte pour la RAISON, pas pour le verdict : une offre gratuite ET
+ * retirée de la vente est d'abord « retirée de la vente », parce que c'est ce
+ * qu'un administrateur vient de faire et ce qu'il s'attend à lire.
  */
 export function vendabilite(offre: OffreAVendre): Vendabilite {
   if (!offre.active) return { vendable: false, raison: 'inactive' }
-  if (offre.price_monthly === null) return { vendable: false, raison: 'gratuite' }
-
-  const n = typeof offre.price_monthly === 'string' ? Number(offre.price_monthly) : offre.price_monthly
-  if (!Number.isFinite(n)) return { vendable: false, raison: 'tarif_illisible' }
-  if (n <= 0) return { vendable: false, raison: 'gratuite' }
-
+  if (offre.is_free) return { vendable: false, raison: 'gratuite' }
   return { vendable: true }
 }
 
@@ -78,10 +72,8 @@ export function vendabilite(offre: OffreAVendre): Vendabilite {
 export function raisonNonVendable(raison: Exclude<Vendabilite, { vendable: true }>['raison']): string {
   switch (raison) {
     case 'gratuite':
-      return 'offre gratuite : rien à facturer, donc rien à relier'
+      return 'offre déclarée gratuite : rien à facturer, donc rien à relier'
     case 'inactive':
       return 'retirée de la vente'
-    case 'tarif_illisible':
-      return 'tarif illisible — à corriger au catalogue'
   }
 }

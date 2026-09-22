@@ -2591,7 +2591,9 @@
       "sync_running": "Linking…",
       "sync_done": "{count} plan(s) linked to Stripe, in {mode} mode.",
       "sync_nothing_to_link": "Nothing to link for:",
-      "sync_hint": "Catch-up only: a plan is linked automatically when created or edited. This button is for plans created before the Stripe key existed, and for going live."
+      "sync_hint": "Catch-up only: a plan is linked automatically when created or edited. This button is for plans created before the Stripe key existed, and for going live.",
+      "field_is_free": "Free plan",
+      "is_free_hint": "Ticked, prices are zero and the plan never goes through Stripe. Unticked, a strictly positive price is required."
     },
     "collaboration": {
       "page_title": "Expert-to-expert collaboration",

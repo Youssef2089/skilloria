@@ -30,6 +30,7 @@ type Pkg = {
   slug: string
   target_role: string
   description: string | null
+  is_free: boolean
   price_monthly: number | null
   price_yearly: number | null
   currency: string
@@ -100,6 +101,8 @@ export default function AdminPackageEditPage() {
   const [orgCount, setOrgCount] = useState(0)
   const [priceMonthly, setPriceMonthly] = useState('')
   const [priceYearly, setPriceYearly] = useState('')
+  /** L'INTENTION, DÉCLARÉE — jamais déduite du prix (§D.18). */
+  const [isFree, setIsFree] = useState(false)
   const [active, setActive] = useState(true)
   const [featureValues, setFeatureValues] = useState<Record<string, string>>({})
   const [changeReason, setChangeReason] = useState('')
@@ -144,6 +147,7 @@ export default function AdminPackageEditPage() {
       setFeatures(json.features ?? [])
       setPriceMonthly(json.package.price_monthly == null ? '' : String(json.package.price_monthly))
       setPriceYearly(json.package.price_yearly == null ? '' : String(json.package.price_yearly))
+      setIsFree(Boolean(json.package.is_free))
       setActive(json.package.active)
       const fv: Record<string, string> = {}
       for (const f of json.features ?? []) fv[f.feature_code] = f.value
@@ -215,6 +219,7 @@ export default function AdminPackageEditPage() {
         package_id: packageId,
         name: name.trim(),
         target_role: targetRole,
+        is_free: isFree,
         price_monthly: priceMonthly.trim() === '' ? null : priceMonthly.trim(),
         price_yearly: priceYearly.trim() === '' ? null : priceYearly.trim(),
         active,
@@ -534,18 +539,47 @@ export default function AdminPackageEditPage() {
           </div>
         </div>
 
+        <label
+          style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 14, cursor: 'pointer' }}
+        >
+          <input
+            type="checkbox"
+            checked={isFree}
+            onChange={(e) => {
+              const coche = e.target.checked
+              setIsFree(coche)
+              // COCHER MET LES PRIX À ZÉRO, ET C'EST LE POINT : l'intention et
+              // le prix ne peuvent pas se contredire, en base comme à l'écran.
+              // Laisser l'ancien prix sous une case cochée ferait lire
+              // « gratuite à 349 € ».
+              if (coche) {
+                setPriceMonthly('0')
+                setPriceYearly('0')
+              }
+            }}
+            style={{ marginTop: 2 }}
+          />
+          <span>
+            <span style={{ fontSize: 13, color: 'var(--sk-text)', fontWeight: 500 }}>
+              {t('packages.field_is_free')}
+            </span>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--sk-muted)', marginTop: 2 }}>
+              {t('packages.is_free_hint')}
+            </span>
+          </span>
+        </label>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
           <div>
             <label htmlFor="pm" style={labelStyle}>{t('packages.field_price_monthly')}</label>
             <div style={{ position: 'relative' }}>
-              <input id="pm" type="number" min={0} step={1} inputMode="decimal" value={priceMonthly} onChange={(e) => setPriceMonthly(e.target.value)} placeholder={t('packages.price_free')} style={{ ...inputStyle, paddingRight: 46 }} />
+              <input id="pm" type="number" min={0} step={1} inputMode="decimal" value={priceMonthly} onChange={(e) => setPriceMonthly(e.target.value)} placeholder={t('packages.price_free')} disabled={isFree} style={{ ...inputStyle, paddingRight: 46, opacity: isFree ? 0.55 : 1 }} />
               <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--sk-muted)', pointerEvents: 'none' }}>{pkg.currency}</span>
             </div>
           </div>
           <div>
             <label htmlFor="py" style={labelStyle}>{t('packages.field_price_yearly')}</label>
             <div style={{ position: 'relative' }}>
-              <input id="py" type="number" min={0} step={1} inputMode="decimal" value={priceYearly} onChange={(e) => setPriceYearly(e.target.value)} placeholder={t('packages.price_free')} style={{ ...inputStyle, paddingRight: 46 }} />
+              <input id="py" type="number" min={0} step={1} inputMode="decimal" value={priceYearly} onChange={(e) => setPriceYearly(e.target.value)} placeholder={t('packages.price_free')} disabled={isFree} style={{ ...inputStyle, paddingRight: 46, opacity: isFree ? 0.55 : 1 }} />
               <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--sk-muted)', pointerEvents: 'none' }}>{pkg.currency}</span>
             </div>
           </div>

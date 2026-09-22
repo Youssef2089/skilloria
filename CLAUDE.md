@@ -662,6 +662,55 @@ clic ne crée pas de doublon chez Stripe : un doublon ne se verrait pas dans not
 l'écran des écarts.
 
 
+**D.18 — LA GRATUITÉ SE DIT, ELLE NE SE DÉDUIT PAS. Une case, et la base la garde.**
+La règle était « prix nul ou zéro ⇒ gratuite ». **Exacte, et implicite** — l'intention n'était écrite
+nulle part. Conséquence, et elle se paie en argent : **une offre payante saisie à 0 par erreur
+sortait de la vente EN SILENCE.** Aucun refus, aucune alerte : elle cessait d'être reliée, et le
+premier client qui voulait y souscrire ne pouvait plus. Dans l'autre sens, rien n'empêchait une offre
+déclarée gratuite de porter un prix.
+
+**`packages.is_free` est une INTENTION DÉCLARÉE** — migration `offre_gratuite_explicite`. Une case à
+cocher dans `/admin/packages`, à la création **et** à la modification : cochée, les champs de prix
+sont désactivés et valent zéro ; décochée, un prix strictement positif est **obligatoire**.
+
+**LA RÈGLE EST EN BASE, DANS LES DEUX SENS** — `packages_gratuite_coherente` :
+
+| | |
+|---|---|
+| `is_free` | ⇒ prix mensuel **et** annuel nuls |
+| `not is_free` | ⇒ **au moins un** prix strictement positif |
+
+Une offre payante à 0 et une offre gratuite avec un prix deviennent **impossibles à écrire**, quel
+que soit le chemin — l'écran, une route, un script, une main dans le tableau de bord Supabase.
+**Une garde qui est une contrainte ne dépend d'aucune discipline (§E.31).**
+`packages_default_must_be_free` **devient un cas de celle-ci** : `is_default ⇒ is_free`. Même
+garantie, exprimée une seule fois ; le nom est **conservé**, il est cité ailleurs (§E.16).
+
+> **L'écran et la route ne gardent RIEN de plus — ils EXPLIQUENT.** La contrainte rendrait une erreur
+> Postgres, que la route traduirait en 500 « db_error », lequel n'apprend rien. Le contrôle de
+> cohérence des routes rend un **400 nommé** (`free_with_price`, `paid_without_price`) ; le retirer ne
+> rouvrirait aucun trou, il rendrait le refus incompréhensible.
+> ⚠️ **Côté modification, il porte sur l'ÉTAT FINAL, pas sur le corps reçu** : une modification est
+> partielle, et cocher « gratuite » sans toucher au prix est un corps valide **et** contradictoire
+> avec la ligne en base. On compose l'existant écrasé par le corps, et c'est lui qu'on vérifie.
+
+**`vendabilite.ts` LIT LA CASE, PLUS LE PRIX.** Il ne porte même plus le prix dans son type d'entrée :
+la déduction ne peut pas revenir par distraction. Deux critères disparaissent avec elle —
+`is_default`, qui n'a jamais rien décidé (la contrainte l'impliquait déjà), et `tarif_illisible`, qui
+n'existait que parce qu'on lisait un nombre arrivé en chaîne.
+
+**UNE OFFRE GRATUITE NE PASSE JAMAIS PAR STRIPE — ni synchro, ni paiement.**
+La synchronisation la refusait déjà. **Le paiement avait un trou réel, et il est fermé** : une offre
+payante **reliée**, puis passée en gratuite, garde sa ligne dans `packages_stripe` ; la liaison
+rendait donc un prix, et le checkout s'ouvrait **au prix d'avant** sur une offre déclarée gratuite.
+Le refus est désormais **en tête de `resolveSellablePrice`, avant toute lecture de liaison**.
+
+**Gardé par [`diag-relier-nest-pas-encaisser`](scripts/diag-relier-nest-pas-encaisser.mjs)** —
+**18 mutations, 18 détections**. Il exécute la règle (§E.33), vérifie que le module **ne lit aucun
+prix**, que le refus d'achat précède la lecture de liaison, et que la contrainte porte **les deux
+sens**.
+
+
 **D.10 — TOUTE NOTE DU PRODUIT EST SUR 0-10. Il n'y a pas de seconde échelle.**
 Les filtres de pertinence vivaient en **0-1**, les notes de jugement en **0-10**, et rien ne le disait
 à l'écran : **« 1 » signifiait *parfait* d'un côté et *médiocre* de l'autre**, sur la même page.

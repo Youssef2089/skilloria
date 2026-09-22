@@ -150,7 +150,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (!cleCatalogue.ok) return null
     const mode = modeDeLaCle(cleCatalogue.live)
     const [offresRes, liaisons] = await Promise.all([
-      auth.supabaseAdmin.from('packages').select('id, price_monthly, active'),
+      auth.supabaseAdmin.from('packages').select('id, is_free, active'),
       lireToutesLesLiaisons(auth.supabaseAdmin).catch(() => null),
     ])
     if (offresRes.error || liaisons === null) return null
@@ -160,7 +160,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     return (offresRes.data ?? []).filter(
       (p) =>
         vendabilite({
-          price_monthly: (p.price_monthly as string | number | null) ?? null,
+          is_free: Boolean(p.is_free),
           active: Boolean(p.active),
         }).vendable && !reliees.has(p.id as string),
     ).length

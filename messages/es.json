@@ -2591,7 +2591,9 @@
       "sync_running": "Conectando…",
       "sync_done": "{count} plan(es) conectado(s) a Stripe, en modo {mode}.",
       "sync_nothing_to_link": "Nada que conectar para:",
-      "sync_hint": "Solo recuperación: un plan se conecta automáticamente al crearlo o modificarlo. Este botón sirve para los planes creados antes de que existiera la clave de Stripe, y para el paso a producción."
+      "sync_hint": "Solo recuperación: un plan se conecta automáticamente al crearlo o modificarlo. Este botón sirve para los planes creados antes de que existiera la clave de Stripe, y para el paso a producción.",
+      "field_is_free": "Plan gratuito",
+      "is_free_hint": "Marcada, los precios son cero y el plan nunca pasa por Stripe. Sin marcar, es obligatorio un precio estrictamente positivo."
     },
     "collaboration": {
       "page_title": "Colaboración entre expertos",

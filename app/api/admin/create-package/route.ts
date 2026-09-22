@@ -94,6 +94,31 @@ function resetPeriodFor(code: string): string {
   return code.endsWith('_per_month') ? 'monthly' : 'never'
 }
 
+/**
+ * LA CASE « GRATUITE » ET LE PRIX NE SE CONTREDISENT PAS.
+ *
+ * ┌─ POURQUOI CE CONTRÔLE EXISTE ALORS QUE LA BASE LE GARANTIT ────────────┐
+ * │ La contrainte `packages_gratuite_coherente` est la VRAIE garde : elle   │
+ * │ tient quel que soit le chemin (§E.31). Mais elle rend une erreur        │
+ * │ Postgres, que la route traduirait en 500 « db_error » — un message qui  │
+ * │ n'apprend rien à l'administrateur.                                      │
+ * │                                                                          │
+ * │ Ce contrôle-ci ne garde RIEN de plus : il EXPLIQUE, en 400, ce que la   │
+ * │ base refuserait de toute façon. Le retirer ne rouvrirait aucun trou —    │
+ * │ il rendrait seulement le refus incompréhensible.                        │
+ * └────────────────────────────────────────────────────────────────────────┘
+ */
+function coherenceGratuite(
+  isFree: boolean,
+  pm: number | null,
+  py: number | null,
+): { ok: true } | { ok: false; code: string } {
+  const positif = (v: number | null) => v !== null && v > 0
+  if (isFree && (positif(pm) || positif(py))) return { ok: false, code: 'free_with_price' }
+  if (!isFree && !positif(pm) && !positif(py)) return { ok: false, code: 'paid_without_price' }
+  return { ok: true }
+}
+
 export async function POST(request: NextRequest): Promise<Response> {
   // ── (1) Garde admin ────────────────────────────────────────────────────────
   let auth
@@ -133,6 +158,18 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const active = typeof body.active === 'boolean' ? body.active : true
   const wantDefault = body.is_default === true
+
+  // ⚠️ L'INTENTION EST DÉCLARÉE, JAMAIS DÉDUITE (§D.18). Absente du corps, on
+  //    ne la devine PAS depuis le prix : on refuse. Deviner ici reviendrait à
+  //    réintroduire exactement la déduction qu'on vient de retirer.
+  if (typeof body.is_free !== 'boolean') {
+    return json({ error: 'is_free is required', code: 'is_free_required' }, 400)
+  }
+  const isFree = body.is_free
+  const coherence = coherenceGratuite(isFree, pm.value, py.value)
+  if (!coherence.ok) {
+    return json({ error: 'Price contradicts the free flag', code: coherence.code }, 400)
+  }
 
   // Une offre par défaut doit être active (sinon cible orpheline à l'inscription).
   if (wantDefault && !active) {
@@ -216,6 +253,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       price_yearly: py.value,
       currency,
       is_default: false,
+      is_free: isFree,
       active,
     })
     .select('*')
@@ -256,6 +294,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     price_monthly: pm.value,
     currency,
     active,
+    is_free: isFree,
   })
   if (!synchro.ok) {
     console.error('[admin:create-package] synchro Stripe refusée', synchro.raison)

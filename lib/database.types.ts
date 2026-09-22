@@ -2363,6 +2363,7 @@ export type Database = {
           id: string
           included_domain_ids: string[] | null
           is_default: boolean
+          is_free: boolean
           max_seats: number | null
           name: string
           price_monthly: number | null
@@ -2381,6 +2382,7 @@ export type Database = {
           id?: string
           included_domain_ids?: string[] | null
           is_default?: boolean
+          is_free?: boolean
           max_seats?: number | null
           name: string
           price_monthly?: number | null
@@ -2399,6 +2401,7 @@ export type Database = {
           id?: string
           included_domain_ids?: string[] | null
           is_default?: boolean
+          is_free?: boolean
           max_seats?: number | null
           name?: string
           price_monthly?: number | null

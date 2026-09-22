@@ -2591,7 +2591,9 @@
       "sync_running": "Liaison en cours…",
       "sync_done": "{count} offre(s) reliée(s) à Stripe, en mode {mode}.",
       "sync_nothing_to_link": "Rien à relier pour :",
-      "sync_hint": "Rattrapage seulement : une offre créée ou modifiée est reliée automatiquement. Ce bouton sert aux offres créées avant que la clé Stripe existe, et au passage en production."
+      "sync_hint": "Rattrapage seulement : une offre créée ou modifiée est reliée automatiquement. Ce bouton sert aux offres créées avant que la clé Stripe existe, et au passage en production.",
+      "field_is_free": "Offre gratuite",
+      "is_free_hint": "Cochée, les prix sont à zéro et l offre ne passe jamais par Stripe. Décochée, un prix strictement positif est obligatoire."
     },
     "collaboration": {
       "page_title": "Collaboration entre experts",
