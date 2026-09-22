@@ -2590,7 +2590,8 @@
       "sync_action": "Mit Stripe verbinden",
       "sync_running": "Verbindung läuft…",
       "sync_done": "{count} Paket(e) mit Stripe verbunden, im Modus {mode}.",
-      "sync_nothing_to_link": "Nichts zu verbinden für:"
+      "sync_nothing_to_link": "Nichts zu verbinden für:",
+      "sync_hint": "Nur Nachholen: Ein Paket wird beim Anlegen oder Ändern automatisch verbunden. Diese Schaltfläche ist für Pakete, die vor dem Stripe-Schlüssel angelegt wurden, und für den Produktivgang."
     },
     "collaboration": {
       "page_title": "Kollaboration zwischen Experten",
@@ -3097,7 +3098,9 @@
         "verification_stripe_jamais": "Die nächtliche Prüfung der Stripe-Anbindung ist nie gelaufen. Solange sie nicht läuft, kann niemand sagen, ob ein Zahlungsereignis verloren ging.",
         "verification_stripe_indisponible": "Der Verlauf der Prüfung der Stripe-Anbindung konnte nicht gelesen werden. Das ist nicht „alles in Ordnung“: wir wissen es nicht.",
         "moteur_interrupteur_ferme": "Der Matching-Dienst ist AUS: Kein Experte und keine Organisation erhält Vorschläge, in keinem Ökosystem. Der Schalter ENABLE_RERANKING muss exakt „true“ lauten.",
-        "moteur_cle_absente": "Der Schlüssel des Matching-Anbieters fehlt: Kein Experte und keine Organisation erhält Vorschläge, in keinem Ökosystem. Die Variable COHERE_API_KEY muss gesetzt sein."
+        "moteur_cle_absente": "Der Schlüssel des Matching-Anbieters fehlt: Kein Experte und keine Organisation erhält Vorschläge, in keinem Ökosystem. Die Variable COHERE_API_KEY muss gesetzt sein.",
+        "catalogue_non_relie": "{count} kostenpflichtige(s) Paket(e) sind im Modus des verwendeten Schlüssels nicht mit Stripe verbunden. Das erste echte Abonnement käme als „Preis nicht im Katalog“ zurück: Das Geld würde eingezogen, ohne dass es einem Paket zugeordnet werden kann. Öffnen Sie den Handelskatalog und klicken Sie „Mit Stripe verbinden“.",
+        "catalogue_etat_inconnu": "Es lässt sich nicht sagen, ob der Katalog mit Stripe verbunden ist: Schlüssel fehlt oder Lesen fehlgeschlagen. Das ist kein „alles in Ordnung“, sondern „ich weiß es nicht“."
       },
       "spread_title": "Verteilung der Bewertungen",
       "spread_empty": "Noch kein Lauf auf der neuen Skala. Die Verteilung füllt sich mit den nächsten Matching-Läufen.",

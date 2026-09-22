@@ -2590,7 +2590,8 @@
       "sync_action": "Relier à Stripe",
       "sync_running": "Liaison en cours…",
       "sync_done": "{count} offre(s) reliée(s) à Stripe, en mode {mode}.",
-      "sync_nothing_to_link": "Rien à relier pour :"
+      "sync_nothing_to_link": "Rien à relier pour :",
+      "sync_hint": "Rattrapage seulement : une offre créée ou modifiée est reliée automatiquement. Ce bouton sert aux offres créées avant que la clé Stripe existe, et au passage en production."
     },
     "collaboration": {
       "page_title": "Collaboration entre experts",
@@ -3097,7 +3098,9 @@
         "verification_stripe_jamais": "La vérification nocturne du raccordement Stripe n’a jamais tourné. Tant qu’elle ne tourne pas, personne ne peut dire si un événement de paiement s’est perdu.",
         "verification_stripe_indisponible": "L’historique de la vérification du raccordement Stripe n’a pas pu être lu. Ce n’est pas « tout va bien » : on ne sait pas.",
         "moteur_interrupteur_ferme": "Le moteur de mise en relation est ÉTEINT : plus aucun expert et plus aucune organisation ne reçoit de proposition, dans aucun écosystème. L’interrupteur ENABLE_RERANKING doit valoir exactement « true ».",
-        "moteur_cle_absente": "La clé du fournisseur de mise en relation est absente : plus aucun expert et plus aucune organisation ne reçoit de proposition, dans aucun écosystème. La variable COHERE_API_KEY doit être posée."
+        "moteur_cle_absente": "La clé du fournisseur de mise en relation est absente : plus aucun expert et plus aucune organisation ne reçoit de proposition, dans aucun écosystème. La variable COHERE_API_KEY doit être posée.",
+        "catalogue_non_relie": "{count} offre(s) payante(s) ne sont pas reliées à Stripe dans le mode de la clé en usage. Le premier abonnement réel sortirait « prix hors catalogue » : l’argent serait encaissé sans que l’application sache à quelle offre le rattacher. Ouvrez Catalogue commerce et cliquez « Relier à Stripe ».",
+        "catalogue_etat_inconnu": "Impossible de dire si le catalogue est relié à Stripe : clé absente, ou lecture en panne. Ce n’est pas « tout va bien » — c’est « je ne sais pas »."
       },
       "spread_title": "Répartition des notes",
       "spread_empty": "Aucune exécution pour l’instant sur la nouvelle échelle. La répartition se remplira aux prochaines mises en relation.",

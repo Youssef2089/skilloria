@@ -107,6 +107,24 @@ export type SourcesSupervision = {
    * où l'on ne sait plus rien (§E.22).
    */
   evenementsStripeCoinces: number | null
+  /**
+   * LE CATALOGUE EST-IL RELIÉ, DANS LE MODE DE LA CLÉ EN USAGE.
+   *
+   * ┌─ POURQUOI ÇA REMONTE EN SUPERVISION, ET EN BLOQUANT ─────────────────┐
+   * │ Un lien manquant ne se découvre PAS au premier paiement : à cet       │
+   * │ instant l'argent est encaissé chez Stripe et l'application ne sait     │
+   * │ pas à quelle offre le rattacher. C'est le seul défaut de ce socle qui │
+   * │ se paie en argent réel ET qui est invisible jusque-là.                │
+   * │                                                                        │
+   * │ Le passage en production est exactement le moment où on l'oublie :    │
+   * │ le catalogue est relié depuis des mois... en TEST.                    │
+   * └──────────────────────────────────────────────────────────────────────┘
+   *
+   * `null` = on n'a pas pu savoir (clé absente ou lecture en panne), et c'est
+   * un problème d'ATTENTION, jamais un « tout va bien » : zéro offre à relier
+   * et « je ne sais pas » ne sont pas le même fait (§E.22).
+   */
+  offresPayantesNonReliees: number | null
 }
 
 /**
@@ -170,6 +188,31 @@ export function classerProblemes(s: SourcesSupervision): Probleme[] {
   }
   if (!s.moteur.clePresente) {
     out.push({ cle: 'moteur_cle_absente', gravite: 'bloquant', compte: null, depuis: null, sujet: null })
+  }
+
+  // ── 0 bis. LE CATALOGUE NON RELIÉ — ça se paie en argent réel ──────────
+  //  Une offre payante sans prix Stripe dans le mode courant : le premier
+  //  abonnement sortira « hors catalogue ». BLOQUANT, et le détail vit dans
+  //  /admin/facturation — d'où `lien` plutôt qu'un sujet de supervision qui
+  //  ne ferait que rediriger.
+  if (s.offresPayantesNonReliees === null) {
+    out.push({
+      cle: 'catalogue_etat_inconnu',
+      gravite: 'attention',
+      compte: null,
+      depuis: null,
+      sujet: null,
+      lien: '/admin/facturation',
+    })
+  } else if (s.offresPayantesNonReliees > 0) {
+    out.push({
+      cle: 'catalogue_non_relie',
+      gravite: 'bloquant',
+      compte: s.offresPayantesNonReliees,
+      depuis: null,
+      sujet: null,
+      lien: '/admin/facturation',
+    })
   }
 
   // ── 1. LES MISES EN RELATION QUI NE SE FERONT PAS ──────────────────────

@@ -583,7 +583,20 @@ serait sorti « prix hors catalogue », un paiement encaissé que rien ne sait r
 | Ce qui exige **une clé valide** | Ce qui exige **EN PLUS `ENABLE_BILLING`** |
 |---|---|
 | `/api/admin/synchroniser-catalogue` (derrière `requireAdmin`) | le checkout, le portail, le changement d'offre |
-| la synchro déclenchée par l'édition d'une offre | l'**APPLICATION** des événements du webhook |
+| la synchro déclenchée par la **création** et la **modification** d'une offre | l'**APPLICATION** des événements du webhook |
+
+> ⛔ **UNE OFFRE NE SE RELIE JAMAIS À LA MAIN.** Créer une offre payante la relie
+> **dans la même action** ; modifier son prix, sa devise, son nom ou sa mise en vente
+> aussi. Si Stripe refuse, l'action admin **refuse avec la raison nommée** (`stripe_sync_failed`),
+> et la création **supprime l'offre qu'elle venait d'écrire** : une offre n'existe jamais à moitié,
+> payante et non reliée.
+> **Le bouton « Relier à Stripe » est un RATTRAPAGE**, et l'écran le dit : les offres créées quand
+> aucune clé n'était présente, et le passage en production. Plus jamais au quotidien.
+>
+> **Et l'oubli du passage en live est gardé par la SUPERVISION** : une offre payante non reliée
+> **dans le mode de la clé en usage** remonte en **BLOQUANT** (`catalogue_non_relie`), avec son lien
+> vers `/admin/facturation`. « Je ne sais pas » (clé absente, lecture en panne) est un problème
+> **distinct**, en attention — jamais un « tout va bien » (§E.22).
 
 `resolveCatalogueKey()` et `resolveBillingKey()` — [lib/billing/config.ts](lib/billing/config.ts) —
 et deux fabriques, [`getStripeCatalogue()`](lib/billing/stripe.ts) / `getStripe()`. **Une seule
@@ -625,13 +638,26 @@ porte en silence.
 
 > **L'écran des écarts dit ce qui est relié DANS LE MODE COURANT, et ce qui ne l'est pas dans
 > l'autre** ([lib/stripe-exploitation/catalogue-relie.ts](lib/stripe-exploitation/catalogue-relie.ts)).
-> Trois états par offre, et jamais deux : `reliee`, `a_relier`, **`rien_a_relier`**. Une offre par
-> défaut est gratuite **par contrainte de base** : elle n'a rien à relier, et la peindre comme un
-> manque apprendrait à ignorer le rouge. **Sur quatre offres, deux seulement sont reliables** —
-> `Free` et `Collaboration` sont les défauts.
+> Trois états par offre, et jamais deux : `reliee`, `a_relier`, **`rien_a_relier`**.
+>
+> **CE QUI DÉCIDE EST LE PRIX, JAMAIS LE NOM NI LE STATUT** — une seule implémentation,
+> [lib/billing/vendabilite.ts](lib/billing/vendabilite.ts), module **pur** exécuté par le contrôle.
+> Une offre **gratuite n'a rien à relier, que son prix soit `NULL` ou `0`** : un `Price` récurrent
+> à 0,00 € n'encaisse rien et apparaîtrait pourtant comme une offre réelle chez Stripe.
+> `is_default` **a disparu du critère** et rien n'a changé : la contrainte
+> `packages_default_must_be_free` fait que le prix l'écartait déjà — le garder faisait croire que le
+> STATUT décide. Aujourd'hui `Free` et `Collaboration` sont donc écartées **parce qu'elles sont
+> gratuites**, pas parce qu'elles s'appellent ainsi ; et une offre payante qu'on rendrait gratuite
+> demain sortirait de la vente **toute seule**.
+>
+> ⚠️ **Un tarif ILLISIBLE a sa propre raison.** `Number('abc')` vaut `NaN`, et `NaN > 0` est faux :
+> confondu avec zéro, un tarif corrompu sortirait **silencieusement** de la vente. L'écran le
+> distingue — c'est une donnée à corriger, pas une offre gratuite.
 
 **Gardé par [`diag-relier-nest-pas-encaisser`](scripts/diag-relier-nest-pas-encaisser.mjs)** —
-9 mutations, 9 détections. Il **exécute** les clés d'idempotence (§E.33) pour prouver qu'un second
+14 mutations, 14 détections. Il **découvre** les routes qui écrivent une offre au lieu de les
+lister, et n'exige la liaison que de celles qui touchent à ce que Stripe connaît — une route
+ajoutée demain est donc couverte sans qu'on l'inscrive nulle part (§E.34). Il **exécute** les clés d'idempotence (§E.33) pour prouver qu'un second
 clic ne crée pas de doublon chez Stripe : un doublon ne se verrait pas dans notre base et fausserait
 l'écran des écarts.
 

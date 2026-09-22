@@ -2590,7 +2590,8 @@
       "sync_action": "Conectar con Stripe",
       "sync_running": "Conectando…",
       "sync_done": "{count} plan(es) conectado(s) a Stripe, en modo {mode}.",
-      "sync_nothing_to_link": "Nada que conectar para:"
+      "sync_nothing_to_link": "Nada que conectar para:",
+      "sync_hint": "Solo recuperación: un plan se conecta automáticamente al crearlo o modificarlo. Este botón sirve para los planes creados antes de que existiera la clave de Stripe, y para el paso a producción."
     },
     "collaboration": {
       "page_title": "Colaboración entre expertos",
@@ -3097,7 +3098,9 @@
         "verification_stripe_jamais": "La verificación nocturna de la conexión con Stripe nunca se ha ejecutado. Mientras no se ejecute, nadie puede decir si se ha perdido un evento de pago.",
         "verification_stripe_indisponible": "No se ha podido leer el historial de la verificación de la conexión con Stripe. Esto no es «todo va bien»: no lo sabemos.",
         "moteur_interrupteur_ferme": "El motor de emparejamiento está APAGADO: ningún experto ni ninguna organización recibe propuestas, en ningún ecosistema. El interruptor ENABLE_RERANKING debe valer exactamente «true».",
-        "moteur_cle_absente": "Falta la clave del proveedor de emparejamiento: ningún experto ni ninguna organización recibe propuestas, en ningún ecosistema. Debe definirse la variable COHERE_API_KEY."
+        "moteur_cle_absente": "Falta la clave del proveedor de emparejamiento: ningún experto ni ninguna organización recibe propuestas, en ningún ecosistema. Debe definirse la variable COHERE_API_KEY.",
+        "catalogue_non_relie": "{count} plan(es) de pago no están conectados a Stripe en el modo de la clave en uso. La primera suscripción real saldría «precio fuera de catálogo»: se cobraría el dinero sin poder vincularlo a un plan. Abra Catálogo comercial y pulse «Conectar con Stripe».",
+        "catalogue_etat_inconnu": "No se puede saber si el catálogo está conectado a Stripe: falta la clave, o falló la lectura. No es «todo bien», es «no lo sé»."
       },
       "spread_title": "Distribución de las notas",
       "spread_empty": "Todavía no hay ninguna ejecución en la nueva escala. La distribución se llenará con los próximos emparejamientos.",

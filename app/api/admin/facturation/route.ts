@@ -146,7 +146,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       .select(
         'id, company_name, stripe_customer_id, stripe_subscription_id, package_id, package_valid_until, package_source_event_at',
       ),
-    admin.from('packages').select('id, slug, price_monthly, is_default, active'),
+    admin.from('packages').select('id, slug, price_monthly, active'),
     // Les identifiants Stripe ne vivent plus sur `packages` : ils sont clés
     // PAR MODE dans `packages_stripe` (migration `catalogue_stripe_par_mode`).
     lireToutesLesLiaisons(admin).catch(() => null),
@@ -209,7 +209,6 @@ export async function GET(request: NextRequest): Promise<Response> {
                 id: p.id as string,
                 slug: p.slug as string,
                 priceMonthly: (p.price_monthly as string | number | null) ?? null,
-                isDefault: Boolean(p.is_default),
                 active: Boolean(p.active),
               }),
             ),

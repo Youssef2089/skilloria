@@ -376,7 +376,15 @@ Un bandeau rouge nomme l'offre et l'erreur exacte. Relancez après avoir corrig�
 
 **Ce qu'il faut voir avant d'ouvrir l'encaissement en production : zéro offre « à relier » en mode `live`.**
 
+> **Vous ne pouvez pas l'oublier.** Tant qu'une offre payante n'est pas reliée dans le mode de la clé de cet environnement, **/admin/supervision** l'affiche comme un problème **bloquant**, avec le lien vers l'écran de facturation. Ce n'est pas un rappel poli : un lien manquant ne se découvre autrement qu'au premier paiement, quand l'argent est déjà encaissé.
+
 > **Pourquoi deux modes ?** Un identifiant de prix créé en test **n'existe pas** en production, et réciproquement. Ce sont deux catalogues séparés chez Stripe, et ils le sont aussi chez nous. **Il faut donc cliquer DEUX FOIS dans la vie du produit** : une fois en test, une fois en production — avec la clé de chacun.
+
+### Au quotidien, vous n'aurez plus à cliquer
+
+**Créer une offre payante la relie à Stripe dans la même action**, et modifier son prix aussi. Si Stripe refuse, l'action est **refusée avec la raison** et rien n'est enregistré — une offre n'existe jamais à moitié, payante et non reliée.
+
+Le bouton **Relier à Stripe** ne sert donc qu'à deux choses : les offres créées **avant** que la clé Stripe existe, et **le passage en production**.
 
 ### Si vous changez un prix plus tard
 

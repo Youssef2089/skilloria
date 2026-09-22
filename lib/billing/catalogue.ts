@@ -10,13 +10,14 @@ import {
 } from '@/lib/billing/catalogue-stripe'
 import { META_PACKAGE_SLUG } from '@/lib/billing/resolve'
 import { cleProduit, clePrix } from '@/lib/billing/idempotence'
+import { raisonNonVendable, vendabilite } from '@/lib/billing/vendabilite'
 
 /**
  * lib/billing/catalogue.ts — SYNCHRONISATION SORTANTE, JAMAIS ENTRANTE.
  *
  * ┌─ LE CATALOGUE SKILLORIA FAIT AUTORITÉ ──────────────────────────────────┐
  * │ Le prix est écrit au back-office. Ce module le POUSSE vers Stripe et     │
- * │ range les identifiants obtenus dans `packages.stripe_*`.                 │
+ * │ range les identifiants obtenus dans `packages_stripe`, CLÉS PAR MODE.    │
  * │                                                                          │
  * │ On ne LIT JAMAIS un prix depuis Stripe pour en déduire quoi que ce soit. │
  * │ Le seul montant lu chez Stripe l'est pour COMPARER et détecter une       │
@@ -36,10 +37,15 @@ import { cleProduit, clePrix } from '@/lib/billing/idempotence'
  * │ prix catalogue — sinon le back-office ment.                             │
  * └────────────────────────────────────────────────────────────────────────┘
  *
- * ⚠️ CE MODULE N'EST BRANCHÉ SUR AUCUNE ROUTE au Lot 1. Le câblage sur
- *    `update-package` / `create-package` est le Lot 4, avec sa propre décision :
- *    refuser la modification locale si la synchro échoue, plutôt que laisser
- *    diverger.
+ * ⚠️ CE MODULE EST BRANCHÉ SUR TROIS CHEMINS, et la nuance compte :
+ *    · `create-package` — CRÉER une offre payante la relie DANS LA MÊME ACTION,
+ *      et si Stripe refuse, l'offre créée est SUPPRIMÉE : elle n'existe jamais
+ *      à moitié ;
+ *    · `update-package` — modifier prix, devise, nom ou mise en vente
+ *      synchronise AVANT d'écrire, et refuse d'écrire si Stripe refuse ;
+ *    · `/api/admin/synchroniser-catalogue` — le RATTRAPAGE : les offres créées
+ *      quand aucune clé n'était présente, et le passage en production.
+ *    Aucune offre ne se relie donc à la main au quotidien (§D.16).
  */
 
 export type SyncResult = {
@@ -85,28 +91,25 @@ const COLUMNS =
 /**
  * Une offre est-elle VENDABLE ?
  *
- * Trois refus, tous alignés sur la sémantique verrouillée en base par les
- * fondations :
+ * ⚠️ LA RÈGLE N'EST PLUS ÉCRITE ICI, ELLE EST DÉLÉGUÉE — et c'est le point.
+ *    Elle vivait aussi dans l'écran d'exploitation, en DEUX exemplaires écrits
+ *    le même jour, et déjà différents sur le cas du prix nul. Deux jumeaux ne
+ *    divergent pas quand on les écrit : ils divergent quand on corrige l'un
+ *    des deux (§E.20). La divergence aurait fait dire à l'écran « rien à
+ *    relier » sur une offre que cette fonction poussait.
  *
- *  · `price_monthly IS NULL` → aucun tarif défini. On ne peut pas créer un prix
- *    Stripe pour un tarif qui n'existe pas. (Distinct de 0, qui est un prix.)
+ *    La règle, sa raison et le sort de `is_default` vivent désormais dans
+ *    [lib/billing/vendabilite.ts](./vendabilite.ts), module pur.
  *
- *  · `is_default` → l'offre par défaut est celle sur laquelle on RETOMBE, pas
- *    celle qu'on achète. Elle est gratuite par contrainte de base ; lui créer
- *    un prix chez Stripe n'aurait aucun usage.
- *    ⚠️ C'est précisément ce qui rend la collaboration vendable SANS CODE
- *    (décision produit n°8) : le jour où l'on pose un prix sur la collaboration,
- *    l'offre payante est une ligne NON-défaut à côté de la gratuite par défaut,
- *    et elle passe ici comme n'importe quelle autre.
- *
- *  · `active = false` → retirée de la vente. On ne la pousse pas ; les
- *    abonnements existants continuent d'être honorés (cf. resolvePackageByPrice).
+ * ⚠️ `is_default` A DISPARU DU CRITÈRE, ET RIEN N'A CHANGÉ : la contrainte
+ *    `packages_default_must_be_free` impose qu'une offre par défaut soit
+ *    gratuite, donc le prix l'écarte déjà. Ce qui rendait la collaboration
+ *    vendable sans code (décision produit n°8) tient toujours — et tient
+ *    MIEUX : il suffit de lui poser un prix positif.
  */
 function sellability(pkg: PackageRow): { ok: true } | { ok: false; reason: string } {
-  if (pkg.price_monthly === null) return { ok: false, reason: 'aucun tarif défini (price_monthly null)' }
-  if (pkg.is_default) return { ok: false, reason: 'offre par défaut : on y retombe, on ne l\'achète pas' }
-  if (!pkg.active) return { ok: false, reason: 'offre inactive au catalogue' }
-  return { ok: true }
+  const v = vendabilite({ price_monthly: pkg.price_monthly, active: pkg.active })
+  return v.vendable ? { ok: true } : { ok: false, reason: raisonNonVendable(v.raison) }
 }
 
 /**

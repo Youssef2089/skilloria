@@ -4,6 +4,9 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { classerProblemes, type SourcesSupervision } from '@/lib/supervision/problemes'
 import { MINUTES_AVANT_COINCE } from '@/lib/stripe-exploitation/journal'
 import { capaciteActive } from '@/lib/interrupteurs'
+import { resolveCatalogueKey } from '@/lib/billing/config'
+import { lireToutesLesLiaisons, modeDeLaCle } from '@/lib/billing/catalogue-stripe'
+import { vendabilite } from '@/lib/billing/vendabilite'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -139,6 +142,30 @@ export async function GET(request: NextRequest): Promise<Response> {
           ranAt: nuitStripeRes.data.ran_at as string,
         }
 
+  // ── LE RACCORDEMENT DU CATALOGUE ────────────────────────────────────────
+  //  Lu ICI parce que la supervision doit le dire : un lien manquant ne se
+  //  découvre pas au premier paiement (cf. `offresPayantesNonReliees`).
+  const cleCatalogue = resolveCatalogueKey()
+  const offresNonReliees = await (async (): Promise<number | null> => {
+    if (!cleCatalogue.ok) return null
+    const mode = modeDeLaCle(cleCatalogue.live)
+    const [offresRes, liaisons] = await Promise.all([
+      auth.supabaseAdmin.from('packages').select('id, price_monthly, active'),
+      lireToutesLesLiaisons(auth.supabaseAdmin).catch(() => null),
+    ])
+    if (offresRes.error || liaisons === null) return null
+    const reliees = new Set(
+      liaisons.filter((l) => l.mode === mode && l.priceIdMonthly).map((l) => l.packageId),
+    )
+    return (offresRes.data ?? []).filter(
+      (p) =>
+        vendabilite({
+          price_monthly: (p.price_monthly as string | number | null) ?? null,
+          active: Boolean(p.active),
+        }).vendable && !reliees.has(p.id as string),
+    ).length
+  })()
+
   const sources: SourcesSupervision = {
     // LE MOTEUR, LU ICI ET NULLE PART AILLEURS. `capaciteActive` est la SEULE
     // implémentation de la convention « exactement 'true' » (§E.9) : la
@@ -164,6 +191,10 @@ export async function GET(request: NextRequest): Promise<Response> {
     // `null` sur erreur, JAMAIS `0` : « aucun événement coincé » et « je n'ai
     // pas pu compter » sont deux faits, et le premier est rassurant.
     evenementsStripeCoinces: coincesRes.error ? null : (coincesRes.count ?? 0),
+    // LE CATALOGUE, DANS LE MODE DE LA CLÉ EN USAGE. Aucune lecture réseau :
+    // la clé donne le mode, et les deux tables donnent le reste. Une clé
+    // absente rend `null` — « je ne sais pas », pas « rien à relier ».
+    offresPayantesNonReliees: offresNonReliees,
   }
 
   return json(

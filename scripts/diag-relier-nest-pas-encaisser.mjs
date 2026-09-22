@@ -19,7 +19,7 @@
 //     appel reseau. C'est la recette, et l'ecran des ecarts, qui le disent.
 //   · Que la base porte bien les lignes : aucun acces base ici (§E.12).
 //
-// EPROUVE PAR MUTATION (§G.5) — 9 mutations, 9 detections, le 22/09/2026.
+// EPROUVE PAR MUTATION (§G.5) — 14 mutations, 14 detections, le 22/09/2026.
 //
 //   node scripts/diag-relier-nest-pas-encaisser.mjs
 //   Aucune base, aucun reseau, aucune ecriture. Lecture seule.
@@ -277,6 +277,184 @@ ok(
   lecteurs.length === 0,
   'aucun accès à `packages_stripe` hors de son module propriétaire',
   lecteurs.join(', '),
+)
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   C bis. UNE OFFRE NE SE RELIE PAS A LA MAIN
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+section('C bis. Créer et modifier relient, dans la même action')
+
+/**
+ * LES DEUX ROUTES QUI ECRIVENT UNE OFFRE, découvertes et non recopiées : on
+ * balaie app/api/admin/ et on retient celles qui INSERENT ou METTENT A JOUR
+ * `packages`. Une liste ecrite a la main oublierait la route ajoutee demain —
+ * et c'est exactement par la que le defaut reviendrait.
+ */
+const ECRIVENT_UNE_OFFRE = fichiers('app/api/admin').filter((f) => {
+  const src = sansCommentaires(lire(f))
+  return /\.from\('packages'\)[\s\S]{0,200}?\.(insert|update)\(/.test(src)
+})
+
+ok(
+  ECRIVENT_UNE_OFFRE.length >= 2,
+  `${ECRIVENT_UNE_OFFRE.length} route(s) écrivent une offre — découvertes, pas listées`,
+)
+
+for (const f of ECRIVENT_UNE_OFFRE) {
+  const src = sansCommentaires(lire(f))
+  // `set-default-package` et `migrate-org-packages` ne touchent ni au prix ni
+  // a la mise en vente : ils ne changent RIEN de ce que Stripe connait. On ne
+  // les exige donc pas — mais on ne les exempte pas par leur NOM : on regarde
+  // s'ils ecrivent un champ du catalogue Stripe.
+  const toucheAuPrix = /price_monthly|price_yearly|currency|\bactive\b/.test(src)
+  if (!toucheAuPrix) continue
+
+  ok(
+    /synchroniserAvantEcriture\(/.test(src),
+    `${f.replace('app/api/admin/', '')} : relie l'offre DANS LA MÊME ACTION`,
+    'une offre payante créée sans liaison sortirait « hors catalogue » au premier paiement',
+  )
+  ok(
+    /stripe_sync_failed/.test(src),
+    `${f.replace('app/api/admin/', '')} : refuse avec la RAISON nommée si Stripe échoue`,
+    "« échec » sans motif envoie chercher au hasard",
+  )
+}
+
+/**
+ * LA CREATION NE PEUT PAS SYNCHRONISER AVANT D'ECRIRE — l'offre n'existe pas
+ * encore. Elle doit donc DEFAIRE ce qu'elle vient de creer quand Stripe refuse :
+ * sinon l'offre existe A MOITIE, payante et non reliee, c'est-a-dire l'etat
+ * exact qu'on ferme.
+ */
+const creation = sansCommentaires(lire('app/api/admin/create-package/route.ts'))
+const refusSynchro = creation.indexOf('if (!synchro.ok)')
+ok(refusSynchro > 0, 'la création teste le refus de synchronisation')
+ok(
+  refusSynchro > 0 &&
+    /from\('packages'\)\.delete\(\)\.eq\('id', pkg\.id\)/.test(creation.slice(refusSynchro, refusSynchro + 400)),
+  '… et SUPPRIME l’offre créée : elle n’existe jamais à moitié',
+)
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   C ter. « RIEN A RELIER » SE DECIDE SUR LE PRIX, JAMAIS SUR LE NOM
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+section('C ter. La vendabilité, exécutée')
+
+const { vendabilite } = await import(
+  new URL('../lib/billing/vendabilite.ts', import.meta.url).href
+)
+
+ok(vendabilite({ price_monthly: 349, active: true }).vendable, 'une offre payante est vendable')
+ok(
+  !vendabilite({ price_monthly: null, active: true }).vendable,
+  'un tarif ABSENT n’a rien à relier',
+)
+ok(
+  !vendabilite({ price_monthly: 0, active: true }).vendable,
+  'un tarif à ZÉRO n’a rien à relier non plus — une offre gratuite reste gratuite',
+)
+ok(
+  vendabilite({ price_monthly: 0, active: true }).vendable === false &&
+    vendabilite({ price_monthly: 0, active: true }).raison === 'gratuite',
+  '… et sa raison est « gratuite », pas « tarif illisible »',
+)
+ok(
+  !vendabilite({ price_monthly: 349, active: false }).vendable,
+  'une offre retirée de la vente n’a rien à relier',
+)
+ok(
+  vendabilite({ price_monthly: 'abc', active: true }).vendable === false &&
+    vendabilite({ price_monthly: 'abc', active: true }).raison === 'tarif_illisible',
+  'un tarif ILLISIBLE a sa propre raison — confondu avec zéro, il sortirait de la vente en silence',
+)
+
+/* ⚠️ LA REGLE N'EXISTE QU'UNE FOIS — et la premiere version de CETTE assertion
+      etait fausse. Elle cherchait `is_default` suivi d'un `return` ou d'un
+      `reason` a moins de 120 caracteres : elle a mordu sur la LISTE DE
+      COLONNES de `catalogue.ts`, ou `is_default` est un nom de colonne dans une
+      chaine, suivi quelques lignes plus bas par la signature de `sellability`.
+      Une fenetre mesure une distance, jamais une appartenance (§E.40).
+
+      La propriete est : AUCUNE DECISION n'est prise sur le statut de defaut
+      hors du module. On cherche donc une LIGNE qui cite le champ ET porte un
+      operateur de decision — ce qu'une liste de colonnes ne fait jamais. */
+/* ⚠️ ET LA SECONDE VERSION ETAIT TROP LARGE, DANS L'AUTRE SENS. Elle balayait
+      TOUT app/ et lib/, et denoncait vingt lignes parfaitement justes :
+      `is_default` est une notion PRODUIT — quelle offre sert de repli, peut-on
+      la desactiver — utilisee partout, et legitimement. Elle n'etait fausse
+      que comme critere de VENDABILITE.
+
+      Le balayage porte donc sur le CHEMIN DU CATALOGUE STRIPE, et lui seul :
+      c'est la que la decision devait sortir. Ailleurs, le statut de defaut
+      decide autre chose, et ce n'est pas l'affaire de ce controle. */
+const CHEMIN_CATALOGUE = /^(lib\/billing\/|lib\/stripe-exploitation\/|app\/api\/admin\/synchroniser)/
+const DECISION = /(^|[^\w])(if\s*\(|return |\?\s|&&|\|\|)/
+const copies = []
+for (const f of TOUS) {
+  if (f === 'lib/billing/vendabilite.ts' || !CHEMIN_CATALOGUE.test(f)) continue
+  for (const ligne of sansCommentaires(lire(f)).split('\n')) {
+    if (!/\bis_default\b|\bisDefault\b/.test(ligne)) continue
+    if (DECISION.test(ligne)) copies.push(`${f} → ${ligne.trim().slice(0, 70)}`)
+  }
+}
+ok(
+  copies.length === 0,
+  'aucune décision prise sur le statut de défaut hors du module de vendabilité',
+  copies.join(' · '),
+)
+
+for (const f of ['lib/billing/catalogue.ts', 'lib/stripe-exploitation/catalogue-relie.ts']) {
+  ok(
+    /vendabilite\(/.test(sansCommentaires(lire(f))),
+    `${f.replace('lib/', '')} DÉLÈGUE la décision`,
+    'deux copies de la même règle divergent le jour où l’une est corrigée (§E.20)',
+  )
+}
+
+const slugsEnDur = TOUS.filter(
+  (f) =>
+    /lib\/billing|lib\/stripe-exploitation|app\/api\/admin\/synchroniser/.test(f) &&
+    /'(free|collaboration)'/.test(sansCommentaires(lire(f))),
+)
+ok(
+  slugsEnDur.length === 0,
+  'aucun slug d’offre en dur sur le chemin du catalogue',
+  slugsEnDur.join(', '),
+)
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   C quater. LE PASSAGE EN PRODUCTION NE PEUT PAS S'OUBLIER
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+section('C quater. La supervision le dit, et en BLOQUANT')
+
+const supervision = sansCommentaires(lire('lib/supervision/problemes.ts'))
+ok(
+  /offresPayantesNonReliees: number \| null/.test(supervision),
+  'la supervision connaît le nombre d’offres payantes non reliées',
+)
+ok(
+  /cle: 'catalogue_non_relie',\s*gravite: 'bloquant'/.test(supervision),
+  '… et une seule suffit à rendre le problème BLOQUANT',
+  'un lien manquant ne se découvre pas au premier paiement',
+)
+ok(
+  /cle: 'catalogue_etat_inconnu',\s*gravite: 'attention'/.test(supervision),
+  '… tandis que « je ne sais pas » est distinct de « rien à relier » (§E.22)',
+)
+
+const routeSupervision = sansCommentaires(lire('app/api/admin/supervision/route.ts'))
+ok(
+  /modeDeLaCle\(cleCatalogue\.live\)/.test(routeSupervision),
+  'le compte est fait DANS LE MODE DE LA CLÉ en usage',
+  'compter dans l’autre mode dirait « tout est relié » au moment de la bascule',
+)
+ok(
+  /vendabilite\(/.test(routeSupervision),
+  '… et sur la même règle de vendabilité que partout ailleurs',
 )
 
 /* ═══════════════════════════════════════════════════════════════════════════

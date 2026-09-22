@@ -2590,7 +2590,8 @@
       "sync_action": "Link to Stripe",
       "sync_running": "Linking…",
       "sync_done": "{count} plan(s) linked to Stripe, in {mode} mode.",
-      "sync_nothing_to_link": "Nothing to link for:"
+      "sync_nothing_to_link": "Nothing to link for:",
+      "sync_hint": "Catch-up only: a plan is linked automatically when created or edited. This button is for plans created before the Stripe key existed, and for going live."
     },
     "collaboration": {
       "page_title": "Expert-to-expert collaboration",
@@ -3097,7 +3098,9 @@
         "verification_stripe_jamais": "The nightly check of the Stripe connection has never run. Until it does, nobody can say whether a payment event was lost.",
         "verification_stripe_indisponible": "The history of the Stripe connection check could not be read. This is not “all is well”: we do not know.",
         "moteur_interrupteur_ferme": "The matching engine is OFF: no expert and no organisation receives any suggestion, in any ecosystem. The ENABLE_RERANKING switch must be exactly “true”.",
-        "moteur_cle_absente": "The matching provider key is missing: no expert and no organisation receives any suggestion, in any ecosystem. The COHERE_API_KEY variable must be set."
+        "moteur_cle_absente": "The matching provider key is missing: no expert and no organisation receives any suggestion, in any ecosystem. The COHERE_API_KEY variable must be set.",
+        "catalogue_non_relie": "{count} paid plan(s) are not linked to Stripe in the mode of the key in use. The first real subscription would come back \"price not in catalogue\": the money would be taken with no way to attach it to a plan. Open Commerce catalogue and click \"Link to Stripe\".",
+        "catalogue_etat_inconnu": "Cannot tell whether the catalogue is linked to Stripe: key missing, or read failed. This is not \"all good\" — it is \"I do not know\"."
       },
       "spread_title": "Score spread",
       "spread_empty": "No run yet on the new scale. The spread will fill in with the next matching runs.",

@@ -340,7 +340,15 @@ export default function AdminPackagesPage() {
             {t('packages.subtitle')}
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
+        {/* LE BOUTON EST UN RATTRAPAGE, ET L'ÉCRAN LE DIT.
+            Créer ou modifier une offre la relie DANS LA MÊME ACTION : ce bouton
+            ne sert plus qu'aux offres créées quand aucune clé n'était présente,
+            et au passage en production. Sans cette phrase, il se lirait comme
+            une étape du quotidien — et son absence, comme un oubli. */}
+        <div style={{ maxWidth: 260, fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.45 }}>
+          {t('packages.sync_hint')}
+        </div>
         <button
           type="button"
           onClick={synchroniserCatalogue}
