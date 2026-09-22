@@ -2369,9 +2369,6 @@ export type Database = {
           price_yearly: number | null
           scope: string
           slug: string
-          stripe_price_id_monthly: string | null
-          stripe_price_id_yearly: string | null
-          stripe_product_id: string | null
           target_role: string
           updated_at: string
         }
@@ -2390,9 +2387,6 @@ export type Database = {
           price_yearly?: number | null
           scope?: string
           slug: string
-          stripe_price_id_monthly?: string | null
-          stripe_price_id_yearly?: string | null
-          stripe_product_id?: string | null
           target_role: string
           updated_at?: string
         }
@@ -2411,9 +2405,6 @@ export type Database = {
           price_yearly?: number | null
           scope?: string
           slug?: string
-          stripe_price_id_monthly?: string | null
-          stripe_price_id_yearly?: string | null
-          stripe_product_id?: string | null
           target_role?: string
           updated_at?: string
         }
@@ -2423,6 +2414,44 @@ export type Database = {
             columns: ["domain_id"]
             isOneToOne: false
             referencedRelation: "domains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      packages_stripe: {
+        Row: {
+          created_at: string
+          mode: string
+          package_id: string
+          price_id_monthly: string | null
+          price_id_yearly: string | null
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          mode: string
+          package_id: string
+          price_id_monthly?: string | null
+          price_id_yearly?: string | null
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          mode?: string
+          package_id?: string
+          price_id_monthly?: string | null
+          price_id_yearly?: string | null
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packages_stripe_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
             referencedColumns: ["id"]
           },
         ]

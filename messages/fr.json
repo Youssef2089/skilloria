@@ -2586,7 +2586,11 @@
       "default_cannot_deactivate": "L’offre par défaut ne peut pas être désactivée : une inscription doit toujours trouver une offre. Désignez d’abord une autre offre par défaut.",
       "target_collaboration": "Collaboration",
       "target_collaboration_locked_hint": "Une offre de collaboration reste sur sa cible : les experts et les entreprises relèvent de deux catalogues distincts.",
-      "err_invalid_target_role": "Cible inconnue. Rechargez la page et réessayez."
+      "err_invalid_target_role": "Cible inconnue. Rechargez la page et réessayez.",
+      "sync_action": "Relier à Stripe",
+      "sync_running": "Liaison en cours…",
+      "sync_done": "{count} offre(s) reliée(s) à Stripe, en mode {mode}.",
+      "sync_nothing_to_link": "Rien à relier pour :"
     },
     "collaboration": {
       "page_title": "Collaboration entre experts",
@@ -4350,6 +4354,16 @@
       "stripe_injoignable": "Stripe n’a pas répondu, ou a répondu une erreur. Réessayez ; si cela dure, consultez l’état du service Stripe.",
       "stripe_permission": "Stripe a refusé la lecture. La clé utilisée n’a pas le droit de lire cette ressource.",
       "lecture_locale": "Une lecture de notre propre base a échoué. Ce n’est pas Stripe qui est en cause."
+    },
+    "catalogue": {
+      "title": "Raccordement du catalogue",
+      "intro": "Chaque offre payante doit avoir un prix chez Stripe, et ce prix n’existe que dans son mode. Sans lui, un paiement réel sortirait « hors catalogue ».",
+      "mode_courant": "Mode {mode} — celui de cet environnement",
+      "mode_autre": "Mode {mode} — l’autre environnement",
+      "tout_relie": "{count} offre(s) reliée(s). Rien à faire.",
+      "a_relier": "À relier : {liste}. Allez dans Catalogue commerce et cliquez « Relier à Stripe ».",
+      "rien_a_relier": "Rien à relier (offres gratuites par défaut) :",
+      "impossible": "Impossible de dire ce qui est relié."
     }
   },
   "admin_palette": {

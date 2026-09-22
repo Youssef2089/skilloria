@@ -61,6 +61,15 @@ type NatureEcart =
   | 'statut_inconnu'
   | 'plusieurs_abonnements'
 
+/** Une offre, et son état de raccordement DANS UN MODE. */
+type LigneCatalogue = {
+  packageId: string
+  slug: string
+  etat: 'reliee' | 'a_relier' | 'rien_a_relier'
+  raison: string | null
+  priceId: string | null
+}
+
 type StatutEvenement = 'received' | 'processed' | 'ignored' | 'failed'
 
 type Ecart = {
@@ -128,6 +137,14 @@ type Charge = {
         organisationsComparees: number
         abonnementsStripe: number
         attributionsManuelles: number
+      }
+  catalogue_relie:
+    | { etat: 'impossible'; motif: string; detail: string }
+    | {
+        etat: 'mesure'
+        modeCourant: 'test' | 'live'
+        courant: LigneCatalogue[]
+        autre: { mode: 'test' | 'live'; lignes: LigneCatalogue[] }
       }
   sante: {
     secretPresent: boolean
@@ -481,6 +498,76 @@ export default function AdminFacturationPage() {
                   )
                 })}
               </ul>
+            )}
+          </section>
+
+          {/* ═══ 1 bis. LE RACCORDEMENT DU CATALOGUE ════════════════════════
+              Il vient AVANT les écarts, et ce n'est pas un détail d'ordre :
+              chercher un écart sur un catalogue non relié, c'est expliquer un
+              symptôme par un autre. Un prix absent explique TOUS les écarts
+              d'abonnement d'un coup. */}
+          <section style={carte}>
+            <h2 style={titreSection}>{t('catalogue.title')}</h2>
+            <p style={sousTitre}>{t('catalogue.intro')}</p>
+
+            {data.catalogue_relie.etat === 'impossible' ? (
+              <div
+                role="alert"
+                style={{
+                  padding: '12px 14px',
+                  background: 'var(--sk-amber-soft)',
+                  border: '1px solid var(--sk-amber-soft)',
+                  color: 'var(--sk-amber)',
+                  fontSize: 13,
+                  borderRadius: 10,
+                }}
+              >
+                {/* « Je n'ai pas pu lire » n'est pas « rien à relier ». Le motif
+                    dit de quel côté regarder — la clé, ou notre base. */}
+                <strong>{t('catalogue.impossible')}</strong>
+                <div style={{ marginTop: 4 }}>{data.catalogue_relie.detail}</div>
+              </div>
+            ) : (
+              <>
+                {[
+                  { mode: data.catalogue_relie.modeCourant, lignes: data.catalogue_relie.courant, courant: true },
+                  { mode: data.catalogue_relie.autre.mode, lignes: data.catalogue_relie.autre.lignes, courant: false },
+                ].map((bloc) => {
+                  const aRelier = bloc.lignes.filter((l) => l.etat === 'a_relier')
+                  const reliees = bloc.lignes.filter((l) => l.etat === 'reliee')
+                  const rien = bloc.lignes.filter((l) => l.etat === 'rien_a_relier')
+                  return (
+                    <div key={bloc.mode} style={{ marginBottom: 14 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
+                        {bloc.courant
+                          ? t('catalogue.mode_courant', { mode: bloc.mode })
+                          : t('catalogue.mode_autre', { mode: bloc.mode })}
+                      </div>
+                      <div
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: 10,
+                          fontSize: 13,
+                          background: aRelier.length > 0 ? 'var(--sk-amber-soft)' : 'var(--sk-success-soft)',
+                          border: '1px solid transparent',
+                          borderColor: aRelier.length > 0 ? 'var(--sk-amber-soft)' : 'var(--sk-success-soft)',
+                          color: aRelier.length > 0 ? 'var(--sk-amber)' : 'var(--sk-success)',
+                        }}
+                      >
+                        {aRelier.length > 0
+                          ? t('catalogue.a_relier', { liste: aRelier.map((l) => l.slug).join(', ') })
+                          : t('catalogue.tout_relie', { count: reliees.length })}
+                      </div>
+                      {rien.length > 0 && (
+                        <div style={{ fontSize: 12.5, color: 'var(--sk-muted)', marginTop: 6 }}>
+                          {t('catalogue.rien_a_relier')}{' '}
+                          {rien.map((l) => `${l.slug} (${l.raison ?? ''})`).join(' · ')}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </>
             )}
           </section>
 

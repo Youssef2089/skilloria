@@ -2586,7 +2586,11 @@
       "default_cannot_deactivate": "La oferta predeterminada no puede desactivarse: un registro siempre debe encontrar una oferta. Designe primero otra oferta predeterminada.",
       "target_collaboration": "Colaboración",
       "target_collaboration_locked_hint": "Una oferta de colaboración permanece en su público: los expertos y las empresas pertenecen a dos catálogos distintos.",
-      "err_invalid_target_role": "Público desconocido. Recargue la página e inténtelo de nuevo."
+      "err_invalid_target_role": "Público desconocido. Recargue la página e inténtelo de nuevo.",
+      "sync_action": "Conectar con Stripe",
+      "sync_running": "Conectando…",
+      "sync_done": "{count} plan(es) conectado(s) a Stripe, en modo {mode}.",
+      "sync_nothing_to_link": "Nada que conectar para:"
     },
     "collaboration": {
       "page_title": "Colaboración entre expertos",
@@ -4350,6 +4354,16 @@
       "stripe_injoignable": "Stripe no ha respondido, o ha respondido con un error. Inténtelo de nuevo; si persiste, consulte el estado del servicio de Stripe.",
       "stripe_permission": "Stripe ha rechazado la lectura. La clave utilizada no tiene permiso para leer este recurso.",
       "lecture_locale": "Ha fallado una lectura de nuestra propia base. Stripe no tiene nada que ver."
+    },
+    "catalogue": {
+      "title": "Conexión del catálogo",
+      "intro": "Cada plan de pago necesita un precio en Stripe, y ese precio solo existe en su modo. Sin él, un pago real saldría «fuera de catálogo».",
+      "mode_courant": "Modo {mode} — el de este entorno",
+      "mode_autre": "Modo {mode} — el otro entorno",
+      "tout_relie": "{count} plan(es) conectado(s). Nada que hacer.",
+      "a_relier": "Por conectar: {liste}. Vaya a Catálogo comercial y pulse «Conectar con Stripe».",
+      "rien_a_relier": "Nada que conectar (planes gratuitos por defecto):",
+      "impossible": "No se puede saber qué está conectado."
     }
   },
   "admin_palette": {

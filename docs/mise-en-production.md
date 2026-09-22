@@ -334,6 +334,58 @@ Poser les secrets ne prouve pas qu'ils sont **bons**. Un secret différent de ce
 
 ---
 
+# ÉTAPE 9 — Relier le catalogue à Stripe (OBLIGATOIRE avant d'encaisser)
+
+Vos offres ont un prix dans Skilloria. Stripe, lui, ne les connaît pas encore : il faut lui créer un **produit** et un **prix** correspondants, et garder le lien entre les deux. C'est ce qu'on appelle **relier le catalogue**.
+
+**Tant que ce n'est pas fait, le premier vrai paiement échoue** avec « prix hors catalogue » : l'argent est encaissé chez Stripe, et l'application ne sait pas à quelle offre le rattacher.
+
+> **Relier ne fait payer personne.** Cette action crée des fiches chez Stripe, rien de plus : aucune carte n'est débitée, aucun droit n'est ouvert. Vous pouvez donc la faire **avant** d'activer l'encaissement — et c'est même l'ordre à suivre. **Vous n'avez pas besoin de `ENABLE_BILLING` pour cette étape.**
+
+### Ce qu'il vous faut
+
+Une seule chose : la **clé secrète Stripe** (`STRIPE_SECRET_KEY`) posée sur l'environnement où vous cliquez.
+
+- En test, c'est une clé qui commence par `sk_test_`.
+- En production, c'est une clé qui commence par `sk_live_`.
+
+L'application refuse les deux combinaisons dangereuses : une clé de test en production, et une clé réelle ailleurs qu'en production. Si vous vous trompez, elle vous le dit en clair au lieu de faire semblant.
+
+### Où cliquer
+
+1. Connectez-vous en administrateur.
+2. Allez sur **/admin/packages** (« Catalogue commerce »).
+3. En haut à droite, cliquez sur **Relier à Stripe**.
+
+### Ce que vous devez voir
+
+Un bandeau vert : **« N offre(s) reliée(s) à Stripe, en mode test »** (ou *live*), suivi du nom des offres reliées.
+
+En dessous, une ligne grise **« Rien à relier pour : … »** peut apparaître. **Ce n'est pas une erreur.** Les offres **par défaut** — celles sur lesquelles on retombe quand on ne paie pas — sont gratuites par construction : il n'y a aucun prix à créer chez Stripe pour elles. Aujourd'hui, `Free` et `Collaboration` sont dans ce cas. **Sur quatre offres, deux sont à relier.**
+
+Un bandeau rouge nomme l'offre et l'erreur exacte. Relancez après avoir corrigé : **recliquer ne crée jamais de doublon** (chaque création porte une empreinte qui permet à Stripe de reconnaître une demande déjà reçue).
+
+### Comment vérifier que c'est bon
+
+1. Allez sur **/admin/facturation**, onglet **Écarts**.
+2. Cherchez le bloc du **raccordement du catalogue**. Il affiche, pour **le mode courant** :
+   - les offres **reliées**,
+   - celles **à relier** — ce sont les seules qui appellent une action,
+   - celles qui n'ont **rien à relier**, avec la raison.
+3. **Regardez aussi la ligne de l'autre mode.** C'est là que se joue le passage en production : un catalogue parfaitement relié en test n'est **pas** relié en live.
+
+**Ce qu'il faut voir avant d'ouvrir l'encaissement en production : zéro offre « à relier » en mode `live`.**
+
+> **Pourquoi deux modes ?** Un identifiant de prix créé en test **n'existe pas** en production, et réciproquement. Ce sont deux catalogues séparés chez Stripe, et ils le sont aussi chez nous. **Il faut donc cliquer DEUX FOIS dans la vie du produit** : une fois en test, une fois en production — avec la clé de chacun.
+
+### Si vous changez un prix plus tard
+
+Ne touchez à rien chez Stripe. **Modifiez le prix dans /admin/packages**, c'est tout : l'application crée le nouveau prix chez Stripe et archive l'ancien. Les clients déjà abonnés **continuent de payer l'ancien montant** — c'est voulu, on ne change pas le prix d'un contrat en cours.
+
+⚠️ Si Stripe est indisponible à ce moment-là, **la modification est refusée** et le prix ne change nulle part. C'est délibéré : deux prix différents des deux côtés serait bien pire qu'un prix qu'on ne peut pas changer pendant une minute.
+
+---
+
 ## Récapitulatif — la liste à cocher
 
 - [ ] Les migrations sont passées, et la ligne `PARAMETRAGE —` affiche des nombres
@@ -343,6 +395,7 @@ Poser les secrets ne prouve pas qu'ils sont **bons**. Un secret différent de ce
 - [ ] **Site URL** et **Redirect URLs** sont renseignées, quatre langues par écosystème
 - [ ] Le SMTP est réglé, et un e-mail de test est bien reçu
 - [ ] Les variables indispensables sont posées sur **Production**
+- [ ] **Le catalogue est relié à Stripe dans le mode de cet environnement** — zéro offre « à relier » dans `/admin/facturation` → Écarts. **À refaire en `live`** : un prix créé en test n’existe pas en production
 - [ ] `NEXT_PUBLIC_SITE_URL` est posée — sinon aucun e-mail ne part
 - [ ] `CRON_SECRET` (Vercel) et `cron_secret` (coffre-fort) sont **identiques**
 - [ ] Les interrupteurs voulus valent exactement `true`

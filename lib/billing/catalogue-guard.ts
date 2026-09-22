@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { billingEnabled } from '@/lib/billing/config'
+import { resolveCatalogueKey } from '@/lib/billing/config'
 import { syncPackage } from '@/lib/billing/catalogue'
 
 /**
@@ -16,16 +16,29 @@ import { syncPackage } from '@/lib/billing/catalogue'
  * │ qu'une minute.                                                           │
  * └────────────────────────────────────────────────────────────────────────┘
  *
- * ┌─ VERROU FERMÉ : ON NE SYNCHRONISE PAS, ET ON N'EMPÊCHE RIEN ────────────┐
- * │ Le lancement est gratuit et `ENABLE_BILLING` est absent. Appliquer la    │
- * │ règle telle quelle GÈLERAIT LE BACK-OFFICE : aucune clé Stripe, donc     │
- * │ synchro impossible, donc plus aucune modification d'offre possible —     │
- * │ l'exact contraire de « le commerce se pilote depuis le back-office ».    │
+ * ┌─ PAS DE CLÉ : ON NE SYNCHRONISE PAS, ET ON N'EMPÊCHE RIEN ──────────────┐
+ * │ Sans clé Stripe sur cet environnement, appliquer la règle telle quelle   │
+ * │ GÈLERAIT LE BACK-OFFICE : synchro impossible, donc plus aucune           │
+ * │ modification d'offre possible — l'exact contraire de « le commerce se    │
+ * │ pilote depuis le back-office ».                                          │
  * │                                                                          │
- * │ Verrou fermé, on ne tente donc RIEN et la modification passe. Rien n'est │
- * │ vendu : il n'y a aucune divergence possible avec un catalogue Stripe qui │
- * │ n'existe pas encore. La cohérence se rétablira à la première synchro,    │
- * │ qui est de toute façon idempotente.                                      │
+ * │ Sans clé, on ne tente donc RIEN et la modification passe. Il n'y a aucune │
+ * │ divergence possible avec un catalogue Stripe qui n'existe pas encore, et │
+ * │ la cohérence se rétablira à la première synchro, idempotente.            │
+ * └────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─ CE QUI A CHANGÉ LE 22/09/2026, ET POURQUOI ────────────────────────────┐
+ * │ La condition était `billingEnabled()` — l'interrupteur d'ENCAISSEMENT.   │
+ * │ Elle est devenue « une clé de catalogue valide », par §D.16 : relier     │
+ * │ n'est pas encaisser.                                                     │
+ * │                                                                          │
+ * │ LA CONSÉQUENCE EST VOULUE ET ELLE COÛTE. Sur un environnement qui porte  │
+ * │ une clé (le poste de développement, la recette), modifier un prix        │
+ * │ POUSSE désormais vers Stripe, et un échec de Stripe REFUSE la            │
+ * │ modification. C'est exactement la garantie que ce module existe pour     │
+ * │ donner : sans elle, un catalogue relié divergerait dès la première       │
+ * │ correction de tarif, en silence, et la divergence ne se verrait qu'au    │
+ * │ premier paiement.                                                        │
  * └────────────────────────────────────────────────────────────────────────┘
  *
  * ┌─ ORDRE DES ÉCRITURES, ET LE SEUL RÉSIDU POSSIBLE ───────────────────────┐
@@ -64,7 +77,7 @@ export async function synchroniserAvantEcriture(
   packageId: string,
   voulu: Record<string, unknown>,
 ): Promise<Synchro> {
-  if (!billingEnabled()) return { ok: true, ignoree: true }
+  if (!resolveCatalogueKey().ok) return { ok: true, ignoree: true }
   if (!toucheAuCatalogueStripe(voulu)) return { ok: true, ignoree: true }
 
   try {

@@ -1,6 +1,13 @@
 import type Stripe from 'stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getStripe, toMinorUnits } from '@/lib/billing/stripe'
+import { getStripeCatalogue, toMinorUnits } from '@/lib/billing/stripe'
+import {
+  ecrireLiaison,
+  lireLiaison,
+  modeDeLaCle,
+  type LiaisonStripe,
+  type ModeStripe,
+} from '@/lib/billing/catalogue-stripe'
 import { META_PACKAGE_SLUG } from '@/lib/billing/resolve'
 import { cleProduit, clePrix } from '@/lib/billing/idempotence'
 
@@ -38,6 +45,14 @@ import { cleProduit, clePrix } from '@/lib/billing/idempotence'
 export type SyncResult = {
   packageId: string
   slug: string
+  /**
+   * LE MODE DANS LEQUEL CETTE SYNCHRO A EU LIEU.
+   *
+   * Il fait partie du résultat, et pas seulement du stockage : un rapport qui
+   * dit « 4 offres reliées » sans dire DANS QUEL MODE est exactement le
+   * silence qui rendait le passage en production faux.
+   */
+  mode: ModeStripe
   /** Ce qui a réellement changé chez Stripe. */
   actions: string[]
   productId: string
@@ -56,12 +71,16 @@ type PackageRow = {
   is_default: boolean
   active: boolean
   target_role: string
-  stripe_product_id: string | null
-  stripe_price_id_monthly: string | null
 }
 
+/**
+ * ⚠️ PLUS AUCUNE COLONNE `stripe_*` ICI. Elles ont été supprimées de `packages`
+ *    par la migration `catalogue_stripe_par_mode` : les identifiants vivent
+ *    dans `packages_stripe`, clés PAR MODE. Une colonne sans mode ne pouvait
+ *    pas dire si son contenu existait en test ou en live.
+ */
 const COLUMNS =
-  'id, slug, name, description, price_monthly, currency, is_default, active, target_role, stripe_product_id, stripe_price_id_monthly'
+  'id, slug, name, description, price_monthly, currency, is_default, active, target_role'
 
 /**
  * Une offre est-elle VENDABLE ?
@@ -91,23 +110,24 @@ function sellability(pkg: PackageRow): { ok: true } | { ok: false; reason: strin
 }
 
 /**
- * Product Stripe miroir de l'offre. Idempotent sur `stripe_product_id` d'abord,
- * puis sur la métadonnée de slug — le slug est en LECTURE SEULE après création
- * au back-office, c'est donc une clé de rapprochement stable.
+ * Product Stripe miroir de l'offre. Idempotent sur le produit DÉJÀ LIÉ dans ce
+ * mode d'abord, puis sur la métadonnée de slug — le slug est en LECTURE SEULE
+ * après création au back-office, c'est donc une clé de rapprochement stable.
  */
 async function ensureProduct(
   stripe: Stripe,
   pkg: PackageRow,
+  liaison: LiaisonStripe | null,
   actions: string[],
 ): Promise<string> {
-  if (pkg.stripe_product_id) {
-    await stripe.products.update(pkg.stripe_product_id, {
+  if (liaison?.productId) {
+    await stripe.products.update(liaison.productId, {
       name: pkg.name,
       description: pkg.description ?? undefined,
       active: pkg.active,
     })
     actions.push('product mis à jour')
-    return pkg.stripe_product_id
+    return liaison.productId
   }
 
   // RÉCUPÉRATION LONGUE, et non protection contre les doublons.
@@ -161,19 +181,21 @@ async function ensureMonthlyPrice(
   stripe: Stripe,
   pkg: PackageRow,
   productId: string,
+  liaison: LiaisonStripe | null,
   actions: string[],
 ): Promise<string> {
   const minor = toMinorUnits(pkg.price_monthly as number | string, pkg.currency)
   if (!minor.ok) throw new Error(`offre '${pkg.slug}' : ${minor.reason}`)
 
-  if (pkg.stripe_price_id_monthly) {
-    const existing = await stripe.prices.retrieve(pkg.stripe_price_id_monthly)
+  const connu = liaison?.priceIdMonthly ?? null
+  if (connu) {
+    const existing = await stripe.prices.retrieve(connu)
     // Comparaison SEULEMENT : ce montant ne sera jamais écrit en base.
     const sameAmount = existing.unit_amount === minor.value
     const sameCurrency = (existing.currency ?? '').toUpperCase() === pkg.currency.toUpperCase()
     if (existing.active && sameAmount && sameCurrency) {
       actions.push('price inchangé')
-      return pkg.stripe_price_id_monthly
+      return connu
     }
   }
 
@@ -201,11 +223,11 @@ async function ensureMonthlyPrice(
   )
   actions.push(`price créé (${minor.value} ${pkg.currency})`)
 
-  if (pkg.stripe_price_id_monthly && pkg.stripe_price_id_monthly !== created.id) {
+  if (connu && connu !== created.id) {
     // Archivé APRÈS création du remplaçant. Les abonnements en cours restent
     // rattachés au prix archivé et continuent d'être facturés à ce montant :
     // c'est exactement le grand-père tarifaire.
-    await stripe.prices.update(pkg.stripe_price_id_monthly, { active: false })
+    await stripe.prices.update(connu, { active: false })
     actions.push('ancien price archivé (abonnements en cours préservés)')
   }
   return created.id
@@ -237,7 +259,7 @@ export async function syncPackage(
    */
   voulu?: Partial<Pick<PackageRow, 'name' | 'description' | 'price_monthly' | 'currency' | 'active'>>,
 ): Promise<{ ok: true; result: SyncResult } | { ok: false; refusal: SyncRefusal }> {
-  const handle = getStripe()
+  const handle = getStripeCatalogue()
   if (!handle.ok) {
     return { ok: false, refusal: { packageId, slug: '?', reason: handle.detail } }
   }
@@ -252,22 +274,30 @@ export async function syncPackage(
     return { ok: false, refusal: { packageId, slug: pkg.slug, reason: sellable.reason } }
   }
 
+  // ⚠️ LE MODE VIENT DE LA CLÉ QUI VA AGIR, ET DE RIEN D'AUTRE. C'est elle qui
+  //    va créer les objets chez Stripe : leurs identifiants n'existeront que
+  //    dans son mode. Le déduire d'ailleurs (une variable, l'environnement)
+  //    reviendrait à ranger un identifiant de test dans le catalogue live.
+  const mode = modeDeLaCle(handle.live)
+  const liaison = await lireLiaison(admin, pkg.id, mode)
+
   const actions: string[] = []
-  const productId = await ensureProduct(handle.stripe, pkg, actions)
-  const priceId = await ensureMonthlyPrice(handle.stripe, pkg, productId, actions)
+  const productId = await ensureProduct(handle.stripe, pkg, liaison, actions)
+  const priceId = await ensureMonthlyPrice(handle.stripe, pkg, productId, liaison, actions)
 
   // Écriture en base APRÈS Stripe : si Stripe échoue, la base n'a pas bougé et
   // la synchro est simplement rejouable. L'inverse laisserait des identifiants
   // pointant vers des objets inexistants.
-  const { error: writeErr } = await admin
-    .from('packages')
-    .update({ stripe_product_id: productId, stripe_price_id_monthly: priceId })
-    .eq('id', pkg.id)
-  if (writeErr) throw new Error(`écriture packages.stripe_*: ${writeErr.message}`)
+  await ecrireLiaison(admin, {
+    packageId: pkg.id,
+    mode,
+    productId,
+    priceIdMonthly: priceId,
+  })
 
   return {
     ok: true,
-    result: { packageId: pkg.id, slug: pkg.slug, actions, productId, priceIdMonthly: priceId },
+    result: { packageId: pkg.id, slug: pkg.slug, mode, actions, productId, priceIdMonthly: priceId },
   }
 }
 

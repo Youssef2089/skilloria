@@ -571,6 +571,71 @@ elle, ne dépend plus de ce nombre.
 8 détections. Détail et mesure : **§E.58**.
 
 
+**D.16 — RELIER N'EST PAS ENCAISSER. La synchronisation du catalogue n'exige QU'UNE CLÉ.**
+Synchroniser crée chez Stripe un `Product` et un `Price` par offre vendable. **Ça ne fait payer
+personne** : aucune session de paiement, aucun droit accordé, aucune carte touchée.
+
+Exiger `ENABLE_BILLING` pour relier créait une **dépendance circulaire de fait** : pour ouvrir
+l'encaissement il faut les identifiants de prix, et pour les obtenir il fallait ouvrir
+l'encaissement. **C'est ce qui a laissé le catalogue non relié** — et un premier abonnement réel
+serait sorti « prix hors catalogue », un paiement encaissé que rien ne sait rattacher à une offre.
+
+| Ce qui exige **une clé valide** | Ce qui exige **EN PLUS `ENABLE_BILLING`** |
+|---|---|
+| `/api/admin/synchroniser-catalogue` (derrière `requireAdmin`) | le checkout, le portail, le changement d'offre |
+| la synchro déclenchée par l'édition d'une offre | l'**APPLICATION** des événements du webhook |
+
+`resolveCatalogueKey()` et `resolveBillingKey()` — [lib/billing/config.ts](lib/billing/config.ts) —
+et deux fabriques, [`getStripeCatalogue()`](lib/billing/stripe.ts) / `getStripe()`. **Une seule
+implémentation des règles de clé** : la seconde délègue à la première puis ajoute l'interrupteur,
+dans cet ordre (`billing_disabled` sort AVANT tout examen de clé, c'est ce motif que l'écran peint
+en gris comme un état normal). Les trois contrôles restent entiers, **cohérence clé/environnement
+comprise, dans les deux sens**.
+
+> ⚠️ **LA CONSÉQUENCE SUR L'ÉDITION D'UNE OFFRE EST VOULUE ET ELLE COÛTE.** `catalogue-guard`
+> conditionnait sa synchro à `ENABLE_BILLING` ; c'est désormais « une clé valide ». Sur un
+> environnement qui porte une clé, **modifier un prix pousse vers Stripe, et un échec de Stripe
+> REFUSE la modification**. C'est la garantie même du module : sans elle, un catalogue relié
+> divergerait dès la première correction de tarif, en silence, et la divergence ne se verrait
+> qu'au premier paiement. Sans clé, rien n'est tenté et le back-office reste libre.
+
+**D.17 — TEST ET PRODUCTION SONT DEUX CATALOGUES. Le mode est dans la CLÉ.**
+Un `price_...` créé avec `sk_test_` **n'existe pas** en mode live. Une seule colonne par période
+rendait donc le passage en production **faux en silence**, et rien ne pouvait le voir : une colonne
+qui porte un identifiant ne dit pas dans quel mode il a été créé.
+
+Table `packages_stripe`, clé primaire **(package_id, mode)** — migration `catalogue_stripe_par_mode`.
+Les trois colonnes `packages.stripe_*` sont **supprimées** : deux sources pour la même chose, dont
+une sans mode, est ce qu'on ferme. **La migration REFUSE de tourner** si un identifiant y existait
+encore, en nommant les offres — on ne supprime pas une colonne en *croyant* qu'elle est vide.
+
+| Forme | Comment elle se trompe |
+|---|---|
+| deux jeux de colonnes (`..._test` / `..._live`) | un lecteur qui oublie le suffixe **compile, tourne, et lit l'autre mode**. En silence (§E.1 : la colonne est une chaîne). |
+| **une table clée (package_id, mode)** | un lecteur qui oublie le mode obtient **deux lignes** : il doit trancher, donc savoir. **§E.31** — la garde est une clé. |
+
+**D'OÙ VIENT LE MODE, ET CE N'EST PAS LA MÊME ORIGINE PARTOUT** — deux fonctions distinctes alors
+qu'elles calculent la même chose, parce que les confondre est la faute :
+· une action de **catalogue** agit avec une clé → `modeDeLaCle(handle.live)` ;
+· le **webhook** ne choisit pas → `modeDeLEvenement(event.livemode)`. Lire le mode de sa clé
+supposerait que l'endpoint et la clé sont accordés — **c'est précisément ce qui casse quand on
+croise les deux tableaux de bord Stripe**.
+`resolvePackageByPrice` exige donc un `mode`, **sans valeur par défaut** : un défaut rouvrirait la
+porte en silence.
+
+> **L'écran des écarts dit ce qui est relié DANS LE MODE COURANT, et ce qui ne l'est pas dans
+> l'autre** ([lib/stripe-exploitation/catalogue-relie.ts](lib/stripe-exploitation/catalogue-relie.ts)).
+> Trois états par offre, et jamais deux : `reliee`, `a_relier`, **`rien_a_relier`**. Une offre par
+> défaut est gratuite **par contrainte de base** : elle n'a rien à relier, et la peindre comme un
+> manque apprendrait à ignorer le rouge. **Sur quatre offres, deux seulement sont reliables** —
+> `Free` et `Collaboration` sont les défauts.
+
+**Gardé par [`diag-relier-nest-pas-encaisser`](scripts/diag-relier-nest-pas-encaisser.mjs)** —
+9 mutations, 9 détections. Il **exécute** les clés d'idempotence (§E.33) pour prouver qu'un second
+clic ne crée pas de doublon chez Stripe : un doublon ne se verrait pas dans notre base et fausserait
+l'écran des écarts.
+
+
 **D.10 — TOUTE NOTE DU PRODUIT EST SUR 0-10. Il n'y a pas de seconde échelle.**
 Les filtres de pertinence vivaient en **0-1**, les notes de jugement en **0-10**, et rien ne le disait
 à l'écran : **« 1 » signifiait *parfait* d'un côté et *médiocre* de l'autre**, sur la même page.

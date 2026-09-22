@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { offresParPrix, type ModeStripe } from '@/lib/billing/catalogue-stripe'
 
 /**
  * lib/billing/resolve.ts — RÉSOUDRE, JAMAIS DEVINER.
@@ -141,19 +142,44 @@ export function purchaseEcosystem(metadata?: Stripe$Metadata | null): string | n
 export async function resolvePackageByPrice(
   admin: SupabaseClient,
   priceId: string,
+  /**
+   * ⚠️ LE MODE EST OBLIGATOIRE, ET IL VIENT DE L'ÉVÉNEMENT (`livemode`).
+   *
+   * Un `price_...` créé en test n'existe pas en live, et réciproquement. Sans
+   * ce paramètre, la lecture trouverait l'identifiant de l'AUTRE catalogue et
+   * accorderait des droits d'après une offre qui n'a jamais été vendue dans ce
+   * mode-là. Le rendre optionnel (`mode = 'test'` par défaut) rouvrirait la
+   * porte en silence : il n'a donc pas de valeur par défaut.
+   *
+   * Et il ne se déduit PAS de la clé en usage : lire le mode de la clé
+   * supposerait que l'endpoint et la clé sont accordés, ce qui est exactement
+   * ce qui casse quand on croise les deux tableaux de bord Stripe.
+   */
+  mode: ModeStripe,
 ): Promise<Resolved<{ id: string; slug: string }>> {
+  let liees: { packageId: string }[]
+  try {
+    liees = await offresParPrix(admin, priceId, mode)
+  } catch (err) {
+    return { ok: false, reason: err instanceof Error ? err.message : String(err) }
+  }
+
+  if (liees.length === 0) {
+    return { ok: false, reason: `price ${priceId} absent du catalogue Skilloria (mode ${mode})` }
+  }
+  if (liees.length > 1) {
+    return { ok: false, reason: `price ${priceId} rattaché à ${liees.length} offres (mode ${mode})` }
+  }
+
   const { data, error } = await admin
     .from('packages')
-    .select('id, slug, active, stripe_price_id_monthly, stripe_price_id_yearly')
-    .or(`stripe_price_id_monthly.eq.${priceId},stripe_price_id_yearly.eq.${priceId}`)
+    .select('id, slug, active')
+    .eq('id', liees[0].packageId)
   if (error) return { ok: false, reason: `lecture packages: ${error.message}` }
 
   const rows = (data ?? []) as { id: string; slug: string; active: boolean }[]
-  if (rows.length === 0) {
-    return { ok: false, reason: `price ${priceId} absent du catalogue Skilloria` }
-  }
-  if (rows.length > 1) {
-    return { ok: false, reason: `price ${priceId} rattaché à ${rows.length} offres` }
+  if (rows.length !== 1) {
+    return { ok: false, reason: `offre ${liees[0].packageId} introuvable au catalogue` }
   }
 
   // Une offre RETIRÉE DE LA VENTE reste honorée pour qui la paie déjà : couper

@@ -1,6 +1,6 @@
 import Stripe from 'stripe'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { resolveBillingKey, type BillingRefusal } from '@/lib/billing/config'
+import { resolveBillingKey, resolveCatalogueKey, type BillingRefusal } from '@/lib/billing/config'
 
 /**
  * lib/billing/stripe.ts — LE CLIENT STRIPE, et rien d'autre.
@@ -40,7 +40,31 @@ export type StripeHandle =
  * lui-même plutôt que de servir un client câblé sur l'ancienne.
  */
 export function getStripe(): StripeHandle {
-  const resolved = resolveBillingKey()
+  return construire(resolveBillingKey())
+}
+
+/**
+ * LE CLIENT DES ACTIONS DE CATALOGUE — UN SEUL VERROU (§D.16).
+ *
+ * Même client, même mémoïsation, même contrôle de cohérence clé/environnement.
+ * La SEULE différence est le verrou franchi : `resolveCatalogueKey()` n'exige
+ * pas `ENABLE_BILLING`, parce que **relier n'est pas encaisser**.
+ *
+ * ⚠️ DEUX FABRIQUES, UNE SEULE CONSTRUCTION. `construire` est partagée : deux
+ *    `new Stripe(...)` côte à côte auraient divergé sur `maxNetworkRetries` ou
+ *    `appInfo` au premier réglage, et l'un des deux serait devenu le mauvais
+ *    sans que rien ne le dise (§E.20).
+ *
+ * ⚠️ ELLE NE S'APPELLE QUE DEPUIS UNE ACTION D'ADMINISTRATION DE CATALOGUE,
+ *    derrière `requireAdmin`. Aucun chemin qui ACCORDE DES DROITS ou qui ouvre
+ *    un paiement ne doit l'utiliser — `diag-relier-nest-pas-encaisser` le
+ *    vérifie appelant par appelant.
+ */
+export function getStripeCatalogue(): StripeHandle {
+  return construire(resolveCatalogueKey())
+}
+
+function construire(resolved: ReturnType<typeof resolveBillingKey>): StripeHandle {
   if (!resolved.ok) return resolved
 
   if (cached?.key !== resolved.key) {

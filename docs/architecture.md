@@ -60,9 +60,9 @@ avec le seed) : `publications_per_month`, `active_publications_max`,
 **Boucle cœur** — `publications`, `matches`, `candidatures`, `candidature_views`,
 `conversations`, `messages`, `notifications`, `notification_preferences`.
 
-**Commerce** — `packages`, `package_features`, `package_history`, `subscription_history`,
-`transactions`, `usage_counters`, `promo_codes`, `promo_code_uses`, `stripe_events`,
-`stripe_reconciliation_runs` (§C.10).
+**Commerce** — `packages`, `packages_stripe`, `package_features`, `package_history`,
+`subscription_history`, `transactions`, `usage_counters`, `promo_codes`, `promo_code_uses`,
+`stripe_events`, `stripe_reconciliation_runs` (§C.10).
 
 **Taxonomie** — `branches`, `specialities`, `public_email_domains`, `blocked_email_domains`.
 
@@ -1153,6 +1153,19 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   cette base**. Ce n’est donc pas du code à écrire : c’est une action à exécuter, et à vérifier.
   ⚠️ Mesure faite par une **lecture humaine sur la base**, à cette date : aucun contrôle du dépôt
   ne peut la refaire seul (§E.12), et elle vaut **à sa date**.
+  > **→ CE QUI BLOQUAIT EST LEVÉ — 22/09/2026 (§D.16, §D.17).** Deux choses manquaient, et la
+  > première explique pourquoi l’action « existante » n’avait jamais pu être exécutée :
+  > ① **relier exigeait `ENABLE_BILLING`**, c’est-à-dire le verrou qu’on ne peut ouvrir qu’une fois
+  > le catalogue relié — une dépendance circulaire. La synchronisation a désormais **son propre
+  > verrou** (une clé valide, `requireAdmin`) et **son propre bouton**,
+  > [/api/admin/synchroniser-catalogue](../app/api/admin/synchroniser-catalogue/route.ts) ;
+  > ② **rien ne portait le MODE.** Les identifiants vivent maintenant dans `packages_stripe`, clés
+  > (package_id, mode) ; les trois colonnes `packages.stripe_*` sont **supprimées**.
+  > **Reste à faire, et c’est un geste d’exploitation, pas du code** : cliquer, en test puis en
+  > live. Vérification dans `/admin/facturation` → écarts, qui nomme le mode.
+  > ⚠️ **Deux des quatre offres seulement sont reliables** : `Free` et `Collaboration` sont les
+  > offres **par défaut**, donc gratuites par contrainte de base — elles n’ont rien à relier, et
+  > l’écran le dit (`rien_a_relier`) plutôt que de les compter comme manquantes.
 - `ENABLE_BILLING` n'est pas posé : le mur est fermé, rien n'encaisse (§D.1). La date d'ouverture n'est
   pas fixée. La marche à suivre pour le premier paiement est écrite dans
   [docs/stripe-premier-paiement.md](stripe-premier-paiement.md).

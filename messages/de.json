@@ -2586,7 +2586,11 @@
       "default_cannot_deactivate": "Das Standardangebot kann nicht deaktiviert werden: Eine Registrierung muss immer ein Angebot finden. Legen Sie zuerst ein anderes Standardangebot fest.",
       "target_collaboration": "Kollaboration",
       "target_collaboration_locked_hint": "Ein Kollaborationsangebot bleibt bei seiner Zielgruppe: Experten und Unternehmen gehören zu zwei getrennten Katalogen.",
-      "err_invalid_target_role": "Unbekannte Zielgruppe. Laden Sie die Seite neu und versuchen Sie es erneut."
+      "err_invalid_target_role": "Unbekannte Zielgruppe. Laden Sie die Seite neu und versuchen Sie es erneut.",
+      "sync_action": "Mit Stripe verbinden",
+      "sync_running": "Verbindung läuft…",
+      "sync_done": "{count} Paket(e) mit Stripe verbunden, im Modus {mode}.",
+      "sync_nothing_to_link": "Nichts zu verbinden für:"
     },
     "collaboration": {
       "page_title": "Kollaboration zwischen Experten",
@@ -4350,6 +4354,16 @@
       "stripe_injoignable": "Stripe hat nicht geantwortet oder mit einem Fehler geantwortet. Versuchen Sie es erneut; hält es an, prüfen Sie den Stripe-Dienststatus.",
       "stripe_permission": "Stripe hat den Lesezugriff verweigert. Der verwendete Schlüssel darf diese Ressource nicht lesen.",
       "lecture_locale": "Ein Lesezugriff auf unsere eigene Datenbank ist fehlgeschlagen. Stripe ist hier nicht die Ursache."
+    },
+    "catalogue": {
+      "title": "Katalog-Anbindung",
+      "intro": "Jedes kostenpflichtige Paket braucht einen Preis bei Stripe, und dieser Preis existiert nur in seinem Modus. Ohne ihn käme eine echte Zahlung als „nicht im Katalog“ zurück.",
+      "mode_courant": "Modus {mode} — dieser Umgebung",
+      "mode_autre": "Modus {mode} — die andere Umgebung",
+      "tout_relie": "{count} Paket(e) verbunden. Nichts zu tun.",
+      "a_relier": "Zu verbinden: {liste}. Gehen Sie zum Handelskatalog und klicken Sie „Mit Stripe verbinden“.",
+      "rien_a_relier": "Nichts zu verbinden (kostenlose Standardpakete):",
+      "impossible": "Es lässt sich nicht sagen, was verbunden ist."
     }
   },
   "admin_palette": {

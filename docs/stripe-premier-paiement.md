@@ -116,6 +116,24 @@ Sur la page du point de terminaison que vous venez de créer :
 
 ---
 
+## Étape 5 bis — Relier le catalogue à Stripe
+
+**Stripe ne connaît pas encore vos offres.** Tant que le lien n'est pas fait, le premier paiement échoue avec « prix hors catalogue ».
+
+1. Connectez-vous en administrateur, allez sur **/admin/packages**.
+2. Cliquez sur **Relier à Stripe** (en haut à droite).
+3. Vous devez lire : **« N offre(s) reliée(s) à Stripe, en mode test »**.
+
+Une ligne grise « Rien à relier pour : … » peut suivre : les offres **par défaut** sont gratuites par construction, elles n'ont aucun prix à créer chez Stripe. Ce n'est pas une erreur.
+
+**Vérification :** **/admin/facturation** → **Écarts** → bloc du raccordement du catalogue. Il doit afficher **zéro offre « à relier »** dans le mode courant.
+
+> Cette étape ne fait payer personne et **n'a pas besoin de `ENABLE_BILLING`**. Recliquer ne crée jamais de doublon. Détail complet : [mise-en-production.md, étape 9](mise-en-production.md).
+>
+> ⚠️ **À refaire en production**, avec la clé `sk_live_` : un prix créé en test n'existe pas en mode réel.
+
+---
+
 ## Étape 6 — Vérifier qu'une offre est vendable
 
 Dans le back-office Skilloria, **Catalogue commerce**, ouvrez l'offre que vous voulez tester. Il lui faut, toutes conditions réunies :

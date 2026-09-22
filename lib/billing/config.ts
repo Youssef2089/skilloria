@@ -99,6 +99,11 @@ export function billingEnabled(): boolean {
  * (preview) et le local sont donc « hors production » et exigent une clé test.
  */
 export function resolveBillingKey(): BillingKey {
+  // ⚠️ L'ORDRE COMPTE, ET IL EST GARDÉ. `billing_disabled` sort AVANT tout
+  //    examen de la clé : c'est ce motif que l'écran d'exploitation peint en
+  //    gris comme un état NORMAL (§C.10 ②). Inverser l'ordre ferait apparaître
+  //    « clé absente » en rouge sur un environnement où le mur est simplement
+  //    fermé, et le rouge du fonctionnement normal s'apprend à être ignoré.
   if (!billingEnabled()) {
     return {
       ok: false,
@@ -106,7 +111,38 @@ export function resolveBillingKey(): BillingKey {
       detail: "ENABLE_BILLING n'est pas 'true' : le mur payant est fermé.",
     }
   }
+  return resolveCatalogueKey()
+}
 
+/**
+ * LA CLÉ POUR RELIER LE CATALOGUE — UN SEUL VERROU, ET C'EST VOULU (§D.16).
+ *
+ * ┌─ RELIER N'EST PAS ENCAISSER ────────────────────────────────────────────┐
+ * │ Synchroniser le catalogue crée chez Stripe des `Product` et des `Price`. │
+ * │ Ça ne fait payer PERSONNE : aucune session de paiement n'est ouverte,    │
+ * │ aucun droit n'est accordé, aucune carte n'est touchée. Un catalogue relié │
+ * │ est un catalogue PRÊT, pas un catalogue qui encaisse.                    │
+ * │                                                                          │
+ * │ Exiger `ENABLE_BILLING` pour relier créait une dépendance circulaire de  │
+ * │ fait : pour ouvrir l'encaissement il FAUT les identifiants de prix, et   │
+ * │ pour obtenir les identifiants de prix il fallait... ouvrir               │
+ * │ l'encaissement. C'est ce qui a laissé les quatre offres NON RELIÉES.     │
+ * └────────────────────────────────────────────────────────────────────────┘
+ *
+ * ⚠️ CE QUE CETTE FONCTION NE RELÂCHE PAS. Les trois contrôles de clé restent
+ *    entiers, y compris la cohérence clé/environnement **dans les deux sens** :
+ *    on ne relie pas un catalogue LIVE depuis un poste de développement, et on
+ *    ne relie pas un catalogue de TEST depuis la production. Un identifiant de
+ *    prix créé dans le mauvais mode serait pire qu'absent — il existerait, et
+ *    il ne serait résolvable nulle part (§D.17).
+ *
+ * ⚠️ ELLE N'EST PAS UNE PORTE D'ENCAISSEMENT. Ses appelants sont des actions de
+ *    CATALOGUE, toutes derrière `requireAdmin`. Le checkout, le portail et
+ *    l'application des événements du webhook passent, eux, par
+ *    `resolveBillingKey()` — et un contrôle rougit si l'un d'eux devient
+ *    atteignable sans `ENABLE_BILLING`.
+ */
+export function resolveCatalogueKey(): BillingKey {
   const raw = (process.env.STRIPE_SECRET_KEY ?? '').trim()
   if (!raw) {
     return {

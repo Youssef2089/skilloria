@@ -345,8 +345,15 @@ if (process.argv.includes('--db')) {
 
     const { data: pkgs, error: pkgErr } = await db
       .from('packages')
-      .select('slug, target_role, price_monthly, is_default, active, stripe_price_id_monthly')
+      .select('id, slug, target_role, price_monthly, is_default, active')
       .order('slug')
+    // Les identifiants Stripe vivent dans `packages_stripe`, cles PAR MODE :
+    // une offre reliee ne l'est que DANS SON MODE (migration
+    // catalogue_stripe_par_mode). Un catalogue relie en test ne l est pas en
+    // live, et l afficher sans le mode rendait le passage en production faux.
+    const { data: liaisons } = await db
+      .from('packages_stripe')
+      .select('package_id, mode, price_id_monthly')
     if (pkgErr) {
       failures++
       console.log(`  KO   lecture packages : ${pkgErr.message}`)
@@ -360,7 +367,10 @@ if (process.argv.includes('--db')) {
         'Sans offre vendable, le parcours n’a rien à vendre.',
       )
       for (const p of vendables) {
-        info(`  ${p.slug}/${p.target_role} — ${p.price_monthly}${p.stripe_price_id_monthly ? ' [synchronisée]' : ' [à synchroniser au 1er achat]'}`)
+        const modes = (liaisons ?? [])
+          .filter((l) => l.package_id === p.id && l.price_id_monthly)
+          .map((l) => l.mode)
+        info(`  ${p.slug}/${p.target_role} — ${p.price_monthly}${modes.length ? ` [reliée: ${modes.join(', ')}]` : ' [à relier]'}`)
       }
     }
 

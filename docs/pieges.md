@@ -306,13 +306,14 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **73** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
-22/09/2026, à l'exécution — les 71ᵉ, 72ᵉ et 73ᵉ laissent les trois autres compteurs **inchangés**, et
+Sur les **74** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
+22/09/2026, à l'exécution — les 71ᵉ à 74ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
 lignes existantes ; `inacheves_hors_annonces_expirees` ne fait que remplacer le corps d'une fonction
-de lecture ; `empreinte_des_notes` **vide** une table éphémère et lui ajoute une colonne.
-**Aucune des trois n'insère quoi que ce soit**, donc elles échappent par construction
-à la classe que cette section décrit. Au 20/09/2026, la 70ᵉ, `verification_nocturne_stripe`, apportait l'insertion et la ligne
+de lecture ; `empreinte_des_notes` **vide** une table éphémère et lui ajoute une colonne ;
+`catalogue_stripe_par_mode` crée une table **vide** et supprime trois colonnes dont elle a d'abord
+**vérifié** qu'elles étaient nulles. **Aucune des quatre n'insère quoi que ce soit**, donc elles
+échappent par construction à la classe que cette section décrit. Au 20/09/2026, la 70ᵉ, `verification_nocturne_stripe`, apportait l'insertion et la ligne
 de plus : son entrée au catalogue des tâches planifiées, six valeurs. Les chiffres précédents,
 **69 / 51 / 39 / 1962**, dataient du 17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois
 dernières d'alors,

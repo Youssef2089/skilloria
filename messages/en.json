@@ -2586,7 +2586,11 @@
       "default_cannot_deactivate": "The default plan cannot be deactivated: a sign-up must always find a plan. Designate another default plan first.",
       "target_collaboration": "Collaboration",
       "target_collaboration_locked_hint": "A collaboration plan stays on its audience: experts and companies belong to two separate catalogues.",
-      "err_invalid_target_role": "Unknown audience. Reload the page and try again."
+      "err_invalid_target_role": "Unknown audience. Reload the page and try again.",
+      "sync_action": "Link to Stripe",
+      "sync_running": "Linking…",
+      "sync_done": "{count} plan(s) linked to Stripe, in {mode} mode.",
+      "sync_nothing_to_link": "Nothing to link for:"
     },
     "collaboration": {
       "page_title": "Expert-to-expert collaboration",
@@ -4350,6 +4354,16 @@
       "stripe_injoignable": "Stripe did not answer, or answered with an error. Try again; if it persists, check the Stripe service status.",
       "stripe_permission": "Stripe refused the read. The key in use is not allowed to read this resource.",
       "lecture_locale": "A read of our own database failed. Stripe is not at fault here."
+    },
+    "catalogue": {
+      "title": "Catalogue connection",
+      "intro": "Every paid plan needs a price in Stripe, and that price only exists in its own mode. Without it, a real payment would come back \"not in catalogue\".",
+      "mode_courant": "{mode} mode — this environment",
+      "mode_autre": "{mode} mode — the other environment",
+      "tout_relie": "{count} plan(s) linked. Nothing to do.",
+      "a_relier": "To link: {liste}. Go to Commerce catalogue and click \"Link to Stripe\".",
+      "rien_a_relier": "Nothing to link (free default plans):",
+      "impossible": "Cannot tell what is linked."
     }
   },
   "admin_palette": {

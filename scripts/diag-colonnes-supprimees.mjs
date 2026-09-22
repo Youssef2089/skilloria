@@ -161,6 +161,24 @@ function occurrencesDe(src) {
 
       if (/\bspeciality_id\b/.test(c)) trouvees.push({ l: i + 1, nom: 'speciality_id', t })
       if (/\bseniority\b/.test(c)) trouvees.push({ l: i + 1, nom: 'seniority', t })
+
+      // ── Migration `catalogue_stripe_par_mode` (22/09/2026) ────────────────
+      //  Les trois colonnes Stripe de `packages` ont été SUPPRIMÉES : elles ne
+      //  portaient pas le MODE, et un identifiant créé en test n'existe pas en
+      //  live. Elles vivent désormais dans `packages_stripe`, clées
+      //  (package_id, mode).
+      //
+      //  Elles sont ici pour la raison exacte qui fait exister ce cliquet :
+      //  elles se lisaient dans des CHAÎNES, `tsc` n'en voyait rien, et une
+      //  réapparition échouerait en 42703 au premier webhook — donc sur un
+      //  chemin qui accorde des droits payés.
+      for (const nom of [
+        'stripe_product_id',
+        'stripe_price_id_monthly',
+        'stripe_price_id_yearly',
+      ]) {
+        if (new RegExp(`\\b${nom}\\b`).test(c)) trouvees.push({ l: i + 1, nom, t })
+      }
       // `location` est un cas à part : profiles.location et
       // profile_educations.location EXISTENT toujours. Seule
       // publications.location a été renommée — on ne signale donc que les

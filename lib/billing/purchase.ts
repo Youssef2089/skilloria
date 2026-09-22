@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AuthContext } from '@/lib/auth-guard'
 import { getStripe } from '@/lib/billing/stripe'
 import { syncPackage } from '@/lib/billing/catalogue'
+import { lireLiaison, modeDeLaCle } from '@/lib/billing/catalogue-stripe'
 import { attachCustomer } from '@/lib/billing/apply'
 import { META_DOMAIN, META_ORGANIZATION, META_PACKAGE_SLUG, META_USER } from '@/lib/billing/resolve'
 
@@ -143,14 +144,25 @@ export async function resolveSellablePrice(
 ): Promise<{ priceId: string; slug: string } | PurchaseError> {
   const { data, error } = await admin
     .from('packages')
-    .select('id, slug, stripe_price_id_monthly')
+    .select('id, slug')
     .eq('id', packageId)
     .maybeSingle()
   if (error) throw new Error(`lecture packages: ${error.message}`)
   if (!data) return { code: 'package_not_found', message: 'Offre introuvable au catalogue.' }
 
-  const known = data.stripe_price_id_monthly as string | null
-  if (known) return { priceId: known, slug: data.slug as string }
+  // ⚠️ LE MODE EST CELUI DE LA CLÉ QUI VA OUVRIR LA SESSION DE PAIEMENT.
+  //    C'est le seul endroit où le mode de la clé est la bonne origine : on
+  //    s'apprête à faire payer AVEC elle, donc le prix doit exister dans SON
+  //    catalogue. (Le webhook, lui, prend le mode de l'événement — l'origine
+  //    n'est pas la même parce que la question n'est pas la même.)
+  const handle = getStripe()
+  if (!handle.ok) return { code: 'package_not_sellable', message: handle.detail }
+  const mode = modeDeLaCle(handle.live)
+
+  const liaison = await lireLiaison(admin, packageId, mode)
+  if (liaison?.priceIdMonthly) {
+    return { priceId: liaison.priceIdMonthly, slug: data.slug as string }
+  }
 
   const synced = await syncPackage(admin, packageId)
   if (!synced.ok) {

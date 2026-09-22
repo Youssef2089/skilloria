@@ -3,7 +3,13 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { isProduction } from '@/lib/env'
 import { siteOrigin } from '@/lib/site-url'
-import { resolveWebhookSecret } from '@/lib/billing/config'
+import { resolveCatalogueKey, resolveWebhookSecret } from '@/lib/billing/config'
+import { lireToutesLesLiaisons, modeDeLaCle } from '@/lib/billing/catalogue-stripe'
+import {
+  etatCatalogueRelie,
+  type EtatCatalogueRelie,
+  type OffreCatalogue,
+} from '@/lib/stripe-exploitation/catalogue-relie'
 import { listeLue } from '@/lib/lecture/liste'
 import { indisponible, disponible, type LectureStripe } from '@/lib/stripe-exploitation/etat'
 import { etatJournal, type LigneJournal, type StatutEvenement } from '@/lib/stripe-exploitation/journal'
@@ -134,13 +140,16 @@ export async function GET(request: NextRequest): Promise<Response> {
   )
 
   // ── 2. LES DEUX PHOTOS, LUES EN PARALLÈLE ────────────────────────────────
-  const [organisationsRes, packagesRes, abonnementsLus, endpointsLus] = await Promise.all([
+  const [organisationsRes, packagesRes, liaisons, abonnementsLus, endpointsLus] = await Promise.all([
     admin
       .from('organizations')
       .select(
         'id, company_name, stripe_customer_id, stripe_subscription_id, package_id, package_valid_until, package_source_event_at',
       ),
-    admin.from('packages').select('id, slug, stripe_price_id_monthly, stripe_price_id_yearly'),
+    admin.from('packages').select('id, slug, price_monthly, is_default, active'),
+    // Les identifiants Stripe ne vivent plus sur `packages` : ils sont clés
+    // PAR MODE dans `packages_stripe` (migration `catalogue_stripe_par_mode`).
+    lireToutesLesLiaisons(admin).catch(() => null),
     lireAbonnements(),
     lireEndpoints(),
   ])
@@ -150,16 +159,63 @@ export async function GET(request: NextRequest): Promise<Response> {
   //  QUE NOUS AVONS ÉCRIT. On ne lit jamais le montant ni le nom du produit
   //  chez Stripe : ce serait rouvrir la double source de vérité que tout le
   //  socle évite. C'est une décision figée.
+  //  ⚠️ ET LE CATALOGUE A UN MODE. Un `price_...` de test n'existe pas en
+  //  live : construire la table de traduction sans filtrer sur le mode ferait
+  //  résoudre un abonnement live avec un prix de test, ou l'inverse.
+  const cleCatalogue = resolveCatalogueKey()
+  const modeCourant = cleCatalogue.ok ? modeDeLaCle(cleCatalogue.live) : null
+
+  const slugParId = new Map<string, string>()
+  for (const p of packagesRes.data ?? []) slugParId.set(p.id as string, p.slug as string)
+
   const catalogue: CataloguePrix = new Map()
-  for (const p of packagesRes.data ?? []) {
-    const id = p.id as string
-    const slug = p.slug as string
-    for (const prix of [p.stripe_price_id_monthly, p.stripe_price_id_yearly]) {
-      if (typeof prix === 'string' && prix) catalogue.set(prix, { packageId: id, slug })
+  for (const l of liaisons ?? []) {
+    if (modeCourant !== null && l.mode !== modeCourant) continue
+    const slug = slugParId.get(l.packageId)
+    if (!slug) continue
+    for (const prix of [l.priceIdMonthly, l.priceIdYearly]) {
+      if (typeof prix === 'string' && prix) catalogue.set(prix, { packageId: l.packageId, slug })
     }
   }
-  const slugParPackage = new Map<string, string>()
-  for (const p of packagesRes.data ?? []) slugParPackage.set(p.id as string, p.slug as string)
+
+  //  LE RACCORDEMENT DU CATALOGUE — ce qui est relié, et dans quel mode.
+  //
+  //  Il se lit SANS `ENABLE_BILLING` : relier n'est pas encaisser (§D.16), et
+  //  c'est justement avant d'ouvrir l'encaissement qu'on a besoin de savoir si
+  //  le catalogue est prêt. Une clé absente n'est pas « zéro offre reliée » :
+  //  c'est `impossible`, avec son motif.
+  const catalogueRelie: EtatCatalogueRelie =
+    !cleCatalogue.ok
+      ? {
+          etat: 'impossible',
+          motif:
+            cleCatalogue.code === 'billing_key_missing'
+              ? 'cle_absente'
+              : cleCatalogue.code === 'billing_key_env_mismatch'
+                ? 'cle_env_mismatch'
+                : 'cle_malformee',
+          detail: cleCatalogue.detail,
+        }
+      : liaisons === null || packagesRes.error
+        ? {
+            etat: 'impossible',
+            motif: 'lecture_locale',
+            detail: packagesRes.error?.message ?? 'lecture de packages_stripe en échec',
+          }
+        : etatCatalogueRelie({
+            modeCourant: modeDeLaCle(cleCatalogue.live),
+            offres: (packagesRes.data ?? []).map(
+              (p): OffreCatalogue => ({
+                id: p.id as string,
+                slug: p.slug as string,
+                priceMonthly: (p.price_monthly as string | number | null) ?? null,
+                isDefault: Boolean(p.is_default),
+                active: Boolean(p.active),
+              }),
+            ),
+            liaisons,
+          })
+  const slugParPackage = slugParId
 
   // ── 4. LA LECTURE LOCALE PEUT ÉCHOUER, ET ELLE NE SE DÉGUISE PAS ─────────
   //  Une erreur sur `organizations` ou `packages` n'est PAS « zéro écart ».
@@ -243,6 +299,9 @@ export async function GET(request: NextRequest): Promise<Response> {
     journal,
     ecarts,
     sante,
+    // Ce qui est relié chez Stripe, et DANS QUEL MODE. Sans lui, un catalogue
+    // relié en test se lisait comme un catalogue prêt pour la production.
+    catalogue_relie: catalogueRelie,
     // `null` = on n'a pas pu lire l'historique. `'aucune'` = la vérification n'a
     // jamais tourné. Les deux appellent des actions opposées, et la même absence
     // les confondrait (même distinction que `etatRepartition`).

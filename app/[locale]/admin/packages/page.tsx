@@ -46,6 +46,23 @@ export default function AdminPackagesPage() {
 
   // Transfert du défaut : id de la ligne en cours de confirmation, id en cours
   // d'envoi, message d'erreur/succès inline.
+  /**
+   * LE RACCORDEMENT DU CATALOGUE — un geste d'exploitation, pas un réglage.
+   *
+   * Trois états distincts, et aucun ne se déguise en un autre : au repos, en
+   * cours, et un COMPTE RENDU qui nomme chaque offre. « Synchronisé » sans
+   * dire quoi ni dans quel mode serait la phrase exacte qui a laissé le
+   * catalogue non relié sans que personne ne le voie.
+   */
+  const [syncBusy, setSyncBusy] = useState(false)
+  const [syncRapport, setSyncRapport] = useState<{
+    mode: string
+    synchronisees: { slug: string; price_id: string | null }[]
+    refusees: { slug: string; raison: string }[]
+    en_echec: { slug: string; erreur: string }[]
+  } | null>(null)
+  const [syncError, setSyncError] = useState<string | null>(null)
+
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [settingId, setSettingId] = useState<string | null>(null)
   const [defaultError, setDefaultError] = useState<string | null>(null)
@@ -276,6 +293,29 @@ export default function AdminPackagesPage() {
   // rattachée à une offre : sinon il n'y a rien à déplacer.
   const hasAttachedOrgs = (packages ?? []).some((p) => p.org_count > 0)
 
+  async function synchroniserCatalogue() {
+    setSyncBusy(true)
+    setSyncError(null)
+    setSyncRapport(null)
+    try {
+      const res = await secureFetch('/api/admin/synchroniser-catalogue', { method: 'POST' })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        // Le motif du serveur est affiché TEL QUEL : « clé absente » et « clé
+        // de test en production » n'appellent pas la même action, et un
+        // message générique les confondrait.
+        setSyncError(typeof body?.error === 'string' ? body.error : t('errors.generic'))
+        return
+      }
+      setSyncRapport(body)
+      await load()
+    } catch {
+      setSyncError(t('errors.generic'))
+    } finally {
+      setSyncBusy(false)
+    }
+  }
+
   const selectStyle: React.CSSProperties = {
     width: '100%',
     padding: '9px 12px',
@@ -300,6 +340,26 @@ export default function AdminPackagesPage() {
             {t('packages.subtitle')}
           </p>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={synchroniserCatalogue}
+          disabled={syncBusy}
+          style={{
+            padding: '9px 16px',
+            background: 'var(--sk-surface)',
+            color: 'var(--sk-text)',
+            border: '0.5px solid var(--sk-border)',
+            borderRadius: 10,
+            fontSize: 13,
+            fontWeight: 500,
+            fontFamily: 'inherit',
+            cursor: syncBusy ? 'progress' : 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {syncBusy ? t('packages.sync_running') : t('packages.sync_action')}
+        </button>
         <Link
           href="/admin/packages/new"
           style={{
@@ -315,7 +375,55 @@ export default function AdminPackagesPage() {
         >
           {t('packages.action_new')}
         </Link>
+        </div>
       </div>
+
+      {/* LE COMPTE RENDU NOMME CHAQUE OFFRE, ET IL NOMME LE MODE.
+          Une offre « refusée » n'est pas un échec : une offre par défaut est
+          gratuite par contrainte de base, il n'y a rien à créer chez Stripe.
+          Les peindre pareil apprendrait à ignorer le rouge. */}
+      {syncRapport && (
+        <div
+          style={{
+            padding: '12px 14px',
+            background: syncRapport.en_echec.length > 0 ? 'var(--sk-red-soft)' : 'var(--sk-success-soft)',
+            border: '1px solid transparent',
+            borderColor: syncRapport.en_echec.length > 0 ? 'var(--sk-red-soft)' : 'var(--sk-success-soft)',
+            color: syncRapport.en_echec.length > 0 ? 'var(--sk-red)' : 'var(--sk-success)',
+            fontSize: 13,
+            borderRadius: 10,
+            marginBottom: 16,
+          }}
+        >
+          <strong>
+            {t('packages.sync_done', {
+              count: syncRapport.synchronisees.length,
+              mode: syncRapport.mode,
+            })}
+          </strong>
+          {syncRapport.synchronisees.length > 0 && (
+            <div style={{ marginTop: 6 }}>
+              {syncRapport.synchronisees.map((o) => o.slug).join(' · ')}
+            </div>
+          )}
+          {syncRapport.refusees.length > 0 && (
+            <div style={{ marginTop: 6, color: 'var(--sk-muted)' }}>
+              {t('packages.sync_nothing_to_link')}{' '}
+              {syncRapport.refusees.map((o) => `${o.slug} (${o.raison})`).join(' · ')}
+            </div>
+          )}
+          {syncRapport.en_echec.length > 0 && (
+            <div style={{ marginTop: 6 }}>
+              {syncRapport.en_echec.map((o) => `${o.slug} : ${o.erreur}`).join(' · ')}
+            </div>
+          )}
+        </div>
+      )}
+      {syncError && (
+        <div role="alert" style={{ padding: '9px 14px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 13, borderRadius: 10, marginBottom: 16 }}>
+          {syncError}
+        </div>
+      )}
 
       {defaultDone && (
         <div style={{ padding: '9px 14px', background: 'var(--sk-success-soft)', border: '1px solid var(--sk-success-soft)', color: 'var(--sk-success)', fontSize: 13, borderRadius: 10, marginBottom: 16 }}>

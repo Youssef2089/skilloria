@@ -612,24 +612,43 @@ if (process.argv.includes('--db')) {
       )
     }
 
+    // LES IDENTIFIANTS STRIPE NE VIVENT PLUS SUR `packages` : ils sont cles
+    // PAR MODE dans `packages_stripe` (migration catalogue_stripe_par_mode).
+    // Une offre « reliee » ne l'est que DANS UN MODE — un catalogue relie en
+    // test ne l'est pas en live, et l'afficher sans le mode etait precisement
+    // ce qui rendait le passage en production faux en silence.
     const { data: pkgs, error: pkgErr } = await db
       .from('packages')
-      .select('slug, target_role, price_monthly, is_default, active, stripe_price_id_monthly')
+      .select('id, slug, target_role, price_monthly, is_default, active')
       .order('slug')
+    const { data: liaisons } = await db
+      .from('packages_stripe')
+      .select('package_id, mode, price_id_monthly')
+    const prixDe = (id, mode) =>
+      (liaisons ?? []).find((l) => l.package_id === id && l.mode === mode)?.price_id_monthly ?? null
+    const MODES = ['test', 'live']
     if (pkgErr) {
       failures++
       console.log(`  KO   lecture packages : ${pkgErr.message}`)
     } else {
       const rows = pkgs ?? []
       const vendables = rows.filter((p) => p.price_monthly !== null && !p.is_default && p.active)
-      const synced = vendables.filter((p) => p.stripe_price_id_monthly)
-      info(`catalogue : ${rows.length} offres, ${vendables.length} vendable(s), ${synced.length} synchronisée(s)`)
+      for (const mode of MODES) {
+        const synced = vendables.filter((p) => prixDe(p.id, mode))
+        info(`catalogue [${mode}] : ${rows.length} offres, ${vendables.length} vendable(s), ${synced.length} reliée(s)`)
+      }
       for (const p of rows) {
         const etat = p.is_default ? 'défaut' : p.price_monthly === null ? 'sans tarif' : `${p.price_monthly}`
-        info(`  ${p.slug}/${p.target_role} — ${etat}${p.stripe_price_id_monthly ? ' [Stripe]' : ''}`)
+        const modes = MODES.filter((m) => prixDe(p.id, m))
+        info(`  ${p.slug}/${p.target_role} — ${etat}${modes.length ? ` [Stripe: ${modes.join(', ')}]` : ''}`)
       }
-      const ids = synced.map((p) => p.stripe_price_id_monthly)
-      ok(new Set(ids).size === ids.length, 'aucun price Stripe partagé par deux offres')
+      for (const mode of MODES) {
+        const ids = vendables.map((p) => prixDe(p.id, mode)).filter(Boolean)
+        ok(
+          new Set(ids).size === ids.length,
+          `aucun price Stripe partagé par deux offres (mode ${mode})`,
+        )
+      }
     }
 
     const { count: txCount } = await db.from('transactions').select('id', { count: 'exact', head: true })

@@ -13,6 +13,7 @@ import {
   META_USER,
   type Stripe$Metadata,
 } from '@/lib/billing/resolve'
+import { modeDeLEvenement, type ModeStripe } from '@/lib/billing/catalogue-stripe'
 import { applyPackageState, attachCustomer, extendValidity } from '@/lib/billing/apply'
 
 /**
@@ -212,6 +213,7 @@ async function onSubscriptionUpsert(
   admin: SupabaseClient,
   sub: Stripe.Subscription,
   eventAt: Date,
+  mode: ModeStripe,
 ): Promise<EventOutcome> {
   const metadata = meta(sub)
   const customerId = idOf(sub.customer)
@@ -242,7 +244,7 @@ async function onSubscriptionUpsert(
   const priceId = idOf(sub.items?.data?.[0]?.price)
   if (!priceId) throw new Error("abonnement sans prix sur sa première ligne")
 
-  const pkg = await resolvePackageByPrice(admin, priceId)
+  const pkg = await resolvePackageByPrice(admin, priceId, mode)
   if (!pkg.ok) throw new Error(`offre non résolue — ${pkg.reason}`)
 
   const until = stripeTsToIso(subscriptionPeriodEnd(sub))
@@ -317,6 +319,7 @@ async function onInvoicePaid(
   admin: SupabaseClient,
   invoice: Stripe.Invoice,
   eventAt: Date,
+  mode: ModeStripe,
 ): Promise<EventOutcome> {
   const customerId = idOf(invoice.customer)
   const metadata = meta(invoice)
@@ -340,7 +343,7 @@ async function onInvoicePaid(
   const total = toMajor(invoice.amount_paid)
   const tax = toMajor(invoiceTaxMinor(invoice))
   const priceId = invoiceFirstPriceId(invoice)
-  const pkg = priceId ? await resolvePackageByPrice(admin, priceId) : null
+  const pkg = priceId ? await resolvePackageByPrice(admin, priceId, mode) : null
 
   const { error: txErr } = await admin.from('transactions').upsert(
     {
@@ -457,19 +460,32 @@ export async function handleStripeEvent(
 ): Promise<EventOutcome> {
   const eventAt = new Date(event.created * 1000)
 
+  // ⚠️ LE MODE VIENT DE L'ÉVÉNEMENT, PAS DE LA CLÉ EN USAGE.
+  //
+  //    Un `price_...` créé en test n'existe pas en live : résoudre une offre
+  //    dans le mauvais catalogue accorderait des droits d'après une offre qui
+  //    n'a jamais été vendue dans ce mode-là.
+  //
+  //    Lire le mode de la CLÉ supposerait que l'endpoint et la clé sont
+  //    accordés — c'est précisément ce qui casse quand on croise les deux
+  //    tableaux de bord Stripe, et c'est le cas que `livemodeMatchesEnvironment`
+  //    attrape en amont (la route ignore alors l'événement). Ici on n'a pas à
+  //    le supposer : l'événement le DIT.
+  const mode = modeDeLEvenement(event.livemode)
+
   switch (event.type) {
     case 'checkout.session.completed':
       return onCheckoutCompleted(admin, event.data.object as Stripe.Checkout.Session)
 
     case 'customer.subscription.created':
     case 'customer.subscription.updated':
-      return onSubscriptionUpsert(admin, event.data.object as Stripe.Subscription, eventAt)
+      return onSubscriptionUpsert(admin, event.data.object as Stripe.Subscription, eventAt, mode)
 
     case 'customer.subscription.deleted':
       return onSubscriptionDeleted(admin, event.data.object as Stripe.Subscription, eventAt)
 
     case 'invoice.paid':
-      return onInvoicePaid(admin, event.data.object as Stripe.Invoice, eventAt)
+      return onInvoicePaid(admin, event.data.object as Stripe.Invoice, eventAt, mode)
 
     case 'invoice.payment_failed':
       return onInvoicePaymentFailed(admin, event.data.object as Stripe.Invoice, eventAt)
