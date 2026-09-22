@@ -2675,6 +2675,55 @@ montré ; il fallait **ouvrir la page**.
 > *un point oublié qui se dit vaut mieux qu'un « tout est livré » qu'on découvre faux sur l'écran.*
 
 
+<a id="e57"></a>
+### E.57 — L'OUTIL QUI LANCE LES CONTRÔLES N'AVAIT JAMAIS TOURNÉ. 219 COMMITS.
+
+**Le cas, mesuré le 22/09/2026.** `scripts/diag.mjs` — le lanceur de toute la série — s'arrêtait sur
+un `ReferenceError` **à chaque lancement, depuis le commit qui l'a créé le 07/09/2026**. Le drapeau
+s'était appelé `--avec-base` avant d'être renommé `--avec-ecritures` ; le renommage avait laissé un
+`avecBase` dans le message d'état, **deux lignes avant la première exécution**. `git log -S` le
+confirme : `const avecBase` n'a **jamais** existé dans aucun commit.
+
+**Ce que ça coûte, et ce n'est pas le plantage.** Un plantage se voit. Ce qui ne se voit pas, c'est
+qu'**une validation annoncée n'a pas eu lieu** : on rapporte « la série complète est verte » sur la
+foi d'un résumé, et le résumé vient d'ailleurs — d'une boucle écrite à la main, d'un souvenir, d'un
+lot précédent. Le nombre était d'ailleurs **juste** ici (84 verts, retrouvés à l'identique par le
+lanceur réparé) : **un chiffre juste obtenu par un chemin qu'on ne peut pas refaire n'est pas une
+mesure, c'est une coïncidence vérifiée après coup.**
+
+**Et les deux autres défauts du même fichier disent quelque chose de plus gênant.**
+
+| Ce que le fichier DIT de lui-même, dans son en-tête | Ce que son code faisait |
+|---|---|
+| *« TROIS ÉTATS, et jamais deux : VERT / ROUGE / N'A PAS TOURNÉ »* | tout code de sortie non nul → **ROUGE**. Le **2** — *« n'a pas tourné »*, la convention du dépôt, celle par laquelle `garde-ecriture.mjs` **refuse** — était rangé dans les rouges. Un refus prudent s'affichait en régression. |
+| *« La liste est donc explicite, courte, et relue »* (les scripts qui écrivent en base) | elle en nommait **deux** ; il y en a **trois**. `diag-lot3-messagerie` manquait — celui qui **SUPPRIME** les messages d'une conversation. |
+
+> **Les deux moitiés du défaut s'emboîtent, et c'est ça qui le rendait invisible.** La liste
+> incomplète laissait `diag-lot3-messagerie` être lancé ; la garde le refusait proprement, en
+> sortant en **2** ; le lanceur peignait ce 2 en **ROUGE**. On lisait donc « 1 rouge » sur un
+> contrôle qui s'était **protégé exactement comme prévu**.
+
+**La parade — dériver l'appartenance, et pas la recopier (§E.34).** La propriété n'est pas un nom :
+c'est que le script **APPELLE** `garde-ecriture.mjs`. Le motif existait déjà, éprouvé, dans
+`diag-scripts-destructeurs` — on ne réécrit pas une seconde détection à côté de la première
+(§E.20). La table de noms ne décide plus de rien : elle ne porte plus que la **raison**, en clair,
+et une entrée sans raison **le dit** au lieu d'en inventer une (§G.8).
+
+> ⚠️ **ET LA PREMIÈRE VERSION DE CETTE DÉRIVATION A ÉCARTÉ UN VRAI CONTRÔLE.**
+> `diag-scripts-destructeurs` **porte** ce motif — c'est lui qui détecte les scripts gardés, le
+> motif y est une **donnée**. Sans retirer les commentaires, et sans distinguer le motif **échappé**
+> (`'\.\/garde…'`) de l'appel **littéral** (`'./garde…'`), il sortait du balayage : **un contrôle
+> muet, présenté comme « écarté par prudence »**. C'est [§E.7](#e7) — dans le fichier même dont
+> l'en-tête prévient que *« trois scripts en contiennent le texte sans jamais l'exécuter »*.
+> Le `sansCommentaires` nécessaire **existait déjà** dans ce fichier, écrit pour ce piège exact et
+> **jamais appelé** : lint le disait depuis le premier jour, *« assigned a value but never used »*.
+
+**La règle.**
+> **UN OUTIL DE VÉRIFICATION SE VÉRIFIE D'ABORD LUI-MÊME. Ce qu'il exige des autres — trois états,
+> un inventaire complet, une propriété plutôt qu'un nom — vaut pour lui, et c'est chez lui que
+> personne ne regarde, parce qu'on lit ce qu'il affiche au lieu de ce qu'il fait.**
+
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

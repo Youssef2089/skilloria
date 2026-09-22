@@ -26,7 +26,16 @@
 //
 //      Un lanceur naïf « pour tout vérifier » aurait donc MODIFIÉ la base à
 //      chaque exécution. Le lanceur les ÉCARTE par défaut, en le disant, et ne
-//      les exécute que sur `--avec-base`, demandé explicitement.
+//      les exécute que sur `--avec-ecritures`, demandé explicitement.
+//
+//      ⚠️ CE LANCEUR N'AVAIT JAMAIS PU TOURNER. Le drapeau s'est appelé
+//      `--avec-base` avant d'être renommé, et le renommage a laissé un
+//      `avecBase` dans le message d'état, ligne 180 : `ReferenceError`, à
+//      chaque lancement, depuis le commit qui l'a créé (219 commits). Un
+//      script qui plante AVANT de vérifier quoi que ce soit ne dit rien —
+//      c'est exactement le troisième état que ce fichier a été écrit pour
+//      nommer, et personne ne l'a appliqué au fichier lui-même. Trouvé le
+//      22/09/2026 en lançant la série complète.
 //
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //   node scripts/diag.mjs              → tous les diagnostics STATIQUES.
@@ -104,10 +113,64 @@ const ECRIVENT_EN_BASE = {
     'INSERT/UPDATE/DELETE sur matches et candidatures — test de bout en bout, pas un contrôle statique',
   'diag-lot2c-org':
     'INSERT/UPDATE/DELETE sur candidatures et conversations — idem, et il (ré)injecte une candidature',
+  'diag-lot3-messagerie':
+    'SUPPRIME les messages d’une conversation (UUID en dur) et ses notifications, réécrit conversations et candidatures, insère des messages de test — IRRÉVERSIBLE',
 }
 
+/* ┌─ ET LA LISTE AVAIT DÉJÀ DÉRIVÉ — mesuré le 22/09/2026 ───────────────────┐
+   │ Elle nommait DEUX scripts ; il y en a TROIS. `diag-lot3-messagerie`      │
+   │ manquait, et comme la garde d'écriture refuse en sortant en 2, la        │
+   │ synthèse l'affichait en ROUGE : un refus prudent lu comme une            │
+   │ régression, exactement ce que l'en-tête de `garde-ecriture.mjs` dit      │
+   │ vouloir éviter.                                                         │
+   │                                                                          │
+   │ L'APPARTENANCE EST DONC DÉRIVÉE, PLUS RECOPIÉE (§E.34). La propriété     │
+   │ n'est pas un nom : c'est que le script APPELLE la garde. Un script qui   │
+   │ se contente d'en PARLER dans un commentaire n'écrit rien (§E.7) —        │
+   │ `diag-lot-expert-verification` est dans ce cas. Le motif est celui que   │
+   │ `diag-scripts-destructeurs` emploie déjà : on ne réinvente pas une       │
+   │ seconde détection à côté de la première (§E.20).                        │
+   │                                                                          │
+   │ La table ci-dessus ne décide plus QUI est écarté : elle ne porte plus    │
+   │ que la RAISON, lisible par un humain. Une entrée sans raison se dit,     │
+   │ elle ne s'invente pas (§G.8).                                            │
+   └──────────────────────────────────────────────────────────────────────────┘ */
+const APPELLE_LA_GARDE = [
+  /await\s+import\(\s*'\.\/garde-ecriture\.mjs'\s*\)/,
+  /import\s*\{[^}]*\bexigerAutorisationEcriture\b[^}]*\}\s*from\s*'\.\/garde-ecriture\.mjs'/,
+]
+
+/* ⚠️ ET LA PREMIÈRE VERSION DE CETTE DÉRIVATION A ÉCARTÉ UN VRAI CONTRÔLE.
+      `diag-scripts-destructeurs` PORTE ce motif — c'est lui qui détecte les
+      scripts gardés, le motif y est une DONNÉE. Sans retirer les commentaires
+      ni distinguer le motif échappé (`'\.\/garde…'`) de l'appel littéral
+      (`'./garde…'`), il sortait du balayage : un contrôle muet, présenté comme
+      « écarté par prudence ». C'est §E.7 dans le fichier même dont l'en-tête
+      prévient que trois scripts « en contiennent le texte sans l'exécuter ».
+      Les deux motifs exigent donc un APPEL — `await import(…)` ou un import
+      statique — sur un source dont les commentaires sont retirés.
+
+      Le retrait des commentaires se fait par le `sansCommentaires` QUI EXISTAIT
+      DÉJÀ plus haut dans ce fichier, écrit pour ce piège exact et jamais
+      appelé. En écrire un second à côté aurait fait deux jumeaux qui dérivent
+      (§E.20) — et lint le disait depuis le début : « assigned a value but never
+      used ». */
 function ecritEnBase(nom) {
-  return Object.prototype.hasOwnProperty.call(ECRIVENT_EN_BASE, nom)
+  let code
+  try {
+    code = readFileSync(join(SCRIPTS, `${nom}.mjs`), 'utf8')
+  } catch {
+    return false
+  }
+  const nu = sansCommentaires(code)
+  return APPELLE_LA_GARDE.some((re) => re.test(nu))
+}
+
+function raisonDEcriture(nom) {
+  return (
+    ECRIVENT_EN_BASE[nom] ??
+    'appelle garde-ecriture.mjs — écrit en base. AUCUNE RAISON DÉTAILLÉE : à lire et à écrire ici.'
+  )
 }
 
 /**
@@ -155,10 +218,17 @@ function envSansSecrets() {
   return e
 }
 
-// ─── Péremption de la liste : une entrée dont le fichier a disparu ment ──────
+// ─── Péremption de la liste, DANS LES DEUX SENS ─────────────────────────────
+// Une raison dont le fichier a disparu ment ; une raison dont le script
+// n'appelle plus la garde ment aussi — elle ferait écarter un contrôle qui ne
+// demande qu'à tourner.
 for (const nom of Object.keys(ECRIVENT_EN_BASE)) {
   if (!readdirSync(SCRIPTS).includes(`${nom}.mjs`)) {
     console.log(`${J}≡ Entrée périmée dans ECRIVENT_EN_BASE : ${nom} n'existe plus. À retirer.${N}`)
+  } else if (!ecritEnBase(nom)) {
+    console.log(
+      `${J}≡ Entrée périmée dans ECRIVENT_EN_BASE : ${nom} n'appelle plus la garde d'écriture.${N}`,
+    )
   }
 }
 
@@ -177,16 +247,16 @@ const envEnfant = envSansSecrets()
 
 console.log(`\n${B}DIAGNOSTICS — ${fichiers.length} script(s)${N}`)
 console.log(
-  avecBase
-    ? `${J}Mode --avec-base : les diagnostics qui atteignent la base sont INCLUS. Certains ÉCRIVENT.${N}\n`
-    : `${D}Mode statique : les diagnostics qui atteignent la base eux-mêmes sont écartés (--avec-base pour les inclure).${N}\n`,
+  avecEcritures
+    ? `${J}Mode --avec-ecritures : les diagnostics qui ÉCRIVENT en base sont INCLUS.${N}\n`
+    : `${D}Mode statique : les diagnostics qui écrivent en base sont écartés (--avec-ecritures pour les inclure).${N}\n`,
 )
 
 for (const f of fichiers) {
   const nom = f.replace(/\.mjs$/, '')
   const chemin = join(SCRIPTS, f)
   if (!avecEcritures && ecritEnBase(nom)) {
-    muets.push({ nom, raison: `écarté : ÉCRIT EN BASE — ${ECRIVENT_EN_BASE[nom]}`, sortie: '' })
+    muets.push({ nom, raison: `écarté : ÉCRIT EN BASE — ${raisonDEcriture(nom)}`, sortie: '' })
     console.log(`  ${J}≡${N} ${nom.padEnd(42)} ${D}N'A PAS TOURNÉ — écarté (écrit en base)${N}`)
     continue
   }
@@ -211,6 +281,18 @@ for (const f of fichiers) {
   if (plantage) {
     muets.push({ nom, raison: plantage, sortie })
     console.log(`  ${J}≡${N} ${nom.padEnd(42)} ${J}N'A PAS TOURNÉ${N} ${D}${plantage.slice(0, 60)}${N}`)
+    continue
+  }
+
+  // ⚠️ LE CODE 2 EST LE TROISIÈME ÉTAT, PAS UN ROUGE. C'est la convention du
+  //    dépôt — `0 = vert · 1 = rouge · 2 = n'a pas tourné` — et c'est celle
+  //    par laquelle `garde-ecriture.mjs` refuse. Ce lanceur, écrit POUR ne
+  //    jamais confondre un muet et un rouge, rangeait pourtant tout non-zéro
+  //    dans les rouges : un refus prudent s'affichait en régression.
+  if (r.status === 2) {
+    const premiere = sortie.split('\n').map((l) => l.trim()).find((l) => l && !/^[─━┌└│]/.test(l))
+    muets.push({ nom, raison: premiere?.slice(0, 160) ?? 'sorti en 2 sans message', sortie })
+    console.log(`  ${J}≡${N} ${nom.padEnd(42)} ${J}N'A PAS TOURNÉ${N} ${D}(code 2 — refus)${N}`)
     continue
   }
 

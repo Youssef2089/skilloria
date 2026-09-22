@@ -34,13 +34,21 @@
 //   · Que le jeton choisi soit le BON. `--sk-faint` a 3,36 est parfait pour
 //     une etiquette et faux pour une phrase : aucun motif ne lit un role.
 //
-//   node scripts/diag-contraste-par-ecran.mjs [--detail]
+// EPROUVE PAR MUTATION (§G.5) — 8 mutations, 8 detections, le 22/09/2026 :
+//   ① un couple fautif dans une page freelance · ② du blanc sur du blanc cote
+//   organisation · ③ un couple fautif dans l'ADMIN (le balayage y va aussi) ·
+//   ④ la seconde orthographe du fond, `backgroundColor` · ⑤ la PALETTE qui
+//   palit a sa source · ⑥ l'accent derive remplace par la couleur de marque
+//   brute · ⑦ le balayage qui oublie l'espace admin · ⑧ un jeton inconnu
+//   DEVINE au lieu d'etre nomme.
+//
+//   node scripts/diag-contraste-par-ecran.mjs [--detail] [--json]
 //   Aucune base, aucun reseau, aucune ecriture. Lecture seule.
 //   0 = vert · 1 = rouge · 2 = n'a pas tourne.
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { dirname, join, relative, sep } from 'node:path'
+import { dirname, join } from 'node:path'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const DETAIL = process.argv.includes('--detail')
@@ -169,8 +177,6 @@ function blocsDeStyle(s) {
   }
   return out
 }
-
-const JETON = /var\((--sk-[a-z0-9-]+)\)/
 
 /** Le couple (texte, fond) d'un bloc — `null` pour ce qu'il ne pose pas. */
 function coupleDe(bloc) {
