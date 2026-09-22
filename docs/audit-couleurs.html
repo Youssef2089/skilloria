@@ -740,7 +740,7 @@ du milieu : c'est ça, la preuve.</strong></p>
   amélioration : ils valaient 2,56 avant, ils valent 3,36 aujourd'hui.<br>
   <strong>→ Vrai à la fin du lot « palette », faux depuis.</strong> Le parcours complet les a ouverts
   un par un — l'espace organisation, les deux espaces experts, le back-office, le public. Le compte
-  final, classé, est au <a href="#p9">point 9</a> : <strong>212 ouverts, 180 corrigés, 32
+  final, classé, est au <a href="#p9">point 9</a> : <strong>212 ouverts, 181 corrigés, 31
   restants</strong>. Cette phrase reste écrite parce qu'elle était vraie à sa date : une mesure
   datée ne se réécrit pas, elle se date (§E.16).</p>
   <p><strong>Soixante-six fichiers portent encore 1 929 couleurs</strong> — le compte du contrôle, qui retire les commentaires et les deux fichiers sources. Ce sont les autres écrans,
@@ -1040,12 +1040,20 @@ produit utilise, pas une seconde implémentation qui ne prouverait rien sur la p
 <p class="note warn"><strong>Ce que cette mesure ne dit pas : qu'une zone emploie le BON couple.</strong>
 <span class="mono">--sk-faint</span> sur une carte vaut 3,75 — parfaitement lisible pour une étiquette
 de structure qu'on balaie, insuffisant pour une phrase qu'on lit. Aucun motif ne distingue les deux.
-Cette moitié-là s'est lue écran par écran : <strong>212 usages ouverts, 180 corrigés,
-32 restants</strong> — et les 32 sont <strong>classés, pas supposés</strong> : 27 étiquettes de
+Cette moitié-là s'est lue écran par écran : <strong>212 usages ouverts, 181 corrigés,
+31 restants</strong> — et les 31 sont <strong>classés, pas supposés</strong> : 27 étiquettes de
 structure en majuscules, 3 signes décoratifs <span class="mono">aria-hidden</span> (une flèche, un
 point médian, l'icône d'un état vide), 1 pastille d'état qui ne va jamais sans son libellé
-(<span class="mono">lib/verification-state.ts</span>), et la <strong>déclaration du jeton</strong>
-elle-même, qui n'est pas un usage.</p>
+(<span class="mono">lib/verification-state.ts</span>).</p>
+
+<p class="note"><strong>Le périmètre du compte, puisqu'un chiffre sans périmètre ne se recompte
+pas.</strong> Tous les <span class="mono">.ts</span>, <span class="mono">.tsx</span> et
+<span class="mono">.css</span> du dépôt, hors <span class="mono">scripts/</span> et
+<span class="mono">docs/</span> : <strong>213 occurrences</strong> au commit d'inventaire,
+<strong>33 aujourd'hui</strong>. On en retire de part et d'autre la <strong>déclaration du jeton</strong>
+(<span class="mono">lib/palette.ts</span>) — elle n'est pas un usage — et, côté d'aujourd'hui, un
+<strong>commentaire</strong> qui cite le jeton pour expliquer pourquoi il n'est pas employé là
+(§E.7). Reste 212 d'un côté, 31 de l'autre.</p>
 
 <p class="note warn"><strong>Le 180<sup>e</sup> a été trouvé en relisant les 33, le 22/09/2026.</strong>
 La note sous le carrousel de casting — <em>« Note IA de pertinence par rapport à votre annonce »</em> —
