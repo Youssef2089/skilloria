@@ -798,8 +798,8 @@
         "summary_counter": "{count} / {max} Zeichen",
         "incomplete_title": "Ihr Profil ist noch nicht sichtbar",
         "incomplete_intro": "Solange diese Angaben fehlen, wird es Organisationen nicht vorgeschlagen. Es geht nichts verloren: Alles, was Sie bereits eingegeben haben, bleibt erhalten.",
-        "hidden_title": "Ihr Profil ist nicht mehr sichtbar",
-        "hidden_intro": "Für Projektvorschläge sind neue Angaben nötig geworden. Ihr Profil wurde vorübergehend ausgeblendet — es wurde nicht gelöscht.",
+        "hidden_title": "Wir haben Pflichtangaben ergänzt",
+        "hidden_intro": "Um Ihnen passendere Missionen vorzuschlagen, fragen wir jetzt alle Expertinnen und Experten nach einigen zusätzlichen Angaben. Ihr Profil bleibt ausgeblendet, bis sie ergänzt sind. Sie haben nichts falsch gemacht, und nichts von dem, was Sie eingegeben hatten, ist verloren.",
         "hidden_list_intro": "Noch zu ergänzen:",
         "hidden_cta": "Mein Profil vervollständigen"
       },
@@ -1701,8 +1701,8 @@
         "summary_counter": "{count} / {max} Zeichen",
         "incomplete_title": "Ihr Profil ist noch nicht sichtbar",
         "incomplete_intro": "Solange diese Angaben fehlen, wird es Organisationen nicht vorgeschlagen. Es geht nichts verloren: Alles, was Sie bereits eingegeben haben, bleibt erhalten.",
-        "hidden_title": "Ihr Profil ist nicht mehr sichtbar",
-        "hidden_intro": "Für Projektvorschläge sind neue Angaben nötig geworden. Ihr Profil wurde vorübergehend ausgeblendet — es wurde nicht gelöscht.",
+        "hidden_title": "Wir haben Pflichtangaben ergänzt",
+        "hidden_intro": "Um Ihnen passendere Missionen vorzuschlagen, fragen wir jetzt alle Expertinnen und Experten nach einigen zusätzlichen Angaben. Ihr Profil bleibt ausgeblendet, bis sie ergänzt sind. Sie haben nichts falsch gemacht, und nichts von dem, was Sie eingegeben hatten, ist verloren.",
         "hidden_list_intro": "Noch zu ergänzen:",
         "hidden_cta": "Mein Profil vervollständigen"
       },

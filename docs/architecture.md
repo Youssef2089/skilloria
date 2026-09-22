@@ -1117,6 +1117,18 @@ l'objet est créé **deux fois**.
 
 Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 
+**Palette**
+- **LES E-MAILS PORTENT LA PALETTE DE RÉFÉRENCE, PAS CELLE DE L'ÉCOSYSTÈME DU DESTINATAIRE.**
+  Arbitré par Youssef le 21/09/2026 : **tant qu'il n'existe qu'un écosystème, c'est identique**, et
+  le lot ne s'ouvre qu'avec le **second**.
+  Ce qu'il faudra faire ce jour-là : faire descendre la palette jusqu'au point d'envoi. Aujourd'hui
+  `renderEmailHtml` reçoit `brandName` — le nom de marque, déjà dynamique (§D3) — et rien d'autre ;
+  [lib/emails/couleurs.ts](../lib/emails/couleurs.ts) résout des constantes depuis
+  `PALETTE_REFERENCE`. Il faudra lui passer la palette résolue de `domain_configs`, comme le layout
+  racine le fait déjà pour les écrans (§C.13).
+  ⚠️ **Les valeurs resteront LITTÉRALES quoi qu'il arrive** : aucun client de messagerie ne lit une
+  propriété personnalisée (§C.16). Ce qui change est leur **origine**, pas leur forme.
+
 **Commerce / Stripe**
 - ⛔ **`packages.stripe_price_id_monthly` est NULL SUR LES QUATRE OFFRES — MESURÉ PAR S1 SUR LA
   BASE RÉELLE, le 20/09/2026.** C’est **la première action avant d’ouvrir l’encaissement**, avant

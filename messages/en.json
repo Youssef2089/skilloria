@@ -798,8 +798,8 @@
         "summary_counter": "{count} / {max} characters",
         "incomplete_title": "Your profile is not visible yet",
         "incomplete_intro": "It will not be shown to organisations while this information is missing. Nothing is lost: everything you have already entered is kept.",
-        "hidden_title": "Your profile is no longer visible",
-        "hidden_intro": "New fields became necessary for us to suggest assignments to you. Your profile has been hidden in the meantime — it has not been deleted.",
+        "hidden_title": "We have added some required information",
+        "hidden_intro": "To match you with better missions, we now ask every expert for a few more details. Your profile stays hidden until they are filled in. You have done nothing wrong, and nothing you had entered is lost.",
         "hidden_list_intro": "What is left to complete:",
         "hidden_cta": "Complete my profile"
       },
@@ -1701,8 +1701,8 @@
         "summary_counter": "{count} / {max} characters",
         "incomplete_title": "Your profile is not visible yet",
         "incomplete_intro": "It will not be shown to organisations while this information is missing. Nothing is lost: everything you have already entered is kept.",
-        "hidden_title": "Your profile is no longer visible",
-        "hidden_intro": "New fields became necessary for us to suggest assignments to you. Your profile has been hidden in the meantime — it has not been deleted.",
+        "hidden_title": "We have added some required information",
+        "hidden_intro": "To match you with better missions, we now ask every expert for a few more details. Your profile stays hidden until they are filled in. You have done nothing wrong, and nothing you had entered is lost.",
         "hidden_list_intro": "What is left to complete:",
         "hidden_cta": "Complete my profile"
       },

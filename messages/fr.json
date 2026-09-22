@@ -798,8 +798,8 @@
         "summary_counter": "{count} / {max} caractères",
         "incomplete_title": "Votre profil n’est pas encore visible",
         "incomplete_intro": "Il ne sera pas proposé aux organisations tant que ces informations manquent. Rien n’est perdu : tout ce que vous avez déjà saisi est conservé.",
-        "hidden_title": "Votre profil n’est plus visible",
-        "hidden_intro": "De nouveaux champs sont devenus nécessaires pour que nous puissions vous proposer des missions. Votre profil a été masqué en attendant, il n’a pas été supprimé.",
+        "hidden_title": "Nous avons ajouté des informations obligatoires",
+        "hidden_intro": "Pour mieux vous proposer des missions, de nouvelles informations sont désormais demandées à tous les experts. Votre profil est masqué le temps de les compléter. Vous n’avez rien fait de mal, et rien de ce que vous aviez saisi n’est perdu.",
         "hidden_list_intro": "Il vous reste à compléter :",
         "hidden_cta": "Compléter mon profil"
       },
@@ -1701,8 +1701,8 @@
         "summary_counter": "{count} / {max} caractères",
         "incomplete_title": "Votre profil n’est pas encore visible",
         "incomplete_intro": "Il ne sera pas proposé aux organisations tant que ces informations manquent. Rien n’est perdu : tout ce que vous avez déjà saisi est conservé.",
-        "hidden_title": "Votre profil n’est plus visible",
-        "hidden_intro": "De nouveaux champs sont devenus nécessaires pour que nous puissions vous proposer des missions. Votre profil a été masqué en attendant, il n’a pas été supprimé.",
+        "hidden_title": "Nous avons ajouté des informations obligatoires",
+        "hidden_intro": "Pour mieux vous proposer des missions, de nouvelles informations sont désormais demandées à tous les experts. Votre profil est masqué le temps de les compléter. Vous n’avez rien fait de mal, et rien de ce que vous aviez saisi n’est perdu.",
         "hidden_list_intro": "Il vous reste à compléter :",
         "hidden_cta": "Compléter mon profil"
       },

@@ -798,8 +798,8 @@
         "summary_counter": "{count} / {max} caracteres",
         "incomplete_title": "Tu perfil aún no es visible",
         "incomplete_intro": "No se mostrará a las organizaciones mientras falte esta información. No se pierde nada: todo lo que ya has introducido se conserva.",
-        "hidden_title": "Tu perfil ya no es visible",
-        "hidden_intro": "Se han vuelto necesarios nuevos campos para poder proponerte misiones. Tu perfil se ha ocultado mientras tanto — no se ha eliminado.",
+        "hidden_title": "Hemos añadido información obligatoria",
+        "hidden_intro": "Para proponerte mejores misiones, ahora pedimos algunos datos más a todos los expertos. Tu perfil permanece oculto hasta que los completes. No has hecho nada mal, y nada de lo que habías introducido se ha perdido.",
         "hidden_list_intro": "Te queda por completar:",
         "hidden_cta": "Completar mi perfil"
       },
@@ -1701,8 +1701,8 @@
         "summary_counter": "{count} / {max} caracteres",
         "incomplete_title": "Tu perfil aún no es visible",
         "incomplete_intro": "No se mostrará a las organizaciones mientras falte esta información. No se pierde nada: todo lo que ya has introducido se conserva.",
-        "hidden_title": "Tu perfil ya no es visible",
-        "hidden_intro": "Se han vuelto necesarios nuevos campos para poder proponerte misiones. Tu perfil se ha ocultado mientras tanto — no se ha eliminado.",
+        "hidden_title": "Hemos añadido información obligatoria",
+        "hidden_intro": "Para proponerte mejores misiones, ahora pedimos algunos datos más a todos los expertos. Tu perfil permanece oculto hasta que los completes. No has hecho nada mal, y nada de lo que habías introducido se ha perdido.",
         "hidden_list_intro": "Te queda por completar:",
         "hidden_cta": "Completar mi perfil"
       },

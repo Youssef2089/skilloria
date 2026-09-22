@@ -115,6 +115,60 @@ for (const v of VOIES) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+section('① bis  Le bandeau du profil masqué dit QUI a changé quoi')
+// ══════════════════════════════════════════════════════════════════════════
+//
+//  ⚠️ CE CONTRÔLE EST ARRIVÉ APRÈS COUP, ET C'EST LA RAISON DE SON EXISTENCE.
+//     Le défaut « le bandeau n'explique pas que c'est une ÉVOLUTION DU
+//     PRODUIT » faisait partie du lot, et il est resté OUVERT alors que le
+//     rapport annonçait « tout est livré ». Rien ne le voyait : le bandeau
+//     disait quelque chose de vrai, dans un français correct, et aucun
+//     contrôle ne lit une intention.
+//
+//  CE QU'ON PEUT VÉRIFIER, ET QU'ON VÉRIFIE : la VOIX. Un texte qui explique
+//  un changement d'exigence doit dire QUI l'a fait — « nous ». À la voix
+//  passive (« sont devenus nécessaires »), la raison n'est contestable par
+//  personne, et l'expert reste avec sa seule question : qu'est-ce que j'ai
+//  fait ?
+{
+  const NS = ['profile_validation', 'cdi_profile_validation']
+  const NOUS = {
+    fr: /\bnous\b/i,
+    en: /\bwe\b/i,
+    es: /\b(hemos|pedimos)\b/i,
+    de: /\bwir\b/i,
+  }
+  const RIEN_DE_MAL = {
+    fr: /rien fait de mal/i,
+    en: /nothing wrong/i,
+    es: /nada mal/i,
+    de: /nichts falsch/i,
+  }
+
+  for (const l of LANGUES) {
+    for (const ns of NS) {
+      const titre = cle(MSG[l], `${ns}.sections.summary_matching.hidden_title`)
+      const intro = cle(MSG[l], `${ns}.sections.summary_matching.hidden_intro`)
+      const ensemble = `${titre ?? ''} ${intro ?? ''}`
+      ok(NOUS[l].test(ensemble),
+        `${l}/${ns.replace('_validation', '')} : le bandeau dit QUI a changé l exigence`,
+        'a la voix passive, la raison n est contestable par personne — et l expert croit avoir fauté')
+      ok(RIEN_DE_MAL[l].test(ensemble),
+        `${l}/${ns.replace('_validation', '')} : et qu il n a rien fait de mal`,
+        "c est la seule question qu il se pose devant « votre profil n est plus visible »")
+    }
+  }
+
+  // Les deux voies disent LA MÊME CHOSE : c'est le même événement produit.
+  for (const l of LANGUES) {
+    const a = cle(MSG[l], 'profile_validation.sections.summary_matching.hidden_intro')
+    const b = cle(MSG[l], 'cdi_profile_validation.sections.summary_matching.hidden_intro')
+    ok(a === b, `${l} : les deux voies donnent le MÊME texte`,
+      'deux formulations du meme evenement derivent (§E.20)')
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 section('② « Vérifié » et « visible » ne se contredisent plus')
 // ══════════════════════════════════════════════════════════════════════════
 
