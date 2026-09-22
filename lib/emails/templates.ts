@@ -448,7 +448,15 @@ export function renderInactivityWarningEmail(params: InactivityWarningEmailParam
  * domaine — jamais figé (checklist #1). Escaping via `interpolate`.
  * ───────────────────────────────────────────────────────────────────────── */
 
-export type MatchDigestItem = { title: string; score: number }
+/**
+ * ⚠️ PAS DE `score` ICI, ET C'EST LA GARDE.
+ *   Ce gabarit écrivait « {titre} · {note}/10 » dans l'e-mail de l'expert —
+ *   c'est-à-dire un score de PERTINENCE chiffré, que §D.6 interdit. Le champ est
+ *   retiré du TYPE plutôt que du seul rendu : un champ absent ne se remplit pas
+ *   par distraction, là où un champ optionnel réapparaît au premier qui le
+ *   trouve utile (§E.31).
+ */
+export type MatchDigestItem = { title: string }
 
 export type MatchDigestEmailParams = {
   locale: string | null | undefined
@@ -479,15 +487,10 @@ export function renderMatchDigestEmail(params: MatchDigestEmailParams): Rendered
   const helloLine = interpolate(m.hello, vars)
   const introHtml = interpolate(count <= 1 ? m.intro_one : m.intro_other, vars)
 
-  // Liste des missions : titre (échappé) + score /10. `interpolate` échappe le
-  // titre (provenant d'une publication, donc non fiable).
+  // Liste des missions : le TITRE, et rien d'autre. `interpolate` l'échappe
+  // (il provient d'une publication, donc d'une saisie non fiable).
   const itemsHtml = params.items
-    .map((it) =>
-      interpolate('<li style="margin:0 0 6px;">{title} · {score}/10</li>', {
-        title: it.title,
-        score: String(Math.round(it.score * 10) / 10),
-      }),
-    )
+    .map((it) => interpolate('<li style="margin:0 0 6px;">{title}</li>', { title: it.title }))
     .join('')
 
   const unsubscribeHtml = interpolate(
@@ -500,9 +503,7 @@ export function renderMatchDigestEmail(params: MatchDigestEmailParams): Rendered
 <ul style="margin:0 0 12px;padding-left:20px;color:${COULEURS_EMAIL.texte};">${itemsHtml}</ul>
 ${unsubscribeHtml}`
 
-  const itemsText = params.items
-    .map((it) => `- ${it.title} · ${Math.round(it.score * 10) / 10}/10`)
-    .join('\n')
+  const itemsText = params.items.map((it) => `- ${it.title}`).join('\n')
   const bodyText = [
     stripHtml(helloLine),
     '',

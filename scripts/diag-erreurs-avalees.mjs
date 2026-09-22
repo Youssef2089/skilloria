@@ -574,9 +574,9 @@ const JUGES = {
       `Noms d'écosystèmes pour un regroupement d'affichage. Relu le 19/09/2026.`,
   },
   'app/api/admin/ecosystemes/[id]/route.ts': {
-    total: 2,
+    total: 1,
     raison:
-      `Les traductions (affichage) et la ligne de configuration — celle-ci fait REFUSER en 409 \`config_missing\` : le motif est imprécis sur une panne, mais rien n'est corrompu et la garde tient. Le COMPTEUR de branches, lui, rend désormais \`null\`. Relu le 19/09/2026.`,
+      `Les traductions (affichage) — ligne 98. LE CLIQUET A BAISSÉ, ET LE GEL SUIT : la seconde occurrence était la ligne de configuration, qui refusait en 409 \`config_missing\` sur une panne de lecture ; elle rend désormais 503 \`lecture_indisponible\` (§E.42). Un gel qui reste à 2 quand il n'en existe plus qu'une tolère par avance la prochaine régression sur ce fichier. Relu le 22/09/2026.`,
   },
   'app/api/admin/ecosystemes/[id]/visuel/route.ts': {
     total: 2,

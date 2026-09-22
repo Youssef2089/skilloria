@@ -96,7 +96,22 @@ export async function POST(request: NextRequest): Promise<Response> {
       // Champs parsés communs
       title: null,
       summary: null,
-      seniority: null,
+      // ⚠️ `seniorities`, PAS `seniority` — et `speciality_ids`, PAS
+      //    `speciality_id`. Les deux singuliers sont SUPPRIMÉS depuis
+      //    `profil_annonce_multivalues` : PostgREST refusait l'UPDATE ENTIER
+      //    (42703), la route rendait « Update failed », et l'expert ne pouvait
+      //    plus supprimer son CV — après que le fichier eut déjà été retiré du
+      //    stockage à l'étape 2. Il repartait avec un `cv_file_path` qui ne
+      //    pointait plus sur rien.
+      //
+      //    Et les remettre au pluriel n'est pas qu'un renommage : les deux
+      //    colonnes vivantes sont remplies par l'analyse de CV, et cette route
+      //    promet d'effacer « tous les champs PARSÉS ». Sans elles, la remise à
+      //    zéro en laissait deux derrière elle.
+      //
+      //    VIDE, jamais `null` : toutes deux sont NOT NULL DEFAULT '{}' — même
+      //    raison que `skills` et `work_modes` ci-dessous.
+      seniorities: [],
       years_experience: null,
       // ⚠ skills / certifications / languages / work_modes sont NOT NULL au schéma
       //   (DEFAULT '{}' / '[]'). Les mettre à null violait la contrainte → l'UPDATE
@@ -104,7 +119,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       skills: [],
       certifications: [],
       branch_id: null,
-      speciality_id: null,
+      speciality_ids: [],
       languages: [],
       location: null,
       linkedin_url: null,

@@ -118,7 +118,17 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   // 2. Match (frontière curation) ─────────────────────────────────────────
   const { data: match, error: mErr } = await auth.supabaseAdmin
     .from('matches')
-    .select('id, publication_id, score, status, explanation, created_at')
+    // ⚠️ `relevance_tier`, ET SURTOUT PAS `score`. La colonne `score` a été
+    //    SUPPRIMÉE le 01/09/2026 (migration `score_de_pertinence`) : la base
+    //    répondait « column matches.score does not exist », la route rendait
+    //    500, AUCUNE mission ne s'ouvrait — et comme le bouton « Postuler » ne
+    //    vit que sur cet écran, personne ne pouvait postuler. Trois semaines,
+    //    sans qu'aucun contrôle ne le dise (§E.61).
+    //
+    //    `relevance_score` n'est PAS sélectionné, et c'est délibéré : ce qui
+    //    sort vers l'expert est le PALIER, jamais le nombre (§D.6). Cette route
+    //    ne trie rien — elle n'a donc aucune raison de lire la note.
+    .select('id, publication_id, relevance_tier, status, explanation, created_at')
     .eq('publication_id', publicationId)
     .eq('profile_id', profile.id)
     .maybeSingle()
@@ -131,7 +141,8 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   }
   const matchRow = match as unknown as {
     id: string
-    relevance_score: number | null
+    // Le type ne promet QUE ce que le select charge : annoncer un
+    // `relevance_score` qu'on ne lit pas invite à s'en servir un jour.
     relevance_tier: string | null
     status: string
     explanation: { reason?: string; model?: string } | null

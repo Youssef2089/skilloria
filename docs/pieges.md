@@ -3013,6 +3013,7 @@ par ceux qui y pensaient au moment de la migration.
 | ce que la liste à la main connaissait | **6** noms |
 | ce que le rejeu des migrations trouve | **21** colonnes mortes hors tables héritées |
 | ce que le balayage a trouvé en première exécution | **15 lectures mortes, dans 8 fichiers** |
+| ce qu'a trouvé le **troisième filet**, ajouté le jour même | **1 de plus**, invisible aux deux autres |
 
 Les quinze n'étaient pas toutes dormantes : outre le détail de mission, **`POST /api/profile/cv/reset`
 écrivait deux colonnes mortes** — l'expert qui supprimait son CV recevait « Update failed » **après**
@@ -3058,6 +3059,34 @@ et statique : il suit `const`, littéraux, concaténations, tableaux, gabarits e
 n'appelle aucune fonction. Ce qui lui échappe est **compté et affiché à chaque exécution**, fichier
 et ligne — pas rangé dans un silence. Mesure du 22/09/2026 : **1 select sur 16** reste illisible,
 `lib/missions/feed.ts` (`opts.select`, un paramètre), et il est écrit à l'écran.
+
+**ET LA DETTE DÉCLARÉE AVAIT UNE VRAIE PRISE DEDANS — ELLE A ÉTÉ MESURÉE, PAS SUPPOSÉE.**
+`.select('*')` **ne cite aucune colonne** : la base ne refuse rien, elle rend la ligne entière. Une
+colonne morte lue ensuite comme **propriété** — `prof.speciality_id` — vaut donc `undefined`. Pas
+d'erreur, pas de 500, **une valeur fausse**. Les deux premiers filets ne pouvaient pas la voir : il
+n'y a aucune chaîne à lire.
+
+| Ce qu'on a essayé | Ce que ça a rendu |
+|---|---|
+| balayer les **noms** morts en propriété, sans table | **1232** occurrences, quasi toutes du bruit — `message`, `subject`, morts sur des tables d'archive. Une propriété ne dit pas sa table : c'est la raison même pour laquelle ce chemin ne se balayait pas. |
+| balayer les `.from('T').select('*')`, **table connue** | **16** `select('*')` attribués, 10 sur des tables portant des colonnes mortes, **1 lecture réelle, 0 faux positif** |
+
+La prise : `scripts/diag-readonly-expert-achwek.mjs:41` lisait `prof.speciality_id`, singulier mort
+depuis `profil_annonce_multivalues`. **Un diagnostic écrit pour expliquer « pourquoi cet expert n'a
+0 mission » affichait « aucune spécialité » quelle que soit la réalité** — et il aurait fait chercher
+au mauvais endroit. C'est §E.24 : un chiffre juste sous une étiquette fausse, en pire, puisque la
+valeur elle-même était vide.
+
+> **CE QUI REND CE TROISIÈME FILET DÉCIDABLE EST EXACTEMENT CE QUI MANQUAIT AU PREMIER ESSAI : LA
+> TABLE.** Elle est dans le `.from(…)` qui précède le `*`. On ne confronte donc que les colonnes
+> mortes **de cette table** — et non 55 noms morts « partout » dont la moitié sont des mots anglais
+> courants. **La limite reste déclarée** : la recherche porte sur le *fichier*, pas sur la variable
+> qui reçoit la ligne. Aucun cas dans le dépôt ; le jour où il y en a un, il se nomme.
+
+**Le contrôle a donc TROIS FILETS**, du plus précis au plus large — la citation attribuée, la liste
+non attribuée confrontée aux seuls noms morts partout, et le `select('*')` suivi d'une propriété.
+Chacun affiche son compte **et son dénominateur** : `0 sur 9 noms`, `0 sur 16 select('*')`. Un zéro
+sans dénominateur ne dit pas s'il a cherché.
 
 > **Deux pièges payés en l'écrivant, et les deux sont dans cette même section §E.**
 > ① **Le contrôle rougissait sur ses propres témoins** : ils sont de vrais

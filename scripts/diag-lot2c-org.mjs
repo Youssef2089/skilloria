@@ -77,7 +77,7 @@ if (!candReset) {
   console.log('  pas de candidature → on (ré)injecte la candidature D365')
   const { data: match } = await supabaseAdmin
     .from('matches')
-    .select('id, score, domain_id')
+    .select('id, domain_id')
     .eq('publication_id', PUBLI_D365)
     .eq('profile_id', EXPERT_PROFILE_ID)
     .maybeSingle()
@@ -86,14 +86,19 @@ if (!candReset) {
     profile_id: EXPERT_PROFILE_ID,
     match_id: match?.id,
     domain_id: match?.domain_id,
-    ai_match_score: match?.score ?? 9,
+    // ⚠️ LA NOTE DE CANDIDATURE NE SE RECOPIE PAS DEPUIS LE MATCHING.
+    //    Cette ligne lisait `matches.score` — supprimée — et la rangeait dans
+    //    `candidatures.ai_match_score`. Ce sont DEUX GRANDEURS (§B.2 ②) :
+    //    l'une dit pourquoi un profil apparaît, l'autre ce que vaut un dossier.
+    //    Le jeu d'essai pose donc sa propre valeur, et ne confond plus les deux.
+    ai_match_score: 9,
     cover_message: 'Test Lot 2c — souhaite échanger sur D365.',
     status: 'received',
     preview: {
       title: 'Architecte D365 SCM (12 ans)',
       summary: 'Architecte D365 SCM senior, expertise Warehouse / Manufacturing.',
       skills: ['D365 SCM', 'Warehouse Management', 'Manufacturing', 'Power Platform'],
-      seniority: 'senior',
+      seniorities: ['senior'],
       expert_type: 'expert_freelance',
       years_experience: 12,
       tjm_min: 800, tjm_max: 950,

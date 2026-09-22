@@ -118,6 +118,14 @@ Migration `score_de_pertinence`. Deux grandeurs différentes, deux colonnes :
   `ai_model`. **À ne jamais afficher à côté de `relevance_score`** : deux questions, deux moments.
 - Index : `matches_profile_score_idx` supprimé → `matches_profile_relevance_idx`.
 
+> ⚠️ **ET LA SUPPRESSION A LAISSÉ TROIS LECTEURS DERRIÈRE ELLE, PENDANT TROIS SEMAINES.**
+> `GET /api/me/missions/[id]` (aucune mission ne s'ouvrait, donc personne ne pouvait postuler) et
+> le digest e-mail des mises en relation lisaient encore `matches.score`. Le cliquet censé
+> l'interdire était **vert** : sa liste de colonnes mortes était écrite **à la main**, et personne
+> n'y avait ajouté celle-là. Elle se **dérive** des migrations depuis le 22/09/2026 — §E.61.
+> **Une migration qui supprime une colonne doit faire balayer ses lecteurs dans le même lot** :
+> ni `tsc` ni `next build` n'en voient rien (§E.1).
+
 **③ Profil et annonce passent au multivalué.** Migration `profil_annonce_multivalues`.
 Supprimées : `profiles.speciality_id`, `profiles.seniority`, `publications.speciality_id`,
 `publications.seniority`. Renommée : `publications.location` → `location_note`.
@@ -864,7 +872,7 @@ des chemins qui mettent un expert en relation avec des annonces — il n'y en a 
 | **Approbation d'un profil** (`/api/profile`, transition vers `approved`) | le moteur, dans `after()` | personne | on ne se fait approuver qu'une fois : ce n'est pas une rafale, et c'est **le moment qui compte** pour l'expert |
 | **Approbation par un admin** (`/api/admin/approve-expert`) | le moteur, dans `after()` | personne | idem |
 | **Ré-analyse d'un CV** (`/api/profile/upload-cv`, `…/cdi-upload-cv`) | le moteur, dans `after()` | personne | le document qui décrit l'expert a changé |
-| **Enregistrement ORDINAIRE du profil** (`/api/profile`, déjà approuvé) | une **relance à 60 min**, repoussée à chaque enregistrement | personne | **c'est ici, et seulement ici, que la rafale existe** : dix passes sur un profil produisaient dix runs |
+| **Enregistrement ORDINAIRE du profil** (`/api/profile`, déjà approuvé) | une **relance à 10 min** (§D.15 — elle valait 60 jusqu'au 22/09/2026), repoussée à chaque enregistrement | personne | **c'est ici, et seulement ici, que la rafale existe** : dix passes sur un profil produisaient dix runs |
 | **Pilote `expert_relance_trigger`** (pg_cron, 5 min) | la relance la plus ancienne **due** | personne | il ne prend que les échéances échues : une relance posée à T+60 ne part pas avant T+60 |
 
 **LE PLAFOND HORAIRE S'APPLIQUE AUX DEUX PREMIERS COMME AUX RELANCES**, et c'est **le même** —
@@ -1187,10 +1195,16 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 **Moteur**
 - **L'AUDIT DU MOTEUR DU 22/09/2026 EST RENDU, ET RIEN N'Y EST CORRIGÉ** —
   [docs/audit-moteur.html](audit-moteur.html), lecture seule, commit `46971b3`, base de staging lue
-  le jour même. **Douze défauts**, dont un **bloquant** : `GET /api/me/missions/[id]` sélectionne
-  `matches.score`, colonne supprimée par `…_score_de_pertinence` — la base répond
-  `column matches.score does not exist`, aucune mission ne s'ouvre, donc **personne ne peut postuler**
-  (le dépôt part de la seule vue qui charge cette route). Deux écarts à l'architecture figée : les
+  le jour même. **Douze défauts**, dont un **bloquant** : `GET /api/me/missions/[id]` sélectionnait
+  `matches.score`, colonne supprimée par `…_score_de_pertinence` — la base répondait
+  `column matches.score does not exist`, aucune mission ne s'ouvrait, donc **personne ne pouvait
+  postuler** (le dépôt part de la seule vue qui charge cette route).
+  > ✅ **D1 EST FERMÉ — 22/09/2026, et pas seulement le cas.** La liste des colonnes mortes se
+  > **dérive désormais des migrations** au lieu d'être tenue à la main : le balayage a trouvé
+  > **quinze** lectures mortes dans huit fichiers — **seize** avec celle que le troisième filet
+  > a trouvée ensuite —, dont **deux autres défauts de produit** : la
+  > remise à zéro du CV, impossible depuis le 1ᵉʳ septembre, et le digest e-mail des mises en
+  > relation. Les quinze sont fermées. Mécanisme et mesure : **§E.61**. Deux écarts à l'architecture figée : les
   deux sens notent des **annonces expirées** (aucun lecteur du filtre d'expiration dans
   `lib/matching/`, ni dans `next_unfinished_matching_run`), et une **relance dont le run échoue est
   soldée quand même** (`cron/expert-relance:101-102`, `me/sync-matching:211-215`). Puis : le tarif
@@ -1271,7 +1285,9 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 - [app/api/auth/finalize-org-registration/route.ts](../app/api/auth/finalize-org-registration/route.ts) :
   TODO V2 — migrer vers une file de travaux.
 - [lib/nav-config.ts](../lib/nav-config.ts) : une entrée de menu non cliquable, fonctionnalité non livrée.
-- `scripts/diag.mjs` — lanceur **cassé et inachevé**, retiré de `package.json` pour cesser de piéger
+- `scripts/diag.mjs` — lanceur **RÉPARÉ le 22/09/2026** (§E.57) : il mourait sur un
+  `ReferenceError` depuis sa création, et cette ligne le donnait pour « cassé et inachevé ». Il
+  reste retiré de `package.json` pour cesser de piéger
   (`912d437`). Il reste dans le dépôt, réattribué.
 - `scripts/diag-lot2b-expert.mjs`, `diag-lot2c-org.mjs`, `diag-lot3-messagerie.mjs` s'annoncent
   eux-mêmes **« DONNÉES OBSOLÈTES depuis le cleanup »**.

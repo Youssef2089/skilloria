@@ -363,38 +363,56 @@ async function deliverMatch(
 
   const entityIds = claimed.map((c) => c.entity_id).filter(Boolean) as string[]
   if (entityIds.length === 0) return 0
-  const [{ data: pubsRaw }, { data: profileRow }] = await Promise.all([
-    ctx.admin.from('publications').select('id, title').in('id', entityIds),
-    ctx.admin.from('profiles').select('id').eq('user_id', ctx.user.id).maybeSingle(),
-  ])
+  const { data: pubsRaw, error: pubsErr } = await ctx.admin
+    .from('publications')
+    .select('id, title')
+    .in('id', entityIds)
+  // ⚠️ LE TROISIÈME JUMEAU — il était le seul à ne pas récupérer sa panne.
+  //    La parade existait DEUX FOIS quinze lignes plus bas (candidatures,
+  //    conversations) ; ici la lecture vivait dans un `Promise.all` dont le
+  //    `error` n'était même pas déstructuré, et le contrôle des erreurs avalées
+  //    ne mord pas sur cette forme-là. Un correctif appliqué à deux parcours
+  //    sur trois se lit comme appliqué partout (§E.20).
+  //
+  //    Ce que la panne coûte, et ce n'est PAS le digest : les notifications
+  //    sont déjà RÉCLAMÉES (`dispatch_at` posé) quand on arrive ici. Map vide
+  //    ⇒ aucun titre ⇒ zéro élément ⇒ `return 0` ⇒ `attempts: 1`, et aucun
+  //    cron ne reprend. L'opportunité est perdue pour de bon. Le journal ne la
+  //    rattrape pas — il distingue « l'annonce n'existe plus » d'une base en
+  //    panne, et ces deux-là appellent des actions opposées (§E.22).
+  if (pubsErr) {
+    console.error('[notifications/dispatch] lecture des annonces EN PANNE — digest perdu', {
+      reclamees: entityIds.length,
+      message: pubsErr.message,
+    })
+  }
   const titleById = new Map<string, string>(
     (pubsRaw ?? []).filter((p) => p.title).map((p) => [p.id as string, p.title as string]),
   )
-  const profileId = (profileRow as { id: string } | null)?.id ?? null
-  const scoreByPub = new Map<string, number>()
-  if (profileId) {
-    const { data: matchesRaw, error: matchesErr } = await ctx.admin
-      .from('matches')
-      .select('publication_id, score')
-      .eq('profile_id', profileId)
-      .in('publication_id', entityIds)
-    // Une panne ici prive le digest de ses paliers SANS le dire : tous les
-    // rapprochements retombent au palier bas. On le journalise (§E.22).
-    if (matchesErr) {
-      console.error('[notifications/dispatch] scores du digest EN PANNE — paliers absents', {
-        profileId,
-        message: matchesErr.message,
-      })
-    }
-    for (const m of matchesRaw ?? []) scoreByPub.set(m.publication_id as string, Number(m.score))
-  }
 
+  /* ╔══════════════════════════════════════════════════════════════════════╗
+     ║ LA LECTURE DES NOTES A DISPARU, ET CE N'EST PAS QU'UNE COLONNE MORTE.║
+     ╚══════════════════════════════════════════════════════════════════════╝
+     Ce bloc lisait `matches.score` — supprimée le 01/09/2026 — pour composer
+     une ligne « {titre} · {note}/10 » dans l'e-mail de l'expert.
+
+     LE RÉPARER EN Y METTANT `relevance_score` AURAIT RÉARMÉ UN INTERDIT.
+     §D.6 : aucun score de PERTINENCE chiffré n'est servi à l'expert — seul le
+     palier sort, et il n'a que deux valeurs. La colonne morte avait donc, par
+     accident, fermé une porte que le produit ferme par décision. C'est §E.56 à
+     l'envers : une réparation « évidente » aurait rendu au digest un sens que
+     personne n'a décidé.
+
+     Le nombre part donc, et avec lui la requête qui le servait : plus de
+     lecture de `matches`, plus de lecture de `profiles`, deux requêtes de
+     moins par digest. Le champ `score` quitte aussi `MatchDigestItem` — un
+     champ absent ne se remplit pas par distraction (§E.31). */
   const items: MatchDigestItem[] = []
   for (const c of claimed) {
     if (!c.entity_id) continue
     const title = titleById.get(c.entity_id)
     if (!title) continue
-    items.push({ title, score: scoreByPub.get(c.entity_id) ?? 0 })
+    items.push({ title })
   }
   if (items.length === 0) return 0
 

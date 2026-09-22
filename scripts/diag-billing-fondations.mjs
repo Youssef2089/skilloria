@@ -504,11 +504,21 @@ if (process.argv.includes('--db')) {
     if (pushed) {
       const { error: orgErr } = await db.from('organizations').select('stripe_customer_id').limit(1)
       ok(!orgErr, 'organizations.stripe_customer_id existe', orgErr?.message)
-      const { error: odErr } = await db
-        .from('organization_domains')
+      /* ⚠️ ASSERTION RETOURNÉE, PAS SUPPRIMÉE (§E.34, troisième réponse).
+         Elle exigeait que `organization_domains` PORTE les colonnes
+         d'abonnement. §B.2 ① les a REMONTÉES sur `organizations` et
+         supprimées de là : l'assertion rougissait donc quand le schéma était
+         JUSTE, et son motif — « je ne trouve pas ces colonnes » — envoyait
+         chercher une migration manquante qui n'existe pas.
+         Ce qui reste vrai se garde : l'abonnement vit sur `organizations`, et
+         là seulement. Qu'il n'ait pas de second porteur est garanti par le
+         SCHÉMA, et vérifié par `diag-colonnes-supprimees` — deux gardes sur
+         la même propriété n'en font qu'une (§E.36). */
+      const { error: aboErr } = await db
+        .from('organizations')
         .select('stripe_subscription_id, stripe_subscription_status, package_source_event_at')
         .limit(1)
-      ok(!odErr, 'organization_domains porte les colonnes d\'abonnement', odErr?.message)
+      ok(!aboErr, 'organizations porte les colonnes d\'abonnement (§B.2 ①)', aboErr?.message)
       const { error: txErr } = await db
         .from('transactions')
         .select('organization_id, stripe_invoice_id, livemode, amount_excl_tax, tax_amount, tax_status')

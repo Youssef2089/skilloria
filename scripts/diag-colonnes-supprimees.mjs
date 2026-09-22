@@ -40,6 +40,15 @@
 //   d'appels, les embeds PostgREST, les references qualifiees `x.col`, et les
 //   corps de fonction SQL par leurs alias de `from` / `join`.
 //
+//   TROIS FILETS, du plus precis au plus large :
+//     1. la citation ATTRIBUEE  — `.from('t').select('a, b')`, filtres, ecritures
+//     2. la liste NON ATTRIBUEE — une liste de colonnes sans `.from(` visible,
+//                                 confrontee aux seuls noms morts PARTOUT
+//     3. le `select('*')` + PROPRIETE — la table vient du `.from(`, la colonne
+//                                 d'une lecture `row.colonne` dans le fichier.
+//                                 Sans lui, `select('*')` etait un angle mort :
+//                                 la base ne refuse rien, elle rend `undefined`.
+//
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // LE PERIMETRE, ECRIT — ET CHAQUE EXCLUSION JUSTIFIEE
 //
@@ -229,16 +238,10 @@ function litteral(txt) {
   return m[2]
 }
 
-/**
- * La valeur d'une expression de chaine : un litteral, ou une CONCATENATION de
- * litteraux (`'a, b' + 'c, d'`). Rend `null` si une partie n'est pas litterale.
- */
-function chaineComposee(txt) {
-  const parties = decouperNiveauZero(txt, '+')
-  const valeurs = parties.map((p) => litteral(p))
-  if (valeurs.some((v) => v === null)) return null
-  return valeurs.join('')
-}
+/* Une fonction `chaineComposee()` vivait ici : elle ne savait lire qu'une
+   concatenation de litteraux. `resoudre()` la couvre entierement — et six
+   formes de plus. La garder aurait fait deux lecteurs de la meme chose, dont un
+   plus pauvre (§E.20) ; lint la donnait deja pour morte. */
 
 /** Decoupe au premier niveau de parentheses/crochets/accolades, hors chaines. */
 function decouperNiveauZero(txt, sep) {
@@ -845,8 +848,85 @@ function nonAttribuees(src) {
   return out
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   8 bis. LE TROISIÈME FILET — `select('*')` PUIS LECTURE DE PROPRIÉTÉ
+   ═══════════════════════════════════════════════════════════════════════════
+
+   ⚠️ CE TROU ÉTAIT DÉCLARÉ, ET IL AVAIT UNE VRAIE PRISE DEDANS.
+      `.select('*')` ne cite AUCUNE colonne : la base ne refuse rien, elle
+      rend la ligne entière. Une colonne morte lue ensuite comme propriété
+      (`prof.speciality_id`) vaut donc `undefined` — pas d'erreur, pas de 500,
+      juste une valeur fausse. Mesuré le 22/09/2026 : 16 `select('*')`
+      attribués à une table, 10 sur des tables portant des colonnes mortes,
+      et UNE lecture réelle — `diag-readonly-expert-achwek.mjs:41`, un
+      diagnostic écrit pour expliquer « pourquoi 0 mission » et qui affichait
+      « aucune spécialité » quoi qu'il arrive.
+
+   CE QUI REND CE FILET DÉCIDABLE, ET L'AUTRE PAS. Une propriété ne dit pas sa
+   table ; balayer les NOMS morts en propriété a rendu 1232 occurrences, quasi
+   toutes du bruit (`message`, `subject`, morts sur des tables d'archive).
+   Ici la table EST connue — elle est dans le `.from(…)` qui précède le `*` —
+   donc on ne confronte que les colonnes mortes DE CETTE TABLE. Sur la mesure :
+   0 faux positif.
+
+   RESTE DÉCLARÉ, et c'est la limite du filet : la recherche porte sur le
+   FICHIER, pas sur la variable qui reçoit la ligne. Un fichier qui fait
+   `select('*')` sur `packages` et lit `x.stripe_product_id` d'un objet
+   Stripe serait signalé à tort. Aucun cas dans le dépôt ; le jour où il y en
+   a un, il se nomme ici, il ne se tait pas (§E.38). */
+
+/** Le source, chaînes VIDÉES : une propriété ne vit jamais dans une chaîne. */
+function sansChaines(src) {
+  const net = depouillerJs(src)
+  let out = ''
+  let i = 0
+  while (i < net.length) {
+    const c = net[i]
+    if (c === "'" || c === '"' || c === '\`') {
+      const fin = finDeChaine(net, i)
+      out += net.slice(i, fin).replace(/[^\n]/g, ' ')
+      i = fin
+      continue
+    }
+    out += c
+    i++
+  }
+  return out
+}
+
+const ETOILE_RE = /\.from\(\s*['"]([a-z_][a-z0-9_]*)['"]\s*\)((?:\s*\.\w+\([^)]*\))*?)\s*\.select\(\s*['"\`]\s*\*/g
+
+let etoiles = 0
+function citationsEtoile(src) {
+  const net = depouillerJs(src)
+  const nu = sansChaines(src)
+  const out = []
+  const vues = new Set()
+  ETOILE_RE.lastIndex = 0
+  let m
+  while ((m = ETOILE_RE.exec(net))) {
+    etoiles++
+    const table = m[1]
+    const mortesIci = mortesParTable.get(table)
+    if (!mortesIci || mortesIci.size === 0) continue
+    for (const [colonne, mort] of mortesIci) {
+      const re = new RegExp(`\\.${colonne}\\b|(?<![\\w'"\`.])${colonne}\\s*:`, 'g')
+      let h
+      while ((h = re.exec(nu))) {
+        const ligne = nu.slice(0, h.index).split('\n').length
+        const cle = `${ligne}:${colonne}`
+        if (vues.has(cle)) continue
+        vues.add(cle)
+        out.push({ colonne, table, ligne, mort, forme: "select('*') puis propriété" })
+      }
+    }
+  }
+  return out
+}
+
 const trouvailles = []
 const trouvaillesLarges = []
+const trouvaillesEtoile = []
 for (const f of fichiers) {
   const rel = relative(ROOT, f).replace(/\\/g, '/')
   if (EXEMPTIONS[rel] || estMoi(f)) continue
@@ -861,6 +941,10 @@ for (const f of fichiers) {
   for (const c of nonAttribuees(src)) {
     if (vues.has(`${c.ligne}:${c.colonne}`)) continue
     trouvaillesLarges.push({ fichier: rel, ...c })
+  }
+  for (const c of citationsEtoile(src)) {
+    if (vues.has(`${c.ligne}:${c.colonne}`)) continue
+    trouvaillesEtoile.push({ fichier: rel, ...c })
   }
 }
 
@@ -942,6 +1026,15 @@ ok(
 )
 
 ok(
+  trouvaillesEtoile.length === 0,
+  `aucune lecture de PROPRIÉTÉ morte après un select('*') (${trouvaillesEtoile.length}, sur ${etoiles} select('*') attribués)`,
+  trouvaillesEtoile
+    .slice(0, 12)
+    .map((t) => `${t.fichier}:${t.ligne} lit .${t.colonne} (morte sur ${t.table}, ${t.mort.cause})`)
+    .join(' · '),
+)
+
+ok(
   trouvaillesSql.length === 0,
   `aucune fonction ni vue SQL ne lit une colonne morte (${trouvaillesSql.length})`,
   trouvaillesSql
@@ -998,7 +1091,9 @@ note('les chaines CONSTRUITES a l execution : un select assemble par une fonctio
 note('une table choisie par une variable calculee. Un seul saut est resolu, et il')
 note('est declare (§E.42).')
 note('les colonnes citees SANS leur table et sans chaine `.from(` : un objet')
-note('d options, une cle de tri passee de composant en composant.')
+note("d options, une cle de tri passee de composant en composant. Le cas du")
+note("select('*') suivi d une lecture de propriete, lui, EST couvert depuis le")
+note('22/09/2026 — la table y est connue (troisieme filet).')
 note('les RPC : une fonction appelee par `.rpc(…)` recoit des PARAMETRES, pas des')
 note('colonnes. Son corps, lui, est balaye — c est la section SQL.')
 

@@ -76,6 +76,15 @@ prérempli avec le numéro et le pays. Aucun canal nouveau, et le sujet transite
 ⚠️ Les **trois** parcours — inscription expert, inscription organisation, paramètres du compte —
 utilisent le **même** composant (§E.14).
 
+> ⚠️ **ET IL NE POUVAIT PAS SUPPRIMER SON CV — du 1ᵉʳ au 22 septembre 2026.**
+> `POST /api/profile/cv/reset` écrivait deux colonnes **supprimées** par
+> `profil_annonce_multivalues` (`seniority`, `speciality_id`). PostgREST refusait l'`UPDATE`
+> **entier** : l'expert lisait « Update failed » — **après** que le fichier eut déjà été retiré du
+> stockage — et repartait avec un `cv_file_path` qui ne pointait plus sur rien.
+> Corrigé : les deux colonnes vivantes (`seniorities`, `speciality_ids`) sont désormais vidées,
+> ce que l'en-tête de la route promettait déjà (« tous les champs PARSÉS ») et qu'elle ne faisait
+> pas. Le cliquet dérivé qui l'a trouvé : §E.61.
+
 **3. Il dépose son CV.** `/dashboard/{freelance,cdi}/profil` → `POST /api/profile/upload-cv`
 (freelance) ou `/api/profile/cdi-upload-cv` (CDI). **Deux routes distinctes, gardées par
 `user_type`** : un `expert_cdi` sur la route freelance reçoit **403 `wrong_user_type`**.
@@ -377,6 +386,18 @@ Regroupement : **digest** pour les opportunités (anti-rafale : un run peut prod
 coup), **un envoi par élément** pour les messages.
 **Seul le canal e-mail est ouvert** (§D.2). Et **`notify_enabled` vaut `false` par défaut sur chaque
 écosystème** (§P4) : aujourd'hui, personne n'est notifié.
+
+> ⚠️ **LE DIGEST N'ANNONCE PLUS DE NOTE, ET CE N'ÉTAIT PAS QU'UNE COLONNE MORTE — 22/09/2026.**
+> L'e-mail de mise en relation écrivait, pour chaque opportunité, **« {titre} · {note}/10 »**. La
+> note venait de `matches.score`, **supprimée le 1ᵉʳ septembre** : la lecture échouait, tous les
+> paliers retombaient à zéro, et l'e-mail partait quand même.
+>
+> **Le réparer en y mettant `relevance_score` aurait réarmé un interdit** : §D.6 ne sert à
+> l'expert **aucun score de pertinence chiffré**. La colonne morte avait donc, par accident, fermé
+> une porte que le produit ferme par décision. Le nombre part — du rendu **et du type**, pour qu'il
+> ne revienne pas par distraction — et la requête qui le servait avec lui.
+>
+> Aujourd'hui rien ne se voit : `notify_enabled` est faux. C'est §P4.3 qui l'aurait découvert.
 
 **Ce que l'expert voit.** Son flux est **ordonné** par le score, mais le score **ne sort pas de
 l'API** : `/api/me/missions` le passe en **chaîne** à `.order()` et ne lit jamais sa valeur. L'expert
@@ -834,7 +855,7 @@ fausse. La répartition observée **repart** au déploiement, et l'écran le dit
 | Règle | Valeur | Origine | Qui peut la changer |
 |---|---|---|---|
 | **Filtre** du flux | **0 / 10** (tout profil éligible entre) | `matching_settings.feed_threshold` | **Back-office** `/admin/matching` — **il TRIE** |
-| **Filtre** de notification | **10 / 10** | `matching_settings.notify_threshold` | **Back-office** — **il TRIE** |
+| **Filtre** de notification | **8 / 10** | `matching_settings.notify_threshold` | **Back-office** — **il TRIE** |
 | Notifications actives | **`false`** | `matching_settings.notify_enabled` | **Back-office** (§P4) |
 | Modèle de reranking | `rerank-v4.0-fast` | `matching_settings.rerank_model` | **Back-office** |
 | Taille de lot | 200 (borne 1–1000) | `matching_settings.rerank_batch_size` | **Back-office** |
@@ -845,7 +866,7 @@ fausse. La répartition observée **repart** au déploiement, et l'écran le dit
 | Grille tarifaire par modèle | Sonnet 5 **2/10** · Sonnet 4.6 **3/15** · Haiku 4.5 **1/5** · rerank **0,000002 $/doc** | `ai_model_tarifs` | **Back-office** `/admin/tarifs-ia` — change quand le fournisseur change ses prix, pas quand on déploie |
 | Lots en parallèle | 4 | **Code** | Déploiement |
 | Délai fournisseur | 10 s | **Code** | Déploiement |
-| Délai de relance | **60 min** | **Code** `DELAI_RELANCE_MINUTES` | Déploiement |
+| Délai de relance | **10 min** | **Code** `DELAI_RELANCE_MINUTES` | Déploiement — §D.15 |
 | Attente totale bornée | **6 h** | **Code** `ATTENTE_MAX_HEURES` | Déploiement |
 | Plafond de programmation de relance | **20 / h / expert** | **Code** `RELANCE_MAX_PAR_HEURE` | Déploiement — **volontairement non réglable** (§D.7) |
 | Pagination du vivier | 1000 lignes · 200 identifiants | **Code** | Déploiement |
@@ -1170,5 +1191,8 @@ côté invitation **et** côté acceptation, sinon la limite se contourne par le
 - `reveal_contact` est un **point d'extension conçu mais non branché** — pas un interrupteur. Le
   packaging commerce qui l'ouvrirait **n'existe pas**, et §D.4 dit qu'il reste `false` **toujours**.
 - `lib/database.types.ts` **n'est pas un choix** : c'est un filet périmé et débranché (§E.1, §H).
-- `scripts/diag.mjs` **n'est pas désactivé** : il est **cassé et inachevé**, et retiré de
+- `scripts/diag.mjs` **est RÉPARÉ depuis le 22/09/2026** (§E.57) : il s'arrêtait sur un
+  `ReferenceError` **à chaque lancement depuis sa création**, et ce fichier le donnait pour
+  « cassé et inachevé ». Il tourne, distingue ses **trois** états, et dérive la liste des scripts
+  qui écrivent en base au lieu de la recopier. Il reste retiré de
   `package.json` pour cesser de piéger.

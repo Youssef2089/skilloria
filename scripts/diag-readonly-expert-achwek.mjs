@@ -38,7 +38,14 @@ console.log({
   cdi_status: prof.cdi_status,
   verified_at: prof.verified_at,
   branch_id: prof.branch_id,
-  speciality_id: prof.speciality_id,
+  // ⚠️ `speciality_ids` — PLURIEL. Le singulier est mort avec
+  //    `profil_annonce_multivalues`, et comme la ligne vient d'un `select('*')`,
+  //    la base ne refusait RIEN : elle rendait `undefined`. Un diagnostic écrit
+  //    pour expliquer « pourquoi 0 mission » affichait donc « aucune spécialité »
+  //    quelle que soit la réalité. Seizième lecture morte du lot, et la SEULE
+  //    que le cliquet dérivé ne pouvait pas voir : une propriété ne cite aucune
+  //    colonne (§E.61, dette déclarée).
+  speciality_ids: prof.speciality_ids,
 })
 
 console.log('\n=== 3. SCOPE MATCHING CHECK ===')
@@ -57,10 +64,10 @@ console.log('=> SCOPE PASS =', allPass)
 
 console.log('\n=== 4. MATCHES POUR CET EXPERT ===')
 const { data: matchRows, count } = await supa
-  .from('matches').select('id, publication_id, score, status, created_at', { count: 'exact' })
+  .from('matches').select('id, publication_id, relevance_score, relevance_tier, status, created_at', { count: 'exact' })
   .eq('profile_id', prof.id)
 console.log('matches.count =', count ?? matchRows?.length ?? 0)
-for (const m of matchRows ?? []) console.log(' -', m.id, 'pub=', m.publication_id, 'score=', m.score, 'status=', m.status, 'at=', m.created_at)
+for (const m of matchRows ?? []) console.log(' -', m.id, 'pub=', m.publication_id, 'note=', m.relevance_score, 'palier=', m.relevance_tier, 'status=', m.status, 'at=', m.created_at)
 
 console.log('\n=== 5. PUBLICATIONS DOMAINE EXPERT — STATUT/TYPE ===')
 const { data: pubs } = await supa

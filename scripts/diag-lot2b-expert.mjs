@@ -94,10 +94,10 @@ console.log()
 console.log('=== (a) FEED — service_role simulation ===')
 const { data: matches } = await supabaseAdmin
   .from('matches')
-  .select('id, score, status, explanation, publication_id')
+  .select('id, relevance_score, relevance_tier, status, explanation, publication_id')
   .eq('profile_id', EXPERT_PROFILE_ID)
   .neq('status', 'dismissed')
-  .order('score', { ascending: false })
+  .order('relevance_score', { ascending: false, nullsFirst: false })
 
 console.log('  matches non-dismissed :', matches?.length ?? 0)
 for (const m of matches ?? []) {
@@ -176,23 +176,23 @@ console.log()
 console.log('=== (c) CANDIDATURE ===')
 const { data: prof } = await supabaseAdmin
   .from('profiles')
-  .select('domain_id, title, summary, skills, seniority, expert_type, years_experience, tjm_min, tjm_max, salary_min, salary_max, work_modes, languages, country, city, availability_status, profile_score, branch_id, speciality_id')
+  .select('domain_id, title, summary, skills, seniorities, expert_type, years_experience, tjm_min, tjm_max, salary_min, salary_max, work_modes, languages, country, city, availability_status, profile_score, branch_id, speciality_ids')
   .eq('id', EXPERT_PROFILE_ID)
   .maybeSingle()
 const preview = {
   title: prof?.title, summary: prof?.summary, skills: prof?.skills ?? [],
-  seniority: prof?.seniority, expert_type: prof?.expert_type,
+  seniorities: prof?.seniorities ?? [], expert_type: prof?.expert_type,
   years_experience: prof?.years_experience, tjm_min: prof?.tjm_min, tjm_max: prof?.tjm_max,
   salary_min: prof?.salary_min, salary_max: prof?.salary_max,
   work_modes: prof?.work_modes ?? [], languages: prof?.languages ?? [],
   country: prof?.country, city: prof?.city,
   availability_status: prof?.availability_status, profile_score: prof?.profile_score,
-  branch_id: prof?.branch_id, speciality_id: prof?.speciality_id,
+  branch_id: prof?.branch_id, speciality_ids: prof?.speciality_ids ?? [],
 }
 
 const { data: matchForCand } = await supabaseAdmin
   .from('matches')
-  .select('id, score')
+  .select('id, relevance_score')
   .eq('publication_id', PUBLI_D365)
   .eq('profile_id', EXPERT_PROFILE_ID)
   .maybeSingle()

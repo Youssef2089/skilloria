@@ -695,11 +695,21 @@ if (process.argv.includes('--db')) {
 
     const { count: txCount } = await db.from('transactions').select('id', { count: 'exact', head: true })
     info(`transactions : ${txCount ?? 0}`)
-    const { count: subCount } = await db
-      .from('organization_domains')
+    /* ⚠️ SUR `organizations`, ET LE COMPTE ÉTAIT FAUX AVANT.
+       Ce comptage portait sur `organization_domains.stripe_subscription_id`,
+       colonne supprimée par §B.2 ① : la requête échouait, `subCount` tombait
+       à `null`, et la ligne imprimait « abonnements rattachés : 0 » — un
+       chiffre faux présenté comme une information (§E.22 ⑨), sur le seul
+       compteur qui dise si quelqu'un paie. */
+    const { count: subCount, error: subErr } = await db
+      .from('organizations')
       .select('id', { count: 'exact', head: true })
       .not('stripe_subscription_id', 'is', null)
-    info(`abonnements rattachés : ${subCount ?? 0}`)
+    info(
+      subErr
+        ? `abonnements rattachés : ILLISIBLE (${subErr.message})`
+        : `abonnements rattachés : ${subCount ?? 0}`,
+    )
   }
 }
 

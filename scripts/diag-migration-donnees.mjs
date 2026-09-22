@@ -62,7 +62,7 @@ import { dirname, join, basename } from 'node:path'
 //   · dans diag-colonnes-supprimees, pour savoir ce qui est MORT.
 // Deux rejeux cote a cote auraient vieilli separement, et l'un aurait fini par
 // dire autre chose que l'autre sur le meme SQL.
-import { depouiller, famille, construireSchema } from './lib/schema-migrations.mjs'
+import { depouiller, construireSchema } from './lib/schema-migrations.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 // Fins de ligne NORMALISEES : le depot sort les fichiers en CRLF, et un retour
