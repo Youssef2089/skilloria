@@ -317,8 +317,14 @@ export default function SpotlightCarousel<T>({
         </button>
       </div>
 
+      {/* ⚠️ `--sk-muted`, PAS `--sk-faint` (§D.12). Cette note EXPLIQUE la note
+          portée par chaque carte — « elle ne juge aucun expert ». Un texte
+          qu'on lit pour comprendre un chiffre n'est pas un repère qu'on
+          balaie. Elle reste `aria-hidden` : le même texte est déjà porté par
+          l'attribut `title` du badge de la carte, et l'annoncer deux fois
+          serait pire que ne pas l'annoncer. */}
       {labels.footnote && (
-        <div style={{ fontSize: 11.5, color: 'var(--sk-faint)', textAlign: 'center', marginTop: 6 }} aria-hidden>
+        <div style={{ fontSize: 11.5, color: 'var(--sk-muted)', textAlign: 'center', marginTop: 6 }} aria-hidden>
           {labels.footnote}
         </div>
       )}

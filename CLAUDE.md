@@ -433,6 +433,15 @@ tenait en quinze couleurs déclarées à un seul endroit, contre 184 teintes et 
 
 **La garde de contraste REFUSE, et elle refuse au serveur.** Sept paires, minimum 4,5. Le refus nomme
 la paire, son ratio et le minimum ([`diag-palette-contraste`](scripts/diag-palette-contraste.mjs)).
+
+> **Et la palette juste ne prouve pas l'écran juste.** Une page peut lire deux bons jetons et les
+> poser l'un sur l'autre. [`diag-contraste-par-ecran`](scripts/diag-contraste-par-ecran.mjs) ouvre
+> **chaque bloc `style={{…}}` des 66 pages** de l'espace connecté, en extrait le couple
+> *(texte, fond)* réellement écrit et le mesure — **212 couples, 0 sous son minimum**. Il ne devine
+> **aucun** fond hérité : les **743** blocs qui peignent un texte sans déclarer leur fond sont
+> comptés et **déclarés** (§E.38), jamais estimés (§E.40). Sa sortie `--json` alimente la colonne
+> de [docs/audit-couleurs.html](docs/audit-couleurs.html) — **un chiffre d'audit se reçoit du
+> contrôle, il ne se saisit pas** (§E.16, §E.24).
 **Les bordures en sont exclues, à dessein** : la bordure de référence vaut 1,25, et l'exiger à 3
 ferait rougir la palette de l'accueil elle-même dès le premier jour (§E.14).
 
@@ -692,6 +701,7 @@ bloquant, ordonnés avec les quatorze défauts nommés du gel 4.1d :
 | [E.53](docs/pieges.md#e53) | UNE EXCEPTION OUVERTE POUR UNE PAGE DEVIENT UN ENDROIT OÙ D'AUTRES TOMBENT. |
 | [E.54](docs/pieges.md#e54) | UNE COULEUR D'ÉTAT POSÉE SUR UN ÉLÉMENT DÉCORATIF DIT QUELQUE CHOSE. ELLE MENT. |
 | [E.55](docs/pieges.md#e55) | DEUX PHRASES VRAIES, L'UNE SOUS L'AUTRE, PEUVENT SE LIRE COMME UNE CONTRADICTION. |
+| [E.56](docs/pieges.md#e56) | UN LOT QUI CONVERTIT UNE SYNTAXE HÉRITE D'UNE SÉMANTIQUE QUI N'EXISTAIT PAS AVANT LUI. « J'avais vérifié le contrôle, pas l'écran. » |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

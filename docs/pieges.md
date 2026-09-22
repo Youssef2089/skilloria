@@ -2622,6 +2622,59 @@ déclarée et jamais lue ne change rien à l'écran (§E.8).
 > et c'est la seule façon. Ce qui est gardé, c'est la **mécanique** qui les a fermés — que les deux
 > voies la partagent, et qu'elle ne disparaisse pas au prochain lot (§E.38).
 
+<a id="e56"></a>
+### E.56 — UN LOT QUI CONVERTIT UNE SYNTAXE HÉRITE D'UNE SÉMANTIQUE QUI N'EXISTAIT PAS AVANT LUI.
+
+**La phrase à retenir, et elle est de moi, le 21/09/2026 :**
+> **« J'avais vérifié le contrôle, pas l'écran. »**
+
+**Le cas.** Le lot palette a remplacé 3180 littéraux de couleur par des jetons `--sk-*`, en mappant
+chaque teinte vers **le jeton le plus proche PAR COULEUR**
+([scripts/lib/correspondance-couleurs.mjs](../scripts/lib/correspondance-couleurs.mjs)). L'émeraude
+est devenue `--sk-success`, l'ambre `--sk-amber`, le rose `--sk-red`.
+
+Sur les numéros de section des quatre pages de profil expert, ces teintes étaient **décoratives** :
+`#10B981` y était une couleur parmi 184, et ne disait rien. Après la conversion, le même pixel
+s'appelle `--sk-success` — **et §D.12 réserve ce jeton à un ÉTAT**. L'écran n'a pas changé de
+couleur : **il a changé de SENS**, et une section de formulaire s'est mise à dire « c'est bon » à
+qui la remplissait (le symptôme est détaillé en [§E.54](#e54)).
+
+**LE DÉFAUT N'A PAS SURVÉCU AU LOT : IL A ÉTÉ CRÉÉ PAR LUI**, dans le commit même qui rendait le
+cliquet vert.
+
+**Et le cliquet était vert À JUSTE TITRE.** Sa propriété est *« aucune couleur littérale »*, et il
+n'en restait aucune. Il n'a rien manqué — **on ne lui avait jamais demandé ça.** Un jeton se lit
+dans le source ; le **rôle de l'élément qui le porte** ne s'y lit pas.
+
+| Ce qu'un contrôle voit | Ce qu'il ne verra jamais |
+|---|---|
+| la teinte a disparu, le jeton est là | que ce jeton **signifie** quelque chose ici |
+| le jeton existe dans la palette | que l'élément qui le porte est **décoratif** |
+
+**La parade n'est pas un contrôle de plus.** Pour ce cas précis, c'est l'**absence du champ** — un
+composant partagé qui n'accepte pas de couleur ([§E.54](#e54), [§E.31](#e31)). Pour la **classe**,
+c'est une règle de méthode, et elle a un coût assumé :
+
+> **UNE CONVERSION DE MASSE QUI MAPPE PAR APPARENCE NE TRANSPORTE AUCUN SENS — DONC ELLE EN INVENTE
+> UN. La liste des écrans touchés se relit, écran par écran, APRÈS la conversion.** Le dictionnaire
+> de correspondance dit lesquels de ses jetons cibles **portent une signification** : les trois
+> couleurs d'état (`--sk-success`, `--sk-amber`, `--sk-red`) en portent une, les huit rôles de
+> marque n'en portent aucune. Une teinte qui atterrit sur l'un des trois se lit à l'écran avant
+> d'être déclarée faite.
+
+**Ce que ça distingue des voisins.** [§E.7](#e7) : un contrôle lit un commentaire au lieu de la
+règle. [§E.34](#e34) : il s'ancre sur un nom. [§E.40](#e40) : il mesure une proximité au lieu d'une
+appartenance. **Ici, le contrôle est juste, sa propriété est la bonne, et il est vert pour de bonnes
+raisons** — c'est l'écran qui a changé de sens sous lui. Aucune relecture du contrôle ne l'aurait
+montré ; il fallait **ouvrir la page**.
+
+> **Et c'est la deuxième fois dans le même lot.** Le bandeau « votre profil n'est plus visible »
+> ([§E.55](#e55) ②) a été déclaré livré alors qu'il n'avait jamais été touché. Les deux fois, ce que
+> j'avais vérifié était **vrai** ; les deux fois, **ce n'était pas la question**. La règle qui en
+> sort tient en une ligne, et elle est du propriétaire du produit :
+> *un point oublié qui se dit vaut mieux qu'un « tout est livré » qu'on découvre faux sur l'écran.*
+
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

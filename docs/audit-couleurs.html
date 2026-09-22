@@ -737,7 +737,12 @@ du milieu : c'est ça, la preuve.</strong></p>
   <p><strong>Cent onze usages du texte tenu n'ont pas été jugés un par un.</strong> Aucun motif ne
   distingue un repère qu'on balaie d'un texte qu'on lit. Les quatorze qui avaient une forme
   reconnaissable sont passés au texte secondaire. Les cent onze restants sont tous, déjà, une
-  amélioration : ils valaient 2,56 avant, ils valent 3,36 aujourd'hui.</p>
+  amélioration : ils valaient 2,56 avant, ils valent 3,36 aujourd'hui.<br>
+  <strong>→ Vrai à la fin du lot « palette », faux depuis.</strong> Le parcours complet les a ouverts
+  un par un — l'espace organisation, les deux espaces experts, le back-office, le public. Le compte
+  final, classé, est au <a href="#p9">point 9</a> : <strong>212 ouverts, 180 corrigés, 32
+  restants</strong>. Cette phrase reste écrite parce qu'elle était vraie à sa date : une mesure
+  datée ne se réécrit pas, elle se date (§E.16).</p>
   <p><strong>Soixante-six fichiers portent encore 1 929 couleurs</strong> — le compte du contrôle, qui retire les commentaires et les deux fichiers sources. Ce sont les autres écrans,
   hors du périmètre du lot : le back-office, le côté organisation, l'inscription. Ils sont gelés,
   nommément, et le compte ne peut que descendre.</p>
@@ -874,7 +879,7 @@ entrée qui y apparaîtrait désormais serait une dette <em>nouvelle</em> — no
   part — et qui ont attrapé sept icônes pendant ce parcours.</li>
 </ul>
 
-<h2><span class="num">9</span>Les 66 pages, une par une — la liste est la preuve</h2>
+<h2 id="p9"><span class="num">9</span>Les 66 pages, une par une — la liste est la preuve</h2>
 <p class="sub">Cette liste n'est pas rédigée : elle est <strong>mesurée des deux côtés par le même
 script</strong> — l'état au commit qui précède le lot, et l'arbre de travail. Une liste écrite de
 mémoire prouverait qu'on se souvient, pas que c'est vrai.</p>
@@ -891,84 +896,122 @@ définissent — ils retombaient en silence sur leur valeur de secours.
 <em>Texte tenu porteur</em> : usages de <span class="mono">--sk-faint</span> qui ne sont
 <strong>ni</strong> une étiquette en majuscules <strong>ni</strong> un signe
 <span class="mono">aria-hidden</span> — c'est-à-dire ceux qui font porter une information à une
-couleur qui vaut 3,63.</p>
+couleur qui vaut 3,63.
+<em>Contraste mesuré</em> : les couples <em>(texte, fond)</em> que la page écrit
+<strong>elle-même</strong>, et le pire d'entre eux — pire au sens de <strong>l'écart à son
+minimum</strong>, pas du plus petit ratio. <span class="mono">0 écrit</span> signifie que la page
+n'en pose aucun et hérite entièrement de la coquille. <em>Hérité(s)</em> compte les blocs qui
+posent une couleur de texte <strong>sans poser leur fond</strong> : leur ratio n'est pas
+déductible du source, et il n'est donc pas deviné.</p>
 
 <div class="scroll"><table>
-<thead><tr><th>Page</th><th>Coquille</th><th>Couleurs</th><th>Jetons morts</th><th>Texte tenu porteur</th></tr></thead>
+<thead><tr><th>Page</th><th>Coquille</th><th>Couleurs</th><th>Jetons morts</th><th>Texte tenu porteur</th><th>Contraste mesuré</th></tr></thead>
 <tbody>
-<tr><td colspan="5" style="background:#F6F2EA;font-weight:700;"><strong>Expert — freelance — 14 page(s)</strong></td></tr>
-<tr><td><span class="mono">dashboard/freelance/candidatures/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/freelance/candidatures/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/freelance/messages/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/freelance/messages/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/freelance/missions/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/freelance/missions/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/freelance/mon-profil/page.tsx</span></td><td class="val">RECOPIÉE → <strong>partagée</strong></td><td class="val">0</td><td class="val">0</td><td class="val">3 → <strong>0</strong></td></tr>
-<tr><td><span class="mono">dashboard/freelance/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">2 → <strong>0</strong></td></tr>
-<tr><td><span class="mono">dashboard/freelance/parametres/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/freelance/profil/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">1 → <strong>0</strong></td></tr>
-<tr><td><span class="mono">dashboard/freelance/profil/valider/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">11 → <strong>0</strong></td></tr>
-<tr><td><span class="mono">dashboard/freelance/sous-traitance/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/freelance/sous-traitance/nouveau/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/freelance/sous-traitance/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td colspan="5" style="background:#F6F2EA;font-weight:700;"><strong>Expert — CDI — 14 page(s)</strong></td></tr>
-<tr><td><span class="mono">dashboard/cdi/candidatures/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/cdi/candidatures/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/cdi/messages/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/cdi/messages/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/cdi/missions/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/cdi/missions/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/cdi/mon-profil/page.tsx</span></td><td class="val">MAISON → <strong>partagée</strong></td><td class="val">0</td><td class="val">0</td><td class="val">3 → <strong>0</strong></td></tr>
-<tr><td><span class="mono">dashboard/cdi/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">2 → <strong>0</strong></td></tr>
-<tr><td><span class="mono">dashboard/cdi/parametres/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/cdi/profil/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">1 → <strong>0</strong></td></tr>
-<tr><td><span class="mono">dashboard/cdi/profil/valider/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">12 → <strong>0</strong></td></tr>
-<tr><td><span class="mono">dashboard/cdi/sous-traitance/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/cdi/sous-traitance/nouveau/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/cdi/sous-traitance/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td colspan="5" style="background:#F6F2EA;font-weight:700;"><strong>Organisation (client · cabinet · ESN) — 13 page(s)</strong></td></tr>
-<tr><td><span class="mono">dashboard/entreprise/annonces/[id]/candidatures/page.tsx</span></td><td class="val">partagée</td><td class="val">7 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/entreprise/annonces/[id]/modifier/page.tsx</span></td><td class="val">partagée</td><td class="val">3 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/entreprise/annonces/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">2 → <strong>0</strong></td><td class="val">0</td><td class="val">2 → <strong>0</strong></td></tr>
-<tr><td><span class="mono">dashboard/entreprise/annonces/nouvelle/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/entreprise/annonces/page.tsx</span></td><td class="val">partagée</td><td class="val">4 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/entreprise/candidatures/page.tsx</span></td><td class="val">partagée</td><td class="val">1 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/entreprise/membres/page.tsx</span></td><td class="val">partagée</td><td class="val">48 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/entreprise/messages/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/entreprise/messages/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/entreprise/offre/page.tsx</span></td><td class="val">partagée</td><td class="val">57 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/entreprise/organisation/page.tsx</span></td><td class="val">partagée</td><td class="val">43 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">dashboard/entreprise/page.tsx</span></td><td class="val">partagée</td><td class="val">21 → <strong>0</strong></td><td class="val">0</td><td class="val">1 → <strong>0</strong></td></tr>
-<tr><td><span class="mono">dashboard/entreprise/parametres/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td colspan="5" style="background:#F6F2EA;font-weight:700;"><strong>Redirection — 1 page(s)</strong></td></tr>
-<tr><td><span class="mono">dashboard/cabinet/page.tsx</span></td><td class="val">AUCUNE</td><td class="val">1 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td colspan="5" style="background:#F6F2EA;font-weight:700;"><strong>Administration — 24 page(s)</strong></td></tr>
-<tr><td><span class="mono">admin/collaboration/page.tsx</span></td><td class="val">admin</td><td class="val">72 → <strong>0</strong></td><td class="val">31 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/durees/page.tsx</span></td><td class="val">admin</td><td class="val">23 → <strong>0</strong></td><td class="val">0</td><td class="val">2 → <strong>0</strong></td></tr>
-<tr><td><span class="mono">admin/ecosystemes/page.tsx</span></td><td class="val">admin</td><td class="val">59 → <strong>0</strong></td><td class="val">3 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/experts/[id]/page.tsx</span></td><td class="val">admin</td><td class="val">88 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/experts/page.tsx</span></td><td class="val">admin</td><td class="val">36 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/facturation/page.tsx</span></td><td class="val">admin</td><td class="val">63 → <strong>0</strong></td><td class="val">63 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/matching/page.tsx</span></td><td class="val">admin</td><td class="val">35 → <strong>0</strong></td><td class="val">32 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/organisations/[id]/page.tsx</span></td><td class="val">admin</td><td class="val">104 → <strong>0</strong></td><td class="val">59 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/organisations/page.tsx</span></td><td class="val">admin</td><td class="val">43 → <strong>0</strong></td><td class="val">21 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/packages/[id]/page.tsx</span></td><td class="val">admin</td><td class="val">72 → <strong>0</strong></td><td class="val">38 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/packages/new/page.tsx</span></td><td class="val">admin</td><td class="val">35 → <strong>0</strong></td><td class="val">20 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/packages/page.tsx</span></td><td class="val">admin</td><td class="val">66 → <strong>0</strong></td><td class="val">31 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/page.tsx</span></td><td class="val">admin</td><td class="val">0</td><td class="val">0</td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/quotas-ia/page.tsx</span></td><td class="val">admin</td><td class="val">16 → <strong>0</strong></td><td class="val">14 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/seuils/page.tsx</span></td><td class="val">admin</td><td class="val">28 → <strong>0</strong></td><td class="val">25 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/supervision/[sujet]/page.tsx</span></td><td class="val">admin</td><td class="val">9 → <strong>0</strong></td><td class="val">9 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/supervision/page.tsx</span></td><td class="val">admin</td><td class="val">35 → <strong>0</strong></td><td class="val">34 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/taches-planifiees/[job_name]/page.tsx</span></td><td class="val">admin</td><td class="val">36 → <strong>0</strong></td><td class="val">20 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/taches-planifiees/page.tsx</span></td><td class="val">admin</td><td class="val">72 → <strong>0</strong></td><td class="val">18 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/tarifs-ia/page.tsx</span></td><td class="val">admin</td><td class="val">23 → <strong>0</strong></td><td class="val">21 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/taxonomie/[id]/page.tsx</span></td><td class="val">admin</td><td class="val">77 → <strong>0</strong></td><td class="val">33 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/taxonomie/page.tsx</span></td><td class="val">admin</td><td class="val">42 → <strong>0</strong></td><td class="val">24 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/utilisateurs/[id]/page.tsx</span></td><td class="val">admin</td><td class="val">69 → <strong>0</strong></td><td class="val">20 → <strong>0</strong></td><td class="val">0</td></tr>
-<tr><td><span class="mono">admin/utilisateurs/page.tsx</span></td><td class="val">admin</td><td class="val">58 → <strong>0</strong></td><td class="val">27 → <strong>0</strong></td><td class="val">0</td></tr>
+<tr><td colspan="6" style="background:#F6F2EA;font-weight:700;"><strong>Expert — freelance — 14 page(s)</strong></td></tr>
+<tr><td><span class="mono">dashboard/freelance/candidatures/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/freelance/candidatures/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/freelance/messages/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/freelance/messages/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/freelance/missions/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/freelance/missions/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">1</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 1 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/freelance/mon-profil/page.tsx</span></td><td class="val">RECOPIÉE → <strong>partagée</strong></td><td class="val">0</td><td class="val">0</td><td class="val">3 → <strong>0</strong></td><td class="val"><span class="mono">7</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 49 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/freelance/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">2 → <strong>0</strong></td><td class="val"><span class="mono">10</span> couple(s) · pire <span class="pill p-aa">5,17</span> ≥ 4,5 · 18 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/freelance/parametres/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/freelance/profil/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">1 → <strong>0</strong></td><td class="val"><span class="mono">3</span> couple(s) · pire <span class="pill p-aa">5,17</span> ≥ 4,5 · 17 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/freelance/profil/valider/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">11 → <strong>0</strong></td><td class="val"><span class="mono">8</span> couple(s) · pire <span class="pill p-aa">4,90</span> ≥ 4,5 · 31 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/freelance/sous-traitance/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/freelance/sous-traitance/nouveau/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/freelance/sous-traitance/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td colspan="6" style="background:#F6F2EA;font-weight:700;"><strong>Expert — CDI — 14 page(s)</strong></td></tr>
+<tr><td><span class="mono">dashboard/cdi/candidatures/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/cdi/candidatures/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/cdi/messages/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/cdi/messages/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/cdi/missions/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/cdi/missions/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">1</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 1 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/cdi/mon-profil/page.tsx</span></td><td class="val">MAISON → <strong>partagée</strong></td><td class="val">0</td><td class="val">0</td><td class="val">3 → <strong>0</strong></td><td class="val"><span class="mono">8</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 29 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/cdi/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">2 → <strong>0</strong></td><td class="val"><span class="mono">10</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 14 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/cdi/parametres/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/cdi/profil/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">1 → <strong>0</strong></td><td class="val"><span class="mono">5</span> couple(s) · pire <span class="pill p-aa">5,17</span> ≥ 4,5 · 19 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/cdi/profil/valider/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">12 → <strong>0</strong></td><td class="val"><span class="mono">10</span> couple(s) · pire <span class="pill p-aa">4,90</span> ≥ 4,5 · 37 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/cdi/sous-traitance/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/cdi/sous-traitance/nouveau/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/cdi/sous-traitance/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td colspan="6" style="background:#F6F2EA;font-weight:700;"><strong>Organisation (client · cabinet · ESN) — 13 page(s)</strong></td></tr>
+<tr><td><span class="mono">dashboard/entreprise/annonces/[id]/candidatures/page.tsx</span></td><td class="val">partagée</td><td class="val">7 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">2</span> couple(s) · pire <span class="pill p-aa">5,77</span> ≥ 4,5 · 7 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/entreprise/annonces/[id]/modifier/page.tsx</span></td><td class="val">partagée</td><td class="val">3 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 3 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/entreprise/annonces/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">2 → <strong>0</strong></td><td class="val">0</td><td class="val">2 → <strong>0</strong></td><td class="val"><span class="mono">2</span> couple(s) · pire <span class="pill p-aa">5,17</span> ≥ 4,5 · 13 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/entreprise/annonces/nouvelle/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/entreprise/annonces/page.tsx</span></td><td class="val">partagée</td><td class="val">4 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">1</span> couple(s) · pire <span class="pill p-aa">4,90</span> ≥ 4,5 · 1 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/entreprise/candidatures/page.tsx</span></td><td class="val">partagée</td><td class="val">1 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">2</span> couple(s) · pire <span class="pill p-aa">5,77</span> ≥ 4,5 · 12 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/entreprise/membres/page.tsx</span></td><td class="val">partagée</td><td class="val">48 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">3</span> couple(s) · pire <span class="pill p-aa">4,90</span> ≥ 4,5 · 16 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/entreprise/messages/[id]/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/entreprise/messages/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/entreprise/offre/page.tsx</span></td><td class="val">partagée</td><td class="val">57 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">2</span> couple(s) · pire <span class="pill p-aa">5,54</span> ≥ 4,5 · 27 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/entreprise/organisation/page.tsx</span></td><td class="val">partagée</td><td class="val">43 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">4</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 7 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/entreprise/page.tsx</span></td><td class="val">partagée</td><td class="val">21 → <strong>0</strong></td><td class="val">0</td><td class="val">1 → <strong>0</strong></td><td class="val"><span class="mono">3</span> couple(s) · pire <span class="pill p-aa">4,90</span> ≥ 4,5 · 17 hérité(s)</td></tr>
+<tr><td><span class="mono">dashboard/entreprise/parametres/page.tsx</span></td><td class="val">partagée</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td colspan="6" style="background:#F6F2EA;font-weight:700;"><strong>Redirection — 1 page(s)</strong></td></tr>
+<tr><td><span class="mono">dashboard/cabinet/page.tsx</span></td><td class="val">AUCUNE</td><td class="val">1 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td colspan="6" style="background:#F6F2EA;font-weight:700;"><strong>Administration — 24 page(s)</strong></td></tr>
+<tr><td><span class="mono">admin/collaboration/page.tsx</span></td><td class="val">admin</td><td class="val">72 → <strong>0</strong></td><td class="val">31 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">8</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 21 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/durees/page.tsx</span></td><td class="val">admin</td><td class="val">23 → <strong>0</strong></td><td class="val">0</td><td class="val">2 → <strong>0</strong></td><td class="val"><span class="mono">7</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 10 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/ecosystemes/page.tsx</span></td><td class="val">admin</td><td class="val">59 → <strong>0</strong></td><td class="val">3 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">6</span> couple(s) · pire <span class="pill p-aa">4,90</span> ≥ 4,5 · 20 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/experts/[id]/page.tsx</span></td><td class="val">admin</td><td class="val">88 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">10</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 33 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/experts/page.tsx</span></td><td class="val">admin</td><td class="val">36 → <strong>0</strong></td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">5</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 8 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/facturation/page.tsx</span></td><td class="val">admin</td><td class="val">63 → <strong>0</strong></td><td class="val">63 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">1</span> couple(s) · pire <span class="pill p-aaa">17,72</span> ≥ 4,5 · 27 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/matching/page.tsx</span></td><td class="val">admin</td><td class="val">35 → <strong>0</strong></td><td class="val">32 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 21 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/organisations/[id]/page.tsx</span></td><td class="val">admin</td><td class="val">104 → <strong>0</strong></td><td class="val">59 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">9</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 41 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/organisations/page.tsx</span></td><td class="val">admin</td><td class="val">43 → <strong>0</strong></td><td class="val">21 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">7</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 9 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/packages/[id]/page.tsx</span></td><td class="val">admin</td><td class="val">72 → <strong>0</strong></td><td class="val">38 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">15</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 26 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/packages/new/page.tsx</span></td><td class="val">admin</td><td class="val">35 → <strong>0</strong></td><td class="val">20 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">6</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 10 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/packages/page.tsx</span></td><td class="val">admin</td><td class="val">66 → <strong>0</strong></td><td class="val">31 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">11</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 19 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/page.tsx</span></td><td class="val">admin</td><td class="val">0</td><td class="val">0</td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 0 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/quotas-ia/page.tsx</span></td><td class="val">admin</td><td class="val">16 → <strong>0</strong></td><td class="val">14 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">1</span> couple(s) · pire <span class="pill p-aaa">7,56</span> ≥ 4,5 · 7 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/seuils/page.tsx</span></td><td class="val">admin</td><td class="val">28 → <strong>0</strong></td><td class="val">25 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 19 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/supervision/[sujet]/page.tsx</span></td><td class="val">admin</td><td class="val">9 → <strong>0</strong></td><td class="val">9 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 8 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/supervision/page.tsx</span></td><td class="val">admin</td><td class="val">35 → <strong>0</strong></td><td class="val">34 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">0</span> écrit · 24 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/taches-planifiees/[job_name]/page.tsx</span></td><td class="val">admin</td><td class="val">36 → <strong>0</strong></td><td class="val">20 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">3</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 18 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/taches-planifiees/page.tsx</span></td><td class="val">admin</td><td class="val">72 → <strong>0</strong></td><td class="val">18 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">7</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 18 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/tarifs-ia/page.tsx</span></td><td class="val">admin</td><td class="val">23 → <strong>0</strong></td><td class="val">21 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">2</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 12 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/taxonomie/[id]/page.tsx</span></td><td class="val">admin</td><td class="val">77 → <strong>0</strong></td><td class="val">33 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">12</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 18 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/taxonomie/page.tsx</span></td><td class="val">admin</td><td class="val">42 → <strong>0</strong></td><td class="val">24 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">5</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 14 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/utilisateurs/[id]/page.tsx</span></td><td class="val">admin</td><td class="val">69 → <strong>0</strong></td><td class="val">20 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">10</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 21 hérité(s)</td></tr>
+<tr><td><span class="mono">admin/utilisateurs/page.tsx</span></td><td class="val">admin</td><td class="val">58 → <strong>0</strong></td><td class="val">27 → <strong>0</strong></td><td class="val">0</td><td class="val"><span class="mono">5</span> couple(s) · pire <span class="pill p-aa">4,61</span> ≥ 4,5 · 20 hérité(s)</td></tr>
 </tbody>
 </table></div>
+
+<h3>Le contraste page par page — l'inventaire est ouvert, il n'est plus supposé</h3>
+<p class="sub">La colonne du tableau ci-dessus ne vient pas d'une lecture d'écran : elle est produite
+par <span class="mono">scripts/diag-contraste-par-ecran.mjs</span>, qui <strong>ouvre chaque bloc
+<span class="mono">style={{…}}</span> des 66 pages</strong>, en extrait le couple
+<em>(texte, fond)</em> réellement écrit, et le mesure avec le <span class="mono">contrastRatio</span>
+du dépôt.</p>
+
+<div class="cards">
+  <div class="card"><div class="big-n">212</div>
+    <div class="lbl">couples <em>(texte, fond)</em> réellement écrits, sur 37 des 66 pages — les 29 autres n'en posent aucun et héritent de la coquille</div></div>
+  <div class="card"><div class="big-n">0</div>
+    <div class="lbl">couple sous son minimum. Le plus serré est <span class="mono">--sk-red</span> sur <span class="mono">--sk-red-soft</span>, à 4,61 pour 4,5</div></div>
+  <div class="card"><div class="big-n">743</div>
+    <div class="lbl">blocs peignent un texte sur un fond <strong>qu'ils ne déclarent pas</strong> — non déductible du source, donc compté et déclaré, jamais deviné</div></div>
+</div>
+
+<div class="note warn">
+  <span class="t">Pourquoi la mesure par zone, seule, ne suffisait pas</span>
+  <p>Le tableau qui suit mesure douze couples de jetons, une fois, en arguant qu'une page ne
+  définissant plus aucune couleur, son contraste est <strong>entièrement déterminé</strong> par les
+  couples qu'elle emploie. <strong>L'argument est juste — mais il ne vaut que si l'inventaire des
+  couples est complet, et cet inventaire, je ne l'avais pas vérifié : je l'avais supposé.</strong>
+  Il l'est maintenant : 212 couples ouverts un par un, et la liste des jetons employés dépasse les
+  douze du tableau (l'accent et ses dérivés, l'encre, la surface secondaire).</p>
+  <p><strong>Et une erreur de table produit un faux verdict aussi facilement qu'une erreur de
+  produit.</strong> La première version du contrôle avait rangé <span class="mono">--sk-accent</span>
+  à la couleur de marque brute — la valeur avant dérivation. Elle a déclaré trois couples sous leur
+  minimum, à 2,77, sur vingt pages. <strong>Le produit n'avait rien de faux : c'était la table qui
+  l'était.</strong> L'accent est désormais calculé dans le contrôle comme le produit le calcule, par
+  <span class="mono">deriveAccentColor</span> (§E.33).</p>
+</div>
 
 <h3>Le contraste par zone — mesuré, pas estimé</h3>
 <p class="sub">Une page ne définit plus aucune couleur : elle lit des jetons. Le contraste d'une zone
@@ -997,7 +1040,20 @@ produit utilise, pas une seconde implémentation qui ne prouverait rien sur la p
 <p class="note warn"><strong>Ce que cette mesure ne dit pas : qu'une zone emploie le BON couple.</strong>
 <span class="mono">--sk-faint</span> sur une carte vaut 3,75 — parfaitement lisible pour une étiquette
 de structure qu'on balaie, insuffisant pour une phrase qu'on lit. Aucun motif ne distingue les deux.
-Cette moitié-là s'est lue écran par écran : <strong>212 usages ouverts, 179 corrigés, 33 légitimes</strong>.</p>
+Cette moitié-là s'est lue écran par écran : <strong>212 usages ouverts, 180 corrigés,
+32 restants</strong> — et les 32 sont <strong>classés, pas supposés</strong> : 27 étiquettes de
+structure en majuscules, 3 signes décoratifs <span class="mono">aria-hidden</span> (une flèche, un
+point médian, l'icône d'un état vide), 1 pastille d'état qui ne va jamais sans son libellé
+(<span class="mono">lib/verification-state.ts</span>), et la <strong>déclaration du jeton</strong>
+elle-même, qui n'est pas un usage.</p>
+
+<p class="note warn"><strong>Le 180<sup>e</sup> a été trouvé en relisant les 33, le 22/09/2026.</strong>
+La note sous le carrousel de casting — <em>« Note IA de pertinence par rapport à votre annonce »</em> —
+était en texte tenu. <strong>Elle explique le nombre affiché sur chaque carte : c'est un texte qu'on
+lit, pas un repère qu'on balaie.</strong> Elle est passée au texte secondaire. Elle reste
+<span class="mono">aria-hidden</span>, et c'est délibéré : le même texte est déjà porté par
+l'attribut <span class="mono">title</span> du badge de la carte, et l'annoncer deux fois serait pire
+que ne pas l'annoncer.</p>
 
 <footer class="doc">
   <p><strong>Points 1 à 5</strong> mesurés le 21 septembre 2026 au matin sur
