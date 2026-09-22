@@ -57,6 +57,12 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, basename } from 'node:path'
+// LE REJEU EST PARTAGE, ET IL A DEUX LECTEURS (§E.20).
+//   · ici, pour confronter chaque valeur inseree au TYPE de sa colonne ;
+//   · dans diag-colonnes-supprimees, pour savoir ce qui est MORT.
+// Deux rejeux cote a cote auraient vieilli separement, et l'un aurait fini par
+// dire autre chose que l'autre sur le meme SQL.
+import { depouiller, famille, construireSchema } from './lib/schema-migrations.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 // Fins de ligne NORMALISEES : le depot sort les fichiers en CRLF, et un retour
@@ -71,178 +77,22 @@ const ok = (cond, libelle, indice) => {
 const section = (s) => console.log(`\n═══ ${s} ═══\n`)
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. RETIRER LES COMMENTAIRES SQL — SANS TOUCHER AUX CHAINES
+// 1 ET 2. LE DEPOUILLEUR ET LE SCHEMA VIVENT DESORMAIS DANS scripts/lib/
 //
-//   Un `--` dans une chaine ('a--b') n'ouvre pas un commentaire, et une
-//   apostrophe dans un commentaire n'ouvre pas une chaine. Un depouillement
-//   naif par regex se trompe dans les deux sens. On lit donc caractere par
-//   caractere, comme le ferait un analyseur lexical.
+//   `depouiller`, `famille` et `construireSchema` ont ete EXTRAITS vers
+//   scripts/lib/schema-migrations.mjs le 22/09/2026, sans changer une ligne de
+//   leur corps — a une exception MESUREE, et elle corrige ce fichier-ci :
 //
-//   Les blocs $tag$…$tag$ (corps de fonction) sont SAUTES ENTIEREMENT : ils
-//   contiennent du SQL qui n'est pas execute a ce niveau, et leurs `insert`
-//   internes ne sont pas des insertions de cette migration.
-// ─────────────────────────────────────────────────────────────────────────────
-function depouiller(sql) {
-  let out = ''
-  let i = 0
-  while (i < sql.length) {
-    const c = sql[i]
-    const d = sql[i + 1]
-    // Bloc $tag$ … $tag$
-    const dollar = sql.slice(i).match(/^\$([A-Za-z_]*)\$/)
-    if (dollar) {
-      const tag = dollar[0]
-      const fin = sql.indexOf(tag, i + tag.length)
-      // On remplace par des espaces pour PRESERVER LES POSITIONS : les indices
-      // servent ensuite a ordonner les statements les uns par rapport aux autres.
-      const bloc = fin === -1 ? sql.slice(i) : sql.slice(i, fin + tag.length)
-      out += ' '.repeat(bloc.length)
-      i += bloc.length
-      continue
-    }
-    // Chaine '…' (avec '' echappe)
-    if (c === "'") {
-      let j = i + 1
-      while (j < sql.length) {
-        if (sql[j] === "'" && sql[j + 1] === "'") { j += 2; continue }
-        if (sql[j] === "'") { j++; break }
-        j++
-      }
-      out += sql.slice(i, j)
-      i = j
-      continue
-    }
-    // Commentaire de ligne
-    if (c === '-' && d === '-') {
-      let j = sql.indexOf('\n', i)
-      if (j === -1) j = sql.length
-      out += ' '.repeat(j - i)
-      i = j
-      continue
-    }
-    // Commentaire de bloc
-    if (c === '/' && d === '*') {
-      let j = sql.indexOf('*/', i + 2)
-      j = j === -1 ? sql.length : j + 2
-      out += ' '.repeat(j - i)
-      i = j
-      continue
-    }
-    out += c
-    i++
-  }
-  return out
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. LE SCHEMA, RECONSTRUIT DEPUIS LES MIGRATIONS DANS L'ORDRE
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** `"text"[]` · `character varying(7)` · `"jsonb"` → famille normalisee. */
-function famille(brut) {
-  const t = brut.replace(/"/g, '').replace(/\s+/g, ' ').trim().toLowerCase()
-  if (/\[\]\s*$/.test(t)) return 'tableau'
-  if (t.startsWith('jsonb') || t.startsWith('json')) return 'json'
-  if (t.startsWith('boolean') || t === 'bool') return 'booleen'
-  if (/^(integer|int|int4|int8|bigint|smallint|serial|bigserial)\b/.test(t)) return 'entier'
-  if (/^(numeric|decimal|real|double)\b/.test(t)) return 'decimal'
-  if (/^(timestamp|timestamptz|date|time)\b/.test(t)) return 'temps'
-  if (t.startsWith('uuid')) return 'uuid'
-  if (/^(text|character varying|varchar|char|citext)\b/.test(t)) return 'texte'
-  return 'autre'
-}
-
-function construireSchema() {
-  const fichiers = readdirSync(join(ROOT, 'supabase', 'migrations'))
-    .filter((f) => f.endsWith('.sql'))
-    .sort()
-
-  /** table → { colonnes: Map<nom, {famille, brut, notNull, aDefaut}>, fks: [{colonne, cible}] } */
-  const schema = new Map()
-  const tableDe = (n) => {
-    if (!schema.has(n)) schema.set(n, { colonnes: new Map(), fks: [] })
-    return schema.get(n)
-  }
-
-  for (const f of fichiers) {
-    const sql = depouiller(read(join(ROOT, 'supabase', 'migrations', f)))
-
-    // ── CREATE TABLE ──────────────────────────────────────────────────────
-    const reCreate = /create table (?:if not exists )?"?public"?\.?"?([a-z_0-9]+)"?\s*\(([\s\S]*?)\n\)\s*;/gi
-    let m
-    while ((m = reCreate.exec(sql))) {
-      const t = tableDe(m[1])
-      // Decoupe au premier niveau de parentheses : un `numeric(10,2)` ou un
-      // CHECK(...) ne doit pas couper la definition en deux.
-      const corps = m[2]
-      const parties = []
-      let prof = 0
-      let courant = ''
-      for (const ch of corps) {
-        if (ch === '(') prof++
-        if (ch === ')') prof--
-        if (ch === ',' && prof === 0) { parties.push(courant); courant = ''; continue }
-        courant += ch
-      }
-      parties.push(courant)
-
-      for (const p of parties) {
-        const l = p.trim()
-        if (!l) continue
-        if (/^(constraint|primary key|unique|check|foreign key|exclude)\b/i.test(l)) {
-          const fk = l.match(/foreign key\s*\(\s*"?([a-z_0-9]+)"?\s*\)\s*references\s+"?public"?\.?"?([a-z_0-9]+)"?/i)
-          if (fk) t.fks.push({ colonne: fk[1], cible: fk[2] })
-          continue
-        }
-        const col = l.match(/^"?([a-z_0-9]+)"?\s+([\s\S]+)$/i)
-        if (!col) continue
-        const reste = col[2]
-        const typeBrut = reste.split(/\s+(?:default|not null|null|generated|references|check|collate)\b/i)[0]
-        t.colonnes.set(col[1], {
-          famille: famille(typeBrut),
-          brut: typeBrut.replace(/"/g, '').trim(),
-          notNull: /\bnot null\b/i.test(reste),
-          aDefaut: /\bdefault\b/i.test(reste),
-        })
-        const refInline = reste.match(/references\s+"?public"?\.?"?([a-z_0-9]+)"?/i)
-        if (refInline) t.fks.push({ colonne: col[1], cible: refInline[1] })
-      }
-    }
-
-    // ── ALTER TABLE ───────────────────────────────────────────────────────
-    const reAlter = /alter table (?:only )?"?public"?\.?"?([a-z_0-9]+)"?([\s\S]*?);/gi
-    while ((m = reAlter.exec(sql))) {
-      const t = tableDe(m[1])
-      const corps = m[2]
-      for (const a of corps.matchAll(/add column (?:if not exists )?"?([a-z_0-9]+)"?\s+([^,;]+)/gi)) {
-        const typeBrut = a[2].split(/\s+(?:default|not null|null|references|check|collate)\b/i)[0]
-        if (!t.colonnes.has(a[1])) {
-          t.colonnes.set(a[1], {
-            famille: famille(typeBrut),
-            brut: typeBrut.replace(/"/g, '').trim(),
-            notNull: /\bnot null\b/i.test(a[2]),
-            aDefaut: /\bdefault\b/i.test(a[2]),
-          })
-        }
-      }
-      for (const d of corps.matchAll(/drop column (?:if exists )?"?([a-z_0-9]+)"?/gi)) {
-        t.colonnes.delete(d[1])
-      }
-      for (const r of corps.matchAll(/rename column "?([a-z_0-9]+)"? to "?([a-z_0-9]+)"?/gi)) {
-        const v = t.colonnes.get(r[1])
-        if (v) { t.colonnes.delete(r[1]); t.colonnes.set(r[2], v) }
-      }
-      const fk = corps.match(/add constraint [^\s]+ foreign key\s*\(\s*"?([a-z_0-9]+)"?\s*\)\s*references\s+"?public"?\.?"?([a-z_0-9]+)"?/i)
-      if (fk) t.fks.push({ colonne: fk[1], cible: fk[2] })
-    }
-
-    // ── DROP TABLE ────────────────────────────────────────────────────────
-    for (const d of sql.matchAll(/drop table (?:if exists )?"?public"?\.?"?([a-z_0-9]+)"?/gi)) {
-      schema.delete(d[1])
-    }
-  }
-  return schema
-}
+//   ⚠️ LE DDL SE LIT DESORMAIS A L'INTERIEUR DES BLOCS `do $$ … $$`.
+//      Cinq `alter table … rename column` du depot y vivent (gardes
+//      d'idempotence). Ce fichier les ignorait : son schema croyait encore
+//      `publications.location` vivante et `location_note` inexistante —
+//      c'est-a-dire l'inverse de la base. Aucune insertion ne citait ces
+//      colonnes, donc aucun verdict ne bougeait ; le schema n'en etait pas
+//      moins faux, et il l'aurait ete au premier seed qui les cite.
+//
+//   Les INSERTIONS, elles, continuent de se lire SANS les blocs : leurs
+//   `insert` internes ne sont pas des insertions de cette migration.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. LIRE LES INSERTIONS D'UNE MIGRATION

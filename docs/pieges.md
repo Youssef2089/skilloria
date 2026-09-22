@@ -2988,6 +2988,93 @@ et il le trouvait : l'instruction y est bien écrite. Elle n'a simplement **rien
 > d'elles était déjà passée. C'est [§E.12](#e12) pour les données, et c'est vrai du schéma aussi.
 
 
+<a id="e61"></a>
+### E.61 — UN CONTRÔLE DONT LA COUVERTURE EST UNE LISTE TENUE À LA MAIN NE PROTÈGE QUE CE QU'ON A PENSÉ À LUI DONNER.
+
+**Le cas, mesuré le 22/09/2026.** `GET /api/me/missions/[id]` sélectionnait `matches.score`,
+colonne **supprimée le 1ᵉʳ septembre** par `score_de_pertinence`. La base répondait
+`column matches.score does not exist` ; **aucune mission ne s'ouvrait** ; et comme le bouton
+« Postuler » ne vit que sur cet écran, **personne ne pouvait postuler** — donc le seul endroit où
+Claude devait encore entrer était inatteignable. **Trois semaines, et rien ne l'a dit.**
+
+**Le cliquet existait pourtant, et il était vert.** `diag-colonnes-supprimees` défendait exactement
+cette propriété — « aucune chaîne ne cite une colonne supprimée » — depuis le lot 2c. Il ne
+connaissait simplement pas celle-là : **sa liste était écrite à la main**, six noms ajoutés un par un
+par ceux qui y pensaient au moment de la migration.
+
+> **LE DÉFAUT N'EST PAS LA LIGNE OUBLIÉE. C'EST QUE LA COUVERTURE DU CONTRÔLE DÉPENDAIT DE LA
+> MÉMOIRE DE CELUI QUI L'ALIMENTAIT.** Une liste tenue à la main est une **discipline** ; et une
+> discipline, par construction, protège de tout sauf du jour où l'on oublie (§E.31).
+
+**La mesure qui donne l'ordre de grandeur, et elle est nette.**
+
+| | |
+|---|---|
+| ce que la liste à la main connaissait | **6** noms |
+| ce que le rejeu des migrations trouve | **21** colonnes mortes hors tables héritées |
+| ce que le balayage a trouvé en première exécution | **15 lectures mortes, dans 8 fichiers** |
+
+Les quinze n'étaient pas toutes dormantes : outre le détail de mission, **`POST /api/profile/cv/reset`
+écrivait deux colonnes mortes** — l'expert qui supprimait son CV recevait « Update failed » **après**
+que le fichier eut été retiré du stockage, et repartait avec un chemin qui ne pointait plus sur rien.
+
+**LA PARADE — DÉRIVER, JAMAIS RECOPIER.** Le registre des colonnes mortes se **rejoue depuis les
+migrations**, dans l'ordre : `create table`, `add column`, `drop column`, `rename column`,
+`drop table`. Une colonne supprimée puis recréée n'y est pas ; une colonne renommée y entre par son
+ancien nom. C'est **la mécanique de [§E.60](#e60)** — `diag-index-sautes` rejoue déjà l'historique
+pour les index — et elle vivait **déjà à moitié** dans `diag-migration-donnees`, qui reconstruisait
+le schéma pour confronter les types. Elle est donc **extraite**, pas réécrite :
+[scripts/lib/schema-migrations.mjs](../scripts/lib/schema-migrations.mjs), **un rejeu, deux
+lecteurs** — les types et les morts. Un second dialecte aurait vieilli séparément (§E.20).
+
+> ⚠️ **ET L'EXTRACTION A CORRIGÉ LE LECTEUR HISTORIQUE, SANS CHANGER UN SEUL DE SES VERDICTS.**
+> Le rejeu lisait le SQL **dépouillé de ses blocs `do $$ … $$`** — et **cinq
+> `alter table … rename column` du dépôt vivent à l'intérieur d'un de ces blocs** (gardes
+> d'idempotence). Le schéma reconstruit croyait donc `publications.location` vivante et
+> `location_note` inexistante : **l'inverse exact de la base**. Aucune insertion ne citait ces
+> colonnes, donc aucun verdict ne bougeait — et c'est précisément ce qui rendait l'erreur
+> increvable. Vérifié : sortie **identique, caractère pour caractère**, avant et après.
+
+**L'ATTRIBUTION DE LA TABLE EST LA MOITIÉ QUI FAIT MARCHER LE CONTRÔLE, ET ELLE N'EST PAS UN
+RAFFINEMENT.** `score` est **morte** sur `matches` et **vivante** sur
+`matching_notes_partielles` ; `location` est morte sur `publications` et vivante sur
+`profiles` ; `seniority` et `speciality_id` sont mortes sur `profiles` et vivantes sur
+`profile_alerts`. Un balayage **par nom seul** serait donc faux dans les deux sens — et un contrôle
+qui crie à tort est désactivé le jour même (§E.14). Sur les 21 mortes, **9 seulement** le sont sur
+toutes les tables.
+
+On résout donc la table : la chaîne `.from('x')` et ses appels (ancrée sur le bloc, jamais une
+regex lâchée — §E.8), les embeds PostgREST qui portent leur propre table, les références qualifiées
+`x.col`, les reprises `q = q.eq(…)` d'une requête construite en plusieurs morceaux, et les corps
+de fonction SQL par leurs alias de `from` / `join`.
+
+> **ET LES VUES SQL COMPTENT.** Une fonction qui lit une colonne morte ne casse **ni à la
+> compilation, ni à la migration** : elle casse **en base**, le jour où quelqu'un l'appelle. Seule la
+> **dernière définition** de chaque fonction compte — `create or replace` remplace, et c'est
+> celle-là qu'il faut confronter au schéma **final**.
+
+**CE QUI NE SE RÉSOUT PAS SE NOMME, AVEC SON ADRESSE (§E.38).** Le dépliage de constantes est borné
+et statique : il suit `const`, littéraux, concaténations, tableaux, gabarits et ternaires, il
+n'appelle aucune fonction. Ce qui lui échappe est **compté et affiché à chaque exécution**, fichier
+et ligne — pas rangé dans un silence. Mesure du 22/09/2026 : **1 select sur 16** reste illisible,
+`lib/missions/feed.ts` (`opts.select`, un paramètre), et il est écrit à l'écran.
+
+> **Deux pièges payés en l'écrivant, et les deux sont dans cette même section §E.**
+> ① **Le contrôle rougissait sur ses propres témoins** : ils sont de vrais
+> `.from('matches').select('… score …')`, et c'est tout leur intérêt. Il se retire donc du
+> balayage — par `import.meta.url`, qui survit à un renommage, jamais par un chemin (§E.34).
+> ② **Sa sentinelle lisait un COMMENTAIRE.** Elle vérifie qu'aucun `createClient<Database>`
+> n'existe (sans quoi `lib/database.types.ts` cesse d'être inerte et son exemption tombe) — et
+> elle a rougi immédiatement, sur **trois commentaires**, dont celui de `database.types.ts` qui
+> cite la forme pour expliquer qu'elle n'est pas employée. **§E.7, dans le contrôle même qui s'en
+> réclame.**
+
+**La règle, et elle vaut pour tous les cliquets du dépôt :**
+> **UNE LISTE QU'ON ALIMENTE À LA MAIN MESURE CE QU'ON A PENSÉ À Y METTRE, JAMAIS CE QUI EXISTE.
+> Partout où l'inventaire peut se DÉRIVER de la source — les migrations, le disque, l'historique
+> git — il se dérive. Ce qui reste écrit à la main n'est plus une couverture : c'est une
+> EXEMPTION, elle porte sa raison, et le contrôle la compte à voix haute (§G.8).**
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
