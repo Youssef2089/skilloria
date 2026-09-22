@@ -415,9 +415,28 @@ ok(
   'un changement de prix crée un NOUVEAU price et archive l\'ancien',
   'Les Price Stripe sont immuables ; les abonnements en cours restent sur l\'ancien (grand-père tarifaire).',
 )
+/* ⚠️ CETTE ASSERTION S'ANCRAIT SUR L'EXPRESSION, PAS SUR LA PROPRIETE.
+      Elle exigeait `is_default` ET `price_monthly === null` LITTERALEMENT dans
+      catalogue.ts. Le 22/09/2026, la regle de vendabilite a ete extraite dans
+      lib/billing/vendabilite.ts — une seule implementation au lieu de deux
+      copies divergentes (§E.20) — et cette assertion a rougi sur un
+      comportement INCHANGE, voire plus strict (le prix nul ecarte desormais
+      aussi le zero). C'est §E.34, dans un second controle du meme lot.
+
+      La propriete, elle, n'a pas bouge : UNE OFFRE NON VENDABLE EST REFUSEE
+      EXPLICITEMENT, avec sa raison — jamais poussee, jamais ignoree en
+      silence. On verifie donc que la decision est DELEGUEE au module qui la
+      porte, et que son refus remonte avec un motif. */
 ok(
-  /is_default/.test(catalogue) && /price_monthly === null/.test(catalogue),
-  'les offres non vendables (par défaut, sans tarif) sont refusées explicitement',
+  /vendabilite\(/.test(catalogue) && /raisonNonVendable\(/.test(catalogue),
+  'les offres non vendables sont refusées explicitement, AVEC leur raison',
+  'la règle vit dans lib/billing/vendabilite.ts — une seule implémentation',
+)
+ok(
+  /price_monthly === null/.test(stripJs(read('lib/billing/vendabilite.ts'))) &&
+    /n <= 0/.test(stripJs(read('lib/billing/vendabilite.ts'))),
+  '… et elle écarte le tarif ABSENT comme le tarif à ZÉRO',
+  'un Price récurrent à 0,00 € n’encaisse rien et apparaîtrait pourtant comme une offre réelle',
 )
 ok(
   /toMinorUnits/.test(catalogue) && /toMinorUnits/.test(stripeMod),
