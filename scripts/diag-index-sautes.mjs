@@ -52,43 +52,31 @@ const sansCommentaires = (sql) =>
     .map((l) => (l.trimStart().startsWith('--') ? '' : l.replace(/--.*$/, '')))
     .join('\n')
 
-/* ┌─ LE GEL, ET IL PORTE UN DEFAUT NOMME ───────────────────────────────────┐
-   │ §G.8 : un gel d'EXEMPTIONS exige une raison par entree, et chaque raison │
-   │ commence par LEGITIME ou par DEFAUT NOMME. Celles-ci sont des defauts.   │
-   │                                                                          │
-   │ On ne corrige pas le passe : la migration est APPLIQUEE, et la reecrire  │
-   │ ferait diverger le disque de `schema_migrations`. On l'INSCRIT, et on    │
-   │ ferme l'avenir — exactement comme les quatre migrations mal numerotees   │
-   │ de §G.2.                                                                 │
-   └──────────────────────────────────────────────────────────────────────────┘ */
-const GEL = {
-  '20260922000010_catalogue_stripe_par_mode.sql': {
-    noms: [
-      'idx_packages_stripe_product',
-      'idx_packages_stripe_price_monthly',
-      'idx_packages_stripe_price_yearly',
-    ],
-    raison:
-      'DEFAUT NOMME — les trois noms appartenaient aux index de packages.stripe_*. ' +
-      '`if not exists` a saute les creations sans rien dire, puis le drop column a ' +
-      'emporte les anciens : packages_stripe est reste sans aucune garde. ' +
-      'Repare par 20260922000040, avec des noms distincts et une postcondition. ' +
-      'Cette migration est APPLIQUEE : on l inscrit, on ne la reecrit pas (§G.2).',
-  },
-  '20260919000010_suivi_consommation.sql': {
-    noms: ['ai_spend_action_mois_idx'],
-    raison:
-      'DEFAUT NOMME, TROUVE PAR CE CONTROLE A SA PREMIERE EXECUTION — et NON ' +
-      'REPARE, volontairement. Le nom etait pris depuis 20260916110000, sur la ' +
-      'MEME table, avec les colonnes dans l ORDRE INVERSE : (action, created_at) ' +
-      'contre (created_at, action). La creation a ete sautee, donc l index annonce ' +
-      'pour « la lecture par mois » N EXISTE PAS ; c est l ancien, taille pour un ' +
-      'autre tri, qui sert. AUCUNE GARANTIE N EST PERDUE — c est un index de ' +
-      'PERFORMANCE, pas une garde : rien de faux ne peut en sortir, seulement une ' +
-      'lecture plus lente. Le reparer demande de creer un index sur une table de ' +
-      'journal qui grossit, donc de decider de la duree d un verrou : c est un ' +
-      'arbitrage rendu a l architecte, pas une ligne a glisser dans ce lot.',
-  },
+/* ┌─ IL N'Y A PLUS DE GEL, ET C'EST MIEUX QU'UN GEL VIDE ───────────────────┐
+   │ Ce controle a d'abord porte un gel de NOMS : trois occurrences de         │
+   │ `catalogue_stripe_par_mode`, une de `suivi_consommation`, chacune avec sa │
+   │ raison (§G.8). Un gel tolere une ligne PARCE QU'ELLE EST ECRITE DANS UNE  │
+   │ LISTE — et il faut se souvenir de l'en retirer quand elle est reparee.    │
+   │                                                                            │
+   │ La propriete qui compte n'est pas « ce nom a deja servi » : c'est         │
+   │ QU'AUCUN INDEX ANNONCE NE MANQUE. Une creation sautee est donc un defaut  │
+   │ SAUF si une migration ULTERIEURE cree le meme index — meme table, memes   │
+   │ colonnes — POUR DE BON, sans `if not exists`.                            │
+   │                                                                            │
+   │ Le gel disparait de lui-meme quand les deux cas sont repares, et une      │
+   │ collision NEUVE et non reparee rougit sans qu'on ait rien a inscrire.     │
+   └────────────────────────────────────────────────────────────────────────────┘ */
+
+/** Colonnes d'un index, normalisees : l'ORDRE compte, le sens de tri non. */
+function colonnesDe(liste) {
+  return liste
+    .toLowerCase()
+    .replace(/\s+(desc|asc)\b/g, '')
+    .replace(/\s+nulls\s+(first|last)\b/g, '')
+    .split(',')
+    .map((c) => c.trim())
+    .filter(Boolean)
+    .join(',')
 }
 
 let echecs = 0
@@ -110,13 +98,13 @@ const migrations = readdirSync(DOSSIER)
 
 /** nom d'index → { migration, table } — les index VIVANTS à cet instant. */
 const vivants = new Map()
-/** Les collisions trouvées, en dehors du gel. */
-const collisions = []
-/** Les entrées du gel réellement rencontrées — un gel périmé ment (§E.16). */
-const gelVu = new Set()
+/** Les créations SAUTÉES — avec ce qui était voulu (table, colonnes). */
+const sautees = []
+/** Les créations réellement passées : c'est parmi elles qu'on cherche la réparation. */
+const creees = []
 
 const CREATION =
-  /create\s+(unique\s+)?index\s+(concurrently\s+)?(if\s+not\s+exists\s+)?([a-z0-9_]+)\s+on\s+(?:only\s+)?(?:public\.)?([a-z0-9_]+)/gi
+  /create\s+(unique\s+)?index\s+(concurrently\s+)?(if\s+not\s+exists\s+)?([a-z0-9_]+)\s+on\s+(?:only\s+)?(?:public\.)?([a-z0-9_]+)\s*\(([^)]*)\)/gi
 const SUPPRESSION_INDEX = /drop\s+index\s+(?:concurrently\s+)?(?:if\s+exists\s+)?(?:public\.)?([a-z0-9_]+)/gi
 const SUPPRESSION_COLONNE = /alter\s+table\s+(?:only\s+)?(?:public\.)?([a-z0-9_]+)([\s\S]*?);/gi
 const SUPPRESSION_TABLE = /drop\s+table\s+(?:if\s+exists\s+)?(?:public\.)?([a-z0-9_]+)/gi
@@ -160,15 +148,24 @@ for (const f of migrations) {
     const siPasExiste = Boolean(m[3])
     const nom = m[4].toLowerCase()
     const table = m[5].toLowerCase()
+    const colonnes = colonnesDe(m[6] ?? '')
     const deja = vivants.get(nom)
 
     if (deja && siPasExiste) {
-      const gele = GEL[f]
-      if (gele && gele.noms.includes(nom)) {
-        gelVu.add(`${f}::${nom}`)
-      } else {
-        collisions.push({ migration: f, nom, table, precedente: deja.migration, avant: deja.table })
-      }
+      // SAUTEE : Postgres ne cree rien et ne dit rien. On note ce qui etait
+      // VOULU — table et colonnes — pour savoir plus tard si quelqu'un l'a
+      // reellement pose.
+      sautees.push({
+        migration: f,
+        nom,
+        table,
+        colonnes,
+        precedente: deja.migration,
+        avant: deja.table,
+      })
+    } else {
+      // REELLEMENT CREE (le nom etait libre). C'est cette liste qui repare.
+      creees.push({ migration: f, nom, table, colonnes, siPasExiste })
     }
     // Vivant, quoi qu'il arrive : si la création a été sautée, c'est l'ANCIEN
     // qui reste vivant — et c'est bien ce que la base contient.
@@ -179,34 +176,49 @@ for (const f of migrations) {
 section('Les créations d’index sautées en silence')
 
 ok(migrations.length > 0, `${migrations.length} migration(s) rejouée(s) dans l’ordre`)
+
+/**
+ * UNE CREATION SAUTEE EST-ELLE REPAREE ?
+ *
+ * Reparee = une migration ULTERIEURE cree, sur la MEME table et avec les MEMES
+ * colonnes dans le MEME ordre, un index qui existe pour de bon — donc sous un
+ * nom libre, et sans `if not exists` (sinon on ne fait que deplacer le pari).
+ *
+ * ⚠️ L'ORDRE DES COLONNES FAIT PARTIE DE L'IDENTITE. `(action, created_at)` et
+ *    `(created_at, action)` ne servent pas la meme lecture : les confondre
+ *    declarerait reparee une creation qui ne l'est pas — precisement le cas de
+ *    `ai_spend_action_mois_idx`.
+ */
+const reparee = (s) =>
+  creees.some(
+    (c) =>
+      c.migration > s.migration &&
+      c.table === s.table &&
+      c.colonnes === s.colonnes &&
+      !c.siPasExiste,
+  )
+
+const orphelines = sautees.filter((s) => !reparee(s))
+
 ok(
-  collisions.length === 0,
-  'aucun `create index if not exists` sur un nom déjà vivant',
-  collisions
+  orphelines.length === 0,
+  'aucune création d’index sautée n’est restée sans réparation',
+  orphelines
     .map(
       (c) =>
-        `${c.migration} crée « ${c.nom} » sur ${c.table}, mais ce nom vit déjà depuis ${c.precedente} (sur ${c.avant}) — la création sera SAUTÉE`,
+        `${c.migration} annonce « ${c.nom} » sur ${c.table} (${c.colonnes}), mais ce nom vit déjà depuis ${c.precedente} (sur ${c.avant}) — la création est SAUTÉE, et rien ne la repose ensuite`,
     )
     .join(' · '),
 )
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   LE GEL NE MENT PAS
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-section('Le gel — un défaut nommé, et il ne peut que descendre')
-
-let gelees = 0
-for (const [f, e] of Object.entries(GEL)) {
-  for (const nom of e.noms) {
-    gelees++
-    const vu = gelVu.has(`${f}::${nom}`)
-    ok(vu, `gelé et toujours présent : ${f} → ${nom}`,
-      'une entrée de gel qui ne correspond à rien ment : la retirer')
+if (sautees.length > 0) {
+  console.log('')
+  for (const c of sautees) {
+    console.log(
+      `       ≡ sautée puis RÉPARÉE : ${c.migration} → « ${c.nom} » (${c.table} : ${c.colonnes})`,
+    )
   }
-  console.log(`       ${e.raison}`)
 }
-ok(gelVu.size === gelees, `${gelVu.size} occurrence(s) gelée(s) sur ${gelees} déclarée(s)`)
 
 /* ═══════════════════════════════════════════════════════════════════════════
    ET LA MIGRATION CORRECTIVE SE VERIFIE ELLE-MEME
@@ -241,6 +253,38 @@ if (corrective.length === 1) {
     /tc\.relname = 'packages_stripe'/.test(sql),
     '… et que l’index porte bien sur `packages_stripe`',
     "la postcondition de 20260910300000 n'interrogeait que `relname` : elle aurait trouvé l'index de `packages` et conclu que tout allait bien",
+  )
+}
+
+/**
+ * LA SECONDE CORRECTIVE — celle qui SUPPRIME un index avant d'en créer un.
+ *
+ * ⚠️ C'EST LE GESTE LE PLUS DANGEREUX DE TOUT CE LOT. Un nom d'index étant
+ *    unique PAR SCHÉMA, un `drop index if exists` à l'aveugle sur un nom qui
+ *    appartiendrait à une AUTRE table supprimerait l'index de cette autre
+ *    table — la faute du jour, en pire et SANS RETOUR : un index supprimé ne
+ *    se redécouvre pas, il se remarque quand une lecture devient lente.
+ */
+const correctiveDepense = migrations.filter((f) => f.endsWith('_index_depense_par_mois.sql'))
+ok(
+  correctiveDepense.length === 1,
+  `la corrective de la dépense existe et est unique (${correctiveDepense.length})`,
+)
+if (correctiveDepense.length === 1) {
+  const sql = sansCommentaires(lire(correctiveDepense[0]))
+  ok(
+    !/drop\s+index\s+if\s+exists/i.test(sql),
+    'elle ne fait AUCUN `drop index if exists`',
+    'un nom d’index est unique par schéma : un drop à l’aveugle emporte l’index d’une autre table',
+  )
+  ok(
+    /v_table\s*<>\s*'ai_spend_events'[\s\S]{0,300}?raise exception/i.test(sql),
+    '… elle VÉRIFIE la table du nom avant de supprimer, et LÈVE si ce n’est pas la sienne',
+  )
+  ok(
+    /created_at DESC, action/.test(sql) && /raise exception/i.test(sql),
+    'et sa postcondition exige les colonnes DANS L’ORDRE',
+    '(action, created_at) et (created_at, action) ne servent pas la même lecture',
   )
 }
 

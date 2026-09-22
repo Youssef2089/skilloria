@@ -306,8 +306,8 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **77** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
-22/09/2026, à l'exécution — les 71ᵉ à 77ᵉ laissent les trois autres compteurs **inchangés**, et
+Sur les **78** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
+22/09/2026, à l'exécution — les 71ᵉ à 78ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
 lignes existantes ; `inacheves_hors_annonces_expirees` ne fait que remplacer le corps d'une fonction
 de lecture ; `empreinte_des_notes` **vide** une table éphémère et lui ajoute une colonne ;
@@ -315,7 +315,8 @@ de lecture ; `empreinte_des_notes` **vide** une table éphémère et lui ajoute 
 **vérifié** qu'elles étaient nulles. La cinquième, `commentaire_offre_gratuite`, ne touche que des **commentaires de colonne**.
 La sixième, `offre_gratuite_explicite`, ajoute une colonne et durcit deux contraintes : son `update` REMPLIT une colonne neuve, il n'insère aucune ligne.
 La septième, `index_packages_stripe`, ne crée que des index.
-**Aucune des sept n'insère quoi que ce soit**, donc elles
+La huitième, `index_depense_par_mois`, ne fait qu'échanger deux index.
+**Aucune des huit n'insère quoi que ce soit**, donc elles
 échappent par construction à la classe que cette section décrit. Au 20/09/2026, la 70ᵉ, `verification_nocturne_stripe`, apportait l'insertion et la ligne
 de plus : son entrée au catalogue des tâches planifiées, six valeurs. Les chiffres précédents,
 **69 / 51 / 39 / 1962**, dataient du 17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois
@@ -2902,9 +2903,36 @@ rien : une migration passe **une** fois, et `schema_migrations` le garantit.
 nom dit alors ce qu'il est, et pas seulement ce qu'il indexe.
 ③ **La migration vérifie ce qu'elle a créé**, et lève sinon.
 
-> ⚠️ **ON NE FAIT PAS `drop index if exists` AVANT.** Le nom étant unique par schéma, un `drop` sur
-> un nom appartenant à une **autre** table supprimerait l'index de cette autre table — la faute du
-> jour, en pire et sans retour.
+> **C'EST LA TROISIÈME QUI AURAIT SUFFI — À UNE CONDITION.** Le motif existait déjà dans le fichier
+> voisin, et il n'aurait **rien vu** : il interroge `pg_class where relname = '…'`, c'est-à-dire
+> « ce nom existe-t-il **quelque part** ». Il aurait trouvé l'index de `packages`, encore vivant à
+> cet instant, et conclu que tout allait bien.
+>
+> **Une postcondition d'index vérifie TROIS choses, et la deuxième est celle qu'on oublie :**
+> · le **nom** existe ; · il porte sur **la bonne table** ; · il a la **bonne forme** — unique quand
+> c'est une garde, les bonnes colonnes **dans le bon ordre** quand c'est une lecture.
+>
+> Vérifier le nom seul, c'est vérifier qu'une chaîne de caractères est prise dans le schéma. Ça ne
+> dit rien de ce qu'on voulait poser.
+
+> ⚠️ **LE PIÈGE DERRIÈRE LE PIÈGE : ON NE FAIT PAS `drop index if exists` AVANT.**
+>
+> Le réflexe, quand on découvre qu'un nom est pris, est de le libérer : `drop index if exists <nom>`
+> puis `create index <nom>`. **C'est la même faute, retournée, et elle est pire.**
+>
+> Le nom étant unique **par schéma**, ce `drop` ne vise pas « l'index de ma table qui porte ce nom » :
+> il vise **le seul index du schéma qui porte ce nom**, quelle que soit sa table. Sur un nom
+> appartenant à une autre table, il **supprime l'index de cette autre table**, silencieusement, et
+> `if exists` garantit qu'aucune erreur ne sera levée.
+>
+> **Et c'est sans retour.** Une création sautée laisse une garantie absente, qu'une lecture de la base
+> retrouve. Une suppression réussie sur la mauvaise table ne laisse **rien** : ni trace, ni message —
+> on s'en aperçoit le jour où une lecture devient lente, ou le jour où une unicité qu'on croyait
+> acquise ne tient plus.
+>
+> **La règle : on ne libère jamais un nom. On en prend un autre.** Et si une suppression est vraiment
+> nécessaire — c'est le cas de la seconde occurrence ci-dessous — elle **vérifie la table du nom
+> avant d'agir**, et **lève** si ce n'est pas la sienne.
 
 **Contrôle** : [scripts/diag-index-sautes.mjs](../scripts/diag-index-sautes.mjs) — **5 mutations,
 5 détections**, dont le cas réel. Il **rejoue l'historique des migrations dans l'ordre**, tient le
@@ -2912,14 +2940,46 @@ registre des index vivants, et refuse toute création `if not exists` sur un nom
 connaît les suppressions **explicites** (`drop index`) **et implicites** (`drop column`, `drop
 table`) — c'est par la seconde que ce cas est passé, sans que le mot « index » apparaisse nulle part.
 
-> **IL A TROUVÉ UNE SECONDE OCCURRENCE À SA PREMIÈRE EXÉCUTION.**
-> `20260919000010_suivi_consommation` recrée `ai_spend_action_mois_idx`, nom pris depuis
+> **IL A TROUVÉ UNE SECONDE OCCURRENCE À SA PREMIÈRE EXÉCUTION — RÉPARÉE LE JOUR MÊME.**
+> `20260919000010_suivi_consommation` recréait `ai_spend_action_mois_idx`, nom pris depuis
 > `20260916110000`, **sur la même table, avec les colonnes dans l'ordre inverse** —
 > `(created_at, action)` contre `(action, created_at)`. La création a été sautée : l'index annoncé
-> pour « la lecture par mois » **n'existe pas**, c'est l'ancien, taillé pour un autre tri, qui sert.
-> **Aucune garantie n'est perdue** — c'est un index de performance — et il est **gelé, nommé, non
-> réparé** : le corriger demande de décider de la durée d'un verrou sur une table de journal qui
-> grossit, ce qui est un arbitrage, pas une ligne à glisser dans un lot voisin.
+> pour « la lecture par mois » n'existait pas, c'est l'ancien, taillé pour un autre tri, qui servait.
+> **Aucune garantie n'était perdue** — un index de performance, pas une garde.
+>
+> **RÉPARÉ MAINTENANT PARCE QUE C'EST MAINTENANT QUE C'EST GRATUIT.** `ai_spend_events` ne contient
+> **aucune ligne** : le verrou dure zéro seconde. Dans six mois, sur une table de journal pleine, le
+> même geste devient un arbitrage — combien de temps accepte-t-on de bloquer les écritures. Décision
+> de Youssef : *le seul moment où fermer ce trou est gratuit, c'est maintenant.*
+>
+> **L'ancien index est parti**, et la question a été tranchée par une mesure, pas par prudence : les
+> **quatre** lecteurs de la table ont été relus, **aucun ne filtre sur `action`** — le troisième la
+> *groupe*, ce qui n'est pas la même chose, son prédicat sélectif étant la fenêtre de temps. Et
+> aucun code applicatif ne lit cette table : `revoke all` + `grant to service_role`, et
+> `lib/ai-budget.ts` n'y fait qu'un `insert`. **L'inventaire des lecteurs est complet, pas
+> échantillonné.**
+
+> **ET LE CONTRÔLE N'A PLUS DE GEL — ce qui vaut mieux qu'un gel vide.** Il en a porté un, avec ses
+> raisons (§G.8). Mais un gel tolère une ligne **parce qu'elle est écrite dans une liste**, et il
+> faut penser à l'en retirer quand elle est réparée. La propriété qui compte n'est pas « ce nom a
+> déjà servi » : c'est **qu'aucun index annoncé ne manque**. Une création sautée est donc un défaut
+> **sauf si** une migration ultérieure crée le même index — même table, **mêmes colonnes dans le même
+> ordre** — pour de bon, sans `if not exists`. Le gel se vide alors **de lui-même**, et une collision
+> neuve et non réparée rougit sans qu'on ait rien à inscrire.
+
+**ET C'EST [§E.56](#e56) POUR LA DEUXIÈME FOIS — « J'avais vérifié le contrôle, pas l'écran. »**
+
+Mon propre contrôle affirmait l'unicité par mode. Il cherchait
+`create unique index … (mode, price_id_monthly)` **dans le texte de la migration qui l'annonçait**,
+et il le trouvait : l'instruction y est bien écrite. Elle n'a simplement **rien créé**.
+
+> **Le contrôle était vert et la base était nue.** La première fois, j'avais vérifié le contrôle et
+> pas l'écran ; ici, j'ai vérifié **le texte** et pas **la base**. C'est la même faute avec un autre
+> substitut : on mesure la chose la plus proche, celle qu'un fichier donne tout de suite, et on la
+> prend pour la chose elle-même.
+>
+> **Ce qui distingue une assertion utile d'une assertion rassurante : peut-elle être vraie pendant
+> que le produit est faux ?** Ici, oui — et rien dans le contrôle ne le disait.
 
 **Et la leçon qui déborde les index.**
 > **Une migration qui « réussit » n'a rien prouvé. `db push` rapporte ce qu'il a ENVOYÉ, pas ce que
