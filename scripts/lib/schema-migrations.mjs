@@ -277,8 +277,17 @@ export function rejouerMigrations() {
     //  `create or replace` remplace : une fonction ecrite en migration 12 et
     //  reecrite en migration 40 ne vit qu'a travers la seconde. C'est donc
     //  celle-la, et elle seule, qu'il faut confronter au schema FINAL.
+    // ⚠️ `public.` EST FACULTATIF, ET IL L'ETAIT DEJA EN SQL.
+    //    Le motif l'EXIGEAIT : `create view v_x as …` — sans schema, donc dans
+    //    `public` par defaut — n'etait pas collecte, et son corps echappait au
+    //    balayage. Les 73 definitions du depot sont toutes qualifiees, donc
+    //    AUCUN verdict ne change : c'est une porte ouverte pour la prochaine,
+    //    pas une prise. Trouve par MUTATION (§G.5), pas a la lecture — un motif
+    //    se juge sur ce qu'il RATE, et ce qu'il rate ne se voit nulle part.
+    //    Le groupe du schema est NON CAPTURANT : sans \. explicite, `([a-z_0-9]+)`
+    //    aurait pu manger `public` et nommer la fonction « public ».
     for (const d of sqlAvecCorps.matchAll(
-      /create\s+(?:or\s+replace\s+)?(?:materialized\s+)?(function|view)\s+"?public"?\.?"?([a-z_0-9]+)"?/gi,
+      /create\s+(?:or\s+replace\s+)?(?:materialized\s+)?(function|view)\s+(?:"?public"?\s*\.\s*)?"?([a-z_0-9]+)"?/gi,
     )) {
       const nom = d[2].toLowerCase()
       const debut = d.index
@@ -295,7 +304,7 @@ export function rejouerMigrations() {
       fonctions.set(nom, { migration: f, corps: sqlAvecCorps.slice(debut, fin) })
     }
     for (const d of sqlAvecCorps.matchAll(
-      /drop\s+(?:materialized\s+)?(?:function|view)\s+(?:if\s+exists\s+)?"?public"?\.?"?([a-z_0-9]+)"?/gi,
+      /drop\s+(?:materialized\s+)?(?:function|view)\s+(?:if\s+exists\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_0-9]+)"?/gi,
     )) {
       // ⚠️ UN `drop function` SUIVI D'UN `create` DANS LA MEME MIGRATION EST LE
       //    MOTIF NORMAL (changer la signature). On ne supprime donc que si
@@ -303,7 +312,7 @@ export function rejouerMigrations() {
       const nom = d[1].toLowerCase()
       const apres = sqlAvecCorps.slice(d.index)
       const recree = new RegExp(
-        `create\\s+(?:or\\s+replace\\s+)?(?:materialized\\s+)?(?:function|view)\\s+"?public"?\\.?"?${nom}"?`,
+        `create\\s+(?:or\\s+replace\\s+)?(?:materialized\\s+)?(?:function|view)\\s+(?:"?public"?\\s*\\.\\s*)?"?${nom}"?`,
         'i',
       ).test(apres)
       if (!recree) fonctions.delete(nom)
