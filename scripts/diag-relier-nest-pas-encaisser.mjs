@@ -216,10 +216,30 @@ if (migrations.length === 1) {
     /check \(mode in \('test', 'live'\)\)/.test(sql),
     'et il ne peut valoir que `test` ou `live`',
   )
-  ok(
-    /create unique index[\s\S]{0,120}?\(mode, price_id_monthly\)/.test(sql),
-    'l’unicité d’un prix est PAR MODE',
+  /* ⚠️ CETTE ASSERTION LISAIT LE TEXTE D'UNE MIGRATION QUI N'A RIEN CREE.
+        Elle cherchait `create unique index … (mode, price_id_monthly)` DANS
+        `catalogue_stripe_par_mode`, et le trouvait. L'instruction y est bien —
+        mais son NOM etait deja pris par un index de `packages`, `if not exists`
+        a saute la creation, et la garde n'a JAMAIS existe (§E.60).
+
+        Le controle etait vert, et la base etait nue. On ne verifie donc plus la
+        PRESENCE D'UNE PHRASE dans la migration qui l'annonce, mais la migration
+        qui la CREE POUR DE BON — celle qui n'emploie pas `if not exists` et qui
+        se verifie elle-meme. Le reste est le travail de diag-index-sautes. */
+  const correctifIndex = readdirSync(join(ROOT, 'supabase/migrations')).filter((f) =>
+    f.endsWith('_index_packages_stripe.sql'),
   )
+  ok(correctifIndex.length === 1, 'la migration qui CRÉE les gardes existe')
+  if (correctifIndex.length === 1) {
+    const sqlIndex = lire(`supabase/migrations/${correctifIndex[0]}`)
+    ok(
+      /create unique index uq_packages_stripe_prix_mensuel_par_mode[\s\S]{0,140}?\(mode, price_id_monthly\)/.test(
+        sqlIndex,
+      ),
+      'l’unicité d’un prix est PAR MODE — et elle est réellement créée',
+      'un `if not exists` sur un nom déjà pris annonce une garde sans la poser',
+    )
+  }
   ok(
     /raise exception/.test(sql) && /stripe_price_id_monthly is not null/.test(sql),
     'elle REFUSE de tourner si un identifiant existait encore sur `packages`',

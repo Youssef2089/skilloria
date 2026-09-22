@@ -306,15 +306,16 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **76** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
-22/09/2026, à l'exécution — les 71ᵉ à 76ᵉ laissent les trois autres compteurs **inchangés**, et
+Sur les **77** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
+22/09/2026, à l'exécution — les 71ᵉ à 77ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
 lignes existantes ; `inacheves_hors_annonces_expirees` ne fait que remplacer le corps d'une fonction
 de lecture ; `empreinte_des_notes` **vide** une table éphémère et lui ajoute une colonne ;
 `catalogue_stripe_par_mode` crée une table **vide** et supprime trois colonnes dont elle a d'abord
 **vérifié** qu'elles étaient nulles. La cinquième, `commentaire_offre_gratuite`, ne touche que des **commentaires de colonne**.
 La sixième, `offre_gratuite_explicite`, ajoute une colonne et durcit deux contraintes : son `update` REMPLIT une colonne neuve, il n'insère aucune ligne.
-**Aucune des six n'insère quoi que ce soit**, donc elles
+La septième, `index_packages_stripe`, ne crée que des index.
+**Aucune des sept n'insère quoi que ce soit**, donc elles
 échappent par construction à la classe que cette section décrit. Au 20/09/2026, la 70ᵉ, `verification_nocturne_stripe`, apportait l'insertion et la ligne
 de plus : son entrée au catalogue des tâches planifiées, six valeurs. Les chiffres précédents,
 **69 / 51 / 39 / 1962**, dataient du 17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois
@@ -2850,6 +2851,81 @@ de l'appel — le fait rougir.
 > diagnostic ne le peut : il faut une base jetable et une clé Cohere. Elle est donc portée en tête de
 > [scripts/recette-3-3.mjs](../scripts/recette-3-3.mjs), avec **ce qui décide** : que l'écart change
 > un **classement**, pas qu'il soit non nul. Décision de Youssef : *pas avant d'avoir le chiffre.*
+
+
+<a id="e60"></a>
+### E.60 — `IF NOT EXISTS` SUR UN NOM D'INDEX DÉJÀ PRIS : UNE CRÉATION SAUTÉE EN SILENCE.
+
+**UN NOM D'INDEX EST UNIQUE PAR SCHÉMA, PAS PAR TABLE.** Deux tables ne peuvent pas porter deux index
+du même nom. Avec `if not exists`, Postgres ne le signale pas : **il ne crée rien, et il ne dit rien.**
+
+**Le cas, trouvé par le propriétaire du produit dans la sortie de `db push`, le 22/09/2026, puis
+confirmé par une lecture de la base.**
+
+`20260922000010_catalogue_stripe_par_mode` créait trois index uniques sur la table neuve
+`packages_stripe`. Les trois noms — `idx_packages_stripe_product`, `…_price_monthly`,
+`…_price_yearly` — **appartenaient déjà** aux index posés sur `packages.stripe_*` par
+`20260910300000`. Puis, **quelques lignes plus bas dans la même migration**, le `drop column` des
+anciennes colonnes a emporté les anciens index.
+
+| Ce que la migration annonçait | Ce que la base contient |
+|---|---|
+| trois index **uniques** sur `packages_stripe` | **aucun** — seule la clé primaire |
+| trois garanties | zéro |
+| « migration réussie » | une ligne `already exists, skipping` dans la sortie |
+
+> **LES GARANTIES ONT DISPARU ENTRE DEUX INSTRUCTIONS DE LA MÊME MIGRATION.** Et ça se reproduit à
+> l'identique sur **toute base vierge, production comprise** : ce n'est pas un accident d'un
+> environnement.
+
+**Deux sur trois étaient des GARDES, pas des index de performance — et la mémoire le disait déjà.**
+[§F](architecture.md) nomme `idx_packages_stripe_price_monthly` comme la garantie contre *« deux
+offres pour un même `price` Stripe : le webhook tirerait au sort des droits payés »*. Sans elle,
+`resolvePackageByPrice` peut trouver deux lignes : il refuse proprement, mais **un abonnement réel
+devient irrésolvable, et l'argent est déjà encaissé**. Le troisième (le produit) garde un état qu'on
+ne saurait plus démêler : deux offres sur un même `Product` rendent le catalogue Stripe illisible.
+
+**CE QUI AURAIT DÛ LE VOIR EXISTAIT DÉJÀ, DANS LE FICHIER VOISIN.** `20260910300000` se termine par
+*« VÉRIFICATION FINALE — la migration se contrôle elle-même »*, qui vérifie la présence de ces index.
+Je ne l'ai pas repris.
+
+> ⚠️ **ET REPRIS TEL QUEL, IL N'AURAIT PAS SUFFI.** Il interroge `pg_class where relname = '…'`
+> **sans dire sur quelle table**. Il aurait trouvé l'index de `packages` — encore vivant à cet
+> instant — et conclu que tout allait bien. Une postcondition doit vérifier **le nom, la table, et
+> l'unicité** : un index non unique ne garde rien.
+
+**Les trois parades, et la première est la plus importante.**
+① **Pas de `if not exists` sur une création qu'on veut garantie.** C'est lui qui transforme une
+collision en silence. Ce qu'on perd — la migration n'est plus rejouable telle quelle — ne coûte
+rien : une migration passe **une** fois, et `schema_migrations` le garantit.
+② **Des noms qui n'appartiennent qu'à elle.** Préfixe `uq_` quand c'est une garantie d'unicité : le
+nom dit alors ce qu'il est, et pas seulement ce qu'il indexe.
+③ **La migration vérifie ce qu'elle a créé**, et lève sinon.
+
+> ⚠️ **ON NE FAIT PAS `drop index if exists` AVANT.** Le nom étant unique par schéma, un `drop` sur
+> un nom appartenant à une **autre** table supprimerait l'index de cette autre table — la faute du
+> jour, en pire et sans retour.
+
+**Contrôle** : [scripts/diag-index-sautes.mjs](../scripts/diag-index-sautes.mjs) — **5 mutations,
+5 détections**, dont le cas réel. Il **rejoue l'historique des migrations dans l'ordre**, tient le
+registre des index vivants, et refuse toute création `if not exists` sur un nom déjà vivant. Il
+connaît les suppressions **explicites** (`drop index`) **et implicites** (`drop column`, `drop
+table`) — c'est par la seconde que ce cas est passé, sans que le mot « index » apparaisse nulle part.
+
+> **IL A TROUVÉ UNE SECONDE OCCURRENCE À SA PREMIÈRE EXÉCUTION.**
+> `20260919000010_suivi_consommation` recrée `ai_spend_action_mois_idx`, nom pris depuis
+> `20260916110000`, **sur la même table, avec les colonnes dans l'ordre inverse** —
+> `(created_at, action)` contre `(action, created_at)`. La création a été sautée : l'index annoncé
+> pour « la lecture par mois » **n'existe pas**, c'est l'ancien, taillé pour un autre tri, qui sert.
+> **Aucune garantie n'est perdue** — c'est un index de performance — et il est **gelé, nommé, non
+> réparé** : le corriger demande de décider de la durée d'un verrou sur une table de journal qui
+> grossit, ce qui est un arbitrage, pas une ligne à glisser dans un lot voisin.
+
+**Et la leçon qui déborde les index.**
+> **Une migration qui « réussit » n'a rien prouvé. `db push` rapporte ce qu'il a ENVOYÉ, pas ce que
+> la base a RETENU — et un état de la base vient d'une LECTURE.** Le même jour, j'ai écrit que
+> quatre migrations étaient « toutes en attente, aucune appliquée » : je ne l'avais pas lu, l'une
+> d'elles était déjà passée. C'est [§E.12](#e12) pour les données, et c'est vrai du schéma aussi.
 
 
 <a id="e9"></a>

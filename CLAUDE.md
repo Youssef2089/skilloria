@@ -618,6 +618,9 @@ rendait donc le passage en production **faux en silence**, et rien ne pouvait le
 qui porte un identifiant ne dit pas dans quel mode il a été créé.
 
 Table `packages_stripe`, clé primaire **(package_id, mode)** — migration `catalogue_stripe_par_mode`.
+**Et ses trois gardes d'unicité ont dû être reposées** par `index_packages_stripe` : les noms annoncés
+par la première étaient déjà pris, `if not exists` a sauté les créations sans rien dire, et le
+`drop column` a emporté les anciens — `packages_stripe` est resté **sans aucune garde** (§E.60).
 Les trois colonnes `packages.stripe_*` sont **supprimées** : deux sources pour la même chose, dont
 une sans mode, est ce qu'on ferme. **La migration REFUSE de tourner** si un identifiant y existait
 encore, en nommant les offres — on ne supprime pas une colonne en *croyant* qu'elle est vide.
@@ -886,6 +889,7 @@ bloquant, ordonnés avec les quatorze défauts nommés du gel 4.1d :
 | [E.57](docs/pieges.md#e57) | L'OUTIL QUI LANCE LES CONTRÔLES N'AVAIT JAMAIS TOURNÉ — 219 COMMITS. Un outil de vérification se vérifie d'abord lui-même. |
 | [E.58](docs/pieges.md#e58) | UN CACHE CLÉ SUR L'IDENTITÉ SERT UNE VALEUR CALCULÉE SUR UN CONTENU QUI N'EXISTE PLUS. |
 | [E.59](docs/pieges.md#e59) | UN CORRECTIF DE JUSTESSE QUI CHANGE SILENCIEUSEMENT UN COÛT. Les secondes et l'argent n'ont pas de compilateur. |
+| [E.60](docs/pieges.md#e60) | `IF NOT EXISTS` SUR UN NOM D'INDEX DÉJÀ PRIS : UNE CRÉATION SAUTÉE EN SILENCE. Une migration qui « réussit » n'a rien prouvé. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

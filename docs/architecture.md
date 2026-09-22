@@ -1096,7 +1096,7 @@ l'objet est créé **deux fois**.
 | Consommation d'un quota | `usage_increment()` — un seul `INSERT … ON CONFLICT DO UPDATE` sous garde de limite. |
 | Limitation de débit | `rate_limit_check()` — vérifie **et** enregistre atomiquement. Contrat : un refus **n'enregistre pas** le hit. |
 | Course à la création d'une organisation personnelle | Index unique partiel `organizations_personal_owner_unique_idx` ; `23505` ⇒ on relit et on retourne l'existante. |
-| Deux offres pour un même `price` Stripe : le webhook tirerait au sort des droits payés | Index unique `idx_packages_stripe_price_monthly`. |
+| Deux offres pour un même `price` Stripe : le webhook tirerait au sort des droits payés | Index unique `uq_packages_stripe_prix_mensuel_par_mode`, sur `(mode, price_id_monthly)` — migration `index_packages_stripe`. ⚠️ **Cette garde a été ABSENTE du 22/09/2026 au correctif** : l'index annoncé par `catalogue_stripe_par_mode` portait un nom déjà pris, `if not exists` a sauté sa création sans rien dire, et le `drop column` a emporté l'ancien (§E.60). Le nom cité ici jusque-là — `idx_packages_stripe_price_monthly` — **ne désigne plus rien**. |
 | **Une place incluse donnée DEUX fois** : deux jugements terminés au même instant lisent 0, concluent tous deux `0 < 1`, et dévoilent tous deux | migration `place_incluse_unique` |
 | **Une annonce active de plus que l'offre** : deux publications simultanées lisent le même compte et passent toutes deux | migration `place_annonce_active` |
 | **Une organisation à ZÉRO administrateur** : deux admins qui se rétrogradent au même instant lisent tous deux « il en reste 2 » | migration `siege_administrateur` — trigger `organizations_cliquet_siege_admin` + RPC `maj_membre_organisation` |
