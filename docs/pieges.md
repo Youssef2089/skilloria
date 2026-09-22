@@ -2518,6 +2518,48 @@ qu'il faut pour qu'on y remette du vert, et c'est comme ça qu'il y est arrivé 
 > disparu. Aucun motif ne distingue une couleur d'état d'une couleur décorative : cette moitié-là se
 > lit écran par écran, exactement comme la règle `--sk-faint` de §D.12.
 
+
+> ## ⛔ CE QUI S'EST PASSÉ, EXACTEMENT — ET C'EST LE LOT PRÉCÉDENT QUI A FABRIQUÉ LE DÉFAUT
+>
+> J'avais rapporté que les numéros de section étaient « ramenés à la couleur de marque ». Ils ne
+> l'étaient pas, et la mesure dit pourquoi.
+>
+> **AVANT le lot palette**, `cdi/mon-profil` numérotait ses douze sections avec **douze teintes
+> arbitraires** — un arc-en-ciel :
+>
+> ```
+> #6366f1  #a855f7  #10b981  #f59e0b  #ec4899  #06b6d4
+> #14b8a6  #f43f5e  #3b82f6  #84cc16  #0ea5e9  #d946ef
+> ```
+>
+> **APRÈS**, chacune avait pris **le jeton le plus proche par teinte** :
+>
+> | Avant | Après | Ce que ça voulait dire avant | Ce que ça dit après |
+> |---|---|---|---|
+> | `#10b981` émeraude | `var(--sk-success)` | « une des douze couleurs » | **SUCCÈS** |
+> | `#f59e0b` ambre | `var(--sk-amber)` | idem | **AVERTISSEMENT** |
+> | `#f43f5e` rose | `var(--sk-red)` | idem | **ERREUR** |
+> | `#84cc16` lime | `var(--sk-success)` | idem | **SUCCÈS** |
+>
+> **LA MIGRATION A CONVERTI LA SYNTAXE ET HÉRITÉ D'UNE SÉMANTIQUE QUI N'EXISTAIT PAS AVANT ELLE.**
+> Un rose n'affirmait rien ; `var(--sk-red)` affirme une erreur. Le défaut n'a pas *survécu* au lot
+> palette : **il a été créé par lui**.
+>
+> **Et le cliquet était vert, à juste titre.** Sa propriété est « aucune couleur littérale dans un
+> composant », et elle était vraie — parfaitement vraie. Il ne pouvait pas voir le reste : il l'écrit
+> d'ailleurs lui-même, dans sa propre section « ce que ce contrôle ne vérifie pas » —
+> *« que le jeton choisi soit le BON. `var(--sk-red)` sur un état de succès est vert ici et faux à
+> l'écran : aucun motif ne lit un rôle. »*
+>
+> **CE QUE J'AI VÉRIFIÉ, C'EST LE CONTRÔLE — PAS L'ÉCRAN.** J'ai lu un vert et j'ai rapporté un
+> résultat. C'est la même faute que §E.7 commet avec un commentaire, un cran plus haut : un contrôle
+> qui dit vrai sur ce qu'il mesure ne dit rien sur ce qu'il ne mesure pas, et **son vert se cite
+> comme s'il disait tout**.
+>
+> **La règle qui en sort, et elle vaut au-delà des couleurs :**
+> *Une migration automatique qui remplace une valeur par un NOM lui donne un SENS. Si les valeurs de
+> départ n'avaient pas de sens, le nom en invente un — et personne ne l'a décidé.*
+
 <a id="e55"></a>
 ### E.55 — DEUX PHRASES VRAIES, L'UNE SOUS L'AUTRE, PEUVENT SE LIRE COMME UNE CONTRADICTION.
 
