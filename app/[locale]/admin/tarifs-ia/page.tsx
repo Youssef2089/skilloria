@@ -1,8 +1,10 @@
 'use client'
 
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { formeDeLigne, type FormeTarif } from '@/lib/ai-tarifs/forme'
 
 /**
  * /admin/tarifs-ia — LA GRILLE TARIFAIRE, RÉGLABLE SANS DÉPLOIEMENT.
@@ -37,27 +39,19 @@ type Tarif = {
   updated_at: string
 }
 
-/** Les trois formes de tarif. La base les tient ; l'écran les affiche. */
-type Forme = 'jetons' | 'unite' | 'recherche'
-
 /**
- * LA FORME SE LIT SUR LA LIGNE, elle ne se devine pas.
+ * LA FORME SE LIT SUR LA LIGNE, elle ne se devine pas — et la règle est celle
+ * du serveur, pas une copie ([lib/ai-tarifs/forme.ts]).
  *
- * ⚠️ CETTE FONCTION A REMPLACÉ UN `ligne.usd_par_unite == null`. Avec deux
- *    formes, l'absence de l'une prouvait la présence de l'autre ; avec trois,
- *    elle ne prouve plus rien — et le tarif par recherche se serait affiché
- *    comme un tarif par jetons, avec deux champs VIDES et un bouton qui refuse
- *    d'enregistrer. Une inférence par la négative ne survit pas à l'ajout d'un
- *    troisième cas (§E.37 : une garde peut choisir le mauvais état).
- *
- * L'ordre n'a pas d'importance : la contrainte de base garantit qu'une seule
- * des trois est renseignée. Le repli sur `'jetons'` ne se produit donc que sur
- * une ligne que la base refuserait.
+ * ⚠️ CET APPEL A REMPLACÉ UN `ligne.usd_par_unite == null`. Avec deux formes,
+ *    l'absence de l'une prouvait la présence de l'autre ; avec trois, elle ne
+ *    prouve plus rien — et le tarif par recherche s'affichait comme un tarif
+ *    par jetons, avec deux champs VIDES et un bouton qui refuse d'enregistrer.
+ *    Une inférence par la négative ne survit pas à l'ajout d'un troisième cas
+ *    (§E.37 : une garde peut choisir le mauvais état).
  */
-function formeDe(l: Tarif): Forme {
-  if (l.usd_par_recherche != null) return 'recherche'
-  if (l.usd_par_unite != null) return 'unite'
-  return 'jetons'
+function formeDe(l: Tarif): FormeTarif {
+  return formeDeLigne({ unite: l.usd_par_unite, recherche: l.usd_par_recherche })
 }
 type Reponse = {
   tarifs: Tarif[]

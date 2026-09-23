@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { jugerForme } from '@/lib/ai-tarifs/forme'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -179,30 +180,20 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   // LA FORME, revalidée ici. La base la refuserait de toute façon — mais en
   // rendant un 500 que personne ne sait lire. Un refus doit dire CE QUI BLOQUE
   // et CE QU'ON PEUT FAIRE.
-  const parJetons = entree !== null && sortie !== null && unite === null && recherche === null
-  const parUnite = unite !== null && entree === null && sortie === null && recherche === null
-  const parRecherche = recherche !== null && entree === null && sortie === null && unite === null
-  if (!parJetons && !parUnite && !parRecherche) {
+  //
+  // ⚠️ LA RÈGLE N'EST PAS ÉCRITE ICI : elle vit dans un module PUR que son
+  //    contrôle EXÉCUTE ([lib/ai-tarifs/forme.ts]). L'écran lit le même, et
+  //    la base tient la même — trois écritures feraient trois occasions de
+  //    diverger, et celle qui diverge en dernier aurait l'air d'être la bonne.
+  const verdict = jugerForme({ entree, sortie, unite, recherche, rechercheWeb })
+  if (!verdict.ok) {
     return json(
       {
         error:
-          'Un tarif se donne par JETONS (entrée + sortie), par DOCUMENT, ou par RECHERCHE — une seule forme, jamais deux, jamais aucune',
-        code: 'invalid_shape',
-      },
-      400,
-    )
-  }
-
-  // LE SUPPLÉMENT DE RECHERCHE WEB N'EST PAS UNE FORME. Il s'ajoute aux jetons
-  // du même appel, et seul un modèle facturé aux jetons peut chercher. Le poser
-  // ailleurs écrirait un prix que RIEN ne peut consommer — un réglage mort
-  // (§D.11), et pire : un réglage mort qui a l'air vivant parce qu'il est chiffré.
-  if (rechercheWeb !== null && !parJetons) {
-    return json(
-      {
-        error:
-          'Le prix d\'une recherche web s\'ajoute aux JETONS d\'un appel : il ne se pose que sur un tarif par jetons',
-        code: 'invalid_web_search_price',
+          verdict.code === 'invalid_web_search_price'
+            ? 'Le prix d\'une recherche web s\'ajoute aux JETONS d\'un appel : il ne se pose que sur un tarif par jetons'
+            : 'Un tarif se donne par JETONS (entrée + sortie), par DOCUMENT, ou par RECHERCHE — une seule forme, jamais deux, jamais aucune',
+        code: verdict.code,
       },
       400,
     )

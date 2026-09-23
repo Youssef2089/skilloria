@@ -56,6 +56,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { coutUsd, unitesBrutes, consommationJetons } from '../lib/ai-consommation.ts'
+import { jugerForme, formeDeLigne } from '../lib/ai-tarifs/forme.ts'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(join(ROOT, p), 'utf8').split('\r\n').join('\n')
@@ -250,16 +251,55 @@ ok(
 // ── ET LES BANCS NE DOIVENT RIEN DÉPENSER ──────────────────────────────────
 //  Un diagnostic qui atteint vraiment le réseau dépense de l'argent réel, hors
 //  de tout compteur et sans qu'aucun plafond le voie. Ce qu'on exige d'eux
-//  n'est donc pas un compteur : c'est de ne pas appeler.
-const BANCS_VIFS = POINTS_BANCS.filter(
-  (f) => !/globalThis\.fetch\s*=/.test(CODE.get(f)) && !/global\.fetch\s*=/.test(CODE.get(f)),
+//  n'est donc pas un compteur : c'est de NE PAS APPELER.
+//
+//  ⚠️ UN BANC N'APPELLE PRESQUE JAMAIS LE FOURNISSEUR DIRECTEMENT : il IMPORTE
+//     le module qui le fait, et l'exécute. Chercher l'appel dans le banc
+//     lui-même rendait cette assertion VIDE — zéro banc trouvé, donc toujours
+//     verte, ce qui se lit comme une garantie et n'en est pas une (§E.38).
+//     Une mutation l'a montré : retirer la neutralisation d'un banc réel ne
+//     faisait pas rougir.
+//
+//  LA COUVERTURE SE DÉRIVE DE LA DÉCOUVERTE, elle ne se liste pas (§E.61) : on
+//  cherche qui importe l'un des modules trouvés ci-dessus. Un module payant
+//  ajouté demain amène ses bancs avec lui.
+//
+//  ⚠️ ET ON CHERCHE L'IMPORT, PAS LA MENTION. Quatorze diagnostics CITENT le
+//     chemin de l'un de ces modules — ils le LISENT comme du texte, ils ne
+//     l'exécutent pas. Leur demander de neutraliser le réseau aurait fait
+//     rougir treize scripts sains dès le premier jour, et le contrôle aurait
+//     été désactivé le jour même.
+const SPECIFICATEURS = POINTS_PRODUIT.map((f) => `from '../${f.replace(/\.tsx?$/, '.ts')}'`)
+const BANCS = TOUS.filter(
+  (f) =>
+    f.startsWith('scripts/') &&
+    SPECIFICATEURS.some((s) => (VUES.get(f)?.codeEtChaines ?? '').includes(s)),
+)
+//  ⚠️ NEUTRALISER, C'EST POSER UN DOUBLE — PAS TOUCHER À `fetch`. Le premier
+//     motif acceptait n'importe quelle affectation, y compris la RESTAURATION
+//     de fin de banc (`globalThis.fetch = realFetch`) : un banc qui aurait perdu
+//     ses deux doubles et gardé sa restauration se lisait comme neutralisé.
+//     Trouvé par mutation. On exige donc l'affectation d'une FONCTION.
+const NEUTRALISE = (s) => /global(?:This)?\.fetch\s*=\s*(?:async\b|function\b|\()/.test(s)
+const BANCS_VIFS = BANCS.filter((f) => !NEUTRALISE(CODE.get(f)))
+ok(
+  BANCS.length > 0,
+  `la découverte trouve les bancs qui exercent un module payant (${BANCS.length})`,
+  'zéro banc trouvé : l\'assertion suivante serait vide, donc toujours verte',
 )
 ok(
   BANCS_VIFS.length === 0,
-  `les ${POINTS_BANCS.length} banc(s) qui exercent un appel payant neutralisent le réseau`,
+  `les ${BANCS.length} banc(s) qui exercent un module payant neutralisent le réseau`,
   BANCS_VIFS.length
     ? `${BANCS_VIFS.join(', ')} atteindrai(en)t le fournisseur pour de vrai`
     : undefined,
+)
+// Les appels DIRECTS depuis un script restent refusés, eux aussi.
+const SCRIPTS_APPELANTS = POINTS.filter((f) => f.startsWith('scripts/') && !NEUTRALISE(CODE.get(f)))
+ok(
+  SCRIPTS_APPELANTS.length === 0,
+  'aucun script n\'appelle un fournisseur en direct sans neutraliser le réseau',
+  SCRIPTS_APPELANTS.length ? SCRIPTS_APPELANTS.join(', ') : undefined,
 )
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -313,9 +353,29 @@ ok(
   'le reranker ne déclare plus de consommation en DOCUMENTS',
   'un prix au document et un prix à la recherche sur le même appel : le coût dépendrait de l\'ordre de lecture',
 )
+//  ⚠️ LA MUTATION A TROUVÉ CE TROU. L'assertion cherchait `billed_units` dans
+//     tout le fichier — or le TYPE de la réponse les nomme aussi. Remplacer la
+//     lecture par `undefined` laissait donc le contrôle VERT : le compteur
+//     retombait sur le plancher à chaque appel, sans que rien ne le dise.
+//     On ancre sur la FONCTION qui lit (§E.8), pas sur le fichier qui en parle.
+//  ⚠️ ET L'ANCRE ELLE-MÊME A DÛ ÊTRE CORRIGÉE, pour la raison qui rend ce
+//     genre d'extraction traître : le TYPE DE RETOUR de cette fonction est un
+//     objet, il ouvre donc une accolade AVANT le corps. Un motif qui s'arrête
+//     à la première accolade fermante capturait la SIGNATURE et rien d'autre —
+//     un bloc vide dans lequel aucune assertion ne peut rien trouver, donc une
+//     assertion qui rougit toujours (ici) ou, pire, qui verdit toujours si elle
+//     teste une ABSENCE. On s'arrête sur une accolade SEULE EN DÉBUT DE LIGNE.
+const LECTURE_FACTURE = RERANK.match(/function unitesFacturees\([\s\S]*?\n\}\n/)
+ok(LECTURE_FACTURE !== null, 'la lecture des unités facturées est identifiable')
 ok(
-  /billed_units/.test(RERANK) && /search_units/.test(RERANK),
+  LECTURE_FACTURE !== null &&
+    /charge\.meta\?\.billed_units\?\.search_units/.test(LECTURE_FACTURE[0]),
   'le nombre d\'unités est LU dans la réponse du fournisseur',
+  'sans cette lecture, chaque appel retombe sur le plancher — une sous-estimation muette',
+)
+ok(
+  LECTURE_FACTURE !== null && /'plancher'/.test(LECTURE_FACTURE[0]),
+  'et le repli, quand le fournisseur ne dit rien, est DÉCLARÉ',
 )
 
 //  ⚠️ L'ASSERTION QUI COMPTE VRAIMENT, ET ELLE EST PLUS FINE QUE LES TROIS
@@ -502,10 +562,15 @@ ok(
 //  qui LIT `pg_constraint` prouve qu'un nom est pris, pas qu'une règle mord.
 const SONDES = (MIG.match(/exception when check_violation/g) ?? []).length
 ok(SONDES >= 4, `la postcondition ÉPROUVE la contrainte (${SONDES} sondes)`)
+//  ⚠️ LA MUTATION A TROUVÉ CE TROU AUSSI. L'assertion cherchait le NOM de la
+//     sonde — et ce nom survit dans la liste de vérification finale, si bien
+//     que la renommer laissait le contrôle VERT (§E.34). Ce qu'on garde, ce
+//     n'est pas un nom : c'est qu'une sonde RAISE quand la contrainte a
+//     REFUSÉ, c'est-à-dire une assertion RETOURNÉE.
 ok(
-  /__sonde_par_recherche/.test(MIG),
+  /if v_mord then\s*\n\s*raise exception/.test(MIG),
   'une sonde vérifie que la troisième forme est ACCEPTÉE',
-  'sans elle, une contrainte qui refuse TOUT passerait les sondes de refus (§E.34 : une assertion se retourne)',
+  'toutes les sondes testent un REFUS : une contrainte qui refuse TOUT les passerait (§E.34)',
 )
 ok(
   (MIG.match(/raise exception 'postcondition NON TENUE/g) ?? []).length >= 8,
@@ -517,21 +582,66 @@ ok(
   /usd_par_recherche_web/.test(ROUTE) && /usd_par_recherche\b/.test(ROUTE),
   'la route des tarifs connaît les deux nouvelles colonnes',
 )
+//  ⚠️ ET LE TROISIÈME TROU QUE LA MUTATION A TROUVÉ, LE PLUS INSTRUCTIF.
+//     L'assertion cherchait le NOM d'une variable locale de la route
+//     (`parRecherche`) : un renommage la laissait verte alors que la règle
+//     pouvait avoir changé, et une règle écrite dans un `if` ne peut pas
+//     s'exécuter (§E.34).
+//     LA RÈGLE A DONC ÉTÉ EXTRAITE dans un module PUR, que la route ET l'écran
+//     lisent, et que ce contrôle EXÉCUTE (§E.33). Une mutation de banc a produit
+//     un module — c'est le meilleur usage qu'on puisse en faire.
+const NUL = { entree: null, sortie: null, unite: null, recherche: null, rechercheWeb: null }
+{
+  const v = jugerForme({ ...NUL, recherche: 0.002 })
+  ok(
+    v.ok && v.forme === 'recherche',
+    'la route accepte la forme PAR RECHERCHE',
+    'un tarif qui ne se saisit pas est un tarif qu\'on ne peut pas corriger (§D.7)',
+  )
+}
+{
+  const v = jugerForme({ ...NUL, recherche: 0.002, rechercheWeb: 0.01 })
+  ok(
+    !v.ok && v.code === 'invalid_web_search_price',
+    'la route refuse un prix de recherche web hors de la forme JETONS',
+    'un prix que rien ne peut consommer est un réglage mort qui a l\'air vivant (§D.11)',
+  )
+}
 ok(
-  /parRecherche/.test(ROUTE),
-  'la route accepte la forme PAR RECHERCHE',
-  'un tarif qui ne se saisit pas est un tarif qu\'on ne peut pas corriger (§D.7)',
+  jugerForme({ ...NUL }).ok === false,
+  'une ligne SANS aucune forme est refusée',
+  'elle produirait un coût nul silencieux — le défaut que la table existe pour fermer',
+)
+ok(
+  jugerForme({ ...NUL, entree: 1, sortie: 10, recherche: 0.002 }).ok === false,
+  'une ligne à DEUX formes est refusée',
+)
+{
+  const v = jugerForme({ ...NUL, entree: 1, sortie: 10, rechercheWeb: 0.01 })
+  ok(v.ok && v.forme === 'jetons', 'le supplément de recherche web est accepté SUR les jetons')
+}
+ok(
+  formeDeLigne({ unite: null, recherche: 0.002 }) === 'recherche' &&
+    formeDeLigne({ unite: 0.000002, recherche: null }) === 'unite' &&
+    formeDeLigne({ unite: null, recherche: null }) === 'jetons',
+  'la forme d\'une ligne existante se LIT, dans les trois cas',
+)
+ok(
+  /jugerForme\s*\(/.test(ROUTE),
+  'la route délègue à la règle partagée, elle ne la réécrit pas',
+  'trois écritures d\'une même règle font trois occasions de diverger (§E.20)',
 )
 ok(
   /invalid_web_search_price/.test(ROUTE),
-  'la route refuse un prix de recherche web hors de la forme JETONS',
-  'un prix que rien ne peut consommer est un réglage mort qui a l\'air vivant (§D.11)',
+  'la route rend le motif NOMMÉ du refus',
+  'un 500 « db_error » de la contrainte n\'apprendrait rien à l\'administrateur',
 )
 
 const ECRAN = sansCommentaires(read('app/[locale]/admin/tarifs-ia/page.tsx'))
 ok(
-  /function formeDe\s*\(/.test(ECRAN),
-  'l\'écran DÉRIVE la forme de la ligne',
+  /formeDeLigne\s*\(/.test(ECRAN),
+  'l\'écran DÉRIVE la forme avec la MÊME règle que la route',
+  'une copie de la règle dans l\'écran diverge le jour où l\'une des deux change (§E.20)',
 )
 //  ⚠️ ON ANCRE SUR L'AFFECTATION, PAS SUR LA COMPARAISON (§E.8). L'écran
 //     compare légitimement `usd_par_unite == null` pour REMPLIR un champ de
@@ -637,6 +747,12 @@ ok(
   'le dépouilleur de commentaires doit mordre ailleurs qu\'en début de ligne',
 )
 ok(
+  NEUTRALISE('globalThis.fetch = async (u) => new Response()') &&
+    NEUTRALISE('globalThis.fetch = (u) => 1') &&
+    !NEUTRALISE('globalThis.fetch = realFetch'),
+  'témoin : neutraliser, c\'est poser un DOUBLE — pas restaurer l\'original',
+)
+ok(
   sansCommentaires("const u = 'https://x.y/z'").includes('https://x.y/z'),
   'témoin : … mais il ne coupe PAS une URL en deux',
   'sans le garde-fou du deux-points, toute adresse disparaîtrait et le reranker avec',
@@ -656,6 +772,26 @@ ok(
     RE.test('const parJetons = ligne.usd_par_unite == null') &&
       !RE.test("unite: l.usd_par_unite == null ? '' : String(l.usd_par_unite),"),
     'témoin : le détecteur d\'inférence distingue un branchement d\'un remplissage de champ',
+  )
+}
+{
+  //  Une fonction dont le type de retour est un objet — la forme exacte qui a
+  //  piégé la première version de l'ancre.
+  const echantillon = [
+    'function f(x: T): {',
+    '  a: number',
+    '} {',
+    '  const u = LU_ICI',
+    '  return { a: u }',
+    '}',
+    '',
+  ].join('\n')
+  const court = echantillon.match(/function f\([\s\S]*?\n\}/)
+  const juste = echantillon.match(/function f\([\s\S]*?\n\}\n/)
+  ok(
+    court !== null && !/LU_ICI/.test(court[0]) && juste !== null && /LU_ICI/.test(juste[0]),
+    'témoin : l\'ancre de bloc traverse un type de retour en objet',
+    'l\'ancre courte s\'arrête sur l\'accolade du TYPE et capture une signature vide',
   )
 }
 ok(
