@@ -29,6 +29,12 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+// La RÈGLE d’éligibilité, interrogée à la source plutôt que cherchée dans le
+// texte de ses deux consommateurs (§D.20, §E.34). Import STATIQUE : un
+// `await import()` laisse une poignée ouverte que le `process.exit()` final
+// referme deux fois, et Node plante à la sortie sous Windows quand stdout
+// est redirigé — vert à la main, MUET dans la série (§E.57).
+import * as REGLE_ELIGIBILITE from '../lib/matching/eligibilite.ts'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /**
@@ -214,11 +220,30 @@ for (const [motif, libelle] of [
   [/overlaps\('speciality_ids'/, 'les spécialités'],
   [/overlaps\('seniorities'/, 'les séniorités'],
   [/overlaps\('work_zone_countries'/, 'les zones de travail'],
-  [/availability_status\.neq\.do_not_disturb/, 'la disponibilité freelance'],
-  [/cdi_status\.neq\.employed/, 'la disponibilité CDI'],
   [/open_to_freelance|open_to_cdi/, 'l ouverture croisée, déclarée par l expert'],
 ]) {
   ok(motif.test(POOL), `le vivier filtre sur ${libelle}`)
+}
+
+// ⚠️ LES DEUX DISPONIBILITÉS ONT QUITTÉ CETTE BOUCLE, ET CE N'EST PAS UNE
+//    PERTE. Elles étaient cherchées dans le TEXTE du vivier ; depuis §D.20
+//    elles vivent dans la règle d'éligibilité, que les DEUX sens plient.
+//    Les y chercher ferait rougir ce contrôle sur un DÉMÉNAGEMENT — et
+//    verdir le jour où quelqu’un les recopie dans un seul sens, ce qui est
+//    exactement le défaut que §D.20 a fermé (§E.34).
+ok(/appelsPostgrest\s*\(/.test(POOL), 'le vivier plie la règle d’éligibilité',
+  'sans ça, aucune des deux disponibilités n’est appliquée')
+for (const [kind, fragment, libelle] of [
+  ['expert_freelance', 'availability_status.neq.do_not_disturb', 'la disponibilité freelance'],
+  ['expert_cdi', 'cdi_status.neq.employed', 'la disponibilité CDI'],
+]) {
+  ok(
+    REGLE_ELIGIBILITE.appelsPostgrest(kind, [kind]).some(
+      (a) => a.methode === 'or' && a.expression.includes(fragment),
+    ),
+    `la règle d’éligibilité porte ${libelle}`,
+    'et le vivier la plie : les deux sens filtrent donc pareil, par construction',
+  )
 }
 
 console.log('\n— les deux décisions de l expert, dans les DEUX sens')

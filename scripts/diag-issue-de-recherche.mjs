@@ -48,6 +48,12 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+// La RÈGLE d’éligibilité, interrogée à la source plutôt que cherchée dans le
+// texte de ses deux consommateurs (§D.20, §E.34). Import STATIQUE : un
+// `await import()` laisse une poignée ouverte que le `process.exit()` final
+// referme deux fois, et Node plante à la sortie sous Windows quand stdout
+// est redirigé — vert à la main, MUET dans la série (§E.57).
+import * as REGLE_ELIGIBILITE from '../lib/matching/eligibilite.ts'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -240,14 +246,33 @@ ok(/emp\?\.quoi === 'ineligible'/.test(ISSUE_NUE) && /emp\?\.quoi === 'arret_de_
 section('F. Une seule implémentation — de l éligibilité, et du plafond')
 // ══════════════════════════════════════════════════════════════════════════
 
+// La RÈGLE d’éligibilité, interrogée à la source plutôt que cherchée dans le
+// texte de ses deux consommateurs (§D.20, §E.34).
+// ══════════════════════════════════════════════════════════════════════════
+
 {
-  // La garde d'éligibilité n'est écrite qu'UNE fois. On compte les tests de
-  // `visible !== true` dans le moteur : deux occurrences signeraient un jumeau.
+  // ⚠️ LA GARDE A DÉMÉNAGÉ, ET AVEC ELLE CE QU'IL FAUT COMPTER (§E.34).
+  //    Ce test comptait les `visible !== true` du sens expert : UN seul était
+  //    attendu, deux auraient signé un jumeau. Depuis §D.20 la condition vit
+  //    dans la règle partagée, et le sens expert n’en écrit plus AUCUNE — ce
+  //    qui est strictement mieux que « une seule ».
   const n = (MOTEUR.match(/visible !== true/g) ?? []).length
-  ok(n === 1, `la condition « profil visible » n est écrite qu une fois (vue ${n} fois)`,
+  ok(n === 0, `le sens expert n écrit plus AUCUNE condition d éligibilité (vue ${n} fois)`,
     'un jumeau divergerait, et l ecran dirait autre chose que le moteur (§E.20)')
+  ok(/jugerEligibilite\s*\(/.test(MOTEUR),
+    'il plie la règle partagée à la place',
+    'sans elle il ne juge plus rien — un profil non eligible serait note, donc paye')
+  ok(
+    REGLE_ELIGIBILITE.CONDITIONS_ELIGIBILITE.some((c) => c.raison === 'profil_non_visible'),
+    'et la règle porte bien la condition « profil visible »',
+  )
 }
-ok(/const JOURNAL_PAR_RAISON: Record<RaisonIneligible, string>/.test(MOTEUR),
+// La phrase de journal est PORTÉE PAR LA CONDITION — une seconde table
+// indexée par la raison serait une seconde occasion d’oublier une entrée.
+ok(
+  REGLE_ELIGIBILITE.CONDITIONS_ELIGIBILITE.every(
+    (c) => typeof c.journal === 'string' && c.journal.trim() !== '',
+  ),
   'la phrase de journal est DÉRIVÉE du code, jamais écrite à côté',
   'une chaine de comparaisons avec un repli sortirait une garde ajoutee demain sous l etiquette de sa voisine')
 ok(/export async function consommerPlafondHoraire/.test(RELANCE),
@@ -303,7 +328,13 @@ ok(/useTranslations\('recherche_de_missions'\)/.test(VUE),
   const raisons = [
     ...(ISSUE_NUE.match(/^\s*\| '([a-z_]+)'$/gm) ?? []).map((l) => l.trim().replace(/^\| '|'$/g, '')),
   ]
+  // ⚠️ LES RAISONS D’INÉLIGIBILITÉ NE SE LISENT PLUS DANS CE FICHIER : le
+  //    type est DÉRIVÉ de la règle. On les prend donc à la source, et on les
+  //    ajoute à celles que ce fichier déclare encore (les échecs).
+  const raisonsEligibilite = REGLE_ELIGIBILITE.CONDITIONS_ELIGIBILITE.map((c) => c.raison)
+  raisons.push(...raisonsEligibilite.filter((r) => !raisons.includes(r)))
   ok(raisons.length >= 11, `les raisons du type sont lisibles (${raisons.length} trouvées)`)
+
   const fr = JSON.parse(readFileSync(join(ROOT, 'messages', 'fr.json'), 'utf8')).recherche_de_missions ?? {}
   const phrases = new Set([
     ...Object.keys(fr.ineligible ?? {}),

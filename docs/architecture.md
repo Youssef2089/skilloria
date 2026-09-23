@@ -1158,6 +1158,67 @@ pose **sur sa propre racine** et relit dans son `<style>` (`--avatar-primary`, `
 à tort, donc désactiver dans la semaine (§E.14).
 
 
+### C.17 — L'ÉLIGIBILITÉ : une liste de données que les deux sens du moteur plient
+
+**Le défaut, mesuré le 23/09/2026.** `lib/matching/pool.ts` (annonce → experts) poussait **sept**
+filtres en SQL ; `lib/matching/run-for-expert.ts` (expert → annonces) faisait **six** tests en
+mémoire. Trois manquaient au second — compte **suspendu**, en **suppression**, **anonymisé** — et
+son `select` ne chargeait ni `status`, ni `deletion_scheduled_at`, ni `anonymized_at` : le test
+aurait lu `undefined` (§E.1).
+
+**Et les deux fichiers disaient le contraire** : « exactement les mêmes conditions que côté vivier »
+(run-for-expert) et « la SEULE implémentation de la garde […] pas de seconde liste »
+(issue-de-recherche). Deux commentaires vrais le jour de leur écriture (§E.7).
+
+**Ce que ça coûtait, et c'était atteignable.** `requireAuth` ferme la porte aux trois états
+(`account_suspended`, `account_deletion_scheduled`, `account_anonymized`) : aucun écran ne pouvait
+déclencher un run sur un compte fermé. **Deux chemins serveur ne passent pas par là** :
+`app/api/cron/expert-relance` (aucune session) et `app/api/admin/approve-expert` (c'est le statut
+de **l'administrateur** que la garde lit). Un expert suspendu était donc noté chez le fournisseur —
+dépense réelle — puis **notifié** : des e-mails « de nouvelles missions » à un compte dont l'accès
+est coupé.
+
+**La forme retenue, et pourquoi pas une fonction partagée.** Les deux sens ne peuvent pas partager
+une fonction : l'un construit une requête sur cinquante mille lignes, l'autre juge une ligne déjà
+chargée. Une « fonction commune » aurait été deux fonctions — le jumeau qui venait de diverger.
+Chaque condition est donc une **donnée** portant ses deux formes :
+
+| | |
+|---|---|
+| `remplie(ligne)` | le test en mémoire |
+| `filtre` | `{ cible, colonne, operateur, valeur }` — la forme SQL, **décrite**, pas appliquée |
+| `portee` | `toujours` · `expert_freelance` · `expert_cdi` |
+| `raison` / `journal` | le code que l'écran traduit, et la phrase du journal serveur |
+
+`pool.ts` plie `appelsPostgrest()` en quatre lignes ; `run-for-expert.ts` appelle
+`jugerEligibilite()`. **Ajouter une condition l'ajoute des deux côtés**, et il n'existe aucun endroit
+où l'on puisse en ajouter une d'un seul côté.
+
+> ⚠️ **`neq_ou_null` N'EST PAS UN CAPRICE.** En SQL, `colonne <> 'x'` vaut NULL quand la colonne est
+> NULL, et la ligne est **écartée** ; en mémoire, `p.colonne === 'x'` est faux sur `null` et la
+> ligne est **gardée**. Sur une colonne nullable, un `neq` simple ferait donc diverger les deux sens
+> sur exactement les profils qui n'ont jamais touché au réglage. `users.status` est `not null`
+> (mesuré) : elle seule garde un `neq` simple.
+
+**Ce qui est dérivé, et ne peut donc plus diverger** : le type `RaisonIneligible` (de la liste), les
+colonnes des deux `select` (de la liste), la phrase de journal (portée par la condition).
+`issue-de-recherche.ts` **ré-exporte** le type au lieu de le redéfinir.
+
+**Gardé par [`diag-eligibilite-unique`](../scripts/diag-eligibilite-unique.mjs)** : il **exécute**
+les deux formes sur une matrice de quinze lignes × deux publics et exige le **même verdict** —
+sémantique NULL comprise. Il balaie `lib/matching/` pour **toutes** les colonnes et `app/api/` pour
+les colonnes de **compte**, qualifiées ; le détecteur est construit **depuis la liste du module**
+(§E.61), et l'exclusion des colonnes de profil hors du moteur est **mesurée** (`/api/profile/visibility`
+les écrit légitimement), pas supposée.
+
+> ⚠️ **Quatre contrôles ont rougi sur le DÉMÉNAGEMENT, pas sur une régression** —
+> `diag-moteur-echelle`, `diag-lot-expert-verification`, `diag-moteur-reranking`,
+> `diag-issue-de-recherche` cherchaient le **texte** des filtres dans le vivier. Ils interrogent
+> désormais la règle à la source (§E.34). Et l'un d'eux a révélé un piège de plus : un
+> `await import()` en milieu de fichier fait **planter Node à la sortie sous Windows quand stdout
+> est redirigé** — vert à la main, **MUET dans la série**. Les imports de modules purs sont donc
+> **statiques** (§E.57).
+
 ### C.16 — LES E-MAILS : pourquoi ils n'ont pas de jetons, et d'où viennent leurs couleurs
 
 **LA CONTRAINTE, MESURÉE.** Les clients de messagerie **ne lisent pas les propriétés

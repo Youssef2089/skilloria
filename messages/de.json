@@ -4494,7 +4494,10 @@
       "consentement_absent": "Sie haben der Auswertung Ihres Profils nicht zugestimmt: Ohne diese Zustimmung kann Ihnen keine Mission vorgeschlagen werden.",
       "profil_non_approuve": "Ihr Profil wird geprüft. Ihre {ecosystem}-Missionen erscheinen hier, sobald es freigegeben ist.",
       "ne_pas_deranger": "Sie stehen auf „nicht stören“: Solange dieser Status aktiv ist, wird Ihnen keine Mission vorgeschlagen.",
-      "non_en_recherche": "Sie sind nicht auf Jobsuche: Solange dieser Status aktiv ist, wird Ihnen kein Angebot vorgeschlagen."
+      "non_en_recherche": "Sie sind nicht auf Jobsuche: Solange dieser Status aktiv ist, wird Ihnen kein Angebot vorgeschlagen.",
+      "compte_suspendu": "Ihr Konto ist gesperrt: Es können Ihnen keine Aufträge angeboten werden. Wenden Sie sich an den Support, um den Grund zu erfahren.",
+      "compte_en_suppression": "Die Löschung Ihres Kontos ist geplant: Es werden Ihnen keine Aufträge mehr angeboten. Reaktivieren Sie Ihr Konto, um fortzufahren.",
+      "compte_anonymise": "Ihr Konto wurde gelöscht. Es können Ihnen keine Aufträge mehr angeboten werden."
     },
     "echec": {
       "moteur_indisponible": "Die Suche konnte nicht abgeschlossen werden: Der Matching-Dienst ist nicht verfügbar. Unser Team ist informiert.",

@@ -9,7 +9,12 @@ import { rerankerTout, type DocumentANoter } from './rerank'
 import { reconcileMatches, type ReconcileDesired } from './reconcile'
 import { notifyAndFlip, pickRel, type NotifySpec } from './shared'
 import type { VerdictExpert } from './types'
-import type { RaisonIneligible } from './issue-de-recherche'
+import {
+  COLONNES_COMPTE,
+  COLONNES_PROFIL,
+  jugerEligibilite,
+  type RaisonIneligible,
+} from './eligibilite'
 // La MÊME source que l'autre sens. Une seconde expression de la règle ici
 // aurait fait deux moteurs qui ne s'accordent pas sur ce qu'est une annonce
 // active — et rien ne l'aurait dit (§E.20, §E.24).
@@ -70,59 +75,43 @@ type LigneAnnonce = {
   status: string
 }
 
+// ⚠️ LES COLONNES D'ÉLIGIBILITÉ SONT **DÉRIVÉES**, JAMAIS RECOPIÉES ICI.
+//    C'est la moitié du défaut de ce lot : trois conditions manquaient de ce
+//    côté, et elles n'étaient même pas CHARGEABLES — le `select` ne demandait
+//    ni `status`, ni `deletion_scheduled_at`, ni `anonymized_at`. Un test sur
+//    une colonne absente ne lève rien : il lit `undefined` et conclut (§E.1).
+//    Écrites ici à la main, elles auraient pu se désaccorder de la règle à la
+//    première condition ajoutée.
 const SELECT_PROFIL =
   'id, user_id, domain_id, title, summary, skills, certifications, years_total_experience, ' +
   'branch_id, speciality_ids, seniorities, work_zone_countries, ' +
-  'visible, ai_consent_at, cv_parsing_status, verification_status, ' +
-  'availability_status, cdi_status, open_to_cdi, open_to_freelance, last_matching_scope, ' +
-  'users!profiles_user_id_fkey!inner(user_type, locale)'
-
-/**
- * LE JOURNAL DE CHAQUE RAISON — dérivé du CODE, jamais écrit à côté.
- *
- * Le moteur a besoin d'une phrase française pour sa note ; l'écran a besoin
- * d'un code qu'il traduit dans les quatre langues. Les deux existaient, et la
- * traduction de l'un vers l'autre se faisait par une chaîne de comparaisons
- * dont la dernière branche était un REPLI : une garde ajoutée plus tard serait
- * sortie sous l'étiquette de sa voisine, sans que rien ne le dise (§E.22).
- *
- * Ici il n'y a plus de repli : le code est la valeur produite, la phrase s'en
- * déduit par cette table, et TypeScript refuse un code absent de la table.
- */
-const JOURNAL_PAR_RAISON: Record<RaisonIneligible, string> = {
-  profil_non_visible: 'profil non visible',
-  cv_non_analyse: 'CV non analysé',
-  consentement_absent: 'consentement IA absent',
-  profil_non_approuve: 'profil non approuvé',
-  ne_pas_deranger: 'expert en « ne pas déranger »',
-  non_en_recherche: 'expert non en recherche',
-}
+  `${COLONNES_PROFIL.join(', ')}, ` +
+  'open_to_cdi, open_to_freelance, last_matching_scope, ' +
+  `users!profiles_user_id_fkey!inner(user_type, locale, ${COLONNES_COMPTE.join(', ')})`
 
 /**
  * L'expert est-il éligible à recevoir des recommandations ?
  *
- * Exactement les mêmes conditions que côté vivier — écrites une seule fois ici
- * pour ce sens, et vérifiées AVANT toute dépense. Un profil non éligible qu'on
- * noterait quand même serait de l'argent dépensé pour un résultat qu'on jette.
+ * ⚠️ CETTE FONCTION NE DÉCIDE PLUS RIEN, ET C'EST LE LOT. Elle portait SA
+ *    PROPRE liste de conditions, sous un commentaire qui affirmait « exactement
+ *    les mêmes conditions que côté vivier ». Trois y manquaient — compte
+ *    suspendu, en suppression, anonymisé — et le `select` ne chargeait même
+ *    pas de quoi les tester.
+ *    Conséquence ATTEIGNABLE, par deux chemins qui ne passent pas par
+ *    `requireAuth` : le cron de relance et l'approbation par un
+ *    administrateur. Un expert suspendu était noté (dépense réelle) et
+ *    NOTIFIÉ.
  *
- * ⚠️ C'EST AUSSI CE QUE L'ÉCRAN AFFICHE AU CLIC. `raisonIneligibilite()`
- *    ci-dessous rend cette garde atteignable depuis une route SANS rien
- *    lancer — la réponse existe en une lecture de ligne, et la faire attendre
- *    soixante minutes était le défaut. Une seconde liste de conditions
- *    divergerait (§E.20) : il n'y en a qu'une, et c'est celle-ci.
+ * La règle vit dans [lib/matching/eligibilite.ts](./eligibilite.ts), module
+ * PUR que les DEUX sens plient. La phrase de journal en vient aussi : elle
+ * était une seconde table indexée par la raison, donc une seconde occasion
+ * d'oublier une entrée.
  */
-function expertEligible(p: LigneProfil, kind: ExpertKind): { ok: true } | { ok: false; raison: RaisonIneligible } {
-  if (p.visible !== true) return { ok: false, raison: 'profil_non_visible' }
-  if (p.cv_parsing_status !== 'done') return { ok: false, raison: 'cv_non_analyse' }
-  if (!p.ai_consent_at) return { ok: false, raison: 'consentement_absent' }
-  if (p.verification_status !== 'approved') return { ok: false, raison: 'profil_non_approuve' }
-  if (kind === 'expert_freelance' && p.availability_status === 'do_not_disturb') {
-    return { ok: false, raison: 'ne_pas_deranger' }
-  }
-  if (kind === 'expert_cdi' && p.cdi_status === 'employed') {
-    return { ok: false, raison: 'non_en_recherche' }
-  }
-  return { ok: true }
+function expertEligible(
+  p: LigneProfil,
+  kind: ExpertKind,
+): { ok: true } | { ok: false; raison: RaisonIneligible; journal: string } {
+  return jugerEligibilite(p as unknown as Record<string, unknown>, kind)
 }
 
 /** La trace du périmètre du dernier run — le routeur de synchronisation la lit. */
@@ -207,7 +196,7 @@ export async function runMatchingForExpert(args: {
     return {
       status: 'empty_pool',
       proposals: [],
-      notes: `Expert non éligible : ${JOURNAL_PAR_RAISON[eligibilite.raison]}.`,
+      notes: `Expert non éligible : ${eligibilite.journal}.`,
       model: null,
       empechement: { quoi: 'ineligible', raison: eligibilite.raison },
     }

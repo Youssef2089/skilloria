@@ -25,6 +25,7 @@
 // une phrase vraie.
 
 import type { Empechement, StatutExpert } from './types'
+import type { RaisonIneligible } from './eligibilite'
 import type { ArretDeNotation } from './rerank'
 
 /**
@@ -35,18 +36,19 @@ import type { ArretDeNotation } from './rerank'
  *    type : la réponse existe au moment du clic, elle n'a jamais demandé
  *    d'attendre, et la faire attendre était le défaut.
  *
- * Elles sont produites par `expertEligible()`
- * ([lib/matching/run-for-expert.ts]) — qui est la SEULE implémentation de la
- * garde, et rend désormais ces codes directement. Il n'existe donc pas de
- * seconde liste de conditions qui pourrait dériver de la première (§E.20).
+ * ⚠️ CE FICHIER PORTAIT LA LISTE EN TOUTES LETTRES, SOUS UN COMMENTAIRE QUI
+ *    DISAIT « il n'existe donc pas de seconde liste de conditions qui pourrait
+ *    dériver de la première ». C'ÉTAIT FAUX : le vivier
+ *    (`lib/matching/pool.ts`) en portait une autre, et elle avait TROIS
+ *    conditions de plus — compte suspendu, en suppression, anonymisé
+ *    (§E.7 : un commentaire survit à sa règle).
+ *
+ *    Le type est désormais **dérivé** de `CONDITIONS_ELIGIBILITE`
+ *    ([lib/matching/eligibilite.ts](./eligibilite.ts)), qui est la seule
+ *    écriture de la règle et que les DEUX sens plient. Une divergence ne
+ *    compile plus.
  */
-export type RaisonIneligible =
-  | 'profil_non_visible'
-  | 'cv_non_analyse'
-  | 'consentement_absent'
-  | 'profil_non_approuve'
-  | 'ne_pas_deranger'
-  | 'non_en_recherche'
+export type { RaisonIneligible }
 
 /**
  * Pourquoi une recherche n'a pas pu aboutir, alors que l'expert y avait droit.

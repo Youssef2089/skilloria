@@ -4494,7 +4494,10 @@
       "consentement_absent": "Vous n'avez pas autorisé l'analyse de votre profil : aucune mission ne peut vous être proposée sans cet accord.",
       "profil_non_approuve": "Votre profil est en cours de validation. Vos missions {ecosystem} apparaîtront ici dès qu'il sera approuvé.",
       "ne_pas_deranger": "Vous êtes en « ne pas déranger » : aucune mission ne vous est proposée tant que ce statut est actif.",
-      "non_en_recherche": "Vous n'êtes pas en recherche : aucune offre ne vous est proposée tant que ce statut est actif."
+      "non_en_recherche": "Vous n'êtes pas en recherche : aucune offre ne vous est proposée tant que ce statut est actif.",
+      "compte_suspendu": "Votre compte est suspendu : aucune mission ne peut vous être proposée. Contactez le support pour en connaître le motif.",
+      "compte_en_suppression": "La suppression de votre compte est programmée : plus aucune mission ne vous est proposée. Réactivez votre compte pour reprendre.",
+      "compte_anonymise": "Votre compte a été supprimé. Aucune mission ne peut plus vous être proposée."
     },
     "echec": {
       "moteur_indisponible": "La recherche n'a pas pu aboutir : le moteur de mise en relation est indisponible. Nos équipes en sont informées.",

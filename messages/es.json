@@ -4494,7 +4494,10 @@
       "consentement_absent": "No has autorizado el análisis de tu perfil: no se te puede proponer ninguna misión sin ese consentimiento.",
       "profil_non_approuve": "Tu perfil está en revisión. Tus misiones {ecosystem} aparecerán aquí en cuanto sea aprobado.",
       "ne_pas_deranger": "Estás en «no molestar»: no se te propone ninguna misión mientras ese estado esté activo.",
-      "non_en_recherche": "No estás en búsqueda: no se te propone ninguna oferta mientras ese estado esté activo."
+      "non_en_recherche": "No estás en búsqueda: no se te propone ninguna oferta mientras ese estado esté activo.",
+      "compte_suspendu": "Su cuenta está suspendida: no se le puede proponer ninguna misión. Contacte con soporte para conocer el motivo.",
+      "compte_en_suppression": "La eliminación de su cuenta está programada: ya no se le propone ninguna misión. Reactive su cuenta para continuar.",
+      "compte_anonymise": "Su cuenta ha sido eliminada. Ya no se le puede proponer ninguna misión."
     },
     "echec": {
       "moteur_indisponible": "La búsqueda no pudo completarse: el motor de emparejamiento no está disponible. Nuestro equipo ya lo sabe.",

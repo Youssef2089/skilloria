@@ -750,6 +750,26 @@ la requête, et c'est exactement là qu'une fonction se fait tuer (§E.63). L'é
 l'heure, jamais stocké), filtrables par cause, date et écosystème, avec un bouton **RELANCER** qui
 appelle **la même fonction** que le dépôt d'un expert — pas une copie (§E.20).
 
+**D.20 — « ÉLIGIBLE » S'ÉCRIT UNE FOIS. LES SUSPENDUS SONT EXCLUS PARTOUT, SANS EXCEPTION.**
+Le moteur a deux sens, et chacun jugeait de son côté. **Trois conditions manquaient côté expert** —
+compte **suspendu**, en **suppression**, **anonymisé** — et elles n'étaient même pas *chargeables* :
+le `select` ne demandait pas les colonnes. Les deux fichiers affirmaient l'inverse en toutes lettres
+(§E.7). Atteignable par les **deux chemins sans session** — le cron de relance et l'approbation par
+un administrateur : un expert suspendu était noté (dépense réelle) **et notifié**.
+
+**La règle est une LISTE DE DONNÉES, pas une fonction** — [lib/matching/eligibilite.ts](lib/matching/eligibilite.ts),
+module **pur**. Les deux sens n'ont pas la même forme et ne peuvent pas l'avoir : l'un filtre
+cinquante mille lignes en SQL, l'autre juge une ligne chargée. Une « fonction partagée » aurait donc
+été deux fonctions, c'est-à-dire le jumeau qui vient de diverger (§E.20). Chaque condition porte
+donc **les deux formes**, et les deux sens plient la **même** liste.
+· le type des raisons est **dérivé** de la liste ; · les **colonnes** du `select` aussi — un test sur
+une colonne non chargée lit `undefined` et conclut (§E.1) ; · l'opérateur `neq_ou_null` existe
+parce qu'en SQL `colonne <> 'x'` **écarte** un NULL que le test en mémoire **garde**.
+
+**Gardé par [`diag-eligibilite-unique`](scripts/diag-eligibilite-unique.mjs)** — il **exécute les
+deux formes** sur trente lignes et exige le même verdict. Détail : **§C.17**
+([architecture](docs/architecture.md)).
+
 **D.10 — TOUTE NOTE DU PRODUIT EST SUR 0-10. Il n'y a pas de seconde échelle.**
 Les filtres de pertinence vivaient en **0-1**, les notes de jugement en **0-10**, et rien ne le disait
 à l'écran : **« 1 » signifiait *parfait* d'un côté et *médiocre* de l'autre**, sur la même page.

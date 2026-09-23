@@ -47,6 +47,12 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+// La RÈGLE d’éligibilité, interrogée à la source plutôt que cherchée dans le
+// texte de ses deux consommateurs (§D.20, §E.34). Import STATIQUE : un
+// `await import()` laisse une poignée ouverte que le `process.exit()` final
+// referme deux fois, et Node plante à la sortie sous Windows quand stdout
+// est redirigé — vert à la main, MUET dans la série (§E.57).
+import * as REGLE_ELIGIBILITE from '../lib/matching/eligibilite.ts'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 // NORMALISATION DES FINS DE LIGNE (reprise du tronc) : le depot sort les
@@ -208,12 +214,27 @@ ok(
 // ───────────────────────────────────────────────────────────────────────────
 // (E) La porte du vivier — sur le VRAI fichier, pas sur une copie du filtre
 // ───────────────────────────────────────────────────────────────────────────
+// ⚠️ LES FILTRES D'ÉLIGIBILITÉ ONT DÉMÉNAGÉ, ET CE CONTRÔLE AVEC EUX (§E.34).
+//    Ils étaient écrits en toutes lettres dans `lib/matching/pool.ts` ; depuis
+//    §D.20 ils vivent dans `lib/matching/eligibilite.ts`, que les DEUX sens du
+//    moteur plient. Chercher le texte du filtre dans le vivier ferait rougir ce
+//    contrôle sur un DÉMÉNAGEMENT — et verdir le jour où quelqu'un le recopie.
+//    On interroge donc la RÈGLE, et on vérifie que le vivier la plie.
+/** La règle porte-t-elle ce filtre, sous cette forme, pour tout le monde ? */
+const regleFiltre = (colonne, methode, valeur) =>
+  REGLE_ELIGIBILITE.appelsPostgrest('expert_freelance', ['toujours']).some(
+    (a) =>
+      a.methode === methode &&
+      a.colonne === colonne &&
+      (valeur === undefined || a.valeur === valeur),
+  )
+
 console.log('\n=== (E) porte du vivier : seul « approved » entre ===')
 
 ok(
   "le vivier filtre sur verification_status = 'approved'",
-  vivier.includes(".eq('verification_status', 'approved')"),
-  `filtre absent de ${VIVIER}`,
+  regleFiltre('verification_status', 'eq', 'approved') && /appelsPostgrest\s*\(/.test(vivier),
+  `la règle ne porte plus ce filtre, ou ${VIVIER} ne la plie plus`,
 )
 
 // Élargir la porte ne se fait pas en supprimant la ligne : il suffit de la

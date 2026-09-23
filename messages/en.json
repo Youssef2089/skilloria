@@ -4494,7 +4494,10 @@
       "consentement_absent": "You have not allowed your profile to be analysed: no mission can be offered to you without that consent.",
       "profil_non_approuve": "Your profile is being reviewed. Your {ecosystem} missions will appear here as soon as it is approved.",
       "ne_pas_deranger": "You are set to “do not disturb”: no mission is offered to you while that status is active.",
-      "non_en_recherche": "You are not open to work: no offer is sent to you while that status is active."
+      "non_en_recherche": "You are not open to work: no offer is sent to you while that status is active.",
+      "compte_suspendu": "Your account is suspended: no assignment can be offered to you. Contact support to find out why.",
+      "compte_en_suppression": "Your account is scheduled for deletion: no further assignments are offered to you. Reactivate your account to resume.",
+      "compte_anonymise": "Your account has been deleted. No assignment can be offered to you any more."
     },
     "echec": {
       "moteur_indisponible": "The search could not complete: the matching engine is unavailable. Our team has been notified.",

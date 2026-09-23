@@ -2,6 +2,13 @@ import { lectureIncomplete, lireToutesLesLignes } from '@/lib/matching/lecture-p
 import { enTranches, TAILLE_TRANCHE_IDS } from '@/lib/matching/tranches'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AnnonceType } from '@/types/annonce'
+// LA RÈGLE D'ÉLIGIBILITÉ, ÉCRITE UNE FOIS ET PLIÉE ICI (§D.20).
+import {
+  appelsPostgrest,
+  COLONNES_COMPTE,
+  COLONNES_PROFIL,
+  type AppelPostgrest,
+} from '@/lib/matching/eligibilite'
 import {
   expertKindForAnnonce,
   peutViserSonAuteur,
@@ -78,12 +85,50 @@ type LigneProfil = {
   users: { user_type: string; locale: string } | { user_type: string; locale: string }[] | null
 }
 
+/**
+ * POSE UN FILTRE D'ÉLIGIBILITÉ DÉCRIT PAR LA RÈGLE.
+ *
+ * Quatre lignes, et c'est tout ce que ce fichier sait des conditions : il ne
+ * les nomme pas, il ne les compte pas, il les POSE. Ajouter une condition à
+ * `CONDITIONS_ELIGIBILITE` la fait apparaître ici sans toucher à ce fichier —
+ * et il n'existe aucun endroit où l'on puisse en poser une qui n'y soit pas.
+ *
+ * Le `switch` est exhaustif sur `AppelPostgrest` : un opérateur ajouté demain
+ * à la grammaire refuse de compiler tant qu'il n'est pas traité ici.
+ */
+function poser<Q extends {
+  eq: (c: string, v: unknown) => Q
+  neq: (c: string, v: unknown) => Q
+  is: (c: string, v: null) => Q
+  not: (c: string, o: string, v: null) => Q
+  or: (e: string) => Q
+}>(q: Q, appel: AppelPostgrest): Q {
+  switch (appel.methode) {
+    case 'eq':
+      return q.eq(appel.colonne, appel.valeur)
+    case 'neq':
+      return q.neq(appel.colonne, appel.valeur)
+    case 'is_null':
+      return q.is(appel.colonne, null)
+    case 'not_null':
+      return q.not(appel.colonne, 'is', null)
+    case 'or':
+      return q.or(appel.expression)
+  }
+}
+
 const pickRel = <T,>(v: T | T[] | null | undefined): T | null =>
   !v ? null : Array.isArray(v) ? (v[0] ?? null) : v
 
+// ⚠️ LES COLONNES D'ÉLIGIBILITÉ SONT **DÉRIVÉES** DE LA RÈGLE, pas listées.
+//    Le vivier n'a pas besoin de LIRE les colonnes qu'il filtre en SQL — mais
+//    les charger rend le vivier jugeable par la MÊME fonction que l'autre sens,
+//    et c'est ce qui permet au contrôle de prouver que les deux verdicts
+//    coïncident sur une ligne donnée.
 const SELECT_PROFIL =
   'id, user_id, title, summary, skills, certifications, years_total_experience, ' +
-  'users!profiles_user_id_fkey!inner(user_type, locale, status, deletion_scheduled_at, anonymized_at)'
+  `${COLONNES_PROFIL.join(', ')}, ` +
+  `users!profiles_user_id_fkey!inner(user_type, locale, ${COLONNES_COMPTE.join(', ')})`
 
 /**
  * Critères déclarés PAR L'ANNONCE. Un tableau vide = aucune contrainte sur cet
@@ -153,27 +198,20 @@ export async function chargerVivierPourAnnonce(
       .from('profiles')
       .select(SELECT_PROFIL, options)
       .eq('domain_id', annonce.domain_id)
-      .eq('visible', true)
-      .eq('cv_parsing_status', 'done')
-      .not('ai_consent_at', 'is', null)
-      .eq('verification_status', 'approved')
-      // ── D1 : LES COMPTES QUI NE DOIVENT PLUS ÊTRE PROPOSÉS ────────────────
-      //
-      //  UN COMPTE SUSPENDU n'était filtré NULLE PART. Il était noté, apparié,
-      //  et aurait été notifié dès l'ouverture des notifications : la
-      //  suspension coupe l'accès, elle ne retirait pas du marché.
-      //
-      //  UN COMPTE EN SUPPRESSION était bien écarté — mais indirectement, par
-      //  un `visible = false` posé dans une AUTRE route (account/delete). La
-      //  garde tenait donc à une ligne située ailleurs : le jour où cette route
-      //  cesse de poser le drapeau, le moteur recommence à proposer des comptes
-      //  effacés, sans qu'aucune règle du moteur n'ait changé.
-      //
-      //  Les deux exclusions deviennent EXPLICITES ICI, dans la règle du vivier
-      //  — là où on vient lire ce que « éligible » veut dire.
-      .neq('users.status', 'suspended')
-      .is('users.deletion_scheduled_at', null)
-      .is('users.anonymized_at', null)
+
+    // ── L'ÉLIGIBILITÉ VIENT DE LA RÈGLE, ELLE N'EST PLUS ÉCRITE ICI ───────
+    //
+    //  Sept filtres vivaient à cet endroit, en toutes lettres. Ils étaient
+    //  JUSTES — c'est l'autre sens du moteur qui en avait trois de moins, sous
+    //  un commentaire affirmant l'inverse. Ce qui manquait n'était pas une
+    //  condition : c'était un endroit UNIQUE où les écrire (§E.20).
+    //
+    //  Le domaine, lui, reste au-dessus : ce n'est pas une condition
+    //  d'éligibilité mais une règle d'ACCÈS (§D.3), et elle n'a pas d'équivalent
+    //  dans le sens expert → annonces.
+    for (const appel of appelsPostgrest(publicNatif, ['toujours'])) {
+      q = poser(q, appel)
+    }
 
     // BRANCHE — déclarée des deux côtés, et obligatoire des deux côtés.
     if (annonce.branch_id) q = q.eq('branch_id', annonce.branch_id)
@@ -206,10 +244,18 @@ export async function chargerVivierPourAnnonce(
   // DISPONIBILITÉ — celle du type de l'EXPERT, jamais celle de l'annonce. Un
   // freelance en « ne pas déranger » et un salarié qui ne cherche pas ne sont
   // pas la même donnée, et l'annonce n'a pas à en décider.
-  const avecDisponibilite = (q: ReturnType<typeof base>, kind: ExpertKind) =>
-    kind === 'expert_freelance'
-      ? q.or('availability_status.is.null,availability_status.neq.do_not_disturb')
-      : q.or('cdi_status.is.null,cdi_status.neq.employed')
+  //
+  // ⚠️ LA FORME `is.null OR neq` N'EST PAS UN CAPRICE, ET ELLE VIENT DE LA
+  //    RÈGLE. En SQL, `colonne <> 'x'` vaut NULL quand la colonne est NULL, et
+  //    la ligne est ÉCARTÉE ; en mémoire, `p.colonne === 'x'` est faux sur
+  //    `null` et la ligne est GARDÉE. Un `neq` simple ferait donc diverger les
+  //    deux sens sur exactement les profils qui n'ont jamais touché à ce
+  //    réglage. La règle porte l'opérateur `neq_ou_null` pour ça.
+  const avecDisponibilite = (q: ReturnType<typeof base>, kind: ExpertKind) => {
+    let sortie = q
+    for (const appel of appelsPostgrest(kind, [kind])) sortie = poser(sortie, appel)
+    return sortie
+  }
 
   const autrePublic: ExpertKind =
     publicNatif === 'expert_freelance' ? 'expert_cdi' : 'expert_freelance'

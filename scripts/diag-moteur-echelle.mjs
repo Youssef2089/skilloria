@@ -25,6 +25,12 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+// La RÈGLE d’éligibilité, interrogée à la source plutôt que cherchée dans le
+// texte de ses deux consommateurs (§D.20, §E.34). Import STATIQUE : un
+// `await import()` laisse une poignée ouverte que le `process.exit()` final
+// referme deux fois, et Node plante à la sortie sous Windows quand stdout
+// est redirigé — vert à la main, MUET dans la série (§E.57).
+import * as REGLE_ELIGIBILITE from '../lib/matching/eligibilite.ts'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 // Normalisation des fins de ligne : le dépôt sort les fichiers en CRLF, et un
@@ -378,17 +384,36 @@ ok('plus aucun paramètre `signal` optionnel non fourni',
 titre('(F) LES HUIT RÈGLES QUE RIEN NE GARDAIT')
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ⚠️ LES FILTRES D'ÉLIGIBILITÉ ONT DÉMÉNAGÉ, ET CE CONTRÔLE AVEC EUX (§E.34).
+//    Ils étaient écrits en toutes lettres dans `lib/matching/pool.ts` ; depuis
+//    §D.20 ils vivent dans `lib/matching/eligibilite.ts`, que les DEUX sens du
+//    moteur plient. Chercher le texte du filtre dans le vivier ferait rougir ce
+//    contrôle sur un DÉMÉNAGEMENT — et verdir le jour où quelqu'un le recopie.
+//    On interroge donc la RÈGLE, et on vérifie que le vivier la plie.
+/** La règle porte-t-elle ce filtre, sous cette forme, pour tout le monde ? */
+const regleFiltre = (colonne, methode, valeur) =>
+  REGLE_ELIGIBILITE.appelsPostgrest('expert_freelance', ['toujours']).some(
+    (a) =>
+      a.methode === methode &&
+      a.colonne === colonne &&
+      (valeur === undefined || a.valeur === valeur),
+  )
+
+// Le vivier PLIE la règle — sans ça, rien de ce qui suit ne parle de lui.
+ok('0. le vivier plie la règle d’éligibilité', /appelsPostgrest\s*\(/.test(POOL),
+  'un vivier qui n’appelle plus la règle ne porte plus aucune de ces quatre conditions')
+
 // 1-3 : les conditions d'entrée dans le vivier.
-ok('1. seuls les profils VISIBLES entrent', /\.eq\('visible', true\)/.test(POOL))
-ok('2. seuls les profils VÉRIFIÉS entrent', /\.eq\('verification_status', 'approved'\)/.test(POOL))
-ok('3. le consentement IA reste EXIGÉ', /\.not\('ai_consent_at', 'is', null\)/.test(POOL),
+ok('1. seuls les profils VISIBLES entrent', regleFiltre('visible', 'eq', true))
+ok('2. seuls les profils VÉRIFIÉS entrent', regleFiltre('verification_status', 'eq', 'approved'))
+ok('3. le consentement IA reste EXIGÉ', regleFiltre('ai_consent_at', 'not_null'),
   'sans lui, on envoie au fournisseur le profil de qui ne l’a pas accepté')
 
 // 4 : D1 — suspendus et supprimés.
 ok('4. les comptes suspendus et supprimés sont exclus EXPLICITEMENT',
-  /\.neq\('users\.status', 'suspended'\)/.test(POOL) &&
-    /\.is\('users\.deletion_scheduled_at', null\)/.test(POOL) &&
-    /\.is\('users\.anonymized_at', null\)/.test(POOL),
+  regleFiltre('users.status', 'neq', 'suspended') &&
+    regleFiltre('users.deletion_scheduled_at', 'is_null') &&
+    regleFiltre('users.anonymized_at', 'is_null'),
   'la garde tenait à un `visible = false` posé dans une AUTRE route')
 
 // 5 : le palier est figé À L'ÉCRITURE, contre le seuil du jour.
