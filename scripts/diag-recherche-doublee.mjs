@@ -380,10 +380,21 @@ ok(
 // LE CHEMIN DIRECT ATTEND — et il attend AVANT de consommer le plafond.
 ok(/attendreBailLibre\(/.test(syncNu), 'le chemin direct ATTEND que le bail se libère')
 {
+  // ⚠️ ON COMPTE LES SITES D’APPEL, PAS SEULEMENT LE PREMIER. `indexOf` rend
+  //    la première occurrence : un second appel GLISSÉ PLUS HAUT aurait laissé
+  //    l’ordre « juste » sur celui du bas. La propriété est qu’il n’y ait
+  //    qu'UN site, et qu'il soit après l'attente (§E.8).
   const iAttente = syncNu.indexOf('attendreBailLibre(')
-  const iPlafond = syncNu.indexOf('consommerPlafondHoraire(supabaseAdmin')
+  const sites = [...syncNu.matchAll(/(\w+\s+)?consommerPlafondHoraire\s*\(/g)].filter(
+    (m) => (m[1] ?? '').trim() !== 'function',
+  )
   ok(
-    iAttente >= 0 && iPlafond > iAttente,
+    sites.length === 1,
+    `un seul site consomme le plafond horaire (${sites.length})`,
+    'un second site glisse plus haut rendrait l ordre juste sur celui du bas',
+  )
+  ok(
+    iAttente >= 0 && sites.length > 0 && sites[0].index > iAttente,
     '… AVANT de consommer le plafond horaire',
     'consommer d abord, c est repondre « trop de recherches » a un simple double clic — le faux message d echec',
   )
@@ -430,7 +441,14 @@ section('6. Les chemins de fond passent leur tour, ils n’attendent pas')
 
 const APPELANTS = SOURCES.filter((f) => /runMatchingForExpert\(/.test(depouillerJs(lire(f))))
 ok(APPELANTS.length >= 4, `${APPELANTS.length} appelants du moteur expert découverts`)
-const attendeurs = APPELANTS.filter((f) => /attendreBailLibre\(/.test(depouillerJs(lire(f))))
+// ⚠️ UN IMPORT EST UN ACCÈS, PAS SEULEMENT UN APPEL (§E.34) — deuxième fois
+//    de la session. Le motif cherchait `attendreBailLibre(` ; la mutation a
+//    ajouté `export const relance = attendreBailLibre` dans une tâche de
+//    fond, SANS parenthèses, et le contrôle est resté vert alors qu’une
+//    tâche venait d’obtenir un accès complet à l’attente.
+const attendeurs = APPELANTS.filter((f) =>
+  /attendreBailLibre/.test(depouillerJs(lire(f))),
+)
 ok(
   attendeurs.length === 1 && attendeurs[0] === SYNC,
   `un seul attend, et c’est celui qui répond à un écran : ${attendeurs.join(' · ') || '—'}`,
