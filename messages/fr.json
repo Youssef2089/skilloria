@@ -3042,7 +3042,8 @@
       "run_manual": "manuelle",
       "run_manual_by": "manuelle · {who}",
       "run_scheduled": "planifiée",
-      "history_retention_notice": "Le compte-rendu détaillé est effacé au bout de 90 jours ; la preuve d’exécution — date, statut et compteurs, sans aucun identifiant — est conservée 5 ans."
+      "history_retention_notice": "Le compte-rendu détaillé est effacé au bout de 90 jours ; la preuve d’exécution — date, statut et compteurs, sans aucun identifiant — est conservée 5 ans.",
+      "http_avant_verdict": "avant le report direct"
     },
     "tarifs_ia": {
       "title": "Tarifs des modèles",

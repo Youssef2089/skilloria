@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { sousVerdictDeRun } from '@/lib/cron/verdict-de-run'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { purgeAccount, type PurgeableUser } from '@/lib/account-purge'
 import { logAudit } from '@/lib/audit'
@@ -266,11 +267,22 @@ async function purger(admin: SupabaseClient): Promise<Response> {
   )
 }
 
+/**
+ * ⚠️ LE PASSAGE SE CLÔT ICI, ET SUR TOUS LES CHEMINS DE SORTIE.
+ *
+ *    La tâche écrit son verdict elle-même au lieu de le poser chez `pg_net`,
+ *    où il expire en ~6 h avant que la réconciliation ne passe : 7 201 passages
+ *    sur 9 853 étaient sans verdict au 22/09/2026, soit 73 %.
+ *
+ *    Le guichet est PARTAGÉ par les cinq tâches — cinq copies auraient produit
+ *    cinq occasions d'oublier une branche de sortie (§E.20), et celle qu'on
+ *    oublie est toujours celle de l'échec, qu'on ne joue jamais.
+ */
 export async function GET(request: NextRequest): Promise<Response> {
-  return handle(request)
+  return sousVerdictDeRun(request, JOB, getAdmin, () => handle(request))
 }
 
 // POST accepté aussi (déclenchement manuel/scripté éventuel).
 export async function POST(request: NextRequest): Promise<Response> {
-  return handle(request)
+  return sousVerdictDeRun(request, JOB, getAdmin, () => handle(request))
 }

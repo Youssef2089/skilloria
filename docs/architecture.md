@@ -87,6 +87,20 @@ avec le seed) : `publications_per_month`, `active_publications_max`,
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`verdict_ecrit_par_la_tache` (23/09/2026) — LA TÂCHE N'ATTEND PLUS QU'ON VIENNE LA CHERCHER.**
+> `cron_run_log` gagne `verdict_source` (`tache` / `reconciliation`) et `attendu_de_la_tache` ;
+> `cloturer_run_cron()` est neuve ; `trigger_purge_cron` **insère sa ligne AVANT l'appel** et passe
+> son identifiant dans le corps ; `admin_cron_job_runs` rend deux colonnes de plus — ses quatorze
+> colonnes d'origine sont **conservées**, et elle a dû être **supprimée puis recréée** (un
+> `returns table` est un type de retour).
+>
+> **Mesuré avant** : 9 853 passages depuis le 3 septembre, **7 201 sans verdict (73 %)** — la
+> réponse `pg_net` expire en ~6 h, la réconciliation passe à 03 h 15 et 03 h 45. Détail et règle
+> générale : **§E.63**.
+>
+> ⚠️ **La migration porte une POSTCONDITION qui LÈVE** (§E.60) : elle vérifie le nom, la table, la
+> **signature** de la fonction, et qu'aucune ligne antérieure ne reste marquée comme attendue.
+
 > **`relance_rejouee` (23/09/2026) — UNE RELANCE DONT LE RUN A ÉCHOUÉ NE SE SOLDE PLUS.**
 > `profiles` gagne `matching_relance_tentatives`, `matching_relance_echec_at` et
 > `matching_relance_echec_code` ; deux fonctions neuves (`marquer_tentative_relance`,

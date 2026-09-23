@@ -306,7 +306,7 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **80** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
+Sur les **81** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
 22/09/2026, à l'exécution — les 71ᵉ à 78ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
 lignes existantes ; `inacheves_hors_annonces_expirees` ne fait que remplacer le corps d'une fonction
@@ -3154,6 +3154,76 @@ pertinence ne sort vers l'expert, et il classe explicitement la note de **candid
 parmi les occurrences **légitimes** — les deux grandeurs ne disent pas la même chose (§D.6). Le
 contrôle existait avant le défaut ; il ne l'a pas vu, parce qu'il balaie les **surfaces expert**, et
 qu'un gabarit d'e-mail n'en est pas une. **Il en est une depuis ce lot.**
+
+<a id="e63"></a>
+### E.63 — UN RÉSULTAT POSÉ SUR UN SUPPORT QUI EXPIRE EST UN RÉSULTAT QU'ON PERDRA.
+
+**Le cas, mesuré le 22/09/2026.** **9 853** passages des deux pilotes du moteur depuis le
+3 septembre. **7 201 sans aucun verdict HTTP — soixante-treize pour cent.**
+
+**La cause n'est pas une panne, et c'est tout le sujet.** La tâche ne rendait pas compte : elle
+posait sa réponse chez `pg_net`, qui la garde **environ six heures**, et la réconciliation ne passe
+qu'à **03 h 15** et **03 h 45**. Un passage de dix heures du matin n'avait donc plus de réponse à
+recopier la nuit suivante. **Seule la tranche 21 h – 4 h arrivait à temps.**
+
+| Ce que l'écran montrait | Ce que ça voulait dire |
+|---|---|
+| une ligne sans verdict | la tâche a peut-être parfaitement tourné |
+| trois quarts des lignes ainsi | on ne peut pas répondre à « est-ce que ça tourne ? » |
+
+**CE QUI A ÉTÉ REFUSÉ, ET POURQUOI.** *Ramasser plus souvent.* Ça réduit la perte, ça ne la
+supprime pas : il reste toujours une fenêtre entre la fin d'un passage et le ramassage suivant, et
+elle s'élargit dès qu'une tâche déborde. **On aurait déplacé le seuil, pas le mécanisme** — et le
+jour où il aurait remordu, personne n'aurait su dire s'il s'agissait d'une panne ou d'un retard.
+
+**LA PARADE : IL N'Y A PLUS D'INTERVALLE.** La ligne de journal naît **avant** l'appel, son
+identifiant part dans le corps, et la tâche **écrit son verdict elle-même en terminant**. Rien
+n'expire entre les deux, parce qu'il n'y a plus de « entre les deux ».
+
+> **ET LA RÉCONCILIATION RESTE — DEUX COLLECTEURS, DEUX PANNES DIFFÉRENTES.**
+> Ce n'est **pas** §E.36 (« deux gardes qui tombent sur la même panne n'en font qu'une ») : elles ne
+> tombent pas sur la même panne. La tâche n'écrit pas quand elle a été **tuée** ; la réconciliation
+> n'écrit pas quand la réponse a **expiré**. Une tâche tuée à la trentième seconde laisse donc
+> encore une trace, par l'autre chemin. C'est la redondance assumée de §E.17.
+
+**LE VERDICT S'ÉCRIT SUR TOUS LES CHEMINS DE SORTIE, Y COMPRIS UNE EXCEPTION.** Cinq tâches, dix
+sorties HTTP : un guichet **partagé** les enveloppe. Cinq copies auraient été cinq occasions
+d'oublier une branche (§E.20) — et celle qu'on oublie est toujours celle de l'échec, qu'on ne joue
+jamais. Le guichet **relaie** l'exception après avoir écrit : l'avaler ferait d'une panne un succès
+silencieux, la classe même qu'on ferme.
+
+**ET L'ÉCRITURE NE PEUT PAS ÉCHOUER EN SILENCE — c'est la condition posée par l'architecte.**
+Quatre issues, quatre journaux : la base refuse · la fonction rend `false` (aucune ligne n'a bougé)
+· le corps est **illisible** · le corps est **absent**.
+
+> ⚠️ **LES DEUX DERNIÈRES AVAIENT D'ABORD LA MÊME FORME, ET LE CLIQUET A MORDU.**
+> `lireIdentifiantDeJournal` rendait `null` pour les deux, avec un commentaire disant « l'appel ne
+> vient pas du pilote ». **Vrai d'un `curl` de mise au point. Faux d'un corps que le pilote a bien
+> envoyé et qu'on n'a pas su lire** — là, une ligne attend un verdict qu'elle ne recevra jamais par
+> ce chemin. C'est **§E.29 dans la parade elle-même**, et c'est
+> [`diag-echec-silencieux`](../scripts/diag-echec-silencieux.mjs) qui l'a vu, à la première
+> exécution, sur du code écrit une heure plus tôt. La distinction est un **type** à trois états.
+
+**L'HISTORIQUE PERDU SE DIT, IL NE SE DEVINE PAS.** Les 7 201 lignes déjà vides ne se rattrapent
+pas — la réponse qui les portait n'existe plus. `cron_run_log.attendu_de_la_tache` les marque à
+`false` : **aucun verdict n'est attendu d'elles**, et l'écran l'écrit plutôt que de laisser lire un
+trou d'activité. Sans cette colonne, on rouvrait §E.52 à l'identique — *une absence
+d'INSTRUMENTATION lue comme une absence de TRAVAIL*, qui a déjà coûté un signal bloquant permanent
+sur cet écran.
+
+**La règle, et elle dépasse les tâches planifiées :**
+> **UN RÉSULTAT QU'ON POSE POUR QUE QUELQU'UN VIENNE LE CHERCHER SE PERD À LA PREMIÈRE FENÊTRE
+> MANQUÉE. Celui qui SAIT écrit ; celui qui ramasse est un second recours, jamais le premier.**
+> La question à poser devant tout mécanisme de collecte : *combien de temps le résultat survit-il,
+> et qui passe le chercher — avec quelle période ?* Si la seconde est plus grande que la première,
+> la perte est **arithmétique**, pas accidentelle.
+
+**Contrôle** : [scripts/diag-verdict-de-run.mjs](../scripts/diag-verdict-de-run.mjs) — il
+**découvre** les tâches sous `app/api/cron/` au lieu de les lister (une tâche ajoutée demain est
+couverte sans qu'on l'inscrive nulle part, §E.61), vérifie que **chaque sortie HTTP** passe par le
+guichet, que les quatre issues journalisent, que la ligne naît **avant** l'appel, que les deux
+collecteurs ne se marchent pas dessus, et que l'écran distingue « pas attendu » de « pas rendu »
+dans les quatre langues.
 
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.

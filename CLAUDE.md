@@ -892,6 +892,7 @@ bloquant, ordonnés avec les quatorze défauts nommés du gel 4.1d :
 | [E.60](docs/pieges.md#e60) | `IF NOT EXISTS` SUR UN NOM D'INDEX DÉJÀ PRIS : UNE CRÉATION SAUTÉE EN SILENCE. Une migration qui « réussit » n'a rien prouvé. |
 | [E.61](docs/pieges.md#e61) | UN CONTRÔLE DONT LA COUVERTURE EST UNE LISTE TENUE À LA MAIN NE PROTÈGE QUE CE QU'ON A PENSÉ À LUI DONNER. |
 | [E.62](docs/pieges.md#e62) | UN DÉFAUT PEUT PROTÉGER QUELQUE CHOSE. LE RÉPARER NE DOIT PAS ROUVRIR CE QU'IL FERMAIT. |
+| [E.63](docs/pieges.md#e63) | UN RÉSULTAT POSÉ SUR UN SUPPORT QUI EXPIRE EST UN RÉSULTAT QU'ON PERDRA. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

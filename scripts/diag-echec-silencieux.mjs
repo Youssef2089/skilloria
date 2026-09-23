@@ -242,7 +242,11 @@ const GEL = {
   'lib/candidatures/ai-assessment.ts': { 'catch:null': 1 },
   'lib/emails/domain-url.ts': { 'catch:null': 1 },
   'lib/home-ecosystem.ts': { 'catch:[]': 1 },
-  'lib/matching-resync-hint.ts': { 'catch:null': 1 },
+  // 'lib/matching-resync-hint.ts' — RETIRE du gel le 23/09/2026 : le fichier
+  // a ete SUPPRIME avec le defaut qu'il portait (§E.51, les deux chronometres).
+  // Un gel qui garde une entree dont le fichier n'existe plus tolere par avance
+  // une regression sur un chemin disparu, et le cliquet l'a signale lui-meme :
+  // « la dette a BAISSE — retirez ces lignes du GEL ».
   // NEUF au lot 4.1b, et c'est une HAUSSE ASSUMÉE — même raison qu'`org-members`
   // ci-dessous : le cliquet compte des FORMES, pas des verdicts.
   // `runChannel` réclame ses notifications par un UPDATE atomique et ne lisait

@@ -3042,7 +3042,8 @@
       "run_manual": "manuell",
       "run_manual_by": "manuell · {who}",
       "run_scheduled": "geplant",
-      "history_retention_notice": "Der ausführliche Bericht wird nach 90 Tagen gelöscht; der Ausführungsnachweis — Datum, Status und Zähler, ohne jede Kennung — wird 5 Jahre aufbewahrt."
+      "history_retention_notice": "Der ausführliche Bericht wird nach 90 Tagen gelöscht; der Ausführungsnachweis — Datum, Status und Zähler, ohne jede Kennung — wird 5 Jahre aufbewahrt.",
+      "http_avant_verdict": "vor der Direktmeldung"
     },
     "tarifs_ia": {
       "title": "Modelltarife",

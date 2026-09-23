@@ -52,6 +52,22 @@ type CronRun = {
   return_message: string | null
   http_requested_at: string | null
   http_status: number | null
+  /**
+   * « tache » (la route l'a écrit en terminant), « reconciliation » (recopié
+   * depuis pg_net, l'ancien chemin), ou null — aucun verdict.
+   */
+  verdict_source?: string | null
+  /**
+   * ⚠️ LA DISTINCTION QUI FERME §E.52. Un passage SANS verdict n'a pas le même
+   *    sens des deux côtés du 23/09/2026 : avant, la tâche ne rendait compte à
+   *    personne — aucun verdict ne lui était demandé, et 7 201 lignes sur
+   *    9 853 sont dans ce cas. Après, un vide veut dire que la tâche n'a pas
+   *    rendu compte, et c'est un problème.
+   *    Les confondre, c'est afficher un trou d'ACTIVITÉ là où il n'y a qu'un
+   *    trou d'INSTRUMENTATION — le signal bloquant permanent qui apprend à
+   *    ignorer les signaux.
+   */
+  verdict_attendu?: boolean | null
   http_timed_out: boolean | null
   http_error: string | null
   http_response: string | null
@@ -261,6 +277,15 @@ export default function AdminScheduledTaskDetailPage() {
             {!loading && runs.map((r, i) => {
               const failed = r.status !== null && r.status !== 'succeeded'
               const httpKo = job?.writes_run_log && r.http_status !== null && r.http_status !== 200
+              // Un passage ATTENDU et resté muet est un problème ; un passage
+              // antérieur au mécanisme n'en est pas un. `=== true`, jamais
+              // une vérité simple : `undefined` (route non redéployée) ne doit
+              // pas se peindre en reproche (§E.55).
+              const verdictManquant =
+                job?.writes_run_log &&
+                r.http_status === null &&
+                !!r.http_requested_at &&
+                r.verdict_attendu === true
               const bad = failed || httpKo
               return (
                 <div
@@ -299,11 +324,13 @@ export default function AdminScheduledTaskDetailPage() {
                       même sur un 401. Pour les tâches SQL pures, cette colonne
                       n'existe pas — l'afficher vide serait un faux signal. */}
                   {job?.writes_run_log && (
-                    <span style={{ minWidth: 110, color: httpKo ? 'var(--sk-red)' : 'var(--sk-muted)' }}>
+                    <span style={{ minWidth: 110, color: httpKo || verdictManquant ? 'var(--sk-red)' : 'var(--sk-muted)' }}>
                       {r.http_status !== null
                         ? `${t('field_http')} ${r.http_status}`
                         : r.http_requested_at
-                          ? t('http_no_verdict')
+                          ? r.verdict_attendu === true
+                            ? t('http_no_verdict')
+                            : t('http_avant_verdict')
                           : '—'}
                       {r.http_timed_out ? ' · timeout' : ''}
                     </span>

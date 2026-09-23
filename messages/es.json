@@ -3042,7 +3042,8 @@
       "run_manual": "manual",
       "run_manual_by": "manual · {who}",
       "run_scheduled": "programada",
-      "history_retention_notice": "El informe detallado se borra a los 90 días; la prueba de ejecución —fecha, estado y contadores, sin ningún identificador— se conserva 5 años."
+      "history_retention_notice": "El informe detallado se borra a los 90 días; la prueba de ejecución —fecha, estado y contadores, sin ningún identificador— se conserva 5 años.",
+      "http_avant_verdict": "antes del reporte directo"
     },
     "tarifs_ia": {
       "title": "Tarifas de los modelos",
