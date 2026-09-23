@@ -930,6 +930,7 @@ bloquant, ordonnés avec les quatorze défauts nommés du gel 4.1d :
 | [E.62](docs/pieges.md#e62) | UN DÉFAUT PEUT PROTÉGER QUELQUE CHOSE. LE RÉPARER NE DOIT PAS ROUVRIR CE QU'IL FERMAIT. |
 | [E.63](docs/pieges.md#e63) | UN RÉSULTAT POSÉ SUR UN SUPPORT QUI EXPIRE EST UN RÉSULTAT QU'ON PERDRA. |
 | [E.64](docs/pieges.md#e64) | `NOT VALID` NE DISPENSE QUE L'INSERTION : IL REND IMMUABLES LES LIGNES QU'IL TOLÈRE. |
+| [E.65](docs/pieges.md#e65) | DÉPLACER UN TRAITEMENT DÉPLACE LES GARDES QUI EN DÉPENDENT. On relit CHAQUE garde traversée, pas seulement celle qu'on vise. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

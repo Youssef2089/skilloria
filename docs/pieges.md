@@ -3272,6 +3272,63 @@ vérifie `convalidated`.
 
 ---
 
+<a id="e65"></a>
+
+## E.65 — DÉPLACER UN TRAITEMENT DÉPLACE LES GARDES QUI EN DÉPENDENT
+
+**La règle.** Quand on change **l'ordre** d'une chaîne — un appel qui passe avant, un traitement qui
+quitte un `after()`, une écriture qui recule —, on **relit CHAQUE garde que la chaîne traverse**,
+pas seulement celle qu'on vise. Une garde est écrite contre un ÉTAT ; déplacer le traitement change
+l'état qu'elle observe, et elle continue de compiler.
+
+**Les deux cas mesurés, le 23/09/2026, dans le même lot** (§D.19 : le jugement passe avant
+l'écriture d'une candidature). Aucun des deux n'était le sujet du lot ; les deux ont été trouvés en
+déplaçant, pas en cherchant.
+
+**① UNE GARDE QUI COMPARE À « L'APPELANT » CHANGE DE SENS QUAND L'APPELANT CHANGE.**
+« On ne candidate pas à son propre besoin » comparait `publication.created_by` à
+`auth.user.id` — l'utilisateur de la session. C'était **exact** tant que le seul chemin était
+« l'expert dépose ». Le lot a ajouté un second appelant : le bouton RELANCER du back-office, où
+l'appelant est un **administrateur**. La garde aurait comparé l'auteur de l'annonce à l'administrateur,
+donc **laissé passer exactement ce qu'elle refuse**. Elle compare désormais à
+`profiles.user_id` — l'expert —, ce qui est **identique sur le chemin d'origine** et juste sur les
+deux.
+
+> **Le signe qui la trahit** : une garde dont l'un des deux membres vient de la SESSION et l'autre de
+> l'OBJET. Elle est juste tant qu'un seul type d'acteur l'atteint, et elle ne dit nulle part lequel.
+
+**② UNE GARDE QUI ATTEND UN ÉTAT TRANSITOIRE DEVIENT MUETTE QUAND CET ÉTAT DISPARAÎT.**
+Le dévoilement inclus différait sa décision tant qu'une **candidature non encore notée** existait sur
+l'annonce — sans quoi la place offerte va au PREMIER déposant au lieu du MEILLEUR. Le lot a supprimé
+cet état : une candidature naît notée. La garde ne serait pas tombée en erreur — elle aurait compté
+**zéro**, donc n'aurait plus jamais différé, et le défaut qu'elle fermait serait revenu **avec la
+même fenêtre de trente secondes**, sans qu'une ligne ne change de couleur.
+
+> **C'est §E.62 vu de l'autre côté.** §E.62 dit qu'un défaut peut protéger quelque chose. Celui-ci dit
+> qu'une **garde** peut cesser de protéger sans cesser d'exister : elle reste verte, elle reste
+> exécutée, et elle ne mesure plus rien. Le correctif rouvre ce qu'il ferme, **par sa propre
+> réussite**.
+>
+> La parade n'est pas de garder la garde : c'est de lui **reposer sa question dans le nouveau
+> monde**. Ici : « un autre DÉPÔT est-il en cours ? » à la place de « une autre candidature est-elle
+> non notée ? ». Même fenêtre, même filet, même comportement — autre observable.
+
+**LE RÉFLEXE, EN TROIS QUESTIONS, À POSER SUR CHAQUE GARDE TRAVERSÉE :**
+1. **Qui** compare-t-elle ? Un des deux membres vient-il de la session plutôt que de l'objet ?
+2. **Quel état** observe-t-elle ? Cet état existe-t-il encore après le déplacement, et veut-il
+   toujours dire la même chose ?
+3. **Que ferait-elle** si l'état qu'elle attend n'arrivait jamais ? Si la réponse est « rien, en
+   silence », elle est déjà morte.
+
+**Ce qu'aucun contrôle ne trouve tout seul.** Un balayage voit les gardes ; il ne sait pas
+**laquelle a changé de sens**. Ce qui les a trouvées ici, c'est d'avoir déplacé le code à la main en
+relisant ce qu'il traverse — et le premier des deux a été vu en écrivant le chemin de relance, pas en
+relisant le chemin de dépôt. **Ce qui se garde** est la conséquence : les deux propriétés corrigées
+sont désormais tenues par [`diag-candidature-complete`](../scripts/diag-candidature-complete.mjs) et
+[`diag-devoilement-inclus`](../scripts/diag-devoilement-inclus.mjs), chacune éprouvée par mutation.
+
+---
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
