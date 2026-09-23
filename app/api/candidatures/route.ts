@@ -1,24 +1,17 @@
-import { NextRequest, after } from 'next/server'
+import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
-import { logAudit } from '@/lib/audit'
-import { dispatchNotificationsForUsers } from '@/lib/notifications/dispatch'
-import { newCandidatureInappLabels } from '@/lib/notifications/inapp-labels'
-import { getOrgEntitlements } from '@/lib/entitlements'
-// performUnlock est factorisé dans lib/unlock.ts (Lot 3), partagé avec la route
-// unlock — garantit un chemin de dévoilement STRICTEMENT identique.
-import { performUnlock } from '@/lib/unlock'
-// A4 : dérivation CENTRALISÉE du deep-link notif selon le type d'org (org
-// personnelle freelance → dashboard expert ; org cliente → dashboard entreprise).
-import { publicationCandidaturesLinkForOrg } from '@/lib/collaboration-links'
-import { isActivePublished } from '@/lib/publications/expiry'
-import { jugerCandidature } from '@/lib/candidatures/ai-assessment'
-import { enregistrerPanne } from '@/lib/candidatures/pannes-redaction'
-import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
+import { deposerCandidature, REFUS_DEPOT, type CodeRefus } from '@/lib/candidatures/depot'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-// Nécessaire au `after()` du POST : sans plafond explicite, les envois lancés
-// après la réponse n'ont pas le temps de s'exécuter sur Vercel.
+// ⚠️ LE JUGEMENT EST DEVENU SYNCHRONE, ET CE PLAFOND EN DÉPEND.
+//    L'appel au modèle attend jusqu'à 30 s (TIMEOUT_MS,
+//    lib/candidatures/ai-assessment.ts) ; les gardes, l'insertion, le
+//    dévoilement et la cloche encadrent cet appel. 60 s laisse la marge sans
+//    permettre à une requête de s'éterniser.
+//    Il sert AUSSI au `after()` du dispatch e-mail : sans plafond explicite,
+//    les envois lancés après la réponse n'ont pas le temps de s'exécuter sur
+//    Vercel (§E.5).
 export const maxDuration = 60
 
 /**
@@ -26,17 +19,25 @@ export const maxDuration = 60
  *
  * Body : { publication_id: uuid, cover_message?: string (0-2000) }
  *
- * Garde stricte :
- *  - requireAuth → expert authentifié
- *  - profile expert résolu via profiles.user_id = auth.uid()
- *  - MATCH EXIGÉ : un row matches WHERE publication_id=X AND profile_id=expert
- *    doit exister (sinon 403 forbidden — borrnage curation).
- *    + RLS candidatures_expert_insert exige déjà ce match côté base (défense
- *    en profondeur, cf. migration 20260603160000).
- *  - status FORCÉ à 'received' côté serveur.
- *  - match_id et ai_match_score copiés du match correspondant.
- *  - preview construite côté serveur (whitelist safe-fields).
- *  - UNIQUE (publication_id, profile_id) → re-candidature → PG 23505 → 409.
+ * ┌─ CETTE ROUTE NE DÉCIDE PLUS RIEN ──────────────────────────────────────┐
+ * │ Elle authentifie, elle valide le corps, elle résout le profil de        │
+ * │ l'appelant — et elle délègue à `deposerCandidature`                     │
+ * │ (lib/candidatures/depot.ts), qui porte les gardes, le jugement,         │
+ * │ l'écriture, le dévoilement inclus, la cloche et l'audit.                │
+ * │                                                                          │
+ * │ POURQUOI : le bouton RELANCER du back-office doit rejouer EXACTEMENT ce │
+ * │ chemin. Tant que le chemin vivait dans la route, le rejeu aurait été une │
+ * │ copie — et une copie de chemin de rattrapage est le pire des jumeaux     │
+ * │ (§E.20) : elle ne sert que le jour où le chemin normal a déjà échoué,    │
+ * │ donc son écart ne se découvre jamais avant.                             │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *
+ * ⚠️ UNE CANDIDATURE N'EXISTE QUE COMPLÈTE. Si le jugement n'aboutit pas,
+ *    RIEN n'est écrit et cette route répond **202** — l'expert lit le même
+ *    message de succès, par décision (il ne paie pas une panne qui ne le
+ *    concerne pas), et la ligne part sur `/admin/depots-en-echec`, qui est
+ *    BLOQUANT en supervision tant qu'il n'est pas vide. Le raisonnement
+ *    complet, et ce qu'il coûte, sont en tête de lib/candidatures/depot.ts.
  */
 
 function json(data: unknown, status = 200): Response {
@@ -59,54 +60,19 @@ function asString(v: unknown): string | null {
   return t.length > 0 ? t : null
 }
 
-/**
- * Whitelist de construction de `candidatures.preview` — strictement les
- * champs NON-SENSIBLES (cf. migration boucle cœur §4).
- *
- * AUTORISÉS (24) : title, summary, skills, seniorities, expert_type, tjm_min/max,
- *   salary_min/max, years_experience, years_total_experience, work_modes,
- *   languages, country, city, availability_status, availability_date,
- *   profile_score, branch_id, speciality_ids, + 6 signaux CDI non-PII :
- *   cdi_status, cdi_notice_period, cdi_geo_mobility, cdi_contract_types,
- *   cdi_company_size, cdi_sectors.
- *
- * JAMAIS : phone, email, first_name, last_name, cv_url, cv_file_path,
- *   linkedin_url, address_line, postal_code, photo_url, birth_year, user_id,
- *   cdi_salary_min/max (déjà couverts par salary_min/max), cdi_motivations,
- *   cdi_career_goals (textes libres — réservés post-unlock).
- */
-function buildPreview(profile: Record<string, unknown>): Record<string, unknown> {
-  return {
-    title: profile.title ?? null,
-    summary: profile.summary ?? null,
-    skills: Array.isArray(profile.skills) ? profile.skills : [],
-    seniorities: Array.isArray(profile.seniorities) ? profile.seniorities : [],
-    expert_type: profile.expert_type ?? null,
-    years_experience: profile.years_experience ?? null,
-    years_total_experience: profile.years_total_experience ?? null,
-    tjm_min: profile.tjm_min ?? null,
-    tjm_max: profile.tjm_max ?? null,
-    salary_min: profile.salary_min ?? null,
-    salary_max: profile.salary_max ?? null,
-    work_modes: Array.isArray(profile.work_modes) ? profile.work_modes : [],
-    languages: Array.isArray(profile.languages) ? profile.languages : [],
-    country: profile.country ?? null,
-    city: profile.city ?? null,
-    availability_status: profile.availability_status ?? null,
-    availability_date: profile.availability_date ?? null,
-    profile_score: profile.profile_score ?? null,
-    branch_id: profile.branch_id ?? null,
-    speciality_ids: Array.isArray(profile.speciality_ids) ? profile.speciality_ids : [],
-    // Lot synthèse candidat CDI — 6 signaux non-PII pour les candidatures
-    // sur publications de type 'offre'. Affichés uniquement quand
-    // publicationType==='offre' côté UI.
-    cdi_status: profile.cdi_status ?? null,
-    cdi_notice_period: profile.cdi_notice_period ?? null,
-    cdi_geo_mobility: profile.cdi_geo_mobility ?? null,
-    cdi_contract_types: Array.isArray(profile.cdi_contract_types) ? profile.cdi_contract_types : [],
-    cdi_company_size: Array.isArray(profile.cdi_company_size) ? profile.cdi_company_size : [],
-    cdi_sectors: Array.isArray(profile.cdi_sectors) ? profile.cdi_sectors : [],
-  }
+/** Les phrases de refus. Le client ne lit que le `code` ; elles servent aux journaux. */
+const MESSAGE_REFUS: Record<CodeRefus, string> = {
+  durees_illisibles: 'Durations unavailable',
+  profile_missing: 'Profile not found',
+  profil_verification_indisponible: 'Could not read the profile',
+  not_matched: 'No match for this publication',
+  db_error: 'Query failed',
+  objet_verification_indisponible: 'Could not read the publication',
+  not_found: 'Publication not found',
+  publication_not_published: 'Publication not available',
+  type_not_candidatable: 'Type not candidatable',
+  cannot_apply_own_need: 'Cannot apply to your own need',
+  already_applied: 'Already applied',
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
@@ -117,18 +83,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
-
-  // ── LES DURÉES SONT LUES ICI, PAR LA ROUTE ───────────────────────────────
-  //  Aucun défaut dans le code (cf. lib/durees.ts) : illisibles, on REFUSE en
-  //  le nommant plutôt que de servir une durée inventée. Même parti pris que
-  //  `matching_settings` — un repli codé en dur devient une seconde source de
-  //  vérité, et elle prend la main le jour où l'on comprend le moins.
-  const lectureDurees = await chargerDurees(auth.supabaseAdmin)
-  if (!lectureDurees.ok) {
-    console.error('[candidatures:POST] durées de la place illisibles', lectureDurees.raison)
-    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
-  }
-  const durees = lectureDurees.durees
 
   // ── Body ────────────────────────────────────────────────────────────────
   let body: Body
@@ -146,25 +100,18 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (coverRaw && coverRaw.length > 2000) {
     return json({ error: 'cover_message too long (max 2000)', code: 'invalid_cover_message' }, 400)
   }
-  const coverMessage = coverRaw
 
-  // ── Profile expert ──────────────────────────────────────────────────────
-  //  Lot synthèse candidat CDI : on charge aussi les 6 signaux non-PII
-  //  cdi_* pour les inclure dans le snapshot preview (Lot UX synthèse).
+  // ── Le profil de L'APPELANT ─────────────────────────────────────────────
+  //  Résolu ici, et ici seulement : c'est la seule chose que le dépôt ne peut
+  //  pas déduire tout seul, puisqu'une relance d'administrateur lui donnera
+  //  directement l'identifiant du profil concerné.
   const { data: profile, error: pErr } = await auth.supabaseAdmin
     .from('profiles')
-    .select(
-      'id, user_id, domain_id, title, summary, skills, seniorities, expert_type, ' +
-        'years_experience, years_total_experience, tjm_min, tjm_max, salary_min, salary_max, ' +
-        'work_modes, languages, country, city, availability_status, availability_date, ' +
-        'profile_score, branch_id, speciality_ids, ' +
-        'cdi_status, cdi_notice_period, cdi_geo_mobility, cdi_contract_types, ' +
-        'cdi_company_size, cdi_sectors',
-    )
+    .select('id')
     .eq('user_id', auth.user.id)
     .maybeSingle()
   // Une lecture de `profiles` en panne n'est pas un profil absent (§E.42) :
-  // 503 qui se reessaie, jamais le 404 qui se croit. L'absence reelle garde son code.
+  // 503 qui se réessaie, jamais le 404 qui se croit.
   if (pErr) {
     console.error('[candidatures] profil ILLISIBLE', { userId: auth.user.id, message: pErr.message })
     return json(
@@ -175,704 +122,31 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!profile) {
     return json({ error: 'Profile not found', code: 'profile_missing' }, 404)
   }
-  const profileRow = profile as unknown as Record<string, unknown> & { id: string; domain_id: string }
 
-  // ── Match requis (borrnage curation) ────────────────────────────────────
-  const { data: match, error: mErr } = await auth.supabaseAdmin
-    .from('matches')
-    .select('id, relevance_score, status')
-    .eq('publication_id', publicationId)
-    .eq('profile_id', profileRow.id)
-    .maybeSingle()
-  if (mErr) {
-    console.error('[candidatures:POST] match query failed', mErr.message)
-    return json({ error: 'Query failed', code: 'db_error' }, 500)
-  }
-  if (!match) {
-    return json({ error: 'No match for this publication', code: 'not_matched' }, 403)
-  }
-  const matchRow = match as unknown as { id: string; relevance_score: number | null; status: string }
-
-  // ── Vérif publication : publiée + type candidatable + pas son propre besoin ─
-  //  `created_by` = l'auteur de la publication (pour un besoin sous_traitance,
-  //  l'expert publiant = owner de son organisation personnelle).
-  const { data: pub, error: pubErr } = await auth.supabaseAdmin
-    .from('publications')
-    .select(
-      'id, status, type, created_by, published_at, expires_at, domain_id, ' +
-        'title, description, skills_required, seniorities',
-    )
-    .eq('id', publicationId)
-    .maybeSingle()
-  // « Cette annonce n'existe pas », dit d'une annonce reelle au moment de
-  // postuler (§E.42). La panne sort en 503, l absence garde son 404.
-  if (pubErr) {
-    console.error('[candidatures] annonce ILLISIBLE', { publicationId, message: pubErr.message })
-    return json(
-      { error: 'Could not read the publication', code: 'objet_verification_indisponible' },
-      503,
-    )
-  }
-  if (!pub) {
-    return json({ error: 'Publication not found', code: 'not_found' }, 404)
-  }
-  const pubRow = pub as unknown as {
-    id: string; status: string; type: string; created_by: string | null
-    published_at: string | null; expires_at: string | null
-    domain_id: string
-    title: string | null; description: string | null
-    skills_required: string[] | null; seniorities: string[] | null
-  }
-  // Ouverte = published NON expirée (règle read-time, lib/publications/expiry).
-  // On ne peut pas postuler à une annonce expirée.
-  if (!isActivePublished(pubRow, { vieAnnonceJours: durees.vieAnnonceJours })) {
-    return json({ error: 'Publication not available', code: 'publication_not_published' }, 409)
-  }
-
-  // ── C1 : types candidatables (whitelist EXPLICITE, incl. sous_traitance) ──
-  //  L'exigence « candidat = expert » est déjà garantie IDENTIQUEMENT pour les
-  //  3 types par (a) le profil expert résolu ci-dessus — un compte entreprise
-  //  n'a PAS de profil (profiles = experts uniquement) → 404 profile_missing
-  //  avant d'arriver ici — et (b) le match requis (les matches ne lient que des
-  //  profils experts). Aucun compte entreprise ne peut donc candidater, ni à un
-  //  besoin de sous-traitance ni à une mission/offre.
-  const CANDIDATABLE_TYPES = ['mission', 'offre', 'sous_traitance']
-  if (!CANDIDATABLE_TYPES.includes(pubRow.type)) {
-    return json({ error: 'Type not candidatable', code: 'type_not_candidatable' }, 403)
-  }
-
-  // ── C2b : filet serveur — on ne candidate JAMAIS à son propre besoin ──────
-  //  (le pool de matching exclut déjà l'expert publiant, cf. loadEligibleProfiles
-  //  + run-for-expert ; ceci est la garde applicative de dernier recours.)
-  if (pubRow.created_by && pubRow.created_by === auth.user.id) {
-    return json({ error: 'Cannot apply to your own need', code: 'cannot_apply_own_need' }, 403)
-  }
-
-  // ── INSERT candidature ─────────────────────────────────────────────────
-  const preview = buildPreview(profileRow)
-  const { data: inserted, error: insertErr } = await auth.supabaseAdmin
-    .from('candidatures')
-    .insert({
-      publication_id: publicationId,
-      profile_id: profileRow.id,
-      match_id: matchRow.id,
-      domain_id: profileRow.domain_id,
-      cover_message: coverMessage,
-      // LAISSÉ VIDE À DESSEIN, et ce n'est pas un oubli.
-      //
-      // `ai_match_score` est une note de Claude SUR 10, adossée à un texte, qui
-      // répond à « que vaut ce dossier ? ». Elle était jusqu'ici recopiée depuis
-      // la note du matching — une autre question (« pourquoi ce profil
-      // apparaît ? »), posée à un autre moment, sur une autre matière.
-      //
-      // Claude quitte le matching : cette note n'a plus de producteur ici. La
-      // remplacer par le score de pertinence serait ranger une grandeur dans
-      // l'échelle d'une autre — 0,73 lu comme « 0,73 / 10 ». Elle reste nulle
-      // jusqu'à ce que le jugement au dépôt la produise (lot 4), et les écrans
-      // qui l'affichent savent déjà se taire quand elle manque.
-      ai_match_score: null,
-      status: 'received',
-      preview,
-    })
-    .select('id, status, created_at')
-    .single()
-
-  if (insertErr) {
-    // Re-candidature : PG 23505 unique_violation sur (publication_id, profile_id)
-    if ((insertErr as { code?: string }).code === '23505') {
-      return json({ error: 'Already applied', code: 'already_applied' }, 409)
-    }
-    console.error('[candidatures:POST] insert failed', insertErr.message)
-    return json({ error: 'Insert failed', code: 'db_error' }, 500)
-  }
-  const row = inserted as unknown as { id: string; status: string; created_at: string }
-
-  // ── LE JUGEMENT DE CLAUDE, APRÈS LA RÉPONSE ─────────────────────────────
-  //
-  //  Il ne bloque JAMAIS le dépôt. Un dossier est déposé même si le modèle est
-  //  indisponible ou si le plafond mensuel est atteint : la note reste nulle,
-  //  les écrans savent se taire, et l'organisation dévoile à la main. Faire
-  //  échouer un dépôt pour une panne qui ne concerne pas l'expert serait le
-  //  punir de quelque chose qu'il ne peut ni voir ni corriger.
-  //
-  //  C'est ICI que Claude intervient désormais, et nulle part ailleurs : il
-  //  répond à « que vaut ce dossier ? », pas à « pourquoi ce profil
-  //  apparaît-il ? » — cette seconde question appartient au reranking.
-  after(async () => {
-    try {
-      // Rôle et secteur, rien d'autre. Aucune date n'est demandée à la base :
-      // ce qu'on ne charge pas ne peut pas fuir.
-      const { data: expRows, error: expErr } = await auth.supabaseAdmin
-        .from('profile_experiences')
-        .select('role, sector')
-        .eq('profile_id', profileRow.id)
-        .limit(20)
-      if (expErr) {
-        // Le parcours ENRICHIT le jugement, il ne le conditionne pas : on juge
-        // sur le reste plutôt que de ne pas juger. Mais on le DIT.
-        console.warn('[candidatures:POST] parcours illisible — jugement sur le reste du dossier', {
-          candidature: row.id,
-          message: expErr.message,
-        })
-      }
-      const parcours = ((expRows ?? []) as Array<{ role: string | null; sector: string | null }>)
-        .map((e) => ({ role: e.role, sector: e.sector }))
-
-      const resultat = await jugerCandidature({
-        supabaseAdmin: auth.supabaseAdmin,
-        domainId: pubRow.domain_id,
-        candidatureId: row.id,
-        // L expert qui depose : c est lui qui declenche le jugement.
-        profileId: profileRow.id,
-        entree: {
-          locale: 'fr',
-          annonce: {
-            type: pubRow.type,
-            title: pubRow.title ?? '',
-            description: pubRow.description ?? '',
-            skills_required: pubRow.skills_required ?? [],
-            seniorities: pubRow.seniorities ?? [],
-          },
-          profil: {
-            title: (profileRow.title as string | null) ?? null,
-            summary: (profileRow.summary as string | null) ?? null,
-            skills: Array.isArray(profileRow.skills) ? (profileRow.skills as string[]) : [],
-            seniorities: Array.isArray(profileRow.seniorities)
-              ? (profileRow.seniorities as string[])
-              : [],
-            years_total_experience:
-              typeof profileRow.years_total_experience === 'number'
-                ? profileRow.years_total_experience
-                : null,
-            // Rôles et secteurs seulement. L'employeur n'est PAS sélectionné :
-            // il ne peut donc pas partir, même par étourderie — et le pitch est
-            // lu par l'organisation AVANT le déverrouillage.
-            experiences: parcours,
-          },
-        },
-      })
-      if (!resultat.ok) {
-        // Journalisé avec sa CAUSE, et COMPTÉ avec elle. Une note absente sans
-        // cause enverrait chercher un bug là où il n'y a qu'un plafond atteint.
-        console.warn('[candidatures:POST] aucun jugement rendu', {
-          candidature: row.id,
-          cause: resultat.cause,
-          raison: resultat.raison,
-        })
-        await enregistrerPanne(auth.supabaseAdmin, {
-          cause: resultat.cause,
-          surface: 'candidature',
-          domain_id: pubRow.domain_id,
-          entity_id: row.id,
-          detail: resultat.raison,
-        })
-        // Le dévoilement inclus a lieu QUAND MÊME : une place offerte ne doit
-        // pas rester vide parce qu'un modèle n'a pas répondu. Faute de note, le
-        // départage tombera sur l'ancienneté — c'est un repli, et il est écrit.
-        await devoilementInclus(auth, publicationId, row.id, durees.fenetreEchangeJours)
-        return
-      }
-      const { error: majErr } = await auth.supabaseAdmin
-        .from('candidatures')
-        .update({
-          ai_match_score: resultat.jugement.score,
-          ai_assessment: {
-            reason: resultat.jugement.reason,
-            pitch_org: resultat.jugement.pitch_org,
-            model: resultat.jugement.model,
-            evaluated_at: new Date().toISOString(),
-          },
-          ai_model: resultat.jugement.model,
-        })
-        .eq('id', row.id)
-      if (majErr) {
-        console.error('[candidatures:POST] jugement non enregistré', {
-          candidature: row.id,
-          message: majErr.message,
-        })
-      }
-
-      // La note existe maintenant : le dévoilement inclus peut départager sur
-      // ce qu'il annonce départager.
-      await devoilementInclus(auth, publicationId, row.id, durees.fenetreEchangeJours)
-    } catch (err) {
-      console.error('[candidatures:POST] jugement a levé (best-effort)', err)
-    }
-  })
-
-  // ── Notif ORG : nouvelle candidature (best-effort, n'invalide pas le 201) ─
-  //  Lot 2c — D3 : on notifie chaque membre actif de l'org propriétaire de la
-  //  publication. La locale de chaque membre est lue depuis users.locale.
-  //  channel='inapp', type='new_candidature_received', entity_id=candidature.id,
-  //  link_url → vue candidatures de l'annonce.
-  try {
-    //  A4 : on charge aussi le TYPE d'org (+ propriétaire pour l'org perso) afin
-    //  de dériver un deep-link joignable par le propriétaire (org cliente →
-    //  dashboard entreprise ; org personnelle freelance → dashboard expert).
-    const { data: pubOrg, error: pubOrgErr } = await auth.supabaseAdmin
-      .from('publications')
-      .select('id, organization_id, title, organizations(org_type, owner_user_id)')
-      .eq('id', publicationId)
-      .maybeSingle()
-    // ⚠️ CETTE PANNE-LÀ EST PIRE QUE CELLE DES MEMBRES, TRENTE LIGNES PLUS
-    //    BAS : `pubInfo` nul saute le bloc ENTIER — pas de destinataires,
-    //    pas de cloche, pas d’e-mail, et pas une ligne de journal. Le dépôt,
-    //    lui, a répondu 201 : l’expert croit avoir postulé auprès de
-    //    quelqu’un qui ne saura jamais qu’il existe.
-    //    Le dépôt est acquis, on ne le défait pas — on JOURNALISE, et on
-    //    sépare les deux causes, parce qu’elles ne se réparent pas pareil :
-    //    une lecture en panne se rejoue, une annonce disparue non.
-    if (pubOrgErr) {
-      console.error('[candidatures] annonce ILLISIBLE — PERSONNE ne sera notifié', {
-        publicationId,
-        message: pubOrgErr.message,
-      })
-    } else if (!pubOrg) {
-      console.error('[candidatures] annonce INTROUVABLE — personne ne sera notifié', {
-        publicationId,
-      })
-    }
-    const pubInfo = pubOrg as {
-      id: string
-      organization_id: string
-      title: string
-      organizations: { org_type: string | null; owner_user_id: string | null }
-        | { org_type: string | null; owner_user_id: string | null }[]
-        | null
-    } | null
-    if (pubInfo) {
-      const orgRel = Array.isArray(pubInfo.organizations)
-        ? pubInfo.organizations[0]
-        : pubInfo.organizations
-      const orgType = orgRel?.org_type ?? null
-      // user_type du propriétaire (org personnelle uniquement) → segment expert.
-      let ownerUserType: string | null = null
-      if (orgType === 'freelance' && orgRel?.owner_user_id) {
-        const { data: ownerRow, error: ownerErr } = await auth.supabaseAdmin
-          .from('users')
-          .select('user_type')
-          .eq('id', orgRel.owner_user_id)
-          .maybeSingle()
-        // ⚠️ EXCEPTION DÉCLARÉE, ET C’EST LA SEULE DU LOT : ON CONTINUE
-        //    ALORS QUE LA SUITE CONSOMME CE QUI A ÉCHOUÉ.
-        //    `ownerUserType` ne sert qu’à choisir le SEGMENT du lien
-        //    (`freelance` | `cdi`) ; inconnu, `expertDashboardSegment` rend
-        //    son défaut prudent `freelance`. Pour un propriétaire `cdi`, le
-        //    lien pointe donc sur le mauvais segment — et la garde de
-        //    routage le REDIRIGE vers son propre tableau de bord. Il arrive
-        //    ailleurs que sur la candidature ; il n’arrive pas nulle part.
-        //    L’alternative — ne pas notifier du tout — coûte infiniment plus
-        //    cher : la cloche est le seul signal de l’événement central du
-        //    produit. On continue, et on journalise pour que le lien de
-        //    travers ait une trace.
-        if (ownerErr) {
-          console.error('[candidatures] user_type du propriétaire ILLISIBLE — lien de la cloche potentiellement sur le mauvais segment', {
-            publicationId,
-            ownerUserId: orgRel.owner_user_id,
-            message: ownerErr.message,
-          })
-        }
-        ownerUserType = (ownerRow as { user_type: string | null } | null)?.user_type ?? null
-      }
-      const { data: members, error: membersErr } = await auth.supabaseAdmin
-        .from('organization_members')
-        // `role` ajouté : il départage la CLOCHE (tous les membres actifs) des
-        // envois externes (admin/editor seulement, cf. plus bas).
-        .select('user_id, role, users!organization_members_user_id_fkey(id, locale)')
-        .eq('organization_id', pubInfo.organization_id)
-        .eq('status', 'active')
-      // ⚠️ UNE PANNE ICI, ET L'ORGANISATION N'APPREND JAMAIS QU'UNE
-    //    CANDIDATURE EST ARRIVEE. C'est l'evenement central du produit : la
-    //    liste des membres a prevenir tombait a `[]`, personne n'etait
-    //    notifie, et rien ne le disait. Le depot d'une candidature, lui,
-    //    reussissait — donc l'expert croit avoir postule aupres de quelqu'un.
-    //    On ne bloque PAS le depot pour autant (il est deja acquis) : on
-    //    journalise, bruyamment, parce que ce silence-la ne se voit nulle part.
-    if (membersErr) {
-      console.error('[candidatures] membres a prevenir ILLISIBLES — personne ne sera notifie', {
-        publicationId,
-        message: membersErr.message,
-      })
-    }
-      type Member = {
-        user_id: string
-        role: string | null
-        users: { id: string; locale: string | null } | { id: string; locale: string | null }[]
-      }
-      const membersTyped = (members ?? []) as unknown as Member[]
-      const linkUrl = publicationCandidaturesLinkForOrg(publicationId, { orgType, ownerUserType })
-      // Libellés de la cloche : i18n partagée avec l'e-mail du même événement
-      // (cf. lib/notifications/inapp-labels). Ils vivaient en dur ici, dans
-      // deux tables `Record<locale, …>`.
-      const rows = membersTyped.map((m) => {
-        const u = Array.isArray(m.users) ? m.users[0] : m.users
-        const inapp = newCandidatureInappLabels(u?.locale ?? null, pubInfo.title)
-        return {
-          user_id: m.user_id,
-          domain_id: profileRow.domain_id,
-          type: 'new_candidature_received',
-          channel: 'inapp',
-          title: inapp.title,
-          body: inapp.body,
-          link_url: linkUrl,
-          status: 'pending',
-          entity_id: row.id,
-        }
-      })
-      if (rows.length > 0) {
-        const { error: notifErr } = await auth.supabaseAdmin.from('notifications').insert(rows)
-        if (notifErr) {
-          console.error('[candidatures:POST] org notif insert failed', notifErr.message)
-        } else {
-          // E-MAIL / SMS : `admin` et `editor` SEULEMENT. Un `viewer` est en
-          // lecture seule — débloquer, refuser ou sélectionner un candidat
-          // exigent `requireOrgRole(auth, 'editor')`. Lui envoyer un SMS
-          // payant pour une action qu'il n'a pas le droit d'exécuter, c'est le
-          // rappeler vers une impasse. La CLOCHE, elle, reste pour tout le
-          // monde : elle est passive et informative.
-          const actingUserIds = membersTyped
-            .filter((m) => m.role === 'admin' || m.role === 'editor')
-            .map((m) => m.user_id)
-          if (actingUserIds.length > 0) {
-            // ⚠️ PIÈGE VERCEL : sans `after()`, ce travail lancé après la
-            // réponse est TUÉ silencieusement — rien ne partirait et aucune
-            // erreur ne s'afficherait. `after()` + `maxDuration` (en tête de
-            // fichier) sont indispensables.
-            after(async () => {
-              try {
-                await dispatchNotificationsForUsers(auth.supabaseAdmin, actingUserIds, {
-                  events: ['new_candidature_received'],
-                })
-              } catch (e) {
-                console.error('[candidatures:POST] dispatch failed (best-effort)', e)
-              }
-            })
-          }
-        }
-      }
-    }
-  } catch (err) {
-    console.error('[candidatures:POST] org notif threw', err)
-  }
-
-  // ── Audit best-effort ──────────────────────────────────────────────────
-  await logAudit({
+  const issue = await deposerCandidature({
     supabaseAdmin: auth.supabaseAdmin,
-    user_id: auth.user.id,
-    domain_id: profileRow.domain_id,
-    action: 'candidature_submitted',
-    entity_type: 'candidature',
-    entity_id: row.id,
-    detail: {
-      publication_id: publicationId,
-      match_id: matchRow.id,
-      // LAISSÉ VIDE À DESSEIN, et ce n'est pas un oubli.
-      //
-      // `ai_match_score` est une note de Claude SUR 10, adossée à un texte, qui
-      // répond à « que vaut ce dossier ? ». Elle était jusqu'ici recopiée depuis
-      // la note du matching — une autre question (« pourquoi ce profil
-      // apparaît ? »), posée à un autre moment, sur une autre matière.
-      //
-      // Claude quitte le matching : cette note n'a plus de producteur ici. La
-      // remplacer par le score de pertinence serait ranger une grandeur dans
-      // l'échelle d'une autre — 0,73 lu comme « 0,73 / 10 ». Elle reste nulle
-      // jusqu'à ce que le jugement au dépôt la produise (lot 4), et les écrans
-      // qui l'affichent savent déjà se taire quand elle manque.
-      ai_match_score: null,
-      has_cover_message: coverMessage !== null,
-    },
+    profileId: (profile as { id: string }).id,
+    publicationId,
+    coverMessage: coverRaw,
+    origine: 'expert',
   })
 
-  return json(
-    {
-      id: row.id,
-      status: row.status,
-      created_at: row.created_at,
-    },
-    201,
-  )
-}
+  switch (issue.issue) {
+    case 'deposee':
+      return json(
+        { id: issue.candidatureId, status: issue.status, created_at: issue.createdAt },
+        201,
+      )
 
-/**
- * DÉVOILEMENT INCLUS — la place offerte va au MEILLEUR dossier.
- *
- * Si l'offre de l'organisation inclut N candidats dévoilés et qu'il reste une
- * place, on dévoile automatiquement la candidature à la meilleure note de
- * l'annonce — par le MÊME chemin que le dévoilement manuel, mais sans consommer
- * de crédit.
- *
- * ⚠️ IL S'EXÉCUTE APRÈS LE JUGEMENT, ET C'EST TOUT LE SUJET.
- *   Tant que Claude notait la mise en relation, la note existait avant le dépôt.
- *   Elle est désormais produite AU dépôt, dans le même after(). Départager avant
- *   qu'elle soit écrite comparerait des notes toutes nulles : le départage
- *   tomberait sur l'ancienneté, et la place irait à la PREMIÈRE candidature au
- *   lieu de la meilleure — sans que rien ne le signale.
- *
- * V1 assumée : on ne rétrograde JAMAIS un dévoilé. Un meilleur dossier arrivé
- * après que la place est prise ne remplace pas celui qui l'occupe.
- *
- * Entièrement NON-BLOQUANT : une erreur ici n'invalide rien — la candidature
- * existe, et l'organisation peut dévoiler à la main.
- */
-/**
- * Fenêtre pendant laquelle une candidature non notée peut encore l'être.
- *
- * QUARANTE-CINQ SECONDES, ET LE CHOIX SE JUSTIFIE DES DEUX CÔTÉS.
- *   Le jugement appelle le modèle avec un délai d'attente de 30 s
- *   (TIMEOUT_MS, lib/candidatures/ai-assessment.ts). Une candidature créée il y
- *   a moins de 30 s peut donc encore recevoir sa note ; au-delà, son appel a
- *   forcément rendu la main — réussi, échoué, ou expiré. La marge de 15 s
- *   couvre le temps qui encadre l'appel : insertion, lecture de l'annonce,
- *   écriture du verdict.
- *
- *   TROP COURTE, on déciderait encore trop tôt : c'est exactement le défaut
- *   qu'on corrige, et il reviendrait sur les candidatures lentes.
- *   TROP LONGUE, la place resterait vide pendant tout ce temps alors que
- *   l'organisation attend son candidat — et une place offerte qui reste vide
- *   est aussi une promesse non tenue.
- *
- *   ⚠️ ELLE EST ADOSSÉE AU DÉLAI DU MODÈLE. Si TIMEOUT_MS change, celle-ci doit
- *      changer avec lui : une fenêtre plus courte que le délai d'attente
- *      rouvrirait le défaut en silence.
- */
-const FENETRE_JUGEMENT_MS = 45_000
+    case 'refusee':
+      return json({ error: MESSAGE_REFUS[issue.code], code: issue.code }, REFUS_DEPOT[issue.code])
 
-async function devoilementInclus(
-  auth: AuthContext,
-  publicationId: string,
-  candidatureId: string,
-  /**
-   * Fenêtre d'échange, EXIGÉE. Elle DESCEND de la route plutôt que d'être
-   * relue ici : ce chemin s'exécute dans un `after()`, après la réponse. Une
-   * relecture pourrait y voir une valeur changée entre-temps, et la
-   * conversation créée ne durerait pas ce que le dépôt a promis.
-   */
-  fenetreEchangeJours: number,
-): Promise<void> {
-  try {
-    const { data: pubForEnts, error: pubForEntsErr } = await auth.supabaseAdmin
-      .from('publications')
-      .select('organization_id, domain_id')
-      .eq('id', publicationId)
-      .maybeSingle()
-    // ⚠️ UNE PRESTATION PAYÉE, SAUTÉE SANS UNE LIGNE DE JOURNAL.
-    //    `pubEnts` nul saute tout le bloc : aucun dévoilement automatique,
-    //    alors que c’est précisément ce que l’offre vend — « les N
-    //    meilleurs candidats sont dévoilés automatiquement ». L’organisation
-    //    ne voit pas un refus, elle voit une place vide, et elle paiera un
-    //    dévoilement manuel pour ce qui lui était dû.
-    //    Ce chemin tourne dans un `after()` : il n’y a plus de réponse à
-    //    changer. Ce qui manquait est la TRACE — sans elle, ce silence-là
-    //    n’apparaît nulle part, jamais.
-    if (pubForEntsErr) {
-      console.error('[candidatures] annonce ILLISIBLE — dévoilement inclus NON APPLIQUÉ', {
-        publicationId,
-        candidatureId,
-        message: pubForEntsErr.message,
-      })
-    }
-    const pubEnts = pubForEnts as { organization_id: string; domain_id: string } | null
-    if (pubEnts) {
-      const ents = await getOrgEntitlements(auth.supabaseAdmin, pubEnts.organization_id)
-      const revealN = ents.limits.revealedCandidatesPerPublication
-
-      // ┌─ « ILLIMITÉ » DÉVOILE TOUT LE MONDE, PAS PERSONNE ─────────────────┐
-      // │ Ce test était `if (revealN !== null)`, et il produisait l'INVERSE   │
-      // │ de ce que le back-office annonce. La chaîne complète :              │
-      // │                                                                     │
-      // │   package_features.value = 'unlimited'                              │
-      // │     → parseLimit() → null            (lib/entitlements.ts)          │
-      // │       → revealN = null                                              │
-      // │         → le bloc entier était SAUTÉ → zéro dévoilement.            │
-      // │                                                                     │
-      // │ Cocher « Illimité » retirait donc le dévoilement au lieu de le      │
-      // │ rendre total. Conséquence observable en base : `business` et        │
-      // │ `elite`, les deux offres PAYANTES, dévoilaient MOINS que l'offre    │
-      // │ gratuite — qui, elle, porte un 1 et fonctionnait.                   │
-      // │                                                                     │
-      // │ C'est le code qui avait tort, pas le libellé : l'écran dit déjà     │
-      // │ « les # meilleurs candidats sont dévoilés automatiquement ».        │
-      // └────────────────────────────────────────────────────────────────────┘
-      //
-      // Seul le COMBIEN change. Le QUI et le COMMENT sont intacts : même
-      // critère de sélection, même départage à l'ancienneté, même chemin
-      // `performUnlock`, et toujours aucune rétrogradation d'une place prise.
-      //
-      //   null (illimité) → toute candidature est dévoilée, celle-ci comprise.
-      //                     Ni comptage de places ni départage : il n'y a plus
-      //                     de place à disputer. C'est aussi une requête de
-      //                     moins sur le chemin de création.
-      //   N (nombre)      → inchangé : au plus N dévoilées, et seulement si
-      //                     celle-ci est en tête.
-      let devoile = revealN === null
-
-      if (revealN !== null) {
-        const { count: revealedCount, error: revealedErr } = await auth.supabaseAdmin
-          .from('candidatures')
-          .select('id', { count: 'exact', head: true })
-          .eq('publication_id', publicationId)
-          .in('status', ['unlocked', 'selected'])
-        // ⚠️ `(revealedCount ?? 0) < revealN` ÉTAIT VRAI SUR UNE PANNE.
-        //    Le compteur tombait à `null`, donc à 0, donc « la place est
-        //    libre » — et un (N+1)ᵉ profil était dévoilé. C'est le plafond
-        //    de dévoilement par annonce, c'est-à-dire le cœur du modèle
-        //    économique ET une identité livrée : un dévoilement NE SE
-        //    REPREND PAS (§D.5 ferme le chemin d'accès, il ne défait pas ce
-        //    qui a été vu).
-        //    NE PAS SAVOIR NE VAUT JAMAIS DÉVOILER : on ne dévoile pas, et
-        //    on le journalise. La candidature existe, elle attend — rien
-        //    n'est perdu, contrairement à un dévoilement de trop.
-        if (revealedErr) {
-          console.error('[candidatures] plafond de dévoilement ILLISIBLE — aucun dévoilement', {
-            publicationId,
-            message: revealedErr.message,
-          })
-        } else if ((revealedCount ?? 0) < revealN) {
-          // ── ON NE DÉPARTAGE PAS SUR UN CHAMP INCOMPLET ────────────────────
-          //
-          //  LE DÉFAUT : le classement trie sur `ai_match_score DESC NULLS
-          //  LAST`. Une candidature dont le jugement n'a pas encore abouti vaut
-          //  NULL et passe DERNIÈRE. Le « meilleur profil » n'était donc que le
-          //  meilleur PARMI CEUX DÉJÀ NOTÉS : deux experts qui postulent à
-          //  quelques secondes d'intervalle étaient départagés par l'ordre
-          //  d'arrivée du modèle, pas par leur dossier. L'organisation croit
-          //  pourtant recevoir le meilleur candidat.
-          //
-          //  CE QU'ON FAIT : si une AUTRE candidature de cette annonce est
-          //  encore en cours de jugement ET assez récente pour que son jugement
-          //  puisse encore aboutir, on NE DÉCIDE PAS maintenant. Chaque
-          //  candidature appelle ce bloc à la fin de son propre jugement : la
-          //  DERNIÈRE à finir verra tout le monde noté et tranchera sur un
-          //  champ complet. Aucun travail planifié, aucune rétrogradation.
-          //
-          //  LE FILET, ET IL EST OBLIGATOIRE : au-delà de la fenêtre, une
-          //  candidature sans note ne bloque plus rien. Si le dernier jugement
-          //  n'aboutit jamais — modèle en panne, fonction tuée — la place
-          //  serait sinon restée VIDE pour toujours. Passé ce délai, le
-          //  départage retombe sur l'ancienneté, exactement comme lorsqu'un
-          //  jugement échoue.
-          const limiteFenetre = new Date(Date.now() - FENETRE_JUGEMENT_MS).toISOString()
-          const { count: enAttente, error: enAttenteErr } = await auth.supabaseAdmin
-            .from('candidatures')
-            .select('id', { count: 'exact', head: true })
-            .eq('publication_id', publicationId)
-            .neq('id', candidatureId)
-            .is('ai_match_score', null)
-            .gte('created_at', limiteFenetre)
-
-          // ⚠️ ET LE COMMENTAIRE CI-DESSUS DÉCLARE CE DÉFAUT FERMÉ, EN
-          //    MAJUSCULES : « ON NE DÉPARTAGE PAS SUR UN CHAMP INCOMPLET ».
-          //    C'est vrai du chemin conçu. C'était FAUX de la panne :
-          //    `(enAttente ?? 0) > 0` valait `false` quand le comptage
-          //    échouait, donc le report ne se faisait pas, donc on
-          //    départageait exactement sur la cohorte incomplète que ce
-          //    bloc existe pour attendre.
-          //    UN COMMENTAIRE QUI AFFIRME QU’UN DÉFAUT EST FERMÉ DÉCRIT
-          //    L'INTENTION, JAMAIS L'ÉTAT (§E.29, cinquième occurrence).
-          //    Cohorte inconnue ⇒ on DIFFÈRE, comme si elle était instable.
-          if (enAttenteErr) {
-            console.error('[candidatures] cohorte de jugement ILLISIBLE — dévoilement différé', {
-              publicationId,
-              message: enAttenteErr.message,
-            })
-            // ⚠️ LE `return` EST LA MOITIE QUI COMPTE. Journaliser puis
-            //    continuer, c'est departager quand meme — le demi-correctif
-            //    aurait laisse le defaut intact avec un log rassurant.
-            return
-          } else if ((enAttente ?? 0) > 0) {
-            // La cohorte n'est pas stable : celle qui finira après nous décidera.
-            console.log('[candidatures] dévoilement différé — jugements en cours', {
-              publicationId,
-              en_attente: enAttente,
-            })
-            return
-          }
-
-          // La candidature qui vient d'être créée est-elle la meilleure note de
-          // la publication ? (égalité → la plus ancienne l'emporte.)
-          const { data: topRow, error: topErr } = await auth.supabaseAdmin
-            .from('candidatures')
-            .select('id')
-            .eq('publication_id', publicationId)
-            .order('ai_match_score', { ascending: false, nullsFirst: false })
-            .order('created_at', { ascending: true })
-            .limit(1)
-            .maybeSingle()
-          // ⚠️ JUMEAU DE :585, ET IL AVAIT ECHAPPE AU MEME CORRECTIF PARCE
-          //    QU’IL VIT DANS UNE AUTRE FONCTION (§E.20). `topRow` nul rend
-          //    `devoile = false` : le dévoilement INCLUS DANS L’OFFRE ne se
-          //    déclenche pas, et l’organisation voit une place vide au lieu
-          //    d’un candidat auquel elle a droit. Elle paiera un dévoilement
-          //    manuel pour ce qui lui était dû.
-          //    Ce chemin tourne dans un `after()` : il n’y a plus de réponse
-          //    à changer, ce qui manquait est la TRACE — ce silence-là
-          //    n’apparaît nulle part.
-          if (topErr) {
-            console.error('[candidatures] départage ILLISIBLE — dévoilement inclus NON APPLIQUÉ', {
-              publicationId,
-              candidatureId,
-              message: topErr.message,
-            })
-          }
-          const top = topRow as { id: string } | null
-          devoile = top !== null && top.id === candidatureId
-        }
-      }
-
-      if (devoile) {
-        // ── LA PLACE EST RÉSERVÉE EN BASE, PAS COMPTÉE EN MÉMOIRE ──────────
-        //
-        //  Le comptage ci-dessus est un lire-puis-écrire : deux jugements qui
-        //  finissent au même instant lisent tous deux « 0 place prise »,
-        //  concluent tous deux qu'il en reste une, et dévoilent tous deux. Une
-        //  organisation à UNE place incluse en obtiendrait DEUX — un droit
-        //  payant donné gratuitement, et non rattrapable puisqu'on ne
-        //  rétrograde jamais.
-        //
-        //  Aucune vérification avant écriture ne peut corriger cela. C'est la
-        //  base qui tranche : un index unique partiel sur le numéro de place
-        //  accepte la première réservation et refuse la seconde.
-        //
-        //  À PLAFOND ILLIMITÉ, la fonction rend `true` sans rien écrire : aucun
-        //  numéro n'est attribué, donc rien ne peut être refusé.
-        const { data: place, error: placeErr } = await auth.supabaseAdmin.rpc(
-          'reserver_place_incluse',
-          { p_candidature_id: candidatureId, p_plafond: revealN },
-        )
-        if (placeErr) {
-          // Une panne de réservation n'accorde RIEN : dans le doute, on ferme.
-          // La candidature existe, c'est le dévoilement qui n'a pas lieu.
-          console.error('[candidatures] réservation de place en échec', placeErr.message)
-          return
-        }
-        if (place !== true) {
-          // REFUS NORMAL, PAS UNE PANNE : la place vient d'être prise par une
-          // candidature concurrente, ou le plafond est atteint.
-          console.log('[candidatures] place incluse non obtenue', { publicationId, candidatureId })
-          return
-        }
-
-        const res = await performUnlock(auth.supabaseAdmin, candidatureId, {
-          auto: true,
-          actorUserId: auth.user.id,
-          fenetreEchangeJours,
-        })
-        if (!res.ok) {
-          console.warn('[candidatures] dévoilement inclus refusé', res.code)
-          // LA PLACE REPART. Réservée puis non honorée, elle serait perdue pour
-          // toujours. Si cette libération échoue à son tour, on aura
-          // SOUS-attribué — la bonne direction d'échec : on peut donner moins
-          // que le dû, jamais plus.
-          const { error: libErr } = await auth.supabaseAdmin.rpc('liberer_place_incluse', {
-            p_candidature_id: candidatureId,
-          })
-          if (libErr) {
-            console.error('[candidatures] place non libérée — elle restera inutilisée', libErr.message)
-          }
-        }
-      }
-    }
-  } catch (err) {
-    console.warn('[candidatures] dévoilement inclus a levé (non bloquant)', err)
+    case 'sans_jugement':
+      // ⚠️ DEUX CENT DEUX, ET PAS DEUX CENT UN. Rien n'a été créé : répondre
+      //    201 serait faux au niveau du protocole, et un lecteur d'API ne
+      //    pourrait plus distinguer un dépôt d'un non-dépôt.
+      //    L'ÉCRAN, LUI, AFFICHE LE MÊME SUCCÈS — c'est la décision, et son
+      //    prix est payé par l'écran bloquant du back-office.
+      return json({ id: null, code: 'depot_non_enregistre' }, 202)
   }
 }

@@ -2425,7 +2425,7 @@
       "cover_placeholder": "Explica en pocas líneas por qué eres la persona indicada…",
       "cover_cancel": "Cancelar",
       "cover_submit": "Enviar candidatura",
-      "cover_submitting": "Enviando…",
+      "cover_submitting": "Analizando su candidatura…",
       "success_applied": "Tu candidatura ha sido enviada. La empresa responderá pronto.",
       "error_already_applied": "Ya has postulado a esta oportunidad.",
       "error_not_matched": "Esta oportunidad no está en tus sugerencias.",
@@ -3111,7 +3111,9 @@
         "moteur_interrupteur_ferme": "El motor de emparejamiento está APAGADO: ningún experto ni ninguna organización recibe propuestas, en ningún ecosistema. El interruptor ENABLE_RERANKING debe valer exactamente «true».",
         "moteur_cle_absente": "Falta la clave del proveedor de emparejamiento: ningún experto ni ninguna organización recibe propuestas, en ningún ecosistema. Debe definirse la variable COHERE_API_KEY.",
         "catalogue_non_relie": "{count} plan(es) de pago no están conectados a Stripe en el modo de la clave en uso. La primera suscripción real saldría «precio fuera de catálogo»: se cobraría el dinero sin poder vincularlo a un plan. Abra Catálogo comercial y pulse «Conectar con Stripe».",
-        "catalogue_etat_inconnu": "No se puede saber si el catálogo está conectado a Stripe: falta la clave, o falló la lectura. No es «todo bien», es «no lo sé»."
+        "catalogue_etat_inconnu": "No se puede saber si el catálogo está conectado a Stripe: falta la clave, o falló la lectura. No es «todo bien», es «no lo sé».",
+        "depots_candidature_perdus": "{count} candidatura(s) no pudieron registrarse: su análisis no concluyó y no se escribió nada. El experto cree haberse postulado; la organización no sabe que debía recibir un expediente. Abra Depósitos fallidos y reinténtelos.",
+        "lecture_indisponible_depots": "No se pudieron contar los depósitos de candidatura. Esto no es «ningún depósito perdido»: es «no lo sabemos». Abra Depósitos fallidos."
       },
       "spread_title": "Distribución de las notas",
       "spread_empty": "Todavía no hay ninguna ejecución en la nueva escala. La distribución se llenará con los próximos emparejamientos.",
@@ -3202,7 +3204,39 @@
         "disponibilite": "Disponibilidad",
         "cv_reanalyse": "CV reanalizado"
       }
-    }
+    },
+    "depots_echec": {
+      "title": "Candidaturas que no se registraron",
+      "subtitle": "Una candidatura solo existe completa: si su análisis no concluye, no se escribe nada y la organización no recibe nada. El experto no es informado: aquí es donde se ve y donde se reintenta.",
+      "error_title": "No se pudo leer la lista.",
+      "chargement": "Cargando…",
+      "filtre_toutes": "Todas las causas",
+      "filtre_ecosysteme": "Ecosistema",
+      "filtre_tous_ecosystemes": "Todos",
+      "filtre_periode": "Periodo",
+      "periode_tout": "Desde siempre",
+      "periode_jours": "Últimos {jours} días",
+      "cause_plafond": "Límite de gasto alcanzado",
+      "cause_modele_indisponible": "Modelo no disponible",
+      "cause_reponse_illisible": "Respuesta ilegible",
+      "cause_interrompu": "Interrumpido",
+      "cause_inconnue": "Causa desconocida",
+      "expert_sans_nom": "Experto sin nombre registrado",
+      "annonce_sans_titre": "Anuncio sin título",
+      "vide_titre": "Ningún depósito perdido.",
+      "vide_detail": "Todas las candidaturas presentadas recibieron su nota y su resumen, y llegaron a su organización. Esta pantalla permanece vacía mientras sea así.",
+      "compte": "{total} depósito(s) pendiente(s).",
+      "champ_expert": "Experto",
+      "champ_quand": "Intentado el",
+      "champ_tentatives": "Intentos",
+      "bouton_relancer": "Reintentar",
+      "bouton_relance_en_cours": "Analizando…",
+      "toast_deposee": "La candidatura se registró, completa. Ha llegado a la organización.",
+      "toast_sans_jugement": "El reintento no prosperó: {cause}. No se escribió nada, la línea permanece.",
+      "toast_refusee": "El depósito fue rechazado ({code}). No es una avería: una guarda lo impide.",
+      "contexte_illisible": "No se pudo releer el anuncio o el experto: los datos anteriores están incompletos."
+    },
+    "nav_depots_echec": "Depósitos fallidos"
   },
   "expert_verification": {
     "badge": {

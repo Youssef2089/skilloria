@@ -125,6 +125,26 @@ export type SourcesSupervision = {
    * et « je ne sais pas » ne sont pas le même fait (§E.22).
    */
   offresPayantesNonReliees: number | null
+
+  /**
+   * LES DÉPÔTS DE CANDIDATURE QUI N'ONT PAS ABOUTI.
+   *
+   * ┌─ POURQUOI CELUI-CI EST BLOQUANT, ET POURQUOI IL EST LE PLUS SILENCIEUX ┐
+   * │ Depuis le 23/09/2026, un jugement qui échoue n'écrit AUCUNE            │
+   * │ candidature (§D.19). L'expert lit « votre candidature a été envoyée » — │
+   * │ par décision : il ne paie pas une panne qui ne le concerne pas.         │
+   * │ L'organisation, elle, ne sait même pas qu'elle devait recevoir          │
+   * │ quelque chose.                                                          │
+   * │                                                                         │
+   * │ PERSONNE NE SE PLAINDRA. C'est exactement ce qui rend ce signal         │
+   * │ obligatoire : il est la seule contrepartie du silence consenti côté     │
+   * │ expert. Sans lui, la décision deviendrait une perte muette.             │
+   * └─────────────────────────────────────────────────────────────────────────┘
+   *
+   * `null` = la lecture a échoué. Jamais `0` : « aucun dépôt perdu » est
+   * rassurant, « je n'ai pas pu compter » ne l'est pas (§E.22).
+   */
+  depotsEnSouffrance: number | null
 }
 
 /**
@@ -212,6 +232,32 @@ export function classerProblemes(s: SourcesSupervision): Probleme[] {
       depuis: null,
       sujet: null,
       lien: '/admin/facturation',
+    })
+  }
+
+  // ── 0 ter. LES DÉPÔTS DE CANDIDATURE PERDUS ────────────────────────────
+  //  BLOQUANT tant que l'écran n'est pas vide : chaque ligne est un dossier
+  //  qu'un expert croit avoir envoyé et qu'une organisation n'a jamais reçu.
+  //  Et il est EXTINGUIBLE — le bouton RELANCER de l'écran le fait descendre
+  //  (§E.52 : un signal bloquant qu'aucune action ne peut éteindre apprend à
+  //  être ignoré).
+  if (s.depotsEnSouffrance === null) {
+    out.push({
+      cle: 'lecture_indisponible_depots',
+      gravite: 'attention',
+      compte: null,
+      depuis: null,
+      sujet: null,
+      lien: '/admin/depots-en-echec',
+    })
+  } else if (s.depotsEnSouffrance > 0) {
+    out.push({
+      cle: 'depots_candidature_perdus',
+      gravite: 'bloquant',
+      compte: s.depotsEnSouffrance,
+      depuis: null,
+      sujet: null,
+      lien: '/admin/depots-en-echec',
     })
   }
 

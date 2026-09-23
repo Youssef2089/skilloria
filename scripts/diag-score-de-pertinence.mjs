@@ -277,10 +277,26 @@ for (const f of SERVEUR) {
 ok(croisements.length === 0, 'la note de candidature n est copiée depuis aucun score de match',
   croisements.join('\n       ') || undefined)
 ok(anciennes.length === 0, 'plus aucune lecture de l ancienne colonne `score` d un match', anciennes.join(', ') || undefined)
-// Le dépôt de candidature pose la note à `null` : elle sera JUGÉE, pas copiée.
-const depots = SERVEUR.filter((f) => /ai_match_score:\s*null/.test(sansCommentaires(lire(f))))
-ok(depots.length >= 1, 'au dépôt d une candidature, la note est posée à null — elle sera jugée, pas héritée',
-  'aucun fichier ne pose `ai_match_score: null` : le motif ne voit plus le dépôt')
+// ⚠️ CETTE ASSERTION EST **RETOURNÉE**, PAS SUPPRIMÉE (§E.34).
+//    Elle exigeait `ai_match_score: null` au dépôt — c'était la forme que
+//    prenait la règle « la note n'est PAS héritée du matching » tant que le
+//    jugement arrivait après l'écriture, dans un `after()`.
+//
+//    Depuis §D.19, une candidature n'existe que complète : elle naît AVEC sa
+//    note, produite par le jugement dans la même opération. Exiger un `null`
+//    aujourd'hui exigerait le retour du défaut qu'on vient de fermer.
+//
+//    LA RÈGLE, ELLE, N'A PAS BOUGÉ ET RESTE GARDÉE DEUX FOIS, CI-DESSUS ET
+//    CI-DESSOUS : la note de candidature ne se copie depuis AUCUN score de
+//    match (le balayage `croisements`), et elle vient du JUGEMENT.
+const depots = SERVEUR.filter((f) =>
+  /ai_match_score:\s*resultat\.jugement\.score/.test(sansCommentaires(lire(f))),
+)
+ok(depots.length === 1, 'au dépôt, la note écrite est celle du JUGEMENT, jamais celle du match',
+  `${depots.length} fichier(s) écrivent la note du jugement : elle doit venir de là, et de là seulement`)
+ok(!SERVEUR.some((f) => /ai_match_score:\s*null/.test(sansCommentaires(lire(f)))),
+  'et plus aucun chemin n écrit une candidature SANS note',
+  'une candidature nue chez un client, c est ce que §D.19 interdit')
 
 // ══════════════════════════════════════════════════════════════════════════
 section('F. UN E-MAIL EST UNE SURFACE EXPERT — balayage de lib/emails')

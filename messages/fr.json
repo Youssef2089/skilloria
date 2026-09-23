@@ -2425,7 +2425,7 @@
       "cover_placeholder": "Expliquez en quelques lignes pourquoi vous êtes la bonne personne…",
       "cover_cancel": "Annuler",
       "cover_submit": "Envoyer la candidature",
-      "cover_submitting": "Envoi…",
+      "cover_submitting": "Analyse de votre dossier…",
       "success_applied": "Votre candidature a été envoyée. L'entreprise vous répondra rapidement.",
       "error_already_applied": "Vous avez déjà candidaté à cette opportunité.",
       "error_not_matched": "Cette opportunité ne fait pas partie de vos suggestions.",
@@ -3111,7 +3111,9 @@
         "moteur_interrupteur_ferme": "Le moteur de mise en relation est ÉTEINT : plus aucun expert et plus aucune organisation ne reçoit de proposition, dans aucun écosystème. L’interrupteur ENABLE_RERANKING doit valoir exactement « true ».",
         "moteur_cle_absente": "La clé du fournisseur de mise en relation est absente : plus aucun expert et plus aucune organisation ne reçoit de proposition, dans aucun écosystème. La variable COHERE_API_KEY doit être posée.",
         "catalogue_non_relie": "{count} offre(s) payante(s) ne sont pas reliées à Stripe dans le mode de la clé en usage. Le premier abonnement réel sortirait « prix hors catalogue » : l’argent serait encaissé sans que l’application sache à quelle offre le rattacher. Ouvrez Catalogue commerce et cliquez « Relier à Stripe ».",
-        "catalogue_etat_inconnu": "Impossible de dire si le catalogue est relié à Stripe : clé absente, ou lecture en panne. Ce n’est pas « tout va bien » — c’est « je ne sais pas »."
+        "catalogue_etat_inconnu": "Impossible de dire si le catalogue est relié à Stripe : clé absente, ou lecture en panne. Ce n’est pas « tout va bien » — c’est « je ne sais pas ».",
+        "depots_candidature_perdus": "{count} candidature(s) n'ont pas pu être déposées : leur analyse n'a pas abouti, et rien n'a été écrit. L'expert croit avoir postulé, l'organisation ne sait pas qu'elle devait recevoir un dossier. Ouvrez Dépôts en échec et relancez-les.",
+        "lecture_indisponible_depots": "Les dépôts de candidature n'ont pas pu être comptés. Ce n'est pas « aucun dépôt perdu » : c'est « on ne sait pas ». Ouvrez Dépôts en échec."
       },
       "spread_title": "Répartition des notes",
       "spread_empty": "Aucune exécution pour l’instant sur la nouvelle échelle. La répartition se remplira aux prochaines mises en relation.",
@@ -3202,7 +3204,39 @@
         "disponibilite": "Disponibilité",
         "cv_reanalyse": "CV réanalysé"
       }
-    }
+    },
+    "depots_echec": {
+      "title": "Dépôts de candidature en échec",
+      "subtitle": "Une candidature n'existe que complète : si son analyse n'aboutit pas, rien n'est écrit et l'organisation ne reçoit rien. L'expert n'en est pas informé — c'est ici que ça se voit, et c'est ici que ça se rejoue.",
+      "error_title": "La liste n'a pas pu être lue.",
+      "chargement": "Chargement…",
+      "filtre_toutes": "Toutes les causes",
+      "filtre_ecosysteme": "Écosystème",
+      "filtre_tous_ecosystemes": "Tous",
+      "filtre_periode": "Période",
+      "periode_tout": "Depuis toujours",
+      "periode_jours": "{jours} derniers jours",
+      "cause_plafond": "Plafond de dépense atteint",
+      "cause_modele_indisponible": "Modèle indisponible",
+      "cause_reponse_illisible": "Réponse illisible",
+      "cause_interrompu": "Interrompu",
+      "cause_inconnue": "Cause inconnue",
+      "expert_sans_nom": "Expert sans nom renseigné",
+      "annonce_sans_titre": "Annonce sans titre",
+      "vide_titre": "Aucun dépôt perdu.",
+      "vide_detail": "Toutes les candidatures déposées ont reçu leur note et leur résumé, et sont arrivées chez leur organisation. Cet écran reste vide tant que c'est le cas.",
+      "compte": "{total} dépôt(s) en souffrance.",
+      "champ_expert": "Expert",
+      "champ_quand": "Tenté le",
+      "champ_tentatives": "Tentatives",
+      "bouton_relancer": "Relancer",
+      "bouton_relance_en_cours": "Analyse en cours…",
+      "toast_deposee": "La candidature a été déposée, complète. Elle est arrivée chez l'organisation.",
+      "toast_sans_jugement": "La relance n'a pas abouti : {cause}. Rien n'a été écrit, la ligne reste.",
+      "toast_refusee": "Le dépôt a été refusé ({code}). Ce n'est pas une panne : une garde s'y oppose.",
+      "contexte_illisible": "L'annonce ou l'expert n'a pas pu être relu : les informations ci-dessus sont incomplètes."
+    },
+    "nav_depots_echec": "Dépôts en échec"
   },
   "expert_verification": {
     "badge": {

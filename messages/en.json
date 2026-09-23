@@ -2425,7 +2425,7 @@
       "cover_placeholder": "Explain in a few lines why you're the right fit…",
       "cover_cancel": "Cancel",
       "cover_submit": "Send application",
-      "cover_submitting": "Sending…",
+      "cover_submitting": "Analysing your application…",
       "success_applied": "Your application has been sent. The company will respond shortly.",
       "error_already_applied": "You've already applied to this opportunity.",
       "error_not_matched": "This opportunity is not in your suggestions.",
@@ -3111,7 +3111,9 @@
         "moteur_interrupteur_ferme": "The matching engine is OFF: no expert and no organisation receives any suggestion, in any ecosystem. The ENABLE_RERANKING switch must be exactly “true”.",
         "moteur_cle_absente": "The matching provider key is missing: no expert and no organisation receives any suggestion, in any ecosystem. The COHERE_API_KEY variable must be set.",
         "catalogue_non_relie": "{count} paid plan(s) are not linked to Stripe in the mode of the key in use. The first real subscription would come back \"price not in catalogue\": the money would be taken with no way to attach it to a plan. Open Commerce catalogue and click \"Link to Stripe\".",
-        "catalogue_etat_inconnu": "Cannot tell whether the catalogue is linked to Stripe: key missing, or read failed. This is not \"all good\" — it is \"I do not know\"."
+        "catalogue_etat_inconnu": "Cannot tell whether the catalogue is linked to Stripe: key missing, or read failed. This is not \"all good\" — it is \"I do not know\".",
+        "depots_candidature_perdus": "{count} application(s) could not be submitted: their analysis did not complete, and nothing was written. The expert believes they applied; the organisation does not know a file was due. Open Failed submissions and retry them.",
+        "lecture_indisponible_depots": "Application submissions could not be counted. This is not \"no lost submissions\": it is \"we do not know\". Open Failed submissions."
       },
       "spread_title": "Score spread",
       "spread_empty": "No run yet on the new scale. The spread will fill in with the next matching runs.",
@@ -3202,7 +3204,39 @@
         "disponibilite": "Availability",
         "cv_reanalyse": "CV re-analysed"
       }
-    }
+    },
+    "depots_echec": {
+      "title": "Failed application submissions",
+      "subtitle": "An application only exists once it is complete: if its analysis fails, nothing is written and the organisation receives nothing. The expert is not told — this is where it shows, and where it is replayed.",
+      "error_title": "The list could not be read.",
+      "chargement": "Loading…",
+      "filtre_toutes": "All causes",
+      "filtre_ecosysteme": "Ecosystem",
+      "filtre_tous_ecosystemes": "All",
+      "filtre_periode": "Period",
+      "periode_tout": "All time",
+      "periode_jours": "Last {jours} days",
+      "cause_plafond": "Spending cap reached",
+      "cause_modele_indisponible": "Model unavailable",
+      "cause_reponse_illisible": "Unreadable response",
+      "cause_interrompu": "Interrupted",
+      "cause_inconnue": "Unknown cause",
+      "expert_sans_nom": "Expert with no name on file",
+      "annonce_sans_titre": "Untitled listing",
+      "vide_titre": "No lost submissions.",
+      "vide_detail": "Every application submitted received its score and summary, and reached its organisation. This screen stays empty as long as that holds.",
+      "compte": "{total} submission(s) pending action.",
+      "champ_expert": "Expert",
+      "champ_quand": "Attempted on",
+      "champ_tentatives": "Attempts",
+      "bouton_relancer": "Retry",
+      "bouton_relance_en_cours": "Analysing…",
+      "toast_deposee": "The application was submitted, complete. It reached the organisation.",
+      "toast_sans_jugement": "The retry did not succeed: {cause}. Nothing was written, the row stays.",
+      "toast_refusee": "The submission was refused ({code}). This is not a failure: a guard rejects it.",
+      "contexte_illisible": "The listing or the expert could not be re-read: the details above are incomplete."
+    },
+    "nav_depots_echec": "Failed submissions"
   },
   "expert_verification": {
     "badge": {

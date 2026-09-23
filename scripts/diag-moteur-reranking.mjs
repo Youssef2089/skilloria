@@ -135,8 +135,33 @@ ok(!existe('lib/matching/ai-profile-matching.ts') && !existe('lib/matching/ai-ex
 
 ok(existe('lib/candidatures/ai-assessment.ts'),
   'le jugement de Claude a un nouveau domicile : la candidature')
-ok(/jugerCandidature\(/.test(read('app/api/candidatures/route.ts')),
-  'et il est appelé au dépôt d une candidature')
+// ⚠️ ON DÉCOUVRE L'APPELANT (§E.34). Le chemin de dépôt a quitté la route
+//    pour `lib/candidatures/depot.ts`, parce que le bouton RELANCER du
+//    back-office doit rejouer EXACTEMENT ce chemin. Un nom de fichier écrit en
+//    dur aurait fait rougir ce contrôle sur un DÉMÉNAGEMENT — et ce qu'il
+//    défend n'est pas un chemin, c'est que Claude ne soit appelé QU'au dépôt.
+{
+  const appelants = []
+  const marcher = (rel) => {
+    for (const e of readdirSync(join(ROOT, rel), { withFileTypes: true })) {
+      const enfant = `${rel}/${e.name}`
+      if (e.isDirectory()) {
+        if (e.name === 'node_modules' || e.name === '.next') continue
+        marcher(enfant)
+      } else if (/\.tsx?$/.test(e.name)) {
+        const nu = read(enfant)
+        const appelle = [...nu.matchAll(/(\w+\s+)?jugerCandidature\s*\(/g)].some(
+          (m) => (m[1] ?? '').trim() !== 'function',
+        )
+        if (appelle) appelants.push(enfant)
+      }
+    }
+  }
+  for (const d of ['app', 'lib']) marcher(d)
+  ok(appelants.length === 1,
+    `et il est appelé au dépôt d une candidature, et nulle part ailleurs : ${appelants.join(', ') || '(aucun)'}`,
+    'un second appelant serait un second moteur de notation, avec ses propres oublis')
+}
 ok(/after\(/.test(read('app/api/candidatures/route.ts')),
   'après la réponse : un dépôt ne dépend jamais d un modèle',
   'faire échouer un dépôt pour une panne de modèle punirait l expert')

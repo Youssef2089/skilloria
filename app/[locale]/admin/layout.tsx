@@ -15,6 +15,17 @@ import { ADMIN_NAV_SECTIONS } from '@/lib/nav-config'
 
 /** Icônes de la sidebar admin, indexées par `iconKey` de ADMIN_NAV_SECTIONS. */
 const ADMIN_NAV_ICONS: Record<string, React.ReactNode> = {
+  // Dépôts en échec — un triangle d'alerte. Distinct de `gauge` (on ne règle
+  // rien ici) et de `clock` (ce n'est pas une tâche planifiée) : une entrée
+  // qui reprend l'icône d'une voisine devient illisible. Il prend
+  // `currentColor` comme les autres — une couleur d'état peinte sur une icône
+  // de menu dirait quelque chose de faux quand la file est vide (§E.54).
+  alert: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+      <path d="M12 9v4M12 17h.01" />
+    </svg>
+  ),
   // Quotas IA — un cadran (jauge). Distincte de `matching` et de `clock` :
   // une entrée qui reprend l'icône d'une voisine devient illisible.
   gauge: (

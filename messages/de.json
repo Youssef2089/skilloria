@@ -2425,7 +2425,7 @@
       "cover_placeholder": "Erklären Sie in wenigen Zeilen, warum Sie die richtige Person sind…",
       "cover_cancel": "Abbrechen",
       "cover_submit": "Bewerbung senden",
-      "cover_submitting": "Wird gesendet…",
+      "cover_submitting": "Ihre Bewerbung wird analysiert…",
       "success_applied": "Ihre Bewerbung wurde gesendet. Das Unternehmen antwortet in Kürze.",
       "error_already_applied": "Sie haben sich bereits beworben.",
       "error_not_matched": "Diese Möglichkeit ist nicht in Ihren Vorschlägen.",
@@ -3111,7 +3111,9 @@
         "moteur_interrupteur_ferme": "Der Matching-Dienst ist AUS: Kein Experte und keine Organisation erhält Vorschläge, in keinem Ökosystem. Der Schalter ENABLE_RERANKING muss exakt „true“ lauten.",
         "moteur_cle_absente": "Der Schlüssel des Matching-Anbieters fehlt: Kein Experte und keine Organisation erhält Vorschläge, in keinem Ökosystem. Die Variable COHERE_API_KEY muss gesetzt sein.",
         "catalogue_non_relie": "{count} kostenpflichtige(s) Paket(e) sind im Modus des verwendeten Schlüssels nicht mit Stripe verbunden. Das erste echte Abonnement käme als „Preis nicht im Katalog“ zurück: Das Geld würde eingezogen, ohne dass es einem Paket zugeordnet werden kann. Öffnen Sie den Handelskatalog und klicken Sie „Mit Stripe verbinden“.",
-        "catalogue_etat_inconnu": "Es lässt sich nicht sagen, ob der Katalog mit Stripe verbunden ist: Schlüssel fehlt oder Lesen fehlgeschlagen. Das ist kein „alles in Ordnung“, sondern „ich weiß es nicht“."
+        "catalogue_etat_inconnu": "Es lässt sich nicht sagen, ob der Katalog mit Stripe verbunden ist: Schlüssel fehlt oder Lesen fehlgeschlagen. Das ist kein „alles in Ordnung“, sondern „ich weiß es nicht“.",
+        "depots_candidature_perdus": "{count} Bewerbung(en) konnten nicht eingereicht werden: Ihre Analyse wurde nicht abgeschlossen, und es wurde nichts geschrieben. Die Fachkraft glaubt, sich beworben zu haben; die Organisation weiß nicht, dass eine Unterlage fällig war. Öffnen Sie Fehlgeschlagene Einreichungen und versuchen Sie es erneut.",
+        "lecture_indisponible_depots": "Die Bewerbungseingänge konnten nicht gezählt werden. Das heißt nicht „keine verlorenen Einreichungen“, sondern „wir wissen es nicht“. Öffnen Sie Fehlgeschlagene Einreichungen."
       },
       "spread_title": "Verteilung der Bewertungen",
       "spread_empty": "Noch kein Lauf auf der neuen Skala. Die Verteilung füllt sich mit den nächsten Matching-Läufen.",
@@ -3202,7 +3204,39 @@
         "disponibilite": "Verfügbarkeit",
         "cv_reanalyse": "Lebenslauf neu ausgewertet"
       }
-    }
+    },
+    "depots_echec": {
+      "title": "Fehlgeschlagene Bewerbungseingänge",
+      "subtitle": "Eine Bewerbung existiert nur vollständig: Scheitert ihre Analyse, wird nichts geschrieben und die Organisation erhält nichts. Die fachkundige Person erfährt davon nichts – hier wird es sichtbar, und hier wird es erneut ausgeführt.",
+      "error_title": "Die Liste konnte nicht gelesen werden.",
+      "chargement": "Wird geladen…",
+      "filtre_toutes": "Alle Ursachen",
+      "filtre_ecosysteme": "Ökosystem",
+      "filtre_tous_ecosystemes": "Alle",
+      "filtre_periode": "Zeitraum",
+      "periode_tout": "Gesamter Zeitraum",
+      "periode_jours": "Letzte {jours} Tage",
+      "cause_plafond": "Ausgabenobergrenze erreicht",
+      "cause_modele_indisponible": "Modell nicht verfügbar",
+      "cause_reponse_illisible": "Unlesbare Antwort",
+      "cause_interrompu": "Abgebrochen",
+      "cause_inconnue": "Unbekannte Ursache",
+      "expert_sans_nom": "Fachkraft ohne hinterlegten Namen",
+      "annonce_sans_titre": "Anzeige ohne Titel",
+      "vide_titre": "Keine verlorenen Einreichungen.",
+      "vide_detail": "Alle eingereichten Bewerbungen haben ihre Bewertung und Zusammenfassung erhalten und sind bei ihrer Organisation angekommen. Dieser Bildschirm bleibt leer, solange das so ist.",
+      "compte": "{total} ausstehende Einreichung(en).",
+      "champ_expert": "Fachkraft",
+      "champ_quand": "Versucht am",
+      "champ_tentatives": "Versuche",
+      "bouton_relancer": "Erneut versuchen",
+      "bouton_relance_en_cours": "Wird analysiert…",
+      "toast_deposee": "Die Bewerbung wurde vollständig eingereicht. Sie ist bei der Organisation angekommen.",
+      "toast_sans_jugement": "Der erneute Versuch ist nicht gelungen: {cause}. Es wurde nichts geschrieben, die Zeile bleibt.",
+      "toast_refusee": "Die Einreichung wurde abgelehnt ({code}). Das ist keine Störung: Eine Prüfung verweigert sie.",
+      "contexte_illisible": "Anzeige oder Fachkraft konnten nicht erneut gelesen werden: Die obigen Angaben sind unvollständig."
+    },
+    "nav_depots_echec": "Fehlgeschlagene Einreichungen"
   },
   "expert_verification": {
     "badge": {

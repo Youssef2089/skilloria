@@ -302,6 +302,22 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
         iconKey: 'clock',
       },
       {
+        // LES DÉPÔTS DE CANDIDATURE QUI N'ONT PAS ABOUTI, rangés dans
+        // « Exploitation » et non dans « Validation » : on n'y tranche aucun
+        // dossier, on répare une chaîne qui s'est arrêtée.
+        //
+        // Depuis le 23/09/2026 une candidature n'existe que complète (§D.19) :
+        // si son analyse échoue, RIEN n'est écrit et l'expert n'en est pas
+        // informé. Cet écran est la contrepartie exacte de ce silence — sans
+        // lui, personne ne se plaindrait, et la décision deviendrait une perte
+        // muette. Il remonte en BLOQUANT dans la supervision tant qu'il n'est
+        // pas vide.
+        key: 'depots-en-echec',
+        href: '/admin/depots-en-echec',
+        labelKey: 'nav_depots_echec',
+        iconKey: 'alert',
+      },
+      {
         // LE RACCORDEMENT STRIPE, rangé dans « Exploitation » et non dans
         // « Commerce » : on n'y vend rien et on n'y règle rien. On y CONSTATE
         // que ce qui a été encaissé correspond à ce qui a été ouvert — et

@@ -75,7 +75,35 @@ const ok = (cond, label, hint) => {
 }
 const section = (s) => console.log(`\n═══ ${s} ═══\n`)
 
-const ROUTE = 'app/api/candidatures/route.ts'
+// ⚠️ ON DÉCOUVRE LE FICHIER, ON NE L'ÉCRIT PLUS EN DUR (§E.34).
+//    Ce contrôle nommait `app/api/candidatures/route.ts`. Le dévoilement
+//    inclus a déménagé DEUX fois : d'abord en ligne dans le POST, puis dans un
+//    `after()`, et enfin dans `lib/candidatures/depot.ts` quand le chemin de
+//    dépôt est devenu partagé avec le bouton RELANCER du back-office. À chaque
+//    fois, un chemin écrit en dur a fait rougir le contrôle sur un
+//    DÉMÉNAGEMENT et non sur une régression — ce qui use le signal.
+//    On cherche donc qui DÉFINIT `devoilementInclus`, et on exige qu'il n'y en
+//    ait qu'un : deux définitions seraient deux règles de dévoilement.
+const ROUTE = (() => {
+  const vus = []
+  const marcher = (rel) => {
+    for (const e of readdirSync(join(ROOT, rel), { withFileTypes: true })) {
+      const enfant = `${rel}/${e.name}`
+      if (e.isDirectory()) {
+        if (e.name === 'node_modules' || e.name === '.next') continue
+        marcher(enfant)
+      } else if (/\.tsx?$/.test(e.name)) {
+        if (/async function devoilementInclus/.test(read(enfant))) vus.push(enfant)
+      }
+    }
+  }
+  for (const d of ['app', 'lib']) marcher(d)
+  if (vus.length !== 1) {
+    console.error(`\n❌ ${vus.length} définition(s) de devoilementInclus : ${vus.join(', ') || '(aucune)'}\n`)
+    process.exit(2)
+  }
+  return vus[0]
+})()
 const src = sansCommentaires(read(ROUTE))
 
 /**
@@ -245,8 +273,13 @@ ok(
   /\.limit\(1\)/.test(bloc) && /top\.id === candidatureId/.test(bloc),
   'seule la candidature en tête prend la place, comme avant',
 )
+// ⚠️ LE NOM DU CLIENT N'EST PAS LA PROPRIÉTÉ (§E.34). Il s'appelait
+//    `auth.supabaseAdmin` tant que le dévoilement vivait dans une route ; il
+//    est devenu un paramètre le jour où le chemin de dépôt est devenu
+//    partagé. Ce qui se défend est que l'appel passe par `performUnlock`,
+//    sur CETTE candidature, marqué `auto`.
 ok(
-  /performUnlock\(auth\.supabaseAdmin, candidatureId, \{\s*\n?\s*auto: true/.test(bloc),
+  /performUnlock\(\s*\w+(?:\.\w+)*,\s*candidatureId,\s*\{\s*\n?\s*auto: true/.test(bloc),
   'le dévoilement passe par le MÊME chemin que l’unlock manuel, marqué auto',
   'Un chemin parallèle divergerait tôt ou tard de l’unlock manuel.',
 )
@@ -267,41 +300,83 @@ ok(
   'toute la fonction est sous try/catch : un échec ne perd pas la candidature',
   'La candidature doit rester créée même si le dévoilement échoue.',
 )
+// Le PRÉFIXE de journal a suivi le déménagement (`[candidatures]` →
+// `[depot]`). Ce qui se défend est qu'une exception et un refus soient DITS,
+// pas le nom sous lequel on les dit.
 ok(
-  /console\.warn\('\[candidatures\][^']*',\s*err\)/.test(bloc),
+  /console\.warn\('\[[\w-]+\][^']*',\s*err\)/.test(bloc),
   'une exception est journalisée, pas propagée',
 )
 ok(
-  /console\.warn\('\[candidatures\][^']*',\s*res\.code\)/.test(bloc),
+  /console\.warn\('\[[\w-]+\][^']*',\s*res\.code\)/.test(bloc),
   'un refus de dévoilement est journalisé, pas propagé',
 )
 
-// ⚠️ LE DÉPLACEMENT LUI-MÊME. Le dévoilement s'exécute désormais APRÈS la
-//    réponse : sur cette plateforme, un travail lancé après la réponse SANS
-//    `after()` est tué. Vérifier qu'il est bien appelé DEPUIS un `after()` est
-//    donc autant une garantie de non-blocage qu'une garantie d'exécution.
+// ⚠️ LE DÉPLACEMENT A ÉTÉ **INVERSÉ** LE 23/09/2026, ET L'ASSERTION AVEC LUI.
+//    Ce contrôle exigeait que le dévoilement parte d'un `after()` : à
+//    l'époque, il suivait un jugement lui-même différé, donc APRÈS la réponse,
+//    et sans `after()` la plateforme l'aurait tué.
+//
+//    Depuis §D.19, le jugement PRÉCÈDE l'écriture et se fait dans la requête.
+//    Le dévoilement s'exécute donc AVANT la réponse : il n'y a plus de
+//    couperet à craindre, et deux raisons de ne PAS le différer —
+//      · les quelques lectures qu'il coûte ne pèsent rien face aux trente
+//        secondes déjà attendues pour le modèle ;
+//      · le bouton RELANCER du back-office doit rendre l'ÉTAT FINAL du dépôt,
+//        pas un état en cours.
+//    L'assertion est donc RETOURNÉE, pas supprimée (§E.34) : ce qui est
+//    interdit aujourd'hui est exactement ce qui était exigé hier.
 const routeEntiere = sansCommentaires(read(ROUTE))
 const appels = [...routeEntiere.matchAll(/devoilementInclus\(/g)].length
 ok(appels >= 2, `la fonction est appelée (${appels - 1} appel(s) hors définition)`)
-const dansAfter = [...routeEntiere.matchAll(/after\(async \(\) => \{([\s\S]*?)\n  \}\)/g)].some((m) =>
+const dansAfter = [...routeEntiere.matchAll(/after\(async \(\) => \{([\s\S]*?)\n    \}\)/g)].some((m) =>
   m[1].includes('devoilementInclus('),
 )
 ok(
-  dansAfter,
-  'le dévoilement est appelé DEPUIS un after()',
-  "Sans after(), un travail lancé après la réponse est tué par la plateforme — et l'échec serait invisible.",
+  !dansAfter,
+  'le dévoilement n’est PAS différé dans un after()',
+  'differe, la relance du back-office rendrait un etat en cours au lieu de l etat final',
 )
 ok(
-  /export const maxDuration/.test(routeEntiere),
-  'la route déclare un maxDuration (le travail d’après-réponse a le temps de finir)',
+  /await devoilementInclus\(/.test(routeEntiere),
+  'il est ATTENDU, dans la requête',
+  'non attendu, son resultat ne serait connu de personne',
 )
+// ── LE PLAFOND DE DURÉE VIT SUR LES ROUTES, PAS SUR LE MODULE ───────────────
+//    `maxDuration` est une déclaration de ROUTE : la chercher dans le module
+//    partagé passerait au rouge sur un fichier qui ne peut pas la porter.
+//    On la vérifie donc sur CHAQUE appelant, découverts par leur appel.
+{
+  const appelants = []
+  const marcherApp = (rel) => {
+    for (const e of readdirSync(join(ROOT, rel), { withFileTypes: true })) {
+      const enfant = `${rel}/${e.name}`
+      if (e.isDirectory()) {
+        if (e.name === 'node_modules' || e.name === '.next') continue
+        marcherApp(enfant)
+      } else if (e.name === 'route.ts' && /deposerCandidature\(/.test(read(enfant))) {
+        appelants.push(enfant)
+      }
+    }
+  }
+  marcherApp('app/api')
+  ok(appelants.length === 2, `deux routes déposent : ${appelants.join(', ')}`,
+    'l expert qui postule, et l administrateur qui relance. Rien d autre.')
+  for (const a of appelants) {
+    ok(/export const maxDuration/.test(read(a)),
+      `${a} déclare un maxDuration`,
+      'le jugement attend le modele jusqu a 30 s : sans plafond, la plateforme coupe avant')
+  }
+}
 // La création répond 201 quoi qu'il advienne du dévoilement.
 //
-// Cherché dans TOUTE la route, et non à partir de la limite : depuis
-// l'extraction, la fonction se trouve APRÈS le `return json(…, 201)`, et
-// découper « à partir de la limite » sautait précisément le return.
+// ⚠️ C'EST LA **ROUTE** QUI RÉPOND, PAS LE MODULE. Le chemin de dépôt rend une
+//    ISSUE ; la route la traduit en statut. Chercher un `201` dans le module
+//    partagé n'aurait trouvé RIEN et serait passé au rouge sur un fichier qui
+//    n'a pas à en porter.
 ok(
-  /return json\(\s*\{[\s\S]{0,200}?\},\s*201,?\s*\)/.test(routeEntiere),
+  /return json\(\s*\{[\s\S]{0,200}?\},\s*201,?\s*\)/
+    .test(read('app/api/candidatures/route.ts')),
   'la route répond 201 indépendamment du dévoilement',
 )
 
@@ -331,33 +406,49 @@ section('6. LE MEILLEUR PROFIL N’EST PAS DÉCIDÉ SUR UN CHAMP INCOMPLET')
 //   IL NE SE MANIFESTE PAS À « ILLIMITÉ » — il attend qu'on mette un nombre. Le
 //   jour où une offre passe à 3 places, il repart sans prévenir.
 
+// ⚠️ LE DÉFAUT A CHANGÉ DE FORME AVEC §D.19, ET LA GARDE AVEC LUI.
+//    Il se lisait « une candidature déjà écrite n'a pas encore sa note » : cet
+//    état N'EXISTE PLUS, une candidature naît notée. Ce qui existe désormais,
+//    c'est un DÉPÔT COMMENCÉ dont la candidature n'est pas encore écrite —
+//    trente secondes d'appel au modèle pendant lesquelles un meilleur dossier
+//    est invisible.
+//
+//    SANS CETTE GARDE, LE CORRECTIF DE COMPLÉTUDE ROUVRIRAIT CE QU'IL AVAIT
+//    FERMÉ (§E.62) : la place irait au PREMIER déposant et non au meilleur,
+//    avec une fenêtre de même durée qu'avant.
+const VOCABULAIRE = read('lib/candidatures/depot-etats.ts')
 ok(
-  /FENETRE_JUGEMENT_MS/.test(src),
-  'la fenêtre de jugement est une constante nommée',
+  /FENETRE_DEPOT_MS/.test(src),
+  'la fenêtre de dépôt est une constante nommée',
   'Un délai écrit dans l’appel se recopie et diverge.',
 )
 ok(
-  /const FENETRE_JUGEMENT_MS = 45_000/.test(src),
+  /export const FENETRE_DEPOT_MS = 45_000/.test(VOCABULAIRE),
   'la fenêtre couvre le délai d’attente du modèle (30 s) avec sa marge',
   'Plus courte, on décide encore trop tôt ; plus longue, la place reste vide pour rien.',
 )
-// LE CONTRÔLE CENTRAL : on refuse de décider tant qu'une autre candidature de
-// cette annonce peut encore recevoir sa note.
 ok(
-  /\.is\('ai_match_score', null\)/.test(src) && /\.neq\('id', candidatureId\)/.test(src),
-  'les candidatures encore non notées de cette annonce sont recherchées',
-  'Sans ce comptage, le départage retombe sur l’ordre d’arrivée du modèle.',
+  !/const FENETRE_DEPOT_MS/.test(src),
+  'et elle n’est pas recopiée dans le chemin de dépôt',
+  'deux constantes du meme fait divergent, et l ecran proposerait alors de relancer un depot que le devoilement attend encore (§E.20)',
+)
+// LE CONTRÔLE CENTRAL : on refuse de décider tant qu'un autre dépôt de cette
+// annonce peut encore produire une candidature.
+ok(
+  /from\('candidature_depots'\)/.test(src) && /\.eq\('etat', 'en_cours'\)/.test(src),
+  'les dépôts encore en cours de cette annonce sont recherchés',
+  'Sans ce comptage, le départage retombe sur l’ordre d’arrivée des déposants.',
 )
 ok(
-  /if \(\(enAttente \?\? 0\) > 0\) \{[\s\S]{0,320}?return\n/.test(src),
+  /if \(\(enCours \?\? 0\) > 0\) \{[\s\S]{0,320}?return\n/.test(src),
   'on NE DÉCIDE PAS tant que la cohorte n’est pas stable',
-  'La dernière candidature à finir verra tout le monde noté et tranchera.',
+  'Le dernier dépôt à aboutir verra tout le monde et tranchera.',
 )
 // LE FILET, ET IL EST OBLIGATOIRE.
 ok(
-  /\.gte\('created_at', limiteFenetre\)/.test(src),
-  'au-delà de la fenêtre, une candidature sans note ne bloque plus rien',
-  'Sans ce filet, un jugement qui n’aboutit jamais laisserait la place VIDE pour toujours.',
+  /\.gte\('commence_at', limiteFenetre\)/.test(src),
+  'au-delà de la fenêtre, un dépôt en cours ne bloque plus rien',
+  'Sans ce filet, un depot tue en plein appel laisserait la place VIDE pour toujours.',
 )
 // Et le départage lui-même n'a pas bougé : mêmes tris, même ancienneté.
 ok(

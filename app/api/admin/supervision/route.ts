@@ -7,6 +7,7 @@ import { capaciteActive } from '@/lib/interrupteurs'
 import { resolveCatalogueKey } from '@/lib/billing/config'
 import { lireToutesLesLiaisons, modeDeLaCle } from '@/lib/billing/catalogue-stripe'
 import { vendabilite } from '@/lib/billing/vendabilite'
+import { filtreDepotsEnSouffrance } from '@/lib/candidatures/depot-etats'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -73,6 +74,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     seuilsActeurRes,
     nuitStripeRes,
     coincesRes,
+    depotsRes,
   ] = await Promise.all([
     admin.rpc('matching_threshold_health'),
     admin.rpc('matching_coverage_health'),
@@ -114,6 +116,15 @@ export async function GET(request: NextRequest): Promise<Response> {
       .select('id', { count: 'exact', head: true })
       .eq('status', 'received')
       .lt('received_at', new Date(Date.now() - MINUTES_AVANT_COINCE * 60_000).toISOString()),
+    //  LES DÉPÔTS DE CANDIDATURE PERDUS. Le prédicat vient du module pur —
+    //  celui-là même que lit l'écran : deux expressions du même fait
+    //  finiraient par annoncer deux nombres différents (§E.36).
+    //  `head: true` + `count` : on ne veut QUE le nombre, et une page de
+    //  lignes pour le compter serait bornée — donc un compte faux au-delà.
+    admin
+      .from('candidature_depots')
+      .select('id', { count: 'exact', head: true })
+      .or(filtreDepotsEnSouffrance(Date.now())),
   ])
 
   /** `null` = « je n'ai pas pu regarder ». Jamais `[]`, qui dit « rien à voir ». */
@@ -195,6 +206,9 @@ export async function GET(request: NextRequest): Promise<Response> {
     // la clé donne le mode, et les deux tables donnent le reste. Une clé
     // absente rend `null` — « je ne sais pas », pas « rien à relier ».
     offresPayantesNonReliees: offresNonReliees,
+    // `null` sur erreur, JAMAIS `0` : « aucun dépôt perdu » est le message
+    // rassurant, et c'est celui qu'on ne veut surtout pas donner à l'aveugle.
+    depotsEnSouffrance: depotsRes.error ? null : (depotsRes.count ?? 0),
   }
 
   return json(

@@ -153,10 +153,23 @@ ok(undeclared.length === 0,
     ? `non declarees : ${undeclared.join(' · ')} — ajoutez-les a INVENTORY avec leur mode, ou cloisonnez-les`
     : undefined)
 
-const stale = Object.keys(INVENTORY).filter((r) => !touching.includes(r))
+// ⚠️ UNE ROUTE PEUT CLOISONNER SANS CITER UNE SEULE TABLE.
+//    Ce test comparait l'inventaire au balayage TEXTUEL, et il a rougi le jour
+//    ou le depot de candidature est devenu une coquille deleguant a
+//    `lib/candidatures/depot.ts`. La route ne cite plus `candidatures`, et
+//    elle est pourtant LE chemin de depot.
+//    Le retirer de l'inventaire aurait fait taire la recette 3.3, qui itere
+//    dessus : un nettoyage qui coute une couverture (§E.62). On elargit donc
+//    le critere a ce qu'il defend vraiment — la route cloisonne ici, OU dans
+//    un module declare qu'elle atteint. Meme raisonnement qu'en A4.
+const cloisonneParUnModule = (r) =>
+  [...moduesAtteints(`app/api/${r}`)].some((m) => m in LIB_INVENTORY)
+const stale = Object.keys(INVENTORY).filter(
+  (r) => !touching.includes(r) && !cloisonneParUnModule(r),
+)
 ok(stale.length === 0,
   'aucune entree d’inventaire perimee',
-  stale.length ? `declarees mais ne touchent plus ces tables : ${stale.join(' · ')}` : undefined)
+  stale.length ? `declarees mais ne cloisonnent plus nulle part : ${stale.join(' · ')}` : undefined)
 
 // ═══ A2. LES MODULES `lib/` NON PLUS ═══════════════════════════════════════
 section('A2. Inventaire : aucun module lib/ non declare')

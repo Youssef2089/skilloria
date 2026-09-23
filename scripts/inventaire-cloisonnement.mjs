@@ -56,7 +56,17 @@ export const INVENTORY = {
   'me/candidatures/route.ts': 'expert',
   'me/collaboration/quota/route.ts': 'expert',
   // Depot de candidature par l'expert : la candidature herite du domain_id du
-  // PROFIL (candidatures/route.ts), donc de l'ecosysteme unique de l'expert.
+  // PROFIL, donc de l'ecosysteme unique de l'expert.
+  //
+  // ⚠️ L'ADRESSE A CHANGE LE 23/09/2026, ET L'ENTREE RESTE. La route est
+  //    devenue une COQUILLE : elle authentifie, resout le profil de l'appelant,
+  //    et delegue a `lib/candidatures/depot.ts` — declare ci-dessous en 'cle' —
+  //    parce que le bouton RELANCER du back-office doit rejouer EXACTEMENT ce
+  //    chemin (§E.20).
+  //    Elle ne cite donc plus aucune table cloisonnee, et elle reste POURTANT
+  //    dans cet inventaire : c'est la recette 3.3 qui itere dessus, et l'en
+  //    retirer aurait cesse d'eprouver le depot contre une vraie base — une
+  //    perte de couverture deguisee en nettoyage (§E.62).
   'candidatures/route.ts': 'expert',
 
   // ── Conversation : deux cotes ──────────────────────────────────────────
@@ -133,6 +143,15 @@ export const LIB_INVENTORY = {
   // Ne lit que les entites citees par des notifications deja destinees a un
   // utilisateur precis.
   'lib/notifications/dispatch.ts': 'cle',
+
+  // ── Depot de candidature ───────────────────────────────────────────────
+  // LE chemin de depot, partage par la route de l'expert et par le bouton
+  // RELANCER du back-office. Toutes ses lectures sont clavetees : l'annonce
+  // par son id, le match et la candidature existante par le couple
+  // (publication_id, profile_id), le plafond de devoilement et le departage
+  // par publication_id. Aucune liste libre, donc aucun filtre `domain_id` a
+  // porter — et la candidature ecrite herite du `domain_id` du PROFIL.
+  'lib/candidatures/depot.ts': 'cle',
 }
 
 // ─── LES ROUTES QUI PASSENT PAR UN MODULE `ligne` ────────────────────────────

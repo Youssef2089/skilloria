@@ -6,6 +6,8 @@ import { budgetDisponible, enregistrerDepenseIA, type ActeurIA, type ActionIA } 
 // quelque chose d'exploitable, ils ne jugent pas le contenu du texte. Sans
 // aucune dépendance, donc éprouvables à l'exécution.
 import { lireNote, lireTexte } from './lecture-reponse'
+// La liste des trois causes vit dans un module PUR, et le type en est dérivé.
+import type { CausePanne } from './depot-etats'
 
 export { lireNote, lireTexte } from './lecture-reponse'
 
@@ -88,7 +90,11 @@ export type Langue = 'fr' | 'en' | 'es' | 'de'
  * seulement « il en manque beaucoup », là où trois compteurs disent lequel des
  * trois problèmes on a — et donc quoi faire.
  */
-export type CausePanne = 'plafond' | 'modele_indisponible' | 'reponse_illisible'
+// ⚠️ DÉRIVÉ, PLUS RECOPIÉ. La liste vit dans lib/candidatures/depot-etats.ts,
+// module pur, et elle est la même que celle qu'exige la base. Trois listes du
+// même fait vieillissaient séparément (§E.20) ; celle-ci ne peut plus diverger
+// sans faire échouer la compilation.
+export type { CausePanne }
 
 /**
  * Ce que le modèle reçoit.

@@ -18,10 +18,22 @@
 //   versionnés, exigence de durées relatives — et que le filtre n'est pas
 //   revenu par une autre porte.
 //
-//   LA RÈGLE LA PLUS IMPORTANTE : RIEN NE BLOQUE UNE CANDIDATURE. Elle est
-//   prouvée MÉCANIQUEMENT ici, pas affirmée : aucun refus HTTP après l'INSERT
-//   hormis ceux de l'INSERT lui-même, jugement confiné dans un `after()`, et un
-//   `catch` qui ne relève pas.
+//   ⚠️ LA RÈGLE LA PLUS IMPORTANTE A ÉTÉ REMPLACÉE, LE 23/09/2026.
+//   Ce fichier disait : « RIEN NE BLOQUE UNE CANDIDATURE — jugement confiné
+//   dans un `after()` ». Youssef a tranché l'inverse : « une candidature avec
+//   sa note et son résumé, ou pas de candidature » (§D.19). Le jugement est
+//   donc devenu SYNCHRONE et PRÉCÈDE l'écriture.
+//
+//   CE QUE CE FICHIER NE VÉRIFIE PLUS, ET OÙ ÇA VIT MAINTENANT :
+//     « le jugement est dans le after() » → INVERSÉ. La propriété « le
+//     jugement précède l'écriture, et l'échec retourne avant elle » est tenue
+//     par `scripts/diag-candidature-complete.mjs`, section 3. Elle n'est PAS
+//     re-vérifiée ici : deux gardes sur la même panne n'en font qu'une, et la
+//     seconde finit par diverger (§E.36).
+//
+//   CE QU'IL VÉRIFIE ENCORE, ET QUE PERSONNE D'AUTRE NE TIENT : une fois la
+//   candidature écrite, PLUS RIEN ne la perd — aucun refus après l'écriture,
+//   et aucune exception relevée dans un `after()`.
 //
 //   ET CE QUI MANQUE SE COMPTE. Trois causes distinctes, jamais additionnées :
 //   plafond, modèle indisponible, réponse illisible. Sans ce compteur, le jour
@@ -65,7 +77,14 @@ const section = (s) => console.log(`\n═══ ${s} ═══\n`)
 
 const ASSESSMENT = read('lib/candidatures/ai-assessment.ts')
 const LECTURE = read('lib/candidatures/lecture-reponse.ts')
-const DEPOT = read('app/api/candidatures/route.ts').replace(/\r\n/g, '\n')
+// ⚠️ LE CHEMIN DE DÉPÔT A DÉMÉNAGÉ, ET CE N'EST PAS COSMÉTIQUE.
+//    `app/api/candidatures/route.ts` est devenue une COQUILLE : elle
+//    authentifie et délègue. Tout le dépôt — gardes, jugement, écriture,
+//    dévoilement, cloche, audit — vit dans `lib/candidatures/depot.ts`, parce
+//    que le bouton RELANCER du back-office doit rejouer EXACTEMENT ce chemin
+//    et non une copie (§E.20). S'ancrer sur la route rendrait ce contrôle vert
+//    sur un fichier de quinze lignes.
+const DEPOT = read('lib/candidatures/depot.ts').replace(/\r\n/g, '\n')
 const PITCH = read('app/api/candidatures/[id]/pitch/route.ts')
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -140,15 +159,22 @@ ok(/ELLES VALENT POUR LES DEUX TEXTES/.test(ASSESSMENT),
   'le texte destine a l expert traverse les memes ecrans')
 
 // ══════════════════════════════════════════════════════════════════════════
-section('C. RIEN NE BLOQUE UNE CANDIDATURE — prouvé, pas affirmé')
+section('C. UNE FOIS ÉCRITE, PLUS RIEN NE PERD LA CANDIDATURE')
 // ══════════════════════════════════════════════════════════════════════════
 
 const lignesDepot = DEPOT.split('\n')
 const ligneInsert = lignesDepot.findIndex((l) => l.includes('.insert({')) + 1
 ok(ligneInsert > 0, `l INSERT de la candidature est localisé (ligne ${ligneInsert})`)
 
-// 1. AUCUN refus HTTP après l'INSERT — sauf ceux de l'INSERT lui-même, qui
-//    n'ont aucune candidature à perdre puisque l'écriture a échoué.
+// 1. AUCUN REFUS APRÈS L'INSERT — sauf ceux de l'INSERT lui-même, qui n'ont
+//    aucune candidature à perdre puisque l'écriture a échoué.
+//
+//    ⚠️ LE VOCABULAIRE A CHANGÉ AVEC LE DÉMÉNAGEMENT, ET LE GARDER AURAIT
+//       PRODUIT UN VERT VIDE. Le chemin de dépôt ne rend plus de `Response` :
+//       il rend une ISSUE, et c'est la route qui traduit. Un motif cherchant
+//       `return json(…, 4xx)` ne trouve donc plus RIEN dans ce fichier — il
+//       aurait passé au vert en ne mesurant plus rien (§E.27). On s'ancre sur
+//       ce qu'on défend : un retour de REFUS après l'écriture.
 {
   const blocInsertErr = (() => {
     const d = lignesDepot.findIndex((l) => l.includes('if (insertErr) {'))
@@ -164,46 +190,45 @@ ok(ligneInsert > 0, `l INSERT de la candidature est localisé (ligne ${ligneInse
 
   const refusApres = []
   for (let i = 0; i < lignesDepot.length; i++) {
-    const m = /return json\(.*?,\s*(\d{3})\)/.exec(lignesDepot[i])
-    if (!m) continue
-    const code = Number(m[1])
+    if (!/return \{ issue: 'refusee'/.test(lignesDepot[i])) continue
     const ligne = i + 1
-    if (code < 400) continue
     if (ligne <= ligneInsert) continue
     // Exception NOMMÉE : les sorties du bloc `if (insertErr)`. L'écriture a
     // échoué, il n'y a pas de candidature à perdre.
     if (ligne >= blocInsertErr.debut && ligne <= blocInsertErr.fin) continue
-    refusApres.push(`ligne ${ligne} (HTTP ${code})`)
+    refusApres.push(`ligne ${ligne}`)
   }
   ok(refusApres.length === 0,
-    'aucun refus HTTP après l INSERT, hormis ceux de l INSERT lui-même',
+    'aucun refus après l ÉCRITURE, hormis ceux de l écriture elle-même',
     refusApres.length
       ? `une candidature existe deja a ce point et serait perdue : ${refusApres.join(' · ')}`
       : undefined)
+  // Le motif MORD : sans cette preuve, un `0 refus` ne dirait rien de plus
+  // qu'un fichier qu'on n'a pas su lire (§E.33).
+  ok(/return \{ issue: 'refusee'/.test(DEPOT),
+    'le motif de refus existe bien dans ce fichier',
+    'zero occurrence : le controle ne mesure plus rien et passe au vert')
 }
 
-// 2. Le jugement, le comptage et le dévoilement vivent DANS le after().
+// 2. Le `after()` qui SUBSISTE ne perd rien non plus.
+//    Un seul y reste — l'envoi d'e-mail aux membres de l'organisation, qui est
+//    lent et sans effet sur le dossier. Le jugement, lui, en est SORTI : c'est
+//    la décision de ce lot, et elle est tenue par diag-candidature-complete.
 {
   const iAfter = DEPOT.indexOf('after(async ()')
-  const finAfter = DEPOT.indexOf('\n  })', iAfter)
-  const dedans = (motif) => {
-    const i = DEPOT.indexOf(motif)
-    return i > iAfter && i < finAfter
-  }
-  ok(iAfter !== -1 && finAfter > iAfter, 'le bloc after() est localisé')
-  for (const motif of ['jugerCandidature(', 'enregistrerPanne(', 'devoilementInclus(']) {
-    ok(dedans(motif), `« ${motif} » est DANS le after()`,
-      'hors du after(), il retarderait ou ferait echouer la reponse au candidat')
-  }
-}
-
-// 3. Le catch du after() ne relève pas : une exception y meurt.
-{
-  const iAfter = DEPOT.indexOf('after(async ()')
-  const finAfter = DEPOT.indexOf('\n  })', iAfter)
+  const finAfter = DEPOT.indexOf('\n    })', iAfter)
   const corps = DEPOT.slice(iAfter, finAfter)
-  ok(/\} catch \(err\) \{/.test(corps), 'le corps du after() est sous try/catch')
-  const relance = /catch \(err\) \{[\s\S]*?\bthrow\b/.test(corps)
+  ok(iAfter !== -1 && finAfter > iAfter, 'le bloc after() est localisé')
+  ok(DEPOT.indexOf('jugerCandidature(') < iAfter,
+    'le jugement est HORS du after(), et AVANT lui',
+    'differe, la candidature redeviendrait ecrite avant d etre notee (§D.19)')
+  // ⚠️ LE NOM DE LA VARIABLE N'EST PAS LA PROPRIÉTÉ (§E.34). Ce motif
+  //    exigeait `catch (err)` : un `catch (e)` — la forme la plus courante —
+  //    le faisait rougir sur du code parfaitement correct, et un renommage
+  //    l'aurait fait verdir sur du code qui ne l'est pas.
+  ok(/\}\s*catch\s*\(\s*\w+\s*\)\s*\{/.test(corps),
+    'le corps du after() est sous try/catch')
+  const relance = /catch\s*\(\s*\w+\s*\)\s*\{[\s\S]*?\bthrow\b/.test(corps)
   ok(!relance, 'et son catch ne relève JAMAIS',
     'une exception relevee dans un after() n a plus personne pour la rattraper')
 }
@@ -244,8 +269,19 @@ const balayerAdmin = (rel) => {
 for (const d of SURFACES_ADMIN) balayerAdmin(d)
 const partoutAdmin = (motif) => ADMIN.some(([, c]) => motif.test(c))
 
-ok(/export type CausePanne = 'plafond' \| 'modele_indisponible' \| 'reponse_illisible'/.test(ASSESSMENT),
-  'les trois causes sont un type, pas une chaîne libre')
+// ⚠️ LA LISTE A DÉMÉNAGÉ DANS UN MODULE PUR, ET LE TYPE EN EST DÉRIVÉ.
+//    Elle vivait en trois exemplaires — le type, la contrainte de la base, le
+//    filtre de l'écran. Trois listes du même fait vieillissent séparément
+//    (§E.20). Aujourd'hui le type ne peut plus diverger sans faire échouer la
+//    compilation.
+ok(/export const CAUSES_DEPOT = \['plafond', 'modele_indisponible', 'reponse_illisible'\] as const/
+  .test(read('lib/candidatures/depot-etats.ts')),
+  'les trois causes sont une liste fermée, dans un module pur')
+ok(/export type CausePanne = \(typeof CAUSES_DEPOT\)\[number\]/
+  .test(read('lib/candidatures/depot-etats.ts')),
+  'et le type en est DÉRIVÉ, jamais recopié')
+ok(/export type \{ CausePanne \}/.test(ASSESSMENT),
+  'le jugement le ré-exporte, il ne le redéfinit pas')
 for (const [cause, motif] of [
   ['plafond', /cause: 'plafond'/],
   ['modele_indisponible', /cause: 'modele_indisponible'/],
@@ -259,7 +295,18 @@ ok(/group by f\.cause, f\.surface/.test(SQL_PANNES),
   'la supervision les garde DISTINCTES',
   'les additionner reproduirait exactement le compteur unique qu on remplace')
 
-ok(/enregistrerPanne\(auth\.supabaseAdmin/.test(DEPOT), 'le dépôt compte ses pannes')
+// ⚠️ LE DÉPÔT N'ÉCRIT PLUS DANS CE COMPTEUR, ET C'EST VOULU.
+//    `ai_redaction_failures.entity_id` désignait la candidature. Depuis
+//    §D.19, un dépôt qui échoue n'écrit AUCUNE candidature : la ligne aurait
+//    pointé vers un objet inexistant. Sa trace vit dans
+//    `public.candidature_depots`, qui elle SE REJOUE — et deux journaux du
+//    même événement auraient divergé dès la première relance (§E.36).
+ok(/solderJournalEnEchec\(/.test(DEPOT),
+  'le dépôt journalise son échec, avec sa cause',
+  'sans cette ligne, le depot est perdu : l expert croit avoir postule, personne ne le sait')
+ok(/cause: resultat\.cause/.test(DEPOT),
+  'et la cause journalisée est celle que le jugement a rendue',
+  'une cause inventee enverrait chercher un bug la ou il n y a qu un plafond atteint')
 ok(/enregistrerPanne\(auth\.supabaseAdmin/.test(PITCH), 'le pitch aussi')
 ok(/panne NON COMPTÉE/.test(MODULE_PANNES),
   'un comptage en échec est journalisé, jamais silencieux')
@@ -377,7 +424,7 @@ ok(/score == null \|\| !reason \|\| !pitch/.test(ASSESSMENT),
 // ══════════════════════════════════════════════════════════════════════════
 console.log(
   failures === 0
-    ? '\n✅ La consigne vit dans le prompt, le document part intact, et rien ne bloque un dépôt.\n'
+    ? '\n✅ La consigne vit dans le prompt, le document part intact, et une candidature écrite ne se perd plus.\n'
     : `\n❌ ${failures} contrôle(s) en échec.\n`,
 )
 process.exit(failures === 0 ? 0 : 1)

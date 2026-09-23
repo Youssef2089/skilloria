@@ -57,8 +57,9 @@ avec le seed) : `publications_per_month`, `active_publications_max`,
 **Organisations** — `organizations`, `organization_members`, `organization_invitations`,
 `organization_domains` (→ **TRACE HISTORIQUE**, §B.2), `verification_attempts`, `verification_providers`.
 
-**Boucle cœur** — `publications`, `matches`, `candidatures`, `candidature_views`,
-`conversations`, `messages`, `notifications`, `notification_preferences`.
+**Boucle cœur** — `publications`, `matches`, `candidatures`, `candidature_depots` (le
+journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **avant** l'appel au modèle),
+`candidature_views`, `conversations`, `messages`, `notifications`, `notification_preferences`.
 
 **Commerce** — `packages`, `packages_stripe`, `package_features`, `package_history`,
 `subscription_history`, `transactions`, `usage_counters`, `promo_codes`, `promo_code_uses`,
@@ -86,6 +87,28 @@ avec le seed) : `publications_per_month`, `active_publications_max`,
 > **NON VÉRIFIÉ** : rien ne dit si elles portent des données de production — on ne les a pas lues.
 
 ### B.2 Les déplacements structurants — ceux qui piègent
+
+> **`candidature_complete_ou_inexistante` (23/09/2026) — LA BASE REFUSE UNE CANDIDATURE NUE.**
+> `candidatures` gagne la contrainte `candidatures_complete_ou_inexistante` : note **et** résumé
+> (`ai_assessment->>'reason'` et `->>'pitch_org'`, non vides), ou la ligne n'existe pas. Elle est
+> **VALIDÉE**, et porte une **borne de date** (`created_at < 2026-09-23`) qui déclare les **4
+> candidatures de juin 2026** mesurées en base — toutes sans `ai_assessment`.
+> ⚠️ **`NOT VALID` les aurait rendues IMMUABLES** : une contrainte `NOT VALID` est quand même
+> vérifiée sur tout UPDATE. C'est **§E.64**, et c'est le piège que ce lot a payé.
+>
+> Table neuve **`candidature_depots`** — le journal des dépôts, clé `(publication_id, profile_id)`,
+> états `en_cours` / `echec` / `depose`. La ligne naît **AVANT** l'appel au modèle (§E.63) ;
+> `interrompu` n'est **pas** un état stocké, il se DÉRIVE de l'heure
+> ([lib/candidatures/depot-etats.ts](../lib/candidatures/depot-etats.ts)). Fonction neuve
+> `ouvrir_depot_candidature()` : l'`on conflict` incrémente `tentatives` **dans la même
+> instruction**, parce qu'un lire-puis-écrire aurait compté une seule tentative pour deux relances
+> simultanées (§F).
+> Le commentaire de `ai_redaction_failures` est **repris** : la surface `candidature` n'y est
+> plus écrite, et un lecteur de la base serait sinon tombé sur l'ancienne règle (§E.7).
+>
+> ⚠️ **POSTCONDITION QUI LÈVE** (§E.60) : la contrainte et sa validation, la table, son **unicité
+> vérifiée sur ses COLONNES** et non sur son nom, ses trois `check`, ses deux index dont le
+> **partiel**, et la **signature** de la fonction.
 
 > **`verdict_ecrit_par_la_tache` (23/09/2026) — LA TÂCHE N'ATTEND PLUS QU'ON VIENNE LA CHERCHER.**
 > `cron_run_log` gagne `verdict_source` (`tache` / `reconciliation`) et `attendu_de_la_tache` ;
@@ -1253,6 +1276,23 @@ l'objet est créé **deux fois**.
 ---
 
 ## H. Ce qui reste ouvert
+
+**H.0 — UN PROFIL PUBLIÉ NE PEUT PLUS ÊTRE DÉPUBLIÉ. SUJET À PART, NON TRANCHÉ.**
+Signalé pendant l'audit du moteur, **hors des douze défauts**, et **Youssef ne l'a pas arbitré** — il
+a demandé qu'il soit **noté ici et pas corrigé**. Un état qu'on ne peut plus quitter est un problème
+en soi ; et le RGPD s'en mêle, parce qu'un expert qui veut cesser d'être visible n'a pas d'autre
+porte que la suppression de son compte. **Ne pas le refermer par un correctif de passage** : il
+demande de décider ce que deviennent les matches, les candidatures en cours et les conversations
+ouvertes d'un profil qu'on retire.
+
+**H.1 — UNE PLACE INCLUSE PEUT RESTER VIDE POUR TOUJOURS. Défaut PRÉEXISTANT, déclaré.**
+Le dévoilement inclus **diffère** quand un autre dépôt de la même annonce est encore en cours : le
+dernier à finir voit tout le monde et tranche. Si ce dernier est **tué** en plein appel au modèle,
+personne ne reprend la décision — la place reste vide, et rien ne le dit.
+**Ce n'est pas né avec §D.19** : la version d'avant différait sur « une candidature non encore
+notée » et avait exactement le même trou. Le refermer demande un balayage périodique des annonces à
+place libre, donc une tâche planifiée — un lot à lui seul, et un arbitrage de coût. **Mesure requise
+avant** : combien d'annonces ont aujourd'hui une place incluse non attribuée.
 
 Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 

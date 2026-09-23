@@ -306,7 +306,7 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **81** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
+Sur les **82** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
 22/09/2026, à l'exécution — les 71ᵉ à 78ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
 lignes existantes ; `inacheves_hors_annonces_expirees` ne fait que remplacer le corps d'une fonction
@@ -3224,6 +3224,53 @@ couverte sans qu'on l'inscrive nulle part, §E.61), vérifie que **chaque sortie
 guichet, que les quatre issues journalisent, que la ligne naît **avant** l'appel, que les deux
 collecteurs ne se marchent pas dessus, et que l'écran distingue « pas attendu » de « pas rendu »
 dans les quatre langues.
+
+<a id="e64"></a>
+
+## E.64 — `NOT VALID` NE DISPENSE QUE L'INSERTION : IL REND IMMUABLES LES LIGNES QU'IL TOLÈRE
+
+**Le cas, mesuré le 23/09/2026.** Le lot « une candidature n'existe que complète » devait poser une
+contrainte exigeant note et résumé. La base portait **4 candidatures** des 4 et 5 juin 2026, toutes
+`unlocked`, toutes **sans `ai_assessment`**. Le réflexe était `NOT VALID` : « les anciennes
+lignes passent, les nouvelles sont refusées ».
+
+**C'est faux, et d'une manière qui ne se voit qu'en production.** `NOT VALID` dispense la
+**validation initiale** — le balayage de la table au moment de l'`ALTER`. Il ne dispense **aucune
+écriture ultérieure** : toute `INSERT` **et toute `UPDATE`** est vérifiée, **y compris l'UPDATE
+d'une ligne qui viole déjà la contrainte**. Les quatre candidatures seraient donc devenues
+**IMMUABLES** : plus de sélection, plus de refus, plus d'archivage par le cycle de vie. Quatre
+dossiers réels figés — et le premier symptôme aurait été une erreur Postgres opaque sur un clic
+d'organisation, des semaines plus tard.
+
+**La parade, et elle est une expression, pas une discipline.** La contrainte porte la tolérance
+**dans son prédicat** :
+
+```sql
+check (
+  created_at < timestamptz '2026-09-23 00:00:00+00'   -- le passé, DÉCLARÉ
+  or ( ai_match_score is not null and ai_assessment is not null and … )
+)
+```
+
+Trois propriétés que `NOT VALID` n'a pas :
+· elle s'installe **VALIDÉE** — la table entière a été balayée, on SAIT qu'aucune ligne ne la viole ;
+· les lignes anciennes restent **modifiables**, parce qu'elles satisfont la contrainte ;
+· la tolérance est **lisible dans la définition** : `pg_get_constraintdef` la montre, alors qu'un
+  `NOT VALID` ne dit ni combien de lignes il tolère ni lesquelles.
+
+**Et l'échec va dans le bon sens.** Si une ligne nue était créée entre l'écriture de la migration et
+son application, l'`ADD CONSTRAINT` **échouerait bruyamment** au déploiement — plutôt que de
+s'installer en fermant les yeux (§E.60).
+
+> **La question à se poser, et elle n'est pas « faut-il valider ? » :** *que deviennent les lignes
+> que je tolère, le jour où quelqu'un les modifie ?* `NOT VALID` répond « elles cessent d'être
+> modifiables », et ne le dit nulle part.
+
+**Gardé par** [`diag-candidature-complete`](../scripts/diag-candidature-complete.mjs) : il refuse
+`not valid` sur cette contrainte, exige la borne de date, et la postcondition de la migration
+vérifie `convalidated`.
+
+---
 
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.

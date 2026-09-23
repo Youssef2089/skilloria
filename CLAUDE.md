@@ -714,6 +714,42 @@ prix**, que le refus d'achat précède la lecture de liaison, et que la contrain
 sens**.
 
 
+**D.19 — UNE CANDIDATURE EXISTE AVEC SA NOTE ET SON RÉSUMÉ, OU ELLE N'EXISTE PAS.**
+Arbitré par Youssef le 23/09/2026, et cette décision **REMPLACE** la précédente, qui disait
+l'inverse en toutes lettres (« RIEN NE BLOQUE UNE CANDIDATURE », en tête de
+`20260907200000_pannes_de_redaction.sql`) : *« une candidature avec sa note et son résumé, ou pas de
+candidature. Une candidature nue chez un client, c'est amateur. On ne la livre pas. »*
+
+**L'ORDRE EST LE CORRECTIF, TOUT LE RESTE EN DÉCOULE.** Le jugement est **appelé avant l'écriture**
+et **attendu dans la requête** ([lib/candidatures/depot.ts](lib/candidatures/depot.ts)). Il aboutit →
+la candidature est écrite **avec** sa note et son résumé, en une opération. Il échoue → **rien n'est
+écrit**.
+
+| Ce qui est refusé | Pourquoi |
+|---|---|
+| **un filtre à l'affichage** | **17 fichiers** lisent `candidatures` (mesuré le 23/09/2026). Il suffirait d'en oublier un. La garantie est que **l'objet incomplet n'existe pas**, pas qu'on le cache. |
+| **un rejeu automatique** | Refusé par Youssef : « ça tournerait en boucle et ça coûterait ». |
+| **prévenir l'expert** | « L'expert ne paie pas une panne qui ne le concerne pas, et on ne lui montre pas nos coulisses. » Aucun message d'erreur, aucun bouton « réessayer ». |
+
+**LA BASE REFUSE** — `candidatures_complete_ou_inexistante`, contrainte **validée**, pas
+discipline (§E.31). Elle porte une **borne de date** plutôt qu'un `NOT VALID`, et ce n'est pas un
+détail : une contrainte `NOT VALID` est **quand même vérifiée sur tout UPDATE**, elle aurait donc
+rendu **IMMUABLES** les 4 candidatures de juin 2026 (§E.64).
+
+> ⚠️ **CE QUE ÇA COÛTE, ET C'EST ASSUMÉ.** L'écran affiche « votre candidature a été envoyée » alors
+> que rien n'a été écrit — un tampon de succès sur un travail qui n'a pas eu lieu, la forme exacte
+> de §E.27. Youssef a nommé cette conséquence lui-même, et c'est **précisément** pourquoi l'écran
+> `/admin/depots-en-echec` est **BLOQUANT en supervision tant qu'il n'est pas vide**. Le tampon est
+> tenable parce qu'il n'est **jamais silencieux côté plateforme**. Sans cet écran, ce serait un
+> défaut ; avec lui, c'est un arbitrage.
+
+**CE QUI N'ABOUTIT PAS SE VOIT, ET SE REJOUE À LA MAIN.** Table `candidature_depots`, une ligne
+par couple (annonce, expert), **écrite AVANT l'appel au modèle** — cet appel dure jusqu'à 30 s dans
+la requête, et c'est exactement là qu'une fonction se fait tuer (§E.63). L'écran
+`/admin/depots-en-echec` montre les échecs **et** les dépôts **interrompus** (état DÉRIVÉ de
+l'heure, jamais stocké), filtrables par cause, date et écosystème, avec un bouton **RELANCER** qui
+appelle **la même fonction** que le dépôt d'un expert — pas une copie (§E.20).
+
 **D.10 — TOUTE NOTE DU PRODUIT EST SUR 0-10. Il n'y a pas de seconde échelle.**
 Les filtres de pertinence vivaient en **0-1**, les notes de jugement en **0-10**, et rien ne le disait
 à l'écran : **« 1 » signifiait *parfait* d'un côté et *médiocre* de l'autre**, sur la même page.
@@ -893,6 +929,7 @@ bloquant, ordonnés avec les quatorze défauts nommés du gel 4.1d :
 | [E.61](docs/pieges.md#e61) | UN CONTRÔLE DONT LA COUVERTURE EST UNE LISTE TENUE À LA MAIN NE PROTÈGE QUE CE QU'ON A PENSÉ À LUI DONNER. |
 | [E.62](docs/pieges.md#e62) | UN DÉFAUT PEUT PROTÉGER QUELQUE CHOSE. LE RÉPARER NE DOIT PAS ROUVRIR CE QU'IL FERMAIT. |
 | [E.63](docs/pieges.md#e63) | UN RÉSULTAT POSÉ SUR UN SUPPORT QUI EXPIRE EST UN RÉSULTAT QU'ON PERDRA. |
+| [E.64](docs/pieges.md#e64) | `NOT VALID` NE DISPENSE QUE L'INSERTION : IL REND IMMUABLES LES LIGNES QU'IL TOLÈRE. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---
