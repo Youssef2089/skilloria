@@ -64,6 +64,8 @@ import { publicationCandidaturesLinkForOrg } from '@/lib/collaboration-links'
 import { isActivePublished } from '@/lib/publications/expiry'
 import { jugerCandidature, type CausePanne } from '@/lib/candidatures/ai-assessment'
 import { chargerDurees, DUREES_ILLISIBLES_CODE, type Durees } from '@/lib/durees'
+// QUI PARLE POUR UNE ORGANISATION — et donc dans quelle langue on lui écrit.
+import { langueDeLOrganisation, normaliserLangue } from '@/lib/organisations/porte-parole'
 // LA RÈGLE D'ÉLIGIBILITÉ, ÉCRITE UNE FOIS ET LUE ICI AUSSI (§D.20, §D.21).
 import {
   COLONNES_COMPTE,
@@ -183,10 +185,10 @@ type ProfilDepot = Record<string, unknown> & {
   id: string
   user_id: string
   domain_id: string
-  /** Le compte, joint — il porte le public de l'expert ET son état. */
+  /** Le compte, joint — le public de l'expert, sa LANGUE, et son état. */
   users:
-    | { user_type: string | null }
-    | Array<{ user_type: string | null }>
+    | { user_type: string | null; locale: string | null }
+    | Array<{ user_type: string | null; locale: string | null }>
     | null
 }
 
@@ -211,7 +213,7 @@ const CHAMPS_APERCU = (
 
 const SELECT_PROFIL_DEPOT =
   [...new Set([...CHAMPS_APERCU, ...COLONNES_PROFIL])].join(', ') +
-  `, users!profiles_user_id_fkey!inner(user_type, ${COLONNES_COMPTE.join(', ')})`
+  `, users!profiles_user_id_fkey!inner(user_type, locale, ${COLONNES_COMPTE.join(', ')})`
 
 type AnnonceDepot = {
   id: string
@@ -221,6 +223,7 @@ type AnnonceDepot = {
   published_at: string | null
   expires_at: string | null
   domain_id: string
+  organization_id: string
   title: string | null
   description: string | null
   skills_required: string[] | null
@@ -328,7 +331,10 @@ export async function deposerCandidature(args: {
   const { data: pub, error: pubErr } = await supabaseAdmin
     .from('publications')
     .select(
-      'id, status, type, created_by, published_at, expires_at, domain_id, ' +
+      // `organization_id` : c'est elle qui décide de la langue du résumé
+      // (§D.23). Une seconde lecture de l'annonce pour la seule langue aurait
+      // été une requête de plus sur le chemin le plus chaud du produit.
+      'id, status, type, created_by, published_at, expires_at, domain_id, organization_id, ' +
         'title, description, skills_required, seniorities',
     )
     .eq('id', publicationId)
@@ -409,6 +415,22 @@ export async function deposerCandidature(args: {
     coverMessage,
   })
 
+  // ── LES DEUX LANGUES, LUES AVANT L'APPEL ────────────────────────────────
+  //
+  //  L'expert : sa locale est sur son compte, et elle ne pose aucune question.
+  //  L'organisation : elle n'a PAS de langue — elle a des membres. La règle est
+  //  celle qui existait déjà pour l'e-mail d'approbation (le membre admin le
+  //  plus ancien), et elle est désormais écrite une fois
+  //  ([lib/organisations/porte-parole.ts](../organisations/porte-parole.ts)).
+  //
+  //  ⚠️ AUCUNE DES DEUX NE FAIT ÉCHOUER LE DÉPÔT. Une langue illisible rend le
+  //     défaut du produit, et le dit. Refuser une candidature parce qu'on n'a
+  //     pas su dans quelle langue l'écrire serait absurde.
+  const langueExpert = normaliserLangue(
+    (Array.isArray(profileRow.users) ? profileRow.users[0] : profileRow.users)?.locale ?? null,
+  )
+  const langueOrg = await langueDeLOrganisation(supabaseAdmin, pubRow.organization_id)
+
   // ── LE JUGEMENT, **AVANT** L'ÉCRITURE ───────────────────────────────────
   //
   //  C'est ICI que Claude intervient, et nulle part ailleurs : il répond à
@@ -442,7 +464,13 @@ export async function deposerCandidature(args: {
     // L'expert qui dépose : c'est lui qui déclenche le jugement.
     profileId: profileRow.id,
     entree: {
-      locale: 'fr',
+      // ⚠️ DEUX LANGUES, ET ELLES NE VIENNENT PAS DU MÊME ENDROIT (§D.23).
+      //    Ce champ valait `'fr'` EN DUR : un expert allemand lisait son
+      //    explication en français, et une organisation espagnole recevait un
+      //    résumé qu'elle ne pouvait pas lire. Les deux textes ne s'adressent
+      //    pas à la même personne.
+      locale: langueExpert,
+      localeOrganisation: langueOrg,
       annonce: {
         type: pubRow.type,
         title: pubRow.title ?? '',
@@ -508,6 +536,13 @@ export async function deposerCandidature(args: {
         pitch_org: resultat.jugement.pitch_org,
         model: resultat.jugement.model,
         evaluated_at: new Date().toISOString(),
+        // ⚠️ LA LANGUE DE CHAQUE TEXTE EST CONSERVÉE AVEC LUI (§D.23).
+        //    Les textes sont écrits UNE FOIS et jamais réécrits : si l'expert
+        //    ou l'organisation change de langue, il relit le texte d'origine.
+        //    Sans cette trace, rien ne dirait dans quelle langue il est — et un
+        //    écran finirait par l'annoncer dans la mauvaise (§E.24).
+        reason_locale: resultat.jugement.reason_locale,
+        pitch_locale: resultat.jugement.pitch_locale,
       },
       ai_model: resultat.jugement.model,
       status: 'received',

@@ -109,7 +109,18 @@ export type { CausePanne }
  * juger un dossier sur un extrait qu'on a soi-même abîmé.
  */
 export type EntreeJugement = {
+  /**
+   * LA LANGUE DE L'EXPERT — celle dans laquelle `reason` est écrit.
+   *
+   * ⚠️ IL Y EN A DEUX, ET C'EST TOUT LE POINT 7. Il n'y en avait qu'une, et
+   *    elle valait `'fr'` EN DUR au dépôt : un expert allemand lisait son
+   *    explication en français, et une organisation espagnole recevait un
+   *    résumé qu'elle ne pouvait pas lire. Les deux textes ne s'adressent pas
+   *    à la même personne — ils n'ont aucune raison de partager une langue.
+   */
   locale: Langue
+  /** LA LANGUE DE L'ORGANISATION — celle dans laquelle `pitch_org` est écrit. */
+  localeOrganisation: Langue
   annonce: {
     type: string
     title: string
@@ -134,6 +145,17 @@ export type Jugement = {
   reason: string
   pitch_org: string
   model: string
+  /**
+   * DANS QUELLE LANGUE CHAQUE TEXTE A ÉTÉ ÉCRIT.
+   *
+   * ⚠️ SANS ELLES, PERSONNE NE PEUT LE SAVOIR PLUS TARD. Les textes sont
+   *    écrits UNE FOIS et CONSERVÉS (§D.23) : si l'expert change de langue, il
+   *    relit le texte d'origine — et sans cette trace, rien ne dit dans quelle
+   *    langue il est. Un texte juste sous une étiquette absente est le voisin
+   *    de §E.24.
+   */
+  reason_locale: Langue
+  pitch_locale: Langue
 }
 
 export type ResultatJugement =
@@ -188,7 +210,9 @@ Parcours : ${parcours.join(' | ') || '(non précisé)'}
 CE QUE TU PRODUIS
 1. "score" : un entier de 0 à 10. 0-3 le dossier ne répond pas au besoin ; 4-6 il y répond partiellement ; 7-8 il y répond ; 9-10 il y répond avec des éléments qui vont au-delà.
 2. "reason" : 2 phrases maximum, adressées À L'EXPERT, en ${LANGUES[e.locale]}. Dis ce que son dossier a de solide pour ce besoin, et ce qui n'y répond pas. Sois précis et factuel ; ne le flatte pas et ne le décourage pas.
-3. "pitch_org" : 2 phrases maximum, adressées À L'ORGANISATION, en ${LANGUES[e.locale]}. Dis ce que cette personne apporte à ce besoin précis.
+3. "pitch_org" : 2 phrases maximum, adressées À L'ORGANISATION, en ${LANGUES[e.localeOrganisation]}. Dis ce que cette personne apporte à ce besoin précis.
+
+⚠️ LES DEUX TEXTES N'ONT PAS LA MÊME LANGUE, et ce n'est pas une erreur : "reason" est lu par l'expert, "pitch_org" par l'organisation. Écris chacun dans la langue indiquée à sa ligne, même si elles diffèrent.
 
 ═══ RÈGLES DE RÉDACTION — ELLES VALENT POUR LES DEUX TEXTES ═══
 
@@ -363,7 +387,19 @@ export async function jugerCandidature(args: {
     }
   }
 
-  return { ok: true, jugement: { score, reason, pitch_org: pitch, model: MODELE } }
+  return {
+    ok: true,
+    jugement: {
+      score,
+      reason,
+      pitch_org: pitch,
+      model: MODELE,
+      // La langue DEMANDÉE, pas une langue devinée du texte : on sait ce qu'on
+      // a demandé, on ne sait pas ce que le modèle a rendu (§E.27).
+      reason_locale: args.entree.locale,
+      pitch_locale: args.entree.localeOrganisation,
+    },
+  }
 }
 
 /**

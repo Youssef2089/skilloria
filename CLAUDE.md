@@ -805,6 +805,35 @@ vos missions apparaîtront ici »* — qui est vrai.
 
 **Gardé par [`diag-recherche-doublee`](scripts/diag-recherche-doublee.mjs)**.
 
+**D.23 — CHAQUE TEXTE DANS LA LANGUE DE CELUI QUI LE LIT. Écrit une fois, conservé.**
+Le jugement au dépôt produit **deux** textes pour **deux** lecteurs — l'explication pour l'EXPERT,
+le résumé pour l'ORGANISATION. Ils recevaient **une** seule langue, et elle valait `'fr'` **en
+dur** : un expert allemand lisait son explication en français, une organisation espagnole recevait
+un résumé qu'elle ne pouvait pas lire. Le type ne portait qu'un champ `locale` — il n'y avait même
+pas de place pour la seconde.
+
+| Texte | Lu par | Sa langue vient de |
+|---|---|---|
+| `reason` | l'expert | `users.locale` de **son** compte |
+| `pitch_org` | l'organisation | son **porte-parole** — le membre admin **actif** le plus **ancien** |
+
+**Une organisation n'a pas de langue : elle a des MEMBRES.** La règle existait déjà — c'est celle de
+l'e-mail d'approbation — mais elle vivait dans une requête, au milieu d'une route, sous un
+commentaire. Elle est écrite une fois
+([lib/organisations/porte-parole.ts](lib/organisations/porte-parole.ts)), et le module partage le
+**critère**, pas la projection : les trois autres lecteurs ont besoin d'un e-mail ou d'un prénom en
+plus, et leur imposer une seconde requête pour une langue qu'ils lisent déjà serait absurde. Ils
+sont **déclarés** dans le contrôle, et leur nombre ne peut que descendre (§G.8).
+
+**ÉCRIT UNE FOIS, CONSERVÉ.** La langue de chaque texte est stockée **avec lui** — sans quoi rien ne
+dirait plus tard dans laquelle il est (§E.24). Rien ne régénère : si l'un change de langue, il relit
+le texte d'origine. **Assumé.**
+
+> ⚠️ **LE PROMPT PRÉVIENT QUE LES DEUX LANGUES PEUVENT DIFFÉRER.** Sans cette phrase, un modèle qui
+> trouve la consigne étrange **harmonise** — et le défaut revient, en silence.
+
+**Gardé par [`diag-langue-du-jugement`](scripts/diag-langue-du-jugement.mjs)**.
+
 **D.10 — TOUTE NOTE DU PRODUIT EST SUR 0-10. Il n'y a pas de seconde échelle.**
 Les filtres de pertinence vivaient en **0-1**, les notes de jugement en **0-10**, et rien ne le disait
 à l'écran : **« 1 » signifiait *parfait* d'un côté et *médiocre* de l'autre**, sur la même page.

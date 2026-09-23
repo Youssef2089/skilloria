@@ -1287,6 +1287,39 @@ composant. La parité est structurelle ; un second composant la ferait diverger 
 > occupé, inconnu. La règle répond à une question binaire ; la lui faire poser perdrait le libellé
 > « disponible ». Elle ne décide de rien.
 
+### C.19 — QUI PARLE POUR UNE ORGANISATION, ET DANS QUELLE LANGUE ON LUI ÉCRIT
+
+**Une organisation n'a pas de langue.** Elle a des membres, qui en ont chacun une. La question se
+pose dès qu'un texte lui est adressé : l'e-mail d'approbation, celui de refus, la fiche admin — et
+depuis §D.23, le **résumé de candidature**.
+
+**La règle existait, et elle n'était écrite nulle part** : *le membre ADMIN **actif** le plus
+**ancien***. Les trois ensemble — un admin inactif ne parle plus, et sans l'ordre on prend n'importe
+lequel, donc un autre à chaque lecture. Elle vivait dans quatre requêtes, sous un commentaire.
+
+**Le module partage le CRITÈRE, pas la projection**
+([lib/organisations/porte-parole.ts](../lib/organisations/porte-parole.ts)). Les quatre lecteurs ne
+chargent pas les mêmes colonnes : l'un veut une langue, les autres aussi un e-mail et un prénom.
+Partager la projection les forcerait à charger ce dont ils n'ont pas besoin — et **un e-mail chargé
+pour rien est une donnée personnelle chargée pour rien**.
+
+| Lecteur | Ce qu'il en tire |
+|---|---|
+| le **dépôt de candidature** | la langue du résumé (§D.23) — il appelle `langueDeLOrganisation()` |
+| `approve-org` | langue + e-mail + prénom, pour l'e-mail d'approbation |
+| `reject-org` | idem, pour l'e-mail de refus |
+| `get-org/[id]` | le contact principal affiché sur la fiche admin |
+
+> **CE QUI RESTE OUVERT, ET SE DIT (§E.38)** : les trois derniers n'utilisent pas encore la constante
+> `PORTE_PAROLE`. Le jour où la règle change — le propriétaire plutôt que le doyen, par exemple —
+> il faudra les quatre. Le contrôle les **liste nommément**, avec leur raison : leur nombre ne peut
+> que descendre (§G.8).
+
+**LA LANGUE PAR DÉFAUT EST UNE DÉCISION, PAS UN REPLI.** Le produit est francophone d'abord ; une
+organisation sans admin actif lisible reçoit donc du **français**, et non « rien » — qui laisserait
+le modèle choisir. Aucune lecture en panne ne fait échouer un dépôt : refuser une candidature parce
+qu'on n'a pas su dans quelle langue l'écrire serait absurde. Mais elle **se dit** (§E.22).
+
 ### C.16 — LES E-MAILS : pourquoi ils n'ont pas de jetons, et d'où viennent leurs couleurs
 
 **LA CONTRAINTE, MESURÉE.** Les clients de messagerie **ne lisent pas les propriétés

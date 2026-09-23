@@ -183,7 +183,13 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     organizationId: orgId,
     pitchExistant: dejaEcrit,
     entree: {
+      // ⚠️ LES DEUX LANGUES SONT CELLE DE L'ORGANISATION, ET C'EST JUSTE ICI.
+      //    Ce chemin ne produit QUE le pitch, et c'est l'organisation qui le
+      //    demande depuis son écran : la locale de la requête est la sienne.
+      //    Le prompt est partagé avec le jugement au dépôt, qui lui écrit deux
+      //    textes pour deux lecteurs (§D.23) ; ici il n'y en a qu'un.
       locale,
+      localeOrganisation: locale,
       annonce: {
         type: pub.type,
         title: pub.title ?? '',
@@ -234,6 +240,11 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
         pitch_org: resultat.pitch,
         pitch_model: 'claude-sonnet-5',
         pitch_at: new Date().toISOString(),
+        // ⚠️ LA LANGUE EST CONSERVÉE AVEC LE TEXTE (§D.23). Ce pitch n'est
+        //    JAMAIS régénéré — « un jugement rendu est rendu ». Un membre qui
+        //    lit dans une autre langue relira donc celui-ci, et sans cette
+        //    trace rien ne dirait laquelle (§E.24).
+        pitch_locale: locale,
       },
     })
     .eq('id', cand.match_id)
