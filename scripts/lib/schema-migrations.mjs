@@ -82,8 +82,13 @@ export function depouiller(sql, { garderBlocs = false } = {}) {
         // en preservant les longueurs : les indices servent a ordonner.
         const interieur = bloc.slice(tag.length, bloc.length - (fin === -1 ? 0 : tag.length))
         const nettoye = depouiller(interieur, { garderBlocs: true })
-        out +=
-          ' '.repeat(tag.length) + nettoye + ' '.repeat(fin === -1 ? 0 : tag.length)
+        // ⚠️ LE DELIMITEUR EST CONSERVE, ET CE N'EST PAS COSMETIQUE.
+        //    Il etait remplace par des espaces : le contenu du bloc restait,
+        //    mais plus rien ne disait OU il commencait ni OU il finissait. Un
+        //    lecteur qui cherche la fin d'un statement au premier `;` tombait
+        //    donc sur le premier `;` DU CORPS — celui du `declare` — et ne
+        //    capturait que l'en-tete. Meme longueur, donc memes positions.
+        out += tag + nettoye + (fin === -1 ? '' : tag)
       } else {
         // On remplace par des espaces pour PRESERVER LES POSITIONS.
         out += ' '.repeat(bloc.length)
@@ -292,10 +297,29 @@ export function rejouerMigrations() {
       const nom = d[2].toLowerCase()
       const debut = d.index
       // Le corps s'arrete au `;` de fin de statement au niveau zero de
-      // parentheses. Suffisant ici : les corps sont en $tag$ deja depouilles.
+      // parentheses — EN SAUTANT LES BLOCS $tag$.
+      //
+      // ⚠️ CE SAUT MANQUAIT, ET IL A COUTE 40 FONCTIONS SUR 74 (22/09/2026).
+      //    Le commentaire d'origine disait « suffisant ici : les corps sont en
+      //    $tag$ deja depouilles ». Il etait VRAI quand il a ete ecrit, et il
+      //    a cesse de l'etre le jour ou le rejeu est passe a
+      //    `garderBlocs: true` — pour voir les `rename column` gardes, lot D1.
+      //    Depuis, le contenu des blocs EST la : le premier `;` rencontre est
+      //    celui du `declare` d'une fonction plpgsql, et le « corps » capture
+      //    n'etait que sa signature. Le balayage SQL de
+      //    `diag-colonnes-supprimees` lisait donc des en-tetes et rendait zero.
+      //    §E.29 : un commentaire vrai d'un cas couvre un cas voisin ou il est
+      //    faux — ici, le cas voisin est le MEME code, apres un changement
+      //    d'appelant.
       let prof = 0
       let fin = sqlAvecCorps.length
       for (let k = debut; k < sqlAvecCorps.length; k++) {
+        const bloc = sqlAvecCorps.slice(k).match(/^\$([A-Za-z_]*)\$/)
+        if (bloc) {
+          const suite = sqlAvecCorps.indexOf(bloc[0], k + bloc[0].length)
+          k = suite === -1 ? sqlAvecCorps.length : suite + bloc[0].length - 1
+          continue
+        }
         const ch = sqlAvecCorps[k]
         if (ch === '(') prof++
         else if (ch === ')') prof--

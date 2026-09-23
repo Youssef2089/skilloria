@@ -8,8 +8,13 @@ import { buildAnnonceQuery, buildExpertDocument, documentUtilisable } from './do
 import { rerankerTout, type DocumentANoter } from './rerank'
 import { reconcileMatches, type ReconcileDesired } from './reconcile'
 import { notifyAndFlip, pickRel, type NotifySpec } from './shared'
-import type { MatchingVerdict } from './types'
+import type { VerdictExpert } from './types'
 import type { RaisonIneligible } from './issue-de-recherche'
+// La MÊME source que l'autre sens. Une seconde expression de la règle ici
+// aurait fait deux moteurs qui ne s'accordent pas sur ce qu'est une annonce
+// active — et rien ne l'aurait dit (§E.20, §E.24).
+import { chargerDurees } from '@/lib/durees'
+import { activePublishedOrClause } from '@/lib/publications/expiry'
 
 /**
  * MISE EN RELATION — sens EXPERT → ANNONCES.
@@ -176,7 +181,7 @@ export async function runMatchingForExpert(args: {
   supabaseAdmin: SupabaseClient
   profileId: string
   locale?: string
-}): Promise<MatchingVerdict> {
+}): Promise<VerdictExpert> {
   const { supabaseAdmin, profileId } = args
 
   // ── 1. Le profil ─────────────────────────────────────────────────────────
@@ -215,6 +220,20 @@ export async function runMatchingForExpert(args: {
   }
   const s = reglages.settings
 
+  // ⚠️ LA MÊME RÈGLE QUE L'AUTRE SENS, LUE AU MÊME ENDROIT (§E.20).
+  //    Sans elle, un expert se voyait proposer des annonces expirées, payées
+  //    au reranker, et invisibles ensuite dans son flux — qui filtre, lui.
+  const lectureDurees = await chargerDurees(supabaseAdmin)
+  if (!lectureDurees.ok) {
+    return {
+      status: 'no_config',
+      proposals: [],
+      notes: `Durées de la place illisibles : ${lectureDurees.raison}`,
+      model: null,
+    }
+  }
+  const vieAnnonceJours = lectureDurees.durees.vieAnnonceJours
+
   const ouvertureCroisee = ouvertureCroiseeDe(p, kind)
   const typesAutorises = annonceTypesForExpert(kind, ouvertureCroisee)
 
@@ -232,6 +251,10 @@ export async function runMatchingForExpert(args: {
     )
     .eq('domain_id', p.domain_id)
     .eq('status', 'published')
+    // L'EXPIRATION, DÉRIVÉE — jamais recopiée. Une annonce expirée n'est pas
+    // « une annonce de moins » : c'est une annonce qu'on aurait PAYÉE pour
+    // rien, et dont l'expert n'aurait rien vu.
+    .or(activePublishedOrClause({ vieAnnonceJours }))
     .in('type', typesAutorises)
   if (p.branch_id) q = q.eq('branch_id', p.branch_id)
   if ((p.work_zone_countries ?? []).length > 0) {

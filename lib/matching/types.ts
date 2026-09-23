@@ -55,8 +55,33 @@ export type Empechement =
    */
   | { quoi: 'arret_de_notation'; code: Exclude<ArretDeNotation, 'aucun_document'> }
 
+/**
+ * LES STATUTS DU SENS EXPERT — et il n'y en a pas d'autre.
+ *
+ * Ce type existe pour une raison précise : `issueDepuisVerdict` ne traite que
+ * le sens expert, et elle range dans « aucune mission » tout statut qu'elle ne
+ * reconnaît pas. Tant qu'elle prenait un `string`, un statut ajouté au sens
+ * ANNONCE serait tombé là, en silence, sur un écran d'expert (§E.29 — un
+ * commentaire vrai d'un cas couvre un cas voisin où il est faux).
+ */
+export type StatutExpert = 'ok' | 'error' | 'empty_pool' | 'no_config'
+
+/**
+ * LES STATUTS DU SENS ANNONCE — les mêmes, PLUS le refus d'une annonce expirée.
+ *
+ * ⚠️ `annonce_expiree` N'EXISTE QUE DANS CE SENS, et ce n'est pas une
+ *    convention : dans l'autre sens, une annonce expirée est simplement
+ *    ABSENTE du vivier, et « aucune mission ne correspond » est alors VRAI.
+ *    Le faire remonter jusqu'à l'expert annoncerait une panne à quelqu'un dont
+ *    tout va bien — exactement ce que `Empechement` évite déjà plus haut.
+ *
+ *    La séparation tient à la COMPILATION, pas à la vigilance (§E.31) : le sens
+ *    expert rend `VerdictExpert`, et `annonce_expiree` n'y entre pas.
+ */
+export type StatutAnnonce = StatutExpert | 'annonce_expiree'
+
 export type MatchingVerdict = {
-  status: 'ok' | 'error' | 'empty_pool' | 'no_config'
+  status: StatutAnnonce
   proposals: MatchProposal[]
   /** Notes de pilotage (journaux). Jamais affichées à un utilisateur. */
   notes: string
@@ -65,3 +90,6 @@ export type MatchingVerdict = {
   /** Renseigné UNIQUEMENT quand le run a été empêché. Voir `Empechement`. */
   empechement?: Empechement
 }
+
+/** Le verdict du sens EXPERT : le même, sans `annonce_expiree`. */
+export type VerdictExpert = Omit<MatchingVerdict, 'status'> & { status: StatutExpert }

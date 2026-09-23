@@ -87,6 +87,27 @@ avec le seed) : `publications_per_month`, `active_publications_max`,
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`annonce_active_partagee` (23/09/2026) — CINQ EXPRESSIONS DE LA MÊME RÈGLE, RAMENÉES À UNE.**
+> « Une annonce est encore active » était écrit **cinq fois** en SQL : `matching_health` (01/09),
+> `annonces_expirees_par_duree` et `annonces_basculant_par_duree` (16/09, celle-ci **deux fois**
+> dans la même CTE), `matching_runs_inacheves` (21/09) — et une sixième s'apprêtait à naître dans
+> `next_unfinished_matching_run`.
+>
+> **DEUX D'ENTRE ELLES PORTAIENT LA DURÉE EN DUR, ET C'EST PIRE QUE LA RECOPIE.**
+> `matching_health` comparait à `interval '30 days'`, écrit **quinze jours avant** que la durée
+> devienne réglable ; sa colonne s'appelle `total_actives`. Régler 20 jours depuis `/admin/durees`
+> faisait donc diverger l'écran de supervision de tout le reste du produit — **sans erreur, sans
+> alerte, et sans qu'aucun écran ne puisse le montrer, puisque c'est cette fonction qui l'alimente**
+> (§E.24, §D.7). `matching_runs_inacheves` portait le sien sous un commentaire **faux** : « la
+> valeur par défaut de la colonne » — la colonne n'a pas de défaut, le 30 est une valeur de **semis**
+> écrite une fois dans un `insert`.
+>
+> Désormais : `public.annonce_active(status, expires_at, published_at, vie_jours, maintenant)`,
+> **pure et `immutable`** — le moment est un **paramètre**, pas une horloge lue dans le corps, ce
+> qui la rend éprouvable. Les cinq fonctions l'appellent. Deux d'entre elles **LÈVENT** si
+> `duree_reglages` est vide, au lieu de compter sur une durée inventée : la route de supervision
+> traite déjà une erreur comme « je n'ai pas pu regarder », jamais comme « rien à voir » (§E.22).
+
 **① L'abonnement est remonté de `organization_domains` vers `organizations`.**
 Migration `abonnement_sur_organisation`. Colonnes désormais sur `organizations` :
 `package_id`, `package_started_at`, `package_valid_until`, `stripe_subscription_id`,
@@ -344,6 +365,35 @@ jamais écrit ([lib/publications/expiry.ts](../lib/publications/expiry.ts), sour
 4. **Réconciliation** (`reconcile.ts`) puis **notifications** (`shared.ts`) — upsert idempotent
    préservant `dismissed` et les candidatures engagées ; on ne notifie que sur les **inserts frais**
    au-dessus du seuil.
+
+> ⛔ **LE MOTEUR NE NOTE PLUS D'ANNONCE EXPIRÉE — 23/09/2026, DANS LES DEUX SENS ET DANS LA
+> REPRISE.** Il en notait, et il les **payait** : douze lecteurs du filtre d'expiration existaient
+> dans le produit, **zéro** dans `lib/matching/` et **zéro** dans `next_unfinished_matching_run`.
+> Les six annonces de la base de recette sont expirées depuis des mois — c'est exactement le vivier
+> que le cron de rattrapage s'offrait. Et le flux de l'expert filtre à la lecture : **personne
+> n'aurait jamais vu un seul de ces rapprochements.**
+>
+> **LE FILTRE NE SE RECOPIE PAS, IL SE LIT.** Une seule expression par langage —
+> [lib/publications/expiry.ts](../lib/publications/expiry.ts) et `public.annonce_active()` — la
+> durée vient de `duree_reglages`, et [`diag-annonce-expiree`](../scripts/diag-annonce-expiree.mjs)
+> rougit sur **toute** dérivation locale.
+>
+> **ET UNE ANNONCE QUI EXPIRE *PENDANT* UN RUN ? LE RUN VA AU BOUT, ET C'EST UNE DÉCISION.**
+> Le contrôle se fait **une fois, à l'entrée**, jamais entre deux lots. Trois raisons, dans cet
+> ordre :
+> ① **ce qui a été noté reste**, et ne coûte rien : la règle est appliquée **à la lecture**, donc
+>    les rapprochements d'une annonce expirée sont invisibles à la seconde où elle expire. Les
+>    effacer serait une écriture de plus qui n'achète rien, et qui **détruirait la trace** de ce que
+>    le run a fait ;
+> ② **s'arrêter en cours laisserait le run INACHEVÉ sur une annonce que la reprise refuse désormais
+>    de reprendre** — un trou permanent, invisible à la supervision, qui exclut elle aussi les
+>    expirées. C'est très exactement le défaut que la migration du 21/09 venait de fermer (§E.52) ;
+> ③ **l'argent est déjà dépensé** quand le lot part chez le fournisseur. Interrompre ne rembourse
+>    rien, et rend la fin d'un run dépendante de l'horloge — donc irreproductible.
+>
+> La fenêtre est de quelques secondes contre une durée de vie de trente jours. **Ce qui est refusé
+> est de COMMENCER** un run sur une annonce déjà expirée ; ce qui est garanti est qu'un run
+> commencé **se termine et se déclare terminé**.
 
 Deux sens : `runMatchingForPublication` (annonce → experts) et `runMatchingForExpert`
 (expert → annonces). La trace d'un run est écrite dans `publications.matching_stats` par **un seul**
@@ -1205,9 +1255,15 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   > a trouvée ensuite —, dont **deux autres défauts de produit** : la
   > remise à zéro du CV, impossible depuis le 1ᵉʳ septembre, et le digest e-mail des mises en
   > relation. Les quinze sont fermées. Mécanisme et mesure : **§E.61**. Deux écarts à l'architecture figée : les
-  deux sens notent des **annonces expirées** (aucun lecteur du filtre d'expiration dans
+  deux sens notaient des **annonces expirées** (aucun lecteur du filtre d'expiration dans
   `lib/matching/`, ni dans `next_unfinished_matching_run`), et une **relance dont le run échoue est
-  soldée quand même** (`cron/expert-relance:101-102`, `me/sync-matching:211-215`). Puis : le tarif
+  soldée quand même** (`cron/expert-relance:101-102`, `me/sync-matching:211-215`).
+  > ✅ **D2 EST FERMÉ — 23/09/2026.** Le filtre entre dans **les deux sens** et dans la **reprise**,
+  > et il ne se recopie pas : une seule expression par langage, la durée lue dans `duree_reglages`,
+  > et un contrôle qui rougit sur toute dérivation locale. Le balayage a trouvé **cinq** expressions
+  > SQL de la règle au lieu des trois annoncées, **deux avec la durée en dur** — dont
+  > `matching_health`, qui alimente l'écran de supervision. Détail en **§B.2** et **§C.3** ; la
+  > réponse sur l'annonce qui expire *pendant* un run est en **§C.3**. Puis : le tarif
   du reranker sans source fournisseur et compté par document, les recherches web de la vérification
   non comptées, aucun bail par profil sur le chemin direct, un jugement de candidature jamais rejoué,
   deux définitions d'« éligible », le jugement toujours en français, un profil masqué qui postule

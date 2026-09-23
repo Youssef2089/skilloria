@@ -24,7 +24,7 @@
 // qui pourrait rester affichée indéfiniment. Chaque issue porte de quoi écrire
 // une phrase vraie.
 
-import type { Empechement } from './types'
+import type { Empechement, StatutExpert } from './types'
 import type { ArretDeNotation } from './rerank'
 
 /**
@@ -115,9 +115,16 @@ export type IssueDeRecherche =
  * ⚠️ `empty_pool` NE SE TRADUIT PAS EN « aucune mission ». Le moteur l'emploie
  *    pour deux faits opposés : « l'expert n'est pas éligible » et « aucune
  *    annonce à noter ». Seul `empechement` les sépare.
+ *
+ * ⚠️ `status` EST TYPÉ `StatutExpert`, ET PLUS `string`. La dernière ligne de
+ *    cette fonction range dans « aucune mission » tout ce qu'elle n'a pas
+ *    reconnu. Avec un `string`, le statut `annonce_expiree` — ajouté au sens
+ *    ANNONCE le 22/09/2026 — y serait tombé sans un mot. Il ne peut plus
+ *    ARRIVER ici : le sens expert rend `VerdictExpert`, qui ne le porte pas
+ *    (§E.31). La branche « sinon » ne couvre donc que ce qu'elle prétend.
  */
 export function issueDepuisVerdict(verdict: {
-  status: string
+  status: StatutExpert
   proposals: unknown[]
   empechement?: Empechement
 }): IssueDeRecherche {

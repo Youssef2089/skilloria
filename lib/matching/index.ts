@@ -10,6 +10,11 @@ import { rerankerTout } from './rerank'
 import { reconcileMatches, type ReconcileDesired } from './reconcile'
 import { notifyAndFlip, type NotifySpec } from './shared'
 import type { MatchingVerdict } from './types'
+// LA RÈGLE D'EXPIRATION NE SE RÉÉCRIT PAS ICI — elle se LIT (§D.7, §E.24).
+// lib/publications/expiry.ts est la source unique ; la durée vient de
+// duree_reglages, jamais d'un nombre écrit dans ce fichier.
+import { chargerDurees } from '@/lib/durees'
+import { isActivePublished } from '@/lib/publications/expiry'
 
 /**
  * MISE EN RELATION — sens ANNONCE → EXPERTS.
@@ -57,6 +62,9 @@ type LigneAnnonce = {
   skills_required: string[] | null
   work_zone_countries: string[] | null
   status: string
+  /** Les deux colonnes de la règle d'expiration. Lues, jamais recomposées. */
+  expires_at: string | null
+  published_at: string | null
   matching_attempts: number | null
 }
 
@@ -208,7 +216,8 @@ export async function runMatchingForPublication(args: {
     .from('publications')
     .select(
       'id, domain_id, organization_id, type, created_by, title, description, branch_id, speciality_ids, ' +
-        'seniorities, skills_required, work_zone_countries, status, matching_attempts',
+        'seniorities, skills_required, work_zone_countries, status, matching_attempts, ' +
+        'expires_at, published_at',
     )
     .eq('id', publicationId)
     .maybeSingle()
@@ -230,6 +239,45 @@ export async function runMatchingForPublication(args: {
     return { status: 'no_config', proposals: [], notes: reglages.detail, model: null }
   }
   const s = reglages.settings
+
+  // ── 2 bis. L'ANNONCE EST-ELLE ENCORE ACTIVE ? ────────────────────────────
+  //
+  // ⚠️ LE MOTEUR NOTAIT DES ANNONCES EXPIRÉES, ET IL LES PAYAIT.
+  //    Douze lecteurs du filtre d'expiration existaient dans le produit ; ZÉRO
+  //    ici. Les six annonces de la base de recette sont expirées depuis des
+  //    mois : c'est exactement ce que ce moteur aurait noté, profil par profil,
+  //    au tarif du reranker — pour des rapprochements que le flux de l'expert
+  //    (lib/missions/feed.ts) filtre à la lecture, donc que personne n'aurait
+  //    jamais vus.
+  //
+  // LE REFUS ARRIVE AVANT marquerTentative(), ET C'EST VOULU. Compter une
+  // tentative sur un refus ferait franchir le plafond d'abandon à une annonce
+  // qui n'a jamais eu de panne, et la ferait disparaître de la supervision
+  // sous une étiquette fausse (§E.22).
+  const lectureDurees = await chargerDurees(supabaseAdmin)
+  if (!lectureDurees.ok) {
+    // Une durée illisible n'est pas une annonce expirée : on ne DEVINE pas, et
+    // on ne se rabat sur aucun défaut (lib/durees.ts l'énonce). Le run refuse
+    // avec le motif des réglages absents, qui est ce qu'il est.
+    return {
+      status: 'no_config',
+      proposals: [],
+      notes: `Durées de la place illisibles : ${lectureDurees.raison}`,
+      model: null,
+    }
+  }
+  if (!isActivePublished(pub, { vieAnnonceJours: lectureDurees.durees.vieAnnonceJours })) {
+    // NI une erreur NI une absence de configuration : un REFUS légitime, et il
+    // porte son propre nom. Aucune écriture — la trace du dernier run reste
+    // lisible, et réconcilier à vide DÉTRUIRAIT les rapprochements passés pour
+    // ne rien gagner : le flux les filtre déjà à la lecture.
+    return {
+      status: 'annonce_expiree',
+      proposals: [],
+      notes: "Annonce expirée ou non publiée : aucune mise en relation n'est faite.",
+      model: null,
+    }
+  }
 
   await marquerTentative(supabaseAdmin, publicationId, pub.matching_attempts ?? 0)
 
