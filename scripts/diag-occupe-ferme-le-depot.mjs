@@ -106,6 +106,35 @@ function depouillerJs(src) {
   return out
 }
 
+/**
+ * LE FICHIER SANS SES IMPORTS.
+ *
+ * ⚠️ NÉ DE TROIS MUTATIONS PASSÉES AU VERT. « Les colonnes sont dérivées » se
+ *    vérifiait par la présence de `COLONNES_PROFIL` dans le fichier — or la
+ *    LIGNE D'IMPORT le contient encore quand le `select` a cessé de s'en
+ *    servir. Le motif trouvait donc son propre import et concluait.
+ *    Une importation n'est pas un usage (§E.8).
+ */
+function sansImports(src) {
+  const lignes = src.split('\n')
+  const out = []
+  let dansImport = false
+  for (const l of lignes) {
+    if (!dansImport && /^import\b/.test(l)) {
+      // Import sur une seule ligne, ou début d'un import multiligne.
+      if (/ from ['"`]/.test(l) || /^import ['"`]/.test(l)) continue
+      dansImport = true
+      continue
+    }
+    if (dansImport) {
+      if (/ from ['"`]/.test(l)) dansImport = false
+      continue
+    }
+    out.push(l)
+  }
+  return out.join('\n')
+}
+
 function fichiersSous(dossiers, exts = ['.ts', '.tsx']) {
   const out = []
   const marcher = (abs) => {
@@ -238,7 +267,9 @@ for (const [nom, rel, avecCompte] of [
   ['le flux de missions', 'lib/missions/feed.ts', false],
   ['le détail d’une mission', 'app/api/me/missions/[id]/route.ts', true],
 ]) {
-  const src = depouillerJs(lire(rel))
+  // ⚠️ SANS LES IMPORTS : la ligne d’import garde le nom quand le `select`
+  //    a cessé de s’en servir, et trois mutations sont passées au vert.
+  const src = sansImports(depouillerJs(lire(rel)))
   ok(
     /COLONNES_PROFIL/.test(src),
     `${nom} : les colonnes de profil sont DÉRIVÉES`,
@@ -251,12 +282,11 @@ for (const [nom, rel, avecCompte] of [
   //    « Les colonnes ne sont pas AUSSI écrites en dur » a été tenté, et le
   //    motif dénonçait du code juste : la whitelist d’aperçu du dépôt NOMME
   //    `availability_status` et `cdi_status` — elle décide ce qui part vers
-  //    l’organisation, pas qui est éligible —, et `status` est le nom le
-  //    plus commun du dépôt.
-  //    Isoler chacun des trois `select` demanderait trois découpeurs, pour
-  //    une propriété que `diag-eligibilite-unique` tient déjà sur les deux
-  //    `select` du moteur (§E.36). Ce qui se défend ici est la DÉRIVATION :
-  //    la retirer est le chemin de régression réel, et il est couvert.
+  //    l’organisation, pas qui est éligible —, et `status` est le nom le plus
+  //    commun du dépôt. Isoler chacun des trois `select` demanderait trois
+  //    découpeurs, pour une propriété que `diag-eligibilite-unique` tient déjà
+  //    sur les deux `select` du moteur (§E.36). Ce qui se défend ici est la
+  //    DÉRIVATION : la retirer est le chemin de régression réel.
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -380,8 +410,11 @@ ok(
    ═══════════════════════════════════════════════════════════════════════════ */
 section('6. Les deux voies passent par le MÊME écran et la MÊME règle')
 
-const monteurs = fichiersSous(['app/[locale]']).filter((f) =>
-  /MissionDetailView/.test(depouillerJs(lire(f))),
+// ⚠️ L’IDENTIFIANT EXACT, PAS UNE SOUS-CHAÎNE. La mutation a renommé le
+//    composant en `MissionDetailViewCdi` — qui CONTIENT `MissionDetailView`
+//    — et le contrôle est resté vert sur une parité qui venait de casser.
+const monteurs = fichiersSous([`app/[locale]`]).filter((f) =>
+  /(?<![A-Za-z0-9_])MissionDetailView(?![A-Za-z0-9_])/.test(depouillerJs(lire(f))),
 )
 ok(
   monteurs.length === 2 &&
