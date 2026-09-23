@@ -387,9 +387,33 @@ ok(
   `aucune fonction ni vue SQL ne réécrit la règle (${fautifsSql.length})`,
   fautifsSql.slice(0, 8).join('\n       '),
 )
-ok(appelants.length >= 3,
-  `${appelants.length} fonction(s) SQL passent par \`${SOURCE_SQL}()\` : ${appelants.join(', ')}`,
-  'la reprise, la supervision et la simulation de durée doivent toutes trois y passer')
+/* ⚠️ UN SEUIL N'EST PAS UNE PROPRIÉTÉ — LA MUTATION L'A MONTRÉ.
+      La première version exigeait « au moins trois appelants ». Faire sortir
+      une des cinq fonctions laissait quatre appelants, donc VERT : le contrôle
+      comptait des amis au lieu de vérifier une règle (§E.34).
+
+      LA PROPRIÉTÉ EST CELLE-CI : décider qu'une annonce est visible sur
+      `status = 'published'` SEUL est le défaut. Le statut ne dit pas
+      l'activité — c'est exactement l'erreur que `next_unfinished_matching_run`
+      commettait. Toute fonction qui lit `publications` et filtre sur ce statut
+      doit donc passer par `annonce_active()`, sans qu'on ait à la nommer.
+      Mesuré au 23/09/2026 : 1 fonction concernée, 0 en écart. */
+const statutSeul = []
+for (const [nom, def] of fonctions) {
+  if (nom === SOURCE_SQL) continue
+  const net = depouiller(def.corps, { garderBlocs: true })
+  const litPublications = /\bpublic\.publications\b|\bfrom\s+publications\b/i.test(net)
+  if (!litPublications || !/status\s*=\s*'published'/i.test(net)) continue
+  if (!new RegExp(`${SOURCE_SQL}\\s*\\(`).test(net)) {
+    statutSeul.push(`${nom}() — ${def.migration}`)
+  }
+}
+ok(
+  statutSeul.length === 0,
+  `aucune fonction SQL ne décide de la visibilité sur le STATUT seul (${statutSeul.length})`,
+  statutSeul.join('\n       ') || undefined,
+)
+console.log(`  ··   ${appelants.length} fonction(s) SQL passent par \`${SOURCE_SQL}()\` : ${appelants.join(', ')}`)
 
 /* ── LA DURÉE NE S'ÉCRIT PAS EN DUR, NI EN SQL NI AILLEURS (§D.7) ──────────
      `make_interval(days => 30)` était présenté dans le dépôt comme « la valeur
@@ -431,7 +455,19 @@ ok(
       demain est donc couvert sans qu'on l'inscrive nulle part. */
 section('3. Le moteur : tout module qui choisit des annonces lit la règle partagée')
 
-const LECTEURS_PARTAGE = /isActivePublished|activePublishedOrClause|activePublishedBounds/
+/* ⚠️ UN APPEL, PAS UN IMPORT — LA MUTATION L'A MONTRÉ.
+      La première version cherchait les noms `isActivePublished|activePublished…`
+      n'importe où dans le fichier. Retirer le `.or(activePublishedOrClause(…))`
+      du vivier laissait l'`import` en place : le motif mordait dessus, et le
+      contrôle restait VERT sur un moteur qui ne filtrait plus rien. C'est §E.7
+      déplacé d'un cran — on lisait une DÉCLARATION au lieu d'un USAGE.
+      On exige donc la parenthèse ouvrante, et on retire les lignes d'import. */
+const LECTEURS_PARTAGE = /(isActivePublished|activePublishedOrClause|activePublishedBounds)\s*\(/
+const sansImports = (net) =>
+  net
+    .split('\n')
+    .map((l) => (/^\s*import\b/.test(l) || /^\s*\}\s*from\s*'/.test(l) ? '' : l))
+    .join('\n')
 const moteursSansFiltre = []
 const moteursSansReglage = []
 for (const f of fichiers) {
@@ -442,8 +478,9 @@ for (const f of fichiers) {
   // Une SÉLECTION de publications — pas un `update`, qui vise un id déjà décidé.
   const choisit = /\.from\(\s*['"]publications['"]\s*\)/.test(brut) && /\.select\s*\(/.test(brut)
   if (!choisit) continue
-  if (!LECTEURS_PARTAGE.test(net)) moteursSansFiltre.push(rel)
-  if (!/chargerDurees\s*\(/.test(net)) moteursSansReglage.push(rel)
+  const usage = sansImports(net)
+  if (!LECTEURS_PARTAGE.test(usage)) moteursSansFiltre.push(rel)
+  if (!/chargerDurees\s*\(/.test(usage)) moteursSansReglage.push(rel)
 }
 ok(
   moteursSansFiltre.length === 0,
