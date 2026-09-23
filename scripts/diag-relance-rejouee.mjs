@@ -340,12 +340,40 @@ section('4. Un run échoué ne se lit pas « aucune mission »')
   )
 
   // LA PARITÉ : les deux écrans jumeaux, même traitement.
+  /* ⚠️ ON ANCRE SUR LE BLOC DE L'ÉTAT VIDE, PAS SUR LA PRÉSENCE DES MOTS (§E.8).
+        La première version testait « le fichier contient `derniere_recherche`
+        ET `echec_title` ». Une mutation a remplacé la CONDITION du branchement
+        par `false` : les deux mots restaient, le bloc devenait mort, et le
+        contrôle est resté VERT sur un écran qui écrit à nouveau « aucune
+        mission » sur une recherche en panne.
+
+        La propriété est un ORDRE : entre « le flux est vide » et l'état vide
+        générique, il doit exister un branchement qui LIT l'état de la dernière
+        recherche. Un `false` n'en est pas un. */
   for (const voie of ['freelance', 'cdi']) {
     const page = depouillerJs(lire(`app/[locale]/dashboard/${voie}/missions/page.tsx`))
+    const iVide = page.indexOf('missions.length === 0')
+    const iGenerique = page.indexOf('empty_title')
+    const bloc = iVide >= 0 && iGenerique > iVide ? page.slice(iVide, iGenerique) : ''
+    /* ⚠️ ET LA CONDITION, PAS UNE MENTION QUELCONQUE DE LA VARIABLE.
+          Deuxième faute du même détecteur : `recherche` apparaît aussi DANS le
+          bloc d'échec (`recherche.abandonnee ? … : …`). Exiger « la variable
+          est lue quelque part » laissait donc passer une condition remplacée
+          par `false` : le bloc devenait inatteignable, la variable restait
+          lue, et le contrôle restait vert. On vise la COMPARAISON qui ouvre la
+          branche — `etat === 'echec'`, une valeur de l'union fermée
+          `IssueDeRecherche`, donc un ancrage qui ne dépend d'aucun nom de
+          variable. */
+    const branche = /\brecherche\b[\w?.]*\s*===\s*'echec'/.test(bloc)
+    const conditionMorte = /[:{(]\s*(true|false)\s*\?/.test(bloc)
     ok(
-      /derniere_recherche/.test(page) && /echec_title/.test(page),
-      `l’écran ${voie} dit l’échec au lieu d’« aucune mission »`,
-      'une des deux voies perd ce que l’autre a — la forme exacte d’une dérive de parité (§E.20)',
+      branche && !conditionMorte && /echec_title/.test(bloc),
+      `l’écran ${voie} BRANCHE sur l’échec avant d’écrire « aucune mission »`,
+      !bloc
+        ? 'le bloc de l’état vide est introuvable — l’assertion ne vise plus rien (§E.8)'
+        : conditionMorte
+          ? 'une branche est ouverte par un littéral : le bloc d’échec est INATTEIGNABLE'
+          : 'le branchement ne lit plus l’état : une des deux voies perd ce que l’autre a (§E.20)',
     )
   }
 
