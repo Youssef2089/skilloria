@@ -141,7 +141,14 @@ section('0. La normalisation d’une langue — exécutée, pas relue')
 const cas = [
   ['fr', 'fr', 'une langue du produit passe telle quelle'],
   ['de', 'de', 'idem'],
+  // ⚠️ 'fr-FR' NE DISTINGUE RIEN, et la mutation l a prouve : sans le
+  //    decoupage a deux lettres, 'fr-fr' n est pas une langue du produit et
+  //    tombe sur le DEFAUT — qui est 'fr'. Le meme resultat, pour une raison
+  //    opposee (§E.33). Il faut une langue regionale dont la langue n est PAS
+  //    le defaut.
   ['fr-FR', 'fr', 'une locale régionale se ramène à sa langue'],
+  ['de-DE', 'de', 'et celle-là le PROUVE : sans découpage, elle tomberait sur le défaut'],
+  ['en-GB', 'en', 'idem'],
   ['EN', 'en', 'la casse ne décide de rien'],
   ['  es  ', 'es', 'les espaces non plus'],
   ['it', 'fr', 'une langue HORS produit prend le défaut — jamais un vide'],
