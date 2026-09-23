@@ -321,15 +321,49 @@ ok(
   'la fenêtre mensuelle devient une fonction',
   'trois fonctions la recopiaient sous un commentaire disant « AU CARACTÈRE PRÈS » — une discipline, pas une garantie',
 )
+//  ⚠️ LA MUTATION A TROUVÉ CE TROU. L'assertion COMPTAIT les occurrences de
+//     l'appel dans toute la migration — définition, postcondition et lectures
+//     confondues. En retirer une laissait le compte au-dessus du seuil, donc
+//     le contrôle VERT, pendant qu'une lecture recopiait de nouveau
+//     l'expression. On vérifie désormais CHAQUE corps de fonction (§E.8).
+const CORPS_SQL = (nom) => {
+  const m = MIG.match(new RegExp(`create (?:or replace )?function public\\.${nom}\\([\\s\\S]*?\\$fn\\$;`))
+  return m ? m[0] : null
+}
+const LECTRICES = ['ai_spend_status', 'ai_spend_par_acteur', 'ai_spend_acteur_etat', 'ai_spend_acteurs_au_plafond']
+const SANS_FENETRE = LECTRICES.filter((n) => {
+  const corps = CORPS_SQL(n)
+  return corps === null || !/ai_spend_debut_du_mois\(\)/.test(corps)
+})
 ok(
-  (MIG.match(/ai_spend_debut_du_mois\(\)/g) ?? []).length >= 5,
-  'les lectures de dépense LISENT cette fenêtre',
-  'une seule qui la recopie décale les totaux en fin de mois, et la somme cesse de boucler',
+  SANS_FENETRE.length === 0,
+  `les ${LECTRICES.length} lectures de dépense LISENT cette fenêtre`,
+  SANS_FENETRE.length
+    ? `recopie(nt) l'expression ou sont introuvable(s) : ${SANS_FENETRE.join(', ')} — une seule qui dérive décale les totaux en fin de mois, et la somme cesse de boucler`
+    : undefined,
+)
+const RECOPIES = LECTRICES.filter((n) => {
+  const corps = CORPS_SQL(n)
+  return corps !== null && /date_trunc\('month'/.test(corps)
+})
+ok(
+  RECOPIES.length === 0,
+  'et aucune ne RECOPIE l\'expression à côté',
+  RECOPIES.length ? `recopie(nt) : ${RECOPIES.join(', ')}` : undefined,
+)
+//  ⚠️ ET CELUI-CI AUSSI. Le NOM de la fonction survit dans la postcondition
+//     qui l'éprouve : le renommer laissait l'assertion verte. Ce qu'on garde,
+//     c'est qu'elle est CRÉÉE, et qu'un écran l'APPELLE — sans quoi le
+//     décompte existe et ne remonte nulle part.
+ok(
+  CORPS_SQL('ai_spend_acteurs_au_plafond') !== null,
+  'un DÉCOMPTE des acteurs au plafond est CRÉÉ',
+  'compter depuis la liste des dix plus gros rendrait un nombre juste tant qu\'il y en a moins de dix (§E.24)',
 )
 ok(
-  /ai_spend_acteurs_au_plafond/.test(MIG),
-  'un DÉCOMPTE des acteurs au plafond existe',
-  'compter depuis la liste des dix plus gros rendrait un nombre juste tant qu\'il y en a moins de dix (§E.24)',
+  /ai_spend_acteurs_au_plafond/.test(SOURCE.get('app/api/admin/supervision/route.ts') ?? ''),
+  'et la supervision l\'APPELLE',
+  'un décompte que personne ne lit ne remonte nulle part',
 )
 ok(
   (MIG.match(/exception when check_violation/g) ?? []).length >= 2,
@@ -344,7 +378,20 @@ ok(
 section('F. LES ÉCRANS — le réglage, la supervision, la consommation')
 
 const ROUTE = SOURCE.get('app/api/admin/plafonds-ia/route.ts')
-ok(/plafonds_acteur/.test(ROUTE), 'le plafond par acteur se RÈGLE depuis le back-office (§D.7)')
+//  ⚠️ TROISIÈME TROU DE LA MÊME FAMILLE. `plafonds_acteur` vit aussi dans le
+//     TYPE du corps et dans la réponse : vider la lecture du corps laissait le
+//     mot partout, et l'assertion verte, pendant que plus aucun réglage
+//     n'arrivait. On ancre sur l'ÉCRITURE — la seule chose qui règle vraiment.
+ok(
+  /\.update\(\{ plafond_mensuel_usd:/.test(ROUTE),
+  'le plafond par acteur est ÉCRIT en base (§D.7)',
+  'un réglage qu\'on saisit et qui n\'atteint pas la base est un réglage mort qui a l\'air vivant (§D.11)',
+)
+ok(
+  /corps\.plafonds_acteur/.test(ROUTE),
+  'et il est LU dans le corps de la requête',
+  'sans lecture, l\'écriture porte toujours la même valeur — celle d\'un objet vide',
+)
 ok(
   /alerteCoherente\s*\(/.test(sansChaines(ROUTE)),
   'la route lit la règle de cohérence PARTAGÉE',
@@ -480,6 +527,26 @@ ok(
 ok(
   !new RegExp('\\n  introuvable: \\(').test(LAYOUT),
   'témoin : le détecteur d\'icône ne trouve pas une clé qui n\'existe pas',
+)
+{
+  //  Un corps de fonction SQL qui recopie l'expression au lieu de la lire.
+  const faux = [
+    'create or replace function public.ai_faux()',
+    'as $fn$',
+    "  select 1 where x >= date_trunc('month', now() at time zone 'utc');",
+    '$fn$;',
+  ].join('\n')
+  const m = faux.match(/create (?:or replace )?function public\.ai_faux\([\s\S]*?\$fn\$;/)
+  ok(
+    m !== null && /date_trunc\('month'/.test(m[0]) && !/ai_spend_debut_du_mois\(\)/.test(m[0]),
+    'témoin : l\'extraction d\'un corps SQL voit une recopie de la fenêtre',
+    'sans ce témoin, un compte d\'occurrences passerait pour une vérification',
+  )
+}
+ok(
+  /\.update\(\{ plafond_mensuel_usd:/.test('.update({ plafond_mensuel_usd: Number(v) })') &&
+    !/\.update\(\{ plafond_mensuel_usd:/.test('const plafonds_acteur = {}'),
+  'témoin : le détecteur d\'écriture distingue un réglage écrit d\'un mot présent',
 )
 ok(
   DEFINIT_LA_GARDE('export async function budgetDisponible(') &&
