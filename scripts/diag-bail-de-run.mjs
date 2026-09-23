@@ -194,9 +194,36 @@ for (const fn of ['prendre_bail_run', 'rendre_bail_run', 'prochaine_relance_expe
 // ───────────────────────────────────────────────────────────────────────────
 section('B. LE DELAI SE DEDUIT DE maxDuration, IL NE SE SAISIT PAS')
 
-const HELPER = 'lib/cron/bail-de-run.ts'
+// ⚠️ LE MÉCANISME A DÉMÉNAGÉ, ET CE CONTRÔLE AVEC LUI (§E.34).
+//    Il vivait dans `lib/cron/bail-de-run.ts` ; le point 4 avait besoin du
+//    MÊME verrou sur un EXPERT, et une seconde implémentation aurait été un
+//    jumeau de VERROU — celui qui ne sert que sous concurrence, quand personne
+//    ne regarde. `lib/bail.ts` porte désormais la seule implémentation, et le
+//    module de cron DÉLÈGUE en gardant son nom et ses signatures.
+//    On vérifie donc les deux : la garantie là où elle est, et la délégation
+//    là où elle était.
+const HELPER = 'lib/bail.ts'
+const HELPER_CRON = 'lib/cron/bail-de-run.ts'
 ok(existsSync(join(ROOT, HELPER)), `${HELPER} existe`, '')
 const helper = sansCommentaires(read(HELPER))
+const helperCron = sansCommentaires(read(HELPER_CRON))
+
+// LA DÉLÉGATION : le module de cron ne réimplémente RIEN. S'il recommençait,
+// le jumeau serait revenu par la porte que ce lot ferme.
+ok(
+  /from '@\/lib\/bail'/.test(helperCron),
+  'le module de cron lit le mécanisme partagé',
+  'deux implementations du meme verrou divergent sur la fenetre de grace, et rien ne le dit',
+)
+ok(
+  !/\.rpc\(\s*'prendre_bail/.test(helperCron),
+  '… et il n’appelle plus la base lui-même',
+  'un second appelant de la RPC est un second endroit ou se tromper de parametres',
+)
+ok(
+  /prendreBail\(/.test(helperCron) && /rendreBail\(/.test(helperCron),
+  '… il délègue les deux gestes',
+)
 // PIEGE 2 : le delai doit etre CALCULE, pas passe en clair par l'appelant.
 ok(
   /export\s+function\s+graceSecondes\s*\(\s*maxDurationSec\s*:\s*number\s*\)/.test(helper),
@@ -221,10 +248,10 @@ ok(
 // premiere version de ce controle niait la proximite de `return 'erreur'` et de
 // `rendreBailRun` — deux textes voisins par pure mise en page, qui ne disaient
 // rien de ce qu'on voulait verifier. Il rougissait sur du code correct.
-const iRendre = helper.indexOf('export async function rendreBailRun')
+const iRendre = helper.indexOf('export async function rendreBail')
 const corpsRendre = iRendre < 0 ? '' : helper.slice(iRendre, iRendre + 600)
 ok(
-  /export\s+async\s+function\s+rendreBailRun\s*\([^)]*\)\s*:\s*Promise<void>/.test(corpsRendre),
+  /export\s+async\s+function\s+rendreBail\s*\([\s\S]*?\)\s*:\s*Promise<void>/.test(corpsRendre),
   'la restitution ne rend RIEN a l\'appelant (Promise<void>)',
   'un resultat inviterait un jour quelqu\'un a en dependre',
 )

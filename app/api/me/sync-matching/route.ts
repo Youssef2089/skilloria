@@ -74,6 +74,22 @@ export const maxDuration = 60
  */
 const ATTENTE_MAX_MS = 45_000
 
+/**
+ * CE QU'ON ACCEPTE D'ATTENDRE QU'UN AUTRE RUN FINISSE — un TIERS du budget.
+ *
+ * ⚠️ IL EST **DÉRIVÉ**, ET C'EST LA MOITIÉ QUI COMPTE. Attendre le bail et
+ *    attendre le run puisent dans le MÊME budget : celui de la réponse. Une
+ *    constante écrite à côté se désaccorderait d'`ATTENTE_MAX_MS` au premier
+ *    ajustement, et l'un des deux mangerait le temps de l'autre — le couperet
+ *    de Vercel tomberait avant que l'écran n'ait rien à dire (§E.5).
+ *
+ * UN TIERS : assez pour couvrir un run voisin qui finit, pas assez pour
+ * dévorer le temps du nôtre. Ce n'est pas une mesure — rien dans le dépôt ne
+ * dit combien de temps dure un run concurrent —, c'est une répartition, et
+ * elle se change en une ligne.
+ */
+const ATTENTE_BAIL_MS = Math.floor(ATTENTE_MAX_MS / 3)
+
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -194,6 +210,31 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ ok: true, profile_id: prof.id, mode: 'direct', issue }, 200)
   }
 
+  // ── ② bis. LE SECOND ATTEND — il ne consomme pas le plafond pour rien ───
+  //
+  //  ┌─ LE FAUX MESSAGE D'ÉCHEC QUE CECI FAIT DISPARAÎTRE (§D.22) ─────────┐
+  //  │ Un expert qui cliquait deux fois consommait DEUX jetons du plafond   │
+  //  │ horaire, et le second lui répondait « Trop de recherches lancées     │
+  //  │ coup sur coup. Patientez une minute avant de réessayer. » — un       │
+  //  │ message d'ÉCHEC pour quelque chose qui n'a pas échoué. Pendant ce    │
+  //  │ temps, les deux runs notaient le même vivier, et le payaient deux    │
+  //  │ fois.                                                                │
+  //  └──────────────────────────────────────────────────────────────────────┘
+  //
+  //  ⚠️ CETTE LECTURE EST CONSULTATIVE, ET ELLE NE GARDE RIEN. La garantie
+  //     est la PRISE du bail, atomique, faite par le moteur lui-même
+  //     (`runMatchingForExpert`). Ce qu'on gagne ici est de ne pas DÉPENSER
+  //     un jeton de plafond pour un run qui n'aura pas lieu. Si un autre
+  //     détenteur prend le bail entre cette lecture et la prise, le moteur
+  //     rend `deja_en_cours` et l'issue devient `trop_long` — qui dit vrai.
+  const { attendreBailLibre } = await import('@/lib/bail')
+  await attendreBailLibre(supabaseAdmin, {
+    portee: 'matching_expert',
+    cle: prof.id,
+    maxDurationSec: 300,
+    attenteMaxMs: ATTENTE_BAIL_MS,
+  })
+
   // ── ③ LE PLAFOND HORAIRE, LE MÊME QUE CELUI DES RELANCES ────────────────
   const { consommerPlafondHoraire } = await import('@/lib/matching/relance')
   if (!(await consommerPlafondHoraire(supabaseAdmin, prof.id, origine))) {
@@ -212,6 +253,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     // Même compteur que le cron : ce chemin lance le MÊME moteur, et un run
     // direct en échec doit pouvoir être rejoué exactement pareil.
     await marquerTentativeRelance(supabaseAdmin, prof.id)
+    // ON ATTEND LE BAIL, parce que quelqu'un regarde l'écran (§D.22). Une
+    // tâche de fond, elle, passe son tour et rattrape au passage suivant.
     const verdict = await runMatchingForExpert({ supabaseAdmin, profileId: prof.id })
     // Une relance en attente porterait sur un profil qu'on vient de noter : la
     // solder évite de repayer le même travail dans l'heure. `debutRun` protège

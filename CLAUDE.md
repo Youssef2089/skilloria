@@ -776,6 +776,35 @@ CDI **structurelle** : les deux voies montent le même composant.
 
 **Gardé par [`diag-occupe-ferme-le-depot`](scripts/diag-occupe-ferme-le-depot.mjs)**.
 
+**D.22 — AU PLUS UNE RECHERCHE PAR EXPERT. Le second ATTEND, et rien n'a « échoué ».**
+Rien n'empêchait deux recherches simultanées sur le **même** expert : un double clic, ou une bascule
+de disponibilité pendant qu'un cron de relance tourne — le même vivier noté deux fois, et **payé**
+deux fois. Le mécanisme existait (le bail des tâches de fond ferme exactement ce chevauchement) mais
+il était clé sur un **nom de tâche**.
+
+**Le bail devient GÉNÉRIQUE : une portée, une clé** ([lib/bail.ts](lib/bail.ts), table `baux`).
+Deux portées — `cron` et `matching_expert` — et **une seule** implémentation : une seconde aurait
+été un **jumeau de verrou**, celui qui ne sert que sous concurrence, donc dont l'écart ne se
+découvre jamais (§E.20). Les deux fonctions de cron deviennent des **enveloppes** ; leurs cinq
+routes n'ont pas une ligne à changer.
+
+**LE FAUX MESSAGE D'ÉCHEC DISPARAÎT.** Le second clic consommait un jeton du plafond horaire et
+répondait « Trop de recherches lancées coup sur coup » — un message d'**échec** pour quelque chose
+qui n'a pas échoué. Le chemin direct **attend** désormais que le bail se libère **avant** de
+consommer le plafond. Si l'attente expire, l'issue est `trop_long` : *« la recherche se poursuit,
+vos missions apparaîtront ici »* — qui est vrai.
+
+> ⚠️ **AUCUN CINQUIÈME ÉTAT D'ÉCRAN.** §D.13 ferme l'union à quatre, et « une recherche est en
+> cours » serait exactement la branche « on ne sait pas encore » qu'elle interdit — celle qui peut
+> rester affichée indéfiniment.
+
+> ⚠️ **ATTENDRE DEMANDE UN BUDGET, ET SEUL CELUI QUI RÉPOND À UN ÉCRAN EN A UN.** Le moteur prend
+> le bail ou **passe son tour** ; l'attente vit chez l'appelant direct, dérivée de son propre budget
+> de réponse. Une option « attendre N ms » sur le moteur aurait été un réglage que personne ne
+> remplit (§D.11), et deux attentes se seraient disputé le même temps.
+
+**Gardé par [`diag-recherche-doublee`](scripts/diag-recherche-doublee.mjs)**.
+
 **D.10 — TOUTE NOTE DU PRODUIT EST SUR 0-10. Il n'y a pas de seconde échelle.**
 Les filtres de pertinence vivaient en **0-1**, les notes de jugement en **0-10**, et rien ne le disait
 à l'écran : **« 1 » signifiait *parfait* d'un côté et *médiocre* de l'autre**, sur la même page.

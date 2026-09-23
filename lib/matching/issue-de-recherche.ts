@@ -135,6 +135,15 @@ export function issueDepuisVerdict(verdict: {
   if (emp?.quoi === 'arret_de_notation') {
     return { etat: 'echec', raison: ECHEC_PAR_ARRET[emp.code] }
   }
+  // ⚠️ UNE RECHERCHE DOUBLÉE N'A PAS ÉCHOUÉ (§D.22). `trop_long` est
+  //    exactement ce qu'il faut dire : l'ATTENTE a expiré, pas le travail —
+  //    l'autre run continue et écrira ses recommandations. Sa phrase le dit
+  //    déjà en toutes lettres, et l'écran ne propose PAS de réessayer :
+  //    relancer ferait payer une seconde fois un travail en cours.
+  //    Aucun cinquième état n'est ajouté : §D.13 ferme l'union à quatre, et
+  //    « une recherche est en cours » est précisément la branche « on ne sait
+  //    pas encore » qui pourrait rester affichée indéfiniment.
+  if (emp?.quoi === 'deja_en_cours') return { etat: 'echec', raison: 'trop_long' }
 
   if (verdict.status === 'no_config') return { etat: 'echec', raison: 'reglages_absents' }
   if (verdict.status === 'error') return { etat: 'echec', raison: 'lecture_en_panne' }

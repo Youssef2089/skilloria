@@ -15,6 +15,8 @@ import {
   jugerEligibilite,
   type RaisonIneligible,
 } from './eligibilite'
+// LE BAIL — le MÊME mécanisme que les tâches de fond, sur une autre portée.
+import { prendreBail, rendreBail } from '@/lib/bail'
 // La MÊME source que l'autre sens. Une seconde expression de la règle ici
 // aurait fait deux moteurs qui ne s'accordent pas sur ce qu'est une annonce
 // active — et rien ne l'aurait dit (§E.20, §E.24).
@@ -166,7 +168,71 @@ export async function raisonIneligibilite(
   return verdict.ok ? { etat: 'eligible' } : { etat: 'ineligible', raison: verdict.raison }
 }
 
+/**
+ * LA DURÉE MAXIMALE D'UN RUN EXPERT, en secondes — celle dont le bail déduit
+ * sa fenêtre de grâce.
+ *
+ * ⚠️ ELLE EST ADOSSÉE AU `maxDuration` DES ROUTES QUI LE LANCENT, et c'est la
+ *    seule valeur qui compte : trop courte, un run encore vivant se ferait
+ *    doubler ; trop longue, un processus tué bloquerait l'expert d'autant.
+ *    Le cron de relance porte 300 s — c'est le plus long des appelants, et
+ *    c'est donc lui qui fixe la borne.
+ */
+const DUREE_MAX_RUN_EXPERT_SEC = 300
+
 export async function runMatchingForExpert(args: {
+  supabaseAdmin: SupabaseClient
+  profileId: string
+  locale?: string
+}): Promise<VerdictExpert> {
+  const { supabaseAdmin, profileId } = args
+
+  // ── 0. LE BAIL — au plus une recherche à la fois pour cet expert ─────────
+  //
+  //  ⚠️ AVANT TOUT, ET AVANT TOUTE DÉPENSE. Deux recherches simultanées notent
+  //     le même vivier deux fois et le paient deux fois ; le mécanisme existait
+  //     pour les tâches de fond et ne couvrait pas le déclenchement direct.
+  //
+  //  FAIL-CLOSED : si le bail ne peut pas être pris — panne, RPC absente — on
+  //  NE TOURNE PAS. Un run sans bail rouvre exactement le chevauchement qu'on
+  //  ferme, et une panne d'observation ne vaut jamais autorisation.
+  //  ⚠️ IL N'ATTEND PAS, ET C'EST DÉLIBÉRÉ. Attendre demande un BUDGET, et
+  //     seul celui qui répond à un écran en a un. Le moteur prend le bail ou
+  //     passe son tour ; c'est `attendreBailLibre` (lib/bail.ts) que le chemin
+  //     DIRECT appelle avant, avec son propre budget. Une option « attendre N
+  //     ms » ici aurait été un réglage que personne ne remplit (§D.11), et une
+  //     seconde attente s'ajouterait à celle de l'appelant.
+  const bail = await prendreBail(supabaseAdmin, {
+    portee: 'matching_expert',
+    cle: profileId,
+    maxDurationSec: DUREE_MAX_RUN_EXPERT_SEC,
+  })
+  if (bail !== 'pris') {
+    console.log('[matching-expert] bail non obtenu — aucune recherche lancée', {
+      profileId,
+      bail,
+    })
+    return {
+      status: 'empty_pool',
+      proposals: [],
+      notes:
+        bail === 'occupe'
+          ? 'Une recherche est déjà en cours pour cet expert.'
+          : 'Bail indisponible : aucune recherche lancée.',
+      model: null,
+      empechement: { quoi: 'deja_en_cours' },
+    }
+  }
+  try {
+    return await executerRunExpert(args)
+  } finally {
+    // Facultatif : le bail expire seul. Ne jamais faire dépendre la réponse
+    // de sa restitution.
+    await rendreBail(supabaseAdmin, 'matching_expert', profileId)
+  }
+}
+
+async function executerRunExpert(args: {
   supabaseAdmin: SupabaseClient
   profileId: string
   locale?: string

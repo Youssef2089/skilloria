@@ -1,4 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+// ⚠️ LE MÉCANISME A DÉMÉNAGÉ DANS `lib/bail.ts`, ET CE MODULE DÉLÈGUE.
+//    Le point 4 avait besoin du MÊME verrou sur un EXPERT. Une seconde table
+//    et une seconde fonction d'upsert auraient été un JUMEAU (§E.20) — et un
+//    jumeau de VERROU est le pire de tous : il ne sert que sous concurrence,
+//    c'est-à-dire précisément quand personne ne regarde. Le jour où l'un des
+//    deux corrige sa fenêtre de grâce, l'autre reste ouvert, et rien ne le dit.
+//
+//    Ce module garde son NOM, ses SIGNATURES et sa documentation : les cinq
+//    routes de cron n'ont pas une ligne à changer.
+import { graceSecondes as graceGenerique, prendreBail, rendreBail, type PriseDeBail } from '@/lib/bail'
 
 /**
  * lib/cron/bail-de-run.ts — AU PLUS UN RUN A LA FOIS, POUR TOUTE TÂCHE.
@@ -40,20 +50,15 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  */
 
 /** Résultat de la prise de bail. `occupe` n'est PAS une erreur. */
-export type PriseDeBail = 'pris' | 'occupe' | 'erreur'
+export type { PriseDeBail }
 
 /**
  * Le délai de grâce, DÉDUIT de la durée maximale du run.
  *
  * Le double de `maxDuration`, avec un plancher d'une minute : une tâche
  * redevient exécutable dès que son run précédent ne peut plus être vivant.
- * C'est le même rapport que le verrou de rejeu du matching (10 min pour un run
- * de 300 s), et pour la même raison — plus court laisserait le chevauchement,
- * plus long retarderait le rattrapage sans rien gagner.
  */
-export function graceSecondes(maxDurationSec: number): number {
-  return Math.max(60, Math.ceil(maxDurationSec) * 2)
-}
+export const graceSecondes = graceGenerique
 
 /**
  * Prend le bail d'exécution d'une tâche. À appeler APRÈS la garde `CRON_SECRET`
@@ -67,15 +72,11 @@ export async function prendreBailRun(
   admin: SupabaseClient,
   params: { job: string; maxDurationSec: number },
 ): Promise<PriseDeBail> {
-  const { data, error } = await admin.rpc('prendre_bail_run', {
-    p_job_name: params.job,
-    p_grace: `${graceSecondes(params.maxDurationSec)} seconds`,
+  return prendreBail(admin, {
+    portee: 'cron',
+    cle: params.job,
+    maxDurationSec: params.maxDurationSec,
   })
-  if (error) {
-    console.error(`[cron:${params.job}] prise de bail impossible — on ne tourne pas`, error.message)
-    return 'erreur'
-  }
-  return data === true ? 'pris' : 'occupe'
 }
 
 /**
@@ -84,12 +85,7 @@ export async function prendreBailRun(
  * PUREMENT FACULTATIF, et c'est le point : le bail expire tout seul. Un échec
  * ici retarde le prochain run, il ne bloque RIEN — un processus tué ne peut pas
  * coincer sa tâche. C'est l'inverse exact d'un drapeau qu'il faudrait baisser.
- *
- * N'échoue jamais vers l'appelant : sa réponse ne doit pas dépendre de ceci.
  */
 export async function rendreBailRun(admin: SupabaseClient, job: string): Promise<void> {
-  const { error } = await admin.rpc('rendre_bail_run', { p_job_name: job })
-  if (error) {
-    console.warn(`[cron:${job}] restitution du bail en echec — il expirera seul`, error.message)
-  }
+  return rendreBail(admin, 'cron', job)
 }

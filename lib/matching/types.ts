@@ -54,6 +54,24 @@ export type Empechement =
    *    tient sans discipline : elle est vérifiée à la compilation (§E.31).
    */
   | { quoi: 'arret_de_notation'; code: Exclude<ArretDeNotation, 'aucun_document'> }
+  /**
+   * UNE RECHERCHE TOURNE DÉJÀ POUR CET EXPERT — et ce n'est PAS un échec.
+   *
+   * ┌─ LE DÉFAUT QUE ÇA FERME (point 4) ───────────────────────────────────┐
+   * │ Rien n'empêchait deux recherches simultanées sur le même expert. Un   │
+   * │ double clic, une bascule de disponibilité pendant qu'un cron de       │
+   * │ relance tourne : le même vivier était noté deux fois, et payé deux    │
+   * │ fois. Le mécanisme existait pour les tâches de fond (le bail) et ne   │
+   * │ couvrait pas le déclenchement direct.                                 │
+   * └───────────────────────────────────────────────────────────────────────┘
+   *
+   * ⚠️ IL NE REMONTE JAMAIS À L'EXPERT SOUS CETTE FORME. Le chemin direct
+   *    ATTEND que le bail se libère (§D.22) ; s'il expire, l'issue est
+   *    `trop_long` — « la recherche se poursuit, vos missions apparaîtront
+   *    ici », qui est vrai. Dire « échec » d'une recherche doublée serait le
+   *    faux message que ce point fait disparaître.
+   */
+  | { quoi: 'deja_en_cours' }
 
 /**
  * LES STATUTS DU SENS EXPERT — et il n'y en a pas d'autre.

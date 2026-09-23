@@ -57,6 +57,10 @@ avec le seed) : `publications_per_month`, `active_publications_max`,
 **Organisations** — `organizations`, `organization_members`, `organization_invitations`,
 `organization_domains` (→ **TRACE HISTORIQUE**, §B.2), `verification_attempts`, `verification_providers`.
 
+**Exploitation** — `baux` (les baux d'exécution, par **portée** et par **clé** — une portée pour les
+tâches planifiées, une pour les recherches de missions, §D.22. Elle **remplace**
+`cron_run_leases`, reprise puis retirée).
+
 **Boucle cœur** — `publications`, `matches`, `candidatures`, `candidature_depots` (le
 journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **avant** l'appel au modèle),
 `candidature_views`, `conversations`, `messages`, `notifications`, `notification_preferences`.
@@ -87,6 +91,24 @@ journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **
 > **NON VÉRIFIÉ** : rien ne dit si elles portent des données de production — on ne les a pas lues.
 
 ### B.2 Les déplacements structurants — ceux qui piègent
+
+> **`bail_par_portee` (23/09/2026) — LE VERROU DEVIENT GÉNÉRIQUE.**
+> Table `baux` clée **(portee, cle)**, fonctions `prendre_bail` / `rendre_bail` / `bail_tenu`.
+> `cron_run_leases` est **reprise** (ses baux vivants d'abord) **puis retirée**, et
+> `prendre_bail_run` / `rendre_bail_run` deviennent des **enveloppes** : les cinq routes de cron
+> n'ont pas une ligne à changer, et le déploiement passe dans n'importe quel ordre.
+>
+> ⚠️ **L'ORDRE EST LA GARANTIE** : retirer avant de reprendre perdrait l'état des baux en cours, et
+> une seconde tâche pourrait partir en parallèle — le chevauchement rouvert par son propre
+> correctif.
+>
+> **Mesuré avant de trancher** : `cron_run_leases` n'était lue par aucune ligne de `app/`, `lib/`
+> ou `components/`, ni par aucune autre migration. La garder aurait fait une table morte de plus
+> (§M1 ⑥ en recense onze).
+>
+> ⚠️ **POSTCONDITION QUI LÈVE** (§E.60) : la **clé primaire vérifiée sur ses colonnes** — sans elle
+> l'upsert n'est plus atomique —, les cinq signatures de fonction, le fait que les enveloppes
+> **délèguent**, et la disparition effective de l'ancienne table.
 
 > **`candidature_complete_ou_inexistante` (23/09/2026) — LA BASE REFUSE UNE CANDIDATURE NUE.**
 > `candidatures` gagne la contrainte `candidatures_complete_ou_inexistante` : note **et** résumé
