@@ -2433,7 +2433,18 @@
       "error_cover_too_long": "Ihre Nachricht überschreitet 2000 Zeichen.",
       "error_cannot_apply_own_need": "Sie können sich nicht auf Ihren eigenen Bedarf bewerben.",
       "error_type_not_candidatable": "Diese Art von Gelegenheit nimmt keine Bewerbungen an.",
-      "error_verification_indisponible": "Eine Prüfung konnte nicht abgeschlossen werden: das ist weder eine Ablehnung noch ein verschwundenes Angebot. Nichts wurde gespeichert – bitte versuchen Sie es gleich erneut."
+      "error_verification_indisponible": "Eine Prüfung konnte nicht abgeschlossen werden: das ist weder eine Ablehnung noch ein verschwundenes Angebot. Nichts wurde gespeichert – bitte versuchen Sie es gleich erneut.",
+      "inapte": {
+        "profil_non_visible": "Ihr Profil ist ausgeblendet: Solange das so ist, können Sie sich nicht bewerben. Machen Sie es in Ihrem Profil sichtbar.",
+        "cv_non_analyse": "Ihr Lebenslauf wurde noch nicht ausgewertet: Ihre Bewerbung wäre unvollständig. Setzen Sie in Ihrem Profil fort.",
+        "consentement_absent": "Ihre Einwilligung zur KI-Analyse ist für eine Bewerbung erforderlich: Ihre Unterlagen werden beim Einreichen bewertet. Erteilen Sie sie in Ihrem Profil.",
+        "profil_non_approuve": "Ihr Profil ist noch nicht freigegeben: Sobald es das ist, können Sie sich bewerben.",
+        "compte_suspendu": "Ihr Konto ist gesperrt: Sie können sich nicht bewerben. Wenden Sie sich an den Support, um den Grund zu erfahren.",
+        "compte_en_suppression": "Die Löschung Ihres Kontos ist geplant: Sie können sich nicht mehr bewerben. Reaktivieren Sie Ihr Konto, um fortzufahren.",
+        "compte_anonymise": "Ihr Konto wurde gelöscht: Sie können sich nicht mehr bewerben.",
+        "ne_pas_deranger": "Sie stehen auf „nicht stören“: Sie erhalten nichts und bewerben sich nicht. Stellen Sie auf verfügbar, um sich zu bewerben.",
+        "non_en_recherche": "Sie sind als beschäftigt und nicht suchend eingetragen: Sie erhalten nichts und bewerben sich nicht. Ändern Sie Ihren Status, um sich zu bewerben."
+      }
     },
     "recommendations_updated": "Ihre Empfehlungen wurden aktualisiert."
   },
@@ -3234,7 +3245,17 @@
       "toast_deposee": "Die Bewerbung wurde vollständig eingereicht. Sie ist bei der Organisation angekommen.",
       "toast_sans_jugement": "Der erneute Versuch ist nicht gelungen: {cause}. Es wurde nichts geschrieben, die Zeile bleibt.",
       "toast_refusee": "Die Einreichung wurde abgelehnt ({code}). Das ist keine Störung: Eine Prüfung verweigert sie.",
-      "contexte_illisible": "Anzeige oder Fachkraft konnten nicht erneut gelesen werden: Die obigen Angaben sind unvollständig."
+      "contexte_illisible": "Anzeige oder Fachkraft konnten nicht erneut gelesen werden: Die obigen Angaben sind unvollständig.",
+      "toast_inapte": "Erneuter Versuch abgelehnt: Die Fachkraft kann sich nicht mehr bewerben ({cause}). Das ist keine Störung – die Zeile bleibt und löst sich von selbst, wenn sie wieder infrage kommt.",
+      "raison_profil_non_visible": "Profil ausgeblendet",
+      "raison_cv_non_analyse": "Lebenslauf nicht ausgewertet",
+      "raison_consentement_absent": "KI-Einwilligung widerrufen",
+      "raison_profil_non_approuve": "Profil nicht freigegeben",
+      "raison_compte_suspendu": "Konto gesperrt",
+      "raison_compte_en_suppression": "Konto wird gelöscht",
+      "raison_compte_anonymise": "Konto gelöscht",
+      "raison_ne_pas_deranger": "Fachkraft auf „nicht stören“",
+      "raison_non_en_recherche": "Fachkraft beschäftigt, nicht suchend"
     },
     "nav_depots_echec": "Fehlgeschlagene Einreichungen"
   },

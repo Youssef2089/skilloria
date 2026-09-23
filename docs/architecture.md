@@ -1219,6 +1219,52 @@ les écrit légitimement), pas supposée.
 > est redirigé** — vert à la main, **MUET dans la série**. Les imports de modules purs sont donc
 > **statiques** (§E.57).
 
+### C.18 — « OCCUPÉ » : les quatre surfaces, et ce que chacune ferme
+
+| Surface | Ce qu'elle ferme | Comment elle le sait |
+|---|---|---|
+| `lib/matching/pool.ts` | l'expert n'entre pas dans le vivier d'une annonce | plie les filtres SQL de la règle |
+| `lib/matching/run-for-expert.ts` | aucune recommandation ne lui est calculée | plie le test en mémoire |
+| `lib/missions/feed.ts` | sa liste de missions est fermée | `enIndisponibilite()` |
+| `lib/candidatures/depot.ts` | **il ne peut pas postuler** — c'est §D.21 | `jugerEligibilite()` |
+
+**Les trois premières tenaient, la quatrième manquait.** Un match posé avant qu'il ne se déclare
+occupé restait cliquable : le bouton s'affichait, et le serveur **acceptait** le dépôt.
+
+**Le dépôt lit la règle ENTIÈRE, et ce n'est pas un élargissement gratuit.** §D.19 a rendu le
+jugement de Claude obligatoire au dépôt ; un expert dont le **consentement IA** a été retiré après la
+création du match aurait donc vu son profil partir chez le fournisseur. La condition existait dans le
+moteur et n'avait aucune raison de s'arrêter à la porte du dépôt.
+
+**Trois propriétés, et chacune ferme un chemin :**
+· la garde est posée **avant le journal, avant le modèle, avant l'écriture** — juger après, c'est
+  payer un jugement dont on jette le résultat ;
+· elle rend `{ issue: 'inapte', raison }`, **distinct** de `refusee` : un refus de garde porte sur
+  l'annonce, celui-ci sur LUI, et il peut y remédier. Les confondre rendrait un code qui ne dit pas
+  quoi faire ;
+· le **public** vient de `users.user_type` — une constante appliquerait la disponibilité freelance
+  à un salarié, et inversement.
+
+**L'écran ferme le bouton AVANT le clic** : la réponse est connue sans rien lancer (§D.13 ①). Il est
+**remplacé** par sa raison, pas grisé (§D.1), et l'aptitude vient du **serveur** — la recopier dans
+l'UI la figerait dans le bundle (§E.15). Le refus serveur est traité **aussi** : l'écran a pu être
+chargé avant que l'expert ne se déclare occupé.
+
+**PARITÉ CDI, MESURÉE** : les deux pages de détail — freelance et CDI — montent le **même**
+composant. La parité est structurelle ; un second composant la ferait diverger (§E.20).
+
+> ⚠️ **DEUX ÉCRIVAINS DE PLUS, TROUVÉS EN FAISANT CE POINT.** `lib/missions/feed.ts` posait
+> `availability_status === 'do_not_disturb' || cdi_status === 'employed'` sous un commentaire disant
+> « UN SEUL endroit lit ces colonnes » — vrai du flux, faux du produit (§E.7). `DashboardShell`
+> posait la même, pour sa pastille : elle aurait dit « disponible » à un expert que le serveur venait
+> de fermer. Les deux lisent désormais `enIndisponibilite()`.
+> **Le contrôle de §D.20 ne balayait que `lib/matching/`** : il ne pouvait pas les voir (§E.61).
+
+> **UNE SEULE EXEMPTION, ET ELLE PORTE SA RAISON (§G.8)** : `SpotlightCandidateCard` compare la
+> valeur pour choisir un **libellé** et une **couleur**, et distingue **trois** états — disponible,
+> occupé, inconnu. La règle répond à une question binaire ; la lui faire poser perdrait le libellé
+> « disponible ». Elle ne décide de rien.
+
 ### C.16 — LES E-MAILS : pourquoi ils n'ont pas de jetons, et d'où viennent leurs couleurs
 
 **LA CONTRAINTE, MESURÉE.** Les clients de messagerie **ne lisent pas les propriétés
@@ -1582,3 +1628,133 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   Ces deux réglages ont désormais leur écran (voir ci-dessus).
 
 ---
+
+---
+
+## M. Les fusions, et comment les collisions ont été tranchées
+
+> **Ces trois récits vivaient dans [CLAUDE.md](../CLAUDE.md), et ils en sont sortis le 23/09/2026**
+> — ce fichier-là est chargé à chaque session et avait atteint 99 667 de ses 100 000 caractères.
+> Un récit de fusion se lit **le jour d'une fusion**, pas tous les jours : même critère que celui
+> qui a sorti §E vers [pieges.md](pieges.md) le 20/09/2026. Rien n’a été coupé.
+
+> **Ce qu’ils ont en commun, et c’est la seule raison de les garder** : trois fois, deux worktrees
+> ont écrit dans la mémoire du projet le même jour sans se voir, et **les deux avaient raison**.
+> La question n’a jamais été « quel côté garder » mais **« que fait chaque côté, et comment les
+> deux coexistent »**. On renumérote, on ne choisit pas.
+
+### M1 bis — La fusion de `feat/s2`, et comment la collision a été tranchée
+
+Le 17/09/2026, `feat/s2` a été fusionné dans le tronc. **Les deux côtés avaient écrit dans la mémoire
+du projet le même jour, sans se voir**, et les deux avaient raison. Résolution **en union** : aucune
+section n'a disparu, aucune n'a été arbitrée.
+
+**La collision.** Les deux côtés ont écrit un **§E.16**. Celui du tronc garde son numéro — il était
+déjà cité **cinq fois** dans le fichier découpé ; ceux de `feat/s2` deviennent **§E.17** (l'URL
+saisie servie à `<img src>`) et **§E.18** (l'embed ambigu). Leurs renvois internes ont suivi.
+**On renumérote, on ne choisit pas.**
+
+**Le replacement.** `feat/s2` a écrit contre le fichier **monolithique**, avant le découpage. Ses
+sections ont donc été **replacées**, jamais empilées en fin de fichier : §D.8 dans §D et §E.17/§E.18
+dans §E (aujourd’hui `docs/pieges.md`) ; §P1.2 (« 2 bis »), §P2.3, §P2.4, §P3.3 et §P3.5 dans
+[docs/produit.md](produit.md), chacune à sa place dans son tableau.
+
+**La seule ligne non reprise telle quelle, et pourquoi.** `feat/s2` écrivait
+`` | `ecosystemes` · `ecosystemes/[id]` | `` — or §M1 n°10 a **établi par mesure** que
+`/admin/ecosystemes/[id]` n'existe pas : le détail est un panneau dans la page de liste. La ligne
+fusionnée porte **toute** la substance de `feat/s2` (logo, favicon, bucket public, chemin dérivé de
+`domain_id`, disparition de la saisie d'URL) **et** la correction du tronc. Reprendre la mention de
+l'écran aurait réintroduit l'erreur que §M1 venait de fermer — vérifié par mutation :
+`diag-memoire-exacte` rougit dessus.
+
+**Les quatre `messages/*.json` se sont fusionnés seuls**, et la fusion est l'**union exacte** des
+deux côtés : 3133 clés à la base, +21 côté tronc, +26 côté `feat/s2`, **3180** après fusion, parité
+exacte sur les quatre langues. Deux clés ont disparu — `field_logo_url` et `logo_url_help` — parce
+que `feat/s2` les a **délibérément supprimées** en remplaçant la saisie d'URL par un téléversement.
+Une suppression voulue n'est pas une perte ; elle est vérifiée comme telle, pas supposée.
+### M1 ter — La fusion de `feat/s1-ux-profil`, et les deux écrans partagés
+
+Le 17/09/2026, `feat/s1-ux-profil` a été fusionné. **Deux worktrees avaient travaillé sur LES MÊMES
+ÉCRANS d'organisation sans se croiser** — `feat/s2` sur le logo (déjà sur le tronc), `feat/s1` sur le
+pays du siège et le motif de mise en revue. **Les deux sont justes ; aucun ne remplace l'autre.**
+
+**Cinq conflits, dont trois sur du code.** Pour chacun, la question posée n'a pas été « quel côté
+garder » mais « que fait chaque côté, et comment les deux coexistent ».
+
+| Fichier | Ce que chaque côté faisait | L'union |
+|---|---|---|
+| `app/api/me/organisation/route.ts` | `logo_url` est **préexistant** : S2 l'a **retiré** de la whitelist (c'était une saisie d'URL, §E.17) ; S1 ne l'a pas touché et a **ajouté** `country` | le **retrait** de S2 **et** l'ajout de S1 — vérifié sur la base `392dd07` avant de trancher |
+| `app/api/admin/get-org/[id]/route.ts` | un import chacun, plus un validateur de motif chez S1 | purement additif : les deux |
+| `dashboard/entreprise/organisation/page.tsx` | S2 monte `OrgLogoUpload` ; S1 monte `CountrySelect` et charge le référentiel | les deux composants, et le champ `logo_url` reste **hors** du formulaire |
+| `CLAUDE.md` | les deux avaient mis à jour le **nombre de migrations** — 63 pour le tronc, 64 pour S1 | **65**, mesuré après fusion : aucun des deux n'était bon, et choisir l'un aurait réintroduit le défaut que cette phrase raconte |
+| `docs/produit.md` | deux paragraphes **au même endroit, sur des sujets différents** | les deux, dans l'ordre du parcours — le motif de revue prolonge l'étape 2, le logo ouvre l'étape 2 bis |
+
+**Seconde collision de numéros de section, résolue comme la première.** `feat/s1` portait un §E.13, un
+§E.14 et un §E.17 — les trois déjà pris par le tronc, et **en double dans son propre fichier** (sa
+fusion précédente les avait empilés après §E.9 sans renuméroter). Ils deviennent **§E.19**, **§E.20**
+et **§E.21**, et ils sont **replacés** dans §E, avant le fourre-tout §E.9.
+
+**198 lignes ajoutées par `feat/s1` à la mémoire, toutes présentes** — sauf le paragraphe du nombre
+de migrations, remesuré ci-dessus. Vérifié par script, pas supposé.
+
+**Les `messages/*.json` sont l'union EXACTE** : 3154 à la base, +26 côté tronc, +37 côté `feat/s1`,
+**3217** après fusion, parité exacte sur les quatre langues. **Cinq suppressions délibérées** sont
+propagées — deux du logo (S2 remplace la saisie d'URL par un téléversement), trois de la saisie de
+téléphone (S1 unifie les trois parcours). Une suppression voulue n'est pas une perte, et c'est
+vérifié comme telle.
+
+**Défaut vu pendant la fusion, traité dans la fusion.** Les deux migrations de `feat/s1` portaient un
+suffixe **`1xxxxx`** — la plage que §G.2 déclare fausse, et **la même infraction que celle du tronc**.
+Elles n'étaient appliquées nulle part : elles ont été renumérotées dans la plage de S1
+(`20260917200000`, `20260917210000`), exactement comme `912d437` l'avait fait avant application.
+Toutes les références passent par le **suffixe** (§G.3), donc rien ne casse. Le cliquet de
+`diag-migration-donnees` les avait dénoncées — c'est sa première prise.
+### M1 quater — La fusion du module Stripe d’exploitation (20/09/2026), et la collision QUI N’A PAS FAIT DE CONFLIT
+
+Le 20/09/2026, `feat/s1-ux-profil` a été fusionné une seconde fois : il portait le **module
+Stripe d’exploitation** — `/admin/facturation`, `/admin/facturation/ecarts`, **une seule** route
+API pour les trois surfaces, un cron de vérification nocturne, `lib/stripe-exploitation/*`, et une
+migration `2xxxxx`. **Fichiers neufs uniquement** : aucune route de `app/api/billing/` ni de
+`app/api/stripe/` n’a été touchée, et la fusion le confirme — **aucun conflit de code**.
+
+**DEUX COLLISIONS DE NUMÉROS, ET LA SECONDE EST LA PLUS INSTRUCTIVE.**
+
+| Où | Ce qui est entré en collision | Résolution |
+|---|---|---|
+| `CLAUDE.md` | les deux côtés ont écrit un **§E.39** | git a levé un **CONFLIT** : celui du tronc garde son numéro (il est **cité** par §E.38 ③), celui de S1 devient **§E.44** |
+| `docs/architecture.md` | les deux côtés ont écrit un **§C.10** | **git n'a rien signalé** — insertions à des endroits différents, fusion automatique réussie, et **deux sections du même numéro** dans le fichier |
+
+> ⚠️ **UNE COLLISION QUI NE PRODUIT PAS DE CONFLIT EST PIRE QU'UNE QUI EN PRODUIT.** Un conflit
+> arrête la fusion et exige une décision. Celle-ci a produit un fichier **valide, cohérent à la
+> lecture, et faux à la citation** : deux §C.10, dont un cité deux fois — `architecture.md:65` et
+> `produit.md:628`. Rien dans git, rien dans `tsc`, rien dans `next build`. Elle a été trouvée en
+> **recomptant les sections des deux côtés après la fusion**, pas en lisant le rapport de merge.
+> *Vérifier une fusion, ce n’est pas relire ses conflits : c’est recompter ce que les deux côtés
+> ont ajouté.*
+
+**Même convention que M1 bis et M1 ter : CELUI QUI EST DÉJÀ CITÉ GARDE SON NUMÉRO.** Le §C.10 de
+S1 (module Stripe) est cité deux fois → il garde `C.10`. Celui du tronc (les trois écrivains des
+listes de profil) n’est cité nulle part → il devient **`C.11`**. Et les deux sont **replacées** :
+la fusion automatique laissait l'ordre `C.1-6, C.10, C.8, C.10, C.9` ; il est rendu croissant.
+**Vérifié par script — 897 lignes avant, 897 après**, et aucune ligne altérée hors des deux
+en-têtes renumérotées.
+
+**Les quatre `messages/*.json` se sont fusionnés seuls, et la fusion est l’UNION EXACTE** :
+**3341** à la base, **+1** côté tronc, **+119** côté S1, **3461** après fusion, parité stricte sur
+les quatre langues — **zéro clé manquante, zéro clé en trop**. Et **aucune suppression délibérée
+d’aucun côté** : vérifié en confrontant chaque côté à la base, pas supposé (c’est le piège que
+M1 bis avait dû trancher à la main).
+
+**CE QUE S1 RENVOIE AU TRONC, ET QUI N’EST PAS TRAITÉ DANS LA FUSION** — quatre points, aucun
+bloquant, ordonnés avec les quatorze défauts nommés du gel 4.1d :
+① `stripe_event_claim` — un processus mort **entre la réclamation et la clôture** laisse la ligne
+   en `received`, et la garde `where status = 'failed'` refuse alors **tous** les réessais de
+   Stripe, définitivement. S1 le **signale à l’écran** et n’y touche pas : c’est un arbitrage
+   d’**argent**, pas de code. Proposition rendue à l’architecte, décision non prise seul.
+② `lib/billing/events.ts` doit **exporter** `STATUTS_OUVRANTS` et la liste des six types du
+   `switch` — S1 les a recopiés (jumeaux assumés, §E.20) et son contrôle échoue s’ils divergent.
+③ Deux commentaires **faux** dans `app/api/stripe/webhook/route.ts` — « la seule route sans
+   `requireAuth` » (elles sont **18 sur 128**, §M1 n°3) et « zéro cron » (**4 routes, 9 tâches**) —
+   le second **répété** dans `20260901000000_stripe_fondations.sql`.
+④ L’en-tête de `lib/billing/stripe.ts` : `getStripe()` a maintenant **quatre** appelants.
+

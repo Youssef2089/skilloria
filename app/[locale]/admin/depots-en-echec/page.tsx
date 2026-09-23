@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { CAUSES_DEPOT, type EtatDepotAffiche } from '@/lib/candidatures/depot-etats'
+import { CONDITIONS_ELIGIBILITE } from '@/lib/matching/eligibilite'
 
 /**
  * /admin/depots-en-echec — LES CANDIDATURES QUI N'ONT PAS PU ÊTRE ÉCRITES.
@@ -65,6 +66,14 @@ const TON_PAR_ETAT: Record<'echec' | 'interrompu', 'red' | 'amber'> = {
   echec: 'red',
   interrompu: 'amber',
 }
+
+/**
+ * Les raisons d'INAPTITUDE que le back-office sait nommer — DÉRIVÉES de la
+ * règle d'éligibilité, pas recopiées (§D.20). Une condition ajoutée demain
+ * apparaît ici, et son libellé manquant fera rougir le contrôle d'i18n plutôt
+ * que de s'afficher en clé brute.
+ */
+const RAISONS_CONNUES = CONDITIONS_ELIGIBILITE.map((c) => `raison_${c.raison}`)
 
 /** Durées proposées. Fermées : une saisie libre de date n'apporte rien ici. */
 const PERIODES = [0, 7, 30, 90] as const
@@ -150,6 +159,20 @@ export default function AdminDepotsEnEchecPage() {
     [t],
   )
 
+  /**
+   * Traduit une raison d'INAPTITUDE de l'expert. Jamais d'identifiant brut à
+   * l'écran (§D.11) — et jamais la phrase destinée à l'expert non plus : elle
+   * est à la deuxième personne, et un administrateur croirait qu'on parle de
+   * lui (§E.29).
+   */
+  const libelleRaison = useCallback(
+    (r: string): string => {
+      const cle = `raison_${r}`
+      return RAISONS_CONNUES.includes(cle) ? t(cle as 'raison_compte_suspendu') : t('cause_inconnue')
+    },
+    [t],
+  )
+
   const relancer = useCallback(async (ligne: Ligne) => {
     setRelance(ligne.id)
     setToast(null)
@@ -163,9 +186,16 @@ export default function AdminDepotsEnEchecPage() {
         issue?: string
         cause?: string
         code?: string
+        raison?: string
       }
       if (payload.issue === 'deposee') {
         setToast({ msg: t('toast_deposee'), kind: 'success' })
+      } else if (payload.issue === 'inapte') {
+        // ⚠️ CE N'EST PAS UNE PANNE, ET LE DIRE COMPTE. L'expert s'est déclaré
+        //    occupé, a retiré son consentement, ou son compte a été fermé
+        //    depuis. Relancer ne servira à rien tant que son état n'a pas
+        //    changé — et la ligne se soldera d'elle-même s'il redevient apte.
+        setToast({ msg: t('toast_inapte', { cause: libelleRaison(payload.raison ?? '') }), kind: 'error' })
       } else if (payload.issue === 'sans_jugement') {
         // LA RELANCE A ÉCHOUÉ À SON TOUR, et on le dit avec sa cause. Un
         // « réessayez » sans motif enverrait cliquer en boucle.
@@ -179,7 +209,7 @@ export default function AdminDepotsEnEchecPage() {
     } finally {
       setRelance(null)
     }
-  }, [secureFetch, t, charger, libelleCause])
+  }, [secureFetch, t, charger, libelleCause, libelleRaison])
 
   const nomExpert = useCallback((e: Ligne['expert']): string => {
     const complet = [e.prenom, e.nom].filter(Boolean).join(' ').trim()

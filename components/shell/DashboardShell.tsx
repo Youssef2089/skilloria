@@ -1,5 +1,15 @@
 'use client'
 
+
+// LA RÈGLE D'INDISPONIBILITÉ, LUE ET NON RECOPIÉE (§D.20, §D.21).
+//
+// ⚠️ CE N'EST PAS §E.15. Ce composant n'APPLIQUE aucune règle serveur : il
+//    affiche une pastille. Ce qu'on évite est la DIVERGENCE — il posait mot
+//    pour mot l'expression que le flux de missions posait de son côté, et le
+//    jour où l'une des deux change, la pastille dit « disponible » à un expert
+//    que le serveur a fermé. Le module est PUR : il ne tire rien dans le bundle.
+import { enIndisponibilite } from '@/lib/matching/eligibilite'
+
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { usePathname } from '@/i18n/navigation'
@@ -214,8 +224,8 @@ export default function DashboardShell({
     if (side === 'entreprise' || !isVerified) return undefined
     const isFreelance = side === 'freelance'
     const dnd = isFreelance
-      ? profile?.availability_status === 'do_not_disturb'
-      : profile?.cdi_status === 'employed'
+      ? enIndisponibilite({ availability_status: profile?.availability_status ?? null })
+      : enIndisponibilite({ cdi_status: profile?.cdi_status ?? null })
     if (dnd) {
       return (
         <span

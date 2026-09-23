@@ -34,6 +34,8 @@ import { activePublishedOrClause } from '@/lib/publications/expiry'
 // par `diag-relance-rejouee` (§E.33). Le redéfinir ici en ferait un second
 // lecteur du même fait, et le plafond de tentatives existerait deux fois.
 import { etatDerniereRecherche } from '@/lib/matching/run-abouti'
+// LA RÈGLE D'ÉLIGIBILITÉ, ÉCRITE UNE FOIS (§D.20).
+import { COLONNES_PROFIL, enIndisponibilite } from '@/lib/matching/eligibilite'
 
 /**
  * Plafond du feed expert. Le badge s'y borne aussi : il ne doit jamais annoncer
@@ -99,7 +101,10 @@ export async function loadExpertFeedContext(
   const { data, error } = await supabaseAdmin
     .from('profiles')
     .select(
-      'id, verification_status, availability_status, cdi_status, ' +
+      // ⚠️ LES COLONNES D'ÉLIGIBILITÉ SONT DÉRIVÉES DE LA RÈGLE, pas listées :
+      //    une condition ajoutée demain charge sa colonne ici toute seule. Un
+      //    test sur une colonne non chargée lit `undefined` et conclut (§E.1).
+      `id, ${COLONNES_PROFIL.join(', ')}, ` +
         // L'ÉTAT DE LA DERNIÈRE RECHERCHE. Sans lui, un flux vide se lit
         // « aucune mission » alors que rien n'a été cherché (§E.27).
         'matching_relance_echec_code, matching_relance_due_at, matching_relance_tentatives',
@@ -136,7 +141,13 @@ export async function loadExpertFeedContext(
   }
 
   const isApproved = row.verification_status === 'approved'
-  const isDnd = row.availability_status === 'do_not_disturb' || row.cdi_status === 'employed'
+  // ⚠️ CE FICHIER ÉTAIT LE TROISIÈME ÉCRIVAIN DE LA RÈGLE, et son commentaire
+  //    disait « UN SEUL endroit lit `availability_status` / `cdi_status` ».
+  //    Il était vrai du flux, faux du produit : le moteur en avait une autre.
+  //    La question est désormais posée à la règle partagée (§D.20), qui la
+  //    dérive de ses propres conditions de disponibilité — ajouter un public
+  //    demain l'ajoute ici sans toucher à ce fichier.
+  const isDnd = enIndisponibilite(row as unknown as Record<string, unknown>)
 
   return {
     ok: true,

@@ -65,6 +65,12 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, relative } from 'node:path'
+// ⚠️ IMPORT STATIQUE, ET C EST LE PIEGE QUE CE LOT VIENT DE PAYER DEUX FOIS :
+//    un `await import()` en milieu de fichier fait planter Node a la SORTIE,
+//    sous Windows, quand stdout est redirige — vert a la main, MUET dans la
+//    serie (§E.57). Le second a ete pose vingt minutes apres avoir ecrit la
+//    regle.
+import * as REGLE_ELIGIBILITE from '../lib/matching/eligibilite.ts'
 
 const MOI = fileURLToPath(import.meta.url)
 const ROOT = join(dirname(MOI), '..')
@@ -789,7 +795,27 @@ ok(
 const messages = Object.fromEntries(
   LOCALES.map((l) => [l, JSON.parse(readFileSync(join(ROOT, 'messages', `${l}.json`), 'utf8'))]),
 )
-const clesUtilisees = [...depouillerJs(ecranSrc).matchAll(/\bt\(\s*'([a-z0-9_]+)'/g)].map((m) => m[1])
+// ⚠️ TOUTES LES CLÉS NE SONT PAS LITTÉRALES, ET LE SUPPOSER A FAIT ROUGIR CE
+//    CONTRÔLE SUR DU CODE JUSTE. Les libellés d'inaptitude sont atteints par
+//    une clé CONSTRUITE, parce que la liste des raisons est DÉRIVÉE de la
+//    règle d'éligibilité (§D.20) : les écrire en dur dans l'écran serait la
+//    recopie que cette règle interdit.
+//    On les prend donc à la MÊME SOURCE que l’écran. Une condition ajoutée
+//    demain attend son libellé, et son absence fera rougir — ce qui est
+//    exactement ce qu’on veut (§E.61).
+const clesDerivees = REGLE_ELIGIBILITE.CONDITIONS_ELIGIBILITE.map(
+  (c) => `raison_${c.raison}`,
+)
+ok(
+  /RAISONS_CONNUES/.test(depouillerJs(ecranSrc)) &&
+    /CONDITIONS_ELIGIBILITE/.test(depouillerJs(ecranSrc)),
+  'l’écran dérive ses libellés de raison de la RÈGLE, il ne les liste pas',
+  'une liste écrite à la main se désaccorde de la règle à la première condition ajoutée',
+)
+const clesUtilisees = [
+  ...[...depouillerJs(ecranSrc).matchAll(/\bt\(\s*'([a-z0-9_]+)'/g)].map((m) => m[1]),
+  ...clesDerivees,
+]
 ok(clesUtilisees.length >= 20, `${clesUtilisees.length} clés lues dans l’écran`)
 const manquantes = []
 for (const l of LOCALES) {

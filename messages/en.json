@@ -2433,7 +2433,18 @@
       "error_cover_too_long": "Your message exceeds 2000 characters.",
       "error_cannot_apply_own_need": "You can't apply to your own need.",
       "error_type_not_candidatable": "This type of opportunity does not accept applications.",
-      "error_verification_indisponible": "A check could not be completed: this is neither a refusal nor a missing offer. Nothing was saved — please try again in a moment."
+      "error_verification_indisponible": "A check could not be completed: this is neither a refusal nor a missing offer. Nothing was saved — please try again in a moment.",
+      "inapte": {
+        "profil_non_visible": "Your profile is hidden: you cannot apply while it is. Make it visible from your profile.",
+        "cv_non_analyse": "Your CV has not been analysed yet: your application would be incomplete. Resume from your profile.",
+        "consentement_absent": "Your consent to AI analysis is required to apply: your application is assessed on submission. Give it from your profile.",
+        "profil_non_approuve": "Your profile is not approved yet: you will be able to apply as soon as it is.",
+        "compte_suspendu": "Your account is suspended: you cannot apply. Contact support to find out why.",
+        "compte_en_suppression": "Your account is scheduled for deletion: you can no longer apply. Reactivate your account to resume.",
+        "compte_anonymise": "Your account has been deleted: you can no longer apply.",
+        "ne_pas_deranger": "You are set to “do not disturb”: you receive nothing and you do not apply. Switch back to available to apply.",
+        "non_en_recherche": "You are marked as employed and not looking: you receive nothing and you do not apply. Change your status to apply."
+      }
     },
     "recommendations_updated": "Your recommendations have been updated."
   },
@@ -3234,7 +3245,17 @@
       "toast_deposee": "The application was submitted, complete. It reached the organisation.",
       "toast_sans_jugement": "The retry did not succeed: {cause}. Nothing was written, the row stays.",
       "toast_refusee": "The submission was refused ({code}). This is not a failure: a guard rejects it.",
-      "contexte_illisible": "The listing or the expert could not be re-read: the details above are incomplete."
+      "contexte_illisible": "The listing or the expert could not be re-read: the details above are incomplete.",
+      "toast_inapte": "Retry refused: the expert is no longer eligible to apply ({cause}). This is not a failure — the row stays, and clears itself if they become eligible again.",
+      "raison_profil_non_visible": "profile hidden",
+      "raison_cv_non_analyse": "CV not analysed",
+      "raison_consentement_absent": "AI consent withdrawn",
+      "raison_profil_non_approuve": "profile not approved",
+      "raison_compte_suspendu": "account suspended",
+      "raison_compte_en_suppression": "account being deleted",
+      "raison_compte_anonymise": "account deleted",
+      "raison_ne_pas_deranger": "expert set to “do not disturb”",
+      "raison_non_en_recherche": "expert employed, not looking"
     },
     "nav_depots_echec": "Failed submissions"
   },

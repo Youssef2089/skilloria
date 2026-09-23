@@ -141,6 +141,15 @@ export async function POST(request: NextRequest): Promise<Response> {
     case 'refusee':
       return json({ error: MESSAGE_REFUS[issue.code], code: issue.code }, REFUS_DEPOT[issue.code])
 
+    case 'inapte':
+      // ⚠️ CELUI-LÀ, L'EXPERT LE SAIT — ET C'EST L'INVERSE DU CAS SUIVANT.
+      //    §D.19 refuse de lui montrer une panne de plateforme ; ici il s'agit
+      //    de SON état, qu'il peut changer en un clic. Le taire le laisserait
+      //    cliquer un bouton qui ne fera jamais rien.
+      //    403 et non 409 : ce n'est pas un conflit avec l'annonce, c'est un
+      //    droit qu'il n'a pas aujourd'hui.
+      return json({ error: 'Expert not eligible', code: 'expert_inapte', raison: issue.raison }, 403)
+
     case 'sans_jugement':
       // ⚠️ DEUX CENT DEUX, ET PAS DEUX CENT UN. Rien n'a été créé : répondre
       //    201 serait faux au niveau du protocole, et un lecteur d'API ne

@@ -2433,7 +2433,18 @@
       "error_cover_too_long": "Votre message dépasse 2000 caractères.",
       "error_cannot_apply_own_need": "Vous ne pouvez pas candidater à votre propre besoin.",
       "error_type_not_candidatable": "Ce type d'opportunité n'accepte pas de candidature.",
-      "error_verification_indisponible": "Une vérification n’a pas pu aboutir : ce n’est ni un refus ni une annonce disparue. Rien n’a été enregistré — réessayez dans quelques instants."
+      "error_verification_indisponible": "Une vérification n’a pas pu aboutir : ce n’est ni un refus ni une annonce disparue. Rien n’a été enregistré — réessayez dans quelques instants.",
+      "inapte": {
+        "profil_non_visible": "Votre profil est masqué : vous ne pouvez pas postuler tant qu’il ne l’est plus. Rendez-le visible depuis votre profil.",
+        "cv_non_analyse": "Votre CV n’a pas encore été analysé : votre dossier serait incomplet. Reprenez depuis votre profil.",
+        "consentement_absent": "Votre consentement à l’analyse par IA est nécessaire pour postuler : votre dossier est évalué au dépôt. Donnez-le depuis votre profil.",
+        "profil_non_approuve": "Votre profil n’est pas encore approuvé : vous pourrez postuler dès qu’il le sera.",
+        "compte_suspendu": "Votre compte est suspendu : vous ne pouvez pas postuler. Contactez le support pour en connaître le motif.",
+        "compte_en_suppression": "La suppression de votre compte est programmée : vous ne pouvez plus postuler. Réactivez votre compte pour reprendre.",
+        "compte_anonymise": "Votre compte a été supprimé : vous ne pouvez plus postuler.",
+        "ne_pas_deranger": "Vous êtes en « ne pas déranger » : vous ne recevez rien et vous ne postulez pas. Repassez disponible pour postuler.",
+        "non_en_recherche": "Vous êtes déclaré en poste et non en recherche : vous ne recevez rien et vous ne postulez pas. Changez votre statut pour postuler."
+      }
     },
     "recommendations_updated": "Vos recommandations ont été mises à jour."
   },
@@ -3234,7 +3245,17 @@
       "toast_deposee": "La candidature a été déposée, complète. Elle est arrivée chez l'organisation.",
       "toast_sans_jugement": "La relance n'a pas abouti : {cause}. Rien n'a été écrit, la ligne reste.",
       "toast_refusee": "Le dépôt a été refusé ({code}). Ce n'est pas une panne : une garde s'y oppose.",
-      "contexte_illisible": "L'annonce ou l'expert n'a pas pu être relu : les informations ci-dessus sont incomplètes."
+      "contexte_illisible": "L'annonce ou l'expert n'a pas pu être relu : les informations ci-dessus sont incomplètes.",
+      "toast_inapte": "Relance refusée : l’expert n’est plus en état de postuler ({cause}). Ce n’est pas une panne — la ligne reste, et se soldera d’elle-même s’il redevient apte.",
+      "raison_profil_non_visible": "profil masqué",
+      "raison_cv_non_analyse": "CV non analysé",
+      "raison_consentement_absent": "consentement IA retiré",
+      "raison_profil_non_approuve": "profil non approuvé",
+      "raison_compte_suspendu": "compte suspendu",
+      "raison_compte_en_suppression": "compte en suppression",
+      "raison_compte_anonymise": "compte supprimé",
+      "raison_ne_pas_deranger": "expert en « ne pas déranger »",
+      "raison_non_en_recherche": "expert en poste, non en recherche"
     },
     "nav_depots_echec": "Dépôts en échec"
   },

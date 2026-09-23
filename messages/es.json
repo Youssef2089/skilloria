@@ -2433,7 +2433,18 @@
       "error_cover_too_long": "Tu mensaje supera los 2000 caracteres.",
       "error_cannot_apply_own_need": "No puede postularse a su propia necesidad.",
       "error_type_not_candidatable": "Este tipo de oportunidad no acepta candidaturas.",
-      "error_verification_indisponible": "No se ha podido completar una verificación: no es un rechazo ni una oferta desaparecida. No se ha guardado nada; inténtelo de nuevo en unos instantes."
+      "error_verification_indisponible": "No se ha podido completar una verificación: no es un rechazo ni una oferta desaparecida. No se ha guardado nada; inténtelo de nuevo en unos instantes.",
+      "inapte": {
+        "profil_non_visible": "Su perfil está oculto: no puede postularse mientras lo esté. Hágalo visible desde su perfil.",
+        "cv_non_analyse": "Su CV aún no ha sido analizado: su candidatura estaría incompleta. Retómelo desde su perfil.",
+        "consentement_absent": "Su consentimiento al análisis por IA es necesario para postularse: su candidatura se evalúa al enviarla. Concédalo desde su perfil.",
+        "profil_non_approuve": "Su perfil aún no está aprobado: podrá postularse en cuanto lo esté.",
+        "compte_suspendu": "Su cuenta está suspendida: no puede postularse. Contacte con soporte para conocer el motivo.",
+        "compte_en_suppression": "La eliminación de su cuenta está programada: ya no puede postularse. Reactive su cuenta para continuar.",
+        "compte_anonymise": "Su cuenta ha sido eliminada: ya no puede postularse.",
+        "ne_pas_deranger": "Está en «no molestar»: no recibe nada y no se postula. Vuelva a disponible para postularse.",
+        "non_en_recherche": "Figura como empleado y no en búsqueda: no recibe nada y no se postula. Cambie su estado para postularse."
+      }
     },
     "recommendations_updated": "Tus recomendaciones se han actualizado."
   },
@@ -3234,7 +3245,17 @@
       "toast_deposee": "La candidatura se registró, completa. Ha llegado a la organización.",
       "toast_sans_jugement": "El reintento no prosperó: {cause}. No se escribió nada, la línea permanece.",
       "toast_refusee": "El depósito fue rechazado ({code}). No es una avería: una guarda lo impide.",
-      "contexte_illisible": "No se pudo releer el anuncio o el experto: los datos anteriores están incompletos."
+      "contexte_illisible": "No se pudo releer el anuncio o el experto: los datos anteriores están incompletos.",
+      "toast_inapte": "Reintento rechazado: el experto ya no puede postularse ({cause}). No es una avería: la línea permanece y se resolverá sola si vuelve a ser apto.",
+      "raison_profil_non_visible": "perfil oculto",
+      "raison_cv_non_analyse": "CV sin analizar",
+      "raison_consentement_absent": "consentimiento de IA retirado",
+      "raison_profil_non_approuve": "perfil no aprobado",
+      "raison_compte_suspendu": "cuenta suspendida",
+      "raison_compte_en_suppression": "cuenta en eliminación",
+      "raison_compte_anonymise": "cuenta eliminada",
+      "raison_ne_pas_deranger": "experto en «no molestar»",
+      "raison_non_en_recherche": "experto empleado, no en búsqueda"
     },
     "nav_depots_echec": "Depósitos fallidos"
   },

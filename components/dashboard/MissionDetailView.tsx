@@ -53,6 +53,15 @@ type DetailData = {
   }
   org: { name: string | null; logo_url: string | null } | null
   candidature: { id: string; status: string; created_at: string; cover_message: string | null } | null
+  /**
+   * PEUT-IL POSTULER, ET SINON POURQUOI — décidé au SERVEUR (§D.20, §D.21).
+   *
+   * ⚠️ L'ÉCRAN LE REND, IL NE LE CALCULE PAS. Recopier ici la condition
+   *    « occupé » figerait une règle serveur dans le bundle (§E.15), et elle
+   *    divergerait du refus réel le jour où une condition s'ajoute — ce qui
+   *    vient précisément d'arriver trois fois (§D.20).
+   */
+  aptitude: { peut_postuler: boolean; raison: string | null }
 }
 
 type State =
@@ -171,7 +180,11 @@ export default function MissionDetailView({
           cover_message: cover,
         }),
       })
-      const payload = (await res.json().catch(() => ({} as { code?: string }))) as { code?: string; status?: string }
+      const payload = (await res.json().catch(() => ({} as { code?: string }))) as {
+        code?: string
+        status?: string
+        raison?: string
+      }
       if (!res.ok) {
         if (payload.code === 'already_applied') setErrorBanner(t('error_already_applied'))
         else if (payload.code === 'not_matched') setErrorBanner(t('error_not_matched'))
@@ -179,6 +192,12 @@ export default function MissionDetailView({
         else if (payload.code === 'cannot_apply_own_need') setErrorBanner(t('error_cannot_apply_own_need'))
         else if (payload.code === 'type_not_candidatable') setErrorBanner(t('error_type_not_candidatable'))
         else if (payload.code === 'invalid_cover_message') setErrorBanner(t('error_cover_too_long'))
+        // LE SERVEUR REFUSE, ET C'EST LUI QUI FAIT FOI. L'écran a pu être
+        // chargé avant que l'expert ne se déclare occupé : le bouton était
+        // ouvert, le refus arrive ici. Il porte SA raison.
+        else if (payload.code === 'expert_inapte') {
+          setErrorBanner(t(`inapte.${payload.raison ?? 'profil_non_visible'}`))
+        }
         else if (
           payload.code === 'profil_verification_indisponible' ||
           payload.code === 'objet_verification_indisponible'
@@ -250,6 +269,13 @@ export default function MissionDetailView({
   const orgName = pub.confidential ? t('confidential_org') : org?.name ?? t('confidential_org')
   const budgetText = formatBudget(pub.budget_min, pub.budget_max, pub.type, locale)
   const alreadyApplied = !!candidature
+  // L'APTITUDE VIENT DU SERVEUR. Une réponse plus ancienne que ce champ (ou une
+  // lecture en panne) ne doit pas fermer le bouton par défaut : c'est le
+  // SERVEUR qui refuse (§D.21), et un faux refus côté écran cacherait une
+  // action légitime sans que rien ne le dise. `!== false` — jamais une vérité
+  // simple, qui fermerait sur `undefined` (§E.55).
+  const peutPostuler = state.data.aptitude?.peut_postuler !== false
+  const raisonInaptitude = state.data.aptitude?.raison ?? 'profil_non_visible'
 
   return (
     <div style={{ maxWidth: 980, padding: '24px 26px' }}>
@@ -375,6 +401,24 @@ export default function MissionDetailView({
         {alreadyApplied ? (
           <div style={{ padding: '12px 20px', background: 'var(--sk-success-soft)', color: 'var(--sk-success)', border: '1px solid var(--sk-success)', borderRadius: 10, fontSize: 13, fontWeight: 600 }}>
             ✓ {t('already_applied')}
+          </div>
+        ) : !peutPostuler ? (
+          /*
+           * ⚠️ LA RÉPONSE EST CONNUE AVANT LE CLIC, DONC ELLE SE DIT AVANT
+           *    (§D.13 ①). Le bouton ne s'affiche PAS en grisé : un bouton
+           *    qu'on ne peut pas cliquer promet une porte qui n'existe pas
+           *    (§D.1). Il est REMPLACÉ par la raison — et la raison vient du
+           *    serveur, pas d'un test recopié ici.
+           */
+          <div
+            role="status"
+            style={{
+              padding: '12px 20px', background: 'var(--sk-amber-soft)', color: 'var(--sk-amber)',
+              border: '1px solid var(--sk-amber-soft)', borderRadius: 10,
+              fontSize: 13, fontWeight: 600, maxWidth: 520, lineHeight: 1.5,
+            }}
+          >
+            {t(`inapte.${raisonInaptitude}`)}
           </div>
         ) : !coverOpen ? (
           <button

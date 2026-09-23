@@ -64,6 +64,14 @@ import { publicationCandidaturesLinkForOrg } from '@/lib/collaboration-links'
 import { isActivePublished } from '@/lib/publications/expiry'
 import { jugerCandidature, type CausePanne } from '@/lib/candidatures/ai-assessment'
 import { chargerDurees, DUREES_ILLISIBLES_CODE, type Durees } from '@/lib/durees'
+// LA RÈGLE D'ÉLIGIBILITÉ, ÉCRITE UNE FOIS ET LUE ICI AUSSI (§D.20, §D.21).
+import {
+  COLONNES_COMPTE,
+  COLONNES_PROFIL,
+  jugerEligibilite,
+  type PublicExpert,
+  type RaisonIneligible,
+} from '@/lib/matching/eligibilite'
 import { FENETRE_DEPOT_MS } from '@/lib/candidatures/depot-etats'
 
 /**
@@ -101,6 +109,16 @@ export type IssueDepot =
   | { issue: 'deposee'; candidatureId: string; status: string; createdAt: string }
   /** Une garde a refusé. Rien n'a été tenté, rien n'a été payé. */
   | { issue: 'refusee'; code: CodeRefus }
+  /**
+   * L'EXPERT LUI-MÊME N'EST PAS EN ÉTAT DE POSTULER, et il peut y remédier.
+   *
+   * ⚠️ DISTINCT DE `refusee`, ET LA DIFFÉRENCE EST CE QU'ON DIT À L'EXPERT.
+   *    Un refus de garde porte sur l'ANNONCE ou sur le couple (déjà postulé,
+   *    annonce fermée) ; celui-ci porte sur LUI. « Occupé » se change en un
+   *    clic, un consentement se redonne, un profil se rend visible. Les
+   *    confondre sous `refusee` renverrait un code qui ne dit pas quoi faire.
+   */
+  | { issue: 'inapte'; raison: RaisonIneligible }
   /**
    * Le jugement n'a pas abouti : AUCUNE candidature n'a été écrite, et la
    * ligne de journal attend une relance d'administrateur.
@@ -165,7 +183,35 @@ type ProfilDepot = Record<string, unknown> & {
   id: string
   user_id: string
   domain_id: string
+  /** Le compte, joint — il porte le public de l'expert ET son état. */
+  users:
+    | { user_type: string | null }
+    | Array<{ user_type: string | null }>
+    | null
 }
+
+/**
+ * LE `SELECT` DU PROFIL AU DÉPÔT — les colonnes d'aperçu, PLUS celles de la
+ * règle d'éligibilité, dérivées.
+ *
+ * ⚠️ UN TEST SUR UNE COLONNE QUE LE `SELECT` NE CHARGE PAS NE LÈVE RIEN : il
+ *    lit `undefined` et conclut (§E.1). C'est exactement ce qui avait laissé
+ *    trois conditions inopérantes dans le moteur (§D.20). Les colonnes de la
+ *    règle sont donc ajoutées par dérivation, dédoublonnées avec celles de
+ *    l'aperçu — une seconde liste écrite à la main serait la même faute.
+ */
+const CHAMPS_APERCU = (
+  'id, user_id, domain_id, title, summary, skills, seniorities, expert_type, ' +
+  'years_experience, years_total_experience, tjm_min, tjm_max, salary_min, salary_max, ' +
+  'work_modes, languages, country, city, availability_status, availability_date, ' +
+  'profile_score, branch_id, speciality_ids, ' +
+  'cdi_status, cdi_notice_period, cdi_geo_mobility, cdi_contract_types, ' +
+  'cdi_company_size, cdi_sectors'
+).split(', ')
+
+const SELECT_PROFIL_DEPOT =
+  [...new Set([...CHAMPS_APERCU, ...COLONNES_PROFIL])].join(', ') +
+  `, users!profiles_user_id_fkey!inner(user_type, ${COLONNES_COMPTE.join(', ')})`
 
 type AnnonceDepot = {
   id: string
@@ -218,14 +264,7 @@ export async function deposerCandidature(args: {
   //  pour les inclure dans le snapshot preview.
   const { data: profile, error: pErr } = await supabaseAdmin
     .from('profiles')
-    .select(
-      'id, user_id, domain_id, title, summary, skills, seniorities, expert_type, ' +
-        'years_experience, years_total_experience, tjm_min, tjm_max, salary_min, salary_max, ' +
-        'work_modes, languages, country, city, availability_status, availability_date, ' +
-        'profile_score, branch_id, speciality_ids, ' +
-        'cdi_status, cdi_notice_period, cdi_geo_mobility, cdi_contract_types, ' +
-        'cdi_company_size, cdi_sectors',
-    )
+    .select(SELECT_PROFIL_DEPOT)
     .eq('id', profileId)
     .maybeSingle()
   // Une lecture de `profiles` en panne n'est pas un profil absent (§E.42) :
@@ -236,6 +275,40 @@ export async function deposerCandidature(args: {
   }
   if (!profile) return { issue: 'refusee', code: 'profile_missing' }
   const profileRow = profile as unknown as ProfilDepot
+
+  // ── L'EXPERT EST-IL EN ÉTAT DE POSTULER ? ───────────────────────────────
+  //
+  //  ┌─ « OCCUPÉ » FERME AUSSI LE DÉPÔT — §D.21 ───────────────────────────┐
+  //  │ « Je ne reçois rien, je ne vois rien, JE NE POSTULE PAS. » Le moteur │
+  //  │ et le flux l'excluaient déjà ; le dépôt, non. Un match posé AVANT    │
+  //  │ qu'il ne se déclare occupé restait cliquable, et le serveur          │
+  //  │ acceptait.                                                           │
+  //  └──────────────────────────────────────────────────────────────────────┘
+  //
+  //  ⚠️ ET CE N'EST PAS QUE « OCCUPÉ ». On lit la règle ENTIÈRE, parce que
+  //     §D.19 a rendu le jugement OBLIGATOIRE au dépôt : un expert dont le
+  //     consentement IA a été retiré APRÈS la création du match verrait
+  //     désormais son profil partir chez le fournisseur. La condition
+  //     existait dans le moteur et n'avait aucune raison de s'arrêter à sa
+  //     porte (§D.20).
+  //
+  //  ELLE EST POSÉE AVANT TOUT LE RESTE, ET AVANT TOUTE DÉPENSE : elle ne
+  //  coûte aucune requête (le profil est déjà lu), et elle porte sur LUI —
+  //  pas sur l'annonce. C'est la réponse qu'il peut corriger.
+  const kind: PublicExpert =
+    (Array.isArray(profileRow.users) ? profileRow.users[0] : profileRow.users)?.user_type ===
+    'expert_cdi'
+      ? 'expert_cdi'
+      : 'expert_freelance'
+  const aptitude = jugerEligibilite(profileRow as unknown as Record<string, unknown>, kind)
+  if (!aptitude.ok) {
+    console.log('[depot] dépôt refusé — expert non apte', {
+      profileId: profileRow.id,
+      publicationId,
+      raison: aptitude.raison,
+    })
+    return { issue: 'inapte', raison: aptitude.raison }
+  }
 
   // ── Match requis (bornage curation) ─────────────────────────────────────
   const { data: match, error: mErr } = await supabaseAdmin

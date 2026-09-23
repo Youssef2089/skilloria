@@ -292,6 +292,12 @@ export async function POST(request: NextRequest): Promise<Response> {
       // ⚠️ LE STATUT EST CELUI DU DÉPÔT, PAS 200. Un refus de garde rendu en
       //    200 se lirait « c'est reparti » sur l'écran (§E.22).
       return json({ issue: 'refusee', code: issue.code }, REFUS_DEPOT[issue.code as CodeRefus])
+    case 'inapte':
+      // Même règle que `refusee` : le statut est celui du DÉPÔT. Un expert
+      // devenu « occupé », ou dont le consentement a été retiré, n'est pas une
+      // panne à relancer — c'est un dépôt qui n'a plus lieu d'être.
+      return json({ issue: 'inapte', raison: issue.raison }, 403)
+
     case 'sans_jugement':
       // La relance a échoué à son tour, et la ligne reste. 200 : la demande a
       // bien été traitée, son VERDICT est dans le corps — et l'écran le lit.

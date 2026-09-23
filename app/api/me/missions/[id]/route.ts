@@ -6,6 +6,14 @@ import { activePublishedOrClause } from '@/lib/publications/expiry'
 import { loadReferentielLabels } from '@/lib/publication-synthesis'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 import { signOrgLogoUrl } from '@/lib/org-logo'
+// LA RÈGLE D'ÉLIGIBILITÉ, ÉCRITE UNE FOIS (§D.20) — l'écran la REND, il ne la
+// calcule pas (§E.15).
+import {
+  COLONNES_COMPTE,
+  COLONNES_PROFIL,
+  jugerEligibilite,
+  type PublicExpert,
+} from '@/lib/matching/eligibilite'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -97,9 +105,16 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   }
 
   // 1. Profile expert ─────────────────────────────────────────────────────
+  // ⚠️ ON CHARGE DE QUOI JUGER L'APTITUDE, ET LES COLONNES SONT DÉRIVÉES.
+  //    Depuis §D.21, « occupé » ferme aussi le dépôt : l'écran doit pouvoir
+  //    fermer le bouton AVANT le clic, avec sa raison. La réponse existe en une
+  //    lecture de ligne — la faire attendre un refus serveur serait §D.13 ①.
   const { data: profile, error: pErr } = await auth.supabaseAdmin
     .from('profiles')
-    .select('id, user_id')
+    .select(
+      `id, user_id, ${COLONNES_PROFIL.join(', ')}, ` +
+        `users!profiles_user_id_fkey!inner(user_type, ${COLONNES_COMPTE.join(', ')})`,
+    )
     .eq('user_id', auth.user.id)
     .maybeSingle()
   // Une lecture de `profiles` en panne n'est pas un profil absent (§E.42) :
@@ -114,6 +129,23 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   if (!profile) {
     return json({ error: 'Profile not found', code: 'not_found' }, 404)
   }
+  // L'APTITUDE À POSTULER — jugée ICI, par la règle partagée, et servie telle
+  // quelle à l'écran (§D.20, §D.21).
+  // Le client Supabase n est pas type (§E.1) : un embed construit par gabarit
+  //  ne se laisse pas inferer. Le cast est explicite, et il est LE seul.
+  const profilJugeable = profile as unknown as Record<string, unknown> & {
+    id: string
+    users: { user_type: string | null } | Array<{ user_type: string | null }> | null
+  }
+  const kindExpert: PublicExpert =
+    (Array.isArray(profilJugeable.users) ? profilJugeable.users[0] : profilJugeable.users)
+      ?.user_type === 'expert_cdi'
+      ? 'expert_cdi'
+      : 'expert_freelance'
+  const verdictAptitude = jugerEligibilite(profilJugeable, kindExpert)
+  const aptitude = verdictAptitude.ok
+    ? { peut_postuler: true as const, raison: null }
+    : { peut_postuler: false as const, raison: verdictAptitude.raison }
 
   // 2. Match (frontière curation) ─────────────────────────────────────────
   const { data: match, error: mErr } = await auth.supabaseAdmin
@@ -130,7 +162,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     //    ne trie rien — elle n'a donc aucune raison de lire la note.
     .select('id, publication_id, relevance_tier, status, explanation, created_at')
     .eq('publication_id', publicationId)
-    .eq('profile_id', profile.id)
+    .eq('profile_id', profilJugeable.id)
     .maybeSingle()
   if (mErr) {
     console.error('[me/missions/[id]:GET] match query failed', mErr.message)
@@ -212,7 +244,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     .from('candidatures')
     .select('id, status, created_at, cover_message')
     .eq('publication_id', publicationId)
-    .eq('profile_id', profile.id)
+    .eq('profile_id', profilJugeable.id)
     .maybeSingle()
   // ⚠️ `null` FAIT RÉAPPARAÎTRE LE BOUTON « CANDIDATER » à un expert qui a
   //    déjà candidaté. L’écran ment, la garde tient : le dépôt sera refusé
@@ -222,7 +254,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   if (existingCandErr) {
     console.error('[me/missions] candidature existante ILLISIBLE — le bouton peut réapparaître à tort', {
       publicationId,
-      profileId: profile.id,
+      profileId: profilJugeable.id,
       message: existingCandErr.message,
     })
   }
@@ -298,6 +330,11 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
             cover_message: (existingCand as { cover_message: string | null }).cover_message,
           }
         : null,
+      // L'APTITUDE À POSTULER, décidée au SERVEUR par la MÊME règle que le
+      // dépôt (§D.20). L'écran la rend ; il ne la calcule pas — une règle
+      // serveur appliquée dans l'UI se fige dans le bundle (§E.15) et
+      // divergerait du refus réel.
+      aptitude,
     },
     200,
   )

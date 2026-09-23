@@ -243,6 +243,27 @@ export function conditionsPour(kind: PublicExpert): readonly ConditionEligibilit
   return CONDITIONS_ELIGIBILITE.filter((c) => c.portee === 'toujours' || c.portee === kind)
 }
 
+/**
+ * L'EXPERT S'EST-IL DÉCLARÉ INDISPONIBLE ? — pour qui ne connaît pas son public.
+ *
+ * ┌─ POURQUOI CETTE QUESTION EXISTE À PART ─────────────────────────────────┐
+ * │ Le flux de missions ne connaît pas le public de l'expert au moment de    │
+ * │ décider s'il est ouvert : il lit une ligne de profil, pas un type de     │
+ * │ compte. Il posait donc l'expression lui-même —                           │
+ * │   `availability_status === 'do_not_disturb' || cdi_status === 'employed'` │
+ * │ — sous un commentaire disant « UN SEUL endroit lit ces colonnes ». Un    │
+ * │ TROISIÈME écrivain de la règle, et il affirmait être le seul (§E.7).     │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *
+ * Elle plie les conditions de DISPONIBILITÉ — celles dont la portée n'est pas
+ * `toujours` — pour TOUS les publics : ne pas connaître le sien ne doit jamais
+ * rendre un expert indisponible visible, et les deux colonnes sont exclusives
+ * en pratique (une seule est renseignée par voie).
+ */
+export function enIndisponibilite(ligne: LigneJugeable): boolean {
+  return CONDITIONS_ELIGIBILITE.filter((c) => c.portee !== 'toujours').some((c) => !c.remplie(ligne))
+}
+
 export type VerdictEligibilite =
   | { ok: true }
   | { ok: false; raison: RaisonIneligible; journal: string }
