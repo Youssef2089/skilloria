@@ -3104,6 +3104,57 @@ sans dénominateur ne dit pas s'il a cherché.
 > git — il se dérive. Ce qui reste écrit à la main n'est plus une couverture : c'est une
 > EXEMPTION, elle porte sa raison, et le contrôle la compte à voix haute (§G.8).**
 
+<a id="e62"></a>
+### E.62 — UN DÉFAUT PEUT PROTÉGER QUELQUE CHOSE. LE RÉPARER NE DOIT PAS ROUVRIR CE QU'IL FERMAIT.
+
+**Le cas, mesuré le 22/09/2026.** Le digest e-mail des mises en relation composait, pour chaque
+opportunité, la ligne **« {titre} · {note}/10 »**. La note venait de `matches.score`, **supprimée le
+1ᵉʳ septembre**. La lecture échouait donc en silence, tous les paliers retombaient à zéro, et
+l'e-mail partait quand même — une des quinze lectures mortes de [§E.61](#e61).
+
+**La réparation évidente était de remettre la colonne vivante à la place de la morte.** C'est ce
+qu'on a fait quatorze fois dans le même lot, et c'était juste quatorze fois. **La quinzième aurait
+réarmé un interdit** : §D.6 ne sert **aucun score de pertinence chiffré à l'expert** — seul le
+palier sort, et il a deux valeurs. Écrire `relevance_score` là où `score` était mort aurait remis
+un nombre de pertinence dans un e-mail, **avec l'air d'un correctif**, et personne n'aurait relu la
+ligne une seconde fois : elle venait d'être corrigée.
+
+> **LA COLONNE MORTE FERMAIT PAR ACCIDENT UNE PORTE QUE LE PRODUIT FERME PAR DÉCISION.**
+> Depuis le 1ᵉʳ septembre, aucun expert n'a reçu de note de pertinence — non parce que la règle
+> tenait, mais parce que la requête échouait. La règle et le défaut se recouvraient exactement, et
+> **rien ne distinguait les deux depuis le code** : le digest était conforme, et il l'était pour une
+> mauvaise raison.
+
+**LA RÈGLE, ET ELLE NE SE DEVINE PAS AU MOMENT DU CORRECTIF :**
+
+> **Avant de remplacer une lecture morte par sa remplaçante vivante, demander ce que le produit
+> autorise À CET ENDROIT — pas ce que la colonne d'à côté contient.** Un défaut réparé « à
+> l'identique » rétablit le comportement d'avant le défaut ; si une DÉCISION a été prise entre-temps,
+> l'identique est une régression, et elle porte l'étiquette d'une correction.
+
+**Ce qui a été fait à la place.** Le nombre part — **du rendu ET du type** `MatchDigestItem` : un
+champ absent ne se remplit pas par distraction (§E.31) — et les deux requêtes qui le servaient avec
+lui (`matches`, `profiles`). Le digest annonce des opportunités par leur **titre**. Deux requêtes
+de moins par envoi, et la règle produit ne dépend plus d'une panne pour tenir.
+
+**C'est [§E.56](#e56) à l'envers.** §E.56 dit : *« j'avais vérifié le contrôle, pas l'écran »* — un
+lot qui convertit une syntaxe hérite d'une sémantique qui n'existait pas avant lui. Ici, un lot qui
+**répare** hérite d'une sémantique qui a changé **pendant** que le défaut vivait. Les deux se
+referment sur la même question, et c'est la seule à poser : **qu'est-ce que cet endroit a le droit
+de faire AUJOURD'HUI ?**
+
+> ⚠️ **ET LE SYMÉTRIQUE EST FAUX : UN DÉFAUT QUI PROTÈGE N'EST PAS UNE RAISON DE LE GARDER.**
+> La requête échouait à chaque digest, les paliers étaient faux, et la prochaine main qui aurait
+> « réparé » la lecture aurait rouvert la porte sans le savoir. Une règle qui ne tient que par
+> l'échec d'une requête ne tient pas : elle attend.
+
+**Ce qui le garde**, et ce n'est pas ce lot :
+[`diag-score-de-pertinence`](../scripts/diag-score-de-pertinence.mjs) vérifie qu'aucun nombre de
+pertinence ne sort vers l'expert, et il classe explicitement la note de **candidature** (`N/10`)
+parmi les occurrences **légitimes** — les deux grandeurs ne disent pas la même chose (§D.6). Le
+contrôle existait avant le défaut ; il ne l'a pas vu, parce qu'il balaie les **surfaces expert**, et
+qu'un gabarit d'e-mail n'en est pas une. **Il en est une depuis ce lot.**
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

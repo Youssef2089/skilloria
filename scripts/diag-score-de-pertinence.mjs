@@ -282,4 +282,58 @@ const depots = SERVEUR.filter((f) => /ai_match_score:\s*null/.test(sansCommentai
 ok(depots.length >= 1, 'au dépôt d une candidature, la note est posée à null — elle sera jugée, pas héritée',
   'aucun fichier ne pose `ai_match_score: null` : le motif ne voit plus le dépôt')
 
+// ══════════════════════════════════════════════════════════════════════════
+section('F. UN E-MAIL EST UNE SURFACE EXPERT — balayage de lib/emails')
+// ══════════════════════════════════════════════════════════════════════════
+//
+// ⚠️ CETTE SECTION MANQUAIT, ET SON ABSENCE A COÛTÉ (§E.62).
+//    La section C balaie `components/` et `app/[locale]/` — les ÉCRANS. Un
+//    gabarit d'e-mail n'en est pas un, et il atteint pourtant l'expert sans
+//    qu'il ouvre quoi que ce soit. Le digest des mises en relation a composé
+//    « {titre} · {note}/10 » pendant tout l'été ; la note venait de
+//    `matches.score`, supprimée le 01/09/2026, et la ligne n'a cessé d'être
+//    juste que parce que la requête ÉCHOUAIT. Ce contrôle était vert.
+//
+//    Le vrai risque n'était pas le nombre affiché — il ne l'était plus. C'est
+//    la RÉPARATION : remettre `relevance_score` là où `score` était mort avait
+//    l'air d'un correctif, et aurait rouvert §D.6 en silence.
+//
+// LES MÊMES DÉTECTEURS QUE LES ÉCRANS, PAS UN SECOND DIALECTE (§E.20) :
+//    `nombresDePertinence` et `lecturesDeScore` sont éprouvés plus haut, sur
+//    des témoins exécutés AVANT tout balayage. En écrire d'autres ici aurait
+//    fait deux jumeaux qui dérivent.
+
+const EMAILS = fichiers(['lib/emails'])
+const emailsFautifs = []
+const emailsQuiLisent = []
+for (const f of EMAILS) {
+  const src = sansCommentaires(lire(f))
+  const n = nombresDePertinence(src)
+  if (n.length) emailsFautifs.push(`${f} : ${n.slice(0, 3).join(' ; ')}`)
+  const l = lecturesDeScore(src)
+  if (l.length) emailsQuiLisent.push(`${f} : ${l.slice(0, 3).join(' ; ')}`)
+}
+info(`${EMAILS.length} gabarit(s) et module(s) d e-mail balayés`)
+ok(emailsFautifs.length === 0, 'aucun e-mail n interpole un nombre de pertinence',
+  emailsFautifs.join('\n       ') || undefined)
+ok(emailsQuiLisent.length === 0, 'aucun e-mail ne lit `relevance_score`',
+  emailsQuiLisent.join('\n       ') || undefined)
+
+// ── ET LE TYPE, PAS SEULEMENT LE RENDU (§E.31) ────────────────────────────
+//    Un champ déclaré finit par être rempli. `MatchDigestItem` portait
+//    `score: number` ; le retirer du rendu sans le retirer du type aurait
+//    laissé la porte ouverte, et TypeScript aurait aidé à la repasser.
+{
+  const src = sansCommentaires(lire('lib/emails/templates.ts'))
+  const i = src.indexOf('MatchDigestItem')
+  const bloc = i < 0 ? '' : src.slice(i, src.indexOf('}', i) + 1)
+  ok(i >= 0, 'le type du digest de mises en relation existe toujours',
+    'renommé ou supprimé : cette assertion vise un nom qui n existe plus, relisez-la')
+  ok(
+    i >= 0 && !/\bscore\b|\brelevance/i.test(bloc),
+    'le type du digest ne déclare AUCUN champ de score',
+    bloc ? `déclaration : ${bloc.replace(/\s+/g, ' ').slice(0, 160)}` : undefined,
+  )
+}
+
 fin('Le score a bien changé de nature : une grandeur, une colonne, un palier — sur tout le périmètre.')
