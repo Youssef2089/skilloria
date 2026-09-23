@@ -72,6 +72,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     tarifsRes,
     parActeurRes,
     seuilsActeurRes,
+    acteursPlafondRes,
     nuitStripeRes,
     coincesRes,
     depotsRes,
@@ -96,7 +97,12 @@ export async function GET(request: NextRequest): Promise<Response> {
     // se règlent ailleurs ; ils se LISENT ici, parce que l'alerte se déduit en
     // comparant à la dépense — et qu'un état « en dépassement » écrit quelque
     // part serait faux la seconde suivante.
-    admin.from('ai_spend_seuils_acteur').select('acteur, seuil_mensuel_usd'),
+    admin.from('ai_spend_seuils_acteur').select('acteur, seuil_mensuel_usd, plafond_mensuel_usd'),
+    // ⚠️ UN DÉCOMPTE SUR TOUS LES ACTEURS, pas sur la liste des dix plus gros
+    //    lue juste au-dessus. Compter les `au_plafond` de ces dix-là rendrait
+    //    un nombre juste tant qu'il y en a moins de dix, et faux ensuite —
+    //    c'est-à-dire le jour où le signal compte (§E.24).
+    admin.rpc('ai_spend_acteurs_au_plafond'),
     // ── LE RACCORDEMENT STRIPE, LU EN LOCAL ET SEULEMENT EN LOCAL ─────────
     //  On lit le VERDICT de la dernière nuit, jamais Stripe. Interroger Stripe
     //  ici ferait de cet écran un second consommateur de la même lecture que
@@ -191,6 +197,18 @@ export async function GET(request: NextRequest): Promise<Response> {
     pannes: ouNull(pannesRes),
     relances: ouNull(relancesRes),
     depense: ouNull(depenseRes),
+    // ⚠️ `null` SUR PANNE DE LECTURE, JAMAIS ZÉRO. « Aucun acteur au plafond »
+    //    et « je ne sais pas » ne sont pas le même fait, et le second se
+    //    lirait comme un « tout va bien » (§E.22).
+    acteursAuPlafond: (() => {
+      if (acteursPlafondRes.error) return null
+      const l = ((acteursPlafondRes.data ?? []) as Array<{
+        organisations: number | string
+        experts: number | string
+      }>)[0]
+      if (!l) return null
+      return { organisations: Number(l.organisations), experts: Number(l.experts) }
+    })(),
     distribution: ouNull(distributionRes),
     tarifPlusAncien:
       tarifs === null

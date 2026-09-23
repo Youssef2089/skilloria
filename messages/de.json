@@ -2479,7 +2479,8 @@
       "nav_durees": "Laufzeiten des Marktplatzes",
       "nav_tarifs_ia": "Modelltarife",
       "nav_supervision": "Überwachung",
-      "nav_facturation": "Abrechnung"
+      "nav_facturation": "Abrechnung",
+      "nav_consommation": "Verbrauch"
     },
     "quotas_ia": {
       "title": "KI-Kontingente",
@@ -3129,7 +3130,10 @@
         "catalogue_non_relie": "{count} kostenpflichtige(s) Paket(e) sind im Modus des verwendeten Schlüssels nicht mit Stripe verbunden. Das erste echte Abonnement käme als „Preis nicht im Katalog“ zurück: Das Geld würde eingezogen, ohne dass es einem Paket zugeordnet werden kann. Öffnen Sie den Handelskatalog und klicken Sie „Mit Stripe verbinden“.",
         "catalogue_etat_inconnu": "Es lässt sich nicht sagen, ob der Katalog mit Stripe verbunden ist: Schlüssel fehlt oder Lesen fehlgeschlagen. Das ist kein „alles in Ordnung“, sondern „ich weiß es nicht“.",
         "depots_candidature_perdus": "{count} Bewerbung(en) konnten nicht eingereicht werden: Ihre Analyse wurde nicht abgeschlossen, und es wurde nichts geschrieben. Die Fachkraft glaubt, sich beworben zu haben; die Organisation weiß nicht, dass eine Unterlage fällig war. Öffnen Sie Fehlgeschlagene Einreichungen und versuchen Sie es erneut.",
-        "lecture_indisponible_depots": "Die Bewerbungseingänge konnten nicht gezählt werden. Das heißt nicht „keine verlorenen Einreichungen“, sondern „wir wissen es nicht“. Öffnen Sie Fehlgeschlagene Einreichungen."
+        "lecture_indisponible_depots": "Die Bewerbungseingänge konnten nicht gezählt werden. Das heißt nicht „keine verlorenen Einreichungen“, sondern „wir wissen es nicht“. Öffnen Sie Fehlgeschlagene Einreichungen.",
+        "organisations_au_plafond_ia": "{count} Unternehmen haben ihre Ausgabengrenze erreicht: ihre Anzeigen erscheinen, werden aber nicht mehr eingestuft.",
+        "experts_au_plafond_ia": "{count} Experte(n) haben ihre Ausgabengrenze erreicht: ihre automatischen Suchen sind gestoppt.",
+        "lecture_indisponible_acteurs_plafond": "Die Konten an der Obergrenze konnten nicht gezählt werden. Das ist nicht „keine“: wir wissen es nicht."
       },
       "spread_title": "Verteilung der Bewertungen",
       "spread_empty": "Noch kein Lauf auf der neuen Skala. Die Verteilung füllt sich mit den nächsten Matching-Läufen.",
@@ -3262,7 +3266,38 @@
       "raison_ne_pas_deranger": "Fachkraft auf „nicht stören“",
       "raison_non_en_recherche": "Fachkraft beschäftigt, nicht suchend"
     },
-    "nav_depots_echec": "Fehlgeschlagene Einreichungen"
+    "nav_depots_echec": "Fehlgeschlagene Einreichungen",
+    "consommation": {
+      "title": "Verbrauch pro Konto",
+      "intro": "Was jedes Konto diesen Monat gekostet hat, und welches seine Obergrenze erreicht hat. Die Obergrenzen werden eingestellt in",
+      "to_settings": "den Einstellungen der Engine",
+      "loading": "Wird geladen…",
+      "err_load": "Der Verbrauch konnte nicht gelesen werden.",
+      "unreadable": "Diese Lesung ist fehlgeschlagen. Das ist nicht „null“: wir wissen es nicht.",
+      "empty": "Diesen Monat hat noch kein Konto etwas ausgegeben.",
+      "global_title": "Die letzte Absicherung",
+      "global_one_line": "Die gemeinsame Obergrenze. Ist sie erreicht, geht gar nichts mehr hinaus, unabhängig vom Zustand der Konten.",
+      "accounts_title": "Die Konten",
+      "accounts_one_line": "Ein Konto an der Obergrenze ist weder gesperrt noch benachrichtigt: was die Plattform von sich aus für es tat, hört auf, alles andere läuft weiter.",
+      "amount_of": "{spent} $ von {cap} $",
+      "col_account": "Konto",
+      "col_kind": "Typ",
+      "col_spent": "Ausgegeben ($)",
+      "col_cap": "Obergrenze ($)",
+      "col_state": "Zustand",
+      "col_calls": "Aufrufe",
+      "kind": {
+        "organization": "Unternehmen",
+        "profile": "Experte"
+      },
+      "unnamed": "Gelöschtes Konto",
+      "state_capped": "An der Grenze",
+      "state_alert": "Beobachten",
+      "state_ok": "Normal",
+      "rest": "{count} weitere Konten, zusammengefasst: {amount} $.",
+      "unattributed": "{amount} $ aus {count} Aufrufen sind keinem Konto zugeordnet – sie sind gezählt, nicht geraten.",
+      "total": "Monatssumme: {amount} $."
+    }
   },
   "expert_verification": {
     "badge": {
@@ -4053,7 +4088,21 @@
     "blocked_empty": "Füllen Sie beide Noten aus, um zu speichern.",
     "blocked_range": "Eine Note ist eine Zahl zwischen 0 und 10.",
     "blocked_order": "Die Note zum Benachrichtigen darf nicht unter der Note zum Erscheinen liegen: Wir würden über eine unsichtbare Anzeige benachrichtigen.",
-    "blocked_unchanged": "Es gibt nichts zu speichern."
+    "blocked_unchanged": "Es gibt nichts zu speichern.",
+    "actor_caps_title": "Obergrenzen pro Konto",
+    "actor_caps_one_line": "Eine Obergrenze stoppt: ist sie erreicht, sucht die Plattform für dieses Konto nicht mehr. Das Konto selbst bleibt vollständig nutzbar – ein Unternehmen an der Grenze veröffentlicht weiter, ein Experte bewirbt sich weiter.",
+    "actor_cap": {
+      "organization": "Einstufung eines Unternehmens stoppen über",
+      "profile": "Suchen eines Experten stoppen über"
+    },
+    "actor_cap_effect": {
+      "organization": "Seine Anzeigen erscheinen, werden aber nicht mehr eingestuft.",
+      "profile": "Seine automatischen Suchen stoppen; er bewirbt sich weiter."
+    },
+    "actor_caps_link_intro": "Wer diesen Monat was ausgibt:",
+    "actor_caps_link": "der Verbrauch pro Konto",
+    "alerts_under_cap": "Eine Warnung bleibt unter der Obergrenze desselben Kontos: darüber würde sie nie auslösen.",
+    "err_alerte_au_dessus": "Die Warnung muss unter der Obergrenze desselben Kontos bleiben: darüber würde sie nie auslösen."
   },
   "admin_durees": {
     "title": "Laufzeiten des Marktplatzes",

@@ -110,6 +110,35 @@ journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **
 > l'upsert n'est plus atomique —, les cinq signatures de fonction, le fait que les enveloppes
 > **délèguent**, et la disparition effective de l'ancienne table.
 
+> **`plafond_par_acteur` (23/09/2026) — CHAQUE COMPTE A SON PLAFOND.**
+> `ai_spend_seuils_acteur` gagne `plafond_mensuel_usd` (**not null**), et la contrainte
+> `ai_spend_alerte_sous_plafond` garantit que l'alerte reste **sous** le plafond du même compte —
+> au-dessus, elle ne se déclencherait jamais (§D.25).
+>
+> ⚠️ **LA FENÊTRE MENSUELLE CESSE D'ÊTRE UNE DISCIPLINE.** Trois fonctions recopiaient
+> `date_trunc('month', now() at time zone 'utc')` sous un commentaire disant « AU CARACTÈRE
+> PRÈS ». Le jour où l'une dérive, les totaux se décalent de quelques heures en fin de mois et
+> **la somme cesse de boucler** — l'écran cesse d'être croyable sans afficher la moindre erreur.
+> `ai_spend_debut_du_mois()` est la source unique, et la postcondition vérifie que les **quatre**
+> fonctions la **lisent** (dans leur `prosrc`), pas qu'elles donnent le même résultat aujourd'hui.
+>
+> Trois fonctions neuves : `ai_spend_acteur_etat(type, id)` — la lecture que la garde interroge,
+> qui rend **toujours une ligne**, même sans dépense (zéro ligne se lirait « je ne sais pas », et
+> l'appelant devinerait, §E.22) ; `ai_spend_acteurs_au_plafond()` — un **décompte sur TOUS** les
+> acteurs, jamais sur la liste des dix plus gros (un chiffre juste sous dix acteurs est faux le
+> jour où le signal sert, §E.24) ; et `ai_spend_par_acteur` **recréée** avec quatre colonnes de
+> plus. Ses colonnes de plafond sont **NULLES** sur `reste_non_detaille` et `non_imputable` — ce
+> ne sont pas des acteurs, et zéro les ferait passer pour « au plafond ».
+>
+> ⚠️ **POSTCONDITION QUI ÉPROUVE** (§E.60) : deux sondes en sous-transaction — une alerte
+> au-dessus du plafond doit être **refusée**, une alerte **égale** au plafond doit être
+> **acceptée** (sans la seconde, une contrainte qui refuse tout passerait la première, §E.34).
+> Et la sonde **mémorise l'alerte avant de la bousculer** pour la remettre **telle quelle** : la
+> remettre à sa valeur de seed écraserait un réglage d'administrateur, ce que §D.7 interdit.
+> Le type de retour d'une fonction se lit dans `pg_get_function_result`, **pas** dans
+> `information_schema.columns` — une fonction qui rend une table n'est pas une table, et le
+> `count` y aurait rendu zéro.
+
 > **`tarif_par_recherche` (23/09/2026) — LA GRILLE APPREND UNE TROISIÈME UNITÉ.**
 > `ai_model_tarifs` gagne `usd_par_recherche` et `usd_par_recherche_web`, et le reranker **perd**
 > son `usd_par_unite` : il était facturé à la recherche et compté au document (§D.24).
@@ -1721,7 +1750,53 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 > **Ce qu’ils ont en commun, et c’est la seule raison de les garder** : trois fois, deux worktrees
 > ont écrit dans la mémoire du projet le même jour sans se voir, et **les deux avaient raison**.
 > La question n’a jamais été « quel côté garder » mais **« que fait chaque côté, et comment les
-> deux coexistent »**. On renumérote, on ne choisit pas.
+> deux coexistent »**. On renumérote, on ne choisit pas — et **celui qui est déjà cité garde son
+> numéro**. Enfin §E.45 : une collision qui ne produit **pas** de conflit est pire qu’une qui en
+> produit, parce qu’elle laisse un fichier valide à la lecture et faux à la citation.
+
+> **§M1 les a rejoints le 24/09/2026**, pour la même raison et au même endroit : les 18 écarts
+> trouvés en relisant CLAUDE.md contre le code sont l’histoire de cette mémoire, pas une consigne
+> à avoir sous les yeux avant d’écrire une ligne. La règle qu’ils établissent, elle, est restée
+> dans CLAUDE.md : **une mémoire fausse ne se voit pas** (§E.16).
+
+### M1 — La relecture du 16 septembre 2026, et les 18 écarts trouvés
+
+Ce fichier a été écrit depuis ce que l'on croyait savoir, puis relu **ligne à ligne contre le code**.
+Dix-huit affirmations étaient fausses ou périmées. Elles sont corrigées sur place ; ce tableau
+existe pour une seule raison : **chaque écart dit quelque chose sur la façon dont on se trompe.**
+
+| # | Ce qui était écrit | Ce que le code dit | Famille |
+|---|---|---|---|
+| 1 | §P1.2 — vérification d'entreprise : « défaut **9** sur 10 » | **7**, sur la ligne `ai_web_search`. Le 9 est celui de `sirene_insee`, **jamais lu** | colonne inerte |
+| 2 | §P3.5 — dernier admin d'org : « policies `organization_members` » | **trigger** `organizations_cliquet_siege_admin` + RPC | origine fausse |
+| 3 | §C.6 / §P1.6 — « la **seule** route sans `requireAuth` » | **18 routes sur 128**. La bonne phrase : la seule qui **accorde des droits** sans identité | règle trop large |
+| 4 | §C.5 — « les **cinq** surfaces la traversent » | 5 écrans, **4 chemins** : la sous-traitance emprunte la route des candidatures d'annonce | règle trop large |
+| 5 | §B.1 — inventaire des tables | **18 tables sur 64 manquaient**, dont `branches` et `specialities` | inventaire incomplet |
+| 6 | §B.1 — rien sur les tables mortes | **11 tables** ne sont lues ni écrites par aucune ligne de `app/` ou `lib/` | silence trompeur |
+| 7 | §F — table des garanties de concurrence | **six manquaient**, toutes de la classe que §F recense | inventaire incomplet |
+| 8 | (nulle part) — le **bail de run** | `cron_run_leases` ferme un chevauchement **structurel** qui faisait repayer le même travail d'IA | mécanisme absent |
+| 9 | (nulle part) — le **siège admin plateforme** | table `plateforme` + `cliquet_siege_admin()` | mécanisme absent |
+| 10 | §P2.4 — écran `/admin/ecosystemes/[id]` | **n'existe pas** : panneau dans la liste, seule la route API porte ce chemin | écran fantôme |
+| 11 | §P2.4 — `/admin/durees` | livré au lot 3, **absent du tableau** | oubli de maintenance |
+| 12 | §P3.1 — trois offres | **quatre** : `Collaboration` (1/1/1/**0**) gouverne l'organisation personnelle d'un expert | inventaire incomplet |
+| 13 | §P3.1 — « offre par défaut : Free » | **deux** défauts, un par cible | imprécision |
+| 14 | §P3.6 — « `cron_job_catalog` **nomme chaque** tâche » | **5 sur 8**. Les trois du moteur sont muettes à l'écran — **corrigé depuis** : les huit sont nommées | le défaut qu'on prétend fermé |
+| 15 | §E.3 — « en tête de **32** scripts » | **50** sur 71 | chiffre vieilli |
+| 16 | §E.11 — « **438** fichiers » | **445** | chiffre vieilli |
+| 17 | §E.12 — « **51** migrations, **35** insertions, **1913** valeurs » | **61 / 38 (sur 50 vues) / 1944** | chiffre vieilli |
+| 18 | §F — « `verrou_run_et_unicite_notifications` n'est **pas** sur le tronc » | elle y est | affirmation périmée |
+
+**Ce que ces dix-huit écarts ont en commun.** Aucun n'était un mensonge : chacun était **vrai le jour
+où il a été écrit**, ou tiré d'une lecture trop rapide. C'est ce qui les rend dangereux — ils se
+citent, et rien dans le fichier ne dit depuis quand ils n'ont pas été vérifiés.
+
+**Deux fois pendant cette relecture, le piège §E.7 s'est refermé sur le relecteur lui-même** : un
+`grep` a trouvé `disclosurePolicyForCandidatureLifecycle` dans un **commentaire** de
+`lib/admin/user-actions-guard.ts` (faux sixième consommateur), et `requireAuth` dans le
+**commentaire** de `stripe/webhook` qui énonce précisément la règle contestée. **Un contrôle, pas une
+promesse de vigilance** : §E.16.
+
+---
 
 ### M1 bis — La fusion de `feat/s2`, et comment la collision a été tranchée
 

@@ -215,7 +215,6 @@ const APPEL = (v) =>
   (/api\.cohere\.com/.test(v.codeEtChaines) && /\bfetch\s*\(/.test(v.code))
 const POINTS = TOUS.filter((f) => APPEL(VUES.get(f)))
 const POINTS_PRODUIT = POINTS.filter((f) => !f.startsWith('scripts/'))
-const POINTS_BANCS = POINTS.filter((f) => f.startsWith('scripts/'))
 
 ok(
   POINTS_PRODUIT.length >= 7,

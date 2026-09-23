@@ -5,9 +5,30 @@ import {
   type ConsommationIA,
   type TarifModele,
 } from '@/lib/ai-consommation'
+import { arretParPlafondActeur, type EtatActeur } from '@/lib/ai-plafonds'
 
 /**
- * LE PLAFOND DE DÉPENSE — et ce qui se passe quand on l'atteint.
+ * LES PLAFONDS DE DÉPENSE — et ce qui se passe quand on les atteint.
+ *
+ * ┌─ DEUX NIVEAUX, ET ILS N'ARRÊTENT PAS LA MÊME CHOSE ─────────────────────┐
+ * │ ① LE PLAFOND PAR ACTEUR — il arrête ce que la PLATEFORME dépense d'elle- │
+ * │    même pour cet acteur-là. Une organisation au plafond publie quand     │
+ * │    même ; son annonce n'est simplement plus classée. Un expert au        │
+ * │    plafond garde son compte utilisable. La règle de ce qui s'arrête vit  │
+ * │    dans `lib/ai-plafonds.ts`, où son contrôle l'EXÉCUTE.                  │
+ * │                                                                          │
+ * │ ② LE PLAFOND GLOBAL — LE DERNIER GARDE-FOU. Lui arrête TOUT, parce       │
+ * │    qu'il parle d'un budget qui n'existe plus. Il ne distingue pas : à ce │
+ * │    stade il n'y a plus rien à distinguer.                                │
+ * │                                                                          │
+ * │ L'ORDRE EST LE PLUS SPÉCIFIQUE D'ABORD. Un acteur qui dérape doit être   │
+ * │ arrêté par SON plafond, en nommant SON dépassement — pas par le global,  │
+ * │ qui dirait « la plateforme est à court » et enverrait chercher ailleurs. │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *
+ * ET L'ALERTE PAR ACTEUR RESTE EN DESSOUS, inchangée : elle SIGNALE, elle
+ * n'empêche rien (§D.9). La base garantit qu'elle reste sous le plafond —
+ * au-dessus, elle ne se déclencherait jamais.
  *
  * LA RÈGLE, ET ELLE EST LE SUJET DE CE FICHIER
  *   Au plafond, la fonctionnalité SE DÉGRADE ET LE DIT. Elle ne disparaît pas en
@@ -44,17 +65,102 @@ export type EtatDepense = {
 }
 
 /**
- * Peut-on encore dépenser chez ce fournisseur ?
+ * L'ÉTAT DE DÉPENSE D'UN ACTEUR — sa dépense du mois, son plafond, son alerte.
+ *
+ * FAIL-SAFE : sur panne de lecture, on rend `null` et l'appelant REFUSE. Ne pas
+ * savoir ce qu'un acteur a dépensé n'autorise pas à dépenser pour lui.
+ *
+ * ⚠️ `null` NE VEUT PAS DIRE « RIEN DÉPENSÉ ». La fonction de base rend
+ *    toujours une ligne, même pour un acteur sans dépense ; zéro ligne ou une
+ *    erreur signifient donc « je ne sais pas », et les deux se traitent pareil
+ *    (§E.22 : une lecture en panne ne rend pas un verdict métier).
+ */
+async function etatDeLActeur(
+  supabaseAdmin: SupabaseClient,
+  acteur: ActeurIA,
+): Promise<{ ok: true; etat: EtatActeur | null } | { ok: false; raison: string }> {
+  // Un acteur non imputable n'a pas de plafond à lui : il n'y a personne à qui
+  // l'imputer. Seul le plafond global le concerne — et c'est déclaré, pas subi.
+  if (acteur.type === 'non_imputable') return { ok: true, etat: null }
+  try {
+    const { data, error } = await supabaseAdmin.rpc('ai_spend_acteur_etat', {
+      p_acteur_type: acteur.type,
+      p_acteur_id: acteur.id,
+    })
+    if (error) {
+      console.error('[budget] état de l acteur illisible', {
+        acteur: acteur.type,
+        message: error.message,
+      })
+      return {
+        ok: false,
+        raison: `état de dépense de l'acteur illisible (${error.message}) — on refuse plutôt que de dépenser à l'aveugle`,
+      }
+    }
+    // ⚠️ ON NE LIT QUE LE PLAFOND. La base rend aussi l'alerte et son état ;
+    //    les transporter ici les rendrait DISPONIBLES dans un parcours, et une
+    //    alerte devient un blocage parce qu'elle était à portée de main, pas
+    //    parce que quelqu'un l'a décidé (§D.9, gardé par `diag-depense-ia`).
+    const l = (data ?? [])[0] as
+      | {
+          depense_mois: number | string
+          plafond_mensuel_usd: number | string
+          au_plafond: boolean
+        }
+      | undefined
+    if (!l) {
+      return {
+        ok: false,
+        raison: `aucun réglage de plafond pour un acteur de type « ${acteur.type} »`,
+      }
+    }
+    return {
+      ok: true,
+      etat: {
+        depense_mois_usd: Number(l.depense_mois),
+        plafond_mensuel_usd: Number(l.plafond_mensuel_usd),
+        au_plafond: l.au_plafond === true,
+      },
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      raison: `état de dépense de l'acteur illisible (${err instanceof Error ? err.message : String(err)})`,
+    }
+  }
+}
+
+/**
+ * Peut-on encore dépenser chez ce fournisseur, POUR CET ACTEUR ?
  *
  * FAIL-SAFE CHOISI : sur panne de lecture, on REFUSE. C'est l'inverse du repli
  * habituel de ce projet, et c'est voulu — les autres fail-safes protègent un
  * affichage, celui-ci protège de l'argent. Ne pas savoir combien on a dépensé
  * n'autorise pas à dépenser plus.
+ *
+ * ⚠️ L'ACTEUR ET L'ACTION SONT OBLIGATOIRES, SANS DÉFAUT. Un défaut aurait
+ *    reproduit le défaut qu'on ferme : un appel qui échappe au plafond par
+ *    distraction, du côté qui ne bloque jamais. Même parade que `ActeurIA`
+ *    dans `enregistrerDepenseIA` — et les deux appels d'un même point de
+ *    dépense portent DÉSORMAIS le même acteur, ce qu'un contrôle vérifie.
  */
 export async function budgetDisponible(
   supabaseAdmin: SupabaseClient,
   provider: Fournisseur,
+  pour: { acteur: ActeurIA; action: ActionIA },
 ): Promise<{ ok: true; etat: EtatDepense } | { ok: false; raison: string }> {
+  // ── ① LE PLAFOND DE L'ACTEUR, D'ABORD — le plus spécifique ──────────────
+  const acteurEtat = await etatDeLActeur(supabaseAdmin, pour.acteur)
+  if (!acteurEtat.ok) return { ok: false, raison: acteurEtat.raison }
+  const arret = arretParPlafondActeur(pour.action, acteurEtat.etat)
+  if (arret.arrete) {
+    return {
+      ok: false,
+      raison: `plafond mensuel de l'acteur atteint (${arret.depense_mois_usd.toFixed(2)} $ / ${arret.plafond_mensuel_usd.toFixed(2)} $) — le compte reste utilisable, seul le classement s'arrête`,
+    }
+  }
+
+  // ── ② LE PLAFOND GLOBAL — le dernier garde-fou ──────────────────────────
   const { data, error } = await supabaseAdmin.rpc('ai_spend_status')
   if (error) {
     console.error('[budget] état de dépense illisible', { provider, message: error.message })

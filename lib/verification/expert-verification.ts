@@ -552,7 +552,11 @@ export async function runExpertVerification(args: {
   //  Ne pas savoir combien on a dépensé n'autorise pas à dépenser plus — c'est
   //  l'exception au fail-open du reste du projet, et elle protège de l'argent.
   //  Au plafond : le profil part en revue manuelle, jamais approuvé sans examen.
-  const budget = await budgetDisponible(supabaseAdmin, 'claude')
+  //  Le MÊME acteur qu'à l'enregistrement plus bas (§E.39).
+  const budget = await budgetDisponible(supabaseAdmin, 'claude', {
+    acteur: { type: 'profile', id: profile_id },
+    action: 'expert_verification',
+  })
   if (!budget.ok) {
     console.error('[expert-verification] vérification refusée — budget', budget.raison)
     await supabaseAdmin

@@ -394,7 +394,17 @@ export async function rerankerTout(args: {
   //     déplacer une note : l'ordre et le parallélisme n'entrent nulle part
   //     dans le calcul.
   for (const vague of enLots(lots, CONCURRENCE_LOTS)) {
-    const budget = await budgetDisponible(args.supabaseAdmin, 'rerank')
+    //  ⚠️ C'EST ICI QUE LE PLAFOND D'ACTEUR MORD, ET NULLE PART AILLEURS.
+    //     Le classement est la seule dépense que la PLATEFORME déclenche
+    //     d'elle-même (`lib/ai-plafonds.ts`) : une organisation au plafond
+    //     publie quand même, son annonce n'est simplement plus classée, et un
+    //     expert au plafond garde son compte entier.
+    //     Le budget est RELU ENTRE LES LOTS — le vérifier une seule fois au
+    //     début laisserait un run géant dépasser le plafond de dix fois.
+    const budget = await budgetDisponible(args.supabaseAdmin, 'rerank', {
+      acteur: args.acteur,
+      action: 'matching_pool',
+    })
     if (!budget.ok) {
       arret = budget.raison
       arretCode = 'plafond_atteint'

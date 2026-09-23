@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { consommationJetons, type ConsommationIA } from '@/lib/ai-consommation'
+import { consommationJetons, type ConsommationIA } from '../ai-consommation.ts'
 
 /**
  * Analyseur qualité d'une PUBLICATION (annonce de mission / offre CDI).

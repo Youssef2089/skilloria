@@ -2479,7 +2479,8 @@
       "nav_durees": "Durées de la place",
       "nav_tarifs_ia": "Tarifs des modèles",
       "nav_supervision": "Supervision",
-      "nav_facturation": "Facturation"
+      "nav_facturation": "Facturation",
+      "nav_consommation": "Consommation"
     },
     "quotas_ia": {
       "title": "Quotas IA",
@@ -3129,7 +3130,10 @@
         "catalogue_non_relie": "{count} offre(s) payante(s) ne sont pas reliées à Stripe dans le mode de la clé en usage. Le premier abonnement réel sortirait « prix hors catalogue » : l’argent serait encaissé sans que l’application sache à quelle offre le rattacher. Ouvrez Catalogue commerce et cliquez « Relier à Stripe ».",
         "catalogue_etat_inconnu": "Impossible de dire si le catalogue est relié à Stripe : clé absente, ou lecture en panne. Ce n’est pas « tout va bien » — c’est « je ne sais pas ».",
         "depots_candidature_perdus": "{count} candidature(s) n'ont pas pu être déposées : leur analyse n'a pas abouti, et rien n'a été écrit. L'expert croit avoir postulé, l'organisation ne sait pas qu'elle devait recevoir un dossier. Ouvrez Dépôts en échec et relancez-les.",
-        "lecture_indisponible_depots": "Les dépôts de candidature n'ont pas pu être comptés. Ce n'est pas « aucun dépôt perdu » : c'est « on ne sait pas ». Ouvrez Dépôts en échec."
+        "lecture_indisponible_depots": "Les dépôts de candidature n'ont pas pu être comptés. Ce n'est pas « aucun dépôt perdu » : c'est « on ne sait pas ». Ouvrez Dépôts en échec.",
+        "organisations_au_plafond_ia": "{count} entreprise(s) ont atteint leur plafond de dépense : leurs annonces sortent, mais ne sont plus classées.",
+        "experts_au_plafond_ia": "{count} expert(s) ont atteint leur plafond de dépense : leurs recherches automatiques sont arrêtées.",
+        "lecture_indisponible_acteurs_plafond": "Les comptes au plafond n’ont pas pu être comptés. Ce n’est pas « aucun » : on ne sait pas."
       },
       "spread_title": "Répartition des notes",
       "spread_empty": "Aucune exécution pour l’instant sur la nouvelle échelle. La répartition se remplira aux prochaines mises en relation.",
@@ -3262,7 +3266,38 @@
       "raison_ne_pas_deranger": "expert en « ne pas déranger »",
       "raison_non_en_recherche": "expert en poste, non en recherche"
     },
-    "nav_depots_echec": "Dépôts en échec"
+    "nav_depots_echec": "Dépôts en échec",
+    "consommation": {
+      "title": "Consommation par compte",
+      "intro": "Ce que chaque compte a coûté ce mois-ci, et lequel a atteint son plafond. Les plafonds se règlent dans",
+      "to_settings": "les réglages du moteur",
+      "loading": "Chargement…",
+      "err_load": "La consommation n’a pas pu être lue.",
+      "unreadable": "Cette lecture a échoué. Ce n’est pas « zéro » : on ne sait pas.",
+      "empty": "Aucun compte n’a encore dépensé ce mois-ci.",
+      "global_title": "Le dernier garde-fou",
+      "global_one_line": "Le plafond commun. Atteint, plus rien ne part, quel que soit l’état des comptes.",
+      "accounts_title": "Les comptes",
+      "accounts_one_line": "Un compte au plafond n’est ni suspendu ni prévenu : ce que la plateforme faisait toute seule pour lui s’arrête, le reste continue.",
+      "amount_of": "{spent} $ sur {cap} $",
+      "col_account": "Compte",
+      "col_kind": "Type",
+      "col_spent": "Dépensé ($)",
+      "col_cap": "Plafond ($)",
+      "col_state": "État",
+      "col_calls": "Appels",
+      "kind": {
+        "organization": "Entreprise",
+        "profile": "Expert"
+      },
+      "unnamed": "Compte supprimé",
+      "state_capped": "Au plafond",
+      "state_alert": "À surveiller",
+      "state_ok": "Normal",
+      "rest": "{count} autres comptes, regroupés : {amount} $.",
+      "unattributed": "{amount} $ sur {count} appels ne sont rattachés à aucun compte — ils sont comptés, pas devinés.",
+      "total": "Total du mois : {amount} $."
+    }
   },
   "expert_verification": {
     "badge": {
@@ -4053,7 +4088,21 @@
     "blocked_empty": "Renseignez les deux notes pour enregistrer.",
     "blocked_range": "Une note est un nombre entre 0 et 10.",
     "blocked_order": "La note pour prévenir ne peut pas être sous celle pour apparaître : on préviendrait pour une annonce invisible.",
-    "blocked_unchanged": "Aucune modification à enregistrer."
+    "blocked_unchanged": "Aucune modification à enregistrer.",
+    "actor_caps_title": "Les plafonds par compte",
+    "actor_caps_one_line": "Un plafond arrête : atteint, la plateforme cesse de chercher pour ce compte. Le compte, lui, reste entier — une entreprise au plafond publie toujours, un expert postule toujours.",
+    "actor_cap": {
+      "organization": "Arrêter le classement d’une entreprise au-dessus de",
+      "profile": "Arrêter les recherches d’un expert au-dessus de"
+    },
+    "actor_cap_effect": {
+      "organization": "Ses annonces sortent, mais ne sont plus classées.",
+      "profile": "Ses recherches automatiques s’arrêtent ; il continue de postuler."
+    },
+    "actor_caps_link_intro": "Pour voir qui dépense quoi ce mois-ci :",
+    "actor_caps_link": "la consommation par compte",
+    "alerts_under_cap": "Une alerte reste sous le plafond du même compte : au-dessus, elle ne se déclencherait jamais.",
+    "err_alerte_au_dessus": "L’alerte doit rester sous le plafond du même compte : au-dessus, elle ne se déclencherait jamais."
   },
   "admin_durees": {
     "title": "Durées de la place",

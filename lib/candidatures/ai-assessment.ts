@@ -2,7 +2,7 @@ import { capaciteActive } from '@/lib/interrupteurs'
 import Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { budgetDisponible, enregistrerDepenseIA, type ActeurIA, type ActionIA } from '@/lib/ai-budget'
-import { consommationJetons } from '@/lib/ai-consommation'
+import { consommationJetons } from '../ai-consommation.ts'
 // Deux LECTEURS, pas deux filtres : ils vérifient que le modèle a répondu
 // quelque chose d'exploitable, ils ne jugent pas le contenu du texte. Sans
 // aucune dépendance, donc éprouvables à l'exécution.
@@ -303,7 +303,12 @@ async function appeler(args: {
 
   // Le budget est vérifié AVANT l'appel. Au plafond, on ne juge pas — et on le
   // DIT : la candidature existe, elle est simplement sans note.
-  const budget = await budgetDisponible(args.supabaseAdmin, 'claude')
+  //  Le MÊME acteur et la MÊME action que l'enregistrement plus bas — les deux
+  //  viennent de l'appelant, ils ne peuvent pas diverger ici (§E.39).
+  const budget = await budgetDisponible(args.supabaseAdmin, 'claude', {
+    acteur: args.acteur,
+    action: args.action,
+  })
   if (!budget.ok) {
     console.warn('[jugement] non rendu', { ...args.contexte, raison: budget.raison })
     return { ok: false, cause: 'plafond', raison: budget.raison }

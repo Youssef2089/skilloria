@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { SireneData, VerificationInput, VerificationOutput } from './types'
-import { consommationJetons, type ConsommationIA } from '@/lib/ai-consommation'
+import { consommationJetons, type ConsommationIA } from '../ai-consommation.ts'
 
 /**
  * Analyseur de cohérence IA — DÉCIDEUR SYSTÉMATIQUE AVEC RECHERCHE WEB (11G.2).

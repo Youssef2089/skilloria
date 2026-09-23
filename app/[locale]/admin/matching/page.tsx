@@ -48,6 +48,7 @@ type Reponse = {
   reglages: Reglage[]
   depense: LigneDepense[] | null
   seuils_acteur: Record<string, number> | null
+  plafonds_acteur: Record<string, number> | null
   modeles: string[] | null
 }
 
@@ -166,6 +167,8 @@ export default function MatchingPage() {
         cap_claude: String(body.depense?.find((d) => d.provider === 'claude')?.monthly_cap_usd ?? ''),
         alerte_organization: String(body.seuils_acteur?.organization ?? ''),
         alerte_profile: String(body.seuils_acteur?.profile ?? ''),
+        plafond_organization: String(body.plafonds_acteur?.organization ?? ''),
+        plafond_profile: String(body.plafonds_acteur?.profile ?? ''),
       })
     } catch {
       setErreur(t('err_load'))
@@ -254,10 +257,23 @@ export default function MatchingPage() {
             organization: Number(argent.alerte_organization),
             profile: Number(argent.alerte_profile),
           },
+          plafonds_acteur: {
+            organization: Number(argent.plafond_organization),
+            profile: Number(argent.plafond_profile),
+          },
         }),
       })
       if (!res.ok) {
-        setMsg({ kind: 'err', text: t('err_save') })
+        // LE REFUS QUI A UN MOTIF LE DIT. « Enregistrement impossible » sur une
+        // alerte posée au-dessus du plafond laisserait chercher longtemps.
+        const corps = (await res.json().catch(() => ({}))) as { code?: string }
+        setMsg({
+          kind: 'err',
+          text:
+            corps.code === 'alerte_au_dessus_du_plafond'
+              ? t('err_alerte_au_dessus')
+              : t('err_save'),
+        })
         return
       }
       setMsg({ kind: 'ok', text: t('saved') })
@@ -352,10 +368,51 @@ export default function MatchingPage() {
             </div>
           </section>
 
+          {/* ─── LES PLAFONDS PAR ACTEUR ─────────────────────────────────
+              Ils BLOQUENT, donc ils viennent AVANT les alertes : l'écran est
+              ordonné par ce qui arrête, pas par ce qui se ressemble. */}
+          <section style={carte}>
+            <h2 style={titreBloc}>{t('actor_caps_title')}</h2>
+            <p style={uneLigne}>{t('actor_caps_one_line')}</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
+              {(['organization', 'profile'] as const).map((a) => (
+                <div key={a}>
+                  <label htmlFor={`pl_${a}`} style={etiquette}>
+                    {t(`actor_cap.${a}` as 'actor_cap.organization')}
+                  </label>
+                  <p style={sousEtiquette}>
+                    {t(`actor_cap_effect.${a}` as 'actor_cap_effect.organization')}
+                  </p>
+                  <Montant>
+                    <input
+                      id={`pl_${a}`}
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step={1}
+                      value={argent[`plafond_${a}`] ?? ''}
+                      onChange={(e) => setArgent((x) => ({ ...x, [`plafond_${a}`]: e.target.value }))}
+                      style={champ}
+                    />
+                  </Montant>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '14px 0 0', maxWidth: 640 }}>
+              {t('actor_caps_link_intro')}{' '}
+              <Link href="/admin/consommation" style={{ color: 'var(--sk-accent)' }}>
+                {t('actor_caps_link')}
+              </Link>
+            </p>
+          </section>
+
           {/* ─── LES ALERTES ─────────────────────────────────────────────── */}
           <section style={carte}>
             <h2 style={titreBloc}>{t('alerts_title')}</h2>
             <p style={uneLigne}>{t('alerts_one_line')}</p>
+            <p style={{ ...sousEtiquette, maxWidth: 640, marginBottom: 14 }}>
+              {t('alerts_under_cap')}
+            </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
               {(['organization', 'profile'] as const).map((a) => (
                 <div key={a}>

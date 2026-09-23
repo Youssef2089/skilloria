@@ -123,7 +123,11 @@ export async function runPublicationVerification(args: {
   //  Ne pas savoir combien on a dépensé n'autorise pas à dépenser plus — c'est
   //  l'exception au fail-open du reste du projet, et elle protège de l'argent.
   //  Au plafond : l’annonce part en revue manuelle, jamais publiée sans examen.
-  const budget = await budgetDisponible(supabaseAdmin, 'claude')
+  //  Le MÊME acteur qu'à l'enregistrement plus bas (§E.39).
+  const budget = await budgetDisponible(supabaseAdmin, 'claude', {
+    acteur: { type: 'organization', id: args.organization_id },
+    action: 'publication_quality',
+  })
   if (!budget.ok) {
     console.error('[publication-verification] contrôle refusé — budget', budget.raison)
     return {

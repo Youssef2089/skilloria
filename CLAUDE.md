@@ -26,7 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > un **budget : 100k caractères**, gardé par un contrôle (au-delà de 150k, Claude Code le tronque
 > sans dire quelle section manque).
 >
-> · **CLAUDE.md** *(ici)* — règle de maintenance, conventions, §M0/§M1, **§D** décisions figées,
+> · **CLAUDE.md** *(ici)* — règle de maintenance, conventions, **§M0**, **§D** décisions figées,
 >   **§G** règles entre worktrees, et l'**index** des pièges.
 > · **[docs/pieges.md](docs/pieges.md)** — **§E** : les pièges vérifiés, un par section, avec leur
 >   cas mesuré et leur contrôle. Sorti d'ici le 20/09/2026 quand ce fichier a dépassé la limite.
@@ -157,59 +157,17 @@ Tout le reste des sections anglaises a été revérifié et tient.
 
 ---
 
-## M1. La relecture du 16 septembre 2026 — les 18 écarts trouvés
+## M1. La relecture du 16 septembre 2026 — **déplacée**
 
-Ce fichier a été écrit depuis ce que l'on croyait savoir, puis relu **ligne à ligne contre le code**.
-Dix-huit affirmations étaient fausses ou périmées. Elles sont corrigées sur place ; ce tableau
-existe pour une seule raison : **chaque écart dit quelque chose sur la façon dont on se trompe.**
+Les **18 écarts** trouvés en relisant ce fichier ligne à ligne contre le code — et ce que chacun dit
+sur la façon dont on se trompe — vivent désormais en **§M** de
+[docs/architecture.md](docs/architecture.md), aux côtés de M1 bis, ter et quater : c'est là que se
+tient l'histoire de cette mémoire.
 
-| # | Ce qui était écrit | Ce que le code dit | Famille |
-|---|---|---|---|
-| 1 | §P1.2 — vérification d'entreprise : « défaut **9** sur 10 » | **7**, sur la ligne `ai_web_search`. Le 9 est celui de `sirene_insee`, **jamais lu** | colonne inerte |
-| 2 | §P3.5 — dernier admin d'org : « policies `organization_members` » | **trigger** `organizations_cliquet_siege_admin` + RPC | origine fausse |
-| 3 | §C.6 / §P1.6 — « la **seule** route sans `requireAuth` » | **18 routes sur 128**. La bonne phrase : la seule qui **accorde des droits** sans identité | règle trop large |
-| 4 | §C.5 — « les **cinq** surfaces la traversent » | 5 écrans, **4 chemins** : la sous-traitance emprunte la route des candidatures d'annonce | règle trop large |
-| 5 | §B.1 — inventaire des tables | **18 tables sur 64 manquaient**, dont `branches` et `specialities` | inventaire incomplet |
-| 6 | §B.1 — rien sur les tables mortes | **11 tables** ne sont lues ni écrites par aucune ligne de `app/` ou `lib/` | silence trompeur |
-| 7 | §F — table des garanties de concurrence | **six manquaient**, toutes de la classe que §F recense | inventaire incomplet |
-| 8 | (nulle part) — le **bail de run** | `cron_run_leases` ferme un chevauchement **structurel** qui faisait repayer le même travail d'IA | mécanisme absent |
-| 9 | (nulle part) — le **siège admin plateforme** | table `plateforme` + `cliquet_siege_admin()` | mécanisme absent |
-| 10 | §P2.4 — écran `/admin/ecosystemes/[id]` | **n'existe pas** : panneau dans la liste, seule la route API porte ce chemin | écran fantôme |
-| 11 | §P2.4 — `/admin/durees` | livré au lot 3, **absent du tableau** | oubli de maintenance |
-| 12 | §P3.1 — trois offres | **quatre** : `Collaboration` (1/1/1/**0**) gouverne l'organisation personnelle d'un expert | inventaire incomplet |
-| 13 | §P3.1 — « offre par défaut : Free » | **deux** défauts, un par cible | imprécision |
-| 14 | §P3.6 — « `cron_job_catalog` **nomme chaque** tâche » | **5 sur 8**. Les trois du moteur sont muettes à l'écran — **corrigé depuis** : les huit sont nommées | le défaut qu'on prétend fermé |
-| 15 | §E.3 — « en tête de **32** scripts » | **50** sur 71 | chiffre vieilli |
-| 16 | §E.11 — « **438** fichiers » | **445** | chiffre vieilli |
-| 17 | §E.12 — « **51** migrations, **35** insertions, **1913** valeurs » | **61 / 38 (sur 50 vues) / 1944** | chiffre vieilli |
-| 18 | §F — « `verrou_run_et_unicite_notifications` n'est **pas** sur le tronc » | elle y est | affirmation périmée |
-
-**Ce que ces dix-huit écarts ont en commun.** Aucun n'était un mensonge : chacun était **vrai le jour
-où il a été écrit**, ou tiré d'une lecture trop rapide. C'est ce qui les rend dangereux — ils se
-citent, et rien dans le fichier ne dit depuis quand ils n'ont pas été vérifiés.
-
-**Deux fois pendant cette relecture, le piège §E.7 s'est refermé sur le relecteur lui-même** : un
-`grep` a trouvé `disclosurePolicyForCandidatureLifecycle` dans un **commentaire** de
-`lib/admin/user-actions-guard.ts` (faux sixième consommateur), et `requireAuth` dans le
-**commentaire** de `stripe/webhook` qui énonce précisément la règle contestée. **Un contrôle, pas une
-promesse de vigilance** : §E.16.
-
----
-
-### M1 bis, ter, quater — LES TROIS FUSIONS ONT DÉMÉNAGÉ
-
-> Les trois récits de fusion — `feat/s2` (17/09), `feat/s1-ux-profil` (17/09), le module Stripe
-> d'exploitation (20/09) — vivent désormais en **§M** de
-> [docs/architecture.md](docs/architecture.md). Ils sont **entiers** ; seul leur emplacement a
-> changé, le 23/09/2026, parce que ce fichier-ci est chargé à chaque session et qu'un récit de
-> fusion se lit **le jour d'une fusion**. Même critère que §E → [docs/pieges.md](docs/pieges.md).
->
-> **Ce qu’ils établissent, et qui vaut avant toute fusion** : trois fois, deux worktrees ont
-> écrit dans la mémoire le même jour sans se voir, et les deux avaient raison — résolution **en
-> union**, jamais par arbitrage. **Celui qui est déjà cité garde son numéro.** Et §E.45 : une
-> collision qui ne produit **pas** de conflit est pire qu’une qui en produit.
-
----
+**Pourquoi le déplacement.** Ce fichier est chargé à **chaque session** et tient dans **100 000
+caractères**. Une relecture passée n'a pas à être sous les yeux avant d'écrire une ligne ; elle se
+lit le jour où l'on doute d'une affirmation. La règle qui en sort, elle, reste ici : **une mémoire
+fausse ne se voit pas** — §E.16, et les deux contrôles de §G.5 bis.
 
 ## D. Les décisions figées
 
@@ -906,6 +864,82 @@ c'est celle de [`diag-depense-ia`](scripts/diag-depense-ia.mjs), et deux gardes 
 n'en font qu'une (§E.36). Un appel peut être **parfaitement enregistré et parfaitement faux** — le
 reranker l'était, et l'autre contrôle le voyait vert.
 
+**D.25 — UN PLAFOND PAR COMPTE. LE GLOBAL DEVIENT LE DERNIER GARDE-FOU.**
+Il n'existait qu'UN plafond : le global, par fournisseur. Une seule organisation pouvait donc
+consommer le budget de tout l'écosystème, et ce qui s'arrêtait alors s'arrêtait **pour tout le
+monde**. Les seuils par acteur existaient — mais ils **ALERTENT**, ils n'ont jamais arrêté une
+dépense (§D.9).
+
+> ⚠️ **CE QU'UN PLAFOND DE COMPTE ARRÊTE, ET C'EST LA MOITIÉ QUI COMPTE.** Il arrête ce que la
+> **PLATEFORME** dépense d'elle-même pour ce compte. Il n'arrête **RIEN** de ce que la personne
+> vient de demander. Décision de Youssef : *« une organisation au plafond PUBLIE QUAND MÊME — elle
+> a payé — mais le classement ne part pas. Un expert au plafond garde son compte utilisable. »*
+
+| | Ce qui s'arrête | Ce qui continue |
+|---|---|---|
+| **organisation au plafond** | le **classement** de ses annonces | elle publie, elle demande ses pitchs, ses annonces passent la garde de qualité |
+| **expert au plafond** | ses **recherches automatiques** | il postule, son CV s'analyse, sa vérification aboutit |
+| **plafond GLOBAL** | **TOUT** — c'est le dernier garde-fou, et il parle d'un budget qui n'existe plus | — |
+
+**LA CLASSE D'UNE ACTION EST UNE DONNÉE, PAS DEUX `if` BIEN PLACÉS** —
+[lib/ai-plafonds.ts](lib/ai-plafonds.ts), `CLASSE_DES_ACTIONS`. `automatique` : la plateforme la
+déclenche seule, en boucle, sans que personne ne l'attende sur un écran — c'est là que part l'argent
+d'un compte qui dérape. `deliberee` : quelqu'un vient de faire un geste et attend son résultat ; la
+bloquer ne protège pas l'argent, elle **casse le geste**, et de façon invisible.
+**L'exhaustivité tient par le TYPE** (`satisfies Record<ActionIA, ClasseAction>`) : une huitième
+action sans classe **ne compile pas**. Sans ça, elle tomberait par distraction du côté qui ne bloque
+jamais — un plafond qu'on ajoute et qui ne plafonne rien.
+
+> ⚠️ **ET `candidature_assessment` EST DÉLIBÉRÉE PARCE QUE §D.19 L'EXIGE.** « Une candidature avec
+> sa note et son résumé, ou pas de candidature » : bloquer le jugement, c'est empêcher l'expert de
+> postuler, et un compte qui ne peut plus postuler n'est pas « utilisable ». L'abus par répétition
+> est fermé ailleurs, et par le bon outil — le plafond horaire de relance (§D.7).
+
+**L'ORDRE EST LE PLUS SPÉCIFIQUE D'ABORD** : le plafond de l'acteur, puis le global. Inversé, un
+compte qui dérape serait arrêté par un motif qui dit « la plateforme est à court » — et on
+chercherait ailleurs. **L'acteur et l'action sont OBLIGATOIRES** dans `budgetDisponible`, sans
+défaut : c'est le compilateur qui a nommé les **sept** points de dépense, un à un. Et chacun
+interroge le plafond **de l'acteur qu'il impute** (§E.39) — une garde qui teste X pendant que la
+dépense est imputée à Y protège le mauvais compte, et **les deux appels réussissent**.
+
+**L'ALERTE RESTE SOUS LE PLAFOND, ET LA BASE LE TIENT** — `ai_spend_alerte_sous_plafond`. Au-dessus,
+elle ne se déclencherait **jamais** : le plafond arrête la dépense avant qu'elle n'y arrive. Ce serait
+un réglage qu'on peut saisir, qui s'affiche, et qui ne peut rien produire (§D.11). La route rend un
+**400 nommé** plutôt qu'un 500 de contrainte, et elle juge l'**ÉTAT FINAL** — un corps qui ne change
+que l'alerte est valide en lui-même et peut contredire le plafond déjà en base (même forme que §D.18).
+
+**LA FENÊTRE MENSUELLE DEVIENT UN MÉCANISME.** Trois fonctions recopiaient
+`date_trunc('month', now() at time zone 'utc')` sous un commentaire disant « AU CARACTÈRE PRÈS ».
+C'est une **discipline** : le jour où l'une dérive, les totaux se décalent de quelques heures en fin
+de mois et **la somme cesse de boucler** — l'écran cesse d'être croyable sans afficher la moindre
+erreur. `ai_spend_debut_du_mois()` est désormais la source unique, lue par les **quatre** fonctions
+(§E.31).
+
+**CE QUI REMONTE, ET À QUEL NIVEAU.** Un compte au plafond remonte en **ATTENTION**, avec le lien
+vers `/admin/consommation`. C'est un arbitrage : un compte au plafond est le fonctionnement
+**normal** d'une règle qu'on a posée ; en faire un bloquant le ferait sonner chaque fin de mois, et
+un signal bloquant qu'on voit tous les mois **apprend à être ignoré** (§E.52), y compris les fois où
+il compte. Le décompte porte sur **TOUS** les acteurs, jamais sur la liste des dix plus gros : un
+chiffre juste tant qu'il y en a moins de dix est faux le jour où le signal sert (§E.24).
+
+**ET L'ÉCRAN EXISTE, PARCE QU'UN PLAFOND QU'ON NE VOIT PAS SE RELÈVE AU JUGÉ.**
+`/admin/consommation` — ce que chaque compte a coûté, son plafond, son état. La supervision dit
+**combien** de comptes sont arrêtés ; cet écran dit **lesquels**, à combien, et sur quoi. Les deux
+états viennent de la **base** : les recalculer dans le navigateur ferait une seconde règle sur une
+seconde fenêtre mensuelle (§E.15, §E.20). Ce qui n'est pas détaillé est **dit** — le reste agrégé et
+compté, le non-imputable — parce que cacher la troisième famille donnerait un total plus propre et
+faux.
+
+> **Les deux valeurs — 25 $ par organisation, 5 $ par expert — sont des PROPOSITIONS**, à réviser sur
+> un mois de données réelles, comme les alertes le disent déjà d'elles-mêmes. Elles vivent en base et
+> se règlent dans `/admin/matching` (§D.7). L'écart avec l'alerte (10 $ / 2 $) est délibéré : **on
+> regarde avant de bloquer**.
+
+**Gardé par [`diag-plafond-par-acteur`](scripts/diag-plafond-par-acteur.mjs)** — il **exécute** la
+règle (§E.33), **découvre** les appelants au lieu de les lister, et vérifie que la garde et la
+dépense portent le **même acteur**. Il ne repose pas la question « la dépense est-elle enregistrée
+et le plafond global consulté » : c'est `diag-depense-ia` (§E.36).
+
 ---
 
 ## E. Les pièges vérifiés
@@ -987,6 +1021,7 @@ reranker l'était, et l'autre contrôle le voyait vert.
 | [E.63](docs/pieges.md#e63) | UN RÉSULTAT POSÉ SUR UN SUPPORT QUI EXPIRE EST UN RÉSULTAT QU'ON PERDRA. |
 | [E.64](docs/pieges.md#e64) | `NOT VALID` NE DISPENSE QUE L'INSERTION : IL REND IMMUABLES LES LIGNES QU'IL TOLÈRE. |
 | [E.65](docs/pieges.md#e65) | DÉPLACER UN TRAITEMENT DÉPLACE LES GARDES QUI EN DÉPENDENT. On relit CHAQUE garde traversée, pas seulement celle qu'on vise. |
+| [E.66](docs/pieges.md#e66) | UN `import type` EST EFFACÉ. Le transformer en import de valeur rend un banc MUET, pas rouge. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

@@ -306,8 +306,8 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **84** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
-23/09/2026, à l'exécution — les 71ᵉ à 84ᵉ laissent les trois autres compteurs **inchangés**, et
+Sur les **85** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
+24/09/2026, à l'exécution — les 71ᵉ à 85ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
 lignes existantes ; `inacheves_hors_annonces_expirees` ne fait que remplacer le corps d'une fonction
 de lecture ; `empreinte_des_notes` **vide** une table éphémère et lui ajoute une colonne ;
@@ -318,7 +318,9 @@ La septième, `index_packages_stripe`, ne crée que des index.
 La huitième, `index_depense_par_mois`, ne fait qu'échanger deux index.
 La neuvième, `tarif_par_recherche`, ajoute deux colonnes et **corrige** deux lignes : ses `update`
 remplissent des colonnes neuves et en vident une, ils n'insèrent aucune ligne.
-**Aucune des neuf n'insère quoi que ce soit**, donc elles
+La dixième, `plafond_par_acteur`, ajoute une colonne, deux contraintes et trois fonctions de
+lecture : son `update` remplit la colonne neuve, il n'insère aucune ligne.
+**Aucune des dix n'insère quoi que ce soit**, donc elles
 échappent par construction à la classe que cette section décrit. Au 20/09/2026, la 70ᵉ, `verification_nocturne_stripe`, apportait l'insertion et la ligne
 de plus : son entrée au catalogue des tâches planifiées, six valeurs. Les chiffres précédents,
 **69 / 51 / 39 / 1962**, dataient du 17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois
@@ -3328,6 +3330,47 @@ relisant ce qu'il traverse — et le premier des deux a été vu en écrivant le
 relisant le chemin de dépôt. **Ce qui se garde** est la conséquence : les deux propriétés corrigées
 sont désormais tenues par [`diag-candidature-complete`](../scripts/diag-candidature-complete.mjs) et
 [`diag-devoilement-inclus`](../scripts/diag-devoilement-inclus.mjs), chacune éprouvée par mutation.
+
+---
+
+<a id="e66"></a>
+
+## E.66 — UN `import type` EST EFFACÉ. LE TRANSFORMER EN IMPORT DE VALEUR CHANGE CE QUI DOIT SE RÉSOUDRE, ET REND UN BANC MUET.
+
+**Le cas, mesuré le 24/09/2026.** Six modules portaient
+`import type { ConsommationIA } from '@/lib/ai-consommation'`. Le lot §D.24 y a ajouté une
+fonction : `import { consommationJetons, type ConsommationIA } from '@/lib/ai-consommation'`.
+Un caractère de différence à la lecture ; deux choses différentes à l'exécution.
+
+| | Ce que Node doit faire |
+|---|---|
+| `import type` | **RIEN** — le type est effacé à la compilation, le spécificateur n'est jamais résolu |
+| `import` d'une valeur | **RÉSOUDRE** `@/lib/ai-consommation` — un alias de `tsconfig` que Node ne connaît pas |
+
+**Conséquence, et c'est elle qui compte** : `diag-publication-gate` et `diag-gate-recalibrage`
+chargent `lib/verification/ai-publication-quality.ts` **tel quel**, avec Node. Ils sont passés de
+**vert** à **n'a pas tourné**, sur un `ERR_MODULE_NOT_FOUND` que personne ne lisait.
+
+> ⚠️ **ILS NE SONT PAS DEVENUS ROUGES. ILS SONT DEVENUS MUETS.** Un rouge a conclu ; un muet n'a
+> pas commencé. `diag.mjs` les range dans une catégorie à part exactement pour ça — mais encore
+> faut-il **lancer la série**. Le lot a tourné ses contrôles ciblés, tous verts, et a conclu que
+> les validations passaient. **Deux contrôles avaient cessé de vérifier quoi que ce soit.**
+
+**LA PARADE EST UNE PROPRIÉTÉ DE RÉSOLUTION, PAS UNE VIGILANCE.** `allowImportingTsExtensions`
+dans `tsconfig.json` (compatible avec `noEmit`, déjà posé), et les six imports passent en
+**relatif avec extension** — `from '../ai-consommation.ts'` —, que Node résout sans alias. Uniforme
+sur les six, et pas seulement sur celui qui cassait : le suivant qu'un banc chargera est couvert
+d'avance (§E.20).
+
+**LA RÈGLE QUI EN SORT.** Un module que charge un banc ne peut avoir, dans tout son graphe, que
+des imports de valeur **résolubles par Node**. Le dépôt en avait la discipline sans l'écrire : ses
+bancs ne chargeaient que des modules **purs**. `ai-publication-quality.ts` l'était **par accident**
+— son seul import croisé était un `import type`, donc invisible à l'exécution.
+
+> **Et la leçon plus large, qui vaut pour tout ce fichier** : une modification qui ne change
+> **rien** à ce que le code fait peut changer **tout** à ce qui doit exister pour qu'il se charge.
+> Le compilateur était vert, le `build` était vert, les contrôles ciblés étaient verts. Seule la
+> **série complète** l'a dit.
 
 ---
 

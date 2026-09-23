@@ -120,6 +120,16 @@ const ADMIN_NAV_ICONS: Record<string, React.ReactNode> = {
       <path d="M14 11a5 5 0 0 0-7.1-.1L4 13.8a5 5 0 0 0 7.1 7.1l1.7-1.7" />
     </svg>
   ),
+  // Consommation par compte — des barres. Distincte de `gauge` (un cadran,
+  // qui règle un quota) et de `link` (un raccordement) : l'image dit ce que
+  // l'écran fait — il COMPARE des comptes entre eux, il ne règle rien.
+  // `currentColor` comme toutes les autres : une couleur d'état sur une icône
+  // de menu dirait quelque chose de faux quand rien n'est au plafond (§E.54).
+  chart: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+    </svg>
+  ),
 }
 
 /**

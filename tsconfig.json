@@ -6,6 +6,9 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
+    // Un module charge TEL QUEL par un banc de diagnostic doit voir ses imports
+    // se resoudre avec Node, qui exige l extension. Compatible avec noEmit.
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",

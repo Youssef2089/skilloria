@@ -332,7 +332,13 @@ export async function POST(request: NextRequest): Promise<Response> {
   //  FAIL-CLOSED assumé (lib/ai-budget.ts) : sur panne de lecture on REFUSE —
   //  ne pas savoir combien on a dépensé n'autorise pas à dépenser plus. C'est
   //  l'exception au fail-open du reste du projet, elle protège de l'argent.
-  const budget = await budgetDisponible(supabaseAdmin, 'claude')
+  //  L'ACTEUR EST LE MÊME QU'À L'ENREGISTREMENT, quelques lignes plus bas.
+  //  Interroger le plafond de X puis imputer la dépense à Y protégerait le
+  //  mauvais compte, sans qu'aucun des deux appels n'échoue (§E.39).
+  const budget = await budgetDisponible(supabaseAdmin, 'claude', {
+    acteur: { type: 'profile', id: profile.id },
+    action: 'cv_parsing',
+  })
   if (!budget.ok) {
     console.error('[upload-cv] analyse refusée — budget', budget.raison)
     return json({ error: 'AI budget exhausted', code: 'ai_budget_exhausted', detail: budget.raison }, 503)

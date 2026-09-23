@@ -2479,7 +2479,8 @@
       "nav_durees": "Duraciones del mercado",
       "nav_tarifs_ia": "Tarifas de los modelos",
       "nav_supervision": "Supervisión",
-      "nav_facturation": "Facturación"
+      "nav_facturation": "Facturación",
+      "nav_consommation": "Consumo"
     },
     "quotas_ia": {
       "title": "Cuotas de IA",
@@ -3129,7 +3130,10 @@
         "catalogue_non_relie": "{count} plan(es) de pago no están conectados a Stripe en el modo de la clave en uso. La primera suscripción real saldría «precio fuera de catálogo»: se cobraría el dinero sin poder vincularlo a un plan. Abra Catálogo comercial y pulse «Conectar con Stripe».",
         "catalogue_etat_inconnu": "No se puede saber si el catálogo está conectado a Stripe: falta la clave, o falló la lectura. No es «todo bien», es «no lo sé».",
         "depots_candidature_perdus": "{count} candidatura(s) no pudieron registrarse: su análisis no concluyó y no se escribió nada. El experto cree haberse postulado; la organización no sabe que debía recibir un expediente. Abra Depósitos fallidos y reinténtelos.",
-        "lecture_indisponible_depots": "No se pudieron contar los depósitos de candidatura. Esto no es «ningún depósito perdido»: es «no lo sabemos». Abra Depósitos fallidos."
+        "lecture_indisponible_depots": "No se pudieron contar los depósitos de candidatura. Esto no es «ningún depósito perdido»: es «no lo sabemos». Abra Depósitos fallidos.",
+        "organisations_au_plafond_ia": "{count} empresa(s) alcanzaron su límite de gasto: sus anuncios salen, pero ya no se clasifican.",
+        "experts_au_plafond_ia": "{count} experto(s) alcanzaron su límite de gasto: sus búsquedas automáticas están detenidas.",
+        "lecture_indisponible_acteurs_plafond": "No se pudieron contar las cuentas al límite. No es «ninguna»: no lo sabemos."
       },
       "spread_title": "Distribución de las notas",
       "spread_empty": "Todavía no hay ninguna ejecución en la nueva escala. La distribución se llenará con los próximos emparejamientos.",
@@ -3262,7 +3266,38 @@
       "raison_ne_pas_deranger": "experto en «no molestar»",
       "raison_non_en_recherche": "experto empleado, no en búsqueda"
     },
-    "nav_depots_echec": "Depósitos fallidos"
+    "nav_depots_echec": "Depósitos fallidos",
+    "consommation": {
+      "title": "Consumo por cuenta",
+      "intro": "Lo que costó cada cuenta este mes, y cuál alcanzó su límite. Los límites se ajustan en",
+      "to_settings": "los ajustes del motor",
+      "loading": "Cargando…",
+      "err_load": "No se pudo leer el consumo.",
+      "unreadable": "Esta lectura falló. No es «cero»: no lo sabemos.",
+      "empty": "Ninguna cuenta ha gastado todavía este mes.",
+      "global_title": "El último resguardo",
+      "global_one_line": "El límite común. Alcanzado, ya no sale nada, sea cual sea el estado de las cuentas.",
+      "accounts_title": "Las cuentas",
+      "accounts_one_line": "Una cuenta al límite no está suspendida ni avisada: lo que la plataforma hacía sola por ella se detiene, el resto continúa.",
+      "amount_of": "{spent} $ de {cap} $",
+      "col_account": "Cuenta",
+      "col_kind": "Tipo",
+      "col_spent": "Gastado ($)",
+      "col_cap": "Límite ($)",
+      "col_state": "Estado",
+      "col_calls": "Llamadas",
+      "kind": {
+        "organization": "Empresa",
+        "profile": "Experto"
+      },
+      "unnamed": "Cuenta eliminada",
+      "state_capped": "Al límite",
+      "state_alert": "Vigilar",
+      "state_ok": "Normal",
+      "rest": "{count} otras cuentas, agrupadas: {amount} $.",
+      "unattributed": "{amount} $ en {count} llamadas no están vinculados a ninguna cuenta: están contados, no adivinados.",
+      "total": "Total del mes: {amount} $."
+    }
   },
   "expert_verification": {
     "badge": {
@@ -4053,7 +4088,21 @@
     "blocked_empty": "Rellene ambas notas para guardar.",
     "blocked_range": "Una nota es un número entre 0 y 10.",
     "blocked_order": "La nota para avisar no puede estar por debajo de la nota para aparecer: avisaríamos de un anuncio invisible.",
-    "blocked_unchanged": "No hay ningún cambio que guardar."
+    "blocked_unchanged": "No hay ningún cambio que guardar.",
+    "actor_caps_title": "Los límites por cuenta",
+    "actor_caps_one_line": "Un límite detiene: alcanzado, la plataforma deja de buscar para esa cuenta. La cuenta sigue intacta: una empresa al límite sigue publicando, un experto sigue postulando.",
+    "actor_cap": {
+      "organization": "Detener la clasificación de una empresa por encima de",
+      "profile": "Detener las búsquedas de un experto por encima de"
+    },
+    "actor_cap_effect": {
+      "organization": "Sus anuncios salen, pero ya no se clasifican.",
+      "profile": "Sus búsquedas automáticas se detienen; sigue postulando."
+    },
+    "actor_caps_link_intro": "Para ver quién gasta qué este mes:",
+    "actor_caps_link": "el consumo por cuenta",
+    "alerts_under_cap": "Una alerta se queda por debajo del límite de la misma cuenta: por encima, nunca se activaría.",
+    "err_alerte_au_dessus": "La alerta debe quedar por debajo del límite de la misma cuenta: por encima, nunca se activaría."
   },
   "admin_durees": {
     "title": "Duraciones del mercado",

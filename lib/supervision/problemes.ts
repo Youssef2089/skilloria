@@ -96,6 +96,30 @@ export type SourcesSupervision = {
   pannes: Array<{ cause: string; surface: string; pannes: number; derniere: string | null }> | null
   relances: Array<{ origine: string; depassements: number; experts: number }> | null
   depense: Array<{ provider: string; part_consommee: number | null; au_plafond: boolean }> | null
+  /**
+   * LES ACTEURS À LEUR PROPRE PLAFOND.
+   *
+   * ┌─ POURQUOI ÇA REMONTE, ET POURQUOI EN ATTENTION ──────────────────────┐
+   * │ Une organisation au plafond PUBLIE QUAND MÊME — elle a payé — mais    │
+   * │ son annonce n'est plus classée. Rien ne casse, rien n'échoue, aucune  │
+   * │ erreur n'est écrite : l'annonce sort et reste sans candidats.         │
+   * │ Personne ne se plaindra, parce que personne ne sait qu'il manque      │
+   * │ quelque chose.                                                        │
+   * │                                                                        │
+   * │ ATTENTION ET NON BLOQUANT, et c'est un arbitrage : un acteur au       │
+   * │ plafond est le fonctionnement NORMAL d'une règle qu'on a posée. En    │
+   * │ faire un bloquant le ferait sonner chaque fin de mois, et un signal   │
+   * │ bloquant qu'on voit tous les mois apprend à être ignoré (§E.52) —     │
+   * │ y compris les fois où il compte.                                      │
+   * │                                                                        │
+   * │ ET IL S'ÉTEINT PAR UNE ACTION : relever le plafond de cet acteur, ou  │
+   * │ regarder ce qu'il consomme. Le lien mène à l'écran qui fait les deux. │
+   * └────────────────────────────────────────────────────────────────────────┘
+   *
+   * ⚠️ `null` = lecture en panne. PAS zéro : « aucun acteur au plafond » et
+   *    « je ne sais pas » ne sont pas le même fait (§E.22).
+   */
+  acteursAuPlafond: { organisations: number; experts: number } | null
   distribution: Array<{ runs_observes: number }> | null
   /** Horodatage du tarif le plus anciennement modifié. */
   tarifPlusAncien: string | null
@@ -290,6 +314,39 @@ export function classerProblemes(s: SourcesSupervision): Probleme[] {
           sujet: 'inacheves',
         })
       }
+    }
+  }
+
+  // ── 2 bis. LES ACTEURS À LEUR PROPRE PLAFOND ───────────────────────────
+  if (s.acteursAuPlafond === null) {
+    out.push({
+      cle: 'lecture_indisponible_acteurs_plafond',
+      gravite: 'attention',
+      compte: null,
+      depuis: null,
+      sujet: null,
+      lien: '/admin/consommation',
+    })
+  } else {
+    if (s.acteursAuPlafond.organisations > 0) {
+      out.push({
+        cle: 'organisations_au_plafond_ia',
+        gravite: 'attention',
+        compte: s.acteursAuPlafond.organisations,
+        depuis: null,
+        sujet: null,
+        lien: '/admin/consommation',
+      })
+    }
+    if (s.acteursAuPlafond.experts > 0) {
+      out.push({
+        cle: 'experts_au_plafond_ia',
+        gravite: 'attention',
+        compte: s.acteursAuPlafond.experts,
+        depuis: null,
+        sujet: null,
+        lien: '/admin/consommation',
+      })
     }
   }
 

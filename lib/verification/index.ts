@@ -217,7 +217,11 @@ export async function runVerification(args: {
   //  Au plafond, l'organisation part en revue manuelle. La règle métier
   //  « JAMAIS de rejet automatique » est préservée : un refus de budget n'est
   //  pas un refus d'organisation.
-  const budget = await budgetDisponible(supabaseAdmin, 'claude')
+  //  Le MÊME acteur qu'à l'enregistrement plus bas (§E.39).
+  const budget = await budgetDisponible(supabaseAdmin, 'claude', {
+    acteur: { type: 'organization', id: organization_id },
+    action: 'org_verification',
+  })
   if (!budget.ok) {
     console.error('[verification:index] vérification refusée — budget', budget.raison)
     return {

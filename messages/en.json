@@ -2479,7 +2479,8 @@
       "nav_durees": "Marketplace durations",
       "nav_tarifs_ia": "Model pricing",
       "nav_supervision": "Monitoring",
-      "nav_facturation": "Billing"
+      "nav_facturation": "Billing",
+      "nav_consommation": "Consumption"
     },
     "quotas_ia": {
       "title": "AI quotas",
@@ -3129,7 +3130,10 @@
         "catalogue_non_relie": "{count} paid plan(s) are not linked to Stripe in the mode of the key in use. The first real subscription would come back \"price not in catalogue\": the money would be taken with no way to attach it to a plan. Open Commerce catalogue and click \"Link to Stripe\".",
         "catalogue_etat_inconnu": "Cannot tell whether the catalogue is linked to Stripe: key missing, or read failed. This is not \"all good\" — it is \"I do not know\".",
         "depots_candidature_perdus": "{count} application(s) could not be submitted: their analysis did not complete, and nothing was written. The expert believes they applied; the organisation does not know a file was due. Open Failed submissions and retry them.",
-        "lecture_indisponible_depots": "Application submissions could not be counted. This is not \"no lost submissions\": it is \"we do not know\". Open Failed submissions."
+        "lecture_indisponible_depots": "Application submissions could not be counted. This is not \"no lost submissions\": it is \"we do not know\". Open Failed submissions.",
+        "organisations_au_plafond_ia": "{count} company/companies reached their spending cap: their postings go out, but are no longer ranked.",
+        "experts_au_plafond_ia": "{count} expert(s) reached their spending cap: their automatic searches are stopped.",
+        "lecture_indisponible_acteurs_plafond": "Capped accounts could not be counted. This is not “none”: we do not know."
       },
       "spread_title": "Score spread",
       "spread_empty": "No run yet on the new scale. The spread will fill in with the next matching runs.",
@@ -3262,7 +3266,38 @@
       "raison_ne_pas_deranger": "expert set to “do not disturb”",
       "raison_non_en_recherche": "expert employed, not looking"
     },
-    "nav_depots_echec": "Failed submissions"
+    "nav_depots_echec": "Failed submissions",
+    "consommation": {
+      "title": "Consumption per account",
+      "intro": "What each account cost this month, and which one reached its cap. Caps are set in",
+      "to_settings": "the engine settings",
+      "loading": "Loading…",
+      "err_load": "Consumption could not be read.",
+      "unreadable": "This read failed. This is not “zero”: we do not know.",
+      "empty": "No account has spent anything yet this month.",
+      "global_title": "The last safeguard",
+      "global_one_line": "The shared cap. Once reached, nothing goes out at all, whatever the accounts’ state.",
+      "accounts_title": "Accounts",
+      "accounts_one_line": "A capped account is neither suspended nor notified: what the platform did on its own for it stops, everything else continues.",
+      "amount_of": "${spent} of ${cap}",
+      "col_account": "Account",
+      "col_kind": "Type",
+      "col_spent": "Spent ($)",
+      "col_cap": "Cap ($)",
+      "col_state": "State",
+      "col_calls": "Calls",
+      "kind": {
+        "organization": "Company",
+        "profile": "Expert"
+      },
+      "unnamed": "Deleted account",
+      "state_capped": "At cap",
+      "state_alert": "Watch",
+      "state_ok": "Normal",
+      "rest": "{count} other accounts, grouped: ${amount}.",
+      "unattributed": "${amount} across {count} calls are not tied to any account — they are counted, not guessed.",
+      "total": "Month total: ${amount}."
+    }
   },
   "expert_verification": {
     "badge": {
@@ -4053,7 +4088,21 @@
     "blocked_empty": "Fill in both scores to save.",
     "blocked_range": "A score is a number between 0 and 10.",
     "blocked_order": "The score to notify cannot sit below the score to appear: we would notify about an invisible listing.",
-    "blocked_unchanged": "Nothing has changed."
+    "blocked_unchanged": "Nothing has changed.",
+    "actor_caps_title": "Per-account caps",
+    "actor_caps_one_line": "A cap stops: once reached, the platform stops searching for that account. The account itself stays whole — a capped company still publishes, a capped expert still applies.",
+    "actor_cap": {
+      "organization": "Stop ranking for a company above",
+      "profile": "Stop searches for an expert above"
+    },
+    "actor_cap_effect": {
+      "organization": "Its postings go out, but are no longer ranked.",
+      "profile": "Automatic searches stop; they keep applying."
+    },
+    "actor_caps_link_intro": "To see who spends what this month:",
+    "actor_caps_link": "consumption per account",
+    "alerts_under_cap": "An alert stays below the same account’s cap: above it, it would never fire.",
+    "err_alerte_au_dessus": "The alert must stay below the same account’s cap: above it, it would never fire."
   },
   "admin_durees": {
     "title": "Marketplace durations",

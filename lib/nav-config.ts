@@ -318,6 +318,22 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
         iconKey: 'alert',
       },
       {
+        // CE QUE CHAQUE COMPTE A COÛTÉ, rangé dans « Exploitation » : on n'y
+        // règle rien — les plafonds se posent dans /admin/matching — on y
+        // REGARDE qui a dépensé quoi.
+        //
+        // Depuis le 23/09/2026 un compte peut être ARRÊTÉ par son propre
+        // plafond (§D.25) : son annonce n'est plus classée, ou ses recherches
+        // ne partent plus. Rien ne casse, rien n'échoue — il ne se passe
+        // simplement plus rien. La supervision dit COMBIEN de comptes sont
+        // dans cet état ; c'est ici, et seulement ici, qu'on voit LESQUELS.
+        // Sans cet écran, on relèverait le plafond au jugé.
+        key: 'consommation',
+        href: '/admin/consommation',
+        labelKey: 'nav_consommation',
+        iconKey: 'chart',
+      },
+      {
         // LE RACCORDEMENT STRIPE, rangé dans « Exploitation » et non dans
         // « Commerce » : on n'y vend rien et on n'y règle rien. On y CONSTATE
         // que ce qui a été encaissé correspond à ce qui a été ouvert — et

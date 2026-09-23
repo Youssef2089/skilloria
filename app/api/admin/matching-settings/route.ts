@@ -70,7 +70,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         .select('domain_id, feed_threshold, notify_threshold, notify_enabled, rerank_model, rerank_batch_size, updated_at'),
       admin.from('domains').select('id, slug, name'),
       admin.rpc('ai_spend_status'),
-      admin.from('ai_spend_seuils_acteur').select('acteur, seuil_mensuel_usd'),
+      admin.from('ai_spend_seuils_acteur').select('acteur, seuil_mensuel_usd, plafond_mensuel_usd'),
       // LES MODÈLES PROPOSABLES SONT CEUX QUI ONT UN TARIF. Un modèle sans
       // tarif journaliserait sa dépense à ZÉRO, et le plafond cesserait de la
       // compter — en silence (§E.13). On ne peut donc pas en choisir un.
@@ -118,6 +118,20 @@ export async function GET(request: NextRequest): Promise<Response> {
             ((seuilsActeurRes.data ?? []) as Array<{ acteur: string; seuil_mensuel_usd: number | string }>).map(
               (r) => [r.acteur, Number(r.seuil_mensuel_usd)],
             ),
+          ),
+      // LE PLAFOND PAR ACTEUR — il BLOQUE, contrairement à l'alerte ci-dessus.
+      // Rendu séparément parce que l'écran ne les présente pas ensemble : un
+      // réglage qui arrête et un réglage qui prévient ne se lisent pas côte à
+      // côte sans qu'on finisse par les confondre (§D.9).
+      plafonds_acteur: seuilsActeurRes.error
+        ? null
+        : Object.fromEntries(
+            (
+              (seuilsActeurRes.data ?? []) as Array<{
+                acteur: string
+                plafond_mensuel_usd: number | string
+              }>
+            ).map((r) => [r.acteur, Number(r.plafond_mensuel_usd)]),
           ),
       modeles: modelesRes.error
         ? null
