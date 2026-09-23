@@ -2385,7 +2385,15 @@
       "loading": "Loading your opportunities…",
       "error_generic": "Could not load your opportunities. Please try again.",
       "empty_title": "No opportunities yet",
-      "empty_subtitle": "You'll be notified as soon as a posting matches your profile."
+      "empty_subtitle": "You'll be notified as soon as a posting matches your profile.",
+      "echec_title": "The last search didn’t complete",
+      "echec_abandonnee": "Several attempts failed. Our team has been notified — get in touch if this persists.",
+      "echec_raison": {
+        "moteur_indisponible": "The matching engine is temporarily unavailable. Another search is scheduled.",
+        "plafond_atteint": "The search is paused pending a top-up. It will resume automatically.",
+        "reglages_absents": "A setting is missing on our side. Another search is scheduled.",
+        "lecture_en_panne": "We couldn’t read your data. Another search is scheduled."
+      }
     },
     "casting": {
       "prev_aria": "Previous opportunity",

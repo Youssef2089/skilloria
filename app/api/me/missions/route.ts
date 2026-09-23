@@ -130,7 +130,18 @@ export async function GET(request: NextRequest): Promise<Response> {
     console.error('[me/missions:GET] profile lookup failed', feedCtx.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
-  const { profile, isApproved, isDnd } = feedCtx.context
+  const { profile, isApproved, isDnd, derniereRecherche } = feedCtx.context
+  /**
+   * ⚠️ IL PART AVEC CHAQUE RÉPONSE, Y COMPRIS QUAND LE FLUX N'EST PAS VIDE.
+   *    Une recherche a pu échouer alors que des rapprochements plus anciens
+   *    sont encore là : l'expert voit des missions ET sa dernière recherche a
+   *    échoué. Ne l'envoyer que sur un flux vide aurait fait dépendre la
+   *    VÉRITÉ d'un compte (§E.27).
+   */
+  const statutExpert = {
+    is_dnd: isDnd,
+    ...(derniereRecherche ? { derniere_recherche: derniereRecherche } : {}),
+  }
   if (!profile) {
     // L'utilisateur n'a pas de profile (expert pas encore inscrit). Feed vide.
     return json({ missions: [] }, 200)
@@ -139,7 +150,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     return json({ error: 'Profile not verified', code: 'not_verified' }, 403)
   }
   if (isDnd) {
-    return json({ missions: [], expert_status: { is_dnd: true } }, 200)
+    return json({ missions: [], expert_status: statutExpert }, 200)
   }
 
   const locale = normalizeLocale(new URL(request.url).searchParams.get('locale'))
@@ -264,5 +275,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
   }).filter((x): x is NonNullable<typeof x> => x !== null)
 
-  return json({ missions, expert_status: { is_dnd: false } }, 200)
+  // `statutExpert` et non un objet reconstruit : la DEUXIÈME écriture de
+  // `expert_status` dans cette route était l'endroit exact où l'état de la
+  // dernière recherche aurait été oublié (§E.20).
+  return json({ missions, expert_status: statutExpert }, 200)
 }

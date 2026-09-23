@@ -27,7 +27,15 @@ import { useLiveResource } from '@/hooks/useLiveResource'
 
 type MissionsPayload = {
   missions: MissionCardData[]
-  expert_status?: { is_dnd: boolean }
+  expert_status?: {
+    is_dnd: boolean
+    /**
+     * L'état de la DERNIÈRE recherche. Absent = la dernière a abouti.
+     * Il n'existe pas de valeur neutre : un champ absent se lit « rien à
+     * signaler », et c'est la seule lecture correcte de son absence (§E.27).
+     */
+    derniere_recherche?: { etat: 'echec'; raison: string; abandonnee: boolean }
+  }
 }
 
 export default function MissionsFeedPage() {
@@ -52,6 +60,7 @@ export default function MissionsFeedPage() {
   const state = live.state
   const missions = live.data?.missions ?? []
   const isDnd = !!live.data?.expert_status?.is_dnd
+  const recherche = live.data?.expert_status?.derniere_recherche
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px 26px' }}>
@@ -79,6 +88,21 @@ export default function MissionsFeedPage() {
         <div style={{ marginTop: 14 }}>
           {isDnd ? (
             <DndEmptyState side="freelance" />
+          ) : recherche?.etat === 'echec' ? (
+            /* ⚠️ « AUCUNE MISSION » EST UNE AFFIRMATION, ET ELLE SERAIT FAUSSE.
+                  Le dernier run a échoué : rien n'a été cherché. Le dire est la
+                  moitié de §D.13 ③ qui manquait au chemin de fond — l'écran la
+                  portait déjà quand l'expert cliquait, jamais quand le cron
+                  travaillait pour lui. */
+            <EmptyState
+              icon="⏳"
+              title={t('echec_title')}
+              body={
+                recherche.abandonnee
+                  ? t('echec_abandonnee')
+                  : t(`echec_raison.${recherche.raison}`)
+              }
+            />
           ) : (
             <EmptyState
               icon="🎯"

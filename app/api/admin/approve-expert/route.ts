@@ -244,8 +244,29 @@ export async function POST(request: NextRequest): Promise<Response> {
       // Une relance était peut-être en attente pour ce profil : elle vient
       // d'être satisfaite. Ne pas la solder ferait tourner le moteur une
       // seconde fois dans l'heure, pour rien.
-      const { solderRelance } = await import('@/lib/matching/relance')
-      await solderRelance(auth.supabaseAdmin, profileId, debutRun)
+      //
+      // ⚠️ MAIS SEULEMENT SI LE RUN A ABOUTI, ET C'EST ICI QUE ÇA COMPTE LE
+      //    PLUS. Ce chemin soldait inconditionnellement : un moteur éteint au
+      //    moment de l'approbation effaçait l'échéance, et plus rien ne
+      //    reprenait. Le commentaire six lignes plus haut dit pourquoi c'est
+      //    grave — « c'est le moment qui compte pour l'expert […] son premier
+      //    contact avec la plateforme » : cet écran restait vide, et pour
+      //    toujours. Troisième appelant du même défaut, trouvé par le contrôle
+      //    de ce lot et non par une relecture (§E.20).
+      const { solderRelance, echouerRelance, marquerTentativeRelance } = await import(
+        '@/lib/matching/relance'
+      )
+      const { runAcheve, codeDEchec } = await import('@/lib/matching/run-abouti')
+      if (runAcheve(v)) {
+        await solderRelance(auth.supabaseAdmin, profileId, debutRun)
+      } else {
+        // La tentative n'est comptée QUE sur un échec ici, et c'est la
+        // différence avec les deux autres chemins : l'approbation n'est pas une
+        // relance de la file — elle ne consomme pas le plafond quand elle
+        // réussit. Ce qu'on veut compter, c'est ce qui devra être rejoué.
+        await marquerTentativeRelance(auth.supabaseAdmin, profileId)
+        await echouerRelance(auth.supabaseAdmin, profileId, codeDEchec(v))
+      }
       console.log('[admin:approve-expert] matching done', {
         profileId,
         status: v.status,

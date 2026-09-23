@@ -30,6 +30,10 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { activePublishedOrClause } from '@/lib/publications/expiry'
+// L'ÉTAT DE LA DERNIÈRE RECHERCHE — module PUR, sans import, exécuté tel quel
+// par `diag-relance-rejouee` (§E.33). Le redéfinir ici en ferait un second
+// lecteur du même fait, et le plafond de tentatives existerait deux fois.
+import { etatDerniereRecherche } from '@/lib/matching/run-abouti'
 
 /**
  * Plafond du feed expert. Le badge s'y borne aussi : il ne doit jamais annoncer
@@ -65,7 +69,17 @@ export type ExpertFeedContext = {
    * badge doit respecter pour ne pas compter dans le vide.
    */
   isOpen: boolean
+  /**
+   * L'état de la DERNIÈRE recherche, ou `null` si elle a abouti.
+   *
+   * ⚠️ IL EST ICI ET PAS DANS LA ROUTE, parce que le badge de navigation lit
+   *    le MÊME contexte : une route qui le chargerait pour son compte
+   *    produirait un second lecteur, et les deux divergeraient (§E.20).
+   */
+  derniereRecherche: { etat: 'echec'; raison: string; abandonnee: boolean } | null
 }
+
+
 
 export type ExpertFeedContextResult =
   | { ok: true; context: ExpertFeedContext }
@@ -84,7 +98,12 @@ export async function loadExpertFeedContext(
 ): Promise<ExpertFeedContextResult> {
   const { data, error } = await supabaseAdmin
     .from('profiles')
-    .select('id, verification_status, availability_status, cdi_status')
+    .select(
+      'id, verification_status, availability_status, cdi_status, ' +
+        // L'ÉTAT DE LA DERNIÈRE RECHERCHE. Sans lui, un flux vide se lit
+        // « aucune mission » alors que rien n'a été cherché (§E.27).
+        'matching_relance_echec_code, matching_relance_due_at, matching_relance_tentatives',
+    )
     .eq('user_id', userId)
     .maybeSingle()
   if (error) {
@@ -97,13 +116,22 @@ export async function loadExpertFeedContext(
         verification_status: string | null
         availability_status: string | null
         cdi_status: string | null
+        matching_relance_echec_code: string | null
+        matching_relance_due_at: string | null
+        matching_relance_tentatives: number | null
       }
     | null
 
   if (!row) {
     return {
       ok: true,
-      context: { profile: null, isApproved: false, isDnd: false, isOpen: false },
+      context: {
+        profile: null,
+        isApproved: false,
+        isDnd: false,
+        isOpen: false,
+        derniereRecherche: null,
+      },
     }
   }
 
@@ -117,6 +145,7 @@ export async function loadExpertFeedContext(
       isApproved,
       isDnd,
       isOpen: isApproved && !isDnd,
+      derniereRecherche: etatDerniereRecherche(row),
     },
   }
 }

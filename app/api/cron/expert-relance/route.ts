@@ -1,7 +1,14 @@
 import { NextRequest } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { runMatchingForExpert } from '@/lib/matching'
-import { prochaineRelance, solderRelance } from '@/lib/matching/relance'
+import {
+  codeDEchec,
+  echouerRelance,
+  marquerTentativeRelance,
+  prochaineRelance,
+  runAcheve,
+  solderRelance,
+} from '@/lib/matching/relance'
 import { prendreBailRun, rendreBailRun } from '@/lib/cron/bail-de-run'
 
 /** Nom du bail. MÊME valeur pour GET et POST : c'est la TÂCHE qu'on garde. */
@@ -98,8 +105,23 @@ async function handle(request: NextRequest): Promise<Response> {
     // L'instant du début, AVANT le run. C'est lui qui permettra de distinguer un
     // déclenchement d'avant (soldé) d'un déclenchement pendant (conservé).
     const debutRun = new Date()
+    // LA TENTATIVE SE COMPTE AVANT LE RUN, comme côté annonce : un processus
+    // tué en plein run laisserait sinon un compteur immobile, et la même
+    // relance repartirait indéfiniment sans jamais approcher son plafond.
+    await marquerTentativeRelance(admin, file.profileId)
     const verdict = await runMatchingForExpert({ supabaseAdmin: admin, profileId: file.profileId })
-    const { soldee } = await solderRelance(admin, file.profileId, debutRun)
+
+    // ⚠️ ON NE SOLDE QUE CE QUI A ABOUTI. Solder un run en échec pose le jalon
+    //    et rien ne reprend : la modification de profil qui avait déclenché la
+    //    relance n'est JAMAIS notée (§E.27 forme B). La décision est prise par
+    //    `runAcheve()`, une seule fois pour les deux appelants (§E.20).
+    const acheve = runAcheve(verdict)
+    let soldee = false
+    if (acheve) {
+      ;({ soldee } = await solderRelance(admin, file.profileId, debutRun))
+    } else {
+      await echouerRelance(admin, file.profileId, codeDEchec(verdict))
+    }
 
     // Le verdict est rendu TEL QUEL, y compris en échec. Un pilote qui répond
     // toujours « ok » rend la supervision aveugle.
@@ -108,6 +130,7 @@ async function handle(request: NextRequest): Promise<Response> {
         ok: verdict.status === 'ok',
         relance: file.profileId,
         status: verdict.status,
+        acheve,
         soldee,
         note: verdict.notes,
         model: verdict.model,

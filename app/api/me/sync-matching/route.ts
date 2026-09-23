@@ -205,14 +205,27 @@ export async function POST(request: NextRequest): Promise<Response> {
   const debutRun = new Date()
   const { runMatchingForExpert } = await import('@/lib/matching')
   const { issueDepuisVerdict } = await import('@/lib/matching/issue-de-recherche')
-  const { solderRelance } = await import('@/lib/matching/relance')
+  const { solderRelance, runAcheve, codeDEchec, marquerTentativeRelance, echouerRelance } =
+    await import('@/lib/matching/relance')
 
   const course = (async () => {
+    // Même compteur que le cron : ce chemin lance le MÊME moteur, et un run
+    // direct en échec doit pouvoir être rejoué exactement pareil.
+    await marquerTentativeRelance(supabaseAdmin, prof.id)
     const verdict = await runMatchingForExpert({ supabaseAdmin, profileId: prof.id })
     // Une relance en attente porterait sur un profil qu'on vient de noter : la
     // solder évite de repayer le même travail dans l'heure. `debutRun` protège
     // un déclenchement arrivé PENDANT le run — il ne sera pas soldé.
-    await solderRelance(supabaseAdmin, prof.id, debutRun)
+    //
+    // ⚠️ MAIS SEULEMENT SI LE RUN A ABOUTI. Ce chemin soldait aussi sur un
+    //    échec : l'expert lisait « la recherche a échoué » à l'écran — ce qui
+    //    était vrai — pendant que la base effaçait l'échéance, de sorte que
+    //    rien ne rejouait jamais. L'écran disait la vérité, la base l'oubliait.
+    if (runAcheve(verdict)) {
+      await solderRelance(supabaseAdmin, prof.id, debutRun)
+    } else {
+      await echouerRelance(supabaseAdmin, prof.id, codeDEchec(verdict))
+    }
     console.log('[me/sync-matching] run direct terminé', {
       profileId: prof.id,
       origine,

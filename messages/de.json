@@ -2385,7 +2385,15 @@
       "loading": "Möglichkeiten werden geladen…",
       "error_generic": "Möglichkeiten konnten nicht geladen werden. Bitte erneut versuchen.",
       "empty_title": "Noch keine Möglichkeiten",
-      "empty_subtitle": "Sie werden benachrichtigt, sobald eine Veröffentlichung zu Ihrem Profil passt."
+      "empty_subtitle": "Sie werden benachrichtigt, sobald eine Veröffentlichung zu Ihrem Profil passt.",
+      "echec_title": "Die letzte Suche wurde nicht abgeschlossen",
+      "echec_abandonnee": "Mehrere Versuche sind fehlgeschlagen. Unser Team ist informiert – melden Sie sich, wenn es anhält.",
+      "echec_raison": {
+        "moteur_indisponible": "Die Matching-Engine ist vorübergehend nicht verfügbar. Eine neue Suche ist geplant.",
+        "plafond_atteint": "Die Suche pausiert bis zur nächsten Aufstockung. Sie wird automatisch fortgesetzt.",
+        "reglages_absents": "Auf unserer Seite fehlt eine Einstellung. Eine neue Suche ist geplant.",
+        "lecture_en_panne": "Wir konnten Ihre Daten nicht lesen. Eine neue Suche ist geplant."
+      }
     },
     "casting": {
       "prev_aria": "Vorherige Gelegenheit",

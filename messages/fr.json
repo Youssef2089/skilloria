@@ -2385,7 +2385,15 @@
       "loading": "Chargement de vos opportunités…",
       "error_generic": "Impossible de charger vos opportunités. Réessayez dans un instant.",
       "empty_title": "Aucune opportunité pour le moment",
-      "empty_subtitle": "Vous serez notifié dès qu'une publication correspond à votre profil."
+      "empty_subtitle": "Vous serez notifié dès qu'une publication correspond à votre profil.",
+      "echec_title": "La dernière recherche n’a pas abouti",
+      "echec_abandonnee": "Plusieurs tentatives ont échoué. Notre équipe est prévenue ; écrivez-nous si cela dure.",
+      "echec_raison": {
+        "moteur_indisponible": "Le moteur de mise en relation est momentanément indisponible. Une nouvelle recherche est prévue.",
+        "plafond_atteint": "La recherche a été mise en pause le temps d’un réapprovisionnement. Elle reprendra automatiquement.",
+        "reglages_absents": "Une configuration manque de notre côté. Une nouvelle recherche est prévue.",
+        "lecture_en_panne": "Nous n’avons pas pu lire vos données. Une nouvelle recherche est prévue."
+      }
     },
     "casting": {
       "prev_aria": "Opportunité précédente",

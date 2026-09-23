@@ -2385,7 +2385,15 @@
       "loading": "Cargando tus oportunidades…",
       "error_generic": "No se pudieron cargar tus oportunidades. Inténtalo de nuevo.",
       "empty_title": "Aún no hay oportunidades",
-      "empty_subtitle": "Te avisaremos en cuanto una publicación coincida con tu perfil."
+      "empty_subtitle": "Te avisaremos en cuanto una publicación coincida con tu perfil.",
+      "echec_title": "La última búsqueda no se completó",
+      "echec_abandonnee": "Varios intentos han fallado. Nuestro equipo está avisado; escríbenos si esto continúa.",
+      "echec_raison": {
+        "moteur_indisponible": "El motor de emparejamiento no está disponible temporalmente. Hay otra búsqueda programada.",
+        "plafond_atteint": "La búsqueda está en pausa a la espera de una recarga. Se reanudará automáticamente.",
+        "reglages_absents": "Falta una configuración de nuestro lado. Hay otra búsqueda programada.",
+        "lecture_en_panne": "No pudimos leer tus datos. Hay otra búsqueda programada."
+      }
     },
     "casting": {
       "prev_aria": "Oportunidad anterior",

@@ -87,6 +87,24 @@ avec le seed) : `publications_per_month`, `active_publications_max`,
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`relance_rejouee` (23/09/2026) — UNE RELANCE DONT LE RUN A ÉCHOUÉ NE SE SOLDE PLUS.**
+> `profiles` gagne `matching_relance_tentatives`, `matching_relance_echec_at` et
+> `matching_relance_echec_code` ; deux fonctions neuves (`marquer_tentative_relance`,
+> `echouer_relance_expert`) ; `prochaine_relance_expert` **borne la file** sur le compteur, et
+> `matching_relance_health` compte désormais `en_echec` et `abandonnees` — ses **cinq colonnes
+> d'origine sont conservées**.
+>
+> **DEUX SUPPRESSIONS, ET ELLES SONT NÉCESSAIRES.** ① L'ancienne signature à **deux** arguments de
+> `prochaine_relance_expert` : `create or replace` **ne remplace pas** une fonction dont la liste
+> d'arguments change — les deux coexisteraient, et l'appel existant résoudrait vers **l'ancienne**,
+> celle sans plafond. Le correctif aurait été en place, **inerte**, et rien ne l'aurait dit (§E.1).
+> ② `matching_relance_health`, parce qu'un `returns table` **est** un type de retour et qu'on lui
+> ajoute deux colonnes.
+>
+> ⚠️ **Le `drop` est écrit AVANT le `create`, et pas seulement pour la lisibilité** : le rejeu des
+> migrations ne modélise pas les surcharges — un `drop` placé après faisait disparaître la fonction
+> du schéma reconstruit, et le contrôle du lot rougissait sur « elle n'existe pas ».
+
 > **`annonce_active_partagee` (23/09/2026) — CINQ EXPRESSIONS DE LA MÊME RÈGLE, RAMENÉES À UNE.**
 > « Une annonce est encore active » était écrit **cinq fois** en SQL : `matching_health` (01/09),
 > `annonces_expirees_par_duree` et `annonces_basculant_par_duree` (16/09, celle-ci **deux fois**
@@ -911,6 +929,40 @@ l'accueil elle-même dès le premier jour (§E.14). On ne garde que ce qui a ét
 
 ### C.14 — QUI DÉCLENCHE LE MOTEUR EXPERT, ET QUI ATTEND SA FIN
 
+> ⛔ **UN RUN QUI A ÉCHOUÉ NE SE SOLDE PLUS — 23/09/2026, SUR LES TROIS APPELANTS.**
+> `cron/expert-relance`, `me/sync-matching` et `admin/approve-expert` appelaient
+> `solderRelance()` **quel que soit le verdict**. Moteur éteint, clé absente, plafond de dépense
+> atteint, réglages illisibles : l'échéance était effacée comme après un run réussi. **Le jalon est
+> posé, plus rien ne reprend** (§E.27 forme B) — et la modification de profil qui avait déclenché la
+> relance n'est **jamais** notée.
+>
+> **LE CÔTÉ ANNONCE FAISAIT L'INVERSE DEPUIS TOUJOURS.** `acheverRun(…, acheve)` laisse
+> `matching_completed_at` à `NULL` sur un échec : le run reste rejouable, borné à cinq tentatives,
+> et **visible** au-delà. Deux comportements pour un même fait, et **c'est celui qui PERD qui était
+> du côté de l'expert**.
+>
+> **LE TROISIÈME APPELANT N'ÉTAIT PAS DANS L'AUDIT.** L'approbation a été trouvée par le contrôle du
+> lot, à sa première exécution, parce qu'il cherche un **comportement** — « qui appelle
+> `solderRelance` ? » — et non une liste. C'est le pire des trois : son propre commentaire dit
+> *« c'est le moment qui compte pour l'expert […] son premier contact avec la plateforme »*. Un
+> moteur éteint à cette seconde-là, et cet écran restait vide **pour toujours**.
+>
+> **LA DÉCISION EST UN MODULE PUR** — [lib/matching/run-abouti.ts](../lib/matching/run-abouti.ts),
+> **sans aucun import**, donc exécuté tel quel par son contrôle (§E.33), comme
+> `expert-name-code.ts`, `empreinte.ts` et `vendabilite.ts`. `arret_de_notation`, `error` et
+> `no_config` ⇒ on rejoue ; `ok`, `empty_pool` et **`ineligible`** ⇒ on solde — rejouer cinq fois
+> ne rendra pas éligible un expert qui ne l'est pas, et son écran le lui dit déjà (§D.13 ①).
+>
+> **ET L'EXPERT LE SAIT.** Le flux porte `expert_status.derniere_recherche` ; les **deux** écrans
+> jumeaux l'affichent au lieu d'« aucune mission » (§D.14), avec un motif **nommé** — jamais une
+> phrase — et les six clés existent dans les quatre langues. Au-delà du plafond, le texte change :
+> plus rien ne reprendra, et il le dit.
+>
+> **Gardé par [`diag-relance-rejouee`](../scripts/diag-relance-rejouee.mjs)** — il **exécute** la
+> décision sur sept verdicts fabriqués, vérifie que **tout** appelant de `solderRelance` consulte
+> d'abord `runAcheve`, que la base garde l'échéance et borne la file, et que le plafond vaut la même
+> chose dans le module pur, dans le défaut SQL **et** dans la supervision.
+
 Mesuré le 21/09/2026, puis corrigé le même jour. Le tableau ci-dessous est **l'inventaire complet**
 des chemins qui mettent un expert en relation avec des annonces — il n'y en a pas d'autre.
 
@@ -1263,7 +1315,11 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   > et un contrôle qui rougit sur toute dérivation locale. Le balayage a trouvé **cinq** expressions
   > SQL de la règle au lieu des trois annoncées, **deux avec la durée en dur** — dont
   > `matching_health`, qui alimente l'écran de supervision. Détail en **§B.2** et **§C.3** ; la
-  > réponse sur l'annonce qui expire *pendant* un run est en **§C.3**. Puis : le tarif
+  > réponse sur l'annonce qui expire *pendant* un run est en **§C.3**.
+  > ✅ **D3 EST FERMÉ — 23/09/2026.** Une relance dont le run a échoué n'est plus soldée : elle est
+  > rejouée, bornée par un plafond de tentatives symétrique de celui des annonces, et l'expert lit
+  > l'échec au lieu d'« aucune mission ». **L'audit nommait deux appelants ; il y en avait trois** —
+  > l'approbation, trouvée par le contrôle et non par une relecture. Détail en **§C.14** et **§B.2**. Puis : le tarif
   du reranker sans source fournisseur et compté par document, les recherches web de la vérification
   non comptées, aucun bail par profil sur le chemin direct, un jugement de candidature jamais rejoué,
   deux définitions d'« éligible », le jugement toujours en français, un profil masqué qui postule

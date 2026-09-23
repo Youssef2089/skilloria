@@ -284,8 +284,79 @@ export async function programmerRelance(
   return { ok: true, due_at: due, reportee: attendaitDeja }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UN RUN QUI A ÉCHOUÉ NE SE SOLDE PAS — LA DÉCISION EST AILLEURS, ET C'EST VOULU
+   ═══════════════════════════════════════════════════════════════════════════
+
+   `runAcheve` et `codeDEchec` vivent dans [./run-abouti.ts](./run-abouti.ts),
+   un module SANS AUCUN IMPORT — donc chargeable tel quel par Node, donc
+   EXÉCUTABLE par son contrôle (§E.33). Ce fichier-ci importe `checkRateLimit`
+   par l'alias `@/` : un diagnostic ne peut pas le charger, et le contrôle
+   retomberait sur une expression régulière, c'est-à-dire sur un commentaire
+   (§E.7).
+
+   Ils sont RÉEXPORTÉS ici pour que les appelants n'aient qu'un seul chemin
+   d'import à connaître. */
+export { codeDEchec, runAcheve, RELANCE_MAX_TENTATIVES } from './run-abouti'
+
 /**
- * Solde une relance APRÈS son exécution.
+ * Compte une tentative, AVANT le run — comme côté annonce.
+ *
+ * Sans ce compteur, « ne pas solder un run en échec » serait une BOUCLE
+ * INFINIE : le cron reprendrait le même expert toutes les cinq minutes et
+ * paierait le reranker à chaque passage. Le plafond existe déjà côté annonce
+ * (`matching_attempts < 5`) ; on le reprend, on n'en invente pas un second.
+ *
+ * Best-effort : une tentative non comptée vaut mieux qu'un run non fait — même
+ * raisonnement que `marquerTentative` côté annonce, et même conséquence assumée.
+ */
+export async function marquerTentativeRelance(
+  supabaseAdmin: SupabaseClient,
+  profileId: string,
+): Promise<void> {
+  const { error } = await supabaseAdmin.rpc('marquer_tentative_relance', {
+    p_profile_id: profileId,
+  })
+  if (error) {
+    console.error('[relance] tentative NON COMPTÉE — le plafond ne se fermera pas', {
+      profileId,
+      message: error.message,
+    })
+  }
+}
+
+/**
+ * Enregistre qu'un run a ÉCHOUÉ, SANS solder l'échéance.
+ *
+ * L'échéance reste : la relance sera rejouée au prochain passage, jusqu'au
+ * plafond. L'échec est DATÉ et NOMMÉ parce que l'expert doit pouvoir le lire —
+ * un run échoué ne se dit pas « aucune mission pour l'instant » (§E.27).
+ */
+export async function echouerRelance(
+  supabaseAdmin: SupabaseClient,
+  profileId: string,
+  code: string,
+): Promise<void> {
+  const { error } = await supabaseAdmin.rpc('echouer_relance_expert', {
+    p_profile_id: profileId,
+    p_code: code,
+  })
+  if (error) {
+    console.error('[relance] échec NON ENREGISTRÉ — l’expert lira « aucune mission »', {
+      profileId,
+      code,
+      message: error.message,
+    })
+  }
+}
+
+/**
+ * Solde une relance APRÈS son exécution — SEULEMENT si le run a ABOUTI.
+ *
+ * ⚠️ L'APPELANT DOIT AVOIR CONSULTÉ `runAcheve()` AVANT. Appeler cette
+ *    fonction sur un run en échec efface l'échéance et perd la modification
+ *    qui l'avait déclenchée : c'est le défaut que le lot D3 ferme.
  *
  * `debutRun` est l'instant où le run a commencé. Un déclenchement arrivé
  * PENDANT l'exécution porte une échéance postérieure : il n'est pas soldé, et
