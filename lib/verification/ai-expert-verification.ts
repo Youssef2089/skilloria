@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import type { ConsommationIA } from '@/lib/ai-consommation'
+import { consommationJetons, type ConsommationIA } from '@/lib/ai-consommation'
 
 /**
  * Analyseur de cohérence IA — VÉRIFICATION EXPERT (3 axes).
@@ -405,14 +405,17 @@ async function callClaude(model: string, prompt: string, cfg: ExpertVerification
     raw: message,
     model_used: model,
     web_search_used: hasToolUse,
-    // Jetons RÉELLEMENT consommés. Le tarif est celui de `model` — pas
-    // d'un modèle par défaut : le repli n'a pas le même prix.
-    usage: {
-      forme: 'jetons',
-      model,
-      entree: message.usage?.input_tokens ?? 0,
-      sortie: message.usage?.output_tokens ?? 0,
-    },
+    // ⚠️ CE VÉRIFICATEUR CHERCHE SUR LE WEB, ET ÇA SE PAIE EN PLUS DES
+    //    JETONS. Ces lignes ne comptaient que les jetons : l'outil natif
+    //    `web_search_20250305` est facturé À LA RECHERCHE, et ces
+    //    recherches-là n'étaient comptées NULLE PART (§D.24). Le fournisseur
+    //    les renvoie dans `usage.server_tool_use` ; `consommationJetons` les
+    //    lit — on ne les estime pas, et on ne les déduit pas de `max_uses`,
+    //    qui est un PLAFOND, pas une mesure.
+    //
+    //    Le tarif est celui de `model` — pas d'un modèle par défaut : le repli
+    //    n'a pas le même prix.
+    usage: consommationJetons(model, message.usage),
   }
 }
 

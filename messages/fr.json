@@ -3083,7 +3083,12 @@
       "err_load": "Impossible de lire la grille tarifaire. Réessayez dans un instant.",
       "err_save": "Impossible d’enregistrer ce tarif. Réessayez dans un instant.",
       "err_invalid_price": "Un prix doit être un nombre positif, inférieur à 10 000.",
-      "err_invalid_shape": "Un tarif se donne soit par jetons (entrée et sortie), soit à l’unité — jamais les deux, jamais aucun."
+      "err_invalid_shape": "Un tarif se donne par jetons (entrée et sortie), par document, ou par recherche — une seule forme, jamais deux, jamais aucune.",
+      "field_search": "Prix par recherche ($ / recherche facturée)",
+      "field_search_help": "Le fournisseur facture à la recherche, pas au document. Le nombre de recherches est lu dans sa réponse, jamais déduit de la taille du lot.",
+      "field_web_search": "Recherche web ($ / recherche)",
+      "field_web_search_help": "S’ajoute aux jetons du même appel. Laissez vide si ce modèle ne cherche pas sur le web.",
+      "err_invalid_web_search_price": "Le prix d’une recherche web s’ajoute aux jetons d’un appel : il ne se pose que sur un tarif par jetons."
     },
     "supervision": {
       "title": "Supervision",

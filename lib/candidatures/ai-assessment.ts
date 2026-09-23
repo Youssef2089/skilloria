@@ -2,6 +2,7 @@ import { capaciteActive } from '@/lib/interrupteurs'
 import Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { budgetDisponible, enregistrerDepenseIA, type ActeurIA, type ActionIA } from '@/lib/ai-budget'
+import { consommationJetons } from '@/lib/ai-consommation'
 // Deux LECTEURS, pas deux filtres : ils vérifient que le modèle a répondu
 // quelque chose d'exploitable, ils ne jugent pas le contenu du texte. Sans
 // aucune dépendance, donc éprouvables à l'exécution.
@@ -324,14 +325,13 @@ async function appeler(args: {
     return { ok: false, cause: 'modele_indisponible', raison: 'appel au modèle en échec' }
   }
 
-  // Dépense enregistrée sur les jetons RÉELLEMENT consommés, jamais estimés.
-  const entree = reponse.usage?.input_tokens ?? 0
-  const sortie = reponse.usage?.output_tokens ?? 0
+  // Dépense enregistrée sur ce qui a RÉELLEMENT été consommé, jamais estimé —
+  // et par le seul chemin qui sache compter des recherches web (§D.24).
   await enregistrerDepenseIA(args.supabaseAdmin, {
     provider: 'claude',
     action: args.action,
     acteur: args.acteur,
-    consommation: { forme: 'jetons', model: MODELE, entree, sortie },
+    consommation: consommationJetons(MODELE, reponse.usage),
     domain_id: args.domainId,
     context: { ...args.contexte },
   })

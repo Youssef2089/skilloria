@@ -306,8 +306,8 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **83** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
-22/09/2026, à l'exécution — les 71ᵉ à 78ᵉ laissent les trois autres compteurs **inchangés**, et
+Sur les **84** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
+23/09/2026, à l'exécution — les 71ᵉ à 84ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
 lignes existantes ; `inacheves_hors_annonces_expirees` ne fait que remplacer le corps d'une fonction
 de lecture ; `empreinte_des_notes` **vide** une table éphémère et lui ajoute une colonne ;
@@ -316,7 +316,9 @@ de lecture ; `empreinte_des_notes` **vide** une table éphémère et lui ajoute 
 La sixième, `offre_gratuite_explicite`, ajoute une colonne et durcit deux contraintes : son `update` REMPLIT une colonne neuve, il n'insère aucune ligne.
 La septième, `index_packages_stripe`, ne crée que des index.
 La huitième, `index_depense_par_mois`, ne fait qu'échanger deux index.
-**Aucune des huit n'insère quoi que ce soit**, donc elles
+La neuvième, `tarif_par_recherche`, ajoute deux colonnes et **corrige** deux lignes : ses `update`
+remplissent des colonnes neuves et en vident une, ils n'insèrent aucune ligne.
+**Aucune des neuf n'insère quoi que ce soit**, donc elles
 échappent par construction à la classe que cette section décrit. Au 20/09/2026, la 70ᵉ, `verification_nocturne_stripe`, apportait l'insertion et la ligne
 de plus : son entrée au catalogue des tâches planifiées, six valeurs. Les chiffres précédents,
 **69 / 51 / 39 / 1962**, dataient du 17/09/2026, après la fusion de `feat/s1-ux-profil` — les trois

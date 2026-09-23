@@ -25,17 +25,26 @@ export const dynamic = 'force-dynamic'
  * │ parce qu'il est affiché.                                                 │
  * └────────────────────────────────────────────────────────────────────────┘
  *
- * ═══ LE COMPTEUR EST UNE ESTIMATION, ET CETTE ROUTE LE DIT ═══════════════
- *   Aucun fournisseur n'est interrogé, ici ni ailleurs. La dépense est
- *   RECONSTITUÉE : unités brutes journalisées × grille saisie à la main. Ce
- *   n'est pas la facture, et la route rend `verifie_le` pour que l'écran puisse
- *   dire depuis quand un prix n'a pas été confronté à celui du fournisseur.
+ * ═══ LE PRIX EST SAISI, LES UNITÉS SONT MESURÉES ═════════════════════════
+ *   Aucun fournisseur n'est interrogé pour le PRIX : la grille est saisie à la
+ *   main, et la route rend `updated_at` pour que l'écran dise depuis quand un
+ *   prix n'a pas été confronté à celui du fournisseur.
+ *
+ *   ⚠️ MAIS LES UNITÉS, ELLES, NE SONT PLUS ESTIMÉES (§D.24). Le reranker
+ *      renvoie le nombre d'unités de recherche facturées, Claude renvoie ses
+ *      jetons et ses recherches web : on les LIT. La dépense n'est donc plus
+ *      « reconstituée » de bout en bout — elle est « unités mesurées × prix
+ *      saisi ». C'est la moitié qui reste saisie que cet écran gouverne.
  *
  * ═══ LES BORNES SONT CELLES DE LA BASE ═══════════════════════════════════
- *   `ai_model_tarifs_forme_check` : une forme OU l'autre, jamais les deux,
- *   jamais aucune. Une ligne à moitié remplie produirait un coût NUL silencieux
- *   — le défaut exact que cette table existe pour fermer. On revalide ici parce
- *   qu'un refus de base remonterait en 500 illisible.
+ *   `ai_model_tarifs_forme_check` : UNE forme parmi TROIS — par jetons, par
+ *   document (historique), ou par recherche —, jamais deux, jamais aucune. Une
+ *   ligne à moitié remplie produirait un coût NUL silencieux : le défaut exact
+ *   que cette table existe pour fermer. On revalide ici parce qu'un refus de
+ *   base remonterait en 500 illisible.
+ *
+ *   ET `usd_par_recherche_web` N'EST PAS UNE FORME, c'est un SUPPLÉMENT : il
+ *   s'ajoute aux jetons du même appel, et seule la forme JETONS peut le porter.
  */
 
 function json(data: unknown, status = 200): Response {
@@ -58,6 +67,8 @@ type LigneTarif = {
   usd_par_1m_entree: number | string | null
   usd_par_1m_sortie: number | string | null
   usd_par_unite: number | string | null
+  usd_par_recherche: number | string | null
+  usd_par_recherche_web: number | string | null
   source: string | null
   updated_at: string
 }
@@ -76,7 +87,9 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   const { data, error } = await auth.supabaseAdmin
     .from('ai_model_tarifs')
-    .select('model, provider, usd_par_1m_entree, usd_par_1m_sortie, usd_par_unite, source, updated_at')
+    // Un seul tenant : concaténée, la chaîne perd son type littéral et
+    // supabase-js ne sait plus quelles colonnes reviennent (§E.1).
+    .select('model, provider, usd_par_1m_entree, usd_par_1m_sortie, usd_par_unite, usd_par_recherche, usd_par_recherche_web, source, updated_at')
     .order('provider', { ascending: true })
     .order('model', { ascending: true })
 
@@ -97,6 +110,8 @@ export async function GET(request: NextRequest): Promise<Response> {
         usd_par_1m_entree: nombreOuNull(l.usd_par_1m_entree),
         usd_par_1m_sortie: nombreOuNull(l.usd_par_1m_sortie),
         usd_par_unite: nombreOuNull(l.usd_par_unite),
+        usd_par_recherche: nombreOuNull(l.usd_par_recherche),
+        usd_par_recherche_web: nombreOuNull(l.usd_par_recherche_web),
         source: l.source,
         updated_at: l.updated_at,
       })),
@@ -125,6 +140,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     usd_par_1m_entree?: unknown
     usd_par_1m_sortie?: unknown
     usd_par_unite?: unknown
+    usd_par_recherche?: unknown
+    usd_par_recherche_web?: unknown
     source?: unknown
   }
   try {
@@ -147,20 +164,45 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   const entree = prix(body.usd_par_1m_entree)
   const sortie = prix(body.usd_par_1m_sortie)
   const unite = prix(body.usd_par_unite)
-  if (entree === 'invalide' || sortie === 'invalide' || unite === 'invalide') {
+  const recherche = prix(body.usd_par_recherche)
+  const rechercheWeb = prix(body.usd_par_recherche_web)
+  if (
+    entree === 'invalide' ||
+    sortie === 'invalide' ||
+    unite === 'invalide' ||
+    recherche === 'invalide' ||
+    rechercheWeb === 'invalide'
+  ) {
     return json({ error: `Prix hors [0, ${PRIX_MAX}]`, code: 'invalid_price' }, 400)
   }
 
   // LA FORME, revalidée ici. La base la refuserait de toute façon — mais en
   // rendant un 500 que personne ne sait lire. Un refus doit dire CE QUI BLOQUE
   // et CE QU'ON PEUT FAIRE.
-  const parJetons = entree !== null && sortie !== null && unite === null
-  const parUnite = unite !== null && entree === null && sortie === null
-  if (!parJetons && !parUnite) {
+  const parJetons = entree !== null && sortie !== null && unite === null && recherche === null
+  const parUnite = unite !== null && entree === null && sortie === null && recherche === null
+  const parRecherche = recherche !== null && entree === null && sortie === null && unite === null
+  if (!parJetons && !parUnite && !parRecherche) {
     return json(
       {
-        error: 'Un tarif se donne par JETONS (entrée + sortie) ou par UNITÉ, jamais les deux, jamais aucun',
+        error:
+          'Un tarif se donne par JETONS (entrée + sortie), par DOCUMENT, ou par RECHERCHE — une seule forme, jamais deux, jamais aucune',
         code: 'invalid_shape',
+      },
+      400,
+    )
+  }
+
+  // LE SUPPLÉMENT DE RECHERCHE WEB N'EST PAS UNE FORME. Il s'ajoute aux jetons
+  // du même appel, et seul un modèle facturé aux jetons peut chercher. Le poser
+  // ailleurs écrirait un prix que RIEN ne peut consommer — un réglage mort
+  // (§D.11), et pire : un réglage mort qui a l'air vivant parce qu'il est chiffré.
+  if (rechercheWeb !== null && !parJetons) {
+    return json(
+      {
+        error:
+          'Le prix d\'une recherche web s\'ajoute aux JETONS d\'un appel : il ne se pose que sur un tarif par jetons',
+        code: 'invalid_web_search_price',
       },
       400,
     )
@@ -171,7 +213,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   // produite. C'est un chiffre d'argent — la trace est la moitié du travail.
   const { data: avantRow, error: lectureErr } = await auth.supabaseAdmin
     .from('ai_model_tarifs')
-    .select('model, usd_par_1m_entree, usd_par_1m_sortie, usd_par_unite, source')
+    .select('model, usd_par_1m_entree, usd_par_1m_sortie, usd_par_unite, usd_par_recherche, usd_par_recherche_web, source')
     .eq('model', model)
     .maybeSingle()
   if (lectureErr) {
@@ -192,6 +234,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       usd_par_1m_entree: entree,
       usd_par_1m_sortie: sortie,
       usd_par_unite: unite,
+      usd_par_recherche: recherche,
+      usd_par_recherche_web: rechercheWeb,
       ...(typeof body.source === 'string' && body.source.trim() !== ''
         ? { source: body.source.trim().slice(0, 300) }
         : {}),
@@ -217,8 +261,18 @@ export async function PATCH(request: NextRequest): Promise<Response> {
         usd_par_1m_entree: nombreOuNull(avantRow.usd_par_1m_entree as number | string | null),
         usd_par_1m_sortie: nombreOuNull(avantRow.usd_par_1m_sortie as number | string | null),
         usd_par_unite: nombreOuNull(avantRow.usd_par_unite as number | string | null),
+        usd_par_recherche: nombreOuNull(avantRow.usd_par_recherche as number | string | null),
+        usd_par_recherche_web: nombreOuNull(
+          avantRow.usd_par_recherche_web as number | string | null,
+        ),
       },
-      apres: { usd_par_1m_entree: entree, usd_par_1m_sortie: sortie, usd_par_unite: unite },
+      apres: {
+        usd_par_1m_entree: entree,
+        usd_par_1m_sortie: sortie,
+        usd_par_unite: unite,
+        usd_par_recherche: recherche,
+        usd_par_recherche_web: rechercheWeb,
+      },
     },
   })
 

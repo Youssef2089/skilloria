@@ -3083,7 +3083,12 @@
       "err_load": "Could not read the pricing grid. Try again in a moment.",
       "err_save": "Could not save this price. Try again in a moment.",
       "err_invalid_price": "A price must be a positive number below 10,000.",
-      "err_invalid_shape": "A price is given either per token (input and output) or per unit — never both, never neither."
+      "err_invalid_shape": "A price is given per token (input and output), per document, or per search — one form only, never two, never none.",
+      "field_search": "Price per search ($ / billed search)",
+      "field_search_help": "The provider bills per search, not per document. The number of searches is read from its response, never inferred from the batch size.",
+      "field_web_search": "Web search ($ / search)",
+      "field_web_search_help": "Added on top of the same call’s tokens. Leave empty if this model does not search the web.",
+      "err_invalid_web_search_price": "A web search price is added to a call’s tokens: it only applies to a per-token price."
     },
     "supervision": {
       "title": "Monitoring",

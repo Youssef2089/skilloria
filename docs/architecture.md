@@ -110,6 +110,31 @@ journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **
 > l'upsert n'est plus atomique —, les cinq signatures de fonction, le fait que les enveloppes
 > **délèguent**, et la disparition effective de l'ancienne table.
 
+> **`tarif_par_recherche` (23/09/2026) — LA GRILLE APPREND UNE TROISIÈME UNITÉ.**
+> `ai_model_tarifs` gagne `usd_par_recherche` et `usd_par_recherche_web`, et le reranker **perd**
+> son `usd_par_unite` : il était facturé à la recherche et compté au document (§D.24).
+>
+> ⚠️ **ELLE AURAIT ÉTÉ REJETÉE PAR UNE CONTRAINTE QU'ELLE NE METTAIT PAS À JOUR.**
+> `ai_model_tarifs_forme_check` exigeait **exactement une forme parmi deux** ; retirer le prix par
+> document sans en donner un autre laisse la ligne **sans aucune forme**. La contrainte est donc
+> **retirée, les prix corrigés, puis elle est reposée à TROIS formes** — et **VALIDÉE**, puisque les
+> données sont rendues conformes par la migration elle-même (pas de `NOT VALID`, §E.64).
+> C'est le cas d'école de §E.31 : la garde a mordu avant qu'on ait fini d'écrire.
+>
+> **Une colonne NEUVE plutôt qu'une colonne RÉINTERPRÉTÉE.** Donner à `usd_par_unite` le sens
+> « par recherche » aurait laissé toutes les lignes déjà écrites sous une étiquette devenue fausse
+> (§E.24). Elle garde son sens — par document — et reste renseignable : les dépenses d'avant le
+> 23/09/2026 doivent rester recalculables.
+>
+> **`usd_par_recherche_web` n'est PAS une forme, c'est un SUPPLÉMENT** : la contrainte n'autorise
+> à le porter que sur la forme jetons. Ailleurs, ce serait un prix que rien ne peut consommer.
+>
+> ⚠️ **POSTCONDITION QUI ÉPROUVE, PAS QUI LIT** (§E.60) : quatre **sondes** écrivent dans une
+> sous-transaction défaite par son `exception` — une ligne sans forme, une ligne à deux formes, un
+> supplément hors jetons (les trois doivent être **refusées**), et la troisième forme (qui doit être
+> **acceptée** — sans elle, une contrainte qui refuse tout passerait les trois autres, §E.34).
+> Lire `pg_constraint` n'aurait prouvé qu'un **nom pris**, pas une règle qui mord.
+
 > **`candidature_complete_ou_inexistante` (23/09/2026) — LA BASE REFUSE UNE CANDIDATURE NUE.**
 > `candidatures` gagne la contrainte `candidatures_complete_ou_inexistante` : note **et** résumé
 > (`ai_assessment->>'reason'` et `->>'pitch_org'`, non vides), ou la ligne n'existe pas. Elle est

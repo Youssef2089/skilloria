@@ -846,6 +846,66 @@ laisserait deux représentations ; convertir à la comparaison la mettrait sur *
 oublier un transformerait `score < 7` en `score < 0.7` — tout passe, ou rien ne passe, **en silence**.
 Détail et raisons complets : **§P3.0** dans [docs/produit.md](docs/produit.md).
 
+**D.24 — LE COMPTEUR COMPTE CE QU'ON PAIE. L'UNITÉ EST CELLE DU FOURNISSEUR, ET ON LA LIT.**
+Le reranker était compté **au DOCUMENT** — `unites: lot.length` × un prix au document — alors que
+Cohere facture **à la RECHERCHE**. Mesuré le 23/09/2026 : `rerank_batch_size = 200` et
+`usd_par_unite = 0,000002`, soit **0,0004 $** au compteur contre **0,002 $** à la facture.
+
+> ⚠️ **CE N'ÉTAIT PAS UNE ERREUR DE VALEUR, C'ÉTAIT UNE ERREUR D'UNITÉ** — et c'est ce qui la
+> rendait insaisissable. Le facteur d'écart **dépend d'un réglage** : environ 10 sur des lots
+> pleins, plus de 60 sur des lots d'une quinzaine. Aucune correction de chiffre ne l'aurait fermée ;
+> un administrateur qui déplaçait la taille des lots déplaçait le compteur sans le savoir.
+
+**Et les recherches WEB des deux vérificateurs n'étaient comptées NULLE PART.** L'outil natif
+`web_search_20250305` se facture à la recherche **en plus** des jetons du même appel ; seuls les
+jetons l'étaient.
+
+| Ce qui compte | D'où vient le nombre |
+|---|---|
+| les **jetons** | `usage.input_tokens` / `output_tokens` |
+| les **recherches web** | `usage.server_tool_use.web_search_requests` — **jamais** `max_uses`, qui est un PLAFOND, pas une mesure |
+| les **recherches** du reranker | `meta.billed_units.search_units`, rendu par le fournisseur |
+
+**ON LIT, ON N'ESTIME PAS.** Quand le fournisseur ne dit rien, la consommation porte
+`source: 'plancher'` et vaut le **minimum structurel** — un appel abouti a été facturé au moins une
+unité. Ce n'est pas une estimation, c'est une **borne, et elle est déclarée** : sans cette étiquette,
+une valeur lue et une valeur bornée se liraient pareil (§E.24).
+
+**UNE SEULE FABRIQUE POUR LA FORME « JETONS »** — `consommationJetons()`
+([lib/ai-consommation.ts](lib/ai-consommation.ts)). **Sept** sites construisaient l'objet à la main ;
+n'en corriger que les deux qui cherchent aurait laissé **cinq jumeaux** (§E.20) — le jour où l'un des
+cinq active la recherche, sa dépense redevient muette, **en silence**, et un appel qui cherche a
+exactement la même tête qu'un appel qui ne cherche pas. Elle lit l'`usage` de façon **structurelle** :
+typer `server_tool_use` lierait le compteur à une version du SDK, et un `?? 0` sur un champ absent
+compile très bien tout en ne comptant jamais rien (§E.1).
+
+**UN COÛT PARTIEL EST UN COÛT FAUX.** Un appel qui a cherché sans que la grille porte un prix de
+recherche rend **`null`**, pas le prix de ses seuls jetons : l'appelant a déjà le chemin « tarif
+inconnu », et un montant incomplet se lirait comme complet.
+
+**TROIS FORMES EN BASE, ET LA CONTRAINTE LES TIENT** — `ai_model_tarifs_forme_check`, migration
+`tarif_par_recherche` : jetons · par document (historique, conservée pour que les lignes déjà
+écrites restent recalculables) · par recherche. Une et une seule, jamais deux, jamais aucune.
+`usd_par_recherche_web` **n'est pas une forme mais un SUPPLÉMENT** : seule la forme jetons peut le
+porter — ailleurs, ce serait un prix que rien ne peut consommer, c'est-à-dire un réglage mort qui a
+l'air vivant parce qu'il est chiffré (§D.11).
+La contrainte est posée **VALIDÉE** (les données sont corrigées avant), et sa postcondition
+l'**ÉPROUVE** par **quatre sondes** en sous-transaction — dont une qui vérifie que la troisième forme
+est **acceptée** : sans elle, une contrainte qui refuse tout passerait les trois sondes de refus
+(§E.34). Lire `pg_constraint` n'aurait prouvé qu'un nom pris.
+
+> **Les deux prix sont des RELEVÉS DE GRILLE, pas des mesures de facture** — 0,002 $ la recherche
+> (Cohere, relevé par Youssef le 23/09/2026) et 0,01 $ la recherche web (Anthropic). Ils vivent en
+> base et se corrigent depuis `/admin/tarifs-ia`, sans déploiement (§D.7). Ce qui est **mesuré**,
+> c'est l'unité ; ce qui est **saisi**, c'est le prix.
+
+**Gardé par [`diag-compteur-ce-quon-paie`](scripts/diag-compteur-ce-quon-paie.mjs)** — il **découvre**
+les points de dépense au lieu de les lister (§E.61) et **exécute** le module pur (§E.33).
+⚠️ Il ne repose **pas** la question « la dépense est-elle enregistrée et le plafond consulté » :
+c'est celle de [`diag-depense-ia`](scripts/diag-depense-ia.mjs), et deux gardes sur la même panne
+n'en font qu'une (§E.36). Un appel peut être **parfaitement enregistré et parfaitement faux** — le
+reranker l'était, et l'autre contrôle le voyait vert.
+
 ---
 
 ## E. Les pièges vérifiés

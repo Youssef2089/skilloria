@@ -212,7 +212,7 @@ async function chargerTarif(
   try {
     const { data, error } = await supabaseAdmin
       .from('ai_model_tarifs')
-      .select('model, usd_par_1m_entree, usd_par_1m_sortie, usd_par_unite')
+      .select('model, usd_par_1m_entree, usd_par_1m_sortie, usd_par_unite, usd_par_recherche, usd_par_recherche_web')
       .eq('model', model)
       .maybeSingle()
     if (error || !data) return null
@@ -222,6 +222,13 @@ async function chargerTarif(
       usd_par_1m_entree: r.usd_par_1m_entree == null ? null : Number(r.usd_par_1m_entree),
       usd_par_1m_sortie: r.usd_par_1m_sortie == null ? null : Number(r.usd_par_1m_sortie),
       usd_par_unite: r.usd_par_unite == null ? null : Number(r.usd_par_unite),
+      // ⚠️ LE PRIX D'UNE RECHERCHE, ET C'EST LUI QUI COMPTE DEPUIS §D.24. Le
+      //    reranker était compté au DOCUMENT alors qu'il est facturé à la
+      //    RECHERCHE ; l'écart dépendait de la taille du lot, donc d'un
+      //    réglage.
+      usd_par_recherche: r.usd_par_recherche == null ? null : Number(r.usd_par_recherche),
+      usd_par_recherche_web:
+        r.usd_par_recherche_web == null ? null : Number(r.usd_par_recherche_web),
     }
   } catch {
     return null
@@ -287,9 +294,33 @@ export async function enregistrerDepenseIA(
         ...(args.acteur.type === 'non_imputable'
           ? { non_imputable_pourquoi: args.acteur.pourquoi }
           : {}),
+        // ⚠️ LA FORME EST ÉCRITE SUR CHAQUE LIGNE, et pas seulement ses
+        //    chiffres. `units` mélange des jetons et des recherches — deux
+        //    unités différentes dans une même colonne, ce qui est assumé —,
+        //    et sans cette étiquette une ligne se lirait à l'envers (§E.24).
+        forme: args.consommation.forme,
         ...(args.consommation.forme === 'jetons'
-          ? { jetons_entree: args.consommation.entree, jetons_sortie: args.consommation.sortie }
-          : { unites: args.consommation.unites }),
+          ? {
+              jetons_entree: args.consommation.entree,
+              jetons_sortie: args.consommation.sortie,
+              // Les recherches web du MÊME appel. Absentes quand il n'en a pas
+              // fait ; comptées dans le coût, jamais dans `units`.
+              ...(args.consommation.recherches_web
+                ? { recherches_web: args.consommation.recherches_web }
+                : {}),
+            }
+          : args.consommation.forme === 'recherches'
+            ? {
+                recherches: args.consommation.recherches,
+                // ⚠️ D'OÙ VIENT LE NOMBRE, ET C'EST LA MOITIÉ QUI COMPTE.
+                //    `fournisseur` : il l'a dit. `plancher` : il ne l'a pas dit,
+                //    et on a compté le MINIMUM structurel — un appel coûte au
+                //    moins une unité. Sans cette étiquette, les deux se
+                //    liraient comme mesurés (§E.24), et une dépense
+                //    sous-comptée passerait pour une dépense connue.
+                unites_source: args.consommation.source,
+              }
+            : { unites: args.consommation.unites }),
         ...(args.context ?? {}),
       },
     })

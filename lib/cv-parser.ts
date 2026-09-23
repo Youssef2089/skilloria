@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import type { ConsommationIA } from '@/lib/ai-consommation'
+import { consommationJetons, type ConsommationIA } from '@/lib/ai-consommation'
 
 export type DomainContext = {
   tags: string[]
@@ -335,14 +335,9 @@ async function callAnthropic(
   }
   return {
     data: toolUse.input,
-    // Les jetons RÉELLEMENT consommés, jamais estimés. Le coût se calcule
+    // Ce qui a RÉELLEMENT été consommé, jamais estimé. Le coût se calcule
     // ailleurs, au tarif de CE modèle (lib/ai-budget.ts).
-    usage: {
-      forme: 'jetons',
-      model: MODEL,
-      entree: response.usage?.input_tokens ?? 0,
-      sortie: response.usage?.output_tokens ?? 0,
-    },
+    usage: consommationJetons(MODEL, response.usage),
   }
 }
 

@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { SireneData, VerificationInput, VerificationOutput } from './types'
-import type { ConsommationIA } from '@/lib/ai-consommation'
+import { consommationJetons, type ConsommationIA } from '@/lib/ai-consommation'
 
 /**
  * Analyseur de cohérence IA — DÉCIDEUR SYSTÉMATIQUE AVEC RECHERCHE WEB (11G.2).
@@ -456,28 +456,17 @@ export async function verifyAiCoherence(
       // L'appel a EU LIEU et a consommé : une réponse illisible se paie
       // autant qu'une réponse lisible. Ne pas la compter ferait dériver le
       // plafond vers le bas — on croirait avoir de la marge.
-      usage:
-        response && modelUtilise
-          ? {
-              forme: 'jetons',
-              model: modelUtilise,
-              entree: response.usage?.input_tokens ?? 0,
-              sortie: response.usage?.output_tokens ?? 0,
-            }
-          : null,
+      usage: response && modelUtilise ? consommationJetons(modelUtilise, response.usage) : null,
     }
   }
 
-  // Ce que l'appel a consommé — RENDU, pas enregistré : ce module est pur.
+  // ⚠️ CE VÉRIFICATEUR CHERCHE SUR LE WEB (outil natif `web_search_20250305`),
+  //    et ces recherches se facturent EN PLUS des jetons. Elles n'étaient
+  //    comptées nulle part ; `consommationJetons` les lit dans l'`usage` rendu
+  //    par le fournisseur (§D.24).
+  //    Ce que l'appel a consommé — RENDU, pas enregistré : ce module est pur.
   const consommation: ConsommationIA | null =
-    response && modelUtilise
-      ? {
-          forme: 'jetons',
-          model: modelUtilise,
-          entree: response.usage?.input_tokens ?? 0,
-          sortie: response.usage?.output_tokens ?? 0,
-        }
-      : null
+    response && modelUtilise ? consommationJetons(modelUtilise, response.usage) : null
 
   const rawScore = typeof parsed.score === 'number' ? parsed.score : 5
   const score = Math.max(0, Math.min(10, Math.round(rawScore)))

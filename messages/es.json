@@ -3083,7 +3083,12 @@
       "err_load": "No se ha podido leer la tabla de tarifas. Inténtelo de nuevo en un momento.",
       "err_save": "No se ha podido guardar esta tarifa. Inténtelo de nuevo en un momento.",
       "err_invalid_price": "Un precio debe ser un número positivo inferior a 10 000.",
-      "err_invalid_shape": "Una tarifa se indica por tokens (entrada y salida) o por unidad, nunca ambas ni ninguna."
+      "err_invalid_shape": "Una tarifa se indica por tokens (entrada y salida), por documento o por búsqueda: una sola forma, nunca dos, nunca ninguna.",
+      "field_search": "Precio por búsqueda ($ / búsqueda facturada)",
+      "field_search_help": "El proveedor factura por búsqueda, no por documento. El número de búsquedas se lee en su respuesta, nunca se deduce del tamaño del lote.",
+      "field_web_search": "Búsqueda web ($ / búsqueda)",
+      "field_web_search_help": "Se suma a los tokens de la misma llamada. Déjelo vacío si este modelo no busca en la web.",
+      "err_invalid_web_search_price": "El precio de una búsqueda web se suma a los tokens de una llamada: solo se aplica a una tarifa por tokens."
     },
     "supervision": {
       "title": "Supervisión",

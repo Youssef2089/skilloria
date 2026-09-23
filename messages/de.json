@@ -3083,7 +3083,12 @@
       "err_load": "Die Preisliste konnte nicht gelesen werden. Versuchen Sie es gleich noch einmal.",
       "err_save": "Dieser Tarif konnte nicht gespeichert werden. Versuchen Sie es gleich noch einmal.",
       "err_invalid_price": "Ein Preis muss eine positive Zahl unter 10.000 sein.",
-      "err_invalid_shape": "Ein Tarif wird entweder pro Token (Eingabe und Ausgabe) oder pro Einheit angegeben – nie beides, nie keines."
+      "err_invalid_shape": "Ein Tarif wird pro Token (Eingabe und Ausgabe), pro Dokument oder pro Suche angegeben – nur eine Form, nie zwei, nie keine.",
+      "field_search": "Preis pro Suche ($ / abgerechnete Suche)",
+      "field_search_help": "Der Anbieter rechnet pro Suche ab, nicht pro Dokument. Die Anzahl der Suchen wird aus seiner Antwort gelesen, nie aus der Losgröße abgeleitet.",
+      "field_web_search": "Websuche ($ / Suche)",
+      "field_web_search_help": "Kommt zu den Token desselben Aufrufs hinzu. Leer lassen, wenn dieses Modell nicht im Web sucht.",
+      "err_invalid_web_search_price": "Der Preis einer Websuche kommt zu den Token eines Aufrufs hinzu: Er gilt nur für einen Tarif pro Token."
     },
     "supervision": {
       "title": "Überwachung",

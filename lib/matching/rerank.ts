@@ -132,6 +132,47 @@ export type ArretDeNotation =
 
 type ReponseCohere = {
   results?: Array<{ index?: number; relevance_score?: number }>
+  /**
+   * ╔════════════════════════════════════════════════════════════════════════╗
+   * ║ CE QUE LE FOURNISSEUR DIT AVOIR FACTURÉ. On le LIT — on ne l'estime pas.║
+   * ╚════════════════════════════════════════════════════════════════════════╝
+   *   Le compteur multipliait le nombre de DOCUMENTS par un prix au document.
+   *   Cohere facture à l'unité de RECHERCHE, et il la renvoie lui-même dans
+   *   chaque réponse. Deux raisons de la lire plutôt que de la recalculer :
+   *
+   *   ① un lot de N documents ne vaut pas toujours une seule unité — au-delà
+   *      d'une certaine taille le fournisseur en compte plusieurs, et la règle
+   *      est la SIENNE, pas la nôtre : la répliquer ici la ferait diverger en
+   *      silence le jour où il la change (§E.13) ;
+   *   ② un nombre déduit d'un réglage local (`rerank_batch_size`) n'est pas une
+   *      mesure — et c'est exactement ce défaut-là qu'on ferme.
+   *
+   * ⚠️ TOUT EST OPTIONNEL PARCE QUE C'EST UNE RÉPONSE RÉSEAU, pas un contrat.
+   *    Un champ absent ne doit pas faire échouer une notation réussie ; il fait
+   *    tomber sur le PLANCHER, et le plancher se DÉCLARE (cf. `source`).
+   */
+  meta?: { billed_units?: { search_units?: number } }
+}
+
+/**
+ * Le nombre d'unités de recherche facturées par un appel, et d'où il vient.
+ *
+ * `plancher` : le fournisseur ne l'a pas dit. On compte UNE unité — le minimum
+ * structurel d'un appel abouti, jamais zéro : un appel qui a rendu des scores a
+ * été facturé. Sous-compter à zéro rendrait une dépense réelle INVISIBLE, ce qui
+ * est le défaut que ce lot ferme, en plus petit.
+ */
+function unitesFacturees(charge: ReponseCohere): {
+  recherches: number
+  source: 'fournisseur' | 'plancher'
+} {
+  const u = charge.meta?.billed_units?.search_units
+  // Un zéro annoncé par le fournisseur est une réponse, pas une absence : il se
+  // respecte. Seuls l'absence et l'illisible tombent sur le plancher.
+  if (typeof u === 'number' && Number.isFinite(u) && u >= 0) {
+    return { recherches: u, source: 'fournisseur' }
+  }
+  return { recherches: 1, source: 'plancher' }
 }
 
 /** Découpe en lots de taille fixe. Un lot vide n'est jamais envoyé. */
@@ -157,7 +198,15 @@ async function noterUnLot(args: {
   model: string
   requete: string
   lot: readonly DocumentANoter[]
-}): Promise<{ ok: true; scores: Array<{ id: string; score: number }> } | { ok: false; transitoire: boolean; detail: string }> {
+}): Promise<
+  | {
+      ok: true
+      scores: Array<{ id: string; score: number }>
+      /** Ce que CET appel a coûté, tel que le fournisseur l'a compté. */
+      facture: { recherches: number; source: 'fournisseur' | 'plancher' }
+    }
+  | { ok: false; transitoire: boolean; detail: string }
+> {
   let reponse: Response
   try {
     reponse = await fetch(ENDPOINT, {
@@ -252,7 +301,7 @@ async function noterUnLot(args: {
     //   contrainte de base et ferait échouer TOUT le lot d'écriture.
     scores.push({ id: args.lot[i].id, score: Math.max(0, Math.min(1, s)) * 10 })
   }
-  return { ok: true, scores }
+  return { ok: true, scores, facture: unitesFacturees(charge) }
 }
 
 /**
@@ -387,7 +436,16 @@ export async function rerankerTout(args: {
         provider: 'rerank',
         action: 'matching_pool',
         acteur: args.acteur,
-        consommation: { forme: 'unites', model: args.model, unites: lot.length },
+        // ⚠️ CE QU'ON PAIE, ET PLUS CE QU'ON A ENVOYÉ. Cette ligne portait
+        //    `unites: lot.length` — le nombre de DOCUMENTS — multiplié par un
+        //    prix au document. Le fournisseur facture à la RECHERCHE, et il
+        //    renvoie le nombre d'unités : on le lit.
+        consommation: {
+          forme: 'recherches',
+          model: args.model,
+          recherches: r.facture.recherches,
+          source: r.facture.source,
+        },
         domain_id: args.domainId,
         context: { ...args.contexte },
       })

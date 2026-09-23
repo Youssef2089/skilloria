@@ -31,8 +31,33 @@ type Tarif = {
   usd_par_1m_entree: number | null
   usd_par_1m_sortie: number | null
   usd_par_unite: number | null
+  usd_par_recherche: number | null
+  usd_par_recherche_web: number | null
   source: string | null
   updated_at: string
+}
+
+/** Les trois formes de tarif. La base les tient ; l'écran les affiche. */
+type Forme = 'jetons' | 'unite' | 'recherche'
+
+/**
+ * LA FORME SE LIT SUR LA LIGNE, elle ne se devine pas.
+ *
+ * ⚠️ CETTE FONCTION A REMPLACÉ UN `ligne.usd_par_unite == null`. Avec deux
+ *    formes, l'absence de l'une prouvait la présence de l'autre ; avec trois,
+ *    elle ne prouve plus rien — et le tarif par recherche se serait affiché
+ *    comme un tarif par jetons, avec deux champs VIDES et un bouton qui refuse
+ *    d'enregistrer. Une inférence par la négative ne survit pas à l'ajout d'un
+ *    troisième cas (§E.37 : une garde peut choisir le mauvais état).
+ *
+ * L'ordre n'a pas d'importance : la contrainte de base garantit qu'une seule
+ * des trois est renseignée. Le repli sur `'jetons'` ne se produit donc que sur
+ * une ligne que la base refuserait.
+ */
+function formeDe(l: Tarif): Forme {
+  if (l.usd_par_recherche != null) return 'recherche'
+  if (l.usd_par_unite != null) return 'unite'
+  return 'jetons'
 }
 type Reponse = {
   tarifs: Tarif[]
@@ -91,7 +116,12 @@ export default function TarifsIaPage() {
   const [chargement, setChargement] = useState(true)
   const [erreurChargement, setErreurChargement] = useState<string | null>(null)
   /** Saisies en cours, par modèle. Vide = la valeur du serveur fait foi. */
-  const [saisies, setSaisies] = useState<Record<string, { entree: string; sortie: string; unite: string }>>({})
+  const [saisies, setSaisies] = useState<
+    Record<
+      string,
+      { entree: string; sortie: string; unite: string; recherche: string; rechercheWeb: string }
+    >
+  >({})
   const [enCours, setEnCours] = useState<string | null>(null)
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
 
@@ -115,6 +145,9 @@ export default function TarifsIaPage() {
               entree: l.usd_par_1m_entree == null ? '' : String(l.usd_par_1m_entree),
               sortie: l.usd_par_1m_sortie == null ? '' : String(l.usd_par_1m_sortie),
               unite: l.usd_par_unite == null ? '' : String(l.usd_par_unite),
+              recherche: l.usd_par_recherche == null ? '' : String(l.usd_par_recherche),
+              rechercheWeb:
+                l.usd_par_recherche_web == null ? '' : String(l.usd_par_recherche_web),
             },
           ]),
         ),
@@ -137,16 +170,24 @@ export default function TarifsIaPage() {
     if (!s) return
     setEnCours(ligne.model)
     setMsg(null)
-    const parJetons = ligne.usd_par_unite == null
+    const forme = formeDe(ligne)
     try {
       const res = await secureFetch('/api/admin/tarifs-ia', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           model: ligne.model,
-          usd_par_1m_entree: parJetons ? Number(s.entree) : null,
-          usd_par_1m_sortie: parJetons ? Number(s.sortie) : null,
-          usd_par_unite: parJetons ? null : Number(s.unite),
+          // UNE SEULE FORME PART, LES AUTRES PARTENT À `null`. Envoyer la saisie
+          // d'une forme inactive écrirait deux prix sur une même ligne — que la
+          // base refuse, et que l'écran ne saurait pas expliquer.
+          usd_par_1m_entree: forme === 'jetons' ? Number(s.entree) : null,
+          usd_par_1m_sortie: forme === 'jetons' ? Number(s.sortie) : null,
+          usd_par_unite: forme === 'unite' ? Number(s.unite) : null,
+          usd_par_recherche: forme === 'recherche' ? Number(s.recherche) : null,
+          // Le supplément n'accompagne que les jetons, et il est FACULTATIF :
+          // vide veut dire « ce modèle ne cherche pas », pas « gratuit ».
+          usd_par_recherche_web:
+            forme === 'jetons' && s.rechercheWeb.trim() !== '' ? Number(s.rechercheWeb) : null,
         }),
       })
       const body = (await res.json()) as { code?: string }
@@ -158,7 +199,9 @@ export default function TarifsIaPage() {
               ? t('err_invalid_price')
               : body.code === 'invalid_shape'
                 ? t('err_invalid_shape')
-                : t('err_save'),
+                : body.code === 'invalid_web_search_price'
+                  ? t('err_invalid_web_search_price')
+                  : t('err_save'),
         })
         return
       }
@@ -179,14 +222,29 @@ export default function TarifsIaPage() {
   function motifDeBlocage(ligne: Tarif): string | null {
     const s = saisies[ligne.model]
     if (!s) return null
-    const parJetons = ligne.usd_par_unite == null
-    const champs = parJetons ? [s.entree, s.sortie] : [s.unite]
+    const forme = formeDe(ligne)
+    // Les champs OBLIGATOIRES de la forme active. Le supplément de recherche
+    // web n'en fait pas partie : vide est une réponse valide.
+    const champs =
+      forme === 'jetons' ? [s.entree, s.sortie] : forme === 'unite' ? [s.unite] : [s.recherche]
     if (champs.some((v) => v.trim() === '')) return t('blocked_empty')
-    if (champs.some((v) => !Number.isFinite(Number(v)) || Number(v) < 0)) return t('blocked_invalid')
-    const inchange = parJetons
-      ? Number(s.entree) === ligne.usd_par_1m_entree && Number(s.sortie) === ligne.usd_par_1m_sortie
-      : Number(s.unite) === ligne.usd_par_unite
-    if (inchange) return t('blocked_unchanged')
+    const saisisNonVides = [...champs, ...(s.rechercheWeb.trim() === '' ? [] : [s.rechercheWeb])]
+    if (saisisNonVides.some((v) => !Number.isFinite(Number(v)) || Number(v) < 0))
+      return t('blocked_invalid')
+    // ⚠️ « INCHANGÉ » PORTE SUR TOUT CE QUI PARTIRAIT, supplément compris.
+    //    Le calculer sur la seule forme laisserait le bouton bloqué alors qu'un
+    //    prix de recherche web VENAIT d'être saisi : un travail perdu sans un
+    //    mot d'explication.
+    const webSaisi = s.rechercheWeb.trim() === '' ? null : Number(s.rechercheWeb)
+    const webInchange = forme !== 'jetons' || webSaisi === ligne.usd_par_recherche_web
+    const formeInchangee =
+      forme === 'jetons'
+        ? Number(s.entree) === ligne.usd_par_1m_entree &&
+          Number(s.sortie) === ligne.usd_par_1m_sortie
+        : forme === 'unite'
+          ? Number(s.unite) === ligne.usd_par_unite
+          : Number(s.recherche) === ligne.usd_par_recherche
+    if (formeInchangee && webInchange) return t('blocked_unchanged')
     return null
   }
 
@@ -251,8 +309,14 @@ export default function TarifsIaPage() {
           )}
 
           {tarifs?.map((ligne) => {
-            const s = saisies[ligne.model] ?? { entree: '', sortie: '', unite: '' }
-            const parJetons = ligne.usd_par_unite == null
+            const s = saisies[ligne.model] ?? {
+              entree: '',
+              sortie: '',
+              unite: '',
+              recherche: '',
+              rechercheWeb: '',
+            }
+            const forme = formeDe(ligne)
             const blocage = motifDeBlocage(ligne)
             const jours = joursDepuis(ligne.updated_at)
             const grille = GRILLE_OFFICIELLE[ligne.provider]
@@ -310,7 +374,7 @@ export default function TarifsIaPage() {
                     maxWidth: 560,
                   }}
                 >
-                  {parJetons ? (
+                  {forme === 'jetons' ? (
                     <>
                       <div>
                         <label htmlFor={`e_${ligne.model}`} style={labelStyle}>
@@ -346,7 +410,57 @@ export default function TarifsIaPage() {
                           style={inputStyle}
                         />
                       </div>
+                      {/* LE SUPPLÉMENT DE RECHERCHE WEB — sur les jetons, et
+                          seulement là. Il s'AJOUTE aux jetons du même appel ;
+                          laissé vide, il dit que ce modèle ne cherche pas. */}
+                      <div>
+                        <label htmlFor={`w_${ligne.model}`} style={labelStyle}>
+                          {t('field_web_search')}
+                        </label>
+                        <input
+                          id={`w_${ligne.model}`}
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          step="0.001"
+                          value={s.rechercheWeb}
+                          onChange={(e) =>
+                            setSaisies((p) => ({
+                              ...p,
+                              [ligne.model]: { ...s, rechercheWeb: e.target.value },
+                            }))
+                          }
+                          style={inputStyle}
+                        />
+                        <p style={{ fontSize: 11, color: 'var(--sk-muted)', margin: '4px 0 0' }}>
+                          {t('field_web_search_help')}
+                        </p>
+                      </div>
                     </>
+                  ) : forme === 'recherche' ? (
+                    <div>
+                      <label htmlFor={`r_${ligne.model}`} style={labelStyle}>
+                        {t('field_search')}
+                      </label>
+                      <input
+                        id={`r_${ligne.model}`}
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="0.0001"
+                        value={s.recherche}
+                        onChange={(e) =>
+                          setSaisies((p) => ({
+                            ...p,
+                            [ligne.model]: { ...s, recherche: e.target.value },
+                          }))
+                        }
+                        style={inputStyle}
+                      />
+                      <p style={{ fontSize: 11, color: 'var(--sk-muted)', margin: '4px 0 0' }}>
+                        {t('field_search_help')}
+                      </p>
+                    </div>
                   ) : (
                     <div>
                       <label htmlFor={`u_${ligne.model}`} style={labelStyle}>

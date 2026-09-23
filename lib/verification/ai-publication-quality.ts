@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import type { ConsommationIA } from '@/lib/ai-consommation'
+import { consommationJetons, type ConsommationIA } from '@/lib/ai-consommation'
 
 /**
  * Analyseur qualité d'une PUBLICATION (annonce de mission / offre CDI).
@@ -553,11 +553,6 @@ export async function verifyAiPublicationQuality(
     score,
     notes,
     flags,
-    usage: {
-      forme: 'jetons',
-      model: modelUtilise,
-      entree: response.usage?.input_tokens ?? 0,
-      sortie: response.usage?.output_tokens ?? 0,
-    },
+    usage: consommationJetons(modelUtilise, response.usage),
   }
 }
