@@ -274,14 +274,14 @@ const partoutAdmin = (motif) => ADMIN.some(([, c]) => motif.test(c))
 //    filtre de l'écran. Trois listes du même fait vieillissent séparément
 //    (§E.20). Aujourd'hui le type ne peut plus diverger sans faire échouer la
 //    compilation.
-ok(/export const CAUSES_DEPOT = \['plafond', 'modele_indisponible', 'reponse_illisible'\] as const/
-  .test(read('lib/candidatures/depot-etats.ts')),
-  'les trois causes sont une liste fermée, dans un module pur')
-ok(/export type CausePanne = \(typeof CAUSES_DEPOT\)\[number\]/
-  .test(read('lib/candidatures/depot-etats.ts')),
-  'et le type en est DÉRIVÉ, jamais recopié')
+// La LISTE elle-même, sa DÉRIVATION en type et sa correspondance avec la
+// contrainte de la base sont tenues par diag-candidature-complete, section 5 :
+// deux gardes sur la même panne n'en font qu'une, et la seconde finit par
+// diverger (§E.36). Ce qui se vérifie ICI concerne CE fichier — le jugement
+// ré-exporte le type au lieu de le redéfinir.
 ok(/export type \{ CausePanne \}/.test(ASSESSMENT),
-  'le jugement le ré-exporte, il ne le redéfinit pas')
+  'le jugement ré-exporte le type des causes, il ne le redéfinit pas',
+  'une seconde definition divergerait en silence (§E.20) — la liste vit dans lib/candidatures/depot-etats.ts')
 for (const [cause, motif] of [
   ['plafond', /cause: 'plafond'/],
   ['modele_indisponible', /cause: 'modele_indisponible'/],

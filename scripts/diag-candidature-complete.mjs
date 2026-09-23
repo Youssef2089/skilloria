@@ -127,6 +127,38 @@ function depouillerSql(src) {
 }
 
 /**
+ * LA PROFONDEUR D'ACCOLADES à une position donnée d'un corps de fonction.
+ *
+ * ⚠️ NÉE D'UNE MUTATION QUI EST PASSÉE AU VERT. Le contrôle vérifiait que
+ *    `ouvrirJournal(` apparaît AVANT `jugerCandidature(` — une comparaison de
+ *    POSITIONS DE TEXTE. La mutation a enfermé l'appel dans une fonction
+ *    fléchée déclarée au même endroit et appelée plus loin : le texte est resté
+ *    avant, l'exécution est passée après, et le contrôle n'a rien vu.
+ *    Ce qu'on défend n'est pas « le mot est écrit plus haut », c'est « l'appel
+ *    a lieu d'abord ». Un appel au PREMIER niveau du corps s'exécute dans
+ *    l'ordre où il est écrit ; enfermé dans une closure, non. La profondeur
+ *    fait donc la différence, et elle se mesure.
+ */
+function profondeurA(corps, index) {
+  let p = 0
+  for (let i = 0; i < index && i < corps.length; i++) {
+    if (corps[i] === '{') p++
+    else if (corps[i] === '}') p--
+  }
+  return p
+}
+
+/**
+ * La position d'un appel AU PREMIER NIVEAU du corps (profondeur 1), ou -1.
+ * Rend aussi le nombre total d'occurrences, pour qu'un appel dupliqué se voie.
+ */
+function appelDePremierNiveau(corps, motif) {
+  const toutes = [...corps.matchAll(new RegExp(motif.replace(/[.*+?^${}()|[\]\\]/g, (c) => '\\' + c), 'g'))]
+  const premier = toutes.filter((m) => profondeurA(corps, m.index) === 1)
+  return { index: premier.length > 0 ? premier[0].index : -1, total: toutes.length }
+}
+
+/**
  * Le CORPS d'une fonction, depuis une ancre — par comptage d'accolades.
  *
  * ⚠️ PAS UNE FENÊTRE DE N CARACTÈRES. Une fenêtre déborde sur la fonction
@@ -321,6 +353,35 @@ ok(
   'inversé, la candidature existerait nue le temps d’un appel au modèle — le défaut exact qu’on ferme',
 )
 
+// ⚠️ ON ISOLE **L'OBJET INSÉRÉ**, PAS LE FICHIER. `ai_match_score` et
+//    `ai_assessment` figurent AUSSI dans le détail d'audit, quelques lignes
+//    plus bas : chercher dans tout le corps laissait passer une insertion à
+//    laquelle on avait retiré sa note (§E.8 — on ancre sur le bloc qu'on
+//    défend). Mesuré : la mutation passait au vert.
+const objetInsere = (() => {
+  if (iInsert < 0) return ''
+  const o = corpsDepot.indexOf('{', corpsDepot.indexOf('.insert(', iInsert))
+  if (o < 0) return ''
+  let prof = 0
+  for (let i = o; i < corpsDepot.length; i++) {
+    if (corpsDepot[i] === '{') prof++
+    else if (corpsDepot[i] === '}') {
+      prof--
+      if (prof === 0) return corpsDepot.slice(o, i + 1)
+    }
+  }
+  return ''
+})()
+ok(
+  objetInsere.length > 0 && objetInsere.includes('publication_id'),
+  'l’objet inséré est isolé de ce qui l’entoure',
+  'un objet vide passerait toutes les assertions suivantes sans rien mesurer (§E.33)',
+)
+ok(
+  !objetInsere.includes('ai_match_score_MUT') && !objetInsere.includes('logAudit'),
+  '… et il ne déborde pas sur l’audit qui le suit',
+)
+
 const iRetourEchec = corpsDepot.indexOf("issue: 'sans_jugement'")
 ok(
   iRetourEchec >= 0 && iRetourEchec < iInsert,
@@ -329,8 +390,9 @@ ok(
 )
 
 ok(
-  /ai_match_score:\s*resultat\.jugement\.score/.test(corpsDepot),
+  /ai_match_score:\s*resultat\.jugement\.score/.test(objetInsere),
   'la note écrite est celle du jugement',
+  'absente de l OBJET INSERE, la base refuse la ligne — et l expert perd son depot en 500',
 )
 ok(
   !/ai_match_score:\s*null/.test(corpsDepot),
@@ -338,9 +400,9 @@ ok(
   'c’est la forme d’avant : la candidature naissait nue et attendait un `after()`',
 )
 ok(
-  /ai_assessment:\s*\{/.test(corpsDepot) &&
-    /reason:\s*resultat\.jugement\.reason/.test(corpsDepot) &&
-    /pitch_org:\s*resultat\.jugement\.pitch_org/.test(corpsDepot),
+  /ai_assessment:\s*\{/.test(objetInsere) &&
+    /reason:\s*resultat\.jugement\.reason/.test(objetInsere) &&
+    /pitch_org:\s*resultat\.jugement\.pitch_org/.test(objetInsere),
   'le résumé écrit porte SES DEUX textes',
 )
 
@@ -433,12 +495,25 @@ ok(
   `la base porte les mêmes trois causes : ${causesSql.join(', ') || '(aucune)'}`,
   'deux listes du même fait vieillissent séparément (§E.20)',
 )
-// Le type n'est plus recopié : il est DÉRIVÉ de la liste.
+// ⚠️ LE TYPE EST **DÉRIVÉ**, ET C'EST ÇA QU'ON VÉRIFIE — PAS LE RÉ-EXPORT.
+//    Le contrôle regardait `ai-assessment.ts` : une recopie replacée dans le
+//    module PUR y passait inaperçue, et c'est exactement ce que la mutation a
+//    fait. La dérivation est la garantie (une divergence ne compile pas) ; le
+//    ré-export n'en est que la conséquence.
+const VOC_SRC = lire('lib/candidatures/depot-etats.ts')
+ok(
+  /export type CausePanne = \(typeof CAUSES_DEPOT\)\[number\]/.test(VOC_SRC),
+  'le type `CausePanne` est DÉRIVÉ de la liste',
+  'recopié, il divergerait sans faire échouer la compilation',
+)
+ok(
+  !/export type CausePanne =\s*'/.test(VOC_SRC),
+  '… et nulle part recopié en toutes lettres',
+)
 ok(
   /export type \{ CausePanne \}/.test(lire('lib/candidatures/ai-assessment.ts')) &&
     !/export type CausePanne =\s*'/.test(lire('lib/candidatures/ai-assessment.ts')),
-  'le type `CausePanne` est dérivé de la liste, plus recopié',
-  'recopié, il divergerait sans faire échouer la compilation',
+  '… et le jugement le ré-exporte au lieu de le redéfinir',
 )
 
 section('5 bis. `etatDeDepot` — exécuté, pas relu')
@@ -484,10 +559,16 @@ for (const f of ['app/api/admin/depots-en-echec/route.ts', 'app/api/admin/superv
    ═══════════════════════════════════════════════════════════════════════════ */
 section('6. Le journal du dépôt naît AVANT l’appel au modèle')
 
-const iJournal = corpsDepot.indexOf('ouvrirJournal(')
-ok(iJournal >= 0, 'le dépôt ouvre son journal')
+const journal = appelDePremierNiveau(corpsDepot, 'await ouvrirJournal(')
+ok(journal.total === 1, `le dépôt ouvre son journal, une fois (${journal.total})`,
+  'deux ouvertures compteraient deux tentatives pour un seul dépôt')
 ok(
-  iJournal >= 0 && iJournal < iJuger,
+  journal.index >= 0,
+  'le journal est ouvert au PREMIER NIVEAU du dépôt',
+  'enferme dans une closure, il s execute quand on l appelle — pas quand il est ecrit',
+)
+ok(
+  journal.index >= 0 && journal.index < iJuger,
   'le journal est ouvert AVANT le jugement',
   'écrit après, il n’existerait PAS dans le seul cas où il sert : la fonction tuée pendant les 30 s d’appel',
 )
@@ -560,14 +641,23 @@ ok(
    ═══════════════════════════════════════════════════════════════════════════ */
 section('8. Rien ne relance un dépôt tout seul')
 
+// ⚠️ ON CHERCHE L'IMPORT, PAS L'APPEL — DEUX MUTATIONS SONT PASSÉES AU VERT
+//    EN L'AJOUTANT SANS PARENTHÈSES. `export const relance = deposerCandidature`
+//    n'est pas un appel, et c'est pourtant un accès complet à la fonction :
+//    l'appelant réel devient le consommateur de cet export, invisible d'ici.
+//    Ce qu'on défend est « qui peut déposer », pas « qui écrit une paire de
+//    parenthèses » (§E.34).
+const importeLeDepot = (src) =>
+  /from '@\/lib\/candidatures\/depot'/.test(depouillerJs(src))
+
 const CRON = fichiersSous(['app/api/cron'])
-const cronsQuiDeposent = CRON.filter((f) => /deposerCandidature\s*\(/.test(depouillerJs(lire(f))))
+const cronsQuiDeposent = CRON.filter((f) => importeLeDepot(lire(f)))
 ok(
   cronsQuiDeposent.length === 0,
   `aucune tâche planifiée ne dépose : ${cronsQuiDeposent.join(', ') || '—'}`,
   'Youssef l’a refusé : « ça tournerait en boucle et ça coûterait »',
 )
-const appelants = SOURCES.filter((f) => f !== DEPOT && /deposerCandidature\s*\(/.test(depouillerJs(lire(f))))
+const appelants = SOURCES.filter((f) => f !== DEPOT && importeLeDepot(lire(f)))
 ok(
   appelants.length === 2 &&
     appelants.includes('app/api/candidatures/route.ts') &&
@@ -610,25 +700,62 @@ ok(
 const SUP = 'lib/supervision/problemes.ts'
 const supNu = depouillerJs(lire(SUP))
 const corpsClasser = corpsDe(supNu, 'export function classerProblemes')
-const blocDepots = (() => {
-  const i = corpsClasser.indexOf('s.depotsEnSouffrance')
+// ⚠️ ON ISOLE **LE BLOC**, PAS UN VOISINAGE (§E.40, §E.8). Une fenêtre de
+//    900 caractères partant du premier `s.depotsEnSouffrance` couvrait les
+//    DEUX branches : retirer le `lien` du problème bloquant laissait celui du
+//    problème « attention » dans la fenêtre, et la mutation passait au vert.
+//    Une fenêtre mesure la distance au traitement, jamais son appartenance.
+const blocDeCle = (cle) => {
+  const i = corpsClasser.indexOf(`cle: '${cle}'`)
   if (i < 0) return ''
-  return corpsClasser.slice(i, i + 900)
-})()
-ok(blocDepots.length > 0, 'la supervision regarde les dépôts en souffrance')
+  // Le `push({ … })` qui le contient : on remonte à son accolade ouvrante,
+  // puis on referme par comptage.
+  let debut = corpsClasser.lastIndexOf('{', i)
+  if (debut < 0) return ''
+  let prof = 0
+  for (let j = debut; j < corpsClasser.length; j++) {
+    if (corpsClasser[j] === '{') prof++
+    else if (corpsClasser[j] === '}') {
+      prof--
+      if (prof === 0) return corpsClasser.slice(debut, j + 1)
+    }
+  }
+  return ''
+}
+const blocPerdus = blocDeCle('depots_candidature_perdus')
+const blocInconnu = blocDeCle('lecture_indisponible_depots')
+
+ok(blocPerdus.length > 0, 'la supervision regarde les dépôts en souffrance')
+// Le découpage MORD : sans cette preuve, deux blocs vides passeraient tous les
+// tests qui suivent en ne mesurant plus rien (§E.33).
 ok(
-  /cle: 'depots_candidature_perdus',\s*\n?\s*gravite: 'bloquant'/.test(blocDepots),
+  blocPerdus.includes('depots_candidature_perdus') &&
+    !blocPerdus.includes('lecture_indisponible_depots'),
+  '… et le bloc isolé ne déborde PAS sur son voisin',
+  'un bloc qui deborde rend vert le retrait qu il devait voir',
+)
+ok(
+  /gravite: 'bloquant'/.test(blocPerdus),
   '… et elle les classe BLOQUANT',
   'en « attention », le signal se range avec ce qu’on regarde plus tard',
 )
 ok(
-  /s\.depotsEnSouffrance === null/.test(blocDepots) && /gravite: 'attention'/.test(blocDepots),
+  /compte: s\.depotsEnSouffrance/.test(blocPerdus),
+  '… en disant COMBIEN',
+  'un signal sans nombre ne permet pas de juger de l urgence',
+)
+ok(
+  blocInconnu.length > 0 && /gravite: 'attention'/.test(blocInconnu),
   '… « je n’ai pas pu compter » est un problème distinct',
   '`null` traité comme 0 dirait « aucun dépôt perdu » au moment où l’on ne sait plus rien (§E.22)',
 )
 ok(
-  /lien: '\/admin\/depots-en-echec'/.test(blocDepots),
-  '… et le signal OUVRE l’écran qui l’éteint',
+  /s\.depotsEnSouffrance === null/.test(corpsClasser),
+  '… et c’est bien le `null` qui le déclenche',
+)
+ok(
+  /lien: '\/admin\/depots-en-echec'/.test(blocPerdus),
+  '… et le signal BLOQUANT ouvre l’écran qui l’éteint',
   'un signal bloquant qu’aucune action ne peut éteindre apprend à être ignoré (§E.52)',
 )
 
