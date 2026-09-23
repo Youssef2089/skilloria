@@ -109,6 +109,28 @@ section('0. Le détecteur retrouve le défaut, et se tait sur le correctif')
 /** Une sortie de tâche cron clôt-elle son passage ? */
 const clot = (src) => /sousVerdictDeRun\s*\(/.test(depouillerJs(src))
 
+/**
+ * Le CORPS d'une fonction, depuis sa déclaration — par comptage d'accolades.
+ *
+ * ⚠️ PAS UNE FENÊTRE DE N CARACTÈRES. Une fenêtre déborde sur la fonction
+ *    suivante, et un export qu'on vide se lit alors comme sain parce que son
+ *    voisin, lui, est correct (§E.40, §E.8). Mesuré : c'est exactement ce qui
+ *    a laissé la mutation ① passer en vert.
+ */
+function corpsDe(src, depuis) {
+  const ouvre = src.indexOf('{', depuis)
+  if (ouvre < 0) return ''
+  let prof = 0
+  for (let i = ouvre; i < src.length; i++) {
+    if (src[i] === '{') prof++
+    else if (src[i] === '}') {
+      prof--
+      if (prof === 0) return src.slice(ouvre, i + 1)
+    }
+  }
+  return src.slice(ouvre)
+}
+
 const TEMOIN_DEFAUT = `
 export async function GET(request: NextRequest): Promise<Response> {
   return handle(request)
@@ -160,10 +182,14 @@ const sorties = []
 for (const rel of taches) {
   const net = depouillerJs(lire(rel))
   if (!clot(net)) muettes.push(rel)
-  // Chaque export HTTP doit passer par le guichet — pas seulement l'un d'eux.
+  /* ⚠️ CHAQUE EXPORT DANS SON PROPRE CORPS, PAS DANS UNE FENÊTRE.
+        La première version prenait 400 caractères après le `export` — et cette
+        fenêtre DÉBORDAIT sur l'export suivant. Faire taire `GET` laissait donc
+        le contrôle VERT, parce qu'il lisait le `sousVerdictDeRun` de `POST`,
+        vingt lignes plus bas. C'est §E.40 : une fenêtre mesure une DISTANCE,
+        pas une appartenance. On compte les accolades (§E.8). */
   for (const m of net.matchAll(/export\s+async\s+function\s+(GET|POST|PUT|DELETE)\s*\(/g)) {
-    const suite = net.slice(m.index, m.index + 400)
-    sorties.push({ rel, verbe: m[1], clot: /sousVerdictDeRun\s*\(/.test(suite) })
+    sorties.push({ rel, verbe: m[1], clot: /sousVerdictDeRun\s*\(/.test(corpsDe(net, m.index)) })
   }
 }
 ok(muettes.length === 0, `aucune tâche muette (${muettes.length})`, muettes.join(', ') || undefined)
@@ -265,6 +291,21 @@ section('2. L’écriture du verdict ne peut pas échouer en silence')
     'un corps ILLISIBLE et un corps ABSENT sont deux états distincts',
     'les confondre ferait passer une anomalie du pilote pour un appel manuel',
   )
+  /* ⚠️ ET LE TYPE NE SUFFIT PAS : IL FAUT QUE LE CAS LE PRODUISE.
+        Déclarer `'illisible'` dans l'union et ne jamais le rendre laisse
+        l'union intacte et le défaut entier — c'est exactement ce qu'a montré
+        la mutation ⑦, qui remplaçait le retour du `catch` par `'absent'` et
+        passait en VERT. On vise donc le CORPS de la lecture : son `catch`, et
+        ce qu'il rend. */
+  {
+    const iLecture = net.indexOf('export async function lireIdentifiantDeJournal')
+    const corpsLecture = iLecture >= 0 ? corpsDe(net, iLecture) : ''
+    ok(
+      /catch[\s\S]{0,120}?etat:\s*'illisible'/.test(corpsLecture),
+      '… et un corps que la lecture ne sait pas parser REND `illisible`',
+      'le type peut déclarer l’état sans que rien ne le produise : l’union serait décorative',
+    )
+  }
   ok(
     /etat\s*===\s*'illisible'[\s\S]{0,400}?console\.error/.test(net),
     '… et l’illisible CRIE, quand l’absent se contente d’informer',
