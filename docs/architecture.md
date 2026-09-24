@@ -80,6 +80,10 @@ journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **
 `duree_reglages`, `ai_redaction_failures`, `rate_limit_hits`, `features`,
 `cron_job_catalog`, `cron_run_log`, `cron_run_leases`, `plateforme`, `audit_logs`.
 
+**Journal des transactions (§D.26)** — `grand_livre` (le grand livre, en **ajout seul** : aucun rôle
+applicatif n'y écrit, seule `journaliser()` insère), `grand_livre_actions` (la **liste fermée** des
+actions, clé étrangère du grand livre).
+
 **Marketing / contenu — CRÉÉES PAR LA BASELINE, ET JAMAIS TOUCHÉES PAR LE CODE.**
 `ad_placements`, `blog_posts`, `campaigns`, `dashboard_stats`, `leads`,
 `newsletter_subscriptions`, `profile_alerts`, `referrals`, `testimonials`, `waitlist`.
@@ -93,6 +97,25 @@ journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **
 > **NON VÉRIFIÉ** : rien ne dit si elles portent des données de production — on ne les a pas lues.
 
 ### B.2 Les déplacements structurants — ceux qui piègent
+
+> **`grand_livre` (24/09/2026) — LE SOCLE DU JOURNAL DES TRANSACTIONS (§D.26).**
+> `grand_livre_actions` (liste fermée, seed `do update` — un référentiel, pas un réglage) ;
+> `grand_livre` (quatorze colonnes, neuf contraintes, date en tête des index de filtre) ; privilèges
+> **repris** à anon/authenticated/service_role (lecture seule pour service_role) ; trigger
+> `grand_livre_ajout_seul` BEFORE UPDATE OR DELETE (GL001) + trigger TRUNCATE ; `journaliser()`
+> (GL002 sans pièce ou sans type, GL003 hors liste ou statut contraire, détail passé par
+> `audit_logs_detail_sans_pii()`) ; `regler_durees_place()` (réglage + journal en un appel) ;
+> `effacer_adresses_ip()` recréée avec sa pièce ; `identifiant_derive()` (le dériveur SQL).
+> **Ordre : AVANT le déploiement** — la route des durées appelle `regler_durees_place()`.
+>
+> ⚠️ **POSTCONDITION QUI S'EXÉCUTE** (§E.67) : sept signatures par `to_regprocedure`, les colonnes
+> et contraintes comptées, la **première colonne de chaque index** lue dans `pg_index`, les
+> **privilèges interrogés** (`has_table_privilege`), puis six **sondes** annulées : sans pièce (GL002),
+> type inconnu et refus au mauvais statut (GL003), une écriture valide dont la clé personnelle est
+> retirée puis **un UPDATE et un DELETE qui doivent lever GL001**, `regler_durees_place()` rejouée sur
+> un compte réel (sautée, et dite, sur une base vierge — §G.4 bis), `effacer_adresses_ip()` rejouée
+> et sa pièce retrouvée. Le témoin du dériveur est celui que `lib/admin/identifiant-derive.ts`
+> calcule.
 
 > **`tables_mortes_supprimees` (24/09/2026) — LES DEUX TABLES MORTES PARTENT, PREUVE EXÉCUTÉE.**
 > `user_section_visits` et `subscription_history` — vestiges de la baseline, verdict §H.2 — sont
@@ -1487,6 +1510,58 @@ organisation sans admin actif lisible reçoit donc du **français**, et non « r
 le modèle choisir. Aucune lecture en panne ne fait échouer un dépôt : refuser une candidature parce
 qu'on n'a pas su dans quelle langue l'écrire serait absurde. Mais elle **se dit** (§E.22).
 
+### C.20 — LE GRAND LIVRE : pourquoi pas de trigger d'écriture, pourquoi pas de partitionnement, comment la pièce traverse pg_cron et `after()`
+
+**Pourquoi pas de trigger d'écriture — `set local` et PostgREST.** La conception de départ posait la
+garantie sur la base : *« là où c'est possible, c'est la base qui écrit, par trigger sur la table
+métier »*. Mesuré dans ce dépôt : **178 sites d'écriture, 41 tables, 86 fichiers, tous par PostgREST**.
+Chaque `.from(…).insert(…)` est **sa propre transaction** ; il n'existe aucun moyen, avec ce client,
+d'écrire la ligne métier et la ligne de journal dans la même. Et un trigger ne peut pas connaître la
+**pièce** : le seul canal serait une variable de session (`set local app.piece`), qui **ne vaut que pour
+la transaction courante** — la requête suivante prend une connexion du pool, peut-être une autre, et
+ouvre une transaction neuve. Les cinq écritures d'un dépôt de candidature ne partagent **aucun**
+contexte de session. Ce n'est pas une mesure à faire, c'est la définition. En revanche `set local` et
+la pièce vivent très bien **à l'intérieur d'une RPC** : c'est ce que le projet a déjà choisi huit fois
+(§F — `programmer_relance_expert`, `set_default_package`, `stripe_event_claim`, `usage_increment`,
+`rate_limit_check`, `maj_membre_organisation`, `ouvrir_depot_candidature`, `prendre_bail`). Le grand
+livre généralise ce choix : **une RPC SECURITY DEFINER écrit la ligne métier ET la ligne de journal en
+un appel**, et le trigger ne sert qu'au **verrou**. Deux mécanismes d'écriture auraient divergé (§E.20).
+
+**Le coût honnête, et comment il se paie.** Faire passer 178 sites par des RPC est un très gros lot.
+On ne le fait pas d'un coup : le contrôle se pose sur **la liste des actions journalisables**, pas sur
+« toute route qui écrit ». Les actions de la liste passent par la fonction, une par une (étape 2) ;
+le reste écrit comme aujourd'hui.
+
+**Pourquoi pas de partitionnement maintenant.** Aucune table du dépôt n'est partitionnée, et le volume
+journalisé tient en trois chiffres (127 lignes d'audit en cinq mois). Partitionner le premier jour
+achèterait quatre contraintes Supabase (index locaux, RLS et revoke à reposer par partition, un
+batch qui détache une partition) contre rien. Ce qui est fait **dès aujourd'hui** est ce qui rend le
+partitionnement indolore plus tard : la **date en tête** de chaque index de filtre, vérifiée dans
+`pg_index` par la postcondition ; et deux exceptions nommées (pièce, sujet) parce qu'elles se
+cherchent sans période. Le batch manuel, la rétention réglable, le plancher légal, l'annonce avant, la
+confirmation et l'écriture de l'exécution sont conservés tels quels pour l'étape 4 (§E.46).
+
+**Comment la pièce traverse pg_cron.** Une tâche SQL pure génère la sienne : `effacer_adresses_ip()`
+pose `v_piece := gen_random_uuid()` en tête et journalise **succès** (dans le bloc) et **échec** (dans
+le gestionnaire, après l'annulation du sous-bloc), même pièce. Une tâche qui appelle une route
+(`trigger_purge_cron`) la générera de la même façon et la **transmettra dans le corps HTTP** à côté de
+`log_id` — la route la lit avec `estPiece()` et la passe à tout ce qui en découle (étape 3). Le moteur
+n'a **aucun identifiant de run** à promouvoir en pièce (mesuré : zéro occurrence) : le grand livre ne
+relie pas son histoire, il la **crée** — une ligne par étape de run, jamais par lot ni par profil.
+
+**Comment la pièce traverse `after()`.** Elle voyage en **paramètre** — `nouvellePiece()` à l'entrée
+de la route, avant toute écriture, puis passée à chaque appel. Un `after()` capture la pièce dans sa
+fermeture comme n'importe quelle valeur : rien à faire, et rien d'autre ne survit à la réponse (§E.5).
+Ce qui **ne** marcherait **pas**, et qui est interdit dans `lib/journal/` : un contexte ambiant
+(`AsyncLocalStorage`), qui aurait l'air commode et perdrait la pièce au premier changement de
+contexte, en silence. Un paramètre obligatoire ne se perd pas : le compilateur nomme l'appel qui
+l'oublie.
+
+**Un rejeu est un nouveau geste.** Il porte une **nouvelle** pièce qui référence l'originale
+(`piece_origine`), à la date du rejeu, par l'administrateur qui l'a décidé — jamais la pièce du dépôt
+d'origine, ce qui ferait une histoire où un expert a postulé deux fois. Et il vit dans le grand livre,
+pas dans `candidature_depots`, qui écrase au rejeu.
+
 ### C.16 — LES E-MAILS : pourquoi ils n'ont pas de jetons, et d'où viennent leurs couleurs
 
 **LA CONTRAINTE, MESURÉE.** Les clients de messagerie **ne lisent pas les propriétés
@@ -2379,7 +2454,83 @@ et le plafond global consulté » : c'est `diag-depense-ia` (§E.36).
 > un filtre que le serveur ignore rend une liste qui **a l'air** filtrée, ce qui est pire qu'aucun
 > filtre : on croit avoir regardé.
 
+<a id="d26"></a>
+
+**D.26 — LE GRAND LIVRE : TOUTE ACTION MÉTIER LAISSE UNE ÉCRITURE, AVEC SA PIÈCE. Le socle (étape 1, 24/09/2026).**
+Le modèle est le grand livre de D365 F&O : chaque écriture porte sa **pièce** — le numéro qui relie
+toutes les écritures d'un même geste — et on remonte la chaîne depuis n'importe quel bout. Le grand
+livre porte la **synthèse** ; les sous-journaux (`audit_logs`, `ai_spend_events`, `stripe_events`,
+`cron_run_log`, `notifications`) gardent le **détail** et recevront une colonne `piece` (étape 3).
+On ne recopie rien : on relie. **Les lectures sont hors périmètre** : consulter une annonce n'est pas
+une transaction, le journal enregistre ce qui change un état.
+
+**La ligne** — `grand_livre` : horodatage · pièce · pièce d'origine (contrepassation, rejeu) · type
+d'action (**liste fermée en base**, `grand_livre_actions`, clé étrangère) · acteur par identifiant +
+type (`users.user_type`), **jamais par nom** · écosystème · sujet (type + identifiant) · statut
+(reussi / echoue / refuse) · détail jsonb **sans donnée personnelle** · origine (utilisateur /
+tache_planifiee / administrateur / systeme) · coût + unité facturée (§D.24). Neuf contraintes tiennent
+la cohérence (acteur ⇔ type, geste humain ⇒ acteur, sujet ⇔ type, coût ⇔ unité).
+
+**La liste fermée, et pourquoi elle est double.** La liste qui **décide** est en base — un type inconnu
+ne s'écrit pas (GL003). `lib/journal/actions.ts` la reflète pour le **compilateur** (une faute de frappe
+est une erreur de compilation), et `diag-grand-livre` compare les deux **dans les deux sens** : un code
+ajouté d'un seul côté rougit. Cinquante-cinq actions : la liste de départ, les onze manquantes de la
+revue, les **cinq refus nommés explicitement** (`refus_plafond_atteint`, `refus_expert_inapte`,
+`refus_garde_eligibilite`, `refus_quota_cv`, `refus_depot_sans_jugement` — un refus n'insère rien, il
+faut le nommer pour qu'il existe, et son statut est **imposé** par la base), les **trois purges
+séparées**, et `journal_nettoye` dans sa propre famille, visible même quand on filtre l'administration.
+
+**La garantie : une fonction unique, jamais un trigger d'écriture.** Le client Supabase n'ouvre aucune
+transaction multi-requêtes ; chaque appel PostgREST **est** une transaction et `set local` meurt avec
+elle. Un trigger sur une table métier ne peut donc pas connaître la pièce du geste — elle vit dans une
+autre requête. À l'intérieur d'une RPC, en revanche, tout tient : **`journaliser()`** (SECURITY DEFINER)
+est la seule fonction qui insère — elle **exige** la pièce et le type (GL002), refuse un type hors
+liste et un statut contraire à celui que le type impose (GL003), et passe le détail par
+`audit_logs_detail_sans_pii()` — la même liste que le journal d'audit, jamais recopiée. Une action qui
+**écrit** une ligne métier passe par une **RPC métier + journal en un appel** : `regler_durees_place()`
+met à jour `duree_reglages` et journalise dans la même transaction — l'un sans l'autre est
+impossible. Détail de la chaîne et de ses raisons : **§C.20**.
+
+**Le verrou : revoke ET trigger.** Les privilèges par défaut sont **repris** à tous les rôles applicatifs
+(`service_role` ne garde que la lecture, pour l'écran) ; un UPDATE ou un DELETE lève **SQLSTATE GL001**,
+un TRUNCATE aussi. Le **seul** chemin de suppression sera le nettoyage de l'étape 4 : sa RPC posera
+`set local grand_livre.nettoyage = 'autorise'` — un réglage qui meurt avec sa transaction — et c'est
+de l'intérieur de cette RPC, et de nulle part ailleurs, que le DELETE est reconnu. Jamais l'UPDATE.
+Une erreur ne se corrige pas, elle se **contrepasse** par une nouvelle ligne qui référence la pièce
+d'origine ; un rejeu porte une **nouvelle** pièce qui référence l'originale. Modèle :
+`transactions_block_delete`.
+
+**La pièce, générable des deux côtés, transmise explicitement.** Code : `nouvellePiece()`
+([lib/journal/piece.ts](../lib/journal/piece.ts)), type **marqué**, une par geste, créée **à l'entrée
+de la route avant toute écriture**, transmise en **paramètre obligatoire** — jamais un contexte ambiant
+(`AsyncLocalStorage` est interdit dans `lib/journal/`) : c'est ce qui la fait traverser `after()`
+sans rien perdre, comme n'importe quelle valeur capturée par la fermeture (§E.5). SQL :
+`gen_random_uuid()` — `effacer_adresses_ip()` génère la sienne et journalise **succès et échec**,
+chacun dans son bloc ; les tâches qui appellent une route la transmettront dans le corps HTTP
+(étape 3). Le dériveur d'identifiant existe en SQL (`identifiant_derive()`) comme en TypeScript, et
+la postcondition **prouve** leur égalité sur un témoin que le contrôle recalcule.
+
+**Le partitionnement attend, et il ne changera pas le modèle.** 127 lignes d'audit en cinq mois. La
+**date est en tête** de chaque index de filtre dès aujourd'hui — un partitionnement par mois gardera
+les index locaux et élaguera par période sans toucher aux colonnes, à `journaliser()` ni à l'écran.
+Deux index n'ont pas la date en tête et c'est dit : la pièce et le sujet se cherchent sans période.
+
+**Ce qui est branché, ce qui ne l'est pas.** Deux actions réelles passent par le socle :
+`reglage_modifie` (l'écran `/admin/durees`, par la route) et `ip_effacees` (la tâche SQL). Le
+branchement des autres actions, la colonne `piece` des sous-journaux, l'écran et le batch de
+nettoyage sont les étapes 2 à 4 — **§H.3**. `audit_logs` reste, comme premier sous-journal, FK
+intacte.
+
+> **LA RÈGLE : toute action nouvelle s'ajoute à la liste fermée — le seed SQL ET
+> `lib/journal/actions.ts` — et passe par `journaliser()` ou par une RPC métier qui l'appelle.
+> Sinon [`diag-grand-livre`](../scripts/diag-grand-livre.mjs) rougit.** Il garde la liste dans les
+> deux sens, l'unique `insert` du dépôt, l'absence d'écriture directe et d'appel RPC hors de la porte,
+> la pièce obligatoire et jamais inventée, les deux actions réelles, le témoin du dériveur, et une
+> postcondition qui **tente** un UPDATE et un DELETE et exige qu'ils lèvent. Éprouvé par mutation le
+> 24/09/2026 : **18 mutations, 18 détections**.
+
 ---
+
 ## F. La classe de défaut « lire puis écrire »
 
 > **DETTE NOMMÉE, NON OUVERTE — `extendValidity` (20/09/2026).**
@@ -2711,6 +2862,20 @@ refuse en nommant ce qui s'accroche ; la postcondition vérifie l'absence (`to_r
 les fonctions. `lib/database.types.ts` est nettoyé. Le verdict reste gardé par
 [`diag-tables-mortes`](../scripts/diag-tables-mortes.mjs) : la vivante a son écrivain SQL, les deux
 supprimées ne sont **plus citées nulle part** — code, types générés, SQL. Un état mesuré (§G.8).
+
+**H.3 — LE GRAND LIVRE N'EST BRANCHÉ QUE SUR DEUX ACTIONS. Les étapes 2 à 4 attendent l'accord de Youssef.**
+Le socle est posé (§D.26, §C.20) : la table, le verrou, `journaliser()`, la première RPC métier, la
+pièce des deux côtés. Deux actions réelles journalisent — `reglage_modifie` et `ip_effacees`. **Tout le
+reste de la liste fermée n'écrit encore rien** : cinquante-trois codes existent en base sans appelant.
+Ce n'est pas un oubli, c'est l'ordre du lot — le socle se valide sur une base locale jetable puis sur
+staging **avant** qu'on y branche quoi que ce soit. À venir, dans cet ordre : **étape 2**, brancher les
+actions une par une avec la preuve que chacune écrit **une** fois (les dix routes qui changent un état
+sans trace, le moteur dans les deux sens — déclenchement, filtrage, classement, correspondances,
+notifications, fin ou échec ou abandon) ; **étape 3**, une colonne `piece` sur `audit_logs`,
+`ai_spend_events`, `stripe_events`, `cron_run_log`, `notifications`, et la pièce transmise par
+`trigger_purge_cron` dans le corps HTTP ; **étape 4**, l'écran et le batch de nettoyage (la seule RPC
+autorisée à supprimer, reconnue par le trigger). La porte TypeScript `journaliser()`
+(`lib/journal/journaliser.ts`) n'a **aucun appelant** aujourd'hui : elle attend les refus de l'étape 2.
 
 ---
 

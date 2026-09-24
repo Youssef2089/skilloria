@@ -196,6 +196,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 - **D.23** — **Chaque texte du jugement dans la langue de son lecteur** — `reason` : `users.locale` de l'expert ; `pitch_org` : le porte-parole de l'organisation (`lib/organisations/porte-parole.ts`) — écrit une fois, conservé avec sa langue ; le prompt prévient que les deux langues peuvent différer. → [détail](docs/architecture.md#d23)
 - **D.24** — **Le compteur compte ce qu'on paie, dans l'unité du fournisseur** : recherches Cohere (`billed_units.search_units`), recherches web (`web_search_requests`), jetons ; on lit, on n'estime pas (`source: 'plancher'` déclaré) ; un coût partiel rend `null` ; une seule fabrique `consommationJetons()` ; trois formes de tarif tenues par contrainte. → [détail](docs/architecture.md#d24)
 - **D.25** — **Un plafond par compte, le global en dernier garde-fou** (`CLASSE_DES_ACTIONS` : il n'arrête que l'AUTOMATIQUE, jamais le geste — `candidature_assessment` est délibérée à cause de §D.19) ; l'acteur et l'action sont obligatoires ; l'alerte reste sous le plafond, tenu en base ; `ai_spend_debut_du_mois()` source unique ; `/admin/consommation` avec ventilation par action. 25 $ / 5 $ sont des propositions. → [détail](docs/architecture.md#d25)
+- **D.26** — **LE GRAND LIVRE : toute action métier laisse une écriture, avec sa PIÈCE.** Une table en AJOUT SEUL (`grand_livre`), une liste FERMÉE d'actions en base (`grand_livre_actions`, miroir `lib/journal/actions.ts`), UNE fonction d'écriture (`journaliser()` — ou une RPC métier qui l'appelle dans la même transaction, `regler_durees_place()` la première), un VERROU (revoke + trigger, SQLSTATE GL001 ; seul le nettoyage supprimera, de l'intérieur de sa RPC). Jamais de trigger d'écriture : `set local` ne survit pas à une requête PostgREST. La pièce naît à l'entrée du geste, voyage en PARAMÈTRE — explicitement à travers `after()` — et se génère en SQL par `gen_random_uuid()`. Identifiants seulement. **La règle : toute action nouvelle s'ajoute à la liste fermée (SQL + TS) et passe par la fonction — sinon `diag-grand-livre` rougit.** → [détail](docs/architecture.md#d26)
 
 ---
 
@@ -347,7 +348,7 @@ annonçait absente une fonction que la migration venait de créer. **Six migrati
 tourné sur une base.** Une postcondition jamais exécutée est une **affirmation**, pas une preuve
 (§E.67), et elle est pire qu'absente : elle accuse le code au lieu d'elle-même.
 
-`npx supabase db reset --local` rejoue les 89 migrations depuis zéro. Il suffit — Docker en
+`npx supabase db reset --local` rejoue les 90 migrations depuis zéro. Il suffit — Docker en
 marche, `pg_cron` et `pg_net` présents dans l'image `major_version = 17`, et **aucun `seed.sql`**
 à prévoir : tarifs, plafonds et réglages sont **semés par des migrations**.
 > ⚠️ **UNE BASE VIERGE NE REJOUE PAS LES CAS DE DONNÉES.** Les postconditions qui comparent des

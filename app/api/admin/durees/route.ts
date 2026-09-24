@@ -3,6 +3,7 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { identifiantDerive } from '@/lib/admin/identifiant-derive'
+import { nouvellePiece } from '@/lib/journal/piece'
 import {
   chargerDurees,
   estDureeAcceptable,
@@ -74,6 +75,13 @@ export const dynamic = 'force-dynamic'
  *   et un effacement ne se défait pas. Bornes 1–60 mois, raison nommée
  *   `invalid_ip_retention` — distincte des jours, pour que l'écran dise la
  *   bonne unité.
+ *
+ * ═══ ET L'ÉCRITURE PASSE PAR LE GRAND LIVRE (§D.26) ════════════════════════
+ *   La ligne de réglage et la ligne du grand livre sont écrites par UNE
+ *   fonction, `regler_durees_place()`, dans la même transaction : l'une sans
+ *   l'autre est impossible. La PIÈCE naît à l'entrée du geste — avant toute
+ *   écriture — et voyage en paramètre. C'est la première action réelle
+ *   branchée sur le socle ; `audit_logs` reste le sous-journal du détail.
  *
  * ═══ ET CHAQUE CHANGEMENT LAISSE UNE TRACE ══════════════════════════════════
  *   `audit_logs` : qui, quand, depuis quelle adresse, de quelle valeur vers
@@ -184,6 +192,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     throw err
   }
   const admin = auth.supabaseAdmin
+  // LA PIÈCE, À L'ENTRÉE DU GESTE — avant toute écriture (§D.26).
+  const piece = nouvellePiece()
 
   let corps: CorpsPatch
   try {
@@ -259,54 +269,63 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     }
   }
 
-  const { error } = await admin
-    .from('duree_reglages')
-    .update({
+  // Le détail — identifiants et faits seulement — sert au grand livre ET au
+  // sous-journal d'audit. Il porte le nombre ANNONCÉ AU MOMENT DE LA
+  // DÉCISION, pas un nombre recalculé plus tard.
+  const detailReglage = {
+    avant: {
+      vie_annonce_jours: avant.durees.vieAnnonceJours,
+      fenetre_echange_jours: avant.durees.fenetreEchangeJours,
+      invitation_jours: avant.durees.invitationJours,
+      conservation_ip_mois: avantIp.conservationIpMois,
+    },
+    apres: {
       vie_annonce_jours: vie,
       fenetre_echange_jours: fenetre,
       invitation_jours: invitation,
       conservation_ip_mois: conservationIp,
-      updated_at: new Date().toISOString(),
-      updated_by: auth.user.id,
-    })
-    .eq('ligne_unique', true)
+    },
+    retroactivite: bascule
+      ? {
+          basculent: bascule.basculent,
+          dont_devoilees: bascule.dont_devoilees,
+          confirmee: corps.confirme_retroactivite === true,
+        }
+      : null,
+  }
+  // La table n'a qu'une ligne, sans UUID : le sujet est la famille (§E.68).
+  const sujetId = identifiantDerive('reglage', 'duree_reglages')
+
+  // ── L'ÉCRITURE ET SA LIGNE DE JOURNAL, EN UN SEUL APPEL (§D.26) ──────────
+  //  `regler_durees_place` met à jour la ligne ET écrit la ligne du grand livre
+  //  dans la même transaction. Un refus de la fonction (pièce absente, acteur
+  //  absent, borne) est une erreur de la route, pas un état à afficher.
+  const { error } = await admin.rpc('regler_durees_place', {
+    p_piece: piece,
+    p_acteur_id: auth.user.id,
+    p_ecosysteme_id: auth.domain.id,
+    p_sujet_id: sujetId,
+    p_vie: vie,
+    p_fenetre: fenetre,
+    p_invitation: invitation,
+    p_conservation_ip: conservationIp,
+    p_detail: detailReglage,
+  })
   if (error) {
     console.error('[admin:durees] écriture en échec', error.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
 
-  // La trace porte le nombre ANNONCÉ AU MOMENT DE LA DÉCISION, pas un nombre
-  // recalculé plus tard : c'est ce que l'administrateur avait sous les yeux.
+  // Le sous-journal d'audit garde le détail (IP, user-agent) — best-effort.
   await logAudit({
     supabaseAdmin: admin,
     user_id: auth.user.id,
     domain_id: auth.domain.id,
     action: 'durees_place_updated',
     entity_type: 'duree_reglages',
-    // La table n'a qu'une ligne, sans UUID : l'entité est la famille.
-    entity_id: identifiantDerive('reglage', 'duree_reglages'),
+    entity_id: sujetId,
     request,
-    detail: {
-      avant: {
-        vie_annonce_jours: avant.durees.vieAnnonceJours,
-        fenetre_echange_jours: avant.durees.fenetreEchangeJours,
-        invitation_jours: avant.durees.invitationJours,
-        conservation_ip_mois: avantIp.conservationIpMois,
-      },
-      apres: {
-        vie_annonce_jours: vie,
-        fenetre_echange_jours: fenetre,
-        invitation_jours: invitation,
-        conservation_ip_mois: conservationIp,
-      },
-      retroactivite: bascule
-        ? {
-            basculent: bascule.basculent,
-            dont_devoilees: bascule.dont_devoilees,
-            confirmee: corps.confirme_retroactivite === true,
-          }
-        : null,
-    },
+    detail: detailReglage,
   })
 
   return json({

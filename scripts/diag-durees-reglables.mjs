@@ -245,7 +245,11 @@ section('E. La baisse est COMPTEE avant d’etre ecrite — et elle n’est pas 
 
   // L'ordre compte : le comptage precede l'ecriture, sinon on annonce apres coup.
   const iCompte = ROUTE.indexOf('compterBascule(admin, avant.durees.vieAnnonceJours, vie)')
-  const iEcrit = ROUTE.indexOf(".from('duree_reglages')\n    .update(")
+  // L'ECRITURE, quelle que soit sa forme : par le client (`.update`) ou par
+  // la RPC metier du grand livre (`regler_durees_place`, §D.26). Le controle
+  // s'ancre sur le geste, pas sur la syntaxe qui le porte (§E.65).
+  const iEcrit = [".from('duree_reglages')\n    .update(", ".rpc('regler_durees_place'"]
+    .map((a) => ROUTE.indexOf(a)).find((i) => i >= 0) ?? -1
   ok(iCompte > 0 && iEcrit > iCompte,
     'le comptage precede l’ecriture, et non l’inverse',
     'compter apres avoir ecrit, c’est annoncer un degat deja fait')
@@ -468,7 +472,11 @@ section('J. La QUATRIEME duree — la conservation des adresses IP, et la tache 
     }
     return ''
   }
-  const TRACE = blocDe(ROUTE.slice(ROUTE.indexOf("action: 'durees_place_updated'")), 'detail:')
+  // Le detail de la trace : un litteral en place, ou une variable dont le
+  // `const` litteral est dans le fichier (il sert aussi au grand livre, §D.26).
+  const appelTrace = ROUTE.slice(ROUTE.indexOf("action: 'durees_place_updated'"))
+  const valeurDetail = /\bdetail:\s*([A-Za-z_$][\w$]*)\s*[,}\n]/.exec(appelTrace)
+  const TRACE = valeurDetail ? blocDe(ROUTE, `const ${valeurDetail[1]} = {`) : blocDe(appelTrace, 'detail:')
   ok(/conservation_ip_mois/.test(blocDe(TRACE, 'avant:')) && /conservation_ip_mois/.test(blocDe(TRACE, 'apres:')),
     'la trace porte la valeur AVANT et APRES — dans chacun des deux blocs')
   const ECRAN = sansCommentaires(read('app/[locale]/admin/durees/page.tsx'))

@@ -8,28 +8,31 @@
 //   `email`, `new_email`, `phone_e164`, `company_name` — sur 4 actions et
 //   5 comptes. Et la purge RGPD ne touchait PAS le journal : un compte
 //   anonymisé gardait son adresse lisible dans `audit_logs`, indéfiniment.
+//   Huit sites écrivaient une donnée personnelle ; la base n'en montrait que
+//   quatre actions — c'est le contrôle qui a trouvé les deux dernières.
 //
 // CE QUE CE CONTRÔLE GARDE
 //   A. La liste des clés personnelles vit EN BASE (`audit_logs_cles_
 //      personnelles()`), et c'est ELLE qui est lue ici — une seule source.
 //   B. Chaque appel `logAudit({…})` de app/, lib/ et components/ : `detail`
-//      est absent ou un objet LITTÉRAL sans spread (un détail opaque ne se
-//      vérifie pas, il se refuse), aucune clé de la liste À TOUTE PROFONDEUR,
-//      aucune VALEUR qui soit visiblement une donnée personnelle
-//      (`x.email`, `phone`, `newEmail`…) sous une clé innocente.
-//   C. Aucune migration n'écrit dans audit_logs : le périmètre inclut le SQL,
-//      et un écrivain SQL qui apparaîtrait ne serait pas couvert par B.
+//      est absent, un objet LITTÉRAL sans spread, ou une variable dont le
+//      `const` littéral est dans le fichier — sinon opaque, donc refusé ;
+//      aucune clé de la liste À TOUTE PROFONDEUR, aucune VALEUR visiblement
+//      personnelle (`x.email`, `phone`, `newEmail`…) sous une clé innocente.
+//   C. Aucune migration n'écrit dans audit_logs : le périmètre inclut le SQL.
 //   D. La purge d'un compte nettoie le journal AVANT de poser `anonymized_at`
-//      et lève si le nettoyage échoue — sinon le jalon fermerait la porte
-//      (§C.8 architecture) sur un journal encore sale.
+//      et lève si le nettoyage échoue.
 //   E. La migration : le nettoyage passe par la fonction pure, et la
 //      postcondition l'EXÉCUTE sur un objet imbriqué (§E.67).
-//   F. Témoins : les détecteurs de B rougissent sur les formes connues.
+//   F. Témoins.
+//
+//   LE DÉTECTEUR EST PARTAGÉ avec le grand livre (scripts/lib/detail-sans-pii)
+//   — deux copies auraient divergé (§E.20).
 //
 // CE QU'IL NE VÉRIFIE PAS, ET LE DIT
 //   · une donnée personnelle rangée sous une clé innocente et une valeur qui
-//     n'a pas l'air d'en être une (`ref: x.contact`) — aucun balayage ne la
-//     voit ; c'est la relecture de chaque nouvel appel qui la voit ;
+//     n'a pas l'air d'en être une (`ref: x.contact`) — c'est la relecture de
+//     chaque nouvel appel qui la voit ;
 //   · le SQL lui-même : ce contrôle LIT la migration, c'est la postcondition
 //     en base qui l'exécute.
 //
@@ -39,6 +42,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { appelsDe, chargerClesPersonnelles, fabriquerDetecteur } from './lib/detail-sans-pii.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(join(ROOT, p), 'utf8').split('\r\n').join('\n')
@@ -81,94 +85,32 @@ function fichiers(dir, out = []) {
   return out
 }
 
-/** Le texte entre `ouvre` et sa fermeture équilibrée, après la première occurrence de `debut`. */
-function blocApres(src, debut, ouvre = '{', ferme = '}') {
-  const i = src.indexOf(debut)
-  if (i < 0) return null
-  const o = src.indexOf(ouvre, i + debut.length - (debut.endsWith(ouvre) ? 1 : 0))
-  if (o < 0) return null
-  let p = 0
-  for (let k = o; k < src.length; k++) {
-    if (src[k] === ouvre) p++
-    else if (src[k] === ferme) { p--; if (p === 0) return src.slice(o, k + 1) }
-  }
-  return null
-}
-
-/** Tous les objets passés à `logAudit({…})` d'un fichier. */
-function appelsLogAudit(src) {
-  const out = []
-  let from = 0
-  for (;;) {
-    const i = src.indexOf('logAudit(', from)
-    if (i < 0) return out
-    const b = blocApres(src.slice(i), 'logAudit(')
-    if (b) out.push(b)
-    from = i + 9
-  }
-}
-
 // ═══ A. LA LISTE DES CLÉS — LUE EN BASE, PAS RECOPIÉE ══════════════════════
 section('A. La liste des clés personnelles — une seule source, en base')
 
 const MIGRATION = migration('audit_sans_donnee_personnelle')
 const sql = read(MIGRATION)
 const sqlSansCommentaires = sql.split('\n').filter((l) => !l.trimStart().startsWith('--')).join('\n')
-const iListe = sqlSansCommentaires.indexOf('function public.audit_logs_cles_personnelles()')
-// Le premier `[` après le nom est celui de `returns text[]` : on part de `select array[`.
-const corpsListe = iListe < 0 ? null : blocApres(sqlSansCommentaires.slice(iListe), 'select array[', '[', ']')
-const CLES = corpsListe ? [...corpsListe.matchAll(/'([a-z0-9_]+)'/g)].map((m) => m[1]) : []
+const CLES = chargerClesPersonnelles(sqlSansCommentaires)
 ok(CLES.length >= 10, `la liste est lue dans ${MIGRATION} — ${CLES.length} clés`)
 const MESUREES = ['email', 'new_email', 'phone_e164', 'company_name']
 ok(MESUREES.every((k) => CLES.includes(k)),
   `elle couvre les quatre clés MESURÉES en base le 24/09/2026 (${MESUREES.join(', ')})`,
   'une clé mesurée qui sort de la liste rouvre le défaut sur les lignes existantes')
-
-// Formes de VALEUR qui trahissent une donnée personnelle sous une clé innocente :
-// un accès `x.email`, ou un identifiant nu qui porte ce nom (snake ou camel).
-const camel = (k) => k.replace(/_([a-z])/g, (_, c) => c.toUpperCase())
-const NOMS_VALEUR = [...new Set(CLES.flatMap((k) => [k, camel(k)]))]
-const ACCES_PII = new RegExp(`\\.(${CLES.join('|')})\\b`)
-const IDENT_PII = new RegExp(`(?<![.\\w'"])(${NOMS_VALEUR.join('|')})(?![\\w'"])`)
-
-/** Les clés d'un objet littéral, à toute profondeur. */
-function clesDe(litteral) {
-  return [...litteral.matchAll(/(?:^|[{,\s])([A-Za-z_][A-Za-z0-9_]*)\s*:(?!:)/g)].map((m) => m[1])
-}
-
-/** Le verdict sur un bloc `logAudit({…})` : null si sain, sinon le motif. */
-function defautDe(bloc) {
-  const m = /\bdetail\s*([:,}])/.exec(bloc)
-  if (!m) return null
-  if (m[1] !== ':') return 'détail OPAQUE (raccourci `detail`) — un objet qu’on ne lit pas ne se vérifie pas'
-  const apres = bloc.slice(m.index + m[0].length).trimStart()
-  if (!apres.startsWith('{')) return `détail OPAQUE (\`detail: ${apres.slice(0, 24).split('\n')[0]}…\`)`
-  const litteral = blocApres(bloc.slice(m.index), 'detail:')
-  if (!litteral) return 'détail illisible'
-  if (/\.\.\./.test(litteral)) return 'détail OPAQUE (spread `...`) — les clés viennent d’ailleurs'
-  const cles = clesDe(litteral).filter((k) => CLES.includes(k))
-  if (cles.length) return `clé personnelle : ${cles.join(', ')}`
-  // Les VALEURS : on retire les clés (`k:`) et on regarde ce qui reste.
-  const valeurs = litteral.replace(/(?:^|[{,\s])[A-Za-z_][A-Za-z0-9_]*\s*:(?!:)/g, ' ')
-  const acces = ACCES_PII.exec(valeurs)
-  if (acces) return `valeur personnelle : \`…${acces[0]}\``
-  const ident = IDENT_PII.exec(valeurs)
-  if (ident) return `valeur personnelle : \`${ident[1]}\``
-  return null
-}
+const defautDe = fabriquerDetecteur(CLES, 'detail')
 
 // ═══ B. CHAQUE ÉCRITURE — IDENTIFIANTS SEULEMENT ═══════════════════════════
-section('B. Chaque appel logAudit : un détail littéral, sans clé ni valeur personnelle')
+section('B. Chaque appel logAudit : un détail lisible, sans clé ni valeur personnelle')
 
 let appels = 0
 const defauts = []
 for (const f of [...fichiers('app'), ...fichiers('lib'), ...fichiers('components')]) {
   const src = stripComments(read(f))
   if (!src.includes('logAudit(')) continue
-  for (const bloc of appelsLogAudit(src)) {
+  for (const bloc of appelsDe(src, 'logAudit(')) {
     if (f === 'lib/audit.ts') continue
     appels++
-    const d = defautDe(bloc)
+    const d = defautDe(bloc, src)
     if (d) {
       const action = (/action:\s*'([^']+)'/.exec(bloc) || /action:\s*(\w+)/.exec(bloc) || [, '?'])[1]
       defauts.push(`${f} · ${action} — ${d}`)
@@ -210,7 +152,7 @@ section('D. purgeAccount nettoie audit_logs avant de poser anonymized_at, et lè
     'un échec avalé laisserait anonymized_at se poser sur un journal encore sale')
   ok(/p_email/.test(apresRpc),
     'l’adresse est transmise au nettoyage — elle seule relie une invitation au compte qu’elle nomme')
-  const trace = appelsLogAudit(purge).find((b) => b.includes("action: 'account_purged'"))
+  const trace = appelsDe(purge, 'logAudit(').find((b) => b.includes("action: 'account_purged'"))
   ok(!!trace && /audit_lignes_nettoyees/.test(trace),
     'account_purged dit COMBIEN de lignes ont été nettoyées (le registre dit ce qui a eu lieu, §E.27)')
 }
@@ -254,6 +196,10 @@ ok(defautDe("logAudit({ action: 'x', detail: { origine, ...detail } })")?.includ
   'témoin : un spread est refusé')
 ok(defautDe("logAudit({ action: 'x', detail })")?.includes('OPAQUE'),
   'témoin : le raccourci `detail` est refusé')
+ok(defautDe("logAudit({ action: 'x', detail: inconnu })", '')?.includes('OPAQUE'),
+  'témoin : une variable sans `const` littéral dans le fichier est opaque')
+ok(defautDe("logAudit({ action: 'x', detail: d })", 'const d = { avant: { new_email: x } }')?.startsWith('clé personnelle'),
+  'témoin : une variable est jugée sur son littéral `const`')
 ok(defautDe("logAudit({ action: 'x', detail: { target_domain_id: t.domain_id, email_verified: true, phone_verified: u.phone_verified } })") === null,
   'témoin : `email_verified` et `phone_verified` (des faits, pas des données) passent')
 ok(defautDe("logAudit({ action: 'x', entity_id: id })") === null,

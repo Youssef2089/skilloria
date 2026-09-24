@@ -184,11 +184,33 @@ ok(
 //  Les six réglages d'argent passent bien par lui — découverts par la
 //  PROPRIÉTÉ (une route admin qui écrit une table de réglage), pas listés.
 const REGLAGES = ['ai_model_tarifs', 'ai_spend_caps', 'ai_spend_seuils_acteur', 'ai_quotas', 'duree_reglages']
+//  L'ÉCRITURE PEUT PASSER PAR UNE RPC — le grand livre (§D.26) fait écrire
+//  `duree_reglages` par `regler_durees_place()`. Les fonctions SQL qui écrivent
+//  une table de réglage sont DÉCOUVERTES dans les migrations, et une route qui
+//  les appelle est un écrivain : le périmètre inclut le SQL (§E.61), sinon la
+//  première route passée par une RPC sortirait du contrôle sans qu'il le dise.
+const RPC_DE_REGLAGE = (() => {
+  const noms = new Set()
+  for (const f of readdirSync(join(ROOT, 'supabase/migrations')).filter((x) => x.endsWith('.sql'))) {
+    const sql = read(`supabase/migrations/${f}`).split('\n').filter((l) => !l.trimStart().startsWith('--')).join('\n')
+    for (const m of sql.matchAll(/create or replace function public\.(\w+)\(/g)) {
+      const fin = /\$[a-z]*\$;/g
+      fin.lastIndex = m.index
+      const f2 = fin.exec(sql)
+      const corps = sql.slice(m.index, f2 ? f2.index + f2[0].length : undefined)
+      if (REGLAGES.some((t) => new RegExp(`(update|insert into)\\s+public\\.${t}\\b`).test(corps))) noms.add(m[1])
+    }
+  }
+  return [...noms]
+})()
 const routesDeReglage = TOUS.filter((f) => {
   const s = SOURCE.get(f)
-  return /^app\/api\/admin\//.test(f) && REGLAGES.some((t) => new RegExp(`\\.from\\('${t}'\\)\\s*\\.\\s*(update|upsert|insert)`).test(s))
+  if (!/^app\/api\/admin\//.test(f)) return false
+  return REGLAGES.some((t) => new RegExp(`\\.from\\('${t}'\\)\\s*\\.\\s*(update|upsert|insert)`).test(s))
+    || RPC_DE_REGLAGE.some((fn) => s.includes(`.rpc('${fn}'`))
 })
-ok(routesDeReglage.length >= 4, `les routes qui ÉCRIVENT un réglage sont découvertes (${routesDeReglage.length})`)
+ok(routesDeReglage.length >= 4,
+  `les routes qui ÉCRIVENT un réglage sont découvertes (${routesDeReglage.length} ; RPC de réglage vues dans le SQL : ${RPC_DE_REGLAGE.join(', ') || 'aucune'})`)
 const sansDerive = routesDeReglage.filter((f) => !/identifiantDerive\s*\(/.test(SOURCE.get(f)))
 ok(
   sansDerive.length === 0,

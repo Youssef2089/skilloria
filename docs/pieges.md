@@ -306,7 +306,7 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **89** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
+Sur les **90** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
 24/09/2026, à l'exécution — les 71ᵉ à 86ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
 lignes existantes ; `inacheves_hors_annonces_expirees` ne fait que remplacer le corps d'une fonction
@@ -3439,7 +3439,7 @@ migration qui « réussit » n'a rien prouvé. Le pendant manquait : **une postc
 > (`p.oid::regprocedure::text`) ou le rendu réellement obtenu.
 
 **Gardé par [`diag-signature-de-fonction`](../scripts/diag-signature-de-fonction.mjs)** — il balaie
-**les 89 migrations**, pas les six du lot : la faute est une habitude d'écriture, pas un accident de
+**les 90 migrations**, pas les six du lot : la faute est une habitude d'écriture, pas un accident de
 sprint (§E.61).
 ⚠️ **Il garde la FORME, pas le comportement de Postgres.** Aucun moteur ne tourne dans le dépôt — ni
 `psql`, ni Docker, et PostgREST ne lit pas `pg_catalog`. Ce qui prouve le mécanisme est une requête
