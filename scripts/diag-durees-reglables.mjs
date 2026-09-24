@@ -416,7 +416,8 @@ section('J. La QUATRIEME duree — la conservation des adresses IP, et la tache 
   const SQL = read(nomMigration('conservation_ip')).split('\n').filter((l) => !l.trimStart().startsWith('--')).join('\n')
   ok(/add column if not exists conservation_ip_mois integer/.test(SQL) && /alter column conservation_ip_mois set not null/.test(SQL),
     'la colonne existe et est NOT NULL')
-  ok(/conservation_ip_mois between 1 and 60/.test(SQL), 'bornee en base : 1 a 60 mois')
+  // `60\)` et non `60` : la mutation « between 1 and 600 » passait — 600 commence par 60.
+  ok(/conservation_ip_mois between 1 and 60\)/.test(SQL), 'bornee en base : 1 a 60 mois')
 
   const iFn = SQL.indexOf('function public.effacer_adresses_ip()')
   const FN = iFn < 0 ? '' : SQL.slice(iFn, SQL.indexOf('$fn$;', iFn))
@@ -453,8 +454,23 @@ section('J. La QUATRIEME duree — la conservation des adresses IP, et la tache 
   const ROUTE = sansCommentaires(read('app/api/admin/durees/route.ts'))
   ok(/conservation_ip_mois: conservationIp,/.test(ROUTE) && /invalid_ip_retention/.test(ROUTE) && /estConservationIpAcceptable\(conservationIp\)/.test(ROUTE),
     'la route l’ecrit, bornee, avec une raison nommee distincte des jours')
-  const TRACE = ROUTE.slice(ROUTE.indexOf("action: 'durees_place_updated'"))
-  ok((TRACE.match(/conservation_ip_mois/g) || []).length >= 2, 'la trace porte la valeur AVANT et APRES')
+  // ANCRE SUR LES DEUX BLOCS, pas sur un comptage : la mutation qui retirait
+  // la valeur d'AVANT passait, parce que la reponse de la route fournissait la
+  // seconde occurrence (§E.8).
+  const blocDe = (src, debut) => {
+    const i = src.indexOf(debut)
+    if (i < 0) return ''
+    const o = src.indexOf('{', i)
+    let p = 0
+    for (let k = o; k < src.length; k++) {
+      if (src[k] === '{') p++
+      else if (src[k] === '}') { p--; if (p === 0) return src.slice(o, k + 1) }
+    }
+    return ''
+  }
+  const TRACE = blocDe(ROUTE.slice(ROUTE.indexOf("action: 'durees_place_updated'")), 'detail:')
+  ok(/conservation_ip_mois/.test(blocDe(TRACE, 'avant:')) && /conservation_ip_mois/.test(blocDe(TRACE, 'apres:')),
+    'la trace porte la valeur AVANT et APRES — dans chacun des deux blocs')
   const ECRAN = sansCommentaires(read('app/[locale]/admin/durees/page.tsx'))
   ok(/conservation_ip_mois: Number\(conservationIp\)/.test(ECRAN) && /max=\{60\}/.test(ECRAN) && /ip\.acts_on_existing_body/.test(ECRAN),
     'l’ecran porte le champ, borne a 60, et DIT qu’il agit sur l’existant')
