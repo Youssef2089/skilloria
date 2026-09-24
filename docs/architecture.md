@@ -83,7 +83,9 @@ journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **
 **Marketing / contenu — CRÉÉES PAR LA BASELINE, ET JAMAIS TOUCHÉES PAR LE CODE.**
 `ad_placements`, `blog_posts`, `campaigns`, `dashboard_stats`, `leads`,
 `newsletter_subscriptions`, `profile_alerts`, `referrals`, `testimonials`,
-`user_section_visits`, `waitlist`.
+`user_section_visits`, `waitlist` — et `subscription_history`, rangée plus haut sous
+**Commerce** parce que son nom y invite, mais **morte** au même titre (§H.2, verdict du 24/09/2026 ;
+`rate_limit_hits`, elle, est **vivante** : écrite en SQL).
 
 > **Onze tables existent et ne sont lues ni écrites par aucune ligne de `app/` ou `lib/`**
 > (balayage du 16/09/2026). Elles ne sont pas un projet en cours : ce sont des vestiges du dump
@@ -1836,6 +1838,25 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   La dépense antérieure au découpage apparaît en clair sur une ligne **« non imputable »** :
   elle n'est **jamais proratisée** sur les autres, et elle décroît d'elle-même (lecture mensuelle).
   Ces deux réglages ont désormais leur écran (voir ci-dessus).
+
+**H.2 — LES TROIS TABLES DITES « MORTES » : LE VERDICT, MESURÉ LE 24/09/2026. RIEN N'EST SUPPRIMÉ.**
+La revue du journal des transactions (23/09/2026) en déclarait trois mortes, sur un balayage de
+`app/` et `lib/`. **Une des trois ne l'est pas**, et c'est le balayage qui était faux, pas la
+table : un écrivain SQL ne se voit pas depuis le code (§E.61). Le périmètre d'un verdict de mort
+inclut les **fonctions, les vues, les tâches et les politiques**.
+
+| Table | Verdict | Ce qui a été lu |
+|---|---|---|
+| `rate_limit_hits` | **VIVANTE** | écrite par la fonction SQL `rate_limit_check()` (migration `rate_limiter`), purgée par la tâche `rate_limit_hits_purge`, lue par `cron_supervision_read` ; le code ne cite **jamais** la table — il appelle la fonction (`lib/rate-limit.ts`), et c'est sur elle que repose le plafond anti-abus de relance (§D.7). |
+| `user_section_visits` | **MORTE** | DDL, index, deux politiques RLS (`self_read`, `self_write` pour `authenticated`) et grants de la baseline — aucun écrivain, aucun lecteur, dans le code comme dans le SQL. ⚠️ Les politiques d'écriture restent ouvertes : un client muni de la clé anon **pourrait** y écrire. Aucun code ne le fait — une porte ouverte sur une pièce vide. |
+| `subscription_history` | **MORTE** | DDL, index, une politique RLS (`self_read`) de la baseline et les types générés — aucun écrivain, aucun lecteur. Sa table de sauvegarde `_backup_subscription_history_20260422` a été retirée par `drop_backup_tables` ; elle-même, jamais. |
+
+**Ce qui n'est PAS fait, et pourquoi.** Aucune des deux mortes n'est supprimée : une suppression
+est un lot à part — sa migration, ses politiques à retirer, son contrôle de colonnes supprimées
+(§E.1), et la relecture de `lib/database.types.ts`. Le verdict est gardé par
+[`diag-tables-mortes`](../scripts/diag-tables-mortes.mjs), qui **remesure** les trois à chaque
+passage, code **et** SQL : une morte qui gagne un écrivain, ou la vivante qui perd le sien, rougit
+en nommant lequel. C'est un état mesuré (§G.8), pas une exemption.
 
 ---
 
