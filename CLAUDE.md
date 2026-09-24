@@ -137,25 +137,19 @@ Routes live in `app/api/**/route.ts`. Typical header: `export const runtime = 'n
 > **Relue ligne à ligne contre le code le 16 septembre 2026** — 18 écarts trouvés et corrigés,
 > récapitulés en §M1. Ce qui n'était pas vérifiable est marqué **NON VÉRIFIÉ**, en toutes lettres.
 
-## M0. Corrections à l'existant — énoncés PÉRIMÉS des sections ci-dessus
+## M0. Les énoncés PÉRIMÉS des sections anglaises — **déplacés**
 
-Rien n'a été supprimé. Les énoncés ci-dessous sont contredits par le code actuel ; ils sont
-marqués sur place par `⚠️ PÉRIMÉ — voir §M0`.
+Les sections anglaises de ce fichier portent des marqueurs **⚠️ PÉRIMÉ — voir §M0**. Ce que le code
+dit *réellement*, énoncé par énoncé, vit en **§M** de
+[docs/architecture.md](docs/architecture.md), aux côtés de §M1 et des trois récits de fusion.
 
-| Énoncé (sections anglaises ci-dessus) | Ce que dit le code |
-|---|---|
-| « proxy.ts … Locally it hardcodes `microsoft` » (§Commands, §Multi-tenancy) | Aucun slug n'est codé en dur. `resolveSubdomainFromHost()` ([lib/subdomain.ts](lib/subdomain.ts)) lit `DEV_DOMAIN_SLUG` sur localhost et **lève une erreur actionnable** si la variable manque ; en production le slug vient du host, et un hôte non résolvable rend `null` (aucun repli). La section §Environment variables du même fichier l'énonçait déjà correctement : le fichier se contredisait. |
-| « Every authenticated request re-checks that the user's `domain_id` matches `x-subdomain` » | Vrai pour les **experts uniquement**. `requireAuth` délègue à `resolveEcosystemAccess()` ([lib/ecosystem-guard.ts](lib/ecosystem-guard.ts)), qui applique `ecosystemAccessScope()` ([lib/ecosystem-scope.ts](lib/ecosystem-scope.ts)) : expert → `own`, client/cabinet → `all_active`, admin → `platform`, type inconnu → refus. |
-| « Matching … Anthropic Claude » (§AI pipelines) | **Claude est sorti de la mise en relation.** Le moteur est un reranker (Cohere, [lib/matching/rerank.ts](lib/matching/rerank.ts)) ; seuils et modèle sont lus dans `matching_settings` ([lib/matching/settings.ts](lib/matching/settings.ts)). Claude ne subsiste qu'au **dépôt d'une candidature** ([lib/candidatures/ai-assessment.ts](lib/candidatures/ai-assessment.ts)). |
-| « CV parsing … rate-limited 3/24h » | Le quota n'est plus dans le code : il est lu en base (table `ai_quotas`, [lib/ai-quotas.ts](lib/ai-quotas.ts)). Ligne absente ⇒ la route **refuse** (`quota_config_missing`), elle ne devine pas. |
-| « Model IDs in use: `claude-haiku-4-5-*`, `claude-sonnet-4-6` » | Incomplet. En usage : `claude-haiku-4-5-20251001` (parsing CV, vérifications), `claude-sonnet-4-6` (repli des vérifications), `claude-sonnet-5` (jugement de candidature, pitch). |
-| §Environment variables | Manquent : `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `ENABLE_BILLING`, `VONAGE_SMS_FROM`, `VERCEL_ENV`. |
-| « currently the "microsoft" tenant » | Aucun écosystème n'est codé en dur nulle part. `/admin/ecosystemes` en crée ; `microsoft` n'est qu'un slug de test usuel. |
-| **§P3.3 — « Seuil d'auto-approbation d'expert : défaut 9/10 »** | **FAUX, deux fois.** ① La valeur réelle est **8**. ② Elle ne vit **pas** dans la colonne `confidence_threshold` mais dans **`config->>'auto_approve_threshold'`** (jsonb). Le chemin expert *lit* la colonne puis ne s'en sert **jamais** — j'avais documenté le `DEFAULT 9` de la baseline, qui ne gouverne rien. Établi par requête sur la base réelle, cf. §E.10. |
+**Rien n'a été supprimé, et les marqueurs restent en place** : un marqueur qui pointe vers une
+section absente serait pire qu'aucun marqueur — le lecteur saurait qu'on lui cache quelque chose
+sans savoir quoi. Ce qui est parti est le **tableau** ; ce qui reste est **l'avertissement**.
 
-Tout le reste des sections anglaises a été revérifié et tient.
-
----
+**Pourquoi le déplacement.** Ce fichier est chargé à **chaque session** et tient dans **100 000
+caractères** (§G.5 bis). Un correctif d'énoncé se lit **le jour où l'on doute d'une phrase**, pas
+avant d'écrire une ligne.
 
 ## M1. La relecture du 16 septembre 2026 — **déplacée**
 
@@ -923,12 +917,23 @@ il compte. Le décompte porte sur **TOUS** les acteurs, jamais sur la liste des 
 chiffre juste tant qu'il y en a moins de dix est faux le jour où le signal sert (§E.24).
 
 **ET L'ÉCRAN EXISTE, PARCE QU'UN PLAFOND QU'ON NE VOIT PAS SE RELÈVE AU JUGÉ.**
-`/admin/consommation` — ce que chaque compte a coûté, son plafond, son état. La supervision dit
-**combien** de comptes sont arrêtés ; cet écran dit **lesquels**, à combien, et sur quoi. Les deux
+`/admin/consommation` — ce que chaque compte a coûté, son plafond, son état, **et sur quoi**. La
+supervision dit **combien** de comptes sont arrêtés ; cet écran dit **lesquels**, à combien, et sur
+quoi. Les deux
 états viennent de la **base** : les recalculer dans le navigateur ferait une seconde règle sur une
 seconde fenêtre mensuelle (§E.15, §E.20). Ce qui n'est pas détaillé est **dit** — le reste agrégé et
 compté, le non-imputable — parce que cacher la troisième famille donnerait un total plus propre et
 faux.
+
+> ⚠️ **LA VENTILATION PAR ACTION N'EST PAS UN ORNEMENT, C'EST CE QUI PERMET DE DÉCIDER.** Un compte
+> à 24 $ sur un plafond de 25 $ appelle une décision, et on ne la prend pas sans savoir si ces 24 $
+> sont cent classements légitimes ou une boucle d'analyses de CV. La donnée existait depuis le
+> premier jour — `ai_spend_events` porte l'acteur **et** l'action sur chaque ligne ; il manquait la
+> lecture qui les croise. `ai_spend_par_acteur_et_action` retient **les mêmes comptes** que la liste
+> (même classement **total**, même fenêtre), et sa postcondition **EXÉCUTE les deux** pour vérifier
+> que leurs totaux bouclent et qu'aucun compte n'est d'un côté sans être de l'autre.
+> Le détail est **replié par défaut** : cinquante comptes × sept actions font 350 lignes, et un
+> écran qui montre tout ce qui existe cesse d'être lu (§E.26).
 
 > **Les deux valeurs — 25 $ par organisation, 5 $ par expert — sont des PROPOSITIONS**, à réviser sur
 > un mois de données réelles, comme les alertes le disent déjà d'elles-mêmes. Elles vivent en base et
@@ -939,6 +944,15 @@ faux.
 règle (§E.33), **découvre** les appelants au lieu de les lister, et vérifie que la garde et la
 dépense portent le **même acteur**. Il ne repose pas la question « la dépense est-elle enregistrée
 et le plafond global consulté » : c'est `diag-depense-ia` (§E.36).
+
+> ⚠️ **ET IL GARDE AUSSI L'ÉCRAN DE §D.19, QUI N'AVAIT AUCUNE ASSERTION.** `/admin/depots-en-echec`
+> avait été livré et vérifié **existant** ; son **bouton RELANCER** et ses **trois filtres** ne
+> l'étaient pas. « L'écran existe » et « l'écran fait ce qu'on attendait » sont deux affirmations
+> différentes, et **seule la seconde se garde**. Le contrôle exige désormais que le rejeu appelle
+> **la même fonction** que le dépôt d'un expert (découverte, pas listée), qu'il ne rebâtisse **rien**
+> du dépôt, et que chacun des trois filtres soit **envoyé par l'écran ET honoré par le serveur** —
+> un filtre que le serveur ignore rend une liste qui **a l'air** filtrée, ce qui est pire qu'aucun
+> filtre : on croit avoir regardé.
 
 ---
 

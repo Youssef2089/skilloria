@@ -3296,7 +3296,20 @@
       "state_ok": "Normal",
       "rest": "{count} weitere Konten, zusammengefasst: {amount} $.",
       "unattributed": "{amount} $ aus {count} Aufrufen sind keinem Konto zugeordnet – sie sind gezählt, nicht geraten.",
-      "total": "Monatssumme: {amount} $."
+      "total": "Monatssumme: {amount} $.",
+      "detail_title": "Wofür dieses Konto ausgegeben hat",
+      "detail_calls": "{count} Aufruf(e)",
+      "detail_unreadable": "Die Aufschlüsselung nach Vorgangsart konnte nicht gelesen werden. Das ist nicht „nichts“: wir wissen es nicht.",
+      "action": {
+        "cv_parsing": "Lebenslauf-Analyse",
+        "matching_pool": "Expertenranking",
+        "candidature_assessment": "Bewertung einer Bewerbung",
+        "pitch": "Verfassen eines Pitches",
+        "expert_verification": "Prüfung eines Experten",
+        "org_verification": "Prüfung einer Organisation",
+        "publication_quality": "Qualität einer Anzeige",
+        "inconnue": "Nicht kategorisierter Vorgang"
+      }
     }
   },
   "expert_verification": {

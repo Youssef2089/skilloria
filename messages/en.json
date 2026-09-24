@@ -3296,7 +3296,20 @@
       "state_ok": "Normal",
       "rest": "{count} other accounts, grouped: ${amount}.",
       "unattributed": "${amount} across {count} calls are not tied to any account — they are counted, not guessed.",
-      "total": "Month total: ${amount}."
+      "total": "Month total: ${amount}.",
+      "detail_title": "What this account spent on",
+      "detail_calls": "{count} call(s)",
+      "detail_unreadable": "The breakdown by operation type could not be read. This is not “nothing”: we do not know.",
+      "action": {
+        "cv_parsing": "CV analysis",
+        "matching_pool": "Expert ranking",
+        "candidature_assessment": "Application assessment",
+        "pitch": "Pitch writing",
+        "expert_verification": "Expert verification",
+        "org_verification": "Organisation verification",
+        "publication_quality": "Listing quality",
+        "inconnue": "Uncategorised operation"
+      }
     }
   },
   "expert_verification": {

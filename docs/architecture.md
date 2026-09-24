@@ -110,6 +110,30 @@ journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **
 > l'upsert n'est plus atomique —, les cinq signatures de fonction, le fait que les enveloppes
 > **délèguent**, et la disparition effective de l'ancienne table.
 
+> **`depense_par_acteur_et_action` (24/09/2026) — ON VOIT ENFIN SUR QUOI.**
+> `ai_spend_par_acteur_et_action(p_limite)` ventile la dépense du mois par **(compte, action)**.
+> La donnée existait depuis le premier jour : `ai_spend_events` porte l'acteur **et** l'action sur
+> chaque ligne ; il manquait la lecture qui les croise. `ai_spend_par_acteur` disait **combien**,
+> `ai_depense_par_mois` ventilait par action mais **tous comptes confondus** — les deux se
+> croisaient sur tout sauf sur la seule case qui décide.
+>
+> ⚠️ **LE MÊME CLASSEMENT QUE LA LISTE, ET L'ORDRE EST TOTAL.** L'écran replie le détail sous
+> chaque ligne : si les deux lectures ne retenaient pas exactement les mêmes comptes, un compte
+> s'afficherait sans détail, ou un détail se rattacherait à une ligne absente. Le second terme
+> (`acteur_id`) départage les montants égaux — sans lui, deux comptes à la même dépense pourraient
+> être classés différemment d'une requête à l'autre, et **les deux lectures divergeraient sans
+> qu'aucune donnée ne change**.
+>
+> ⚠️ **POSTCONDITION QUI EXÉCUTE, PAS QUI LIT** (§E.60) : elle appelle **les deux** fonctions et
+> compare leurs totaux (à 1e-6 près — les deux arrondissent sur des regroupements différents, et
+> exiger l'égalité binaire ferait rougir sur un arrondi), puis vérifie par **deux `except`** qu'aucun
+> compte n'est d'un côté sans être de l'autre. Vérifier que les deux fonctions « se ressemblent »
+> n'aurait rien prouvé.
+>
+> `action` peut être **NULL** — les dépenses antérieures à cette colonne n'en portent aucune. Elle
+> devient `'inconnue'`, que l'écran nomme « opération non catégorisée » : une case vide se lirait
+> comme un bogue.
+
 > **`plafond_par_acteur` (23/09/2026) — CHAQUE COMPTE A SON PLAFOND.**
 > `ai_spend_seuils_acteur` gagne `plafond_mensuel_usd` (**not null**), et la contrainte
 > `ai_spend_alerte_sous_plafond` garantit que l'alerte reste **sous** le plafond du même compte —
@@ -1758,6 +1782,26 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 > trouvés en relisant CLAUDE.md contre le code sont l’histoire de cette mémoire, pas une consigne
 > à avoir sous les yeux avant d’écrire une ligne. La règle qu’ils établissent, elle, est restée
 > dans CLAUDE.md : **une mémoire fausse ne se voit pas** (§E.16).
+
+### M0 — Les énoncés PÉRIMÉS des sections anglaises de CLAUDE.md
+
+Rien n'a été supprimé. Les énoncés ci-dessous sont contredits par le code actuel ; ils sont
+marqués sur place par `⚠️ PÉRIMÉ — voir §M0`.
+
+| Énoncé (sections anglaises ci-dessus) | Ce que dit le code |
+|---|---|
+| « proxy.ts … Locally it hardcodes `microsoft` » (§Commands, §Multi-tenancy) | Aucun slug n'est codé en dur. `resolveSubdomainFromHost()` ([lib/subdomain.ts](../lib/subdomain.ts)) lit `DEV_DOMAIN_SLUG` sur localhost et **lève une erreur actionnable** si la variable manque ; en production le slug vient du host, et un hôte non résolvable rend `null` (aucun repli). La section §Environment variables du même fichier l'énonçait déjà correctement : le fichier se contredisait. |
+| « Every authenticated request re-checks that the user's `domain_id` matches `x-subdomain` » | Vrai pour les **experts uniquement**. `requireAuth` délègue à `resolveEcosystemAccess()` ([lib/ecosystem-guard.ts](../lib/ecosystem-guard.ts)), qui applique `ecosystemAccessScope()` ([lib/ecosystem-scope.ts](../lib/ecosystem-scope.ts)) : expert → `own`, client/cabinet → `all_active`, admin → `platform`, type inconnu → refus. |
+| « Matching … Anthropic Claude » (§AI pipelines) | **Claude est sorti de la mise en relation.** Le moteur est un reranker (Cohere, [lib/matching/rerank.ts](../lib/matching/rerank.ts)) ; seuils et modèle sont lus dans `matching_settings` ([lib/matching/settings.ts](../lib/matching/settings.ts)). Claude ne subsiste qu'au **dépôt d'une candidature** ([lib/candidatures/ai-assessment.ts](../lib/candidatures/ai-assessment.ts)). |
+| « CV parsing … rate-limited 3/24h » | Le quota n'est plus dans le code : il est lu en base (table `ai_quotas`, [lib/ai-quotas.ts](../lib/ai-quotas.ts)). Ligne absente ⇒ la route **refuse** (`quota_config_missing`), elle ne devine pas. |
+| « Model IDs in use: `claude-haiku-4-5-*`, `claude-sonnet-4-6` » | Incomplet. En usage : `claude-haiku-4-5-20251001` (parsing CV, vérifications), `claude-sonnet-4-6` (repli des vérifications), `claude-sonnet-5` (jugement de candidature, pitch). |
+| §Environment variables | Manquent : `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `ENABLE_BILLING`, `VONAGE_SMS_FROM`, `VERCEL_ENV`. |
+| « currently the "microsoft" tenant » | Aucun écosystème n'est codé en dur nulle part. `/admin/ecosystemes` en crée ; `microsoft` n'est qu'un slug de test usuel. |
+| **§P3.3 — « Seuil d'auto-approbation d'expert : défaut 9/10 »** | **FAUX, deux fois.** ① La valeur réelle est **8**. ② Elle ne vit **pas** dans la colonne `confidence_threshold` mais dans **`config->>'auto_approve_threshold'`** (jsonb). Le chemin expert *lit* la colonne puis ne s'en sert **jamais** — j'avais documenté le `DEFAULT 9` de la baseline, qui ne gouverne rien. Établi par requête sur la base réelle, cf. §E.10. |
+
+Tout le reste des sections anglaises a été revérifié et tient.
+
+---
 
 ### M1 — La relecture du 16 septembre 2026, et les 18 écarts trouvés
 

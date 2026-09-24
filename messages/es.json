@@ -3296,7 +3296,20 @@
       "state_ok": "Normal",
       "rest": "{count} otras cuentas, agrupadas: {amount} $.",
       "unattributed": "{amount} $ en {count} llamadas no están vinculados a ninguna cuenta: están contados, no adivinados.",
-      "total": "Total del mes: {amount} $."
+      "total": "Total del mes: {amount} $.",
+      "detail_title": "En qué gastó esta cuenta",
+      "detail_calls": "{count} llamada(s)",
+      "detail_unreadable": "No se pudo leer el desglose por tipo de operación. No es «nada»: no lo sabemos.",
+      "action": {
+        "cv_parsing": "Análisis de CV",
+        "matching_pool": "Clasificación de expertos",
+        "candidature_assessment": "Evaluación de una candidatura",
+        "pitch": "Redacción de una presentación",
+        "expert_verification": "Verificación de un experto",
+        "org_verification": "Verificación de una organización",
+        "publication_quality": "Calidad de un anuncio",
+        "inconnue": "Operación sin categoría"
+      }
     }
   },
   "expert_verification": {

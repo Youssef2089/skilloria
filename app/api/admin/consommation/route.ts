@@ -26,6 +26,14 @@ export const dynamic = 'force-dynamic'
  *   reste agrégé ET COMPTÉ, et le non-imputable. Un écran de dépense qui ne
  *   boucle pas cesse d'être cru, donc d'être lu.
  *
+ * ═══ ET LE DÉTAIL PAR ACTION, PARCE QUE LE TOTAL NE DÉCIDE DE RIEN ═════════
+ *   Un compte à 24 $ sur un plafond de 25 $ est une décision à prendre, et on
+ *   ne peut pas la prendre sans savoir si ces 24 $ sont cent classements
+ *   légitimes ou une boucle d'analyses de CV. La ventilation vient de
+ *   `ai_spend_par_acteur_et_action`, qui retient **les mêmes comptes** que la
+ *   liste — même classement, même fenêtre mensuelle. Deux classements
+ *   différents afficheraient un compte sans détail, ou un détail sans compte.
+ *
  * ═══ CE QUI N'EST PAS RENDU, ET POURQUOI ═══════════════════════════════════
  *   Aucune donnée personnelle d'expert au-delà de ce que la fonction de base
  *   rend déjà. §D.4 interdit de projeter e-mail et téléphone ; un écran de
@@ -62,14 +70,21 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
   const admin = auth.supabaseAdmin
 
-  const [acteursRes, reglagesRes, globalRes] = await Promise.all([
+  const [acteursRes, detailRes, reglagesRes, globalRes] = await Promise.all([
     admin.rpc('ai_spend_par_acteur', { p_limite: ACTEURS_DETAILLES }),
+    // LA MÊME BORNE que la liste : c'est ce qui garantit que les deux parlent
+    // des mêmes comptes. La passer différemment ici serait le plus discret des
+    // désaccords — un détail manquant sur les derniers comptes de la liste.
+    admin.rpc('ai_spend_par_acteur_et_action', { p_limite: ACTEURS_DETAILLES }),
     admin.from('ai_spend_seuils_acteur').select('acteur, seuil_mensuel_usd, plafond_mensuel_usd'),
     admin.rpc('ai_spend_status'),
   ])
 
   if (acteursRes.error) {
     console.error('[admin:consommation] lecture par acteur en échec', acteursRes.error.message)
+  }
+  if (detailRes.error) {
+    console.error('[admin:consommation] lecture du détail par action en échec', detailRes.error.message)
   }
   if (reglagesRes.error) {
     console.error('[admin:consommation] lecture des réglages en échec', reglagesRes.error.message)
@@ -87,6 +102,12 @@ export async function GET(request: NextRequest): Promise<Response> {
        * écrans finissent par ne plus dire la même chose (§E.20).
        */
       acteurs: acteursRes.error ? null : (acteursRes.data ?? []),
+      /**
+       * La ventilation par action, pour les MÊMES comptes.
+       * `null` = lecture en panne : l'écran dit qu'il ne sait pas, il
+       * n'affiche pas un détail vide qui se lirait « ce compte n'a rien fait ».
+       */
+      detail: detailRes.error ? null : (detailRes.data ?? []),
       reglages: reglagesRes.error ? null : (reglagesRes.data ?? []),
       /** Le dernier garde-fou, rappelé ici : il arrête TOUT, lui. */
       global: globalRes.error ? null : (globalRes.data ?? []),

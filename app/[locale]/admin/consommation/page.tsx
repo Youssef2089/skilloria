@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useSecureFetch } from '@/lib/secure-fetch'
@@ -51,8 +51,17 @@ type LigneGlobale = {
   au_plafond: boolean
 }
 
+type LigneDetail = {
+  acteur_type: string
+  acteur_id: string
+  action: string
+  depense: number | string
+  operations: number
+}
+
 type Reponse = {
   acteurs: LigneActeur[] | null
+  detail: LigneDetail[] | null
   reglages: Array<{ acteur: string; seuil_mensuel_usd: number | string; plafond_mensuel_usd: number | string }> | null
   global: LigneGlobale[] | null
   bornes: { acteurs_detailles: number }
@@ -94,6 +103,16 @@ export default function ConsommationPage() {
   const [data, setData] = useState<Reponse | null>(null)
   const [chargement, setChargement] = useState(true)
   const [erreur, setErreur] = useState<string | null>(null)
+  /**
+   * Les comptes dont le détail est DÉPLIÉ.
+   *
+   * ⚠️ REPLIÉ PAR DÉFAUT, ET C'EST UNE DÉCISION. Cinquante comptes × sept
+   *    actions font trois cent cinquante lignes : un écran qui affiche tout ce
+   *    qui existe devient illisible, et on cesse de le lire (§E.26). Ce qu'on
+   *    vient chercher ici est d'abord QUI dépasse ; le « sur quoi » se demande
+   *    ensuite, compte par compte.
+   */
+  const [ouverts, setOuverts] = useState<Set<string>>(new Set())
 
   const charger = useCallback(async () => {
     setChargement(true)
@@ -125,6 +144,33 @@ export default function ConsommationPage() {
     () => (data?.acteurs ?? []).reduce((s, l) => s + nombre(l.depense_mois), 0),
     [data],
   )
+
+  /**
+   * Le détail, regroupé par compte — calculé une fois, pas à chaque ligne.
+   *
+   * La clé est `type:id` et non l'identifiant seul : rien n'interdit à une
+   * organisation et à un profil de porter le même uuid, et les confondre
+   * mélangerait deux dépenses sous un seul compte.
+   */
+  const detailParCompte = useMemo(() => {
+    const m = new Map<string, LigneDetail[]>()
+    for (const d of data?.detail ?? []) {
+      const cle = `${d.acteur_type}:${d.acteur_id}`
+      const liste = m.get(cle)
+      if (liste) liste.push(d)
+      else m.set(cle, [d])
+    }
+    return m
+  }, [data])
+
+  const basculer = useCallback((cle: string) => {
+    setOuverts((p) => {
+      const n = new Set(p)
+      if (n.has(cle)) n.delete(cle)
+      else n.add(cle)
+      return n
+    })
+  }, [])
 
   const detailles = (data?.acteurs ?? []).filter(
     (l) => l.acteur_type === 'organization' || l.acteur_type === 'profile',
@@ -223,9 +269,40 @@ export default function ConsommationPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {detailles.map((l) => (
-                      <tr key={`${l.acteur_type}:${l.acteur_id}`}>
-                        <td style={cellule}>{l.acteur_nom ?? t('unnamed')}</td>
+                    {detailles.map((l) => {
+                      const cle = `${l.acteur_type}:${l.acteur_id}`
+                      const lignes = detailParCompte.get(cle) ?? []
+                      const ouvert = ouverts.has(cle)
+                      return (
+                      <Fragment key={cle}>
+                      <tr>
+                        <td style={cellule}>
+                          {/* CE QUI SE DÉPLIE SE CLIQUE, ET LE DIT. Un compte
+                              sans aucun détail (lecture en panne, ou dépense
+                              antérieure au découpage par acteur) n'offre pas
+                              un bouton qui ne ferait rien (§D.1). */}
+                          {lignes.length > 0 ? (
+                            <button
+                              type="button"
+                              onClick={() => basculer(cle)}
+                              aria-expanded={ouvert}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                padding: 0,
+                                font: 'inherit',
+                                color: 'var(--sk-accent)',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                              }}
+                            >
+                              {ouvert ? '▾ ' : '▸ '}
+                              {l.acteur_nom ?? t('unnamed')}
+                            </button>
+                          ) : (
+                            (l.acteur_nom ?? t('unnamed'))
+                          )}
+                        </td>
                         <td style={cellule}>
                           {t(`kind.${l.acteur_type}` as 'kind.organization')}
                         </td>
@@ -247,13 +324,72 @@ export default function ConsommationPage() {
                         </td>
                         <td style={montant}>{l.evenements}</td>
                       </tr>
-                    ))}
+                      {ouvert && (
+                        <tr>
+                          <td colSpan={6} style={{ ...cellule, background: 'var(--sk-surface-2)' }}>
+                            <p
+                              style={{
+                                fontSize: 12,
+                                color: 'var(--sk-muted)',
+                                margin: '0 0 8px',
+                                fontWeight: 600,
+                              }}
+                            >
+                              {t('detail_title')}
+                            </p>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                              <tbody>
+                                {lignes.map((d) => (
+                                  <tr key={d.action}>
+                                    <td style={{ ...cellule, border: 'none', padding: '4px 0' }}>
+                                      {t(`action.${d.action}` as 'action.cv_parsing')}
+                                    </td>
+                                    <td
+                                      style={{
+                                        ...montant,
+                                        border: 'none',
+                                        padding: '4px 0',
+                                        textAlign: 'right',
+                                      }}
+                                    >
+                                      {nombre(d.depense).toFixed(4)}
+                                    </td>
+                                    <td
+                                      style={{
+                                        ...montant,
+                                        border: 'none',
+                                        padding: '4px 0 4px 16px',
+                                        textAlign: 'right',
+                                        color: 'var(--sk-muted)',
+                                      }}
+                                    >
+                                      {t('detail_calls', { count: d.operations })}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </td>
+                        </tr>
+                      )}
+                      </Fragment>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
             )}
 
             {/* ─── CE QUI N'EST PAS DÉTAILLÉ EST DIT, PAS CACHÉ ──────────── */}
+            {/* ⚠️ UNE LECTURE EN PANNE SE DIT. Sans ce mot, l'absence de
+                triangle sur chaque ligne se lirait « ces comptes n'ont rien
+                fait » — un « tout va bien » sur une panne (§E.22). */}
+            {data?.detail === null && (
+              <p style={{ fontSize: 12, color: 'var(--sk-amber)', margin: '12px 0 0' }}>
+                {t('detail_unreadable')}
+              </p>
+            )}
+
             {(reste || nonImputable) && (
               <div style={{ marginTop: 16, display: 'grid', gap: 6 }}>
                 {reste && nombre(reste.depense_mois) > 0 && (

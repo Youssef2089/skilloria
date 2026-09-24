@@ -3296,7 +3296,20 @@
       "state_ok": "Normal",
       "rest": "{count} autres comptes, regroupés : {amount} $.",
       "unattributed": "{amount} $ sur {count} appels ne sont rattachés à aucun compte — ils sont comptés, pas devinés.",
-      "total": "Total du mois : {amount} $."
+      "total": "Total du mois : {amount} $.",
+      "detail_title": "Sur quoi ce compte a dépensé",
+      "detail_calls": "{count} appel(s)",
+      "detail_unreadable": "Le détail par type d’opération n’a pas pu être lu. Ce n’est pas « rien » : on ne sait pas.",
+      "action": {
+        "cv_parsing": "Analyse de CV",
+        "matching_pool": "Classement des experts",
+        "candidature_assessment": "Jugement d’une candidature",
+        "pitch": "Rédaction d’un pitch",
+        "expert_verification": "Vérification d’un expert",
+        "org_verification": "Vérification d’une organisation",
+        "publication_quality": "Qualité d’une annonce",
+        "inconnue": "Opération non catégorisée"
+      }
     }
   },
   "expert_verification": {

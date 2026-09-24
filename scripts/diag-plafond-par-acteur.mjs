@@ -23,6 +23,15 @@
 //      interroge le plafond avec LE MÊME acteur qu'il impute (§E.39) ;
 //    · il vérifie que l'exhaustivité tient par le TYPE, pas par la vigilance.
 //
+//  ⚠️ ET IL GARDE CE QUE L'ÉCRAN MONTRE, PAS SEULEMENT CE QU'IL EXISTE.
+//     Un écran de consommation qui listerait les comptes sans dire SUR QUOI
+//     ils ont dépensé serait présent et inutile : un compte à 24 $ sur un
+//     plafond de 25 $ est une décision à prendre, et on ne la prend pas sans
+//     savoir si ces 24 $ sont cent classements légitimes ou une boucle
+//     d'analyses de CV. La section F l'exige explicitement — parce que
+//     « l'écran existe » avait été annoncé pour « l'écran fait ce qu'on
+//     attendait », et que seule une assertion sépare les deux.
+//
 //  ⚠️ CE QU'IL NE VÉRIFIE PAS :
 //     · que les VALEURS des plafonds soient les bonnes. 25 $ et 5 $ sont des
 //       propositions, à réviser sur un mois de données réelles ; elles vivent
@@ -451,7 +460,82 @@ if (ECRAN) {
     'ce qui n\'est pas détaillé est DIT, pas caché',
     'cacher le non-imputable donnerait un total plus propre et faux',
   )
+
+  // ── LE DÉTAIL PAR TYPE D'ACTION ───────────────────────────────────────
+  ok(
+    /detailParCompte/.test(ECRAN) && /t\(`action\.\$\{d\.action\}`/.test(ECRAN),
+    'l\'écran VENTILE la dépense d\'un compte par type d\'action',
+    'un total sans ventilation ne permet de décider de rien : il rassure quand il est bas et ne dit pas quoi faire quand il est haut',
+  )
+  ok(
+    /aria-expanded=\{ouvert\}/.test(ECRAN),
+    'le détail se déplie, et l\'état du dépliage est ANNONCÉ',
+    'un triangle sans aria-expanded laisse un lecteur d\'écran devant un bouton qui ne dit pas ce qu\'il fait',
+  )
+  ok(
+    /lignes\.length > 0 \?/.test(ECRAN),
+    'aucun bouton de dépliage sur un compte SANS détail',
+    'un bouton qu\'on peut cliquer et qui n\'ouvre rien promet une porte qui n\'existe pas (§D.1)',
+  )
+  ok(
+    /detail_unreadable/.test(ECRAN),
+    'une lecture du détail en panne se DIT',
+    'sans ce mot, l\'absence de triangle se lirait « ces comptes n\'ont rien fait » (§E.22)',
+  )
 }
+
+const ROUTE_CONSO = SOURCE.get('app/api/admin/consommation/route.ts')
+ok(
+  /ai_spend_par_acteur_et_action/.test(ROUTE_CONSO ?? ''),
+  'la route rend la ventilation par action',
+)
+//  ⚠️ LES DEUX LECTURES DOIVENT RETENIR LES MÊMES COMPTES. Passer deux bornes
+//     différentes afficherait un compte sans détail sur les dernières lignes
+//     de la liste — le plus discret des désaccords.
+ok(
+  (ROUTE_CONSO ?? '').split('p_limite: ACTEURS_DETAILLES').length - 1 === 2,
+  'la liste et son détail sont bornés PAR LA MÊME valeur',
+  'deux bornes différentes laisseraient les derniers comptes de la liste sans détail',
+)
+
+const MIG_DETAIL = readdirSync(join(ROOT, 'supabase/migrations')).filter((f) =>
+  f.includes('depense_par_acteur_et_action'),
+)
+ok(MIG_DETAIL.length === 1, `une seule migration « depense_par_acteur_et_action » (${MIG_DETAIL.length})`)
+const MIG2 =
+  MIG_DETAIL.length === 1
+    ? read(`supabase/migrations/${MIG_DETAIL[0]}`)
+        .split('\n')
+        .map((l) => l.replace(/--.*$/, ''))
+        .join('\n')
+    : ''
+ok(
+  /ai_spend_debut_du_mois\(\)/.test(MIG2),
+  'la ventilation lit la fenêtre mensuelle UNIQUE',
+  'une recopie décalerait ce détail de quelques heures en fin de mois, et la somme des actions cesserait d\'égaler la dépense',
+)
+ok(
+  /order by i\.depense desc, i\.acteur_id/.test(MIG2),
+  'elle classe les comptes EXACTEMENT comme la liste',
+  'un ordre partiel classerait deux comptes de même dépense différemment d\'une requête à l\'autre, et les deux lectures divergeraient sans qu\'aucune donnée ne change',
+)
+ok(
+  /coalesce\(m\.action, 'inconnue'\)/.test(MIG2),
+  'une dépense SANS action est nommée, pas vidée',
+  'les lignes antérieures à la colonne action n\'en portent aucune : une case vide se lirait comme un bogue',
+)
+//  UNE MIGRATION QUI « RÉUSSIT » N'A RIEN PROUVÉ (§E.60) — et celle-ci EXÉCUTE
+//  les deux lectures pour comparer leurs totaux, plutôt que de lire leur texte.
+ok(
+  /abs\(v_total_liste - v_total_detail\)/.test(MIG2),
+  'la postcondition ÉPROUVE que le détail BOUCLE avec la liste',
+  'un écran de dépense qui ne boucle pas cesse d\'être cru, donc d\'être lu',
+)
+ok(
+  (MIG2.match(/except/g) ?? []).length >= 2,
+  'et que les deux lectures portent sur les MÊMES comptes, dans les deux sens',
+  'un compte sans détail s\'afficherait vide ; un détail sans compte se rattacherait à une ligne absente (§E.34)',
+)
 
 //  AUCUN ÉCRAN MORT : il est dans le menu, et son icône existe.
 const NAV = SOURCE.get('lib/nav-config.ts')
@@ -478,6 +562,11 @@ const CLES = [
   ['admin_matching', 'actor_cap', 'organization'],
   ['admin_matching', 'alerts_under_cap'],
   ['admin_matching', 'err_alerte_au_dessus'],
+  ['admin_back_office', 'consommation', 'detail_title'],
+  ['admin_back_office', 'consommation', 'detail_calls'],
+  ['admin_back_office', 'consommation', 'detail_unreadable'],
+  ['admin_back_office', 'consommation', 'action', 'matching_pool'],
+  ['admin_back_office', 'consommation', 'action', 'inconnue'],
 ]
 let manquantes = 0
 for (const langue of ['fr', 'en', 'es', 'de']) {
@@ -493,6 +582,71 @@ for (const langue of ['fr', 'en', 'es', 'de']) {
 }
 if (manquantes > 0) failures++
 ok(manquantes === 0, `les ${CLES.length} clés existent dans les quatre langues`)
+
+// ═════════════════════════════════════════════════════════════════════════════
+section('F bis. L\'ÉCRAN DES DÉPÔTS EN ÉCHEC — son bouton et ses filtres')
+
+//  ⚠️ POURQUOI ICI, ET C'EST UN AVEU. Cet écran appartient au point 1 (§D.19)
+//     et n'avait AUCUNE assertion sur son bouton ni sur ses filtres : le lot
+//     avait vérifié que l'écran EXISTAIT. « L'écran existe » et « l'écran fait
+//     ce qu'on attendait » sont deux affirmations différentes, et seule la
+//     seconde se garde. Il vit dans ce contrôle-ci parce qu'il n'en avait pas,
+//     et qu'un fichier de plus pour quatre assertions serait un fichier qu'on
+//     oublie de lancer.
+const DEPOTS_ECRAN = SOURCE.get('app/[locale]/admin/depots-en-echec/page.tsx')
+const DEPOTS_ROUTE = SOURCE.get('app/api/admin/depots-en-echec/route.ts')
+ok(DEPOTS_ECRAN !== undefined && DEPOTS_ROUTE !== undefined, 'l\'écran des dépôts en échec existe')
+if (DEPOTS_ECRAN && DEPOTS_ROUTE) {
+  ok(
+    /onClick=\{\(\) => void relancer\(l\)\}/.test(DEPOTS_ECRAN),
+    'il porte un bouton RELANCER, câblé',
+  )
+  ok(
+    /method: 'POST'/.test(DEPOTS_ECRAN) && /export async function POST/.test(DEPOTS_ROUTE),
+    'et ce bouton atteint une route qui accepte le rejeu',
+  )
+  //  ⚠️ LE REJEU APPELLE LA MÊME FONCTION QUE LE DÉPÔT D'UN EXPERT — pas une
+  //     copie. Un chemin de rattrapage parallèle est le pire des jumeaux : il
+  //     ne sert que le jour où le chemin normal a déjà échoué (§E.20).
+  const APPELANTS_DEPOT = TOUS.filter((f) => /deposerCandidature\s*\(/.test(CODE.get(f) ?? ''))
+  const DEFINIT_LE_DEPOT = (s) => /export async function deposerCandidature\s*\(/.test(s)
+  const REJOUEURS = APPELANTS_DEPOT.filter((f) => !DEFINIT_LE_DEPOT(CODE.get(f) ?? ''))
+  ok(
+    REJOUEURS.includes('app/api/admin/depots-en-echec/route.ts') &&
+      REJOUEURS.includes('app/api/candidatures/route.ts'),
+    `le rejeu appelle LA MÊME fonction que le dépôt d'un expert (${REJOUEURS.length} appelants)`,
+    'un chemin de rattrapage parallèle ne sert que le jour où le chemin normal a déjà échoué (§E.20)',
+  )
+  ok(
+    !/jugerCandidature|ai_match_score:/.test(DEPOTS_ROUTE),
+    'et elle ne rebâtit RIEN du dépôt elle-même',
+    'recopier une étape du dépôt dans le rattrapage produirait un résultat que le dépôt normal n\'aurait jamais donné',
+  )
+
+  //  LES TROIS FILTRES — à l'écran ET honorés au serveur. Un filtre que le
+  //  serveur ignore rend une liste qui a l'air filtrée : c'est pire qu'aucun
+  //  filtre, parce qu'on croit avoir regardé.
+  for (const [param, quoi] of [
+    ['cause', 'par cause'],
+    ['domain_id', 'par écosystème'],
+    ['jours', 'par période'],
+  ]) {
+    ok(
+      new RegExp(`params\\.set\\('${param}'`).test(DEPOTS_ECRAN),
+      `l'écran envoie le filtre ${quoi}`,
+    )
+    ok(
+      new RegExp(`searchParams\\.get\\('${param}'`).test(DEPOTS_ROUTE),
+      `et le serveur l'HONORE (${quoi})`,
+      'un filtre que le serveur ignore rend une liste qui a l\'air filtrée — on croit avoir regardé',
+    )
+  }
+  ok(
+    /CAUSES_DEPOT/.test(DEPOTS_ECRAN),
+    'les causes proposées sont DÉRIVÉES du module, pas listées à la main',
+    'une liste écrite à la main perd la cause ajoutée demain (§E.61)',
+  )
+}
 
 // ═════════════════════════════════════════════════════════════════════════════
 section('G. LES TÉMOINS — les détecteurs peuvent-ils rougir ? (§E.33)')
