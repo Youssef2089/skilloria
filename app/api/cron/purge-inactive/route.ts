@@ -2,6 +2,7 @@ import { NextRequest, after } from 'next/server'
 import { sousVerdictDeRun } from '@/lib/cron/verdict-de-run'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { purgeAccount, type PurgeableUser } from '@/lib/account-purge'
+import { logAudit } from '@/lib/audit'
 import { renderInactivityWarningEmail } from '@/lib/emails/templates'
 import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
@@ -46,6 +47,11 @@ const JOB = 'purge_inactive'
  *     réussi → si l'email échoue (ex. Resend non configuré), le compte reste
  *     non-averti, sera re-tenté au prochain run, et NE SERA JAMAIS purgé sans
  *     avertissement délivré.
+ *
+ *     CHAQUE AVERTISSEMENT LAISSE UNE LIGNE D'AUDIT — envoyé
+ *     (`inactivity_warning_sent`) ou non (`inactivity_warning_failed`, avec sa
+ *     cause) — et chaque purge dit son origine (`account_purged.detail.origine`).
+ *     Le verdict du run ne peut pas le savoir : il est écrit AVANT `after()`.
  *
  * Dernier contact fiable : la colonne last_login_at, jadis morte, est désormais
  * rafraîchie à chaque login (/api/auth/init-session) et rétro-remplie par la
@@ -115,6 +121,41 @@ type WarnRow = {
 function slugOf(domains: WarnRow['domains']): string | null {
   if (!domains) return null
   return Array.isArray(domains) ? (domains[0]?.slug ?? null) : domains.slug
+}
+
+/**
+ * ── LA TRACE DE L'OBLIGATION LÉGALE ─────────────────────────────────────────
+ *  L'avertissement à 23 mois est l'« information préalable » exigée par la
+ *  CNIL. Sa seule marque était `inactivity_warning_sent_at` — une colonne
+ *  qu'une reconnexion remet à NULL : le fait qu'il ait été envoyé, et quand,
+ *  disparaissait. Et le verdict du run (`cron_run_log`) est écrit AVANT le
+ *  bloc `after()` qui envoie : il compte ce qui était À ENVOYER
+ *  (`warned_scheduled`), jamais ce qui l'a été. Ces lignes d'audit sont la
+ *  seule trace durable de l'envoi — et de son échec, pour qu'une panne de
+ *  messagerie se voie ailleurs que dans une console.
+ *  Identifiants seulement : ni adresse, ni prénom (RGPD).
+ *  `logAudit` est best-effort (§E.68) — c'est ce que le grand livre fermera.
+ */
+async function tracerAvertissement(
+  admin: SupabaseClient,
+  u: WarnRow,
+  action: 'inactivity_warning_sent' | 'inactivity_warning_failed',
+  detail: Record<string, unknown>,
+): Promise<void> {
+  await logAudit({
+    supabaseAdmin: admin,
+    user_id: u.id,
+    domain_id: u.domain_id,
+    action,
+    entity_type: 'user',
+    entity_id: u.id,
+    detail: {
+      origine: 'tache_planifiee',
+      job: JOB,
+      echeance_purge: shiftMonths(new Date(u.last_login_at), PURGE_MONTHS).toISOString(),
+      ...detail,
+    },
+  })
 }
 
 async function handle(request: NextRequest): Promise<Response> {
@@ -195,7 +236,7 @@ async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
   const failed: { id: string; error: string }[] = []
   for (const u of due) {
     try {
-      await purgeAccount(admin, u)
+      await purgeAccount(admin, u, { origine: 'tache_planifiee', job: JOB })
       purged += 1
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -235,7 +276,13 @@ async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
   if (warn.length > 0 && siteOrigin) {
     after(async () => {
       for (const u of warn) {
-        if (!u.email) continue
+        if (!u.email) {
+          // Sans adresse, aucun avertissement ne peut partir — et sans
+          // avertissement, aucune purge : ce compte resterait éligible À VIE,
+          // en silence. La trace le rend cherchable.
+          await tracerAvertissement(admin, u, 'inactivity_warning_failed', { cause: 'sans_email' })
+          continue
+        }
         try {
           const locale = normalizeLocale(u.locale)
           const base = expertSiteOrigin({ origin: siteOrigin, slug: slugOf(u.domains) })
@@ -260,21 +307,40 @@ async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
             tag: rendered.tag,
           })
           if (res.ok) {
-            await admin
+            const { error: marqueErr } = await admin
               .from('users')
               .update({ inactivity_warning_sent_at: new Date().toISOString() })
               .eq('id', u.id)
+            if (marqueErr) {
+              // L'e-mail est parti mais la marque n'est pas posée : le compte
+              // sera RÉ-AVERTI au prochain passage. La trace le dit, pour qu'un
+              // double envoi se lise comme tel et non comme un bug inexpliqué.
+              console.error('[purge-inactive] warning sent but sent_at NOT marked', {
+                uid: u.id,
+                msg: marqueErr.message,
+              })
+            }
+            await tracerAvertissement(admin, u, 'inactivity_warning_sent', {
+              // Accusé de réception de la DEMANDE par Resend — pas une preuve
+              // de remise (§E.19).
+              demande_email_id: res.id,
+              marquage_pose: !marqueErr,
+            })
           } else {
             console.warn('[purge-inactive] warning email not sent — sent_at NOT marked', {
               uid: u.id,
               code: res.code,
             })
+            await tracerAvertissement(admin, u, 'inactivity_warning_failed', { cause: res.code })
           }
         } catch (err) {
           console.error('[purge-inactive] warning failed', {
             uid: u.id,
             msg: err instanceof Error ? err.message : String(err),
           })
+          // Le message d'une exception peut citer l'adresse : il reste dans la
+          // console, la trace ne porte que la CLASSE de la panne.
+          await tracerAvertissement(admin, u, 'inactivity_warning_failed', { cause: 'exception' })
         }
       }
     })
@@ -285,6 +351,9 @@ async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
     purged,
     purge_due: due.length,
     purge_failed: failed.length,
+    // À ENVOYER, pas envoyés : l'envoi a lieu dans `after()`, après ce verdict.
+    // Le compte des avertissements réellement partis est le nombre de lignes
+    // d'audit `inactivity_warning_sent` du passage (cf. tracerAvertissement).
     warned_scheduled: warn.length,
     errors: failed,
   })

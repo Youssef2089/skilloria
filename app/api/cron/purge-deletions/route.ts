@@ -243,7 +243,7 @@ async function purger(admin: SupabaseClient): Promise<Response> {
     }
 
     try {
-      await purgeAccount(admin, u)
+      await purgeAccount(admin, u, { origine: 'tache_planifiee', job: JOB })
       purged += 1
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)

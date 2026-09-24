@@ -213,6 +213,104 @@ ok(!/status: 'deleted'/.test(purge), 'purgeAccount : plus aucun status = deleted
 ok(/anonymized_at: new Date\(\)\.toISOString\(\)/.test(purge),
   'purgeAccount : anonymized_at posé dans le MÊME update (idempotence)')
 
+// ═══ C bis. LA PURGE LAISSE SA TRACE — ET DIT D'OÙ ELLE VIENT ═════════════
+//
+//   Mesuré le 24/09/2026 : la purge tracait (`account_purged`) mais la MÊME
+//   ligne servait aux trois appelants — deux tâches planifiées, un
+//   administrateur — sans rien qui les distingue. Et l'AVERTISSEMENT à 23 mois
+//   (l'information préalable exigée par la CNIL) ne laissait AUCUNE trace : sa
+//   seule marque, `inactivity_warning_sent_at`, est remise à NULL par une
+//   reconnexion, et le verdict du run est écrit AVANT le bloc `after()` qui
+//   envoie — il compte ce qui est À ENVOYER, jamais ce qui l'a été.
+//
+//   Ce que le contrôle garde, et comment :
+//   · l'origine est un paramètre REQUIS et FERMÉ de purgeAccount — c'est tsc
+//     qui nomme les appelants ; ici on garde ce qui le rendrait aveugle
+//     (`?`, une valeur par défaut, une origine ouverte en `string`) ;
+//   · chaque SORTIE de l'envoi trace — ancré sur le BLOC de chaque branche
+//     (§E.8), pas sur la présence d'une chaîne quelque part dans le fichier.
+section('C bis. La purge laisse sa trace, et dit d’où elle vient')
+
+/** Le texte entre `ouvre` et sa fermeture équilibrée, à partir de la première occurrence de `debut`. */
+function blocApres(src, debut, ouvre = '{', ferme = '}') {
+  const i = src.indexOf(debut)
+  if (i < 0) return null
+  const o = src.indexOf(ouvre, i + debut.length - (debut.endsWith(ouvre) ? 1 : 0))
+  if (o < 0) return null
+  let p = 0
+  for (let k = o; k < src.length; k++) {
+    if (src[k] === ouvre) p++
+    else if (src[k] === ferme) { p--; if (p === 0) return src.slice(o, k + 1) }
+  }
+  return null
+}
+/** Tous les objets passés à `logAudit({…})`. */
+function appelsLogAudit(src) {
+  const out = []
+  let from = 0
+  for (;;) {
+    const i = src.indexOf('logAudit(', from)
+    if (i < 0) return out
+    const b = blocApres(src.slice(i), 'logAudit(')
+    if (b) out.push(b)
+    from = i + 9
+  }
+}
+
+// ── purgeAccount : l'origine est requise, fermée, et écrite ──────────────────
+{
+  const declaration = (() => {
+    const i = purge.indexOf('export type ContextePurge =')
+    if (i < 0) return ''
+    const fin = purge.indexOf('\n\n', i)
+    return purge.slice(i, fin < 0 ? undefined : fin)
+  })()
+  ok(declaration.includes("origine: 'tache_planifiee'") && declaration.includes("origine: 'administrateur'")
+    && !/origine:\s*string/.test(declaration),
+    'ContextePurge : une union FERMÉE — tache_planifiee | administrateur, jamais string',
+    'une origine ouverte accepterait n’importe quel texte, et la trace cesserait d’être filtrable')
+  ok(/export async function purgeAccount\(\s*admin: SupabaseClient,\s*u: PurgeableUser,\s*contexte: ContextePurge,?\s*\)/.test(purge),
+    'purgeAccount : le contexte est un paramètre REQUIS — ni « ? », ni valeur par défaut',
+    'un défaut ou un « ? » rendrait le compilateur aveugle : un appelant pourrait à nouveau ne rien dire')
+  const purged = appelsLogAudit(purge).find((b) => b.includes("action: 'account_purged'"))
+  ok(!!purged && /origine: contexte\.origine/.test(purged) && /\bjob:/.test(purged),
+    'account_purged : la ligne porte origine ET job',
+    'sans eux, une purge d’inactivité et une suppression demandée se lisent pareil')
+  for (const f of ['app/api/cron/purge-inactive/route.ts', 'app/api/cron/purge-deletions/route.ts', 'app/api/admin/user-purge/route.ts']) {
+    const args = blocApres(stripComments(read(f)), 'purgeAccount(', '(', ')')
+    ok(!!args && /origine: '(tache_planifiee|administrateur)'/.test(args),
+      `${f} : l’appel dit son origine`)
+  }
+}
+
+// ── purge-inactive : CHAQUE sortie de l'envoi laisse une ligne ───────────────
+{
+  const bloc = blocApres(purgeInactive, 'after(async () => {')
+  ok(!!bloc, 'purge-inactive : le bloc after() est trouvé')
+  const src = bloc ?? ''
+  const sansEmail = blocApres(src, 'if (!u.email) {')
+  ok(!!sansEmail && sansEmail.includes("'inactivity_warning_failed'") && !/if \(!u\.email\) continue/.test(src),
+    'sans adresse : tracé (inactivity_warning_failed), plus un « continue » muet',
+    'sans adresse, pas d’avertissement ; sans avertissement, pas de purge : le compte resterait éligible à vie, en silence')
+  const okBloc = blocApres(src, 'if (res.ok) {')
+  ok(!!okBloc && okBloc.includes("'inactivity_warning_sent'"),
+    'envoi accepté : tracé (inactivity_warning_sent) DANS le bloc res.ok')
+  ok(!!okBloc && /\{\s*error:\s*\w+\s*\}\s*=\s*await admin[\s\S]*?inactivity_warning_sent_at/.test(okBloc)
+    && /marquage_pose/.test(okBloc),
+    'envoi accepté : l’erreur du marquage est LUE et la trace dit si la marque est posée',
+    'un marquage en échec ré-avertit le lendemain : un double envoi doit se lire comme tel')
+  const apresOk = okBloc ? src.slice(src.indexOf(okBloc) + okBloc.length) : ''
+  const elseBloc = blocApres(apresOk, 'else {')
+  ok(!!elseBloc && elseBloc.includes("'inactivity_warning_failed'") && /cause: res\.code/.test(elseBloc),
+    'envoi refusé : tracé (inactivity_warning_failed) avec la cause du fournisseur')
+  const catchBloc = blocApres(src, 'catch (err) {')
+  ok(!!catchBloc && catchBloc.includes("'inactivity_warning_failed'"),
+    'exception : tracée (inactivity_warning_failed)')
+  const traces = appelsLogAudit(purgeInactive)
+  ok(traces.length >= 1 && traces.every((b) => !/\b(email|first_name|last_name|phone)\b\s*:/.test(b)),
+    'purge-inactive : aucune trace ne porte d’adresse, de nom ni de téléphone (identifiants seulement)')
+}
+
 // ═══ D. INVENTAIRE — LECTURE SEULE ═════════════════════════════════════════
 if (process.argv.includes('--db')) {
   section('D. Inventaire (LECTURE SEULE)')

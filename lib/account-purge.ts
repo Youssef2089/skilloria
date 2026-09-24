@@ -48,7 +48,23 @@ export type PurgeableUser = {
   email: string | null
 }
 
-export async function purgeAccount(admin: SupabaseClient, u: PurgeableUser): Promise<void> {
+/**
+ * D'OÙ VIENT LA PURGE — OBLIGATOIRE, ET FERMÉ.
+ * `account_purged` était identique pour les trois appelants (deux tâches
+ * planifiées, un administrateur) : impossible de dire, six mois plus tard, si un
+ * compte a été effacé pour inactivité, sur sa demande, ou par un administrateur.
+ * Le paramètre est requis SANS défaut : c'est le compilateur qui nomme chaque
+ * appelant qui ne le dit pas (§E.68 — une consigne se lit, un type se compile).
+ */
+export type ContextePurge =
+  | { origine: 'tache_planifiee'; job: 'purge_inactive' | 'purge_deletions' }
+  | { origine: 'administrateur' }
+
+export async function purgeAccount(
+  admin: SupabaseClient,
+  u: PurgeableUser,
+  contexte: ContextePurge,
+): Promise<void> {
   const uid = u.id
   const placeholderEmail = `deleted+${uid}@deleted.invalid`
 
@@ -176,6 +192,11 @@ export async function purgeAccount(admin: SupabaseClient, u: PurgeableUser): Pro
     //  `profil_anonymise: false` est un FAIT légitime (une organisation n'a pas
     //  de profil) ; il ne se confond plus avec une panne, puisque la panne lève.
     detail: {
+      // D'OÙ VIENT LA PURGE — la même ligne servait aux trois appelants, et rien
+      // ne les distinguait. `job` est nul pour un administrateur, qui écrit sa
+      // propre ligne `admin_account_purged` (l'auteur) en plus de celle-ci (le fait).
+      origine: contexte.origine,
+      job: contexte.origine === 'tache_planifiee' ? contexte.job : null,
       anonymized: true,
       profil_anonymise: prof?.id != null,
       cv_supprime: cvSupprime,

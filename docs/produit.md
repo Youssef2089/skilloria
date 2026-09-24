@@ -951,7 +951,7 @@ fausse. La répartition observée **repart** au déploiement, et l'écran le dit
 | Tâche | Horaire | Ce qu'elle fait |
 |---|---|---|
 | `purge_deletions_trigger` | 03:00 | Efface les comptes dont la grâce de 90 j est échue (RGPD art. 17). |
-| `purge_inactive_trigger` | 03:30 | Avertit à 23 mois, purge à 24 (CNIL recrutement). |
+| `purge_inactive_trigger` | 03:30 | Avertit à 23 mois, purge à 24 (CNIL recrutement). **Chaque avertissement laisse une ligne d'audit** — envoyé ou non, avec sa cause — et chaque purge dit son origine (§C.8, architecture). |
 | `cron_run_reconcile` | 03:15 et 03:45 | Recoupe le journal applicatif et `cron.job_run_details`. |
 | `cron_run_log_purge` | 04:10 | Applique la rétention dissociée du journal. |
 | `rate_limit_hits_purge` | 04:00 | Purge les compteurs de débit. |

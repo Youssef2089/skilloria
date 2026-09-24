@@ -643,10 +643,33 @@ Stripe vivant ([lib/billing/attribution-manuelle.ts](../lib/billing/attribution-
 
 ### C.8 — Ce que la purge RGPD garantit RÉELLEMENT, et à partir de quel jalon rien n'est rattrapable
 
-`purgeAccount` ([lib/account-purge.ts](../lib/account-purge.ts)) est appelée par deux chemins — la
-suppression demandée (`purge-deletions`) et l'inactivité à deux ans (`purge-inactive`). Elle
-n'efface **aucune ligne** : elle **anonymise**, parce que `messages.sender_id` est
-`ON DELETE CASCADE` et qu'une suppression emporterait l'historique d'interactions des deux côtés.
+`purgeAccount` ([lib/account-purge.ts](../lib/account-purge.ts)) est appelée par **trois** chemins —
+la suppression demandée (`purge-deletions`), l'inactivité à deux ans (`purge-inactive`) et
+l'administrateur (`/api/admin/user-purge`). *Ce paragraphe disait « deux » ; le troisième existait
+déjà (relu le 24/09/2026).* Elle n'efface **aucune ligne** : elle **anonymise**, parce que
+`messages.sender_id` est `ON DELETE CASCADE` et qu'une suppression emporterait l'historique
+d'interactions des deux côtés.
+
+**Ce que la purge laisse comme trace — depuis le 24/09/2026 (étape 0.2 du lot journal).**
+· **Chaque purge dit d'où elle vient** : `account_purged.detail.origine` vaut `tache_planifiee`
+  (avec `job` : `purge_inactive` ou `purge_deletions`) ou `administrateur`. Le contexte est un
+  **paramètre requis et fermé** de `purgeAccount` (`ContextePurge`) — c'est le compilateur qui a
+  nommé les trois appelants, pas un balayage. L'administrateur écrit **en plus** sa propre ligne
+  `admin_account_purged` : celle-ci dit *qui a décidé*, `account_purged` dit *que c'est arrivé*.
+· **Chaque avertissement à 23 mois laisse une ligne**, envoyé (`inactivity_warning_sent`, avec
+  l'identifiant de la demande Resend — un accusé de réception de la demande, pas une preuve de
+  remise, §E.19 — et `marquage_pose`) ou non (`inactivity_warning_failed`, avec sa cause :
+  `sans_email`, le code du fournisseur, ou `exception`). Avant, sa seule marque était
+  `users.inactivity_warning_sent_at`, qu'une reconnexion remet à NULL : le fait qu'il ait été
+  envoyé, et quand, disparaissait.
+· ⚠️ **Le verdict du run ne compte pas les avertissements envoyés, et ne le peut pas.** L'envoi vit
+  dans `after()` (§E.5), qui s'exécute **après** que `sousVerdictDeRun` a écrit la ligne de
+  `cron_run_log` : `warned_scheduled` est le nombre de comptes **à avertir**. Le nombre
+  d'avertissements **réellement partis** un jour donné est le nombre de lignes
+  `inactivity_warning_sent` de ce jour dans `audit_logs`.
+· Les traces ne portent **que des identifiants** — ni adresse, ni prénom. Gardé par
+  [`diag-account-lifecycle`](../scripts/diag-account-lifecycle.mjs) §C bis, ancré sur le **bloc** de
+  chaque branche de l'envoi (§E.8) — éprouvé par mutation le 24/09/2026 : 11 mutations, 11 détections.
 
 **Les quatre étapes, et ce que chacune garantit.**
 

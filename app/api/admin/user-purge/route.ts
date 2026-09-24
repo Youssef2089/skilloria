@@ -286,11 +286,11 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   // ── EFFACEMENT ────────────────────────────────────────────────────────────
   try {
-    await purgeAccount(auth.supabaseAdmin, {
-      id: t.id,
-      domain_id: t.domain_id,
-      email: t.email,
-    })
+    await purgeAccount(
+      auth.supabaseAdmin,
+      { id: t.id, domain_id: t.domain_id, email: t.email },
+      { origine: 'administrateur' },
+    )
   } catch (err) {
     // `purgeAccount` lève sur échec BLOQUANT (auth, profil, user) et n'a alors
     // PAS posé `anonymized_at` : le compte n'est pas à mi-chemin, il est
