@@ -257,7 +257,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     action: 'org_member_invited',
     entity_type: 'organization_invitations',
     entity_id: inserted.id,
-    detail: { email, role_in_org: role, domain_validation_passed: domainValidationPassed },
+    // L'adresse invitée ne va pas au journal : c'est celle d'un tiers qui
+    // n'a peut-être pas de compte, et elle y survivait à toute purge.
+    // L'invitation (entity_id) la porte, avec sa propre durée de vie.
+    detail: { role_in_org: role, domain_validation_passed: domainValidationPassed },
   })
 
   // ── Email (after() — locale = users.locale de l'inviteur) ───────────────────

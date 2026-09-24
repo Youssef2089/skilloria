@@ -92,6 +92,23 @@ journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`audit_sans_donnee_personnelle` (24/09/2026) — LE JOURNAL D'AUDIT SE NETTOIE D'UN COMPTE.**
+> Trois fonctions, aucune ligne touchée au passage : `audit_logs_cles_personnelles()` (la liste des
+> clés personnelles — **source unique**, lue par la base ET par
+> [`diag-audit-sans-donnee-personnelle`](../scripts/diag-audit-sans-donnee-personnelle.mjs)),
+> `audit_logs_detail_sans_pii(jsonb)` (pure, récursive : objets et tableaux) et
+> `audit_logs_nettoyer_compte(uuid, text)`, appelée par `purgeAccount` **avant** de poser
+> `anonymized_at` — trois liens pris : le compte est l'acteur, le sujet, ou son adresse apparaît
+> dans le détail (le cas de l'invitation, dont le sujet est l'invitation et l'acteur l'inviteur).
+>
+> **Mesuré avant de corriger** (lecture seule, 24/09/2026) : 127 lignes, **4** portaient une clé
+> personnelle (`email`, `new_email`, `phone_e164`, `company_name`), sur 5 comptes. Pas de migration
+> de données (§E.12) : la purge nettoiera chacune le jour où son compte sera purgé.
+>
+> ⚠️ **POSTCONDITION QUI S'EXÉCUTE** (§E.67) : les trois signatures par `to_regprocedure`, la liste
+> qui **couvre les quatre clés mesurées**, la fonction pure **exécutée** sur un objet imbriqué et un
+> tableau, et le nettoyage **exécuté** sur un compte inexistant (zéro ligne).
+
 > **`bail_par_portee` (23/09/2026) — LE VERROU DEVIENT GÉNÉRIQUE.**
 > Table `baux` clée **(portee, cle)**, fonctions `prendre_bail` / `rendre_bail` / `bail_tenu`.
 > `cron_run_leases` est **reprise** (ses baux vivants d'abord) **puis retirée**, et
@@ -670,6 +687,24 @@ d'interactions des deux côtés.
 · Les traces ne portent **que des identifiants** — ni adresse, ni prénom. Gardé par
   [`diag-account-lifecycle`](../scripts/diag-account-lifecycle.mjs) §C bis, ancré sur le **bloc** de
   chaque branche de l'envoi (§E.8) — éprouvé par mutation le 24/09/2026 : 11 mutations, 11 détections.
+
+**Et la purge nettoie le journal d'audit — étape 3 bis, AVANT le jalon (24/09/2026, étape 0.3).**
+**Huit** écritures portaient une donnée personnelle dans `audit_logs.detail` — l'adresse invitée
+(`org_member_invited`, `org_invitation_resent`, `org_invitation_revoked`), la nouvelle adresse
+(`email_change_requested`), le numéro (`phone_verified`), le prénom et le nom (`identity_updated`),
+le nom d'organisation (`org_approved`, `org_rejected` — « Prénom Nom » pour l'organisation
+personnelle d'un expert, §D.8). La lecture de la base n'en montrait que **quatre** actions : une
+mesure sur les lignes existantes ne voit que les actions déjà jouées, et c'est le **contrôle** qui a
+trouvé les deux dernières (§E.61). Et la purge laissait le journal intact : **l'adresse survivait au
+compte.** Les huit n'écrivent plus que des identifiants et des faits (`has_reason`, `role_in_org`,
+`expires_at`, `methode`, `champs_modifies`), et `purgeAccount` appelle
+`audit_logs_nettoyer_compte(uid, email)` **avant** de poser `anonymized_at` — un échec **lève**, le
+compte reste non marqué et sera repris ; le nombre de lignes nettoyées va dans
+`account_purged.detail.audit_lignes_nettoyees`. Gardé par
+[`diag-audit-sans-donnee-personnelle`](../scripts/diag-audit-sans-donnee-personnelle.mjs) : chaque
+appel `logAudit` a un détail **littéral** (un spread ou une variable est **opaque**, donc refusé),
+sans clé de la liste **à toute profondeur**, sans valeur visiblement personnelle sous une clé
+innocente — et la liste est **lue dans la migration**, jamais recopiée (§E.20).
 
 **Les quatre étapes, et ce que chacune garantit.**
 

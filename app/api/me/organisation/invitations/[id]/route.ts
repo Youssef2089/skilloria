@@ -122,7 +122,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
       action: 'org_invitation_revoked',
       entity_type: 'organization_invitations',
       entity_id: inv.id,
-      detail: { email: inv.email },
+      // Pas l'adresse (donnée d'un tiers) : l'invitation la porte déjà.
     })
     return json({ ok: true }, 200)
   }
@@ -147,7 +147,8 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
     action: 'org_invitation_resent',
     entity_type: 'organization_invitations',
     entity_id: inv.id,
-    detail: { email: inv.email },
+    // Pas l'adresse (donnée d'un tiers) : l'invitation la porte déjà.
+    detail: { expires_at: expiresAt },
   })
 
   const origin = siteOriginFromRequest(request)

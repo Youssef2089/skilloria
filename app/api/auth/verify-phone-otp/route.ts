@@ -170,7 +170,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     action: 'phone_verified',
     entity_type: 'user',
     entity_id: auth.user.id,
-    detail: { phone_e164: phone },
+    // Le NUMÉRO ne va pas au journal (donnée personnelle — il y restait après
+    // la purge du compte). Le fait vérifié suffit : la méthode.
+    detail: { methode: 'otp_sms' },
   })
 
   return json({ phone_verified: true }, 200)

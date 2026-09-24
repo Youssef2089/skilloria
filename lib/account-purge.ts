@@ -157,6 +157,21 @@ export async function purgeAccount(
     if (profErr) throw new Error(`profile_anonymize_failed: ${profErr.message}`)
   }
 
+  // 3 bis. LE JOURNAL D'AUDIT SE NETTOIE DU COMPTE — AVANT LE JALON.
+  //   `audit_logs.detail` a porté des adresses, un numéro, des noms (mesuré le
+  //   24/09/2026 : 4 lignes, 5 comptes). La purge anonymisait `users` et
+  //   `profiles` et laissait le journal intact : l'adresse survivait au compte.
+  //   La fonction SQL retire les clés personnelles (liste UNIQUE, en base) sur
+  //   toute ligne dont ce compte est l'acteur, le sujet, ou dont l'adresse
+  //   apparaît dans le détail — d'où `p_email`, connu ici parce que l'étape 4
+  //   n'a pas encore eu lieu. On LÈVE si ça échoue : le jalon ne se pose pas
+  //   sur un journal encore sale, et le passage suivant reprend le compte.
+  const { data: auditNettoyees, error: auditErr } = await admin.rpc('audit_logs_nettoyer_compte', {
+    p_user_id: uid,
+    p_email: u.email,
+  })
+  if (auditErr) throw new Error(`audit_scrub_failed: ${auditErr.message}`)
+
   // 4. Anonymisation du user (anonymized_at posé EN DERNIER → idempotence).
   const { error: userErr } = await admin
     .from('users')
@@ -198,6 +213,7 @@ export async function purgeAccount(
       origine: contexte.origine,
       job: contexte.origine === 'tache_planifiee' ? contexte.job : null,
       anonymized: true,
+      audit_lignes_nettoyees: typeof auditNettoyees === 'number' ? auditNettoyees : null,
       profil_anonymise: prof?.id != null,
       cv_supprime: cvSupprime,
       avatar_supprime: !avErr,

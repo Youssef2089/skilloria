@@ -114,7 +114,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     action: 'org_approved',
     entity_type: 'organization',
     entity_id: organization_id,
-    detail: { company_name: org.company_name as string | null },
+    // Le nom de l'organisation ne va pas au journal : pour l'organisation
+    // personnelle d'un expert, c'est « Prénom Nom » (§D.8). L'identifiant
+    // (entity_id) suffit à retrouver l'organisation.
   })
 
   // ── Résoudre contact + envoi email (best-effort) ────────────────────────

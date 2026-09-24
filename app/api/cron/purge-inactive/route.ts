@@ -140,7 +140,7 @@ async function tracerAvertissement(
   admin: SupabaseClient,
   u: WarnRow,
   action: 'inactivity_warning_sent' | 'inactivity_warning_failed',
-  detail: Record<string, unknown>,
+  issue: { demande_email_id: string | null; marquage_pose: boolean | null; cause: string | null },
 ): Promise<void> {
   await logAudit({
     supabaseAdmin: admin,
@@ -149,11 +149,16 @@ async function tracerAvertissement(
     action,
     entity_type: 'user',
     entity_id: u.id,
+    // Champs NOMMÉS, pas un spread : un détail dont les clés viennent
+    // d'ailleurs est opaque au contrôle qui garde le journal des données
+    // personnelles (diag-audit-sans-donnee-personnelle).
     detail: {
       origine: 'tache_planifiee',
       job: JOB,
       echeance_purge: shiftMonths(new Date(u.last_login_at), PURGE_MONTHS).toISOString(),
-      ...detail,
+      demande_email_id: issue.demande_email_id,
+      marquage_pose: issue.marquage_pose,
+      cause: issue.cause,
     },
   })
 }
@@ -280,7 +285,9 @@ async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
           // Sans adresse, aucun avertissement ne peut partir — et sans
           // avertissement, aucune purge : ce compte resterait éligible À VIE,
           // en silence. La trace le rend cherchable.
-          await tracerAvertissement(admin, u, 'inactivity_warning_failed', { cause: 'sans_email' })
+          await tracerAvertissement(admin, u, 'inactivity_warning_failed', {
+            demande_email_id: null, marquage_pose: null, cause: 'sans_email',
+          })
           continue
         }
         try {
@@ -325,13 +332,16 @@ async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
               // de remise (§E.19).
               demande_email_id: res.id,
               marquage_pose: !marqueErr,
+              cause: null,
             })
           } else {
             console.warn('[purge-inactive] warning email not sent — sent_at NOT marked', {
               uid: u.id,
               code: res.code,
             })
-            await tracerAvertissement(admin, u, 'inactivity_warning_failed', { cause: res.code })
+            await tracerAvertissement(admin, u, 'inactivity_warning_failed', {
+              demande_email_id: null, marquage_pose: null, cause: res.code,
+            })
           }
         } catch (err) {
           console.error('[purge-inactive] warning failed', {
@@ -340,7 +350,9 @@ async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
           })
           // Le message d'une exception peut citer l'adresse : il reste dans la
           // console, la trace ne porte que la CLASSE de la panne.
-          await tracerAvertissement(admin, u, 'inactivity_warning_failed', { cause: 'exception' })
+          await tracerAvertissement(admin, u, 'inactivity_warning_failed', {
+            demande_email_id: null, marquage_pose: null, cause: 'exception',
+          })
         }
       }
     })

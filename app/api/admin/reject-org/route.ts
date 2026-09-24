@@ -115,10 +115,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     action: 'org_rejected',
     entity_type: 'organization',
     entity_id: organization_id,
-    detail: {
-      company_name: org.company_name as string | null,
-      has_reason: reason !== null,
-    },
+    // Le nom de l'organisation ne va pas au journal (§D.8 : « Prénom Nom »
+    // pour l'organisation personnelle d'un expert) ; entity_id suffit.
+    detail: { has_reason: reason !== null },
   })
 
   // ── Email (best-effort) ─────────────────────────────────────────────────

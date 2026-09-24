@@ -82,7 +82,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     action: 'email_change_requested',
     entity_type: 'user',
     entity_id: auth.user.id,
-    detail: { new_email },
+    // La nouvelle adresse ne va pas au journal (donnée personnelle). Le fait
+    // qu'un changement ait été demandé, et confirmé par e-mail, suffit.
+    detail: { confirmation_envoyee: true },
   })
 
   return json({ ok: true, confirmation_sent: true }, 200)

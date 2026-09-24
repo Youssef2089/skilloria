@@ -70,7 +70,9 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     action: 'identity_updated',
     entity_type: 'user',
     entity_id: auth.user.id,
-    detail: { first_name, last_name },
+    // Les VALEURS ne vont pas au journal (données personnelles — elles y
+    // survivaient à la purge du compte) : seulement quels champs ont changé.
+    detail: { champs_modifies: ['first_name', 'last_name'] },
   })
 
   return json({ ok: true, first_name, last_name }, 200)
