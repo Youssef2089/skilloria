@@ -66,7 +66,7 @@ journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **
 `candidature_views`, `conversations`, `messages`, `notifications`, `notification_preferences`.
 
 **Commerce** — `packages`, `packages_stripe`, `package_features`, `package_history`,
-`subscription_history`, `transactions`, `usage_counters`, `promo_codes`, `promo_code_uses`,
+`transactions`, `usage_counters`, `promo_codes`, `promo_code_uses`,
 `stripe_events`, `stripe_reconciliation_runs` (§C.10).
 
 **Taxonomie** — `branches`, `specialities`, `public_email_domains`, `blocked_email_domains`.
@@ -82,17 +82,27 @@ journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **
 
 **Marketing / contenu — CRÉÉES PAR LA BASELINE, ET JAMAIS TOUCHÉES PAR LE CODE.**
 `ad_placements`, `blog_posts`, `campaigns`, `dashboard_stats`, `leads`,
-`newsletter_subscriptions`, `profile_alerts`, `referrals`, `testimonials`,
-`user_section_visits`, `waitlist` — et `subscription_history`, rangée plus haut sous
-**Commerce** parce que son nom y invite, mais **morte** au même titre (§H.2, verdict du 24/09/2026 ;
-`rate_limit_hits`, elle, est **vivante** : écrite en SQL).
+`newsletter_subscriptions`, `profile_alerts`, `referrals`, `testimonials`, `waitlist`.
+*`user_section_visits` (ici) et `subscription_history` (sous Commerce) en faisaient partie :
+**supprimées le 24/09/2026** par la migration tables_mortes_supprimees (§B.2), preuve exécutée (§H.2) ;
+`rate_limit_hits`, elle, est **vivante** : écrite en SQL.*
 
-> **Onze tables existent et ne sont lues ni écrites par aucune ligne de `app/` ou `lib/`**
-> (balayage du 16/09/2026). Elles ne sont pas un projet en cours : ce sont des vestiges du dump
+> **Dix tables existent et ne sont lues ni écrites par aucune ligne de `app/` ou `lib/`**
+> (onze au balayage du 16/09/2026 ; `user_section_visits` est partie le 24/09/2026). Elles ne sont pas un projet en cours : ce sont des vestiges du dump
 > de baseline. Les taire ferait croire, à qui explore la base, que ces fonctionnalités existent.
 > **NON VÉRIFIÉ** : rien ne dit si elles portent des données de production — on ne les a pas lues.
 
 ### B.2 Les déplacements structurants — ceux qui piègent
+
+> **`tables_mortes_supprimees` (24/09/2026) — LES DEUX TABLES MORTES PARTENT, PREUVE EXÉCUTÉE.**
+> `user_section_visits` et `subscription_history` — vestiges de la baseline, verdict §H.2 — sont
+> **supprimées**. La précondition lit **le corps de toute fonction** (`pg_proc.prosrc`, tout langage,
+> tout schéma hors système), les clés étrangères entrantes, les vues (`pg_rewrite`) et les triggers,
+> et **refuse** en nommant ce qui s'accroche ; elle **compte** les lignes emportées (5 sur
+> `user_section_visits`, mesurées) sans bloquer dessus. La postcondition vérifie l'absence par
+> `to_regclass` et **relit** les fonctions. `lib/database.types.ts` est nettoyé dans le même commit.
+> Gardé par [`diag-tables-mortes`](../scripts/diag-tables-mortes.mjs) : supprimées, preuve présente,
+> et **plus rien** ne les cite — code, types générés, SQL.
 
 > **`conservation_ip` (24/09/2026) — LES ADRESSES IP ONT UNE DURÉE DE VIE.**
 > `duree_reglages.conservation_ip_mois` (**12**, bornes 1–60, NOT NULL, sans défaut à l'arrivée),
@@ -2691,15 +2701,16 @@ inclut les **fonctions, les vues, les tâches et les politiques**.
 | Table | Verdict | Ce qui a été lu |
 |---|---|---|
 | `rate_limit_hits` | **VIVANTE** | écrite par la fonction SQL `rate_limit_check()` (migration `rate_limiter`), purgée par la tâche `rate_limit_hits_purge`, lue par `cron_supervision_read` ; le code ne cite **jamais** la table — il appelle la fonction (`lib/rate-limit.ts`), et c'est sur elle que repose le plafond anti-abus de relance (§D.7). |
-| `user_section_visits` | **MORTE** | DDL, index, deux politiques RLS (`self_read`, `self_write` pour `authenticated`) et grants de la baseline — aucun écrivain, aucun lecteur, dans le code comme dans le SQL. ⚠️ Les politiques d'écriture restent ouvertes : un client muni de la clé anon **pourrait** y écrire. Aucun code ne le fait — une porte ouverte sur une pièce vide. |
-| `subscription_history` | **MORTE** | DDL, index, une politique RLS (`self_read`) de la baseline et les types générés — aucun écrivain, aucun lecteur. Sa table de sauvegarde `_backup_subscription_history_20260422` a été retirée par `drop_backup_tables` ; elle-même, jamais. |
+| `user_section_visits` | **MORTE → SUPPRIMÉE** (24/09/2026) | DDL, index, deux politiques RLS (`self_read`, `self_write` pour `authenticated`) et grants de la baseline — aucun écrivain, aucun lecteur, dans le code comme dans le SQL. Elle portait **5 lignes** d'un parcours disparu, emportées avec elle. |
+| `subscription_history` | **MORTE → SUPPRIMÉE** (24/09/2026) | DDL, index, une politique RLS (`self_read`) de la baseline et les types générés — aucun écrivain, aucun lecteur, 0 ligne. Sa table de sauvegarde avait été retirée par `drop_backup_tables` ; elle-même restait. |
 
-**Ce qui n'est PAS fait, et pourquoi.** Aucune des deux mortes n'est supprimée : une suppression
-est un lot à part — sa migration, ses politiques à retirer, son contrôle de colonnes supprimées
-(§E.1), et la relecture de `lib/database.types.ts`. Le verdict est gardé par
-[`diag-tables-mortes`](../scripts/diag-tables-mortes.mjs), qui **remesure** les trois à chaque
-passage, code **et** SQL : une morte qui gagne un écrivain, ou la vivante qui perd le sien, rougit
-en nommant lequel. C'est un état mesuré (§G.8), pas une exemption.
+**Ce qui est fait — règle de l'architecte : « règle 0, elles partent ».** Migration
+`tables_mortes_supprimees` (§B.2) : la **précondition exécute la preuve** que le balayage du code ne
+peut pas donner — `pg_proc.prosrc` de toute fonction, clés étrangères entrantes, vues, triggers — et
+refuse en nommant ce qui s'accroche ; la postcondition vérifie l'absence (`to_regclass`) et relit
+les fonctions. `lib/database.types.ts` est nettoyé. Le verdict reste gardé par
+[`diag-tables-mortes`](../scripts/diag-tables-mortes.mjs) : la vivante a son écrivain SQL, les deux
+supprimées ne sont **plus citées nulle part** — code, types générés, SQL. Un état mesuré (§G.8).
 
 ---
 

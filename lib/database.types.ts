@@ -3364,61 +3364,6 @@ export type Database = {
           },
         ]
       }
-      subscription_history: {
-        Row: {
-          change_reason: string | null
-          created_at: string
-          domain_id: string
-          id: string
-          package_from: string | null
-          package_to: string
-          transaction_id: string | null
-          user_id: string
-        }
-        Insert: {
-          change_reason?: string | null
-          created_at?: string
-          domain_id: string
-          id?: string
-          package_from?: string | null
-          package_to: string
-          transaction_id?: string | null
-          user_id: string
-        }
-        Update: {
-          change_reason?: string | null
-          created_at?: string
-          domain_id?: string
-          id?: string
-          package_from?: string | null
-          package_to?: string
-          transaction_id?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "subscription_history_domain_id_fkey"
-            columns: ["domain_id"]
-            isOneToOne: false
-            referencedRelation: "domains"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "subscription_history_transaction_id_fkey"
-            columns: ["transaction_id"]
-            isOneToOne: false
-            referencedRelation: "transactions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "subscription_history_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       testimonials: {
         Row: {
           author_name: string | null
