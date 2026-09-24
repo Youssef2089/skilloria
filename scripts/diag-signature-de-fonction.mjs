@@ -146,13 +146,24 @@ section('B. UNE FONCTION STRICTE NE DÉCIDE PAS D\'UN `if` SANS FILET')
  *    qui compte est celle-ci : dans un `exists (select …)`, une ligne absente
  *    ne matche pas et le `not exists` fait son travail — le NULL n'y est pas
  *    un piège. Hors d'un `exists`, il en est un.
+ *
+ * ⚠️ ET LE `if` S'ANCRE EN DÉBUT DE LIGNE, CE QUI N'EST PAS UN DÉTAIL.
+ *    Le premier jet cherchait `\bif\b` n'importe où : il mordait sur le `if`
+ *    de `end if;`, ouvrait une fenêtre à cet endroit, et la fermait au `then`
+ *    du bloc SUIVANT — 967 caractères qui traversaient trois instructions et
+ *    traînaient le `coalesce` d'une autre. Résultat : retirer le filet d'un
+ *    vrai bloc laissait le contrôle VERT, parce que la fenêtre contenait
+ *    encore celui du voisin.
+ *    C'est §E.40 : une fenêtre de voisinage mesure la DISTANCE au traitement,
+ *    pas son APPARTENANCE. Trouvé par mutation.
  */
 const STRICTES = ['pg_get_functiondef', 'pg_get_function_result', 'pg_get_constraintdef']
 let avales = 0
 let examines = 0
 for (const [f, src] of SQL) {
-  // Chaque `if … then` du fichier, pris comme un bloc entier.
-  for (const m of src.matchAll(/\bif\b[\s\S]*?\bthen\b/g)) {
+  // Chaque `if … then` du fichier, pris comme un bloc entier — et le `if`
+  // DOIT ouvrir sa ligne : sinon `end if;` en ouvre un faux (§E.40).
+  for (const m of src.matchAll(/^[ \t]*(?:els)?if\b[\s\S]*?\bthen\b/gm)) {
     const bloc = m[0]
     if (!STRICTES.some((n) => new RegExp(`${n}\\s*\\(`).test(bloc))) continue
     // Un `exists (…)` protège : une ligne absente ne matche simplement pas.
@@ -247,6 +258,44 @@ ok(
       /\bexists\s*\(/.test(bloc(dansExists)),
     'témoin : le détecteur distingue un NULL avalé, un NULL couvert, et un `exists`',
     'sans cette distinction il rougirait sur la forme SAINE, et on le désactiverait',
+  )
+}
+{
+  //  La forme exacte qui a trompé le premier jet : un `end if;` suivi, plus
+  //  bas, d'un vrai `if` sans filet. Une fenêtre non ancrée part du faux `if`
+  //  et traîne le `coalesce` du bloc précédent.
+  //  ⚠️ LE `coalesce` DU MILIEU EST LA PIÈCE MAÎTRESSE, et mon premier témoin
+  //     l'avait oublié — il passait donc sans rien prouver. Dans le cas réel,
+  //     ce `coalesce` était celui d'un message de `raise`, entre les deux
+  //     blocs. C'est lui que la fenêtre flottante ramasse, et c'est lui qui la
+  //     fait conclure « il y a un filet » sur un bloc qui n'en a pas.
+  const piege = [
+    "  if coalesce(pg_get_functiondef(a), '') not like '%x%' then",
+    '    raise exception 0;',
+    '  end if;',
+    "  raise notice '%', coalesce(z, 'rien');",
+    "  if pg_get_functiondef(b) not like '%y%' then",
+    '    raise exception 0;',
+    '  end if;',
+  ].join('\n')
+  const ancree = [...piege.matchAll(/^[ \t]*(?:els)?if\b[\s\S]*?\bthen\b/gm)]
+    .map((m) => m[0])
+    .filter((b) => /pg_get_functiondef\s*\(/.test(b))
+  const flottante = [...piege.matchAll(/\bif\b[\s\S]*?\bthen\b/g)]
+    .map((m) => m[0])
+    .filter((b) => /pg_get_functiondef\s*\(/.test(b))
+  //  L'ANCRÉE voit deux blocs, dont UN sans filet — elle rougirait.
+  //  La FLOTTANTE ramasse le `coalesce` du voisin dans le bloc fautif — elle
+  //  verdirait. Les deux moitiés comptent : la seconde seule ne prouverait pas
+  //  que la parade marche, la première seule ne prouverait pas qu'elle servait.
+  const bloc_b = flottante.find((b) => /pg_get_functiondef\(b\)/.test(b))
+  ok(
+    ancree.length === 2 &&
+      ancree.filter((b) => !/\bcoalesce\s*\(/.test(b)).length === 1 &&
+      bloc_b !== undefined &&
+      /\bcoalesce\s*\(/.test(bloc_b),
+    'témoin : la fenêtre ancrée sépare deux blocs que la fenêtre flottante mélange',
+    'sans l\'ancrage, retirer le filet d\'un bloc laisse le contrôle vert grâce au filet du voisin (§E.40)',
   )
 }
 {
