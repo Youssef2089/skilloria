@@ -29,6 +29,12 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  *   pas dans une aide qu'on déplie. Les deux non-rétroactifs se suivent ; c'est
  *   la vie d'une annonce qui est l'exception, et elle est en tête.
  *
+ * ═══ ET UN QUATRIÈME CHAMP, QUI N'EST PAS DU CONTRAT ═══════════════════════
+ *   La CONSERVATION DES ADRESSES IP (mois, 1–60). Une durée LÉGALE, en bas
+ *   et à part : elle AGIT SUR L'EXISTANT — la tâche `ip_retention_purge`
+ *   efface chaque nuit ce qui dépasse — et un effacement ne se défait pas.
+ *   L'écran le dit à côté du champ, comme pour les trois autres.
+ *
  * ═══ ON COMPTE AVANT D'ÉCRIRE, ET ON NE BLOQUE PAS ═════════════════════════
  *   À chaque baisse saisie, l'écran demande au serveur combien d'annonces
  *   VISIBLES aujourd'hui deviendraient expirées — et combien portent une
@@ -41,6 +47,7 @@ type Charge = {
   vie_annonce_jours: number
   fenetre_echange_jours: number
   invitation_jours: number
+  conservation_ip_mois: number
   updated_at: string | null
   simulation: { jours: number; basculent: number; dont_devoilees: number } | null
 }
@@ -87,6 +94,7 @@ export default function AdminDureesPage() {
   const [vie, setVie] = useState('')
   const [fenetre, setFenetre] = useState('')
   const [invitation, setInvitation] = useState('')
+  const [conservationIp, setConservationIp] = useState('')
   const [impact, setImpact] = useState<Impact | null>(null)
   const [apercu, setApercu] = useState<{ basculent: number; dont_devoilees: number } | null>(null)
   const [enCours, setEnCours] = useState(false)
@@ -101,6 +109,7 @@ export default function AdminDureesPage() {
       setVie(String(data.vie_annonce_jours))
       setFenetre(String(data.fenetre_echange_jours))
       setInvitation(String(data.invitation_jours))
+      setConservationIp(String(data.conservation_ip_mois))
       setErreur(null)
     } catch {
       // « Indisponible » n'est pas « 30 et 15 ». Sans lecture, aucun champ
@@ -159,6 +168,7 @@ export default function AdminDureesPage() {
           vie_annonce_jours: Number(vie),
           fenetre_echange_jours: Number(fenetre),
           invitation_jours: Number(invitation),
+          conservation_ip_mois: Number(conservationIp),
           confirme_retroactivite: confirme,
         }),
       })
@@ -170,7 +180,13 @@ export default function AdminDureesPage() {
         return
       }
       if (!res.ok) {
-        setErreur(data.code === 'invalid_duration' ? t('invalid') : t('save_failed'))
+        setErreur(
+          data.code === 'invalid_duration'
+            ? t('invalid')
+            : data.code === 'invalid_ip_retention'
+              ? t('invalid_ip')
+              : t('save_failed'),
+        )
         return
       }
       setImpact(null)
@@ -311,6 +327,41 @@ export default function AdminDureesPage() {
           <strong>{t('invitation.not_retroactive_label')}</strong> {t('invitation.not_retroactive_body')}
         </p>
         <div style={aide}>{t('invitation.help')}</div>
+      </section>
+
+      {/* ── CONSERVATION DES ADRESSES IP — une durée LÉGALE, en bas et à part ─
+          Elle n'est pas du contrat de la place, et elle AGIT SUR L'EXISTANT :
+          la tâche ip_retention_purge efface chaque nuit ce qui dépasse. C'est
+          un troisième comportement, et l'écran le dit comme les deux autres. */}
+      <section style={carte}>
+        <div style={titreBloc}>{t('ip.title')}</div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: 'var(--sk-text)' }}>
+          <input
+            type="number"
+            min={1}
+            max={60}
+            value={conservationIp}
+            onChange={(e) => setConservationIp(e.target.value)}
+            style={champ}
+            disabled={!charge}
+          />
+          <span>{t('months')}</span>
+        </label>
+        <p
+          style={{
+            fontSize: 13,
+            color: 'var(--sk-amber)',
+            background: 'var(--sk-amber-soft)',
+            border: '1px solid var(--sk-amber-soft)',
+            borderRadius: 8,
+            padding: '10px 12px',
+            lineHeight: 1.55,
+            marginTop: 12,
+          }}
+        >
+          <strong>{t('ip.acts_on_existing_label')}</strong> {t('ip.acts_on_existing_body')}
+        </p>
+        <div style={aide}>{t('ip.help')}</div>
       </section>
 
       {/* ── LA CONFIRMATION — une question, jamais un mur ──────────────── */}

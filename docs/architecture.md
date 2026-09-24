@@ -92,6 +92,24 @@ journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`conservation_ip` (24/09/2026) — LES ADRESSES IP ONT UNE DURÉE DE VIE.**
+> `duree_reglages.conservation_ip_mois` (**12**, bornes 1–60, NOT NULL, sans défaut à l'arrivée),
+> `ip_limite_de_conservation(integer)` (pure) et `effacer_adresses_ip()` : met à NULL `ip_address`
+> **et** `user_agent` dans `audit_logs` **et** `session_logs` au-delà de la durée. Planifiée
+> `ip_retention_purge` à 04:20, au catalogue comme **légale** (`legal_basis.ip_12m`), et
+> `cron_purge_health()` est recréée avec elle — la fonction **énumère** ses tâches.
+>
+> **Elle laisse sa trace par le MÊME guichet que les tâches HTTP** : elle ouvre sa ligne de
+> `cron_run_log` puis la clôt par `cloturer_run_cron()` (§E.20 — pas un second mécanisme de
+> verdict). Un échec est **écrit** sur la ligne (500 + message), jamais levé : levé, il emporterait
+> la ligne avec lui. **Mesuré avant** (lecture seule) : 29 lignes d'audit et 185 sessions avec IP,
+> aucune tâche.
+>
+> ⚠️ **POSTCONDITION QUI S'EXÉCUTE** (§E.67) : quatre signatures par `to_regprocedure`, la
+> contrainte **éprouvée** (0 et 61 refusés, en sous-transaction), la limite **exécutée**, la tâche
+> planifiée et cataloguée, et l'effacement **exécuté puis annulé** (sonde en sous-transaction : ni
+> ligne de run, ni adresse effacée par une migration).
+
 > **`audit_sans_donnee_personnelle` (24/09/2026) — LE JOURNAL D'AUDIT SE NETTOIE D'UN COMPTE.**
 > Trois fonctions, aucune ligne touchée au passage : `audit_logs_cles_personnelles()` (la liste des
 > clés personnelles — **source unique**, lue par la base ET par
@@ -704,7 +722,8 @@ compte reste non marqué et sera repris ; le nombre de lignes nettoyées va dans
 [`diag-audit-sans-donnee-personnelle`](../scripts/diag-audit-sans-donnee-personnelle.mjs) : chaque
 appel `logAudit` a un détail **littéral** (un spread ou une variable est **opaque**, donc refusé),
 sans clé de la liste **à toute profondeur**, sans valeur visiblement personnelle sous une clé
-innocente — et la liste est **lue dans la migration**, jamais recopiée (§E.20).
+innocente — et la liste est **lue dans la migration**, jamais recopiée (§E.20). Éprouvé par mutation
+le 24/09/2026 : 15 mutations, 15 détections.
 
 **Les quatre étapes, et ce que chacune garantit.**
 
@@ -1770,7 +1789,7 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   suppose la précédente ». Elle est désormais la dernière.
   **Gardé** par [scripts/diag-parametrage-manuel.mjs](../scripts/diag-parametrage-manuel.mjs)
   (§B.2 ⑦ bis) pour tout ce qui est mécaniquement vérifiable ; l'ordre, lui, ne l'est pas.
-- **Cinq** des neuf tâches planifiées passent par `trigger_purge_cron` et **lèvent** sans les deux
+- **Cinq** des dix tâches planifiées passent par `trigger_purge_cron` et **lèvent** sans les deux
   secrets du Vault : `purge_deletions_trigger`, `purge_inactive_trigger`, `matching_retry_trigger`,
   `expert_relance_trigger`. Les deux premières portent une **obligation légale** (RGPD art. 17 et
   CNIL). Elles ne se plaignent qu'au journal de la base : rien à l'écran.

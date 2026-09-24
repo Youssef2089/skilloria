@@ -2956,7 +2956,8 @@
       },
       "legal_basis": {
         "rgpd_art17": "DSGVO Art. 17 — Recht auf Löschung",
-        "cnil_2y": "CNIL — Aufbewahrung ≤ 2 Jahre nach dem letzten Kontakt"
+        "cnil_2y": "CNIL — Aufbewahrung ≤ 2 Jahre nach dem letzten Kontakt",
+        "ip_12m": "DSGVO Art. 5 Abs. 1 lit. e — Speicherbegrenzung (IP-Adressen: 12 Monate, einstellbar)"
       },
       "jobs": {
         "purge_deletions": {
@@ -2994,6 +2995,10 @@
         "stripe_reconcile": {
           "label": "Prüfung der Stripe-Anbindung",
           "description": "Vergleicht jede Nacht die Ereignisse, die Stripe in den letzten 24 Stunden erzeugt hat, mit denen, die unser Protokoll empfangen hat. Jede Abweichung weist auf ein verpasstes Ereignis oder einen Verarbeitungsfehler hin. Sie MELDET und verarbeitet nichts nach: Stripe bewahrt seine Ereignisse 30 Tage auf, danach ist ein fehlendes nicht mehr auffindbar."
+        },
+        "ip_retention": {
+          "label": "Löschung der IP-Adressen",
+          "description": "Setzt IP-Adresse und Browser der Audit- und Sitzungsprotokolle, die älter als die eingestellte Dauer sind (standardmäßig 12 Monate), auf NULL."
         }
       },
       "banner_action": "Geplante Aufgaben ansehen",
@@ -4153,6 +4158,14 @@
       "note": "Nichts hindert Sie daran. Sie werden nur gebeten, es wissentlich zu tun. Die Änderung und diese Zahl werden protokolliert.",
       "accept": "Ich bestätige, speichern",
       "cancel": "Abbrechen"
+    },
+    "months": "Monate",
+    "invalid_ip": "Die Aufbewahrung der IP-Adressen muss eine ganze Anzahl von Monaten zwischen 1 und 60 sein.",
+    "ip": {
+      "title": "Aufbewahrung der IP-Adressen",
+      "acts_on_existing_label": "Diese Einstellung wirkt auf Bestehendes.",
+      "acts_on_existing_body": "Jede Nacht setzt die Aufgabe „Löschung der IP-Adressen“ IP-Adresse und Browser jeder Audit- oder Sitzungszeile, die älter als diese Dauer ist, auf NULL. Ein Verkürzen löscht daher ab der nächsten Nacht bereits erfasste Adressen — und eine Löschung lässt sich nicht rückgängig machen.",
+      "help": "Zwölf Monate sind ein Vorschlag, keine Messung: eine IP-Adresse ist ein personenbezogenes Datum, und nichts rechtfertigt, sie länger aufzubewahren, als nötig ist, um eine verdächtige Anmeldung zu verstehen. Die Aufgabe hinterlässt ihre Spur in den geplanten Aufgaben."
     }
   },
   "ecosystem_switcher": {

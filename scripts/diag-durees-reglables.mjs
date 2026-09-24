@@ -398,5 +398,80 @@ section('I. Les trois durees, et l’asymetrie, sont DITES dans les quatre langu
     'une traduction qu’aucun ecran n’affiche ne previent personne')
 }
 
+section('J. La QUATRIEME duree — la conservation des adresses IP, et la tache qui les efface')
+//
+//   Une duree LEGALE, pas une promesse de la place : 12 mois, reglables (1–60),
+//   puis l'adresse ET le navigateur sont mis a NULL dans audit_logs ET
+//   session_logs, par une tache SQL qui ecrit son propre verdict. Mesure le
+//   24/09/2026 : 29 lignes d'audit et 185 sessions avec IP, aucune tache.
+//   Meme classe que les trois autres : AUCUN defaut dans le code, la route
+//   borne avec une raison nommee, l'ecran DIT le comportement (il agit sur
+//   l'existant), et tout est traduit quatre fois.
+{
+  const nomMigration = (suffixe) => {
+    const hits = readdirSync(join(ROOT, 'supabase/migrations')).filter((f) => f.endsWith(`_${suffixe}.sql`))
+    if (hits.length !== 1) throw new Error(`migration « ${suffixe} » : ${hits.length} correspondance(s)`)
+    return `supabase/migrations/${hits[0]}`
+  }
+  const SQL = read(nomMigration('conservation_ip')).split('\n').filter((l) => !l.trimStart().startsWith('--')).join('\n')
+  ok(/add column if not exists conservation_ip_mois integer/.test(SQL) && /alter column conservation_ip_mois set not null/.test(SQL),
+    'la colonne existe et est NOT NULL')
+  ok(/conservation_ip_mois between 1 and 60/.test(SQL), 'bornee en base : 1 a 60 mois')
+
+  const iFn = SQL.indexOf('function public.effacer_adresses_ip()')
+  const FN = iFn < 0 ? '' : SQL.slice(iFn, SQL.indexOf('$fn$;', iFn))
+  ok(/select conservation_ip_mois into v_mois/.test(FN) && !/coalesce\(\s*v_mois/.test(FN) && !/\b12\b/.test(FN),
+    'la tache LIT le reglage et n’a AUCUN defaut',
+    'un 12 dans la fonction serait une seconde source, celle qui prend la main le jour ou la lecture echoue')
+  const tables = ['audit_logs', 'session_logs'].filter((t) =>
+    new RegExp(`update public\\.${t}\\s+set ip_address = null, user_agent = null\\s+where created_at < v_limite`).test(FN))
+  ok(tables.length === 2, 'l’adresse ET le navigateur sont effaces, dans les DEUX tables',
+    `vu : ${tables.join(', ') || 'aucune'}`)
+  ok(/insert into public\.cron_run_log \(job_name\)\s+values \('ip_retention_purge'\)/.test(FN)
+    && /cloturer_run_cron\(v_log_id, 200/.test(FN) && /cloturer_run_cron\(v_log_id, 500/.test(FN),
+    'la tache ouvre sa ligne de run et la clot par le MEME guichet, succes comme echec',
+    'un second mecanisme de verdict serait un jumeau (§E.20) ; un echec leve emporterait la ligne')
+  ok(/cron\.schedule\(\s*'ip_retention_purge'/.test(SQL) && /select public\.effacer_adresses_ip\(\)/.test(SQL),
+    'planifiee dans pg_cron')
+  ok(/'ip_retention_purge',\s*'jobs\.ip_retention\.label',[\s\S]{0,200}?'legal',\s*'legal_basis\.ip_12m'/.test(SQL),
+    'au catalogue, LEGALE, avec son obligation nommee')
+  ok(/function public\.cron_purge_health\(\)[\s\S]*?\('ip_retention_purge'\)/.test(SQL),
+    'la sante des purges la voit (cron_purge_health enumere ses taches)')
+
+  const iPost = SQL.indexOf('do $post$')
+  const POST = iPost < 0 ? '' : SQL.slice(iPost)
+  ok(/to_regprocedure\(s\) is null/.test(POST) && /effacer_adresses_ip\(\)'/.test(POST),
+    'postcondition : signatures par TYPES (§E.67)')
+  ok(/set conservation_ip_mois = 0 where/.test(POST) && /set conservation_ip_mois = 61 where/.test(POST) && /when check_violation/.test(POST),
+    'postcondition : la contrainte est EPROUVEE (0 et 61 refuses), pas lue')
+  ok(/v_res := public\.effacer_adresses_ip\(\)/.test(POST) && /SONDE_ANNULEE/.test(POST),
+    'postcondition : l’effacement est EXECUTE puis annule (sonde en sous-transaction)')
+
+  const LECTEUR = sansCommentaires(read('lib/durees.ts'))
+  ok(/export async function chargerConservationIp/.test(LECTEUR) && !/conservationIpMois\s*(=|\?\?)\s*\d/.test(LECTEUR) && !/\b12\b/.test(LECTEUR),
+    'le lecteur existe et n’a AUCUN defaut')
+  const ROUTE = sansCommentaires(read('app/api/admin/durees/route.ts'))
+  ok(/conservation_ip_mois: conservationIp,/.test(ROUTE) && /invalid_ip_retention/.test(ROUTE) && /estConservationIpAcceptable\(conservationIp\)/.test(ROUTE),
+    'la route l’ecrit, bornee, avec une raison nommee distincte des jours')
+  const TRACE = ROUTE.slice(ROUTE.indexOf("action: 'durees_place_updated'"))
+  ok((TRACE.match(/conservation_ip_mois/g) || []).length >= 2, 'la trace porte la valeur AVANT et APRES')
+  const ECRAN = sansCommentaires(read('app/[locale]/admin/durees/page.tsx'))
+  ok(/conservation_ip_mois: Number\(conservationIp\)/.test(ECRAN) && /max=\{60\}/.test(ECRAN) && /ip\.acts_on_existing_body/.test(ECRAN),
+    'l’ecran porte le champ, borne a 60, et DIT qu’il agit sur l’existant')
+
+  for (const langue of ['fr', 'en', 'es', 'de']) {
+    const j = JSON.parse(read(`messages/${langue}.json`))
+    const lire = (racine, chemin) => chemin.split('.').reduce((o, k) => (o ? o[k] : undefined), racine)
+    const manquantes = [
+      ...['months', 'invalid_ip', 'ip.title', 'ip.acts_on_existing_label', 'ip.acts_on_existing_body', 'ip.help']
+        .filter((c) => typeof lire(j.admin_durees, c) !== 'string' || !lire(j.admin_durees, c).trim()),
+      ...['jobs.ip_retention.label', 'jobs.ip_retention.description', 'legal_basis.ip_12m']
+        .filter((c) => typeof lire(j.admin_back_office?.cron, c) !== 'string' || !lire(j.admin_back_office.cron, c).trim()),
+    ]
+    ok(manquantes.length === 0, `${langue} : le champ, son avertissement et la tache sont traduits`,
+      'clef(s) absente(s) : ' + manquantes.join(', '))
+  }
+}
+
 console.log(echecs === 0 ? '\n✔ TOUT VERT' : `\n✘ ${echecs} CONTROLE(S) EN ECHEC`)
 process.exit(echecs === 0 ? 0 : 1)

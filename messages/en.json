@@ -2956,7 +2956,8 @@
       },
       "legal_basis": {
         "rgpd_art17": "GDPR art. 17 — right to erasure",
-        "cnil_2y": "CNIL — retention ≤ 2 years after the last contact"
+        "cnil_2y": "CNIL — retention ≤ 2 years after the last contact",
+        "ip_12m": "GDPR art. 5(1)(e) — storage limitation (IP addresses: 12 months, adjustable)"
       },
       "jobs": {
         "purge_deletions": {
@@ -2994,6 +2995,10 @@
         "stripe_reconcile": {
           "label": "Stripe connection check",
           "description": "Each night, compares the events Stripe produced over the last 24 hours with those our log received. Any gap points to a missed event or a processing fault. It REPORTS and reprocesses nothing: Stripe keeps its events for 30 days, after which a missing one becomes unfindable."
+        },
+        "ip_retention": {
+          "label": "IP address erasure",
+          "description": "Sets to NULL the IP address and browser of audit and session logs older than the configured retention (12 months by default)."
         }
       },
       "banner_action": "View scheduled tasks",
@@ -4153,6 +4158,14 @@
       "note": "Nothing stops you from doing this. You are only asked to do it knowingly. The change and this number will be recorded.",
       "accept": "I confirm, save",
       "cancel": "Cancel"
+    },
+    "months": "months",
+    "invalid_ip": "IP address retention must be a whole number of months, between 1 and 60.",
+    "ip": {
+      "title": "IP address retention",
+      "acts_on_existing_label": "This setting acts on existing data.",
+      "acts_on_existing_body": "Every night, the “IP address erasure” task sets to NULL the IP address and browser of every audit or session row older than this duration. Lowering it therefore erases, from the next night on, addresses already recorded — and an erasure cannot be undone.",
+      "help": "Twelve months is a proposal, not a measurement: an IP address is personal data, and nothing justifies keeping it beyond the time needed to understand a suspicious login. The task leaves its trace in the scheduled tasks."
     }
   },
   "ecosystem_switcher": {

@@ -2956,7 +2956,8 @@
       },
       "legal_basis": {
         "rgpd_art17": "RGPD art. 17 — droit à l’effacement",
-        "cnil_2y": "CNIL — conservation ≤ 2 ans après le dernier contact"
+        "cnil_2y": "CNIL — conservation ≤ 2 ans après le dernier contact",
+        "ip_12m": "RGPD art. 5.1.e — limitation de la conservation (adresses IP : 12 mois, réglable)"
       },
       "jobs": {
         "purge_deletions": {
@@ -2994,6 +2995,10 @@
         "stripe_reconcile": {
           "label": "Vérification du raccordement Stripe",
           "description": "Compare chaque nuit les événements que Stripe a produits aux dernières 24 heures avec ceux que notre journal a reçus. Tout écart signale un événement manqué ou un défaut de traitement. Elle SIGNALE et ne retraite rien : Stripe conserve ses événements 30 jours, au-delà un manque devient introuvable."
+        },
+        "ip_retention": {
+          "label": "Effacement des adresses IP",
+          "description": "Met à NULL l'adresse IP et le navigateur des journaux d'audit et de session plus anciens que la durée réglée (12 mois par défaut)."
         }
       },
       "banner_action": "Voir les tâches planifiées",
@@ -4153,6 +4158,14 @@
       "note": "Rien ne vous empêche de le faire. On vous demande seulement de le faire en le sachant. Le changement et ce nombre seront tracés.",
       "accept": "Je confirme, enregistrer",
       "cancel": "Annuler"
+    },
+    "months": "mois",
+    "invalid_ip": "La conservation des adresses IP doit être un nombre entier de mois, entre 1 et 60.",
+    "ip": {
+      "title": "Conservation des adresses IP",
+      "acts_on_existing_label": "Ce réglage agit sur l'existant.",
+      "acts_on_existing_body": "Chaque nuit, la tâche « Effacement des adresses IP » met à NULL l'adresse IP et le navigateur de toute ligne d'audit ou de session plus ancienne que cette durée. Baisser la durée efface donc, dès la nuit suivante, des adresses déjà enregistrées — et un effacement ne se défait pas.",
+      "help": "Douze mois est une proposition, pas une mesure : une adresse IP est une donnée personnelle, et rien ne justifie de la garder au-delà du temps utile pour comprendre une connexion suspecte. La tâche laisse sa trace dans les tâches planifiées."
     }
   },
   "ecosystem_switcher": {

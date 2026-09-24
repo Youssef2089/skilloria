@@ -3,7 +3,13 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { identifiantDerive } from '@/lib/admin/identifiant-derive'
-import { chargerDurees, estDureeAcceptable, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
+import {
+  chargerDurees,
+  estDureeAcceptable,
+  chargerConservationIp,
+  estConservationIpAcceptable,
+  DUREES_ILLISIBLES_CODE,
+} from '@/lib/durees'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -60,6 +66,15 @@ export const dynamic = 'force-dynamic'
  *   les yeux ouverts. Un refus définitif aurait obligé à modifier la base à la
  *   main — c'est-à-dire exactement le défaut que cet écran ferme (§E.10).
  *
+ * ═══ LA QUATRIÈME DURÉE N'EST PAS DU CONTRAT : ELLE EST LÉGALE ══════════════
+ *   La CONSERVATION DES ADRESSES IP (12 mois) — combien de temps
+ *   `audit_logs` et `session_logs` gardent l'adresse et le navigateur d'une
+ *   action ou d'une connexion. Elle AGIT SUR L'EXISTANT : la tâche
+ *   `ip_retention_purge` efface chaque nuit ce qui dépasse la durée réglée,
+ *   et un effacement ne se défait pas. Bornes 1–60 mois, raison nommée
+ *   `invalid_ip_retention` — distincte des jours, pour que l'écran dise la
+ *   bonne unité.
+ *
  * ═══ ET CHAQUE CHANGEMENT LAISSE UNE TRACE ══════════════════════════════════
  *   `audit_logs` : qui, quand, depuis quelle adresse, de quelle valeur vers
  *   quelle valeur, et le nombre d'annonces annoncé au moment de la décision.
@@ -114,6 +129,10 @@ export async function GET(request: NextRequest): Promise<Response> {
   if (!lecture.ok) {
     return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE, raison: lecture.raison }, 503)
   }
+  const ip = await chargerConservationIp(admin)
+  if (!ip.ok) {
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE, raison: ip.raison }, 503)
+  }
 
   // SIMULATION : l'écran demande « et si je mettais N ? » AVANT de toucher à
   // quoi que ce soit. C'est la même question que celle posée au moment
@@ -141,6 +160,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     vie_annonce_jours: lecture.durees.vieAnnonceJours,
     fenetre_echange_jours: lecture.durees.fenetreEchangeJours,
     invitation_jours: lecture.durees.invitationJours,
+    conservation_ip_mois: ip.conservationIpMois,
     updated_at: meta?.updated_at ?? null,
     updated_by: meta?.updated_by ?? null,
     simulation,
@@ -151,6 +171,7 @@ type CorpsPatch = {
   vie_annonce_jours?: unknown
   fenetre_echange_jours?: unknown
   invitation_jours?: unknown
+  conservation_ip_mois?: unknown
   confirme_retroactivite?: unknown
 }
 
@@ -183,8 +204,22 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     )
   }
 
+  // Les MOIS ont leurs bornes, et leur raison : mélangés aux jours, l'écran
+  // annoncerait « entre 1 et 365 » pour une valeur qui n'a pas cette unité.
+  const conservationIp = Number(corps.conservation_ip_mois)
+  if (!estConservationIpAcceptable(conservationIp)) {
+    return json(
+      { error: 'Invalid IP retention', code: 'invalid_ip_retention', bornes: { min: 1, max: 60 } },
+      400,
+    )
+  }
+
   const avant = await chargerDurees(admin)
   if (!avant.ok) {
+    return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
+  }
+  const avantIp = await chargerConservationIp(admin)
+  if (!avantIp.ok) {
     return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
   }
 
@@ -230,6 +265,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       vie_annonce_jours: vie,
       fenetre_echange_jours: fenetre,
       invitation_jours: invitation,
+      conservation_ip_mois: conservationIp,
       updated_at: new Date().toISOString(),
       updated_by: auth.user.id,
     })
@@ -255,11 +291,13 @@ export async function PATCH(request: NextRequest): Promise<Response> {
         vie_annonce_jours: avant.durees.vieAnnonceJours,
         fenetre_echange_jours: avant.durees.fenetreEchangeJours,
         invitation_jours: avant.durees.invitationJours,
+        conservation_ip_mois: avantIp.conservationIpMois,
       },
       apres: {
         vie_annonce_jours: vie,
         fenetre_echange_jours: fenetre,
         invitation_jours: invitation,
+        conservation_ip_mois: conservationIp,
       },
       retroactivite: bascule
         ? {
@@ -275,6 +313,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     vie_annonce_jours: vie,
     fenetre_echange_jours: fenetre,
     invitation_jours: invitation,
+    conservation_ip_mois: conservationIp,
     retroactivite_appliquee: bascule ?? null,
   })
 }

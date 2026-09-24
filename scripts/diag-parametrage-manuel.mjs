@@ -5,7 +5,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // POURQUOI CE CONTROLE
 //
-//   Les migrations posent neuf taches pg_cron. Cinq d'entre elles passent par
+//   Les migrations posent dix taches pg_cron. Cinq d'entre elles passent par
 //   `trigger_purge_cron`, qui lit DEUX secrets dans Supabase Vault :
 //   `cron_secret` et `purge_cron_base_url`. Ces secrets ne peuvent pas etre
 //   versionnes — ils different par environnement. Ils sont donc poses A LA

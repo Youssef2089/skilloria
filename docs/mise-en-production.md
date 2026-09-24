@@ -80,7 +80,7 @@ La base déclenche elle-même cinq tâches en appelant l'application par Interne
 
 ### Ce qui se passe si vous les oubliez
 
-**Cinq** des neuf tâches planifiées s'arrêtent net à chaque déclenchement :
+**Cinq** des dix tâches planifiées s'arrêtent net à chaque déclenchement :
 
 | Tâche | Ce qu'elle fait | Conséquence si elle ne tourne pas |
 |---|---|---|
@@ -319,7 +319,7 @@ Poser les secrets ne prouve pas qu'ils sont **bons**. Un secret différent de ce
 
 1. Ouvrez l'application, connectez-vous en administrateur.
 2. Allez sur **/admin/taches-planifiees**.
-3. Vous devez voir **neuf** tâches.
+3. Vous devez voir **dix** tâches.
 4. Choisissez `matching_retry_trigger` — c'est la moins risquée à déclencher : si elle n'a rien à faire, elle ne fait rien.
 5. Cliquez sur **Exécuter maintenant**.
 6. Attendez une minute, puis ouvrez l'historique de cette tâche.

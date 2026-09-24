@@ -120,3 +120,47 @@ export async function chargerDurees(supabaseAdmin: SupabaseClient): Promise<Lect
 export function estDureeAcceptable(v: unknown): v is number {
   return typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 365
 }
+
+/**
+ * LA CONSERVATION DES ADRESSES IP — une durée LÉGALE, pas une promesse de la
+ * place. Elle vit dans la même ligne que les trois durées du contrat, mais
+ * elle n'en est pas une : son unité est le MOIS, ses bornes 1–60, et aucune
+ * des routes qui lisent les trois autres n'a besoin d'elle — seuls l'écran
+ * d'administration et la tâche `ip_retention_purge` (en SQL, qui lit la
+ * colonne directement) la lisent. Un lecteur à part, même règle : AUCUN
+ * défaut dans le code. Sans réglage, la route refuse et le dit.
+ */
+export type LectureConservationIp =
+  | { ok: true; conservationIpMois: number }
+  | { ok: false; raison: string }
+
+export async function chargerConservationIp(supabaseAdmin: SupabaseClient): Promise<LectureConservationIp> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('duree_reglages')
+      .select('conservation_ip_mois')
+      .eq('ligne_unique', true)
+      .maybeSingle()
+    if (error) {
+      console.error('[durees] conservation IP illisible', { message: error.message })
+      return { ok: false, raison: `conservation des adresses IP illisible (${error.message})` }
+    }
+    if (!data) return { ok: false, raison: 'aucune ligne de réglage des durées en base' }
+    const mois = Number((data as { conservation_ip_mois: unknown }).conservation_ip_mois)
+    if (!estConservationIpAcceptable(mois)) {
+      console.error('[durees] conservation IP hors bornes', { mois })
+      return { ok: false, raison: `conservation des adresses IP hors bornes (${String(mois)})` }
+    }
+    return { ok: true, conservationIpMois: mois }
+  } catch (err) {
+    console.error('[durees] conservation IP illisible (exception)', {
+      cause: err instanceof Error ? err.message : String(err),
+    })
+    return { ok: false, raison: 'conservation des adresses IP illisible' }
+  }
+}
+
+/** Les mêmes bornes que la base — un entier entre 1 et 60 mois. */
+export function estConservationIpAcceptable(v: unknown): v is number {
+  return typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 60
+}

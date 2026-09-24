@@ -2956,7 +2956,8 @@
       },
       "legal_basis": {
         "rgpd_art17": "RGPD art. 17 — derecho de supresión",
-        "cnil_2y": "CNIL — conservación ≤ 2 años tras el último contacto"
+        "cnil_2y": "CNIL — conservación ≤ 2 años tras el último contacto",
+        "ip_12m": "RGPD art. 5.1.e — limitación del plazo de conservación (direcciones IP: 12 meses, ajustable)"
       },
       "jobs": {
         "purge_deletions": {
@@ -2994,6 +2995,10 @@
         "stripe_reconcile": {
           "label": "Verificación de la conexión con Stripe",
           "description": "Cada noche compara los eventos que Stripe ha producido en las últimas 24 horas con los que ha recibido nuestro registro. Cualquier diferencia indica un evento perdido o un fallo de procesamiento. SEÑALA y no reprocesa nada: Stripe conserva sus eventos 30 días, pasados los cuales uno perdido resulta imposible de encontrar."
+        },
+        "ip_retention": {
+          "label": "Borrado de direcciones IP",
+          "description": "Pone a NULL la dirección IP y el navegador de los registros de auditoría y de sesión más antiguos que la duración configurada (12 meses por defecto)."
         }
       },
       "banner_action": "Ver las tareas programadas",
@@ -4153,6 +4158,14 @@
       "note": "Nada se lo impide. Solo se le pide que lo haga sabiéndolo. El cambio y esta cifra quedarán registrados.",
       "accept": "Confirmo, guardar",
       "cancel": "Cancelar"
+    },
+    "months": "meses",
+    "invalid_ip": "La conservación de las direcciones IP debe ser un número entero de meses, entre 1 y 60.",
+    "ip": {
+      "title": "Conservación de las direcciones IP",
+      "acts_on_existing_label": "Este ajuste actúa sobre lo existente.",
+      "acts_on_existing_body": "Cada noche, la tarea « Borrado de direcciones IP » pone a NULL la dirección IP y el navegador de toda línea de auditoría o de sesión más antigua que esta duración. Reducirla borra por tanto, desde la noche siguiente, direcciones ya registradas — y un borrado no se deshace.",
+      "help": "Doce meses es una propuesta, no una medida: una dirección IP es un dato personal, y nada justifica conservarla más allá del tiempo útil para entender una conexión sospechosa. La tarea deja su rastro en las tareas planificadas."
     }
   },
   "ecosystem_switcher": {

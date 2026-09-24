@@ -90,6 +90,9 @@ const EXPECTED = [
   { name: 'purge_inactive_trigger',  http: true,  maxAgeHours: 26, label: 'Purge CNIL 2 ans (comptes inactifs)' },
   { name: 'cron_run_reconcile',      http: false, maxAgeHours: 26, label: 'Reconciliation des reponses HTTP' },
   { name: 'cron_run_log_purge',      http: false, maxAgeHours: 26, label: 'Menage cron_run_log + cron.job_run_details' },
+  // SQL pure, mais elle ecrit son propre verdict (cloturer_run_cron) : on
+  // l'exige comme pour une route — un passage sans verdict est un trou.
+  { name: 'ip_retention_purge',      http: true,  maxAgeHours: 26, label: 'Effacement des adresses IP (retention reglable, 12 mois)' },
 ]
 
 function hoursSince(iso) {
@@ -155,7 +158,8 @@ for (const exp of EXPECTED) {
     }
   }
 
-  // 3. Le resultat HTTP : uniquement pour les deux jobs qui appellent une route.
+  // 3. Le verdict : pour les jobs qui en ecrivent un (routes HTTP, et la tache
+  //    SQL qui clot sa propre ligne).
   if (exp.http && r) {
     const httpAge = hoursSince(r.http_requested_at)
     if (r.http_requested_at === null) {
@@ -204,7 +208,7 @@ if (!cntErr) {
 console.log()
 console.log('='.repeat(78))
 if (ko === 0) {
-  console.log(`${GREEN}${BOLD}TOUT EST VERT${RESET} — les 4 jobs tournent et les purges repondent 200.`)
+  console.log(`${GREEN}${BOLD}TOUT EST VERT${RESET} — les ${EXPECTED.length} jobs tournent et les purges repondent 200.`)
   if (warn > 0) console.log(`${YELLOW}${warn} avertissement(s) non bloquant(s) ci-dessus.${RESET}`)
 } else {
   console.log(`${RED}${BOLD}${ko} JOB(S) EN DEFAUT${RESET} — voir le detail ci-dessus.`)
