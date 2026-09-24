@@ -1842,6 +1842,37 @@ promesse de vigilance** : §E.16.
 
 ---
 
+### M2 — Les quatre migrations en `1xxxxx`, et pourquoi on ne les renomme pas
+
+> ⚠️ **ET LA RÈGLE A ÉTÉ ENFREINTE PAR LE TRONC LUI-MÊME, QUATRE FOIS.**
+> `20260916100000_tarifs_ia`, `…110000_depense_ia_par_acteur`, `…120000_durees_reglables` et
+> `…130000_duree_invitation` portent un suffixe **`1xxxxx`** — précisément la plage que le
+> paragraphe ci-dessus déclare **fausse et corrigée**. Écrites les 16 et 17 septembre 2026, relues
+> plusieurs fois, et personne ne l'a vu : **rien ne pouvait le voir.**
+>
+> **Aucune collision n'en a résulté** — `1xxxxx` n'est attribuée à aucun worktree, et l'ordre
+> chronologique tient. Mais la plage existe *pour* éviter la collision, et celle-ci a déjà coûté un
+> renumérotage en urgence.
+>
+> **Les quatre sont APPLIQUÉES en base — MESURÉ le 18/09/2026.** Ce paragraphe disait « trois des
+> quatre », et c'était vrai à sa date : la quatrième était alors **renommable**, et le gel ne disait
+> pas laquelle. C'était la seule ligne gelée du dépôt sans raison individuelle (§G.8).
+> **La fenêtre est refermée** : au moment de cette mesure le disque portait **65** migrations — il en
+> compte **66** depuis `echelle_des_notes` (19/09/2026) —, et la requête sur
+> `supabase_migrations.schema_migrations` — celle qui est en tête du gel dans
+> [scripts/diag-migration-donnees.mjs](../scripts/diag-migration-donnees.mjs) — a rendu **quatre
+> lignes**. Le gel est **définitif**.
+> ⚠️ La mesure vient d'une **lecture humaine sur la base**, pas du dépôt : aucun contrôle ne peut la
+> refaire tout seul (§E.12). Les renommer ferait diverger
+> `supabase_migrations.schema_migrations` du disque, donc **rejouer des migrations déjà passées**.
+> On ne corrige pas le passé : **on l'inscrit, et on ferme l'avenir.**
+>
+> **La parade — un CLIQUET**, dans [scripts/diag-migration-donnees.mjs](../scripts/diag-migration-donnees.mjs),
+> même forme que `diag-colonnes-supprimees` : les quatre sont **gelées nommément**, le compte ne peut
+> que **descendre**, et toute **nouvelle** migration hors des plages attribuées fait rougir. Éprouvé
+> par mutation, dans les deux sens : une migration en `4xxxxx` est refusée, une gelée renommée dans
+> la bonne plage est signalée comme sortie du gel.
+
 ### M1 bis — La fusion de `feat/s2`, et comment la collision a été tranchée
 
 Le 17/09/2026, `feat/s2` a été fusionné dans le tronc. **Les deux côtés avaient écrit dans la mémoire

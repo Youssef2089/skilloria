@@ -3375,6 +3375,79 @@ bancs ne chargeaient que des modules **purs**. `ai-publication-quality.ts` l'ét
 
 ---
 
+<a id="e67"></a>
+
+## E.67 — UNE POSTCONDITION QUI COMPARE UNE CHAÎNE RENDUE PAR POSTGRES PARIE SUR UN FORMAT. ET UNE POSTCONDITION JAMAIS EXÉCUTÉE EST UNE AFFIRMATION.
+
+**Le cas, mesuré le 24/09/2026 sur staging.** Un `db push` s'est arrêté sur :
+
+> `verdict_ecrit_par_la_tache: postcondition NON TENUE — cloturer_run_cron(bigint,integer,jsonb,text)`
+
+**La fonction existait.** La migration venait de la créer **six lignes plus haut, dans la même
+transaction**. C'est la vérification qui était fausse.
+
+```sql
+-- CE QUI ÉTAIT ÉCRIT
+and pg_get_function_identity_arguments(p.oid) = 'bigint, integer, jsonb, text'
+```
+
+`pg_get_function_identity_arguments` rend **aussi les NOMS** des paramètres —
+`p_log_id bigint, p_http_status integer, …`. La comparaison ne pouvait donc **jamais** être vraie
+sur une fonction aux paramètres nommés, **c'est-à-dire sur toutes les nôtres** : les **neuf**
+fonctions visées par ce motif en avaient (mesuré dans le dépôt).
+
+> ⚠️ **QUATRE SITES, TROIS MIGRATIONS, ÉCRITS LE MÊME JOUR PAR LA MÊME MAIN.** La première a arrêté
+> le push ; les trois autres attendaient leur tour. **Cinq migrations ne sont pas parties.**
+
+**LA PARADE : RÉSOUDRE, PAS RENDRE.**
+
+```sql
+if to_regprocedure('public.cloturer_run_cron(bigint, integer, jsonb, text)') is null then
+```
+
+`to_regprocedure` prend une signature **en TYPES**, la résout, et rend `null` si rien ne
+correspond. Aucun rendu, aucun nom, aucune mise en forme : la question posée est celle qu'on
+voulait poser. Une comparaison de chaîne rendue demande à Postgres de **formater**, puis **parie**
+sur le format.
+
+### Les deux autres défauts, trouvés par le même examen
+
+**① `pg_get_functiondef` EST STRICT, ET SON `NULL` TRAVERSE LE `if`.**
+Sur une fonction absente il rend `null`, et `null not like '%x%'` vaut **`null`** — donc le `if`
+**ne s'exécute pas**. Une fonction manquante **passait** la vérification. C'est **§E.37** : la garde
+ne refuse pas de s'ouvrir, elle **choisit le mauvais état**. Elle ne tenait que parce qu'une autre
+vérification la précédait — une discipline, pas une garantie. Parade : `coalesce(…, '')`.
+⚠️ **Sauf dans un `exists (select …)`**, où une ligne absente ne matche simplement pas et où le
+`not exists` fait son travail. Les deux formes se distinguent, et le contrôle les distingue.
+
+**② LE RENDU D'UNE CONSTANTE `timestamptz` DÉPEND DU FUSEAU DE LA SESSION.** Une borne comparée à
+`'%2026-09-23%'` se lit `'2026-09-22 17:00:00-07'` sur une session en heure du Pacifique, et la
+postcondition **lève en annonçant disparue une borne qui est là**. Même faute, transposée au temps.
+Il n'existe pas de `to_regconstraint` : on rend donc le rendu **déterministe** —
+`set local timezone to 'UTC'`, qui ne vaut que pour la transaction.
+
+### La leçon, et elle est plus large que le format
+
+**CES SIX MIGRATIONS N'AVAIENT JAMAIS TOURNÉ SUR UNE BASE AVANT STAGING.** §E.60 dit déjà qu'une
+migration qui « réussit » n'a rien prouvé. Le pendant manquait : **une postcondition qui n'a jamais
+été exécutée est une AFFIRMATION, pas une preuve** — et elle est pire qu'absente, parce qu'elle
+**arrête un déploiement sur un faux négatif**, en accusant le code au lieu d'elle-même.
+
+> **ET LE REFUS DOIT LIVRER DE QUOI LE CONTREDIRE.** Le message annonçait la fonction absente ;
+> elle était là. Un refus qui n'énumère pas **ce qu'il a vu** envoie chercher dans le noir. Les
+> postconditions corrigées impriment désormais les signatures réellement présentes
+> (`p.oid::regprocedure::text`) ou le rendu réellement obtenu.
+
+**Gardé par [`diag-signature-de-fonction`](../scripts/diag-signature-de-fonction.mjs)** — il balaie
+**les 86 migrations**, pas les six du lot : la faute est une habitude d'écriture, pas un accident de
+sprint (§E.61).
+⚠️ **Il garde la FORME, pas le comportement de Postgres.** Aucun moteur ne tourne dans le dépôt — ni
+`psql`, ni Docker, et PostgREST ne lit pas `pg_catalog`. Ce qui prouve le mécanisme est une requête
+sur une vraie base, et **ça reste vrai après ce correctif** : la parade est de **rejouer les
+migrations sur une base locale jetable** (`npx supabase db reset --local`) **avant tout `db push`**.
+
+---
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

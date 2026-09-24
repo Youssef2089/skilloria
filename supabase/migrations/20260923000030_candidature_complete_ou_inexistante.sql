@@ -289,6 +289,15 @@ declare
   v_ok   boolean;
   v_n    integer;
 begin
+  -- ⚠️ LE RENDU D'UNE CONSTANTE `timestamptz` DÉPEND DU FUSEAU DE LA SESSION.
+  --    La borne de date de cette contrainte se lirait « 2026-09-22 17:00:00-07 »
+  --    sur une session en heure du Pacifique, et le motif « 2026-09-23 »
+  --    ci-dessous LÈVERAIT en annonçant disparue une borne qui est là — la
+  --    même faute que celle qui a arrêté un `db push` sur staging, transposée
+  --    au temps. Il n'existe pas de `to_regconstraint` pour s'en passer : on
+  --    rend donc le rendu DÉTERMINISTE. `set local` ne vaut que pour cette
+  --    transaction et disparaît au commit.
+  set local timezone to 'UTC';
   -- ── La contrainte existe, par son NOM, sur la BONNE table, et elle est VALIDE
   select pg_get_constraintdef(c.oid), c.convalidated
     into v_def, v_ok
@@ -404,18 +413,25 @@ begin
     join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public'
      and p.proname = 'ouvrir_depot_candidature'
-     and pg_get_function_identity_arguments(p.oid) = 'uuid, uuid, uuid, text';
+     and p.oid = to_regprocedure('public.ouvrir_depot_candidature(uuid, uuid, uuid, text)');
   if v_n <> 1 then
     raise exception 'postcondition NON TENUE : ouvrir_depot_candidature n a pas la signature (uuid, uuid, uuid, text)';
   end if;
 
   -- Elle DOIT reprendre la ligne existante plutôt que d'en empiler une
   -- seconde : sans le `on conflict`, l'unicité ferait échouer toute relance.
-  if pg_get_functiondef(
-       (select p.oid from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-         where n.nspname = 'public' and p.proname = 'ouvrir_depot_candidature' limit 1)
+  -- ⚠️ LE `coalesce` N'EST PAS UNE PRÉCAUTION DE STYLE. `pg_get_functiondef`
+  --    est STRICT : sur une fonction absente, le sous-`select` rend NULL, la
+  --    fonction rend NULL, et `NULL not like '%x%'` vaut NULL — donc le `if`
+  --    NE S'EXÉCUTE PAS. Une fonction manquante PASSAIT cette vérification.
+  --    C'est §E.37 : la garde ne refuse pas de s'ouvrir, elle choisit le
+  --    mauvais état. Elle ne tenait que parce qu'une autre vérification la
+  --    précédait — une discipline, pas une garantie.
+  if coalesce(
+       pg_get_functiondef(to_regprocedure('public.ouvrir_depot_candidature(uuid, uuid, uuid, text)')),
+       ''
      ) not like '%on conflict%' then
-    raise exception 'postcondition NON TENUE : ouvrir_depot_candidature ne reprend pas la ligne existante';
+    raise exception 'postcondition NON TENUE : ouvrir_depot_candidature ne reprend pas la ligne existante (ou est introuvable)';
   end if;
 
   raise notice 'postcondition tenue : contrainte validee, journal des depots en place';

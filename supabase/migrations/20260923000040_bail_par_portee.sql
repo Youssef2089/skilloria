@@ -248,6 +248,7 @@ drop table if exists public.cron_run_leases;
 do $post$
 declare
   v_n integer;
+  v_sig text;
 begin
   if to_regclass('public.baux') is null then
     raise exception 'postcondition NON TENUE : public.baux absente';
@@ -269,29 +270,56 @@ begin
     raise exception 'postcondition NON TENUE : la cle primaire de baux n est pas (portee, cle) — sans elle, l upsert n est plus atomique';
   end if;
 
-  -- LES QUATRE FONCTIONS, par leur signature exacte.
-  for v_n in
-    select 1 from (values
-      ('prendre_bail', 'text, text, interval'),
-      ('rendre_bail', 'text, text'),
-      ('bail_tenu', 'text, text, interval'),
-      ('prendre_bail_run', 'text, interval'),
-      ('rendre_bail_run', 'text')
-    ) as attendues(nom, args)
-    where not exists (
-      select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-       where n.nspname = 'public' and p.proname = attendues.nom
-         and pg_get_function_identity_arguments(p.oid) = attendues.args
-    )
+  -- LES CINQ FONCTIONS, par leur signature exacte — RÉSOLUE PAR SES TYPES.
+  -- ⚠️ ON RÉSOUT LA FONCTION PAR SES TYPES, PAS PAR UNE CHAÎNE RENDUE.
+  --    `pg_get_function_identity_arguments` rend AUSSI LES NOMS des
+  --    paramètres — « p_log_id bigint, p_http_status integer, … ». La comparer
+  --    à « bigint, integer, jsonb, text » ne pouvait donc JAMAIS être vraie sur
+  --    une fonction aux paramètres nommés, c'est-à-dire sur toutes les nôtres.
+  --    Cette postcondition a arrêté un `db push` sur staging en annonçant
+  --    absente une fonction que la migration venait de créer six lignes plus
+  --    haut.
+  --
+  --    `to_regprocedure` prend une signature en TYPES, la résout, et rend NULL
+  --    si rien ne correspond. Aucun rendu, aucun nom, aucune mise en forme :
+  --    la question posée est celle qu'on voulait poser.
+  --
+  --    ET LE REFUS NOMME LAQUELLE. « une fonction de bail manque » sur cinq
+  --    candidates envoyait chercher dans le noir.
+  for v_sig in
+    select s from unnest(array[
+      'public.prendre_bail(text, text, interval)',
+      'public.rendre_bail(text, text)',
+      'public.bail_tenu(text, text, interval)',
+      'public.prendre_bail_run(text, interval)',
+      'public.rendre_bail_run(text)'
+    ]) as s
+    where to_regprocedure(s) is null
   loop
-    raise exception 'postcondition NON TENUE : une fonction de bail manque ou a changé de signature';
+    -- ET LE REFUS DIT CE QU'IL A VU. Nommer la signature attendue ne suffit
+    -- pas : c'est en lisant CE QUI EXISTE qu'on comprend si la fonction manque
+    -- ou si elle a simplement changé d'arite. Le message d'origine du cas de
+    -- staging annonçait une fonction absente qui était là ; quatre heures se
+    -- perdent ainsi.
+    raise exception
+      'postcondition NON TENUE : % manque ou a change de signature [vu : %]',
+      v_sig,
+      coalesce(
+        (select string_agg(p.oid::regprocedure::text, ' | ')
+           from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+          where n.nspname = 'public'
+            and p.proname = split_part(split_part(v_sig, '.', 2), '(', 1)),
+        'aucune fonction de ce nom');
   end loop;
 
   -- LES ENVELOPPES DÉLÈGUENT — si elles réimplémentaient, le jumeau serait
   -- revenu par la porte que cette migration ferme.
-  if pg_get_functiondef(
-       (select p.oid from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-         where n.nspname = 'public' and p.proname = 'prendre_bail_run' limit 1)
+  -- ⚠️ `coalesce` OBLIGATOIRE : `pg_get_functiondef` est STRICT, et
+  --    `NULL not like '%x%'` vaut NULL — le `if` ne s'exécute pas, et une
+  --    fonction absente PASSE (§E.37).
+  if coalesce(
+       pg_get_functiondef(to_regprocedure('public.prendre_bail_run(text, interval)')),
+       ''
      ) not like '%prendre_bail(%' then
     raise exception 'postcondition NON TENUE : prendre_bail_run ne delegue pas — deux implementations du meme verrou';
   end if;

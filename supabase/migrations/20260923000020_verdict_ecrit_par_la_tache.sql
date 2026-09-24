@@ -322,13 +322,30 @@ begin
 
   -- La fonction, AVEC SA SIGNATURE — une fonction du meme nom et d'une autre
   -- arite ne rendrait pas le service attendu, et l'appel resoudrait ailleurs.
-  if not exists (
-    select 1 from pg_proc p
-      join pg_namespace n on n.oid = p.pronamespace
-     where n.nspname = 'public' and p.proname = 'cloturer_run_cron'
-       and pg_get_function_identity_arguments(p.oid) = 'bigint, integer, jsonb, text'
-  ) then
-    v_manque := v_manque || ' cloturer_run_cron(bigint,integer,jsonb,text)';
+  -- ⚠️ ON RÉSOUT LA FONCTION PAR SES TYPES, PAS PAR UNE CHAÎNE RENDUE.
+  --    `pg_get_function_identity_arguments` rend AUSSI LES NOMS des
+  --    paramètres — « p_log_id bigint, p_http_status integer, … ». La comparer
+  --    à « bigint, integer, jsonb, text » ne pouvait donc JAMAIS être vraie sur
+  --    une fonction aux paramètres nommés, c'est-à-dire sur toutes les nôtres.
+  --    Cette postcondition a arrêté un `db push` sur staging en annonçant
+  --    absente une fonction que la migration venait de créer six lignes plus
+  --    haut.
+  --
+  --    `to_regprocedure` prend une signature en TYPES, la résout, et rend NULL
+  --    si rien ne correspond. Aucun rendu, aucun nom, aucune mise en forme :
+  --    la question posée est celle qu'on voulait poser.
+  --
+  --    ET LE REFUS DIT CE QU'IL A VU. Le message d'origine annonçait la
+  --    fonction absente ; elle existait. Une postcondition qui se trompe doit
+  --    au moins livrer de quoi la contredire.
+  if to_regprocedure('public.cloturer_run_cron(bigint, integer, jsonb, text)') is null then
+    v_manque := v_manque || ' cloturer_run_cron(bigint,integer,jsonb,text) [vu : '
+      || coalesce(
+           (select string_agg(p.oid::regprocedure::text, ' | ')
+              from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where n.nspname = 'public' and p.proname = 'cloturer_run_cron'),
+           'aucune fonction de ce nom')
+      || ']';
   end if;
 
   -- Et la reprise en main du pilote : le corps doit porter le nouvel ordre.
@@ -502,15 +519,29 @@ comment on function public.admin_cron_job_runs(text, integer, integer) is
 
 do $$
 begin
-  if not exists (
-    select 1 from pg_proc p
-      join pg_namespace n on n.oid = p.pronamespace
-     where n.nspname = 'public' and p.proname = 'admin_cron_job_runs'
-       and pg_get_function_identity_arguments(p.oid) = 'text, integer, integer'
-       and pg_get_function_result(p.oid) like '%verdict_attendu boolean%'
-  ) then
+  -- ⚠️ MÊME CORRECTIF QUE CI-DESSUS, ET C'EST LA SECONDE DE QUATRE : la
+  --    signature se résout par ses TYPES.
+  --    ⚠️ Le `pg_get_function_result`, LUI, RESTE — et c'est voulu : le type de
+  --       retour d'une fonction qui rend une TABLE porte les NOMS de colonnes,
+  --       et c'est précisément un nom de colonne qu'on veut ici. La même
+  --       propriété qui cassait la ligne du dessus est celle qui fait marcher
+  --       celle-ci. Il est simplement séparé, pour que son échec se distingue.
+  if to_regprocedure('public.admin_cron_job_runs(text, integer, integer)') is null then
     raise exception
-      'verdict_ecrit_par_la_tache: admin_cron_job_runs ne rend pas verdict_attendu';
+      'verdict_ecrit_par_la_tache: admin_cron_job_runs(text, integer, integer) introuvable [vu : %]',
+      coalesce(
+        (select string_agg(p.oid::regprocedure::text, ' | ')
+           from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+          where n.nspname = 'public' and p.proname = 'admin_cron_job_runs'),
+        'aucune fonction de ce nom');
+  end if;
+  if coalesce(
+       pg_get_function_result(to_regprocedure('public.admin_cron_job_runs(text, integer, integer)')),
+       ''
+     ) not like '%verdict_attendu boolean%' then
+    raise exception
+      'verdict_ecrit_par_la_tache: admin_cron_job_runs ne rend pas verdict_attendu [rendu : %]',
+      pg_get_function_result(to_regprocedure('public.admin_cron_job_runs(text, integer, integer)'));
   end if;
 
   -- UNE SEULE surcharge : deux coexistantes feraient resoudre l'appel vers

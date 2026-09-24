@@ -1036,6 +1036,7 @@ et le plafond global consulté » : c'est `diag-depense-ia` (§E.36).
 | [E.64](docs/pieges.md#e64) | `NOT VALID` NE DISPENSE QUE L'INSERTION : IL REND IMMUABLES LES LIGNES QU'IL TOLÈRE. |
 | [E.65](docs/pieges.md#e65) | DÉPLACER UN TRAITEMENT DÉPLACE LES GARDES QUI EN DÉPENDENT. On relit CHAQUE garde traversée, pas seulement celle qu'on vise. |
 | [E.66](docs/pieges.md#e66) | UN `import type` EST EFFACÉ. Le transformer en import de valeur rend un banc MUET, pas rouge. |
+| [E.67](docs/pieges.md#e67) | UNE POSTCONDITION QUI COMPARE UNE CHAÎNE RENDUE PAR POSTGRES PARIE SUR UN FORMAT — et jamais exécutée, elle arrête un déploiement sur un faux négatif. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---
@@ -1067,34 +1068,17 @@ Une collision de numéros s'est déjà produite (commit `e33fdab`), et une migra
 renumérotée **avant application** (`912d437`) : numérotée sous quatre migrations déjà appliquées, elle
 se serait rejouée **avant** elles sur une base vierge.
 
-> ⚠️ **ET LA RÈGLE A ÉTÉ ENFREINTE PAR LE TRONC LUI-MÊME, QUATRE FOIS.**
-> `20260916100000_tarifs_ia`, `…110000_depense_ia_par_acteur`, `…120000_durees_reglables` et
-> `…130000_duree_invitation` portent un suffixe **`1xxxxx`** — précisément la plage que le
-> paragraphe ci-dessus déclare **fausse et corrigée**. Écrites les 16 et 17 septembre 2026, relues
-> plusieurs fois, et personne ne l'a vu : **rien ne pouvait le voir.**
+> ⚠️ **LA RÈGLE A ÉTÉ ENFREINTE PAR LE TRONC LUI-MÊME, QUATRE FOIS** — quatre migrations en
+> `1xxxxx`, la plage que ce paragraphe déclare fausse. **Aucune collision n'en est résultée**, les
+> quatre sont **appliquées** (mesuré le 18/09/2026), et le gel est **définitif** : on ne corrige pas
+> le passé, on l'inscrit et on ferme l'avenir. Le récit complet — la mesure, pourquoi renommer
+> ferait rejouer des migrations déjà passées, et la forme du cliquet — vit en **§M** de
+> [docs/architecture.md](docs/architecture.md).
 >
-> **Aucune collision n'en a résulté** — `1xxxxx` n'est attribuée à aucun worktree, et l'ordre
-> chronologique tient. Mais la plage existe *pour* éviter la collision, et celle-ci a déjà coûté un
-> renumérotage en urgence.
->
-> **Les quatre sont APPLIQUÉES en base — MESURÉ le 18/09/2026.** Ce paragraphe disait « trois des
-> quatre », et c'était vrai à sa date : la quatrième était alors **renommable**, et le gel ne disait
-> pas laquelle. C'était la seule ligne gelée du dépôt sans raison individuelle (§G.8).
-> **La fenêtre est refermée** : au moment de cette mesure le disque portait **65** migrations — il en
-> compte **66** depuis `echelle_des_notes` (19/09/2026) —, et la requête sur
-> `supabase_migrations.schema_migrations` — celle qui est en tête du gel dans
-> [scripts/diag-migration-donnees.mjs](scripts/diag-migration-donnees.mjs) — a rendu **quatre
-> lignes**. Le gel est **définitif**.
-> ⚠️ La mesure vient d'une **lecture humaine sur la base**, pas du dépôt : aucun contrôle ne peut la
-> refaire tout seul (§E.12). Les renommer ferait diverger
-> `supabase_migrations.schema_migrations` du disque, donc **rejouer des migrations déjà passées**.
-> On ne corrige pas le passé : **on l'inscrit, et on ferme l'avenir.**
->
-> **La parade — un CLIQUET**, dans [scripts/diag-migration-donnees.mjs](scripts/diag-migration-donnees.mjs),
-> même forme que `diag-colonnes-supprimees` : les quatre sont **gelées nommément**, le compte ne peut
-> que **descendre**, et toute **nouvelle** migration hors des plages attribuées fait rougir. Éprouvé
-> par mutation, dans les deux sens : une migration en `4xxxxx` est refusée, une gelée renommée dans
-> la bonne plage est signalée comme sortie du gel.
+> **La parade, elle, est ici et elle tourne** : un CLIQUET dans
+> [scripts/diag-migration-donnees.mjs](scripts/diag-migration-donnees.mjs) gèle les quatre
+> nommément, le compte ne peut que **descendre**, et toute **nouvelle** migration hors des plages
+> attribuées fait rougir. Éprouvé par mutation dans les deux sens.
 
 **G.3 — Jamais de référence à une migration par son numéro, ni par sa position.**
 Un numéro cité vieillit mal et ment ensuite ; « la dernière migration dont le nom contient *stripe* » se
@@ -1112,6 +1096,19 @@ supprime des colonnes que le code en ligne lit encore — le code doit alors par
 **APRÈS** le déploiement (`nettoyage_organisations_fantomes` : exécutée avant, elle supprimerait des
 lignes que l'ancien code recrée dans la minute), ou **indifférent** (`index_echelle`).
 Ne jamais pousser une migration sans lire cet en-tête.
+
+**G.4 bis — UNE MIGRATION SE REJOUE SUR UNE BASE JETABLE AVANT TOUT `db push`.**
+Le 24/09/2026, un `db push` sur staging s'est arrêté sur une **postcondition fausse** : elle
+annonçait absente une fonction que la migration venait de créer. **Six migrations n'avaient jamais
+tourné sur une base.** Une postcondition jamais exécutée est une **affirmation**, pas une preuve
+(§E.67), et elle est pire qu'absente : elle accuse le code au lieu d'elle-même.
+
+`npx supabase db reset --local` rejoue les 86 migrations depuis zéro. Il suffit — Docker en
+marche, `pg_cron` et `pg_net` présents dans l'image `major_version = 17`, et **aucun `seed.sql`**
+à prévoir : tarifs, plafonds et réglages sont **semés par des migrations**.
+> ⚠️ **UNE BASE VIERGE NE REJOUE PAS LES CAS DE DONNÉES.** Les postconditions qui comparent des
+> totaux, comptent des lignes antérieures ou tolèrent un passé daté passent **trivialement** sur du
+> vide. Le reset prouve le **DDL et la logique** ; pas ce qui dépend des lignes de staging.
 
 **G.5 — Le diagnostic s'éprouve par MUTATION.** Écrire le contrôle ne suffit pas : il faut casser
 délibérément la règle et vérifier que le contrôle **rougit**, puis la rétablir. C'est ainsi qu'ont été
