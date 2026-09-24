@@ -462,10 +462,20 @@ if (ECRAN) {
   )
 
   // ── LE DÉTAIL PAR TYPE D'ACTION ───────────────────────────────────────
+  //  ⚠️ LA MUTATION A TROUVÉ CE TROU. L'assertion cherchait le NOM
+  //     `detailParCompte` — qui SURVIT à un renommage en `detailParCompteAutre`,
+  //     puisqu'il en est un préfixe. Une sous-chaîne ne se teste pas comme une
+  //     présence. On ancre sur ce que l'écran REND : une ligne par action,
+  //     avec son libellé.
   ok(
-    /detailParCompte/.test(ECRAN) && /t\(`action\.\$\{d\.action\}`/.test(ECRAN),
+    /lignes\.map\(\(d\) =>/.test(ECRAN) && /t\(`action\.\$\{d\.action\}`/.test(ECRAN),
     'l\'écran VENTILE la dépense d\'un compte par type d\'action',
     'un total sans ventilation ne permet de décider de rien : il rassure quand il est bas et ne dit pas quoi faire quand il est haut',
+  )
+  ok(
+    /\bdetailParCompte\b/.test(ECRAN),
+    'et la ventilation est regroupée par COMPTE',
+    'sans regroupement, chaque ligne rechercherait son détail dans toute la liste',
   )
   ok(
     /aria-expanded=\{ouvert\}/.test(ECRAN),
@@ -509,10 +519,22 @@ const MIG2 =
         .map((l) => l.replace(/--.*$/, ''))
         .join('\n')
     : ''
+//  ⚠️ MÊME TROU QUE LE PRÉCÉDENT, AILLEURS. Le nom de la fenêtre vit aussi
+//     dans la POSTCONDITION qui vérifie que la fonction la lit : chercher le
+//     nom dans tout le fichier laissait la recopie passer. On extrait le CORPS
+//     de la fonction (§E.8) — la même parade que pour les quatre lectures.
+const CORPS_VENTILATION = MIG2.match(
+  /create (?:or replace )?function public\.ai_spend_par_acteur_et_action\([\s\S]*?\$fn\$;/,
+)
+ok(CORPS_VENTILATION !== null, 'le corps de la ventilation est identifiable')
 ok(
-  /ai_spend_debut_du_mois\(\)/.test(MIG2),
+  CORPS_VENTILATION !== null && /ai_spend_debut_du_mois\(\)/.test(CORPS_VENTILATION[0]),
   'la ventilation lit la fenêtre mensuelle UNIQUE',
   'une recopie décalerait ce détail de quelques heures en fin de mois, et la somme des actions cesserait d\'égaler la dépense',
+)
+ok(
+  CORPS_VENTILATION !== null && !/date_trunc\('month'/.test(CORPS_VENTILATION[0]),
+  'et elle ne la RECOPIE pas à côté',
 )
 ok(
   /order by i\.depense desc, i\.acteur_id/.test(MIG2),
@@ -531,8 +553,12 @@ ok(
   'la postcondition ÉPROUVE que le détail BOUCLE avec la liste',
   'un écran de dépense qui ne boucle pas cesse d\'être cru, donc d\'être lu',
 )
+//  ⚠️ ET CELUI-CI EST LE PLUS BÊTE DES TROIS : `/except/` MORD À L'INTÉRIEUR
+//     DE `exception`. La postcondition en contient sept ; retirer un vrai
+//     `except` laissait donc le compte bien au-dessus du seuil. Une frontière
+//     de mot suffit — `exception` n'en a pas après le `t`.
 ok(
-  (MIG2.match(/except/g) ?? []).length >= 2,
+  (MIG2.match(/\bexcept\b/g) ?? []).length >= 2,
   'et que les deux lectures portent sur les MÊMES comptes, dans les deux sens',
   'un compte sans détail s\'afficherait vide ; un détail sans compte se rattacherait à une ligne absente (§E.34)',
 )
@@ -641,8 +667,12 @@ if (DEPOTS_ECRAN && DEPOTS_ROUTE) {
       'un filtre que le serveur ignore rend une liste qui a l\'air filtrée — on croit avoir regardé',
     )
   }
+  //  ⚠️ QUATRIÈME DE LA MÊME FAMILLE. Le nom `CAUSES_DEPOT` survit dans sa
+  //     ligne d'IMPORT : remplacer son usage par une liste écrite à la main
+  //     laissait l'assertion verte. On ancre sur l'USAGE — l'étalement du
+  //     module dans la liste rendue —, jamais sur la présence du nom.
   ok(
-    /CAUSES_DEPOT/.test(DEPOTS_ECRAN),
+    /\[\.\.\.CAUSES_DEPOT/.test(DEPOTS_ECRAN),
     'les causes proposées sont DÉRIVÉES du module, pas listées à la main',
     'une liste écrite à la main perd la cause ajoutée demain (§E.61)',
   )
@@ -702,6 +732,44 @@ ok(
     !/\.update\(\{ plafond_mensuel_usd:/.test('const plafonds_acteur = {}'),
   'témoin : le détecteur d\'écriture distingue un réglage écrit d\'un mot présent',
 )
+//  ⚠️ LES QUATRE TÉMOINS DE CETTE CAMPAGNE, ET ILS DISENT TOUS LA MÊME CHOSE :
+//     une SOUS-CHAÎNE n'est pas une propriété. C'est la troisième campagne de
+//     ce lot qui trouve cette famille — d'où quatre témoins plutôt qu'un.
+ok(
+  /\bdetailParCompte\b/.test('const detailParCompte = x') &&
+    !/\bdetailParCompte\b/.test('const detailParCompteAutre = x'),
+  'témoin : une frontière de mot distingue un nom de son préfixe',
+)
+ok(
+  /\bexcept\b/.test('select a except select b') &&
+    !/\bexcept\b/.test('raise exception ${x}'),
+  'témoin : « except » ne mord pas à l\'intérieur de « exception »',
+)
+ok(
+  /\[\.\.\.CAUSES_DEPOT/.test("{[...CAUSES_DEPOT, 'x'].map(") &&
+    !/\[\.\.\.CAUSES_DEPOT/.test("import { CAUSES_DEPOT } from './m'"),
+  'témoin : l\'usage d\'un module se distingue de sa ligne d\'import',
+)
+{
+  const faux = [
+    'create or replace function public.ai_spend_par_acteur_et_action(p integer)',
+    'as $fn$',
+    "  select 1 where x >= date_trunc('month', now());",
+    '$fn$;',
+    "  -- la postcondition cite ai_spend_debut_du_mois() plus bas",
+    "  select 1 where prosrc like '%ai_spend_debut_du_mois()%';",
+  ].join('\n')
+  const corps = faux.match(
+    /create (?:or replace )?function public\.ai_spend_par_acteur_et_action\([\s\S]*?\$fn\$;/,
+  )
+  ok(
+    corps !== null &&
+      !/ai_spend_debut_du_mois\(\)/.test(corps[0]) &&
+      /ai_spend_debut_du_mois\(\)/.test(faux),
+    'témoin : l\'extraction du corps ignore ce que la postcondition cite',
+    'sans elle, une recopie de la fenêtre passe parce que son nom vit ailleurs dans le fichier',
+  )
+}
 ok(
   DEFINIT_LA_GARDE('export async function budgetDisponible(') &&
     !DEFINIT_LA_GARDE('const x = await budgetDisponible(a, b, c)'),
