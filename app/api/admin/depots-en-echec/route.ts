@@ -271,11 +271,16 @@ export async function POST(request: NextRequest): Promise<Response> {
   await logAudit({
     supabaseAdmin: admin,
     user_id: auth.user.id,
-    domain_id: ligne.domain_id,
+    // Convention des actions tracées : `domain_id` = domaine de l'ACTEUR (colonne
+    // NOT NULL). Celui du dépôt rejoué, qui peut être nul (`on delete set null`),
+    // va dans `detail` — passer un nullable ici faisait REJETER l'insert en
+    // silence sur un écosystème disparu (§E.68).
+    domain_id: auth.domain.id,
     action: 'candidature_depot_relance',
     entity_type: 'candidature_depot',
     entity_id: ligne.id,
     detail: {
+      domain_id_cible: ligne.domain_id,
       publication_id: ligne.publication_id,
       profile_id: ligne.profile_id,
       tentative: ligne.tentatives + 1,

@@ -287,6 +287,15 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Could not resolve ecosystem', code: 'ecosystem_unavailable' }, 503)
   }
   const domainId = (domainRow?.id as string | undefined) ?? null
+  // ⚠️ SANS ÉCOSYSTÈME ACTIF, PAS D'INSCRIPTION — pour TOUT expert, pas
+  //    seulement ceux qui donnent une branche. Un expert appartient à un
+  //    écosystème à vie (§D.3) ; en laisser entrer un sans écosystème, c'est
+  //    créer un compte que le cloisonnement ne sait pas ranger. Et la trace
+  //    d'audit de l'inscription porte ce domaine : nullable, elle était
+  //    REJETÉE en silence (§E.68).
+  if (!domainId) {
+    return json({ error: 'Unknown ecosystem', code: 'invalid_domain' }, 400)
+  }
 
   // ⚠️ ET LES DEUX GARDES NE DÉPENDENT PLUS DE `domainId` POUR S’EXÉCUTER.
   //    Elles étaient justes — `if (!br) return 400` refuse bien — mais elles
@@ -295,10 +304,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   //    L’écosystème inconnu est désormais refusé au-dessus ; si l’on arrive
   //    ici sans lui, c’est que le slug ne désigne aucun écosystème ACTIF —
   //    et cela se refuse aussi.
-  if (input.branch_id && !domainId) {
-    return json({ error: 'Unknown ecosystem', code: 'invalid_domain' }, 400)
-  }
-  if (input.branch_id && domainId) {
+  if (input.branch_id) {
     const { data: br } = await supabaseAdmin
       .from('branches')
       .select('id')
@@ -310,9 +316,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       return json({ error: 'Invalid branch', code: 'invalid_branch' }, 400)
     }
   }
-  if (input.speciality_id && !domainId) {
-    return json({ error: 'Unknown ecosystem', code: 'invalid_domain' }, 400)
-  }
+
   if (input.speciality_id && domainId) {
     const { data: sp } = await supabaseAdmin
       .from('specialities')

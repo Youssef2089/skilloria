@@ -3448,6 +3448,61 @@ migrations sur une base locale jetable** (`npx supabase db reset --local`) **ava
 
 ---
 
+<a id="e68"></a>
+
+## E.68 — UN JOURNAL BEST-EFFORT MENT DÉJÀ : SEPT TRACES D'AUDIT SUR DES RÉGLAGES D'ARGENT N'ONT JAMAIS EXISTÉ.
+
+**Le cas, mesuré le 24/09/2026 sur le dépôt.** `audit_logs.entity_id` est `uuid NOT NULL` depuis
+la baseline. **Sept** appels à `logAudit` passaient `entity_id: null` :
+
+```
+ai_tarif_updated · ai_spend_cap_updated · ai_spend_alert_threshold_updated
+ai_spend_actor_cap_updated · ai_quota_updated · durees_place_updated · billing.catalogue.sync
+```
+
+**Six sont des réglages d'ARGENT.** `logAudit` est best-effort — *« l'audit ne doit pas casser la
+requête métier »* — donc Postgres rejetait l'insert, `console.error` le disait, et **la route
+répondait « enregistré »**. Un administrateur change un tarif : l'écran confirme, la base est
+modifiée, **et aucune trace n'existe**. Sur 127 lignes d'audit lues en base, **aucune** de ces sept
+actions n'apparaît — elles ont été exécutées, jamais écrites.
+
+> ⚠️ **LA PHRASE QUI DEVAIT L'EMPÊCHER ÉTAIT ÉCRITE DANS LE FICHIER.** [lib/audit.ts](../lib/audit.ts)
+> disait, en toutes lettres : *« Un appel qui les omet échoue SILENCIEUSEMENT. Toujours les
+> fournir. »* Sept appels l'ont lue et ont passé `null` quand même. **Une consigne en commentaire
+> est une discipline ; le compilateur est une garantie** (§E.31, transposé au type).
+
+**La parade est le TYPE.** `AuditLogParams` exige désormais `entity_id: string`, `entity_type:
+string`, `domain_id: string` — sans `?`, sans `| null`. Et **`tsc` a alors nommé trois sites de
+plus**, que le balayage ne pouvait pas voir : un `domain_id` passé depuis une **variable typée
+nullable**, sans aucun `null` littéral. Un `grep` cherche une forme ; un type cherche une propriété.
+· `depots-en-echec` traçait avec le domaine **du dépôt rejoué** (nullable, `on delete set null`) au
+  lieu de celui de l'**acteur** — la convention de toutes les autres actions ;
+· `register-expert` laissait s'inscrire un expert **sans écosystème** quand aucune branche n'était
+  donnée — le refus n'était conditionnel qu'à la branche. Il est inconditionnel (§D.3) ;
+· `invitation-accept` acceptait un `string | null` que son seul appelant ne produisait jamais.
+
+**Un objet sans UUID passe par un identifiant DÉRIVÉ** — [lib/admin/identifiant-derive.ts](../lib/admin/identifiant-derive.ts).
+Le procédé existait pour les tâches planifiées (`cronJobAuditId`) ; il est **généralisé**, et le
+dériveur de tâches y **délègue** — un second hachage aurait fini par différer sur un préfixe, et les
+lignes d'une même tâche auraient cessé de se regrouper (§E.20). L'**espace** est obligatoire :
+`'cron_job'` et `'reglage'` avec la même clé donnent deux empreintes.
+
+**Gardé par [`diag-audit-jamais-nul`](../scripts/diag-audit-jamais-nul.mjs)** — il ne refait pas le
+travail du compilateur : il garde **ce qui le rendrait aveugle** (le type rouvert en `| null`, un cast
+`as string`, un `!`, le `?? null` qui transmettait le défaut) et vérifie que la contrainte en base
+est bien la **raison** du type. Une campagne l'a fait rougir sur **cinq** casts `as string` — tous
+redondants sur des valeurs `any` déjà vérifiées (§E.1) ; retirés plutôt que tolérés, pour que le
+détecteur reste net. **Éprouvé par mutation le 24/09/2026 : 14 mutations, 14 détections** — dont deux
+sur le contrôle réécrit de `diag-cron-supervision`, qui s'ancrait sur le nom `createHash('md5')` et
+rougissait sur un dériveur juste (§E.34) ; il EXÉCUTE désormais le dériveur.
+
+> **La leçon vaut pour le grand livre qui vient — étape 1 du lot journal.** *« Un journal incomplet est pire que pas
+> de journal : on lui fait confiance. »* C'est déjà vrai, aujourd'hui, sur `audit_logs`. Un journal
+> dont l'écriture est best-effort et dont les contraintes ne sont tenues que par un commentaire
+> **finit par mentir sans que personne ne le voie** — et il ment d'abord sur l'argent.
+
+---
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

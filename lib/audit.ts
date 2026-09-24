@@ -14,15 +14,30 @@ import { extractIp, extractUserAgent } from '@/lib/request-meta'
  *
  * ⚠️ `entity_type`, `entity_id` et `domain_id` sont NOT NULL en base. Un appel
  * qui les omet échoue SILENCIEUSEMENT (l'insert est best-effort et l'erreur
- * n'est que journalisée). Toujours les fournir.
+ * n'est que journalisée).
+ *
+ * ═══ CETTE PHRASE A ÉTÉ ÉCRITE, ET N'A PAS SUFFI ═══════════════════════════
+ *   Sept appels passaient `entity_id: null` — SIX sur des réglages d'ARGENT
+ *   (tarifs, plafonds, alertes, quotas). L'insert était rejeté par Postgres,
+ *   la console le disait, et la route répondait « enregistré ». Aucune de ces
+ *   traces n'a jamais existé. Mesuré le 24/09/2026 (§E.68).
+ *
+ *   « Toujours les fournir » est une DISCIPLINE. La parade est le TYPE : ces
+ *   trois champs sont désormais OBLIGATOIRES et non nuls dans `AuditLogParams`,
+ *   et le compilateur nomme chaque appel qui ne les donne pas. Un objet sans
+ *   UUID naturel — un réglage clé par un texte, une tâche, un catalogue —
+ *   passe par `identifiantDerive()` (lib/admin/identifiant-derive.ts).
  */
 export type AuditLogParams = {
   supabaseAdmin: SupabaseClient
   user_id: string
-  domain_id: string | null
+  /** NOT NULL en base. Le domaine de l'ACTEUR (convention des actions existantes). */
+  domain_id: string
   action: string
-  entity_type?: string | null
-  entity_id?: string | null
+  /** NOT NULL en base. Ce qui est touché — un nom de table ou d'objet, jamais vide. */
+  entity_type: string
+  /** NOT NULL en base. Un UUID réel, ou dérivé par `identifiantDerive()` s'il n'y en a pas. */
+  entity_id: string
   detail?: Record<string, unknown> | null
   /**
    * Requête à l'origine de l'action. Fournie ⇒ on renseigne `ip_address` et
@@ -46,8 +61,8 @@ export async function logAudit(params: AuditLogParams): Promise<void> {
       user_id,
       domain_id,
       action,
-      entity_type: entity_type ?? null,
-      entity_id: entity_id ?? null,
+      entity_type,
+      entity_id,
       detail: detail ?? null,
       ip_address: request ? extractIp(request) : null,
       user_agent: request ? extractUserAgent(request) : null,

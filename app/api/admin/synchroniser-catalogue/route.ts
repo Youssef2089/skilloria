@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { identifiantDerive } from '@/lib/admin/identifiant-derive'
 import { resolveCatalogueKey } from '@/lib/billing/config'
 import { modeDeLaCle } from '@/lib/billing/catalogue-stripe'
 import { syncCatalogue } from '@/lib/billing/catalogue'
@@ -108,7 +109,9 @@ export async function POST(request: NextRequest) {
     domain_id: auth.domain.id,
     action: 'billing.catalogue.sync',
     entity_type: 'packages',
-    entity_id: null,
+    // La synchronisation porte sur le catalogue ENTIER, dans un mode : c'est
+    // lui l'entité. Le détail dit quelles offres ont été reliées.
+    entity_id: identifiantDerive('catalogue', `packages:${mode}`),
     request,
     detail: {
       mode,

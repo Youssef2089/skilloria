@@ -337,7 +337,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     domain_id: auth.domain.id,
     action: 'publication_drafted',
     entity_type: 'publication',
-    entity_id: row.id as string,
+    entity_id: row.id,
     detail: {
       type: input.type,
       title: input.title,

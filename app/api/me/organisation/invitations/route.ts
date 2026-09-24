@@ -256,7 +256,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     domain_id: auth.domain.id,
     action: 'org_member_invited',
     entity_type: 'organization_invitations',
-    entity_id: inserted.id as string,
+    entity_id: inserted.id,
     detail: { email, role_in_org: role, domain_validation_passed: domainValidationPassed },
   })
 

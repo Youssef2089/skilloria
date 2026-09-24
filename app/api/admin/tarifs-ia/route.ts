@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { identifiantDerive } from '@/lib/admin/identifiant-derive'
 import { jugerForme } from '@/lib/ai-tarifs/forme'
 
 export const runtime = 'nodejs'
@@ -245,7 +246,9 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     domain_id: auth.domain.id,
     action: 'ai_tarif_updated',
     entity_type: 'ai_model_tarif',
-    entity_id: null,
+    // Un modèle est clé par un TEXTE : l'entité est dérivée, stable, et le nom
+    // lisible reste dans `detail.model`.
+    entity_id: identifiantDerive('reglage', `ai_model_tarifs:${model}`),
     detail: {
       model,
       avant: {

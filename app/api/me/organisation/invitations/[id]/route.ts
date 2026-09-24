@@ -121,7 +121,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
       domain_id: auth.domain.id,
       action: 'org_invitation_revoked',
       entity_type: 'organization_invitations',
-      entity_id: inv.id as string,
+      entity_id: inv.id,
       detail: { email: inv.email },
     })
     return json({ ok: true }, 200)
@@ -146,7 +146,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
     domain_id: auth.domain.id,
     action: 'org_invitation_resent',
     entity_type: 'organization_invitations',
-    entity_id: inv.id as string,
+    entity_id: inv.id,
     detail: { email: inv.email },
   })
 

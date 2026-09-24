@@ -40,9 +40,10 @@
 //
 // LECTURE PURE : ce script n'ecrit JAMAIS, dans aucun mode.
 
-import { readFileSync, readdirSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { readFileSync, readdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, join } from 'node:path'
+import { tmpdir } from 'node:os'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /**
@@ -316,7 +317,34 @@ section('E3. Activer / desactiver')
 const ACTIONS_SQL = migration('cron_supervision_actions')
 const actionsSql = stripComments(read(ACTIONS_SQL))
 const toggleRoute = stripComments(read('app/api/admin/cron-jobs/[name]/toggle/route.ts'))
-const auditId = stripComments(read('lib/admin/cron-audit-id.ts'))
+
+// ── LE DÉRIVEUR S'EXÉCUTE, IL NE SE LIT PAS (§E.34) ─────────────────────────
+//  Ce contrôle disait « createHash('md5') est dans le fichier » : un NOM. Le
+//  jour où le dériveur a DÉLÉGUÉ au dériveur général des identifiants
+//  (lib/admin/identifiant-derive.ts, §E.68), le nom a disparu et le contrôle a
+//  rougi sur un code juste. La propriété, c'est que le nom d'une tâche devient
+//  un UUID — stable, et distinct d'un autre nom. On l'exécute donc.
+//  Le module importe par l'alias `@/`, que Node ne résout pas : le spécifieur
+//  est réécrit vers le fichier réel dans une copie temporaire, puis importé
+//  (Node retire les types lui-même). Un chargement qui échoue est un KO
+//  nommé, pas un plantage muet.
+async function chargerDeriveurDeTache() {
+  const src = read('lib/admin/cron-audit-id.ts')
+  const cible = pathToFileURL(join(ROOT, 'lib/admin/identifiant-derive.ts')).href
+  const reecrit = src.replace(/from\s+'@\/lib\/admin\/identifiant-derive'/, () => `from '${cible}'`)
+  const dir = mkdtempSync(join(tmpdir(), 'sk-cron-audit-'))
+  const f = join(dir, 'cron-audit-id.ts')
+  writeFileSync(f, reecrit, 'utf8')
+  try { return (await import(pathToFileURL(f).href)).cronJobAuditId }
+  finally { rmSync(dir, { recursive: true, force: true }) }
+}
+let cronJobAuditId = null
+let erreurDeriveur = null
+try { cronJobAuditId = await chargerDeriveurDeTache() }
+catch (e) { erreurDeriveur = e instanceof Error ? e.message : String(e) }
+const UUID_FORME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+const empreinteA = typeof cronJobAuditId === 'function' ? cronJobAuditId('purge_inactive_trigger') : null
+const empreinteB = typeof cronJobAuditId === 'function' ? cronJobAuditId('session_cleanup') : null
 
 // La surface d'ecriture doit rester MINIMALE : basculer un drapeau, rien de plus.
 ok(/cron\.alter_job\(v_jobid, active := p_active\)/.test(actionsSql),
@@ -362,9 +390,14 @@ ok(!/criticality === 'legal'[\s\S]{0,120}?return json\([^)]*403/.test(toggleRout
 // Ancre sur l'AFFECTATION, pas sur le nom du helper : remplacer la valeur
 // laisse l'import en place, et le controle restait vert (constate au test de
 // mutation, deja le cas au lot 1 avec le bandeau). Un import n'ecrit rien.
-ok(/entity_id: cronJobAuditId\(jobName\)/.test(toggleRoute) && /createHash\('md5'\)/.test(auditId),
-  'entity_id derive du nom — audit_logs.entity_id est uuid NOT NULL',
-  'un nom brut y serait rejete par Postgres, et logAudit etant best-effort, l’action ne laisserait AUCUNE trace')
+ok(/entity_id: cronJobAuditId\(jobName\)/.test(toggleRoute)
+  && typeof empreinteA === 'string' && UUID_FORME.test(empreinteA)
+  && empreinteA === cronJobAuditId('purge_inactive_trigger')
+  && empreinteA !== empreinteB,
+  'entity_id derive du nom — audit_logs.entity_id est uuid NOT NULL (deriveur EXECUTE : forme UUID, stable, deux noms → deux empreintes)',
+  erreurDeriveur
+    ? `le deriveur n’a pas pu etre charge : ${erreurDeriveur}`
+    : 'un nom brut y serait rejete par Postgres, et logAudit etant best-effort, l’action ne laisserait AUCUNE trace')
 ok(/job_name: jobName/.test(toggleRoute),
   'le nom LISIBLE est ecrit dans detail — l’empreinte ne se relit pas')
 ok(/'cron_job_enabled' : 'cron_job_disabled'/.test(toggleRoute) && /request,/.test(toggleRoute),

@@ -86,7 +86,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     domain_id: auth.domain.id,
     action: 'org_member_left',
     entity_type: 'organization_members',
-    entity_id: myRow.id as string,
+    entity_id: myRow.id,
     detail: { organization_id: org.id, role_in_org: myRow.role_in_org },
   })
 

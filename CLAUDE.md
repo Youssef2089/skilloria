@@ -1037,6 +1037,7 @@ et le plafond global consulté » : c'est `diag-depense-ia` (§E.36).
 | [E.65](docs/pieges.md#e65) | DÉPLACER UN TRAITEMENT DÉPLACE LES GARDES QUI EN DÉPENDENT. On relit CHAQUE garde traversée, pas seulement celle qu'on vise. |
 | [E.66](docs/pieges.md#e66) | UN `import type` EST EFFACÉ. Le transformer en import de valeur rend un banc MUET, pas rouge. |
 | [E.67](docs/pieges.md#e67) | UNE POSTCONDITION QUI COMPARE UNE CHAÎNE RENDUE PAR POSTGRES PARIE SUR UN FORMAT — et jamais exécutée, elle arrête un déploiement sur un faux négatif. |
+| [E.68](docs/pieges.md#e68) | UN JOURNAL BEST-EFFORT MENT DÉJÀ : sept traces d'audit sur des réglages d'argent n'ont jamais existé. La parade est le TYPE, pas la consigne. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

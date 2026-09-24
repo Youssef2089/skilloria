@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { identifiantDerive } from '@/lib/admin/identifiant-derive'
 
 /**
  * lib/admin/cron-audit-id.ts — identifiant d'audit d'une tâche planifiée.
@@ -33,6 +33,10 @@ import { createHash } from 'node:crypto'
  *   d'un autre domaine qui viendrait à utiliser le même procédé.
  */
 export function cronJobAuditId(jobName: string): string {
-  const h = createHash('md5').update(`cron_job:${jobName}`).digest('hex')
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
+  // ⚠️ DÉLÈGUE, ne recopie pas. Le même procédé sert désormais aux réglages
+  //    d'argent (lib/admin/identifiant-derive.ts) ; deux dériveurs auraient
+  //    fini par différer sur un préfixe, et les lignes d'une même tâche
+  //    auraient cessé de se regrouper (§E.20). L'espace `'cron_job'` et la
+  //    clé sont INCHANGÉS : les UUID déjà écrits en base restent les mêmes.
+  return identifiantDerive('cron_job', jobName)
 }

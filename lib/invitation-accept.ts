@@ -36,7 +36,8 @@ export async function applyInvitation(params: {
   }
   userId: string
   verifiedEmail: string
-  domainId: string | null
+  /** Le domaine de l'ACTEUR qui accepte — jamais nul : `audit_logs.domain_id` est NOT NULL. */
+  domainId: string
 }): Promise<AcceptResult> {
   const { admin, invitation, userId, verifiedEmail, domainId } = params
 

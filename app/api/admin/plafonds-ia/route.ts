@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { identifiantDerive } from '@/lib/admin/identifiant-derive'
 import { alerteCoherente } from '@/lib/ai-plafonds'
 
 export const runtime = 'nodejs'
@@ -262,7 +263,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       domain_id: auth.domain.id,
       action: 'ai_spend_cap_updated',
       entity_type: 'ai_spend_caps',
-      entity_id: null,
+      entity_id: identifiantDerive('reglage', 'ai_spend_caps'),
       request,
       detail: {
         bloque: true,
@@ -278,7 +279,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       domain_id: auth.domain.id,
       action: 'ai_spend_alert_threshold_updated',
       entity_type: 'ai_spend_seuils_acteur',
-      entity_id: null,
+      entity_id: identifiantDerive('reglage', 'ai_spend_seuils_acteur'),
       request,
       detail: {
         bloque: false,
@@ -298,7 +299,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       // se relisent pas de la même façon dans un journal.
       action: 'ai_spend_actor_cap_updated',
       entity_type: 'ai_spend_seuils_acteur',
-      entity_id: null,
+      entity_id: identifiantDerive('reglage', 'ai_spend_seuils_acteur'),
       request,
       detail: {
         bloque: true,

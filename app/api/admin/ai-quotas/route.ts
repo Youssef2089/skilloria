@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { identifiantDerive } from '@/lib/admin/identifiant-derive'
 import { loadCvParsingQuota, QuotaConfigMissing } from '@/lib/ai-quotas'
 
 export const runtime = 'nodejs'
@@ -123,7 +124,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     domain_id: auth.domain.id,
     action: 'ai_quota_updated',
     entity_type: 'ai_quota',
-    entity_id: null,
+    entity_id: identifiantDerive('reglage', 'ai_quotas:cv_parsing'),
     detail: {
       quota: 'cv_parsing',
       avant: avant ? { max_per_window: avant.maxPerWindow, window_hours: avant.windowHours } : null,

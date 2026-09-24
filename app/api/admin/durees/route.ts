@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { identifiantDerive } from '@/lib/admin/identifiant-derive'
 import { chargerDurees, estDureeAcceptable, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 
 export const runtime = 'nodejs'
@@ -246,7 +247,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     domain_id: auth.domain.id,
     action: 'durees_place_updated',
     entity_type: 'duree_reglages',
-    entity_id: null,
+    // La table n'a qu'une ligne, sans UUID : l'entité est la famille.
+    entity_id: identifiantDerive('reglage', 'duree_reglages'),
     request,
     detail: {
       avant: {
