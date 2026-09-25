@@ -948,7 +948,7 @@ fausse. La répartition observée **repart** au déploiement, et l'écran le dit
 > `storage.objects`.
 
 
-### P3.6 — Les dix tâches planifiées (pg_cron, plus aucun cron d'hébergeur)
+### P3.6 — Les onze tâches planifiées (pg_cron, plus aucun cron d'hébergeur)
 | Tâche | Horaire | Ce qu'elle fait |
 |---|---|---|
 | `purge_deletions_trigger` | 03:00 | Efface les comptes dont la grâce de 90 j est échue (RGPD art. 17). |
@@ -960,6 +960,7 @@ fausse. La répartition observée **repart** au déploiement, et l'écran le dit
 | `matching_retry_trigger` | toutes les 5 min | Reprend les runs de matching inachevés. |
 | `expert_relance_trigger` | toutes les 5 min | Exécute les relances arrivées à échéance. |
 | `matching_notes_partielles_purge` | 04:30 | Purge les brouillons de notation soldés. |
+| `constats_trigger` | 04:50 | **Constate**, une fois et une seule, ce qui est arrivé sans geste — les annonces dont la durée de vie est écoulée (`annonce_expiree`), bientôt les échanges refermés — et l'écrit au grand livre sous une pièce par passage, tenu par une colonne-marqueur. Passages bornés à 200 ; rien d'autre n'est modifié (§D.26, §C.21 architecture). |
 | `stripe_reconcile_trigger` | 02:40 | Compare les événements produits par Stripe aux dernières 24 h avec ceux que le journal a reçus. **Elle signale, elle ne retraite rien.** L'horaire n'est pas esthétique : il est **contraint** par `cron_run_reconcile` (03:15) et le TTL d'environ 6 h de pg_net — posée après 03:45, sa réponse HTTP aurait expiré avant d'être recopiée, et l'écran l'afficherait éternellement « aucune réponse observée ». |
 
 > Une tâche **invisible** a déjà tourné des mois sans que personne sache ce qu'elle faisait :

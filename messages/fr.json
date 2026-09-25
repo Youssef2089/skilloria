@@ -2999,6 +2999,10 @@
         "ip_retention": {
           "label": "Effacement des adresses IP",
           "description": "Met à NULL l'adresse IP et le navigateur des journaux d'audit et de session plus anciens que la durée réglée (12 mois par défaut)."
+        },
+        "constats": {
+          "label": "Constats d'expiration",
+          "description": "Constate, une fois et une seule, les annonces dont la durée de vie est écoulée et les échanges refermés, et l'écrit au grand livre. Rien d'autre n'est modifié : c'est une écriture de fait."
         }
       },
       "banner_action": "Voir les tâches planifiées",

@@ -2999,6 +2999,10 @@
         "ip_retention": {
           "label": "IP address erasure",
           "description": "Sets to NULL the IP address and browser of audit and session logs older than the configured retention (12 months by default)."
+        },
+        "constats": {
+          "label": "Expiry statements",
+          "description": "Records, once and only once, the postings whose lifetime has elapsed and the exchanges that have closed, and writes them to the ledger. Nothing else is changed: it is a statement of fact."
         }
       },
       "banner_action": "View scheduled tasks",

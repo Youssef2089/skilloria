@@ -98,6 +98,15 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`journal_annonce_expiree` (25/09/2026) — LE CONSTAT : UNE COLONNE-MARQUEUR, UNE FONCTION, UNE TÂCHE.**
+> `publications.expiration_constatee_at` (index partiel `publications_expiration_a_constater_idx`, sans le statut) ;
+> `constater_annonces_expirees(pièce, vie, limite)` : `for update skip locked` sur les publiées jamais constatées et
+> `not annonce_active(…)`, marqueur puis `journaliser('annonce_expiree')`, une par annonce, sous la pièce du passage ;
+> `constats_trigger` planifié à 04:50 UTC via `trigger_purge_cron('/api/cron/constats')`, catalogué (technique,
+> `writes_run_log`), traduit dans les quatre langues. **Ordre : AVANT le déploiement.** Postcondition exécutée :
+> signature, colonne, index (pg_index), catalogue, planification (`cron.job`), constat sur une annonce expirée
+> réelle relu puis annulé (sauté, et dit, sur base vierge), texte libre refusé (GL004).
+
 > **`journal_annonce_depubliee` (25/09/2026) — CLÔTURER : LA TRANSITION ET LA LIGNE, EN UNE TRANSACTION.**
 > `cloturer_annonce(contexte, annonce, écosystème, organisation, statuts admis)` : statut d'origine lu `for update`
 > et jugé contre les statuts admis de la **route** (la fonction ne porte aucun littéral de statut — le contrôle
@@ -1778,6 +1787,7 @@ d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOri
 | `annonce_publiee` | `publier_annonce()` (SQL) | RPC métier + journal | `type`, `organization_id`, `verification_method`, `verification_score`, `published_at` | la transition (`draft` → verdict), le cloisonnement et la propriété sont **rejoués dans l'UPDATE** ; `published_at` est posé par la **base** quand le verdict publie (`expires_at` toujours non écrit) ; zéro ligne rend `null` → la route rend la place et répond 409 `wrong_status` là où elle disait 200 ; un verdict `pending_review` écrit le verdict **sans** ligne (rien n'est en ligne) ; `diag-ordre-des-ecritures` prend la RPC pour repère de la mise en ligne |
 | `annonce_modifiee` | `journaliserDans()` dans `app/api/publications/[id]/route.ts` (PATCH) | journal après écriture, même pièce | `champs[]` (noms de colonnes), `statut_annonce`, `organization_id` | l'édition est un UPDATE **dynamique** (les champs que le corps porte, parmi les éditables) : une RPC figée recopierait la liste des colonnes ; la ligne vient **après** l'écriture et **avant** l'audit best-effort ; jamais le **contenu** d'un champ — la postcondition refuse un titre ; un journal qui refuse répond `journal_error` avec l'identifiant de l'annonce modifiée |
 | `annonce_depubliee` | `cloturer_annonce()` (SQL) | RPC métier + journal | `de`, `vers`, `organization_id` | même forme que décliner : le statut d'origine est lu **sous verrou** et jugé contre les statuts admis passés par la **route** (`CLOSABLE_FROM`) — la fonction ne porte **aucun littéral de statut**, ce que `diag-annonce-expiree` exige de toute fonction SQL qui lit `publications` ; transition, cloisonnement et propriété **rejoués dans l'UPDATE** ; zéro ligne rend `false` → 409 `wrong_status` là où la route disait 200 en silence (§E.27) ; la clôture par l'organisation est la seule dépublication volontaire — l'expiration est un **constat** (`annonce_expiree`) |
+| `annonce_expiree` | `constater_annonces_expirees()` (SQL), appelée par la **tâche de constat** [app/api/cron/constats](../app/api/cron/constats/route.ts) (`constats_trigger`, 04:50 UTC) | constat, marqueur + ligne dans la même transaction | `vie_annonce_jours` | l'expiration n'est **pas un geste** : règle appliquée à la lecture (`annonce_active()`), rien ne bascule ; la tâche trouve ce qui est publié, jamais constaté et plus actif selon la **seule** règle du schéma, pose `publications.expiration_constatee_at` et écrit la ligne **sous verrou**, une fois ; **une pièce par passage**, née dans la route ; la durée de vie **en vigueur** est écrite avec la ligne (la date du constat n'est pas celle de l'expiration ; `published_at` et `expires_at` restent sur l'annonce, immuables, et le détail ne les **recopie pas** — `diag-annonce-expiree` refuse toute composition des deux hors `annonce_active()`) ; passages **bornés** (200), un long passé s'égrène sans reprise à la main ; l'index partiel de la file ne porte pas le statut |
 | `paiement_recu` | `enregistrer_paiement()` (SQL) | RPC métier + journal | `transaction_id`, `organization_id`, `package_id`, `stripe_invoice_id`, `stripe_event_id`, `montant`, `montant_ht`, `taxe`, `devise`, `periode`, `periode_debut`, `periode_fin` | la pièce comptable est insérée `on conflict … do nothing` — **avec le prédicat de l'index partiel** (§E.69) — PUIS journalisée sur l'**organisation**, même transaction ; un rejeu Stripe n'écrit ni l'une ni l'autre ; le webhook ouvre sa pièce (`contexteSysteme()`, justifié : Stripe agit, personne ne se connecte) AVANT la réclamation, sa première écriture |
 | `ip_effacees` | `effacer_adresses_ip()` (SQL) | tâche SQL, pièce `gen_random_uuid()` | `mois`, `limite`, `audit_logs`, `session_logs` ; `cause`, `sqlstate` | succès dans le bloc, échec dans le gestionnaire |
 | `refus_plafond_atteint` | `journaliserRefusPlafond()` dans `lib/ai-budget.ts` | fait, après refus | `action`, `fournisseur`, `portee` (acteur / global), `depense_mois_usd`, `plafond_mensuel_usd` | les DEUX chemins de refus (`arret.arrete`, `etat.au_plafond`) appellent l'écrivain ; statut `refuse` |
@@ -3055,9 +3065,9 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   suppose la précédente ». Elle est désormais la dernière.
   **Gardé** par [scripts/diag-parametrage-manuel.mjs](../scripts/diag-parametrage-manuel.mjs)
   (§B.2 ⑦ bis) pour tout ce qui est mécaniquement vérifiable ; l'ordre, lui, ne l'est pas.
-- **Cinq** des dix tâches planifiées passent par `trigger_purge_cron` et **lèvent** sans les deux
+- **Six** des onze tâches planifiées passent par `trigger_purge_cron` et **lèvent** sans les deux
   secrets du Vault : `purge_deletions_trigger`, `purge_inactive_trigger`, `matching_retry_trigger`,
-  `expert_relance_trigger`. Les deux premières portent une **obligation légale** (RGPD art. 17 et
+  `expert_relance_trigger`, `stripe_reconcile_trigger`, `constats_trigger`. Les deux premières portent une **obligation légale** (RGPD art. 17 et
   CNIL). Elles ne se plaignent qu'au journal de la base : rien à l'écran.
 - **`ensure_rls` est ÉPROUVÉ.** Sa branche `create` avait été sautée par un `if not exists` sur tous
   les environnements connus, donc **jamais exécutée nulle part** ; `CREATE EVENT TRIGGER` exige un
@@ -3137,7 +3147,8 @@ moteur dans les deux sens, une ligne par étape — **fait** : un seul module é
 (`lib/matching/journal-de-recherche.ts`), les huit étapes branchées dans les deux sens (`recherche_lancee`, `_filtree`,
 `_classee` avec le coût dans les colonnes de coût, `_correspondances`, `_notifiee`, `_terminee`, `_echouee`,
 `_abandonnee`), jamais une ligne par lot ni par profil, le contrôle comptant les fins et énumérant les sorties ; (d) l'annonce, le profil,
-le CV, la disponibilité — **en cours** : `annonce_publiee`, `annonce_modifiee`, `annonce_depubliee` ; (e) la sécurité des comptes et la gouvernance d'organisation ; (f) la
+le CV, la disponibilité — **en cours** : `annonce_publiee`, `annonce_modifiee`, `annonce_depubliee`, `annonce_expiree`
+(par la **tâche de constat** `constats_trigger`, à colonne-marqueur — `devoilement_ferme` la rejoint) ; (e) la sécurité des comptes et la gouvernance d'organisation ; (f) la
 collaboration ; (g) les purges et les dix routes sans trace. Les actions branchées sont recensées en
 **§C.21**, avec leur écrivain et leur preuve ; `diag-grand-livre` compte à chaque passage celles qui
 n'ont **pas encore** d'écrivain — et **tout le reste de la liste fermée n'écrit encore rien**. Puis :

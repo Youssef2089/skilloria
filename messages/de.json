@@ -2999,6 +2999,10 @@
         "ip_retention": {
           "label": "Löschung der IP-Adressen",
           "description": "Setzt IP-Adresse und Browser der Audit- und Sitzungsprotokolle, die älter als die eingestellte Dauer sind (standardmäßig 12 Monate), auf NULL."
+        },
+        "constats": {
+          "label": "Ablauf-Feststellungen",
+          "description": "Stellt einmalig fest, welche Anzeigen ihre Laufzeit überschritten haben und welche Austausche geschlossen wurden, und schreibt es ins Hauptbuch. Sonst wird nichts geändert: eine Tatsachenbuchung."
         }
       },
       "banner_action": "Geplante Aufgaben ansehen",

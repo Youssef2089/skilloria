@@ -2999,6 +2999,10 @@
         "ip_retention": {
           "label": "Borrado de direcciones IP",
           "description": "Pone a NULL la dirección IP y el navegador de los registros de auditoría y de sesión más antiguos que la duración configurada (12 meses por defecto)."
+        },
+        "constats": {
+          "label": "Constataciones de expiración",
+          "description": "Constata, una sola vez, los anuncios cuya vigencia ha expirado y los intercambios cerrados, y lo escribe en el libro mayor. No modifica nada más: es un registro de hechos."
         }
       },
       "banner_action": "Ver las tareas programadas",

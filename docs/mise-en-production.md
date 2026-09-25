@@ -80,7 +80,7 @@ La base déclenche elle-même cinq tâches en appelant l'application par Interne
 
 ### Ce qui se passe si vous les oubliez
 
-**Cinq** des dix tâches planifiées s'arrêtent net à chaque déclenchement :
+**Six** des onze tâches planifiées s'arrêtent net à chaque déclenchement :
 
 | Tâche | Ce qu'elle fait | Conséquence si elle ne tourne pas |
 |---|---|---|
@@ -89,10 +89,11 @@ La base déclenche elle-même cinq tâches en appelant l'application par Interne
 | `matching_retry_trigger` | reprend les mises en relation inachevées | des annonces sans candidats, sans explication |
 | `expert_relance_trigger` | applique les modifications de profil en attente | des experts dont les changements ne sont jamais pris en compte |
 | `stripe_reconcile_trigger` | compare chaque nuit les événements de paiement produits par Stripe à ceux que le site a reçus | un événement de paiement perdu **n'est jamais signalé** — et Stripe ne conserve les siens que 30 jours, au-delà il est introuvable |
+| `constats_trigger` | constate chaque nuit les annonces expirées et les échanges refermés, et l'écrit au grand livre | le grand livre ne dit jamais qu'une annonce a expiré ni qu'un échange s'est refermé : l'histoire a des trous |
 
 Ces tâches **ne se plaignent pas à l'écran**. Elles lèvent une erreur que seul le journal technique de la base porte. **Vous pourriez ne rien remarquer pendant des mois.**
 
-Les quatre autres tâches (`cron_run_reconcile`, `cron_run_log_purge`, `rate_limit_hits_purge`, `matching_notes_partielles_purge`) travaillent uniquement dans la base et **ne dépendent pas** de ces secrets.
+Les cinq autres tâches (`cron_run_reconcile`, `cron_run_log_purge`, `rate_limit_hits_purge`, `matching_notes_partielles_purge`, `ip_retention_purge`) travaillent uniquement dans la base et **ne dépendent pas** de ces secrets.
 
 ### Comment les poser
 
@@ -319,7 +320,7 @@ Poser les secrets ne prouve pas qu'ils sont **bons**. Un secret différent de ce
 
 1. Ouvrez l'application, connectez-vous en administrateur.
 2. Allez sur **/admin/taches-planifiees**.
-3. Vous devez voir **dix** tâches.
+3. Vous devez voir **onze** tâches.
 4. Choisissez `matching_retry_trigger` — c'est la moins risquée à déclencher : si elle n'a rien à faire, elle ne fait rien.
 5. Cliquez sur **Exécuter maintenant**.
 6. Attendez une minute, puis ouvrez l'historique de cette tâche.

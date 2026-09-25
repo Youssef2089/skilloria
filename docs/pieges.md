@@ -306,7 +306,7 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **113** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
+Sur les **114** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
 24/09/2026, à l'exécution — les 71ᵉ à 86ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
 lignes existantes ; `inacheves_hors_annonces_expirees` ne fait que remplacer le corps d'une fonction
@@ -3192,7 +3192,7 @@ n'expire entre les deux, parce qu'il n'y a plus de « entre les deux ».
 > encore une trace, par l'autre chemin. C'est la redondance assumée de §E.17.
 
 **LE VERDICT S'ÉCRIT SUR TOUS LES CHEMINS DE SORTIE, Y COMPRIS UNE EXCEPTION.** Cinq tâches, dix
-sorties HTTP : un guichet **partagé** les enveloppe. Cinq copies auraient été cinq occasions
+sorties HTTP au 23/09/2026 (six et douze depuis `constats_trigger`, 25/09/2026) : un guichet **partagé** les enveloppe. Cinq copies auraient été cinq occasions
 d'oublier une branche (§E.20) — et celle qu'on oublie est toujours celle de l'échec, qu'on ne joue
 jamais. Le guichet **relaie** l'exception après avoir écrit : l'avaler ferait d'une panne un succès
 silencieux, la classe même qu'on ferme.
@@ -3439,7 +3439,7 @@ migration qui « réussit » n'a rien prouvé. Le pendant manquait : **une postc
 > (`p.oid::regprocedure::text`) ou le rendu réellement obtenu.
 
 **Gardé par [`diag-signature-de-fonction`](../scripts/diag-signature-de-fonction.mjs)** — il balaie
-**les 113 migrations**, pas les six du lot : la faute est une habitude d'écriture, pas un accident de
+**les 114 migrations**, pas les six du lot : la faute est une habitude d'écriture, pas un accident de
 sprint (§E.61).
 ⚠️ **Il garde la FORME, pas le comportement de Postgres.** Aucun moteur ne tourne dans le dépôt — ni
 `psql`, ni Docker, et PostgREST ne lit pas `pg_catalog`. Ce qui prouve le mécanisme est une requête
