@@ -98,6 +98,10 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`journal_recherche_filtree` (25/09/2026) — LA LISTE BLANCHE DU FILTRAGE D'UNE RECHERCHE.** Ordre indifférent :
+> l'écrivain est TypeScript. Postcondition exécutée : la forme du module acceptée pour les deux sujets (les clés
+> propres à chaque sens) puis annulée, un texte libre refusé (GL004).
+
 > **`journal_recherche_lancee` (25/09/2026) — LA LISTE BLANCHE DU LANCEMENT D'UNE RECHERCHE.** Ordre
 > indifférent : l'écrivain est TypeScript (`lib/matching/journal-de-recherche.ts`, une ligne par étape de run,
 > jamais par lot ni par profil). Postcondition exécutée : la forme exacte du module acceptée pour les **deux**
@@ -1715,6 +1719,7 @@ d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOri
 | `candidature_retenue` | `retenir_candidature()` (SQL) | RPC métier + journal | `publication_id`, `publication_type`, `profile_id` | même forme que la déclinée : gardes rejouées dans l'UPDATE, zéro ligne rend `null` (409 `invalid_transition`), `selected_at` posé par la base et rendu à la route ; idempotent si déjà retenue (rien n'est écrit, rien n'est journalisé) |
 | `devoilement_ouvert` | `devoiler_candidature()` (SQL), par le chemin partagé `performUnlock()` | RPC métier + journal | `publication_id`, `profile_id`, `conversation_id`, `auto`, `expires_at` | la candidature est **verrouillée** (`for update`), la conversation posée (idempotente par sa clé), la bascule `unlocked` faite et la ligne écrite ensemble ; **quatre issues fermées** — `devoilee`, `deja` (conversation réconciliée, rien journalisé), `transition`, `introuvable` ; le dévoilement **inclus** au dépôt porte la **même pièce** que le dépôt (`auto: true`), le manuel sa propre pièce ; « déjà dévoilée » est le verdict de la base sous verrou, pas celui de la lecture d'avant |
 | `recherche_lancee` | `JournalDeRecherche.lancee()` dans [lib/matching/journal-de-recherche.ts](../lib/matching/journal-de-recherche.ts) — le **seul** module des huit littéraux `recherche_*` | fait, dans le run | `tentative`, `tache` | écrite au **point de non-retour** — annonce : après `marquerTentative`, tentative = compteur lu + 1 ; expert : après l'éligibilité et les réglages, avant la lecture des annonces, tentative = `matching_relance_tentatives` **lu** avec le profil (incrémenté avant le run par l'appelant qui relance) ; sujet l'objet cherché (le type dit le sens), écosystème **le sien**, pas celui du contexte (une tâche n'en a pas) ; ce qui refuse avant (annonce expirée, inéligible, réglages absents) n'écrit **pas** `lancee` ; un journal qui refuse **lève**, le run reste inachevé donc rejouable |
+| `recherche_filtree` | `JournalDeRecherche.filtree()` | fait, dans le run | `eligibles`, `sans_matiere`, `a_noter` ; annonce : `ecartes_deja_decline`, `ecartes_deja_postule` ; expert : `chargees` | les **mêmes comptes** que `matching_stats`, lus une fois (annonce : `baseStats`) ; écrite **avant** la branche « vivier vide », qui est une issue, pas une absence de filtrage ; une clé absente n'est pas envoyée, le sens ne se répète pas |
 | `paiement_recu` | `enregistrer_paiement()` (SQL) | RPC métier + journal | `transaction_id`, `organization_id`, `package_id`, `stripe_invoice_id`, `stripe_event_id`, `montant`, `montant_ht`, `taxe`, `devise`, `periode`, `periode_debut`, `periode_fin` | la pièce comptable est insérée `on conflict … do nothing` — **avec le prédicat de l'index partiel** (§E.69) — PUIS journalisée sur l'**organisation**, même transaction ; un rejeu Stripe n'écrit ni l'une ni l'autre ; le webhook ouvre sa pièce (`contexteSysteme()`, justifié : Stripe agit, personne ne se connecte) AVANT la réclamation, sa première écriture |
 | `ip_effacees` | `effacer_adresses_ip()` (SQL) | tâche SQL, pièce `gen_random_uuid()` | `mois`, `limite`, `audit_logs`, `session_logs` ; `cause`, `sqlstate` | succès dans le bloc, échec dans le gestionnaire |
 | `refus_plafond_atteint` | `journaliserRefusPlafond()` dans `lib/ai-budget.ts` | fait, après refus | `action`, `fournisseur`, `portee` (acteur / global), `depense_mois_usd`, `plafond_mensuel_usd` | les DEUX chemins de refus (`arret.arrete`, `etat.au_plafond`) appellent l'écrivain ; statut `refuse` |
@@ -3071,7 +3076,7 @@ et le dévoilement : **fait** — `candidature_deposee` (et la pièce du rejeu),
 **constat** — la fenêtre d'échange ou l'annonce expire, personne n'agit (§D.5) — et qui est livré avec
 `annonce_expiree` en (d), par une tâche de constat à colonne-marqueur, écrite une fois ; (c) le
 moteur dans les deux sens, une ligne par étape — **en cours**, un seul module écrivain
-(`lib/matching/journal-de-recherche.ts`), branché étape par étape : `recherche_lancee` ; (d) l'annonce, le profil,
+(`lib/matching/journal-de-recherche.ts`), branché étape par étape : `recherche_lancee`, `recherche_filtree` ; (d) l'annonce, le profil,
 le CV, la disponibilité ; (e) la sécurité des comptes et la gouvernance d'organisation ; (f) la
 collaboration ; (g) les purges et les dix routes sans trace. Les actions branchées sont recensées en
 **§C.21**, avec leur écrivain et leur preuve ; `diag-grand-livre` compte à chaque passage celles qui

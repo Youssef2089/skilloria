@@ -80,7 +80,7 @@ export const CLES_DETAIL = {
   profil_modifie: [],
   disponibilite_basculee: [],
   recherche_lancee: ['tentative', 'tache'],
-  recherche_filtree: [],
+  recherche_filtree: ['eligibles', 'sans_matiere', 'a_noter', 'ecartes_deja_decline', 'ecartes_deja_postule', 'chargees'],
   recherche_classee: [],
   recherche_correspondances: [],
   recherche_notifiee: [],

@@ -78,4 +78,36 @@ export class JournalDeRecherche {
       detail: { tentative: d.tentative, tache: this.journal.tache },
     })
   }
+
+  /**
+   * LE FILTRAGE — ce que les critères DÉCLARÉS ont laissé passer, et ce qu'ils
+   * ont écarté. `eligibles` est le vivier après filtres ; `sans_matiere`, ceux
+   * qu'on ne peut pas noter (rien à lire) ; `a_noter`, ce qui part au classeur.
+   * Annonce : les écartés pour décision déjà prise (décliné, déjà postulé) ;
+   * expert : le nombre d'annonces CHARGÉES avant le recoupement en mémoire.
+   * Une clé absente n'est pas envoyée (`undefined`) — le sens ne se répète pas.
+   */
+  async filtree(d: {
+    eligibles: number
+    sans_matiere: number
+    a_noter: number
+    ecartes_deja_decline?: number
+    ecartes_deja_postule?: number
+    chargees?: number
+  }): Promise<void> {
+    await journaliserDans(this.admin, this.journal, {
+      type: 'recherche_filtree',
+      statut: 'reussi',
+      sujet: this.sujet,
+      ecosystemeId: this.ecosystemeId,
+      detail: {
+        eligibles: d.eligibles,
+        sans_matiere: d.sans_matiere,
+        a_noter: d.a_noter,
+        ecartes_deja_decline: d.ecartes_deja_decline,
+        ecartes_deja_postule: d.ecartes_deja_postule,
+        chargees: d.chargees,
+      },
+    })
+  }
 }

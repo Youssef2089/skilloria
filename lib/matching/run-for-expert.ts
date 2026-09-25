@@ -396,6 +396,14 @@ async function executerRunExpert(args: {
       texte: buildAnnonceQuery({ title: a.title, description: a.description, skills_required: a.skills_required }),
     }))
     .filter((d) => documentUtilisable(d.texte))
+  // La ligne du filtrage : chargées (avant recoupement en mémoire), éligibles,
+  // sans matière, à noter — les décisions déjà prises sont DANS `retenues`.
+  await recherche.filtree({
+    chargees: annonces.length,
+    eligibles: retenues.length,
+    sans_matiere: retenues.length - documents.length,
+    a_noter: documents.length,
+  })
 
   if (documents.length === 0) {
     await ecrireTraceDePerimetre(supabaseAdmin, profileId, ouvertureCroisee)

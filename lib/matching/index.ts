@@ -336,6 +336,14 @@ export async function runMatchingForPublication(args: {
     // Le compter à part évite de lire un écart de couverture là où il n'y en a pas.
     sans_matiere: sansMatiere,
   }
+  // La ligne du filtrage — les MÊMES comptes que la trace, lus une fois.
+  await recherche.filtree({
+    eligibles: baseStats.eligible_after_filters,
+    ecartes_deja_decline: baseStats.ecartes_deja_decline,
+    ecartes_deja_postule: baseStats.ecartes_deja_postule,
+    sans_matiere: baseStats.sans_matiere,
+    a_noter: documents.length,
+  })
 
   if (documents.length === 0) {
     // Vivier vide : on réconcilie quand même (les matches d'un run précédent
