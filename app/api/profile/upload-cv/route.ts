@@ -1,4 +1,6 @@
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { JournalError } from '@/lib/journal/journaliser'
+import { cvTeleverse } from '@/lib/profil/journal-profil'
 import { capaciteActive } from '@/lib/interrupteurs'
 import { NextRequest, after } from 'next/server'
 import crypto from 'node:crypto'
@@ -283,6 +285,8 @@ export async function POST(request: NextRequest): Promise<Response> {
   // pose automatique — sans coche, on n'arrive jamais ici. `?? now` = on horodate
   // au PREMIER consentement et on ne réécrit jamais la date d'origine ensuite.
   const consentAt = profile.ai_consent_at ?? now.toISOString()
+  // Le FAIT du premier consentement : la ligne du grand livre le porte (§D.26).
+  const premierConsentement = profile.ai_consent_at == null
 
   const { error: updateErr } = await supabaseAdmin
     .from('profiles')
@@ -383,6 +387,17 @@ export async function POST(request: NextRequest): Promise<Response> {
         cv_parsing_error: result.error.slice(0, 500),
       })
       .eq('id', profile.id)
+
+    // LA LIGNE DU GRAND LIVRE — le geste entier, à son issue, AVANT l'audit
+    // best-effort (§E.68). Un journal qui refuse le DIT : le CV est stocké,
+    // l'analyse a échoué, la trace manque — et la réponse le porte.
+    try {
+      await cvTeleverse(supabaseAdmin, journal, { profileId: profile.id, octets: buffer.length, analyse: 'failed', premierConsentement })
+    } catch (err) {
+      if (!(err instanceof JournalError)) throw err
+      console.error('[upload-cv] grand livre en échec après écriture', { profileId: profile.id, message: err.message })
+      return json({ error: 'Journal failed', code: 'journal_error', profile_id: profile.id }, 500)
+    }
 
     await logAudit({
       supabaseAdmin,
@@ -601,6 +616,26 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
   }
 
+  // LA LIGNE DU GRAND LIVRE — le geste entier, à son issue, AVANT l'audit
+  // best-effort (§E.68). Un refus du journal ne perd pas la mise en relation
+  // (l'after() ci-dessous part quand même) : il est GARDÉ et rendu à la fin.
+  let journalRefuse: JournalError | null = null
+  try {
+    await cvTeleverse(supabaseAdmin, journal, {
+      profileId: profile.id,
+      octets: buffer.length,
+      analyse: 'done',
+      premierConsentement,
+      experiences: parsed.experiences?.length ?? 0,
+      formations: parsed.educations?.length ?? 0,
+      langues: parsed.languages_structured?.length ?? 0,
+    })
+  } catch (err) {
+    if (!(err instanceof JournalError)) throw err
+    journalRefuse = err
+    console.error('[upload-cv] grand livre en échec après écriture', { profileId: profile.id, message: err.message })
+  }
+
   await logAudit({
     supabaseAdmin,
     user_id: user.id,
@@ -661,6 +696,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
   })
 
+  if (journalRefuse) return json({ error: 'Journal failed', code: 'journal_error', profile_id: profile.id }, 500)
   return json({
     jobId: profile.id,
     status: 'done',

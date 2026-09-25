@@ -549,6 +549,14 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { code: 'annonce_depubliee', fichier: 'app/api/publications/[id]/close/route.ts', bloc: 'export async function POST(', motif: /const journal = contexteDepuisAuth\(auth\)[\s\S]*?\.rpc\('cloturer_annonce',\s*\{\s*\.\.\.parametresJournal\(journal\),\s*p_publication_id: id,\s*p_domain_id: activeEcosystemId\(auth\),\s*p_organization_id: orgId,\s*p_statuts_admis: \[\.\.\.CLOSABLE_FROM\],\s*\}\)[\s\S]*?if \(cloturee !== true\) \{[\s\S]{0,200}?409\)/, quoi: 'la route clôture par la RPC métier, avec le contexte, le cloisonnement, l’organisation et les statuts admis ; zéro ligne touchée répond 409' },
     { code: 'annonce_depubliee', fichier: 'app/api/publications/[id]/close/route.ts', bloc: 'export async function POST(', motif: (b) => !/\.from\('publications'\)[\s\S]{0,200}?\.update\(/.test(b), quoi: 'plus d’écriture directe du statut' },
     { code: 'annonce_expiree', fichier: 'app/api/cron/constats/route.ts', bloc: 'async function handle(', motif: /const journal = contexteDeTache\(JOB\)[\s\S]*?const lectureDurees = await chargerDurees\(admin\)[\s\S]*?\.rpc\('constater_annonces_expirees',\s*\{\s*p_piece: journal\.piece,\s*p_vie_annonce_jours: durees\.vieAnnonceJours,\s*p_limite: LIMITE_PAR_PASSAGE,\s*\}\)/, quoi: 'la tâche de constat ouvre UNE pièce par passage, lit la durée en vigueur, et la passe avec la pièce à la fonction SQL' },
+    { code: 'cv_televerse', fichier: 'lib/profil/journal-profil.ts', bloc: 'export async function cvTeleverse(', motif: /type: 'cv_televerse',\s*statut: args\.analyse === 'done' \? 'reussi' : 'echoue',\s*sujet: \{ type: 'profiles', id: args\.profileId \},\s*detail: \{\s*octets: args\.octets,\s*analyse: args\.analyse,\s*premier_consentement: args\.premierConsentement,\s*experiences: args\.experiences,\s*formations: args\.formations,\s*langues: args\.langues,\s*\},/, quoi: 'l’écrivain unique des deux voies : l’issue de l’analyse, le premier consentement, des comptes — jamais l’empreinte ni le nom du fichier' },
+    ...['app/api/profile/upload-cv/route.ts', 'app/api/profile/cdi-upload-cv/route.ts'].map((fichier) => ({ code: 'cv_televerse', fichier, bloc: 'export async function POST(', motif: (b) => {
+        const appels = [...b.matchAll(/await cvTeleverse\(supabaseAdmin, journal, \{[\s\S]*?analyse: '(done|failed)',/g)].map((m) => m[1]).sort()
+        const premierAvantEcriture = b.indexOf('const premierConsentement = ') > 0 && b.indexOf('const premierConsentement = ') < b.indexOf("cv_parsing_status: 'processing'")
+        // L'audit de l'analyse faite est reconnu à son DÉTAIL (un `status: 'done'` plus haut est la réponse du CV déjà analysé).
+        const avantAudit = b.indexOf("analyse: 'failed'") < b.indexOf("detail: { status: 'failed'") && b.indexOf("analyse: 'done'") < b.search(/detail: \{\s*status: 'done',/)
+        return appels.join(',') === 'done,failed' && premierAvantEcriture && avantAudit && /journalRefuse = err/.test(b) && /if \(journalRefuse\) return json\(\{ error: 'Journal failed', code: 'journal_error', profile_id: \w+\.id \}, 500\)/.test(b)
+      }, quoi: 'la voie écrit la ligne aux DEUX issues (analyse faite, analyse en échec), avant l’audit ; le premier consentement est lu AVANT l’écriture qui le pose ; un journal qui refuse est rendu après le travail différé' })),
     { code: 'recherche_classee', fichier: 'lib/ai-budget.ts', bloc: 'export async function enregistrerDepenseIA(', motif: /await signalerPlafondAtteint\([^\n]*\)\s*return \{ cout_usd: cout \}\s*\} catch \(err\) \{[\s\S]*?return \{ cout_usd: null \}/, quoi: 'l’enregistrement REND le coût calculé au tarif (null si tarif manquant ou exception) — un seul calcul, jamais recalculé par l’appelant (§E.13)' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
@@ -796,6 +804,13 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     }
     ok(manquantes.length === 0, 'expirée : la tâche a son libellé et sa description dans les QUATRE langues', manquantes.join(', ') || undefined)
     ok(/'\{"vie_annonce_jours":30,"title":"texte libre"\}'[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'expirée : un texte libre est REFUSÉ (sonde exécutée)')
+  }
+  {
+    const CV = stripSql(read(migration('journal_cv_televerse')))
+    const P = CV.slice(Math.max(0, CV.indexOf('do $post$')))
+    ok(/journaliser\(gen_random_uuid\(\), 'cv_televerse', 'reussi', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('octets', \d+, 'analyse', 'done', 'premier_consentement', true, 'experiences', \d+, 'formations', \d+, 'langues', \d+\)[\s\S]{0,800}?journaliser\(gen_random_uuid\(\), 'cv_televerse', 'echoue', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('octets', \d+, 'analyse', 'failed', 'premier_consentement', false\)[\s\S]{0,600}?raise exception 'SONDE_ANNULEE'/.test(P),
+      'CV : les deux formes que le module écrit (analyse faite, en échec) sont ÉCRITES, puis annulées')
+    ok(/"cv_hash"|"hash"/.test(P) && /when sqlstate 'GL004'/.test(P), 'CV : l’empreinte du fichier est REFUSÉE par la liste blanche (sonde exécutée)')
   }
   // Le moteur : une migration par étape, chacune sonde la forme exacte que le module écrit, dans les DEUX sens.
   const sondeRecherche = (suffixe, code, statut, forme, statutRefuse) => {
