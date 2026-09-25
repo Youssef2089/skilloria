@@ -632,6 +632,7 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
         quoi: `${route} : arbitre par la RPC métier avec le contexte et le statut admis PARTAGÉ ; zéro ligne répond 409 ; plus d’écriture directe du verdict, et la date rendue est celle posée par la base` })),
     { code: 'session_revoquee', fichier: 'lib/comptes/journal-compte.ts', bloc: 'export async function sessionRevoquee(', motif: /type: 'session_revoquee',\s*statut: 'reussi',\s*sujet: \{ type: 'users', id: args\.userId \},\s*detail: \{\},/, quoi: 'l’écrivain : le fait seul, sur le compte — aucun détail, donc rien qui identifie une session' },
     { code: 'session_revoquee', fichier: 'app/api/me/sessions/revoke-others/route.ts', bloc: 'export async function POST(', motif: (b) => /const setRes = await setSessionToken\([\s\S]*?await sessionRevoquee\(auth\.supabaseAdmin, contexteDepuisAuth\(auth\), \{ userId: auth\.user\.id \}\)/.test(b) && /if \(!\(err instanceof JournalError\)\) throw err[\s\S]{0,300}?code: 'journal_error'/.test(b) && b.indexOf('await sessionRevoquee(') < b.indexOf("action: 'sessions_revoked_others'"), quoi: 'la ligne vient APRÈS la rotation et AVANT l’audit ; un journal qui refuse répond journal_error' },
+    { code: 'suppression_programmee', fichier: 'app/api/me/account/delete/route.ts', bloc: 'export async function POST(', motif: /\.rpc\('programmer_suppression_compte',\s*\{\s*\.\.\.parametresJournal\(contexteDepuisAuth\(auth\)\),\s*p_user_id: auth\.user\.id,\s*p_scheduled_at: scheduledAt,\s*p_grace_jours: GRACE_DAYS,\s*\}\)/, quoi: 'la route programme par la RPC avec le contexte, l’échéance et la grâce — la ligne naît dans la transaction du transfert de siège' },
     { code: 'recherche_classee', fichier: 'lib/ai-budget.ts', bloc: 'export async function enregistrerDepenseIA(', motif: /await signalerPlafondAtteint\([^\n]*\)\s*return \{ cout_usd: cout \}\s*\} catch \(err\) \{[\s\S]*?return \{ cout_usd: null \}/, quoi: 'l’enregistrement REND le coût calculé au tarif (null si tarif manquant ou exception) — un seul calcul, jamais recalculé par l’appelant (§E.13)' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
@@ -658,6 +659,7 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { fn: 'journaliser_verification', code: 'compte_valide', motif: /return public\.journaliser\(\s*p_piece,\s*case when p_approuve then 'compte_valide' else 'compte_refuse' end,\s*'reussi', p_origine,/, quoi: 'l’écrivain UNIQUE des deux codes, qui les DÉRIVE du verdict — la forme de journaliser_reglage()' },
     { fn: 'statuer_sur_expert', code: 'compte_valide', motif: /for update;\s*if not found or v_p\.verification_status is distinct from p_statut_admis then\s*return null;[\s\S]*?update public\.profiles p[\s\S]*?update public\.users u\s*set is_verified = p_approuve[\s\S]*?perform public\.journaliser_verification\(/, quoi: 'expert : statut relu sous verrou et rejoué, profil ET drapeau du compte écrits, PUIS l’écrivain — même transaction' },
     { fn: 'statuer_sur_organisation', code: 'compte_valide', motif: /for update;\s*if not found or v_o\.verification_status is distinct from p_statut_admis then\s*return null;[\s\S]*?is_verified   = p_approuve,[\s\S]*?perform public\.journaliser_verification\([\s\S]{0,200}?null::uuid, 'organizations',/, quoi: 'organisation : même forme, invariant is_verified dans la même instruction, ligne SANS écosystème (une organisation en rejoint plusieurs)' },
+    { fn: 'programmer_suppression_compte', code: 'suppression_programmee', motif: /if not found then\s*return 'introuvable';[\s\S]*?liberer_siege_plateforme[\s\S]*?exception when foreign_key_violation then[\s\S]*?return 'dernier_admin';\s*end;\s*perform public\.journaliser\(\s*p_piece, 'suppression_programmee', 'reussi', p_origine,/, quoi: 'les deux refus (introuvable, dernier administrateur) rendent SANS écrire de ligne ; le siège est transféré, le jalon posé, PUIS la ligne — même transaction' },
     { fn: 'devoiler_candidature', code: 'devoilement_ouvert', motif: /where c\.id = p_candidature_id\s*for update;[\s\S]*?'transition'[\s\S]*?insert into public\.conversations \(candidature_id, domain_id, status, expires_at\)[\s\S]*?on conflict \(candidature_id\) do nothing[\s\S]*?if v_c\.status = 'unlocked' then[\s\S]*?'deja'[\s\S]*?set status\s*=\s*'unlocked',\s*unlocked_at = now\(\)[\s\S]*?perform public\.journaliser\(\s*p_piece, 'devoilement_ouvert', 'reussi', p_origine,[\s\S]*?'auto', p_auto,[\s\S]*?'devoilee'/, quoi: 'verrou de ligne, transition jugée, conversation idempotente, « déjà » sans ligne, bascule PUIS ligne avec l’origine — même transaction' },
   ]
   // Le CORPS d'une fonction TypeScript : après la parenthèse fermante de sa
@@ -956,6 +958,18 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     ok(/journaliser\(gen_random_uuid\(\), 'session_revoquee', 'reussi', 'utilisateur',[\s\S]{0,300}?'\{\}'::jsonb[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(P),
       'session : la forme exacte du module (aucun détail) est ÉCRITE, puis annulée')
     ok(/"token":"ss_[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'session : un JETON est REFUSÉ (sonde exécutée)')
+  }
+  {
+    const SUPP = stripSql(read(migration('journal_suppression_programmee')))
+    const P = SUPP.slice(Math.max(0, SUPP.indexOf('do $post$')))
+    ok(/drop function if exists public\.programmer_suppression_compte\(uuid, timestamptz\);/.test(SUPP)
+      && /to_regprocedure\('public\.programmer_suppression_compte\(uuid, timestamptz\)'\) is not null then\s*\n?\s*raise exception 'postcondition NON TENUE : l ancienne signature SANS journal est encore appelable'/.test(P),
+      'suppression : l’ancienne signature SANS journal est SUPPRIMÉE, et la postcondition le vérifie')
+    ok((P.match(/public\.programmer_suppression_compte\((v_piece|gen_random_uuid\(\)),/g) || []).length === 2 && /v_res <> 'introuvable' or v_lignes <> 1/.test(P),
+      'suppression : la RPC est EXÉCUTÉE deux fois — programmée, puis sur un compte inconnu qui n’écrit RIEN (sonde annulée)')
+    ok(/u\.deletion_scheduled_at is not null/.test(P) && /\(g\.detail ->> 'grace_jours'\)::integer = 90/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
+      'suppression : le jalon et la ligne sont RELUS, puis annulés')
+    ok(/"email":"qui@exemple\.fr"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'suppression : une adresse est REFUSÉE (sonde exécutée)')
   }
   // Le moteur : une migration par étape, chacune sonde la forme exacte que le module écrit, dans les DEUX sens.
   const sondeRecherche = (suffixe, code, statut, forme, statutRefuse) => {

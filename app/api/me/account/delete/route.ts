@@ -1,3 +1,4 @@
+import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { requireReauth } from '@/lib/reauth-token'
@@ -177,9 +178,15 @@ export async function POST(request: NextRequest): Promise<Response> {
   //  Le comptage plus haut RESTE : il donne le refus précis sans aller-retour,
   //  et son fail-safe (`null` sur erreur de lecture) est ce qui protège la
   //  purge quand le décompte est indisponible.
+  //  LA LIGNE DU GRAND LIVRE NAÎT DANS CETTE TRANSACTION (§D.26) : une
+  //  suppression programmée sans trace, ou une trace sans suppression,
+  //  seraient deux moitiés du même défaut. Les deux refus n'écrivent rien —
+  //  il n'y a pas de suppression à journaliser.
   const resProgrammation = await auth.supabaseAdmin.rpc('programmer_suppression_compte', {
+    ...parametresJournal(contexteDepuisAuth(auth)),
     p_user_id: auth.user.id,
     p_scheduled_at: scheduledAt,
+    p_grace_jours: GRACE_DAYS,
   })
   if (resProgrammation.error) {
     console.error('[account/delete] user update failed', resProgrammation.error.message)
